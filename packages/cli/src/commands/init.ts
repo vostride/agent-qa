@@ -593,8 +593,8 @@ export function createInitCommand(): Command {
         const capabilities = await checkbox<PlatformCapability>({
           message: 'What platform will you test?',
           choices: [
-            { value: 'web', name: 'Web', description: 'Test web apps with Playwright' },
-            { value: 'mobile', name: 'Mobile', description: 'Test Android or iOS apps with Appium' },
+            { value: 'web', name: 'Web', description: 'Test web apps with Playwright', checked: true },
+            { value: 'mobile', name: 'Mobile', description: 'Test Android or iOS apps with Appium', checked: false },
           ],
           required: true,
           validate: (value) => value.length > 0 || 'Select at least one platform.',

@@ -424,6 +424,42 @@ describe('runTest', () => {
     expect(result.steps[0].error).toContain('Step timed out after 25ms')
   })
 
+  it('records accessibility violations without failing when failOnViolation is false', async () => {
+    const page = {}
+    const adapter = createMockAdapter() as PlatformAdapter & { getPage: () => unknown }
+    adapter.getPage = () => page
+    const violation = {
+      ruleId: 'image-alt',
+      impact: 'critical' as const,
+      description: 'Images must have alternate text',
+      help: 'Image elements must have alternate text',
+      helpUrl: 'https://dequeuniversity.com/rules/axe/4.10/image-alt',
+      nodes: [{ html: '<img src="hero.png">', target: ['img'] }],
+    }
+    mockRunAccessibilityCheck.mockResolvedValueOnce([violation])
+    const config = makeRunTestConfig({
+      adapter,
+      accessibility: {
+        enabled: true,
+        standard: 'wcag2aa',
+        runAfter: 'every-step',
+        failOnViolation: false,
+      },
+    })
+    const test = makeTestDef({ steps: ['Inspect WAI BAD page'] })
+
+    const result = await runTest(test, config, '/tests/bad-a11y.yaml')
+
+    expect(result.status).toBe('passed')
+    expect(result.steps[0].status).toBe('passed')
+    expect(result.steps[0].accessibilityViolations).toEqual([violation])
+    expect(mockRunAccessibilityCheck).toHaveBeenCalledWith(page, {
+      standard: 'wcag2aa',
+      disableRules: undefined,
+      exclude: undefined,
+    })
+  })
+
   it('fails promptly when post-step device log polling never resolves and the step timeout expires', async () => {
     let pollCalls = 0
     const adapter = createMockAdapter() as PlatformAdapter & { pollDeviceLogs: () => Promise<void> }

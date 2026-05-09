@@ -417,8 +417,8 @@ describe('init command', () => {
     expect(mockCheckbox).toHaveBeenNthCalledWith(1, expect.objectContaining({
       message: 'What platform will you test?',
       choices: [
-        { value: 'web', name: 'Web', description: 'Test web apps with Playwright' },
-        { value: 'mobile', name: 'Mobile', description: 'Test Android or iOS apps with Appium' },
+        { value: 'web', name: 'Web', description: 'Test web apps with Playwright', checked: true },
+        { value: 'mobile', name: 'Mobile', description: 'Test Android or iOS apps with Appium', checked: false },
       ],
       required: true,
     }))

@@ -41,6 +41,7 @@ export interface DisplayStep {
     timing?: Record<string, number>
   }> | null
   healingAttempts: unknown[] | null
+  accessibilityViolations?: StepRow['accessibilityViolations']
   screenContextBefore: string | null
   screenContextAfter: string | null
   rawRunId: string | null
@@ -72,6 +73,7 @@ export function fromStepRow(step: StepRow): DisplayStep {
     consoleLogs: step.consoleLogs,
     networkLogs: step.networkLogs,
     healingAttempts: step.healingAttempts,
+    accessibilityViolations: step.accessibilityViolations,
     screenContextBefore: step.screenContextBefore,
     screenContextAfter: step.screenContextAfter,
     rawRunId: step.runId,
@@ -115,6 +117,7 @@ export function fromEditorStep(step: EditorStep, index: number): DisplayStep {
     consoleLogs: step.consoleLogs,
     networkLogs: step.networkLogs,
     healingAttempts: null,
+    accessibilityViolations: null,
     screenContextBefore: null,
     screenContextAfter: null,
     rawRunId: null,

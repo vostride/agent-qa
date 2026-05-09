@@ -14,8 +14,18 @@ services:
   cache:
     dir: .agent-qa/cache
     ttl: 7d
+  accessibility:
+    enabled: true
+    standard: wcag2aa
+    runAfter: every-step
+    failOnViolation: false
   memory:
     dir: agent-qa-memory
+registry:
+  targets:
+    wai-bad:
+      platform: web
+      url: https://www.w3.org/WAI/demos/bad/before/home.html
 use:
   mobile:
     appState: preserve

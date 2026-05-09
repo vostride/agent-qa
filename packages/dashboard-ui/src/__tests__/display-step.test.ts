@@ -133,6 +133,56 @@ describe('fromEditorStep', () => {
   })
 })
 
+describe('fromStepRow', () => {
+  it('preserves recorded accessibility violations for the A11y tab', () => {
+    const displayStep = fromStepRow({
+      id: 'step-a11y',
+      runId: 'run-a',
+      name: 'Inspect image alt text',
+      status: 'passed',
+      duration: 1000,
+      action: null,
+      observation: null,
+      reasoning: null,
+      plannedAction: null,
+      result: null,
+      error: null,
+      screenshotPath: null,
+      screenshotBeforePath: null,
+      healingAttempts: null,
+      retryCount: 0,
+      capturedVariables: null,
+      stepOrder: 0,
+      annotationData: null,
+      healingScreenshotPaths: null,
+      accessibilityViolations: [{
+        ruleId: 'image-alt',
+        impact: 'critical',
+        description: 'Images must have alternate text',
+        help: 'Image elements must have alternate text',
+        helpUrl: 'https://dequeuniversity.com/rules/axe/4.10/image-alt',
+        nodes: [{ html: '<img src="hero.png">', target: ['img'] }],
+      }],
+      consoleLogs: null,
+      networkLogs: null,
+      confidence: null,
+      promptTokens: 0,
+      completionTokens: 0,
+      totalTokens: 0,
+      subActionsData: null,
+      variableSnapshot: null,
+      originalStepName: null,
+      screenContextBefore: null,
+      screenContextAfter: null,
+      createdAt: '2026-05-10T00:00:00.000Z',
+    } satisfies StepRow)
+
+    expect(displayStep.accessibilityViolations).toEqual([
+      expect.objectContaining({ ruleId: 'image-alt', impact: 'critical' }),
+    ])
+  })
+})
+
 describe('withDisplayStepProgress', () => {
   it('adds display-only suite progress without mutating raw child step identity', () => {
     const rawA = fromStepRow({

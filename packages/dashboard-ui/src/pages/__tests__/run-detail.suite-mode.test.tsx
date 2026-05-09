@@ -14,11 +14,13 @@ const {
   fetchRunArtifactMock,
   fetchActiveExecutionsMock,
   fetchExecutionLogsMock,
+  fetchAccessibilitySummaryMock,
 } = vi.hoisted(() => ({
   fetchRunMock: vi.fn(),
   fetchRunArtifactMock: vi.fn(),
   fetchActiveExecutionsMock: vi.fn(),
   fetchExecutionLogsMock: vi.fn(),
+  fetchAccessibilitySummaryMock: vi.fn(),
 }))
 
 vi.mock("@/lib/api", () => ({
@@ -26,6 +28,7 @@ vi.mock("@/lib/api", () => ({
   fetchRunArtifact: fetchRunArtifactMock,
   fetchActiveExecutions: fetchActiveExecutionsMock,
   fetchExecutionLogs: fetchExecutionLogsMock,
+  fetchAccessibilitySummary: fetchAccessibilitySummaryMock,
   triggerRun: vi.fn(),
 }))
 
@@ -215,9 +218,20 @@ beforeEach(() => {
   fetchRunArtifactMock.mockReset()
   fetchActiveExecutionsMock.mockReset()
   fetchExecutionLogsMock.mockReset()
+  fetchAccessibilitySummaryMock.mockReset()
 
   fetchActiveExecutionsMock.mockResolvedValue({ executions: [] })
   fetchExecutionLogsMock.mockResolvedValue({ logs: [] })
+  fetchAccessibilitySummaryMock.mockResolvedValue({
+    enabled: null,
+    total: 0,
+    bySeverity: { critical: 0, serious: 0, moderate: 0, minor: 0 },
+    byRule: [],
+    stepsWithViolations: 0,
+    scannedSteps: 0,
+    unscannedSteps: 0,
+    totalSteps: 0,
+  })
   fetchRunArtifactMock.mockResolvedValue({ run: { id: "suite-1" }, artifact: null, children: [], missingSections: ["artifact"] })
   fetchRunMock.mockImplementation(async (id: string) => {
     if (id === "suite-1") {

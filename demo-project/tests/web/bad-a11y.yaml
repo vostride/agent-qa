@@ -1,0 +1,6 @@
+test-id: t_ponent-toa-base-fred-click-sigma-lad-agen-report-sticky
+name: W3C BAD accessibility smoke
+target: wai-bad
+steps:
+  - Verify the page says "Welcome to CityLights"
+  - Verify the page says "Inaccessible Home Page"

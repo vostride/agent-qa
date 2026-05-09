@@ -1982,6 +1982,62 @@ describe('run command — reporter integration', () => {
     expect(runConfig).not.toHaveProperty('screenshotDir')
   })
 
+  it('passes services.accessibility into direct test execution', async () => {
+    const cfg = defaultConfig()
+    const accessibility = {
+      enabled: true,
+      standard: 'wcag2aa',
+      runAfter: 'every-step',
+      failOnViolation: false,
+    }
+    ;(cfg.services as any).accessibility = accessibility
+    mockResolveConfig.mockResolvedValue(cfg)
+    mockGlob.mockResolvedValue(['tests/a.yaml'])
+    mockParseAllTests.mockResolvedValue({
+      tests: [makeTest()],
+      errors: [],
+    })
+    mockRunTestWithRetry.mockResolvedValue({
+      name: 'Test One',
+      filePath: 'tests/a.yaml',
+      status: 'passed',
+      steps: [],
+      duration: 100,
+    })
+
+    await runCommand('tests/**/*.yaml')
+
+    const runConfig = mockRunTestWithRetry.mock.calls[0][1]
+    expect(runConfig.accessibility).toEqual(accessibility)
+  })
+
+  it('passes services.accessibility into suite execution', async () => {
+    const { suitePath, configPath } = await createTempSuiteWorkspace()
+    const cfg = defaultConfig()
+    const accessibility = {
+      enabled: true,
+      standard: 'wcag2aa',
+      runAfter: 'every-step',
+      failOnViolation: false,
+    }
+    ;(cfg.services as any).accessibility = accessibility
+    mockResolveConfig.mockResolvedValue(cfg)
+    mockParseSuiteFile.mockResolvedValue({
+      name: 'Smoke Suite',
+      target: 'test-app',
+      tests: [{ test: 'tests/login.yaml', id: 'suite-test-1' }],
+    })
+    mockParseTestFile.mockReturnValue({
+      tests: [makeTest()],
+      errors: [],
+    })
+
+    await runCommandWithGlobalArgs(['--config', configPath], suitePath)
+
+    const suiteConfig = mockRunSuite.mock.calls[0][2]
+    expect(suiteConfig.accessibility).toEqual(accessibility)
+  })
+
   it('calls onRunStart before test execution', async () => {
     mockGlob.mockResolvedValue(['tests/a.yaml'])
     mockParseAllTests.mockResolvedValue({

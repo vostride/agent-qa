@@ -8,7 +8,7 @@ import { TabNetwork } from "./tab-network"
 import { TabConsole } from "./tab-console"
 import { TabAriaTree } from "./tab-aria-tree"
 import { TabA11y } from "./tab-a11y"
-import type { StepRow, SubActionData, ExecutionLogEntry } from "@/lib/api"
+import type { AccessibilitySummary, StepRow, SubActionData, ExecutionLogEntry } from "@/lib/api"
 import type { DisplayStep } from "@/lib/display-step"
 import type { ReasoningPipelineHandle } from "@/components/reasoning-pipeline"
 
@@ -20,6 +20,7 @@ interface TabPanelsProps {
   runId: string | null
   allSteps: DisplayStep[]
   executionLogs?: ExecutionLogEntry[]
+  accessibilitySummary?: AccessibilitySummary | null
   platform?: string
   screenshotSide?: ScreenshotSide
   onScreenshotSideChange?: (side: ScreenshotSide) => void
@@ -34,6 +35,7 @@ export function TabPanels({
   runId,
   allSteps,
   executionLogs = [],
+  accessibilitySummary,
   platform,
   screenshotSide,
   onScreenshotSideChange,
@@ -120,7 +122,7 @@ export function TabPanels({
 
       <TabsContent value="a11y" className="flex-1 min-h-0">
         <ScrollArea className="h-full">
-          <TabA11y step={step as unknown as StepRow} />
+          <TabA11y step={step as unknown as StepRow} summary={accessibilitySummary} />
         </ScrollArea>
       </TabsContent>
     </Tabs>

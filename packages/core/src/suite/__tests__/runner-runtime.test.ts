@@ -193,6 +193,27 @@ describe('runSuite startup navigation', () => {
     expect(result.tests[0].failureSummary).toContain('Navigation blocked')
   })
 
+  it('passes accessibility config to each suite member run', async () => {
+    const { adapter } = createMockAdapter()
+    const accessibility = {
+      enabled: true,
+      standard: 'wcag2aa' as const,
+      runAfter: 'every-step' as const,
+      failOnViolation: false,
+    }
+
+    await runSuite(
+      makeSuite(),
+      [[makeTest(), '/tests/login.yaml']],
+      makeConfig(adapter, { accessibility }),
+    )
+
+    expect(mockRunTest).toHaveBeenCalledOnce()
+    expect(mockRunTest.mock.calls[0][1]).toEqual(expect.objectContaining({
+      accessibility,
+    }))
+  })
+
   it('fails promptly when startup navigation exceeds the navigation timeout', async () => {
     const { adapter, execute, cleanup } = createMockAdapter()
     execute.mockImplementationOnce(async () => await new Promise<ActionResult>(() => {}))

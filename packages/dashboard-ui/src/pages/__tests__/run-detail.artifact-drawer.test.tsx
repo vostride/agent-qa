@@ -14,6 +14,7 @@ const {
   fetchRunArtifactMock,
   fetchActiveExecutionsMock,
   fetchExecutionLogsMock,
+  fetchAccessibilitySummaryMock,
   useKeyboardShortcutsMock,
   latestShortcuts,
 } = vi.hoisted(() => {
@@ -23,6 +24,7 @@ const {
     fetchRunArtifactMock: vi.fn(),
     fetchActiveExecutionsMock: vi.fn(),
     fetchExecutionLogsMock: vi.fn(),
+    fetchAccessibilitySummaryMock: vi.fn(),
     useKeyboardShortcutsMock: vi.fn((shortcuts: Record<string, (event: KeyboardEvent) => void>) => {
       latest = shortcuts
     }),
@@ -38,6 +40,7 @@ vi.mock("@/lib/api", () => ({
   fetchRunArtifact: fetchRunArtifactMock,
   fetchActiveExecutions: fetchActiveExecutionsMock,
   fetchExecutionLogs: fetchExecutionLogsMock,
+  fetchAccessibilitySummary: fetchAccessibilitySummaryMock,
   triggerRun: vi.fn(),
 }))
 
@@ -373,10 +376,21 @@ beforeEach(() => {
   fetchRunArtifactMock.mockReset()
   fetchActiveExecutionsMock.mockReset()
   fetchExecutionLogsMock.mockReset()
+  fetchAccessibilitySummaryMock.mockReset()
   useKeyboardShortcutsMock.mockClear()
 
   fetchActiveExecutionsMock.mockResolvedValue({ executions: [] })
   fetchExecutionLogsMock.mockResolvedValue({ logs: [] })
+  fetchAccessibilitySummaryMock.mockResolvedValue({
+    enabled: null,
+    total: 0,
+    bySeverity: { critical: 0, serious: 0, moderate: 0, minor: 0 },
+    byRule: [],
+    stepsWithViolations: 0,
+    scannedSteps: 0,
+    unscannedSteps: 0,
+    totalSteps: 0,
+  })
   fetchRunMock.mockImplementation(async (id: string) => ({
     run: makeRun(id),
     steps: [makeStep()],

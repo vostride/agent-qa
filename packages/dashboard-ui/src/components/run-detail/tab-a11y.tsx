@@ -1,9 +1,10 @@
 import { Badge } from "@/components/ui/badge"
-import type { StepRow } from "@/lib/api"
+import type { AccessibilitySummary, StepRow } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
 interface TabA11yProps {
   step: StepRow
+  summary?: AccessibilitySummary | null
 }
 
 function impactColor(impact: string): string {
@@ -16,10 +17,21 @@ function impactColor(impact: string): string {
   }
 }
 
-export function TabA11y({ step }: TabA11yProps) {
+export function TabA11y({ step, summary }: TabA11yProps) {
   const violations = step.accessibilityViolations
 
-  if (!violations || violations.length === 0) {
+  if (violations == null) {
+    const message = summary?.enabled === false
+      ? 'Accessibility checks were disabled for this run.'
+      : 'Accessibility checks did not record data for this step.'
+    return (
+      <div className="flex items-center justify-center h-full text-muted-foreground text-sm py-12">
+        {message}
+      </div>
+    )
+  }
+
+  if (violations.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground text-sm py-12">
         No accessibility violations detected
@@ -35,6 +47,7 @@ export function TabA11y({ step }: TabA11yProps) {
             <Badge className={cn("text-[10px] px-1.5 py-0", impactColor(v.impact))}>{v.impact}</Badge>
             <span className="text-sm font-medium">{v.help}</span>
           </div>
+          <div className="text-[10px] font-mono text-muted-foreground">{v.ruleId}</div>
           <p className="text-xs text-muted-foreground">{v.description}</p>
           {v.nodes.length > 0 && (
             <div className="space-y-1 mt-1">

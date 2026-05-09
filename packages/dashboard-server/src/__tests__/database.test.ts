@@ -509,6 +509,88 @@ describe('DashboardDatabase', () => {
       const steps = db.getSteps(runId)
       expect(steps.map(s => s.name)).toEqual(['Step A', 'Step B', 'Step C'])
     })
+
+    it('summarizes accessibility as disabled, unscanned, clean, or violating', () => {
+      const runId = insertSampleRun()
+      db.insertRunArtifact({
+        runId,
+        kind: 'test',
+        payload: {
+          config: {
+            effectiveConfig: {
+              services: {
+                accessibility: { enabled: true, standard: 'wcag2aa' },
+              },
+            },
+          },
+        },
+      })
+      db.insertStep({
+        runId,
+        name: 'Clean scan',
+        status: 'passed',
+        duration: 100,
+        stepOrder: 0,
+        accessibilityViolations: [],
+      })
+      db.insertStep({
+        runId,
+        name: 'Violating scan',
+        status: 'passed',
+        duration: 100,
+        stepOrder: 1,
+        accessibilityViolations: [{
+          ruleId: 'image-alt',
+          impact: 'critical',
+          description: 'Images must have alternate text',
+          help: 'Image elements must have alternate text',
+          helpUrl: 'https://dequeuniversity.com/rules/axe/4.10/image-alt',
+          nodes: [{ html: '<img src="hero.png">', target: ['img'] }],
+        }],
+      })
+      db.insertStep({
+        runId,
+        name: 'Unscanned step',
+        status: 'passed',
+        duration: 100,
+        stepOrder: 2,
+      })
+
+      const summary = db.getAccessibilitySummary(runId)
+
+      expect(summary).toMatchObject({
+        enabled: true,
+        total: 1,
+        bySeverity: { critical: 1, serious: 0, moderate: 0, minor: 0 },
+        stepsWithViolations: 1,
+        scannedSteps: 2,
+        unscannedSteps: 1,
+        totalSteps: 3,
+      })
+      expect(summary.byRule).toEqual([{ ruleId: 'image-alt', count: 1, impact: 'critical' }])
+
+      const disabledRunId = insertSampleRun({ name: 'Disabled A11y' })
+      db.insertRunArtifact({
+        runId: disabledRunId,
+        kind: 'test',
+        payload: {
+          config: {
+            effectiveConfig: {
+              services: {
+                accessibility: { enabled: false },
+              },
+            },
+          },
+        },
+      })
+
+      expect(db.getAccessibilitySummary(disabledRunId)).toMatchObject({
+        enabled: false,
+        scannedSteps: 0,
+        unscannedSteps: 0,
+        totalSteps: 0,
+      })
+    })
   })
 
   describe('execution logs', () => {

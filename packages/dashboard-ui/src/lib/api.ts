@@ -709,10 +709,13 @@ export async function fetchTokenEventStats(opts?: { from?: string; to?: string }
 }
 
 export interface AccessibilitySummary {
+  enabled: boolean | null
   total: number
   bySeverity: { critical: number; serious: number; moderate: number; minor: number }
   byRule: Array<{ ruleId: string; count: number; impact: string }>
   stepsWithViolations: number
+  scannedSteps: number
+  unscannedSteps: number
   totalSteps: number
 }
 

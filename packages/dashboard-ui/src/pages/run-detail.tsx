@@ -22,8 +22,8 @@ import { StepTree } from "@/components/run-detail/step-tree"
 import { TabPanels } from "@/components/run-detail/tab-panels"
 import type { ScreenshotSide } from "@/components/run-detail/tab-overview"
 import type { ReasoningPipelineHandle } from "@/components/reasoning-pipeline"
-import { fetchRun, fetchActiveExecutions, triggerRun, fetchExecutionLogs, fetchRunArtifact } from "@/lib/api"
-import type { RunRow, StepRow, ExecutionLogEntry, RunArtifactResponse } from "@/lib/api"
+import { fetchRun, fetchActiveExecutions, triggerRun, fetchExecutionLogs, fetchRunArtifact, fetchAccessibilitySummary } from "@/lib/api"
+import type { RunRow, StepRow, ExecutionLogEntry, RunArtifactResponse, AccessibilitySummary } from "@/lib/api"
 import { resolveVideoSrc } from "@/lib/artifact-media"
 import { getRunStatusDescriptor, getStatusBadgeClassName } from "@/lib/status"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
@@ -205,6 +205,7 @@ export default function RunDetailPage() {
 
   const [selection, setSelection] = useState<Selection | null>(null)
   const [allExecutionLogs, setAllExecutionLogs] = useState<ExecutionLogEntry[]>([])
+  const [accessibilitySummary, setAccessibilitySummary] = useState<AccessibilitySummary | null>(null)
 
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const [screenshotSideSelection, setScreenshotSideSelection] = useState<{ key: string; side: ScreenshotSide } | null>(null)
@@ -368,6 +369,25 @@ export default function RunDetailPage() {
     if (!hasStepId(selection)) return null
     return displaySteps.find(s => s.id === selection.stepId) ?? null
   }, [selection, displaySteps])
+
+  const accessibilityRunId = selectedStep?.rawRunId ?? run?.id ?? null
+
+  useEffect(() => {
+    if (!accessibilityRunId) {
+      setAccessibilitySummary(null)
+      return
+    }
+    setAccessibilitySummary(null)
+    let cancelled = false
+    fetchAccessibilitySummary(accessibilityRunId)
+      .then((summary) => {
+        if (!cancelled) setAccessibilitySummary(summary)
+      })
+      .catch(() => {
+        if (!cancelled) setAccessibilitySummary(null)
+      })
+    return () => { cancelled = true }
+  }, [accessibilityRunId])
 
   const selectedSubAction = useMemo(() => {
     if (!isSubactionSelection(selection) || !selectedStep) return null
@@ -910,6 +930,7 @@ export default function RunDetailPage() {
                   runId={selectedStep?.rawRunId ?? run.id}
                   allSteps={displaySteps}
                   executionLogs={selectedStepLogs}
+                  accessibilitySummary={accessibilitySummary}
                   platform={run.platform}
                   screenshotSide={screenshotSide}
                   onScreenshotSideChange={selectScreenshotSide}

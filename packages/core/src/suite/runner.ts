@@ -7,6 +7,7 @@ import type { SuiteDefinition, SuiteResult } from './types.js'
 import type { Reporter, RunSummary, SuiteSummary } from '../reporter/types.js'
 import { MultiReporter } from '../reporter/types.js'
 import { runTest } from '../agent/runner.js'
+import type { RunTestConfig } from '../agent/runner.js'
 import type { Planner, Verifier, ActionCache, HealingConfig } from '../agent/types.js'
 import type { LanguageModel } from 'ai'
 import type { LogManager } from '../logging/log-manager.js'
@@ -51,6 +52,7 @@ export interface RunSuiteConfig {
   resolvedHooks?: Map<string, HookDefinition>
   sandboxOptions?: SandboxRunnerOptions
   logCapture?: { console?: boolean; network?: boolean }
+  accessibility?: RunTestConfig['accessibility']
   screenshotSize?: number
   effectiveResolution?: number
   memoryProvider?: MemoryProvider
@@ -426,6 +428,7 @@ export async function runSuite(
         inlineHookSandboxOptions: config.sandboxOptions,
         secretStore: config.secretStore,
         secretRedactor: config.secretRedactor,
+        accessibility: config.accessibility,
         logCapture: config.logCapture,
         screenshotSize: config.screenshotSize,
         effectiveResolution: config.effectiveResolution,
@@ -491,6 +494,7 @@ export async function runSuite(
                     logger: config.logger,
                     secretStore: config.secretStore,
                     secretRedactor: config.secretRedactor,
+                    accessibility: config.accessibility,
                   }, filePath)
 
                   if (config.circuitBreaker) {

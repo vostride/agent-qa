@@ -1445,11 +1445,15 @@ export class DashboardDatabase {
     const steps = this.getSteps(runId)
     const allViolations: any[] = []
     let stepsWithViolations = 0
+    let scannedSteps = 0
 
     for (const step of steps) {
-      if (step.accessibilityViolations && (step.accessibilityViolations as any[]).length > 0) {
-        stepsWithViolations++
-        allViolations.push(...(step.accessibilityViolations as any[]))
+      if (Array.isArray(step.accessibilityViolations)) {
+        scannedSteps++
+        if ((step.accessibilityViolations as any[]).length > 0) {
+          stepsWithViolations++
+          allViolations.push(...(step.accessibilityViolations as any[]))
+        }
       }
     }
 
@@ -1463,14 +1467,44 @@ export class DashboardDatabase {
     }
 
     return {
+      enabled: this.getRunAccessibilityEnabled(runId),
       total: allViolations.length,
       bySeverity,
       byRule: Object.entries(byRule)
         .map(([ruleId, data]) => ({ ruleId, ...data }))
         .sort((a, b) => b.count - a.count),
       stepsWithViolations,
+      scannedSteps,
+      unscannedSteps: Math.max(0, steps.length - scannedSteps),
       totalSteps: steps.length,
     }
+  }
+
+  private getRunAccessibilityEnabled(runId: string): boolean | null {
+    const artifact = this.getRunArtifact(runId)
+    const payload = artifact?.payload
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null
+    const config = (payload as unknown as Record<string, unknown>).config
+    if (!config || typeof config !== 'object' || Array.isArray(config)) return null
+
+    const configRecord = config as Record<string, unknown>
+    const candidates = [configRecord.effectiveConfig, configRecord.parsedConfig]
+    let sawConfig = false
+    let sawAccessibility = false
+
+    for (const candidate of candidates) {
+      if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) continue
+      sawConfig = true
+      const services = (candidate as Record<string, unknown>).services
+      if (!services || typeof services !== 'object' || Array.isArray(services)) continue
+      const accessibility = (services as Record<string, unknown>).accessibility
+      if (!accessibility || typeof accessibility !== 'object' || Array.isArray(accessibility)) continue
+      sawAccessibility = true
+      const enabled = (accessibility as Record<string, unknown>).enabled
+      if (typeof enabled === 'boolean') return enabled
+    }
+
+    return sawConfig || sawAccessibility ? false : null
   }
 
   getStep(stepId: string): StepRow | undefined {
