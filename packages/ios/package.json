@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-ios",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "private": false,
   "description": "agent-qa iOS adapter for Appium-backed mobile testing.",
   "keywords": [
