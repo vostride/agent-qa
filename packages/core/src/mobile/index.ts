@@ -1,0 +1,6 @@
+export { parseMobileSource } from './xml-parser.js'
+export { normalizeRole, ANDROID_ROLE_MAP, IOS_ROLE_MAP } from './role-map.js'
+export { MobileElementResolver } from './element-resolver.js'
+export { KEY_MAP, computeSwipe, computePinch, computeFingerPositions } from './gestures.js'
+export * from './launch-resolver.js'
+export type { MobileNode, MobileRefMap, ParsedMobileTree } from './types.js'

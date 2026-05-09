@@ -1,0 +1,15 @@
+interface:
+  display_name: "agent-qa Debug Fix"
+  short_description: "Patch failed runs from evidence"
+  default_prompt: "Use $agent-qa-debug-fix to debug this failed agent-qa run, patch the root cause, and verify it."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "agent-qa"
+      description: "agent-qa local MCP server for run, artifact, log, validation, and triage tools."
+      transport: "streamable_http"
+      url: "http://127.0.0.1:3471/mcp"
+
+policy:
+  allow_implicit_invocation: true

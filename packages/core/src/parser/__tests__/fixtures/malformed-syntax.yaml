@@ -1,0 +1,7 @@
+name: Broken test
+url: https://example.com
+steps:
+  - This is fine
+  - This has bad indentation
+    timeout: 5000
+  - "unclosed string

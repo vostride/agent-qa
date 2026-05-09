@@ -1,0 +1,71 @@
+# =============================================================================
+# agent-qa Web Testing Image
+# Multi-stage build: builder (compile) → runtime (minimal)
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Stage 1: builder — install deps, build, prune
+# ---------------------------------------------------------------------------
+FROM node:24-slim AS builder
+
+RUN corepack enable && corepack prepare pnpm@10.6.1 --activate
+
+WORKDIR /build
+
+# Copy dependency manifests first for layer caching
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
+COPY packages/core/package.json packages/core/
+COPY packages/web/package.json packages/web/
+COPY packages/android/package.json packages/android/
+COPY packages/ios/package.json packages/ios/
+COPY packages/ids/package.json packages/ids/
+COPY packages/mcp/package.json packages/mcp/
+COPY packages/cli/package.json packages/cli/
+COPY packages/dashboard-ui/package.json packages/dashboard-ui/
+COPY packages/dashboard-server/package.json packages/dashboard-server/
+
+RUN pnpm install --frozen-lockfile
+
+# Copy all source files
+COPY . .
+
+# Build all packages
+RUN pnpm build
+
+# Prune dev dependencies
+RUN pnpm prune --prod
+
+# ---------------------------------------------------------------------------
+# Stage 2: runtime — browsers + agent-qa CLI
+# ---------------------------------------------------------------------------
+FROM node:24-slim
+
+# Keep base utilities small; browser system packages are installed through
+# the agent-qa browser installer below.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /agent-qa
+
+# Copy built monorepo from builder
+COPY --from=builder /build /agent-qa
+COPY LICENSE.md /licenses/agent-qa/LICENSE.md
+
+# Create CLI symlink so 'agent-qa' is available globally
+RUN ln -s /agent-qa/packages/cli/dist/cli.js /usr/local/bin/agent-qa \
+    && chmod +x /agent-qa/packages/cli/dist/cli.js
+
+# Install agent-qa browser support through the public CLI surface.
+RUN agent-qa install-browsers --all --with-deps
+
+# Working directory for test execution (mount point)
+WORKDIR /tests
+
+LABEL org.opencontainers.image.title="agent-qa Web" \
+      org.opencontainers.image.description="AI-powered testing framework with Playwright browsers" \
+      org.opencontainers.image.licenses="SEE LICENSE IN LICENSE.md" \
+      org.opencontainers.image.vendor="Vostride"
+
+ENTRYPOINT ["agent-qa"]
+CMD ["--help"]

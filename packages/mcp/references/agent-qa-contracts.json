@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "schemas": ["config", "test", "suite", "hooks", "ids"],
+  "ids": {
+    "instruction": "Generate IDs with agent_qa_generate_id or `agent-qa ids generate <type>`; never hand-write IDs.",
+    "contracts": [
+      {
+        "type": "test",
+        "prefix": "t",
+        "prefixWithSeparator": "t_",
+        "words": 10,
+        "examplePattern": "t_word-word-word-word-word-word-word-word-word-word"
+      },
+      {
+        "type": "suite",
+        "prefix": "s",
+        "prefixWithSeparator": "s_",
+        "words": 10,
+        "examplePattern": "s_word-word-word-word-word-word-word-word-word-word"
+      },
+      {
+        "type": "hook",
+        "prefix": "h",
+        "prefixWithSeparator": "h_",
+        "words": 10,
+        "examplePattern": "h_word-word-word-word-word-word-word-word-word-word"
+      },
+      {
+        "type": "observation",
+        "prefix": "obs",
+        "prefixWithSeparator": "obs_",
+        "words": 10,
+        "examplePattern": "obs_word-word-word-word-word-word-word-word-word-word"
+      },
+      {
+        "type": "run",
+        "prefix": "r",
+        "prefixWithSeparator": "r_",
+        "words": 10,
+        "examplePattern": "r_word-word-word-word-word-word-word-word-word-word"
+      }
+    ]
+  },
+  "config": {
+    "rootKeys": ["workspace", "services", "registry", "use", "analytics"],
+    "mcp": {
+      "fields": ["enabled", "transport", "host", "port", "path"],
+      "localOnlyHosts": ["localhost", "127.0.0.1", "::1"]
+    }
+  },
+  "test": {
+    "requiredKeys": ["test-id", "name", "target", "steps"],
+    "hookReferenceKeys": ["setup", "teardown"]
+  },
+  "suite": {
+    "requiredKeys": ["name", "target", "tests"],
+    "testEntryKeys": ["test", "id"]
+  },
+  "hooks": {
+    "rootKeys": ["hooks"],
+    "hookKeys": ["id", "name", "runtime", "file", "timeout"]
+  }
+}

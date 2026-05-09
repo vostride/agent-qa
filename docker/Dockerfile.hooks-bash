@@ -1,0 +1,17 @@
+FROM alpine:3.21
+
+LABEL org.opencontainers.image.title="agent-qa Hook Runner Bash" \
+      org.opencontainers.image.description="Bash hook sandbox runtime for agent-qa" \
+      org.opencontainers.image.licenses="SEE LICENSE IN LICENSE.md" \
+      org.opencontainers.image.vendor="Vostride"
+
+COPY LICENSE.md /licenses/agent-qa/LICENSE.md
+
+RUN apk add --no-cache bash curl jq tini \
+    && addgroup -S hookuser && adduser -S hookuser -G hookuser -h /workspace
+
+ENTRYPOINT ["tini", "--"]
+
+WORKDIR /workspace
+
+USER hookuser

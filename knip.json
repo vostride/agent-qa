@@ -1,0 +1,18 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    "packages/core": {
+      "entry": ["src/agent/index.ts"]
+    },
+    "packages/cli": {
+      "entry": ["src/commands/*.ts"]
+    }
+  },
+  "ignoreDependencies": [
+    "@ai-sdk/google",
+    "playwright-core"
+  ],
+  "ignoreWorkspaces": [
+    "packages/dashboard-ui"
+  ]
+}

@@ -1,0 +1,18 @@
+test-id: t_amber-birch-coral-delta-ember-falcon-garden-harbor-island-jungle
+name: Add item to cart
+target: shop-app
+steps:
+  - Navigate to the products page
+  - Click the first product
+  - Click "Add to Cart"
+  - Verify the cart badge shows "1"
+
+---
+
+test-id: t_aster-bloom-cloud-drift-ember-field-glade-hollow-ivory-jasper
+name: Remove item from cart
+target: shop-app
+steps:
+  - Navigate to the cart page
+  - Click the "Remove" button on the first item
+  - Verify the cart is empty

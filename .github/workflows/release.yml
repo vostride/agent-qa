@@ -1,0 +1,92 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Release bump
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  npm:
+    name: Publish npm packages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Release preflight
+        env:
+          POSTHOG_PROJECT_KEY: ${{ secrets.POSTHOG_PROJECT_KEY }}
+        run: pnpm exec node scripts/release/verify.mjs --bump "${{ inputs.bump }}" --stage preflight
+
+      - name: Write release version
+        id: version
+        run: pnpm exec node scripts/release/version.mjs --bump "${{ inputs.bump }}" --write
+
+      - name: Write PostHog project key
+        env:
+          POSTHOG_PROJECT_KEY: ${{ secrets.POSTHOG_PROJECT_KEY }}
+        run: pnpm exec node scripts/release/posthog.mjs --write
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Validate skills
+        run: pnpm run validate:skills
+
+      - name: Validate agent instructions
+        run: pnpm run validate:agents
+
+      - name: Validate publish surface
+        run: pnpm run validate:publish
+
+      - name: Stage packages
+        run: pnpm exec node scripts/release/stage-packages.mjs --target-version "${{ steps.version.outputs.version }}" --out .release/staged-packages
+
+      - name: Release postbuild verification
+        env:
+          POSTHOG_PROJECT_KEY: ${{ secrets.POSTHOG_PROJECT_KEY }}
+        run: pnpm exec node scripts/release/verify.mjs --bump "${{ inputs.bump }}" --stage postbuild --target-version "${{ steps.version.outputs.version }}" --staged-dir .release/staged-packages
+
+      - name: Create release commit and tag
+        run: pnpm exec node scripts/release/git.mjs --commit-tag
+
+      - name: Push release commit and tag
+        run: git push origin HEAD:${{ github.ref_name }} --follow-tags
+
+      - name: Publish packages
+        run: pnpm exec node scripts/release/publish.mjs --staged-dir .release/staged-packages

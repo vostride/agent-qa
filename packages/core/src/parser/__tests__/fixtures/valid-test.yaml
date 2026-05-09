@@ -1,0 +1,11 @@
+test-id: t_amber-birch-coral-delta-ember-falcon-garden-harbor-island-jungle
+name: Login with valid credentials
+target: my-app
+meta:
+  timeout: 1m
+steps:
+  - Navigate to the login page
+  - Fill in the email field with "qa@example.com"
+  - Fill in the password with "TestPass123!"
+  - Click the "Sign In" button
+  - Verify the dashboard page loads successfully

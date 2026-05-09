@@ -1,0 +1,84 @@
+{
+  "name": "agent-qa",
+  "version": "0.1.0",
+  "private": false,
+  "description": "agent-qa command-line interface for AI-powered web and mobile testing.",
+  "keywords": [
+    "agent-qa",
+    "testing",
+    "automation",
+    "cli",
+    "web",
+    "mobile"
+  ],
+  "license": "SEE LICENSE IN LICENSE.md",
+  "homepage": "https://github.com/vostride/agent-qa#readme",
+  "bugs": {
+    "url": "https://github.com/vostride/agent-qa/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vostride/agent-qa.git",
+    "directory": "packages/cli"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "type": "module",
+  "bin": {
+    "agent-qa": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "files": [
+    "dist",
+    "skills",
+    "LICENSE.md",
+    "NOTICE.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "copy:skills": "node scripts/copy-skills.mjs",
+    "dev": "tsup --watch",
+    "prepack": "pnpm run copy:skills",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@inquirer/checkbox": "5.1.4",
+    "@inquirer/confirm": "6.0.12",
+    "@inquirer/input": "5.0.12",
+    "@inquirer/password": "5.0.12",
+    "@inquirer/select": "5.1.4",
+    "@vostride/agent-qa-android": "workspace:*",
+    "@vostride/agent-qa-core": "workspace:*",
+    "@vostride/agent-qa-dashboard": "workspace:*",
+    "@vostride/agent-qa-dashboard-ui": "workspace:*",
+    "@vostride/agent-qa-ids": "workspace:*",
+    "@vostride/agent-qa-ios": "workspace:*",
+    "@vostride/agent-qa-mcp": "workspace:*",
+    "@vostride/agent-qa-web": "workspace:*",
+    "ai": "6.0.174",
+    "commander": "14.0.3",
+    "glob": "13.0.6",
+    "picocolors": "1.1.1",
+    "yaml": "2.8.4",
+    "zod": "4.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "~24.12.2",
+    "tsup": "~8.5.1",
+    "typescript": "~6.0.3",
+    "vitest": "~4.1.5"
+  }
+}

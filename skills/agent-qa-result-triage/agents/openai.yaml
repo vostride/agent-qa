@@ -1,0 +1,15 @@
+interface:
+  display_name: "agent-qa Result Triage"
+  short_description: "Classify failures from run artifacts"
+  default_prompt: "Use $agent-qa-result-triage to classify this failed agent-qa run with evidence."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "agent-qa"
+      description: "agent-qa local MCP server for run, artifact, log, and triage tools."
+      transport: "streamable_http"
+      url: "http://127.0.0.1:3471/mcp"
+
+policy:
+  allow_implicit_invocation: true

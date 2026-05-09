@@ -1,0 +1,62 @@
+{
+  "name": "@vostride/agent-qa-web",
+  "version": "0.1.0",
+  "private": false,
+  "description": "agent-qa web adapter for browser automation and accessibility checks.",
+  "keywords": [
+    "agent-qa",
+    "testing",
+    "browser",
+    "playwright",
+    "accessibility"
+  ],
+  "license": "SEE LICENSE IN LICENSE.md",
+  "homepage": "https://github.com/vostride/agent-qa#readme",
+  "bugs": {
+    "url": "https://github.com/vostride/agent-qa/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vostride/agent-qa.git",
+    "directory": "packages/web"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE.md",
+    "NOTICE.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "smoke:dashboard": "node ./scripts/dashboard-smoke.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@axe-core/playwright": "4.11.3",
+    "@vostride/agent-qa-core": "workspace:*",
+    "playwright-core": "1.59.1"
+  },
+  "devDependencies": {
+    "@types/node": "~24.12.2",
+    "tsup": "~8.5.1",
+    "typescript": "~6.0.3",
+    "vitest": "~4.1.5"
+  }
+}

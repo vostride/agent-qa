@@ -1,0 +1,54 @@
+{
+  "name": "agent-qa-monorepo",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE.md",
+  "homepage": "https://github.com/vostride/agent-qa#readme",
+  "bugs": {
+    "url": "https://github.com/vostride/agent-qa/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vostride/agent-qa.git"
+  },
+  "type": "module",
+  "packageManager": "pnpm@10.6.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "turbo build",
+    "test": "turbo test",
+    "typecheck": "turbo typecheck",
+    "lint": "turbo lint",
+    "dev": "turbo dev",
+    "clean": "turbo clean",
+    "validate:skills": "node skills/scripts/validate-skills.mjs",
+    "validate:agents": "node scripts/validate-agent-instructions.mjs",
+    "validate:publish": "node scripts/validate-publish-surface.mjs",
+    "release:docker": "node scripts/release/docker.mjs",
+    "release:docker:check": "node scripts/release/docker.mjs --check-local",
+    "release:dry-run": "node scripts/release/dry-run.mjs",
+    "release:verify": "node scripts/release/verify.mjs",
+    "release:publish": "node scripts/release/publish.mjs",
+    "lint:namespace": "! grep -r '@agent-qa/' packages/ --include='*.ts' --include='*.json' --include='*.js' -l --exclude-dir=node_modules --exclude-dir=dist"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["better-sqlite3", "esbuild", "sharp"],
+    "overrides": {
+      "@hono/node-server": "1.19.14",
+      "basic-ftp": "5.3.1",
+      "brace-expansion": "5.0.5",
+      "hono": "4.12.16",
+      "lodash": "4.18.1",
+      "monaco-editor>dompurify": "3.4.2",
+      "path-to-regexp": "8.4.2",
+      "webdriver>undici": "6.25.0"
+    }
+  },
+  "devDependencies": {
+    "semver": "7.7.4",
+    "turbo": "~2.9.7",
+    "typescript": "~6.0.3",
+    "vitest": "~4.1.5"
+  }
+}

@@ -1,0 +1,14 @@
+node_modules
+.git
+.planning
+.turbo
+.agent-qa
+.agent-qa-cache
+.agent-qa-screenshots
+agent-qa-memory
+dist
+coverage
+.env
+.env.*
+agent-qa.local.yaml
+*.tgz

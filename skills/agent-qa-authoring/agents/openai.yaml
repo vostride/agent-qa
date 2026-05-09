@@ -1,0 +1,15 @@
+interface:
+  display_name: "agent-qa Authoring"
+  short_description: "Author tests with real agent-qa contracts"
+  default_prompt: "Use $agent-qa-authoring to create and validate an agent-qa test with canonical IDs."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "agent-qa"
+      description: "agent-qa local MCP server for schema, ID, authoring, and run tools."
+      transport: "streamable_http"
+      url: "http://127.0.0.1:3471/mcp"
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,14 @@
+FROM python:3.12-slim
+
+LABEL org.opencontainers.image.title="agent-qa Hook Runner Python" \
+      org.opencontainers.image.description="Python hook sandbox runtime for agent-qa" \
+      org.opencontainers.image.licenses="SEE LICENSE IN LICENSE.md" \
+      org.opencontainers.image.vendor="Vostride"
+
+COPY LICENSE.md /licenses/agent-qa/LICENSE.md
+
+RUN groupadd -r hookuser && useradd -r -g hookuser -d /workspace -s /bin/sh hookuser
+
+WORKDIR /workspace
+
+USER hookuser

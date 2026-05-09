@@ -1,0 +1,37 @@
+node_modules/
+.pnpm-store/
+dist/
+.release/
+.turbo/
+*.tsbuildinfo
+
+# Local config and credentials
+.env*
+agent-qa.local.yaml
+packages/core/src/analytics/posthog-project.ts
+
+# agent-qa runtime output
+.agent-qa/
+.agent-qa-cache/
+.agent-qa-screenshots/
+agent-qa-memory/
+
+# Test and report output
+coverage/
+results/
+test-results/
+playwright-report/
+blob-report/
+
+# Logs, databases, and package artifacts
+*.log
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.tgz
+
+# OS/editor noise
+.DS_Store
+.idea/
+.vscode/

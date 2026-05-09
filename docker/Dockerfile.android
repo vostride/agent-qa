@@ -1,0 +1,107 @@
+# =============================================================================
+# agent-qa Android Testing Image
+# Node 24 + agent-qa CLI + browsers + Android SDK/API 36 + Appium.
+# Multi-stage build: builder (compile) -> runtime (browsers + Android SDK)
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Stage 1: builder — install deps, build, prune
+# ---------------------------------------------------------------------------
+FROM node:24-slim AS builder
+
+RUN corepack enable && corepack prepare pnpm@10.6.1 --activate
+
+WORKDIR /build
+
+# Copy dependency manifests first for layer caching
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
+COPY packages/core/package.json packages/core/
+COPY packages/web/package.json packages/web/
+COPY packages/android/package.json packages/android/
+COPY packages/ios/package.json packages/ios/
+COPY packages/ids/package.json packages/ids/
+COPY packages/mcp/package.json packages/mcp/
+COPY packages/cli/package.json packages/cli/
+COPY packages/dashboard-ui/package.json packages/dashboard-ui/
+COPY packages/dashboard-server/package.json packages/dashboard-server/
+
+RUN pnpm install --frozen-lockfile
+
+# Copy all source files
+COPY . .
+
+# Build all packages
+RUN pnpm build
+
+# Prune dev dependencies
+RUN pnpm prune --prod
+
+# ---------------------------------------------------------------------------
+# Stage 2: runtime — browsers + Android SDK + Appium
+# ---------------------------------------------------------------------------
+FROM node:24-slim
+
+# Browser system packages are installed by `agent-qa install-browsers --with-deps`.
+# The remaining packages support Android SDK tools, emulator startup, and TLS.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    openjdk-17-jre-headless \
+    wget \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up Android SDK
+ENV ANDROID_HOME=/opt/android-sdk
+ENV ANDROID_SDK_ROOT=/opt/android-sdk
+ENV AGENT_QA_ANDROID_API=36
+ENV AGENT_QA_ANDROID_AVD=agent_qa_api_36
+ENV AGENT_QA_ANDROID_SYSTEM_IMAGE="system-images;android-36;google_apis;x86_64"
+ENV PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/emulator:${PATH}"
+
+RUN mkdir -p ${ANDROID_HOME}/cmdline-tools \
+    && wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O /tmp/cmdtools.zip \
+    && unzip -q /tmp/cmdtools.zip -d ${ANDROID_HOME}/cmdline-tools \
+    && mv ${ANDROID_HOME}/cmdline-tools/cmdline-tools ${ANDROID_HOME}/cmdline-tools/latest \
+    && rm /tmp/cmdtools.zip
+
+RUN yes | sdkmanager --licenses > /dev/null 2>&1 \
+    && sdkmanager \
+      "platform-tools" \
+      "platforms;android-${AGENT_QA_ANDROID_API}" \
+      "${AGENT_QA_ANDROID_SYSTEM_IMAGE}" \
+      "emulator"
+
+# Create a deterministic CI AVD. agent-qa.local.yaml should reference this name
+# unless a local developer intentionally overrides it.
+RUN echo "no" | avdmanager create avd \
+    -n "${AGENT_QA_ANDROID_AVD}" \
+    -k "${AGENT_QA_ANDROID_SYSTEM_IMAGE}" \
+    --device "pixel_6"
+
+# Install Appium and UIAutomator2 driver
+RUN npm install -g appium \
+    && appium driver install uiautomator2
+
+WORKDIR /agent-qa
+
+# Copy built monorepo from builder
+COPY --from=builder /build /agent-qa
+COPY LICENSE.md /licenses/agent-qa/LICENSE.md
+
+# Create CLI symlink so 'agent-qa' is available globally
+RUN ln -s /agent-qa/packages/cli/dist/cli.js /usr/local/bin/agent-qa \
+    && chmod +x /agent-qa/packages/cli/dist/cli.js
+
+# Install agent-qa browser support through the public CLI surface.
+RUN agent-qa install-browsers --all --with-deps
+
+# Working directory for test execution (mount point)
+WORKDIR /tests
+
+LABEL org.opencontainers.image.title="agent-qa Android" \
+      org.opencontainers.image.description="AI-powered testing framework with Playwright browsers + Android SDK + Appium" \
+      org.opencontainers.image.licenses="SEE LICENSE IN LICENSE.md" \
+      org.opencontainers.image.vendor="Vostride"
+
+ENTRYPOINT ["agent-qa"]
+CMD ["--help"]

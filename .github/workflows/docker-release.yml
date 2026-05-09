@@ -1,0 +1,123 @@
+name: Docker Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      move_latest:
+        description: Move latest tags after all immutable image pushes succeed
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: docker-release-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    name: Docker release preflight
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.docker.outputs.version }}
+      namespace: ${{ steps.docker.outputs.namespace }}
+      images: ${{ steps.docker.outputs.images }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Docker release plan
+        id: docker
+        env:
+          DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+          DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: pnpm exec node scripts/release/docker.mjs --check-local --check-tags --require-env --github-output
+
+  docker:
+    name: Build and push ${{ matrix.image.id }}
+    runs-on: ubuntu-latest
+    needs: preflight
+    strategy:
+      fail-fast: true
+      matrix:
+        image: ${{ fromJson(needs.preflight.outputs.images) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ matrix.image.image }}
+          tags: |
+            type=raw,value=${{ needs.preflight.outputs.version }}
+            type=raw,value=v${{ needs.preflight.outputs.version }}
+          labels: |
+            org.opencontainers.image.title=${{ matrix.image.title }}
+            org.opencontainers.image.description=${{ matrix.image.description }}
+            org.opencontainers.image.version=${{ needs.preflight.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.licenses=SEE LICENSE IN LICENSE.md
+
+      - name: Build and push image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ${{ matrix.image.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: mode=max
+          sbom: true
+
+  latest:
+    name: Move latest tag for ${{ matrix.image.id }}
+    if: ${{ inputs.move_latest }}
+    runs-on: ubuntu-latest
+    needs: [preflight, docker]
+    strategy:
+      fail-fast: true
+      matrix:
+        image: ${{ fromJson(needs.preflight.outputs.images) }}
+
+    steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Move latest tag
+        run: docker buildx imagetools create -t "${{ matrix.image.image }}:latest" "${{ matrix.image.image }}:${{ needs.preflight.outputs.version }}"

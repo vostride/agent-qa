@@ -1,0 +1,17 @@
+test-id: t_brick-cinder-dawn-echo-forest-grove-harvest-isle-jade-kite
+name: Checkout flow with overrides
+target: shop-app
+meta:
+  retries: 5
+steps:
+  - Navigate to the products page
+  - Click "Add to Cart" on the first product
+  - step: Wait for the cart to update
+    timeout: 15s
+  - ${hooks:Prepare Payment}
+  - Upload ${file:receipt.pdf} to the receipt field
+  - Save the order number as {{env:orderNumber}}
+  - step: Complete the checkout
+    retries: 3
+    screenshot: true
+  - Verify confirmation shows order {{env:orderNumber}}

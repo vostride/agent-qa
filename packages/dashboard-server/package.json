@@ -1,0 +1,73 @@
+{
+  "name": "@vostride/agent-qa-dashboard",
+  "version": "0.1.0",
+  "private": false,
+  "description": "agent-qa local dashboard server, APIs, run queue, and artifact services.",
+  "keywords": [
+    "agent-qa",
+    "dashboard",
+    "testing",
+    "automation",
+    "server"
+  ],
+  "license": "SEE LICENSE IN LICENSE.md",
+  "homepage": "https://github.com/vostride/agent-qa#readme",
+  "bugs": {
+    "url": "https://github.com/vostride/agent-qa/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vostride/agent-qa.git",
+    "directory": "packages/dashboard-server"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE.md",
+    "NOTICE.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@vostride/agent-qa-android": "workspace:*",
+    "@vostride/agent-qa-core": "workspace:*",
+    "@vostride/agent-qa-ids": "workspace:*",
+    "@vostride/agent-qa-ios": "workspace:*",
+    "@vostride/agent-qa-mcp": "workspace:*",
+    "@vostride/agent-qa-web": "workspace:*",
+    "ai": "6.0.174",
+    "better-sqlite3": "12.9.0",
+    "id-agent": "1.0.3",
+    "picocolors": "1.1.1",
+    "tree-kill": "1.2.2",
+    "ws": "8.20.0",
+    "yaml": "2.8.4",
+    "zod": "4.4.2"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "~7.6.13",
+    "@types/node": "~24.12.2",
+    "@types/ws": "~8.18.1",
+    "tsup": "~8.5.1",
+    "typescript": "~6.0.3"
+  }
+}

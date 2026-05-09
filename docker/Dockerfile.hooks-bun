@@ -1,0 +1,14 @@
+FROM oven/bun:1-slim
+
+LABEL org.opencontainers.image.title="agent-qa Hook Runner Bun" \
+      org.opencontainers.image.description="Bun hook sandbox runtime for agent-qa" \
+      org.opencontainers.image.licenses="SEE LICENSE IN LICENSE.md" \
+      org.opencontainers.image.vendor="Vostride"
+
+COPY LICENSE.md /licenses/agent-qa/LICENSE.md
+
+RUN groupadd -r hookuser && useradd -r -g hookuser -d /workspace -s /bin/sh hookuser
+
+WORKDIR /workspace
+
+USER hookuser
