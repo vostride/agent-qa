@@ -109,32 +109,20 @@ test('release workflow publishes Docker from the release tag after npm publish',
 test('release workflow publishes subscription auth from the main release version before Docker', () => {
   const workflow = readWorkflow()
   const orderedCommands = [
-    'path: agent-qa',
-    'repository: vostride/agent-qa-subscription-auth',
-    'working-directory: agent-qa\n        run: pnpm install --frozen-lockfile',
-    'working-directory: agent-qa\n        run: pnpm --filter @vostride/agent-qa-ids build',
-    'working-directory: agent-qa\n        run: pnpm --filter @vostride/agent-qa-core build',
-    'working-directory: agent-qa-subscription-auth\n        run: pnpm install --frozen-lockfile',
-    'pnpm run release:verify -- --target-version "$SUBSCRIPTION_AUTH_TARGET_VERSION" --stage preflight',
-    'pnpm run release:version -- --target-version "$SUBSCRIPTION_AUTH_TARGET_VERSION" --write',
-    'working-directory: agent-qa-subscription-auth\n        run: pnpm test',
-    'working-directory: agent-qa-subscription-auth\n        run: pnpm typecheck',
-    'working-directory: agent-qa-subscription-auth\n        run: pnpm build',
-    'pnpm run release:stage -- --target-version "$SUBSCRIPTION_AUTH_TARGET_VERSION" --out .release/package',
-    'pnpm run release:verify -- --stage postbuild --target-version "$SUBSCRIPTION_AUTH_TARGET_VERSION" --staged-dir .release/package',
-    'working-directory: agent-qa-subscription-auth\n        run: pnpm exec node scripts/release/git.mjs --commit-tag',
-    'working-directory: agent-qa-subscription-auth\n        run: git push origin HEAD:main --follow-tags',
-    'working-directory: agent-qa-subscription-auth\n        run: pnpm run release:publish -- --staged-dir .release/package',
+    'gh workflow run release.yml',
+    '--repo vostride/agent-qa-subscription-auth',
+    '-f target_version="$SUBSCRIPTION_AUTH_TARGET_VERSION"',
+    'gh run list',
+    'gh run watch "$run_id"',
     'uses: ./.github/workflows/docker-release.yml',
   ]
 
   assert.match(workflow, /subscription-auth:\s*\n\s+name:\s*Publish subscription auth/)
   assert.match(workflow, /if:\s*\$\{\{ always\(\) && \(inputs\.subscription_auth_target_version != '' \|\| needs\.npm\.result == 'success'\) \}\}/)
   assert.match(workflow, /SUBSCRIPTION_AUTH_TARGET_VERSION:\s*\$\{\{ inputs\.subscription_auth_target_version \|\| needs\.npm\.outputs\.version \}\}/)
-  assert.match(workflow, /Checkout agent-qa for linked core dependency/)
-  assert.match(workflow, /path:\s*agent-qa/)
-  assert.match(workflow, /ref:\s*\$\{\{ github\.ref_name \}\}/)
-  assert.match(workflow, /token:\s*\$\{\{ secrets\.SUBSCRIPTION_AUTH_RELEASE_TOKEN \}\}/)
+  assert.match(workflow, /GH_TOKEN:\s*\$\{\{ secrets\.SUBSCRIPTION_AUTH_RELEASE_TOKEN \}\}/)
+  assert.match(workflow, /Actions: read and write/)
+  assert.doesNotMatch(workflow, /working-directory:\s*agent-qa-subscription-auth/)
   assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+if:\s*\$\{\{ inputs\.subscription_auth_target_version == '' \}\}\s*\n\s+needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
   for (const command of orderedCommands) assert.match(workflow, new RegExp(command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
   for (let index = 0; index < orderedCommands.length - 1; index += 1) {

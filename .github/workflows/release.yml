@@ -113,88 +113,47 @@ jobs:
           SUBSCRIPTION_AUTH_RELEASE_TOKEN: ${{ secrets.SUBSCRIPTION_AUTH_RELEASE_TOKEN }}
         run: |
           if [ -z "$SUBSCRIPTION_AUTH_RELEASE_TOKEN" ]; then
-            echo "::error::Set SUBSCRIPTION_AUTH_RELEASE_TOKEN in the vostride/agent-qa repository Actions secrets. The token needs Contents: read and write on vostride/agent-qa-subscription-auth."
+            echo "::error::Set SUBSCRIPTION_AUTH_RELEASE_TOKEN in the vostride/agent-qa repository Actions secrets. The token needs Actions: read and write on vostride/agent-qa-subscription-auth."
             exit 1
           fi
 
-      - name: Checkout agent-qa for linked core dependency
-        uses: actions/checkout@v6
-        with:
-          path: agent-qa
-          ref: ${{ github.ref_name }}
+      - name: Dispatch subscription auth release
+        env:
+          GH_TOKEN: ${{ secrets.SUBSCRIPTION_AUTH_RELEASE_TOKEN }}
+        run: |
+          set -euo pipefail
+          started_at="$(date -u -d '2 minutes ago' +%Y-%m-%dT%H:%M:%SZ)"
+          gh workflow run release.yml \
+            --repo vostride/agent-qa-subscription-auth \
+            --ref main \
+            -f target_version="$SUBSCRIPTION_AUTH_TARGET_VERSION"
 
-      - name: Checkout subscription auth
-        uses: actions/checkout@v6
-        with:
-          repository: vostride/agent-qa-subscription-auth
-          path: agent-qa-subscription-auth
-          token: ${{ secrets.SUBSCRIPTION_AUTH_RELEASE_TOKEN }}
-          fetch-depth: 0
+          run_id=""
+          for attempt in {1..60}; do
+            run_id="$(gh run list \
+              --repo vostride/agent-qa-subscription-auth \
+              --workflow release.yml \
+              --branch main \
+              --event workflow_dispatch \
+              --limit 20 \
+              --json databaseId,displayTitle,createdAt \
+              --jq '.[] | select(.displayTitle == "Release subscription auth '"$SUBSCRIPTION_AUTH_TARGET_VERSION"'") | select(.createdAt >= "'"$started_at"'") | .databaseId' \
+              | head -n 1)"
+            if [ -n "$run_id" ]; then
+              break
+            fi
+            sleep 5
+          done
 
-      - name: Setup Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
+          if [ -z "$run_id" ]; then
+            echo "::error::Timed out waiting for subscription-auth release workflow to start."
+            exit 1
+          fi
 
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Install agent-qa dependencies
-        working-directory: agent-qa
-        run: pnpm install --frozen-lockfile
-
-      - name: Build linked ID helpers
-        working-directory: agent-qa
-        run: pnpm --filter @vostride/agent-qa-ids build
-
-      - name: Build linked core dependency
-        working-directory: agent-qa
-        run: pnpm --filter @vostride/agent-qa-core build
-
-      - name: Install dependencies
-        working-directory: agent-qa-subscription-auth
-        run: pnpm install --frozen-lockfile
-
-      - name: Release preflight
-        working-directory: agent-qa-subscription-auth
-        run: pnpm run release:verify -- --target-version "$SUBSCRIPTION_AUTH_TARGET_VERSION" --stage preflight
-
-      - name: Write release version
-        working-directory: agent-qa-subscription-auth
-        run: pnpm run release:version -- --target-version "$SUBSCRIPTION_AUTH_TARGET_VERSION" --write
-
-      - name: Test
-        working-directory: agent-qa-subscription-auth
-        run: pnpm test
-
-      - name: Typecheck
-        working-directory: agent-qa-subscription-auth
-        run: pnpm typecheck
-
-      - name: Build
-        working-directory: agent-qa-subscription-auth
-        run: pnpm build
-
-      - name: Stage package
-        working-directory: agent-qa-subscription-auth
-        run: pnpm run release:stage -- --target-version "$SUBSCRIPTION_AUTH_TARGET_VERSION" --out .release/package
-
-      - name: Release postbuild verification
-        working-directory: agent-qa-subscription-auth
-        run: pnpm run release:verify -- --stage postbuild --target-version "$SUBSCRIPTION_AUTH_TARGET_VERSION" --staged-dir .release/package
-
-      - name: Create release commit and tag
-        working-directory: agent-qa-subscription-auth
-        run: pnpm exec node scripts/release/git.mjs --commit-tag
-
-      - name: Push release commit and tag
-        working-directory: agent-qa-subscription-auth
-        run: git push origin HEAD:main --follow-tags
-
-      - name: Publish package
-        working-directory: agent-qa-subscription-auth
-        run: pnpm run release:publish -- --staged-dir .release/package
+          gh run watch "$run_id" \
+            --repo vostride/agent-qa-subscription-auth \
+            --exit-status \
+            --interval 10
 
   docker:
     name: Publish Docker images

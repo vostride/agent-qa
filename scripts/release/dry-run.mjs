@@ -96,8 +96,8 @@ export function buildReleaseDryRunPlan(options = {}) {
     },
     subscriptionAuth: {
       package: '@vostride/agent-qa-subscription-auth',
-      status: 'published_from_main_release_workflow',
-      note: `agent-qa/.github/workflows/release.yml publishes subscription-auth at ${targetVersion} after npm packages and before Docker.`,
+      status: 'dispatched_from_main_release_workflow',
+      note: `agent-qa/.github/workflows/release.yml dispatches the subscription-auth release workflow at ${targetVersion} after npm packages and before Docker.`,
     },
   }
 }

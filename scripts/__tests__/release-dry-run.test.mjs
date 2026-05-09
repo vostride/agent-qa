@@ -50,7 +50,7 @@ test('builds a non-mutating patch release dry-run plan', () => {
   assert.ok(plan.docker.images.every(image => image.tags.includes(`${image.image}:${targetVersion}`)))
   assert.ok(plan.docker.images.every(image => image.tags.includes(`${image.image}:v${targetVersion}`)))
   assert.equal(plan.subscriptionAuth.package, '@vostride/agent-qa-subscription-auth')
-  assert.equal(plan.subscriptionAuth.status, 'published_from_main_release_workflow')
+  assert.equal(plan.subscriptionAuth.status, 'dispatched_from_main_release_workflow')
   assert.ok(plan.subscriptionAuth.note.includes('agent-qa/.github/workflows/release.yml'))
   assert.ok(plan.subscriptionAuth.note.includes(targetVersion))
 })
@@ -101,7 +101,7 @@ test('CLI renders human-readable and JSON dry-run output without leaking secrets
   assert.match(textOutput, /agent-qa release dry-run/)
   assert.match(textOutput, /Mutates external state: no/)
   assert.match(textOutput, /npm publish --access public/)
-  assert.match(textOutput, /published_from_main_release_workflow/)
+  assert.match(textOutput, /dispatched_from_main_release_workflow/)
   assert.match(textOutput, /agent-qa\/\.github\/workflows\/release\.yml/)
   assert.doesNotMatch(textOutput, /POSTHOG_SECRET_FROM_TEST/)
 
