@@ -112,6 +112,7 @@ function buildTargets(platform: InitPlatformInput): Record<string, unknown> {
   if (selection.capabilities.includes('web')) {
     targets['example-web'] = { platform: 'web', url: 'https://example.com' }
     targets['automation-exercise'] = { platform: 'web', url: 'https://automationexercise.com' }
+    targets['wai-bad'] = { platform: 'web', url: 'https://www.w3.org/WAI/demos/bad/before/home.html' }
   }
   if (selection.mobileRuntimes.includes('android')) {
     targets['example-android'] = { platform: 'android' }
@@ -173,6 +174,7 @@ const AUTOMATION_EXERCISE_TESTS = [
 ]
 const HN_TOP_STORY_HOOK_ID = 'h_aster-bloom-cloud-drift-ember-field-glade-hollow-ivory-jasper'
 const HN_TOP_STORY_TEST_ID = 't_quad-adar-micro-magic-cross-cue-open-agog-rang-cours'
+const BAD_A11Y_TEST_ID = 't_ponent-toa-base-fred-click-sigma-lad-agen-report-sticky'
 
 function buildAutomationExerciseTest(test: typeof AUTOMATION_EXERCISE_TESTS[number]): string {
   return `test-id: ${test.id}
@@ -256,6 +258,16 @@ use:
 steps:
   - Navigate to "https://news.ycombinator.com/"
   - Verify the page shows "{{env:HN_FIRST_STORY_TITLE}}"
+`
+}
+
+function buildBadA11yTest(): string {
+  return `test-id: ${BAD_A11Y_TEST_ID}
+name: W3C BAD accessibility smoke
+target: wai-bad
+steps:
+  - Verify the page says "Welcome to CityLights"
+  - Verify the page says "Inaccessible Home Page"
 `
 }
 
@@ -404,6 +416,16 @@ export function buildDefaultConfig(
       dashboard: { port: 3100, artifactsDir: '.agent-qa/artifacts' },
       mcp: { enabled: true, transport: 'http', host: '127.0.0.1', port: 3471, path: '/mcp' },
       cache: { dir: INIT_CACHE_DIR, ttl: '7d' },
+      ...(hasWeb(platform)
+        ? {
+            accessibility: {
+              enabled: true,
+              standard: 'wcag2aa',
+              runAfter: 'every-step',
+              failOnViolation: false,
+            },
+          }
+        : {}),
       recording: { enabled: true },
       memory: { enabled: true, provider: 'local', dir: 'agent-qa-memory' },
       logging: { level: 'warn' },
@@ -460,10 +482,14 @@ function addYamlComments(yamlStr: string): string {
       result += '    # Optional: persist dashboard state to a custom SQLite path.\n'
       result += '    # dbPath: .agent-qa/dashboard.sqlite\n'
     } else if (line === '    ttl: 7d') {
-      result += '  # Optional accessibility service example:\n'
-      result += '  # accessibility:\n'
-      result += '  #   enabled: false\n'
-      result += '  #   standard: wcag2aa\n'
+      if (yamlStr.includes('\n  accessibility:\n')) {
+        result += '  # Accessibility checks power the W3C BAD demo test.\n'
+      } else {
+        result += '  # Optional accessibility service example:\n'
+        result += '  # accessibility:\n'
+        result += '  #   enabled: false\n'
+        result += '  #   standard: wcag2aa\n'
+      }
     } else if (line === 'registry:') {
       result += '  # Optional: local and cloud device/provider profiles.\n'
       result += '  # devices:\n'
@@ -761,6 +787,10 @@ export function createInitCommand(): Command {
         const hnTestPath = join(testsDir, 'hacker-news-top-story.yaml')
         writeFileSync(hnTestPath, buildHackerNewsTopStoryTest())
         console.log(pc.green(`✓ Created ${hnTestPath}`))
+
+        const badA11yTestPath = join(testsDir, 'bad-a11y.yaml')
+        writeFileSync(badA11yTestPath, buildBadA11yTest())
+        console.log(pc.green(`✓ Created ${badA11yTestPath}`))
       }
 
       // Update .gitignore
@@ -786,6 +816,7 @@ export function createInitCommand(): Command {
       if (hasWeb(platform)) {
         console.log(`    ${pc.dim('•')} tests/automation-exercise/*.yaml`)
         console.log(`    ${pc.dim('•')} tests/hacker-news-top-story.yaml`)
+        console.log(`    ${pc.dim('•')} tests/bad-a11y.yaml`)
         console.log(`    ${pc.dim('•')} suites/automation-exercise.suite.yaml`)
         console.log(`    ${pc.dim('•')} scripts/fetch-hn-top-story.mjs`)
       }

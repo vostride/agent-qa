@@ -159,6 +159,8 @@ describe('init command', () => {
     expect(content).toContain('url: https://example.com')
     expect(content).toContain('automation-exercise:')
     expect(content).toContain('url: https://automationexercise.com')
+    expect(content).toContain('wai-bad:')
+    expect(content).toContain('url: https://www.w3.org/WAI/demos/bad/before/home.html')
     expect(content).toContain('use:')
     expect(content).toContain('mobile:')
     expect(content).toContain('appState: preserve')
@@ -193,7 +195,11 @@ describe('init command', () => {
     expect(content).not.toContain('#   privacy: true')
     expect(content).toContain('# Optional: ignore archived or generated tests.')
     expect(content).toContain('  # testPathIgnore:')
-    expect(content).toContain('  # accessibility:')
+    expect(content).toContain('# Accessibility checks power the W3C BAD demo test.')
+    expect(content).toContain('accessibility:')
+    expect(content).toContain('standard: wcag2aa')
+    expect(content).toContain('runAfter: every-step')
+    expect(content).toContain('failOnViolation: false')
     expect(content).not.toContain('  # recording:')
     expect(content).not.toContain('  # memory:')
     expect(content).toContain('# Named resource definitions')
@@ -388,6 +394,18 @@ describe('init command', () => {
       expect(config.plugins).toEqual({
         auth: [{ package: '@vostride/agent-qa-subscription-auth' }],
       })
+      if (platform === 'web' || platform === 'web+android' || platform === 'web+ios') {
+        expect(config.services.accessibility).toEqual({
+          enabled: true,
+          standard: 'wcag2aa',
+          runAfter: 'every-step',
+          failOnViolation: false,
+        })
+        expect(config.registry.targets).toHaveProperty('wai-bad')
+      } else {
+        expect(config.services).not.toHaveProperty('accessibility')
+        expect(config.registry.targets).not.toHaveProperty('wai-bad')
+      }
       if (platform === 'web+android') {
         expect(config.registry.targets).toHaveProperty('example-web')
         expect(config.registry.targets).toHaveProperty('automation-exercise')
@@ -679,6 +697,23 @@ describe('init command', () => {
     expect(output).toContain('scripts/fetch-hn-top-story.mjs')
   })
 
+  it('creates a W3C BAD accessibility reporting demo for web init', async () => {
+    await runInit(['--dir', '/tmp/test-project', '--platform', 'web', '--skip-install'])
+
+    const testCall = findWriteCallEndingWith('tests/bad-a11y.yaml')
+    expect(testCall).toBeDefined()
+
+    const testContent = testCall?.[1] as string
+    expect(testContent).toContain('test-id: t_ponent-toa-base-fred-click-sigma-lad-agen-report-sticky')
+    expect(testContent).toContain('name: W3C BAD accessibility smoke')
+    expect(testContent).toContain('target: wai-bad')
+    expect(testContent).toContain('Verify the page says "Welcome to CityLights"')
+    expect(testContent).toContain('Verify the page says "Inaccessible Home Page"')
+
+    const output = consoleOutput()
+    expect(output).toContain('tests/bad-a11y.yaml')
+  })
+
   it('generates schema-valid demo artifact YAML for web init', async () => {
     await runInit(['--dir', '/tmp/test-project', '--platform', 'web', '--skip-install'])
     const { parseTestFile, SuiteDefinitionSchema, HooksFileSchema } = await loadCoreYamlValidators()
@@ -705,6 +740,13 @@ describe('init command', () => {
       'h_aster-bloom-cloud-drift-ember-field-glade-hollow-ivory-jasper',
     ])
     expect(parsedHn.tests[0].use?.cache).toBe(false)
+
+    const badA11yCall = findWriteCallEndingWith('tests/bad-a11y.yaml')
+    expect(badA11yCall).toBeDefined()
+    const parsedBadA11y = parseTestFile(String(badA11yCall?.[1]), 'tests/bad-a11y.yaml')
+    expect(parsedBadA11y.errors).toEqual([])
+    expect(parsedBadA11y.tests).toHaveLength(1)
+    expect(parsedBadA11y.tests[0].target).toBe('wai-bad')
 
     const suiteCall = findWriteCallEndingWith('suites/automation-exercise.suite.yaml')
     expect(suiteCall).toBeDefined()
@@ -744,10 +786,13 @@ describe('init command', () => {
     expect(findWriteCallEndingWith('suites/automation-exercise.suite.yaml')).toBeUndefined()
     expect(findWriteCallEndingWith('scripts/fetch-hn-top-story.mjs')).toBeUndefined()
     expect(findWriteCallEndingWith('tests/hacker-news-top-story.yaml')).toBeUndefined()
+    expect(findWriteCallEndingWith('tests/bad-a11y.yaml')).toBeUndefined()
 
     const configCall = findWriteCallEndingWith('agent-qa.config.yaml')
     expect(configCall?.[1]).not.toContain('automation-exercise:')
     expect(configCall?.[1]).not.toContain('automationexercise.com')
+    expect(configCall?.[1]).not.toContain('wai-bad:')
+    expect(configCall?.[1]).not.toContain('\n  accessibility:\n')
 
     const hooksCall = findWriteCallEndingWith('hooks.yaml')
     expect(hooksCall?.[1]).toBe('hooks: []\n')
