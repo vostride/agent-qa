@@ -3,8 +3,8 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const repoRoot = new URL('../../../../../', import.meta.url)
-const demoConfig = readFileSync(new URL('../../../../../../demo-project/agent-qa.config.yaml', import.meta.url), 'utf-8')
-const releaseConfig = readFileSync(new URL('../../../../../../demo-project/agent-qa.release.config.yaml', import.meta.url), 'utf-8')
+const demoConfig = readFileSync(new URL('../../../../../demo-project/agent-qa.config.yaml', import.meta.url), 'utf-8')
+const releaseConfig = readFileSync(new URL('../../../../../demo-project/agent-qa.release.config.yaml', import.meta.url), 'utf-8')
 const yamlCompletions = readFileSync(new URL('../yaml-completions.ts', import.meta.url), 'utf-8')
 const workspaceResolverTest = readFileSync(new URL('../../../../../packages/core/src/workspace/__tests__/workspace-paths.test.ts', import.meta.url), 'utf-8')
 
@@ -139,7 +139,7 @@ describe('runtime path static contract', () => {
   })
 
   it('keeps public mobile app-state examples and removed knobs guarded', () => {
-    const demoProjectFiles = readFiles('../demo-project/', /\.(ya?ml|mjs)$/)
+    const demoProjectFiles = readFiles('demo-project/', /\.(ya?ml|mjs)$/)
 
     expect(demoConfig).toContain('appState: preserve')
     expect(releaseConfig).toContain('appState: preserve')

@@ -1,0 +1,23 @@
+hooks:
+  - name: Generate Timestamp
+    runtime: bash
+    file: hooks/generate-timestamp.sh
+    timeout: 10s
+  - name: Fetch API Data
+    runtime: node
+    file: hooks/fetch-api-data.js
+    timeout: 10s
+    network: true
+  - name: Log Cleanup
+    runtime: bash
+    file: hooks/log-cleanup.sh
+    timeout: 10s
+  - name: Set Runtime Env
+    runtime: node
+    file: hooks/set-runtime-env.js
+    timeout: 10s
+  - name: Fetch HN Top Story
+    runtime: node
+    file: hooks/fetch-hn-top-story.js
+    timeout: 10s
+    network: true

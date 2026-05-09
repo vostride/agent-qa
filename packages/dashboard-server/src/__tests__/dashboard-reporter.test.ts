@@ -3,8 +3,7 @@ import { isCanonicalRunId } from '@vostride/agent-qa-ids'
 import { join } from 'node:path'
 import { DashboardReporter } from '../reporter/dashboard-reporter.js'
 import { DashboardDatabase } from '../db/database.js'
-import { SecretRedactor, SecretStore } from '@vostride/agent-qa-core'
-import { generateFailureSummary } from '../../../core/src/agent/failure-summary.js'
+import { generateFailureSummary, SecretRedactor, SecretStore } from '@vostride/agent-qa-core'
 import type { SuiteDefinition, TestDefinition, StepResult, TestResult, RunSummary } from '@vostride/agent-qa-core'
 
 vi.mock('node:fs/promises', () => ({

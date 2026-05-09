@@ -1,0 +1,5 @@
+name: Inline hook demo
+platform: web
+steps:
+  - Run {{runHook:"Set Runtime Env"}} before opening the page
+  - Verify the runtime environment value is available

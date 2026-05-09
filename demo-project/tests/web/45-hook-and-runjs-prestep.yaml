@@ -1,0 +1,6 @@
+name: Hook and runjs prestep
+platform: web
+steps:
+  - Prepare the comparison page
+  - Run {{runHook:"Set Runtime Env"}} before evaluating the page
+  - Compare the hook value with the runjs value

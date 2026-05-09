@@ -1,0 +1,6 @@
+name: Env runjs comparison
+platform: web
+setup:
+  - Fetch HN Top Story
+steps:
+  - Compare the configured environment value with the inline JavaScript result

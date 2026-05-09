@@ -1,0 +1,10 @@
+name: Hooks demo
+platform: web
+setup:
+  - Generate Timestamp
+  - Fetch API Data
+teardown:
+  - Log Cleanup
+steps:
+  - Open the hooks demo page
+  - Verify hook-provided data is visible

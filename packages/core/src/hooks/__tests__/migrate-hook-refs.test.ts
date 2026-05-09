@@ -10,7 +10,7 @@ import {
   HookReferenceMigrationError,
 } from '../migrate-hook-refs.js'
 
-const DEMO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../../../demo-project')
+const DEMO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../../demo-project')
 const CLEANUP_TARGETS = ['.agent-qa'] as const
 const COMMIT_SAFE_MEMORY_DIR = 'agent-qa-memory'
 const SYNTHETIC_SUITE_FILE = 'suites/hook-reference-migration.suite.yaml'
