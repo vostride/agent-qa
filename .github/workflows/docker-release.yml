@@ -3,11 +3,26 @@ name: Docker Release
 on:
   workflow_dispatch:
     inputs:
+      ref:
+        description: Git ref to build. Defaults to the selected workflow ref.
+        required: false
+        type: string
+        default: ''
       move_latest:
         description: Move latest tags after all immutable image pushes succeed
         required: false
         type: boolean
-        default: false
+        default: true
+  workflow_call:
+    inputs:
+      ref:
+        required: false
+        type: string
+        default: ''
+      move_latest:
+        required: false
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -30,6 +45,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -62,6 +79,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref || github.ref }}
 
       - name: Login to Docker Hub
         uses: docker/login-action@v4

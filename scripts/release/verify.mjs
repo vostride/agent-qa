@@ -27,6 +27,7 @@ export function buildReleaseGatePlan(bump) {
     'create release commit and tag',
     'git push',
     'npm publish',
+    'docker publish',
   ]
 }
 

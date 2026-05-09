@@ -35,7 +35,7 @@ function createStagedFixture(rootDir, version = '0.1.1') {
   return { stagedDir, dirs }
 }
 
-test('builds the fail-closed release gate plan in exact order with no Docker publish', () => {
+test('builds the fail-closed release gate plan in exact order with paired Docker publish', () => {
   assert.deepEqual(buildReleaseGatePlan('patch'), [
     'pnpm install --frozen-lockfile',
     'release preflight',
@@ -51,8 +51,9 @@ test('builds the fail-closed release gate plan in exact order with no Docker pub
     'create release commit and tag',
     'git push',
     'npm publish',
+    'docker publish',
   ])
-  assert.equal(buildReleaseGatePlan('patch').some(label => /docker/i.test(label)), false)
+  assert.equal(buildReleaseGatePlan('patch').at(-1), 'docker publish')
 })
 
 test('parses preflight and postbuild verify CLI args', () => {

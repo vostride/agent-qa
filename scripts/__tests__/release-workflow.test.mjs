@@ -40,9 +40,10 @@ test('release workflow uses trusted publishing prerequisites without npm tokens'
   assert.match(workflow, /permissions:/)
   assert.match(workflow, /contents:\s*write/)
   assert.match(workflow, /id-token:\s*write/)
+  assert.match(workflow, /attestations:\s*write/)
   assert.match(workflow, /scripts\/release\/publish\.mjs/)
   assert.doesNotMatch(workflow, /NPM_TOKEN/)
-  assert.doesNotMatch(workflow, /docker\/build-push-action|docker-release|DOCKERHUB_TOKEN/)
+  assert.doesNotMatch(workflow, /docker\/build-push-action|DOCKERHUB_TOKEN/)
 })
 
 test('release workflow gates build, staging, commit, tag, push, and publish in order', () => {
@@ -88,12 +89,28 @@ test('release workflow injects PostHog key before build and validates staged pac
   )
 })
 
-test('docker release workflow is manual-only with Docker Hub preflight', () => {
+test('release workflow publishes Docker from the release tag after npm publish', () => {
+  const workflow = readWorkflow()
+
+  assert.match(workflow, /outputs:\s*\n\s+version:\s*\$\{\{ steps\.version\.outputs\.version \}\}/)
+  assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images/)
+  assert.match(workflow, /needs:\s*npm/)
+  assert.match(workflow, /uses:\s*\.\/\.github\/workflows\/docker-release\.yml/)
+  assert.match(workflow, /ref:\s*v\$\{\{ needs\.npm\.outputs\.version \}\}/)
+  assert.match(workflow, /move_latest:\s*true/)
+  assert.match(workflow, /secrets:\s*inherit/)
+  assertBefore(workflow, 'pnpm exec node scripts/release/publish.mjs --staged-dir .release/staged-packages', 'uses: ./.github/workflows/docker-release.yml')
+})
+
+test('docker release workflow is manual and reusable with Docker Hub preflight', () => {
   const workflow = readWorkflow('docker-release.yml')
 
   assert.match(workflow, /name:\s*Docker Release/)
   assert.match(workflow, /workflow_dispatch:/)
+  assert.match(workflow, /workflow_call:/)
+  assert.match(workflow, /ref:/)
   assert.match(workflow, /move_latest:/)
+  assert.match(workflow, /default:\s*true/)
   assert.doesNotMatch(workflow, /^\s{2}(push|pull_request|release|schedule):/m)
   assert.match(workflow, /contents:\s*read/)
   assert.match(workflow, /id-token:\s*write/)
@@ -104,6 +121,7 @@ test('docker release workflow is manual-only with Docker Hub preflight', () => {
   assert.match(workflow, /DOCKERHUB_USERNAME:\s*\$\{\{ vars\.DOCKERHUB_USERNAME \}\}/)
   assert.match(workflow, /DOCKERHUB_NAMESPACE:\s*\$\{\{ vars\.DOCKERHUB_NAMESPACE \}\}/)
   assert.match(workflow, /DOCKERHUB_TOKEN:\s*\$\{\{ secrets\.DOCKERHUB_TOKEN \}\}/)
+  assert.match(workflow, /ref:\s*\$\{\{ inputs\.ref \|\| github\.ref \}\}/)
 })
 
 test('docker release workflow uses official Docker actions with metadata and attestations', () => {
