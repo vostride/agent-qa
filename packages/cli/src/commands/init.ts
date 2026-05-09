@@ -1,14 +1,15 @@
 import { Command } from 'commander'
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { execSync } from 'node:child_process'
 import { stringify } from 'yaml'
 import pc from 'picocolors'
 import select from '@inquirer/select'
 import input from '@inquirer/input'
 import checkbox from '@inquirer/checkbox'
-import { formatInstallBrowsersRetryCommand, runBrowserInstall } from './install-browsers.js'
-import { DEFAULT_AGENT_QA_CACHE_DIR, DEFAULT_AGENT_QA_RUNTIME_DIR } from '@vostride/agent-qa-core'
+import {
+  DEFAULT_AGENT_QA_CACHE_DIR,
+  DEFAULT_AGENT_QA_RUNTIME_DIR,
+} from '@vostride/agent-qa-core'
 import { DEFAULT_ANTHROPIC_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_OPENAI_MODEL } from '../model-defaults.js'
 
 type Platform = 'web' | 'android' | 'ios' | 'web+android' | 'web+ios'
@@ -91,10 +92,6 @@ function normalizePlatformSelection(platform: InitPlatformInput): InitPlatformSe
     case 'web+ios':
       return { capabilities: ['web', 'mobile'], mobileRuntimes: ['ios'] }
   }
-}
-
-function hasMobile(platform: InitPlatformInput): boolean {
-  return normalizePlatformSelection(platform).mobileRuntimes.length > 0
 }
 
 function hasWeb(platform: InitPlatformInput): boolean {
@@ -538,152 +535,38 @@ function appendGitignore(dir: string): void {
   writeFileSync(gitignorePath, existing + append)
 }
 
-function installPlaywrightBrowsers(platform: InitPlatformInput): void {
-  if (!hasWeb(platform)) return
-
-  const selection = { chromium: true }
-  console.log(pc.blue('Installing agent-qa browser support...'))
-  const result = runBrowserInstall(selection)
-  if (result.ok) {
-    console.log(pc.green('✓ agent-qa browser support installed'))
-  } else {
-    console.log(pc.yellow(`⚠ Browser installation failed. Run \`${formatInstallBrowsersRetryCommand(selection)}\` to retry.`))
-  }
+function browserSetupCommand(platform: InitPlatformInput): string | null {
+  return hasWeb(platform) ? 'agent-qa install-browsers --chromium' : null
 }
 
-type AppiumDriverName = 'uiautomator2' | 'xcuitest'
-
-function collectDriverNames(value: unknown, names: Set<string>): void {
-  if (!value) return
-  if (typeof value === 'string') {
-    names.add(value)
-    return
-  }
-  if (Array.isArray(value)) {
-    for (const item of value) collectDriverNames(item, names)
-    return
-  }
-  if (typeof value !== 'object') return
-
-  const record = value as Record<string, unknown>
-  if (typeof record.name === 'string') names.add(record.name)
-  if (typeof record.driverName === 'string') names.add(record.driverName)
-  if (typeof record.automationName === 'string') names.add(record.automationName)
-
-  for (const [key, child] of Object.entries(record)) {
-    if (key !== 'drivers' && key !== 'installed' && key !== 'name' && key !== 'driverName' && typeof child === 'object' && child !== null) {
-      names.add(key)
-    }
-    collectDriverNames(child, names)
-  }
+function mobileDriverSetupCommand(platform: InitPlatformInput): string | null {
+  const runtimes = normalizePlatformSelection(platform).mobileRuntimes
+  if (runtimes.length === 0) return null
+  if (runtimes.includes('android') && runtimes.includes('ios')) return 'agent-qa install-mobile-drivers --all'
+  if (runtimes.includes('android')) return 'agent-qa install-mobile-drivers --android'
+  return 'agent-qa install-mobile-drivers --ios'
 }
 
-function parseInstalledAppiumDrivers(output: string): Set<string> {
-  const names = new Set<string>()
-  const trimmed = output.trim()
-  if (!trimmed) return names
+function initNextSteps(platform: InitPlatformInput): Array<{ command: string; description: string }> {
+  const steps: Array<{ command: string; description: string }> = []
+  const browserCommand = browserSetupCommand(platform)
+  const mobileCommand = mobileDriverSetupCommand(platform)
 
-  try {
-    collectDriverNames(JSON.parse(trimmed), names)
-    const normalizedNames = new Set<string>()
-    for (const name of names) {
-      const normalized = name.toLowerCase()
-      normalizedNames.add(normalized)
-      if (normalized.includes('uiautomator2')) normalizedNames.add('uiautomator2')
-      if (normalized.includes('xcuitest')) normalizedNames.add('xcuitest')
-    }
-    return normalizedNames
-  } catch {
-    for (const line of trimmed.split('\n')) {
-      const normalized = line.toLowerCase()
-      if (normalized.includes('uiautomator2')) names.add('uiautomator2')
-      if (normalized.includes('xcuitest')) names.add('xcuitest')
-    }
-    return names
+  if (browserCommand) {
+    steps.push({ command: browserCommand, description: 'Install browser support' })
   }
-}
-
-function getInstalledAppiumDrivers(): Set<string> {
-  try {
-    const output = execSync('appium driver list --installed --json', { stdio: 'pipe', encoding: 'utf-8' })
-    return parseInstalledAppiumDrivers(String(output))
-  } catch {
-    try {
-      const output = execSync('appium driver list --installed', { stdio: 'pipe', encoding: 'utf-8' })
-      return parseInstalledAppiumDrivers(String(output))
-    } catch {
-      return new Set()
-    }
-  }
-}
-
-function appiumDriverLabel(driver: AppiumDriverName): string {
-  return driver === 'uiautomator2' ? 'UiAutomator2' : 'XCUITest'
-}
-
-function isAlreadyInstalledDriverError(err: unknown, driver: AppiumDriverName): boolean {
-  const details = [
-    err instanceof Error ? err.message : String(err),
-    (err as { stdout?: unknown } | undefined)?.stdout,
-    (err as { stderr?: unknown } | undefined)?.stderr,
-  ].map(String).join('\n').toLowerCase()
-
-  return details.includes(`driver named "${driver}" is already installed`)
-    || details.includes(`${driver}" is already installed`)
-    || details.includes(`${driver} is already installed`)
-}
-
-function ensureAppiumDriver(driver: AppiumDriverName, installedDrivers: Set<string>): void {
-  const label = appiumDriverLabel(driver)
-  if (installedDrivers.has(driver)) {
-    console.log(pc.green(`✓ ${label} driver already installed`))
-    return
+  if (mobileCommand) {
+    steps.push({ command: mobileCommand, description: 'Install mobile driver support' })
   }
 
-  try {
-    execSync(`appium driver install ${driver}`, { stdio: 'inherit' })
-    console.log(pc.green(`✓ ${label} driver installed`))
-  } catch (err) {
-    if (isAlreadyInstalledDriverError(err, driver)) {
-      console.log(pc.green(`✓ ${label} driver already installed`))
-      return
-    }
-    console.log(pc.yellow(`⚠ ${label} driver installation failed. Run \`appium driver install ${driver}\` manually.`))
-  }
-}
+  steps.push(
+    { command: 'agent-qa doctor', description: 'Verify your environment' },
+    { command: 'Edit tests/example-pass.yaml', description: 'Write your first test' },
+    { command: 'agent-qa run', description: 'Run all tests' },
+    { command: 'agent-qa dashboard', description: 'View results in browser' },
+  )
 
-function installAppium(platform: InitPlatformInput): void {
-  if (!hasMobile(platform)) return
-  const selection = normalizePlatformSelection(platform)
-
-  console.log(pc.blue('Installing Appium...'))
-
-  let appiumInstalled = false
-  try {
-    execSync('appium --version', { stdio: 'pipe' })
-    appiumInstalled = true
-    console.log(pc.green('✓ Appium already installed'))
-  } catch {
-    try {
-      execSync('npm install -g appium', { stdio: 'inherit' })
-      console.log(pc.green('✓ Appium installed'))
-      appiumInstalled = true
-    } catch {
-      console.log(pc.yellow('⚠ Appium installation failed. Run `npm install -g appium` manually.'))
-    }
-  }
-
-  if (!appiumInstalled) return
-
-  const installedDrivers = getInstalledAppiumDrivers()
-
-  if (selection.mobileRuntimes.includes('android')) {
-    ensureAppiumDriver('uiautomator2', installedDrivers)
-  }
-
-  if (selection.mobileRuntimes.includes('ios')) {
-    ensureAppiumDriver('xcuitest', installedDrivers)
-  }
+  return steps
 }
 
 export function createInitCommand(): Command {
@@ -691,12 +574,11 @@ export function createInitCommand(): Command {
     .description('Initialize a new agent-qa project')
     .option('--dir <path>', 'target directory', process.cwd())
     .option('--platform <type>', 'platform to configure (web, android, ios, web+android, web+ios)')
-    .option('--skip-install', 'skip auto-installation of browsers/Appium')
+    .option('--skip-install', 'deprecated no-op; setup commands are shown after init')
     .option('--force', 'overwrite existing files')
     .action(async (opts) => {
       const dir = resolve(opts.dir)
       const force = opts.force ?? false
-      const skipInstall = opts.skipInstall ?? false
 
       const isInteractive = !opts.platform
 
@@ -885,12 +767,6 @@ export function createInitCommand(): Command {
       appendGitignore(dir)
       console.log(pc.green('✓ Updated .gitignore'))
 
-      // Auto-install
-      if (!skipInstall) {
-        installPlaywrightBrowsers(platform)
-        installAppium(platform)
-      }
-
       // Post-init summary
       console.log('')
       console.log(pc.green(pc.bold('✓ agent-qa project initialized!')))
@@ -916,12 +792,8 @@ export function createInitCommand(): Command {
       console.log(`    ${pc.dim('•')} .gitignore entries`)
       console.log('')
       console.log('  Next steps:')
-      console.log(`    1. ${pc.cyan('agent-qa doctor')}      Verify your environment`)
-      console.log(`    2. Edit ${pc.cyan('tests/example-pass.yaml')} with your first test`)
-      console.log(`    3. ${pc.cyan('agent-qa run')}         Run all tests`)
-      console.log(`    4. ${pc.cyan('agent-qa dashboard')}   View results in browser`)
-      if (skipInstall && hasWeb(platform)) {
-        console.log(`    ${pc.dim('•')} Install browser support with ${pc.cyan('agent-qa install-browsers --chromium')}`)
+      for (const [index, step] of initNextSteps(platform).entries()) {
+        console.log(`    ${index + 1}. ${pc.cyan(step.command)}  ${step.description}`)
       }
       const generatedLLMs = ((config.registry as Record<string, unknown> | undefined)?.llms ?? []) as InitLLMConfig[]
       const subscriptionLLMs = generatedLLMs.filter(llm => isSubscriptionProvider(String(llm.provider)))

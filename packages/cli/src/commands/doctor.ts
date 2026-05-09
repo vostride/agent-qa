@@ -1,12 +1,15 @@
 import { Command } from 'commander'
-import { execSync } from 'node:child_process'
+import { execFileSync, execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
 import pc from 'picocolors'
 import { loadConfigFile } from '../config.js'
 import { loadAuthPluginsForRawConfig, type LLMModelAdapter } from '../llm-utils.js'
 import { DEFAULT_ANTHROPIC_MODEL } from '../model-defaults.js'
 import {
   discoverWorkspaceFiles,
+  formatAppiumInstallGuidance,
+  resolveAppiumExecutable,
   resolveWorkspacePaths,
   type AgentQaConfig,
   type ResolvedWorkspacePaths,
@@ -385,7 +388,7 @@ function checkLLMConnection(config: Record<string, unknown> | null): DoctorCheck
 function checkPlaywright(config: Record<string, unknown> | null): DoctorCheck {
   return {
     name: 'Playwright',
-    fixInstructions: 'Run `agent-qa install-browsers --chromium` or `agent-qa init`',
+    fixInstructions: 'Run `agent-qa install-browsers --chromium`',
     check: async () => {
       // Skip if no browser config (mobile-only)
       const browsers = config?.browsers as unknown[] | undefined
@@ -404,17 +407,31 @@ function checkPlaywright(config: Record<string, unknown> | null): DoctorCheck {
   }
 }
 
-function checkAppium(config: Record<string, unknown> | null): DoctorCheck {
+function appiumResolverCwd(configPath: string): string {
+  return dirname(resolve(configPath))
+}
+
+function mobileDriverInstallCommand(config: Record<string, unknown> | null): string {
+  const hasAndroid = hasAndroidPlatform(config)
+  const hasIOS = hasIOSPlatform(config)
+  if (hasAndroid && hasIOS) return 'agent-qa install-mobile-drivers --all'
+  if (hasAndroid) return 'agent-qa install-mobile-drivers --android'
+  if (hasIOS) return 'agent-qa install-mobile-drivers --ios'
+  return 'agent-qa install-mobile-drivers --all'
+}
+
+function checkAppium(config: Record<string, unknown> | null, configPath: string): DoctorCheck {
   return {
     name: 'Appium',
-    fixInstructions: 'Run `npm install -g appium`',
+    fixInstructions: `${formatAppiumInstallGuidance()} Then run \`${mobileDriverInstallCommand(config)}\`.`,
     check: async () => {
       if (!isMobilePlatform(config)) {
         return { status: 'skip', message: 'not configured' }
       }
 
       try {
-        const version = execSync('appium --version', { stdio: 'pipe' }).toString().trim()
+        const appium = resolveAppiumExecutable({ cwd: appiumResolverCwd(configPath) })
+        const version = execFileSync(appium.command, ['--version'], { stdio: 'pipe' }).toString().trim()
         return { status: 'pass', message: `v${version}` }
       } catch {
         return { status: 'fail', message: 'not installed' }
@@ -423,17 +440,18 @@ function checkAppium(config: Record<string, unknown> | null): DoctorCheck {
   }
 }
 
-function checkAppiumDrivers(config: Record<string, unknown> | null): DoctorCheck {
+function checkAppiumDrivers(config: Record<string, unknown> | null, configPath: string): DoctorCheck {
   return {
     name: 'Appium drivers',
-    fixInstructions: 'Run `appium driver install uiautomator2` or `appium driver install xcuitest`',
+    fixInstructions: `Run \`${mobileDriverInstallCommand(config)}\``,
     check: async () => {
       if (!isMobilePlatform(config)) {
         return { status: 'skip', message: 'not configured' }
       }
 
       try {
-        const output = execSync('appium driver list --installed', { stdio: 'pipe' }).toString()
+        const appium = resolveAppiumExecutable({ cwd: appiumResolverCwd(configPath) })
+        const output = execFileSync(appium.command, ['driver', 'list', '--installed'], { stdio: 'pipe' }).toString()
         const hasDrivers = output.includes('uiautomator2') || output.includes('xcuitest')
         if (hasDrivers) {
           return { status: 'pass', message: 'drivers installed' }
@@ -620,8 +638,8 @@ export function createDoctorCommand(): Command {
         checkSubscriptionAuth(config),
         checkLLMConnection(config),
         checkPlaywright(config),
-        checkAppium(config),
-        checkAppiumDrivers(config),
+        checkAppium(config, configPath),
+        checkAppiumDrivers(config, configPath),
         checkAndroidSDK(config),
         checkXcode(config),
         checkTestDiscovery(config, configPath),

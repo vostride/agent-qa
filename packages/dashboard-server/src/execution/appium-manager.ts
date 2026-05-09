@@ -1,5 +1,10 @@
 import { request } from 'node:http'
 import { spawn, type ChildProcess } from 'node:child_process'
+import {
+  formatAppiumInstallGuidance,
+  resolveAppiumExecutable,
+  type ResolvedAppiumExecutable,
+} from '@vostride/agent-qa-core'
 import treeKill from 'tree-kill'
 import pc from 'picocolors'
 
@@ -25,17 +30,20 @@ export class AppiumManager {
   private anonymousRefCount = 0
   private leases = new Map<string, AppiumLease>()
   private logLevel: 'normal' | 'debug'
+  private appiumResolver: () => ResolvedAppiumExecutable
 
   constructor(opts?: {
     port?: number
     startupTimeoutMs?: number
     pollIntervalMs?: number
     logLevel?: 'normal' | 'debug'
+    appiumResolver?: () => ResolvedAppiumExecutable
   }) {
     this.port = opts?.port ?? 4723
     this.startupTimeoutMs = opts?.startupTimeoutMs ?? 30_000
     this.pollIntervalMs = opts?.pollIntervalMs ?? 500
     this.logLevel = opts?.logLevel ?? 'normal'
+    this.appiumResolver = opts?.appiumResolver ?? resolveAppiumExecutable
   }
 
   async acquire(): Promise<void> {
@@ -142,7 +150,8 @@ export class AppiumManager {
   }
 
   private async startAndWait(): Promise<void> {
-    const child = spawn('appium', ['-p', String(this.port), '--relaxed-security', '--log-no-colors'], {
+    const appium = this.appiumResolver()
+    const child = spawn(appium.command, ['-p', String(this.port), '--relaxed-security', '--log-no-colors'], {
       stdio: ['ignore', 'pipe', 'pipe'],
     })
 
@@ -151,7 +160,7 @@ export class AppiumManager {
 
     child.on('error', (err: NodeJS.ErrnoException) => {
       if (err.code === 'ENOENT') {
-        console.error(`${APPIUM_PREFIX} Appium not found. Run \`npm install -g appium\` to install it.`)
+        console.error(`${APPIUM_PREFIX} Appium not found. ${formatAppiumInstallGuidance()}`)
       } else {
         console.error(`${APPIUM_PREFIX} Error: ${err.message}`)
       }

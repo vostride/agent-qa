@@ -3,6 +3,7 @@ import { Command } from 'commander'
 
 vi.mock('node:child_process', () => ({
   execSync: vi.fn(),
+  execFileSync: vi.fn(),
 }))
 
 vi.mock('node:fs', () => ({
@@ -43,6 +44,8 @@ vi.mock('@vostride/agent-qa-core', async () => {
     })),
     loadLLMAuthPlugins: vi.fn(() => Promise.resolve()),
     readAuth: vi.fn(() => ({})),
+    resolveAppiumExecutable: vi.fn(() => ({ command: 'appium', source: 'path' })),
+    formatAppiumInstallGuidance: vi.fn(() => 'Install Appium locally with `npm install -D appium` or globally with `npm install -g appium`.'),
     checkDockerAvailable: vi.fn(() => Promise.resolve(true)),
     validateProject: vi.fn(() => Promise.resolve({ errorCount: 0, warningCount: 0, fileCount: 5, results: [] })),
     resolveWorkspacePaths: vi.fn(({ config, configPath }: any) => {
@@ -102,19 +105,21 @@ vi.spyOn(console, 'log').mockImplementation((...args: unknown[]) => {
 })
 
 import { createDoctorCommand } from '../commands/doctor.js'
-import { execSync } from 'node:child_process'
+import { execFileSync, execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import * as core from '@vostride/agent-qa-core'
 import { generateText } from 'ai'
 
 const mockExecSync = vi.mocked(execSync)
+const mockExecFileSync = vi.mocked(execFileSync)
 const mockExistsSync = vi.mocked(existsSync)
 const mockReadFile = vi.mocked(readFile)
 const mockCreateModel = vi.mocked(core.createModel)
 const mockGetCredential = vi.mocked(core.getCredential)
 const mockLoadLLMAuthPlugins = vi.mocked(core.loadLLMAuthPlugins)
 const mockResolveLLMAuth = vi.mocked((core as any).resolveLLMAuth) as any
+const mockResolveAppiumExecutable = vi.mocked(core.resolveAppiumExecutable)
 const mockGenerateText = vi.mocked(generateText)
 
 async function runDoctor(parentConfig?: string): Promise<void> {
@@ -143,6 +148,7 @@ describe('doctor command', () => {
     mockExistsSync.mockReturnValue(false)
     mockReadFile.mockRejectedValue({ code: 'ENOENT' })
     mockLoadLLMAuthPlugins.mockResolvedValue([])
+    mockResolveAppiumExecutable.mockReturnValue({ command: 'appium', source: 'path' })
     // Clean env for consistent tests
     delete process.env.ANTHROPIC_API_KEY
     delete process.env.OPENAI_API_KEY
@@ -489,6 +495,7 @@ use:
     // Should show Playwright not installed
     expect(output).toContain('Playwright')
     expect(output).toContain('agent-qa install-browsers --chromium')
+    expect(output).not.toContain('agent-qa init')
     expect(output).not.toContain('npx playwright install')
   })
 
@@ -522,9 +529,12 @@ targets:
     mockReadFile.mockResolvedValue(mobileConfig as never)
     mockExecSync.mockImplementation((cmd) => {
       const cmdStr = cmd as string
-      if (cmdStr.includes('appium --version')) return Buffer.from('2.0.0')
-      if (cmdStr.includes('appium driver list')) return Buffer.from('uiautomator2')
       if (cmdStr.includes('playwright')) throw new Error('not found')
+      return Buffer.from('')
+    })
+    mockExecFileSync.mockImplementation((cmd, args) => {
+      if (cmd === 'appium' && Array.isArray(args) && args.join(' ') === '--version') return Buffer.from('2.0.0')
+      if (cmd === 'appium' && Array.isArray(args) && args.join(' ') === 'driver list --installed') return Buffer.from('uiautomator2')
       return Buffer.from('')
     })
 
@@ -533,6 +543,109 @@ targets:
     expect(output).toContain('Appium')
     // Should not show SKIP for appium
     expect(output).toContain('v2.0.0')
+  })
+
+  it('Appium checks use the resolved local executable when available', async () => {
+    const mobileConfig = `
+registry:
+  llms:
+    - name: default
+      provider: openai-compatible
+      model: model-name
+      baseURL: https://remote.example/api/v1
+use:
+  llm: default
+targets:
+  my-app:
+    platform: ios
+    environments:
+      dev:
+        url: http://localhost
+`
+    mockReadFile.mockResolvedValue(mobileConfig as never)
+    mockResolveAppiumExecutable.mockReturnValue({ command: '/tmp/project/node_modules/.bin/appium', source: 'local' })
+    mockExecFileSync.mockImplementation((cmd, args) => {
+      if (cmd === '/tmp/project/node_modules/.bin/appium' && Array.isArray(args) && args.join(' ') === '--version') return Buffer.from('2.1.0')
+      if (cmd === '/tmp/project/node_modules/.bin/appium' && Array.isArray(args) && args.join(' ') === 'driver list --installed') return Buffer.from('xcuitest')
+      return Buffer.from('')
+    })
+
+    await runDoctor()
+
+    expect(mockResolveAppiumExecutable).toHaveBeenCalledWith({ cwd: process.cwd() })
+    expect(mockExecFileSync).toHaveBeenCalledWith('/tmp/project/node_modules/.bin/appium', ['--version'], { stdio: 'pipe' })
+    expect(mockExecFileSync).toHaveBeenCalledWith('/tmp/project/node_modules/.bin/appium', ['driver', 'list', '--installed'], { stdio: 'pipe' })
+  })
+
+  it('Appium driver failure points to the AgentQA mobile driver install command', async () => {
+    const mobileConfig = `
+workspace:
+  testMatch:
+    - tests/**/*.yaml
+  suiteMatch:
+    - suites/**/*.suite.yaml
+  hooksFile: hooks.yaml
+  agentRules: agent-rules.md
+  envFile: .env
+  secretsFile: .env.secrets.local
+registry:
+  llms:
+    - name: default
+      provider: openai-compatible
+      model: model-name
+      baseURL: https://remote.example/api/v1
+  targets:
+    my-app:
+      platform: android
+use:
+  llm: default
+`
+    mockReadFile.mockResolvedValue(mobileConfig as never)
+    mockExistsSync.mockReturnValue(true)
+    mockExecSync.mockImplementation((cmd) => {
+      const cmdStr = cmd as string
+      if (cmdStr.includes('playwright')) return Buffer.from('1.50.0')
+      return Buffer.from('')
+    })
+    mockExecFileSync.mockImplementation((cmd, args) => {
+      if (cmd === 'appium' && Array.isArray(args) && args.join(' ') === '--version') return Buffer.from('2.0.0')
+      if (cmd === 'appium' && Array.isArray(args) && args.join(' ') === 'driver list --installed') return Buffer.from('')
+      return Buffer.from('')
+    })
+
+    await runDoctor()
+
+    const output = getOutput()
+    expect(output).toContain('no drivers installed')
+    expect(output).toContain('agent-qa install-mobile-drivers --android')
+    expect(output).not.toContain('appium driver install uiautomator2')
+  })
+
+  it('missing Appium guidance keeps local install first and names the mobile driver command', async () => {
+    const mobileConfig = `
+registry:
+  llms:
+    - name: default
+      provider: openai-compatible
+      model: model-name
+      baseURL: https://remote.example/api/v1
+use:
+  llm: default
+targets:
+  my-app:
+    platform: ios
+`
+    mockReadFile.mockResolvedValue(mobileConfig as never)
+    mockExecFileSync.mockImplementation((cmd, args) => {
+      if (cmd === 'appium' && Array.isArray(args) && args.join(' ') === '--version') throw new Error('appium not found')
+      return Buffer.from('')
+    })
+
+    await runDoctor()
+
+    const output = getOutput()
+    expect(output).toContain('Install Appium locally with `npm install -D appium`')
+    expect(output).toContain('agent-qa install-mobile-drivers --ios')
   })
 
   it('Android SDK check validates ANDROID_HOME', async () => {

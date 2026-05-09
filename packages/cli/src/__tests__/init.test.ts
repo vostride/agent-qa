@@ -14,6 +14,7 @@ vi.mock('node:fs', () => ({
 
 vi.mock('node:child_process', () => ({
   execSync: vi.fn(),
+  execFileSync: vi.fn(),
 }))
 
 vi.mock('../commands/install-browsers.js', () => ({
@@ -44,6 +45,8 @@ vi.mock('@inquirer/password', () => ({
 vi.mock('@vostride/agent-qa-core', () => ({
   writeAuth: vi.fn(() => Promise.resolve()),
   createModel: vi.fn(),
+  resolveAppiumExecutable: vi.fn(() => ({ command: 'appium', source: 'path' })),
+  formatAppiumInstallGuidance: vi.fn(() => 'Install Appium locally with `npm install -D appium` or globally with `npm install -g appium`.'),
   DEFAULT_AGENT_QA_CACHE_DIR: '.agent-qa/cache',
   DEFAULT_AGENT_QA_RUNTIME_DIR: '.agent-qa',
 }))
@@ -54,13 +57,13 @@ vi.spyOn(console, 'log').mockImplementation(() => {})
 import { createInitCommand, buildDefaultConfig, PROVIDER_CHOICES, COMPATIBLE_PROVIDER_CHOICES, LLM_SETUP_CHOICES } from '../commands/init.js'
 import { formatInstallBrowsersRetryCommand, runBrowserInstall } from '../commands/install-browsers.js'
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs'
-import { execSync } from 'node:child_process'
+import { execFileSync, execSync } from 'node:child_process'
 import select from '@inquirer/select'
 import input from '@inquirer/input'
 import checkbox from '@inquirer/checkbox'
 import confirm from '@inquirer/confirm'
 import password from '@inquirer/password'
-import { writeAuth } from '@vostride/agent-qa-core'
+import { resolveAppiumExecutable, writeAuth } from '@vostride/agent-qa-core'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const mockWriteFileSync = vi.mocked(writeFileSync)
@@ -68,6 +71,7 @@ const mockMkdirSync = vi.mocked(mkdirSync)
 const mockExistsSync = vi.mocked(existsSync)
 const mockReadFileSync = vi.mocked(readFileSync)
 const mockExecSync = vi.mocked(execSync)
+const mockExecFileSync = vi.mocked(execFileSync)
 const mockRunBrowserInstall = vi.mocked(runBrowserInstall)
 const mockFormatInstallBrowsersRetryCommand = vi.mocked(formatInstallBrowsersRetryCommand)
 const mockSelect = vi.mocked(select)
@@ -76,6 +80,7 @@ const mockCheckbox = vi.mocked(checkbox)
 const mockConfirm = vi.mocked(confirm)
 const mockPassword = vi.mocked(password)
 const mockWriteAuth = vi.mocked(writeAuth)
+const mockResolveAppiumExecutable = vi.mocked(resolveAppiumExecutable)
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..')
 
 async function runInit(args: string[] = []): Promise<void> {
@@ -116,6 +121,7 @@ describe('init command', () => {
     mockReadFileSync.mockImplementation((path) => String(path).endsWith('package.json') ? '{"version":"0.1.1"}' : '')
     mockRunBrowserInstall.mockReturnValue({ ok: true, status: 0, stage: 'installer' })
     mockFormatInstallBrowsersRetryCommand.mockReturnValue('agent-qa install-browsers --chromium')
+    mockResolveAppiumExecutable.mockReturnValue({ command: 'appium', source: 'path' })
   })
 
   afterEach(() => {
@@ -881,132 +887,67 @@ describe('init command', () => {
     expect(localCall).toBeDefined()
   })
 
-  it('delegates web browser setup to install-browsers with Chromium selection', async () => {
+  it('does not auto-install browser support for web projects', async () => {
     await runInit(['--dir', '/tmp/test-project', '--platform', 'web'])
 
-    expect(mockRunBrowserInstall).toHaveBeenCalledWith({ chromium: true })
+    expect(mockRunBrowserInstall).not.toHaveBeenCalled()
     expect(mockExecSync).not.toHaveBeenCalledWith('npx playwright install chromium', { stdio: 'inherit' })
+    const output = consoleOutput()
+    expect(output).toContain('agent-qa install-browsers --chromium')
+    expect(output).not.toContain('Installing agent-qa browser support')
   })
 
-  it('calls appium driver install for mobile platform', async () => {
-    // appium --version succeeds (already installed)
-    mockExecSync.mockImplementation((cmd) => {
-      if (cmd === 'appium --version') return Buffer.from('2.0.0')
-      return Buffer.from('')
-    })
+  it('does not auto-install Appium or drivers for Android projects', async () => {
+    await runInit(['--dir', '/tmp/test-project', '--platform', 'android'])
 
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'android', '--skip-install'])
-
-    // With skip-install, no calls
     expect(mockExecSync).not.toHaveBeenCalled()
-  })
-
-  it('installs appium drivers for android when not skipping', async () => {
-    mockExecSync.mockImplementation((cmd) => {
-      if (cmd === 'appium --version') return Buffer.from('2.0.0')
-      if (cmd === 'appium driver list --installed --json') return Buffer.from(JSON.stringify({ drivers: [] }))
-      return Buffer.from('')
-    })
-
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'android'])
-
-    expect(mockExecSync).toHaveBeenCalledWith('appium --version', { stdio: 'pipe' })
-    expect(mockExecSync).toHaveBeenCalledWith('appium driver list --installed --json', { stdio: 'pipe', encoding: 'utf-8' })
-    expect(mockExecSync).toHaveBeenCalledWith('appium driver install uiautomator2', { stdio: 'inherit' })
-  })
-
-  it('treats already-installed UiAutomator2 driver as success', async () => {
-    mockExecSync.mockImplementation((cmd) => {
-      if (cmd === 'appium --version') return Buffer.from('2.0.0')
-      if (cmd === 'appium driver list --installed --json') {
-        return Buffer.from(JSON.stringify({ installed: [{ name: 'uiautomator2' }] }))
-      }
-      throw new Error(`Unexpected command: ${cmd}`)
-    })
-
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'android'])
-
-    expect(mockExecSync).not.toHaveBeenCalledWith('appium driver install uiautomator2', { stdio: 'inherit' })
+    expect(mockExecFileSync).not.toHaveBeenCalled()
+    expect(mockResolveAppiumExecutable).not.toHaveBeenCalled()
     const output = consoleOutput()
-    expect(output).toContain('UiAutomator2 driver already installed')
-    expect(output).not.toContain('UiAutomator2 driver installation failed')
+    expect(output).toContain('agent-qa install-mobile-drivers --android')
+    expect(output).not.toContain('Installing Appium')
   })
 
-  it('handles Appium already-installed driver errors as success', async () => {
-    mockExecSync.mockImplementation((cmd) => {
-      if (cmd === 'appium --version') return Buffer.from('2.0.0')
-      if (cmd === 'appium driver list --installed --json') return Buffer.from(JSON.stringify({ drivers: [] }))
-      if (cmd === 'appium driver install uiautomator2') {
-        throw new Error('A driver named "uiautomator2" is already installed. Did you mean to update?')
-      }
-      return Buffer.from('')
-    })
-
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'android'])
-
-    const output = consoleOutput()
-    expect(output).toContain('UiAutomator2 driver already installed')
-    expect(output).not.toContain('UiAutomator2 driver installation failed')
-  })
-
-  it('treats already-installed XCUITest driver as success', async () => {
-    mockExecSync.mockImplementation((cmd) => {
-      if (cmd === 'appium --version') return Buffer.from('2.0.0')
-      if (cmd === 'appium driver list --installed --json') {
-        return Buffer.from(JSON.stringify({ xcuitest: { version: '1.0.0' } }))
-      }
-      throw new Error(`Unexpected command: ${cmd}`)
-    })
-
+  it('prints iOS-specific mobile setup guidance', async () => {
     await runInit(['--dir', '/tmp/test-project', '--platform', 'ios'])
 
-    expect(mockExecSync).not.toHaveBeenCalledWith('appium driver install xcuitest', { stdio: 'inherit' })
     const output = consoleOutput()
-    expect(output).toContain('XCUITest driver already installed')
-    expect(output).not.toContain('XCUITest driver installation failed')
+    expect(output).toContain('agent-qa install-mobile-drivers --ios')
+    expect(output).not.toContain('agent-qa install-mobile-drivers --android')
   })
 
-  it('keeps missing XCUITest install failures non-fatal', async () => {
-    mockExecSync.mockImplementation((cmd) => {
-      if (cmd === 'appium --version') return Buffer.from('2.0.0')
-      if (cmd === 'appium driver list --installed --json') return Buffer.from(JSON.stringify({ drivers: [] }))
-      if (cmd === 'appium driver install xcuitest') throw new Error('xcodebuild not found')
-      return Buffer.from('')
-    })
-
-    await expect(runInit(['--dir', '/tmp/test-project', '--platform', 'ios'])).resolves.not.toThrow()
+  it('prints both web and mobile setup guidance for mixed projects', async () => {
+    await runInit(['--dir', '/tmp/test-project', '--platform', 'web+android'])
 
     const output = consoleOutput()
-    expect(output).toContain('XCUITest driver installation failed')
-    expect(output).toContain('appium driver install xcuitest')
-    expect(output).toContain('agent-qa project initialized')
+    expect(output).toContain('agent-qa install-browsers --chromium')
+    expect(output).toContain('agent-qa install-mobile-drivers --android')
+    expect(output).toContain('agent-qa doctor')
   })
 
-  it('--skip-install skips all installations', async () => {
+  it('prints all-drivers setup guidance when both mobile platforms are selected interactively', async () => {
+    mockCheckbox
+      .mockResolvedValueOnce(['mobile'])
+      .mockResolvedValueOnce(['android', 'ios'])
+      .mockResolvedValueOnce(['none'])
+    mockSelect.mockResolvedValue('openai-compatible')
+    mockInput.mockResolvedValue('https://api.example.test/v1')
+
+    await runInit(['--dir', '/tmp/test-project'])
+
+    const output = consoleOutput()
+    expect(output).toContain('agent-qa install-mobile-drivers --all')
+  })
+
+  it('--skip-install remains accepted and init remains scaffold-only', async () => {
     await runInit(['--dir', '/tmp/test-project', '--platform', 'web', '--skip-install'])
 
     expect(mockExecSync).not.toHaveBeenCalled()
+    expect(mockExecFileSync).not.toHaveBeenCalled()
     expect(mockRunBrowserInstall).not.toHaveBeenCalled()
-  })
-
-  it('--skip-install summary mentions the agent-qa browser install command for web projects', async () => {
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'web', '--skip-install'])
 
     const output = consoleOutput()
     expect(output).toContain('agent-qa install-browsers --chromium')
-  })
-
-  it('installation failure prints warning but does not throw', async () => {
-    mockRunBrowserInstall.mockReturnValue({ ok: false, status: 1, stage: 'installer' })
-
-    // Should not throw
-    await expect(
-      runInit(['--dir', '/tmp/test-project', '--platform', 'web']),
-    ).resolves.not.toThrow()
-
-    const output = consoleOutput()
-    expect(output).toContain('agent-qa install-browsers --chromium')
-    expect(output).not.toContain('npx playwright install')
   })
 
   it('creates tests directory when it does not exist', async () => {

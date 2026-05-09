@@ -1,5 +1,6 @@
 export { createInitCommand } from './init.js'
 export { createInstallBrowsersCommand } from './install-browsers.js'
+export { createInstallMobileDriversCommand } from './install-mobile-drivers.js'
 export { createDoctorCommand } from './doctor.js'
 export { createRunCommand } from './run.js'
 export { createDashboardCommand, createServeCommand } from './dashboard.js'

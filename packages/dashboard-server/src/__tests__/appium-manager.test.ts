@@ -144,6 +144,40 @@ describe('AppiumManager', () => {
       await Promise.all([p1, p2])
       expect(mockSpawn).toHaveBeenCalledTimes(1)
     })
+
+    it('starts Appium with the resolved local executable', async () => {
+      let callCount = 0
+      const child = createMockChild()
+      mockSpawn.mockReturnValue(child)
+      mockRequest.mockImplementation(((_opts: unknown, callback?: (res: IncomingMessage) => void) => {
+        callCount++
+        const res = new Readable({ read() {} }) as unknown as IncomingMessage
+        const req = new EventEmitter() as unknown as ClientRequest
+        ;(req as unknown as { end: () => void }).end = () => {
+          if (callCount === 1) {
+            process.nextTick(() => req.emit('error', new Error('ECONNREFUSED')))
+            return
+          }
+          if (callback) callback(res)
+          ;(res as unknown as Readable).push(JSON.stringify({ value: { ready: true } }))
+          ;(res as unknown as Readable).push(null)
+        }
+        ;(req as unknown as { destroy: () => void }).destroy = () => {}
+        return req
+      }) as any)
+
+      const mgr = new AppiumManager({
+        pollIntervalMs: 10,
+        startupTimeoutMs: 2000,
+        appiumResolver: () => ({ command: '/repo/app/node_modules/.bin/appium', source: 'local' }),
+      })
+
+      await mgr.ensureRunning()
+
+      expect(mockSpawn).toHaveBeenCalledWith('/repo/app/node_modules/.bin/appium', ['-p', '4723', '--relaxed-security', '--log-no-colors'], {
+        stdio: ['ignore', 'pipe', 'pipe'],
+      })
+    })
   })
 
   describe('shutdown', () => {
