@@ -2,6 +2,10 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
 const host = 'https://us.i.posthog.com'
+const coreRuntimeArtifacts = [
+  'dist/index.js',
+  'dist/index.cjs',
+]
 
 function renderStringLiteral(value) {
   return JSON.stringify(value)
@@ -27,16 +31,30 @@ export async function writePosthogProjectFile(options = {}) {
   return target
 }
 
+function validateRuntimeArtifact(path, projectKey) {
+  if (!existsSync(path)) throw new Error(`PostHog dist key artifact is missing: ${path}`)
+  const distText = readFileSync(path, 'utf8')
+  if (!distText.includes('AGENT_QA_POSTHOG_KEY')) throw new Error(`PostHog dist key export is missing: ${path}`)
+  if (/AGENT_QA_POSTHOG_KEY\s*=\s*["']{2}/.test(distText)) throw new Error(`PostHog dist key is empty: ${path}`)
+  if (!distText.includes(projectKey)) throw new Error(`PostHog dist key does not match POSTHOG_PROJECT_KEY: ${path}`)
+}
+
+function corePackageRoots(rootDir, stagedDir) {
+  const roots = [join(rootDir, 'packages/core')]
+  if (stagedDir) roots.push(join(stagedDir, 'core'))
+  return roots
+}
+
 export function validatePosthogReleaseArtifacts(options = {}) {
   const rootDir = options.rootDir ?? process.cwd()
   const projectKey = options.projectKey ?? options.env?.POSTHOG_PROJECT_KEY ?? process.env.POSTHOG_PROJECT_KEY
   if (!projectKey?.trim()) throw new Error('POSTHOG_PROJECT_KEY is required')
 
-  const distPath = join(rootDir, 'packages/core/dist/analytics/posthog-project.js')
-  if (!existsSync(distPath)) throw new Error('PostHog dist key artifact is missing')
-  const distText = readFileSync(distPath, 'utf8')
-  if (!distText.includes('AGENT_QA_POSTHOG_KEY')) throw new Error('PostHog dist key export is missing')
-  if (/AGENT_QA_POSTHOG_KEY\s*=\s*["']{2}/.test(distText)) throw new Error('PostHog dist key is empty')
+  for (const packageRoot of corePackageRoots(rootDir, options.stagedDir)) {
+    for (const artifact of coreRuntimeArtifacts) {
+      validateRuntimeArtifact(join(packageRoot, artifact), projectKey)
+    }
+  }
   if ((options.logText ?? '').includes(projectKey)) throw new Error('raw POSTHOG_PROJECT_KEY leaked in logs')
 
   const servicePath = join(rootDir, 'packages/core/src/analytics/service.ts')

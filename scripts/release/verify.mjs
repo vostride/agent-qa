@@ -134,6 +134,7 @@ export async function runReleaseVerification(options = {}) {
     })
     ;(options.validatePosthogReleaseArtifacts ?? defaultValidatePosthogReleaseArtifacts)({
       rootDir,
+      stagedDir: resolvedStagedDir,
       projectKey: env.POSTHOG_PROJECT_KEY,
       env,
     })

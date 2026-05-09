@@ -12,19 +12,18 @@ import {
   validatePosthogReleaseArtifacts,
 } from '../release/posthog.mjs'
 
-function createPosthogFixture(rootDir, distKey = 'phc_test_key') {
-  const sourceDir = join(rootDir, 'packages/core/src/analytics')
-  const distDir = join(rootDir, 'packages/core/dist/analytics')
+function createPosthogFixture(rootDir, distKey = 'phc_test_key', packagePath = 'packages/core') {
+  const sourceDir = join(rootDir, packagePath, 'src/analytics')
+  const distDir = join(rootDir, packagePath, 'dist')
   mkdirSync(sourceDir, { recursive: true })
   mkdirSync(distDir, { recursive: true })
   writeFileSync(
     join(sourceDir, 'service.ts'),
     'import { NoopAnalyticsTransport } from "./transport.js"\nexport const marker = "noop transport stays local"\n',
   )
-  writeFileSync(
-    join(distDir, 'posthog-project.js'),
-    `export const AGENT_QA_POSTHOG_KEY = "${distKey}"\nexport const AGENT_QA_POSTHOG_HOST = "https://us.i.posthog.com"\n`,
-  )
+  const runtimeText = `var AGENT_QA_POSTHOG_KEY = "${distKey}"\nvar AGENT_QA_POSTHOG_HOST = "https://us.i.posthog.com"\n`
+  writeFileSync(join(distDir, 'index.js'), runtimeText)
+  writeFileSync(join(distDir, 'index.cjs'), runtimeText)
 }
 
 test('renders and redacts POSTHOG_PROJECT_KEY safely', () => {
@@ -50,8 +49,27 @@ test('validates built PostHog release artifacts and raw secret leakage', async (
 
     createPosthogFixture(rootDir, '')
     assert.throws(() => validatePosthogReleaseArtifacts({ rootDir, projectKey: 'phc_test_key' }), /PostHog dist key is empty/)
+
+    createPosthogFixture(rootDir, 'phc_wrong_key')
+    assert.throws(() => validatePosthogReleaseArtifacts({ rootDir, projectKey: 'phc_test_key' }), /PostHog dist key does not match/)
   } finally {
     await rm(rootDir, { recursive: true, force: true })
+  }
+})
+
+test('validates staged core package PostHog runtime artifacts', async () => {
+  const rootDir = await mkdtemp(join(tmpdir(), 'agent-qa-release-posthog-staged-root-'))
+  const stagedDir = await mkdtemp(join(tmpdir(), 'agent-qa-release-posthog-staged-packages-'))
+  try {
+    createPosthogFixture(rootDir)
+    createPosthogFixture(stagedDir, 'phc_test_key', 'core')
+    assert.doesNotThrow(() => validatePosthogReleaseArtifacts({ rootDir, stagedDir, projectKey: 'phc_test_key' }))
+
+    createPosthogFixture(stagedDir, '', 'core')
+    assert.throws(() => validatePosthogReleaseArtifacts({ rootDir, stagedDir, projectKey: 'phc_test_key' }), /PostHog dist key is empty/)
+  } finally {
+    await rm(rootDir, { recursive: true, force: true })
+    await rm(stagedDir, { recursive: true, force: true })
   }
 })
 
