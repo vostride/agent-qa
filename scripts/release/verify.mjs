@@ -10,6 +10,8 @@ import { discoverStagedRecords, validateStagedPackageManifests as defaultValidat
 import { assertAllowedBump, assertSharedPublicVersion, computeTargetVersion } from './version.mjs'
 import { validatePosthogReleaseArtifacts as defaultValidatePosthogReleaseArtifacts } from './posthog.mjs'
 
+export const subscriptionAuthPackageName = '@vostride/agent-qa-subscription-auth'
+
 export function buildReleaseGatePlan(bump) {
   assertAllowedBump(bump)
   return [
@@ -27,6 +29,7 @@ export function buildReleaseGatePlan(bump) {
     'create release commit and tag',
     'git push',
     'npm publish',
+    'subscription auth publish',
     'docker publish',
   ]
 }
@@ -112,8 +115,12 @@ export async function runReleaseVerification(options = {}) {
     const records = getPublicPackages({ rootDir })
     const currentVersion = assertSharedPublicVersion(records)
     const targetVersion = computeTargetVersion(currentVersion, bump)
+    const releaseRecords = [
+      ...records,
+      { name: subscriptionAuthPackageName, pkg: { name: subscriptionAuthPackageName } },
+    ]
     await (options.checkGitTagAbsent ?? defaultCheckGitTagAbsent)(targetVersion, options)
-    await (options.checkNpmVersionsAbsent ?? defaultCheckNpmVersionsAbsent)(records, targetVersion, options)
+    await (options.checkNpmVersionsAbsent ?? defaultCheckNpmVersionsAbsent)(releaseRecords, targetVersion, options)
     return { targetVersion }
   }
 

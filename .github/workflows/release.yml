@@ -94,9 +94,78 @@ jobs:
       - name: Publish packages
         run: pnpm exec node scripts/release/publish.mjs --staged-dir .release/staged-packages
 
+  subscription-auth:
+    name: Publish subscription auth
+    needs: npm
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout subscription auth
+        uses: actions/checkout@v6
+        with:
+          repository: vostride/agent-qa-subscription-auth
+          path: agent-qa-subscription-auth
+          token: ${{ secrets.SUBSCRIPTION_AUTH_RELEASE_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        working-directory: agent-qa-subscription-auth
+        run: pnpm install --frozen-lockfile
+
+      - name: Release preflight
+        working-directory: agent-qa-subscription-auth
+        run: pnpm run release:verify -- --target-version "${{ needs.npm.outputs.version }}" --stage preflight
+
+      - name: Write release version
+        working-directory: agent-qa-subscription-auth
+        run: pnpm run release:version -- --target-version "${{ needs.npm.outputs.version }}" --write
+
+      - name: Test
+        working-directory: agent-qa-subscription-auth
+        run: pnpm test
+
+      - name: Typecheck
+        working-directory: agent-qa-subscription-auth
+        run: pnpm typecheck
+
+      - name: Build
+        working-directory: agent-qa-subscription-auth
+        run: pnpm build
+
+      - name: Stage package
+        working-directory: agent-qa-subscription-auth
+        run: pnpm run release:stage -- --target-version "${{ needs.npm.outputs.version }}" --out .release/package
+
+      - name: Release postbuild verification
+        working-directory: agent-qa-subscription-auth
+        run: pnpm run release:verify -- --stage postbuild --target-version "${{ needs.npm.outputs.version }}" --staged-dir .release/package
+
+      - name: Create release commit and tag
+        working-directory: agent-qa-subscription-auth
+        run: pnpm exec node scripts/release/git.mjs --commit-tag
+
+      - name: Push release commit and tag
+        working-directory: agent-qa-subscription-auth
+        run: git push origin HEAD:main --follow-tags
+
+      - name: Publish package
+        working-directory: agent-qa-subscription-auth
+        run: pnpm run release:publish -- --staged-dir .release/package
+
   docker:
     name: Publish Docker images
-    needs: npm
+    needs:
+      - npm
+      - subscription-auth
     uses: ./.github/workflows/docker-release.yml
     with:
       ref: v${{ needs.npm.outputs.version }}

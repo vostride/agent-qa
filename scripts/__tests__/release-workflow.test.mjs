@@ -42,6 +42,7 @@ test('release workflow uses trusted publishing prerequisites without npm tokens'
   assert.match(workflow, /id-token:\s*write/)
   assert.match(workflow, /attestations:\s*write/)
   assert.match(workflow, /scripts\/release\/publish\.mjs/)
+  assert.match(workflow, /SUBSCRIPTION_AUTH_RELEASE_TOKEN/)
   assert.doesNotMatch(workflow, /NPM_TOKEN/)
   assert.doesNotMatch(workflow, /docker\/build-push-action|DOCKERHUB_TOKEN/)
 })
@@ -94,12 +95,38 @@ test('release workflow publishes Docker from the release tag after npm publish',
 
   assert.match(workflow, /outputs:\s*\n\s+version:\s*\$\{\{ steps\.version\.outputs\.version \}\}/)
   assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images/)
-  assert.match(workflow, /needs:\s*npm/)
+  assert.match(workflow, /needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
   assert.match(workflow, /uses:\s*\.\/\.github\/workflows\/docker-release\.yml/)
   assert.match(workflow, /ref:\s*v\$\{\{ needs\.npm\.outputs\.version \}\}/)
   assert.match(workflow, /move_latest:\s*true/)
   assert.match(workflow, /secrets:\s*inherit/)
   assertBefore(workflow, 'pnpm exec node scripts/release/publish.mjs --staged-dir .release/staged-packages', 'uses: ./.github/workflows/docker-release.yml')
+})
+
+test('release workflow publishes subscription auth from the main release version before Docker', () => {
+  const workflow = readWorkflow()
+  const orderedCommands = [
+    'repository: vostride/agent-qa-subscription-auth',
+    'pnpm run release:verify -- --target-version "${{ needs.npm.outputs.version }}" --stage preflight',
+    'pnpm run release:version -- --target-version "${{ needs.npm.outputs.version }}" --write',
+    'working-directory: agent-qa-subscription-auth\n        run: pnpm test',
+    'working-directory: agent-qa-subscription-auth\n        run: pnpm typecheck',
+    'working-directory: agent-qa-subscription-auth\n        run: pnpm build',
+    'pnpm run release:stage -- --target-version "${{ needs.npm.outputs.version }}" --out .release/package',
+    'pnpm run release:verify -- --stage postbuild --target-version "${{ needs.npm.outputs.version }}" --staged-dir .release/package',
+    'working-directory: agent-qa-subscription-auth\n        run: pnpm exec node scripts/release/git.mjs --commit-tag',
+    'working-directory: agent-qa-subscription-auth\n        run: git push origin HEAD:main --follow-tags',
+    'working-directory: agent-qa-subscription-auth\n        run: pnpm run release:publish -- --staged-dir .release/package',
+    'uses: ./.github/workflows/docker-release.yml',
+  ]
+
+  assert.match(workflow, /subscription-auth:\s*\n\s+name:\s*Publish subscription auth/)
+  assert.match(workflow, /token:\s*\$\{\{ secrets\.SUBSCRIPTION_AUTH_RELEASE_TOKEN \}\}/)
+  assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
+  for (const command of orderedCommands) assert.match(workflow, new RegExp(command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+  for (let index = 0; index < orderedCommands.length - 1; index += 1) {
+    assertBefore(workflow, orderedCommands[index], orderedCommands[index + 1])
+  }
 })
 
 test('docker release workflow is manual and reusable with Docker Hub preflight', () => {

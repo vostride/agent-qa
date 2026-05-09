@@ -29,6 +29,7 @@ type InitLLMConfig = {
 const INIT_CACHE_DIR = DEFAULT_AGENT_QA_CACHE_DIR || '.agent-qa/cache'
 const INIT_RUNTIME_DIR = DEFAULT_AGENT_QA_RUNTIME_DIR || '.agent-qa'
 const SUBSCRIPTION_AUTH_PACKAGE = '@vostride/agent-qa-subscription-auth'
+const PACKAGE_JSON_FILE = 'package.json'
 const DEFAULT_SCREENSHOT_SIZE = '50kb'
 const DEFAULT_EFFECTIVE_RESOLUTION = 500
 const OPENAI_SUBSCRIPTION_CONFIG: InitLLMConfig = {
@@ -263,6 +264,79 @@ steps:
 
 function isSubscriptionProvider(provider: string): boolean {
   return provider === 'openai-subscription' || provider === 'anthropic-subscription'
+}
+
+function readAgentQaPackageVersion(): string | null {
+  try {
+    const manifest = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf-8')) as Record<string, unknown>
+    return typeof manifest.version === 'string' && manifest.version.trim() ? manifest.version.trim() : null
+  } catch {
+    return null
+  }
+}
+
+function subscriptionAuthDependencyRange(): string {
+  return readAgentQaPackageVersion() ?? '*'
+}
+
+function objectRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null
+}
+
+function configUsesSubscriptionAuth(config: Record<string, unknown>): boolean {
+  const plugins = objectRecord(config.plugins)
+  const authPlugins = plugins?.auth
+  if (!Array.isArray(authPlugins)) return false
+  return authPlugins.some(plugin => objectRecord(plugin)?.package === SUBSCRIPTION_AUTH_PACKAGE)
+}
+
+type SubscriptionAuthDependencyResult = {
+  path: string
+  created: boolean
+  range: string
+}
+
+export function upsertSubscriptionAuthPackageDependency(dir: string): SubscriptionAuthDependencyResult {
+  const packageJsonPath = join(dir, PACKAGE_JSON_FILE)
+  const created = !existsSync(packageJsonPath)
+  const pkg = created
+    ? { private: true } as Record<string, unknown>
+    : JSON.parse(readFileSync(packageJsonPath, 'utf-8')) as Record<string, unknown>
+
+  if (!objectRecord(pkg)) {
+    throw new Error(`${PACKAGE_JSON_FILE} must contain a JSON object to add ${SUBSCRIPTION_AUTH_PACKAGE}`)
+  }
+
+  const dependencyBlocks = ['devDependencies', 'dependencies', 'optionalDependencies', 'peerDependencies'] as const
+  const existingBlock = dependencyBlocks.find(blockName => {
+    const block = objectRecord(pkg[blockName])
+    return block && Object.prototype.hasOwnProperty.call(block, SUBSCRIPTION_AUTH_PACKAGE)
+  })
+  const targetBlock = existingBlock ?? 'devDependencies'
+  const targetDependencies = {
+    ...(objectRecord(pkg[targetBlock]) ?? {}),
+    [SUBSCRIPTION_AUTH_PACKAGE]: subscriptionAuthDependencyRange(),
+  }
+
+  pkg[targetBlock] = targetDependencies
+  for (const blockName of dependencyBlocks) {
+    if (blockName === targetBlock) continue
+    const block = objectRecord(pkg[blockName])
+    if (!block || !Object.prototype.hasOwnProperty.call(block, SUBSCRIPTION_AUTH_PACKAGE)) continue
+    const nextBlock = { ...block }
+    delete nextBlock[SUBSCRIPTION_AUTH_PACKAGE]
+    if (Object.keys(nextBlock).length > 0) pkg[blockName] = nextBlock
+    else delete pkg[blockName]
+  }
+
+  writeFileSync(packageJsonPath, `${JSON.stringify(pkg, null, 2)}\n`)
+  return {
+    path: packageJsonPath,
+    created,
+    range: String(targetDependencies[SUBSCRIPTION_AUTH_PACKAGE]),
+  }
 }
 
 function toLLMEntry(config: InitLLMConfig): Record<string, unknown> {
@@ -719,10 +793,19 @@ export function createInitCommand(): Command {
 
       // Write config file
       const config = buildDefaultConfig(platform, llmConfigs ?? provider, model, baseURL)
+      const usesSubscriptionAuth = configUsesSubscriptionAuth(config)
       const yamlStr = stringify(config)
       const configContent = addYamlComments(yamlStr)
       writeFileSync(configPath, configContent)
       console.log(pc.green(`✓ Created ${configPath}`))
+
+      const subscriptionAuthDependency = usesSubscriptionAuth
+        ? upsertSubscriptionAuthPackageDependency(dir)
+        : null
+      if (subscriptionAuthDependency) {
+        const action = subscriptionAuthDependency.created ? 'Created' : 'Updated'
+        console.log(pc.green(`✓ ${action} ${subscriptionAuthDependency.path}`))
+      }
 
       const secretsPath = join(dir, DEFAULT_SECRETS_FILE)
       if (force || !existsSync(secretsPath)) {
@@ -814,6 +897,9 @@ export function createInitCommand(): Command {
       console.log('')
       console.log('  Created:')
       console.log(`    ${pc.dim('•')} agent-qa.config.yaml`)
+      if (subscriptionAuthDependency) {
+        console.log(`    ${pc.dim('•')} ${PACKAGE_JSON_FILE} dependency for ${SUBSCRIPTION_AUTH_PACKAGE}@${subscriptionAuthDependency.range}`)
+      }
       console.log(`    ${pc.dim('•')} ${DEFAULT_HOOKS_FILE}`)
       console.log(`    ${pc.dim('•')} ${DEFAULT_AGENT_RULES_FILE}`)
       console.log(`    ${pc.dim('•')} ${DEFAULT_ENV_FILE}`)
@@ -845,7 +931,7 @@ export function createInitCommand(): Command {
           console.log(`    ${pc.dim('•')} Bearer tokens use ${pc.cyan('agent-qa auth set --config default --type bearer-token')}`)
         }
       } else {
-        console.log(`    ${pc.dim('•')} Install subscription auth with ${pc.cyan(`npm install -D ${SUBSCRIPTION_AUTH_PACKAGE}`)}`)
+        console.log(`    ${pc.dim('•')} Fetch ${SUBSCRIPTION_AUTH_PACKAGE} with your package manager install command`)
         for (const llm of subscriptionLLMs) {
           console.log(`    ${pc.dim('•')} Authenticate ${pc.cyan(String(llm.name))} from ${pc.cyan('agent-qa dashboard')}`)
         }

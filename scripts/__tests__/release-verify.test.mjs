@@ -51,6 +51,7 @@ test('builds the fail-closed release gate plan in exact order with paired Docker
     'create release commit and tag',
     'git push',
     'npm publish',
+    'subscription auth publish',
     'docker publish',
   ])
   assert.equal(buildReleaseGatePlan('patch').at(-1), 'docker publish')
@@ -165,9 +166,12 @@ test('preflight verification checks bump, git tag, npm registry, and POSTHOG_PRO
       rootDir,
       env: { POSTHOG_PROJECT_KEY: 'phc_test_key' },
       checkGitTagAbsent: (version) => calls.push(`git ${version}`),
-      checkNpmVersionsAbsent: (packages, version) => calls.push(`npm ${packages.length} ${version}`),
+      checkNpmVersionsAbsent: (packages, version) => {
+        calls.push(`npm ${packages.length} ${version}`)
+        assert.ok(packages.some(record => (record.pkg?.name ?? record.name) === '@vostride/agent-qa-subscription-auth'))
+      },
     })
-    assert.deepEqual(calls, ['git 0.1.1', 'npm 9 0.1.1'])
+    assert.deepEqual(calls, ['git 0.1.1', 'npm 10 0.1.1'])
   } finally {
     await rm(rootDir, { recursive: true, force: true })
   }

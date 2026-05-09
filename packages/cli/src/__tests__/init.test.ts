@@ -113,7 +113,7 @@ describe('init command', () => {
     vi.spyOn(console, 'log').mockImplementation(() => {})
     vi.clearAllMocks()
     mockExistsSync.mockReturnValue(false)
-    mockReadFileSync.mockReturnValue('')
+    mockReadFileSync.mockImplementation((path) => String(path).endsWith('package.json') ? '{"version":"0.1.1"}' : '')
     mockRunBrowserInstall.mockReturnValue({ ok: true, status: 0, stage: 'installer' })
     mockFormatInstallBrowsersRetryCommand.mockReturnValue('agent-qa install-browsers --chromium')
   })
@@ -209,6 +209,15 @@ describe('init command', () => {
     expect(content).not.toContain('# use:')
     expect(content).not.toContain('authMethod')
     expect(content).not.toContain('apiKey')
+
+    const packageJsonCall = findWriteCallEndingWith('package.json')
+    expect(packageJsonCall).toBeDefined()
+    expect(JSON.parse(packageJsonCall![1] as string)).toEqual({
+      private: true,
+      devDependencies: {
+        '@vostride/agent-qa-subscription-auth': '0.1.1',
+      },
+    })
   })
 
   it('provider choices include only current LLM providers', () => {
@@ -508,9 +517,13 @@ describe('init command', () => {
     expect(configCall?.[1]).not.toContain('authMethod')
 
     const output = consoleOutput()
-    expect(output).toContain('npm install -D @vostride/agent-qa-subscription-auth')
+    expect(output).toContain('Fetch @vostride/agent-qa-subscription-auth with your package manager install command')
     expect(output).toContain('Authenticate codex from agent-qa dashboard')
     expect(output).toContain('Authenticate claude-subscription from agent-qa dashboard')
+
+    const packageJsonCall = findWriteCallEndingWith('package.json')
+    expect(packageJsonCall).toBeDefined()
+    expect(JSON.parse(packageJsonCall![1] as string).devDependencies['@vostride/agent-qa-subscription-auth']).toBe('0.1.1')
   })
 
   it('writes OpenAI subscription config during interactive init', async () => {
@@ -556,6 +569,7 @@ describe('init command', () => {
     expect(configCall?.[1]).not.toContain('plugins:')
     expect(configCall?.[1]).not.toContain('baseURL:')
     expect(configCall?.[1]).not.toContain('apiKey')
+    expect(findWriteCallEndingWith('package.json')).toBeUndefined()
   })
 
   it('creates passing and failing example test files', async () => {
