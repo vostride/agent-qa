@@ -1,6 +1,6 @@
 {
   "name": "agent-qa",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "private": false,
   "description": "agent-qa command-line interface for AI-powered web and mobile testing.",
   "keywords": [
