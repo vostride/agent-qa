@@ -157,10 +157,12 @@ test('docker release workflow uses official Docker actions with metadata and att
 
   assert.match(workflow, /fromJson\(needs\.preflight\.outputs\.images\)/)
   assert.match(workflow, /docker\/login-action@v4/)
+  assert.match(workflow, /docker\/setup-qemu-action@v4/)
   assert.match(workflow, /docker\/setup-buildx-action@v4/)
   assert.match(workflow, /docker\/metadata-action@v6/)
   assert.match(workflow, /docker\/build-push-action@v7/)
   assert.match(workflow, /file:\s*\$\{\{ matrix\.image\.dockerfile \}\}/)
+  assert.match(workflow, /platforms:\s*\$\{\{ matrix\.image\.platforms \}\}/)
   assert.match(workflow, /type=raw,value=\$\{\{ needs\.preflight\.outputs\.version \}\}/)
   assert.match(workflow, /type=raw,value=v\$\{\{ needs\.preflight\.outputs\.version \}\}/)
   assert.match(workflow, /org\.opencontainers\.image\.title=\$\{\{ matrix\.image\.title \}\}/)

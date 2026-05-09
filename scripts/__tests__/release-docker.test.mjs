@@ -36,11 +36,20 @@ const dockerfiles = [
   'docker/Dockerfile.hooks-python',
   'docker/Dockerfile.hooks-bash',
 ]
+const dockerPlatforms = [
+  'linux/amd64',
+  'linux/amd64',
+  'linux/amd64,linux/arm64',
+  'linux/amd64,linux/arm64',
+  'linux/amd64,linux/arm64',
+  'linux/amd64,linux/arm64',
+]
 
 test('defines the six Docker release images under the vostride namespace', () => {
   const matrix = getDockerImageMatrix()
   assert.deepEqual(matrix.map(image => image.image), imageNames)
   assert.deepEqual(matrix.map(image => image.dockerfile), dockerfiles)
+  assert.deepEqual(matrix.map(image => image.platforms), dockerPlatforms)
 })
 
 test('normalizes namespace and version inputs for Docker releases', () => {
