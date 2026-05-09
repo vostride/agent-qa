@@ -2039,7 +2039,7 @@ export function createRunCommand(): Command {
               // Exit cleanup for farm sessions on mobile
               if (useFarm && (testPlatform === 'android' || testPlatform === 'ios')) {
                 const farmAdapter = adapter
-                process.on('exit', () => { farmAdapter.cleanup().catch(() => {}) })
+                process.on('exit', () => { void Promise.resolve(farmAdapter.cleanup()).catch(() => {}) })
               }
 
               if (effectiveLogLevel === 'debug') {

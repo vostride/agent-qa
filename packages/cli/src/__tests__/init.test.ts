@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { Command } from 'commander'
 import { parse as parseYaml } from 'yaml'
 import { dirname, resolve } from 'node:path'
+import { stripVTControlCharacters } from 'node:util'
 
 // Mock fs and child_process before importing
 vi.mock('node:fs', () => ({
@@ -87,6 +88,10 @@ function findWriteCallEndingWith(pathSuffix: string) {
   return mockWriteFileSync.mock.calls.find(
     (call) => (call[0] as string).endsWith(pathSuffix),
   )
+}
+
+function consoleOutput(): string {
+  return stripVTControlCharacters(vi.mocked(console.log).mock.calls.flat().map(String).join('\n'))
 }
 
 async function loadCoreYamlValidators() {
@@ -502,7 +507,7 @@ describe('init command', () => {
     expect(configCall?.[1]).not.toContain('apiKey')
     expect(configCall?.[1]).not.toContain('authMethod')
 
-    const output = vi.mocked(console.log).mock.calls.flat().map(String).join('\n')
+    const output = consoleOutput()
     expect(output).toContain('npm install -D @vostride/agent-qa-subscription-auth')
     expect(output).toContain('Authenticate codex from agent-qa dashboard')
     expect(output).toContain('Authenticate claude-subscription from agent-qa dashboard')
@@ -609,7 +614,7 @@ describe('init command', () => {
     expect(suiteContent).toContain('test: tests/automation-exercise/products-smoke.yaml')
     expect(suiteContent).toContain('test: tests/automation-exercise/cart-smoke.yaml')
 
-    const output = vi.mocked(console.log).mock.calls.flat().map(String).join('\n')
+    const output = consoleOutput()
     expect(output).toContain('tests/automation-exercise/*.yaml')
     expect(output).toContain('suites/automation-exercise.suite.yaml')
   })
@@ -649,7 +654,7 @@ describe('init command', () => {
     expect(testContent).toContain('Navigate to "https://news.ycombinator.com/"')
     expect(testContent).toContain('{{env:HN_FIRST_STORY_TITLE}}')
 
-    const output = vi.mocked(console.log).mock.calls.flat().map(String).join('\n')
+    const output = consoleOutput()
     expect(output).toContain('tests/hacker-news-top-story.yaml')
     expect(output).toContain('scripts/fetch-hn-top-story.mjs')
   })
@@ -774,7 +779,7 @@ describe('init command', () => {
     expect(content).not.toContain('# apps:')
     expect(content).not.toContain('# providers:')
 
-    const output = vi.mocked(console.log).mock.calls.flat().map(String).join('\n')
+    const output = consoleOutput()
     expect(output).toContain('agent-qa.local.yaml')
   })
 
@@ -908,7 +913,7 @@ describe('init command', () => {
     await runInit(['--dir', '/tmp/test-project', '--platform', 'android'])
 
     expect(mockExecSync).not.toHaveBeenCalledWith('appium driver install uiautomator2', { stdio: 'inherit' })
-    const output = vi.mocked(console.log).mock.calls.flat().map(String).join('\n')
+    const output = consoleOutput()
     expect(output).toContain('UiAutomator2 driver already installed')
     expect(output).not.toContain('UiAutomator2 driver installation failed')
   })
@@ -925,7 +930,7 @@ describe('init command', () => {
 
     await runInit(['--dir', '/tmp/test-project', '--platform', 'android'])
 
-    const output = vi.mocked(console.log).mock.calls.flat().map(String).join('\n')
+    const output = consoleOutput()
     expect(output).toContain('UiAutomator2 driver already installed')
     expect(output).not.toContain('UiAutomator2 driver installation failed')
   })
@@ -942,7 +947,7 @@ describe('init command', () => {
     await runInit(['--dir', '/tmp/test-project', '--platform', 'ios'])
 
     expect(mockExecSync).not.toHaveBeenCalledWith('appium driver install xcuitest', { stdio: 'inherit' })
-    const output = vi.mocked(console.log).mock.calls.flat().map(String).join('\n')
+    const output = consoleOutput()
     expect(output).toContain('XCUITest driver already installed')
     expect(output).not.toContain('XCUITest driver installation failed')
   })
@@ -957,7 +962,7 @@ describe('init command', () => {
 
     await expect(runInit(['--dir', '/tmp/test-project', '--platform', 'ios'])).resolves.not.toThrow()
 
-    const output = vi.mocked(console.log).mock.calls.flat().map(String).join('\n')
+    const output = consoleOutput()
     expect(output).toContain('XCUITest driver installation failed')
     expect(output).toContain('appium driver install xcuitest')
     expect(output).toContain('agent-qa project initialized')
@@ -973,7 +978,7 @@ describe('init command', () => {
   it('--skip-install summary mentions the agent-qa browser install command for web projects', async () => {
     await runInit(['--dir', '/tmp/test-project', '--platform', 'web', '--skip-install'])
 
-    const output = vi.mocked(console.log).mock.calls.flat().map(String).join('\n')
+    const output = consoleOutput()
     expect(output).toContain('agent-qa install-browsers --chromium')
   })
 
@@ -985,7 +990,7 @@ describe('init command', () => {
       runInit(['--dir', '/tmp/test-project', '--platform', 'web']),
     ).resolves.not.toThrow()
 
-    const output = vi.mocked(console.log).mock.calls.flat().map(String).join('\n')
+    const output = consoleOutput()
     expect(output).toContain('agent-qa install-browsers --chromium')
     expect(output).not.toContain('npx playwright install')
   })
