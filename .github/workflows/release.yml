@@ -10,6 +10,10 @@ on:
         options:
           - patch
           - minor
+      subscription_auth_target_version:
+        description: Existing agent-qa version to publish only subscription-auth for; leave blank for a full release
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -23,6 +27,7 @@ concurrency:
 jobs:
   npm:
     name: Publish npm packages
+    if: ${{ inputs.subscription_auth_target_version == '' }}
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -97,7 +102,10 @@ jobs:
   subscription-auth:
     name: Publish subscription auth
     needs: npm
+    if: ${{ always() && (inputs.subscription_auth_target_version != '' || needs.npm.result == 'success') }}
     runs-on: ubuntu-latest
+    env:
+      SUBSCRIPTION_AUTH_TARGET_VERSION: ${{ inputs.subscription_auth_target_version || needs.npm.outputs.version }}
 
     steps:
       - name: Validate subscription auth release token
@@ -132,17 +140,29 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
 
+      - name: Install agent-qa dependencies
+        working-directory: agent-qa
+        run: pnpm install --frozen-lockfile
+
+      - name: Build linked ID helpers
+        working-directory: agent-qa
+        run: pnpm --filter @vostride/agent-qa-ids build
+
+      - name: Build linked core dependency
+        working-directory: agent-qa
+        run: pnpm --filter @vostride/agent-qa-core build
+
       - name: Install dependencies
         working-directory: agent-qa-subscription-auth
         run: pnpm install --frozen-lockfile
 
       - name: Release preflight
         working-directory: agent-qa-subscription-auth
-        run: pnpm run release:verify -- --target-version "${{ needs.npm.outputs.version }}" --stage preflight
+        run: pnpm run release:verify -- --target-version "$SUBSCRIPTION_AUTH_TARGET_VERSION" --stage preflight
 
       - name: Write release version
         working-directory: agent-qa-subscription-auth
-        run: pnpm run release:version -- --target-version "${{ needs.npm.outputs.version }}" --write
+        run: pnpm run release:version -- --target-version "$SUBSCRIPTION_AUTH_TARGET_VERSION" --write
 
       - name: Test
         working-directory: agent-qa-subscription-auth
@@ -158,11 +178,11 @@ jobs:
 
       - name: Stage package
         working-directory: agent-qa-subscription-auth
-        run: pnpm run release:stage -- --target-version "${{ needs.npm.outputs.version }}" --out .release/package
+        run: pnpm run release:stage -- --target-version "$SUBSCRIPTION_AUTH_TARGET_VERSION" --out .release/package
 
       - name: Release postbuild verification
         working-directory: agent-qa-subscription-auth
-        run: pnpm run release:verify -- --stage postbuild --target-version "${{ needs.npm.outputs.version }}" --staged-dir .release/package
+        run: pnpm run release:verify -- --stage postbuild --target-version "$SUBSCRIPTION_AUTH_TARGET_VERSION" --staged-dir .release/package
 
       - name: Create release commit and tag
         working-directory: agent-qa-subscription-auth
@@ -178,6 +198,7 @@ jobs:
 
   docker:
     name: Publish Docker images
+    if: ${{ inputs.subscription_auth_target_version == '' }}
     needs:
       - npm
       - subscription-auth

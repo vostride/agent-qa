@@ -29,6 +29,7 @@ test('release workflow is manual-only with patch/minor bump choices', () => {
   assert.match(workflow, /type:\s*choice/)
   assert.match(workflow, /options:\s*\n(?:\s+-\s+\w+\s*\n)*\s+-\s+patch/)
   assert.match(workflow, /options:\s*\n(?:\s+-\s+\w+\s*\n)*\s+-\s+minor/)
+  assert.match(workflow, /subscription_auth_target_version:/)
   assert.doesNotMatch(workflow, /-\s+major\b/)
 })
 
@@ -94,7 +95,9 @@ test('release workflow publishes Docker from the release tag after npm publish',
   const workflow = readWorkflow()
 
   assert.match(workflow, /outputs:\s*\n\s+version:\s*\$\{\{ steps\.version\.outputs\.version \}\}/)
+  assert.match(workflow, /npm:\s*\n\s+name:\s*Publish npm packages\s*\n\s+if:\s*\$\{\{ inputs\.subscription_auth_target_version == '' \}\}/)
   assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images/)
+  assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+if:\s*\$\{\{ inputs\.subscription_auth_target_version == '' \}\}/)
   assert.match(workflow, /needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
   assert.match(workflow, /uses:\s*\.\/\.github\/workflows\/docker-release\.yml/)
   assert.match(workflow, /ref:\s*v\$\{\{ needs\.npm\.outputs\.version \}\}/)
@@ -108,13 +111,17 @@ test('release workflow publishes subscription auth from the main release version
   const orderedCommands = [
     'path: agent-qa',
     'repository: vostride/agent-qa-subscription-auth',
-    'pnpm run release:verify -- --target-version "${{ needs.npm.outputs.version }}" --stage preflight',
-    'pnpm run release:version -- --target-version "${{ needs.npm.outputs.version }}" --write',
+    'working-directory: agent-qa\n        run: pnpm install --frozen-lockfile',
+    'working-directory: agent-qa\n        run: pnpm --filter @vostride/agent-qa-ids build',
+    'working-directory: agent-qa\n        run: pnpm --filter @vostride/agent-qa-core build',
+    'working-directory: agent-qa-subscription-auth\n        run: pnpm install --frozen-lockfile',
+    'pnpm run release:verify -- --target-version "$SUBSCRIPTION_AUTH_TARGET_VERSION" --stage preflight',
+    'pnpm run release:version -- --target-version "$SUBSCRIPTION_AUTH_TARGET_VERSION" --write',
     'working-directory: agent-qa-subscription-auth\n        run: pnpm test',
     'working-directory: agent-qa-subscription-auth\n        run: pnpm typecheck',
     'working-directory: agent-qa-subscription-auth\n        run: pnpm build',
-    'pnpm run release:stage -- --target-version "${{ needs.npm.outputs.version }}" --out .release/package',
-    'pnpm run release:verify -- --stage postbuild --target-version "${{ needs.npm.outputs.version }}" --staged-dir .release/package',
+    'pnpm run release:stage -- --target-version "$SUBSCRIPTION_AUTH_TARGET_VERSION" --out .release/package',
+    'pnpm run release:verify -- --stage postbuild --target-version "$SUBSCRIPTION_AUTH_TARGET_VERSION" --staged-dir .release/package',
     'working-directory: agent-qa-subscription-auth\n        run: pnpm exec node scripts/release/git.mjs --commit-tag',
     'working-directory: agent-qa-subscription-auth\n        run: git push origin HEAD:main --follow-tags',
     'working-directory: agent-qa-subscription-auth\n        run: pnpm run release:publish -- --staged-dir .release/package',
@@ -122,11 +129,13 @@ test('release workflow publishes subscription auth from the main release version
   ]
 
   assert.match(workflow, /subscription-auth:\s*\n\s+name:\s*Publish subscription auth/)
+  assert.match(workflow, /if:\s*\$\{\{ always\(\) && \(inputs\.subscription_auth_target_version != '' \|\| needs\.npm\.result == 'success'\) \}\}/)
+  assert.match(workflow, /SUBSCRIPTION_AUTH_TARGET_VERSION:\s*\$\{\{ inputs\.subscription_auth_target_version \|\| needs\.npm\.outputs\.version \}\}/)
   assert.match(workflow, /Checkout agent-qa for linked core dependency/)
   assert.match(workflow, /path:\s*agent-qa/)
   assert.match(workflow, /ref:\s*\$\{\{ github\.ref_name \}\}/)
   assert.match(workflow, /token:\s*\$\{\{ secrets\.SUBSCRIPTION_AUTH_RELEASE_TOKEN \}\}/)
-  assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
+  assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+if:\s*\$\{\{ inputs\.subscription_auth_target_version == '' \}\}\s*\n\s+needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
   for (const command of orderedCommands) assert.match(workflow, new RegExp(command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
   for (let index = 0; index < orderedCommands.length - 1; index += 1) {
     assertBefore(workflow, orderedCommands[index], orderedCommands[index + 1])
