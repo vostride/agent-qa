@@ -109,6 +109,12 @@ jobs:
             exit 1
           fi
 
+      - name: Checkout agent-qa for linked core dependency
+        uses: actions/checkout@v6
+        with:
+          path: agent-qa
+          ref: ${{ github.ref_name }}
+
       - name: Checkout subscription auth
         uses: actions/checkout@v6
         with:

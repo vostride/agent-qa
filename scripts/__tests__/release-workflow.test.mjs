@@ -106,6 +106,7 @@ test('release workflow publishes Docker from the release tag after npm publish',
 test('release workflow publishes subscription auth from the main release version before Docker', () => {
   const workflow = readWorkflow()
   const orderedCommands = [
+    'path: agent-qa',
     'repository: vostride/agent-qa-subscription-auth',
     'pnpm run release:verify -- --target-version "${{ needs.npm.outputs.version }}" --stage preflight',
     'pnpm run release:version -- --target-version "${{ needs.npm.outputs.version }}" --write',
@@ -121,6 +122,9 @@ test('release workflow publishes subscription auth from the main release version
   ]
 
   assert.match(workflow, /subscription-auth:\s*\n\s+name:\s*Publish subscription auth/)
+  assert.match(workflow, /Checkout agent-qa for linked core dependency/)
+  assert.match(workflow, /path:\s*agent-qa/)
+  assert.match(workflow, /ref:\s*\$\{\{ github\.ref_name \}\}/)
   assert.match(workflow, /token:\s*\$\{\{ secrets\.SUBSCRIPTION_AUTH_RELEASE_TOKEN \}\}/)
   assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
   for (const command of orderedCommands) assert.match(workflow, new RegExp(command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
