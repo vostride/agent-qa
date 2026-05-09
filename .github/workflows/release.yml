@@ -100,6 +100,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Validate subscription auth release token
+        env:
+          SUBSCRIPTION_AUTH_RELEASE_TOKEN: ${{ secrets.SUBSCRIPTION_AUTH_RELEASE_TOKEN }}
+        run: |
+          if [ -z "$SUBSCRIPTION_AUTH_RELEASE_TOKEN" ]; then
+            echo "::error::Set SUBSCRIPTION_AUTH_RELEASE_TOKEN in the vostride/agent-qa repository Actions secrets. The token needs Contents: read and write on vostride/agent-qa-subscription-auth."
+            exit 1
+          fi
+
       - name: Checkout subscription auth
         uses: actions/checkout@v6
         with:
