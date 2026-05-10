@@ -44,6 +44,17 @@ function firstNonEmpty(...values: Array<string | null | undefined>): string | un
   return undefined
 }
 
+function isAndroidWebContextName(context: string): boolean {
+  const normalized = context.toUpperCase()
+  return normalized.includes('CHROMIUM') || normalized.includes('WEBVIEW')
+}
+
+function isTargetWebContext(context: string, appPackage: string | null, explicitBrowserMode: boolean): boolean {
+  if (explicitBrowserMode) return isAndroidWebContextName(context)
+  if (!appPackage) return false
+  return context.toLowerCase().includes(appPackage.toLowerCase())
+}
+
 function isAndroidNativeSelectTarget(refData: MobileRefMap[string] | undefined): boolean {
   const role = refData?.role?.toLowerCase()
   return Boolean(
@@ -240,14 +251,15 @@ export class AndroidPlatformAdapter implements PlatformAdapter {
       }
     }
 
-    // Resolve app PID for logcat filtering
-    if (this.appPackage && this.driver) {
+    // Resolve app PID for logcat filtering only when explicitly enabled. Appium
+    // 3 blocks mobile: shell unless the server is started with adb_shell enabled.
+    if (process.env.AGENT_QA_ANDROID_USE_MOBILE_SHELL === '1' && this.appPackage && this.driver) {
       try {
         const result = String(await this.driver.execute('mobile: shell', { command: 'pidof', args: [this.appPackage] }))
         const pid = result?.trim()
         if (pid && /^\d+$/.test(pid)) this.appPid = pid
       } catch {
-        // pidof may not be available — logs will be unfiltered
+        // mobile shell may be disabled — logs will be unfiltered
       }
     }
 
@@ -472,8 +484,9 @@ export class AndroidPlatformAdapter implements PlatformAdapter {
     const driver = this.driver!
     try {
       const contexts = await driver.getContexts() as string[]
+      const explicitBrowserMode = Boolean(this.config?.browserName || this.config?.device?.match?.browserName)
       const webCtx = contexts.find(c =>
-        typeof c === 'string' && (c.includes('CHROMIUM') || c.includes('WEBVIEW'))
+        typeof c === 'string' && isTargetWebContext(c, this.appPackage, explicitBrowserMode)
       )
       if (!webCtx) return null
 

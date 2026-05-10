@@ -51,6 +51,8 @@ function createMockDriver() {
     activateApp: vi.fn().mockResolvedValue(undefined),
     terminateApp: vi.fn().mockResolvedValue(undefined),
     execute: vi.fn().mockResolvedValue(undefined),
+    getContexts: vi.fn().mockResolvedValue(['NATIVE_APP']),
+    switchContext: vi.fn().mockResolvedValue(undefined),
     url: vi.fn().mockRejectedValue(new Error('not supported')),
     $: vi.fn() as unknown as (selector: string) => Promise<unknown>,
     _pointerAction: pointerAction,
@@ -90,7 +92,7 @@ describe('AndroidPlatformAdapter', () => {
           name: 'pixel-7',
           platform: 'android',
           transport: 'local',
-          match: { automationName: 'UiAutomator2', platformVersion: '14' },
+          match: { automationName: 'UiAutomator2', platformVersion: '14', serial: 'RZCT90BCMWW' },
         },
       }
 
@@ -105,6 +107,7 @@ describe('AndroidPlatformAdapter', () => {
           'appium:automationName': 'UiAutomator2',
           'appium:deviceName': 'pixel-7',
           'appium:platformVersion': '14',
+          'appium:udid': 'RZCT90BCMWW',
           'appium:noReset': true,
           'appium:newCommandTimeout': 300,
         }),
@@ -225,6 +228,45 @@ describe('AndroidPlatformAdapter', () => {
       expect(mockDriver.activateApp).toHaveBeenCalledWith('org.wikipedia.alpha')
     })
 
+    it('does not require mobile shell access for native app setup by default', async () => {
+      await adapter.setup({
+        platform: 'android',
+        device: {
+          name: 'android-emu',
+          platform: 'android',
+          transport: 'local',
+          match: { automationName: 'UiAutomator2' },
+        },
+        appPackage: 'app.linear',
+      })
+
+      expect(mockDriver.execute).not.toHaveBeenCalledWith('mobile: shell', expect.anything())
+    })
+
+    it('uses mobile shell pid lookup only when explicitly enabled', async () => {
+      const previous = process.env.AGENT_QA_ANDROID_USE_MOBILE_SHELL
+      process.env.AGENT_QA_ANDROID_USE_MOBILE_SHELL = '1'
+      mockDriver.execute.mockResolvedValueOnce('12345')
+
+      try {
+        await adapter.setup({
+          platform: 'android',
+          device: {
+            name: 'android-emu',
+            platform: 'android',
+            transport: 'local',
+            match: { automationName: 'UiAutomator2' },
+          },
+          appPackage: 'app.linear',
+        })
+      } finally {
+        if (previous === undefined) delete process.env.AGENT_QA_ANDROID_USE_MOBILE_SHELL
+        else process.env.AGENT_QA_ANDROID_USE_MOBILE_SHELL = previous
+      }
+
+      expect(mockDriver.execute).toHaveBeenCalledWith('mobile: shell', { command: 'pidof', args: ['app.linear'] })
+    })
+
     it('wraps resolved app launch failure as app-launch setup error', async () => {
       mockDriver.activateApp.mockRejectedValueOnce(new Error('not installed'))
 
@@ -261,6 +303,79 @@ describe('AndroidPlatformAdapter', () => {
       expect(state.elements.length).toBeGreaterThanOrEqual(5)
       expect(state.timestamp).toBeGreaterThan(0)
       expect(state.metadata.refMap).toBeDefined()
+    })
+
+    it('ignores unrelated Chrome webviews for native app targets', async () => {
+      mockDriver.getContexts.mockResolvedValue(['NATIVE_APP', 'WEBVIEW_chrome'])
+
+      await adapter.setup({
+        platform: 'android',
+        device: {
+          name: 'android-emu',
+          platform: 'android',
+          transport: 'local',
+          match: { automationName: 'UiAutomator2' },
+        },
+        appPackage: 'app.linear',
+      })
+      const state = await adapter.observe()
+
+      expect(state.tree).toContain('button "Sign In"')
+      expect(mockDriver.switchContext).not.toHaveBeenCalledWith('WEBVIEW_chrome')
+    })
+
+    it('observes a webview when the context belongs to the target app package', async () => {
+      mockDriver.getContexts.mockResolvedValue(['NATIVE_APP', 'WEBVIEW_app.linear'])
+      mockDriver.execute.mockResolvedValueOnce({
+        tree: 'Current page: https://linear.local\n- button "Create issue" [ref=e1]',
+        elements: [{ ref: 'e1', role: 'button', name: 'Create issue', attributes: {} }],
+        refs: { e1: { role: 'button', name: 'Create issue', bounds: { x: 1, y: 2, width: 3, height: 4 } } },
+        url: 'https://linear.local',
+        viewportHeight: 100,
+        viewportWidth: 200,
+      })
+
+      await adapter.setup({
+        platform: 'android',
+        device: {
+          name: 'android-emu',
+          platform: 'android',
+          transport: 'local',
+          match: { automationName: 'UiAutomator2' },
+        },
+        appPackage: 'app.linear',
+      })
+      const state = await adapter.observe()
+
+      expect(mockDriver.switchContext).toHaveBeenCalledWith('WEBVIEW_app.linear')
+      expect(state.url).toBe('https://linear.local')
+      expect(state.tree).toContain('Create issue')
+    })
+
+    it('observes Chrome webviews for explicit Android browser-mode targets', async () => {
+      mockDriver.getContexts.mockResolvedValue(['NATIVE_APP', 'WEBVIEW_chrome'])
+      mockDriver.execute.mockResolvedValueOnce({
+        tree: 'Current page: https://example.com\n- link "Example" [ref=e1]',
+        elements: [{ ref: 'e1', role: 'link', name: 'Example', attributes: {} }],
+        refs: { e1: { role: 'link', name: 'Example', bounds: { x: 1, y: 2, width: 3, height: 4 } } },
+        url: 'https://example.com',
+        viewportHeight: 100,
+        viewportWidth: 200,
+      })
+
+      await adapter.setup({
+        platform: 'android',
+        device: {
+          name: 'android-chrome',
+          platform: 'android',
+          transport: 'local',
+          match: { automationName: 'UiAutomator2', browserName: 'Chrome' },
+        },
+      })
+      const state = await adapter.observe()
+
+      expect(mockDriver.switchContext).toHaveBeenCalledWith('WEBVIEW_chrome')
+      expect(state.url).toBe('https://example.com')
     })
 
     it('throws if adapter not initialized', async () => {

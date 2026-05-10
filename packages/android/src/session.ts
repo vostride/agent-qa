@@ -36,6 +36,7 @@ export async function createAndroidSession(
   }
 
   if (match.platformVersion) capabilities['appium:platformVersion'] = match.platformVersion
+  if (match.serial) capabilities['appium:udid'] = match.serial
   if (match.avd) capabilities['appium:avd'] = match.avd
   if (config.avd) capabilities['appium:avd'] = config.avd
   if (appPath) capabilities['appium:app'] = appPath
