@@ -246,6 +246,7 @@ describe('agent-qa MCP schema references', () => {
       'id',
     ])
     expect(analytics.events[0].properties).toMatchObject({
+      agent_qa_version: getAgentQaVersion(),
       tool_name: 'agent_qa_discover',
       mcp_tool_status: 'success',
       mcp_transport: 'http',

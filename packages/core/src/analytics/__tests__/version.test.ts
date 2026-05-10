@@ -1,4 +1,5 @@
 import { mkdtemp, rm } from 'node:fs/promises'
+import { readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -8,6 +9,7 @@ import { resolveAnalyticsStandardProperties } from '../service.js'
 describe('agent-qa analytics version context', () => {
   let tempDir: string
   let identityPath: string
+  const packageVersion = (JSON.parse(readFileSync(new URL('../../../package.json', import.meta.url), 'utf-8')) as { version: string }).version
 
   beforeEach(async () => {
     tempDir = await mkdtemp(join(tmpdir(), 'agent-qa-version-'))
@@ -20,6 +22,7 @@ describe('agent-qa analytics version context', () => {
 
   it('returns a reusable agent-qa package version', () => {
     expect(getAgentQaVersion()).toMatch(/^\d+\.\d+\.\d+$/)
+    expect(getAgentQaVersion()).toBe(packageVersion)
   })
 
   it('builds local user analytics standard properties', async () => {

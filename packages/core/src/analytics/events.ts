@@ -4,6 +4,7 @@ import {
   type BuiltAnalyticsEvent,
   type BuiltAnalyticsEventProperties,
 } from './types.js'
+import { getAgentQaVersion } from '../version.js'
 
 export type {
   AnalyticsEventInput,
@@ -215,6 +216,7 @@ const AnalyticsEventPropertiesSchemaByName = {
 export function buildAnalyticsEvent(input: AnalyticsEventInput): BuiltAnalyticsEvent {
   const name = AnalyticsEventNameSchema.parse(input.name)
   const properties = AnalyticsEventPropertiesSchemaByName[name].parse({
+    agent_qa_version: getAgentQaVersion(),
     ...(input.properties ?? {}),
     $process_person_profile: false,
   }) as BuiltAnalyticsEventProperties

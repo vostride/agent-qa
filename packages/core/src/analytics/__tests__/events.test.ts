@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildAnalyticsEvent } from '../events.js'
+import { getAgentQaVersion } from '../../version.js'
 
 const testId = 't_alpha-bravo-charlie-delta-echo-foxtrot-golf-hotel-india-juliet'
 const suiteId = 's_alpha-bravo-charlie-delta-echo-foxtrot-golf-hotel-india-juliet'
@@ -40,6 +41,24 @@ describe('analytics event builder', () => {
     expect(event.properties.test_id).toBe(testId)
     expect(event.properties.suite_id).toBe(suiteId)
     expect(event.properties.run_id).toBe(runId)
+    expect(event.properties.agent_qa_version).toBe(getAgentQaVersion())
+  })
+
+  it('adds package version when callers omit analytics standard properties', () => {
+    const event = buildAnalyticsEvent({
+      name: 'agent-qa.dashboard.opened',
+      properties: {
+        surface: 'dashboard-ui',
+        route: '/secret',
+      },
+    })
+
+    expect(event.properties).toMatchObject({
+      agent_qa_version: getAgentQaVersion(),
+      surface: 'dashboard-ui',
+      $process_person_profile: false,
+    })
+    expect(event.properties).not.toHaveProperty('route')
   })
 
   it('builds test run completion events with safe aggregate properties', () => {
