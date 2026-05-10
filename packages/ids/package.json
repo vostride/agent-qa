@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-ids",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "private": false,
   "description": "Canonical ID helpers for agent-qa tests, suites, hooks, and artifacts.",
   "keywords": [
