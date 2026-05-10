@@ -44,7 +44,7 @@ export { AssertionEvaluator, LLMAssertionEvaluator, createAsserter, AssertionRes
 export { executeStep } from './loop.js'
 
 export { runTest, runTestWithRetry } from './runner.js'
-export type { RunTestConfig } from './runner.js'
+export type { AccessibilityCheck, AccessibilityCheckOptions, RunTestConfig } from './runner.js'
 
 export { parseHookInline, stripHookInline } from './hook-inline.js'
 

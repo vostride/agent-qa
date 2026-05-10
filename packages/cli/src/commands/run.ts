@@ -62,6 +62,11 @@ export async function createPlatformAdapter(
   return new WebPlatformAdapter()
 }
 
+const runWebAccessibilityCheck: NonNullable<RunSuiteConfig['accessibilityCheck']> = async (page, options) => {
+  const { runAccessibilityCheck } = await import('@vostride/agent-qa-web')
+  return runAccessibilityCheck(page as any, options)
+}
+
 export function buildPlatformConfig(
   platform: 'web' | 'android' | 'ios',
   resolvedDevice: ResolvedDevice | undefined,
@@ -1301,6 +1306,7 @@ async function executeSuites(
       sandboxOptions: hooksContext?.sandboxOptions,
       logCapture: suiteLogCapture,
       accessibility: config.services?.accessibility,
+      accessibilityCheck: runWebAccessibilityCheck,
       screenshotSize: plannerCfg.screenshotSize,
       effectiveResolution: plannerCfg.effectiveResolution,
       memoryProvider: suiteMemoryProvider,
@@ -2270,6 +2276,7 @@ export function createRunCommand(): Command {
               inlineHookSandboxOptions: sandboxOptions,
               logCapture: testLogCapture,
               accessibility: config.services?.accessibility,
+              accessibilityCheck: runWebAccessibilityCheck,
               screenshotSize: plannerCfg.screenshotSize,
               effectiveResolution: plannerCfg.effectiveResolution,
               contextWindow: plannerCfg.contextWindow,
@@ -2381,6 +2388,7 @@ export function createRunCommand(): Command {
                       inlineHookSandboxOptions: sandboxOptions,
                       logCapture: testLogCapture,
                       accessibility: config.services?.accessibility,
+                      accessibilityCheck: runWebAccessibilityCheck,
                       screenshotSize: plannerCfg.screenshotSize,
                       effectiveResolution: plannerCfg.effectiveResolution,
                       contextWindow: plannerCfg.contextWindow,

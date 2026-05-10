@@ -195,6 +195,7 @@ describe('runSuite startup navigation', () => {
 
   it('passes accessibility config to each suite member run', async () => {
     const { adapter } = createMockAdapter()
+    const accessibilityCheck = vi.fn()
     const accessibility = {
       enabled: true,
       standard: 'wcag2aa' as const,
@@ -205,12 +206,13 @@ describe('runSuite startup navigation', () => {
     await runSuite(
       makeSuite(),
       [[makeTest(), '/tests/login.yaml']],
-      makeConfig(adapter, { accessibility }),
+      makeConfig(adapter, { accessibility, accessibilityCheck }),
     )
 
     expect(mockRunTest).toHaveBeenCalledOnce()
     expect(mockRunTest.mock.calls[0][1]).toEqual(expect.objectContaining({
       accessibility,
+      accessibilityCheck,
     }))
   })
 

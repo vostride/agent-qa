@@ -53,6 +53,7 @@ export interface RunSuiteConfig {
   sandboxOptions?: SandboxRunnerOptions
   logCapture?: { console?: boolean; network?: boolean }
   accessibility?: RunTestConfig['accessibility']
+  accessibilityCheck?: RunTestConfig['accessibilityCheck']
   screenshotSize?: number
   effectiveResolution?: number
   memoryProvider?: MemoryProvider
@@ -429,6 +430,7 @@ export async function runSuite(
         secretStore: config.secretStore,
         secretRedactor: config.secretRedactor,
         accessibility: config.accessibility,
+        accessibilityCheck: config.accessibilityCheck,
         logCapture: config.logCapture,
         screenshotSize: config.screenshotSize,
         effectiveResolution: config.effectiveResolution,
@@ -495,6 +497,7 @@ export async function runSuite(
                     secretStore: config.secretStore,
                     secretRedactor: config.secretRedactor,
                     accessibility: config.accessibility,
+                    accessibilityCheck: config.accessibilityCheck,
                   }, filePath)
 
                   if (config.circuitBreaker) {

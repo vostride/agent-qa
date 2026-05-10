@@ -25,6 +25,7 @@ const {
   mockAndroidAdapterCleanup,
   mockWebAdapterSetup,
   mockWebAdapterCleanup,
+  mockRunAccessibilityCheck,
   mockConsoleReporterInstance,
   mockJUnitReporterInstance,
   mockStdoutLiveReporterInstance,
@@ -71,6 +72,7 @@ const {
     mockAndroidAdapterCleanup: vi.fn(),
     mockWebAdapterSetup: vi.fn(),
     mockWebAdapterCleanup: vi.fn(),
+    mockRunAccessibilityCheck: vi.fn(),
     mockConsoleReporterInstance: { verbose: false },
     mockJUnitReporterInstance: { outputPath: '' },
     mockStdoutLiveReporterInstance: { active: false },
@@ -425,6 +427,7 @@ vi.mock('@vostride/agent-qa-android', () => ({
 }))
 
 vi.mock('@vostride/agent-qa-web', () => ({
+  runAccessibilityCheck: mockRunAccessibilityCheck,
   WebPlatformAdapter: vi.fn(function () {
     return {
       setup: mockWebAdapterSetup,
@@ -2009,6 +2012,11 @@ describe('run command — reporter integration', () => {
 
     const runConfig = mockRunTestWithRetry.mock.calls[0][1]
     expect(runConfig.accessibility).toEqual(accessibility)
+    expect(runConfig.accessibilityCheck).toEqual(expect.any(Function))
+    const page = {}
+    const options = { standard: 'wcag2aa' as const }
+    await runConfig.accessibilityCheck(page, options)
+    expect(mockRunAccessibilityCheck).toHaveBeenCalledWith(page, options)
   })
 
   it('passes services.accessibility into suite execution', async () => {
@@ -2036,6 +2044,7 @@ describe('run command — reporter integration', () => {
 
     const suiteConfig = mockRunSuite.mock.calls[0][2]
     expect(suiteConfig.accessibility).toEqual(accessibility)
+    expect(suiteConfig.accessibilityCheck).toEqual(expect.any(Function))
   })
 
   it('calls onRunStart before test execution', async () => {

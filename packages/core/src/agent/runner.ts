@@ -25,6 +25,17 @@ import { runHookInSandbox, type SandboxRunnerOptions } from '../hooks/sandbox-ru
 
 const accessibilityWebModuleName: string = '@vostride/agent-qa-web'
 
+export interface AccessibilityCheckOptions {
+  standard?: 'wcag2a' | 'wcag2aa' | 'wcag2aaa'
+  disableRules?: string[]
+  exclude?: string[]
+}
+
+export type AccessibilityCheck = (
+  page: unknown,
+  options: AccessibilityCheckOptions,
+) => Promise<AccessibilityViolation[]>
+
 export interface RunTestConfig {
   runId?: string
   parentRunId?: string | null
@@ -48,6 +59,7 @@ export interface RunTestConfig {
     disableRules?: string[]
     exclude?: string[]
   }
+  accessibilityCheck?: AccessibilityCheck
   plannerConfig?: import('./types.js').PlannerConfig
   logger?: LogManager
   configContent?: string
@@ -573,20 +585,20 @@ export async function runTest(
           || (runAfter === 'test-end' && stepIndex === test.steps.length - 1)
         if (shouldRun) {
           try {
-            const webMod = await withAbort(
-              import(accessibilityWebModuleName) as Promise<{
-                runAccessibilityCheck: (page: unknown, options: {
-                  standard?: 'wcag2a' | 'wcag2aa' | 'wcag2aaa'
-                  disableRules?: string[]
-                  exclude?: string[]
-                }) => Promise<AccessibilityViolation[]>
-              }>,
-              stepAbortController.signal,
-            )
+            let runAccessibilityCheck = config.accessibilityCheck
+            if (!runAccessibilityCheck) {
+              const webMod = await withAbort(
+                import(accessibilityWebModuleName) as Promise<{
+                  runAccessibilityCheck: AccessibilityCheck
+                }>,
+                stepAbortController.signal,
+              )
+              runAccessibilityCheck = webMod.runAccessibilityCheck
+            }
             const page = 'getPage' in config.adapter ? (config.adapter as { getPage: () => unknown }).getPage() : undefined
             if (page) {
               const violations = await withAbort(
-                webMod.runAccessibilityCheck(page, {
+                runAccessibilityCheck(page, {
                   standard: config.accessibility.standard,
                   disableRules: config.accessibility.disableRules,
                   exclude: config.accessibility.exclude,
