@@ -617,7 +617,7 @@ use:
 
     const output = getOutput()
     expect(output).toContain('no drivers installed')
-    expect(output).toContain('agent-qa install-mobile-drivers --android')
+    expect(output).toContain('agent-qa install-mobile-drivers --all')
     expect(output).not.toContain('appium driver install uiautomator2')
   })
 
@@ -645,7 +645,7 @@ targets:
 
     const output = getOutput()
     expect(output).toContain('Install Appium locally with `npm install -D appium`')
-    expect(output).toContain('agent-qa install-mobile-drivers --ios')
+    expect(output).toContain('agent-qa install-mobile-drivers --all')
   })
 
   it('Android SDK check validates ANDROID_HOME', async () => {

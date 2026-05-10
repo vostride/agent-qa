@@ -468,21 +468,20 @@ describe('init command', () => {
     expect(configCall?.[1]).not.toContain('apiKey')
   })
 
-  it('prompts for required mobile runtimes when Mobile is selected', async () => {
+  it('scaffolds both mobile runtimes when Mobile is selected', async () => {
     mockCheckbox
       .mockResolvedValueOnce(['web', 'mobile'])
-      .mockResolvedValueOnce(['android'])
       .mockResolvedValueOnce(['codex'])
 
     await runInit(['--dir', '/tmp/test-project', '--skip-install'])
 
     expect(mockCheckbox).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      message: 'Which mobile platforms will you test?',
-      choices: [
-        { value: 'android', name: 'Android', description: 'Install or reuse the UiAutomator2 Appium driver' },
-        { value: 'ios', name: 'iOS', description: 'Install or reuse the XCUITest Appium driver' },
-      ],
+      message: expect.stringContaining('Subscription auth'),
+      choices: LLM_SETUP_CHOICES,
       required: true,
+    }))
+    expect(mockCheckbox).not.toHaveBeenCalledWith(expect.objectContaining({
+      message: 'Which mobile platforms will you test?',
     }))
 
     const configCall = mockWriteFileSync.mock.calls.find(
@@ -490,22 +489,20 @@ describe('init command', () => {
     )
     expect(configCall?.[1]).toContain('example-web:')
     expect(configCall?.[1]).toContain('example-android:')
+    expect(configCall?.[1]).toContain('example-ios:')
   })
 
-  it('validates required platform, mobile runtime, and subscription selections', async () => {
+  it('validates required platform and subscription selections', async () => {
     mockCheckbox
       .mockResolvedValueOnce(['mobile'])
-      .mockResolvedValueOnce(['ios'])
       .mockResolvedValueOnce(['codex'])
 
     await runInit(['--dir', '/tmp/test-project', '--skip-install'])
 
     const platformValidate = mockCheckbox.mock.calls[0]?.[0].validate
-    const mobileValidate = mockCheckbox.mock.calls[1]?.[0].validate
-    const subscriptionValidate = mockCheckbox.mock.calls[2]?.[0].validate
+    const subscriptionValidate = mockCheckbox.mock.calls[1]?.[0].validate
 
     expect(platformValidate?.([])).toBe('Select at least one platform.')
-    expect(mobileValidate?.([])).toBe('Select at least one mobile platform.')
     expect(subscriptionValidate?.([])).toBe('Select No subscription auth or at least one subscription provider.')
     expect(subscriptionValidate?.([
       { value: 'none', name: 'No subscription auth', checkedName: 'No subscription auth', short: 'No subscription auth', checked: true, disabled: false },
@@ -949,15 +946,16 @@ describe('init command', () => {
     expect(mockExecFileSync).not.toHaveBeenCalled()
     expect(mockResolveAppiumExecutable).not.toHaveBeenCalled()
     const output = consoleOutput()
-    expect(output).toContain('agent-qa install-mobile-drivers --android')
+    expect(output).toContain('agent-qa install-mobile-drivers --all')
     expect(output).not.toContain('Installing Appium')
   })
 
-  it('prints iOS-specific mobile setup guidance', async () => {
+  it('prints all-driver mobile setup guidance for iOS projects', async () => {
     await runInit(['--dir', '/tmp/test-project', '--platform', 'ios'])
 
     const output = consoleOutput()
-    expect(output).toContain('agent-qa install-mobile-drivers --ios')
+    expect(output).toContain('agent-qa install-mobile-drivers --all')
+    expect(output).not.toContain('agent-qa install-mobile-drivers --ios')
     expect(output).not.toContain('agent-qa install-mobile-drivers --android')
   })
 
@@ -966,14 +964,13 @@ describe('init command', () => {
 
     const output = consoleOutput()
     expect(output).toContain('agent-qa install-browsers --chromium')
-    expect(output).toContain('agent-qa install-mobile-drivers --android')
+    expect(output).toContain('agent-qa install-mobile-drivers --all')
     expect(output).toContain('agent-qa doctor')
   })
 
   it('prints all-drivers setup guidance when both mobile platforms are selected interactively', async () => {
     mockCheckbox
       .mockResolvedValueOnce(['mobile'])
-      .mockResolvedValueOnce(['android', 'ios'])
       .mockResolvedValueOnce(['none'])
     mockSelect.mockResolvedValue('openai-compatible')
     mockInput.mockResolvedValue('https://api.example.test/v1')
@@ -982,6 +979,9 @@ describe('init command', () => {
 
     const output = consoleOutput()
     expect(output).toContain('agent-qa install-mobile-drivers --all')
+    expect(mockCheckbox).not.toHaveBeenCalledWith(expect.objectContaining({
+      message: 'Which mobile platforms will you test?',
+    }))
   })
 
   it('--skip-install remains accepted and init remains scaffold-only', async () => {

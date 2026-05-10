@@ -568,9 +568,7 @@ function browserSetupCommand(platform: InitPlatformInput): string | null {
 function mobileDriverSetupCommand(platform: InitPlatformInput): string | null {
   const runtimes = normalizePlatformSelection(platform).mobileRuntimes
   if (runtimes.length === 0) return null
-  if (runtimes.includes('android') && runtimes.includes('ios')) return 'agent-qa install-mobile-drivers --all'
-  if (runtimes.includes('android')) return 'agent-qa install-mobile-drivers --android'
-  return 'agent-qa install-mobile-drivers --ios'
+  return 'agent-qa install-mobile-drivers --all'
 }
 
 function initNextSteps(platform: InitPlatformInput): Array<{ command: string; description: string }> {
@@ -626,17 +624,7 @@ export function createInitCommand(): Command {
           validate: (value) => value.length > 0 || 'Select at least one platform.',
         }) as PlatformCapability[]
 
-        const mobileRuntimes = capabilities.includes('mobile')
-          ? await checkbox<MobileRuntime>({
-              message: 'Which mobile platforms will you test?',
-              choices: [
-                { value: 'android', name: 'Android', description: 'Install or reuse the UiAutomator2 Appium driver' },
-                { value: 'ios', name: 'iOS', description: 'Install or reuse the XCUITest Appium driver' },
-              ],
-              required: true,
-              validate: (value) => value.length > 0 || 'Select at least one mobile platform.',
-            }) as MobileRuntime[]
-          : []
+        const mobileRuntimes: MobileRuntime[] = capabilities.includes('mobile') ? ['android', 'ios'] : []
 
         platform = { capabilities, mobileRuntimes }
 

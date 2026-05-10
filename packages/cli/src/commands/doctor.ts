@@ -411,19 +411,14 @@ function appiumResolverCwd(configPath: string): string {
   return dirname(resolve(configPath))
 }
 
-function mobileDriverInstallCommand(config: Record<string, unknown> | null): string {
-  const hasAndroid = hasAndroidPlatform(config)
-  const hasIOS = hasIOSPlatform(config)
-  if (hasAndroid && hasIOS) return 'agent-qa install-mobile-drivers --all'
-  if (hasAndroid) return 'agent-qa install-mobile-drivers --android'
-  if (hasIOS) return 'agent-qa install-mobile-drivers --ios'
+function mobileDriverInstallCommand(): string {
   return 'agent-qa install-mobile-drivers --all'
 }
 
 function checkAppium(config: Record<string, unknown> | null, configPath: string): DoctorCheck {
   return {
     name: 'Appium',
-    fixInstructions: `${formatAppiumInstallGuidance()} Then run \`${mobileDriverInstallCommand(config)}\`.`,
+    fixInstructions: `${formatAppiumInstallGuidance()} Then run \`${mobileDriverInstallCommand()}\`.`,
     check: async () => {
       if (!isMobilePlatform(config)) {
         return { status: 'skip', message: 'not configured' }
@@ -443,7 +438,7 @@ function checkAppium(config: Record<string, unknown> | null, configPath: string)
 function checkAppiumDrivers(config: Record<string, unknown> | null, configPath: string): DoctorCheck {
   return {
     name: 'Appium drivers',
-    fixInstructions: `Run \`${mobileDriverInstallCommand(config)}\``,
+    fixInstructions: `Run \`${mobileDriverInstallCommand()}\``,
     check: async () => {
       if (!isMobilePlatform(config)) {
         return { status: 'skip', message: 'not configured' }
