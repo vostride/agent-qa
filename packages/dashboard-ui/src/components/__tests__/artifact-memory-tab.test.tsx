@@ -35,7 +35,7 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-function makeRun() {
+function makeRun(overrides: Partial<RunArtifactResponse["run"]> = {}): RunArtifactResponse["run"] {
   return {
     id: "run-1",
     name: "Artifact memory run",
@@ -62,6 +62,7 @@ function makeRun() {
     retryCount: 0,
     maxRetries: 0,
     createdAt: "2026-04-18T00:00:00.000Z",
+    ...overrides,
   }
 }
 
@@ -97,6 +98,51 @@ function responseWithMemory(log: Record<string, unknown>, missingSections: strin
     },
     children: [],
     missingSections,
+  }
+}
+
+function suiteResponseWithChildMemory(log: Record<string, unknown>): RunArtifactResponse {
+  return {
+    run: makeRun({
+      id: "suite-run",
+      name: "Memory suite",
+      filePath: "suites/memory.suite.yaml",
+      testId: null,
+      suiteId: "s_memory",
+    }),
+    artifact: {
+      runId: "suite-run",
+      kind: "suite-parent",
+      schemaVersion: 1,
+      payload: {
+        schemaVersion: 1,
+        source: { kind: "suite", members: [{ index: 0, childRunId: "child-run" }] },
+      },
+      finalizedAt: "2026-04-18T00:00:01.200Z",
+      createdAt: "2026-04-18T00:00:00.000Z",
+      updatedAt: "2026-04-18T00:00:01.200Z",
+    },
+    children: [{
+      run: makeRun({
+        id: "child-run",
+        name: "Memory child",
+        parentRunId: "suite-run",
+        suiteId: "s_memory",
+      }),
+      artifact: {
+        runId: "child-run",
+        kind: "suite-child",
+        schemaVersion: 1,
+        payload: {
+          schemaVersion: 1,
+          memory: { log },
+        },
+        finalizedAt: "2026-04-18T00:00:01.200Z",
+        createdAt: "2026-04-18T00:00:00.000Z",
+        updatedAt: "2026-04-18T00:00:01.200Z",
+      },
+    }],
+    missingSections: ["memory"],
   }
 }
 
@@ -180,6 +226,37 @@ describe("ArtifactMemoryTab", () => {
     expect(container.textContent).toContain("Memory completed without adding, updating, deprecating, or deleting observations.")
     expect(container.textContent).toContain("Curator duration: 900ms")
     expect(container.textContent).toContain("Tokens: 10 / 5 / 15")
+  })
+
+  it("renders suite parent memory from child artifact logs", () => {
+    mount(suiteResponseWithChildMemory({
+      added: 1,
+      confirmed: 0,
+      deprecated: 0,
+      deleted: 0,
+      curatorDuration: 700,
+      tokenUsage: { promptTokens: 20, completionTokens: 5, totalTokens: 25 },
+      errors: [],
+      deltas: [{
+        action: "add",
+        tier: "products",
+        scope: "github",
+        observationId: "obs-suite-added",
+        reasoning: "Child run discovered new product memory.",
+        before: null,
+        after: observation("obs-suite-added", {
+          title: "Suite child product memory",
+          content: "suite child generated product memory",
+          trust: 0.6,
+          source_test: "t_suite_child",
+        }),
+      }],
+    }))
+
+    expect(container.textContent).not.toContain("Memory was not captured for this run.")
+    expect(container.textContent).toContain("Suite child product memory")
+    expect(container.textContent).toContain("suite child generated product memory")
+    expect(container.textContent).toContain("Tokens: 20 / 5 / 25")
   })
 
   it("renders a quiet missing memory placeholder", () => {

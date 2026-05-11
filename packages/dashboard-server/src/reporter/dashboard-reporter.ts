@@ -642,6 +642,7 @@ export class DashboardReporter implements Reporter {
         if (!artifact || artifact.finalizedAt) return
         const memoryLog = this.redactValue((result as any).memoryLog)
         if (memoryLog) {
+          this.db.updateRun(runId, { memoryLog: JSON.stringify(memoryLog) })
           this.db.stageRunArtifact(runId, { memory: { log: memoryLog } as any })
         }
         this.db.finalizeRunArtifact(runId)
@@ -799,9 +800,22 @@ export class DashboardReporter implements Reporter {
       childRunIds: [] as string[],
     }
     for (const child of children) {
-      if (!child.memoryLog) continue
+      let rawLog: unknown = null
+      if (child.memoryLog) {
+        try {
+          rawLog = JSON.parse(child.memoryLog)
+        } catch {
+          rawLog = null
+        }
+      }
+      if (!rawLog) {
+        const childArtifact = this.db.getRunArtifact(child.id)
+        const memory = childArtifact?.payload.memory
+        rawLog = isRecord(memory) ? memory.log : null
+      }
+      if (!isRecord(rawLog)) continue
       try {
-        const log = JSON.parse(child.memoryLog) as {
+        const log = rawLog as {
           added?: number
           confirmed?: number
           deprecated?: number

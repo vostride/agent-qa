@@ -6,10 +6,8 @@ import { formatTokens } from "@/lib/format"
 import { cn, formatDuration } from "@/lib/utils"
 import {
   formatArtifactValue,
-  InspectorSection,
   isArtifactArray,
   isArtifactRecord,
-  KeyValueRows,
 } from "./artifact-renderers"
 
 type MemoryAction = "add" | "confirm" | "deprecate" | "delete"
@@ -37,11 +35,43 @@ interface MemoryDelta {
   error?: string
 }
 
-const GROUPS: Array<{ action: MemoryAction; title: string; className: string }> = [
-  { action: "add", title: "Added", className: "border-emerald-500/20 bg-emerald-500/5 text-emerald-500" },
-  { action: "confirm", title: "Updated/Confirmed", className: "border-blue-500/20 bg-blue-500/5 text-blue-500" },
-  { action: "deprecate", title: "Deprecated", className: "border-amber-500/25 bg-amber-500/5 text-amber-500" },
-  { action: "delete", title: "Deleted", className: "border-red-500/20 bg-red-500/5 text-red-500" },
+type ArtifactRecord = Record<string, unknown>
+
+const GROUPS: Array<{
+  action: MemoryAction
+  title: string
+  className: string
+  railClassName: string
+  surfaceClassName: string
+}> = [
+  {
+    action: "add",
+    title: "Added",
+    className: "border-emerald-500/20 bg-emerald-500/5 text-emerald-500",
+    railClassName: "border-l-emerald-500/80",
+    surfaceClassName: "bg-emerald-500/[0.04]",
+  },
+  {
+    action: "confirm",
+    title: "Updated/Confirmed",
+    className: "border-blue-500/20 bg-blue-500/5 text-blue-500",
+    railClassName: "border-l-blue-500/80",
+    surfaceClassName: "bg-blue-500/[0.04]",
+  },
+  {
+    action: "deprecate",
+    title: "Deprecated",
+    className: "border-amber-500/25 bg-amber-500/5 text-amber-500",
+    railClassName: "border-l-amber-500/80",
+    surfaceClassName: "bg-amber-500/[0.04]",
+  },
+  {
+    action: "delete",
+    title: "Deleted",
+    className: "border-red-500/20 bg-red-500/5 text-red-500",
+    railClassName: "border-l-red-500/80",
+    surfaceClassName: "bg-red-500/[0.04]",
+  },
 ]
 
 function valueAt(record: Record<string, unknown> | null, key: string): unknown {
@@ -99,13 +129,93 @@ function deltaFrom(value: unknown): MemoryDelta | null {
   }
 }
 
-function memoryLogFrom(response: RunArtifactResponse): Record<string, unknown> | null {
-  const payload = response.artifact?.payload
+function isMemoryLogRecord(value: unknown): value is ArtifactRecord {
+  if (!isArtifactRecord(value)) return false
+  return ["added", "confirmed", "deprecated", "deleted", "deltas", "errors", "curatorDuration", "tokenUsage"]
+    .some((key) => key in value)
+}
+
+function memoryLogFromArtifact(artifact: RunArtifactResponse["artifact"]): ArtifactRecord | null {
+  const payload = artifact?.payload
   if (!isArtifactRecord(payload)) return null
   const memory = valueAt(payload, "memory")
   if (!isArtifactRecord(memory)) return null
   const log = valueAt(memory, "log")
-  return isArtifactRecord(log) ? log : null
+  return isMemoryLogRecord(log) ? log : null
+}
+
+function memoryLogFromRunJson(memoryLog: string | null | undefined): ArtifactRecord | null {
+  if (!memoryLog) return null
+  try {
+    const parsed = JSON.parse(memoryLog)
+    return isMemoryLogRecord(parsed) ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function childMemoryLogsFrom(response: RunArtifactResponse): ArtifactRecord[] {
+  const logs: ArtifactRecord[] = []
+  for (const child of response.children) {
+    const artifactLog = memoryLogFromArtifact(child.artifact)
+    if (artifactLog) {
+      logs.push(artifactLog)
+      continue
+    }
+    const runLog = memoryLogFromRunJson(child.run.memoryLog)
+    if (runLog) logs.push(runLog)
+  }
+  return logs
+}
+
+function sumNumber(logs: ArtifactRecord[], key: string): number {
+  return logs.reduce((sum, log) => sum + (numberAt(log, key) ?? 0), 0)
+}
+
+function mergeTokenUsage(logs: ArtifactRecord[]): Record<string, number> | undefined {
+  let sawUsage = false
+  const tokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 }
+  for (const log of logs) {
+    const usage = valueAt(log, "tokenUsage")
+    if (!isArtifactRecord(usage)) continue
+    sawUsage = true
+    tokenUsage.promptTokens += numberAt(usage, "promptTokens") ?? 0
+    tokenUsage.completionTokens += numberAt(usage, "completionTokens") ?? 0
+    tokenUsage.totalTokens += numberAt(usage, "totalTokens") ?? 0
+  }
+  return sawUsage ? tokenUsage : undefined
+}
+
+function mergeMemoryLogs(logs: ArtifactRecord[]): ArtifactRecord | null {
+  if (logs.length === 0) return null
+  const deltas = logs.flatMap((log) => {
+    const value = valueAt(log, "deltas")
+    return isArtifactArray(value) ? value : []
+  })
+  const errors = logs.flatMap((log) => {
+    const value = valueAt(log, "errors")
+    return isArtifactArray(value) ? value : []
+  })
+  const merged: ArtifactRecord = {
+    added: sumNumber(logs, "added"),
+    confirmed: sumNumber(logs, "confirmed"),
+    deprecated: sumNumber(logs, "deprecated"),
+    deleted: sumNumber(logs, "deleted"),
+    errors,
+    curatorDuration: sumNumber(logs, "curatorDuration"),
+    deltas,
+  }
+  const tokenUsage = mergeTokenUsage(logs)
+  if (tokenUsage) merged.tokenUsage = tokenUsage
+  return merged
+}
+
+function memoryLogFrom(response: RunArtifactResponse): ArtifactRecord | null {
+  const directLog = memoryLogFromArtifact(response.artifact)
+  if (directLog) return directLog
+  const childLogs = childMemoryLogsFrom(response)
+  if (childLogs.length > 0) return mergeMemoryLogs(childLogs)
+  return memoryLogFromRunJson(response.run.memoryLog)
 }
 
 function deltasFrom(log: Record<string, unknown>): MemoryDelta[] {
@@ -160,16 +270,16 @@ function MemorySummary({
   const totalTokens = isArtifactRecord(tokenUsage) ? numberAt(tokenUsage, "totalTokens") : null
 
   return (
-    <section className="rounded-[2px] border border-border">
-      <div className="grid grid-cols-2 divide-x divide-y divide-border/50 sm:grid-cols-4 sm:divide-y-0">
+    <section className="rounded-[2px] border border-border/60 bg-muted/20 px-3 py-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {GROUPS.map((group) => (
-          <div key={group.action} className="px-3 py-3">
+          <div key={group.action}>
             <div className="text-[11px] font-medium text-muted-foreground">{group.title}</div>
             <div className="mt-1 font-mono text-lg text-foreground">{counts[group.action]}</div>
           </div>
         ))}
       </div>
-      <div className="flex flex-wrap gap-3 border-t px-3 py-2 text-xs text-muted-foreground">
+      <div className="mt-3 flex flex-wrap gap-3 border-t border-border/40 pt-2 text-xs text-muted-foreground">
         <span>Curator duration: {curatorDuration == null ? "Not captured" : formatDuration(curatorDuration)}</span>
         <span>
           Tokens: {totalTokens == null
@@ -184,40 +294,37 @@ function MemorySummary({
 function ObservationBlock({
   label,
   observation,
-  tone,
 }: {
   label: "Before" | "After"
   observation: ObservationSnapshot | null
-  tone: "before" | "after"
 }) {
   if (!observation) return null
   return (
-    <div
-      className={cn(
-        "rounded-[2px] border border-border border-l-2 p-3",
-        tone === "before" ? "border-l-red-500/60 bg-red-500/5" : "border-l-emerald-500/60 bg-emerald-500/5",
-      )}
-    >
-      <div className="mb-2 text-[11px] font-semibold text-muted-foreground">{label}</div>
-      <KeyValueRows
-        rows={[
-          { label: "Title", value: observation.title },
-          { label: "ID", value: observation.id, mono: true },
-          { label: "Trust", value: observation.trust, mono: true },
-          { label: "Confirmed", value: observation.confirmed_count, mono: true },
-          { label: "Contradicted", value: observation.contradicted_count, mono: true },
-          { label: "Source test", value: observation.source_test, mono: true },
-          { label: "Last confirmed", value: observation.last_confirmed, mono: true },
-        ]}
-      />
-      <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-foreground">
+    <div className="space-y-2">
+      <div className="text-[11px] font-semibold text-muted-foreground">{label}</div>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        <span className="min-w-0 break-words">Title <span className="text-foreground">{observation.title}</span></span>
+        <span className="font-mono">Trust {observation.trust}</span>
+        <span className="font-mono">Confirmed {observation.confirmed_count}</span>
+        <span className="font-mono">Contradicted {observation.contradicted_count}</span>
+        <span className="min-w-0 break-all font-mono">ID {observation.id}</span>
+        <span className="min-w-0 break-all font-mono">Source {observation.source_test}</span>
+        <span className="font-mono">Last {observation.last_confirmed}</span>
+      </div>
+      <p className="whitespace-pre-wrap break-words text-sm leading-6 text-foreground">
         {observation.content}
       </p>
     </div>
   )
 }
 
-function MemoryDeltaCard({ delta, groupClassName }: { delta: MemoryDelta; groupClassName: string }) {
+function MemoryDeltaCard({
+  delta,
+  group,
+}: {
+  delta: MemoryDelta
+  group: (typeof GROUPS)[number]
+}) {
   const title = delta.after?.title ?? delta.before?.title ?? delta.observationId
   const trustDelta = countDelta(delta.before?.trust, delta.after?.trust)
   const confirmedDelta = countDelta(delta.before?.confirmed_count, delta.after?.confirmed_count)
@@ -226,13 +333,13 @@ function MemoryDeltaCard({ delta, groupClassName }: { delta: MemoryDelta; groupC
 
   return (
     <Collapsible>
-      <div className="rounded-[2px] border border-border p-3">
+      <div className={cn("border-y border-l-2 border-border/55 px-4 py-3", group.railClassName, group.surfaceClassName)}>
         <CollapsibleTrigger className="group flex w-full min-w-0 items-start gap-2 text-left">
           <ChevronRight className="mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-90" />
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <h4 className="min-w-0 flex-1 break-words text-sm font-medium text-foreground">{title}</h4>
-              <Badge variant="outline" className={cn("text-[10px]", groupClassName)}>
+              <Badge variant="outline" className={cn("text-[10px]", group.className)}>
                 {GROUPS.find((group) => group.action === delta.action)?.title ?? delta.action}
               </Badge>
               <Badge variant="outline" className="max-w-full whitespace-normal break-all text-left text-[10px]">
@@ -258,13 +365,13 @@ function MemoryDeltaCard({ delta, groupClassName }: { delta: MemoryDelta; groupC
           )}
           {delta.error ? <div className="text-xs text-red-500">Error: {delta.error}</div> : null}
           {delta.action === "add" ? (
-            <ObservationBlock label="After" observation={delta.after} tone="after" />
+            <ObservationBlock label="After" observation={delta.after} />
           ) : delta.action === "delete" ? (
-            <ObservationBlock label="Before" observation={delta.before} tone="before" />
+            <ObservationBlock label="Before" observation={delta.before} />
           ) : (
             <>
-              <ObservationBlock label="Before" observation={delta.before} tone="before" />
-              <ObservationBlock label="After" observation={delta.after} tone="after" />
+              <ObservationBlock label="Before" observation={delta.before} />
+              <ObservationBlock label="After" observation={delta.after} />
             </>
           )}
         </CollapsibleContent>
@@ -275,7 +382,7 @@ function MemoryDeltaCard({ delta, groupClassName }: { delta: MemoryDelta; groupC
 
 export function ArtifactMemoryTab({ response }: { response: RunArtifactResponse }) {
   const log = memoryLogFrom(response)
-  if (response.missingSections.includes("memory") || !log) {
+  if (!log) {
     return (
       <div className="rounded-[2px] border border-border px-4 py-4 text-sm text-muted-foreground">
         Memory was not captured for this run.
@@ -309,22 +416,34 @@ export function ArtifactMemoryTab({ response }: { response: RunArtifactResponse 
       {GROUPS.map((group) => {
         const items = grouped[group.action]
         return (
-          <InspectorSection key={group.action} title={group.title} badges={[`${counts[group.action]} changes`]} className="scroll-mt-4">
+          <section key={group.action} className="scroll-mt-4 space-y-3">
+            <header className="flex min-w-0 items-center gap-2 px-1">
+              <h3 className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{group.title}</h3>
+              <Badge variant="outline" className="text-[10px]">
+                {counts[group.action]} changes
+              </Badge>
+            </header>
             <div data-memory-group={group.title} className="space-y-3">
               {items.length === 0 ? (
-                <div className="text-sm text-muted-foreground">No {group.title.toLowerCase()} changes.</div>
+                <div className="px-1 text-sm text-muted-foreground">No {group.title.toLowerCase()} changes.</div>
               ) : (
                 items.map((delta) => (
-                  <MemoryDeltaCard key={`${delta.action}-${delta.observationId}`} delta={delta} groupClassName={group.className} />
+                  <MemoryDeltaCard key={`${delta.action}-${delta.observationId}`} delta={delta} group={group} />
                 ))
               )}
             </div>
-          </InspectorSection>
+          </section>
         )
       })}
 
       {isArtifactArray(valueAt(log, "errors")) && (valueAt(log, "errors") as unknown[]).length > 0 ? (
-        <InspectorSection title="Memory Errors" badges={[`${(valueAt(log, "errors") as unknown[]).length} errors`]}>
+        <section className="space-y-3">
+          <header className="flex min-w-0 items-center gap-2 px-1">
+            <h3 className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">Memory Errors</h3>
+            <Badge variant="outline" className="text-[10px]">
+              {(valueAt(log, "errors") as unknown[]).length} errors
+            </Badge>
+          </header>
           <div className="space-y-2">
             {(valueAt(log, "errors") as unknown[]).map((error, index) => (
               <div key={index} className="rounded-[2px] border border-red-500/20 bg-red-500/5 p-3 text-sm text-red-500">
@@ -332,7 +451,7 @@ export function ArtifactMemoryTab({ response }: { response: RunArtifactResponse 
               </div>
             ))}
           </div>
-        </InspectorSection>
+        </section>
       ) : null}
     </div>
   )

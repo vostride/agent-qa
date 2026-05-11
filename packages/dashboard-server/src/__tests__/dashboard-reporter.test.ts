@@ -338,6 +338,74 @@ describe('DashboardReporter', () => {
     expect((artifact?.payload.memory as any).log.deltas[0].after.content).toBe('new content')
   })
 
+  it('builds suite parent memory aggregate from child memory attached at run end', async () => {
+    const parentRunId = 'r_parent-memory-alpha-bravo-charlie-delta-echo-foxtrot-golf-hotel'
+    const childRunId = 'r_child-memory-alpha-bravo-charlie-delta-echo-foxtrot-golf-hotel'
+    reporter.onSuiteStart({
+      name: 'Memory Suite',
+      target: 'web',
+      tests: [{ test: 'tests/memory.yaml', id: 't_memory' }],
+      ['suite-id']: 'suite-memory',
+    } as unknown as SuiteDefinition, {
+      runId: parentRunId,
+      artifact: {
+        kind: 'suite-parent',
+        source: {
+          kind: 'suite',
+          suiteId: 'suite-memory',
+          name: 'Memory Suite',
+          rawYaml: 'name: Memory Suite',
+          members: [{ index: 0, ref: { test: 'tests/memory.yaml', id: 't_memory' }, filePath: 'tests/memory.yaml', name: 'Memory Child', loadStatus: 'loaded' }],
+        },
+      },
+    } as any)
+    await reporter.onTestStart!(makeTest('Memory Child'), 'tests/memory.yaml', {
+      runId: childRunId,
+      parentRunId,
+      artifact: { kind: 'suite-child', suiteIndex: 0 },
+    } as any)
+    const result = makeTestResult({ runId: childRunId, name: 'Memory Child', filePath: 'tests/memory.yaml' })
+    await reporter.onTestEnd!(result)
+    ;(result as any).memoryLog = {
+      added: 1,
+      confirmed: 2,
+      deprecated: 0,
+      deleted: 0,
+      errors: [],
+      curatorDuration: 5,
+      tokenUsage: { promptTokens: 10, completionTokens: 4, totalTokens: 14 },
+      deltas: [{
+        action: 'add',
+        tier: 'products',
+        scope: 'demo',
+        observationId: 'obs_suite',
+        reasoning: 'New suite memory',
+        before: null,
+        after: { id: 'obs_suite', title: 'Suite memory', content: 'content', trust: 0.5, created: '2026-01-01', last_confirmed: '2026-05-01', confirmed_count: 1, contradicted_count: 0, source_test: 't_memory' },
+      }],
+    }
+
+    reporter.onRunEnd!(makeSummary({ results: [result] }))
+    await reporter.onSuiteEnd!({
+      runId: parentRunId,
+      name: 'Memory Suite',
+      status: 'passed',
+      tests: [result],
+      duration: 1000,
+      passed: 1,
+      failed: 0,
+      skipped: 0,
+    })
+
+    const childRun = db.getRun(childRunId)
+    expect(JSON.parse(childRun!.memoryLog!).added).toBe(1)
+    const parentAggregate = (db.getRunArtifact(parentRunId)?.payload.memory as any).aggregate
+    expect(parentAggregate.added).toBe(1)
+    expect(parentAggregate.confirmed).toBe(2)
+    expect(parentAggregate.promptTokens).toBe(10)
+    expect(parentAggregate.childRunIds).toEqual([childRunId])
+  })
+
   it('creates r_ ids for suite parent runs and suite child runs', async () => {
     reporter.onSuiteStart({
       name: 'Smoke Suite',
