@@ -58,7 +58,10 @@ describe('createMcpCommand', () => {
     await program.parseAsync(['node', 'agent-qa', 'mcp'])
 
     expect(mockStartMcpServer).toHaveBeenCalledOnce()
-    expect(mockStartMcpServer).toHaveBeenCalledWith({ analyticsConfig: config })
+    expect(mockStartMcpServer).toHaveBeenCalledWith({
+      analyticsConfig: config,
+      startupOutput: process.stderr,
+    })
     expect(mockFlushAnalytics).toHaveBeenCalledWith({ config })
     expect(process.exitCode).toBeUndefined()
   })

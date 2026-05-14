@@ -19,7 +19,8 @@ export function createMcpCommand(): Command {
 
         const { startMcpServer } = await import('@vostride/agent-qa-mcp')
         try {
-          await startMcpServer({ analyticsConfig: config })
+          const startupOptions = { analyticsConfig: config, startupOutput: process.stderr }
+          await startMcpServer(startupOptions)
         } finally {
           await flushAnalytics(config ? { config } : undefined).catch(() => {})
         }

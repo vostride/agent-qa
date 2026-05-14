@@ -418,8 +418,12 @@ describe('agent-qa MCP schema references', () => {
     expect(analyticsService.capture).toHaveBeenCalledOnce()
   })
 
-  it('emits stdio lifecycle telemetry after connect without endpoint or config details', async () => {
-    const connect = vi.fn(async (_transport: unknown) => {})
+  it('emits stdio lifecycle telemetry and startup diagnostics after connect without endpoint or config details', async () => {
+    const order: string[] = []
+    const connect = vi.fn(async (_transport: unknown) => {
+      order.push('connect')
+    })
+    const stdoutWrite = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
     vi.resetModules()
     vi.doMock('@modelcontextprotocol/sdk/server/stdio.js', () => ({
       StdioServerTransport: class MockStdioServerTransport {},
@@ -447,17 +451,30 @@ describe('agent-qa MCP schema references', () => {
     }))
 
     try {
-      const { startMcpServer } = await import('../server.js')
+      const { MCP_STDIO_STARTUP_MESSAGE, startMcpServer } = await import('../server.js')
       const analytics = createAnalyticsRecorder()
+      const startupOutput = {
+        write: vi.fn((chunk: string) => {
+          order.push('startup')
+          expect(chunk).toBe(`${MCP_STDIO_STARTUP_MESSAGE}\n`)
+          return true
+        }),
+      } as Pick<NodeJS.WritableStream, 'write'>
 
       await startMcpServer({
         analyticsService: analytics.service,
         analyticsStandardProperties: { surface: 'mcp', runtime_context: 'agent' },
         configPath: '/Users/phase245/private.yaml',
         endpointUrl: 'https://phase245-secret.example',
+        startupOutput,
       })
 
       expect(connect).toHaveBeenCalledOnce()
+      expect(startupOutput.write).toHaveBeenCalledOnce()
+      expect(order).toEqual(['connect', 'startup'])
+      expect(stdoutWrite.mock.calls.some(([chunk]) =>
+        String(chunk).includes(MCP_STDIO_STARTUP_MESSAGE),
+      )).toBe(false)
       expect(analytics.events).toHaveLength(1)
       expect(analytics.events[0]).toEqual(expect.objectContaining({
         name: 'agent-qa.mcp.server.lifecycle',

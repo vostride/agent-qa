@@ -1,4 +1,5 @@
-export { createMcpServer, startMcpServer } from './server.js'
+export { MCP_STDIO_STARTUP_MESSAGE, createMcpServer, startMcpServer } from './server.js'
+export type { StartMcpServerOptions } from './server.js'
 export {
   AGENT_QA_SCHEMA_REFERENCES,
   classifyRunFailureFromDashboardData,
