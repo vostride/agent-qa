@@ -1,9 +1,8 @@
 ![agent-qa banner](docs/assets/readme-banner.png)
 
-# agent-qa
+<!-- # agent-qa -->
 
 Open-source AI end-to-end testing for web and mobile apps.
-
 Write tests in natural language. agent-qa runs them in an agentic test runtime that builds execution memory from every run, so teams and coding agents catch regressions before releases ship.
 
 [Docs](https://vostride.com/docs/agent-qa) | [Quickstart](https://vostride.com/docs/agent-qa/quickstart)
