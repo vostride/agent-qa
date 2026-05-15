@@ -99,6 +99,7 @@ vi.mock('@vostride/agent-qa-core', async () => {
     WorkspaceSchema,
     DashboardConfigSchema,
     createModel: vi.fn(() => ({})),
+    getAgentQaVersion: vi.fn(() => '0.1.13'),
     getProviderOptions: vi.fn(() => undefined),
     resolveLLMAuth: mockResolveLLMAuth,
     readAuth: vi.fn(() => ({})),
@@ -386,6 +387,24 @@ afterEach(async () => {
   clearLLMAuthProviderPlugins()
   await Promise.all(tempDirs.map((dir) => rm(dir, { recursive: true, force: true })))
   tempDirs = []
+})
+
+describe('GET /api/app-metadata', () => {
+  it('returns only the shared package version', async () => {
+    const res = await invokeRoute('/api/app-metadata')
+
+    expect(res.status).toBe(200)
+    const data = JSON.parse(res.body) as Record<string, unknown>
+    expect(data).toEqual({ version: '0.1.13' })
+    expect(data).not.toHaveProperty('config')
+    expect(data).not.toHaveProperty('provider')
+    expect(data).not.toHaveProperty('authMethod')
+    expect(data).not.toHaveProperty('path')
+    expect(data).not.toHaveProperty('database')
+    expect(data).not.toHaveProperty('analytics')
+    expect(data).not.toHaveProperty('environment')
+    expect(data).not.toHaveProperty('metadata')
+  })
 })
 
 describe('PUT /api/config/settings', () => {

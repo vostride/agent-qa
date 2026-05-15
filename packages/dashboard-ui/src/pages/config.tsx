@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { fetchConfig } from "@/lib/api"
+import { fetchAppMetadata, fetchConfig } from "@/lib/api"
 import { usePageTitle } from "@/hooks/use-page-title"
 import { cn } from "@/lib/utils"
 import { routes } from "@/lib/routes"
@@ -83,6 +83,7 @@ export default function ConfigPage() {
   const [searchParams] = useSearchParams()
   const [config, setConfig] = useState<Record<string, unknown>>({})
   const [loading, setLoading] = useState(true)
+  const [appVersion, setAppVersion] = useState<string | null>(null)
   const [showInvalidSelectionNotice, setShowInvalidSelectionNotice] = useState(false)
 
   const selection = useMemo(
@@ -98,6 +99,7 @@ export default function ConfigPage() {
   const searchIsCanonical = search === canonicalSearchParams.toString()
   const selectedItem = getConfigItemsByBucket(selection.bucket).find((item) => item.item === selection.item)!
   const SectionComponent = SECTION_COMPONENTS[`${selection.bucket}:${selection.item}`]
+  const versionText = appVersion ? `agent-qa v${appVersion}` : "agent-qa version unavailable"
 
   useEffect(() => {
     if (!searchIsCanonical) {
@@ -121,6 +123,26 @@ export default function ConfigPage() {
 
   useEffect(() => {
     loadConfig()
+  }, [])
+
+  useEffect(() => {
+    let active = true
+
+    async function loadAppMetadata() {
+      try {
+        const metadata = await fetchAppMetadata()
+        const version = metadata.version.trim()
+        if (active) setAppVersion(version || null)
+      } catch {
+        if (active) setAppVersion(null)
+      }
+    }
+
+    loadAppMetadata()
+
+    return () => {
+      active = false
+    }
   }, [])
 
   function handleNavigate(bucket: ConfigBucket, item: string) {
@@ -227,6 +249,13 @@ export default function ConfigPage() {
               <MissingSectionNotice item={selectedItem} />
             )}
           </div>
+
+          <p
+            data-config-app-version
+            className="mt-6 border-t border-border pt-3 text-[11px] font-mono text-muted-foreground/70"
+          >
+            {versionText}
+          </p>
         </main>
       </div>
     </div>

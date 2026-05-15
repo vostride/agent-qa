@@ -3,11 +3,13 @@
 import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
+import { toast } from 'sonner'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { APPROVED_SAAS_PLACEHOLDER_SLUGS } from '@vostride/agent-qa-ids'
 
 import {
   exchangePluginAuthCode,
+  fetchAppMetadata,
   fetchAuthStatus,
   fetchConfig,
   fetchLLMProviders,
@@ -99,6 +101,9 @@ const { sampleConfig } = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/api', () => ({
+  fetchAppMetadata: vi.fn().mockResolvedValue({
+    version: '0.1.13',
+  }),
   fetchConfig: vi.fn().mockResolvedValue({
     config: sampleConfig,
   }),
@@ -278,6 +283,48 @@ describe('ConfigPage schema-driven shell', () => {
     expect(activeItem?.className).not.toContain('rounded-md')
     expect(activeItem?.className).not.toContain('bg-accent')
     expect(view.querySelector('[data-config-page-root] [data-slot="card"]')).toBeNull()
+  })
+
+  it('renders the app version as subtle footer metadata in the config main column', async () => {
+    const view = await renderAt('/config?bucket=workspace&item=discovery')
+
+    const footer = view.querySelector('[data-config-app-version]')
+    const main = view.querySelector('[data-config-main]')
+    const rail = view.querySelector('[data-config-rail]')
+
+    expect(fetchAppMetadata).toHaveBeenCalledTimes(1)
+    expect(footer).not.toBeNull()
+    expect(footer?.textContent).toBe('agent-qa v0.1.13')
+    expect(main?.contains(footer)).toBe(true)
+    expect(rail?.textContent).not.toContain('0.1.13')
+    expect(footer?.className).toContain('text-[11px]')
+    expect(footer?.className).toContain('font-mono')
+    expect(footer?.className).toContain('text-muted-foreground/70')
+    expect(footer?.className).toContain('border-t')
+    expect(footer?.querySelector('a,button')).toBeNull()
+  })
+
+  it('renders version fallback when metadata returns an empty version', async () => {
+    vi.mocked(fetchAppMetadata).mockResolvedValueOnce({ version: '   ' })
+
+    const view = await renderAt('/config?bucket=workspace&item=discovery')
+    const footer = view.querySelector('[data-config-app-version]')
+
+    expect(footer?.textContent).toBe('agent-qa version unavailable')
+    expect(view.textContent).toContain('Discovery')
+    expect(view.textContent).toContain('workspace.testMatch')
+  })
+
+  it('keeps config content available and quiet when metadata loading fails', async () => {
+    vi.mocked(fetchAppMetadata).mockRejectedValueOnce(new Error('metadata unavailable'))
+
+    const view = await renderAt('/config?bucket=workspace&item=discovery')
+    const footer = view.querySelector('[data-config-app-version]')
+
+    expect(footer?.textContent).toBe('agent-qa version unavailable')
+    expect(view.textContent).toContain('Discovery')
+    expect(view.textContent).toContain('workspace.testMatch')
+    expect(toast.error).not.toHaveBeenCalled()
   })
 
   it('renders the mobile selector and invalid-selection notice as unframed line blocks', async () => {

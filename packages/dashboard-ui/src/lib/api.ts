@@ -811,6 +811,10 @@ export interface ConfigResponse {
   config: Record<string, unknown>
 }
 
+export interface AppMetadataResponse {
+  version: string
+}
+
 export interface AuthCredentialInfo {
   type: string
   provider: string
@@ -836,6 +840,10 @@ export interface LLMTestResult {
 
 export async function fetchConfig(): Promise<ConfigResponse> {
   return request('/api/config')
+}
+
+export async function fetchAppMetadata(): Promise<AppMetadataResponse> {
+  return request('/api/app-metadata')
 }
 
 export async function fetchTargets(): Promise<{ targets: string[] }> {
