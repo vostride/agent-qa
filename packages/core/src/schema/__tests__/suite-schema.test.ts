@@ -8,6 +8,16 @@ const LEGACY_SUITE_ID = 's_amber-birch-coral-delta-ember-falcon'
 const LEGACY_TEST_ID = 't_amber-birch-coral-delta-ember-falcon'
 const VALID_HOOK_ID = 'h_amber-birch-coral-delta-ember-falcon-garden-harbor-island-jungle'
 const LEGACY_HOOK_ID = 'h_amber-birch-coral-delta-ember-falcon'
+const INVALID_AUTH_STATE_VALUES: unknown[] = [
+  'Admin',
+  'admin/user',
+  '../admin',
+  '.admin',
+  'admin-',
+  '',
+  ['admin'],
+  { name: 'admin' },
+]
 
 function makeSuite(overrides: Record<string, unknown> = {}) {
   return {
@@ -127,6 +137,19 @@ describe('SuiteDefinitionSchema', () => {
       expect(result.data?.use?.cache).toBe(false)
     })
 
+    it('accepts a root auth-state logical name in use block', () => {
+      const result = SuiteDefinitionSchema.safeParse(makeSuite({
+        name: 'auth-state suite',
+        tests: [{ test: 'test.yaml', id: VALID_TEST_ID }],
+        use: {
+          authState: 'admin',
+        },
+      }))
+
+      expect(result.success).toBe(true)
+      expect(result.data?.use?.authState).toBe('admin')
+    })
+
     it('accepts suite with context field', () => {
       const result = SuiteDefinitionSchema.safeParse(makeSuite({
         name: 'x',
@@ -212,6 +235,34 @@ describe('SuiteDefinitionSchema', () => {
         tests: [{ test: 'test.yaml', id: VALID_TEST_ID }],
         use: { actionProofs: 'strict' },
       }))
+      expect(result.success).toBe(false)
+    })
+
+    it('rejects unsafe auth-state logical names in root use block', () => {
+      for (const authState of INVALID_AUTH_STATE_VALUES) {
+        const result = SuiteDefinitionSchema.safeParse(makeSuite({
+          name: 'bad auth state',
+          tests: [{ test: 'test.yaml', id: VALID_TEST_ID }],
+          use: {
+            authState,
+          },
+        }))
+
+        expect(result.success, JSON.stringify(authState)).toBe(false)
+      }
+    })
+
+    it('rejects member-level auth-state use blocks', () => {
+      const result = SuiteDefinitionSchema.safeParse(makeSuite({
+        tests: [
+          {
+            test: 'tests/login.yaml',
+            id: VALID_TEST_ID,
+            use: { authState: 'admin' },
+          },
+        ],
+      }))
+
       expect(result.success).toBe(false)
     })
 

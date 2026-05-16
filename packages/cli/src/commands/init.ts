@@ -7,6 +7,7 @@ import select from '@inquirer/select'
 import input from '@inquirer/input'
 import checkbox from '@inquirer/checkbox'
 import {
+  DEFAULT_AGENT_QA_AUTH_STATES_DIR,
   DEFAULT_AGENT_QA_CACHE_DIR,
   DEFAULT_AGENT_QA_RUNTIME_DIR,
 } from '@vostride/agent-qa-core'
@@ -28,6 +29,7 @@ type InitLLMConfig = {
   baseURL?: string
 }
 const INIT_CACHE_DIR = DEFAULT_AGENT_QA_CACHE_DIR || '.agent-qa/cache'
+const INIT_AUTH_STATES_DIR = DEFAULT_AGENT_QA_AUTH_STATES_DIR || '.agent-qa/auth-states'
 const INIT_RUNTIME_DIR = DEFAULT_AGENT_QA_RUNTIME_DIR || '.agent-qa'
 const SUBSCRIPTION_AUTH_PACKAGE = '@vostride/agent-qa-subscription-auth'
 const PACKAGE_JSON_FILE = 'package.json'
@@ -416,6 +418,7 @@ export function buildDefaultConfig(
       dashboard: { port: 3100, artifactsDir: '.agent-qa/artifacts' },
       mcp: { enabled: true, transport: 'http', host: '127.0.0.1', port: 3471, path: '/mcp' },
       cache: { dir: INIT_CACHE_DIR, ttl: '7d' },
+      authState: { dir: INIT_AUTH_STATES_DIR },
       ...(hasWeb(platform)
         ? {
             accessibility: {
@@ -464,7 +467,7 @@ function addYamlComments(yamlStr: string): string {
     if (line.startsWith('workspace:')) {
       result += '# File discovery and project settings\n'
     } else if (line.startsWith('services:')) {
-      result += '\n# Infrastructure services (dashboard, MCP, cache, logging)\n'
+      result += '\n# Infrastructure services (dashboard, MCP, cache, auth state, logging)\n'
     } else if (line.startsWith('registry:')) {
       result += '\n# Named resource definitions (LLM configs, app targets)\n'
     } else if (line.startsWith('plugins:')) {
@@ -522,7 +525,21 @@ const DEFAULT_AGENT_RULES_FILE = 'agent-rules.md'
 const DEFAULT_ENV_FILE = '.env'
 const DEFAULT_SECRETS_FILE = '.env.secrets.local'
 const DEFAULT_LOCAL_CONFIG_FILE = 'agent-qa.local.yaml'
-const GITIGNORE_ENTRIES = [`${INIT_RUNTIME_DIR}/`, 'node_modules/', DEFAULT_LOCAL_CONFIG_FILE, DEFAULT_ENV_FILE, DEFAULT_SECRETS_FILE]
+
+function directoryGitignoreEntry(value: string): string {
+  return value.endsWith('/') ? value : `${value}/`
+}
+
+function buildGitignoreEntries(): string[] {
+  return [
+    directoryGitignoreEntry(INIT_RUNTIME_DIR),
+    directoryGitignoreEntry(INIT_AUTH_STATES_DIR),
+    'node_modules/',
+    DEFAULT_LOCAL_CONFIG_FILE,
+    DEFAULT_ENV_FILE,
+    DEFAULT_SECRETS_FILE,
+  ]
+}
 
 function buildLocalConfigTemplate(): string {
   return `# This file is for machine-specific device, app, and provider bindings.
@@ -554,7 +571,13 @@ function appendGitignore(dir: string): void {
     existing = readFileSync(gitignorePath, 'utf-8')
   }
 
-  const missing = GITIGNORE_ENTRIES.filter((entry) => !existing.includes(entry))
+  const existingEntries = new Set(
+    existing
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean),
+  )
+  const missing = buildGitignoreEntries().filter((entry) => !existingEntries.has(entry))
   if (missing.length === 0) return
 
   const append = (existing.length > 0 && !existing.endsWith('\n') ? '\n' : '') + missing.join('\n') + '\n'

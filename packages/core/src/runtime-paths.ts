@@ -1,6 +1,7 @@
 export const DEFAULT_AGENT_QA_RUNTIME_DIR = '.agent-qa'
 export const DEFAULT_AGENT_QA_ARTIFACTS_DIR = '.agent-qa/artifacts'
 export const DEFAULT_AGENT_QA_CACHE_DIR = '.agent-qa/cache'
+export const DEFAULT_AGENT_QA_AUTH_STATES_DIR = '.agent-qa/auth-states'
 export const DEFAULT_AGENT_QA_SCREENSHOTS_DIR = '.agent-qa/artifacts/screenshots'
 export const DEFAULT_AGENT_QA_VIDEOS_DIR = '.agent-qa/artifacts/videos'
 export const DEFAULT_AGENT_QA_RUNS_DB_PATH = '.agent-qa/runs.db'

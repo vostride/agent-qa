@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { NamedLLMConfigSchema, TransportSchema } from './primitives.js'
+import { TargetNameSchema } from '../auth-state/schema.js'
 
 function isAbsoluteAppPath(value: string): boolean {
   return value.startsWith('/') || /^[A-Za-z]:[\\/]/.test(value) || value.startsWith('\\\\')
@@ -56,7 +57,7 @@ export const ProviderConfigSchema = z.record(z.string(), z.unknown())
 
 export const RegistrySchema = z.object({
   llms: z.array(NamedLLMConfigSchema).optional().default([]),
-  targets: z.record(z.string(), TargetSchema).optional(),
+  targets: z.record(TargetNameSchema, TargetSchema).optional(),
   devices: z.record(z.string(), DeviceProfileSchema).optional(),
   providers: z.record(z.string(), ProviderConfigSchema).optional(),
 }).strict()

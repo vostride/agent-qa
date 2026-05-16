@@ -26,6 +26,10 @@ export const CacheConfigSchema = z.object({
   ttl: DurationString,
 }).strict()
 
+export const AuthStateConfigSchema = z.object({
+  dir: z.string().trim().min(1),
+}).strict()
+
 export const LoggingConfigSchema = z.object({
   level: z.enum(['silent', 'error', 'warn', 'info', 'debug']),
 }).strict()
@@ -64,6 +68,7 @@ export const ServicesSchema = z.object({
   dashboard: DashboardConfigSchema.optional(),
   mcp: McpConfigSchema.optional(),
   cache: CacheConfigSchema.optional(),
+  authState: AuthStateConfigSchema.optional(),
   logging: LoggingConfigSchema.optional(),
   recording: RecordingConfigSchema.optional(),
   accessibility: AccessibilityConfigSchema.optional(),

@@ -5,6 +5,16 @@ const VALID_TEST_ID = 't_amber-birch-coral-delta-ember-falcon-garden-harbor-isla
 const LEGACY_TEST_ID = 't_amber-birch-coral-delta-ember-falcon'
 const VALID_HOOK_ID = 'h_amber-birch-coral-delta-ember-falcon-garden-harbor-island-jungle'
 const LEGACY_HOOK_ID = 'h_amber-birch-coral-delta-ember-falcon'
+const INVALID_AUTH_STATE_VALUES: unknown[] = [
+  'Admin',
+  'admin/user',
+  '../admin',
+  '.admin',
+  'admin-',
+  '',
+  ['admin'],
+  { name: 'admin' },
+]
 
 function makeTestDefinition(overrides: Record<string, unknown> = {}) {
   return {
@@ -65,6 +75,29 @@ describe('TestDefinitionSchema', () => {
 
     expect(result.success).toBe(true)
     expect(result.data?.use?.cache).toBe(false)
+  })
+
+  it('accepts a root auth-state logical name in use block', () => {
+    const result = TestDefinitionSchema.safeParse(makeTestDefinition({
+      use: {
+        authState: 'admin',
+      },
+    }))
+
+    expect(result.success).toBe(true)
+    expect(result.data?.use?.authState).toBe('admin')
+  })
+
+  it('rejects unsafe auth-state logical names in root use block', () => {
+    for (const authState of INVALID_AUTH_STATE_VALUES) {
+      const result = TestDefinitionSchema.safeParse(makeTestDefinition({
+        use: {
+          authState,
+        },
+      }))
+
+      expect(result.success, JSON.stringify(authState)).toBe(false)
+    }
   })
 
   it('rejects stale use.actionProofs', () => {

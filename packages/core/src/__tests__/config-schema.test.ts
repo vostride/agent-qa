@@ -13,6 +13,7 @@ import {
   McpConfigSchema,
   AccessibilityConfigSchema,
   CacheConfigSchema,
+  AuthStateConfigSchema,
   MemoryConfigSchema,
 } from '../schema/services-schema.js'
 
@@ -69,6 +70,7 @@ describe('AgentQaConfigSchema — 4-bucket structure', () => {
       services: {
         dashboard: { port: 3470, artifactsDir: '.agent-qa/artifacts' },
         cache: { dir: '.agent-qa/cache', ttl: '7d' },
+        authState: { dir: '.agent-qa/auth-states' },
         logging: { level: 'warn' as const },
         recording: { enabled: true },
         accessibility: {
@@ -214,6 +216,9 @@ describe('AgentQaConfigSchema — 4-bucket structure', () => {
           dir: '.agent-qa/custom-cache',
           ttl: '7d',
         },
+        authState: {
+          dir: '.agent-qa/custom-auth-states',
+        },
         logging: {
           level: 'warn',
         },
@@ -237,6 +242,7 @@ describe('AgentQaConfigSchema — 4-bucket structure', () => {
       expect(result.data.services?.dashboard?.artifactsDir).toBe('.agent-qa/custom-artifacts')
       expect(result.data.services?.cache?.dir).toBe('.agent-qa/custom-cache')
       expect(result.data.services?.cache?.ttl).toBe(604_800_000)
+      expect(result.data.services?.authState?.dir).toBe('.agent-qa/custom-auth-states')
       expect(result.data.services?.logging?.level).toBe('warn')
       expect(result.data.services?.recording?.enabled).toBe(false)
       expect(result.data.services?.accessibility?.enabled).toBe(false)
@@ -262,6 +268,25 @@ describe('AgentQaConfigSchema — 4-bucket structure', () => {
       services: { dashboard: { screenshotDir: '.agent-qa/screenshots' } },
     })
     expect(result.success).toBe(false)
+  })
+
+  it('accepts services.authState.dir as a string path', () => {
+    const result = AgentQaConfigSchema.safeParse(withWorkspace({
+      services: {
+        authState: {
+          dir: '.agent-qa/auth-states',
+        },
+      },
+    }))
+
+    expect(result.success).toBe(true)
+    expect(AuthStateConfigSchema.safeParse({ dir: '.agent-qa/auth-states' }).success).toBe(true)
+  })
+
+  it('rejects invalid services.authState config', () => {
+    expect(AuthStateConfigSchema.safeParse({}).success).toBe(false)
+    expect(AuthStateConfigSchema.safeParse({ dir: '' }).success).toBe(false)
+    expect(AuthStateConfigSchema.safeParse({ dir: '.agent-qa/auth-states', ttlSeconds: 3600 }).success).toBe(false)
   })
 
   it('workspace accepts all documented fields per D-04', () => {
@@ -448,6 +473,18 @@ describe('AgentQaConfigSchema — 4-bucket structure', () => {
       use: {
         mobile: { appState: 'preserve' },
         actionProofs: 'strict',
+      },
+    })
+
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects global use.authState because auth state is selected per test or suite', () => {
+    const result = AgentQaConfigSchema.safeParse({
+      workspace: validWorkspace,
+      use: {
+        mobile: { appState: 'preserve' },
+        authState: 'admin',
       },
     })
 
@@ -720,6 +757,12 @@ describe('Sub-schemas — primitives', () => {
     expect(CacheConfigSchema.safeParse({ dir: '.cache', ttl: '7d' }).success).toBe(true)
   })
 
+  it('AuthStateConfigSchema requires a non-empty dir only', () => {
+    expect(AuthStateConfigSchema.safeParse({}).success).toBe(false)
+    expect(AuthStateConfigSchema.safeParse({ dir: '.agent-qa/auth-states' }).success).toBe(true)
+    expect(AuthStateConfigSchema.safeParse({ dir: '.agent-qa/auth-states', ttlSeconds: 3600 }).success).toBe(false)
+  })
+
   it('MemoryConfigSchema defaults and validates dir', () => {
     expect(MemoryConfigSchema.parse({}).dir).toBe('agent-qa-memory')
     expect(MemoryConfigSchema.safeParse({ dir: '.agent-qa/custom-memory' }).success).toBe(true)
@@ -974,5 +1017,31 @@ describe('TargetSchema — product key validation', () => {
       },
     }))
     expect(result.success).toBe(true)
+  })
+
+  it('accepts slug-safe target registry keys', () => {
+    const result = AgentQaConfigSchema.safeParse(withWorkspace({
+      registry: {
+        targets: {
+          'staging-web': { platform: 'web', url: 'https://staging.example.com' },
+        },
+      },
+    }))
+
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects unsafe target registry keys', () => {
+    for (const targetName of ['Staging', 'staging_web', 'bad/path', '.', '..', '../staging', '', 'staging-']) {
+      const result = AgentQaConfigSchema.safeParse(withWorkspace({
+        registry: {
+          targets: {
+            [targetName]: { platform: 'web', url: 'https://staging.example.com' },
+          },
+        },
+      }))
+
+      expect(result.success, JSON.stringify(targetName)).toBe(false)
+    }
   })
 })

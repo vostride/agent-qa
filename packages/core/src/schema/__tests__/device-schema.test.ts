@@ -168,6 +168,28 @@ describe('RegistrySchema with devices + providers', () => {
     const result = schema.safeParse({ llms: [] })
     expect(result.success).toBe(true)
   })
+
+  it('accepts slug-safe target keys', async () => {
+    const schema = await getSchema()
+    const result = schema.safeParse({
+      targets: {
+        'staging-web': { platform: 'web', url: 'https://staging.example.com' },
+      },
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects unsafe target keys before path resolution', async () => {
+    const schema = await getSchema()
+    for (const targetName of ['Staging', 'staging_web', 'bad/path', '.', '..', '../staging', '', 'staging-']) {
+      const result = schema.safeParse({
+        targets: {
+          [targetName]: { platform: 'web', url: 'https://staging.example.com' },
+        },
+      })
+      expect(result.success, JSON.stringify(targetName)).toBe(false)
+    }
+  })
 })
 
 describe('UseSchema mobile app state', () => {

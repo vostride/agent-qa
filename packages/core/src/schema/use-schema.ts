@@ -7,6 +7,7 @@ import {
   PlannerConfigSchema,
   LogCaptureConfigSchema,
 } from './primitives.js'
+import { AuthStateNameSchema } from '../auth-state/schema.js'
 
 export const MobileAppStateSchema = z.enum(['preserve', 'reset'])
 
@@ -56,6 +57,7 @@ export const UseOverrideSchema = z.object({
     network: z.boolean().optional(),
   }).strict().optional(),
   cache: z.boolean().optional(),
+  authState: AuthStateNameSchema.optional(),
   mobile: MobileUseOverrideSchema.optional(),
   llm: z.string().optional(),
   parallel: z.boolean().optional(),

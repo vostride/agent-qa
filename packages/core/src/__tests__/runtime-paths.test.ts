@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_AGENT_QA_ARTIFACTS_DIR,
+  DEFAULT_AGENT_QA_AUTH_STATES_DIR,
   DEFAULT_AGENT_QA_CACHE_DIR,
   DEFAULT_AGENT_QA_RUNS_DB_PATH,
   DEFAULT_AGENT_QA_RUNTIME_DIR,
@@ -13,7 +14,9 @@ describe('runtime path defaults', () => {
   it('keeps generated runtime output under .agent-qa', () => {
     expect(DEFAULT_AGENT_QA_RUNTIME_DIR).toBe('.agent-qa')
     expect(DEFAULT_AGENT_QA_CACHE_DIR).toBe('.agent-qa/cache')
+    expect(DEFAULT_AGENT_QA_AUTH_STATES_DIR).toBe('.agent-qa/auth-states')
     expect(DEFAULT_AGENT_QA_ARTIFACTS_DIR).toBe('.agent-qa/artifacts')
+    expect(DEFAULT_AGENT_QA_AUTH_STATES_DIR.startsWith(`${DEFAULT_AGENT_QA_RUNTIME_DIR}/`)).toBe(true)
   })
 
   it('keeps screenshots and videos under the artifacts tree', () => {

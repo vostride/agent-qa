@@ -47,6 +47,7 @@ vi.mock('@vostride/agent-qa-core', () => ({
   createModel: vi.fn(),
   resolveAppiumExecutable: vi.fn(() => ({ command: 'appium', source: 'path' })),
   formatAppiumInstallGuidance: vi.fn(() => 'Install Appium locally with `npm install -D appium` or globally with `npm install -g appium`.'),
+  DEFAULT_AGENT_QA_AUTH_STATES_DIR: '.agent-qa/auth-states',
   DEFAULT_AGENT_QA_CACHE_DIR: '.agent-qa/cache',
   DEFAULT_AGENT_QA_RUNTIME_DIR: '.agent-qa',
 }))
@@ -153,6 +154,8 @@ describe('init command', () => {
     expect(content).toContain('memory:')
     expect(content).toContain('provider: local')
     expect(content).toContain('dir: agent-qa-memory')
+    expect(content).toContain('authState:')
+    expect(content).toContain('dir: .agent-qa/auth-states')
     expect(content).toContain('registry:')
     expect(content).toContain('targets:')
     expect(content).toContain('example-web:')
@@ -221,6 +224,9 @@ describe('init command', () => {
     expect(content).not.toContain('# use:')
     expect(content).not.toContain('authMethod')
     expect(content).not.toContain('apiKey')
+
+    const parsed = parseYaml(content) as any
+    expect(parsed.services.authState).toEqual({ dir: '.agent-qa/auth-states' })
 
     const packageJsonCall = findWriteCallEndingWith('package.json')
     expect(packageJsonCall).toBeDefined()
@@ -291,6 +297,7 @@ describe('init command', () => {
     expect(config.use.browser.viewport).toEqual({ width: 1280, height: 720 })
     expect(config.use.logCapture).toEqual({ console: true, network: true })
     expect(config.use.parallel).toBe(false)
+    expect(config.services.authState).toEqual({ dir: '.agent-qa/auth-states' })
     expect(config.services.recording).toEqual({ enabled: true })
     expect(config.services.memory).toEqual({ enabled: true, provider: 'local', dir: 'agent-qa-memory' })
   })
@@ -319,6 +326,7 @@ describe('init command', () => {
     expect(config.use.browser.viewport).toEqual({ width: 1280, height: 720 })
     expect(config.use.logCapture).toEqual({ console: true, network: true })
     expect(config.use.parallel).toBe(false)
+    expect(config.services.authState).toEqual({ dir: '.agent-qa/auth-states' })
     expect(config.services.recording).toEqual({ enabled: true })
     expect(config.services.memory).toEqual({ enabled: true, provider: 'local', dir: 'agent-qa-memory' })
   })
@@ -337,6 +345,7 @@ describe('init command', () => {
     ])
     expect(config.registry.llms[0]).not.toHaveProperty('baseURL')
     expect(config.registry.llms[0]).not.toHaveProperty('apiKey')
+    expect(config.services.authState).toEqual({ dir: '.agent-qa/auth-states' })
     expect(config).not.toHaveProperty('plugins')
   })
 
@@ -368,6 +377,7 @@ describe('init command', () => {
     expect(config.use.llm).toBe('codex')
     expect(config.registry.llms[0]).not.toHaveProperty('apiKey')
     expect(config.registry.llms[1]).not.toHaveProperty('authMethod')
+    expect(config.services.authState).toEqual({ dir: '.agent-qa/auth-states' })
   })
 
   it.each(['web', 'android', 'ios', 'web+android', 'web+ios'] as const)(
@@ -382,6 +392,7 @@ describe('init command', () => {
       expect(config.use.mobile.appState).toBe('preserve')
       expect(config.use.logCapture).toEqual({ console: true, network: true })
       expect(config.use.parallel).toBe(false)
+      expect(config.services.authState).toEqual({ dir: '.agent-qa/auth-states' })
       expect(config.services.recording).toEqual({ enabled: true })
       expect(config.services.memory).toEqual({ enabled: true, provider: 'local', dir: 'agent-qa-memory' })
       expect(config.services.mcp).toEqual({
@@ -860,14 +871,40 @@ describe('init command', () => {
     expect(gitignoreCall).toBeDefined()
 
     const content = gitignoreCall![1] as string
-    // Should contain .agent-qa/ but not duplicate node_modules/
+    // Should contain auth-state credential material entries but not duplicate node_modules/
     expect(content).toContain('.agent-qa/')
+    expect(content).toContain('.agent-qa/auth-states/')
     expect(content).toContain('agent-qa.local.yaml')
     expect(content).toContain('.env')
     expect(content).toContain('.env.secrets.local')
     // Original content + only the missing entry
     const nodeModulesCount = (content.match(/node_modules\//g) || []).length
+    const runtimeCount = (content.match(/^\.agent-qa\/$/gm) || []).length
+    const authStatesCount = (content.match(/^\.agent-qa\/auth-states\/$/gm) || []).length
     expect(nodeModulesCount).toBe(1)
+    expect(runtimeCount).toBe(1)
+    expect(authStatesCount).toBe(1)
+  })
+
+  it('does not skip .agent-qa/ when only the auth-state directory is already ignored', async () => {
+    mockExistsSync.mockImplementation((p) => {
+      if ((p as string).endsWith('.gitignore')) return true
+      return false
+    })
+    mockReadFileSync.mockReturnValue('node_modules/\n.agent-qa/auth-states/\n')
+
+    await runInit(['--dir', '/tmp/test-project', '--platform', 'web', '--skip-install'])
+
+    const gitignoreCall = mockWriteFileSync.mock.calls.find(
+      (call) => (call[0] as string).endsWith('.gitignore'),
+    )
+    expect(gitignoreCall).toBeDefined()
+
+    const content = gitignoreCall![1] as string
+    expect(content).toContain('.agent-qa/')
+    expect(content).toContain('.agent-qa/auth-states/')
+    expect((content.match(/^\.agent-qa\/$/gm) || []).length).toBe(1)
+    expect((content.match(/^\.agent-qa\/auth-states\/$/gm) || []).length).toBe(1)
   })
 
   it('skips if config exists and no --force', async () => {

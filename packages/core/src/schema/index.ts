@@ -28,6 +28,7 @@ export {
   LoggingConfigSchema,
   RecordingConfigSchema,
   AccessibilityConfigSchema,
+  AuthStateConfigSchema,
 } from './services-schema.js'
 
 export { TargetSchema, DeviceProfileSchema, ProviderConfigSchema } from './registry-schema.js'
