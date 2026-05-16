@@ -17,3 +17,8 @@ export {
   writeAuthStateFiles,
   type WriteAuthStateFilesInput,
 } from './store.js'
+export {
+  resolveAuthStateForRun,
+  type ResolveAuthStateForRunInput,
+  type ResolvedAuthStateForRun,
+} from './runtime.js'

@@ -74,6 +74,9 @@ export class FarmWebAdapter implements PlatformAdapter {
         size: config.recording.videoSize ?? config.browser?.viewport ?? { width: 1280, height: 720 },
       }
     }
+    if (config.authState?.storageStatePath) {
+      contextOptions.storageState = config.authState.storageStatePath
+    }
     this.context = await this.browser.newContext(contextOptions)
 
     // Clipboard write permission — farm-adapter always uses chromium (see chromium.connect above)

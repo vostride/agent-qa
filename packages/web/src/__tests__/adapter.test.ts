@@ -153,6 +153,25 @@ describe('WebPlatformAdapter', () => {
     expect(page).not.toBeNull()
   })
 
+  it('loads selected auth storage state before creating the first page', async () => {
+    await adapter.setup({
+      platform: 'web',
+      browser: { name: 'chromium', headless: true },
+      authState: {
+        targetName: 'staging-web',
+        stateName: 'admin',
+        storageStatePath: '/tmp/internal/admin.json',
+      },
+    })
+
+    expect(mockBrowser.newContext).toHaveBeenCalledWith(expect.objectContaining({
+      storageState: '/tmp/internal/admin.json',
+    }))
+    expect(mockBrowser.newContext.mock.invocationCallOrder[0]).toBeLessThan(
+      mockContext.newPage.mock.invocationCallOrder[0],
+    )
+  })
+
   it('replaces Playwright missing-browser launch errors with agent-qa install guidance', async () => {
     const { webkit } = await import('playwright-core')
     const launch = webkit.launch as unknown as ReturnType<typeof vi.fn>

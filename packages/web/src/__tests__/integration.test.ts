@@ -492,6 +492,25 @@ describe('Integration: WebPlatformAdapter lifecycle', () => {
     )
   })
 
+  it('setup with auth state passes storageState to browser context before page creation', async () => {
+    await adapter.setup({
+      platform: 'web',
+      browser: { name: 'chromium' },
+      authState: {
+        targetName: 'staging-web',
+        stateName: 'admin',
+        storageStatePath: '/tmp/internal/admin.json',
+      },
+    })
+
+    expect(mockBrowser.newContext).toHaveBeenCalledWith(
+      expect.objectContaining({ storageState: '/tmp/internal/admin.json' })
+    )
+    expect(mockBrowser.newContext.mock.invocationCallOrder[0]).toBeLessThan(
+      mockContext.newPage.mock.invocationCallOrder[0]
+    )
+  })
+
   describe('keypress (phase 137)', () => {
     const originalPlatform = process.platform
 

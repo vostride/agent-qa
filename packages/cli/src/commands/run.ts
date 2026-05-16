@@ -3,9 +3,9 @@ import { resolve as resolvePath } from 'node:path'
 import { Command } from 'commander'
 import pc from 'picocolors'
 import { resolveConfig, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
-import { ATTR_RUNNER, ATTR_TRIGGER, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_CACHE_DIR, DEFAULT_AGENT_QA_VIDEOS_DIR, formatRunAttributesBlock, generateRunId, mergeRunAttributes, MobileSetupError, parseRunAttrFlags, resolveMemoryRoot, resolveMobileRunConfig, validateTrustedRunAttributes } from '@vostride/agent-qa-core'
+import { ATTR_RUNNER, ATTR_TRIGGER, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_CACHE_DIR, DEFAULT_AGENT_QA_VIDEOS_DIR, formatRunAttributesBlock, generateRunId, mergeRunAttributes, MobileSetupError, parseRunAttrFlags, resolveAuthStateForRun, resolveMemoryRoot, resolveMobileRunConfig, validateTrustedRunAttributes } from '@vostride/agent-qa-core'
 import { discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarget, resolveWorkspacePaths } from '@vostride/agent-qa-core'
-import type { AgentQaConfig, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
+import type { AgentQaConfig, ResolvedAuthStateForRun, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { resolveTarget, type ResolvedTarget } from '../targets.js'
 import { resolveDevice, loadLocalBindings, resolveProviderCredentials, type ResolvedDevice } from '../devices.js'
 import { applyResolvedAuthToModelConfig, resolveLLMModels, resolveModelAuth } from '../llm-utils.js'
@@ -711,6 +711,32 @@ function resolveMobileRunOrThrow(input: Parameters<typeof resolveMobileRunConfig
   }
 }
 
+function getSelectedAuthStateName(use: Record<string, unknown> | undefined): string | undefined {
+  const authState = use?.authState
+  return typeof authState === 'string' && authState.trim().length > 0 ? authState : undefined
+}
+
+async function resolveSelectedAuthStateForRun(input: {
+  config: AgentQaConfig
+  configDir: string
+  resolvedTarget: ResolvedTarget
+  stateName: string | undefined
+}): Promise<ResolvedAuthStateForRun | undefined> {
+  if (!input.stateName) return undefined
+  try {
+    return await resolveAuthStateForRun({
+      configDir: input.configDir,
+      authStateDir: input.config.services?.authState?.dir,
+      targetName: input.resolvedTarget.name,
+      stateName: input.stateName,
+      target: { platform: input.resolvedTarget.platform },
+    })
+  } catch (err) {
+    console.error(pc.red(`Error: ${err instanceof Error ? err.message : String(err)}`))
+    process.exit(2)
+  }
+}
+
 async function executeSuites(
   suiteFiles: string[],
   opts: RunOptions,
@@ -832,6 +858,14 @@ async function executeSuites(
     let suiteFileContent = ''
     try { suiteFileContent = await readFile(suiteFile, 'utf-8') } catch { /* best-effort */ }
 
+    const mergedUse = mergeUseBlocks(
+      config.use as Record<string, unknown>,
+      suite.use as Record<string, unknown> | undefined,
+      undefined,
+      {},
+    )
+    const suiteAuthStateName = getSelectedAuthStateName(mergedUse as Record<string, unknown>)
+
     const testEntries: [TestDefinition, string][] = []
     const suiteMembers: Array<Record<string, unknown>> = []
     for (const { test: relativePath, id: suiteEntryId } of suite.tests) {
@@ -952,6 +986,12 @@ async function executeSuites(
       }
 
       const testDef = parseResult.tests[0]
+      const childAuthStateName = getSelectedAuthStateName(testDef.use as Record<string, unknown> | undefined)
+      // Normal suite runs are auth-state consumers only; producer/update workflows are explicit and separate. Compare child authState only to reject drift.
+      if (suiteAuthStateName && childAuthStateName && childAuthStateName !== suiteAuthStateName) {
+        console.error(pc.red(`Suite auth state "${suiteAuthStateName}" conflicts with child test auth state "${childAuthStateName}". Use one primary auth state per suite.`))
+        process.exit(2)
+      }
       if (testDef['test-id'] && testDef['test-id'] !== suiteEntryId) {
         const mismatchMsg = `ID mismatch in suite "${suite.name}": test file ${relativePath} has test-id "${testDef['test-id']}" but suite entry specifies id "${suiteEntryId}"`
         console.error(pc.red(mismatchMsg))
@@ -1008,12 +1048,12 @@ async function executeSuites(
       : resolveTarget(config, testEntries[0][0].target!)
     const suitePlatform: 'web' | 'android' | 'ios' = suiteResolvedTarget.platform
 
-    const mergedUse = mergeUseBlocks(
-      config.use as Record<string, unknown>,
-      suite.use as Record<string, unknown> | undefined,
-      undefined,
-      {},
-    )
+    const suiteAuthState = await resolveSelectedAuthStateForRun({
+      config,
+      configDir,
+      resolvedTarget: suiteResolvedTarget,
+      stateName: suiteAuthStateName,
+    })
     const suiteEffectiveCacheEnabled = opts.cache !== false && (mergedUse as Record<string, unknown>).cache !== false
     let suiteDeviceName = opts.device ?? (mergedUse.device as string | undefined)
 
@@ -1111,6 +1151,7 @@ async function executeSuites(
     const suiteBrowser = (mergedUse.browser as Record<string, unknown> | undefined) ?? config.use?.browser
     const suiteLogCapture = (mergedUse.logCapture as Record<string, unknown> | undefined) ?? (config as any).use?.logCapture
     const platformConfig = buildPlatformConfig(suitePlatform, resolvedDevice, testTimeouts, suiteBrowser as any, suiteLogCapture, farmSession, mobileResolved)
+    platformConfig.authState = suiteAuthState
     platformConfig.verbose = effectiveLogLevel === 'debug'
     if (opts.headless !== undefined && platformConfig.browser) {
       platformConfig.browser.headless = opts.headless
@@ -1934,6 +1975,12 @@ export function createRunCommand(): Command {
 
           const testPlatform: 'web' | 'android' | 'ios' = testResolvedTarget.platform
           analyticsPlatform = testPlatform
+          const testAuthState = await resolveSelectedAuthStateForRun({
+            config,
+            configDir,
+            resolvedTarget: testResolvedTarget,
+            stateName: getSelectedAuthStateName(mergedUse as Record<string, unknown>),
+          })
 
           const testMergedUse = (testMergedConfig as any).use ?? (config as any).use ?? {}
           const testDeviceName = opts.device ?? testMergedUse.device as string | undefined
@@ -2023,6 +2070,7 @@ export function createRunCommand(): Command {
 
               const mergedBrowser = (mergedUse as Record<string, unknown>).browser as Record<string, unknown> | undefined
               const platformConfig = buildPlatformConfig(testPlatform, testResolvedDevice, testTimeoutsForSetup, mergedBrowser ?? config.use?.browser, (testMergedConfig as any).use?.logCapture ?? config.use?.logCapture, testFarmSession, testMobileResolved)
+              platformConfig.authState = testAuthState
               platformConfig.verbose = effectiveLogLevel === 'debug'
               if (opts.headless !== undefined) {
                 if (platformConfig.browser) {
@@ -2354,6 +2402,7 @@ export function createRunCommand(): Command {
                   const ablationAdapter = await createPlatformAdapter(testPlatform)
                   const mergedBrowser = (mergedUse as Record<string, unknown>).browser as Record<string, unknown> | undefined
                   const ablationPlatformConfig = buildPlatformConfig(testPlatform, testResolvedDevice, testTimeoutsForSetup, mergedBrowser ?? config.use?.browser, (testMergedConfig as any).use?.logCapture ?? config.use?.logCapture, testFarmSession, testMobileResolved)
+                  ablationPlatformConfig.authState = testAuthState
                   ablationPlatformConfig.verbose = effectiveLogLevel === 'debug'
                   if (opts.headless !== undefined && ablationPlatformConfig.browser) {
                     ablationPlatformConfig.browser.headless = opts.headless

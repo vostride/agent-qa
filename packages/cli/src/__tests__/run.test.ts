@@ -21,6 +21,7 @@ const {
   mockLLMVerifier,
   mockResolveConfig,
   mockResolveTarget,
+  mockResolveAuthStateForRun,
   mockAndroidAdapterSetup,
   mockAndroidAdapterCleanup,
   mockWebAdapterSetup,
@@ -68,6 +69,7 @@ const {
     mockLLMVerifier: vi.fn(),
     mockResolveConfig: vi.fn(),
     mockResolveTarget: vi.fn(),
+    mockResolveAuthStateForRun: vi.fn(),
     mockAndroidAdapterSetup: vi.fn(),
     mockAndroidAdapterCleanup: vi.fn(),
     mockWebAdapterSetup: vi.fn(),
@@ -107,6 +109,7 @@ vi.mock('@vostride/agent-qa-core', () => {
   runHooks: mockRunHooks,
   runSuite: mockRunSuite,
   runTestWithRetry: mockRunTestWithRetry,
+  resolveAuthStateForRun: mockResolveAuthStateForRun,
   createModel: mockCreateModel,
   resolveLLMAuth: vi.fn(async () => ({
     kind: 'api-key',
@@ -574,6 +577,12 @@ beforeEach(() => {
   })
   mockRunSuite.mockReset()
   mockRunSuite.mockResolvedValue({ status: 'passed', duration: 100 })
+  mockResolveAuthStateForRun.mockReset()
+  mockResolveAuthStateForRun.mockResolvedValue({
+    targetName: 'test-app',
+    stateName: 'admin',
+    storageStatePath: '/internal/auth/test-app/admin.json',
+  })
   mockFileActionCache.mockClear()
   mockResolveTarget.mockReturnValue({
     name: 'test-app',
@@ -876,6 +885,175 @@ describe('run command — reduced flag surface and target resolution', () => {
       expect.anything(),
       expect.anything(),
     )
+  })
+})
+
+describe('run command — auth state consumption', () => {
+  it('resolves a direct web test auth state before adapter setup and still executes the test', async () => {
+    const cfg = defaultConfig()
+    ;(cfg.services as any).authState = { dir: '.agent-qa/auth-states' }
+    mockResolveConfig.mockResolvedValue(cfg)
+    mockGlob.mockResolvedValue(['tests/auth.yaml'])
+    mockParseAllTests.mockResolvedValue({
+      tests: [makeTest({ use: { authState: 'admin' } })],
+      errors: [],
+    })
+    mockRunTestWithRetry.mockResolvedValue({
+      name: 'Test One',
+      filePath: 'tests/auth.yaml',
+      status: 'passed',
+      steps: [],
+      duration: 100,
+    })
+
+    await runCommand('tests/**/*.yaml')
+
+    expect(mockResolveAuthStateForRun).toHaveBeenCalledWith(expect.objectContaining({
+      authStateDir: '.agent-qa/auth-states',
+      targetName: 'test-app',
+      stateName: 'admin',
+      target: { platform: 'web' },
+    }))
+    expect(mockResolveAuthStateForRun.mock.invocationCallOrder[0]).toBeLessThan(
+      mockWebAdapterSetup.mock.invocationCallOrder[0],
+    )
+    expect(mockWebAdapterSetup).toHaveBeenCalledWith(expect.objectContaining({
+      authState: {
+        targetName: 'test-app',
+        stateName: 'admin',
+        storageStatePath: '/internal/auth/test-app/admin.json',
+      },
+    }))
+    expect(mockRunTestWithRetry).toHaveBeenCalled()
+  })
+
+  it('fails direct auth-state preflight before adapter setup without printing paths', async () => {
+    mockResolveAuthStateForRun.mockRejectedValueOnce(
+      new Error('Auth state "admin" for target "test-app" was not found or could not be read. Run agent-qa auth-state capture --target test-app --name admin.'),
+    )
+    mockGlob.mockResolvedValue(['tests/auth.yaml'])
+    mockParseAllTests.mockResolvedValue({
+      tests: [makeTest({ use: { authState: 'admin' } })],
+      errors: [],
+    })
+
+    await runCommand('tests/**/*.yaml')
+
+    expect(exitSpy).toHaveBeenCalledWith(2)
+    expect(mockWebAdapterSetup).not.toHaveBeenCalled()
+    expect(mockRunTestWithRetry).not.toHaveBeenCalled()
+    const allErrors = errorSpy.mock.calls.map((c: string[]) => c.join(' ')).join('\n')
+    expect(allErrors).toContain('Auth state "admin" for target "test-app"')
+    expect(allErrors).toContain('agent-qa auth-state capture --target test-app --name admin')
+    expect(allErrors).not.toContain('/internal/auth')
+    expect(allErrors).not.toContain('.agent-qa/auth-states')
+  })
+
+  it('fails direct mobile targets with auth state before adapter setup', async () => {
+    const cfg = defaultConfig()
+    cfg.registry.targets = {
+      'mobile-app': {
+        platform: 'android',
+        appPackage: 'com.example.app',
+        product: 'mobile-app',
+      },
+    } as any
+    ;(cfg.use as any).mobile = { appState: 'preserve' }
+    mockResolveConfig.mockResolvedValue(cfg)
+    mockResolveTarget.mockReturnValue({
+      name: 'mobile-app',
+      product: 'mobile-app',
+      platform: 'android',
+      appPackage: 'com.example.app',
+    })
+    mockResolveAuthStateForRun.mockRejectedValueOnce(
+      new Error('auth state is only supported for web targets. For native mobile, use use.mobile.appState: preserve.'),
+    )
+    mockGlob.mockResolvedValue(['tests/mobile.yaml'])
+    mockParseAllTests.mockResolvedValue({
+      tests: [makeTest({ target: 'mobile-app', use: { authState: 'admin', device: 'android-emu' } })],
+      errors: [],
+    })
+
+    await runCommand('tests/**/*.yaml')
+
+    expect(exitSpy).toHaveBeenCalledWith(2)
+    expect(mockAndroidAdapterSetup).not.toHaveBeenCalled()
+    const allErrors = errorSpy.mock.calls.map((c: string[]) => c.join(' ')).join('\n')
+    expect(allErrors).toContain('auth state is only supported for web targets')
+    expect(allErrors).toContain('use.mobile.appState: preserve')
+  })
+
+  it('passes suite auth state to the shared platform config when child tests omit auth state', async () => {
+    const { suitePath, configPath } = await createTempSuiteWorkspace()
+    mockParseSuiteFile.mockResolvedValue({
+      name: 'Web Suite',
+      target: 'test-app',
+      use: { authState: 'admin' },
+      tests: [{ test: 'tests/login.yaml', id: 'suite-test-1' }],
+    })
+    mockParseTestFile.mockReturnValue({
+      tests: [makeTest()],
+      errors: [],
+    })
+
+    await runCommandWithGlobalArgs(['--config', configPath], suitePath)
+
+    const suiteConfig = mockRunSuite.mock.calls[0][2]
+    expect(suiteConfig.platformConfig.authState).toEqual({
+      targetName: 'test-app',
+      stateName: 'admin',
+      storageStatePath: '/internal/auth/test-app/admin.json',
+    })
+  })
+
+  it('allows a suite child test to repeat the same auth state', async () => {
+    const { suitePath, configPath } = await createTempSuiteWorkspace()
+    mockParseSuiteFile.mockResolvedValue({
+      name: 'Web Suite',
+      target: 'test-app',
+      use: { authState: 'admin' },
+      tests: [{ test: 'tests/login.yaml', id: 'suite-test-1' }],
+    })
+    mockParseTestFile.mockReturnValue({
+      tests: [makeTest({ use: { authState: 'admin' } })],
+      errors: [],
+    })
+
+    await runCommandWithGlobalArgs(['--config', configPath], suitePath)
+
+    expect(mockRunSuite).toHaveBeenCalled()
+    const suiteConfig = mockRunSuite.mock.calls[0][2]
+    expect(suiteConfig.platformConfig.authState).toEqual(expect.objectContaining({
+      targetName: 'test-app',
+      stateName: 'admin',
+      storageStatePath: '/internal/auth/test-app/admin.json',
+    }))
+  })
+
+  it('hard-fails a suite child test with a different auth state before suite execution', async () => {
+    const { suitePath, configPath } = await createTempSuiteWorkspace()
+    mockParseSuiteFile.mockResolvedValue({
+      name: 'Web Suite',
+      target: 'test-app',
+      use: { authState: 'admin' },
+      tests: [{ test: 'tests/login.yaml', id: 'suite-test-1' }],
+    })
+    mockParseTestFile.mockReturnValue({
+      tests: [makeTest({ use: { authState: 'super-admin' } })],
+      errors: [],
+    })
+
+    await runCommandWithGlobalArgs(['--config', configPath], suitePath)
+
+    expect(exitSpy).toHaveBeenCalledWith(2)
+    expect(mockRunSuite).not.toHaveBeenCalled()
+    expect(mockWebAdapterSetup).not.toHaveBeenCalled()
+    const allErrors = errorSpy.mock.calls.map((c: string[]) => c.join(' ')).join('\n')
+    expect(allErrors).toContain('Suite auth state "admin"')
+    expect(allErrors).toContain('child test auth state "super-admin"')
+    expect(allErrors).not.toContain('/internal/auth')
+    expect(allErrors).not.toContain('.agent-qa/auth-states')
   })
 })
 

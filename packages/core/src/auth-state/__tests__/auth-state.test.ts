@@ -1,10 +1,11 @@
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, rm, unlink, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   AuthStateMetadataSchema,
   readAuthStateMetadata,
+  resolveAuthStateForRun,
   resolveAuthStatePaths,
   writeAuthStateFiles,
 } from '../index.js'
@@ -220,5 +221,109 @@ describe('auth-state metadata and store', () => {
 
     await writeFile(paths.metadataPath, `${JSON.stringify({ ...metadata, name: 'viewer' }, null, 2)}\n`)
     await expect(readAuthStateMetadata(paths)).rejects.toThrow(/does not match resolved state/)
+  })
+})
+
+describe('auth-state runtime preflight', () => {
+  it('resolves a selected auth state to an internal storage-state path', async () => {
+    const root = await createTempRoot()
+    const paths = resolveAuthStatePaths({
+      configDir: root,
+      targetName: 'staging-web',
+      stateName: 'admin',
+      target: webTarget,
+    })
+    await writeAuthStateFiles(paths, { payload, metadata })
+
+    await expect(resolveAuthStateForRun({
+      configDir: root,
+      targetName: 'staging-web',
+      stateName: 'admin',
+      target: webTarget,
+    })).resolves.toEqual({
+      targetName: 'staging-web',
+      stateName: 'admin',
+      storageStatePath: paths.payloadPath,
+    })
+  })
+
+  it('uses logical target/name and recapture guidance when metadata is missing', async () => {
+    const root = await createTempRoot()
+    const paths = resolveAuthStatePaths({
+      configDir: root,
+      targetName: 'staging-web',
+      stateName: 'admin',
+      target: webTarget,
+    })
+
+    await expect(resolveAuthStateForRun({
+      configDir: root,
+      targetName: 'staging-web',
+      stateName: 'admin',
+      target: webTarget,
+    })).rejects.toThrow(/Auth state "admin" for target "staging-web"/)
+
+    try {
+      await resolveAuthStateForRun({
+        configDir: root,
+        targetName: 'staging-web',
+        stateName: 'admin',
+        target: webTarget,
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      expect(message).toContain('agent-qa auth-state capture --target staging-web --name admin')
+      expect(message).not.toContain(paths.payloadPath)
+      expect(message).not.toContain(paths.metadataPath)
+      expect(message).not.toContain('.agent-qa/auth-states')
+    }
+  })
+
+  it('uses logical target/name and recapture guidance when payload is missing', async () => {
+    const root = await createTempRoot()
+    const paths = resolveAuthStatePaths({
+      configDir: root,
+      targetName: 'staging-web',
+      stateName: 'admin',
+      target: webTarget,
+    })
+    await writeAuthStateFiles(paths, { payload, metadata })
+    await unlink(paths.payloadPath)
+
+    try {
+      await resolveAuthStateForRun({
+        configDir: root,
+        targetName: 'staging-web',
+        stateName: 'admin',
+        target: webTarget,
+      })
+      throw new Error('expected auth-state preflight to fail')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      expect(message).toContain('Auth state "admin" for target "staging-web"')
+      expect(message).toContain('agent-qa auth-state capture --target staging-web --name admin')
+      expect(message).not.toContain(paths.payloadPath)
+      expect(message).not.toContain(paths.metadataPath)
+      expect(message).not.toContain('.agent-qa/auth-states')
+    }
+  })
+
+  it('rejects Android and iOS targets through the existing mobile guidance', async () => {
+    const root = await createTempRoot()
+
+    for (const target of [androidTarget, iosTarget]) {
+      await expect(resolveAuthStateForRun({
+        configDir: root,
+        targetName: 'staging-web',
+        stateName: 'admin',
+        target,
+      })).rejects.toThrow(/auth state is only supported for web targets/)
+      await expect(resolveAuthStateForRun({
+        configDir: root,
+        targetName: 'staging-web',
+        stateName: 'admin',
+        target,
+      })).rejects.toThrow(/use\.mobile\.appState: preserve/)
+    }
   })
 })

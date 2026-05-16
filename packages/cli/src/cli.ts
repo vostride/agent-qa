@@ -1,6 +1,6 @@
 import { Command } from 'commander'
 import { VERSION } from './index.js'
-import { createRunCommand, createInitCommand, createInstallBrowsersCommand, createInstallMobileDriversCommand, createDoctorCommand, createDashboardCommand, createServeCommand, createMcpCommand, createConfigCommand, createQueueCommand, createCacheCommand, createValidateCommand, createAuthCommand, createDevicesCommand, createIdsCommand, createCreateTestCommand, createCreateSuiteCommand, createCleanMemoryCommand, createSkillsCommand } from './commands/index.js'
+import { createRunCommand, createInitCommand, createInstallBrowsersCommand, createInstallMobileDriversCommand, createDoctorCommand, createDashboardCommand, createServeCommand, createMcpCommand, createConfigCommand, createQueueCommand, createCacheCommand, createValidateCommand, createAuthCommand, createAuthStateCommand, createDevicesCommand, createIdsCommand, createCreateTestCommand, createCreateSuiteCommand, createCleanMemoryCommand, createSkillsCommand } from './commands/index.js'
 import { rejectRemovedCliSurface } from './removed-cli-surface.js'
 
 rejectRemovedCliSurface()
@@ -33,6 +33,7 @@ program.addCommand(createQueueCommand())
 program.addCommand(createCacheCommand())
 program.addCommand(createValidateCommand())
 program.addCommand(createAuthCommand())
+program.addCommand(createAuthStateCommand())
 program.addCommand(createDevicesCommand())
 program.addCommand(createIdsCommand())
 program.addCommand(createCreateTestCommand())

@@ -107,6 +107,12 @@ export interface ActionResult {
   data?: unknown
 }
 
+export interface RuntimeAuthStateConfig {
+  targetName: string
+  stateName: string
+  storageStatePath: string
+}
+
 export interface PlatformConfig {
   platform: 'web' | 'android' | 'ios'
   browser?: BrowserConfig
@@ -124,6 +130,7 @@ export interface PlatformConfig {
   verbose?: boolean
   farmSession?: { hostname: string; port: number; path: string; capabilities: Record<string, unknown> }
   logCapture?: { console?: boolean; network?: boolean }
+  authState?: RuntimeAuthStateConfig
 }
 
 export interface BrowserConfig {
