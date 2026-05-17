@@ -57,11 +57,32 @@ vi.mock('@vostride/agent-qa-core', () => ({
   DEFAULT_AGENT_QA_CACHE_DIR: '.agent-qa/cache',
   DEFAULT_AGENT_QA_SCREENSHOTS_DIR: '.agent-qa/artifacts/screenshots',
   DEFAULT_AGENT_QA_VIDEOS_DIR: '.agent-qa/artifacts/videos',
+  AUTH_STATE_SCHEMA_VERSION: 1,
   parseAllTests: mockParseAllTests,
   formatParseError: vi.fn((err: any) => `${err.file}:${err.line}:${err.column}: ${err.message}`),
   parseHooksFile: mockParseHooksFile,
   runHooks: mockRunHooks,
   runTestWithRetry: mockRunTestWithRetry,
+  normalizeAuthStateUse: vi.fn((use: { authState?: unknown } | undefined) => {
+    const authState = use?.authState
+    if (typeof authState === 'string' && authState.trim().length > 0) {
+      return { name: authState, load: true, capture: false }
+    }
+    if (authState && typeof authState === 'object' && !Array.isArray(authState)) {
+      const record = authState as Record<string, unknown>
+      if (typeof record.name === 'string' && record.name.trim().length > 0) {
+        return {
+          name: record.name,
+          load: typeof record.load === 'boolean' ? record.load : true,
+          capture: typeof record.capture === 'boolean' ? record.capture : false,
+        }
+      }
+    }
+    return undefined
+  }),
+  resolveAuthStateForRun: vi.fn(),
+  resolveAuthStatePaths: vi.fn(),
+  writeAuthStateFiles: vi.fn(),
   createModel: mockCreateModel,
   resolveLLMAuth: vi.fn(async () => ({
     kind: 'api-key',

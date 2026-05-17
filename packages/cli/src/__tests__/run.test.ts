@@ -22,10 +22,13 @@ const {
   mockResolveConfig,
   mockResolveTarget,
   mockResolveAuthStateForRun,
+  mockResolveAuthStatePaths,
+  mockWriteAuthStateFiles,
   mockAndroidAdapterSetup,
   mockAndroidAdapterCleanup,
   mockWebAdapterSetup,
   mockWebAdapterCleanup,
+  mockWebStorageState,
   mockRunAccessibilityCheck,
   mockConsoleReporterInstance,
   mockJUnitReporterInstance,
@@ -70,10 +73,13 @@ const {
     mockResolveConfig: vi.fn(),
     mockResolveTarget: vi.fn(),
     mockResolveAuthStateForRun: vi.fn(),
+    mockResolveAuthStatePaths: vi.fn(),
+    mockWriteAuthStateFiles: vi.fn(),
     mockAndroidAdapterSetup: vi.fn(),
     mockAndroidAdapterCleanup: vi.fn(),
     mockWebAdapterSetup: vi.fn(),
     mockWebAdapterCleanup: vi.fn(),
+    mockWebStorageState: vi.fn(),
     mockRunAccessibilityCheck: vi.fn(),
     mockConsoleReporterInstance: { verbose: false },
     mockJUnitReporterInstance: { outputPath: '' },
@@ -110,6 +116,26 @@ vi.mock('@vostride/agent-qa-core', () => {
   runSuite: mockRunSuite,
   runTestWithRetry: mockRunTestWithRetry,
   resolveAuthStateForRun: mockResolveAuthStateForRun,
+  resolveAuthStatePaths: mockResolveAuthStatePaths,
+  writeAuthStateFiles: mockWriteAuthStateFiles,
+  AUTH_STATE_SCHEMA_VERSION: 1,
+  normalizeAuthStateUse: vi.fn((use: { authState?: unknown } | undefined) => {
+    const authState = use?.authState
+    if (typeof authState === 'string' && authState.trim().length > 0) {
+      return { name: authState, load: true, capture: false }
+    }
+    if (authState && typeof authState === 'object' && !Array.isArray(authState)) {
+      const record = authState as Record<string, unknown>
+      if (typeof record.name === 'string' && record.name.trim().length > 0) {
+        return {
+          name: record.name,
+          load: typeof record.load === 'boolean' ? record.load : true,
+          capture: typeof record.capture === 'boolean' ? record.capture : false,
+        }
+      }
+    }
+    return undefined
+  }),
   createModel: mockCreateModel,
   resolveLLMAuth: vi.fn(async () => ({
     kind: 'api-key',
@@ -438,6 +464,11 @@ vi.mock('@vostride/agent-qa-web', () => ({
       cleanup: mockWebAdapterCleanup,
       observe: vi.fn(),
       execute: vi.fn(),
+      getPage: vi.fn(() => ({
+        context: vi.fn(() => ({
+          storageState: mockWebStorageState,
+        })),
+      })),
     }
   }),
 }))
@@ -586,6 +617,22 @@ beforeEach(() => {
     stateName: 'admin',
     capturedAt: '2026-05-17T00:00:00.000Z',
     storageStatePath: '/internal/auth/test-app/admin.json',
+  })
+  mockResolveAuthStatePaths.mockReset()
+  mockResolveAuthStatePaths.mockImplementation(({ targetName, stateName }: { targetName: string; stateName: string }) => ({
+    targetName,
+    stateName,
+    rootDir: '/internal/auth',
+    targetDir: `/internal/auth/${targetName}`,
+    payloadPath: `/internal/auth/${targetName}/${stateName}.json`,
+    metadataPath: `/internal/auth/${targetName}/${stateName}.meta.json`,
+  }))
+  mockWriteAuthStateFiles.mockReset()
+  mockWriteAuthStateFiles.mockResolvedValue(undefined)
+  mockWebStorageState.mockReset()
+  mockWebStorageState.mockResolvedValue({
+    cookies: [],
+    origins: [],
   })
   mockFileActionCache.mockClear()
   mockResolveTarget.mockReturnValue({
@@ -988,6 +1035,132 @@ describe('run command — auth state consumption', () => {
     }))
   })
 
+  it('captures direct auth state from scratch and gives teardown hooks the captured state', async () => {
+    mockGlob.mockResolvedValue(['tests/auth.yaml'])
+    mockParseAllTests.mockResolvedValue({
+      tests: [makeTest({
+        use: { authState: { name: 'admin', load: false, capture: true } },
+        teardown: ['hook-seed'],
+      })],
+      errors: [],
+    })
+    mockParseHooksFile.mockResolvedValue({
+      hooks: [{ id: 'hook-seed', name: 'seed data', runtime: 'node', file: '/hooks/seed.js', deps: [] }],
+      errors: [],
+    })
+    mockRunHooks.mockResolvedValue({
+      allPassed: true,
+      variables: {},
+      results: new Map([['seed data', {
+        success: true,
+        duration: 10,
+        stdout: '',
+        stderr: '',
+        variables: {},
+      }]]),
+    })
+    mockRunTestWithRetry.mockResolvedValue({
+      name: 'Test One',
+      filePath: 'tests/auth.yaml',
+      status: 'passed',
+      steps: [],
+      duration: 100,
+    })
+
+    await runCommand('tests/**/*.yaml')
+
+    expect(mockResolveAuthStateForRun).not.toHaveBeenCalled()
+    expect(mockWebAdapterSetup.mock.calls[0][0].authState).toBeUndefined()
+    expect(mockRunTestWithRetry.mock.calls[0][1]).toEqual(expect.objectContaining({
+      skipReporterOnTestEnd: true,
+    }))
+    expect(mockWebStorageState).toHaveBeenCalledWith({ indexedDB: true })
+    expect(mockWriteAuthStateFiles).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetName: 'test-app',
+        stateName: 'admin',
+        payloadPath: '/internal/auth/test-app/admin.json',
+      }),
+      {
+        payload: { cookies: [], origins: [] },
+        metadata: expect.objectContaining({
+          version: 1,
+          kind: 'web',
+          target: 'test-app',
+          name: 'admin',
+          capturedAt: expect.any(String),
+        }),
+      },
+    )
+    expect(mockRunHooks).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        authState: expect.objectContaining({
+          targetName: 'test-app',
+          stateName: 'admin',
+          storageStatePath: '/internal/auth/test-app/admin.json',
+        }),
+      }),
+    )
+    expect(mockMultiReporterInstance.onTestEnd).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'passed',
+    }))
+  })
+
+  it('does not capture direct auth state when product execution fails', async () => {
+    mockGlob.mockResolvedValue(['tests/auth.yaml'])
+    mockParseAllTests.mockResolvedValue({
+      tests: [makeTest({ use: { authState: { name: 'admin', load: false, capture: true } } })],
+      errors: [],
+    })
+    mockRunTestWithRetry.mockResolvedValue({
+      name: 'Test One',
+      filePath: 'tests/auth.yaml',
+      status: 'failed',
+      steps: [{ name: 'Click login', status: 'failed', duration: 1 }],
+      duration: 100,
+      failureSummary: 'Button missing',
+    })
+
+    await runCommand('tests/**/*.yaml')
+
+    expect(mockWriteAuthStateFiles).not.toHaveBeenCalled()
+    expect(mockWebStorageState).not.toHaveBeenCalled()
+    expect(mockRunTestWithRetry).toHaveBeenCalledTimes(1)
+    expect(mockMultiReporterInstance.onTestEnd).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'failed',
+      failureSummary: 'Button missing',
+    }))
+  })
+
+  it('fails the direct run safely when auth-state capture write fails without retrying product steps', async () => {
+    mockWriteAuthStateFiles.mockRejectedValueOnce(new Error('disk path /internal/auth/test-app/admin.json'))
+    mockGlob.mockResolvedValue(['tests/auth.yaml'])
+    mockParseAllTests.mockResolvedValue({
+      tests: [makeTest({ use: { authState: { name: 'admin', load: false, capture: true } } })],
+      errors: [],
+    })
+    mockRunTestWithRetry.mockResolvedValue({
+      name: 'Test One',
+      filePath: 'tests/auth.yaml',
+      status: 'passed',
+      steps: [{ name: 'Click login', status: 'passed', duration: 1 }],
+      duration: 100,
+    })
+
+    await runCommand('tests/**/*.yaml')
+
+    expect(mockRunTestWithRetry).toHaveBeenCalledTimes(1)
+    expect(exitSpy).toHaveBeenCalledWith(1)
+    expect(mockMultiReporterInstance.onTestEnd).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'failed',
+      failureSummary: 'Could not save auth state "admin" for target "test-app".',
+      steps: [expect.objectContaining({ status: 'passed' })],
+    }))
+    const allErrors = errorSpy.mock.calls.map((c: string[]) => c.join(' ')).join('\n')
+    expect(allErrors).not.toContain('/internal/auth')
+  })
+
   it('fails direct auth-state preflight before adapter setup without printing paths', async () => {
     mockResolveAuthStateForRun.mockRejectedValueOnce(
       new Error('Auth state "admin" for target "test-app" was not found or could not be read. Run agent-qa auth-state capture --target test-app --name admin.'),
@@ -1090,6 +1263,54 @@ describe('run command — auth state consumption', () => {
       stateName: 'admin',
       storageStatePath: '/internal/auth/test-app/admin.json',
     }))
+  })
+
+  it('passes suite auth-state capture config without loading when load is false', async () => {
+    const { suitePath, configPath } = await createTempSuiteWorkspace()
+    mockParseSuiteFile.mockResolvedValue({
+      name: 'Web Suite',
+      target: 'test-app',
+      use: { authState: { name: 'admin', load: false, capture: true } },
+      tests: [{ test: 'tests/login.yaml', id: 'suite-test-1' }],
+    })
+    mockParseTestFile.mockReturnValue({
+      tests: [makeTest()],
+      errors: [],
+    })
+
+    await runCommandWithGlobalArgs(['--config', configPath], suitePath)
+
+    expect(mockResolveAuthStateForRun).not.toHaveBeenCalled()
+    const suiteConfig = mockRunSuite.mock.calls[0][2]
+    expect(suiteConfig.platformConfig.authState).toBeUndefined()
+    expect(suiteConfig.authStateCapture).toEqual(expect.objectContaining({
+      capture: expect.any(Function),
+      failureSummary: 'Could not save auth state "admin" for target "test-app".',
+    }))
+  })
+
+  it('allows a suite child object-form auth state with the same name and ignores child capture flags', async () => {
+    const { suitePath, configPath } = await createTempSuiteWorkspace()
+    mockParseSuiteFile.mockResolvedValue({
+      name: 'Web Suite',
+      target: 'test-app',
+      use: { authState: 'admin' },
+      tests: [{ test: 'tests/login.yaml', id: 'suite-test-1' }],
+    })
+    mockParseTestFile.mockReturnValue({
+      tests: [makeTest({ use: { authState: { name: 'admin', load: false, capture: true } } })],
+      errors: [],
+    })
+
+    await runCommandWithGlobalArgs(['--config', configPath], suitePath)
+
+    expect(mockRunSuite).toHaveBeenCalled()
+    const suiteConfig = mockRunSuite.mock.calls[0][2]
+    expect(suiteConfig.platformConfig.authState).toEqual(expect.objectContaining({
+      targetName: 'test-app',
+      stateName: 'admin',
+    }))
+    expect(suiteConfig.authStateCapture).toBeUndefined()
   })
 
   it('hard-fails a suite child test with a different auth state before suite execution', async () => {

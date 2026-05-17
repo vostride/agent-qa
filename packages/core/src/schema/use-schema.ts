@@ -19,6 +19,42 @@ export const MobileUseOverrideSchema = z.object({
   appState: MobileAppStateSchema.optional(),
 }).strict()
 
+export const AuthStateUseSchema = z.union([
+  AuthStateNameSchema,
+  z.object({
+    name: AuthStateNameSchema,
+    load: z.boolean().optional(),
+    capture: z.boolean().optional(),
+  }).strict(),
+])
+
+export interface NormalizedAuthStateUse {
+  name: string
+  load: boolean
+  capture: boolean
+}
+
+export function normalizeAuthStateUse(
+  use: { authState?: unknown } | undefined,
+): NormalizedAuthStateUse | undefined {
+  const parsed = AuthStateUseSchema.safeParse(use?.authState)
+  if (!parsed.success) return undefined
+
+  if (typeof parsed.data === 'string') {
+    return {
+      name: parsed.data,
+      load: true,
+      capture: false,
+    }
+  }
+
+  return {
+    name: parsed.data.name,
+    load: parsed.data.load ?? true,
+    capture: parsed.data.capture ?? false,
+  }
+}
+
 export const UseSchema = z.object({
   browser: BrowserConfigSchema.optional(),
   mobile: MobileUseSchema.optional(),
@@ -57,7 +93,7 @@ export const UseOverrideSchema = z.object({
     network: z.boolean().optional(),
   }).strict().optional(),
   cache: z.boolean().optional(),
-  authState: AuthStateNameSchema.optional(),
+  authState: AuthStateUseSchema.optional(),
   mobile: MobileUseOverrideSchema.optional(),
   llm: z.string().optional(),
   parallel: z.boolean().optional(),

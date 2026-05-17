@@ -16,7 +16,11 @@ const INVALID_AUTH_STATE_VALUES: unknown[] = [
   'admin-',
   '',
   ['admin'],
-  { name: 'admin' },
+  { name: 'Admin' },
+  { name: '../admin' },
+  { name: 'admin', mode: 'replace' },
+  { name: 'admin', load: 'yes' },
+  { load: false, capture: true },
 ]
 
 function makeSuite(overrides: Record<string, unknown> = {}) {
@@ -148,6 +152,27 @@ describe('SuiteDefinitionSchema', () => {
 
       expect(result.success).toBe(true)
       expect(result.data?.use?.authState).toBe('admin')
+    })
+
+    it('accepts root auth-state object form in use block', () => {
+      const result = SuiteDefinitionSchema.safeParse(makeSuite({
+        name: 'auth-state producer suite',
+        tests: [{ test: 'test.yaml', id: VALID_TEST_ID }],
+        use: {
+          authState: {
+            name: 'admin',
+            load: false,
+            capture: true,
+          },
+        },
+      }))
+
+      expect(result.success).toBe(true)
+      expect(result.data?.use?.authState).toEqual({
+        name: 'admin',
+        load: false,
+        capture: true,
+      })
     })
 
     it('accepts suite with context field', () => {

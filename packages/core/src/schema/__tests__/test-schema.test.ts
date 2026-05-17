@@ -13,7 +13,11 @@ const INVALID_AUTH_STATE_VALUES: unknown[] = [
   'admin-',
   '',
   ['admin'],
-  { name: 'admin' },
+  { name: 'Admin' },
+  { name: '../admin' },
+  { name: 'admin', mode: 'replace' },
+  { name: 'admin', load: 'yes' },
+  { load: false, capture: true },
 ]
 
 function makeTestDefinition(overrides: Record<string, unknown> = {}) {
@@ -86,6 +90,25 @@ describe('TestDefinitionSchema', () => {
 
     expect(result.success).toBe(true)
     expect(result.data?.use?.authState).toBe('admin')
+  })
+
+  it('accepts root auth-state object form in use block', () => {
+    const result = TestDefinitionSchema.safeParse(makeTestDefinition({
+      use: {
+        authState: {
+          name: 'admin',
+          load: false,
+          capture: true,
+        },
+      },
+    }))
+
+    expect(result.success).toBe(true)
+    expect(result.data?.use?.authState).toEqual({
+      name: 'admin',
+      load: false,
+      capture: true,
+    })
   })
 
   it('rejects unsafe auth-state logical names in root use block', () => {

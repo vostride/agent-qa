@@ -199,12 +199,31 @@ describe('readDraftAuthStateName', () => {
     ].join('\n'))).toBe('admin')
   })
 
+  it('returns a valid draft use.authState.name slug from object form', () => {
+    expect(readDraftAuthStateName([
+      'name: Authenticated flow',
+      'use:',
+      '  authState:',
+      '    name: demo-acc',
+      '    load: false',
+      '    capture: true',
+      'steps:',
+      '  - Open the dashboard',
+      '',
+    ].join('\n'))).toBe('demo-acc')
+  })
+
   it.each([
     ['missing value', 'name: No auth\nsteps: []\n', ''],
     ['uppercase value', 'use:\n  authState: Admin\n', 'Admin'],
     ['slash value', 'use:\n  authState: admin/state\n', 'admin/state'],
     ['path-like value', 'use:\n  authState: ../admin.json\n', '../admin.json'],
-    ['unsafe object', 'use:\n  authState:\n    name: admin\n', 'admin'],
+    ['uppercase object name', 'use:\n  authState:\n    name: Admin\n', 'Admin'],
+    ['path-like object name', 'use:\n  authState:\n    name: ../admin.json\n', '../admin.json'],
+    ['array value', 'use:\n  authState:\n    - admin\n', 'admin'],
+    ['missing object name', 'use:\n  authState:\n    capture: true\n', 'capture'],
+    ['unsafe object', 'use:\n  authState:\n    name: admin\n    path: ../admin.json\n', '../admin.json'],
+    ['unsafe load value', 'use:\n  authState:\n    name: admin\n    load: sometimes\n', 'sometimes'],
   ])('returns null for %s without echoing unsafe input', (_label, content, unsafeValue) => {
     const result = readDraftAuthStateName(content)
 

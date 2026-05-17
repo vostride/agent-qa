@@ -17,8 +17,12 @@ export {
 export {
   listAuthStateMetadata,
   readAuthStateMetadata,
+  removeAuthStateFiles,
+  removeAuthStateTarget,
   writeAuthStateFiles,
   type ListAuthStateMetadataInput,
+  type RemoveAuthStateFilesInput,
+  type RemoveAuthStateTargetInput,
   type WriteAuthStateFilesInput,
 } from './store.js'
 export {

@@ -198,6 +198,24 @@ describe('runTest', () => {
     }))
   })
 
+  it('can skip onTestEnd when caller finalizes the result after post-test work', async () => {
+    const reporter = {
+      onTestStart: vi.fn(),
+      onTestEnd: vi.fn(),
+    }
+    const config = makeRunTestConfig({
+      reporters: [reporter],
+      skipReporterOnTestEnd: true,
+    })
+    const test = makeTestDef({ steps: ['Step A'] })
+
+    const result = await runTest(test, config, '/tests/post-finalize.yaml')
+
+    expect(result.status).toBe('passed')
+    expect(reporter.onTestStart).toHaveBeenCalled()
+    expect(reporter.onTestEnd).not.toHaveBeenCalled()
+  })
+
   it('aborts an in-flight planner when the step timeout expires', async () => {
     let plannerSignal: AbortSignal | undefined
     const planner: Planner = {

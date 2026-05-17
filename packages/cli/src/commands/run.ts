@@ -3,9 +3,9 @@ import { resolve as resolvePath } from 'node:path'
 import { Command } from 'commander'
 import pc from 'picocolors'
 import { resolveConfig, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
-import { ATTR_RUNNER, ATTR_TRIGGER, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_CACHE_DIR, DEFAULT_AGENT_QA_VIDEOS_DIR, formatRunAttributesBlock, generateRunId, mergeRunAttributes, MobileSetupError, parseRunAttrFlags, redactAuthStateValue, resolveAuthStateForRun, resolveMemoryRoot, resolveMobileRunConfig, validateTrustedRunAttributes } from '@vostride/agent-qa-core'
+import { ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_CACHE_DIR, DEFAULT_AGENT_QA_VIDEOS_DIR, formatRunAttributesBlock, generateRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, redactAuthStateValue, resolveAuthStateForRun, resolveAuthStatePaths, resolveMemoryRoot, resolveMobileRunConfig, validateTrustedRunAttributes } from '@vostride/agent-qa-core'
 import { discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarget, resolveWorkspacePaths } from '@vostride/agent-qa-core'
-import type { AgentQaConfig, ResolvedAuthStateForRun, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
+import type { AgentQaConfig, AuthStateMetadata, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { resolveTarget, type ResolvedTarget } from '../targets.js'
 import { resolveDevice, loadLocalBindings, resolveProviderCredentials, type ResolvedDevice } from '../devices.js'
 import { applyResolvedAuthToModelConfig, resolveLLMModels, resolveModelAuth } from '../llm-utils.js'
@@ -711,29 +711,105 @@ function resolveMobileRunOrThrow(input: Parameters<typeof resolveMobileRunConfig
   }
 }
 
-function getSelectedAuthStateName(use: Record<string, unknown> | undefined): string | undefined {
-  const authState = use?.authState
-  return typeof authState === 'string' && authState.trim().length > 0 ? authState : undefined
+function getSelectedAuthStateUse(use: Record<string, unknown> | undefined): NormalizedAuthStateUse | undefined {
+  return normalizeAuthStateUse(use)
 }
 
 async function resolveSelectedAuthStateForRun(input: {
   config: AgentQaConfig
   configDir: string
   resolvedTarget: ResolvedTarget
-  stateName: string | undefined
+  authState: NormalizedAuthStateUse | undefined
 }): Promise<ResolvedAuthStateForRun | undefined> {
-  if (!input.stateName) return undefined
+  if (!input.authState || input.authState.load === false) return undefined
   try {
     return await resolveAuthStateForRun({
       configDir: input.configDir,
       authStateDir: input.config.services?.authState?.dir,
       targetName: input.resolvedTarget.name,
-      stateName: input.stateName,
+      stateName: input.authState.name,
       target: { platform: input.resolvedTarget.platform },
     })
   } catch (err) {
     console.error(pc.red(`Error: ${err instanceof Error ? err.message : String(err)}`))
     process.exit(2)
+  }
+}
+
+function resolveAuthStateCapturePathsForRun(input: {
+  config: AgentQaConfig
+  configDir: string
+  resolvedTarget: ResolvedTarget
+  authState: NormalizedAuthStateUse | undefined
+}): ResolvedAuthStatePaths | undefined {
+  if (input.authState?.capture !== true) return undefined
+  try {
+    return resolveAuthStatePaths({
+      configDir: input.configDir,
+      authStateDir: input.config.services?.authState?.dir,
+      targetName: input.resolvedTarget.name,
+      stateName: input.authState.name,
+      target: { platform: input.resolvedTarget.platform },
+    })
+  } catch (err) {
+    console.error(pc.red(`Error: ${err instanceof Error ? err.message : String(err)}`))
+    process.exit(2)
+  }
+}
+
+function formatAuthStateCaptureFailure(paths: ResolvedAuthStatePaths): string {
+  return `Could not save auth state "${paths.stateName}" for target "${paths.targetName}".`
+}
+
+function getStorageStateContext(adapter: PlatformAdapter): { storageState: (options?: { indexedDB?: boolean }) => Promise<unknown> } | null {
+  const maybeGetPage = (adapter as { getPage?: () => unknown }).getPage
+  if (typeof maybeGetPage !== 'function') return null
+
+  const page = maybeGetPage.call(adapter)
+  if (!page || typeof page !== 'object') return null
+
+  const maybeContext = (page as { context?: () => unknown }).context
+  if (typeof maybeContext !== 'function') return null
+
+  const context = maybeContext.call(page)
+  if (!context || typeof context !== 'object') return null
+
+  const storageState = (context as { storageState?: (options?: { indexedDB?: boolean }) => Promise<unknown> }).storageState
+  if (typeof storageState !== 'function') return null
+
+  return {
+    storageState: storageState.bind(context),
+  }
+}
+
+async function captureAuthStateForRun(input: {
+  adapter: PlatformAdapter
+  paths: ResolvedAuthStatePaths
+}): Promise<ResolvedAuthStateForRun> {
+  const context = getStorageStateContext(input.adapter)
+  if (!context) {
+    throw new Error('Web auth-state capture requires a Playwright browser context.')
+  }
+
+  const payload = await context.storageState({ indexedDB: true })
+  const capturedAt = new Date().toISOString()
+  const metadata: AuthStateMetadata = {
+    version: AUTH_STATE_SCHEMA_VERSION,
+    kind: 'web' as const,
+    target: input.paths.targetName,
+    name: input.paths.stateName,
+    capturedAt,
+  }
+  const { writeAuthStateFiles } = await import('@vostride/agent-qa-core')
+  await writeAuthStateFiles(input.paths, { payload, metadata })
+
+  return {
+    version: metadata.version,
+    kind: metadata.kind,
+    targetName: metadata.target,
+    stateName: metadata.name,
+    capturedAt: metadata.capturedAt,
+    storageStatePath: input.paths.payloadPath,
   }
 }
 
@@ -864,7 +940,7 @@ async function executeSuites(
       undefined,
       {},
     )
-    const suiteAuthStateName = getSelectedAuthStateName(mergedUse as Record<string, unknown>)
+    const suiteAuthStateUse = getSelectedAuthStateUse(mergedUse as Record<string, unknown>)
 
     const testEntries: [TestDefinition, string][] = []
     const suiteMembers: Array<Record<string, unknown>> = []
@@ -986,10 +1062,10 @@ async function executeSuites(
       }
 
       const testDef = parseResult.tests[0]
-      const childAuthStateName = getSelectedAuthStateName(testDef.use as Record<string, unknown> | undefined)
-      // Normal suite runs are auth-state consumers only; producer/update workflows are explicit and separate. Compare child authState only to reject drift.
-      if (suiteAuthStateName && childAuthStateName && childAuthStateName !== suiteAuthStateName) {
-        console.error(pc.red(`Suite auth state "${suiteAuthStateName}" conflicts with child test auth state "${childAuthStateName}". Use one primary auth state per suite.`))
+      const childAuthStateUse = getSelectedAuthStateUse(testDef.use as Record<string, unknown> | undefined)
+      // The suite owns the shared browser context; child authState can only repeat the same logical state.
+      if (suiteAuthStateUse && childAuthStateUse && childAuthStateUse.name !== suiteAuthStateUse.name) {
+        console.error(pc.red(`Suite auth state "${suiteAuthStateUse.name}" conflicts with child test auth state "${childAuthStateUse.name}". Use one primary auth state per suite.`))
         process.exit(2)
       }
       if (testDef['test-id'] && testDef['test-id'] !== suiteEntryId) {
@@ -1052,7 +1128,13 @@ async function executeSuites(
       config,
       configDir,
       resolvedTarget: suiteResolvedTarget,
-      stateName: suiteAuthStateName,
+      authState: suiteAuthStateUse,
+    })
+    const suiteAuthStateCapturePaths = resolveAuthStateCapturePathsForRun({
+      config,
+      configDir,
+      resolvedTarget: suiteResolvedTarget,
+      authState: suiteAuthStateUse,
     })
     const suiteEffectiveCacheEnabled = opts.cache !== false && (mergedUse as Record<string, unknown>).cache !== false
     let suiteDeviceName = opts.device ?? (mergedUse.device as string | undefined)
@@ -1355,6 +1437,12 @@ async function executeSuites(
       memoryRoot: suiteMemoryRoot,
       circuitBreaker: suiteCircuitBreaker,
       product: resolvedTarget?.product,
+      authStateCapture: suiteAuthStateCapturePaths
+        ? {
+            capture: () => captureAuthStateForRun({ adapter, paths: suiteAuthStateCapturePaths }),
+            failureSummary: formatAuthStateCaptureFailure(suiteAuthStateCapturePaths),
+          }
+        : undefined,
       createAdapter: () => createPlatformAdapter(suitePlatform),
       resolveUrl: (targetName: string) => {
         try { return resolveTarget(config, targetName).url } catch { return undefined }
@@ -1975,12 +2063,20 @@ export function createRunCommand(): Command {
 
           const testPlatform: 'web' | 'android' | 'ios' = testResolvedTarget.platform
           analyticsPlatform = testPlatform
+          const testAuthStateUse = getSelectedAuthStateUse(mergedUse as Record<string, unknown>)
           const testAuthState = await resolveSelectedAuthStateForRun({
             config,
             configDir,
             resolvedTarget: testResolvedTarget,
-            stateName: getSelectedAuthStateName(mergedUse as Record<string, unknown>),
+            authState: testAuthStateUse,
           })
+          const testAuthStateCapturePaths = resolveAuthStateCapturePathsForRun({
+            config,
+            configDir,
+            resolvedTarget: testResolvedTarget,
+            authState: testAuthStateUse,
+          })
+          let activeTestAuthState = testAuthState
 
           const testMergedUse = (testMergedConfig as any).use ?? (config as any).use ?? {}
           const testDeviceName = opts.device ?? testMergedUse.device as string | undefined
@@ -2070,7 +2166,7 @@ export function createRunCommand(): Command {
 
               const mergedBrowser = (mergedUse as Record<string, unknown>).browser as Record<string, unknown> | undefined
               const platformConfig = buildPlatformConfig(testPlatform, testResolvedDevice, testTimeoutsForSetup, mergedBrowser ?? config.use?.browser, (testMergedConfig as any).use?.logCapture ?? config.use?.logCapture, testFarmSession, testMobileResolved)
-              platformConfig.authState = testAuthState
+              platformConfig.authState = activeTestAuthState
               platformConfig.verbose = effectiveLogLevel === 'debug'
               if (opts.headless !== undefined) {
                 if (platformConfig.browser) {
@@ -2206,9 +2302,10 @@ export function createRunCommand(): Command {
               artifact: artifactContext.artifact,
             })
 
-            const authAwareSandboxOptions = sandboxOptions && testAuthState
-              ? { ...sandboxOptions, authState: testAuthState }
+            const getAuthAwareSandboxOptions = () => sandboxOptions && activeTestAuthState
+              ? { ...sandboxOptions, authState: activeTestAuthState }
               : sandboxOptions
+            const authAwareSandboxOptions = getAuthAwareSandboxOptions()
 
             // Per-test setup hooks: run BEFORE test execution (D-01, D-03)
             let perTestSetupVars: Record<string, string> = {}
@@ -2337,13 +2434,32 @@ export function createRunCommand(): Command {
               circuitBreaker,
               runId,
               skipReporterOnTestStart: true,
+              skipReporterOnTestEnd: testAuthStateUse?.capture === true,
             } as any, filePath)
 
             if (!result.runId) result.runId = runId
             completedResult = result
 
+            if (testAuthStateCapturePaths && result.status === 'passed') {
+              try {
+                activeTestAuthState = await captureAuthStateForRun({
+                  adapter: adapter!,
+                  paths: testAuthStateCapturePaths,
+                })
+              } catch {
+                result.status = 'failed'
+                result.failureSummary = formatAuthStateCaptureFailure(testAuthStateCapturePaths)
+                result.metadata = {
+                  ...result.metadata,
+                  phase: 'auth-state-capture',
+                }
+              }
+            }
+
+            const teardownSandboxOptions = getAuthAwareSandboxOptions()
+
             // Per-test teardown hooks: run AFTER test execution (D-01, D-03)
-            if (resolvedHooks && authAwareSandboxOptions && (testDef as any).teardown?.length) {
+            if (resolvedHooks && teardownSandboxOptions && (testDef as any).teardown?.length) {
               const { runHooks } = await import('@vostride/agent-qa-core')
               for (const hookId of (testDef as any).teardown) {
                 const hook = resolvedHooks.get(hookId)
@@ -2353,7 +2469,7 @@ export function createRunCommand(): Command {
                   await multiReporter.onHookStart({ hookId: hook.id, hookName: hook.name, phase: 'teardown', hookExecutionId: hookExecId, runId })
                   const allVars: Record<string, string> = { ...envFileVars, ...perTestSetupVars }
                   if (cliVars) Object.assign(allVars, cliVars)
-                  const hookResult = await runHooks([hook], { ...authAwareSandboxOptions, envVars: { ...authAwareSandboxOptions.envVars, ...allVars } })
+                  const hookResult = await runHooks([hook], { ...teardownSandboxOptions, envVars: { ...teardownSandboxOptions.envVars, ...allVars } })
                   const hr = hookResult.results.get(hook.name)
                   await multiReporter.onHookEnd({
                     hookId: hook.id,
@@ -2398,7 +2514,8 @@ export function createRunCommand(): Command {
 
             // Selective ablation: re-run failed test without memory to confirm memory caused failure (REL-01)
             let ablationHandledDeprecation = false
-            if (memoryProvider && memoryConfig?.ablationEnabled !== false && result.status === 'failed') {
+            const authStateCaptureFailed = result.metadata?.phase === 'auth-state-capture'
+            if (memoryProvider && memoryConfig?.ablationEnabled !== false && result.status === 'failed' && !authStateCaptureFailed) {
               try {
                 const { shouldAblate, collectAllInjectedIds, deprecateOnFailure } = await import('@vostride/agent-qa-core')
                 if (shouldAblate(result, memoryProvider)) {
@@ -2406,7 +2523,7 @@ export function createRunCommand(): Command {
                   const ablationAdapter = await createPlatformAdapter(testPlatform)
                   const mergedBrowser = (mergedUse as Record<string, unknown>).browser as Record<string, unknown> | undefined
                   const ablationPlatformConfig = buildPlatformConfig(testPlatform, testResolvedDevice, testTimeoutsForSetup, mergedBrowser ?? config.use?.browser, (testMergedConfig as any).use?.logCapture ?? config.use?.logCapture, testFarmSession, testMobileResolved)
-                  ablationPlatformConfig.authState = testAuthState
+                  ablationPlatformConfig.authState = activeTestAuthState
                   ablationPlatformConfig.verbose = effectiveLogLevel === 'debug'
                   if (opts.headless !== undefined && ablationPlatformConfig.browser) {
                     ablationPlatformConfig.browser.headless = opts.headless
@@ -2509,6 +2626,10 @@ export function createRunCommand(): Command {
               }
             }
 
+            if (testAuthStateUse?.capture === true) {
+              await multiReporter.onTestEnd(result)
+            }
+
             results.push(result)
             printRunAttributes(testAttributes)
 
@@ -2522,7 +2643,7 @@ export function createRunCommand(): Command {
             }
 
             // Post-run cache invalidation: delete all step cache entries for failed runs
-            if (result.status === 'failed' && actionCache && effectiveCacheEnabled && result.steps.length > 0) {
+            if (result.status === 'failed' && !authStateCaptureFailed && actionCache && effectiveCacheEnabled && result.steps.length > 0) {
               const { hashStepInstruction } = await import('@vostride/agent-qa-core')
               const { rm } = await import('node:fs/promises')
               const { resolve, join } = await import('node:path')

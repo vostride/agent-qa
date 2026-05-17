@@ -63,6 +63,15 @@ export const AgentQaConfigSchema = z.object({
 export { WorkspaceSchema } from './workspace-schema.js'
 export { AuthStateConfigSchema, ServicesSchema } from './services-schema.js'
 export { RegistrySchema } from './registry-schema.js'
-export { MobileAppStateSchema, MobileUseSchema, MobileUseOverrideSchema, UseSchema, UseOverrideSchema } from './use-schema.js'
+export {
+  AuthStateUseSchema,
+  MobileAppStateSchema,
+  MobileUseSchema,
+  MobileUseOverrideSchema,
+  UseSchema,
+  UseOverrideSchema,
+  normalizeAuthStateUse,
+  type NormalizedAuthStateUse,
+} from './use-schema.js'
 export { AnalyticsSchema } from './analytics-schema.js'
 export * from './primitives.js'

@@ -117,6 +117,10 @@ function looksLikeAuthStateHookJson(value: string): boolean {
 function redactStructuredAuthStateText(value: string): string {
   return value
     .replace(
+      /(\bauthState\s*:\s*\n(?:[ \t]+[^\n]*\n)*?[ \t]+name\s*:\s*)[^\n#]+/gi,
+      (_match, prefix: string) => `${prefix}${AUTH_STATE_REDACTION_MARKER}`,
+    )
+    .replace(
       /(["']?(?:authState|auth_state|storageStatePath|AGENT_QA_AUTH_STATE_JSON|AGENT_QA_AUTH_STATE_STORAGE_STATE_PATH)["']?\s*[:=]\s*)(["'])[^"']*\2/gi,
       (_match, prefix: string, quote: string) => `${prefix}${quote}${AUTH_STATE_REDACTION_MARKER}${quote}`,
     )
@@ -149,6 +153,13 @@ export function redactAuthStateString(
     || looksLikeAuthStateHookJson(value.trim())
   ) {
     return AUTH_STATE_REDACTION_MARKER
+  }
+
+  if (value.includes('authState') || value.includes('auth_state')) {
+    const parsed = tryParseJsonObject(value.trim())
+    if (parsed !== undefined) {
+      return JSON.stringify(redactAuthStateOnly(parsed, context))
+    }
   }
 
   let redacted = redactStorageStateJsonLines(value)

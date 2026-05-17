@@ -1,5 +1,6 @@
 import { useYamlDocument } from '@/hooks/use-yaml-document'
 import { useTargetDetails } from '@/hooks/use-target-details'
+import { useEffect, useMemo, useState } from 'react'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
@@ -38,14 +39,73 @@ function ihBool(value: unknown): string {
 
 type MobileAppState = 'preserve' | 'reset'
 
+const AUTH_STATE_NAME_PATTERN = /^[a-z][a-z0-9-]*[a-z0-9]$/
+const AUTH_STATE_KEYS = new Set(['name', 'load', 'capture'])
+
+interface ParsedAuthStateUse {
+  present: boolean
+  valid: boolean
+  name: string
+  load: boolean
+  capture: boolean
+}
+
 function inheritedAppStateLabel(value: MobileAppState | undefined): string {
   if (value === 'preserve') return 'Preserve app data (inherited)'
   if (value === 'reset') return 'Reset app data (inherited)'
   return 'Select app state'
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isValidAuthStateName(value: string): boolean {
+  return AUTH_STATE_NAME_PATTERN.test(value)
+}
+
+function parseAuthStateUse(value: unknown): ParsedAuthStateUse {
+  if (value === undefined) {
+    return { present: false, valid: false, name: '', load: true, capture: false }
+  }
+
+  if (typeof value === 'string') {
+    const name = value.trim()
+    return isValidAuthStateName(name)
+      ? { present: true, valid: true, name, load: true, capture: false }
+      : { present: true, valid: false, name: '', load: true, capture: false }
+  }
+
+  if (isPlainRecord(value)) {
+    const keysAreKnown = Object.keys(value).every((key) => AUTH_STATE_KEYS.has(key))
+    const name = typeof value.name === 'string' ? value.name.trim() : ''
+    const loadValid = value.load === undefined || typeof value.load === 'boolean'
+    const captureValid = value.capture === undefined || typeof value.capture === 'boolean'
+    if (keysAreKnown && isValidAuthStateName(name) && loadValid && captureValid) {
+      return {
+        present: true,
+        valid: true,
+        name,
+        load: value.load !== false,
+        capture: value.capture === true,
+      }
+    }
+  }
+
+  return { present: true, valid: false, name: '', load: true, capture: false }
+}
+
+function serializeAuthStateUse(name: string, load: boolean, capture: boolean): string | { name: string; load?: boolean; capture?: boolean } {
+  if (load && !capture) return name
+  return {
+    name,
+    ...(!load ? { load: false } : {}),
+    ...(capture ? { capture: true } : {}),
+  }
+}
+
 export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta = true }: TestSettingsPanelProps) {
-  const { getIn, setIn, deleteIn } = useYamlDocument(content)
+  const { doc, getIn, setIn, deleteIn } = useYamlDocument(content)
 
   function handleSet(path: string[], value: unknown) {
     if (value === '' || value === undefined || value === null) {
@@ -83,6 +143,15 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
   const parallel = getIn(['use', 'parallel']) as boolean | undefined
   const device = getIn(['use', 'device']) as string | undefined
   const appState = getIn(['use', 'mobile', 'appState']) as MobileAppState | undefined
+  const rawAuthState = useMemo(() => {
+    try {
+      return (doc?.toJSON() as { use?: { authState?: unknown } } | null)?.use?.authState
+    } catch {
+      return undefined
+    }
+  }, [doc])
+  const parsedAuthState = useMemo(() => parseAuthStateUse(rawAuthState), [rawAuthState])
+  const [draftAuthStateName, setDraftAuthStateName] = useState(parsedAuthState.valid ? parsedAuthState.name : '')
   const retries = getIn(['meta', 'retries']) as number | undefined
   const record = getIn(['meta', 'record']) as boolean | undefined
 
@@ -94,6 +163,15 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
   const mobileDevicePlaceholder = showMeta
     ? 'Select a device for this mobile test.'
     : 'Select a device for this mobile suite.'
+  const authStateName = draftAuthStateName.trim()
+  const authStateNameInvalid = authStateName.length > 0 && !isValidAuthStateName(authStateName)
+  const authStateControlsEnabled = authStateName.length > 0 && !authStateNameInvalid
+  const authStateLoad = parsedAuthState.valid ? parsedAuthState.load : true
+  const authStateCapture = parsedAuthState.valid ? parsedAuthState.capture : false
+
+  useEffect(() => {
+    setDraftAuthStateName(parsedAuthState.valid ? parsedAuthState.name : '')
+  }, [parsedAuthState.valid, parsedAuthState.name])
 
   function handleAppStateSet(value: MobileAppState) {
     if (value === gAppState) {
@@ -101,6 +179,31 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
     } else {
       onChange(setIn(['use', 'mobile', 'appState'], value))
     }
+  }
+
+  function writeAuthStateUse(name: string, load: boolean, capture: boolean) {
+    onChange(setIn(['use', 'authState'], serializeAuthStateUse(name, load, capture)))
+  }
+
+  function handleAuthStateNameChange(value: string) {
+    setDraftAuthStateName(value)
+    const nextName = value.trim()
+    if (nextName.length === 0) {
+      onChange(deleteIn(['use', 'authState']))
+      return
+    }
+    if (!isValidAuthStateName(nextName)) return
+    writeAuthStateUse(nextName, authStateLoad, authStateCapture)
+  }
+
+  function handleAuthStateLoadChange(checked: boolean) {
+    if (!authStateControlsEnabled) return
+    writeAuthStateUse(authStateName, checked, authStateCapture)
+  }
+
+  function handleAuthStateCaptureChange(checked: boolean) {
+    if (!authStateControlsEnabled) return
+    writeAuthStateUse(authStateName, authStateLoad, checked)
   }
 
   return (
@@ -167,6 +270,68 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
           <Separator />
         </>
       )}
+
+      {!isMobile ? (
+        <>
+          <div className="space-y-2">
+            <span className="text-sm font-semibold text-foreground tracking-tight">Auth State</span>
+            <div className="space-y-0.5">
+              <Label htmlFor="auth-state-name" className="text-[11px] text-muted-foreground">Auth state name</Label>
+              <Input
+                id="auth-state-name"
+                value={draftAuthStateName}
+                onChange={(e) => handleAuthStateNameChange(e.target.value)}
+                placeholder="demo-acc"
+                className="h-7 text-xs font-mono"
+              />
+              {authStateNameInvalid ? (
+                <p className="text-[11px] text-destructive">Auth state name must be a lowercase slug.</p>
+              ) : null}
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="auth-state-load" className="text-[11px] text-muted-foreground">Load before run</Label>
+              <Switch
+                id="auth-state-load"
+                checked={authStateControlsEnabled ? authStateLoad : true}
+                disabled={!authStateControlsEnabled}
+                onCheckedChange={handleAuthStateLoadChange}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="auth-state-capture" className="text-[11px] text-muted-foreground">Capture after success</Label>
+              <Switch
+                id="auth-state-capture"
+                checked={authStateControlsEnabled ? authStateCapture : false}
+                disabled={!authStateControlsEnabled}
+                onCheckedChange={handleAuthStateCaptureChange}
+              />
+            </div>
+            {authStateControlsEnabled && authStateCapture ? (
+              <>
+                <p className="text-[11px] text-muted-foreground">
+                  {authStateLoad
+                    ? 'Loads this state first, then replaces it after a successful run.'
+                    : 'Starts without saved auth state, then saves this name after a successful run.'}
+                </p>
+                <p className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-700 dark:text-amber-300">
+                  Capture creates or replaces the saved state after the run succeeds.
+                </p>
+              </>
+            ) : null}
+          </div>
+          <Separator />
+        </>
+      ) : parsedAuthState.present ? (
+        <>
+          <div className="space-y-1 opacity-70">
+            <span className="text-sm font-semibold text-foreground tracking-tight">Auth State</span>
+            <p className="text-[11px] text-muted-foreground">
+              Web auth state is not available for mobile targets. Use Mobile / App state to preserve app data.
+            </p>
+          </div>
+          <Separator />
+        </>
+      ) : null}
 
       {isMobile ? (
         <>

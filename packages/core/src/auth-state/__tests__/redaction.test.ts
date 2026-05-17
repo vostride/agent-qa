@@ -27,7 +27,7 @@ const storageState = {
 describe('auth-state redaction', () => {
   it('redacts structured selected auth state names, paths, and payload shapes', () => {
     const value = {
-      use: { authState: 'admin' },
+      use: { authState: { name: 'admin', load: false, capture: true } },
       platformConfig: { authState: runtimeAuthState },
       storageStatePath: runtimeAuthState.storageStatePath,
       payload: storageState,
@@ -88,6 +88,11 @@ describe('auth-state redaction', () => {
     expect(redactAuthStateString('use:\n  authState: admin\nsteps: []'))
       .toContain(`authState: ${AUTH_STATE_REDACTION_MARKER}`)
     expect(redactAuthStateString('{"use":{"authState":"admin"}}'))
+      .toContain(`"authState":"${AUTH_STATE_REDACTION_MARKER}"`)
+    const objectYaml = redactAuthStateString('use:\n  authState:\n    name: admin\n    load: false\n    capture: true\nsteps: []')
+    expect(objectYaml).toContain(AUTH_STATE_REDACTION_MARKER)
+    expect(objectYaml).not.toContain('admin')
+    expect(redactAuthStateString('{"use":{"authState":{"name":"admin","load":false,"capture":true}}}'))
       .toContain(`"authState":"${AUTH_STATE_REDACTION_MARKER}"`)
   })
 

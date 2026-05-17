@@ -372,6 +372,99 @@ describe('runSuite startup navigation', () => {
     )
   })
 
+  it('captures suite auth state after all child tests pass and before suite teardown hooks', async () => {
+    const { adapter } = createMockAdapter()
+    const capturedAuthState = {
+      version: 1,
+      kind: 'web' as const,
+      targetName: 'webapp',
+      stateName: 'admin',
+      capturedAt: '2026-05-17T01:00:00.000Z',
+      storageStatePath: '/internal/auth/webapp/admin.json',
+    }
+    const capture = vi.fn(async () => capturedAuthState)
+    mockRunHooks.mockImplementation(async (hooks: Array<{ name: string }>) => ({
+      allPassed: true,
+      variables: {},
+      results: new Map(hooks.map((hook) => [hook.name, {
+        success: true,
+        duration: 3,
+        stdout: '',
+        stderr: '',
+        variables: {},
+      }])),
+    }))
+    mockRunTest.mockImplementation(async (_test, config, filePath) => ({
+      name: 'Login Test',
+      filePath,
+      status: 'passed',
+      steps: [],
+      duration: 1,
+      runId: config.runId,
+    }))
+
+    const result = await runSuite(
+      makeSuite({ teardown: ['suite-teardown'], use: { authState: { name: 'admin', load: false, capture: true } } } as any),
+      [[makeTest(), '/tests/login.yaml']],
+      makeConfig(adapter, {
+        resolvedHooks: new Map([
+          ['suite-teardown', { id: 'suite-teardown', name: 'suite teardown', command: 'true' } as any],
+        ]),
+        sandboxOptions: { cwd: '/tmp', envVars: {} } as any,
+        authStateCapture: {
+          capture,
+          failureSummary: 'Could not save auth state "admin" for target "webapp".',
+        },
+      }),
+    )
+
+    expect(result.status).toBe('passed')
+    expect(capture).toHaveBeenCalledOnce()
+    expect(mockRunHooks).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ authState: capturedAuthState }),
+    )
+    expect(capture.mock.invocationCallOrder[0]).toBeLessThan(mockRunHooks.mock.invocationCallOrder[0])
+  })
+
+  it('marks the suite failed when auth-state capture fails while preserving passed child results', async () => {
+    const { adapter } = createMockAdapter()
+    const onTestEnd = vi.fn()
+    mockRunTest.mockResolvedValue({
+      name: 'Login Test',
+      filePath: '/tests/login.yaml',
+      status: 'passed',
+      steps: [],
+      duration: 1,
+    })
+
+    const result = await runSuite(
+      makeSuite({ use: { authState: { name: 'admin', load: false, capture: true } } } as any),
+      [[makeTest(), '/tests/login.yaml']],
+      makeConfig(adapter, {
+        authStateCapture: {
+          capture: vi.fn(async () => { throw new Error('disk path /tmp/auth.json') }),
+          failureSummary: 'Could not save auth state "admin" for target "webapp".',
+        },
+        reporters: [{ onTestEnd }],
+      }),
+    )
+
+    expect(result.status).toBe('failed')
+    expect(result.tests).toEqual([
+      expect.objectContaining({ name: 'Login Test', status: 'passed' }),
+      expect.objectContaining({
+        name: 'Auth state capture',
+        status: 'failed',
+        failureSummary: 'Could not save auth state "admin" for target "webapp".',
+      }),
+    ])
+    expect(onTestEnd).toHaveBeenCalledWith(expect.objectContaining({
+      name: 'Auth state capture',
+      failureSummary: 'Could not save auth state "admin" for target "webapp".',
+    }))
+  })
+
   it('returns suite and child run IDs through reporter context, runner config, and summaries', async () => {
     const { adapter } = createMockAdapter()
     const contexts: Array<Record<string, unknown> | undefined> = []

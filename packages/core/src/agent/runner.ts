@@ -82,6 +82,7 @@ export interface RunTestConfig {
   memoryInitParams?: MemoryIndexParams
   circuitBreaker?: CircuitBreaker
   skipReporterOnTestStart?: boolean
+  skipReporterOnTestEnd?: boolean
   secretStore?: SecretStore
   secretRedactor?: SecretRedactor
   secretsFileMetadata?: { path: string | null; status: string; count?: number } | null
@@ -758,7 +759,9 @@ export async function runTest(
     videoPath,
     failureSummary: failureSummary || undefined,
   }
-  await reporter?.onTestEnd(testResult)
+  if (config.skipReporterOnTestEnd !== true) {
+    await reporter?.onTestEnd(testResult)
+  }
   return testResult
 }
 

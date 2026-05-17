@@ -5,7 +5,10 @@ const mocks = vi.hoisted(() => ({
   resolveConfig: vi.fn(),
   resolveTarget: vi.fn(),
   resolveAuthStatePaths: vi.fn(),
+  listAuthStateMetadata: vi.fn(),
   readAuthStateMetadata: vi.fn(),
+  removeAuthStateFiles: vi.fn(),
+  removeAuthStateTarget: vi.fn(),
   writeAuthStateFiles: vi.fn(),
   chromiumLaunch: vi.fn(),
   firefoxLaunch: vi.fn(),
@@ -23,7 +26,10 @@ vi.mock('../targets.js', () => ({
 vi.mock('@vostride/agent-qa-core', () => ({
   AUTH_STATE_SCHEMA_VERSION: 1,
   resolveAuthStatePaths: mocks.resolveAuthStatePaths,
+  listAuthStateMetadata: mocks.listAuthStateMetadata,
   readAuthStateMetadata: mocks.readAuthStateMetadata,
+  removeAuthStateFiles: mocks.removeAuthStateFiles,
+  removeAuthStateTarget: mocks.removeAuthStateTarget,
   writeAuthStateFiles: mocks.writeAuthStateFiles,
 }))
 
@@ -95,9 +101,9 @@ function getOutput(): string {
   return output.join('\n')
 }
 
-async function runCapture(
-  waitForConfirmation: ReturnType<typeof vi.fn>,
-  args = ['capture', '--target', 'test-app', '--name', 'admin'],
+async function runAuthStateCommand(
+  args: string[],
+  waitForConfirmation: ReturnType<typeof vi.fn> = vi.fn().mockResolvedValue('confirmed'),
 ): Promise<void> {
   const parent = new Command()
   parent.exitOverride()
@@ -109,6 +115,13 @@ async function runCapture(
   }))
 
   await parent.parseAsync(['node', 'test', 'auth-state', ...args])
+}
+
+async function runCapture(
+  waitForConfirmation: ReturnType<typeof vi.fn>,
+  args = ['capture', '--target', 'test-app', '--name', 'admin'],
+): Promise<void> {
+  await runAuthStateCommand(args, waitForConfirmation)
 }
 
 describe('auth-state capture command', () => {
@@ -135,7 +148,10 @@ describe('auth-state capture command', () => {
       url: 'https://example.com',
     })
     mocks.resolveAuthStatePaths.mockReturnValue(paths)
+    mocks.listAuthStateMetadata.mockResolvedValue([metadata])
     mocks.readAuthStateMetadata.mockRejectedValue(Object.assign(new Error('not found'), { code: 'ENOENT' }))
+    mocks.removeAuthStateFiles.mockResolvedValue(undefined)
+    mocks.removeAuthStateTarget.mockResolvedValue(undefined)
     mocks.writeAuthStateFiles.mockResolvedValue(undefined)
     mocks.chromiumLaunch.mockResolvedValue(mockBrowser)
     mocks.firefoxLaunch.mockResolvedValue(mockBrowser)
@@ -255,5 +271,139 @@ describe('auth-state capture command', () => {
     expect(mocks.writeAuthStateFiles).not.toHaveBeenCalled()
     expect(process.exitCode).toBe(1)
     expect(getOutput()).toContain('use.mobile.appState: preserve')
+  })
+
+  it('lists auth-state metadata without exposing paths or payload values', async () => {
+    mocks.listAuthStateMetadata.mockResolvedValue([
+      metadata,
+      {
+        version: 1,
+        kind: 'web',
+        target: 'uat',
+        name: 'demo-acc',
+        capturedAt: '2026-05-17T01:00:00.000Z',
+      },
+    ])
+
+    await runAuthStateCommand(['list'])
+
+    expect(mocks.listAuthStateMetadata).toHaveBeenCalledWith({
+      configDir: expect.any(String),
+      authStateDir,
+      targetName: undefined,
+    })
+    expect(getOutput()).toContain('Target\tName\tCaptured\tKind')
+    expect(getOutput()).toContain('test-app\tadmin\t2026-05-17T00:00:00.000Z\tweb')
+    expect(getOutput()).toContain('uat\tdemo-acc\t2026-05-17T01:00:00.000Z\tweb')
+    expect(getOutput()).not.toContain(authStateDir)
+    expect(getOutput()).not.toContain('.json')
+    expect(getOutput()).not.toContain('payloadPath')
+    expect(getOutput()).not.toContain('metadataPath')
+    expect(getOutput()).not.toContain('secret-cookie')
+    expect(getOutput()).not.toContain('secret-local-storage')
+    expect(getOutput()).not.toContain('firebaseLocalStorageDb')
+  })
+
+  it('filters list by resolved web target', async () => {
+    await runAuthStateCommand(['list', '--target', 'test-app'])
+
+    expect(mocks.resolveTarget).toHaveBeenCalledWith(expect.anything(), 'test-app')
+    expect(mocks.resolveAuthStatePaths).toHaveBeenCalledWith({
+      configDir: expect.any(String),
+      authStateDir,
+      targetName: 'test-app',
+      stateName: 'placeholder',
+      target: { platform: 'web' },
+    })
+    expect(mocks.listAuthStateMetadata).toHaveBeenCalledWith({
+      configDir: expect.any(String),
+      authStateDir,
+      targetName: 'test-app',
+    })
+  })
+
+  it('prints a concise message when no auth states are saved', async () => {
+    mocks.listAuthStateMetadata.mockResolvedValue([])
+
+    await runAuthStateCommand(['list'])
+
+    expect(process.exitCode).toBeUndefined()
+    expect(getOutput()).toBe('No auth states saved.')
+  })
+
+  it('rejects mobile target filtering with web auth-state guidance', async () => {
+    mocks.resolveTarget.mockReturnValue({
+      name: 'mobile-app',
+      product: 'mobile-app',
+      platform: 'android',
+    })
+    mocks.resolveAuthStatePaths.mockImplementation(() => {
+      throw new Error('auth state is only supported for web targets. For native mobile, use use.mobile.appState: preserve.')
+    })
+
+    await runAuthStateCommand(['list', '--target', 'mobile-app'])
+
+    expect(process.exitCode).toBe(1)
+    expect(mocks.listAuthStateMetadata).not.toHaveBeenCalled()
+    expect(getOutput()).toContain('auth state is only supported for web targets')
+    expect(getOutput()).toContain('use.mobile.appState: preserve')
+    expect(getOutput()).not.toContain(authStateDir)
+  })
+
+  it('removes one named auth state without exposing filesystem paths', async () => {
+    await runAuthStateCommand(['remove', '--target', 'test-app', '--name', 'admin'])
+
+    expect(mocks.removeAuthStateFiles).toHaveBeenCalledWith({
+      configDir: expect.any(String),
+      authStateDir,
+      targetName: 'test-app',
+      stateName: 'admin',
+      target: { platform: 'web' },
+    })
+    expect(mocks.removeAuthStateTarget).not.toHaveBeenCalled()
+    expect(getOutput()).toContain('Removed auth state "admin" for target "test-app".')
+    expect(getOutput()).not.toContain(authStateDir)
+    expect(getOutput()).not.toContain('.json')
+  })
+
+  it('removes all auth states for a target without requiring --all', async () => {
+    await runAuthStateCommand(['remove', '--target', 'test-app'])
+
+    expect(mocks.removeAuthStateTarget).toHaveBeenCalledWith({
+      configDir: expect.any(String),
+      authStateDir,
+      targetName: 'test-app',
+      target: { platform: 'web' },
+    })
+    expect(mocks.removeAuthStateFiles).not.toHaveBeenCalled()
+    expect(getOutput()).toContain('Removed auth states for target "test-app".')
+  })
+
+  it('treats missing named or target auth state removal as success', async () => {
+    mocks.removeAuthStateFiles.mockResolvedValueOnce(undefined)
+    mocks.removeAuthStateTarget.mockResolvedValueOnce(undefined)
+
+    await runAuthStateCommand(['remove', '--target', 'test-app', '--name', 'missing'])
+    await runAuthStateCommand(['remove', '--target', 'test-app'])
+
+    expect(process.exitCode).toBeUndefined()
+    expect(getOutput()).toContain('Removed auth state "missing" for target "test-app".')
+    expect(getOutput()).toContain('Removed auth states for target "test-app".')
+  })
+
+  it('keeps remove failures path-free', async () => {
+    mocks.removeAuthStateFiles.mockRejectedValueOnce(new Error(`EACCES ${paths.payloadPath}`))
+
+    await runAuthStateCommand(['remove', '--target', 'test-app', '--name', 'admin'])
+
+    expect(process.exitCode).toBe(1)
+    expect(getOutput()).toContain('Could not remove auth state "admin" for target "test-app".')
+    expect(getOutput()).not.toContain(paths.payloadPath)
+    expect(getOutput()).not.toContain(paths.metadataPath)
+  })
+
+  it('does not accept --all for target removal', async () => {
+    await expect(runAuthStateCommand(['remove', '--target', 'test-app', '--all']))
+      .rejects.toThrow()
   })
 })

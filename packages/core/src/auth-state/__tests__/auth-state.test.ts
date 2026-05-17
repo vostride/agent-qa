@@ -9,6 +9,8 @@ import {
   buildAuthStateHookEnv,
   listAuthStateMetadata,
   readAuthStateMetadata,
+  removeAuthStateFiles,
+  removeAuthStateTarget,
   resolveAuthStateForRun,
   resolveAuthStatePaths,
   writeAuthStateFiles,
@@ -324,6 +326,113 @@ describe('auth-state metadata and store', () => {
       configDir: root,
       targetName: 'staging-web',
     })).resolves.toEqual([metadata])
+  })
+
+  it('removes one named auth state without touching neighboring states', async () => {
+    const root = await createTempRoot()
+    const adminPaths = resolveAuthStatePaths({
+      configDir: root,
+      targetName: 'staging-web',
+      stateName: 'admin',
+      target: webTarget,
+    })
+    const viewerPaths = resolveAuthStatePaths({
+      configDir: root,
+      targetName: 'staging-web',
+      stateName: 'viewer',
+      target: webTarget,
+    })
+
+    await writeAuthStateFiles(adminPaths, { payload, metadata })
+    await writeAuthStateFiles(viewerPaths, {
+      payload,
+      metadata: {
+        ...metadata,
+        name: 'viewer',
+      },
+    })
+
+    await removeAuthStateFiles({
+      configDir: root,
+      targetName: 'staging-web',
+      stateName: 'admin',
+      target: webTarget,
+    })
+    await removeAuthStateFiles({
+      configDir: root,
+      targetName: 'staging-web',
+      stateName: 'admin',
+      target: webTarget,
+    })
+
+    await expect(readFile(adminPaths.payloadPath, 'utf-8')).rejects.toThrow()
+    await expect(readAuthStateMetadata(adminPaths)).rejects.toThrow(/not found/)
+    await expect(readAuthStateMetadata(viewerPaths)).resolves.toEqual({
+      ...metadata,
+      name: 'viewer',
+    })
+  })
+
+  it('removes an entire target auth-state directory without touching neighboring targets', async () => {
+    const root = await createTempRoot()
+    const stagingPaths = resolveAuthStatePaths({
+      configDir: root,
+      targetName: 'staging-web',
+      stateName: 'admin',
+      target: webTarget,
+    })
+    const prodPaths = resolveAuthStatePaths({
+      configDir: root,
+      targetName: 'prod-web',
+      stateName: 'admin',
+      target: webTarget,
+    })
+
+    await writeAuthStateFiles(stagingPaths, { payload, metadata })
+    await writeAuthStateFiles(prodPaths, {
+      payload,
+      metadata: {
+        ...metadata,
+        target: 'prod-web',
+      },
+    })
+    await writeFile(path.join(stagingPaths.targetDir, 'broken.meta.json'), '{', 'utf-8')
+    await writeFile(path.join(stagingPaths.targetDir, 'partial.json'), '{}', 'utf-8')
+
+    await removeAuthStateTarget({
+      configDir: root,
+      targetName: 'staging-web',
+      target: webTarget,
+    })
+    await removeAuthStateTarget({
+      configDir: root,
+      targetName: 'staging-web',
+      target: webTarget,
+    })
+
+    await expect(readFile(stagingPaths.payloadPath, 'utf-8')).rejects.toThrow()
+    await expect(readFile(path.join(stagingPaths.targetDir, 'broken.meta.json'), 'utf-8')).rejects.toThrow()
+    await expect(readAuthStateMetadata(prodPaths)).resolves.toEqual({
+      ...metadata,
+      target: 'prod-web',
+    })
+  })
+
+  it('rejects mobile targets for removal helpers', async () => {
+    const root = await createTempRoot()
+
+    await expect(removeAuthStateFiles({
+      configDir: root,
+      targetName: 'mobile-app',
+      stateName: 'admin',
+      target: androidTarget,
+    })).rejects.toThrow(/auth state is only supported for web targets/)
+
+    await expect(removeAuthStateTarget({
+      configDir: root,
+      targetName: 'mobile-app',
+      target: iosTarget,
+    })).rejects.toThrow(/auth state is only supported for web targets/)
   })
 })
 

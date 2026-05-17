@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
-import type { PlatformAdapter, PlatformConfig } from '../types/platform.js'
+import type { PlatformAdapter, PlatformConfig, RuntimeAuthStateConfig } from '../types/platform.js'
 import type { TestResult } from '../types/result.js'
 import type { TestDefinition } from '../types/test.js'
 import type { SuiteDefinition, SuiteResult } from './types.js'
@@ -71,6 +71,10 @@ export interface RunSuiteConfig {
   resolveUrl?: (targetName: string) => string | undefined
   onCuratorComplete?: (testName: string, memoryLog: MemoryLog) => void
   artifactContext?: Record<string, unknown>
+  authStateCapture?: {
+    capture: () => Promise<RuntimeAuthStateConfig>
+    failureSummary: string
+  }
   secretStore?: SecretStore
   secretRedactor?: SecretRedactor
 }
@@ -161,7 +165,7 @@ export async function runSuite(
   const results: TestResult[] = []
   const reporter = config.reporters?.length ? new MultiReporter(config.reporters) : undefined
   const suiteRunId = config.runId ?? process.env.AGENT_QA_SUITE_QUEUE_ID ?? generateRunId()
-  const suiteSandboxOptions = config.sandboxOptions && config.platformConfig.authState
+  let suiteSandboxOptions = config.sandboxOptions && config.platformConfig.authState
     ? { ...config.sandboxOptions, authState: config.platformConfig.authState }
     : config.sandboxOptions
 
@@ -598,6 +602,31 @@ export async function runSuite(
           }
           break
         }
+      }
+    }
+    if (
+      config.authStateCapture
+      && results.length > 0
+      && results.every((result) => result.status === 'passed')
+    ) {
+      try {
+        const capturedAuthState = await config.authStateCapture.capture()
+        suiteSandboxOptions = config.sandboxOptions
+          ? { ...config.sandboxOptions, authState: capturedAuthState }
+          : config.sandboxOptions
+      } catch {
+        const captureFailureResult: TestResult = {
+          runId: suiteRunId,
+          name: 'Auth state capture',
+          filePath: '',
+          status: 'failed',
+          steps: [],
+          duration: 0,
+          failureSummary: config.authStateCapture.failureSummary,
+          metadata: { phase: 'auth-state-capture' },
+        }
+        results.push(captureFailureResult)
+        await reporter?.onTestEnd(captureFailureResult)
       }
     }
   } finally {

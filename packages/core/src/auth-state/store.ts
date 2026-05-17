@@ -16,6 +16,23 @@ export interface ListAuthStateMetadataInput {
   targetName?: string
 }
 
+export interface RemoveAuthStateFilesInput {
+  configDir: string
+  authStateDir?: string
+  targetName: string
+  stateName: string
+  target?: Parameters<typeof resolveAuthStatePaths>[0]['target']
+  platform?: Parameters<typeof resolveAuthStatePaths>[0]['platform']
+}
+
+export interface RemoveAuthStateTargetInput {
+  configDir: string
+  authStateDir?: string
+  targetName: string
+  target?: Parameters<typeof resolveAuthStatePaths>[0]['target']
+  platform?: Parameters<typeof resolveAuthStatePaths>[0]['platform']
+}
+
 function assertMetadataMatches(paths: ResolvedAuthStatePaths, metadata: AuthStateMetadata): void {
   if (metadata.target !== paths.targetName) {
     throw new Error(`Auth-state metadata target "${metadata.target}" does not match resolved target "${paths.targetName}"`)
@@ -144,4 +161,18 @@ export async function listAuthStateMetadata(
     const targetOrder = a.target.localeCompare(b.target)
     return targetOrder === 0 ? a.name.localeCompare(b.name) : targetOrder
   })
+}
+
+export async function removeAuthStateFiles(input: RemoveAuthStateFilesInput): Promise<void> {
+  const paths = resolveAuthStatePaths(input)
+  await rm(paths.payloadPath, { force: true })
+  await rm(paths.metadataPath, { force: true })
+}
+
+export async function removeAuthStateTarget(input: RemoveAuthStateTargetInput): Promise<void> {
+  const paths = resolveAuthStatePaths({
+    ...input,
+    stateName: 'placeholder',
+  })
+  await rm(paths.targetDir, { recursive: true, force: true })
 }
