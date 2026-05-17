@@ -5,7 +5,16 @@ import { tmpdir } from 'node:os'
 import type { HookDefinition, HookResult, HookRuntime } from './types.js'
 import { RUNTIME_IMAGE_MAP } from './types.js'
 import { parseEnvFile } from '../agent/variables.js'
-import { redactSecretValue, type SecretRedactor, type SecretStore } from '../agent/secrets.js'
+import { type SecretRedactor, type SecretStore } from '../agent/secrets.js'
+import {
+  AUTH_STATE_HOOK_CONTAINER_STORAGE_STATE_PATH,
+  AUTH_STATE_HOOK_STORAGE_STATE_FILENAME,
+  AUTH_STATE_HOOK_WORKSPACE_DIR,
+  buildAuthStateHookEnv,
+  stripReservedAuthStateHookEnv,
+} from '../auth-state/hook-env.js'
+import { redactAuthStateValue } from '../auth-state/redaction.js'
+import type { RuntimeAuthStateConfig } from '../types/platform.js'
 
 export interface SandboxRunnerOptions {
   dockerBin?: string
@@ -13,6 +22,7 @@ export interface SandboxRunnerOptions {
   envVars?: Record<string, string>
   secretStore?: SecretStore
   secretRedactor?: SecretRedactor
+  authState?: RuntimeAuthStateConfig
 }
 
 const DEFAULT_DOCKER_BIN = 'docker'
@@ -66,12 +76,19 @@ export async function runHookInSandbox(
       await cp(hook.packageFile, join(workDir, basename(hook.packageFile)))
     }
 
+    if (options.authState) {
+      const authStateDir = join(workDir, AUTH_STATE_HOOK_WORKSPACE_DIR)
+      await mkdir(authStateDir, { recursive: true })
+      await cp(options.authState.storageStatePath, join(authStateDir, AUTH_STATE_HOOK_STORAGE_STATE_FILENAME))
+    }
+
     const args = buildDockerArgs({
       image,
       workDir,
       hook,
       envVars: options.envVars,
       secretStore: options.secretStore,
+      authState: options.authState,
     })
 
     const cmd = getHookCommand(hook.runtime, basename(hook.file))
@@ -86,9 +103,15 @@ export async function runHookInSandbox(
     } catch {
       // Hook did not write .env file -- no variables to extract
     }
-    variables = filterSecretVariables(variables, options.secretStore)
-    const redactedStdout = redactSecretValue(stdout, options.secretRedactor)
-    const redactedStderr = redactSecretValue(stderr, options.secretRedactor)
+    variables = stripReservedAuthStateHookEnv(filterSecretVariables(variables, options.secretStore))
+    const redactedStdout = redactAuthStateValue(stdout, {
+      secretRedactor: options.secretRedactor,
+      authState: options.authState,
+    })
+    const redactedStderr = redactAuthStateValue(stderr, {
+      secretRedactor: options.secretRedactor,
+      authState: options.authState,
+    })
     const output = redactedStdout.trim()
 
     return {
@@ -99,7 +122,10 @@ export async function runHookInSandbox(
       stderr: redactedStderr,
       duration: Date.now() - start,
       error: exitCode !== 0
-        ? redactSecretValue(`Hook exited with code ${exitCode}: ${stderr}`, options.secretRedactor)
+        ? redactAuthStateValue(`Hook exited with code ${exitCode}: ${stderr}`, {
+            secretRedactor: options.secretRedactor,
+            authState: options.authState,
+          })
         : undefined,
     }
   } catch (err) {
@@ -110,7 +136,10 @@ export async function runHookInSandbox(
       stdout: '',
       stderr: '',
       duration: Date.now() - start,
-      error: redactSecretValue((err as Error).message, options.secretRedactor),
+      error: redactAuthStateValue((err as Error).message, {
+        secretRedactor: options.secretRedactor,
+        authState: options.authState,
+      }),
     }
   } finally {
     if (workDir) {
@@ -125,6 +154,7 @@ interface DockerArgsInput {
   hook: HookDefinition
   envVars?: Record<string, string>
   secretStore?: SecretStore
+  authState?: RuntimeAuthStateConfig
 }
 
 function buildDockerArgs(input: DockerArgsInput): string[] {
@@ -149,6 +179,10 @@ function buildDockerArgs(input: DockerArgsInput): string[] {
   input.secretStore?.forEachSecret((name, value) => {
     envVars[name] = value
   })
+  Object.assign(envVars, buildAuthStateHookEnv(
+    input.authState,
+    AUTH_STATE_HOOK_CONTAINER_STORAGE_STATE_PATH,
+  ))
 
   for (const [k, v] of Object.entries(envVars)) {
     args.push('-e', `${k}=${v}`)

@@ -14,7 +14,7 @@ import type { ConfigManager } from '../config/index.js'
 import { HookRegistryManager, isHookRegistryMutationError } from '../hooks/hook-registry-manager.js'
 import { readJsonBody } from './body-parser.js'
 import type { AnalyticsServiceConfig, LLMAuthProviderPlugin, ModelConfig, OAuthTokens } from '@vostride/agent-qa-core'
-import { AuthStateNameSchema, buildAnalyticsEvent, buildInternalRunAttributes, captureAnalytics, mergeRunAttributes, readAuth, writeAuth, removeAuth, getAgentQaVersion, getProviderOptions, getLLMAuthProviderPlugin, listAuthStateMetadata, listLLMAuthProviderPlugins, ModelConfigSchema, NamedLLMConfigSchema, WorkspaceSchema, ServicesSchema, RegistrySchema, UseSchema, MobileAppStateSchema, hashStepInstruction, TimeoutConfigSchema, CacheConfigSchema, HealingConfigSchema, PlannerConfigSchema, LoggingConfigSchema, LogCaptureConfigSchema, AccessibilityConfigSchema, DashboardConfigSchema, McpConfigSchema, RecordingConfigSchema, BrowserConfigSchema, AnalyticsSchema, AgentQaConfigSchema, TestDefinitionSchema, SuiteDefinitionSchema, parseEnvFile, serializeEnvFile, parseHooksFile, runHookInSandbox, RUNTIME_IMAGE_MAP, SecretStore, SecretRedactor, validateUserRunAttributes, discoverWorkspaceFiles, isWorkspacePathMatch, resolveAnalyticsStandardProperties, resolveMemoryRoot, resolveWorkspaceFileTarget } from '@vostride/agent-qa-core'
+import { AuthStateNameSchema, buildAnalyticsEvent, buildInternalRunAttributes, captureAnalytics, mergeRunAttributes, readAuth, writeAuth, removeAuth, getAgentQaVersion, getProviderOptions, getLLMAuthProviderPlugin, listAuthStateMetadata, listLLMAuthProviderPlugins, ModelConfigSchema, NamedLLMConfigSchema, WorkspaceSchema, ServicesSchema, RegistrySchema, UseSchema, MobileAppStateSchema, hashStepInstruction, TimeoutConfigSchema, CacheConfigSchema, HealingConfigSchema, PlannerConfigSchema, LoggingConfigSchema, LogCaptureConfigSchema, AccessibilityConfigSchema, DashboardConfigSchema, McpConfigSchema, RecordingConfigSchema, BrowserConfigSchema, AnalyticsSchema, AgentQaConfigSchema, TestDefinitionSchema, SuiteDefinitionSchema, parseEnvFile, serializeEnvFile, parseHooksFile, runHookInSandbox, RUNTIME_IMAGE_MAP, SecretStore, SecretRedactor, redactAuthStateValue, validateUserRunAttributes, discoverWorkspaceFiles, isWorkspacePathMatch, resolveAnalyticsStandardProperties, resolveMemoryRoot, resolveWorkspaceFileTarget } from '@vostride/agent-qa-core'
 import type { ResolvedWorkspacePaths, RunAttributes, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { parse as parseYaml } from 'yaml'
 
@@ -1001,7 +1001,7 @@ function sanitizeSecretsFileMetadata(value: unknown): unknown {
 }
 
 function sanitizeArtifactPayloadForResponse(payload: RunArtifactRow['payload']): RunArtifactRow['payload'] {
-  const sanitized = sanitizeSecretTemplates(payload)
+  const sanitized = redactAuthStateValue(sanitizeSecretTemplates(payload))
   if (!isRecord(sanitized)) return payload
   const config = sanitized.config
   if (!isRecord(config) || !('secretsFile' in config)) return sanitized as unknown as RunArtifactRow['payload']
@@ -1020,6 +1020,10 @@ function sanitizeArtifactForResponse(artifact: RunArtifactRow | null): RunArtifa
     ...artifact,
     payload: sanitizeArtifactPayloadForResponse(artifact.payload),
   }
+}
+
+function sanitizeAuthStateForResponse<T>(value: T): T {
+  return redactAuthStateValue(value)
 }
 
 async function normalizeDashboardWorkspacePath(
@@ -1529,7 +1533,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps, artifacts
         return
       }
       const bundle = db.getRunArtifactBundle(runId)
-      json(res, {
+      json(res, sanitizeAuthStateForResponse({
         run,
         artifact: sanitizeArtifactForResponse(bundle.artifact),
         children: bundle.children.map((child) => ({
@@ -1537,7 +1541,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps, artifacts
           artifact: sanitizeArtifactForResponse(child.artifact),
         })),
         missingSections: getArtifactMissingSections(bundle.artifact),
-      })
+      }))
       return
     }
 
@@ -1564,14 +1568,14 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps, artifacts
       const stepOrder = parseInt(stepOrderStr, 10)
       const trace = db.getReasoningTrace(runId, stepOrder)
       if (trace) {
-        json(res, { trace })
+        json(res, sanitizeAuthStateForResponse({ trace }))
         return
       }
       // Fallback: construct legacy trace from step data for backward compatibility
       const steps = db.getSteps(runId)
       const step = steps.find(s => s.stepOrder === stepOrder)
       if (!step) { notFound(res, 'Step not found'); return }
-      json(res, {
+      json(res, sanitizeAuthStateForResponse({
         trace: {
           id: null,
           stepId: step.id,
@@ -1592,7 +1596,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps, artifacts
           screenStateAfter: null,
           createdAt: step.createdAt,
         },
-      })
+      }))
       return
     }
 
@@ -1615,12 +1619,12 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps, artifacts
         for (const rid of allRunIds) {
           allLogs.push(...db.getExecutionLogs({ runId: rid, stepId, type }))
         }
-        json(res, { logs: allLogs })
+        json(res, sanitizeAuthStateForResponse({ logs: allLogs }))
         return
       }
 
       const logs = db.getExecutionLogs({ runId: id, stepId, type })
-      json(res, { logs })
+      json(res, sanitizeAuthStateForResponse({ logs }))
       return
     }
 
@@ -1639,7 +1643,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps, artifacts
       const limit = url.searchParams.has('limit') ? parseInt(url.searchParams.get('limit')!, 10) : 500
       const offset = url.searchParams.has('offset') ? parseInt(url.searchParams.get('offset')!, 10) : 0
       const logs = db.getLogs({ runId: id, stepId, level, source, limit, offset })
-      json(res, { logs, total: logs.length })
+      json(res, sanitizeAuthStateForResponse({ logs, total: logs.length }))
       return
     }
 
@@ -1653,7 +1657,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps, artifacts
         return
       }
       const steps = db.getSteps(id)
-      json(res, { steps })
+      json(res, sanitizeAuthStateForResponse({ steps }))
       return
     }
 
@@ -1740,9 +1744,9 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps, artifacts
       const attempts = db.getRunsByParent(id)
       if (run.suiteId && !run.parentRunId) {
         const tests = db.getRunsByParent(id)
-        json(res, { run, steps, attempts, tests })
+        json(res, sanitizeAuthStateForResponse({ run, steps, attempts, tests }))
       } else {
-        json(res, { run, steps, attempts })
+        json(res, sanitizeAuthStateForResponse({ run, steps, attempts }))
       }
       return
     }
@@ -3631,7 +3635,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps, artifacts
               (result as { networkLogs?: Array<{ url: string; method: string; status: number; startTime: number; endTime: number }> }).networkLogs,
             )
 
-            json(res, {
+            json(res, sanitizeAuthStateForResponse({
               success: result.success,
               status: result.success ? 'passed' : 'failed',
               executedAt: new Date().toISOString(),
@@ -3649,9 +3653,9 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps, artifacts
                 networkLogsAvailable: networkLogs.length > 0,
                 networkLogs,
               },
-            } satisfies import('../hooks/hook-registry-types.js').HookRunResponse)
+            } satisfies import('../hooks/hook-registry-types.js').HookRunResponse))
           } catch (err: unknown) {
-            json(res, { error: err instanceof Error ? err.message : 'Failed to run hook' }, 500)
+            json(res, sanitizeAuthStateForResponse({ error: err instanceof Error ? err.message : 'Failed to run hook' }), 500)
           }
         })
         .catch(() => json(res, { error: 'Invalid request body' }, 400))

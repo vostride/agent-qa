@@ -2,7 +2,8 @@ import { randomUUID } from 'node:crypto'
 import { LOG_LEVEL_PRIORITY } from './types.js'
 import type { LogLevel, LogSource, LogEntry, LogStorage, ScopedLogger } from './types.js'
 import { formatLogEntry } from './cli-formatter.js'
-import { redactSecretValue, type SecretRedactor } from '../agent/secrets.js'
+import { type SecretRedactor } from '../agent/secrets.js'
+import { redactAuthStateValue } from '../auth-state/redaction.js'
 
 export class LogManager {
   private buffer: LogEntry[] = []
@@ -45,8 +46,8 @@ export class LogManager {
       runId: this.runId,
       level,
       source,
-      message: redactSecretValue(message, this.redactor),
-      data: redactSecretValue(data ?? {}, this.redactor),
+      message: redactAuthStateValue(message, { secretRedactor: this.redactor }),
+      data: redactAuthStateValue(data ?? {}, { secretRedactor: this.redactor }),
       timestamp: new Date().toISOString(),
     }
     this.buffer.push(entry)

@@ -231,6 +231,7 @@ vi.mock('@vostride/agent-qa-core', () => ({
     ...internal,
     ...user,
   })),
+  redactAuthStateValue: vi.fn((value: unknown) => value),
   formatRunAttributesBlock: vi.fn((attributes: Record<string, string>) =>
     Object.entries(attributes).length > 0
       ? ['Run attributes:', ...Object.entries(attributes).map(([key, value]) => `  ${key}=${value}`)].join('\n')

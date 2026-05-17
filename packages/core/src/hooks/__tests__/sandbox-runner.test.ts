@@ -17,11 +17,12 @@ vi.mock('node:fs/promises', () => ({
 }))
 
 import { execFile } from 'node:child_process'
-import { readFile, mkdir } from 'node:fs/promises'
+import { readFile, mkdir, cp } from 'node:fs/promises'
 
 const mockExecFile = vi.mocked(execFile)
 const mockReadFile = vi.mocked(readFile)
 const mockMkdir = vi.mocked(mkdir)
+const mockCp = vi.mocked(cp)
 
 function simulateExecFile(stdout: string, stderr: string, exitCode: number | null) {
   mockExecFile.mockImplementation((_cmd: any, _args: any, _opts: any, callback: any) => {
@@ -312,6 +313,153 @@ describe('runHookInSandbox', () => {
     }, [])
     expect(eFlags).toContain('API_KEY=secret')
     expect(eFlags).toContain('DB_URL=postgres://...')
+  })
+
+  it('copies active auth state into the hook workspace and passes container-local env vars', async () => {
+    let dockerArgs: string[] = []
+    mockExecFile.mockImplementation((_cmd: any, args: any, _opts: any, cb: any) => {
+      if (typeof _opts === 'function') cb = _opts
+      if (Array.isArray(args) && args[0] === 'run') {
+        dockerArgs = args
+      }
+      cb(null, '', '')
+      return {} as any
+    })
+    mockReadFile.mockRejectedValue(Object.assign(new Error('ENOENT'), { code: 'ENOENT' }))
+
+    await runHookInSandbox(makeHook(), {
+      envVars: {
+        AGENT_QA_AUTH_STATE_STORAGE_STATE_PATH: '/tmp/overridden.json',
+      },
+      authState: {
+        version: 1,
+        kind: 'web',
+        targetName: 'staging-web',
+        stateName: 'admin',
+        capturedAt: '2026-05-17T00:00:00.000Z',
+        storageStatePath: '/internal/auth/staging-web/admin.json',
+      },
+    })
+
+    expect(mockMkdir).toHaveBeenCalledWith(
+      '/tmp/agent-qa-hook-abc123/.agent-qa-auth-state',
+      expect.anything(),
+    )
+    expect(mockCp).toHaveBeenCalledWith(
+      '/internal/auth/staging-web/admin.json',
+      '/tmp/agent-qa-hook-abc123/.agent-qa-auth-state/storage-state.json',
+    )
+
+    const eFlags = dockerArgs.reduce<string[]>((acc, val, i) => {
+      if (val === '-e') acc.push(dockerArgs[i + 1])
+      return acc
+    }, [])
+    const pathEnv = eFlags.find((item) => item.startsWith('AGENT_QA_AUTH_STATE_STORAGE_STATE_PATH='))
+    const jsonEnv = eFlags.find((item) => item.startsWith('AGENT_QA_AUTH_STATE_JSON='))
+    expect(pathEnv).toBe('AGENT_QA_AUTH_STATE_STORAGE_STATE_PATH=/workspace/.agent-qa-auth-state/storage-state.json')
+    expect(jsonEnv).toBeDefined()
+    expect(JSON.stringify(eFlags)).not.toContain('/internal/auth/staging-web/admin.json')
+    expect(JSON.parse(jsonEnv!.slice('AGENT_QA_AUTH_STATE_JSON='.length))).toEqual({
+      version: 1,
+      kind: 'web',
+      target: 'staging-web',
+      name: 'admin',
+      capturedAt: '2026-05-17T00:00:00.000Z',
+      storageStatePath: '/workspace/.agent-qa-auth-state/storage-state.json',
+    })
+  })
+
+  it('does not expose auth-state env vars when no auth state is selected', async () => {
+    let dockerArgs: string[] = []
+    mockExecFile.mockImplementation((_cmd: any, args: any, _opts: any, cb: any) => {
+      if (typeof _opts === 'function') cb = _opts
+      if (Array.isArray(args) && args[0] === 'run') {
+        dockerArgs = args
+      }
+      cb(null, '', '')
+      return {} as any
+    })
+    mockReadFile.mockRejectedValue(Object.assign(new Error('ENOENT'), { code: 'ENOENT' }))
+
+    await runHookInSandbox(makeHook())
+
+    const eFlags = dockerArgs.reduce<string[]>((acc, val, i) => {
+      if (val === '-e') acc.push(dockerArgs[i + 1])
+      return acc
+    }, [])
+    expect(eFlags.join('\n')).not.toContain('AGENT_QA_AUTH_STATE_JSON')
+    expect(eFlags.join('\n')).not.toContain('AGENT_QA_AUTH_STATE_STORAGE_STATE_PATH')
+  })
+
+  it('filters reserved auth-state variables emitted by hooks', async () => {
+    mockExecFile.mockImplementation((_cmd: any, args: any, _opts: any, cb: any) => {
+      if (typeof _opts === 'function') cb = _opts
+      if (Array.isArray(args) && args[0] === 'run') {
+        cb(null, 'ok\n', '')
+      } else {
+        cb(null, '', '')
+      }
+      return {} as any
+    })
+    mockReadFile.mockImplementation((path: any) => {
+      if (String(path).includes('agent-qa.env')) {
+        return Promise.resolve([
+          'SAFE=value',
+          'AGENT_QA_AUTH_STATE_JSON={"name":"bad"}',
+          'AGENT_QA_AUTH_STATE_STORAGE_STATE_PATH=/tmp/bad.json',
+          '',
+        ].join('\n')) as any
+      }
+      return Promise.reject(Object.assign(new Error('ENOENT'), { code: 'ENOENT' }))
+    })
+
+    const result = await runHookInSandbox(makeHook())
+
+    expect(result.variables).toEqual({ SAFE: 'value' })
+  })
+
+  it('redacts active auth-state hook paths, env JSON, and storage-state payloads from hook output', async () => {
+    const storageStateJson = JSON.stringify({
+      cookies: [{ name: 'sid', value: 'hook-cookie-secret' }],
+      origins: [{ origin: 'https://example.com', localStorage: [{ name: 'token', value: 'hook-local-secret' }] }],
+    })
+    mockExecFile.mockImplementation((_cmd: any, args: any, _opts: any, cb: any) => {
+      if (typeof _opts === 'function') cb = _opts
+      if (Array.isArray(args) && args[0] === 'run') {
+        cb(
+          Object.assign(new Error('exit'), { code: 1 }),
+          [
+            '/workspace/.agent-qa-auth-state/storage-state.json',
+            storageStateJson,
+          ].join('\n'),
+          'AGENT_QA_AUTH_STATE_JSON={"name":"admin","storageStatePath":"/workspace/.agent-qa-auth-state/storage-state.json"}',
+        )
+      } else {
+        cb(null, '', '')
+      }
+      return {} as any
+    })
+    mockReadFile.mockRejectedValue(Object.assign(new Error('ENOENT'), { code: 'ENOENT' }))
+
+    const result = await runHookInSandbox(makeHook(), {
+      authState: {
+        version: 1,
+        kind: 'web',
+        targetName: 'staging-web',
+        stateName: 'admin',
+        capturedAt: '2026-05-17T00:00:00.000Z',
+        storageStatePath: '/internal/auth/staging-web/admin.json',
+      },
+    })
+
+    const serialized = JSON.stringify(result)
+    expect(result.success).toBe(false)
+    expect(serialized).toContain('[auth state redacted]')
+    expect(serialized).not.toContain('/workspace/.agent-qa-auth-state/storage-state.json')
+    expect(serialized).not.toContain('/internal/auth/staging-web/admin.json')
+    expect(serialized).not.toContain('hook-cookie-secret')
+    expect(serialized).not.toContain('hook-local-secret')
+    expect(serialized).not.toContain('AGENT_QA_AUTH_STATE_JSON')
   })
 
   it('overlays secret values over normal env vars in the docker container', async () => {

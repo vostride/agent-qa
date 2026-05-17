@@ -3,7 +3,7 @@ import { resolve as resolvePath } from 'node:path'
 import { Command } from 'commander'
 import pc from 'picocolors'
 import { resolveConfig, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
-import { ATTR_RUNNER, ATTR_TRIGGER, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_CACHE_DIR, DEFAULT_AGENT_QA_VIDEOS_DIR, formatRunAttributesBlock, generateRunId, mergeRunAttributes, MobileSetupError, parseRunAttrFlags, resolveAuthStateForRun, resolveMemoryRoot, resolveMobileRunConfig, validateTrustedRunAttributes } from '@vostride/agent-qa-core'
+import { ATTR_RUNNER, ATTR_TRIGGER, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_CACHE_DIR, DEFAULT_AGENT_QA_VIDEOS_DIR, formatRunAttributesBlock, generateRunId, mergeRunAttributes, MobileSetupError, parseRunAttrFlags, redactAuthStateValue, resolveAuthStateForRun, resolveMemoryRoot, resolveMobileRunConfig, validateTrustedRunAttributes } from '@vostride/agent-qa-core'
 import { discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarget, resolveWorkspacePaths } from '@vostride/agent-qa-core'
 import type { AgentQaConfig, ResolvedAuthStateForRun, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { resolveTarget, type ResolvedTarget } from '../targets.js'
@@ -581,7 +581,7 @@ function buildRunArtifactContext(input: {
   memory: Record<string, unknown>
   source: Record<string, unknown>
 }): { artifact: Record<string, unknown> & { kind: 'test' | 'suite-parent' | 'suite-child' } } {
-  return {
+  return redactAuthStateValue({
     artifact: {
       kind: input.kind,
       config: {
@@ -615,7 +615,7 @@ function buildRunArtifactContext(input: {
         attributes: input.attributes,
       },
     },
-  }
+  }) as { artifact: Record<string, unknown> & { kind: 'test' | 'suite-parent' | 'suite-child' } }
 }
 
 export async function resolveDeviceAndFarmSession(
@@ -1755,7 +1755,7 @@ export function createRunCommand(): Command {
             dashboardDb.insertRunArtifact({
               runId: artifactRunId,
               kind: 'test',
-              payload: {
+              payload: redactAuthStateValue({
                 config: {
                   rawConfigContent: configContent,
                   parsedConfig: config,
@@ -1786,7 +1786,7 @@ export function createRunCommand(): Command {
                   message: error.message,
                   details: error,
                 })),
-              },
+              }),
             })
             dashboardDb.finalizeRunArtifact(artifactRunId)
             dashboardDb.close()
@@ -2206,11 +2206,15 @@ export function createRunCommand(): Command {
               artifact: artifactContext.artifact,
             })
 
+            const authAwareSandboxOptions = sandboxOptions && testAuthState
+              ? { ...sandboxOptions, authState: testAuthState }
+              : sandboxOptions
+
             // Per-test setup hooks: run BEFORE test execution (D-01, D-03)
             let perTestSetupVars: Record<string, string> = {}
             let testStartTime = Date.now()
             let setupHookFailed = false
-            if (resolvedHooks && sandboxOptions && (testDef as any).setup?.length) {
+            if (resolvedHooks && authAwareSandboxOptions && (testDef as any).setup?.length) {
               const { runHooks } = await import('@vostride/agent-qa-core')
               const hookDefs: HookDefinition[] = []
               let hookSetupError: string | undefined
@@ -2229,7 +2233,7 @@ export function createRunCommand(): Command {
                 for (const hookDef of hookDefs) {
                   const hookExecId = randomUUID()
                   await multiReporter.onHookStart({ hookId: hookDef.id, hookName: hookDef.name, phase: 'setup', hookExecutionId: hookExecId, runId })
-                  const hookResult = await runHooks([hookDef], { ...sandboxOptions, envVars: { ...sandboxOptions.envVars, ...allVars, ...perTestSetupVars } })
+                  const hookResult = await runHooks([hookDef], { ...authAwareSandboxOptions, envVars: { ...authAwareSandboxOptions.envVars, ...allVars, ...perTestSetupVars } })
                   const hr = hookResult.results.get(hookDef.name)
                   await multiReporter.onHookEnd({
                     hookId: hookDef.id,
@@ -2321,7 +2325,7 @@ export function createRunCommand(): Command {
               cliVars,
               hookSetupVars: perTestSetupVars,
               inlineHookDefs: resolvedHooks,
-              inlineHookSandboxOptions: sandboxOptions,
+              inlineHookSandboxOptions: authAwareSandboxOptions,
               logCapture: testLogCapture,
               accessibility: config.services?.accessibility,
               accessibilityCheck: runWebAccessibilityCheck,
@@ -2339,7 +2343,7 @@ export function createRunCommand(): Command {
             completedResult = result
 
             // Per-test teardown hooks: run AFTER test execution (D-01, D-03)
-            if (resolvedHooks && sandboxOptions && (testDef as any).teardown?.length) {
+            if (resolvedHooks && authAwareSandboxOptions && (testDef as any).teardown?.length) {
               const { runHooks } = await import('@vostride/agent-qa-core')
               for (const hookId of (testDef as any).teardown) {
                 const hook = resolvedHooks.get(hookId)
@@ -2349,7 +2353,7 @@ export function createRunCommand(): Command {
                   await multiReporter.onHookStart({ hookId: hook.id, hookName: hook.name, phase: 'teardown', hookExecutionId: hookExecId, runId })
                   const allVars: Record<string, string> = { ...envFileVars, ...perTestSetupVars }
                   if (cliVars) Object.assign(allVars, cliVars)
-                  const hookResult = await runHooks([hook], { ...sandboxOptions, envVars: { ...sandboxOptions.envVars, ...allVars } })
+                  const hookResult = await runHooks([hook], { ...authAwareSandboxOptions, envVars: { ...authAwareSandboxOptions.envVars, ...allVars } })
                   const hr = hookResult.results.get(hook.name)
                   await multiReporter.onHookEnd({
                     hookId: hook.id,
@@ -2434,7 +2438,7 @@ export function createRunCommand(): Command {
                       cliVars,
                       hookSetupVars: perTestSetupVars,
                       inlineHookDefs: resolvedHooks,
-                      inlineHookSandboxOptions: sandboxOptions,
+                      inlineHookSandboxOptions: authAwareSandboxOptions,
                       logCapture: testLogCapture,
                       accessibility: config.services?.accessibility,
                       accessibilityCheck: runWebAccessibilityCheck,
@@ -2664,7 +2668,7 @@ export function createRunCommand(): Command {
                 status: finalStatus,
                 duration: run.startedAt ? Date.now() - new Date(run.startedAt).getTime() : 0,
                 endedAt: new Date().toISOString(),
-                failureSummary: isBrowserClose ? 'Browser closed by user' : formattedError.failureSummary,
+                failureSummary: isBrowserClose ? 'Browser closed by user' : redactAuthStateValue(formattedError.failureSummary),
               })
               try {
                 const artifact = _crashDb.getRunArtifact(run.id)
@@ -2677,7 +2681,7 @@ export function createRunCommand(): Command {
                     errors: [{
                       code: isBrowserClose ? 'browser-disconnect' : 'process-close',
                       phase: 'process-close',
-                      message: isBrowserClose ? 'Browser closed by user' : formattedError.failureSummary,
+                      message: isBrowserClose ? 'Browser closed by user' : redactAuthStateValue(formattedError.failureSummary),
                     }],
                   })
                 }

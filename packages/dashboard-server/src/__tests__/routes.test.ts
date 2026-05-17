@@ -677,6 +677,95 @@ describe('API Routes', () => {
     })
   })
 
+  describe('auth-state redaction for run APIs', () => {
+    it('sanitizes artifacts, logs, execution logs, and steps at response boundaries', async () => {
+      const { artifactsDir, db: actualDb } = await createDashboardWorkspace()
+      const runId = actualDb.insertRun({
+        name: 'Auth redaction run',
+        status: 'failed',
+        duration: 0,
+        startedAt: '2026-05-17T10:00:00.000Z',
+        endedAt: '2026-05-17T10:00:01.000Z',
+      })
+      const storagePath = '/internal/auth/staging-web/demo-acc/storage-state.json'
+      const storageJson = JSON.stringify(AUTH_STATE_PAYLOAD)
+      actualDb.insertRunArtifact({
+        runId,
+        kind: 'test',
+        payload: {
+          config: {
+            rawConfigContent: 'use:\n  authState: demo-acc\n',
+            effectiveConfig: { use: { authState: 'demo-acc' } },
+          },
+          source: {
+            kind: 'test',
+            rawYaml: 'use:\n  authState: demo-acc\nsteps: []',
+          },
+          runtime: {
+            storageStatePath: storagePath,
+            storageState: AUTH_STATE_PAYLOAD,
+          },
+        },
+      })
+      actualDb.insertLogs([{
+        id: randomUUID(),
+        runId,
+        stepId: null,
+        level: 'info',
+        source: 'runner',
+        message: storageJson,
+        data: { storageStatePath: storagePath },
+        timestamp: '2026-05-17T10:00:00.000Z',
+      }])
+      actualDb.insertExecutionLog({
+        id: randomUUID(),
+        runId,
+        type: 'hook',
+        name: 'auth hook',
+        phase: 'setup',
+        status: 'passed',
+        duration: 1,
+        stdout: '/workspace/.agent-qa-auth-state/storage-state.json',
+        stderr: storageJson,
+        variables: { SESSION_TOKEN: 'hook-session-token', SAFE_VALUE: 'visible' },
+      })
+      actualDb.insertStep({
+        runId,
+        name: 'Auth step',
+        status: 'failed',
+        duration: 1,
+        error: storageJson,
+        capturedVariables: { ACCESS_TOKEN: 'step-token' },
+        variableSnapshot: { SESSION_TOKEN: { value: 'step-token', source: 'hook' } },
+        stepOrder: 0,
+      })
+      router = createRouter(actualDb, artifactsDir)
+
+      const responses = await Promise.all([
+        invokeRoute(`/api/runs/${runId}`),
+        invokeRoute(`/api/runs/${runId}/artifact`),
+        invokeRoute(`/api/runs/${runId}/logs`),
+        invokeRoute(`/api/runs/${runId}/execution-logs`),
+        invokeRoute(`/api/runs/${runId}/steps`),
+      ])
+
+      for (const res of responses) {
+        expect(res.status).toBe(200)
+        expect(res.body).toContain('[auth state redacted]')
+        expect(res.body).not.toContain('demo-acc')
+        expect(res.body).not.toContain(storagePath)
+        expect(res.body).not.toContain('/workspace/.agent-qa-auth-state/storage-state.json')
+        expect(res.body).not.toContain(AUTH_STATE_COOKIE_SECRET)
+        expect(res.body).not.toContain(AUTH_STATE_LOCAL_STORAGE_SECRET)
+        expect(res.body).not.toContain(AUTH_STATE_INDEXED_DB_SECRET)
+        expect(res.body).not.toContain('hook-session-token')
+        expect(res.body).not.toContain('step-token')
+      }
+
+      actualDb.close()
+    })
+  })
+
   describe('GET /api/runs', () => {
     it('returns empty runs list', async () => {
       const res = await invokeRoute('/api/runs')

@@ -82,6 +82,7 @@ vi.mock('@vostride/agent-qa-core', () => ({
   interpolateVariables: vi.fn((instruction: string) => instruction),
   findUnresolvedTemplates: vi.fn(() => []),
   redactSecretValue: vi.fn((value: unknown) => value),
+  redactAuthStateValue: vi.fn((value: unknown) => value),
   parseHookInline: () => mockParseHookInline(),
   stripHookInline: (text: string) => mockStripHookInline(text),
   runHooks: (...args: unknown[]) => mockRunHooks(...args),

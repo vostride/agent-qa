@@ -4,6 +4,9 @@ import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   AuthStateMetadataSchema,
+  AUTH_STATE_HOOK_JSON_ENV,
+  AUTH_STATE_HOOK_STORAGE_STATE_PATH_ENV,
+  buildAuthStateHookEnv,
   listAuthStateMetadata,
   readAuthStateMetadata,
   resolveAuthStateForRun,
@@ -341,10 +344,43 @@ describe('auth-state runtime preflight', () => {
       stateName: 'admin',
       target: webTarget,
     })).resolves.toEqual({
+      version: 1,
+      kind: 'web',
       targetName: 'staging-web',
       stateName: 'admin',
+      capturedAt: '2026-05-17T00:00:00.000Z',
       storageStatePath: paths.payloadPath,
     })
+  })
+
+  it('builds runtime-neutral auth-state hook env from selected metadata', async () => {
+    const root = await createTempRoot()
+    const paths = resolveAuthStatePaths({
+      configDir: root,
+      targetName: 'staging-web',
+      stateName: 'admin',
+      target: webTarget,
+    })
+    await writeAuthStateFiles(paths, { payload, metadata })
+    const resolved = await resolveAuthStateForRun({
+      configDir: root,
+      targetName: 'staging-web',
+      stateName: 'admin',
+      target: webTarget,
+    })
+
+    const hookEnv = buildAuthStateHookEnv(resolved, '/workspace/.agent-qa-auth-state/storage-state.json')
+
+    expect(hookEnv[AUTH_STATE_HOOK_STORAGE_STATE_PATH_ENV]).toBe('/workspace/.agent-qa-auth-state/storage-state.json')
+    expect(JSON.parse(hookEnv[AUTH_STATE_HOOK_JSON_ENV])).toEqual({
+      version: 1,
+      kind: 'web',
+      target: 'staging-web',
+      name: 'admin',
+      capturedAt: '2026-05-17T00:00:00.000Z',
+      storageStatePath: '/workspace/.agent-qa-auth-state/storage-state.json',
+    })
+    expect(JSON.stringify(hookEnv)).not.toContain(paths.payloadPath)
   })
 
   it('uses logical target/name and recapture guidance when metadata is missing', async () => {

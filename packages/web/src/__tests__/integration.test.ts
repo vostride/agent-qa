@@ -497,8 +497,11 @@ describe('Integration: WebPlatformAdapter lifecycle', () => {
       platform: 'web',
       browser: { name: 'chromium' },
       authState: {
+        version: 1,
+        kind: 'web',
         targetName: 'staging-web',
         stateName: 'admin',
+        capturedAt: '2026-05-17T00:00:00.000Z',
         storageStatePath: '/tmp/internal/admin.json',
       },
     })

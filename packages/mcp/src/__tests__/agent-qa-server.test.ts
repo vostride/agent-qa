@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import {
   ENTITY_ID_TYPES,
   generateCanonicalId,
@@ -337,6 +340,67 @@ describe('agent-qa MCP schema references', () => {
     expect(analytics.events[2].properties.run_id).toBeUndefined()
     expect(JSON.stringify(analytics.events)).not.toContain('tests/phase245-secret.yaml')
     expect(JSON.stringify(analytics.events)).not.toContain('t_phase245-secret')
+  })
+
+  it('redacts auth-state names, paths, and payloads from config and run tool responses', async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), 'agent-qa-mcp-auth-redaction-'))
+    const configPath = join(tempDir, 'agent-qa.config.yaml')
+    await writeFile(configPath, [
+      'services:',
+      '  authState:',
+      '    dir: .agent-qa/auth-states',
+      'use:',
+      '  authState: demo-acc',
+      '',
+    ].join('\n'))
+    const storageState = {
+      cookies: [{ name: 'sid', value: 'mcp-cookie-secret' }],
+      origins: [{ origin: 'https://example.com', localStorage: [{ name: 'token', value: 'mcp-local-secret' }] }],
+    }
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input)
+      if (url.includes('/artifact')) {
+        return new Response(JSON.stringify({
+          artifact: {
+            config: { effectiveConfig: { use: { authState: 'demo-acc' } } },
+            runtime: { storageStatePath: '/internal/auth/staging-web/demo-acc/storage-state.json' },
+            storageState,
+          },
+        }), { status: 200 })
+      }
+      if (url.includes('/execution-logs') || url.includes('/logs')) {
+        return new Response(JSON.stringify({
+          logs: [{
+            stdout: '/workspace/.agent-qa-auth-state/storage-state.json',
+            stderr: JSON.stringify(storageState),
+            variables: { ACCESS_TOKEN: 'mcp-hook-token' },
+          }],
+        }), { status: 200 })
+      }
+      return new Response(JSON.stringify({ ok: true }), { status: 200 })
+    })
+
+    try {
+      const server = createAgentQaMcpServer({ configPath, dashboardUrl: 'http://127.0.0.1:3470' })
+      const results = [
+        await callRegisteredTool(server, 'agent_qa_get_config', { configPath }),
+        await callRegisteredTool(server, 'agent_qa_get_run_artifact', { runId: canonicalRunId }),
+        await callRegisteredTool(server, 'agent_qa_get_run_logs', { runId: canonicalRunId }),
+        await callRegisteredTool(server, 'agent_qa_get_run_execution_logs', { runId: canonicalRunId }),
+      ]
+      const serialized = JSON.stringify(results)
+
+      expect(serialized).toContain('[auth state redacted]')
+      expect(serialized).toContain('.agent-qa/auth-states')
+      expect(serialized).not.toContain('demo-acc')
+      expect(serialized).not.toContain('/internal/auth/staging-web/demo-acc/storage-state.json')
+      expect(serialized).not.toContain('/workspace/.agent-qa-auth-state/storage-state.json')
+      expect(serialized).not.toContain('mcp-cookie-secret')
+      expect(serialized).not.toContain('mcp-local-secret')
+      expect(serialized).not.toContain('mcp-hook-token')
+    } finally {
+      await rm(tempDir, { recursive: true, force: true })
+    }
   })
 
   it('emits coarse error telemetry without exposing dashboard status text or messages', async () => {

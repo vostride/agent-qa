@@ -161,6 +161,9 @@ export async function runSuite(
   const results: TestResult[] = []
   const reporter = config.reporters?.length ? new MultiReporter(config.reporters) : undefined
   const suiteRunId = config.runId ?? process.env.AGENT_QA_SUITE_QUEUE_ID ?? generateRunId()
+  const suiteSandboxOptions = config.sandboxOptions && config.platformConfig.authState
+    ? { ...config.sandboxOptions, authState: config.platformConfig.authState }
+    : config.sandboxOptions
 
   const suiteArtifact = (config.artifactContext as { artifact?: Record<string, unknown> } | undefined)?.artifact
     ?? config.artifactContext
@@ -203,7 +206,7 @@ export async function runSuite(
 
   // Suite-level setup hooks (before adapter.setup, before all tests)
   let suiteHookVars: Record<string, string> = {}
-  if ((suite as any).setup?.length && config.resolvedHooks && config.sandboxOptions) {
+  if ((suite as any).setup?.length && config.resolvedHooks && suiteSandboxOptions) {
     const hookDefs: HookDefinition[] = []
     let hookMissing = false
     for (const hookId of (suite as any).setup) {
@@ -222,10 +225,10 @@ export async function runSuite(
     if (config.cliVars) Object.assign(envVars, config.cliVars)
 
     const result = await runHooks(hookDefs, {
-      ...config.sandboxOptions,
+      ...suiteSandboxOptions,
       secretStore: config.secretStore,
       secretRedactor: config.secretRedactor,
-      envVars: { ...config.sandboxOptions.envVars, ...envVars },
+      envVars: { ...suiteSandboxOptions.envVars, ...envVars },
     })
 
     for (const [name, hr] of result.results) {
@@ -337,7 +340,7 @@ export async function runSuite(
         // Per-test setup hooks (before each test, D-01/D-03)
         let perTestHookVars: Record<string, string> = {}
         let perTestSetupFailed = false
-        if ((patched as any).setup?.length && config.resolvedHooks && config.sandboxOptions) {
+        if ((patched as any).setup?.length && config.resolvedHooks && suiteSandboxOptions) {
           const hookDefs: HookDefinition[] = []
           let hookMissing = false
           for (const hookId of (patched as any).setup) {
@@ -357,10 +360,10 @@ export async function runSuite(
             const hookExecId = randomUUID()
             await reporter?.onHookStart?.({ hookId: hookDef.id, hookName: hookDef.name, phase: 'setup', hookExecutionId: hookExecId, runId: childRunId })
             const hookResult = await runHooks([hookDef], {
-              ...config.sandboxOptions,
+              ...suiteSandboxOptions,
               secretStore: config.secretStore,
               secretRedactor: config.secretRedactor,
-              envVars: { ...config.sandboxOptions.envVars, ...allVars, ...perTestHookVars },
+              envVars: { ...suiteSandboxOptions.envVars, ...allVars, ...perTestHookVars },
             })
             const hr = hookResult.results.get(hookDef.name)
             await reporter?.onHookEnd?.({
@@ -426,7 +429,7 @@ export async function runSuite(
         cliVars: config.cliVars,
         hookSetupVars: perTestHookVars,
         inlineHookDefs: config.resolvedHooks,
-        inlineHookSandboxOptions: config.sandboxOptions,
+        inlineHookSandboxOptions: suiteSandboxOptions,
         secretStore: config.secretStore,
         secretRedactor: config.secretRedactor,
         accessibility: config.accessibility,
@@ -444,7 +447,7 @@ export async function runSuite(
       if (!result.runId) result.runId = childRunId
 
       // Per-test teardown hooks (after each test, D-01/D-03)
-      if ((patched as any).teardown?.length && config.resolvedHooks && config.sandboxOptions) {
+      if ((patched as any).teardown?.length && config.resolvedHooks && suiteSandboxOptions) {
         for (const hookId of (patched as any).teardown) {
           const hook = config.resolvedHooks.get(hookId)
           if (!hook) continue
@@ -456,10 +459,10 @@ export async function runSuite(
             if (config.cliVars) Object.assign(teardownVars, config.cliVars)
             Object.assign(teardownVars, suiteHookVars, perTestHookVars)
             const hookResult = await runHooks([hook], {
-              ...config.sandboxOptions,
+              ...suiteSandboxOptions,
               secretStore: config.secretStore,
               secretRedactor: config.secretRedactor,
-              envVars: { ...config.sandboxOptions.envVars, ...teardownVars },
+              envVars: { ...suiteSandboxOptions.envVars, ...teardownVars },
             })
             const hr = hookResult.results.get(hook.name)
             await reporter?.onHookEnd?.({
@@ -599,7 +602,7 @@ export async function runSuite(
     }
   } finally {
     // Suite-level teardown hooks with accumulated variables (D-14)
-    if ((suite as any).teardown?.length && config.resolvedHooks && config.sandboxOptions) {
+    if ((suite as any).teardown?.length && config.resolvedHooks && suiteSandboxOptions) {
       const teardownVars: Record<string, string> = {}
       if (config.envFileVars) Object.assign(teardownVars, config.envFileVars)
       if (config.inlineVars) Object.assign(teardownVars, config.inlineVars)
@@ -613,10 +616,10 @@ export async function runSuite(
         try {
           await reporter?.onHookStart?.({ hookId: hook.id, hookName: hook.name, phase: 'teardown', hookExecutionId: hookExecId, runId: suiteRunId })
           const hookResult = await runHooks([hook], {
-            ...config.sandboxOptions,
+            ...suiteSandboxOptions,
             secretStore: config.secretStore,
             secretRedactor: config.secretRedactor,
-            envVars: { ...config.sandboxOptions.envVars, ...teardownVars },
+            envVars: { ...suiteSandboxOptions.envVars, ...teardownVars },
           })
           const hr = hookResult.results.get(hook.name)
           await reporter?.onHookEnd?.({

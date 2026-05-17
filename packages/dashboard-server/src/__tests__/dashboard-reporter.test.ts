@@ -29,6 +29,8 @@ const reporterEnvKeys = [
 const reporterEnvDefaults = Object.fromEntries(reporterEnvKeys.map((key) => [key, process.env[key]])) as Record<(typeof reporterEnvKeys)[number], string | undefined>
 const HOOK_ID = 'h_amber-birch-coral-delta-ember-falcon-garden-harbor-island-jungle'
 const PHASE_222_RAW_SECRET = 'phase222-raw-secret-SHOULD-NOT-PERSIST-4f03b7'
+const AUTH_STATE_COOKIE_SECRET = 'dashboard-auth-cookie-secret'
+const AUTH_STATE_LOCAL_STORAGE_SECRET = 'dashboard-auth-local-storage-secret'
 
 function makeTest(name = 'Login Test'): TestDefinition {
   return {
@@ -1029,6 +1031,74 @@ describe('DashboardReporter', () => {
       })
     })
 
+    it('redacts auth-state names, paths, payloads, and hook auth-like variables before persistence', async () => {
+      const authStatePayload = {
+        cookies: [{ name: 'sid', value: AUTH_STATE_COOKIE_SECRET }],
+        origins: [{ origin: 'https://example.com', localStorage: [{ name: 'token', value: AUTH_STATE_LOCAL_STORAGE_SECRET }] }],
+      }
+      const test = makeTest('Auth State Boundary Test')
+      ;(test as any).use = { authState: 'demo-acc' }
+
+      reporter.onRunStart([test])
+      await reporter.onTestStart!(test, 'tests/auth.yaml', {
+        artifact: {
+          config: {
+            rawConfigContent: 'use:\n  authState: demo-acc\n',
+            effectiveConfig: { use: { authState: 'demo-acc' } },
+            services: { authState: { dir: '.agent-qa/auth-states' } },
+          },
+          source: {
+            kind: 'test',
+            rawYaml: 'use:\n  authState: demo-acc\nsteps: []',
+            resolvedDefinition: test,
+          },
+          runtime: {
+            authState: {
+              version: 1,
+              kind: 'web',
+              targetName: 'staging-web',
+              stateName: 'demo-acc',
+              capturedAt: '2026-05-17T00:00:00.000Z',
+              storageStatePath: '/internal/auth/staging-web/demo-acc/storage-state.json',
+            },
+            storageState: authStatePayload,
+          },
+        },
+      })
+      const runId = db.getRuns()[0].id
+
+      reporter.onHookEnd!({
+        hookId: HOOK_ID,
+        hookName: 'auth-hook',
+        phase: 'setup',
+        hookExecutionId: 'hook-auth',
+        runId,
+        status: 'passed',
+        duration: 10,
+        stdout: '/workspace/.agent-qa-auth-state/storage-state.json',
+        stderr: JSON.stringify(authStatePayload),
+        variables: { ACCESS_TOKEN: 'hook-token-secret', SAFE_VALUE: 'visible' },
+      })
+
+      const persisted = {
+        artifact: db.getRunArtifact(runId),
+        logs: db.getExecutionLogs({ runId }),
+      }
+      const serialized = JSON.stringify(persisted)
+
+      expect(serialized).toContain('[auth state redacted]')
+      expect(serialized).not.toContain('demo-acc')
+      expect(serialized).not.toContain('/internal/auth/staging-web/demo-acc/storage-state.json')
+      expect(serialized).not.toContain('/workspace/.agent-qa-auth-state/storage-state.json')
+      expect(serialized).not.toContain(AUTH_STATE_COOKIE_SECRET)
+      expect(serialized).not.toContain(AUTH_STATE_LOCAL_STORAGE_SECRET)
+      expect(serialized).not.toContain('hook-token-secret')
+      expect(db.getExecutionLogs({ runId })[0].variables).toEqual({
+        ACCESS_TOKEN: '[auth state redacted]',
+        SAFE_VALUE: 'visible',
+      })
+    })
+
     it('onStepEnd saves screenshots for each step immediately', async () => {
       const { writeFile: writeFileMock } = await import('node:fs/promises')
 
@@ -1250,7 +1320,7 @@ describe('DashboardReporter', () => {
       healingAttempts: [
         { action: { type: 'click', ref: '[1]' }, observationBefore: 'before', success: false },
       ],
-      capturedVariables: { token: 'abc123' },
+      capturedVariables: { capturedValue: 'abc123' },
       retryCount: 2,
     })
     await reporter.onStepEnd!(step, 'Login Test')
@@ -1259,7 +1329,7 @@ describe('DashboardReporter', () => {
     const runs = db.getRuns()
     const steps = db.getSteps(runs[0].id)
     expect(steps[0].healingAttempts).toHaveLength(1)
-    expect(steps[0].capturedVariables).toEqual({ token: 'abc123' })
+    expect(steps[0].capturedVariables).toEqual({ capturedValue: 'abc123' })
     expect(steps[0].retryCount).toBe(2)
   })
 })

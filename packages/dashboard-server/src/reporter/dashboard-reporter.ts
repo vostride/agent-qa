@@ -1,6 +1,6 @@
 import { copyFile, mkdir, readFile, rename, unlink, writeFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
-import { buildInternalRunAttributes, redactSecretValue, validateTrustedRunAttributes } from '@vostride/agent-qa-core'
+import { buildInternalRunAttributes, redactAuthStateValue, validateTrustedRunAttributes } from '@vostride/agent-qa-core'
 import type { Reporter, RunArtifactReporterContext, RunSummary, TestDefinition, StepResult, TestResult, SuiteDefinition, SuiteSummary, HookEvent, HookResultEvent, SecretRedactor } from '@vostride/agent-qa-core'
 import type { RunAttributes } from '@vostride/agent-qa-core'
 import type { DashboardDatabase } from '../db/database.js'
@@ -159,7 +159,7 @@ export class DashboardReporter implements Reporter {
   }
 
   private redactValue<T>(value: T): T {
-    return redactSecretValue(value, this.redactor)
+    return redactAuthStateValue(value, { secretRedactor: this.redactor })
   }
 
   private redactString(value: string | undefined): string | undefined {

@@ -108,8 +108,11 @@ export interface ActionResult {
 }
 
 export interface RuntimeAuthStateConfig {
+  version: number
+  kind: 'web'
   targetName: string
   stateName: string
+  capturedAt: string
   storageStatePath: string
 }
 

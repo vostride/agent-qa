@@ -1,5 +1,6 @@
 import type { HookDefinition, HookResult } from './types.js'
 import { runHookInSandbox, type SandboxRunnerOptions } from './sandbox-runner.js'
+import { stripReservedAuthStateHookEnv } from '../auth-state/hook-env.js'
 
 export interface HookOrchestrationResult {
   results: Map<string, HookResult>
@@ -22,7 +23,7 @@ export async function runHooks(
     results.set(hook.name, result)
 
     if (result.success) {
-      Object.assign(mergedVars, result.variables)
+      Object.assign(mergedVars, stripReservedAuthStateHookEnv(result.variables))
     } else {
       for (const remaining of hooks.slice(hooks.indexOf(hook) + 1)) {
         results.set(remaining.name, {

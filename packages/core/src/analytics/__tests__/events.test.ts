@@ -197,6 +197,11 @@ describe('analytics event builder', () => {
         hook_stdout: 'hook secret',
         memory_content: 'remember this raw content',
         run_attr_customer: 'customer-123',
+        authState: 'analytics-demo-acc',
+        storageStatePath: '/internal/auth/staging-web/analytics-demo-acc/storage-state.json',
+        cookies: [{ name: 'sid', value: 'analytics-cookie-secret' }],
+        localStorage: [{ name: 'token', value: 'analytics-local-storage-secret' }],
+        indexedDB: [{ name: 'auth-db', value: 'analytics-indexed-db-secret' }],
         envValue: 'CLAUDECODE=1',
         mcpPayload: { raw: true },
         secret: 'sk-test-phase242',
@@ -214,6 +219,11 @@ describe('analytics event builder', () => {
     expect(event.properties).not.toHaveProperty('hook_stdout')
     expect(event.properties).not.toHaveProperty('memory_content')
     expect(event.properties).not.toHaveProperty('run_attr_customer')
+    expect(event.properties).not.toHaveProperty('authState')
+    expect(event.properties).not.toHaveProperty('storageStatePath')
+    expect(event.properties).not.toHaveProperty('cookies')
+    expect(event.properties).not.toHaveProperty('localStorage')
+    expect(event.properties).not.toHaveProperty('indexedDB')
     expect(event.properties).not.toHaveProperty('envValue')
     expect(event.properties).not.toHaveProperty('mcpPayload')
     expect(event.properties).not.toHaveProperty('secret')
@@ -227,6 +237,10 @@ describe('analytics event builder', () => {
     expect(serializedProperties).not.toContain('hook secret')
     expect(serializedProperties).not.toContain('remember this raw content')
     expect(serializedProperties).not.toContain('customer-123')
+    expect(serializedProperties).not.toContain('analytics-demo-acc')
+    expect(serializedProperties).not.toContain('analytics-cookie-secret')
+    expect(serializedProperties).not.toContain('analytics-local-storage-secret')
+    expect(serializedProperties).not.toContain('analytics-indexed-db-secret')
     expect(serializedProperties).not.toContain('CLAUDECODE=1')
     expect(serializedProperties).not.toContain('sk-test-phase242')
   })

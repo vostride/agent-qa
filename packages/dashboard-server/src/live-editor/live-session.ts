@@ -16,7 +16,7 @@ import {
   runHookInSandbox,
   MobileSetupError,
   readAuthStateMetadata,
-  redactSecretValue,
+  redactAuthStateValue,
   resolveAuthStatePaths,
   resolveSecretTemplatesInValue,
   writeAuthStateFiles,
@@ -285,7 +285,7 @@ export class LiveSession {
   }
 
   private redact<T>(value: T): T {
-    return redactSecretValue(value, this.secretRedactor)
+    return redactAuthStateValue(value, { secretRedactor: this.secretRedactor })
   }
 
   private resolveSecrets<T>(value: T): T {

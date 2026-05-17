@@ -59,6 +59,22 @@ describe('runHooks', () => {
     expect(secondCallOpts?.envVars).toMatchObject({ TOKEN: 'abc' })
   })
 
+  it('does not allow hook-emitted auth-state env vars to chain into later hooks', async () => {
+    mockRunHook
+      .mockResolvedValueOnce(successResult({
+        SAFE: 'value',
+        AGENT_QA_AUTH_STATE_JSON: '{"name":"bad"}',
+        AGENT_QA_AUTH_STATE_STORAGE_STATE_PATH: '/tmp/bad.json',
+      }))
+      .mockResolvedValueOnce(successResult({}))
+
+    const result = await runHooks([makeHook('auth'), makeHook('seed')])
+
+    expect(result.variables).toEqual({ SAFE: 'value' })
+    const secondCallOpts = mockRunHook.mock.calls[1][1]
+    expect(secondCallOpts?.envVars).toEqual({ SAFE: 'value' })
+  })
+
   it('stops on first failure and skips remaining hooks', async () => {
     mockRunHook
       .mockResolvedValueOnce(successResult({ TOKEN: 'abc' }))

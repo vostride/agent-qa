@@ -198,6 +198,7 @@ vi.mock('@vostride/agent-qa-core', () => {
     ...user,
     ...internal,
   })),
+  redactAuthStateValue: vi.fn((value: unknown) => value),
   formatRunAttributesBlock: vi.fn((attributes: Record<string, string>) => {
     const order = ([key]: [string, string]) => key === 'agent-qa.trigger'
       ? [0, 0, key]
@@ -579,8 +580,11 @@ beforeEach(() => {
   mockRunSuite.mockResolvedValue({ status: 'passed', duration: 100 })
   mockResolveAuthStateForRun.mockReset()
   mockResolveAuthStateForRun.mockResolvedValue({
+    version: 1,
+    kind: 'web',
     targetName: 'test-app',
     stateName: 'admin',
+    capturedAt: '2026-05-17T00:00:00.000Z',
     storageStatePath: '/internal/auth/test-app/admin.json',
   })
   mockFileActionCache.mockClear()
@@ -918,13 +922,70 @@ describe('run command — auth state consumption', () => {
       mockWebAdapterSetup.mock.invocationCallOrder[0],
     )
     expect(mockWebAdapterSetup).toHaveBeenCalledWith(expect.objectContaining({
-      authState: {
+      authState: expect.objectContaining({
         targetName: 'test-app',
         stateName: 'admin',
         storageStatePath: '/internal/auth/test-app/admin.json',
-      },
+      }),
     }))
     expect(mockRunTestWithRetry).toHaveBeenCalled()
+  })
+
+  it('passes direct auth state to setup, inline, and teardown hook sandbox options', async () => {
+    mockGlob.mockResolvedValue(['tests/auth.yaml'])
+    mockParseAllTests.mockResolvedValue({
+      tests: [makeTest({
+        use: { authState: 'admin' },
+        setup: ['hook-seed'],
+        teardown: ['hook-seed'],
+      })],
+      errors: [],
+    })
+    mockParseHooksFile.mockResolvedValue({
+      hooks: [{ id: 'hook-seed', name: 'seed data', runtime: 'node', file: '/hooks/seed.js', deps: [] }],
+      errors: [],
+    })
+    mockRunHooks.mockResolvedValue({
+      allPassed: true,
+      variables: {},
+      results: new Map([['seed data', {
+        success: true,
+        duration: 10,
+        stdout: '',
+        stderr: '',
+        variables: {},
+      }]]),
+    })
+    mockRunTestWithRetry.mockResolvedValue({
+      name: 'Test One',
+      filePath: 'tests/auth.yaml',
+      status: 'passed',
+      steps: [],
+      duration: 100,
+    })
+
+    await runCommand('tests/**/*.yaml')
+
+    expect(mockRunHooks).toHaveBeenCalledTimes(2)
+    expect(mockRunHooks.mock.calls[0][1]).toEqual(expect.objectContaining({
+      authState: expect.objectContaining({
+        targetName: 'test-app',
+        stateName: 'admin',
+        storageStatePath: '/internal/auth/test-app/admin.json',
+      }),
+    }))
+    expect(mockRunTestWithRetry.mock.calls[0][1].inlineHookSandboxOptions).toEqual(expect.objectContaining({
+      authState: expect.objectContaining({
+        targetName: 'test-app',
+        stateName: 'admin',
+      }),
+    }))
+    expect(mockRunHooks.mock.calls[1][1]).toEqual(expect.objectContaining({
+      authState: expect.objectContaining({
+        targetName: 'test-app',
+        stateName: 'admin',
+      }),
+    }))
   })
 
   it('fails direct auth-state preflight before adapter setup without printing paths', async () => {
@@ -1000,11 +1061,11 @@ describe('run command — auth state consumption', () => {
     await runCommandWithGlobalArgs(['--config', configPath], suitePath)
 
     const suiteConfig = mockRunSuite.mock.calls[0][2]
-    expect(suiteConfig.platformConfig.authState).toEqual({
+    expect(suiteConfig.platformConfig.authState).toEqual(expect.objectContaining({
       targetName: 'test-app',
       stateName: 'admin',
       storageStatePath: '/internal/auth/test-app/admin.json',
-    })
+    }))
   })
 
   it('allows a suite child test to repeat the same auth state', async () => {

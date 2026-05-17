@@ -128,6 +128,36 @@ vi.mock('@vostride/agent-qa-core', () => {
     }
     return value
   }
+  const redactAuthStateValue = (value: any, context: { secretRedactor?: LocalSecretRedactor } = {}): any => {
+    const secretRedacted = redactSecretValue(value, context.secretRedactor)
+    if (typeof secretRedacted === 'string') {
+      if (
+        secretRedacted.includes('AGENT_QA_AUTH_STATE_JSON')
+        || secretRedacted.includes('/workspace/.agent-qa-auth-state/storage-state.json')
+        || (secretRedacted.includes('"cookies"') && secretRedacted.includes('"origins"'))
+      ) {
+        return '[auth state redacted]'
+      }
+      return secretRedacted.replace(/authState:\s*[^\s]+/g, 'authState: [auth state redacted]')
+    }
+    if (Buffer.isBuffer(secretRedacted)) return secretRedacted
+    if (Array.isArray(secretRedacted)) return secretRedacted.map((item) => redactAuthStateValue(item, {}))
+    if (secretRedacted && typeof secretRedacted === 'object') {
+      if (Array.isArray((secretRedacted as any).cookies) && Array.isArray((secretRedacted as any).origins)) {
+        return '[auth state redacted]'
+      }
+      return Object.fromEntries(Object.entries(secretRedacted).map(([key, item]) => {
+        if (/^(authState|storageStatePath|AGENT_QA_AUTH_STATE_JSON|AGENT_QA_AUTH_STATE_STORAGE_STATE_PATH)$/i.test(key)) {
+          return [key, '[auth state redacted]']
+        }
+        if (/^(ACCESS_TOKEN|SESSION_TOKEN|AUTH_TOKEN|csrf)$/i.test(key)) {
+          return [key, '[auth state redacted]']
+        }
+        return [key, redactAuthStateValue(item, {})]
+      }))
+    }
+    return secretRedacted
+  }
   const resolveSecretTemplatesInValue = (value: any, store?: LocalSecretStore): any => {
     if (!store) return value
     if (typeof value === 'string') return value.replace(/\{\{secret:(\w+)\}\}/g, (_match, name) => store.require(name))
@@ -162,6 +192,7 @@ vi.mock('@vostride/agent-qa-core', () => {
     SecretStore: LocalSecretStore,
     SecretRedactor: LocalSecretRedactor,
     redactSecretValue,
+    redactAuthStateValue,
     resolveSecretTemplatesInValue,
   }
 })
@@ -341,6 +372,39 @@ describe('LiveSession', () => {
     expect(JSON.stringify(result)).not.toContain('raw-secret-sentinel')
     expect(JSON.stringify(messages)).not.toContain('raw-secret-sentinel')
     expect(result.error).toContain('[secret]')
+  })
+
+  it('executeStepCommand redacts auth-state shaped live payloads', async () => {
+    const storageState = JSON.stringify({
+      cookies: [{ name: 'sid', value: 'live-cookie-secret' }],
+      origins: [{ origin: 'https://example.com', localStorage: [{ name: 'token', value: 'live-local-secret' }] }],
+    })
+    mockExecuteStep.mockResolvedValue({
+      name: 'Auth step',
+      status: 'failed',
+      duration: 7,
+      error: storageState,
+      trace: {
+        observation: storageState,
+        reasoning: 'use authState: demo-acc',
+        plannedAction: { type: 'waitFor', condition: storageState },
+        result: 'failure',
+        error: '/workspace/.agent-qa-auth-state/storage-state.json',
+        screenStateBefore: storageState,
+      },
+      variableSnapshot: { SESSION_TOKEN: { value: 'live-session-token', source: 'hook' } },
+    })
+
+    await session.initialize(webConfig)
+    const result = await session.executeStepCommand('Verify authenticated dashboard', 0)
+    const serialized = JSON.stringify(result)
+
+    expect(serialized).toContain('[auth state redacted]')
+    expect(serialized).not.toContain('live-cookie-secret')
+    expect(serialized).not.toContain('live-local-secret')
+    expect(serialized).not.toContain('demo-acc')
+    expect(serialized).not.toContain('/workspace/.agent-qa-auth-state/storage-state.json')
+    expect(serialized).not.toContain('live-session-token')
   })
 
   it('executeStepCommand throws when already executing', async () => {

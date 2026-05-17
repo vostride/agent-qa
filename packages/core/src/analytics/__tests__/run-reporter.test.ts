@@ -12,6 +12,10 @@ const testId = 't_alpha-bravo-charlie-delta-echo-foxtrot-golf-hotel-india-juliet
 const suiteId = 's_alpha-bravo-charlie-delta-echo-foxtrot-golf-hotel-india-juliet'
 const runId = 'r_alpha-bravo-charlie-delta-echo-foxtrot-golf-hotel-india-juliet'
 const parentRunId = 'r_parent-alpha-bravo-charlie-delta-echo-foxtrot-golf-hotel-india'
+const authStateName = 'analytics-demo-acc'
+const authStatePath = '/internal/auth/staging-web/analytics-demo-acc/storage-state.json'
+const authCookieSecret = 'analytics-cookie-secret'
+const authLocalStorageSecret = 'analytics-local-storage-secret'
 
 function makeTest(overrides: Partial<TestDefinition> = {}): TestDefinition {
   return {
@@ -29,6 +33,7 @@ function makeArtifactContext() {
     artifact: {
       kind: 'test' as const,
       config: {
+        use: { authState: authStateName },
         model: {
           planner: { provider: 'openai', model: 'gpt-planner' },
           verifier: { provider: 'openai', model: 'gpt-verifier' },
@@ -36,6 +41,14 @@ function makeArtifactContext() {
         runtime: {
           platform: 'web',
           browserName: 'chromium',
+          authState: {
+            version: 1,
+            kind: 'web',
+            targetName: 'staging-web',
+            stateName: authStateName,
+            capturedAt: '2026-05-17T00:00:00.000Z',
+            storageStatePath: authStatePath,
+          },
         },
         memory: {
           enabled: true,
@@ -129,6 +142,10 @@ function makeResult(overrides: Partial<TestResult> = {}): TestResult {
     curatorDuration: 25,
     tokenUsage: { promptTokens: 7, completionTokens: 8, totalTokens: 15 },
   }
+  ;(result as any).authStatePayload = {
+    cookies: [{ name: 'sid', value: authCookieSecret }],
+    origins: [{ origin: 'https://example.com', localStorage: [{ name: 'token', value: authLocalStorageSecret }] }],
+  }
   return result
 }
 
@@ -170,7 +187,7 @@ describe('AnalyticsRunReporter', () => {
       duration: 10,
       stdout: 'secret stdout',
       stderr: 'secret stderr',
-      variables: { SECRET: 'value' },
+      variables: { SECRET: 'value', ACCESS_TOKEN: 'analytics-hook-token' },
       error: 'raw hook error',
     })
     await reporter.onTestEnd?.()
@@ -227,6 +244,11 @@ describe('AnalyticsRunReporter', () => {
     expect(serialized).not.toContain('secret stdout')
     expect(serialized).not.toContain('raw memory reasoning')
     expect(serialized).not.toContain('obs_secret')
+    expect(serialized).not.toContain(authStateName)
+    expect(serialized).not.toContain(authStatePath)
+    expect(serialized).not.toContain(authCookieSecret)
+    expect(serialized).not.toContain(authLocalStorageSecret)
+    expect(serialized).not.toContain('analytics-hook-token')
   })
 
   it('emits one final retry-aware event after failed attempts', async () => {

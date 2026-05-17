@@ -9,6 +9,7 @@ import {
   captureAnalytics,
   createAnalyticsService,
   getAgentQaVersion,
+  redactAuthStateValue,
   resolveAnalyticsStandardProperties,
   type AnalyticsEventProperties,
   type AnalyticsService,
@@ -340,22 +341,26 @@ export function classifyRunFailureFromDashboardData(input: {
 }
 
 function maskSensitive(value: unknown, parentKey = ''): unknown {
+  const authRedacted = redactAuthStateValue(value)
   const lower = parentKey.toLowerCase()
-  if (typeof value === 'string' && (
+  if (typeof authRedacted === 'string' && authRedacted !== value) {
+    return authRedacted
+  }
+  if (typeof authRedacted === 'string' && (
     lower.includes('key')
     || lower.includes('token')
     || lower.includes('secret')
     || lower.includes('password')
   )) {
-    return value.length > 8 ? `${value.slice(0, 3)}****${value.slice(-4)}` : '****'
+    return authRedacted.length > 8 ? `${authRedacted.slice(0, 3)}****${authRedacted.slice(-4)}` : '****'
   }
-  if (Array.isArray(value)) return value.map(item => maskSensitive(item, parentKey))
-  if (value && typeof value === 'object') {
+  if (Array.isArray(authRedacted)) return authRedacted.map(item => maskSensitive(item, parentKey))
+  if (authRedacted && typeof authRedacted === 'object') {
     return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>).map(([key, child]) => [key, maskSensitive(child, key)]),
+      Object.entries(authRedacted as Record<string, unknown>).map(([key, child]) => [key, maskSensitive(child, key)]),
     )
   }
-  return value
+  return authRedacted
 }
 
 async function readConfig(configPath?: string): Promise<{
@@ -490,7 +495,7 @@ export function createAgentQaMcpServer(options: AgentQaMcpServerOptions = {}): M
         method,
         body,
       })
-      return jsonContent(result)
+      return jsonContent(redactAuthStateValue(result))
     } catch (err) {
       return errorContent(err instanceof Error ? err.message : String(err))
     }

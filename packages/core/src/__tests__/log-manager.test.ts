@@ -191,4 +191,28 @@ describe('LogManager', () => {
     expect(stderrSpy.mock.calls.map((c: unknown[]) => String(c[0])).join('')).not.toContain('raw-secret-sentinel')
     expect(stdoutSpy.mock.calls.map((c: unknown[]) => String(c[0])).join('')).not.toContain('raw-secret-sentinel')
   })
+
+  it('redacts auth-state payloads and selected names before buffering and emission', () => {
+    const lm = new LogManager({ runId: 'run-1', displayLevel: 'info', ndjson: true })
+    const storageState = JSON.stringify({
+      cookies: [{ name: 'sid', value: 'auth-cookie-secret' }],
+      origins: [{ origin: 'https://example.com', localStorage: [{ name: 'token', value: 'auth-local-secret' }] }],
+    })
+
+    lm.log('info', 'runner', storageState, {
+      use: { authState: 'demo-acc' },
+      storageStatePath: '/tmp/auth/storage-state.json',
+      ACCESS_TOKEN: 'hook-token',
+    })
+
+    const serialized = JSON.stringify(lm.getBuffer())
+    expect(serialized).toContain('[auth state redacted]')
+    expect(serialized).not.toContain('auth-cookie-secret')
+    expect(serialized).not.toContain('auth-local-secret')
+    expect(serialized).not.toContain('demo-acc')
+    expect(serialized).not.toContain('/tmp/auth/storage-state.json')
+    expect(serialized).not.toContain('hook-token')
+    expect(stderrSpy.mock.calls.map((c: unknown[]) => String(c[0])).join('')).not.toContain('auth-cookie-secret')
+    expect(stdoutSpy.mock.calls.map((c: unknown[]) => String(c[0])).join('')).not.toContain('auth-cookie-secret')
+  })
 })

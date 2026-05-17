@@ -96,6 +96,17 @@ function makeTest(overrides: Partial<TestDefinition> = {}): TestDefinition {
   }
 }
 
+function makeAuthState() {
+  return {
+    version: 1,
+    kind: 'web',
+    targetName: 'webapp',
+    stateName: 'admin',
+    capturedAt: '2026-05-17T00:00:00.000Z',
+    storageStatePath: '/internal/auth/webapp/admin.json',
+  } as const
+}
+
 function makeConfig(adapter: PlatformAdapter, overrides: Partial<RunSuiteConfig> = {}): RunSuiteConfig {
   return {
     adapter,
@@ -298,6 +309,65 @@ describe('runSuite startup navigation', () => {
     expect(mockRunTest).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({ secretStore, secretRedactor }),
+      '/tests/login.yaml',
+    )
+  })
+
+  it('passes active suite auth state to suite hooks, child hooks, and inline hooks', async () => {
+    const { adapter, setup } = createMockAdapter()
+    const authState = makeAuthState()
+    mockRunHooks.mockImplementation(async (hooks: Array<{ name: string }>) => ({
+      allPassed: true,
+      variables: {},
+      results: new Map(hooks.map((hook) => [hook.name, {
+        success: true,
+        duration: 3,
+        stdout: '',
+        stderr: '',
+        variables: {},
+      }])),
+    }))
+    mockRunTest.mockImplementation(async (_test, config, filePath) => ({
+      name: 'Login Test',
+      filePath,
+      status: 'passed',
+      steps: [],
+      duration: 1,
+      runId: config.runId,
+    }))
+
+    await runSuite(
+      makeSuite({ setup: ['suite-setup'], teardown: ['suite-teardown'], use: { authState: 'admin' } } as any),
+      [[makeTest({ setup: ['test-setup'], teardown: ['test-teardown'] } as any), '/tests/login.yaml']],
+      makeConfig(adapter, {
+        platformConfig: {
+          platform: 'web',
+          browser: { name: 'chromium', headless: true },
+          authState,
+        },
+        resolvedHooks: new Map([
+          ['suite-setup', { id: 'suite-setup', name: 'suite setup', command: 'true' } as any],
+          ['suite-teardown', { id: 'suite-teardown', name: 'suite teardown', command: 'true' } as any],
+          ['test-setup', { id: 'test-setup', name: 'test setup', command: 'true' } as any],
+          ['test-teardown', { id: 'test-teardown', name: 'test teardown', command: 'true' } as any],
+        ]),
+        sandboxOptions: { cwd: '/tmp', envVars: { BASE_ENV: 'base' } } as any,
+      }),
+    )
+
+    expect(mockRunHooks).toHaveBeenCalledTimes(4)
+    for (const [, options] of mockRunHooks.mock.calls) {
+      expect(options).toEqual(expect.objectContaining({
+        authState,
+        envVars: expect.objectContaining({ BASE_ENV: 'base' }),
+      }))
+    }
+    expect(mockRunHooks.mock.invocationCallOrder[0]).toBeLessThan(setup.mock.invocationCallOrder[0])
+    expect(mockRunTest).toHaveBeenCalledWith(
+      expect.objectContaining({ use: expect.objectContaining({ authState: 'admin' }) }),
+      expect.objectContaining({
+        inlineHookSandboxOptions: expect.objectContaining({ authState }),
+      }),
       '/tests/login.yaml',
     )
   })

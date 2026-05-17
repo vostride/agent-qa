@@ -189,7 +189,7 @@ beforeEach(() => {
   ROUTER_DB_STUB.getRuns.mockReturnValue([])
   mockRunHookInSandbox.mockResolvedValue({
     success: true,
-    variables: { TOKEN: 'abc' },
+    variables: { RESULT: 'abc' },
     output: 'ok',
     stdout: 'ok',
     stderr: '',
@@ -926,7 +926,7 @@ describe('POST /api/hooks/:hookId/run', () => {
       stdout: 'ok',
       stderr: '',
       error: null,
-      variables: { TOKEN: 'abc' },
+      variables: { RESULT: 'abc' },
       sandbox: {
         runtime: 'node',
         image: 'vostride/agent-qa-hook-runner-node',
@@ -1111,7 +1111,7 @@ describe('POST /api/hooks/:hookId/run', () => {
   it('returns capability-aware network telemetry only when the sandbox result includes it', async () => {
     mockRunHookInSandbox.mockResolvedValueOnce({
       success: true,
-      variables: { TOKEN: 'abc' },
+      variables: { RESULT: 'abc' },
       output: 'ok',
       stdout: 'ok',
       stderr: '',

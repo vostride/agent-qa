@@ -26,3 +26,19 @@ export {
   type ResolveAuthStateForRunInput,
   type ResolvedAuthStateForRun,
 } from './runtime.js'
+export {
+  AUTH_STATE_HOOK_CONTAINER_STORAGE_STATE_PATH,
+  AUTH_STATE_HOOK_JSON_ENV,
+  AUTH_STATE_HOOK_STORAGE_STATE_FILENAME,
+  AUTH_STATE_HOOK_STORAGE_STATE_PATH_ENV,
+  AUTH_STATE_HOOK_WORKSPACE_DIR,
+  buildAuthStateHookEnv,
+  isReservedAuthStateHookEnvKey,
+  stripReservedAuthStateHookEnv,
+} from './hook-env.js'
+export {
+  AUTH_STATE_REDACTION_MARKER,
+  redactAuthStateString,
+  redactAuthStateValue,
+  type AuthStateRedactionContext,
+} from './redaction.js'

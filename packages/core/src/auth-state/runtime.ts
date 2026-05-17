@@ -18,8 +18,11 @@ export interface ResolveAuthStateForRunInput {
 }
 
 export interface ResolvedAuthStateForRun {
+  version: number
+  kind: 'web'
   targetName: string
   stateName: string
+  capturedAt: string
   storageStatePath: string
 }
 
@@ -41,15 +44,17 @@ export async function resolveAuthStateForRun(
   const paths = resolveAuthStatePaths(input)
 
   try {
-    await readAuthStateMetadata(paths)
+    const metadata = await readAuthStateMetadata(paths)
     await assertPayloadReadable(paths)
+    return {
+      version: metadata.version,
+      kind: metadata.kind,
+      targetName: metadata.target,
+      stateName: metadata.name,
+      capturedAt: metadata.capturedAt,
+      storageStatePath: paths.payloadPath,
+    }
   } catch {
     throw createAuthStateReadError(paths.targetName, paths.stateName)
-  }
-
-  return {
-    targetName: paths.targetName,
-    stateName: paths.stateName,
-    storageStatePath: paths.payloadPath,
   }
 }
