@@ -30,6 +30,7 @@ import { LlmSection } from "@/components/config-manager/llm-section"
 import { TimeoutSection } from "@/components/config-manager/timeout-section"
 import { HealingSection } from "@/components/config-manager/healing-section"
 import { CacheSection } from "@/components/config-manager/cache-section"
+import { AuthStatesSection } from "@/components/config-manager/auth-states-section"
 import { LoggingSection } from "@/components/config-manager/logging-section"
 import { BrowserSection } from "@/components/config-manager/browser-section"
 import { RecordingSection } from "@/components/config-manager/recording-section"
@@ -59,6 +60,7 @@ const SECTION_COMPONENTS: Record<string, ComponentType<SectionProps>> = {
   'workspace:agent-rules': AgentRulesSection,
   'services:dashboard': DashboardSection,
   'services:cache': CacheSection,
+  'services:auth-states': AuthStatesSection,
   'services:logging': LoggingSection,
   'services:recording': RecordingSection,
   'services:accessibility': AccessibilitySection,

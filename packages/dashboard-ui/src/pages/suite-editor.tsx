@@ -34,7 +34,7 @@ import { LiveSessionPane, type LiveDevtoolsTab } from "@/components/live-session
 import { useLiveEditor, type LiveEditorExternalTest } from "@/hooks/use-live-editor"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useTargetDetails } from "@/hooks/use-target-details"
-import { buildLiveSessionConfig } from "@/lib/live-session-config"
+import { buildLiveSessionConfig, readDraftAuthStateName } from "@/lib/live-session-config"
 import { logLiveDebug } from "@/lib/live-debug"
 import type { Selection } from "@/lib/selection"
 import { useVariableSuggestions } from "@/hooks/use-variable-suggestions"
@@ -50,6 +50,9 @@ import {
   fetchConfig,
   createLiveEditorSession,
   ApiError,
+  fetchAuthStates,
+  saveLiveAuthState,
+  type AuthStateMetadata,
 } from "@/lib/api"
 import { getSuiteFilenameError } from "@/lib/suite-filename-validation"
 import { generateSuiteId } from "@/lib/generate-suite-id"
@@ -123,6 +126,8 @@ export default function SuiteEditorPage() {
   const [liveDevtoolsTab, setLiveDevtoolsTab] = useState<LiveDevtoolsTab>("reasoning")
   const [liveSelection, setLiveSelection] = useState<Selection | null>(null)
   const [liveHookConfig, setLiveHookConfig] = useState<{ setup: string[]; teardown: string[] }>({ setup: [], teardown: [] })
+  const [authStateMetadata, setAuthStateMetadata] = useState<AuthStateMetadata[]>([])
+  const [isSavingAuthState, setIsSavingAuthState] = useState(false)
 
   const [filePath, setFilePath] = useState<string>("")
   const unsaved = !isCreateMode && content !== savedContent
@@ -172,6 +177,10 @@ export default function SuiteEditorPage() {
   const selectedTargetName = displayFormState?.target?.trim() ?? ""
   const liveConnectionState = isLaunchingLive ? "connecting" : liveEditor.connectionState
   const hasLiveSession = liveSessionId !== null
+  const activeAuthStateTargetName = hasLiveSession && liveEditor.platform === "web" && selectedTargetName
+    ? selectedTargetName
+    : null
+  const draftAuthStateName = useMemo(() => readDraftAuthStateName(content), [content])
 
   // CRITICAL per D-13: stale check is ONLY over setup + teardown arrays.
   // Test-list edits must flow through silently — no stale banner, no restart prompt.
@@ -488,6 +497,41 @@ export default function SuiteEditorPage() {
     await launchLiveSession(displayFormState, { replaceCurrentSession: true })
   }, [displayFormState, hasLiveSession, launchLiveSession])
 
+  const refreshAuthStates = useCallback(async () => {
+    if (!activeAuthStateTargetName) {
+      setAuthStateMetadata([])
+      return
+    }
+    try {
+      const response = await fetchAuthStates({ target: activeAuthStateTargetName })
+      setAuthStateMetadata(response.authStates)
+    } catch {
+      setAuthStateMetadata([])
+    }
+  }, [activeAuthStateTargetName])
+
+  useEffect(() => {
+    void refreshAuthStates()
+  }, [refreshAuthStates])
+
+  const handleSaveLiveAuthState = useCallback(async (input: { name: string; replace: boolean }) => {
+    if (!liveSessionId || !activeAuthStateTargetName) {
+      throw new Error(`Could not save auth state "${input.name}" for target "${activeAuthStateTargetName ?? "selected target"}".`)
+    }
+
+    const failureMessage = `Could not save auth state "${input.name}" for target "${activeAuthStateTargetName}".`
+    setIsSavingAuthState(true)
+    try {
+      await saveLiveAuthState(liveSessionId, { name: input.name, replace: input.replace })
+      toast.success(`Saved auth state "${input.name}" for target "${activeAuthStateTargetName}".`)
+      await refreshAuthStates()
+    } catch {
+      throw new Error(failureMessage)
+    } finally {
+      setIsSavingAuthState(false)
+    }
+  }, [activeAuthStateTargetName, liveSessionId, refreshAuthStates])
+
   const handleLiveModeOpenChange = useCallback((open: boolean) => {
     if (open) {
       setLiveModeOpen(true)
@@ -749,6 +793,14 @@ export default function SuiteEditorPage() {
       onRefresh={liveEditor.refreshPage}
       onNavigate={liveEditor.navigate}
       onRequestAriaTree={liveEditor.requestAriaTree}
+      authStateCapture={activeAuthStateTargetName && liveSessionId ? {
+        sessionId: liveSessionId,
+        targetName: activeAuthStateTargetName,
+        initialName: draftAuthStateName,
+        authStates: authStateMetadata,
+        isSaving: isSavingAuthState,
+        onSave: handleSaveLiveAuthState,
+      } : null}
     />
   )
 

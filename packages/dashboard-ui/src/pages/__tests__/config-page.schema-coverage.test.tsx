@@ -135,6 +135,7 @@ vi.mock('@/lib/api', () => ({
     config: sampleConfig,
   }),
   updateSettings: vi.fn().mockResolvedValue({ updated: true }),
+  fetchAuthStates: vi.fn().mockResolvedValue({ authStates: [] }),
   fetchAuthStatus: vi.fn().mockResolvedValue({ credentials: [] }),
   fetchLLMProviders: vi.fn().mockResolvedValue({
     providers: [
@@ -168,6 +169,7 @@ const EXPECTED_DESTINATIONS = [
   'workspace:agent-rules',
   'services:dashboard',
   'services:cache',
+  'services:auth-states',
   'services:logging',
   'services:recording',
   'services:accessibility',
@@ -192,6 +194,7 @@ const SURFACE_MARKERS: Record<string, { title: string; marker: string }> = {
   'workspace:agent-rules': { title: 'Agent Rules', marker: 'Change Path' },
   'services:dashboard': { title: 'Dashboard', marker: 'Database Path' },
   'services:cache': { title: 'Cache', marker: 'Cache Directory' },
+  'services:auth-states': { title: 'Auth States', marker: 'No auth states saved' },
   'services:logging': { title: 'Logging', marker: 'Log Level' },
   'services:recording': { title: 'Recording', marker: 'Record video of test execution' },
   'services:accessibility': { title: 'Accessibility', marker: 'Run After' },
@@ -456,7 +459,7 @@ describe('ConfigPage schema coverage', () => {
     }
   })
 
-  it('Config section shells: all 20 destinations', async () => {
+  it('Config section shells: all 21 destinations', async () => {
     const destinations = CONFIG_NAVIGATION_ITEMS.map((item) => `${item.bucket}:${item.item}`)
 
     expect(destinations).toEqual(EXPECTED_DESTINATIONS)
@@ -474,6 +477,7 @@ describe('ConfigPage schema coverage', () => {
     await assertConfigSectionShells([
       'services:dashboard',
       'services:cache',
+      'services:auth-states',
       'services:logging',
       'services:recording',
       'services:accessibility',

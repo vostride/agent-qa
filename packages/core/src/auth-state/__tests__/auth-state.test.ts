@@ -4,6 +4,7 @@ import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   AuthStateMetadataSchema,
+  listAuthStateMetadata,
   readAuthStateMetadata,
   resolveAuthStateForRun,
   resolveAuthStatePaths,
@@ -221,6 +222,105 @@ describe('auth-state metadata and store', () => {
 
     await writeFile(paths.metadataPath, `${JSON.stringify({ ...metadata, name: 'viewer' }, null, 2)}\n`)
     await expect(readAuthStateMetadata(paths)).rejects.toThrow(/does not match resolved state/)
+  })
+
+  it('lists valid auth-state metadata only without exposing paths or payload details', async () => {
+    const root = await createTempRoot()
+    const adminPaths = resolveAuthStatePaths({
+      configDir: root,
+      targetName: 'staging-web',
+      stateName: 'admin',
+      target: webTarget,
+    })
+    const viewerPaths = resolveAuthStatePaths({
+      configDir: root,
+      targetName: 'prod-web',
+      stateName: 'viewer',
+      target: webTarget,
+    })
+
+    await expect(listAuthStateMetadata({ configDir: root })).resolves.toEqual([])
+
+    await writeAuthStateFiles(adminPaths, { payload, metadata })
+    await writeAuthStateFiles(viewerPaths, {
+      payload,
+      metadata: {
+        ...metadata,
+        target: 'prod-web',
+        name: 'viewer',
+        capturedAt: '2026-05-17T01:00:00.000Z',
+      },
+    })
+
+    await mkdir(path.join(root, '.agent-qa/auth-states', 'staging-web'), { recursive: true })
+    await writeFile(
+      path.join(root, '.agent-qa/auth-states', 'staging-web', 'broken.meta.json'),
+      '{',
+      'utf-8',
+    )
+    await writeFile(
+      path.join(root, '.agent-qa/auth-states', 'staging-web', 'mismatch.meta.json'),
+      `${JSON.stringify({ ...metadata, name: 'other' }, null, 2)}\n`,
+      'utf-8',
+    )
+    await writeFile(
+      path.join(root, '.agent-qa/auth-states', 'staging-web', 'payload-copy.json'),
+      `${JSON.stringify(payload, null, 2)}\n`,
+      'utf-8',
+    )
+
+    const result = await listAuthStateMetadata({ configDir: root })
+
+    expect(result).toEqual([
+      {
+        ...metadata,
+        target: 'prod-web',
+        name: 'viewer',
+        capturedAt: '2026-05-17T01:00:00.000Z',
+      },
+      metadata,
+    ])
+    expect(Object.keys(result[0] ?? {})).toEqual(['version', 'kind', 'target', 'name', 'capturedAt'])
+    const serialized = JSON.stringify(result)
+    expect(serialized).not.toContain('.agent-qa/auth-states')
+    expect(serialized).not.toContain('.json')
+    expect(serialized).not.toContain('payloadPath')
+    expect(serialized).not.toContain('metadataPath')
+    expect(serialized).not.toContain('secret-cookie')
+    expect(serialized).not.toContain('secret-local-storage')
+    expect(serialized).not.toContain('firebaseLocalStorageDb')
+  })
+
+  it('filters listed auth-state metadata by target name', async () => {
+    const root = await createTempRoot()
+    const adminPaths = resolveAuthStatePaths({
+      configDir: root,
+      targetName: 'staging-web',
+      stateName: 'admin',
+      target: webTarget,
+    })
+    const viewerPaths = resolveAuthStatePaths({
+      configDir: root,
+      targetName: 'prod-web',
+      stateName: 'viewer',
+      target: webTarget,
+    })
+
+    await writeAuthStateFiles(adminPaths, { payload, metadata })
+    await writeAuthStateFiles(viewerPaths, {
+      payload,
+      metadata: {
+        ...metadata,
+        target: 'prod-web',
+        name: 'viewer',
+        capturedAt: '2026-05-17T01:00:00.000Z',
+      },
+    })
+
+    await expect(listAuthStateMetadata({
+      configDir: root,
+      targetName: 'staging-web',
+    })).resolves.toEqual([metadata])
   })
 })
 

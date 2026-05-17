@@ -4,6 +4,7 @@ import {
   createHook,
   deleteHook,
   deleteTestObservation,
+  fetchAuthStates,
   fetchHookCatalog,
   fetchHookDetail,
   fetchMemoryCatalog,
@@ -15,6 +16,7 @@ import {
   fetchStats,
   fetchTestObservations,
   runHook,
+  saveLiveAuthState,
   type HookRunRequest,
   type HookMutationRequest,
   updateHook,
@@ -80,6 +82,76 @@ describe('fetchRuns', () => {
   it('throws on non-ok response', async () => {
     mockFetch.mockReturnValue(err(500, 'Internal Server Error'))
     await expect(fetchRuns()).rejects.toThrow('API error 500: Internal Server Error')
+  })
+})
+
+describe('auth state API', () => {
+  const metadata = {
+    version: 1,
+    kind: 'web' as const,
+    target: 'staging-web',
+    name: 'admin',
+    capturedAt: '2026-05-17T10:00:00.000Z',
+  }
+
+  it('fetches safe auth-state metadata', async () => {
+    mockFetch.mockReturnValue(ok({
+      authStates: [{
+        ...metadata,
+        storageStatePath: '.agent-qa/auth-states/staging-web/admin/storage-state.json',
+        payloadPath: '.agent-qa/auth-states/staging-web/admin/metadata.json',
+        payload: { cookies: [{ name: 'sid', value: 'secret-session' }] },
+        cookieCount: 1,
+        localStorage: 'unsafe-storage-value',
+        indexedDB: 'unsafe-indexed-db',
+        capturedFrom: 'live-mode',
+        createdAt: '2026-05-17T09:00:00.000Z',
+        updatedAt: '2026-05-17T10:01:00.000Z',
+        ttl: '7d',
+        expiry: '2026-05-24T10:00:00.000Z',
+      }],
+    }))
+
+    const result = await fetchAuthStates()
+
+    expect(mockFetch).toHaveBeenCalledWith('/api/auth-states')
+    expect(result).toEqual({ authStates: [metadata] })
+    expect(Object.keys(result.authStates[0])).toEqual(['version', 'kind', 'target', 'name', 'capturedAt'])
+    const serialized = JSON.stringify(result)
+    expect(serialized).not.toContain('.agent-qa/auth-states')
+    expect(serialized).not.toContain('.json')
+    expect(serialized).not.toContain('payload')
+    expect(serialized).not.toContain('cookie')
+    expect(serialized).not.toContain('cookieCount')
+    expect(serialized).not.toContain('localStorage')
+    expect(serialized).not.toContain('indexedDB')
+    expect(serialized).not.toContain('capturedFrom')
+    expect(serialized).not.toContain('createdAt')
+    expect(serialized).not.toContain('updatedAt')
+    expect(serialized).not.toContain('ttl')
+    expect(serialized).not.toContain('expiry')
+  })
+
+  it('fetches auth-state metadata for a target', async () => {
+    mockFetch.mockReturnValue(ok({ authStates: [metadata] }))
+
+    await fetchAuthStates({ target: 'staging-web' })
+
+    expect(mockFetch).toHaveBeenCalledWith('/api/auth-states?target=staging-web')
+  })
+
+  it('saves live auth state through the active session route', async () => {
+    mockFetch.mockReturnValue(ok({ authState: metadata }))
+
+    const result = await saveLiveAuthState('session-1', { name: 'admin', replace: true })
+
+    expect(mockFetch).toHaveBeenCalledWith('/api/live-editor/sessions/session-1/auth-state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'admin', replace: true }),
+    })
+    expect(result).toEqual({ authState: metadata })
+    expect(Object.keys(result.authState)).toEqual(['version', 'kind', 'target', 'name', 'capturedAt'])
   })
 })
 

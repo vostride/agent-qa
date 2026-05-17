@@ -186,6 +186,7 @@ export type ServerMessage =
 export interface SessionState {
   sessionId: string
   platform: 'web' | 'android' | 'ios'
+  targetName?: string | null
   status: 'idle' | 'executing' | 'disconnected'
   currentStep: string | null
   currentUrl: string | null

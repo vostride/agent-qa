@@ -14,6 +14,8 @@ export interface LiveSessionBootstrap {
   appActivity?: string
 }
 
+const AUTH_STATE_NAME_PATTERN = /^[a-z][a-z0-9-]*[a-z0-9]$/
+
 function readDraftUse(content: string): { headless?: boolean; device?: string; appState?: 'preserve' | 'reset' } {
   try {
     const doc = parseDocument(content)
@@ -39,6 +41,19 @@ function readDraftUse(content: string): { headless?: boolean; device?: string; a
   }
 }
 
+export function readDraftAuthStateName(content: string): string | null {
+  try {
+    const doc = parseDocument(content)
+    if (doc.errors.length > 0) return null
+    const data = doc.toJSON() as { use?: { authState?: unknown } } | null
+    if (typeof data?.use?.authState !== 'string') return null
+    const candidate = data.use.authState.trim()
+    return AUTH_STATE_NAME_PATTERN.test(candidate) ? candidate : null
+  } catch {
+    return null
+  }
+}
+
 export function buildLiveSessionConfig(opts: {
   content: string
   targetName: string
@@ -61,6 +76,7 @@ export function buildLiveSessionConfig(opts: {
 
     return {
       platform: 'web',
+      targetName: opts.targetName,
       url: target.url,
       headless,
     }

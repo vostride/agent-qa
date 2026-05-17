@@ -10,19 +10,31 @@ import TestEditorPage from '@/pages/test-editor'
 
 const {
   createLiveEditorSessionMock,
+  createTestFileMock,
   executeHookByIdMock,
+  fetchAuthStatesMock,
   fetchTestFileMock,
   navigateMock,
+  saveLiveAuthStateMock,
   terminateSessionMock,
+  toastSuccessMock,
   toastErrorMock,
+  updateTestFileMock,
 } = vi.hoisted(() => ({
   createLiveEditorSessionMock: vi.fn(),
+  createTestFileMock: vi.fn(),
   executeHookByIdMock: vi.fn(),
+  fetchAuthStatesMock: vi.fn(),
   fetchTestFileMock: vi.fn(),
   navigateMock: vi.fn(),
+  saveLiveAuthStateMock: vi.fn(),
   terminateSessionMock: vi.fn(),
+  toastSuccessMock: vi.fn(),
   toastErrorMock: vi.fn(),
+  updateTestFileMock: vi.fn(),
 }))
+
+let liveSessionPaneProps: Record<string, unknown> | null = null
 
 const SETUP_ALPHA_ID = 'h_amber-birch-coral-delta-ember-falcon-garden-harbor-island-jungle'
 const SETUP_BETA_ID = 'h_aster-bloom-cloud-drift-ember-field-glade-hollow-ivory-jasper'
@@ -32,6 +44,8 @@ const BASE_YAML = `name: Live Hook Test
 test-id: test-1
 target: demo-target
 context: Hook editing
+use:
+  authState: admin
 setup:
   - ${SETUP_ALPHA_ID}
 steps:
@@ -56,7 +70,7 @@ teardown:
 vi.mock('sonner', () => ({
   toast: {
     error: toastErrorMock,
-    success: vi.fn(),
+    success: toastSuccessMock,
   },
 }))
 
@@ -181,24 +195,23 @@ vi.mock('@/components/visual-builder', () => ({
 }))
 
 vi.mock('@/components/live-session-pane', () => ({
-  LiveSessionPane: ({
-    setupHooksStale = false,
-    onRestartSession,
-  }: {
-    setupHooksStale?: boolean
-    onRestartSession?: () => void
-  }) => (
-    <div data-testid="live-session-pane">
-      {setupHooksStale ? (
+  LiveSessionPane: (props: Record<string, unknown>) => {
+    liveSessionPaneProps = props
+    const setupHooksStale = props.setupHooksStale === true
+    const onRestartSession = props.onRestartSession as (() => void) | undefined
+    return (
+      <div data-testid="live-session-pane">
+        {setupHooksStale ? (
         <div>
           <span>Restart required</span>
           <button type="button" onClick={onRestartSession}>Restart Live Session</button>
         </div>
-      ) : (
-        <span>Live session current</span>
-      )}
-    </div>
-  ),
+        ) : (
+          <span>Live session current</span>
+        )}
+      </div>
+    )
+  },
 }))
 
 vi.mock('@/hooks/use-live-editor', () => ({
@@ -255,12 +268,17 @@ vi.mock('@/hooks/use-live-editor', () => ({
   })),
 }))
 
-vi.mock('@/lib/live-session-config', () => ({
-  buildLiveSessionConfig: () => ({
+vi.mock('@/lib/live-session-config', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/live-session-config')>('@/lib/live-session-config')
+  return {
+    ...actual,
+    buildLiveSessionConfig: () => ({
     platform: 'web',
-    target: 'demo-target',
+    targetName: 'demo-target',
+    url: 'https://example.com',
   }),
-}))
+  }
+})
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api')
@@ -269,10 +287,12 @@ vi.mock('@/lib/api', async () => {
     ...actual,
     fetchTestFile: fetchTestFileMock,
     createLiveEditorSession: createLiveEditorSessionMock,
-    createTestFile: vi.fn(),
-    updateTestFile: vi.fn(),
+    createTestFile: createTestFileMock,
+    updateTestFile: updateTestFileMock,
     validateTestContent: vi.fn(),
     triggerRun: vi.fn(),
+    fetchAuthStates: fetchAuthStatesMock,
+    saveLiveAuthState: saveLiveAuthStateMock,
   }
 })
 
@@ -281,15 +301,31 @@ let root: Root | null = null
 
 beforeEach(() => {
   fetchTestFileMock.mockReset()
+  fetchAuthStatesMock.mockReset()
+  saveLiveAuthStateMock.mockReset()
+  createTestFileMock.mockReset()
+  updateTestFileMock.mockReset()
   createLiveEditorSessionMock.mockReset()
   executeHookByIdMock.mockReset()
   navigateMock.mockReset()
   terminateSessionMock.mockReset()
   toastErrorMock.mockReset()
+  toastSuccessMock.mockReset()
+  liveSessionPaneProps = null
 
   fetchTestFileMock.mockResolvedValue({
     path: 'tests/live-hook-test.yaml',
     content: BASE_YAML,
+  })
+  fetchAuthStatesMock.mockResolvedValue({ authStates: [] })
+  saveLiveAuthStateMock.mockResolvedValue({
+    authState: {
+      version: 1,
+      kind: 'web',
+      target: 'demo-target',
+      name: 'admin',
+      capturedAt: '2026-05-17T10:00:00.000Z',
+    },
   })
   createLiveEditorSessionMock
     .mockResolvedValueOnce({ sessionId: 'session-1' })
@@ -398,5 +434,67 @@ describe('TestEditorPage live hook safeguards', () => {
     await click(getButtonByText(rootElement, 'Run Teardown Hook'))
 
     expect(executeHookByIdMock).toHaveBeenCalledWith('teardown', TEARDOWN_ALPHA_ID)
+  })
+
+  it('passes draft auth-state prefill, saves via auth-state API, and leaves YAML unchanged', async () => {
+    fetchAuthStatesMock.mockResolvedValue({
+      authStates: [{
+        version: 1,
+        kind: 'web',
+        target: 'demo-target',
+        name: 'admin',
+        capturedAt: '2026-05-17T10:00:00.000Z',
+      }],
+    })
+    const rootElement = await render(<TestEditorPage />)
+
+    await click(getButtonByText(rootElement, 'Connect Live Session'))
+
+    expect(createLiveEditorSessionMock.mock.calls[0]?.[0]).toMatchObject({ targetName: 'demo-target' })
+    expect(fetchAuthStatesMock).toHaveBeenCalledWith({ target: 'demo-target' })
+    const authStateCapture = liveSessionPaneProps?.authStateCapture as {
+      initialName: string | null
+      targetName: string
+      authStates: unknown[]
+      onSave: (input: { name: string; replace: boolean }) => Promise<void>
+    }
+    expect(authStateCapture).toMatchObject({
+      initialName: 'admin',
+      targetName: 'demo-target',
+    })
+    expect(authStateCapture.authStates).toHaveLength(1)
+
+    await act(async () => {
+      await authStateCapture.onSave({ name: 'admin', replace: true })
+    })
+    await flush()
+
+    expect(saveLiveAuthStateMock).toHaveBeenCalledWith('session-1', { name: 'admin', replace: true })
+    expect(fetchAuthStatesMock).toHaveBeenCalledTimes(2)
+    expect(toastSuccessMock).toHaveBeenCalledWith('Saved auth state "admin" for target "demo-target".')
+    expect(updateTestFileMock).not.toHaveBeenCalled()
+    expect(createTestFileMock).not.toHaveBeenCalled()
+  })
+
+  it('does not pass invalid draft auth-state values to the pane and returns safe save failures', async () => {
+    fetchTestFileMock.mockResolvedValue({
+      path: 'tests/live-hook-test.yaml',
+      content: BASE_YAML.replace('authState: admin', 'authState: ../admin.json'),
+    })
+    saveLiveAuthStateMock.mockRejectedValue(new Error('EACCES .agent-qa/auth-states/demo-target/admin.json secret-cookie'))
+    const rootElement = await render(<TestEditorPage />)
+
+    await click(getButtonByText(rootElement, 'Connect Live Session'))
+
+    const authStateCapture = liveSessionPaneProps?.authStateCapture as {
+      initialName: string | null
+      onSave: (input: { name: string; replace: boolean }) => Promise<void>
+    }
+    expect(authStateCapture.initialName).toBeNull()
+
+    await expect(authStateCapture.onSave({ name: 'admin', replace: false }))
+      .rejects.toThrow('Could not save auth state "admin" for target "demo-target".')
+    expect(JSON.stringify(liveSessionPaneProps)).not.toContain('../admin.json')
+    expect(updateTestFileMock).not.toHaveBeenCalled()
   })
 })

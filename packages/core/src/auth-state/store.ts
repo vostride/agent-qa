@@ -1,12 +1,19 @@
 import { randomUUID } from 'node:crypto'
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import type { Dirent } from 'node:fs'
+import { mkdir, readdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { AuthStateMetadataSchema, type AuthStateMetadata } from './schema.js'
-import type { ResolvedAuthStatePaths } from './resolver.js'
+import { AuthStateMetadataSchema, TargetNameSchema, type AuthStateMetadata } from './schema.js'
+import { resolveAuthStatePaths, resolveAuthStateRoot, type ResolvedAuthStatePaths } from './resolver.js'
 
 export interface WriteAuthStateFilesInput {
   payload: unknown
   metadata: AuthStateMetadata
+}
+
+export interface ListAuthStateMetadataInput {
+  configDir: string
+  authStateDir?: string
+  targetName?: string
 }
 
 function assertMetadataMatches(paths: ResolvedAuthStatePaths, metadata: AuthStateMetadata): void {
@@ -71,3 +78,70 @@ export async function writeAuthStateFiles(
   await writeJsonAtomic(paths.metadataPath, metadata)
 }
 
+export async function listAuthStateMetadata(
+  input: ListAuthStateMetadataInput,
+): Promise<AuthStateMetadata[]> {
+  const rootDir = resolveAuthStateRoot({
+    configDir: input.configDir,
+    authStateDir: input.authStateDir,
+  })
+  const targetFilter = input.targetName ? TargetNameSchema.parse(input.targetName) : undefined
+
+  let targetEntries: Dirent<string>[]
+  try {
+    targetEntries = await readdir(rootDir, { withFileTypes: true })
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return []
+    }
+    throw error
+  }
+
+  const metadata: AuthStateMetadata[] = []
+  for (const targetEntry of targetEntries) {
+    if (!targetEntry.isDirectory()) continue
+    const targetNameResult = TargetNameSchema.safeParse(targetEntry.name)
+    if (!targetNameResult.success) continue
+    const targetName = targetNameResult.data
+    if (targetFilter && targetName !== targetFilter) continue
+
+    let stateEntries: Dirent<string>[]
+    const targetDir = path.join(rootDir, targetName)
+    try {
+      stateEntries = await readdir(targetDir, { withFileTypes: true })
+    } catch {
+      continue
+    }
+
+    for (const stateEntry of stateEntries) {
+      if (!stateEntry.isFile() || !stateEntry.name.endsWith('.meta.json')) continue
+      const stateName = stateEntry.name.slice(0, -'.meta.json'.length)
+      const paths = (() => {
+        try {
+          return resolveAuthStatePaths({
+            configDir: input.configDir,
+            authStateDir: input.authStateDir,
+            targetName,
+            stateName,
+            platform: 'web',
+          })
+        } catch {
+          return null
+        }
+      })()
+      if (!paths) continue
+
+      try {
+        const entry = await readAuthStateMetadata(paths)
+        metadata.push(entry)
+      } catch {
+        continue
+      }
+    }
+  }
+
+  return metadata.sort((a, b) => {
+    const targetOrder = a.target.localeCompare(b.target)
+    return targetOrder === 0 ? a.name.localeCompare(b.name) : targetOrder
+  })
+}

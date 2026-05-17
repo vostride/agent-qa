@@ -10,6 +10,7 @@ import { APPROVED_SAAS_PLACEHOLDER_SLUGS } from '@vostride/agent-qa-ids'
 import {
   exchangePluginAuthCode,
   fetchAppMetadata,
+  fetchAuthStates,
   fetchAuthStatus,
   fetchConfig,
   fetchLLMProviders,
@@ -108,6 +109,7 @@ vi.mock('@/lib/api', () => ({
     config: sampleConfig,
   }),
   updateSettings: vi.fn().mockResolvedValue({ updated: true }),
+  fetchAuthStates: vi.fn().mockResolvedValue({ authStates: [] }),
   fetchAuthStatus: vi.fn().mockResolvedValue({ credentials: [] }),
   fetchLLMProviders: vi.fn().mockResolvedValue({
     providers: [
@@ -616,6 +618,87 @@ describe('ConfigPage schema-driven shell', () => {
     const cacheDirInput = document.body.querySelector('#cache-dir') as HTMLInputElement | null
     expect(cacheDirInput).not.toBeNull()
     expect(cacheDirInput?.placeholder).toBe('.agent-qa/cache')
+  })
+
+  it('renders Auth States as a list-only Services destination without secret details', async () => {
+    vi.mocked(fetchAuthStates).mockResolvedValueOnce({
+      authStates: [
+        {
+          version: 1,
+          kind: 'web',
+          target: 'staging-web',
+          name: 'admin',
+          capturedAt: '2026-05-17T10:00:00.000Z',
+          storageStatePath: '.agent-qa/auth-states/staging-web/admin/storage-state.json',
+          payload: { cookies: [{ name: 'sid', value: 'secret-session' }] },
+          localStorage: 'unsafe-storage-value',
+          indexedDB: 'unsafe-indexed-db',
+          counts: { cookies: 1 },
+          ttl: '7d',
+          expiry: '2026-05-24T10:00:00.000Z',
+          source: 'live-mode',
+          createdAt: '2026-05-17T09:00:00.000Z',
+          updatedAt: '2026-05-17T10:01:00.000Z',
+        } as never,
+      ],
+    })
+
+    const view = await renderAt('/config?bucket=services&item=auth-states')
+
+    expect(view.querySelector('[data-testid="location"]')?.getAttribute('data-search')).toBe('?bucket=services&item=auth-states')
+    expect(view.textContent).toContain('Auth States')
+    expect(view.textContent).toContain('services.authState')
+    expect(view.textContent).toContain('services.authState.dir')
+    expect(view.textContent).toContain('Target')
+    expect(view.textContent).toContain('Name')
+    expect(view.textContent).toContain('Captured')
+    expect(view.textContent).toContain('Kind')
+    expect(view.textContent).toContain('staging-web')
+    expect(view.textContent).toContain('admin')
+    expect(view.textContent).toContain('web')
+    expect(view.querySelector('time[datetime="2026-05-17T10:00:00.000Z"]')).not.toBeNull()
+    expect(fetchAuthStates).toHaveBeenCalledTimes(1)
+
+    const forbiddenCopy = [
+      'Delete',
+      'Export',
+      'Import',
+      'Rename',
+      'Reveal path',
+      'View payload',
+      '.agent-qa/auth-states',
+      'storage-state.json',
+      'secret-session',
+      'unsafe-storage-value',
+      'unsafe-indexed-db',
+      'counts',
+      '7d',
+      '2026-05-24T10:00:00.000Z',
+      'live-mode',
+      '2026-05-17T09:00:00.000Z',
+      '2026-05-17T10:01:00.000Z',
+    ]
+    for (const text of forbiddenCopy) {
+      expect(view.textContent).not.toContain(text)
+    }
+  })
+
+  it('renders the Auth States empty state copy', async () => {
+    vi.mocked(fetchAuthStates).mockResolvedValueOnce({ authStates: [] })
+
+    const view = await renderAt('/config?bucket=services&item=auth-states')
+
+    expect(view.textContent).toContain('No auth states saved')
+    expect(view.textContent).toContain('Save auth state from a connected web Live Mode session.')
+  })
+
+  it('renders a safe Auth States load failure message', async () => {
+    vi.mocked(fetchAuthStates).mockRejectedValueOnce(new Error('metadata path leaked'))
+
+    const view = await renderAt('/config?bucket=services&item=auth-states')
+
+    expect(view.textContent).toContain('Could not load saved auth states.')
+    expect(view.textContent).not.toContain('metadata path leaked')
   })
 
   it('exposes and saves the memory directory with the memory settings block', async () => {

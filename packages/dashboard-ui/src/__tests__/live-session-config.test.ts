@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildLiveSessionConfig } from '../lib/live-session-config.js'
+import { buildLiveSessionConfig, readDraftAuthStateName } from '../lib/live-session-config.js'
 import type { GlobalUseConfig, TargetDetail } from '../hooks/use-target-details.js'
 
 describe('buildLiveSessionConfig', () => {
@@ -20,6 +20,7 @@ describe('buildLiveSessionConfig', () => {
 
     expect(result).toEqual({
       platform: 'web',
+      targetName: 'webTarget',
       url: 'https://example.com',
       headless: true,
     })
@@ -183,5 +184,33 @@ describe('buildLiveSessionConfig', () => {
     })
     expect('appPath' in result).toBe(false)
     expect('browserstackApp' in result).toBe(false)
+  })
+})
+
+describe('readDraftAuthStateName', () => {
+  it('returns a valid draft use.authState slug', () => {
+    expect(readDraftAuthStateName([
+      'name: Authenticated flow',
+      'use:',
+      '  authState: admin',
+      'steps:',
+      '  - Open the dashboard',
+      '',
+    ].join('\n'))).toBe('admin')
+  })
+
+  it.each([
+    ['missing value', 'name: No auth\nsteps: []\n', ''],
+    ['uppercase value', 'use:\n  authState: Admin\n', 'Admin'],
+    ['slash value', 'use:\n  authState: admin/state\n', 'admin/state'],
+    ['path-like value', 'use:\n  authState: ../admin.json\n', '../admin.json'],
+    ['unsafe object', 'use:\n  authState:\n    name: admin\n', 'admin'],
+  ])('returns null for %s without echoing unsafe input', (_label, content, unsafeValue) => {
+    const result = readDraftAuthStateName(content)
+
+    expect(result).toBeNull()
+    if (unsafeValue) {
+      expect(JSON.stringify(result)).not.toContain(unsafeValue)
+    }
   })
 })

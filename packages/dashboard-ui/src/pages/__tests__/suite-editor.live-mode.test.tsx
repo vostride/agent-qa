@@ -11,15 +11,23 @@ import SuiteEditorPage from '@/pages/suite-editor'
 const {
   createLiveEditorSessionMock,
   fetchSuiteFileMock,
+  fetchAuthStatesMock,
   navigateMock,
+  saveLiveAuthStateMock,
   terminateSessionMock,
+  toastSuccessMock,
+  updateSuiteFileMock,
   useParamsMock,
   useSearchParamsMock,
 } = vi.hoisted(() => ({
   createLiveEditorSessionMock: vi.fn(),
   fetchSuiteFileMock: vi.fn(),
+  fetchAuthStatesMock: vi.fn(),
   navigateMock: vi.fn(),
+  saveLiveAuthStateMock: vi.fn(),
   terminateSessionMock: vi.fn(),
+  toastSuccessMock: vi.fn(),
+  updateSuiteFileMock: vi.fn(),
   useParamsMock: vi.fn(),
   useSearchParamsMock: vi.fn(),
 }))
@@ -115,7 +123,7 @@ vi.mock('react-router', async () => {
 vi.mock('sonner', () => ({
   toast: {
     error: vi.fn(),
-    success: vi.fn(),
+    success: toastSuccessMock,
   },
 }))
 
@@ -235,9 +243,13 @@ vi.mock('@/hooks/use-live-editor', () => ({
   }),
 }))
 
-vi.mock('@/lib/live-session-config', () => ({
-  buildLiveSessionConfig: () => ({ platform: 'web', target: 'demo-target' }),
-}))
+vi.mock('@/lib/live-session-config', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/live-session-config')>('@/lib/live-session-config')
+  return {
+    ...actual,
+    buildLiveSessionConfig: () => ({ platform: 'web', targetName: 'demo-target', url: 'https://example.com' }),
+  }
+})
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api')
@@ -246,9 +258,11 @@ vi.mock('@/lib/api', async () => {
     fetchSuiteFile: fetchSuiteFileMock,
     createLiveEditorSession: createLiveEditorSessionMock,
     createSuiteFile: vi.fn(),
-    updateSuiteFile: vi.fn(),
+    updateSuiteFile: updateSuiteFileMock,
     validateSuiteContent: vi.fn(),
     triggerRun: vi.fn(),
+    fetchAuthStates: fetchAuthStatesMock,
+    saveLiveAuthState: saveLiveAuthStateMock,
     fetchConfig: vi.fn().mockResolvedValue({
       config: { workspace: { suiteMatch: ['**/*.suite.yaml'] } },
     }),
@@ -263,9 +277,13 @@ beforeEach(() => {
   suiteVisualBuilderProps = null
   resetLiveEditorState()
   fetchSuiteFileMock.mockReset()
+  fetchAuthStatesMock.mockReset()
+  saveLiveAuthStateMock.mockReset()
   createLiveEditorSessionMock.mockReset()
   navigateMock.mockReset()
   terminateSessionMock.mockReset()
+  toastSuccessMock.mockReset()
+  updateSuiteFileMock.mockReset()
   useParamsMock.mockReset()
   useSearchParamsMock.mockReset()
 
@@ -273,9 +291,19 @@ beforeEach(() => {
   useSearchParamsMock.mockReturnValue([new URLSearchParams(''), vi.fn()])
   fetchSuiteFileMock.mockResolvedValue({
     path: 'suites/live.suite.yaml',
-    content: `name: Live Suite\nsuite-id: s_live\ntarget: demo-target\ntests:\n  - test: tests/web/login.yaml\n    id: t_login\n  - test: tests/web/checkout.yaml\n    id: t_checkout\n`,
+    content: `name: Live Suite\nsuite-id: s_live\ntarget: demo-target\nuse:\n  authState: suite-admin\ntests:\n  - test: tests/web/login.yaml\n    id: t_login\n  - test: tests/web/checkout.yaml\n    id: t_checkout\n`,
   })
   createLiveEditorSessionMock.mockResolvedValue({ sessionId: 'session-1', sessionNumber: 1 })
+  fetchAuthStatesMock.mockResolvedValue({ authStates: [] })
+  saveLiveAuthStateMock.mockResolvedValue({
+    authState: {
+      version: 1,
+      kind: 'web',
+      target: 'demo-target',
+      name: 'suite-admin',
+      capturedAt: '2026-05-17T10:00:00.000Z',
+    },
+  })
 
   container = document.createElement('div')
   document.body.appendChild(container)
@@ -386,5 +414,65 @@ describe('SuiteEditorPage live mode orchestration', () => {
 
     expect(liveSessionPaneProps?.terminalState).toMatchObject({ reason: 'disconnected' })
     expect(liveSessionPaneProps?.errorMessage).toBeNull()
+  })
+
+  it('passes suite auth-state prefill, saves via auth-state API, and leaves YAML unchanged', async () => {
+    fetchAuthStatesMock.mockResolvedValue({
+      authStates: [{
+        version: 1,
+        kind: 'web',
+        target: 'demo-target',
+        name: 'suite-admin',
+        capturedAt: '2026-05-17T10:00:00.000Z',
+      }],
+    })
+    const rootElement = await render(<SuiteEditorPage />)
+
+    await click(getButtonByText(rootElement, 'Connect Live Session'))
+
+    expect(createLiveEditorSessionMock.mock.calls[0]?.[0]).toMatchObject({ targetName: 'demo-target' })
+    expect(fetchAuthStatesMock).toHaveBeenCalledWith({ target: 'demo-target' })
+    const authStateCapture = liveSessionPaneProps?.authStateCapture as {
+      initialName: string | null
+      targetName: string
+      authStates: unknown[]
+      onSave: (input: { name: string; replace: boolean }) => Promise<void>
+    }
+    expect(authStateCapture).toMatchObject({
+      initialName: 'suite-admin',
+      targetName: 'demo-target',
+    })
+    expect(authStateCapture.authStates).toHaveLength(1)
+
+    await act(async () => {
+      await authStateCapture.onSave({ name: 'suite-admin', replace: true })
+    })
+    await flush()
+
+    expect(saveLiveAuthStateMock).toHaveBeenCalledWith('session-1', { name: 'suite-admin', replace: true })
+    expect(fetchAuthStatesMock).toHaveBeenCalledTimes(2)
+    expect(toastSuccessMock).toHaveBeenCalledWith('Saved auth state "suite-admin" for target "demo-target".')
+    expect(updateSuiteFileMock).not.toHaveBeenCalled()
+  })
+
+  it('suppresses invalid suite auth-state prefill and returns safe save failures', async () => {
+    fetchSuiteFileMock.mockResolvedValue({
+      path: 'suites/live.suite.yaml',
+      content: `name: Live Suite\nsuite-id: s_live\ntarget: demo-target\nuse:\n  authState: ../suite-admin.json\ntests:\n  - test: tests/web/login.yaml\n    id: t_login\n`,
+    })
+    saveLiveAuthStateMock.mockRejectedValue(new Error('EACCES .agent-qa/auth-states/demo-target/suite-admin.json secret-cookie'))
+    const rootElement = await render(<SuiteEditorPage />)
+
+    await click(getButtonByText(rootElement, 'Connect Live Session'))
+
+    const authStateCapture = liveSessionPaneProps?.authStateCapture as {
+      initialName: string | null
+      onSave: (input: { name: string; replace: boolean }) => Promise<void>
+    }
+    expect(authStateCapture.initialName).toBeNull()
+    await expect(authStateCapture.onSave({ name: 'suite-admin', replace: false }))
+      .rejects.toThrow('Could not save auth state "suite-admin" for target "demo-target".')
+    expect(JSON.stringify(liveSessionPaneProps)).not.toContain('../suite-admin.json')
+    expect(updateSuiteFileMock).not.toHaveBeenCalled()
   })
 })

@@ -202,12 +202,16 @@ vi.mock('@/hooks/use-live-editor', () => ({
   })),
 }))
 
-vi.mock('@/lib/live-session-config', () => ({
-  buildLiveSessionConfig: () => ({
+vi.mock('@/lib/live-session-config', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/live-session-config')>('@/lib/live-session-config')
+  return {
+    ...actual,
+    buildLiveSessionConfig: () => ({
     platform: 'web',
-    target: 'demo-target',
+    targetName: 'demo-target',
   }),
-}))
+  }
+})
 
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api')

@@ -201,6 +201,39 @@ export interface LLMProviderMetadata {
   modelAdapter?: 'openai-responses' | 'anthropic-messages'
 }
 
+export interface AuthStateMetadata {
+  version: 1
+  kind: 'web'
+  target: string
+  name: string
+  capturedAt: string
+}
+
+function toAuthStateMetadata(value: unknown): AuthStateMetadata | null {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return null
+  }
+
+  const candidate = value as Record<string, unknown>
+  if (
+    candidate.version !== 1 ||
+    candidate.kind !== 'web' ||
+    typeof candidate.target !== 'string' ||
+    typeof candidate.name !== 'string' ||
+    typeof candidate.capturedAt !== 'string'
+  ) {
+    return null
+  }
+
+  return {
+    version: 1,
+    kind: 'web',
+    target: candidate.target,
+    name: candidate.name,
+    capturedAt: candidate.capturedAt,
+  }
+}
+
 const API_BASE = ''
 
 /**
@@ -349,6 +382,30 @@ export async function fetchRunArtifact(id: string): Promise<RunArtifactResponse>
 export async function fetchStats(opts: { from?: string; to?: string; scope?: 'passRate' } = {}): Promise<Stats> {
   const query = buildQuery({ from: opts.from, to: opts.to, scope: opts.scope })
   return request(`/api/stats${query}`)
+}
+
+export async function fetchAuthStates(opts: { target?: string } = {}): Promise<{ authStates: AuthStateMetadata[] }> {
+  const query = buildQuery({ target: opts.target })
+  const result = await request<{ authStates?: unknown }>(`/api/auth-states${query}`)
+  const authStates = Array.isArray(result.authStates)
+    ? result.authStates.map(toAuthStateMetadata).filter((item): item is AuthStateMetadata => item !== null)
+    : []
+  return { authStates }
+}
+
+export async function saveLiveAuthState(
+  sessionId: string,
+  input: { name: string; replace?: boolean },
+): Promise<{ authState: AuthStateMetadata }> {
+  const result = await postJson<{ authState?: unknown }>(
+    `/api/live-editor/sessions/${encodeURIComponent(sessionId)}/auth-state`,
+    input,
+  )
+  const authState = toAuthStateMetadata(result.authState)
+  if (!authState) {
+    throw new Error('Invalid auth state response')
+  }
+  return { authState }
 }
 
 export type InsightsBreakdownDimension = 'test' | 'suite' | 'platform'

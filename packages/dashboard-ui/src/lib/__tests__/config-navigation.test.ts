@@ -16,6 +16,7 @@ describe('config navigation inventory', () => {
       'workspace:agent-rules',
       'services:dashboard',
       'services:cache',
+      'services:auth-states',
       'services:logging',
       'services:recording',
       'services:accessibility',
@@ -54,6 +55,7 @@ describe('config navigation inventory', () => {
     expect(searchConfigNavigationItems('log capture').map((item) => item.item)).toContain('log-capture')
     expect(searchConfigNavigationItems('reset app data').map((item) => item.item)).toContain('mobile')
     expect(searchConfigNavigationItems('pass rate').map((item) => item.item)).toContain('pass-rate-scope')
+    expect(searchConfigNavigationItems('saved auth').map((item) => item.item)).toContain('auth-states')
     expect(searchConfigNavigationItems('browser headless').map((item) => item.item)).toEqual(['browser'])
   })
 
@@ -74,6 +76,7 @@ describe('config navigation inventory', () => {
   it('indexes audited services runtime path fields', () => {
     const dashboardItem = CONFIG_NAVIGATION_ITEMS.find((item) => item.bucket === 'services' && item.item === 'dashboard')
     const cacheItem = CONFIG_NAVIGATION_ITEMS.find((item) => item.bucket === 'services' && item.item === 'cache')
+    const authStatesItem = CONFIG_NAVIGATION_ITEMS.find((item) => item.bucket === 'services' && item.item === 'auth-states')
     const memoryItem = CONFIG_NAVIGATION_ITEMS.find((item) => item.bucket === 'services' && item.item === 'memory')
 
     expect(dashboardItem?.fieldPaths).toEqual(expect.arrayContaining([
@@ -85,6 +88,10 @@ describe('config navigation inventory', () => {
       'services.cache',
       'services.cache.dir',
       'services.cache.ttl',
+    ]))
+    expect(authStatesItem?.fieldPaths).toEqual(expect.arrayContaining([
+      'services.authState',
+      'services.authState.dir',
     ]))
     expect(memoryItem?.fieldPaths).toEqual(expect.arrayContaining([
       'services.memory',

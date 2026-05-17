@@ -14,7 +14,7 @@ import type { ConfigManager } from '../config/index.js'
 import { HookRegistryManager, isHookRegistryMutationError } from '../hooks/hook-registry-manager.js'
 import { readJsonBody } from './body-parser.js'
 import type { AnalyticsServiceConfig, LLMAuthProviderPlugin, ModelConfig, OAuthTokens } from '@vostride/agent-qa-core'
-import { buildAnalyticsEvent, buildInternalRunAttributes, captureAnalytics, mergeRunAttributes, readAuth, writeAuth, removeAuth, getAgentQaVersion, getProviderOptions, getLLMAuthProviderPlugin, listLLMAuthProviderPlugins, ModelConfigSchema, NamedLLMConfigSchema, WorkspaceSchema, ServicesSchema, RegistrySchema, UseSchema, MobileAppStateSchema, hashStepInstruction, TimeoutConfigSchema, CacheConfigSchema, HealingConfigSchema, PlannerConfigSchema, LoggingConfigSchema, LogCaptureConfigSchema, AccessibilityConfigSchema, DashboardConfigSchema, McpConfigSchema, RecordingConfigSchema, BrowserConfigSchema, AnalyticsSchema, AgentQaConfigSchema, TestDefinitionSchema, SuiteDefinitionSchema, parseEnvFile, serializeEnvFile, parseHooksFile, runHookInSandbox, RUNTIME_IMAGE_MAP, SecretStore, SecretRedactor, validateUserRunAttributes, discoverWorkspaceFiles, isWorkspacePathMatch, resolveAnalyticsStandardProperties, resolveMemoryRoot, resolveWorkspaceFileTarget } from '@vostride/agent-qa-core'
+import { AuthStateNameSchema, buildAnalyticsEvent, buildInternalRunAttributes, captureAnalytics, mergeRunAttributes, readAuth, writeAuth, removeAuth, getAgentQaVersion, getProviderOptions, getLLMAuthProviderPlugin, listAuthStateMetadata, listLLMAuthProviderPlugins, ModelConfigSchema, NamedLLMConfigSchema, WorkspaceSchema, ServicesSchema, RegistrySchema, UseSchema, MobileAppStateSchema, hashStepInstruction, TimeoutConfigSchema, CacheConfigSchema, HealingConfigSchema, PlannerConfigSchema, LoggingConfigSchema, LogCaptureConfigSchema, AccessibilityConfigSchema, DashboardConfigSchema, McpConfigSchema, RecordingConfigSchema, BrowserConfigSchema, AnalyticsSchema, AgentQaConfigSchema, TestDefinitionSchema, SuiteDefinitionSchema, parseEnvFile, serializeEnvFile, parseHooksFile, runHookInSandbox, RUNTIME_IMAGE_MAP, SecretStore, SecretRedactor, validateUserRunAttributes, discoverWorkspaceFiles, isWorkspacePathMatch, resolveAnalyticsStandardProperties, resolveMemoryRoot, resolveWorkspaceFileTarget } from '@vostride/agent-qa-core'
 import type { ResolvedWorkspacePaths, RunAttributes, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { parse as parseYaml } from 'yaml'
 
@@ -442,6 +442,51 @@ function cors(res: ServerResponse): void {
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function getConfiguredAuthStateDir(config: Record<string, unknown>): string | undefined {
+  const services = isPlainRecord(config.services) ? config.services : undefined
+  const authState = services && isPlainRecord(services.authState) ? services.authState : undefined
+  return typeof authState?.dir === 'string' ? authState.dir : undefined
+}
+
+function getSessionTargetNameForAuthState(session: { getState?: () => unknown } | undefined): string {
+  if (!session || typeof session.getState !== 'function') return 'selected target'
+  try {
+    const state = session.getState()
+    if (isPlainRecord(state) && typeof state.targetName === 'string' && state.targetName.trim().length > 0) {
+      return state.targetName.trim()
+    }
+  } catch {
+    // Do not let state serialization failures leak into auth-state responses.
+  }
+  return 'selected target'
+}
+
+function buildAuthStateSaveErrorMessage(
+  stateName: string,
+  targetName: string,
+  error: unknown,
+): { status: number; message: string } {
+  const raw = error instanceof Error ? error.message : String(error)
+  if (/already exists/i.test(raw)) {
+    return {
+      status: 409,
+      message: `Auth state "${stateName}" for target "${targetName}" already exists. Use replace=true to replace it.`,
+    }
+  }
+
+  if (/web Live Mode|not ready|executing|busy/i.test(raw)) {
+    return {
+      status: 409,
+      message: `Could not save auth state "${stateName}" for target "${targetName}".`,
+    }
+  }
+
+  return {
+    status: 500,
+    message: `Could not save auth state "${stateName}" for target "${targetName}".`,
+  }
 }
 
 function isDashboardProductEventName(value: unknown): value is DashboardProductEventName {
@@ -1318,6 +1363,29 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps, artifacts
 
     const url = parseUrl(req)
     const path = url.pathname
+
+    // GET /api/auth-states — list safe auth-state metadata only
+    if (path === '/api/auth-states' && req.method === 'GET') {
+      if (!configManager || !deps.configPath) {
+        json(res, { error: 'Auth-state metadata not available' }, 503)
+        return
+      }
+      ;(async () => {
+        try {
+          const config = await configManager.read()
+          const targetName = url.searchParams.get('target') ?? undefined
+          const authStates = await listAuthStateMetadata({
+            configDir: dirname(resolve(deps.configPath!)),
+            authStateDir: getConfiguredAuthStateDir(config),
+            targetName,
+          })
+          json(res, { authStates })
+        } catch {
+          json(res, { error: 'Could not list auth states.' }, 500)
+        }
+      })()
+      return
+    }
 
     // POST /api/analytics/events — best-effort dashboard product analytics bridge
     if (path === '/api/analytics/events' && req.method === 'POST') {
@@ -3846,6 +3914,49 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps, artifacts
           json(res, { deleted: existed })
         } catch (err: unknown) {
           json(res, { error: err instanceof Error ? err.message : 'Failed to delete variable' }, 500)
+        }
+      })()
+      return
+    }
+
+    // POST /api/live-editor/sessions/:id/auth-state — save auth state from active web Live Mode context
+    const liveEditorAuthStateMatch = path.match(/^\/api\/live-editor\/sessions\/([^/]+)\/auth-state$/)
+    if (liveEditorAuthStateMatch && req.method === 'POST') {
+      if (!sessionManager) {
+        json(res, { error: 'Live editor not available' }, 503)
+        return
+      }
+      ;(async () => {
+        let stateName = ''
+        let session: { captureWebAuthState?: (name: string, options: { replace: boolean }) => Promise<unknown>; getState?: () => unknown } | undefined
+        try {
+          const body = await readJsonBody<{ name?: unknown; replace?: unknown }>(req)
+          const parsedName = AuthStateNameSchema.safeParse(typeof body?.name === 'string' ? body.name : '')
+          if (!parsedName.success) {
+            json(res, { error: 'Auth state name must be a lowercase slug.' }, 400)
+            return
+          }
+
+          stateName = parsedName.data
+          session = sessionManager.getSession(decodeURIComponent(liveEditorAuthStateMatch[1]))
+          if (!session) {
+            notFound(res, 'Session not found')
+            return
+          }
+
+          if (typeof session.captureWebAuthState !== 'function') {
+            json(res, {
+              error: `Could not save auth state "${stateName}" for target "${getSessionTargetNameForAuthState(session)}".`,
+            }, 500)
+            return
+          }
+
+          const authState = await session.captureWebAuthState(stateName, { replace: body?.replace === true })
+          json(res, { authState })
+        } catch (err: unknown) {
+          const targetName = getSessionTargetNameForAuthState(session)
+          const response = buildAuthStateSaveErrorMessage(stateName || 'unknown', targetName, err)
+          json(res, { error: response.message }, response.status)
         }
       })()
       return

@@ -823,7 +823,7 @@ describe('PUT /api/config/settings', () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         'registry.targets': {
-          badWeb: {
+          'bad-web': {
             platform: 'web',
           },
         },
@@ -833,7 +833,7 @@ describe('PUT /api/config/settings', () => {
     expect(res.status).toBe(400)
     const data = JSON.parse(res.body) as { error: string; details: string[] }
     expect(data.error).toBe('Validation failed')
-    expect(data.details).toContain('registry.targets.badWeb: Web targets must have a url')
+    expect(data.details).toContain('registry.targets.bad-web: Web targets must have a url')
   })
 
   it('persists mobile target app install fields', async () => {
@@ -849,7 +849,7 @@ describe('PUT /api/config/settings', () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         'registry.targets': {
-          releaseAndroid: {
+          'release-android': {
             platform: 'android',
             appPackage: 'org.wikipedia.alpha',
             appActivity: 'org.wikipedia.main.MainActivity',
@@ -868,7 +868,7 @@ describe('PUT /api/config/settings', () => {
     expect(config).toMatchObject({
       registry: {
         targets: {
-          releaseAndroid: {
+          'release-android': {
             platform: 'android',
             appPackage: 'org.wikipedia.alpha',
             appActivity: 'org.wikipedia.main.MainActivity',
@@ -888,7 +888,7 @@ describe('PUT /api/config/settings', () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         'registry.targets': {
-          badAndroid: {
+          'bad-android': {
             platform: 'android',
             app: {
               path: '/tmp/wikipedia.apk',
@@ -901,7 +901,7 @@ describe('PUT /api/config/settings', () => {
     expect(res.status).toBe(400)
     const data = JSON.parse(res.body) as { error: string; details: string[] }
     expect(data.error).toBe('Validation failed')
-    expect(data.details).toContain('registry.targets.badAndroid.app.path: app.path must be relative')
+    expect(data.details).toContain('registry.targets.bad-android.app.path: app.path must be relative')
   })
 
   it('rejects unknown mobile target app keys', async () => {
@@ -910,7 +910,7 @@ describe('PUT /api/config/settings', () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         'registry.targets': {
-          badAndroid: {
+          'bad-android': {
             platform: 'android',
             app: {
               path: 'apps/wikipedia.apk',
@@ -925,7 +925,7 @@ describe('PUT /api/config/settings', () => {
     const data = JSON.parse(res.body) as { error: string; details: string[] }
     expect(data.error).toBe('Validation failed')
     expect(data.details.some((detail) =>
-      detail.startsWith('registry.targets.badAndroid.app:')
+      detail.startsWith('registry.targets.bad-android.app:')
       && detail.includes('fallback'),
     )).toBe(true)
   })

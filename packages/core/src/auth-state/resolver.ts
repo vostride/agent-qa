@@ -24,6 +24,11 @@ export interface ResolvedAuthStatePaths {
   metadataPath: string
 }
 
+export interface ResolveAuthStateRootInput {
+  configDir: string
+  authStateDir?: string
+}
+
 const MOBILE_AUTH_STATE_ERROR = [
   'auth state is only supported for web targets.',
   'For native mobile, use use.mobile.appState: preserve when keeping app data between sessions.',
@@ -37,7 +42,8 @@ function assertInsideRoot(rootDir: string, filePath: string): void {
   }
 }
 
-function resolveAuthStateRoot(configDir: string, authStateDir?: string): string {
+export function resolveAuthStateRoot(input: ResolveAuthStateRootInput): string {
+  const { configDir, authStateDir } = input
   const configuredDir = authStateDir ?? DEFAULT_AGENT_QA_AUTH_STATES_DIR
   if (configuredDir.trim().length === 0) {
     throw new Error('authState.dir must be a non-empty path')
@@ -56,7 +62,10 @@ export function resolveAuthStatePaths(input: ResolveAuthStatePathsInput): Resolv
     throw new Error(MOBILE_AUTH_STATE_ERROR)
   }
 
-  const rootDir = resolveAuthStateRoot(input.configDir, input.authStateDir)
+  const rootDir = resolveAuthStateRoot({
+    configDir: input.configDir,
+    authStateDir: input.authStateDir,
+  })
   const targetDir = path.join(rootDir, targetName)
   const payloadPath = path.join(targetDir, `${stateName}.json`)
   const metadataPath = path.join(targetDir, `${stateName}.meta.json`)
@@ -73,4 +82,3 @@ export function resolveAuthStatePaths(input: ResolveAuthStatePathsInput): Resolv
     metadataPath,
   }
 }
-

@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto'
+import { dirname, resolve as resolvePath } from 'node:path'
 import {
+  AUTH_STATE_SCHEMA_VERSION,
   executeStep,
   createModel,
   getProviderOptions,
@@ -13,11 +15,15 @@ import {
   runHooks,
   runHookInSandbox,
   MobileSetupError,
+  readAuthStateMetadata,
   redactSecretValue,
+  resolveAuthStatePaths,
   resolveSecretTemplatesInValue,
+  writeAuthStateFiles,
 } from '@vostride/agent-qa-core'
 import type {
   AgentLoopConfig,
+  AuthStateMetadata,
   StepContext,
   PlatformAdapter,
   PlatformConfig,
@@ -62,6 +68,14 @@ export interface LiveSessionDeps {
 export interface LiveStepExecutionResult extends StepResult {
   executionLogs?: LiveExecutionLog[]
   subActionsData?: LiveSubActionData[]
+}
+
+interface WebStorageStateContext {
+  storageState(options?: { indexedDB?: boolean }): Promise<unknown>
+}
+
+interface WebStorageStatePage {
+  context(): WebStorageStateContext
 }
 
 // Shared with ws-handler.ts toStepResultPayload. Kept in-module so that
@@ -112,6 +126,31 @@ function coerceRunJSResult(value: unknown): string {
     return String(value)
   }
   return JSON.stringify(value)
+}
+
+function getWebStorageStateContext(adapter: PlatformAdapter | null): WebStorageStateContext | null {
+  if (!adapter || !('getPage' in adapter)) return null
+  const page = (adapter as { getPage?: () => unknown }).getPage?.()
+  if (!page || typeof page !== 'object') return null
+
+  const contextFactory = (page as Partial<WebStorageStatePage>).context
+  if (typeof contextFactory !== 'function') return null
+
+  const context = contextFactory.call(page)
+  if (!context || typeof context !== 'object') return null
+
+  const storageState = (context as Partial<WebStorageStateContext>).storageState
+  if (typeof storageState !== 'function') return null
+  return context as WebStorageStateContext
+}
+
+function getConfiguredAuthStateDir(config: Record<string, unknown>): string | undefined {
+  const services = config.services
+  if (!services || typeof services !== 'object') return undefined
+  const authState = (services as Record<string, unknown>).authState
+  if (!authState || typeof authState !== 'object') return undefined
+  const dir = (authState as Record<string, unknown>).dir
+  return typeof dir === 'string' ? dir : undefined
 }
 
 function toLiveSubActionData(result: StepResult): LiveSubActionData[] | undefined {
@@ -199,6 +238,7 @@ export class LiveSession {
   private previousSteps: { instruction: string; outcome: string; reasoning?: string; plannedAction?: string; verifierResponse?: string }[] = []
   private currentStep: string | null = null
   private platform: 'web' | 'android' | 'ios' = 'web'
+  private targetName: string | null = null
   private currentUrl: string | null = null
   private executing = false
   private idleTimer: ReturnType<typeof setTimeout> | null = null
@@ -524,6 +564,9 @@ export class LiveSession {
 
   async initialize(config: LiveSessionConfig): Promise<void> {
     this.platform = config.platform
+    this.targetName = typeof config.targetName === 'string' && config.targetName.trim().length > 0
+      ? config.targetName.trim()
+      : null
     this._modelName = config.llmConfig.model ?? 'unknown'
     this.variableStore = new VariableStore()
     this.secretStore = config.secretStore
@@ -1108,6 +1151,77 @@ export class LiveSession {
     }
   }
 
+  async captureWebAuthState(
+    name: string,
+    options: { replace?: boolean } = {},
+  ): Promise<AuthStateMetadata> {
+    if (this.platform !== 'web') {
+      throw new Error('Auth-state capture is only available for web Live Mode sessions.')
+    }
+
+    if (!this.readyForInteraction || !this.adapter) {
+      throw new Error(this.terminalError ?? 'Live session is not ready for auth-state capture.')
+    }
+
+    if (this.adapter.platform !== 'web') {
+      throw new Error('Auth-state capture is only available for web Live Mode sessions.')
+    }
+
+    if (this.executing) {
+      throw new Error('Cannot save auth state while the Live Mode session is executing.')
+    }
+
+    if (!this.targetName) {
+      throw new Error('Cannot save auth state because this Live Mode session has no configured target.')
+    }
+
+    if (!this.deps.configManager || !this.deps.configPath) {
+      throw new Error('Cannot save auth state because workspace config is unavailable.')
+    }
+
+    const context = getWebStorageStateContext(this.adapter)
+    if (!context) {
+      throw new Error('Cannot save auth state because the active browser context is unavailable.')
+    }
+
+    const config = await this.deps.configManager.read()
+    const authStateDir = getConfiguredAuthStateDir(config)
+    const paths = resolveAuthStatePaths({
+      configDir: dirname(resolvePath(this.deps.configPath)),
+      authStateDir,
+      targetName: this.targetName,
+      stateName: name,
+      target: { platform: 'web' },
+    })
+
+    let existing: AuthStateMetadata | null = null
+    try {
+      existing = await readAuthStateMetadata(paths)
+    } catch {
+      existing = null
+    }
+    if (existing && options.replace !== true) {
+      throw new Error(`Auth state "${paths.stateName}" for target "${paths.targetName}" already exists. Use replace=true to replace it.`)
+    }
+
+    const payload = await context.storageState({ indexedDB: true })
+    const metadata: AuthStateMetadata = {
+      version: AUTH_STATE_SCHEMA_VERSION,
+      kind: 'web',
+      target: paths.targetName,
+      name: paths.stateName,
+      capturedAt: new Date().toISOString(),
+    }
+
+    try {
+      await writeAuthStateFiles(paths, { payload, metadata })
+    } catch {
+      throw new Error(`Could not save auth state "${paths.stateName}" for target "${paths.targetName}".`)
+    }
+
+    return metadata
+  }
+
   cancelStep(): void {
     this.abortController?.abort()
   }
@@ -1174,6 +1288,7 @@ export class LiveSession {
     return {
       sessionId: this.sessionId,
       platform: (this.adapter?.platform ?? this.platform) as 'web' | 'android' | 'ios',
+      targetName: this.targetName,
       status: this.status === 'terminated' ? 'idle' : this.status === 'executing' ? 'executing' : this.status,
       currentStep: this.currentStep,
       currentUrl: this.currentUrl,

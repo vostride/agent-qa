@@ -5,7 +5,15 @@ import { dirname, join, sep } from 'node:path'
 import { Socket } from 'node:net'
 import { tmpdir } from 'node:os'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { hashStepInstruction, resolveWorkspacePaths, type ResolvedWorkspacePaths } from '@vostride/agent-qa-core'
+import {
+  AUTH_STATE_SCHEMA_VERSION,
+  hashStepInstruction,
+  resolveAuthStatePaths,
+  resolveWorkspacePaths,
+  writeAuthStateFiles,
+  type AuthStateMetadata,
+  type ResolvedWorkspacePaths,
+} from '@vostride/agent-qa-core'
 
 import { ConfigManager } from '../config/index.js'
 import { DashboardDatabase } from '../db/database.js'
@@ -175,6 +183,29 @@ function createMockDatabase() {
 let db: ReturnType<typeof createMockDatabase>
 let router: ReturnType<typeof createRouter>
 let tempDirs: string[] = []
+
+const AUTH_STATE_COOKIE_SECRET = 'route-secret-cookie'
+const AUTH_STATE_LOCAL_STORAGE_SECRET = 'route-secret-local-storage'
+const AUTH_STATE_INDEXED_DB_SECRET = 'route-secret-indexed-db'
+
+const AUTH_STATE_PAYLOAD = {
+  cookies: [{ name: 'sid', value: AUTH_STATE_COOKIE_SECRET, domain: 'staging.example.com', path: '/' }],
+  origins: [{
+    origin: 'https://staging.example.com',
+    localStorage: [{ name: 'token', value: AUTH_STATE_LOCAL_STORAGE_SECRET }],
+    indexedDB: [{ name: 'auth-db', value: AUTH_STATE_INDEXED_DB_SECRET }],
+  }],
+}
+
+function expectAuthStateResponseSafe(serialized: string): void {
+  expect(serialized).not.toContain('.agent-qa/auth-states')
+  expect(serialized).not.toContain('.json')
+  expect(serialized).not.toContain('payloadPath')
+  expect(serialized).not.toContain('metadataPath')
+  expect(serialized).not.toContain(AUTH_STATE_COOKIE_SECRET)
+  expect(serialized).not.toContain(AUTH_STATE_LOCAL_STORAGE_SECRET)
+  expect(serialized).not.toContain(AUTH_STATE_INDEXED_DB_SECRET)
+}
 
 function insertSampleRun(overrides: Record<string, unknown> = {}) {
   return db.insertRun({
@@ -447,6 +478,202 @@ describe('API Routes', () => {
       expect(durableSources).not.toMatch(/\bliveTimeline\b/)
       expect(routesSource).toContain('/api/execution/events')
       expect(routesSource).not.toMatch(/\/api\/runs\/[^'"]+\/live[-_]timeline/)
+    })
+  })
+
+  describe('auth state APIs', () => {
+    async function seedAuthState(
+      configPath: string,
+      targetName: string,
+      stateName: string,
+      capturedAt: string,
+    ): Promise<AuthStateMetadata> {
+      const metadata: AuthStateMetadata = {
+        version: AUTH_STATE_SCHEMA_VERSION,
+        kind: 'web',
+        target: targetName,
+        name: stateName,
+        capturedAt,
+      }
+      const paths = resolveAuthStatePaths({
+        configDir: dirname(configPath),
+        authStateDir: '.agent-qa/auth-states',
+        targetName,
+        stateName,
+        platform: 'web',
+      })
+      await writeAuthStateFiles(paths, {
+        payload: AUTH_STATE_PAYLOAD,
+        metadata,
+      })
+      return metadata
+    }
+
+    it('lists saved auth-state metadata without exposing paths or payloads', async () => {
+      const { configManager, configPath } = await createConfigWorkspace([
+        'services:',
+        '  authState:',
+        '    dir: .agent-qa/auth-states',
+        '',
+      ].join('\n'))
+      const prod = await seedAuthState(configPath, 'prod-web', 'admin', '2026-05-17T09:00:00.000Z')
+      const staging = await seedAuthState(configPath, 'staging-web', 'admin', '2026-05-17T10:00:00.000Z')
+      router = createRouter({ db: db as any, configManager, configPath })
+
+      const res = await invokeRoute('/api/auth-states')
+
+      expect(res.status).toBe(200)
+      expectAuthStateResponseSafe(res.body)
+      const data = JSON.parse(res.body) as { authStates: AuthStateMetadata[] }
+      expect(data.authStates).toEqual([prod, staging])
+      expect(JSON.stringify(data.authStates)).not.toContain('cookie')
+      expect(JSON.stringify(data.authStates)).not.toContain('localStorage')
+      expect(JSON.stringify(data.authStates)).not.toContain('indexedDB')
+      expect(JSON.stringify(data.authStates)).not.toContain('createdAt')
+      expect(JSON.stringify(data.authStates)).not.toContain('updatedAt')
+      expect(JSON.stringify(data.authStates)).not.toContain('ttl')
+      expect(JSON.stringify(data.authStates)).not.toContain('capturedFrom')
+    })
+
+    it('filters auth-state metadata by target', async () => {
+      const { configManager, configPath } = await createConfigWorkspace([
+        'services:',
+        '  authState:',
+        '    dir: .agent-qa/auth-states',
+        '',
+      ].join('\n'))
+      await seedAuthState(configPath, 'prod-web', 'admin', '2026-05-17T09:00:00.000Z')
+      const staging = await seedAuthState(configPath, 'staging-web', 'admin', '2026-05-17T10:00:00.000Z')
+      router = createRouter({ db: db as any, configManager, configPath })
+
+      const res = await invokeRoute('/api/auth-states?target=staging-web')
+
+      expect(res.status).toBe(200)
+      expectAuthStateResponseSafe(res.body)
+      expect(JSON.parse(res.body)).toEqual({ authStates: [staging] })
+    })
+
+    it('saves auth state through the live session capture method', async () => {
+      const metadata: AuthStateMetadata = {
+        version: AUTH_STATE_SCHEMA_VERSION,
+        kind: 'web',
+        target: 'staging-web',
+        name: 'admin',
+        capturedAt: '2026-05-17T10:00:00.000Z',
+      }
+      const captureWebAuthState = vi.fn().mockResolvedValue(metadata)
+      const sessionManager = {
+        getSession: vi.fn(() => ({
+          captureWebAuthState,
+          getState: () => ({
+            sessionId: 'session-1',
+            platform: 'web',
+            targetName: 'staging-web',
+            status: 'idle',
+            currentStep: null,
+            currentUrl: null,
+            stepsExecuted: 0,
+            createdAt: 0,
+            interactive: true,
+            terminalError: null,
+          }),
+        })),
+      }
+      router = createRouter({ db: db as any, sessionManager: sessionManager as any })
+
+      const res = await invokeRoute('/api/live-editor/sessions/session-1/auth-state', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'admin', replace: true }),
+      })
+
+      expect(res.status).toBe(200)
+      expect(sessionManager.getSession).toHaveBeenCalledWith('session-1')
+      expect(captureWebAuthState).toHaveBeenCalledWith('admin', { replace: true })
+      expectAuthStateResponseSafe(res.body)
+      expect(JSON.parse(res.body)).toEqual({ authState: metadata })
+    })
+
+    it('rejects invalid auth-state names with lowercase slug guidance', async () => {
+      const captureWebAuthState = vi.fn()
+      const sessionManager = {
+        getSession: vi.fn(() => ({ captureWebAuthState })),
+      }
+      router = createRouter({ db: db as any, sessionManager: sessionManager as any })
+
+      const res = await invokeRoute('/api/live-editor/sessions/session-1/auth-state', {
+        method: 'POST',
+        body: JSON.stringify({ name: '../admin.json' }),
+      })
+
+      expect(res.status).toBe(400)
+      expect(JSON.parse(res.body)).toEqual({ error: 'Auth state name must be a lowercase slug.' })
+      expect(captureWebAuthState).not.toHaveBeenCalled()
+    })
+
+    it('returns 404 for unknown live sessions', async () => {
+      const sessionManager = {
+        getSession: vi.fn(() => null),
+      }
+      router = createRouter({ db: db as any, sessionManager: sessionManager as any })
+
+      const res = await invokeRoute('/api/live-editor/sessions/missing/auth-state', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'admin' }),
+      })
+
+      expect(res.status).toBe(404)
+      expect(JSON.parse(res.body)).toEqual({ error: 'Session not found' })
+    })
+
+    it('returns a path-free conflict message when auth state already exists', async () => {
+      const captureWebAuthState = vi.fn().mockRejectedValue(
+        new Error(`Auth state "admin" for target "staging-web" already exists. Use replace=true to replace it. .agent-qa/auth-states ${AUTH_STATE_COOKIE_SECRET}`),
+      )
+      const sessionManager = {
+        getSession: vi.fn(() => ({
+          captureWebAuthState,
+          getState: () => ({ targetName: 'staging-web' }),
+        })),
+      }
+      router = createRouter({ db: db as any, sessionManager: sessionManager as any })
+
+      const res = await invokeRoute('/api/live-editor/sessions/session-1/auth-state', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'admin' }),
+      })
+
+      expect(res.status).toBeGreaterThanOrEqual(400)
+      expectAuthStateResponseSafe(res.body)
+      expect(JSON.parse(res.body)).toEqual({
+        error: 'Auth state "admin" for target "staging-web" already exists. Use replace=true to replace it.',
+      })
+    })
+
+    it.each([
+      'Auth-state capture is only available for web Live Mode sessions.',
+      'Live session is not ready for auth-state capture.',
+      'Cannot save auth state while the Live Mode session is executing.',
+      `EACCES .agent-qa/auth-states/staging-web/admin.json ${AUTH_STATE_INDEXED_DB_SECRET}`,
+    ])('sanitizes live-session save failures: %s', async (failureMessage) => {
+      const captureWebAuthState = vi.fn().mockRejectedValue(new Error(failureMessage))
+      const sessionManager = {
+        getSession: vi.fn(() => ({
+          captureWebAuthState,
+          getState: () => ({ targetName: 'staging-web' }),
+        })),
+      }
+      router = createRouter({ db: db as any, sessionManager: sessionManager as any })
+
+      const res = await invokeRoute('/api/live-editor/sessions/session-1/auth-state', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'admin' }),
+      })
+
+      expect(res.status).toBeGreaterThanOrEqual(400)
+      expectAuthStateResponseSafe(res.body)
+      expect(JSON.parse(res.body)).toEqual({
+        error: 'Could not save auth state "admin" for target "staging-web".',
+      })
     })
   })
 

@@ -20,6 +20,7 @@ import { EditorAriaPanel } from "@/components/editor/aria-panel"
 import { EditorStepDetail } from "@/components/editor/editor-step-detail"
 import { ScreencastViewer } from "@/components/editor/screencast-viewer"
 import { EmptyState } from "@/components/empty-state"
+import { LiveModeAuthStateControl, type LiveModeAuthStateCaptureConfig } from "@/components/live-mode-auth-state-control"
 import { TabConsole } from "@/components/run-detail/tab-console"
 import { TabEnv } from "@/components/run-detail/tab-env"
 import { TabNetwork } from "@/components/run-detail/tab-network"
@@ -86,6 +87,7 @@ interface LiveSessionPaneProps {
   stopAllLabel?: string
   liveSessionNumber?: number | null
   unitRowsSlot?: ReactNode
+  authStateCapture?: LiveModeAuthStateCaptureConfig | null
 }
 
 const STATUS_META: Record<ConnectionState, { label: string; tone: string }> = {
@@ -456,6 +458,7 @@ export function LiveSessionPane({
   stopAllLabel,
   liveSessionNumber = null,
   unitRowsSlot,
+  authStateCapture = null,
 }: LiveSessionPaneProps) {
   const [copied, setCopied] = useState(false)
   const [addressValue, setAddressValue] = useState("")
@@ -569,6 +572,13 @@ export function LiveSessionPane({
   const browserLabel = platform === "web"
     ? (currentUrl || targetLabel || "Configured start URL")
     : (targetLabel || (platform === "android" ? "Android device" : "iOS device"))
+  const showAuthStateCapture = Boolean(
+    platform === "web"
+    && authStateCapture
+    && targetName
+    && (effectiveState === "connected" || effectiveState === "executing")
+    && !terminalState,
+  )
 
   useEffect(() => {
     if (!isEditingAddress) {
@@ -785,6 +795,12 @@ export function LiveSessionPane({
               </div>
 
               <div className="flex shrink-0 items-center justify-end gap-1">
+                {showAuthStateCapture && authStateCapture && (
+                  <LiveModeAuthStateControl
+                    capture={authStateCapture}
+                    disabled={effectiveState === "executing"}
+                  />
+                )}
                 <Button
                   variant="ghost"
                   size="icon-sm"

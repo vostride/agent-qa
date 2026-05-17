@@ -72,6 +72,16 @@ const CONFIG_ITEMS = [
   {
     bucket: 'services',
     bucketLabel: 'Services',
+    item: 'auth-states',
+    itemLabel: 'Auth States',
+    title: 'Auth States',
+    description: 'Review saved web auth states by target and logical name.',
+    fieldPaths: ['services.authState', 'services.authState.dir'],
+    aliases: ['auth states', 'auth state', 'saved auth', 'saved auth state', 'login state'],
+  },
+  {
+    bucket: 'services',
+    bucketLabel: 'Services',
     item: 'logging',
     itemLabel: 'Logging',
     title: 'Logging',
