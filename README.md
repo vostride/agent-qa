@@ -1,9 +1,22 @@
-![agent-qa banner](https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme-banner.png)
+<div align="center">
+  <img src="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme-banner.png" alt="agent-qa banner"/>
 
-<!-- # agent-qa -->
+  [![npm](https://img.shields.io/npm/dm/agent-qa?style=flat&colorA=13110f&colorB=196872)](https://npm.chart.dev/agent-qa?primary=neutral&gray=neutral&theme=dark)
+  [![npm version](https://img.shields.io/npm/v/agent-qa.svg?style=flat&colorA=13110f&colorB=196872)](https://www.npmjs.com/package/agent-qa)
+  [![GitHub stars](https://img.shields.io/github/stars/vostride/agent-qa?style=flat&colorA=13110f&colorB=196872)](https://github.com/vostride/agent-qa/stargazers)
 
-Open-source AI end-to-end testing for web and mobile apps.
-Write tests in natural language. agent-qa runs them in an agentic test runtime that builds execution memory from every run, so teams and coding agents catch regressions before releases ship.
+  <p>
+    <a href="https://vostride.com/docs/agent-qa">Docs</a>
+    ·
+    <a href="https://github.com/vostride/agent-qa/tree/main/demo-project">Demo</a>
+    ·
+    <a href="https://github.com/vostride/agent-qa/issues">Issues</a>
+  </p>
+</div>
+
+## agent-qa
+Open-source Agentic QA Harness
+Write tests in natural language. agent-qa runs them across web and mobile with execution memory, catching regressions before release.
 
 [Docs](https://vostride.com/docs/agent-qa) | [Quickstart](https://vostride.com/docs/agent-qa/quickstart)
 

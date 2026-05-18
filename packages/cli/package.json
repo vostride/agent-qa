@@ -2,7 +2,7 @@
   "name": "agent-qa",
   "version": "0.1.16",
   "private": false,
-  "description": "agent-qa command-line interface for AI-powered web and mobile testing.",
+  "description": "Open-source Agentic QA Harness for web and mobile.",
   "keywords": [
     "agent-qa",
     "ai",
