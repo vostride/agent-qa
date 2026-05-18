@@ -1,4 +1,4 @@
-![agent-qa banner](docs/assets/readme-banner.png)
+![agent-qa banner](https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme-banner.png)
 
 <!-- # agent-qa -->
 
