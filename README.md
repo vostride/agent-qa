@@ -15,7 +15,7 @@
 </div>
 
 ## agent-qa
-Open-source Agentic QA Harness
+Open-source Agentic QA Harness with Memory
 Write tests in natural language. agent-qa runs them across web and mobile with execution memory, catching regressions before release.
 
 [Docs](https://vostride.com/docs/agent-qa) | [Quickstart](https://vostride.com/docs/agent-qa/quickstart)

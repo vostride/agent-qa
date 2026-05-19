@@ -2,7 +2,7 @@
   "name": "agent-qa",
   "version": "0.1.17",
   "private": false,
-  "description": "Open-source Agentic QA Harness for web and mobile.",
+  "description": "Open-source Agentic QA Harness with Memory",
   "keywords": [
     "agent-qa",
     "ai",
