@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-web",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "private": false,
   "description": "agent-qa web adapter for browser automation and accessibility checks.",
   "keywords": [
