@@ -11,7 +11,7 @@ export const dockerImages = [
     dockerfile: 'docker/Dockerfile.web',
     platforms: 'linux/amd64',
     title: 'agent-qa Web',
-    description: 'AI-powered testing framework with Playwright browsers',
+    description: 'Self-improving Agentic QA harness with Memory for browser testing',
   },
   {
     id: 'android',
@@ -19,7 +19,7 @@ export const dockerImages = [
     dockerfile: 'docker/Dockerfile.android',
     platforms: 'linux/amd64',
     title: 'agent-qa Android',
-    description: 'AI-powered testing framework with Playwright browsers, Android SDK, and Appium',
+    description: 'Self-improving Agentic QA harness with Memory for browser and mobile testing',
   },
   {
     id: 'hooks-node',

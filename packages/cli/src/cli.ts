@@ -10,7 +10,7 @@ program.enablePositionalOptions()
 
 program
   .name('agent-qa')
-  .description('AI-powered testing framework')
+  .description('The self-improving Agentic QA harness with Memory')
   .version(VERSION)
 
 program

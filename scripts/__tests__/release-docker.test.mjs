@@ -76,7 +76,7 @@ test('creates immutable version tags and optional latest tag', () => {
 test('creates OCI labels for Docker metadata action', () => {
   assert.deepEqual(createDockerLabels({
     title: 'agent-qa Web',
-    description: 'AI-powered testing framework',
+    description: 'The self-improving Agentic QA harness with Memory',
     image: 'vostride/agent-qa-web',
     version: '0.1.1',
     revision: 'abc123',
@@ -84,7 +84,7 @@ test('creates OCI labels for Docker metadata action', () => {
     source: 'https://github.com/vostride/agent-qa',
   }), [
     'org.opencontainers.image.title=agent-qa Web',
-    'org.opencontainers.image.description=AI-powered testing framework',
+    'org.opencontainers.image.description=The self-improving Agentic QA harness with Memory',
     'org.opencontainers.image.version=0.1.1',
     'org.opencontainers.image.licenses=SEE LICENSE IN LICENSE.md',
     'org.opencontainers.image.ref.name=vostride/agent-qa-web',
