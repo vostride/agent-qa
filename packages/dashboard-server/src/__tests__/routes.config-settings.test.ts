@@ -18,7 +18,8 @@ import {
 } from '@vostride/agent-qa-core'
 import { generateText } from 'ai'
 
-const { mockResolveLLMAuth } = vi.hoisted(() => ({
+const { mockGetAgentQaUpdateStatus, mockResolveLLMAuth } = vi.hoisted(() => ({
+  mockGetAgentQaUpdateStatus: vi.fn(),
   mockResolveLLMAuth: vi.fn(),
 }))
 
@@ -100,6 +101,7 @@ vi.mock('@vostride/agent-qa-core', async () => {
     DashboardConfigSchema,
     createModel: vi.fn(() => ({})),
     getAgentQaVersion: vi.fn(() => '0.1.13'),
+    getAgentQaUpdateStatus: mockGetAgentQaUpdateStatus,
     getProviderOptions: vi.fn(() => undefined),
     resolveLLMAuth: mockResolveLLMAuth,
     readAuth: vi.fn(() => ({})),
@@ -374,6 +376,11 @@ beforeEach(async () => {
   mockReadAuth.mockResolvedValue({})
   mockWriteAuth.mockResolvedValue(undefined)
   mockRemoveAuth.mockResolvedValue(undefined)
+  mockGetAgentQaUpdateStatus.mockResolvedValue({
+    installedVersion: '0.1.13',
+    latestVersion: '0.1.13',
+    updateAvailable: false,
+  })
 
   const { configManager, configPath } = await createConfigWorkspace()
   router = createRouter({
@@ -390,20 +397,74 @@ afterEach(async () => {
 })
 
 describe('GET /api/app-metadata', () => {
-  it('returns only the shared package version', async () => {
+  const forbiddenFields = [
+    'installedVersion',
+    'updateAvailable',
+    'checkedAt',
+    'cachePath',
+    'registry',
+    'response',
+    'error',
+    'config',
+    'provider',
+    'authMethod',
+    'path',
+    'database',
+    'analytics',
+    'environment',
+    'metadata',
+    'logs',
+    'tests',
+    'memory',
+    'credentials',
+  ]
+
+  function expectNoForbiddenFields(data: Record<string, unknown>) {
+    for (const field of forbiddenFields) {
+      expect(data).not.toHaveProperty(field)
+    }
+  }
+
+  it('returns only version and update.latestVersion when an update is available', async () => {
+    mockGetAgentQaUpdateStatus.mockResolvedValueOnce({
+      installedVersion: '0.1.13',
+      latestVersion: '0.1.18',
+      updateAvailable: true,
+      checkedAt: '2026-05-24T00:00:00.000Z',
+    })
+
+    const res = await invokeRoute('/api/app-metadata')
+
+    expect(res.status).toBe(200)
+    const data = JSON.parse(res.body) as Record<string, unknown>
+    expect(data).toEqual({ version: '0.1.13', update: { latestVersion: '0.1.18' } })
+    expectNoForbiddenFields(data)
+  })
+
+  it('returns exactly version when no update is available', async () => {
+    mockGetAgentQaUpdateStatus.mockResolvedValueOnce({
+      installedVersion: '0.1.13',
+      latestVersion: '0.1.13',
+      updateAvailable: false,
+    })
+
     const res = await invokeRoute('/api/app-metadata')
 
     expect(res.status).toBe(200)
     const data = JSON.parse(res.body) as Record<string, unknown>
     expect(data).toEqual({ version: '0.1.13' })
-    expect(data).not.toHaveProperty('config')
-    expect(data).not.toHaveProperty('provider')
-    expect(data).not.toHaveProperty('authMethod')
-    expect(data).not.toHaveProperty('path')
-    expect(data).not.toHaveProperty('database')
-    expect(data).not.toHaveProperty('analytics')
-    expect(data).not.toHaveProperty('environment')
-    expect(data).not.toHaveProperty('metadata')
+    expectNoForbiddenFields(data)
+  })
+
+  it('returns exactly version when the update helper rejects', async () => {
+    mockGetAgentQaUpdateStatus.mockRejectedValueOnce(new Error('registry unavailable'))
+
+    const res = await invokeRoute('/api/app-metadata')
+
+    expect(res.status).toBe(200)
+    const data = JSON.parse(res.body) as Record<string, unknown>
+    expect(data).toEqual({ version: '0.1.13' })
+    expectNoForbiddenFields(data)
   })
 })
 

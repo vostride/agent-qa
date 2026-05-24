@@ -12,6 +12,7 @@ import { applyResolvedAuthToModelConfig, resolveLLMModels, resolveModelAuth } fr
 import { formatInstallBrowsersRetryCommand, type BrowserInstallSelection } from './install-browsers.js'
 import type { TestDefinition, TestResult, ParseError, PlatformAdapter, PlatformConfig, SuiteDefinition, SuiteResult, RunSuiteConfig, HookDefinition, SandboxRunnerOptions, SecretStore, SecretRedactor } from '@vostride/agent-qa-core'
 import { isPathInsideDir } from '@vostride/agent-qa-core'
+import { printAgentQaUpdateNoticeIfNeeded, shouldPrintAgentQaUpdateNotice, type AgentQaUpdateNoticeContext } from '../version-notice.js'
 
 const RUNTIME_ARTIFACTS_DIR = DEFAULT_AGENT_QA_ARTIFACTS_DIR || '.agent-qa/artifacts'
 const RUNTIME_CACHE_DIR = DEFAULT_AGENT_QA_CACHE_DIR || '.agent-qa/cache'
@@ -360,6 +361,15 @@ async function flushAnalyticsRunReporter(reporter: { flush: () => Promise<void> 
     await reporter.flush()
   } catch {
     // Analytics is best-effort and must not affect run outcomes.
+  }
+}
+
+async function maybePrintPostRunUpdateNotice(context: AgentQaUpdateNoticeContext): Promise<void> {
+  try {
+    if (!shouldPrintAgentQaUpdateNotice(context)) return
+    await printAgentQaUpdateNoticeIfNeeded(context)
+  } catch {
+    // Update notices are best-effort and must not affect run outcomes.
   }
 }
 
@@ -1741,7 +1751,17 @@ export function createRunCommand(): Command {
         // Handle suite execution (early return)
         if (discoveredSuiteFiles.length > 0 && discoveredTestFiles.length === 0) {
           const hasFailed = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, inheritedRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined)
-          process.exit(hasFailed ? 1 : 0)
+          const exitCode = hasFailed ? 1 : 0
+          const suiteReporterSelection = resolveReporterSelection(opts, Boolean(config.services?.dashboard)).selection
+          if (suiteReporterSelection) {
+            await maybePrintPostRunUpdateNotice({
+              reporterSelection: suiteReporterSelection,
+              effectiveLogLevel,
+              liveEvents: process.env.AGENT_QA_LIVE_EVENTS,
+              cwd: process.cwd(),
+            })
+          }
+          process.exit(exitCode)
         }
 
         // Handle --all: run suites first, then fall through to test execution
@@ -2767,7 +2787,14 @@ export function createRunCommand(): Command {
         }
 
         const hasFailed = results.some(r => r.status === 'failed') || suitesFailed
-        process.exit(hasFailed ? 1 : 0)
+        const exitCode = hasFailed ? 1 : 0
+        await maybePrintPostRunUpdateNotice({
+          reporterSelection,
+          effectiveLogLevel,
+          liveEvents: process.env.AGENT_QA_LIVE_EVENTS,
+          cwd: process.cwd(),
+        })
+        process.exit(exitCode)
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err)
         const errStack = err instanceof Error ? err.stack ?? '' : ''

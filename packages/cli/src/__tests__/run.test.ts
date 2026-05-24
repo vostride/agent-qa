@@ -41,6 +41,8 @@ const {
   mockFileActionCache,
   mockAnalyticsRunReporterInstance,
   mockCreateAnalyticsRunReporter,
+  mockShouldPrintAgentQaUpdateNotice,
+  mockPrintAgentQaUpdateNoticeIfNeeded,
 } = vi.hoisted(() => {
   const multiReporter = {
     onRunStart: vi.fn().mockResolvedValue(undefined),
@@ -92,6 +94,8 @@ const {
     mockFileActionCache: vi.fn(function () { return {} }),
     mockAnalyticsRunReporterInstance: analyticsRunReporter,
     mockCreateAnalyticsRunReporter: vi.fn(function () { return analyticsRunReporter }),
+    mockShouldPrintAgentQaUpdateNotice: vi.fn(() => true),
+    mockPrintAgentQaUpdateNoticeIfNeeded: vi.fn().mockResolvedValue(undefined),
   }
 })
 
@@ -479,6 +483,11 @@ vi.mock('@vostride/agent-qa-dashboard', () => ({
   resolveDashboardDbPath: mockResolveDashboardDbPath,
 }))
 
+vi.mock('../version-notice.js', () => ({
+  shouldPrintAgentQaUpdateNotice: mockShouldPrintAgentQaUpdateNotice,
+  printAgentQaUpdateNoticeIfNeeded: mockPrintAgentQaUpdateNoticeIfNeeded,
+}))
+
 vi.mock('../config.js', () => ({
   resolveConfig: mockResolveConfig,
   mergeWithTestConfig: vi.fn((...args: any[]) => args[0]),
@@ -634,6 +643,10 @@ beforeEach(() => {
     cookies: [],
     origins: [],
   })
+  mockShouldPrintAgentQaUpdateNotice.mockReset()
+  mockShouldPrintAgentQaUpdateNotice.mockReturnValue(true)
+  mockPrintAgentQaUpdateNoticeIfNeeded.mockReset()
+  mockPrintAgentQaUpdateNoticeIfNeeded.mockResolvedValue(undefined)
   mockFileActionCache.mockClear()
   mockResolveTarget.mockReturnValue({
     name: 'test-app',
@@ -656,6 +669,7 @@ afterEach(async () => {
   delete process.env.AGENT_QA_SUITE_QUEUE_ID
   delete process.env.AGENT_QA_PARENT_RUN_ID
   delete process.env.AGENT_QA_RUN_ATTRIBUTES_JSON
+  delete process.env.AGENT_QA_LIVE_EVENTS
   delete process.env.BROWSERSTACK_USERNAME
   delete process.env.BROWSERSTACK_ACCESS_KEY
   defaultSecretsFilePath = undefined
@@ -2028,6 +2042,75 @@ describe('run command — framework error handling', () => {
 })
 
 describe('run command — reporter integration', () => {
+  function setupPassingDirectRun(resultOverrides: Record<string, unknown> = {}) {
+    mockGlob.mockResolvedValue(['tests/a.yaml'])
+    mockParseAllTests.mockResolvedValue({
+      tests: [makeTest()],
+      errors: [],
+    })
+    mockRunTestWithRetry.mockResolvedValue({
+      name: 'Test One',
+      filePath: 'tests/a.yaml',
+      status: 'passed',
+      steps: [],
+      duration: 100,
+      ...resultOverrides,
+    })
+  }
+
+  async function setupSuiteRun(resultOverrides: Record<string, unknown> = {}) {
+    const { suitePath, configPath } = await createTempSuiteWorkspace()
+    mockParseSuiteFile.mockResolvedValue({
+      name: 'Smoke Suite',
+      target: 'test-app',
+      tests: [{ test: 'tests/login.yaml', id: 'suite-test-1' }],
+    })
+    mockParseTestFile.mockReturnValue({
+      tests: [makeTest()],
+      errors: [],
+    })
+    mockRunSuite.mockResolvedValue({
+      status: 'passed',
+      duration: 100,
+      ...resultOverrides,
+    })
+    return { suitePath, configPath }
+  }
+
+  async function setupAllRun() {
+    const { suitePath, testPath, configPath } = await createTempSuiteWorkspace()
+    mockGlob.mockImplementation(async (pattern: string) => (
+      pattern.includes('suite') ? [suitePath] : [testPath]
+    ))
+    mockParseSuiteFile.mockResolvedValue({
+      name: 'Smoke Suite',
+      target: 'test-app',
+      tests: [{ test: 'tests/login.yaml', id: 'suite-test-1' }],
+    })
+    mockParseTestFile.mockReturnValue({
+      tests: [makeTest()],
+      errors: [],
+    })
+    mockParseAllTests.mockResolvedValue({
+      tests: [makeTest()],
+      errors: [],
+    })
+    mockRunSuite.mockResolvedValue({ status: 'passed', duration: 100 })
+    mockRunTestWithRetry.mockResolvedValue({
+      name: 'Test One',
+      filePath: testPath,
+      status: 'passed',
+      steps: [],
+      duration: 100,
+    })
+    return { configPath }
+  }
+
+  function lastInvocationOrder(mock: { mock: { invocationCallOrder: number[] } }) {
+    const orders = mock.mock.invocationCallOrder
+    return orders[orders.length - 1] ?? 0
+  }
+
   it('adds the analytics reporter to actual direct test execution and flushes after completion', async () => {
     mockGlob.mockResolvedValue(['tests/a.yaml'])
     mockParseAllTests.mockResolvedValue({
@@ -2053,6 +2136,28 @@ describe('run command — reporter integration', () => {
       expect.arrayContaining([mockAnalyticsRunReporterInstance]),
     )
     expect(mockAnalyticsRunReporterInstance.flush).toHaveBeenCalled()
+  })
+
+  it('prints the update notice once after direct reporter completion and analytics flush', async () => {
+    setupPassingDirectRun()
+
+    await runCommand('tests/**/*.yaml')
+
+    expect(mockShouldPrintAgentQaUpdateNotice).toHaveBeenCalledTimes(1)
+    expect(mockPrintAgentQaUpdateNoticeIfNeeded).toHaveBeenCalledTimes(1)
+    expect(mockPrintAgentQaUpdateNoticeIfNeeded).toHaveBeenCalledWith(expect.objectContaining({
+      cwd: process.cwd(),
+      effectiveLogLevel: 'warn',
+      liveEvents: undefined,
+      reporterSelection: expect.objectContaining({
+        console: true,
+        stdoutLive: false,
+      }),
+    }))
+    const noticeOrder = lastInvocationOrder(mockPrintAgentQaUpdateNoticeIfNeeded)
+    expect(noticeOrder).toBeGreaterThan(lastInvocationOrder(mockMultiReporterInstance.onRunEnd))
+    expect(noticeOrder).toBeGreaterThan(lastInvocationOrder(mockAnalyticsRunReporterInstance.flush))
+    expect(exitSpy).toHaveBeenCalledWith(0)
   })
 
   it('adds the analytics reporter to actual suite execution and flushes after completion', async () => {
@@ -2081,6 +2186,106 @@ describe('run command — reporter integration', () => {
       }),
     )
     expect(mockAnalyticsRunReporterInstance.flush).toHaveBeenCalled()
+  })
+
+  it.each([
+    ['passing', 'passed', 0],
+    ['failing', 'failed', 1],
+  ])('prints the update notice once after %s suite-only execution', async (_label, suiteStatus, exitCode) => {
+    const { suitePath, configPath } = await setupSuiteRun({ status: suiteStatus })
+
+    await runCommandWithGlobalArgs(['--config', configPath], suitePath)
+
+    expect(mockShouldPrintAgentQaUpdateNotice).toHaveBeenCalledTimes(1)
+    expect(mockPrintAgentQaUpdateNoticeIfNeeded).toHaveBeenCalledTimes(1)
+    expect(mockPrintAgentQaUpdateNoticeIfNeeded).toHaveBeenCalledWith(expect.objectContaining({
+      cwd: process.cwd(),
+      effectiveLogLevel: 'warn',
+      reporterSelection: expect.objectContaining({
+        console: true,
+        stdoutLive: false,
+      }),
+    }))
+    expect(exitSpy).toHaveBeenCalledWith(exitCode)
+  })
+
+  it('prints the update notice once after --all suites and direct tests finish', async () => {
+    const { configPath } = await setupAllRun()
+
+    await runCommandWithGlobalArgs(['--config', configPath], '--all')
+
+    expect(mockRunSuite).toHaveBeenCalledTimes(1)
+    expect(mockRunTestWithRetry).toHaveBeenCalledTimes(1)
+    expect(mockShouldPrintAgentQaUpdateNotice).toHaveBeenCalledTimes(1)
+    expect(mockPrintAgentQaUpdateNoticeIfNeeded).toHaveBeenCalledTimes(1)
+    const noticeOrder = lastInvocationOrder(mockPrintAgentQaUpdateNoticeIfNeeded)
+    expect(noticeOrder).toBeGreaterThan(lastInvocationOrder(mockRunSuite))
+    expect(noticeOrder).toBeGreaterThan(lastInvocationOrder(mockRunTestWithRetry))
+    expect(noticeOrder).toBeGreaterThan(lastInvocationOrder(mockMultiReporterInstance.onRunEnd))
+    expect(exitSpy).toHaveBeenCalledWith(0)
+  })
+
+  it.each([
+    [
+      '--quiet',
+      ['--quiet'],
+      ['tests/**/*.yaml'],
+      undefined,
+      { effectiveLogLevel: 'silent', reporterSelection: expect.objectContaining({ console: true, stdoutLive: false }) },
+    ],
+    [
+      '--log-level silent',
+      ['--log-level', 'silent'],
+      ['tests/**/*.yaml'],
+      undefined,
+      { effectiveLogLevel: 'silent', reporterSelection: expect.objectContaining({ console: true, stdoutLive: false }) },
+    ],
+    [
+      '--reporter stdout-live',
+      [],
+      ['tests/**/*.yaml', '--reporter', 'stdout-live'],
+      undefined,
+      { effectiveLogLevel: 'warn', reporterSelection: expect.objectContaining({ console: false, stdoutLive: true }) },
+    ],
+    [
+      'AGENT_QA_LIVE_EVENTS=true',
+      [],
+      ['tests/**/*.yaml'],
+      'true',
+      { effectiveLogLevel: 'warn', liveEvents: 'true', reporterSelection: expect.objectContaining({ console: true, stdoutLive: true }) },
+    ],
+    [
+      '--reporter junit',
+      [],
+      ['tests/**/*.yaml', '--reporter', 'junit', '--junit-output', 'results.xml'],
+      undefined,
+      { effectiveLogLevel: 'warn', reporterSelection: expect.objectContaining({ console: false, junit: true, stdoutLive: false }) },
+    ],
+  ])('does not print the update notice for %s', async (_label, globalArgs, runArgs, liveEvents, expectedContext) => {
+    setupPassingDirectRun()
+    mockShouldPrintAgentQaUpdateNotice.mockReturnValue(false)
+    if (liveEvents) process.env.AGENT_QA_LIVE_EVENTS = liveEvents
+
+    await runCommandWithGlobalArgs(globalArgs as string[], ...(runArgs as string[]))
+
+    expect(mockShouldPrintAgentQaUpdateNotice).toHaveBeenCalledTimes(1)
+    expect(mockShouldPrintAgentQaUpdateNotice).toHaveBeenCalledWith(expect.objectContaining(expectedContext))
+    expect(mockPrintAgentQaUpdateNoticeIfNeeded).not.toHaveBeenCalled()
+    expect(exitSpy).toHaveBeenCalledWith(0)
+  })
+
+  it('preserves the computed exit status and console errors when the update notice rejects', async () => {
+    setupPassingDirectRun({ status: 'failed' })
+    mockPrintAgentQaUpdateNoticeIfNeeded.mockRejectedValueOnce(new Error('registry unavailable'))
+
+    await runCommand('tests/**/*.yaml')
+
+    expect(mockPrintAgentQaUpdateNoticeIfNeeded).toHaveBeenCalledTimes(1)
+    expect(exitSpy).toHaveBeenCalledWith(1)
+    const nonExitErrors = errorSpy.mock.calls
+      .map((call: string[]) => call.join(' '))
+      .filter((message: string) => !message.includes('Framework error: process.exit'))
+    expect(nonExitErrors).toEqual([])
   })
 
   it('does not create analytics reporter for dry run, list, or validation-only paths', async () => {

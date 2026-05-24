@@ -870,6 +870,9 @@ export interface ConfigResponse {
 
 export interface AppMetadataResponse {
   version: string
+  update?: {
+    latestVersion: string
+  }
 }
 
 export interface AuthCredentialInfo {

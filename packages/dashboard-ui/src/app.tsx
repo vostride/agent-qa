@@ -1,6 +1,14 @@
-import { lazy, Suspense, useEffect } from "react"
-import { createBrowserRouter, RouterProvider, Navigate, Outlet, useMatches } from "react-router"
+import { lazy, Suspense, useEffect, useState } from "react"
+import {
+  createBrowserRouter,
+  RouterProvider,
+  Navigate,
+  Outlet,
+  useLocation,
+  useMatches,
+} from "react-router"
 import { routes } from "@/lib/routes"
+import { fetchAppMetadata, type AppMetadataResponse } from "@/lib/api"
 import { trackDashboardOpenedOnce } from "@/lib/analytics"
 import { ThemeProvider } from "@/components/theme-provider"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
@@ -8,6 +16,13 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { Toaster } from "@/components/ui/sonner"
 import { CommandPalette } from "@/components/command-palette"
 import { RouteErrorBoundary } from "@/components/error-boundary"
+import {
+  UpdateBanner,
+  isUpdateBannerDismissed,
+  readUpdateBannerDismissalCookie,
+  writeUpdateBannerDismissalCookie,
+  type UpdateBannerDismissal,
+} from "@/components/update-banner"
 import { cn } from "@/lib/utils"
 import {
   TableSkeleton,
@@ -34,17 +49,77 @@ const SuitesPage = lazy(() => import("@/pages/suites"))
 const SuiteEditorPage = lazy(() => import("@/pages/suite-editor"))
 const SuiteViewerPage = lazy(() => import("@/pages/suite-viewer"))
 
+const UPDATE_BANNER_ELIGIBLE_PATHS = new Set<string>([
+  routes.runs,
+  routes.tests,
+  routes.hooks,
+  routes.suites,
+  routes.memory,
+  routes.config,
+])
+
 function AppLayout() {
   const matches = useMatches()
+  const location = useLocation()
   const hideHeader = matches.some((m) => (m.handle as Record<string, unknown>)?.hideHeader)
+  const [appMetadata, setAppMetadata] = useState<AppMetadataResponse | null>(null)
+  const [updateDismissal, setUpdateDismissal] = useState<UpdateBannerDismissal | null>(() =>
+    readUpdateBannerDismissalCookie(),
+  )
+
   useEffect(() => {
     trackDashboardOpenedOnce()
   }, [])
+
+  useEffect(() => {
+    let active = true
+
+    fetchAppMetadata()
+      .then((metadata) => {
+        if (active) setAppMetadata(metadata)
+      })
+      .catch(() => {
+        if (active) setAppMetadata(null)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const installedVersion = appMetadata?.version.trim() ?? ""
+  const latestVersion = appMetadata?.update?.latestVersion.trim() ?? ""
+  const eligibleBannerRoute =
+    UPDATE_BANNER_ELIGIBLE_PATHS.has(location.pathname) && !hideHeader
+  const showUpdateBanner = Boolean(
+    eligibleBannerRoute &&
+      installedVersion &&
+      latestVersion &&
+      !isUpdateBannerDismissed(updateDismissal, latestVersion),
+  )
+
+  function dismissUpdateBanner() {
+    if (!latestVersion) return
+
+    const dismissal = {
+      latestVersion,
+      dismissedAt: new Date().toISOString(),
+    }
+    writeUpdateBannerDismissalCookie(dismissal)
+    setUpdateDismissal(dismissal)
+  }
 
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset className={cn(hideHeader && "h-svh overflow-hidden")}>
+        {showUpdateBanner ? (
+          <UpdateBanner
+            installedVersion={installedVersion}
+            latestVersion={latestVersion}
+            onDismiss={dismissUpdateBanner}
+          />
+        ) : null}
         <main
           className={cn(
             "flex min-h-0 flex-1 flex-col",
