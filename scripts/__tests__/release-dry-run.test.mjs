@@ -53,6 +53,11 @@ test('builds a non-mutating patch release dry-run plan', () => {
   assert.equal(plan.subscriptionAuth.status, 'dispatched_from_main_release_workflow')
   assert.ok(plan.subscriptionAuth.note.includes('agent-qa/.github/workflows/release.yml'))
   assert.ok(plan.subscriptionAuth.note.includes(targetVersion))
+  assert.equal(plan.githubRelease.repository, 'vostride/agent-qa')
+  assert.equal(plan.githubRelease.tag, `v${targetVersion}`)
+  assert.equal(plan.githubRelease.title, `agent-qa v${targetVersion}`)
+  assert.equal(plan.githubRelease.status, 'created_or_updated_after_full_release_train')
+  assert.ok(plan.githubRelease.note.includes('after npm, subscription auth, and Docker'))
 })
 
 test('supports minor dry-run plans and optional latest Docker preview', () => {
@@ -103,6 +108,9 @@ test('CLI renders human-readable and JSON dry-run output without leaking secrets
   assert.match(textOutput, /npm publish --access public/)
   assert.match(textOutput, /dispatched_from_main_release_workflow/)
   assert.match(textOutput, /agent-qa\/\.github\/workflows\/release\.yml/)
+  assert.match(textOutput, /GitHub Release:/)
+  assert.match(textOutput, /created_or_updated_after_full_release_train/)
+  assert.match(textOutput, new RegExp(`v${targetVersion}`))
   assert.doesNotMatch(textOutput, /POSTHOG_SECRET_FROM_TEST/)
 
   let jsonOutput = ''
@@ -114,5 +122,6 @@ test('CLI renders human-readable and JSON dry-run output without leaking secrets
   const parsed = JSON.parse(jsonOutput)
   assert.equal(parsed.targetVersion, targetVersion)
   assert.equal(parsed.mutatesExternalState, false)
+  assert.equal(parsed.githubRelease.tag, `v${targetVersion}`)
   assert.doesNotMatch(jsonOutput, /POSTHOG_SECRET_FROM_TEST/)
 })

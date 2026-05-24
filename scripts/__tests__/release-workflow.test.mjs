@@ -130,6 +130,26 @@ test('release workflow publishes subscription auth from the main release version
   }
 })
 
+test('release workflow publishes the GitHub Release only after the full release train', () => {
+  const workflow = readWorkflow()
+  const jobStart = workflow.indexOf('github-release:')
+  assert.notEqual(jobStart, -1, 'expected github-release job')
+  const job = workflow.slice(jobStart)
+
+  assert.match(job, /github-release:\s*\n\s+name:\s*Publish GitHub release/)
+  assert.match(job, /if:\s*\$\{\{ inputs\.subscription_auth_target_version == '' \}\}/)
+  assert.match(job, /needs:\s*\n\s+- npm\s*\n\s+- subscription-auth\s*\n\s+- docker/)
+  assert.match(job, /contents:\s*write/)
+  assert.match(job, /uses:\s*actions\/checkout@v6/)
+  assert.match(job, /ref:\s*v\$\{\{ needs\.npm\.outputs\.version \}\}/)
+  assert.match(job, /node-version:\s*'24'/)
+  assert.match(job, /pnpm install --frozen-lockfile/)
+  assert.match(job, /GH_TOKEN:\s*\$\{\{ github\.token \}\}/)
+  assert.match(job, /node scripts\/release\/github-release\.mjs --version "\$\{\{ needs\.npm\.outputs\.version \}\}" --repo "\$\{\{ github\.repository \}\}"/)
+  assert.doesNotMatch(job, /GITHUB_RELEASE_TOKEN|PAT|secrets\./)
+  assertBefore(workflow, 'uses: ./.github/workflows/docker-release.yml', 'node scripts/release/github-release.mjs')
+})
+
 test('docker release workflow is manual and reusable with Docker Hub preflight', () => {
   const workflow = readWorkflow('docker-release.yml')
 

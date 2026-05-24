@@ -166,3 +166,36 @@ jobs:
       ref: v${{ needs.npm.outputs.version }}
       move_latest: true
     secrets: inherit
+
+  github-release:
+    name: Publish GitHub release
+    if: ${{ inputs.subscription_auth_target_version == '' }}
+    needs:
+      - npm
+      - subscription-auth
+      - docker
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v6
+        with:
+          ref: v${{ needs.npm.outputs.version }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/release/github-release.mjs --version "${{ needs.npm.outputs.version }}" --repo "${{ github.repository }}"

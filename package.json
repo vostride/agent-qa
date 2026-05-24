@@ -30,6 +30,7 @@
     "release:dry-run": "node scripts/release/dry-run.mjs",
     "release:verify": "node scripts/release/verify.mjs",
     "release:publish": "node scripts/release/publish.mjs",
+    "release:github": "node scripts/release/github-release.mjs",
     "lint:namespace": "! grep -r '@agent-qa/' packages/ --include='*.ts' --include='*.json' --include='*.js' -l --exclude-dir=node_modules --exclude-dir=dist"
   },
   "pnpm": {

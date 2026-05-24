@@ -99,6 +99,14 @@ export function buildReleaseDryRunPlan(options = {}) {
       status: 'dispatched_from_main_release_workflow',
       note: `agent-qa/.github/workflows/release.yml dispatches the subscription-auth release workflow at ${targetVersion} after npm packages and before Docker.`,
     },
+    githubRelease: {
+      repository: 'vostride/agent-qa',
+      tag: `v${targetVersion}`,
+      title: `agent-qa v${targetVersion}`,
+      status: 'created_or_updated_after_full_release_train',
+      notes: 'GitHub-generated release notes plus stable public footer',
+      note: `Created or updated after npm, subscription auth, and Docker publish complete for ${targetVersion}.`,
+    },
   }
 }
 
@@ -164,6 +172,13 @@ function renderText(plan) {
     'Subscription auth:',
     `  - ${plan.subscriptionAuth.package}: ${plan.subscriptionAuth.status}`,
     `  - ${plan.subscriptionAuth.note}`,
+    '',
+    'GitHub Release:',
+    `  - ${plan.githubRelease.repository}: ${plan.githubRelease.status}`,
+    `  - tag: ${plan.githubRelease.tag}`,
+    `  - title: ${plan.githubRelease.title}`,
+    `  - notes: ${plan.githubRelease.notes}`,
+    `  - ${plan.githubRelease.note}`,
     '',
   ]
   return `${lines.join('\n')}\n`
