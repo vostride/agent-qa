@@ -93,6 +93,10 @@ function joined(lines: string[]): string {
   return lines.join('\n')
 }
 
+function plainJoined(lines: string[]): string {
+  return joined(lines).replace(/\u001B\[[0-?]*[ -/]*[@-~]/g, '')
+}
+
 describe('shouldPrintAgentQaUpdateNotice', () => {
   it('returns true for human-readable console output', () => {
     expect(shouldPrintAgentQaUpdateNotice(baseContext)).toBe(true)
@@ -194,7 +198,7 @@ describe('printAgentQaUpdateNoticeIfNeeded', () => {
 
     expect(mockGetAgentQaUpdateStatus).toHaveBeenCalledTimes(1)
     expect(lines[0]).toBe('')
-    const output = joined(lines)
+    const output = plainJoined(lines)
     expect(output).toContain('Update available: agent-qa v0.1.19')
     expect(output).toContain('Current version: v0.1.18')
     expect(output).toContain('Releases: https://github.com/vostride/agent-qa/releases')
@@ -225,7 +229,7 @@ describe('printAgentQaUpdateNoticeIfNeeded', () => {
 
     await printAgentQaUpdateNoticeIfNeeded(context)
 
-    const output = joined(lines)
+    const output = plainJoined(lines)
     expect(output).toContain('Update available: agent-qa v0.1.19')
     expect(output).toContain('Current version: v0.1.18')
     expect(output).toContain('Releases: https://github.com/vostride/agent-qa/releases')
@@ -270,7 +274,7 @@ describe('printAgentQaUpdateNoticeIfNeeded', () => {
 
     await printAgentQaUpdateNoticeIfNeeded(context)
 
-    const output = joined(lines)
+    const output = plainJoined(lines)
     const forbidden = [
       'npmjs.com',
       'npm install -g',
