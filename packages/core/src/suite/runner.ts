@@ -336,6 +336,7 @@ export async function runSuite(
             runtime: {
               platform: config.platformConfig.platform,
               suiteIndex: i,
+              suiteTotal: testEntries.length,
               parentSuiteId: (suite as any)['suite-id'] ?? suite.name,
             },
           },

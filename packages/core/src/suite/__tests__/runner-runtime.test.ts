@@ -507,8 +507,20 @@ describe('runSuite startup navigation', () => {
     expect(new Set([suiteRunId, ...childRunIds]).size).toBe(3)
     expect(contexts[0]).toEqual(expect.objectContaining({ runId: suiteRunId }))
     expect(contexts.slice(1)).toEqual([
-      expect.objectContaining({ runId: childRunIds[0], parentRunId: suiteRunId }),
-      expect.objectContaining({ runId: childRunIds[1], parentRunId: suiteRunId }),
+      expect.objectContaining({
+        runId: childRunIds[0],
+        parentRunId: suiteRunId,
+        artifact: expect.objectContaining({
+          runtime: expect.objectContaining({ suiteTotal: 2 }),
+        }),
+      }),
+      expect.objectContaining({
+        runId: childRunIds[1],
+        parentRunId: suiteRunId,
+        artifact: expect.objectContaining({
+          runtime: expect.objectContaining({ suiteTotal: 2 }),
+        }),
+      }),
     ])
     expect(mockRunTest).toHaveBeenNthCalledWith(
       1,

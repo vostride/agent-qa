@@ -2,7 +2,7 @@ import { useRef, useEffect } from "react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { TabOverview } from "./tab-overview"
-import type { ScreenshotSide } from "./tab-overview"
+import type { ScreenshotEmptyState, ScreenshotSide } from "./tab-overview"
 import { TabEnv } from "./tab-env"
 import { TabNetwork } from "./tab-network"
 import { TabConsole } from "./tab-console"
@@ -24,6 +24,7 @@ interface TabPanelsProps {
   platform?: string
   screenshotSide?: ScreenshotSide
   onScreenshotSideChange?: (side: ScreenshotSide) => void
+  screenshotEmptyState?: ScreenshotEmptyState
   pipelineRef?: React.RefObject<ReasoningPipelineHandle | null>
 }
 
@@ -39,6 +40,7 @@ export function TabPanels({
   platform,
   screenshotSide,
   onScreenshotSideChange,
+  screenshotEmptyState = "absent",
   pipelineRef,
 }: TabPanelsProps) {
   const hasExecutionLogs = executionLogs.length > 0
@@ -87,6 +89,7 @@ export function TabPanels({
             runId={runId}
             screenshotSide={screenshotSide}
             onScreenshotSideChange={onScreenshotSideChange}
+            screenshotEmptyState={screenshotEmptyState}
             pipelineRef={pipelineRef}
           />
         </ScrollArea>

@@ -134,11 +134,17 @@ function buildExampleTest(platform: InitPlatformInput, variant: 'pass' | 'fail')
     ? 't_amber-birch-coral-delta-ember-falcon-garden-harbor-island-jungle'
     : 't_bronze-cedar-dune-ember-fjord-glade-harbor-ivory-jade-kelp'
   const name = variant === 'pass' ? 'Example passing test' : 'Example failing test'
+  const browserOverride = variant === 'fail' && hasWeb(platform)
+    ? `use:
+  browser:
+    headless: false
+`
+    : ''
 
   return `test-id: ${testId}
 name: ${name}
 target: ${defaultExampleTargetName(platform)}
-steps:
+${browserOverride}steps:
   - Verify the page says "Example Domain"
   - Click on "Learn More"
   - Verify the page url is "${expectedUrl}"

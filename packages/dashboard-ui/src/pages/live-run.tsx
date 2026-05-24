@@ -45,6 +45,8 @@ import {
 } from "@/lib/status"
 import { cn } from "@/lib/utils"
 
+type FinalDetailState = "idle" | "loading" | "ready" | "failed"
+
 function formatElapsed(seconds: number): string {
   const m = Math.floor(seconds / 60)
   const s = seconds % 60
@@ -156,6 +158,8 @@ export default function LiveRunPage() {
   const [activeTab, setActiveTab] = useState("overview")
   const [screenshotSide, setScreenshotSide] = useState<ScreenshotSide | undefined>()
   const pipelineRef = useRef<ReasoningPipelineHandle | null>(null)
+  const navigatedRunIdRef = useRef<string | null>(null)
+  const finalDetailStateRef = useRef<FinalDetailState>("idle")
 
   const {
     displaySteps,
@@ -168,13 +172,16 @@ export default function LiveRunPage() {
     finalStatus,
     elapsed,
     error,
-    completedSteps,
     passedSteps,
     failedSteps,
-    totalSteps,
+    progress,
     mergeFinalArtifacts,
   } = useExecutionEvents(id ?? null, fallbackRun?.startedAt)
-  const [finalArtifactsMerged, setFinalArtifactsMerged] = useState(false)
+  const [finalDetailState, setFinalDetailState] = useState<FinalDetailState>("idle")
+  const updateFinalDetailState = useCallback((state: FinalDetailState) => {
+    finalDetailStateRef.current = state
+    setFinalDetailState(state)
+  }, [])
 
   async function handleCancel() {
     if (isCancelling || !id) return
@@ -193,12 +200,18 @@ export default function LiveRunPage() {
     if (!id) return
     let cancelled = false
     setFallbackRun(null)
-    setFinalArtifactsMerged(false)
+    updateFinalDetailState("idle")
+    navigatedRunIdRef.current = null
     setIsLoadingFallback(true)
 
     fetchRun(id)
       .then((data) => {
-        if (!cancelled) setFallbackRun(data.run)
+        if (!cancelled) {
+          setFallbackRun(data.run)
+          if (data.tests && data.tests.length > 0) {
+            mergeFinalArtifacts({ suiteTests: data.tests })
+          }
+        }
       })
       .catch((err) => {
         const is404 = err instanceof Error && err.message.includes("404")
@@ -213,16 +226,18 @@ export default function LiveRunPage() {
     return () => {
       cancelled = true
     }
-  }, [id])
+  }, [id, mergeFinalArtifacts, updateFinalDetailState])
 
   const fallbackIsTerminal = Boolean(fallbackRun && isTerminalRunStatus(fallbackRun.status))
 
   useEffect(() => {
-    if (!id || finalArtifactsMerged) return
+    if (!id || finalDetailStateRef.current !== "idle") return
     const shouldMerge = runStatus === "complete" || runStatus === "error" || fallbackIsTerminal
     if (!shouldMerge) return
 
     let cancelled = false
+    updateFinalDetailState("loading")
+
     async function loadFinalArtifacts() {
       try {
         const [runData, logData] = await Promise.all([
@@ -255,9 +270,9 @@ export default function LiveRunPage() {
           childRuns,
         })
         setFallbackRun(runData.run)
-        setFinalArtifactsMerged(true)
+        updateFinalDetailState("ready")
       } catch {
-        if (!cancelled) setFinalArtifactsMerged(true)
+        if (!cancelled) updateFinalDetailState("failed")
       }
     }
 
@@ -268,11 +283,18 @@ export default function LiveRunPage() {
     }
   }, [
     fallbackIsTerminal,
-    finalArtifactsMerged,
     id,
     mergeFinalArtifacts,
     runStatus,
+    updateFinalDetailState,
   ])
+
+  useEffect(() => {
+    if (!id || finalDetailState !== "ready") return
+    if (navigatedRunIdRef.current === id) return
+    navigatedRunIdRef.current = id
+    navigate(routes.runDetail(id), { replace: true })
+  }, [finalDetailState, id, navigate])
 
   const liveFaviconState: RunFaviconState = finalStatus
     ? getRunFaviconState(finalStatus)
@@ -379,15 +401,19 @@ export default function LiveRunPage() {
   )
   const testName = testInfo?.name ?? fallbackRun?.name ?? "Test Run"
   const testFile = testInfo?.filePath ?? fallbackRun?.filePath ?? undefined
-  const progressTotal = totalSteps || displaySteps.length
-  const progressCompleted = completedSteps || displaySteps.filter((step) => !["pending", "running"].includes(step.status)).length
-  const progressPercent = progressTotal > 0 ? Math.round((progressCompleted / progressTotal) * 100) : 0
+  const progressPercent = progress.percent ?? 0
   const isRunning = (runStatus === "running" || runStatus === "connecting") && !alreadyComplete
   const isDone = runStatus === "complete" || runStatus === "error" || alreadyComplete
   const terminalDescriptor = getRunStatusDescriptor(finalStatus ?? fallbackRun?.status)
   const hasTerminalStatus = Boolean(finalStatus || alreadyComplete)
+  const isFinalizingDetails = finalDetailState === "loading"
   const hasLiveRows = displaySteps.length > 0 || setupHooks.length > 0 || teardownHooks.length > 0
   const suiteSelectedView = suiteTests.length > 0 ? "all" : undefined
+  const selectedSubActionIsRunning = selectedSubAction?.result === "in-progress"
+  const selectedStepIsRunning = selectedStep?.status === "running"
+  const screenshotEmptyState = !isDone && (selectedSubActionIsRunning || (!selectedSubAction && selectedStepIsRunning))
+    ? "pending"
+    : "absent"
 
   return (
     <TooltipProvider>
@@ -440,7 +466,6 @@ export default function LiveRunPage() {
               {formatElapsed(elapsed)}
             </span>
             <Button
-              variant="outline"
               size="sm"
               onClick={() => navigate(routes.runDetail(id))}
               className="h-7 px-2 text-xs"
@@ -452,10 +477,10 @@ export default function LiveRunPage() {
         </div>
 
         <div className="shrink-0 border-b px-3 py-2" data-tour-id="tour-live-run-status">
-          {progressTotal > 0 ? (
+          {progress.total > 0 && progress.label ? (
             <div className="space-y-1">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Step {progressCompleted} of {progressTotal}</span>
+                <span>{progress.label}</span>
                 <span>{progressPercent}%</span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-muted">
@@ -480,6 +505,11 @@ export default function LiveRunPage() {
               <div className="text-sm">
                 <p className="font-medium">Run Error</p>
                 <p className="mt-1 text-xs">{error}</p>
+                {isFinalizingDetails && (
+                  <p className="mt-1 text-xs text-muted-foreground" aria-live="polite">
+                    Finalizing run details...
+                  </p>
+                )}
               </div>
             </div>
           ) : hasTerminalStatus ? (
@@ -504,6 +534,16 @@ export default function LiveRunPage() {
               {displaySteps.length > 0 && (
                 <span className="text-muted-foreground">
                   {passedSteps} passed, {failedSteps} failed
+                </span>
+              )}
+              {isFinalizingDetails && (
+                <span className="text-muted-foreground" aria-live="polite">
+                  Finalizing run details...
+                </span>
+              )}
+              {finalDetailState === "failed" && (
+                <span className="text-muted-foreground">
+                  Open full results to inspect artifacts.
                 </span>
               )}
             </div>
@@ -555,6 +595,7 @@ export default function LiveRunPage() {
                   platform={fallbackRun?.platform}
                   screenshotSide={screenshotSide}
                   onScreenshotSideChange={(side) => setScreenshotSide(side)}
+                  screenshotEmptyState={screenshotEmptyState}
                   pipelineRef={pipelineRef}
                 />
               )}

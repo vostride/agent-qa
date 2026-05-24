@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import {
   createLiveTimelineState,
+  deriveLiveProgressSummary,
   mergeFinalArtifacts,
   reduceLiveTimeline,
 } from "@/lib/live-timeline"
@@ -80,6 +81,306 @@ function stepRow(overrides: Partial<StepRow> = {}): StepRow {
 }
 
 describe("live timeline reducer", () => {
+  it("derives single-test progress labels and clamps completed steps", () => {
+    let state = createLiveTimelineState("run-1")
+    state = reduceLiveTimeline(state, {
+      type: "test-start",
+      runId: "run-1",
+      testName: "Login test",
+      filePath: "/tests/login.yaml",
+      totalSteps: 2,
+      timestamp,
+    })
+    state = reduceLiveTimeline(state, {
+      type: "step-start",
+      runId: "run-1",
+      stepName: "Open login",
+      testName: "Login test",
+      stepIndex: 0,
+      timestamp,
+    })
+
+    expect(deriveLiveProgressSummary(state)).toEqual(expect.objectContaining({
+      mode: "step",
+      label: "Step 1 of 2",
+      current: 1,
+      completed: 0,
+      total: 2,
+      percent: 0,
+    }))
+
+    state = reduceLiveTimeline(state, {
+      type: "step-complete",
+      runId: "run-1",
+      stepName: "Open login",
+      stepIndex: 0,
+      status: "passed",
+      duration: 10,
+    })
+    state = reduceLiveTimeline(state, {
+      type: "step-start",
+      runId: "run-1",
+      stepName: "Submit login",
+      testName: "Login test",
+      stepIndex: 1,
+      timestamp,
+    })
+    state = reduceLiveTimeline(state, {
+      type: "step-complete",
+      runId: "run-1",
+      stepName: "Submit login",
+      stepIndex: 1,
+      status: "passed",
+      duration: 12,
+    })
+
+    expect(deriveLiveProgressSummary(state)).toEqual(expect.objectContaining({
+      mode: "step",
+      label: "Step 2 of 2",
+      current: 2,
+      completed: 2,
+      total: 2,
+      percent: 100,
+    }))
+  })
+
+  it("derives suite progress from child tests instead of child steps or hooks", () => {
+    let state = createLiveTimelineState("suite-1")
+    const suiteTests = [
+      runRow({ id: "child-1", name: "One", status: "passed", parentRunId: "suite-1", metadata: { suiteIndex: 0 } }),
+      runRow({ id: "child-2", name: "Two", status: "running", parentRunId: "suite-1", metadata: { suiteIndex: 1 } }),
+      runRow({ id: "child-3", name: "Three", status: "pending", parentRunId: "suite-1", metadata: { suiteIndex: 2 } }),
+      runRow({ id: "child-4", name: "Four", status: "pending", parentRunId: "suite-1", metadata: { suiteIndex: 3 } }),
+    ]
+
+    state = mergeFinalArtifacts(state, { suiteTests })
+    state = reduceLiveTimeline(state, {
+      type: "hook-start",
+      runId: "suite-1",
+      hookName: "suite setup",
+      phase: "setup",
+      hookExecutionId: "setup-1",
+      timestamp,
+    })
+    state = reduceLiveTimeline(state, {
+      type: "step-start",
+      parentRunId: "suite-1",
+      suiteIndex: 1,
+      stepIndex: 0,
+      stepName: "Open billing",
+      testName: "Two",
+      timestamp,
+    } as ReducerEvent)
+    state = reduceLiveTimeline(state, {
+      type: "step-phase",
+      parentRunId: "suite-1",
+      suiteIndex: 1,
+      stepIndex: 0,
+      stepName: "Open billing",
+      testName: "Two",
+      subActionIndex: 0,
+      phase: "verify",
+      success: undefined,
+      text: "still checking",
+      timestamp,
+    } as ReducerEvent)
+    state = reduceLiveTimeline(state, {
+      type: "hook-start",
+      runId: "child-2",
+      stepId: "0",
+      hookName: "inline helper",
+      phase: "inline",
+      hookExecutionId: "inline-1",
+      timestamp,
+    } as ReducerEvent)
+    for (let index = 1; index <= 5; index += 1) {
+      state = reduceLiveTimeline(state, {
+        type: "step-complete",
+        parentRunId: "suite-1",
+        suiteIndex: 1,
+        stepIndex: index,
+        stepName: `Extra child step ${index}`,
+        status: "passed",
+        duration: 1,
+      } as ReducerEvent)
+    }
+
+    const progress = deriveLiveProgressSummary(state)
+    expect(progress).toEqual(expect.objectContaining({
+      mode: "test",
+      label: "Test 2 of 4",
+      current: 2,
+      completed: 1,
+      total: 4,
+      percent: 25,
+    }))
+    expect(progress.percent).toBeLessThanOrEqual(100)
+  })
+
+  it("advances suite progress when completion events only carry the child run id", () => {
+    let state = createLiveTimelineState("suite-1")
+    state = mergeFinalArtifacts(state, {
+      suiteTests: [
+        runRow({ id: "child-1", name: "One", status: "running", parentRunId: "suite-1", metadata: { suiteIndex: 0 } }),
+        runRow({ id: "child-2", name: "Two", status: "pending", parentRunId: "suite-1", metadata: { suiteIndex: 1 } }),
+        runRow({ id: "child-3", name: "Three", status: "pending", parentRunId: "suite-1", metadata: { suiteIndex: 2 } }),
+      ],
+    })
+
+    state = reduceLiveTimeline(state, {
+      type: "test-complete",
+      runId: "child-1",
+      testName: "One",
+      status: "passed",
+      duration: 120,
+    })
+
+    expect(state.suiteTests[0]?.status).toBe("passed")
+    expect(deriveLiveProgressSummary(state)).toEqual(expect.objectContaining({
+      mode: "test",
+      label: "Test 2 of 3",
+      current: 2,
+      completed: 1,
+      total: 3,
+      percent: 33,
+    }))
+  })
+
+  it("keeps suite progress denominator stable before every child test has started", () => {
+    let state = createLiveTimelineState("suite-1")
+
+    state = reduceLiveTimeline(state, {
+      type: "test-start",
+      runId: "child-1",
+      parentRunId: "suite-1",
+      suiteIndex: 0,
+      suiteTotal: 3,
+      testName: "One",
+      filePath: "/tests/one.yaml",
+      totalSteps: 1,
+      timestamp,
+    })
+
+    expect(deriveLiveProgressSummary(state)).toEqual(expect.objectContaining({
+      label: "Test 1 of 3",
+      current: 1,
+      completed: 0,
+      total: 3,
+      percent: 0,
+    }))
+
+    state = reduceLiveTimeline(state, {
+      type: "test-complete",
+      runId: "child-1",
+      testName: "One",
+      status: "passed",
+      duration: 120,
+    })
+
+    expect(deriveLiveProgressSummary(state)).toEqual(expect.objectContaining({
+      label: "Test 2 of 3",
+      current: 2,
+      completed: 1,
+      total: 3,
+      percent: 33,
+    }))
+
+    state = reduceLiveTimeline(state, {
+      type: "test-start",
+      runId: "child-2",
+      parentRunId: "suite-1",
+      suiteIndex: 1,
+      suiteTotal: 3,
+      testName: "Two",
+      filePath: "/tests/two.yaml",
+      totalSteps: 1,
+      timestamp,
+    })
+
+    expect(deriveLiveProgressSummary(state)).toEqual(expect.objectContaining({
+      label: "Test 2 of 3",
+      current: 2,
+      completed: 1,
+      total: 3,
+      percent: 33,
+    }))
+  })
+
+  it("reconciles terminal live-only statuses without overriding persisted failed subactions", () => {
+    let state = createLiveTimelineState("run-1")
+    state = reduceLiveTimeline(state, {
+      type: "hook-start",
+      runId: "run-1",
+      hookName: "setup data",
+      phase: "setup",
+      hookExecutionId: "setup-1",
+      timestamp,
+    })
+    state = reduceLiveTimeline(state, {
+      type: "step-start",
+      runId: "run-1",
+      stepName: "Submit checkout",
+      testName: "Checkout",
+      stepIndex: 0,
+      timestamp,
+    })
+    state = reduceLiveTimeline(state, {
+      type: "step-phase",
+      runId: "run-1",
+      stepName: "Submit checkout",
+      testName: "Checkout",
+      stepIndex: 0,
+      subActionIndex: 0,
+      phase: "verify",
+      success: false,
+      text: "stale live verifier failure",
+      timestamp,
+    })
+    state = reduceLiveTimeline(state, {
+      type: "hook-start",
+      runId: "run-1",
+      stepId: "0",
+      hookName: "inline helper",
+      phase: "inline",
+      hookExecutionId: "inline-1",
+      timestamp,
+    } as ReducerEvent)
+    state = reduceLiveTimeline(state, {
+      type: "run-complete",
+      runId: "run-1",
+      status: "passed",
+      duration: 100,
+    })
+
+    expect(state.setupHooks[0].status).toBe("passed")
+    expect(state.inlineLogs[0].status).toBe("passed")
+    expect(state.displaySteps[0].status).toBe("passed")
+    expect(state.displaySteps[0].subActionsData?.[0]?.result).toBe("success")
+
+    state = mergeFinalArtifacts(state, {
+      run: runRow({ status: "passed" }),
+      steps: [stepRow({
+        status: "passed",
+        stepOrder: 0,
+        subActionsData: [{
+          index: 0,
+          observation: "persisted observation",
+          reasoning: "persisted reasoning",
+          plannedAction: null,
+          result: "failure",
+          error: "persisted failed verify",
+          screenStateBefore: "",
+          cached: false,
+        }],
+      })],
+    })
+
+    expect(state.setupHooks[0].status).toBe("passed")
+    expect(state.inlineLogs[0].status).toBe("passed")
+    expect(state.displaySteps[0].status).toBe("passed")
+    expect(state.displaySteps[0].subActionsData?.[0]?.result).toBe("failure")
+  })
+
   it("keeps duplicate step names separate by run ID, stepIndex, and stepId", () => {
     let state = createLiveTimelineState("run-1")
 

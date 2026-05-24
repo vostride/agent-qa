@@ -10,6 +10,8 @@ import type {
   ExecutionStepCompleteEvent,
   ExecutionStepPhaseEvent,
   ExecutionStepStartEvent,
+  ExecutionTestCompleteEvent,
+  ExecutionTestStartEvent,
 } from '@/lib/api'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -20,6 +22,8 @@ const { callbacksRef, closeMock, subscribeToExecutionEventsMock } = vi.hoisted((
       onStepStart?: (data: ExecutionStepStartEvent) => void
       onStepPhase?: (data: ExecutionStepPhaseEvent) => void
       onStepComplete?: (data: ExecutionStepCompleteEvent) => void
+      onTestStart?: (data: ExecutionTestStartEvent) => void
+      onTestComplete?: (data: ExecutionTestCompleteEvent) => void
       onRunComplete?: (data: ExecutionRunCompleteEvent) => void
     },
   },
@@ -46,10 +50,40 @@ function Probe() {
       data-run-status={state.runStatus}
       data-final-status={state.finalStatus ?? ''}
       data-display-steps={state.displaySteps.map((step) => `${step.name}:${step.status}`).join('|')}
+      data-progress-label={state.progress.label ?? ''}
+      data-progress-percent={state.progress.percent ?? ''}
     >
       {state.steps.map((step) => `${step.name}:${step.status}`).join('|')}
     </div>
   )
+}
+
+function startSuiteTest(runId: string, testName: string, suiteIndex: number, suiteTotal = 3) {
+  act(() => {
+    callbacksRef.current?.onTestStart?.({
+      type: 'test-start',
+      runId,
+      parentRunId: 'run-1',
+      suiteIndex,
+      suiteTotal,
+      testName,
+      filePath: `/tests/${testName}.yaml`,
+      totalSteps: 1,
+      timestamp: '2026-05-02T00:00:00.000Z',
+    })
+  })
+}
+
+function completeSuiteTest(runId: string, testName: string, status: string) {
+  act(() => {
+    callbacksRef.current?.onTestComplete?.({
+      type: 'test-complete',
+      runId,
+      testName,
+      status,
+      duration: 100,
+    })
+  })
 }
 
 function startStep(stepName: string, stepIndex = 0) {
@@ -172,5 +206,24 @@ describe('useExecutionEvents terminal status handling', () => {
 
     expect(state.textContent).toBe('Repeat action:passed|Repeat action:failed')
     expect(state.getAttribute('data-display-steps')).toBe('Repeat action:passed|Repeat action:failed')
+  })
+
+  it('forwards test-complete events so suite progress advances', async () => {
+    const state = await renderProbe()
+
+    startSuiteTest('child-1', 'one', 0)
+
+    expect(state.getAttribute('data-progress-label')).toBe('Test 1 of 3')
+    expect(state.getAttribute('data-progress-percent')).toBe('0')
+
+    completeSuiteTest('child-1', 'one', 'passed')
+
+    expect(state.getAttribute('data-progress-label')).toBe('Test 2 of 3')
+    expect(state.getAttribute('data-progress-percent')).toBe('33')
+
+    startSuiteTest('child-2', 'two', 1)
+
+    expect(state.getAttribute('data-progress-label')).toBe('Test 2 of 3')
+    expect(state.getAttribute('data-progress-percent')).toBe('33')
   })
 })

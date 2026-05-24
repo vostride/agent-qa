@@ -4,9 +4,11 @@ import type { ExecutionLogEntry, RunRow } from "@/lib/api"
 import type { DisplayStep } from "@/lib/display-step"
 import {
   createLiveTimelineState,
+  deriveLiveProgressSummary,
   mergeFinalArtifacts as mergeLiveFinalArtifacts,
   reduceLiveTimeline,
   type FinalArtifactInput,
+  type LiveProgressSummary,
   type LiveTimelineState,
 } from "@/lib/live-timeline"
 import { getRunStatusDescriptor } from "@/lib/status"
@@ -63,6 +65,7 @@ export interface UseExecutionEventsReturn {
   passedSteps: number
   failedSteps: number
   totalSteps: number
+  progress: LiveProgressSummary
   mergeFinalArtifacts: (input: FinalArtifactInput) => void
 }
 
@@ -150,6 +153,12 @@ export function useExecutionEvents(
         }
       },
 
+      onTestComplete: (data) => {
+        if (!cancelled) {
+          setTimeline((prev) => reduceLiveTimeline(prev, data))
+        }
+      },
+
       onRunComplete: (data) => {
         if (!cancelled) {
           const descriptor = getRunStatusDescriptor(data.status)
@@ -198,6 +207,7 @@ export function useExecutionEvents(
     passedSteps: timeline.passedSteps,
     failedSteps: timeline.failedSteps,
     totalSteps: timeline.totalSteps,
+    progress: deriveLiveProgressSummary(timeline),
     mergeFinalArtifacts,
   }
 }

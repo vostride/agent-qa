@@ -35,6 +35,7 @@ export interface StepEventContext {
   runId?: string
   parentRunId?: string | null
   suiteIndex?: number
+  suiteTotal?: number
   testIndex?: number
   stepIndex?: number
   stepId?: string

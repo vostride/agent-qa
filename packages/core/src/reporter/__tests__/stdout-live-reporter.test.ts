@@ -86,7 +86,7 @@ describe('StdoutLiveReporter', () => {
     reporter.onTestStart(makeTest(), '/tests/login.yaml', {
       runId: RUN_ID,
       parentRunId: 'r_suite',
-      artifact: { suiteIndex: 1 },
+      artifact: { suiteIndex: 1, runtime: { suiteTotal: 3 } },
     })
     reporter.onStepStart('Repeat action', 'Login test', context)
     reporter.onStepPhase({
@@ -124,6 +124,7 @@ describe('StdoutLiveReporter', () => {
       variables: { TOKEN: 'safe' },
       type: 'hook',
     })
+    reporter.onTestEnd(makeResult({ runId: RUN_ID }))
 
     const events = parseEvents(writeSpy)
     expect(events).toEqual(expect.arrayContaining([
@@ -132,12 +133,14 @@ describe('StdoutLiveReporter', () => {
         runId: RUN_ID,
         parentRunId: 'r_suite',
         suiteIndex: 1,
+        suiteTotal: 3,
       }),
       expect.objectContaining({
         type: 'step-start',
         runId: RUN_ID,
         parentRunId: 'r_suite',
         suiteIndex: 1,
+        suiteTotal: 3,
         testIndex: 1,
         stepIndex: 2,
         stepId: 'step-2',
@@ -161,6 +164,7 @@ describe('StdoutLiveReporter', () => {
         runId: RUN_ID,
         parentRunId: 'r_suite',
         suiteIndex: 1,
+        suiteTotal: 3,
         hookId: 'hook-seed',
         stepId: 'step-2',
       }),
@@ -171,6 +175,13 @@ describe('StdoutLiveReporter', () => {
         stdout: 'seeded',
         variables: { TOKEN: 'safe' },
         logType: 'hook',
+      }),
+      expect.objectContaining({
+        type: 'test-complete',
+        runId: RUN_ID,
+        parentRunId: 'r_suite',
+        suiteIndex: 1,
+        suiteTotal: 3,
       }),
     ]))
   })

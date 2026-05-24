@@ -36,6 +36,14 @@ const {
       passedSteps: 0,
       failedSteps: 0,
       totalSteps: 0,
+      progress: {
+        mode: 'none',
+        label: null,
+        current: 0,
+        completed: 0,
+        total: 0,
+        percent: null,
+      },
       mergeFinalArtifacts: vi.fn(),
     } as import('@/hooks/use-execution-events').UseExecutionEventsReturn,
   },
@@ -95,9 +103,11 @@ vi.mock('@/components/run-detail/tab-panels', () => ({
   TabPanels: ({
     step,
     subAction,
+    screenshotEmptyState,
   }: {
     step: DisplayStep | null
     subAction: SubActionData | null
+    screenshotEmptyState?: 'pending' | 'absent'
   }) => (
     <div data-testid="tab-panels">
       <span>Overview</span>
@@ -108,6 +118,7 @@ vi.mock('@/components/run-detail/tab-panels', () => ({
       <span>A11y</span>
       <div data-testid="selected-step">{step?.name ?? 'No step'}</div>
       {subAction && <div data-testid="selected-subaction">{subAction.reasoning}</div>}
+      <div data-testid="screenshot-empty-state">{screenshotEmptyState ?? 'absent'}</div>
     </div>
   ),
 }))
@@ -129,10 +140,14 @@ vi.mock('@/components/ui/button', () => ({
   Button: ({
     children,
     onClick,
+    variant,
+    disabled,
   }: {
     children: ReactNode
     onClick?: () => void
-  }) => <button type="button" onClick={onClick}>{children}</button>,
+    variant?: string
+    disabled?: boolean
+  }) => <button type="button" data-variant={variant ?? 'default'} disabled={disabled} onClick={onClick}>{children}</button>,
 }))
 vi.mock('@/components/ui/badge', () => ({
   Badge: ({ children }: { children: ReactNode }) => <span>{children}</span>,
@@ -155,6 +170,14 @@ function makeExecutionState(overrides: Partial<import('@/hooks/use-execution-eve
     passedSteps: 0,
     failedSteps: 0,
     totalSteps: 0,
+    progress: {
+      mode: 'none',
+      label: null,
+      current: 0,
+      completed: 0,
+      total: 0,
+      percent: null,
+    },
     mergeFinalArtifacts: vi.fn(),
     ...overrides,
   }
@@ -262,11 +285,24 @@ function expectFailedFavicon() {
   expect(decodeURIComponent(href ?? '')).toContain('#EF4444')
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve
+    reject = promiseReject
+  })
+  return { promise, resolve, reject }
+}
+
 async function flushRender() {
   await act(async () => {
     await Promise.resolve()
     await Promise.resolve()
     await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+    await new Promise((resolve) => setTimeout(resolve, 0))
   })
 }
 
@@ -280,6 +316,7 @@ async function renderAt(url: string) {
       <MemoryRouter initialEntries={[url]}>
         <Routes>
           <Route path="/runs/:id/live" element={<LiveRunPage />} />
+          <Route path="/runs/:id" element={<div data-testid="run-detail-route">Run detail route</div>} />
         </Routes>
       </MemoryRouter>,
     )
@@ -310,6 +347,7 @@ afterEach(() => {
 
 describe('LiveRunPage status rendering', () => {
   it('renders run-complete timeout as a timed-out failure instead of generic Complete', async () => {
+    const finalFetch = deferred<{ run: RunRow; steps: []; attempts: [] }>()
     executionState.current = {
       ...makeExecutionState(),
       testInfo: { name: 'Local model regression', filePath: 'tests/web/01-homepage-basics.yaml', totalSteps: 1 },
@@ -317,29 +355,38 @@ describe('LiveRunPage status rendering', () => {
       finalStatus: 'timeout',
       elapsed: 90,
       totalSteps: 1,
+      progress: { mode: 'step', label: 'Step 1 of 1', current: 1, completed: 1, total: 1, percent: 100 },
     }
-    fetchRunMock.mockResolvedValue({ run: makeRun('failed') })
+    fetchRunMock
+      .mockResolvedValueOnce({ run: makeRun('running') })
+      .mockReturnValueOnce(finalFetch.promise)
 
     const view = await renderAt('/runs/run-timeout/live')
 
     expect(view.textContent).toContain('Timed Out')
     expect(view.textContent).not.toContain('Complete')
     expect(view.textContent).toContain('View Full Results')
+    expect(view.textContent).toContain('Finalizing run details...')
     expectFailedFavicon()
   })
 
-  it('treats fallback cancelled rows as terminal and offers the persisted detail link', async () => {
-    fetchRunMock.mockResolvedValue({ run: makeRun('cancelled') })
+  it('treats fallback cancelled rows as terminal and prepares the persisted detail handoff', async () => {
+    const finalFetch = deferred<{ run: RunRow; steps: []; attempts: [] }>()
+    fetchRunMock
+      .mockResolvedValueOnce({ run: makeRun('cancelled') })
+      .mockReturnValueOnce(finalFetch.promise)
 
     const view = await renderAt('/runs/run-cancelled/live')
 
     expect(view.textContent).toContain('Cancelled')
     expect(view.textContent).toContain('View Full Results')
+    expect(view.textContent).toContain('Finalizing run details...')
     expect(view.textContent).not.toContain('Waiting for steps')
     expectStatusFavicon()
   })
 
   it('sets a passed favicon for run-complete passed events', async () => {
+    const finalFetch = deferred<{ run: RunRow; steps: []; attempts: [] }>()
     executionState.current = {
       ...makeExecutionState(),
       testInfo: { name: 'Local model regression', filePath: 'tests/web/01-homepage-basics.yaml', totalSteps: 1 },
@@ -347,8 +394,11 @@ describe('LiveRunPage status rendering', () => {
       finalStatus: 'passed',
       elapsed: 42,
       totalSteps: 1,
+      progress: { mode: 'step', label: 'Step 1 of 1', current: 1, completed: 1, total: 1, percent: 100 },
     }
-    fetchRunMock.mockResolvedValue({ run: makeRun('running') })
+    fetchRunMock
+      .mockResolvedValueOnce({ run: makeRun('running') })
+      .mockReturnValueOnce(finalFetch.promise)
 
     const view = await renderAt('/runs/run-passed/live')
 
@@ -357,6 +407,7 @@ describe('LiveRunPage status rendering', () => {
   })
 
   it('treats terminal fallback rows as complete while the live hook is connecting', async () => {
+    const finalFetch = deferred<{ run: RunRow; steps: []; attempts: [] }>()
     executionState.current = {
       ...makeExecutionState(),
       testInfo: null,
@@ -364,7 +415,9 @@ describe('LiveRunPage status rendering', () => {
       finalStatus: undefined,
       elapsed: 0,
     }
-    fetchRunMock.mockResolvedValue({ run: makeRun('failed') })
+    fetchRunMock
+      .mockResolvedValueOnce({ run: makeRun('failed') })
+      .mockReturnValueOnce(finalFetch.promise)
 
     const view = await renderAt('/runs/run-failed/live')
 
@@ -392,6 +445,7 @@ describe('LiveRunPage status rendering', () => {
   })
 
   it('sets a failed favicon for live errors without a terminal status', async () => {
+    const finalFetch = deferred<{ run: RunRow; steps: []; attempts: [] }>()
     executionState.current = {
       ...makeExecutionState(),
       testInfo: null,
@@ -400,7 +454,9 @@ describe('LiveRunPage status rendering', () => {
       elapsed: 12,
       error: 'SSE connection failed',
     }
-    fetchRunMock.mockResolvedValue({ run: makeRun('running') })
+    fetchRunMock
+      .mockResolvedValueOnce({ run: makeRun('running') })
+      .mockReturnValueOnce(finalFetch.promise)
 
     const view = await renderAt('/runs/run-error/live')
 
@@ -435,6 +491,7 @@ describe('LiveRunPage status rendering', () => {
       runStatus: 'running',
       elapsed: 5,
       totalSteps: 1,
+      progress: { mode: 'step', label: 'Step 1 of 1', current: 1, completed: 0, total: 1, percent: 0 },
     })
 
     const view = await renderAt('/runs/run-live/live')
@@ -448,6 +505,187 @@ describe('LiveRunPage status rendering', () => {
     expect(view.textContent).toContain('View Full Results')
   })
 
+  it('renders single-test progress from the execution progress summary', async () => {
+    executionState.current = makeExecutionState({
+      displaySteps: [makeDisplayStep('step-1', 'Open dashboard', 'running')],
+      testInfo: { name: 'Local model regression', filePath: 'tests/web/01-homepage-basics.yaml', totalSteps: 2 },
+      runStatus: 'running',
+      completedSteps: 0,
+      totalSteps: 2,
+      progress: { mode: 'step', label: 'Step 1 of 2', current: 1, completed: 0, total: 2, percent: 0 },
+    })
+
+    const view = await renderAt('/runs/run-live/live')
+
+    expect(view.textContent).toContain('Step 1 of 2')
+    expect(view.textContent).toContain('0%')
+  })
+
+  it('renders suite progress by test count without overflowing the percent', async () => {
+    executionState.current = makeExecutionState({
+      displaySteps: Array.from({ length: 5 }, (_, index) => makeDisplayStep(`step-${index}`, `Child step ${index}`, 'passed')),
+      suiteTests: [
+        makeRun('passed'),
+        makeRun('running'),
+        makeRun('pending'),
+        makeRun('pending'),
+      ],
+      testInfo: { name: 'Suite run', filePath: 'tests/suite.yaml', totalSteps: 2 },
+      runStatus: 'running',
+      completedSteps: 5,
+      totalSteps: 2,
+      progress: { mode: 'test', label: 'Test 2 of 4', current: 2, completed: 1, total: 4, percent: 25 },
+    })
+
+    const view = await renderAt('/runs/suite-live/live')
+
+    expect(view.textContent).toContain('Test 2 of 4')
+    expect(view.textContent).toContain('25%')
+    expect(view.textContent).not.toContain('Step 5 of 2')
+    expect(view.textContent).not.toContain('250%')
+  })
+
+  it('uses the primary full-results action and keeps manual navigation available', async () => {
+    executionState.current = makeExecutionState({
+      displaySteps: [makeDisplayStep('step-1', 'Open dashboard', 'running')],
+      testInfo: { name: 'Local model regression', filePath: 'tests/web/01-homepage-basics.yaml', totalSteps: 1 },
+      runStatus: 'running',
+      progress: { mode: 'step', label: 'Step 1 of 1', current: 1, completed: 0, total: 1, percent: 0 },
+    })
+
+    const view = await renderAt('/runs/run-live/live')
+    const resultsButton = Array.from(view.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('View Full Results'),
+    )
+
+    expect(resultsButton?.getAttribute('data-variant')).toBe('default')
+
+    await act(async () => {
+      resultsButton?.click()
+    })
+    await flushRender()
+
+    expect(view.querySelector('[data-testid="run-detail-route"]')?.textContent).toContain('Run detail route')
+  })
+
+  it('waits for confirmed final details before navigating away from live mode', async () => {
+    const finalFetch = deferred<{ run: RunRow; steps: []; attempts: [] }>()
+    const mergeFinalArtifacts = vi.fn()
+    executionState.current = makeExecutionState({
+      displaySteps: [makeDisplayStep('step-1', 'Open dashboard', 'passed')],
+      testInfo: { name: 'Local model regression', filePath: 'tests/web/01-homepage-basics.yaml', totalSteps: 1 },
+      runStatus: 'complete',
+      finalStatus: 'passed',
+      progress: { mode: 'step', label: 'Step 1 of 1', current: 1, completed: 1, total: 1, percent: 100 },
+      mergeFinalArtifacts,
+    })
+    fetchRunMock
+      .mockResolvedValueOnce({ run: makeRun('running') })
+      .mockReturnValueOnce(finalFetch.promise)
+
+    const view = await renderAt('/runs/run-passed/live')
+
+    expect(view.textContent).toContain('Finalizing run details...')
+    expect(view.querySelector('[data-testid="run-detail-route"]')).toBeNull()
+    expect(mergeFinalArtifacts).not.toHaveBeenCalled()
+
+    await act(async () => {
+      finalFetch.resolve({ run: makeRun('passed'), steps: [], attempts: [] })
+    })
+    await flushRender()
+
+    expect(mergeFinalArtifacts).toHaveBeenCalledWith(expect.objectContaining({
+      run: expect.objectContaining({ status: 'passed' }),
+      steps: [],
+    }))
+    expect(view.querySelector('[data-testid="run-detail-route"]')?.textContent).toContain('Run detail route')
+  })
+
+  it('auto-navigates direct terminal live visits after persisted detail confirmation', async () => {
+    fetchRunMock
+      .mockResolvedValueOnce({ run: makeRun('passed'), steps: [], attempts: [] })
+      .mockResolvedValueOnce({ run: makeRun('passed'), steps: [], attempts: [] })
+
+    const view = await renderAt('/runs/run-passed/live')
+    await flushRender()
+
+    expect(view.querySelector('[data-testid="run-detail-route"]')?.textContent).toContain('Run detail route')
+  })
+
+  it('does not auto-navigate while execution is still connecting or running', async () => {
+    for (const runStatus of ['connecting', 'running'] as const) {
+      if (root) {
+        act(() => root!.unmount())
+      }
+      root = null
+      container?.remove()
+      container = null
+      executionState.current = makeExecutionState({
+        displaySteps: [makeDisplayStep('step-1', 'Open dashboard', 'running')],
+        testInfo: { name: 'Local model regression', filePath: 'tests/web/01-homepage-basics.yaml', totalSteps: 1 },
+        runStatus,
+        progress: { mode: 'step', label: 'Step 1 of 1', current: 1, completed: 0, total: 1, percent: 0 },
+      })
+      fetchRunMock.mockClear()
+      fetchRunMock.mockResolvedValue({ run: makeRun('running') })
+
+      const view = await renderAt(`/runs/run-${runStatus}/live`)
+
+      expect(view.querySelector('[data-testid="run-detail-route"]')).toBeNull()
+      expect(fetchRunMock).toHaveBeenCalledTimes(1)
+    }
+  })
+
+  it('keeps the live fallback visible when final detail fetch fails', async () => {
+    executionState.current = makeExecutionState({
+      displaySteps: [makeDisplayStep('step-1', 'Open dashboard', 'passed')],
+      testInfo: { name: 'Local model regression', filePath: 'tests/web/01-homepage-basics.yaml', totalSteps: 1 },
+      runStatus: 'complete',
+      finalStatus: 'passed',
+      progress: { mode: 'step', label: 'Step 1 of 1', current: 1, completed: 1, total: 1, percent: 100 },
+    })
+    fetchRunMock
+      .mockResolvedValueOnce({ run: makeRun('running') })
+      .mockRejectedValueOnce(new Error('final artifacts unavailable'))
+
+    const view = await renderAt('/runs/run-final-fetch-failed/live')
+    await flushRender()
+
+    expect(view.textContent).toContain('View Full Results')
+    expect(view.querySelector('[data-testid="run-detail-route"]')).toBeNull()
+  })
+
+  it('marks live screenshot copy pending only while selected work is running', async () => {
+    executionState.current = makeExecutionState({
+      displaySteps: [makeDisplayStep('step-1', 'Open dashboard', 'running', [makeSubAction('Check dashboard state')])],
+      testInfo: { name: 'Local model regression', filePath: 'tests/web/01-homepage-basics.yaml', totalSteps: 1 },
+      runStatus: 'running',
+      progress: { mode: 'step', label: 'Step 1 of 1', current: 1, completed: 0, total: 1, percent: 0 },
+    })
+
+    const view = await renderAt('/runs/run-live/live')
+
+    expect(view.querySelector('[data-testid="screenshot-empty-state"]')?.textContent).toBe('pending')
+  })
+
+  it('uses absent screenshot copy once live work is terminal', async () => {
+    const finalFetch = deferred<{ run: RunRow; steps: []; attempts: [] }>()
+    executionState.current = makeExecutionState({
+      displaySteps: [makeDisplayStep('step-1', 'Open dashboard', 'passed')],
+      testInfo: { name: 'Local model regression', filePath: 'tests/web/01-homepage-basics.yaml', totalSteps: 1 },
+      runStatus: 'complete',
+      finalStatus: 'passed',
+      progress: { mode: 'step', label: 'Step 1 of 1', current: 1, completed: 1, total: 1, percent: 100 },
+    })
+    fetchRunMock
+      .mockResolvedValueOnce({ run: makeRun('running') })
+      .mockReturnValueOnce(finalFetch.promise)
+
+    const view = await renderAt('/runs/run-passed/live')
+
+    expect(view.querySelector('[data-testid="screenshot-empty-state"]')?.textContent).toBe('absent')
+  })
+
   it('keeps manual selection stable until Latest is clicked', async () => {
     const first = makeDisplayStep('step-1', 'Earlier step', 'passed', [makeSubAction('Earlier subaction')])
     const second = makeDisplayStep('step-2', 'Current step', 'running', [makeSubAction('Current subaction')])
@@ -456,6 +694,7 @@ describe('LiveRunPage status rendering', () => {
       testInfo: { name: 'Local model regression', filePath: 'tests/web/01-homepage-basics.yaml', totalSteps: 2 },
       runStatus: 'running',
       totalSteps: 2,
+      progress: { mode: 'step', label: 'Step 1 of 2', current: 1, completed: 0, total: 2, percent: 0 },
     })
 
     const view = await renderAt('/runs/run-live/live')
@@ -482,6 +721,7 @@ describe('LiveRunPage status rendering', () => {
         <MemoryRouter initialEntries={['/runs/run-live/live']}>
           <Routes>
             <Route path="/runs/:id/live" element={<LiveRunPage />} />
+            <Route path="/runs/:id" element={<div data-testid="run-detail-route">Run detail route</div>} />
           </Routes>
         </MemoryRouter>,
       )
@@ -505,6 +745,7 @@ describe('LiveRunPage status rendering', () => {
       testInfo: { name: 'Local model regression', filePath: 'tests/web/01-homepage-basics.yaml', totalSteps: 1 },
       runStatus: 'running',
       totalSteps: 1,
+      progress: { mode: 'step', label: 'Step 1 of 1', current: 1, completed: 0, total: 1, percent: 0 },
     })
 
     const view = await renderAt('/runs/run-live/live')
@@ -526,6 +767,7 @@ describe('LiveRunPage status rendering', () => {
       runStatus: 'complete',
       finalStatus: 'passed',
       totalSteps: 1,
+      progress: { mode: 'step', label: 'Step 1 of 1', current: 1, completed: 1, total: 1, percent: 100 },
       mergeFinalArtifacts,
     })
     const finalRun = makeRun('passed')

@@ -21,6 +21,7 @@ import {
 } from "@/lib/display-step"
 import {
   finalStepStatusForRun,
+  isTerminalRunStatus,
   normalizeStepStatus,
   type NormalizedStepStatus,
 } from "@/lib/status"
@@ -33,6 +34,7 @@ interface LiveIdentity {
   runId?: string | null
   parentRunId?: string | null
   suiteIndex?: number
+  suiteTotal?: number
   testIndex?: number
   stepIndex?: number
   stepId?: string | null
@@ -80,6 +82,7 @@ export interface LiveTimelineState {
   teardownHooks: ExecutionLogEntry[]
   inlineLogs: ExecutionLogEntry[]
   suiteTests: RunRow[]
+  suiteTotal: number | null
   completedSteps: number
   passedSteps: number
   failedSteps: number
@@ -87,6 +90,17 @@ export interface LiveTimelineState {
   finalStatus?: string
   processedEventIds: string[]
   stepNodes: LiveStepNode[]
+}
+
+export type LiveProgressMode = "step" | "test" | "none"
+
+export interface LiveProgressSummary {
+  mode: LiveProgressMode
+  label: string | null
+  current: number
+  completed: number
+  total: number
+  percent: number | null
 }
 
 export type LiveTimelineEvent =
@@ -111,6 +125,7 @@ export function createLiveTimelineState(runId: string | null = null): LiveTimeli
     teardownHooks: [],
     inlineLogs: [],
     suiteTests: [],
+    suiteTotal: null,
     completedSteps: 0,
     passedSteps: 0,
     failedSteps: 0,
@@ -193,12 +208,16 @@ export function mergeFinalArtifacts(state: LiveTimelineState, input: FinalArtifa
     next = {
       ...next,
       runId: next.runId ?? input.run.id,
-      finalStatus: input.run.status,
+      finalStatus: isTerminalRunStatus(input.run.status) ? input.run.status : next.finalStatus,
     }
   }
 
   if (input.suiteTests) {
-    next = { ...next, suiteTests: input.suiteTests }
+    next = {
+      ...next,
+      suiteTests: input.suiteTests,
+      suiteTotal: mergeSuiteTotal(next.suiteTotal, input.suiteTests.length),
+    }
   }
 
   for (const row of finalSteps) {
@@ -220,7 +239,7 @@ export function mergeFinalArtifacts(state: LiveTimelineState, input: FinalArtifa
       return !node.runId && !node.parentRunId && node.name === row.name && node.status !== "running"
     })
     const existingNode = existingIndex >= 0 ? next.stepNodes[existingIndex] : null
-    const display = reconcilePersistedDisplay(fromStepRow(row), existingNode)
+    const display = reconcilePersistedDisplay(fromStepRow(row), existingNode, normalizeStepStatus(row.status))
     const key = existingIndex >= 0
       ? next.stepNodes[existingIndex].key
       : `step:${row.runId}:index:${row.stepOrder}`
@@ -258,7 +277,46 @@ export function mergeFinalArtifacts(state: LiveTimelineState, input: FinalArtifa
     next = { ...next, setupHooks, teardownHooks, inlineLogs }
   }
 
+  if (input.run && isTerminalRunStatus(input.run.status)) {
+    next = reconcileTerminalState(next, input.run.status)
+  }
+
   return finalizeState(next)
+}
+
+export function deriveLiveProgressSummary(state: LiveTimelineState): LiveProgressSummary {
+  const suiteTotal = deriveSuiteTotal(state)
+  if (suiteTotal > 0) {
+    const total = suiteTotal
+    const completed = clamp(state.suiteTests.filter((run) => isTerminalRunStatus(run.status)).length, 0, total)
+    const active = state.suiteTests.find((run) => !isTerminalRunStatus(run.status))
+    const activeIndex = active ? readRunSuiteIndex(active) ?? state.suiteTests.indexOf(active) : -1
+    const current = activeIndex >= 0
+      ? activeIndex + 1
+      : (completed === total ? total : completed + 1)
+
+    return buildProgressSummary("test", current, completed, total)
+  }
+
+  const total = Math.max(0, state.testInfo?.totalSteps ?? state.displaySteps.length)
+  if (total === 0) {
+    return {
+      mode: "none",
+      label: null,
+      current: 0,
+      completed: 0,
+      total: 0,
+      percent: null,
+    }
+  }
+
+  const completed = clamp(state.completedSteps, 0, total)
+  const runningIndex = state.displaySteps.findIndex((step) => step.status === "running")
+  const current = runningIndex >= 0
+    ? runningIndex + 1
+    : (completed === total ? total : completed + 1)
+
+  return buildProgressSummary("step", current, completed, total)
 }
 
 function reduceTestStart(state: LiveTimelineState, event: ExecutionTestStartEvent): LiveTimelineState {
@@ -269,10 +327,12 @@ function reduceTestStart(state: LiveTimelineState, event: ExecutionTestStartEven
   }
 
   let suiteTests = state.suiteTests
-  if (event.parentRunId && typeof event.suiteIndex === "number") {
+  const suiteIndex = getSuiteOrdinal(event)
+  const suiteTotal = mergeSuiteTotal(state.suiteTotal, readSuiteTotal(event), suiteIndex !== null ? suiteIndex + 1 : null)
+  if (event.parentRunId && suiteIndex !== null) {
     const row = createRunRowForLiveTest(event)
     const nextSuiteTests = [...suiteTests]
-    nextSuiteTests[event.suiteIndex] = row
+    nextSuiteTests[suiteIndex] = row
     suiteTests = nextSuiteTests.filter(Boolean)
   }
 
@@ -281,22 +341,28 @@ function reduceTestStart(state: LiveTimelineState, event: ExecutionTestStartEven
     runId: state.runId ?? event.parentRunId ?? event.runId,
     testInfo,
     suiteTests,
+    suiteTotal,
   })
 }
 
 function reduceTestComplete(state: LiveTimelineState, event: ExecutionTestCompleteEvent): LiveTimelineState {
-  if (!event.parentRunId || typeof event.suiteIndex !== "number") return state
+  const suiteIndex = findSuiteTestIndex(state.suiteTests, event)
+  if (suiteIndex < 0) return state
   const suiteTests = [...state.suiteTests]
-  const existing = suiteTests[event.suiteIndex]
+  const existing = suiteTests[suiteIndex]
   if (existing) {
-    suiteTests[event.suiteIndex] = {
+    suiteTests[suiteIndex] = {
       ...existing,
       status: event.status,
       duration: event.duration,
       endedAt: new Date().toISOString(),
     }
   }
-  return finalizeState({ ...state, suiteTests })
+  return finalizeState({
+    ...state,
+    suiteTests,
+    suiteTotal: mergeSuiteTotal(state.suiteTotal, readSuiteTotal(event)),
+  })
 }
 
 function reduceStepStart(state: LiveTimelineState, event: ExecutionStepStartEvent): LiveTimelineState {
@@ -402,14 +468,10 @@ function reduceHookEnd(state: LiveTimelineState, event: ExecutionHookEndEvent): 
 }
 
 function reduceRunComplete(state: LiveTimelineState, event: ExecutionRunCompleteEvent): LiveTimelineState {
-  const finalStatus = finalStepStatusForRun(event.status)
-  return finalizeState({
+  return finalizeState(reconcileTerminalState({
     ...state,
     finalStatus: event.status,
-    stepNodes: state.stepNodes.map((node) =>
-      node.status === "running" ? { ...node, status: finalStatus } : node,
-    ),
-  })
+  }, event.status))
 }
 
 function finalizeState(state: LiveTimelineState): LiveTimelineState {
@@ -471,6 +533,7 @@ function nodeToDisplayStep(node: LiveStepNode): DisplayStep {
     return {
       ...node.display,
       id: node.key,
+      status: node.status,
       rawRunId: node.display.rawRunId ?? node.runId ?? null,
       runId: node.display.runId ?? node.runId ?? null,
     }
@@ -514,11 +577,15 @@ function nodeToDisplayStep(node: LiveStepNode): DisplayStep {
 
 function buildSubActions(node: LiveStepNode): SubActionData[] | null {
   const explicitGroups = Object.entries(node.phaseGroups)
-  if (explicitGroups.length === 0) return groupPhasesIntoSubActions(node.phases)
+  if (explicitGroups.length === 0) {
+    return normalizeLiveSubActionsForStatus(groupPhasesIntoSubActions(node.phases), node.status)
+  }
 
-  return explicitGroups
+  const subActions = explicitGroups
     .sort(([left], [right]) => Number(left) - Number(right))
     .map(([rawIndex, phases]) => phaseGroupToSubAction(Number(rawIndex), phases))
+
+  return normalizeLiveSubActionsForStatus(subActions, node.status)
 }
 
 function phaseGroupToSubAction(index: number, phases: LivePhase[]): SubActionData {
@@ -592,6 +659,29 @@ function getSuiteOrdinal(identity: Pick<LiveIdentity, "suiteIndex" | "testIndex"
   return null
 }
 
+function readSuiteTotal(identity: Pick<LiveIdentity, "suiteTotal">): number | null {
+  if (typeof identity.suiteTotal === "number" && Number.isInteger(identity.suiteTotal) && identity.suiteTotal > 0) {
+    return identity.suiteTotal
+  }
+  return null
+}
+
+function mergeSuiteTotal(current: number | null, ...candidates: Array<number | null | undefined>): number | null {
+  const values = [current, ...candidates].filter((value): value is number =>
+    typeof value === "number" && Number.isInteger(value) && value > 0,
+  )
+  return values.length > 0 ? Math.max(...values) : null
+}
+
+function deriveSuiteTotal(state: LiveTimelineState): number {
+  const highestKnownIndex = state.suiteTests.reduce((highest, run, index) => {
+    const suiteIndex = readRunSuiteIndex(run) ?? index
+    return Math.max(highest, suiteIndex)
+  }, -1)
+
+  return Math.max(state.suiteTotal ?? 0, state.suiteTests.length, highestKnownIndex + 1)
+}
+
 function findSuiteStepIndex(nodes: LiveStepNode[], identity: LiveIdentity): number {
   const suiteOrdinal = getSuiteOrdinal(identity)
   if (!identity.parentRunId || suiteOrdinal === null || typeof identity.stepIndex !== "number") return -1
@@ -600,6 +690,16 @@ function findSuiteStepIndex(nodes: LiveStepNode[], identity: LiveIdentity): numb
     && getSuiteOrdinal(node) === suiteOrdinal
     && node.stepIndex === identity.stepIndex,
   )
+}
+
+function findSuiteTestIndex(suiteTests: RunRow[], identity: LiveIdentity): number {
+  const suiteOrdinal = getSuiteOrdinal(identity)
+  if (identity.parentRunId && suiteOrdinal !== null) {
+    const bySuiteOrdinal = suiteTests.findIndex((run, index) => (readRunSuiteIndex(run) ?? index) === suiteOrdinal)
+    if (bySuiteOrdinal >= 0) return bySuiteOrdinal
+  }
+  if (!identity.runId) return -1
+  return suiteTests.findIndex((run) => run.id === identity.runId)
 }
 
 function liveIdentitiesCompatible(node: LiveIdentity, event: LiveIdentity): boolean {
@@ -637,10 +737,14 @@ function readRunSuiteIndex(run: RunRow): number | null {
   return null
 }
 
-function reconcilePersistedDisplay(display: DisplayStep, existingNode: LiveStepNode | null): DisplayStep {
+function reconcilePersistedDisplay(
+  display: DisplayStep,
+  existingNode: LiveStepNode | null,
+  finalStatus?: NormalizedStepStatus,
+): DisplayStep {
   if (!existingNode || display.subActionsData) return display
 
-  const subActionsData = buildSubActions(existingNode)
+  const subActionsData = normalizeLiveSubActionsForStatus(buildSubActions(existingNode), finalStatus ?? existingNode.status)
   if (!subActionsData) return display
 
   const fallbackSubAction = subActionsData.find((subAction) =>
@@ -656,6 +760,77 @@ function reconcilePersistedDisplay(display: DisplayStep, existingNode: LiveStepN
     action: display.action ?? existingNode.action ?? existingNode.plannedAction ?? fallbackSubAction?.plannedAction ?? null,
     confidence: display.confidence ?? existingNode.confidence ?? fallbackSubAction?.confidence ?? null,
   }
+}
+
+function reconcileTerminalState(state: LiveTimelineState, runStatus: string | null | undefined): LiveTimelineState {
+  const finalStatus = finalStepStatusForRun(runStatus)
+  return {
+    ...state,
+    stepNodes: state.stepNodes.map((node) => ({
+      ...node,
+      status: node.status === "running" ? finalStatus : node.status,
+    })),
+    setupHooks: reconcileTerminalLogs(state.setupHooks, finalStatus),
+    teardownHooks: reconcileTerminalLogs(state.teardownHooks, finalStatus),
+    inlineLogs: reconcileTerminalLogs(state.inlineLogs, finalStatus),
+  }
+}
+
+function reconcileTerminalLogs(
+  logs: ExecutionLogEntry[],
+  finalStatus: NormalizedStepStatus,
+): ExecutionLogEntry[] {
+  return logs.map((log) => (
+    log.status === "running"
+      ? { ...log, status: finalStatus as ExecutionLogEntry["status"] }
+      : log
+  ))
+}
+
+function normalizeLiveSubActionsForStatus(
+  subActions: SubActionData[] | null,
+  status: NormalizedStepStatus,
+): SubActionData[] | null {
+  if (!subActions || status === "pending" || status === "running") return subActions
+
+  if (["passed", "healed", "flaky"].includes(status)) {
+    return subActions.map((subAction) => ({
+      ...subAction,
+      result: "success",
+      error: subAction.result === "failure" ? undefined : subAction.error,
+    }))
+  }
+
+  return subActions.map((subAction) => (
+    subAction.result === "in-progress"
+      ? { ...subAction, result: "failure" }
+      : subAction
+  ))
+}
+
+function buildProgressSummary(
+  mode: Exclude<LiveProgressMode, "none">,
+  current: number,
+  completed: number,
+  total: number,
+): LiveProgressSummary {
+  const safeTotal = Math.max(0, total)
+  const safeCurrent = safeTotal === 0 ? 0 : clamp(current, 1, safeTotal)
+  const safeCompleted = clamp(completed, 0, safeTotal)
+  const noun = mode === "test" ? "Test" : "Step"
+
+  return {
+    mode,
+    label: safeTotal > 0 ? `${noun} ${safeCurrent} of ${safeTotal}` : null,
+    current: safeCurrent,
+    completed: safeCompleted,
+    total: safeTotal,
+    percent: safeTotal > 0 ? clamp(Math.round((safeCompleted / safeTotal) * 100), 0, 100) : null,
+  }
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value))
 }
 
 function replaceNode(nodes: LiveStepNode[], index: number, node: LiveStepNode): LiveStepNode[] {
@@ -726,6 +901,7 @@ function toScreenshotDataUrl(value: string | undefined): string | null {
 
 function createRunRowForLiveTest(event: ExecutionTestStartEvent): RunRow {
   const createdAt = event.timestamp ?? new Date().toISOString()
+  const suiteIndex = getSuiteOrdinal(event)
   return {
     id: event.runId,
     name: event.testName,
@@ -734,7 +910,7 @@ function createRunRowForLiveTest(event: ExecutionTestStartEvent): RunRow {
     duration: 0,
     attributes: {},
     environment: null,
-    metadata: { suiteIndex: event.suiteIndex },
+    metadata: suiteIndex !== null ? { suiteIndex } : {},
     startedAt: createdAt,
     endedAt: null,
     videoPath: null,

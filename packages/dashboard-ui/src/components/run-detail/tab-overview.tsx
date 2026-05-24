@@ -14,6 +14,7 @@ const SCREENSHOT_SEGMENT_ACTIVE = "bg-primary/10 text-foreground ring-1 ring-pri
 const SCREENSHOT_SEGMENT_IDLE = "text-muted-foreground hover:bg-muted hover:text-foreground"
 
 export type ScreenshotSide = "before" | "after"
+export type ScreenshotEmptyState = "pending" | "absent"
 
 interface TabOverviewProps {
   step: DisplayStep
@@ -21,6 +22,7 @@ interface TabOverviewProps {
   runId: string | null
   screenshotSide?: ScreenshotSide
   onScreenshotSideChange?: (side: ScreenshotSide) => void
+  screenshotEmptyState?: ScreenshotEmptyState
   pipelineRef?: React.RefObject<ReasoningPipelineHandle | null>
 }
 
@@ -122,6 +124,7 @@ export function TabOverview({
   runId,
   screenshotSide,
   onScreenshotSideChange,
+  screenshotEmptyState = "absent",
   pipelineRef,
 }: TabOverviewProps) {
   const hasMultiSub = (step.subActionsData?.length ?? 0) > 1
@@ -140,6 +143,7 @@ export function TabOverview({
           screenContextAfter={subAction.screenContextAfter}
           screenshotSide={screenshotSide}
           onScreenshotSideChange={onScreenshotSideChange}
+          emptyState={screenshotEmptyState}
         />
         <div className="border-t">
           <div className="p-3 space-y-3 min-w-0">
@@ -186,6 +190,7 @@ export function TabOverview({
         screenContextAfter={step.screenContextAfter}
         screenshotSide={screenshotSide}
         onScreenshotSideChange={onScreenshotSideChange}
+        emptyState={screenshotEmptyState}
       />
       <div className="border-t">
         <div className="p-3 space-y-3 min-w-0">
@@ -272,7 +277,7 @@ function UrlBar({ url }: { url: string | null | undefined }) {
   )
 }
 
-function ScreenshotPair({ beforePath, afterPath, annotation, refLabel, screenContextBefore, screenContextAfter, screenshotSide, onScreenshotSideChange }: {
+function ScreenshotPair({ beforePath, afterPath, annotation, refLabel, screenContextBefore, screenContextAfter, screenshotSide, onScreenshotSideChange, emptyState }: {
   beforePath: string | null
   afterPath: string | null
   annotation?: unknown
@@ -281,6 +286,7 @@ function ScreenshotPair({ beforePath, afterPath, annotation, refLabel, screenCon
   screenContextAfter?: string | null
   screenshotSide?: ScreenshotSide
   onScreenshotSideChange?: (side: ScreenshotSide) => void
+  emptyState: ScreenshotEmptyState
 }) {
   const hasBefore = !!beforePath
   const hasAfter = !!afterPath
@@ -310,10 +316,15 @@ function ScreenshotPair({ beforePath, afterPath, annotation, refLabel, screenCon
   }
 
   if (!hasBefore && !hasAfter) {
+    const isPending = emptyState === "pending"
     return (
-      <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2 py-12">
-        <Camera className="h-8 w-8" />
-        <span className="text-sm">No screenshot for this step</span>
+      <div className="h-full w-full py-12">
+        <div className="flex min-h-[16rem] w-full flex-col items-center justify-center gap-2 text-center text-muted-foreground">
+          <Camera className="h-8 w-8" />
+          <span className="text-sm font-medium text-foreground">
+            {isPending ? "Waiting for screenshot" : "No screenshot captured"}
+          </span>
+        </div>
       </div>
     )
   }

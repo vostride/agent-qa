@@ -15,6 +15,7 @@ export class StdoutLiveReporter implements Reporter {
   private activeRunId: string | undefined
   private activeParentRunId: string | null | undefined
   private activeSuiteIndex: number | undefined
+  private activeSuiteTotal: number | undefined
   private redactor?: SecretRedactor
 
   constructor(options: StdoutLiveReporterOptions = {}) {
@@ -35,10 +36,12 @@ export class StdoutLiveReporter implements Reporter {
     const runId = context?.runId ?? this.activeRunId
     const parentRunId = context?.parentRunId ?? this.activeParentRunId
     const suiteIndex = context?.suiteIndex ?? this.activeSuiteIndex
+    const suiteTotal = context?.suiteTotal ?? this.activeSuiteTotal
     return {
       ...this.withRunId(event, runId),
       ...(parentRunId ? { parentRunId } : {}),
       ...(typeof suiteIndex === 'number' ? { suiteIndex } : {}),
+      ...(typeof suiteTotal === 'number' ? { suiteTotal } : {}),
       ...(typeof context?.testIndex === 'number' ? { testIndex: context.testIndex } : {}),
       ...(typeof context?.stepIndex === 'number' ? { stepIndex: context.stepIndex } : {}),
       ...(context?.stepId ? { stepId: context.stepId } : {}),
@@ -55,6 +58,7 @@ export class StdoutLiveReporter implements Reporter {
         && typeof (context.artifact.runtime as { suiteIndex?: unknown }).suiteIndex === 'number'
         ? (context.artifact.runtime as { suiteIndex: number }).suiteIndex
         : undefined
+    this.activeSuiteTotal = readSuiteTotal(context)
     if (process.env.AGENT_QA_PARENT_RUN_ID) {
       this.emit(this.withRunContext({
         type: 'retry-attempt',
@@ -155,14 +159,31 @@ export class StdoutLiveReporter implements Reporter {
       this.heartbeatInterval = null
     }
     const runId = result.runId ?? this.activeRunId
-    this.emit(this.withRunId({
+    this.emit(this.withRunContext({
       type: 'test-complete',
       testName: result.name,
       status: result.status,
       duration: result.duration,
-    }, runId))
+    }, { runId }))
     this.activeRunId = undefined
     this.activeParentRunId = undefined
     this.activeSuiteIndex = undefined
+    this.activeSuiteTotal = undefined
   }
+}
+
+function readSuiteTotal(context?: RunArtifactReporterContext): number | undefined {
+  const runtime = context?.artifact?.runtime
+  if (runtime && typeof runtime === 'object') {
+    const total = (runtime as { suiteTotal?: unknown }).suiteTotal
+    if (typeof total === 'number' && Number.isInteger(total) && total > 0) return total
+  }
+
+  const source = context?.artifact?.source
+  if (source && typeof source === 'object') {
+    const members = (source as { members?: unknown }).members
+    if (Array.isArray(members) && members.length > 0) return members.length
+  }
+
+  return undefined
 }

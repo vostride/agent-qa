@@ -624,6 +624,7 @@ describe('init command', () => {
     const failContent = failCall![1] as string
     expect(failContent).toContain('name: Example failing test')
     expect(failContent).toContain('target: example-web')
+    expect(failContent).toContain('use:\n  browser:\n    headless: false')
     expect(failContent).toContain('Verify the page says "Example Domain"')
     expect(failContent).toContain('Click on "Learn More"')
     expect(failContent).toContain('Verify the page url is "https://www.iana.org/example-domains"')
