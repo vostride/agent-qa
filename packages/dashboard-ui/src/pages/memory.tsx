@@ -157,13 +157,15 @@ export default function MemoryPage() {
     return (
       <div className="space-y-4">
         <PageHeader />
-        <EmptyState
-          icon={BrainCircuit}
-          title="No product memory yet"
-          description="Run tests or suites with memory enabled to build memory for this workspace."
-          actionLabel="Open Runs"
-          onAction={() => navigate(routes.runs)}
-        />
+        <div data-tour-id="tour-memory-table">
+          <EmptyState
+            icon={BrainCircuit}
+            title="No product memory yet"
+            description="Run tests or suites with memory enabled to build memory for this workspace."
+            actionLabel="Open Runs"
+            onAction={() => navigate(routes.runs)}
+          />
+        </div>
       </div>
     )
   }
@@ -182,7 +184,7 @@ export default function MemoryPage() {
           />
         </div>
 
-        <ScrollArea className="rounded-md border">
+        <ScrollArea data-tour-id="tour-memory-table" className="rounded-md border">
           <Table className="min-w-full table-fixed">
             <colgroup>
               <col data-column-id="product" />

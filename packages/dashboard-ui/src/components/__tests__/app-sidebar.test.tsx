@@ -11,6 +11,7 @@ const sidebarMock = vi.hoisted(() => ({
   state: "expanded" as "expanded" | "collapsed",
   toggleSidebar: vi.fn(),
   fetchAppMetadata: vi.fn(),
+  restartTour: vi.fn(),
 }))
 
 function icon(name: string) {
@@ -49,8 +50,56 @@ vi.mock("@/components/theme-provider", () => ({
   }),
 }))
 
+vi.mock("@/components/product-tour", () => ({
+  useProductTour: () => ({
+    restartTour: sidebarMock.restartTour,
+  }),
+}))
+
 vi.mock("@/lib/api", () => ({
   fetchAppMetadata: sidebarMock.fetchAppMetadata,
+}))
+
+vi.mock("@/components/ui/dropdown-menu", () => ({
+  DropdownMenu: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="dropdown-menu">{children}</div>
+  ),
+  DropdownMenuTrigger: ({
+    children,
+    asChild,
+  }: {
+    children: React.ReactNode
+    asChild?: boolean
+  }) => {
+    if (asChild && isValidElement<{ "data-dropdown-trigger"?: string }>(children)) {
+      return cloneElement(children, { "data-dropdown-trigger": "true" })
+    }
+
+    return <button type="button">{children}</button>
+  },
+  DropdownMenuContent: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="help-menu-content">{children}</div>
+  ),
+  DropdownMenuItem: ({
+    children,
+    asChild,
+    onSelect,
+    ...props
+  }: {
+    children: React.ReactNode
+    asChild?: boolean
+    onSelect?: () => void
+  } & React.HTMLAttributes<HTMLElement>) => {
+    if (asChild && isValidElement<Record<string, unknown>>(children)) {
+      return cloneElement(children, props)
+    }
+
+    return (
+      <button type="button" onClick={() => onSelect?.()} {...props}>
+        {children}
+      </button>
+    )
+  },
 }))
 
 vi.mock("@/components/ui/sidebar", () => ({
@@ -73,17 +122,18 @@ vi.mock("@/components/ui/sidebar", () => ({
     children,
     asChild,
     tooltip,
+    ...props
   }: {
     children: React.ReactNode
     asChild?: boolean
     tooltip?: string
-  }) => {
-    if (asChild && isValidElement<{ "data-tooltip"?: string }>(children)) {
-      return cloneElement(children, { "data-tooltip": tooltip })
+  } & React.HTMLAttributes<HTMLElement>) => {
+    if (asChild && isValidElement<{ "data-tooltip"?: string } & Record<string, unknown>>(children)) {
+      return cloneElement(children, { "data-tooltip": tooltip, ...props })
     }
 
     return (
-      <button type="button" data-tooltip={tooltip}>
+      <button type="button" data-tooltip={tooltip} {...props}>
         {children}
       </button>
     )
@@ -105,6 +155,7 @@ describe("AppSidebar", () => {
     sidebarMock.state = "expanded"
     sidebarMock.toggleSidebar.mockReset()
     sidebarMock.fetchAppMetadata.mockReset()
+    sidebarMock.restartTour.mockReset()
     sidebarMock.fetchAppMetadata.mockResolvedValue({ version: "0.1.18" })
   })
 
@@ -140,10 +191,41 @@ describe("AppSidebar", () => {
     return link
   }
 
+  function getHelpTrigger() {
+    const trigger = Array.from(container.querySelectorAll("button")).find(
+      (button) => button.textContent?.includes("Help and feedback"),
+    ) as HTMLButtonElement | undefined
+    if (!trigger) {
+      throw new Error("Missing Help and feedback trigger")
+    }
+
+    return trigger
+  }
+
   function parseFeedbackParams(href: string) {
     const prefix = "mailto:support@vostride.com?"
     expect(href.startsWith(prefix)).toBe(true)
     return new URLSearchParams(href.slice(prefix.length))
+  }
+
+  function expectNoPrivateHelpCopy(surface: string) {
+    const forbiddenCopy = [
+      "agent-qa.config.yaml",
+      "file://",
+      "http://localhost",
+      "local logs",
+      "logs",
+      "memory content",
+      "test content",
+      "credential",
+      "credentials",
+      "token",
+      "secret",
+    ]
+
+    for (const forbidden of forbiddenCopy) {
+      expect(surface.toLowerCase()).not.toContain(forbidden.toLowerCase())
+    }
   }
 
   it("renders the Hooks nav item with the Webhook icon", async () => {
@@ -164,7 +246,7 @@ describe("AppSidebar", () => {
     expect(memoryLink?.querySelector('[data-icon="BrainCircuit"]')).not.toBeNull()
   })
 
-  it("renders footer support links with exact outbound targets", async () => {
+  it("renders footer support links with exact outbound targets and grouped help control", async () => {
     await renderSidebar()
 
     const bugLink = getSupportLink("Report a bug")
@@ -173,10 +255,10 @@ describe("AppSidebar", () => {
     expect(bugLink.rel).toBe("noopener noreferrer")
     expect(bugLink.querySelector('[data-icon="Bug"]')).not.toBeNull()
 
-    const feedbackLink = getSupportLink("Help and feedback")
-    expect(feedbackLink.target).toBe("")
-    expect(feedbackLink.rel).toBe("")
-    expect(feedbackLink.querySelector('[data-icon="LifeBuoy"]')).not.toBeNull()
+    const helpTrigger = getHelpTrigger()
+    expect(helpTrigger.getAttribute("data-tour-id")).toBe("tour-help-menu")
+    expect(helpTrigger.getAttribute("data-dropdown-trigger")).toBe("true")
+    expect(helpTrigger.querySelector('[data-icon="LifeBuoy"]')).not.toBeNull()
 
     const githubLink = getSupportLink("View on GitHub")
     expect(githubLink.href).toBe("https://github.com/vostride/agent-qa")
@@ -193,17 +275,74 @@ describe("AppSidebar", () => {
 
     await renderSidebar()
 
-    for (const label of ["Report a bug", "Help and feedback", "View on GitHub"]) {
+    for (const label of ["Report a bug", "View on GitHub"]) {
       const link = getSupportLink(label)
       expect(link.getAttribute("aria-label")).toBe(label)
       expect(link.getAttribute("data-tooltip")).toBe(label)
     }
+
+    const helpTrigger = getHelpTrigger()
+    expect(helpTrigger.getAttribute("data-tooltip")).toBe("Help and feedback")
+    expect(helpTrigger.getAttribute("data-tour-id")).toBe("tour-help-menu")
   })
 
-  it("uses a safe feedback mailto body", async () => {
+  it("restarts the product tour from the help group", async () => {
     await renderSidebar()
 
-    const feedbackLink = getSupportLink("Help and feedback")
+    const tourButton = container.querySelector<HTMLButtonElement>(
+      '[data-tour-id="tour-help-product-tour"]',
+    )
+    expect(tourButton).not.toBeNull()
+    expect(tourButton?.textContent).toContain("Take product tour")
+
+    act(() => {
+      tourButton?.click()
+    })
+
+    expect(sidebarMock.restartTour).toHaveBeenCalledTimes(1)
+  })
+
+  it("keeps grouped help and tour launch copy free of local/private details", async () => {
+    await renderSidebar()
+
+    const helpSurface = [
+      getHelpTrigger().textContent ?? "",
+      container.querySelector('[data-tour-id="tour-help-product-tour"]')?.textContent ?? "",
+      getSupportLink("Send feedback").textContent ?? "",
+      getSupportLink("Send feedback").getAttribute("href") ?? "",
+    ].join(" ")
+
+    expect(helpSurface).toContain("Take product tour")
+    expect(helpSurface).toContain("Send feedback")
+    expectNoPrivateHelpCopy(helpSurface)
+  })
+
+  it("adds approved product tour anchors to primary nav items only", async () => {
+    await renderSidebar()
+
+    const expectedAnchors = [
+      { href: "/runs", title: "Runs", tourId: "tour-nav-runs" },
+      { href: "/tests", title: "Tests", tourId: "tour-nav-tests" },
+      { href: "/hooks", title: "Hooks", tourId: "tour-nav-hooks" },
+      { href: "/suites", title: "Suites", tourId: "tour-nav-suites" },
+      { href: "/memory", title: "Memory", tourId: "tour-nav-memory" },
+      { href: "/config", title: "Config", tourId: "tour-nav-config" },
+    ]
+
+    for (const { href, title, tourId } of expectedAnchors) {
+      const navLink = Array.from(container.querySelectorAll(`a[href="${href}"]`)).find((link) =>
+        link.textContent?.includes(title),
+      )
+      expect(navLink?.getAttribute("data-tour-id")).toBe(tourId)
+    }
+
+    expect(container.querySelector('a[href="/insights"]')?.getAttribute("data-tour-id")).toBeNull()
+  })
+
+  it("uses a safe grouped feedback mailto body", async () => {
+    await renderSidebar()
+
+    const feedbackLink = getSupportLink("Send feedback")
     const params = parseFeedbackParams(feedbackLink.getAttribute("href") ?? "")
 
     expect(params.get("subject")).toBe("agent-qa feedback")
@@ -213,6 +352,13 @@ describe("AppSidebar", () => {
     expect(params.get("body")).toContain("surface: dashboard")
     expect(params.get("body")).not.toContain("token")
     expect(params.get("body")).not.toContain("key")
+    expect(params.get("body")).not.toContain("secret")
+    expect(params.get("body")).not.toContain("credentials")
+    expect(params.get("body")).not.toContain("local config")
+    expect(params.get("body")).not.toContain("logs")
+    expect(params.get("body")).not.toContain("test content")
+    expect(params.get("body")).not.toContain("memory")
+    expect(params.get("body")).not.toContain("URL")
     expect(params.get("body")).not.toContain("workspace")
   })
 
@@ -221,7 +367,7 @@ describe("AppSidebar", () => {
 
     await renderSidebar()
 
-    const feedbackLink = getSupportLink("Help and feedback")
+    const feedbackLink = getSupportLink("Send feedback")
     const params = parseFeedbackParams(feedbackLink.getAttribute("href") ?? "")
     expect(params.get("body")).toContain("version: unavailable")
   })

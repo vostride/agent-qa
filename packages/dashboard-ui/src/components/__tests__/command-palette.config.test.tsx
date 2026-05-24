@@ -30,6 +30,12 @@ vi.mock('@/lib/api', () => ({
   fetchMemoryCatalog: vi.fn().mockResolvedValue({ products: [] }),
 }))
 
+vi.mock('@/components/product-tour', () => ({
+  useProductTour: () => ({
+    restartTour: vi.fn(),
+  }),
+}))
+
 vi.mock('@/components/ui/command', () => ({
   CommandDialog: ({
     open,

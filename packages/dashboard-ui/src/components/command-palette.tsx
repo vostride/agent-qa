@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useNavigate } from "react-router"
-import { Play, FileText, FolderOpen, BarChart3, SlidersHorizontal, Search, Webhook, BrainCircuit } from "lucide-react"
+import { Play, FileText, FolderOpen, BarChart3, SlidersHorizontal, Search, Webhook, BrainCircuit, LifeBuoy } from "lucide-react"
 import {
   fetchHookCatalog,
   fetchMemoryCatalog,
@@ -15,6 +15,7 @@ import {
 } from "@/lib/api"
 import { getConfigCommandLabel, searchConfigNavigationItems } from "@/lib/config-navigation"
 import { routes } from "@/lib/routes"
+import { useProductTour } from "@/components/product-tour"
 import {
   CommandDialog,
   CommandEmpty,
@@ -93,6 +94,7 @@ export function CommandPalette() {
   const [searchResults, setSearchResults] = useState<SearchResults>(() => emptySearchResults())
   const [isSearching, setIsSearching] = useState(false)
   const navigate = useNavigate()
+  const { restartTour } = useProductTour()
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchRequestRef = useRef(0)
   const configResults = searchConfigNavigationItems(searchQuery)
@@ -177,14 +179,23 @@ export function CommandPalette() {
     }
   }, [searchQuery, doSearch])
 
-  function handleSelect(url: string) {
+  const closeAndReset = useCallback(() => {
     searchRequestRef.current += 1
     if (timerRef.current) clearTimeout(timerRef.current)
-    navigate(url)
     setOpen(false)
     setSearchQuery("")
     setSearchResults(emptySearchResults())
     setIsSearching(false)
+  }, [])
+
+  function handleSelect(url: string) {
+    navigate(url)
+    closeAndReset()
+  }
+
+  function handleTakeProductTour() {
+    restartTour()
+    closeAndReset()
   }
 
   return (
@@ -228,6 +239,18 @@ export function CommandPalette() {
               <span>{action.title}</span>
             </CommandItem>
           ))}
+        </CommandGroup>
+
+        <CommandSeparator />
+        <CommandGroup heading="Help">
+          <CommandItem
+            value="help take product tour onboarding agent-qa"
+            data-tour-id="tour-command-product-tour"
+            onSelect={handleTakeProductTour}
+          >
+            <LifeBuoy />
+            <span>Take product tour</span>
+          </CommandItem>
         </CommandGroup>
 
         {searchResults.runs.length > 0 && (

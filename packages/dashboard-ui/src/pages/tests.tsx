@@ -634,13 +634,15 @@ export default function TestsPage() {
 
   if (files.length === 0) {
     return (
-      <EmptyState
-        icon={FileText}
-        title="No tests found"
-        description="Create your first test file to get started"
-        actionLabel="Create Test"
-        onAction={() => navigate(routes.testNew)}
-      />
+      <div data-tour-id="tour-tests-table">
+        <EmptyState
+          icon={FileText}
+          title="No tests found"
+          description="Create your first test file to get started"
+          actionLabel="Create Test"
+          onAction={() => navigate(routes.testNew)}
+        />
+      </div>
     )
   }
 
@@ -673,7 +675,7 @@ export default function TestsPage() {
                 />
               </TooltipContent>
             </Tooltip>
-            <Button size="sm" onClick={() => navigate(routes.testNew)}>
+            <Button size="sm" data-tour-id="tour-tests-new" onClick={() => navigate(routes.testNew)}>
               <Plus className="size-4" />
               New Test
             </Button>
@@ -724,7 +726,7 @@ export default function TestsPage() {
           </Select>
         </div>
 
-        <ScrollArea className="rounded-md border">
+        <ScrollArea data-tour-id="tour-tests-table" className="rounded-md border">
           <Table className="min-w-full table-fixed">
             <colgroup>
               {SHARED_TESTS_SUITES_COLUMN_IDS.map((columnId) => {

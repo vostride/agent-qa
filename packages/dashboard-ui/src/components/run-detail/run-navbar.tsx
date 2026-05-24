@@ -7,10 +7,6 @@ import {
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Tooltip, TooltipContent, TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { ShortcutLegend } from "@/components/shortcut-hints"
 import type { RunRow, StepRow } from "@/lib/api"
 import { triggerRun } from "@/lib/api"
@@ -104,15 +100,13 @@ export function RunNavbar({ run, steps, shortcutsOpen, onToggleShortcuts, onOpen
           </span>
         )}
         {totalTokens > 0 && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="text-xs text-muted-foreground flex items-center gap-1 cursor-default">
-                <Cpu className="h-3.5 w-3.5" />
-                {formatTokens(totalPrompt)} / {formatTokens(totalCompletion)}
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>Prompt tokens / Completion tokens</TooltipContent>
-          </Tooltip>
+          <span
+            className="text-xs text-muted-foreground flex items-center gap-1 cursor-default"
+            title="Prompt tokens / Completion tokens"
+          >
+            <Cpu className="h-3.5 w-3.5" />
+            {formatTokens(totalPrompt)} / {formatTokens(totalCompletion)}
+          </span>
         )}
         <span className="text-xs text-muted-foreground flex items-center gap-1">
           <Clock className="h-3.5 w-3.5" />
@@ -121,127 +115,111 @@ export function RunNavbar({ run, steps, shortcutsOpen, onToggleShortcuts, onOpen
 
         <div className="h-4 w-px bg-border" />
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Open run artifacts"
-              onClick={() => onOpenArtifacts?.("attributes")}
-            >
-              <PanelRightOpen className="h-3.5 w-3.5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Run details (I/C/M)</TooltipContent>
-        </Tooltip>
-
-        <Popover
-          open={shortcutsOpen}
-          onOpenChange={(open) => {
-            if (open !== shortcutsOpen) onToggleShortcuts()
-          }}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Open run artifacts"
+          title="Run details (I/C/M)"
+          onClick={() => onOpenArtifacts?.("attributes")}
         >
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Keyboard shortcuts"
-                >
-                  <Keyboard className="h-3.5 w-3.5" />
-                </Button>
-              </PopoverTrigger>
-            </TooltipTrigger>
-            <TooltipContent>Shortcuts (Shift+?)</TooltipContent>
-          </Tooltip>
-          <PopoverContent align="end" sideOffset={8} className="w-72 p-4">
-            <div className="space-y-3">
-              <div>
-                <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Navigation</h4>
-                <ShortcutLegend hints={[
-                  { key: "\u2191 / K", label: "Previous item" },
-                  { key: "\u2193 / J", label: "Next item" },
-                  { key: "Shift+\u2191", label: "Previous step" },
-                  { key: "Shift+\u2193", label: "Next step" },
-                ]} />
-              </div>
-              <div>
-                <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Tabs</h4>
-                <ShortcutLegend hints={[
-                  { key: "1", label: "Overview" },
-                  { key: "2", label: "Env" },
-                  { key: "3", label: "Network" },
-                  { key: "4", label: "Console" },
-                  { key: "5", label: "ARIA" },
-                  { key: "6", label: "A11y" },
-                ]} />
-              </div>
-              <div>
-                <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Screenshots</h4>
-                <ShortcutLegend hints={[
-                  { key: "B", label: "Before screenshot" },
-                  { key: "A", label: "After screenshot" },
-                ]} />
-              </div>
-              <div>
-                <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Phases</h4>
-                <ShortcutLegend hints={[
-                  { key: "Shift+1", label: "Toggle Observe" },
-                  { key: "Shift+2", label: "Toggle Plan" },
-                  { key: "Shift+3", label: "Toggle Execute" },
-                  { key: "Shift+4", label: "Toggle Verify" },
-                ]} />
-              </div>
-              <div>
-                <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Actions</h4>
-                <ShortcutLegend hints={[
-                  { key: "I", label: "Details: Attributes" },
-                  { key: "C", label: "Artifacts: Config" },
-                  { key: "M", label: "Artifacts: Memory" },
-                  { key: "R", label: "Re-run" },
-                  { key: "V", label: "Video" },
-                  { key: "Shift+?", label: "Shortcuts" },
-                  { key: "Esc", label: "Close" },
-                ]} />
+          <PanelRightOpen className="h-3.5 w-3.5" />
+        </Button>
+
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Keyboard shortcuts"
+            aria-expanded={shortcutsOpen}
+            title="Shortcuts (Shift+?)"
+            onClick={onToggleShortcuts}
+          >
+            <Keyboard className="h-3.5 w-3.5" />
+          </Button>
+          {shortcutsOpen ? (
+            <div
+              role="dialog"
+              aria-label="Keyboard shortcuts"
+              className="absolute right-0 top-full z-50 mt-2 w-72 rounded-md border border-border bg-popover p-4 text-popover-foreground shadow-md"
+            >
+              <div className="space-y-3">
+                <div>
+                  <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Navigation</h4>
+                  <ShortcutLegend hints={[
+                    { key: "\u2191 / K", label: "Previous item" },
+                    { key: "\u2193 / J", label: "Next item" },
+                    { key: "Shift+\u2191", label: "Previous step" },
+                    { key: "Shift+\u2193", label: "Next step" },
+                  ]} />
+                </div>
+                <div>
+                  <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Tabs</h4>
+                  <ShortcutLegend hints={[
+                    { key: "1", label: "Overview" },
+                    { key: "2", label: "Env" },
+                    { key: "3", label: "Network" },
+                    { key: "4", label: "Console" },
+                    { key: "5", label: "ARIA" },
+                    { key: "6", label: "A11y" },
+                  ]} />
+                </div>
+                <div>
+                  <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Screenshots</h4>
+                  <ShortcutLegend hints={[
+                    { key: "B", label: "Before screenshot" },
+                    { key: "A", label: "After screenshot" },
+                  ]} />
+                </div>
+                <div>
+                  <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Phases</h4>
+                  <ShortcutLegend hints={[
+                    { key: "Shift+1", label: "Toggle Observe" },
+                    { key: "Shift+2", label: "Toggle Plan" },
+                    { key: "Shift+3", label: "Toggle Execute" },
+                    { key: "Shift+4", label: "Toggle Verify" },
+                  ]} />
+                </div>
+                <div>
+                  <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Actions</h4>
+                  <ShortcutLegend hints={[
+                    { key: "I", label: "Details: Attributes" },
+                    { key: "C", label: "Artifacts: Config" },
+                    { key: "M", label: "Artifacts: Memory" },
+                    { key: "R", label: "Re-run" },
+                    { key: "V", label: "Video" },
+                    { key: "Shift+?", label: "Shortcuts" },
+                    { key: "Esc", label: "Close" },
+                  ]} />
+                </div>
               </div>
             </div>
-          </PopoverContent>
-        </Popover>
+          ) : null}
+        </div>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon-sm" aria-label="Re-run" onClick={handleRerun}>
-              <RotateCcw className="h-3.5 w-3.5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Re-run (R)</TooltipContent>
-        </Tooltip>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Re-run"
+          title="Re-run (R)"
+          onClick={handleRerun}
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+        </Button>
 
         {videoSrc && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <a href={videoSrc} target="_blank" rel="noopener noreferrer" aria-label="Open recording">
-                <Button variant="ghost" size="icon-sm">
-                  <Video className="h-3.5 w-3.5" />
-                </Button>
-              </a>
-            </TooltipTrigger>
-            <TooltipContent>Recording (V)</TooltipContent>
-          </Tooltip>
+          <a href={videoSrc} target="_blank" rel="noopener noreferrer" aria-label="Open recording" title="Recording (V)">
+            <Button variant="ghost" size="icon-sm">
+              <Video className="h-3.5 w-3.5" />
+            </Button>
+          </a>
         )}
 
         {farmUrl && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <a href={farmUrl} target="_blank" rel="noopener noreferrer">
-                <Button variant="ghost" size="icon-sm">
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </Button>
-              </a>
-            </TooltipTrigger>
-            <TooltipContent>BrowserStack</TooltipContent>
-          </Tooltip>
+          <a href={farmUrl} target="_blank" rel="noopener noreferrer" title="BrowserStack">
+            <Button variant="ghost" size="icon-sm">
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Button>
+          </a>
         )}
       </div>
     </div>

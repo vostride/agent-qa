@@ -26,6 +26,7 @@ interface TestNavbarProps {
   hasInvalidFilename: boolean
   shortcutsOpen: boolean
   showTestId?: boolean
+  runButtonTourId?: string
   hasLiveSession?: boolean
   liveConnectionState?: "idle" | "disconnected" | "connecting" | "connected" | "executing" | "error"
   isLiveActionDisabled?: boolean
@@ -54,6 +55,7 @@ export function TestNavbar({
   hasInvalidFilename,
   shortcutsOpen,
   showTestId = true,
+  runButtonTourId,
   hasLiveSession = false,
   liveConnectionState = "disconnected",
   isLiveActionDisabled = false,
@@ -132,6 +134,7 @@ export function TestNavbar({
               label={isRunning ? "Running..." : "Run"}
               shortcutKey="R"
               size="sm"
+              runButtonTourId={runButtonTourId}
             />
 
             {showLiveAction && (
@@ -213,6 +216,7 @@ export function TestNavbar({
                   disabled={isRunning || runDisabled}
                   label={isRunning ? "Running..." : "Run"}
                   size="sm"
+                  runButtonTourId={runButtonTourId}
                 />
               </>
             )}

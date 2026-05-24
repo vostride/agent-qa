@@ -434,13 +434,15 @@ export default function RunsPage() {
   const hasFilters = !!search || tab !== "all" || !!platform || !!target || attributePredicates.length > 0
   if (runs.length === 0 && !hasFilters) {
     return (
-      <EmptyState
-        icon={Play}
-        title="No test runs yet"
-        description="Run your first test to see results here"
-        actionLabel="View Tests"
-        onAction={() => navigate(routes.tests)}
-      />
+      <div data-tour-id="tour-runs-table">
+        <EmptyState
+          icon={Play}
+          title="No test runs yet"
+          description="Run your first test to see results here"
+          actionLabel="View Tests"
+          onAction={() => navigate(routes.tests)}
+        />
+      </div>
     )
   }
 

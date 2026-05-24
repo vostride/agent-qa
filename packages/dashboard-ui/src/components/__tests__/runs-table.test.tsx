@@ -5,7 +5,7 @@ import { createRoot, type Root } from "react-dom/client"
 import { MemoryRouter } from "react-router"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { RunsTable, type SuiteRunRow } from "@/components/runs-table"
+import { RunsTable, type SuiteRunRow, type VisibleRunRow } from "@/components/runs-table"
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -186,54 +186,71 @@ interface RenderTableOptions {
   selectedRunId?: string | null
   expandedSuites?: Set<string>
   onOpenRun?: (...args: unknown[]) => void
+  onVisibleRunsChange?: (rows: VisibleRunRow[]) => void
   tableRuns?: SuiteRunRow[]
   total?: number
 }
 
-async function renderTable({
+function renderTableElement({
   selectedRunId = "suite_run_1",
   expandedSuites = new Set<string>(),
   onOpenRun = vi.fn(),
+  onVisibleRunsChange,
   tableRuns = runs,
   total = tableRuns.length,
 }: RenderTableOptions = {}) {
+  return (
+    <MemoryRouter>
+      <RunsTable
+        runs={tableRuns}
+        total={total}
+        isLoading={false}
+        page={0}
+        onPageChange={() => {}}
+        onSearchChange={() => {}}
+        searchValue=""
+        selectedRunId={selectedRunId}
+        onSelectedRunIdChange={() => {}}
+        expandedSuites={expandedSuites}
+        onToggleSuite={() => {}}
+        onOpenRun={onOpenRun}
+        onVisibleRunsChange={onVisibleRunsChange}
+        platformFilter=""
+        onPlatformChange={() => {}}
+        targetFilter=""
+        targetOptions={["hn-staging", "android-staging"]}
+        onTargetChange={() => {}}
+        attributePredicates={[{ key: "git.branch", value: "phase223-main", mode: "exact" }]}
+        onAttributePredicatesChange={() => {}}
+        selectedRunIds={new Set(["suite_run_1"])}
+        onToggleRunSelection={() => {}}
+        onToggleVisibleSelection={() => {}}
+      />
+    </MemoryRouter>
+  )
+}
+
+async function renderTable(options: RenderTableOptions = {}) {
+  const onOpenRun = options.onOpenRun ?? vi.fn()
+  const renderOptions = { ...options, onOpenRun }
   container = document.createElement("div")
   document.body.appendChild(container)
   root = createRoot(container)
 
   await act(async () => {
-    root!.render(
-      <MemoryRouter>
-        <RunsTable
-          runs={tableRuns}
-          total={total}
-          isLoading={false}
-          page={0}
-          onPageChange={() => {}}
-          onSearchChange={() => {}}
-          searchValue=""
-          selectedRunId={selectedRunId}
-          onSelectedRunIdChange={() => {}}
-          expandedSuites={expandedSuites}
-          onToggleSuite={() => {}}
-          onOpenRun={onOpenRun}
-          platformFilter=""
-          onPlatformChange={() => {}}
-          targetFilter=""
-          targetOptions={["hn-staging", "android-staging"]}
-          onTargetChange={() => {}}
-          attributePredicates={[{ key: "git.branch", value: "phase223-main", mode: "exact" }]}
-          onAttributePredicatesChange={() => {}}
-          selectedRunIds={new Set(["suite_run_1"])}
-          onToggleRunSelection={() => {}}
-          onToggleVisibleSelection={() => {}}
-        />
-      </MemoryRouter>,
-    )
+    root!.render(renderTableElement(renderOptions))
   })
 
   await flushRender()
-  return { view: container, onOpenRun }
+
+  const rerender = async (nextOptions: RenderTableOptions = {}) => {
+    await act(async () => {
+      root!.render(renderTableElement({ ...renderOptions, ...nextOptions }))
+    })
+    await flushRender()
+  }
+
+  return { view: container, onOpenRun, rerender }
 }
 
 function getHeaderButton(view: HTMLDivElement, label: string) {
@@ -315,6 +332,33 @@ describe("RunsTable", () => {
     expect(view.textContent).toContain("hn-staging (Android)")
     expect(view.textContent).not.toContain("Source")
     expect(view.querySelector('[data-runs-row-surface="child_run_1"]')?.getAttribute("data-active")).toBe("true")
+  })
+
+  it("does not republish unchanged visible rows across parent rerenders", async () => {
+    const onVisibleRunsChange = vi.fn()
+    const { rerender } = await renderTable({
+      selectedRunId: null,
+      onVisibleRunsChange,
+    })
+
+    expect(onVisibleRunsChange).toHaveBeenCalledTimes(1)
+    expect(onVisibleRunsChange.mock.calls[0]?.[0]).toHaveLength(2)
+
+    await rerender()
+
+    expect(onVisibleRunsChange).toHaveBeenCalledTimes(1)
+
+    await rerender({
+      tableRuns: [
+        runs[0]!,
+        {
+          ...runs[1]!,
+          status: "failed",
+        },
+      ],
+    })
+
+    expect(onVisibleRunsChange).toHaveBeenCalledTimes(2)
   })
 
   it("uses a single active row surface instead of segmented cell chrome", async () => {

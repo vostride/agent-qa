@@ -2,6 +2,7 @@ import {
   Fragment,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type KeyboardEvent,
@@ -564,6 +565,19 @@ export function flattenVisibleRuns(runs: SuiteRunRow[], expandedSuites: Set<stri
   return visibleRows
 }
 
+function areVisibleRunRowsEqual(left: VisibleRunRow[], right: VisibleRunRow[]) {
+  if (left.length !== right.length) return false
+
+  return left.every((row, index) => {
+    const next = right[index]
+    return Boolean(next)
+      && row.id === next.id
+      && row.isChild === next.isChild
+      && row.parentId === next.parentId
+      && row.run === next.run
+  })
+}
+
 interface RunsTableProps {
   runs: SuiteRunRow[]
   total: number
@@ -696,9 +710,14 @@ export function RunsTable({
     () => attributePredicates.map((predicate) => predicate.key),
     [attributePredicates],
   )
+  const lastNotifiedVisibleRunsRef = useRef<VisibleRunRow[]>([])
 
   useEffect(() => {
-    onVisibleRunsChange?.(visibleRuns)
+    if (!onVisibleRunsChange) return
+    if (areVisibleRunRowsEqual(lastNotifiedVisibleRunsRef.current, visibleRuns)) return
+
+    lastNotifiedVisibleRunsRef.current = visibleRuns
+    onVisibleRunsChange(visibleRuns)
   }, [onVisibleRunsChange, visibleRuns])
 
   useEffect(() => {
@@ -801,7 +820,7 @@ export function RunsTable({
           </div>
         </div>
 
-        <ScrollArea className="min-h-0 flex-1 rounded-md border">
+        <ScrollArea data-tour-id="tour-runs-table" className="min-h-0 flex-1 rounded-md border">
           <Table className="min-w-full table-fixed">
             <colgroup>
               {visibleColumnIds.map((columnId) => (

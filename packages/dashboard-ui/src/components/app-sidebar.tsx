@@ -24,6 +24,7 @@ import {
   GITHUB_ISSUE_URL,
   GITHUB_REPOSITORY_URL,
 } from "@/lib/support-links"
+import { useProductTour } from "@/components/product-tour"
 
 import {
   Sidebar,
@@ -39,22 +40,29 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { useTheme } from "@/components/theme-provider"
 
 const navItems = [
-  { title: "Runs", url: routes.runs, icon: Play },
-  { title: "Tests", url: routes.tests, icon: FileText },
-  { title: "Hooks", url: routes.hooks, icon: Webhook },
-  { title: "Suites", url: routes.suites, icon: FolderOpen },
-  { title: "Memory", url: routes.memory, icon: BrainCircuit },
+  { title: "Runs", url: routes.runs, icon: Play, tourId: "tour-nav-runs" },
+  { title: "Tests", url: routes.tests, icon: FileText, tourId: "tour-nav-tests" },
+  { title: "Hooks", url: routes.hooks, icon: Webhook, tourId: "tour-nav-hooks" },
+  { title: "Suites", url: routes.suites, icon: FolderOpen, tourId: "tour-nav-suites" },
+  { title: "Memory", url: routes.memory, icon: BrainCircuit, tourId: "tour-nav-memory" },
   { title: "Insights", url: routes.insights, icon: BarChart3 },
-  { title: "Config", url: routes.config, icon: SlidersHorizontal },
+  { title: "Config", url: routes.config, icon: SlidersHorizontal, tourId: "tour-nav-config" },
 ]
 
 export function AppSidebar() {
   const { pathname } = useLocation()
   const { theme, setTheme } = useTheme()
   const { state, toggleSidebar } = useSidebar()
+  const { restartTour } = useProductTour()
   const [agentQaVersion, setAgentQaVersion] = useState<string | null>(null)
 
   useEffect(() => {
@@ -78,26 +86,7 @@ export function AppSidebar() {
     }
   }, [])
 
-  const supportItems = [
-    {
-      title: "Report a bug",
-      href: GITHUB_ISSUE_URL,
-      icon: Bug,
-      external: true,
-    },
-    {
-      title: "Help and feedback",
-      href: buildFeedbackMailto(agentQaVersion),
-      icon: LifeBuoy,
-      external: false,
-    },
-    {
-      title: "View on GitHub",
-      href: GITHUB_REPOSITORY_URL,
-      icon: FaGithub,
-      external: true,
-    },
-  ]
+  const feedbackHref = buildFeedbackMailto(agentQaVersion)
 
   return (
     <Sidebar collapsible="icon">
@@ -128,7 +117,7 @@ export function AppSidebar() {
                     isActive={isActive}
                     tooltip={item.title}
                   >
-                    <Link to={item.url}>
+                    <Link to={item.url} data-tour-id={item.tourId}>
                       <item.icon />
                       <span>{item.title}</span>
                     </Link>
@@ -141,21 +130,57 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
-          {supportItems.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild tooltip={item.title}>
-                <a
-                  href={item.href}
-                  aria-label={item.title}
-                  target={item.external ? "_blank" : undefined}
-                  rel={item.external ? "noopener noreferrer" : undefined}
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Report a bug">
+              <a
+                href={GITHUB_ISSUE_URL}
+                aria-label="Report a bug"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Bug className="size-4" />
+                <span>Report a bug</span>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton tooltip="Help and feedback" data-tour-id="tour-help-menu">
+                  <LifeBuoy className="size-4" />
+                  <span>Help and feedback</span>
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="right" align="end" className="w-52">
+                <DropdownMenuItem
+                  data-tour-id="tour-help-product-tour"
+                  onSelect={() => restartTour()}
                 >
-                  <item.icon className="size-4" />
-                  <span>{item.title}</span>
-                </a>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
+                  <Play className="size-4" />
+                  <span>Take product tour</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a href={feedbackHref} aria-label="Send feedback">
+                    <LifeBuoy className="size-4" />
+                    <span>Send feedback</span>
+                  </a>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="View on GitHub">
+              <a
+                href={GITHUB_REPOSITORY_URL}
+                aria-label="View on GitHub"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <FaGithub className="size-4" />
+                <span>View on GitHub</span>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
         <SidebarSeparator className="-mx-2" style={{ width: "calc(100% + 1rem)" }} />
         <SidebarMenu>

@@ -550,13 +550,15 @@ export default function SuitesPage() {
 
   if (suiteFiles.length === 0) {
     return (
-      <EmptyState
-        icon={FolderOpen}
-        title="No suites found"
-        description="Create your first suite file"
-        actionLabel="New Suite"
-        onAction={() => navigate(routes.suiteNew)}
-      />
+      <div data-tour-id="tour-suites-table">
+        <EmptyState
+          icon={FolderOpen}
+          title="No suites found"
+          description="Create your first suite file"
+          actionLabel="New Suite"
+          onAction={() => navigate(routes.suiteNew)}
+        />
+      </div>
     )
   }
 
@@ -589,7 +591,7 @@ export default function SuitesPage() {
                 />
               </TooltipContent>
             </Tooltip>
-            <Button size="sm" onClick={() => navigate(routes.suiteNew)}>
+            <Button size="sm" data-tour-id="tour-suites-new" onClick={() => navigate(routes.suiteNew)}>
               <Plus className="size-4" />
               New Suite
             </Button>
@@ -627,7 +629,7 @@ export default function SuitesPage() {
           </Select>
         </div>
 
-        <ScrollArea className="rounded-md border">
+        <ScrollArea data-tour-id="tour-suites-table" className="rounded-md border">
           <Table className="min-w-full table-fixed">
             <colgroup>
               {SHARED_TESTS_SUITES_COLUMN_IDS.map((columnId) => {

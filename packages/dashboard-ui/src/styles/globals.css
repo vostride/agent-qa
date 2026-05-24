@@ -290,6 +290,17 @@
       transform: scale(1);
     }
   }
+  @keyframes product-tour-highlight-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 34%, transparent);
+      opacity: 0.82;
+    }
+    50% {
+      box-shadow: 0 0 0 6px color-mix(in oklch, var(--primary) 0%, transparent);
+      opacity: 1;
+    }
+  }
+  --animate-product-tour-highlight-pulse: product-tour-highlight-pulse 3.2s ease-in-out infinite;
 
   /* Gesture annotation animations */
   @keyframes gesture-trail {
@@ -615,8 +626,14 @@ input[type="number"] {
   @media (prefers-reduced-motion: reduce) {
     .animate-fade-in,
     .animate-slide-up,
-    .animate-scale-in {
+    .animate-scale-in,
+    .animate-product-tour-highlight-pulse {
       animation: none;
+    }
+
+    .animate-fade-in,
+    .animate-slide-up,
+    .animate-scale-in {
       opacity: 1;
       transform: none;
     }

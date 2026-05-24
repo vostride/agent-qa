@@ -16,6 +16,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { Toaster } from "@/components/ui/sonner"
 import { CommandPalette } from "@/components/command-palette"
 import { RouteErrorBoundary } from "@/components/error-boundary"
+import { ProductTourProvider, ProductTourOverlay } from "@/components/product-tour"
 import {
   UpdateBanner,
   isUpdateBannerDismissed,
@@ -111,25 +112,28 @@ function AppLayout() {
 
   return (
     <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset className={cn(hideHeader && "h-svh overflow-hidden")}>
-        {showUpdateBanner ? (
-          <UpdateBanner
-            installedVersion={installedVersion}
-            latestVersion={latestVersion}
-            onDismiss={dismissUpdateBanner}
-          />
-        ) : null}
-        <main
-          className={cn(
-            "flex min-h-0 flex-1 flex-col",
-            hideHeader ? "overflow-hidden" : "overflow-auto p-6",
-          )}
-        >
-          <Outlet />
-        </main>
-      </SidebarInset>
-      <CommandPalette />
+      <ProductTourProvider pathname={location.pathname} hideHeader={hideHeader}>
+        <AppSidebar />
+        <SidebarInset className={cn(hideHeader && "h-svh overflow-hidden")}>
+          {showUpdateBanner ? (
+            <UpdateBanner
+              installedVersion={installedVersion}
+              latestVersion={latestVersion}
+              onDismiss={dismissUpdateBanner}
+            />
+          ) : null}
+          <main
+            className={cn(
+              "flex min-h-0 flex-1 flex-col",
+              hideHeader ? "overflow-hidden" : "overflow-auto p-6",
+            )}
+          >
+            <Outlet />
+          </main>
+        </SidebarInset>
+        <ProductTourOverlay />
+        <CommandPalette />
+      </ProductTourProvider>
     </SidebarProvider>
   )
 }

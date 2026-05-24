@@ -40,6 +40,11 @@ vi.mock("@/components/icons/vostride-logo", () => ({
 }))
 
 vi.mock("@/components/command-palette", () => ({ CommandPalette: () => null }))
+vi.mock("@/components/product-tour", () => ({
+  ProductTourProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  ProductTourOverlay: () => null,
+  useProductTour: () => ({ restartTour: vi.fn() }),
+}))
 vi.mock("@/components/ui/sonner", () => ({ Toaster: () => null }))
 vi.mock("@/components/error-boundary", () => ({ RouteErrorBoundary: () => <div>Route Error</div> }))
 vi.mock("@/components/page-skeleton", () => ({

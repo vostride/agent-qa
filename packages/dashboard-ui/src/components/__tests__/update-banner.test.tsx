@@ -85,6 +85,26 @@ vi.mock('@/components/ui/sonner', () => ({
 vi.mock('@/components/command-palette', () => ({
   CommandPalette: () => <div data-testid="command-palette" />,
 }))
+vi.mock('@/components/product-tour', () => ({
+  ProductTourProvider: ({
+    children,
+    pathname,
+    hideHeader,
+  }: {
+    children: ReactNode
+    pathname: string
+    hideHeader: boolean
+  }) => (
+    <section
+      data-testid="product-tour-provider"
+      data-pathname={pathname}
+      data-hide-header={String(hideHeader)}
+    >
+      {children}
+    </section>
+  ),
+  ProductTourOverlay: () => <div data-testid="product-tour-overlay" />,
+}))
 vi.mock('@/components/error-boundary', () => ({
   RouteErrorBoundary: () => <div data-testid="route-error-boundary" />,
 }))
@@ -317,6 +337,32 @@ describe('isUpdateBannerDismissed', () => {
 })
 
 describe('app shell update banner route gate', () => {
+  it('mounts the product tour provider around shell content and passes route state', async () => {
+    apiMock.fetchAppMetadata.mockResolvedValue(updateMetadata)
+
+    await renderAppAt('/runs')
+
+    const provider = container?.querySelector('[data-testid="product-tour-provider"]')
+    expect(provider).not.toBeNull()
+    expect(provider?.getAttribute('data-pathname')).toBe('/runs')
+    expect(provider?.getAttribute('data-hide-header')).toBe('false')
+    expect(
+      Array.from(provider?.children ?? []).map((element) =>
+        element.getAttribute('data-testid'),
+      ),
+    ).toEqual(['app-sidebar', 'sidebar-inset', 'product-tour-overlay', 'command-palette'])
+
+    cleanupRoot()
+    vi.resetModules()
+    apiMock.fetchAppMetadata.mockResolvedValue(updateMetadata)
+
+    await renderAppAt('/tests/new')
+
+    const editorProvider = container?.querySelector('[data-testid="product-tour-provider"]')
+    expect(editorProvider?.getAttribute('data-pathname')).toBe('/tests/new')
+    expect(editorProvider?.getAttribute('data-hide-header')).toBe('true')
+  })
+
   it.each(eligibleRoutes)('renders the update banner on %s', async (path, pageTestId) => {
     apiMock.fetchAppMetadata.mockResolvedValue(updateMetadata)
 

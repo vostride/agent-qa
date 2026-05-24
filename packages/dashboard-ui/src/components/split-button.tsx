@@ -20,6 +20,7 @@ interface SplitButtonProps {
   className?: string
   label?: string
   shortcutKey?: string
+  runButtonTourId?: string
 }
 
 export function SplitButton({
@@ -31,6 +32,7 @@ export function SplitButton({
   className,
   label,
   shortcutKey,
+  runButtonTourId,
 }: SplitButtonProps) {
   const { hasFarm } = useRunConfig()
 
@@ -50,6 +52,7 @@ export function SplitButton({
         disabled={disabled}
         onClick={() => onRun(true)}
         className={className}
+        data-tour-id={runButtonTourId}
       >
         <Play className="size-4" />
         {buttonLabel}
@@ -65,6 +68,7 @@ export function SplitButton({
         disabled={disabled}
         onClick={() => onRun(true)}
         className="rounded-r-none"
+        data-tour-id={runButtonTourId}
       >
         <Play className="size-4" />
         {buttonLabel}

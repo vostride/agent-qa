@@ -466,6 +466,21 @@ afterEach(() => {
 })
 
 describe("RunsPage", () => {
+  it("keeps the product tour runs anchor on the empty state", async () => {
+    fetchRunsMock.mockResolvedValueOnce({
+      runs: [],
+      total: 0,
+      targets: [],
+    })
+
+    const view = await renderAt("/runs")
+    const emptyAnchor = view.querySelector('[data-tour-id="tour-runs-table"]')
+
+    expect(emptyAnchor).not.toBeNull()
+    expect(emptyAnchor?.textContent).toContain("No test runs yet")
+    expect(view.querySelector('[data-testid="runs-table"]')).toBeNull()
+  })
+
   it("places Keyboard shortcuts beside Runs and does not pass them through RunsTable headerActions", async () => {
     const view = await renderAt("/runs")
 

@@ -215,10 +215,9 @@ describe("RunNavbar", () => {
       />,
     )
 
-    expect(container.textContent).toContain("Run details (I/C/M)")
-
     const trigger = container.querySelector('button[aria-label="Open run artifacts"]') as HTMLButtonElement | null
     expect(trigger).not.toBeNull()
+    expect(trigger?.getAttribute("title")).toBe("Run details (I/C/M)")
 
     act(() => {
       trigger!.click()

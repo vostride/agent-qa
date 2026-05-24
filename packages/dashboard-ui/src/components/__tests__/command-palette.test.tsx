@@ -14,6 +14,7 @@ const apiMocks = vi.hoisted(() => ({
   fetchSuiteFiles: vi.fn(),
   fetchHookCatalog: vi.fn(),
   fetchMemoryCatalog: vi.fn(),
+  restartTour: vi.fn(),
 }))
 const commandState = vi.hoisted(() => ({
   query: '',
@@ -32,6 +33,12 @@ vi.mock('@/lib/api', () => ({
   fetchMemoryCatalog: apiMocks.fetchMemoryCatalog,
 }))
 
+vi.mock('@/components/product-tour', () => ({
+  useProductTour: () => ({
+    restartTour: apiMocks.restartTour,
+  }),
+}))
+
 // Flatten Command/CommandDialog primitives so items render inline and are queryable.
 vi.mock('@/components/ui/command', () => ({
   CommandDialog: ({
@@ -43,16 +50,20 @@ vi.mock('@/components/ui/command', () => ({
     children: ReactNode
     className?: string
   }) => (open ? <div data-testid="cmd-dialog" data-class-name={className}>{children}</div> : null),
-  CommandInput: ({ value, onValueChange }: { value: string; onValueChange: (v: string) => void; placeholder?: string }) => (
-    <input
-      data-testid="cmd-input"
-      value={value}
-      onChange={(e) => {
-        commandState.query = e.target.value
-        onValueChange(e.target.value)
-      }}
-    />
-  ),
+  CommandInput: ({ value, onValueChange }: { value: string; onValueChange: (v: string) => void; placeholder?: string }) => {
+    commandState.query = value
+
+    return (
+      <input
+        data-testid="cmd-input"
+        value={value}
+        onChange={(e) => {
+          commandState.query = e.target.value
+          onValueChange(e.target.value)
+        }}
+      />
+    )
+  },
   CommandList: ({
     children,
     className,
@@ -64,14 +75,29 @@ vi.mock('@/components/ui/command', () => ({
   CommandGroup: ({ heading, children }: { heading?: string; children: ReactNode }) => (
     <div data-cmd-group={heading ?? ''}>{children}</div>
   ),
-  CommandItem: ({ value, children, onSelect }: { value?: string; children: ReactNode; onSelect?: () => void }) => {
+  CommandItem: ({
+    value,
+    children,
+    onSelect,
+    ...props
+  }: {
+    value?: string
+    children: ReactNode
+    onSelect?: () => void
+  } & React.HTMLAttributes<HTMLButtonElement>) => {
     const normalizedQuery = commandState.query.trim().toLowerCase()
     const commandValue = value ?? ''
     if (normalizedQuery.length >= 2 && !commandValue.toLowerCase().includes(normalizedQuery)) {
       return null
     }
     return (
-      <button type="button" data-testid="cmd-item" data-value={value} onClick={() => onSelect?.()}>
+      <button
+        type="button"
+        data-testid="cmd-item"
+        data-value={value}
+        onClick={() => onSelect?.()}
+        {...props}
+      >
         {children}
       </button>
     )
@@ -111,8 +137,30 @@ async function typeSearch(query: string) {
     input.dispatchEvent(new Event('input', { bubbles: true }))
   })
   // Wait past the 200ms debounce in command-palette.tsx plus microtasks for fetch mocks.
-  await new Promise((r) => setTimeout(r, 260))
-  await new Promise((r) => setTimeout(r, 0))
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, 260))
+    await new Promise((r) => setTimeout(r, 0))
+  })
+}
+
+function expectNoPrivateCommandCopy(surface: string) {
+  const forbiddenCopy = [
+    'agent-qa.config.yaml',
+    'file://',
+    'http://localhost',
+    'local logs',
+    'logs',
+    'memory content',
+    'test content',
+    'credential',
+    'credentials',
+    'token',
+    'secret',
+  ]
+
+  for (const forbidden of forbiddenCopy) {
+    expect(surface.toLowerCase()).not.toContain(forbidden.toLowerCase())
+  }
 }
 
 beforeEach(() => {
@@ -164,6 +212,7 @@ beforeEach(() => {
       },
     ],
   })
+  apiMocks.restartTour.mockReset()
 })
 
 afterEach(() => {
@@ -225,6 +274,56 @@ describe('command palette suite navigation (SC-4)', () => {
     expect(container.querySelector('[data-testid="cmd-dialog"]')?.getAttribute('data-class-name')).toContain('top-[18vh]')
     expect(container.querySelector('[data-testid="cmd-dialog"]')?.getAttribute('data-class-name')).toContain('translate-y-0')
     expect(container.querySelector('[data-testid="cmd-list"]')?.getAttribute('data-class-name')).toContain('min-h-[320px]')
+  })
+
+  it('starts the product tour from the command palette without navigation', async () => {
+    apiMocks.fetchRuns.mockResolvedValueOnce({
+      runs: [{ id: 'r_tour', name: 'Tour readiness run', status: 'passed' }],
+    })
+
+    await renderPalette()
+    await typeSearch('tour')
+
+    expect(container.textContent).toContain('Tour readiness run')
+
+    const tourCommand = container.querySelector<HTMLButtonElement>(
+      '[data-tour-id="tour-command-product-tour"]',
+    )
+    expect(tourCommand).not.toBeNull()
+    expect(tourCommand?.textContent).toContain('Take product tour')
+
+    act(() => {
+      tourCommand?.click()
+    })
+
+    expect(apiMocks.restartTour).toHaveBeenCalledTimes(1)
+    expect(navigateSpy).not.toHaveBeenCalled()
+    expect(container.querySelector('[data-testid="cmd-dialog"]')).toBeNull()
+
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))
+    })
+    await new Promise((r) => setTimeout(r, 0))
+
+    expect((container.querySelector('[data-testid="cmd-input"]') as HTMLInputElement).value).toBe('')
+    expect(container.textContent).not.toContain('Tour readiness run')
+  })
+
+  it('keeps the product tour command free of local/private details', async () => {
+    await renderPalette()
+
+    const tourCommand = container.querySelector<HTMLButtonElement>(
+      '[data-tour-id="tour-command-product-tour"]',
+    )
+    expect(tourCommand).not.toBeNull()
+
+    const commandSurface = [
+      tourCommand?.textContent ?? '',
+      tourCommand?.getAttribute('data-value') ?? '',
+    ].join(' ')
+
+    expect(commandSurface).toContain('Take product tour')
+    expectNoPrivateCommandCopy(commandSurface)
   })
 
   it('clicking a Suite command item navigates to /suite/:suite-id', async () => {

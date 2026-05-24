@@ -165,7 +165,11 @@ export default function ConfigPage() {
       </div>
 
       <div className="grid gap-0 lg:grid-cols-[minmax(240px,256px)_minmax(0,1fr)] lg:items-start">
-        <aside data-config-rail className="hidden border-r border-border pr-4 lg:block">
+        <aside
+          data-config-rail
+          data-tour-id="tour-config-nav"
+          className="hidden border-r border-border pr-4 lg:block"
+        >
           <div className="space-y-5 py-1">
             {CONFIG_BUCKETS.map((bucket) => (
               <ConfigBucketNav
@@ -180,7 +184,11 @@ export default function ConfigPage() {
 
         <main data-config-main className="min-w-0 lg:pl-6">
           <div data-config-page-root className="grid gap-0">
-            <section data-config-mobile-selector className="border-b border-border pb-4 lg:hidden">
+            <section
+              data-config-mobile-selector
+              data-tour-id="tour-config-nav"
+              className="border-b border-border pb-4 lg:hidden"
+            >
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground">
                   Select Setting
@@ -211,7 +219,7 @@ export default function ConfigPage() {
               </div>
             </section>
 
-            <section className="space-y-4 pt-4 lg:pt-0">
+            <section data-tour-id="tour-config-section" className="space-y-4 pt-4 lg:pt-0">
               {showInvalidSelectionNotice && (
                 <div data-config-invalid-notice className="border-b border-border py-3 text-sm text-muted-foreground">
                   <div className="flex flex-wrap items-center gap-2">
@@ -241,15 +249,15 @@ export default function ConfigPage() {
                   ))}
                 </div>
               </header>
-            </section>
-          </div>
 
-          <div className="mt-4">
-            {SectionComponent ? (
-              <SectionComponent config={config} onConfigChange={loadConfig} />
-            ) : (
-              <MissingSectionNotice item={selectedItem} />
-            )}
+              <div>
+                {SectionComponent ? (
+                  <SectionComponent config={config} onConfigChange={loadConfig} />
+                ) : (
+                  <MissingSectionNotice item={selectedItem} />
+                )}
+              </div>
+            </section>
           </div>
 
           <p

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select"
 import { DetailSkeleton } from "@/components/page-skeleton"
 import { EmptyState } from "@/components/empty-state"
+import { useOptionalProductTour } from "@/components/product-tour"
 import { RunNavbar } from "@/components/run-detail/run-navbar"
 import { ArtifactDrawer, type ArtifactDrawerTab } from "@/components/run-detail/artifact-drawer"
 import { HookDetailPanel } from "@/components/run-detail/hook-detail-panel"
@@ -182,6 +183,8 @@ export default function RunDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const productTour = useOptionalProductTour()
+  const recordRunDetailStatus = productTour?.recordRunDetailStatus
 
   const [run, setRun] = useState<RunRow | null>(null)
   const runTitle = run ? `Run - ${run.name}` : "Run"
@@ -222,6 +225,11 @@ export default function RunDetailPage() {
     if (param === 'screenshot') return 'overview'
     return param ?? 'overview'
   })
+
+  useEffect(() => {
+    if (!run?.status) return
+    recordRunDetailStatus?.(run.status)
+  }, [recordRunDetailStatus, run?.status])
 
   useEffect(() => {
     if (!id) return
@@ -677,31 +685,32 @@ export default function RunDetailPage() {
     const stepOrder = step?.rawStepOrder
     const stepRunId = step?.rawRunId
 
-    setSearchParams(prev => {
-      const next = new URLSearchParams(prev)
-      if (stepOrder != null) {
-        next.set('step', String(stepOrder))
-      } else {
-        next.delete('step')
-      }
-      if (isSuiteParentRun(run) && suiteSelectedView === 'all' && stepRunId) {
-        next.set('run', stepRunId)
-      } else {
-        next.delete('run')
-      }
-      if (isSubactionSelection(selection)) {
-        next.set('sub', String(selection.subIndex))
-      } else {
-        next.delete('sub')
-      }
-      if (activeTab !== 'overview') {
-        next.set('tab', activeTab)
-      } else {
-        next.delete('tab')
-      }
-      return next
-    }, { replace: true })
-  }, [selection, activeTab, displaySteps, run, suiteSelectedView, setSearchParams])
+    const next = new URLSearchParams(searchParams)
+    if (stepOrder != null) {
+      next.set('step', String(stepOrder))
+    } else {
+      next.delete('step')
+    }
+    if (isSuiteParentRun(run) && suiteSelectedView === 'all' && stepRunId) {
+      next.set('run', stepRunId)
+    } else {
+      next.delete('run')
+    }
+    if (isSubactionSelection(selection)) {
+      next.set('sub', String(selection.subIndex))
+    } else {
+      next.delete('sub')
+    }
+    if (activeTab !== 'overview') {
+      next.set('tab', activeTab)
+    } else {
+      next.delete('tab')
+    }
+
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true })
+    }
+  }, [selection, activeTab, displaySteps, run, suiteSelectedView, searchParams, setSearchParams])
 
   // Scroll selected item into view
   useEffect(() => {
@@ -915,7 +924,7 @@ export default function RunDetailPage() {
 
           <ResizableHandle withHandle />
 
-          <ResizablePanel defaultSize={65} minSize={30}>
+          <ResizablePanel defaultSize={65} minSize={30} data-tour-id="tour-run-detail-reasoning">
             <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
               {selection?.type === 'hook' && selectedHookLog ? (
                 <HookDetailPanel log={selectedHookLog} />
@@ -941,17 +950,19 @@ export default function RunDetailPage() {
           </ResizablePanel>
         </ResizablePanelGroup>
 
-        <ArtifactDrawer
-          run={run}
-          open={artifactDrawerOpen}
-          tab={artifactDrawerTab}
-          response={artifactResponse}
-          loading={artifactLoading}
-          error={artifactError}
-          onOpenChange={setArtifactDrawerOpen}
-          onTabChange={setArtifactDrawerTab}
-          onRetry={loadArtifact}
-        />
+        {artifactDrawerOpen ? (
+          <ArtifactDrawer
+            run={run}
+            open={artifactDrawerOpen}
+            tab={artifactDrawerTab}
+            response={artifactResponse}
+            loading={artifactLoading}
+            error={artifactError}
+            onOpenChange={setArtifactDrawerOpen}
+            onTabChange={setArtifactDrawerTab}
+            onRetry={loadArtifact}
+          />
+        ) : null}
 
         {showVideo && videoSrc && (
           <div

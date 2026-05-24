@@ -28,6 +28,7 @@ import { EmptyState } from "@/components/empty-state"
 import { MonacoEditor } from "@/components/monaco-editor"
 import { VisualBuilder } from "@/components/visual-builder"
 import { TestNavbar } from "@/components/test-navbar"
+import { useOptionalProductTour } from "@/components/product-tour"
 import { SharedScopeMemoryReader } from "@/components/memory-reader/shared-scope-memory-reader"
 import {
   InsightsLineCell,
@@ -221,6 +222,7 @@ export default function TestViewerPage() {
   const navigate = useNavigate()
   const { defaultRunMode } = useRunConfig()
   const [searchParams, setSearchParams] = useSearchParams()
+  const productTour = useOptionalProductTour()
 
   const testId = t_id ?? ""
   const viewerState = useMemo(
@@ -342,6 +344,7 @@ export default function TestViewerPage() {
     try {
       const result = await triggerRun({ file: filePath, local })
       toast.success("Run started")
+      productTour?.advanceAfterRunStarted(result.runId, result.status)
       navigate(routes.runLive(result.runId))
     } catch (err) {
       toast.error(
@@ -358,6 +361,7 @@ export default function TestViewerPage() {
     try {
       const result = await triggerRun({ file: filePath, noCache: true, local })
       toast.success("Run started (no cache)")
+      productTour?.advanceAfterRunStarted(result.runId, result.status)
       navigate(routes.runLive(result.runId))
     } catch (err) {
       toast.error(
@@ -530,6 +534,7 @@ export default function TestViewerPage() {
           isSaving={false}
           isValidating={false}
           isRunning={isRunning}
+          runButtonTourId="tour-test-run-action"
           hasInvalidFilename={false}
           showTestId={false}
           onBack={() => navigate(routes.tests)}
@@ -556,6 +561,7 @@ export default function TestViewerPage() {
 
           <TabsContent
             value="overview"
+            data-tour-id="tour-test-detail-overview"
             className="flex-1 min-h-0 mt-0 grid grid-cols-1 md:grid-cols-[minmax(480px,1fr)_minmax(260px,320px)]"
           >
             <div className="min-w-0 min-h-0 flex flex-col">

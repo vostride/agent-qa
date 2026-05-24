@@ -3,57 +3,61 @@
 import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { toast } from 'sonner'
 
+import { triggerRun } from '@/lib/api'
 import TestViewerPage from '@/pages/test-viewer'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
-vi.mock('@/lib/api', () => ({
-  fetchTestFile: vi.fn().mockResolvedValue({
-    path: 'tests/web/alpha.yaml',
-    content: 'name: Alpha Test\ntest-id: t_alpha\nsteps:\n  - open https://example.com\n',
-  }),
-  fetchTestAnalytics: vi.fn().mockResolvedValue({
-    total: 6,
-    flakyScore: 0.12,
-    isFlaky: false,
-    runs: [
-      {
-        id: 'r_alpha_passed',
-        status: 'passed',
-        source: 'dashboard',
-        duration: 42100,
-        createdAt: '2026-04-23T10:00:00.000Z',
-      },
-      {
-        id: 'r_alpha_failed',
-        status: 'failed',
-        source: 'cli',
-        duration: 58900,
-        createdAt: '2026-04-23T11:00:00.000Z',
-      },
-    ],
-    trends: {
-      passRate: 0.83,
-      avgDuration: 50500,
-      daily: [
-        { date: '2026-04-22', total: 3, passed: 2, failed: 1, avgDuration: 48000 },
-        { date: '2026-04-23', total: 3, passed: 3, failed: 0, avgDuration: 53000 },
-      ],
-    },
-  }),
+const testViewerHarness = vi.hoisted(() => ({
+  fetchTestFile: vi.fn(),
+  fetchTestAnalytics: vi.fn(),
   triggerRun: vi.fn(),
   purgeCache: vi.fn(),
+  advanceAfterRunStarted: vi.fn(),
+  productTourEnabled: false,
+}))
+
+vi.mock('@/lib/api', () => ({
+  fetchTestFile: testViewerHarness.fetchTestFile,
+  fetchTestAnalytics: testViewerHarness.fetchTestAnalytics,
+  triggerRun: testViewerHarness.triggerRun,
+  purgeCache: testViewerHarness.purgeCache,
 }))
 
 vi.mock('@/hooks/use-run-config', () => ({ useRunConfig: () => ({ defaultRunMode: 'local' }) }))
 vi.mock('@/hooks/use-page-title', () => ({ usePageTitle: () => {} }))
 vi.mock('@/hooks/use-keyboard-shortcuts', () => ({ useKeyboardShortcuts: () => {} }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
+vi.mock('@/components/product-tour', () => ({
+  useOptionalProductTour: () =>
+    testViewerHarness.productTourEnabled
+      ? { advanceAfterRunStarted: testViewerHarness.advanceAfterRunStarted }
+      : null,
+}))
 
 vi.mock('@/components/test-navbar', () => ({
-  TestNavbar: () => <div data-testid="test-navbar">navbar</div>,
+  TestNavbar: ({
+    onRun,
+    runButtonTourId,
+    isRunning,
+  }: {
+    onRun: (local: boolean) => void
+    runButtonTourId?: string
+    isRunning?: boolean
+  }) => (
+    <button
+      type="button"
+      data-testid="navbar-run"
+      data-tour-id={runButtonTourId}
+      disabled={isRunning}
+      onClick={() => onRun(true)}
+    >
+      Run
+    </button>
+  ),
 }))
 vi.mock('@/components/visual-builder', () => ({
   VisualBuilder: () => <div data-testid="builder-panel">Builder Panel</div>,
@@ -179,6 +183,48 @@ function LocationProbe() {
 let container: HTMLDivElement | null = null
 let root: Root | null = null
 
+beforeEach(() => {
+  testViewerHarness.fetchTestFile.mockReset()
+  testViewerHarness.fetchTestFile.mockResolvedValue({
+    path: 'tests/web/alpha.yaml',
+    content: 'name: Alpha Test\ntest-id: t_alpha\nsteps:\n  - open https://example.com\n',
+  })
+  testViewerHarness.fetchTestAnalytics.mockReset()
+  testViewerHarness.fetchTestAnalytics.mockResolvedValue({
+    total: 6,
+    flakyScore: 0.12,
+    isFlaky: false,
+    runs: [
+      {
+        id: 'r_alpha_passed',
+        status: 'passed',
+        source: 'dashboard',
+        duration: 42100,
+        createdAt: '2026-04-23T10:00:00.000Z',
+      },
+      {
+        id: 'r_alpha_failed',
+        status: 'failed',
+        source: 'cli',
+        duration: 58900,
+        createdAt: '2026-04-23T11:00:00.000Z',
+      },
+    ],
+    trends: {
+      passRate: 0.83,
+      avgDuration: 50500,
+      daily: [
+        { date: '2026-04-22', total: 3, passed: 2, failed: 1, avgDuration: 48000 },
+        { date: '2026-04-23', total: 3, passed: 3, failed: 0, avgDuration: 53000 },
+      ],
+    },
+  })
+  testViewerHarness.triggerRun.mockReset()
+  testViewerHarness.purgeCache.mockReset()
+  testViewerHarness.advanceAfterRunStarted.mockReset()
+  testViewerHarness.productTourEnabled = false
+})
+
 async function flushRender() {
   await act(async () => {
     await Promise.resolve()
@@ -205,6 +251,7 @@ async function renderAt(url: string) {
               </>
             }
           />
+          <Route path="/runs/:runId/live" element={<LocationProbe />} />
         </Routes>
       </MemoryRouter>,
     )
@@ -212,6 +259,16 @@ async function renderAt(url: string) {
 
   await flushRender()
   return container
+}
+
+async function clickNavbarRun() {
+  const runButton = container?.querySelector<HTMLButtonElement>('[data-testid="navbar-run"]')
+  expect(runButton).not.toBeNull()
+
+  await act(async () => {
+    runButton?.click()
+  })
+  await flushRender()
 }
 
 afterEach(() => {
@@ -360,5 +417,54 @@ describe('TestViewerPage URL state contract', () => {
 
     expect(view.textContent).toContain('80%')
     expect(view.textContent).toContain('All Runs (2)')
+  })
+})
+
+describe('TestViewerPage product tour run bridge', () => {
+  it('passes a stable tour anchor to the primary Run action', async () => {
+    const view = await renderAt('/test/t_alpha')
+
+    expect(view.querySelector('[data-testid="navbar-run"]')?.getAttribute('data-tour-id')).toBe(
+      'tour-test-run-action',
+    )
+  })
+
+  it('keeps normal Run behavior when no product tour is active', async () => {
+    testViewerHarness.triggerRun.mockResolvedValue({ runId: 'run_123', status: 'queued' })
+
+    const view = await renderAt('/test/t_alpha')
+    await clickNavbarRun()
+
+    expect(triggerRun).toHaveBeenCalledWith({ file: 'tests/web/alpha.yaml', local: true })
+    expect(testViewerHarness.advanceAfterRunStarted).not.toHaveBeenCalled()
+    expect(toast.success).toHaveBeenCalledWith('Run started')
+    expect(view.querySelector('[data-testid="location"]')?.getAttribute('data-pathname')).toBe(
+      '/runs/run_123/live',
+    )
+  })
+
+  it('records the run id for an active product tour after a successful user Run', async () => {
+    testViewerHarness.productTourEnabled = true
+    testViewerHarness.triggerRun.mockResolvedValue({ runId: 'run_456', status: 'running' })
+
+    await renderAt('/test/t_alpha')
+    await clickNavbarRun()
+
+    expect(triggerRun).toHaveBeenCalledWith({ file: 'tests/web/alpha.yaml', local: true })
+    expect(testViewerHarness.advanceAfterRunStarted).toHaveBeenCalledWith('run_456', 'running')
+  })
+
+  it('keeps Run failure behavior and does not advance the product tour', async () => {
+    testViewerHarness.productTourEnabled = true
+    testViewerHarness.triggerRun.mockRejectedValue(new Error('LLM missing'))
+
+    const view = await renderAt('/test/t_alpha')
+    await clickNavbarRun()
+
+    expect(testViewerHarness.advanceAfterRunStarted).not.toHaveBeenCalled()
+    expect(toast.error).toHaveBeenCalledWith('Failed to start run: LLM missing')
+    expect(view.querySelector('[data-testid="location"]')?.getAttribute('data-pathname')).toBe(
+      '/test/t_alpha',
+    )
   })
 })

@@ -345,7 +345,7 @@ export default function HooksPage() {
                 />
               </TooltipContent>
             </Tooltip>
-            <Button type="button" onClick={() => navigate(routes.hookNew)}>
+            <Button type="button" data-tour-id="tour-hooks-new" onClick={() => navigate(routes.hookNew)}>
               <Plus className="h-4 w-4" />
               Create Hook
             </Button>
@@ -394,20 +394,22 @@ export default function HooksPage() {
         </div>
 
         {hasNoHooks ? (
-          <EmptyState
-            icon={FileCode}
-            title={catalog.hooks.length === 0 ? "No hooks yet" : "No hooks match your filters"}
-            description={
-              catalog.hooks.length === 0
-                ? "Create a hook to add reusable setup, teardown, or inline automation to this workspace."
-                : "Adjust your search or filters to see more hook records."
-            }
-            actionLabel={canCreate ? "Create Hook" : undefined}
-            onAction={canCreate ? () => navigate(routes.hookNew) : undefined}
-          />
+          <div data-tour-id="tour-hooks-table">
+            <EmptyState
+              icon={FileCode}
+              title={catalog.hooks.length === 0 ? "No hooks yet" : "No hooks match your filters"}
+              description={
+                catalog.hooks.length === 0
+                  ? "Create a hook to add reusable setup, teardown, or inline automation to this workspace."
+                  : "Adjust your search or filters to see more hook records."
+              }
+              actionLabel={canCreate ? "Create Hook" : undefined}
+              onAction={canCreate ? () => navigate(routes.hookNew) : undefined}
+            />
+          </div>
         ) : (
           <>
-            <ScrollArea className="rounded-md border">
+            <ScrollArea data-tour-id="tour-hooks-table" className="rounded-md border">
               <Table className="min-w-full">
                 <TableHeader>
                   <TableRow>

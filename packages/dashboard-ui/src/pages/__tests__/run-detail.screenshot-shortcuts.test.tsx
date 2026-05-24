@@ -367,6 +367,17 @@ afterEach(() => {
 })
 
 describe("RunDetailPage screenshot shortcuts", () => {
+  it("syncs the default selected step into the URL without repeated rewrites", async () => {
+    const view = await renderAt("/runs/run-1")
+    const location = view.querySelector('[data-testid="location"]') as HTMLElement
+
+    expect(location.getAttribute("data-search")).toBe("?step=0")
+
+    await flushRender()
+
+    expect(location.getAttribute("data-search")).toBe("?step=0")
+  })
+
   it("uses useKeyboardShortcuts A/B handlers to select After and Before without changing navigation state", async () => {
     const view = await renderAt("/runs/run-1?step=0&sub=0")
     const location = view.querySelector('[data-testid="location"]') as HTMLElement

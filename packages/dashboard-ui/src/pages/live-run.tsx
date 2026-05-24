@@ -451,7 +451,7 @@ export default function LiveRunPage() {
           </div>
         </div>
 
-        <div className="shrink-0 border-b px-3 py-2">
+        <div className="shrink-0 border-b px-3 py-2" data-tour-id="tour-live-run-status">
           {progressTotal > 0 ? (
             <div className="space-y-1">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
