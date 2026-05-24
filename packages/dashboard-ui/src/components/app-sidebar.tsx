@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react"
 import { useLocation, Link } from "react-router"
 import {
   Play,
@@ -11,9 +12,18 @@ import {
   Moon,
   ChevronLeft,
   ChevronRight,
+  Bug,
+  LifeBuoy,
 } from "lucide-react"
+import { FaGithub } from "react-icons/fa"
 import { VostrideLogo } from "@/components/icons/vostride-logo"
 import { routes } from "@/lib/routes"
+import { fetchAppMetadata } from "@/lib/api"
+import {
+  buildFeedbackMailto,
+  GITHUB_ISSUE_URL,
+  GITHUB_REPOSITORY_URL,
+} from "@/lib/support-links"
 
 import {
   Sidebar,
@@ -26,6 +36,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useTheme } from "@/components/theme-provider"
@@ -44,6 +55,49 @@ export function AppSidebar() {
   const { pathname } = useLocation()
   const { theme, setTheme } = useTheme()
   const { state, toggleSidebar } = useSidebar()
+  const [agentQaVersion, setAgentQaVersion] = useState<string | null>(null)
+
+  useEffect(() => {
+    let isMounted = true
+
+    fetchAppMetadata()
+      .then((metadata) => {
+        if (!isMounted) return
+
+        const version = metadata.version?.trim()
+        setAgentQaVersion(version || null)
+      })
+      .catch(() => {
+        if (isMounted) {
+          setAgentQaVersion(null)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const supportItems = [
+    {
+      title: "Report a bug",
+      href: GITHUB_ISSUE_URL,
+      icon: Bug,
+      external: true,
+    },
+    {
+      title: "Help and feedback",
+      href: buildFeedbackMailto(agentQaVersion),
+      icon: LifeBuoy,
+      external: false,
+    },
+    {
+      title: "View on GitHub",
+      href: GITHUB_REPOSITORY_URL,
+      icon: FaGithub,
+      external: true,
+    },
+  ]
 
   return (
     <Sidebar collapsible="icon">
@@ -86,6 +140,24 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
+        <SidebarMenu>
+          {supportItems.map((item) => (
+            <SidebarMenuItem key={item.title}>
+              <SidebarMenuButton asChild tooltip={item.title}>
+                <a
+                  href={item.href}
+                  aria-label={item.title}
+                  target={item.external ? "_blank" : undefined}
+                  rel={item.external ? "noopener noreferrer" : undefined}
+                >
+                  <item.icon className="size-4" />
+                  <span>{item.title}</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+        <SidebarSeparator className="-mx-2" style={{ width: "calc(100% + 1rem)" }} />
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
