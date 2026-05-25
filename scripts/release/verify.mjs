@@ -30,8 +30,8 @@ export function buildReleaseGatePlan(bump) {
     'git push',
     'npm publish',
     'subscription auth publish',
-    'docker publish',
     'github release publish',
+    'docker publish',
   ]
 }
 

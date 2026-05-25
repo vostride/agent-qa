@@ -56,8 +56,9 @@ test('builds a non-mutating patch release dry-run plan', () => {
   assert.equal(plan.githubRelease.repository, 'vostride/agent-qa')
   assert.equal(plan.githubRelease.tag, `v${targetVersion}`)
   assert.equal(plan.githubRelease.title, `agent-qa v${targetVersion}`)
-  assert.equal(plan.githubRelease.status, 'created_or_updated_after_full_release_train')
-  assert.ok(plan.githubRelease.note.includes('after npm, subscription auth, and Docker'))
+  assert.equal(plan.githubRelease.status, 'created_or_updated_after_package_release')
+  assert.ok(plan.githubRelease.note.includes('after npm and subscription auth'))
+  assert.ok(plan.githubRelease.note.includes('Docker publish continues separately'))
 })
 
 test('supports minor dry-run plans and optional latest Docker preview', () => {
@@ -109,7 +110,7 @@ test('CLI renders human-readable and JSON dry-run output without leaking secrets
   assert.match(textOutput, /dispatched_from_main_release_workflow/)
   assert.match(textOutput, /agent-qa\/\.github\/workflows\/release\.yml/)
   assert.match(textOutput, /GitHub Release:/)
-  assert.match(textOutput, /created_or_updated_after_full_release_train/)
+  assert.match(textOutput, /created_or_updated_after_package_release/)
   assert.match(textOutput, new RegExp(`v${targetVersion}`))
   assert.doesNotMatch(textOutput, /POSTHOG_SECRET_FROM_TEST/)
 

@@ -52,12 +52,12 @@ test('builds the fail-closed release gate plan in exact order through GitHub Rel
     'git push',
     'npm publish',
     'subscription auth publish',
-    'docker publish',
     'github release publish',
+    'docker publish',
   ])
   assert.deepEqual(buildReleaseGatePlan('patch').slice(-2), [
-    'docker publish',
     'github release publish',
+    'docker publish',
   ])
 })
 

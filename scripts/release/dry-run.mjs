@@ -103,9 +103,9 @@ export function buildReleaseDryRunPlan(options = {}) {
       repository: 'vostride/agent-qa',
       tag: `v${targetVersion}`,
       title: `agent-qa v${targetVersion}`,
-      status: 'created_or_updated_after_full_release_train',
+      status: 'created_or_updated_after_package_release',
       notes: 'GitHub-generated release notes plus stable public footer',
-      note: `Created or updated after npm, subscription auth, and Docker publish complete for ${targetVersion}.`,
+      note: `Created or updated after npm and subscription auth publish complete for ${targetVersion}; Docker publish continues separately.`,
     },
   }
 }

@@ -30,6 +30,7 @@ test('release workflow is manual-only with patch/minor bump choices', () => {
   assert.match(workflow, /options:\s*\n(?:\s+-\s+\w+\s*\n)*\s+-\s+patch/)
   assert.match(workflow, /options:\s*\n(?:\s+-\s+\w+\s*\n)*\s+-\s+minor/)
   assert.match(workflow, /subscription_auth_target_version:/)
+  assert.match(workflow, /github_release_target_version:/)
   assert.doesNotMatch(workflow, /-\s+major\b/)
 })
 
@@ -95,9 +96,9 @@ test('release workflow publishes Docker from the release tag after npm publish',
   const workflow = readWorkflow()
 
   assert.match(workflow, /outputs:\s*\n\s+version:\s*\$\{\{ steps\.version\.outputs\.version \}\}/)
-  assert.match(workflow, /npm:\s*\n\s+name:\s*Publish npm packages\s*\n\s+if:\s*\$\{\{ inputs\.subscription_auth_target_version == '' \}\}/)
+  assert.match(workflow, /npm:\s*\n\s+name:\s*Publish npm packages\s*\n\s+if:\s*\$\{\{ inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' \}\}/)
   assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images/)
-  assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+if:\s*\$\{\{ inputs\.subscription_auth_target_version == '' \}\}/)
+  assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+if:\s*\$\{\{ inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' \}\}/)
   assert.match(workflow, /needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
   assert.match(workflow, /uses:\s*\.\/\.github\/workflows\/docker-release\.yml/)
   assert.match(workflow, /ref:\s*v\$\{\{ needs\.npm\.outputs\.version \}\}/)
@@ -118,36 +119,50 @@ test('release workflow publishes subscription auth from the main release version
   ]
 
   assert.match(workflow, /subscription-auth:\s*\n\s+name:\s*Publish subscription auth/)
-  assert.match(workflow, /if:\s*\$\{\{ always\(\) && \(inputs\.subscription_auth_target_version != '' \|\| needs\.npm\.result == 'success'\) \}\}/)
+  assert.match(workflow, /if:\s*\$\{\{ always\(\) && inputs\.github_release_target_version == '' && \(inputs\.subscription_auth_target_version != '' \|\| needs\.npm\.result == 'success'\) \}\}/)
   assert.match(workflow, /SUBSCRIPTION_AUTH_TARGET_VERSION:\s*\$\{\{ inputs\.subscription_auth_target_version \|\| needs\.npm\.outputs\.version \}\}/)
   assert.match(workflow, /GH_TOKEN:\s*\$\{\{ secrets\.SUBSCRIPTION_AUTH_RELEASE_TOKEN \}\}/)
   assert.match(workflow, /Actions: read and write/)
   assert.doesNotMatch(workflow, /working-directory:\s*agent-qa-subscription-auth/)
-  assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+if:\s*\$\{\{ inputs\.subscription_auth_target_version == '' \}\}\s*\n\s+needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
+  assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+if:\s*\$\{\{ inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' \}\}\s*\n\s+needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
   for (const command of orderedCommands) assert.match(workflow, new RegExp(command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
   for (let index = 0; index < orderedCommands.length - 1; index += 1) {
     assertBefore(workflow, orderedCommands[index], orderedCommands[index + 1])
   }
 })
 
-test('release workflow publishes the GitHub Release only after the full release train', () => {
+test('release workflow publishes the GitHub Release after package and subscription-auth release', () => {
   const workflow = readWorkflow()
   const jobStart = workflow.indexOf('github-release:')
   assert.notEqual(jobStart, -1, 'expected github-release job')
   const job = workflow.slice(jobStart)
 
   assert.match(job, /github-release:\s*\n\s+name:\s*Publish GitHub release/)
-  assert.match(job, /if:\s*\$\{\{ inputs\.subscription_auth_target_version == '' \}\}/)
-  assert.match(job, /needs:\s*\n\s+- npm\s*\n\s+- subscription-auth\s*\n\s+- docker/)
+  assert.match(job, /if:\s*\$\{\{ always\(\) && \(inputs\.github_release_target_version != '' \|\| \(inputs\.subscription_auth_target_version == '' && needs\.npm\.result == 'success' && needs\.subscription-auth\.result == 'success'\)\) \}\}/)
+  assert.match(job, /needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
+  assert.doesNotMatch(job, /needs:\s*\n\s+- npm\s*\n\s+- subscription-auth\s*\n\s+- docker/)
   assert.match(job, /contents:\s*write/)
   assert.match(job, /uses:\s*actions\/checkout@v6/)
-  assert.match(job, /ref:\s*v\$\{\{ needs\.npm\.outputs\.version \}\}/)
+  assert.match(job, /ref:\s*v\$\{\{ inputs\.github_release_target_version \|\| needs\.npm\.outputs\.version \}\}/)
   assert.match(job, /node-version:\s*'24'/)
   assert.match(job, /pnpm install --frozen-lockfile/)
   assert.match(job, /GH_TOKEN:\s*\$\{\{ github\.token \}\}/)
-  assert.match(job, /node scripts\/release\/github-release\.mjs --version "\$\{\{ needs\.npm\.outputs\.version \}\}" --repo "\$\{\{ github\.repository \}\}"/)
+  assert.match(job, /GITHUB_RELEASE_TARGET_VERSION:\s*\$\{\{ inputs\.github_release_target_version \|\| needs\.npm\.outputs\.version \}\}/)
+  assert.match(job, /node scripts\/release\/github-release\.mjs --version "\$GITHUB_RELEASE_TARGET_VERSION" --repo "\$\{\{ github\.repository \}\}"/)
   assert.doesNotMatch(job, /GITHUB_RELEASE_TOKEN|PAT|secrets\./)
-  assertBefore(workflow, 'uses: ./.github/workflows/docker-release.yml', 'node scripts/release/github-release.mjs')
+})
+
+test('release workflow can repair a missing GitHub Release for an existing version', () => {
+  const workflow = readWorkflow()
+
+  assert.match(workflow, /github_release_target_version:\s*\n\s+description:\s*Existing agent-qa version to publish only the GitHub Release/)
+  assert.match(workflow, /npm:\s*\n\s+name:\s*Publish npm packages\s*\n\s+if:\s*\$\{\{ inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' \}\}/)
+  assert.match(workflow, /subscription-auth:\s*\n\s+name:\s*Publish subscription auth\s*\n\s+needs:\s*npm\s*\n\s+if:\s*\$\{\{ always\(\) && inputs\.github_release_target_version == ''/)
+  assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+if:\s*\$\{\{ inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' \}\}/)
+  assert.match(workflow, /github-release:\s*\n\s+name:\s*Publish GitHub release\s*\n\s+if:\s*\$\{\{ always\(\) && \(inputs\.github_release_target_version != ''/)
+  assert.match(workflow, /github-release:\s*\n\s+name:\s*Publish GitHub release[\s\S]*?needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
+  assert.match(workflow, /ref:\s*v\$\{\{ inputs\.github_release_target_version \|\| needs\.npm\.outputs\.version \}\}/)
+  assert.match(workflow, /GITHUB_RELEASE_TARGET_VERSION:\s*\$\{\{ inputs\.github_release_target_version \|\| needs\.npm\.outputs\.version \}\}/)
 })
 
 test('docker release workflow is manual and reusable with Docker Hub preflight', () => {
