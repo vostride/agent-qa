@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-core",
-  "version": "0.1.20",
+  "version": "0.1.21",
   "private": false,
   "description": "Core agent-qa runtime, schemas, tools, and execution services.",
   "keywords": [

@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-mcp",
-  "version": "0.1.20",
+  "version": "0.1.21",
   "private": false,
   "description": "Model Context Protocol server and tools for agent-qa authoring and triage.",
   "keywords": [
