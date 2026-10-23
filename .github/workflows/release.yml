@@ -41,6 +41,16 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate release push token
+        env:
+          RELEASE_PUSH_TOKEN: ${{ secrets.RELEASE_PUSH_TOKEN }}
+        run: |
+          if [ -z "$RELEASE_PUSH_TOKEN" ]; then
+            echo "::error::Set RELEASE_PUSH_TOKEN in the vostride/agent-qa repository Actions secrets. The token needs Contents: read and write on vostride/agent-qa, and its owner must be allowed to bypass the main branch protection."
+            exit 1
+          fi
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -117,7 +127,10 @@ jobs:
         run: pnpm exec node scripts/release/git.mjs --commit-tag
 
       - name: Push release commit and tag
-        run: git push origin HEAD:${{ github.ref_name }} --follow-tags
+        env:
+          RELEASE_PUSH_TOKEN: ${{ secrets.RELEASE_PUSH_TOKEN }}
+        run: |
+          git -c credential.helper= -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$RELEASE_PUSH_TOKEN"; }; f' push https://github.com/${{ github.repository }}.git HEAD:${{ github.ref_name }} --follow-tags
 
       - name: Publish packages
         run: pnpm exec node scripts/release/publish.mjs --staged-dir .release/staged-packages
