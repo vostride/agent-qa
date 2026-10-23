@@ -105,12 +105,22 @@ const toEnd = async (tab: Page): Promise<void> => {
   await frames(tab)
 }
 
-// A touch scroll gesture at (x, y); `down` moves the content up, as a finger swiping up does.
+// A raw touch swipe from (x, y), held before release so it never flings; `down` moves the content
+// up, as a finger swiping up does. Linux headless Chromium ignores a synthesized touch gesture.
 async function swipe(tab: Page, x: number, y: number, direction: 'down' | 'up'): Promise<void> {
   const cdp = await tab.context().newCDPSession(tab)
-  await cdp.send('Input.synthesizeScrollGesture', {
-    x, y, yDistance: direction === 'down' ? -300 : 300, gestureSourceType: 'touch', speed: 1200,
-  })
+  const step = direction === 'down' ? -20 : 20
+  const touch = (
+    type: 'touchStart' | 'touchMove' | 'touchEnd',
+    touchPoints: { x: number, y: number }[],
+  ) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints })
+  await touch('touchStart', [{ x, y }])
+  for (let k = 1; k <= 15; k++) {
+    await touch('touchMove', [{ x, y: y + k * step }])
+    await new Promise((settle) => setTimeout(settle, 16))
+  }
+  await new Promise((settle) => setTimeout(settle, 200))
+  await touch('touchEnd', [])
   await cdp.detach()
   await frames(tab)
 }
