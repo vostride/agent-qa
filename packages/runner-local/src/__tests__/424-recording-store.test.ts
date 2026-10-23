@@ -63,7 +63,7 @@ test('REC-STORE-HASH-BY-PATH: hashes all chunks into a schema-valid recording re
   expect(readFileSync).not.toHaveBeenCalled()
   expect(readChunks.mock.calls.length).toBeGreaterThanOrEqual(3)
   expect(readChunks.mock.calls.every(call => call[3] <= 1024 * 1024)).toBe(true)
-  expect(Buffer.from(store.getBlob(digest)!)).toEqual(payload)
+  expect(createHash('sha256').update(store.getBlob(digest)!).digest('hex')).toBe(digest)
 })
 
 test('REC-STORE-ATOMIC-PUBLISH: no partial target and no temporary survives publication', () => {
