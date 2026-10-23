@@ -193,24 +193,35 @@ afterEach(async () => {
   fileWrites.observer = undefined
   fileWrites.inProgress.clear()
   fileWrites.lockAsks.length = 0
-  await Promise.all(
+  const closing = await Promise.allSettled(
     started.splice(0).map(
       (handle) =>
-        new Promise<void>((resolve) => {
-          if (!handle.server.listening) {
+        new Promise<void>((resolve, reject) => {
+          // The server emits 'close' asynchronously, so each listener added after the synchronous
+          // close still sees it. A close that throws before server.close() is finished here.
+          const wasListening = handle.server.listening
+          try {
+            if (wasListening) handle.server.closeAllConnections()
             handle.close()
-            resolve()
+          } catch (error) {
+            if (handle.server.listening) handle.server.close(() => reject(error))
+            else if (wasListening) handle.server.once('close', () => reject(error))
+            else reject(error)
             return
           }
-          handle.server.once('close', () => resolve())
-          handle.server.closeAllConnections()
-          handle.close()
+          if (wasListening) handle.server.once('close', () => resolve())
+          else resolve()
         }),
     ),
   )
   vi.restoreAllMocks()
-  await rm(root, { recursive: true, force: true })
-  if (draining !== undefined) throw draining
+  try {
+    await rm(root, { recursive: true, force: true })
+  } finally {
+    if (draining !== undefined) throw draining
+    const closeErrors = closing.flatMap((outcome) => (outcome.status === 'rejected' ? [outcome.reason] : []))
+    if (closeErrors.length > 0) throw new AggregateError(closeErrors, 'a dashboard server failed to close at teardown')
+  }
 })
 
 function posixOnly(): void {
