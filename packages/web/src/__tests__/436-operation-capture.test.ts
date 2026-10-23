@@ -754,6 +754,7 @@ describe('C436-DOWNLOAD-DEADLINE', () => {
       (screen) => act({ type: 'click', ref: screenRefFor(screen, 'link', 'Get slow file') }, true, 'download the slow file'),
     ])
     const verifier = scriptedVerifier(() => ({ pass: false, reason: 'the slow file did not finish' }))
+    const execute = vi.spyOn(web, 'execute')
     const started = performance.now()
     const run = await runScriptedStep({
       adapter: web,
@@ -764,9 +765,12 @@ describe('C436-DOWNLOAD-DEADLINE', () => {
       stepTimeout: 2_000,
     })
     const elapsed = performance.now() - started
+    const handed = execute.mock.calls[0]?.[1]?.remainingStepMs
+    const given = `the click was handed ${String(handed)} ms of the 2000 ms step (start grace ${String(DOWNLOAD_START_GRACE_MS)} ms)`
+    console.info(`[C436-DOWNLOAD-DEADLINE] ${given}`)
 
     expect(run.executed).toHaveLength(1)
-    expect(run.result.evidence?.subActions[0]?.operationEvidence?.downloads).toEqual([UNFINISHED_SLOW])
+    expect(run.result.evidence?.subActions[0]?.operationEvidence?.downloads, given).toEqual([UNFINISHED_SLOW])
     expect(elapsed).toBeLessThan(2_000 + 2_000)
     await expectFilesGone(files, 1)
   }, 60_000)
