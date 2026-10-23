@@ -62,6 +62,9 @@ jobs:
       - name: Install expect
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends expect
 
+      - name: Install Playwright Chromium
+        run: pnpm --filter agent-qa exec playwright-core install --with-deps chromium
+
       - name: Test
         run: pnpm exec turbo test
 
@@ -180,6 +183,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter agent-qa exec playwright-core install --with-deps chromium
 
       # turbo builds the dependency closure automatically: `test` dependsOn
       # `build`, `build` dependsOn `^build`.
