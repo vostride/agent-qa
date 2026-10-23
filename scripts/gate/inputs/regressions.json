@@ -177,30 +177,6 @@
     },
     {
       "runner": "vitest",
-      "file": "tools/embedding-bench/src/__tests__/tau-lex.test.ts",
-      "fullName": "tau lexical calibration uses linear-interpolated p05 followed by a floor to two decimals",
-      "origin": "434 D-23"
-    },
-    {
-      "runner": "vitest",
-      "file": "tools/embedding-bench/src/__tests__/tau-lex.test.ts",
-      "fullName": "tau lexical calibration writes deterministic JSON and markdown receipts from weighted positive BM25 scores",
-      "origin": "434 D-23"
-    },
-    {
-      "runner": "vitest",
-      "file": "tools/embedding-bench/src/__tests__/tau-lex.test.ts",
-      "fullName": "tau lexical calibration scores overlapping background golds independently without changing the indexed corpus",
-      "origin": "434 D-23"
-    },
-    {
-      "runner": "vitest",
-      "file": "tools/embedding-bench/src/__tests__/tau-lex.test.ts",
-      "fullName": "tau lexical calibration fails closed when a recorded gold member is absent from the corpus",
-      "origin": "434 D-23"
-    },
-    {
-      "runner": "vitest",
       "file": "packages/arch/src/__tests__/turbo-arch-test-order.test.ts",
       "fullName": "C-HYG-ARCH-TEST-ORDER — the arch test runs after every build it reads C-HYG-ARCH-TEST-ORDER: the arch typecheck also runs after every build it reads (434 D-20, fresh clone)",
       "origin": "434 D-20"
@@ -13149,30 +13125,6 @@
     },
     {
       "runner": "vitest",
-      "file": "packages/cli/src/__tests__/conformance/444-ci-recipe.test.ts",
-      "fullName": "C444-CI-RECIPE every agent-qa command and flag in the job exists in the shipped help",
-      "origin": "444 D-24"
-    },
-    {
-      "runner": "vitest",
-      "file": "packages/cli/src/__tests__/conformance/444-ci-recipe.test.ts",
-      "fullName": "C444-CI-RECIPE the job never selects the junit reporter without its output path",
-      "origin": "444 D-24"
-    },
-    {
-      "runner": "vitest",
-      "file": "packages/cli/src/__tests__/conformance/444-ci-recipe.test.ts",
-      "fullName": "C444-CI-UPLOAD every uploaded path exists after a CI-mode run",
-      "origin": "444 D-23"
-    },
-    {
-      "runner": "vitest",
-      "file": "packages/cli/src/__tests__/conformance/444-ci-recipe.test.ts",
-      "fullName": "C444-CI-UPLOAD nothing under the uploaded paths is a file the recipe forbids",
-      "origin": "444 D-23"
-    },
-    {
-      "runner": "vitest",
       "file": "packages/cli/src/__tests__/conformance/444-ctrl-c-owned.e2e.test.ts",
       "fullName": "C444-CTRL-C-OWNED one SIGINT ends a held direct run through agent-qa run's own path",
       "origin": "444 D-46"
@@ -14373,18 +14325,6 @@
     },
     {
       "runner": "vitest",
-      "file": "packages/cli/src/__tests__/conformance/444-ci-recipe.test.ts",
-      "fullName": "C444-CI-RECIPE the job keeps a job timeout as CI hygiene",
-      "origin": "444.1 D-35"
-    },
-    {
-      "runner": "vitest",
-      "file": "packages/cli/src/__tests__/conformance/444-ci-recipe.test.ts",
-      "fullName": "C444-CI-RECIPE the post-run section bounds only the work after the verdict and words queued work with the CI resume limit",
-      "origin": "444.1 D-35"
-    },
-    {
-      "runner": "vitest",
       "file": "packages/cli/src/__tests__/conformance/445-node-floor.test.ts",
       "fullName": "C445-NODE-FLOOR an unsupported Node stops the bin before cli-main or node:sqlite loads",
       "origin": "445 D-21"
@@ -14739,30 +14679,6 @@
     },
     {
       "runner": "vitest",
-      "file": "packages/cli/src/__tests__/conformance/445-route-help.test.ts",
-      "fullName": "C445-ROUTE-HELP every agent-qa command and flag the route and the re-initialize page name exists in the shipped help",
-      "origin": "445 D-19"
-    },
-    {
-      "runner": "vitest",
-      "file": "packages/cli/src/__tests__/conformance/445-route-help.test.ts",
-      "fullName": "C445-ROUTE-HELP the route names its steps in the documented order",
-      "origin": "445 D-17"
-    },
-    {
-      "runner": "vitest",
-      "file": "packages/cli/src/__tests__/conformance/445-route-help.test.ts",
-      "fullName": "C445-ROUTE-HELP the route names npm only and states the Node floor in one line",
-      "origin": "445 D-20"
-    },
-    {
-      "runner": "vitest",
-      "file": "packages/cli/src/__tests__/conformance/445-route-help.test.ts",
-      "fullName": "C445-ROUTE-HELP the first-run command selects the suite init writes",
-      "origin": "445 D-17"
-    },
-    {
-      "runner": "vitest",
       "file": "packages/cli/src/__tests__/conformance/445-hard-cut.test.ts",
       "fullName": "C445-HARD-CUT a v1 workspace is told the hard cut steps by its first command",
       "origin": "445 D-24"
@@ -14790,12 +14706,6 @@
       "file": "packages/cli/src/__tests__/conformance/445-hard-cut.test.ts",
       "fullName": "C445-HARD-CUT a second init force changes no byte",
       "origin": "445 D-24"
-    },
-    {
-      "runner": "vitest",
-      "file": "packages/cli/src/__tests__/conformance/445-hard-cut.test.ts",
-      "fullName": "C445-HARD-CUT the re-initialize page names every path the hard cut deletes and every command it runs",
-      "origin": "445 D-35"
     },
     {
       "runner": "vitest",
@@ -15004,43 +14914,7 @@
     {
       "runner": "vitest",
       "file": "packages/cli/src/__tests__/conformance/446-recipe.test.ts",
-      "fullName": "C446-RECIPE every agent-qa command and flag the recipe page names exists in the shipped help",
-      "origin": "446 D-10"
-    },
-    {
-      "runner": "vitest",
-      "file": "packages/cli/src/__tests__/conformance/446-recipe.test.ts",
-      "fullName": "C446-RECIPE the Codex tool_timeout_sec and the Claude Code timeout are each above the scaffold per-test limit",
-      "origin": "446 D-22"
-    },
-    {
-      "runner": "vitest",
-      "file": "packages/cli/src/__tests__/conformance/446-recipe.test.ts",
-      "fullName": "C446-RECIPE npx agent-qa mcp --http alone serves http://127.0.0.1:3471/mcp, the URL every skill openai.yaml names",
-      "origin": "446 D-07"
-    },
-    {
-      "runner": "vitest",
-      "file": "packages/cli/src/__tests__/conformance/446-recipe.test.ts",
-      "fullName": "C446-RECIPE the page copies the four skills into .claude/skills and .agents/skills after mkdir -p and prompts each host with a skill name",
-      "origin": "446 D-01"
-    },
-    {
-      "runner": "vitest",
-      "file": "packages/cli/src/__tests__/conformance/446-recipe.test.ts",
-      "fullName": "C446-RECIPE the page names npm only, no CLAUDE.md step, no host settings file and none of the unattended leg flags",
-      "origin": "446 D-08"
-    },
-    {
-      "runner": "vitest",
-      "file": "packages/cli/src/__tests__/conformance/help-census.test.ts",
-      "fullName": "C446-GUIDANCE-NPX every CLI command the recipe page quotes outside a text block reads npx agent-qa",
-      "origin": "446 D-09"
-    },
-    {
-      "runner": "vitest",
-      "file": "packages/cli/src/__tests__/conformance/446-recipe.test.ts",
-      "fullName": "C446-RECIPE-LINKS getting-started, both READMEs, the pointer and the guide each link the recipe page",
+      "fullName": "C446-RECIPE-LINKS the pointer and the guide each link the published recipe page",
       "origin": "446 D-10"
     },
     {
@@ -15185,18 +15059,6 @@
       "runner": "vitest",
       "file": "packages/cli/src/__tests__/conformance/help-census.test.ts",
       "fullName": "C446-NO-INIT-FORCE an init command with --force in planted guidance is named, a plain init is not, and a census that scans nothing fails",
-      "origin": "446 D-32"
-    },
-    {
-      "runner": "vitest",
-      "file": "packages/cli/src/__tests__/conformance/446-recipe.test.ts",
-      "fullName": "C446-RECIPE the page names no agent-qa init command, since each one does nothing or rebuilds the config in the initialized workspace it starts from",
-      "origin": "446 D-32"
-    },
-    {
-      "runner": "vitest",
-      "file": "packages/cli/src/__tests__/conformance/446-recipe.test.ts",
-      "fullName": "C446-RECIPE the page shows the AGENTS.md pointer block init prints, line for line",
       "origin": "446 D-32"
     },
     {

@@ -7,8 +7,8 @@
  * The only permitted escapes are the files whose out-of-root cells the not-run register records
  * (D-12), and each of them must still escape, so a stale allowance reds as well.
  *
- * THE UNIVERSE is every .ts/.tsx/.mts/.mjs/.js file under packages/<name>/src, tools/<name>/src
- * and scripts/__tests__ that sits in a __tests__ directory or carries a .test. name. Build output
+ * THE UNIVERSE is every .ts/.tsx/.mts/.mjs/.js file under packages/<name>/src and
+ * scripts/__tests__ that sits in a __tests__ directory or carries a .test. name. Build output
  * and dependencies are skipped.
  *
  * ONLY CALL AND `new` EXPRESSIONS ARE READ, through the TypeScript AST, plus declared names for
@@ -62,14 +62,12 @@ function walkFiles(dir: string, out: string[]): void {
 
 function universe(): string[] {
   const roots: string[] = []
-  for (const group of ['packages', 'tools']) {
-    for (const name of readdirSync(join(REPO_ROOT, group))) {
-      const src = join(REPO_ROOT, group, name, 'src')
-      try {
-        if (statSync(src).isDirectory()) roots.push(src)
-      } catch {
-        // a member without src has nothing to scan
-      }
+  for (const name of readdirSync(join(REPO_ROOT, 'packages'))) {
+    const src = join(REPO_ROOT, 'packages', name, 'src')
+    try {
+      if (statSync(src).isDirectory()) roots.push(src)
+    } catch {
+      // a member without src has nothing to scan
     }
   }
   roots.push(join(REPO_ROOT, 'scripts', '__tests__'))

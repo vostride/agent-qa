@@ -62,16 +62,8 @@ jobs:
       - name: Install expect
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends expect
 
-      # `embedding-bench` is excluded deliberately and the exclusion is disclosed, not silent.
-      # Its tau-lex calibration case passes locally and fails only on CI, returning
-      # 2.76131419079 against an expected 1.888959749101 — both sides computed at runtime over a
-      # hardcoded fixture, so the divergence is unexplained and is almost certainly an
-      # FTS5/`node:sqlite` build difference rather than anything about the product. It is a
-      # benchmark tool with its own `embedding-bench.yml` dispatch workflow, not a correctness
-      # gate. Tracked as WINDOWS #53, closed 2026-10-22 as a scope decision (448 D-02): the release
-      # and CI never run it.
       - name: Test
-        run: pnpm exec turbo test --filter='!embedding-bench'
+        run: pnpm exec turbo test
 
       - name: Validate skills
         run: pnpm run validate:skills

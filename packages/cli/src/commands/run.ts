@@ -1656,7 +1656,7 @@ export async function resolveRunInvocationInputs(
 // 2026-08-24 (402-09, D-11): `kind` is narrowed from the full `RunArtifactKind` breadth to the one
 // value this process can still produce. The parent/child kinds are RETAINED on the schema union
 // (existing artifact documents carry them) but nothing mints them any more, so a parameter that
-// still admitted them would be an affordance with no caller — see DELETION-INVENTORY.md.
+// still admitted them would be an affordance with no caller.
 function buildRunArtifactContext(input: {
   kind: 'test'
   configContent: string

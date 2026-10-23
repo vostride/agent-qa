@@ -230,10 +230,10 @@ const TWO_TASKS = dryRun([
   ['b#build', '<NONEXISTENT>'],
 ])
 
-test('the package pin names 24 sorted members including agent-qa, embedding-bench and arch', () => {
-  assert.equal(PACKAGE_PIN.length, 24)
+test('the package pin names 23 sorted members including agent-qa and arch', () => {
+  assert.equal(PACKAGE_PIN.length, 23)
   assert.deepEqual([...PACKAGE_PIN].sort(), PACKAGE_PIN)
-  for (const name of ['agent-qa', 'embedding-bench', '@vostride/agent-qa-arch']) {
+  for (const name of ['agent-qa', '@vostride/agent-qa-arch']) {
     assert.ok(PACKAGE_PIN.includes(name), name)
   }
 })
@@ -318,7 +318,7 @@ test('a dry run with zero tasks (a filter matching nothing) is a package-set-mis
     dryRunPackages: empty.packages,
   })
   assert.deepEqual(rules(findings), ['package-set-mismatch'])
-  assert.match(findings[0].detail, /turbo dry-run packages: missing .*embedding-bench/)
+  assert.match(findings[0].detail, /turbo dry-run packages: missing .*@vostride\/agent-qa-arch/)
   const turbo = turboFindings({
     legId: 'turbo-build-typecheck',
     dryRun: empty,
@@ -331,10 +331,10 @@ test('a dry run with zero tasks (a filter matching nothing) is a package-set-mis
 test('a pnpm listing off the pin, or a differing dry run, names the source and names', () => {
   const missing = packageSetFindings({
     pinned: PACKAGE_PIN,
-    pnpmMembers: PACKAGE_PIN.filter(name => name !== 'embedding-bench'),
+    pnpmMembers: PACKAGE_PIN.filter(name => name !== '@vostride/agent-qa-arch'),
   })
   assert.deepEqual(rules(missing), ['package-set-mismatch'])
-  assert.match(missing[0].detail, /^pnpm workspace listing: missing embedding-bench$/)
+  assert.match(missing[0].detail, /^pnpm workspace listing: missing @vostride\/agent-qa-arch$/)
 
   const extra = packageSetFindings({ pinned: PACKAGE_PIN, pnpmMembers: [...PACKAGE_PIN, 'x'] })
   assert.deepEqual(rules(extra), ['package-set-mismatch'])

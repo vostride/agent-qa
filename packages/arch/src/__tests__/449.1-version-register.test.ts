@@ -16,7 +16,7 @@
  *
  * Excluded, each with its reason in the register: external specifications, package and product
  * versions, content and algorithm versions, hash and RNG domain tags, the bundled floor model asset,
- * the private benchmarking tool, one-shot scripts kept as history, and a rebuild-reason label.
+ * one-shot scripts kept as history, and a rebuild-reason label.
  *
  * Comments are blanked before any production file is matched, every needle is assembled from two
  * halves at run time so this file spells none of them, and the planted cells prove each scanner
@@ -400,7 +400,6 @@ const EXCLUSION_CATEGORIES = [
   'content-version',
   'domain-tag',
   'floor-asset',
-  'private-tool',
   'historical-script',
   'label',
 ] as const

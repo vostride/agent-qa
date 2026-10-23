@@ -580,7 +580,7 @@ export function createSqliteJobStore(options: CreateSqliteJobStoreOptions): Sqli
    * notifying for it would mint a dedupe key nothing else in the system agrees with.
    *
    * 2026-09-02 (Phase 412): the reserved sixth job kind that first motivated the rule left
-   * with the Issue-slot cleanup — see `DELETION-INVENTORY.md`.
+   * with the Issue-slot cleanup.
    */
   function recordChainTerminal(chainTerminal: ChainTerminalRecord, now: string): void {
     let headExists = false

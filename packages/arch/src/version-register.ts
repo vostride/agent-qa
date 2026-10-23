@@ -32,7 +32,6 @@ export type ExclusionCategory =
   | 'content-version'
   | 'domain-tag'
   | 'floor-asset'
-  | 'private-tool'
   | 'historical-script'
   | 'label'
 
@@ -258,8 +257,6 @@ export const VERSION_EXCLUSIONS: readonly VersionExclusion[] = [
   { site: 'packages/knowledge-local/src/embedder-floor.ts', name: 'schemaVersion', category: 'floor-asset', reason: 'The exact check on the bundled floor manifest, which is not regenerated.', inline: { literal: 1, count: 1 } },
   { site: 'packages/knowledge-local/assets/potion-retrieval-32m/manifest.json', name: '"schemaVersion"', category: 'floor-asset', reason: 'The bundled floor manifest pins the model binary by sha256 and is not regenerated.' },
   { site: 'packages/knowledge-local/assets/potion-retrieval-32m/golden-vectors.json', name: '"schemaVersion"', category: 'floor-asset', reason: 'The golden vectors are pinned evidence for the bundled floor model.' },
-  { site: 'tools/embedding-bench/src/convert-floor.ts', name: 'FLOOR_FORMAT_VERSION', category: 'private-tool', reason: 'A private benchmarking tool that writes the floor binary header; it is not released.' },
-  { site: 'tools/embedding-bench/src/corpus.ts', name: 'CORPUS_BUILDER_VERSION', category: 'private-tool', reason: 'A private benchmarking tool and its committed evidence; it is not released.' },
   { site: 'scripts/401-11-capture-parity.mjs', name: 'schemaVersion', category: 'historical-script', reason: 'A parity golden generator whose capture ran once; an end-to-end test imports its scrubber, and the release does not run it.' },
   { site: 'scripts/413-migrate-handoff-paths.mjs', name: 'schemaVersion', category: 'historical-script', reason: 'A one-shot path migration kept as history; the release does not run it.' },
   { site: 'scripts/415-classifier-repeatability.mjs', name: 'schemaVersion', category: 'historical-script', reason: 'A one-shot measurement script kept as history; the release does not run it.' },

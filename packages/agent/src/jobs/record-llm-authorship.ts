@@ -26,7 +26,7 @@
 // research names.
 //
 // 2026-09-01 (Phase 409): five rather than six — the reserved sixth job kind left with the
-// Issue-slot cleanup — see `DELETION-INVENTORY.md`.
+// Issue-slot cleanup.
 
 import type { JobId } from '@vostride/agent-qa-schema'
 

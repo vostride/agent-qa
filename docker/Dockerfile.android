@@ -38,7 +38,6 @@ COPY packages/safety-local/package.json packages/safety-local/
 COPY packages/schema/package.json packages/schema/
 COPY packages/tools-local/package.json packages/tools-local/
 COPY packages/web/package.json packages/web/
-COPY tools/embedding-bench/package.json tools/embedding-bench/
 
 RUN pnpm install --frozen-lockfile
 

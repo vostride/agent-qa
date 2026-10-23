@@ -61,8 +61,8 @@ interface StageChipKinds {
  * The table names what a job kind EMITS. As of 2026-08-26 (Phase 404 D-01/D-02) the chip set is
  * `{analysis, curation}` and the three `issues*` event names no longer exist, so a row describing
  * what a reserved kind "would" emit could only name events the enum does not carry. 2026-09-01
- * (Phase 409): the reserved sixth kind left with the Issue-slot cleanup — see
- * DELETION-INVENTORY.md. The emitter's run-scoped drop-guard consults this run's chain ids, so a
+ * (Phase 409): the reserved sixth kind left with the Issue-slot cleanup.
+ * The emitter's run-scoped drop-guard consults this run's chain ids, so a
  * row observed by this pump that is not this run's is dropped by id rather than mis-attributed.
  *
  * 2026-09-12 (Phase 422 D-13, 422-17): a FULL `Record`, not a `Partial` one, and the change is

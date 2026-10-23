@@ -46,7 +46,7 @@
     "measured/ rationale on every row records what was actually observed on 2026-08-11 by",
     "running the row through the shipped classifier, not what the table's author expected.",
     "",
-    "2026-09-02 (Phase 411): the second arm was renamed from its v52 spelling to `stop` with the Issue-slot cleanup; every row's classification is byte-identical -- see `DELETION-INVENTORY.md`.",
+    "2026-09-02 (Phase 411): the second arm was renamed from its v52 spelling to `stop` with the Issue-slot cleanup; every row's classification is byte-identical.",
     "2026-10-07 (Phase 436, D-14): an owner-decided contract change, not a gap-closure re-classification. `cycle` and `stagnation` left the router's mechanics signals with the progress subsystem; their blocks survive only in pre-change handoffs and are read as nothing. The two rows that pinned them as REPAIR are renamed historical-cycle and historical-stagnation and now pin the opposite: the same member spec routes exactly like the signature cell (stop, clean-definitive-assertion-fail). No member spec changed, so every variant declaration still holds. The limit-stop rule is pinned by the 436 cells in router.test.ts, outside this table."
   ],
 

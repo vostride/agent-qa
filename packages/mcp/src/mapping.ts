@@ -853,16 +853,16 @@ export const UNPROJECTED_OPS: readonly UnprojectedOp[] = Object.freeze([
   // 398 D-09 (dated 2026-08-17): the twentieth entry, and the FIRST op ever dispositioned here that
   // 397 did not rule on — because it did not exist then. Its exclusion is argued rather than scoped,
   // which is why it does not take the mid-flight line: `agent.explain` answers "what can you do",
-  // and DELETION-INVENTORY row 1 already ruled that question NOT a gap on this surface, because the
-  // protocol answers machine discovery itself. Projecting it anyway would be the third answer that
-  // row refuses.
+  // and 397 already ruled the v1 discovery tool NOT a gap on this surface, because the protocol
+  // answers machine discovery itself. Projecting it anyway would be the third answer that ruling
+  // refuses.
   Object.freeze({
     opId: 'agent.explain',
     reason:
       'D-09 (dated 2026-08-17): the protocol answers machine discovery itself — `tools/list` plus '
       + 'SEP-2575 `server/discover` — and 398\'s `init --agent` manifest answers agent discovery '
       + 'from the committed catalog. This op answers a PERSON asking in prose, which is a third '
-      + 'question with a third audience. DELETION-INVENTORY row 1 ruled a discovery TOOL not-a-gap '
+      + 'question with a third audience. 397 ruled the v1 discovery TOOL not-a-gap '
       + 'on exactly this reasoning; projecting the op would reinstate it under a new name.',
     adjudication: '398',
   }),

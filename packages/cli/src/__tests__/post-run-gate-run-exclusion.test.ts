@@ -31,8 +31,8 @@
 // but can red alone tomorrow is worth its own name; see the SUMMARY for the measurement.
 //
 // ISSUE CANDIDACY — STRUCTURAL NOTE, NOT AN ASSERTION (D-20). 2026-09-02 (Phase 412): the Issue
-// engine this note once reserved a consumer contract for left with the Issue-slot cleanup — see
-// `DELETION-INVENTORY.md`. Nothing reads `excludedFromOutcomes` at candidacy time because there
+// engine this note once reserved a consumer contract for left with the Issue-slot cleanup.
+// Nothing reads `excludedFromOutcomes` at candidacy time because there
 // is no candidacy; the gate-run exclusion is complete in the legs above and no fifth leg is owed.
 // Kept as prose rather than a skipped test because an `it.skip` would claim coverage of a
 // mechanism that does not exist.

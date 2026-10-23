@@ -11,7 +11,7 @@
 // KEYED, NOT POSITIONAL. `DraftGateResultsSchema` names its gates, so a later gate can join
 // without re-minting this DTO or renumbering anything a 394 consumer already reads.
 // 2026-09-02 (Phase 412): the bug-repro anchoring gate that was to join here left with the
-// Issue-slot cleanup — see `DELETION-INVENTORY.md`.
+// Issue-slot cleanup.
 
 import { z } from 'zod'
 

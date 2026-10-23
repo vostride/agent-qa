@@ -2,7 +2,7 @@
 //
 // 2026-08-26 (Phase 404, D-01): the chip set is exactly two — `{analysis, curation}`.
 // 2026-09-02 (Phase 412): the chain now derives exactly the two ids the chips read; the third
-// derived id left with the Issue-slot cleanup — see `DELETION-INVENTORY.md`.
+// derived id left with the Issue-slot cleanup.
 //
 // THE single producer of a post-processing chip status. The CLI's exit summary line (plan 04),
 // any later status verb, 392's chat and M5's dashboard all call this op; none of them opens

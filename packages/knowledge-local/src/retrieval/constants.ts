@@ -18,9 +18,8 @@ export const FAN_OUT_CAP = 32
 /**
  * Positive-scale lexical admission floor (D-05/D-06).
  *
- * Calibrated 2026-07-15 from the schema-v2 `quoted-token-or-v1` serving replay recorded in
- * tools/embedding-bench/reports/TAU-LEX-RECEIPT.md: positive-scale p05 6.864719139232, using
- * linear interpolation and floored to two decimals. SQLite FTS5 returns negated raw bm25()
+ * Calibrated 2026-07-15 from the schema-v2 `quoted-token-or-v1` serving replay: positive-scale
+ * p05 6.864719139232, using linear interpolation and floored to two decimals. SQLite FTS5 returns negated raw bm25()
  * scores, so query sites apply this floor to -bm25(...). M3 owns refinement; D-05 requires no
  * human lock gate.
  */

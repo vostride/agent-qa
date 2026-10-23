@@ -66,7 +66,7 @@ export interface EmbeddingProfile {
 export const DEFAULT_EMBEDDING_PROFILE = {
   model_id: 'Xenova/bge-small-en-v1.5',
   /**
-   * Locked 2026-07-14 from tools/embedding-bench/reports/REPORT.md (D-07).
+   * Locked 2026-07-14 from the embedding benchmark (D-07).
    * This pin changes vec-table identity; old revision-keyed tables are
    * disposable rebuildable projections and are rebuilt, never migrated.
    */
@@ -86,8 +86,8 @@ export const DEFAULT_EMBEDDING_PROFILE = {
     },
   },
   /**
-   * Locked 2026-07-14 from recorded gold-pair p05 0.385200 in
-   * tools/embedding-bench/reports/REPORT.md; rounded down to two decimals.
+   * Locked 2026-07-14 from the embedding benchmark's recorded gold-pair p05 0.385200;
+   * rounded down to two decimals.
    */
   tau_dense: 0.38,
 } as const satisfies EmbeddingProfile
@@ -111,8 +111,8 @@ export const STATIC_FLOOR_EMBEDDING_PROFILE = {
   /** ORT session options are inert for the static backend. */
   session_options: {},
   /**
-   * Locked 2026-07-14 from recorded gold-pair p05 -0.012736 in
-   * tools/embedding-bench/reports/REPORT.md; rounded down to two decimals.
+   * Locked 2026-07-14 from the embedding benchmark's recorded gold-pair p05 -0.012736;
+   * rounded down to two decimals.
    */
   tau_dense: -0.02,
 } as const satisfies EmbeddingProfile

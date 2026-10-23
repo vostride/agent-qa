@@ -101,7 +101,7 @@ const scopeKeySchema = z.object({
  *              (411 D-01/D-05).
  *
  * 2026-09-02 (Phase 411): the proposal arm for a correctly-failing draft left with the Issue-slot
- * cleanup — see `DELETION-INVENTORY.md`.
+ * cleanup.
  */
 export const AUTHORING_LOOP_OUTCOMES = [
   'drafted',

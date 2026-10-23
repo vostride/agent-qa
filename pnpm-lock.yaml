@@ -1022,34 +1022,6 @@ importers:
         specifier: ~4.1.5
         version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.4))
 
-  tools/embedding-bench:
-    dependencies:
-      '@huggingface/tokenizers':
-        specifier: 0.1.3
-        version: 0.1.3
-      '@huggingface/transformers':
-        specifier: 4.2.0
-        version: 4.2.0(@types/node@24.12.2)
-      '@vostride/agent-qa-eval':
-        specifier: workspace:*
-        version: link:../../packages/eval
-      '@vostride/agent-qa-knowledge-local':
-        specifier: workspace:*
-        version: link:../../packages/knowledge-local
-      '@vostride/agent-qa-schema':
-        specifier: workspace:*
-        version: link:../../packages/schema
-    devDependencies:
-      '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
-      typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
-      vitest:
-        specifier: ~4.1.5
-        version: 4.1.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.4))
-
 packages:
 
   '@ai-sdk/anthropic@3.0.74':

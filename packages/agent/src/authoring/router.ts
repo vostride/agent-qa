@@ -174,7 +174,7 @@ export interface RepairRoute {
  * a report.
  *
  * 2026-09-02 (Phase 411): the proposal arm for a correctly-failing draft left with the Issue-slot
- * cleanup — see `DELETION-INVENTORY.md`.
+ * cleanup.
  */
 export interface StopRoute {
   readonly kind: 'stop'

@@ -161,7 +161,7 @@ function standInHandler(
  * hands on exactly what a live one would and no path can enqueue what the topology never declared.
  *
  * 2026-09-01 (Phase 409): the reserved sixth kind left with the Issue-slot cleanup, and 388
- * D-04's declared/produced split collapsed with it — see `DELETION-INVENTORY.md`.
+ * D-04's declared/produced split collapsed with it.
  *
  * The extra carries the run's identity and posture forward for the same reason the success
  * path does (Pitfall 6): the successor may be claimed by the daemon, which resolves posture

@@ -56,8 +56,7 @@ const PACKAGES_DIR = join(HERE, '..', '..', '..')
  * it is the LIVE-EDITOR socket's wire key, produced today by `dashboard-server`'s ws handler and
  * read at exactly one named boundary in the UI (`liveSubActionsOf` in `hooks/use-live-editor.ts`).
  * A name with a live producer is not debris; D-14 is about run-detail ARTIFACT addressing, and
- * renaming another package's wire contract is not what this inventory measures. Recorded with its
- * measurement in `DELETION-INVENTORY.md` (405-13, "What was RETAINED").
+ * renaming another package's wire contract is not what this inventory measures.
  */
 const FORBIDDEN: { label: string; needle: string }[] = [
   { label: 'the legacy execution-events SSE route', needle: '/api/execution/' + 'events' },

@@ -1,6 +1,1 @@
 packages/knowledge-local/assets/potion-retrieval-32m/* binary
-tools/embedding-bench/candidates.json text eol=lf
-tools/embedding-bench/benchmark.config.json text eol=lf
-tools/embedding-bench/corpus/corpus.json text eol=lf
-tools/embedding-bench/corpus/corpus-manifest.json text eol=lf
-tools/embedding-bench/fixtures/authored-queries.json text eol=lf

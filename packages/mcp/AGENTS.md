@@ -19,7 +19,6 @@ through `invokeFunction`; the CLI's `agent-qa mcp` serves it over stdio or HTTP.
 - `src/catalog.ts`
 - `src/masked-result.ts`
 - `src/http.ts`
-- `DELETION-INVENTORY.md`
 - `src/__tests__/`
 
 ## Commands

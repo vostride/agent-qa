@@ -675,7 +675,7 @@ function withRegressedProbeEvidence(
  * The stopped outcome carries the ROUTE the loop derived and nothing is minted for it (411 D-10).
  *
  * 2026-09-02 (Phase 411): the proposal arm for a correctly-failing draft left with the Issue-slot
- * cleanup — see `DELETION-INVENTORY.md`.
+ * cleanup.
  *
  * TWO DERIVATIONS, ASKED IN ORDER, NEITHER RE-IMPLEMENTED HERE. The first is
  * `computeDraftDisposition`'s, already stored on the receipt: did the gates say no. The second is

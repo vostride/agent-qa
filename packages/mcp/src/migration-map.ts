@@ -1,22 +1,18 @@
 // The v1 -> v2 tool-name migration map (Phase 398 plan 02, D-13 / D-14 · XPLN-03).
 //
-// WHY THIS FILE EXISTS. `DELETION-INVENTORY.md` beside this directory is the HUMAN adjudication
-// record: thirty-three v1 tool rows, each with a dated disposition ruled by 397. This module is that
-// record's MACHINE projection — the same rulings in a shape a handler can switch on, so an external
-// agent still pinned to a v1 tool name receives the ruling instead of a bare unknown-tool error
-// (D-15's refuse-and-teach redirect, plan 05). The document stays the record; nothing here
-// adjudicates anything the document has not already ruled, and the census cell in
-// `__tests__/migration-map.test.ts` parses the document at test time and set-equals it against this
-// array in BOTH directions, so the projection cannot drift from its source.
+// WHY THIS FILE EXISTS. 397 ruled each of the thirty-three v1 tools in a deletion inventory, with a
+// dated disposition per tool. This module records those rulings in a shape a handler can switch on,
+// so an external agent still pinned to a v1 tool name receives the ruling instead of a bare
+// unknown-tool error (D-15's refuse-and-teach redirect, plan 05). The inventory itself is retired;
+// `__tests__/mapping-bump-guard.test.ts` pins the exact names and arms here, so the record cannot
+// drift silently.
 //
-// WHY THE UNIVERSE IS THE TOOL ROWS ONLY (2026-08-17). The inventory also carries one prompt row
+// WHY THE UNIVERSE IS THE TOOL ROWS ONLY (2026-08-17). The inventory also carried one prompt row
 // (`agent_qa_authoring_context`) and six `agent-qa://schema/...` resource rows. Neither is a name a
 // caller can put in a `tools/call`, so neither can ever arrive at the seam this map answers: a
 // retired PROMPT name reaches a prompt request the server does not serve, and a retired RESOURCE
 // URI reaches a scheme that no longer parses. Widening this map to cover them would put entries in
-// it that nothing can look up, which is the same as an unreachable branch with a comment on it. The
-// census parse is scoped to the `## Tools` section for exactly this reason, and that scoping is
-// asserted rather than assumed.
+// it that nothing can look up, which is the same as an unreachable branch with a comment on it.
 //
 // PROTOCOL GROUNDING. SEP-2567 removed per-connection list variance, so the tool names a caller can
 // see are a property of `mapping.ts` — never of a session, and since 432-20 (D-12) never of the
@@ -68,11 +64,11 @@ export interface V1ToolMigrationEntry {
 }
 
 /**
- * THE MAP. One entry per v1 tool row of `DELETION-INVENTORY.md`, in the document's own row order.
+ * THE MAP. One entry per v1 tool, in the inventory's original row order.
  *
- * The order is the document's rather than alphabetical so the two can be read side by side, and the
- * bump guard pins the SORTED set separately — order is a reading convenience here and a pinned fact
- * nowhere, which is why nothing below depends on it.
+ * The order is the inventory's rather than alphabetical, and the bump guard pins the SORTED set
+ * separately — order is a reading convenience here and a pinned fact nowhere, which is why nothing
+ * below depends on it.
  */
 export const V1_TOOL_MIGRATION_MAP: readonly V1ToolMigrationEntry[] = Object.freeze([
   // 1

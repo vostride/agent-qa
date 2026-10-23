@@ -384,7 +384,7 @@ function turboDeps({ temp, source }) {
       tasks: MEMBERS.flatMap(name =>
         wanted.map(task => ({
           taskId: `${name}#${task}`,
-          command: name === 'embedding-bench' && task === 'build' ? '<NONEXISTENT>' : task,
+          command: name === '@vostride/agent-qa-arch' && task === 'build' ? '<NONEXISTENT>' : task,
         })),
       ),
     }
@@ -439,11 +439,11 @@ test('the build/typecheck leg is forced, continued, summarized and set-checked',
   )
   assert.deepEqual(summary.findings, [])
   assert.equal(summary.exitCode, 0)
-  assert.equal(summary.members.length, 24)
+  assert.equal(summary.members.length, 23)
   assert.equal(summary.members.find(member => member.name === 'agent-qa').dir, 'packages/p22')
   const leg = summary.legs.find(entry => entry.id === 'turbo-build-typecheck')
-  assert.equal(leg.executed, 47)
-  assert.equal(leg.expectedTasks, 47)
+  assert.equal(leg.executed, 45)
+  assert.equal(leg.expectedTasks, 45)
   assert.deepEqual(turboCalls[0], ['exec', 'turbo', 'run', 'build', 'typecheck', '--dry-run=json'])
   for (const flag of ['--force', '--continue', '--summarize', '--concurrency=4']) {
     assert.ok(turboCalls[1].includes(flag), flag)
@@ -452,7 +452,7 @@ test('the build/typecheck leg is forced, continued, summarized and set-checked',
   assert.equal(summary.turbo.envMode, 'strict')
   assert.equal(summary.turbo.concurrency, 4)
   const raw = join(summary.runDir, 'raw', 'turbo-build-typecheck-summary.json.gz')
-  assert.equal(JSON.parse(gunzipSync(readFileSync(raw))).execution.attempted, 47)
+  assert.equal(JSON.parse(gunzipSync(readFileSync(raw))).execution.attempted, 45)
   assert.ok(existsSync(join(summary.runDir, 'raw', 'turbo-build-typecheck-dry-run.json.gz')))
   assert.equal(gate.parseGateArgs(['--out', 'x', '--turbo-concurrency', '4']).turboConcurrency, 4)
   assert.throws(() => gate.parseGateArgs(['--out', 'x', '--turbo-concurrency', '0']), /invalid/)
@@ -524,7 +524,7 @@ test('the test leg clears old results, reads every member JSON, records counts',
     if (args.includes('test') && args.includes('turbo')) {
       staleSeen = existsSync(stalePath)
       MEMBERS.forEach((name, index) => {
-        if (name === 'embedding-bench') return
+        if (name === '@vostride/agent-qa-arch') return
         const dir = `packages/p${index}`
         const file = join(source, dir, 'test-results/gate-vitest.json')
         mkdirSync(dirname(file), { recursive: true })
@@ -545,23 +545,23 @@ test('the test leg clears old results, reads every member JSON, records counts',
     '--reporter=json',
     '--outputFile.json=test-results/gate-vitest.json',
   ])
-  assert.equal(summary.packages.length, 24)
+  assert.equal(summary.packages.length, 23)
   const cli = summary.packages.find(entry => entry.name === 'agent-qa')
   assert.equal(cli.executed, 1)
   assert.equal(cli.passed, 1)
   assert.equal(cli.skipped, 1)
   assert.match(cli.resultsSha256, /^[0-9a-f]{64}$/)
-  const bench = summary.packages.find(entry => entry.name === 'embedding-bench')
-  assert.equal(bench.executed, 0)
-  assert.equal(bench.resultsFile, null)
+  const silent = summary.packages.find(entry => entry.name === '@vostride/agent-qa-arch')
+  assert.equal(silent.executed, 0)
+  assert.equal(silent.resultsFile, null)
   const missing = summary.findings.filter(f => f.rule === 'results-missing')
   assert.deepEqual(
     missing.map(f => f.detail.split(':')[0]),
-    ['embedding-bench'],
+    ['@vostride/agent-qa-arch'],
   )
   assert.ok(summary.findings.some(f => f.rule === 'unlisted-skip' && /^agent-qa:/.test(f.detail)))
   const leg = summary.legs.find(entry => entry.id === 'turbo-test')
-  assert.equal(leg.executed, 23)
+  assert.equal(leg.executed, 22)
   assert.equal(leg.skipped, 1)
   assert.deepEqual(summary.concurrency, {
     turbo: 'default',

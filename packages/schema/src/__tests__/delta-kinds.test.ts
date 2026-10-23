@@ -18,11 +18,9 @@ import { DELTA_KINDS } from '../delta/delta'
  * lexical deletion census, `packages/arch/src/__tests__/412-issue-slot-deleted.test.ts`, whose
  * four vocabulary/brand cells RED by name under that same mutation.
  *
- * 2026-09-01 (Phase 409): the second delta vocabulary left with the Issue-slot cleanup — see
- * `DELETION-INVENTORY.md`.
+ * 2026-09-01 (Phase 409): the second delta vocabulary left with the Issue-slot cleanup.
  *
- * 2026-09-03 (Phase 412): the three per-phase census cells merged into one — see
- * `DELETION-INVENTORY.md`.
+ * 2026-09-03 (Phase 412): the three per-phase census cells merged into one.
  */
 
 const SIX_SHIPPED_KINDS = ['Add', 'Confirm', 'Supersede', 'Deprecate', 'MintUnknown', 'Noop']

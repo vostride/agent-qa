@@ -57,7 +57,7 @@ test('release workflow gates build, staging, commit, tag, push, and publish in o
     'pnpm exec node scripts/release/version.mjs --bump "${{ inputs.bump }}" --write',
     'pnpm typecheck',
     'sudo apt-get update && sudo apt-get install -y --no-install-recommends expect',
-    "pnpm exec turbo test --filter='!embedding-bench'",
+    'pnpm exec turbo test',
     'pnpm exec node scripts/release/posthog.mjs --write',
     'pnpm exec turbo build --force',
     'pnpm run validate:skills',
@@ -80,7 +80,7 @@ test('release workflow writes the PostHog key after the tests and before a force
   const workflow = readWorkflow()
 
   assert.match(workflow, /POSTHOG_PROJECT_KEY:\s*\$\{\{ secrets\.POSTHOG_PROJECT_KEY \}\}/)
-  assertBefore(workflow, "pnpm exec turbo test --filter='!embedding-bench'", 'pnpm exec node scripts/release/posthog.mjs --write')
+  assertBefore(workflow, 'pnpm exec turbo test', 'pnpm exec node scripts/release/posthog.mjs --write')
   assertBefore(workflow, 'pnpm exec node scripts/release/posthog.mjs --write', 'pnpm exec turbo build --force')
   assert.equal(workflow.split('scripts/release/posthog.mjs --write').length - 1, 1)
   assertBefore(

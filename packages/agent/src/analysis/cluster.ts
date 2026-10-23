@@ -10,8 +10,7 @@
 // D-16 — clusters mint NO identity. A cluster carries the fingerprint VALUE, its
 // occurrence count and member refs, and nothing else:
 // a cluster or verdict has no short-ID and no `agentqa://` address.
-// 2026-09-02 (Phase 410): the sixth entity kind left with the Issue-slot cleanup — see
-// `DELETION-INVENTORY.md`.
+// 2026-09-02 (Phase 410): the sixth entity kind left with the Issue-slot cleanup.
 
 import {
   errorTextOf,

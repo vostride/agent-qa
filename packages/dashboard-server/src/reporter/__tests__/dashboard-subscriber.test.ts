@@ -195,7 +195,7 @@ describe('createDashboardRunIngest', () => {
   // "retry mode inserts a child under the parent with attempt + maxRetries" and "suite mode adopts
   // the queued parent and inserts children keyed by testIndex". Both producers are deleted; the
   // cells below assert the ONE-RUN model that replaced them, which is the same claim with the
-  // opposite sign. See DELETION-INVENTORY.md.
+  // opposite sign.
 
   it('correlation env — a suite run adopts the queued row and mints NO children', async () => {
     const suiteRunId = 'r_suite-alpha-bravo-charlie-delta-echo-foxtrot-golf-hotel-india'

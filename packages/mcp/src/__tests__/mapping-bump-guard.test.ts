@@ -70,14 +70,12 @@
 // tool-name vocabulary — the names that exist and the names that used to — and a bump to either is
 // a change to what every downstream consumer binds against.
 //
-// WHY A COUNT WOULD NOT HAVE DONE HERE EITHER, and the map makes the argument sharper than the
-// catalogue does. Its members are already censused against `DELETION-INVENTORY.md` in both
-// directions (`migration-map.test.ts`), so the SET cannot drift while the document holds still.
-// What that census cannot see is an ARM: rule `agent_qa_cancel_run` retired instead of pending and
-// every census cell stays green, because the name is still there and the document still has its
-// row — while an external agent calling the retired name is now told the capability is answered
-// elsewhere when in truth it is owed by M5. So the pin is the exact sorted NAME list WITH ITS ARM,
-// and a swapped arm is a visible diff in this file rather than a silent change in behaviour.
+// WHY A COUNT WOULD NOT HAVE DONE HERE EITHER. A count cannot see an ARM: rule
+// `agent_qa_cancel_run` retired instead of pending and the count stays the same — while an external
+// agent calling the retired name is now told the capability is answered elsewhere when in truth it
+// is owed by M5. So the pin is the exact sorted NAME list WITH ITS ARM, and a swapped arm is a
+// visible diff in this file rather than a silent change in behaviour. With the deletion inventory
+// retired, this pin is also the only check on the SET itself.
 //
 // THE TARGETS ARE PINNED TOO, and that is one step past D-14's letter, taken for D-14's reason. The
 // `renamed-to` targets are already joined LIVE against `AGENT_QA_TOOL_PROJECTIONS`, so a target

@@ -1838,7 +1838,7 @@
     },
     {
       "description": "Mint a short-lived, view-scoped live-view URL for one handle of a running run.",
-      "docAbsentReason": "no shipped page documents this capability yet (dated 2026-08-25, 403-01 D-03). The run-service page gains a \"Minting a liveUrl\" section in 403-03; this row is where that link lands, and a path written ahead of the page would existence-check green against nothing.",
+      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -2199,5 +2199,5 @@
       "shortDescription": "Triage agent-qa run failures"
     }
   ],
-  "rowsDigest": "8150ba030d25049773b039f19ccb5d95617cee6590bacd9f2b369d27a8022edf"
+  "rowsDigest": "47b13922e1f1aae288368b5eb088fe07de3b87aedf7ff89a17353fde7c1b7caa"
 }

@@ -13,7 +13,7 @@
 // about. Asserting all three sides by literal list is what makes that drift RED by name.
 //
 // 2026-09-01 (Phase 409): the reserved sixth kind left with the Issue-slot cleanup, and with
-// it 388 D-04's declared/produced split — see `DELETION-INVENTORY.md`.
+// it 388 D-04's declared/produced split.
 //
 // Unit-level on purpose: these are claims about what the registry RETURNS, and proving them
 // through a store and a pump would make the assertion depend on everything between.

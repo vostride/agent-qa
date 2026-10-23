@@ -2,9 +2,7 @@
 //
 // WHY THIS FILE LOOKS LIKE THIS. Every v1 export — `startMcpServer`, `createAgentQaMcpServer`, the
 // `agent-qa://schema/*` reference tables, the hand-rolled loopback HTTP bridge — was deleted with
-// the 33-tool server. What each one carried, and whether 396 projects it or 397 adjudicates it, is
-// recorded row by row in `DELETION-INVENTORY.md` beside this file; nothing was dropped without a
-// row. Nothing v1 survives here.
+// the 33-tool server. Nothing v1 survives here.
 //
 // THE V1 ENTRY POINTS ARE GONE RATHER THAN RENAMED, because the wire has no place left for them.
 // `startMcpServer` served one long-lived session; SEP-2575 removed the `initialize` handshake, the

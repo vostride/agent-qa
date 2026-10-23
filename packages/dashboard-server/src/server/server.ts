@@ -408,8 +408,7 @@ export async function startServer(opts: StartServerOptions): Promise<{
         // favour of the constant sentence "Suite test(s) failed".
         //
         // HISTORICAL ROWS ARE UNAFFECTED: this fold only ever ran when a live process closed, and
-        // no live process owns pre-402 children. The read side that renders them is untouched (see
-        // DELETION-INVENTORY.md).
+        // no live process owns pre-402 children. The read side that renders them is untouched.
 
         // 2026-08-23 (Phase 401 plan 07, D-12): THE RETRY-CHILD CLASSIFICATION IS RETIRED WITH
         // THE MACHINERY THAT CREATED THE CHILDREN.
@@ -887,8 +886,8 @@ export async function startServer(opts: StartServerOptions): Promise<{
   // 396-01 D-10: the `services.mcp` read, the endpoint resolution, the `node:http` MCP listener and
   // the `agent-qa.mcp.server.lifecycle` analytics that reported on it all lived here and are gone.
   // The config KEY itself is deliberately retained in `ServicesSchema` — that object is `.strict()`,
-  // so deleting the key would make every existing project that declares `services.mcp` fail to parse
-  // — see DELETION-INVENTORY.md's dated row for the disposition and its owner.
+  // so deleting the key would make every existing project that declares `services.mcp` fail to
+  // parse.
   const cleanupRuntimeResources = () => {
     jobQueue.stop()
     executionBackend?.killAll()

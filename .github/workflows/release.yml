@@ -72,9 +72,8 @@ jobs:
       - name: Install expect
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends expect
 
-      # embedding-bench is a manual benchmark, not a release check (WINDOWS #53, 448 D-02).
       - name: Test
-        run: pnpm exec turbo test --filter='!embedding-bench'
+        run: pnpm exec turbo test
 
       - name: Write PostHog project key
         env:

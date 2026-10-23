@@ -547,8 +547,7 @@ export type {
 // a cluster or verdict has no short-ID and no `agentqa://` address (D-16). Published so plan
 // 07's CLI block and every later surface fold through ONE function rather than re-deriving
 // groups.
-// 2026-09-02 (Phase 410): the sixth entity kind left with the Issue-slot cleanup — see
-// `DELETION-INVENTORY.md`.
+// 2026-09-02 (Phase 410): the sixth entity kind left with the Issue-slot cleanup.
 export { clusterVerdicts } from './analysis/cluster.js'
 export type { AnalysisCluster, AnalysisClusterMember } from './analysis/cluster.js'
 
@@ -649,7 +648,7 @@ export type {
 // identical in review. It reaches no storage and holds no capability: given a runId and an id
 // source it returns two strings, which is why publishing it opens nothing.
 // 2026-09-02 (Phase 412): two rather than three — the chain's third derived id left with the
-// Issue-slot cleanup — see `DELETION-INVENTORY.md`.
+// Issue-slot cleanup.
 export { chainJobIdsForRun } from './jobs/chain-identity.js'
 export type { ChainJobIds } from './jobs/chain-identity.js'
 export {

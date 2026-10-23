@@ -31,7 +31,7 @@
 // SPAWN BUDGET: 14 children across 6 legs, on top of plan 06's 26. Nothing is sampled — every leg
 // family described above runs in full, and every host in each family is a real OS process.
 // 2026-09-02 (Phase 412): 26 rather than 32 — the retired kind's legs left with the Issue-slot
-// cleanup; the legs here are untouched — see `DELETION-INVENTORY.md`.
+// cleanup; the legs here are untouched.
 
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
@@ -99,7 +99,7 @@ function declarationFor(kind: JobKind): JobKindDeclaration {
  * Read from the fallback rather than from `allowedSuccessors`, because the producer is what
  * the engine actually runs. Since 2026-09-01 (Phase 409) declared equals produced — analyze-run
  * declares and produces `['curate-memory']`, the reserved sixth kind having left with the
- * Issue-slot cleanup (see `DELETION-INVENTORY.md`; 388 D-04 introduced the split this collapsed).
+ * Issue-slot cleanup (388 D-04 introduced the split this collapsed).
  * Asking the producer is therefore a choice of instrument rather than a correction: it keeps the
  * matrix measuring the chain the product builds even if the two lists ever diverge again.
  *
@@ -827,7 +827,7 @@ describe('a resume carrying a stale epoch, proven with a fake lease (D-07, JOBQ-
 // a spawned host would measure the spawn.
 
 describe('a retired-kind row at the head of the FIFO (D-16, ADV-03)', () => {
-  // The Issue-slot kind retired in Phase 412 (see DELETION-INVENTORY.md). Spelled independently
+  // The Issue-slot kind retired in Phase 412. Spelled independently
   // here rather than imported: it is precisely a kind no current vocabulary contains, so any
   // constant this build still exported for it would be the bug.
   const RETIRED_KIND = 'retired-kind-fixture'

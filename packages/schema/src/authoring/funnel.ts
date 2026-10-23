@@ -134,7 +134,7 @@ export const FUNNEL_MIN_DRAFTS_FLOOR = 10
  * the stages, over the same denominator — a second counter for it would describe the same event
  * twice and answer no question the stages do not.
  * 2026-09-02 (Phase 411): the proposal arm for a correctly-failing draft left with the Issue-slot
- * cleanup — see `DELETION-INVENTORY.md`.
+ * cleanup.
  */
 export interface FunnelSideCounters {
   readonly dedupRefusals?: number

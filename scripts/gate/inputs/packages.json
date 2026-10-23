@@ -23,7 +23,6 @@
     "@vostride/agent-qa-schema",
     "@vostride/agent-qa-tools-local",
     "@vostride/agent-qa-web",
-    "agent-qa",
-    "embedding-bench"
+    "agent-qa"
   ]
 }

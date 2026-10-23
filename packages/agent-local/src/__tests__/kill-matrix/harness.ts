@@ -19,7 +19,7 @@
 //    substitute derives its work from the declaration it was handed, so it too has no list of its
 //    own; a test asserts the substitution changed the handler and nothing else.
 //    2026-09-02 (Phase 412): five rather than six — the reserved sixth job kind left with the
-//    Issue-slot cleanup — see `DELETION-INVENTORY.md`.
+//    Issue-slot cleanup.
 //
 // 3. The COMPARISON BASIS. `dumpLogicalState()` is the D-03 instrument and it is exact — which
 //    means it also carries the three facts that MUST differ between an interrupted history and an

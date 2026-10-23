@@ -257,20 +257,7 @@ export const CATALOG_DOC_PATHS: readonly (readonly [string, CatalogDocAdjudicati
     // Knowledge tab, which 407-06/09/10 build — so this is the same honest absence its `runs.`
     // read siblings above carry, not a link to a page that describes something else.
     Object.freeze(['runs.knowledge', Object.freeze({ absentReason: CATALOG_DOC_ABSENT_REASON })] as const),
-    // 2026-08-25 (403-01, D-03): an EXPLICIT, DATED absence with its OWN reason. The shipped
-    // `docs/run-service.md` gains a "Minting a liveUrl" section in 403-03; pointing this row at it
-    // before it exists would be exactly the guess the honest-absence rule refuses, and the row is
-    // where the link lands the day that section is committed.
-    Object.freeze([
-      'runs.liveurl',
-      Object.freeze({
-        absentReason:
-          'no shipped page documents this capability yet (dated 2026-08-25, 403-01 D-03). The '
-          + 'run-service page gains a "Minting a liveUrl" section in 403-03; this row is where '
-          + 'that link lands, and a path written ahead of the page would existence-check green '
-          + 'against nothing.',
-      }),
-    ] as const),
+    Object.freeze(['runs.liveurl', Object.freeze({ absentReason: CATALOG_DOC_ABSENT_REASON })] as const),
     Object.freeze(['runs.list', Object.freeze({ absentReason: CATALOG_DOC_ABSENT_REASON })] as const),
     // 2026-09-08, 419-11: the mark door has no shipped documentation page yet.
     Object.freeze(['runs.mark', Object.freeze({ absentReason: CATALOG_DOC_ABSENT_REASON })] as const),

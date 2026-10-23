@@ -149,7 +149,7 @@ describe('JobQueue', () => {
 
     // 2026-08-24 (402-09, D-11): the cell that stood here asserted the child-cancellation fan-out.
     // The fan-out is deleted with the model that minted its children; this is the same claim with
-    // the opposite sign. See DELETION-INVENTORY.md.
+    // the opposite sign.
     //
     // 2026-08-27 (405-07, D-02): and it no longer seeds LINKED rows, because the link is gone. The
     // 402-09 version wrote two rows carrying the cancelled run's id in a parent column, to prove

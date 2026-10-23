@@ -28,8 +28,8 @@
  * vocabulary they are reconciled through: every site A discovers and every surface B discovers must
  * appear in it with a disposition.
  *
- * THE REGISTER IS FROZEN, NOT GENERATED. It is a hand-authored literal reviewed against
- * `DELETION-INVENTORY.md`; the predicates measure the tree AGAINST it. A register recomputed from
+ * THE REGISTER IS FROZEN, NOT GENERATED. It is a hand-authored literal; the predicates measure
+ * the tree AGAINST it. A register recomputed from
  * its own scan output is the self-certifying guard 401-10 warned about and can never fail.
  */
 
@@ -63,7 +63,7 @@ const PACKAGES_DIR = join(REPO_ROOT, 'packages')
  * only that modeling ever minted.
  *
  * `parentRunId` / `parent_run_id` are deliberately NOT tokens here. The COLUMN is retained
- * wholesale (see DELETION-INVENTORY.md): every `parent_run_id IS NULL` filter in the db module is a
+ * wholesale: every `parent_run_id IS NULL` filter in the db module is a
  * top-level-run predicate that keeps working unchanged when nothing writes the column, and the
  * legacy `/api/execution/events` projection (`dashboard-ui/src/lib/live-timeline.ts`) carries
  * ~30 more references that 405 rebuilds. Scanning for it would produce a large all-keep set with no

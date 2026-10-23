@@ -339,7 +339,7 @@ export const FUNCTION_WORDS = [
  * not eliminate it. A semantically wrong but syntactically clean expectation — a plausible
  * human-shaped value that simply is not what the app should show — passes every pattern here.
  * 394's authoring provenance is the closure that remains. 2026-09-02 (Phase 412): bug-repro
- * anchoring left with the Issue-slot cleanup — see `DELETION-INVENTORY.md`.
+ * anchoring left with the Issue-slot cleanup.
  *
  * Order is by name, alphabetically, and is NOT load-bearing: every pattern is tried and the
  * hits are reported as a sorted set.

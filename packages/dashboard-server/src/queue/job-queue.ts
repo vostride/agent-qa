@@ -225,9 +225,8 @@ export class JobQueue extends EventEmitter {
   // concurrency of INDEPENDENT jobs, which is what `findNextEligible` has always used it for. What
   // was deleted is parallel-SUITE semantics, not the queue's ability to run two unrelated jobs.
   //
-  // HISTORICAL ROWS: a pre-402 suite run still lists its members on the read side (see
-  // DELETION-INVENTORY.md); cancelling such a run now leaves those member
-  // rows in whatever state their own process left them.
+  // HISTORICAL ROWS: a pre-402 suite run still lists its members on the read side; cancelling
+  // such a run now leaves those member rows in whatever state their own process left them.
 
   private findNextEligible(): RunRow | undefined {
     if (this.activeCount >= this.concurrency) return undefined

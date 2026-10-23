@@ -844,7 +844,7 @@ describe('the five real kinds, driven through the engine', () => {
   // a build that narrowed one side without the other REDs whichever side moved, by name.
   //
   // 2026-09-01 (Phase 409): the reserved sixth kind left with the Issue-slot cleanup, and 388
-  // D-04's declared/produced split collapsed with it — see `DELETION-INVENTORY.md`.
+  // D-04's declared/produced split collapsed with it.
   it('proceeds with unknown verdicts, and only into curate-memory, when analyze-run permanently fails', async () => {
     await harness.queue.enqueue('analyze-run', { fail: 'permanent', reason: 'no model' }, 'run-1')
     const outcome = await harness.queue.runNextJob({ fence: harness.fence })

@@ -60,10 +60,9 @@ import { runRowIdentity, type RunIdentityMember } from './run-row-identity.js'
  * load-bearing: a projection row that fails to write must never darken the `runs` row. A dropped
  * step is visible as an absent step; a darkened run is a wrong verdict.
  *
- * 2026-08-28 (Phase 405 plan 13, D-21): every table, column, route and field phase 405 removed from
- * around this module — and every one it deliberately kept, with the measurement that decided each —
- * is registered in `DELETION-INVENTORY.md` at the repository root, under the dated 2026-08-28
- * section. Read it before restoring anything that looks missing here.
+ * 2026-08-28 (Phase 405 plan 13, D-21): phase 405 removed tables, columns, routes and fields from
+ * around this module and deliberately kept others. Check the repository history before restoring
+ * anything that looks missing here.
  */
 
 type SourceSnapshot =
@@ -220,8 +219,8 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
   // parent kind.
   //
   // The retry half was already unreachable once 401-07 (D-12) retired the queue re-spawn. The
-  // suite half was live and is the deliberate cost recorded in DELETION-INVENTORY.md — a dashboard suite run's
-  // per-member rows are replaced by handle addressing when 405 rebuilds the run detail.
+  // suite half was live and is a deliberate cost — a dashboard suite run's per-member rows are
+  // replaced by handle addressing when 405 rebuilds the run detail.
 
   function stageRuntime(id: string, runtime: ArtifactRecord): void {
     const artifact = db.getRunArtifact(id)

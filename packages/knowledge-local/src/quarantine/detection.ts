@@ -65,8 +65,7 @@
 // projection transaction has committed.
 //
 // 2026-09-02 (Phase 412): the curation spec these notes once cited left with the Issue-slot cleanup;
-// the A3 routing lives in `eval-and-core-types.md` §A9 and the trigger in `memory.md` §9.5 — see
-// `DELETION-INVENTORY.md`.
+// the A3 routing lives in `eval-and-core-types.md` §A9 and the trigger in `memory.md` §9.5.
 
 import {
   CURRENT_QUARANTINE_LEDGER_SCHEMA_VERSION,

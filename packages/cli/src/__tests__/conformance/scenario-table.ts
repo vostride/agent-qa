@@ -185,7 +185,7 @@ export type UnprojectedReasonKey =
   // 2026-08-17 (398 D-09). The FOURTH class, and it is admitted rather than folded because the
   // vocabulary's whole job is to keep genuinely different facts apart. `agent.explain` is not
   // scoped out of a workflow and is not a door that cannot open — the question it answers is one
-  // the PROTOCOL already answers for machines, which DELETION-INVENTORY row 1 ruled not-a-gap on
+  // the PROTOCOL already answers for machines, and 397 ruled the v1 discovery tool not-a-gap on
   // exactly that ground. Filing it under `not-mid-flight-read` would have been the available
   // shortcut and would have recorded a scoping decision where an argued one was made.
   | 'discovery-answered-by-protocol'

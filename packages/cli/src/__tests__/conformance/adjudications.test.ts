@@ -1,25 +1,24 @@
 // The inherited adjudications, made checkable (Phase 397 plan 05 — D-16 / D-17 / D-20).
 //
-// WHY THIS FILE EXISTS. Three earlier phases wrote promissory notes against 397: a reservation in
-// `function-scope.ts` saying this phase would extend the scope union, twenty-nine rows in
-// `DELETION-INVENTORY.md` marked `dropped-pending-397-adjudication`, and two `adjudication: '397'`
-// entries in `mapping.ts`'s degraded-output list. D-20 pays them AT the artifact that carries the
-// promise, dated and in place, rather than in a central adjudication document — so the artifacts
-// answer and the phase SUMMARY only narrates.
+// WHY THIS FILE EXISTS. Earlier phases wrote promissory notes against 397: a reservation in
+// `function-scope.ts` saying this phase would extend the scope union, and two `adjudication: '397'`
+// entries in `mapping.ts`'s degraded-output list. The deletion inventory's pending rows were ruled
+// too; that inventory is retired, and the migration map in `packages/mcp` carries its rulings.
+// D-20 pays them AT the artifact that carries the promise, dated and in place, rather than in a
+// central adjudication document — so the artifacts answer and the phase SUMMARY only narrates.
 //
 // A RULING WRITTEN IN PROSE IS A RULING THAT CAN GO STALE SILENTLY, and this phase's whole thesis
 // is that a claim nothing checks is not a claim. So each ruling above is joined here to the thing it
-// describes: the scope union's LENGTH and MEMBERS beside its closure note, the disposition column
-// beside the rows it disposes of, the degraded entries beside their dated comments. Re-opening the
-// union un-dated, adding a pending row without ruling it, or deleting a disposition comment is a
+// describes: the scope union's LENGTH and MEMBERS beside its closure note, and the degraded entries
+// beside their dated comments. Re-opening the union un-dated or deleting a disposition comment is a
 // named RED in this file rather than a diff nobody reads.
 //
 // EVERY REGISTER HERE SELF-CHECKS IN BOTH DIRECTIONS. The lesson this project keeps re-learning is
 // that a register asserting completeness over an artifact it silently failed to parse reports a
-// clean bill of health for an empty set. So the disposition parser, the unknown-scope census and
-// the degraded-comment scanner are each a PURE function over text or data, driven both against the
-// real artifact and against synthetic controls — one well-formed (must produce no finding) and one
-// deliberately broken (must produce exactly one, naming the offender). The controls are spelled
+// clean bill of health for an empty set. So the unknown-scope census and the degraded-comment
+// scanner are each a PURE function over text or data, driven both against the real artifact and
+// against synthetic controls — one well-formed (must produce no finding) and one deliberately
+// broken (must produce exactly one, naming the offender). The controls are spelled
 // `..._397_05` so 397-09's mutation script can tell an intentional fixture from a planted one.
 //
 // WHAT THIS FILE DELIBERATELY DOES NOT ASSERT. The degraded contracts' ABSENCE of an advertised
@@ -43,7 +42,6 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = resolve(HERE, '..', '..', '..', '..', '..')
 
 const SCOPE_SOURCE_PATH = join(REPO_ROOT, 'packages/schema/src/functions/function-scope.ts')
-const INVENTORY_PATH = join(REPO_ROOT, 'packages/mcp/DELETION-INVENTORY.md')
 const MAPPING_SOURCE_PATH = join(REPO_ROOT, 'packages/mcp/src/mapping.ts')
 
 const readSource = (path: string): string => readFileSync(path, 'utf8')
@@ -95,107 +93,6 @@ function schemaSources(): readonly string[] {
   }
   walk(join(REPO_ROOT, 'packages/schema/src'))
   return texts
-}
-
-// ---- D-17 / D-20: the deletion inventory's disposition column -----------------------------------
-
-const DISPOSITION_COLUMN = 'Disposition (397, 2026-08-16)'
-const PENDING_MARK = 'dropped-pending-397-adjudication'
-
-/** A ruled row, as the parser reads it. */
-interface InventoryRow {
-  /** The row's own first cell — a number in the tools table, a label in the other two. */
-  readonly key: string
-  /** True iff the 396 column left this row pending 397's adjudication. */
-  readonly pending: boolean
-  /** The 397 cell, trimmed. */
-  readonly ruling: string
-}
-
-interface InventoryReading {
-  readonly rows: readonly InventoryRow[]
-  readonly findings: readonly string[]
-}
-
-/** `gap → …` and `not-a-gap → …` for a pending row; `n/a → …` for one that was never pending. */
-const RULED_GAP = /^gap → \S/
-const RULED_NOT_A_GAP = /^not-a-gap → \S/
-const RULED_NOT_PENDING = /^n\/a → \S/
-
-/**
- * Read every table that carries the 397 column, and say what is wrong with it.
- *
- * PURE, AND OVER TEXT, so the two controls below can hand it a table with a hole in it. The parser
- * finds its columns BY HEADER NAME rather than by position: a column inserted before it would
- * otherwise shift every reading by one and the register would report rulings that are really
- * somebody else's reason text.
- */
-function parseInventory(markdown: string): InventoryReading {
-  const rows: InventoryRow[] = []
-  const findings: string[] = []
-  const cellsOf = (line: string): readonly string[] =>
-    line.slice(1, line.lastIndexOf('|')).split('|').map((cell) => cell.trim())
-
-  let headers: readonly string[] | null = null
-  let rulingAt = -1
-  let dispositionAt = -1
-
-  for (const line of markdown.split('\n')) {
-    const trimmed = line.trim()
-    if (!trimmed.startsWith('|')) {
-      headers = null
-      continue
-    }
-    if (headers === null) {
-      const candidate = cellsOf(trimmed)
-      if (!candidate.includes(DISPOSITION_COLUMN)) continue
-      headers = candidate
-      rulingAt = candidate.indexOf(DISPOSITION_COLUMN)
-      dispositionAt = candidate.indexOf('Disposition')
-      if (dispositionAt < 0) findings.push('a table carries the 397 column with no 396 disposition column')
-      continue
-    }
-    if (/^\|[\s|:-]+\|$/.test(trimmed)) continue
-
-    const cells = cellsOf(trimmed)
-    const key = cells[0] ?? '(no key)'
-    if (cells.length !== headers.length) {
-      findings.push(`row ${key}: ${cells.length} cells against ${headers.length} headers`)
-      continue
-    }
-    const ruling = cells[rulingAt] ?? ''
-    const pending = (cells[dispositionAt] ?? '') === PENDING_MARK
-    rows.push({ key, pending, ruling })
-
-    if (ruling === '') {
-      findings.push(`row ${key}: no 397 disposition`)
-      continue
-    }
-    if (pending && !RULED_GAP.test(ruling) && !RULED_NOT_A_GAP.test(ruling)) {
-      findings.push(`row ${key}: pending row ruled "${ruling.slice(0, 40)}" — outside gap / not-a-gap`)
-    }
-    if (!pending && !RULED_NOT_PENDING.test(ruling)) {
-      findings.push(`row ${key}: never-pending row ruled "${ruling.slice(0, 40)}" — expected n/a`)
-    }
-  }
-
-  return { rows, findings }
-}
-
-const tally = (reading: InventoryReading): { gap: number, notAGap: number, notPending: number } => ({
-  gap: reading.rows.filter((row) => RULED_GAP.test(row.ruling)).length,
-  notAGap: reading.rows.filter((row) => RULED_NOT_A_GAP.test(row.ruling)).length,
-  notPending: reading.rows.filter((row) => RULED_NOT_PENDING.test(row.ruling)).length,
-})
-
-/** A control table with the shape of the real ones and none of their length. */
-function controlTable(rulings: readonly string[]): string {
-  const header = `| # | v1 tool | Disposition | Registry op / reason | ${DISPOSITION_COLUMN} |`
-  const rule = '|---|---------|-------------|----------------------|---|'
-  const marks = [PENDING_MARK, PENDING_MARK, 'projected-by-396-tool']
-  const body = rulings.map((ruling, index) =>
-    `| control.row.397.05.${index + 1} | \`t\` | ${marks[index]} | reason | ${ruling} |`)
-  return ['prose above', '', header, rule, ...body, '', 'prose below'].join('\n')
 }
 
 // ---- The fourth adjudication: the degraded output contracts --------------------------------------
@@ -297,102 +194,6 @@ describe('Phase 397 — the inherited adjudications, discharged at their artifac
         { id: 'control.scope.432.20', requiredScopes: ['read'] } as KeyBearing,
       ])
       expect(findings).toEqual(['control.scope.432.20 carries requiredScopes'])
-    })
-  })
-
-  describe('D-17 / D-20: every pending deletion-inventory row is ruled', () => {
-    it('parses all forty rows of the three tables that carry the column', () => {
-      const reading = parseInventory(readSource(INVENTORY_PATH))
-      // The denominator, so a parse that silently found nothing cannot report a clean register.
-      expect(reading.rows.length, 'the inventory parse found a different number of rows').toBe(40)
-      expect(reading.rows.filter((row) => row.pending).length, 'pending rows').toBe(29)
-    })
-
-    it('leaves no row unruled and none outside the closed vocabulary', () => {
-      expect(parseInventory(readSource(INVENTORY_PATH)).findings).toEqual([])
-    })
-
-    it('rules seven gaps, twenty-two non-gaps, and eleven never-pending rows', () => {
-      expect(tally(parseInventory(readSource(INVENTORY_PATH))))
-        .toEqual({ gap: 7, notAGap: 22, notPending: 11 })
-    })
-
-    it('routes each ruled gap to a named owner rather than to nobody', () => {
-      const gaps = parseInventory(readSource(INVENTORY_PATH)).rows
-        .filter((row) => RULED_GAP.test(row.ruling))
-      for (const row of gaps) {
-        // A gap whose owner is "397" would be this phase minting the op D-17 forbids it to mint.
-        expect(row.ruling, `row ${row.key} names no owning milestone`).toMatch(/M\d/)
-        expect(row.ruling, `row ${row.key} routes its gap back to this phase`).not.toContain('397)')
-      }
-    })
-
-    it('keeps the file\'s own count sentences equal to the rows they count', () => {
-      const flat = readSource(INVENTORY_PATH).replace(/\s+/g, ' ')
-      const counts = /33 rows — \*\*(\d+) `projected-by-396-tool`\*\*, \*\*(\d+) `dropped-pending-397-adjudication`\*\*/
-        .exec(flat)
-      expect(counts, 'the tools table\'s count sentence is gone or reworded').not.toBeNull()
-      // The measured tools tally: eleven never-pending rows, twenty-two pending ones. The sentence
-      // as first written on 2026-08-15 said 12 and 21 and was never true; this cell is why it
-      // cannot drift again.
-      expect(Number(counts?.[1]), 'projected count').toBe(11)
-      expect(Number(counts?.[2]), 'dropped-pending count').toBe(22)
-
-      const declared = (label: string): number => {
-        const found = new RegExp(`\\*\\*\`${label}[^*]*\\*\\* — [^*]*\\*\\*(\\d+) rows\\.\\*\\*`).exec(flat)
-        expect(found, `the header no longer declares a count for ${label}`).not.toBeNull()
-        return Number(found?.[1])
-      }
-      const measured = tally(parseInventory(readSource(INVENTORY_PATH)))
-      expect(declared('gap → ')).toBe(measured.gap)
-      expect(declared('not-a-gap → ')).toBe(measured.notAGap)
-      expect(declared('n/a → ')).toBe(measured.notPending)
-    })
-
-    it('finds nothing wrong with a well-formed control table', () => {
-      const reading = parseInventory(controlTable([
-        'gap → M5 (live view), which owns the work',
-        'not-a-gap → answered by an op that already exists',
-        'n/a → projected by 396; nothing pends here.',
-      ]))
-      expect(reading.findings).toEqual([])
-      expect(reading.rows.length).toBe(3)
-    })
-
-    it('names the row when a pending row carries no ruling at all', () => {
-      const reading = parseInventory(controlTable([
-        'gap → M5 (live view), which owns the work',
-        '',
-        'n/a → projected by 396; nothing pends here.',
-      ]))
-      expect(reading.findings.length).toBe(1)
-      expect(reading.findings[0]).toContain('control.row.397.05.2')
-      expect(reading.findings[0]).toContain('no 397 disposition')
-    })
-
-    it('names the row when a pending row is ruled outside the vocabulary', () => {
-      const reading = parseInventory(controlTable([
-        'gap → M5 (live view), which owns the work',
-        'still pending, revisit later',
-        'n/a → projected by 396; nothing pends here.',
-      ]))
-      expect(reading.findings.length).toBe(1)
-      expect(reading.findings[0]).toContain('control.row.397.05.2')
-      expect(reading.findings[0]).toContain('outside gap / not-a-gap')
-    })
-
-    it('names the row when the column is missing from it entirely', () => {
-      const table = controlTable([
-        'gap → M5 (live view), which owns the work',
-        'not-a-gap → answered by an op that already exists',
-        'n/a → projected by 396; nothing pends here.',
-      ]).replace('| control.row.397.05.2 | `t` | dropped-pending-397-adjudication | reason | '
-        + 'not-a-gap → answered by an op that already exists |',
-      '| control.row.397.05.2 | `t` | dropped-pending-397-adjudication | reason |')
-      const reading = parseInventory(table)
-      expect(reading.findings.length).toBe(1)
-      expect(reading.findings[0]).toContain('control.row.397.05.2')
-      expect(reading.findings[0]).toContain('4 cells against 5 headers')
     })
   })
 
