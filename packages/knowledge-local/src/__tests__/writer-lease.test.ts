@@ -88,6 +88,75 @@ function elapsedMs(startedAtNs: bigint): number {
   return Number(process.hrtime.bigint() - startedAtNs) / 1e6
 }
 
+type SqliteCall = (this: object, ...args: unknown[]) => unknown
+
+/**
+ * SQLite's busy wait (MUTATION_LOCK_BUSY_TIMEOUT_MS) sleeps in native code, where neither an
+ * Atomics.wait spy nor the incarnation observer sees it. This watches every connection and
+ * statement call from the prototypes: a call that raised SQLITE_BUSY sat in that wait, and a call
+ * made while another connection to the same store was inside a transaction was exposed to it.
+ */
+function observeSqliteContention(): { contended: string[]; readonly calls: number; restore: () => void } {
+  const contended: string[] = []
+  let calls = 0
+  const connections = new Set<DatabaseSync>()
+  const owners = new WeakMap<object, DatabaseSync>()
+  const probe = new DatabaseSync(':memory:')
+  const statementProto = Object.getPrototypeOf(probe.prepare('SELECT 1')) as Record<string, SqliteCall>
+  probe.close()
+  const databaseProto = DatabaseSync.prototype as unknown as Record<string, SqliteCall>
+  const restores: Array<() => void> = []
+  const patch = (
+    proto: Record<string, SqliteCall>,
+    name: string,
+    ownerOf: (self: object) => DatabaseSync | undefined,
+    label: (self: object, args: unknown[]) => string,
+  ): void => {
+    const original = proto[name]!
+    proto[name] = function (this: object, ...args: unknown[]) {
+      const db = ownerOf(this)
+      calls += 1
+      const what = `${name}(${label(this, args).replace(/\s+/g, ' ').trim().slice(0, 60)})`
+      if (db !== undefined && db.isOpen) {
+        connections.add(db)
+        const file = db.location()
+        for (const other of connections) {
+          if (other !== db && other.isOpen && other.isTransaction && other.location() === file) {
+            contended.push(`${what} ran while another connection to the store held a transaction`)
+          }
+        }
+      }
+      try {
+        const result = original.apply(this, args)
+        if (name === 'prepare' && db !== undefined) owners.set(result as object, db)
+        return result
+      } catch (error) {
+        if (/database is (?:locked|busy)/i.test(String((error as Error).message))) {
+          contended.push(`${what}: ${(error as Error).message}`)
+        }
+        throw error
+      }
+    }
+    restores.push(() => {
+      proto[name] = original
+    })
+  }
+  const sqlOf = (_self: object, args: unknown[]) => String(args[0] ?? '')
+  const sourceOf = (self: object) => (self as { sourceSQL: string }).sourceSQL
+  patch(databaseProto, 'exec', (self) => self as DatabaseSync, sqlOf)
+  patch(databaseProto, 'prepare', (self) => self as DatabaseSync, sqlOf)
+  for (const name of ['run', 'get', 'all']) patch(statementProto, name, (self) => owners.get(self), sourceOf)
+  return {
+    contended,
+    get calls() {
+      return calls
+    },
+    restore: () => {
+      for (const restore of restores.splice(0).reverse()) restore()
+    },
+  }
+}
+
 /** The kernel's own view of a pid's state, read without going through the module under test. */
 function processState(pid: number): string {
   try {
@@ -490,42 +559,51 @@ describe('writer lease acquire, heartbeat, release, and stale self-heal (CUR-03/
     const outgoing = leaseOnDisk()
     now.mockReturnValue(1_000_000 + LEASE_HEARTBEAT_TTL_MS)
 
-    expect(() => acquireWithEpochSeam(knowledgeRoot, {
-      afterEpochRewrite: () => {
-        /**
-         * The epoch is already durable at 2 while the lease still names epoch 1. The outgoing
-         * holder's bytes are re-stamped fresh to model the worst reachable torn state: a
-         * phantom holder that no TTL sweep will ever classify as stale.
-         */
-        writeFileSync(
-          join(knowledgeRoot, LEASE_FILE),
-          `${JSON.stringify({ ...outgoing, heartbeatAtMs: Date.now() })}\n`,
-          'utf8',
-        )
-        throw new Error('crash between epoch and lease publication')
-      },
-    })).toThrow(/crash between epoch and lease publication/)
-
-    expect(readFileSync(join(knowledgeRoot, EPOCH_FILE), 'utf8').trim()).toBe('2')
-    expect(leaseOnDisk()).toMatchObject({ leaseId: first.leaseId, epoch: 1 })
-    // Prompt by construction: the recovery never sleeps and never resolves a holder's process.
+    // Watched from the crash on, so a connection the crash left inside a transaction is seen too.
+    const sqlite = observeSqliteContention()
     const resolved: number[] = []
-    const waits = vi.spyOn(Atomics, 'wait')
     let waitCalls: number
     let contender: ReturnType<typeof acquireWriterLease>
     try {
-      contender = acquireWriterLease(knowledgeRoot, {
-        mutationLockTakeoverMs: 0,
-        onProcessIncarnationResolved: (pid) => { resolved.push(pid) },
-      })
+      expect(() => acquireWithEpochSeam(knowledgeRoot, {
+        afterEpochRewrite: () => {
+          /**
+           * The epoch is already durable at 2 while the lease still names epoch 1. The outgoing
+           * holder's bytes are re-stamped fresh to model the worst reachable torn state: a
+           * phantom holder that no TTL sweep will ever classify as stale.
+           */
+          writeFileSync(
+            join(knowledgeRoot, LEASE_FILE),
+            `${JSON.stringify({ ...outgoing, heartbeatAtMs: Date.now() })}\n`,
+            'utf8',
+          )
+          throw new Error('crash between epoch and lease publication')
+        },
+      })).toThrow(/crash between epoch and lease publication/)
+
+      expect(readFileSync(join(knowledgeRoot, EPOCH_FILE), 'utf8').trim()).toBe('2')
+      expect(leaseOnDisk()).toMatchObject({ leaseId: first.leaseId, epoch: 1 })
+      // Prompt by construction: the recovery never sleeps, never resolves a holder's process and
+      // never meets SQLite's busy wait.
+      const waits = vi.spyOn(Atomics, 'wait')
+      try {
+        contender = acquireWriterLease(knowledgeRoot, {
+          mutationLockTakeoverMs: 0,
+          onProcessIncarnationResolved: (pid) => { resolved.push(pid) },
+        })
+      } finally {
+        waitCalls = waits.mock.calls.length
+        waits.mockRestore()
+      }
     } finally {
-      waitCalls = waits.mock.calls.length
-      waits.mockRestore()
+      sqlite.restore()
     }
 
     expect(contender).toMatchObject({ kind: 'acquired', epoch: 3 })
     expect(waitCalls, 'Atomics.wait calls during the contender acquire').toBe(0)
     expect(resolved, 'process incarnations resolved during the contender acquire').toEqual([])
+    expect(sqlite.calls, 'SQLite calls the contention observer saw').toBeGreaterThan(0)
+    expect(sqlite.contended, 'SQLite calls that hit or were exposed to the busy wait, from the crash to the contender acquire').toEqual([])
   })
 
   it('still returns a fresh epoch-matching holder immediately under a zero takeover bound', () => {
