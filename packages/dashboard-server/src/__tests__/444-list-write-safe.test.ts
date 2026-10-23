@@ -815,17 +815,19 @@ describe('C444-LIST-WRITE-SAFE', () => {
     const readsInFlight = new Map<string, number>()
     const readsDuringIdWrite = new Map<string, number>()
     const readErrors: string[] = []
+    const check = (file: (typeof files)[number], text: string | null, by: string): void => {
+      if (text === null || (text !== file.body && oneIdOver(text, file.body, file.kind) === null)) {
+        partialCount++
+        if (partial.length < 40) partial.push(`${by} ${file.path}: ${describeFile(text, file.kind)}`)
+      }
+    }
     const fileAt = (absolutePath: string) => files.find((file) => absolutePath.endsWith(`/reader/${file.path}`))
     fileWrites.observer = {
       matches: (absolutePath) => fileAt(absolutePath) !== undefined,
       seen: (absolutePath, text) => {
         const file = fileAt(absolutePath)!
         readsDuringIdWrite.set(file.path, (readsDuringIdWrite.get(file.path) ?? 0) + 1)
-        if (!settled) readsInFlight.set(file.path, (readsInFlight.get(file.path) ?? 0) + 1)
-        if (text === null || (text !== file.body && oneIdOver(text, file.body, file.kind) === null)) {
-          partialCount++
-          if (partial.length < 40) partial.push(`${file.path}: ${describeFile(text, file.kind)}`)
-        }
+        check(file, text, 'write-observer')
       },
       failed: (absolutePath, error) => {
         readErrors.push(`${absolutePath}: ${String(error)}`)
@@ -834,7 +836,18 @@ describe('C444-LIST-WRITE-SAFE', () => {
     const lists = Promise.all([tests.list(), suites.list()]).finally(() => {
       settled = true
     })
-    const outcomes = await Promise.allSettled([lists])
+    // One raw reader walks every file for the whole list window, so a write outside replaceFileAtomic
+    // is checked too, while only one read at a time competes with the lists for libuv's pool.
+    const reader = (async () => {
+      while (!settled && !fileWrites.aborted) {
+        for (const file of files) {
+          const text = await readFile(join(ws.dir, file.path), 'utf-8')
+          if (!settled) readsInFlight.set(file.path, (readsInFlight.get(file.path) ?? 0) + 1)
+          check(file, text, 'raw reader')
+        }
+      }
+    })()
+    const outcomes = await Promise.allSettled([lists, reader])
     await Promise.all([...fileWrites.reads])
 
     expect(
@@ -849,14 +862,14 @@ describe('C444-LIST-WRITE-SAFE', () => {
       partial: [],
     })
     for (const file of files) {
-      expect(readsInFlight.get(file.path) ?? 0, `${file.path} was read while the lists ran`).toBeGreaterThan(0)
+      expect(readsInFlight.get(file.path) ?? 0, `${file.path} was read by the raw reader while the lists ran`).toBeGreaterThan(0)
     }
     for (const kind of ['test', 'suite'] as const) {
       const during = files.filter((file) => file.kind === kind).map((file) => readsDuringIdWrite.get(file.path) ?? 0)
       expect(
-        during.reduce((sum, count) => sum + count, 0),
-        `a ${kind} file was read while its own id write was in progress (per file: ${during.join(', ')})`,
-      ).toBeGreaterThan(0)
+        during.filter((count) => count === 0).length,
+        `every ${kind} file's id write went through replaceFileAtomic and was read while it ran (per file: ${during.join(', ')})`,
+      ).toBe(0)
     }
     for (const file of files) {
       const disk = await readFile(join(ws.dir, file.path), 'utf-8')
@@ -1026,21 +1039,40 @@ describe('C444-LIST-WRITE-SAFE', () => {
       let saving = true
       const roundPartial: string[] = []
       const readErrors: string[] = []
+      const observedReads = new Map<string, number>()
+      const check = (path: string, text: string | null, by: string): void => {
+        if (!allowed[path](text)) {
+          partialCount++
+          if (roundPartial.length < 12) roundPartial.push(`round ${String(round)}: ${by} ${path} ${describeFile(text, 'test')}`)
+        }
+      }
       const pathAt = (absolutePath: string) =>
         [KEPT, BARE, FRESH].find((path) => absolutePath.endsWith(`/save-${String(round)}/${path}`))
       fileWrites.observer = {
         matches: (absolutePath) => pathAt(absolutePath) !== undefined,
         seen: (absolutePath, text) => {
           const path = pathAt(absolutePath)!
-          if (!allowed[path](text)) {
-            partialCount++
-            if (roundPartial.length < 12) roundPartial.push(`round ${String(round)}: ${path} ${describeFile(text, 'test')}`)
-          }
+          observedReads.set(path, (observedReads.get(path) ?? 0) + 1)
+          check(path, text, 'write-observer')
         },
         failed: (absolutePath, error) => {
           readErrors.push(`round ${String(round)}: ${absolutePath}: ${String(error)}`)
         },
       }
+      // The raw readers see a partial file whatever API wrote it; the observer only sees
+      // replaceFileAtomic windows.
+      const readers = [KEPT, BARE, FRESH].map(async (path) => {
+        while (saving && !fileWrites.aborted) {
+          let text: string | null
+          try {
+            text = await readFile(join(ws.dir, path), 'utf-8')
+          } catch (err) {
+            if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err
+            text = null
+          }
+          check(path, text, 'raw reader')
+        }
+      })
       const listReads = (async () => {
         const replies: Array<[string, Answer]> = []
         while (saving && !fileWrites.aborted) {
@@ -1056,18 +1088,24 @@ describe('C444-LIST-WRITE-SAFE', () => {
       ]).finally(() => {
         saving = false
       })
-      const [savesOutcome, listOutcome] = await Promise.allSettled([sent, listReads])
+      const [savesOutcome, listOutcome, ...readerOutcomes] = await Promise.allSettled([sent, listReads, ...readers])
       await Promise.all([...fileWrites.reads])
       fileWrites.observer = undefined
       expect(
         [
-          ...[savesOutcome, listOutcome].flatMap((outcome) =>
+          ...[savesOutcome, listOutcome, ...readerOutcomes].flatMap((outcome) =>
             outcome.status === 'rejected' ? [String(outcome.reason)] : [],
           ),
           ...readErrors,
         ],
-        `round ${String(round)}: no save, list read or raw reader rejected`,
+        `round ${String(round)}: no save, list read, raw reader or write-observer read rejected`,
       ).toEqual([])
+      for (const path of [KEPT, BARE, FRESH]) {
+        expect(
+          observedReads.get(path) ?? 0,
+          `round ${String(round)}: ${path}'s save went through replaceFileAtomic and was read during that write`,
+        ).toBeGreaterThan(0)
+      }
       const saves = savesOutcome.status === 'fulfilled' ? savesOutcome.value : []
       const replies = listOutcome.status === 'fulfilled' ? listOutcome.value : []
       partial.push(...roundPartial)
