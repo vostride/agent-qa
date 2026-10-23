@@ -26,9 +26,40 @@ concurrency:
 
 jobs:
   workspace:
-    name: Full workspace (ubuntu)
+    name: Full workspace (ubuntu, ${{ matrix.group }})
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: cli-1
+            filter: --filter=agent-qa
+            vitest: -- --shard=1/3
+          - group: cli-2
+            filter: --filter=agent-qa
+            vitest: -- --shard=2/3
+          - group: cli-3
+            filter: --filter=agent-qa
+            vitest: -- --shard=3/3
+          - group: knowledge-local-1
+            filter: --filter=@vostride/agent-qa-knowledge-local
+            vitest: -- --shard=1/2
+          - group: knowledge-local-2
+            filter: --filter=@vostride/agent-qa-knowledge-local
+            vitest: -- --shard=2/2
+          - group: web
+            filter: --filter=@vostride/agent-qa-web
+          - group: dashboard-ui
+            filter: --filter=@vostride/agent-qa-dashboard-ui
+          - group: eval-local-dashboard
+            filter: --filter=@vostride/agent-qa-eval-local --filter=@vostride/agent-qa-dashboard
+          - group: agent-local-runner
+            filter: --filter=@vostride/agent-qa-agent-local --filter=@vostride/agent-qa-runner
+          - group: agent-eval-mcp
+            filter: --filter=@vostride/agent-qa-agent --filter=@vostride/agent-qa-eval --filter=@vostride/agent-qa-mcp
+          - group: rest
+            filter: --filter=!agent-qa --filter=!@vostride/agent-qa-knowledge-local --filter=!@vostride/agent-qa-web --filter=!@vostride/agent-qa-dashboard-ui --filter=!@vostride/agent-qa-eval-local --filter=!@vostride/agent-qa-dashboard --filter=!@vostride/agent-qa-agent-local --filter=!@vostride/agent-qa-runner --filter=!@vostride/agent-qa-agent --filter=!@vostride/agent-qa-eval --filter=!@vostride/agent-qa-mcp
 
     steps:
       - name: Checkout
@@ -46,14 +77,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # turbo resolves ordering itself — `typecheck` dependsOn `^build` and `test`
-      # dependsOn `build` — but building first keeps the log readable and fails
-      # fast on a compile break rather than midway through a suite.
+      # The Test step runs with `--only`, which skips the `build` tasks `test` depends on, so it
+      # relies on this step having built every package.
       - name: Build
         run: pnpm build
-
-      - name: Typecheck
-        run: pnpm typecheck
 
       # `432-external-callers.test.ts` drives the 394 pty drivers through `expect`, which a stock
       # ubuntu runner lacks. This job checks out agent-qa alone, so that file's cells over callers in
@@ -65,8 +92,37 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm --filter agent-qa exec playwright-core install --with-deps chromium
 
+      # Each leg runs one package at a time, so that package's vitest pool owns the runner.
       - name: Test
-        run: pnpm exec turbo test --continue
+        env:
+          TURBO_CONCURRENCY: '1'
+        run: pnpm exec turbo test ${{ matrix.filter }} --only --continue ${{ matrix.vitest }}
+
+  checks:
+    name: Typecheck and validators (ubuntu)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Typecheck
+        run: pnpm typecheck
 
       - name: Validate skills
         run: pnpm run validate:skills
@@ -150,7 +206,7 @@ jobs:
         run: bash scripts/396-conformance.sh
 
   ps-hosts:
-    name: ps-host legs (macos)
+    name: ps-host legs (macos, ${{ matrix.group }})
     runs-on: macos-latest
     timeout-minutes: 40
 
@@ -169,6 +225,24 @@ jobs:
     # UDS sockets, process signalling and fs semantics that differ meaningfully
     # between Linux and BSD — the exact surfaces this project's lease/fencing work
     # depends on.
+    #
+    # The legs split agent-qa so no leg nears the timeout; 36 of 40 minutes were used on run 40022673226.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: knowledge-local
+            filter: --filter=@vostride/agent-qa-knowledge-local
+          - group: cli-1
+            filter: --filter=agent-qa
+            vitest: -- --shard=1/3
+          - group: cli-2
+            filter: --filter=agent-qa
+            vitest: -- --shard=2/3
+          - group: cli-3
+            filter: --filter=agent-qa
+            vitest: -- --shard=3/3
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -184,19 +258,21 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build
+        run: pnpm build
+
       - name: Install Playwright Chromium
         run: pnpm --filter agent-qa exec playwright-core install --with-deps chromium
 
-      # turbo builds the dependency closure automatically: `test` dependsOn
-      # `build`, `build` dependsOn `^build`.
+      # `--only` skips the `build` tasks `test` depends on, so this relies on the Build step above;
+      # each leg runs one package at a time, so its vitest pool owns the runner.
       - name: Test daemon and lease packages
-        run: >-
-          pnpm exec turbo test
-          --filter=@vostride/agent-qa-knowledge-local
-          --filter=agent-qa
-          --continue
+        env:
+          TURBO_CONCURRENCY: '1'
+        run: pnpm exec turbo test ${{ matrix.filter }} --only --continue ${{ matrix.vitest }}
 
       - name: Typecheck daemon and lease packages
+        if: matrix.group == 'knowledge-local'
         run: >-
           pnpm exec turbo typecheck
           --filter=@vostride/agent-qa-knowledge-local
