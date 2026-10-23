@@ -41,15 +41,52 @@ import { TestFileManager } from '../tests/test-file-manager.js'
 
 type Hold = { suffix: string; content: string | null; reach: () => void; gate: Promise<void>; release: () => void }
 
+// An armed observer reads each matching file in a loop while its write runs, so every observed
+// read overlaps the write it checks. The write settles on its own; a cell awaits `reads`.
+type WriteObserver = {
+  matches: (absolutePath: string) => boolean
+  seen: (absolutePath: string, text: string | null) => void
+  failed: (absolutePath: string, error: unknown) => void
+}
+
 const fileWrites = vi.hoisted(() => ({
   hold: undefined as Hold | undefined,
   holds: [] as Hold[],
   inProgress: new Map<string, number>(),
   lockAsks: [] as string[],
+  observer: undefined as WriteObserver | undefined,
+  reads: new Set<Promise<void>>(),
+  aborted: false,
 }))
 
 vi.mock('../tests/replace-file-atomic.js', async (importOriginal) => {
   const real = await importOriginal<typeof import('../tests/replace-file-atomic.js')>()
+  const { readFile: readNow } = await import('node:fs/promises')
+  const observed = (observer: WriteObserver, absolutePath: string, write: Promise<void>): Promise<void> => {
+    let writing = true
+    const settled = write.finally(() => {
+      writing = false
+    })
+    const reads = (async () => {
+      try {
+        do {
+          let text: string | null
+          try {
+            text = await readNow(absolutePath, 'utf-8')
+          } catch (err) {
+            if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err
+            text = null
+          }
+          observer.seen(absolutePath, text)
+        } while (writing && !fileWrites.aborted)
+      } catch (error) {
+        observer.failed(absolutePath, error)
+      }
+    })()
+    fileWrites.reads.add(reads)
+    void reads.then(() => fileWrites.reads.delete(reads))
+    return settled
+  }
   return {
     ...real,
     replaceFileAtomic: async (absolutePath: string, content: string): Promise<void> => {
@@ -62,7 +99,12 @@ vi.mock('../tests/replace-file-atomic.js', async (importOriginal) => {
           hold.reach()
           await hold.gate
         }
-        await real.replaceFileAtomic(absolutePath, content)
+        const observer = fileWrites.observer
+        if (observer?.matches(absolutePath) === true && !fileWrites.aborted) {
+          await observed(observer, absolutePath, real.replaceFileAtomic(absolutePath, content))
+        } else {
+          await real.replaceFileAtomic(absolutePath, content)
+        }
       } finally {
         const left = (fileWrites.inProgress.get(absolutePath) ?? 1) - 1
         if (left > 0) fileWrites.inProgress.set(absolutePath, left)
@@ -127,21 +169,48 @@ type Answer = { status: number; body: any }
 type Workspace = { dir: string; configPath: string; paths: ResolvedWorkspacePaths }
 
 let root: string
-const started: Array<{ close: () => void }> = []
+const started: Array<Awaited<ReturnType<typeof startServer>>> = []
 
 beforeEach(async () => {
+  fileWrites.aborted = false
   root = await mkdtemp(join(tmpdir(), 'agent-qa-444-list-write-safe-'))
   vi.spyOn(console, 'log').mockImplementation(() => undefined)
 })
 
 afterEach(async () => {
+  // Nothing may still write under root when it is removed: stop the loops, let every write land,
+  // and wait for each server to finish closing.
+  fileWrites.aborted = true
   for (const hold of fileWrites.holds.splice(0)) hold.release()
   fileWrites.hold = undefined
+  let draining: Error | undefined
+  try {
+    await waitUntil(() => fileWrites.inProgress.size === 0, 'teardown waits for in-progress writes', 10_000)
+  } catch {
+    draining = new Error(`writes still in progress at teardown: ${[...fileWrites.inProgress.keys()].join(', ')}`)
+  }
+  await Promise.all([...fileWrites.reads])
+  fileWrites.observer = undefined
   fileWrites.inProgress.clear()
   fileWrites.lockAsks.length = 0
-  while (started.length > 0) started.pop()?.close()
+  await Promise.all(
+    started.splice(0).map(
+      (handle) =>
+        new Promise<void>((resolve) => {
+          if (!handle.server.listening) {
+            handle.close()
+            resolve()
+            return
+          }
+          handle.server.once('close', () => resolve())
+          handle.server.closeAllConnections()
+          handle.close()
+        }),
+    ),
+  )
   vi.restoreAllMocks()
   await rm(root, { recursive: true, force: true })
+  if (draining !== undefined) throw draining
 })
 
 function posixOnly(): void {
@@ -745,26 +814,34 @@ describe('C444-LIST-WRITE-SAFE', () => {
     let partialCount = 0
     const readsInFlight = new Map<string, number>()
     const readsDuringIdWrite = new Map<string, number>()
-    const idWriteInProgress = (path: string): boolean =>
-      [...fileWrites.inProgress.keys()].some((key) => key.endsWith(path))
+    const readErrors: string[] = []
+    const fileAt = (absolutePath: string) => files.find((file) => absolutePath.endsWith(`/reader/${file.path}`))
+    fileWrites.observer = {
+      matches: (absolutePath) => fileAt(absolutePath) !== undefined,
+      seen: (absolutePath, text) => {
+        const file = fileAt(absolutePath)!
+        readsDuringIdWrite.set(file.path, (readsDuringIdWrite.get(file.path) ?? 0) + 1)
+        if (!settled) readsInFlight.set(file.path, (readsInFlight.get(file.path) ?? 0) + 1)
+        if (text === null || (text !== file.body && oneIdOver(text, file.body, file.kind) === null)) {
+          partialCount++
+          if (partial.length < 40) partial.push(`${file.path}: ${describeFile(text, file.kind)}`)
+        }
+      },
+      failed: (absolutePath, error) => {
+        readErrors.push(`${absolutePath}: ${String(error)}`)
+      },
+    }
     const lists = Promise.all([tests.list(), suites.list()]).finally(() => {
       settled = true
     })
-    const readers = files.map(async (file) => {
-      while (!settled) {
-        const text = await readFile(join(ws.dir, file.path), 'utf-8')
-        if (idWriteInProgress(file.path)) readsDuringIdWrite.set(file.path, (readsDuringIdWrite.get(file.path) ?? 0) + 1)
-        if (!settled) readsInFlight.set(file.path, (readsInFlight.get(file.path) ?? 0) + 1)
-        if (text !== file.body && oneIdOver(text, file.body, file.kind) === null) {
-          partialCount++
-          if (partial.length < 40) partial.push(`${file.path}: ${String(text.length)} bytes`)
-        }
-      }
-    })
-    const outcomes = await Promise.allSettled([lists, ...readers])
+    const outcomes = await Promise.allSettled([lists])
+    await Promise.all([...fileWrites.reads])
 
     expect(
-      outcomes.flatMap((outcome) => (outcome.status === 'rejected' ? [String(outcome.reason)] : [])),
+      [
+        ...outcomes.flatMap((outcome) => (outcome.status === 'rejected' ? [String(outcome.reason)] : [])),
+        ...readErrors,
+      ],
       'neither list call nor any reader rejected',
     ).toEqual([])
     expect({ partialCount, partial }, 'no read was neither the whole body nor one id line over it').toEqual({
@@ -948,24 +1025,25 @@ describe('C444-LIST-WRITE-SAFE', () => {
 
       let saving = true
       const roundPartial: string[] = []
-      const readers = [KEPT, BARE, FRESH].map(async (path) => {
-        while (saving) {
-          let text: string | null
-          try {
-            text = await readFile(join(ws.dir, path), 'utf-8')
-          } catch (err) {
-            if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err
-            text = null
-          }
+      const readErrors: string[] = []
+      const pathAt = (absolutePath: string) =>
+        [KEPT, BARE, FRESH].find((path) => absolutePath.endsWith(`/save-${String(round)}/${path}`))
+      fileWrites.observer = {
+        matches: (absolutePath) => pathAt(absolutePath) !== undefined,
+        seen: (absolutePath, text) => {
+          const path = pathAt(absolutePath)!
           if (!allowed[path](text)) {
             partialCount++
             if (roundPartial.length < 12) roundPartial.push(`round ${String(round)}: ${path} ${describeFile(text, 'test')}`)
           }
-        }
-      })
+        },
+        failed: (absolutePath, error) => {
+          readErrors.push(`round ${String(round)}: ${absolutePath}: ${String(error)}`)
+        },
+      }
       const listReads = (async () => {
         const replies: Array<[string, Answer]> = []
-        while (saving) {
+        while (saving && !fileWrites.aborted) {
           const [list, summaries] = await Promise.all([read(`${origin}/api/tests`), read(`${origin}/api/analytics/test-summaries`)])
           replies.push(['GET /api/tests', list], ['GET /api/analytics/test-summaries', summaries])
         }
@@ -978,11 +1056,16 @@ describe('C444-LIST-WRITE-SAFE', () => {
       ]).finally(() => {
         saving = false
       })
-      const [savesOutcome, listOutcome, ...readerOutcomes] = await Promise.allSettled([sent, listReads, ...readers])
+      const [savesOutcome, listOutcome] = await Promise.allSettled([sent, listReads])
+      await Promise.all([...fileWrites.reads])
+      fileWrites.observer = undefined
       expect(
-        [savesOutcome, listOutcome, ...readerOutcomes].flatMap((outcome) =>
-          outcome.status === 'rejected' ? [String(outcome.reason)] : [],
-        ),
+        [
+          ...[savesOutcome, listOutcome].flatMap((outcome) =>
+            outcome.status === 'rejected' ? [String(outcome.reason)] : [],
+          ),
+          ...readErrors,
+        ],
         `round ${String(round)}: no save, list read or raw reader rejected`,
       ).toEqual([])
       const saves = savesOutcome.status === 'fulfilled' ? savesOutcome.value : []
