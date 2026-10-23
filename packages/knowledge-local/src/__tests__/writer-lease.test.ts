@@ -508,12 +508,24 @@ describe('writer lease acquire, heartbeat, release, and stale self-heal (CUR-03/
 
     expect(readFileSync(join(knowledgeRoot, EPOCH_FILE), 'utf8').trim()).toBe('2')
     expect(leaseOnDisk()).toMatchObject({ leaseId: first.leaseId, epoch: 1 })
-    const startedAtNs = process.hrtime.bigint()
-
-    const contender = acquireWriterLease(knowledgeRoot, { mutationLockTakeoverMs: 0 })
+    // Prompt by construction: the recovery never sleeps and never resolves a holder's process.
+    const resolved: number[] = []
+    const waits = vi.spyOn(Atomics, 'wait')
+    let waitCalls: number
+    let contender: ReturnType<typeof acquireWriterLease>
+    try {
+      contender = acquireWriterLease(knowledgeRoot, {
+        mutationLockTakeoverMs: 0,
+        onProcessIncarnationResolved: (pid) => { resolved.push(pid) },
+      })
+    } finally {
+      waitCalls = waits.mock.calls.length
+      waits.mockRestore()
+    }
 
     expect(contender).toMatchObject({ kind: 'acquired', epoch: 3 })
-    expect(elapsedMs(startedAtNs)).toBeLessThan(1_000)
+    expect(waitCalls, 'Atomics.wait calls during the contender acquire').toBe(0)
+    expect(resolved, 'process incarnations resolved during the contender acquire').toEqual([])
   })
 
   it('still returns a fresh epoch-matching holder immediately under a zero takeover bound', () => {
