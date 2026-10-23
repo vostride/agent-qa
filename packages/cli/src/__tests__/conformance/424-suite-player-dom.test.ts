@@ -132,6 +132,34 @@ async function armSettledSeek(page: Page, sha: string) {
     })
   }, sha)
 }
+type TailSample = { member0: boolean; time: number; left: string }
+async function armTailRecorder(page: Page, sha: string) {
+  await page.evaluate(sha => {
+    const recorder = window as unknown as { tailSamples?: Promise<TailSample[]> }
+    recorder.tailSamples = new Promise<TailSample[]>(resolve => {
+      const samples: TailSample[] = []
+      const playhead = () => (document.querySelector('[data-timeline-playhead]') as HTMLElement).style.left
+      let last = document.querySelector('video')!.currentTime
+      let lastLeft = playhead()
+      let frames = 0
+      // A frame counts once both the media time and the playhead have moved since the last one.
+      const frame = () => {
+        const video = document.querySelector('video')!
+        const left = playhead()
+        if (video.currentTime !== last && left !== lastLeft) {
+          last = video.currentTime
+          lastLeft = left
+          const member0 = video.currentSrc.includes(sha)
+          samples.push({ member0, time: video.currentTime, left })
+          if (!member0 || samples.length >= 4) return resolve(samples)
+        }
+        if (++frames >= 1_200) return resolve(samples)
+        requestAnimationFrame(frame)
+      }
+      requestAnimationFrame(frame)
+    })
+  }, sha)
+}
 async function settledSeek(page: Page) {
   return page.evaluate(bound => {
     const recorder = window as unknown as { settledSeek: Promise<number>; settledSeekSource: string }
@@ -530,17 +558,18 @@ it('SUITE-BROWSER-MEDIA: real progress, marker details, local seeks and continue
     expect(await page.locator('video').getAttribute('data-seek-count')).toBe('0')
     await page.getByRole('button', { name: 'Pause recording', exact: true }).click()
     await seek(page, stored[0]! + 0.1)
+    // Sampled per frame from before the click, so a slow click or timer cannot carry the tail past
+    // member 0 unseen: it stops at 4 member-0 samples or at the first frame on another source.
+    await armTailRecorder(page, memberSha(0))
     await page.getByRole('button', { name: 'Play recording', exact: true }).click()
-    const tail = await page.evaluate(async () => {
-      const values = []
-      for (let index = 0; index < 4; index++) {
-        values.push({ time: document.querySelector('video')!.currentTime, left: (document.querySelector('[data-timeline-playhead]') as HTMLElement).style.left })
-        await new Promise(resolve => setTimeout(resolve, 40))
-      }
-      return values
-    })
-    expect(new Set(tail.map(sample => sample.left)).size).toBe(4)
-    expect(tail.every(sample => parseFloat(sample.left) < durations[0]! / durations.reduce((sum, value) => sum + value, 0) * 100)).toBe(true)
+    const tail = await page.evaluate(() => (window as unknown as { tailSamples: Promise<TailSample[]> }).tailSamples)
+    const ownTail = tail.filter(sample => sample.member0)
+    console.info(`SUITE-BROWSER-MEDIA tail: ${ownTail.length} member-0 samples of ${tail.length}`)
+    const boundary = durations[0]! / durations.reduce((sum, value) => sum + value, 0) * 100
+    expect(ownTail.length, JSON.stringify(tail)).toBeGreaterThanOrEqual(2)
+    expect(new Set(ownTail.map(sample => sample.left)).size, JSON.stringify(tail)).toBe(ownTail.length)
+    expect(ownTail.every(sample => parseFloat(sample.left) < boundary), JSON.stringify(tail)).toBe(true)
+    expect(ownTail.every((sample, index) => sample.time > stored[0]! && (index === 0 || sample.time > ownTail[index - 1]!.time)), JSON.stringify(tail)).toBe(true)
     await page.locator('video').evaluate(video => video.setAttribute('data-fullscreen-live', 'same'))
     await page.getByRole('button', { name: 'Enter fullscreen', exact: true }).click()
     expect(await page.locator('video[data-fullscreen-live="same"]').evaluate(video => !(video as HTMLVideoElement).paused)).toBe(true)
