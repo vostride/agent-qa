@@ -434,6 +434,11 @@ if (input.holdPublication) {
 }
 syncBuiltinESMExports()
 const local = await import(input.module)
+if (input.hold) {
+  signal(input.ready, {})
+  const end = Date.now() + 30000
+  while (!fs.existsSync(input.go)) { if (Date.now() > end) throw new Error('go timeout'); Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10) }
+}
 try {
   let paused = false
   const result = input.mode === 'retire' ? local.retireStagedAdversarialBatch(input)
@@ -448,15 +453,18 @@ try {
 function launch(f: Awaited<ReturnType<typeof stagedFixture>>, name: string, extra: Record<string, unknown>) {
   const entered = join(f.root, `${name}.entered`)
   const release = join(f.root, `${name}.release`)
+  // With `hold: true` the child imports the module, writes `ready`, and waits for `go`.
+  const ready = join(f.root, `${name}.ready`)
+  const go = join(f.root, `${name}.go`)
   const child = spawn(process.execPath, ['--input-type=module', '-e', childProgram, JSON.stringify({ ...f,
-    entered, release, module: new URL('../../dist/index.js', import.meta.url).href, ...extra })], { stdio: ['ignore', 'pipe', 'pipe'] })
+    entered, release, ready, go, module: new URL('../../dist/index.js', import.meta.url).href, ...extra })], { stdio: ['ignore', 'pipe', 'pipe'] })
   let output = '', errors = ''
   child.stdout.on('data', bytes => { output += String(bytes) })
   child.stderr.on('data', bytes => { errors += String(bytes) })
   const closed = new Promise<{ exit: number | null; signal: string | null; output: string; errors: string }>(resolve => {
     child.on('close', (exit, signal) => resolve({ exit, signal, output, errors }))
   })
-  return { child, entered, release, closed }
+  return { child, entered, release, ready, go, closed }
 }
 
 async function until(path: string) {
@@ -492,22 +500,27 @@ describe('422 separate-process batch lifecycle ownership', () => {
   it('retirement publication excludes admission and two callers retain one identical decision', async () => {
     const f = await stagedFixture()
     const corpus = tree(f.committedRoot)
-    const first = launch(f, 'retire-first', { mode: 'retire', holdPublication: true })
-    const children = [first]
+    const first = launch(f, 'retire-first', { mode: 'retire', holdPublication: true, hold: true })
+    const contender = launch(f, 'retire-second', { mode: 'retire', hold: true })
+    const admission = launch(f, 'admit-contender', { mode: 'admit', entered: undefined, hold: true })
+    const later = launch(f, 'admit-later', { mode: 'admit', entered: undefined, hold: true })
+    const children = [first, contender, admission, later]
     try {
+      await Promise.all(children.map(row => until(row.ready)))
+      writeFileSync(first.go, '')
       await until(first.entered)
-      const contender = launch(f, 'retire-second', { mode: 'retire' }); children.push(contender)
+      writeFileSync(contender.go, '')
       const second = await contender.closed
       expect(second.exit).toBe(2)
       expect(JSON.parse(second.output).error).toContain('busy')
-      const admission = launch(f, 'admit-contender', { mode: 'admit', entered: undefined }); children.push(admission)
+      writeFileSync(admission.go, '')
       expect(JSON.parse((await admission.closed).output).result).toMatchObject({ kind: 'refused', writesStarted: false, admitted: [] })
       writeFileSync(first.release, '')
       const published = await first.closed
       expect(published.exit, published.errors).toBe(0)
       const decision = readFileSync(join(f.dir, 'retirement.json'), 'utf8')
       expect(retireStagedAdversarialBatch(f).alreadyRetired).toBe(true)
-      const later = launch(f, 'admit-later', { mode: 'admit', entered: undefined }); children.push(later)
+      writeFileSync(later.go, '')
       expect(JSON.parse((await later.closed).output).result).toMatchObject({ kind: 'refused', reason: 'admission-refused', retirement: { retired: true }, writesStarted: false })
       expect(readFileSync(join(f.dir, 'retirement.json'), 'utf8')).toBe(decision)
       expect(tree(f.committedRoot)).toEqual(corpus)
