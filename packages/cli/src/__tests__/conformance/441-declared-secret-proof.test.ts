@@ -1,8 +1,11 @@
 // C441-PROOF (441 D-22, D-30): what a run, `ask` and `chat` send, write and print carries
 // `[secret:<name>]` for each declared value and never the value.
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync,
+} from 'node:fs'
 import { createServer, type IncomingMessage, type Server } from 'node:http'
+import { tmpdir } from 'node:os'
 import { basename, dirname, join, relative, sep } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 
@@ -613,10 +616,18 @@ describe('C441-PROOF', () => {
     const project = await recordedDoorProject('441-run', { fullBodies: true })
     const page = await startRunLegPage()
     const proxy = await startRunLegProxy(project.model.url)
+    // Linux Chromium writes binary fontconfig caches under XDG_CACHE_HOME, so they stay out of the
+    // scanned root; agent-qa's own model cache is pinned back inside it.
+    const fontCache = mkdtempSync(join(tmpdir(), '441-xdg-cache-'))
     try {
       const secretsPath = declare(project.root)
       pointRunLegAt(project, page.origin, `${proxy.origin}/v1`)
-      const outcome = await spawnCliRun(project, ['run', project.testPath])
+      const outcome = await spawnCliRun(project, ['run', project.testPath], {
+        env: {
+          XDG_CACHE_HOME: fontCache,
+          AGENT_QA_MODEL_CACHE_DIR: join(project.root, '.cache', 'agent-qa', 'models'),
+        },
+      })
       expect(outcome.status, transcript(outcome)).toBe(0)
 
       const runIds = runStoreIds(project)
@@ -672,6 +683,7 @@ describe('C441-PROOF', () => {
       await proxy.close()
       await page.close()
       await project.close()
+      rmSync(fontCache, { recursive: true, force: true })
     }
   }, CELL_BUDGET_MS)
 })
