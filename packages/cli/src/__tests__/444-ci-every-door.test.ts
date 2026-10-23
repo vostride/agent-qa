@@ -48,6 +48,12 @@ const ANY_HOST = "resumes only if this workspace's .agent-qa/ is kept and a late
 const LOCAL_RUN = "resumes only if this workspace's .agent-qa/ is kept and a later local run picks it up"
 const CI_CONTEXTS = ['ci', 'cloud'] as const
 type Context = 'ci' | 'cloud' | 'local-headless'
+// Copied from safety-local's CI_VENDOR_VARS (not exported), plus run.ts's HUDSON_URL.
+const CI_MARKERS = [
+  'CI', 'GITHUB_ACTIONS', 'GITLAB_CI', 'CIRCLECI', 'BUILDKITE', 'JENKINS_URL', 'TRAVIS', 'APPVEYOR',
+  'TF_BUILD', 'CODEBUILD_BUILD_ID', 'DRONE', 'SEMAPHORE', 'BITBUCKET_BUILD_NUMBER', 'TEAMCITY_VERSION',
+  'HUDSON_URL',
+] as const
 
 const roots: string[] = []
 const targets: CountingTarget[] = []
@@ -220,7 +226,7 @@ describe('C444-CI-EVERY-DOOR', () => {
         roots.push(fixture.project)
         vi.stubEnv('DO_NOT_TRACK', '1')
         if (context === 'ci') vi.stubEnv('CI', 'true')
-        else vi.stubEnv('CI', '')
+        else for (const marker of CI_MARKERS) vi.stubEnv(marker, '')
         vi.spyOn(console, 'log').mockImplementation(() => undefined)
         vi.spyOn(console, 'error').mockImplementation(() => undefined)
         const warnings: string[] = []
