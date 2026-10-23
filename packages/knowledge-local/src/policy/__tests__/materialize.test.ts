@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { spawnSync } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { materializePolicy, PolicyTextRefusedError, policyShelfPath } from '../materialize.js'
 import { acquireWriterLease, releaseLease, WriterAuthorityLostError } from '../../lease/writer-lease.js'
@@ -56,22 +56,72 @@ describe('materializePolicy sovereign authored shelf', () => {
     expect(readFileSync(policyShelfPath(root, 'shop'), 'utf8')).toBe('Human text\r\n')
   })
   it('holds the current authority transaction throughout the actual read/check/write', () => {
+    // The contender is started and imported before the transaction, so the bound inside it covers
+    // only the busy wait and never a cold process start.
+    const barrier = mkdtempSync(join(tmpdir(), 'policy-materialize-contender-'))
+    const ready = join(barrier, 'ready')
+    const go = join(barrier, 'go')
+    const done = join(barrier, 'done')
+    const child = spawn(process.execPath, ['--input-type=module', '-e', `
+      import { existsSync, renameSync, writeFileSync } from 'node:fs'
+      import { releaseLease } from './dist/index.js'
+      const [ready, go, done, credentials] = process.argv.slice(1)
+      const report = (body) => {
+        writeFileSync(done + '.tmp', JSON.stringify(body))
+        renameSync(done + '.tmp', done)
+      }
+      writeFileSync(ready, '')
+      const orphanAt = Date.now() + 30_000
+      while (!existsSync(go)) {
+        if (Date.now() > orphanAt) process.exit(3)
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10)
+      }
+      try {
+        report({ outcome: releaseLease(JSON.parse(credentials)) })
+      } catch (error) {
+        report({ name: error.name, message: error.message })
+        process.exit(1)
+      }`, ready, go, done, JSON.stringify({ knowledgeRoot: root, leaseId: writerAuthority.leaseId })],
+    { cwd: new URL('../../..', import.meta.url), stdio: 'ignore' })
+    const abandon = (): void => {
+      child.kill('SIGKILL')
+      rmSync(barrier, { recursive: true, force: true })
+    }
+    const closed = new Promise<number | null>((settle) => { child.once('close', settle) })
+    const until = (path: string, budgetMs: number, what: string): void => {
+      const deadline = Date.now() + budgetMs
+      while (!existsSync(path)) {
+        if (Date.now() > deadline) throw new Error(`${what} not seen within ${budgetMs}ms`)
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10)
+      }
+    }
+
     let attempted = false
+    let contended: { name?: string; message?: string; outcome?: unknown } | undefined
     stageHook.beforeStage = () => {
       attempted = true
       // A second process with the exact current credentials cannot release the lease
       // between the shelf read and publication: it must contend on the same transaction.
-      const child = spawnSync(process.execPath, ['--input-type=module', '-e',
-        'import { releaseLease } from "./dist/index.js"; releaseLease(JSON.parse(process.argv[1]))',
-        JSON.stringify({ knowledgeRoot: root, leaseId: writerAuthority.leaseId })],
-      { cwd: new URL('../../..', import.meta.url), encoding: 'utf8', timeout: 5000 })
-      expect(child.status).not.toBe(0)
-      expect(child.stderr).toContain('MutationLockBusyError')
+      writeFileSync(go, '')
+      until(done, 5000, 'contender outcome')
+      contended = JSON.parse(readFileSync(done, 'utf8'))
+      expect(contended?.name, JSON.stringify(contended)).toBe('MutationLockBusyError')
     }
-    expect(materializePolicy(input('Contact owner@example.com')).kind).toBe('written')
+    try {
+      until(ready, 10_000, 'contender ready')
+      expect(materializePolicy(input('Contact owner@example.com')).kind).toBe('written')
+    } catch (error) {
+      abandon()
+      throw error
+    }
     expect(attempted).toBe(true)
+    expect(contended?.name).toBe('MutationLockBusyError')
     expect(readFileSync(policyShelfPath(root, 'shop'), 'utf8')).toContain('Contact owner@example.com')
     expect(releaseLease({ knowledgeRoot: root, leaseId: writerAuthority.leaseId }).kind).toBe('released')
+    return closed.then((status) => {
+      rmSync(barrier, { recursive: true, force: true })
+      expect(status).not.toBe(0)
+    })
   })
   it('creates the shelf with a heading and an idempotent fenced section', () => {
     expect(materializePolicy(input()).kind).toBe('written')
