@@ -86,6 +86,8 @@ jobs:
         run: pnpm --filter agent-qa exec playwright-core install --with-deps chromium
 
       - name: Test
+        env:
+          TURBO_CONCURRENCY: '1'
         run: pnpm exec turbo test
 
       - name: Write PostHog project key
