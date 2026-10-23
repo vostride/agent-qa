@@ -5,7 +5,6 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { REAL_JOB_KIND_DECLARATIONS } from '@vostride/agent-qa-agent'
 import { describe, expect, it } from 'vitest'
 
 import { buildKnowledgeAgentGuide } from '../commands/knowledge-guide.js'
@@ -13,7 +12,6 @@ import { buildKnowledgeAgentGuide } from '../commands/knowledge-guide.js'
 const AGENT_QA_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..')
 const SKILLS_DIR = join(AGENT_QA_ROOT, 'skills')
 const MCP_DIR = join(AGENT_QA_ROOT, 'packages', 'mcp')
-const QUEUES_DOC = join(AGENT_QA_ROOT, 'docs', 'queues.md')
 
 const FORBIDDEN_INSTRUCTIONS: readonly RegExp[] = [
   /no tool serves artifact bytes/iu,
@@ -89,20 +87,6 @@ function missingPaths(packageDir: string, paths: readonly string[]): readonly st
   return paths.filter((path) => !existsSync(join(packageDir, path)))
 }
 
-const NUMBER_WORDS: Readonly<Record<string, number>> = {
-  one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
-}
-
-/** Every "<n> agent job kinds" count the queue doc states, and the kinds it lists by name. */
-function queueDocKindClaims(body: string): { counts: readonly number[]; named: readonly string[] } {
-  const countWords = `${Object.keys(NUMBER_WORDS).join('|')}|\\d+`
-  const counts = [...body.matchAll(new RegExp(`\\b(${countWords}) agent job kinds\\b`, 'giu'))]
-    .map((match) => NUMBER_WORDS[match[1]!.toLowerCase()] ?? Number(match[1]))
-  const listing = /\bagent job kinds? are ([^.]+)\./iu.exec(body)?.[1] ?? ''
-  const named = [...listing.matchAll(/`([a-z-]+)`/gu)].map((match) => match[1]!)
-  return { counts, named }
-}
-
 const KNOWN_BAD_TRIAGE: Subject = {
   name: 'known-bad triage skill',
   body: [
@@ -161,23 +145,5 @@ describe('MCP-DOC-PATHS', () => {
   it('reds on the removed v1 Read First files', () => {
     const removed = ['src/server.ts', 'src/local-http.ts', 'src/schema-reference.ts']
     expect(missingPaths(MCP_DIR, [...removed, 'src/index.ts'])).toEqual(removed)
-  })
-})
-
-describe('QUEUE-DOC-KINDS', () => {
-  const liveKinds = REAL_JOB_KIND_DECLARATIONS.map((declaration) => declaration.kind).sort()
-
-  it('states the live agent job kind count and names each kind', () => {
-    expect(liveKinds.length).toBe(5)
-    const claims = queueDocKindClaims(readFileSync(QUEUES_DOC, 'utf8'))
-    expect(claims.counts.length, 'the queue doc states no agent job kind count').toBeGreaterThan(0)
-    for (const count of claims.counts) expect(count).toBe(liveKinds.length)
-    expect([...claims.named].sort()).toEqual(liveKinds)
-  })
-
-  it('reds on the stale six-kind sentence', () => {
-    const claims = queueDocKindClaims('the six agent job kinds, per-kind checkpoints')
-    expect(claims.counts).toEqual([6])
-    expect(claims.counts[0]).not.toBe(liveKinds.length)
   })
 })

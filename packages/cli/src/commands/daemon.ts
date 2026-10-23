@@ -173,7 +173,7 @@ export function createDaemonCommand(deps: DaemonCommandDeps = DEFAULT_DEPS): Com
         '  run queue        test executions dispatched by the dashboard server (never served here)\n' +
         '  curation queue   knowledge curation work drained under this daemon writer lease\n' +
         '  agent job queue  durable background agent jobs served from .agent-qa/agent-jobs.db\n' +
-        '\nSee docs/queues.md.\n',
+        '\nSee https://vostride.com/docs/agent-qa/daemon.\n',
     )
     .action(async (_opts: unknown, command: Command) => {
       try {

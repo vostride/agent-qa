@@ -154,7 +154,7 @@ export type RunServiceDenialBody = z.infer<typeof RunServiceDenialBodySchema>
  * of two things: give up, or retry the identical request forever. The number is what makes the
  * refusal actionable — re-attach with `lastEventId = earliestAvailableSeq - 1`, because the caller
  * names the last envelope it has ALREADY observed and this names the first one still available.
- * That subtraction is stated here, in `docs/run-service.md`, and pinned by a cell that reads the
+ * That subtraction is stated here, and pinned by a cell that reads the
  * floor out of a real refusal and re-attaches with it.
  */
 export const RunServiceReplayFloorBodySchema = z.object({

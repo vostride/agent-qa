@@ -419,7 +419,7 @@ describe('C445-MODEL-DEFAULTS', () => {
   })
 })
 
-const GETTING_STARTED = 'https://github.com/vostride/agent-qa/blob/main/docs/getting-started.md'
+const GETTING_STARTED = 'https://vostride.com/docs/agent-qa/quickstart'
 const RUN_EXAMPLES = 'npx agent-qa run suites/examples.suite.yaml'
 
 function printed(): string {

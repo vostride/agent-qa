@@ -70,7 +70,7 @@ const mockWriteFileSync = vi.mocked(writeFileSync)
 const PLATFORMS = ['web', 'android', 'ios', 'web+android', 'web+ios'] as const
 const WEB_PLATFORMS = new Set(['web', 'web+android', 'web+ios'])
 const PLAYGROUND_HOST = 'playground.vostride.dev'
-const AGENT_QA_RECIPE_URL = 'https://github.com/vostride/agent-qa/blob/main/docs/coding-agents.md'
+const AGENT_QA_RECIPE_URL = 'https://vostride.com/docs/agent-qa/coding-agents'
 const RETIRED_HOSTS = [
   'example.com',
   'iana.org',

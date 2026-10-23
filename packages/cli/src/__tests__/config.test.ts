@@ -573,7 +573,7 @@ describe('C441-GAP2-CONFIG', () => {
 // 2026-10-19 (445-07, D-23, D-15): a config with keys removed in v2 closes with the hard-cut
 // steps; any other invalid config names the key and the fix.
 describe('C445-CONFIG-HINT', () => {
-  const RE_INITIALIZE_URL = 'https://github.com/vostride/agent-qa/blob/main/docs/re-initialize.md'
+  const RE_INITIALIZE_URL = 'https://vostride.com/docs/agent-qa/migrate/v0-1-to-v0-2'
   const OLD_INIT_LINE = "Run 'agent-qa init' to generate a complete config file."
   const BASE_YAML = [
     'registry:',

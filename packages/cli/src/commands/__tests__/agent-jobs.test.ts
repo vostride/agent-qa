@@ -150,7 +150,7 @@ describe('agent-qa agent-jobs help text — the three-queue vocabulary', () => {
     const help = helpOutput(createAgentJobsCommand())
     for (const name of CANONICAL_ORDER) expect(help).toContain(name)
     expect(qualifiersIn(proseOf(help))).toEqual([...QUALIFIERS].sort())
-    expect(help).toContain('docs/queues.md')
+    expect(help).toContain('https://vostride.com/docs/agent-qa/daemon')
   })
 
   it('detects a collapsed vocabulary — the control for the assertion above', () => {

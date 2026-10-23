@@ -1,7 +1,3 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 import { describe, it, expect, vi } from 'vitest'
 
 vi.mock('../../config.js', () => ({
@@ -90,21 +86,8 @@ describe('agent-qa queue help text — the three-queue vocabulary', () => {
     expect([...positions].sort((a, b) => a - b)).toEqual(positions)
   })
 
-  it('points at a doc that exists and enumerates the same three, in the same order', () => {
-    // The help ends with "See docs/queues.md." A pointer nobody checks is how a doc reference
-    // outlives the doc, and the two texts are the two halves of one vocabulary: if they can drift
-    // apart silently, the "canonical order" claim is only true in whichever half was edited last.
-    const help = helpOutput()
-    expect(help).toContain('docs/queues.md')
-
-    const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../..')
-    const docPath = resolve(repoRoot, 'docs/queues.md')
-    expect(existsSync(docPath)).toBe(true)
-
-    const doc = readFileSync(docPath, 'utf8')
-    const positions = CANONICAL_ORDER.map((name) => doc.indexOf(name))
-    expect(positions.every((p) => p >= 0)).toBe(true)
-    expect([...positions].sort((a, b) => a - b)).toEqual(positions)
+  it('points at the published page that names the same three queues', () => {
+    expect(helpOutput()).toContain('See https://vostride.com/docs/agent-qa/daemon.')
   })
 
   it('detects a collapsed vocabulary — the control for the assertion above', () => {

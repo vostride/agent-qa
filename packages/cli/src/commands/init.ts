@@ -187,7 +187,7 @@ const EXAMPLES_SUITE_ID = 's_dice-ego-veer-warp-ionic-trying-tur-cal-stride-batt
 const KOMAZON_CHECKOUT_PATH = 'tests/examples/komazon-checkout.yaml'
 const KOMAZON_CART_TOTAL_BUG_PATH = 'tests/examples/komazon-cart-total-bug.yaml'
 const EXAMPLES_SUITE_PATH = 'suites/examples.suite.yaml'
-const GETTING_STARTED_URL = 'https://github.com/vostride/agent-qa/blob/main/docs/getting-started.md'
+const GETTING_STARTED_URL = 'https://vostride.com/docs/agent-qa/quickstart'
 const KOMAZON_SHIPPING_HOOK_TEST_ID = 't_ayin-dual-chunk-lou-tablet-ticket-brace-lak-kite-abu'
 const SHIPPING_ADDRESS_HOOK_ID = 'h_phi-arts-vis-band-aira-streng-twig-roi-mino-fold'
 const KOMAZON_SHIPPING_HOOK_PATH = 'tests/examples/komazon-shipping-hook.yaml'
@@ -680,7 +680,7 @@ function connectionSteps(config: Record<string, unknown>, dir: string): InitNext
   return steps
 }
 
-// 2026-10-19 (445-05, D-17): the same commands, in the same order, as docs/getting-started.md.
+// 2026-10-19 (445-05, D-17): the same commands, in the same order, as the published quickstart.
 function initNextSteps(
   platform: InitPlatformInput,
   config: Record<string, unknown>,

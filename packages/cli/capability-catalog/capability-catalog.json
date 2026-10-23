@@ -228,16 +228,14 @@
     {
       "alias": "digest",
       "description": "Compose one run's digest: verdicts, chain, the changes its marks applied, counts.",
-      "docAnchor": "Reading stage outcomes",
-      "docPath": "docs/queues.md",
+      "docPath": "https://vostride.com/docs/agent-qa/guides/review-a-run",
       "kind": "alias",
       "targetOpId": "runs.digest"
     },
     {
       "alias": "run",
       "description": "Start a test run and acknowledge the run a caller can then read or stream.",
-      "docAnchor": "CLI",
-      "docPath": "README.md",
+      "docPath": "https://vostride.com/docs/agent-qa/cli",
       "kind": "alias",
       "targetOpId": "runs.start"
     },
@@ -321,8 +319,7 @@
     },
     {
       "description": "Read one run's resolved verdicts, rendered sentences and failure clusters.",
-      "docAnchor": "Reading stage outcomes",
-      "docPath": "docs/queues.md",
+      "docPath": "https://vostride.com/docs/agent-qa/guides/review-a-run",
       "exampleCall": {
         "arguments": {
           "runId": "<RUNID>"
@@ -1610,8 +1607,7 @@
     },
     {
       "description": "Compose one run's digest: verdicts, chain, the changes its marks applied, counts.",
-      "docAnchor": "Reading stage outcomes",
-      "docPath": "docs/queues.md",
+      "docPath": "https://vostride.com/docs/agent-qa/guides/review-a-run",
       "exampleCall": {
         "arguments": {
           "runId": "<RUNID>"
@@ -2076,8 +2072,7 @@
     },
     {
       "description": "Read one run's post-processing chip statuses from durable job state.",
-      "docAnchor": "agent job queue",
-      "docPath": "docs/queues.md",
+      "docPath": "https://vostride.com/docs/agent-qa/daemon",
       "exampleCall": {
         "arguments": {
           "runId": "<RUNID>"
@@ -2105,8 +2100,7 @@
     },
     {
       "description": "Start a test run and acknowledge the run a caller can then read or stream.",
-      "docAnchor": "CLI",
-      "docPath": "README.md",
+      "docPath": "https://vostride.com/docs/agent-qa/cli",
       "exampleCall": {
         "arguments": {}
       },
@@ -2205,5 +2199,5 @@
       "shortDescription": "Triage agent-qa run failures"
     }
   ],
-  "rowsDigest": "d808fc68659403d6ee4d293c82dc70b15cbd6d673d75d4f79813702ce02262e8"
+  "rowsDigest": "8150ba030d25049773b039f19ccb5d95617cee6590bacd9f2b369d27a8022edf"
 }

@@ -53,7 +53,6 @@ import {
 import { openCorpusReader } from '@vostride/agent-qa-eval-local/reader'
 
 import { markFixture } from '../gates/__tests__/feedback-fixture.js'
-import { createEvalCommand } from '../commands/eval.js'
 import {
   adversarialHostOptions,
   resolveEvalSession,
@@ -62,7 +61,6 @@ import {
 } from '../eval-session-composition.js'
 
 const ACCEPTANCE_SCRIPT = new URL('../../../../scripts/422-acceptance.mjs', import.meta.url)
-const DOC = new URL('../../../../docs/adversarial-split.md', import.meta.url)
 
 const NO_DECLARED_SECRETS = (text: string) => text
 const roots: string[] = []
@@ -284,33 +282,6 @@ function gateFixture(): GateFixture {
 // ---------------------------------------------------------------------------
 
 describe('422 acceptance — the documented surface, the whole loop, and the refusal law', () => {
-  it('(A1) every documented eval command resolves against the registered command tree', () => {
-    const doc = readFileSync(DOC, 'utf8')
-    const lines = [...doc.matchAll(/^agent-qa .*$/gm)].map(row => row[0])
-    // A doc that documents nothing cannot pass this cell by being empty.
-    expect(lines.length).toBeGreaterThan(8)
-    const evalCommand = createEvalCommand()
-    const verbs = new Map(evalCommand.commands.map(sub => [sub.name(), sub]))
-    let checked = 0
-    for (const line of lines) {
-      const tokens = line.split(/\s+/)
-      expect(tokens[1]).toBe('--config')
-      const rest = tokens.slice(3)
-      if (rest[0] !== 'eval') continue
-      const verb = verbs.get(rest[1]!)
-      expect(verb, `${line}: no registered eval verb ${rest[1]}`).toBeDefined()
-      const longs = new Set(verb!.options.map(option => option.long))
-      for (const token of rest.slice(2)) {
-        if (!token.startsWith('--')) continue
-        expect(longs.has(token), `${line}: ${rest[1]} has no ${token}`).toBe(true)
-      }
-      checked += 1
-    }
-    // Every eval example, not merely one of them.
-    expect(checked).toBe(lines.filter(line => line.includes(' eval ')).length)
-    expect(checked).toBeGreaterThan(6)
-  })
-
   it('(A2) staging leaves the committed root byte-identical and admission moves the corpus digest', async () => {
     const f = fixture()
     const before = tree(f.committedRoot)

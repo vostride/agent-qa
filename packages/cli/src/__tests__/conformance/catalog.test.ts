@@ -52,6 +52,7 @@ import { unprojectedReasonKeyOf } from './scenario-table.js'
 
 /** This directory, so the source sweep below reads the files it names. */
 const CONFORMANCE_DIR = dirname(fileURLToPath(import.meta.url))
+const PUBLISHED_DOCS_ROOT = 'https://vostride.com/docs/agent-qa/'
 
 describe('the capability catalog', () => {
   let live: CapabilityCatalog
@@ -336,13 +337,21 @@ describe('the capability catalog census', () => {
       .toBe(new Set(adjudicated).size)
   })
 
-  it('deep-links only into docs that exist, at headings that exist (D-07)', () => {
+  it('links only into repository files that exist, at headings that exist, or into the published docs (D-07)', () => {
     const root = agentQaRoot()
     const broken: string[] = []
     let filesChecked = 0
-    let anchorsChecked = 0
+    let publishedChecked = 0
 
     const checkDoc = (label: string, docPath: string, anchor: string | undefined): void => {
+      if (docPath.startsWith('https://')) {
+        // Published pages live on vostride.com. No file here can confirm a heading on them, so a
+        // published link carries none, and it may not leave the agent-qa docs.
+        if (!docPath.startsWith(PUBLISHED_DOCS_ROOT)) broken.push(`${label}: ${docPath} is not under ${PUBLISHED_DOCS_ROOT}`)
+        if (anchor !== undefined) broken.push(`${label}: ${docPath} carries an anchor no file here can confirm`)
+        publishedChecked += 1
+        return
+      }
       const absolute = join(root, docPath)
       if (!existsSync(absolute)) {
         broken.push(`${label}: ${docPath} does not exist`)
@@ -350,7 +359,6 @@ describe('the capability catalog census', () => {
       }
       filesChecked += 1
       if (anchor === undefined) return
-      anchorsChecked += 1
       const body = readFileSync(absolute, 'utf8')
       // A real markdown heading, not a substring: a page that merely MENTIONS the phrase is not a
       // page a deep link lands on.
@@ -386,7 +394,7 @@ describe('the capability catalog census', () => {
     // loop above without opening a single file.
     expect(filesChecked, 'no doc path was checked — the existence cell measured nothing')
       .toBeGreaterThan(0)
-    expect(anchorsChecked, 'no anchor was checked — the heading half measured nothing')
+    expect(publishedChecked, 'no published doc link was checked — the published half measured nothing')
       .toBeGreaterThan(0)
   })
 })

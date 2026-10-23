@@ -774,7 +774,7 @@ PLAN 25 USES THESE EXACTLY:
   4. The operator then runs the real CLI verb by hand — the admit branch of
      "agent-qa --config <path> eval adversarial", naming the approved batch digest. That command
      is the only committer, and it is deliberately not reachable from this instrument; see
-     docs/adversarial-split.md for its exact form.
+     'agent-qa eval adversarial --help' for its exact form.
   5. --verify-admitted --batch <digest>   confirm what actually landed.
 
 This instrument observes an admission and never causes one. It does not establish empirical

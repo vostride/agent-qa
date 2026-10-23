@@ -159,30 +159,28 @@ export type CatalogDocAdjudication =
  */
 export const CATALOG_DOC_PATHS: readonly (readonly [string, CatalogDocAdjudication])[] =
   Object.freeze([
-    // The three real links. Each documents the CAPABILITY, rather than mentioning it in passing.
+    // The real links. Each documents the CAPABILITY, rather than mentioning it in passing. The
+    // pages are published on vostride.com; the repository carries no docs of its own.
     Object.freeze([
       'runs.start',
-      // The README's CLI section is the one shipped page that shows a person starting a run.
-      Object.freeze({ path: 'README.md', anchor: 'CLI' } as const),
+      // The CLI reference is the page that shows a person starting a run.
+      Object.freeze({ path: 'https://vostride.com/docs/agent-qa/cli' } as const),
     ] as const),
     Object.freeze([
       'runs.postprocessing',
-      // The op reads chip statuses out of durable job state; `docs/queues.md` is where that
-      // substrate — the agent job queue — is the subject rather than an aside.
-      Object.freeze({ path: 'docs/queues.md', anchor: 'agent job queue' } as const),
+      // The op reads chip statuses out of durable job state; the daemon page is where the post-run
+      // chain and the agent job queue are the subject rather than an aside.
+      Object.freeze({ path: 'https://vostride.com/docs/agent-qa/daemon' } as const),
     ] as const),
     Object.freeze([
       'analysis.get',
-      // 2026-09-22 (425 D-15): the op now has a shipped page that documents the capability
-      // rather than mentioning it.
-      Object.freeze({ path: 'docs/queues.md', anchor: 'Reading stage outcomes' } as const),
+      // The verdicts and failure clusters this op answers are what a reviewed run reads first.
+      Object.freeze({ path: 'https://vostride.com/docs/agent-qa/guides/review-a-run' } as const),
     ] as const),
     Object.freeze([
       'runs.digest',
-      // 2026-09-23 (closing 425 WR-03): the section written this phase documents the digest
-      // capability directly — and names it before `analysis.get` — so the shared absent reason
-      // this row carried is now false, and this is where the link lands.
-      Object.freeze({ path: 'docs/queues.md', anchor: 'Reading stage outcomes' } as const),
+      // The review page opens with the digest.
+      Object.freeze({ path: 'https://vostride.com/docs/agent-qa/guides/review-a-run' } as const),
     ] as const),
 
     // …and the explicit absences, one per remaining op.

@@ -14,7 +14,7 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join, relative, resolve, sep } from 'node:path'
+import { dirname, join, relative, sep } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 
 import {
@@ -30,7 +30,6 @@ import { HARD_CUT_STEPS } from '../../hard-cut.js'
 import {
   ANCHORED_BUILDS,
   CLI_ENTRY,
-  CLI_PACKAGE_ROOT,
   REBUILD_INSTRUCTION,
   buildFreshness,
   cleanupTempRoots,
@@ -38,8 +37,6 @@ import {
   trackTempRoot,
 } from './spawned-chat.js'
 
-const DOCS = resolve(CLI_PACKAGE_ROOT, '..', '..', 'docs')
-const PAGE = 're-initialize.md'
 const INIT_ARGS = ['init', '--force', '--platform', 'web', '--llm', 'codex']
 const OLD_INIT_LINE = "Run 'agent-qa init'"
 const USER_TESTS = ['tests/checkout-smoke.yaml', 'tests/account/profile.yaml']
@@ -433,21 +430,6 @@ function assertFreshBuild(): void {
   ).toEqual({ missing: [], stale: [] })
 }
 
-function shellLines(markdown: string): string[] {
-  const lines: string[] = []
-  for (const block of markdown.matchAll(/^[ \t]*```(?:sh|bash)\n([\s\S]*?)^[ \t]*```$/gmu)) {
-    lines.push(...block[1]!.split('\n').map((line) => line.trim()).filter((line) => line !== ''))
-  }
-  return lines
-}
-
-function operands(lines: readonly string[], command: string): string[] {
-  return lines
-    .filter((line) => line.startsWith(`${command} `))
-    .flatMap((line) => line.split(/\s+/u).slice(1))
-    .filter((token) => !token.startsWith('-'))
-}
-
 describe('C445-HARD-CUT', () => {
   beforeAll(() => {
     if (process.platform === 'win32') throw new Error('POSIX run lifecycle required; never skip')
@@ -509,9 +491,6 @@ describe('C445-HARD-CUT', () => {
     expect(scene.filesAfterDaemonStop, seen()).toEqual(scene.filesBeforeDaemonStop)
     expect(exited(scene.daemonStatus), seen()).toEqual({ code: 1, signal: null })
     expect(output(scene.daemonStatus), seen()).toContain(HARD_CUT_STEPS)
-    expect(readFileSync(join(DOCS, PAGE), 'utf8'), `${PAGE} names what v2 prints`).toContain(
-      'agent-qa daemon has nothing to stop',
-    )
   })
 
   it('init --force over the old knowledge root refuses and names the missing rule', () => {
@@ -578,26 +557,4 @@ describe('C445-HARD-CUT', () => {
     expect(scene.treeAfterSecondInit, seen()).toEqual(before)
   })
 
-  it('the re-initialize page names every path the hard cut deletes and every command it runs', () => {
-    const lines = shellLines(readFileSync(join(DOCS, PAGE), 'utf8'))
-    expect(lines.length, `${PAGE} has shell blocks`).toBeGreaterThan(0)
-    const removed = operands(lines, 'rm')
-    for (const path of [...STATE_DIRS, ...V1_EXAMPLES]) {
-      expect(removed, `${PAGE} deletes ${path}`).toContain(path)
-    }
-    expect(lines, `${PAGE} makes the folder the rules go to`).toContain(`mkdir ${RULES_ASIDE}`)
-    const copied = operands(lines, 'cp')
-    expect(copied, `${PAGE} copies the rules aside`).toEqual(
-      expect.arrayContaining([`${POLICIES}/*.md`, V1_RULES_FILE, `${RULES_ASIDE}/`]),
-    )
-    expect(lines).toContain('npx agent-qa daemon stop')
-    expect(lines).toContain(
-      'npm install -D agent-qa@latest @vostride/agent-qa-subscription-auth@latest',
-    )
-    const init = lines.some((line) => line.startsWith('npx agent-qa init --force'))
-    expect(init, `${PAGE} runs init --force`).toBe(true)
-    expect(lines).toContain('npx agent-qa validate')
-    const pageLines = readFileSync(join(DOCS, PAGE), 'utf8').split('\n').map((line) => line.trim())
-    expect(pageLines, `${PAGE} gives the secret line`).toContain(EXAMPLE_SECRET_LINE)
-  })
 })

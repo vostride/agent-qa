@@ -173,7 +173,7 @@ export function createAgentJobsCommand(deps: AgentJobsCommandDeps = DEFAULT_DEPS
         '  run queue        test executions dispatched by the dashboard server (never served here)\n' +
         '  curation queue   knowledge curation work drained under the writer lease (not this one)\n' +
         '  agent job queue  durable background agent jobs in .agent-qa/agent-jobs.db (this command)\n' +
-        '\nSee docs/queues.md.\n',
+        '\nSee https://vostride.com/docs/agent-qa/daemon.\n',
     )
 
   cmd

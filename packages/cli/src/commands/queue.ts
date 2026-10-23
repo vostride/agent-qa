@@ -40,7 +40,7 @@ export function createQueueCommand(): Command {
         '  run queue        test executions dispatched by the dashboard server (this command)\n' +
         '  curation queue   knowledge curation work, drained under the writer lease\n' +
         '  agent job queue  durable background agent jobs in .agent-qa/agent-jobs.db\n' +
-        '\nSee docs/queues.md.\n',
+        '\nSee https://vostride.com/docs/agent-qa/daemon.\n',
     )
 
   cmd

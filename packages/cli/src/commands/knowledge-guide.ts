@@ -6,7 +6,7 @@
 
 export const KNOWLEDGE_SKILL_NAME = 'agent-qa-knowledge'
 
-export const CODING_AGENTS_URL = 'https://github.com/vostride/agent-qa/blob/main/docs/coding-agents.md'
+export const CODING_AGENTS_URL = 'https://vostride.com/docs/agent-qa/coding-agents'
 
 /** Transitional: M7 makes agent setup default-on and may retire it (OAS-AGENT-01, D-02). */
 export const WRITE_AGENT_INSTRUCTIONS_FLAG = '--write-agent-instructions'

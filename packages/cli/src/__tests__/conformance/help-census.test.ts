@@ -618,13 +618,8 @@ function guidanceInputs(sourceRoot: string, packagedRoot: string): GuidanceInput
   return { subjects, findings }
 }
 
-const RECIPE_PAGE = 'docs/coding-agents.md'
-
-// 2026-10-20 (446-08, D-09, D-16): the recipe page is live guidance; planted roots stay page-free
 function liveGuidanceInputs(): GuidanceInputs {
-  const inputs = guidanceInputs(join(agentQaRoot(), SKILLS_SOURCE_DIR), join(agentQaRoot(), 'packages', 'cli', 'skills'))
-  const page = { name: RECIPE_PAGE, body: readFileSync(join(agentQaRoot(), RECIPE_PAGE), 'utf8') }
-  return { subjects: [...inputs.subjects, page], findings: inputs.findings }
+  return guidanceInputs(join(agentQaRoot(), SKILLS_SOURCE_DIR), join(agentQaRoot(), 'packages', 'cli', 'skills'))
 }
 
 /** The subjects that must each quote at least one tool, and at least one CLI verb. */
@@ -1474,13 +1469,6 @@ describe('C446-GUIDANCE-NPX', () => {
       .toEqual([])
   })
 
-  it('every CLI command the recipe page quotes outside a text block reads npx agent-qa', () => {
-    const page = liveGuidanceInputs().subjects.filter((subject) => subject.name === RECIPE_PAGE)
-    expect(page.map((subject) => subject.name)).toEqual([RECIPE_PAGE])
-    const quoted = invocationsIn(page[0]!.body).filter((invocation) => invocation.fence !== 'text')
-    expect(quoted.length, 'the recipe page quotes fewer than two CLI commands').toBeGreaterThanOrEqual(2)
-    expect(bareInvocations(page), 'the recipe page quotes a CLI command without npx').toEqual([])
-  })
 })
 
 const EVIDENCE_KINDS = ['console', 'network', 'a11y', 'aria', 'variables'] as const
@@ -1742,7 +1730,7 @@ describe('C446-NO-INIT-FORCE', () => {
   it('no agent-facing guidance offers agent-qa init with --force, which rebuilds the workspace config', () => {
     const { subjects } = liveGuidanceInputs()
     const names = subjects.map((subject) => subject.name)
-    for (const name of ['generated guide', 'root pointer', 'MCP instructions', RECIPE_PAGE]) {
+    for (const name of ['generated guide', 'root pointer', 'MCP instructions']) {
       expect(names, `the census did not scan the ${name}`).toContain(name)
     }
     expect(names.filter((name) => name.endsWith('/SKILL.md')).length,

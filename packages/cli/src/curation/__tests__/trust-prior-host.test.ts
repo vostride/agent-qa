@@ -84,7 +84,7 @@ it('distinguishes absent and uncalibrated fallback from a fixed safe refusal', a
   expect(empty.resolve()).toBeUndefined()
   expect(empty.disclosure.status).toBe('provisional')
   writeArtifact({ privateCorrection: 'never disclose this' })
-  expect(await build()).toEqual({ kind: 'refused', reason: 'Trust prior calibration is invalid or unavailable; inspect the selected config\'s committed calibration marker and referenced revisions, following docs/label-calibration.md#inspection-and-recovery before composing this host.' })
+  expect(await build()).toEqual({ kind: 'refused', reason: 'Trust prior calibration is invalid or unavailable; inspect the selected config\'s committed calibration marker and referenced revisions, following https://vostride.com/docs/agent-qa/self-improvement/evals#if-calibration-is-refused before composing this host.' })
 })
 
 it('copies both noisy origins and their separate counts without admitting gold or private data', async () => {

@@ -459,7 +459,7 @@ export async function listAgentJobs(deps: AgentJobsOpsDeps): Promise<ListAgentJo
  * Under the lease because a cancel is a WRITE against rows a drainer may be claiming, and the three
  * outcomes it can have depend on the row's state at the instant of that write. This is the D-06
  * disposal step's discard arm, and it operates on the agent job queue — the run queue's
- * `agent-qa queue cancel` addresses a different store entirely (docs/queues.md).
+ * `agent-qa queue cancel` addresses a different store entirely (https://vostride.com/docs/agent-qa/daemon).
  */
 export async function cancelAgentJob(
   jobId: string,

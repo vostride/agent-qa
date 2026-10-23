@@ -93,7 +93,7 @@ it.each([false, true])('refuses malformed evidence explicitly with knowledge=%s 
   expect(check.fixInstructions).toContain('calibration marker and its referenced revisions')
   expect(check.fixInstructions).toContain('agent-qa-eval')
   expect(check.fixInstructions).toContain('without changing them')
-  expect(check.fixInstructions).toContain('docs/label-calibration.md#inspection-and-recovery')
+  expect(check.fixInstructions).toContain('https://vostride.com/docs/agent-qa/self-improvement/evals#if-calibration-is-refused')
   expect(check.fixInstructions).toContain('separate explicit operator action')
   expect(check.fixInstructions).not.toMatch(/eval floor|noise floor|delete/)
   expect(tree(p.root)).toEqual(before)

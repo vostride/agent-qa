@@ -1,4 +1,4 @@
-export const RE_INITIALIZE_URL = 'https://github.com/vostride/agent-qa/blob/main/docs/re-initialize.md'
+export const RE_INITIALIZE_URL = 'https://vostride.com/docs/agent-qa/migrate/v0-1-to-v0-2'
 
 export const HARD_CUT_STEPS = [
   'This config was written for agent-qa before v2. v2 does not upgrade a workspace; re-create it:',
