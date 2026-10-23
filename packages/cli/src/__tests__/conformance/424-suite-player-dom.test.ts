@@ -566,8 +566,10 @@ it('SUITE-BROWSER-MEDIA: real progress, marker details, local seeks and continue
     const ownTail = tail.filter(sample => sample.member0)
     console.info(`SUITE-BROWSER-MEDIA tail: ${ownTail.length} member-0 samples of ${tail.length}`)
     const boundary = durations[0]! / durations.reduce((sum, value) => sum + value, 0) * 100
-    expect(ownTail.length, JSON.stringify(tail)).toBeGreaterThanOrEqual(2)
-    expect(new Set(ownTail.map(sample => sample.left)).size, JSON.stringify(tail)).toBe(ownTail.length)
+    // Fewer than 4 member-0 samples is only the tail running into member 1, never a stall on member 0.
+    const endedOnNextMember = tail.length > ownTail.length
+    expect(ownTail.length === 4 || (endedOnNextMember && ownTail.length >= 2), `4 member-0 samples, or at least 2 before member 1: ${JSON.stringify(tail)}`).toBe(true)
+    expect(ownTail.every((sample, index) => index === 0 || parseFloat(sample.left) > parseFloat(ownTail[index - 1]!.left)), `the playhead moves forward: ${JSON.stringify(tail)}`).toBe(true)
     expect(ownTail.every(sample => parseFloat(sample.left) < boundary), JSON.stringify(tail)).toBe(true)
     expect(ownTail.every((sample, index) => sample.time > stored[0]! && (index === 0 || sample.time > ownTail[index - 1]!.time)), JSON.stringify(tail)).toBe(true)
     await page.locator('video').evaluate(video => video.setAttribute('data-fullscreen-live', 'same'))
