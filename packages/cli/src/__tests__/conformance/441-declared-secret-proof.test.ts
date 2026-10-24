@@ -679,11 +679,27 @@ describe('C441-PROOF', () => {
       ])
       const testFile = join(project.root, project.testPath)
       expect(scanRoot(project.root, RAW, { files: [secretsPath, testFile] })).toEqual([])
+      // The redirected cache is outside the scanned root, so it is held to what it is for: only
+      // fontconfig writes there, and no byte of it carries a declared value.
+      expect(
+        readdirSync(fontCache).filter((entry) => entry !== 'fontconfig'),
+        'only fontconfig writes under the redirected XDG cache',
+      ).toEqual([])
+      for (const file of filesUnder(fontCache)) {
+        const bytes = readFileSync(file)
+        for (const value of RAW) {
+          expect(bytes.includes(value), `${relative(fontCache, file)} under the redirected XDG cache carried ${value}`)
+            .toBe(false)
+        }
+      }
     } finally {
-      await proxy.close()
-      await page.close()
-      await project.close()
-      rmSync(fontCache, { recursive: true, force: true })
+      try {
+        await proxy.close()
+        await page.close()
+        await project.close()
+      } finally {
+        rmSync(fontCache, { recursive: true, force: true })
+      }
     }
   }, CELL_BUDGET_MS)
 })
