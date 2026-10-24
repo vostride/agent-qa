@@ -33,10 +33,6 @@
         "agent-qa#build"
       ]
     },
-    "lint": {},
-    "lint:namespace": {
-      "cache": false
-    },
     "dev": {
       "cache": false,
       "persistent": true

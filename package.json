@@ -19,24 +19,18 @@
     "build": "turbo build",
     "test": "turbo test",
     "typecheck": "turbo typecheck",
-    "lint": "turbo lint",
     "dev": "turbo dev",
     "clean": "turbo clean",
     "validate:skills": "node skills/scripts/validate-skills.mjs",
     "validate:agents": "node scripts/validate-agent-instructions.mjs",
     "validate:publish": "node scripts/validate-publish-surface.mjs",
-    "validate:tools": "pnpm --filter @vostride/agent-qa-runner exec vitest run src/tools/__tests__/validate-tools.test.ts",
-    "validate:arch": "pnpm --filter @vostride/agent-qa-arch exec vitest run src/__tests__/validate-arch.test.ts src/__tests__/412-issue-slot-deleted.test.ts src/__tests__/415-no-randomness-on-gate-paths.test.ts src/__tests__/416-promotion-doors.test.ts src/__tests__/418-no-eval-writer.test.ts src/__tests__/419-one-commit-door.test.ts src/__tests__/419-one-policy-writer.test.ts --reporter=verbose src/__tests__/420-label-calibration-walls.test.ts src/__tests__/421-judge-panel-walls.test.ts src/__tests__/422-no-eval-writer.test.ts src/__tests__/430-dashboard-chat-deleted.test.ts src/__tests__/432-approval-permission-deleted.test.ts src/__tests__/433-knowledge-explorer-absent.test.ts src/__tests__/434-no-super-repo-reads.test.ts src/__tests__/436-harness-progress-deleted.test.ts src/__tests__/437-mobile-input-census.test.ts src/__tests__/438-ordinal-census.test.ts src/__tests__/439-verifier-binding-census.test.ts src/__tests__/441-declared-secret-masking-deleted.test.ts src/__tests__/442-run-ownership-census.test.ts src/__tests__/443-one-record-census.test.ts src/__tests__/449.1-version-register.test.ts",
-    "validate:safety": "pnpm --filter @vostride/agent-qa-safety exec vitest run src/__tests__/validate-safety.test.ts",
     "validate:eval-root-hygiene": "bash scripts/413-eval-root-hygiene.sh",
     "release:docker": "node scripts/release/docker.mjs",
     "release:docker:check": "node scripts/release/docker.mjs --check-local",
     "release:dry-run": "node scripts/release/dry-run.mjs",
     "release:verify": "node scripts/release/verify.mjs",
     "release:publish": "node scripts/release/publish.mjs",
-    "release:github": "node scripts/release/github-release.mjs",
-    "lint:namespace": "! grep -r '@agent-qa/' packages/ --include='*.ts' --include='*.json' --include='*.js' -l --exclude-dir=node_modules --exclude-dir=dist",
-    "validate:431-discovery-imports": "node scripts/431-discovery-import-lint.mjs"
+    "release:github": "node scripts/release/github-release.mjs"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

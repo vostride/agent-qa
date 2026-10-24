@@ -18,8 +18,8 @@
  * `.planning/phases/410-the-bug-entity-kind/410-MUTATION-LEDGER.md` and
  * `.planning/phases/411-write-test-s-app-broken-branch-report-the-verdict-and-stop/411-MUTATION-LEDGER.md`,
  * each of which reads the process exit code rather than arguing from a green suite. This file is
- * the merged successor of the three sibling censuses those phases shipped; their bytes moved here
- * and `validate:arch` now names this one file (D-01). One inventory, one place to widen.
+ * the merged successor of the three sibling censuses those phases shipped; their bytes moved here.
+ * One inventory, one place to widen.
  *
  * THE THREE UNIVERSES, BY PATH RULE. Thirty-five needles have ZERO occurrences across
  * `packages/<pkg>/src` for every workspace package — `.ts`/`.tsx`, with only `dist`,
