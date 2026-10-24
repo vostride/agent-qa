@@ -82,11 +82,9 @@ describe('materializePolicy sovereign authored shelf', () => {
         report({ name: error.name, message: error.message })
         process.exit(1)
       }`, ready, go, done, JSON.stringify({ knowledgeRoot: root, leaseId: writerAuthority.leaseId })],
-    { cwd: new URL('../../..', import.meta.url), stdio: 'ignore' })
-    const abandon = (): void => {
-      child.kill('SIGKILL')
-      rmSync(barrier, { recursive: true, force: true })
-    }
+    { cwd: new URL('../../..', import.meta.url), stdio: ['ignore', 'ignore', 'pipe'] })
+    let stderr = ''
+    child.stderr!.setEncoding('utf8').on('data', (chunk: string) => { stderr += chunk })
     const closed = new Promise<number | null>((settle) => { child.once('close', settle) })
     const until = (path: string, budgetMs: number, what: string): void => {
       const deadline = Date.now() + budgetMs
@@ -110,17 +108,23 @@ describe('materializePolicy sovereign authored shelf', () => {
     try {
       until(ready, 10_000, 'contender ready')
       expect(materializePolicy(input('Contact owner@example.com')).kind).toBe('written')
+      expect(attempted).toBe(true)
+      expect(contended?.name).toBe('MutationLockBusyError')
+      expect(readFileSync(policyShelfPath(root, 'shop'), 'utf8')).toContain('Contact owner@example.com')
+      expect(releaseLease({ knowledgeRoot: root, leaseId: writerAuthority.leaseId }).kind).toBe('released')
     } catch (error) {
-      abandon()
-      throw error
+      // Any failure, including one after the transaction, stops the contender, waits for it and
+      // names what it printed; the synchronous waits above could not read its stderr.
+      child.kill('SIGKILL')
+      return closed.then(() => {
+        rmSync(barrier, { recursive: true, force: true })
+        if (error instanceof Error) error.message += `\ncontender stderr: ${stderr.trim() || '(empty)'}`
+        throw error
+      })
     }
-    expect(attempted).toBe(true)
-    expect(contended?.name).toBe('MutationLockBusyError')
-    expect(readFileSync(policyShelfPath(root, 'shop'), 'utf8')).toContain('Contact owner@example.com')
-    expect(releaseLease({ knowledgeRoot: root, leaseId: writerAuthority.leaseId }).kind).toBe('released')
     return closed.then((status) => {
       rmSync(barrier, { recursive: true, force: true })
-      expect(status).not.toBe(0)
+      expect(status, `contender exit; stderr: ${stderr.trim() || '(empty)'}`).not.toBe(0)
     })
   })
   it('creates the shelf with a heading and an idempotent fenced section', () => {
