@@ -71,11 +71,10 @@
 //       registry SOURCE ASSERTION cell (1 of 26). The surviving source assertions can fail.
 //   D11 `mcpServer?.close()` removed from the shutdown closure   -> MEASURED: reds the shutdown
 //       SOURCE ASSERTION cell (1 of 26).
-//   D12 a byte appended to `packages/dashboard-server/package.json` -> MEASURED: reds the SC3
-//       frozen-path cell naming the file. The cell it replaced asserted a module specifier that
-//       could not appear in this workspace under any implementation, so it could not fail at all.
+//   D12 a byte appended to `packages/dashboard-server/package.json` -> RETIRED 2026-10-24: the SC3
+//       frozen-path cell read the git working tree, which a clean CI checkout never changes and the
+//       release workflow changes on purpose when it writes the release version before the suite.
 
-import { execFileSync } from 'node:child_process'
 import { createServer } from 'node:http'
 import type { Server as NodeHttpServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
@@ -578,8 +577,8 @@ describe('the co-hosted endpoint emits no CORS header, ever (the counted-zero la
 //
 // The "touches no file under packages/dashboard-server" cell asserted
 // `not.toContain('dashboard-server/src/server')` — a specifier that could never appear in this
-// workspace under any implementation, since imports go through `@vostride/agent-qa-dashboard`. It
-// is replaced by a claim over the working tree's own diff, which CAN fail.
+// workspace under any implementation, since imports go through `@vostride/agent-qa-dashboard`. Its
+// replacement, a claim over the working tree's own diff, is retired too (D12 above).
 //
 // TWO SOURCE ASSERTIONS SURVIVE, and each says so in its own comment, names the code CONSTRUCT it
 // reads, and points at the behavioural cell carrying the other half of its claim. Driving them
@@ -590,9 +589,6 @@ const DASHBOARD_SOURCE = readFileSync(
   resolvePath(dirname(fileURLToPath(import.meta.url)), '../commands/dashboard.ts'),
   'utf8',
 )
-
-/** The inner `agent-qa` repository root — `packages/cli/src/__tests__` is four levels down. */
-const REPO_ROOT = resolvePath(dirname(fileURLToPath(import.meta.url)), '../../../..')
 
 /**
  * One legacy caller-credential declaration, in the refs-only shape `McpTokenEntrySchema` accepted.
@@ -788,26 +784,6 @@ describe('the shipped dashboard composition wires and closes the endpoint', () =
     // gone; what remains to pin is that the co-host composes that mask from the project's config.
     expect(shutdown).not.toContain('mcpMasking')
     expect(DASHBOARD_SOURCE).toContain('composeMcpMasking({ configPath: configFilePath })')
-  })
-
-  it('leaves every file under packages/dashboard-server untouched in the working tree'
-    + ' (ROADMAP SC3, criterion 3 / Pitfall 8)', () => {
-    // ASSERTED OVER THE DIFF, NOT OVER A SOURCE SUBSTRING. The cell this replaces asserted
-    // `not.toContain('dashboard-server/src/server')` — a specifier that could never appear in this
-    // workspace under any implementation, so it could not fail. This one can: touch any file under
-    // that package and it reds. Tracked AND untracked, because a new file is a change too.
-    const tracked = execFileSync(
-      'git',
-      ['diff', '--name-only', 'HEAD', '--', 'packages/dashboard-server'],
-      { cwd: REPO_ROOT, encoding: 'utf8' },
-    ).trim()
-    const untracked = execFileSync(
-      'git',
-      ['ls-files', '--others', '--exclude-standard', '--', 'packages/dashboard-server'],
-      { cwd: REPO_ROOT, encoding: 'utf8' },
-    ).trim()
-    expect(tracked, 'a tracked dashboard-server file is modified').toBe('')
-    expect(untracked, 'an untracked dashboard-server file was added').toBe('')
   })
 })
 
