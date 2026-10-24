@@ -133,6 +133,11 @@ jobs:
       - name: Validate publish surface
         run: pnpm run validate:publish
 
+      # packages/arch's C-CI-MATRIX cells run the same check in the rest leg; running it here too
+      # keeps it in force even if a matrix edit stops the rest leg from reaching packages/arch.
+      - name: Check CI matrix coverage
+        run: node scripts/check-ci-matrix.mjs
+
   mcp-conformance:
     name: MCP conformance (ubuntu)
     runs-on: ubuntu-latest

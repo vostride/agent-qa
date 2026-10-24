@@ -1198,6 +1198,9 @@ describe('validate:arch eval-local reader port (414 D-19/D-20) — source-anchor
 // conformance leg over another package's source rather than an architecture gate over this one.
 describe('validate:arch roster completeness (422-21 / D-18)', () => {
   const NOT_IN_ARCH_GATE: Record<string, string> = {
+    'ci-matrix-coverage.test.ts':
+      'a coverage pin over the CI test matrix in .github/workflows/ci.yml (quick 261024-3w1), not '
+      + 'an architecture gate; the arch package test task runs it in the ubuntu rest leg',
     'manifest.test.ts':
       'the manifest/on-disk equality it asserts is already CALLED by the aggregate above',
     'parity-reverse-completeness.test.ts':
