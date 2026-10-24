@@ -29,7 +29,7 @@ import * as drive from '../../composition/in-process-run-execution.js'
 import * as tailComposition from '../post-run-tail-composition.js'
 import * as evalSession from '../../eval-session-composition.js'
 import { readRunCanaryPolicy } from '../canary-run-state.js'
-import { closeTestRunRecords, testRunRecord } from '../../composition/__tests__/in-process-run-fixture.js'
+import { closeTestRunRecords, freshUpdateCheckHome, testRunRecord } from '../../composition/__tests__/in-process-run-fixture.js'
 
 // 2026-10-18 (444-14, D-22): the run command resolves its context from the environment, so a CI
 // runner reads the CI sentence.
@@ -47,6 +47,14 @@ afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 afterAll(() => { removeInProcessFixtures() })
+
+// The run command's update notice answers from a fresh cache in a temporary HOME, so a cell that
+// drives the command neither fetches the registry nor reads or writes the real ~/.agent-qa.
+function isolateUpdateCheck(): void {
+  const home = freshUpdateCheckHome()
+  roots.push(home)
+  vi.stubEnv('HOME', home)
+}
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -698,6 +706,7 @@ it.each((['direct', 'suite'] as const).flatMap(mode =>
 async function commandSignalFixture(mode: 'direct' | 'suite', timing: 'post-verdict' | 'active-run' | 'second-signal') {
   const f = continuationFixture()
   vi.stubEnv('DO_NOT_TRACK', '1')
+  isolateUpdateCheck()
   vi.spyOn(console, 'log').mockImplementation(() => undefined)
   vi.spyOn(console, 'warn').mockImplementation(() => undefined)
   const output = vi.spyOn(console, 'error').mockImplementation(() => undefined)
@@ -780,6 +789,7 @@ async function commandSignalFixture(mode: 'direct' | 'suite', timing: 'post-verd
 it('CR-11 actual --all command freezes an earlier suite failure into a passing direct result', async () => {
   const f = continuationFixture()
   vi.stubEnv('DO_NOT_TRACK', '1')
+  isolateUpdateCheck()
   vi.spyOn(console, 'log').mockImplementation(() => undefined)
   vi.spyOn(console, 'warn').mockImplementation(() => undefined)
   vi.spyOn(console, 'error').mockImplementation(() => undefined)
@@ -808,6 +818,7 @@ it.each((['direct', 'suite'] as const).flatMap(mode =>
 ))('actual $mode command reports $state preparation without a false chain', async ({ mode, state }) => {
   const f = continuationFixture()
   vi.stubEnv('DO_NOT_TRACK', '1')
+  isolateUpdateCheck()
   vi.spyOn(console, 'log').mockImplementation(() => undefined)
   const output = vi.spyOn(console, 'error').mockImplementation(() => undefined)
   const warnings = vi.spyOn(console, 'warn').mockImplementation(() => undefined)

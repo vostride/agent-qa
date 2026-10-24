@@ -21,8 +21,9 @@
 
 import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 
+import { getAgentQaVersion, getAgentQaVersionCheckCachePath } from '@vostride/agent-qa-core'
 import { generateSuiteId, generateTestId } from '@vostride/agent-qa-ids'
 
 import { createRunRecord, doorRunAttributes } from '../../commands/run.js'
@@ -199,6 +200,22 @@ const createdProjects: string[] = []
 // 2026-10-19 (444.1-24, D-39): no hook here, because two users import this module inside cells.
 export function removeInProcessFixtures(): void {
   removeTempRoots(createdProjects.splice(0))
+}
+
+/**
+ * A temporary HOME whose update-check cache is fresh. The run command's update notice reads
+ * `~/.agent-qa/version-check.json` and fetches the registry once that cache is a day old, so a cell
+ * that points HOME here answers from the cache: no network, and nothing written to the real home.
+ * The cell stubs HOME to it and removes it with its other roots.
+ */
+export function freshUpdateCheckHome(): string {
+  const home = realpathSync(mkdtempSync(join(tmpdir(), 'in-process-home-')))
+  createdProjects.push(home)
+  const now = new Date().toISOString()
+  const cachePath = getAgentQaVersionCheckCachePath(home)
+  mkdirSync(dirname(cachePath), { recursive: true })
+  writeFileSync(cachePath, `${JSON.stringify({ latestVersion: getAgentQaVersion(), checkedAt: now, lastAttemptedAt: now })}\n`)
+  return home
 }
 
 /**

@@ -6,6 +6,7 @@ import { calibrateLabels, canonicalJson } from '@vostride/agent-qa-eval'
 import { sha256hex } from '@vostride/agent-qa-schema'
 import {
   createInProcessFixture,
+  freshUpdateCheckHome,
   removeInProcessFixtures,
 } from '../../composition/__tests__/in-process-run-fixture.js'
 import { createRunCommand } from '../run.js'
@@ -51,6 +52,10 @@ it.each([
     roots.push(f.project)
     const old = artifact(f.project, 0.75)
     vi.stubEnv('DO_NOT_TRACK', '1')
+    // The update notice answers from a fresh cache in a temporary HOME: no registry, no real home.
+    const home = freshUpdateCheckHome()
+    roots.push(home)
+    vi.stubEnv('HOME', home)
     vi.spyOn(console, 'log').mockImplementation(() => undefined)
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     vi.spyOn(console, 'warn').mockImplementation(() => undefined)
