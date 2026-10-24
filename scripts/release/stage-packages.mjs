@@ -14,6 +14,8 @@ const requiredCliSkillFiles = {
   'agent-qa-knowledge': ['SKILL.md', 'agents/openai.yaml', 'references/knowledge-reads.md'],
 }
 const sourceOnlyScripts = ['prepack', 'prepare', 'prepublishOnly', 'postpack', 'copy:skills']
+const repositorySlug = 'vostride/agent-qa'
+const absoluteOrAnchorUrl = /^(?:[a-z][a-z\d+.-]*:|\/\/|#)/i
 
 function rejectGeneratedOrLocalFiles(path) {
   const normalized = path.split('\\').join('/')
@@ -107,12 +109,31 @@ async function stageCliSkills(sourcePackageDir, targetPackageDir) {
   }
 }
 
+// npm resolves relative README links against the package directory, so they are pinned to the
+// release tag, which the release workflow pushes before it publishes.
+export function absolutizeReadmeLinks(body, ref) {
+  const repoPath = path => path.replace(/^\.?\//, '')
+  const raw = path => absoluteOrAnchorUrl.test(path) ? path : `https://raw.githubusercontent.com/${repositorySlug}/${ref}/${repoPath(path)}`
+  const blob = path => absoluteOrAnchorUrl.test(path) ? path : `https://github.com/${repositorySlug}/blob/${ref}/${repoPath(path)}`
+  return body
+    .replace(/\b(src|srcset)="([^"]+)"/g, (_, attr, path) => `${attr}="${raw(path)}"`)
+    .replace(/\bhref="([^"]+)"/g, (_, path) => `href="${blob(path)}"`)
+    .replace(/(!?)\[([^\]]*)\]\(([^)\s]+)\)/g, (_, bang, text, path) => `${bang}[${text}](${bang ? raw(path) : blob(path)})`)
+}
+
+function readRootReadme(rootDir, targetVersion) {
+  const readmePath = join(rootDir ?? process.cwd(), 'README.md')
+  if (!existsSync(readmePath)) throw new Error(`missing root README for staged packages: ${readmePath}`)
+  return absolutizeReadmeLinks(readFileSync(readmePath, 'utf8'), `v${targetVersion}`)
+}
+
 export async function stagePublishPackages(options = {}) {
   const rootDir = options.rootDir
   const targetVersion = options.targetVersion
   const outputDir = options.outputDir ?? join(rootDir ?? process.cwd(), '.release/staged-packages')
   if (!targetVersion) throw new Error('missing targetVersion')
 
+  const readme = readRootReadme(rootDir, targetVersion)
   const records = getPublicPackages({ rootDir })
   await rm(outputDir, { recursive: true, force: true })
   await mkdir(outputDir, { recursive: true })
@@ -127,6 +148,7 @@ export async function stagePublishPackages(options = {}) {
     if (record.pkg.name === entryPackageName) {
       await stageCliSkills(record.dir, targetDir)
     }
+    await writeFile(join(targetDir, 'README.md'), readme, 'utf8')
     const stagedManifestPath = join(targetDir, 'package.json')
     const stagedManifest = stripSourceOnlyScripts(rewriteInternalWorkspaceRanges({ ...record.pkg, version: targetVersion }, targetVersion))
     stagedManifest.version = targetVersion

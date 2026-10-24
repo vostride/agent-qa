@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { getPublicPackages } from '../release/packages.mjs'
-import { stagePublishPackages } from '../release/stage-packages.mjs'
+import { absolutizeReadmeLinks, stagePublishPackages } from '../release/stage-packages.mjs'
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const shippedSkills = ['agent-qa-authoring', 'agent-qa-result-triage', 'agent-qa-debug-fix', 'agent-qa-knowledge']
@@ -37,6 +37,7 @@ async function fixtureRepo(tempDir, mutateSkills) {
     await cp(record.manifestPath, join(dir, 'package.json'))
   }
   await cp(join(rootDir, 'skills'), join(fixture, 'skills'), { recursive: true })
+  await cp(join(rootDir, 'README.md'), join(fixture, 'README.md'))
   await mkdir(join(fixture, 'packages', 'cli', 'scripts'), { recursive: true })
   await cp(join(rootDir, 'packages', 'cli', 'scripts', 'copy-skills.mjs'), join(fixture, 'packages', 'cli', 'scripts', 'copy-skills.mjs'))
   if (mutateSkills) await mutateSkills(join(fixture, 'skills'))
@@ -139,6 +140,46 @@ test('source skill validation fails on a missing or empty knowledge reference', 
       )
     })
   }
+})
+
+test('stages the root README into every public package without writing it to the source packages', async () => {
+  await withTemp(async (tempDir) => {
+    const fixture = await fixtureRepo(tempDir)
+    const stagedDir = join(tempDir, 'staged')
+    const stagedRecords = await stagePublishPackages({ rootDir: fixture, targetVersion: '0.1.1', outputDir: stagedDir })
+    const expected = absolutizeReadmeLinks(readFileSync(join(rootDir, 'README.md'), 'utf8'), 'v0.1.1')
+
+    assert.equal(stagedRecords.length, getPublicPackages({ rootDir }).length)
+    for (const record of stagedRecords) {
+      assert.equal(readFileSync(join(record.dir, 'README.md'), 'utf8'), expected, `${record.pkg.name} staged a different README`)
+      assert.ok(!existsSync(join(record.sourceDir, 'README.md')), `${record.pkg.name} source package gained a README`)
+    }
+    assert.ok(expected.includes('https://raw.githubusercontent.com/vostride/agent-qa/v0.1.1/docs/assets/readme/'))
+    assert.doesNotMatch(expected, /\b(?:src|srcset|href)="(?!https?:\/\/|#)/)
+    assert.doesNotMatch(expected, /\]\((?!https?:\/\/|#)/)
+  })
+})
+
+test('pins relative README images to raw files and links to blobs, leaving absolute links alone', () => {
+  const body = [
+    '<img src="docs/a.png"> <source srcset="./docs/b.jpg"> <a href="LICENSE.md">l</a> <a href="https://x.dev">x</a>',
+    '![shot](docs/c.png) [License](LICENSE.md) [Docs](https://vostride.com/docs) [Top](#get-started)',
+  ].join('\n')
+  assert.equal(absolutizeReadmeLinks(body, 'v1.2.3'), [
+    '<img src="https://raw.githubusercontent.com/vostride/agent-qa/v1.2.3/docs/a.png"> <source srcset="https://raw.githubusercontent.com/vostride/agent-qa/v1.2.3/docs/b.jpg"> <a href="https://github.com/vostride/agent-qa/blob/v1.2.3/LICENSE.md">l</a> <a href="https://x.dev">x</a>',
+    '![shot](https://raw.githubusercontent.com/vostride/agent-qa/v1.2.3/docs/c.png) [License](https://github.com/vostride/agent-qa/blob/v1.2.3/LICENSE.md) [Docs](https://vostride.com/docs) [Top](#get-started)',
+  ].join('\n'))
+})
+
+test('refuses to stage without a root README', async () => {
+  await withTemp(async (tempDir) => {
+    const fixture = await fixtureRepo(tempDir)
+    await rm(join(fixture, 'README.md'))
+    await assert.rejects(
+      stagePublishPackages({ rootDir: fixture, targetVersion: '0.1.1', outputDir: join(tempDir, 'staged') }),
+      /missing root README for staged packages/,
+    )
+  })
 })
 
 test('staging copies no package-local .agent-qa runtime folder', async () => {
