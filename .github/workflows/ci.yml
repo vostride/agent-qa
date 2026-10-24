@@ -133,6 +133,9 @@ jobs:
       - name: Validate publish surface
         run: pnpm run validate:publish
 
+      - name: Test the root scripts
+        run: pnpm run test:scripts
+
       # packages/arch's C-CI-MATRIX cells run the same check in the rest leg; running it here too
       # keeps it in force even if a matrix edit stops the rest leg from reaching packages/arch.
       - name: Check CI matrix coverage

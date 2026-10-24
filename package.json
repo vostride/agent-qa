@@ -17,7 +17,8 @@
   },
   "scripts": {
     "build": "turbo build",
-    "test": "turbo test",
+    "test": "turbo test && pnpm run test:scripts",
+    "test:scripts": "node --test scripts/__tests__/*.test.mjs",
     "typecheck": "turbo typecheck",
     "dev": "turbo dev",
     "clean": "turbo clean",
