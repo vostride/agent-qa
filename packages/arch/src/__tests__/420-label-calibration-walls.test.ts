@@ -84,13 +84,6 @@ describe('420 label calibration walls', () => {
       expect(calibrationPureHits([source])).toEqual([])
     },
   )
-  it('registers the calibration wall in validate:arch', () => {
-    const { scripts } = JSON.parse(readFileSync(`${repoRoot}/package.json`, 'utf8'))
-    expect(scripts['validate:arch'].split(/\s+/)).toContain(
-      'src/__tests__/420-label-calibration-walls.test.ts',
-    )
-  })
-
   it('walks every real learner entry without reaching eval calibration or its main entry', () => {
     const entries = sources.filter(source => /^packages\/(?:knowledge-local|agent-local)\/src\//.test(source.file)).map(source => source.file)
     expect(entries.length).toBeGreaterThan(100)

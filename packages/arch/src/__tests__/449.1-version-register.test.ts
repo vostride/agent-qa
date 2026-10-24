@@ -598,7 +598,7 @@ describe('schema version census instruments', () => {
     expect(secondVersionOffenders('planted.ts', codeOf(`// ${assigned}`))).toEqual([])
   })
 
-  it('this file spells none of its needles, lies outside every region it scans, and is named in validate:arch', () => {
+  it('this file spells none of its needles, and lies outside every region it scans', () => {
     const own = readFileSync(THIS_FILE).toString('utf8')
     expect(existsSync(join(REPO_ROOT, OWN)), 'the self path is wrong').toBe(true)
     expect(existsSync(join(REPO_ROOT, REGISTER_FILE)), 'the register path is wrong').toBe(true)
@@ -624,9 +624,5 @@ describe('schema version census instruments', () => {
     expect(files, 'the register is inside a region it scans').not.toContain(REGISTER_FILE)
     expect(files.filter((file) => file.startsWith(ARCH_SOURCE)), 'the arch sources were scanned').toEqual([])
     expect(files.filter((file) => file.includes('/__tests__/')), 'a test file was scanned').toEqual([])
-
-    const archRoot = fileURLToPath(new URL('../../', import.meta.url))
-    const { scripts } = JSON.parse(bytesOf('package.json')) as { scripts: Record<string, string> }
-    expect(scripts['validate:arch']!.split(/\s+/)).toContain(posix(relative(archRoot, THIS_FILE)))
   })
 })

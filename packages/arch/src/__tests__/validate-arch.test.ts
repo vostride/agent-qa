@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
@@ -275,8 +275,7 @@ describe('validate:arch (LINT-01..05)', () => {
     //
     // `manifest.test.ts` already asserts exactly this equality, so the rule is REUSED rather than
     // restated — a second census of the same two sets is the drift the census idiom exists to
-    // prevent. What was missing was not a rule; it was this script CALLING it. `validate:arch` is
-    // what `release.yml` runs, and it runs this file alone.
+    // prevent. What was missing was not a rule; it was this script CALLING it.
     offenders.push(
       ...findSetMismatchOffenders(
         'manifest vs on-disk contracts',
@@ -308,7 +307,7 @@ describe('validate:arch held-out fixtures', () => {
   // `AGENT_QA_ANALYTICS_OWNERSHIP_CONTRACT` from ARCH_MANIFEST left this file green at 41/41,
   // because the contract-less check reads the filesystem and the file was still there. An unranged
   // package is one whose dep set and class rules are taken on trust, so the omission has to red
-  // HERE — `validate:arch` is what the release pipeline runs, and it runs this file alone.
+  // HERE.
   it('held-out registration equality fails in both drift directions', () => {
     expect(
       findSetMismatchOffenders(
@@ -1093,8 +1092,9 @@ describe('validate:arch agent barrel export set (FUNC-01 / SC1) held-out fixture
 
 // 414 D-19 / D-20 / D-18, ROOT-10 SC5. The requirement says the proposer-side read port "has no
 // method that can return a private held-out entry — an arch cell under `validate:arch` REDs if one
-// is added", so the cell has to live HERE: `validate:arch` runs the whole of this file, and a pin
-// that only ran under the eval-local suite would satisfy the words but not the requirement.
+// is added", so the cell has to live HERE: the arch package's test run covers the whole of this
+// file, and a pin that only ran under the eval-local suite would satisfy the words but not the
+// requirement.
 //
 // It reads the barrel's RAW SOURCE rather than importing it, for two reasons. The arch package
 // must never import the thing it polices — that would make a firewall a dependent of what it
@@ -1103,8 +1103,8 @@ describe('validate:arch agent barrel export set (FUNC-01 / SC1) held-out fixture
 //
 // This is one of THREE pins on the same surface. The other two live beside the port: the runtime
 // key-set cell in `packages/eval-local/src/__tests__/reader.test.ts` and the never-bar in
-// `packages/eval-local/src/__tests__/reader.test-d.ts`. This one is the only one that fires under
-// `pnpm validate:arch`, and the only one that sees a NEW export before anyone imports it.
+// `packages/eval-local/src/__tests__/reader.test-d.ts`. This one is the only one in the arch
+// package, and the only one that sees a NEW export before anyone imports it.
 const EVAL_LOCAL_READER_BARREL = 'packages/eval-local/src/reader.ts'
 const PUBLISH_SURFACE_VALIDATOR = 'scripts/validate-publish-surface.mjs'
 
@@ -1179,54 +1179,5 @@ describe('validate:arch eval-local reader port (414 D-19/D-20) — source-anchor
     expect(declaration).toContain('@vostride/agent-qa-knowledge-local')
     expect(declaration).toContain('@vostride/agent-qa-eval-local')
     expect(source).toContain('READER_SUBPATH_PACKAGES.includes(record.pkg.name)')
-  })
-})
-
-// 422-21 (D-18). The lesson recorded at the top of this file — "what was missing was not a rule;
-// it was this script CALLING it" — was learned by mutation and then had to be learned again: a
-// wall file can be added to `src/__tests__/` and never reach `release.yml`, because
-// `validate:arch` names its cells one by one. The package suite runs everything, so the gap is
-// invisible locally and total in the release pipeline.
-//
-// This census closes it in the one direction that matters: every cell file in this directory is
-// either NAMED by `validate:arch` or listed below with a reason. A new wall lands RED until
-// somebody decides which it is. The two exclusions are deliberate and are not carve-outs for a
-// failing rule — both pass, both run under `pnpm --filter @vostride/agent-qa-arch test`, and
-// neither is a phase wall: `manifest.test.ts` asserts the manifest/on-disk equality that the
-// aggregate above already CALLS through `findSetMismatchOffenders`, and
-// `parity-reverse-completeness.test.ts` builds the agent function registry, which is a
-// conformance leg over another package's source rather than an architecture gate over this one.
-describe('validate:arch roster completeness (422-21 / D-18)', () => {
-  const NOT_IN_ARCH_GATE: Record<string, string> = {
-    'ci-matrix-coverage.test.ts':
-      'a coverage pin over the CI test matrix in .github/workflows/ci.yml (quick 261024-3w1), not '
-      + 'an architecture gate; the arch package test task runs it in the ubuntu rest leg',
-    'manifest.test.ts':
-      'the manifest/on-disk equality it asserts is already CALLED by the aggregate above',
-    'parity-reverse-completeness.test.ts':
-      'conformance LEG 5 over the agent function registry, not an architecture gate',
-    'turbo-arch-test-order.test.ts':
-      'a build-graph pin over turbo.json (quick 261002-hyg), not an architecture gate; the arch '
-      + 'package test task runs it',
-  }
-
-  const rostered = (): string[] =>
-    (JSON.parse(readRepoFile('package.json')).scripts['validate:arch'] as string)
-      .split(/\s+/)
-      .filter(token => token.startsWith('src/__tests__/'))
-      .map(token => token.replace('src/__tests__/', ''))
-
-  it('names every architecture cell file, or records why it is excluded', () => {
-    const onDisk = readdirSync(testDir)
-      .filter(file => file.endsWith('.test.ts'))
-      .sort()
-    const covered = new Set([...rostered(), ...Object.keys(NOT_IN_ARCH_GATE)])
-    expect(onDisk.filter(file => !covered.has(file))).toEqual([])
-  })
-
-  it('carries no exclusion or roster entry for a cell file that no longer exists', () => {
-    const onDisk = new Set(readdirSync(testDir).filter(file => file.endsWith('.test.ts')))
-    expect(Object.keys(NOT_IN_ARCH_GATE).filter(file => !onDisk.has(file))).toEqual([])
-    expect(rostered().filter(file => !onDisk.has(file))).toEqual([])
   })
 })

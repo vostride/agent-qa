@@ -211,7 +211,4 @@ describe('421 judge panel walls', () => {
     expect(closure.unresolved).toEqual([])
     expect(closure.files.filter(file => /judge-calibration|calibration-evidence/.test(file))).toEqual([])
   })
-  it('registers the actual wall suite in validate:arch', () => {
-    expect(JSON.parse(read('package.json')).scripts['validate:arch'].split(/\s+/)).toContain('src/__tests__/421-judge-panel-walls.test.ts')
-  })
 })

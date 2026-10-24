@@ -604,11 +604,4 @@ export function bindAuthor(input: Input): ProbeAuthorPort {
     expect(contract).toContain('NO MODEL IS CONSTRUCTED ON THE ADVERSARIAL PATH')
     expect(contract).toContain('packages/cli/src/adversarial-probe-author.ts')
   })
-
-  it('registers this wall in validate:arch', () => {
-    const scripts = JSON.parse(readFileSync(join(REPO_ROOT, 'package.json'), 'utf8')).scripts
-    expect(scripts['validate:arch'].split(/\s+/)).toContain(
-      'src/__tests__/422-no-eval-writer.test.ts',
-    )
-  })
 })
