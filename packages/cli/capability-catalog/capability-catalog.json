@@ -633,16 +633,10 @@
             "type": "string"
           },
           "value": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              }
+            "type": [
+              "string",
+              "number",
+              "boolean"
             ]
           }
         },
@@ -2199,5 +2193,5 @@
       "shortDescription": "Triage agent-qa run failures"
     }
   ],
-  "rowsDigest": "47b13922e1f1aae288368b5eb088fe07de3b87aedf7ff89a17353fde7c1b7caa"
+  "rowsDigest": "02b98e4022fd087c9404069c9bcde2f37bf2e07c1742c4b3f3b036d9d48b9818"
 }

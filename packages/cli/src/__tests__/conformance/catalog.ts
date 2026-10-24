@@ -427,6 +427,12 @@ function derivedValueOf(schema: unknown, propertyName: string, path: string): De
     return derivedValueOf(node.anyOf[0], propertyName, `${path}.anyOf[0]`)
   }
 
+  // A type array is the anyOf of its single types; zod emits one for a union of bare primitives.
+  if (Array.isArray(node.type)) {
+    if (node.type.length === 0) return refuse(`${path} declares an empty type array`)
+    return derivedValueOf({ ...node, type: node.type[0] }, propertyName, `${path}.type[0]`)
+  }
+
   const type = node.type
   if (typeof type !== 'string') {
     return refuse(`${path} declares no single type, so there is nothing to exemplify`)
