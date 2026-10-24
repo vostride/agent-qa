@@ -10,9 +10,15 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/agent-qa"><img src="https://img.shields.io/npm/v/agent-qa?color=196872" alt="npm 版本"></a>
+  <a href="https://www.npmjs.com/package/agent-qa"><img src="https://img.shields.io/npm/dm/agent-qa?color=196872" alt="npm 月下载量"></a>
+  <a href="https://github.com/vostride/agent-qa/stargazers"><img src="https://img.shields.io/github/stars/vostride/agent-qa?color=196872" alt="GitHub 星标"></a>
   <a href="https://github.com/vostride/agent-qa/actions/workflows/ci.yml"><img src="https://github.com/vostride/agent-qa/actions/workflows/ci.yml/badge.svg?branch=main" alt="持续集成"></a>
   <a href="https://vostride.com/docs/agent-qa"><img src="https://img.shields.io/badge/docs-agent--qa-196872" alt="文档"></a>
   <a href="LICENSE.md"><img src="https://img.shields.io/badge/license-FSL--1.1--ALv2-196872" alt="许可证：FSL-1.1-ALv2"></a>
+</p>
+
+<p align="center">
+  <a href="https://vostride.com/agent-qa">官网</a> · <a href="https://vostride.com/docs/agent-qa">文档</a> · <a href="https://vostride.com/demo/agent-qa">演示</a> · <a href="https://vostride.com/blog">博客</a> · <a href="https://vostride.com/changelog">更新日志</a>
 </p>
 
 **有记忆的 AI 测试工程师。** 用自然语言描述用户流程，agent-qa 会在 Web、Android 或 iOS 上执行测试并保留证据。你可以使用命令行、仪表板，也可以让编程助手通过 MCP 和技能调用它。
@@ -20,12 +26,12 @@
 - **memidex 记忆：** 将学到的事实和可复用流程保存为仓库中的文件，方便审查。
 - **持续改进：** 验证测试中学到的经验，淘汰过时知识，并根据你的反馈纠正错误。
 
-| 基准测试 | 已公布的成绩 |
-| --- | --- |
-| [AndroidWorld](https://vostride.com/benchmark/android-world) | **100% pass@1**（116/116 项任务） |
-| [AppControlBench](https://vostride.com/benchmark/app-control-bench) | **99.6% 完成度**（114.5/115 分） |
+| 基准测试 | 排名 | 已公布的成绩 |
+| --- | --- | --- |
+| [AndroidWorld](https://vostride.com/benchmark/android-world) | **#1** | **100% pass@1**（116/116 项任务） |
+| [AppControlBench](https://vostride.com/benchmark/app-control-bench) | **#1** | **99.6% 完成度**（114.5/115 分） |
 
-基准报告附有运行证据和测试方法。两项测试均使用 gpt-6-sol，并关闭了记忆和自我改进功能；AppControlBench 对部分完成的任务计半分。
+完整的基准报告（含运行证据和测试方法）发布在[我们的博客](https://vostride.com/blog)上。两项测试均使用 gpt-6-sol，并关闭了记忆和自我改进功能；AppControlBench 对部分完成的任务计半分。
 
 ## 实际运行效果
 
