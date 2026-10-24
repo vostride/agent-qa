@@ -8,8 +8,8 @@
 // Skipped unless AGENT_QA_438_LIVE_MODEL=1. AGENT_QA_438_LIVE_AUTH_PLUGIN must then name the built
 // subscription-auth plugin's dist/index.js; AGENT_QA_438_LIVE_LLM overrides the model (default
 // gpt-6.1-sol through openai-subscription, whose registry name is the auth-store key). The cell
-// never reads the auth store; the CLI does. Runs are headless with the cache disabled. A skipped
-// cell is registered as not run in scripts/gate/inputs/register.json; a skip is never a pass.
+// never reads the auth store; the CLI does. Runs are headless with the cache disabled.
+// A skip is never a pass.
 
 import { spawn } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'

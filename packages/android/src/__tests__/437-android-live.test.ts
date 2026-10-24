@@ -14,8 +14,7 @@
 // Skipped unless AGENT_QA_437_ANDROID_LIVE=1, with a booted emulator and Appium reachable at
 // AGENT_QA_APPIUM_URL or http://localhost:4723. The secure cells also need
 // AGENT_QA_437_SECURE_APPIUM_URL naming such a plain Appium server; they point the session at it
-// for their own setup only. A skipped cell is registered as not run in
-// scripts/gate/inputs/register.json; a skip is never a pass.
+// for their own setup only. A skip is never a pass.
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { executeStep, scriptedVerification } from '@vostride/agent-qa-runner'

@@ -13,8 +13,8 @@
 // Skipped unless AGENT_QA_437_IOS_LIVE=1, with a booted simulator (its udid in
 // AGENT_QA_437_IOS_UDID, or Appium's choice) and Appium with XCUITest reachable at
 // AGENT_QA_APPIUM_URL or http://localhost:4723. On a Mac without Simulator.app at the path XCUITest
-// expects, start Appium with --default-capabilities '{"appium:isHeadless":true}'. A skipped cell
-// is registered as not run in scripts/gate/inputs/register.json; a skip is never a pass.
+// expects, start Appium with --default-capabilities '{"appium:isHeadless":true}'.
+// A skip is never a pass.
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { executeStep, scriptedVerification } from '@vostride/agent-qa-runner'

@@ -2,8 +2,7 @@
 // (com.apple.Preferences), through the real runner loop with a scripted planner and verifier. No
 // model is called. Skipped unless AGENT_QA_436_IOS_LIVE=1, with a booted simulator (its udid in
 // AGENT_QA_436_IOS_UDID, or Appium's choice) and Appium with XCUITest (10.25.0 when recorded)
-// reachable at AGENT_QA_APPIUM_URL or http://localhost:4723. A skipped cell is registered as not
-// run in scripts/gate/inputs/register.json; a skip is never a pass.
+// reachable at AGENT_QA_APPIUM_URL or http://localhost:4723. A skip is never a pass.
 //
 // XCUITest reports no movement or boundary signal, so every iOS swipe is 'unknown' (436-02): a
 // search ends only when the visibility probe sees the target or maxSwipes is used.

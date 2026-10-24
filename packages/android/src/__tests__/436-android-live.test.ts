@@ -2,8 +2,7 @@
 // (com.android.settings), through the real runner loop with a scripted planner and verifier. No
 // model is called. Skipped unless AGENT_QA_436_ANDROID_LIVE=1, with a booted emulator and Appium
 // (3.7.0 / UiAutomator2 7.0.0 when recorded) reachable at AGENT_QA_APPIUM_URL or
-// http://localhost:4723. A skipped cell is registered as not run in scripts/gate/inputs/register.json;
-// a skip is never a pass.
+// http://localhost:4723. A skip is never a pass.
 //
 // It is also where research assumption A1 is checked on a real device: `mobile: scrollGesture`
 // answers true while the list moved and more remains, and false at the list's end.
