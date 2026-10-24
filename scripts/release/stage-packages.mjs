@@ -109,22 +109,22 @@ async function stageCliSkills(sourcePackageDir, targetPackageDir) {
   }
 }
 
-// npm resolves relative README links against the package directory, so they are pinned to the
-// release tag, which the release workflow pushes before it publishes.
-export function absolutizeReadmeLinks(body, ref) {
+// npm resolves relative README links against the package directory, so any the README gains are
+// pointed at main on GitHub, like the absolute ones it already carries.
+export function absolutizeReadmeLinks(body) {
   const repoPath = path => path.replace(/^\.?\//, '')
-  const raw = path => absoluteOrAnchorUrl.test(path) ? path : `https://raw.githubusercontent.com/${repositorySlug}/${ref}/${repoPath(path)}`
-  const blob = path => absoluteOrAnchorUrl.test(path) ? path : `https://github.com/${repositorySlug}/blob/${ref}/${repoPath(path)}`
+  const raw = path => absoluteOrAnchorUrl.test(path) ? path : `https://raw.githubusercontent.com/${repositorySlug}/main/${repoPath(path)}`
+  const blob = path => absoluteOrAnchorUrl.test(path) ? path : `https://github.com/${repositorySlug}/blob/main/${repoPath(path)}`
   return body
     .replace(/\b(src|srcset)="([^"]+)"/g, (_, attr, path) => `${attr}="${raw(path)}"`)
     .replace(/\bhref="([^"]+)"/g, (_, path) => `href="${blob(path)}"`)
     .replace(/(!?)\[([^\]]*)\]\(([^)\s]+)\)/g, (_, bang, text, path) => `${bang}[${text}](${bang ? raw(path) : blob(path)})`)
 }
 
-function readRootReadme(rootDir, targetVersion) {
+function readRootReadme(rootDir) {
   const readmePath = join(rootDir ?? process.cwd(), 'README.md')
   if (!existsSync(readmePath)) throw new Error(`missing root README for staged packages: ${readmePath}`)
-  return absolutizeReadmeLinks(readFileSync(readmePath, 'utf8'), `v${targetVersion}`)
+  return absolutizeReadmeLinks(readFileSync(readmePath, 'utf8'))
 }
 
 export async function stagePublishPackages(options = {}) {
@@ -133,7 +133,7 @@ export async function stagePublishPackages(options = {}) {
   const outputDir = options.outputDir ?? join(rootDir ?? process.cwd(), '.release/staged-packages')
   if (!targetVersion) throw new Error('missing targetVersion')
 
-  const readme = readRootReadme(rootDir, targetVersion)
+  const readme = readRootReadme(rootDir)
   const records = getPublicPackages({ rootDir })
   await rm(outputDir, { recursive: true, force: true })
   await mkdir(outputDir, { recursive: true })

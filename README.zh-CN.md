@@ -1,11 +1,11 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/banner-dark.jpg">
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/banner-light.png">
-  <img src="docs/assets/readme/banner-light.png" alt="vostride 出品的 agent-qa：能够持续改进的 AI 测试工具" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/banner-dark.jpg">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/banner-light.png">
+  <img src="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/banner-light.png" alt="vostride 出品的 agent-qa：能够持续改进的 AI 测试工具" width="100%">
 </picture>
 
 <p align="center">
-  <a href="README.md">English</a> · <strong>中文</strong>
+  <a href="https://github.com/vostride/agent-qa/blob/main/README.md">English</a> · <strong>中文</strong>
 </p>
 
 <p align="center">
@@ -14,7 +14,7 @@
   <a href="https://github.com/vostride/agent-qa/stargazers"><img src="https://img.shields.io/github/stars/vostride/agent-qa?color=196872" alt="GitHub 星标"></a>
   <a href="https://github.com/vostride/agent-qa/actions/workflows/ci.yml"><img src="https://github.com/vostride/agent-qa/actions/workflows/ci.yml/badge.svg?branch=main" alt="持续集成"></a>
   <a href="https://vostride.com/docs/agent-qa"><img src="https://img.shields.io/badge/docs-agent--qa-196872" alt="文档"></a>
-  <a href="LICENSE.md"><img src="https://img.shields.io/badge/license-FSL--1.1--ALv2-196872" alt="许可证：FSL-1.1-ALv2"></a>
+  <a href="https://github.com/vostride/agent-qa/blob/main/LICENSE.md"><img src="https://img.shields.io/badge/license-FSL--1.1--ALv2-196872" alt="许可证：FSL-1.1-ALv2"></a>
 </p>
 
 <p align="center">
@@ -38,25 +38,25 @@
 **查看失败原因。** 演示发现购物车将应为 $53 的总价显示成了 $29。失败步骤与对应截图并排呈现。
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/evidence-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/evidence-light.png">
-  <img src="docs/assets/readme/evidence-light.png" alt="仪表板展示故意设置的购物车总价错误、失败断言和浏览器截图" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/evidence-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/evidence-light.png">
+  <img src="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/evidence-light.png" alt="仪表板展示故意设置的购物车总价错误、失败断言和浏览器截图" width="100%">
 </picture>
 
 **了解记忆如何参与测试。** 查看本次运行获得了哪些知识，以及哪些步骤使用了它们。
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/knowledge-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/knowledge-light.png">
-  <img src="docs/assets/readme/knowledge-light.png" alt="Knowledge 标签页展示为本次演示检索到的已存储知识" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/knowledge-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/knowledge-light.png">
+  <img src="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/knowledge-light.png" alt="Knowledge 标签页展示为本次演示检索到的已存储知识" width="100%">
 </picture>
 
 **从终端运行。** 演示测试套件的真实输出：结账流程通过，故意设置的总价错误被检测出来。
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/cli-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/cli-light.png">
-  <img src="docs/assets/readme/cli-light.png" alt="命令行输出节选：一项测试通过，一项失败，九个步骤中有八个通过" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/cli-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/cli-light.png">
+  <img src="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/cli-light.png" alt="命令行输出节选：一项测试通过，一项失败，九个步骤中有八个通过" width="100%">
 </picture>
 
 ## 开始使用
@@ -75,4 +75,4 @@ npx agent-qa init
 
 ## 许可证
 
-[Functional Source License（FSL-1.1-ALv2）](LICENSE.md)。
+[Functional Source License（FSL-1.1-ALv2）](https://github.com/vostride/agent-qa/blob/main/LICENSE.md)。

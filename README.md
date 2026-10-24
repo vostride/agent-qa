@@ -1,11 +1,11 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/banner-dark.jpg">
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/banner-light.png">
-  <img src="docs/assets/readme/banner-light.png" alt="agent-qa by vostride — a self-improving QA agent for your software factory" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/banner-dark.jpg">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/banner-light.png">
+  <img src="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/banner-light.png" alt="agent-qa by vostride — a self-improving QA agent for your software factory" width="100%">
 </picture>
 
 <p align="center">
-  <strong>English</strong> · <a href="README.zh-CN.md">中文</a>
+  <strong>English</strong> · <a href="https://github.com/vostride/agent-qa/blob/main/README.zh-CN.md">中文</a>
 </p>
 
 <p align="center">
@@ -14,7 +14,7 @@
   <a href="https://github.com/vostride/agent-qa/stargazers"><img src="https://img.shields.io/github/stars/vostride/agent-qa?color=196872" alt="GitHub stars"></a>
   <a href="https://github.com/vostride/agent-qa/actions/workflows/ci.yml"><img src="https://github.com/vostride/agent-qa/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
   <a href="https://vostride.com/docs/agent-qa"><img src="https://img.shields.io/badge/docs-agent--qa-196872" alt="Documentation"></a>
-  <a href="LICENSE.md"><img src="https://img.shields.io/badge/license-FSL--1.1--ALv2-196872" alt="License: FSL-1.1-ALv2"></a>
+  <a href="https://github.com/vostride/agent-qa/blob/main/LICENSE.md"><img src="https://img.shields.io/badge/license-FSL--1.1--ALv2-196872" alt="License: FSL-1.1-ALv2"></a>
 </p>
 
 <p align="center">
@@ -38,25 +38,25 @@ Read the full benchmark reports, with run evidence and methodology, on [our blog
 **Inspect a failure.** The demo catches a cart showing $29 instead of $53, with the failed step and its screenshot side by side.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/evidence-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/evidence-light.png">
-  <img src="docs/assets/readme/evidence-light.png" alt="The dashboard shows the deliberate cart-total bug, its failed assertion, and recorded browser evidence" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/evidence-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/evidence-light.png">
+  <img src="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/evidence-light.png" alt="The dashboard shows the deliberate cart-total bug, its failed assertion, and recorded browser evidence" width="100%">
 </picture>
 
 **See what memory contributed.** Inspect the knowledge supplied to a run and trace it back to the steps that used it.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/knowledge-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/knowledge-light.png">
-  <img src="docs/assets/readme/knowledge-light.png" alt="The Knowledge tab shows stored facts retrieved for the demo run" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/knowledge-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/knowledge-light.png">
+  <img src="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/knowledge-light.png" alt="The Knowledge tab shows stored facts retrieved for the demo run" width="100%">
 </picture>
 
 **Run from your terminal.** Real output from the demo suite: checkout passes; the deliberate cart-total bug fails.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/cli-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="docs/assets/readme/cli-light.png">
-  <img src="docs/assets/readme/cli-light.png" alt="CLI output excerpt showing one passed test, one failed test, and eight of nine steps passing" width="100%">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/cli-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/cli-light.png">
+  <img src="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/cli-light.png" alt="CLI output excerpt showing one passed test, one failed test, and eight of nine steps passing" width="100%">
 </picture>
 
 ## Get started
@@ -75,4 +75,4 @@ Follow the [quickstart](https://vostride.com/docs/agent-qa/quickstart) to connec
 
 ## License
 
-[Functional Source License (FSL-1.1-ALv2)](LICENSE.md).
+[Functional Source License (FSL-1.1-ALv2)](https://github.com/vostride/agent-qa/blob/main/LICENSE.md).

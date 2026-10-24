@@ -147,27 +147,27 @@ test('stages the root README into every public package without writing it to the
     const fixture = await fixtureRepo(tempDir)
     const stagedDir = join(tempDir, 'staged')
     const stagedRecords = await stagePublishPackages({ rootDir: fixture, targetVersion: '0.1.1', outputDir: stagedDir })
-    const expected = absolutizeReadmeLinks(readFileSync(join(rootDir, 'README.md'), 'utf8'), 'v0.1.1')
+    const expected = absolutizeReadmeLinks(readFileSync(join(rootDir, 'README.md'), 'utf8'))
 
     assert.equal(stagedRecords.length, getPublicPackages({ rootDir }).length)
     for (const record of stagedRecords) {
       assert.equal(readFileSync(join(record.dir, 'README.md'), 'utf8'), expected, `${record.pkg.name} staged a different README`)
       assert.ok(!existsSync(join(record.sourceDir, 'README.md')), `${record.pkg.name} source package gained a README`)
     }
-    assert.ok(expected.includes('https://raw.githubusercontent.com/vostride/agent-qa/v0.1.1/docs/assets/readme/'))
+    assert.ok(expected.includes('https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/'))
     assert.doesNotMatch(expected, /\b(?:src|srcset|href)="(?!https?:\/\/|#)/)
     assert.doesNotMatch(expected, /\]\((?!https?:\/\/|#)/)
   })
 })
 
-test('pins relative README images to raw files and links to blobs, leaving absolute links alone', () => {
+test('points relative README images at raw files and links at blobs on main, leaving absolute links alone', () => {
   const body = [
     '<img src="docs/a.png"> <source srcset="./docs/b.jpg"> <a href="LICENSE.md">l</a> <a href="https://x.dev">x</a>',
     '![shot](docs/c.png) [License](LICENSE.md) [Docs](https://vostride.com/docs) [Top](#get-started)',
   ].join('\n')
-  assert.equal(absolutizeReadmeLinks(body, 'v1.2.3'), [
-    '<img src="https://raw.githubusercontent.com/vostride/agent-qa/v1.2.3/docs/a.png"> <source srcset="https://raw.githubusercontent.com/vostride/agent-qa/v1.2.3/docs/b.jpg"> <a href="https://github.com/vostride/agent-qa/blob/v1.2.3/LICENSE.md">l</a> <a href="https://x.dev">x</a>',
-    '![shot](https://raw.githubusercontent.com/vostride/agent-qa/v1.2.3/docs/c.png) [License](https://github.com/vostride/agent-qa/blob/v1.2.3/LICENSE.md) [Docs](https://vostride.com/docs) [Top](#get-started)',
+  assert.equal(absolutizeReadmeLinks(body), [
+    '<img src="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/a.png"> <source srcset="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/b.jpg"> <a href="https://github.com/vostride/agent-qa/blob/main/LICENSE.md">l</a> <a href="https://x.dev">x</a>',
+    '![shot](https://raw.githubusercontent.com/vostride/agent-qa/main/docs/c.png) [License](https://github.com/vostride/agent-qa/blob/main/LICENSE.md) [Docs](https://vostride.com/docs) [Top](#get-started)',
   ].join('\n'))
 })
 
