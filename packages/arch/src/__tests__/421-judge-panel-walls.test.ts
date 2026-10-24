@@ -31,12 +31,14 @@ const digest = (text: string) => createHash('sha256').update(text).digest('hex')
 // scopes, its last imports. Both digests were recomputed by this wall's own expression; no edge
 // was added.
 // Re-blessed 2026-10-21 for cli only (446-20, D-35/D-36): @modelcontextprotocol/server 2.0.0 -> 2.3.1.
+// Re-blessed 2026-10-24 for cli, eval, eval-local and knowledge-local (GHSA-mrhx-c7xc-m3w5): zod
+// 4.4.2 -> 4.6.7 is the only dependency that moved. No ownership edge changed.
 const dependencyPins = {
-  eval: '3dfdd67ac8febb33dc7f7d027408677ff5f7852b02c6df15d221b5395c9b5371',
-  'eval-local': 'ff1e17649560aefa89a3be3e75ff96ac2943502ff2d83d4ce7c6fc3614885ad4',
-  'knowledge-local': 'a88a5eaa4fb407dbfc466da9ffae57698962ca15abf7b3bceb800ee6c4a57243',
+  eval: '417bcbb571062963128aa46794162754246daf6a809385e08cebd7e3f3dda145',
+  'eval-local': 'cb22f0373c7e8d1728d580e48a1943cf80c2dddd9c77f73e44d876f5eaf68096',
+  'knowledge-local': '1d948c676485e6010852336416ca9fc7b1e7e8a6e03f0ef23cf44daf737a9f7d',
   'agent-local': 'b2e720e8c49b10e5882523a1cffdfa8e502619dd3e1e799e1078eba3dc6d01d0',
-  cli: 'e85aea694cee7b3a437f33076e6718995bfd13d21a80f20a85164e3607d15624',
+  cli: '2bbccc81ac9a3b3bf2937d3c354c5b7ea5df63363d7f2b91c2e59e5b4277fa04',
 }
 const internalPins: Record<string, string> = {
   eval: 'f09db8107041e27d15929be67224e779d7ecaca3b45594f7c63cee45c9c200ed',
