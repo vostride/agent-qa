@@ -35,7 +35,6 @@
     "release:verify": "node scripts/release/verify.mjs",
     "release:publish": "node scripts/release/publish.mjs",
     "release:github": "node scripts/release/github-release.mjs",
-    "gate:local": "node scripts/gate/run.mjs",
     "lint:namespace": "! grep -r '@agent-qa/' packages/ --include='*.ts' --include='*.json' --include='*.js' -l --exclude-dir=node_modules --exclude-dir=dist",
     "validate:431-discovery-imports": "node scripts/431-discovery-import-lint.mjs"
   },

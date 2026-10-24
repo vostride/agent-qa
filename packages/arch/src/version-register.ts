@@ -158,11 +158,6 @@ export const VERSION_REGISTER: readonly RegisteredVersion[] = [
   { id: 'scoring-context', site: 'packages/eval/src/match/scoring-context.ts', field: 'schemaVersion', value: 2, rule: 'refuse' },
   { id: 'curation-observation', site: 'packages/knowledge-local/src/journal/curation-effect-receipt.ts', field: 'schemaVersion', value: 2, rule: 'refuse' },
   { id: 'curation-effect-receipt', site: 'packages/knowledge-local/src/journal/curation-effect-receipt.ts', field: 'schemaVersion', value: 2, rule: 'refuse' },
-  { id: 'gate-list-input', site: 'scripts/gate/inputs/regressions.json', field: 'schemaVersion', value: 2, rule: 'refuse', copies: [{ site: 'scripts/gate/inputs/register.json', spelling: '"schemaVersion": ' }, { site: 'scripts/gate/evaluate.mjs', spelling: 'list?.schemaVersion !== ' }] },
-  { id: 'gate-pin-input', site: 'scripts/gate/inputs/node-tests.json', field: 'schemaVersion', value: 2, rule: 'no-reader', copies: [{ site: 'scripts/gate/inputs/packages.json', spelling: '"schemaVersion": ' }] },
-  { id: 'gate-summary', site: 'scripts/gate/run.mjs', field: 'schemaVersion', value: 2, rule: 'no-reader' },
-  { id: 'gate-repeat-summary', site: 'scripts/gate/run.mjs', field: 'schemaVersion', value: 2, rule: 'no-reader' },
-  { id: 'node-test-report', site: 'scripts/gate/node-test-json.mjs', field: 'schemaVersion', value: 2, rule: 'no-reader' },
   { id: 'skills-contracts', site: 'skills/agent-qa-authoring/references/agent-qa-contracts.json', field: 'version', value: 2, rule: 'no-reader', copies: [{ site: 'packages/cli/skills/agent-qa-authoring/references/agent-qa-contracts.json', spelling: '"version": ' }] },
 ]
 
@@ -203,17 +198,9 @@ export const INLINE_STAMPS: readonly InlineStamp[] = [
   { site: 'packages/schema/src/knowledge/review-verbs.ts', literal: 2, count: 1, id: 'records-diff-output' },
   { site: 'packages/schema/src/knowledge/review-verbs.ts', literal: 2, count: 1, id: 'record-show-output' },
   { site: 'packages/schema/src/knowledge/review-verbs.ts', literal: 2, count: 1, id: 'record-show-not-found' },
-  { site: 'scripts/gate/evaluate.mjs', literal: 2, count: 1, id: 'gate-list-input' },
-  { site: 'scripts/gate/node-test-json.mjs', literal: 2, count: 1, id: 'node-test-report' },
-  { site: 'scripts/gate/run.mjs', literal: 2, count: 1, id: 'gate-summary' },
-  { site: 'scripts/gate/run.mjs', literal: 2, count: 1, id: 'gate-repeat-summary' },
 ]
 
 export const JSON_STAMPS: readonly JsonStamp[] = [
-  { file: 'scripts/gate/inputs/node-tests.json', key: 'schemaVersion', value: 2 },
-  { file: 'scripts/gate/inputs/packages.json', key: 'schemaVersion', value: 2 },
-  { file: 'scripts/gate/inputs/register.json', key: 'schemaVersion', value: 2 },
-  { file: 'scripts/gate/inputs/regressions.json', key: 'schemaVersion', value: 2 },
   { file: 'skills/agent-qa-authoring/references/agent-qa-contracts.json', key: 'version', value: 2 },
   { file: 'packages/cli/skills/agent-qa-authoring/references/agent-qa-contracts.json', key: 'version', value: 2 },
 ]

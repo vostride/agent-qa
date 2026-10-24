@@ -11,7 +11,7 @@
  *   - no reader admits a second version: no migration step, alias, dual-stamp helper, union of two
  *     stamp literals, union keyed on the stamp, or stamp typed as a union;
  *   - every hand-written copy of a value spells the value of its source;
- *   - the gate inputs and both skills contracts read 2, and the two contracts copies are identical;
+ *   - both skills contracts read 2, and the two copies are identical;
  *   - every schemaVersion stamp in the repository's fixtures is 2, apart from the spelled exclusions.
  *
  * Excluded, each with its reason in the register: external specifications, package and product
@@ -141,7 +141,7 @@ function codeOf(text: string): string {
 }
 
 // ---------------------------------------------------------------------------------------------
-// The universe: production source of every package but this one, and the gate scripts
+// The universe: production source of every package but this one
 // ---------------------------------------------------------------------------------------------
 
 const SKIPPED_DIRECTORIES = new Set(['node_modules', 'dist'])
@@ -173,7 +173,6 @@ const packageSources = (): string[] =>
 function productionFiles(): string[] {
   return [
     ...packageSources().filter((root) => root !== ARCH_SOURCE).flatMap((root) => listTree(root, isProduction)),
-    ...listTree('scripts/gate/', (file) => /^scripts\/gate\/[^/]+\.mjs$/.test(file)),
   ]
 }
 
@@ -475,7 +474,7 @@ describe('schema version census', () => {
   it('every registered copy spells the value of its source', () => {
     const copies = VERSION_REGISTER.flatMap((row) => (row.copies ?? []).map((copy) => ({ row, copy })))
     expect(copies.map(({ copy }) => copy.site)).toEqual(
-      expect.arrayContaining(['packages/dashboard-ui/src/lib/api.ts', 'scripts/gate/evaluate.mjs']),
+      expect.arrayContaining(['packages/dashboard-ui/src/lib/api.ts']),
     )
     const wrong = copies.flatMap(({ row, copy }) => {
       const value = sourceValue(row)
@@ -490,12 +489,7 @@ describe('schema version census', () => {
     expect(wrong).toEqual([])
   })
 
-  it('the gate inputs and both skills contracts read 2, and the two contracts copies are identical', () => {
-    const inputs = readdirSync(join(REPO_ROOT, 'scripts/gate/inputs'))
-      .filter((name) => name.endsWith('.json'))
-      .map((name) => `scripts/gate/inputs/${name}`)
-      .sort()
-    expect(JSON_STAMPS.filter((row) => row.key === STAMP_KEY).map((row) => row.file).sort()).toEqual(inputs)
+  it('both skills contracts read 2, and the two copies are identical', () => {
     const contracts = JSON_STAMPS.filter((row) => row.key === 'version').map((row) => row.file)
     const copies = [...listTree('skills/', (file) => file.endsWith('/agent-qa-contracts.json')),
       ...listTree('packages/cli/skills/', (file) => file.endsWith('/agent-qa-contracts.json'))]
@@ -563,7 +557,7 @@ describe('schema version census instruments', () => {
     expect(inlineOffenders([{ file: site, text: codeOf(`// ${planted}`) }])).toEqual([])
     expect(inlineOffenders([{ file: site, text: codeOf(`/* ${planted} */`) }])).toEqual([])
 
-    const writer = 'scripts/gate/run.mjs'
+    const writer = 'packages/agent/src/functions/ops/knowledge-records-diff.ts'
     const extra = cat('const extra = { schemaVer', 'sion: 2 }\n')
     expect(inlineOffenders([{ file: writer, text: code(writer) }])).toEqual([])
     expect(inlineOffenders([{ file: writer, text: `${code(writer)}${codeOf(extra)}` }])).toHaveLength(1)
