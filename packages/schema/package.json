@@ -47,7 +47,7 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
-    "zod": "4.4.2"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/node": "~24.12.2",

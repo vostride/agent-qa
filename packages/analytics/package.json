@@ -57,7 +57,7 @@
     "@vostride/agent-qa-schema": "workspace:*",
     "id-agent": "1.0.3",
     "posthog-node": "5.33.2",
-    "zod": "4.4.2"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/node": "~24.12.2",

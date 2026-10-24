@@ -60,7 +60,7 @@
     "@vostride/agent-qa-safety": "workspace:*",
     "@vostride/agent-qa-schema": "workspace:*",
     "sqlite-vec": "0.1.9",
-    "zod": "4.4.2"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/node": "~24.12.2",

@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 // D-07/D-11: refusals for config keys removed in v2. This scan is a zod pipe PRE-stage in front
 // of the strict root schema — a superRefine chained after .strict() never runs when strict rejects
-// (verified on zod 4.4.2), so these messages must fire first. The scan only ADDS issues; the
+// a value (verified on zod 4.6.7), so these messages must fire first. The scan only ADDS issues; the
 // strict stage-B parse remains the acceptance authority. 2026-10-19 (445-07, D-23): every issue
 // carries params.retired so the CLI closes the error with the hard-cut steps.
 const RETIRED_MEMORY_KEY_MESSAGES: Record<string, string> = {

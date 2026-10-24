@@ -143,7 +143,7 @@ const AgentQaConfigSchemaInner = z.object({
 })
 
 // D-07: retired-key pipe pre-scan — the scan MUST run before the strict object because
-// zod (4.4.2 verified) never runs refinements chained after a failed strict parse
+// zod (4.6.7 verified) skips refinements chained after a strict parse that rejects a value
 // (RESEARCH Pitfall 1). z.infer of the piped schema yields the stage-B output type,
 // so the exported AgentQaConfig type semantics are unchanged.
 export const AgentQaConfigSchema = retiredKeyScan.pipe(AgentQaConfigSchemaInner)

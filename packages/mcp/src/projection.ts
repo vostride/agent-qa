@@ -7,7 +7,7 @@
 // no second place to update when an op's contract changes, because there is no first place.
 //
 // ONE CONVERSION ROUTE, CHOSEN AND STATED. The op's live Standard-Schema contract is handed to
-// `registerTool` untouched and the SDK converts it (zod 4.4.2 is above the 4.2 floor the
+// `registerTool` untouched and the SDK converts it (zod 4.6.7 is above the 4.2 floor the
 // self-conversion needs). The rejected alternative was to run the function layer's own
 // `toSchemaProjection` and hand the result to `fromJsonSchema`. Both work; having both is the
 // defect. The route taken is the one where the object advertised in `tools/list` and the object
