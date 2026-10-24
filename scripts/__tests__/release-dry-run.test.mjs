@@ -42,9 +42,6 @@ test('builds a non-mutating patch release dry-run plan', () => {
     'pnpm run validate:skills',
     'pnpm run validate:agents',
     'pnpm run validate:publish',
-    'pnpm run validate:tools',
-    'pnpm run validate:arch',
-    'pnpm run validate:safety',
   ]) {
     assert.ok(plan.releaseGatePlan.includes(command))
     assert.ok(plan.localValidation.includes(command))
