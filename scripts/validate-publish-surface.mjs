@@ -177,7 +177,7 @@ function validatePublicPackage(record, allVersions, errors, options = { checkFil
   }
 
   // 414 D-18: eval-local joined knowledge-local on a `./reader` subpath — the proposer's
-  // read-only door, walled off from the gate-side main entry by validate:arch. A per-package
+  // read-only door, walled off from the gate-side main entry by the arch lint. A per-package
   // `if` is how a second package quietly ships an unguarded subpath, so the condition is a LIST.
   const READER_SUBPATH_PACKAGES = ['@vostride/agent-qa-knowledge-local', '@vostride/agent-qa-eval-local']
   if (READER_SUBPATH_PACKAGES.includes(record.pkg.name)) {
@@ -478,7 +478,7 @@ function runValidation() {
   validateNoStaleMcpToolPrefix(errors)
   runSourceSkillsValidation(errors)
 
-  const packed = quick ? 0 : validatePackDryRuns(errors)
+  if (!quick) validatePackDryRuns(errors)
 
   if (errors.length > 0) {
     console.error('publish surface validation failed:')
@@ -490,8 +490,6 @@ function runValidation() {
   }
 
   console.log(`publish surface validation passed (${quick ? 'quick' : 'full'})`)
-  const count = { validator: 'publish', executed: packed, unit: 'packages packed' }
-  console.log(`AGENT_QA_GATE_COUNT ${JSON.stringify(count)}`)
 }
 
 if (fixtures) {

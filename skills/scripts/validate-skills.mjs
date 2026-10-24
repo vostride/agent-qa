@@ -29,5 +29,3 @@ for (const skill of skills) {
 }
 
 console.log('agent-qa skills pack validation passed')
-const count = { validator: 'skills', executed: skills.length, unit: 'skills' }
-console.log(`AGENT_QA_GATE_COUNT ${JSON.stringify(count)}`)

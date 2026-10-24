@@ -155,12 +155,6 @@ async function main() {
   })
   if (errors.length === 0) {
     console.log('agent-qa AGENTS.md validation passed')
-    const count = {
-      validator: 'agents',
-      executed: 1 + packageRecords(root).length,
-      unit: 'AGENTS.md files',
-    }
-    console.log(`AGENT_QA_GATE_COUNT ${JSON.stringify(count)}`)
     return
   }
 

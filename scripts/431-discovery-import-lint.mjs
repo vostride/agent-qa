@@ -413,9 +413,6 @@ function main() {
     return
   }
   console.log('431-discovery-imports OK: no embedding runtime on the discovery request path')
-  const executed = result.graph.length
-  const count = { validator: '431-discovery-imports', executed, unit: 'modules' }
-  console.log(`AGENT_QA_GATE_COUNT ${JSON.stringify(count)}`)
 }
 
 if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main()
