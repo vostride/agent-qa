@@ -186,8 +186,13 @@ const READBACK_PAGE = `<!DOCTYPE html>
 `
 
 // 436-16 (WR-05): the proof-dl.mjs form, a script-started navigation to an attachment the server
-// answers late, a download a timer starts after the start window, and a timer clipboard write
-// during a slow download's completion wait (IN-09).
+// answers late, a download a timer starts after the start window, and a clipboard write during a
+// slow download's completion wait (IN-09).
+// 2026-10-24 (261024-3w1): Chromium consumes the click's transient activation when the navigation
+// becomes a download, and a writeText without activation is rejected ("Write permission denied")
+// although clipboard-write is granted. A timer write 800 ms later therefore depended on whether
+// activation was consumed first. The cell now calls lateCopy() from inside the completion wait,
+// through page.evaluate, which carries a user gesture.
 const ARMING_PAGE = `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="utf-8"><title>arming fixture</title></head>
@@ -209,9 +214,9 @@ const ARMING_PAGE = `<!DOCTYPE html>
     }
     function slowWithCopy() {
       location.assign('/files/slow-finish')
-      setTimeout(() => {
-        navigator.clipboard.writeText('LATE-COPY').then(() => { window.lateCopy = 'resolved' }, () => { window.lateCopy = 'rejected' })
-      }, 800)
+    }
+    function lateCopy() {
+      return navigator.clipboard.writeText('LATE-COPY').then(() => { window.lateCopy = 'resolved' }, () => { window.lateCopy = 'rejected' })
     }
   </script>
 </body>
@@ -1290,10 +1295,17 @@ describe('C436-DOWNLOAD-ARMING', () => {
   it('a clipboard write during the completion wait is not attributed', async () => {
     const web = await open(undefined, undefined, 'arming')
     const ref = await refFor(web, 'button', 'Export slowly and copy')
+    const capture = captureOf(web) as unknown as { finish: (download: Download) => Promise<DownloadEvidence> }
+    const finish = capture.finish.bind(capture)
+    const wait = vi.spyOn(capture, 'finish').mockImplementation(async (download) => {
+      await web.getPage()!.evaluate('lateCopy()')
+      return finish(download)
+    })
     const started = performance.now()
     const result = await web.execute({ type: 'click', ref })
     const elapsed = performance.now() - started
 
+    expect(wait).toHaveBeenCalledTimes(1)
     expect(await web.getPage()!.evaluate('window.lateCopy')).toBe('resolved')
     expect(elapsed).toBeGreaterThanOrEqual(SLOW_FINISH_MS - 200)
     expect(canonical(downloadsOf(result)?.map((download) => [download.suggestedFilename, download.state]))).toBe(
