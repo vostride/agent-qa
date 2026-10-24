@@ -222,7 +222,7 @@ test('docker release workflow uses official Docker actions with metadata and att
   assert.match(workflow, /org\.opencontainers\.image\.version=\$\{\{ needs\.preflight\.outputs\.version \}\}/)
   assert.match(workflow, /org\.opencontainers\.image\.revision=\$\{\{ github\.sha \}\}/)
   assert.match(workflow, /org\.opencontainers\.image\.source=\$\{\{ github\.server_url \}\}\/\$\{\{ github\.repository \}\}/)
-  assert.match(workflow, /org\.opencontainers\.image\.licenses=SEE LICENSE IN LICENSE\.md/)
+  assert.match(workflow, /org\.opencontainers\.image\.licenses=FSL-1\.1-ALv2/)
   assert.match(workflow, /provenance:\s*mode=max/)
   assert.match(workflow, /sbom:\s*true/)
   assert.doesNotMatch(workflow, /build-args:|secret-envs:|secret-files:/)

@@ -2,7 +2,7 @@ FROM alpine:3.21
 
 LABEL org.opencontainers.image.title="agent-qa Hook Runner Bash" \
       org.opencontainers.image.description="Bash hook sandbox runtime for agent-qa" \
-      org.opencontainers.image.licenses="SEE LICENSE IN LICENSE.md" \
+      org.opencontainers.image.licenses="FSL-1.1-ALv2" \
       org.opencontainers.image.vendor="Vostride"
 
 COPY LICENSE.md /licenses/agent-qa/LICENSE.md

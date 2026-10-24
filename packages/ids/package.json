@@ -9,7 +9,7 @@
     "ids",
     "validation"
   ],
-  "license": "SEE LICENSE IN LICENSE.md",
+  "license": "FSL-1.1-ALv2",
   "homepage": "https://github.com/vostride/agent-qa#readme",
   "bugs": {
     "url": "https://github.com/vostride/agent-qa/issues"

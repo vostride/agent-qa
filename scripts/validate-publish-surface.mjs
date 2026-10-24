@@ -18,7 +18,7 @@ const packagesRoot = join(root, 'packages')
 const entryPackageName = 'agent-qa'
 const scopedPrefix = '@vostride/agent-qa'
 const repositoryHostPath = 'github.com/vostride/agent-qa'
-const requiredLicense = 'SEE LICENSE IN LICENSE.md'
+const requiredLicense = 'FSL-1.1-ALv2'
 const requiredCopyright = 'Copyright 2026 Pranshu Chittora'
 const requiredNoticeSnippets = [
   'Pranshu Chittora',

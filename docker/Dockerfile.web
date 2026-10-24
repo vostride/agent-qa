@@ -79,7 +79,7 @@ WORKDIR /tests
 
 LABEL org.opencontainers.image.title="agent-qa Web" \
       org.opencontainers.image.description="AI-powered testing framework with Playwright browsers" \
-      org.opencontainers.image.licenses="SEE LICENSE IN LICENSE.md" \
+      org.opencontainers.image.licenses="FSL-1.1-ALv2" \
       org.opencontainers.image.vendor="Vostride"
 
 ENTRYPOINT ["agent-qa"]

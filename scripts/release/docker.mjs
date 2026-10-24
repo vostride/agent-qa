@@ -92,7 +92,7 @@ export function createDockerLabels(options = {}) {
     `org.opencontainers.image.title=${options.title}`,
     `org.opencontainers.image.description=${options.description}`,
     `org.opencontainers.image.version=${version}`,
-    `org.opencontainers.image.licenses=SEE LICENSE IN LICENSE.md`,
+    `org.opencontainers.image.licenses=FSL-1.1-ALv2`,
   ]
   if (options.image) labels.push(`org.opencontainers.image.ref.name=${options.image}`)
   if (options.revision) labels.push(`org.opencontainers.image.revision=${options.revision}`)
