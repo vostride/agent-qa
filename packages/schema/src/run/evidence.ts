@@ -44,29 +44,31 @@ export const A11yEvidenceRecordSchema = z.strictObject({
 const VariableSnapshotEntrySchema = z.strictObject({
   value: z.string(), source: z.enum(['env', 'inline', 'suite', 'cli', 'capture', 'hook', 'step']),
 })
-// Zod's record parser deliberately skips __proto__. Captured names are data, so validate
-// every own entry before preserving the skipped name. The record supplies the JSON-schema
-// input contract. Custom issues keep strict entry failures intact across Zod intersections,
-// which otherwise reconcile away unrecognized_keys reported by only one arm.
+type VariableSnapshotEntry = z.infer<typeof VariableSnapshotEntrySchema>
+const PRESERVED_PROTO = Symbol('preserved __proto__ entry')
+type PreservedProto = { [PRESERVED_PROTO]?: VariableSnapshotEntry }
+// Captured names are data, but Zod's record parser skips an own __proto__ and its intersection
+// merge deletes one. The second arm validates that entry and carries it through the merge under a
+// symbol, and the last stage restores it as an own property. The record supplies the JSON-schema
+// input contract and validates every other entry.
 export const VariableSnapshotSchema = z.record(z.string(), VariableSnapshotEntrySchema).and(
-  z.unknown().transform((input, ctx): Record<string, z.infer<typeof VariableSnapshotEntrySchema>> => {
-    if (typeof input !== 'object' || input === null || Array.isArray(input)) return {}
-    const preserved: [string, z.infer<typeof VariableSnapshotEntrySchema>][] = []
-    for (const name of Object.keys(input)) {
-      const entry = VariableSnapshotEntrySchema.safeParse(
-        Object.getOwnPropertyDescriptor(input, name)?.value,
-      )
-      if (!entry.success) {
-        for (const issue of entry.error.issues) {
-          ctx.addIssue({ code: 'custom', message: issue.message, path: [name, ...issue.path] })
-        }
-      } else if (name === '__proto__') {
-        preserved.push([name, entry.data])
-      }
+  z.unknown().transform((input, ctx): object => {
+    if (typeof input !== 'object' || input === null || !Object.hasOwn(input, '__proto__')) return {}
+    const entry = VariableSnapshotEntrySchema.safeParse(
+      Object.getOwnPropertyDescriptor(input, '__proto__')?.value,
+    )
+    if (entry.success) return { [PRESERVED_PROTO]: entry.data } satisfies PreservedProto
+    for (const issue of entry.error.issues) {
+      ctx.addIssue({ code: 'custom', message: issue.message, path: ['__proto__', ...issue.path] })
     }
-    return Object.fromEntries(preserved)
+    return {}
   }),
-)
+).transform((merged): Record<string, VariableSnapshotEntry> => {
+  const { [PRESERVED_PROTO]: preserved, ...entries } = merged as typeof merged & PreservedProto
+  return preserved === undefined ? entries : Object.defineProperty(entries, '__proto__', {
+    value: preserved, enumerable: true, writable: true, configurable: true,
+  })
+})
 export type VariableSnapshot = z.infer<typeof VariableSnapshotSchema>
 
 export const RUN_EVIDENCE_DOCUMENT_SCHEMA_VERSION = 2
@@ -128,6 +130,14 @@ export const EvidenceEntrySchema = z.union([
   consolePresent, networkPresent, a11yPresent, ariaPresent, variablesPresent, absent,
 ])
 export type EvidenceEntry = z.infer<typeof EvidenceEntrySchema>
+const presentByKind = {
+  console: consolePresent, network: networkPresent, a11y: a11yPresent, aria: ariaPresent,
+  variables: variablesPresent,
+}
+// Not EvidenceEntrySchema intersected with a kind literal: Zod reconciles away a key that only one
+// side of an intersection rejects, so a strict arm's stray key would pass.
+export const evidenceEntryOfKind = <Kind extends EvidenceKind>(kind: Kind) =>
+  z.union([presentByKind[kind], absent.extend({ kind: z.literal(kind) })])
 export type AriaEvidenceEntry =
   | Extract<EvidenceEntry, { kind: 'aria'; state: 'present' }>
   | (Extract<EvidenceEntry, { state: 'absent' }> & { kind: 'aria' })

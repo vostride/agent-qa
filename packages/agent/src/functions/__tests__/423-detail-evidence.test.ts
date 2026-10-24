@@ -235,6 +235,7 @@ describe('DETAIL-ENTRY-OWNERSHIP', () => {
       { ...unavailable(), console: { kind: 'network', state: 'absent', reason: 'empty' } },
       { ...unavailable(), console: { kind: 'console', state: 'absent', reason: 'empty', counts: { total: 0 } } },
       { ...unavailable(), console: { kind: 'console', state: 'present', ref: ref('aria-state', 'a'), counts: { total: 1, errors: 0, warnings: 0 } } },
+      { ...unavailable(), console: { kind: 'console', state: 'present', ref: ref('console-evidence', 'a'), counts: { total: 1, errors: 0, warnings: 0 }, extra: true } },
       { ...unavailable(), aria: { kind: 'aria', state: 'absent', reason: 'empty' } },
     ]) expect(RunDetailStepSchema.safeParse({ ...step(), evidence }).success).toBe(false)
     expect(RunDetailSubActionSchema.safeParse({ ...child(), ariaEvidence: { kind: 'console', state: 'absent', reason: 'empty' } }).success).toBe(false)

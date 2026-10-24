@@ -67,7 +67,7 @@ const PUBLISHED_TARGET = 'draft-2020-12'
  */
 const WIRE_TERMINALS: ReadonlyMap<z.ZodType, z.ZodType> = new Map<z.ZodType, z.ZodType>([
   [runIdSchema, runIdSchema.in],
-  [VariableSnapshotSchema, VariableSnapshotSchema._zod.def.left],
+  [VariableSnapshotSchema, VariableSnapshotSchema.in._zod.def.left],
 ])
 
 function deepFreeze<Value>(value: Value): Value {

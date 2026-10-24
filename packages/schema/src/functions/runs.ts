@@ -33,7 +33,7 @@ import type { ModelUsage, ModelTokenUsage } from '../run/model-usage'
 import type { RunEventEnvelope, RunEventPayload } from '../run/bus-events'
 import type { MemberTestOutcome } from '../run/member-outcome'
 import {
-  EvidenceEntrySchema, EvidenceKindSchema, EvidenceAbsenceReasonSchema,
+  EvidenceEntrySchema, EvidenceKindSchema, EvidenceAbsenceReasonSchema, evidenceEntryOfKind,
   ConsoleEvidenceDocumentSchema, NetworkEvidenceDocumentSchema, A11yEvidenceDocumentSchema,
   AriaEvidenceDocumentSchema, VariablesEvidenceDocumentSchema, VariableSnapshotSchema,
 } from '../run/evidence'
@@ -813,10 +813,10 @@ export const RunDetailStepSchema = z.object({
   tokenUsage: RunStepTokenUsageSchema.optional(),
   modelUsage: ModelUsageSchema.optional(),
   evidence: z.strictObject({
-    console: EvidenceEntrySchema.and(z.object({ kind: z.literal('console') })),
-    network: EvidenceEntrySchema.and(z.object({ kind: z.literal('network') })),
-    a11y: EvidenceEntrySchema.and(z.object({ kind: z.literal('a11y') })),
-    variables: EvidenceEntrySchema.and(z.object({ kind: z.literal('variables') })),
+    console: evidenceEntryOfKind('console'),
+    network: evidenceEntryOfKind('network'),
+    a11y: evidenceEntryOfKind('a11y'),
+    variables: evidenceEntryOfKind('variables'),
   }).optional(),
   variableSnapshot: VariableSnapshotSchema.optional(),
 }).strict() satisfies z.ZodType<RunDetailStep>
@@ -832,7 +832,7 @@ export const RunDetailSubActionSchema = z.object({
   screenStateHash: z.string(),
   screenStateHashAfter: z.string().optional(),
   artifactRefs: z.array(ArtifactRefSchema).optional(),
-  ariaEvidence: EvidenceEntrySchema.and(z.object({ kind: z.literal('aria') })).optional(),
+  ariaEvidence: evidenceEntryOfKind('aria').optional(),
   recordingOffsetMs: z.number().finite().nonnegative().optional(),
 }).strict() satisfies z.ZodType<RunDetailSubAction>
 
