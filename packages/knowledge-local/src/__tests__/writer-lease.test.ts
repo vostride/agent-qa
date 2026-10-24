@@ -610,12 +610,28 @@ describe('writer lease acquire, heartbeat, release, and stale self-heal (CUR-03/
     const acquired = acquireWriterLease(knowledgeRoot)
     expect(acquired.kind).toBe('acquired')
     if (acquired.kind !== 'acquired') throw new Error('expected acquired writer lease')
-    const startedAtNs = process.hrtime.bigint()
-
-    const held = acquireWriterLease(knowledgeRoot, { mutationLockTakeoverMs: 0 })
+    // Immediate by construction, as in the crash-recovery cell: no sleep, no process resolution
+    // and no SQLite busy wait.
+    const resolved: number[] = []
+    const sqlite = observeSqliteContention()
+    const waits = vi.spyOn(Atomics, 'wait')
+    let waitCalls: number
+    let held: ReturnType<typeof acquireWriterLease>
+    try {
+      held = acquireWriterLease(knowledgeRoot, {
+        mutationLockTakeoverMs: 0,
+        onProcessIncarnationResolved: (pid) => { resolved.push(pid) },
+      })
+    } finally {
+      waitCalls = waits.mock.calls.length
+      waits.mockRestore()
+      sqlite.restore()
+    }
 
     expect(held).toEqual({ kind: 'held', holder: leaseOnDisk() })
-    expect(elapsedMs(startedAtNs)).toBeLessThan(250)
+    expect(waitCalls, 'Atomics.wait calls during the held acquire').toBe(0)
+    expect(resolved, 'process incarnations resolved during the held acquire').toEqual([])
+    expect(sqlite.contended, 'SQLite calls that hit or were exposed to the busy wait during the held acquire').toEqual([])
     expect(readFileSync(join(knowledgeRoot, EPOCH_FILE), 'utf8').trim()).toBe('1')
   })
 
