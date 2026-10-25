@@ -78,7 +78,7 @@ function falseFail(over: Record<string, unknown> = {}): RunsMarkPreviewResult {
     markedDecisionCount: 1,
     groundTruth: [{
       testIndex: 0, stepIndex: 2, verdict: 'pass',
-      recordedVerdict: { pass: false, reasoning: 'cart total differs' }, correctedAction: false,
+      recordedVerdict: { pass: false, reasoning: 'cart total differs' },
     }],
     labels: [{
       testIndex: 0, stepIndex: 2, decisionOrdinal: DECISION_ORDINAL, sourceCassetteId: 'cas-secret-source', channel: 'user-mark',
@@ -110,8 +110,8 @@ function falsePass(): RunsMarkPreviewResult {
     basis: { ledgerOrdinal: 0 },
     markedDecisionCount: 2,
     groundTruth: [
-      { testIndex: 0, stepIndex: 3, verdict: 'fail', recordedVerdict: { pass: true, reasoning: '' }, correctedAction: false },
-      { testIndex: 0, stepIndex: 4, verdict: 'fail', recordedVerdict: { pass: true, reasoning: 'receipt shown' }, correctedAction: true },
+      { testIndex: 0, stepIndex: 3, verdict: 'fail', recordedVerdict: { pass: true, reasoning: '' } },
+      { testIndex: 0, stepIndex: 4, verdict: 'fail', recordedVerdict: { pass: true, reasoning: 'receipt shown' } },
     ],
     labels: [
       { testIndex: 0, stepIndex: 4, decisionOrdinal: DECISION_ORDINAL, sourceCassetteId: 'cas-a', channel: 'user-mark' },
@@ -242,7 +242,6 @@ describe('426-06 the What this will do section', () => {
     expect(container.querySelector('li[data-preview-record] ul, li[data-preview-record] [class*="overflow-y"]')).toBeNull()
 
     expect(line('result')!.querySelectorAll(':scope > *')).toHaveLength(2)
-    expect(line('result')!.textContent).toContain('with your corrected action')
     expect(line('labels')!.textContent).toBe(labelsLine(3))
     expect(line('change')!.textContent).toBe(previewFixText(read.draft) + DRAFT_WORDING_NOT_SHOWN_TEXT)
   })
@@ -273,7 +272,7 @@ describe('426-06 the What this will do section', () => {
 
   it('PREVIEW-MASKED-ESCAPED: hostile reasoning and record content stay text and create no element', async () => {
     const read = falseFail({
-      groundTruth: [{ testIndex: 0, stepIndex: 2, verdict: 'pass', recordedVerdict: { pass: false, reasoning: HOSTILE }, correctedAction: false }],
+      groundTruth: [{ testIndex: 0, stepIndex: 2, verdict: 'pass', recordedVerdict: { pass: false, reasoning: HOSTILE } }],
       knowledge: {
         servedRecordIds: ['rec-served-alpha'], appendsEvidence: true,
         records: [{ recordId: 'rec-served-alpha', recordContent: content(HOSTILE), served: true,
@@ -342,7 +341,6 @@ const REFUSALS: Record<(typeof MARK_PREVIEW_REFUSALS)[number], RunsMarkPreviewRe
   'ambiguous-address': RunsMarkPreviewResultSchema.parse({
     kind: 'ambiguous-address', runId: RUN_ID, candidates: [{ testIndex: 0, testId: TEST_ID }, { testIndex: 1, testId: TEST_ID }],
   }),
-  'ambiguous-correction': RunsMarkPreviewResultSchema.parse({ kind: 'ambiguous-correction', runId: RUN_ID, testIndex: 0, decisionCount: 3 }),
 }
 const READ_FAILURES = ['network', 'ledger-corrupt', 'ledger-unavailable', 'refused', 'shape'] as const satisfies readonly FeedbackReadFailure[]
 
@@ -387,14 +385,11 @@ describe('426-07 the special arms, the refusals and the failed read', () => {
     for (const secret of [RUN_ID, TEST_ID]) expect(visibleText()).not.toContain(secret)
   })
 
-  it('PREVIEW-REFUSALS: a test with no steps and an ambiguous correction read their own counts', () => {
+  it('PREVIEW-REFUSALS: a test with no steps reads that it has nothing to mark', () => {
     const noSteps = RunsMarkPreviewResultSchema.parse({ kind: 'step-not-found', runId: RUN_ID, testIndex: 0, stepIndex: 0, stepCount: 0 })
     render({ state: 'refused', current: true, read: noSteps })
     expect(section().querySelector('[data-entry="denial"]'), 'no refusal block').not.toBeNull()
     expect(section().querySelector('[data-entry="denial"]')!.textContent).toBe('This test recorded no steps, so there is nothing to mark.')
-
-    render({ state: 'refused', current: true, read: REFUSALS['ambiguous-correction'] })
-    expect(section().querySelector('[data-entry="denial"]')!.textContent).toContain('this mark covers 3.')
   })
 
   it.each([...READ_FAILURES])('PREVIEW-FAILED-RETRY: a %s failure names its reason, offers a named Retry and the CLI escape hatch', (failure) => {

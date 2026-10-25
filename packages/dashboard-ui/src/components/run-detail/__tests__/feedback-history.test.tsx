@@ -23,7 +23,6 @@ import {
   REPLACEMENT_EXPLANATION,
   appliedChangeText,
   appliedChangeView,
-  correctedPresenceText,
   dispositionText,
   feedbackPartsText,
   feedbackReadFailureReason,
@@ -76,7 +75,6 @@ function ledger(entries: readonly EntryInput[]): MarksHistoryRead {
         disposition: NO_FIX,
         gold: [],
         evidence: { confirmed: 0, overturned: 0 },
-        corrected: { expectation: false, action: false },
         active: true,
         ...entry,
       })),
@@ -111,7 +109,6 @@ const TWO_ON_STEP = ledger([
     kind: 'false-pass',
     supersedes: markId(1),
     note: 'The coupon should have been refused',
-    corrected: { expectation: true, action: false },
     disposition: applied(),
     changedRecords: changed(),
   },
@@ -173,7 +170,7 @@ describe('426-09 the target list and the run list', () => {
     expect(target!.querySelector('[data-history-target]')).toBeNull()
   })
 
-  it('HISTORY-ENTRY-ANATOMY: choice, time, Active or Replaced with the later mark\'s time, the quoted note, correction presence and the disposition', () => {
+  it('HISTORY-ENTRY-ANATOMY: choice, time, Active or Replaced with the later mark\'s time, the quoted note and the disposition', () => {
     mount()
     const target = q('[data-feedback-history="target"]')
     const newer = entryOf(target, markId(3))!
@@ -184,7 +181,6 @@ describe('426-09 the target list and the run list', () => {
     expect(time.textContent).toBe(formatMarkTime(T(3)))
     expect(newer.textContent).toContain(ACTIVE_TEXT)
     expect(newer.textContent).toContain('“The coupon should have been refused”')
-    expect(newer.textContent).toContain(correctedPresenceText({ expectation: true, action: false }))
     // RE-SPELLED 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW fix 2): the disposition and what the fix
     // changed are one line.
     expect(newer.querySelector('[data-history-disposition]')?.textContent)
@@ -198,7 +194,6 @@ describe('426-09 the target list and the run list', () => {
     expect(older.className).toContain('text-muted-foreground')
     expect(older.querySelector('[data-history-disposition]')?.textContent).toBe(dispositionText(NO_FIX))
     expect(older.textContent).not.toContain('“')
-    expect(older.textContent).not.toContain('With a corrected')
   })
 
   it('HISTORY-ENTRY-ANATOMY: a replaced entry whose later mark is not in the ledger says so without a time', () => {

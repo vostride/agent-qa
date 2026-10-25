@@ -14,7 +14,6 @@ import { DenialBlock } from '@/components/run-detail/denial-block'
 import { FeedbackHistory, type FeedbackHistoryProps } from '@/components/run-detail/feedback-history'
 import { FeedbackPreview } from '@/components/run-detail/feedback-preview'
 import { FeedbackTechnicalDetails } from '@/components/run-detail/feedback-technical-details'
-import { CorrectionFields, type CorrectedActionField } from '@/components/run-detail/mark-correction-fields'
 import {
   CHOICE_LABELS,
   CHOICE_LEGEND,
@@ -28,7 +27,6 @@ import {
   NO_UNIQUE_ADDRESS_TEXT,
   SEND_FEEDBACK_LABEL,
   TEST_SWITCHER_LABEL,
-  correctedActionUnavailableText,
   noteCounterText,
   resolvedStepText,
   showStepLabel,
@@ -60,11 +58,6 @@ export interface FeedbackComposerProps {
   unsentDrafts?: readonly FeedbackUnsentDraft[]
   note?: string
   onNoteChange?: (note: string) => void
-  /** D-15: the draft's raw correction text; the action field shows only while the gate allows it. */
-  expectation?: string
-  actionText?: string
-  actionField?: CorrectedActionField
-  onCorrectionChange?: (expectation: string, actionText: string) => void
   previewState: FeedbackPreviewState
   previewCurrent: boolean
   /** The read on screen, which may be an older one still showing while a re-fetch is in flight. */
@@ -147,10 +140,6 @@ export function FeedbackComposer({
   unsentDrafts = [],
   note = '',
   onNoteChange,
-  expectation = '',
-  actionText = '',
-  actionField,
-  onCorrectionChange,
   previewState,
   previewCurrent,
   previewRead,
@@ -358,14 +347,6 @@ export function FeedbackComposer({
             </p>
           ) : null}
         </div>
-
-        <CorrectionFields
-          expectation={expectation}
-          actionText={actionText}
-          disabled={state === 'submitting'}
-          actionField={actionField ?? { shown: false, reason: correctedActionUnavailableText(selected === undefined ? 'no-choice' : 'loading') }}
-          onChange={(nextExpectation, nextActionText) => onCorrectionChange?.(nextExpectation, nextActionText)}
-        />
 
         <FeedbackPreview
           state={previewState}

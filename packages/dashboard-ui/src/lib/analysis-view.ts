@@ -49,13 +49,11 @@ import type {
   CrossCheck,
   PostProcessingChipStatus,
   Mark,
-  RunsMarkInput,
   RunDetailMemberMark,
   RunDetailProjection,
 } from '@vostride/agent-qa-schema'
 
-export type OnMark = (testIndex: number, stepIndex: number | undefined, kind: Mark, note?: string,
-  correction?: Pick<RunsMarkInput, 'correctedExpectation' | 'correctedAction'>) => Promise<'refreshed' | 'retained' | 'stale'>
+export type OnMark = (testIndex: number, stepIndex: number | undefined, kind: Mark, note?: string) => Promise<'refreshed' | 'retained' | 'stale'>
 /** 432-09 (D-15): a refused mark, as a plain reason. */
 export interface MarkDenial { reason: string }
 

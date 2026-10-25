@@ -20,7 +20,6 @@ import {
   RETRY_LABEL,
   appliedChangeView,
   appliedRecordUnavailableText,
-  correctedPresenceText,
   dispositionText,
   feedbackHistoryState,
   feedbackReadFailureReason,
@@ -185,7 +184,6 @@ function HistoryEntry({
   isNew?: boolean
 }) {
   const time = formatMarkTime(entry.markedAt)
-  const corrected = correctedPresenceText(entry.corrected)
   const applied = appliedChangeView(entry)
   return (
     <li
@@ -223,7 +221,6 @@ function HistoryEntry({
           {'”'}
         </p>
       )}
-      {corrected === undefined ? null : <p>{corrected}</p>}
       <p data-history-disposition data-history-applied={applied?.kind} className="break-words">
         <span data-history-disposition-lead>{dispositionText(entry.disposition)}</span>
         {applied === undefined ? null : <AppliedTail applied={applied} drafted={entry.disposition.kind === 'drafted'} />}

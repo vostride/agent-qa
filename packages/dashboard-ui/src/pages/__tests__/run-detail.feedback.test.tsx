@@ -36,14 +36,12 @@ import {
   SENDING_STATUS,
   SUBMIT_REASON_ALREADY_MARKED,
   SUBMIT_REASON_CHECKING,
-  SUBMIT_REASON_INVALID_CORRECTION,
   SUBMIT_REASON_NO_CHOICE,
   SUBMIT_REASON_NO_UNIQUE_ADDRESS,
   SUBMIT_REASON_PREVIEW_FAILED,
   SUBMIT_REASON_REFUSED,
   SUBMIT_REASON_SENDING,
   alreadyMarkedText,
-  correctedActionUnavailableText,
   feedbackReadFailureReason,
   noteCounterText,
   previewRefusalText,
@@ -64,7 +62,6 @@ import {
   feedbackDefaultLayout,
 } from '@/lib/feedback-view'
 import { memberDisplayName, memberHandleLabel } from '@/lib/run-detail-view'
-import { CORRECTED_ACTION_EXAMPLE, CORRECTED_ACTION_LABEL } from '@/components/run-detail/mark-correction-fields'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -1273,7 +1270,6 @@ const PAGE_REFUSALS: Record<(typeof MARK_PREVIEW_REFUSALS)[number], RunsMarkPrev
   'ambiguous-address': RunsMarkPreviewResultSchema.parse({
     kind: 'ambiguous-address', runId: RUN_ID, candidates: [{ testIndex: 0, testId: TEST_ID }, { testIndex: 1, testId: TEST_ID }],
   }),
-  'ambiguous-correction': RunsMarkPreviewResultSchema.parse({ kind: 'ambiguous-correction', runId: RUN_ID, testIndex: 0, decisionCount: 2 }),
 }
 const PAGE_READ_FAILURES = ['network', 'ledger-corrupt', 'ledger-unavailable', 'refused', 'shape'] as const satisfies readonly FeedbackReadFailure[]
 
@@ -1473,32 +1469,11 @@ describe('426-07 each preview arm decides Send feedback on the page', () => {
   })
 })
 
-// THE NOTE AND THE CORRECTION (426-08 · D-15, D-16). The note is named by its visible label and capped
-// at 2000 characters. A corrected action is scored against exactly one recorded decision, so its field
-// shows only while the landed read for this target and kind covers exactly one; while it is hidden the
-// typed text stays in the draft but reaches neither the preview nor the mark, so runs.mark never
-// receives ambiguous-correction from the dashboard.
-function labelledField(text: string) {
-  const label = [...q('[data-feedback-composer]')!.querySelectorAll('label')].find(entry => entry.textContent === text)
-  return label === undefined ? null : document.getElementById(label.htmlFor) as HTMLTextAreaElement | null
-}
-const actionField = () => labelledField(CORRECTED_ACTION_LABEL)
-const actionGate = () => q('[data-feedback-action-gate]')
-const previewBodies = () => fetchMarkPreviewMock.mock.calls.map(call => call[1] as Record<string, unknown>)
+// The note is named by its visible label and capped at 2000 characters.
 const noteCounter = () =>
   [...q('[data-feedback-composer]')!.querySelectorAll('p')].find(entry => / \/ 2000$/.test(entry.textContent ?? ''))
 
-async function typeInto(field: HTMLTextAreaElement | null, value: string) {
-  expect(field, 'no field to type into').not.toBeNull()
-  const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!
-  await act(async () => {
-    setter.call(field, value)
-    field!.dispatchEvent(new Event('input', { bubbles: true }))
-  })
-  await flushRender()
-}
-
-describe('426-08 the note and the correction in the composer', () => {
+describe('the note in the composer', () => {
   beforeEach(() => {
     fetchRunDetailMock.mockResolvedValue(fourSteps)
   })
@@ -1532,138 +1507,6 @@ describe('426-08 the note and the correction in the composer', () => {
     expect(counter!.getAttribute('aria-live')).toBe('off')
     expect(counter!.className).toContain('tabular-nums')
   })
-
-  it('ACTION-GATE-ONE-DECISION: the action field shows for a read covering one decision; two decisions hide it and say why', async () => {
-    const first = deferred<MarkPreviewRead>()
-    fetchMarkPreviewMock.mockReturnValueOnce(first.promise)
-    await renderAt(`/runs/${RUN_ID}`)
-    await click('[data-feedback-entry="test"]')
-    expect(actionGate()?.getAttribute('data-feedback-action-gate')).toBe('hidden')
-    expect(actionGate()!.textContent).toBe(correctedActionUnavailableText('no-choice'))
-    await pickAndAdvance(FEEDBACK_CHOICE_ORDER.failed[0])
-    expect(actionGate()!.textContent).toBe(correctedActionUnavailableText('loading'))
-    expect(actionField()).toBeNull()
-
-    await act(async () => first.resolve({ kind: 'read', result: CONSEQUENCES_STEP_3 }))
-    await flushRender()
-    expect(actionGate()!.getAttribute('data-feedback-action-gate')).toBe('shown')
-    expect(actionField(), 'no action field for one decision').not.toBeNull()
-    unmountPage()
-
-    fetchMarkPreviewMock.mockReset()
-    fetchMarkPreviewMock.mockResolvedValue({ kind: 'read', result: previewOf({ markedDecisionCount: 2 }) })
-    await renderAt(`/runs/${RUN_ID}`)
-    await click('[data-feedback-entry="test"]')
-    await pickAndAdvance(FEEDBACK_CHOICE_ORDER.failed[0])
-    expect(actionGate()!.getAttribute('data-feedback-action-gate')).toBe('hidden')
-    expect(actionGate()!.textContent).toBe(correctedActionUnavailableText('count', 2))
-    expect(actionGate()!.textContent).toContain('covers 2 recorded decisions')
-    expect(actionField()).toBeNull()
-  })
-
-  it('HIDDEN-ACTION-NOT-SENT: a typed action reaches neither the preview nor the mark while hidden, and is restored when it shows again', async () => {
-    const [a, b] = FEEDBACK_CHOICE_ORDER.failed
-    const twoDecisions = previewOf({ markKind: 'confirmed-bug', draft: { kind: 'confirmed-bug' }, markedDecisionCount: 2 })
-    expect(b).toBe('confirmed-bug')
-    fetchMarkPreviewMock.mockImplementation(async (_runId: string, input: { kind: string }) => ({
-      kind: 'read',
-      result: input.kind === a ? CONSEQUENCES_STEP_3 : twoDecisions,
-    }))
-    markRunMock.mockResolvedValue({ kind: 'marked', receipt })
-    await renderAt(`/runs/${RUN_ID}`)
-    await click('[data-feedback-entry="test"]')
-    await pickAndAdvance(a)
-    expect(actionField(), 'no action field for one decision').not.toBeNull()
-
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
-    await typeInto(actionField(), CORRECTED_ACTION_EXAMPLE)
-    await act(async () => { vi.advanceTimersByTime(PREVIEW_DEBOUNCE_MS) })
-    vi.useRealTimers()
-    await flushRender()
-    expect(previewBodies().at(-1)!.correctedAction).toEqual({ type: 'click', ref: 'e1' })
-
-    const before = previewBodies().length
-    await pickAndAdvance(b)
-    const afterSwitch = previewBodies().slice(before)
-    expect(afterSwitch.length).toBeGreaterThan(0)
-    for (const body of afterSwitch) expect(Object.hasOwn(body, 'correctedAction')).toBe(false)
-    expect(actionGate()!.textContent).toBe(correctedActionUnavailableText('count', 2))
-    expect(submitReason()).toBe('')
-
-    await click('[data-feedback-submit]')
-    expect(markRunMock).toHaveBeenCalledTimes(1)
-    const markBody = markRunMock.mock.calls[0]![1] as Record<string, unknown>
-    expect(markBody.kind).toBe(b)
-    expect(Object.hasOwn(markBody, 'correctedAction')).toBe(false)
-
-    await pickAndAdvance(a)
-    expect(actionField(), 'the action field did not come back').not.toBeNull()
-    expect(actionField()!.value).toBe(CORRECTED_ACTION_EXAMPLE)
-  })
-
-  it('CORRECTION-IN-BOTH-BODIES: an edited expectation re-reads the preview, and the preview body is still the mark body', async () => {
-    const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api')
-    markRunMock.mockImplementation(actual.markRun)
-    fetchMarkPreviewMock.mockImplementation(actual.fetchMarkPreview)
-    const bodies: [string, Record<string, unknown>][] = []
-    vi.stubGlobal('fetch', vi.fn(async (url: string, init: { body: string }) => {
-      bodies.push([url, JSON.parse(init.body) as Record<string, unknown>])
-      return new Response(JSON.stringify(url.endsWith('/mark-preview') ? CONSEQUENCES_STEP_3 : { kind: 'marked', receipt }))
-    }))
-    await renderAt(`/runs/${RUN_ID}`)
-    await click('[data-feedback-entry="test"]')
-    await pickAndAdvance(FEEDBACK_CHOICE_ORDER.failed[0])
-    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
-    await typeInto(labelledField('Corrected expectation (optional)'), 'The cart shows 2 items')
-    await typeInto(actionField(), CORRECTED_ACTION_EXAMPLE)
-    await act(async () => { vi.advanceTimersByTime(PREVIEW_DEBOUNCE_MS) })
-    vi.useRealTimers()
-    await flushRender()
-    await typeNote('seen on staging')
-    await click('[data-feedback-submit]')
-    await flushRender()
-
-    const previews = bodies.filter(([url]) => url.endsWith('/mark-preview')).map(([, body]) => body)
-    const marks = bodies.filter(([url]) => url.endsWith('/mark')).map(([, body]) => body)
-    expect(previews).toHaveLength(2)
-    expect(marks).toHaveLength(1)
-    const { runId: _runId, ...previewRest } = previews[1]!
-    const { note, ...markRest } = marks[0]!
-    expect(marks[0]).not.toHaveProperty('confirm' + 'Scope')
-    expect(note).toBe('seen on staging')
-    expect(previewRest).toEqual(markRest)
-    expect(previewRest).toMatchObject({ correctedExpectation: 'The cart shows 2 items', correctedAction: { type: 'click', ref: 'e1' } })
-  })
-
-  it('INVALID-JSON-SURVIVES-RETARGET: an unparseable action survives re-targeting and closing, stays invalid, and blocks Send feedback', async () => {
-    fetchMarkPreviewMock.mockResolvedValue({ kind: 'read', result: CONSEQUENCES_STEP_3 })
-    await renderAt(`/runs/${RUN_ID}`)
-    await openStep('0:1')
-    await pickAndAdvance(FEEDBACK_CHOICE_ORDER.failed[0])
-    await typeInto(actionField(), '{')
-    expect(actionField()!.getAttribute('aria-invalid')).toBe('true')
-    expect(submitReason()).toBe(SUBMIT_REASON_INVALID_CORRECTION)
-
-    await selectStep('0:3')
-    await click('[data-feedback-switch]')
-    expect(composerTarget()).toBe('0:3')
-    expect(actionField()).toBeNull()
-    await selectStep('0:1')
-    await click('[data-feedback-switch]')
-    expect(composerTarget()).toBe('0:1')
-    expect(actionField()!.value).toBe('{')
-    expect(actionField()!.getAttribute('aria-invalid')).toBe('true')
-    expect(submitReason()).toBe(SUBMIT_REASON_INVALID_CORRECTION)
-
-    await click('[data-feedback-close]')
-    await click('[data-feedback-entry="step"]')
-    expect(composerTarget()).toBe('0:1')
-    expect(actionField()!.value).toBe('{')
-    expect(actionField()!.getAttribute('aria-invalid')).toBe('true')
-    expect(submitReason()).toBe(SUBMIT_REASON_INVALID_CORRECTION)
-    await click('[data-feedback-submit]')
-    expect(markRunMock).not.toHaveBeenCalled()
-  })
 })
 
 // AFTERWARDS (426-09 · D-21, D-22). History is read when the composer opens, on every re-target and
@@ -1691,7 +1534,6 @@ function historyOf(entries: readonly (Record<string, unknown> & { n: number })[]
         disposition: { kind: 'no-draftable-fix', checked: { servedRecords: 0, procedureReads: 0, assertionDrift: false } },
         gold: [],
         evidence: { confirmed: 0, overturned: 0 },
-        corrected: { expectation: false, action: false },
         active: true,
         ...entry,
       })),

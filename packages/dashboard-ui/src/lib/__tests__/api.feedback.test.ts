@@ -44,7 +44,6 @@ function historyEntry(ordinal: number, over: Partial<MarkHistoryEntry> = {}): Ma
     disposition: { kind: 'no-draftable-fix', checked: { servedRecords: 0, procedureReads: 0, assertionDrift: false } },
     gold: [],
     evidence: { confirmed: 0, overturned: 0 },
-    corrected: { expectation: false, action: false },
     active: true,
     ...over,
   } as MarkHistoryEntry

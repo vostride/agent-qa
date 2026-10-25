@@ -47,7 +47,6 @@ import {
   UNREADABLE_RECORD_TEXT,
   SUBMIT_REASON_ALREADY_MARKED,
   SUBMIT_REASON_CHECKING,
-  SUBMIT_REASON_INVALID_CORRECTION,
   SUBMIT_REASON_NO_CHOICE,
   SUBMIT_REASON_NO_UNIQUE_ADDRESS,
   SUBMIT_REASON_PREVIEW_FAILED,
@@ -68,20 +67,16 @@ import {
   APPLIED_TEST_FILE_PREFIX,
   APPLIED_UNAVAILABLE_TEXT,
   appliedRecordUnavailableText,
-  ADD_CORRECTION_LABEL,
   TECHNICAL_DETAILS_LABEL,
   TECHNICAL_DETAILS_ROW_LABELS,
   basisDetailText,
   labelDetailText,
-  correctedActionGate,
-  correctedActionUnavailableText,
   type SubmitBlockInput,
   NO_STEP_VERDICT_TEXT,
   ONE_STEP_SCOPE_TEXT,
   RECORDED_RESULT_TEXT,
   WHOLE_TEST_SCOPE_TEXT,
   composerHeading,
-  correctedGroundTruthText,
   feedbackEntryLabel,
   feedbackOutcomeClass,
   feedbackPartsText,
@@ -113,7 +108,6 @@ import {
   HISTORY_READ_FAILED_TEXT,
   HISTORY_RETRY_ACCESSIBLE_NAME,
   REPLACEMENT_EXPLANATION,
-  correctedPresenceText,
   feedbackHistoryState,
   formatMarkTime,
   historyStateText,
@@ -388,12 +382,10 @@ describe('426-05 the pinned target names both places', () => {
     expect(unsentDraftLabel({})).toBe('Unsent draft: this test')
   })
 
-  it('PINNED-COPY: a draft is empty with no choice and all three texts empty', () => {
-    expect(isDraftEmpty({ note: '', expectation: '', actionText: '' })).toBe(true)
-    expect(isDraftEmpty({ kind: 'false-fail', note: '', expectation: '', actionText: '' })).toBe(false)
-    expect(isDraftEmpty({ note: 'x', expectation: '', actionText: '' })).toBe(false)
-    expect(isDraftEmpty({ note: '', expectation: 'x', actionText: '' })).toBe(false)
-    expect(isDraftEmpty({ note: '', expectation: '', actionText: '{' })).toBe(false)
+  it('PINNED-COPY: a draft is empty with no choice and an empty note', () => {
+    expect(isDraftEmpty({ note: '' })).toBe(true)
+    expect(isDraftEmpty({ kind: 'false-fail', note: '' })).toBe(false)
+    expect(isDraftEmpty({ note: 'x' })).toBe(false)
   })
 })
 
@@ -436,7 +428,7 @@ describe('426-06 the preview names what the mark will do', () => {
 
   it('PREVIEW-RESULT-LINE: the step number, both verdicts and the quoted reasoning; an empty reasoning drops the quote', () => {
     const entry: MarkPreviewGroundTruth = {
-      testIndex: 0, stepIndex: 2, verdict: 'pass', recordedVerdict: { pass: false, reasoning: 'cart total differs' }, correctedAction: false,
+      testIndex: 0, stepIndex: 2, verdict: 'pass', recordedVerdict: { pass: false, reasoning: 'cart total differs' },
     }
     const parts = groundTruthLine(entry)
     expect(feedbackPartsText(parts)).toBe('Step 3 will count as passed (recorded: failed — "cart total differs")')
@@ -444,10 +436,6 @@ describe('426-06 the preview names what the mark will do', () => {
     const bare = groundTruthLine({ ...entry, verdict: 'fail', recordedVerdict: { pass: true, reasoning: '' } })
     expect(feedbackPartsText(bare)).toBe('Step 3 will count as failed (recorded: passed)')
     expect(bare.name).toBeUndefined()
-    expect(correctedGroundTruthText(entry)).toBeUndefined()
-    expect(correctedGroundTruthText({ ...entry, correctedExpectation: 'the total matches' })).toBe('with your corrected expectation')
-    expect(correctedGroundTruthText({ ...entry, correctedAction: true })).toBe('with your corrected action')
-    expect(correctedGroundTruthText({ ...entry, correctedExpectation: 'x', correctedAction: true })).toBe('with your corrected expectation and action')
     expect(NO_GROUND_TRUTH_TEXT).toBe('No step verdict changes.')
   })
 
@@ -551,9 +539,6 @@ describe('426-07 the special arms and the failed read', () => {
     expect(previewRefusalText(arm({
       kind: 'ambiguous-address', candidates: [{ testIndex: 0, testId: 't_a' }, { testIndex: 1, testId: 't_a' }, { testIndex: 2 }],
     }) as never)).toBe("3 tests in this run share this address, so the mark can't be placed.")
-    expect(previewRefusalText(arm({ kind: 'ambiguous-correction', testIndex: 0, decisionCount: 4 }) as never)).toBe(
-      'A corrected action needs exactly one recorded decision; this mark covers 4. Remove the corrected action to continue.',
-    )
   })
 
   it('PREVIEW-FAILED-TEXT: each read failure is one product sentence, then the CLI escape hatch and a named Retry', () => {
@@ -586,7 +571,6 @@ describe('426-07 one first-match rule decides Send feedback', () => {
     currentKey: 'k-now',
     landedKey: 'k-now',
     landedOutcome: 'consequences',
-    invalidCorrection: false,
     inFlight: false,
   }
 
@@ -599,7 +583,6 @@ describe('426-07 one first-match rule decides Send feedback', () => {
       ['failed', { landedOutcome: 'failed' }, SUBMIT_REASON_PREVIEW_FAILED],
       ...MARK_PREVIEW_REFUSALS.map((kind): [string, Partial<SubmitBlockInput>, string] => [kind, { landedOutcome: kind }, SUBMIT_REASON_REFUSED]),
       ['already-marked', { landedOutcome: 'already-marked' }, SUBMIT_REASON_ALREADY_MARKED],
-      ['invalid correction', { invalidCorrection: true }, SUBMIT_REASON_INVALID_CORRECTION],
       ['in flight', { inFlight: true }, SUBMIT_REASON_SENDING],
       ['quarantined', { landedOutcome: 'quarantined' }, ''],
       ['consequences', {}, ''],
@@ -610,7 +593,6 @@ describe('426-07 one first-match rule decides Send feedback', () => {
     expect(SUBMIT_REASON_PREVIEW_FAILED).toBe("Consequences couldn't be checked — retry above.")
     expect(SUBMIT_REASON_REFUSED).toBe("This mark can't be recorded — see above.")
     expect(SUBMIT_REASON_ALREADY_MARKED).toBe("You already said this — there's nothing new to record.")
-    expect(SUBMIT_REASON_INVALID_CORRECTION).toBe('Fix the corrected action JSON first.')
   })
 
   it('SUBMIT-BLOCKED-REASON-ORDER: with every blocking condition true the first row wins, and lifting each in turn hands over to the next', () => {
@@ -621,8 +603,7 @@ describe('426-07 one first-match rule decides Send feedback', () => {
       [{ landedKey: 'k-now' }, SUBMIT_REASON_PREVIEW_FAILED],
       [{ landedOutcome: 'run-not-found' }, SUBMIT_REASON_REFUSED],
       [{ landedOutcome: 'already-marked' }, SUBMIT_REASON_ALREADY_MARKED],
-      [{ landedOutcome: 'consequences' }, SUBMIT_REASON_INVALID_CORRECTION],
-      [{ invalidCorrection: false }, SUBMIT_REASON_SENDING],
+      [{ landedOutcome: 'consequences' }, SUBMIT_REASON_SENDING],
       [{ inFlight: false }, ''],
     ]
     let input: SubmitBlockInput = {
@@ -631,84 +612,12 @@ describe('426-07 one first-match rule decides Send feedback', () => {
       currentKey: 'k-now',
       landedKey: 'k-before',
       landedOutcome: 'failed',
-      invalidCorrection: true,
       inFlight: true,
     }
     for (const [lift, reason] of cascade) {
       input = { ...input, ...lift }
       expect(submitBlockedReason(input), JSON.stringify(lift)).toBe(reason)
     }
-  })
-})
-
-// THE CORRECTED-ACTION GATE (426-08 · D-15, UI-SPEC S4 / U7). A corrected action is scored against
-// exactly one recorded decision, so its field shows only while the landed consequences read for this
-// target and kind covers exactly one; every other state names why in its own sentence.
-describe('426-08 the corrected-action gate', () => {
-  const RUN_ID = generateRunId()
-  const read = (value: Record<string, unknown>) =>
-    ({ kind: 'read', result: RunsMarkPreviewResultSchema.parse({ runId: RUN_ID, ...value }) }) as const
-  const consequences = (markedDecisionCount: number) =>
-    read({
-      kind: 'consequences',
-      prospective: true,
-      markKind: 'false-fail',
-      member: { testIndex: 0 },
-      resolvedStep: { stepIndex: 0, reason: 'failing-step' },
-      latest: { kind: 'first' },
-      basis: { ledgerOrdinal: 0 },
-      markedDecisionCount,
-      groundTruth: [],
-      labels: [],
-      knowledge: { servedRecordIds: [], appendsEvidence: false, records: [], evidence: { confirmed: 0, overturned: 0 } },
-      draft: { kind: 'no-draftable-fix', checked: { servedRecords: 0, procedureReads: 0, assertionDrift: false } },
-    })
-
-  it('ACTION-GATE-STATES: each hidden state reads its own sentence, and a count names how many decisions', () => {
-    expect(ADD_CORRECTION_LABEL).toBe('Add a correction')
-    expect(correctedActionUnavailableText('no-choice')).toBe(
-      'Pick a choice first — a corrected action is only possible when the mark covers exactly one recorded decision.',
-    )
-    expect(correctedActionUnavailableText('loading')).toBe('Checking whether a corrected action is possible…')
-    expect(correctedActionUnavailableText('count', 0)).toBe(
-      "A corrected action isn't possible here — this mark covers no recorded decision.",
-    )
-    expect(correctedActionUnavailableText('count', 3)).toBe(
-      "A corrected action isn't possible here — this mark covers 3 recorded decisions, and a correction needs exactly one.",
-    )
-    expect(correctedActionUnavailableText('quarantined')).toBe("A corrected action isn't used — this mark is quarantined.")
-    expect(correctedActionUnavailableText('unavailable')).toBe(
-      "A corrected action can't be checked until the preview above answers.",
-    )
-  })
-
-  it('ACTION-GATE-STATES: the field shows only for a landed consequences read covering exactly one decision', () => {
-    expect(correctedActionGate({ kind: undefined, landedForTargetAndKind: consequences(1) })).toEqual({ shown: false, state: 'no-choice' })
-    expect(correctedActionGate({ kind: 'false-fail', landedForTargetAndKind: undefined })).toEqual({ shown: false, state: 'loading' })
-    expect(correctedActionGate({ kind: 'false-fail', landedForTargetAndKind: consequences(1) })).toEqual({ shown: true })
-    expect(correctedActionGate({ kind: 'false-fail', landedForTargetAndKind: consequences(0) })).toEqual({ shown: false, state: 'count', count: 0 })
-    expect(correctedActionGate({ kind: 'false-fail', landedForTargetAndKind: consequences(2) })).toEqual({ shown: false, state: 'count', count: 2 })
-    expect(correctedActionGate({
-      kind: 'false-fail',
-      landedForTargetAndKind: read({
-        kind: 'quarantined', prospective: true, markKind: 'false-fail', member: { testIndex: 0 },
-        resolvedStep: { stepIndex: 0, reason: 'failing-step' }, latest: { kind: 'first' }, basis: { ledgerOrdinal: 0 }, class: 'flake',
-      }),
-    })).toEqual({ shown: false, state: 'quarantined' })
-    expect(correctedActionGate({
-      kind: 'false-fail',
-      landedForTargetAndKind: read({
-        kind: 'already-marked',
-        prior: { markId: 'mark_0123456789ab', kind: 'false-fail', ordinal: 1, disposition: { kind: 'confirmed-bug', confirmedRecords: 0 }, testIndex: 0 },
-        basis: { ledgerOrdinal: 1, priorMarkOrdinal: 1 },
-      }),
-    })).toEqual({ shown: false, state: 'unavailable' })
-    expect(correctedActionGate({ kind: 'false-fail', landedForTargetAndKind: read({ kind: 'ambiguous-correction', testIndex: 0, decisionCount: 2 }) }))
-      .toEqual({ shown: false, state: 'unavailable' })
-    expect(correctedActionGate({ kind: 'false-fail', landedForTargetAndKind: read({ kind: 'run-not-found' }) }))
-      .toEqual({ shown: false, state: 'unavailable' })
-    expect(correctedActionGate({ kind: 'false-fail', landedForTargetAndKind: { kind: 'failed', reason: 'network' } }))
-      .toEqual({ shown: false, state: 'unavailable' })
   })
 })
 
@@ -759,12 +668,12 @@ describe('426-09 the history copy', () => {
       entries: [{
         markId: 'mark_0123456789ab', runId: RUN_ID, testIndex: 0, kind: 'false-fail', origin: 'user', ordinal: 1, markedAt: 0,
         disposition: { kind: 'no-draftable-fix', checked: { servedRecords: 0, procedureReads: 0, assertionDrift: false } },
-        gold: [], evidence: { confirmed: 0, overturned: 0 }, corrected: { expectation: false, action: false }, active: true,
+        gold: [], evidence: { confirmed: 0, overturned: 0 }, active: true,
       }],
     }))).toBe('history')
   })
 
-  it('HISTORY-COPY: titles and counts, active and replaced, the one explanation, correction presence and each state sentence', () => {
+  it('HISTORY-COPY: titles and counts, active and replaced, the one explanation and each state sentence', () => {
     expect(historyTitle('step', 2)).toBe('Feedback on this step (2)')
     expect(historyTitle('test', 0)).toBe('Feedback on this test (0)')
     expect(runHistoryLabel(3)).toBe('All feedback on this run (3)')
@@ -772,10 +681,6 @@ describe('426-09 the history copy', () => {
     expect(replacedByText('Sep 23, 10:41')).toBe('Replaced by your later mark at Sep 23, 10:41')
     expect(replacedByText()).toBe('Replaced by your later mark')
     expect(REPLACEMENT_EXPLANATION).toBe('Only your latest mark on a test or step counts.')
-    expect(correctedPresenceText({ expectation: false, action: false })).toBeUndefined()
-    expect(correctedPresenceText({ expectation: true, action: false })).toBe('With a corrected expectation')
-    expect(correctedPresenceText({ expectation: false, action: true })).toBe('With a corrected action')
-    expect(correctedPresenceText({ expectation: true, action: true })).toBe('With a corrected expectation and action')
     expect(HISTORY_EMPTY_TEXT).toEqual({
       step: 'No feedback on this step yet.',
       test: 'No feedback on this test yet.',

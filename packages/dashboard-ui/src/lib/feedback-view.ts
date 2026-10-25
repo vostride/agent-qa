@@ -38,22 +38,20 @@ export interface FeedbackTarget {
   stepIndex?: number
 }
 
-/** Raw text, so an invalid corrected action survives re-targeting and closing. */
+/** What the composer holds for one address while it is retargeted or closed. */
 export interface FeedbackDraft {
   kind?: Mark
   note: string
-  expectation: string
-  actionText: string
 }
 
-export const EMPTY_DRAFT: FeedbackDraft = { note: '', expectation: '', actionText: '' }
+export const EMPTY_DRAFT: FeedbackDraft = { note: '' }
 
 export function feedbackAddress(target: FeedbackTarget): string {
   return markAddressKey(target)
 }
 
 export function isDraftEmpty(draft: FeedbackDraft): boolean {
-  return draft.kind === undefined && draft.note === '' && draft.expectation === '' && draft.actionText === ''
+  return draft.kind === undefined && draft.note === ''
 }
 
 /**
@@ -95,72 +93,6 @@ export const NOTE_COUNTER_FROM = 1800
 
 export function noteCounterText(length: number): string {
   return `${String(length)} / ${String(NOTE_MAX_LENGTH)}`
-}
-
-export const ADD_CORRECTION_LABEL = 'Add a correction'
-
-/** Why the corrected-action field is hidden (UI-SPEC S4; quarantined and unavailable are U7's rows). */
-export type CorrectedActionGateState = 'no-choice' | 'loading' | 'count' | 'quarantined' | 'unavailable'
-
-export function correctedActionUnavailableText(state: CorrectedActionGateState, count = 0): string {
-  switch (state) {
-    case 'no-choice':
-      return 'Pick a choice first — a corrected action is only possible when the mark covers exactly one recorded decision.'
-    case 'loading':
-      return 'Checking whether a corrected action is possible…'
-    case 'count':
-      return count === 0
-        ? "A corrected action isn't possible here — this mark covers no recorded decision."
-        : `A corrected action isn't possible here — this mark covers ${String(count)} recorded decisions, and a correction needs exactly one.`
-    case 'quarantined':
-      return "A corrected action isn't used — this mark is quarantined."
-    case 'unavailable':
-      return "A corrected action can't be checked until the preview above answers."
-    default:
-      return state satisfies never
-  }
-}
-
-export type CorrectedActionGate =
-  | { shown: true }
-  | { shown: false; state: Exclude<CorrectedActionGateState, 'count'> }
-  | { shown: false; state: 'count'; count: number }
-
-export interface CorrectedActionGateInput {
-  kind: Mark | undefined
-  /**
-   * The last read that landed for this target and kind, current or not: a re-fetch in flight keeps
-   * the landed decision, so the field never disappears mid-typing.
-   */
-  landedForTargetAndKind:
-    | { kind: 'read'; result: RunsMarkPreviewResult }
-    | { kind: 'failed'; reason: string }
-    | undefined
-}
-
-/**
- * D-15: a corrected action is scored against exactly one recorded decision, so the field shows only
- * for a consequences read whose markedDecisionCount is 1 — runs.mark never receives
- * ambiguous-correction from the dashboard.
- */
-export function correctedActionGate({ kind, landedForTargetAndKind: landed }: CorrectedActionGateInput): CorrectedActionGate {
-  if (kind === undefined) return { shown: false, state: 'no-choice' }
-  if (landed === undefined) return { shown: false, state: 'loading' }
-  if (landed.kind === 'failed') return { shown: false, state: 'unavailable' }
-  const read = landed.result
-  if (read.kind === 'quarantined') return { shown: false, state: 'quarantined' }
-  if (read.kind !== 'consequences') return { shown: false, state: 'unavailable' }
-  return read.markedDecisionCount === 1 ? { shown: true } : { shown: false, state: 'count', count: read.markedDecisionCount }
-}
-
-/** Only consequences and quarantined reads say how many decisions a mark covers; the rest keep what is known. */
-export function decidesCorrectedActionGate(read: CorrectedActionGateInput['landedForTargetAndKind']): boolean {
-  return read?.kind === 'read' && (read.result.kind === 'consequences' || read.result.kind === 'quarantined')
-}
-
-export function correctedActionField(gate: CorrectedActionGate): { shown: true } | { shown: false; reason: string } {
-  if (gate.shown) return gate
-  return { shown: false, reason: correctedActionUnavailableText(gate.state, gate.state === 'count' ? gate.count : undefined) }
 }
 
 export const CHOICE_LABELS = {
@@ -483,24 +415,20 @@ export function feedbackDefaultLayout(layout: FeedbackLayout, width: number): Re
   }
 }
 
-export type FeedbackCorrection = Pick<RunsMarkInput, 'correctedExpectation' | 'correctedAction'>
-
 /** The preview input, composed exactly as the page's onMark composes its markRun body (D-16). */
 export function previewInputFor(
   member: Pick<RunDetailMember, 'testId'>,
   target: FeedbackTarget,
   kind: Mark,
-  correction?: FeedbackCorrection,
 ): Omit<RunsMarkInput, 'runId' | 'note'> {
   return {
     kind,
     ...(member.testId ? { testId: member.testId } : {}),
     ...(target.stepIndex === undefined ? {} : { stepIndex: target.stepIndex }),
-    ...correction,
   }
 }
 
-export interface PreviewRequest extends FeedbackTarget, FeedbackCorrection {
+export interface PreviewRequest extends FeedbackTarget {
   kind: Mark
 }
 
@@ -510,8 +438,6 @@ export function previewRequestKey(input: PreviewRequest): string {
     input.kind,
     input.testIndex,
     input.stepIndex ?? 'run',
-    input.correctedExpectation ?? null,
-    input.correctedAction ?? null,
   ])
 }
 
@@ -523,7 +449,6 @@ export const SUBMIT_REASON_CHECKING = 'Checking what this will do…'
 export const SUBMIT_REASON_PREVIEW_FAILED = "Consequences couldn't be checked — retry above."
 export const SUBMIT_REASON_REFUSED = "This mark can't be recorded — see above."
 export const SUBMIT_REASON_ALREADY_MARKED = "You already said this — there's nothing new to record."
-export const SUBMIT_REASON_INVALID_CORRECTION = 'Fix the corrected action JSON first.'
 export const SUBMIT_REASON_SENDING = 'Sending…'
 
 export interface SubmitBlockInput {
@@ -533,7 +458,6 @@ export interface SubmitBlockInput {
   landedOutcome: RunsMarkPreviewResult['kind'] | 'failed' | undefined
   inFlight: boolean
   noUniqueAddress?: boolean
-  invalidCorrection?: boolean
 }
 
 /**
@@ -548,7 +472,6 @@ export function submitBlockedReason(input: SubmitBlockInput): string {
   if (outcome === 'failed') return SUBMIT_REASON_PREVIEW_FAILED
   if (PREVIEW_REFUSAL_KINDS.has(outcome)) return SUBMIT_REASON_REFUSED
   if (outcome !== 'consequences' && outcome !== 'quarantined') return SUBMIT_REASON_ALREADY_MARKED
-  if (input.invalidCorrection === true) return SUBMIT_REASON_INVALID_CORRECTION
   if (input.inFlight) return SUBMIT_REASON_SENDING
   return ''
 }
@@ -705,14 +628,6 @@ export function groundTruthLine(entry: MarkPreviewGroundTruth): FeedbackTextPart
   return reasoning === '' ? { prefix: `${head})` } : { prefix: `${head} — "`, name: reasoning, suffix: '")' }
 }
 
-export function correctedGroundTruthText(entry: MarkPreviewGroundTruth): string | undefined {
-  const expectation = entry.correctedExpectation !== undefined
-  if (expectation && entry.correctedAction) return 'with your corrected expectation and action'
-  if (expectation) return 'with your corrected expectation'
-  if (entry.correctedAction) return 'with your corrected action'
-  return undefined
-}
-
 export const NO_GROUND_TRUTH_TEXT = 'No step verdict changes.'
 
 export function labelsLine(count: number): string {
@@ -860,8 +775,6 @@ export const PREVIEW_REFUSAL_TEXT = {
       : `This test recorded ${String(arm.stepCount)} ${arm.stepCount === 1 ? 'step' : 'steps'}, so there is no step ${String(arm.stepIndex + 1)} to mark.`,
   'ambiguous-address': (arm) =>
     `${String(arm.candidates.length)} tests in this run share this address, so the mark can't be placed.`,
-  'ambiguous-correction': (arm) =>
-    `A corrected action needs exactly one recorded decision; this mark covers ${String(arm.decisionCount)}. Remove the corrected action to continue.`,
 } satisfies Record<(typeof MARK_PREVIEW_REFUSALS)[number], unknown> & {
   [K in PreviewRefusalKind]: (arm: PreviewRefusalArm<K>) => string
 }
@@ -879,8 +792,6 @@ export function previewRefusalText(arm: PreviewRefusalArm): string {
     case 'step-not-found':
       return PREVIEW_REFUSAL_TEXT[arm.kind](arm)
     case 'ambiguous-address':
-      return PREVIEW_REFUSAL_TEXT[arm.kind](arm)
-    case 'ambiguous-correction':
       return PREVIEW_REFUSAL_TEXT[arm.kind](arm)
     default:
       return arm satisfies never
@@ -994,13 +905,6 @@ export function replacedByText(time?: string): string {
 }
 
 export const REPLACEMENT_EXPLANATION = 'Only your latest mark on a test or step counts.'
-
-export function correctedPresenceText(corrected: MarkHistoryEntry['corrected']): string | undefined {
-  if (corrected.expectation && corrected.action) return 'With a corrected expectation and action'
-  if (corrected.expectation) return 'With a corrected expectation'
-  if (corrected.action) return 'With a corrected action'
-  return undefined
-}
 
 /** What one history line shows about an applied fix: the changed record content, or the written file. */
 export type AppliedChangeView =

@@ -19,7 +19,6 @@ import {
   PREVIEW_UPDATING_TEXT,
   RETRY_LABEL,
   alreadyMarkedText,
-  correctedGroundTruthText,
   feedbackReadFailureReason,
   isPreviewRefusal,
   previewRefusalText,
@@ -171,17 +170,13 @@ function ConsequenceLines({ read, replacesTime }: { read: Consequences; replaces
         <dd data-preview-line="result" className="space-y-1 break-words text-foreground">
           {groundTruth.length === 0
             ? NO_GROUND_TRUTH_TEXT
-            : groundTruth.map((entry) => {
-                const corrected = correctedGroundTruthText(entry)
-                return (
-                  <div key={`${String(entry.testIndex)}:${String(entry.stepIndex)}`}>
-                    <p>
-                      <TextParts parts={groundTruthLine(entry)} />
-                    </p>
-                    {corrected === undefined ? null : <p className="text-muted-foreground">{corrected}</p>}
-                  </div>
-                )
-              })}
+            : groundTruth.map((entry) => (
+                <div key={`${String(entry.testIndex)}:${String(entry.stepIndex)}`}>
+                  <p>
+                    <TextParts parts={groundTruthLine(entry)} />
+                  </p>
+                </div>
+              ))}
         </dd>
 
         <dt className="font-medium text-muted-foreground">{PREVIEW_LINE_LABELS.labels}</dt>

@@ -129,12 +129,6 @@ describe('419 member mark control', () => {
     expect(controls()).toHaveLength(0)
   })
 
-  it('holds no correction field; the correction is the composer\'s controlled pair (CORRECTION-FIELDS-CONTROLLED)', () => {
-    render({ testIndex: 4, marks: [] })
-    expect(container.querySelector('[aria-label="Corrected action JSON"]')).toBeNull()
-    expect(container.querySelector('textarea, input')).toBeNull()
-  })
-
   it('paints no chip, triage line, review control or link for a drafted mark; the command lives in the composer history (HISTORY-REVIEW-COMMAND)', () => {
     render({ marks: [mark] })
     expect(markAttributes()).toEqual([])

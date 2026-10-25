@@ -35,11 +35,8 @@ const DOORS: Record<Door, { entry: string; address: string }> = {
   test: { entry: TEST_ENTRY, address: '0:run' },
   step: { entry: STEP_ENTRY, address: '0:0' },
 }
-const ACTION = '{"type":"click","ref":"e-continue"}'
 // Literals equal to dashboard-ui's view constants (it publishes no library entry).
 const APPROVAL_TITLE = 'Approval needed to record this mark'
-const EXPECTATION_LABEL = 'Corrected expectation (optional)'
-const ACTION_LABEL = 'Corrected action JSON (optional)'
 const DRAFT_KEPT_STATUS = 'Draft kept. Check the message above before sending again.'
 const CHOICE_LABELS = { 'false-fail': 'This should have passed', 'false-pass': 'This should have failed',
   'confirmed-bug': 'This is a real product bug' } as const
@@ -165,24 +162,15 @@ const choice = (composer: Locator, kind: string) => composer.locator(`[data-feed
 async function previewCurrent(composer: Locator) {
   await composer.locator('[data-feedback-preview][data-preview-current="true"]').waitFor()
 }
-async function openCorrection(composer: Locator) {
-  const trigger = composer.locator('[data-feedback-correction]')
-  if (await trigger.getAttribute('aria-expanded') !== 'true') await trigger.click()
-}
 async function fillDraft(page: Page, door: Door, kind = 'confirmed-bug') {
   const composer = await openComposer(page, door)
   await choice(composer, kind).click()
   await composer.locator('[data-feedback-note]').fill('Retain this review note')
-  await openCorrection(composer)
-  await composer.getByLabel(EXPECTATION_LABEL, { exact: true }).fill('Expected the intended target')
-  await composer.getByLabel(ACTION_LABEL, { exact: true }).fill(ACTION)
   await previewCurrent(composer)
   return composer
 }
 async function expectDraft(composer: Locator) {
   expect(await composer.locator('[data-feedback-note]').inputValue()).toBe('Retain this review note')
-  expect(await composer.getByLabel(EXPECTATION_LABEL, { exact: true }).inputValue()).toBe('Expected the intended target')
-  expect(await composer.getByLabel(ACTION_LABEL, { exact: true }).inputValue()).toBe(ACTION)
   expect(await choice(composer, 'confirmed-bug').getAttribute('aria-checked')).toBe('true')
 }
 function status(composer: Locator) {
@@ -369,12 +357,6 @@ describe('419 real browser mark confirmation', () => {
           expect(await composer.locator('[data-feedback-submit]').textContent()).toBe('Send feedback')
         }
         await previewCurrent(composer)
-        await openCorrection(composer)
-        for (const label of [EXPECTATION_LABEL, ACTION_LABEL]) {
-          await composer.locator('label').filter({ hasText: label }).waitFor({ state: 'visible', timeout: 5_000 })
-          expect(await composer.locator('label').filter({ hasText: label }).isVisible()).toBe(true)
-        }
-        expect(await composer.locator('code').textContent()).toBe('{"type":"click","ref":"e1"}')
         await s.page.mouse.move(1400, 100)
         await composer.evaluate(async element => { await Promise.all(element.getAnimations({ subtree: true }).map(animation => animation.finished.catch(() => {}))) })
         const measures = await composer.locator('[data-feedback-choice], [data-feedback-submit], [data-feedback-close]').evaluateAll(elements => elements.map(element => {
