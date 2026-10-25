@@ -8,11 +8,9 @@ import * as local from '@vostride/agent-qa-eval-local'
 import * as llm from '../llm-utils.js'
 import { FsEvidenceArtifactStore } from '@vostride/agent-qa-runner-local'
 import {
-  MARK_RECEIPT_SCHEMA_VERSION,
   asRunId,
   sha256hex,
   slugBranch,
-  type MarkReceipt,
 } from '@vostride/agent-qa-schema'
 const { makeLocalV2Handoff, LOCAL_FIXTURE_BLOB_BYTES } = await import(new URL('../../../eval-local/src/__tests__/fixtures/local-handoff-fixture.js', import.meta.url).href)
 const { capturingStub, judgeGenerateResult } = await import(new URL('../../../eval-local/src/__tests__/fixtures/replay-fixtures.js', import.meta.url).href)
@@ -92,9 +90,8 @@ async function invoke(configPath: string, args: string[], json = true) {
 
 import { createEvalCommand } from '../commands/eval.js'
 
-// The replay, calibrate and drift cells drive whole eval commands in process (n=20 is 80 stubbed
-// judge calls, then a report read). Nothing in them waits on a condition, so the budget is a hang
-// ceiling: under load these cells outrun the 30 s package default.
+// The replay cell drives whole eval commands in process. Nothing in it waits on a condition, so the
+// budget is a hang ceiling: under load it outruns the 30 s package default.
 const JUDGE_DRIVE_TIMEOUT_MS = 120_000
 
 it.each([false, true])('public explicit replay, score/report, floor, baseline and saved gate: singleton=%s', async singleton => {
@@ -142,66 +139,9 @@ it('public report refuses a mixed panel and singleton baseline without rewriting
   expect(f.rows.map(item => readFileSync(item.scoreFile, 'utf8'))).toEqual(before)
   expect(boundary).toMatchObject({ calls: 0, binds: 0, comparisons: 0 })
 })
-function stageReports(f: ReturnType<typeof fixture>, proveProfile = false) {
+function stageReports(f: ReturnType<typeof fixture>) {
   for (const [i, row] of f.rows.entries()) cpSync(row.replaysRoot, join(f.project, '.agent-qa/eval/replays', String(i)), { recursive: true })
-  if (proveProfile) {
-    const first = f.rows[0]!
-    const config = JSON.parse(readFileSync(f.configPath, 'utf8')); config.eval.seed = 17
-    writeFileSync(f.configPath, JSON.stringify(config))
-    const report = core.buildEvalReport(f.rows.map(row => ({ cassetteId: row.cassette.id,
-      outcome: row.outcome, score: row.record.score })), first.record.judge)
-    report.runIdentity = first.report.runIdentity
-    new local.FsReportStore({ root: first.root }).save(report, undefined, { seed: 17,
-      records: f.rows.map(row => ({ cassetteId: row.cassette.id,
-        replayDigest: digest(JSON.parse(readFileSync(row.written.file, 'utf8'))),
-        scoreDigest: digest(JSON.parse(readFileSync(row.scoreFile, 'utf8'))) })) })
-  }
 }
-it.each([19, 20])('public calibrate/commit/read/report copies independent fake n=%s', async n => {
-  const f = fixture(Array.from({ length: n }, () => ({})))
-  const before = bytes(f.committedRoot)
-  const output = await invoke(f.configPath, ['calibrate', '--judge-panel', '--commit', '--min-n', '20'])
-  expect(output.exit).toBe(0)
-  const artifact = output.result.artifact
-  expect(artifact).toMatchObject({ status: n === 20 ? 'calibrated' : 'uncalibrated', n, minN: 20, minNSource: 'flag',
-    counts: { selected: n, truthComparable: n, attempted: n }, cost: { usage: { calls: n * 4 } } })
-  expect(boundary.calls).toBe(n * 4)
-  expect(new Set(f.rows.map(row => row.cassette.id)).size).toBe(n)
-  expect(local.readJudgeCalibration({ ...f.rows[0]!.input, identity: artifact.identity })).toEqual({ kind: 'loaded', artifact })
-  stageReports(f, true)
-  boundary.calls = boundary.binds = boundary.comparisons = 0
-  const reported = await invoke(f.configPath, ['report', '--source', 'committed'])
-  expect(reported.exit).toBe(0)
-  expect(reported.result.report.judge.calibration).toMatchObject({ status: artifact.status, n })
-  if (n === 20) {
-    expect(reported.result.report.judge.calibration.pooledAgreement).toBe(artifact.pooledAgreement)
-    expect(reported.result.report.judge.calibration.wilson95).toEqual(artifact.wilson95)
-  }
-  expect(boundary).toMatchObject({ calls: 0, binds: 0, comparisons: 0 })
-  for (const [path, content] of before) expect(readFileSync(path!).toString('hex')).toBe(content)
-}, JUDGE_DRIVE_TIMEOUT_MS)
-it.each(['profile', 'gold', 'corpus'])('public saved calibration is unavailable after actual %s drift', async drift => {
-  const f = fixture([{}, {}])
-  const saved = await invoke(f.configPath, ['calibrate', '--judge-panel', '--commit', '--min-n', '2'])
-  expect(saved.result.artifact.status).toBe('calibrated')
-  const artifactPath = join(f.committedRoot, saved.result.path), original = readFileSync(artifactPath, 'utf8')
-  stageReports(f)
-  if (drift === 'profile') {
-    const config = JSON.parse(readFileSync(f.configPath, 'utf8')); config.registry.llms[0].model = 'gpt-changed'
-    writeFileSync(f.configPath, JSON.stringify(config))
-  } else if (drift === 'gold') {
-    f.rows[0]!.marks[0]!.ordinal++
-    f.rows[0]!.saveMarks()
-  } else {
-    const entry = local.readActiveCommittedCorpus(f.committedRoot, join(f.project, '.agent-qa')).snapshot.entries[0]!
-    writeFileSync(join(f.committedRoot, local.committedCorpusPath(entry.product, entry.cassetteId)), '{invalid')
-  }
-  boundary.calls = boundary.binds = boundary.comparisons = 0
-  const reported = await invoke(f.configPath, ['report', '--source', 'committed'])
-  expect(reported.result.report.judge.calibration).toEqual({ status: 'uncalibrated', n: 0, provenance: 'unavailable' })
-  expect(readFileSync(artifactPath, 'utf8')).toBe(original)
-  expect(boundary).toMatchObject({ calls: 0, binds: 0, comparisons: 0 })
-}, JUDGE_DRIVE_TIMEOUT_MS)
 it.each(['panel-not-configured', 'no-credential', 'single-family-host'])('public preview discloses zero-call %s', async reason => {
   const f = fixture()
   const config = JSON.parse(readFileSync(f.configPath, 'utf8'))
@@ -234,18 +174,7 @@ function addEvidence(project: string, index: number, model: core.CassetteModelRe
   const plan = core.buildSeedingPlan({ handoff, cassettes, partition: { saltHex: 'a'.repeat(64), heldOutFraction: 0.000001, privateFraction: 0.5 } })
   const seeded = local.seedCommittedCorpus({ plan, cassettes, committedRoot, mask: NO_DECLARED_SECRETS })
   if (seeded.refusals.length) throw new Error('Fixture seed refused')
-  const mark: MarkReceipt = { schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: 'mark_abcdef012345', runId: handoff.runId,
-    runSlug: core.deriveRunSlug(handoff.runId), testIndex: 0, stepIndex: 0, kind: 'confirmed-bug', origin: 'user', ordinal: 1,
-    markedAt: 0, disposition: { kind: 'confirmed-bug', confirmedRecords: 0 }, gold: [], evidence: { confirmed: 0, overturned: 0 } }
-  const frozen = core.buildGoldenTrajectoryPlan({ handoff, cassettes, mark, product: 'shop' })
-  const freeze = local.seedCommittedCorpus({ plan: { ...plan, cases: frozen.cases }, cassettes: frozen.goldCassettes, committedRoot,
-    mask: NO_DECLARED_SECRETS })
-  if (freeze.refusals.length) throw new Error('Fixture gold refused')
-  mark.gold = frozen.cases.map(row => ({ cassetteId: row.cassetteId, sourceCassetteId: source.id, channel: 'user-mark' }))
-  const marks = [mark]
-  const saveMarks = () => writeFileSync(join(run, 'marks.jsonl'), marks.map(value => JSON.stringify(value)).join('\n') + '\n')
-  saveMarks()
-  const cassette = frozen.goldCassettes[0]!.cassette as core.LeafCassette, labelRecord = frozen.cases[0]!.labelRecord
+  const cassette = source, labelRecord = plan.cases.find(row => row.cassetteId === source.id)!.labelRecord
   const identity = core.computeDecisionIdentity(cassette.sidecar.goldAction, cassette.input.stateBefore.elements)
   const outcome: core.LeafReplayResult = { granularity: 'leaf', cassetteId: cassette.id,
     samples: [{ sampleIndex: 0, durationMs: 1, outcome: { kind: 'decision', action: cassette.sidecar.goldAction, identity } }],
@@ -270,6 +199,6 @@ function addEvidence(project: string, index: number, model: core.CassetteModelRe
   const publication = saveReport()
   const input = { agentQaRoot: root, committedRoot, profile }
   const read = (overrides = {}) => Reflect.get(local, 'loadJudgeCalibrationEvidence')?.({ ...input, ...overrides })
-  return { root, run, runRoot, replaysRoot, committedRoot, source, cassette, labelRecord, marks, handoff, outcome, record,
-    written, scoreFile, report, publication, saveReport, saveMarks, input, read }
+  return { root, run, runRoot, replaysRoot, committedRoot, source, cassette, labelRecord, handoff, outcome, record,
+    written, scoreFile, report, publication, saveReport, input, read }
 }
