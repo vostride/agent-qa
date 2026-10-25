@@ -76,8 +76,7 @@ export const ADVERSARIAL_GENERATOR_VERSION = 2
  * eleven frozen families derive at most one variant each per seed, so eight seeds is at most 88
  * cases in front of an operator who must read injection-shaped text before any of it reaches a
  * git-tracked root. 25 was 275. The number is a declared review budget, not a learned threshold
- * — nothing measures it, so it is stated here and overridable per host through
- * `eval.adversarial.maxSeedsPerRefresh` and `--max-seeds`.
+ * — nothing measures it, so it is stated here and overridable per run through `--max-seeds`.
  */
 export const ADVERSARIAL_DEFAULT_MAX_SEEDS_PER_REFRESH = 8
 

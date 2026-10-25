@@ -13,9 +13,8 @@
 // silently re-pointing a measurement at a corpus the operator just changed destroys the only
 // evidence that the change mattered.
 //
-// The seed cap is here too, at the surface it is actually set from: `--max-seeds` beats
-// `eval.adversarial.maxSeedsPerRefresh`, which beats the recorded default, and every refresh
-// says which of the three it used.
+// The seed cap is here too, at the surface it is actually set from: `--max-seeds` beats the
+// recorded default, and every refresh says which of the two it used.
 import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -229,7 +228,7 @@ describe('422 adversarial admit — receipt and floor disclosure', () => {
     expect(first.remaining).toEqual([])
   })
 
-  it('resolves the seed cap from the flag, then the config, then the recorded default', async () => {
+  it('resolves the seed cap from the flag, then the recorded default', async () => {
     const f = fixture()
     const s = await session(f)
 
@@ -242,25 +241,5 @@ describe('422 adversarial admit — receipt and floor disclosure', () => {
       ...adversarialHostOptions(s), product: 'default', dryRun: true, maxSeeds: 2,
     })
     expect(byFlag.cap).toEqual({ value: 2, source: 'flag' })
-
-    // The config half of the same knob, read from the session's own parsed config.
-    writeConfiguredCap(f, 3)
-    const configured = await resolveEvalSession({ configPath: f.configPath, keyOnly: true })
-    const byConfig = await runAdversarialVerb(configured, {
-      ...adversarialHostOptions(configured), product: 'default', dryRun: true,
-    })
-    expect(byConfig.cap).toEqual({ value: 3, source: 'config' })
-
-    // ...and an explicit flag still wins over a configured cap.
-    const overridden = await runAdversarialVerb(configured, {
-      ...adversarialHostOptions(configured), product: 'default', dryRun: true, maxSeeds: 1,
-    })
-    expect(overridden.cap).toEqual({ value: 1, source: 'flag' })
   })
 })
-
-/** Append a strict `eval.adversarial.maxSeedsPerRefresh` to the fixture's own config file. */
-function writeConfiguredCap(f: ReturnType<typeof fixture>, value: number): void {
-  const text = readFileSync(f.configPath, 'utf8')
-  writeFileSync(f.configPath, `${text.trimEnd()}\neval:\n  adversarial:\n    maxSeedsPerRefresh: ${value}\n`)
-}

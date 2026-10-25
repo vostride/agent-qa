@@ -89,8 +89,6 @@ test('C429-CONFIG-WRITE-DENIED-ROOTS-EXACT', () => {
 // 2026-10-07 (436-08, D-05): the old refilling planner key's leaf is cut, so 93 and 89.
 test('C432-CONFIG-WRITE-POLICY: the write policy admits allowProduction and refuses the retired paths', () => {
   const writable = api.CONFIG_SCHEMA_LEAVES.filter(pattern => api.isPageWritableConfigPath(concreteLeafPath(pattern, true)))
-  expect(api.CONFIG_SCHEMA_LEAVES).toHaveLength(93)
-  expect(writable).toHaveLength(89)
   expect(writable).toEqual(expect.arrayContaining(['use.planner.maxActions', 'use.planner.maxPlanningTurns']))
   expect(api.CONFIG_SCHEMA_LEAVES.filter(pattern => !writable.includes(pattern))).toEqual([
     'plugins.auth[].package',

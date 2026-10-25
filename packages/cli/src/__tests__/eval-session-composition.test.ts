@@ -99,11 +99,10 @@ describe('resolveEvalSession — eval config + flag overrides (D-03)', () => {
 
     const overridden = await resolveEvalSession({
       configPath,
-      flags: { judge: 'other', k: 3, silverCap: 5 },
+      flags: { judge: 'other', k: 3 },
     })
     expect(overridden.evalConfig.judge).toBe('other')
     expect(overridden.evalConfig.k).toBe(3)
-    expect(overridden.evalConfig.seeding?.silverPerTestCap).toBe(5)
   })
 
   it('exposes configDir and executionContext on the session', async () => {

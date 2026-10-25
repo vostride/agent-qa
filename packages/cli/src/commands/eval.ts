@@ -781,14 +781,9 @@ export function createEvalCommand(): Command {
             const { resolveEvalSession, runSeedVerb, runSeedFromFeedbackVerb, feedbackSeedHostOptions } = await import(
               '../eval-session-composition.js'
             )
-            // D-03: --silver-cap flows into the session's field-wise flag merge — the verb reads
-            // it from session.evalConfig.seeding, exactly like judge/k/seed on replay.
             const session = await resolveEvalSession({
               ...(configPath === undefined ? {} : { configPath }),
               ...(opts.fromFeedback ? { keyOnly: true } : {}),
-              flags: {
-                ...(opts.silverCap === undefined ? {} : { silverCap: opts.silverCap }),
-              },
             })
             if (opts.fromFeedback) {
               const result = await runSeedFromFeedbackVerb(session, { ...feedbackSeedHostOptions(session),
@@ -805,6 +800,7 @@ export function createEvalCommand(): Command {
                 ...(opts.product === undefined ? {} : { product: opts.product }),
               },
               {
+                ...(opts.silverCap === undefined ? {} : { silverPerTestCap: opts.silverCap }),
                 ...(heldOutFraction === undefined ? {} : { heldOutFraction }),
                 ...(privateFraction === undefined ? {} : { privateFraction }),
               },
@@ -835,12 +831,12 @@ export function createEvalCommand(): Command {
       .option('--product <slug>', 'product partition to derive from (default: default)')
       .option(
         '--max-seeds <count>',
-        'cap on NOVEL seeds this refresh derives from; overrides eval.adversarial.maxSeedsPerRefresh (422 D-04)',
+        'cap on NOVEL seeds this refresh derives from',
         parseIntegerFlag('--max-seeds'),
       )
       .option(
         '--max-probe-calls <count>',
-        'cap on PROVIDER CALLS this refresh may make to author probes; overrides eval.adversarial.maxProbeCalls (422 D-10)',
+        'cap on PROVIDER CALLS this refresh may make to author probes',
         parseIntegerFlag('--max-probe-calls'),
       )
       .option('--dry-run', 'derive and check without writing anything')

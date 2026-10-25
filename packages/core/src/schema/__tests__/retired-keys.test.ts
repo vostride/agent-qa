@@ -69,6 +69,23 @@ describe('retired-key pre-scan — block-level services.memory issue', () => {
   })
 })
 
+describe('retired-key pre-scan — removed eval blocks', () => {
+  const cases: [key: string, message: string][] = [
+    ['gate1', 'eval.gate1 was removed: memory is no longer screened by replay before promotion. Delete this block.'],
+    ['gate2', 'eval.gate2 was removed: completed runs no longer replay served memory. Delete this block.'],
+    ['adversarial', 'eval.adversarial was removed: runs no longer stage adversarial probes. Delete this block.'],
+    ['seeding', 'eval.seeding was removed: eval seed no longer reads its cap from the config. Delete this block.'],
+  ]
+
+  it.each(cases)('eval.%s is refused with its removal message', (key, message) => {
+    const config = { ...validBase, eval: { [key]: {} } }
+    expect(issueMessageAt(config, `eval.${key}`)).toBe(message)
+    const result = AgentQaConfigSchema.safeParse(config)
+    const issue = result.error?.issues.find(i => i.path.join('.') === `eval.${key}` && i.message === message)
+    expect(issue && 'params' in issue ? issue.params : undefined).toEqual({ retired: true })
+  })
+})
+
 describe('strict backstop — arbitrary unknown keys (D-07)', () => {
   it('still rejects an arbitrary unknown top-level key via strict parsing', () => {
     const result = AgentQaConfigSchema.safeParse({ ...validBase, totallyUnknownKey: 1 })

@@ -22,6 +22,13 @@ const RETIRED_MEMORY_KEY_MESSAGES: Record<string, string> = {
   circuitBreakerThreshold: 'services.memory.circuitBreakerThreshold was removed — no circuit breaker exists',
 }
 
+const RETIRED_EVAL_KEY_MESSAGES: Record<string, string> = {
+  gate1: 'eval.gate1 was removed: memory is no longer screened by replay before promotion. Delete this block.',
+  gate2: 'eval.gate2 was removed: completed runs no longer replay served memory. Delete this block.',
+  adversarial: 'eval.adversarial was removed: runs no longer stage adversarial probes. Delete this block.',
+  seeding: 'eval.seeding was removed: eval seed no longer reads its cap from the config. Delete this block.',
+}
+
 // 2026-10-07 (436-08, D-05): the old refilling planner key is cut with no alias, migration or
 // fallback. The same message fires for the project config and for test and suite `use` overrides.
 export const RETIRED_MAX_SUB_ACTIONS_MESSAGE =
@@ -70,6 +77,20 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
       path: ['workspace', 'agentRules'],
       message: 'workspace.agentRules was removed in v2 — rules dissolve into agent-qa-knowledge/policies/<scope>.md files',
     })
+  }
+
+  if (isPlainObject(value.eval)) {
+    for (const key of Object.keys(value.eval)) {
+      if (Object.hasOwn(RETIRED_EVAL_KEY_MESSAGES, key)) {
+        const message = RETIRED_EVAL_KEY_MESSAGES[key]
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          params: { retired: true },
+          path: ['eval', key],
+          message,
+        })
+      }
+    }
   }
 
   if (hasRetiredPlannerKey(value.use)) {

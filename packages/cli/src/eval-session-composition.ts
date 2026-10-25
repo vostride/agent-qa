@@ -226,18 +226,6 @@ export interface EvalCliConfig {
   judgeAllowSameFamily?: boolean
   k?: number
   seed?: number
-  seeding?: { silverPerTestCap?: number }
-  /**
-   * 422-09: the schema's OWN block by indexed access, on the `gate2`/`adversarial` idiom beside
-   * it. It was a restatement — `{ maxScreens?: number }` — and 422-08's `maxPerJob` landed in the
-   * schema without landing here, so the config accepted a bound no reader could ever see. A
-   * restatement of a shape with one owner is a second place for it to drift, and this is what
-   * that drift costs.
-   */
-  gate1?: NonNullable<AgentQaConfig['eval']>['gate1']
-  gate2?: NonNullable<AgentQaConfig['eval']>['gate2']
-  /** 422 D-04: the per-refresh novel-seed cap for `eval adversarial`. */
-  adversarial?: NonNullable<AgentQaConfig['eval']>['adversarial']
 }
 
 /** The one resolved session every eval verb consumes (D-05). */
@@ -245,7 +233,6 @@ export interface EvalSessionFlags {
   judge?: string | readonly string[]
   k?: number
   seed?: number
-  silverCap?: number
 }
 
 export class EvalJudgeDeclarationError extends TypeError {
@@ -1199,9 +1186,9 @@ export interface AdversarialVerbOptions {
   batch?: string
   dryRun?: boolean
   mutators?: readonly import('@vostride/agent-qa-eval').AdversarialMutator[]
-  /** `--max-seeds`; overrides `eval.adversarial.maxSeedsPerRefresh`, which overrides the default. */
+  /** `--max-seeds`; overrides the default. */
   maxSeeds?: number
-  /** `--max-probe-calls`; overrides `eval.adversarial.maxProbeCalls`, which overrides the default. */
+  /** `--max-probe-calls`; overrides the default. */
   maxProbeCalls?: number
   /**
    * Test seam for the resolved probe capability. Production resolves it from the session through
@@ -1244,24 +1231,12 @@ export async function runAdversarialVerb(
   const stagingDir = join(opts.agentQaRoot, ADVERSARIAL_STAGING_SUBDIR, slugBranch(product))
   const configArg = `'${resolve(session.configPath).replaceAll("'", "'\"'\"'")}'`
   const floorCommand = `agent-qa --config ${configArg} eval floor`
-  // D-04: the cap resolves from the flag, then the host's config, then the recorded default —
-  // and says which, because a cap whose origin is invisible is a cap nobody can audit.
+  // Each cap is the flag, else the recorded default, and the result says which.
   const cap = resolveAdversarialSeedCap(
-    opts.maxSeeds !== undefined
-      ? { value: opts.maxSeeds, source: 'flag' }
-      : session.evalConfig.adversarial?.maxSeedsPerRefresh !== undefined
-        ? { value: session.evalConfig.adversarial.maxSeedsPerRefresh, source: 'config' }
-        : {},
+    opts.maxSeeds !== undefined ? { value: opts.maxSeeds, source: 'flag' } : {},
   )
-  // D-10: the SECOND budget, resolved by the same three-step precedence and disclosed the same
-  // way. It bounds provider calls, which the seed cap does not and must not — a host that wants
-  // many deterministic seeds and no spend has to be able to say so.
   const probeCap = resolveAdversarialProbeCallCap(
-    opts.maxProbeCalls !== undefined
-      ? { value: opts.maxProbeCalls, source: 'flag' }
-      : session.evalConfig.adversarial?.maxProbeCalls !== undefined
-        ? { value: session.evalConfig.adversarial.maxProbeCalls, source: 'config' }
-        : {},
+    opts.maxProbeCalls !== undefined ? { value: opts.maxProbeCalls, source: 'flag' } : {},
   )
   const base: AdversarialVerbResult = {
     kind: 'refused', product, stagingDir, staged: [], admitted: [], unchanged: [], remaining: [],
@@ -1477,7 +1452,7 @@ export { listStagedAdversarial, readAdversarialRefreshRecords } from '@vostride/
 export type { RunReplayGateInput, RunReplayGateResult } from '@vostride/agent-qa-eval-local'
 export type ReplayGateVerbResult = import('./gates/replay-gate-host.js').ReplayGateVerbResult & {
   maxScreens: number
-  maxScreensSource: 'flag' | 'config' | 'default'
+  maxScreensSource: 'flag' | 'default'
   k: number
   kSource: 'flag' | 'config' | 'default'
 }
@@ -1506,10 +1481,8 @@ export async function runReplayGateVerb(
   }
   const kSource =
     opts.k !== undefined ? 'flag' : session.evalConfig.k !== undefined ? 'config' : 'default'
-  const maxScreens =
-    opts.maxScreens ?? session.evalConfig.gate1?.maxScreens ?? GATE1_DEFAULT_MAX_SCREENS
-  const maxScreensSource = opts.maxScreens !== undefined ? 'flag'
-    : session.evalConfig.gate1?.maxScreens !== undefined ? 'config' : 'default'
+  const maxScreens = opts.maxScreens ?? GATE1_DEFAULT_MAX_SCREENS
+  const maxScreensSource = opts.maxScreens !== undefined ? 'flag' : 'default'
   if (!Number.isSafeInteger(maxScreens) || maxScreens < 1) {
     throw new TypeError('--max-screens must be a positive integer')
   }
@@ -1980,9 +1953,7 @@ export async function runSeedVerb(
   }
 
   const committedRoot = resolve(session.configDir, 'agent-qa-eval')
-  // D-03: the explicit param wins over the config/flag-merged eval block, field-wise.
-  const silverPerTestCap =
-    params.silverPerTestCap ?? session.evalConfig.seeding?.silverPerTestCap
+  const silverPerTestCap = params.silverPerTestCap
 
   const result: SeedVerbResult = {
     membersExcluded: [],
@@ -3127,19 +3098,12 @@ function mergeEvalConfig(
   const judgeAllowSameFamily = fromConfig?.judgeAllowSameFamily
   const k = flags?.k ?? fromConfig?.k
   const seed = flags?.seed ?? fromConfig?.seed
-  const silverPerTestCap = flags?.silverCap ?? fromConfig?.seeding?.silverPerTestCap
 
   return {
     ...(names.length === 1 ? { judge: names[0] } : names.length > 1 ? { judges: names } : {}),
     ...(judgeAllowSameFamily !== undefined ? { judgeAllowSameFamily } : {}),
     ...(k !== undefined ? { k } : {}),
     ...(seed !== undefined ? { seed } : {}),
-    ...(fromConfig?.gate2 === undefined ? {} : { gate2: fromConfig.gate2 }),
-    ...(fromConfig?.adversarial === undefined ? {} : { adversarial: fromConfig.adversarial }),
-    ...(silverPerTestCap !== undefined ? { seeding: { silverPerTestCap } } : {}),
-    // 422-09: forwarded WHOLE, exactly as `gate2` and `adversarial` above are. The field-by-field
-    // rebuild this replaces silently dropped every member the schema gained after it was written.
-    ...(fromConfig?.gate1 === undefined ? {} : { gate1: fromConfig.gate1 }),
   }
 }
 // Gate hosts reach eval/runtime storage only through this established composition boundary.

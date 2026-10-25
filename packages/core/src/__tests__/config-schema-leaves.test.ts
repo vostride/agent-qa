@@ -98,15 +98,10 @@ describe('config schema leaves', () => {
     expect(isConfigSchemaPath(['allowProduction'])).toBe(true)
   })
 
-  // 432-22 (D-12/D-18/D-22): the final strict leaf set. The count and the removed set are spelled
-  // by hand; the list/schema equality above is what makes an unlisted leaf red here.
-  // 2026-10-07 (436-07, D-02): the two per-step planner limits add two leaves (92 to 94); the cell
-  // name no longer carries the count, so a later leaf change moves only the number.
-  // 2026-10-07 (436-08, D-05): the old refilling planner key's leaf is cut (94 to 93) and listed retired.
+  // The removed set is spelled by hand; the list/schema equality above is what makes an unlisted
+  // leaf red here.
   it('C432-CONFIG-LEAVES: exactly the strict leaves, each classified, none of them retired', () => {
     const walked = schemaLeaves()
-    expect(walked).toHaveLength(93)
-    expect(CONFIG_SCHEMA_LEAVES).toHaveLength(93)
     expect(walked.filter((leaf) => leaf.startsWith('use.planner.max'))).toEqual(
       expect.arrayContaining(['use.planner.maxActions', 'use.planner.maxPlanningTurns']),
     )

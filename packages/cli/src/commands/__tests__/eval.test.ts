@@ -199,15 +199,12 @@ describe('417 replay-gate command', () => {
     ])
   })
   it.each([
-    { configCap: 40, flagCap: undefined, maxScreens: 40, maxScreensSource: 'config' },
-    { configCap: 40, flagCap: 12, maxScreens: 12, maxScreensSource: 'flag' },
-    { configCap: undefined, flagCap: undefined, maxScreens: 64, maxScreensSource: 'default' },
+    { flagCap: 12, maxScreens: 12, maxScreensSource: 'flag' },
+    { flagCap: undefined, maxScreens: 64, maxScreensSource: 'default' },
   ])(
     'resolves and discloses the $maxScreensSource cap before the bridge',
-    async ({ configCap, flagCap, maxScreens, maxScreensSource }) => {
+    async ({ flagCap, maxScreens, maxScreensSource }) => {
       const { configPath } = await writeReplayFixture('')
-      if (configCap !== undefined)
-        await appendFile(configPath, `\neval:\n  gate1:\n    maxScreens: ${configCap}\n`)
       const session = await sessionFor(configPath)
       const host = await import('../../gates/replay-gate-host.js')
       const captured: Parameters<typeof host.createReplayGateHost>[0][] = []
