@@ -8,7 +8,7 @@ import type { ApplyKnowledgeChangeInput, ExplicitReviewDelegation } from '@vostr
 import { asEvidenceToken, asRecordId, type AuthoringDraftEditOutput, type ImprovementPlan, type MarkReceipt } from '@vostride/agent-qa-schema'
 import { wordImprovementPlan } from '../feedback-wording.js'
 import { createFeedbackPortForHost } from '../feedback-host.js'
-import { markFixture, files, loadBundle, bundles, canonicalKnowledge } from './feedback-fixture.js'
+import { markFixture, files, loadBundle, bundles, canonicalKnowledge, projectOutsideStores } from './feedback-fixture.js'
 
 const { appendOutcomeEvent } = await import(new URL('../../../../knowledge-local/src/bundle-append.js', import.meta.url).href)
 const { applyExplicitReview } = await import(new URL('../../../../knowledge-local/src/review/apply-review.js', import.meta.url).href)
@@ -281,18 +281,14 @@ describe('419 feedback host', () => {
     })
     expect(hashes(root)).toEqual(before)
   })
-  it('tracer: confirmed-bug bare mark freezes private gold, evidence and one ledger receipt', async () => {
+  it('a confirmed-bug mark records evidence and one ledger receipt and changes nothing outside .agent-qa and the knowledge root', async () => {
     const f = markFixture(); root = f.root
+    const outside = projectOutsideStores(f)
     const port = createFeedbackPortForHost(f.deps)
     const result = await port.mark({ runId: f.handoff.runId, kind: 'confirmed-bug' })
     expect(result).toMatchObject({ kind: 'marked', receipt: { ordinal: 1, origin: 'user', disposition: { kind: 'confirmed-bug', confirmedRecords: 1 }, evidence: { confirmed: 1, overturned: 0 } } })
     if (result.kind !== 'marked') throw new Error('expected mark')
-    expect(result.receipt.gold).toHaveLength(1)
-    expect(result.receipt.gold[0]!.cassetteId).toContain('-gold-m01')
-    expect(result.receipt.gold[0]!.channel).toBe('user-mark')
-    const goldFiles = files(join(root, 'agent-qa-eval')).filter(path => path.endsWith('.json')).map(path => JSON.parse(readFileSync(path, 'utf8')))
-    expect(goldFiles).toContainEqual(expect.objectContaining({ split: 'held-out', heldOutVisibility: 'private' }))
-    expect(goldFiles).toContainEqual(expect.objectContaining({ label: expect.objectContaining({ tier: 'gold', sourceChannel: 'user-mark' }) }))
+    expect(projectOutsideStores(f)).toEqual(outside)
     const lines = readFileSync(join(f.runDir, 'marks.jsonl'), 'utf8').trim().split('\n').map(line => JSON.parse(line))
     expect(lines).toEqual([result.receipt])
     expect(await port.marksFor(f.handoff.runId)).toEqual(lines)

@@ -3,13 +3,13 @@ import { trustPriorsForHost, type ResolveTrustPriors } from '../curation/trust-p
 import type { KnowledgeReaderPort } from '@vostride/agent-qa-agent'
 import type { FeedbackPort } from '@vostride/agent-qa-schema'
 import { RUNS_MARK_FUNCTION_ID } from '@vostride/agent-qa-agent'
-import { applyKnowledgeChange, createKnowledgeReader, LOCAL_CURATION_CAPABILITIES, type ExplicitReviewDelegate, type LocalCurationCapabilities } from '@vostride/agent-qa-agent-local'
+import { applyKnowledgeChange, createKnowledgeReader, LOCAL_CURATION_CAPABILITIES, resolveRunExecutionContext, type ExplicitReviewDelegate, type LocalCurationCapabilities } from '@vostride/agent-qa-agent-local'
 import { MARK_FIX_REFUSALS, MARK_RECEIPT_SCHEMA_VERSION, RunsMarkInputSchema, type MarkFixRefusal, type AuthoringDraftEditInput, type AuthoringDraftEditOutput, type MarkReceipt, type RunsMarkInput, type RunsMarkOutcome } from '@vostride/agent-qa-schema'
-import { resolveConfiguredKnowledgeRoot } from '../config.js'
+import { resolveConfig, resolveConfiguredKnowledgeRoot } from '../config.js'
 import { createDeclaredSecretMask } from '../composition/declared-secrets.js'
 import { wordImprovementPlan } from './feedback-wording.js'
 import { decideMarkDraft, loadMarkTarget, markEvidenceCurationJobIds, markFeedbackInput, planMarkFeedback, readMarkDraftFacts } from './feedback-plan.js'
-import { resolveEvalSession, resolveProductPartition, FsMarkLedger, freezeGoldenTrajectory, RUNS_SUBDIR, slugBranch } from '../eval-session-composition.js'
+import { FsMarkLedger, RUNS_SUBDIR, slugBranch } from '../eval-session-composition.js'
 import { answerRecordedMarkEdit, clearMarkEditRecord, MARK_EDIT_RECORD_FILE, withMarkEditScope } from './mark-edit-record.js'
 
 export { resolveMarkMember } from './feedback-plan.js'
@@ -93,17 +93,14 @@ export class KnowledgeWriterLeaseBusyError extends Error {
 }
 
 /**
- * The mark's fix was not applied this time and a retry can apply it: gold and evidence stand, no
- * receipt, and the unfinished mark resumes on retry.
- *
- * 2026-10-03 (quick 261003-mqc): a refusal that comes from the mark's own planned fix
- * (MARK_FIX_REFUSALS) never reaches here. A retry reuses that plan and could never apply it, so
- * the mark closes instead, under its own identity, with a `not-applied` receipt.
+ * The mark's fix was not applied this time and a retry can apply it: evidence stands, no receipt,
+ * and the unfinished mark resumes on retry. A refusal from the mark's own planned fix
+ * (MARK_FIX_REFUSALS) never reaches here: the mark closes with a `not-applied` receipt instead.
  */
 export class MarkFixNotAppliedError extends Error {
   constructor(readonly reason: string) {
-    super(`Mark fix was not applied (${reason}); gold and evidence landed, no mark receipt `
-      + 'appended. Retry the mark.')
+    super(`Mark fix was not applied (${reason}); evidence landed, no mark receipt appended. `
+      + 'Retry the mark.')
     this.name = 'MarkFixNotAppliedError'
   }
 }
@@ -111,14 +108,7 @@ export class MarkFixNotAppliedError extends Error {
 const isPlannedFixRefusal = (reason: string): reason is MarkFixRefusal =>
   (MARK_FIX_REFUSALS as readonly string[]).includes(reason)
 
-export class FeedbackFreezeRefusedError extends Error {
-  constructor(readonly outcome: unknown) {
-    super('Gold freeze refused; no mark receipt appended. Inspect the committed eval root before retrying: some gold cases may already have landed.')
-    this.name = 'FeedbackFreezeRefusedError'
-  }
-}
-
-/** One lazy host, shared by every function surface. Freeze/evidence stay under the run lock. */
+/** One lazy host, shared by every function surface. Evidence stays under the run lock. */
 export function createFeedbackPortForHost(deps: FeedbackHostDeps): FeedbackPort {
   if (deps.writerAuthority !== undefined
     && (deps.wholeMarkDelegate !== undefined || deps.knowledgeChangeDelegate !== undefined)) {
@@ -141,7 +131,7 @@ export function createFeedbackPortForHost(deps: FeedbackHostDeps): FeedbackPort 
       const input = RunsMarkInputSchema.parse(raw)
       const target = loadMarkTarget(deps.agentQaRoot, input)
       if (target.kind !== 'target') return target
-      // Decided before the run lock, the gold freeze or any lease, so a delegated mark writes nothing here.
+      // Decided before the run lock or any lease, so a delegated mark writes nothing here.
       if (deps.wholeMarkDelegate !== undefined) {
         const delegated = await deps.wholeMarkDelegate(input)
         if (delegated !== undefined) return delegated
@@ -176,34 +166,28 @@ export function createFeedbackPortForHost(deps: FeedbackHostDeps): FeedbackPort 
           mark.disposition = { kind: 'quarantined', class: planned.class }
           return mark
         }
-        // 432-09 (D-04/D-11): the intent's operation identity is every effect's identity, so a retry
-        // from any checkpoint (after gold, after evidence, after publication, before the receipt)
-        // lands the same fix once. Order is gold, evidence, fix, receipt.
+        // The intent's operation identity is every effect's identity, so a retry from any checkpoint
+        // lands the same fix once, in the order evidence, fix, receipt.
         let intent = ledger.prepareIntent(mark, deps.randomUuid())
         mark = intent.mark
         if (intent.stage !== 'applied') {
-        const session = await resolveEvalSession({ configPath: deps.configPath, keyOnly: true })
+        const config = await resolveConfig({ configPath: deps.configPath, loadAuthPlugins: false })
+        const executionContext = resolveRunExecutionContext()
         const configDir = dirname(resolve(deps.configPath))
         const editRecordPath = join(deps.agentQaRoot, RUNS_SUBDIR, slugBranch(input.runId), MARK_EDIT_RECORD_FILE)
-        const knowledgeRoot = resolveConfiguredKnowledgeRoot(session.config, configDir)
+        const knowledgeRoot = resolveConfiguredKnowledgeRoot(config, configDir)
         const held = heldAuthority(knowledgeRoot)
-        const frozen = freezeGoldenTrajectory({ agentQaRoot: deps.agentQaRoot,
-          committedRoot: resolve(configDir, 'agent-qa-eval'), product: resolveProductPartition(handoff.scope),
-          mark, handoff, ...(prior === undefined ? {} : { priorGold: prior.gold }),
-          mask: createDeclaredSecretMask(deps.configPath).mask })
-        if (frozen.kind !== 'frozen' || frozen.census === 'write-conflict') throw new FeedbackFreezeRefusedError(frozen)
-        mark.gold = frozen.cases
         const { servedRecordIds } = planned.knowledge
         if (intent.stage === 'prepared' && planned.knowledge.appendsEvidence) {
           const lease = held === undefined ? curation.maintenance.acquireWriterLease(knowledgeRoot) : { kind: 'acquired' as const, ...held }
-          if (lease.kind !== 'acquired') throw new Error(`Mark evidence writer lease ${lease.kind}; gold landed, no mark receipt appended`)
+          if (lease.kind !== 'acquired') throw new Error(`Mark evidence writer lease ${lease.kind}; no mark receipt appended`)
           try {
             const evidence = await curation.appendMarkEvidence({ knowledgeRoot,
-              executionContext: session.executionContext, lease: { leaseId: lease.leaseId, epoch: lease.epoch },
+              executionContext, lease: { leaseId: lease.leaseId, epoch: lease.epoch },
               mark, servedRecordIds, handoff,
               includeAlreadyAppended: true,
               curationJobIds: markEvidenceCurationJobIds(input.runId) })
-            if (evidence.correlationIncomplete) throw new Error('Mark evidence correlation incomplete; gold/evidence may have landed, no receipt appended')
+            if (evidence.correlationIncomplete) throw new Error('Mark evidence correlation incomplete; evidence may have landed, no receipt appended')
             mark.evidence = { confirmed: evidence.confirmed, overturned: evidence.overturned }
           } finally { if (held === undefined) curation.maintenance.releaseLease({ knowledgeRoot, leaseId: lease.leaseId }) }
         }
@@ -216,10 +200,9 @@ export function createFeedbackPortForHost(deps: FeedbackHostDeps): FeedbackPort 
           const { served, procedure } = await readMarkDraftFacts({ reader, curation, knowledgeRoot, member, step })
           let plan = intent.plan ?? curation.applyFeedback(markFeedbackInput(mark,
             { handoff, member, step, served, ...(procedure === undefined ? {} : { procedure }) }))
-          if (intent.plan === undefined) plan = await (deps.word ?? wordImprovementPlan)({ plan, config: session.config,
-            executionContext: session.executionContext,
+          if (intent.plan === undefined) plan = await (deps.word ?? wordImprovementPlan)({ plan, config, executionContext,
             // Wording keeps its floor when the declared secrets cannot be read: the mask throws inside its catch.
-            mask: await resolveEvalSession({ configPath: deps.configPath }).then(full => full.mask, (error: unknown) => (): never => { throw error }) })
+            mask: createDeclaredSecretMask(deps.configPath).mask })
           intent = ledger.checkpointIntent({ ...intent, mark, plan })
           const draft = decideMarkDraft(plan, { servedRecords: served.length, procedureRead: procedure !== undefined,
             member, canDraftTestEdit: deps.invokeAuthoringDraftEdit !== undefined })
@@ -229,7 +212,7 @@ export function createFeedbackPortForHost(deps: FeedbackHostDeps): FeedbackPort 
             // landing it twice, and a held lease goes to its holder with this exact request.
             const applied = await (deps.applyKnowledgeChange ?? applyKnowledgeChange)({
               agentQaRoot: deps.agentQaRoot, knowledgeRoot, operationId: intent.operationId,
-              opId: RUNS_MARK_FUNCTION_ID, executionContext: session.executionContext, resolveTrustPriors,
+              opId: RUNS_MARK_FUNCTION_ID, executionContext, resolveTrustPriors,
               request: { verb: 'mark', input: { target: knowledgePlan.target,
                 mark: { runId: mark.runId, testIndex: mark.testIndex,
                   ...(mark.stepIndex === undefined ? {} : { stepIndex: mark.stepIndex }),

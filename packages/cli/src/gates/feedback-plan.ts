@@ -4,9 +4,9 @@ import { dirname, resolve } from 'node:path'
 import { chainJobIdsForRun, type KnowledgeReaderPort } from '@vostride/agent-qa-agent'
 import { createKnowledgeReader, DIGEST_JOB_ID_SOURCE, LOCAL_CURATION_CAPABILITIES, type LocalCurationCapabilities } from '@vostride/agent-qa-agent-local'
 import { projectRecordContent, RunsMarkInputSchema, type CompletedRunHandoff, type ImprovementPlan, type KnowledgeRecordShowResult, type KnowledgeTargetRef, type MarkAddress, type MarkPreviewKnowledge, type MarkPreviewKnowledgeRecord, type MarkQuarantineClass, type MarkReceipt, type NoDraftableFixChecked, type RunsMarkInput, type RunsMarkOutcome } from '@vostride/agent-qa-schema'
-import { resolveConfiguredKnowledgeRoot } from '../config.js'
+import { resolveConfig, resolveConfiguredKnowledgeRoot } from '../config.js'
 import { trustPriorsForHost, type ResolveTrustPriors } from '../curation/trust-priors.js'
-import { canonicalJson, FsHandoffSource, FsMarkLedger, latestMarkReceiptFor, previewMarkLabels, resolveEvalSession, resolveMarkLabelTargets, slugBranch, type GoldenTrajectoryTarget, type MarkGroundTruthPreview, type MarkLabelPreviewItem } from '../eval-session-composition.js'
+import { canonicalJson, FsHandoffSource, FsMarkLedger, latestMarkReceiptFor, previewMarkLabels, resolveMarkLabelTargets, slugBranch, type GoldenTrajectoryTarget, type MarkGroundTruthPreview, type MarkLabelPreviewItem } from '../eval-session-composition.js'
 
 export type MarkPlanCuration = Pick<LocalCurationCapabilities, 'triageMark' | 'servedIdsOn' | 'procedureReadOn' | 'applyFeedback' | 'readFeedbackRecord' | 'planMarkEvidence' | 'projectMarkEvidenceOutcome'>
 type MarkMember = CompletedRunHandoff['tests'][number]
@@ -229,8 +229,8 @@ export async function previewMarkConsequences(deps: MarkPreviewDeps, raw: unknow
   let store: { knowledgeRoot: string; reader: KnowledgeReaderPort } | undefined
   const storeOf = async () => {
     if (store !== undefined) return store
-    const session = await resolveEvalSession({ configPath: deps.configPath, keyOnly: true })
-    const knowledgeRoot = resolveConfiguredKnowledgeRoot(session.config, dirname(resolve(deps.configPath)))
+    const config = await resolveConfig({ configPath: deps.configPath, loadAuthPlugins: false })
+    const knowledgeRoot = resolveConfiguredKnowledgeRoot(config, dirname(resolve(deps.configPath)))
     store = { knowledgeRoot, reader: deps.reader ?? createKnowledgeReader(() => knowledgeRoot, undefined, undefined,
       deps.resolveTrustPriors ?? trustPriorsForHost(deps).resolve) }
     return store

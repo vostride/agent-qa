@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, sep } from 'node:path'
 import { generateRunId } from '@vostride/agent-qa-ids'
 import { FsEvidenceArtifactStore, slugBranch } from '@vostride/agent-qa-runner-local'
 import { asRunId, asRecordId, type CompletedRunHandoff } from '@vostride/agent-qa-schema'
@@ -40,6 +40,13 @@ export function markFixture() {
 export function files(root: string): string[] {
   if (!existsSync(root)) return []
   return readdirSync(root, { withFileTypes: true }).flatMap(entry => entry.isDirectory() ? files(join(root, entry.name)) : [join(root, entry.name)]).sort()
+}
+
+/** The project's file hashes outside `.agent-qa` and the knowledge root: what a mark leaves unchanged. */
+export function projectOutsideStores(fixture: { root: string; agentQaRoot: string; knowledgeRoot: string }): string[][] {
+  const within = (path: string, dir: string) => path.startsWith(`${dir}${sep}`)
+  return files(fixture.root).filter(path => !within(path, fixture.agentQaRoot) && !within(path, fixture.knowledgeRoot))
+    .map(path => [path, createHash('sha256').update(readFileSync(path)).digest('hex')])
 }
 
 
