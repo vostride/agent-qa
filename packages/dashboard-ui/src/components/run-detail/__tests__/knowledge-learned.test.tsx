@@ -156,9 +156,9 @@ function primariesOf(host: HTMLElement): (string | null | undefined)[] {
   return rowsOf(host).map(el => el.querySelector("[data-row-primary]")?.textContent)
 }
 
-// RE-TARGETED 427-08 (D-19 part 2): the receipt is a technical fact, so it reads in Retrieval details.
-describe('419 receipt-backed promotion attribution', () => {
-  it.each(['user-sovereign', 'gate1+gate2', 'gate1-lower-trust', 'deterministic-verdict-floor'] as const)(
+// The receipt is a technical fact, so it reads in Retrieval details.
+describe('receipt-backed promotion attribution', () => {
+  it.each(['user-sovereign', 'deterministic-verdict-floor'] as const)(
     'renders the recorded %s path and receipt prefix', promotionPath => {
       const promotionReceiptDigest = '0123456789abcdef'.repeat(4)
       const host = renderLedger([ledgerChange('fact-promoted', 'promoted', 7, { promotionPath, promotionReceiptDigest })])

@@ -172,31 +172,31 @@ describe('agent-qa knowledge gates', () => {
     expect(human).toContain('promotion deterministic-verdict-floor @6 by promote cites 0')
     expect(human).toContain(`gate 1 pass @7 by replay-check digest ${receipt.receiptDigest.slice(0, 12)}`)
     expect(human.indexOf('promotion deterministic-verdict-floor')).toBeLessThan(human.indexOf('gate 1 pass'))
-    expect(human).toContain('standing:\ngate 1: pass @7\ngate 2: none\ngate 3: none')
+    expect(human).toContain('standing:\ngate 1: pass @7\ngate 3: none')
     expect(human).toContain(dto.live.verdict === 'promote'
       ? `promote via ${dto.live.promotionPath}` : `held: ${dto.live.reason}`)
   })
 
-  it('shows Gate-2 corpus freshness and promotion receipt identity in human history', async () => {
+  it('shows a Gate-3 mark and its promotion receipt identity in human history', async () => {
     const { config, configPath, id } = fixture()
     const gate = stampReceiptDigest({
-      schemaVersion: GATE_RECEIPT_SCHEMA_VERSION, gate: 2, verdict: 'pass', candidateId: id,
-      producedAtOrdinal: 6, producedBy: { jobId: 'canary-review' },
-      attributedObservationId: 'synthetic-observation', corpusVersion: { corpusDigest: 'd'.repeat(64) },
-      benefit: 'exercised-benefited', stateValidity: 'valid',
+      schemaVersion: GATE_RECEIPT_SCHEMA_VERSION, gate: 3, verdict: 'pass', candidateId: id,
+      producedAtOrdinal: 6, producedBy: { opId: 'runs.mark' }, runId: 'marked-run', mark: 'false-fail',
     })
     expect(appendGateReceipt(config, id, gate)).toEqual({ kind: 'appended' })
     expect(appendPromotionReceipt(config, id, {
       schemaVersion: GATE_RECEIPT_SCHEMA_VERSION, kind: 'promotion', candidateId: id,
-      promotionPath: 'gate1+gate2', citedReceiptDigests: [gate.receiptDigest],
+      promotionPath: 'user-sovereign', citedReceiptDigests: [gate.receiptDigest],
       producedAtOrdinal: 7, producedBy: { opId: 'promote' },
     })).toEqual({ kind: 'appended' })
     const dto = KnowledgeGatesListResultSchema.parse(JSON.parse(await invoke(configPath, [id, '--json'])))
     if (dto.kind !== 'found') throw new Error('published record not found')
     const human = await invoke(configPath, [id])
     const lines = human.split('\n')
-    expect(lines.find(line => line.startsWith('gate 2 pass'))).toContain(`corpus ${gate.corpusVersion.corpusDigest.slice(0, 12)}`)
-    expect(lines.find(line => line.startsWith('promotion gate1+gate2'))).toContain(`digest ${dto.lines[1].receiptDigest.slice(0, 12)}`)
+    expect(lines.find(line => line.startsWith('gate 3 pass'))).toContain('by runs.mark')
+    expect(lines.find(line => line.startsWith('gate 3 pass'))).toContain('corpus -')
+    expect(lines.find(line => line.startsWith('promotion user-sovereign'))).toContain(`digest ${dto.lines[1].receiptDigest.slice(0, 12)}`)
+    expect(human).toContain('standing:\ngate 1: none\ngate 3: pass @6')
   })
 
   it('reports no gate receipts with the actual live answer and reports not found', async () => {

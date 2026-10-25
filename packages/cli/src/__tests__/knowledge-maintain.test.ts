@@ -57,7 +57,7 @@ const commandHarness = vi.hoisted(() => ({
   authorityRefreshCalls: 0,
   drainQueueCalls: 0,
   drainInputs: [] as Record<string, unknown>[],
-  drainPromotions: undefined as Array<{ candidateId: string; promotionPath?: 'deterministic-verdict-floor'; promotionHoldReason?: 'gate1-receipt-required' }> | undefined,
+  drainPromotions: undefined as Array<{ candidateId: string; promotionPath?: 'deterministic-verdict-floor'; promotionHoldReason?: 'no-confirmed-evidence' }> | undefined,
   releaseLeaseCalls: 0,
   rebuildIndexInputs: [] as Record<string, unknown>[],
   purgeRecordInputs: [] as Record<string, unknown>[],
@@ -692,10 +692,10 @@ describe('knowledge maintenance commands', () => {
     const workspace = fixtureWorkspace(roots)
     commandHarness.drainPromotions = [
       { candidateId: 'c1', promotionPath: 'deterministic-verdict-floor' },
-      { candidateId: 'c2', promotionHoldReason: 'gate1-receipt-required' },
+      { candidateId: 'c2', promotionHoldReason: 'no-confirmed-evidence' },
     ]
     const result = await invoke(workspace, ['drain'])
-    expect(result.stdout).toContain('curation: c1 promoted via deterministic-verdict-floor\ncuration: c2 held: gate1-receipt-required')
+    expect(result.stdout).toContain('curation: c1 promoted via deterministic-verdict-floor\ncuration: c2 held: no-confirmed-evidence')
   })
 
   it('cleans a stale daemon registration and falls back to the same inline drain', async () => {

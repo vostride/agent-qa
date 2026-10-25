@@ -1,5 +1,4 @@
 import { emptyCanaryCreditCounters } from '../canary-credit.js'
-import { curateCompletedRun, type CurationTailOperations } from '../curation-tail.js'
 import { createHash } from 'node:crypto'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -138,33 +137,6 @@ describe('the shipped positive-on-any-anchor-match fixture earns no credit', () 
     expect(report.canary.rideAlongUncredited).toBe(1)
     expect(report.refused).toBe(0)
     expect(report.details[0]).toEqual(expect.objectContaining({ benefit: 'rode-along', outcome: { kind: 'emitted' } }))
-  })
-
-  // The hold is presented from evidence; nothing is filed or read.
-  it('a gate-inconsistent canary hold renders as its held line, with no proposal or inbox', async () => {
-    const completed = handoff([step()])
-    const info = vi.fn()
-    const drainQueue = vi.fn(async (_options: object) => ({ kind: 'drained' as const, jobsProcessed: 1, committed: 1,
-      downgraded: 0, withheld: 0, quarantined: 0, requeued: 0, failures: 0, failureDetails: [],
-      noops: 0, noopDetails: [], remaining: 0, remainingWork: { queued: 0, claimedNonterminal: 0, quarantined: 0 },
-      reconcile: undefined, writerPass: { kind: 'not-requested' as const }, gc: { kind: 'not-run' as const },
-      promotions: [{ candidateId: CANDIDATE, promotionHoldReason: 'gate-inconsistent' as const }] }))
-    const operations: Partial<CurationTailOperations> = {
-      runSafetyScope: (_input, fn) => fn(),
-      emitCurationCandidates: () => ({ enqueued: 0, coalesced: 0, refused: 0, capExceeded: 0, details: [] }),
-      openKnowledgeReader: () => ({ emitCanaryOutcome: () => undefined }) as unknown as ReturnType<CurationTailOperations['openKnowledgeReader']>,
-      foldRunOutcomes: () => ({ kind: 'applied', tests: 1, quarantine: { kind: 'not-evaluated', reason: 'not-requested' } }),
-      drainQueue: drainQueue as unknown as CurationTailOperations['drainQueue'],
-    }
-    const report = await curateCompletedRun({ handoff: completed, runDir: creditRunDir,
-      knowledgeRoot: '/tmp/agent-qa-knowledge', agentQaRoot: creditRunDir,
-      operations, log: { warn: vi.fn(), info } })
-    expect(report).toMatchObject({ complete: true, curated: 1 })
-    const lines = info.mock.calls.map(([line]) => String(line))
-    expect(lines).toContain(`curation: ${CANDIDATE} held: gate-inconsistent`)
-    expect(lines.filter(line => /proposal|review with/.test(line))).toEqual([])
-    expect(drainQueue).toHaveBeenCalledOnce()
-    expect(drainQueue.mock.calls[0]![0]).not.toHaveProperty('agentQaRoot')
   })
 })
 

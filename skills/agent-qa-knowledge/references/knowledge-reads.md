@@ -30,17 +30,16 @@ is known, not as a verdict. A record's trust never comes from its own text.
 
 ## Gates
 
-A new record starts as a `candidate` and becomes `active` only by passing gates. Each pass leaves
-a receipt, and `knowledge gates` lists them.
+A new record starts as a `candidate` and becomes `active` in one of two ways:
 
-- Gate 1 — replay: the planner is re-asked on recorded screens with and without the record; it
-  must fix what it targets and change nothing else.
-- Gate 2 — canary: the record is served, flagged, on later real runs, and a run has to use it
-  and benefit.
-- Gate 3 — a person: a run mark or an accepted policy. It promotes on its own.
+- the deterministic verdict floor: confirmed outcome evidence from later runs, plus a matching
+  element observation for a fact or a root cause for a caution;
+- Gate 3, a person: a run mark or an accepted policy. It promotes on its own.
 
-The promotion path names how a record got in, weakest to strongest: `deterministic-verdict-floor`,
-`gate1-lower-trust`, `gate1+gate2`, `user-sovereign`. A held record says why it is held.
+Each promotion leaves a promotion line in the record's history, and `knowledge gates` lists the
+receipts with it. The promotion path names how a record got in: `deterministic-verdict-floor` or
+`user-sovereign`. Gate 1 receipts, written by `eval replay-gate`, may appear in a record's history,
+but they do not promote it. A held record says why it is held.
 
 ## Lifecycle
 
@@ -271,13 +270,11 @@ Call: `{ "recordId": "fact-pay-button" }`
 Answer:
 
 ```text
-record fact-pay-button · fact · active · strongest path: gate1+gate2
-gate 1 pass @10 by job-7 digest 3be1c07d9a21 corpus 58a0f1e2c3d4 degradation -
-gate 2 pass @12 by job-9 digest a44f0e3b1c7d corpus 58a0f1e2c3d4 degradation -
-promotion gate1+gate2 @12 by job-9 cites 2 digest 0c9e8d7f6a5b
+record fact-pay-button · fact · active · strongest path: user-sovereign
+gate 3 pass @12 by runs.mark digest a44f0e3b1c7d corpus - degradation -
+promotion user-sovereign @12 by promote cites 1 digest 0c9e8d7f6a5b
 standing:
-gate 1: pass @10
-gate 2: pass @12
-gate 3: none
-promote via gate1+gate2
+gate 1: none
+gate 3: pass @12
+promote via user-sovereign
 ```

@@ -305,7 +305,7 @@
       "classifies": true,
       "id": "knowledge.accept",
       "inputSchemaDigest": "ece244ec807fe3ea186fe1326ec14fe4dc93d54c719cbd1fb35244e43caada32",
-      "outputSchemaDigest": "07c5fff4b1cd92b97e1073dbc7b01bbb25de150a7b877d63ffef59603fdafade",
+      "outputSchemaDigest": "c9bdfe22c102e72e1415cd71e600357f9649f6b124cd7076315385c06042ae29",
       "partition": {
         "kind": "projected",
         "tool": "agent_qa_change_knowledge"
@@ -356,7 +356,7 @@
       "classifies": true,
       "id": "knowledge.forget",
       "inputSchemaDigest": "ece244ec807fe3ea186fe1326ec14fe4dc93d54c719cbd1fb35244e43caada32",
-      "outputSchemaDigest": "07c5fff4b1cd92b97e1073dbc7b01bbb25de150a7b877d63ffef59603fdafade",
+      "outputSchemaDigest": "c9bdfe22c102e72e1415cd71e600357f9649f6b124cd7076315385c06042ae29",
       "partition": {
         "kind": "projected",
         "tool": "agent_qa_change_knowledge"
@@ -373,7 +373,7 @@
       "classifies": true,
       "id": "knowledge.gates.list",
       "inputSchemaDigest": "3d7f0e0bc33415cdda6cbc7996e50d2c130d39fdc01d75982faa529d72cf3a29",
-      "outputSchemaDigest": "ea6b6168b4ffd58e646f92410499bf12bbc8d2b7a35a15f748f318263ead9dc0",
+      "outputSchemaDigest": "a37567d774d307a9113cf2c1a26ec11a4922d275a596612a3640552b09511ce6",
       "partition": {
         "kind": "projected",
         "tool": "agent_qa_list_knowledge_gates"
@@ -407,7 +407,7 @@
       "classifies": true,
       "id": "knowledge.records.diff",
       "inputSchemaDigest": "13ef772cfc51debbcf88c19eb55fd9cf10405f1de55eae4f51dd4d1060ed4780",
-      "outputSchemaDigest": "952da8585d7c17cbcdd6345da924a92eda55ef7ff773416973b5f7e274dcb2f5",
+      "outputSchemaDigest": "f867590857a8012852bbea70b34a666621ab904838bb751d15fd92222fb5ba94",
       "partition": {
         "kind": "projected",
         "tool": "agent_qa_diff_knowledge_records"
@@ -441,7 +441,7 @@
       "classifies": true,
       "id": "knowledge.reject",
       "inputSchemaDigest": "d374a11362776bc2d78a55dd618c4e60ed64bbaf0f8913ebee51716daaabf35b",
-      "outputSchemaDigest": "07c5fff4b1cd92b97e1073dbc7b01bbb25de150a7b877d63ffef59603fdafade",
+      "outputSchemaDigest": "c9bdfe22c102e72e1415cd71e600357f9649f6b124cd7076315385c06042ae29",
       "partition": {
         "kind": "projected",
         "tool": "agent_qa_change_knowledge"
@@ -611,7 +611,7 @@
       "classifies": true,
       "id": "runs.knowledge",
       "inputSchemaDigest": "55df3bfd3c544e0140548637d1539243fb285899b52998dc36a6dbe1989aee6d",
-      "outputSchemaDigest": "bb298ce81ef393ea4802e4cdbf9d563ef0370b0591db7044129c2db7b5684445",
+      "outputSchemaDigest": "1027be0eb290563b573bbcd7a21b5460af089909cd934cfd7ee84baba4ba5332",
       "partition": {
         "kind": "projected",
         "tool": "agent_qa_get_run_knowledge"
@@ -731,7 +731,7 @@
       "classifies": true,
       "id": "runs.postprocessing",
       "inputSchemaDigest": "55df3bfd3c544e0140548637d1539243fb285899b52998dc36a6dbe1989aee6d",
-      "outputSchemaDigest": "d4f07d60708ea7bbd2919915a246ff129b8e6aa4310673dbf290fd974d45d2bc",
+      "outputSchemaDigest": "029548fdfd39adc229decfe4b02a5e9522458a0a392e440d16ac3e39f4da3109",
       "partition": {
         "kind": "unprojected",
         "reason": "not-mid-flight-read"

@@ -452,32 +452,13 @@ function handedOffDrainReport() {
 }
 
 describe('runCurationTail post-verdict fold (CUR-03/CUR-05)', () => {
-  // 2026-09-30, 432-10 D-05/D-24: re-spelled. Nothing is filed any more, so a gate-inconsistent
-  // hold is disclosed only as its held line, with no proposal count or review command.
-  it.each([0, 1])('418 discloses a gate-inconsistent hold only as its held line, never a proposal: %s', async count => {
-    const info = vi.fn()
-    const operations = successfulOperations()
-    const drain = operations.drainQueue!
-    const drainQueue = vi.fn(async (...args: Parameters<typeof drain>) => ({
-      ...await drain(...args),
-      promotions: Array.from({ length: count }, () => ({ candidateId: 'c-held',
-        promotionHoldReason: 'gate-inconsistent' as const })),
-    }))
-    await runCurationTail(baseOptions({ ...operations, drainQueue }, { log: { warn: vi.fn(), info } }))
-    const lines = info.mock.calls.map(([line]) => String(line))
-    expect(lines.filter(line => /proposal|review with/.test(line))).toEqual([])
-    expect(lines.filter(line => line.includes('gate-inconsistent'))).toEqual(count === 0 ? [] : [
-      'curation: c-held held: gate-inconsistent',
-    ])
-  })
-
   it('prints every promotion in report order', async () => {
     const info = vi.fn()
     const drainQueue = vi.fn(async (_options: object) => ({
       ...handedOffDrainReport(),
       promotions: [
         { candidateId: 'c1', promotionPath: 'deterministic-verdict-floor' as const },
-        { candidateId: 'c2', promotionHoldReason: 'gate1-receipt-required' as const },
+        { candidateId: 'c2', promotionHoldReason: 'no-confirmed-evidence' as const },
       ],
     }))
     await runCurationTail(baseOptions(successfulOperations({ drainQueue }), {
@@ -488,7 +469,7 @@ describe('runCurationTail post-verdict fold (CUR-03/CUR-05)', () => {
     expect(info.mock.calls.map(([message]) => message).filter(message => message.startsWith('curation: '))).toEqual([
       'curation: handed to daemon (pid 4242)',
       'curation: c1 promoted via deterministic-verdict-floor',
-      'curation: c2 held: gate1-receipt-required',
+      'curation: c2 held: no-confirmed-evidence',
     ])
   })
   it('loads the handoff, emits candidates and canary outcomes in one scope, then drains', async () => {

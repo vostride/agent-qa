@@ -154,7 +154,6 @@ function tree(root: string): Record<string, string> {
 function standingReceipts(pinned: string) {
   return () => [
     { candidateId: 'c-gate1-pinned', gate: 1 as const, verdict: 'pass' as const, corpusDigest: pinned, producedAtOrdinal: 3 },
-    { candidateId: 'c-gate2-pinned', gate: 2 as const, verdict: 'pass' as const, corpusDigest: pinned, producedAtOrdinal: 4 },
     { candidateId: 'c-other-corpus', gate: 1 as const, verdict: 'pass' as const, corpusDigest: 'b'.repeat(64), producedAtOrdinal: 5 },
     // Gate 3 is sovereign user feedback: no corpus digest, so it can never be stale.
     { candidateId: 'c-gate3', gate: 3 as const, verdict: 'pass' as const, producedAtOrdinal: 6 },
@@ -185,10 +184,10 @@ describe('422 adversarial admit — receipt and floor disclosure', () => {
     expect(admitted.kind).toBe('admitted')
     expect(admitted.previousCorpusDigest).toBe(previous)
     expect(admitted.nextCorpusDigest).not.toBe(previous)
-    // Derived from the digests that ACTUALLY moved and the receipts ACTUALLY stored: the two
+    // Derived from the digests that ACTUALLY moved and the receipts ACTUALLY stored: the one
     // pinned to the old digest, and neither the foreign-corpus one nor the digest-less Gate 3.
     expect(admitted.staleReceipts?.map(row => row.candidateId).sort())
-      .toEqual(['c-gate1-pinned', 'c-gate2-pinned'])
+      .toEqual(['c-gate1-pinned'])
     // Reported, never repaired: the operator re-measures with this, admission never rewrites it.
     expect(admitted.floorCommand).toContain('eval floor')
     expect(admitted.floorCommand).toContain(f.configPath)

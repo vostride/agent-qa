@@ -753,7 +753,6 @@ export async function curateCompletedRun(
         const elapsedSeconds = Math.max(0, Math.floor((Date.now() - tailStartedAtMs) / 1_000))
         input.log.info?.(`curation: drained inline (${elapsedSeconds}s)`)
       }
-      // 2026-09-30, 432-10 D-05: a gate-inconsistent hold is its held line; nothing is filed.
       for (const entry of drain.promotions ?? []) input.log.info?.(renderPromotionLine(entry))
       const outcomeLine = curationOutcomeLine({
         executionContext: input.handoff.executionContext,

@@ -358,7 +358,7 @@ function renderGates(dto: KnowledgeGatesListResult): string {
       return `gate ${line.gate} ${line.verdict} @${line.producedAtOrdinal} by ${by} digest ${line.receiptDigest.slice(0, 12)} corpus ${corpus} degradation ${degradation}`
     }),
     'standing:',
-    ...[1, 2, 3].map(gate => {
+    ...[1, 3].map(gate => {
       const receipt = dto.standing.find(line => line.gate === gate)
       return receipt === undefined ? `gate ${gate}: none`
         : `gate ${gate}: ${receipt.verdict} @${receipt.producedAtOrdinal}`

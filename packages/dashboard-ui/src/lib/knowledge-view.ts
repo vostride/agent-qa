@@ -1270,8 +1270,6 @@ export type LearnedChangeKind = (typeof LEARNED_CHANGE_KINDS)[number]
 
 const PROMOTION_PATH_LABELS = {
   'deterministic-verdict-floor': 'deterministic-verdict-floor',
-  'gate1-lower-trust': 'gate1-lower-trust',
-  'gate1+gate2': 'gate1+gate2',
   'user-sovereign': 'user-sovereign',
 } satisfies Record<PromotionPath, string>
 
