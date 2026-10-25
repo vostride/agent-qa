@@ -1,32 +1,19 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { dirname, join, relative } from 'node:path'
+import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { Command } from 'commander'
 import { PassThrough, Writable } from 'node:stream'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import * as model from '@vostride/agent-qa-model'
-import { asRef, CURRENT_RUN_NOTIFICATION_SCHEMA_VERSION, ORIGIN_PRIORS, GateReceiptSchema, receiptDigestOf, screenStateHash, sha256hex, type Verdict, type PostProcessingStatus, type RunNotificationView } from '@vostride/agent-qa-schema'
-import { readCommittedCorpus, readLabelCalibration, FsReplayRecordStore, FsScoreStore, FsReportStore,
+import { asRef, GateReceiptSchema, receiptDigestOf, screenStateHash, sha256hex, type Verdict } from '@vostride/agent-qa-schema'
+import { readCommittedCorpus, FsReportStore,
   committedLabelPath, runReplayGate, serializeReplayGateReceipt, FsRunArtifactSource, seedCommittedCorpus } from '@vostride/agent-qa-eval-local'
 import { projectSilverLabelRecord, extractRunCassettes, buildSeedingPlan, projectCorpusEntry, canonicalJson, type LeafCassette } from '@vostride/agent-qa-eval'
-import { createKnowledgeReader, DIGEST_JOB_ID_SOURCE } from '@vostride/agent-qa-agent-local'
 import { files, markFixture } from '../gates/__tests__/feedback-fixture.js'
 import { createEvalCommand } from '../commands/eval.js'
-import { createRunsCommand } from '../commands/runs.js'
-import { resolveEvalSession, runReportVerb } from '../eval-session-composition.js'
-import { buildTrustPriorsResolver, trustPriorsForHost, formatTrustPriorDisclosure } from '../curation/trust-priors.js'
-import { createKnowledgeChecks } from '../commands/doctor-knowledge-checks.js'
-import { renderEvalReportMarkdown } from '../eval-report-render.js'
 import * as host from '../composition/local-agent-host.js'
 import * as verbs from '../eval-session-composition.js'
-import { composeCliPostRunTail } from '../curation/post-run-tail-composition.js'
-import type { PostRunTailOperations } from '../curation/post-run-tail.js'
 
-// Existing peers create real persisted bundles, score records and SQLite indexes.
-const { metricEntry } = await import(new URL('../../../eval/src/match/__tests__/fixtures/label-metric-fixtures.js', import.meta.url).href)
-const { openKnowledgeReader: openIndexReader } = await import(new URL('../../../knowledge-local/src/index-reader.js', import.meta.url).href)
-const { rebuildIndex } = await import(new URL('../../../knowledge-local/src/index-rebuild.js', import.meta.url).href)
-const { acquireWriterLease, releaseLease } = await import(new URL('../../../knowledge-local/src/lease/writer-lease.js', import.meta.url).href)
 const { labelGateFixture, labelMetricIds, legacyReport, rewriteReport } = await import(new URL('../../../eval-local/src/__tests__/fixtures/label-gate-fixtures.js', import.meta.url).href)
 const { gate1Responder, warmGateRoot, writeGate1Fixture } = await import(new URL('../../../eval-local/src/__tests__/fixtures/gate1-fixtures.js', import.meta.url).href)
 const { actionGenerateResult, respondingStub, noneAuth, stubProfile } = await import(new URL('../../../eval-local/src/__tests__/fixtures/replay-fixtures.js', import.meta.url).href)
@@ -60,7 +47,7 @@ afterEach(() => {
 async function command(configPath: string, args: string[]) {
   vi.mocked(console.log).mockClear(); vi.mocked(console.error).mockClear(); process.exitCode = 0
   await new Command('agent-qa').option('--config <path>')
-    .addCommand(createEvalCommand()).addCommand(createRunsCommand()).exitOverride()
+    .addCommand(createEvalCommand()).exitOverride()
     .parseAsync(['--config', configPath, ...args], { from: 'user' })
   const stdout = vi.mocked(console.log).mock.calls.map(row => row.join(' ')).join('\n')
   const stderr = vi.mocked(console.error).mock.calls.map(row => row.join(' ')).join('\n')
@@ -96,176 +83,9 @@ async function fixture() {
   const seeded = await json(f.configPath, ['eval', 'seed', '--held-out-fraction', '0.4', '--private-fraction', '0.5'])
   expect(seeded.exit, seeded.stdout).toBe(0)
   expect(seeded.dto).toMatchObject({ seededCount: 23, refusals: [], runsSkipped: [] })
-  const mark = async (step: number) => {
-    const flags = step === 0 ? ['--corrected-action', JSON.stringify({ type: 'delay', ms: 137 }), '--corrected-expectation', 'Authored correction'] : []
-    const result = await json(f.configPath, ['runs', 'mark', f.handoff.runId, '--step', String(step),
-      '--kind', 'false-pass', ...flags])
-    expect(result.exit, result.stdout).toBe(0)
-    expect(result.dto.kind).toBe('marked')
-    return result.dto.receipt
-  }
   const calibrate = (flags: string[] = []) => json(f.configPath, ['eval', 'calibrate', ...flags])
-  return { ...f, committedRoot: join(f.root, 'agent-qa-eval'), mark, calibrate }
+  return { ...f, committedRoot: join(f.root, 'agent-qa-eval'), calibrate }
 }
-
-// 432-09 (D-04): each of these cells drives twenty-plus real marks, and every mark now commits its
-// fix to the knowledge store (10.4 s and 9.0 s alone on the 432-09 tree). Under a forced workspace
-// run the first cell outlived the 30 s default (twice), and the next cell then read an extra line on
-// its captured stdout while the timed-out drive was still running. The budget is the cell's own.
-const MARK_DRIVE_TIMEOUT_MS = 120_000
-
-it('drives sovereign gold through no-gold, 19/20/21, preview, commit, repeat and explicit replacement', async () => {
-  const f = await fixture(), noGoldBytes = bytes(f.root)
-  const empty = (await f.calibrate()).dto
-  expect(empty.artifact.channels['recorded-verdict']).toMatchObject({ status: 'uncalibrated', n: 0 })
-  expect(empty.artifact.priors).toEqual({})
-  expect(bytes(f.root)).toEqual(noGoldBytes)
-  const correction = await f.mark(0)
-  expect(correction.gold).toHaveLength(2)
-  expect(new Set(correction.gold.map((row: { sourceCassetteId: string }) => row.sourceCassetteId)).size).toBe(1)
-  for (const gold of correction.gold) {
-    expect(readCommittedCorpus(f.committedRoot).snapshot.labelsById.get(gold.cassetteId)).toMatchObject({
-      label: { tier: 'gold', sourceChannel: gold.channel }, correction: { verdict: 'fail',
-        correctedAction: { type: 'delay', ms: 137 }, correctedExpectation: 'Authored correction' } })
-  }
-  for (let step = 1; step < 19; step++) await f.mark(step)
-  const nineteen = (await f.calibrate()).dto
-  expect(nineteen.artifact.channels['recorded-verdict']).toMatchObject({ status: 'uncalibrated', n: 19, n_gold: 19 })
-  expect(nineteen.artifact.priors).toEqual({})
-  await f.mark(19)
-  const beforePreview = bytes(f.root), preview = (await f.calibrate()).dto
-  expect(bytes(f.root)).toEqual(beforePreview)
-  expect(preview.artifact.minGold).toEqual({ value: 20, source: 'default' })
-  expect(preview.artifact.channels['recorded-verdict']).toMatchObject({ status: 'calibrated', n: 20, n_gold: 20, precision: 0 })
-  expect(preview.artifact.channels['user-mark'].precision).toBe('by-construction')
-  expect(preview.artifact.channels['overturned-verdict'].precision).toBe('by-construction')
-  for (const minimum of [19, 20, 21]) {
-    const dto = (await f.calibrate(['--min-gold', String(minimum)])).dto
-    expect(dto.artifact.minGold).toEqual({ value: minimum, source: 'cli' })
-    expect(dto.artifact.channels['recorded-verdict'].status).toBe(minimum === 21 ? 'uncalibrated' : 'calibrated')
-  }
-  const committed = (await f.calibrate(['--commit'])).dto
-  expect(committed).toEqual({ ...preview, kind: 'committed' })
-  expect(committed.refreshedCount).toBe(2)
-  expect(readLabelCalibration(f.committedRoot)).toMatchObject({ kind: 'loaded', artifact: committed.artifact })
-  const firstBytes = bytes(f.root)
-  expect((await f.calibrate(['--commit'])).dto).toEqual({ ...committed, kind: 'unchanged', refreshedCount: 0 })
-  expect(bytes(f.root)).toEqual(firstBytes)
-  await f.mark(20)
-  const changedBytes = bytes(f.root), conflict = await f.calibrate(['--commit'])
-  expect(conflict.exit).toBe(1); expect(conflict.dto.kind).toBe('write-conflict')
-  expect(bytes(f.root)).toEqual(changedBytes)
-  const replacement = (await f.calibrate(['--commit', '--replace'])).dto
-  expect(replacement.artifact.channels['recorded-verdict']).toMatchObject({ status: 'calibrated', n: 21, precision: 0 })
-  expect(replacement.artifact.generationId).not.toBe(committed.artifact.generationId)
-  const finalBytes = bytes(f.root)
-  expect((await f.calibrate(['--commit', '--replace'])).dto).toEqual({ ...replacement, kind: 'unchanged', refreshedCount: 0 })
-  expect(bytes(f.root)).toEqual(finalBytes)
-}, MARK_DRIVE_TIMEOUT_MS)
-
-it('adopts a real prior generation in new bundle/index hosts and matches report, doctor and preserved old-host identities', async () => {
-  const f = await fixture()
-  for (let step = 0; step < 20; step++) await f.mark(step)
-  const old = trustPriorsForHost(f)
-  const oldReader = createKnowledgeReader(() => f.knowledgeRoot, undefined, undefined, old.resolve)
-  const before = await oldReader.candidateInjection!({ candidateId: f.published.id })
-  expect(before.kind).toBe('found')
-  const bundleBytes = bytes(f.knowledgeRoot)
-  const publication = (await f.calibrate(['--commit'])).dto
-  expect(bytes(f.knowledgeRoot)).toEqual(bundleBytes)
-  const fresh = trustPriorsForHost(f), freshReader = createKnowledgeReader(() => f.knowledgeRoot, undefined, undefined, fresh.resolve)
-  const after = await freshReader.candidateInjection!({ candidateId: f.published.id })
-  expect(after.kind).toBe('found')
-  if (before.kind !== 'found' || after.kind !== 'found') throw new Error('fixture bundle absent')
-  expect(after.injection.line.trust).not.toBe(before.injection.line.trust)
-  expect({ ...after.injection.line, trust: before.injection.line.trust }).toEqual(before.injection.line)
-  expect(after.injection.renderedLine).toBe(before.injection.renderedLine)
-  expect(await oldReader.candidateInjection!({ candidateId: f.published.id })).toEqual(before)
-  const prior = fresh.resolve()!['agent-verified']!
-  expect(prior.alpha + prior.beta).toBe(ORIGIN_PRIORS['agent-verified'].alpha + ORIGIN_PRIORS['agent-verified'].beta)
-  expect(prior.alpha / (prior.alpha + prior.beta)).toBeCloseTo(0)
-  expect(fresh.disclosure.digest).toBe(publication.artifact.generationId)
-  for (const mode of ['complete', 'failed', 'partial', 'handed-off'] as const) {
-    const info = vi.fn()
-    const notification = { schemaVersion: CURRENT_RUN_NOTIFICATION_SCHEMA_VERSION, runId: f.handoff.runId, outcome: mode === 'failed' ? 'failed' : 'complete',
-      verdictSummary: { total: 1, byClass: { app_bug: 1 } },
-      stages: { analysis: { status: 'complete' }, curation: { status: mode === 'failed' ? 'failed' : 'complete', curated: 2, deprecated: 1 } } } as RunNotificationView
-    const operations = {
-      loadCompletedRunHandoff: () => f.handoff, resolveKnowledgeRoot: () => f.knowledgeRoot,
-      composeHost: () => ({ jobs: async () => ({ idSource: DIGEST_JOB_ID_SOURCE,
-        store: { adoptEpoch: async () => ({ epoch: 7 }) },
-        queue: { recoverAbandonedClaims: async () => ({ recovered: 0 }), runNextJob: async () => ({ ran: false, reason: 'no-job' }) } }), close: async () => undefined }),
-      acquireWriterLease: () => mode === 'handed-off' ? { kind: 'held', holder: { pid: 42, leaseId: 'held', epoch: 1 } } : { kind: 'acquired', leaseId: 'fixture-lease', epoch: 7 },
-      releaseLease: () => ({ kind: 'released' }), nudgeDaemon: async () => undefined,
-      runCurationTail: async () => undefined, createChipEmitter: () => ({ observe: () => undefined }),
-      readPostProcessingStatus: async (): Promise<PostProcessingStatus> => ({ runId: f.handoff.runId,
-        chips: { analysis: 'complete', curation: mode === 'failed' ? 'failed' : 'pending' },
-        ...(mode === 'complete' || mode === 'failed' ? { notification } : {}) }),
-      readRunDigest: async () => ({ markChanges: [] }),
-    } as unknown as PostRunTailOperations
-    const tail = composeCliPostRunTail({ runId: f.handoff.runId, configDir: f.root, configFilePath: f.configPath,
-      knowledgeConfig: { dir: 'agent-qa-knowledge' },
-      log: { info, warn: vi.fn() }, operations, trustPriors: fresh })
-    await tail.drain(); await tail.finish()
-    expect(tail.report().drain).toBe(mode === 'handed-off' ? 'handed-off' : 'drained')
-    expect(info.mock.calls[0]?.[0]).toContain(formatTrustPriorDisclosure(fresh.disclosure))
-  }
-  const lease = acquireWriterLease(f.knowledgeRoot)
-  expect(lease.kind).toBe('acquired')
-  if (lease.kind !== 'acquired') throw new Error('fixture lease unavailable')
-  const authority = { knowledgeRoot: f.knowledgeRoot, leaseId: lease.leaseId, epoch: lease.epoch }
-  const oldIndex = openIndexReader(f.knowledgeRoot, { priors: old.resolve() })
-  try {
-    const oldRow = oldIndex.getById(f.published.id)
-    await rebuildIndex({ knowledgeRoot: f.knowledgeRoot, writerAuthority: authority, priors: fresh.resolve() })
-    const newIndex = openIndexReader(f.knowledgeRoot, { priors: fresh.resolve() })
-    try {
-      expect(newIndex.source).toBe('index')
-      expect(newIndex.getById(f.published.id).trust).toBe(after.injection.line.trust)
-      expect(oldIndex.getById(f.published.id)).toEqual(oldRow)
-      expect(oldIndex.source).toBe('scan')
-    } finally { newIndex.close() }
-  } finally { oldIndex.close(); releaseLease(authority) }
-  const read = readCommittedCorpus(f.committedRoot)
-  for (const entry of read.snapshot.entries) {
-    const scored = metricEntry(entry.cassetteId)
-    new FsReplayRecordStore({ root: f.agentQaRoot }).save(scored.outcome)
-    new FsScoreStore({ root: f.agentQaRoot }).save({ cassetteId: entry.cassetteId, matcherVersion: 1, score: scored.score, diffs: [] })
-  }
-  const session = await resolveEvalSession({ configPath: f.configPath })
-  const report = (await runReportVerb(session, {}, { source: 'committed' })).report
-  const reportCommand = await json(f.configPath, ['eval', 'report', '--source', 'committed'])
-  expect(reportCommand.exit).toBe(0)
-  expect(reportCommand.dto.report).toEqual(report)
-  expect(report.calibration).toEqual({ status: 'calibrated', n_gold: 20, verifierFalsePassRate: publication.artifact.verifierFalsePassRate })
-  expect(report.headline.verifierFalsePassRate).toEqual({ numerator: 20, denominator: 23, rate: 20 / 23 })
-  expect(report.recovery.eligiblePositiveCount).toBe(1)
-  expect(report.recovery.weightSum).toBeGreaterThan(0)
-  const markdown = renderEvalReportMarkdown(report)
-  for (const key of ['verifierFalsePassRate', 'recovery.recoveryAccuracy', 'recovery.weightedAccuracy', 'calibration.status',
-    'perSplit.natural', 'perSplit.held-out.shared', 'perSplit.held-out.private', 'perSplit.adversarial']) expect(markdown).toContain(key)
-  const doctor = async () => createKnowledgeChecks({ configPath: f.configPath, config: { knowledge: { dir: 'agent-qa-knowledge' } },
-    probes: { resolveEmbedderCapability: async () => ({ kind: 'lexical-only' }),
-      buildPromotionPosture: async () => ({ kind: 'no-eval-root', committedRoot: f.committedRoot }) } })[3].check()
-  const beforeDoctor = bytes(f.root), current = await doctor()
-  expect(current.message).toContain('goldDigest current')
-  expect(current.message).toContain(formatTrustPriorDisclosure(fresh.disclosure))
-  expect(bytes(f.root)).toEqual(beforeDoctor)
-  await f.mark(20)
-  // 432-09 (D-04): the marks now commit their fixes, and that commit leaves the index database
-  // checkpointed with no WAL sidecars. 2026-10-02 (quick 261002-hyg, 432-09 #5): the doctor opens a
-  // checkpointed index immutably, so asking it creates no -wal/-shm beside it; every byte, sidecar
-  // names included, is unchanged (this cell compared around the two sidecars until then).
-  const beforeStale = bytes(f.root)
-  expect(beforeStale.filter(([path]) => /knowledge\.db$/.test(path!))).toHaveLength(1)
-  const stale = await doctor()
-  expect(stale.message).toContain('goldDigest stale')
-  expect(stale.message).toContain(publication.artifact.generationId)
-  const afterStale = bytes(f.root)
-  expect(afterStale.map(([path]) => relative(f.root, path!))).toEqual(beforeStale.map(([path]) => relative(f.root, path!)))
-  expect(afterStale).toEqual(beforeStale)
-  expect(buildTrustPriorsResolver({ ...f, inspectCalibration: true })).toMatchObject({ kind: 'ready', calibration: expect.stringContaining('stale') })
-}, MARK_DRIVE_TIMEOUT_MS)
 
 it('keeps all eleven own-profile comparison rows and legacy exits through real fresh/saved gate commands', async () => {
   // These model calls use in-process fixture languageModels; the external fetch port still throws.

@@ -25,15 +25,13 @@ import { RUN_SERVICE_ROUTE_BINDINGS, registryDeclarations } from './conformance/
 import { catalogDocFieldsOf } from './conformance/catalog.js'
 import { censusDiff, OP_INPUT_CONTRACTS, scenarioRowFor, scenarioTableOpIds, unprojectedReasonKeyOf } from './conformance/scenario-table.js'
 
-// 2026-09-15, 423 D-16: eval initialization, gold freeze and the wording model call refuse while a
-// preview runs. A key-only session only resolves configured roots; it reads no secret or auth state.
+// Eval initialization and the wording model call refuse while a preview runs. A key-only session
+// only resolves configured roots; it reads no secret or auth state.
 const denial = vi.hoisted(() => ({ active: false }))
 vi.mock('../eval-session-composition.js', async importOriginal => {
   const actual = await importOriginal<typeof import('../eval-session-composition.js')>()
   const deny = (name: string) => { if (denial.active) throw new Error(`preview must not call ${name}`) }
   return { ...actual,
-    freezeGoldenTrajectory: (...args: Parameters<typeof actual.freezeGoldenTrajectory>) => {
-      deny('freezeGoldenTrajectory'); return actual.freezeGoldenTrajectory(...args) },
     resolveEvalSession: async (input?: Parameters<typeof actual.resolveEvalSession>[0]) => {
       if (input?.keyOnly !== true) deny('resolveEvalSession')
       return await actual.resolveEvalSession(input) } }
@@ -155,9 +153,7 @@ describe('423-35 shared mark consequence plan (D-16)', () => {
     expect(previewed).toEqual(await port.mark(learnable))
   })
 
-  // RE-SPELLED 432-09 (D-11) from 'PRIOR-WITHDRAWAL: only a new completing effect withdraws the prior
-  // draft; repeats, refusals and quarantine do not': no mark withdraws anything now. A superseding
-  // mark replaces the prior gold case and the prior applied fix stays, on every arm.
+  // No mark withdraws anything: a superseding mark leaves the prior applied fix in place, on every arm.
   it('PRIOR-FIX-STAYS: no preview or superseding mark withdraws the prior applied fix; repeats, refusals and quarantine change nothing', async () => {
     const f = fixture()
     const runId = f.handoff.runId
@@ -194,7 +190,7 @@ describe('423-35 shared mark consequence plan (D-16)', () => {
     expect(existsSync(join(f.agentQaRoot, 'proposals')), 'nothing is filed or withdrawn').toBe(false)
   })
 
-  it('MARK-PLAN-PARITY: the previewed step, labels, served evidence and draft target are the ones the writer lands', async () => {
+  it('the previewed step, served evidence and draft target are the ones the writer lands', async () => {
     const f = fixture()
     const runId = f.handoff.runId
     const before = hashes(f.root)
@@ -207,10 +203,8 @@ describe('423-35 shared mark consequence plan (D-16)', () => {
       latest: { kind: 'first' }, basis: { ledgerOrdinal: 0 } })
     const written = await createFeedbackPortForHost(f.deps).mark({ runId, kind: 'false-fail' })
     if (written.kind !== 'marked' || previewed.kind !== 'consequences') throw new Error('expected mark')
-    expect(previewed.labels.map(label => [label.channel, label.sourceCassetteId]))
-      .toEqual(written.receipt.gold.map(item => [item.channel, item.sourceCassetteId]))
     expect(written.receipt.evidence.confirmed).toBe(1)
-    // 432-09: the previewed knowledge fix is the one the writer applies, on the previewed target.
+    // The previewed knowledge fix is the one the writer applies, on the previewed target.
     expect(written.receipt.disposition).toMatchObject({ kind: 'applied', fix: 'fact', change: { kind: 'knowledge' } })
   })
 })
@@ -544,7 +538,7 @@ type PreviewFixture = ReturnType<typeof markFixture>
 type Consequences = Extract<RunsMarkPreviewResult, { kind: 'consequences' }>
 const MARK_ID = /mark_[0-9a-f]{12}/g
 
-/** Writer lease, ledger transaction/intent, gold freeze, eval initialization and the wording model all throw. */
+/** Writer lease, ledger transaction/intent, eval initialization and the wording model all throw. */
 async function denying<T>(run: () => Promise<T>): Promise<T> {
   const spies = (['transact', 'prepareIntent', 'checkpointIntent', 'append'] as const)
     .map(name => vi.spyOn(FsMarkLedger.prototype, name).mockImplementation(refuse(`FsMarkLedger.${name}`) as never))
@@ -812,7 +806,7 @@ describe('423-19 content-led consequence preview over the read host (D-16/D-17)'
     expect(written).toMatchObject({ kind: 'marked', receipt: { evidence: { confirmed: 1, overturned: 2 } } })
   }, 120_000)
 
-  it('FALSE-PASS-TWO-LABELS: false-pass previews the two labels the freeze lands, with no gold id, receipt or time', async () => {
+  it('false-pass previews its two labels with no gold id, receipt or time', async () => {
     const f = fixture()
     const runId = f.handoff.runId
     const reads = previewReadsFor(f)
@@ -825,11 +819,6 @@ describe('423-19 content-led consequence preview over the read host (D-16/D-17)'
       resolvedStep: { stepIndex: 0, reason: 'passing-verdict' }, markedDecisionCount: 1 })
     expect(previewed.labels.map(label => [label.channel, label.correction])).toEqual([
       ['user-mark', { verdict: 'fail' }], ['overturned-verdict', { verdict: 'fail' }]])
-    const written = await createFeedbackPortForHost(f.deps).mark({ runId, kind: 'false-pass' })
-    if (written.kind !== 'marked') throw new Error('expected the false-pass mark')
-    expect(written.receipt.gold).toHaveLength(2)
-    expect(previewed.labels.map(label => [label.channel, label.sourceCassetteId]))
-      .toEqual(written.receipt.gold.map(item => [item.channel, item.sourceCassetteId]))
   }, 120_000)
 })
 
@@ -953,7 +942,7 @@ describe('423-19 runs.mark.preview registration and composed invocation (D-16)',
     const marked = await createFeedbackPortForHost({ configPath: s.configPath, agentQaRoot: s.agentQaRoot, randomUuid: () => '00000000-0000-4000-8000-00000000abcd' })
       .mark(input())
     expect(marked).toMatchObject({ kind: 'marked', receipt: { ordinal: 4, supersedes: template.receipts[1]!.markId,
-      evidence: viaRegistry.knowledge.evidence, gold: viaRegistry.labels.map(label => ({ channel: label.channel, sourceCassetteId: label.sourceCassetteId })) } })
+      evidence: viaRegistry.knowledge.evidence } })
   }, 180_000)
 
   it('PREVIEW-LEDGER-CORRUPT-PARITY: preview reads the ledger once, and a corrupt ledger fails it with runs.mark\'s own typed error', async () => {

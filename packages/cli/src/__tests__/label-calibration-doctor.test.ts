@@ -18,8 +18,6 @@ vi.mock('@vostride/agent-qa-agent-local', async original => {
 import { LABEL_CALIBRATION_SCHEMA_VERSION, readLabelCalibration } from '@vostride/agent-qa-eval-local'
 import { LOCAL_CURATION_CAPABILITIES } from '@vostride/agent-qa-agent-local'
 import * as replayHost from '../gates/replay-gate-host.js'
-import { markFixture } from '../gates/__tests__/feedback-fixture.js'
-import { createFeedbackPortForHost } from '../gates/feedback-host.js'
 
 const roots: string[] = []
 afterEach(() => { vi.restoreAllMocks(); vi.clearAllMocks(); for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }) })
@@ -116,22 +114,4 @@ it('binds the exact captured table across lower-trust facts and the lazy replay 
   expect(row.message).toContain(`calibrated@${old.generationId}`)
   await Promise.all(checks.map(check => check.check()))
   expect(readLabelCalibration).toHaveBeenCalledTimes(1)
-})
-
-it('detects a real governing mark change and discloses unavailable evidence without writing', async () => {
-  const f = markFixture(); roots.push(f.root)
-  await createFeedbackPortForHost(f.deps).mark({ runId: f.handoff.runId, kind: 'false-fail' })
-  // The saved empty-gold identity must now be stale against this actual committed gold join.
-  write(f.root, artifact(true))
-  vi.clearAllMocks()
-  const input = { configPath: f.configPath, config: { knowledge: { dir: 'agent-qa-knowledge' } }, probes }
-  const before = tree(f.root)
-  const row = await createKnowledgeChecks(input)[3].check()
-  expect(row.message).toContain('goldDigest stale')
-  expect(tree(f.root)).toEqual(before)
-  expect(readLabelCalibration).toHaveBeenCalledTimes(1)
-  writeFileSync(join(f.runDir, 'handoff.json'), '{broken')
-  const unavailableBefore = tree(f.root)
-  expect((await createKnowledgeChecks(input)[3].check()).message).toContain('goldDigest unavailable')
-  expect(tree(f.root)).toEqual(unavailableBefore)
 })

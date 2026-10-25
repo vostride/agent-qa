@@ -1,17 +1,11 @@
-// 2026-10-03 (quick 261003-mqc, closing 261003-lgd new finding 3): a mark whose own planned fix is
-// refused closes under its OWN identity with a terminal not-applied receipt.
+// A mark whose own planned fix is refused closes under its own identity with a terminal
+// not-applied receipt.
 //
 // A retry reuses the fix the mark already planned, so a refusal that comes from that plan (its
 // knowledge target is gone, its policy text is refused, its test file is outside the workspace)
-// recurred on every retry while the unfinished intent held the run. Removing the intent by hand
-// did not free it either: measured on agent-qa 994a03744, the next mark on the same address
-// refused at the gold freeze ("Gold freeze refused"), because the abandoned mark's gold had
-// already landed, and every other mark on the run refused with "An unfinished mark must be
-// retried with its original address and correction". The mark now closes with
-// `{ kind: 'not-applied', fix, reason }`: its gold and evidence stay counted once under its own
-// markId, an identical repeat answers `already-marked`, and the run takes a new mark.
-//
-// OBSERVED RED on agent-qa 994a03744: each first mark rejected with MarkFixNotAppliedError.
+// would recur on every retry. The mark closes with `{ kind: 'not-applied', fix, reason }` instead:
+// its evidence stays counted once under its own markId, an identical repeat answers
+// `already-marked`, and the run takes a new mark.
 import { existsSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 

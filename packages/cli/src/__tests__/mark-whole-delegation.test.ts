@@ -3,7 +3,7 @@
 //
 // The mark's evidence step and its fix both write knowledge, so a CLI, dashboard or MCP mark used
 // to stop at its evidence step with `Mark evidence writer lease held` whenever a daemon was
-// running, after its gold had already landed. The CLI host now hands the WHOLE `runs.mark` call to
+// running. The CLI host now hands the WHOLE `runs.mark` call to
 // the lease holder over the existing `/invoke` socket, with the same registered op and the same
 // input. The daemon runs it under the lease it already holds, and the caller answers the daemon's
 // result unchanged. No op, endpoint or contract is added.
@@ -18,7 +18,7 @@
 //
 // OBSERVED RED against agent-qa 527739eb4 (before the delegation), 2026-10-02:
 //
-//   Error: Mark evidence writer lease held; gold landed, no mark receipt appended
+//   Error: Mark evidence writer lease held; no mark receipt appended
 //
 // Follow-up (2026-10-02): a holder that is not a daemon is waited out, bounded, before any refusal.
 // OBSERVED RED against agent-qa 749bd9c7a, before the wait:
@@ -48,7 +48,7 @@ import {
 import { runDaemonHost, type DaemonHostOperations, type DaemonHostTraceStep } from '../daemon/host.js'
 import { DAEMON_REGISTRATION_SCHEMA_VERSION, readDaemonRegistration, writeDaemonRegistration } from '../daemon/registration.js'
 import type { WholeMarkDelegate } from '../gates/feedback-host.js'
-import { bundles, canonicalKnowledge, files, markFixture } from '../gates/__tests__/feedback-fixture.js'
+import { bundles, canonicalKnowledge, files, markFixture, projectOutsideStores } from '../gates/__tests__/feedback-fixture.js'
 
 type Fixture = ReturnType<typeof markFixture>
 
@@ -244,7 +244,7 @@ describe('a mark under a lease-holding daemon is delegated whole (432-13 #1)', (
       }
       expect(intent.stage, 'the daemon reached its last checkpoint').toBe('applied')
       expect(existsSync(join(f.runDir, 'marks.jsonl')), 'no receipt before the retry').toBe(false)
-      const gold = hashes(join(f.root, 'agent-qa-eval'))
+      const outside = projectOutsideStores(f)
       const knowledge = canonicalKnowledge(f.knowledgeRoot)
 
       const retried = await markThroughCli(f, input)
@@ -256,10 +256,10 @@ describe('a mark under a lease-holding daemon is delegated whole (432-13 #1)', (
         throw new Error('expected an applied knowledge fix')
       }
       // The retry carried the first attempt's operation identity: the fix it reports is the change
-      // that identity already landed, and nothing was published, appended or frozen again.
+      // that identity already landed, and nothing was published or appended again.
       expect(disposition.change.changeId).toBe(`prop_${intent.operationId}`)
       expect(canonicalKnowledge(f.knowledgeRoot), 'no second publication or evidence').toEqual(knowledge)
-      expect(hashes(join(f.root, 'agent-qa-eval')), 'gold froze once').toEqual(gold)
+      expect(projectOutsideStores(f), 'nothing outside the stores is written').toEqual(outside)
       expect(evidenceFor(f, retried.receipt.markId)).toHaveLength(1)
       expect(receiptLines(f)).toBe(1)
 
@@ -320,7 +320,7 @@ describe('a mark under a lease-holding daemon is delegated whole (432-13 #1)', (
       expect(refusal?.message).toContain(`This agent-qa process (pid ${process.pid}) is already writing`)
       expect(refusal?.message).not.toContain('Another agent-qa process')
       expect(refusal?.message).toContain('Retry the mark when it finishes')
-      expect(hashes(f.root), 'nothing was written: no gold, no intent, no evidence').toEqual(before)
+      expect(hashes(f.root), 'nothing was written: no intent, no evidence').toEqual(before)
       const lease = readWriterLease(f.knowledgeRoot)
       expect(lease.kind === 'parsed' && lease.lease.leaseId, 'the holder keeps its lease').toBe(holder.leaseId)
       holder.release()

@@ -12,7 +12,6 @@ import {
   type ServedBrief,
   SERVED_BRIEF_PROOF_SCHEMA_VERSION,
 } from '@vostride/agent-qa-schema'
-import { createFeedbackPortForHost } from '../gates/feedback-host.js'
 import { files, markFixture } from '../gates/__tests__/feedback-fixture.js'
 import { resolveEvalSession, runSeedVerb } from '../eval-session-composition.js'
 
@@ -133,7 +132,7 @@ function derivedOrMinted(leaf: Leaf): boolean {
 }
 
 describe('C441-GAP4-CORPUS', () => {
-  it('under a one-character declared value, eval seed seeds a run whose lossless served brief holds it and a false-pass mark on that run is marked, while its free text commits only as the marker', async () => {
+  it('under a one-character declared value, eval seed seeds a run whose lossless served brief holds it, while its free text commits only as the marker', async () => {
     const f = fixture()
     const brief = f.handoff.tests[0]!.steps[0]!.servedBrief
     expect(() => guardLosslessServedBrief(brief)).not.toThrow()
@@ -147,9 +146,6 @@ describe('C441-GAP4-CORPUS', () => {
     expect(report.runsSkipped).toEqual([])
     expect(report.refusals).toEqual([])
     expect(report.seededCount).toBeGreaterThan(0)
-
-    const marked = await createFeedbackPortForHost(f.deps).mark({ runId: f.handoff.runId, stepIndex: 0, kind: 'false-pass' })
-    expect(marked.kind).toBe('marked')
 
     const documents = committedDocuments(f.committedRoot)
     expect(documents.length).toBeGreaterThan(0)

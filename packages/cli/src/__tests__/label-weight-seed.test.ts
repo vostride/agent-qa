@@ -5,7 +5,6 @@ import * as model from '@vostride/agent-qa-model'
 import { canonicalJson, collectSoftPopulation, committedFileText, computeCorpusDigest, createLabelRevision, deriveRunSlug } from '@vostride/agent-qa-eval'
 import { committedLabelPath, loadLabelEvidence, readCommittedCorpus } from '@vostride/agent-qa-eval-local'
 import { asRef, screenStateHash, sha256hex } from '@vostride/agent-qa-schema'
-import { createFeedbackPortForHost } from '../gates/feedback-host.js'
 import { files, markFixture } from '../gates/__tests__/feedback-fixture.js'
 import { resolveEvalSession, runSeedVerb } from '../eval-session-composition.js'
 
@@ -23,14 +22,14 @@ afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 
-function fixture(full = false, rerun = false) {
+function fixture(rerun = false) {
   const f = markFixture(); roots.push(f.root)
   writeFileSync(join(f.root, '.env.secrets.local'), '')
   const member = f.handoff.tests[0]!, step = member.steps[0]!
   member.outcome = 'healed'
   f.handoff.aggregateVerdict = 'healed'
   step.verifierVerdict = { pass: true, reasoning: 'Recovery verified' }
-  step.modelProfile = { provider: 'openai', modelId: full ? 'gpt-5' : 'small-fixture', vision: true }
+  step.modelProfile = { provider: 'openai', modelId: 'small-fixture', vision: true }
   const failed = step.subActions[0]!
   failed.callRecord = { resolvedModelId: 'wrong-failed-planner' }
   failed.result = { success: false, error: 'First action rejected' }
@@ -41,7 +40,7 @@ function fixture(full = false, rerun = false) {
   const recovering = structuredClone(failed)
   recovering.plannedAction = { type: 'click', ref: secondRef }
   recovering.result = { success: true }
-  recovering.callRecord = { resolvedModelId: full ? 'gpt-5' : 'small-fixture' }
+  recovering.callRecord = { resolvedModelId: 'small-fixture' }
   // The pair's own states differ: its weight must use the FAILED population.
   recovering.stateBefore.url = 'https://example.test/recovery'
   step.subActions = [failed, recovering]
@@ -74,22 +73,6 @@ async function seed(f: ReturnType<typeof fixture>) {
 }
 
 describe('420 actual CLI seed weights', () => {
-  it('persists the full 0.75 gold/full vector on both members through actual mark and seed composition', async () => {
-    const f = fixture(true)
-    const marked = await createFeedbackPortForHost(f.deps).mark({ runId: f.handoff.runId,
-      stepIndex: 0, kind: 'false-pass' })
-    expect(marked.kind).toBe('marked')
-    const { pair, read } = await seed(f)
-    expect(pair[0]!.weight?.value).toBe(0.75)
-    expect(pair[1]!.weight).toEqual(pair[0]!.weight)
-    expect(pair[0]!.weight).toMatchObject({ k: 1, n: 1, alpha0: 2, beta0: 1,
-      verdictSource: 'user-gold', verdictFactor: 1, capabilityTier: 'full', tierFactor: 1,
-      corpusDigest: computeCorpusDigest(read.snapshot.entries), capabilityEvidence: {
-        kind: 'model-identity', modelIdentity: { provider: 'openai', modelId: 'gpt-5' } } })
-    expect(pair[0]!.weight!.evidenceDigest).toMatch(/^[a-f0-9]{64}$/)
-    expect(pair[0]!.pairState?.sameState).toBe(false)
-  })
-
   it('persists the 0.45 silver/degraded vector and leaves cassette embedded labels unchanged', async () => {
     const f = fixture()
     const { pair, read } = await seed(f)
@@ -100,7 +83,7 @@ describe('420 actual CLI seed weights', () => {
   })
 
   it('persists actual rerun provenance with the recovery weight and preserves identical reseed bytes', async () => {
-    const f = fixture(false, true)
+    const f = fixture(true)
     const { pair, session, report } = await seed(f)
     expect(pair[0]!.weight?.value).toBeCloseTo(0.45, 14)
     expect(pair[0]!.provenance.rerun).toEqual({ attempt: 2, originalAttempt: 0,

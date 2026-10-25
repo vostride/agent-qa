@@ -5,7 +5,6 @@ import * as model from '@vostride/agent-qa-model'
 import { canonicalizeInputLeg } from '@vostride/agent-qa-eval'
 import { readCommittedCorpus } from '@vostride/agent-qa-eval-local'
 import { asRef, screenStateHash, sha256hex } from '@vostride/agent-qa-schema'
-import { createFeedbackPortForHost } from '../gates/feedback-host.js'
 import { files, markFixture } from '../gates/__tests__/feedback-fixture.js'
 import { resolveEvalSession, runSeedVerb } from '../eval-session-composition.js'
 
@@ -82,24 +81,5 @@ describe('C441-GAP3-CORPUS', () => {
       expect(cassette.receipt.promptInputHash).toBe(sha256hex(canonicalizeInputLeg(cassette.input)))
       expect(cassette.receipt.screenStateHash).not.toBe(screenStateHash(f.rawState))
     }
-  })
-
-  it('a gold freeze from a mark commits a declared value in the marked step only as its marker', async () => {
-    const f = markFixture(); roots.push(f.root)
-    writeFileSync(join(f.root, '.env.secrets.local'), `CODE_441=${LONG}\n`)
-    const member = f.handoff.tests[0]!, step = member.steps[0]!
-    member.outcome = 'passed'
-    f.handoff.aggregateVerdict = 'passed'
-    step.verifierVerdict = { pass: true, reasoning: 'The access code was accepted' }
-    const state = step.subActions[0]!.stateBefore
-    state.tree = `${state.tree}\ntextbox "Access code": ${LONG}`
-    f.save()
-
-    const marked = await createFeedbackPortForHost(f.deps).mark({ runId: f.handoff.runId, stepIndex: 0, kind: 'false-pass' })
-
-    expect(marked.kind).toBe('marked')
-    const committedRoot = join(f.root, 'agent-qa-eval')
-    expect(files(committedRoot).length).toBeGreaterThan(0)
-    expect(holdingDeclaredValue(committedRoot)).toEqual([])
   })
 })

@@ -17,9 +17,9 @@ const { applyKnowledgeChange } = await import('@vostride/agent-qa-agent-local')
 const ready = () => writeFileSync(input.ready, JSON.stringify({ pid: process.pid }), { flag: 'wx' })
 const hang = () => new Promise(() => { setInterval(() => {}, 1000) })
 
-// 432-09: the host's own callbacks are the crash points. `wording` stops after gold and evidence,
-// before the fix is planned; `publication` stops after the real direct writer has committed the
-// fix and before the host checkpoints it, so the retry must read the landed change back.
+// The host's own callbacks are the crash points. `wording` stops after evidence, before the fix
+// is planned; `publication` stops after the real direct writer has committed the fix and before
+// the host checkpoints it, so the retry must read the landed change back.
 await createFeedbackPortForHost({ configPath: input.configPath, agentQaRoot: input.agentQaRoot,
   randomUuid: randomUUID,
   ...(input.at === 'publication'

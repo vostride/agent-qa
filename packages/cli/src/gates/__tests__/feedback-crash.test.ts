@@ -1,14 +1,12 @@
 import { spawn } from 'node:child_process'
-import { createHash } from 'node:crypto'
 import { existsSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, it } from 'vitest'
 import { createFeedbackPortForHost } from '../feedback-host.js'
-import { markFixture, files, bundles, canonicalKnowledge } from './feedback-fixture.js'
+import { markFixture, bundles, canonicalKnowledge, projectOutsideStores } from './feedback-fixture.js'
 
-// 2026-09-30, 432-09: the child stops inside the host's own callbacks — after gold and evidence
-// (`wording`), and after the real direct writer committed the fix (`publication`) — and is killed.
+// The child is killed after evidence (`wording`) or after its fix was committed (`publication`).
 async function killedAt(at: 'wording' | 'publication') {
   const f = markFixture()
   const ready = join(f.root, 'child-ready.json')
@@ -29,19 +27,16 @@ async function killedAt(at: 'wording' | 'publication') {
   return { f, ready, output: () => output, kill }
 }
 
-const hashes = (dir: string) => files(dir).map(path => [path, createHash('sha256').update(readFileSync(path)).digest('hex')])
-
-it('recovers a killed real host after freeze with stable gold and exactly one receipt', async () => {
+it('recovers a killed real host after evidence with exactly one receipt', async () => {
   const run = await killedAt('wording')
   const { f } = run
   try {
     expect(existsSync(run.ready), run.output()).toBe(true)
-    const before = hashes(join(f.root, 'agent-qa-eval'))
-    expect(before.length).toBeGreaterThan(0)
+    const before = projectOutsideStores(f)
     await run.kill()
     const result = await createFeedbackPortForHost(f.deps).mark({ runId: f.handoff.runId, kind: 'false-fail' })
     expect(result).toMatchObject({ kind: 'marked', receipt: { ordinal: 1, evidence: { confirmed: 1 } } })
-    expect(hashes(join(f.root, 'agent-qa-eval'))).toEqual(before)
+    expect(projectOutsideStores(f)).toEqual(before)
     expect(readFileSync(join(f.runDir, 'marks.jsonl'), 'utf8').trim().split('\n')).toHaveLength(1)
     expect(await createFeedbackPortForHost(f.deps).mark({ runId: f.handoff.runId, kind: 'false-fail' }))
       .toMatchObject({ kind: 'already-marked' })
@@ -59,7 +54,7 @@ it('recovers a real host killed after its fix was published, landing the fix exa
     await run.kill()
     // The fix is on disk and the receipt is not: nothing was checkpointed after the publication.
     expect(existsSync(join(f.runDir, 'marks.jsonl'))).toBe(false)
-    const gold = hashes(join(f.root, 'agent-qa-eval'))
+    const outside = projectOutsideStores(f)
     const knowledge = canonicalKnowledge(f.knowledgeRoot)
     const published = bundles(f.knowledgeRoot).map(row => row.id)
     expect(published).toHaveLength(2)
@@ -71,7 +66,7 @@ it('recovers a real host killed after its fix was published, landing the fix exa
     if (result.kind !== 'marked' || result.receipt.disposition.kind !== 'applied'
       || result.receipt.disposition.change.kind !== 'knowledge') throw new Error('expected an applied knowledge fix')
     expect(published).toEqual(expect.arrayContaining([...result.receipt.disposition.change.recordIds]))
-    expect(hashes(join(f.root, 'agent-qa-eval')), 'gold froze once').toEqual(gold)
+    expect(projectOutsideStores(f), 'nothing outside the stores is written').toEqual(outside)
     expect(canonicalKnowledge(f.knowledgeRoot), 'the fix was not published twice').toEqual(knowledge)
     expect(bundles(f.knowledgeRoot)).toHaveLength(2)
     expect(readFileSync(join(f.runDir, 'marks.jsonl'), 'utf8').trim().split('\n')).toHaveLength(1)

@@ -17,7 +17,7 @@ export function markFixture() {
   const knowledgeRoot = join(root, 'agent-qa-knowledge')
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(configPath, 'workspace:\n  testMatch: [tests/**/*.yaml]\n  suiteMatch: [suites/**/*.suite.yaml]\n  hooksFile: hooks.yaml\n  envFile: .env\n  secretsFile: .env.secrets.local\nuse:\n  mobile:\n    appState: preserve\n')
-  // 441 GAP3-D1: the gold freeze masks with the declared secrets, so the workspace needs the file a run needs.
+  // A mark's fix wording masks with the declared secrets, so the workspace needs the file a run needs.
   writeFileSync(join(root, '.env.secrets.local'), '')
   const fixture = createPromotionFloorFixture({ knowledgeRoot })
   const { published } = fixture.publishHeldCandidate('marked')
