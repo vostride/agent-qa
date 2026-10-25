@@ -342,8 +342,6 @@ function readClaimedCanaryOutcome(
       candidateId: asRecordId(read.payload.candidateId),
       runOutcome: read.payload.outcome,
       benefit: read.payload.benefit,
-      stateValidity: read.payload.stateValidity,
-      ...(read.payload.observedStateDigest === undefined ? {} : { observedStateDigest: read.payload.observedStateDigest }),
       runId: read.payload.runId,
       testId: read.payload.testId,
       testIndex: read.payload.testIndex,

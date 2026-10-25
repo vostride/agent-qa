@@ -6,7 +6,6 @@ import {
   DEGRADATIONS,
   BENEFITS,
   MARKS,
-  STATE_VALIDITIES,
 } from '../knowledge/gate-receipt'
 
 describe('receipt closed vocabularies', () => {
@@ -27,9 +26,6 @@ describe('receipt closed vocabularies', () => {
   })
   it('declares exactly the three marks, in declaration order', () => {
     expect([...MARKS]).toEqual(['false-fail', 'false-pass', 'confirmed-bug'])
-  })
-  it('declares exactly the three state validities, in declaration order', () => {
-    expect([...STATE_VALIDITIES]).toEqual(['valid', 'stale', 'unknown'])
   })
 })
 

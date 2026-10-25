@@ -1,7 +1,7 @@
 import type { Anchor } from '../identity/anchor'
 import type { ScopeKey } from '../identity/scope-key'
 import type { RecordId } from '../ids/record-id'
-import type { Benefit, StateValidity } from '../knowledge/gate-receipt'
+import type { Benefit } from '../knowledge/gate-receipt'
 
 export interface BuildRange {
   from?: number
@@ -32,9 +32,6 @@ export interface CanaryOutcome {
   /** Decided by the cli post-run tail: rode-along on a positive run, exercised-harmed on a
    * negative one. */
   benefit: Benefit
-  stateValidity: StateValidity
-  /** Distilled pre-action live-step state digest. */
-  observedStateDigest?: string
   /** Pin 3: the exact candidate whose served hypothesis was exercised. */
   candidateId: RecordId
   /** D-21: only attributed step verdicts move trust; ambiguous outcomes are never emitted. */

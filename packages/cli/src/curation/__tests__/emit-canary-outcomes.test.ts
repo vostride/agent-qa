@@ -133,7 +133,7 @@ describe('the shipped positive-on-any-anchor-match fixture earns no credit', () 
     const report = await emitCanaryOutcomes({
       handoff: handoff([step()]), knowledgeRoot: '/tmp/agent-qa-knowledge', runDir: creditRunDir, emit,
     })
-    expect(emit).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ benefit: 'rode-along', stateValidity: 'unknown' }))
+    expect(emit).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ benefit: 'rode-along' }))
     expect(report.canary.rideAlongUncredited).toBe(1)
     expect(report.refused).toBe(0)
     expect(report.details[0]).toEqual(expect.objectContaining({ benefit: 'rode-along', outcome: { kind: 'emitted' } }))
@@ -358,7 +358,6 @@ describe('projectCanaryOutcomes (PROM-02/D-21)', () => {
       candidateId: CANDIDATE,
       runOutcome: 'positive',
       benefit: 'rode-along',
-      stateValidity: 'unknown',
       runId: 'run-canary-1',
       testId: 'checkout::happy-path',
       testIndex: 0,
@@ -440,7 +439,6 @@ describe('projectCanaryOutcomes (PROM-02/D-21)', () => {
       expect.objectContaining({
         runOutcome: 'positive',
         benefit: 'rode-along',
-        stateValidity: 'unknown',
         exercisedAnchor: { t: 'page', route: '/checkout?mode=fast' },
       }),
     ])
@@ -493,7 +491,6 @@ describe('projectCanaryOutcomes (PROM-02/D-21)', () => {
         stepIndex: 0,
         runOutcome: 'positive',
         benefit: 'rode-along',
-        stateValidity: 'unknown',
       }),
       expect.objectContaining({
         testId: 'checkout::declined-card',
@@ -501,7 +498,6 @@ describe('projectCanaryOutcomes (PROM-02/D-21)', () => {
         stepIndex: 0,
         runOutcome: 'negative',
         benefit: 'rode-along',
-        stateValidity: 'unknown',
       }),
     ])
     expect(outcomes[0]?.attribution).toContain('test 0 (checkout::happy-path) step 0')
@@ -637,7 +633,6 @@ describe('projectCanaryOutcomes planSource attribution (PROC-02/D-11/D-12)', () 
       candidateId: PROCEDURE,
       runOutcome: 'positive',
       benefit: 'rode-along',
-      stateValidity: 'unknown',
       runId: 'run-canary-1',
       testId: 'checkout::happy-path',
       testIndex: 0,
@@ -675,7 +670,6 @@ describe('projectCanaryOutcomes planSource attribution (PROC-02/D-11/D-12)', () 
         candidateId: PROCEDURE,
         runOutcome: 'positive',
         benefit: 'rode-along',
-        stateValidity: 'unknown',
       }),
     ])
   })
@@ -873,14 +867,12 @@ describe('projectCanaryOutcomes planSource attribution (PROC-02/D-11/D-12)', () 
         candidateId: CANDIDATE,
         runOutcome: 'positive',
         benefit: 'rode-along',
-        stateValidity: 'unknown',
         exercisedAnchor: { t: 'el', role: 'button', name: 'checkout', ordinal: 0 },
       }),
       expect.objectContaining({
         candidateId: PROCEDURE,
         runOutcome: 'positive',
         benefit: 'rode-along',
-        stateValidity: 'unknown',
         exercisedAnchor: normalizeAnchor({ t: 'flow', name: 'Sign in flow' }),
       }),
     ])
@@ -988,14 +980,12 @@ describe('F-381-51-1 obs 3: verdict-gated positive procedure canaries (381-53)',
         candidateId: PROCEDURE,
         runOutcome: 'positive',
         benefit: 'rode-along',
-        stateValidity: 'unknown',
         stepIndex: 0,
       }),
       expect.objectContaining({
         candidateId: PROCEDURE,
         runOutcome: 'positive',
         benefit: 'rode-along',
-        stateValidity: 'unknown',
         stepIndex: 1,
       }),
     ])
@@ -1065,7 +1055,6 @@ describe('F-381-51-1 obs 3: verdict-gated positive procedure canaries (381-53)',
         candidateId: FIXTURE_PAGE_FACT,
         runOutcome: 'negative',
         benefit: 'rode-along',
-        stateValidity: 'unknown',
         testIndex: 0,
         stepIndex: 1,
       }),
@@ -1213,14 +1202,12 @@ describe('SC2 — the cross-run supersession differential (389-06, D-10)', () =>
       runId: RUN_A,
       runOutcome: 'negative',
       benefit: 'exercised-harmed',
-      stateValidity: 'unknown',
       testId: 'checkout::happy-path',
     })
-    // The pure projection over the same handoff, plus the credit pass's benefit and observed state.
+    // The pure projection over the same handoff, plus the credit pass's benefit.
     expect(collected).toEqual(
       project(failingHandoffFor(RUN_A), new Map([[CANDIDATE, [CANDIDATE_ANCHOR]]]))
-        .map(outcome => ({ ...outcome, benefit: 'exercised-harmed',
-          observedStateDigest: expect.stringMatching(/^[0-9a-f]{64}$/u) })),
+        .map(outcome => ({ ...outcome, benefit: 'exercised-harmed' })),
     )
   })
 

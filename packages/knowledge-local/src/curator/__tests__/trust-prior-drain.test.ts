@@ -106,7 +106,7 @@ describe('420 drain, review and maintenance prior snapshot', () => {
     const outcome = { candidateId: asRecordId(before.bundle.manifest.id), runId: 'prior-canary',
       testId: 'checkout', testIndex: 0, stepIndex: 0, buildOrdinal: 43,
       runOutcome: 'negative' as const, benefit: 'exercised-harmed' as const,
-      stateValidity: 'unknown' as const, briefDigest: 'prior-brief',
+      briefDigest: 'prior-brief',
       attribution: 'Checkout evidence', exercisedAnchor: before.bundle.frontmatter.anchors[0]!.raw }
     enqueueCanaryOutcome(f.knowledgeRoot, outcome)
     expect(await drainQueue({ ...f, priors })).toMatchObject({ committed: 1, failures: 0 })

@@ -17,7 +17,6 @@ import {
   canaryOutcomePayloadSchema,
   readQueuedCanaryPayload,
   PAYLOAD_BENEFITS,
-  PAYLOAD_STATE_VALIDITIES,
   type CanaryOutcomeAddressFields,
   type CanaryOutcomePayload,
 } from '../canary-payload.js'
@@ -34,15 +33,14 @@ function validPayload(): CanaryOutcomePayload {
     stepIndex: 3,
     outcome: 'positive',
     benefit: 'rode-along',
-    stateValidity: 'unknown',
     exercisedAnchor: { t: 'el', role: 'button', name: 'Checkout' },
     attribution: 'The served checkout hypothesis was exercised by the passing step.',
     briefDigest: 'brief-digest-42',
   }
 }
 
-function payloadWithoutBenefitOrStateValidity(stamp: number): Record<string, unknown> {
-  const { benefit: _benefit, stateValidity: _stateValidity, ...rest } = validPayload()
+function payloadWithoutBenefit(stamp: number): Record<string, unknown> {
+  const { benefit: _benefit, ...rest } = validPayload()
   return { ...rest, schemaVersion: stamp }
 }
 
@@ -62,20 +60,14 @@ describe('Pin 3 canary outcome payload', () => {
     }
   })
 
-  it('validates and content-addresses the optional observed state digest', () => {
-    const payload = { ...validPayload(), observedStateDigest: 'b'.repeat(64) }
-    expect(readQueuedCanaryPayload(payload)).toEqual({ kind: 'current', payload })
-    for (const changed of [
-      { benefit: 'exercised-benefited' as const }, { stateValidity: 'valid' as const },
-      { observedStateDigest: 'd'.repeat(64) },
-    ]) expect(canaryOutcomeContentAddress({ ...payload, ...changed })).not.toBe(canaryOutcomeContentAddress(payload))
-    expect(readQueuedCanaryPayload({ ...payload, observedStateDigest: 'A'.repeat(64) }).kind).toBe('refused')
+  it('content-addresses the benefit', () => {
+    const payload = validPayload()
+    expect(canaryOutcomeContentAddress({ ...payload, benefit: 'exercised-benefited' }))
+      .not.toBe(canaryOutcomeContentAddress(payload))
   })
-  it('queued payload.json is governed by the closed benefit, stateValidity and outcome words, in declaration order', () => {
+  it('queued payload.json is governed by the closed benefit and outcome words, in declaration order', () => {
     expect([...PAYLOAD_BENEFITS]).toEqual(['exercised-benefited', 'rode-along', 'exercised-harmed'])
-    expect([...PAYLOAD_STATE_VALIDITIES]).toEqual(['valid', 'stale', 'unknown'])
     expect(canaryOutcomePayloadSchema.shape.benefit.options).toEqual(PAYLOAD_BENEFITS)
-    expect(canaryOutcomePayloadSchema.shape.stateValidity.options).toEqual(PAYLOAD_STATE_VALIDITIES)
     expect(canaryOutcomePayloadSchema.shape.outcome.options).toEqual(['positive', 'negative'])
   })
 
@@ -87,7 +79,7 @@ describe('Pin 3 canary outcome payload', () => {
 
   it.each([
     { title: 'refuses a payload stamped 3 with every current field', planted: () => ({ ...validPayload(), schemaVersion: 3 }) },
-    { title: 'refuses a payload stamped 2 without benefit or stateValidity', planted: () => payloadWithoutBenefitOrStateValidity(2) },
+    { title: 'refuses a payload stamped 2 without a benefit', planted: () => payloadWithoutBenefit(2) },
     { title: 'refuses a payload stamped 1 with every current field', planted: () => ({ ...validPayload(), schemaVersion: 1 }) },
   ])('$title', ({ planted }) => {
     expect(readQueuedCanaryPayload(planted())).toEqual({
@@ -100,7 +92,6 @@ describe('Pin 3 canary outcome payload', () => {
     const { benefit: _benefit, ...missing } = validPayload()
     expect(readQueuedCanaryPayload(missing).kind).toBe('refused')
     expect(readQueuedCanaryPayload({ ...validPayload(), unknown: true }).kind).toBe('refused')
-    expect(readQueuedCanaryPayload({ ...validPayload(), stateValidity: undefined }).kind).toBe('refused')
   })
 
   it('accepts only the current schema version and the canary-outcome job kind', () => {
@@ -108,7 +99,7 @@ describe('Pin 3 canary outcome payload', () => {
 
     expect(canaryOutcomePayloadSchema.parse(payload)).toEqual(payload)
     expect(
-      canaryOutcomePayloadSchema.safeParse(payloadWithoutBenefitOrStateValidity(2)).success,
+      canaryOutcomePayloadSchema.safeParse(payloadWithoutBenefit(2)).success,
     ).toBe(false)
     expect(
       canaryOutcomePayloadSchema.safeParse({ ...payload, schemaVersion: 1 }).success,
@@ -142,7 +133,6 @@ describe('Pin 3 canary outcome payload', () => {
       exercisedAnchor: payload.exercisedAnchor,
       outcome: payload.outcome,
       benefit: payload.benefit,
-      stateValidity: payload.stateValidity,
       stepIndex: payload.stepIndex,
       buildOrdinal: payload.buildOrdinal,
       testIndex: payload.testIndex,

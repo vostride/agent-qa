@@ -9,7 +9,6 @@ import {
   sha256hex,
   type Benefit,
   type CanaryOutcome,
-  type StateValidity,
 } from '@vostride/agent-qa-schema'
 
 import { anchorSchema } from './anchor-schema.js'
@@ -30,8 +29,6 @@ export const CANARY_QUEUE_SCHEMA_VERSION = 2
 // satisfies bounds membership; the test-d never-bars enforce completeness.
 // prettier-ignore
 export const PAYLOAD_BENEFITS = ['exercised-benefited', 'rode-along', 'exercised-harmed'] as const satisfies readonly Benefit[]
-// prettier-ignore
-export const PAYLOAD_STATE_VALIDITIES = ['valid', 'stale', 'unknown'] as const satisfies readonly StateValidity[]
 
 const canaryOutcomePayloadBaseShape = {
   jobKind: z.literal('canary-outcome'),
@@ -47,14 +44,11 @@ const canaryOutcomePayloadBaseShape = {
   briefDigest: z.string().min(1),
 } as const
 
-const digest = z.string().regex(/^[0-9a-f]{64}$/)
 export const canaryOutcomePayloadSchema = z
   .object({
     ...canaryOutcomePayloadBaseShape,
     schemaVersion: z.literal(CANARY_QUEUE_SCHEMA_VERSION),
     benefit: z.enum(PAYLOAD_BENEFITS),
-    stateValidity: z.enum(PAYLOAD_STATE_VALIDITIES),
-    observedStateDigest: digest.optional(),
   })
   .strict()
 
@@ -111,8 +105,6 @@ export function enqueueCanaryOutcome(
     stepIndex: outcome.stepIndex,
     outcome: outcome.runOutcome,
     benefit: outcome.benefit,
-    stateValidity: outcome.stateValidity,
-    ...(outcome.observedStateDigest === undefined ? {} : { observedStateDigest: outcome.observedStateDigest }),
     exercisedAnchor: outcome.exercisedAnchor,
     attribution: outcome.attribution,
     briefDigest: outcome.briefDigest,

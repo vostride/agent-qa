@@ -41,9 +41,6 @@ export const BENEFITS = ['exercised-benefited', 'rode-along', 'exercised-harmed'
 export type Mark = 'false-fail' | 'false-pass' | 'confirmed-bug'
 // prettier-ignore
 export const MARKS = ['false-fail', 'false-pass', 'confirmed-bug'] as const satisfies readonly Mark[]
-export type StateValidity = 'valid' | 'stale' | 'unknown'
-// prettier-ignore
-export const STATE_VALIDITIES = ['valid', 'stale', 'unknown'] as const satisfies readonly StateValidity[]
 const sha256 = z.string().regex(/^[0-9a-f]{64}$/)
 const count = z.number().int().nonnegative()
 export const gate1CapSchema = z.object({ maxScreens: z.number().int().min(1) }).strict()

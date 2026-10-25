@@ -109,7 +109,7 @@ describe('420 store prior snapshot', () => {
     const { bundle } = persisted(f.config.knowledgeRoot)
     const outcome = { candidateId: asRecordId(bundle.manifest.id), runId: 'prior-canary', testIndex: 0,
       stepIndex: 0, buildOrdinal: 44, runOutcome: 'negative' as const, testId: 'prior-test',
-      benefit: 'exercised-harmed' as const, stateValidity: 'unknown' as const,
+      benefit: 'exercised-harmed' as const,
       briefDigest: 'prior-brief', attribution: 'exercised candidate',
       exercisedAnchor: bundle.frontmatter.anchors[0]!.raw }
     await store.recordCanaryOutcome(outcome)

@@ -165,7 +165,7 @@ describe('mark evidence appends through the production writer', () => {
       sourceBuildOrdinal: 12, sourceRunId: runId })
     await port.recordCanaryOutcome({ candidateId: a.id, runId, testId: 'checkout', testIndex: 0,
       stepIndex: 0, buildOrdinal: 12, runOutcome: 'positive', benefit: 'rode-along',
-      stateValidity: 'unknown', exercisedAnchor: loaded(a.dir).frontmatter.anchors[0]!.raw,
+      exercisedAnchor: loaded(a.dir).frontmatter.anchors[0]!.raw,
       briefDigest: 'brief', attribution: 'recorded test outcome' })
     const before = loaded(a.dir)
     expect(before.events.filter((event) => event.type === 'confirmed')).toHaveLength(1)

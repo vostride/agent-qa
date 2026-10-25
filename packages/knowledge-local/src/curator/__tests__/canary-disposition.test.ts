@@ -155,7 +155,6 @@ describe('canary outcome deterministic disposition', () => {
       candidateId,
       runOutcome,
       benefit: 'rode-along',
-      stateValidity: 'unknown',
       runId: 'run-canary-disposition',
       testId: 'checkout::happy-path',
       testIndex: 0,
@@ -266,10 +265,9 @@ describe('canary outcome deterministic disposition', () => {
     expect(replayed.bundle.events).toEqual(first.bundle.events)
   })
 
-  it.each(['valid', 'unknown', 'stale'] as const)('a %s negative outcome contradicts immediately and writes no receipt', async stateValidity => {
+  it('a negative outcome contradicts immediately and writes no receipt', async () => {
     const published = seedCandidate()
-    await store().recordCanaryOutcome({ ...outcome(published.id, 'negative'),
-      stateValidity, benefit: 'exercised-harmed' })
+    await store().recordCanaryOutcome({ ...outcome(published.id, 'negative'), benefit: 'exercised-harmed' })
     expect(loaded(published.dir).trust.counters.contradicted).toBe(1)
     expect(readGateReceipts(published.dir, published.id)).toBeUndefined()
   })

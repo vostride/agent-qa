@@ -1,8 +1,8 @@
 import { expectTypeOf } from 'vitest'
 // prettier-ignore
-import { GATE_VERDICTS, GATE_NUMBERS, CROSS_CHECKS, DEGRADATIONS, BENEFITS, MARKS, STATE_VALIDITIES } from '../knowledge/gate-receipt'
+import { GATE_VERDICTS, GATE_NUMBERS, CROSS_CHECKS, DEGRADATIONS, BENEFITS, MARKS } from '../knowledge/gate-receipt'
 // prettier-ignore
-import type { GateVerdict, GateNumber, CrossCheck, Degradation, Benefit, Mark, StateValidity } from '../knowledge/gate-receipt'
+import type { GateVerdict, GateNumber, CrossCheck, Degradation, Benefit, Mark } from '../knowledge/gate-receipt'
 
 /** Each closed vocabulary's union names no member its runtime list leaves out. */
 
@@ -15,7 +15,6 @@ expectTypeOf<Exclude<CrossCheck, (typeof CROSS_CHECKS)[number]>>().toEqualTypeOf
 expectTypeOf<Exclude<Degradation, (typeof DEGRADATIONS)[number]>>().toEqualTypeOf<never>()
 expectTypeOf<Exclude<Benefit, (typeof BENEFITS)[number]>>().toEqualTypeOf<never>()
 expectTypeOf<Exclude<Mark, (typeof MARKS)[number]>>().toEqualTypeOf<never>()
-expectTypeOf<Exclude<StateValidity, (typeof STATE_VALIDITIES)[number]>>().toEqualTypeOf<never>()
 expectTypeOf<Extract<CrossCheck, 'not_run'>>().toEqualTypeOf<never>()
 expectTypeOf<Extract<Mark, 'confirmed-defect'>>().toEqualTypeOf<never>()
 

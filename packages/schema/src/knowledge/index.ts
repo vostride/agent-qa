@@ -185,10 +185,10 @@ export { PROMOTION_PATHS, PROMOTION_PATH_STRENGTH, strongerPromotionPath } from 
 export type { PromotionPath } from './promotion-path'
 export type { PromotionOutcome, GateReceiptRecordOutcome, PromotionCandidateProvenance } from './promotion-gate'
 
-export { PER_AXIS_SCORE_AXES, CROSS_CHECKS, DEGRADATIONS, BENEFITS, MARKS, STATE_VALIDITIES,
+export { PER_AXIS_SCORE_AXES, CROSS_CHECKS, DEGRADATIONS, BENEFITS, MARKS,
   axisScoreSchema, perAxisScoreSchema, corpusVersionSchema, samplesSchema, noiseFloorRefSchema,
   gate1ArmSchema, gate3ArmSchema } from './gate-receipt'
-export type { PerAxisScoreAxis, CrossCheck, Degradation, Benefit, Mark, StateValidity,
+export type { PerAxisScoreAxis, CrossCheck, Degradation, Benefit, Mark,
   Gate1Receipt, Gate3Receipt } from './gate-receipt'
 // 2026-09-07, 417: neutral replay receipt and candidate DATA contracts.
 export { GATE1_REASONS, GATE1_TARGET_SOURCES, GATE1_K_SOURCES, GATE1_HARM_ORIGINS,

@@ -205,10 +205,7 @@ describe('drainQueue one-shot serialized engine (CUR-03/CUR-04)', () => {
       provenance: { mode: 'run-linked', runId: 'legacy-canary-seed', testId: 'checkout', stepIndex: 0 },
     })
     if (published.kind !== 'published') throw new Error(`unexpected ${published.kind}`)
-    const evidence = {
-      benefit: 'exercised-benefited' as const, stateValidity: 'valid' as const,
-      observedStateDigest: 'b'.repeat(64),
-    }
+    const evidence = { benefit: 'exercised-benefited' as const }
     const payload: CanaryOutcomePayload = {
       schemaVersion: CANARY_QUEUE_SCHEMA_VERSION, jobKind: 'canary-outcome', candidateId: published.id,
       runId: 'queued-canary-drain', testId: 'checkout', testIndex: 0,
@@ -269,7 +266,7 @@ describe('drainQueue one-shot serialized engine (CUR-03/CUR-04)', () => {
     }
   })
 
-  it('a queued payload without benefit or stateValidity is not drained', async () => {
+  it('a queued payload without a benefit is not drained', async () => {
     scaffoldKnowledgeRoot(knowledgeRoot)
     const draft = makeBundleDraftFixture()
     const published = publishBundle({

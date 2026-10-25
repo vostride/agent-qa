@@ -1,15 +1,6 @@
-// The credit pass: each served outcome row's benefit, observed state digest and state validity.
-import type { CanaryOutcome, CompletedRunHandoff } from '@vostride/agent-qa-schema'
-import {
-  actedPair,
-  canonicalJson,
-  distilledScreenStateDigest,
-  exercisedAnchors,
-  normalizeAnchor,
-} from '@vostride/agent-qa-schema'
-import type { LocalCurationCapabilities } from '@vostride/agent-qa-agent-local'
+// The credit pass: each outcome row's benefit from its run outcome, and the ride-along count.
+import type { CanaryOutcome } from '@vostride/agent-qa-schema'
 import type { NonSignalClass, ProjectedCanaryAttribution } from './emit-canary-outcomes.js'
-import { actedSubAction } from './handoff-anchors.js'
 
 export interface CanaryCreditCounters {
   rideAlongUncredited: number
@@ -23,10 +14,7 @@ export function emptyCanaryCreditCounters(): CanaryCreditCounters {
 
 export type CreditedCanaryAttribution = ProjectedCanaryAttribution
 export interface CanaryCreditInput {
-  knowledgeRoot: string
-  readBundleStateDigests: LocalCurationCapabilities['readCanonicalBundleStateDigests']
   attributions: readonly ProjectedCanaryAttribution[]
-  handoff: CompletedRunHandoff
 }
 
 export function creditCanaryAttributions(
@@ -39,33 +27,8 @@ export function creditCanaryAttributions(
       attributions.push(row)
       continue
     }
-    const served = row.source === 'served-brief'
-    const outcome: CanaryOutcome = { ...row.outcome, stateValidity: 'unknown',
+    const outcome: CanaryOutcome = { ...row.outcome,
       benefit: row.outcome.runOutcome === 'negative' ? 'exercised-harmed' : 'rode-along' }
-    // Recompute evidence from this pass rather than inheriting a prior projection's citation.
-    delete outcome.observedStateDigest
-    if (served) {
-      const step = input.handoff.tests.find((test) =>
-        test.testIndex === outcome.testIndex && test.testId === outcome.testId)
-        ?.steps.find((candidate) => candidate.stepIndex === outcome.stepIndex)
-      // Cache-prefix state is not the live decision's input, and the step-only address cannot
-      // disambiguate multiple live decisions. The unique live action must exercise THIS row's anchor.
-      const live = step?.subActions?.filter(action => action.exchanges !== undefined) ?? []
-      const action = live.length === 1 ? live[0] : undefined
-      // A healed decision is credited against the pair it dispatched.
-      const acted = action === undefined ? undefined : actedSubAction(action)
-      const observed = step !== undefined && acted !== undefined
-        && exercisedAnchors({ ...step, subActions: [acted] }).some(anchor =>
-          canonicalJson(normalizeAnchor(anchor)) === canonicalJson(normalizeAnchor(outcome.exercisedAnchor)))
-        ? actedPair(acted).stateBefore : undefined
-      if (observed !== undefined) outcome.observedStateDigest = distilledScreenStateDigest(observed)
-      const bundle = input.readBundleStateDigests({
-        knowledgeRoot: input.knowledgeRoot, candidateId: outcome.candidateId,
-      })
-      if (outcome.observedStateDigest !== undefined && bundle.kind === 'found' && bundle.digests.length > 0) {
-        outcome.stateValidity = bundle.digests.includes(outcome.observedStateDigest) ? 'valid' : 'stale'
-      }
-    }
     if (outcome.runOutcome === 'positive') counters.rideAlongUncredited += 1
     attributions.push({ ...row, outcome })
   }

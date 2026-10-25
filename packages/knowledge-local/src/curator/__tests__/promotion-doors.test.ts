@@ -54,7 +54,7 @@ describe('promotion doors share receipt authority', () => {
   }
 
   function positive(seeded: ReturnType<typeof fixture.publishHeldCandidate>): CanaryOutcome {
-    return { candidateId: seeded.published.id, runOutcome: 'positive', benefit: 'rode-along', stateValidity: 'unknown', runId: 'door-canary',
+    return { candidateId: seeded.published.id, runOutcome: 'positive', benefit: 'rode-along', runId: 'door-canary',
       testId: 'checkout', testIndex: 0, stepIndex: 0, buildOrdinal: 46,
       briefDigest: 'door-brief', attribution: 'The served selector was exercised.',
       exercisedAnchor: seeded.draft.anchors[0]! }

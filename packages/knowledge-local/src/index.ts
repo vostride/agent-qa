@@ -7,7 +7,6 @@ export type { ReadCurationEffectsOptions } from './curator/curation-snapshot.js'
 export {
   readQueuedCanaryPayload,
   PAYLOAD_BENEFITS,
-  PAYLOAD_STATE_VALIDITIES,
 } from './canary-emit.js'
 export type { QueuedCanaryPayloadRead } from './canary-emit.js'
 
@@ -181,8 +180,6 @@ export {
   scanBundleById,
   scanBundles,
 } from './bundle-scan.js'
-export { readCanonicalBundleStateDigests } from './canonical-bundle-state-digests.js'
-export type { CanonicalBundleStateDigests } from './canonical-bundle-state-digests.js'
 export type {
   CanonicalBundleAnchorLookup,
   EnumeratedBundleDir,

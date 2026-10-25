@@ -1,4 +1,4 @@
-// 2026-09-07, 418 D-11/D-23: ONE distilled digest for stateValidity and novelty.
+// One distilled digest of a screen state, for the staged-feedback provenance check.
 // Route + ordered role/name/ordinal is pinned by a literal fixture digest.
 // Volatile capture fields never participate; dynamic non-badge names can still drift.
 import { canonicalJson } from '../determinism/canonical-json'

@@ -156,7 +156,6 @@ export interface EmitCanaryOutcomeReport {
 }
 
 export interface EmitCanaryOutcomesOptions {
-  readBundleStateDigests?: import('./canary-credit.js').CanaryCreditInput['readBundleStateDigests']
   handoff: CompletedRunHandoff
   /** Absolute agent-qa-knowledge root used for store lookup and durable queue emission. */
   knowledgeRoot: string
@@ -367,7 +366,6 @@ function projectBriefAttributions(
         runOutcome,
         // The credit pass sets the benefit from the run outcome.
         benefit: 'rode-along',
-        stateValidity: 'unknown',
         runId: String(input.handoff.runId),
         testId: test.testId,
         testIndex: test.testIndex,
@@ -452,7 +450,6 @@ function projectProcedureAttribution(
       runOutcome,
       // The credit pass sets the benefit from the run outcome.
       benefit: 'rode-along',
-      stateValidity: 'unknown',
       runId: String(input.handoff.runId),
       testId: test.testId,
       testIndex: test.testIndex,
@@ -478,7 +475,7 @@ export function projectCanaryOutcomes(
   )
 }
 
-/** Resolves anchors read-only, credits evidence, then emits every attribution in isolation. */
+/** Resolves anchors read-only, sets each benefit, then emits every attribution in isolation. */
 export async function emitCanaryOutcomes(opts: EmitCanaryOutcomesOptions): Promise<EmitCanaryOutcomeReport> {
   if (!isAbsolute(opts.knowledgeRoot)) throw new TypeError('knowledgeRoot must be absolute')
   if (!isAbsolute(opts.runDir)) throw new TypeError('runDir must be absolute')
@@ -495,11 +492,7 @@ export async function emitCanaryOutcomes(opts: EmitCanaryOutcomesOptions): Promi
       bundleId: id,
     }),
   })
-  const credit = creditCanaryAttributions({
-    attributions: projected, handoff: opts.handoff, knowledgeRoot: opts.knowledgeRoot,
-    readBundleStateDigests: opts.readBundleStateDigests
-      ?? LOCAL_CURATION_CAPABILITIES.readCanonicalBundleStateDigests,
-  })
+  const credit = creditCanaryAttributions({ attributions: projected })
   const report: EmitCanaryOutcomeReport = {
     canary: credit.counters,
     emitted: 0,

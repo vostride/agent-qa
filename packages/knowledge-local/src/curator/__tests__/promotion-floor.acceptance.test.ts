@@ -277,7 +277,7 @@ describe('zero-model promotion floor acceptance (PROM-01/D-18)', () => {
       const fixture = createPromotionFloorFixture({ knowledgeRoot })
       const { draft, published } = fixture.publishHeldCandidate('fact-door2-canary')
       const outcome: CanaryOutcome = { candidateId: published.id, runOutcome: 'positive', benefit,
-        stateValidity: 'unknown', runId: 'run-canary-disposition', testId: 'checkout::happy-path',
+        runId: 'run-canary-disposition', testId: 'checkout::happy-path',
         testIndex: 0, buildOrdinal: 43, stepIndex: 2, briefDigest: 'brief-digest-canary-disposition',
         attribution: 'The served checkout hypothesis was exercised by the attributed step.',
         exercisedAnchor: draft.anchors[0]! }

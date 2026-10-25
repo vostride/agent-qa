@@ -4,7 +4,6 @@ export {
   canaryOutcomePayloadSchema,
   readQueuedCanaryPayload,
   PAYLOAD_BENEFITS,
-  PAYLOAD_STATE_VALIDITIES,
 } from '../canary-emit.js'
 export type {
   CanaryOutcomeAddressFields,

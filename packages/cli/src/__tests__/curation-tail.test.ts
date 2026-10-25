@@ -481,7 +481,6 @@ describe('runCurationTail post-verdict fold (CUR-03/CUR-05)', () => {
       candidateId: 'candidate-checkout' as CanaryOutcome['candidateId'],
       runOutcome: 'positive',
       benefit: 'rode-along',
-      stateValidity: 'unknown',
       runId,
       testId: 'checkout::happy-path',
       testIndex: 0,
