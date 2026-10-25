@@ -109,13 +109,6 @@ export function createFeedbackReadsPortForHost(deps: FeedbackReadsHostDeps): Fee
           class: previewed.class, latest: previewed.latest, basis: basisOf(previewed.basis) }
       case 'consequences':
         return { kind: 'consequences', ...prospective, member: previewed.member, resolvedStep: previewed.resolvedStep,
-          markedDecisionCount: previewed.decisionCount,
-          groundTruth: previewed.groundTruth.map(item => ({ testIndex: item.testIndex, stepIndex: item.stepIndex,
-            verdict: item.verdict, recordedVerdict: { pass: item.recordedVerdict.pass, reasoning: item.recordedVerdict.reasoning } })),
-          // The overturned verdict stays in groundTruth; a label reports its verdict only.
-          labels: previewed.labels.map(label => ({ testIndex: label.testIndex, stepIndex: label.stepIndex,
-            decisionOrdinal: label.decisionOrdinal, sourceCassetteId: label.sourceCassetteId, channel: label.channel,
-            ...(label.correction === undefined ? {} : { correction: { verdict: label.correction.verdict } }) })),
           knowledge: previewed.knowledge, draft: previewed.draft,
           latest: previewed.latest, basis: basisOf(previewed.basis) }
       default:

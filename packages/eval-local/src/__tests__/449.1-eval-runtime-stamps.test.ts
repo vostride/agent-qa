@@ -157,7 +157,7 @@ function markLedgerFixture() {
   const runId = asRunId('run-eval-runtime-stamps')
   new FsHandoffStore({ root, runId }).save({ ...makeLocalV2Handoff(), runId })
   const record: Omit<MarkReceipt, 'ordinal'> = { schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: 'mark_0123456789ab',
-    runId, runSlug: slugBranch(runId), testIndex: 0, kind: 'false-fail', origin: 'user', markedAt: 0, gold: [],
+    runId, runSlug: slugBranch(runId), testIndex: 0, kind: 'false-fail', origin: 'user', markedAt: 0,
     disposition: { kind: 'confirmed-bug', confirmedRecords: 0 }, evidence: { confirmed: 0, overturned: 0 } }
   return { ledger: new local.FsMarkLedger({ root, runId }), record,
     intentPath: join(root, RUNS_SUBDIR, slugBranch(runId), local.MARK_INTENT_FILE) }

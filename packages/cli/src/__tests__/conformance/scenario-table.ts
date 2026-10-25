@@ -1241,13 +1241,10 @@ export const SCENARIO_TABLE = Object.freeze([
       markers: [
         'basis',
         'draft',
-        'groundTruth',
         'kind',
         'knowledge',
-        'labels',
         'latest',
         'markKind',
-        'markedDecisionCount',
         'member',
         'prospective',
         'resolvedStep',

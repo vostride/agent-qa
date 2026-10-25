@@ -6,7 +6,7 @@ import { createKnowledgeReader, DIGEST_JOB_ID_SOURCE, LOCAL_CURATION_CAPABILITIE
 import { MARK_TARGET_REASONS, projectRecordContent, RunsMarkInputSchema, type CompletedRunHandoff, type ImprovementPlan, type KnowledgeRecordShowResult, type KnowledgeTargetRef, type Mark, type MarkAddress, type MarkPreviewKnowledge, type MarkPreviewKnowledgeRecord, type MarkQuarantineClass, type MarkReceipt, type NoDraftableFixChecked, type RunsMarkInput, type RunsMarkOutcome } from '@vostride/agent-qa-schema'
 import { resolveConfig, resolveConfiguredKnowledgeRoot } from '../config.js'
 import { trustPriorsForHost, type ResolveTrustPriors } from '../curation/trust-priors.js'
-import { FsHandoffSource, FsMarkLedger, latestMarkReceiptFor, markedDecisionCount, previewMarkLabels, slugBranch, type MarkGroundTruthPreview, type MarkLabelPreviewItem } from '../eval-session-composition.js'
+import { FsHandoffSource, FsMarkLedger, latestMarkReceiptFor, slugBranch } from '../eval-session-composition.js'
 
 export type MarkPlanCuration = Pick<LocalCurationCapabilities, 'triageMark' | 'servedIdsOn' | 'procedureReadOn' | 'applyFeedback' | 'readFeedbackRecord' | 'planMarkEvidence' | 'projectMarkEvidenceOutcome'>
 type MarkMember = CompletedRunHandoff['tests'][number]
@@ -67,7 +67,7 @@ export type MarkFeedbackPlan =
   | { kind: 'already-marked'; receipt: MarkReceipt; basis: MarkPlanBasis }
   | { kind: 'refused'; outcome: MarkPlanRefusal; basis: MarkPlanBasis }
   | { kind: 'quarantined'; class: MarkQuarantineClass; resolvedStep: MarkResolvedStep; latest: MarkLatest; basis: MarkPlanBasis }
-  | { kind: 'effects'; targets: (MarkResolvedStep & { testIndex: number })[]; resolvedStep: MarkResolvedStep; decisionCount: number
+  | { kind: 'effects'; resolvedStep: MarkResolvedStep
     knowledge: { servedRecordIds: string[]; appendsEvidence: boolean }
     latest: MarkLatest; basis: MarkPlanBasis }
 
@@ -123,9 +123,8 @@ export function planMarkFeedback({ input, handoff, member, address, prior, ledge
   const resolvedStep: MarkResolvedStep = { stepIndex: resolution.stepIndex, reason: resolution.reason }
   const latest: MarkLatest = prior === undefined ? { kind: 'first' } : { kind: 'supersedes', markId: prior.markId, ordinal: prior.ordinal }
   if (triage.kind === 'quarantined') return { kind: 'quarantined', class: triage.class, resolvedStep, latest, basis }
-  const targets = [{ testIndex: member.testIndex, ...resolvedStep }]
   const servedRecordIds = curation.servedIdsOn(member.steps[resolvedStep.stepIndex]!)
-  return { kind: 'effects', targets, resolvedStep, decisionCount: markedDecisionCount(handoff, targets),
+  return { kind: 'effects', resolvedStep,
     knowledge: { servedRecordIds, appendsEvidence: servedRecordIds.length > 0 || input.kind === 'false-pass' },
     latest, basis }
 }
@@ -185,8 +184,7 @@ export type MarkConsequencePreview =
   | MarkPlanRefusal
   | Extract<MarkFeedbackPlan, { kind: 'already-marked' }>
   | (Extract<MarkFeedbackPlan, { kind: 'quarantined' }> & { member: MarkPreviewMember })
-  | { kind: 'consequences'; member: MarkPreviewMember; resolvedStep: MarkResolvedStep; decisionCount: number
-    groundTruth: MarkGroundTruthPreview[]; labels: MarkLabelPreviewItem[]
+  | { kind: 'consequences'; member: MarkPreviewMember; resolvedStep: MarkResolvedStep
     /** Unmasked: the op masks joined content and evidence tokens at its boundary. */
     knowledge: MarkPreviewKnowledge
     draft: MarkDraftPreview; latest: MarkLatest; basis: MarkPlanBasis }
@@ -246,8 +244,6 @@ export async function previewMarkConsequences(deps: MarkPreviewDeps, raw: unknow
   const previewMember: MarkPreviewMember = { testIndex: member.testIndex, ...(member.testId === undefined ? {} : { testId: member.testId }) }
   if (plan.kind === 'quarantined') return { ...plan, member: previewMember }
   if (plan.kind !== 'effects') return plan
-  const labels = previewMarkLabels({ handoff, address, mark: input })
-  if (labels.kind !== 'labels') throw new Error('mark label preview disagrees with the resolved mark plan')
   let store: { knowledgeRoot: string; reader: KnowledgeReaderPort } | undefined
   const storeOf = async () => {
     if (store !== undefined) return store
@@ -295,6 +291,6 @@ export async function previewMarkConsequences(deps: MarkPreviewDeps, raw: unknow
       : decided.kind === 'test-edit' ? { kind: 'test-edit', testRef: decided.plan.testRef }
         : { kind: 'no-draftable-fix', checked: decided.checked }
   }
-  return { kind: 'consequences', member: previewMember, resolvedStep: plan.resolvedStep, decisionCount: plan.decisionCount,
-    groundTruth: labels.groundTruth, labels: labels.labels, knowledge, draft, latest: plan.latest, basis: plan.basis }
+  return { kind: 'consequences', member: previewMember, resolvedStep: plan.resolvedStep,
+    knowledge, draft, latest: plan.latest, basis: plan.basis }
 }

@@ -30,7 +30,6 @@ function equivalenceOf(receipt: MarkReceipt) {
   return {
     ...Object.fromEntries(MARK_RECEIPT_EQUIVALENCE_KEYS.map(key => [key, receipt[key]])),
     disposition: receipt.disposition.kind,
-    gold: receipt.gold.map(item => item.channel),
     evidence: receipt.evidence,
   }
 }
@@ -182,7 +181,6 @@ describe('419 mark receipt parity across the four sovereign doors', () => {
       expect(durable).toEqual(receipt)
       expect(durable.origin).toBe('user')
       expect(durable.ordinal).toBe(1)
-      expect(durable.gold).toEqual([])
       expect(durable.evidence.confirmed).toBe(1)
       expect(durable.disposition.kind).toBe(kind === 'false-fail' ? 'applied' : 'confirmed-bug')
     }

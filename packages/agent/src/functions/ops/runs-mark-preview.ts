@@ -10,7 +10,7 @@ import { requireSecretMask } from './secret-mask.js'
 
 export const RUNS_MARK_PREVIEW_FUNCTION_ID = 'runs.mark.preview'
 
-// Only free text crosses the mask. Ids, kinds, counts, addresses and cassette ids stay structural;
+// Only free text crosses the mask. Ids, kinds, counts and addresses stay structural;
 // joined record content and evidence tokens are masked exactly as runs.knowledge masks them.
 function maskResult(result: RunsMarkPreviewResult, mask: MaskFn): RunsMarkPreviewResult {
   if (result.kind !== 'consequences') return result
@@ -28,16 +28,12 @@ function maskResult(result: RunsMarkPreviewResult, mask: MaskFn): RunsMarkPrevie
         },
       })),
     },
-    groundTruth: result.groundTruth.map(item => ({
-      ...item,
-      recordedVerdict: { ...item.recordedVerdict, reasoning: mask(item.recordedVerdict.reasoning) },
-    })),
   }
 }
 
 export const runsMarkPreviewSpec: FunctionSpec<RunsMarkInput, RunsMarkPreviewResult> = {
   id: RUNS_MARK_PREVIEW_FUNCTION_ID,
-  summary: 'Preview what runs.mark would do for this exact input: its refusals, resolved step, labels, the knowledge records it reaches with their content and evidence effects, and the fix it would apply, without writing.',
+  summary: 'Preview what runs.mark would do for this exact input: its refusals, resolved step, the knowledge records it reaches with their content and evidence effects, and the fix it would apply, without writing.',
   resultKind: 'unary',
   boundThrough: 'feedbackReads',
   input: RunsMarkInputSchema,
@@ -46,7 +42,7 @@ export const runsMarkPreviewSpec: FunctionSpec<RunsMarkInput, RunsMarkPreviewRes
   classify(output): ClauseVerdict {
     switch (output.kind) {
       case 'consequences':
-        return { status: 'executed', outcome: `preview: ${output.markKind} would apply ${output.draft.kind} over ${output.markedDecisionCount} ${output.markedDecisionCount === 1 ? 'decision' : 'decisions'} (nothing written)` }
+        return { status: 'executed', outcome: `preview: ${output.markKind} would apply ${output.draft.kind} at step ${output.resolvedStep.stepIndex} (nothing written)` }
       case 'quarantined':
         return { status: 'executed', outcome: `preview: ${output.markKind} would be quarantined as ${output.class} (nothing written)` }
       case 'already-marked':

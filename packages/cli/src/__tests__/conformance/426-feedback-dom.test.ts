@@ -46,7 +46,7 @@ type MarkPath = {
   rowsAtApproval: number
   status?: number
   outcome?: { kind: string; markId?: string }
-  rows: Array<{ markId: string; kind: string; origin: string; testIndex: number; stepIndex?: number; disposition: string; gold: string[] }>
+  rows: Array<{ markId: string; kind: string; origin: string; testIndex: number; stepIndex?: number; disposition: string }>
   newEntryMarkId: string | null
   newEntryFirst: boolean
   /** 432-42 (D-25): the new history entry, as text, its controls and its applied line. */
@@ -808,8 +808,8 @@ describe('contextual feedback on the shipped bundle (426-16, 426-17)', () => {
       markPath = { gate, frames: await recordedFrames(), confirmChannels, dialogs, hostDialogs, approvalInComposer, rowsAtApproval,
         status: reply.status(),
         outcome: { kind: parsed.kind, ...('receipt' in parsed ? { markId: parsed.receipt.markId } : {}) },
-        rows: rows().map(({ markId, kind, origin, testIndex, stepIndex, disposition, gold }) =>
-          ({ markId, kind, origin, testIndex, stepIndex, disposition: disposition.kind, gold: gold.map(entry => entry.channel) })),
+        rows: rows().map(({ markId, kind, origin, testIndex, stepIndex, disposition }) =>
+          ({ markId, kind, origin, testIndex, stepIndex, disposition: disposition.kind })),
         newEntryMarkId, newEntryFirst, newEntryText, newEntryControls, newEntryApplied,
         dialogsAfter: await modalCount(markPage) }
       await markContext.close()

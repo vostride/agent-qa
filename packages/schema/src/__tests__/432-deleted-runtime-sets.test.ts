@@ -44,7 +44,7 @@ describe('432-09 applied output key sets', () => {
     expect(keysOf(exported('MarkHistoryEntrySchema')), 'history projects the applied change, not an inbox state')
       .toEqual(sorted([
         'markId', 'runId', 'testIndex', 'testId', 'stepIndex', 'kind', 'origin', 'ordinal', 'markedAt',
-        'rootCause', 'isRerun', 'disposition', 'gold', 'evidence', 'supersedes', 'note',
+        'rootCause', 'isRerun', 'disposition', 'evidence', 'supersedes', 'note',
         'active', 'supersededBy', 'changedRecords',
       ]))
 
@@ -52,7 +52,7 @@ describe('432-09 applied output key sets', () => {
     expect(keysOf(armOf(preview, 'kind', 'consequences')), 'a later mark withdraws nothing')
       .toEqual(sorted([
         'kind', 'runId', 'prospective', 'markKind', 'member', 'resolvedStep', 'latest', 'basis',
-        'markedDecisionCount', 'groundTruth', 'labels', 'knowledge', 'draft',
+        'knowledge', 'draft',
       ]))
 
     expect(keysOf(exported('RunDigestSchema')), 'the digest reads applied mark changes, never the inbox')

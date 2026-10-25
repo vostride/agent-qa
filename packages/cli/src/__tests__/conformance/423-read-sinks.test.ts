@@ -303,7 +303,7 @@ function appliedReceipt(runId: string, ordinal: number, recordId: string, stepIn
     ...(stepIndex === undefined ? {} : { stepIndex }), runSlug: 'read-sink-review', kind: 'false-fail',
     origin: 'user', ordinal, markedAt: ordinal,
     disposition: { kind: 'applied', fix: 'fact', change: { kind: 'knowledge', changeId: 'prop_0123456789ab', recordIds: [recordId] } },
-    gold: [], evidence: { confirmed: 0, overturned: 0 },
+    evidence: { confirmed: 0, overturned: 0 },
   })
 }
 const changedRecord = (recordId: string) => [{ recordId, contentAbsence: { reason: 'not-bound' as const } }]

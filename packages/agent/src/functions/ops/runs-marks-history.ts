@@ -39,7 +39,6 @@ function projectEntry(receipt: MarkReceipt, changedRecords: readonly MarkHistory
     }),
     ...(receipt.isRerun === undefined ? {} : { isRerun: receipt.isRerun }),
     disposition: receipt.disposition,
-    gold: receipt.gold,
     evidence: receipt.evidence,
     ...(receipt.supersedes === undefined ? {} : { supersedes: receipt.supersedes }),
     active: supersededBy === undefined,

@@ -28,7 +28,7 @@ describe('FsMarkLedger', () => {
     ledger = new FsMarkLedger({ root, runId })
     record = {
       schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: 'mark_0123456789ab', runId, runSlug, testIndex: 0,
-      kind: 'false-fail', origin: 'user', markedAt: 0, gold: [],
+      kind: 'false-fail', origin: 'user', markedAt: 0,
       disposition: { kind: 'confirmed-bug', confirmedRecords: 0 },
       evidence: { confirmed: 0, overturned: 0 },
     }

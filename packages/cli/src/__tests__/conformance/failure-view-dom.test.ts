@@ -1393,7 +1393,6 @@ describe('the shipped dashboard paints a RED run\'s authored verdict, its eviden
     const receipt = MarkReceiptSchema.parse(mark!.rows[0])
     expect(receipt).toMatchObject({ runId: recorded.red!.runId, testIndex: 0,
       origin: 'user', kind: 'false-fail', ordinal: 1 })
-    expect(receipt.gold).toEqual([])
     // RESEARCH A5: markedAt is epoch milliseconds, taken during this drive.
     expect(mark!.markedAtWithinDrive, context()).toBe(true)
     expect(mark!.hostileElements, context()).toBe(0)

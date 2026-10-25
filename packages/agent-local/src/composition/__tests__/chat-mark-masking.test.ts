@@ -30,7 +30,7 @@ it.each([true, false])('projects real mark chat with active masking=%s and prese
   const canonical: MarkReceipt = {
     schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: 'mark_0123456789ab', runId: input.runId, runSlug: 'audit-run',
     testIndex: 0, kind: input.kind, origin: 'user', ordinal: 1, markedAt: 0, note: canary,
-    disposition: { kind: 'quarantined', class: 'flake' }, gold: [],
+    disposition: { kind: 'quarantined', class: 'flake' },
     evidence: { confirmed: 0, overturned: 0 },
   }
   const canonicalBytes = JSON.stringify(canonical)

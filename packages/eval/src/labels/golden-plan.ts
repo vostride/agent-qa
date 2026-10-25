@@ -1,4 +1,4 @@
-import type { Action, CompletedRunHandoff, Mark, MarkAddress, MarkReceipt, VerifierVerdict } from '@vostride/agent-qa-schema'
+import type { Action, CompletedRunHandoff, Mark, MarkAddress, MarkReceipt } from '@vostride/agent-qa-schema'
 import type { ExtractedCassette } from '../extract/extract-run'
 import { deriveGoldCassetteId, deriveLeafCassetteId, deriveRunSlug } from '../extract/ids'
 import { collectStepSelections } from '../extract/select'
@@ -86,94 +86,6 @@ export function resolveMarkLabelTargets(
     return { kind: 'ambiguous-correction', targets, decisionCount }
   }
   return { kind: 'resolved', targets, decisionCount }
-}
-
-export interface MarkLabelCorrectionPreview {
-  verdict: 'pass' | 'fail'
-  overturnedVerdict: VerifierVerdict
-  correctedExpectation?: string
-  correctedAction?: Action
-}
-
-export interface MarkGroundTruthPreview {
-  testIndex: number
-  stepIndex: number
-  verdict: 'pass' | 'fail'
-  recordedVerdict: VerifierVerdict
-  correctedExpectation?: string
-  correctedAction?: Action
-}
-
-export interface MarkLabelPreviewItem {
-  testIndex: number
-  stepIndex: number
-  decisionOrdinal: number
-  sourceCassetteId: string
-  channel: MarkGoldChannel
-  correction?: MarkLabelCorrectionPreview
-}
-
-export type MarkLabelsPreview =
-  | { kind: 'step-not-found'; stepCount: number }
-  | { kind: 'ambiguous-correction'; targets: GoldenTrajectoryTarget[]; decisionCount: number }
-  | { kind: 'labels'; targets: GoldenTrajectoryTarget[]; decisionCount: number
-    groundTruth: MarkGroundTruthPreview[]; labels: MarkLabelPreviewItem[] }
-
-export interface PreviewMarkLabelsInput {
-  handoff: CompletedRunHandoff
-  address: MarkAddress
-  mark: MarkLabelIntent
-}
-
-function correctionFields(mark: MarkLabelIntent) {
-  return {
-    ...(mark.correctedExpectation === undefined ? {} : { correctedExpectation: mark.correctedExpectation }),
-    ...(mark.correctedAction === undefined ? {} : { correctedAction: mark.correctedAction }),
-  }
-}
-
-function recordedVerdictOf(verdict: VerifierVerdict | undefined): VerifierVerdict {
-  if (verdict === undefined) throw new Error('gold correction requires a recorded verifier verdict')
-  return { ...verdict }
-}
-
-/**
- * The labels a freeze would write, read from the handoff alone. Leaf source ids are derived
- * from recorded coordinates; gold ids, mark ids and ordinals are writer-minted and never appear.
- * A decision whose extracted cassette is missing is skipped by the writer, which this cannot see.
- */
-export function previewMarkLabels({ handoff, address, mark }: PreviewMarkLabelsInput): MarkLabelsPreview {
-  const resolution = resolveMarkLabelTargets(handoff, address, mark)
-  if (resolution.kind !== 'resolved') return resolution
-  const runSlug = deriveRunSlug(handoff.runId)
-  const groundTruth: MarkGroundTruthPreview[] = []
-  const labels: (MarkLabelPreviewItem & { order: string })[] = []
-  for (const target of resolution.targets) {
-    const handoffTest = handoff.tests.find(member => member.testIndex === target.testIndex)!
-    const step = handoffTest.steps[target.stepIndex]!
-    groundTruth.push({ testIndex: target.testIndex, stepIndex: step.stepIndex,
-      verdict: mark.kind === 'false-fail' ? 'pass' : 'fail', recordedVerdict: recordedVerdictOf(step.verifierVerdict),
-      ...correctionFields(mark) })
-    for (const selection of collectStepSelections({ handoffTest, step }).selections) {
-      const leafId = deriveLeafCassetteId({ runSlug, ...selection })
-      for (const channel of markGoldChannels(mark.kind)) {
-        const overturned = channel === 'overturned-verdict'
-        // Mirrors projectUserMarkLabelRecord / projectOverturnedVerdictLabelRecord correction presence.
-        const corrected = overturned || mark.kind !== 'confirmed-bug'
-          || mark.correctedAction !== undefined || mark.correctedExpectation !== undefined
-        labels.push({ testIndex: target.testIndex, stepIndex: step.stepIndex,
-          decisionOrdinal: selection.decisionOrdinal, sourceCassetteId: leafId, channel,
-          ...(corrected ? { correction: {
-            verdict: !overturned && mark.kind === 'false-fail' ? 'pass' as const : 'fail' as const,
-            overturnedVerdict: recordedVerdictOf(step.verifierVerdict), ...correctionFields(mark) } } : {}),
-          // The writer sorts by gold id; its shared ordinal suffix never changes the relative order.
-          order: overturned ? `${leafId}-overturned-gold` : `${leafId}-gold` })
-      }
-    }
-  }
-  labels.sort((a, b) => a.order < b.order ? -1 : a.order > b.order ? 1 : 0)
-  return { kind: 'labels', targets: resolution.targets, decisionCount: resolution.decisionCount, groundTruth,
-    labels: labels.map(({ order: _, ...label }) => label) }
 }
 
 export interface BuildGoldenTrajectoryPlanInput {

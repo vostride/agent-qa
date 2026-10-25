@@ -73,7 +73,7 @@ describe('runs mark thin client', () => {
   // read back from a ledger says it was drafted and names no proposal to act on.
   it('renders an applied receipt with the records or file it changed, and a historical draft without a proposal id', () => {
     const base = { schemaVersion: MARK_RECEIPT_SCHEMA_VERSION as typeof MARK_RECEIPT_SCHEMA_VERSION, markId: 'mark_0123456789ab', runId: asRunId('run-render'), runSlug: 'run-render',
-      testIndex: 0, kind: 'false-fail' as const, origin: 'user' as const, ordinal: 2, markedAt: 0, gold: [],
+      testIndex: 0, kind: 'false-fail' as const, origin: 'user' as const, ordinal: 2, markedAt: 0,
       evidence: { confirmed: 1, overturned: 0 } }
     expect(renderMarkOutcome({ kind: 'marked', receipt: { ...base, disposition: { kind: 'applied', fix: 'fact',
       change: { kind: 'knowledge', changeId: 'prop_0123456789ab', recordIds: ['mem_a', 'mem_b'] } } } }))

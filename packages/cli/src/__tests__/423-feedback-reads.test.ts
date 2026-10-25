@@ -138,7 +138,7 @@ describe('423-35 shared mark consequence plan (D-16)', () => {
       resolvedStep: { stepIndex: 0, reason: 'failing-step' }, latest: { kind: 'first' }, basis: { ledgerOrdinal: 0 } })
     expect(hashes(f.root)).toEqual(before)
     expect(await port.mark(quarantinable)).toMatchObject({ kind: 'marked',
-      receipt: { disposition: { kind: 'quarantined', class: 'flake' }, gold: [], evidence: { confirmed: 0, overturned: 0 } } })
+      receipt: { disposition: { kind: 'quarantined', class: 'flake' }, evidence: { confirmed: 0, overturned: 0 } } })
   })
 
   // No mark withdraws anything: a superseding mark leaves the prior applied fix in place, on every arm.
@@ -185,7 +185,7 @@ describe('423-35 shared mark consequence plan (D-16)', () => {
     const previewed = await preview(f.previewDeps, { runId, kind: 'false-fail' })
     expect(hashes(f.root)).toEqual(before)
     expect(JSON.stringify(previewed)).not.toMatch(/mark_[0-9a-f]{12}/)
-    expect(previewed).toMatchObject({ kind: 'consequences', resolvedStep: { stepIndex: 0, reason: 'failing-step' }, decisionCount: 1,
+    expect(previewed).toMatchObject({ kind: 'consequences', resolvedStep: { stepIndex: 0, reason: 'failing-step' },
       knowledge: { servedRecordIds: [f.published.id], appendsEvidence: true },
       draft: { kind: 'knowledge', fix: 'fact', target: { grain: 'record', recordId: f.published.id } },
       latest: { kind: 'first' }, basis: { ledgerOrdinal: 0 } })
@@ -564,7 +564,7 @@ function consequencesOf(result: RunsMarkPreviewResult): Consequences {
   return result
 }
 
-/** No receipt, gold id, timestamp or fresh mark id: only mark ids already in the ledger may appear. */
+/** No receipt, cassette id, timestamp or fresh mark id: only mark ids already in the ledger may appear. */
 function expectNoMint(result: RunsMarkPreviewResult, known: readonly string[] = []) {
   const text = JSON.stringify(result)
   expect(text).not.toMatch(/"(markedAt|cassetteId|receipt|proposalUuid)"/)
@@ -794,7 +794,7 @@ describe('423-19 content-led consequence preview over the read host (D-16/D-17)'
     expect(written).toMatchObject({ kind: 'marked', receipt: { evidence: { confirmed: 1, overturned: 2 } } })
   }, 120_000)
 
-  it('false-pass previews its two labels with no gold id, receipt or time', async () => {
+  it('false-pass previews the passing-verdict step with no minted id, receipt or time', async () => {
     const f = fixture()
     const runId = f.handoff.runId
     const reads = previewReadsFor(f)
@@ -804,9 +804,7 @@ describe('423-19 content-led consequence preview over the read host (D-16/D-17)'
     expectNoMint(previewed)
     expect(RunsMarkPreviewResultSchema.parse(previewed)).toEqual(previewed)
     expect(previewed).toMatchObject({ prospective: true, markKind: 'false-pass', member: { testIndex: 0, testId: f.handoff.tests[0]!.testId },
-      resolvedStep: { stepIndex: 0, reason: 'passing-verdict' }, markedDecisionCount: 1 })
-    expect(previewed.labels.map(label => [label.channel, label.correction])).toEqual([
-      ['user-mark', { verdict: 'fail' }], ['overturned-verdict', { verdict: 'fail' }]])
+      resolvedStep: { stepIndex: 0, reason: 'passing-verdict' } })
   }, 120_000)
 })
 
@@ -852,8 +850,6 @@ describe('423-19 runs.mark.preview registration and composed invocation (D-16)',
     expect(result).toMatchObject({ runId: template.runId, prospective: true, markKind: 'false-pass', member: { testIndex: 0 },
       resolvedStep: { stepIndex: 0, reason: 'passing-verdict' }, latest: { kind: 'supersedes', markId: second.markId, ordinal: 2 },
       basis: { ledgerOrdinal: 3, priorMarkOrdinal: 2 } })
-    expect(result.labels.map(label => label.channel)).toEqual(['user-mark', 'overturned-verdict'])
-    expect(result.groundTruth[0]!.recordedVerdict.reasoning).toBe('The recorded state advanced')
     expect(result.knowledge.records[0]).toMatchObject({ served: true,
       recordContent: { content: 'The Held checkout marked button was resolved and verified.' } })
     expect(JSON.stringify(result)).not.toContain(SECRET)
@@ -1067,7 +1063,6 @@ describe('423-21 feedback reads over both HTTP doors (D-18)', () => {
       // two applied fixes' ids are minted per run, so their relative order is compared as a set.
       const [served, ...unserved] = preview.knowledge.records.map(record => record.recordContent?.content ?? null)
       return { notes: historyEntries(history).map(entry => entry.note ?? null),
-        reasoning: preview.groundTruth.map(item => item.recordedVerdict.reasoning),
         content: [served, ...unserved.sort()] }
     }
     const redacted = CHIP
@@ -1081,7 +1076,6 @@ describe('423-21 feedback reads over both HTTP doors (D-18)', () => {
     const content = ['The Held checkout marked button was resolved and verified.',
       ...[appliedFix('first run-level note'), appliedFix(`step note ${redacted}`)].sort()]
     const cold = { notes: ['first run-level note', null, `step note ${redacted}`],
-      reasoning: ['The recorded state advanced'],
       content }
     const coldHuman = await read(human)
     const coldMachine = await read(machine)

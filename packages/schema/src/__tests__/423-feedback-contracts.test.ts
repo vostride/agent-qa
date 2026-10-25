@@ -4,7 +4,6 @@ import {
   MARK_APPLIED_CHANGE_KINDS,
   MARK_DISPOSITIONS,
   MARK_HISTORICAL_DISPOSITIONS,
-  MARK_GOLD_CHANNELS,
   MARK_PREVIEW_DRAFT_KINDS,
   MARK_PREVIEW_EVIDENCE_DIRECTIONS,
   MARK_PREVIEW_LATEST_KINDS,
@@ -38,7 +37,6 @@ const PREVIEW_OUTCOMES = ['consequences', 'quarantined', 'already-marked', ...RE
 const MARK_OUTCOMES = ['marked', 'already-marked', ...REFUSALS] as const
 const MARK_KINDS = ['false-fail', 'false-pass', 'confirmed-bug'] as const
 const TARGET_REASONS = ['step-mark', 'failing-step', 'passing-verdict'] as const
-const GOLD_CHANNELS = ['user-mark', 'overturned-verdict'] as const
 const LATEST_KINDS = ['first', 'supersedes'] as const
 const DRAFT_KINDS = ['confirmed-bug', 'knowledge', 'test-edit', 'no-draftable-fix'] as const
 const EVIDENCE_DIRECTIONS = ['confirm', 'overturn'] as const
@@ -69,9 +67,7 @@ const APPLIED_CASES: Record<(typeof APPLIED_CHANGE_KINDS)[number], unknown> = {
 const member = { testIndex: 0 }
 const PREVIEW_CASES: Record<(typeof PREVIEW_OUTCOMES)[number], unknown> = {
   consequences: { kind: 'consequences', runId, prospective: true, markKind: 'false-fail', member,
-    resolvedStep: { stepIndex: 0, reason: 'failing-step' }, markedDecisionCount: 1,
-    groundTruth: [{ testIndex: 0, stepIndex: 0, verdict: 'pass', recordedVerdict: { pass: false, reasoning: 'r' } }],
-    labels: [{ testIndex: 0, stepIndex: 0, decisionOrdinal: 0, sourceCassetteId: 'leaf', channel: 'user-mark', correction: { verdict: 'pass' } }],
+    resolvedStep: { stepIndex: 0, reason: 'failing-step' },
     knowledge: { servedRecordIds: [], appendsEvidence: false, records: [], evidence: { confirmed: 0, overturned: 0 } },
     draft: { kind: 'no-draftable-fix', checked: { servedRecords: 0, procedureReads: 0, assertionDrift: true } },
     latest: { kind: 'first' }, basis: { ledgerOrdinal: 0 } },
@@ -140,16 +136,14 @@ describe('C423-FEEDBACK-RESULTS-EXACT', () => {
     }
   })
 
-  test('pins the preview sub-vocabularies: reasons, gold channels, latest and draft kinds', () => {
+  test('pins the preview sub-vocabularies: reasons, latest and draft kinds', () => {
     expect([...MARK_TARGET_REASONS]).toEqual([...TARGET_REASONS])
-    expect([...MARK_GOLD_CHANNELS]).toEqual([...GOLD_CHANNELS])
     expect([...MARK_PREVIEW_LATEST_KINDS]).toEqual([...LATEST_KINDS])
     expect(armsOf(MarkPreviewLatestSchema, 'kind')).toEqual([...LATEST_KINDS])
     expect([...MARK_PREVIEW_DRAFT_KINDS]).toEqual([...DRAFT_KINDS])
     expect(armsOf(MarkPreviewDraftSchema, 'kind')).toEqual([...DRAFT_KINDS])
     const base = PREVIEW_CASES.consequences as Record<string, unknown>
     expect(RunsMarkPreviewResultSchema.safeParse({ ...base, resolvedStep: { stepIndex: 0, reason: 'last-step' } }).success).toBe(false)
-    expect(RunsMarkPreviewResultSchema.safeParse({ ...base, labels: [{ ...(base.labels as object[])[0], channel: 'silver' }] }).success).toBe(false)
     expect(RunsMarkPreviewResultSchema.safeParse({ ...base, latest: { kind: 'replaces', markId: 'mark_000000000001', ordinal: 1 } }).success).toBe(false)
     expect(MarkPreviewDraftSchema.safeParse({ kind: 'wording', text: 'x' }).success).toBe(false)
     // 423-19 D-17: the reached-record evidence vocabularies.

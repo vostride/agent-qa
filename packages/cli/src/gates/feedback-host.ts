@@ -151,7 +151,7 @@ export function createFeedbackPortForHost(deps: FeedbackHostDeps): FeedbackPort 
           schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, ...input, ...address, runSlug: slugBranch(input.runId),
           markId: `mark_${deps.randomUuid().replace(/-/g, '').slice(0, 12)}`,
           origin: 'user', ordinal, markedAt: (deps.now ?? Date.now)(),
-          gold: [], evidence: { confirmed: 0, overturned: 0 },
+          evidence: { confirmed: 0, overturned: 0 },
           disposition: { kind: 'confirmed-bug', confirmedRecords: 0 },
           ...(prior === undefined ? {} : { supersedes: prior.markId }),
           ...(member.rootCause === undefined ? {} : { rootCause: {

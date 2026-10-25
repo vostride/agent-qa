@@ -1712,9 +1712,9 @@ export {
   markAddressKey, MARKS_HISTORY_OUTCOMES, MarkHistoryChangedRecordSchema,
   RunsMarksHistoryInputSchema, MarkHistoryEntrySchema, RunsMarksHistoryResultSchema,
   // 2026-09-15, 423 D-16/D-17: mark consequence preview
-  MARK_PREVIEW_REFUSALS, MARK_PREVIEW_OUTCOMES, MARK_TARGET_REASONS, MARK_GOLD_CHANNELS,
+  MARK_PREVIEW_REFUSALS, MARK_PREVIEW_OUTCOMES, MARK_TARGET_REASONS,
   MARK_PREVIEW_LATEST_KINDS, MARK_PREVIEW_DRAFT_KINDS, MarkPreviewBasisSchema, MarkPreviewLatestSchema,
-  MarkPreviewGroundTruthSchema, MarkPreviewLabelSchema, MarkPreviewKnowledgeSchema, MarkPreviewDraftSchema,
+  MarkPreviewKnowledgeSchema, MarkPreviewDraftSchema,
   RunsMarkPreviewResultSchema,
   MARK_PREVIEW_EVIDENCE_DIRECTIONS, MARK_PREVIEW_RECORD_EVIDENCE_KINDS, MarkPreviewEvidenceEffectSchema,
   MarkPreviewKnowledgeRecordSchema,
@@ -1725,7 +1725,7 @@ export type {
   CommitReceipt, RunDetailMemberMark, FeedbackPort, MarkAppliedChange,
   MarkHistoryChangedRecord, RunsMarksHistoryInput, MarkHistoryEntry,
   RunsMarksHistoryResult, MarkHistoryReadEntry, MarkHistoryRead, FeedbackReadsPort,
-  MarkPreviewBasis, MarkPreviewLatest, MarkPreviewGroundTruth, MarkPreviewLabel, MarkPreviewKnowledge,
+  MarkPreviewBasis, MarkPreviewLatest, MarkPreviewKnowledge,
   MarkPreviewDraft, RunsMarkPreviewResult, MarkPreviewEvidenceEffect,
   MarkPreviewKnowledgeRecord,
 } from './functions/feedback'

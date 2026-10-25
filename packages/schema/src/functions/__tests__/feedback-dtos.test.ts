@@ -18,7 +18,7 @@ const receipt = {
   schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId, runId, testIndex: 0, runSlug: 'run-feedback',
   kind: 'false-fail', origin: 'user', ordinal: 1, markedAt: 0,
   disposition: { kind: 'quarantined', class: 'flake' },
-  gold: [], evidence: { confirmed: 0, overturned: 0 },
+  evidence: { confirmed: 0, overturned: 0 },
 }
 const planBase = {
   schemaVersion: IMPROVEMENT_PLAN_SCHEMA_VERSION, markId,
@@ -78,9 +78,10 @@ describe('Gate-3 neutral feedback contracts (419)', () => {
     expect(RunsMarkOutcomeSchema.safeParse({ kind: 'ambiguous-address', runId, candidates: [{ testIndex: 0 }] }).success).toBe(false)
   })
 
-  it('pins persisted user origin, receipt version and integer ledger positions', () => {
+  it('pins persisted user origin, receipt version and integer ledger positions, and refuses a gold member', () => {
     expect(MarkReceiptSchema.parse(receipt)).toEqual(receipt)
-    for (const change of [{ origin: 'agent' }, { schemaVersion: 1 }, { ordinal: 0 }, { ordinal: -1 }, { ordinal: 1.5 }]) {
+    const gold = [{ cassetteId: 'gold-1', sourceCassetteId: 'leaf-1', channel: 'user-mark' }]
+    for (const change of [{ origin: 'agent' }, { schemaVersion: 1 }, { ordinal: 0 }, { ordinal: -1 }, { ordinal: 1.5 }, { gold }, { gold: [] }]) {
       expect(MarkReceiptSchema.safeParse({ ...receipt, ...change }).success).toBe(false)
     }
     for (const committedAtOrdinal of [-1, 1.5]) {

@@ -22,11 +22,6 @@ function consequences(overrides: Record<string, unknown> = {}) {
   return {
     kind: 'consequences', runId, prospective: true, markKind: 'false-fail', member,
     resolvedStep: { stepIndex: 2, reason: 'failing-step' },
-    markedDecisionCount: 1,
-    groundTruth: [{ testIndex: 1, stepIndex: 2, verdict: 'pass',
-      recordedVerdict: { pass: false, reasoning: 'banner missing' } }],
-    labels: [{ testIndex: 1, stepIndex: 2, decisionOrdinal: 0, sourceCassetteId: 'leaf-1-2-0', channel: 'user-mark',
-      correction: { verdict: 'pass' } }],
     knowledge: { servedRecordIds: ['record-a'], appendsEvidence: true,
       records: [{ recordId: 'record-a', recordContent: { content: 'banner body', summary: 'banner summary', kind: 'fact',
         applicability: { product: 'storefront', scope: 'product:storefront', anchors: ['el:banner'], openedAtOrdinal: 1 },
@@ -40,7 +35,7 @@ function consequences(overrides: Record<string, unknown> = {}) {
   }
 }
 
-// 2026-09-30, 432-09 (D-11): a superseding mark replaces the prior gold case and withdraws nothing.
+// A superseding mark withdraws nothing.
 const SUPERSEDING = {
   latest: { kind: 'supersedes', markId: 'mark_00000000000a', ordinal: 3 },
   basis: { ledgerOrdinal: 4, priorMarkOrdinal: 3 },
@@ -187,11 +182,6 @@ describe('423-37 runs.mark.preview contract (D-16/D-17)', () => {
     expect(op.boundThrough).toBe('feedbackReads')
 
     const falsePass = consequences({ markKind: 'false-pass', resolvedStep: { stepIndex: 2, reason: 'passing-verdict' },
-      groundTruth: [{ testIndex: 1, stepIndex: 2, verdict: 'fail', recordedVerdict: { pass: true, reasoning: 'looked fine' } }],
-      labels: [
-        { testIndex: 1, stepIndex: 2, decisionOrdinal: 0, sourceCassetteId: 'leaf-1-2-0', channel: 'user-mark', correction: { verdict: 'fail' } },
-        { testIndex: 1, stepIndex: 2, decisionOrdinal: 0, sourceCassetteId: 'leaf-1-2-0', channel: 'overturned-verdict', correction: { verdict: 'fail' } },
-      ],
       draft: { kind: 'no-draftable-fix', checked: { servedRecords: 0, procedureReads: 0, assertionDrift: true } } })
     for (const answer of [consequences(), consequences(SUPERSEDING), falsePass, quarantined(),
       consequences({ markKind: 'confirmed-bug', draft: { kind: 'confirmed-bug' } }),
@@ -216,18 +206,10 @@ describe('423-37 runs.mark.preview contract (D-16/D-17)', () => {
     expect(parse(consequences({ receipt: {} }))).toBe(false)
     expect(parse(consequences({ draft: { kind: 'confirmed-bug' } }))).toBe(false)
     expect(parse(consequences({ markKind: 'confirmed-bug' }))).toBe(false)
-    expect(parse({ ...falsePass, markKind: 'false-fail' })).toBe(false)
-    expect(parse(consequences({ member: { testIndex: 0 } }))).toBe(false)
 
     const secret = 'synthetic-sensitive-token'
     const mask = declaredMask({ TOKEN_441: secret })
-    const sensitive = consequences({ groundTruth: [{ testIndex: 1, stepIndex: 2, verdict: 'pass',
-      recordedVerdict: { pass: false, reasoning: `reasoning ${secret}` } }] })
-    const masked = await previewOf(sensitive, input, mask)
-    expect(JSON.stringify(masked.result)).not.toContain(secret)
-    expect(masked.result.groundTruth).toEqual([{ testIndex: 1, stepIndex: 2, verdict: 'pass',
-      recordedVerdict: { pass: false, reasoning: mask(`reasoning ${secret}`) } }])
-    // 423-19 D-17: reached-record content and overturned evidence tokens cross the same mask; ids stay structural.
+    // Reached-record content and overturned evidence tokens cross the same mask; ids stay structural.
     const reached = { ...falsePass, knowledge: { servedRecordIds: ['record-a'], appendsEvidence: true, evidence: { confirmed: 1, overturned: 1 },
       records: [{ recordId: 'record-a', recordContent: { content: `body ${secret}`, summary: `summary ${secret}`, kind: 'fact',
         applicability: { product: 'storefront', scope: 'product:storefront', anchors: [`el:${secret}`], openedAtOrdinal: 1 },
@@ -244,13 +226,13 @@ describe('423-37 runs.mark.preview contract (D-16/D-17)', () => {
     served: true, evidence: { kind: 'effects', effects: [{ direction: 'confirm' },
       { direction: 'overturn', overturnsEvidenceToken: mask(`prior ${secret}`), overturnsCurationJobId: 'canary-job' }] } })
     // A non-false-pass overturn, a missing join arm and miscounted effects are refused at parse time.
-    expect(parse({ ...reached, markKind: 'false-fail', labels: [reached.labels[0]] })).toBe(false)
+    expect(parse({ ...reached, markKind: 'false-fail' })).toBe(false)
     expect(parse({ ...reached, knowledge: { ...reached.knowledge, evidence: { confirmed: 1, overturned: 0 } } })).toBe(false)
     const { recordContent: _content, ...unjoined } = reached.knowledge.records[0]!
     expect(parse({ ...reached, knowledge: { ...reached.knowledge, records: [unjoined] } })).toBe(false)
-    await expect(previewOf(sensitive, input, null)).rejects.toThrow(/no declared-secret mask/)
+    await expect(previewOf(reached, input, null)).rejects.toThrow(/no declared-secret mask/)
     const unreadable = () => { throw new Error('synthetic unreadable secrets file') }
-    await expect(previewOf(sensitive, input, unreadable)).rejects.toThrow('synthetic unreadable secrets file')
+    await expect(previewOf(reached, input, unreadable)).rejects.toThrow('synthetic unreadable secrets file')
 
     await expect(previewSpec().invoke(input, deps(port({ kind: 'run-not-found', runId: asRunId('run-other') })).deps))
       .rejects.toThrow(/another run/)

@@ -32,7 +32,7 @@ function receipt(ordinal: number, address: Address, overrides: Partial<MarkRecei
     kind: 'false-fail', origin: 'user', ordinal,
     // Deliberately descending: ordinal, never markedAt, governs latest-wins (419 D-11).
     markedAt: 10_000 - ordinal * 10,
-    disposition: { kind: 'quarantined', class: 'flake' }, gold: [], evidence: { confirmed: 0, overturned: 0 },
+    disposition: { kind: 'quarantined', class: 'flake' }, evidence: { confirmed: 0, overturned: 0 },
     ...overrides,
   })
 }
@@ -59,7 +59,6 @@ function sequenceA(): ReadEntry[] {
     { receipt: receipt(3, { testIndex: 0 }, { kind: 'confirmed-bug', supersedes: markIdOf(1),
       rootCause: { class: 'app_bug', producer: 'verifier' }, isRerun: true,
       disposition: { kind: 'confirmed-bug', confirmedRecords: 2 },
-      gold: [{ cassetteId: 'cassette-3', sourceCassetteId: 'source-3', channel: 'user-mark' }],
       evidence: { confirmed: 2, overturned: 0 } }) },
     { receipt: receipt(4, { testIndex: 1, testId: 'checkout' }, { kind: 'false-fail',
       disposition: { kind: 'applied', fix: 'test-edit', change: { kind: 'test-file', filePath: 'tests/checkout.yaml', contentDigest: 'abc' } } }) },

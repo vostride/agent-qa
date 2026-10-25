@@ -122,7 +122,7 @@ function receipt(runId: string, ordinal: number, disposition: MarkDisposition, s
     schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: markIdOf(ordinal), runId, runSlug: slugBranch(runId), testIndex: 0,
     ...(stepIndex === undefined ? {} : { stepIndex }),
     kind: disposition.kind === 'confirmed-bug' ? 'confirmed-bug' : 'false-fail', origin: 'user', ordinal,
-    markedAt: 1_000 + ordinal, disposition, gold: [], evidence: { confirmed: 0, overturned: 0 },
+    markedAt: 1_000 + ordinal, disposition, evidence: { confirmed: 0, overturned: 0 },
   })
 }
 

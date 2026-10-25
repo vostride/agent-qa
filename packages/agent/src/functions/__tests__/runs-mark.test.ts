@@ -45,7 +45,6 @@ function receipt(overrides: Partial<MarkReceipt> = {}): MarkReceipt {
     markedAt: 0,
     note: INPUT.note,
     disposition: { kind: 'quarantined', class: 'flake' },
-    gold: [],
     evidence: { confirmed: 0, overturned: 0 },
     ...overrides,
   }
@@ -102,11 +101,15 @@ describe('runs.mark registration and binding (419 GATE3-01)', () => {
     await expect(runsMarkSpec.invoke(INPUT, {} as FunctionDeps)).rejects.toBeInstanceOf(FunctionNotBoundError)
   })
 
-  it('forwards the complete false-fail input and returns the port outcome unchanged', async () => {
+  it('forwards the complete false-fail input, returns the port outcome unchanged and refuses a receipt carrying gold', async () => {
     const { port, mark, outcome } = stub()
     expect(await runsMarkSpec.invoke(INPUT, deps(port))).toBe(outcome)
     expect(await invokeFunction(host(port), RUNS_MARK_FUNCTION_ID, INPUT, TRUSTED)).toEqual(outcome)
     expect(mark.mock.calls).toEqual([[INPUT], [INPUT]])
+    const withGold = { kind: 'marked', receipt: { ...receipt(), gold: [] } } as unknown as RunsMarkOutcome
+    expect(runsMarkSpec.output.safeParse(withGold).success).toBe(false)
+    const goldPort: FeedbackPort = { mark: async () => withGold, marksFor: async () => [] }
+    await expect(invokeFunction(host(goldPort), RUNS_MARK_FUNCTION_ID, INPUT, TRUSTED)).rejects.toThrow()
   })
 
   it('refuses a corrected action or expectation through the strict input schema, never reaching the port', async () => {
@@ -188,7 +191,7 @@ describe('mark outcome classifications omit producer text', () => {
       expect(verdict.outcome).not.toMatch(/private|prop_/)
     }
     expect(runsMarkSpec.summary).toContain('apply the fix')
-    expect(runsMarkSpec.summary).not.toMatch(/proposal/)
+    expect(runsMarkSpec.summary).not.toMatch(/proposal|gold/)
   })
 })
 

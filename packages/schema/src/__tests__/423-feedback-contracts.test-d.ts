@@ -3,7 +3,6 @@ import { describe, expectTypeOf, test } from 'vitest'
 import type {
   MARK_APPLIED_CHANGE_KINDS,
   MARK_DISPOSITIONS,
-  MARK_GOLD_CHANNELS,
   MARK_HISTORICAL_DISPOSITIONS,
   MARK_PREVIEW_DRAFT_KINDS,
   MARK_PREVIEW_EVIDENCE_DIRECTIONS,
@@ -23,7 +22,6 @@ import type {
   MarkPreviewDraft,
   MarkPreviewEvidenceEffect,
   MarkPreviewKnowledgeRecord,
-  MarkPreviewLabel,
   MarkPreviewLatest,
   RunsMarkOutcome,
   RunsMarkPreviewResult,
@@ -86,14 +84,11 @@ describe('C423-FEEDBACK-RESULTS-EXACT', () => {
 
   test('pins the preview sub-vocabularies in both directions', () => {
     type Reason = 'step-mark' | 'failing-step' | 'passing-verdict'
-    type Channel = 'user-mark' | 'overturned-verdict'
     type Latest = 'first' | 'supersedes'
     type Draft = 'confirmed-bug' | 'knowledge' | 'test-edit' | 'no-draftable-fix'
     type Consequences = Extract<RunsMarkPreviewResult, { kind: 'consequences' }>
     expectTypeOf<Consequences['resolvedStep']['reason']>().toEqualTypeOf<Reason>()
     expectTypeOf<(typeof MARK_TARGET_REASONS)[number]>().toEqualTypeOf<Reason>()
-    expectTypeOf<MarkPreviewLabel['channel']>().toEqualTypeOf<Channel>()
-    expectTypeOf<(typeof MARK_GOLD_CHANNELS)[number]>().toEqualTypeOf<Channel>()
     expectTypeOf<MarkPreviewLatest['kind']>().toEqualTypeOf<Latest>()
     expectTypeOf<(typeof MARK_PREVIEW_LATEST_KINDS)[number]>().toEqualTypeOf<Latest>()
     expectTypeOf<MarkPreviewDraft['kind']>().toEqualTypeOf<Draft>()

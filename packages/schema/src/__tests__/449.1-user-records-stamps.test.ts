@@ -30,7 +30,6 @@ const markReceipt = {
   ordinal: 1,
   markedAt: 0,
   disposition: { kind: 'quarantined', class: 'flake' },
-  gold: [],
   evidence: { confirmed: 0, overturned: 0 },
 }
 
