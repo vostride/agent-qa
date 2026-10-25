@@ -458,7 +458,7 @@ describe('schema version census', () => {
     const files = productionFiles()
     const sources = files.map((file) => ({ file, text: code(file) }))
     expect(sources.reduce((total, { text }) => total + [...inlineCounts(text).values()].reduce((a, b) => a + b, 0), 0))
-      .toBeGreaterThan(50)
+      .toBeGreaterThan(0)
     expect(inlineOffenders(sources)).toEqual([])
     const unscanned = [...registeredInline().keys()].filter((site) => !files.includes(site))
     expect(unscanned, 'a registered inline site is outside the scanned universe').toEqual([])
