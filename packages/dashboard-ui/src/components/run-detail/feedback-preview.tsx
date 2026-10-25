@@ -10,7 +10,6 @@ import {
   CLI_ESCAPE_PARTS,
   CONTENT_ABSENCE_TEXT,
   DRAFT_WORDING_NOT_SHOWN_TEXT,
-  NO_GROUND_TRUTH_TEXT,
   PREVIEW_IDLE_TEXT,
   PREVIEW_LINE_LABELS,
   PREVIEW_READ_FAILED_TEXT,
@@ -24,15 +23,12 @@ import {
   previewRefusalText,
   quarantinedText,
   draftHasWording,
-  groundTruthLine,
   knowledgeLine,
-  labelsLine,
   previewFixText,
   recordEffectLine,
   replacesLine,
   showRecordsLabel,
   type FeedbackPreviewState,
-  type FeedbackTextParts,
 } from '@/lib/feedback-view'
 import { cn } from '@/lib/utils'
 
@@ -58,16 +54,6 @@ export interface FeedbackPreviewProps {
 }
 
 const SKELETON_WIDTHS = ['w-full', 'w-5/6', 'w-2/3', 'w-3/4'] as const
-
-function TextParts({ parts }: { parts: FeedbackTextParts }) {
-  return (
-    <>
-      {parts.prefix}
-      {parts.name}
-      {parts.suffix}
-    </>
-  )
-}
 
 /**
  * "What this will do" (426 D-16, D-17). Presentational: every word comes from the preview read the
@@ -162,28 +148,10 @@ function FailedRead({ failure, onRetry }: { failure: FeedbackReadFailure; onRetr
 }
 
 function ConsequenceLines({ read, replacesTime }: { read: Consequences; replacesTime: string | undefined }) {
-  const { groundTruth, labels, knowledge, draft, latest } = read
+  const { knowledge, draft, latest } = read
   return (
     <div className="space-y-2">
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-xs">
-        <dt className="font-medium text-muted-foreground">{PREVIEW_LINE_LABELS.result}</dt>
-        <dd data-preview-line="result" className="space-y-1 break-words text-foreground">
-          {groundTruth.length === 0
-            ? NO_GROUND_TRUTH_TEXT
-            : groundTruth.map((entry) => (
-                <div key={`${String(entry.testIndex)}:${String(entry.stepIndex)}`}>
-                  <p>
-                    <TextParts parts={groundTruthLine(entry)} />
-                  </p>
-                </div>
-              ))}
-        </dd>
-
-        <dt className="font-medium text-muted-foreground">{PREVIEW_LINE_LABELS.labels}</dt>
-        <dd data-preview-line="labels" className="break-words text-foreground">
-          {labelsLine(labels.length)}
-        </dd>
-
         <dt className="font-medium text-muted-foreground">{PREVIEW_LINE_LABELS.knowledge}</dt>
         <dd data-preview-line="knowledge" className="space-y-1 break-words text-foreground">
           <p>{knowledgeLine(knowledge.evidence, knowledge.records.length)}</p>

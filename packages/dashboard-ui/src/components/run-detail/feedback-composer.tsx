@@ -371,7 +371,6 @@ export function FeedbackComposer({
           address={target}
           testId={testId}
           recordIds={technicalRead?.kind === 'consequences' ? technicalRead.knowledge.records.map((record) => record.recordId) : undefined}
-          labels={technicalRead?.kind === 'consequences' ? technicalRead.labels : undefined}
           basis={technicalRead?.basis}
         />
       </div>

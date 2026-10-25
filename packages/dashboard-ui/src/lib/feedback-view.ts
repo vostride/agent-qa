@@ -14,10 +14,8 @@ import type {
   MarkPreviewBasis,
   MarkPreviewDraft,
   MarkPreviewEvidenceEffect,
-  MarkPreviewGroundTruth,
   MarkPreviewKnowledge,
   MarkPreviewKnowledgeRecord,
-  MarkPreviewLabel,
   MarkQuarantineClass,
   MemberTestOutcome,
   RunDetailMember,
@@ -611,29 +609,9 @@ export const PREVIEW_UPDATING_TEXT = 'Updating…'
 export const PREVIEW_IDLE_TEXT = 'Choose an option above to see what this will do.'
 
 export const PREVIEW_LINE_LABELS = {
-  result: 'Result',
-  labels: 'Eval labels',
   knowledge: 'Knowledge',
   change: 'Change',
 } as const
-
-const VERDICT_WORD = { pass: 'passed', fail: 'failed' } as const
-
-/** D-17: n is stepIndex + 1; the reasoning is the producer part and is dropped with its quote when empty. */
-export function groundTruthLine(entry: MarkPreviewGroundTruth): FeedbackTextParts {
-  const head = `Step ${String(entry.stepIndex + 1)} will count as ${VERDICT_WORD[entry.verdict]} (recorded: ${
-    VERDICT_WORD[entry.recordedVerdict.pass ? 'pass' : 'fail']
-  }`
-  const { reasoning } = entry.recordedVerdict
-  return reasoning === '' ? { prefix: `${head})` } : { prefix: `${head} — "`, name: reasoning, suffix: '")' }
-}
-
-export const NO_GROUND_TRUTH_TEXT = 'No step verdict changes.'
-
-export function labelsLine(count: number): string {
-  if (count === 0) return 'No eval labels change'
-  return count === 1 ? '1 decision becomes a held-out eval label' : `${String(count)} decisions become held-out eval labels`
-}
 
 /**
  * Zero-count clauses are omitted. Records reached with no effect at all are all unreadable (a record
@@ -715,7 +693,7 @@ export function draftHasWording(draft: MarkPreviewDraft): boolean {
 
 /**
  * The time is the history entry's own; without history the clause drops rather than guessing.
- * 432-09 (D-11): a later mark replaces the earlier one's gold case, and what it changed stays.
+ * A later mark replaces the earlier one, and what it changed stays.
  */
 export function replacesLine(ordinal: number, time: string | undefined): string {
   const at = time === undefined ? `#${String(ordinal)}` : `#${String(ordinal)}, ${time}`
@@ -753,7 +731,7 @@ export const QUARANTINE_CAUSE_TEXT = {
 } satisfies Record<MarkQuarantineClass, string>
 
 export function quarantinedText(cls: MarkQuarantineClass): string {
-  return `This test failed from ${QUARANTINE_CAUSE_TEXT[cls]}, so your mark is recorded but quarantined — no labels, knowledge or tests change.`
+  return `This test failed from ${QUARANTINE_CAUSE_TEXT[cls]}, so your mark is recorded but quarantined — no knowledge or tests change.`
 }
 
 /** The time is the prior mark's history entry; without history the parenthetical drops. */
@@ -837,15 +815,10 @@ export const TECHNICAL_DETAILS_ROW_LABELS = {
   address: 'Address',
   testId: 'Test id',
   records: 'Reached records',
-  labels: 'Labels',
   basis: 'Basis',
 } as const
 
 export type TechnicalDetailsRow = keyof typeof TECHNICAL_DETAILS_ROW_LABELS
-
-export function labelDetailText(label: Pick<MarkPreviewLabel, 'decisionOrdinal' | 'stepIndex' | 'channel'>): string {
-  return `decision ${String(label.decisionOrdinal)} · step ${String(label.stepIndex + 1)} · ${label.channel}`
-}
 
 export function basisDetailText(basis: MarkPreviewBasis): string {
   const prior = basis.priorMarkOrdinal === undefined ? '' : ` · prior mark #${String(basis.priorMarkOrdinal)}`

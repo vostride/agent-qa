@@ -1,12 +1,11 @@
 import { Fragment, type ReactNode } from 'react'
 import { ChevronRight } from 'lucide-react'
-import type { Mark, MarkPreviewBasis, MarkPreviewLabel } from '@vostride/agent-qa-schema'
+import type { Mark, MarkPreviewBasis } from '@vostride/agent-qa-schema'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
   TECHNICAL_DETAILS_LABEL,
   TECHNICAL_DETAILS_ROW_LABELS,
   basisDetailText,
-  labelDetailText,
   type TechnicalDetailsRow,
 } from '@/lib/feedback-view'
 
@@ -15,7 +14,6 @@ export interface FeedbackTechnicalDetailsProps {
   address: string
   testId?: string
   recordIds?: readonly string[]
-  labels?: readonly MarkPreviewLabel[]
   basis?: MarkPreviewBasis
 }
 
@@ -23,15 +21,12 @@ export interface FeedbackTechnicalDetailsProps {
  * 426 D-13: the only component that renders a raw mark word or an id as text. Collapsed, at the foot
  * of the composer; a row whose fact is absent is not rendered.
  */
-export function FeedbackTechnicalDetails({ kind, address, testId, recordIds = [], labels = [], basis }: FeedbackTechnicalDetailsProps) {
+export function FeedbackTechnicalDetails({ kind, address, testId, recordIds = [], basis }: FeedbackTechnicalDetailsProps) {
   const rows: [TechnicalDetailsRow, ReactNode][] = []
   if (kind !== undefined) rows.push(['kind', kind])
   rows.push(['address', address])
   if (testId) rows.push(['testId', testId])
   if (recordIds.length > 0) rows.push(['records', recordIds.join(', ')])
-  if (labels.length > 0) {
-    rows.push(['labels', labels.map((label, index) => <span key={index} className="block">{labelDetailText(label)}</span>)])
-  }
   if (basis !== undefined) rows.push(['basis', basisDetailText(basis)])
   return (
     <Collapsible className="mt-6">

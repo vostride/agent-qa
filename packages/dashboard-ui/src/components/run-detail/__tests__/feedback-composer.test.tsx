@@ -189,9 +189,6 @@ function consequencesFor(kind: Mark, over: Record<string, unknown> = {}): RunsMa
     resolvedStep: { stepIndex: 2, reason: 'step-mark' },
     latest: { kind: 'supersedes', markId: 'mark_0123456789ab', ordinal: 4 },
     basis: { ledgerOrdinal: 7, priorMarkOrdinal: 4 },
-    markedDecisionCount: 1,
-    groundTruth: [],
-    labels: [{ testIndex: 0, stepIndex: 1, decisionOrdinal: 2, sourceCassetteId: 'cas_a', channel: 'user-mark' }],
     knowledge: {
       servedRecordIds: ['rec_alpha', 'rec_beta'],
       appendsEvidence: true,
@@ -234,12 +231,7 @@ describe('426-08 Technical details', () => {
       selected: 'false-pass',
       previewState: 'consequences',
       previewCurrent: true,
-      previewRead: consequencesFor('false-pass', {
-        labels: [
-          { testIndex: 0, stepIndex: 1, decisionOrdinal: 2, sourceCassetteId: 'cas_a', channel: 'user-mark' },
-          { testIndex: 0, stepIndex: 2, decisionOrdinal: 3, sourceCassetteId: 'cas_b', channel: 'overturned-verdict' },
-        ],
-      }),
+      previewRead: consequencesFor('false-pass'),
       testId: 't_checkout',
     }))
     expect(technicalTrigger()?.getAttribute('aria-expanded')).toBe('false')
@@ -254,7 +246,6 @@ describe('426-08 Technical details', () => {
       ['address', TECHNICAL_DETAILS_ROW_LABELS.address, '0:2'],
       ['testId', TECHNICAL_DETAILS_ROW_LABELS.testId, 't_checkout'],
       ['records', TECHNICAL_DETAILS_ROW_LABELS.records, 'rec_alpha, rec_beta'],
-      ['labels', TECHNICAL_DETAILS_ROW_LABELS.labels, ['decision 2 · step 2 · user-mark', 'decision 3 · step 3 · overturned-verdict']],
       ['basis', TECHNICAL_DETAILS_ROW_LABELS.basis, 'ledger ordinal 7 · prior mark #4'],
     ])
     for (const dd of content!.querySelectorAll('dd')) {

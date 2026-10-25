@@ -73,7 +73,6 @@ function ledger(entries: readonly EntryInput[]): MarksHistoryRead {
         ordinal: n,
         markedAt: T(n),
         disposition: NO_FIX,
-        gold: [],
         evidence: { confirmed: 0, overturned: 0 },
         active: true,
         ...entry,

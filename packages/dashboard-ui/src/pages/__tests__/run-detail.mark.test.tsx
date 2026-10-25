@@ -301,9 +301,6 @@ function previewFor(input: { kind: Mark; testId?: string; stepIndex?: number }):
     resolvedStep: { stepIndex: input.stepIndex ?? 2, reason: input.stepIndex === undefined ? 'failing-step' : 'step-mark' },
     latest: { kind: 'first' },
     basis: { ledgerOrdinal: 0 },
-    markedDecisionCount: 1,
-    groundTruth: [],
-    labels: [],
     knowledge: { servedRecordIds: [], appendsEvidence: false, records: [], evidence: { confirmed: 0, overturned: 0 } },
     draft: input.kind === 'confirmed-bug'
       ? { kind: 'confirmed-bug' }
@@ -325,7 +322,6 @@ function historyOf(entries: readonly (Record<string, unknown> & { markId: string
         ordinal: index + 1,
         markedAt: Date.UTC(2026, 8, 23, 10, index),
         disposition: { kind: 'no-draftable-fix', checked: { servedRecords: 0, procedureReads: 0, assertionDrift: false } },
-        gold: [],
         evidence: { confirmed: 0, overturned: 0 },
         active: true,
         ...entry,

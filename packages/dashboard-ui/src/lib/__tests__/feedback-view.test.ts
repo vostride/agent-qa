@@ -10,7 +10,6 @@
 import { describe, expect, it } from 'vitest'
 import type {
   Mark,
-  MarkPreviewGroundTruth,
   MarkPreviewKnowledgeRecord,
   RunDetailMember,
   RunDetailStep,
@@ -38,7 +37,6 @@ import {
   FEEDBACK_ENTRY_TEST_LABEL,
   FEEDBACK_OUTCOME_CLASSES,
   FEEDBACK_PREVIEW_STATES,
-  NO_GROUND_TRUTH_TEXT,
   PREVIEW_IDLE_TEXT,
   PREVIEW_LINE_LABELS,
   PREVIEW_UPDATING_TEXT,
@@ -70,7 +68,6 @@ import {
   TECHNICAL_DETAILS_LABEL,
   TECHNICAL_DETAILS_ROW_LABELS,
   basisDetailText,
-  labelDetailText,
   type SubmitBlockInput,
   NO_STEP_VERDICT_TEXT,
   ONE_STEP_SCOPE_TEXT,
@@ -81,9 +78,7 @@ import {
   feedbackOutcomeClass,
   feedbackPartsText,
   feedbackPreviewState,
-  groundTruthLine,
   knowledgeLine,
-  labelsLine,
   previewFixText,
   recordEffectLine,
   replacesLine,
@@ -423,26 +418,10 @@ describe('426-06 the preview names what the mark will do', () => {
     }
     expect(PREVIEW_IDLE_TEXT).toBe('Choose an option above to see what this will do.')
     expect(PREVIEW_UPDATING_TEXT).toBe('Updating…')
-    expect(PREVIEW_LINE_LABELS).toEqual({ result: 'Result', labels: 'Eval labels', knowledge: 'Knowledge', change: 'Change' })
-  })
-
-  it('PREVIEW-RESULT-LINE: the step number, both verdicts and the quoted reasoning; an empty reasoning drops the quote', () => {
-    const entry: MarkPreviewGroundTruth = {
-      testIndex: 0, stepIndex: 2, verdict: 'pass', recordedVerdict: { pass: false, reasoning: 'cart total differs' },
-    }
-    const parts = groundTruthLine(entry)
-    expect(feedbackPartsText(parts)).toBe('Step 3 will count as passed (recorded: failed — "cart total differs")')
-    expect(parts.name).toBe('cart total differs')
-    const bare = groundTruthLine({ ...entry, verdict: 'fail', recordedVerdict: { pass: true, reasoning: '' } })
-    expect(feedbackPartsText(bare)).toBe('Step 3 will count as failed (recorded: passed)')
-    expect(bare.name).toBeUndefined()
-    expect(NO_GROUND_TRUTH_TEXT).toBe('No step verdict changes.')
+    expect(PREVIEW_LINE_LABELS).toEqual({ knowledge: 'Knowledge', change: 'Change' })
   })
 
   it('PREVIEW-ZERO-ONE-MANY: one and many read differently, and a zero-count clause is omitted', () => {
-    expect(labelsLine(0)).toBe('No eval labels change')
-    expect(labelsLine(1)).toBe('1 decision becomes a held-out eval label')
-    expect(labelsLine(3)).toBe('3 decisions become held-out eval labels')
     expect(knowledgeLine({ confirmed: 1, overturned: 0 }, 1)).toBe('1 record confirmed')
     expect(knowledgeLine({ confirmed: 2, overturned: 0 }, 2)).toBe('2 records confirmed')
     expect(knowledgeLine({ confirmed: 0, overturned: 0 }, 0)).toBe('No knowledge records are reached')
@@ -503,13 +482,13 @@ describe('426-07 the special arms and the failed read', () => {
 
   it('PREVIEW-QUARANTINED: each quarantine class names its cause inside the locked sentence', () => {
     expect(quarantinedText('timeout')).toBe(
-      'This test failed from a timeout, so your mark is recorded but quarantined — no labels, knowledge or tests change.',
+      'This test failed from a timeout, so your mark is recorded but quarantined — no knowledge or tests change.',
     )
     expect(quarantinedText('flake')).toBe(
-      'This test failed from a flaky run, so your mark is recorded but quarantined — no labels, knowledge or tests change.',
+      'This test failed from a flaky run, so your mark is recorded but quarantined — no knowledge or tests change.',
     )
     expect(quarantinedText('environment')).toBe(
-      'This test failed from an environment problem, so your mark is recorded but quarantined — no labels, knowledge or tests change.',
+      'This test failed from an environment problem, so your mark is recorded but quarantined — no knowledge or tests change.',
     )
   })
 
@@ -622,18 +601,15 @@ describe('426-07 one first-match rule decides Send feedback', () => {
 })
 
 describe('426-08 Technical details copy', () => {
-  it('TECHNICAL-DETAILS-ROWS: the locked labels, one line per label, and the basis with its prior mark when there is one', () => {
+  it('TECHNICAL-DETAILS-ROWS: the locked row labels, and the basis with its prior mark when there is one', () => {
     expect(TECHNICAL_DETAILS_LABEL).toBe('Technical details')
     expect(TECHNICAL_DETAILS_ROW_LABELS).toEqual({
       kind: 'Mark kind',
       address: 'Address',
       testId: 'Test id',
       records: 'Reached records',
-      labels: 'Labels',
       basis: 'Basis',
     })
-    expect(labelDetailText({ decisionOrdinal: 0, stepIndex: 0, channel: 'user-mark' })).toBe('decision 0 · step 1 · user-mark')
-    expect(labelDetailText({ decisionOrdinal: 4, stepIndex: 2, channel: 'overturned-verdict' })).toBe('decision 4 · step 3 · overturned-verdict')
     expect(basisDetailText({ ledgerOrdinal: 7 })).toBe('ledger ordinal 7')
     expect(basisDetailText({ ledgerOrdinal: 7, priorMarkOrdinal: 4 })).toBe('ledger ordinal 7 · prior mark #4')
   })
@@ -668,7 +644,7 @@ describe('426-09 the history copy', () => {
       entries: [{
         markId: 'mark_0123456789ab', runId: RUN_ID, testIndex: 0, kind: 'false-fail', origin: 'user', ordinal: 1, markedAt: 0,
         disposition: { kind: 'no-draftable-fix', checked: { servedRecords: 0, procedureReads: 0, assertionDrift: false } },
-        gold: [], evidence: { confirmed: 0, overturned: 0 }, active: true,
+        evidence: { confirmed: 0, overturned: 0 }, active: true,
       }],
     }))).toBe('history')
   })
