@@ -1,11 +1,9 @@
 # agent-qa package instructions: agent-qa
 
-Inherit the root `agent-qa/AGENTS.md` branding, security, and release rules.
-
 ## Scope
 
 This package owns the public `agent-qa` CLI, Commander command registration,
-config loading, init/auth/run/dashboard/serve/mcp command UX, device and target
+config loading, init/auth/run/dashboard/mcp command UX, device and target
 commands, validation commands, and packaged skills.
 
 ## Read First
@@ -27,26 +25,3 @@ commands, validation commands, and packaged skills.
 - Typecheck: `pnpm --filter agent-qa typecheck`
 - Build: `pnpm --filter agent-qa build`
 - Copy packaged skills: `pnpm --filter agent-qa copy:skills`
-
-## Local Rules
-
-- Commander global `--config <path>` is the project config file path. Avoid
-  command-specific option names that collide with it unless parser behavior is
-  explicitly tested.
-- Keep command errors actionable and copy-pasteable.
-- Init-generated config must remain schema-valid and should not install external
-  plugins automatically.
-- Auth commands must not print or persist secrets outside the existing auth
-  store paths.
-- Run command changes must preserve dashboard event, run ID and live-event environment behavior.
-- Packaged skills come from the source `skills/` directory through `copy:skills`.
-
-## Verification
-
-Run focused CLI checks:
-
-```bash
-pnpm --filter agent-qa test
-pnpm --filter agent-qa typecheck
-pnpm --filter agent-qa copy:skills
-```
