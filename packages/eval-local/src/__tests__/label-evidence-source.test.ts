@@ -9,7 +9,6 @@ import {
   screenStateHash,
   sha256hex,
   type CompletedRunHandoff,
-  type MarkReceipt,
 } from '@vostride/agent-qa-schema'
 import { afterEach, describe, expect, it } from 'vitest'
 import { makeLocalV2Handoff } from './fixtures/local-handoff-fixture.js'
@@ -137,12 +136,12 @@ describe('420 logical recovery population', () => {
   it('joins only the latest matching mark and never borrows another member or empty successor', () => {
     const handoff = recoveryHandoff()
     const sourceCassetteId = core.deriveLeafCassetteId({ runSlug: core.deriveRunSlug(handoff.runId), testIndex: 0, stepIndex: 0, decisionOrdinal: 1 })
-    const mark: MarkReceipt = { schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: 'mark_aaaaaaaaaaaa', runId: handoff.runId,
+    const mark: core.GoldMark = { schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: 'mark_aaaaaaaaaaaa', runId: handoff.runId,
       runSlug: core.deriveRunSlug(handoff.runId), testIndex: 0, stepIndex: 0, kind: 'false-pass',
       origin: 'user', ordinal: 1, markedAt: 1, disposition: { kind: 'quarantined', class: 'flake' },
       gold: [{ cassetteId: core.deriveGoldCassetteId({ leafCassetteId: sourceCassetteId, markOrdinal: 1 }), sourceCassetteId, channel: 'user-mark' }],
       evidence: { confirmed: 0, overturned: 1 } }
-    const collect = (marks: MarkReceipt[]) => core.collectSoftPopulation({ handoffs: [handoff], marks }).observations[0]!.recoveringDecision
+    const collect = (marks: core.GoldMark[]) => core.collectSoftPopulation({ handoffs: [handoff], marks }).observations[0]!.recoveringDecision
     expect(collect([mark]).governingMark).toEqual({ markId: mark.markId, kind: mark.kind })
     expect(collect([{ ...mark, testIndex: 1 }]).governingMark).toBeUndefined()
     expect(collect([mark, { ...mark, markId: 'mark_bbbbbbbbbbbb', ordinal: 2, gold: [] }]).governingMark).toBeUndefined()

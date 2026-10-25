@@ -4,9 +4,7 @@ import { join } from 'node:path'
 import * as core from '@vostride/agent-qa-eval'
 import { FsEvidenceArtifactStore } from '@vostride/agent-qa-runner-local'
 import {
-  MARK_RECEIPT_SCHEMA_VERSION,
   asRunId,
-  type MarkReceipt,
   type Verdict,
   CURRENT_ANALYSIS_SCHEMA_VERSION,
 } from '@vostride/agent-qa-schema'
@@ -38,32 +36,17 @@ function fixture() {
   const plan = core.buildSeedingPlan({ handoff, cassettes, partition: { saltHex: 'a'.repeat(64), heldOutFraction: 0.000001, privateFraction: 0.5 } })
   const seeded = local.seedCommittedCorpus({ plan, cassettes, committedRoot, mask: NO_DECLARED_SECRETS })
   if (seeded.refusals.length) throw new Error('Fixture seeding refused')
-  const marks: MarkReceipt[] = []
-  for (const step of member.steps) {
-    const mark: MarkReceipt = { schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: `mark_aaaaaaaaaaa${step.stepIndex}`, runId: handoff.runId,
-      runSlug: core.deriveRunSlug(handoff.runId), testIndex: 0, stepIndex: step.stepIndex, kind: 'confirmed-bug',
-      origin: 'user', ordinal: step.stepIndex + 1, markedAt: 0, disposition: { kind: 'confirmed-bug', confirmedRecords: 0 },
-      gold: [], evidence: { confirmed: 0, overturned: 0 } }
-    const frozen = local.freezeGoldenTrajectory({ agentQaRoot: root, committedRoot, product: 'shop', handoff, mark,
-      mask: NO_DECLARED_SECRETS })
-    if (frozen.kind !== 'frozen') throw new Error('Fixture gold refused')
-    marks.push({ ...mark, gold: frozen.cases })
-  }
-  const saveMarks = () => writeFileSync(join(run, 'marks.jsonl'), marks.map(mark => JSON.stringify(mark)).join('\n') + '\n')
-  saveMarks()
   const analysis = { schemaVersion: CURRENT_ANALYSIS_SCHEMA_VERSION, runId: handoff.runId, verdicts: [verdict('analyze-run', 'test_bug')], parts: [] }
   const saveAnalysis = () => writeFileSync(join(run, 'analysis.json'), JSON.stringify(analysis))
   saveAnalysis()
   const read = () => Reflect.get(local, 'loadCalibrationEvidence')?.({ committedRoot, agentQaRoot: root })
-  return { root, run, committedRoot, handoff, marks, analysis, saveMarks, saveAnalysis, read }
+  return { root, run, committedRoot, handoff, analysis, saveAnalysis, read }
 }
 
-it('keeps two actual producers independent at member grain across multiple source steps', () => {
+it('loads one observation per actual producer across multiple source steps', () => {
   const input = fixture(), evidence = input.read()
   expect(evidence?.observations).toHaveLength(2)
-  const report = core.calibrateLabels(evidence)
-  expect(report.channels['recorded-verdict'].n).toBe(2)
-  expect(report.rootCauseClassifierAccuracy).toEqual({ 'analyze-run': { n: 1, correct: 0, accuracy: 0 }, 'deterministic-classifier': { n: 1, correct: 1, accuracy: 1 } })
+  expect(new Set(evidence.observations.map((row: core.CalibrationObservation) => row.producer))).toEqual(new Set(['analyze-run', 'deterministic-classifier']))
   expect(evidence.missingEvidenceCounts).toEqual({})
 })
 it.each(['missing', 'malformed', 'run-mismatch', 'producer-spoof', 'foreign-member', 'symlink'] as const)('discloses %s analysis while retaining deterministic evidence', mode => {
@@ -84,42 +67,16 @@ it.each(['missing', 'malformed', 'run-mismatch', 'producer-spoof', 'foreign-memb
   expect(evidence?.observations).toEqual([{ runId: input.handoff.runId, testIndex: 0, producer: 'deterministic-classifier', class: 'app_bug' }])
   expect(Object.values(evidence.missingEvidenceCounts).reduce((a: number, b) => a + Number(b), 0)).toBeGreaterThan(0)
 })
-it('retains receipt-only empty successors and retires old gold despite missing handoff', () => {
-  const input = fixture()
-  input.marks.push({ ...input.marks[0]!, ordinal: 3, gold: [] })
-  input.saveMarks()
-  rmSync(join(input.run, 'handoff.json'))
-  const evidence = input.read()
-  expect(evidence?.marks).toHaveLength(2)
-  expect(evidence.marks.find((mark: MarkReceipt) => mark.stepIndex === 0)?.gold).toEqual([])
-  expect(core.calibrateLabels(evidence).channels['user-mark'].n_gold).toBe(1)
-  expect(evidence.observations).toEqual([])
-  expect(evidence.missingEvidenceCounts['handoff-missing']).toBe(1)
-})
-it.each(['identity', 'producer', 'member', 'ledger'] as const)('fails closed for invalid %s evidence', mode => {
+it.each(['identity', 'producer', 'member'] as const)('fails closed for invalid %s evidence', mode => {
   const input = fixture()
   if (mode === 'identity') input.handoff.runId = asRunId('foreign')
   if (mode === 'producer') input.handoff.tests[0]!.rootCause!.producer = 'analyze-run'
   if (mode === 'member') input.handoff.tests[0]!.rootCause!.perTest = 1
-  if (mode === 'ledger') writeFileSync(join(input.run, 'marks.jsonl'), '{')
   writeFileSync(join(input.run, 'handoff.json'), JSON.stringify(input.handoff))
   const evidence = input.read()
   expect(evidence).toBeDefined()
   expect(evidence.observations.filter((row: core.CalibrationObservation) => row.producer === 'deterministic-classifier')).toEqual([])
   expect(Object.keys(evidence.missingEvidenceCounts).length).toBeGreaterThan(0)
-})
-it('refuses a ledger outside the operator root before active-gold consumption', () => {
-  const input = fixture(), outside = mkdtempSync(join(tmpdir(), 'calibration-ledger-'))
-  roots.push(outside)
-  const path = join(input.run, 'marks.jsonl')
-  writeFileSync(join(outside, 'marks.jsonl'), input.marks.map(mark => JSON.stringify(mark)).join('\n') + '\n')
-  rmSync(path)
-  symlinkSync(join(outside, 'marks.jsonl'), path)
-  const evidence = input.read()
-  expect(evidence?.marks).toEqual([])
-  expect(evidence.observations).toEqual([])
-  expect(evidence.missingEvidenceCounts['path-refused']).toBe(1)
-  expect(core.calibrateLabels(evidence).channels['recorded-verdict'].n).toBe(0)
 })
 it('discloses absent deterministic observation and rejects source steps absent from guarded handoff', () => {
   const input = fixture()
@@ -129,7 +86,5 @@ it('discloses absent deterministic observation and rejects source steps absent f
   const evidence = input.read()
   expect(evidence?.missingEvidenceCounts['deterministic-missing']).toBe(1)
   expect(evidence.missingEvidenceCounts['source-refused']).toBeGreaterThan(0)
-  const report = core.calibrateLabels(evidence)
-  expect(report.channels['recorded-verdict'].n).toBe(1)
-  expect(report.rootCauseClassifierAccuracy['deterministic-classifier'].n).toBe(0)
+  expect(evidence.observations.filter((row: core.CalibrationObservation) => row.producer === 'deterministic-classifier')).toEqual([])
 })

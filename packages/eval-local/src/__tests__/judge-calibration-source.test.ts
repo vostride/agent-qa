@@ -48,7 +48,7 @@ it.each(['publication', 'reread'] as const)('rejects invented exclusions against
 })
 
 it.each(['invalid-gold', 'missing-source', 'conflicting-gold', 'invalid-executable-correction',
-  'invalid-recorded-model', 'corpus-refused', 'path-refused', 'marks-unreadable', 'handoff-refused',
+  'invalid-recorded-model', 'corpus-refused', 'path-refused', 'handoff-refused',
   'missing-replay', 'malformed-replay', 'foreign-replay', 'stale-replay', 'ambiguous-replay',
   'missing-profile-proof', 'foreign-profile', 'missing-candidate'] as const)(
   'still refuses %s alongside a legitimate semantic exclusion', async reason => {

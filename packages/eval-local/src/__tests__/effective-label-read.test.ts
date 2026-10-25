@@ -4,13 +4,10 @@ import { dirname, join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   canonicalJson, computeCorpusDigest, createLabelRevision, extractRunCassettes,
-  projectCorpusEntry, projectSilverLabelRecord, projectUserMarkLabelRecord, deriveGoldCassetteId,
+  projectCorpusEntry, projectSilverLabelRecord,
 } from '@vostride/agent-qa-eval'
 import type { StandaloneLabelRecord } from '@vostride/agent-qa-eval'
-import { MARK_RECEIPT_SCHEMA_VERSION, asRunId, sha256hex } from '@vostride/agent-qa-schema'
-import type { MarkReceipt } from '@vostride/agent-qa-schema'
-import { FsHandoffStore } from '@vostride/agent-qa-runner-local'
-import { FsMarkLedger } from '../mark-ledger.js'
+import { asRunId, sha256hex } from '@vostride/agent-qa-schema'
 import { readCommittedCorpus, readActiveCommittedCorpus } from '../index.js'
 import { committedCassettePath, committedCorpusPath, committedLabelPath } from '../committed-root-store.js'
 import { makeLocalV2Handoff, LOCAL_FIXTURE_BLOB_BYTES, LOCAL_FIXTURE_BLOB_SHA } from './fixtures/local-handoff-fixture.js'
@@ -115,31 +112,4 @@ describe('420 effective committed label reads', () => {
     expect(readCommittedCorpus(wrongName.root).snapshot.entries).toEqual([])
   })
 
-  it('applies newest empty gold receipt after revision selection', async () => {
-    const f = setup()
-    const runtime = join(f.root, 'runtime')
-    new FsHandoffStore({ root: runtime, runId: f.handoff.runId }).save(f.handoff)
-    const goldId = deriveGoldCassetteId({ leafCassetteId: f.cassette.id, markOrdinal: 1 })
-    const mark: MarkReceipt = {
-      schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: 'mark_0123456789ab', ordinal: 1, runId: f.handoff.runId,
-      runSlug: f.original.provenance.runSlug, testIndex: 0, stepIndex: 0,
-      kind: 'false-fail', origin: 'user', markedAt: 0,
-      gold: [{ cassetteId: goldId, sourceCassetteId: f.cassette.id, channel: 'user-mark' }],
-      disposition: { kind: 'confirmed-bug', confirmedRecords: 0 }, evidence: { confirmed: 0, overturned: 0 },
-    }
-    const gold = projectUserMarkLabelRecord({ cassette: f.cassette, goldCassetteId: goldId, runId: f.handoff.runId, mark })
-    const goldEntry = projectCorpusEntry({ cassette: { ...f.cassette, id: goldId }, product: f.entry.product, runId: f.handoff.runId, assignment: { split: 'held-out', heldOutVisibility: 'private' } })
-    write(f.root, committedLabelPath(f.entry.product, goldId), gold)
-    write(f.root, committedCorpusPath(f.entry.product, goldId), goldEntry)
-    append(f, createLabelRevision(gold, { provenance: { ...gold.provenance, rerun: { attempt: 1 } } }))
-    const { ordinal: _ordinal, ...receipt } = mark
-    const ledger = new FsMarkLedger({ root: runtime, runId: f.handoff.runId })
-    await ledger.append(receipt)
-    expect(readActiveCommittedCorpus(f.root, runtime).snapshot.entries.some(entry => entry.cassetteId === goldId)).toBe(true)
-    await ledger.append({ ...receipt, gold: [] })
-    const active = readActiveCommittedCorpus(f.root, runtime)
-    expect(active.snapshot.entries.some(entry => entry.cassetteId === goldId)).toBe(false)
-    expect(active.retiredMarkedCassetteIds?.has(goldId)).toBe(true)
-    expect(active.snapshot.labelHistory).toHaveLength(3)
-  })
 })

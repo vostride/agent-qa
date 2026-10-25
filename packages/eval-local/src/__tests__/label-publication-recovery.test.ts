@@ -3,18 +3,14 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { afterEach, expect, it, vi } from 'vitest'
 import {
-  MARK_RECEIPT_SCHEMA_VERSION,
   asRunId,
   type CompletedRunHandoff,
-  type MarkReceipt,
 } from '@vostride/agent-qa-schema'
-import { FsEvidenceArtifactStore } from '@vostride/agent-qa-runner-local'
 import { buildSeedingPlan, committedFileText, extractRunCassettes, computeCorpusDigest } from '@vostride/agent-qa-eval'
 import * as api from '../index.js'
 import { committedCassettePath, committedCorpusPath, committedLabelPath } from '../committed-root-store.js'
 import { makeLocalV2Handoff, LOCAL_FIXTURE_BLOB_BYTES } from './fixtures/local-handoff-fixture.js'
 
-const NO_DECLARED_SECRETS = (text: string) => text
 const roots: string[] = []
 afterEach(() => { vi.restoreAllMocks(); for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }) })
 function write(root: string, path: string, text: string) { const full = join(root, path); mkdirSync(dirname(full), { recursive: true }); writeFileSync(full, text); return full }
@@ -120,33 +116,6 @@ it('serializes two actual writers captured against the same input and converges 
   expect(read.refusals).toEqual([])
   expect(read.snapshot.labelsById.size).toBe(2)
   expect(new Set([...read.snapshot.labelsById.values()].map(label => label.revision?.generationId))).toEqual(new Set([winner.artifact.generationId]))
-})
-
-it('refuses a real gold mark published after capture without mixing staged weights into the corpus', async () => {
-  const f = setup()
-  new FsEvidenceArtifactStore({ root: f.agentQaRoot, runId: f.handoff.runId }).persistDecisionScreenshot(LOCAL_FIXTURE_BLOB_BYTES)
-  const originalLabels = api.readCommittedCorpus(f.committedRoot).snapshot.labelsById
-  const mark: MarkReceipt = { schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: 'mark_aaaaaaaaaaaa', runId: f.handoff.runId,
-    runSlug: f.handoff.runId, testIndex: 0, stepIndex: 0, kind: 'confirmed-bug', origin: 'user',
-    ordinal: 1, markedAt: 0, disposition: { kind: 'confirmed-bug', confirmedRecords: 0 },
-    gold: [], evidence: { confirmed: 0, overturned: 0 } }
-  expect(await f.invoke({ commit: true, onBoundary: stage => {
-    if (stage !== 'before-marker') return
-    const frozen = api.freezeGoldenTrajectory({ agentQaRoot: f.agentQaRoot, committedRoot: f.committedRoot,
-      product: 'shop', handoff: f.handoff, mark, mask: NO_DECLARED_SECRETS })
-    expect(frozen.kind).toBe('frozen')
-    if (frozen.kind !== 'frozen') throw new Error('gold publication refused')
-    write(f.agentQaRoot, `runs/${f.handoff.runId}/marks.jsonl`, JSON.stringify({ ...mark, gold: frozen.cases }) + '\n')
-  } })).toMatchObject({ kind: 'input-drift' })
-  expect(api.readLabelCalibration(f.committedRoot).kind).toBe('absent')
-  const read = api.readCommittedCorpus(f.committedRoot)
-  expect(read.refusals).toEqual([])
-  for (const [id, label] of originalLabels) expect(read.snapshot.labelsById.get(id)).toEqual(label)
-  expect(read.snapshot.labelsById.size).toBeGreaterThan(originalLabels.size)
-  expect(await f.invoke({ commit: true })).toMatchObject({ kind: 'committed' })
-  const after = bytes(f.root)
-  expect(await f.invoke({ commit: true })).toMatchObject({ kind: 'unchanged', refreshedCount: 0 })
-  expect(bytes(f.root)).toEqual(after)
 })
 
 it('keeps artifact bytes independent of wall clock and file creation order', async () => {

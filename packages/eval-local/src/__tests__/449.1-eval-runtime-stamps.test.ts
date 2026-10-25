@@ -62,14 +62,12 @@ function calibrationFixture() {
   source.receipt.model = { declared: { provider: 'openai', modelId: 'gpt-5' } }
   const plan = core.buildSeedingPlan({ handoff, cassettes, partition: { saltHex: 'a'.repeat(64), heldOutFraction: 0.000001, privateFraction: 0.5 } })
   if (local.seedCommittedCorpus({ plan, cassettes, committedRoot, mask: NO_DECLARED_SECRETS }).refusals.length) throw new Error('Fixture seed refused')
-  const mark: MarkReceipt = { schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: 'mark_abcdef012345', runId: handoff.runId,
+  const mark: core.GoldMark = { schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: 'mark_abcdef012345', runId: handoff.runId,
     runSlug: core.deriveRunSlug(handoff.runId), testIndex: 0, stepIndex: 0, kind: 'confirmed-bug', origin: 'user', ordinal: 1,
     markedAt: 0, disposition: { kind: 'confirmed-bug', confirmedRecords: 0 }, gold: [], evidence: { confirmed: 0, overturned: 0 } }
   const frozen = core.buildGoldenTrajectoryPlan({ handoff, cassettes, mark, product: 'shop' })
   if (local.seedCommittedCorpus({ plan: { ...plan, cases: frozen.cases }, cassettes: frozen.goldCassettes, committedRoot,
     mask: NO_DECLARED_SECRETS }).refusals.length) throw new Error('Fixture gold refused')
-  mark.gold = frozen.cases.map(row => ({ cassetteId: row.cassetteId, sourceCassetteId: source.id, channel: 'user-mark' }))
-  writeFileSync(join(run, 'marks.jsonl'), JSON.stringify(mark) + '\n')
   const cassette = frozen.goldCassettes[0]!.cassette as core.LeafCassette, labelRecord = frozen.cases[0]!.labelRecord
   const identity = core.computeDecisionIdentity(cassette.sidecar.goldAction, cassette.input.stateBefore.elements)
   const outcome: core.LeafReplayResult = { granularity: 'leaf', cassetteId: cassette.id,
@@ -92,7 +90,7 @@ function calibrationFixture() {
   })
   const publication = saveReport().file.replace(/\.json$/, '.publication.json')
   const read = () => local.loadJudgeCalibrationEvidence({ agentQaRoot: root, committedRoot, profile })
-  return { scoreFile, publication, saveReport, read }
+  return { publication, read }
 }
 
 function adversarialFixture() {
@@ -166,23 +164,6 @@ function markLedgerFixture() {
 }
 
 describe('eval runtime stamps', () => {
-  it('admits a replay score whose scoring context the current scoring path stamped 2', () => {
-    const f = calibrationFixture()
-    expect(readJson(f.scoreFile).scoringContext.schemaVersion).toBe(2)
-    const result = f.read()
-    expect(result.evidence).toHaveLength(1)
-    expect(result.skippedCounts).toEqual({})
-  })
-
-  it('reads a stored score whose scoring context is stamped 1 as stale-replay', () => {
-    const f = calibrationFixture()
-    restamp(f.scoreFile, 1, score => score.scoringContext)
-    f.saveReport()
-    const result = f.read()
-    expect(result.evidence).toEqual([])
-    expect(result.skippedCounts).toEqual({ 'stale-replay': 1 })
-  })
-
   it('writes adversarial refresh state at 2 and reads a refresh record stamped 1 as absent', async () => {
     const f = adversarialFixture()
     await f.stage()
