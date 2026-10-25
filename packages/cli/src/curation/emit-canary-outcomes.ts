@@ -6,16 +6,13 @@ import {
   admitAnalysisArtifactForRun,
   ANALYSIS_FILE,
   canonicalJson,
-  deriveMemoryOnPathSites,
   guardRunAnalysisArtifact,
-  misdirectionSourceDigest,
   normalizeAnchor,
   resolveRunVerdicts,
   type Anchor,
   type CanaryOutcome,
   type CompletedRunHandoff,
   type CrossCheck,
-  type MisdirectionRecordResult,
   type PerTestOutcome,
   type RecordId,
   type RunAnalysisArtifact,
@@ -25,7 +22,6 @@ import {
 
 import { exercisedAnchors } from './handoff-anchors.js'
 import { readCompletedCanaryAblations, saveCompletedCanaryAblation } from './canary-run-state.js'
-import { readCompletedMisdirectionChecks } from './misdirection-run-state.js'
 import { creditCanaryAttributions, emptyCanaryCreditCounters,
   type CanaryAblation, type CanaryCreditCounters, type CreditedCanaryAttribution } from './canary-credit.js'
 
@@ -115,13 +111,6 @@ export interface ProjectCanaryOutcomesInput {
    * as an argument so identical (handoff, artifact) bytes keep yielding identical outcomes.
    */
   artifact?: RunAnalysisArtifact
-  /**
-   * The circularity arbiter's per-record rows (422-16, D-20), when the handoff's own published
-   * sidecar is not the copy the caller holds — `emitCanaryOutcomes` supplies this only for the
-   * durable-recovery case below. ABSENT here means "read `handoff.misdirectionEvidence`", which
-   * is itself absent on every run written before 422. Data, never a port.
-   */
-  misdirectionEvidence?: readonly MisdirectionRecordResult[]
   resolveCandidateAnchors: (id: RecordId) => CandidateAnchorResolution
 }
 
@@ -144,7 +133,6 @@ export type EmitCanaryOutcomeDetail = {
   benefit?: never
   crossCheck?: never
   corpusDigestMoved?: never
-  misdirectionFlipped?: never
   candidateId?: never
   stepIndex?: never
   testId: string
@@ -155,13 +143,6 @@ export type EmitCanaryOutcomeDetail = {
   benefit: CanaryOutcome['benefit']
   crossCheck?: CrossCheck
   corpusDigestMoved?: true
-  /**
-   * 422-16 (D-20): this row reached the harmed-outcome writer on the arbiter's CAUSAL evidence,
-   * not on anchor contact. Distinct from `crossCheck` beside it, which is the Gate-2 ABLATION's
-   * answer about a positive — two different cross-checks, and conflating them would read a
-   * removal that proved harm as a removal that proved benefit.
-   */
-  misdirectionFlipped?: true
   candidateId: RecordId
   testId: string
   testIndex: number
@@ -180,14 +161,6 @@ export interface EmitCanaryOutcomeReport {
     refused: number
     unresolved: number
   }
-  /**
-   * 422-16 (D-20): rows the arbiter's FLIPPED evidence sent to the harmed-outcome writer carry
-   * `misdirectionFlipped` on their DETAIL, and are counted from there rather than from a
-   * fourth total here. Two reasons, both deliberate. The consequence is the ordinary harmed
-   * outcome, so a parallel total would invite a reader to add it to `emitted`. And a required
-   * new member on this report would break every existing `emitCanaryOutcomes` double in the
-   * tree — the tail reads the rows it already renders, exactly as `candidateSummaryLine` does.
-   */
   details: EmitCanaryOutcomeDetail[]
 }
 
@@ -219,91 +192,6 @@ function attributedOutcome(
   if (step.verifierVerdict.pass) return 'positive'
   if (nonAttributableFailure(test, resolved)) return undefined
   return 'negative'
-}
-
-/**
- * THE CAUSAL EXPOSURE SET (422-16, D-20).
- *
- * `attributedOutcome` above suppresses attribution for the three non-signal classes because
- * CONTACT evidence — a served record whose anchor the failing step happened to touch — cannot
- * distinguish "the record misled the run" from "the record rode along while the network died"
- * (418 D-11). That reasoning does not survive contact with CAUSAL evidence. A `flipped` row is
- * the arbiter having REMOVED the record, replayed, and watched the outcome change: it is a
- * measurement of causation, and no class word outranks a measurement.
- *
- * So this set is folded BEFORE the class switch and consumed ahead of it. What it deliberately
- * does NOT read is the class, the producer, the model that minted either, or the evaluation-root
- * posture the run operated under — vary any of those with the rows held fixed and the emitted
- * consequence is the same bytes.
- *
- * KEY INTEGRITY IS FAIL-CLOSED AND IS APPLIED HERE, not inherited. `aggregateMisdirectionEvidence`
- * refuses a foreign run, a foreign source-digest identity, an exposure no brief recorded and a
- * second conflicting row for one exposure; the handoff loader refuses the first three again at
- * the load boundary. Trust motion is the one consequence that cannot be taken back, so the same
- * four refusals are re-applied at the point where trust actually moves, and each one mints
- * NOTHING rather than harm. A second row disagreeing with the first withdraws the exposure
- * entirely: two answers to one check is not a check.
- */
-/** U+001F, a separator no component can contain: (1, '1x') and (11, 'x') stay two exposures. */
-const EXPOSURE_SEPARATOR = '\u001F'
-
-function exposureKey(perTest: number, stepIndex: number, recordId: RecordId): string {
-  return [perTest, stepIndex, recordId].join(EXPOSURE_SEPARATOR)
-}
-
-function flippedExposures(
-  handoff: CompletedRunHandoff,
-  evidence: readonly MisdirectionRecordResult[] | undefined,
-): ReadonlySet<string> {
-  if (evidence === undefined || evidence.length === 0) return new Set<string>()
-  const runId = String(handoff.runId)
-  const baseDigest = misdirectionSourceDigest(handoff)
-  // The exposures the run's OWN briefs recorded — the same code-owned membership 422-11's
-  // `deriveMemoryOnPathSites` computes, so a row can never name a site nobody served.
-  const exposed = new Set<string>()
-  for (const test of handoff.tests) {
-    for (const site of deriveMemoryOnPathSites(test.steps)) {
-      exposed.add(exposureKey(test.testIndex, site.stepIndex, site.recordId))
-    }
-  }
-  const flipped = new Set<string>()
-  const answered = new Set<string>()
-  for (const row of evidence) {
-    if (row.runId !== runId) continue
-    if (row.handoffBaseDigest !== baseDigest) continue
-    const key = exposureKey(row.perTest, row.stepIndex, row.recordId)
-    if (!exposed.has(key)) continue
-    if (answered.has(key)) {
-      flipped.delete(key)
-      continue
-    }
-    answered.add(key)
-    if (row.crossCheck === 'flipped') flipped.add(key)
-  }
-  return flipped
-}
-
-/**
- * The records this step's own briefs exposed whose cross-check flipped, in brief order.
- *
- * Read off `deriveMemoryOnPathSites` rather than `servedCanaryIds`, and that is the whole
- * difference between the two id sources: the canary source is Channel-1 lines carrying the
- * `servedAsCanary` marker, while the arbiter checks every LOW-TRUST exposure — an ordinary
- * pre-promotion candidate included. A causal record that never rode a canary slot is still the
- * record that misled the run.
- */
-function causalRecordsOn(
-  test: PerTestOutcome,
-  step: StepEvidence,
-  flipped: ReadonlySet<string>,
-): RecordId[] {
-  if (flipped.size === 0 || step.verifierVerdict.pass) return []
-  const ids: RecordId[] = []
-  for (const site of deriveMemoryOnPathSites([step])) {
-    if (!flipped.has(exposureKey(test.testIndex, site.stepIndex, site.recordId))) continue
-    if (!ids.includes(site.recordId)) ids.push(site.recordId)
-  }
-  return ids
 }
 
 /**
@@ -393,8 +281,6 @@ export type ProjectedCanaryAttribution =
       kind: 'outcome'
       source: AttributionSource
       outcome: CanaryOutcome
-      /** 422-16 (D-20): selected by the arbiter's flipped row rather than by anchor contact. */
-      misdirectionFlipped?: true
     }
   | {
       kind: 'unresolved'
@@ -428,13 +314,6 @@ function projectCanaryAttributions(
 
   // Resolved ONCE per fold, consumed by every class-switched site below (D-10).
   const resolved = resolveAttributionClasses(input.artifact, input.handoff)
-  // Folded ONCE per fold, consumed AHEAD of every class-switched site (422-16, D-20). The
-  // handoff's own published sidecar is the authority; an explicit argument is the durable
-  // recovery `emitCanaryOutcomes` supplies when no sidecar member exists at all.
-  const flipped = flippedExposures(
-    input.handoff,
-    input.misdirectionEvidence ?? input.handoff.misdirectionEvidence,
-  )
 
   const projected: ProjectedCanaryAttribution[] = []
   for (const test of input.handoff.tests) {
@@ -444,7 +323,7 @@ function projectCanaryAttributions(
       continue
     }
     for (const step of test.steps) {
-      projectBriefAttributions(input, test, step, resolveAnchors, resolved, flipped, projected)
+      projectBriefAttributions(input, test, step, resolveAnchors, resolved, projected)
       projectProcedureAttribution(input, test, step, resolveAnchors, resolved, projected)
     }
   }
@@ -457,46 +336,22 @@ function projectBriefAttributions(
   step: StepEvidence,
   resolveAnchors: (id: RecordId) => CandidateAnchorResolution,
   resolved: ResolvedClasses,
-  flipped: ReadonlySet<string>,
   projected: ProjectedCanaryAttribution[],
 ): void {
   const runOutcome = attributedOutcome(test, step, resolved)
   const resolvedClass = resolved.get(test.testIndex)
-  const causal = causalRecordsOn(test, step, flipped)
-  const causalSet = new Set<RecordId>(causal)
-  const nonSignal = (candidateId: RecordId): void => {
+  if (runOutcome === undefined) {
     if (resolvedClass === undefined || !isNonSignalClass(resolvedClass)) return
-    projected.push({ kind: 'non-signal', source: 'served-brief', class: resolvedClass,
-      candidateId, testId: test.testId, testIndex: test.testIndex, stepIndex: step.stepIndex })
-  }
-  if (runOutcome === undefined && causal.length === 0) {
-    for (const candidateId of servedCanaryIds(step)) nonSignal(candidateId)
+    for (const candidateId of servedCanaryIds(step)) {
+      projected.push({ kind: 'non-signal', source: 'served-brief', class: resolvedClass,
+        candidateId, testId: test.testId, testIndex: test.testIndex, stepIndex: step.stepIndex })
+    }
     return
   }
   const stepAnchors = exercisedAnchors(step)
-  if (stepAnchors.length === 0 && causal.length === 0) return
+  if (stepAnchors.length === 0) return
 
-  // ONE row per (record, member, step), whichever source selected it. A causal record that was
-  // ALSO served as a canary takes the causal answer and is not offered a second, parallel
-  // attribution — two rows for one exposure would be two votes on one observation.
-  const served = servedCanaryIds(step)
-  const candidateIds = [...served, ...causal.filter((id) => !served.includes(id))]
-
-  for (const candidateId of candidateIds) {
-    const causalRow = causalSet.has(candidateId)
-    // D-20: causal evidence takes precedence over the resolved class. Reached BEFORE the
-    // suppression `attributedOutcome` applied, and reading no class, producer or model identity.
-    const rowOutcome = causalRow ? 'negative' : runOutcome
-    if (rowOutcome === undefined) {
-      nonSignal(candidateId)
-      continue
-    }
-    // A step that exercised nothing can produce no contact match, so Pin 1 never looked a
-    // candidate up there and never reported it `unresolved`. A causal record on the same step
-    // must not drag its siblings into that lookup: an `unresolved` row withholds the tail's
-    // receipt and refolds the whole run, which would make this plan's precedence visible on
-    // records it says nothing about. The causal row alone proceeds without exercised anchors.
-    if (!causalRow && stepAnchors.length === 0) continue
+  for (const candidateId of servedCanaryIds(step)) {
     const resolution = resolveAnchors(candidateId)
     if (resolution.kind === 'unresolved') {
       projected.push({
@@ -511,22 +366,14 @@ function projectBriefAttributions(
       })
       continue
     }
-    // A removal cross-check is DIRECT exercise, the way a procedure replay is: the arbiter
-    // proved the record drove this step by taking it away. So a causal row is not gated on the
-    // anchor-contact match Pin 1 requires — it prefers the contacted anchor when one exists and
-    // otherwise carries the record's first canonical anchor, exactly as the replay source does.
-    const contacted = firstMatchingAnchor(resolution.anchors, stepAnchors)
-    const fallback = resolution.anchors[0]
-    const exercisedAnchor = contacted
-      ?? (causalRow && fallback !== undefined ? normalizeAnchor(fallback) : undefined)
+    const exercisedAnchor = firstMatchingAnchor(resolution.anchors, stepAnchors)
     if (exercisedAnchor === undefined) continue
     projected.push({
       kind: 'outcome',
       source: 'served-brief',
-      ...(causalRow ? { misdirectionFlipped: true as const } : {}),
       outcome: {
         candidateId,
-        runOutcome: rowOutcome,
+        runOutcome,
         // 2026-09-07, 418 D-01/D-08: pure projection stays uncredited until ablated.
         benefit: 'rode-along',
         stateValidity: 'unknown',
@@ -540,8 +387,7 @@ function projectBriefAttributions(
           `Candidate ${candidateId}`,
           `matched ${canonicalJson(exercisedAnchor)}`,
           `on test ${test.testIndex} (${test.testId}) step ${step.stepIndex}`,
-          `with ${rowOutcome} verdict`,
-          ...(causalRow ? ['after the misdirection cross-check flipped'] : []),
+          `with ${runOutcome} verdict`,
         ].join(' '),
         exercisedAnchor,
       } satisfies CanaryOutcome,
@@ -650,20 +496,9 @@ export async function emitCanaryOutcomes(opts: EmitCanaryOutcomesOptions): Promi
   // fold, and every class switch downstream consumes the resolved verdict — an upgraded run
   // re-folds with flipped attribution rather than a second independent observation (SC2).
   const artifact = loadRunAnalysisArtifact(opts.runDir, String(opts.handoff.runId))
-  // 422-16 (D-20/D-18): the arbiter's rows, read ABSENT-vs-EMPTY exactly as 422-07 drew the
-  // line and 422-12 held it at four boundaries. A PRESENT sidecar — including `[]` — is the
-  // published authority and is used as it stands: `[]` is an arbiter that ran and recorded
-  // nothing, and looking past it would read a deliberate silence as a missing file. Only a
-  // handoff with NO member at all falls through to the run's own durable completions, which
-  // is the crash window between the arbiter finishing and `persistMisdirectionSidecar`
-  // landing. Every row is re-checked against this run's identity before it can move trust.
-  const recovered = opts.handoff.misdirectionEvidence === undefined
-    ? readCompletedMisdirectionChecks(opts.runDir, String(opts.handoff.runId))
-    : undefined
   const projected = projectCanaryAttributions({
     handoff: opts.handoff,
     ...(artifact === undefined ? {} : { artifact }),
-    ...(recovered === undefined || recovered.length === 0 ? {} : { misdirectionEvidence: recovered }),
     resolveCandidateAnchors: (id) => LOCAL_CURATION_CAPABILITIES.readCanonicalBundleAnchors({
       knowledgeRoot: opts.knowledgeRoot,
       bundleId: id,
@@ -725,7 +560,6 @@ export async function emitCanaryOutcomes(opts: EmitCanaryOutcomesOptions): Promi
       continue
     }
 
-    const causal = attribution.misdirectionFlipped === true
     let outcome: EmitCanaryOutcomeResult
     try {
       opts.emit(attribution.outcome)
@@ -743,7 +577,6 @@ export async function emitCanaryOutcomes(opts: EmitCanaryOutcomesOptions): Promi
       crossCheck: attribution.crossCheck ?? 'not-run',
       ...(attribution.staged === undefined ? {} : { staged: attribution.staged }),
       ...(attribution.corpusDigestMoved === undefined ? {} : { corpusDigestMoved: attribution.corpusDigestMoved }),
-      ...(causal ? { misdirectionFlipped: true as const } : {}),
       candidateId: attribution.outcome.candidateId,
       testId: attribution.outcome.testId,
       testIndex: attribution.outcome.testIndex,

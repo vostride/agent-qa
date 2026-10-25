@@ -388,27 +388,6 @@ function candidateSummaryLine(runId: string, report: EmitReport): string {
 }
 
 /**
- * The causal-harm line (422-16, D-20).
- *
- * Names the RECORDS rather than a count, and says out loud that the class did not decide it —
- * a reader who sees `environment` on the member and a contradicted record in the store would
- * otherwise have to reconstruct why the suppression did not apply. Refused emits are reported
- * separately from landed ones, because "the arbiter proved this record harmful and the queue
- * rejected the row" is a different state from "the harm is recorded".
- */
-function misdirectionHarmLine(
-  runId: string,
-  rows: readonly EmitCanaryOutcomeReport['details'][number][],
-): string {
-  const landed = rows.filter((row) => row.outcome.kind === 'emitted')
-  const refused = rows.length - landed.length
-  const named = rows.map((row) => row.candidateId).join(', ')
-  return `Misdirection harm for ${runId}: ${landed.length} harmed outcome(s) emitted from flipped `
-    + `cross-check evidence regardless of verdict class (${named})`
-    + `${refused === 0 ? '' : `; ${refused} refused by the queue`}.`
-}
-
-/**
  * Where this fold's learned changes went, in one line (432-40, D-08 / D-24).
  *
  * A local run applies what curation learned to the knowledge root in the fold. A `ci` or `cloud`
@@ -734,18 +713,6 @@ export async function curateCompletedRun(
         emit: reader.emitCanaryOutcome.bind(reader),
         ...(operations.canaryAblation === undefined ? {} : { credit: { ablation: operations.canaryAblation, maxAblations: caps!.maxAblations, readBundleStateDigests: LOCAL_CURATION_CAPABILITIES.readCanonicalBundleStateDigests } }),
       })
-      // 422-16 D-20: harm the arbiter's CAUSAL evidence is answerable for, surfaced where an
-      // operator reads the fold rather than inferred from a trust move that appeared later.
-      // Additive beside the candidate/cap lines and, like them, never a gate: the rows it
-      // counts have already reached the writer by the time this renders.
-      // `?? []` is not paranoia about the shipped emitter, which always answers an array: the
-      // operation is a seam, and a caller's double may answer a partial report. A DIAGNOSTIC
-      // line must never be the thing that throws inside the fold's crash boundary and turns a
-      // healthy tail incomplete.
-      const causalHarm = (canaries.details ?? []).filter((row) => row.misdirectionFlipped === true)
-      if (causalHarm.length > 0) {
-        input.log.info?.(misdirectionHarmLine(receiptIdentity.runId, causalHarm))
-      }
       // D-14: the run-outcome fold shares this crash boundary and the SAME extended
       // receipt as candidate/canary emit — never a second marker file. The durable
       // handoff marker is the sole exclusion authority for current and sibling runs.

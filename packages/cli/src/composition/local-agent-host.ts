@@ -124,8 +124,6 @@ import {
   yamlParseFailureMessage,
 } from '@vostride/agent-qa-core'
 import type { RunAttributeTrigger, TestDefinition } from '@vostride/agent-qa-core'
-import { misdirectionPostureCapability } from './misdirection-posture-capability.js'
-import { misdirectionPreparationCapabilities } from '../curation/misdirection-tail.js'
 import type {
   ExplicitReviewDelegate,
   ExplicitReviewResult,
@@ -352,18 +350,6 @@ function createComposedRunExecution(input: {
             configPath,
             agentQaRoot: input.agentQaRoot,
             executionContext,
-            // 422-14 (D-18): the pre-analysis circularity arbiter, composed from the ONE builder
-            // the daemon composes from too. Parity is a property of there being a single
-            // construction site rather than a claim a reviewer re-derives by reading two literals
-            // — and the capability a run's post-verdict step arbitrates through is exactly the
-            // sort of thing 422-08's window recorded as bound on one host and forgotten on the
-            // other. The run's own resolved config file, not the one this door was handed.
-            postProcessing: {
-              misdirection: misdirectionPreparationCapabilities({
-                configPath: inputs.configFilePath,
-                agentQaRoot: input.agentQaRoot,
-              }),
-            },
             inputs,
             // THE LOCAL CAPTURE FIRST, THEN THE HOST'S BRIDGE (401-07). The capture is what the
             // `catch` below reads to tell a run that STARTED from one that never did, so it can
@@ -2126,7 +2112,6 @@ export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAge
             // not travel on to a package that has no idea what a writer lease is.
             curateRun: input.postRun.curateRun,
             candidateProse: input.postRun.candidateProse,
-            ...misdirectionPostureCapability({ agentQaRoot: input.agentQaRoot }),
           },
         }),
     ...(input.chatPresent === undefined ? {} : { chatPresent: input.chatPresent }),

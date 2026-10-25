@@ -59,8 +59,8 @@ export type { RunCassetteReplayInput } from './replay-composition.js'
 
 export { resolveBaselineCache, listBaselineRunRoots } from './baseline-cache-read.js'
 export type { BaselineCacheRow, BaselineCacheResolution } from './baseline-cache-read.js'
-export { runReplayGate, removalFlipsOutcome, resolveFailingPathCandidate, locateTargetCassettes, serializeReplayGateReceipt, GATE1_AUDIT_SUBDIR } from './replay-gate-composition.js'
-export type { RunReplayGateInput, RunReplayGateResult, RemovalFlipsOutcomeInput, RemovalFlipsOutcomeResult, FailingPathCandidateAuthorization, FailingPathCandidateAdmission } from './replay-gate-composition.js'
+export { runReplayGate, removalFlipsOutcome, locateTargetCassettes, serializeReplayGateReceipt, GATE1_AUDIT_SUBDIR } from './replay-gate-composition.js'
+export type { RunReplayGateInput, RunReplayGateResult, RemovalFlipsOutcomeInput, RemovalFlipsOutcomeResult } from './replay-gate-composition.js'
 
 export { ablateCanaryStep, readCommittedCorpusDigest, GATE2_AUDIT_SUBDIR, GATE2_TARGET_SUBDIR } from './gate2-composition.js'
 export type { AblateCanaryStepInput, AblateCanaryStepResult, CommittedCorpusDigestRead } from './gate2-composition.js'

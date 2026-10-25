@@ -5,7 +5,7 @@ import { closeSync, fsyncSync, linkSync, lstatSync, mkdirSync, openSync, readFil
 import { randomUUID } from 'node:crypto'
 import { dirname, join, resolve } from 'node:path'
 import { z } from 'zod'
-import { canonicalJson, misdirectionSourceDigest, sha256hex } from '@vostride/agent-qa-schema'
+import { canonicalJson, sha256hex } from '@vostride/agent-qa-schema'
 import { completedRunHandoffPath, defaultCurationTailOperations } from './curation-tail.js'
 import { runSafetyScope } from '@vostride/agent-qa-agent-local'
 import type { PostVerdictHandoff, PostVerdictStepOptions } from './post-verdict-step.js'
@@ -15,7 +15,7 @@ import { ciResumeClause } from './resume-limit.js'
 export const POST_VERDICT_PENDING_FILE = 'post-verdict-pending.json'
 const digest = z.string().regex(/^[a-f0-9]{64}$/)
 const identitySchema = z.object({ schemaVersion: z.literal(2), runId: z.string().min(1),
-  sourceDigest: digest, handoffDigest: digest, configDigest: digest }).strict()
+  handoffDigest: digest, configDigest: digest }).strict()
 type Identity = z.infer<typeof identitySchema>
 const intentSchema = identitySchema.extend({ policyDigest: digest }).strict()
 type Intent = z.infer<typeof intentSchema>
@@ -80,9 +80,8 @@ function identity(input: PostVerdictContinuationIdentity): Identity {
   if (String(handoff.runId) !== input.runId || handoff.gateRun || handoff.excludedFromOutcomes) {
     throw new PostVerdictContinuationRefused('identity-conflict')
   }
-  const { misdirectionEvidence: _evidence, ...source } = handoff
-  return { schemaVersion: 2, runId: input.runId, sourceDigest: misdirectionSourceDigest(handoff),
-    handoffDigest: sha256hex(canonicalJson(source)),
+  return { schemaVersion: 2, runId: input.runId,
+    handoffDigest: sha256hex(canonicalJson(handoff)),
     configDigest: sha256hex(canonicalJson({ configPath: resolve(input.configPath),
       config: sha256hex(readFileSync(input.configPath, 'utf8')),
       knowledgeRoot: resolve(input.knowledgeRoot) })) }
@@ -192,7 +191,6 @@ const running = new Map<string, { intent: Identity; maxAblations?: number; compl
 
 export function ownPostVerdictContinuation(input: PostVerdictContinuationIdentity & {
   readonly initializePolicy?: () => Promise<void>
-  readonly prepare: () => Promise<void>
   readonly queued: () => Promise<boolean>
   readonly enqueue: () => Promise<'enqueued' | 'deduped'>
 }): Promise<'enqueued' | 'deduped'> {
@@ -224,9 +222,7 @@ export function ownPostVerdictContinuation(input: PostVerdictContinuationIdentit
       owner.assertOwned()
       let result: 'enqueued' | 'deduped' = 'deduped'
       if (!await input.queued()) {
-        await input.prepare()
-        owner.assertOwned()
-        // Revalidate paths and source/config after preparation, before publishing a job.
+        // Revalidate paths and source/config before publishing a job.
         if (!same(boundIntent(input), published)) throw new PostVerdictContinuationRefused('identity-conflict')
         result = await input.enqueue()
         if (!await input.queued()) throw new PostVerdictContinuationRefused('queue-conflict')
@@ -276,8 +272,6 @@ export interface RecoverPendingPostVerdictOptions {
   readonly signal?: AbortSignal
   readonly log: { warn(message: string): void }
   readonly onEnqueued?: () => void
-  /** Trusted host capability, the same seam as a normal run; never read from the intent. */
-  readonly misdirection?: PostVerdictStepOptions['misdirection']
   /** 444 D-48: the recovering process's context, so a retry line never promises a CI resume. */
   readonly executionContext?: PostVerdictStepOptions['executionContext']
 }

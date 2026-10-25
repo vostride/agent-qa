@@ -58,7 +58,6 @@ import { analyticsRunId } from '@vostride/agent-qa-analytics'
 
 import { analyticsEvent } from '../composition/analytics-host.js'
 import type { CliAnalyticsHost } from '../composition/analytics-host.js'
-import { misdirectionPostureCapability } from '../composition/misdirection-posture-capability.js'
 import { createShutdownController } from '../commands/shutdown-controller.js'
 import {
   completedRunDir,
@@ -69,7 +68,6 @@ import {
   type CurationTailOperations,
   type CurationWriterAuthority,
 } from '../curation/curation-tail.js'
-import { misdirectionPreparationCapabilities } from '../curation/misdirection-tail.js'
 import { recoverPendingPostVerdictContinuations } from '../curation/post-verdict-continuation.js'
 import { DRAIN_BUDGET_MS } from '@vostride/agent-qa-agent-local'
 import { exercisedAnchors } from '../curation/handoff-anchors.js'
@@ -753,21 +751,9 @@ async function composeDaemonRunExecution(input: {
             // supplies no `afterVerdict`. The step performs it on every door, so the daemon's own
             // pump has something to drain. What this door still supplies is no TAIL: 388 D-13 —
             // the daemon emits no chips, and its pump drains under the lease it already holds.
-            //
-            // 422-14 (D-18): and the pre-analysis circularity arbiter, composed from THE SAME
-            // BUILDER the terminal composes from, so the two hosts' objects can be compared
-            // against each other rather than against two literals. `postProcessing` stops being
-            // conditional on the lease: the lease decides who DRAINS, and the arbiter decides what
-            // the first analysis is allowed to read — a daemon holding no lease must still
-            // arbitrate, or the circularity guard would be a property of which process happened to
-            // start the run.
-            postProcessing: {
-              misdirection: misdirectionPreparationCapabilities({
-                configPath: inputs.configFilePath,
-                agentQaRoot: input.agentQaRoot,
-              }),
-              ...(daemonAuthority === undefined ? {} : { writerAuthority: daemonAuthority }),
-            },
+            ...(daemonAuthority === undefined
+              ? {}
+              : { postProcessing: { writerAuthority: daemonAuthority } }),
             onSession: (session) => { startedRunId = session.id as unknown as string },
             // 2026-10-21 (447-08, D-16): subscribed directly, because `attachRunSubscribers`'
             // wire reporter can print to stdout.
@@ -2263,7 +2249,6 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
       postRun: {
         // 2026-10-14 (441-55, 441-01 decision 10): the daemon's posture is unchanged.
         candidateProse: 'no-masker',
-        ...misdirectionPostureCapability({ agentQaRoot: input.agentQaRoot }),
         curateRun: async ({ runId: curatedRunId, deadlineMs }) => {
           const factory = input.author
           if (factory === undefined) {

@@ -80,11 +80,6 @@ import {
 } from './curation-tail.js'
 import type { CanaryCreditCounters } from './canary-credit.js'
 import { NON_SIGNAL_CLASSES } from './emit-canary-outcomes.js'
-import {
-  MISDIRECTION_POSTURE_BOUND_AT_HOST,
-  readMisdirectionRunPosture,
-  type MisdirectionRunPostureRecord,
-} from './misdirection-run-state.js'
 import { createPostRunChipEmitter } from './post-run-chip-emitter.js'
 import { buildPromotionPostureResolver, promotionPostureResolverForHost } from './promotion-posture.js'
 import { resolveRunCurationContext } from './run-curation-context.js'
@@ -954,37 +949,6 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
        * command the exit line would have carried, so the reader's next step is identical
        * whichever way the digest failed to arrive (JOBQ-06: the exit code froze long ago).
        */
-      /**
-       * What actually backs this run's circularity claim (D-19).
-       *
-       * The RECORDED posture is this run's own `misdirection-posture.json`, written by the
-       * arbiter before the analysis enqueue; whether it was APPLIED is a property of the shipped
-       * composition (`MISDIRECTION_POSTURE_BOUND_AT_HOST`). Production now binds the reader.
-       * Both travel because a harness host may still compose without the binding, and the
-       * renderer must retain its fail-closed arm when appliedAtHost is false.
-       *
-       * A posture file that is present and will not parse is `unreadable` and NOT `not-recorded`:
-       * the first says this build could not read what the arbiter wrote, the second says the
-       * arbiter wrote nothing, and an operator acts differently on each.
-       */
-      const readCircularityBacking = (): CircularityGuardDisclosure => {
-        let record: MisdirectionRunPostureRecord | undefined
-        try {
-          record = readMisdirectionRunPosture(
-            completedRunDir(opts.agentQaRoot, opts.runId),
-            opts.runId,
-          )
-        } catch {
-          return { kind: 'unreadable' }
-        }
-        return record === undefined
-          ? { kind: 'not-recorded' }
-          : {
-              kind: 'recorded',
-              posture: record.kind,
-              appliedAtHost: MISDIRECTION_POSTURE_BOUND_AT_HOST,
-            }
-      }
       let digestRead: { value: RunDigest | undefined } | undefined
       const readDigest = async (openedHost: LocalAgentHost): Promise<RunDigest | undefined> => {
         if (digestRead === undefined) {
@@ -1036,10 +1000,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
           const receipt = readCurationTailReceipt(completedRunDir(opts.agentQaRoot, opts.runId))
           log.info?.(renderChainTerminalLine(status.notification,
             { ...(receipt?.runId === opts.runId ? receipt : {}),
-              trustPriorDisclosure: snapshot().disclosure,
-              // A read-only disclosure read on the leg that has the host already open. It costs
-              // at most its own clause — see `disclosureOf`.
-              circularity: readCircularityBacking() }))
+              trustPriorDisclosure: snapshot().disclosure }))
           await printDigestBlock(openedHost)
           return
         }
@@ -1217,36 +1178,6 @@ export function renderPostProcessingSummaryLine(
 }
 
 /**
- * Re-exported from the module that OWNS the posture record (422 D-19; WINDOWS #427).
- *
- * The constant lives beside `readMisdirectionRunPosture` rather than here, and the move is not
- * tidiness: `doctor-knowledge-checks.ts` needs the same fact, and importing it from THIS file
- * would pull the terminal host's composition, the daemon client and its registration module into
- * doctor's graph — which is exactly the host-to-host import trap 422-09 recorded when the daemon
- * could not load `local-agent-host.ts`. `misdirection-run-state.ts` names only `zod`, the schema
- * package and node built-ins, so it is importable from anywhere in this package.
- */
-export { MISDIRECTION_POSTURE_BOUND_AT_HOST }
-
-
-/**
- * What backs this run's circularity claim (422 D-19).
- *
- * `posture` is what `misdirection-posture.json` RECORDED; `appliedAtHost` is whether the analysis
- * stage could read it at all. Production now binds the reader, but the members stay separate
- * because a harness host may still compose without it. See MISDIRECTION_POSTURE_BOUND_AT_HOST:
- * the renderer's tested appliedAtHost: false arm must remain fail-closed.
- */
-export type CircularityGuardDisclosure =
-  | { readonly kind: 'not-recorded' }
-  | { readonly kind: 'unreadable' }
-  | {
-      readonly kind: 'recorded'
-      readonly posture: MisdirectionRunPostureRecord['kind']
-      readonly appliedAtHost: boolean
-    }
-
-/**
  * The D-09 human line, rendered from the chain-terminal row and nothing else.
  *
  * Fires on ANY terminal — complete or failed (D-12) — because a failure is exactly when the user
@@ -1265,20 +1196,13 @@ export type CircularityGuardDisclosure =
  * could not be folded — renders the legacy `N curated, M deprecated` pair exactly as before, since
  * the pair is all those rows carry; five buckets are never synthesized from it.
  *
- * `circularity` follows the same law — absent is not zero — one arm per fact.
- *
- * WHAT NEVER REACHES THIS LINE: no `reason` text from any of those records.
- * `MisdirectionRunPostureRecord.reason` carries a root read failure, an arbitrary string from a
- * layer with no masking boundary of its own. Only the closed posture WORDS are rendered; no
- * candidate id, no digest, no authored text.
+ * No candidate id, digest or authored text reaches this line.
  */
 export function renderChainTerminalLine(
   notification: RunNotificationView,
   report?: {
     canary?: CanaryCreditCounters
     trustPriorDisclosure?: TrustPriorDisclosure
-    /** What actually backs this run's circularity claim; omitted by a caller that read none. */
-    circularity?: CircularityGuardDisclosure
   },
 ): string {
   const { verdictSummary, stages } = notification
@@ -1314,38 +1238,8 @@ export function renderChainTerminalLine(
     `analysis: ${stages.analysis.status}`,
     `curation: ${stages.curation.status}`
       + (curationCounts === '' ? '' : ` (${curationCounts})`),
-    ...(report?.circularity === undefined
-      ? []
-      : [renderCircularityGuardSegment(report.circularity)]),
     formatTrustPriorDisclosure(report?.trustPriorDisclosure),
   ].join(SUMMARY_SEPARATOR)}`
-}
-
-/**
- * What ACTUALLY backs this run's circularity claim (422 D-19; WINDOWS #427).
- *
- * Both production hosts now bind the reader that applies prepareMisdirectionEvidence's
- * recorded posture to analysis. A harness host can still compose without that binding,
- * so appliedAtHost remains explicit and its false arm retains the fail-closed disclosure.
- *
- * This function renders the applied backing and names the recorded posture when the two
- * disagree. Declared-only belongs only to an absent-root posture the analysis actually received.
- */
-function renderCircularityGuardSegment(circularity: CircularityGuardDisclosure): string {
-  if (circularity.kind === 'not-recorded') return 'circularity guard: not recorded'
-  if (circularity.kind === 'unreadable') return 'circularity guard: posture-unavailable'
-  const { posture, appliedAtHost } = circularity
-  if (!appliedAtHost && posture !== 'eval-root') {
-    return `circularity guard: eval-root (fail-closed; recorded ${posture} unread — `
-      + 'no host binds the posture)'
-  }
-  return `circularity guard: ${
-    posture === 'no-eval-root'
-      ? 'declared-only'
-      : posture === 'broken-eval-root'
-        ? 'posture-unavailable'
-        : 'eval-root'
-  }`
 }
 
 /**

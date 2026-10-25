@@ -18,7 +18,6 @@ import {
   sha256hex,
   type BriefLine,
   type CompletedRunHandoff,
-  type ServedBrief,
 } from '@vostride/agent-qa-schema'
 import {
   composeBaselineProfileKey,
@@ -28,7 +27,6 @@ import {
   computeDecisionIdentity,
   canonicalizeInputLeg,
   LABEL_RECORD_SCHEMA_VERSION,
-  type LeafCassette,
   type StandaloneLabelRecord,
 } from '@vostride/agent-qa-eval'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -44,7 +42,6 @@ import {
   actionGenerateResult,
   familyStubProfile,
   judgeGenerateResult,
-  makeReplayHandoff,
   respondingStub,
   noneAuth,
   stubProfile,
@@ -1301,11 +1298,7 @@ describe('gate-1 fixture and the profile-keyed baseline cache', () => {
   })
 })
 
-// 422 D-18: the ordinary-candidate authorization is an ADDITION beside the two admission rules
-// that were already here. These cells pin that neither of those rules moved, that the canary
-// flag still does not promote an unflagged candidate, and that the new authorization cannot
-// reach a record the old rules already refused.
-describe('D-18 leaves the active and served-canary admission rules exactly where they were', () => {
+describe('the active and served-canary admission rules', () => {
   function target(mutate: (line: BriefLine) => void) {
     const f = fixture({ proofBrief: true })
     const row = f.selected.find((entry) => entry.cassette.id === f.targetId)!
@@ -1314,31 +1307,8 @@ describe('D-18 leaves the active and served-canary admission rules exactly where
     row.cassette.receipt.promptInputHash = sha256hex(canonicalizeInputLeg(row.cassette.input))
     return { f, cassette: row.cassette, line }
   }
-  function authorization(
-    cassette: LeafCassette,
-    brief?: ServedBrief,
-  ): evalLocal.FailingPathCandidateAuthorization {
-    const base = makeReplayHandoff().tests[0]!
-    return {
-      recordId: cassette.input.servedBrief.channel1[0]!.id,
-      runId: cassette.runId,
-      perTest: {
-        ...base,
-        testId: cassette.input.testId,
-        outcome: 'failed',
-        steps: [
-          {
-            ...base.steps[0]!,
-            stepIndex: cassette.stepIndex,
-            servedBrief: brief ?? cassette.input.servedBrief,
-            verifierVerdict: { pass: false, reasoning: 'the recorded state did not advance' },
-          },
-        ],
-      },
-    }
-  }
 
-  it('still removes an ordinary ACTIVE record with no authorization at all', () => {
+  it('removes an ordinary ACTIVE record', () => {
     const { cassette, line } = target((row) => {
       row.status = 'active'
       row.servedAsCanary = false
@@ -1347,14 +1317,13 @@ describe('D-18 leaves the active and served-canary admission rules exactly where
     expect(removal.kind).toBe('removed')
   })
 
-  it('still removes a SERVED CANARY candidate under the opt-in flag with no authorization', () => {
+  it('removes a SERVED CANARY candidate only under the opt-in flag', () => {
     const { cassette, line } = target((row) => {
       row.status = 'candidate'
       row.servedAsCanary = true
     })
     expect(resolveActiveRecordRemoval({ cassette, recordId: line.id, servedCanary: true }).kind)
       .toBe('removed')
-    // The flag is still REQUIRED — the authorization did not make canary removal ambient.
     expect(resolveActiveRecordRemoval({ cassette, recordId: line.id }).kind).toBe('unavailable')
   })
 
@@ -1366,40 +1335,7 @@ describe('D-18 leaves the active and served-canary admission rules exactly where
     const removal = resolveActiveRecordRemoval({ cassette, recordId: line.id, servedCanary: true })
     expect(removal).toEqual({
       kind: 'unavailable',
-      reason: 'candidate removal requires an explicit failing-path authorization',
+      reason: 'active record brief line unavailable',
     })
-  })
-
-  it('reports an offered-but-absent authorization apart from a refused one', () => {
-    const { cassette, line } = target((row) => {
-      row.status = 'candidate'
-      row.servedAsCanary = false
-    })
-    expect(evalLocal.resolveFailingPathCandidate({ cassette, recordId: line.id })).toEqual({
-      kind: 'absent',
-    })
-    expect(
-      evalLocal.resolveFailingPathCandidate({
-        cassette,
-        recordId: line.id,
-        authorization: authorization(cassette),
-      }),
-    ).toEqual({ kind: 'authorized', stepIndex: cassette.stepIndex })
-  })
-
-  it('cannot resurrect a deprecated record with a forged candidate authorization', () => {
-    const { cassette, line } = target((row) => {
-      row.status = 'deprecated'
-      row.servedAsCanary = false
-    })
-    const forged = structuredClone(cassette.input.servedBrief)
-    forged.channel1[0]!.status = 'candidate'
-    const removal = resolveActiveRecordRemoval({
-      cassette,
-      recordId: line.id,
-      failingPathCandidate: authorization(cassette, forged),
-    })
-    expect(removal.kind).toBe('unavailable')
-    expect(cassette.input.servedBrief.channel1[0]!.status).toBe('deprecated')
   })
 })

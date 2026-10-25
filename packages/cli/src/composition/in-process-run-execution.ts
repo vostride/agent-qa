@@ -70,7 +70,6 @@ import type { RunExecutionContext } from '@vostride/agent-qa-agent-local'
 
 import { assembleCliRun } from './run-assembly.js'
 import type { CurationWriterAuthority } from '../curation/curation-tail.js'
-import type { MisdirectionPreparationCapabilities } from '../curation/misdirection-tail.js'
 import {
   createPostVerdictStep,
   releaseUntakenPostVerdictLease,
@@ -271,15 +270,6 @@ export interface InProcessCliRunExecutionOptions {
     readonly maxAblations?: number
     readonly detach?: true
     readonly writerAuthority?: CurationWriterAuthority
-    /**
-     * 422-14 (D-18): the HOST's circularity-preparation capability, forwarded to the step.
-     *
-     * Neutral here on purpose — this drive neither builds one nor knows what an evaluation root
-     * is. Both production run hosts compose it from `misdirectionPreparationCapabilities()`, and
-     * an ABSENT field is not a disabled arbiter: the step falls back to the same one builder, so
-     * a door that forgets to bind it still arbitrates.
-     */
-    readonly misdirection?: MisdirectionPreparationCapabilities
   }
   /**
    * The DETACHED post-processing leg, for doors whose `execute()` promise something else waits on.
@@ -587,9 +577,6 @@ export async function runInProcessCliRun(
         ...(options.postProcessing?.writerAuthority === undefined
           ? {}
           : { writerAuthority: options.postProcessing.writerAuthority }),
-        ...(options.postProcessing?.misdirection === undefined
-          ? {}
-          : { misdirection: options.postProcessing.misdirection }),
         log: { warn: options.warn ?? (() => { /* a door with no renderer drops the line */ }) },
         executionContext: options.executionContext,
       })

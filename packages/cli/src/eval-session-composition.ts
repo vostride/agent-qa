@@ -100,8 +100,6 @@ import {
   copyJudgeCalibrationToReport,
   readJudgeCalibration,
   ablateCanaryStep,
-  locateTargetCassettes,
-  GATE2_AUDIT_SUBDIR,
   isNovelState,
   stageFeedbackEntry,
   admitStagedFeedback,
@@ -148,7 +146,6 @@ import {
 import type {
   AdversarialProbeCallCap,
   AdversarialProbeRefusal,
-  FailingPathCandidateAuthorization,
   AdversarialProbeSkip,
   AdversarialRefusal,
   AdversarialSeedCap,
@@ -190,7 +187,6 @@ import type { AgentQaConfig } from '@vostride/agent-qa-core'
 import { loadConfigFile, resolveConfig } from './config.js'
 import { createDeclaredSecretMask } from './composition/declared-secrets.js'
 import { listTargets, resolveTarget } from './targets.js'
-import { hasNoiseFloorArtefacts } from './curation/promotion-posture.js'
 export { renderCensusMarkdown }
 import { renderEvalReportMarkdown } from './eval-report-render.js'
 import {
@@ -1035,21 +1031,6 @@ export const GATE2_DEFAULT_MAX_ABLATIONS = 4
 // precedent: five natural builds with an unexercised anchor form a quiet horizon.
 export const GATE2_DEFAULT_CANARY_HORIZON_BUILDS = 5
 
-// 2026-09-12, 422 D-18/D-19: the pre-analysis circularity arbiter's per-run bound.
-//
-// AT MOST FOUR RECORD-DECISION CHECKS PER RUN, each of them governed by the existing `eval.k` the
-// replay gate already applies — so the bound here counts CHECKS and never samples, and widening
-// `k` does not silently widen this. Four is 418 D-04's sizing argument re-applied to the same
-// machine: a k=3 removal cross-check costs 2 fresh with-record and 3 without-record calls, so four
-// checks bound a run to ~20 provider calls on the 415 measurements, which is the same ceiling the
-// canary ablation cap beside it buys. It is deliberately the SAME number and deliberately a
-// SEPARATE constant: the two caps bound different work on different paths, and one knob moving
-// both would make a run's total spend depend on which path happened to go first.
-//
-// This bound runs BEFORE the analysis enqueue, on the verdict's own clock, which is the other
-// reason it is small: every check here is latency a user waits through.
-export const ATTR_DEFAULT_MAX_MISDIRECTION_CHECKS = 4
-
 export function resolveGate2Caps(session: EvalSession, opts: { maxAblations?: number } = {}) {
   const maxAblations = opts.maxAblations ?? session.evalConfig.gate2?.maxAblations ?? GATE2_DEFAULT_MAX_ABLATIONS
   if (!Number.isSafeInteger(maxAblations) || maxAblations < 1) {
@@ -1111,194 +1092,6 @@ export async function runCanaryAblation(session: EvalSession, input: RunCanaryAb
     replay: { profile: planner.profile, auth: planner.auth,
       modelOverrides: input.plannerOverrides, mask: execution.mask },
   })
-}
-
-// ---------------------------------------------------------------------------
-// 422 D-18/D-19: the pre-analysis circularity arbiter's eval leg.
-//
-// THE CLI OWNS THIS COMPOSITION BECAUSE ONLY THE CLI MAY. `packages/cli/src/curation/misdirection-tail.ts`
-// is the producer, and the surface-firewall ledger clears exactly ONE CLI file for
-// `@vostride/agent-qa-eval-local` — this one. So the tail speaks a narrow port and these three
-// functions are its only implementation: a root posture, a decision LOCATION (deterministic
-// extraction, no provider call) and the CHECK itself (the spend).
-//
-// NO NEW MODEL-CONSTRUCTION SITE. `runMisdirectionCheck` reaches the provider exactly the way
-// `runCanaryAblation` beside it does — through `resolveReplayPlanner` and `runCassetteReplay`'s
-// own safety scope inside eval-local. Nothing here calls `createModel`.
-// ---------------------------------------------------------------------------
-
-/** The evaluation-root posture one run's arbiter operates under, plus the identities a row binds. */
-export type MisdirectionRootPostureRead =
-  | { kind: 'eval-root'; corpusDigest: string; profileDigest: string }
-  | { kind: 'no-eval-root' }
-  | { kind: 'broken-eval-root'; reason: string }
-
-/**
- * D-19's three postures, kept three.
- *
- * An ABSENT root is the BYOM exemption — nothing could be cross-checked and the author's
- * declaration is all there is. A root that EXISTS and cannot be read has identical (empty)
- * evidence and the opposite meaning: it is an unbacked gated posture that earns no exemption.
- * `readCanaryCorpusDigest`'s arms map onto these one for one, and the mapping is total so a
- * broken gated root can never be folded into an absent one.
- */
-export async function readMisdirectionRootPosture(
-  session: EvalSession,
-): Promise<MisdirectionRootPostureRead> {
-  const digest = readCanaryCorpusDigest(session)
-  // Amends 422 D-19: a mark seeds this root before any floor is measured. With no floor
-  // artefact no gate is configured, so it reads as absent, as the promotion posture does.
-  const floorless = !hasNoiseFloorArtefacts(resolve(session.configDir, 'agent-qa-eval'))
-  if (digest.kind === 'no-eval-root' || floorless) return { kind: 'no-eval-root' }
-  // A closed word, not `digest.reason`: that string is an `lstat`/read error message and it
-  // lands in the durable `misdirection-posture.json`. See MISDIRECTION_ROOT_UNREADABLE.
-  if (digest.kind !== 'digest') return { kind: 'broken-eval-root', reason: 'eval-root-unreadable' }
-  const identity = await resolveGateProfileIdentity(session)
-  // The profile KEY hashed, never carried: the key names declared model ids, and a row that
-  // travels onto the enqueue payload and into `analysis.json` should bind the profile without
-  // republishing the provider inventory it was composed from.
-  return {
-    kind: 'eval-root',
-    corpusDigest: digest.corpusDigest,
-    profileDigest: sha256hex(identity.profileKey),
-  }
-}
-
-/**
- * The per-run check cap (D-18). Durable once resolved — see `misdirection-run-state.ts`.
- *
- * Two sources, because no operator configuration key governs this bound yet: an explicit caller
- * override, or the recorded default. The run's policy file records which one answered, so the day
- * a knob lands the difference is already disclosed per run rather than inferred.
- */
-export function resolveMisdirectionCaps(
-  _session: EvalSession,
-  opts: { maxChecks?: number } = {},
-): { maxChecks: number; source: 'flag' | 'default' } {
-  const maxChecks = opts.maxChecks ?? ATTR_DEFAULT_MAX_MISDIRECTION_CHECKS
-  if (!Number.isSafeInteger(maxChecks) || maxChecks < 0) {
-    throw new TypeError('--max-misdirection-checks must be a non-negative integer')
-  }
-  return { maxChecks, source: opts.maxChecks === undefined ? 'default' : 'flag' }
-}
-
-export interface MisdirectionDecisionTarget {
-  agentQaRoot: string
-  runId: string
-  testId: string
-  stepIndex: number
-}
-
-/**
- * Which live decision the failing step replays — deterministic, and it SPENDS NOTHING.
- *
- * It is a separate call from the check for exactly one reason: the durable reservation goes
- * between the two. The decision ordinal is part of the key a reservation is written under, so it
- * has to be known before the charge; and locating it is extraction over bytes the run already
- * wrote, which costs no provider call and is safe to repeat after a crash.
- *
- * `source: 'handoff'` keeps a committed, possibly CORRECTED cassette from standing in for the
- * live decision (418 D-02) — the arbiter's question is about what this run actually did.
- */
-export async function locateMisdirectionDecision(
-  session: EvalSession,
-  target: MisdirectionDecisionTarget,
-): Promise<{ kind: 'located'; decisionOrdinal: number } | { kind: 'unavailable'; reason: string }> {
-  const committedRoot = resolve(session.configDir, 'agent-qa-eval')
-  const corpus = readCommittedCorpus(committedRoot)
-  const located = await locateTargetCassettes({
-    committedRoot,
-    agentQaRoot: target.agentQaRoot,
-    gate1Dir: misdirectionAuditDir(target),
-    corpusEntries: corpus.snapshot.entries,
-    target: { runId: target.runId, testId: target.testId, stepIndex: target.stepIndex },
-    source: 'handoff',
-  })
-  if (located.kind === 'unavailable') {
-    return { kind: 'unavailable', reason: located.detail.reason ?? 'target-unavailable' }
-  }
-  // The target names a STEP, not a sub-action. Never guess which decision the memory misled.
-  if (located.cassettes.length !== 1) {
-    return { kind: 'unavailable', reason: 'ambiguous live step: multiple recorded decisions' }
-  }
-  return { kind: 'located', decisionOrdinal: located.cassettes[0]!.cassette.decisionOrdinal }
-}
-
-export interface MisdirectionCheckCall extends MisdirectionDecisionTarget {
-  decisionOrdinal: number
-  recordId: string
-  /** Built by the producer from the LOADED handoff; recomputed again by the D-18 gate below. */
-  authorization: FailingPathCandidateAuthorization
-}
-
-/**
- * The cross-check itself: does removing this served record flip the run's own decision (D-18)?
- *
- * The run's ACTUAL recorded decision is with-record sample one — free, and the only sample that
- * describes what really happened — and every further sample is a fresh replay under the existing
- * `eval.k` and the run's deterministic seeds. The removal is authorized by a D-18
- * `failingPathCandidate` rather than by 418's served-canary flag, because the subject here is an
- * ORDINARY candidate; `resolveFailingPathCandidate` re-derives the failing step, the served
- * membership and the brief identity from the run's own bytes before a single call is made, and
- * refuses in its own words otherwise.
- */
-export async function runMisdirectionCheck(
-  session: EvalSession,
-  input: MisdirectionCheckCall,
-): Promise<
-  | { kind: 'checked'; crossCheck: import('@vostride/agent-qa-schema').CrossCheck
-      seedHonored: boolean; samples: { k: number; seeds: number[]; modelCalls: number } }
-  | { kind: 'unavailable'; reason: string }
-> {
-  const committedRoot = resolve(session.configDir, 'agent-qa-eval')
-  const digest = readCanaryCorpusDigest(session)
-  if (digest.kind !== 'digest') {
-    return { kind: 'unavailable', reason: digest.kind === 'no-eval-root' ? 'no-eval-root' : digest.reason }
-  }
-  const k = session.evalConfig.k ?? GATE1_DEFAULT_K
-  if (!Number.isSafeInteger(k) || k < 3 || k % 2 === 0) {
-    throw new TypeError('eval.k must be an odd integer of at least 3')
-  }
-  const identity = await resolveGateProfileIdentity(session)
-  const floor = listNoiseFloorArtefacts(committedRoot).artefacts.find(
-    (entry) => entry.artefact.profileKey === identity.profileKey,
-  )?.artefact
-  const baseSeed = session.evalConfig.seed ?? floor?.seeds[0] ?? 11
-  const execution = await resolveEvalSession({ configPath: session.configPath })
-  const planner = await resolveReplayPlanner(execution)
-  const result = await ablateCanaryStep({
-    agentQaRoot: input.agentQaRoot,
-    committedRoot,
-    recordId: input.recordId,
-    target: { runId: input.runId, testId: input.testId, stepIndex: input.stepIndex },
-    attributedObservationId: misdirectionAuditKey(input),
-    k,
-    baseSeed,
-    admission: { failingPathCandidate: input.authorization },
-    replay: {
-      profile: planner.profile,
-      auth: planner.auth,
-      mask: execution.mask,
-    },
-  })
-  if (result.kind !== 'ablated') return { kind: 'unavailable', reason: result.reason }
-  return {
-    kind: 'checked',
-    crossCheck: result.crossCheck,
-    seedHonored: result.seedHonored,
-    samples: { k: result.k, seeds: [...result.seeds], modelCalls: result.spend.modelCalls },
-  }
-}
-
-/** One audit sub-tree per EXPOSURE, under the existing gate-2 area. */
-function misdirectionAuditKey(target: MisdirectionDecisionTarget & { recordId?: string }): string {
-  return `misdirection/${slugBranch(target.runId)}/${slugBranch(target.testId)}/${String(target.stepIndex)}${
-    target.recordId === undefined ? '' : `/${slugBranch(target.recordId)}`
-  }`
-}
-
-function misdirectionAuditDir(target: MisdirectionDecisionTarget): string {
-  return join(target.agentQaRoot, GATE2_AUDIT_SUBDIR, slugBranch(misdirectionAuditKey(target)))
 }
 
 export function isFeedbackStateNovel(session: EvalSession, input: { agentQaRoot: string; product: string; stateDigest: string }): boolean {
@@ -1759,12 +1552,9 @@ export function feedbackSeedHostOptions(session: EvalSession) {
 
 // Preserve the existing eval composition boundary; the DATA bridge imports this lazily.
 export { runReplayGate, serializeReplayGateReceipt, readLabelCalibration, readCalibrationGoldIdentity } from '@vostride/agent-qa-eval-local'
-// 2026-09-12 (422-17, D-14): the two READ-ONLY adversarial state readers, re-exported from the one
-// CLI file the surface-firewall ledger clears for `@vostride/agent-qa-eval-local`. `doctor` needs
-// them for its Learning-mode disclosure and reaches them by DEFERRED import through here, exactly
-// as `misdirection-tail.ts` reaches its replay legs — that ledger only ever shrinks, and a second
-// cleared file would be it growing. Both refuse tampered bytes by throwing; neither writes, and
-// neither creates a path.
+// The two read-only adversarial state readers, re-exported from the one CLI file the
+// surface-firewall ledger clears for `@vostride/agent-qa-eval-local`. Both refuse tampered bytes
+// by throwing; neither writes, and neither creates a path.
 export { listStagedAdversarial, readAdversarialRefreshRecords } from '@vostride/agent-qa-eval-local'
 export type { RunReplayGateInput, RunReplayGateResult } from '@vostride/agent-qa-eval-local'
 export type ReplayGateVerbResult = import('./gates/replay-gate-host.js').ReplayGateVerbResult & {

@@ -35,7 +35,6 @@ import {
   locateTargetCassettes,
   removalFlipsOutcome,
   resolveActiveRecordRemoval,
-  type FailingPathCandidateAuthorization,
   type ReplayBag,
 } from './replay-gate-composition.js'
 import { runCassetteReplay } from './replay-composition.js'
@@ -296,20 +295,9 @@ export interface AblateCanaryStepInput {
   k: number
   baseSeed: number
   replay: ReplayBag
-  /**
-   * 2026-09-12, 422 D-18: WHICH removal rule authorizes this ablation.
-   *
-   * ABSENT keeps 418's opt-in served-canary flag, which is what every canary caller means and
-   * what this function did unconditionally before — so no existing caller changes behaviour. The
-   * pre-analysis circularity arbiter passes a D-18 authorization INSTEAD, because its subject is
-   * an ORDINARY candidate that was never flagged a canary, and `resolveFailingPathCandidate`
-   * recomputes the failing step, the served membership and the brief identity from the run's own
-   * bytes before admitting it. The two are a sibling pair rather than one switch: the canary flag
-   * is an opt-in and the authorization is positive proof.
-   */
+  /** Which removal rule authorizes this ablation; absent keeps the opt-in served-canary flag. */
   admission?: {
     servedCanary?: true
-    failingPathCandidate?: FailingPathCandidateAuthorization
   }
 }
 export type CommittedCorpusDigestRead =
@@ -424,9 +412,6 @@ export async function ablateCanaryStep(
     cassette,
     recordId: input.recordId,
     ...(admission.servedCanary === undefined ? {} : { servedCanary: admission.servedCanary }),
-    ...(admission.failingPathCandidate === undefined
-      ? {}
-      : { failingPathCandidate: admission.failingPathCandidate }),
   })
   if (removal.kind === 'unavailable')
     return { kind: 'unavailable', reason: 'brief-line-not-found', detail: removal.reason }
@@ -471,9 +456,6 @@ export async function ablateCanaryStep(
       kind: 'active-record',
       ...(admission.servedCanary === undefined ? {} : { servedCanary: admission.servedCanary }),
     },
-    ...(admission.failingPathCandidate === undefined
-      ? {}
-      : { failingPathCandidate: admission.failingPathCandidate }),
     k: input.k,
     baseSeed: input.baseSeed,
     existing: { withRecord, withoutRecord },
