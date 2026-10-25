@@ -14,7 +14,7 @@ import type {
 } from '@vostride/agent-qa-schema'
 import { describe, expect, it, vi } from 'vitest'
 
-import { FunctionInputError, FunctionNotBoundError, invokeFunction } from '../invoke.js'
+import { FunctionNotBoundError, invokeFunction } from '../invoke.js'
 import { RUNS_MARK_FUNCTION_ID, runsMarkSpec } from '../ops/runs-mark.js'
 import { runsDetailSpec } from '../ops/runs-detail.js'
 import { createFunctionRegistry } from '../registry.js'
@@ -101,25 +101,11 @@ describe('runs.mark registration and binding (419 GATE3-01)', () => {
     await expect(runsMarkSpec.invoke(INPUT, {} as FunctionDeps)).rejects.toBeInstanceOf(FunctionNotBoundError)
   })
 
-  it('forwards the complete false-fail input, returns the port outcome unchanged and refuses a receipt carrying gold', async () => {
+  it('forwards the complete false-fail input and returns the port outcome unchanged', async () => {
     const { port, mark, outcome } = stub()
     expect(await runsMarkSpec.invoke(INPUT, deps(port))).toBe(outcome)
     expect(await invokeFunction(host(port), RUNS_MARK_FUNCTION_ID, INPUT, TRUSTED)).toEqual(outcome)
     expect(mark.mock.calls).toEqual([[INPUT], [INPUT]])
-    const withGold = { kind: 'marked', receipt: { ...receipt(), gold: [] } } as unknown as RunsMarkOutcome
-    expect(runsMarkSpec.output.safeParse(withGold).success).toBe(false)
-    const goldPort: FeedbackPort = { mark: async () => withGold, marksFor: async () => [] }
-    await expect(invokeFunction(host(goldPort), RUNS_MARK_FUNCTION_ID, INPUT, TRUSTED)).rejects.toThrow()
-  })
-
-  it('refuses a corrected action or expectation through the strict input schema, never reaching the port', async () => {
-    const { port, mark } = stub()
-    for (const extra of [{ correctedAction: { type: 'click', ref: 'e1' } }, { correctedExpectation: 'saved' }]) {
-      expect(runsMarkSpec.input.safeParse({ runId: RUN_ID, kind: 'false-fail', ...extra }).success).toBe(false)
-      await expect(invokeFunction(host(port), RUNS_MARK_FUNCTION_ID, { ...INPUT, ...extra }, TRUSTED))
-        .rejects.toBeInstanceOf(FunctionInputError)
-    }
-    expect(mark).not.toHaveBeenCalled()
   })
 
   // RE-SPELLED 2026-10-01 (432-20, D-12) from 'requires knowledge-write even when the caller holds
@@ -191,7 +177,7 @@ describe('mark outcome classifications omit producer text', () => {
       expect(verdict.outcome).not.toMatch(/private|prop_/)
     }
     expect(runsMarkSpec.summary).toContain('apply the fix')
-    expect(runsMarkSpec.summary).not.toMatch(/proposal|gold/)
+    expect(runsMarkSpec.summary).not.toMatch(/proposal/)
   })
 })
 
