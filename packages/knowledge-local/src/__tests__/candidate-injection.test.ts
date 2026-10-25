@@ -6,7 +6,7 @@ import { renderBriefLine, renderObservationLine } from '@vostride/agent-qa-runne
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import * as reader from '../reader.js'
 import { createPromotionFloorFixture } from '../curator/__tests__/fixtures/promotion-floor-fixture.js'
-import { assemblePromotionGateInput } from '../promotion-gate-input.js'
+import { candidateProvenanceOf } from '../promotion-gate-input.js'
 import { appendOutcomeEvent } from '../bundle-append.js'
 import { deriveBundleTrust, loadBundle } from '../bundle-read.js'
 import { publishBundle as publishBundleForTest } from '../bundle-publish.test-helper.js'
@@ -39,11 +39,7 @@ describe('417 candidate injection read', () => {
     expect(result.injection.target).toEqual({ runId: 'held-checkout-inj-run', stepIndex: 0,
       testId: 'held-checkout-inj-test', sourceBuildOrdinal: 42 })
     const { dir, bundle } = fixture.onlyBundle()
-    assemblePromotionGateInput({ knowledgeRoot, bundleDir: dir, bundle,
-      resolvePromotionPosture(candidate) {
-        expect(candidate.provenance).toEqual(result.injection.provenance)
-        return undefined
-      } })
+    expect(candidateProvenanceOf(dir, bundle)).toEqual(result.injection.provenance)
     expect(KnowledgeCandidateInjectionResultSchema.parse(result)).toEqual(result)
   })
 

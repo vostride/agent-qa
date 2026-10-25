@@ -356,7 +356,7 @@ describe('knowledge.gates.list', () => {
         candidateId: 'rec-1', promotionPath: 'deterministic-verdict-floor',
         citedReceiptDigests: [], producedAtOrdinal: 43, producedBy: { opId: 'promote' } })],
       standing: [], live: { verdict: 'promote', promotionPath: 'deterministic-verdict-floor',
-        citedReceiptDigests: [] }, posture: 'absent',
+        citedReceiptDigests: [] },
     }
     const deps = fakeDeps({ knowledge: fakeKnowledge({
       gateReceipts: ({ candidateId }) => {
@@ -637,7 +637,7 @@ describe('C432-ALL-OPS-AVAILABLE: the 432-27 gate read and auth writer serve eve
         candidateId: 'rec-1', promotionPath: 'deterministic-verdict-floor',
         citedReceiptDigests: [], producedAtOrdinal: 43, producedBy: { opId: 'promote' } })],
       standing: [], live: { verdict: 'promote', promotionPath: 'deterministic-verdict-floor',
-        citedReceiptDigests: [] }, posture: 'absent',
+        citedReceiptDigests: [] },
     }
     const candidates: string[] = []
     const fieldsSet: { path: string; value: unknown }[] = []

@@ -21,7 +21,7 @@ import {
   type ScopeKey,
   IMPROVEMENT_PLAN_SCHEMA_VERSION,
 } from '@vostride/agent-qa-schema'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { publishBundle, type BundleStoreConfig } from '../../bundle-publish.test-helper.js'
 import { loadBundle, readGateReceipts } from '../../bundle-read.js'
@@ -30,6 +30,7 @@ import { UserDeltaCitationIntegrityError } from '../../curator/disposition.js'
 import { createLocalKnowledgeStore } from '../../curator/knowledge-store.js'
 import { acquireWriterLease, releaseLease } from '../../lease/writer-lease.js'
 import { listBundles } from '../../list-bundles.js'
+import * as promotionGateInput from '../../promotion-gate-input.js'
 import {
   makeBundleDraftFixture,
   makeScreenStateFixture,
@@ -380,19 +381,6 @@ describe('432 direct explicit knowledge writer (D-04, D-05, D-08, D-09, D-11)', 
     expect(readGateReceipts(bundle(fixed).dir, fixed)?.filter(line => 'gate' in line && line.gate === 3)).toHaveLength(1)
   })
 
-  it('explicit ci authority keeps every promotion gate: an unavailable posture holds the fix as a candidate', async () => {
-    const victim = publish('held checkout')
-    const result = await explicit({ ...base('ci'), request: { verb: 'mark', input: markInput(victim) },
-      resolvePromotionPosture: () => ({ kind: 'unavailable', replayGateAvailable: false, refusals: ['floor missing'] }) })
-    if (result.outcome !== 'applied') throw new Error('mark did not apply')
-    const replacement = result.recordIds[0]!
-    expect(result.commitReceipt).toMatchObject({ promoted: [],
-      held: [{ candidateId: replacement, reason: 'posture-unavailable' }] })
-    expect(result.commitReceipt?.gate3).toHaveLength(1)
-    expect(status(replacement), 'a held fix is committed but not promoted').toBe('candidate')
-    expect(bundle(replacement).bundle.events.some(event => event.type === 'promoted')).toBe(false)
-  })
-
   it('an explicit accept over a tombstoned target refuses by type and moves no committed byte', async () => {
     const recordId = publish('tombstoned accept')
     const rejected = await explicit({ ...base('ci'), request: { verb: 'reject',
@@ -420,15 +408,18 @@ describe('432 direct explicit knowledge writer (D-04, D-05, D-08, D-09, D-11)', 
   it('recovers an interrupted mark on retry without a second lineage transition', async () => {
     const victim = publish('interrupted checkout')
     const request = { verb: 'mark' as const, input: markInput(victim) }
-    // The posture resolver is consulted by the gates; it fails only once the fix is durable, so
-    // the write stops between the committed supersession and its promotion.
-    await expect(explicit({ ...base('cloud'), request, resolvePromotionPosture: () => {
+    // Promotion assembles its gate input after the fix is durable, so failing that assembly once the
+    // victim is superseded stops the write between the committed supersession and its promotion.
+    const assemble = promotionGateInput.assemblePromotionGateInput
+    const interrupted = vi.spyOn(promotionGateInput, 'assemblePromotionGateInput').mockImplementation((input) => {
       if (status(victim) === 'superseded') throw new Error('injected interruption after the fix committed')
-      return undefined
-    } })).rejects.toThrow('injected interruption')
+      return assemble(input)
+    })
+    await expect(explicit({ ...base('cloud'), request })).rejects.toThrow('injected interruption')
+    interrupted.mockRestore()
     expect(status(victim)).toBe('superseded')
-    const interrupted = listBundles(knowledgeRoot).find(row => row.bundleId !== victim)!
-    expect(bundle(interrupted.bundleId).bundle.events.some(event => event.type === 'promoted')).toBe(false)
+    const fix = listBundles(knowledgeRoot).find(row => row.bundleId !== victim)!
+    expect(bundle(fix.bundleId).bundle.events.some(event => event.type === 'promoted')).toBe(false)
     const retried = await explicit({ ...base('cloud'), request })
     if (retried.outcome !== 'applied') throw new Error('retry did not apply')
     expect(retried.commitReceipt?.promoted).toEqual([{ candidateId: retried.recordIds[0], promotionPath: 'user-sovereign' }])

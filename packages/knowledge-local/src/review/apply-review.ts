@@ -50,7 +50,6 @@ import type {
   KnowledgeReviewVerb,
   KnowledgeTargetRef,
   MarkChangeStamp,
-  ResolvePromotionPosture,
   TrustPriorTable,
 } from '@vostride/agent-qa-schema'
 
@@ -131,7 +130,6 @@ interface ReviewWriter {
   readonly executionContext: ExecutionContext
   /** Stamped as a Gate-3 receipt's `producedBy.opId`: the op that made this explicit change. */
   readonly opId: string
-  readonly resolvePromotionPosture?: ResolvePromotionPosture
   readonly resolveTrustPriors?: () => TrustPriorTable | undefined
   readonly now?: () => number
 }
@@ -335,9 +333,6 @@ function reviewStore(
     writerLeaseId: lease.leaseId,
     ...(change.mark === undefined ? {} : { sourceRunId: change.mark.runId }),
     ...(sourceBuildOrdinal === undefined ? {} : { sourceBuildOrdinal }),
-    ...(writer.resolvePromotionPosture === undefined
-      ? {}
-      : { resolvePromotionPosture: writer.resolvePromotionPosture }),
     ...(writer.resolveTrustPriors === undefined
       ? {}
       : { resolveTrustPriors: writer.resolveTrustPriors }),
@@ -744,7 +739,6 @@ export interface ApplyExplicitReviewInput {
   readonly resolveBundleShortId?: ResolveBundleShortId
   readonly delegate?: ExplicitReviewDelegate
   readonly writerAuthority?: WriterAuthority
-  readonly resolvePromotionPosture?: ResolvePromotionPosture
   readonly resolveTrustPriors?: () => TrustPriorTable | undefined
   readonly now?: () => number
   readonly delegateTimeoutMs?: number
@@ -853,9 +847,6 @@ export async function applyExplicitReview(input: ApplyExplicitReviewInput): Prom
     knowledgeRoot: input.knowledgeRoot,
     executionContext: input.executionContext,
     opId: input.opId,
-    ...(input.resolvePromotionPosture === undefined
-      ? {}
-      : { resolvePromotionPosture: input.resolvePromotionPosture }),
     ...(input.resolveTrustPriors === undefined ? {} : { resolveTrustPriors: () => priors }),
     ...(input.now === undefined ? {} : { now: input.now }),
   }

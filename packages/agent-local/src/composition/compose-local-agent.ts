@@ -214,7 +214,6 @@ import type {
   MaskFn,
   PromotionOutcome,
   RecordId,
-  ResolvePromotionPosture,
   FunctionCaller,
   JobKind,
   QuarantineEntryStateName,
@@ -479,7 +478,7 @@ export interface LocalKnowledgeMaintenanceCapabilities {
 }
 
 interface ReceiptWriterInput extends Pick<CreateLocalKnowledgeStoreConfig,
-  'knowledgeRoot' | 'executionContext' | 'resolvePromotionPosture' | 'resolveTrustPriors' | 'sourceBuildOrdinal' | 'sourceRunId'> {
+  'knowledgeRoot' | 'executionContext' | 'resolveTrustPriors' | 'sourceBuildOrdinal' | 'sourceRunId'> {
   /** The caller already holds this authority; these capabilities never acquire a lease. */
   lease: { leaseId: string; epoch: number }
 }
@@ -500,7 +499,6 @@ function receiptWriter(input: ReceiptWriterInput) {
     writerLeaseId: input.lease.leaseId,
     epoch: input.lease.epoch,
     ...(input.resolveTrustPriors === undefined ? {} : { resolveTrustPriors: input.resolveTrustPriors }),
-    ...(input.resolvePromotionPosture === undefined ? {} : { resolvePromotionPosture: input.resolvePromotionPosture }),
     ...(input.sourceBuildOrdinal === undefined ? {} : { sourceBuildOrdinal: input.sourceBuildOrdinal }),
     ...(input.sourceRunId === undefined ? {} : { sourceRunId: input.sourceRunId }),
   })
@@ -799,13 +797,11 @@ export function createRunsReader(agentQaRoot: string): RunsReaderPort {
 export function createKnowledgeReader(
   resolveKnowledgeRoot: () => Promise<string> | string,
   sightMemoryEntities?: SightMemoryEntities,
-  resolvePromotionPosture?: () => Promise<ResolvePromotionPosture | undefined>,
   resolveTrustPriors?: CreateLocalKnowledgeStoreConfig['resolveTrustPriors'],
 ): KnowledgeReaderPort {
   return createKnowledgeReaderPort({
     resolveKnowledgeRoot,
     ...(resolveTrustPriors === undefined ? {} : { resolveTrustPriors }),
-    ...(resolvePromotionPosture === undefined ? {} : { resolvePromotionPosture }),
     ...(sightMemoryEntities === undefined ? {} : { sightMemoryEntities }),
   })
 }
@@ -814,7 +810,6 @@ export function createKnowledgeReader(
 
 export interface CreateKnowledgeReviewInput {
   readonly resolveTrustPriors?: CreateLocalKnowledgeStoreConfig['resolveTrustPriors']
-  readonly resolvePromotionPosture?: () => Promise<ResolvePromotionPosture | undefined>
   readonly agentQaRoot: string
   readonly resolveKnowledgeRoot: () => Promise<string> | string
   /**
@@ -909,9 +904,6 @@ export function createKnowledgeReview(input: CreateKnowledgeReviewInput): Knowle
         opId: `knowledge.${request.verb}`,
         executionContext: (input.resolveExecutionContext ?? getActiveExecutionContext)(),
         ...(input.resolveTrustPriors === undefined ? {} : { resolveTrustPriors: input.resolveTrustPriors }),
-        ...(input.resolvePromotionPosture === undefined
-          ? {}
-          : { resolvePromotionPosture: input.resolvePromotionPosture }),
         ...(input.knowledgeChangeDelegate === undefined ? {} : { delegate: input.knowledgeChangeDelegate }),
         ...(authority === undefined ? {} : { writerAuthority: authority }),
       })
@@ -936,7 +928,6 @@ export interface ApplyKnowledgeChangeInput {
   /** The caller's actual context, recorded as-is. An explicit change applies in every context. */
   readonly executionContext: ExecutionContext
   readonly resolveTrustPriors?: CreateLocalKnowledgeStoreConfig['resolveTrustPriors']
-  readonly resolvePromotionPosture?: () => Promise<ResolvePromotionPosture | undefined>
   /**
    * How this host reaches a live writer-lease holder. The holder receives exactly the validated
    * request and identity, bounded; the lease is never taken. Absent, a held lease refuses by name.
@@ -951,7 +942,6 @@ export interface ApplyKnowledgeChangeInput {
  * resolver. Nothing is filed: the change is committed, or it is refused by type.
  */
 export async function applyKnowledgeChange(input: ApplyKnowledgeChangeInput): Promise<ExplicitReviewResult> {
-  const posture = await input.resolvePromotionPosture?.()
   const ledger = openAddressingLedgerForReview({
     path: join(input.agentQaRoot, ADDRESSING_LEDGER_DB_FILE),
   })
@@ -965,7 +955,6 @@ export async function applyKnowledgeChange(input: ApplyKnowledgeChangeInput): Pr
       executionContext: input.executionContext,
       resolveBundleShortId: (shortId) => ledger.lookupByShortId(shortId)?.machineId,
       ...(input.resolveTrustPriors === undefined ? {} : { resolveTrustPriors: input.resolveTrustPriors }),
-      ...(posture === undefined ? {} : { resolvePromotionPosture: posture }),
       ...(input.delegate === undefined ? {} : { delegate: input.delegate }),
       ...(input.writerAuthority === undefined ? {} : { writerAuthority: input.writerAuthority }),
     })
@@ -1733,8 +1722,6 @@ export interface ComposeLocalAgentInput {
    * and runs.mark.preview unbound by name, and a port without `preview` leaves only the preview unbound.
    */
   readonly feedbackReads?: FeedbackReadsPort
-  /** DATA across the wall: host preparation may await; candidate evaluation is synchronous. */
-  readonly resolvePromotionPosture?: () => Promise<ResolvePromotionPosture | undefined>
   /** The project's runtime root, i.e. `<configDir>/.agent-qa`. Absolute. */
   readonly agentQaRoot: string
   /**
@@ -2941,7 +2928,6 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
       knowledge: createKnowledgeReader(
         input.knowledgeRoot,
         createMemorySightingHook(entityResolutionInput),
-        input.resolvePromotionPosture,
         input.resolveTrustPriors,
       ),
       config: input.config,
@@ -2952,8 +2938,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
       // verbs as `unbound` BY NAME rather than as a hole in the catalogue.
       knowledgeReview: createKnowledgeReview({
         ...(input.resolveTrustPriors === undefined ? {} : { resolveTrustPriors: input.resolveTrustPriors }),
-        ...(input.resolvePromotionPosture === undefined ? {} : { resolvePromotionPosture: input.resolvePromotionPosture }),
-        agentQaRoot: input.agentQaRoot,
+            agentQaRoot: input.agentQaRoot,
         resolveKnowledgeRoot: input.knowledgeRoot,
         ...(input.knowledgeChangeDelegate === undefined
           ? {}

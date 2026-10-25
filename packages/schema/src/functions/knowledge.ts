@@ -147,7 +147,6 @@ export const KnowledgeGatesListResultSchema = z.discriminatedUnion('kind', [
     lines: z.array(GateLineSchema),
     standing: z.array(GateReceiptSchema),
     live: PromotionGateVerdictSchema,
-    posture: z.enum(['absent', 'resolved', 'unavailable']),
   }).strict(),
 ])
 export type KnowledgeGatesListInput = z.infer<typeof KnowledgeGatesListInputSchema>

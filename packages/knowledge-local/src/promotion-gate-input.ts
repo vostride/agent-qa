@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs'
-import { basename, dirname, join } from 'node:path'
+import { join } from 'node:path'
 
 import {
   canonicalJson,
@@ -9,7 +9,7 @@ import {
   survivingOutcomeEvents,
   supersessionKey,
 } from '@vostride/agent-qa-schema'
-import type { GateReceipt, PromotionCandidateProvenance, PromotionGateInput, ResolvePromotionPosture, TrustPriorTable } from '@vostride/agent-qa-schema'
+import type { GateReceipt, PromotionCandidateProvenance, PromotionGateInput, TrustPriorTable } from '@vostride/agent-qa-schema'
 
 import { deriveBundleTrust, readGateReceipts } from './bundle-read.js'
 import type { LoadedBundle } from './bundle-read.js'
@@ -58,7 +58,7 @@ function memoryOffForBundle(
 }
 
 /**
- * D-16/D-17 one durable evidence assembly for both admission and later promote().
+ * One durable evidence assembly for both admission and later promote().
  * The pure schema gate remains the only verdict authority; this storage-side view
  * performs strict loading and folds current canonical truth without index authority.
  */
@@ -66,7 +66,6 @@ export function assemblePromotionGateInput(input: {
   knowledgeRoot: string
   bundleDir: string
   bundle: LoadedBundle
-  resolvePromotionPosture?: ResolvePromotionPosture
   priors?: TrustPriorTable
 }): PromotionGateInput {
   const trust = deriveBundleTrust(input.bundle, input.priors)
@@ -75,16 +74,8 @@ export function assemblePromotionGateInput(input: {
     ? input.bundle.provenance
     : undefined
   const gateLines = readGateReceipts(input.bundleDir, input.bundle.manifest.id) ?? []
-  const provenance = candidateProvenanceOf(input.bundleDir, input.bundle)
-  const posture = input.resolvePromotionPosture?.({
-    id: input.bundle.manifest.id,
-    product: basename(dirname(dirname(input.bundleDir))),
-    scope: input.bundle.frontmatter.scope,
-    provenance,
-  })
   return {
     gateReceipts: gateLines.filter((line): line is GateReceipt => !isPromotionReceipt(line)),
-    ...(posture === undefined ? {} : { gatePosture: posture }),
     kind: input.bundle.frontmatter.kind,
     ...(input.bundle.frontmatter.subtype === undefined
       ? {}
@@ -108,7 +99,7 @@ export function assemblePromotionGateInput(input: {
   }
 }
 
-/** 2026-09-07, 417 D-01: one provenance assembly shared by promotion and the candidate read. */
+/** The provenance the candidate read reports for a bundle. */
 export function candidateProvenanceOf(
   bundleDir: string,
   bundle: LoadedBundle,

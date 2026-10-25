@@ -29,7 +29,7 @@ import {
   showRecords,
 } from '@vostride/agent-qa-knowledge-local/reader'
 import type { KnowledgeReaderPort } from '@vostride/agent-qa-agent'
-import type { ResolvePromotionPosture, TrustPriorTable } from '@vostride/agent-qa-schema'
+import type { TrustPriorTable } from '@vostride/agent-qa-schema'
 
 /**
  * Hand every entity id an output surfaced to the addressing ledger's sighting seam.
@@ -51,8 +51,6 @@ export interface ConstructKnowledgeReaderPortInput {
    * makes differently from a terminal.
    */
   resolveKnowledgeRoot: () => Promise<string> | string
-  /** Host preparation may await; the returned per-candidate resolver is synchronous. */
-  resolvePromotionPosture?: () => Promise<ResolvePromotionPosture | undefined> | ResolvePromotionPosture | undefined
   /** The D-01 sighting site. Absent in hosts that bind no addressing ledger. */
   sightMemoryEntities?: SightMemoryEntities
 }
@@ -78,12 +76,11 @@ export function createKnowledgeReaderPort(
         knowledgeRoot: await input.resolveKnowledgeRoot(), candidateId,
       })
     },
-    // 416 D-17: the caller supplied the identity; forward the reader's answer verbatim.
+    // The caller supplied the identity; forward the reader's answer verbatim.
     async gateReceipts({ candidateId }) {
       return gateReceiptsFor({
         knowledgeRoot: await input.resolveKnowledgeRoot(),
         candidateId,
-        resolvePromotionPosture: await input.resolvePromotionPosture?.(),
       })
     },
     async listBundles() {

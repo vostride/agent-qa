@@ -40,7 +40,6 @@ import {
 import { canaryOutcomeObservationId } from '../disposition.js'
 import { createLocalKnowledgeStore } from '../knowledge-store.js'
 import { openKnowledgeReader } from '../../index-reader.js'
-import { resolvedPromotionPosture } from './fixtures/promotion-floor-fixture.js'
 
 const FACT_ANCHORS = [
   { t: 'el', role: 'button', name: 'Checkout', ordinal: 0 },
@@ -247,20 +246,6 @@ describe('canary outcome deterministic disposition', () => {
       status: replayed.trust.status,
     })).toBe(firstEvidence)
     expect(replayed.trust.counters.confirmed).toBe(1)
-  })
-
-  it('retains the positive Confirm while a planted replay binding holds promotion', async () => {
-    const published = seedCandidate()
-    const onPromotionOutcome = vi.fn()
-    const gated = createLocalKnowledgeStore({ knowledgeRoot,
-      executionContext: 'local-interactive', sourceBuildOrdinal: 43,
-      ...portAuthority(), resolvePromotionPosture: () => resolvedPromotionPosture(), onPromotionOutcome })
-    await gated.recordCanaryOutcome(outcome(published.id))
-    const result = loaded(published.dir)
-    expect(result.bundle.events.filter(event => event.type === 'confirmed')).toHaveLength(1)
-    expect(result.bundle.events.filter(event => event.type === 'promoted')).toHaveLength(0)
-    expect(result.trust.status).toBe('candidate')
-    expect(onPromotionOutcome).toHaveBeenCalledExactlyOnceWith({ candidateId: published.id, promotionHoldReason: 'gate1-receipt-required' })
   })
 
   it('appends replay-safe negative evidence through the existing trust disposition', async () => {

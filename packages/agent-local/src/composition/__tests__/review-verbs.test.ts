@@ -37,10 +37,8 @@ import type {
   ForgetReceiptV1,
   KnowledgeChangeOutput,
   MaskedResolvedConfig,
-  ResolvePromotionPosture,
 } from '@vostride/agent-qa-schema'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createKnowledgeReaderPort } from '../knowledge-review-reader.js'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import {
   createEntityDirectory,
@@ -156,8 +154,7 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
     get: () => Promise.resolve(undefined),
   }
 
-  function registry(withReview: boolean, entities: EntityDirectoryPort = STUB_ENTITIES,
-    resolvePromotionPosture?: () => Promise<ResolvePromotionPosture | undefined>): FunctionRegistry {
+  function registry(withReview: boolean, entities: EntityDirectoryPort = STUB_ENTITIES): FunctionRegistry {
     return createFunctionRegistry({
       deps: {
         runs: createRunsReader(agentQaRoot),
@@ -170,7 +167,6 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
               knowledgeReview: createKnowledgeReview({
                 agentQaRoot,
                 resolveKnowledgeRoot: () => knowledgeRoot,
-                ...(resolvePromotionPosture ? { resolvePromotionPosture } : {}),
               }),
             }
           : {}),
@@ -225,9 +221,7 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
 
   it('the SAME four ids are bound and reach the store when a review port is supplied', async () => {
     const recordId = publish()
-    const factory = vi.fn(async () => undefined)
-    const host = registry(true, STUB_ENTITIES, factory)
-    expect(factory).not.toHaveBeenCalled()
+    const host = registry(true)
     approveApply(host)
 
     for (const id of MUTATING_FUNCTION_IDS) {
@@ -247,7 +241,6 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
     ) as KnowledgeChangeOutput
 
     if (applied.outcome !== 'applied') throw new Error(`expected an applied forget, got ${applied.outcome}`)
-    expect(factory).toHaveBeenCalledOnce()
     const receipt = applied.forgetReceipt as ForgetReceiptV1
     expect(receipt.tombstonedRecords.map((row) => row.recordId)).toEqual([recordId])
     // Tombstoned, never destroyed — the record is still enumerable, saying what happened to it.
@@ -616,25 +609,5 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
 
     // And the root is resolved PER CALL, like its four siblings.
     expect(resolved).toBe(2)
-  })
-
-  it('416 D-18 awaits the lazy posture factory for every gates read', async () => {
-    const candidateId = publish()
-    const resolver = vi.fn<ResolvePromotionPosture>(() => ({
-      kind: 'resolved', replayGateAvailable: true, gateSetNonEmpty: true, gateSetVerdict: 'ok',
-      corpusDigest: 'c'.repeat(64), minimumGateSet: 1,
-      counts: { natural: 1, heldOutShared: 1, heldOutPrivate: 0, adversarial: 0, excludedCount: 0 },
-      scope: { partition: 'review-verbs', resolution: 'product-key' },
-      judge: { capable: true, reason: 'eligible' },
-      canary: { kind: 'not-provided', rarePathEligible: false },
-    }))
-    const factory = vi.fn(async () => resolver)
-    const port = createKnowledgeReaderPort({ resolveKnowledgeRoot: () => knowledgeRoot,
-      resolvePromotionPosture: factory })
-    expect(factory).not.toHaveBeenCalled()
-    expect(await port.gateReceipts!({ candidateId })).toMatchObject({ posture: 'resolved' })
-    expect(await port.gateReceipts!({ candidateId })).toMatchObject({ posture: 'resolved' })
-    expect(factory).toHaveBeenCalledTimes(2)
-    expect(resolver).toHaveBeenCalledTimes(2)
   })
 })

@@ -1,24 +1,11 @@
 // 2026-09-06, 416 D-06: shared pristine v51 acceptance builders.
-import { DISTILLED_OBSERVATION_SCHEMA_VERSION, GATE_RECEIPT_SCHEMA_VERSION, stampReceiptDigest, type Gate1Receipt, type GateVerdict, type Anchor, type BundleDraft, type DistilledObservation, type ExecutionContext, type ResolvedPromotionGatePosture } from '@vostride/agent-qa-schema'
+import { DISTILLED_OBSERVATION_SCHEMA_VERSION, GATE_RECEIPT_SCHEMA_VERSION, stampReceiptDigest, type Gate1Receipt, type GateVerdict, type Anchor, type BundleDraft, type DistilledObservation, type ExecutionContext } from '@vostride/agent-qa-schema'
 import { expect, vi } from 'vitest'
 import { createLocalKnowledgeStore, drainQueue, enumerateBundleDirs, loadBundle, type BundleStoreConfig, type CuratorAuthor, type DrainOptions, type LoadedBundle } from '../../../index.js'
 import { publishBundle } from '../../../bundle-publish.test-helper.js'
 import { enqueueArtifactFreeCandidateProjection, type ArtifactFreeCandidateProjectionInput } from '../../../__tests__/fixtures/curation-candidate-fixture.js'
 import { acquireWriterLease } from '../../../lease/writer-lease.js'
 const NO_INDEX_MAINTENANCE = { indexAbsent: false, pendingEmbeddings: 0, renderingEpochStale: false, vectorReconciliationOutstanding: false } as const
-export function resolvedPromotionPosture(
-  overrides: Partial<ResolvedPromotionGatePosture> = {},
-): ResolvedPromotionGatePosture {
-  return {
-    kind: 'resolved', replayGateAvailable: true, gateSetNonEmpty: true, gateSetVerdict: 'ok',
-    corpusDigest: 'c'.repeat(64), minimumGateSet: 1,
-    counts: { natural: 1, heldOutShared: 1, heldOutPrivate: 0, adversarial: 0, excludedCount: 0 },
-    scope: { partition: 'storefront', resolution: 'product-key' },
-    judge: { capable: true, reason: 'eligible' },
-    canary: { kind: 'not-provided', rarePathEligible: false },
-    ...overrides,
-  }
-}
 // 416-02: additive receipt builder; the pristine v51 builders below stay byte-identical.
 export function completeGate1Receipt(
   candidateId: string,

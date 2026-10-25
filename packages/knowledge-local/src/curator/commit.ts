@@ -22,7 +22,6 @@ import type {
   PromotionGateHoldReason,
   PromotionPath,
   RecordId,
-  ResolvePromotionPosture,
   ScreenState,
   TrustPriorTable,
 } from '@vostride/agent-qa-schema'
@@ -108,8 +107,6 @@ export interface CommitCurationDependencies {
   epoch: number
   profile: DispositionProfile
   drainState: DispositionDrainState
-  /** Host-resolved posture as data; absent means the v51 floor. */
-  resolvePromotionPosture?: ResolvePromotionPosture
   priors?: TrustPriorTable
   /**
    * Multi-delta disposal (D-02): when set, terminal paths skip queue completion so the
@@ -1223,10 +1220,10 @@ export function commitCurationDelta(
               && !(disposed.kind === 'apply' && disposed.bornActive === true)
             ) {
               /**
-               * D-16: candidate is the exception bucket, not a waiting room. Admission
+               * Candidate is the exception bucket, not a waiting room. Admission
                * always writes candidate first; this immediate stricter re-check makes
-               * clean facts active in the same drain. D-02 is flat: propose-only never
-               * reaches this branch, and promote() re-evaluates posture at call time.
+               * clean facts active in the same drain. Propose-only never reaches this
+               * branch, and promote() re-evaluates the gate at call time.
                */
               const promotionBundleDir = bundleDir
               const loaded = promotionBundleDir === undefined
@@ -1242,9 +1239,6 @@ export function commitCurationDelta(
                 bundleDir: promotionBundleDir,
                 bundle: loaded.bundle,
                 ...(deps.priors === undefined ? {} : { priors: deps.priors }),
-                ...(deps.resolvePromotionPosture === undefined
-                  ? {}
-                  : { resolvePromotionPosture: deps.resolvePromotionPosture }),
               }))
               if (gate.verdict === 'promote') {
                 const promoted = appendOutcomeEvent(config, published.id, {

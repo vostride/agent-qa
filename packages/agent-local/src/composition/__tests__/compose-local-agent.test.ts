@@ -54,7 +54,7 @@ import type {
   StepEvidence,
 } from '@vostride/agent-qa-schema'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createPromotionFloorFixture, completeGate1Receipt, resolvedPromotionPosture } from './fixtures/promotion-capabilities.js'
+import { createPromotionFloorFixture, completeGate1Receipt } from './fixtures/promotion-capabilities.js'
 
 import { writeAnalysisArtifact } from '../../analysis/persist-analysis.js'
 import { AGENT_JOB_STORE_DB_FILE } from '../../store/sqlite-job-store.js'
@@ -154,7 +154,6 @@ describe('composeLocalAgent (D-15)', () => {
       jobKinds?: JobKindRegistry
       runExecution?: RunExecutionPort
       knowledgeRoot?: () => Promise<string> | string
-      resolvePromotionPosture?: ComposeLocalAgentInput['resolvePromotionPosture']
       feedback?: ComposeLocalAgentInput['feedback']
     } = {},
   ): LocalAgentHost {
@@ -283,24 +282,6 @@ describe('composeLocalAgent (D-15)', () => {
       expect(readGateReceipts(published.dir, published.id)).toHaveLength(2)
     } finally {
       LOCAL_CURATION_CAPABILITIES.maintenance.releaseLease({ knowledgeRoot, leaseId: lease.leaseId })
-    }
-  })
-
-  it('416 forwards the host posture factory through composition to the gates reader', async () => {
-    const knowledgeRoot = join(root, 'knowledge')
-    const fixture = createPromotionFloorFixture({ knowledgeRoot })
-    const { published } = fixture.publishHeldCandidate('reader-composition')
-    const resolver = vi.fn(() => resolvedPromotionPosture({ replayGateAvailable: false }))
-    const factory = vi.fn(async () => resolver)
-    const composed = compose({ resolvePromotionPosture: factory })
-    try {
-      expect(factory).not.toHaveBeenCalled()
-      const result = await invokeFunction(composed.registry, 'knowledge.gates.list', { recordId: published.id }, CALLER)
-      expect(result).toMatchObject({ posture: 'resolved' })
-      expect(factory).toHaveBeenCalledOnce()
-      expect(resolver).toHaveBeenCalledWith(expect.objectContaining({ id: published.id }))
-    } finally {
-      await composed.close()
     }
   })
 

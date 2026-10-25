@@ -29,7 +29,6 @@ import type {
   PromotionOutcome,
   PromotionPath,
   RecordId,
-  ResolvePromotionPosture,
   ScreenState,
   TrustPriorTable,
 } from '@vostride/agent-qa-schema'
@@ -106,7 +105,6 @@ export interface CreateLocalKnowledgeStoreConfig {
   /** 2026-09-07, 418 D-07: queue entry identity stamped as producedBy.jobId. */
   sourceJobId?: string
   screenStates?: readonly ScreenState[]
-  resolvePromotionPosture?: ResolvePromotionPosture
   /** Resolved once at construction; only neutral immutable data reaches folds and projections. */
   resolveTrustPriors?: () => TrustPriorTable | undefined
   onPromotionOutcome?: (report: PromotionOutcomeReport) => void
@@ -537,7 +535,6 @@ function buildLocalKnowledgeStore(
         knowledgeRoot: config.knowledgeRoot,
         bundleDir: resolved.bundleDir,
         bundle: resolved.bundle,
-        resolvePromotionPosture: config.resolvePromotionPosture,
         ...(priors === undefined ? {} : { priors }),
       })
       const setAside = foldBundleTrust(
@@ -613,7 +610,6 @@ function buildLocalKnowledgeStore(
       knowledgeRoot: config.knowledgeRoot,
       bundleDir: resolved.bundleDir,
       bundle: resolved.bundle,
-      resolvePromotionPosture: config.resolvePromotionPosture,
       ...(priors === undefined ? {} : { priors }),
     }))
     if (gate.verdict === 'hold') {
@@ -689,9 +685,6 @@ function buildLocalKnowledgeStore(
           profile,
           drainState,
           ...(priors === undefined ? {} : { priors }),
-          ...(config.resolvePromotionPosture === undefined
-            ? {}
-            : { resolvePromotionPosture: config.resolvePromotionPosture }),
         },
         job,
         checkpoint,

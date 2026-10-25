@@ -10,7 +10,6 @@ import {
   type IndexEntry,
   type PromotionGateHoldReason,
   type PromotionPath,
-  type ResolvePromotionPosture,
   type TrustPriorTable,
   type CurationSnapshot,
   type CurationSnapshotChange,
@@ -255,8 +254,6 @@ export interface DrainOptions {
   executionContext: ExecutionContext
   /** Host-resolved posture; daemon sessions pass worker-required capability here. */
   embeddingCapability?: AcquireEmbedderOutcome
-  /** Built once per drain on the host; synchronous per candidate inside the gate. */
-  resolvePromotionPosture?: ResolvePromotionPosture
   /** Already-resolved host snapshot; the host retains this data across queue retries. */
   priors?: TrustPriorTable
   /** Default inline preserves one-shot behavior; daemon sessions skip for their own cadence. */
@@ -1005,9 +1002,6 @@ export async function drainQueue(options: DrainOptions): Promise<DrainReport> {
             sourceJobId: claimed.candidateId,
             writerLeaseId: lease.leaseId,
             ...(priors === undefined ? {} : { resolveTrustPriors: () => priors }),
-            ...(options.resolvePromotionPosture === undefined
-              ? {}
-              : { resolvePromotionPosture: options.resolvePromotionPosture }),
             onPromotionOutcome: outcome => result.promotions.push(outcome),
             /**
              * CR-02: the terminal transition joins the canary tail's own held section through
@@ -1147,9 +1141,6 @@ export async function drainQueue(options: DrainOptions): Promise<DrainReport> {
               profile: resolveDispositionProfile(executionContext),
               drainState,
               ...(priors === undefined ? {} : { priors }),
-              ...(options.resolvePromotionPosture === undefined
-                ? {}
-                : { resolvePromotionPosture: options.resolvePromotionPosture }),
               ...(!finalDelta || anySliceFailed ? { deferCompletion: true } : {}),
             },
             claimed,

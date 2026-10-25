@@ -36,14 +36,13 @@ describe('416 lazy journaled gate part', () => {
       kind: 'found', recordId: published.id, product: 'storefront', recordKind: 'fact',
       status: 'candidate', lines: [], standing: [],
       live: { verdict: 'promote', promotionPath: 'deterministic-verdict-floor', citedReceiptDigests: [] },
-      posture: 'absent',
     })
     await store.promote(published.id)
     expect(gateReceiptsFor({ knowledgeRoot, candidateId: published.id })).toEqual({
       kind: 'found', recordId: published.id, product: 'storefront', recordKind: 'fact',
       status: 'active', strongestPromotionPath: 'deterministic-verdict-floor',
       lines: readGateReceipts(published.dir, published.id), standing: [],
-      live: { verdict: 'hold', reason: 'not-candidate' }, posture: 'absent',
+      live: { verdict: 'hold', reason: 'not-candidate' },
     })
   })
   it('promotes with one receipt and event, then answers already-active; receipts dedup by digest', async () => {
