@@ -23,7 +23,7 @@ function stored(): Record<string, unknown> {
   }
 }
 
-describe('guardRunNotification reads only the current stamp', () => {
+describe('guardRunNotification reads only the current stamp and shape', () => {
   it('accepts a current record unchanged', () => {
     const current = stored()
     const before = JSON.stringify(current)
@@ -56,6 +56,46 @@ describe('guardRunNotification reads only the current stamp', () => {
     expect(() => guardRunNotification(smuggled)).toThrow(
       /its stage set is \["analysis","curation","extra"\]/u,
     )
+  })
+
+  it.each(['DONE', '', 'done ', 'skipped', 'not-recorded'])(
+    'refuses a curation stage status %j, naming the stage',
+    (status) => {
+      const bad = { ...stored(), stages: { analysis: { status: 'done' }, curation: { status } } }
+
+      expect(() => guardRunNotification(bad)).toThrow(RunNotificationSchemaError)
+      expect(() => guardRunNotification(bad)).toThrow(/its curation stage reports no outcome/u)
+    },
+  )
+
+  it('refuses an analysis stage status outside done and failed', () => {
+    const bad = {
+      ...stored(),
+      stages: { analysis: { status: 'skipped' }, curation: { status: 'done' } },
+    }
+
+    expect(() => guardRunNotification(bad)).toThrow(/its analysis stage reports no outcome/u)
+  })
+
+  it('refuses the chain outcome partial', () => {
+    const bad = { ...stored(), outcome: 'partial' }
+
+    expect(() => guardRunNotification(bad)).toThrow(RunNotificationSchemaError)
+    expect(() => guardRunNotification(bad)).toThrow(/partial is not a chain outcome/u)
+  })
+
+  it('refuses a record missing its curation stage, naming the set', () => {
+    const bad = { ...stored(), stages: { analysis: { status: 'done' } } }
+
+    expect(() => guardRunNotification(bad)).toThrow(RunNotificationSchemaError)
+    expect(() => guardRunNotification(bad)).toThrow(/its stage set is \["analysis"\]/u)
+  })
+
+  it('refuses a top-level field beside the five the record carries, naming the set', () => {
+    const bad = { ...stored(), note: 'anything' }
+
+    expect(() => guardRunNotification(bad)).toThrow(RunNotificationSchemaError)
+    expect(() => guardRunNotification(bad)).toThrow(/its field set is \[[^\]]*"note"/u)
   })
 
   it('stamps 2 and registers no migration step', () => {
