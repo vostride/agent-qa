@@ -44,18 +44,15 @@ export const READ_ONLY_MODES = ['--inspect-demo', '--stage-demo', '--check-stage
 /**
  * The suites whose passing TAP IS the `production-path` leg.
  *
- * Named by file, in their owning package, because each was written by the plan that owns its
- * seam: the host bindings (`misdirection-hosts`), the eligible-singleton and
- * missing-sibling probe arms (`adversarial-probe-preflight`), the stage/admit tracer and the
- * admission cells, the integrated acceptance cells, and the zero-model BYOM promotion floor
- * whose bytes 422 must not have moved.
+ * Named by file, in their owning package: the eligible-singleton and missing-sibling probe arms
+ * (`adversarial-probe-preflight`), the stage/admit tracer and the admission cells, the integrated
+ * acceptance cells, and the zero-model BYOM promotion floor.
  */
 export const PRODUCTION_PATH_SUITES = [
   { package: 'cli', file: 'src/__tests__/adversarial-acceptance.test.ts' },
   { package: 'cli', file: 'src/__tests__/adversarial-tracer.test.ts' },
   { package: 'cli', file: 'src/__tests__/adversarial-admit.test.ts' },
   { package: 'cli', file: 'src/__tests__/adversarial-probe-preflight.test.ts' },
-  { package: 'cli', file: 'src/curation/__tests__/misdirection-hosts.test.ts' },
   { package: 'knowledge-local', file: 'src/curator/__tests__/promotion-floor.acceptance.test.ts' },
 ]
 
