@@ -82,7 +82,6 @@ const NOTIFICATION: RunNotification = {
   stages: {
     analysis: { status: 'done' },
     curation: { status: 'done', curated: 3, deprecated: 1 },
-    proposals: { status: 'done', proposed: 2, skipped: 1 },
   },
 }
 
@@ -297,7 +296,7 @@ describe('C444-STAGE-WORDS', () => {
 })
 
 describe('the runs.postProcessing op (D-14/D-15)', () => {
-  it('asks the port for exactly the three ids chainJobIdsForRun derives', async () => {
+  it('asks the port for exactly the ids chainJobIdsForRun derives', async () => {
     const reader = recordingReader({})
     await invokeFunction(
       registryWith(reader.port),
@@ -311,13 +310,7 @@ describe('the runs.postProcessing op (D-14/D-15)', () => {
     expect(reader.asked[0]?.ids).toEqual(chainJobIdsForRun(RUN_ID, TEST_ID_SOURCE))
     // Both sides of the line above DERIVE, so on its own it would agree with a chain of any
     // width. The literal is what makes the cell a pin rather than a tautology.
-    //
-    // 2026-09-11 (422 D-13): three ids, still TWO chips. The reader is handed the whole chain
-    // it is reading — deriving a partial chain here would make this op a second, narrower
-    // opinion about what a run's chain IS — and the projection below stays two-wide because
-    // the chip vocabulary is a published surface this phase did not widen.
-    expect(Object.keys(reader.asked[0]!.ids).sort())
-      .toEqual(['analyzeRun', 'curateMemory', 'proposeImprovements'])
+    expect(Object.keys(reader.asked[0]!.ids).sort()).toEqual(['analyzeRun', 'curateMemory'])
   })
 
   it('projects a finished chain and attaches the notification the terminal wrote', async () => {
@@ -332,14 +325,6 @@ describe('the runs.postProcessing op (D-14/D-15)', () => {
       chips: { analysis: 'complete', curation: 'complete' },
       stageDetails: { analysis: {}, curation: {} },
       notification: toRunNotificationView(NOTIFICATION),
-    })
-    // The third stage reaches a reader through the durable RECORD, not through a chip — so the
-    // op must carry a `proposals` stage out untouched. A DTO that dropped it would leave the
-    // one surface that can report the proposal stage reporting nothing at all.
-    expect(status.notification?.stages.proposals).toEqual({
-      status: 'complete',
-      proposed: 2,
-      skipped: 1,
     })
   })
 

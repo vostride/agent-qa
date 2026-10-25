@@ -378,10 +378,7 @@ export function createAgentJobQueue(options: CreateAgentJobQueueOptions): AgentJ
     const ids = chainJobIdsForRun(runId, idSource)
     return {
       dedupeKey: runId,
-      // All THREE derived ids since 422 D-13. The store's rule is stated over the candidates that
-      // EXIST, so a chain halted at the fold — whose proposal row was never written — still
-      // terminates, while a chain that enqueued the proposal job cannot notify before it lands.
-      candidateJobIds: [ids.analyzeRun, ids.curateMemory, ids.proposeImprovements],
+      candidateJobIds: [ids.analyzeRun, ids.curateMemory],
       payloadJson: canonicalJson(
         buildChainTerminalNotification({
           runId,

@@ -10,7 +10,6 @@ export type JobKind =
   | 'analyze-run'
   | 'curate-memory'
   | 'consolidate'
-  | 'propose-improvements'
 
 // 385 C6 (JOBQ-01): `failed` and `cancelled` are the two TERMINAL statuses the agent job
 // queue needs and the v47 contract lacked — a bounded-retry queue that cannot record
@@ -24,12 +23,12 @@ export type JobStatus =
   | 'failed'
   | 'cancelled'
 
-// 422 D-16 (ADV-03): `unreadable_kind` is the conclusion a row reaches when this build cannot
-// read the KIND it was written under — a kind an earlier build declared and this one has since
-// retired. It is a CONCLUSION and not a kind, which is the whole point: the five-kind vocabulary
-// below stays exactly as strict as it was, and the row that cannot join it gets an outcome
-// instead of an exemption. Nothing ever handles such a row; it is landed permanently at claim
-// with its attempt spent, so the queue neither loops on it nor pretends it never existed.
+// `unreadable_kind` is the conclusion a row reaches when this build cannot read the KIND it
+// was written under: a kind an earlier build declared and this one no longer does. It is a
+// conclusion and not a kind, so the kind vocabulary above stays strict and the row that cannot
+// join it gets an outcome instead of an exemption. Nothing ever handles such a row; it is landed
+// permanently at claim with its attempt spent, so the queue neither loops on it nor pretends it
+// never existed.
 export type JobConclusionKind =
   | 'no_issue'
   | 'needs_user_input'
@@ -68,7 +67,6 @@ export const jobKindValues = [
   'analyze-run',
   'curate-memory',
   'consolidate',
-  'propose-improvements',
 ] as const satisfies readonly JobKind[]
 
 const jobStatusValues = [

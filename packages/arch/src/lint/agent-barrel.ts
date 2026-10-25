@@ -218,11 +218,6 @@ export const EXPECTED_AGENT_BARREL_VALUE_EXPORTS: readonly string[] = [
   // above and below — strings a surface names on the wire, never dispatch handles. The three
   // SPECS are deliberately NOT here: a spec carries the implementation and the live
   // validators, and two of these verbs write the committed ledger.
-  // 422 D-14: the proposal stage's recorded per-job Gate-1 call budget, and the id of the
-  // checkpoint that budget is charged on. Two constants — a number and a string — in ASCII sort
-  // position; neither can read, write or run anything.
-  'PROPOSE_DEFAULT_MAX_GATE1_PER_JOB',
-  'PROPOSE_GATE1_ALLOWANCE_CHECKPOINT',
   'QUARANTINE_ADD_FUNCTION_ID',
   'QUARANTINE_LIST_FUNCTION_ID',
   'QUARANTINE_RELEASE_FUNCTION_ID',
@@ -426,11 +421,6 @@ export const EXPECTED_AGENT_BARREL_VALUE_EXPORTS: readonly string[] = [
   // in a storageNeutral package at all: no `node:fs` is in its reach, and the eight lines of file
   // reading stay in the runners. Published because both lane gates — hermetic in `agent-local`,
   // live in `cli` — must reach the same verdict about a malformed corpus file.
-  // 422 D-14: the durable Gate-1 charge's shape check. A PURE function from a checkpoint read
-  // outcome to DATA — it holds no store, reads no path and dispatches nothing. It is published
-  // because the composition that owns the store binds it, and a second spelling of "is this
-  // charge readable" in each host is how two hosts start disagreeing about what was spent.
-  'parseProposeGate1Allowance',
   'parseScenario',
   // 392 plan 07: the registry walk projected to execute-less tools. Safe here for a reason the
   // absence of a callback makes structural: what it returns cannot run anything, so a surface
@@ -844,17 +834,6 @@ export const EXPECTED_AGENT_BARREL_TYPE_EXPORTS: readonly string[] = [
   'PostProcessingJobRow',
   'PostProcessingReaderPort',
   'PostRunJobCapabilities',
-  // 422 D-14: the Gate-1 allowance vocabulary. TYPES, every one of them — the charge, how it
-  // reads back, the corpus it was made against, the bound and its source, what the stage reports
-  // and what the proposal checkpoint carries. A composition binds capabilities shaped like these
-  // and a reader renders them; none of them carries a store, a model or a dispatch path.
-  'ProposeCorpusPosture',
-  'ProposeGate1Allowance',
-  'ProposeGate1AllowanceRead',
-  'ProposeGate1Cap',
-  'ProposeGate1Report',
-  'ProposeGate1Screened',
-  'ProposeImprovementsCheckpoint',
   'RanJobOutcomeBase',
   'ReconcileInput',
   'ReconcileStrategy',

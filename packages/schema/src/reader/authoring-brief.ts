@@ -23,9 +23,8 @@ export interface ExemplarTest {
 }
 
 /**
- * D-13 typed-empty placeholder until M4's propose-improvements job mints real coverage data.
- * The field EXISTS with an empty value on every AuthoringBrief — never an absent optional the
- * M4 consumer would have to feature-detect.
+ * Typed-empty placeholder: nothing mints coverage data. The field exists with an empty value on
+ * every AuthoringBrief, never an absent optional a consumer would have to feature-detect.
  */
 export type CoverageMap = Record<string, never>
 

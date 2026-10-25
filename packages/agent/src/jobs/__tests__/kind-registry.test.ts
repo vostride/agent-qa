@@ -224,28 +224,27 @@ describe('createJobKindRegistry declaration validation', () => {
 
   it('lists declarations in kind order regardless of declaration order', () => {
     const registry = createJobKindRegistry([
-      completeDeclaration({ kind: 'propose-improvements' }),
+      completeDeclaration({ kind: 'curate-memory' }),
       completeDeclaration({ kind: 'chat', checkpointed: false, checkpointSchedule: [] }),
       completeDeclaration({ kind: 'consolidate' }),
     ])
     expect(registry.list().map((entry) => entry.kind)).toEqual([
       'chat',
       'consolidate',
-      'propose-improvements',
+      'curate-memory',
     ])
   })
 })
 
-describe('the five real job kinds', () => {
+describe('the real job kinds', () => {
   // Positive control for the enumeration itself. An accessor that returned an empty array
   // would make every conformance assertion below pass without examining a single kind.
-  it('reads exactly the five shipped kinds out of the enqueue contract, by sorted list', () => {
+  it('reads exactly the shipped kinds out of the enqueue contract, by sorted list', () => {
     expect([...CONTRACT_JOB_KINDS].sort()).toEqual([
       'analyze-run',
       'chat',
       'consolidate',
       'curate-memory',
-      'propose-improvements',
     ])
   })
 
@@ -299,9 +298,8 @@ describe('the five real job kinds', () => {
 })
 
 describe('the stand-in handlers', () => {
-  // Five indistinguishable no-ops would satisfy "five kinds are registered" perfectly, and the
-  // kill matrix would then compare five identical histories and prove nothing about any of
-  // them. Each handler must publish its OWN declared schedule with its OWN bytes.
+  // Indistinguishable no-ops would satisfy "every kind is registered" perfectly, and the kill
+  // matrix would then compare identical histories and prove nothing about any of them. Each handler must publish its OWN declared schedule with its OWN bytes.
   it.each(REAL_JOB_KIND_DECLARATIONS)(
     'publishes exactly the declared schedule of $kind, in order',
     async (declaration) => {

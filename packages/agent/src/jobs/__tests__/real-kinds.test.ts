@@ -12,9 +12,6 @@
 // ever produces — and the chain-terminal arithmetic then waits on a job nothing else knows
 // about. Asserting all three sides by literal list is what makes that drift RED by name.
 //
-// 2026-09-01 (Phase 409): the reserved sixth kind left with the Issue-slot cleanup, and with
-// it 388 D-04's declared/produced split.
-//
 // Unit-level on purpose: these are claims about what the registry RETURNS, and proving them
 // through a store and a pump would make the assertion depend on everything between.
 
@@ -30,7 +27,6 @@ import { describe, expect, it } from 'vitest'
 
 import {
   createRealJobKindRegistry,
-  readProposeImprovementsPayload,
   REAL_JOB_KIND_DECLARATIONS,
 } from '../kinds.js'
 import type { PostRunJobCapabilities } from '../kinds.js'
@@ -207,13 +203,7 @@ describe('the real post-run kinds (388 D-04)', () => {
 
   it('publishes bundle-committed with the counts when the fold completed', async () => {
     // The ACCEPT half, unchanged from before the gate: a complete fold still lands the job
-    // `complete` with its counts on the checkpoint the chain terminal reads.
-    //
-    // 2026-09-11 (422 D-13): `next` is no longer empty here. The fold's success is what mints
-    // the third stage, so an empty successor list at THIS point would now mean the proposal job
-    // never exists. The checkpoint claim — the subject of this cell — is untouched; the `next`
-    // line moved from "nothing follows" to "exactly the one thing that follows", which is the
-    // same declared-equals-produced assertion one edge further along.
+    // `complete` with its counts on the checkpoint the chain terminal reads, and nothing follows.
     const { context, published } = contextFor({ runId: RUN_ID, executionContext: 'local-headless' })
     const outcome = await createRealJobKindRegistry({
       loadCompletedRunHandoff: () => HANDOFF,
@@ -222,7 +212,7 @@ describe('the real post-run kinds (388 D-04)', () => {
     }).require('curate-memory').handler(context)
 
     if (outcome.status !== 'complete') throw new Error(`expected complete, got ${outcome.status}`)
-    expect(successorKinds(outcome.next)).toEqual(['propose-improvements'])
+    expect(outcome.next).toEqual([])
     expect(published).toEqual([
       { checkpointId: 'candidates-authored', value: { runId: RUN_ID } },
       { checkpointId: 'bundle-committed', value: { runId: RUN_ID, curated: 4, deprecated: 2 } },
@@ -252,9 +242,7 @@ describe('the real post-run kinds (388 D-04)', () => {
       { checkpointId: 'candidates-authored', value: { runId: RUN_ID } },
       { checkpointId: 'bundle-committed', value: { runId: RUN_ID, curated: 2, deprecated: 1 } },
     ])
-    expect(successorKinds(outcome.next)).toEqual(['propose-improvements'])
-    expect((outcome.next[0]?.payload as { upstream: { curation: unknown } }).upstream.curation)
-      .toEqual({ curated: 2, deprecated: 1, complete: true })
+    expect(outcome.next).toEqual([])
   })
 
   it('keeps the scripted stand-ins when no capabilities are bound', async () => {
@@ -270,18 +258,8 @@ describe('the real post-run kinds (388 D-04)', () => {
   })
 })
 
-// ------------------------------------------------------------------------------------------
-// 422 D-13: the third stage
-// ------------------------------------------------------------------------------------------
-//
-// The same three-sided discipline the analyze-run block above uses, applied one edge further
-// along. What is new — and what the cells below exist for — is that the third job is where a
-// chain's whole history has to ARRIVE: it did not do the analysis and it did not do the fold, so
-// whatever it cannot read off its own payload is lost to the record that terminates the chain.
-//
-// The zero-work case is asserted for its own sake. A fold that curated nothing still COMPLETED,
-// and a successor produced only when the counts are non-zero would silently drop exactly the runs
-// where there was nothing to say — which reads identically to a chain that never finished.
+// curate-memory is the chain's terminal: it declares no successor and produces none, including
+// for a fold that curated nothing.
 
 function declarationFor(kind: string): (typeof REAL_JOB_KIND_DECLARATIONS)[number] {
   const declaration = REAL_JOB_KIND_DECLARATIONS.find((entry) => entry.kind === kind)
@@ -304,241 +282,27 @@ function contextForKind(kind: string, jobId: string, payload: unknown): {
   }
 }
 
-describe('the third post-run stage (422 D-13)', () => {
-  it('declares propose-improvements as the one allowed successor of curate-memory', () => {
-    // The topology half — declared equals produced. A second declared successor REDs here by
-    // name, and the engine's successor validation would then admit an instance no handler
-    // in this file ever produces.
-    expect([...declarationFor('curate-memory').allowedSuccessors].sort())
-      .toEqual(['propose-improvements'])
-    // The chain still ENDS here. `propose-improvements` declaring a successor would be a fourth
-    // stage nothing derives an id for.
-    expect([...declarationFor('propose-improvements').allowedSuccessors]).toEqual([])
-    // Halt-chain survives the widening: a fold that gave up permanently must not hand a
-    // proposal job the committed curation it never committed.
+describe('curate-memory ends the post-run chain', () => {
+  it('declares no successor and halts the chain on permanent failure', () => {
+    expect([...declarationFor('curate-memory').allowedSuccessors]).toEqual([])
     expect(declarationFor('curate-memory').onPermanentFailure).toBe('halt-chain')
-    expect(declarationFor('propose-improvements').onPermanentFailure).toBe('halt-chain')
   })
 
-  it('produces exactly one propose-improvements successor carrying candidate ids and upstream truth', async () => {
-    const { context, published } = contextForKind('curate-memory', 'job_curate_fixture', {
+  it('completes a fold that curated nothing with no successor', async () => {
+    const { context, published } = contextForKind('curate-memory', 'job_curate_zero', {
       runId: RUN_ID,
       executionContext: 'local-headless',
-      verdictSummary: { total: 1, byClass: { unknown: 1 } },
     })
 
     const outcome = await createRealJobKindRegistry({
       loadCompletedRunHandoff: () => HANDOFF,
-      curateRun: async () => ({
-        curated: 4,
-        deprecated: 2,
-        complete: true,
-        candidateIds: ['cand-a', 'cand-b'],
-      }),
+      curateRun: async () => ({ curated: 0, deprecated: 0, complete: true }),
       persistAnalysis: () => {},
     }).require('curate-memory').handler(context)
 
-    if (outcome.status !== 'complete') throw new Error(`expected complete, got ${outcome.status}`)
+    expect(outcome).toEqual({ status: 'complete', next: [] })
     expect(published.map((entry) => entry.checkpointId))
       .toEqual(['candidates-authored', 'bundle-committed'])
-    expect(successorKinds(outcome.next)).toEqual(['propose-improvements'])
-    expect(outcome.next[0]).toMatchObject({
-      // The run-derived key, never a candidate-derived one: the same string
-      // `chainJobIdsForRun` predicts from the run id alone.
-      idempotencyKey: 'job_curate_fixture->propose-improvements',
-      payload: {
-        runId: RUN_ID,
-        executionContext: 'local-headless',
-        candidateIds: ['cand-a', 'cand-b'],
-        upstream: {
-          verdictSummary: { total: 1, byClass: { unknown: 1 } },
-          analysisStatus: 'done',
-          curation: { curated: 4, deprecated: 2, complete: true },
-        },
-      },
-    })
-  })
-
-  it('produces the successor for a fold that curated nothing at all', async () => {
-    // ZERO WORK IS STILL WORK THAT FINISHED. A successor gated on the counts would drop exactly
-    // the quiet runs, and the chain would then look, to every reader, like one that stalled.
-    const { context } = contextForKind('curate-memory', 'job_curate_zero', {
-      runId: RUN_ID,
-      executionContext: 'local-headless',
-    })
-
-    const outcome = await createRealJobKindRegistry({
-      loadCompletedRunHandoff: () => HANDOFF,
-      curateRun: async () => ({ curated: 0, deprecated: 0, complete: true, candidateIds: [] }),
-      persistAnalysis: () => {},
-    }).require('curate-memory').handler(context)
-
-    if (outcome.status !== 'complete') throw new Error(`expected complete, got ${outcome.status}`)
-    expect(successorKinds(outcome.next)).toEqual(['propose-improvements'])
-    expect(outcome.next[0]?.payload).toMatchObject({
-      candidateIds: [],
-      upstream: { curation: { curated: 0, deprecated: 0, complete: true } },
-    })
-  })
-
-  it('carries the dead-analysis marker forward as an upstream analysis status', async () => {
-    // The fallback's successor payload is what curate-memory is claimed with when the analysis
-    // died. Two stages later the record still has to report it, and this payload field is the
-    // only carrier left by then.
-    const { context } = contextForKind('curate-memory', 'job_curate_dead', {
-      runId: RUN_ID,
-      executionContext: 'ci',
-      verdicts: 'unknown',
-      failureReason: 'the handoff could not be read',
-    })
-
-    const outcome = await createRealJobKindRegistry({
-      loadCompletedRunHandoff: () => HANDOFF,
-      curateRun: async () => ({ curated: 0, deprecated: 0, complete: true }),
-      persistAnalysis: () => {},
-    }).require('curate-memory').handler(context)
-
-    if (outcome.status !== 'complete') throw new Error(`expected complete, got ${outcome.status}`)
-    expect(outcome.next[0]?.payload).toMatchObject({
-      upstream: { analysisStatus: 'failed' },
-    })
-  })
-
-  it('reads the proposal payload tolerantly and refuses one that names no run', () => {
-    // The producer-strict / consumer-tolerant split this module already applies to analyze-run:
-    // these bytes come off a DURABLE queue, so an unknown key is ignored and a missing optional
-    // degrades rather than stranding the row.
-    expect(readProposeImprovementsPayload({
-      runId: RUN_ID,
-      executionContext: 'local-headless',
-      candidateIds: ['a', 7, 'b'],
-      upstream: { analysisStatus: 'failed', curation: { curated: 2, deprecated: 1, complete: true } },
-      somethingALaterBuildAdded: true,
-    })).toEqual({
-      runId: RUN_ID,
-      executionContext: 'local-headless',
-      // Non-string members are dropped rather than stringified: a candidate id this build
-      // cannot read is not a candidate id it may invent.
-      candidateIds: ['a', 'b'],
-      upstream: {
-        analysisStatus: 'failed',
-        curation: { curated: 2, deprecated: 1, complete: true },
-      },
-    })
-
-    // Absence degrades to the empty list and an upstream that claims nothing — never to a
-    // zero-filled guess about stages this payload never described.
-    expect(readProposeImprovementsPayload({ runId: RUN_ID })).toEqual({
-      runId: RUN_ID,
-      executionContext: undefined,
-      candidateIds: [],
-      upstream: {},
-    })
-
-    expect(readProposeImprovementsPayload({ candidateIds: ['a'] })).toBeUndefined()
-    expect(readProposeImprovementsPayload({ runId: '' })).toBeUndefined()
-    expect(readProposeImprovementsPayload(null)).toBeUndefined()
-  })
-
-  it('runs the real proposal handler through its neutral port and ends the chain', async () => {
-    const staged: unknown[] = []
-    const { context, published } = contextForKind(
-      'propose-improvements',
-      'job_propose_fixture',
-      {
-        runId: RUN_ID,
-        executionContext: 'local-headless',
-        candidateIds: ['cand-a', 'cand-b'],
-        upstream: {
-          verdictSummary: { total: 1, byClass: { unknown: 1 } },
-          analysisStatus: 'done',
-          curation: { curated: 4, deprecated: 2, complete: true },
-        },
-      },
-    )
-
-    const outcome = await createRealJobKindRegistry({
-      loadCompletedRunHandoff: () => HANDOFF,
-      curateRun: async () => ({ curated: 0, deprecated: 0, complete: true }),
-      persistAnalysis: () => {},
-      stageAdversarialProposal: async (input) => {
-        staged.push(input)
-        return { proposed: 2, skipped: 1 }
-      },
-    }).require('propose-improvements').handler(context)
-
-    if (outcome.status !== 'complete') throw new Error(`expected complete, got ${outcome.status}`)
-    // The chain ends here: a successor from this kind is a stage nothing derives an id for.
-    expect(outcome.next).toEqual([])
-    expect(staged).toEqual([
-      {
-        runId: RUN_ID,
-        executionContext: 'local-headless',
-        candidateIds: ['cand-a', 'cand-b'],
-        upstream: {
-          verdictSummary: { total: 1, byClass: { unknown: 1 } },
-          analysisStatus: 'done',
-          curation: { curated: 4, deprecated: 2, complete: true },
-        },
-      },
-    ])
-    expect(published).toEqual([
-      {
-        checkpointId: 'proposals-authored',
-        value: { runId: RUN_ID, candidateIds: ['cand-a', 'cand-b'], proposed: 2, skipped: 1 },
-      },
-    ])
-  })
-
-  it('completes with no counts when no proposal port is bound', async () => {
-    // The port is OPTIONAL and a host without it is not a broken host — it is a host that stages
-    // nothing. The checkpoint records the candidates it was handed and NO counts, so the terminal
-    // record reports a stage that ran and proposed nothing rather than one that proposed zero.
-    const { context, published } = contextForKind('propose-improvements', 'job_propose_unbound', {
-      runId: RUN_ID,
-      candidateIds: ['cand-a'],
-    })
-
-    const outcome = await createRealJobKindRegistry({
-      loadCompletedRunHandoff: () => HANDOFF,
-      curateRun: async () => ({ curated: 0, deprecated: 0, complete: true }),
-      persistAnalysis: () => {},
-    }).require('propose-improvements').handler(context)
-
-    if (outcome.status !== 'complete') throw new Error(`expected complete, got ${outcome.status}`)
-    expect(published).toEqual([
-      { checkpointId: 'proposals-authored', value: { runId: RUN_ID, candidateIds: ['cand-a'] } },
-    ])
-  })
-
-  it('refuses permanently a proposal job whose payload names no run', async () => {
-    const { context, published } = contextForKind('propose-improvements', 'job_propose_bad', {
-      candidateIds: ['cand-a'],
-    })
-
-    const outcome = await createRealJobKindRegistry({
-      loadCompletedRunHandoff: () => HANDOFF,
-      curateRun: async () => ({ curated: 0, deprecated: 0, complete: true }),
-      persistAnalysis: () => {},
-    }).require('propose-improvements').handler(context)
-
-    // PERMANENT, not retryable: a payload whose shape is wrong is not right on a second attempt,
-    // and retrying it would spend a bound the poison-job case needs.
-    expect(outcome.status).toBe('permanent')
-    // …and nothing was published, so the refusal is a refusal rather than a half-run stage.
-    expect(published).toEqual([])
-  })
-
-  it('keeps the five declared kinds and adds none', () => {
-    // The widening is an EDGE and an id, never a kind. A sixth declaration would redeclare a
-    // vocabulary three other walls pin at five.
-    expect(REAL_JOB_KIND_DECLARATIONS.map((entry) => entry.kind).sort()).toEqual([
-      'analyze-run',
-      'chat',
-      'consolidate',
-      'curate-memory',
-      'propose-improvements',
-    ])
   })
 })
 

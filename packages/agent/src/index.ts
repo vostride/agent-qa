@@ -617,31 +617,10 @@ export type {
   JobKindRegistry,
   JobPermanentFailureDisposition,
 } from './jobs/kind-registry.js'
-// 385 plan 04 — the six real kinds. A composition root registers THESE; the declarations are
-// the contract the crash matrix iterates, and the handlers are deterministic stand-ins until
-// the phases that own each kind's semantics replace them.
+// The real job kinds. A composition root registers THESE; the declarations are the contract
+// the crash matrix iterates.
 export { createRealJobKindRegistry, REAL_JOB_KIND_DECLARATIONS } from './jobs/kinds.js'
-// 422 D-14: the proposal stage's durable Gate-1 charge, published so the composition that owns
-// the job store can bind ONE narrow read of it. The constant names the checkpoint; the parse is
-// the shape check, and it lives beside the shape rather than in each host so two hosts cannot
-// disagree about what a readable charge is. Neither holds a store, a path or a dispatch: given a
-// checkpoint read outcome, the parse returns DATA.
-export {
-  parseProposeGate1Allowance,
-  PROPOSE_DEFAULT_MAX_GATE1_PER_JOB,
-  PROPOSE_GATE1_ALLOWANCE_CHECKPOINT,
-} from './jobs/kinds.js'
-export type {
-  PostRunJobCapabilities,
-  ProposeCorpusPosture,
-  ProposeGate1Allowance,
-  ProposeGate1AllowanceRead,
-  ProposeGate1Cap,
-  ProposeGate1Report,
-  ProposeGate1Screened,
-  ProposeImprovementsCheckpoint,
-  StandInJobScript,
-} from './jobs/kinds.js'
+export type { PostRunJobCapabilities, StandInJobScript } from './jobs/kinds.js'
 // 388 Pattern 2: THE post-run chain's id derivation. A value rather than a type because the
 // chip projection, the chain-terminal check and every later reader must ADDRESS the
 // same two rows from a runId alone — two copies of this hash input would be two chains that look

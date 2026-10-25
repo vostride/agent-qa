@@ -757,18 +757,11 @@ export interface PostProcessingJobRow extends Readonly<PostProcessingStageDetail
  * means nothing was ever enqueued for this run; no curate-memory row means the analysis has not
  * chained yet. Padding either of them with a synthetic row would erase exactly the distinction
  * the projection reads.
- *
- * 423 D-12 reports all three durable stage rows. Proposals contributes detail only;
- * the chip set remains analysis and curation.
- *
- * 2026-09-01 (Phase 409): the chain's third derived id left with the Issue-slot cleanup.
- * 2026-09-11 (Phase 422, D-13): a third derived id returns, without a third chip.
  */
 export interface PostProcessingChainState {
   readonly analyzeRun?: PostProcessingJobRow
   readonly curateMemory?: PostProcessingJobRow
-  readonly proposeImprovements?: PostProcessingJobRow
-  /** Completed curation facts, available before the proposals stage reaches terminal. */
+  /** Completed curation facts, available before the chain terminal is written. */
   readonly curationSnapshot?: CurationSnapshot
   /** The chain-terminal record, once the terminal transaction wrote it (D-09). */
   readonly notification?: RunNotification
@@ -797,11 +790,7 @@ export interface PostProcessingReaderPort {
   /**
    * Durable state for the ids given, or `undefined` when this project holds no queue database
    * at all. Chain identity is still the job-kind layer's to derive, and this port only reads
-   * what it is handed: all three ids, with the proposals row used only for detail (423 D-12).
-   * It may not derive an id of its own.
-   *
-   * 2026-09-01 (Phase 409): the width dropped from three to two.
-   * 2026-09-11 (Phase 422, D-13): three again, and no longer equal to the state's member count.
+   * what it is handed, and it may not derive an id of its own.
    *
    * `undefined` is a distinct answer from an empty state and both are honest: the first says
    * nothing has ever been enqueued here, the second says this chain's rows are not among the

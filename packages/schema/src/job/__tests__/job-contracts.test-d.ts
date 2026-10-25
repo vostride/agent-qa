@@ -100,12 +100,11 @@ it('job conclusion kinds exact type bars', () => {
   expectTypeOf<Exclude<DeclaredConclusion, (typeof jobConclusionKindValues)[number]>>().toBeNever()
 })
 
-it('job kinds stay exactly five while the conclusion vocabulary grows', () => {
-  // The D-16 bar, at the type level: a conclusion was added, and the KINDS did not move. Written
-  // out rather than read from `jobKindValues`, so a retired kind quietly re-admitted to either
-  // declaration reddens here.
+it('the job kinds stay fixed while the conclusion vocabulary grows', () => {
+  // Written out rather than read from `jobKindValues`, so a retired kind quietly re-admitted to
+  // either declaration reddens here.
   expectTypeOf<JobKind>().toEqualTypeOf<
-    'chat' | 'analyze-run' | 'curate-memory' | 'consolidate' | 'propose-improvements'
+    'chat' | 'analyze-run' | 'curate-memory' | 'consolidate'
   >()
   expectTypeOf<Job['kind']>().toEqualTypeOf<JobKind>()
   // Optional, and optional of the WHOLE union: a narrowing here would let the store record a

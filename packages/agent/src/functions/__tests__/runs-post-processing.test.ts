@@ -113,21 +113,20 @@ describe('423 checkpoint-backed snapshot projection', () => {
     expect(PostProcessingStatusSchema.parse(result)).toEqual(result)
   })
 
-  it('POSTPROCESSING-SNAPSHOT-EARLY copies exact masked facts beside three details and two chips', async () => {
+  it('POSTPROCESSING-SNAPSHOT-EARLY copies exact masked facts beside the stage details and two chips', async () => {
     const mask = declaredMask({ SNAP_441: 'synthetic-snapshot-secret' })
     const recorded = snapshot()
     const before = structuredClone(recorded)
     const result = await read({
       analyzeRun: { status: 'done', claimed: false, attempts: 1 },
       curateMemory: { status: 'done', claimed: false, attempts: 2 },
-      proposeImprovements: { status: 'queued', claimed: true, attempts: 1 },
       curationSnapshot: recorded,
     }, mask)
     const expected = JSON.parse(JSON.stringify(before).replaceAll('synthetic-snapshot-secret',
       '[secret:SNAP_441]'))
     expect(result).toHaveProperty('curationSnapshot', expected)
     expect(result.chips).toEqual({ analysis: 'complete', curation: 'complete' })
-    expect(result.stageDetails).toEqual({ analysis: { attempts: 1 }, curation: { attempts: 2 }, proposals: { attempts: 1 } })
+    expect(result.stageDetails).toEqual({ analysis: { attempts: 1 }, curation: { attempts: 2 } })
     expect(result).not.toHaveProperty('notification')
     expect(JSON.stringify(result)).not.toContain('synthetic-snapshot-secret')
     expect(PostProcessingStatusSchema.parse(result)).toEqual(result)
@@ -151,19 +150,6 @@ describe('423 checkpoint-backed snapshot projection', () => {
     expect(result.chips).toEqual({ analysis: 'complete', curation: outcome === 'done' ? 'complete' : 'failed' })
     expect(runsPostProcessingSpec.classify!(result).status).toBe('executed')
     expect(PostProcessingStatusSchema.parse(result)).toEqual(result)
-  })
-
-  it('POSTPROCESSING-FAILED-PROPOSALS retains a completed snapshot after later chain failure', async () => {
-    const recorded = snapshot()
-    const result = await read({
-      analyzeRun: { status: 'done', claimed: false },
-      curateMemory: { status: 'done', claimed: false },
-      proposeImprovements: { status: 'failed', claimed: false, lastFailureKind: 'permanent' },
-      curationSnapshot: recorded,
-    }, identity)
-    expect(result).toHaveProperty('curationSnapshot', recorded)
-    expect(result.chips).toEqual({ analysis: 'complete', curation: 'complete' })
-    expect(runsPostProcessingSpec.classify!(result).status).toBe('executed')
   })
 
   it('POSTPROCESSING-SNAPSHOT-STRICT rejects malformed optional snapshots and extra fields', () => {
@@ -234,7 +220,7 @@ describe('423 checkpoint-backed snapshot projection', () => {
 })
 
 describe('423 durable stage projection', () => {
-  it('THREE-STAGE-ROWS projects exact recorded facts and masks failure text', async () => {
+  it('STAGE-ROWS projects exact recorded facts and masks failure text', async () => {
     const mask = declaredMask({ STAGE_441: 'synthetic-stage-secret' })
     const analysis: PostProcessingStageDetail = {
       attempts: 2,
@@ -244,26 +230,21 @@ describe('423 durable stage projection', () => {
       lastFailureReason: 'retry synthetic-stage-secret for operator@example.test',
     }
     const curation: PostProcessingStageDetail = {
-      attempts: 0,
-      createdAt: '2026-09-14T00:00:05.000Z',
-      updatedAt: '2026-09-14T00:00:05.000Z',
-    }
-    const proposals: PostProcessingStageDetail = {
       attempts: 1,
+      createdAt: '2026-09-14T00:00:05.000Z',
       claimedAt: '2026-09-14T00:00:07.000Z',
+      updatedAt: '2026-09-14T00:00:05.000Z',
       conclusionKind: 'unreadable_kind',
     }
     const state = {
       analyzeRun: { status: 'done' as const, claimed: false, ...analysis },
-      curateMemory: { status: 'queued' as const, claimed: false, ...curation },
-      proposeImprovements: { status: 'failed' as const, claimed: false, ...proposals },
+      curateMemory: { status: 'failed' as const, claimed: false, ...curation },
     }
     const before = structuredClone(state)
     const result = await read(state, mask)
     expect(result.stageDetails).toEqual({
       analysis: { ...analysis, lastFailureReason: 'retry [secret:STAGE_441] for operator@example.test' },
       curation,
-      proposals,
     })
     expect(JSON.stringify(result)).not.toContain('synthetic-stage-secret')
     expect(JSON.stringify(result)).toContain('operator@example.test')
@@ -271,15 +252,14 @@ describe('423 durable stage projection', () => {
     expect(PostProcessingStatusSchema.parse(result)).toEqual(result)
   })
 
-  it('TWO-CHIPS keeps exactly two chips and four statuses with three detail stages', async () => {
+  it('TWO-CHIPS keeps exactly two chips and four statuses with their detail stages', async () => {
     const result = await read({
       analyzeRun: { status: 'queued', claimed: true },
       curateMemory: { status: 'cancelled', claimed: false },
-      proposeImprovements: { status: 'done', claimed: false },
     })
     expect(result.chips).toEqual({ analysis: 'running', curation: 'failed' })
     expect(POST_PROCESSING_CHIP_STATUSES).toEqual(['pending', 'running', 'complete', 'failed'])
-    expect(result.stageDetails).toEqual({ analysis: {}, curation: {}, proposals: {} })
+    expect(result.stageDetails).toEqual({ analysis: {}, curation: {} })
     expect(runsPostProcessingSpec.classify!(result).status).toBe('executed')
   })
 
