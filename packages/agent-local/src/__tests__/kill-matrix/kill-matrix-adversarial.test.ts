@@ -1,6 +1,6 @@
 // The adversarial kill-matrix legs (Phase 385 plan 07 — JOBQ-03, D-07 / D-18 / D-19 / D-20).
 //
-// Plan 06's twelve legs interrupt the HAPPY path: a job doing its work, killed beside a checkpoint
+// The derived legs interrupt the HAPPY path: a job doing its work, killed beside a checkpoint
 // publish, resumed. Every guarantee they prove is about a job that was going to succeed. These four
 // leg families interrupt the paths a job takes when something has gone wrong, and each one exists
 // because the corresponding guarantee has a shape that passes vacuously if it is asserted lazily:
@@ -808,7 +808,7 @@ describe('a resume carrying a stale epoch, proven with a fake lease (D-07, JOBQ-
 // The four families above all interrupt a job this build can READ. This one interrupts the queue
 // itself: a row written by an earlier build under a kind that has since been retired sits at the
 // head of the FIFO, and `rowToJob` parses every row that leaves the store through the shipped
-// five-kind contract. Before the quarantine, that parse threw INSIDE `claimNext`'s transaction, so
+// kind contract. Before the quarantine, that parse threw INSIDE `claimNext`'s transaction, so
 // `inTransaction` rolled the claim back — the attempt the claim had just spent went with it, the
 // row returned to the queue exactly as it was found, and the next claim was offered the same row
 // again. That is the crash-loop D-18 exists to forbid, reached without a single crash, and it

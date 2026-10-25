@@ -256,8 +256,6 @@ export interface PostRunTailHostInput {
     /** The fold's own completeness, carried rather than dropped (WR-03). */
     readonly complete: boolean
     readonly snapshot?: CurationSnapshot
-    /** The committed receipt's candidates, forwarded to the third stage (422 D-13). */
-    readonly candidateIds?: readonly string[]
     readonly reason?: string
   }>
 }
@@ -675,16 +673,11 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
     // WR-03: the fold already told us whether it wrote a receipt. Dropping `complete` here is
     // what let `incompleteWarning` print "curation incomplete; it will resume" while the
     // durable notification row recorded the same stage as `done`.
-    //
-    // 422 D-13: and the receipt's candidates travel with it, spread on presence so an incomplete
-    // fold forwards NO field rather than an empty list. The successor's payload reader keeps the
-    // same distinction one edge further along.
     return {
       curated: folded.curated,
       deprecated: folded.deprecated,
       complete: folded.complete,
       ...(folded.snapshot === undefined ? {} : { snapshot: folded.snapshot }),
-      ...(folded.candidateIds === undefined ? {} : { candidateIds: folded.candidateIds }),
     }
   }
 

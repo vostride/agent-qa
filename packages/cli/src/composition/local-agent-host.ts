@@ -78,7 +78,6 @@ import type {
   JobModelCapability,
   KnowledgeReaderPort,
   PostRunJobCapabilities,
-  ProposeCorpusPosture,
   ReplayGatePort,
 } from '@vostride/agent-qa-agent'
 import {
@@ -125,17 +124,6 @@ import {
   yamlParseFailureMessage,
 } from '@vostride/agent-qa-core'
 import type { RunAttributeTrigger, TestDefinition } from '@vostride/agent-qa-core'
-// 422-09: the shared proposal-stage builder lives in its own module so the daemon can compose it
-// without dragging this file's whole surface into its module graph. Re-exported here because the
-// terminal host is its other caller and every reader of this file expects to find it beside the
-// composition it feeds.
-export {
-  proposalStageCapabilities,
-  resolveProposeGate1MaxPerJob,
-  type ProposalStageCapabilities,
-  type ProposalStageCapabilitiesInput,
-} from './proposal-stage-capabilities.js'
-import { proposalStageCapabilities, resolveProposeGate1MaxPerJob } from './proposal-stage-capabilities.js'
 import { misdirectionPostureCapability } from './misdirection-posture-capability.js'
 import { misdirectionPreparationCapabilities } from '../curation/misdirection-tail.js'
 import type {
@@ -693,14 +681,6 @@ export interface ComposeCliLocalAgentInput {
       /** The fold's own completeness, carried rather than dropped (WR-03). */
       readonly complete: boolean
       readonly snapshot?: CurationSnapshot
-      /**
-       * The candidates the fold's own COMMITTED receipt names (422 D-13).
-       *
-       * Additive-optional, and the distinction is carried rather than flattened: absent means
-       * the binding reported no candidate ids at all, `[]` means it reported that there were
-       * none. See the capability's own comment in `agent` for why those are not one answer.
-       */
-      readonly candidateIds?: readonly string[]
       readonly reason?: string
     }>
     /**
@@ -711,12 +691,12 @@ export interface ComposeCliLocalAgentInput {
      */
     candidateProse: CandidateProsePosture
     /**
-     * The writer lease THIS host holds while the chain drains (422 D-14).
+     * The writer lease THIS host holds while the chain drains.
      *
      * Supplied by the leg that owns the pump, never by this file: the terminal's lease is taken
      * inside `runPostRunTail`'s drain and the daemon's is the one it acquired at startup, and
-     * both are resolved at the Gate-1 claim rather than captured here. Absent leaves the
-     * standalone posture — correct for a composition with no lease behind it.
+     * both are resolved at the call rather than captured here. Absent leaves the standalone
+     * posture — correct for a composition with no lease behind it.
      */
     resolveClaimAuthority?: () => ReplayGateClaimAuthority | undefined
   }
@@ -1945,12 +1925,10 @@ export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAge
    * Lazy because `judge-panel-host-paths.test.ts` pins that composing a host constructs no bridge
    * at all until an operation asks for one; memoised because `replay-gate-binding.test.ts` pins
    * exactly one construction site per host file, and one site that ran twice with different deps
-   * would satisfy the letter of that wall while breaking what it protects. The promotion posture
-   * and the 422 D-14 Gate-1 leg receive the SAME object.
+   * would satisfy the letter of that wall while breaking what it protects.
    *
-   * 422 D-14: the borrowed lease travels on the bridge's own deps rather than on either consumer,
-   * so the posture's presence check and the proposal stage's write share one answer to "which
-   * lease is this host holding" — resolved at the claim, never captured here.
+   * The borrowed lease travels on the bridge's own deps, resolved at the call, never captured
+   * here.
    */
   let replayGateMemo: ReplayGatePort | undefined
   const sharedReplayGate = (): ReplayGatePort => (replayGateMemo ??= createReplayGatePortForHost({
@@ -2139,31 +2117,16 @@ export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAge
     // and degrading to `undefined` (no ladder) when no LLM is configured.
     analysisTokenBudget:
       input.analysisTokenBudget ?? (() => resolveCliAnalysisTokenBudget(input.configPath)),
-    // 422-09 (D-01/D-13/D-14): the proposal stage's capabilities are composed HERE, beside the
-    // caller's fold, rather than asked of the caller. Every one of them is a fact about this
-    // host — which configuration is in force, which knowledge root is served, which committed
-    // corpus the screening is measured against — and a caller that had to supply them would be
-    // a second place for the terminal and the daemon to disagree. The caller supplies only what
-    // it alone owns: the fold, its prose posture, and the lease it holds while the chain drains.
     ...(input.postRun === undefined
       ? {}
       : {
           postRun: {
             // Named one by one rather than spread: `resolveClaimAuthority` is THIS file's input
-            // and not the composition's — it is consumed by the Gate-1 bridge below and must not
-            // travel on to a package that has no idea what a writer lease is.
+            // and not the composition's — it is consumed by the replay-gate bridge above and must
+            // not travel on to a package that has no idea what a writer lease is.
             curateRun: input.postRun.curateRun,
             candidateProse: input.postRun.candidateProse,
             ...misdirectionPostureCapability({ agentQaRoot: input.agentQaRoot }),
-            ...proposalStageCapabilities({
-              configPath: input.configPath,
-              agentQaRoot: input.agentQaRoot,
-              resolveKnowledgeRoot: knowledgeRoot,
-              resolveTrustPriors,
-              resolvePromotionPosture,
-              replayGate: sharedReplayGate,
-            }),
-            proposeGate1MaxPerJob: () => resolveProposeGate1MaxPerJob(input.configPath),
           },
         }),
     ...(input.chatPresent === undefined ? {} : { chatPresent: input.chatPresent }),

@@ -201,9 +201,6 @@ export function createPostProcessingReader(
         const curateMemory = toRow(
           selectJob.get(String(ids.curateMemory)) as Record<string, unknown> | undefined,
         )
-        const proposeImprovements = toRow(
-          selectJob.get(String(ids.proposeImprovements)) as Record<string, unknown> | undefined,
-        )
         // Parsed through the schema guard on the way out, like `listNotifications`: the column
         // is bytes another process wrote, and a record that lost a stage must not travel as a
         // `RunNotification` to a surface that renders it.
@@ -218,7 +215,6 @@ export function createPostProcessingReader(
         return {
           ...(analyzeRun === undefined ? {} : { analyzeRun }),
           ...(curateMemory === undefined ? {} : { curateMemory }),
-          ...(proposeImprovements === undefined ? {} : { proposeImprovements }),
           ...(notification === undefined ? {} : { notification }),
           ...(curationSnapshot === undefined ? {} : { curationSnapshot }),
         }

@@ -166,7 +166,6 @@ interface Harness {
  */
 function createHarness(existingRoot?: string, postRun?: {
   curateRun?: PostRunJobCapabilities['curateRun']
-  stageAdversarialProposal?: PostRunJobCapabilities['stageAdversarialProposal']
 }, mask: (text: string) => string = (text) => text): Harness {
   const agentQaRoot = existingRoot ?? mkdtempSync(join(tmpdir(), 'agent-qa-pp-status-'))
   if (existingRoot === undefined) roots.push(agentQaRoot)
@@ -240,12 +239,6 @@ function readColdChain(root: string, runId = RUN_ID) {
     .readChain(chainJobIdsForRun(runId, DIGEST_JOB_ID_SOURCE), runId)
 }
 
-function barrier() {
-  let resolve!: () => void
-  const promise = new Promise<void>(done => { resolve = done })
-  return { promise, resolve }
-}
-
 async function completedCuration() {
   const writer = createHarness(undefined, {
     curateRun: async () => ({ curated: 7, deprecated: 3, complete: true, snapshot: CURATION_SNAPSHOT }),
@@ -297,49 +290,6 @@ describe('423 completed checkpoint snapshot', () => {
         path,
         observedVersion: stamp,
       }))
-  })
-
-  it('CHECKPOINT-BEFORE-NOTIFICATION reads actual curation while the real proposals stage is blocked', async () => {
-    const entered = barrier()
-    const release = barrier()
-    const writer = createHarness(undefined, {
-      curateRun: async () => ({ curated: 7, deprecated: 3, complete: true, snapshot: CURATION_SNAPSHOT }),
-      stageAdversarialProposal: async () => {
-        entered.resolve()
-        await release.promise
-        return { proposed: 0, skipped: 0 }
-      },
-    })
-    const jobs = await writer.host.jobs()
-    const handoff = fixtureHandoff(RUN_ID)
-    writeHandoff(writer.agentQaRoot, handoff)
-    const fence = await jobs.store.adoptEpoch(1)
-    await jobs.queue.enqueue('analyze-run', enqueuePayload(handoff), RUN_ID)
-    await jobs.queue.runNextJob({ fence })
-    await jobs.queue.runNextJob({ fence })
-    const running = jobs.queue.runNextJob({ fence })
-    try {
-      await entered.promise
-      const before = readQueue(writer.agentQaRoot)
-      const cold = await readColdChain(writer.agentQaRoot)
-      expect(cold).toMatchObject({
-        analyzeRun: { status: 'done', claimed: false },
-        curateMemory: { status: 'done', claimed: false },
-        proposeImprovements: { status: 'queued', claimed: true },
-        curationSnapshot: CURATION_SNAPSHOT,
-      })
-      expect(cold).not.toHaveProperty('notification')
-      expect(await jobs.store.listNotifications()).toEqual([])
-      const projected = await createHarness(writer.agentQaRoot).status()
-      expect(projected.curationSnapshot).toEqual(CURATION_SNAPSHOT)
-      expect(projected.chips).toEqual({ analysis: 'complete', curation: 'complete' })
-      expect(Object.keys(projected.stageDetails!).sort()).toEqual(['analysis', 'curation', 'proposals'])
-      expect(projected).not.toHaveProperty('notification')
-      expect(readQueue(writer.agentQaRoot)).toEqual(before)
-    } finally {
-      release.resolve()
-      await running
-    }
   })
 
   it.each(['historical', 'incomplete'] as const)('CHECKPOINT-MISSING %s never invents a snapshot', async kind => {
@@ -434,7 +384,7 @@ describe('423 completed checkpoint snapshot', () => {
 
 describe('423 cold stage facts', () => {
   it.each(['queued', 'retried', 'complete', 'failed', 'cancelled'] as const)(
-    'THREE-STAGE-COLD %s preserves exact rows and queue contents',
+    'STAGE-COLD %s preserves exact rows and queue contents',
     async lifecycle => {
       const writer = createHarness()
       const jobs = await writer.host.jobs()
@@ -443,7 +393,6 @@ describe('423 cold stage facts', () => {
       const stages = [
         ['analysis', 'analyze-run', RUN_ID, ids.analyzeRun],
         ['curation', 'curate-memory', `${ids.analyzeRun}->curate-memory`, ids.curateMemory],
-        ['proposals', 'propose-improvements', `${ids.curateMemory}->propose-improvements`, ids.proposeImprovements],
       ] as const
       for (const [stage, kind, key, id] of stages) {
         const enqueued = await jobs.queue.enqueue(kind, { runId: RUN_ID }, key)
@@ -467,7 +416,7 @@ describe('423 cold stage facts', () => {
       }
       await closeWriter(writer)
       const before = readQueue(writer.agentQaRoot)
-      expect(before.rows).toHaveLength(3)
+      expect(before.rows).toHaveLength(2)
       const bytes = readFileSync(join(writer.agentQaRoot, AGENT_JOB_STORE_DB_FILE))
       const cold = createHarness(writer.agentQaRoot)
       const result = await cold.status()
@@ -774,8 +723,8 @@ describe('chip truth is read from durable rows (ANLZ-05, D-14)', () => {
 // this build talking to itself. The only thing standing between bytes another build wrote and a
 // surface is `guardRunNotification`, reached through the op. Pinning the refusal at the guard
 // alone would leave the WIRING free: a reader that stopped calling the guard, or an op that read
-// the column some other way, passes every guard-level cell in `schema` and hands a three-stage
-// record straight to a renderer.
+// the column some other way, passes every guard-level cell in `schema` and hands a stale record
+// straight to a renderer.
 // ------------------------------------------------------------------------------------------
 
 describe('a row another build wrote is refused, through the op', () => {

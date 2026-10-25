@@ -1,15 +1,11 @@
 // The kill matrix (Phase 385 plan 06 — JOBQ-03's acceptance instrument, D-09/D-12).
 //
 // LEG COUNT AND RUNTIME BUDGET, stated because a silently capped matrix reads as full coverage.
-// Every derived crash point runs; nothing is sampled. Today that is 12 legs (4 checkpointed kinds,
-// 6 declared checkpoints, 2 points each), each spawning a crash child and a resume child, plus one
-// control child per checkpointed kind (4, cached across that kind's legs) and one 2-spawn
-// idempotency leg — 30 child processes in total, inside the research budget of ~25-35. The count is
-// derived from the registry, so a kind reworked in 388/389 changes it with no edit here.
-//
-// 2026-09-11 (422 D-14): 10 legs became 12 when `propose-improvements` gained its durable Gate-1
-// charge checkpoint. No harness edit was needed for it — only the pinned list below, which is
-// pinned precisely so the growth is stated rather than absorbed.
+// Every derived crash point runs; nothing is sampled: two points per declared checkpoint of every
+// checkpointed kind, each spawning a crash child and a resume child, plus one control child per
+// checkpointed kind (cached across that kind's legs) and one 2-spawn idempotency leg. The count is
+// derived from the registry, so a reworked kind changes it with no edit here beyond the pinned
+// list below.
 //
 // WHAT EACH LEG PROVES, and the three ways a leg like this normally proves nothing:
 //
@@ -177,15 +173,8 @@ describe('crash-point derivation', () => {
   })
 
   // A pin on today's shipped kind set, listed rather than counted so a change says WHAT changed.
-  // An intentional kind rework in 388/389 updates this list; nothing else in the harness moves.
-  //
-  // 2026-09-11 (422 D-14): ten became TWELVE. `propose-improvements` declares a second
-  // checkpoint — `gate1-allowance-reserved`, the durable per-job Gate-1 charge — and it is
-  // declared AHEAD of `proposals-authored` because the charge has to survive a crash that
-  // happens before the result exists. The two new legs are exactly the pair this matrix is for:
-  // a kill between selecting the work and recording that it was charged, and a kill between the
-  // charge and the result. Nothing else in the list moved.
-  it('derives exactly the twelve crash points the five shipped kinds imply', () => {
+  // An intentional kind rework updates this list; nothing else in the harness moves.
+  it('derives exactly the crash points the shipped kinds imply', () => {
     expect(CRASH_POINTS.map((point) => point.selector)).toEqual([
       'analyze-run:verdicts-authored:before-publish',
       'analyze-run:verdicts-authored:after-publish',
@@ -195,12 +184,7 @@ describe('crash-point derivation', () => {
       'curate-memory:candidates-authored:after-publish',
       'curate-memory:bundle-committed:before-publish',
       'curate-memory:bundle-committed:after-publish',
-      'propose-improvements:gate1-allowance-reserved:before-publish',
-      'propose-improvements:gate1-allowance-reserved:after-publish',
-      'propose-improvements:proposals-authored:before-publish',
-      'propose-improvements:proposals-authored:after-publish',
     ])
-    expect(CRASH_POINTS).toHaveLength(12)
   })
 
   // The accounting line: chat's absence from the matrix is a declaration, not an oversight.

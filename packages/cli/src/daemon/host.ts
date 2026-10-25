@@ -58,13 +58,6 @@ import { analyticsRunId } from '@vostride/agent-qa-analytics'
 
 import { analyticsEvent } from '../composition/analytics-host.js'
 import type { CliAnalyticsHost } from '../composition/analytics-host.js'
-// 422-09: the ONE proposal-capability builder, shared with the terminal host. Imported rather
-// than restated — the whole point of the shared builder is that there is nowhere for the two
-// hosts to disagree.
-import {
-  proposalStageCapabilities,
-  resolveProposeGate1MaxPerJob,
-} from '../composition/proposal-stage-capabilities.js'
 import { misdirectionPostureCapability } from '../composition/misdirection-posture-capability.js'
 import { createShutdownController } from '../commands/shutdown-controller.js'
 import {
@@ -841,18 +834,6 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
   const trustPriors = input.configPath === undefined
     ? undefined : trustPriorsForHost({ configPath: input.configPath })
   const resolveTrustPriors = trustPriors?.resolve
-  /**
-   * The operator's per-job Gate-1 bound (422-09, D-14), read HERE and handed down as a value.
-   *
-   * BEFORE the lease, beside the validation above, and deliberately not at composition or at
-   * queue open. Startup between this daemon's first log line and its signal handlers is a window
-   * in which a stop signal has nobody to receive it, and every await added inside it widens that
-   * window — `daemon-run-execution.test.ts` measures exactly that. Config reads belong on the
-   * pre-authority leg, where this daemon already does three of them.
-   */
-  const proposeGate1MaxPerJob = input.configPath === undefined
-    ? undefined
-    : await resolveProposeGate1MaxPerJob(input.configPath)
 
   const operations = { ...defaultOperations(), ...input.operations }
   const logger = input.logger ?? DEFAULT_LOGGER
@@ -1057,10 +1038,10 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
    * THIS daemon's ONE replay-gate bridge — constructed lazily, then memoised (417/421 walls).
    *
    * Lazy and memoised for the reasons the terminal host's memo states at length: the walls pin
-   * one construction site per host file and none at all until an operation asks. 422 D-14 adds
-   * the borrowed lease to the bridge's own deps — `daemonWriterAuthority` is the SAME closure the
-   * drain step reads, and it is a closure so the receipt is written under the lease this process
-   * is holding at the claim rather than under the one it held when the bridge was built.
+   * one construction site per host file and none at all until an operation asks. The borrowed
+   * lease is on the bridge's own deps — `daemonWriterAuthority` is the SAME closure the drain step
+   * reads, and it is a closure so the lease this process is holding is read at the call rather
+   * than captured when the bridge was built.
    *
    * This process holds the lease already, so the borrowed path acquires nothing and releases
    * nothing: a holder that re-acquires is told `held` by itself, and one that released would end
@@ -2313,56 +2294,16 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
               info: (message: string) => logger.info(message),
             },
           })
-          // WR-03 / D-01: the same three fields the CLI binding returns — but the two
-          // bindings are NOT equivalent, and the reason is declared one field above: only a
-          // leg folding with the declared mask bound may claim the kind that runs the same fold.
-          //
-          // 422 D-13: and the committed receipt's candidates, spread on presence exactly as the
-          // terminal spreads them. A fold that wrote no receipt forwards NO field — never an
-          // empty list, which would tell the third stage there were none.
+          // WR-03 / D-01: the same fields the CLI binding returns — but the two bindings are
+          // NOT equivalent, and the reason is declared one field above: only a leg folding with
+          // the declared mask bound may claim the kind that runs the same fold.
           return {
             curated: folded.curated,
             deprecated: folded.deprecated,
             complete: folded.complete,
             ...(folded.snapshot === undefined ? {} : { snapshot: folded.snapshot }),
-            ...(folded.candidateIds === undefined ? {} : { candidateIds: folded.candidateIds }),
           }
         },
-        // 422-09 (D-01/D-13/D-14): THE SAME BUILDER THE TERMINAL COMPOSES FROM, called here so
-        // the two hosts cannot drift. A capability bound on one and forgotten on the other is a
-        // behavioural split between two ways of running the same product over one queue — which
-        // is exactly the shape 422-08's window recorded, with all three production hosts named.
-        //
-        // `resolveClaimAuthority` is the SAME `daemonWriterAuthority` closure the drain step
-        // reads, and it is a closure for the reason the terminal's is: the Gate-1 bridge resolves
-        // it at the claim, so the lease this daemon is actually holding is the one the receipt is
-        // written under. This process holds the lease already, so the borrowed path acquires
-        // nothing and releases nothing — a holder that re-acquires is told `held` by itself, and
-        // one that released would end its own authority mid-drain.
-        //
-        // CONDITIONAL ON `configPath`, on the `draftAuthoring` idiom below: a legacy
-        // daemon with no configuration has no eval root by construction (see the trust-prior
-        // validation at startup), and inventing a path for it would compose a screening leg that
-        // can only ever answer `posture-unavailable`. A host that bound no gate did not screen —
-        // and saying so by binding nothing is the same absence the handler already reads.
-        ...(input.configPath === undefined
-          ? {}
-          : {
-              ...proposalStageCapabilities({
-                configPath: input.configPath,
-                agentQaRoot: input.agentQaRoot,
-                resolveKnowledgeRoot: () => input.knowledgeRoot,
-                ...(resolveTrustPriors === undefined ? {} : { resolveTrustPriors }),
-                // The SAME resolver the composition's own `resolvePromotionPosture` binds below,
-                // passed by reference rather than wrapped: one memoised preparation per host.
-                resolvePromotionPosture: resolveHostPromotionPosture,
-                // The SAME bridge the promotion posture receives, and therefore the same borrowed
-                // lease, the same trust priors and the same runtime root.
-                replayGate: () => sharedReplayGate(input.configPath!),
-              }),
-              // Already resolved above; the factory is a value handed through, not a read.
-              proposeGate1MaxPerJob: () => proposeGate1MaxPerJob,
-            }),
       },
       ...(runExecution === undefined ? {} : { runExecution }),
       // 393 D-01 / 385 D-15: the SAME keep-gate binding the CLI composes, because both hosts

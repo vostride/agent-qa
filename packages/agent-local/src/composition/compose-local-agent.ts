@@ -34,9 +34,7 @@ import {
   deterministicOverrideStrategy,
   foldFunctionResult,
   invokeFunction,
-  parseProposeGate1Allowance,
   projectPlannerTools,
-  PROPOSE_GATE1_ALLOWANCE_CHECKPOINT,
   RUNS_START_FUNCTION_ID,
   replayToModelMessages,
   splitClauses,
@@ -68,7 +66,6 @@ import type {
   JobIdSource,
   JobKindRegistry,
   JobModelCapability,
-  JobStorePort,
   KnowledgeReaderPort,
   PostRunJobCapabilities,
   RecurrenceLadder,
@@ -1884,7 +1881,7 @@ export interface ComposeLocalAgentInput {
   readonly mintQuarantineIdentityPath: (filePath: string) => string
   readonly clock?: ClockPort
   readonly idSource?: JobIdSource
-  /** The kind registry the queue dispatches through. Defaults to the six real declarations. */
+  /** The kind registry the queue dispatches through. Defaults to the real declarations. */
   readonly jobKinds?: JobKindRegistry
   /**
    * What the post-run chain's real handlers may do (388 D-01), on the optional-operation
@@ -1910,50 +1907,11 @@ export interface ComposeLocalAgentInput {
      */
     readonly candidateProse: CandidateProsePosture
     /**
-     * The 422 D-13 proposal stage's staging port, passed straight through.
-     *
-     * OPTIONAL beside a REQUIRED `curateRun`, and the asymmetry is the contract: without
-     * `curateRun` there is no real fold and therefore no real chain, whereas a host that binds
-     * no staging port still runs the third stage — it stages nothing, records no counts, and
-     * the terminal says exactly that. Passed through rather than built here for the same reason
-     * `curateRun` is: the adversarial staging is not a local concern, and this package may not
-     * name the seam it lives behind.
-     */
-    readonly stageAdversarialProposal?: PostRunJobCapabilities['stageAdversarialProposal']
-    /**
-     * The 422 D-14 Gate-1 leg's four ports, passed straight through (422-09).
-     *
-     * NEUTRAL FORWARDING, and the neutrality is the contract rather than a style note: every one
-     * of these needs a committed corpus, a screening run and a writer this package may not name,
-     * and a version of this file that could construct them could not be this file. What crosses
-     * here is four closures and a number; what stays on the other side is every fact about where
-     * they read from.
-     *
-     * Each is OPTIONAL and each is spread on presence, because a host that binds none is the
-     * shipped posture — the stage runs, screens nothing, and says so by omitting the member.
-     */
-    readonly runReplayGate?: PostRunJobCapabilities['runReplayGate']
-    readonly listBundles?: PostRunJobCapabilities['listBundles']
-    readonly gateReceiptsFor?: PostRunJobCapabilities['gateReceiptsFor']
-    readonly readProposeCorpusPosture?: PostRunJobCapabilities['readProposeCorpusPosture']
-    /**
      * 2026-09-13, 422 D-19, gap plan 422-27: the host's durable per-run evaluation-root
      * posture, forwarded as a neutral closure. Absence leaves the handler's fail-closed
      * default in force; this composition neither resolves nor interprets the posture.
      */
     readonly readMisdirectionRootPosture?: PostRunJobCapabilities['readMisdirectionRootPosture']
-    /**
-     * The operator's per-job Gate-1 bound, as a FACTORY resolved once at queue open.
-     *
-     * A factory on the exact `model` / `analysisTokenBudget` idiom, for the same reason those are:
-     * reading it needs a configuration read, and paying for one at composition would charge every
-     * host that only lists the registry. The capability itself is plain data — a number the
-     * handler reads and never a reader it calls.
-     */
-    readonly proposeGate1MaxPerJob?: () =>
-      | Promise<number | undefined>
-      | number
-      | undefined
   }
   /**
    * D-01's TokenAccounting substrate for the analyze-run author (389 plan 06). OPTIONAL
@@ -2394,61 +2352,18 @@ export function postRunCapabilities(
   knowledgeRoot: string,
   /** The RESOLVED budget, awaited from the input factory at the same open (see above). */
   analysisTokenBudget?: PostRunJobCapabilities['analysisTokenBudget'],
-  /**
-   * The job store this queue was opened over (422 D-14).
-   *
-   * Handed in rather than constructed here, because it is the SAME store the queue drains: the
-   * charge a proposal job reads back has to be the one its own `publishCheckpoint` wrote, and a
-   * second reader over a second handle would be a second opinion about what this job spent.
-   * OPTIONAL so every existing caller of this builder keeps compiling; absent, the proposal
-   * stage's Gate-1 leg is the typed no-op it already is on a host that binds no replay gate.
-   */
-  jobStore?: Pick<JobStorePort, 'readCheckpoint'>,
-  /** The RESOLVED per-job Gate-1 bound, awaited from the input factory at the same open (422-09). */
-  proposeGate1MaxPerJob?: number,
 ): PostRunJobCapabilities | undefined {
   const postRun = input.postRun
   if (postRun === undefined) return undefined
   return {
-    // 422 D-14: ONE narrow read — this job's own durable Gate-1 charge, addressed by its own id,
-    // through the authoritative `readCheckpoint` the store already publishes. The handler is
-    // handed no store, no checkpoint reader and no path; the shape check is `agent`'s, beside
-    // the shape it checks, so two hosts cannot disagree about what a readable charge is.
-    ...(jobStore === undefined
-      ? {}
-      : {
-          readProposeGate1Allowance: async (jobId: string) =>
-            parseProposeGate1Allowance(
-              await jobStore.readCheckpoint(asJobId(jobId), PROPOSE_GATE1_ALLOWANCE_CHECKPOINT),
-            ),
-        }),
     loadCompletedRunHandoff: (runId: string) =>
       loadCompletedRunHandoff(
         join(input.agentQaRoot, RUNS_SUBDIR, slugBranch(runId), HANDOFF_FILE),
       ),
     curateRun: postRun.curateRun,
-    // 422 D-13: spread on the conditional idiom this file uses throughout, so an unbound port
-    // is an ABSENT member rather than a present `undefined` — the handler decides on presence,
-    // in one place, and a host that declined to bind cannot be mistaken for one that bound a
-    // hole.
-    ...(postRun.stageAdversarialProposal === undefined
-      ? {}
-      : { stageAdversarialProposal: postRun.stageAdversarialProposal }),
-    // 422-09 (D-14): the Gate-1 leg's four ports and its bound, forwarded on the same
-    // presence-spread idiom one line up. The handler's own `screenGate1` requires ALL FOUR before
-    // it screens anything, so a host that binds three of them is a host that screens nothing —
-    // which is why they are forwarded one by one rather than as a bundle a caller could
-    // half-populate without noticing.
-    ...(postRun.runReplayGate === undefined ? {} : { runReplayGate: postRun.runReplayGate }),
-    ...(postRun.listBundles === undefined ? {} : { listBundles: postRun.listBundles }),
-    ...(postRun.gateReceiptsFor === undefined ? {} : { gateReceiptsFor: postRun.gateReceiptsFor }),
-    ...(postRun.readProposeCorpusPosture === undefined
-      ? {}
-      : { readProposeCorpusPosture: postRun.readProposeCorpusPosture }),
     ...(postRun.readMisdirectionRootPosture === undefined
       ? {}
       : { readMisdirectionRootPosture: postRun.readMisdirectionRootPosture }),
-    ...(proposeGate1MaxPerJob === undefined ? {} : { proposeGate1MaxPerJob }),
     // 389 D-09: the artifact's path is DERIVED from the artifact's own runId through the
     // same `runs/<slug>/` law as the handoff read above — `slugBranch` is the traversal
     // guard (T-389-01), and a job payload never carries a path.
@@ -3376,12 +3291,6 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
     const analysisTokenBudget = input.analysisTokenBudget === undefined
       ? undefined
       : await input.analysisTokenBudget()
-    // 422-09: resolved at the SAME open, for the same reason — the capability member is a number
-    // the handler reads synchronously, and resolving it per job would read configuration inside a
-    // claim that must not depend on a file the operator can edit mid-drain.
-    const proposeGate1MaxPerJob = input.postRun?.proposeGate1MaxPerJob === undefined
-      ? undefined
-      : await input.postRun.proposeGate1MaxPerJob()
     const store = createSqliteJobStore({
       path: join(input.agentQaRoot, AGENT_JOB_STORE_DB_FILE),
       clock,
@@ -3391,7 +3300,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
     try {
       const kinds = input.jobKinds
         ?? createRealJobKindRegistry(
-          postRunCapabilities(input, knowledgeRoot, analysisTokenBudget, store, proposeGate1MaxPerJob),
+          postRunCapabilities(input, knowledgeRoot, analysisTokenBudget),
         )
       // Resolved ONCE and used for both the queue and the published field: the value a watcher
       // derives ids from has to be the value the queue mints them with, and two spellings of the
