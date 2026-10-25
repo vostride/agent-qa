@@ -16,10 +16,6 @@ function writeFixture(rootDir, packageName = '@vostride/agent-qa-core') {
       '',
       '`agent-qa` `AGENT_QA_*` `agent_qa_*` `@vostride/agent-qa-*`',
       '',
-      '<!-- branding-forbidden:start -->',
-      '`AgentQA` `AGENTQA` `agentqa` `agentqa_`',
-      '<!-- branding-forbidden:end -->',
-      '',
     ].join('\n'),
   )
 
@@ -49,10 +45,10 @@ function withFixture(fn) {
 }
 
 function validateOnePackage(rootDir) {
-  return validateAgentInstructions(rootDir, { expectedPackageCount: 1 })
+  return validateAgentInstructions(rootDir)
 }
 
-test('complete fixture passes and allows forbidden examples in root marker block', () => {
+test('complete fixture passes', () => {
   withFixture(rootDir => {
     assert.deepEqual(validateOnePackage(rootDir), [])
   })
@@ -91,7 +87,7 @@ test('lowercase agents.md files are reported', () => {
   })
 })
 
-test('forbidden branding outside root marker block is reported', () => {
+test('forbidden branding in an AGENTS.md file is reported', () => {
   withFixture(rootDir => {
     writeFileSync(
       join(rootDir, 'packages/core/AGENTS.md'),
@@ -120,11 +116,10 @@ test('generated instructions are linted as the bytes init writes', async () => {
 
   withFixture(rootDir => {
     assert.deepEqual(
-      validateAgentInstructions(rootDir, { expectedPackageCount: 1, generatedInstructions: generated }),
+      validateAgentInstructions(rootDir, { generatedInstructions: generated }),
       [],
     )
     const errors = validateAgentInstructions(rootDir, {
-      expectedPackageCount: 1,
       generatedInstructions: [{ label: 'generated guide', body: 'Ask agentqa_ first.' }],
     })
     assert.deepEqual(errors, [

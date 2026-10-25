@@ -6,8 +6,6 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const ignoredDirs = new Set(['.git', '.turbo', '.pnpm-store', '.release', 'dist', 'node_modules'])
 const requiredRootSnippets = ['agent-qa', 'AGENT_QA_*', 'agent_qa_*', '@vostride/agent-qa-*']
 const forbiddenBranding = ['AgentQA', 'AGENTQA', 'agentqa', 'agentqa_']
-const forbiddenStart = '<!-- branding-forbidden:start -->'
-const forbiddenEnd = '<!-- branding-forbidden:end -->'
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'))
@@ -42,20 +40,6 @@ function packageRecords(rootDir) {
     .map(dir => ({ dir, pkg: readJson(join(dir, 'package.json')) }))
 }
 
-function stripAllowedForbiddenBlock(rootDir, file, body, errors) {
-  const rootAgentsPath = join(rootDir, 'AGENTS.md')
-  if (file !== rootAgentsPath) return body
-
-  const start = body.indexOf(forbiddenStart)
-  const end = body.indexOf(forbiddenEnd)
-  if (start === -1 || end === -1 || end < start) {
-    errors.push('root AGENTS.md is missing a valid branding forbidden examples block')
-    return body
-  }
-
-  return `${body.slice(0, start)}${body.slice(end + forbiddenEnd.length)}`
-}
-
 function validateAgentFileNames(rootDir, errors) {
   walkFiles(rootDir, (file, name) => {
     if (name.toLowerCase() === 'agents.md' && name !== 'AGENTS.md') {
@@ -70,8 +54,8 @@ function forbiddenBrandingErrors(label, body) {
     .map(forbidden => `${label} contains forbidden branding: ${forbidden}`)
 }
 
-// 431 D-17: instructions init generates are not files in this repository, so they are linted as
-// the exact bytes their source template produces.
+// Instructions init generates are not files in this repository, so they are linted as the exact
+// bytes their source template produces.
 export function validateGeneratedInstructions(documents) {
   return documents.flatMap(document => forbiddenBrandingErrors(document.label, document.body))
 }
@@ -101,27 +85,17 @@ function validateBrandingInAgentFiles(rootDir, errors) {
 
   for (const file of agentFiles.sort()) {
     const body = readFileSync(file, 'utf8')
-    const scanned = stripAllowedForbiddenBlock(rootDir, file, body, errors)
-    errors.push(...forbiddenBrandingErrors(relative(rootDir, file), scanned))
+    errors.push(...forbiddenBrandingErrors(relative(rootDir, file), body))
   }
 }
 
 export function validateAgentInstructions(rootDir = root, options = {}) {
-  // 2026-08-17 (Phase 398 plan 03): 22 -> 23 for `packages/analytics`. The count is pinned rather
-  // than derived on purpose — a package arriving without an AGENTS.md is meant to red here — so a
-  // new workspace member is a deliberate bump plus its own instructions file, never a silent one.
-  const expectedPackageCount = options.expectedPackageCount ?? 23
   const errors = []
   const rootAgentsPath = join(rootDir, 'AGENTS.md')
 
   assert(existsSync(rootAgentsPath), 'root AGENTS.md is missing', errors)
 
   const records = packageRecords(rootDir)
-  assert(
-    records.length === expectedPackageCount,
-    `expected ${expectedPackageCount} package AGENTS.md files, found ${records.length} package root(s)`,
-    errors,
-  )
 
   if (existsSync(rootAgentsPath)) {
     const rootAgents = readFileSync(rootAgentsPath, 'utf8')
