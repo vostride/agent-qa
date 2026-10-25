@@ -14,14 +14,25 @@ const validBase = {
   use: { mobile: { appState: 'preserve' } },
 }
 
-function issueMessageAt(config: unknown, path: string): string | undefined {
+function issueAt(config: unknown, path: string) {
   const result = AgentQaConfigSchema.safeParse(config)
   if (result.success) return undefined
-  return result.error.issues.find(i => i.path.join('.') === path)?.message
+  return result.error.issues.find(i => i.path.join('.') === path)
 }
 
-// D-07/D-11: every retired key must fail with a targeted one-line migration error
-// naming its v2 disposition — not a bare zod unrecognized-key error.
+function issueMessageAt(config: unknown, path: string): string | undefined {
+  return issueAt(config, path)?.message
+}
+
+function paramsAt(config: unknown, path: string): unknown {
+  const issue = issueAt(config, path)
+  return issue && 'params' in issue ? issue.params : undefined
+}
+
+const HARD_CUT_PARAMS = { retired: true, hardCut: true }
+
+// Every retired key fails with a targeted one-line error naming what to do, not a bare zod
+// unrecognized-key error. Keys removed in v2 also ask the CLI for the hard-cut steps.
 describe('retired-key pre-scan — services.memory per-key dispositions (D-11)', () => {
   const cases: [key: string, value: unknown, substring: string][] = [
     ['dir', 'agent-qa-memory', 'knowledge.dir'],
@@ -45,6 +56,7 @@ describe('retired-key pre-scan — services.memory per-key dispositions (D-11)',
     const message = issueMessageAt(config, `services.memory.${key}`)
     expect(message).toBeDefined()
     expect(message).toContain(substring)
+    expect(paramsAt(config, `services.memory.${key}`)).toEqual(HARD_CUT_PARAMS)
   })
 })
 
@@ -57,6 +69,7 @@ describe('retired-key pre-scan — workspace.agentRules (D-07)', () => {
     const message = issueMessageAt(config, 'workspace.agentRules')
     expect(message).toBeDefined()
     expect(message).toContain('agent-qa-knowledge/policies/')
+    expect(paramsAt(config, 'workspace.agentRules')).toEqual(HARD_CUT_PARAMS)
   })
 })
 
@@ -66,6 +79,7 @@ describe('retired-key pre-scan — block-level services.memory issue', () => {
     const message = issueMessageAt(config, 'services.memory')
     expect(message).toBeDefined()
     expect(message).toContain('knowledge')
+    expect(paramsAt(config, 'services.memory')).toEqual(HARD_CUT_PARAMS)
   })
 })
 
@@ -77,7 +91,7 @@ describe('retired-key pre-scan — removed eval blocks', () => {
     ['seeding', 'eval.seeding was removed: eval seed no longer reads its cap from the config. Delete this block.'],
   ]
 
-  it.each(cases)('eval.%s is refused with its removal message', (key, message) => {
+  it.each(cases)('eval.%s is refused with its removal message and asks for no hard cut', (key, message) => {
     const config = { ...validBase, eval: { [key]: {} } }
     expect(issueMessageAt(config, `eval.${key}`)).toBe(message)
     const result = AgentQaConfigSchema.safeParse(config)

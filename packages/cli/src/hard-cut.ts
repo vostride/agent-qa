@@ -13,11 +13,11 @@ export function INVALID_CONFIG_FIX(configPath: string): string {
   return `Fix or remove the key named above in ${configPath}, then run agent-qa validate. To start over, agent-qa init --force rewrites agent-qa.config.yaml.`
 }
 
-export function isRetiredKeyIssue(issue: { code?: unknown; params?: unknown }): boolean {
+export function isHardCutIssue(issue: { code?: unknown; params?: unknown }): boolean {
   return (
     issue.code === 'custom' &&
     typeof issue.params === 'object' &&
     issue.params !== null &&
-    (issue.params as Record<string, unknown>).retired === true
+    (issue.params as Record<string, unknown>).hardCut === true
   )
 }

@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import pc from 'picocolors'
 import { loadConfigFile } from '../config.js'
-import { HARD_CUT_STEPS, INVALID_CONFIG_FIX, isRetiredKeyIssue } from '../hard-cut.js'
+import { HARD_CUT_STEPS, INVALID_CONFIG_FIX, isHardCutIssue } from '../hard-cut.js'
 import { loadAuthPluginsForRawConfig, toModelProfileAndAuth, type LLMModelAdapter } from '../llm-utils.js'
 import { DEFAULT_ANTHROPIC_MODEL } from '../model-defaults.js'
 import { NODE_FLOOR_INSTALL_LINE, NODE_FLOOR_MAJOR, nodeFloorRefusal } from '../node-floor.js'
@@ -188,8 +188,9 @@ function checkConfigValidation(
           return { status: 'pass', message: 'config schema valid' }
         }
 
-        // 2026-10-19 (445-07, D-23): the printed fix is read after this check returns.
-        row.fixInstructions = result.error.issues.some(isRetiredKeyIssue)
+        // The printed fix is read after this check returns: the hard cut for keys removed in v2,
+        // the key fix otherwise.
+        row.fixInstructions = result.error.issues.some(isHardCutIssue)
           ? HARD_CUT_STEPS
           : INVALID_CONFIG_FIX(configPath)
         const issues = result.error.issues.slice(0, 3)

@@ -1375,7 +1375,7 @@ describe('C445-NODE-FLOOR-DOCTOR', () => {
   })
 })
 
-// 2026-10-19 (445-07, D-23): doctor's Config validation row gives the same fix as the config loader.
+// Doctor's Config validation row gives the same fix as the config loader.
 describe('C445-DOCTOR-CONFIG', () => {
   const safeParse = vi.mocked(core.AgentQaConfigSchema.safeParse)
   const mockedParse = safeParse.getMockImplementation()
@@ -1450,6 +1450,21 @@ describe('C445-DOCTOR-CONFIG', () => {
     expect(unknownKeyFix).toContain('Fix or remove the key named above')
     expect(unknownKeyFix).not.toContain('agent-qa-memory/')
     expect(unknownKeyFix).not.toContain('re-run `agent-qa init`')
+  })
+
+  it('doctor names a removed eval block and gives the key fix, not the hard cut steps', async () => {
+    const fix = await configFix({
+      workspace: WORKSPACE,
+      registry: REGISTRY,
+      use: { llm: 'default' },
+      eval: { gate1: { maxPerJob: 2 } },
+    })
+    expect(rowFor('Config validation'), getOutput()).toContain(
+      'eval.gate1: eval.gate1 was removed: memory is no longer screened by replay before promotion.',
+    )
+    expect(fix).toContain('Fix or remove the key named above')
+    expect(fix).not.toContain('agent-qa-memory/')
+    expect(fix).not.toContain('Delete .agent-qa/')
   })
 })
 

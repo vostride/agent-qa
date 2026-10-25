@@ -1,10 +1,11 @@
 import { z } from 'zod'
 
-// D-07/D-11: refusals for config keys removed in v2. This scan is a zod pipe PRE-stage in front
-// of the strict root schema — a superRefine chained after .strict() never runs when strict rejects
-// a value (verified on zod 4.6.7), so these messages must fire first. The scan only ADDS issues; the
-// strict stage-B parse remains the acceptance authority. 2026-10-19 (445-07, D-23): every issue
-// carries params.retired so the CLI closes the error with the hard-cut steps.
+// Refusals for removed config keys. This scan is a zod pipe PRE-stage in front of the strict root
+// schema — a superRefine chained after .strict() never runs when strict rejects a value (verified
+// on zod 4.6.7), so these messages must fire first. The scan only ADDS issues; the strict stage-B
+// parse remains the acceptance authority. Every issue carries params.retired. Keys removed in v2
+// also carry params.hardCut, so the CLI closes the error with the hard-cut steps; any other removed
+// key closes with the ordinary key fix.
 const RETIRED_MEMORY_KEY_MESSAGES: Record<string, string> = {
   dir: 'services.memory.dir was removed in v2 — use knowledge.dir (default agent-qa-knowledge)',
   enabled: 'services.memory.enabled was removed in v2 — memory is always on; delete this key (no disable switch)',
@@ -29,8 +30,8 @@ const RETIRED_EVAL_KEY_MESSAGES: Record<string, string> = {
   seeding: 'eval.seeding was removed: eval seed no longer reads its cap from the config. Delete this block.',
 }
 
-// 2026-10-07 (436-08, D-05): the old refilling planner key is cut with no alias, migration or
-// fallback. The same message fires for the project config and for test and suite `use` overrides.
+// The old refilling planner key is cut with no alias, migration or fallback. The same message
+// fires for the project config and for test and suite `use` overrides.
 export const RETIRED_MAX_SUB_ACTIONS_MESSAGE =
   'use.planner.maxSubActions was removed in v2 — it was a refilling iteration count; set use.planner.maxActions (default 30) and use.planner.maxPlanningTurns (default 30)'
 
@@ -50,7 +51,7 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
   if (isPlainObject(value.services) && value.services.memory !== undefined) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      params: { retired: true },
+      params: { retired: true, hardCut: true },
       path: ['services', 'memory'],
       message: 'services.memory was removed in v2 — the memory config surface collapsed into the top-level knowledge block',
     })
@@ -61,7 +62,7 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
         if (message) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            params: { retired: true },
+            params: { retired: true, hardCut: true },
             path: ['services', 'memory', key],
             message,
           })
@@ -73,7 +74,7 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
   if (isPlainObject(value.workspace) && value.workspace.agentRules !== undefined) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      params: { retired: true },
+      params: { retired: true, hardCut: true },
       path: ['workspace', 'agentRules'],
       message: 'workspace.agentRules was removed in v2 — rules dissolve into agent-qa-knowledge/policies/<scope>.md files',
     })
@@ -96,7 +97,7 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
   if (hasRetiredPlannerKey(value.use)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      params: { retired: true },
+      params: { retired: true, hardCut: true },
       path: ['use', 'planner', RETIRED_PLANNER_KEY],
       message: RETIRED_MAX_SUB_ACTIONS_MESSAGE,
     })
@@ -108,7 +109,7 @@ export const retiredUseKeyScan = z.any().superRefine((value, ctx) => {
   if (hasRetiredPlannerKey(value)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      params: { retired: true },
+      params: { retired: true, hardCut: true },
       path: ['planner', RETIRED_PLANNER_KEY],
       message: RETIRED_MAX_SUB_ACTIONS_MESSAGE,
     })

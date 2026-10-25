@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { SecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
 import { MARKER_WRITTEN_BACK_SENTENCE } from '@vostride/agent-qa-schema'
 import { formatConfigDebug, loadConfigFile, loadRequiredConfigFile, loadEnvOverrides, mergeConfigs, mergeWithTestConfig, mergeUseBlocks, resolveConfig } from '../config.js'
+import { HARD_CUT_STEPS, INVALID_CONFIG_FIX } from '../hard-cut.js'
 import { readFile, writeFile, mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -570,8 +571,8 @@ describe('C441-GAP2-CONFIG', () => {
   })
 })
 
-// 2026-10-19 (445-07, D-23, D-15): a config with keys removed in v2 closes with the hard-cut
-// steps; any other invalid config names the key and the fix.
+// A config with keys removed in v2 closes with the hard-cut steps; any other invalid config,
+// including one carrying a key removed later, names the key and the fix.
 describe('C445-CONFIG-HINT', () => {
   const RE_INITIALIZE_URL = 'https://vostride.com/docs/agent-qa/migrate/v0-1-to-v0-2'
   const OLD_INIT_LINE = "Run 'agent-qa init' to generate a complete config file."
@@ -609,6 +610,16 @@ describe('C445-CONFIG-HINT', () => {
     '',
   ].join('\n')
   const UNKNOWN_KEY_YAML = [WORKSPACE_YAML, BASE_YAML, 'use:', '  llm: default', 'planer: {}', ''].join('\n')
+  const EVAL_GATE1_YAML = [
+    WORKSPACE_YAML,
+    BASE_YAML,
+    'use:',
+    '  llm: default',
+    'eval:',
+    '  gate1:',
+    '    maxPerJob: 2',
+    '',
+  ].join('\n')
 
   async function failureOf(name: string, source: string): Promise<{ configPath: string; text: string }> {
     const configPath = join(TMP_DIR, name)
@@ -654,5 +665,16 @@ describe('C445-CONFIG-HINT', () => {
     expect(text).not.toContain(OLD_INIT_LINE)
     expect(text).not.toContain('agent-qa daemon stop')
     expect(text).not.toContain(RE_INITIALIZE_URL)
+  })
+
+  it('a config carrying a removed eval block names its message and closes with the key fix', async () => {
+    const { configPath, text } = await failureOf('eval-gate1.yaml', EVAL_GATE1_YAML)
+    expect(text).toContain('Config validation failed')
+    expect(text).toContain(
+      'eval.gate1 was removed: memory is no longer screened by replay before promotion. Delete this block.',
+    )
+    expect(text).toContain(INVALID_CONFIG_FIX(configPath))
+    expect(text).not.toContain(HARD_CUT_STEPS)
+    expect(text).not.toContain('agent-qa-memory/')
   })
 })

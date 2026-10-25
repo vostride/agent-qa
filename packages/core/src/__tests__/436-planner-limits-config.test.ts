@@ -127,13 +127,14 @@ describe('C436-PLANNER-LIMITS-CONFIG', () => {
     expect(resolvePlannerLimits(project)).toEqual({ maxActions: 10, maxPlanningTurns: 12 })
   })
 
-  // 2026-10-07 (436-08, D-05, reconciliation 4): the hard cut. No alias, migration or fallback.
+  // The old key is cut with no alias, migration or fallback, and asks the CLI for the hard cut.
   it('a project config with the old key fails with the plain message', () => {
     const result = AgentQaConfigSchema.safeParse(projectConfig({ [OLD_KEY]: 10, previousStepCount: 5 }))
     expect(result.success).toBe(false)
     const issues = retiredIssues(result.error?.issues)
     expect(issues, JSON.stringify(result.error?.issues)).toHaveLength(1)
     expect(issues[0]!.path).toEqual(['use', 'planner', OLD_KEY])
+    expect(issues[0]).toMatchObject({ params: { retired: true, hardCut: true } })
     expect(RETIRED_MAX_SUB_ACTIONS_MESSAGE).toContain('use.planner.maxActions (default 30)')
     expect(RETIRED_MAX_SUB_ACTIONS_MESSAGE).toContain('use.planner.maxPlanningTurns (default 30)')
     expect(RETIRED_MAX_SUB_ACTIONS_MESSAGE).toContain('refilling iteration count')
@@ -144,6 +145,7 @@ describe('C436-PLANNER-LIMITS-CONFIG', () => {
     expect(result.success).toBe(false)
     expect(result.error?.issues.map((issue) => issue.message)).toEqual([RETIRED_MAX_SUB_ACTIONS_MESSAGE])
     expect(result.error?.issues[0]!.path).toEqual(['use', 'planner', OLD_KEY])
+    expect(result.error?.issues[0]).toMatchObject({ params: { retired: true, hardCut: true } })
   })
 
   it("a suite file's use override with the old key fails with the same message", () => {
@@ -151,6 +153,7 @@ describe('C436-PLANNER-LIMITS-CONFIG', () => {
     expect(result.success).toBe(false)
     expect(result.error?.issues.map((issue) => issue.message)).toEqual([RETIRED_MAX_SUB_ACTIONS_MESSAGE])
     expect(result.error?.issues[0]!.path).toEqual(['use', 'planner', OLD_KEY])
+    expect(result.error?.issues[0]).toMatchObject({ params: { retired: true, hardCut: true } })
   })
 
   it('the old key with the new pair beside it still fails', () => {

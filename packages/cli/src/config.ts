@@ -11,7 +11,7 @@ import {
 } from '@vostride/agent-qa-core'
 import type { AgentQaConfig } from '@vostride/agent-qa-core'
 import type { MaskFn } from '@vostride/agent-qa-schema'
-import { HARD_CUT_STEPS, INVALID_CONFIG_FIX, isRetiredKeyIssue } from './hard-cut.js'
+import { HARD_CUT_STEPS, INVALID_CONFIG_FIX, isHardCutIssue } from './hard-cut.js'
 
 const ENV_MAPPING: Record<string, string> = {
   AGENT_QA_DASHBOARD_PORT: 'services.dashboard.port',
@@ -420,9 +420,9 @@ export async function resolveConfig(options: {
       ? `\n\nHint: services.dashboard.baseUrl must now carry a scheme — write an absolute URL such as http://127.0.0.1:3470 rather than a bare host like localhost:3470, or remove the key entirely. An empty string is not an absence: absence is a legal and deliberate posture here — a standalone \`agent-qa mcp\` with no dashboard has no base, and the carrier tool result then names that absence rather than fabricating a URL. The value is refused because it is assigned to an href inside the served App document and appended verbatim to every carrier tool result, so a schemeless or empty base composes a link that resolves against nothing.`
       : ''
 
-    // 2026-10-19 (445-07, D-23, D-15): `init` refuses an existing config without --force, so the
-    // closing line is the hard cut for keys removed in v2 and the key fix otherwise.
-    const closing = result.error.issues.some(isRetiredKeyIssue)
+    // `init` refuses an existing config without --force, so the closing line is the hard cut for
+    // keys removed in v2 and the key fix for any other refused config, later removals included.
+    const closing = result.error.issues.some(isHardCutIssue)
       ? HARD_CUT_STEPS
       : INVALID_CONFIG_FIX(configPath)
 
