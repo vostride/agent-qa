@@ -87,20 +87,17 @@ const FOCUS_RING = "focus-visible:outline-none focus-visible:ring-[3px] focus-vi
 /**
  * EVERY LINE THIS CARD CAN PAINT, AS THE ADDRESS THAT REACHES IT.
  *
- * The house rule is that cells assert exported constants rather than prose (403-05 D-5); this is
- * that rule applied to the other half of the contract, the DOM. The bundle-level Playwright legs
- * (404-08, and Plan 11's re-spell) and the jsdom cells address the SAME six selectors, and a kind
- * that only ever existed as a string flowing through a `map` is a contract with no declaration
- * site — nowhere to grep, nowhere to count, and nowhere for a reviewer to see one go missing.
+ * Cells assert exported constants rather than prose; this is that rule applied to the DOM. The
+ * Playwright legs and the jsdom cells address these same selectors, so a line kind has one
+ * declaration site to grep.
  *
- * The record is closed over {@link CardLineKind} with no default arm, so a seventh line kind has to
- * be declared here before it can be rendered at all.
+ * The record is closed over {@link CardLineKind} with no default arm, so a new line kind has to be
+ * declared here before it can be rendered at all.
  */
 export const STAGE_CARD_LINE_SELECTORS = {
   outcome: '[data-stage-card-line="outcome"]',
   note: '[data-stage-card-line="note"]',
   timing: '[data-stage-card-line="timing"]',
-  proposals: '[data-stage-card-line="proposals"]',
   retry: '[data-stage-card-line="retry"]',
   door: '[data-stage-card-line="door"]',
   error: '[data-stage-card-line="error"]',
@@ -116,11 +113,9 @@ function stageCardLines(card: StageCardView | undefined, door?: StageIndicatorDo
   return [
     { kind: "outcome", text: card.outcome },
     ...(card.note === undefined ? [] : [{ kind: "note" as const, text: card.note }]),
-    // WHEN it happened, then what the neighbouring stage did, then what the chain intends, then
-    // where to go (425-08 · D-12/D-14, UI-SPEC S4). Each kind appears at most once, so the kind
-    // doubles as a stable React key.
+    // WHEN it happened, then what the chain intends, then where to go. Each kind appears at most
+    // once, so the kind doubles as a stable React key.
     ...(card.timing === undefined ? [] : [{ kind: "timing" as const, text: card.timing }]),
-    ...(card.proposals === undefined ? [] : [{ kind: "proposals" as const, text: card.proposals }]),
     ...(card.retry === undefined ? [] : [{ kind: "retry" as const, text: card.retry }]),
     ...(door === undefined ? [] : [{ kind: "door" as const, text: DOOR_LINE_TEXT[door] }]),
   ]

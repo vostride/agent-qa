@@ -32,7 +32,6 @@ import {
   PENDING_POSTURE_TEXT,
   POST_PROCESSING_LOADING_LABEL,
   POST_PROCESSING_UNAVAILABLE_WORD,
-  PROPOSALS_REASON_ABSENT_TEXT,
   STAGE_INDICATOR_WORDS,
   STAGE_PRESENTATION_STATES,
   STAGE_SKIPPED_TEXT,
@@ -43,8 +42,6 @@ import {
   formatClockTime,
   legacyCurationPairText,
   projectPostProcessingView,
-  proposalsFailedText,
-  proposalsStagedText,
   stageFailedText,
   stageIndicatorAccessibleName,
   stageQueuedText,
@@ -75,7 +72,6 @@ function breakdown(counts: Partial<CurationBreakdown> = {}): CurationBreakdown {
 function notification(
   curation: Record<string, unknown>,
   verdictSummary: unknown = { total: 1, byClass: {} },
-  proposals?: Record<string, unknown>,
 ): unknown {
   return {
     schemaVersion: 2,
@@ -85,8 +81,6 @@ function notification(
     stages: {
       analysis: { status: 'complete' },
       curation,
-      // ABSENT MEANS NOT RECORDED (422 D-13) — the member is omitted rather than zero-filled.
-      ...(proposals === undefined ? {} : { proposals }),
     },
   }
 }
@@ -789,55 +783,5 @@ describe('a settled analysis with verdicts names its root cause from the summary
     expect(analysisCompleteWithVerdictsText(undefined, 1)).toBe('Analysis complete — 1 verdict')
     expect(analysisCompleteWithVerdictsText('config_error', 4))
       .toBe('Analysis complete — root cause: config error (4 verdicts)')
-  })
-})
-
-// THE CHIP-LESS STAGE SPEAKS ONLY WHEN IT HAS SOMETHING TO SAY (425-08 · D-14).
-//
-// v54 closed the chip set at two, so `proposals` has no indicator of its own. A line on every hover
-// would be text on every run; silence on a FAILED stage would make it invisible. The rule is the
-// spec's: surface a stage only when it has a user-relevant state or result.
-describe('the proposals stage appears in the curation card only when relevant (D-14)', () => {
-  const curationCardFor = (
-    proposals?: Record<string, unknown>,
-    detail?: Record<string, unknown>,
-  ) => chips(projectPostProcessingView(read({
-    status: status(
-      'complete',
-      'complete',
-      notification({ status: 'complete' }, { total: 0, byClass: {} }, proposals),
-      detail === undefined ? {} : { stageDetails: { proposals: detail } },
-    ),
-    disposition: 'drained',
-  }))).curation.card
-
-  it('PROPOSALS-LINE-ONLY-WHEN-RELEVANT: a positive staged count is the only pass that speaks', () => {
-    expect(curationCardFor({ status: 'complete', proposed: 2 })?.proposals)
-      .toBe('Proposals: 2 staged for review')
-    expect(curationCardFor({ status: 'complete', proposed: 0 })?.proposals).toBeUndefined()
-    expect(curationCardFor({ status: 'complete' })?.proposals).toBeUndefined()
-    expect(curationCardFor(undefined)?.proposals).toBeUndefined()
-    expect(proposalsStagedText(1)).toBe('Proposals: 1 staged for review')
-  })
-
-  it('PROPOSALS-LINE-ONLY-WHEN-RELEVANT: a failed stage names its masked reason, or says none was recorded', () => {
-    expect(curationCardFor({ status: 'failed' }, { lastFailureReason: 'the staging port refused' })?.proposals)
-      .toBe('Proposals failed — the staging port refused')
-    expect(curationCardFor({ status: 'failed' })?.proposals)
-      .toBe(`Proposals failed — ${PROPOSALS_REASON_ABSENT_TEXT}`)
-    expect(PROPOSALS_REASON_ABSENT_TEXT).toBe('reason not recorded')
-    expect(proposalsFailedText('nope')).toBe('Proposals failed — nope')
-  })
-
-  it('PROPOSALS-LINE-ONLY-WHEN-RELEVANT: the analysis card never carries one', () => {
-    const view = chips(projectPostProcessingView(read({
-      status: status('complete', 'complete', notification({ status: 'complete' }, { total: 0, byClass: {} }, {
-        status: 'complete',
-        proposed: 2,
-      })),
-      disposition: 'drained',
-    })))
-    expect(view.analysis.card?.proposals).toBeUndefined()
-    expect(view.curation.card?.proposals).toBe('Proposals: 2 staged for review')
   })
 })

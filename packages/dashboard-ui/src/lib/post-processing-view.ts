@@ -187,7 +187,6 @@ export interface StageCardView {
   /** Why the outcome could not carry counts — the labelled absence, never a substitute for them. */
   readonly note?: string
   readonly timing?: string
-  readonly proposals?: string
   readonly retry?: string
 }
 
@@ -359,9 +358,6 @@ export function legacyCurationPairText(curated: number, deprecated: number): str
   return `${String(curated)} curated · ${String(deprecated)} deprecated`
 }
 
-/** What a failed proposals stage says when nobody recorded why (D-14, the D-21 idiom). */
-export const PROPOSALS_REASON_ABSENT_TEXT = 'reason not recorded'
-
 /**
  * Seconds included because stage durations are seconds (UI-SPEC S4). `undefined` locale so the
  * reader's own machine decides the wording, and `h23` so a 24-hour reader never sees `12:41:02 AM`
@@ -493,41 +489,6 @@ function dominantVerdictClass(byClass: Partial<Record<VerdictClass, number>>): V
     }
   }
   return dominant
-}
-
-/** `Proposals: {n} staged for review` — rendered only for a positive count (D-14). */
-export function proposalsStagedText(n: number): string {
-  return `Proposals: ${String(n)} staged for review`
-}
-
-/** `Proposals failed — {reason}`. The reason is the producer's, masked and unsliced. */
-export function proposalsFailedText(reason: string): string {
-  return `Proposals failed — ${reason}`
-}
-
-/**
- * THE CHIP-LESS STAGE, SURFACED ONLY WHEN IT HAS SOMETHING TO SAY (D-14).
- *
- * v54 closed the chip set at two, so `proposals` has no indicator of its own. Two readings are
- * user-relevant: a stage that FAILED (otherwise invisible) and one that staged something (there is
- * now work waiting). A zero-output pass and an absent stage say nothing — an absent stage was not
- * recorded, and a line about it would be this build inventing work.
- *
- * The chain's terminal row is what says `failed`; the JOB row is where the masked reason lives
- * (the same split D-21 draws for the two chip stages).
- */
-function proposalsLine(read: ReadBody): string | undefined {
-  const stage = read.status.notification?.stages.proposals
-  if (stage === undefined) return undefined
-
-  if (stage.status === 'failed') {
-    const recorded = read.status.stageDetails?.proposals?.lastFailureReason
-    return proposalsFailedText(recorded ?? PROPOSALS_REASON_ABSENT_TEXT)
-  }
-
-  return stage.proposed !== undefined && stage.proposed > 0
-    ? proposalsStagedText(stage.proposed)
-    : undefined
 }
 
 /** `{Stage} queued`, plus who is going to move it when the run recorded a disposition (D-12/D-13). */
@@ -684,7 +645,7 @@ function skippedChipView(
 }
 
 /**
- * The recorded lines that hang beneath an outcome — timing on every stage, proposals on curation.
+ * The recorded lines that hang beneath an outcome — timing on every stage.
  *
  * FOLDED ONTO AN EXISTING CARD, never used to conjure one. `outcome` is the card's mandatory line,
  * so a stage with a job row but nothing to say about its outcome has no card to hang timing from —
@@ -697,13 +658,9 @@ function withRecordedLines(
   read: ReadBody,
 ): StageCardView {
   const timing = stageTimingLine(read.status.stageDetails?.[stage], state)
-  // THE ANALYSIS CARD NEVER CARRIES ONE (D-14): proposals is curation's neighbouring stage, and a
-  // line about it on the analysis card would attribute one stage's work to another.
-  const proposals = stage === 'curation' ? proposalsLine(read) : undefined
   return {
     ...card,
     ...(timing === undefined ? {} : { timing }),
-    ...(proposals === undefined ? {} : { proposals }),
   }
 }
 

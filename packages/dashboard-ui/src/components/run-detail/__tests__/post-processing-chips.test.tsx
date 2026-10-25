@@ -618,13 +618,11 @@ describe("every indicator state is readable with the colour stripped out (D-06, 
   })
 })
 
-// THE CARD'S NEW LINES, IN READING ORDER (425-08 · D-12/D-14, UI-SPEC S4).
+// THE CARD'S LINES, IN READING ORDER.
 //
 // The component composes NO prose: it paints the lines the projection built, keyed by kind, so the
-// reading order lives in one place and a cell can address a line without parsing a paragraph. The
-// proposals line carries a PRODUCER string, so it is measured as a text node for the same reason
-// the failure reason is (T-425-08-02, the T-404-01 idiom).
-describe("a card explains timing and the chip-less stage on their own lines (D-12/D-14)", () => {
+// reading order lives in one place and a cell can address a line without parsing a paragraph.
+describe("a card explains timing on its own line", () => {
   // Radix paints the content TWICE — once visibly, once inside a visually-hidden `role="tooltip"`
   // node for announcement — so an unfiltered walk reports every line twice and an order claim built
   // on it would pass for the wrong reason.
@@ -634,7 +632,7 @@ describe("a card explains timing and the chip-less stage on their own lines (D-1
       .map((el) => el.getAttribute("data-stage-card-line"))
   }
 
-  it("STAGE-CARD-LINES: timing and proposals paint as their own lines, and only where they belong", async () => {
+  it("STAGE-CARD-LINES: timing paints as its own line on each card", async () => {
     const host = render(chipsView(
       {
         status: "complete",
@@ -645,7 +643,6 @@ describe("a card explains timing and the chip-less stage on their own lines (D-1
         card: {
           outcome: "Curation complete — 2 added",
           timing: "Queued 10:41:09 · finished in 2s",
-          proposals: "Proposals failed — <img src=x onerror=alert(1)>",
         },
       },
     ))
@@ -655,14 +652,11 @@ describe("a card explains timing and the chip-less stage on their own lines (D-1
     expect(lineOf(analysis, "timing")).toBe("Queued 10:41:02 · finished in 5s")
 
     const curation = await cardOf(host, "curation")
-    expect(kindsOf(curation)).toEqual(["outcome", "timing", "proposals"])
-
-    const proposals = curation.querySelector(STAGE_CARD_LINE_SELECTORS.proposals)
-    expect(proposals?.textContent).toBe("Proposals failed — <img src=x onerror=alert(1)>")
-    expect(proposals?.querySelector("img")).toBeNull()
+    expect(kindsOf(curation)).toEqual(["outcome", "timing"])
+    expect(lineOf(curation, "timing")).toBe("Queued 10:41:09 · finished in 2s")
   })
 
-  it("STAGE-CARD-LINES: they sit between the outcome and the retry and door lines", async () => {
+  it("STAGE-CARD-LINES: timing sits between the outcome and the retry and door lines", async () => {
     const host = mount(
       <PostProcessingChips
         view={chipsView(
@@ -673,7 +667,6 @@ describe("a card explains timing and the chip-less stage on their own lines (D-1
               outcome: "Curation failed — the bundle would not commit",
               note: BREAKDOWN_NOT_RECORDED_TEXT,
               timing: "Queued 10:41:02 · started after 1s · 2 attempts",
-              proposals: "Proposals: 2 staged for review",
               retry: "Will retry",
             },
           },
@@ -682,7 +675,7 @@ describe("a card explains timing and the chip-less stage on their own lines (D-1
       />,
     )
     expect(kindsOf(await cardOf(host, "curation")))
-      .toEqual(["outcome", "note", "timing", "proposals", "retry", "door"])
+      .toEqual(["outcome", "note", "timing", "retry", "door"])
   })
 })
 
