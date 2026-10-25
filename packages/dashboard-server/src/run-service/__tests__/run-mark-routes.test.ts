@@ -93,8 +93,7 @@ describe('markRun delegates to the shared gate and feedback port', () => {
   // frame to enter; every field is forwarded in the one call.
   it('forwards all input fields in one call, asking nobody', async () => {
     const f = fixture()
-    const body = { kind: 'false-fail', note: NOTE, correctedExpectation: 'must fail', stepIndex: 2, testId: 'member',
-      correctedAction: { type: 'click', ref: 'e-correct' } }
+    const body = { kind: 'false-fail', note: NOTE, stepIndex: 2, testId: 'member' }
     expect(await markRun(f.host, RUN_ID, body)).toEqual({ kind: 'ok', body: outcome })
     expect(f.mark).toHaveBeenCalledExactlyOnceWith({ ...body, runId: RUN_ID })
   })

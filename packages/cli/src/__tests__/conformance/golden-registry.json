@@ -661,8 +661,8 @@
       "bindingStatusAtRoot": "bound",
       "classifies": true,
       "id": "runs.mark",
-      "inputSchemaDigest": "3fa17032140c1c9aafa71645f8d29436b18698e1039d5696327e04763f382e1e",
-      "outputSchemaDigest": "0dbad17573762c583ee387f7dc5a7ad3d24edd8a02446e7ee274a66e6bc630c4",
+      "inputSchemaDigest": "4704fae01ba8c8eb21ace89c28f51bbb71e9f69cde6e89d3697be9a01fead809",
+      "outputSchemaDigest": "f562a43794b14d192239c685f3f7bd1edcf3354a206c6ff66b42f9f86d5f19de",
       "partition": {
         "kind": "projected",
         "tool": "agent_qa_mark_run"
@@ -679,8 +679,8 @@
       "bindingStatusAtRoot": "bound",
       "classifies": true,
       "id": "runs.mark.preview",
-      "inputSchemaDigest": "3fa17032140c1c9aafa71645f8d29436b18698e1039d5696327e04763f382e1e",
-      "outputSchemaDigest": "d881aa351ce0ae42aa203735861d6cadefd43924f05ad0717b1605ef80c43b7b",
+      "inputSchemaDigest": "4704fae01ba8c8eb21ace89c28f51bbb71e9f69cde6e89d3697be9a01fead809",
+      "outputSchemaDigest": "a44803f4879cd5e5493f7e454eb13acfe67923fe6a7d3fbd2e73173931f56acc",
       "partition": {
         "kind": "projected",
         "tool": "agent_qa_preview_run_mark"
@@ -697,7 +697,7 @@
       "classifies": true,
       "id": "runs.marks.history",
       "inputSchemaDigest": "55df3bfd3c544e0140548637d1539243fb285899b52998dc36a6dbe1989aee6d",
-      "outputSchemaDigest": "5de5cc9365ac8c982410a3760f5f4e9c22ceae35cd0cf6dde8a0fd0e0e937bad",
+      "outputSchemaDigest": "45e194389e5a273a1932bde30c027ff803662173a63e4dcb4854d3b8b0116699",
       "partition": {
         "kind": "projected",
         "tool": "agent_qa_get_run_marks"

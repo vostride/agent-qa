@@ -558,7 +558,7 @@ function feedbackPreview(runId: string): RunsMarkPreviewResult {
     resolvedStep: { stepIndex: 0, reason: 'failing-step' }, latest: { kind: 'supersedes', markId: SECOND_MARK, ordinal: 2 },
     basis: { ledgerOrdinal: 2, priorMarkOrdinal: 2 }, markedDecisionCount: 1,
     groundTruth: [{ testIndex: 0, stepIndex: 0, verdict: 'pass',
-      recordedVerdict: { pass: false, reasoning: `timed out near ${FEEDBACK_NOTE_SECRET}` }, correctedAction: false }],
+      recordedVerdict: { pass: false, reasoning: `timed out near ${FEEDBACK_NOTE_SECRET}` } }],
     labels: [{ testIndex: 0, stepIndex: 0, decisionOrdinal: 0, sourceCassetteId: 'cassette-423-21', channel: 'user-mark',
       correction: { verdict: 'pass' } }],
     knowledge: { servedRecordIds: [], appendsEvidence: false, records: [], evidence: { confirmed: 0, overturned: 0 } },
@@ -787,7 +787,7 @@ describe('423-21 feedback reads on both HTTP doors (D-18)', () => {
     // 441-15 (D-07): both doors answer a stored marker and an old placeholder as they are.
     const consequences = feedbackPreview(RUN_ID) as Extract<RunsMarkPreviewResult, { kind: 'consequences' }>
     const stored = RunsMarkPreviewResultSchema.parse({ ...consequences, groundTruth: [{ ...consequences.groundTruth[0]!,
-      recordedVerdict: { pass: false, reasoning: 'near [secret:PW_441]' }, correctedExpectation: '<SECRET_1>' }] })
+      recordedVerdict: { pass: false, reasoning: 'near [secret:PW_441] and <SECRET_1>' } }] })
     const planted = await servePlantedHost(stored)
     const human = await postJson(`${planted.local}/mark-preview`, previewInput())
     expect(human.status).toBe(200)

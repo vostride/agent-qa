@@ -1881,23 +1881,6 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
         "properties": {
-          "correctedAction": {
-            "additionalProperties": {},
-            "properties": {
-              "type": {
-                "minLength": 1,
-                "type": "string"
-              }
-            },
-            "required": [
-              "type"
-            ],
-            "type": "object"
-          },
-          "correctedExpectation": {
-            "maxLength": 2000,
-            "type": "string"
-          },
           "kind": {
             "enum": [
               "false-fail",
@@ -1951,23 +1934,6 @@
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
         "properties": {
-          "correctedAction": {
-            "additionalProperties": {},
-            "properties": {
-              "type": {
-                "minLength": 1,
-                "type": "string"
-              }
-            },
-            "required": [
-              "type"
-            ],
-            "type": "object"
-          },
-          "correctedExpectation": {
-            "maxLength": 2000,
-            "type": "string"
-          },
           "kind": {
             "enum": [
               "false-fail",
@@ -2193,5 +2159,5 @@
       "shortDescription": "Triage agent-qa run failures"
     }
   ],
-  "rowsDigest": "02b98e4022fd087c9404069c9bcde2f37bf2e07c1742c4b3f3b036d9d48b9818"
+  "rowsDigest": "c1211eded19de357441a77820e943076b9a81288812641124eb7b441c467d07f"
 }
