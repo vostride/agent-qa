@@ -186,10 +186,6 @@ export const EXPECTED_AGENT_BARREL_VALUE_EXPORTS: readonly string[] = [
   'FunctionNotBoundError',
   // 2026-10-01 (432-20, D-12): 'FunctionOriginError' and 'FunctionScopeError' left with the scope
   // and human-origin checks that raised them.
-  // 422 D-14: the Gate-1 acknowledgement refusal. An error CLASS, in ASCII sort position, and
-  // it opens no path around the dispatch for the same reason every other refusal here does not:
-  // it carries a candidate id and the writer's own word for the refusal, and nothing callable.
-  'Gate1ReceiptNotPersistedError',
   'IncompleteJobKindDeclarationError',
   'InconsistentJobKindDeclarationError',
   'JobCancellationNotRequestedError',
@@ -853,8 +849,6 @@ export const EXPECTED_AGENT_BARREL_TYPE_EXPORTS: readonly string[] = [
   // which is the second vocabulary this subtree exists to avoid (388 C13). The refused-line shape
   // is deliberately NOT here — it crosses the session-log port, so `schema` mints it.
   'RepairSessionOptions',
-  // 2026-09-06, 416 D-10: the replay binding — a TYPE a host names before 417 implements it.
-  'ReplayGatePort',
   'ReplayedRunEvent',
   'ResolvedClause',
   // 405-01 (D-03): the durable run-detail projection read port's shape. A TYPE, because a host

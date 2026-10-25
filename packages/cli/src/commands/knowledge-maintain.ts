@@ -12,13 +12,11 @@ import { randomUUID } from 'node:crypto'
 import { readdirSync } from 'node:fs'
 import { userInfo } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
-import { buildPromotionPostureResolver, promotionPostureResolverForHost, renderPromotionLine } from '../curation/promotion-posture.js'
-import { createReplayGatePortForHost } from '../gates/replay-gate-host.js'
+import { renderPromotionLine } from '../curation/promotion-line.js'
 
 import {
   BuildOrdinalReservationError,
   LOCAL_CURATION_CAPABILITIES,
-  latestBuildOrdinal,
   LOCAL_DAEMON_CAPABILITIES,
   reserveBuildOrdinalForProducts,
   resolveRunExecutionContext,
@@ -426,22 +424,10 @@ async function drainInline(
   mask: MaskFn,
 ): Promise<void> {
   const resolveTrustPriors = trustPriors.resolve
-  const posture = await buildPromotionPostureResolver({ configPath: paths.configPath,
-    replayGate: createReplayGatePortForHost({ configPath: paths.configPath, agentQaRoot: paths.runtimeRoot, resolveTrustPriors }),
-    knowledgeRoot: paths.knowledgeRoot, agentQaRoot: paths.runtimeRoot,
-    canaryFacts: LOCAL_CURATION_CAPABILITIES.readCanaryPostureFacts,
-    lowerTrustShares: LOCAL_CURATION_CAPABILITIES.readLowerTrustShares,
-    currentBuildOrdinal: product => latestBuildOrdinal({ root: paths.runtimeRoot, product }),
-  })
-  const resolvePromotionPosture = promotionPostureResolverForHost(
-    posture,
-    message => emitHuman(mask, message, 'stderr'),
-  )
   const seenCandidateIds = new Set<string>()
   let inlineAuthority: { leaseId: string; epoch: number } | undefined
   const report = await drainQueue({
     priors: resolveTrustPriors(),
-    ...(resolvePromotionPosture === undefined ? {} : { resolvePromotionPosture }),
     knowledgeRoot: paths.knowledgeRoot,
     author: FALLBACK_CURATOR_AUTHOR,
     executionContext: resolveRunExecutionContext(),

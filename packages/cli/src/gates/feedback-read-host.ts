@@ -58,7 +58,7 @@ export function createFeedbackReadsPortForHost(deps: FeedbackReadsHostDeps): Fee
       try {
         const session = await resolveEvalSession({ configPath, keyOnly: true })
         const knowledgeRoot = resolveConfiguredKnowledgeRoot(session.config, dirname(resolve(configPath)))
-        reader = createKnowledgeReader(() => knowledgeRoot, undefined, undefined,
+        reader = createKnowledgeReader(() => knowledgeRoot, undefined,
           deps.resolveTrustPriors ?? trustPriorsForHost({ configPath }).resolve)
       } catch {
         return absent('not-bound')

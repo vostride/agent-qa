@@ -249,7 +249,7 @@ export async function previewMarkConsequences(deps: MarkPreviewDeps, raw: unknow
     if (store !== undefined) return store
     const config = await resolveConfig({ configPath: deps.configPath, loadAuthPlugins: false })
     const knowledgeRoot = resolveConfiguredKnowledgeRoot(config, dirname(resolve(deps.configPath)))
-    store = { knowledgeRoot, reader: deps.reader ?? createKnowledgeReader(() => knowledgeRoot, undefined, undefined,
+    store = { knowledgeRoot, reader: deps.reader ?? createKnowledgeReader(() => knowledgeRoot, undefined,
       deps.resolveTrustPriors ?? trustPriorsForHost(deps).resolve) }
     return store
   }

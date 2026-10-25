@@ -1,4 +1,3 @@
-import { GATE2_DEFAULT_MAX_LOWER_TRUST_PER_SCOPE } from '@vostride/agent-qa-schema'
 import { resolveKnowledgeRoot } from '@vostride/agent-qa-core'
 // The CLI composition-root sibling for the eval verbs (Phase 372, Plan 04 — the D-05 sibling of
 // the run session composition, which as of 385-08/D-13 is the local agent package's composition
@@ -218,13 +217,6 @@ export type {
 export { renderBaselineComparatorRefusal, SEED_POLICIES } from '@vostride/agent-qa-eval'
 export type { SeedPolicy } from '@vostride/agent-qa-eval'
 export type { WriteBaselinePointerOutcome } from '@vostride/agent-qa-eval-local'
-
-// 416: the posture builder obtains eval capabilities through this existing host edge.
-// Keep the surface firewall self-shrinking; new CLI files do not gain eval imports.
-export { computeCorpusDigest, selectGateSet } from '@vostride/agent-qa-eval'
-export type { JudgeCapabilityInput } from '@vostride/agent-qa-eval'
-export { judgeCapabilityOf } from '@vostride/agent-qa-eval'
-export { readActiveCommittedCorpus, readCommittedCorpus, readGatePostureFor, resolveMinimumGateSet } from '@vostride/agent-qa-eval-local'
 
 /** The user-facing eval params (config `eval:` block merged with per-invocation flags, D-03). */
 export interface EvalCliConfig {
@@ -1018,22 +1010,6 @@ export const GATE1_DEFAULT_MAX_SCREENS = 64
 // 417 D-12: smallest odd k whose ceil(k/2)+1 is a strict supermajority.
 export const GATE1_DEFAULT_K = 3
 
-// 2026-09-07, 418 D-13: the >=5-unconfirmed-builds staleness law is the sizing
-// precedent: five natural builds with an unexercised anchor form a quiet horizon.
-export const GATE2_DEFAULT_CANARY_HORIZON_BUILDS = 5
-
-export function resolveGate2Caps(session: EvalSession) {
-  const canaryHorizonBuilds = session.evalConfig.gate2?.canaryHorizonBuilds ?? GATE2_DEFAULT_CANARY_HORIZON_BUILDS
-  const maxLowerTrustPerScope = session.evalConfig.gate2?.maxLowerTrustPerScope ?? GATE2_DEFAULT_MAX_LOWER_TRUST_PER_SCOPE
-  for (const [name, value] of Object.entries({ canaryHorizonBuilds, maxLowerTrustPerScope })) {
-    if (!Number.isSafeInteger(value) || value < 1) throw new TypeError(`eval.gate2.${name} must be a positive integer`)
-  }
-  return { canaryHorizonBuilds, maxLowerTrustPerScope,
-    canaryHorizonBuildsSource: session.evalConfig.gate2?.canaryHorizonBuilds === undefined ? 'default' as const : 'config' as const,
-    maxLowerTrustPerScopeSource: session.evalConfig.gate2?.maxLowerTrustPerScope === undefined ? 'default' as const : 'config' as const,
-  }
-}
-
 export function readCanaryCorpusDigest(session: EvalSession):
   | { kind: 'digest'; corpusDigest: string }
   | { kind: 'no-eval-root' }
@@ -1510,15 +1486,6 @@ export interface ReplayGateVerbOptions {
   resolveTrustPriors?: import('./curation/trust-priors.js').ResolveTrustPriors
   /** Host runtime artifacts and audit root; config and committed roots remain config-relative. */
   agentQaRoot?: string
-  /**
-   * 422 D-14: writer authority the CALLER already holds, passed straight to the bridge.
-   *
-   * ADDITIVE-OPTIONAL, so every existing caller — the `eval replay-gate` verb itself, every
-   * fixture — keeps the standalone acquire/finally-release posture untouched. Present, the
-   * bridge borrows it and takes no lease of its own; see `ReplayGateHostDeps.resolveClaimAuthority`
-   * for why the resolution happens at the claim rather than at composition.
-   */
-  claimAuthority?: import('./gates/replay-gate-host.js').ReplayGateClaimAuthority
   k?: number
   maxScreens?: number
   dryRun?: boolean
@@ -1581,11 +1548,6 @@ export async function runReplayGateVerb(
   const { createReplayGateHost } = await import('./gates/replay-gate-host.js')
   const result = await createReplayGateHost({
     ...(opts.resolveTrustPriors === undefined ? {} : { resolveTrustPriors: opts.resolveTrustPriors }),
-    // 422 D-14: the lease the caller lent this verb, re-presented to the bridge as a resolver
-    // over the value this call already holds. The bridge calls it once, at its own claim.
-    ...(opts.claimAuthority === undefined
-      ? {}
-      : { resolveClaimAuthority: () => opts.claimAuthority }),
     configPath: session.configPath,
     agentQaRoot: opts.agentQaRoot ?? resolve(session.configDir, '.agent-qa'),
     record: opts.dryRun !== true,

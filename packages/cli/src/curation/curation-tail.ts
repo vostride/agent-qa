@@ -35,8 +35,6 @@ import type {
   ExecutionContext,
   CurationSnapshot,
   MaskFn,
-  ResolvePromotionPosture,
-  ScopeKey,
 } from '@vostride/agent-qa-schema'
 import { canonicalJson, sha256hex, CurationSnapshotSchema, CURATION_BREAKDOWN_BUCKETS } from '@vostride/agent-qa-schema'
 
@@ -50,7 +48,7 @@ import type { CanaryCreditCounters } from './canary-credit.js'
 import { NON_SIGNAL_CLASSES } from './emit-canary-outcomes.js'
 import { emitCurationCandidates, type EmitReport } from './emit-candidates.js'
 import { exercisedAnchors } from './handoff-anchors.js'
-import { renderPromotionLine } from './promotion-posture.js'
+import { renderPromotionLine } from './promotion-line.js'
 import type { ResolveTrustPriors } from './trust-priors.js'
 import { resolveRunCurationContext } from './run-curation-context.js'
 import { ciResumeClause } from './resume-limit.js'
@@ -130,10 +128,6 @@ export interface CurationWriterAuthority {
 
 export interface RunCurationTailOptions {
   resolveTrustPriors?: ResolveTrustPriors
-  /** Built once by the caller; synchronous per candidate inside writer authority. */
-  resolvePromotionPosture?: ResolvePromotionPosture
-  /** 418 D-13: reuse prepared identity but bind each swept handoff's own ordinal. */
-  resolvePromotionPostureForRun?: (buildOrdinal: number, scope?: ScopeKey) => Promise<ResolvePromotionPosture | undefined>
   runId: string
   /** Absolute `.agent-qa` runtime root the run handoff lives under. */
   agentQaRoot: string
@@ -440,7 +434,6 @@ type CurationAuthorCapability =
 
 export interface CurateCompletedRunInput {
   resolveTrustPriors?: ResolveTrustPriors
-  resolvePromotionPosture?: ResolvePromotionPosture
   /** The run's own directory (`<agentQaRoot>/runs/<slug>`), derived by the caller. */
   runDir: string
   /** The already-loaded, already-guarded handoff for THAT directory. */
@@ -743,7 +736,6 @@ export async function curateCompletedRun(
             testId: row.testId, testIndex: row.testIndex, stepIndex: row.stepIndex,
           })]),
         priors: input.resolveTrustPriors?.(),
-        ...(input.resolvePromotionPosture === undefined ? {} : { resolvePromotionPosture: input.resolvePromotionPosture }),
         knowledgeRoot: input.knowledgeRoot,
         author,
         executionContext: input.handoff.executionContext,
@@ -1002,11 +994,8 @@ export async function runCurationTail(opts: RunCurationTailOptions): Promise<voi
         }
         runMask = context.mask
       }
-      const resolvePromotionPosture = opts.resolvePromotionPostureForRun === undefined
-        ? opts.resolvePromotionPosture : await opts.resolvePromotionPostureForRun(handoff.buildOrdinal, handoff.scope)
       const folded = await curateCompletedRun({
         resolveTrustPriors: opts.resolveTrustPriors,
-        ...(resolvePromotionPosture === undefined ? {} : { resolvePromotionPosture }),
         runDir,
         handoff,
         knowledgeRoot,

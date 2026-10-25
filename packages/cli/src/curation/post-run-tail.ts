@@ -81,15 +81,11 @@ import {
 import type { CanaryCreditCounters } from './canary-credit.js'
 import { NON_SIGNAL_CLASSES } from './emit-canary-outcomes.js'
 import { createPostRunChipEmitter } from './post-run-chip-emitter.js'
-import { buildPromotionPostureResolver, promotionPostureResolverForHost } from './promotion-posture.js'
 import { resolveRunCurationContext } from './run-curation-context.js'
 import { ciResumeClause, isCiContext, resumeLimitClause } from './resume-limit.js'
-import { LOCAL_CURATION_CAPABILITIES, latestBuildOrdinal } from '@vostride/agent-qa-agent-local'
-import { createReplayGatePortForHost, type ReplayGateClaimAuthority } from '../gates/replay-gate-host.js'
 import {
   CURATION_BREAKDOWN_BUCKETS,
   POST_PROCESSING_SKIP_REASON_WORDS,
-  type ScopeKey,
 } from '@vostride/agent-qa-schema'
 import {
   buildTrustPriorsResolver,
@@ -204,7 +200,6 @@ export interface PostRunTailOperations {
 
 export interface PostRunTailHostInput {
   readonly trustPriors?: ReturnType<typeof trustPriorsForHost>
-  readonly resolvePromotionPosture?: () => Promise<RunCurationTailOptions['resolvePromotionPosture']>
   readonly agentQaRoot: string
   readonly configPath: string
   /**
@@ -212,15 +207,6 @@ export interface PostRunTailHostInput {
    * posture from what the tail HAS rather than assert one it intends (388-10, UF-388-01).
    */
   readonly mask?: RunCurationTailOptions['mask']
-  /**
-   * The writer lease the PUMP holds, resolved at the call.
-   *
-   * Threaded through the host input rather than rebuilt inside `composeHost` for the same reason
-   * `curateRun` is: the lease belongs to the drain leg below, which takes it AFTER this host has
-   * been composed. A closure is what lets the composition happen first and the lease be read
-   * later; a value would be `undefined` forever.
-   */
-  readonly resolveClaimAuthority?: () => ReplayGateClaimAuthority | undefined
   readonly curateRun: (input: {
     readonly runId: string
     readonly executionContext: unknown
@@ -266,18 +252,10 @@ export function defaultPostRunTailOperations(): PostRunTailOperations {
     resolveKnowledgeRoot: curationDefaults.resolveKnowledgeRoot,
     composeHost: (input) => composeCliLocalAgent({
       ...(input.trustPriors === undefined ? {} : { trustPriors: input.trustPriors }),
-      ...(input.resolvePromotionPosture === undefined ? {} : { resolvePromotionPosture: input.resolvePromotionPosture }),
       agentQaRoot: input.agentQaRoot,
       configPath: input.configPath,
       model: () => resolvePostRunJobModel(input.configPath),
       postRun: {
-        // The lease this tail's drain holds, handed to the composition as a CLOSURE so the
-        // replay-gate bridge resolves it at the call. The host is composed before the
-        // take (385 D-02 — the enqueue must not wait on a lease it does not need), so a value
-        // read at this line is `undefined` for the whole life of the process.
-        ...(input.resolveClaimAuthority === undefined
-          ? {}
-          : { resolveClaimAuthority: input.resolveClaimAuthority }),
         curateRun: input.curateRun,
         // Derived from presence, never hard-coded (388-10): the tail declares what it HAS. Both
         // production sites in `run.ts` pass a mask, and a harness that composes the tail
@@ -526,24 +504,6 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
   let analyzeRunCompleted = false
   let host: LocalAgentHost | undefined
   let knowledgeRoot: string | undefined
-  let posturePromise: ReturnType<typeof buildPromotionPostureResolver> | undefined
-  let resolvePromotionPosture: RunCurationTailOptions['resolvePromotionPosture']
-  const preparePromotionPosture = (currentBuildOrdinal?: number, scope?: ScopeKey) => {
-    snapshot()
-    posturePromise ??= buildPromotionPostureResolver({ configPath: opts.configPath,
-      replayGate: createReplayGatePortForHost({ configPath: opts.configPath, agentQaRoot: opts.agentQaRoot, resolveTrustPriors }),
-      knowledgeRoot, agentQaRoot: opts.agentQaRoot,
-      canaryFacts: LOCAL_CURATION_CAPABILITIES.readCanaryPostureFacts,
-      lowerTrustShares: LOCAL_CURATION_CAPABILITIES.readLowerTrustShares,
-      // A root-wide drain may claim another product's candidate. Its "now" must
-      // come from that product's store, not the run whose tail happens to drain it.
-      currentBuildOrdinal: product => latestBuildOrdinal({ root: opts.agentQaRoot, product }),
-    })
-    return posturePromise.then(posture => promotionPostureResolverForHost(
-      posture, message => log.warn(message), currentBuildOrdinal,
-      scope?.tier === 'product' ? scope.key : null,
-    ))
-  }
   /**
    * The lease the pump holds, read by `curateRun` at CLAIM time rather than at composition
    * time. The host is composed before the lease is acquired — the enqueue must not wait on a
@@ -578,10 +538,8 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
     )
     const deadlineMs = input.deadlineMs ?? drainDeadlineMs
     const foldSignal = drainSignal ?? opts.signal
-    const runPromotionPosture = await preparePromotionPosture(handoff.buildOrdinal, handoff.scope)
     const folded = await ops().curateCompletedRun({
       resolveTrustPriors,
-      ...(runPromotionPosture === undefined ? {} : { resolvePromotionPosture: runPromotionPosture }),
       runDir: curatedRunDir,
       handoff,
       knowledgeRoot: runKnowledgeRoot,
@@ -607,15 +565,11 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
   const openHost = (): LocalAgentHost => {
     host ??= ops().composeHost({
       trustPriors: snapshot(),
-      resolvePromotionPosture: preparePromotionPosture,
       agentQaRoot: opts.agentQaRoot,
       configPath: opts.configPath,
       // The same conditional spread the fold is threaded with: composeHost derives the
       // posture from this value's PRESENCE, so the tail never asserts a mask it lacks.
       ...(opts.mask === undefined ? {} : { mask: opts.mask }),
-      // The SAME `heldAuthority` closure `curateRun` reads above, and for the same reason: a
-      // second way to learn which lease is held is a second answer to who is writing.
-      resolveClaimAuthority: () => heldAuthority,
       curateRun,
     })
     return host
@@ -665,7 +619,6 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
           ...(opts.executionContext === undefined ? {} : { executionContext: opts.executionContext }),
         })
         preparationRecoveryPending = recovery.some((result) => result.pending)
-        resolvePromotionPosture = await preparePromotionPosture()
       } catch (error) {
         // Constructing the operations table reads the shipped modules, and a build where one of
         // those reads throws must not send the exception past `runVerdictFirstCurationTail` into
@@ -854,8 +807,6 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
         // just ran, so the sweep skips it rather than folding it twice.
         if (!preparationRecoveryPending) await ops().runCurationTail({
           resolveTrustPriors,
-          resolvePromotionPostureForRun: preparePromotionPosture,
-          ...(resolvePromotionPosture === undefined ? {} : { resolvePromotionPosture }),
           runId: opts.runId,
           agentQaRoot: opts.agentQaRoot,
           knowledgeConfig: opts.knowledgeConfig,

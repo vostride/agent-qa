@@ -1,7 +1,6 @@
 export type {
   AuthoringReadPort,
   KnowledgePort,
-  ReplayGatePort,
   ToolsPort,
   PersistencePort,
   ClockPort,
@@ -571,14 +570,7 @@ export type { AnalysisCluster, AnalysisClusterMember } from './analysis/cluster.
 // The DTO vocabulary itself is NOT republished here (385 plan 02). The request, checkpoint
 // envelope and handler outcome are schema's, and a consumer reaches them there — a second
 // route to the same names is how two spellings of one contract start to drift.
-// 422 D-14 adds `Gate1ReceiptNotPersistedError` to the clause below, on exactly the footing the
-// comment above describes: a caller legitimately distinguishes "the Gate-1 replay ran and the
-// writer refused to record its receipt" from any other failure, because the first means the
-// replay work was spent and established nothing, and only a caller that can SEE that can
-// decline to report a screening result it cannot evidence. It is an error CLASS and nothing
-// else — it carries no receipt, no writer and no dispatch path.
 export {
-  Gate1ReceiptNotPersistedError,
   JobCancellationNotRequestedError,
   QuarantinedJobRequeueError,
   StaleJobStoreEpochError,

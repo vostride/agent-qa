@@ -4,10 +4,7 @@ import { rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import type { Readable } from 'node:stream'
 import { isDeepStrictEqual } from 'node:util'
-import type { ResolvePromotionPosture, ScopeKey } from '@vostride/agent-qa-schema'
-import { buildPromotionPostureResolver, promotionPostureResolverForHost, renderPromotionLine } from '../curation/promotion-posture.js'
-import { createReplayGatePortForHost } from '../gates/replay-gate-host.js'
-import type { ReplayGatePort } from '@vostride/agent-qa-agent'
+import { renderPromotionLine } from '../curation/promotion-line.js'
 import {
   bindTrustPriorsToConfig,
   trustPriorsForHost,
@@ -21,8 +18,6 @@ import type {
 import {
   composeJobRecovery,
   composeLocalAgent,
-  LOCAL_CURATION_CAPABILITIES,
-  latestBuildOrdinal,
   DIGEST_JOB_ID_SOURCE,
   EMBEDDER_WORKER_REGISTRATION_FILE,
   EMBEDDER_WORKER_START_TIMEOUT_MS,
@@ -1019,39 +1014,6 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
   let drainWorker: Promise<void> | undefined
   let maintenanceWorker: Promise<void> | undefined
   let authorPromise: Promise<CuratorAuthor> | undefined
-  /**
-   * THIS daemon's ONE replay-gate bridge — constructed lazily, then memoised (417/421 walls).
-   *
-   * Lazy and memoised for the reasons the terminal host's memo states at length: the walls pin
-   * one construction site per host file and none at all until an operation asks. The borrowed
-   * lease is on the bridge's own deps — `daemonWriterAuthority` is the SAME closure the drain step
-   * reads, and it is a closure so the lease this process is holding is read at the call rather
-   * than captured when the bridge was built.
-   *
-   * This process holds the lease already, so the borrowed path acquires nothing and releases
-   * nothing: a holder that re-acquires is told `held` by itself, and one that released would end
-   * its own authority mid-drain.
-   */
-  let replayGateMemo: ReplayGatePort | undefined
-  const sharedReplayGate = (configPath: string): ReplayGatePort =>
-    (replayGateMemo ??= createReplayGatePortForHost({
-      configPath,
-      agentQaRoot: input.agentQaRoot,
-      resolveTrustPriors,
-      resolveClaimAuthority: () => daemonWriterAuthority,
-    }))
-  const resolveHostPromotionPosture = (currentBuildOrdinal?: number, scope?: ScopeKey): Promise<ResolvePromotionPosture | undefined> =>
-    input.configPath === undefined
-      ? Promise.resolve(undefined)
-      : buildPromotionPostureResolver({ configPath: input.configPath,
-          knowledgeRoot: input.knowledgeRoot, agentQaRoot: input.agentQaRoot,
-          canaryFacts: LOCAL_CURATION_CAPABILITIES.readCanaryPostureFacts,
-          lowerTrustShares: LOCAL_CURATION_CAPABILITIES.readLowerTrustShares,
-          currentBuildOrdinal: product => latestBuildOrdinal({ root: input.agentQaRoot, product }),
-          replayGate: sharedReplayGate(input.configPath),
-        })
-        .then(posture => promotionPostureResolverForHost(posture, message => logger.error(message),
-          currentBuildOrdinal, scope?.tier === 'product' ? scope.key : null))
   let embedderWorkerIdleTimer: ReturnType<typeof setTimeout> | undefined
 
   type EmbedderWorkerExitReason = 'idle' | 'crash' | 'daemon-stop' | 'start-error' | 'replace'
@@ -1649,18 +1611,13 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
      * first observed candidate, whenever it appears; `authorPromise` still memoizes the factory to
      * at most one invocation per process.
      */
-    let curation: { author: CuratorAuthor; resolvePromotionPosture?: ResolvePromotionPosture } | undefined
-    const resolveCuration = async (): Promise<{
-      author: CuratorAuthor
-      resolvePromotionPosture?: ResolvePromotionPosture
-    }> => {
+    let curation: { author: CuratorAuthor } | undefined
+    const resolveCuration = async (): Promise<{ author: CuratorAuthor }> => {
       const factory = input.author
       if (factory === undefined) {
         throw new Error('Daemon curation requires an author factory')
       }
-      const resolvePromotionPosture = await resolveHostPromotionPosture()
-      return { author: await (authorPromise ??= Promise.resolve(factory())),
-        ...(resolvePromotionPosture === undefined ? {} : { resolvePromotionPosture }) }
+      return { author: await (authorPromise ??= Promise.resolve(factory())) }
     }
     if (initialCandidates.length > 0) curation = await resolveCuration()
     while (remainingAfter > 0 && (deadlineMs === undefined || operations.now() < deadlineMs)) {
@@ -1702,7 +1659,6 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
           budgetMs: deadlineMs === undefined ? 'unbounded' : Math.max(0, deadlineMs - operations.now()),
           lease: { leaseId: acquired.leaseId, epoch: acquired.epoch },
           author: sessionCuration.author,
-          ...(sessionCuration.resolvePromotionPosture === undefined ? {} : { resolvePromotionPosture: sessionCuration.resolvePromotionPosture }),
           executionContext: 'local-headless',
           embeddingCapability,
           maintenance: 'skip',
@@ -2227,7 +2183,6 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
           .createDeclaredSecretMask(input.configPath).mask,
       ...(feedback === undefined ? {} : { feedback }),
       resolveTrustPriors,
-      resolvePromotionPosture: resolveHostPromotionPosture,
       agentQaRoot: input.agentQaRoot,
       config: input.config,
       knowledgeRoot: () => input.knowledgeRoot,
@@ -2257,11 +2212,9 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
           const handoff = curationOperations.loadCompletedRunHandoff(
             completedRunHandoffPath(input.agentQaRoot, curatedRunId),
           )
-          const resolvePromotionPosture = await resolveHostPromotionPosture(handoff.buildOrdinal, handoff.scope)
           const folded = await curateCompletedRun({
             resolveTrustPriors,
             operations: curationOperations,
-            ...(resolvePromotionPosture === undefined ? {} : { resolvePromotionPosture }),
             runDir: completedRunDir(input.agentQaRoot, curatedRunId),
             handoff,
             knowledgeRoot: input.knowledgeRoot,

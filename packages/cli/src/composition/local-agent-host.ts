@@ -36,8 +36,6 @@ import { bindTrustPriorsToConfig, trustPriorsForHost, type ResolveTrustPriors, t
 // surface naming it without a ledger entry, and the ledger only ever SHRINKS — new surface code
 // can never join it. This file already carries that entry, so the placement mints none.
 
-import { buildPromotionPostureResolver, promotionPostureResolverForHost } from '../curation/promotion-posture.js'
-import { createReplayGatePortForHost, type ReplayGateClaimAuthority } from '../gates/replay-gate-host.js'
 import { createHash } from 'node:crypto'
 import {
   closeSync,
@@ -77,13 +75,10 @@ import type {
   JobModelCapability,
   KnowledgeReaderPort,
   PostRunJobCapabilities,
-  ReplayGatePort,
 } from '@vostride/agent-qa-agent'
 import {
   composeLocalAgent,
   createKnowledgeReader,
-  LOCAL_CURATION_CAPABILITIES,
-  latestBuildOrdinal,
   LOCAL_DAEMON_CAPABILITIES,
   resolveRunExecutionContext,
 } from '@vostride/agent-qa-agent-local'
@@ -470,8 +465,6 @@ function createComposedRunExecution(input: {
 export interface ComposeCliLocalAgentInput {
   /** An enclosing host supplies its ready snapshot, including the matching disclosure. */
   trustPriors?: ReturnType<typeof trustPriorsForHost>
-  /** An enclosing drain may supply its already-memoised preparation. */
-  resolvePromotionPosture?: ComposeLocalAgentInput['resolvePromotionPosture']
   /** The project's runtime root, i.e. `<configDir>/.agent-qa`. */
   agentQaRoot: string
   /**
@@ -674,15 +667,6 @@ export interface ComposeCliLocalAgentInput {
      * declaration to it.
      */
     candidateProse: CandidateProsePosture
-    /**
-     * The writer lease THIS host holds while the chain drains.
-     *
-     * Supplied by the leg that owns the pump, never by this file: the terminal's lease is taken
-     * inside `runPostRunTail`'s drain and the daemon's is the one it acquired at startup, and
-     * both are resolved at the call rather than captured here. Absent leaves the standalone
-     * posture — correct for a composition with no lease behind it.
-     */
-    resolveClaimAuthority?: () => ReplayGateClaimAuthority | undefined
   }
 }
 
@@ -1903,35 +1887,6 @@ function projectRunsDbPath(configPath: string): string | undefined {
 export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAgentHost & { trustPriorDisclosure: TrustPriorDisclosure } {
   const trustPriors = input.trustPriors ?? trustPriorsForHost({ configPath: input.configPath })
   const resolveTrustPriors = trustPriors.resolve
-  /**
-   * THIS host's ONE replay-gate bridge — constructed lazily, then memoised (417/421 walls).
-   *
-   * Lazy because `judge-panel-host-paths.test.ts` pins that composing a host constructs no bridge
-   * at all until an operation asks for one; memoised because `replay-gate-binding.test.ts` pins
-   * exactly one construction site per host file, and one site that ran twice with different deps
-   * would satisfy the letter of that wall while breaking what it protects.
-   *
-   * The borrowed lease travels on the bridge's own deps, resolved at the call, never captured
-   * here.
-   */
-  let replayGateMemo: ReplayGatePort | undefined
-  const sharedReplayGate = (): ReplayGatePort => (replayGateMemo ??= createReplayGatePortForHost({
-    configPath: input.configPath,
-    agentQaRoot: input.agentQaRoot,
-    resolveTrustPriors,
-    ...(input.postRun?.resolveClaimAuthority === undefined
-      ? {}
-      : { resolveClaimAuthority: input.postRun.resolveClaimAuthority }),
-  }))
-  const resolvePromotionPosture = input.resolvePromotionPosture ?? (async () =>
-    buildPromotionPostureResolver({ configPath: input.configPath,
-      knowledgeRoot: await knowledgeRoot(), agentQaRoot: input.agentQaRoot,
-      canaryFacts: LOCAL_CURATION_CAPABILITIES.readCanaryPostureFacts,
-      lowerTrustShares: LOCAL_CURATION_CAPABILITIES.readLowerTrustShares,
-      currentBuildOrdinal: product => latestBuildOrdinal({ root: input.agentQaRoot, product }),
-      replayGate: sharedReplayGate(),
-    })
-      .then(result => promotionPostureResolverForHost(result, message => console.warn(message))))
   // Narrowed once, here, so the hook closures below close over a value TypeScript knows is present
   // rather than re-reading an optional field at call time.
   const analytics = input.analytics
@@ -1991,7 +1946,6 @@ export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAge
     // writer above binds the authoring draft edit, so the preview reports a test edit where runs.mark drafts one.
     feedbackReads: createFeedbackReadsPortForHost({ agentQaRoot: input.agentQaRoot, configPath: input.configPath,
       resolveTrustPriors, canDraftTestEdit: true }),
-    resolvePromotionPosture,
     resolveTrustPriors,
     agentQaRoot: input.agentQaRoot,
     mintQuarantineIdentityPath: createQuarantineIdentityMint(input.configPath),
@@ -2105,9 +2059,6 @@ export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAge
       ? {}
       : {
           postRun: {
-            // Named one by one rather than spread: `resolveClaimAuthority` is THIS file's input
-            // and not the composition's — it is consumed by the replay-gate bridge above and must
-            // not travel on to a package that has no idea what a writer lease is.
             curateRun: input.postRun.curateRun,
             candidateProse: input.postRun.candidateProse,
           },

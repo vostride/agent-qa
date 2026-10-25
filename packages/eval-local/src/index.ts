@@ -183,12 +183,6 @@ export type {
   CommittedWriteOutcome,
 } from './committed-root-store.js'
 
-export { readGatePostureFor } from './gate-posture-composition.js'
-export type {
-  ReadGatePostureForInput,
-  ReadGatePostureForResult,
-} from './gate-posture-composition.js'
-
 export {
   listBaselinePointers,
   listCommittedReports,

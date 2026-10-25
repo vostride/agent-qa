@@ -22,7 +22,6 @@ other packages.
 - `src/ports/tools.ts`
 - `src/ports/persistence.ts`
 - `src/ports/job-store.ts`
-- `src/ports/gates.ts`
 - `src/ports/authoring-read.ts`
 - `src/ports/clock.ts`
 

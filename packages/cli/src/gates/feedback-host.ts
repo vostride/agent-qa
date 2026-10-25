@@ -196,7 +196,7 @@ export function createFeedbackPortForHost(deps: FeedbackHostDeps): FeedbackPort 
           mark.disposition = { kind: 'confirmed-bug', confirmedRecords: mark.evidence.confirmed }
         } else {
           const step = member.steps[planned.resolvedStep.stepIndex]!
-          const reader = deps.reader ?? createKnowledgeReader(() => knowledgeRoot, undefined, undefined, resolveTrustPriors)
+          const reader = deps.reader ?? createKnowledgeReader(() => knowledgeRoot, undefined, resolveTrustPriors)
           const { served, procedure } = await readMarkDraftFacts({ reader, curation, knowledgeRoot, member, step })
           let plan = intent.plan ?? curation.applyFeedback(markFeedbackInput(mark,
             { handoff, member, step, served, ...(procedure === undefined ? {} : { procedure }) }))
