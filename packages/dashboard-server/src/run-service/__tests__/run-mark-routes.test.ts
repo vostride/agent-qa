@@ -23,7 +23,7 @@ const outcome: RunsMarkOutcome = { kind: 'marked', receipt: {
   schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: 'mark_0123456789ab', runId: RUN_ID, runSlug: 'run-mark-route',
   testIndex: 0, kind: 'false-fail', origin: 'user', ordinal: 1, markedAt: 0,
   note: '<SECRET_0>', disposition: { kind: 'quarantined', class: 'flake' },
-  gold: [], evidence: { confirmed: 0, overturned: 0 },
+  evidence: { confirmed: 0, overturned: 0 },
 } }
 const closers: Array<() => Promise<void>> = []
 afterEach(async () => { for (const close of closers.splice(0)) await close() })

@@ -1865,7 +1865,7 @@
       ]
     },
     {
-      "description": "Mark a run or step false-fail / false-pass / confirmed-bug: freeze the marked decision as gold, triage, and apply the fix (a knowledge change or a test edit) in the call.",
+      "description": "Mark a run or step false-fail / false-pass / confirmed-bug: triage it and apply the fix (a knowledge change or a test edit) in the call.",
       "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
@@ -1918,7 +1918,7 @@
       ]
     },
     {
-      "description": "Preview what runs.mark would do for this exact input: its refusals, resolved step, labels, the knowledge records it reaches with their content and evidence effects, and the fix it would apply, without writing.",
+      "description": "Preview what runs.mark would do for this exact input: its refusals, resolved step, the knowledge records it reaches with their content and evidence effects, and the fix it would apply, without writing.",
       "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
@@ -2159,5 +2159,5 @@
       "shortDescription": "Triage agent-qa run failures"
     }
   ],
-  "rowsDigest": "c1211eded19de357441a77820e943076b9a81288812641124eb7b441c467d07f"
+  "rowsDigest": "9f71dba5a2945b78dff82ad52d86b1b49cf37ab57b41175a84cb638062959d07"
 }

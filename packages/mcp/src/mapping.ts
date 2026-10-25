@@ -144,15 +144,8 @@ import {
  * What a tool DOES, coarsely — the axis annotations are derived along (`projection.ts`).
  *
  * `read` answers; `workflow` changes something in the call (a test file, a run, knowledge,
- * configuration). `apply` is the sovereign mark door alone: since 432-12 (D-05/D-14) no tool files a
- * proposal and no tool asks for a confirmation, and `apply` names only the mark door, which lands a
- * mark's gold, evidence and fix in the call. Its credential check left with the MCP bearer
- * credential (432-21, D-12), so `apply` is now a name for that one door and gates nothing.
- *
- * KEPT, DATED 2026-10-02 (432-42 census decision): the member is not renamed. It is a published MCP
- * contract value (`mapping-bump-guard.test.ts` pins `kind: 'apply'` on `agent_qa_mark_run`, and the
- * projection derives annotations from it); no D-decision renames a published name here, and the
- * word now means "the mark door applies its fix in the call", which is true. It asks nothing.
+ * configuration). `apply` names the mark door, which records the mark and applies its fix in the
+ * call and asks nothing.
  */
 export type ToolProjectionKind = 'read' | 'workflow' | 'apply'
 

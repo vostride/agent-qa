@@ -543,7 +543,7 @@ const SECOND_MARK = 'mark_0123456789ac'
 
 function feedbackReceipts(): MarkReceipt[] {
   const base = { schemaVersion: MARK_RECEIPT_SCHEMA_VERSION as typeof MARK_RECEIPT_SCHEMA_VERSION, runId: RUN_ID as MarkReceipt['runId'], testIndex: 0, runSlug: slugBranch(RUN_ID),
-    origin: 'user' as const, gold: [], evidence: { confirmed: 0, overturned: 0 } }
+    origin: 'user' as const, evidence: { confirmed: 0, overturned: 0 } }
   return [
     { ...base, markId: FIRST_MARK, kind: 'false-fail', ordinal: 1, markedAt: 1, note: `note ${FEEDBACK_NOTE_SECRET}`,
       disposition: { kind: 'applied', fix: 'fact', change: { kind: 'knowledge', changeId: 'prop_0123456789ab', recordIds: ['mem_423_21'] } } },
@@ -552,16 +552,19 @@ function feedbackReceipts(): MarkReceipt[] {
   ]
 }
 
+const servedRecord = (content: string) => ({ recordId: 'mem_423_21', served: true,
+  recordContent: { content, summary: 'checkout timing', kind: 'fact' as const,
+    applicability: { product: 'shop', scope: 'shop', anchors: [], openedAtOrdinal: 1 }, currentStatus: 'active' as const,
+    currentTrust: { confirmations: 1, contradictions: 0, evidenceTokens: [], lastEventOrdinal: 1 } },
+  evidence: { kind: 'effects' as const, effects: [{ direction: 'confirm' as const }] } })
+
 function feedbackPreview(runId: string): RunsMarkPreviewResult {
   return RunsMarkPreviewResultSchema.parse({
     kind: 'consequences', runId, prospective: true, markKind: 'false-fail', member: { testIndex: 0 },
     resolvedStep: { stepIndex: 0, reason: 'failing-step' }, latest: { kind: 'supersedes', markId: SECOND_MARK, ordinal: 2 },
-    basis: { ledgerOrdinal: 2, priorMarkOrdinal: 2 }, markedDecisionCount: 1,
-    groundTruth: [{ testIndex: 0, stepIndex: 0, verdict: 'pass',
-      recordedVerdict: { pass: false, reasoning: `timed out near ${FEEDBACK_NOTE_SECRET}` } }],
-    labels: [{ testIndex: 0, stepIndex: 0, decisionOrdinal: 0, sourceCassetteId: 'cassette-423-21', channel: 'user-mark',
-      correction: { verdict: 'pass' } }],
-    knowledge: { servedRecordIds: [], appendsEvidence: false, records: [], evidence: { confirmed: 0, overturned: 0 } },
+    basis: { ledgerOrdinal: 2, priorMarkOrdinal: 2 },
+    knowledge: { servedRecordIds: ['mem_423_21'], appendsEvidence: true,
+      records: [servedRecord(`timed out near ${FEEDBACK_NOTE_SECRET}`)], evidence: { confirmed: 1, overturned: 0 } },
     draft: { kind: 'no-draftable-fix', checked: { servedRecords: 0, procedureReads: 0, assertionDrift: false } },
   })
 }
@@ -786,8 +789,8 @@ describe('423-21 feedback reads on both HTTP doors (D-18)', () => {
 
     // 441-15 (D-07): both doors answer a stored marker and an old placeholder as they are.
     const consequences = feedbackPreview(RUN_ID) as Extract<RunsMarkPreviewResult, { kind: 'consequences' }>
-    const stored = RunsMarkPreviewResultSchema.parse({ ...consequences, groundTruth: [{ ...consequences.groundTruth[0]!,
-      recordedVerdict: { pass: false, reasoning: 'near [secret:PW_441] and <SECRET_1>' } }] })
+    const stored = RunsMarkPreviewResultSchema.parse({ ...consequences, knowledge: { ...consequences.knowledge,
+      records: [servedRecord('near [secret:PW_441] and <SECRET_1>')] } })
     const planted = await servePlantedHost(stored)
     const human = await postJson(`${planted.local}/mark-preview`, previewInput())
     expect(human.status).toBe(200)
