@@ -24,7 +24,7 @@ function consequences(overrides: Record<string, unknown> = {}) {
     resolvedStep: { stepIndex: 2, reason: 'failing-step' },
     markedDecisionCount: 1,
     groundTruth: [{ testIndex: 1, stepIndex: 2, verdict: 'pass',
-      recordedVerdict: { pass: false, reasoning: 'banner missing' }, correctedAction: false }],
+      recordedVerdict: { pass: false, reasoning: 'banner missing' } }],
     labels: [{ testIndex: 1, stepIndex: 2, decisionOrdinal: 0, sourceCassetteId: 'leaf-1-2-0', channel: 'user-mark',
       correction: { verdict: 'pass' } }],
     knowledge: { servedRecordIds: ['record-a'], appendsEvidence: true,
@@ -66,7 +66,6 @@ const REFUSALS = [
   { kind: 'member-not-found', runId, testId: 'checkout' },
   { kind: 'step-not-found', runId, testIndex: 1, stepIndex: 9, stepCount: 3 },
   { kind: 'ambiguous-address', runId, candidates: [{ testIndex: 0, testId: 'checkout' }, { testIndex: 1, testId: 'checkout' }] },
-  { kind: 'ambiguous-correction', runId, testIndex: 1, decisionCount: 2 },
 ] as const
 
 function port(answer: unknown) {
@@ -114,16 +113,15 @@ describe('423-37 runs.mark.preview contract (D-16/D-17)', () => {
 
     // runs.mark's own contract is unchanged: exact input keys and exact outcome arms, no preview token.
     expect(Object.keys(RunsMarkInputSchema.shape)).toEqual(
-      ['runId', 'testId', 'stepIndex', 'kind', 'note', 'correctedExpectation', 'correctedAction'])
+      ['runId', 'testId', 'stepIndex', 'kind', 'note'])
     expect(RunsMarkOutcomeSchema.options.map(option => option.shape.kind.value)).toEqual(
-      ['marked', 'already-marked', 'run-not-found', 'member-not-found', 'step-not-found', 'ambiguous-address', 'ambiguous-correction'])
+      ['marked', 'already-marked', 'run-not-found', 'member-not-found', 'step-not-found', 'ambiguous-address'])
     for (const option of RunsMarkOutcomeSchema.options) {
       expect(Object.keys(option.shape).filter(key => /preview|basis|token|prospective/i.test(key))).toEqual([])
     }
     expect(runsMarkSpec.output).toBe(RunsMarkOutcomeSchema)
 
-    const full: RunsMarkInput = { runId, testId: 'checkout', stepIndex: 2, kind: 'false-pass', note: 'n',
-      correctedExpectation: 'the banner reads saved' }
+    const full: RunsMarkInput = { runId, testId: 'checkout', stepIndex: 2, kind: 'false-pass', note: 'n' }
     const { reads } = await previewOf(consequences({ markKind: 'false-pass' }), full)
     expect(reads.preview).toHaveBeenCalledTimes(1)
     expect(reads.preview.mock.calls[0]![0]).toEqual(RunsMarkInputSchema.parse(full))
@@ -189,8 +187,7 @@ describe('423-37 runs.mark.preview contract (D-16/D-17)', () => {
     expect(op.boundThrough).toBe('feedbackReads')
 
     const falsePass = consequences({ markKind: 'false-pass', resolvedStep: { stepIndex: 2, reason: 'passing-verdict' },
-      groundTruth: [{ testIndex: 1, stepIndex: 2, verdict: 'fail', recordedVerdict: { pass: true, reasoning: 'looked fine' },
-        correctedAction: false }],
+      groundTruth: [{ testIndex: 1, stepIndex: 2, verdict: 'fail', recordedVerdict: { pass: true, reasoning: 'looked fine' } }],
       labels: [
         { testIndex: 1, stepIndex: 2, decisionOrdinal: 0, sourceCassetteId: 'leaf-1-2-0', channel: 'user-mark', correction: { verdict: 'fail' } },
         { testIndex: 1, stepIndex: 2, decisionOrdinal: 0, sourceCassetteId: 'leaf-1-2-0', channel: 'overturned-verdict', correction: { verdict: 'fail' } },
@@ -225,13 +222,11 @@ describe('423-37 runs.mark.preview contract (D-16/D-17)', () => {
     const secret = 'synthetic-sensitive-token'
     const mask = declaredMask({ TOKEN_441: secret })
     const sensitive = consequences({ groundTruth: [{ testIndex: 1, stepIndex: 2, verdict: 'pass',
-      recordedVerdict: { pass: false, reasoning: `reasoning ${secret}` }, correctedExpectation: `expect ${secret}`,
-      correctedAction: true }] })
+      recordedVerdict: { pass: false, reasoning: `reasoning ${secret}` } }] })
     const masked = await previewOf(sensitive, input, mask)
     expect(JSON.stringify(masked.result)).not.toContain(secret)
     expect(masked.result.groundTruth).toEqual([{ testIndex: 1, stepIndex: 2, verdict: 'pass',
-      recordedVerdict: { pass: false, reasoning: mask(`reasoning ${secret}`) },
-      correctedExpectation: mask(`expect ${secret}`), correctedAction: true }])
+      recordedVerdict: { pass: false, reasoning: mask(`reasoning ${secret}`) } }])
     // 423-19 D-17: reached-record content and overturned evidence tokens cross the same mask; ids stay structural.
     const reached = { ...falsePass, knowledge: { servedRecordIds: ['record-a'], appendsEvidence: true, evidence: { confirmed: 1, overturned: 1 },
       records: [{ recordId: 'record-a', recordContent: { content: `body ${secret}`, summary: `summary ${secret}`, kind: 'fact',

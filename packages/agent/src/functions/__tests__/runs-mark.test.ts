@@ -14,7 +14,7 @@ import type {
 } from '@vostride/agent-qa-schema'
 import { describe, expect, it, vi } from 'vitest'
 
-import { FunctionNotBoundError, invokeFunction } from '../invoke.js'
+import { FunctionInputError, FunctionNotBoundError, invokeFunction } from '../invoke.js'
 import { RUNS_MARK_FUNCTION_ID, runsMarkSpec } from '../ops/runs-mark.js'
 import { runsDetailSpec } from '../ops/runs-detail.js'
 import { createFunctionRegistry } from '../registry.js'
@@ -107,6 +107,16 @@ describe('runs.mark registration and binding (419 GATE3-01)', () => {
     expect(await runsMarkSpec.invoke(INPUT, deps(port))).toBe(outcome)
     expect(await invokeFunction(host(port), RUNS_MARK_FUNCTION_ID, INPUT, TRUSTED)).toEqual(outcome)
     expect(mark.mock.calls).toEqual([[INPUT], [INPUT]])
+  })
+
+  it('refuses a corrected action or expectation through the strict input schema, never reaching the port', async () => {
+    const { port, mark } = stub()
+    for (const extra of [{ correctedAction: { type: 'click', ref: 'e1' } }, { correctedExpectation: 'saved' }]) {
+      expect(runsMarkSpec.input.safeParse({ runId: RUN_ID, kind: 'false-fail', ...extra }).success).toBe(false)
+      await expect(invokeFunction(host(port), RUNS_MARK_FUNCTION_ID, { ...INPUT, ...extra }, TRUSTED))
+        .rejects.toBeInstanceOf(FunctionInputError)
+    }
+    expect(mark).not.toHaveBeenCalled()
   })
 
   // RE-SPELLED 2026-10-01 (432-20, D-12) from 'requires knowledge-write even when the caller holds

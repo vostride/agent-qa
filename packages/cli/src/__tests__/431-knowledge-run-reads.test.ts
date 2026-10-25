@@ -495,7 +495,7 @@ describe('CLI-RUN-READ-PARITY: runs list, overview and knowledge', () => {
     const runs = createRunsCommand()
     const mark = runs.commands.find((command) => command.name() === 'mark')
     expect(mark?.options.map((option) => option.long)).toEqual([
-      '--kind', '--test', '--step', '--note', '--corrected-expectation', '--corrected-action', '--json',
+      '--kind', '--test', '--step', '--note', '--json',
     ])
     expect(runs.commands.map((command) => command.name())).toEqual(
       expect.arrayContaining(['mark', 'list', 'overview', 'knowledge']))

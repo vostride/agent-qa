@@ -68,13 +68,10 @@ describe('423-35 shared mark consequence plan (D-16)', () => {
     return { ...f, previewDeps: { configPath: f.configPath, agentQaRoot: f.agentQaRoot, curation: readOnlyCuration() } }
   }
 
-  it('PREVIEW-REFUSAL-PARITY: missing run/member/step and ambiguous address/correction match runs.mark with no bytes', async () => {
+  it('PREVIEW-REFUSAL-PARITY: a missing run, member or step and an ambiguous address match runs.mark with no bytes', async () => {
     const f = fixture()
     const runId = f.handoff.runId
     const member = f.handoff.tests[0]!
-    const step = member.steps[0]!
-    const correctedAction = step.subActions[0]!.plannedAction
-    step.subActions.push({ ...step.subActions[0]! })
     f.handoff.tests.push({ ...member, testIndex: 1, testId: 'second-member' }); f.save()
     const port = createFeedbackPortForHost(f.deps)
     const inputs: RunsMarkInput[] = [
@@ -82,7 +79,6 @@ describe('423-35 shared mark consequence plan (D-16)', () => {
       { runId, testId: 'absent-member', kind: 'false-fail' },
       { runId, kind: 'confirmed-bug' },
       { runId, testId: member.testId!, stepIndex: 4, kind: 'false-pass' },
-      { runId, testId: member.testId!, kind: 'confirmed-bug', correctedAction },
     ]
     const kinds: unknown[] = []
     for (const input of inputs) {
@@ -96,14 +92,14 @@ describe('423-35 shared mark consequence plan (D-16)', () => {
       expect(hashes(f.root)).toEqual(before)
       kinds.push(written.kind)
     }
-    expect(kinds).toEqual(['run-not-found', 'member-not-found', 'ambiguous-address', 'step-not-found', 'ambiguous-correction'])
+    expect(kinds).toEqual(['run-not-found', 'member-not-found', 'ambiguous-address', 'step-not-found'])
     expect(new FsMarkLedger({ root: f.agentQaRoot, runId }).read()).toEqual([])
     expect(await port.marksFor(runId)).toEqual([])
     expect(await preview(f.previewDeps, { runId, testId: member.testId!, kind: 'confirmed-bug' }))
       .toMatchObject({ kind: 'consequences', latest: { kind: 'first' }, basis: { ledgerOrdinal: 0 } })
   })
 
-  it('NOTE-ONLY-REPEAT: a note-only change previews already-marked; a changed correction previews supersession', async () => {
+  it('NOTE-ONLY-REPEAT: a note-only change previews already-marked; a changed kind previews supersession', async () => {
     const f = fixture()
     const runId = f.handoff.runId
     const port = createFeedbackPortForHost(f.deps)
@@ -115,42 +111,34 @@ describe('423-35 shared mark consequence plan (D-16)', () => {
       .toEqual({ kind: 'already-marked', receipt: first.receipt, basis: { ledgerOrdinal: 1, priorOrdinal: 1 } })
     expect(hashes(f.root)).toEqual(before)
     expect(await port.mark(repeat)).toEqual({ kind: 'already-marked', receipt: first.receipt })
-    const corrected: RunsMarkInput = { runId, kind: 'confirmed-bug', note: 'first note', correctedExpectation: 'The order total is shown' }
-    const superseding = await preview(f.previewDeps, corrected)
+    const rekinded: RunsMarkInput = { runId, kind: 'false-fail', note: 'first note' }
+    const superseding = await preview(f.previewDeps, rekinded)
     expect(superseding).toMatchObject({ kind: 'consequences',
       latest: { kind: 'supersedes', markId: first.receipt.markId, ordinal: 1 }, basis: { ledgerOrdinal: 1, priorOrdinal: 1 } })
     expect(superseding).not.toHaveProperty('withdraws')
     expect(hashes(f.root)).toEqual(before)
-    expect(await port.mark(corrected))
+    expect(await port.mark(rekinded))
       .toMatchObject({ kind: 'marked', receipt: { ordinal: 2, supersedes: first.receipt.markId } })
   })
 
-  it('QUARANTINE-ORDER: step refusal precedes quarantine, and quarantine precedes the ambiguous-correction refusal', async () => {
+  it('QUARANTINE-ORDER: step refusal precedes quarantine', async () => {
     const f = fixture()
     const runId = f.handoff.runId
     const member = f.handoff.tests[0]!
-    const step = member.steps[0]!
-    const correctedAction = step.subActions[0]!.plannedAction
-    step.subActions.push({ ...step.subActions[0]! })
     member.rootCause = { class: 'flake', producer: 'deterministic-classifier', confidence: 1, evidence: { citedSteps: [0], citedAnchors: [], citedArtifacts: [], rationale: 'Recorded classification' }, memoryMisdirectionRuledOut: true, perTest: 0 }
     f.save()
     const port = createFeedbackPortForHost(f.deps)
     const before = hashes(f.root)
-    const missing: RunsMarkInput = { runId, stepIndex: 3, kind: 'false-fail', correctedAction }
+    const missing: RunsMarkInput = { runId, stepIndex: 3, kind: 'false-fail' }
     const refused = await preview(f.previewDeps, missing)
     expect(refused).toMatchObject({ kind: 'step-not-found', stepCount: 1 })
     expect(refused).toEqual(await port.mark(missing))
-    const ambiguous: RunsMarkInput = { runId, kind: 'false-fail', correctedAction }
-    expect(await preview(f.previewDeps, ambiguous)).toEqual({ kind: 'quarantined', class: 'flake', member: { testIndex: 0, testId: member.testId },
+    const quarantinable: RunsMarkInput = { runId, kind: 'false-fail' }
+    expect(await preview(f.previewDeps, quarantinable)).toEqual({ kind: 'quarantined', class: 'flake', member: { testIndex: 0, testId: member.testId },
       resolvedStep: { stepIndex: 0, reason: 'failing-step' }, latest: { kind: 'first' }, basis: { ledgerOrdinal: 0 } })
     expect(hashes(f.root)).toEqual(before)
-    expect(await port.mark(ambiguous)).toMatchObject({ kind: 'marked',
+    expect(await port.mark(quarantinable)).toMatchObject({ kind: 'marked',
       receipt: { disposition: { kind: 'quarantined', class: 'flake' }, gold: [], evidence: { confirmed: 0, overturned: 0 } } })
-    delete member.rootCause; f.save()
-    const learnable: RunsMarkInput = { runId, testId: member.testId!, kind: 'confirmed-bug', correctedAction }
-    const previewed = await preview(f.previewDeps, learnable)
-    expect(previewed).toEqual({ kind: 'ambiguous-correction', runId, testIndex: 0, decisionCount: 2 })
-    expect(previewed).toEqual(await port.mark(learnable))
   })
 
   // No mark withdraws anything: a superseding mark leaves the prior applied fix in place, on every arm.

@@ -33,7 +33,7 @@ import {
 const HISTORY_OUTCOMES = ['history', 'run-not-found', 'ledger-corrupt', 'ledger-unavailable'] as const
 // 2026-09-30, 432-09: an applied fix names a knowledge change or a written test file.
 const APPLIED_CHANGE_KINDS = ['knowledge', 'test-file'] as const
-const REFUSALS = ['run-not-found', 'member-not-found', 'step-not-found', 'ambiguous-address', 'ambiguous-correction'] as const
+const REFUSALS = ['run-not-found', 'member-not-found', 'step-not-found', 'ambiguous-address'] as const
 const PREVIEW_OUTCOMES = ['consequences', 'quarantined', 'already-marked', ...REFUSALS] as const
 const MARK_OUTCOMES = ['marked', 'already-marked', ...REFUSALS] as const
 const MARK_KINDS = ['false-fail', 'false-pass', 'confirmed-bug'] as const
@@ -70,7 +70,7 @@ const member = { testIndex: 0 }
 const PREVIEW_CASES: Record<(typeof PREVIEW_OUTCOMES)[number], unknown> = {
   consequences: { kind: 'consequences', runId, prospective: true, markKind: 'false-fail', member,
     resolvedStep: { stepIndex: 0, reason: 'failing-step' }, markedDecisionCount: 1,
-    groundTruth: [{ testIndex: 0, stepIndex: 0, verdict: 'pass', recordedVerdict: { pass: false, reasoning: 'r' }, correctedAction: false }],
+    groundTruth: [{ testIndex: 0, stepIndex: 0, verdict: 'pass', recordedVerdict: { pass: false, reasoning: 'r' } }],
     labels: [{ testIndex: 0, stepIndex: 0, decisionOrdinal: 0, sourceCassetteId: 'leaf', channel: 'user-mark', correction: { verdict: 'pass' } }],
     knowledge: { servedRecordIds: [], appendsEvidence: false, records: [], evidence: { confirmed: 0, overturned: 0 } },
     draft: { kind: 'no-draftable-fix', checked: { servedRecords: 0, procedureReads: 0, assertionDrift: true } },
@@ -86,7 +86,6 @@ const PREVIEW_CASES: Record<(typeof PREVIEW_OUTCOMES)[number], unknown> = {
   'member-not-found': { kind: 'member-not-found', runId, testId: 'missing' },
   'step-not-found': { kind: 'step-not-found', runId, testIndex: 0, stepIndex: 4, stepCount: 2 },
   'ambiguous-address': { kind: 'ambiguous-address', runId, candidates: [{ testIndex: 0 }, { testIndex: 1 }] },
-  'ambiguous-correction': { kind: 'ambiguous-correction', runId, testIndex: 0, decisionCount: 3 },
 }
 
 describe('C423-FEEDBACK-RESULTS-EXACT', () => {

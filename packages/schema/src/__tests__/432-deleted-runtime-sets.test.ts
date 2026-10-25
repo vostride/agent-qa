@@ -44,7 +44,7 @@ describe('432-09 applied output key sets', () => {
     expect(keysOf(exported('MarkHistoryEntrySchema')), 'history projects the applied change, not an inbox state')
       .toEqual(sorted([
         'markId', 'runId', 'testIndex', 'testId', 'stepIndex', 'kind', 'origin', 'ordinal', 'markedAt',
-        'rootCause', 'isRerun', 'disposition', 'gold', 'evidence', 'supersedes', 'note', 'corrected',
+        'rootCause', 'isRerun', 'disposition', 'gold', 'evidence', 'supersedes', 'note',
         'active', 'supersededBy', 'changedRecords',
       ]))
 

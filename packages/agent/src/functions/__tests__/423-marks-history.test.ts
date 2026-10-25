@@ -54,7 +54,7 @@ function sequenceA(): ReadEntry[] {
   return [
     { receipt: receipt(1, { testIndex: 0 }, { note: 'first run-level mark',
       disposition: knowledgeFix('fact', ['mem_a1', 'mem_a1b']) }), changedRecords: [FOUND('mem_a1'), GONE('mem_a1b')] },
-    { receipt: receipt(2, { testIndex: 0, stepIndex: 2 }, { kind: 'false-pass', correctedExpectation: 'the banner reads saved',
+    { receipt: receipt(2, { testIndex: 0, stepIndex: 2 }, { kind: 'false-pass',
       disposition: { kind: 'no-draftable-fix', checked: { servedRecords: 1, procedureReads: 0, assertionDrift: true } } }) },
     { receipt: receipt(3, { testIndex: 0 }, { kind: 'confirmed-bug', supersedes: markIdOf(1),
       rootCause: { class: 'app_bug', producer: 'verifier' }, isRerun: true,
@@ -64,7 +64,6 @@ function sequenceA(): ReadEntry[] {
     { receipt: receipt(4, { testIndex: 1, testId: 'checkout' }, { kind: 'false-fail',
       disposition: { kind: 'applied', fix: 'test-edit', change: { kind: 'test-file', filePath: 'tests/checkout.yaml', contentDigest: 'abc' } } }) },
     { receipt: receipt(5, { testIndex: 0, stepIndex: 2 }, { supersedes: markIdOf(2),
-      correctedAction: { type: 'navigate', to: 'url', url: 'https://example.test/cart' } as MarkReceipt['correctedAction'],
       evidence: { confirmed: 0, overturned: 1 } }) },
     // A pre-432 receipt read back from an existing ledger: it filed a proposal, and nothing is joined for it.
     { receipt: receipt(6, { testIndex: 0 }, { supersedes: markIdOf(3), note: 'latest run-level mark',
@@ -125,8 +124,8 @@ async function read(entries: readonly ReadEntry[], secretMask?: MaskFn | null) {
 }
 
 function expectedFacts(value: MarkReceipt): Record<string, unknown> {
-  const { schemaVersion: _version, runSlug: _slug, correctedExpectation, correctedAction, ...facts } = value
-  return { ...facts, corrected: { expectation: correctedExpectation !== undefined, action: correctedAction !== undefined } }
+  const { schemaVersion: _version, runSlug: _slug, ...facts } = value
+  return facts
 }
 
 describe('423-36 runs.marks.history contract (D-19)', () => {
@@ -140,9 +139,7 @@ describe('423-36 runs.marks.history contract (D-19)', () => {
     result.entries.forEach((entry, index) => {
       const source = entries[index]!
       expect(entry).toMatchObject(expectedFacts(source.receipt))
-      // Corrected fields are presence only, and absent optional facts stay absent keys, never null.
-      expect(Object.keys(entry)).not.toContain('correctedExpectation')
-      expect(Object.keys(entry)).not.toContain('correctedAction')
+      // Absent optional facts stay absent keys, never null.
       expect(Object.values(entry)).not.toContain(null)
       expect(Object.values(entry)).not.toContain(undefined)
       if (source.receipt.note === undefined) expect(Object.keys(entry)).not.toContain('note')

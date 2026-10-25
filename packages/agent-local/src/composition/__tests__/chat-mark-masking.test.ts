@@ -4,7 +4,7 @@ import { join } from 'node:path'
 
 import { invokeFunction } from '@vostride/agent-qa-agent'
 import { SecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
-import { MARK_RECEIPT_SCHEMA_VERSION, asRef, asRunId, MASKED_RESOLVED_CONFIG_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
+import { MARK_RECEIPT_SCHEMA_VERSION, asRunId, MASKED_RESOLVED_CONFIG_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 import type {
   AgentAskResult,
   ChatSessionEvent,
@@ -26,14 +26,10 @@ it.each([true, false])('projects real mark chat with active masking=%s and prese
   const placeholder = '[secret:CANARY_441]'
   expect(declared.redactString(canary)).toBe(placeholder)
   const projectedNote = active ? placeholder : canary
-  const input: RunsMarkInput = { runId: asRunId('audit-run'), kind: 'false-fail', note: canary,
-    correctedExpectation: `Expect ${canary}`,
-    correctedAction: { type: 'fill', ref: asRef('e1'), text: canary, clearMode: 'replace', submit: false },
-  }
+  const input: RunsMarkInput = { runId: asRunId('audit-run'), kind: 'false-fail', note: canary }
   const canonical: MarkReceipt = {
     schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: 'mark_0123456789ab', runId: input.runId, runSlug: 'audit-run',
     testIndex: 0, kind: input.kind, origin: 'user', ordinal: 1, markedAt: 0, note: canary,
-    correctedExpectation: input.correctedExpectation, correctedAction: input.correctedAction,
     disposition: { kind: 'quarantined', class: 'flake' }, gold: [],
     evidence: { confirmed: 0, overturned: 0 },
   }
@@ -73,10 +69,7 @@ it.each([true, false])('projects real mark chat with active masking=%s and prese
     expect(result.receipts).toMatchObject([{ functionId: 'runs.mark', status: 'executed',
       outcome: 'marked false-fail · quarantined', origin: 'human' }])
     expect.soft(result.results).toEqual([{ functionId: 'runs.mark', payload: {
-      kind: 'marked', receipt: { ...canonical, note: projectedNote,
-        correctedExpectation: `Expect ${projectedNote}`,
-        correctedAction: { ...input.correctedAction, text: projectedNote },
-      },
+      kind: 'marked', receipt: { ...canonical, note: projectedNote },
     } }])
     if (active) expect.soft(JSON.stringify(result)).not.toContain(canary)
     else expect(JSON.stringify(result)).toContain(canary)

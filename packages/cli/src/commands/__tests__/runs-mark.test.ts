@@ -1,4 +1,4 @@
-import { readFileSync, rmSync } from 'node:fs'
+import { existsSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { Command } from 'commander'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -36,13 +36,12 @@ describe('runs mark thin client', () => {
     }))
     const output = vi.spyOn(console, 'log').mockImplementation(() => {})
     const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const correctedAction = f.handoff.tests[0]!.steps[0]!.subActions[0]!.plannedAction
     await program().parseAsync(['--config', f.configPath, 'runs', 'mark', f.handoff.runId, '--kind', 'confirmed-bug',
-      '--corrected-action', JSON.stringify(correctedAction), '--json'], { from: 'user' })
+      '--json'], { from: 'user' })
     expect(errors.mock.calls).toEqual([])
     expect(prompt).toBe('')
     const result = RunsMarkOutcomeSchema.parse(JSON.parse(String(output.mock.calls.at(-1)?.[0])))
-    expect(result).toMatchObject({ kind: 'marked', receipt: { ordinal: 1, origin: 'user', correctedAction, disposition: { kind: 'confirmed-bug' } } })
+    expect(result).toMatchObject({ kind: 'marked', receipt: { ordinal: 1, origin: 'user', disposition: { kind: 'confirmed-bug' } } })
     expect(readFileSync(join(f.runDir, 'marks.jsonl'), 'utf8').trim().split('\n')).toHaveLength(1)
   })
 
@@ -54,6 +53,14 @@ describe('runs mark thin client', () => {
     expect(errors.mock.calls).toEqual([])
     expect(process.exitCode).not.toBe(1)
     expect(readFileSync(join(f.runDir, 'marks.jsonl'), 'utf8').trim().split('\n')).toHaveLength(1)
+  })
+
+  it.each(['--corrected-action', '--corrected-expectation'])('%s is no longer an option: Commander refuses it and no ledger is written', async flag => {
+    const f = markFixture(); root = f.root
+    const value = flag === '--corrected-action' ? '{}' : 'saved'
+    await expect(program().parseAsync(['--config', f.configPath, 'runs', 'mark', f.handoff.runId, '--kind', 'false-fail',
+      flag, value], { from: 'user' })).rejects.toThrow(new RegExp(`unknown option '${flag}'`))
+    expect(existsSync(join(f.runDir, 'marks.jsonl'))).toBe(false)
   })
 
   it('refuses confirmed-pass with the three supported kinds before any op runs', async () => {

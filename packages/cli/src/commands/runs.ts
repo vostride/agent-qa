@@ -1,12 +1,11 @@
 import { dirname, resolve } from 'node:path'
 import { invokeFunction, RUNS_MARK_FUNCTION_ID } from '@vostride/agent-qa-agent'
-import { actionWireSchema, MARKS, RunsMarkOutcomeSchema, type RunsMarkOutcome } from '@vostride/agent-qa-schema'
+import { MARKS, RunsMarkOutcomeSchema, type RunsMarkOutcome } from '@vostride/agent-qa-schema'
 import { Command, InvalidArgumentError, Option } from 'commander'
 import { CLI_FUNCTION_CALLER, composeCliLocalAgent } from '../composition/local-agent-host.js'
 import { registerRunReadCommands } from './runs-read.js'
 
 export function renderMarkOutcome(dto: RunsMarkOutcome): string {
-  if (dto.kind === 'ambiguous-correction') return `ambiguous correction on ${dto.runId} test ${dto.testIndex}: ${dto.decisionCount} decisions; address a step containing exactly one decision`
   if (dto.kind === 'already-marked') return `already marked: identical repeat — receipt ${dto.receipt.markId} #${dto.receipt.ordinal}`
   if (dto.kind === 'marked') {
     const r = dto.receipt
@@ -31,7 +30,7 @@ export function renderMarkOutcome(dto: RunsMarkOutcome): string {
 export function createRunsCommand(): Command {
   const command = new Command('runs').description('Review recorded runs')
   command.command('mark <runId>')
-    .description('Mark a recorded outcome and apply its correction when attributable')
+    .description('Mark a recorded outcome and apply its fix when attributable')
     .addOption(new Option('--kind <kind>', 'user mark').choices([...MARKS]).makeOptionMandatory())
     .option('--test <testId>', 'address one test in a multi-test run')
     .option('--step <n>', 'zero-based step index', value => {
@@ -39,11 +38,6 @@ export function createRunsCommand(): Command {
       return Number(value)
     })
     .option('--note <text>', 'optional context')
-    .option('--corrected-expectation <text>', 'optional corrected expectation')
-    .option('--corrected-action <json>', 'validated expected Action for one recorded decision', value => {
-      try { return actionWireSchema.parse(JSON.parse(value)) }
-      catch { throw new InvalidArgumentError('corrected action must be a valid Action JSON object') }
-    })
     .option('--json', 'output the schema-validated receipt')
     .action(async (runId: string, options, cmd: Command) => {
       let host: ReturnType<typeof composeCliLocalAgent> | undefined
@@ -55,8 +49,6 @@ export function createRunsCommand(): Command {
           ...(options.test === undefined ? {} : { testId: options.test }),
           ...(options.step === undefined ? {} : { stepIndex: options.step }),
           ...(options.note === undefined ? {} : { note: options.note }),
-          ...(options.correctedExpectation === undefined ? {} : { correctedExpectation: options.correctedExpectation }),
-          ...(options.correctedAction === undefined ? {} : { correctedAction: options.correctedAction }),
         }, CLI_FUNCTION_CALLER))
         console.log(options.json === true ? JSON.stringify(dto) : renderMarkOutcome(dto))
         if (dto.kind !== 'marked' && dto.kind !== 'already-marked') process.exitCode = 1

@@ -40,8 +40,6 @@ export const runsMarkSpec: FunctionSpec<RunsMarkInput, RunsMarkOutcome> = {
         return { status: 'refused', outcome: `step ${output.stepIndex} not found at member ${output.testIndex}` }
       case 'ambiguous-address':
         return { status: 'refused', outcome: 'ambiguous run address: specify a member' }
-      case 'ambiguous-correction':
-        return { status: 'refused', outcome: 'executable correction requires exactly one recorded decision' }
       default:
         return output satisfies never
     }

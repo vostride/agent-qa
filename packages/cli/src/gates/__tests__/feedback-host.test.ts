@@ -56,23 +56,6 @@ describe('419 feedback host', () => {
   let root: string | undefined
   afterEach(() => { if (root) rmSync(root, { recursive: true, force: true }) })
   const hashes = (dir: string) => files(dir).map(path => [path, createHash('sha256').update(readFileSync(path)).digest('hex')])
-  it('retains a typed correction and refuses ambiguous multi-decision use without an intent or receipt', async () => {
-    const f = markFixture(); root = f.root
-    const step = f.handoff.tests[0]!.steps[0]!
-    const correctedAction = step.subActions[0]!.plannedAction
-    step.subActions.push({ ...step.subActions[0]! }); f.save()
-    const before = hashes(root)
-    const port = createFeedbackPortForHost(f.deps)
-    expect(await port.mark({ runId: f.handoff.runId, kind: 'confirmed-bug', correctedAction }))
-      .toEqual({ kind: 'ambiguous-correction', runId: f.handoff.runId, testIndex: 0, decisionCount: 2 })
-    expect(hashes(root)).toEqual(before)
-    step.subActions.pop(); f.save()
-    const result = await port.mark({ runId: f.handoff.runId, kind: 'confirmed-bug', correctedAction })
-    expect(result).toMatchObject({ kind: 'marked', receipt: { correctedAction, ordinal: 1 } })
-    expect(await port.mark({ runId: f.handoff.runId, kind: 'confirmed-bug', correctedAction }))
-      .toMatchObject({ kind: 'already-marked' })
-  })
-
   // RE-SPELLED 432-09 from 'draft false-fail files a real mark fact proposal with user Supersede and
   // floor wording': the same floor-worded user Supersede now lands in the call (D-04).
   it('draft false-fail applies a real mark fact as a user Supersede with floor wording', async () => {

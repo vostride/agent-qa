@@ -34,10 +34,6 @@ function projectEntry(receipt: MarkReceipt, changedRecords: readonly MarkHistory
     ordinal: receipt.ordinal,
     markedAt: receipt.markedAt,
     ...(receipt.note === undefined ? {} : { note: mask(receipt.note) }),
-    corrected: {
-      expectation: receipt.correctedExpectation !== undefined,
-      action: receipt.correctedAction !== undefined,
-    },
     ...(receipt.rootCause === undefined ? {} : {
       rootCause: { class: receipt.rootCause.class, producer: mask(receipt.rootCause.producer) },
     }),

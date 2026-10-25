@@ -1,7 +1,5 @@
 // 2026-09-08, 419 D-06/D-07/D-08/D-12: the Gate-3 neutral contracts.
 import { z } from 'zod'
-import type { Action } from '../action/index'
-import { actionWireSchema } from '../action/wire-schema'
 
 import { MARKS } from '../knowledge/gate-receipt'
 import { DeltaSchema, KnowledgeChangeIdSchema, KnowledgeTargetRefSchema } from '../knowledge/change'
@@ -14,7 +12,6 @@ import { oneJoinArm, recordJoinShape } from './record-join'
 const runIdSchema = runIdCodec.in as unknown as z.ZodType<RunId>
 const markIdSchema = z.string().regex(/^mark_[0-9a-f]{12}$/)
 const indexSchema = z.number().int().nonnegative()
-const correctedActionSchema = actionWireSchema as unknown as z.ZodType<Action>
 type ExactlyEqual<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false
 
 // prettier-ignore
@@ -127,8 +124,6 @@ export const MarkReceiptSchema = z.object({
   ordinal: z.number().int().positive(),
   markedAt: indexSchema,
   note: z.string().max(2000).optional(),
-  correctedExpectation: z.string().max(2000).optional(),
-  correctedAction: correctedActionSchema.optional(),
   rootCause: z.object({ class: z.enum(VERDICT_CLASSES), producer: z.string().min(1) }).strict().optional(),
   isRerun: z.literal(true).optional(),
   disposition: MarkDispositionSchema,
@@ -148,8 +143,6 @@ export const RunsMarkInputSchema = z.object({
   stepIndex: indexSchema.optional(),
   kind: z.enum(MARKS),
   note: z.string().max(2000).optional(),
-  correctedExpectation: z.string().max(2000).optional(),
-  correctedAction: correctedActionSchema.optional(),
 }).strict()
 export type RunsMarkInput = z.infer<typeof RunsMarkInputSchema>
 
@@ -166,8 +159,6 @@ export const RunsMarkOutcomeSchema = z.discriminatedUnion('kind', [
     kind: z.literal('ambiguous-address'), runId: runIdSchema,
     candidates: z.array(z.object({ testIndex: indexSchema, testId: z.string().optional() }).strict()).min(2),
   }).strict(),
-  z.object({ kind: z.literal('ambiguous-correction'), runId: runIdSchema,
-    testIndex: indexSchema, decisionCount: indexSchema }).strict(),
 ])
 export type RunsMarkOutcome = z.infer<typeof RunsMarkOutcomeSchema>
 
@@ -260,15 +251,13 @@ export const MarkHistoryChangedRecordSchema = z.object({
 export type MarkHistoryChangedRecord = z.infer<typeof MarkHistoryChangedRecordSchema>
 
 const receiptFactShape = MarkReceiptSchema.omit({
-  schemaVersion: true, runSlug: true, correctedExpectation: true, correctedAction: true, note: true,
+  schemaVersion: true, runSlug: true, note: true,
 }).shape
 
 export const MarkHistoryEntrySchema = z.object({
   ...receiptFactShape,
   // Masked free text can differ in length from the recorded note, so the writer's cap is not reapplied.
   note: z.string().optional(),
-  /** Corrected fields are reported by presence; their content stays in the ledger. */
-  corrected: z.object({ expectation: z.boolean(), action: z.boolean() }).strict(),
   active: z.boolean(),
   supersededBy: markIdSchema.optional(),
   /** The records an applied knowledge fix changed, in the receipt's order, joined at read time. */
@@ -305,12 +294,10 @@ export type RunsMarksHistoryResult = z.infer<typeof RunsMarksHistoryResultSchema
 const _historyOutcomesCover: ExactlyEqual<(typeof MARKS_HISTORY_OUTCOMES)[number], RunsMarksHistoryResult['kind']> = true
 void _historyOutcomesCover
 
-// 2026-09-15, 423 D-16/D-17: the consequence preview. Input is RunsMarkInputSchema itself; runs.mark
-// gains no field. Refusals are runs.mark's own arm objects, taken by position and type-pinned below.
-const [, , markRunNotFoundArm, markMemberNotFoundArm, markStepNotFoundArm, markAmbiguousAddressArm,
-  markAmbiguousCorrectionArm] = RunsMarkOutcomeSchema.options
+// The preview's refusals are runs.mark's own arms, taken by position and type-pinned below.
+const [, , markRunNotFoundArm, markMemberNotFoundArm, markStepNotFoundArm, markAmbiguousAddressArm] = RunsMarkOutcomeSchema.options
 
-export const MARK_PREVIEW_REFUSALS = ['run-not-found', 'member-not-found', 'step-not-found', 'ambiguous-address', 'ambiguous-correction'] as const
+export const MARK_PREVIEW_REFUSALS = ['run-not-found', 'member-not-found', 'step-not-found', 'ambiguous-address'] as const
 export const MARK_PREVIEW_OUTCOMES = ['consequences', 'quarantined', 'already-marked', ...MARK_PREVIEW_REFUSALS] as const
 export const MARK_TARGET_REASONS = ['step-mark', 'failing-step', 'passing-verdict'] as const
 export const MARK_GOLD_CHANNELS = ['user-mark', 'overturned-verdict'] as const
@@ -319,8 +306,7 @@ export const MARK_PREVIEW_DRAFT_KINDS = ['confirmed-bug', 'knowledge', 'test-edi
 
 const _refusalArmsInOrder: ExactlyEqual<
   [z.infer<typeof markRunNotFoundArm>['kind'], z.infer<typeof markMemberNotFoundArm>['kind'],
-    z.infer<typeof markStepNotFoundArm>['kind'], z.infer<typeof markAmbiguousAddressArm>['kind'],
-    z.infer<typeof markAmbiguousCorrectionArm>['kind']],
+    z.infer<typeof markStepNotFoundArm>['kind'], z.infer<typeof markAmbiguousAddressArm>['kind']],
   [...typeof MARK_PREVIEW_REFUSALS]> = true
 void _refusalArmsInOrder
 const _goldChannelsCover: ExactlyEqual<(typeof MARK_GOLD_CHANNELS)[number], MarkReceipt['gold'][number]['channel']> = true
@@ -349,9 +335,6 @@ export const MarkPreviewGroundTruthSchema = z.object({
   /** The verdict the mark asserts for this step. */
   verdict: z.enum(['pass', 'fail']),
   recordedVerdict: z.object({ pass: z.boolean(), reasoning: z.string() }).strict(),
-  correctedExpectation: z.string().optional(),
-  /** The corrected action is reported by presence; its content is the caller's own input. */
-  correctedAction: z.boolean(),
 }).strict()
 export type MarkPreviewGroundTruth = z.infer<typeof MarkPreviewGroundTruthSchema>
 
@@ -507,7 +490,6 @@ export const RunsMarkPreviewResultSchema = z.discriminatedUnion('kind', [
   markMemberNotFoundArm,
   markStepNotFoundArm,
   markAmbiguousAddressArm,
-  markAmbiguousCorrectionArm,
 ])
 export type RunsMarkPreviewResult = z.infer<typeof RunsMarkPreviewResultSchema>
 const _previewOutcomesCover: ExactlyEqual<(typeof MARK_PREVIEW_OUTCOMES)[number], RunsMarkPreviewResult['kind']> = true

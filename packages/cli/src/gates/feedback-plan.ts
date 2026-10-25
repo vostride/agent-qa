@@ -3,10 +3,10 @@
 import { dirname, resolve } from 'node:path'
 import { chainJobIdsForRun, type KnowledgeReaderPort } from '@vostride/agent-qa-agent'
 import { createKnowledgeReader, DIGEST_JOB_ID_SOURCE, LOCAL_CURATION_CAPABILITIES, type LocalCurationCapabilities } from '@vostride/agent-qa-agent-local'
-import { projectRecordContent, RunsMarkInputSchema, type CompletedRunHandoff, type ImprovementPlan, type KnowledgeRecordShowResult, type KnowledgeTargetRef, type MarkAddress, type MarkPreviewKnowledge, type MarkPreviewKnowledgeRecord, type MarkQuarantineClass, type MarkReceipt, type NoDraftableFixChecked, type RunsMarkInput, type RunsMarkOutcome } from '@vostride/agent-qa-schema'
+import { MARK_TARGET_REASONS, projectRecordContent, RunsMarkInputSchema, type CompletedRunHandoff, type ImprovementPlan, type KnowledgeRecordShowResult, type KnowledgeTargetRef, type Mark, type MarkAddress, type MarkPreviewKnowledge, type MarkPreviewKnowledgeRecord, type MarkQuarantineClass, type MarkReceipt, type NoDraftableFixChecked, type RunsMarkInput, type RunsMarkOutcome } from '@vostride/agent-qa-schema'
 import { resolveConfig, resolveConfiguredKnowledgeRoot } from '../config.js'
 import { trustPriorsForHost, type ResolveTrustPriors } from '../curation/trust-priors.js'
-import { canonicalJson, FsHandoffSource, FsMarkLedger, latestMarkReceiptFor, previewMarkLabels, resolveMarkLabelTargets, slugBranch, type GoldenTrajectoryTarget, type MarkGroundTruthPreview, type MarkLabelPreviewItem } from '../eval-session-composition.js'
+import { FsHandoffSource, FsMarkLedger, latestMarkReceiptFor, markedDecisionCount, previewMarkLabels, slugBranch, type MarkGroundTruthPreview, type MarkLabelPreviewItem } from '../eval-session-composition.js'
 
 export type MarkPlanCuration = Pick<LocalCurationCapabilities, 'triageMark' | 'servedIdsOn' | 'procedureReadOn' | 'applyFeedback' | 'readFeedbackRecord' | 'planMarkEvidence' | 'projectMarkEvidenceOutcome'>
 type MarkMember = CompletedRunHandoff['tests'][number]
@@ -14,7 +14,7 @@ type MarkStep = MarkMember['steps'][number]
 export type ServedRecordFacts = NonNullable<ReturnType<LocalCurationCapabilities['readFeedbackRecord']>>
 
 export type MarkTargetRefusal = Extract<RunsMarkOutcome, { kind: 'run-not-found' | 'member-not-found' | 'ambiguous-address' }>
-export type MarkPlanRefusal = Extract<RunsMarkOutcome, { kind: 'step-not-found' | 'ambiguous-correction' }>
+export type MarkPlanRefusal = Extract<RunsMarkOutcome, { kind: 'step-not-found' }>
 
 export function resolveMarkMember(handoff: CompletedRunHandoff, testId?: string) {
   const matches = testId === undefined ? handoff.tests : handoff.tests.filter(test => test.testId === testId)
@@ -53,22 +53,21 @@ export function markEvidenceCurationJobIds(runId: string): string[] {
   return [chainJobIdsForRun(runId, DIGEST_JOB_ID_SOURCE).curateMemory]
 }
 
-/** The note is deliberately absent: only the kind and the correction make a mark a repeat. */
+/** The note is deliberately not compared: only the kind makes a mark a repeat. */
 export function isIdenticalRepeat(prior: MarkReceipt, input: RunsMarkInput): boolean {
-  return prior.kind === input.kind && prior.correctedExpectation === input.correctedExpectation
-    && canonicalJson(prior.correctedAction ?? null) === canonicalJson(input.correctedAction ?? null)
+  return prior.kind === input.kind
 }
 
 /** A read-time observation, not a lock: the writer re-plans under its own transaction. */
 export interface MarkPlanBasis { ledgerOrdinal: number; priorOrdinal?: number }
 export type MarkLatest = { kind: 'first' } | { kind: 'supersedes'; markId: string; ordinal: number }
-export interface MarkResolvedStep { stepIndex: number; reason: GoldenTrajectoryTarget['reason'] }
+export interface MarkResolvedStep { stepIndex: number; reason: (typeof MARK_TARGET_REASONS)[number] }
 
 export type MarkFeedbackPlan =
   | { kind: 'already-marked'; receipt: MarkReceipt; basis: MarkPlanBasis }
   | { kind: 'refused'; outcome: MarkPlanRefusal; basis: MarkPlanBasis }
   | { kind: 'quarantined'; class: MarkQuarantineClass; resolvedStep: MarkResolvedStep; latest: MarkLatest; basis: MarkPlanBasis }
-  | { kind: 'effects'; targets: GoldenTrajectoryTarget[]; resolvedStep: MarkResolvedStep; decisionCount: number
+  | { kind: 'effects'; targets: (MarkResolvedStep & { testIndex: number })[]; resolvedStep: MarkResolvedStep; decisionCount: number
     knowledge: { servedRecordIds: string[]; appendsEvidence: boolean }
     latest: MarkLatest; basis: MarkPlanBasis }
 
@@ -82,29 +81,52 @@ export interface PlanMarkFeedbackInput {
   curation: Pick<MarkPlanCuration, 'triageMark' | 'servedIdsOn'>
 }
 
-/** The writer's refusal order: repeat, unresolvable step, quarantine, then an ambiguous correction. */
+type MarkStepResolution =
+  | { kind: 'resolved'; stepIndex: number; reason: (typeof MARK_TARGET_REASONS)[number] }
+  | { kind: 'step-not-found'; stepCount: number }
+
+/** The addressed step, else the first failing step (never for a false-pass), else the last step. */
+function resolveMarkStep(handoff: CompletedRunHandoff, address: MarkAddress, kind: Mark): MarkStepResolution {
+  if (address.runId !== handoff.runId) throw new Error('mark run does not match handoff')
+  const members = handoff.tests.filter(member => member.testIndex === address.testIndex)
+  const member = members[0]
+  if (members.length !== 1 || member === undefined ||
+    (address.testId !== undefined && address.testId !== member.testId)) {
+    throw new Error('mark member does not match handoff')
+  }
+  if (address.stepIndex !== undefined) {
+    if (!Number.isInteger(address.stepIndex) || address.stepIndex < 0 || address.stepIndex >= member.steps.length) {
+      return { kind: 'step-not-found', stepCount: member.steps.length }
+    }
+    return { kind: 'resolved', stepIndex: address.stepIndex, reason: 'step-mark' }
+  }
+  if (member.steps.length === 0) return { kind: 'step-not-found', stepCount: 0 }
+  const failing = kind === 'false-pass' ? -1 : member.steps.findIndex(step => step.verifierVerdict?.pass === false)
+  return {
+    kind: 'resolved',
+    stepIndex: failing < 0 ? member.steps.length - 1 : failing,
+    reason: failing < 0 ? 'passing-verdict' : 'failing-step',
+  }
+}
+
+/** The writer's refusal order: repeat, unresolvable step, then quarantine. */
 export function planMarkFeedback({ input, handoff, member, address, prior, ledgerOrdinal, curation }: PlanMarkFeedbackInput): MarkFeedbackPlan {
   const basis: MarkPlanBasis = { ledgerOrdinal, ...(prior === undefined ? {} : { priorOrdinal: prior.ordinal }) }
   if (prior !== undefined && isIdenticalRepeat(prior, input)) return { kind: 'already-marked', receipt: prior, basis }
   const triage = curation.triageMark(member)
-  const resolution = resolveMarkLabelTargets(handoff, address, input)
+  const resolution = resolveMarkStep(handoff, address, input.kind)
   if (resolution.kind === 'step-not-found') {
     // The outcome schema exposes the numeric address only.
     return { kind: 'refused', basis, outcome: { kind: 'step-not-found', runId: address.runId, testIndex: address.testIndex,
       stepIndex: input.stepIndex ?? 0, stepCount: resolution.stepCount } }
   }
-  const target = resolution.targets[0]!
-  const resolvedStep: MarkResolvedStep = { stepIndex: target.stepIndex, reason: target.reason }
+  const resolvedStep: MarkResolvedStep = { stepIndex: resolution.stepIndex, reason: resolution.reason }
   const latest: MarkLatest = prior === undefined ? { kind: 'first' } : { kind: 'supersedes', markId: prior.markId, ordinal: prior.ordinal }
   if (triage.kind === 'quarantined') return { kind: 'quarantined', class: triage.class, resolvedStep, latest, basis }
-  if (resolution.kind === 'ambiguous-correction') {
-    return { kind: 'refused', basis, outcome: { kind: 'ambiguous-correction', runId: input.runId,
-      testIndex: member.testIndex, decisionCount: resolution.decisionCount } }
-  }
-  const servedRecordIds = resolution.targets.flatMap(item => curation.servedIdsOn(member.steps[item.stepIndex]!))
-  return { kind: 'effects', targets: resolution.targets, resolvedStep, decisionCount: resolution.decisionCount,
+  const targets = [{ testIndex: member.testIndex, ...resolvedStep }]
+  const servedRecordIds = curation.servedIdsOn(member.steps[resolvedStep.stepIndex]!)
+  return { kind: 'effects', targets, resolvedStep, decisionCount: markedDecisionCount(handoff, targets),
     knowledge: { servedRecordIds, appendsEvidence: servedRecordIds.length > 0 || input.kind === 'false-pass' },
-    // 432-09 (D-11): a later mark replaces the earlier one's gold case and retracts nothing it applied.
     latest, basis }
 }
 

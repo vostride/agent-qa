@@ -31,7 +31,6 @@ function maskResult(result: RunsMarkPreviewResult, mask: MaskFn): RunsMarkPrevie
     groundTruth: result.groundTruth.map(item => ({
       ...item,
       recordedVerdict: { ...item.recordedVerdict, reasoning: mask(item.recordedVerdict.reasoning) },
-      ...(item.correctedExpectation === undefined ? {} : { correctedExpectation: mask(item.correctedExpectation) }),
     })),
   }
 }
@@ -56,7 +55,6 @@ export const runsMarkPreviewSpec: FunctionSpec<RunsMarkInput, RunsMarkPreviewRes
       case 'member-not-found':
       case 'step-not-found':
       case 'ambiguous-address':
-      case 'ambiguous-correction':
         // The writer's own refusal wording; classify interpolates only structural fields.
         return runsMarkSpec.classify(output)
       default:

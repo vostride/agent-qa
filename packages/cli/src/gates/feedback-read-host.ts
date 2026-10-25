@@ -95,7 +95,6 @@ export function createFeedbackReadsPortForHost(deps: FeedbackReadsHostDeps): Fee
       case 'member-not-found':
       case 'ambiguous-address':
       case 'step-not-found':
-      case 'ambiguous-correction':
         return previewed
       case 'already-marked': {
         const { receipt } = previewed
@@ -112,10 +111,8 @@ export function createFeedbackReadsPortForHost(deps: FeedbackReadsHostDeps): Fee
         return { kind: 'consequences', ...prospective, member: previewed.member, resolvedStep: previewed.resolvedStep,
           markedDecisionCount: previewed.decisionCount,
           groundTruth: previewed.groundTruth.map(item => ({ testIndex: item.testIndex, stepIndex: item.stepIndex,
-            verdict: item.verdict, recordedVerdict: { pass: item.recordedVerdict.pass, reasoning: item.recordedVerdict.reasoning },
-            ...(item.correctedExpectation === undefined ? {} : { correctedExpectation: item.correctedExpectation }),
-            correctedAction: item.correctedAction !== undefined })),
-          // The overturned verdict and corrected content stay in groundTruth; a label reports its verdict only.
+            verdict: item.verdict, recordedVerdict: { pass: item.recordedVerdict.pass, reasoning: item.recordedVerdict.reasoning } })),
+          // The overturned verdict stays in groundTruth; a label reports its verdict only.
           labels: previewed.labels.map(label => ({ testIndex: label.testIndex, stepIndex: label.stepIndex,
             decisionOrdinal: label.decisionOrdinal, sourceCassetteId: label.sourceCassetteId, channel: label.channel,
             ...(label.correction === undefined ? {} : { correction: { verdict: label.correction.verdict } }) })),
