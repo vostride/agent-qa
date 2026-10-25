@@ -1906,12 +1906,6 @@ export interface ComposeLocalAgentInput {
      * `CandidateProsePosture` for what each member does and does not certify.
      */
     readonly candidateProse: CandidateProsePosture
-    /**
-     * 2026-09-13, 422 D-19, gap plan 422-27: the host's durable per-run evaluation-root
-     * posture, forwarded as a neutral closure. Absence leaves the handler's fail-closed
-     * default in force; this composition neither resolves nor interprets the posture.
-     */
-    readonly readMisdirectionRootPosture?: PostRunJobCapabilities['readMisdirectionRootPosture']
   }
   /**
    * D-01's TokenAccounting substrate for the analyze-run author (389 plan 06). OPTIONAL
@@ -2361,9 +2355,6 @@ export function postRunCapabilities(
         join(input.agentQaRoot, RUNS_SUBDIR, slugBranch(runId), HANDOFF_FILE),
       ),
     curateRun: postRun.curateRun,
-    ...(postRun.readMisdirectionRootPosture === undefined
-      ? {}
-      : { readMisdirectionRootPosture: postRun.readMisdirectionRootPosture }),
     // 389 D-09: the artifact's path is DERIVED from the artifact's own runId through the
     // same `runs/<slug>/` law as the handoff read above — `slugBranch` is the traversal
     // guard (T-389-01), and a job payload never carries a path.

@@ -14,12 +14,8 @@
 // with a recorded-request capture, and the generate-call-count assertions are the D-01/D-03
 // contract: exactly 1 on valid output, exactly 2 when the single repair engages, never 3.
 
-import type {
-  CompletedRunHandoff,
-  MisdirectionRecordResult,
-  Verdict,
-} from '@vostride/agent-qa-schema'
-import { asRecordId, canonicalJson, misdirectionSourceDigest } from '@vostride/agent-qa-schema'
+import type { CompletedRunHandoff, Verdict } from '@vostride/agent-qa-schema'
+import { asRecordId, canonicalJson } from '@vostride/agent-qa-schema'
 import { deterministicVerdict, UNKNOWN_SIGNAL_RATIONALE } from '@vostride/agent-qa-runner'
 import { describe, expect, it } from 'vitest'
 
@@ -30,7 +26,7 @@ import {
   AUTHOR_REPAIR_CAP,
   authorRunAnalysis,
   MAX_AUTHOR_IMAGES,
-  misdirectionValidationOptions,
+  stampVerdictMemoryOnPath,
 } from '../analyze-run-author.js'
 import { buildSyntheticHandoff } from './fixtures/synthetic-handoff.js'
 
@@ -455,71 +451,70 @@ describe('the D-02 vision leg and the L9 text-only degradations', () => {
   })
 })
 
-// ---------------------------------------------------------------------------------------
-// 422-15: the arbiter's rows reach the author as DATA, and the posture switch is one decision.
-// ---------------------------------------------------------------------------------------
-
 const ALPHA = asRecordId('rec-alpha')
 
-function crossCheckRow(
-  handoff: CompletedRunHandoff,
-  overrides: Partial<MisdirectionRecordResult> = {},
-): MisdirectionRecordResult {
-  return {
-    runId: String(handoff.runId),
-    perTest: 0,
-    stepIndex: 0,
-    decisionOrdinal: 0,
-    recordId: ALPHA,
-    handoffBaseDigest: misdirectionSourceDigest(handoff),
-    briefDigest: 'brief-digest',
-    corpusDigest: 'corpus-digest',
-    profileDigest: 'profile-digest',
-    crossCheck: 'flipped',
-    seedHonored: true,
-    ...overrides,
-  }
+/** Serve one candidate record on step 0 of member 0, leaving every other byte alone. */
+function withCandidateOnStepZero(handoff: CompletedRunHandoff): CompletedRunHandoff {
+  const tests = handoff.tests.map((test) =>
+    test.testIndex !== 0
+      ? test
+      : {
+          ...test,
+          steps: test.steps.map((step) =>
+            step.stepIndex !== 0
+              ? step
+              : {
+                  ...step,
+                  servedBrief: {
+                    ...step.servedBrief,
+                    channel1: [
+                      {
+                        id: ALPHA,
+                        kind: 'fact',
+                        summary: 'served record rec-alpha',
+                        trust: 0.2,
+                        status: 'candidate',
+                        servedAsCanary: false,
+                        tier: 'L1',
+                      },
+                    ],
+                  },
+                },
+          ),
+        },
+  ) as CompletedRunHandoff['tests']
+  return { ...handoff, tests }
 }
 
-describe('422-15 the circularity evidence enters the author as data (D-17/D-20)', () => {
-  it('switches the validator posture on the ledger alone, fail-closed on absence', () => {
-    // ONE decision point for the whole arm, so "the arm is off for a run that carries nothing"
-    // is a property of a function rather than a habit of three call sites.
-    expect(misdirectionValidationOptions(undefined, 'eval-root')).toEqual({})
-    expect(misdirectionValidationOptions(undefined, 'no-eval-root')).toEqual({})
-    expect(misdirectionValidationOptions([], 'no-eval-root')).toEqual({
-      gatedProducerEvidence: true,
-      rootPosture: 'no-eval-root',
+describe('stampVerdictMemoryOnPath', () => {
+  it('stamps the records the path served, removes a declaration when it served none, and drops misdirectionRuledOut', () => {
+    const clean = buildSyntheticHandoff({ failureCount: 1 })
+    const served = withCandidateOnStepZero(clean)
+    const declared = {
+      ...deterministicVerdict('unknown', UNKNOWN_SIGNAL_RATIONALE, [0], 0),
+      memoryOnPath: [{ recordId: asRecordId('rec-invented'), trust: 'candidate' }],
+      misdirectionRuledOut: { crossCheck: 'held', results: [] },
+    } as unknown as Verdict
+
+    const onPath = stampVerdictMemoryOnPath({
+      verdict: declared,
+      parts: undefined,
+      test: served.tests[0],
     })
+    expect(onPath.memoryOnPath).toEqual([{ recordId: ALPHA, trust: 'candidate' }])
+    expect(onPath).not.toHaveProperty('misdirectionRuledOut')
+
+    const offPath = stampVerdictMemoryOnPath({
+      verdict: declared,
+      parts: undefined,
+      test: clean.tests[0],
+    })
+    expect(offPath).not.toHaveProperty('memoryOnPath')
+    expect(offPath).not.toHaveProperty('misdirectionRuledOut')
   })
+})
 
-  it('renders the per-record rows into the prompt while KEEPING the boolean request', async () => {
-    // The rows are reasoning input, not an instruction: the author still has to answer
-    // `memoryMisdirectionRuledOut` for itself, and the code still decides what that is worth.
-    const handoff = buildSyntheticHandoff({ failureCount: 1 })
-    const model = scriptedModel([outputOf([authoredEntry(0)])])
-
-    await authorRunAnalysis(
-      model.capability,
-      authorInput(handoff, { misdirectionEvidence: [crossCheckRow(handoff)] }),
-    )
-
-    const request = model.requests()[0] as JobModelRequest
-    expect(request.prompt).toContain(String(ALPHA))
-    expect(request.prompt).toContain('flipped')
-    expect(request.system ?? '').toContain('memoryMisdirectionRuledOut')
-  })
-
-  it('says nothing about a cross-check for a run whose arbiter never ran', async () => {
-    const handoff = buildSyntheticHandoff({ failureCount: 1 })
-    const model = scriptedModel([outputOf([authoredEntry(0)])])
-
-    await authorRunAnalysis(model.capability, authorInput(handoff))
-
-    const request = model.requests()[0] as JobModelRequest
-    expect(request.prompt).not.toContain(String(ALPHA))
-  })
-
+describe('authorship usage', () => {
   it('reports the model calls it made ONCE, capped at one repair', async () => {
     const handoff = buildSyntheticHandoff({ failureCount: 1 })
     const clean = scriptedModel([outputOf([authoredEntry(0)])])
