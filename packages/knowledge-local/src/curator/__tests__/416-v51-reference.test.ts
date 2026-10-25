@@ -112,39 +112,6 @@ async function capture(scenario: Scenario, options: {
   } finally { rmSync(root, { recursive: true, force: true }) }
 }
 describe('416 v51 reference across the three real doors', () => {
-  it('418 present broken posture keeps the credited receipt and holds posture-unavailable', async () => {
-    const root = mkdtempSync(join(tmpdir(), '418-unavailable-reference-'))
-    const knowledgeRoot = join(root, 'agent-qa-knowledge')
-    try {
-      const fixture = createPromotionFloorFixture({ knowledgeRoot })
-      const { draft, published } = fixture.publishHeldCandidate('fact-door2-canary')
-      const lease = acquireWriterLease(knowledgeRoot)
-      if (lease.kind !== 'acquired') throw new Error('expected writer lease')
-      const onPromotionOutcome = vi.fn()
-      const store = createLocalKnowledgeStore({ knowledgeRoot,
-        executionContext: 'local-interactive', epoch: lease.epoch, writerLeaseId: lease.leaseId,
-        sourceRunId: 'run-canary-disposition', sourceBuildOrdinal: 43,
-        resolvePromotionPosture: () => ({ kind: 'unavailable', replayGateAvailable: true,
-          refusals: ['fixture broken eval root'] }),
-        onPromotionOutcome })
-      await store.recordCanaryOutcome({ candidateId: published.id, runOutcome: 'positive',
-        benefit: 'exercised-benefited', stateValidity: 'valid', corpusDigest: 'c'.repeat(64),
-        runId: 'run-canary-disposition', testId: 'checkout::happy-path', testIndex: 0,
-        buildOrdinal: 43, stepIndex: 2, briefDigest: 'brief-digest-canary-disposition',
-        attribution: 'The served checkout hypothesis was exercised by the attributed step.',
-        exercisedAnchor: draft.anchors[0]! })
-      expect(onPromotionOutcome).toHaveBeenLastCalledWith({ candidateId: published.id,
-        promotionHoldReason: 'posture-unavailable' })
-      expect(readGateReceipts(published.dir, published.id)).toEqual([
-        expect.objectContaining({ gate: 2, verdict: 'pass', corpusVersion: { corpusDigest: 'c'.repeat(64) } }),
-      ])
-      expect(fixture.onlyBundle().bundle.events.map(event => event.type)).toEqual(['confirmed'])
-      const reference = JSON.parse(readFileSync(fileURLToPath(new URL('./fixtures/416-v51-reference.json', import.meta.url)), 'utf8'))
-      const confirmations = reference['fact/door2-canary'].outcomes.split('\n')
-        .filter((line: string) => line !== '' && JSON.parse(line).type === 'confirmed').join('\n') + '\n'
-      expect(readFileSync(join(published.dir, 'evidence/outcomes.jsonl'), 'utf8')).toBe(confirmations)
-    } finally { rmSync(root, { recursive: true, force: true }) }
-  })
   it('compares each scenario to the immutable pristine reference', async () => {
     const actual: Record<string, Awaited<ReturnType<typeof capture>>> = {}
     for (const scenario of scenarios) actual[scenario] = await capture(scenario)

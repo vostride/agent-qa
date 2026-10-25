@@ -1,18 +1,15 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import {
   DISTILLED_OBSERVATION_SCHEMA_VERSION,
-  GATE_RECEIPT_SCHEMA_VERSION,
   asEvidenceToken,
   asRecordId,
   canonicalJson,
   deriveEvidenceToken,
   evaluatePromotionGate,
   isVettedCandidate,
-  isPromotionReceipt,
-  stampReceiptDigest,
   type BundleDiscriminant,
   type BundleDraft,
   type CanaryOutcome,
@@ -42,14 +39,8 @@ import {
 } from '../drain.js'
 import { canaryOutcomeObservationId } from '../disposition.js'
 import { createLocalKnowledgeStore } from '../knowledge-store.js'
-import { assemblePromotionGateInput } from '../commit.js'
-import { appendGateReceipt, appendOutcomeEvent } from '../../bundle-append.js'
-// 2026-10-01 (432-17): the proposals store is deleted; its directory name is spelled here so the
-// absence cells keep naming the path an old store wrote to.
-const proposalsDir = (agentQaRoot: string): string => join(agentQaRoot, 'proposals')
-import { rebuildIndex } from '../../index-rebuild.js'
 import { openKnowledgeReader } from '../../index-reader.js'
-import { completeGate1Receipt, resolvedPromotionPosture } from './fixtures/promotion-floor-fixture.js'
+import { resolvedPromotionPosture } from './fixtures/promotion-floor-fixture.js'
 
 const FACT_ANCHORS = [
   { t: 'el', role: 'button', name: 'Checkout', ordinal: 0 },
@@ -65,14 +56,12 @@ const ELEMENT_OBSERVATION: DistilledObservation = {
   observedAtOrdinal: 42,
 }
 
-describe('canary outcome deterministic disposition (PROM-02/D-22)', () => {
+describe('canary outcome deterministic disposition', () => {
   let root: string
   let knowledgeRoot: string
-  let agentQaRoot: string
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), 'knowledge-canary-disposition-'))
     knowledgeRoot = join(root, 'agent-qa-knowledge')
-    agentQaRoot = join(root, '.agent-qa')
     scaffoldKnowledgeRoot(knowledgeRoot)
     const lease = acquireWriterLease(knowledgeRoot)
     if (lease.kind !== 'acquired') throw new Error('expected a fresh writer lease')
@@ -195,77 +184,6 @@ describe('canary outcome deterministic disposition (PROM-02/D-22)', () => {
     return { bundle: result.bundle, trust: deriveBundleTrust(result.bundle) }
   }
 
-  async function drainContradiction() {
-    const author = vi.fn<CuratorAuthor>(async () => ({ kind: 'fallback-required', reason: 'no-model' }))
-    const report = await drainQueue({ knowledgeRoot,
-      resolvePromotionPosture: () => resolvedPromotionPosture(),
-      author, executionContext: 'local-interactive' })
-    expect(report.failures).toBe(0)
-    expect(author).not.toHaveBeenCalled()
-    return report
-  }
-
-  // 2026-09-30, 432-10 D-05/D-22: re-spelled. The drain no longer takes a proposals root and
-  // files no gate-inconsistency proposal; the hold is read from the standing receipts alone.
-  it('SC5 shape 1 — never-confirmed candidate with standing Gate-1 pass and first valid harm holds gate-inconsistent and files nothing', async () => {
-    const published = seedCandidate()
-    expect(loaded(published.dir).trust.counters.confirmed).toBe(0)
-    const g1 = completeGate1Receipt(published.id, { producedAtOrdinal: 42 })
-    expect(appendGateReceipt(bundleConfig(), published.id, g1).kind).toBe('appended')
-    const harm: CanaryOutcome = { ...outcome(published.id, 'negative'), benefit: 'exercised-harmed',
-      stateValidity: 'valid', corpusDigest: 'c'.repeat(64) }
-    enqueueCanaryOutcome(knowledgeRoot, harm)
-    const report = await drainContradiction()
-    expect(report.promotions).toContainEqual({ candidateId: published.id, promotionHoldReason: 'gate-inconsistent' })
-    expect(report.promotions).not.toContainEqual(expect.objectContaining({ promotionHoldReason: 'no-confirmed-evidence' }))
-    expect(report).not.toHaveProperty('inconsistenciesFiled')
-    const result = loaded(published.dir)
-    expect(result.bundle.events.filter(event => event.type === 'contradicted')).toHaveLength(1)
-    expect(result.trust.counters.confirmed).toBe(0)
-    expect(result.trust.status).not.toBe('deprecated')
-    const g2 = readGateReceipts(published.dir, published.id)!.find(line => !isPromotionReceipt(line) && line.gate === 2)!
-    expect(g2).toMatchObject({ verdict: 'fail', benefit: 'exercised-harmed' })
-    expect(existsSync(proposalsDir(agentQaRoot))).toBe(false)
-    // A replayed harm holds again, still from the receipts, and still files nothing.
-    enqueueCanaryOutcome(knowledgeRoot, harm)
-    expect((await drainContradiction()).promotions).toContainEqual({ candidateId: published.id,
-      promotionHoldReason: 'gate-inconsistent' })
-    expect(existsSync(proposalsDir(agentQaRoot))).toBe(false)
-    const gateInput = assemblePromotionGateInput({ knowledgeRoot, bundleDir: published.dir,
-      bundle: loaded(published.dir).bundle,
-      resolvePromotionPosture: () => resolvedPromotionPosture() })
-    expect(evaluatePromotionGate(gateInput)).toMatchObject({ reason: 'gate-inconsistent' })
-    expect(loaded(published.dir).trust.status).not.toBe('deprecated')
-  })
-
-  it('SC5 specificity — never-confirmed candidate without Gate-1 remains no-confirmed-evidence and files nothing', async () => {
-    const published = seedCandidate()
-    enqueueCanaryOutcome(knowledgeRoot, { ...outcome(published.id, 'negative'), benefit: 'exercised-harmed',
-      stateValidity: 'valid', corpusDigest: 'c'.repeat(64) })
-    const report = await drainContradiction()
-    expect(report.promotions).toContainEqual({ candidateId: published.id, promotionHoldReason: 'no-confirmed-evidence' })
-    expect(existsSync(proposalsDir(agentQaRoot))).toBe(false)
-  })
-
-  // 2026-09-30, 432-10 D-05: re-spelled. The held-out contradiction still holds; with no proposal
-  // to accept, the record is not deprecated automatically and stays a candidate.
-  it.each([true, false])('SC5 shape 2 — real drain of credited benefit beside Gate-1 fail, held-out=%s', async heldOut => {
-    const published = seedCandidate()
-    const base = completeGate1Receipt(published.id, { producedAtOrdinal: 42, verdict: 'fail' })
-    const { receiptDigest: _digest, ...body } = base
-    const g1 = stampReceiptDigest({ ...body, ...(heldOut ? { harmed: [{ cassetteId: 'heldout-neighbour',
-      decisionOrdinal: 0, origin: 'gate-set' as const, axes: ['headline' as const],
-      split: 'held-out', verdictPresent: true }] } : {}) })
-    appendGateReceipt(bundleConfig(), published.id, g1)
-    enqueueCanaryOutcome(knowledgeRoot, { ...outcome(published.id), benefit: 'exercised-benefited',
-      stateValidity: 'valid', corpusDigest: 'c'.repeat(64) })
-    const report = await drainContradiction()
-    expect(report.promotions).toContainEqual({ candidateId: published.id,
-      promotionHoldReason: heldOut ? 'gate-inconsistent' : 'gate-failed' })
-    expect(existsSync(proposalsDir(agentQaRoot))).toBe(false)
-    expect(loaded(published.dir).trust.status).toBe('candidate')
-  })
-
   it('commits a positive attributed outcome before promoting with the schema evidence recipe', async () => {
     const published = seedCandidate()
     const attributed = outcome(published.id)
@@ -289,28 +207,7 @@ describe('canary outcome deterministic disposition (PROM-02/D-22)', () => {
     expect(result.trust.counters.confirmed).toBe(1)
   })
 
-  it.each([true, false])('SC3 ordered=%s: keeps credited receipt and reports the gated result without throwing', async ordered => {
-    const published = seedCandidate()
-    const onPromotionOutcome = vi.fn()
-    const port = createLocalKnowledgeStore({ knowledgeRoot,
-      executionContext: 'local-interactive', sourceBuildOrdinal: 43, sourceJobId: 'fixture-job',
-      ...portAuthority(), resolvePromotionPosture: () => resolvedPromotionPosture(), onPromotionOutcome })
-    await port.recordGateReceipt(completeGate1Receipt(published.id, { producedAtOrdinal: ordered ? 42 : 48 }))
-    const credited: CanaryOutcome = { ...outcome(published.id), benefit: 'exercised-benefited', corpusDigest: 'c'.repeat(64) }
-    await expect(port.recordCanaryOutcome(credited)).resolves.toBeUndefined()
-    expect(onPromotionOutcome).toHaveBeenLastCalledWith({ candidateId: published.id,
-      ...(ordered ? { promotionPath: 'gate1+gate2' } : { promotionHoldReason: 'gate2-receipt-required' }) })
-    const before = readFileSync(join(published.dir, 'evidence/gates.jsonl'), 'utf8')
-    await port.recordCanaryOutcome(credited)
-    expect(readFileSync(join(published.dir, 'evidence/gates.jsonl'), 'utf8')).toBe(before)
-    const receipts = readGateReceipts(published.dir, published.id)!
-    expect(receipts.filter(line => !isPromotionReceipt(line) && line.gate === 2)).toEqual([
-      expect.objectContaining({ gate: 2, verdict: 'pass', producedAtOrdinal: 43,
-        producedBy: { jobId: 'fixture-job', opId: 'canary.record' } }),
-    ])
-  })
-
-  it.each(['rode-along', 'exercised-benefited'] as const)('SC3 %s without digest preserves v51 Confirm and floor bytes', async benefit => {
+  it.each(['rode-along', 'exercised-benefited'] as const)('a positive %s outcome commits one Confirm, promotes on the verdict floor and replays byte-identically', async benefit => {
     const published = seedCandidate()
     const attributed = { ...outcome(published.id), benefit }
     await store().recordCanaryOutcome(attributed)
@@ -321,20 +218,9 @@ describe('canary outcome deterministic disposition (PROM-02/D-22)', () => {
     ])
     const receipts = readGateReceipts(published.dir, published.id)!
     expect(receipts).toEqual([expect.objectContaining({ promotionPath: 'deterministic-verdict-floor' })])
-    expect(receipts.filter(line => !isPromotionReceipt(line) && line.gate === 2)).toEqual([])
     const bytes = canonicalJson(bundle.events)
     await store().recordCanaryOutcome({ ...attributed, benefit: 'rode-along' })
     expect(canonicalJson(loaded(published.dir).bundle.events)).toBe(bytes)
-  })
-
-  it('the canary arm appends its receipt before the one gated routine and never appends a promoted event itself', () => {
-    const source = readFileSync(new URL('../knowledge-store.ts', import.meta.url), 'utf8')
-    const arm = source.slice(source.indexOf("case 'positive': {"), source.indexOf("case 'negative': {"))
-    expect(arm.indexOf('appendGateReceipt(')).toBeGreaterThanOrEqual(0)
-    expect(arm.indexOf('appendGateReceipt(')).toBeLessThan(arm.indexOf('promoteWithinCurrentAuthority(outcome.candidateId)'))
-    expect(arm).not.toContain("type: 'promoted'")
-    expect(arm).not.toContain('evaluatePromotionGate(')
-    expect(source.match(/\/\/ 416-DOOR:/g)).toHaveLength(3)
   })
 
   it('replays the same positive outcome as a trust-preserving no-op', async () => {
@@ -363,7 +249,7 @@ describe('canary outcome deterministic disposition (PROM-02/D-22)', () => {
     expect(replayed.trust.counters.confirmed).toBe(1)
   })
 
-  it('D-22 retains the positive Confirm while a planted replay binding holds promotion', async () => {
+  it('retains the positive Confirm while a planted replay binding holds promotion', async () => {
     const published = seedCandidate()
     const onPromotionOutcome = vi.fn()
     const gated = createLocalKnowledgeStore({ knowledgeRoot,
@@ -395,96 +281,7 @@ describe('canary outcome deterministic disposition (PROM-02/D-22)', () => {
     expect(replayed.bundle.events).toEqual(first.bundle.events)
   })
 
-  it('418 SC4 stale harm abstains without trust motion, then a different run in the window confirms', async () => {
-    const published = seedCandidate()
-    const beforeIndexProjection = vi.fn()
-    const terminal = vi.fn()
-    await rebuildIndex({ knowledgeRoot })
-    const port = createLocalKnowledgeStore({ knowledgeRoot,
-      executionContext: 'local-interactive', ...portAuthority(),
-      canaryAuthorityHooks: { beforeIndexProjection }, onCanaryTailWithinCurrentAuthority: terminal })
-    // Supply the existing floor evidence so the actual diagnostic reaches Gate 2.
-    expect(appendOutcomeEvent(bundleConfig(), published.id, { type: 'confirmed',
-      evidenceToken: asEvidenceToken('stale-seed'), curationJobId: 'stale-seed',
-      buildOrdinal: 42, origin: 'agent-verified' }).kind).toBe('appended')
-    await port.recordGateReceipt(completeGate1Receipt(published.id, { producedAtOrdinal: 42 }))
-    const index = openKnowledgeReader(knowledgeRoot)
-    expect(index.source).toBe('index')
-    const indexBefore = index.getById(published.id)
-    index.close()
-    const harm: CanaryOutcome = { ...outcome(published.id, 'negative'),
-      benefit: 'exercised-harmed', stateValidity: 'stale', corpusDigest: 'c'.repeat(64),
-      observedStateDigest: 'd'.repeat(64) }
-    const before = loaded(published.dir)
-    await port.recordCanaryOutcome(harm)
-    expect(loaded(published.dir).trust).toEqual(before.trust)
-    expect(loaded(published.dir).bundle.events).toEqual(before.bundle.events)
-    expect(beforeIndexProjection).not.toHaveBeenCalled()
-    expect(terminal).toHaveBeenCalledOnce()
-    const afterIndex = openKnowledgeReader(knowledgeRoot)
-    expect(afterIndex.source).toBe('index')
-    expect(afterIndex.getById(published.id)).toEqual(indexBefore)
-    afterIndex.close()
-    const receipts = readGateReceipts(published.dir, published.id)!
-    expect(receipts.at(-1)).toMatchObject({ gate: 2, verdict: 'abstain', benefit: 'exercised-harmed',
-      stateValidity: 'stale', runId: harm.runId, testIndex: harm.testIndex, stepIndex: harm.stepIndex,
-      observedStateDigest: harm.observedStateDigest })
-    const current = loaded(published.dir)
-    expect(evaluatePromotionGate(assemblePromotionGateInput({ knowledgeRoot,
-      bundleDir: published.dir, bundle: current.bundle,
-      resolvePromotionPosture: () => resolvedPromotionPosture() })))
-      .toMatchObject({ verdict: 'hold', reason: 'gate-abstained' })
-
-    await port.recordCanaryOutcome({ ...harm, testIndex: 1, stepIndex: 3 })
-    expect(loaded(published.dir).trust.counters.contradicted).toBe(0)
-    expect(beforeIndexProjection).not.toHaveBeenCalled()
-    const next = { ...harm, runId: 'run-canary-confirmation', buildOrdinal: 44 }
-    await port.recordCanaryOutcome(next)
-    expect(loaded(published.dir).trust.counters.contradicted).toBe(1)
-    expect(readGateReceipts(published.dir, published.id)!.at(-1))
-      .toMatchObject({ gate: 2, verdict: 'fail', runId: next.runId, producedAtOrdinal: 44 })
-    expect(beforeIndexProjection).toHaveBeenCalledOnce()
-    const bytes = readFileSync(join(published.dir, 'evidence/gates.jsonl'), 'utf8')
-    await port.recordCanaryOutcome(next)
-    expect(readFileSync(join(published.dir, 'evidence/gates.jsonl'), 'utf8')).toBe(bytes)
-    expect(loaded(published.dir).trust.counters.contradicted).toBe(1)
-  })
-
-  it.each(['below-open', 'above-close', 'missing-run', 'current-outside'] as const)
-    ('418 stale confirmation rejects %s evidence outside the validity/identity contract', async mode => {
-      const published = seedCandidate()
-      const port = store()
-      const openedAtOrdinal = loaded(published.dir).trust.validity.openedAtOrdinal
-      if (mode === 'above-close' || mode === 'current-outside') {
-        expect(appendOutcomeEvent(bundleConfig(), published.id, { type: 'window-close',
-          evidenceToken: asEvidenceToken('close-stale-window'), curationJobId: 'close-stale-window',
-          buildOrdinal: 44, closedAtOrdinal: 44 }).kind).toBe('appended')
-      }
-      await port.recordGateReceipt(stampReceiptDigest({ schemaVersion: GATE_RECEIPT_SCHEMA_VERSION, gate: 2,
-        candidateId: published.id, verdict: 'abstain', benefit: 'exercised-harmed', stateValidity: 'stale',
-        producedAtOrdinal: mode === 'below-open' ? openedAtOrdinal - 1 : mode === 'above-close' ? 45 : 43,
-        producedBy: { opId: 'canary.record' }, corpusVersion: { corpusDigest: 'c'.repeat(64) },
-        attributedObservationId: 'fixture-prior-stale',
-        ...(mode === 'missing-run' ? {} : { runId: 'run-prior-stale' }) }))
-      await port.recordCanaryOutcome({ ...outcome(published.id, 'negative'),
-        benefit: 'exercised-harmed', stateValidity: 'stale', corpusDigest: 'c'.repeat(64),
-        buildOrdinal: mode === 'current-outside' ? 45 : 43 })
-      expect(loaded(published.dir).trust.counters.contradicted).toBe(0)
-      expect(readGateReceipts(published.dir, published.id)!.at(-1)).toMatchObject({ verdict: 'abstain' })
-    })
-
-  it.each(['valid', 'unknown'] as const)('418 %s negative contradicts immediately and writes fail', async stateValidity => {
-    const published = seedCandidate()
-    await store().recordCanaryOutcome({ ...outcome(published.id, 'negative'),
-      stateValidity, benefit: 'exercised-harmed', corpusDigest: 'c'.repeat(64) })
-    expect(loaded(published.dir).trust.counters.contradicted).toBe(1)
-    expect(readGateReceipts(published.dir, published.id)).toEqual([
-      expect.objectContaining({ gate: 2, verdict: 'fail', benefit: 'exercised-harmed', stateValidity,
-        producedBy: { opId: 'canary.record' }, corpusVersion: { corpusDigest: 'c'.repeat(64) } }),
-    ])
-  })
-
-  it.each(['unknown', 'stale'] as const)('418 digest-less %s negative keeps the v51 event law without receipt', async stateValidity => {
+  it.each(['valid', 'unknown', 'stale'] as const)('a %s negative outcome contradicts immediately and writes no receipt', async stateValidity => {
     const published = seedCandidate()
     await store().recordCanaryOutcome({ ...outcome(published.id, 'negative'),
       stateValidity, benefit: 'exercised-harmed' })

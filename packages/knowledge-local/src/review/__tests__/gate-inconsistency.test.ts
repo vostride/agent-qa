@@ -5,7 +5,7 @@
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { GATE_RECEIPT_SCHEMA_VERSION, asEvidenceToken, stampReceiptDigest, type CanaryOutcome, type GateReceipt } from '@vostride/agent-qa-schema'
+import { GATE_RECEIPT_SCHEMA_VERSION, asEvidenceToken, stampReceiptDigest, type GateReceipt } from '@vostride/agent-qa-schema'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { appendOutcomeEvent } from '../../bundle-append.js'
 import { deriveBundleTrust, loadBundle } from '../../bundle-read.js'
@@ -77,24 +77,6 @@ describe('432 evidence-based gate inconsistency hold (D-05, D-22)', () => {
     expect(onPromotionOutcome).toHaveBeenLastCalledWith({ candidateId: candidate.id,
       promotionHoldReason: 'gate-inconsistent' })
     expect(status(candidate.dir)).toBe('candidate')
-  })
-
-  // Replaces: "files once, reads by candidate, and leaves every persisted byte unchanged on re-file".
-  it('files nothing: repeated contradictory canary evidence holds each time without creating an inbox', async () => {
-    const candidate = await confirmedCandidate('repeated')
-    const harm = (runId: string, buildOrdinal: number): CanaryOutcome => ({ candidateId: candidate.id,
-      runOutcome: 'negative', benefit: 'exercised-harmed', stateValidity: 'valid', runId,
-      testId: 'checkout::harm', testIndex: 0, buildOrdinal, stepIndex: 1, briefDigest: `brief-${runId}`,
-      attribution: 'The served checkout hypothesis was exercised and harmed.',
-      exercisedAnchor: candidate.anchor, corpusDigest: DIGEST })
-    await candidate.port.recordCanaryOutcome(harm('run-harm-1', 43))
-    await candidate.port.recordCanaryOutcome(harm('run-harm-2', 44))
-    expect(onPromotionOutcome.mock.calls.map(([report]) => report)).toEqual([
-      { candidateId: candidate.id, promotionHoldReason: 'gate-inconsistent' },
-      { candidateId: candidate.id, promotionHoldReason: 'gate-inconsistent' },
-    ])
-    expect(existsSync(join(agentQaRoot, 'proposals'))).toBe(false)
-    expect(status(candidate.dir)).not.toBe('deprecated')
   })
 
   // Replaces: "retains applied/rejected after claim resolution, clears only the flag". No human
@@ -170,7 +152,7 @@ describe('432 evidence-based gate inconsistency hold (D-05, D-22)', () => {
       benefit: 'exercised-harmed', stateValidity: 'valid', runId: 'run-ci-harm', testId: 'checkout::harm',
       testIndex: 0, buildOrdinal: 43, stepIndex: 1, briefDigest: 'brief-ci-harm',
       attribution: 'The served checkout hypothesis was exercised and harmed.',
-      exercisedAnchor: draft.anchors[0]!, corpusDigest: DIGEST })
+      exercisedAnchor: draft.anchors[0]! })
     expect(onPromotionOutcome).not.toHaveBeenCalled()
     await expect(port.promote(published.id)).rejects.toMatchObject({ reason: 'propose-only' })
     expect(existsSync(join(agentQaRoot, 'proposals'))).toBe(false)

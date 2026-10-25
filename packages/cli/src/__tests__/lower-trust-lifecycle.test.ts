@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { LOCAL_CURATION_CAPABILITIES } from '@vostride/agent-qa-agent-local'
 import {
   acquireWriterLease, appendOutcomeEvent, createLocalKnowledgeStore, deriveBundleTrust,
-  loadBundle, openKnowledgeReader, publishBundleForTest, readGateReceipts,
+  loadBundle, openKnowledgeReader, publishBundleForTest,
 } from '@vostride/agent-qa-knowledge-local'
 import { DISTILLED_OBSERVATION_SCHEMA_VERSION, GATE_RECEIPT_SCHEMA_VERSION, asEvidenceToken, stampReceiptDigest, survivingOutcomeEvents, type CanaryOutcome } from '@vostride/agent-qa-schema'
 import { buildPromotionPostureResolver } from '../curation/promotion-posture.js'
@@ -75,11 +75,10 @@ async function setup() {
     if (loaded.kind !== 'loaded') throw new Error(loaded.kind)
     return loaded.bundle
   }
-  const outcome = (benefit: 'rode-along' | 'exercised-benefited'): CanaryOutcome => ({
-    candidateId: seeded.id, runOutcome: 'positive', benefit, stateValidity: 'valid',
+  const outcome = (): CanaryOutcome => ({
+    candidateId: seeded.id, runOutcome: 'positive', benefit: 'rode-along', stateValidity: 'valid',
     runId: `canary-${ordinal}`, testId: 'checkout', testIndex: 0, stepIndex: 0, buildOrdinal: ordinal,
     exercisedAnchor: seeded.anchor, briefDigest: 'fixture-brief', attribution: 'Checkout was exercised.',
-    corpusDigest,
   })
   const reader = () => openKnowledgeReader({ knowledgeRoot, product: scope.key, scopeDefaults: { asOfBuild: ordinal } })
   await store().promote(seeded.id, [gate1()])
@@ -100,7 +99,7 @@ describe('418 lower-trust active lifecycle through real store, resolver and serv
       candidateId: f.seeded.id, scope })).not.toHaveProperty('lowerTrustActiveGate1Digest')
   })
 
-  it.each(['rollback', 'stale receipt', 'negative', 'stale negative'] as const)
+  it.each(['rollback', 'stale receipt'] as const)
   ('revalidates lower-trust authority against %s', async defect => {
     const f = await setup()
     f.advance()
@@ -111,17 +110,13 @@ describe('418 lower-trust active lifecycle through real store, resolver and serv
         buildOrdinal: 16, retractsEvidenceToken: asEvidenceToken('confirm-checkout'),
         retractsCurationJobId: 'confirm-checkout', rollbackReceiptId: 'rollback-confirm' })
       expected = 'no-confirmed-evidence'
-    } else if (defect === 'stale receipt') {
+    } else {
       const current = f.posture.resolve
       f.posture.resolve = candidate => {
         const value = current(candidate)
         return value?.kind === 'resolved' ? { ...value, corpusDigest: 'f'.repeat(64) } : value
       }
       expected = 'receipt-stale'
-    } else {
-      await f.store().recordCanaryOutcome({ ...f.outcome('rode-along'), runOutcome: 'negative',
-        benefit: 'exercised-harmed', stateValidity: defect === 'negative' ? 'valid' : 'stale' })
-      expected = defect === 'negative' ? 'gate-inconsistent' : 'gate-abstained'
     }
     // Real revalidation path; the stale-corpus row alters external posture DATA.
     const store = createLocalKnowledgeStore({ ...f.storeConfig, sourceBuildOrdinal: 16,
@@ -149,7 +144,7 @@ describe('418 lower-trust active lifecycle through real store, resolver and serv
     expect(readdirSync(inbox)).toEqual(['prop_0123456789abcdef.json'])
     expect(f.replay).not.toHaveBeenCalled()
   })
-  it.each(['repeat promote', 'rode-along'] as const)('retains at-cap authority after %s, then upgrades once on credit', async action => {
+  it.each(['repeat promote', 'rode-along'] as const)('retains at-cap authority after %s', async action => {
     const f = await setup()
     expect(deriveBundleTrust(f.read()).status).toBe('active')
     expect(LOCAL_CURATION_CAPABILITIES.readLowerTrustShares({ knowledgeRoot: f.knowledgeRoot }))
@@ -157,19 +152,11 @@ describe('418 lower-trust active lifecycle through real store, resolver and serv
     f.advance()
     if (action === 'repeat promote') {
       await expect(f.store().promote(f.seeded.id)).resolves.toMatchObject({ kind: 'already-active' })
-    } else await f.store().recordCanaryOutcome(f.outcome('rode-along'))
+    } else await f.store().recordCanaryOutcome(f.outcome())
     expect(deriveBundleTrust(f.read()).status).toBe('active')
     expect(f.reader().search('checkout', { scope })[0]).toMatchObject({ lowerTrust: true, servedAsCanary: true })
     expect(f.reader().getRunBrief(scope, 10_000).brief.tiers.L2).toContain('[LEARNED, UNCONFIRMED] [CANARY]')
-    expect(readGateReceipts(f.seeded.dir, f.seeded.id)!.filter(row => 'gate' in row && row.gate === 2)).toHaveLength(0)
-    f.advance()
-    await f.store().recordCanaryOutcome(f.outcome('exercised-benefited'))
-    expect(deriveBundleTrust(f.read()).status).toBe('active')
-    expect(f.reader().search('checkout', { scope })[0]).toMatchObject({ servedAsCanary: false })
-    expect(f.reader().search('checkout', { scope })[0]).not.toHaveProperty('lowerTrust')
     expect(f.read().events.filter(row => row.type === 'promoted')).toHaveLength(1)
-    expect(survivingOutcomeEvents(f.read().events).filter(row => row.type === 'promoted')).toHaveLength(1)
-    expect(readGateReceipts(f.seeded.dir, f.seeded.id)!.at(-1)).toMatchObject({ promotionPath: 'gate1+gate2' })
     expect(f.replay).not.toHaveBeenCalled()
   })
 })

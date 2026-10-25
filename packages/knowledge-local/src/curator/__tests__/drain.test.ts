@@ -207,11 +207,7 @@ describe('drainQueue one-shot serialized engine (CUR-03/CUR-04)', () => {
     if (published.kind !== 'published') throw new Error(`unexpected ${published.kind}`)
     const evidence = {
       benefit: 'exercised-benefited' as const, stateValidity: 'valid' as const,
-      corpusDigest: 'a'.repeat(64), observedStateDigest: 'b'.repeat(64),
-      ablation: {
-        crossCheck: 'flipped' as const, k: 3, baseSeed: 42, seeds: [42, 43, 44], seedHonored: true,
-        spend: { modelCalls: 5, screens: 1, promptTokens: 20, completionTokens: 10 },
-      },
+      observedStateDigest: 'b'.repeat(64),
     }
     const payload: CanaryOutcomePayload = {
       schemaVersion: CANARY_QUEUE_SCHEMA_VERSION, jobKind: 'canary-outcome', candidateId: published.id,

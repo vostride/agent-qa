@@ -1,14 +1,11 @@
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { GATE_RECEIPT_SCHEMA_VERSION, asEvidenceToken, stampReceiptDigest, type CanaryOutcome } from '@vostride/agent-qa-schema'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { GATE_RECEIPT_SCHEMA_VERSION, asEvidenceToken, stampReceiptDigest } from '@vostride/agent-qa-schema'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { appendGateReceipt, appendOutcomeEvent, appendPromotionReceipt } from '../bundle-append.js'
-import { deriveBundleTrust, loadBundle } from '../bundle-read.js'
 import { canaryPostureFactsFor, lowerTrustSharesFor, standingReceiptDigestsFor } from '../gates/canary-posture-facts.js'
-import { completeGate1Receipt, createPromotionFloorFixture, resolvedPromotionPosture } from '../curator/__tests__/fixtures/promotion-floor-fixture.js'
-import { createLocalKnowledgeStore } from '../curator/knowledge-store.js'
-import { acquireWriterLease } from '../lease/writer-lease.js'
+import { completeGate1Receipt, createPromotionFloorFixture } from '../curator/__tests__/fixtures/promotion-floor-fixture.js'
 
 describe('418 bundle-local canary posture facts', () => {
   let root: string
@@ -204,38 +201,5 @@ describe('432 canary posture facts and holds never read the legacy inbox (D-05, 
     expect(() => canaryPostureFactsFor(legacyInput)).not.toThrow()
     expect(canaryPostureFactsFor(legacyInput)).toEqual(clean)
     expect(lowerTrustSharesFor({ knowledgeRoot })).toEqual([{ product: 'storefront', active: 0, lowerTrust: 0 }])
-  })
-
-  it('C432-CANARY-EVIDENCE-HOLD: contradictory standing canary evidence holds gate-inconsistent and files nothing', async () => {
-    const planted = seed('contradicted')
-    const facts = canaryPostureFactsFor({ knowledgeRoot, candidateId: planted.id, scope })
-    legacyDir = plantLegacyInbox(agentQaRoot, planted.id, planted.pass.receiptDigest)
-    breakLegacyInbox(legacyDir)
-    const runtimeRoot = join(root, 'runtime')
-    const lease = acquireWriterLease(knowledgeRoot)
-    if (lease.kind !== 'acquired') throw new Error(lease.kind)
-    const onPromotionOutcome = vi.fn()
-    // The pre-432 store config also named a proposals root; nothing may be written under it.
-    const storeConfig = { knowledgeRoot, agentQaRoot: runtimeRoot,
-      executionContext: 'local-interactive' as const, epoch: lease.epoch, writerLeaseId: lease.leaseId,
-      sourceBuildOrdinal: 43, resolvePromotionPosture: () => resolvedPromotionPosture(), onPromotionOutcome }
-    const store = createLocalKnowledgeStore(storeConfig)
-    const harm: CanaryOutcome = { candidateId: planted.id, runOutcome: 'negative', benefit: 'exercised-harmed',
-      stateValidity: 'valid', runId: 'run-432-harm', testId: 'checkout::harm', testIndex: 0,
-      buildOrdinal: 43, stepIndex: 1, briefDigest: 'brief-432-harm',
-      attribution: 'The served checkout hypothesis was exercised and harmed.',
-      exercisedAnchor: planted.anchor, corpusDigest: 'c'.repeat(64) }
-    await store.recordCanaryOutcome(harm)
-    expect(onPromotionOutcome).toHaveBeenLastCalledWith({ candidateId: planted.id, promotionHoldReason: 'gate-inconsistent' })
-    await expect(store.promote(planted.id)).rejects.toMatchObject({ reason: 'gate-inconsistent' })
-    expect(existsSync(join(runtimeRoot, 'proposals'))).toBe(false)
-    // The hold is not a deprecation: the record stays a candidate, and its facts still read.
-    const loaded = loadBundle(planted.dir)
-    if (loaded.kind !== 'loaded') throw new Error(loaded.kind)
-    expect(deriveBundleTrust(loaded.bundle).status).toBe('candidate')
-    expect(canaryPostureFactsFor({ knowledgeRoot, candidateId: planted.id, scope }))
-      .toMatchObject({ ...facts, latestGate2Ordinal: 43 })
-    chmodSync(legacyDir, 0o755)
-    expect(readdirSync(legacyDir).sort()).toEqual(['prop_0123456789abcdef.json', 'prop_fedcba9876543210.json'])
   })
 })

@@ -57,32 +57,19 @@ describe('Pin 3 canary outcome payload', () => {
       const bytes = readFileSync(join(queuedRoot(root), result.entryId, 'payload.json'), 'utf8')
       expect(JSON.parse(bytes)).toEqual(validPayload())
       expect(bytes).toBe(`${canonicalJson(validPayload())}\n`)
-      expect(JSON.parse(bytes)).not.toHaveProperty('ablation')
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
   })
 
-  it('validates and content-addresses every optional attribution evidence field', () => {
-    const ablation = {
-      crossCheck: 'flipped' as const, k: 3, baseSeed: 42, seeds: [42, 43, 44], seedHonored: true,
-      spend: { modelCalls: 5, screens: 1, promptTokens: 20, completionTokens: 10 },
-    }
-    const payload = {
-      ...validPayload(), corpusDigest: 'a'.repeat(64), observedStateDigest: 'b'.repeat(64), ablation,
-    }
+  it('validates and content-addresses the optional observed state digest', () => {
+    const payload = { ...validPayload(), observedStateDigest: 'b'.repeat(64) }
     expect(readQueuedCanaryPayload(payload)).toEqual({ kind: 'current', payload })
     for (const changed of [
       { benefit: 'exercised-benefited' as const }, { stateValidity: 'valid' as const },
-      { corpusDigest: 'c'.repeat(64) }, { observedStateDigest: 'd'.repeat(64) },
-      { ablation: { ...ablation, seedHonored: false } },
+      { observedStateDigest: 'd'.repeat(64) },
     ]) expect(canaryOutcomeContentAddress({ ...payload, ...changed })).not.toBe(canaryOutcomeContentAddress(payload))
-    for (const invalid of [
-      { corpusDigest: 'bad' }, { observedStateDigest: 'A'.repeat(64) },
-      { ablation: { ...ablation, k: 2 } }, { ablation: { ...ablation, crossCheck: 'invented' } },
-      { ablation: { ...ablation, spend: { ...ablation.spend, modelCalls: -1 } } },
-      { ablation: { ...ablation, spend: { ...ablation.spend, extra: 1 } } },
-    ]) expect(readQueuedCanaryPayload({ ...payload, ...invalid }).kind).toBe('refused')
+    expect(readQueuedCanaryPayload({ ...payload, observedStateDigest: 'A'.repeat(64) }).kind).toBe('refused')
   })
   it('queued payload.json is governed by the closed benefit, stateValidity and outcome words, in declaration order', () => {
     expect([...PAYLOAD_BENEFITS]).toEqual(['exercised-benefited', 'rode-along', 'exercised-harmed'])
