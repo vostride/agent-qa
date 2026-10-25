@@ -41,12 +41,11 @@ function entry(overrides: Partial<OriginStampedEntry> = {}): OriginStampedEntry 
   }
 }
 
-describe('brief line rendering (BRIF-01 / D-03)', () => {
+describe('brief line rendering', () => {
   it('renders every typed serving annotation in one line', () => {
     const rendered = renderBriefLine(entry({
       unconfirmedSinceOrdinal: 17,
       unverified: true,
-      lowerTrust: true,
       servedAs: 'prior-build-hypothesis',
       conflict: {
         peerRecordId: asRecordId('fact-peer'),
@@ -62,7 +61,6 @@ describe('brief line rendering (BRIF-01 / D-03)', () => {
     expect(rendered).toContain('fact-peer')
     expect(rendered).toContain('unknown-conflict')
     expect(rendered).toContain('CANARY')
-    expect(rendered).toContain('[LEARNED, UNCONFIRMED] [CANARY]')
   })
 
   it('keeps 140 UTF-16 code units whole and truncates 141 to the pinned boundary', () => {

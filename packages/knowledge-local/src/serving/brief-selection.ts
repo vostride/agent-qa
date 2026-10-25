@@ -229,7 +229,6 @@ function rankedCandidate(
       ? {}
       : { unconfirmedSinceOrdinal: candidate.record.unconfirmedSinceOrdinal }),
     ...(candidate.record.unverified === true ? { unverified: true } : {}),
-    ...(candidate.record.lowerTrust === true ? { lowerTrust: true as const } : {}),
     ...(candidate.record.conflict === undefined ? {} : { conflict: candidate.record.conflict }),
   }
 }

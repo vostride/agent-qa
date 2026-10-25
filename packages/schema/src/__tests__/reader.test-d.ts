@@ -18,7 +18,6 @@ import type {
   ServingRecordMetadata,
 } from '../reader/index'
 
-// 2026-09-07, 418 D-15: both the structural and keyof pins carry the lower-trust marker.
 expectTypeOf<IndexEntry>().toEqualTypeOf<{
   id: RecordId
   kind: string
@@ -32,7 +31,6 @@ expectTypeOf<IndexEntry>().toEqualTypeOf<{
   servedAs?: 'current' | 'prior-build-hypothesis'
   unconfirmedSinceOrdinal?: number
   unverified?: boolean
-  lowerTrust?: true
   conflict?: { peerRecordId: RecordId; unknownRecordId: RecordId }
   audit?: { status: string; openedAtOrdinal: number; closedAtOrdinal: number | null }
   scope: ScopeKey
@@ -52,7 +50,6 @@ expectTypeOf<keyof IndexEntry>().toEqualTypeOf<
   | 'servedAs'
   | 'unconfirmedSinceOrdinal'
   | 'unverified'
-  | 'lowerTrust'
   | 'conflict'
   | 'audit'
   | 'scope'

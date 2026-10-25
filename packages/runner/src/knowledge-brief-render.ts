@@ -35,8 +35,6 @@ function renderAnnotations(entry: IndexEntry): string[] {
       `CONFLICT peer ${entry.conflict.peerRecordId}; unknown ${entry.conflict.unknownRecordId}`,
     )
   }
-  // 2026-09-08, 418 D-15: passed offline gate, no attributed live benefit yet.
-  if (entry.lowerTrust === true) annotations.push('LEARNED, UNCONFIRMED')
   if (entry.servedAsCanary) annotations.push('CANARY')
 
   return annotations

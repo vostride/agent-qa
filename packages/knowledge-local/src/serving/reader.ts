@@ -10,7 +10,6 @@ import {
   isVettedCandidate,
   normalizeAnchor,
   slugBranch,
-  strongestPromotionPath,
   type Anchor,
   type CanaryOutcome,
   type CautionBlock,
@@ -27,7 +26,6 @@ import {
 import {
   deriveBundleTrust,
   loadBundle,
-  readGateReceipts,
   readMeasurements,
   verifyBundleIntegrity,
   type LoadedBundle,
@@ -203,9 +201,6 @@ export function hydrateRows(
         priors: config.priors,
       }),
     )
-    // 2026-09-08, 418 D-15/D-16: offline-only actives keep attracting live credit.
-    const lowerTrust = trust.status === 'active'
-      && strongestPromotionPath(readGateReceipts(found.dir, bundle.manifest.id) ?? []) === 'gate1-lower-trust'
     const entry: OriginStampedEntry = {
       id: asRecordId(bundle.manifest.id),
       kind: bundle.frontmatter.kind,
@@ -217,8 +212,7 @@ export function hydrateRows(
       trust: trust.trust,
       anchors: bundle.frontmatter.anchors.map(({ normalized }) => normalized),
       status: trust.status,
-      servedAsCanary: vetted || lowerTrust,
-      ...(lowerTrust ? { lowerTrust: true as const } : {}),
+      servedAsCanary: vetted,
       ...(vetted ? { unverified: true } : {}),
       ...(audit
         ? {

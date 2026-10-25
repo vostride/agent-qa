@@ -24,12 +24,6 @@ export interface IndexEntry {
   unconfirmedSinceOrdinal?: number
   /** 379 D-20 vetted candidate served at discounted trust through the always-on sub-cap. */
   unverified?: boolean
-  /**
-   * 2026-09-07, 418 D-15: present iff the strongest promotion path is `gate1-lower-trust`.
-   * Serving multiplies trust by LOWER_TRUST_PATH_DISCOUNT and frames the brief as learned,
-   * unconfirmed. Only the literal marker is meaningful; absence denotes an ordinary entry.
-   */
-  lowerTrust?: true
   /** D-16 active-conflict annotation linking the surviving peer and minted unknown record. */
   conflict?: { peerRecordId: RecordId; unknownRecordId: RecordId }
   /** D-15 audit-read state; absent from ordinary serving-path reads. */

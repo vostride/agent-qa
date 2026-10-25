@@ -1,7 +1,6 @@
 import {
   asEvidenceToken,
   COLD_START_TRUST_DISCOUNT,
-  LOWER_TRUST_PATH_DISCOUNT,
   type Anchor,
   type VettedCandidateInput,
 } from '@vostride/agent-qa-schema'
@@ -56,17 +55,7 @@ function entry(
   }
 }
 
-describe('read-side lifecycle trust treatments (379 D-05/D-06/D-20)', () => {
-  it('discounts lower-trust actives exactly once and preserves their distinct marker', () => {
-    const [lower, ordinary] = applyLifecycleTrustTreatments([
-      entry('lower', { trust: 0.8, lastConfirmedOrdinal: 16, lowerTrust: true }),
-      entry('ordinary', { trust: 0.8, lastConfirmedOrdinal: 16 }),
-    ], 16)
-    expect(lower).toMatchObject({ trust: 0.8 * LOWER_TRUST_PATH_DISCOUNT, lowerTrust: true })
-    expect(lower).not.toHaveProperty('unverified')
-    expect(ordinary).toMatchObject({ trust: 0.8 })
-    expect(ordinary).not.toHaveProperty('lowerTrust')
-  })
+describe('read-side lifecycle trust treatments', () => {
   it('dampens a durable fact at the exact window without crossing the validity wall', () => {
     const asOfBuild = 15
     const treated = applyLifecycleTrustTreatments([
