@@ -299,9 +299,6 @@ export async function recoverPendingPostVerdictContinuations(input: RecoverPendi
       let handoff: PostVerdictHandoff | undefined
       // The operation runs to its end even if the caller's deadline expires.
       const completion = (async () => {
-        const { resolveEvalSession } = await import('../eval-session-composition.js')
-        // A config or secrets file the eval session cannot read refuses before any producer starts.
-        await resolveEvalSession({ configPath: input.configPath })
         // Expired discovery must not start a new producer after its caller returned.
         if (Date.now() >= input.deadlineMs || input.signal?.aborted) return
         const { createPostVerdictStep } = await import('./post-verdict-step.js')

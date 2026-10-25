@@ -25,7 +25,6 @@ import { Command } from 'commander'
 import { createRunCommand } from '../../commands/run.js'
 import * as drive from '../../composition/in-process-run-execution.js'
 import * as tailComposition from '../post-run-tail-composition.js'
-import * as evalSession from '../../eval-session-composition.js'
 import { closeTestRunRecords, freshUpdateCheckHome, testRunRecord } from '../../composition/__tests__/in-process-run-fixture.js'
 
 // 2026-10-18 (444-14, D-22): the run command resolves its context from the environment, so a CI
@@ -496,7 +495,6 @@ it.each(['gateRun', 'excludedFromOutcomes'] as const)('refuses %s creation and f
   writeFileSync(f.handoffPath, JSON.stringify({ ...JSON.parse(readFileSync(f.handoffPath, 'utf8')), [marker]: true }))
   const forbidden = vi.fn(() => { throw new Error('excluded run must not acquire authority') })
   const provider = vi.spyOn(globalThis, 'fetch').mockImplementation(forbidden)
-  const resolveSession = vi.spyOn(evalSession, 'resolveEvalSession').mockImplementation(forbidden)
   const step = createPostVerdictStep({ ...f.input, detach: true, log: { warn: () => undefined },
     operations: {
       readWriterLease: forbidden, acquireWriterLease: forbidden,
@@ -516,7 +514,6 @@ it.each(['gateRun', 'excludedFromOutcomes'] as const)('refuses %s creation and f
   expect(readFileSync(f.pendingPath, 'utf8')).toBe(bytes)
   expect(existsSync(`${f.pendingPath}.owner`)).toBe(false)
   expect(f.enqueue).not.toHaveBeenCalled()
-  expect(resolveSession).not.toHaveBeenCalled()
   expect(provider).not.toHaveBeenCalled()
   expect(forbidden).not.toHaveBeenCalled()
 })
@@ -595,6 +592,17 @@ it('terminal drain discovers recorded pending work before an unrelated empty FIF
     expect(rows.filter((row) => row.kind === 'analyze-run' && row.idempotencyKey === f.input.runId)).toHaveLength(1)
     expect(existsSync(f.pendingPath)).toBe(false)
   } finally { await host.close() }
+})
+
+it('recovery enqueues a pending intent whose workspace has no declared secrets file, as the hand-off does', async () => {
+  const f = continuationFixture()
+  await expect(f.own({ queued: async () => { throw new Error('interrupted before enqueue') } })).rejects.toThrow()
+  rmSync(join(f.input.project, '.env.secrets.local'))
+  const result = await recoverPendingPostVerdictContinuations({ ...f.input,
+    deadlineMs: Date.now() + DRAIN_BUDGET_MS, log: { warn: () => undefined } })
+  expect(result).toEqual([{ runId: f.input.runId, pending: false, enqueued: true }])
+  expect((await analyzeRunRows(f)).map((row) => row.idempotencyKey)).toEqual([f.input.runId])
+  expect(existsSync(f.pendingPath)).toBe(false)
 })
 
 it.each(['direct', 'suite'] as const)('CR-11 actual %s command keeps failed exit one when first SIGINT interrupts the real shared preparation wait', async (mode) => {
