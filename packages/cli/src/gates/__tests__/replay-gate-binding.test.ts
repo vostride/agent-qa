@@ -17,7 +17,6 @@ describe('417/418 production replay gate binding', () => {
   it.each([
     'composition/local-agent-host.ts',
     'daemon/host.ts',
-    'commands/doctor-knowledge-checks.ts',
     'curation/post-run-tail.ts',
     'commands/knowledge-maintain.ts',
   ])('binds exactly once in %s', (file) => {

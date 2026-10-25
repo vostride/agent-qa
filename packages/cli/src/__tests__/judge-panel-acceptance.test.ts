@@ -91,19 +91,12 @@ async function invoke(configPath: string, args: string[], json = true) {
 
 
 import { createEvalCommand } from '../commands/eval.js'
-import { createKnowledgeChecks } from '../commands/doctor-knowledge-checks.js'
 
-// 2026-10-02 (quick 261002-tmo): the replay, calibrate and drift cells drive whole eval commands
-// in process (n=20 is 80 stubbed judge calls, then report and doctor reads). Nothing in them waits
-// on a condition, so the budget is a hang ceiling sized from measurement: the n=19/20 cells take
-// 2.1 s alone and 16.0 s with three copies of this file at load 27-73, and two cells outran the
-// 30 s package default in 432-04's first forced gate (45 s and 35 s). 120 s is the precedent
-// label-calibration-acceptance and C432-EXPLICIT-ALL-CONTEXTS set.
+// The replay, calibrate and drift cells drive whole eval commands in process (n=20 is 80 stubbed
+// judge calls, then a report read). Nothing in them waits on a condition, so the budget is a hang
+// ceiling: under load these cells outrun the 30 s package default.
 const JUDGE_DRIVE_TIMEOUT_MS = 120_000
 
-async function doctor(configPath: string) {
-  return createKnowledgeChecks({ configPath, config: JSON.parse(readFileSync(configPath, 'utf8')) })[3].check()
-}
 it.each([false, true])('public explicit replay, score/report, floor, baseline and saved gate: singleton=%s', async singleton => {
   const f = fixture([], singleton ? ['claude-sonnet-4'] : undefined)
   const corpus = writeCommittedFloorFixture(join(f.project, 'floor-input'), (handoff: import('@vostride/agent-qa-schema').CompletedRunHandoff) => {
@@ -164,7 +157,7 @@ function stageReports(f: ReturnType<typeof fixture>, proveProfile = false) {
         scoreDigest: digest(JSON.parse(readFileSync(row.scoreFile, 'utf8'))) })) })
   }
 }
-it.each([19, 20])('public calibrate/commit/read/report/doctor copies independent fake n=%s', async n => {
+it.each([19, 20])('public calibrate/commit/read/report copies independent fake n=%s', async n => {
   const f = fixture(Array.from({ length: n }, () => ({})))
   const before = bytes(f.committedRoot)
   const output = await invoke(f.configPath, ['calibrate', '--judge-panel', '--commit', '--min-n', '20'])
@@ -184,7 +177,6 @@ it.each([19, 20])('public calibrate/commit/read/report/doctor copies independent
     expect(reported.result.report.judge.calibration.pooledAgreement).toBe(artifact.pooledAgreement)
     expect(reported.result.report.judge.calibration.wilson95).toEqual(artifact.wilson95)
   }
-  expect((await doctor(f.configPath)).message).toContain(`calibration: ${artifact.status} n=${n}`)
   expect(boundary).toMatchObject({ calls: 0, binds: 0, comparisons: 0 })
   for (const [path, content] of before) expect(readFileSync(path!).toString('hex')).toBe(content)
 }, JUDGE_DRIVE_TIMEOUT_MS)
@@ -207,11 +199,10 @@ it.each(['profile', 'gold', 'corpus'])('public saved calibration is unavailable 
   boundary.calls = boundary.binds = boundary.comparisons = 0
   const reported = await invoke(f.configPath, ['report', '--source', 'committed'])
   expect(reported.result.report.judge.calibration).toEqual({ status: 'uncalibrated', n: 0, provenance: 'unavailable' })
-  expect((await doctor(f.configPath)).message).toContain('calibration: uncalibrated n=0 (unavailable)')
   expect(readFileSync(artifactPath, 'utf8')).toBe(original)
   expect(boundary).toMatchObject({ calls: 0, binds: 0, comparisons: 0 })
 }, JUDGE_DRIVE_TIMEOUT_MS)
-it.each(['panel-not-configured', 'no-credential', 'single-family-host'])('public preview and doctor disclose zero-call %s', async reason => {
+it.each(['panel-not-configured', 'no-credential', 'single-family-host'])('public preview discloses zero-call %s', async reason => {
   const f = fixture()
   const config = JSON.parse(readFileSync(f.configPath, 'utf8'))
   if (reason === 'panel-not-configured') config.eval = {}
@@ -223,7 +214,6 @@ it.each(['panel-not-configured', 'no-credential', 'single-family-host'])('public
   expect(json.exit).toBe(0); expect(json.result).toMatchObject({ status: 'capability-gap', reason })
   const human = await invoke(f.configPath, ['calibrate', '--judge-panel'], false)
   expect(human.exit).toBe(0); expect(human.stdout).toContain(reason)
-  expect((await doctor(f.configPath)).message).toContain(`capability gap: ${reason}`)
   expect(boundary).toMatchObject({ calls: 0, binds: 0, comparisons: 0 })
   expect(bytes(f.committedRoot)).toEqual(before)
   expect(json.stdout + human.stdout).not.toContain(secret)

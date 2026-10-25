@@ -20,7 +20,6 @@ import { defaultPostRunTailOperations, runPostRunTail } from '../../curation/pos
 import { runDaemonHost } from '../../daemon/host.js'
 import type { DaemonHostOperations } from '../../daemon/host.js'
 import { registerKnowledgeMaintainCommands } from '../../commands/knowledge-maintain.js'
-import { createKnowledgeChecks } from '../../commands/doctor-knowledge-checks.js'
 
 vi.mock('@vostride/agent-qa-agent-local', async importOriginal => {
   const actual = await importOriginal<typeof import('@vostride/agent-qa-agent-local')>()
@@ -32,9 +31,6 @@ vi.mock('@vostride/agent-qa-agent-local', async importOriginal => {
 
 const { completeGate1Receipt } = await import(new URL(
   '../../../../knowledge-local/src/curator/__tests__/fixtures/promotion-floor-fixture.js', import.meta.url,
-).href)
-const { writeGate1Fixture } = await import(new URL(
-  '../../../../eval-local/src/__tests__/fixtures/gate1-fixtures.js', import.meta.url,
 ).href)
 const { makeReplayHandoff, memArtifacts, extractStoreLoad, capturingStub,
   actionGenerateResult, judgeGenerateResult } = await import(new URL(
@@ -145,14 +141,6 @@ async function exercisePort(port: ReplayGatePort) {
   expect(record).toHaveBeenCalledTimes(2)
   expect(llm.resolveModelAuth).not.toHaveBeenCalled()
   expect(globalThis.fetch).not.toHaveBeenCalled()
-}
-
-// A floor measured for another profile holds the root as unavailable; an empty root is floorless.
-function writeForeignFloor() {
-  mkdirSync(join(root, 'agent-qa-eval/reports/noise-floor'), { recursive: true })
-  writeFileSync(join(root, 'agent-qa-eval/reports/noise-floor/foreign.json'), JSON.stringify({
-    ...writeGate1Fixture(join(root, 'floor-fixture')).artefact, profileKey: 'foreign-profile',
-  }))
 }
 
 function capturePosture() {
@@ -313,48 +301,5 @@ describe('421 production panel host paths', () => {
       expect(proof.shared).toHaveBeenCalled()
       await exercisePort(proof.ports.at(-1)!)
     } finally { stop!(); await expect(running).resolves.toBe(0) }
-  })
-
-  it.each([false, true])('doctor names every ineligible family even with unavailable floor (floor: %s)', async hasFloor => {
-    writeConfig(['claude-fixture', 'gpt-judge'])
-    if (hasFloor) {
-      const identity = await session.resolveGateProfileIdentity(await session.resolveEvalSession({ configPath, keyOnly: true }))
-      mkdirSync(join(root, 'agent-qa-eval/reports/noise-floor'), { recursive: true })
-      const fixture = writeGate1Fixture(join(root, 'floor-fixture'))
-      writeFileSync(join(root, 'agent-qa-eval/reports/noise-floor/fixture.json'), JSON.stringify({
-        ...fixture.artefact, profileKey: identity.profileKey,
-      }))
-    } else {
-      writeForeignFloor()
-    }
-    const proof = capturePosture()
-    const checks = createKnowledgeChecks({ configPath, config: { knowledge: { dir: 'agent-qa-knowledge' } },
-      probes: { classifyIndexFace: () => ({ source: 'scan', reason: 'absent', detail: 'fixture', filePresent: false }),
-        resolveEmbedderCapability: async () => ({ kind: 'deferred', reason: 'load-failure' }),
-        readWriterLease: () => ({ kind: 'absent' }) } })
-    const row = await checks[3].check()
-    expect(row.message).toContain('judge ineligible (panel: claude, openai)')
-    expect(row.status).toBe(hasFloor ? 'pass' : 'fail')
-    expect(proof.shared).toHaveBeenCalledTimes(1)
-    // Doctor only composes. Exercising the captured port below is a separate fake invocation.
-    expect(llm.resolveModelAuth).not.toHaveBeenCalled()
-    writeConfig()
-    await exercisePort(proof.ports[0])
-  })
-
-  it.each([
-    { ids: ['claude-fixture', 'unrecognized-fixture'], families: 'claude, unknown' },
-    { ids: ['deepseek-r1-distill-llama', 'llama-fixture'], families: 'deepseek,llama, llama' },
-  ])('doctor keeps unknown and lineage member disclosures complete: %j', async ({ ids, families }) => {
-    writeConfig(ids)
-    writeForeignFloor()
-    const checks = createKnowledgeChecks({ configPath, config: { knowledge: { dir: 'agent-qa-knowledge' } },
-      probes: { classifyIndexFace: () => ({ source: 'scan', reason: 'absent', detail: 'fixture', filePresent: false }),
-        resolveEmbedderCapability: async () => ({ kind: 'deferred', reason: 'load-failure' }),
-        readWriterLease: () => ({ kind: 'absent' }) } })
-    expect(await checks[3].check()).toMatchObject({ status: 'fail',
-      message: expect.stringContaining(`judge ineligible (panel: ${families})`) })
-    expect(llm.resolveModelAuth).not.toHaveBeenCalled()
-    expect(globalThis.fetch).not.toHaveBeenCalled()
   })
 })

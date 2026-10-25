@@ -55,7 +55,6 @@ const priorEntrypoints = [
   'packages/cli/src/curation/post-run-tail.ts',
   'packages/cli/src/curation/trust-priors.ts',
   'packages/cli/src/daemon/host.ts',
-  'packages/cli/src/commands/doctor-knowledge-checks.ts',
   'packages/cli/src/commands/knowledge-maintain.ts',
   'packages/cli/src/commands/run.ts',
 ]
