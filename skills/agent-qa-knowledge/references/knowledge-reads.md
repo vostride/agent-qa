@@ -276,5 +276,9 @@ promotion user-sovereign @12 by promote cites 1 digest 0c9e8d7f6a5b
 standing:
 gate 1: none
 gate 3: pass @12
-promote via user-sovereign
+held: not-candidate
 ```
+
+The last line is the live verdict. Only a candidate can promote, so an active record reads
+`held: not-candidate`. A candidate reads `promote via <path>` when the gate would promote it now,
+or `held: <reason>`.
