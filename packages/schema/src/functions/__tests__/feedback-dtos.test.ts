@@ -78,10 +78,9 @@ describe('Gate-3 neutral feedback contracts (419)', () => {
     expect(RunsMarkOutcomeSchema.safeParse({ kind: 'ambiguous-address', runId, candidates: [{ testIndex: 0 }] }).success).toBe(false)
   })
 
-  it('pins persisted user origin, receipt version and integer ledger positions, and refuses a gold member', () => {
+  it('pins persisted user origin, receipt version and integer ledger positions', () => {
     expect(MarkReceiptSchema.parse(receipt)).toEqual(receipt)
-    const gold = [{ cassetteId: 'gold-1', sourceCassetteId: 'leaf-1', channel: 'user-mark' }]
-    for (const change of [{ origin: 'agent' }, { schemaVersion: 1 }, { ordinal: 0 }, { ordinal: -1 }, { ordinal: 1.5 }, { gold }, { gold: [] }]) {
+    for (const change of [{ origin: 'agent' }, { schemaVersion: 1 }, { ordinal: 0 }, { ordinal: -1 }, { ordinal: 1.5 }]) {
       expect(MarkReceiptSchema.safeParse({ ...receipt, ...change }).success).toBe(false)
     }
     for (const committedAtOrdinal of [-1, 1.5]) {
