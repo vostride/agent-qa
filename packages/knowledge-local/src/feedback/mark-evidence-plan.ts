@@ -1,8 +1,8 @@
-// 2026-09-15, 423 D-16: the read/planning half of mark evidence. No lease, append or markId mint.
+// The read/planning half of mark evidence. No lease, append or markId mint.
 import { basename } from 'node:path'
-import { asEvidenceToken, asRecordId, deriveEvidenceToken, eventDedupKey, exercisedAnchors, isPromotionReceipt,
+import { asEvidenceToken, asRecordId, deriveEvidenceToken, eventDedupKey, exercisedAnchors,
   type BundleOutcomeEvent, type CompletedRunHandoff, type EvidenceToken, type MarkReceipt } from '@vostride/agent-qa-schema'
-import { loadBundle, readGateReceipts, verifyBundleIntegrity } from '../bundle-read.js'
+import { loadBundle, verifyBundleIntegrity } from '../bundle-read.js'
 import { BundleTargetResolutionError, enumerateBundleDirs, resolveProductQualifiedBundleDir } from '../bundle-scan.js'
 import { canaryOutcomeObservationId } from '../serving/canary-observation-id.js'
 
@@ -95,16 +95,6 @@ export function planMarkEvidence(input: PlanMarkEvidenceInput): MarkEvidencePlan
         for (const anchor of [...bundleAnchors, ...exercisedAnchors(step)]) {
           evidenceTokens.add(deriveEvidenceToken({ attributingObservationId: canaryId,
             anchor, buildOrdinal: input.handoff!.buildOrdinal }))
-        }
-      }
-    }
-    // Gate-2 receipts preserve run + observation identity even when the handoff is gone.
-    for (const receipt of readGateReceipts(entry.dir, asRecordId(recordId)) ?? []) {
-      if (!isPromotionReceipt(receipt) && receipt.gate === 2 && receipt.runId === input.mark.runId) {
-        observations.add(receipt.attributedObservationId)
-        for (const anchor of bundleAnchors) {
-          evidenceTokens.add(deriveEvidenceToken({ attributingObservationId: receipt.attributedObservationId,
-            anchor, buildOrdinal: receipt.producedAtOrdinal }))
         }
       }
     }

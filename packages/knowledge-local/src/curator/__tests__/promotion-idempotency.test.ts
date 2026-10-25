@@ -32,11 +32,9 @@ describe('promotion receipt writer contract', () => {
       authorship: { path: 'deterministic-fallback', executionContext: 'local-interactive' } }])
     return { ...seeded, store }
   }
-  function gate2(candidateId: string, ordinal = 45, corpusDigest = 'c'.repeat(64)) {
-    return stampReceiptDigest({ schemaVersion: GATE_RECEIPT_SCHEMA_VERSION, gate: 2, candidateId, verdict: 'pass',
-      producedAtOrdinal: ordinal, producedBy: { opId: 'test' },
-      corpusVersion: { corpusDigest },
-      attributedObservationId: 'receipt-writer-canary', benefit: 'exercised-benefited', stateValidity: 'valid' })
+  function gate3(candidateId: string, ordinal = 45) {
+    return stampReceiptDigest({ schemaVersion: GATE_RECEIPT_SCHEMA_VERSION, gate: 3, candidateId, verdict: 'pass',
+      producedAtOrdinal: ordinal, producedBy: { opId: 'test' }, runId: 'receipt-writer-run', mark: 'false-fail' })
   }
   function assertStatus(candidateId: string, status: 'active' | 'candidate') {
     expect(deriveBundleTrust(fixture.onlyBundle().bundle).status).toBe(status)
@@ -70,7 +68,7 @@ describe('promotion receipt writer contract', () => {
     const { published, store } = await confirmed()
     const valid = completeGate1Receipt(published.id)
     const invalid = defect === 'digest'
-      ? { ...gate2(published.id), receiptDigest: 'f'.repeat(64) }
+      ? { ...gate3(published.id), receiptDigest: 'f'.repeat(64) }
       : completeGate1Receipt('foreign-candidate')
     const manifest = readFileSync(join(published.dir, 'manifest.json'), 'utf8')
     const events = readFileSync(join(published.dir, 'evidence/outcomes.jsonl'), 'utf8')

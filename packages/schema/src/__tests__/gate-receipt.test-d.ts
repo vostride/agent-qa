@@ -4,10 +4,7 @@ import { GATE_VERDICTS, GATE_NUMBERS, CROSS_CHECKS, DEGRADATIONS, BENEFITS, MARK
 // prettier-ignore
 import type { GateVerdict, GateNumber, CrossCheck, Degradation, Benefit, Mark, StateValidity } from '../knowledge/gate-receipt'
 
-/**
- * 2026-09-06, 416 D-02: the v54 reverse-membership bar, paired with the runtime cells.
- * Plan 06 G-13 measures src/__tests__/gate-receipt.test-d.ts:14:5; keep this first.
- */
+/** Each closed vocabulary's union names no member its runtime list leaves out. */
 
 expectTypeOf<
   Exclude<GateVerdict, (typeof GATE_VERDICTS)[number]>
@@ -22,7 +19,6 @@ expectTypeOf<Exclude<StateValidity, (typeof STATE_VALIDITIES)[number]>>().toEqua
 expectTypeOf<Extract<CrossCheck, 'not_run'>>().toEqualTypeOf<never>()
 expectTypeOf<Extract<Mark, 'confirmed-defect'>>().toEqualTypeOf<never>()
 
-// Append-only: the 416 mutation bar pins its original diagnostic at line 14.
 import type { z } from 'zod'
 // prettier-ignore
 import { GATE1_REASONS, GATE1_TARGET_SOURCES, GATE1_K_SOURCES, GATE1_HARM_ORIGINS, gate1SpendSchema } from '../knowledge/gate-receipt'
@@ -47,7 +43,3 @@ expectTypeOf<Exclude<Gate1HarmOrigin, (typeof GATE1_HARM_ORIGINS)[number]>>().to
 expectTypeOf<Extract<Gate1HarmOrigin, 'held-out'>>().toEqualTypeOf<never>()
 // prettier-ignore
 expectTypeOf<keyof z.infer<typeof gate1SpendSchema>>().toEqualTypeOf<'screens' | 'modelCalls' | 'promptTokens' | 'completionTokens' | 'wallClockMs'>()
-
-// 2026-09-07, 418 D-04: Gate-2 spend has exactly four keys; append after the 416/417 pins.
-import { gate2SpendSchema } from '../knowledge/gate-receipt'
-expectTypeOf<keyof z.infer<typeof gate2SpendSchema>>().toEqualTypeOf<'modelCalls' | 'screens' | 'promptTokens' | 'completionTokens'>()

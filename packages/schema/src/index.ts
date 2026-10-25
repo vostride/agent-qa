@@ -880,18 +880,10 @@ export type {
   MeasurementBaseline,
   MeasurementObservation,
 } from './knowledge/index'
-export { GATE_SET_VERDICT_WORDS, evaluatePromotionGate } from './knowledge/index'
+export { evaluatePromotionGate } from './knowledge/index'
 export type {
   PromotionGateHoldReason,
   PromotionGateInput,
-  PromotionGatePosture,
-  ResolvedPromotionGatePosture,
-  UnavailablePromotionGatePosture,
-  GateSetVerdictWord,
-  PromotionJudgePosture,
-  PromotionCanaryPosture,
-  PromotionPostureScope,
-  PromotionGateSetCounts,
   PromotionGateObservation,
   PromotionGateVerdict,
 } from './knowledge/index'
@@ -1639,19 +1631,16 @@ export { GATE_RECEIPT_SCHEMA_VERSION, GATE_NUMBERS, GATE_VERDICTS, GateReceiptSc
 export type { GateNumber, GateVerdict, GateReceipt, PromotionReceipt, GateLine } from './knowledge/gate-receipt'
 export { PROMOTION_PATHS, PROMOTION_PATH_STRENGTH, strongerPromotionPath } from './knowledge/promotion-path'
 export type { PromotionPath } from './knowledge/promotion-path'
-export type { PromotionOutcome, GateReceiptRecordOutcome, PromotionCandidateProvenance,
-  PromotionPostureCandidate, ResolvePromotionPosture } from './knowledge/promotion-gate'
-export { GATE_INCONSISTENCY_SHAPES, detectGateInconsistency } from './knowledge/promotion-gate'
-export type { GateInconsistencyShape, GateInconsistency } from './knowledge/promotion-gate'
+export type { PromotionOutcome, GateReceiptRecordOutcome, PromotionCandidateProvenance } from './knowledge/promotion-gate'
 export { KnowledgeGatesListInputSchema, KnowledgeGatesListResultSchema,
   PromotionGateVerdictSchema } from './functions/knowledge'
 export type { KnowledgeGatesListInput, KnowledgeGatesListResult } from './functions/knowledge'
 
 export { PER_AXIS_SCORE_AXES, CROSS_CHECKS, DEGRADATIONS, BENEFITS, MARKS, STATE_VALIDITIES,
   axisScoreSchema, perAxisScoreSchema, corpusVersionSchema, samplesSchema, noiseFloorRefSchema,
-  gate1ArmSchema, gate2ArmSchema, gate3ArmSchema, gate2SpendSchema } from './knowledge/gate-receipt'
+  gate1ArmSchema, gate3ArmSchema } from './knowledge/gate-receipt'
 export type { PerAxisScoreAxis, CrossCheck, Degradation, Benefit, Mark, StateValidity,
-  Gate1Receipt, Gate2Receipt, Gate3Receipt } from './knowledge/gate-receipt'
+  Gate1Receipt, Gate3Receipt } from './knowledge/gate-receipt'
 // 2026-09-07, 417: neutral replay receipt and candidate DATA contracts.
 export { GATE1_REASONS, GATE1_TARGET_SOURCES, GATE1_K_SOURCES, GATE1_HARM_ORIGINS,
   gate1CapSchema, gate1SpendSchema, gate1TargetSchema, gate1HarmedSchema } from './knowledge/gate-receipt'

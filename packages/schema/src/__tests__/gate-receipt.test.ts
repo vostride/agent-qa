@@ -13,7 +13,7 @@ function core() {
     producedAtOrdinal: 5, producedBy: { jobId: 'replay' } }
 }
 
-it('419 policy Gate-3 approvals retain honest identity without fabricating a run mark', () => {
+it('policy Gate-3 approvals retain honest identity without fabricating a run mark', () => {
   const receipt = stampReceiptDigest({ ...core(), gate: 3 as const,
     policyApproval: { proposalId: 'kp_fixture', recordId: 'candidate' } })
   expect(GateReceiptSchema.parse(receipt)).toEqual(receipt)
@@ -45,38 +45,6 @@ function gate1() {
     noiseFloorRef: { profileKey: 'planner-judge', corpusDigest: 'c'.repeat(64) },
   })
 }
-function gate2() {
-  return stampReceiptDigest({ ...core(), gate: 2 as const, attributedObservationId: 'observation',
-    corpusVersion: { corpusDigest: 'c'.repeat(64) },
-    benefit: 'exercised-benefited' as const, stateValidity: 'valid' as const })
-}
-
-describe('418 additive Gate-2 contract', () => {
-  const completeGate2 = () => ({
-    ...gate2(), crossCheck: 'flipped',
-    samples: { k: 3, seeds: [11, 12, 13], seedHonored: true, modelCalls: 5 },
-    spend: { modelCalls: 5, screens: 1, promptTokens: 100, completionTokens: 20 },
-    runId: 'run', testIndex: 0, stepIndex: 1, observedStateDigest: 'd'.repeat(64),
-    attribution: 'independent removal flipped the outcome',
-  })
-  it('round-trips a complete Gate-2 pass arm with every additive field', () => {
-    expect(GateReceiptSchema.parse(completeGate2())).toEqual(completeGate2())
-  })
-  it('preserves the 416 complete Gate-2 arm without the new fields', () => {
-    expect(GateReceiptSchema.parse(gate2())).toEqual(gate2())
-  })
-  it('refuses a fifth spend key, unknown cross check and malformed optional evidence', () => {
-    const base = completeGate2()
-    for (const value of [
-      { ...base, spend: { ...base.spend, wallClockMs: 0 } },
-      { ...base, crossCheck: 'bogus' }, { ...base, runId: '' },
-      { ...base, testIndex: -1 }, { ...base, stepIndex: 0.5 },
-      { ...base, observedStateDigest: 'invalid' }, { ...base, attribution: false },
-      { ...base, unexpected: true },
-    ]) expect(GateReceiptSchema.safeParse(value).success).toBe(false)
-  })
-})
-
 function completeGate1() {
   return { ...gate1(), reasons: [], crossCheck: 'flipped',
     cap: { maxScreens: 50 },
@@ -99,8 +67,8 @@ function completeGate1() {
   }
 }
 
-describe('417 additive Gate-1 contract', () => {
-  it('421 preserves strict panel metadata and singleton bytes', () => {
+describe('additive Gate-1 contract', () => {
+  it('preserves strict panel metadata and singleton bytes', () => {
     const single = completeGate1()
     expect(GateReceiptSchema.parse(single)).toEqual(single)
     expect(single.judge).not.toHaveProperty('panelSize')
@@ -174,13 +142,13 @@ function gate3() {
   return stampReceiptDigest({ ...core(), gate: 3 as const, runId: 'run', stepId: 'step',
     mark: 'confirmed-bug' as const })
 }
-function promotion(promotionPath: 'deterministic-verdict-floor' | 'gate1-lower-trust' | 'gate1+gate2' | 'user-sovereign') {
+function promotion(promotionPath: 'deterministic-verdict-floor' | 'user-sovereign') {
   return stampReceiptDigest({ schemaVersion: GATE_RECEIPT_SCHEMA_VERSION, kind: 'promotion' as const,
     candidateId: 'candidate', producedAtOrdinal: 5, producedBy: {}, promotionPath,
     citedReceiptDigests: [] })
 }
 
-describe('416 strict complete receipt vocabulary', () => {
+describe('strict complete receipt vocabulary', () => {
   it('parses a complete Gate-1 receipt and round-trips its content digest', () => {
     const receipt = gate1()
     expect(GateReceiptSchema.safeParse(receipt).success).toBe(true)
@@ -195,31 +163,6 @@ describe('416 strict complete receipt vocabulary', () => {
       { ...gate1(), crossCheck: 'maybe' }]) {
       expect(GateReceiptSchema.safeParse(receipt).success).toBe(false)
     }
-  })
-  it('parses Gate-2 attribution and refuses an unknown benefit or state validity', () => {
-    expect(GateReceiptSchema.safeParse(gate2()).success).toBe(true)
-    expect(GateReceiptSchema.safeParse({ ...gate2(), benefit: 'helped' }).success).toBe(false)
-    expect(GateReceiptSchema.safeParse({ ...gate2(), stateValidity: 'maybe' }).success).toBe(false)
-  })
-  it('requires a Gate-2 corpus digest for freshness', () => {
-    const { corpusVersion: _corpusVersion, ...missingCorpus } = gate2()
-    expect(GateReceiptSchema.safeParse(missingCorpus).success).toBe(false)
-  })
-  it('rejects an invalid Gate-2 digest with the corpusDigest field error', () => {
-    const parsed = GateReceiptSchema.safeParse({ ...gate2(), corpusVersion: { corpusDigest: 'bad' } })
-    expect(parsed.success).toBe(false)
-    if (!parsed.success) expect(parsed.error.issues).toEqual(expect.arrayContaining([
-      expect.objectContaining({ path: ['corpusVersion', 'corpusDigest'] }),
-    ]))
-  })
-  it('accepts only the digest in Gate-2 corpusVersion and round-trips it', () => {
-    const receipt = gate2()
-    expect(GateReceiptSchema.safeParse(receipt).success).toBe(true)
-    expect(GateReceiptSchema.parse(receipt)).toEqual(receipt)
-    expect(GateReceiptSchema.safeParse({ ...receipt,
-      corpusVersion: { ...receipt.corpusVersion, partitionVersion: 2 },
-    }).success).toBe(false)
-    expect(GateReceiptSchema.safeParse({ ...receipt, corpusVersion: {} }).success).toBe(false)
   })
   it('parses Gate-3 marks with or without stepId and refuses cross-arm fields', () => {
     expect(GateReceiptSchema.safeParse(gate3()).success).toBe(true)
@@ -256,13 +199,13 @@ describe('416 strict complete receipt vocabulary', () => {
   it('selects the greatest ordinal and breaks ties with the later line', () => {
     const first = GateReceiptSchema.parse(gate1())
     const failed = GateReceiptSchema.parse({ ...gate1(), verdict: 'fail', producedAtOrdinal: 9 })
-    const second = GateReceiptSchema.parse({ ...gate2(), producedAtOrdinal: 9 })
+    const second = GateReceiptSchema.parse({ ...gate3(), producedAtOrdinal: 9 })
     const later = GateReceiptSchema.parse({ ...gate1(), producedAtOrdinal: 9 })
     expect(standingReceiptsByGate([first, failed, second, later])).toEqual([later, second])
   })
   it('selects the strongest promotion path and leaves absent history undefined', () => {
     expect(strongestPromotionPath([])).toBeUndefined()
-    expect(strongestPromotionPath([promotion('deterministic-verdict-floor'), promotion('gate1-lower-trust')])).toBe('gate1-lower-trust')
-    expect(strongestPromotionPath([promotion('gate1+gate2'), promotion('user-sovereign')])).toBe('user-sovereign')
+    expect(strongestPromotionPath([promotion('deterministic-verdict-floor')])).toBe('deterministic-verdict-floor')
+    expect(strongestPromotionPath([promotion('user-sovereign'), promotion('deterministic-verdict-floor')])).toBe('user-sovereign')
   })
 })

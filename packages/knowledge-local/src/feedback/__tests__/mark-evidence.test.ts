@@ -3,10 +3,10 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
-  GATE_RECEIPT_SCHEMA_VERSION, CURRENT_HANDOFF_SCHEMA_VERSION, asEvidenceToken, asRecordId, asRunId, foldBundleTrust, stampReceiptDigest,
+  CURRENT_HANDOFF_SCHEMA_VERSION, asEvidenceToken, asRecordId, asRunId, foldBundleTrust,
   type BundleOutcomeEvent, type CompletedRunHandoff } from '@vostride/agent-qa-schema'
 import { publishBundle } from '../../bundle-publish.test-helper.js'
-import { appendGateReceipt, appendOutcomeEvent } from '../../bundle-append.js'
+import { appendOutcomeEvent } from '../../bundle-append.js'
 import { deriveBundleTrust, loadBundle, verifyBundleIntegrity } from '../../bundle-read.js'
 import { acquireWriterLease, releaseLease } from '../../lease/writer-lease.js'
 import { makeBundleDraftFixture, scaffoldKnowledgeRoot } from '../../__tests__/fixtures/bundle-fixture.js'
@@ -205,21 +205,6 @@ describe('mark evidence appends through the production writer', () => {
     }
     expect(await appendMarkEvidence(value)).toMatchObject({ confirmed: 1, overturned: 1, correlationIncomplete: true })
     expect(deriveBundleTrust(loaded(a.dir)).counters.confirmed).toBe(2)
-  })
-
-  it('uses only the matching run Gate-2 receipt to recover an opaque observation id', async () => {
-    const a = plant('Checkout'); const value = input([a.id], 'false-pass')
-    for (const [receiptRun, observationId] of [[runId, 'opaque-hit'], ['foreign-run', 'opaque-foreign']]) {
-      append(a.id, value, helpful(a.id, { evidenceToken: asEvidenceToken(observationId!), observationId }))
-      expect(appendGateReceipt({ knowledgeRoot, productKey: 'storefront',
-        commitArtifacts: 'none', writerLeaseId: value.lease.leaseId, writerEpoch: value.lease.epoch },
-      a.id, stampReceiptDigest({ schemaVersion: GATE_RECEIPT_SCHEMA_VERSION, gate: 2, candidateId: a.id, verdict: 'pass',
-        benefit: 'exercised-benefited', stateValidity: 'valid', producedAtOrdinal: 12,
-        producedBy: { opId: 'canary.record' }, corpusVersion: { corpusDigest: 'c'.repeat(64) },
-        attributedObservationId: observationId!, runId: receiptRun! })).kind).toBe('appended')
-    }
-    expect(await appendMarkEvidence(value)).toMatchObject({ confirmed: 1, overturned: 1, correlationIncomplete: true })
-    expect(deriveBundleTrust(loaded(a.dir)).counters.helpful).toBe(1)
   })
 
   it('refuses a released writer lease before appending', async () => {

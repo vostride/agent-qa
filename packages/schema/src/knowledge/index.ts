@@ -14,21 +14,11 @@ export {
 export type { BundleStatus, DerivedTrustState } from './trust-fold'
 export { cautionRootCauseClassSchema } from './distilled-observation'
 export type { CautionRootCauseClass } from './distilled-observation'
-export { PROMOTION_GATE_HOLD_REASONS, GATE_SET_VERDICT_WORDS, evaluatePromotionGate } from './promotion-gate'
-export { GATE_INCONSISTENCY_SHAPES, detectGateInconsistency } from './promotion-gate'
-export type { GateInconsistencyShape, GateInconsistency } from './promotion-gate'
+export { PROMOTION_GATE_HOLD_REASONS, evaluatePromotionGate } from './promotion-gate'
 export type {
   PromotionGateHoldReason,
   PromotionGateInput,
   PromotionGateObservation,
-  PromotionGatePosture,
-  ResolvedPromotionGatePosture,
-  UnavailablePromotionGatePosture,
-  GateSetVerdictWord,
-  PromotionJudgePosture,
-  PromotionCanaryPosture,
-  PromotionPostureScope,
-  PromotionGateSetCounts,
   PromotionGateVerdict,
 } from './promotion-gate'
 export {
@@ -193,14 +183,13 @@ export { GATE_RECEIPT_SCHEMA_VERSION, GATE_NUMBERS, GATE_VERDICTS, GateReceiptSc
 export type { GateNumber, GateVerdict, GateReceipt, PromotionReceipt, GateLine } from './gate-receipt'
 export { PROMOTION_PATHS, PROMOTION_PATH_STRENGTH, strongerPromotionPath } from './promotion-path'
 export type { PromotionPath } from './promotion-path'
-export type { PromotionOutcome, GateReceiptRecordOutcome, PromotionCandidateProvenance,
-  PromotionPostureCandidate, ResolvePromotionPosture } from './promotion-gate'
+export type { PromotionOutcome, GateReceiptRecordOutcome, PromotionCandidateProvenance } from './promotion-gate'
 
 export { PER_AXIS_SCORE_AXES, CROSS_CHECKS, DEGRADATIONS, BENEFITS, MARKS, STATE_VALIDITIES,
   axisScoreSchema, perAxisScoreSchema, corpusVersionSchema, samplesSchema, noiseFloorRefSchema,
-  gate1ArmSchema, gate2ArmSchema, gate3ArmSchema, gate2SpendSchema } from './gate-receipt'
+  gate1ArmSchema, gate3ArmSchema } from './gate-receipt'
 export type { PerAxisScoreAxis, CrossCheck, Degradation, Benefit, Mark, StateValidity,
-  Gate1Receipt, Gate2Receipt, Gate3Receipt } from './gate-receipt'
+  Gate1Receipt, Gate3Receipt } from './gate-receipt'
 // 2026-09-07, 417: neutral replay receipt and candidate DATA contracts.
 export { GATE1_REASONS, GATE1_TARGET_SOURCES, GATE1_K_SOURCES, GATE1_HARM_ORIGINS,
   gate1CapSchema, gate1SpendSchema, gate1TargetSchema, gate1HarmedSchema } from './gate-receipt'

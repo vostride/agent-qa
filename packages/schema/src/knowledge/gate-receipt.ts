@@ -3,13 +3,11 @@ import { canonicalJson } from '../determinism/canonical-json'
 import { sha256hex } from '../determinism/sha256'
 import { PROMOTION_PATHS, strongerPromotionPath, type PromotionPath } from './promotion-path'
 
-// 2026-09-07, 417 D-19/D-20: additive optional fields; no persisted Gate-1 lines predate this widening.
-// 2026-09-07, 418: Gate-2 evidence widens additively; zero persisted Gate-2 lines predate this widening — reconciliation 2.
 export const GATE_RECEIPT_SCHEMA_VERSION = 2
-export type GateNumber = 1 | 2 | 3
+export type GateNumber = 1 | 3
 export type GateVerdict = 'pass' | 'fail' | 'abstain'
 // prettier-ignore
-export const GATE_NUMBERS = [1, 2, 3] as const satisfies readonly GateNumber[]
+export const GATE_NUMBERS = [1, 3] as const satisfies readonly GateNumber[]
 // prettier-ignore
 export const GATE_VERDICTS = ['pass', 'fail', 'abstain'] as const satisfies readonly GateVerdict[]
 export type PerAxisScoreAxis = 'headline' | 'elementIdentity' | 'value' | 'opClass' | 'sideEffect' | 'loop'
@@ -51,9 +49,6 @@ const count = z.number().int().nonnegative()
 export const gate1CapSchema = z.object({ maxScreens: z.number().int().min(1) }).strict()
 export const gate1SpendSchema = z.object({
   screens: count, modelCalls: count, promptTokens: count, completionTokens: count, wallClockMs: count,
-}).strict()
-export const gate2SpendSchema = z.object({
-  modelCalls: count, screens: count, promptTokens: count, completionTokens: count,
 }).strict()
 export const gate1TargetSchema = z.object({
   cassetteId: z.string().min(1), stepIndex: count, decisionOrdinal: count,
@@ -140,19 +135,6 @@ export const gate1ArmSchema = z.object({
     ? judge.members === undefined : judge.members?.length === judge.panelSize,
   'panel size and complete member metadata must appear together').optional(),
 }).strict()
-export const gate2ArmSchema = z.object({
-  ...receiptCoreShape, gate: z.literal(2), attributedObservationId: z.string().min(1),
-  corpusVersion: z.object({ corpusDigest: sha256 }).strict(),
-  benefit: z.enum(BENEFITS), stateValidity: z.enum(STATE_VALIDITIES),
-  crossCheck: z.enum(CROSS_CHECKS).optional(),
-  samples: samplesSchema.optional(),
-  spend: gate2SpendSchema.optional(),
-  runId: z.string().min(1).optional(),
-  testIndex: count.optional(),
-  stepIndex: count.optional(),
-  observedStateDigest: sha256.optional(),
-  attribution: z.string().optional(),
-}).strict()
 export const gate3ArmSchema = z.object({
   ...receiptCoreShape, gate: z.literal(3), runId: z.string().min(1).optional(),
   stepId: z.string().optional(), mark: z.enum(MARKS).optional(),
@@ -169,7 +151,7 @@ export const gate3ArmSchema = z.object({
   }
 })
 export const GateReceiptSchema = z.discriminatedUnion('gate', [
-  gate1ArmSchema, gate2ArmSchema, gate3ArmSchema,
+  gate1ArmSchema, gate3ArmSchema,
 ])
 export const PromotionReceiptSchema = z.object({
   schemaVersion: receiptCoreShape.schemaVersion,
@@ -184,7 +166,6 @@ export const PromotionReceiptSchema = z.object({
 export const GateLineSchema = z.union([GateReceiptSchema, PromotionReceiptSchema])
 export type GateReceipt = z.infer<typeof GateReceiptSchema>
 export type Gate1Receipt = Extract<GateReceipt, { gate: 1 }>
-export type Gate2Receipt = Extract<GateReceipt, { gate: 2 }>
 export type Gate3Receipt = Extract<GateReceipt, { gate: 3 }>
 export type PromotionReceipt = z.infer<typeof PromotionReceiptSchema>
 export type GateLine = z.infer<typeof GateLineSchema>

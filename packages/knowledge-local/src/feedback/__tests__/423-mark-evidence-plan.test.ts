@@ -3,10 +3,10 @@ import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
-  GATE_RECEIPT_SCHEMA_VERSION, CURRENT_HANDOFF_SCHEMA_VERSION, asEvidenceToken, asRecordId, asRunId, stampReceiptDigest, type BundleOutcomeEvent,
+  CURRENT_HANDOFF_SCHEMA_VERSION, asEvidenceToken, asRecordId, asRunId, type BundleOutcomeEvent,
   type CompletedRunHandoff } from '@vostride/agent-qa-schema'
 import { publishBundle } from '../../bundle-publish.test-helper.js'
-import { appendGateReceipt, appendOutcomeEvent } from '../../bundle-append.js'
+import { appendOutcomeEvent } from '../../bundle-append.js'
 import { loadBundle } from '../../bundle-read.js'
 import { acquireWriterLease, releaseLease } from '../../lease/writer-lease.js'
 import { makeBundleDraftFixture, scaffoldKnowledgeRoot } from '../../__tests__/fixtures/bundle-fixture.js'
@@ -96,18 +96,10 @@ describe('423-17 mark evidence planning half (D-16)', () => {
     const held = lease()
     const linked = plant('Newly curated', { runId, curationJobId: 'seed-job' })
     const observed = plant('Canary observed')
-    const receipted = plant('Receipted')
     const jobbed = plant('Floor job')
     const unrelated = plant('Unrelated')
     append(linked.id, held, helpful(linked.id, { curationJobId: 'seed-job', observationId: undefined }))
     append(observed.id, held, helpful(observed.id))
-    append(receipted.id, held, helpful(receipted.id, { evidenceToken: asEvidenceToken('opaque'),
-      observationId: 'opaque-hit' }))
-    expect(appendGateReceipt({ knowledgeRoot, productKey: 'storefront', commitArtifacts: 'none',
-      writerLeaseId: held.leaseId, writerEpoch: held.epoch }, receipted.id, stampReceiptDigest({ schemaVersion: GATE_RECEIPT_SCHEMA_VERSION,
-      gate: 2, candidateId: receipted.id, verdict: 'pass', benefit: 'exercised-benefited', stateValidity: 'valid',
-      producedAtOrdinal: 12, producedBy: { opId: 'canary.record' }, corpusVersion: { corpusDigest: 'c'.repeat(64) },
-      attributedObservationId: 'opaque-hit', runId })).kind).toBe('appended')
     append(jobbed.id, held, { type: 'confirmed', evidenceToken: asEvidenceToken('floor'), curationJobId: 'floor-job',
       buildOrdinal: 12 })
     append(unrelated.id, held, helpful(unrelated.id, { observationId: 'another-run' }))
@@ -124,20 +116,18 @@ describe('423-17 mark evidence planning half (D-16)', () => {
       { direction: 'overturn', overturnsEvidenceToken: 'original-evidence', overturnsCurationJobId: 'seed-job' }] })
     expect(byId.get(observed.id)).toMatchObject({ kind: 'effects', served: false, effects: [
       { direction: 'overturn', overturnsEvidenceToken: 'original-evidence', overturnsCurationJobId: 'canary-job' }] })
-    expect(byId.get(receipted.id)).toMatchObject({ kind: 'effects', effects: [
-      { direction: 'overturn', overturnsEvidenceToken: 'opaque', overturnsCurationJobId: 'canary-job' }] })
     expect(byId.get(jobbed.id)).toMatchObject({ kind: 'effects', effects: [
       { direction: 'overturn', overturnsEvidenceToken: 'floor', overturnsCurationJobId: 'floor-job' }] })
     expect(plan.correlationIncomplete).toBeUndefined()
 
     const predicted = api.projectMarkEvidenceOutcome(plan, { includeAlreadyAppended: false })
-    expect(predicted).toMatchObject({ confirmed: 0, overturned: 4, skipped: [] })
+    expect(predicted).toMatchObject({ confirmed: 0, overturned: 3, skipped: [] })
     const writerInput: AppendMarkEvidenceInput = { ...planInput, executionContext: 'local-interactive',
       lease: lease(), mark: { markId, runId, kind: 'false-pass' } }
     expect(await appendMarkEvidence(writerInput)).toEqual(predicted)
     for (const target of plan.targets) {
       if (target.kind !== 'effects') continue
-      const dir = [linked, observed, receipted, jobbed].find(row => row.id === target.recordId)!.dir
+      const dir = [linked, observed, jobbed].find(row => row.id === target.recordId)!.dir
       expect(markEvents(dir).map(event => event.type === 'overturned'
         ? { direction: 'overturn', overturnsEvidenceToken: event.overturnsEvidenceToken,
           overturnsCurationJobId: event.overturnsCurationJobId } : { direction: 'confirm' }))
