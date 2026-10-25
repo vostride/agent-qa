@@ -471,18 +471,8 @@ describe('runCurationTail post-verdict fold (CUR-03/CUR-05)', () => {
     ])
   })
 
-  it('418 the sweep binds posture from the loaded handoff ordinal', async () => {
-    const resolver = vi.fn(() => undefined)
-    const resolvePromotionPostureForRun = vi.fn(async () => resolver)
-    const scope = { tier: 'product', key: 'shop-web' } as const
-    const operations = successfulOperations({ loadCompletedRunHandoff: () => ({ ...handoff(), buildOrdinal: 42, scope }) })
-    await runCurationTail(baseOptions(operations, { resolvePromotionPostureForRun }))
-    expect(resolvePromotionPostureForRun).toHaveBeenCalledWith(42, scope)
-    expect(operations.drainQueue).toHaveBeenCalledWith(expect.objectContaining({ resolvePromotionPosture: resolver }))
-  })
-  it('threads the synchronous resolver and prints every promotion in report order', async () => {
+  it('prints every promotion in report order', async () => {
     const info = vi.fn()
-    const resolver = vi.fn(() => undefined)
     const drainQueue = vi.fn(async (_options: object) => ({
       ...handedOffDrainReport(),
       promotions: [
@@ -491,10 +481,9 @@ describe('runCurationTail post-verdict fold (CUR-03/CUR-05)', () => {
       ],
     }))
     await runCurationTail(baseOptions(successfulOperations({ drainQueue }), {
-      resolvePromotionPosture: resolver, log: { warn: vi.fn(), info },
+      log: { warn: vi.fn(), info },
     }))
-    expect(drainQueue).toHaveBeenCalledWith(expect.objectContaining({ resolvePromotionPosture: resolver }))
-    // 2026-09-30, 432-10 D-05/D-22: the drain is handed no proposals root.
+    // The drain is handed no proposals root.
     expect(drainQueue.mock.calls[0]![0]).not.toHaveProperty('agentQaRoot')
     expect(info.mock.calls.map(([message]) => message).filter(message => message.startsWith('curation: '))).toEqual([
       'curation: handed to daemon (pid 4242)',

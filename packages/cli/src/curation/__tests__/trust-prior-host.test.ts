@@ -21,7 +21,7 @@ vi.mock('@vostride/agent-qa-agent-local', async original => {
 import { LABEL_CALIBRATION_SCHEMA_VERSION, readLabelCalibration } from '@vostride/agent-qa-eval-local'
 import { applyKnowledgeChange, composeLocalAgent, createKnowledgeReader, openRunKnowledgeComposition, LOCAL_CURATION_CAPABILITIES } from '@vostride/agent-qa-agent-local'
 import { composeCliLocalAgent } from '../../composition/local-agent-host.js'
-import { createReplayGateHost, createReplayGatePortForHost } from '../../gates/replay-gate-host.js'
+import { createReplayGateHost } from '../../gates/replay-gate-host.js'
 import { createFeedbackPortForHost } from '../../gates/feedback-host.js'
 import { markFixture } from '../../gates/__tests__/feedback-fixture.js'
 import { buildTrustPriorsResolver } from '../trust-priors.js'
@@ -135,7 +135,7 @@ it('feedback mark reader and review reuse composition data after artifact replac
   const before = readFileSync(join(root, 'agent-qa-eval/labels/calibration.json'), 'utf8')
   const result = await port.mark({ runId: f.handoff.runId, kind: 'false-fail' })
   expect(result.kind).toBe('marked')
-  const readResolver = vi.mocked(createKnowledgeReader).mock.calls.at(-1)![3]
+  const readResolver = vi.mocked(createKnowledgeReader).mock.calls.at(-1)![2]
   const reviewResolver = vi.mocked(applyKnowledgeChange).mock.calls.at(-1)![0].resolveTrustPriors
   expect(readResolver?.()).toEqual(fixture().priors)
   expect(reviewResolver).toBe(readResolver)
@@ -167,7 +167,7 @@ it('standalone replay host binds a cached reader and refuses malformed data befo
   const deps = { configPath: join(root, 'agent-qa.config.yaml'), agentQaRoot: root,
     session: { config: { knowledge: { dir: 'knowledge' } } }, record: false, composition: {} } as never
   createReplayGateHost(deps)
-  const resolver = vi.mocked(createKnowledgeReader).mock.calls.at(-1)?.[3]
+  const resolver = vi.mocked(createKnowledgeReader).mock.calls.at(-1)?.[2]
   expect(resolver?.()).toEqual(fixture().priors)
   writeArtifact(fixture(0.25))
   expect(resolver?.()).toEqual(fixture().priors)
@@ -194,22 +194,9 @@ it('replay reader and receipt writer share the prior snapshot and preserve calib
   expect(await host.run(f.published.id)).toMatchObject({ kind: 'receipt', recorded: 'appended' })
   const input = recordGateReceipt.mock.calls[0]![0] as Parameters<typeof LOCAL_CURATION_CAPABILITIES.recordGateReceipt>[0]
   expect(input.resolveTrustPriors?.()).toEqual(fixture().priors)
-  expect(input.resolveTrustPriors).toBe(vi.mocked(createKnowledgeReader).mock.calls.at(-1)![3])
+  expect(input.resolveTrustPriors).toBe(vi.mocked(createKnowledgeReader).mock.calls.at(-1)![2])
   expect(readLabelCalibration).toHaveBeenCalledTimes(1)
   expect(readFileSync(join(root, 'agent-qa-eval/labels/calibration.json'), 'utf8')).toBe(before)
-})
-
-it('lazy replay port passes its original snapshot into the later eval verb', async () => {
-  const f = markFixture()
-  rmSync(root, { recursive: true, force: true }); root = f.root
-  writeArtifact(fixture())
-  const session = await import('../../eval-session-composition.js')
-  const verb = vi.spyOn(session, 'runReplayGateVerb').mockRejectedValue(new Error('captured replay boundary'))
-  const port = createReplayGatePortForHost(f.deps)
-  writeArtifact(fixture(0.25))
-  await expect(port.runReplayGate(f.published.id)).rejects.toThrow('captured replay boundary')
-  expect(verb.mock.calls[0]![2]?.resolveTrustPriors?.()).toEqual(fixture().priors)
-  expect(readLabelCalibration).toHaveBeenCalledTimes(1)
 })
 
 it('composed local run forwards its snapshot through the in-process producer dispatch', async () => {

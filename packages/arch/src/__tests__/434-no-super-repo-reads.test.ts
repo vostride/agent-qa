@@ -203,7 +203,6 @@ describe('C434-NO-SUPER-REPO-READS — test code reads nothing outside the agent
   it('C434-NO-SUPER-REPO-READS: the scan universe is the workspace\'s test and test-helper code', () => {
     expect(UNIVERSE.length).toBeGreaterThanOrEqual(1_500)
     for (const file of [
-      'packages/cli/src/__tests__/promotion-host-proof.ts',
       'packages/eval-local/src/__tests__/judge-panel-contract.test.ts',
       'packages/cli/src/__tests__/432-external-callers.test.ts',
     ]) {

@@ -186,7 +186,6 @@ describe('423 curation tail snapshot', () => {
       knowledgeConfig: { dir: 'knowledge' }, configDir: root,
       log: { warn: () => undefined }, operations } as never).drain()
     expect(await bound!.curateRun({ runId: RUN_ID, executionContext: 'local-headless' })).toHaveProperty('snapshot', snapshot)
-    expect(bound!.resolveClaimAuthority?.()).toBeUndefined()
   })
 
   it('CURATE-CAPABILITY-ZERO-EFFECT terminal checkpoints and serves the all-zero snapshot through the real tail adapter', async () => {

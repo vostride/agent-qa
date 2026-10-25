@@ -67,7 +67,7 @@ function tail(f: ReturnType<typeof markFixture>, snapshot: ReturnType<typeof tru
 it.each(['complete', 'failed', 'partial', 'handed-off'] as const)('keeps old and fresh host disclosure and numerical reader consistent for %s', async mode => {
   const f = markFixture(); roots.push(f.root)
   const first = artifact(f.root, 0.75), old = trustPriorsForHost(f)
-  const oldReader = createKnowledgeReader(() => f.knowledgeRoot, undefined, undefined, old.resolve)
+  const oldReader = createKnowledgeReader(() => f.knowledgeRoot, undefined, old.resolve)
   const before = await oldReader.candidateInjection!({ candidateId: f.published.id })
   const oldTail = tail(f, old, mode)
   const replacement = artifact(f.root, 0.25)
@@ -77,7 +77,7 @@ it.each(['complete', 'failed', 'partial', 'handed-off'] as const)('keeps old and
   expect(await oldReader.candidateInjection!({ candidateId: f.published.id })).toEqual(before)
   expect(readLabelCalibration).toHaveBeenCalledTimes(1)
   const fresh = trustPriorsForHost(f), freshTail = tail(f, fresh, mode)
-  const freshReader = createKnowledgeReader(() => f.knowledgeRoot, undefined, undefined, fresh.resolve)
+  const freshReader = createKnowledgeReader(() => f.knowledgeRoot, undefined, fresh.resolve)
   const after = await freshReader.candidateInjection!({ candidateId: f.published.id })
   expect(before.kind).toBe('found'); expect(after.kind).toBe('found')
   if (before.kind !== 'found' || after.kind !== 'found') throw new Error('fixture injection missing')

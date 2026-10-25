@@ -619,6 +619,8 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
           ...(opts.executionContext === undefined ? {} : { executionContext: opts.executionContext }),
         })
         preparationRecoveryPending = recovery.some((result) => result.pending)
+        // Unreadable trust priors stop the drain here, before any lease is taken.
+        snapshot()
       } catch (error) {
         // Constructing the operations table reads the shipped modules, and a build where one of
         // those reads throws must not send the exception past `runVerdictFirstCurationTail` into

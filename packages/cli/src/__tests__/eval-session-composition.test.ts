@@ -8,7 +8,6 @@ import {
   resolveEvalJudge,
   resolveEvalSession,
   resolveReplayPlanner,
-  resolveGate2Caps,
 } from '../eval-session-composition.js'
 
 
@@ -88,15 +87,6 @@ afterEach(async () => {
 })
 
 describe('resolveEvalSession — eval config + flag overrides (D-03)', () => {
-  it('resolves the canary horizon and lower-trust caps from config and default', async () => {
-    const f = await writeFixture()
-    const configured = await resolveEvalSession({ configPath: f.configPath, keyOnly: true })
-    expect(resolveGate2Caps(configured)).toMatchObject({ canaryHorizonBuilds: 5,
-      canaryHorizonBuildsSource: 'default', maxLowerTrustPerScope: 2, maxLowerTrustPerScopeSource: 'default' })
-    expect(resolveGate2Caps({ ...configured, evalConfig: { gate2: { canaryHorizonBuilds: 8, maxLowerTrustPerScope: 4 } } }))
-      .toMatchObject({ canaryHorizonBuilds: 8, canaryHorizonBuildsSource: 'config',
-        maxLowerTrustPerScope: 4, maxLowerTrustPerScopeSource: 'config' })
-  })
   it('returns the config eval block and applies flag overrides field-wise', async () => {
     const { configPath } = await writeFixture({
       evalBlock: 'eval:\n  judge: j\n  k: 2',

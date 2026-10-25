@@ -14,15 +14,10 @@
 
 import { describe, expect, it, vi } from 'vitest'
 import type { Mock } from 'vitest'
-import { mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { promotionHostProof } from './promotion-host-proof.js'
 
 import { chainJobIdsForRun } from '@vostride/agent-qa-agent'
 import { DIGEST_JOB_ID_SOURCE } from '@vostride/agent-qa-agent-local'
 import { CURRENT_HANDOFF_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
-import type { ResolvePromotionPosture } from '@vostride/agent-qa-schema'
 
 import { runVerdictFirstCurationTail } from '../curation/curation-tail.js'
 import {
@@ -30,7 +25,6 @@ import {
   type PostRunTailOperations,
   type RunPostRunTailOptions,
 } from '../curation/post-run-tail.js'
-import * as promotionPosture from '../curation/promotion-posture.js'
 
 const agentQaRoot = '/workspace/project/.agent-qa'
 const configDir = '/workspace/project'
@@ -143,77 +137,6 @@ function options(h: Harness): RunPostRunTailOptions {
 }
 
 describe('the shared post-run tail (ANLZ-01 / JOBQ-06, D-03/D-07)', () => {
-  it('binds lazy replay so the actual tail resolver holds missing receipts and permits the quiet rare path', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'tail-replay-law-'))
-    const path = join(root, 'agent-qa.config.yaml')
-    const proof = promotionHostProof(path)
-    const build = vi.spyOn(promotionPosture, 'buildPromotionPostureResolver').mockImplementation(proof.prepare)
-    try {
-      const h = harness()
-      const tail = runPostRunTail({ ...options(h), configPath: path, configDir: root,
-        agentQaRoot: join(root, '.agent-qa') })
-      await tail.drain()
-      const swept = h.runCurationTail.mock.calls[0]![0] as { resolvePromotionPosture: ResolvePromotionPosture }
-      proof.verify(swept.resolvePromotionPosture)
-      expect(build).toHaveBeenCalledTimes(1)
-    } finally {
-      vi.restoreAllMocks()
-      rmSync(root, { recursive: true, force: true })
-    }
-  })
-  it('builds posture once before the lease and forwards it to both the job fold and sweep', async () => {
-    const h = harness()
-    const resolvePosture = vi.fn(() => ({ kind: 'unavailable' as const, replayGateAvailable: false, refusals: ['partition refused'] }))
-    const build = vi.spyOn(promotionPosture, 'buildPromotionPostureResolver').mockResolvedValue({
-      kind: 'unavailable', committedRoot: '/project/agent-qa-eval', refusals: ['partition refused'], resolve: resolvePosture,
-    })
-    try {
-      const tail = runPostRunTail(options(h))
-      await tail.drain()
-      expect(build).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ configPath, knowledgeRoot, agentQaRoot, canaryFacts: expect.any(Function), lowerTrustShares: expect.any(Function) }))
-      expect(build.mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(h.operations.acquireWriterLease).mock.invocationCallOrder[0])
-      const swept = h.runCurationTail.mock.calls[0]![0] as { resolvePromotionPosture?: ResolvePromotionPosture }
-      expect(swept.resolvePromotionPosture).toBeTypeOf('function')
-      const composed = vi.mocked(h.operations.composeHost).mock.calls[0][0]
-      await composed.curateRun({ runId, executionContext: 'local-headless' })
-      expect(h.operations.curateCompletedRun).toHaveBeenCalledWith(expect.objectContaining({ resolvePromotionPosture: expect.any(Function) }))
-      expect(build).toHaveBeenCalledTimes(1)
-      expect(h.warn).toHaveBeenCalledWith('curation: posture unavailable: partition refused')
-    } finally {
-      build.mockRestore()
-    }
-  })
-  it('418 reuses prepared identity with distinct own-run and janitor ordinal bindings', async () => {
-    const h = harness()
-    const resolve = vi.fn(() => undefined)
-    const build = vi.spyOn(promotionPosture, 'buildPromotionPostureResolver').mockResolvedValue({
-      kind: 'ready', committedRoot: '/project/agent-qa-eval', resolve,
-      host: { notices: [] } as unknown as promotionPosture.PromotionPostureHostFacts,
-    })
-    vi.mocked(h.operations.loadCompletedRunHandoff).mockReturnValue({ ...handoff, buildOrdinal: 15,
-      scope: { tier: 'product', key: 'shop' } })
-    try {
-      await runPostRunTail(options(h)).drain()
-      const composed = vi.mocked(h.operations.composeHost).mock.calls[0]![0]
-      await composed.curateRun({ runId, executionContext: 'local-headless' })
-      const own = vi.mocked(h.operations.curateCompletedRun).mock.calls[0]![0].resolvePromotionPosture!
-      const sweep = h.runCurationTail.mock.calls[0]![0] as {
-        resolvePromotionPostureForRun: (ordinal: number, scope: { tier: 'product'; key: string }) => Promise<ResolvePromotionPosture>
-      }
-      const prior = await sweep.resolvePromotionPostureForRun(11, { tier: 'product', key: 'shop' })
-      const candidate = { id: 'candidate', product: 'shop', scope: { tier: 'product' as const, key: 'shop' },
-        provenance: { runIds: [], receiptDigests: [], capturedAtOrdinals: [] } }
-      own(candidate)
-      prior(candidate)
-      own(candidate)
-      const foreign = { ...candidate, product: 'another-shop' }
-      own(foreign)
-      prior(foreign)
-      expect(resolve.mock.calls).toEqual([[candidate, 15], [candidate, 11], [candidate, 15],
-        [foreign, undefined], [foreign, undefined]])
-      expect(build).toHaveBeenCalledTimes(1)
-    } finally { build.mockRestore() }
-  })
   it('hands off with a nudge and returns immediately when the lease is held', async () => {
     const h = harness({ lease: { kind: 'held', holder: { pid: 4242 } } as never })
     const tail = runPostRunTail(options(h))

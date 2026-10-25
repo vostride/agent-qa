@@ -1331,7 +1331,6 @@ describe('C432-CURATION-COPY: curation and chat say where a change went, and poi
   it('C432-CURATION-COPY: the curation tail and the chat turn engine show no review command and no waiting step', () => {
     for (const file of [
       'packages/cli/src/curation/curation-tail.ts',
-      'packages/cli/src/curation/promotion-posture.ts',
       'packages/agent/src/chat/turn-engine.ts',
     ]) {
       const code = codeOf(file)

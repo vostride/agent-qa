@@ -373,7 +373,7 @@
       "classifies": true,
       "id": "knowledge.gates.list",
       "inputSchemaDigest": "3d7f0e0bc33415cdda6cbc7996e50d2c130d39fdc01d75982faa529d72cf3a29",
-      "outputSchemaDigest": "b0cf22d5028633224c8eaf52302dbf35ab94f3d35ab194b3987dce22436aaf32",
+      "outputSchemaDigest": "ea6b6168b4ffd58e646f92410499bf12bbc8d2b7a35a15f748f318263ead9dc0",
       "partition": {
         "kind": "projected",
         "tool": "agent_qa_list_knowledge_gates"

@@ -41,9 +41,6 @@ import type {
 } from '@vostride/agent-qa-schema'
 import { Command, CommanderError } from 'commander'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import * as promotionPosture from '../curation/promotion-posture.js'
-import { promotionHostProof } from './promotion-host-proof.js'
-import type { ResolvePromotionPosture } from '@vostride/agent-qa-schema'
 
 const commandHarness = vi.hoisted(() => ({
   promptCalls: [] as Array<{
@@ -691,16 +688,6 @@ describe('knowledge maintenance commands', () => {
     expect(daemonHarness.nudgeCalls).toEqual([])
   })
 
-  it('binds lazy replay so inline maintenance enforces receipts and the quiet rare path', async () => {
-    const workspace = fixtureWorkspace(roots)
-    const proof = promotionHostProof(workspace.configPath)
-    const build = vi.spyOn(promotionPosture, 'buildPromotionPostureResolver').mockImplementation(proof.prepare)
-    const result = await invoke(workspace, ['drain'])
-    expect(result.exitCode).toBeUndefined()
-    proof.verify(commandHarness.drainInputs[0]!.resolvePromotionPosture as ResolvePromotionPosture)
-    expect(build).toHaveBeenCalledTimes(1)
-  })
-
   it('prints promotion paths and holds in report order on stdout', async () => {
     const workspace = fixtureWorkspace(roots)
     commandHarness.drainPromotions = [
@@ -709,27 +696,6 @@ describe('knowledge maintenance commands', () => {
     ]
     const result = await invoke(workspace, ['drain'])
     expect(result.stdout).toContain('curation: c1 promoted via deterministic-verdict-floor\ncuration: c2 held: gate1-receipt-required')
-  })
-
-  it('passes present-root refusal posture into the drain and discloses its identity error', async () => {
-    const workspace = fixtureWorkspace(roots)
-    const floorDir = join(dirname(workspace.configPath), 'agent-qa-eval/reports/noise-floor')
-    mkdirSync(floorDir, { recursive: true })
-    writeFileSync(join(floorDir, 'any-profile.json'), '{}')
-    const result = await invoke(workspace, ['drain'])
-    expect(result.stderr).toContain('curation: posture unavailable:')
-    expect(result.stderr).toContain('use.llm is not set')
-    expect(commandHarness.drainInputs[0].resolvePromotionPosture).toBeTypeOf('function')
-  })
-
-  it('drains a present root with no noise floor on the floor without a posture warning', async () => {
-    const workspace = fixtureWorkspace(roots)
-    mkdirSync(join(dirname(workspace.configPath), 'agent-qa-eval'))
-    const result = await invoke(workspace, ['drain'])
-    expect(result.stderr).not.toContain('posture unavailable')
-    const resolvePosture = commandHarness.drainInputs[0].resolvePromotionPosture as ResolvePromotionPosture
-    expect(resolvePosture({ id: 'floorless-candidate', product: PRODUCT, scope: { tier: 'product', key: PRODUCT },
-      provenance: { runIds: [], receiptDigests: [], capturedAtOrdinals: [] } })).toBeUndefined()
   })
 
   it('cleans a stale daemon registration and falls back to the same inline drain', async () => {

@@ -86,20 +86,6 @@ describe('agent-qa knowledge gates', () => {
     } finally { log.mockRestore(); error.mockRestore() }
   }
 
-  it('refreshes eval-root presence across reads from the same composed host', async () => {
-    const { agentQaRoot, configPath, id } = fixture()
-    const host = composeCliLocalAgent({ configPath, agentQaRoot })
-    const read = () => invokeFunction(host.registry, 'knowledge.gates.list', { recordId: id }, CLI_FUNCTION_CALLER)
-    expect(await read()).toMatchObject({ kind: 'found', posture: 'absent' })
-    const committedRoot = join(agentQaRoot, '..', 'agent-qa-eval')
-    mkdirSync(join(committedRoot, 'reports/noise-floor'), { recursive: true })
-    expect(await read()).toMatchObject({ kind: 'found', posture: 'absent' })
-    writeFileSync(join(committedRoot, 'reports/noise-floor/any-profile.json'), '{}')
-    expect(await read()).toMatchObject({ kind: 'found', posture: 'unavailable', live: { reason: 'posture-unavailable' } })
-    rmSync(committedRoot, { recursive: true })
-    expect(await read()).toMatchObject({ kind: 'found', posture: 'absent' })
-  })
-
   it.each([
     { raw: 'AKIAIOSFODNN7EXAMPLE', defect: 'schema' },
     { raw: 'receipt-auditor@example.invalid', defect: 'schema' },
