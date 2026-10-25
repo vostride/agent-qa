@@ -186,7 +186,7 @@ interface RowOutcome {
   readonly message: string
 }
 
-/** Run doctor's four knowledge rows against ONE synthetic host. */
+/** Run doctor's three knowledge rows against ONE synthetic host. */
 async function doctorRows(
   face: IndexFace,
   embedder: AcquireEmbedderOutcome,
@@ -270,14 +270,10 @@ describe('the retrieval-rung cause labels are one wording on two doors (407-11)'
           const where = `${faceLabel} × ${embedderLabel} × ${profileLabel}`
           const rows = await doctorRows(face, outcome, profile)
           expect(rows.map(row => row.name)).toEqual([
-            'Knowledge store', 'Embedder', 'Retrieval rung', 'Learning mode',
+            'Knowledge store', 'Embedder', 'Retrieval rung',
           ])
-          // Learning mode describes promotion capability, independent of the retrieval fold.
-          const learning = rows[3]!
-          expect(learning.status).toBe('warn')
-          expect(learning.message).toMatch(/^deterministic-verdict-floor — no eval root at /)
 
-          for (const row of rows.slice(0, 3)) {
+          for (const row of rows) {
             if (row.status !== 'warn') continue
             if (![...labels].some((candidate) => row.message.includes(candidate))) {
               unspelled.push(`${where} → ${row.name}: ${JSON.stringify(row.message)}`)

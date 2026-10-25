@@ -61,13 +61,6 @@ vi.mock('@vostride/agent-qa-agent-local', async () => {
     '@vostride/agent-qa-knowledge-local',
   )
   return {
-    // 418-07: keep the newly bound read capabilities on this composition mock.
-    // These no-eval-root cells still exit before reading any knowledge bundles.
-    latestBuildOrdinal: vi.fn(() => 0),
-    LOCAL_CURATION_CAPABILITIES: {
-      readCanaryPostureFacts: knowledge.canaryPostureFactsFor,
-      readLowerTrustShares: knowledge.lowerTrustSharesFor,
-    },
     LOCAL_KNOWLEDGE_PROBES: {
       foldRetrievalRung: knowledge.foldRetrievalRung,
       indexDbPath: knowledge.indexDbPath,
@@ -230,8 +223,8 @@ const NATIVE_READY = {
   embedder: {},
 } as never
 
-/** The four knowledge rows between legacy memory and config validation. */
-const KNOWLEDGE_ROW_NAMES = ['Knowledge store', 'Embedder', 'Retrieval rung', 'Learning mode'] as const
+/** The three knowledge rows between legacy memory and config validation. */
+const KNOWLEDGE_ROW_NAMES = ['Knowledge store', 'Embedder', 'Retrieval rung'] as const
 
 const ESC = String.fromCharCode(27)
 const ANSI_PATTERN = new RegExp(`${ESC}\\[[0-9;]*m`, 'g')
@@ -1091,7 +1084,7 @@ targets:
     await runDoctor()
   }
 
-  it('prints four rows between Legacy v1 memory data and Config validation, store then embedder then rung then learning', async () => {
+  it('prints three rows between Legacy v1 memory data and Config validation, store then embedder then rung', async () => {
     await runHealthyHost()
 
     // Row heads only: a row whose message embeds the checkout path wraps beneath itself where the
@@ -1104,17 +1097,11 @@ targets:
 
     expect(legacy).toBeGreaterThanOrEqual(0)
     expect(validation).toBeGreaterThanOrEqual(0)
-    expect(positions).toEqual([legacy + 1, legacy + 2, legacy + 3, legacy + 4])
-    expect(positions[3]).toBeLessThan(validation)
+    expect(positions).toEqual([legacy + 1, legacy + 2, legacy + 3])
+    expect(positions[2]).toBeLessThan(validation)
   })
 
-  it('prints exactly 21 check rows after adding Learning mode', async () => {
-    await runHealthyHost()
-    const rows = consoleLogs.map(stripAnsi).filter(line => /^ {4}\S.*\b(?:PASS|WARN|FAIL|SKIP)\b/.test(line))
-    expect(rows).toHaveLength(21)
-  })
-
-  it('skips all four rows when no knowledge root resolves, and never omits a row', async () => {
+  it('skips all three rows when no knowledge root resolves, and never omits a row', async () => {
     mockExistsSync.mockReturnValue(false)
 
     await runDoctor()
@@ -1132,15 +1119,13 @@ targets:
     expect(getOutput()).not.toContain('Fix: The daemon starts its embedder worker')
   })
 
-  it('passes the retrieval rows and warns Learning mode on a healthy host without an eval root', async () => {
+  it('passes the retrieval rows on a healthy host', async () => {
     await runHealthyHost()
 
     expect(rowFor('Knowledge store')).toContain('index open at')
     expect(rowFor('Embedder')).toContain(`native (${DEFAULT_EMBEDDING_PROFILE.model_id})`)
     expect(rowFor('Retrieval rung')).toContain('memidex')
-    for (const name of KNOWLEDGE_ROW_NAMES.slice(0, 3)) expect(rowFor(name)).toContain('PASS')
-    expect(rowFor('Learning mode')).toContain('WARN')
-    expect(rowFor('Learning mode')).toContain('deterministic-verdict-floor')
+    for (const name of KNOWLEDGE_ROW_NAMES) expect(rowFor(name)).toContain('PASS')
     expect(process.exitCode).toBe(0)
   })
 
@@ -1310,9 +1295,7 @@ targets:
   })
 
   it('leaves every row on one line at a wide width, byte-identical to the pre-change output', async () => {
-    // 422-27 adds the build's circularity backing to the absent-root Learning mode row.
-    // The longest logical row measures 240 columns; this unwrapped control uses 300 while
-    // the 80-column wrapping guards stay fixed.
+    // 300 columns is wider than any row, so nothing wraps; the 80-column wrapping guards stay fixed.
     forceTerminalWidth(300)
 
     await runHealthyHost()
@@ -1326,7 +1309,6 @@ targets:
       preChangeRow('Embedder', `native (${DEFAULT_EMBEDDING_PROFILE.model_id})`, 'PASS'),
     )
     expect(lines).toContain(preChangeRow('Retrieval rung', 'memidex', 'PASS'))
-    expect(rowFor('Learning mode')).toContain('circularity backing: recorded posture applied')
   })
 })
 

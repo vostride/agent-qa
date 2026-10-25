@@ -1,12 +1,10 @@
 import { afterAll, describe, expect, it, vi } from 'vitest'
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, relative, resolve } from 'node:path'
+import { join, relative } from 'node:path'
 
 import {
-  GATE_RECEIPT_SCHEMA_VERSION,
   DEFAULT_EMBEDDING_PROFILE,
-  asEvidenceToken,
   RETRIEVAL_RUNG_REASONS,
   type EmbeddingProfile,
 } from '@vostride/agent-qa-schema'
@@ -18,29 +16,6 @@ import {
   createKnowledgeChecks,
   type KnowledgeCheckProbes,
 } from '../commands/doctor-knowledge-checks.js'
-import type { PromotionPostureHostFacts, PromotionPostureResolution } from '../curation/promotion-posture.js'
-import { buildPromotionPostureResolver } from '../curation/promotion-posture.js'
-import { emptyCanaryCreditCounters } from '../curation/canary-credit.js'
-import {
-  completedRunsRoot,
-  CURATION_TAIL_RECEIPT_FILE,
-  CURATION_TAIL_RECEIPT_SCHEMA_VERSION,
-  readCurationTailReceipt,
-} from '../curation/curation-tail.js'
-import { promotionHostProof } from './promotion-host-proof.js'
-import { publishBundleForTest, appendPromotionReceipt } from '@vostride/agent-qa-knowledge-local'
-
-// 422-17/422-27 (D-09/D-14/D-19): probe and staging details require an eval root. The build's
-// circularity binding is also disclosed on an absent-root host; no-knowledge-root rows stay
-// skipped with their existing message.
-// It is CONSTANT across the fixtures that do get it for a stated reason rather than by luck: none
-// declares an `eval` judge pool (so the probe gap short-circuits to the first reason without
-// resolving a session), none stages an adversarial batch (so the staged report is `not recorded`
-// and never `staged 0`), and the circularity clause is a fact about this BUILD: both production
-// hosts bind the recorded posture, and agent-local forwards it to the analysis handler.
-const ADVERSARIAL_SUFFIX = '; adversarial: no-probe-model: panel-not-configured; staged not recorded; circularity backing: recorded posture applied'
-const CIRCULARITY_SUFFIX = '; circularity backing: recorded posture applied'
-const PRIOR_SUFFIX = '; label calibration: absent; trust priors: provisional; judge panel: capability gap: panel-not-configured'
 
 const STATIC_PROFILE: EmbeddingProfile = { ...DEFAULT_EMBEDDING_PROFILE, backend: 'static' }
 
@@ -64,16 +39,6 @@ interface Project {
 }
 
 const created: string[] = []
-
-function receipt(project: Project, name: string, canary = emptyCanaryCreditCounters(), extra: Record<string, unknown> = {}) {
-  const dir = join(completedRunsRoot(project.agentQaRoot), name)
-  mkdirSync(dir, { recursive: true })
-  writeFileSync(join(dir, 'handoff.json'), '{}')
-  writeFileSync(join(dir, CURATION_TAIL_RECEIPT_FILE), JSON.stringify({ schemaVersion: CURATION_TAIL_RECEIPT_SCHEMA_VERSION,
-    runId: name, handoffDigest: 'a'.repeat(64), projectionVersion: 1, drainKind: 'drained',
-    handoffHolderPid: null, candidateIds: [], canary, ...extra }))
-  return dir
-}
 
 function makeProject(options: { withKnowledgeDir?: boolean } = {}): Project {
   const projectRoot = mkdtempSync(join(tmpdir(), 'doctor-knowledge-'))
@@ -116,23 +81,21 @@ async function runChecks(project: Project, probes: KnowledgeCheckProbes) {
     store: results[0]!,
     embedder: results[1]!,
     rung: results[2]!,
-    learning: results[3],
   }
 }
 
 describe('createKnowledgeChecks', () => {
-  it('returns exactly four rows named store, embedder, rung, learning in that order', () => {
+  it('returns exactly three rows named store, embedder, rung in that order', () => {
     const project = makeProject()
     const checks = createKnowledgeChecks({ config: project.config, configPath: project.configPath })
     expect(checks.map(check => check.name)).toEqual([
       'Knowledge store',
       'Embedder',
       'Retrieval rung',
-      'Learning mode',
     ])
   })
 
-  it('skips all four rows when the raw config is null', async () => {
+  it('skips all three rows when the raw config is null', async () => {
     const project = makeProject()
     const checks = createKnowledgeChecks({ config: null, configPath: project.configPath })
     const results = await Promise.all(checks.map(check => check.check()))
@@ -140,17 +103,13 @@ describe('createKnowledgeChecks', () => {
       { status: 'skip', message: NO_KNOWLEDGE_ROOT_MESSAGE },
       { status: 'skip', message: NO_KNOWLEDGE_ROOT_MESSAGE },
       { status: 'skip', message: NO_KNOWLEDGE_ROOT_MESSAGE },
-      { status: 'skip', message: NO_KNOWLEDGE_ROOT_MESSAGE + PRIOR_SUFFIX },
     ])
   })
 
-  it('skips all four rows when the configured knowledge dir does not exist on disk', async () => {
+  it('skips all three rows when the configured knowledge dir does not exist on disk', async () => {
     const project = makeProject({ withKnowledgeDir: false })
     const classifyIndexFace = vi.fn(() => ({ source: 'index' as const }))
-    const buildPromotionPosture = vi.fn()
-    const { store, embedder, rung, learning } = await runChecks(project, baseProbes({ classifyIndexFace, buildPromotionPosture }))
-    expect(learning).toEqual({ status: 'skip', message: NO_KNOWLEDGE_ROOT_MESSAGE + PRIOR_SUFFIX })
-    expect(buildPromotionPosture).not.toHaveBeenCalled()
+    const { store, embedder, rung } = await runChecks(project, baseProbes({ classifyIndexFace }))
     expect(store.status).toBe('skip')
     expect(embedder.status).toBe('skip')
     expect(rung.status).toBe('skip')
@@ -368,199 +327,14 @@ describe('createKnowledgeChecks', () => {
     })
   })
 
-  it('warns Learning mode when the eval root is absent, using the display path', async () => {
-    const project = makeProject()
-    const committedRoot = join(project.projectRoot, 'agent-qa-eval')
-    const { learning } = await runChecks(project, baseProbes({
-      buildPromotionPosture: async () => ({ kind: 'no-eval-root', committedRoot }),
-    }))
-    expect(learning).toEqual({ status: 'warn', message: `deterministic-verdict-floor — no eval root at ${relative(process.cwd(), committedRoot)}` + PRIOR_SUFFIX + CIRCULARITY_SUFFIX })
-  })
-
-  it('warns Learning mode when a present eval root has no noise floor yet, keeping the root-present disclosure', async () => {
-    const project = makeProject()
-    const committedRoot = join(project.projectRoot, 'agent-qa-eval')
-    const { learning } = await runChecks(project, baseProbes({
-      buildPromotionPosture: async () => ({ kind: 'no-noise-floor', committedRoot }),
-    }))
-    expect(learning).toEqual({ status: 'warn', message: `deterministic-verdict-floor — eval root at ${relative(process.cwd(), committedRoot)} has no noise floor yet` + PRIOR_SUFFIX + ADVERSARIAL_SUFFIX })
-  })
-
-  it('discloses bound circularity backing without probing an absent eval root', async () => {
-    const project = makeProject()
-    const evalComposition = await import('../eval-session-composition.js')
-    const listStaged = vi.spyOn(evalComposition, 'listStagedAdversarial')
-    const readRefreshes = vi.spyOn(evalComposition, 'readAdversarialRefreshRecords')
-    const resolveSession = vi.spyOn(evalComposition, 'resolveEvalSession')
-    try {
-      const { learning } = await runChecks(project, {
-        resolveEmbedderCapability: async () => LEXICAL_ONLY,
-      })
-      expect(learning?.status).toBe('warn')
-      expect(learning?.message).toContain('no eval root at ')
-      expect(learning?.message).toContain('circularity backing: recorded posture applied')
-      expect(learning?.message).not.toContain('; adversarial:')
-      expect(learning?.message).not.toContain('staged ')
-      expect(listStaged).not.toHaveBeenCalled()
-      expect(readRefreshes).not.toHaveBeenCalled()
-      expect(resolveSession).not.toHaveBeenCalled()
-    } finally {
-      listStaged.mockRestore()
-      readRefreshes.mockRestore()
-      resolveSession.mockRestore()
-    }
-  })
-
-  it('passes the production replay port to the posture probe', async () => {
-    const project = makeProject()
-    const buildPromotionPosture = vi.fn(async () => ({ kind: 'no-eval-root' as const, committedRoot: join(project.projectRoot, 'agent-qa-eval') }))
-    await runChecks(project, baseProbes({ buildPromotionPosture }))
-    expect(buildPromotionPosture).toHaveBeenCalledWith(expect.objectContaining({
-      configPath: expect.any(String), replayGate: { runReplayGate: expect.any(Function) },
-    }))
-  })
-
-  it.each([
-    [true, { capable: false, reason: 'no-judge-configured' }, { kind: 'not-provided', rarePathEligible: false }, 'pass', 'gated (Gate 1 bound; judge none; canary evidence none)'],
-    [false, { capable: false, reason: 'no-judge-configured' }, { kind: 'not-provided', rarePathEligible: false }, 'warn', 'deterministic-verdict-floor — no replay gate bound, no judge configured'],
-    [false, { capable: true, reason: 'eligible', judgeFamily: 'anthropic' }, { kind: 'not-provided', rarePathEligible: false }, 'warn', 'deterministic-verdict-floor — no replay gate bound; judge anthropic configured'],
-    [true, { capable: true, reason: 'eligible', judgeFamily: 'anthropic' }, { kind: 'provided', attributedRows: 4, rarePathEligible: false }, 'pass', 'gated (Gate 1 bound; judge anthropic; canary evidence 4)'],
-    [true, { capable: true, reason: 'eligible', judgeFamily: 'anthropic' }, { kind: 'not-provided', rarePathEligible: false }, 'pass', 'gated (Gate 1 bound; judge anthropic; canary evidence none)'],
-    [false, { capable: false, reason: 'no-eligible-judge' }, { kind: 'not-provided', rarePathEligible: false }, 'warn', 'deterministic-verdict-floor — no replay gate bound; configured judge ineligible'],
-    [true, { capable: false, reason: 'no-eligible-judge' }, { kind: 'not-provided', rarePathEligible: false }, 'pass', 'gated (Gate 1 bound; judge ineligible; canary evidence none)'],
-    [true, { capable: true, reason: 'eligible', judgeFamily: 'anthropic' }, { kind: 'provided', rarePathEligible: false }, 'pass', 'gated (Gate 1 bound; judge anthropic; canary evidence not reported)'],
-    [true, { capable: true, reason: 'eligible', judgeFamily: 'anthropic' }, { kind: 'provided', attributedRows: 0, rarePathEligible: false }, 'pass', 'gated (Gate 1 bound; judge anthropic; canary evidence 0)'],
-  ] as const)('reports Learning mode for bound=%s, judge=%j, canary=%j', async (replayGateAvailable, judge, canary, status, message) => {
-    const project = makeProject()
-    const host: PromotionPostureHostFacts = { lowerTrustShares: [], canaryHorizonBuilds: 5, canaryHorizonBuildsSource: 'default', maxLowerTrustPerScope: 2, maxLowerTrustPerScopeSource: 'default', notices: [], replayGateAvailable, judge, canary, corpusDigest: 'a'.repeat(64), minimumGateSet: 3, profileKey: 'test-profile' }
-    const { learning } = await runChecks(project, baseProbes({
-      buildPromotionPosture: async () => ({ kind: 'ready', committedRoot: join(project.projectRoot, 'agent-qa-eval'), host, resolve: () => undefined }),
-    }))
-    expect(learning).toEqual({ status, message: (replayGateAvailable
-      ? `${message.slice(0, -1)}; ride-along 0; cap-exceeded 0; lower-trust none; staged 0)`
-      : message) + PRIOR_SUFFIX + ADVERSARIAL_SUFFIX })
-  })
-
-  it('folds only validated current receipts into ride-along counts and renders per-product shares', async () => {
-    const project = makeProject()
-    receipt(project, 'first', { ...emptyCanaryCreditCounters(), rideAlongUncredited: 1, ablationCapExceeded: 1 })
-    receipt(project, 'second', { ...emptyCanaryCreditCounters(), rideAlongUncredited: 2, staged: 3 })
-    for (const [name, extra] of [['stamp-3', { schemaVersion: 3 }], ['stamp-4', { schemaVersion: 4 }], ['extra', { unexpected: true }],
-      ['bad-count', { canary: { ...emptyCanaryCreditCounters(), staged: -1 } }]] as const) {
-      const dir = receipt(project, name, { ...emptyCanaryCreditCounters(), rideAlongUncredited: 100 }, extra)
-      expect(readCurationTailReceipt(dir)).toBeUndefined()
-    }
-    const missing = join(completedRunsRoot(project.agentQaRoot), 'missing')
-    mkdirSync(missing)
-    writeFileSync(join(missing, 'handoff.json'), '{}')
-    const host: PromotionPostureHostFacts = { replayGateAvailable: true,
-      judge: { capable: false, reason: 'no-judge-configured' }, canary: { kind: 'not-provided', rarePathEligible: false },
-      corpusDigest: 'a'.repeat(64), minimumGateSet: 3, profileKey: 'test-profile',
-      lowerTrustShares: [{ product: 'example-web', active: 4, lowerTrust: 1 },
-        { product: 'empty-product', active: 0, lowerTrust: 0 }],
-      canaryHorizonBuilds: 5, canaryHorizonBuildsSource: 'default', maxLowerTrustPerScope: 2,
-      maxLowerTrustPerScopeSource: 'default', notices: [] }
-    const { checks, learning } = await runChecks(project, baseProbes({
-      buildPromotionPosture: async () => ({ kind: 'ready', committedRoot: '', host, resolve: () => undefined }),
-    }))
-    expect(checks).toHaveLength(4)
-    expect(learning).toEqual({ status: 'pass', message: 'gated (Gate 1 bound; judge none; canary evidence none; ride-along 3; cap-exceeded 1; lower-trust 1/4 active in example-web, 0/0 active in empty-product; staged 3)' + PRIOR_SUFFIX + ADVERSARIAL_SUFFIX })
-  })
-
-  it('discloses actual on-disk shares through the production doctor facts binding without replay or writes', async () => {
-    const project = makeProject()
-    promotionHostProof(project.configPath)
-    const appendConfig = { knowledgeRoot: project.knowledgeRoot,
-      productKey: 'storefront', commitArtifacts: 'none' as const, writerLeaseId: 'fixture' }
-    for (let index = 0; index < 4; index += 1) {
-      const name = ['alpha', 'beta', 'gamma', 'delta'][index]!
-      const published = publishBundleForTest(appendConfig, {
-        draft: { kind: 'caution', scope: { tier: 'product', key: 'storefront' },
-          anchors: [{ t: 'error', message: name }], summary: name, body: `Observed ${name}.`,
-          originStage: 'run-curation', distilledEvidenceRef: { id: name, sha: 'a'.repeat(64) } },
-        discriminant: { kind: 'caution', errorKey: name }, originClass: 'agent-verified',
-        createdAtOrdinal: 42, screenStates: [], relations: [], artifacts: [],
-        initialEvents: [{ type: 'promoted', evidenceToken: asEvidenceToken(name), curationJobId: name, buildOrdinal: 45 }],
-        provenance: { mode: 'standalone', sourceDescription: 'doctor fixture' },
-        evidenceMarkdown: 'Observed caution.\n',
-      })
-      if (published.kind !== 'published') throw new Error(published.kind)
-      if (index === 0) expect(appendPromotionReceipt(appendConfig, published.id, {
-        schemaVersion: GATE_RECEIPT_SCHEMA_VERSION, kind: 'promotion', candidateId: published.id, promotionPath: 'gate1-lower-trust',
-        citedReceiptDigests: [], producedAtOrdinal: 45, producedBy: { opId: 'doctor-fixture' },
-      })).toEqual({ kind: 'appended' })
-    }
-    receipt(project, 'live', { ...emptyCanaryCreditCounters(), rideAlongUncredited: 3, ablationCapExceeded: 1, staged: 3 })
-    const replay = vi.fn(() => { throw new Error('doctor must never run replay') })
-    const buildPromotionPosture = vi.fn<NonNullable<KnowledgeCheckProbes['buildPromotionPosture']>>(async input => {
-      expect(input.knowledgeRoot).toBe(project.knowledgeRoot)
-      expect(input.agentQaRoot).toBe(project.agentQaRoot)
-      expect(input.canaryFacts).toBeTypeOf('function')
-      expect(input.lowerTrustShares).toBeTypeOf('function')
-      expect(input.currentBuildOrdinal).toBeTypeOf('function')
-      vi.spyOn(input.replayGate!, 'runReplayGate').mockImplementation(replay)
-      return buildPromotionPostureResolver(input)
-    })
-    const snapshot = () => readdirSync(project.projectRoot, { recursive: true, withFileTypes: true })
-      .filter(row => row.isFile()).map(row => {
-        const path = join(row.parentPath, row.name)
-        return [relative(project.projectRoot, path), readFileSync(path).toString('base64')]
-      }).sort((a, b) => a[0]!.localeCompare(b[0]!))
-    const before = snapshot()
-    const { learning } = await runChecks(project, baseProbes({ buildPromotionPosture }))
-    expect(learning?.message).toContain('ride-along 3; cap-exceeded 1; lower-trust 1/4 active in storefront; staged 3')
-    expect(learning?.status).toBe('pass')
-    expect(buildPromotionPosture).toHaveBeenCalledTimes(1)
-    expect(replay).not.toHaveBeenCalled()
-    expect(snapshot()).toEqual(before)
-  })
-
-  it('fails Learning mode with a safe cause while retaining the complete internal refusal', async () => {
-    const project = makeProject()
-    const refusals = ['noise-floor: no artefact for profile X', 'second refusal']
-    const { learning } = await runChecks(project, baseProbes({
-      buildPromotionPosture: async () => ({ kind: 'unavailable', committedRoot: join(project.projectRoot, 'agent-qa-eval'), refusals, resolve: () => undefined }),
-    }))
-    expect(learning).toEqual({ status: 'fail', message: 'posture-unavailable — noise-floor: no artefact for the active profile' + PRIOR_SUFFIX + ADVERSARIAL_SUFFIX })
-    expect(refusals).toEqual(['noise-floor: no artefact for profile X', 'second refusal'])
-  })
-
-  it.each([
-    ['noise-floor: no artefact for profile private-provider/private-model', 'noise-floor: no artefact for the active profile'],
-    ['noise-floor: no minimumGateSet value at /private/project/agent-qa-eval/noise-floor/private-profile.json', 'noise-floor: no minimumGateSet value'],
-    ['/private/project/agent-qa-eval/corpus.json: invalid entry AKIAIOSFODNN7EXAMPLE', 'eval posture could not be resolved'],
-  ])('does not echo profile, path or input text from a refused posture', async (refusal, cause) => {
-    const project = makeProject()
-    const refusals = [refusal]
-    const { learning } = await runChecks(project, baseProbes({
-      buildPromotionPosture: async () => ({ kind: 'unavailable', committedRoot: join(project.projectRoot, 'agent-qa-eval'), refusals, resolve: () => undefined }),
-    }))
-    expect(learning).toEqual({ status: 'fail', message: `posture-unavailable — ${cause}` + PRIOR_SUFFIX + ADVERSARIAL_SUFFIX })
-    expect(refusals).toEqual([refusal])
-  })
-
-  it('folds a throwing posture builder into an unavailable row without its raw message or stack', async () => {
-    const project = makeProject()
-    const { learning } = await runChecks(project, baseProbes({
-      buildPromotionPosture: async () => { throw new Error('posture read refused for private-model: Bearer synthetic-receipt-token') },
-    }))
-    expect(learning).toEqual({ status: 'fail', message: 'posture-unavailable — eval posture could not be resolved' + PRIOR_SUFFIX + ADVERSARIAL_SUFFIX })
-  })
-
-  it('probes each axis exactly once across all four rows', async () => {
+  it('probes each axis exactly once across all three rows', async () => {
     const project = makeProject()
     const classifyIndexFace = vi.fn(() => ({ source: 'index' as const }))
     const resolveEmbedderCapability = vi.fn(() => Promise.resolve(ready('native')))
-    const buildPromotionPosture = vi.fn(async (): Promise<PromotionPostureResolution> => ({ kind: 'no-eval-root', committedRoot: join(project.projectRoot, 'agent-qa-eval') }))
-    const { checks } = await runChecks(project, baseProbes({ classifyIndexFace, resolveEmbedderCapability, buildPromotionPosture }))
+    const { checks } = await runChecks(project, baseProbes({ classifyIndexFace, resolveEmbedderCapability }))
     await Promise.all(checks.map(check => check.check()))
     expect(classifyIndexFace).toHaveBeenCalledTimes(1)
     expect(resolveEmbedderCapability).toHaveBeenCalledTimes(1)
-    expect(buildPromotionPosture).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ configPath: project.configPath,
-      replayGate: { runReplayGate: expect.any(Function) },
-      canaryFacts: expect.any(Function), lowerTrustShares: expect.any(Function),
-      currentBuildOrdinal: expect.any(Function),
-    }))
   })
 
   it('hard-codes allowDownload false on the capability probe (D-20: asking must not change the answer)', async () => {
@@ -636,8 +410,6 @@ describe('createKnowledgeChecks', () => {
     expect(second.store).toEqual(first.store)
     expect(second.embedder).toEqual(first.embedder)
     expect(second.rung).toEqual(first.rung)
-    expect(second.learning).toEqual(first.learning)
-    expect(first.learning).toEqual({ status: 'warn', message: `deterministic-verdict-floor — no eval root at ${relative(process.cwd(), join(project.projectRoot, 'agent-qa-eval'))}` + PRIOR_SUFFIX + CIRCULARITY_SUFFIX })
 
     expect(afterFirst).toEqual(before)
     expect(afterSecond).toEqual(before)

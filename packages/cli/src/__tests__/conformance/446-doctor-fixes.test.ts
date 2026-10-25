@@ -28,7 +28,6 @@ const COMMANDS = [
   'install-mobile-drivers',
   'validate',
   'knowledge rebuild-index',
-  'eval floor',
   'daemon stop',
 ]
 const KEYS = ['workspace.secretsFile', 'workspace.hooksFile', 'workspace.envFile', 'plugins.auth']
