@@ -487,13 +487,12 @@ function withCandidateOnStepZero(handoff: CompletedRunHandoff): CompletedRunHand
 }
 
 describe('stampVerdictMemoryOnPath', () => {
-  it('stamps the records the path served, removes a declaration when it served none, and drops misdirectionRuledOut', () => {
+  it('stamps the records the path served and removes a declaration when it served none', () => {
     const clean = buildSyntheticHandoff({ failureCount: 1 })
     const served = withCandidateOnStepZero(clean)
     const declared = {
       ...deterministicVerdict('unknown', UNKNOWN_SIGNAL_RATIONALE, [0], 0),
       memoryOnPath: [{ recordId: asRecordId('rec-invented'), trust: 'candidate' }],
-      misdirectionRuledOut: { crossCheck: 'held', results: [] },
     } as unknown as Verdict
 
     const onPath = stampVerdictMemoryOnPath({
@@ -502,7 +501,6 @@ describe('stampVerdictMemoryOnPath', () => {
       test: served.tests[0],
     })
     expect(onPath.memoryOnPath).toEqual([{ recordId: ALPHA, trust: 'candidate' }])
-    expect(onPath).not.toHaveProperty('misdirectionRuledOut')
 
     const offPath = stampVerdictMemoryOnPath({
       verdict: declared,
@@ -510,7 +508,6 @@ describe('stampVerdictMemoryOnPath', () => {
       test: clean.tests[0],
     })
     expect(offPath).not.toHaveProperty('memoryOnPath')
-    expect(offPath).not.toHaveProperty('misdirectionRuledOut')
   })
 })
 

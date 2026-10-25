@@ -117,6 +117,29 @@ describe('guardRunAnalysisArtifact: perTest uniqueness on both arrays (G-389-3B 
   })
 })
 
+describe('guardRunAnalysisArtifact: a declared memoryOnPath', () => {
+  it('admits a verdict carrying a well-formed memoryOnPath, entries intact', () => {
+    const memoryOnPath = [{ recordId: 'rec_mem_candidate', trust: 'candidate' }]
+    const artifact = artifactOf([verdictFor(0, { memoryOnPath } as Partial<Verdict>)], [partsFor(0)])
+    expect(guardRunAnalysisArtifact(artifact).verdicts[0]?.memoryOnPath).toEqual(memoryOnPath)
+  })
+
+  it('refuses a memoryOnPath outside the closed trust vocabulary or not an array', () => {
+    expectShapeRefusal(
+      artifactOf(
+        [verdictFor(0, { memoryOnPath: [{ recordId: 'rec_mem_candidate', trust: 'canary' }] } as never)],
+        [partsFor(0)],
+      ),
+    )
+    expectShapeRefusal(
+      artifactOf(
+        [verdictFor(0, { memoryOnPath: { recordId: 'rec_mem_candidate' } } as never)],
+        [partsFor(0)],
+      ),
+    )
+  })
+})
+
 // ---------------------------------------------------------------------------------------
 // G-389-3A: the read half of the two-sided run-identity contract. The write half derives
 // the artifact's path FROM artifact.runId (persistAnalysis); this helper is the ONE place

@@ -30,7 +30,6 @@ import type {
   EvidenceBlobPresence,
   CompletedRunHandoff,
   FunctionCaller,
-  MisdirectionRecordResult,
   RunAnalysisArtifact,
   RunDetail,
   Verdict,
@@ -674,222 +673,75 @@ describe('analysis.get — the D-12 quote leg, through the ONE renderer (406)', 
   })
 })
 
-// ── 422 D-17/D-19/D-20: THE CIRCULARITY EVIDENCE THE OP CARRIES ONTO THE DTO.
-//
-// `analysis.get` is the ONE producer the failure view reads, and the circularity ledger 422-11
-// minted, 422-12 made durable and 422-15 stamped stopped at the verdict: the DTO listed class,
-// producer and confidence and nothing about the memory the run was served. These cells pin the
-// projection's whole contract — what it carries, what it refuses to carry, and the ABSENCE that
-// keeps every pre-422 run rendering exactly as it did.
+const CANDIDATE_RECORD = asRecordId('rec_cand_0001')
+const CANARY_RECORD = asRecordId('rec_canary_01')
 
-const HELD_RECORD = asRecordId('rec_held_0001')
-const FLIPPED_RECORD = asRecordId('rec_flipped_01')
-
-function misdirectionRow(
-  runId: string,
-  over: Partial<MisdirectionRecordResult> = {},
-): MisdirectionRecordResult {
-  return {
-    runId,
-    perTest: 0,
-    stepIndex: 0,
-    decisionOrdinal: 0,
-    recordId: HELD_RECORD,
-    handoffBaseDigest: 'a'.repeat(64),
-    briefDigest: 'b'.repeat(64),
-    corpusDigest: 'c'.repeat(64),
-    profileDigest: 'd'.repeat(64),
-    crossCheck: 'held',
-    seedHonored: true,
-    ...over,
-  }
-}
-
-describe('analysis.get — the circularity evidence projection (422 D-17/D-19/D-20)', () => {
-  it('carries the per-record ledger, the block word and the declaration onto the DTO', async () => {
+describe('analysis.get — the records a verdict declared on its failing path', () => {
+  it('carries the declared memoryOnPath onto the resolved verdict', async () => {
     const handoff = buildSyntheticHandoff({ failureCount: 1 })
-    const runId = String(handoff.runId)
     const artifact: RunAnalysisArtifact = {
       ...artifactFor(handoff),
       verdicts: [{
         ...upgradedAppBug(0),
         memoryOnPath: [
-          { recordId: HELD_RECORD, trust: 'candidate' },
-          { recordId: FLIPPED_RECORD, trust: 'low-trust-active' },
+          { recordId: CANDIDATE_RECORD, trust: 'candidate' },
+          { recordId: CANARY_RECORD, trust: 'low-trust-active' },
         ],
-        misdirectionRuledOut: {
-          crossCheck: 'flipped',
-          results: [
-            misdirectionRow(runId),
-            misdirectionRow(runId, { recordId: FLIPPED_RECORD, crossCheck: 'flipped', stepIndex: 1 }),
-          ],
-        },
       }],
     }
     const output = await analysisOf(
       registryWith({ handoff, analysis: readerOf(artifact) }),
-      runId,
+      String(handoff.runId),
     )
 
-    const misdirection = output.verdicts[0]?.misdirection
-    expect(misdirection?.state, 'a real ledger is MEASURED, never declared-only').toBe('measured')
-    expect(misdirection?.crossCheck, "the block's own word, not a recount").toBe('flipped')
-    expect(misdirection?.results).toEqual([
-      { recordId: HELD_RECORD, crossCheck: 'held' },
-      { recordId: FLIPPED_RECORD, crossCheck: 'flipped' },
-    ])
-    expect(misdirection?.memoryOnPath).toEqual([
-      { recordId: HELD_RECORD, trust: 'candidate' },
-      { recordId: FLIPPED_RECORD, trust: 'low-trust-active' },
+    expect(output.verdicts[0]?.memoryOnPath).toEqual([
+      { recordId: CANDIDATE_RECORD, trust: 'candidate' },
+      { recordId: CANARY_RECORD, trust: 'low-trust-active' },
     ])
   })
 
-  it('OMITS the member entirely for a verdict that said nothing about circularity', async () => {
+  it('omits the member for a verdict that declared nothing', async () => {
     const handoff = buildSyntheticHandoff({ failureCount: 1 })
     const output = await analysisOf(
       registryWith({ handoff, analysis: readerOf(artifactFor(handoff)) }),
       String(handoff.runId),
     )
 
-    // ABSENT, not `{ state: 'not-recorded' }`. Every pre-422 run and the deterministic floor land
-    // here, and a member on every one of them would change what a historical failure view paints.
     expect(output.verdicts[0], 'the verdict is still served').toBeDefined()
-    expect('misdirection' in (output.verdicts[0] as object)).toBe(false)
+    expect('memoryOnPath' in (output.verdicts[0] as object)).toBe(false)
   })
 
-  it('keeps a DECLARED path with no ledger at not-recorded, and never invents a backing', async () => {
+  it('keeps an empty declaration empty', async () => {
     const handoff = buildSyntheticHandoff({ failureCount: 1 })
     const artifact: RunAnalysisArtifact = {
       ...artifactFor(handoff),
-      verdicts: [{
-        ...upgradedAppBug(0),
-        memoryOnPath: [{ recordId: HELD_RECORD, trust: 'candidate' }],
-      }],
+      verdicts: [{ ...upgradedAppBug(0), memoryOnPath: [] }],
     }
     const output = await analysisOf(
       registryWith({ handoff, analysis: readerOf(artifact) }),
       String(handoff.runId),
     )
 
-    const misdirection = output.verdicts[0]?.misdirection
-    expect(misdirection?.state, 'a declaration nobody cross-checked is NOT a result').toBe('not-recorded')
-    expect(misdirection?.crossCheck).toBeUndefined()
-    expect(misdirection?.results).toBeUndefined()
-    expect(misdirection?.backing, 'never the D-19 exemption').toBeUndefined()
-    expect(misdirection?.memoryOnPath).toEqual([{ recordId: HELD_RECORD, trust: 'candidate' }])
+    expect(output.verdicts[0]?.memoryOnPath).toEqual([])
   })
 
-  it('reports the D-19 declared-only backing as its own state, and keeps an EMPTY declaration empty', async () => {
-    const handoff = buildSyntheticHandoff({ failureCount: 1 })
-    const artifact: RunAnalysisArtifact = {
-      ...artifactFor(handoff),
-      verdicts: [{
-        ...upgradedAppBug(0),
-        memoryOnPath: [],
-        misdirectionRuledOut: { crossCheck: 'not-run', results: [], backing: 'declared-only' },
-      }],
-    }
-    const output = await analysisOf(
-      registryWith({ handoff, analysis: readerOf(artifact) }),
-      String(handoff.runId),
-    )
-
-    const misdirection = output.verdicts[0]?.misdirection
-    expect(misdirection?.state).toBe('declared-only')
-    expect(misdirection?.backing).toBe('declared-only')
-    expect(misdirection?.results).toEqual([])
-    // `[]` IS A CLAIM — the author declared no records — and it is not the absence above.
-    expect(misdirection?.memoryOnPath).toEqual([])
-  })
-
-  it('forwards a CLOSED not-run word and drops a reason string this DTO may not carry', async () => {
-    const handoff = buildSyntheticHandoff({ failureCount: 1 })
-    const runId = String(handoff.runId)
-    const artifact: RunAnalysisArtifact = {
-      ...artifactFor(handoff),
-      verdicts: [{
-        ...upgradedAppBug(0),
-        misdirectionRuledOut: {
-          crossCheck: 'not-run',
-          results: [
-            misdirectionRow(runId, { crossCheck: 'not-run', reason: 'posture-unavailable' }),
-            misdirectionRow(runId, {
-              recordId: FLIPPED_RECORD,
-              crossCheck: 'not-run',
-              stepIndex: 1,
-              // A root read failure's verbatim text. It has no masking boundary of its own, and
-              // this DTO crosses into a browser; the closed word above is the whole disclosure.
-              reason: 'ENOENT: open /Users/someone/secret-root/corpus.json',
-            }),
-          ],
-        },
-      }],
-    }
-    const output = await analysisOf(
-      registryWith({ handoff, analysis: readerOf(artifact) }),
-      runId,
-    )
-
-    expect(output.verdicts[0]?.misdirection?.results).toEqual([
-      { recordId: HELD_RECORD, crossCheck: 'not-run', reason: 'posture-unavailable' },
-      { recordId: FLIPPED_RECORD, crossCheck: 'not-run' },
-    ])
-    expect(JSON.stringify(output), 'no producer path text on the wire').not.toContain('secret-root')
-  })
-
-  it('carries NO digest, sample or identity binding from the durable row', async () => {
-    const handoff = buildSyntheticHandoff({ failureCount: 1 })
-    const runId = String(handoff.runId)
-    const artifact: RunAnalysisArtifact = {
-      ...artifactFor(handoff),
-      verdicts: [{
-        ...upgradedAppBug(0),
-        misdirectionRuledOut: {
-          crossCheck: 'held',
-          results: [misdirectionRow(runId, { samples: { k: 3, seeds: [7, 8, 9], modelCalls: 3 } })],
-        },
-      }],
-    }
-    const output = await analysisOf(
-      registryWith({ handoff, analysis: readerOf(artifact) }),
-      runId,
-    )
-
-    const wire = JSON.stringify(output.verdicts[0]?.misdirection)
-    for (const digest of ['a'.repeat(64), 'b'.repeat(64), 'c'.repeat(64), 'd'.repeat(64)]) {
-      expect(wire, 'a row identity is not a fact a reader acts on').not.toContain(digest)
-    }
-    expect(wire).not.toContain('samples')
-    expect(wire).not.toContain('seedHonored')
-  })
-
-  it('gives each member its OWN evidence — no verdict inherits a sibling attribution', async () => {
+  it('gives each member its own declaration', async () => {
     const handoff = buildSyntheticHandoff({ failureCount: 2 })
-    const runId = String(handoff.runId)
     const artifact: RunAnalysisArtifact = {
       ...artifactFor(handoff),
       verdicts: [
-        {
-          ...upgradedAppBug(0),
-          misdirectionRuledOut: {
-            crossCheck: 'flipped',
-            results: [misdirectionRow(runId, { recordId: FLIPPED_RECORD, crossCheck: 'flipped' })],
-          },
-        },
-        { ...upgradedAppBug(1), memoryOnPath: [{ recordId: HELD_RECORD, trust: 'candidate' }] },
+        upgradedAppBug(0),
+        { ...upgradedAppBug(1), memoryOnPath: [{ recordId: CANDIDATE_RECORD, trust: 'candidate' }] },
       ],
       parts: [],
     }
     const output = await analysisOf(
       registryWith({ handoff, analysis: readerOf(artifact) }),
-      runId,
+      String(handoff.runId),
     )
 
-    const byMember = new Map(output.verdicts.map((entry) => [entry.perTest, entry.misdirection]))
-    expect(byMember.get(0)?.state).toBe('measured')
-    expect(byMember.get(0)?.results?.map((row) => row.recordId)).toEqual([FLIPPED_RECORD])
-    expect(byMember.get(0)?.memoryOnPath, "member 0 declared nothing").toBeUndefined()
-    expect(byMember.get(1)?.state, 'member 1 cross-checked nothing').toBe('not-recorded')
-    expect(byMember.get(1)?.results, 'and inherits no ledger').toBeUndefined()
+    const byMember = new Map(output.verdicts.map((entry) => [entry.perTest, entry.memoryOnPath]))
+    expect(byMember.get(0)).toBeUndefined()
+    expect(byMember.get(1)).toEqual([{ recordId: CANDIDATE_RECORD, trust: 'candidate' }])
   })
 })

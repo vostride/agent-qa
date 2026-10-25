@@ -111,23 +111,20 @@ export function misdirectionPathSteps(
 /**
  * Stamps `memoryOnPath` with the low-trust records the run's own served briefs put on the
  * verdict's path, replacing whatever the verdict declared.
- * Removes `memoryOnPath` when the path carries none, and never carries `misdirectionRuledOut`.
+ * Removes `memoryOnPath` when the path carries none.
  */
 export function stampVerdictMemoryOnPath(input: MemoryOnPathStampInput): Verdict {
   const { verdict, parts, test } = input
   if (test === undefined) return verdict
 
   const steps = misdirectionPathSteps(verdict, parts, test)
-  const bare = { ...verdict } as Record<string, unknown>
-  delete bare.misdirectionRuledOut
   if (deriveMemoryOnPathSites(steps).length === 0) {
-    if (verdict.memoryOnPath === undefined && verdict.misdirectionRuledOut === undefined) {
-      return verdict
-    }
+    if (verdict.memoryOnPath === undefined) return verdict
+    const bare: Verdict = { ...verdict }
     delete bare.memoryOnPath
-    return bare as unknown as Verdict
+    return bare
   }
-  return { ...bare, memoryOnPath: deriveMemoryOnPath(steps) } as unknown as Verdict
+  return { ...verdict, memoryOnPath: deriveMemoryOnPath(steps) }
 }
 
 export interface AuthorTokenBudget {

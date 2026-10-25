@@ -18,7 +18,6 @@
 import { z } from 'zod'
 
 import { EXECUTION_CONTEXT_VALUES } from '../run/run-status'
-import { MisdirectionRecordResultSchema } from '../verdict/misdirection-evidence'
 
 export const AnalyzeRunPayloadSchema = z.object({
   /** The run to analyse. */
@@ -45,50 +44,6 @@ export const AnalyzeRunPayloadSchema = z.object({
   gateRun: z.literal(true).optional(),
   /** D-14 §6 outcome-exclusion marker, copied from the handoff carrier. Same literal-only rule. */
   excludedFromOutcomes: z.literal(true).optional(),
-  /**
-   * 422 D-17/D-18: the circularity arbiter's per-record rows, carried so the analysis job can
-   * consider them WITHOUT a second read of the handoff — the same "see what a queued job IS"
-   * reasoning as the two flags above, and with the same disclaimer: `handoffDigest` remains the
-   * integrity answer for the analysed bytes.
-   *
-   * ABSENT means the arbiter never ran; an EMPTY array means it ran and recorded nothing. The
-   * `.strict()` object preserves both, and `superRefine` below keeps a carried row from naming
-   * an identity this payload is not about.
-   */
-  misdirectionEvidence: z.array(MisdirectionRecordResultSchema).optional(),
-}).strict().superRefine((payload, context) => {
-  const rows = payload.misdirectionEvidence
-  if (rows === undefined) return
-  const baseDigests = new Set<string>()
-  for (const row of rows) {
-    baseDigests.add(row.handoffBaseDigest)
-    if (row.runId !== payload.runId) {
-      context.addIssue({
-        code: 'custom',
-        path: ['misdirectionEvidence'],
-        message: `a cross-check row was minted against run ${row.runId}, not ${payload.runId}`,
-      })
-    }
-    if (row.handoffBaseDigest === payload.handoffDigest) {
-      // The row's base digest is the run's pre-execution IDENTITY; `handoffDigest` covers the
-      // finished document, which now contains these rows. A producer that stamped the final
-      // digest into a row has built the self-hash cycle the source digest exists to avoid, and
-      // the two values can never legitimately be equal.
-      context.addIssue({
-        code: 'custom',
-        path: ['misdirectionEvidence'],
-        message:
-          'a cross-check row names the FINAL handoff digest as its source identity; the source digest binds the run, never the finished document',
-      })
-    }
-  }
-  if (baseDigests.size > 1) {
-    context.addIssue({
-      code: 'custom',
-      path: ['misdirectionEvidence'],
-      message: 'cross-check rows name more than one source-digest identity for one run',
-    })
-  }
-})
+}).strict()
 
 export type AnalyzeRunPayload = z.infer<typeof AnalyzeRunPayloadSchema>

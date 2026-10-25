@@ -467,7 +467,6 @@ export {
   QUOTE_SEARCHED_STEP_FIELDS,
   QUOTE_SEARCHED_TEST_OUTCOME_FIELDS,
   resolveRunVerdicts,
-  resolveVerdictMisdirection,
   searchedQuoteTexts,
   searchedTestOutcomeTexts,
   validateAnalysisAgainstHandoff,
@@ -485,45 +484,21 @@ export type {
   ActionAnchorElementInput,
   FingerprintEvidenceLike,
   AnalysisArtifactAdmission,
-  AnalysisValidationOptions,
   AnalysisValidationReject,
   AnalysisValidationResult,
   FailureFingerprintInput,
-  ResolvedMisdirection,
   RunAnalysisArtifact,
   VerdictGroundingQuote,
   VerdictSentenceParts,
 } from './verdict/index'
-// 422 D-17/D-19/D-20: the circularity guard's evidence vocabulary. `memoryOnPath` membership is
-// derived by CODE from the run's own served briefs and the per-record cross-check is folded
-// under one law, so a producer composing evidence and the validator checking it cannot drift.
 export {
-  aggregateMisdirectionEvidence,
   deriveMemoryOnPath,
   deriveMemoryOnPathSites,
-  guardMisdirectionEvidence,
   MEMORY_ON_PATH_TRUSTS,
   MemoryOnPathEntrySchema,
   memoryOnPathTrustOf,
-  MISDIRECTION_BACKINGS,
-  MISDIRECTION_ROOT_POSTURES,
-  misdirectionSourceDigest,
-  MisdirectionEvidenceError,
-  MisdirectionEvidenceSchema,
-  MisdirectionRecordResultSchema,
 } from './verdict/index'
-export type {
-  MemoryOnPathEntry,
-  MemoryOnPathSite,
-  MemoryOnPathTrust,
-  MisdirectionAggregate,
-  MisdirectionAggregationInput,
-  MisdirectionBacking,
-  MisdirectionEvidence,
-  MisdirectionRecordResult,
-  MisdirectionRootPosture,
-  MisdirectionSamples,
-} from './verdict/index'
+export type { MemoryOnPathEntry, MemoryOnPathSite, MemoryOnPathTrust } from './verdict/index'
 export type {
   DeltaEnvelope,
   CompareAndSet,
@@ -1136,12 +1111,7 @@ export {
   AnalysisResolvedVerdictSchema,
   AnalysisSentenceSchema,
   AnalysisClusterViewSchema,
-  // 422 D-17/D-19/D-20: a resolved verdict's circularity evidence, as a surface reads it.
-  ANALYSIS_MISDIRECTION_REASONS,
-  AnalysisMisdirectionRecordSchema,
   AnalysisMemoryOnPathEntrySchema,
-  AnalysisVerdictMisdirectionSchema,
-  projectVerdictMisdirection,
   KNOWLEDGE_BUNDLE_SUMMARY_SCHEMA_VERSION,
   KnowledgeBundleSummarySchema,
   KnowledgeBundlesListInputSchema,
@@ -1234,10 +1204,7 @@ export type {
   AnalysisSentence,
   AnalysisClusterMemberRef,
   AnalysisClusterView,
-  AnalysisMisdirectionReason,
-  AnalysisMisdirectionRecord,
   AnalysisMemoryOnPathEntry,
-  AnalysisVerdictMisdirection,
   KnowledgeBundleSummary,
   KnowledgeBundlesListInput,
   ConfigValueSource,

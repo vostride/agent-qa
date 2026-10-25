@@ -11,61 +11,7 @@
 import type { CompletedRunHandoff } from '../handoff/completed-run-handoff'
 import type { PerTestOutcome } from '../handoff/per-test-outcome'
 import type { RunAnalysisArtifact } from './analysis-artifact'
-import type {
-  MemoryOnPathEntry,
-  MisdirectionEvidence,
-} from './misdirection-evidence'
 import type { Verdict } from './verdict'
-
-/**
- * What a RESOLVED verdict says about circularity (422 D-17/D-19) — three arms, not two.
- *
- * `not-recorded` is every verdict written before 422 and every verdict from a producer that
- * shipped no ledger. It is NOT `declared-only`: that word is D-19's specific claim that an
- * evaluation root was ABSENT, and handing it to a verdict that never made it would be the
- * reader inventing a backing. It is certainly not `held`.
- */
-export type ResolvedMisdirection =
-  | { readonly state: 'not-recorded' }
-  | {
-      readonly state: 'declared-only'
-      readonly evidence: MisdirectionEvidence
-      readonly memoryOnPath?: readonly MemoryOnPathEntry[]
-    }
-  | {
-      readonly state: 'measured'
-      readonly evidence: MisdirectionEvidence
-      readonly memoryOnPath?: readonly MemoryOnPathEntry[]
-    }
-
-/**
- * Read a resolved verdict's circularity evidence without inventing any (422 D-17/D-19).
- *
- * Pure projection, three refusals to invent:
- *
- *   - No `misdirectionRuledOut` answers `not-recorded`, whatever else the verdict carries. A
- *     declared `memoryOnPath` with no ledger beside it is a list of records nobody cross-checked
- *     — reporting it as anything but "not recorded" would read a declaration as a result.
- *   - The `declared-only` marker is reported as its own state, never folded into `measured`.
- *     D-19 admits it only under a genuinely ABSENT evaluation root, and a surface that showed it
- *     as a measurement would present the author's own word as the check on the author's word.
- *   - An ABSENT `memoryOnPath` stays absent rather than becoming `[]`. "The author declared no
- *     records" and "the author declared nothing" are different claims, and this phase keeps them
- *     apart everywhere else.
- *
- * The evidence object is passed through by reference and never rebuilt, so a `flipped` row
- * cannot be softened on the way to a reader.
- */
-export function resolveVerdictMisdirection(verdict: Verdict): ResolvedMisdirection {
-  const evidence = verdict.misdirectionRuledOut
-  if (evidence === undefined) return { state: 'not-recorded' }
-  const declaration =
-    verdict.memoryOnPath === undefined ? {} : { memoryOnPath: verdict.memoryOnPath }
-  if (evidence.backing === 'declared-only') {
-    return { state: 'declared-only', evidence, ...declaration }
-  }
-  return { state: 'measured', evidence, ...declaration }
-}
 
 /**
  * Members whose outcome is worth a root-cause verdict — the complement of the runner's own
@@ -109,13 +55,8 @@ function mintedUnknown(perTest: number): Verdict {
  * Pure over its two arguments. Whoever loads the artifact loads it through
  * `guardRunAnalysisArtifact`; this function never touches a byte of storage.
  *
- * 422 D-17 — WHAT THIS FUNCTION MUST NOT DO. Both paths hand back the verdict OBJECT it found,
- * so a per-record cross-check ledger, a `declared-only` backing marker and an attribution block
- * all survive resolution byte-for-byte; a projection that rebuilt a verdict field-by-field would
- * silently drop every member added after it was written. And the floor's {@link mintedUnknown}
- * carries NO circularity evidence, because it is minted precisely for a member nobody authored
- * anything about — minting `held` there would be the build asserting a cross-check that never
- * ran, on the one population where nothing is known.
+ * Both paths hand back the verdict OBJECT they found, so `memoryOnPath` and an attribution
+ * block survive resolution byte-for-byte.
  */
 export function resolveRunVerdicts(
   artifact: RunAnalysisArtifact | undefined,

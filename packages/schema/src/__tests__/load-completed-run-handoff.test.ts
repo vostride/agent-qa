@@ -567,3 +567,55 @@ describe('C444.1-DISPATCH-PAIR', () => {
     expect(unhealed.tests[0]?.steps[0]?.subActions[0]).not.toHaveProperty('healedDispatch')
   })
 })
+
+describe('a persisted rootCause memoryOnPath at the load boundary', () => {
+  function withRootCause(rootCause: Record<string, unknown>): unknown {
+    return JSON.parse(
+      JSON.stringify({
+        ...makeValidHandoff(),
+        aggregateVerdict: 'failed',
+        tests: [
+          {
+            testId: 't_checkout',
+            testName: 'checkout submits',
+            filePath: 'tests/checkout.yaml',
+            testIndex: 0,
+            outcome: 'failed',
+            steps: [],
+            rootCause: {
+              class: 'app_bug',
+              producer: 'analyze-run',
+              confidence: 0.8,
+              evidence: { citedSteps: [], citedAnchors: [], citedArtifacts: [], rationale: 'r' },
+              memoryMisdirectionRuledOut: true,
+              perTest: 0,
+              ...rootCause,
+            },
+          },
+        ],
+      }),
+    ) as unknown
+  }
+
+  it('round-trips a declared memoryOnPath and leaves an absent one absent', () => {
+    const memoryOnPath = [
+      { recordId: 'rec_mem_candidate', trust: 'candidate' },
+      { recordId: 'rec_mem_canary', trust: 'low-trust-active' },
+    ]
+    const loaded = guardCompletedRunHandoff(withRootCause({ memoryOnPath }))
+    expect(loaded.tests[0]?.rootCause?.memoryOnPath).toEqual(memoryOnPath)
+    const bare = guardCompletedRunHandoff(withRootCause({}))
+    expect('memoryOnPath' in (bare.tests[0]?.rootCause ?? {})).toBe(false)
+  })
+
+  it('refuses a memoryOnPath entry outside the closed trust vocabulary or not an array', () => {
+    expect(() =>
+      guardCompletedRunHandoff(
+        withRootCause({ memoryOnPath: [{ recordId: 'rec_mem_candidate', trust: 'canary' }] }),
+      ),
+    ).toThrow()
+    expect(() =>
+      guardCompletedRunHandoff(withRootCause({ memoryOnPath: { recordId: 'rec_mem_candidate' } })),
+    ).toThrow()
+  })
+})

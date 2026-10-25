@@ -8,11 +8,7 @@ import {
 } from '../versioning/create-version-guard'
 import type { MigrationRegistry } from '../versioning/create-version-guard'
 import { isVerdictClass } from '../verdict/verdict'
-import {
-  hasMisdirectionMemberShapes,
-  MisdirectionRecordResultSchema,
-  misdirectionSourceDigest,
-} from '../verdict/misdirection-evidence'
+import { hasMemoryOnPathShape } from '../verdict/memory-on-path'
 import { canonicalJson } from '../determinism/canonical-json'
 import { sha256hex } from '../determinism/sha256'
 import { screenStateHash } from '../determinism/screen-hash'
@@ -303,13 +299,8 @@ function hasCompleteRootCauseShape(value: unknown): boolean {
   if (typeof value.memoryMisdirectionRuledOut !== 'boolean') return false
   if (typeof value.perTest !== 'number') return false
 
-  // 422 D-17: the two additive evidence members are PRESENT-IMPLIES-VALID, delegated to the
-  // schemas that declare them for the same reason `retrievalTrace` delegates next door — they
-  // ship as zod contracts, and a second hand-rolled spelling here would be a guard free to
-  // drift from the contract a producer composes evidence against. A malformed present member is
-  // REFUSED rather than stripped: a dropped claim is a claim no reader ever sees, and this
-  // block exists to make one visible. Absence stays legal on every pre-422 verdict.
-  if (!hasMisdirectionMemberShapes(value)) return false
+  // A present `memoryOnPath` must be well formed; a malformed one is refused, not stripped.
+  if (!hasMemoryOnPathShape(value)) return false
 
   if ('attribution' in value) {
     const attribution = value.attribution
@@ -611,45 +602,6 @@ function hasQuarantineAppliedShape(value: unknown): boolean {
 }
 
 /**
- * 422 D-17/D-18: the run-level arbiter sidecar, admitted only when every row is a COMPLETE
- * cross-check row that belongs to THIS run.
- *
- * Three refusals beyond the row schema, each closing a way a row could be lifted from elsewhere
- * and replayed as this run's exoneration:
- *
- *   - a foreign `runId` — the row was minted against another run;
- *   - a `handoffBaseDigest` that is not {@link misdirectionSourceDigest} of this document — the
- *     row names another run's identity even when it copied this run's id;
- *   - two rows for one EXPOSURE `(perTest, stepIndex, recordId)` — a second answer to one check
- *     is not a second check. `aggregateMisdirectionEvidence` refuses the same pair at fold
- *     time; catching it at the load boundary means a document that reaches a reader cannot
- *     already be one the fold is obliged to reject. The fold stays the authority — this is a
- *     cheaper, earlier refusal of the same fact, never a replacement for it.
- *
- * The digest is computed from members this predicate's caller has already validated, so it is
- * never taken over an unchecked identity. An EMPTY array is legal and meaningful (see
- * `CompletedRunHandoff.misdirectionEvidence`); only the member's ABSENCE means silence.
- */
-function hasMisdirectionSidecarShape(value: unknown, handoff: Record<string, unknown>): boolean {
-  if (!Array.isArray(value)) return false
-  const baseDigest = misdirectionSourceDigest(handoff as unknown as CompletedRunHandoff)
-  const exposures = new Set<string>()
-  for (const candidate of value) {
-    const parsed = MisdirectionRecordResultSchema.safeParse(candidate)
-    if (!parsed.success) return false
-    const row = parsed.data
-    if (row.runId !== handoff.runId) return false
-    if (row.handoffBaseDigest !== baseDigest) return false
-    // Joined on U+001F, a separator no component can contain, so (1, '1x') and (11, 'x')
-    // stay two exposures rather than colliding into one.
-    const exposure = `${row.perTest}${row.stepIndex}${row.recordId}`
-    if (exposures.has(exposure)) return false
-    exposures.add(exposure)
-  }
-  return true
-}
-
-/**
  * Guarantees every required root field plus the required fields on each per-test outcome
  * and traversed step before a handoff reaches direct consumers, including the complete
  * discriminated shapes of the two traversed optional blocks — `planSource` and `rootCause`
@@ -715,12 +667,7 @@ function hasCompleteHandoffShape(value: unknown): boolean {
     (!('quarantineApplied' in value) ||
       (Array.isArray(value.quarantineApplied) &&
         value.quarantineApplied.every(hasQuarantineAppliedShape))) &&
-    (!('plannerLimits' in value) || hasPlannerLimitsRecordShape(value.plannerLimits)) &&
-    // 422 D-17/D-18. Last in the chain on purpose: the row-identity check digests this
-    // document's `runId`/`scope`/`buildOrdinal`/`configDigests`, and every one of those has
-    // been validated by the clauses above before control reaches here.
-    (!('misdirectionEvidence' in value) ||
-      hasMisdirectionSidecarShape(value.misdirectionEvidence, value))
+    (!('plannerLimits' in value) || hasPlannerLimitsRecordShape(value.plannerLimits))
   )
 }
 

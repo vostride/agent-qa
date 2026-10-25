@@ -18,7 +18,6 @@ import {
   exercisedAnchors,
   failingStepOf,
   failureFingerprint,
-  projectVerdictMisdirection,
   resolveRunVerdicts,
   slugBranch,
 } from '@vostride/agent-qa-schema'
@@ -176,11 +175,6 @@ export const analysisGetSpec: FunctionSpec<AnalysisGetInput, AnalysisGetOutput> 
       verdicts: await Promise.all(resolved.map(async (verdict) => {
         const test = document.tests.find((candidate) => candidate.testIndex === verdict.perTest)
         const cited = verdict.evidence.citedArtifacts
-        // 422 D-17/D-19/D-20: what THIS verdict said about the memory it was served, thinned by
-        // the DTO's own projection. OMITTED for a verdict that said nothing — the deterministic
-        // floor's minted `unknown` and every verdict written before 422 — so a run with no
-        // arbiter reaches the failure view exactly as it did, with no member to misread.
-        const misdirection = projectVerdictMisdirection(verdict)
         return {
           perTest: verdict.perTest,
           testId: test?.testId ?? '',
@@ -191,7 +185,14 @@ export const analysisGetSpec: FunctionSpec<AnalysisGetInput, AnalysisGetOutput> 
             citedSteps: [...verdict.evidence.citedSteps],
             citedArtifacts: await annotatePresence(deps.evidenceBlobs, input.runId, cited),
           },
-          ...(misdirection === undefined ? {} : { misdirection }),
+          ...(verdict.memoryOnPath === undefined
+            ? {}
+            : {
+                memoryOnPath: verdict.memoryOnPath.map((entry) => ({
+                  recordId: String(entry.recordId),
+                  trust: entry.trust,
+                })),
+              }),
         }
       })),
       sentences,

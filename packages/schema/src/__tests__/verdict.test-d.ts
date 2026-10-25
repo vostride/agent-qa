@@ -37,11 +37,7 @@ expectTypeOf<Verdict['producer']>().toEqualTypeOf<
 type TestBugVerdict = Extract<Verdict, { class: 'test_bug' }>
 expectTypeOf<TestBugVerdict['subtype']>().toEqualTypeOf<TestBugSubtype | undefined>()
 
-// The exact key set of a verdict arm. 422 D-17/D-19/D-20 widen it by exactly two ADDITIVE
-// optional members — `memoryOnPath` (the declared on-path record set, recomputed and checked
-// by the validator) and `misdirectionRuledOut` (the complete per-record cross-check backing
-// the frozen boolean beside it). The boolean itself is untouched, and the eight-class union
-// pinned above is unchanged.
+// The exact key set of a verdict arm.
 type FlakeVerdict = Extract<Verdict, { class: 'flake' }>
 expectTypeOf<keyof FlakeVerdict>().toEqualTypeOf<
   | 'class'
@@ -51,7 +47,6 @@ expectTypeOf<keyof FlakeVerdict>().toEqualTypeOf<
   | 'attribution'
   | 'memoryMisdirectionRuledOut'
   | 'memoryOnPath'
-  | 'misdirectionRuledOut'
   | 'perTest'
 >()
 

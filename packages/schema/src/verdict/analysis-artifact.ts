@@ -14,7 +14,7 @@ import {
   VersionGuardError,
 } from '../versioning/create-version-guard'
 import type { MigrationRegistry } from '../versioning/create-version-guard'
-import { hasMisdirectionMemberShapes } from './misdirection-evidence'
+import { hasMemoryOnPathShape } from './memory-on-path'
 import { VerdictSentencePartsSchema } from './sentence-parts'
 import type { VerdictSentenceParts } from './sentence-parts'
 import { isVerdictClass } from './verdict'
@@ -81,13 +81,9 @@ function hasVerdictShape(value: unknown): boolean {
   if (typeof evidence.rationale !== 'string') return false
   if (typeof value.memoryMisdirectionRuledOut !== 'boolean') return false
   if (typeof value.perTest !== 'number') return false
-  // 422 D-17: the two additive circularity members are present-implies-valid, through the same
-  // predicate the handoff loader applies to a persisted `rootCause` — one spelling, both
-  // boundaries. A malformed present block is REFUSED here rather than dropped: this artifact is
-  // the durable home a reader consults, and a stripped claim reads exactly like a claim that
-  // was never made. Absence stays legal, so every pre-422 artifact keeps loading and none of
-  // them is handed a backing it never declared.
-  if (!hasMisdirectionMemberShapes(value)) return false
+  // A malformed present `memoryOnPath` is refused, not dropped: a stripped claim reads like one
+  // that was never made.
+  if (!hasMemoryOnPathShape(value)) return false
   return true
 }
 
