@@ -54,9 +54,6 @@
 // Phase 436-09 D-06 prints the effective planner limits before the first test of each run, so
 // the three stdout fields gained `Limits: 30 actions, 30 planning turns per step` ahead of each
 // `Running N test(s)...` line, by hand; the historical capture was not regenerated.
-// 418 CR-02 additionally requires one strict originating-run canary-policy.json per
-// produced handoff. The capture helper checks its exact contents and run identity;
-// the inventory below adds its explicit cardinality, without filtering the file.
 // Phase 444-14 D-22: in the `ci` and `cloud` contexts each pending stage on the exit line states
 // its resume limit. The golden is a local reading and the capture inherits the caller's `CI`, so
 // the two affected stderr fields are read with that suffix in the context the run resolves (444-21);
@@ -174,11 +171,10 @@ describe('agent-qa run parity across the in-process extraction (401-11)', () => 
         expect(actual.targetHits).toEqual([...expected.targetHits])
         // THE ONE FILTERED AXIS — see the header. Subtracted from BOTH sides, so a removal from
         // the golden inventory and an undeclared addition each still red.
-        const policyFiles = Array(invocation.id === 'all' ? 2 : 1).fill('canary-policy.json')
         for (const retired of RETIRED_RUN_DIR_FILES) expect(actual.runDirFiles).not.toContain(retired)
         const expectedFiles = expected.runDirFiles.filter((name) => !RETIRED_RUN_DIR_FILES.includes(name))
         expect(withoutDeclaredRunDirAdditions(actual.runDirFiles))
-          .toEqual(withoutDeclaredRunDirAdditions([...expectedFiles, ...policyFiles].sort()))
+          .toEqual(withoutDeclaredRunDirAdditions([...expectedFiles].sort()))
         expect(actual.exitCode).toBe(expected.exitCode)
       },
       180_000,

@@ -319,7 +319,6 @@ export function defaultPostRunTailOperations(): PostRunTailOperations {
 export interface RunPostRunTailOptions extends Pick<
   RunCurationTailOptions,
   | 'runId'
-  | 'maxAblations'
   | 'agentQaRoot'
   | 'knowledgeConfig'
   | 'configDir'
@@ -331,7 +330,6 @@ export interface RunPostRunTailOptions extends Pick<
   /** The resolved project config file; the composition resolves everything else from it. */
   configPath: string
   trustPriors?: ReturnType<typeof trustPriorsForHost>
-  canaryAblation?: import('./canary-credit.js').CanaryAblation
   /**
    * What the post-verdict step's enqueue answered (404 D-05).
    *
@@ -583,8 +581,6 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
     const runPromotionPosture = await preparePromotionPosture(handoff.buildOrdinal, handoff.scope)
     const folded = await ops().curateCompletedRun({
       resolveTrustPriors,
-      ...(input.runId !== opts.runId || opts.maxAblations === undefined ? {} : { maxAblations: opts.maxAblations }),
-      ...(opts.canaryAblation === undefined ? {} : { operations: { canaryAblation: opts.canaryAblation } }),
       ...(runPromotionPosture === undefined ? {} : { resolvePromotionPosture: runPromotionPosture }),
       runDir: curatedRunDir,
       handoff,
@@ -859,7 +855,6 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
         if (!preparationRecoveryPending) await ops().runCurationTail({
           resolveTrustPriors,
           resolvePromotionPostureForRun: preparePromotionPosture,
-          ...(opts.canaryAblation === undefined ? {} : { operations: { canaryAblation: opts.canaryAblation } }),
           ...(resolvePromotionPosture === undefined ? {} : { resolvePromotionPosture }),
           runId: opts.runId,
           agentQaRoot: opts.agentQaRoot,
@@ -1227,10 +1222,9 @@ export function renderChainTerminalLine(
   const nonSignalClasses = canary === undefined || nonSignalTotal === 0 ? ''
     : ` (${NON_SIGNAL_CLASSES.map(name => `${name} ${canary.nonSignal[name]}`).join(', ')})`
   const canaryText = canary === undefined ? '' :
-    `canary: credited ${canary.credited}, ride-along ${canary.rideAlongUncredited}`
-    + `, cap-exceeded ${canary.ablationCapExceeded}`
+    `canary: ride-along ${canary.rideAlongUncredited}`
     + `, non-signal ${nonSignalTotal}${nonSignalClasses}`
-    + `, rerun-excluded ${canary.rerunExcluded}, staged ${canary.staged}`
+    + `, rerun-excluded ${canary.rerunExcluded}`
   const curationCounts = counts.join(', ') + (canaryText === '' ? '' :
     `${counts.length === 0 ? '' : '; '}${canaryText}`)
   return `post-processing ${notification.outcome} for ${notification.runId} — ${[

@@ -29,16 +29,10 @@
 // see `post-verdict-step.ts`'s header for why each arm sits where it does.
 
 import { describe, expect, it, vi } from 'vitest'
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { tmpdir } from 'node:os'
-import { generateRunId } from '@vostride/agent-qa-ids'
-import { CURRENT_HANDOFF_SCHEMA_VERSION, asRunId, slugBranch } from '@vostride/agent-qa-schema'
-import { readRunCanaryPolicy } from '../canary-run-state.js'
+import { CURRENT_HANDOFF_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 
 import {
   createPostVerdictStep,
-  recordCanaryPolicy,
   dispositionOf,
   enqueueAnalyzeRun,
   PostProcessingUnboundError,
@@ -93,8 +87,7 @@ function stubOperations(
 ): Partial<PostVerdictStepOperations> {
   return {
     // This legacy queue/lease harness substitutes IO; real ownership is exercised in post-verdict-continuation.test.ts.
-    ownContinuation: async ({ initializePolicy, enqueue }) => { await initializePolicy?.(); return await enqueue() },
-    recordCanaryPolicy: vi.fn(async () => undefined),
+    ownContinuation: async ({ enqueue }) => await enqueue(),
     acquireWriterLease: vi.fn(() => ACQUIRED) as unknown as PostVerdictStepOperations['acquireWriterLease'],
     releaseLease: vi.fn(() => ({ kind: 'released' })) as unknown as PostVerdictStepOperations['releaseLease'],
     readWriterLease: vi.fn(() => ({ kind: 'absent' })) as unknown as PostVerdictStepOperations['readWriterLease'],
@@ -406,89 +399,6 @@ describe('enqueueAnalyzeRun — THE one durable hand-off (404 D-05, relocated fr
 })
 
 describe('createPostVerdictStep — decide without mutating, acquire only for a pump (404 D-10, Pitfall 3)', () => {
-  it.each([
-    { source: ['flag'] }, { source: ['config'] }, { source: ['default'] },
-    { source: null }, { source: 1 }, { source: {} },
-  ])('refuses a non-string stored canary policy source: $source', ({ source }) => {
-    const runDir = mkdtempSync(join(tmpdir(), 'agent-qa-canary-policy-'))
-    const runId = generateRunId()
-    try {
-      writeFileSync(join(runDir, 'canary-policy.json'), JSON.stringify({
-        schemaVersion: 2, runId, maxAblations: 4, source,
-      }))
-      expect(() => readRunCanaryPolicy(runDir, runId)).toThrow('canary policy invalid')
-    } finally { rmSync(runDir, { recursive: true, force: true }) }
-  })
-  it.each(['flag', 'config', 'default'] as const)('accepts the primitive stored policy source %s', source => {
-    const runDir = mkdtempSync(join(tmpdir(), 'agent-qa-canary-policy-'))
-    const runId = generateRunId()
-    const policy = { schemaVersion: 2, runId, maxAblations: 4, source }
-    try {
-      writeFileSync(join(runDir, 'canary-policy.json'), JSON.stringify(policy))
-      expect(readRunCanaryPolicy(runDir, runId)).toEqual(policy)
-    } finally { rmSync(runDir, { recursive: true, force: true }) }
-  })
-  it('refuses a malformed stored policy on resumption before enqueue or daemon handoff', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'agent-qa-canary-policy-'))
-    const runId = generateRunId()
-    const runDir = join(root, 'runs', slugBranch(runId))
-    mkdirSync(runDir, { recursive: true })
-    try {
-      writeFileSync(join(runDir, 'canary-policy.json'), JSON.stringify({
-        schemaVersion: 2, runId, maxAblations: 1, source: ['flag'],
-      }))
-      const operations = stubOperations({
-        recordCanaryPolicy,
-        composeHost: vi.fn(() => stubHost()),
-      })
-      const step = createPostVerdictStep({
-        runId, agentQaRoot: root, knowledgeRoot: KNOWLEDGE_ROOT,
-        configPath: CONFIG_PATH, maxAblations: 8, log: { warn: vi.fn() }, operations,
-      })
-      const outcome = await step.port.run({ runId: asRunId(runId), verdict: 'passed' as never })
-      expect(outcome.disposition).toBe('detached')
-      expect(outcome.warning?.code).toBe('post-run-enqueue-failed')
-      expect(outcome.warning?.message).toContain('canary policy invalid')
-      expect(operations.composeHost).not.toHaveBeenCalled()
-      expect(operations.nudgeDaemon).not.toHaveBeenCalled()
-      expect(operations.readWriterLease).not.toHaveBeenCalled()
-      expect(step.handoff.takeAcquiredLease()).toBeUndefined()
-      expect(() => readRunCanaryPolicy(runDir, runId)).toThrow('canary policy invalid')
-    } finally { rmSync(root, { recursive: true, force: true }) }
-  })
-  it.each([true, false])('persists the originating cap before enqueue and daemon handoff (flag=%s)', async flag => {
-    const root = mkdtempSync(join(tmpdir(), 'agent-qa-canary-policy-'))
-    try {
-      const runId = generateRunId()
-      const runDir = join(root, 'runs', slugBranch(runId))
-      mkdirSync(runDir, { recursive: true })
-      const configPath = join(root, 'agent-qa.config.yaml')
-      writeFileSync(configPath, 'workspace:\n  testMatch: [tests/**/*.yaml]\n  suiteMatch: [suites/**/*.suite.yaml]\n  hooksFile: hooks.yaml\n  envFile: .env\n  secretsFile: .env.secrets.local\nuse:\n  mobile:\n    appState: preserve\neval:\n  gate2:\n    maxAblations: 4\n')
-      const expected = { schemaVersion: 2, runId, maxAblations: flag ? 1 : 4, source: flag ? 'flag' : 'config' }
-      const operations = stubOperations({
-        recordCanaryPolicy,
-        loadCompletedRunHandoff: () => ({ ...HANDOFF, runId: asRunId(runId) }),
-        readWriterLease: vi.fn(() => PARSED_LEASE),
-        composeHost: () => {
-          expect(readRunCanaryPolicy(runDir, runId)).toEqual(expected)
-          return stubHost()
-        },
-        nudgeDaemon: vi.fn(async () => {
-          expect(readRunCanaryPolicy(runDir, runId)).toEqual(expected)
-          return undefined
-        }),
-      })
-      const run = (maxAblations?: number) => createPostVerdictStep({
-        runId, agentQaRoot: root, knowledgeRoot: KNOWLEDGE_ROOT, configPath,
-        ...(maxAblations === undefined ? {} : { maxAblations }),
-        log: { warn: vi.fn() }, operations,
-      }).port.run({ runId: runId as never, verdict: 'passed' as never })
-      expect(await run(flag ? 1 : undefined)).toEqual({ disposition: 'handedOff' })
-      expect(operations.nudgeDaemon).toHaveBeenCalledOnce()
-      expect(await run(8)).toEqual({ disposition: 'handedOff' })
-      expect(readRunCanaryPolicy(runDir, runId)).toEqual(expected)
-    } finally { rmSync(root, { recursive: true, force: true }) }
-  })
   it('a free lease reads drained and ACQUIRES NOTHING until a pump asks', async () => {
     const operations = stubOperations()
     const step = createPostVerdictStep({

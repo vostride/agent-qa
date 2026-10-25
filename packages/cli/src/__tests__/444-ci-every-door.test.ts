@@ -358,10 +358,10 @@ describe('C444-CI-EVERY-DOOR', () => {
       })))
       // An intent left behind by a run that stopped after recording it.
       await expect(ownPostVerdictContinuation({
-        ...input, maxAblations: 1,
+        ...input,
         enqueue: async () => 'enqueued' as const,
-        queued: async () => { throw new Error('stop after intent before preparation') },
-      })).rejects.toThrow('stop after intent before preparation')
+        queued: async () => { throw new Error('stop after intent before enqueue') },
+      })).rejects.toThrow('stop after intent before enqueue')
       const pendingPath = postVerdictPendingPath(input)
 
       const warnings: string[] = []

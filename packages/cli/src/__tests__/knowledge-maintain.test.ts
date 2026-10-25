@@ -1158,18 +1158,16 @@ describe('knowledge maintenance commands', () => {
     const workspace = fixtureWorkspace(roots)
     seedPendingCandidate(workspace, SECOND_CANDIDATE_ID)
     writeRunReceipt(workspace, 'z-run-dir', {
-      canary: { credited: 0, rideAlongUncredited: 0, ablationCapExceeded: 0, ablationHeld: 0,
-        ablationInconclusive: 0, ablationError: 0, rerunExcluded: 0,
-        nonSignal: { environment: 0, timeout: 0, flake: 0 }, staged: 0, stagingRefused: 0 },
+      canary: { rideAlongUncredited: 0, rerunExcluded: 0,
+        nonSignal: { environment: 0, timeout: 0, flake: 0 } },
       runId: 'run-zeta',
       drainKind: 'handed-off',
       handoffHolderPid: 404,
       candidateIds: [SECOND_CANDIDATE_ID],
     })
     writeRunReceipt(workspace, 'a-run-dir', {
-      canary: { credited: 0, rideAlongUncredited: 0, ablationCapExceeded: 0, ablationHeld: 0,
-        ablationInconclusive: 0, ablationError: 0, rerunExcluded: 0,
-        nonSignal: { environment: 0, timeout: 0, flake: 0 }, staged: 0, stagingRefused: 0 },
+      canary: { rideAlongUncredited: 0, rerunExcluded: 0,
+        nonSignal: { environment: 0, timeout: 0, flake: 0 } },
       runId: 'run-alpha',
       drainKind: 'drained',
       handoffHolderPid: null,

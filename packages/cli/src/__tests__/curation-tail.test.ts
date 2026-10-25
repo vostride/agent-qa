@@ -1,6 +1,4 @@
 import { emptyCanaryCreditCounters } from '../curation/canary-credit.js'
-import { creditCanaryAttributions, type CanaryAblation } from '../curation/canary-credit.js'
-import { readRunCanaryPolicy, writeRunCanaryPolicy } from '../curation/canary-run-state.js'
 import { generateRunId } from '@vostride/agent-qa-ids'
 import { CURRENT_HANDOFF_SCHEMA_VERSION, asRecordId } from '@vostride/agent-qa-schema'
 import {
@@ -58,60 +56,6 @@ const mask = (text: string) => text
 const modelDeps = {} as RunCurationTailOptions['modelDeps']
 
 describe('canary receipt contract', () => {
-  it('curates backlog runs with their own recorded caps and sources, with explicit legacy fallback', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'agent-qa-policy-backlog-'))
-    try {
-      const handoffs = [1, 2, undefined].map(() => completeHandoffForGuard(generateRunId()))
-      const { makeScreenStateFixture } = await import(new URL('../../../knowledge-local/src/__tests__/fixtures/bundle-fixture.js', import.meta.url).href)
-      for (const h of handoffs) {
-        const state: import('@vostride/agent-qa-schema').ScreenState = makeScreenStateFixture()
-        state.url = 'https://fixture.example/checkout'
-        h.tests[0]!.steps[0]!.subActions = [{ plan: 'Open checkout', exchanges: [],
-          plannedAction: { type: 'navigate', to: 'url', url: state.url }, stateBefore: state, result: { success: true } }]
-      }
-      const dirs = handoffs.map(h => join(root, RUNS_SUBDIR, slugBranch(h.runId)))
-      dirs.forEach(dir => mkdirSync(dir, { recursive: true }))
-      writeRunCanaryPolicy(dirs[0]!, { schemaVersion: 2, runId: String(handoffs[0]!.runId), maxAblations: 1, source: 'flag' })
-      writeRunCanaryPolicy(dirs[1]!, { schemaVersion: 2, runId: String(handoffs[1]!.runId), maxAblations: 2, source: 'config' })
-      const ablation: CanaryAblation = { isNovel: async () => false, stage: async () => ({ kind: 'no-eval-root' }),
-        corpusDigest: async () => ({ kind: 'digest', corpusDigest: 'a'.repeat(64) }),
-        resolveCaps: async () => ({ maxAblations: 4, source: 'default' }),
-        ablate: vi.fn(async () => ({ kind: 'ablated' as const, crossCheck: 'flipped' as const,
-          corpusDigest: 'a'.repeat(64), k: 3, baseSeed: 11, seeds: [11, 12, 13], seedHonored: true,
-          spend: { modelCalls: 5, screens: 5, promptTokens: 0, completionTokens: 0 }, gate2Dir: root })),
-      }
-      const seen: Record<string, number> = {}
-      const operations = successfulOperations({ canaryAblation: ablation,
-        loadCompletedRunHandoff: path => handoffs[dirs.findIndex(dir => path.startsWith(dir))]!,
-        listCompletedRunDirs: () => dirs,
-        emitCanaryOutcomes: async opts => {
-          const attributed = await creditCanaryAttributions({ handoff: opts.handoff, runDir: opts.runDir,
-            completedAblations: [], saveCompletedAblation: () => undefined,
-            knowledgeRoot, maxAblations: opts.credit!.maxAblations!, ablation: opts.credit!.ablation!,
-            readBundleStateDigests: () => ({ kind: 'not-found' }), observationIdOf: row => `${row.runId}:${row.candidateId}`,
-            attributions: [0, 1, 2].map(index => ({ kind: 'outcome' as const, source: 'served-brief' as const,
-              outcome: { candidateId: asRecordId(`fixture-policy-${index}`), runId: String(opts.handoff.runId),
-                testId: opts.handoff.tests[0]!.testId, testIndex: 0, stepIndex: 0, buildOrdinal: 42,
-                briefDigest: 'brief', attribution: 'fixture exercised checkout', exercisedAnchor: { t: 'page' as const, route: 'https://fixture.example/checkout' },
-                runOutcome: 'positive' as const, benefit: 'rode-along' as const, stateValidity: 'unknown' as const } })),
-          })
-          seen[String(opts.handoff.runId)] = attributed.counters.credited
-          return { canary: attributed.counters, emitted: 3, refused: 0, unresolved: 0,
-            procedure: { emitted: 0, refused: 0, unresolved: 0 }, details: [] }
-        },
-      })
-      const info = vi.fn()
-      await runCurationTail(baseOptions(operations, { agentQaRoot: root, runId: String(handoffs[0]!.runId),
-        maxAblations: 8, log: { warn: vi.fn(), info } }))
-      expect(handoffs.map(h => seen[String(h.runId)])).toEqual([1, 2, 3])
-      expect(ablation.ablate).toHaveBeenCalledTimes(6)
-      expect(info).toHaveBeenCalledWith('canary cap: maxAblations=1 (flag)')
-      expect(info).toHaveBeenCalledWith('canary cap: maxAblations=2 (config)')
-      expect(info).toHaveBeenCalledWith(expect.stringContaining('legacy run without recorded policy'))
-      writeFileSync(join(dirs[0]!, 'canary-policy.json'), '{"schemaVersion":1,"maxAblations":8}')
-      expect(() => readRunCanaryPolicy(dirs[0]!, String(handoffs[0]!.runId))).toThrow('canary policy invalid')
-    } finally { rmSync(root, { recursive: true, force: true }) }
-  })
   it('reads a receipt with the current key set and stamp', () => {
     const dir = mkdtempSync(join(tmpdir(), 'agent-qa-receipt-reader-'))
     try {
@@ -140,10 +84,10 @@ describe('canary receipt contract', () => {
           delete receipt.canary
         }
         if (mode === 'stamp-4') receipt.schemaVersion = 4
-        if (mode === 'missing') delete counters.staged
+        if (mode === 'missing') delete counters.rideAlongUncredited
         if (mode === 'extra') counters.unknown = 0
-        if (mode === 'negative') counters.credited = -1
-        if (mode === 'fractional') counters.ablationError = 0.5
+        if (mode === 'negative') counters.rideAlongUncredited = -1
+        if (mode === 'fractional') counters.rerunExcluded = 0.5
         if (mode === 'nonSignal-extra') counters.nonSignal = { environment: 0, timeout: 0, flake: 0, unknown: 0 }
         if (mode === 'nonSignal-missing') counters.nonSignal = { environment: 0, timeout: 0 }
         if (mode === 'nonSignal-negative') counters.nonSignal = { environment: -1, timeout: 0, flake: 0 }
@@ -164,7 +108,7 @@ describe('canary receipt contract', () => {
           runId, handoffDigest: curationTailHandoffDigest(completed), projectionVersion: RUN_OUTCOMES_PROJECTION_VERSION,
           drainKind: 'drained', handoffHolderPid: null, candidateIds: [] }))
         expect(readCurationTailReceipt(runDir)).toBeUndefined()
-        const canary = { ...emptyCanaryCreditCounters(), ablationError: 1, stagingRefused: 1 }
+        const canary = { ...emptyCanaryCreditCounters(), rideAlongUncredited: 1, rerunExcluded: 1 }
         const emit = vi.fn(async () => ({ emitted: 0, refused: 0, unresolved: 0, canary,
           procedure: { emitted: 0, refused: 0, unresolved: 0 }, details: [] }))
         const operations = successfulOperations({ loadCompletedRunHandoff: () => completed,
@@ -176,8 +120,7 @@ describe('canary receipt contract', () => {
         expect(receipt.schemaVersion).toBe(CURATION_TAIL_RECEIPT_SCHEMA_VERSION)
         expect(receipt.canary).toEqual(canary)
         expect(Object.keys(receipt).sort().join(',')).toBe('canary,candidateIds,drainKind,handoffDigest,handoffHolderPid,projectionVersion,runId,schemaVersion')
-        expect(Object.keys(receipt.canary).sort()).toEqual(['ablationCapExceeded', 'ablationError', 'ablationHeld',
-          'ablationInconclusive', 'credited', 'nonSignal', 'rerunExcluded', 'rideAlongUncredited', 'staged', 'stagingRefused'])
+        expect(Object.keys(receipt.canary).sort()).toEqual(['nonSignal', 'rerunExcluded', 'rideAlongUncredited'])
         expect(Object.keys(receipt.canary.nonSignal).sort()).toEqual(['environment', 'flake', 'timeout'])
         await runCurationTail(baseOptions(operations, { agentQaRoot: root }))
         expect(emit).toHaveBeenCalledOnce()
@@ -432,7 +375,7 @@ function successfulOperations(
       emitted: 0,
       refused: 0,
       unresolved: 0,
-      canary: { credited: 0, rideAlongUncredited: 0, ablationCapExceeded: 0, ablationHeld: 0, ablationInconclusive: 0, ablationError: 0, rerunExcluded: 0, nonSignal: { environment: 0, timeout: 0, flake: 0 }, staged: 0, stagingRefused: 0 },
+      canary: { rideAlongUncredited: 0, rerunExcluded: 0, nonSignal: { environment: 0, timeout: 0, flake: 0 } },
       procedure: { emitted: 0, refused: 0, unresolved: 0 },
       details: [],
     })),
@@ -536,23 +479,6 @@ describe('runCurationTail post-verdict fold (CUR-03/CUR-05)', () => {
     await runCurationTail(baseOptions(operations, { resolvePromotionPostureForRun }))
     expect(resolvePromotionPostureForRun).toHaveBeenCalledWith(42, scope)
     expect(operations.drainQueue).toHaveBeenCalledWith(expect.objectContaining({ resolvePromotionPosture: resolver }))
-  })
-  it('418 resolves and discloses the cap and passes snapshot data through the capability', async () => {
-    const info = vi.fn()
-    const operations = successfulOperations({
-      canaryAblation: {
-        isNovel: async () => false, stage: async () => ({ kind: 'no-eval-root' as const }),
-        ablate: vi.fn(async () => ({ kind: 'no-eval-root' as const })),
-        corpusDigest: vi.fn(async () => ({ kind: 'no-eval-root' as const })),
-        resolveCaps: vi.fn(async () => ({ maxAblations: 2, source: 'config' })),
-      },
-    })
-    await runCurationTail(baseOptions(operations, { log: { warn: vi.fn(), info } }))
-    expect(info).toHaveBeenCalledWith('canary cap: maxAblations=2 (config)')
-    expect(operations.emitCanaryOutcomes).toHaveBeenCalledWith(expect.objectContaining({
-      credit: { ablation: operations.canaryAblation, maxAblations: 2,
-        readBundleStateDigests: expect.any(Function) },
-    }))
   })
   it('threads the synchronous resolver and prints every promotion in report order', async () => {
     const info = vi.fn()
@@ -661,7 +587,7 @@ describe('runCurationTail post-verdict fold (CUR-03/CUR-05)', () => {
           emitted: 1,
           refused: 0,
           unresolved: 0,
-          canary: { credited: 0, rideAlongUncredited: 0, ablationCapExceeded: 0, ablationHeld: 0, ablationInconclusive: 0, ablationError: 0, rerunExcluded: 0, nonSignal: { environment: 0, timeout: 0, flake: 0 }, staged: 0, stagingRefused: 0 },
+          canary: { rideAlongUncredited: 0, rerunExcluded: 0, nonSignal: { environment: 0, timeout: 0, flake: 0 } },
           procedure: { emitted: 0, refused: 0, unresolved: 0 },
           details: [{
             benefit: canaryOutcome.benefit,
@@ -889,7 +815,7 @@ describe('runCurationTail post-verdict fold (CUR-03/CUR-05)', () => {
         emitted: 0,
         refused: condition === 'canary-refused' ? 1 : 0,
         unresolved: condition === 'canary-unresolved' ? 1 : 0,
-        canary: { credited: 0, rideAlongUncredited: 0, ablationCapExceeded: 0, ablationHeld: 0, ablationInconclusive: 0, ablationError: 0, rerunExcluded: 0, nonSignal: { environment: 0, timeout: 0, flake: 0 }, staged: 0, stagingRefused: 0 },
+        canary: { rideAlongUncredited: 0, rerunExcluded: 0, nonSignal: { environment: 0, timeout: 0, flake: 0 } },
         procedure: { emitted: 0, refused: 0, unresolved: 0 },
         details: [],
       })),
@@ -1067,7 +993,7 @@ describe('runCurationTail post-verdict fold (CUR-03/CUR-05)', () => {
             emitted: 0,
             refused: 0,
             unresolved: 0,
-            canary: { credited: 0, rideAlongUncredited: 0, ablationCapExceeded: 0, ablationHeld: 0, ablationInconclusive: 0, ablationError: 0, rerunExcluded: 0, nonSignal: { environment: 0, timeout: 0, flake: 0 }, staged: 0, stagingRefused: 0 },
+            canary: { rideAlongUncredited: 0, rerunExcluded: 0, nonSignal: { environment: 0, timeout: 0, flake: 0 } },
             procedure: { emitted: 0, refused: 0, unresolved: 0 },
             details: [],
           }
@@ -1131,7 +1057,7 @@ describe('runCurationTail post-verdict fold (CUR-03/CUR-05)', () => {
           emitted: 0,
           refused: condition === 'canary-refused' ? 1 : 0,
           unresolved: condition === 'canary-unresolved' ? 1 : 0,
-          canary: { credited: 0, rideAlongUncredited: 0, ablationCapExceeded: 0, ablationHeld: 0, ablationInconclusive: 0, ablationError: 0, rerunExcluded: 0, nonSignal: { environment: 0, timeout: 0, flake: 0 }, staged: 0, stagingRefused: 0 },
+          canary: { rideAlongUncredited: 0, rerunExcluded: 0, nonSignal: { environment: 0, timeout: 0, flake: 0 } },
           procedure: { emitted: 0, refused: 0, unresolved: 0 },
           details: [],
         }
@@ -1227,7 +1153,7 @@ describe('runCurationTail post-verdict fold (CUR-03/CUR-05)', () => {
               emitted: 1,
               refused: 1,
               unresolved: 0,
-              canary: { credited: 0, rideAlongUncredited: 0, ablationCapExceeded: 0, ablationHeld: 0, ablationInconclusive: 0, ablationError: 0, rerunExcluded: 0, nonSignal: { environment: 0, timeout: 0, flake: 0 }, staged: 0, stagingRefused: 0 },
+              canary: { rideAlongUncredited: 0, rerunExcluded: 0, nonSignal: { environment: 0, timeout: 0, flake: 0 } },
               procedure: { emitted: 0, refused: 0, unresolved: 0 },
               details: [],
             }
@@ -1237,7 +1163,7 @@ describe('runCurationTail post-verdict fold (CUR-03/CUR-05)', () => {
             emitted: 2,
             refused: 0,
             unresolved: 0,
-            canary: { credited: 0, rideAlongUncredited: 0, ablationCapExceeded: 0, ablationHeld: 0, ablationInconclusive: 0, ablationError: 0, rerunExcluded: 0, nonSignal: { environment: 0, timeout: 0, flake: 0 }, staged: 0, stagingRefused: 0 },
+            canary: { rideAlongUncredited: 0, rerunExcluded: 0, nonSignal: { environment: 0, timeout: 0, flake: 0 } },
             procedure: { emitted: 0, refused: 0, unresolved: 0 },
             details: [],
           }
@@ -1247,7 +1173,7 @@ describe('runCurationTail post-verdict fold (CUR-03/CUR-05)', () => {
           emitted: 1,
           refused: 0,
           unresolved: 0,
-          canary: { credited: 0, rideAlongUncredited: 0, ablationCapExceeded: 0, ablationHeld: 0, ablationInconclusive: 0, ablationError: 0, rerunExcluded: 0, nonSignal: { environment: 0, timeout: 0, flake: 0 }, staged: 0, stagingRefused: 0 },
+          canary: { rideAlongUncredited: 0, rerunExcluded: 0, nonSignal: { environment: 0, timeout: 0, flake: 0 } },
           procedure: { emitted: 0, refused: 0, unresolved: 0 },
           details: [],
         }

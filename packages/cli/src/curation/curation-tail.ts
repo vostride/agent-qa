@@ -46,12 +46,11 @@ import {
   type BuildCuratorAuthorDependencies,
 } from './curator-author.js'
 import { emitCanaryOutcomes, type EmitCanaryOutcomeReport } from './emit-canary-outcomes.js'
-import type { CanaryAblation, CanaryCreditCounters } from './canary-credit.js'
+import type { CanaryCreditCounters } from './canary-credit.js'
 import { NON_SIGNAL_CLASSES } from './emit-canary-outcomes.js'
 import { emitCurationCandidates, type EmitReport } from './emit-candidates.js'
 import { exercisedAnchors } from './handoff-anchors.js'
 import { renderPromotionLine } from './promotion-posture.js'
-import { readRunCanaryPolicy } from './canary-run-state.js'
 import type { ResolveTrustPriors } from './trust-priors.js'
 import { resolveRunCurationContext } from './run-curation-context.js'
 import { ciResumeClause } from './resume-limit.js'
@@ -98,8 +97,6 @@ export interface CurationTailLogger {
 }
 
 export interface CurationTailOperations {
-  /** 2026-09-07, 418 D-01: eval-composing hosts bind this in Plan 05; BYOM omits it. */
-  canaryAblation?: CanaryAblation
   loadCompletedRunHandoff: typeof loadCompletedRunHandoff
   resolveKnowledgeRoot: typeof resolveKnowledgeRoot
   runSafetyScope: typeof runSafetyScope
@@ -133,7 +130,6 @@ export interface CurationWriterAuthority {
 
 export interface RunCurationTailOptions {
   resolveTrustPriors?: ResolveTrustPriors
-  maxAblations?: number
   /** Built once by the caller; synchronous per candidate inside writer authority. */
   resolvePromotionPosture?: ResolvePromotionPosture
   /** 418 D-13: reuse prepared identity but bind each swept handoff's own ordinal. */
@@ -250,7 +246,7 @@ function isCanaryCreditCounters(value: unknown): value is CanaryCreditCounters {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
   const record = value as Record<string, unknown>
   if (Object.keys(record).sort().join(',') !==
-    'ablationCapExceeded,ablationError,ablationHeld,ablationInconclusive,credited,nonSignal,rerunExcluded,rideAlongUncredited,staged,stagingRefused') return false
+    'nonSignal,rerunExcluded,rideAlongUncredited') return false
   const count = (entry: unknown): boolean =>
     typeof entry === 'number' && Number.isInteger(entry) && entry >= 0
   if (!Object.entries(record).every(([key, entry]) => key === 'nonSignal' || count(entry))) return false
@@ -444,7 +440,6 @@ type CurationAuthorCapability =
 
 export interface CurateCompletedRunInput {
   resolveTrustPriors?: ResolveTrustPriors
-  maxAblations?: number
   resolvePromotionPosture?: ResolvePromotionPosture
   /** The run's own directory (`<agentQaRoot>/runs/<slug>`), derived by the caller. */
   runDir: string
@@ -696,22 +691,11 @@ export async function curateCompletedRun(
       // D-20: candidate and canary drops share this scope and crash boundary.
       const reader = operations.openKnowledgeReader({ knowledgeRoot: input.knowledgeRoot,
         priors: input.resolveTrustPriors?.() })
-      const ablation = operations.canaryAblation
-      const recordedPolicy = readRunCanaryPolicy(input.runDir, String(input.handoff.runId))
-      const caps = ablation === undefined ? undefined : recordedPolicy ?? (input.maxAblations !== undefined
-        ? { maxAblations: input.maxAblations, source: 'flag' }
-        : await ablation.resolveCaps?.() ?? {
-          maxAblations: (await import('../eval-session-composition.js')).GATE2_DEFAULT_MAX_ABLATIONS,
-          source: 'default',
-        })
-      if (ablation !== undefined && recordedPolicy === undefined) input.log.info?.('canary cap: legacy run without recorded policy; using explicit run override or current config/default')
-      if (caps !== undefined) input.log.info?.(`canary cap: maxAblations=${caps.maxAblations} (${caps.source})`)
       const canaries = await operations.emitCanaryOutcomes({
         handoff: input.handoff,
         knowledgeRoot: input.knowledgeRoot,
         runDir: input.runDir,
         emit: reader.emitCanaryOutcome.bind(reader),
-        ...(operations.canaryAblation === undefined ? {} : { credit: { ablation: operations.canaryAblation, maxAblations: caps!.maxAblations, readBundleStateDigests: LOCAL_CURATION_CAPABILITIES.readCanonicalBundleStateDigests } }),
       })
       // D-14: the run-outcome fold shares this crash boundary and the SAME extended
       // receipt as candidate/canary emit — never a second marker file. The durable
@@ -1022,7 +1006,6 @@ export async function runCurationTail(opts: RunCurationTailOptions): Promise<voi
         ? opts.resolvePromotionPosture : await opts.resolvePromotionPostureForRun(handoff.buildOrdinal, handoff.scope)
       const folded = await curateCompletedRun({
         resolveTrustPriors: opts.resolveTrustPriors,
-        ...(runDir !== currentRunDir || opts.maxAblations === undefined ? {} : { maxAblations: opts.maxAblations }),
         ...(resolvePromotionPosture === undefined ? {} : { resolvePromotionPosture }),
         runDir,
         handoff,

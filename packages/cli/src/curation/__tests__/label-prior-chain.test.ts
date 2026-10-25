@@ -25,10 +25,10 @@ function notification(outcome: 'complete' | 'failed' = 'complete'): RunNotificat
 }
 it.each(['complete', 'failed'] as const)('renders exact cached priors on %s terminal without changing counts', outcome => {
   const line = renderChainTerminalLine(notification(outcome), { trustPriorDisclosure: disclosure,
-    canary: { ...emptyCanaryCreditCounters(), credited: 2, staged: 1 } })
+    canary: { ...emptyCanaryCreditCounters(), rideAlongUncredited: 2 } })
   expect(line).toContain(priorText(disclosure.digest!))
   expect(line).toContain('verdicts 3 (app_bug 3)')
-  expect(line).toContain('2 curated, 1 deprecated; canary: credited 2')
+  expect(line).toContain('2 curated, 1 deprecated; canary: ride-along 2')
   expect(readLabelCalibration).not.toHaveBeenCalled()
 })
 it('keeps historical renderer callers explicit about provisional priors', () => {

@@ -9,7 +9,6 @@ import { canonicalJson, sha256hex } from '@vostride/agent-qa-schema'
 import { completedRunHandoffPath, defaultCurationTailOperations } from './curation-tail.js'
 import { runSafetyScope } from '@vostride/agent-qa-agent-local'
 import type { PostVerdictHandoff, PostVerdictStepOptions } from './post-verdict-step.js'
-import { readRunCanaryPolicy } from './canary-run-state.js'
 import { ciResumeClause } from './resume-limit.js'
 
 export const POST_VERDICT_PENDING_FILE = 'post-verdict-pending.json'
@@ -17,8 +16,6 @@ const digest = z.string().regex(/^[a-f0-9]{64}$/)
 const identitySchema = z.object({ schemaVersion: z.literal(2), runId: z.string().min(1),
   handoffDigest: digest, configDigest: digest }).strict()
 type Identity = z.infer<typeof identitySchema>
-const intentSchema = identitySchema.extend({ policyDigest: digest }).strict()
-type Intent = z.infer<typeof intentSchema>
 const ownerSchema = identitySchema.extend({ pid: z.number().int().positive(), token: z.uuid() }).strict()
 type Owner = z.infer<typeof ownerSchema>
 
@@ -36,7 +33,6 @@ export interface PostVerdictContinuationIdentity {
   readonly configPath: string
   readonly knowledgeRoot: string
   readonly runId: string
-  readonly maxAblations?: number
 }
 
 export function postVerdictPendingPath(input: Pick<PostVerdictContinuationIdentity, 'agentQaRoot' | 'runId'>): string {
@@ -87,21 +83,10 @@ function identity(input: PostVerdictContinuationIdentity): Identity {
       knowledgeRoot: resolve(input.knowledgeRoot) })) }
 }
 
-/** A journal may bind existing policy, never invent or reconstruct spending authority. */
-function boundIntent(input: PostVerdictContinuationIdentity): Intent {
-  const bound = identity(input)
-  const policy = readRunCanaryPolicy(dirname(postVerdictPendingPath(input)), input.runId)
-  if (policy === undefined) throw new PostVerdictContinuationRefused('intent-invalid')
-  if (input.maxAblations !== undefined && (policy.maxAblations !== input.maxAblations || policy.source !== 'flag')) {
-    throw new PostVerdictContinuationRefused('identity-conflict')
-  }
-  return { ...bound, policyDigest: sha256hex(canonicalJson(policy)) }
-}
-
-function readIntent(path: string): Intent | undefined {
+function readIntent(path: string): Identity | undefined {
   try {
     safePath(path)
-    return intentSchema.parse(JSON.parse(readFileSync(path, 'utf8')))
+    return identitySchema.parse(JSON.parse(readFileSync(path, 'utf8')))
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined
     if (error instanceof PostVerdictContinuationRefused) throw error
@@ -111,7 +96,7 @@ function readIntent(path: string): Intent | undefined {
 
 function same(a: Identity, b: Identity): boolean { return canonicalJson(a) === canonicalJson(b) }
 
-function publishIntent(path: string, intent: Intent): void {
+function publishIntent(path: string, intent: Identity): void {
   const existing = readIntent(path)
   if (existing !== undefined) {
     if (!same(existing, intent)) throw new PostVerdictContinuationRefused('identity-conflict')
@@ -187,10 +172,9 @@ function claim(lock: string, intent: Identity): { assertOwned(): void; release()
   } }
 }
 
-const running = new Map<string, { intent: Identity; maxAblations?: number; completion: Promise<'enqueued' | 'deduped'> }>()
+const running = new Map<string, { intent: Identity; completion: Promise<'enqueued' | 'deduped'> }>()
 
 export function ownPostVerdictContinuation(input: PostVerdictContinuationIdentity & {
-  readonly initializePolicy?: () => Promise<void>
   readonly queued: () => Promise<boolean>
   readonly enqueue: () => Promise<'enqueued' | 'deduped'>
 }): Promise<'enqueued' | 'deduped'> {
@@ -198,38 +182,29 @@ export function ownPostVerdictContinuation(input: PostVerdictContinuationIdentit
   const intent = identity(input)
   const active = running.get(path)
   if (active !== undefined) {
-    if (!same(active.intent, intent) || active.maxAblations !== input.maxAblations) throw new PostVerdictContinuationRefused('identity-conflict')
+    if (!same(active.intent, intent)) throw new PostVerdictContinuationRefused('identity-conflict')
     return active.completion
   }
   const existing = readIntent(path)
-  if (existing !== undefined && !same(boundIntent(input), existing)) throw new PostVerdictContinuationRefused('identity-conflict')
+  if (existing !== undefined && !same(identity(input), existing)) throw new PostVerdictContinuationRefused('identity-conflict')
   const owner = claim(`${path}.owner`, intent)
   const completion = (async () => {
     try {
-      // CR-10: publish trusted policy under the owner BEFORE recovery becomes eligible.
-      // A crash before intent is safely unrecorded; intent still precedes every provider step.
-      if (existing === undefined) {
-        if (input.initializePolicy !== undefined) await input.initializePolicy()
-        else {
-          const { recordCanaryPolicy } = await import('./post-verdict-step.js')
-          await recordCanaryPolicy(input)
-        }
-      }
       owner.assertOwned()
-      const published = boundIntent(input)
-      if (!same(identity(input), intent)) throw new PostVerdictContinuationRefused('identity-conflict')
+      const published = identity(input)
+      if (!same(published, intent)) throw new PostVerdictContinuationRefused('identity-conflict')
       publishIntent(path, published)
       owner.assertOwned()
       let result: 'enqueued' | 'deduped' = 'deduped'
       if (!await input.queued()) {
         owner.assertOwned()
         // Revalidate paths and source/config before publishing a job.
-        if (!same(boundIntent(input), published)) throw new PostVerdictContinuationRefused('identity-conflict')
+        if (!same(identity(input), published)) throw new PostVerdictContinuationRefused('identity-conflict')
         result = await input.enqueue()
         if (!await input.queued()) throw new PostVerdictContinuationRefused('queue-conflict')
       }
       owner.assertOwned()
-      if (!same(boundIntent(input), published)) throw new PostVerdictContinuationRefused('identity-conflict')
+      if (!same(identity(input), published)) throw new PostVerdictContinuationRefused('identity-conflict')
       const current = readIntent(path)
       if (current === undefined || !same(current, published)) throw new PostVerdictContinuationRefused('identity-conflict')
       rmSync(path)
@@ -237,7 +212,7 @@ export function ownPostVerdictContinuation(input: PostVerdictContinuationIdentit
       return result
     } finally { owner.release() }
   })().finally(() => { running.delete(path) })
-  running.set(path, { intent, maxAblations: input.maxAblations, completion })
+  running.set(path, { intent, completion })
   return completion
 }
 
@@ -305,7 +280,7 @@ export async function recoverPendingPostVerdictContinuations(input: RecoverPendi
       if (intent === undefined) continue
       runId = intent.runId
       const bound = { ...input, runId }
-      if (postVerdictPendingPath(bound) !== path || !same(boundIntent(bound), intent)) {
+      if (postVerdictPendingPath(bound) !== path || !same(identity(bound), intent)) {
         throw new PostVerdictContinuationRefused('identity-conflict')
       }
       // Live owners (including our own) have their own safety scope. Do not borrow or replay it.

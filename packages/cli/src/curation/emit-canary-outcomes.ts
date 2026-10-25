@@ -12,7 +12,6 @@ import {
   type Anchor,
   type CanaryOutcome,
   type CompletedRunHandoff,
-  type CrossCheck,
   type PerTestOutcome,
   type RecordId,
   type RunAnalysisArtifact,
@@ -21,9 +20,7 @@ import {
 } from '@vostride/agent-qa-schema'
 
 import { exercisedAnchors } from './handoff-anchors.js'
-import { readCompletedCanaryAblations, saveCompletedCanaryAblation } from './canary-run-state.js'
-import { creditCanaryAttributions, emptyCanaryCreditCounters,
-  type CanaryAblation, type CanaryCreditCounters, type CreditedCanaryAttribution } from './canary-credit.js'
+import { creditCanaryAttributions, type CanaryCreditCounters } from './canary-credit.js'
 
 // 2026-09-07, 418 D-10: runtime and never-bar pin this closed vocabulary.
 export type NonSignalClass = 'environment' | 'timeout' | 'flake'
@@ -129,20 +126,14 @@ export type EmitCanaryOutcomeResult =
     }
 
 export type EmitCanaryOutcomeDetail = {
-  staged?: never
   benefit?: never
-  crossCheck?: never
-  corpusDigestMoved?: never
   candidateId?: never
   stepIndex?: never
   testId: string
   testIndex: number
   outcome: { kind: 'rerun-excluded' }
 } | {
-  staged?: true
   benefit: CanaryOutcome['benefit']
-  crossCheck?: CrossCheck
-  corpusDigestMoved?: true
   candidateId: RecordId
   testId: string
   testIndex: number
@@ -165,7 +156,7 @@ export interface EmitCanaryOutcomeReport {
 }
 
 export interface EmitCanaryOutcomesOptions {
-  credit?: Partial<Pick<import('./canary-credit.js').CanaryCreditInput, 'ablation' | 'maxAblations' | 'readBundleStateDigests'>>
+  readBundleStateDigests?: import('./canary-credit.js').CanaryCreditInput['readBundleStateDigests']
   handoff: CompletedRunHandoff
   /** Absolute agent-qa-knowledge root used for store lookup and durable queue emission. */
   knowledgeRoot: string
@@ -374,7 +365,7 @@ function projectBriefAttributions(
       outcome: {
         candidateId,
         runOutcome,
-        // 2026-09-07, 418 D-01/D-08: pure projection stays uncredited until ablated.
+        // The credit pass sets the benefit from the run outcome.
         benefit: 'rode-along',
         stateValidity: 'unknown',
         runId: String(input.handoff.runId),
@@ -459,7 +450,7 @@ function projectProcedureAttribution(
     outcome: {
       candidateId: source.procedureId,
       runOutcome,
-      // 2026-09-07, 418 D-01/D-08: pure projection stays uncredited until ablated.
+      // The credit pass sets the benefit from the run outcome.
       benefit: 'rode-along',
       stateValidity: 'unknown',
       runId: String(input.handoff.runId),
@@ -504,21 +495,13 @@ export async function emitCanaryOutcomes(opts: EmitCanaryOutcomesOptions): Promi
       bundleId: id,
     }),
   })
-  const credit = opts.credit === undefined ? undefined : await creditCanaryAttributions({
-    completedAblations: readCompletedCanaryAblations(opts.runDir, String(opts.handoff.runId)),
-    saveCompletedAblation: entry => saveCompletedCanaryAblation(opts.runDir, entry),
-    attributions: projected, handoff: opts.handoff, runDir: opts.runDir,
-    ...opts.credit, knowledgeRoot: opts.knowledgeRoot, observationIdOf: LOCAL_CURATION_CAPABILITIES.canaryOutcomeObservationId,
-    maxAblations: opts.credit.maxAblations ?? (await import('../eval-session-composition.js')).GATE2_DEFAULT_MAX_ABLATIONS,
-    readBundleStateDigests: opts.credit.readBundleStateDigests ?? LOCAL_CURATION_CAPABILITIES.readCanonicalBundleStateDigests,
+  const credit = creditCanaryAttributions({
+    attributions: projected, handoff: opts.handoff, knowledgeRoot: opts.knowledgeRoot,
+    readBundleStateDigests: opts.readBundleStateDigests
+      ?? LOCAL_CURATION_CAPABILITIES.readCanonicalBundleStateDigests,
   })
-  const canary = credit?.counters ?? emptyCanaryCreditCounters()
-  if (credit === undefined) {
-    canary.rideAlongUncredited = projected.filter(row =>
-      row.kind === 'outcome' && row.outcome.runOutcome === 'positive').length
-  }
   const report: EmitCanaryOutcomeReport = {
-    canary,
+    canary: credit.counters,
     emitted: 0,
     refused: 0,
     unresolved: 0,
@@ -526,8 +509,7 @@ export async function emitCanaryOutcomes(opts: EmitCanaryOutcomesOptions): Promi
     details: [],
   }
 
-  const attributions: CreditedCanaryAttribution[] = credit?.attributions ?? projected
-  for (const attribution of attributions) {
+  for (const attribution of credit.attributions) {
     if (attribution.kind === 'rerun-excluded') {
       report.canary.rerunExcluded += 1
       report.details.push({ testId: attribution.testId, testIndex: attribution.testIndex,
@@ -574,9 +556,6 @@ export async function emitCanaryOutcomes(opts: EmitCanaryOutcomesOptions): Promi
     }
     report.details.push({
       benefit: attribution.outcome.benefit,
-      crossCheck: attribution.crossCheck ?? 'not-run',
-      ...(attribution.staged === undefined ? {} : { staged: attribution.staged }),
-      ...(attribution.corpusDigestMoved === undefined ? {} : { corpusDigestMoved: attribution.corpusDigestMoved }),
       candidateId: attribution.outcome.candidateId,
       testId: attribution.outcome.testId,
       testIndex: attribution.outcome.testIndex,

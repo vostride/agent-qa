@@ -22,7 +22,6 @@
 // names `schema` for types and nothing else; the mask arrives through relative modules that are
 // already ledgered for it.
 
-import { createCanaryAblationForHost } from '../gates/canary-ablation-host.js'
 import { resolve } from 'node:path'
 
 import type { ExecutionContext, RunEventEnvelope } from '@vostride/agent-qa-schema'
@@ -44,8 +43,6 @@ import {
  */
 export interface ComposeCliPostRunTailInput {
   readonly trustPriors?: import('./post-run-tail.js').RunPostRunTailOptions['trustPriors']
-  readonly maxAblations?: number
-  readonly canaryAblation?: import('./canary-credit.js').CanaryAblation
   readonly runId: string
   /** The directory the project's config file lives in. `<configDir>/.agent-qa` is derived from it. */
   readonly configDir: string
@@ -87,10 +84,6 @@ export interface ComposeCliPostRunTailInput {
 export function composeCliPostRunTail(input: ComposeCliPostRunTailInput): PostRunTailHandle {
   return runPostRunTail({
     ...(input.trustPriors === undefined ? {} : { trustPriors: input.trustPriors }),
-    ...(input.maxAblations === undefined ? {} : { maxAblations: input.maxAblations }),
-    canaryAblation: input.canaryAblation ?? createCanaryAblationForHost({
-      configPath: resolve(input.configFilePath), agentQaRoot: resolve(input.configDir, '.agent-qa'),
-    }),
     runId: input.runId,
     agentQaRoot: resolve(input.configDir, '.agent-qa'),
     configPath: resolve(input.configFilePath),

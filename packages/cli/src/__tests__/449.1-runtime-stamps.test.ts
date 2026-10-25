@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { createServer, request } from 'node:http'
 import type { Server } from 'node:http'
 import { tmpdir } from 'node:os'
@@ -12,12 +12,6 @@ import { MASKED_RESOLVED_CONFIG_SCHEMA_VERSION, canonicalJson } from '@vostride/
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ZodTypeAny } from 'zod'
 
-import {
-  readCompletedCanaryAblations,
-  readRunCanaryPolicy,
-  saveCompletedCanaryAblation,
-  writeRunCanaryPolicy,
-} from '../curation/canary-run-state.js'
 import {
   MARK_EDIT_RECORD_FILE,
   MarkEditRecordUnreadableError,
@@ -255,36 +249,6 @@ describe('cli runtime stamps', () => {
     expect(acquireWriterLease).not.toHaveBeenCalled()
     expect(readFileSync(registrationFile)).toEqual(bytesBefore)
     expect(existsSync(socketPath)).toBe(true)
-  })
-
-  it('writes a canary policy at 2 and refuses one stamped 1 as invalid', () => {
-    const dir = runDir('canary-policy-1')
-    writeRunCanaryPolicy(dir, { schemaVersion: 2, runId: 'run-stamps', maxAblations: 3, source: 'flag' })
-    expect(readRunCanaryPolicy(dir, 'run-stamps')).toMatchObject({ schemaVersion: 2 })
-
-    restamp(join(dir, 'canary-policy.json'), 1)
-    expect(() => readRunCanaryPolicy(dir, 'run-stamps')).toThrow('canary policy invalid')
-  })
-
-  it('writes a canary completion at 2 and refuses one stamped 1', () => {
-    const dir = runDir('canary-completion-1')
-    const completion = {
-      schemaVersion: 2 as const,
-      runId: 'run-stamps',
-      candidateId: 'candidate-stamps',
-      attributedObservationId: 'observation-stamps',
-      observedStateDigest: 'a'.repeat(64),
-      result: { kind: 'no-eval-root' as const },
-    }
-    saveCompletedCanaryAblation(dir, completion)
-    expect(readCompletedCanaryAblations(dir, 'run-stamps')).toEqual([completion])
-    expect(() => saveCompletedCanaryAblation(dir, { ...completion, schemaVersion: 1 as never }))
-      .toThrow()
-
-    const completions = join(dir, 'canary-completions')
-    restamp(join(completions, readdirSync(completions)[0]!), 1)
-    expect(() => readCompletedCanaryAblations(dir, 'run-stamps'))
-      .toThrow('completed canary evidence invalid')
   })
 
   it('records a mark edit at 2 and refuses one stamped 1 as unreadable', async () => {

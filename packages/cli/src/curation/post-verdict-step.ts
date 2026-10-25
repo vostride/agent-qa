@@ -129,8 +129,6 @@ import {
   type CurationWriterAuthority,
 } from './curation-tail.js'
 import { resolvePostRunJobModel } from './post-run-tail.js'
-import { readRunCanaryPolicy, writeRunCanaryPolicy } from './canary-run-state.js'
-import { createCanaryAblationForHost } from '../gates/canary-ablation-host.js'
 import { dirname, join, resolve } from 'node:path'
 import { ownPostVerdictContinuation, postVerdictPendingPath, PostVerdictContinuationRefused } from './post-verdict-continuation.js'
 import { writeRunConfigRecord } from './run-curation-context.js'
@@ -149,7 +147,6 @@ import type { ExecutionContext } from '@vostride/agent-qa-schema'
  */
 export interface PostVerdictStepOperations {
   ownContinuation: typeof ownPostVerdictContinuation
-  recordCanaryPolicy: typeof recordCanaryPolicy
   acquireWriterLease: typeof LOCAL_DAEMON_CAPABILITIES.acquireWriterLease
   releaseLease: typeof LOCAL_DAEMON_CAPABILITIES.releaseLease
   readWriterLease: typeof LOCAL_DAEMON_CAPABILITIES.readWriterLease
@@ -203,7 +200,6 @@ export type WriterLeaseProbe =
   | { readonly kind: 'refused'; readonly reason: string }
 
 export interface PostVerdictStepOptions {
-  readonly maxAblations?: number
   readonly runId: string
   /** `<configDir>/.agent-qa` — what `nudgeDaemon` addresses the daemon registration through. */
   readonly agentQaRoot: string
@@ -297,7 +293,6 @@ function defaultOperations(): PostVerdictStepOperations {
   const curationDefaults = defaultCurationTailOperations()
   return {
     ownContinuation: ownPostVerdictContinuation,
-    recordCanaryPolicy,
     acquireWriterLease: LOCAL_DAEMON_CAPABILITIES.acquireWriterLease,
     releaseLease: LOCAL_DAEMON_CAPABILITIES.releaseLease,
     readWriterLease: LOCAL_DAEMON_CAPABILITIES.readWriterLease,
@@ -526,7 +521,6 @@ export type PostVerdictEnqueueState = PostVerdictEnqueueOutcome | 'failed' | 'un
 
 function safePreparationFailure(error: unknown): string {
   if (error instanceof PostVerdictContinuationRefused) return error.category
-  if (error instanceof Error && error.message === 'canary policy invalid') return 'canary policy invalid'
   if (error instanceof Error && /\bSQLITE_BUSY\b/.test(error.message)) return 'SQLITE_BUSY'
   return 'preparation-or-enqueue-error'
 }
@@ -636,18 +630,6 @@ export function dispositionOf(input: {
  * deliberately allowed to propagate, so the shell's own degrade path — `post-verdict-step-failed` —
  * is a live path rather than dead code nothing can reach.
  */
-export async function recordCanaryPolicy(options: Pick<PostVerdictStepOptions, 'agentQaRoot' | 'runId' | 'configPath' | 'maxAblations'>): Promise<void> {
-  const runDir = dirname(completedRunHandoffPath(options.agentQaRoot, options.runId))
-  if (readRunCanaryPolicy(runDir, options.runId) !== undefined) return
-  const caps = await createCanaryAblationForHost({ configPath: options.configPath,
-    agentQaRoot: options.agentQaRoot,
-    ...(options.maxAblations === undefined ? {} : { maxAblations: options.maxAblations }),
-  }).resolveCaps()
-  if (!['flag', 'config', 'default'].includes(caps.source)) throw new Error('canary policy source invalid')
-  writeRunCanaryPolicy(runDir, { schemaVersion: 2, runId: options.runId,
-    maxAblations: caps.maxAblations, source: caps.source as 'flag' | 'config' | 'default' })
-}
-
 export function createPostVerdictStep(options: PostVerdictStepOptions): {
   readonly port: PostVerdictPort
   readonly handoff: PostVerdictHandoff
@@ -699,7 +681,6 @@ export function createPostVerdictStep(options: PostVerdictStepOptions): {
       // (b) THE ENQUEUE — the durable record, before any posture about draining it.
       try {
         enqueue = await ops().ownContinuation({ ...options,
-          initializePolicy: () => ops().recordCanaryPolicy(options),
           queued: () => matchingAnalysisAlreadyQueued(options, ops()),
           enqueue: async () => {
             return await enqueueAnalyzeRun({ ...options, operations: ops() })

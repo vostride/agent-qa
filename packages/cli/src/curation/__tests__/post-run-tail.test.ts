@@ -491,7 +491,7 @@ describe('the digest block — in-process analyze-run completed (D-17, over 389 
       writeFileSync(join(runDir, CURATION_TAIL_RECEIPT_FILE), JSON.stringify({
         schemaVersion, runId, handoffDigest: 'a'.repeat(64), projectionVersion: 1,
         drainKind: 'drained', handoffHolderPid: null, candidateIds: [],
-        ...(schemaVersion === CURATION_TAIL_RECEIPT_SCHEMA_VERSION ? { canary: { ...emptyCanaryCreditCounters(), credited: 1, rideAlongUncredited: 2,
+        ...(schemaVersion === CURATION_TAIL_RECEIPT_SCHEMA_VERSION ? { canary: { ...emptyCanaryCreditCounters(), rideAlongUncredited: 2,
           ...(nonSignal ? { nonSignal: { environment: 1, timeout: 2, flake: 3 }, rerunExcluded: 2 } : {}) } } : {}),
       }))
       const h = harness({ runNextJob: pump([ANALYZE_COMPLETED]),
@@ -501,7 +501,7 @@ describe('the digest block — in-process analyze-run completed (D-17, over 389 
       await tail.finish()
       const line = String(h.info.mock.calls[0]?.[0])
       if (nonSignal) expect(line).toContain('non-signal 6 (environment 1, timeout 2, flake 3), rerun-excluded 2')
-      else if (schemaVersion === CURATION_TAIL_RECEIPT_SCHEMA_VERSION) expect(line).toContain('curation: complete (2 curated, 0 deprecated; canary: credited 1, ride-along 2, cap-exceeded 0, non-signal 0, rerun-excluded 0, staged 0)')
+      else if (schemaVersion === CURATION_TAIL_RECEIPT_SCHEMA_VERSION) expect(line).toContain('curation: complete (2 curated, 0 deprecated; canary: ride-along 2, non-signal 0, rerun-excluded 0)')
       else expect(line).not.toContain('canary:')
     } finally { rmSync(root, { recursive: true, force: true }) }
   })
@@ -1049,8 +1049,8 @@ describe('425 D-20 — the chain-terminal line a real snapshot-bearing run print
     expect(terminal, `no chain-terminal line in:\n${lines.join('\n')}`).toBeDefined()
     // A real fold's receipt also carries its canary counters, which close the same parenthesis.
     expect(terminal).toContain(
-      'curation: complete (added 0, confirmed 0, superseded 0, deprecated 0, proposed 0; canary: credited 0, '
-      + 'ride-along 0, cap-exceeded 0, non-signal 0, rerun-excluded 0, staged 0) ·')
+      'curation: complete (added 0, confirmed 0, superseded 0, deprecated 0, proposed 0; canary: '
+      + 'ride-along 0, non-signal 0, rerun-excluded 0) ·')
     expect(terminal).not.toContain('curated')
   })
 })
@@ -1113,8 +1113,7 @@ function stepOperations(
 ): Partial<PostVerdictStepOperations> {
   return {
     // This legacy queue/lease harness substitutes IO; real ownership is exercised in post-verdict-continuation.test.ts.
-    ownContinuation: async ({ initializePolicy, enqueue }: Parameters<PostVerdictStepOperations['ownContinuation']>[0]) => { await initializePolicy?.(); return await enqueue() },
-    recordCanaryPolicy: vi.fn(async () => undefined),
+    ownContinuation: async ({ enqueue }: Parameters<PostVerdictStepOperations['ownContinuation']>[0]) => await enqueue(),
     acquireWriterLease: fence.acquireWriterLease,
     releaseLease: fence.releaseLease,
     readWriterLease: vi.fn(() => ({ kind: 'absent' })),

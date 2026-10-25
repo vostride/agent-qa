@@ -1,6 +1,5 @@
 import { emptyCanaryCreditCounters } from '../canary-credit.js'
-import { curateCompletedRun, readCurationTailReceipt, type CurationTailOperations } from '../curation-tail.js'
-import { readCompletedCanaryAblations } from '../canary-run-state.js'
+import { curateCompletedRun, type CurationTailOperations } from '../curation-tail.js'
 import { createHash } from 'node:crypto'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -78,7 +77,7 @@ const PROCEDURE_ANCHORS: Anchor[] = [
   { t: 'page', route: '/login' },
 ]
 
-describe('SC2 — the shipped positive-on-any-anchor-match fixture earns no credit (418 D-02/D-05)', () => {
+describe('the shipped positive-on-any-anchor-match fixture earns no credit', () => {
   let creditRunDir: string
   afterEach(() => rmSync(creditRunDir, { recursive: true, force: true }))
   it('declares exactly the three non-signal classes, in declaration order', () => {
@@ -88,41 +87,30 @@ describe('SC2 — the shipped positive-on-any-anchor-match fixture earns no cred
     expect(isNonSignalClass('product')).toBe(false)
   })
 
-  it.each(['passed', 'failed'] as const)('418 SC4 excludes all sources of a %s rerun member while its sibling attributes', async outcome => {
+  it.each(['passed', 'failed'] as const)('excludes all sources of a %s rerun member while its sibling attributes', async outcome => {
     const input = handoff([step({ pass: outcome === 'passed', planSource: replaySource() })], rootCause('app_bug'))
     input.tests[0] = { ...input.tests[0], outcome, isRerun: true, rerunAttempt: 2 }
     input.tests.push({ ...input.tests[0], isRerun: undefined, rerunAttempt: undefined,
       testIndex: 1, testId: 'checkout::sibling', steps: [step()] })
     const emit = vi.fn()
-    const ablate = vi.fn(async () => ({ kind: 'no-eval-root' as const }))
-    const isNovel = vi.fn(async () => true)
-    const stageFeedback = vi.fn(async () => ({ kind: 'staged' as const }))
     const report = await emitCanaryOutcomes({ handoff: input,
-      knowledgeRoot: '/tmp/agent-qa-knowledge', runDir: creditRunDir, emit,
-      credit: { ablation: { isNovel, stage: stageFeedback, ablate, corpusDigest: async () => ({ kind: 'no-eval-root' }) } } })
+      knowledgeRoot: '/tmp/agent-qa-knowledge', runDir: creditRunDir, emit })
     expect(report.canary.rerunExcluded).toBe(1)
     expect(report.details[0]).toEqual({ testId: input.tests[0].testId, testIndex: 0,
       outcome: { kind: 'rerun-excluded' } })
     expect(emit).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ testIndex: 1 }))
-    expect(ablate).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ testIndex: 1 }))
-    expect(isNovel).toHaveBeenCalledTimes(1)
-    expect(stageFeedback).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ testIndex: 1 }))
     expect(report).toMatchObject({ refused: 0, unresolved: 0, procedure: { emitted: 0 } })
   })
 
-  it('418 SC4 counts typed non-signal classes and keeps unknown failures visible', async () => {
+  it('counts typed non-signal classes and keeps unknown failures visible', async () => {
     const input = handoff([step({ pass: false })], rootCause('environment'))
     input.tests = (['environment', 'timeout', 'flake', 'unknown'] as const).map((value, index) => ({
       ...input.tests[0], testIndex: index, testId: `checkout::class-${index}`,
       rootCause: { ...rootCause(value), perTest: index },
     }))
     const emit = vi.fn()
-    const isNovel = vi.fn(async () => true)
-    const stageFeedback = vi.fn(async () => ({ kind: 'staged' as const }))
     const report = await emitCanaryOutcomes({ handoff: input,
-      knowledgeRoot: '/tmp/agent-qa-knowledge', runDir: creditRunDir, emit,
-      credit: { maxAblations: 1, ablation: { isNovel, stage: stageFeedback,
-        ablate: async () => ({ kind: 'no-eval-root' }), corpusDigest: async () => ({ kind: 'no-eval-root' }) } } })
+      knowledgeRoot: '/tmp/agent-qa-knowledge', runDir: creditRunDir, emit })
     expect(report.canary.nonSignal.environment).toBe(1)
     expect(report.canary.nonSignal.timeout).toBe(1)
     expect(report.canary.nonSignal.flake).toBe(1)
@@ -132,8 +120,6 @@ describe('SC2 — the shipped positive-on-any-anchor-match fixture earns no cred
       { kind: 'non-signal', class: 'flake' },
     ])
     expect(emit).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ testIndex: 3, runOutcome: 'negative' }))
-    expect(isNovel).toHaveBeenCalledTimes(1)
-    expect(stageFeedback).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ testIndex: 3 }))
     expect(report).toMatchObject({ refused: 0, unresolved: 0 })
     expect(project(input, lookupSpy.anchorsById)).toHaveLength(1)
   })
@@ -143,103 +129,19 @@ describe('SC2 — the shipped positive-on-any-anchor-match fixture earns no cred
     lookupSpy.invalidById.clear()
     lookupSpy.anchorsById.set(CANDIDATE, [{ t: 'el', role: 'button', name: 'checkout', ordinal: 0 }])
   })
-  it('418 exposes a moved corpus digest in emit detail while preserving the ablation citation', async () => {
+  it('emits a positive served row as uncredited ride-along with unknown state validity', async () => {
     const emit = vi.fn()
     const report = await emitCanaryOutcomes({
       handoff: handoff([step()]), knowledgeRoot: '/tmp/agent-qa-knowledge', runDir: creditRunDir, emit,
-      credit: { maxAblations: 1, ablation: {
-        isNovel: async () => true, stage: async () => ({ kind: 'staged' }),
-        corpusDigest: async () => ({ kind: 'digest', corpusDigest: 'a'.repeat(64) }),
-        ablate: async () => ({ kind: 'ablated', crossCheck: 'flipped', corpusDigest: 'b'.repeat(64),
-          k: 3, baseSeed: 11, seeds: [11, 12, 13], seedHonored: false,
-          spend: { modelCalls: 5, screens: 5, promptTokens: 10, completionTokens: 2 }, gate2Dir: '/tmp/gate2' }),
-      } },
-    })
-    expect(report.details[0]).toMatchObject({ benefit: 'exercised-benefited', corpusDigestMoved: true })
-    expect(report.details[0]).toMatchObject({ staged: true })
-    expect(report.canary.staged).toBe(1)
-    expect(emit).toHaveBeenCalledWith(expect.objectContaining({ corpusDigest: 'b'.repeat(64),
-      ablation: expect.objectContaining({ seeds: [11, 12, 13], seedHonored: false }) }))
-  })
-  it.each(['absent', 'held', 'throws'] as const)('reports %s capability without certifying benefit', async mode => {
-    const emit = vi.fn()
-    const report = await emitCanaryOutcomes({
-      handoff: handoff([step()]), knowledgeRoot: '/tmp/agent-qa-knowledge', runDir: creditRunDir, emit,
-      ...(mode === 'absent' ? {} : { credit: { ablation: {
-        isNovel: async () => false, stage: async () => ({ kind: 'no-eval-root' as const }),
-        corpusDigest: async () => ({ kind: 'digest' as const, corpusDigest: 'c'.repeat(64) }),
-        ablate: async () => {
-          if (mode === 'throws') throw new Error('fixture failure')
-          return { kind: 'ablated' as const, crossCheck: 'held' as const, corpusDigest: 'c'.repeat(64),
-            k: 3, baseSeed: 11, seeds: [11, 12, 13], seedHonored: true,
-            spend: { modelCalls: 5, screens: 5, promptTokens: 0, completionTokens: 0 }, gate2Dir: '/tmp/gate2' }
-        },
-      } } }),
     })
     expect(emit).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ benefit: 'rode-along', stateValidity: 'unknown' }))
-    expect(report.canary.credited).toBe(0)
-    expect(report.canary[mode === 'absent' ? 'rideAlongUncredited' : mode === 'held' ? 'ablationHeld' : 'ablationError']).toBe(1)
+    expect(report.canary.rideAlongUncredited).toBe(1)
     expect(report.refused).toBe(0)
-    expect(report.details[0]?.crossCheck).toBe(mode === 'held' ? 'held' : 'not-run')
-  })
-  it.each(['projection', 'drain'].flatMap(failure => ['ablated', 'error', 'throws', 'unavailable', 'no-eval-root'].map(resultKind => ({ failure, resultKind }))))('reuses a handled $resultKind attempt on ordinary incomplete-fold retry after $failure failure', async ({ failure, resultKind }) => {
-    lookupSpy.anchorsById.set(OTHER_CANDIDATE, lookupSpy.anchorsById.get(CANDIDATE)!)
-    const completed = handoff([step({ candidateIds: [CANDIDATE, OTHER_CANDIDATE] })])
-    const emitted: CanaryOutcome[] = []
-    const ablate = vi.fn(async () => {
-      if (resultKind === 'throws') throw new Error('private fixture provider detail')
-      if (resultKind === 'error') return { kind: 'error' as const, message: 'private fixture provider detail' }
-      if (resultKind === 'unavailable') return { kind: 'unavailable' as const, reason: 'private fixture provider detail' }
-      if (resultKind === 'no-eval-root') return { kind: 'no-eval-root' as const }
-      return { kind: 'ablated' as const,
-      crossCheck: 'flipped' as const, corpusDigest: 'c'.repeat(64), k: 3, baseSeed: 11,
-      seeds: [11, 12, 13], seedHonored: true, spend: { modelCalls: 5, screens: 5, promptTokens: 10, completionTokens: 2 }, gate2Dir: creditRunDir }
-    })
-    let first = true
-    const operations: Partial<CurationTailOperations> = {
-      canaryAblation: { ablate, isNovel: async () => false, stage: async () => ({ kind: 'no-eval-root' }),
-        corpusDigest: async () => ({ kind: 'digest', corpusDigest: 'c'.repeat(64) }) },
-      runSafetyScope: (_input, fn) => fn(),
-      emitCurationCandidates: () => ({ enqueued: 0, coalesced: 0, refused: 0, capExceeded: 0, details: [] }),
-      openKnowledgeReader: () => ({ emitCanaryOutcome: (outcome: CanaryOutcome) => emitted.push(structuredClone(outcome)) }) as unknown as ReturnType<CurationTailOperations['openKnowledgeReader']>,
-      foldRunOutcomes: () => {
-        if (first && failure === 'projection') throw new Error('fixture projection unavailable after completed replay')
-        return { kind: 'applied', tests: 1, quarantine: { kind: 'not-evaluated', reason: 'not-requested' } }
-      },
-      drainQueue: async () => ({ kind: 'drained', jobsProcessed: 0, committed: 0,
-        downgraded: 0, withheld: 0, quarantined: 0, requeued: first && failure === 'drain' ? 1 : 0,
-        failures: first && failure === 'drain' ? 1 : 0, failureDetails: [], noops: 0, noopDetails: [],
-        remaining: 0, remainingWork: { queued: 0, claimedNonterminal: 0, quarantined: 0 },
-        reconcile: undefined, writerPass: { kind: 'not-requested' }, gc: { kind: 'not-run' } }),
-    }
-    const fold = () => curateCompletedRun({ handoff: completed, runDir: creditRunDir,
-      knowledgeRoot: '/tmp/agent-qa-knowledge', agentQaRoot: creditRunDir, maxAblations: 1,
-      operations, log: { warn: vi.fn() } })
-    expect(await fold()).toMatchObject({ complete: false })
-    expect(readCurationTailReceipt(creditRunDir)).toBeUndefined()
-    const evidence = readCompletedCanaryAblations(creditRunDir, String(completed.runId))
-    expect(evidence).toHaveLength(1)
-    expect(JSON.stringify(evidence)).not.toContain('private fixture provider detail')
-    expect(ablate).toHaveBeenCalledOnce()
-    first = false
-    expect(await fold()).toMatchObject({ complete: true })
-    expect(ablate).toHaveBeenCalledOnce()
-    expect(emitted.slice(2)).toEqual(emitted.slice(0, 2))
-    expect(readCompletedCanaryAblations(creditRunDir, String(completed.runId))).toEqual(evidence)
-    expect(readCurationTailReceipt(creditRunDir)?.canary).toMatchObject({
-      credited: resultKind === 'ablated' ? 1 : 0, ablationCapExceeded: 1,
-      ablationError: resultKind === 'error' || resultKind === 'throws' ? 1 : 0,
-      ablationInconclusive: resultKind === 'unavailable' ? 1 : 0,
-      rideAlongUncredited: resultKind === 'no-eval-root' ? 1 : 0,
-    })
-    const badPath = join(creditRunDir, 'canary-completions', 'invalid.json')
-    writeFileSync(badPath, '{}')
-    await expect(fold()).rejects.toThrow('completed canary evidence invalid')
-    expect(ablate).toHaveBeenCalledOnce()
+    expect(report.details[0]).toEqual(expect.objectContaining({ benefit: 'rode-along', outcome: { kind: 'emitted' } }))
   })
 
-  // 2026-09-30, 432-10 D-05/D-22: the hold is presented from evidence; nothing is filed or read.
-  it('C432-CANARY-HOLD-PRESENTATION: a gate-inconsistent canary hold renders as its held line, with no proposal or inbox', async () => {
+  // The hold is presented from evidence; nothing is filed or read.
+  it('a gate-inconsistent canary hold renders as its held line, with no proposal or inbox', async () => {
     const completed = handoff([step()])
     const info = vi.fn()
     const drainQueue = vi.fn(async (_options: object) => ({ kind: 'drained' as const, jobsProcessed: 1, committed: 1,
@@ -248,8 +150,6 @@ describe('SC2 — the shipped positive-on-any-anchor-match fixture earns no cred
       reconcile: undefined, writerPass: { kind: 'not-requested' as const }, gc: { kind: 'not-run' as const },
       promotions: [{ candidateId: CANDIDATE, promotionHoldReason: 'gate-inconsistent' as const }] }))
     const operations: Partial<CurationTailOperations> = {
-      canaryAblation: { ablate: async () => ({ kind: 'no-eval-root' }), isNovel: async () => false,
-        stage: async () => ({ kind: 'no-eval-root' }), corpusDigest: async () => ({ kind: 'no-eval-root' }) },
       runSafetyScope: (_input, fn) => fn(),
       emitCurationCandidates: () => ({ enqueued: 0, coalesced: 0, refused: 0, capExceeded: 0, details: [] }),
       openKnowledgeReader: () => ({ emitCanaryOutcome: () => undefined }) as unknown as ReturnType<CurationTailOperations['openKnowledgeReader']>,
@@ -257,7 +157,7 @@ describe('SC2 — the shipped positive-on-any-anchor-match fixture earns no cred
       drainQueue: drainQueue as unknown as CurationTailOperations['drainQueue'],
     }
     const report = await curateCompletedRun({ handoff: completed, runDir: creditRunDir,
-      knowledgeRoot: '/tmp/agent-qa-knowledge', agentQaRoot: creditRunDir, maxAblations: 1,
+      knowledgeRoot: '/tmp/agent-qa-knowledge', agentQaRoot: creditRunDir,
       operations, log: { warn: vi.fn(), info } })
     expect(report).toMatchObject({ complete: true, curated: 1 })
     const lines = info.mock.calls.map(([line]) => String(line))
@@ -676,7 +576,7 @@ describe('emitCanaryOutcomes', () => {
       procedure: { emitted: 0, refused: 0, unresolved: 0 },
       details: [
         {
-          benefit: 'rode-along', crossCheck: 'not-run',
+          benefit: 'rode-along',
           candidateId: CANDIDATE,
           testId: 'checkout::happy-path',
           testIndex: 0,
@@ -684,7 +584,7 @@ describe('emitCanaryOutcomes', () => {
           outcome: { kind: 'refused', reason: 'emit-error' },
         },
         {
-          benefit: 'rode-along', crossCheck: 'not-run',
+          benefit: 'rode-along',
           candidateId: CANDIDATE,
           testId: 'checkout::happy-path',
           testIndex: 0,
@@ -1331,7 +1231,7 @@ describe('SC2 — the cross-run supersession differential (389-06, D-10)', () =>
     })
   }
 
-  it('no-artifact leg: fold output byte-identical to the handoff-only baseline (regression pin)', async () => {
+  it('no-artifact leg: fold output is the handoff-only projection with the credit pass evidence', async () => {
     const collected: CanaryOutcome[] = []
     const report = await foldInto(collected, failingHandoffFor(RUN_A), tempRunDir())
 
@@ -1340,14 +1240,16 @@ describe('SC2 — the cross-run supersession differential (389-06, D-10)', () =>
       candidateId: CANDIDATE,
       runId: RUN_A,
       runOutcome: 'negative',
-      benefit: 'rode-along',
+      benefit: 'exercised-harmed',
       stateValidity: 'unknown',
       testId: 'checkout::happy-path',
     })
-    // Byte-identity with the pure projection over the same handoff — the pre-rewire baseline.
-    expect(canonicalJson(collected)).toBe(canonicalJson(
-      project(failingHandoffFor(RUN_A), new Map([[CANDIDATE, [CANDIDATE_ANCHOR]]])),
-    ))
+    // The pure projection over the same handoff, plus the credit pass's benefit and observed state.
+    expect(collected).toEqual(
+      project(failingHandoffFor(RUN_A), new Map([[CANDIDATE, [CANDIDATE_ANCHOR]]]))
+        .map(outcome => ({ ...outcome, benefit: 'exercised-harmed',
+          observedStateDigest: expect.stringMatching(/^[0-9a-f]{64}$/u) })),
+    )
   })
 
   it('the artifact supersedes the deterministic unknown and the RESOLVED class flips attribution', async () => {

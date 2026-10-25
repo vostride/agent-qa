@@ -161,27 +161,6 @@ describe('the shared post-run tail (ANLZ-01 / JOBQ-06, D-03/D-07)', () => {
       rmSync(root, { recursive: true, force: true })
     }
   })
-  it('418 shares the ablation capability while the flag belongs only to the originating run', async () => {
-    const h = harness()
-    const canaryAblation = {
-      isNovel: async () => false, stage: async () => ({ kind: 'no-eval-root' as const }),
-      ablate: vi.fn(async () => ({ kind: 'no-eval-root' as const })),
-      corpusDigest: vi.fn(async () => ({ kind: 'no-eval-root' as const })),
-    }
-    const tail = runPostRunTail({ ...options(h), maxAblations: 2, canaryAblation })
-    await tail.drain()
-    expect(h.runCurationTail).toHaveBeenCalledWith(expect.objectContaining({
-      operations: { canaryAblation },
-    }))
-    expect(h.runCurationTail.mock.calls[0]![0]).not.toHaveProperty('maxAblations')
-    const composed = vi.mocked(h.operations.composeHost).mock.calls[0]![0]
-    await composed.curateRun({ runId, executionContext: 'local-headless' })
-    expect(h.operations.curateCompletedRun).toHaveBeenCalledWith(expect.objectContaining({
-      maxAblations: 2, operations: { canaryAblation },
-    }))
-    await composed.curateRun({ runId: 'fixture-foreign-run', executionContext: 'local-headless' })
-    expect(vi.mocked(h.operations.curateCompletedRun).mock.calls[1]![0]).not.toHaveProperty('maxAblations')
-  })
   it('builds posture once before the lease and forwards it to both the job fold and sweep', async () => {
     const h = harness()
     const resolvePosture = vi.fn(() => ({ kind: 'unavailable' as const, replayGateAvailable: false, refusals: ['partition refused'] }))

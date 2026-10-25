@@ -205,7 +205,7 @@ describe('tail-scoped Curator egress audit coverage (CUR-05)', () => {
           emitted: 0,
           refused: 0,
           unresolved: 0,
-          canary: { credited: 0, rideAlongUncredited: 0, ablationCapExceeded: 0, ablationHeld: 0, ablationInconclusive: 0, ablationError: 0, rerunExcluded: 0, nonSignal: { environment: 0, timeout: 0, flake: 0 }, staged: 0, stagingRefused: 0 },
+          canary: { rideAlongUncredited: 0, rerunExcluded: 0, nonSignal: { environment: 0, timeout: 0, flake: 0 } },
           procedure: { emitted: 0, refused: 0, unresolved: 0 },
           details: [],
         }),
