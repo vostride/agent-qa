@@ -83,10 +83,8 @@ test('C429-CONFIG-WRITE-DENIED-ROOTS-EXACT', () => {
   expect(api.CONFIG_WRITE_DENIED_ROOTS).toEqual(['plugins'])
 })
 
-// 432-22: the page write door admits exactly the page-owned leaves, including the new plain root
+// The page write door admits exactly the page-owned leaves, including the plain root
 // `allowProduction`, and refuses every retired key's path as an unknown path.
-// 2026-10-07 (436-07, D-02): the two per-step planner limits raise the counts to 94 and 90.
-// 2026-10-07 (436-08, D-05): the old refilling planner key's leaf is cut, so 93 and 89.
 test('C432-CONFIG-WRITE-POLICY: the write policy admits allowProduction and refuses the retired paths', () => {
   const writable = api.CONFIG_SCHEMA_LEAVES.filter(pattern => api.isPageWritableConfigPath(concreteLeafPath(pattern, true)))
   expect(writable).toEqual(expect.arrayContaining(['use.planner.maxActions', 'use.planner.maxPlanningTurns']))
