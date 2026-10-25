@@ -463,16 +463,6 @@ export interface CurateCompletedRunReport {
   drainKind: 'drained' | 'handed-off' | 'aborted'
   /** The same field list the incomplete warning renders; present only when incomplete. */
   incompleteDetails?: string
-  /**
-   * The candidates the COMMITTED receipt names, forwarded to the proposal stage (422 D-13).
-   *
-   * The receipt's own `candidateIds` and never a second projection of the emit report: the
-   * receipt is what a later reader can check this claim against, and a fold that wrote no
-   * receipt has nothing to name. So this is present exactly when `complete` is `true`, and its
-   * ABSENCE on an incomplete fold is the honest answer rather than an empty list — `[]` would
-   * say the fold reported that there were none.
-   */
-  candidateIds?: readonly string[]
 }
 
 /**
@@ -650,8 +640,7 @@ export async function curateCompletedRun(
   const previous = operations.readCurationTailReceipt(input.runDir)
   if (previous?.snapshot !== undefined && receiptMatches(previous, receiptIdentity)) {
     return { curated: previous.curated ?? 0, deprecated: previous.deprecated ?? 0,
-      complete: true, drainKind: previous.drainKind, candidateIds: previous.candidateIds,
-      snapshot: previous.snapshot }
+      complete: true, drainKind: previous.drainKind, snapshot: previous.snapshot }
   }
   let curated = 0
   let deprecated = 0
@@ -843,16 +832,11 @@ export async function curateCompletedRun(
       { knowledgeRoot: input.knowledgeRoot },
     ).catch(() => undefined)
   }
-  // 422 D-13: the receipt's OWN array, read back off the value that was just committed rather
-  // than re-projected from the emit report. The two are equal today by construction, and that is
-  // exactly why the second projection must not exist: a later reader can check this claim against
-  // the receipt on disk, and it can only do that while the claim IS the receipt.
   return {
     curated,
     deprecated,
     complete: true,
     drainKind,
-    candidateIds: completedReceipt.candidateIds,
     ...(completedReceipt.snapshot === undefined ? {} : { snapshot: completedReceipt.snapshot }),
   }
 }

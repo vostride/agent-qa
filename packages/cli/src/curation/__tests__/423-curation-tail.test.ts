@@ -87,7 +87,7 @@ describe('423 curation tail snapshot', () => {
     expect(await tailModule.curateCompletedRun(f.input)).toMatchObject({ curated: 3, deprecated: 1, complete: true, snapshot })
     expect(tailModule.readCurationTailReceipt(f.root)).toMatchObject({ curated: 3, deprecated: 1, snapshot })
     const second = await tailModule.curateCompletedRun(f.input)
-    expect(second).toEqual({ curated: 3, deprecated: 1, complete: true, drainKind: 'drained', candidateIds: [], snapshot })
+    expect(second).toEqual({ curated: 3, deprecated: 1, complete: true, drainKind: 'drained', snapshot })
     expect(f.drainQueue).toHaveBeenCalledTimes(1)
   })
 
@@ -168,7 +168,7 @@ describe('423 curation tail snapshot', () => {
   it('CURATE-CAPABILITY-SNAPSHOT terminal preserves complete snapshot through the real tail adapter', async () => {
     const root = tempRoot()
     let bound: PostRunTailHostInput | undefined
-    const folded = { curated: 9, deprecated: 2, complete: true, drainKind: 'drained' as const, candidateIds: [], snapshot }
+    const folded = { curated: 9, deprecated: 2, complete: true, drainKind: 'drained' as const, snapshot }
     const operations = {
       loadCompletedRunHandoff: () => ({ runId: RUN_ID, schemaVersion: CURRENT_HANDOFF_SCHEMA_VERSION, executionContext: 'local-headless' }),
       resolveKnowledgeRoot: () => join(root, 'knowledge'),
@@ -247,7 +247,7 @@ describe('423 curation tail snapshot', () => {
       loadCompletedRunHandoff: (() => ({ runId: RUN_ID, schemaVersion: CURRENT_HANDOFF_SCHEMA_VERSION, buildOrdinal: 42,
         executionContext: 'local-headless', scope: { tier: 'product', key: 'storefront' } })) as never })
     vi.spyOn(tailModule, 'curateCompletedRun').mockResolvedValue({ curated: 9, deprecated: 2,
-      complete: true, drainKind: 'drained', candidateIds: [], snapshot } as never)
+      complete: true, drainKind: 'drained', snapshot } as never)
     const daemon = await startDaemon()
     try {
       expect(await daemon.postRun().curateRun({ runId: RUN_ID, executionContext: 'local-headless' })).toHaveProperty('snapshot', snapshot)
