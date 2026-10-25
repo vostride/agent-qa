@@ -2,12 +2,13 @@
 
 ## Scope
 
-This package is the host-adapter home for the runner action-plan cache. It owns
-the host APIs the storage-neutral `@vostride/agent-qa-runner` package deliberately
-excludes: the concrete filesystem `FsActionCache` store behind the runner
-`ActionPlanCache` port, git-branch detection for cache namespacing, and branch
-write-skip policy evaluation. The package root exports `FsActionCache`,
-`FsStorageStateStore`, `resolveBranch` and `shouldWrite`.
+This package is the host-adapter home for runner persistence. It owns the host
+APIs the storage-neutral `@vostride/agent-qa-runner` package deliberately
+excludes: the filesystem action-plan cache (`FsActionCache`, behind the runner
+`ActionPlanCache` port), git-branch detection and the branch write-skip
+policy, saved browser storage states, the run event log, handoffs, run
+artifacts, evidence blobs, sharp screenshot compression, build ordinals and
+build tags, and Docker hook execution.
 
 ## Read First
 

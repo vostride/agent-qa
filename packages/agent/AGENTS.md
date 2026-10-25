@@ -2,19 +2,28 @@
 
 ## Scope
 
-This package owns provider-neutral and storage-neutral agent port contracts for
-knowledge curation, tool execution, agent persistence, jobs and clock access.
-It defines abstract seams consumed by storage implementations and must not
-contain concrete runtime adapters.
+This package owns the provider-neutral and storage-neutral agent layer: the
+port contracts for knowledge, tools, persistence, the job store, replay gates,
+authoring reads and the clock, and the typed function layer every host
+composes (`src/functions/`: the registry, `invokeFunction` and the op specs).
+The chat planner, authoring, analysis, explain, job queue, prompts and config
+mutation are built on those ports. Concrete storage and host adapters live in
+other packages.
 
 ## Read First
 
 - `package.json`
 - `src/index.ts`
 - `src/ownership-contract.ts`
+- `src/functions/registry.ts`
+- `src/functions/invoke.ts`
+- `src/functions/spec.ts`
 - `src/ports/knowledge.ts`
 - `src/ports/tools.ts`
 - `src/ports/persistence.ts`
+- `src/ports/job-store.ts`
+- `src/ports/gates.ts`
+- `src/ports/authoring-read.ts`
 - `src/ports/clock.ts`
 
 ## Commands
