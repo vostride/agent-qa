@@ -1,6 +1,5 @@
 import {
   MemoryOnPathEntrySchema,
-  MisdirectionEvidenceSchema,
   RecordedRetrievalRungSchema,
   workingMemoryEntrySchema,
 } from '@vostride/agent-qa-schema'
@@ -285,15 +284,8 @@ const verdictBaseShape = {
   evidence: verdictEvidenceSchema,
   attribution: verdictAttributionSchema.optional(),
   memoryMisdirectionRuledOut: z.boolean(),
-  // 422 D-17: the two circularity members, VALIDATED rather than passed through. The verdict
-  // object is `.passthrough()`, so declaring nothing here would have carried a half-spelled or
-  // forged evidence block into the corpus unexamined — passthrough is not admission, it is "I
-  // did not look". Delegated to the schemas the schema package declares, so this mirror cannot
-  // drift from the contract a producer composes evidence against (the D-03/D-06 lockstep rule
-  // the class literals above already follow). Optional: no committed cassette carries either
-  // member, and absence stays legal forever.
+  // Validated, not passed through: the verdict object is `.passthrough()`.
   memoryOnPath: z.array(MemoryOnPathEntrySchema).optional(),
-  misdirectionRuledOut: MisdirectionEvidenceSchema.optional(),
   perTest: z.number(),
 }
 

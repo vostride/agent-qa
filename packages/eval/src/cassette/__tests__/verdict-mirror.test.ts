@@ -155,3 +155,36 @@ describe('cassette verdict mirror (D-06 lockstep with schema Verdict)', () => {
     ).toThrow()
   })
 })
+
+describe('cassette verdict mirror: a declared memoryOnPath', () => {
+  const memoryOnPath = [
+    { recordId: 'rec_checkout_button', trust: 'candidate' },
+    { recordId: 'rec_checkout_flow', trust: 'low-trust-active' },
+  ]
+
+  it('carries a well-formed memoryOnPath through the parser unchanged', () => {
+    const cassette = guardCassette(wireRoundTrip(withRootCause(verdictFixture({ memoryOnPath }))))
+
+    if (cassette.granularity !== 'leaf') throw new Error('expected a leaf cassette')
+    expect(cassette.label.rootCause?.memoryOnPath).toEqual(memoryOnPath)
+  })
+
+  it('refuses a memoryOnPath outside the closed trust pair or not an array', () => {
+    expect(() =>
+      guardCassette(
+        wireRoundTrip(
+          withRootCause(
+            verdictFixture({ memoryOnPath: [{ recordId: 'rec_checkout_button', trust: 'canary' }] }),
+          ),
+        ),
+      ),
+    ).toThrow()
+    expect(() =>
+      guardCassette(
+        wireRoundTrip(
+          withRootCause(verdictFixture({ memoryOnPath: { recordId: 'rec_checkout_button' } })),
+        ),
+      ),
+    ).toThrow()
+  })
+})
