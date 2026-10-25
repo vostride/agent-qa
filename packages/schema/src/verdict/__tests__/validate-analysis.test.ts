@@ -464,22 +464,6 @@ describe('the §A9 memory-misdirection rule (spec memory.md §7.2)', () => {
     )
     expect(validateAnalysisAgainstHandoff(artifact, handoff)).toEqual({ ok: true })
   })
-
-  it('treats a canary-served line as low-trust memory on the path', () => {
-    const canaryHandoff = buildHandoff()
-    const test0 = canaryHandoff.tests[0] as PerTestOutcome
-    const failing = test0.steps[1] as StepEvidence
-    test0.steps[1] = {
-      ...failing,
-      servedBrief: servedBrief([briefLine({ servedAsCanary: true })]),
-    }
-    const artifact = artifactOf(
-      [verdictFor(0, { memoryMisdirectionRuledOut: false })],
-      [partsFor(0)],
-    )
-    const rejects = rejectsOf(validateAnalysisAgainstHandoff(artifact, canaryHandoff))
-    expect(rejects[0]?.perTest).toBe(0)
-  })
 })
 
 describe('per-test granularity: one bad test never fails its siblings', () => {

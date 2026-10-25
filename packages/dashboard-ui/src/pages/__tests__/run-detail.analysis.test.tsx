@@ -782,7 +782,7 @@ describe("the records on the failing path reach the visible member and no other"
     fetchRunAnalysisMock.mockResolvedValue(twoFailedVerdicts(
       [
         { recordId: REC_CANDIDATE, trust: "candidate" },
-        { recordId: REC_CANARY, trust: "low-trust-active" },
+        { recordId: REC_CANARY, trust: "candidate" },
       ],
       [],
     ))

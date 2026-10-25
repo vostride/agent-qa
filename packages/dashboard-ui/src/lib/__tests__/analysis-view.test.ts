@@ -346,12 +346,12 @@ describe('the projection lists the records a verdict declared on its failing pat
   it('carries every declared record with its trust word and counts them', () => {
     const view = withMemoryOnPath([
       { recordId: CANDIDATE, trust: 'candidate' },
-      { recordId: CANARY, trust: 'low-trust-active' },
+      { recordId: CANARY, trust: 'candidate' },
     ])
 
     expect(view?.onPath).toEqual([
       { recordId: CANDIDATE, trust: 'candidate' },
-      { recordId: CANARY, trust: 'low-trust-active' },
+      { recordId: CANARY, trust: 'candidate' },
     ])
     expect(view?.onPathText).toBe(memoryOnPathLine(2))
   })

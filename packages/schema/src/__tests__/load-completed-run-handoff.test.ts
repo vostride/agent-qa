@@ -600,7 +600,7 @@ describe('a persisted rootCause memoryOnPath at the load boundary', () => {
   it('round-trips a declared memoryOnPath and leaves an absent one absent', () => {
     const memoryOnPath = [
       { recordId: 'rec_mem_candidate', trust: 'candidate' },
-      { recordId: 'rec_mem_canary', trust: 'low-trust-active' },
+      { recordId: 'rec_mem_canary', trust: 'candidate' },
     ]
     const loaded = guardCompletedRunHandoff(withRootCause({ memoryOnPath }))
     expect(loaded.tests[0]?.rootCause?.memoryOnPath).toEqual(memoryOnPath)

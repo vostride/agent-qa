@@ -33,7 +33,7 @@ const statusOnly: Record<string, number> = { 'gc.ts': 1, 'inspect.ts': 1, 'show-
   'review/propose-review.ts': 1, 'review/apply-review.ts': 1 }
 const numerical: Record<string, number> = { 'bundle-read.ts': 1, 'bundle-scan.ts': 2,
   'curator/disposition.ts': 1, 'curator/knowledge-store.ts': 2,
-  'gates/candidate-injection.ts': 1, 'gates/canary-posture-facts.ts': 1,
+  'gates/candidate-injection.ts': 1,
   'index-reader.ts': 1, 'index-rebuild.ts': 2, 'list-bundles.ts': 1,
   'promotion-gate-input.ts': 1, 'retrieve.ts': 1, 'serving/reader.ts': 3 }
 // Pins for the full read/serve/store/index/host chain, including forwarding seams

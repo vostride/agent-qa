@@ -18,7 +18,7 @@ import { validateAnalysisAgainstHandoff } from '../validate-analysis'
 import type { Verdict } from '../verdict'
 
 // test 0: a clean step, then a failing step served a candidate record
-// test 1: the failing step served a candidate and a canary
+// test 1: the failing step served two candidates, one of them as a canary
 // test 2: the verdict cites the clean step only; the failing step carried a candidate
 // test 3: no low-trust memory anywhere
 // test 4: one record served on two steps
@@ -48,7 +48,7 @@ function briefLine(overrides: Partial<BriefLine> = {}): BriefLine {
 const candidateLine = (): BriefLine =>
   briefLine({ id: CANDIDATE_RECORD, status: 'candidate', trust: 0.4 })
 const canaryLine = (): BriefLine =>
-  briefLine({ id: CANARY_RECORD, status: 'active', servedAsCanary: true, trust: 0.5 })
+  briefLine({ id: CANARY_RECORD, status: 'candidate', servedAsCanary: true, trust: 0.5 })
 
 function servedBrief(lines: BriefLine[], briefDigest = 'brief-digest-1'): ServedBrief {
   return {
@@ -132,7 +132,7 @@ function buildHandoff(): CompletedRunHandoff {
     },
     {
       testId: 't_two_records',
-      testName: 'two low-trust records on the failing step',
+      testName: 'two candidate records on the failing step',
       filePath: 'tests/two-records.yaml',
       testIndex: 1,
       outcome: 'failed',
@@ -246,10 +246,10 @@ describe('deriveMemoryOnPath', () => {
     ])
   })
 
-  it('separates a pre-promotion candidate from a low-trust active canary', () => {
+  it('names every candidate on the failing step, including one served as a canary', () => {
     expect(deriveMemoryOnPath(testAt(1).steps)).toEqual([
       { recordId: CANDIDATE_RECORD, trust: 'candidate' },
-      { recordId: CANARY_RECORD, trust: 'low-trust-active' },
+      { recordId: CANARY_RECORD, trust: 'candidate' },
     ])
   })
 
@@ -260,7 +260,7 @@ describe('deriveMemoryOnPath', () => {
   it('keeps the step each exposure happened on', () => {
     expect(deriveMemoryOnPathSites(testAt(1).steps)).toEqual([
       { stepIndex: 0, recordId: CANDIDATE_RECORD, trust: 'candidate' },
-      { stepIndex: 0, recordId: CANARY_RECORD, trust: 'low-trust-active' },
+      { stepIndex: 0, recordId: CANARY_RECORD, trust: 'candidate' },
     ])
   })
 
@@ -268,14 +268,14 @@ describe('deriveMemoryOnPath', () => {
     expect(deriveMemoryOnPathSites(testAt(4).steps)).toEqual([
       { stepIndex: 0, recordId: CANDIDATE_RECORD, trust: 'candidate' },
       { stepIndex: 1, recordId: CANDIDATE_RECORD, trust: 'candidate' },
-      { stepIndex: 1, recordId: CANARY_RECORD, trust: 'low-trust-active' },
+      { stepIndex: 1, recordId: CANARY_RECORD, trust: 'candidate' },
     ])
   })
 
   it('folds the two exposures to one record-level entry', () => {
     expect(deriveMemoryOnPath(testAt(4).steps)).toEqual([
       { recordId: CANDIDATE_RECORD, trust: 'candidate' },
-      { recordId: CANARY_RECORD, trust: 'low-trust-active' },
+      { recordId: CANARY_RECORD, trust: 'candidate' },
     ])
   })
 })
@@ -296,9 +296,9 @@ describe('validateAnalysisAgainstHandoff: memoryOnPath cannot be forged or omitt
     )
   })
 
-  it('rejects a verdict that downgrades a candidate to low-trust-active', () => {
+  it('rejects a verdict that declares a trust word the briefs did not record', () => {
     const artifact = artifactOf(
-      [verdictFor(0, { memoryOnPath: [{ recordId: CANDIDATE_RECORD, trust: 'low-trust-active' }] })],
+      [verdictFor(0, { memoryOnPath: [{ recordId: CANDIDATE_RECORD, trust: 'established' as never }] })],
       [partsFor(0)],
     )
     expect(validateAnalysisAgainstHandoff(artifact, HANDOFF).ok).toBe(false)

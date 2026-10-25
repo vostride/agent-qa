@@ -95,10 +95,8 @@ export type { GateReceiptsForOptions } from './gates/gate-receipt-read.js'
 export { candidateInjectionFor } from './gates/candidate-injection.js'
 export type { CandidateInjectionForOptions } from './gates/candidate-injection.js'
 
-// 2026-09-07, 418 D-13/D-14: read-only canary posture data.
-export { canaryPostureFactsFor, standingReceiptDigestsFor, lowerTrustSharesFor,
-  type CanaryPostureFacts, type StandingReceiptDigest, type LowerTrustShare,
-} from './gates/canary-posture-facts.js'
+// Read-only standing gate receipt digests from committed bundles.
+export { standingReceiptDigestsFor, type StandingReceiptDigest } from './gates/canary-posture-facts.js'
 // 2026-09-15, 423 D-16: the mark evidence PLANNING half. It resolves and folds committed bundles,
 // takes no lease and mints no markId; appendMarkEvidence executes the same plan on the main entry.
 export { MARK_EVIDENCE_TOKEN_PREFIX, markEvidenceEvent, planMarkEvidence, projectMarkEvidenceOutcome }

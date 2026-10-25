@@ -418,7 +418,7 @@ describe('the records on the failing path in the block', () => {
   const declared = {
     onPath: [
       { recordId: CANDIDATE, trust: 'candidate' as const },
-      { recordId: CANARY, trust: 'low-trust-active' as const },
+      { recordId: CANARY, trust: 'candidate' as const },
     ],
     onPathText: memoryOnPathLine(2),
   }
@@ -437,7 +437,7 @@ describe('the records on the failing path in the block', () => {
     expect(attr('[data-misdirection-on-path-record]', 'data-misdirection-on-path-record'))
       .toEqual([CANDIDATE, CANARY])
     expect(attr('[data-misdirection-trust]', 'data-misdirection-trust'))
-      .toEqual(['candidate', 'low-trust-active'])
+      .toEqual(['candidate', 'candidate'])
   })
 
   it('shows the none-declared line and no list for an empty declaration', () => {

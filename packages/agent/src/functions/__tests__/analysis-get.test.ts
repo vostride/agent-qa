@@ -685,7 +685,7 @@ describe('analysis.get — the records a verdict declared on its failing path', 
         ...upgradedAppBug(0),
         memoryOnPath: [
           { recordId: CANDIDATE_RECORD, trust: 'candidate' },
-          { recordId: CANARY_RECORD, trust: 'low-trust-active' },
+          { recordId: CANARY_RECORD, trust: 'candidate' },
         ],
       }],
     }
@@ -696,7 +696,7 @@ describe('analysis.get — the records a verdict declared on its failing path', 
 
     expect(output.verdicts[0]?.memoryOnPath).toEqual([
       { recordId: CANDIDATE_RECORD, trust: 'candidate' },
-      { recordId: CANARY_RECORD, trust: 'low-trust-active' },
+      { recordId: CANARY_RECORD, trust: 'candidate' },
     ])
   })
 

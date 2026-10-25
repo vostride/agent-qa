@@ -7,15 +7,11 @@ import type { StepEvidence } from '../handoff/step-evidence'
 import type { RecordId } from '../ids/record-id'
 
 /**
- * The two ways the store itself declares a served record's trust was not established when it
- * was put on a step's path — `'candidate'` is the pre-promotion fold status, and
- * `'low-trust-active'` is an active record served as a CANARY, deliberately on probation to
- * gather outcome evidence. No minted threshold and no second spelling of the trust fold: both
- * words read a marker the serving path already wrote.
+ * How the store itself declares a served record's trust was not established when it was put on
+ * a step's path: `'candidate'` is the pre-promotion fold status the serving path already wrote.
  */
-export type MemoryOnPathTrust = 'candidate' | 'low-trust-active'
-// prettier-ignore
-export const MEMORY_ON_PATH_TRUSTS = ['candidate', 'low-trust-active'] as const satisfies readonly MemoryOnPathTrust[]
+export type MemoryOnPathTrust = 'candidate'
+export const MEMORY_ON_PATH_TRUSTS = ['candidate'] as const satisfies readonly MemoryOnPathTrust[]
 
 /** One low-trust record the run's own briefs put on a verdict's failing path. */
 export interface MemoryOnPathEntry {
@@ -29,14 +25,11 @@ export interface MemoryOnPathSite extends MemoryOnPathEntry {
 }
 
 /**
- * The trust word for one served brief line, or `undefined` when the store's own markers say
- * the record's trust WAS established. Pre-promotion status is checked first: a candidate that
- * also rode a canary slot is still a candidate, which is the stronger disclosure.
+ * The trust word for one served brief line, or `undefined` when the store's own status says the
+ * record's trust WAS established.
  */
 export function memoryOnPathTrustOf(line: BriefLine): MemoryOnPathTrust | undefined {
-  if (line.status === 'candidate') return 'candidate'
-  if (line.servedAsCanary) return 'low-trust-active'
-  return undefined
+  return line.status === 'candidate' ? 'candidate' : undefined
 }
 
 /**
@@ -61,17 +54,14 @@ export function deriveMemoryOnPathSites(steps: readonly StepEvidence[]): MemoryO
 }
 
 /**
- * The record-level fold of {@link deriveMemoryOnPathSites} — the exact shape a verdict's
- * `memoryOnPath` declares, computed from the briefs so the declaration can be CHECKED. A
- * record exposed as both a candidate and a canary reads `'candidate'`: the stronger of the two
- * disclosures survives the fold, so folding can never soften what a site recorded.
+ * The record-level fold of {@link deriveMemoryOnPathSites}: one entry per record, in first
+ * exposure order. It is the exact shape a verdict's `memoryOnPath` declares, computed from the
+ * briefs so the declaration can be CHECKED.
  */
 export function deriveMemoryOnPath(steps: readonly StepEvidence[]): MemoryOnPathEntry[] {
   const byRecord = new Map<RecordId, MemoryOnPathTrust>()
   for (const site of deriveMemoryOnPathSites(steps)) {
-    const previous = byRecord.get(site.recordId)
-    if (previous === 'candidate') continue
-    byRecord.set(site.recordId, site.trust)
+    if (!byRecord.has(site.recordId)) byRecord.set(site.recordId, site.trust)
   }
   return [...byRecord].map(([recordId, trust]) => ({ recordId, trust }))
 }

@@ -159,7 +159,7 @@ describe('cassette verdict mirror (D-06 lockstep with schema Verdict)', () => {
 describe('cassette verdict mirror: a declared memoryOnPath', () => {
   const memoryOnPath = [
     { recordId: 'rec_checkout_button', trust: 'candidate' },
-    { recordId: 'rec_checkout_flow', trust: 'low-trust-active' },
+    { recordId: 'rec_checkout_flow', trust: 'candidate' },
   ]
 
   it('carries a well-formed memoryOnPath through the parser unchanged', () => {
@@ -169,7 +169,7 @@ describe('cassette verdict mirror: a declared memoryOnPath', () => {
     expect(cassette.label.rootCause?.memoryOnPath).toEqual(memoryOnPath)
   })
 
-  it('refuses a memoryOnPath outside the closed trust pair or not an array', () => {
+  it('refuses a memoryOnPath outside the closed trust vocabulary or not an array', () => {
     expect(() =>
       guardCassette(
         wireRoundTrip(
