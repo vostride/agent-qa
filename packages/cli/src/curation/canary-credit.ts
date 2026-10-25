@@ -43,9 +43,7 @@ export function creditCanaryAttributions(
     const outcome: CanaryOutcome = { ...row.outcome, stateValidity: 'unknown',
       benefit: row.outcome.runOutcome === 'negative' ? 'exercised-harmed' : 'rode-along' }
     // Recompute evidence from this pass rather than inheriting a prior projection's citation.
-    delete outcome.corpusDigest
     delete outcome.observedStateDigest
-    delete outcome.ablation
     if (served) {
       const step = input.handoff.tests.find((test) =>
         test.testIndex === outcome.testIndex && test.testId === outcome.testId)

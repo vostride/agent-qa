@@ -6,7 +6,6 @@ import { z } from 'zod'
 
 import {
   canonicalJson,
-  CROSS_CHECKS,
   sha256hex,
   type Benefit,
   type CanaryOutcome,
@@ -48,7 +47,6 @@ const canaryOutcomePayloadBaseShape = {
   briefDigest: z.string().min(1),
 } as const
 
-const count = z.number().int().nonnegative()
 const digest = z.string().regex(/^[0-9a-f]{64}$/)
 export const canaryOutcomePayloadSchema = z
   .object({
@@ -56,18 +54,7 @@ export const canaryOutcomePayloadSchema = z
     schemaVersion: z.literal(CANARY_QUEUE_SCHEMA_VERSION),
     benefit: z.enum(PAYLOAD_BENEFITS),
     stateValidity: z.enum(PAYLOAD_STATE_VALIDITIES),
-    corpusDigest: digest.optional(),
     observedStateDigest: digest.optional(),
-    ablation: z.object({
-      crossCheck: z.enum(CROSS_CHECKS),
-      k: z.number().int().min(3),
-      baseSeed: z.number().int(),
-      seeds: z.array(z.number().int()),
-      seedHonored: z.boolean(),
-      spend: z.object({
-        modelCalls: count, screens: count, promptTokens: count, completionTokens: count,
-      }).strict(),
-    }).strict().optional(),
   })
   .strict()
 
@@ -125,9 +112,7 @@ export function enqueueCanaryOutcome(
     outcome: outcome.runOutcome,
     benefit: outcome.benefit,
     stateValidity: outcome.stateValidity,
-    ...(outcome.corpusDigest === undefined ? {} : { corpusDigest: outcome.corpusDigest }),
     ...(outcome.observedStateDigest === undefined ? {} : { observedStateDigest: outcome.observedStateDigest }),
-    ...(outcome.ablation === undefined ? {} : { ablation: outcome.ablation }),
     exercisedAnchor: outcome.exercisedAnchor,
     attribution: outcome.attribution,
     briefDigest: outcome.briefDigest,

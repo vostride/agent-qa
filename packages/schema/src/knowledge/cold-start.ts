@@ -27,13 +27,6 @@ export const COLD_START_TRUST_DISCOUNT = 0.5
  */
 export const LOWER_TRUST_PATH_DISCOUNT = 0.75
 
-/**
- * 2026-09-07, 418 D-12: two samples from different runs inside the validity window
- * confirm stale-state harm — the smallest count beyond one run's environment.
- * Internal constitution value, never a config key.
- */
-export const GATE2_DEFAULT_STALE_CONFIRMATIONS = 2
-
 export interface VettedCandidateInput extends Pick<
   PromotionGateInput,
   | 'kind'

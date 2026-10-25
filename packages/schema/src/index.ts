@@ -810,7 +810,7 @@ export { computeEvidenceToken } from './ids/index'
 export type { IndexEntry, RecordBody, BriefBlock, CautionBlock, ProcedureMatch } from './reader/index'
 // 381 authoring-brief contracts (D-13/D-16/ABRF-01)
 export type { AuthoringBrief, CoverageMap, ExemplarTest } from './reader/index'
-export type { SearchOptions, ReadOptions, BuildRange, CanaryOutcome, CanaryAblationEvidence } from './reader/index'
+export type { SearchOptions, ReadOptions, BuildRange, CanaryOutcome } from './reader/index'
 export {
   createServingAdmissionState,
   inspectServingRecord,
@@ -900,7 +900,6 @@ export {
   COLD_START_MAX_RECORDS,
   COLD_START_TRUST_DISCOUNT,
   LOWER_TRUST_PATH_DISCOUNT,
-  GATE2_DEFAULT_STALE_CONFIRMATIONS,
   GATE2_DEFAULT_MAX_LOWER_TRUST_PER_SCOPE,
   applyColdStartSubCap,
   isVettedCandidate,
