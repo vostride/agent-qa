@@ -6,7 +6,7 @@
 //
 // Composition law (RPLY-02):
 //   - `createModel` is the ONLY egress path and the ONLY call site here — every replayed prompt
-//     rides its pinned-last mask/guardrail middleware (validate:safety enforced). A FRESH
+//     rides its pinned-last mask/guardrail middleware (safety package tests enforce it). A FRESH
 //     ModelProfile copy is built before the call because createModel mutates `profile.capabilities`
 //     (RESEARCH Pitfall 8); the handle is shared across samples (RESEARCH A3).
 //   - The replay planner runs at temperature 0 via the 366 sampling seam

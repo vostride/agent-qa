@@ -190,7 +190,7 @@ function surfaceClassContracts(packageNames: readonly string[]): OwnershipContra
   )
 }
 
-describe('validate:arch (LINT-01..05)', () => {
+describe('arch lint (LINT-01..05)', () => {
   it('every contract-bearing package satisfies its class rules and dep contract', () => {
     const offenders: string[] = []
     const contracts: readonly OwnershipContract[] = ARCH_MANIFEST.packages
@@ -271,7 +271,7 @@ describe('validate:arch (LINT-01..05)', () => {
     // contract exists but is NOT registered has its class rules, dep reconciliation and cycle
     // position taken on trust — and the contract-less rule cannot see it, because that rule reads
     // the FILESYSTEM and the file is right there. Found by mutation: deleting the analytics entry
-    // from the manifest left `pnpm validate:arch` green at 41/41.
+    // from the manifest left the arch lint green at 41/41.
     //
     // `manifest.test.ts` already asserts exactly this equality, so the rule is REUSED rather than
     // restated — a second census of the same two sets is the drift the census idiom exists to
@@ -291,7 +291,7 @@ describe('validate:arch (LINT-01..05)', () => {
   }, 30_000)
 })
 
-describe('validate:arch held-out fixtures', () => {
+describe('arch lint held-out fixtures', () => {
   it('held-out workspace-member contract check rejects a contract-less member', () => {
     expect(
       findContractlessWorkspaceOffenders(
@@ -554,7 +554,7 @@ describe('validate:arch held-out fixtures', () => {
   })
 })
 
-describe('validate:arch surface firewall (FUNC-02) held-out fixtures', () => {
+describe('arch lint surface firewall (FUNC-02) held-out fixtures', () => {
   it('held-out firewall reports an un-ledgered internal import and accepts the allow-list', () => {
     expect(
       findSurfaceFirewallOffenders(
@@ -721,7 +721,7 @@ describe('validate:arch surface firewall (FUNC-02) held-out fixtures', () => {
   })
 })
 
-describe('validate:arch composition carve-out (385-08 / D-13) registration and scope', () => {
+describe('arch lint composition carve-out (385-08 / D-13) registration and scope', () => {
   // The carve-out's own behaviour is unit-tested beside the rule. What can only be checked here is
   // that the aggregate actually CALLS it: a rule nobody invokes passes every build, and its unit
   // tests keep passing too, so nothing anywhere goes red. Source-anchored on this file, the
@@ -910,7 +910,7 @@ function startRunScan(...extra: readonly StartRunPinSource[]): string[] {
   return findStartRunPinOffenders([...startRunPinnedFixtures(), ...extra])
 }
 
-describe('validate:arch run pins after the gate (432-19, D-03/D-15)', () => {
+describe('arch lint run pins after the gate (432-19, D-03/D-15)', () => {
   it('C432-NO-EVALUATE: the gate pin, the gate modules and every production gate acquisition are gone', () => {
     // The pin module keeps only the shared scanner: no permitted set, no finder, no offender check.
     const pinModule = readRepoFile('packages/arch/src/lint/evaluate-pin.ts')
@@ -1029,7 +1029,7 @@ describe('validate:arch run pins after the gate (432-19, D-03/D-15)', () => {
   })
 })
 
-describe('validate:arch agent barrel export set (FUNC-01 / SC1) held-out fixtures', () => {
+describe('arch lint agent barrel export set (FUNC-01 / SC1) held-out fixtures', () => {
   it('pins the real barrel export set by exact equality, values and types apart', () => {
     expect(readAgentBarrelExports(readRepoFile(AGENT_BARREL_FILE))).toEqual({
       values: [...EXPECTED_AGENT_BARREL_VALUE_EXPORTS],
@@ -1091,7 +1091,7 @@ describe('validate:arch agent barrel export set (FUNC-01 / SC1) held-out fixture
 })
 
 // 414 D-19 / D-20 / D-18, ROOT-10 SC5. The requirement says the proposer-side read port "has no
-// method that can return a private held-out entry — an arch cell under `validate:arch` REDs if one
+// method that can return a private held-out entry — an arch lint cell REDs if one
 // is added", so the cell has to live HERE: the arch package's test run covers the whole of this
 // file, and a pin that only ran under the eval-local suite would satisfy the words but not the
 // requirement.
@@ -1142,7 +1142,7 @@ function readerValueExports(source: string): string[] {
   return names.sort()
 }
 
-describe('validate:arch eval-local reader port (414 D-19/D-20) — source-anchored export-set pin', () => {
+describe('arch lint eval-local reader port (414 D-19/D-20) — source-anchored export-set pin', () => {
   // The relocation hazard this file guards everywhere else: a path-keyed pin whose path has moved
   // matches nothing, reports nothing, and still reads like proof. The barrel must EXIST.
   it('the eval-local /reader subpath exports exactly one value, openCorpusReader (414 D-19/D-20)', () => {
@@ -1153,7 +1153,7 @@ describe('validate:arch eval-local reader port (414 D-19/D-20) — source-anchor
 
   // The pin above is only worth its line if the extractor can actually see an arrival. Both
   // directions are fed literal source, so the extractor's failing direction is proven INSIDE
-  // `validate:arch` rather than asserted about elsewhere.
+  // the arch lint tests rather than asserted about elsewhere.
   it('the export-set extractor sees a planted value export and ignores a type-only re-export', () => {
     const barrel = readRepoFile(EVAL_LOCAL_READER_BARREL)
 

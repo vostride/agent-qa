@@ -157,7 +157,7 @@ test('the live discovery graph reaches the acquisition modules and carries no ru
   for (const entry of DISCOVERY_ENTRIES) assert.ok(result.graph.includes(entry), `entry ${entry} was not linted`)
 })
 
-test('the registered command exits clean on the live tree', () => {
+test('the lint script exits clean on the live tree', () => {
   const run = spawnSync(process.execPath, [SCRIPT], { cwd: WORKSPACE_ROOT, encoding: 'utf8' })
   assert.equal(run.status, 0, run.stderr)
   assert.match(run.stdout, /431-discovery-imports OK/u)

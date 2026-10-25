@@ -351,7 +351,7 @@ async function buildActionCacheContext(params: {
  * the runner-local `FsStorageStateStore` rooted at the run's `.agent-qa` runtime dir (the
  * FsActionCache rooting idiom) — the raw-but-local auth-persistence home under
  * `.agent-qa/storage-states/`. Injected into the runner loop's `storageState` port; all fs writes
- * stay in runner-local (validate:arch storageNeutral).
+ * stay in runner-local (arch lint: storageNeutral).
  */
 async function buildStorageStateStore(configDir: string): Promise<import('@vostride/agent-qa-runner').StorageStatePort> {
   const { FsStorageStateStore } = await import('@vostride/agent-qa-runner-local')
@@ -3097,7 +3097,7 @@ export async function produceSuiteRunMembers(
 
     // D-14 (Phase 360): ONE run-scoped storage-state store (raw-but-local auth persistence) rooted
     // at the run's `.agent-qa` dir, mirroring the FsActionCache rooting idiom. All fs writes live in
-    // runner-local (validate:arch storageNeutral); the runner loop records only { name, fingerprint }.
+    // runner-local (arch lint: storageNeutral); the runner loop records only { name, fingerprint }.
     const suiteStorageState = await buildStorageStateStore(configDir)
 
     const captureScreenshots = opts.screenshotMode === 'every-step' || Boolean(opts.screenshotDir)
@@ -3741,7 +3741,7 @@ export async function produceSuiteRunMembers(
  * for those under FUNC-02's surface firewall, the ledger only ever shrinks, and a file written after
  * 2026-07-28 can never join it. What moved to `composition/in-process-run-execution.ts` is the
  * COMPOSITION; the vocabulary stayed where the build allows it. A later reader who "tidies" this
- * into a new module will be refused by `pnpm validate:arch`, not by a review comment.
+ * into a new module will be refused by the arch package tests, not by a review comment.
  *
  * WHAT IT DOES NOT DO. It does not resolve an execution context (the DOOR does, D-07), it does not
  * register signal handlers, it does not build the audit sink (the drive does, once), and it cannot

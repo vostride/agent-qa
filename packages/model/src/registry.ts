@@ -33,7 +33,7 @@ import type { ModelCallEvent, ModelCallObservation, ModelCallReportOrigin } from
 export type { ModelCallObservation } from './provider-call-report.js'
 
 // The per-call array createModel builds ends with the declared-secret mask after this array,
-// so it is the last transform before the wire (validate:safety (a)).
+// so it is the last transform before the wire (the safety package tests check it).
 const MIDDLEWARE: LanguageModelMiddleware[] = [
   retryMiddleware(),
   repairMiddleware(),
@@ -182,7 +182,7 @@ export function createModel(
       },
     },
   })
-  // The masking middleware must stay last (validate:safety (a)).
+  // The masking middleware must stay last (the safety package tests check it).
   const middleware = [
     capabilityUpdateMiddleware(profile),
     ...(descriptor.unsupportedParams?.length

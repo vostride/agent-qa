@@ -11,7 +11,7 @@
 // {@link RunServicePorts}: how to start a run, how to reach a started run's session, and how to
 // answer readiness. It imports the shared schema vocabulary and
 // node built-ins and NOTHING from `@vostride/agent-qa-agent`, `-agent-local` or `-safety` — those
-// are the packages `packages/dashboard-server` may not name, and `pnpm validate:arch` is the
+// are the packages `packages/dashboard-server` may not name, and the arch package tests are the
 // mechanical proof. 402 mounts this in the shipped dashboard process so there is no fourth process
 // and no daemon TCP exposure; a future cloud host mounts the same unit with different ports.
 //
@@ -845,7 +845,7 @@ export function serveRunEventStream(
  *
  * ON `dashboardNeutralReasonOf`'S EXACT PRECEDENT (`execution/in-process-backend.ts`), and for the
  * same architectural reason: the rejection is a `RunDeniedError` minted in `agent-local`, and this
- * package may not import `agent`, `agent-local` or `safety` — `pnpm validate:arch` is the
+ * package may not import `agent`, `agent-local` or `safety` — the arch package tests are the
  * mechanical proof.
  *
  * THE DISCRIMINATOR IS `neutralReason`, DELIBERATELY. Only a run denial carries it: an

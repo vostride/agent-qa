@@ -5,8 +5,8 @@
 // admits `heldOutVisibility: 'private'`, so widening the implementation is not enough to leak —
 // the type has to be widened too, and that REDs here by name.
 //
-// The third pin is the source-anchored export-set cell under `pnpm validate:arch`
-// (`packages/arch/src/__tests__/validate-arch.test.ts`), which catches a NEW export joining the
+// The third pin is the source-anchored export-set cell in
+// `packages/arch/src/__tests__/validate-arch.test.ts`, which catches a NEW export joining the
 // barrel — a case neither this file nor the key-set cell can see until someone imports it.
 import { expectTypeOf } from 'vitest'
 import type { CorpusReader } from '../corpus-reader.js'

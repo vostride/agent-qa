@@ -3,8 +3,8 @@
 // Three pins hold the `/reader` subpath to one value export whose methods cannot return a
 // private held-out entry. This file is TWO of them: the runtime export key-set cell (Test 1)
 // and the behavioural non-leak cells (Tests 2-5). The third is the source-anchored export-set
-// cell in `packages/arch/src/__tests__/validate-arch.test.ts`, which runs under
-// `pnpm validate:arch`, and the fourth is the `.test-d.ts` never-bar beside this file.
+// cell in `packages/arch/src/__tests__/validate-arch.test.ts`, and the fourth is the
+// `.test-d.ts` never-bar beside this file.
 //
 // The imports are RELATIVE on purpose (the `410-five-entity-kinds.test.ts` idiom): a planted
 // export must RED here without anyone rebuilding `dist/`.

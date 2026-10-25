@@ -43,7 +43,7 @@
 // IT DEPENDS ON NO AGENT PACKAGE. The run-starter is INJECTED — the whole implementation that names
 // `runs.start`, `invokeFunction` and the composed host lives in the CLI's `dashboard` command and is
 // handed to `startServer`, exactly as `agentHost` already is. `packages/dashboard-server` may not
-// import `agent`, `agent-local` or `safety`, and `pnpm validate:arch` is the mechanical proof.
+// import `agent`, `agent-local` or `safety`, and the arch package tests are the mechanical proof.
 
 import { EventEmitter } from 'node:events'
 
@@ -116,7 +116,7 @@ export interface InProcessRunStartInput {
    * A run that is DENIED never calls this, and that asymmetry is load-bearing: it is the only way
    * the backend can tell a policy refusal apart from a run that started and then failed.
    *
-   * (Phrased without a quoted clause after the word `from`: `validate:arch`'s dependency scanner
+   * (Phrased without a quoted clause after the word `from`: the arch lint's dependency scanner
    * reads that shape as an import specifier and reported this comment as an undeclared external
    * dependency of `packages/dashboard-server`.)
    */
@@ -361,7 +361,7 @@ export class InProcessExecutionBackend extends EventEmitter implements Execution
  * The surface-neutral prose a rejection is carrying, if it carries any (401-18, G-401-16).
  *
  * READ STRUCTURALLY, because the rejection is minted in `agent-local` or `agent`, and this package may not import
- * `agent`, `agent-local` or `safety` — `pnpm validate:arch` is the mechanical proof. So the field is
+ * `agent`, `agent-local` or `safety` — the arch package tests are the mechanical proof. So the field is
  * read off the value, never through a class test.
  *
  * AND NEVER BY A REGEX OVER THE MESSAGE. Splitting the canonical sentence apart here would be a
