@@ -13,6 +13,7 @@
 //         byte-identical to the runner's own `deterministicVerdict` fill.
 
 import {
+  asRecordId,
   canonicalJson,
   CURRENT_ANALYSIS_SCHEMA_VERSION,
   guardRunAnalysisArtifact,
@@ -438,3 +439,69 @@ describe('the full author behind the frozen checkpoint (389 plan 04, ANLZ-02/ANL
   })
 })
 
+const SERVED_CANDIDATE = asRecordId('rec-served-candidate')
+
+/** Serve one candidate record on step 0 of each listed member, leaving every other byte alone. */
+function withCandidateServedOn(
+  handoff: CompletedRunHandoff,
+  testIndexes: readonly number[],
+): CompletedRunHandoff {
+  const tests = handoff.tests.map((test) =>
+    !testIndexes.includes(test.testIndex)
+      ? test
+      : {
+          ...test,
+          steps: test.steps.map((step) =>
+            step.stepIndex !== 0
+              ? step
+              : {
+                  ...step,
+                  servedBrief: {
+                    ...step.servedBrief,
+                    channel1: [
+                      {
+                        id: SERVED_CANDIDATE,
+                        kind: 'fact',
+                        summary: 'served candidate record',
+                        trust: 0.2,
+                        status: 'candidate',
+                        servedAsCanary: false,
+                        tier: 'L1',
+                      },
+                    ],
+                  },
+                },
+          ),
+        },
+  ) as CompletedRunHandoff['tests']
+  return { ...handoff, tests }
+}
+
+describe('the analyze-run handler stamps memoryOnPath on every persisted verdict', () => {
+  it.each([
+    { member: 'authored', modelOutputs: [JSON.stringify({ tests: [authoredWireEntry(1)] })], producer: 'analyze-run' },
+    { member: 'degraded', modelOutputs: ['not json', 'still not json'], producer: 'deterministic-classifier' },
+  ])('stamps a deterministic and an $member member whose path served a candidate, and no other', async ({ modelOutputs, producer }) => {
+    const handoff = withCandidateServedOn(
+      buildSyntheticHandoff({
+        failureCount: 3,
+        rootCauseFor: (index) =>
+          index === 1 ? undefined : deterministicVerdict('flake', 'retryCount 2 > 0', [0], index),
+      }),
+      [0, 1],
+    )
+    const { artifacts, published, run } = harness(handoff, { modelOutputs })
+
+    const outcome = await run()
+    if (outcome.status !== 'complete') throw new Error(`expected complete, got ${outcome.status}`)
+
+    const artifact = artifacts[0] as RunAnalysisArtifact
+    const onPath = [{ recordId: SERVED_CANDIDATE, trust: 'candidate' }]
+    expect(artifact.verdicts.map((verdict) => verdict.perTest)).toEqual([0, 1, 2])
+    expect(artifact.verdicts[0]).toMatchObject({ producer: 'deterministic-classifier', memoryOnPath: onPath })
+    expect(artifact.verdicts[1]).toMatchObject({ producer, memoryOnPath: onPath })
+    expect(artifact.verdicts[2]).not.toHaveProperty('memoryOnPath')
+    // The checkpoint carries the same stamped verdicts the artifact persisted.
+    expect(published[0]?.value).toEqual({ runId: String(handoff.runId), verdicts: artifact.verdicts })
+  })
+})
