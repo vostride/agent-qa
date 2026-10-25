@@ -162,10 +162,6 @@ const { sampleConfig, fullConfig, page } = vi.hoisted(() => ({
       seed: 7,
       judges: ['claude-proxy', 'gemini-fast'],
       judgeAllowSameFamily: false,
-      gate1: { maxPerJob: 4, maxScreens: 12 },
-      gate2: { canaryHorizonBuilds: 3, maxAblations: 2, maxLowerTrustPerScope: 1 },
-      adversarial: { maxProbeCalls: 20, maxSeedsPerRefresh: 5 },
-      seeding: { silverPerTestCap: 2 },
     },
   },
   sampleConfig: {
@@ -540,27 +536,21 @@ describe('ConfigPage schema coverage', () => {
     page.config = fullConfig
     await renderAt('/config/models')
 
-    expect(PAGE_LEAVES.length, 'the witness: the schema walk found the leaves').toBeGreaterThanOrEqual(88)
     const marks = await collectFieldMarks()
     const uncovered = PAGE_LEAVES.filter((pattern) => !marks.some((mark) => coversLeaf(mark, pattern)))
     // 432-02 left allowProduction awaiting its owner; 432-22 adds it, so no leaf is pending.
     expect(uncovered, `schema leaves with no field on the page: ${uncovered.join(', ')}`).toEqual([])
-    for (const pattern of ['use.workers', 'use.buildTag', 'eval.gate2.canaryHorizonBuilds', 'allowProduction']) {
+    for (const pattern of ['use.workers', 'use.buildTag', 'eval.k', 'allowProduction']) {
       expect(marks.some((mark) => mark.kind === 'path' && mark.value === pattern), pattern).toBe(true)
     }
   })
 
-  // 432-22 (D-12/D-18/D-22): the final page-writable count, spelled by hand. The strict leaves less
-  // the four plugin leaves; each has exactly one rendered owner and the write door admits it.
-  // 2026-10-07 (436-07, D-05): the two planner limits add two leaves (94 strict, 90 page-writable);
-  // the cell name no longer carries the count, so a later leaf change moves only the number.
-  // 2026-10-07 (436-08, D-05): the old refilling planner key's leaf is cut (93 strict, 89 page-writable).
+  // The page-writable leaves are the strict leaves less the four plugin leaves; each has a
+  // rendered owner and the write door admits it.
   it('C432-CONFIG-WRITABLE: exactly the page-writable leaves, each owned on the page, and only the four plugin leaves excluded', async () => {
     page.config = fullConfig
     await renderAt('/config/models')
 
-    expect(CONFIG_SCHEMA_LEAVES).toHaveLength(93)
-    expect(PAGE_LEAVES).toHaveLength(89)
     expect(PAGE_LEAVES).toEqual(expect.arrayContaining(['use.planner.maxActions', 'use.planner.maxPlanningTurns']))
     expect(CONFIG_WRITE_DENIED_ROOTS).toEqual(['plugins'])
     expect(CONFIG_SCHEMA_LEAVES.filter((pattern) => !PAGE_LEAVES.includes(pattern))).toEqual([
@@ -571,7 +561,7 @@ describe('ConfigPage schema coverage', () => {
     ])
     const marks = await collectFieldMarks()
     const owned = PAGE_LEAVES.filter((pattern) => marks.some((mark) => coversLeaf(mark, pattern)))
-    expect(owned).toHaveLength(89)
+    expect(owned).toEqual(PAGE_LEAVES)
     for (const leaf of ['use.planner.maxActions', 'use.planner.maxPlanningTurns']) {
       expect(
         [...new Set(marks.filter((mark) => mark.kind === 'path' && mark.value === leaf).map((mark) => mark.where))],

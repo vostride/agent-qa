@@ -104,7 +104,6 @@ const { fullConfig } = vi.hoisted(() => ({
     },
     eval: {
       judges: ['claude-proxy', 'gemini-fast'],
-      gate2: { canaryHorizonBuilds: 3 },
     },
   },
 }))

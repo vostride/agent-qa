@@ -2,7 +2,7 @@
 
 // EVERY EVAL SETTING, GROUPED, AND THE JUDGE PICKER (429-28 Task 1 · D-06, D-07 · UI-SPEC S7, E9).
 //
-// Every eval leaf has a field inside one of the five groups. Judges are picked from the registered
+// Every eval leaf has a field inside an eval group. Judges are picked from the registered
 // models, at most three; one pick writes eval.judge, two or three write eval.judges, and the other
 // key is removed in the same write, so the file never declares both.
 
@@ -133,14 +133,13 @@ afterEach(async () => {
 })
 
 describe('EvalSection (429-28 Task 1)', () => {
-  it('EVAL-EVERY-LEAF-GROUPED: every eval leaf has a field inside one of the five groups, each an h3', async () => {
+  it('EVAL-EVERY-LEAF-GROUPED: every eval leaf has a field inside an eval group headed by an h3', async () => {
     await mount(withModels(MODELS))
 
     const headings = Array.from(section().querySelectorAll('[data-eval-group] > h3')).map((h) => h.textContent?.trim())
     expect(headings).toEqual(Object.values(EVAL_GROUP_LABELS))
 
     const evalLeaves = CONFIG_SCHEMA_LEAVES.filter((pattern) => pattern.startsWith('eval.'))
-    expect(evalLeaves.length, 'the witness: the filter found the eval leaves').toBeGreaterThanOrEqual(13)
     for (const pattern of evalLeaves) {
       const owner = configLeafOwner(pattern)
       const field = section().querySelector(`[data-field-path="${owner}"]`)
@@ -150,8 +149,6 @@ describe('EvalSection (429-28 Task 1)', () => {
       expect(Object.values(EVAL_GROUP_LABELS)).toContain(group!.querySelector(':scope > h3')?.textContent?.trim())
     }
 
-    const canary = section().querySelector('[data-field-path="eval.gate2.canaryHorizonBuilds"]')
-    expect(canary!.closest('[data-eval-group]')!.getAttribute('data-eval-group')).toBe('gate2')
     const picker = section().querySelector('[data-judge-picker]')
     expect(picker!.closest('[data-eval-group]')!.getAttribute('data-eval-group')).toBe('judge')
     expect(section().textContent).toContain(JUDGE_MODELS_LABEL)

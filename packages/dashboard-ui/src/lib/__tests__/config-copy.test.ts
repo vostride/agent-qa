@@ -108,7 +108,7 @@ describe('COPY-429: the Config strings of record (429-12 Task 2)', () => {
     expect(copy.ADD_MODEL_LABEL).toBe('Add model')
     expect(copy.CONNECT_FORM_LEGEND).toBe('How do you connect?')
     expect(copy.SAVE_WITHOUT_TESTING_LABEL).toBe('Save without testing')
-    expect(Object.values(copy.EVAL_GROUP_LABELS)).toEqual(['Judge', 'Gate 1', 'Gate 2', 'Adversarial', 'Seeding'])
+    expect(Object.values(copy.EVAL_GROUP_LABELS)).toEqual(['Judge'])
     expect(Object.keys(copy.CONFIG_SECTION_LABELS)).toEqual([...CONFIG_SECTION_IDS])
   })
 

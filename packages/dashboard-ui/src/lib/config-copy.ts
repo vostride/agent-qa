@@ -818,10 +818,6 @@ export const MCP_PATH_ERROR = 'Start the path with /.'
 
 export const EVAL_GROUP_LABELS = {
   judge: 'Judge',
-  gate1: 'Gate 1',
-  gate2: 'Gate 2',
-  adversarial: 'Adversarial',
-  seeding: 'Seeding',
 } as const satisfies Record<string, string>
 
 export const JUDGE_MODELS_LABEL = 'Judge models'
@@ -832,14 +828,6 @@ export const EVAL_FIELD_LABELS = {
   judgeAllowSameFamily: 'Allow a judge from the same model family',
   k: 'Runs per case',
   seed: 'Seed',
-  maxScreens: 'Most screens per screening',
-  maxPerJob: 'Most screenings per run',
-  maxAblations: 'Most ablations',
-  canaryHorizonBuilds: 'Canary horizon in builds',
-  maxLowerTrustPerScope: 'Most lower-trust items per scope',
-  maxSeedsPerRefresh: 'Most seeds per refresh',
-  maxProbeCalls: 'Most probe calls per refresh',
-  silverPerTestCap: 'Most silver labels per test',
 } as const satisfies Record<string, string>
 
 export const EVAL_FIELD_HELP = {

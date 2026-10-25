@@ -102,7 +102,7 @@ export const CONFIG_SECTION_ALIASES = {
   logging: ['log level'],
   'pass-rate-scope': ['pass rate', 'scope', 'attributes', 'flakiness'],
   mcp: ['mcp host', 'mcp port', 'mcp path'],
-  eval: ['eval', 'judge', 'judges', 'gate', 'adversarial', 'seeding', 'canary'],
+  eval: ['eval', 'judge', 'judges'],
   'config-file': ['yaml', 'config file path', 'raw config'],
 } as const satisfies Record<ConfigSectionId, readonly string[]>
 
