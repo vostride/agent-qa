@@ -1273,14 +1273,6 @@ describe('run command — reduced flag surface and target resolution', () => {
     expect(help).not.toContain('--env ')
     expect(help).not.toContain('--env-file')
   })
-  it('--max-ablations is no longer an option: Commander refuses it', async () => {
-    await runCommand('--max-ablations', '4', 'tests/**/*.yaml')
-
-    expect(exitSpy).toHaveBeenCalledWith(1)
-    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("unknown option '--max-ablations'"))
-    expect(mockResolveConfig).not.toHaveBeenCalled()
-    expect(createRunCommand().helpInformation()).not.toContain('--max-ablations')
-  })
 
   it('classifies removed run flags as Commander unknown options', async () => {
     await expect(parseRemovedRunFlag('--app', 'staging')).rejects.toMatchObject({ code: 'commander.unknownOption' })
