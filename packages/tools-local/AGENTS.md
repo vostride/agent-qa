@@ -1,7 +1,5 @@
 # agent-qa package instructions: @vostride/agent-qa-tools-local
 
-Inherit the root `agent-qa/AGENTS.md` branding, security, and release rules.
-
 ## Scope
 
 This package is the storageImplementation home for future local tool execution

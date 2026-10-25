@@ -1,7 +1,5 @@
 # agent-qa package instructions: @vostride/agent-qa-safety
 
-Inherit the root `agent-qa/AGENTS.md` branding, security, and release rules.
-
 ## Scope
 
 This package is the browser-safe safety kernel. It owns four things:
@@ -32,26 +30,3 @@ This package is the browser-safe safety kernel. It owns four things:
 - Test: `pnpm --filter @vostride/agent-qa-safety test`
 - Typecheck: `pnpm --filter @vostride/agent-qa-safety typecheck`
 - Build: `pnpm --filter @vostride/agent-qa-safety build`
-
-## Local Rules
-
-- This package is browser-safe and uses NO host APIs: no `fs`, no `process`, no
-  database, no `AsyncLocalStorage`. Host adapters live in
-  `@vostride/agent-qa-safety-local`; safety never depends on safety-local.
-- `createMaskingMiddleware(mask)` applies the declared mask it is handed to
-  every prompt leaf and decides nothing itself. `createModel` keeps it last in
-  its middleware array, and `pnpm run validate:safety` checks that.
-- Keep the AI-SDK-derived `ProviderRequestParams` type here rather than in
-  `@vostride/agent-qa-schema`, because `@ai-sdk/*` types are not browser-safe
-  (the deliberate SAFE-02 override). Schema stays host-free and SDK-free.
-- Export safety contracts through the package root; do not leak ownership
-  internals.
-
-## Verification
-
-Run focused package checks:
-
-```bash
-pnpm --filter @vostride/agent-qa-safety test
-pnpm --filter @vostride/agent-qa-safety typecheck
-```
