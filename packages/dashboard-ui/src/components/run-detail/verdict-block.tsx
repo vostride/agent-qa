@@ -49,22 +49,8 @@
 // ONE MISSING SCREENSHOT IS NOT AN UNTRUSTWORTHY VERDICT, and the whole-verdict badge that would
 // say otherwise was rejected. Bundle-level `evidence-incomplete` semantics belong to bundles.
 //
-// AND THE CIRCULARITY EVIDENCE IS TWO ROWS, NEVER ONE (422 · D-17 / D-19 / D-20). The causal
-// records — the ones whose cross-check FLIPPED — and the records merely ON the served path are
-// different claims, so they are different attribute names, different rows and a different chip
-// look. One row carrying both would attribute a member's failure to a record whose check HELD,
-// which is precisely the misreading the ledger exists to prevent.
-//
-// THE WHOLE SECTION IS ABSENT FOR A VERDICT THAT MADE NO CLAIM. Not an empty element and not a
-// "not recorded" line under every historical failure: `view.misdirectionEvidence` is undefined
-// whenever `analysis.get` carried no member, and this file renders nothing at all for it. A run
-// whose arbiter never ran paints exactly the block it painted before 422.
-//
-// NO PRODUCER STRING JOINS THE SEAM HERE. Every word below is an exported constant, an exported
-// formatter or a closed vocabulary word the DTO validated (`held`, `flipped`, `cap-exceeded`,
-// `posture-unavailable`, a record id). The `reason` text a root read failure produces never
-// reaches this DTO — see `AnalysisMisdirectionRecord` — so there is nothing here to mask, and
-// wrapping these would claim a redaction nobody made.
+// THE RECORDS ON THE FAILING PATH are the verdict's own declaration, listed when it made one and
+// absent otherwise.
 //
 // `data-*` DESCRIBES WHAT IS RENDERED, not what was passed (the banner's `showingFull` lesson).
 
@@ -72,11 +58,7 @@ import { EvidenceIncomplete } from "@/components/run-detail/evidence-incomplete"
 import {
   CITED_ARTIFACT_LABEL,
   citedStepLabel,
-  MISDIRECTION_CAUSAL_RECORDS_LABEL,
-  MISDIRECTION_ON_PATH_RECORDS_LABEL,
-  MISDIRECTION_RESULTS_LABEL,
-  MISDIRECTION_RESULT_TEXT,
-  misdirectionUnbackedLine,
+  MEMORY_ON_PATH_RECORDS_LABEL,
   type MemberVerdictView,
 } from "@/lib/analysis-view"
 import { memberHandleLabel } from "@/lib/run-detail-view"
@@ -100,11 +82,6 @@ const AFFORDANCE_CLASS =
 const ON_PATH_CHIP_CLASS =
   "inline-block max-w-full break-all rounded-[2px] border border-border/60 bg-background/60 px-1.5 py-0.5 font-mono text-xs " +
   "text-muted-foreground"
-
-/** A CAUSAL record: the amber the lifecycle marker already owns, so the page mints no new colour. */
-const CAUSAL_CHIP_CLASS =
-  "inline-block max-w-full break-all rounded-[2px] border border-amber-500/60 bg-amber-500/10 px-1.5 py-0.5 font-mono text-xs " +
-  "text-amber-800 dark:text-amber-300"
 
 export function VerdictBlock({
   view,
@@ -196,64 +173,21 @@ export function VerdictBlock({
         </div>
       )}
 
-      {view.misdirectionEvidence === undefined ? null : (
+      {view.memoryOnPath === undefined ? null : (
         <>
           <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-            <span
-              data-misdirection={view.misdirectionEvidence.state}
-              className={
-                view.misdirectionEvidence.state === 'flipped'
-                  ? "min-w-0 text-amber-800 dark:text-amber-300"
-                  : "min-w-0"
-              }
-            >
-              {view.misdirectionEvidence.text}
-            </span>
-            {view.misdirectionEvidence.unbackedReason === undefined ? null : (
-              <span
-                data-misdirection-unbacked={view.misdirectionEvidence.unbackedReason}
-                className="min-w-0"
-              >
-                {view.misdirectionEvidence.unbackedText}
-              </span>
-            )}
             <span data-misdirection-on-path className="min-w-0">
-              {view.misdirectionEvidence.onPathText}
+              {view.memoryOnPath.onPathText}
             </span>
           </div>
 
-          {view.misdirectionEvidence.causalRecords.length === 0
-            && (view.misdirectionEvidence.onPath === undefined
-              || view.misdirectionEvidence.onPath.length === 0) ? null : (
+          {view.memoryOnPath.onPath.length === 0 ? null : (
           <dl className="mt-2 space-y-2 text-xs text-muted-foreground">
-            {view.misdirectionEvidence.causalRecords.length === 0 ? null : (
-            <div
-              data-misdirection-causal={String(view.misdirectionEvidence.causalRecords.length)}
-            >
-              <dt className="mb-1">{MISDIRECTION_CAUSAL_RECORDS_LABEL}</dt>
+            <div data-misdirection-exposed={String(view.memoryOnPath.onPath.length)}>
+              <dt className="mb-1">{MEMORY_ON_PATH_RECORDS_LABEL}</dt>
               <dd>
                 <ul className="flex flex-wrap items-start gap-1">
-                  {view.misdirectionEvidence.causalRecords.map((recordId) => (
-                    <li key={recordId} className="min-w-0 max-w-full">
-                      <span data-misdirection-causal-record={recordId} className={CAUSAL_CHIP_CLASS}>
-                        {recordId}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </dd>
-            </div>
-            )}
-
-            {view.misdirectionEvidence.onPath === undefined
-              || view.misdirectionEvidence.onPath.length === 0 ? null : (
-            <div
-              data-misdirection-exposed={String(view.misdirectionEvidence.onPath.length)}
-            >
-              <dt className="mb-1">{MISDIRECTION_ON_PATH_RECORDS_LABEL}</dt>
-              <dd>
-                <ul className="flex flex-wrap items-start gap-1">
-                  {view.misdirectionEvidence.onPath.map((entry) => (
+                  {view.memoryOnPath.onPath.map((entry) => (
                     <li key={entry.recordId} className="min-w-0 max-w-full">
                       <span
                         data-misdirection-on-path-record={entry.recordId}
@@ -267,30 +201,7 @@ export function VerdictBlock({
                 </ul>
               </dd>
             </div>
-            )}
           </dl>
-          )}
-
-          {view.misdirectionEvidence.results === undefined
-            || view.misdirectionEvidence.results.length === 0 ? null : (
-            <details className="mt-2 text-xs text-muted-foreground">
-              <summary className="cursor-pointer rounded-[2px] py-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-                {MISDIRECTION_RESULTS_LABEL}
-              </summary>
-              <ul className="mt-2 space-y-2">
-                {view.misdirectionEvidence.results.map((result) => (
-                  <li key={result.recordId} data-misdirection-result={result.recordId}>
-                    <div className="break-all font-mono text-foreground">{result.recordId}</div>
-                    <div>{MISDIRECTION_RESULT_TEXT[result.crossCheck]}</div>
-                    {result.reason === undefined ? null : (
-                      <div data-misdirection-result-reason={result.reason}>
-                        {misdirectionUnbackedLine(result.reason)}
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </details>
           )}
         </>
       )}

@@ -43,8 +43,6 @@ import {
   ANALYSIS_FAILED_FALLBACK_TEXT,
   ANALYSIS_PROVISIONAL_TEXT,
   DETERMINISTIC_FALLBACK_LABEL,
-  MISDIRECTION_DECLARED_ONLY_TEXT,
-  MISDIRECTION_HELD_TEXT,
   missingEvidenceLine,
   provenanceLabel,
   siblingLine,
@@ -743,41 +741,27 @@ describe("the analysis read is forgotten when the run id changes (CR-02)", () =>
   })
 })
 
-// ----------------------------------------------------------------------------------------------
-// 422 D-17/D-20: THE STORED CIRCULARITY FIELDS REACH THE VISIBLE MEMBER, AND ONLY THAT MEMBER.
-//
-// The page is where a per-verdict fact becomes a per-ROW fact, and the join that does it is the
-// same `perTest` key CR-02 above proved can silently pair the wrong things. A member that inherits
-// its sibling's attribution tells a person which memory record broke THEIR test, and names the
-// wrong one; a member that inherits a `declared-only` claim tells them their verdict carries D-19's
-// BYOM exemption when it never received one. Both are read through the REAL DTO-to-view path here:
-// the page's own `projectAnalysisView`, the real `VerdictBlock`, and `analysis.get`'s own shape.
-//
-// THE THIRD CELL IS THE ADDITIVE ONE, and it is the reason the other two are safe to add at all:
-// a run whose arbiter never ran — every run written before 422, and every gated run whose verdict
-// carried no ledger — paints the page it painted before, with no circularity element anywhere on it
-// and no invented held result.
-// ----------------------------------------------------------------------------------------------
+// The records a verdict declared on its failing path reach that member's row and no other.
 
-const REC_HELD = "rec_held_0001"
-const REC_FLIPPED = "rec_flipped_01"
+const REC_CANDIDATE = "rec_cand_0001"
+const REC_CANARY = "rec_canary_01"
 
 /** Both members failed, so both carry a block — the shape a leakage claim needs. */
 function twoFailedVerdicts(
-  zero: AnalysisGetOutput["verdicts"][number]["misdirection"],
-  one: AnalysisGetOutput["verdicts"][number]["misdirection"],
+  zero: AnalysisGetOutput["verdicts"][number]["memoryOnPath"],
+  one: AnalysisGetOutput["verdicts"][number]["memoryOnPath"],
 ): AnalysisGetOutput {
   return analysisOf({
     verdicts: [
       {
         perTest: 0, testId: "t_checkout", class: "unknown",
         producer: "deterministic-classifier", confidence: 0,
-        ...(zero === undefined ? {} : { misdirection: zero }),
+        ...(zero === undefined ? {} : { memoryOnPath: zero }),
       },
       {
         perTest: 1, testId: "t_login", class: "unknown",
         producer: "deterministic-classifier", confidence: 0,
-        ...(one === undefined ? {} : { misdirection: one }),
+        ...(one === undefined ? {} : { memoryOnPath: one }),
       },
     ],
     sentences: [
@@ -787,90 +771,41 @@ function twoFailedVerdicts(
   })
 }
 
-describe("stored circularity fields reach the visible member and no other (422 D-17/D-20)", () => {
+describe("the records on the failing path reach the visible member and no other", () => {
   beforeEach(() => { fetchRunDetailMock.mockResolvedValue(CLUSTERED_MEMBERS) })
-
-  const stateOf = (view: HTMLElement, member: number) =>
-    view.querySelector(`[data-member="${String(member)}"] [data-misdirection]`)
-      ?.getAttribute("data-misdirection")
 
   const recordsOf = (view: HTMLElement, member: number, attribute: string) =>
     [...view.querySelectorAll(`[data-member="${String(member)}"] [${attribute}]`)]
       .map((element) => element.getAttribute(attribute))
 
-  it("paints the affected member's attribution and lets no sibling inherit it", async () => {
+  it("lists each member's declared records under that member only", async () => {
     fetchRunAnalysisMock.mockResolvedValue(twoFailedVerdicts(
-      {
-        state: "measured", crossCheck: "flipped",
-        results: [
-          { recordId: REC_HELD, crossCheck: "held" },
-          { recordId: REC_FLIPPED, crossCheck: "flipped" },
-        ],
-        memoryOnPath: [
-          { recordId: REC_HELD, trust: "candidate" },
-          { recordId: REC_FLIPPED, trust: "low-trust-active" },
-        ],
-      },
-      { state: "declared-only", crossCheck: "not-run", results: [], backing: "declared-only", memoryOnPath: [] },
+      [
+        { recordId: REC_CANDIDATE, trust: "candidate" },
+        { recordId: REC_CANARY, trust: "low-trust-active" },
+      ],
+      [],
     ))
     const view = await renderPage()
 
     expect(view.querySelectorAll("[data-verdict-block]").length, "both members failed").toBe(2)
-    expect(stateOf(view, 0)).toBe("flipped")
-    expect(stateOf(view, 1), "and it is NOT the sibling's attribution").toBe("declared-only")
-
-    // The causal record is named under member 0 and nowhere else.
-    expect(recordsOf(view, 0, "data-misdirection-causal-record")).toEqual([REC_FLIPPED])
-    expect(recordsOf(view, 1, "data-misdirection-causal-record")).toEqual([])
-    // The exposure row is member 0's too; member 1 declared an EMPTY set and shows no chips.
-    expect(recordsOf(view, 0, "data-misdirection-on-path-record")).toEqual([REC_HELD, REC_FLIPPED])
-    expect(recordsOf(view, 1, "data-misdirection-on-path-record")).toEqual([])
-    // And member 1's declared-only claim does not travel back up to member 0.
-    expect(
-      view.querySelector('[data-member="0"]')?.textContent,
-      "no member borrows a BYOM exemption it never received",
-    ).not.toContain(MISDIRECTION_DECLARED_ONLY_TEXT)
+    expect(recordsOf(view, 0, "data-misdirection-on-path-record")).toEqual([REC_CANDIDATE, REC_CANARY])
+    expect(recordsOf(view, 1, "data-misdirection-on-path-record"), "member 1 declared none").toEqual([])
+    expect(view.querySelector('[data-member="1"] [data-misdirection-on-path]')).not.toBeNull()
   })
 
-  it("leaves a member whose verdict carried NO ledger with no circularity element at all", async () => {
+  it("leaves a member whose verdict declared nothing with no on-path element", async () => {
     fetchRunAnalysisMock.mockResolvedValue(twoFailedVerdicts(
-      {
-        state: "measured", crossCheck: "held",
-        results: [{ recordId: REC_HELD, crossCheck: "held" }],
-        memoryOnPath: [{ recordId: REC_HELD, trust: "candidate" }],
-      },
+      [{ recordId: REC_CANDIDATE, trust: "candidate" }],
       undefined,
     ))
     const view = await renderPage()
 
-    expect(stateOf(view, 0)).toBe("held")
-    expect(stateOf(view, 1), "absent on the wire is absent on the page").toBeUndefined()
-    // The sibling's block is otherwise whole — this is an ABSENCE, not a suppression.
+    expect(recordsOf(view, 0, "data-misdirection-on-path-record")).toEqual([REC_CANDIDATE])
+    expect(view.querySelector('[data-member="1"] [data-misdirection-on-path]')).toBeNull()
     expect(view.querySelector('[data-member="1"] [data-verdict-sentence]')?.textContent)
       .toBe('observed (step 0): "Login timed out"')
-    expect(
-      view.querySelector('[data-member="1"] [data-verdict-provenance]')?.textContent,
-      "and its provenance still reads",
-    ).toBe(DETERMINISTIC_FALLBACK_LABEL)
-    expect(
-      view.querySelector('[data-member="1"]')?.textContent,
-      "no held result is invented for a member that measured nothing",
-    ).not.toContain(MISDIRECTION_HELD_TEXT)
-  })
-
-  it("renders a HISTORICAL analysis exactly as before: readable provenance, no circularity anywhere", async () => {
-    // `analysisOf()` is the pre-422 wire shape, byte for byte — the op emits no `misdirection`
-    // member for a verdict that made no claim.
-    const view = await renderPage()
-
-    expect(view.querySelectorAll("[data-verdict-block]").length).toBe(1)
-    expect(view.querySelectorAll("[data-misdirection]").length, "not one element").toBe(0)
-    expect(view.querySelectorAll("[data-misdirection-causal-record]").length).toBe(0)
-    expect(view.querySelectorAll("[data-misdirection-on-path-record]").length).toBe(0)
-    expect(view.querySelector('[data-member="0"] [data-verdict-sentence]')?.textContent)
-      .toBe(FLOOR_SENTENCE)
-    expect(view.querySelector('[data-member="0"] [data-verdict-provenance]')?.textContent)
+    expect(view.querySelector('[data-member="1"] [data-verdict-provenance]')?.textContent)
       .toBe(DETERMINISTIC_FALLBACK_LABEL)
-    expect(view.textContent, "and no invented held result").not.toContain(MISDIRECTION_HELD_TEXT)
   })
 })

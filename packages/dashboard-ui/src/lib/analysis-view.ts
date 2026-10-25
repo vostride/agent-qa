@@ -42,11 +42,7 @@
 import type {
   AnalysisGetOutput,
   AnalysisMemoryOnPathEntry,
-  AnalysisMisdirectionRecord,
-  AnalysisMisdirectionReason,
   AnalysisResolvedVerdict,
-  AnalysisVerdictMisdirection,
-  CrossCheck,
   PostProcessingChipStatus,
   Mark,
   RunDetailMemberMark,
@@ -127,14 +123,8 @@ export interface MemberVerdictView {
   readonly missingEvidence?: MemberVerdictMissingEvidence
   /** The count line — present exactly when `missingEvidence` is. */
   readonly missingEvidenceText?: string
-  /**
-   * What this verdict said about the memory it was served (422 D-17 / D-19 / D-20).
-   *
-   * ABSENT WHEN THE OP CARRIED NO MEMBER, which is every run written before 422 and every verdict
-   * the deterministic floor minted. The block then paints exactly what it painted before — an
-   * empty state word here would put "not recorded" under every historical failure on the page.
-   */
-  readonly misdirectionEvidence?: MemberMisdirectionView
+  /** The records this verdict declared on its failing path. Absent when it declared nothing. */
+  readonly memoryOnPath?: MemberMemoryOnPathView
 }
 
 /**
@@ -207,190 +197,32 @@ export function siblingLine(count: number): string {
   return `same failure as ${String(count)} other ${count === 1 ? 'test' : 'tests'}`
 }
 
-/**
- * WHAT THE BLOCK SAYS ABOUT CIRCULARITY — five readings, and only one of them exonerates
- * (422 D-17 / D-19 / D-20).
- *
- * THE FIVE ARE NOT A GRADING SCALE, and the distinctions are the whole point:
- *
- *   `held`          every relevant cross-check held. The ONLY arm that may read as "the served
- *                   memory was not the problem", because it is the only one anything measured.
- *   `flipped`       at least one record's check flipped. The memory IS suspect and the causal
- *                   records are named, because "something in memory did this" without saying
- *                   which record is a claim a reader cannot act on.
- *   `unresolved`    a ledger exists and does not answer — inconclusive rows, or rows nothing ran.
- *                   An UNBACKED gated posture, and a broken evaluation root lands exactly here.
- *   `declared-only` D-19's one exemption: the evaluation root was ABSENT, so nothing could be
- *                   measured and the author's declaration is all there is. An absence claim, never
- *                   a quality grade — and never the reading a BROKEN root gets, which is the
- *                   collapse 422-11 designed the posture vocabulary against.
- *   `not-recorded`  the verdict made no claim at all. Every pre-422 verdict, and any producer
- *                   that declared an on-path set and shipped no ledger beside it.
- *
- * THIS SURFACE MUST NOT CONTRADICT THE CLI (422-17). `post-run-tail.ts`'s close-out line renders
- * the backing an operator ACTUALLY got and refuses to print `declared-only` for a posture no host
- * could apply (#427). The word arrives here the same way: `backing: 'declared-only'` is the
- * PRODUCER'S marker, stamped by 422-15's validator under a genuinely absent root, and it is
- * rendered when — and only when — that marker is on the verdict. Nothing in this file infers one.
- */
-export type MemberMisdirectionState =
-  | 'not-recorded'
-  | 'held'
-  | 'flipped'
-  | 'unresolved'
-  | 'declared-only'
-
 /** One record the run's own briefs put on this member's failing path, as declared. */
-export type MemberMisdirectionOnPath = AnalysisMemoryOnPathEntry
+export type MemberMemoryOnPathEntry = AnalysisMemoryOnPathEntry
 
-/** One member's circularity reading, ready to paint. */
-export interface MemberMisdirectionView {
-  readonly state: MemberMisdirectionState
-  /** The one line. An exported constant or an exported formatter, never composed at a render. */
-  readonly text: string
-  /**
-   * The records whose cross-check FLIPPED — the causal attribution (D-20).
-   *
-   * DELIBERATELY NOT THE EXPOSURE SET. A record on the path whose check HELD is evidence the
-   * memory was fine, and listing it beside a flipped one would attribute the failure to it.
-   */
-  readonly causalRecords: readonly string[]
-  /** The DECLARED on-path set. ABSENT stays absent — the author declared nothing. */
-  readonly onPath?: readonly MemberMisdirectionOnPath[]
-  /** The on-path line, which is the ONE place absent, empty and populated are told apart. */
+/** The records a verdict declared on its failing path, ready to paint. */
+export interface MemberMemoryOnPathView {
+  readonly onPath: readonly MemberMemoryOnPathEntry[]
   readonly onPathText: string
-  /** Every stored result, including unresolved rows beside a flipped result. Absence stays absent. */
-  readonly results?: readonly AnalysisMisdirectionRecord[]
-  /** The closed word an unresolved ledger disclosed, when it disclosed one. */
-  readonly unbackedReason?: AnalysisMisdirectionReason
-  /** The unbacked line — present exactly when `unbackedReason` is. */
-  readonly unbackedText?: string
 }
 
-/** The verdict made no circularity claim this reader may report as a result. */
-export const MISDIRECTION_NOT_RECORDED_TEXT = 'circularity: not recorded'
-
-/** Every relevant cross-check held — the one arm that reads as an exoneration (D-20). */
-export const MISDIRECTION_HELD_TEXT = 'circularity: cross-check held'
-
-/** A ledger that does not answer. NOT an exoneration and NOT the D-19 exemption. */
-export const MISDIRECTION_UNRESOLVED_TEXT = 'circularity: unresolved'
-
-/** D-19's absence exemption, said in full so it cannot be mistaken for a measurement. */
-export const MISDIRECTION_DECLARED_ONLY_TEXT =
-  'circularity: declared-only — no evaluation root, nothing measured'
-
-/** The author declared NOTHING about what memory was on this member's path. */
-export const MEMORY_ON_PATH_NOT_RECORDED_TEXT = 'memory on path: not recorded'
-
-/** The author declared NO records — a claim, and not the absence above. */
+/** The author declared NO records. */
 export const MEMORY_ON_PATH_NONE_TEXT = 'memory on path: none declared'
 
-export const MISDIRECTION_CAUSAL_RECORDS_LABEL = 'Causal records (flipped)'
-export const MISDIRECTION_ON_PATH_RECORDS_LABEL = 'All records on path'
-export const MISDIRECTION_RESULTS_LABEL = 'Per-record cross-checks'
+export const MEMORY_ON_PATH_RECORDS_LABEL = 'All records on path'
 
-export const MISDIRECTION_RESULT_TEXT = {
-  held: 'Held — outcome unchanged',
-  flipped: 'Flipped — removing this record changed the outcome',
-  inconclusive: 'Inconclusive — no reliable result',
-  'not-run': 'Not run',
-} satisfies Record<CrossCheck, string>
-
-/** Explain only the DTO's closed reasons; never render the producer's open diagnostic text. */
-const MISDIRECTION_REASON_TEXT = {
-  'cap-exceeded': 'Cross-check limit reached; this memory remains unchecked',
-  interrupted: 'Cross-check interrupted; no completed result is available',
-  'no-eval-root': 'No evaluation root; this claim was not measured',
-  'posture-unavailable': 'Evaluation root unavailable; this memory was not cleared',
-} satisfies Record<AnalysisMisdirectionReason, string>
-
-/** The attribution line. Counts the FLIPPED records, which is what "attribution" names. */
-export function misdirectionAttributionLine(count: number): string {
-  return `circularity: memory attribution — ${String(count)} flipped `
-    + `${count === 1 ? 'record' : 'records'}`
-}
-
-/** The exposure line. Counts the DECLARED records, whatever their checks said. */
 export function memoryOnPathLine(count: number): string {
   return `memory on path: ${String(count)} ${count === 1 ? 'record' : 'records'}`
 }
 
-/**
- * Why an unresolved ledger is unbacked, explained from the producer's closed word.
- *
- * `cap-exceeded` and `posture-unavailable` are the two an operator acts differently on: the first
- * is a budget this run hit, the second is an evaluation root this build could not read. The DTO
- * admits four closed words and forwards nothing else, so no producer text reaches this line.
- */
-export function misdirectionUnbackedLine(reason: AnalysisMisdirectionReason): string {
-  return MISDIRECTION_REASON_TEXT[reason]
-}
-
-/**
- * The five-way reading, from the op's bytes alone (422 D-17 / D-19 / D-20).
- *
- * IT RECOMPUTES NO TRUST AND FOLDS NO MAJORITY. The block's own `crossCheck` word is what
- * `aggregateMisdirectionEvidence` already decided, and it is read rather than re-derived — with
- * ONE asymmetry, in the safe direction only: a FLIPPED row under a block word that says `held`
- * reads as flipped. A surface is the last place a `flipped` row could be softened, and softening
- * it is the one mistake that turns a suspect record into an exoneration.
- */
-function readMisdirection(
-  evidence: AnalysisVerdictMisdirection,
-): MemberMisdirectionView {
-  const results = evidence.results ?? []
-  const causalRecords = results
-    .filter((row) => row.crossCheck === 'flipped')
-    .map((row) => row.recordId)
-  const state = misdirectionStateOf(evidence, causalRecords.length, evidence.crossCheck)
-  const unbackedReason = state !== 'unresolved'
-    ? undefined
-    : results.find((row) => row.reason !== undefined)?.reason
+function readMemoryOnPath(
+  memoryOnPath: readonly AnalysisMemoryOnPathEntry[],
+): MemberMemoryOnPathView {
   return {
-    state,
-    text: misdirectionTextFor(state, causalRecords.length),
-    causalRecords,
-    ...(evidence.results === undefined ? {} : { results: evidence.results }),
-    ...(evidence.memoryOnPath === undefined ? {} : { onPath: evidence.memoryOnPath }),
-    onPathText: evidence.memoryOnPath === undefined
-      ? MEMORY_ON_PATH_NOT_RECORDED_TEXT
-      : evidence.memoryOnPath.length === 0
-        ? MEMORY_ON_PATH_NONE_TEXT
-        : memoryOnPathLine(evidence.memoryOnPath.length),
-    ...(unbackedReason === undefined
-      ? {}
-      : { unbackedReason, unbackedText: misdirectionUnbackedLine(unbackedReason) }),
-  }
-}
-
-/** The state word. A total read over the DTO's three arms and the block's four check words. */
-function misdirectionStateOf(
-  evidence: AnalysisVerdictMisdirection,
-  flippedRows: number,
-  crossCheck: CrossCheck | undefined,
-): MemberMisdirectionState {
-  if (flippedRows > 0) return 'flipped'
-  if (evidence.state === 'not-recorded') return 'not-recorded'
-  if (evidence.state === 'declared-only') return 'declared-only'
-  switch (crossCheck) {
-    case 'held': return 'held'
-    case 'flipped': return 'flipped'
-    case 'inconclusive':
-    case 'not-run':
-    case undefined:
-      return 'unresolved'
-  }
-}
-
-/** The state's own sentence, so the word and the copy cannot drift apart. */
-function misdirectionTextFor(state: MemberMisdirectionState, flipped: number): string {
-  switch (state) {
-    case 'held': return MISDIRECTION_HELD_TEXT
-    case 'flipped': return misdirectionAttributionLine(flipped)
-    case 'declared-only': return MISDIRECTION_DECLARED_ONLY_TEXT
-    case 'unresolved': return MISDIRECTION_UNRESOLVED_TEXT
-    case 'not-recorded': return MISDIRECTION_NOT_RECORDED_TEXT
+    onPath: memoryOnPath,
+    onPathText: memoryOnPath.length === 0
+      ? MEMORY_ON_PATH_NONE_TEXT
+      : memoryOnPathLine(memoryOnPath.length),
   }
 }
 
@@ -478,11 +310,9 @@ export function projectAnalysisView(
       missingEvidence,
       missingEvidenceText:
         missingEvidence === undefined ? undefined : missingEvidenceLine(missingEvidence),
-      // OMITTED, not `undefined`-valued: absence here is a fact about the verdict, and the op
-      // emits the member only for a verdict that actually made a circularity claim.
-      ...(verdict.misdirection === undefined
+      ...(verdict.memoryOnPath === undefined
         ? {}
-        : { misdirectionEvidence: readMisdirection(verdict.misdirection) }),
+        : { memoryOnPath: readMemoryOnPath(verdict.memoryOnPath) }),
     })
   }
   return view

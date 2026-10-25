@@ -31,14 +31,8 @@ import {
   CITED_ARTIFACT_LABEL,
   citedStepLabel,
   MEMORY_ON_PATH_NONE_TEXT,
-  MEMORY_ON_PATH_NOT_RECORDED_TEXT,
-  MISDIRECTION_DECLARED_ONLY_TEXT,
-  MISDIRECTION_HELD_TEXT,
-  MISDIRECTION_NOT_RECORDED_TEXT,
-  MISDIRECTION_UNRESOLVED_TEXT,
+  MEMORY_ON_PATH_RECORDS_LABEL,
   memoryOnPathLine,
-  misdirectionAttributionLine,
-  misdirectionUnbackedLine,
   missingEvidenceLine,
   provenanceLabel,
   siblingLine,
@@ -417,40 +411,14 @@ describe("evidence that is GONE is a chip where the link was, and a count beside
   })
 })
 
-// ── 422 D-17/D-19/D-20: THE CIRCULARITY EVIDENCE A PERSON READS IN THE BLOCK.
-//
-// The states the projection hands up must be VISUALLY DISTINCT here, because this is where a
-// three-valued fact gets flattened into one badge. Two rules the cells below are written around:
-//
-//   1. STAMPED, ABSENT AND REFUSED ARE THREE DIFFERENT RENDERINGS. `held` is the only one that may
-//      read as an exoneration; `declared-only` is D-19's absence exemption, `unresolved` is an
-//      unbacked posture and `not recorded` is a verdict that never made the claim at all.
-//   2. CAUSAL RECORDS AND EXPOSED RECORDS ARE TWO ROWS WITH TWO ATTRIBUTE NAMES. A record whose
-//      cross-check FLIPPED is why this member failed; a record merely on the path is not, and one
-//      row carrying both would attribute the failure to a record whose check held.
-//
-// AND THE ABSENCE CELL IS THE ADDITIVE PROOF: a view with no evidence member renders the block it
-// rendered before 422, element for element.
+describe('the records on the failing path in the block', () => {
+  const CANDIDATE = 'rec_cand_0001'
+  const CANARY = 'rec_canary_01'
 
-describe('422 circularity evidence in the block (D-17/D-19/D-20)', () => {
-  const HELD = 'rec_held_0001'
-  const FLIPPED = 'rec_flipped_01'
-
-  const heldEvidence = {
-    state: 'held' as const,
-    text: MISDIRECTION_HELD_TEXT,
-    causalRecords: [] as readonly string[],
-    onPath: [{ recordId: HELD, trust: 'candidate' as const }],
-    onPathText: memoryOnPathLine(1),
-  }
-
-  const flippedEvidence = {
-    state: 'flipped' as const,
-    text: misdirectionAttributionLine(1),
-    causalRecords: [FLIPPED] as readonly string[],
+  const declared = {
     onPath: [
-      { recordId: HELD, trust: 'candidate' as const },
-      { recordId: FLIPPED, trust: 'low-trust-active' as const },
+      { recordId: CANDIDATE, trust: 'candidate' as const },
+      { recordId: CANARY, trust: 'low-trust-active' as const },
     ],
     onPathText: memoryOnPathLine(2),
   }
@@ -458,127 +426,37 @@ describe('422 circularity evidence in the block (D-17/D-19/D-20)', () => {
   const attr = (selector: string, name: string) =>
     [...container.querySelectorAll(selector)].map((element) => element.getAttribute(name))
 
-  it('paints a HELD result as held, with no causal record row', () => {
-    render({ misdirectionEvidence: heldEvidence })
-    expect(container.querySelector('[data-misdirection]')?.getAttribute('data-misdirection'))
-      .toBe('held')
-    expect(container.querySelector('[data-misdirection]')?.textContent)
-      .toBe(MISDIRECTION_HELD_TEXT)
-    expect(container.querySelector('[data-misdirection-causal]'), 'nothing flipped').toBeNull()
-    expect(attr('[data-misdirection-on-path-record]', 'data-misdirection-on-path-record'))
-      .toEqual([HELD])
-  })
-
-  it('paints the causal records and the exposed records as two DIFFERENT rows', () => {
-    render({ misdirectionEvidence: flippedEvidence })
-    expect(container.querySelector('[data-misdirection]')?.getAttribute('data-misdirection'))
-      .toBe('flipped')
-    expect(container.querySelector('[data-misdirection-causal]')?.getAttribute('data-misdirection-causal'))
-      .toBe('1')
-    expect(attr('[data-misdirection-causal-record]', 'data-misdirection-causal-record'))
-      .toEqual([FLIPPED])
-    // The SAME record appears in both rows under DIFFERENT attribute names, and the held one
-    // appears only in the exposure row — which is the whole distinction.
-    expect(attr('[data-misdirection-on-path-record]', 'data-misdirection-on-path-record'))
-      .toEqual([HELD, FLIPPED])
-    const causal = container.querySelector<HTMLElement>('[data-misdirection-causal-record]')!
-    const exposed = container.querySelector<HTMLElement>(`[data-misdirection-on-path-record="${HELD}"]`)!
-    expect(causal.className, 'the two chips do not look alike').not.toBe(exposed.className)
-    expect(container.querySelector('[data-misdirection-causal] dt')?.textContent)
-      .toBe('Causal records (flipped)')
+  it('lists every declared record with its trust word under the on-path label', () => {
+    render({ memoryOnPath: declared })
+    expect(container.querySelector('[data-misdirection-on-path]')?.textContent)
+      .toBe(memoryOnPathLine(2))
+    expect(container.querySelector('[data-misdirection-exposed]')?.getAttribute('data-misdirection-exposed'))
+      .toBe('2')
     expect(container.querySelector('[data-misdirection-exposed] dt')?.textContent)
-      .toBe('All records on path')
-  })
-
-  it('offers every recorded result and reason in a native disclosure without changing attribution', () => {
-    render({
-      misdirectionEvidence: {
-        ...flippedEvidence,
-        results: [
-          { recordId: HELD, crossCheck: 'held' },
-          { recordId: FLIPPED, crossCheck: 'flipped' },
-          { recordId: 'rec_capped', crossCheck: 'not-run', reason: 'cap-exceeded' },
-          { recordId: 'rec_interrupted', crossCheck: 'inconclusive', reason: 'interrupted' },
-        ],
-      },
-    })
-
-    const disclosure = container.querySelector<HTMLDetailsElement>('details')
-    expect(disclosure?.open, 'details are available without expanding every failed member by default')
-      .toBe(false)
-    expect(disclosure?.querySelector('summary')?.textContent).toBe('Per-record cross-checks')
-    expect(attr('[data-misdirection-result]', 'data-misdirection-result'))
-      .toEqual([HELD, FLIPPED, 'rec_capped', 'rec_interrupted'])
-    expect(disclosure?.querySelector('[data-misdirection-result="rec_capped"]')?.textContent)
-      .toContain(misdirectionUnbackedLine('cap-exceeded'))
-    expect(disclosure?.querySelector('[data-misdirection-result="rec_interrupted"]')?.textContent)
-      .toContain(misdirectionUnbackedLine('interrupted'))
-    expect(attr('[data-misdirection-causal-record]', 'data-misdirection-causal-record'))
-      .toEqual([FLIPPED])
-    expect(disclosure?.querySelectorAll('button, a, input').length, 'results are read-only').toBe(0)
-  })
-
-  it('paints declared-only, unresolved and not-recorded as three distinct states', () => {
-    render({
-      misdirectionEvidence: {
-        state: 'declared-only', text: MISDIRECTION_DECLARED_ONLY_TEXT,
-        causalRecords: [], onPath: [], onPathText: MEMORY_ON_PATH_NONE_TEXT,
-      },
-    })
-    expect(container.querySelector('[data-misdirection]')?.getAttribute('data-misdirection'))
-      .toBe('declared-only')
-    expect(container.querySelector('[data-misdirection-unbacked]')).toBeNull()
-
-    act(() => { root.render(<MemoryRouter><VerdictBlock
-      view={view({
-        misdirectionEvidence: {
-          state: 'unresolved', text: MISDIRECTION_UNRESOLVED_TEXT, causalRecords: [],
-          onPathText: MEMORY_ON_PATH_NOT_RECORDED_TEXT,
-          unbackedReason: 'posture-unavailable',
-          unbackedText: misdirectionUnbackedLine('posture-unavailable'),
-        },
-      })}
-      onCitedStep={() => {}} onSelectMember={() => {}} onCitedArtifact={() => {}}
-    /></MemoryRouter>) })
-    expect(container.querySelector('[data-misdirection]')?.getAttribute('data-misdirection'))
-      .toBe('unresolved')
-    expect(container.querySelector('[data-misdirection-unbacked]')?.getAttribute('data-misdirection-unbacked'))
-      .toBe('posture-unavailable')
-    expect(container.querySelector('[data-misdirection-unbacked]')?.textContent)
-      .toBe(misdirectionUnbackedLine('posture-unavailable'))
-    expect(container.querySelector('[data-misdirection-on-path-record]'), 'nothing declared').toBeNull()
-
-    act(() => { root.render(<MemoryRouter><VerdictBlock
-      view={view({
-        misdirectionEvidence: {
-          state: 'not-recorded', text: MISDIRECTION_NOT_RECORDED_TEXT, causalRecords: [],
-          onPath: [{ recordId: HELD, trust: 'candidate' }],
-          onPathText: memoryOnPathLine(1),
-        },
-      })}
-      onCitedStep={() => {}} onSelectMember={() => {}} onCitedArtifact={() => {}}
-    /></MemoryRouter>) })
-    expect(container.querySelector('[data-misdirection]')?.getAttribute('data-misdirection'))
-      .toBe('not-recorded')
-    // The declaration is still shown — the records exist, nobody cross-checked them.
+      .toBe(MEMORY_ON_PATH_RECORDS_LABEL)
     expect(attr('[data-misdirection-on-path-record]', 'data-misdirection-on-path-record'))
-      .toEqual([HELD])
-    expect(container.querySelector('[data-misdirection-causal]'), 'and nothing is attributed').toBeNull()
+      .toEqual([CANDIDATE, CANARY])
+    expect(attr('[data-misdirection-trust]', 'data-misdirection-trust'))
+      .toEqual(['candidate', 'low-trust-active'])
   })
 
-  it('renders NOTHING about circularity for a view that carries no evidence', () => {
-    // THE ADDITIVE PROOF. Not "renders an empty element" — renders no element, so a run whose
-    // arbiter never ran paints the block it painted before 422.
+  it('shows the none-declared line and no list for an empty declaration', () => {
+    render({ memoryOnPath: { onPath: [], onPathText: MEMORY_ON_PATH_NONE_TEXT } })
+    expect(container.querySelector('[data-misdirection-on-path]')?.textContent)
+      .toBe(MEMORY_ON_PATH_NONE_TEXT)
+    expect(container.querySelector('[data-misdirection-exposed]')).toBeNull()
+  })
+
+  it('renders nothing about memory on the path for a verdict that declared nothing', () => {
     render({ citedSteps: [0], siblings: [] })
-    expect(container.querySelector('[data-misdirection]')).toBeNull()
-    expect(container.querySelector('[data-misdirection-causal]')).toBeNull()
+    expect(container.querySelector('[data-misdirection-on-path]')).toBeNull()
     expect(container.querySelector('[data-misdirection-on-path-record]')).toBeNull()
     expect(container.querySelector('[data-verdict-sentence]'), 'the block is otherwise intact').not.toBeNull()
     expect(container.querySelector('[data-verdict-provenance]')).not.toBeNull()
     expect(container.querySelector('[data-cited-step="0"]')).not.toBeNull()
   })
 
-  it('the block carries no mark control, evidence or not, and the passive trace sits on the member header', () => {
+  it('the block carries no mark control, and the passive trace sits on the member header', () => {
     const standing: RunDetailMemberMark = { markId: 'mark_0123456789ab', kind: 'false-fail', ordinal: 1,
       disposition: { kind: 'quarantined', class: 'flake' } }
     mount(
@@ -586,12 +464,12 @@ describe('422 circularity evidence in the block (D-17/D-19/D-20)', () => {
         <MemberGroup
           group={{ member: { testIndex: 4, attempts: 1, outcome: 'failed', marks: [standing] }, steps: [] }}
           showChrome
-          verdict={view({ testIndex: 4, misdirectionEvidence: flippedEvidence })}
+          verdict={view({ testIndex: 4, memoryOnPath: declared })}
         />
       </ul>,
     )
     const block = container.querySelector('[data-verdict-block]')!
-    expect(block.querySelector('[data-misdirection="flipped"]'), 'the evidence still renders').not.toBeNull()
+    expect(block.querySelector('[data-misdirection-on-path]'), 'the on-path line still renders').not.toBeNull()
     expect(block.querySelectorAll('[data-mark-kind], textarea, [data-feedback-mark-glyph]')).toHaveLength(0)
     expect([...block.querySelectorAll('button')].every(button =>
       button.hasAttribute('data-cited-step') || button.hasAttribute('data-cited-artifact')
