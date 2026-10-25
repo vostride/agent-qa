@@ -17,7 +17,7 @@
 // is never re-derived beneath a later one. Since 441-53 (D-15) no guardrail policy scopes a
 // tuple; a record written before then carries a policy digest and is read as malformed (D-20).
 //
-// Publication (S3, canary-run-state). A record is named by its own content digest and linked
+// Publication. A record is named by its own content digest and linked
 // into place write-once, with the file and its directory fsynced. Two refreshes racing over one
 // unchanged corpus derive the same ids and settle the same tuples, so they publish the SAME
 // bytes under the SAME name — an idempotent no-op rather than two competing histories. Different

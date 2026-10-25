@@ -19,6 +19,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import * as local from '../index.js'
 import { acquireMarkLock } from '../mark-lock.js'
 import { writeGate1Fixture } from './fixtures/gate1-fixtures.js'
+import { writeStagedFeedback } from './fixtures/staged-feedback-fixture.js'
 import { LOCAL_FIXTURE_BLOB_BYTES, LOCAL_FIXTURE_BLOB_SHA, makeLocalV2Handoff } from './fixtures/local-handoff-fixture.js'
 
 const NO_DECLARED_SECRETS = (text: string) => text
@@ -148,8 +149,7 @@ function feedbackFixture() {
   return { agentQaRoot: f.agentQaRoot, committedRoot: f.committedRoot, product: handoff.scope.key,
     target: { runId: String(handoff.runId), testId: handoff.tests[0]!.testId, stepIndex: 0 },
     attributedObservationId: 'fixture-feedback-observation', benefit: 'rode-along' as const,
-    candidateId: line.id, stateDigest: distilledScreenStateDigest(step.subActions[0]!.stateBefore),
-    mask: NO_DECLARED_SECRETS }
+    candidateId: line.id, stateDigest: distilledScreenStateDigest(step.subActions[0]!.stateBefore) }
 }
 
 function markLedgerFixture() {
@@ -243,9 +243,9 @@ describe('eval runtime stamps', () => {
     expect(existsSync(`${batch.lock}.dead-11111111-1111-4111-8111-111111111111`)).toBe(true)
   })
 
-  it('stages gate-2 feedback at 2 and refuses to list feedback stamped 1', async () => {
+  it('lists staged feedback stamped 2 and refuses feedback stamped 1', () => {
     const input = feedbackFixture()
-    expect(await local.stageFeedbackEntry(input)).toMatchObject({ kind: 'staged' })
+    writeStagedFeedback(input)
     const [entry] = local.listStagedFeedback(input)
     const feedback = join(entry!.dir, 'feedback.json')
     expect(readJson(feedback).schemaVersion).toBe(2)

@@ -187,7 +187,7 @@ describe('C444-CI-EVERY-DOOR', () => {
   it('in ci a failed preparation or enqueue states the resume limit', async () => {
     const expected: Record<'ci' | 'local-headless', string> = {
       ci: `It ${ANY_HOST}; conflicting or unsafe state remains refused.`,
-      'local-headless': 'The next local run or daemon drain resumes eligible pending preparation; conflicting or unsafe state remains refused.',
+      'local-headless': 'The next local run or daemon drain resumes eligible pending hand-offs; conflicting or unsafe state remains refused.',
     }
     failAnalysisEnqueue()
     for (const context of ['local-headless', 'ci'] as const) {
@@ -202,10 +202,10 @@ describe('C444-CI-EVERY-DOOR', () => {
       }, { patterns: [fixture.suitePattern] })
       await outcome.settled
       const failed = await waitFor(
-        () => warnings.find((message) => message.includes('preparation/enqueue failed or was refused')),
+        () => warnings.find((message) => message.includes('analysis enqueue failed or was refused')),
         `${context}'s enqueue failure`, 10_000,
       )
-      expect(failed.startsWith(`Run ${outcome.runId}: preparation/enqueue failed or was refused (`), failed).toBe(true)
+      expect(failed.startsWith(`Run ${outcome.runId}: analysis enqueue failed or was refused (`), failed).toBe(true)
       expect(failed.endsWith(expected[context]), `${context}\n${failed}`).toBe(true)
     }
   }, 240_000)
@@ -373,7 +373,7 @@ describe('C444-CI-EVERY-DOOR', () => {
         executionContext: context,
       })
       expect(recovered.map((result) => result.runId), `${context}\n${warnings.join('\n')}`).toEqual([input.runId])
-      const retry = warnings.filter((message) => message.startsWith(`Run ${input.runId}: preparation/enqueue failed or was refused (`))
+      const retry = warnings.filter((message) => message.startsWith(`Run ${input.runId}: analysis enqueue failed or was refused (`))
       expect(retry, `${context}\n${warnings.join('\n')}`).toHaveLength(1)
       expect(retry[0]!.endsWith(`Intent: ${pendingPath}${expected[context]}`), `${context}\n${retry[0]}`).toBe(true)
       vi.restoreAllMocks()

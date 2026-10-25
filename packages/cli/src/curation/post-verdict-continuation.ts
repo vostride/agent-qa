@@ -1,4 +1,4 @@
-// The run owns preparation independently of the runner's bounded observation of it.
+// The run owns its analysis enqueue independently of the runner's bounded observation of it.
 // Intent is input, never authority: every path and capability comes from the current host.
 import { closeSync, fsyncSync, linkSync, lstatSync, mkdirSync, openSync, readFileSync,
   readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
@@ -293,7 +293,7 @@ export async function recoverPendingPostVerdictContinuations(input: RecoverPendi
       const owner = ownerPresent ? readOwner(lock, identity(bound)) : undefined
       if (active !== undefined || (ownerPresent && (owner === undefined || !positivelyDead(owner.pid)))) {
         results.push({ runId, pending: true, enqueued: false, detail: 'owner-busy' })
-        input.log.warn(`Run ${runId}: preparation pending; owner busy or uncertain. Analysis is not yet queued. Intent: ${path}.`)
+        input.log.warn(`Run ${runId}: post-verdict hand-off pending; owner busy or uncertain. Analysis is not yet queued. Intent: ${path}.`)
         continue
       }
       let handoff: PostVerdictHandoff | undefined
@@ -315,19 +315,19 @@ export async function recoverPendingPostVerdictContinuations(input: RecoverPendi
         if (handoff?.enqueueState === 'enqueued' || handoff?.enqueueState === 'deduped') input.onEnqueued?.()
         if (handoff?.enqueueState === 'failed' || handoff?.enqueueState === 'unbound') {
           const resumeClause = ciResumeClause(input.executionContext, 'any-host')
-          input.log.warn(`Run ${runId}: preparation/enqueue failed or was refused (${handoff.failureDetail ?? 'recovery-error'}). Intent: ${path}; `
+          input.log.warn(`Run ${runId}: analysis enqueue failed or was refused (${handoff.failureDetail ?? 'recovery-error'}). Intent: ${path}; `
             + (resumeClause !== undefined ? `it ${resumeClause}.` : 'the next local run or daemon drain retries eligible pending work.'))
         }
       }
       if (settled) { await completion; disclose() }
-      else void completion.then(disclose, () => input.log.warn(`Run ${runId}: preparation/enqueue failed (recovery-error). Intent retained at ${path}.`))
+      else void completion.then(disclose, () => input.log.warn(`Run ${runId}: analysis enqueue failed (recovery-error). Intent retained at ${path}.`))
       const enqueued = handoff?.enqueueState === 'enqueued' || handoff?.enqueueState === 'deduped'
       results.push({ runId, pending: !enqueued, enqueued,
         ...(handoff?.failureDetail === undefined ? {} : { detail: handoff.failureDetail }) })
     } catch (error) {
       const detail = error instanceof PostVerdictContinuationRefused ? error.category : 'recovery-error'
       results.push({ runId, pending: true, enqueued: false, detail })
-      input.log.warn(`Post-verdict preparation recovery refused (${detail}); intent retained at ${path}.`)
+      input.log.warn(`Post-verdict recovery refused (${detail}); intent retained at ${path}.`)
     }
   }
   return results

@@ -510,7 +510,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
   }
   let observingLateFailure = false
   const discloseFailure = () => log.warn(opts.postVerdict?.failureDetail
-    ?? `Run ${opts.runId}: preparation/enqueue failed or was refused. Analysis is not queued.`)
+    ?? `Run ${opts.runId}: analysis enqueue failed or was refused. Analysis is not queued.`)
   let drainOutcome: PostRunDrainOutcome = 'not-attempted'
   let jobsRun = 0
   let preparationRecoveryPending = false
@@ -911,8 +911,8 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
       if (opts.postVerdict !== undefined && actualEnqueue === undefined) {
         const resumeClause = ciResumeClause(opts.executionContext, 'any-host')
         log.info?.(resumeClause !== undefined
-          ? `Run ${opts.runId}: preparation pending; analysis is not yet queued. It ${resumeClause}. Durable intent: ${opts.postVerdict.pendingPath}.`
-          : `Run ${opts.runId}: preparation pending; analysis is not yet queued. Durable intent: ${opts.postVerdict.pendingPath}. The next local run or daemon drain resumes eligible pending preparation.`)
+          ? `Run ${opts.runId}: post-verdict hand-off pending; analysis is not yet queued. It ${resumeClause}. Durable intent: ${opts.postVerdict.pendingPath}.`
+          : `Run ${opts.runId}: post-verdict hand-off pending; analysis is not yet queued. Durable intent: ${opts.postVerdict.pendingPath}. The next local run or daemon drain resumes eligible pending hand-offs.`)
         if (!observingLateFailure && opts.postVerdict.completion !== undefined) {
           observingLateFailure = true
           void opts.postVerdict.completion.then(() => {

@@ -64,9 +64,9 @@ const CURATION_LIMIT = `curation: pending (${WORKSPACE_KEPT} and a later local r
 const PREPARATION_LIMIT =
   "It resumes only if this workspace's .agent-qa/ is kept and a later run or the daemon picks it up."
 const LOCAL_PREPARATION_PROMISE =
-  'The next local run or daemon drain resumes eligible pending preparation.'
+  'The next local run or daemon drain resumes eligible pending hand-offs.'
 const PENDING_PATH = '/workspace/.agent-qa/runs/run/post-verdict-pending.json'
-const PREPARATION_HEAD = `Run ${RUN_ID}: preparation pending; analysis is not yet queued.`
+const PREPARATION_HEAD = `Run ${RUN_ID}: post-verdict hand-off pending; analysis is not yet queued.`
 const POSTURES = ['handed-off', 'backlog-exhausted', 'none'] as const
 const CI_CONTEXTS = ['ci', 'cloud'] as const
 
@@ -112,7 +112,7 @@ async function tailPreparationLine(executionContext: Context): Promise<string> {
     ...(executionContext === undefined ? {} : { executionContext }),
   })
   await tail.finish()
-  const pending = lines.filter((message) => message.includes('preparation pending'))
+  const pending = lines.filter((message) => message.includes('hand-off pending'))
   expect(pending, String(executionContext)).toHaveLength(1)
   return pending[0]!
 }

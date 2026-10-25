@@ -99,9 +99,6 @@ import {
   assembleScoredBatch,
   copyJudgeCalibrationToReport,
   readJudgeCalibration,
-  ablateCanaryStep,
-  isNovelState,
-  stageFeedbackEntry,
   admitStagedFeedback,
   ADVERSARIAL_STAGING_SUBDIR,
   listStagedAdversarial,
@@ -160,7 +157,6 @@ import type {
   RunReleaseGateResult,
   RunLabelCalibrationResult,
   SeedingRefusal,
-  StageFeedbackEntryInput,
   WriteBaselinePointerOutcome,
 } from '@vostride/agent-qa-eval-local'
 import { runSafetyScope } from '@vostride/agent-qa-safety-local'
@@ -1022,34 +1018,26 @@ export const GATE1_DEFAULT_MAX_SCREENS = 64
 // 417 D-12: smallest odd k whose ceil(k/2)+1 is a strict supermajority.
 export const GATE1_DEFAULT_K = 3
 
-// 2026-09-07, 418 D-04: k=3 costs 2 fresh with-record + 3 without-record calls.
-// At 415's ~8 s / ~30k prompt tokens per call, four ablations bound a run to
-// ~20 calls / ~2.5 min, covering the <=2 cold-start reservation plus lower-trust actives.
-export const GATE2_DEFAULT_MAX_ABLATIONS = 4
-
 // 2026-09-07, 418 D-13: the >=5-unconfirmed-builds staleness law is the sizing
 // precedent: five natural builds with an unexercised anchor form a quiet horizon.
 export const GATE2_DEFAULT_CANARY_HORIZON_BUILDS = 5
 
-export function resolveGate2Caps(session: EvalSession, opts: { maxAblations?: number } = {}) {
-  const maxAblations = opts.maxAblations ?? session.evalConfig.gate2?.maxAblations ?? GATE2_DEFAULT_MAX_ABLATIONS
-  if (!Number.isSafeInteger(maxAblations) || maxAblations < 1) {
-    throw new TypeError('--max-ablations must be a positive integer')
-  }
-  const maxAblationsSource = opts.maxAblations !== undefined ? 'flag' as const
-    : session.evalConfig.gate2?.maxAblations !== undefined ? 'config' as const : 'default' as const
+export function resolveGate2Caps(session: EvalSession) {
   const canaryHorizonBuilds = session.evalConfig.gate2?.canaryHorizonBuilds ?? GATE2_DEFAULT_CANARY_HORIZON_BUILDS
   const maxLowerTrustPerScope = session.evalConfig.gate2?.maxLowerTrustPerScope ?? GATE2_DEFAULT_MAX_LOWER_TRUST_PER_SCOPE
   for (const [name, value] of Object.entries({ canaryHorizonBuilds, maxLowerTrustPerScope })) {
     if (!Number.isSafeInteger(value) || value < 1) throw new TypeError(`eval.gate2.${name} must be a positive integer`)
   }
-  return { maxAblations, maxAblationsSource, canaryHorizonBuilds, maxLowerTrustPerScope,
+  return { canaryHorizonBuilds, maxLowerTrustPerScope,
     canaryHorizonBuildsSource: session.evalConfig.gate2?.canaryHorizonBuilds === undefined ? 'default' as const : 'config' as const,
     maxLowerTrustPerScopeSource: session.evalConfig.gate2?.maxLowerTrustPerScope === undefined ? 'default' as const : 'config' as const,
   }
 }
 
-export function readCanaryCorpusDigest(session: EvalSession): import('./curation/canary-credit.js').CanaryCorpusDigestResult {
+export function readCanaryCorpusDigest(session: EvalSession):
+  | { kind: 'digest'; corpusDigest: string }
+  | { kind: 'no-eval-root' }
+  | { kind: 'unavailable'; reason: string } {
   const committedRoot = resolve(session.configDir, 'agent-qa-eval')
   try {
     lstatSync(committedRoot)
@@ -1059,52 +1047,6 @@ export function readCanaryCorpusDigest(session: EvalSession): import('./curation
       : { kind: 'unavailable', reason: error instanceof Error ? error.message : String(error) }
   }
   return readCommittedCorpusDigest({ committedRoot })
-}
-
-export interface RunCanaryAblationInput {
-  agentQaRoot: string
-  recordId: string
-  target: { runId: string; testId: string; stepIndex: number }
-  attributedObservationId: string
-  k?: number
-  seed?: number
-  plannerOverrides?: ModelProviderOverrides
-}
-
-export async function runCanaryAblation(session: EvalSession, input: RunCanaryAblationInput) {
-  const committedRoot = resolve(session.configDir, 'agent-qa-eval')
-  const digest = readCanaryCorpusDigest(session)
-  if (digest.kind !== 'digest') return digest
-  const k = input.k ?? session.evalConfig.k ?? GATE1_DEFAULT_K
-  if (!Number.isSafeInteger(k) || k < 3 || k % 2 === 0) {
-    throw new TypeError('--k must be an odd integer of at least 3')
-  }
-  const identity = await resolveGateProfileIdentity(session, input.plannerOverrides)
-  const floor = listNoiseFloorArtefacts(committedRoot).artefacts.find(
-    (entry) => entry.artefact.profileKey === identity.profileKey,
-  )?.artefact
-  const baseSeed = input.seed ?? session.evalConfig.seed ?? floor?.seeds[0] ?? 11
-  const execution = await resolveEvalSession({ configPath: session.configPath })
-  const planner = await resolveReplayPlanner(execution)
-  return ablateCanaryStep({
-    agentQaRoot: input.agentQaRoot, committedRoot, recordId: input.recordId,
-    target: input.target, attributedObservationId: input.attributedObservationId, k, baseSeed,
-    replay: { profile: planner.profile, auth: planner.auth,
-      modelOverrides: input.plannerOverrides, mask: execution.mask },
-  })
-}
-
-export function isFeedbackStateNovel(session: EvalSession, input: { agentQaRoot: string; product: string; stateDigest: string }): boolean {
-  const digest = readCanaryCorpusDigest(session)
-  if (digest.kind === 'no-eval-root') return false
-  if (digest.kind !== 'digest') throw new TypeError('feedback corpus unavailable')
-  return isNovelState({ ...input, committedRoot: resolve(session.configDir, 'agent-qa-eval') })
-}
-export async function runFeedbackStaging(session: EvalSession, input: Omit<StageFeedbackEntryInput, 'committedRoot' | 'mask'>) {
-  const digest = readCanaryCorpusDigest(session)
-  if (digest.kind !== 'digest') return digest
-  return stageFeedbackEntry({ ...input, committedRoot: resolve(session.configDir, 'agent-qa-eval'),
-    mask: committedCorpusMask(session) })
 }
 
 export interface SeedFromFeedbackVerbResult {

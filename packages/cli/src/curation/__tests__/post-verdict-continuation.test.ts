@@ -789,11 +789,11 @@ it.each((['direct', 'suite'] as const).flatMap(mode =>
     expect(lines).not.toContain('Durable intent:')
   } else {
     expect(report).toEqual({ enqueue: 'enqueued', drain: 'detached', jobsRun: 0 })
-    expect(lines).not.toContain('preparation pending')
+    expect(lines).not.toContain('hand-off pending')
     expect(lines).toContain('agent-qa digest')
   }
   if (state === 'failed' || state === 'late-failure') {
-    expect(warning).toContain('preparation/enqueue failed or was refused (preparation-or-enqueue-error)')
+    expect(warning).toContain('analysis enqueue failed or was refused (enqueue-error)')
     expect(warning).toContain(pendingPath)
     expect(warning).not.toContain('private provider exception')
   }

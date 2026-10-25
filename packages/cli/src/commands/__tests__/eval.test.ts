@@ -86,7 +86,6 @@ import {
   readCommittedCorpus,
   resolveBaselineCache,
   runReplayGate,
-  stageFeedbackEntry,
   COMMITTED_ROOT_SCHEMA_VERSION,
 } from '@vostride/agent-qa-eval-local'
 import { LOCAL_CURATION_CAPABILITIES } from '@vostride/agent-qa-agent-local'
@@ -891,7 +890,6 @@ describe('runFloorVerb — recorded protocol and write-once measurement', () => 
 
 const BLOB_BYTES = Uint8Array.from(Buffer.from('agent-qa eval extract fixture blob\n', 'utf8'))
 const SUITE_SCOPE: ScopeKey = { tier: 'suite', key: 'eval-cli' }
-const NO_DECLARED_SECRETS = (text: string) => text
 
 // 414 D-07 — a TEST fixture value, not a plan-authored production default; production has no
 // default and every fresh test root is its own first partition.
@@ -1997,6 +1995,9 @@ async function feedbackVerbFixture() {
   await mkdir(committedRoot)
   await writeFile(join(committedRoot, 'eval-root.json'), JSON.stringify({ schemaVersion: COMMITTED_ROOT_SCHEMA_VERSION }))
   const agentQaRoot = join(dir, '.agent-qa')
+  const { writeStagedFeedback } = await import(new URL(
+    '../../../../eval-local/src/__tests__/fixtures/staged-feedback-fixture.js', import.meta.url,
+  ).href)
   for (let index = 0; index < 2; index++) {
     const runId = generateRunId()
     const screenshotRef = new FsEvidenceArtifactStore({ root: agentQaRoot, runId }).persistDecisionScreenshot(BLOB_BYTES)
@@ -2005,10 +2006,9 @@ async function feedbackVerbFixture() {
     state.url = `https://feedback.example/${index}`
     state.timestamp = 1_725_000_000
     new FsHandoffStore({ root: agentQaRoot, runId }).save(handoff)
-    expect(await stageFeedbackEntry({ agentQaRoot, committedRoot, product: `feedback-${index}`,
+    writeStagedFeedback({ agentQaRoot, product: `feedback-${index}`,
       target: { runId, testId: handoff.tests[0]!.testId, stepIndex: 0 }, stateDigest: distilledScreenStateDigest(state),
-      candidateId: `fixture-candidate-${index}`, attributedObservationId: `fixture-observation-${index}`, benefit: index === 0 ? 'rode-along' : 'exercised-harmed',
-      mask: NO_DECLARED_SECRETS })).toMatchObject({ kind: 'staged' })
+      candidateId: `fixture-candidate-${index}`, attributedObservationId: `fixture-observation-${index}`, benefit: index === 0 ? 'rode-along' : 'exercised-harmed' })
   }
   const { createPromotionFloorFixture, completeGate1Receipt } = await import(new URL(
     '../../../../knowledge-local/src/curator/__tests__/fixtures/promotion-floor-fixture.js', import.meta.url,

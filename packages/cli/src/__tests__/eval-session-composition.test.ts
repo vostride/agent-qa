@@ -88,15 +88,9 @@ afterEach(async () => {
 })
 
 describe('resolveEvalSession — eval config + flag overrides (D-03)', () => {
-  it('418 resolves the ablation cap from flag, config and default and refuses zero', async () => {
-    const f = await writeFixture({ evalBlock: 'eval:\n  gate2:\n    maxAblations: 2' })
+  it('resolves the canary horizon and lower-trust caps from config and default', async () => {
+    const f = await writeFixture()
     const configured = await resolveEvalSession({ configPath: f.configPath, keyOnly: true })
-    expect(resolveGate2Caps(configured)).toMatchObject({ maxAblations: 2, maxAblationsSource: 'config' })
-    expect(resolveGate2Caps(configured, { maxAblations: 1 }))
-      .toMatchObject({ maxAblations: 1, maxAblationsSource: 'flag' })
-    expect(resolveGate2Caps({ ...configured, evalConfig: {} }))
-      .toMatchObject({ maxAblations: 4, maxAblationsSource: 'default' })
-    expect(() => resolveGate2Caps(configured, { maxAblations: 0 })).toThrow('--max-ablations')
     expect(resolveGate2Caps(configured)).toMatchObject({ canaryHorizonBuilds: 5,
       canaryHorizonBuildsSource: 'default', maxLowerTrustPerScope: 2, maxLowerTrustPerScopeSource: 'default' })
     expect(resolveGate2Caps({ ...configured, evalConfig: { gate2: { canaryHorizonBuilds: 8, maxLowerTrustPerScope: 4 } } }))

@@ -3,7 +3,7 @@ import { trustPriorsForHost, type ResolveTrustPriors } from '../curation/trust-p
 import { randomUUID } from 'node:crypto'
 import { realpathSync } from 'node:fs'
 import { resolve as resolvePath } from 'node:path'
-import { Command, InvalidArgumentError } from 'commander'
+import { Command } from 'commander'
 import pc from 'picocolors'
 import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig, validateTrustedRunAttributes } from '@vostride/agent-qa-core'
@@ -580,7 +580,6 @@ export interface RunOptions {
   device?: string
   var?: string[]
   runAttr?: string[]
-  maxAblations?: number
   detach?: boolean
   gateRun?: boolean
   excludedFromOutcomes?: boolean
@@ -2124,8 +2123,7 @@ async function executeSuites(
         // run. `--detach` asks this process not to SPEND itself on the chain, so it skips the LEASE —
         // never the enqueue, which the step performs either way (RESEARCH Pitfall 8). The literal-only
         // spread is the same house rule the INVK-06 markers ride: an absent flag is an ABSENT field.
-        postProcessing: { ...(opts.detach === true ? { detach: true as const } : {}),
-          ...(opts.maxAblations === undefined ? {} : { maxAblations: opts.maxAblations }) },
+        postProcessing: { ...(opts.detach === true ? { detach: true as const } : {}) },
         runRecord: record,
         onSession: (session) => {
           activeRunSession = session
@@ -2162,7 +2160,6 @@ async function executeSuites(
             postVerdict,
             ...(postVerdictDeadlineMs === undefined ? {} : { deadlineMs: postVerdictDeadlineMs }),
             trustPriors,
-            ...(opts.maxAblations === undefined ? {} : { maxAblations: opts.maxAblations }),
             runId,
             configDir,
             configFilePath,
@@ -4737,7 +4734,6 @@ export function createRunCommand(): Command {
     .option('--run-attr <kv...>', 'attach run attribute KEY=VALUE; repeatable')
     // 432-13 (D-14): the session trust flag is gone — nothing asks, so there is nothing to trust
     // past. Commander refuses it as an unknown option.
-    .option('--max-ablations <n>', 'maximum canary ablations per run', parseIntegerFlag('--max-ablations'))
     .option('--detach', 'skip the post-verdict knowledge curation tail')
     // 402-03 (D-12): the config knob's flag half. ORDINARY OVERRIDES — they ride the same
     // `use`-bucket precedence every other flag here does, and there is no request field to match
@@ -5178,8 +5174,7 @@ export function createRunCommand(): Command {
               // run. `--detach` asks this process not to SPEND itself on the chain, so it skips the LEASE —
               // never the enqueue, which the step performs either way (RESEARCH Pitfall 8). The literal-only
               // spread is the same house rule the INVK-06 markers ride: an absent flag is an ABSENT field.
-              postProcessing: { ...(opts.detach === true ? { detach: true as const } : {}),
-                ...(opts.maxAblations === undefined ? {} : { maxAblations: opts.maxAblations }) },
+              postProcessing: { ...(opts.detach === true ? { detach: true as const } : {}) },
               runRecord: record,
               onSession: (session) => {
                 activeRunSession = session
@@ -5224,7 +5219,6 @@ export function createRunCommand(): Command {
                   postVerdict,
                   ...(postVerdictDeadlineMs === undefined ? {} : { deadlineMs: postVerdictDeadlineMs }),
                   trustPriors,
-                  ...(opts.maxAblations === undefined ? {} : { maxAblations: opts.maxAblations }),
                   runId: singleRunId,
                   configDir,
                   configFilePath,
@@ -5346,14 +5340,4 @@ export function createRunCommand(): Command {
     })
 
   return cmd
-}
-
-function parseIntegerFlag(flagName: string): (value: string) => number {
-  return (value) => {
-    const number = Number(value)
-    if (!/^\d+$/.test(value.trim()) || !Number.isSafeInteger(number) || number < 1) {
-      throw new InvalidArgumentError(`${flagName} must be a positive integer`)
-    }
-    return number
-  }
 }

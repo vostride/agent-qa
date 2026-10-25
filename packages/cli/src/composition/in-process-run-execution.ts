@@ -267,7 +267,6 @@ export interface InProcessCliRunExecutionOptions {
    * what it found. That is what every other door gets, and it is byte-identical to 404-01.
    */
   readonly postProcessing?: {
-    readonly maxAblations?: number
     readonly detach?: true
     readonly writerAuthority?: CurationWriterAuthority
   }
@@ -378,8 +377,8 @@ export function preparationPendingWarning(
 ): string {
   const resumeClause = ciResumeClause(executionContext, 'any-host')
   return resumeClause !== undefined
-    ? `Run ${runId}: preparation pending; analysis is not yet queued. It ${resumeClause}. Durable intent: ${pendingPath}.`
-    : `Run ${runId}: preparation pending; analysis is not yet queued. Durable intent: ${pendingPath}. The next local run or daemon drain resumes eligible pending preparation.`
+    ? `Run ${runId}: post-verdict hand-off pending; analysis is not yet queued. It ${resumeClause}. Durable intent: ${pendingPath}.`
+    : `Run ${runId}: post-verdict hand-off pending; analysis is not yet queued. Durable intent: ${pendingPath}. The next local run or daemon drain resumes eligible pending hand-offs.`
 }
 
 export async function runInProcessCliRun(
@@ -563,7 +562,6 @@ export async function runInProcessCliRun(
     // consult, the enqueue and the drain must address ONE root.
     postVerdict: () => {
       const step = createPostVerdictStep({
-        ...(options.postProcessing?.maxAblations === undefined ? {} : { maxAblations: options.postProcessing.maxAblations }),
         runId,
         agentQaRoot: options.agentQaRoot,
         knowledgeRoot: produced.knowledgeRoot,
@@ -717,7 +715,7 @@ export async function runInProcessCliRun(
           }
           void handoff.completion!.then(() => {
             if (handoff.failureDetail !== undefined) warnByName(handoff.failureDetail)
-          }, () => warnByName(`Run ${runId}: preparation/enqueue failed (preparation-or-enqueue-error). Durable intent: ${handoff.pendingPath}.`))
+          }, () => warnByName(`Run ${runId}: analysis enqueue failed (enqueue-error). Durable intent: ${handoff.pendingPath}.`))
         }
         // The close-out runs HERE unless the detached tail took ownership of it.
         if (detachedTail === undefined && !preparationSettled && postVerdictHandoff?.completion !== undefined) {

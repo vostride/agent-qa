@@ -451,13 +451,13 @@ function enqueueFailureWarning(
   detail: string,
   executionContext: ExecutionContext | undefined,
 ): string {
-  // 444 D-48: in `ci` and `cloud` the drive's preparation sentence states the resume limit.
+  // 444 D-48: in `ci` and `cloud` the drive's hand-off sentence states the resume limit.
   const resumeClause = ciResumeClause(executionContext, 'any-host')
-  return `Run ${runId}: preparation/enqueue failed or was refused (${detail}); post-run analysis was not queued. The verdict and exit code are unaffected. `
+  return `Run ${runId}: analysis enqueue failed or was refused (${detail}); post-run analysis was not queued. The verdict and exit code are unaffected. `
     + `Handoff: ${handoffPath}. Durable intent, if publication succeeded: ${join(dirname(handoffPath), 'post-verdict-pending.json')}. `
     + (resumeClause !== undefined
       ? `It ${resumeClause}; conflicting or unsafe state remains refused.`
-      : 'The next local run or daemon drain resumes eligible pending preparation; conflicting or unsafe state remains refused.')
+      : 'The next local run or daemon drain resumes eligible pending hand-offs; conflicting or unsafe state remains refused.')
 }
 
 /**
@@ -519,10 +519,10 @@ export function probeWriterLease(input: {
  */
 export type PostVerdictEnqueueState = PostVerdictEnqueueOutcome | 'failed' | 'unbound' | 'skipped'
 
-function safePreparationFailure(error: unknown): string {
+function safeEnqueueFailure(error: unknown): string {
   if (error instanceof PostVerdictContinuationRefused) return error.category
   if (error instanceof Error && /\bSQLITE_BUSY\b/.test(error.message)) return 'SQLITE_BUSY'
-  return 'preparation-or-enqueue-error'
+  return 'enqueue-error'
 }
 
 /**
@@ -691,7 +691,7 @@ export function createPostVerdictStep(options: PostVerdictStepOptions): {
         enqueueError = enqueueFailureWarning(
           options.runId,
           completedRunHandoffPath(options.agentQaRoot, options.runId),
-          safePreparationFailure(error),
+          safeEnqueueFailure(error),
           options.executionContext,
         )
       }

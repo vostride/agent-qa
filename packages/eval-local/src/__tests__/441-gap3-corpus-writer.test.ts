@@ -24,9 +24,10 @@ import {
   SERVED_BRIEF_PROOF_SCHEMA_VERSION,
 } from '@vostride/agent-qa-schema'
 import { refreshAdversarialSplit, stageAdversarialProposal } from '../adversarial-composition.js'
-import { admitStagedFeedback, stageFeedbackEntry, type StageFeedbackEntryInput } from '../gate2-composition.js'
+import { admitStagedFeedback } from '../gate2-composition.js'
 import { seedCommittedCorpus } from '../seeding-composition.js'
 import { writeGate1Fixture } from './fixtures/gate1-fixtures.js'
+import { writeStagedFeedback, type StagedFeedbackFixtureInput } from './fixtures/staged-feedback-fixture.js'
 import {
   LOCAL_FIXTURE_BLOB_BYTES,
   LOCAL_FIXTURE_BLOB_SHA,
@@ -87,7 +88,7 @@ function proof(): LosslessServedBriefProofV1 {
   }
 }
 
-// gate2-composition.test.ts's staging fixture, with the declared value only in the target step's
+// gate2-composition.test.ts's admission fixture, with the declared value only in the target step's
 // tree: the distilled digest reads route, roles and names, so the staged target stays the same.
 function stagingFixture() {
   const root = tempRoot()
@@ -106,7 +107,7 @@ function stagingFixture() {
   state.tree = `${state.tree}\ntextbox "Access code": ${PROBE}`
   expect(distilledScreenStateDigest(state)).toBe(stateDigest)
   writeFileSync(handoffPath, JSON.stringify(handoff))
-  const input: Omit<StageFeedbackEntryInput, 'mask'> = { agentQaRoot: f.agentQaRoot, committedRoot: f.committedRoot,
+  const input: StagedFeedbackFixtureInput = { agentQaRoot: f.agentQaRoot,
     product: handoff.scope.key, target: { runId: String(handoff.runId), testId: handoff.tests[0]!.testId, stepIndex: 0 },
     attributedObservationId: 'gap3-feedback-observation', benefit: 'rode-along', candidateId: line.id, stateDigest }
   return { ...f, input }
@@ -195,21 +196,9 @@ describe('C441-GAP3-CORPUS', () => {
     expect(written.filter(path => readFileSync(path, 'utf8').includes(PROBE))).toEqual([])
   })
 
-  it('feedback staging writes a declared value in the target screen state only as its marker', async () => {
-    const f = stagingFixture()
-
-    const staged = await stageFeedbackEntry({ ...f.input, mask } as StageFeedbackEntryInput)
-
-    expect(staged.kind).toBe('staged')
-    if (staged.kind !== 'staged') throw new Error('feedback entry was not staged')
-    const cassette = readFileSync(join(staged.dir, 'cassette.json'), 'utf8')
-    expect(cassette).not.toContain(PROBE)
-    expect(cassette).toContain('[secret:PROBE_441]')
-  })
-
   it('a masked staged feedback entry is admitted, and the committed root holds no declared value', async () => {
     const f = stagingFixture()
-    expect(await stageFeedbackEntry({ ...f.input, mask } as StageFeedbackEntryInput)).toMatchObject({ kind: 'staged' })
+    writeStagedFeedback({ ...f.input, mask })
 
     const admitted = await admitStagedFeedback({ agentQaRoot: f.agentQaRoot, committedRoot: f.committedRoot, dryRun: false, mask })
 
@@ -218,22 +207,14 @@ describe('C441-GAP3-CORPUS', () => {
     expect(holdingProbe(f.committedRoot)).toEqual([])
   })
 
-  it('a feedback entry staged unmasked, as a pre-fix stage holds it, is refused at admission and commits nothing raw', async () => {
+  it('a feedback entry staged unmasked is refused at admission and commits nothing raw', async () => {
     const f = stagingFixture()
-    expect(await stageFeedbackEntry({ ...f.input, mask: NO_DECLARED_SECRETS } as StageFeedbackEntryInput))
-      .toMatchObject({ kind: 'staged' })
+    writeStagedFeedback(f.input)
 
     const admitted = await admitStagedFeedback({ agentQaRoot: f.agentQaRoot, committedRoot: f.committedRoot, dryRun: false, mask })
 
     expect(admitted.admitted).toEqual([])
     expect(admitted.refusals.map(refusal => refusal.kind)).toEqual(['unmasked-declared-value'])
     expect(holdingProbe(f.committedRoot)).toEqual([])
-  })
-
-  it('stageFeedbackEntry without a mask throws before it creates the staging directory', async () => {
-    const f = stagingFixture()
-
-    await expect(stageFeedbackEntry(f.input as StageFeedbackEntryInput)).rejects.toThrow(TypeError)
-    expect(existsSync(join(f.agentQaRoot, 'eval', 'feedback'))).toBe(false)
   })
 })

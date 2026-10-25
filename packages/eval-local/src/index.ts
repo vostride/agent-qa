@@ -62,10 +62,8 @@ export type { BaselineCacheRow, BaselineCacheResolution } from './baseline-cache
 export { runReplayGate, removalFlipsOutcome, locateTargetCassettes, serializeReplayGateReceipt, GATE1_AUDIT_SUBDIR } from './replay-gate-composition.js'
 export type { RunReplayGateInput, RunReplayGateResult, RemovalFlipsOutcomeInput, RemovalFlipsOutcomeResult } from './replay-gate-composition.js'
 
-export { ablateCanaryStep, readCommittedCorpusDigest, GATE2_AUDIT_SUBDIR, GATE2_TARGET_SUBDIR } from './gate2-composition.js'
-export type { AblateCanaryStepInput, AblateCanaryStepResult, CommittedCorpusDigestRead } from './gate2-composition.js'
-export { FEEDBACK_STAGING_SUBDIR, isNovelState, stageFeedbackEntry, listStagedFeedback, admitStagedFeedback } from './gate2-composition.js'
-export type { FeedbackStateInput, StageFeedbackEntryInput, StageFeedbackEntryResult, StagedFeedbackEntry, AdmitStagedFeedbackResult } from './gate2-composition.js'
+export { readCommittedCorpusDigest, FEEDBACK_STAGING_SUBDIR, listStagedFeedback, admitStagedFeedback } from './gate2-composition.js'
+export type { CommittedCorpusDigestRead, StagedFeedbackEntry, AdmitStagedFeedbackResult } from './gate2-composition.js'
 
 export { loadCassetteBundles, sweepCassetteReplays } from './replay-sweep.js'
 export type {

@@ -1,4 +1,3 @@
-import { createCanaryAblationForHost } from '../gates/canary-ablation-host.js'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { rmSync } from 'node:fs'
@@ -2254,11 +2253,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
           if (factory === undefined) {
             throw new Error('Daemon curation requires an author factory')
           }
-          const curationOperations = { ...defaultCurationTailOperations(),
-            ...(input.configPath === undefined ? {} : { canaryAblation: createCanaryAblationForHost({
-              configPath: input.configPath, agentQaRoot: input.agentQaRoot,
-            }) }),
-          }
+          const curationOperations = defaultCurationTailOperations()
           const handoff = curationOperations.loadCompletedRunHandoff(
             completedRunHandoffPath(input.agentQaRoot, curatedRunId),
           )

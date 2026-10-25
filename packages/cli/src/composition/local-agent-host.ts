@@ -1,5 +1,4 @@
 import type { CurationSnapshot } from '@vostride/agent-qa-schema'
-import { createCanaryAblationForHost } from '../gates/canary-ablation-host.js'
 import { randomUUID } from 'node:crypto'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import {
@@ -412,7 +411,6 @@ function createComposedRunExecution(input: {
                 postVerdict: context.postVerdict,
                 ...(context.postVerdictDeadlineMs === undefined ? {} : { deadlineMs: context.postVerdictDeadlineMs }),
                 trustPriors,
-                canaryAblation: createCanaryAblationForHost({ configPath: context.configFilePath, agentQaRoot: input.agentQaRoot }),
                 runId: context.runId,
                 configDir: context.configDir,
                 configFilePath: context.configFilePath,

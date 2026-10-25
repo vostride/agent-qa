@@ -68,7 +68,7 @@ export const ADVERSARIAL_GENERATOR_VERSION = 2
 
 /**
  * Recorded default cap on how many seeds one refresh derives from (D-04). The rationale sits
- * beside `GATE1_DEFAULT_MAX_SCREENS` / `GATE2_DEFAULT_MAX_ABLATIONS`: a refresh over a grown
+ * beside `GATE1_DEFAULT_MAX_SCREENS`: a refresh over a grown
  * corpus must be bounded work, and the seeds it does not reach are COUNTED and wait for the
  * next one rather than being dropped.
  *
