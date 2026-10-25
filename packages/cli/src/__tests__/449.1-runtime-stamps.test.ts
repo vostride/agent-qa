@@ -19,17 +19,6 @@ import {
   writeRunCanaryPolicy,
 } from '../curation/canary-run-state.js'
 import {
-  MISDIRECTION_POLICY_FILE,
-  MISDIRECTION_POSTURE_FILE,
-  MISDIRECTION_RESERVATIONS_DIR,
-  readMisdirectionCheckReservations,
-  readMisdirectionRunPolicy,
-  readMisdirectionRunPosture,
-  reserveMisdirectionCheck,
-  writeMisdirectionRunPolicy,
-  writeMisdirectionRunPosture,
-} from '../curation/misdirection-run-state.js'
-import {
   MARK_EDIT_RECORD_FILE,
   MarkEditRecordUnreadableError,
   answerRecordedMarkEdit,
@@ -296,54 +285,6 @@ describe('cli runtime stamps', () => {
     restamp(join(completions, readdirSync(completions)[0]!), 1)
     expect(() => readCompletedCanaryAblations(dir, 'run-stamps'))
       .toThrow('completed canary evidence invalid')
-  })
-
-  it('writes a misdirection policy at 2 and refuses one stamped 1 as invalid', () => {
-    const dir = runDir('misdirection-policy-1')
-    writeMisdirectionRunPolicy(dir, { schemaVersion: 2, runId: 'run-stamps', maxChecks: 2, source: 'default' })
-    expect(readMisdirectionRunPolicy(dir, 'run-stamps')).toMatchObject({ schemaVersion: 2 })
-
-    restamp(join(dir, MISDIRECTION_POLICY_FILE), 1)
-    expect(() => readMisdirectionRunPolicy(dir, 'run-stamps')).toThrow('misdirection policy invalid')
-  })
-
-  it('writes a misdirection check reservation at 2 and refuses one stamped 1 as invalid', () => {
-    const dir = runDir('misdirection-reservation-1')
-    reserveMisdirectionCheck(dir, {
-      schemaVersion: 2,
-      runId: 'run-stamps',
-      perTest: 0,
-      stepIndex: 1,
-      decisionOrdinal: 0,
-      recordId: 'fact-stamps',
-      handoffBaseDigest: 'h'.repeat(64),
-      briefDigest: 'b'.repeat(64),
-      corpusDigest: 'c'.repeat(64),
-      profileDigest: 'p'.repeat(64),
-    })
-    expect(readMisdirectionCheckReservations(dir, 'run-stamps')).toEqual([
-      expect.objectContaining({ schemaVersion: 2 }),
-    ])
-
-    const reservations = join(dir, MISDIRECTION_RESERVATIONS_DIR)
-    restamp(join(reservations, readdirSync(reservations)[0]!), 1)
-    expect(() => readMisdirectionCheckReservations(dir, 'run-stamps'))
-      .toThrow('misdirection check reservation invalid')
-  })
-
-  it('refuses a misdirection root posture stamped 1 and re-derives it on the next write', () => {
-    const dir = runDir('misdirection-posture-1')
-    writeMisdirectionRunPosture(dir, { schemaVersion: 2, runId: 'run-stamps', kind: 'no-eval-root' })
-    restamp(join(dir, MISDIRECTION_POSTURE_FILE), 1)
-    expect(() => readMisdirectionRunPosture(dir, 'run-stamps'))
-      .toThrow('misdirection root posture invalid')
-
-    writeMisdirectionRunPosture(dir, { schemaVersion: 2, runId: 'run-stamps', kind: 'no-eval-root' })
-    expect(readMisdirectionRunPosture(dir, 'run-stamps')).toEqual({
-      schemaVersion: 2,
-      runId: 'run-stamps',
-      kind: 'no-eval-root',
-    })
   })
 
   it('records a mark edit at 2 and refuses one stamped 1 as unreadable', async () => {

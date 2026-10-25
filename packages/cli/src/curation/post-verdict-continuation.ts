@@ -222,6 +222,7 @@ export function ownPostVerdictContinuation(input: PostVerdictContinuationIdentit
       owner.assertOwned()
       let result: 'enqueued' | 'deduped' = 'deduped'
       if (!await input.queued()) {
+        owner.assertOwned()
         // Revalidate paths and source/config before publishing a job.
         if (!same(boundIntent(input), published)) throw new PostVerdictContinuationRefused('identity-conflict')
         result = await input.enqueue()

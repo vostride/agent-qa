@@ -24,6 +24,7 @@ import {
   removeInProcessFixtures,
 } from '../composition/__tests__/in-process-run-fixture.js'
 import { CLI_FUNCTION_CALLER, composeCliLocalAgent } from '../composition/local-agent-host.js'
+import * as localAgentHost from '../composition/local-agent-host.js'
 import { runCurationTail } from '../curation/curation-tail.js'
 import { runPostRunTail } from '../curation/post-run-tail.js'
 import * as tailComposition from '../curation/post-run-tail-composition.js'
@@ -35,6 +36,21 @@ import {
 import { dispositionOf, type PostVerdictHandoff } from '../curation/post-verdict-step.js'
 import { pinProcessTmpdir, removeTempRoots } from './temp-roots.js'
 import type { PinnedTmpdir } from './temp-roots.js'
+
+/** Every analyze-run enqueue the run's own post-verdict step makes throws. */
+function failAnalysisEnqueue(): void {
+  const actual = localAgentHost.composeCliLocalAgent
+  vi.spyOn(localAgentHost, 'composeCliLocalAgent').mockImplementation((input) => {
+    const host = actual(input)
+    return { ...host, jobs: async () => {
+      const jobs = await host.jobs()
+      return { ...jobs, queue: { ...jobs.queue, enqueue: async (...args: Parameters<typeof jobs.queue.enqueue>) => {
+        if (args[0] === 'analyze-run') throw new Error('fixture enqueue failure')
+        return await jobs.queue.enqueue(...args)
+      } } }
+    } }
+  })
+}
 
 let pinnedTmpdir: PinnedTmpdir | undefined
 beforeAll(() => { pinnedTmpdir = pinProcessTmpdir() })
@@ -173,6 +189,7 @@ describe('C444-CI-EVERY-DOOR', () => {
       ci: `It ${ANY_HOST}; conflicting or unsafe state remains refused.`,
       'local-headless': 'The next local run or daemon drain resumes eligible pending preparation; conflicting or unsafe state remains refused.',
     }
+    failAnalysisEnqueue()
     for (const context of ['local-headless', 'ci'] as const) {
       const fixture = await project()
       const warnings: string[] = []
@@ -182,11 +199,6 @@ describe('C444-CI-EVERY-DOOR', () => {
         agentQaRoot: fixture.agentQaRoot,
         executionContext: context,
         warn: (message) => { warnings.push(message) },
-        postProcessing: {
-          misdirection: {
-            prepareMisdirectionEvidence: async () => { throw new Error('fixture preparation failure') },
-          },
-        },
       }, { patterns: [fixture.suitePattern] })
       await outcome.settled
       const failed = await waitFor(
@@ -347,22 +359,19 @@ describe('C444-CI-EVERY-DOOR', () => {
       // An intent left behind by a run that stopped after recording it.
       await expect(ownPostVerdictContinuation({
         ...input, maxAblations: 1,
-        prepare: async () => undefined,
         enqueue: async () => 'enqueued' as const,
         queued: async () => { throw new Error('stop after intent before preparation') },
       })).rejects.toThrow('stop after intent before preparation')
       const pendingPath = postVerdictPendingPath(input)
 
       const warnings: string[] = []
+      failAnalysisEnqueue()
       const recovered = await recoverPendingPostVerdictContinuations({
         ...input,
         deadlineMs: Date.now() + DRAIN_BUDGET_MS,
         log: { warn: (message) => { warnings.push(message) } },
         executionContext: context,
-        misdirection: {
-          prepareMisdirectionEvidence: async () => { throw new Error('fixture preparation failure') },
-        },
-      } as Parameters<typeof recoverPendingPostVerdictContinuations>[0])
+      })
       expect(recovered.map((result) => result.runId), `${context}\n${warnings.join('\n')}`).toEqual([input.runId])
       const retry = warnings.filter((message) => message.startsWith(`Run ${input.runId}: preparation/enqueue failed or was refused (`))
       expect(retry, `${context}\n${warnings.join('\n')}`).toHaveLength(1)
