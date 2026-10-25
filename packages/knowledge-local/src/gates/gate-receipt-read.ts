@@ -29,7 +29,6 @@ export function gateReceiptsFor(options: GateReceiptsForOptions): KnowledgeGates
       recordKind: bundle.frontmatter.kind, status: deriveBundleTrust(bundle).status,
       ...(path === undefined ? {} : { strongestPromotionPath: path }),
       lines, standing,
-      // 416-DOOR: read live-verdict
       live: evaluatePromotionGate(gateInput),
     })
   }

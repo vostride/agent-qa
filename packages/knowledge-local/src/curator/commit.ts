@@ -1233,7 +1233,6 @@ export function commitCurationDelta(
                 finishCommitWithinCurrentAuthority(deps, job, curationObservation, true, false)
                 return { kind: 'failed', reason: 'append-failed' }
               }
-              // 416-DOOR: door-3 gate
               const gate = evaluatePromotionGate(assemblePromotionGateInput({
                 knowledgeRoot: deps.knowledgeRoot,
                 bundleDir: promotionBundleDir,
@@ -1242,7 +1241,6 @@ export function commitCurationDelta(
               }))
               if (gate.verdict === 'promote') {
                 const promoted = appendOutcomeEvent(config, published.id, {
-                  // 416-DOOR: door-3 promoted
                   type: 'promoted',
                   evidenceToken: derivePromotedEvidenceToken(job.payload.evidenceToken),
                   curationJobId: job.candidateId,
@@ -1302,7 +1300,6 @@ export function commitCurationDelta(
               // §5.5.5 carve-out: a deterministic drift Supersede is exempt from candidate-gating
               // and born active. Only drain-to-active disposition can set this D-02 marker.
               const promoted = appendOutcomeEvent(config, published.id, {
-                  // 416-DOOR: born-active promoted
                   type: 'promoted',
                   evidenceToken: derivePromotedEvidenceToken(delta.evidenceToken),
                   curationJobId: job.candidateId,

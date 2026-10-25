@@ -547,7 +547,6 @@ function buildLocalKnowledgeStore(
         },
         priors,
       )
-      // 416-DOOR: door-1-2 revalidation
       const revalidated = evaluatePromotionGate({ ...gateInput, status: setAside.status })
       if (revalidated.verdict === 'promote') {
         // Receipt strength can grow without granting a second lifecycle authority event.
@@ -605,7 +604,6 @@ function buildLocalKnowledgeStore(
       throw new KnowledgePromotionError(candidateId, revalidated.reason)
     }
 
-    // 416-DOOR: door-1-2 gate
     const gate = evaluatePromotionGate(assemblePromotionGateInput({
       knowledgeRoot: config.knowledgeRoot,
       bundleDir: resolved.bundleDir,
@@ -630,7 +628,6 @@ function buildLocalKnowledgeStore(
     const promotionSource = recoveryBoundary.length === 0 ? candidateId
       : canonicalJson({ candidateId, retractedPromotionEvents: recoveryBoundary })
     const appended = appendOutcomeEvent(appendConfig, candidateId, {
-      // 416-DOOR: door-1-2 promoted
       type: 'promoted',
       evidenceToken: derivePromotedEvidenceToken(promotionSource),
       curationJobId: `promote:${candidateId}`,
