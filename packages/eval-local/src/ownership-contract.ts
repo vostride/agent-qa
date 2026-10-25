@@ -67,21 +67,17 @@ export const AGENT_QA_EVAL_LOCAL_ALLOWED_RESPONSIBILITIES = [
   // Retargeted sweep/assembly and the gate/floor compositions bind the existing ports;
   // measurement, scoring and verdict derivations remain in eval core.
   'the write-once noise-floor artefact writer under agent-qa-eval/reports/noise-floor/ and the decisions.json third part of the report commit; the per-repeat retargeted replay sweep and batch assembly; the gate-side release-gate and floor compositions over the committed-root read leg',
-  // Phase 414 D-02/D-05/D-15 (ROOT-07/ROOT-08/ROOT-10): the partition manifest and the run
-  // exclusion are two more committed documents, so they join the SEEDING family and are written
-  // as authored (441 D-15). Both are write-once (a manifest whose salt or fractions disagree
-  // with the committed one ⇒ 'write-conflict', because changing them re-partitions a corpus that
-  // has already been gated against; an exclusion compares runExclusionCore so a later backfill
-  // block never reads as a new decision). Neither writer mints a salt — it arrives as data from
-  // the seed verb. Beside them, the gate-side posture composition folds the committed-root read
-  // leg and the manifests into eval core's pure readGatePosture; the derivation stays in eval
-  // core, and the symbol lives on the MAIN entry because private held-out entries gate (D-09)
-  // and the proposer's reader port must never count them.
-  'the write-once partition-manifest and run-exclusion writers under agent-qa-eval/contracts/ and agent-qa-eval/exclusions/, and the gate-side posture composition over the committed-root read leg',
+  // The partition manifest and the run exclusion are two more committed documents, so they join
+  // the SEEDING family and are written as authored. Both are write-once (a manifest whose salt or
+  // fractions disagree with the committed one ⇒ 'write-conflict', because changing them
+  // re-partitions a corpus that has already been gated against; an exclusion compares
+  // runExclusionCore so a later backfill block never reads as a new decision). Neither writer
+  // mints a salt — it arrives as data from the seed verb.
+  'the write-once partition-manifest and run-exclusion writers under agent-qa-eval/contracts/ and agent-qa-eval/exclusions/',
   // Phase 414 D-18/D-19/D-20 (ROOT-10 SC5): the proposer-side /reader subpath — a SECOND package
   // entry, published beside the main one for the reason knowledge-local's reader entry exists:
   // an entry is the only boundary a rule can key on. The main entry is the GATE side (the root as
-  // an fs path, the seeding and exclusion writers, the baseline pointer, the posture); this one
+  // an fs path, the seeding and exclusion writers, the baseline pointer); this one
   // opens nothing, writes nothing and holds no lease — it reads the committed root once and hands
   // back the visibility-filtered slice. Its return types CANNOT carry a private held-out entry,
   // its cassette or its label, and a private cassetteId answers byte-identically to an id that
