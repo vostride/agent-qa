@@ -153,10 +153,10 @@ function projectStageDetails(
   state: PostProcessingChainState | undefined,
   mask: MaskFn | undefined,
 ): PostProcessingStatus['stageDetails'] {
-  const rows: Partial<Record<PostProcessingDetailStage, PostProcessingJobRow>> = {
+  const rows = {
     analysis: state?.analyzeRun,
     curation: state?.curateMemory,
-  }
+  } satisfies Record<PostProcessingDetailStage, PostProcessingJobRow | undefined>
   const details: NonNullable<PostProcessingStatus['stageDetails']> = {}
   for (const stage of POST_PROCESSING_DETAIL_STAGES) {
     const row = rows[stage]

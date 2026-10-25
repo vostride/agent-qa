@@ -51,13 +51,11 @@ export interface PostProcessingChips {
   curation: PostProcessingChipStatus
 }
 
-/** Detail stages include the chip-less proposals stage; this does not widen the chip set. */
-export type PostProcessingDetailStage = 'analysis' | 'curation' | 'proposals'
+export type PostProcessingDetailStage = 'analysis' | 'curation'
 
 export const POST_PROCESSING_DETAIL_STAGES = [
   'analysis',
   'curation',
-  'proposals',
 ] as const satisfies readonly PostProcessingDetailStage[]
 
 /**
@@ -137,7 +135,6 @@ export interface PostProcessingStatus {
   chips: PostProcessingChips
   /** A missing job row leaves its stage absent, including on historical payloads. */
   stageDetails?: Partial<Record<PostProcessingDetailStage, PostProcessingStageDetail>>
-  /** Validated completed curation, available before the proposals stage reaches terminal. */
   curationSnapshot?: CurationSnapshot
   /**
    * Present iff a recorded snapshot exists and could not be projected safely; never beside

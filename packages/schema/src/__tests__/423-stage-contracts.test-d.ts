@@ -21,12 +21,11 @@ import type {
 import type * as Notification from '../notification/index'
 
 // Independent literal unions: neither expected vocabulary is derived from production.
-// Plan 423-23 owns the mutation script; C423-STAGES-EXACT is its required RED cell.
 describe('C423-STAGES-EXACT', () => {
-  test('pins three detail stages in both directions through public exports', () => {
-    expectTypeOf<PostProcessingDetailStage>().toEqualTypeOf<'analysis' | 'curation' | 'proposals'>()
+  test('pins two detail stages in both directions through public exports', () => {
+    expectTypeOf<PostProcessingDetailStage>().toEqualTypeOf<'analysis' | 'curation'>()
     expectTypeOf<(typeof POST_PROCESSING_DETAIL_STAGES)[number]>().toEqualTypeOf<
-      'analysis' | 'curation' | 'proposals'
+      'analysis' | 'curation'
     >()
     expectTypeOf<
       Exclude<PostProcessingDetailStage, (typeof POST_PROCESSING_DETAIL_STAGES)[number]>
@@ -52,18 +51,18 @@ describe('C423-STAGES-EXACT', () => {
     }>()
   })
 
-  test('refuses a fourth stage and third chip at the type boundary', () => {
+  test('refuses a third stage and third chip at the type boundary', () => {
     expectTypeOf<Extract<PostProcessingDetailStage, 'admission'>>().toEqualTypeOf<never>()
-    expectTypeOf<Extract<keyof PostProcessingChips, 'proposals'>>().toEqualTypeOf<never>()
+    expectTypeOf<Extract<keyof PostProcessingChips, 'admission'>>().toEqualTypeOf<never>()
     expectTypeOf<Extract<PostProcessingChipStatus, 'unknown'>>().toEqualTypeOf<never>()
   })
 
   test('keeps each stage optional on the DTO and inferred result', () => {
-    type Expected = Partial<Record<'analysis' | 'curation' | 'proposals', PostProcessingStageDetail>>
+    type Expected = Partial<Record<'analysis' | 'curation', PostProcessingStageDetail>>
     expectTypeOf<PostProcessingStatus['stageDetails']>().toEqualTypeOf<Expected | undefined>()
     expectTypeOf<z.infer<typeof PostProcessingStatusSchema>>().toEqualTypeOf<PostProcessingStatus>()
     expectTypeOf<keyof NonNullable<PostProcessingStatus['stageDetails']>>().toEqualTypeOf<
-      'analysis' | 'curation' | 'proposals'
+      'analysis' | 'curation'
     >()
   })
 

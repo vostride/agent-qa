@@ -33,14 +33,7 @@ export const CURRENT_RUN_NOTIFICATION_SCHEMA_VERSION = 2
 /** Whether the chain as a whole finished clean. Every stage done ⇒ `done` (D-12). */
 export type RunNotificationOutcome = 'done' | 'failed'
 
-/**
- * Declaration-order projection of `RunNotificationOutcome` (2026-09-12, 422-22; the D-22 bar).
- *
- * `satisfies` refuses a list member the union lacks and says NOTHING about a union that grew, so
- * the reverse direction is pinned by the independent oracles in
- * `../__tests__/422-notification-closed-sets.test.ts` and its `.test-d.ts` sibling — neither of
- * which builds its expectation from this list.
- */
+/** Declaration-order projection of `RunNotificationOutcome`. */
 export const RUN_NOTIFICATION_OUTCOMES = [
   'done',
   'failed',
@@ -50,13 +43,8 @@ export const RUN_NOTIFICATION_OUTCOMES = [
 export type RunNotificationStageStatus = 'done' | 'failed'
 
 /**
- * Declaration-order projection of `RunNotificationStageStatus` (2026-09-12, 422-22).
- *
- * TWO WORDS, AND THE THIRD ONE IS AN ABSENCE RATHER THAN A WORD. A stage that was not recorded is
- * expressed by the member being MISSING (see `RunNotificationStages`), never by a `not-recorded`
- * status — because a status is a claim about a stage that ran. Widening this enum to carry a stage
- * that never ran would let a writer stamp an invented stage onto a row, and no reader can tell an
- * invented stage from a recorded one.
+ * Declaration-order projection of `RunNotificationStageStatus`. A status is a claim about a stage
+ * that ran, so there is no word for a stage that did not.
  */
 export const RUN_NOTIFICATION_STAGE_STATUSES = [
   'done',
@@ -77,26 +65,19 @@ export interface RunNotificationVerdictSummary {
 }
 
 /**
- * The stages the chain actually runs: two always, a third when the chain reached it.
- *
- * The optional third is the contract, not a convenience. `proposals` absent means the proposal
- * stage WAS NOT RECORDED — which is the truth for every chain that halted at a permanently failed
- * fold — and it is deliberately distinct from `{status: 'failed'}`, which claims a stage that ran
- * and did not finish. Synthesizing a successful stage would be this build inventing work nobody
- * did, and the read-side surfaces cannot tell an invented stage from a recorded one.
+ * The two stages the chain runs, analysis then curation.
  *
  * A stage record carries its STATUS and, for curation, the counts it committed. It carries NO
- * failure text, and that absence is a decision rather than an omission (404 D-21, T-404-01):
- * this row is stamped by whichever process drains the chain, INCLUDING the daemon's pump, which
- * can fold with no declared mask bound (388 D-06's `no-masker` posture). A reason stored
- * here therefore could not be guaranteed masked at the moment it was written, and this row is
- * read by surfaces that render it directly — so a secret that reached the column would reach a
- * screen. The masked, bounded reason (`CHIP_ERROR_MAX_LENGTH`) lives instead on the in-process
- * `*Failed` chip envelope, which is itself durable (it is appended to the run's `events.jsonl`)
- * and reaches the page through the read route's `runs.events` fold. A `failed` chip with no
- * such envelope renders `failed` plus a posture-qualified "reason not recorded" line — never
- * blank. The job store's own per-job failure-reason column is a pump-internal field and is not
- * surfaced by this contract for the same masking reason.
+ * failure text: this row is stamped by whichever process drains the chain, INCLUDING the daemon's
+ * pump, which can fold with no declared mask bound (the `no-masker` posture). A reason stored here
+ * therefore could not be guaranteed masked at the moment it was written, and this row is read by
+ * surfaces that render it directly — so a secret that reached the column would reach a screen. The
+ * masked, bounded reason (`CHIP_ERROR_MAX_LENGTH`) lives instead on the in-process `*Failed` chip
+ * envelope, which is itself durable (it is appended to the run's `events.jsonl`) and reaches the
+ * page through the read route's `runs.events` fold. A `failed` chip with no such envelope renders
+ * `failed` plus a posture-qualified "reason not recorded" line — never blank. The job store's own
+ * per-job failure-reason column is a pump-internal field and is not surfaced by this contract for
+ * the same masking reason.
  */
 export interface RunNotificationStages {
   analysis: { status: RunNotificationStageStatus }
@@ -111,17 +92,6 @@ export interface RunNotificationStages {
     deprecated?: number
     /** Exact bundle-committed facts. Missing on historical or uncommitted curation. */
     curationSnapshot?: CurationSnapshot
-  }
-  /**
-   * The adversarial proposal stage (422 D-13). ABSENT means NOT RECORDED — see the interface
-   * comment — and the counts follow curation's rule exactly: present only for a stage that got
-   * far enough to have them, because zeros on a stage that never staged anything would claim it
-   * proposed nothing, which is a different sentence from never having reached the port at all.
-   */
-  proposals?: {
-    status: RunNotificationStageStatus
-    proposed?: number
-    skipped?: number
   }
 }
 
@@ -149,11 +119,6 @@ export interface RunNotificationViewStages {
     deprecated?: number
     curationSnapshot?: CurationSnapshot
   }
-  proposals?: {
-    status: RunNotificationViewStatus
-    proposed?: number
-    skipped?: number
-  }
 }
 
 export interface RunNotificationView {
@@ -170,33 +135,19 @@ const VIEW_WORD: Record<RunNotificationStageStatus, RunNotificationViewStatus> =
 }
 
 export function toRunNotificationView(notification: RunNotification): RunNotificationView {
-  const { analysis, curation, proposals } = notification.stages
+  const { analysis, curation } = notification.stages
   return {
     ...notification,
     outcome: VIEW_WORD[notification.outcome],
     stages: {
       analysis: { ...analysis, status: VIEW_WORD[analysis.status] },
       curation: { ...curation, status: VIEW_WORD[curation.status] },
-      ...(proposals === undefined ? {} : { proposals: { ...proposals, status: VIEW_WORD[proposals.status] } }),
     },
   }
 }
 
-/**
- * The two admissible stage key sets, sorted and joined — declared as DATA (2026-09-12, 422-22).
- *
- * TWO SETS, never "the declared ones plus anything" (422 D-13). The optional third member widened
- * what a stage set may BE by exactly one shape; a presence check for `proposals` beside a subset
- * check for the rest would readmit the undeclared member this equality exists to refuse, which is
- * the failure the exact-key idiom was chosen against in the first place.
- *
- * Stated here rather than inline in the guard so the admissible shapes are a value an oracle can
- * read and a reviewer can count. The pair comes first, then the triple.
- */
-export const RUN_NOTIFICATION_STAGE_KEY_SETS = [
-  'analysis,curation',
-  'analysis,curation,proposals',
-] as const
+/** The admissible stage key set, sorted and joined; the guard refuses any other. */
+export const RUN_NOTIFICATION_STAGE_KEY_SETS = ['analysis,curation'] as const
 
 /** The exact top-level field set, sorted and joined. The record carries these five and no more. */
 export const RUN_NOTIFICATION_FIELD_KEYS = 'outcome,runId,schemaVersion,stages,verdictSummary'
@@ -311,10 +262,6 @@ export function guardRunNotification(value: unknown): RunNotification {
   if (!isRecord(stages)) {
     throw new RunNotificationSchemaError('it reports no stages')
   }
-  // TWO admissible sets, never "anything plus the declared ones" (422 D-13). The optional third
-  // member widened what a stage set may BE by exactly one shape; a presence check for `proposals`
-  // beside a subset check for the rest would readmit the undeclared member this equality exists
-  // to refuse, which is the failure the exact-key idiom was chosen against in the first place.
   const stageKeys = Object.keys(stages).sort().join(',')
   if (!(RUN_NOTIFICATION_STAGE_KEY_SETS as readonly string[]).includes(stageKeys)) {
     throw new RunNotificationSchemaError(
@@ -339,22 +286,6 @@ export function guardRunNotification(value: unknown): RunNotification {
     !CurationSnapshotSchema.safeParse(curation.curationSnapshot).success) {
     // Never include untrusted snapshot keys or identity values in diagnostics.
     throw new RunNotificationSchemaError('its curation snapshot is invalid')
-  }
-
-  // Checked only when PRESENT, and then checked in full (422 D-13). An absent stage is the
-  // not-recorded fact above and needs no validation; a present one is rendered, so a malformed
-  // proposal stage is refused here rather than handed to a surface that would print `undefined`.
-  if ('proposals' in stages) {
-    const proposals = stages.proposals
-    if (!isRecord(proposals) || !isMember(RUN_NOTIFICATION_STAGE_STATUSES, proposals.status)) {
-      throw new RunNotificationSchemaError('its proposal stage reports no outcome')
-    }
-    if ('proposed' in proposals && !isCount(proposals.proposed)) {
-      throw new RunNotificationSchemaError('its proposed count is not a count')
-    }
-    if ('skipped' in proposals && !isCount(proposals.skipped)) {
-      throw new RunNotificationSchemaError('its skipped count is not a count')
-    }
   }
 
   return migrated as unknown as RunNotification

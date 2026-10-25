@@ -14,7 +14,7 @@ import * as notification from '../notification/index'
 const legacy = { runId: 'stage-contract-fixture', chips: { analysis: 'complete', curation: 'pending' } }
 
 describe('STAGE-DETAIL-OPTIONAL', () => {
-  test('parses all three recorded stage details through the public result schema', () => {
+  test('parses both recorded stage details through the public result schema', () => {
     const payload = {
       ...legacy,
       stageDetails: {
@@ -24,8 +24,7 @@ describe('STAGE-DETAIL-OPTIONAL', () => {
           updatedAt: '2026-09-14T00:01:00Z',
           conclusionKind: 'no_issue',
         },
-        curation: { attempts: 0 },
-        proposals: {
+        curation: {
           attempts: 2,
           claimedAt: '2026-09-14T00:02:00Z',
           lastFailureKind: 'retryable',
@@ -61,9 +60,8 @@ describe('STAGE-DETAIL-OPTIONAL', () => {
 })
 
 describe('C423-STAGES-EXACT', () => {
-  // Plan 423-23 owns the mutation script; this is its required named RED cell.
   test('pins the public detail list and schema to independent exact vocabularies', () => {
-    expect(POST_PROCESSING_DETAIL_STAGES).toEqual(['analysis', 'curation', 'proposals'])
+    expect(POST_PROCESSING_DETAIL_STAGES).toEqual(['analysis', 'curation'])
     expect(notification.POST_PROCESSING_DETAIL_STAGES).toBe(POST_PROCESSING_DETAIL_STAGES)
     expect(notification.PostProcessingStageDetailSchema).toBe(PostProcessingStageDetailSchema)
     expect(Object.keys(PostProcessingStageDetailSchema.shape)).toEqual([
@@ -82,8 +80,8 @@ describe('C423-STAGES-EXACT', () => {
     ).toBe(false)
   })
 
-  test('accepts the hand-spelled three detail stages and rejects a fourth', () => {
-    for (const stage of ['analysis', 'curation', 'proposals']) {
+  test('accepts the hand-spelled two detail stages and rejects a third', () => {
+    for (const stage of ['analysis', 'curation']) {
       expect(
         PostProcessingStatusSchema.safeParse({ ...legacy, stageDetails: { [stage]: {} } }).success,
       ).toBe(true)
@@ -111,7 +109,7 @@ describe('C423-STAGES-EXACT', () => {
       { analysis: 'complete' },
       { analysis: 'complete', curation: 'unknown' },
       { analysis: 'done', curation: 'done' },
-      { ...legacy.chips, proposals: 'complete' },
+      { ...legacy.chips, admission: 'complete' },
     ]) {
       expect(PostProcessingStatusSchema.safeParse({ ...legacy, chips }).success).toBe(false)
     }

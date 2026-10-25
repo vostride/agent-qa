@@ -60,12 +60,11 @@ function notification(version: number, curationSnapshot?: unknown) {
       analysis: { status: 'done' },
       curation: { status: 'done', curated: 17, deprecated: 9,
         ...(curationSnapshot === undefined ? {} : { curationSnapshot }) },
-      proposals: { status: 'done', proposed: 23, skipped: 4 },
     },
   }
 }
 
-test('NOTIFICATION-ROUNDTRIP: both strict readers preserve full snapshot bytes and separate proposals', () => {
+test('NOTIFICATION-ROUNDTRIP: both strict readers preserve full snapshot bytes', () => {
   const stored = notification(CURRENT_RUN_NOTIFICATION_SCHEMA_VERSION, five)
   expect(() => guardRunNotification(stored)).not.toThrow()
   expect(guardRunNotification(JSON.parse(JSON.stringify(stored)))).toEqual(stored)
@@ -75,7 +74,6 @@ test('NOTIFICATION-ROUNDTRIP: both strict readers preserve full snapshot bytes a
   expect(wire).toEqual(view)
   expect(JSON.stringify(wire.stages.curation.curationSnapshot))
     .toBe(JSON.stringify(stored.stages.curation.curationSnapshot))
-  expect(wire.stages.proposals?.proposed).toBe(23)
   expect(RunNotificationViewSchema.safeParse(toRunNotificationView(notification(CURRENT_RUN_NOTIFICATION_SCHEMA_VERSION) as RunNotification)).success)
     .toBe(true)
   expect(RunNotificationViewSchema.safeParse(stored).success).toBe(false)
