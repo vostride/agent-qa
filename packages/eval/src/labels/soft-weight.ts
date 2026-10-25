@@ -2,10 +2,10 @@ import {
   MARKS,
   ORIGIN_PRIORS,
   plannerCapabilityTier,
-  type MarkReceipt,
   type ModelIdentity,
   type VerifierVerdict,
 } from '@vostride/agent-qa-schema'
+import type { GoldMark } from './golden-plan'
 import type { LabelWeight } from './label-record'
 
 /**
@@ -33,7 +33,7 @@ export interface SoftRecoveringDecisionEvidence {
   /** True only when this recovering decision actually executed a recorded deterministic path. */
   deterministicPath?: boolean
   /** Projection of the actual governing receipt, never a freshly minted label tier. */
-  governingMark?: Pick<MarkReceipt, 'markId' | 'kind'>
+  governingMark?: Pick<GoldMark, 'markId' | 'kind'>
   /** Recorded verification of the recovering decision; absence is unverified. */
   verifierVerdict?: Pick<VerifierVerdict, 'pass'>
 }

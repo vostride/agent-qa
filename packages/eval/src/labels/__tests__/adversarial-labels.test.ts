@@ -17,7 +17,6 @@
  */
 import { describe, expect, it } from 'vitest'
 import { asRef, sha256hex } from '@vostride/agent-qa-schema'
-import type { MarkReceipt } from '@vostride/agent-qa-schema'
 import {
   FIXTURE_REFS,
   makeAdversarialSeedFixture,
@@ -31,6 +30,7 @@ import { CORPUS_ENTRY_SCHEMA_VERSION } from '../corpus-entry'
 import type { CorpusEntry } from '../corpus-entry'
 import { parseCorpusEntry } from '../corpus-entry-guard'
 import { effectiveGold } from '../effective-gold'
+import type { GoldMark } from '../golden-plan'
 import { parseStandaloneLabelRecord } from '../effective-labels'
 import {
   LABEL_RECORD_SCHEMA_VERSION,
@@ -51,12 +51,12 @@ function seedFixture(runId?: string) {
 
 /** A user-gold record carrying an EXECUTABLE correction — the strongest seed gold there is. */
 function userGoldSeedLabel(seed: ReturnType<typeof seedFixture>): StandaloneLabelRecord {
-  const mark: MarkReceipt = {
+  const mark: GoldMark = {
     kind: 'false-pass',
     markId: 'mark_0123456789ab',
     correctedExpectation: CORRECTED_EXPECTATION,
     correctedAction: { type: 'click', ref: asRef(FIXTURE_REFS.siblingButton) },
-  } as MarkReceipt
+  } as GoldMark
   return projectUserMarkLabelRecord({
     cassette: seed.cassette,
     runId: seed.runId,

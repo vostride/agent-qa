@@ -57,25 +57,16 @@ import {
   committedReportPath,
 } from './committed-root-store.js'
 import { listCassetteBundleDirs } from './replay-read.js'
-import { FsMarkLedger } from './mark-ledger.js'
 import { readLabelCalibration, type LabelCalibrationRead } from './calibration-source.js'
 import { reportMetadataKind } from './report-metadata-guard.js'
 import { reportJudgeSchema } from './report-store.js'
 
 /** Gate-side effective view; raw committed history and the proposer reader remain unchanged. */
-export function readActiveCommittedCorpus(committedRoot: string, agentQaRoot: string, calibrationRead?: LabelCalibrationRead): CommittedCorpusRead {
+export function readActiveCommittedCorpus(committedRoot: string, _agentQaRoot: string, calibrationRead?: LabelCalibrationRead): CommittedCorpusRead {
   const read = readCommittedCorpus(committedRoot, calibrationRead)
-  const runs = new Set([...read.snapshot.labelsById.values()].filter(label =>
-    label.provenance.sourceCassetteId !== undefined).map(label => label.provenance.runId))
-  const marks = []
-  const refusals = [...read.refusals]
-  for (const runId of runs) {
-    try { marks.push(...new FsMarkLedger({ root: agentQaRoot, runId }).latestPerAddress()) }
-    catch { refusals.push({ path: agentQaRoot, reason: 'mark ledger unreadable; active gold unavailable' }) }
-  }
-  const entries = activeMarkedCorpusEntries(read.snapshot, marks)
+  const entries = activeMarkedCorpusEntries(read.snapshot, [])
   const activeIds = new Set(entries.map(entry => entry.cassetteId))
-  return { ...read, refusals, snapshot: { ...read.snapshot, entries },
+  return { ...read, snapshot: { ...read.snapshot, entries },
     retiredMarkedCassetteIds: new Set(read.snapshot.entries.filter(entry => !activeIds.has(entry.cassetteId)).map(entry => entry.cassetteId)),
     notices: [...read.notices, ...(entries.length === read.snapshot.entries.length ? []
       : [`${read.snapshot.entries.length - entries.length} historical or incomplete marked cases excluded`])] }

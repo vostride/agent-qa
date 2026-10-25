@@ -10,12 +10,11 @@ import {
   type LeafReplayResult,
 } from '@vostride/agent-qa-eval'
 import { HANDOFF_FILE, RUNS_SUBDIR, loadCompletedRunHandoff } from '@vostride/agent-qa-runner-local'
-import { sha256hex, slugBranch, type MarkReceipt } from '@vostride/agent-qa-schema'
+import { sha256hex, slugBranch } from '@vostride/agent-qa-schema'
 import { baselineReplaySchema, baselineScoreSchema } from './baseline-cache-guards.js'
 import { listBaselineRunRoots } from './baseline-cache-read.js'
 import { assertCalibrationPath } from './calibration-source.js'
 import { readCommittedCorpus, readRunExclusions } from './committed-corpus-source.js'
-import { FsMarkLedger, MARKS_LEDGER_FILE } from './mark-ledger.js'
 import { loadStagedReport } from './report-store.js'
 import type { ScoreRecord } from './score-store.js'
 
@@ -87,7 +86,6 @@ export function loadJudgeCalibrationEvidence(input: LoadJudgeCalibrationEvidence
     for (const _refusal of exclusions.refusals) skip('corpus-refused')
     return finish()
   }
-  const marks: MarkReceipt[] = []
   const excluded = new Set(raw.snapshot.excludedLabelIds)
   for (const exclusion of exclusions.exclusions) {
     for (const [id, cassette] of raw.snapshot.cassettesById) if (cassette.runId === exclusion.runId) excluded.add(id)
@@ -99,13 +97,8 @@ export function loadJudgeCalibrationEvidence(input: LoadJudgeCalibrationEvidence
       for (const [id, cassette] of raw.snapshot.cassettesById) if (cassette.runId === runId) excluded.add(id)
     }
     try {
-      assertCalibrationPath(input.agentQaRoot, join(run, MARKS_LEDGER_FILE))
       assertCalibrationPath(input.agentQaRoot, join(run, HANDOFF_FILE))
     } catch { skip('path-refused'); excludeRun(); continue }
-    try {
-      const ledger = new FsMarkLedger({ root: input.agentQaRoot, runId }).latestPerAddress()
-      marks.push(...ledger)
-    } catch { skip('marks-unreadable'); excludeRun(); continue }
     try {
       const handoff = loadCompletedRunHandoff(join(run, HANDOFF_FILE))
       if (handoff.runId !== runId || new Set(handoff.tests.map(member => member.testIndex)).size !== handoff.tests.length) throw new Error('foreign handoff')
@@ -121,8 +114,8 @@ export function loadJudgeCalibrationEvidence(input: LoadJudgeCalibrationEvidence
       }
     } catch { skip('handoff-refused'); excludeRun() }
   }
-  const snapshot = { ...raw.snapshot, entries: activeMarkedCorpusEntries(raw.snapshot, marks), excludedLabelIds: excluded }
-  const selection = selectJudgeCalibrationGold({ snapshot, marks })
+  const snapshot = { ...raw.snapshot, entries: activeMarkedCorpusEntries(raw.snapshot, []), excludedLabelIds: excluded }
+  const selection = selectJudgeCalibrationGold({ snapshot, marks: [] })
   result.selected = selection.gold.length
   Object.assign(skippedCounts, selection.skippedCounts)
   result.corpusDigest = selection.corpusDigest

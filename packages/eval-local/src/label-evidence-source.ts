@@ -1,9 +1,8 @@
-import { existsSync, realpathSync } from 'node:fs'
-import { isAbsolute, join, relative, resolve } from 'node:path'
-import { canonicalJson, deriveRunSlug, resolveProductPartition, type CommittedCorpusSnapshot } from '@vostride/agent-qa-eval'
+import { realpathSync } from 'node:fs'
+import { isAbsolute, relative, resolve } from 'node:path'
+import { canonicalJson, deriveRunSlug, resolveProductPartition, type CommittedCorpusSnapshot, type GoldMark } from '@vostride/agent-qa-eval'
 import { HANDOFF_FILE, RUNS_SUBDIR, loadCompletedRunHandoff } from '@vostride/agent-qa-runner-local'
-import { guardCompletedRunHandoff, type CompletedRunHandoff, type MarkReceipt } from '@vostride/agent-qa-schema'
-import { FsMarkLedger, MARKS_LEDGER_FILE } from './mark-ledger.js'
+import { guardCompletedRunHandoff, type CompletedRunHandoff } from '@vostride/agent-qa-schema'
 
 export interface LoadLabelEvidenceInput {
   snapshot: CommittedCorpusSnapshot
@@ -12,9 +11,9 @@ export interface LoadLabelEvidenceInput {
 }
 export interface LabelEvidenceRead {
   handoffs: CompletedRunHandoff[]
-  marks: MarkReceipt[]
+  marks: GoldMark[]
   refusals: { runId: string; reason: 'invalid-run-link' | 'handoff-unavailable' | 'run-identity-mismatch'
-    | 'product-mismatch' | 'path-outside-root' | 'conflicting-handoff' | 'marks-unavailable' }[]
+    | 'product-mismatch' | 'path-outside-root' | 'conflicting-handoff' }[]
 }
 
 function contained(root: string, path: string): boolean {
@@ -61,14 +60,7 @@ export function loadLabelEvidence(input: LoadLabelEvidenceInput): LabelEvidenceR
       loaded.delete(incoming.runId); refuse(incoming.runId, 'conflicting-handoff')
     } else if (!refused.has(incoming.runId)) loaded.set(incoming.runId, incoming)
   }
-  for (const [runId, handoff] of loaded) {
-    result.handoffs.push(handoff)
-    const path = join(input.agentQaRoot, RUNS_SUBDIR, deriveRunSlug(runId), MARKS_LEDGER_FILE)
-    try {
-      if (existsSync(path) && !contained(input.agentQaRoot, path)) { refuse(runId, 'marks-unavailable'); continue }
-      result.marks.push(...new FsMarkLedger({ root: input.agentQaRoot, runId }).latestPerAddress())
-    } catch { refuse(runId, 'marks-unavailable') }
-  }
+  result.handoffs.push(...loaded.values())
   result.handoffs.sort((a, b) => a.runId < b.runId ? -1 : a.runId > b.runId ? 1 : 0)
   return result
 }

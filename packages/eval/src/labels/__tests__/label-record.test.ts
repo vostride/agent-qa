@@ -3,8 +3,8 @@ import type {
   CompletedRunHandoff,
   Decision,
   SubActionEvidence,
-  MarkReceipt,
 } from '@vostride/agent-qa-schema'
+import type { GoldMark } from '../golden-plan'
 import { describe, expect, it } from 'vitest'
 import {
   FIXTURE_ARTIFACT_SHA,
@@ -265,7 +265,7 @@ describe('committedFileText (D-17 idempotence precondition)', () => {
 })
 
 describe('419 gold projections', () => {
-  const mark = { kind: 'false-pass', markId: 'mark_0123456789ab', correctedExpectation: 'Stay blocked' } as MarkReceipt
+  const mark = { kind: 'false-pass', markId: 'mark_0123456789ab', correctedExpectation: 'Stay blocked' } as GoldMark
 
   it.each(['false-fail', 'false-pass', 'confirmed-bug'] as const)('preserves the %s recorded verdict and adds only the appropriate correction', kind => {
     const cassette = silverLeaf()

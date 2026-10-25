@@ -1,19 +1,18 @@
-import type { MarkReceipt } from '@vostride/agent-qa-schema'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { makeArtifactRefV2Handoff } from '../../__tests__/fixtures/handoff-fixtures'
 import { extractRunCassettes } from '../../extract/extract-run'
 import { deriveGoldCassetteId, deriveRunSlug } from '../../extract/ids'
 import { isProposerVisibleEntry } from '../corpus-entry'
-import { buildGoldenTrajectoryPlan, resolveMarkedDecisions } from '../golden-plan'
+import { buildGoldenTrajectoryPlan, resolveMarkedDecisions, type GoldMark } from '../golden-plan'
 import * as splitAssignment from '../split-assignment'
 import { MARK_RECEIPT_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 
-function setup(kind: MarkReceipt['kind'] = 'false-fail', stepIndex?: number) {
+function setup(kind: GoldMark['kind'] = 'false-fail', stepIndex?: number) {
   const handoff = makeArtifactRefV2Handoff()
   // The base fixture ends in a cached-only step. Use two live steps for gold cells.
   handoff.tests[0]!.steps = handoff.tests[0]!.steps.slice(0, 2)
-  const mark: MarkReceipt = {
-    schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: 'mark_0123456789ab', runId: handoff.runId as MarkReceipt['runId'],
+  const mark: GoldMark = {
+    schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: 'mark_0123456789ab', runId: handoff.runId as GoldMark['runId'],
     runSlug: deriveRunSlug(handoff.runId), testIndex: 0, kind, origin: 'user', ordinal: 1,
     markedAt: 0, disposition: { kind: 'confirmed-bug', confirmedRecords: 0 },
     gold: [], evidence: { confirmed: 0, overturned: 0 },
@@ -89,7 +88,7 @@ describe('golden plan (419 D-05/D-06/D-11)', () => {
   it('refuses mismatched run/member identities and duplicate source ids', () => {
     const { handoff, mark, extract } = setup('confirmed-bug', 0)
     expect(() => resolveMarkedDecisions(handoff, { ...mark, testId: 'other' }, mark.kind)).toThrow('member')
-    expect(() => resolveMarkedDecisions(handoff, { ...mark, runId: 'other' as MarkReceipt['runId'] }, mark.kind)).toThrow('run')
+    expect(() => resolveMarkedDecisions(handoff, { ...mark, runId: 'other' as GoldMark['runId'] }, mark.kind)).toThrow('run')
     const cassettes = extract()
     expect(() => buildGoldenTrajectoryPlan({ handoff, mark, product: 'p', cassettes: [...cassettes, cassettes[0]!] })).toThrow('duplicate')
   })

@@ -25,7 +25,7 @@
  * the ISO capture time and the target environment and pass them in.
  */
 import { actionDidNotFail, screenStateHash, sha256hex } from '@vostride/agent-qa-schema'
-import type { CompletedRunHandoff, MarkReceipt, MaskFn, PerTestOutcome, Verdict } from '@vostride/agent-qa-schema'
+import type { CompletedRunHandoff, MaskFn, PerTestOutcome, Verdict } from '@vostride/agent-qa-schema'
 import { canonicalJson } from '../canonical-json'
 import { maskCorpusText } from '../extract/corpus-text-mask'
 import { computeCorpusDigest } from '../census/corpus-digest'
@@ -40,6 +40,7 @@ import { assembleReceipt } from '../extract/receipt'
 import { projectLabelLeg } from '../extract/label-leg'
 import { projectSidecarLeg } from '../extract/sidecar-leg'
 import { createLabelRevision } from './effective-labels'
+import type { GoldMark } from './golden-plan'
 import { EXCLUSION_CLASSES } from './run-exclusion'
 import { projectCorpusEntry, resolveProductPartition } from './corpus-entry'
 import type { CorpusEntry, TargetEnvironment } from './corpus-entry'
@@ -91,7 +92,7 @@ export interface BuildSeedingPlanInput {
   populationContext?: {
     snapshot: CommittedCorpusSnapshot
     handoffs: readonly CompletedRunHandoff[]
-    marks: readonly MarkReceipt[]
+    marks: readonly GoldMark[]
   }
   handoff: CompletedRunHandoff
   cassettes: readonly ExtractedCassette[]

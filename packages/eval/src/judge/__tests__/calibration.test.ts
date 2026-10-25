@@ -3,20 +3,19 @@ import {
   MARK_RECEIPT_SCHEMA_VERSION,
   asRef,
   type Action,
-  type MarkReceipt,
 } from '@vostride/agent-qa-schema'
 import * as core from '../../index'
 import { MATCHER_CONFIG } from '../../match/config'
 import { makeArtifactRefV2Handoff } from '../../__tests__/fixtures/handoff-fixtures'
 import { wilsonInterval } from '../../stats/wilson'
 
-function fixture(kind: MarkReceipt['kind'] = 'confirmed-bug', correction?: Action) {
+function fixture(kind: core.GoldMark['kind'] = 'confirmed-bug', correction?: Action) {
   const handoff = makeArtifactRefV2Handoff()
   handoff.tests[0]!.steps = [handoff.tests[0]!.steps[0]!]
   handoff.tests[0]!.steps[0]!.verifierVerdict = { pass: false, reasoning: 'recorded fail' }
   const source = core.extractRunCassettes({ handoff, artifacts: { getBlob: () => new Uint8Array([1]) } })
     .cassettes.find(row => row.cassette.granularity === 'leaf')!.cassette as core.LeafCassette
-  const mark: MarkReceipt = { schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: 'mark_abcdef012345', runId: handoff.runId,
+  const mark: core.GoldMark = { schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: 'mark_abcdef012345', runId: handoff.runId,
     runSlug: core.deriveRunSlug(handoff.runId), testIndex: 0, stepIndex: 0, kind, origin: 'user',
     ordinal: 1, markedAt: 0, disposition: { kind: 'confirmed-bug', confirmedRecords: 0 }, gold: [],
     evidence: { confirmed: 0, overturned: 0 }, ...(correction ? { correctedAction: correction } : {}) }

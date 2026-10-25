@@ -501,7 +501,7 @@ export type {
 export { committedFileText } from './labels/committed-file'
 export { buildSeedingPlan, admitSeedMember } from './labels/seeding-plan'
 export { activeMarkedCorpusEntries, buildGoldenTrajectoryPlan, markGoldChannels, markedDecisionCount, previewMarkLabels, resolveMarkLabelTargets, resolveMarkedDecisions } from './labels/golden-plan'
-export type { GoldenTrajectoryPlan, GoldenTrajectoryTarget, BuildGoldenTrajectoryPlanInput, MarkGoldChannel, MarkGroundTruthPreview, MarkLabelCorrectionPreview, MarkLabelIntent, MarkLabelPreviewItem, MarkLabelsPreview, MarkLabelTargetResolution, PreviewMarkLabelsInput } from './labels/golden-plan'
+export type { GoldenTrajectoryPlan, GoldenTrajectoryTarget, BuildGoldenTrajectoryPlanInput, GoldMark, MarkGoldChannel, MarkGoldClaim, MarkGroundTruthPreview, MarkLabelCorrectionPreview, MarkLabelIntent, MarkLabelPreviewItem, MarkLabelsPreview, MarkLabelTargetResolution, PreviewMarkLabelsInput } from './labels/golden-plan'
 export type {
   BuildSeedingPlanInput,
   SeedingParams,

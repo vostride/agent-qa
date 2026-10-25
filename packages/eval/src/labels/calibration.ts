@@ -1,10 +1,11 @@
-import { ORIGIN_PRIORS, sha256hex, type MarkReceipt, type OriginClass, type TrustPriorTable, type Verdict } from '@vostride/agent-qa-schema'
+import { ORIGIN_PRIORS, sha256hex, type OriginClass, type TrustPriorTable, type Verdict } from '@vostride/agent-qa-schema'
 import { canonicalJson } from '../canonical-json'
 import { computeCorpusDigest } from '../census/corpus-digest'
 import type { CommittedCorpusSnapshot } from '../census/derive-census'
 import type { LabelSourceChannel } from '../cassette/label-leg'
 import { deriveRunSlug } from '../extract/ids'
 import { wilsonInterval } from '../stats/wilson'
+import type { GoldMark } from './golden-plan'
 
 export type LabelCalibrationStatus = 'uncalibrated' | 'calibrated'
 export const LABEL_CALIBRATION_STATUSES = ['uncalibrated', 'calibrated'] as const satisfies readonly LabelCalibrationStatus[]
@@ -23,7 +24,7 @@ export interface CalibrationObservation {
 }
 export interface LabelCalibrationInput {
   snapshot: CommittedCorpusSnapshot
-  marks: readonly MarkReceipt[]
+  marks: readonly GoldMark[]
   observations?: readonly CalibrationObservation[]
   minGold?: { value: number; source: 'default' | 'flag' }
 }
@@ -63,7 +64,7 @@ function selectCalibrationGold(input: Pick<LabelCalibrationInput, 'snapshot' | '
   const { snapshot } = input
   const skippedCounts: LabelCalibrationReport['skippedCounts'] = {}
   const skip = (reason: CalibrationSkipReason) => { skippedCounts[reason] = (skippedCounts[reason] ?? 0) + 1 }
-  const latest = new Map<string, MarkReceipt[]>()
+  const latest = new Map<string, GoldMark[]>()
   for (const mark of input.marks) {
     const key = canonicalJson([mark.runId, mark.testIndex, mark.stepIndex ?? null])
     const previous = latest.get(key)
@@ -73,7 +74,7 @@ function selectCalibrationGold(input: Pick<LabelCalibrationInput, 'snapshot' | '
   const entries = new Set(snapshot.entries.map(entry => entry.cassetteId))
   const active = (id: string) => entries.has(id) && !snapshot.excludedLabelIds?.has(id)
     && !snapshot.labelsById.get(id)?.quarantine
-  const claims = new Map<string, MarkReceipt[]>()
+  const claims = new Map<string, GoldMark[]>()
   const goldIds = { 'user-mark': new Set<string>(), 'overturned-verdict': new Set<string>() }
   const evidence: unknown[] = []
   for (const marks of latest.values()) for (const mark of marks) {
@@ -94,7 +95,7 @@ function selectCalibrationGold(input: Pick<LabelCalibrationInput, 'snapshot' | '
       claims.set(ref.sourceCassetteId, group)
     }
   }
-  const sources: { source: NonNullable<ReturnType<typeof snapshot.labelsById.get>>; cassette: NonNullable<ReturnType<typeof snapshot.cassettesById.get>>; marks: MarkReceipt[]; truth: boolean; channel: 'recorded-verdict' | 'self-heal-pair' }[] = []
+  const sources: { source: NonNullable<ReturnType<typeof snapshot.labelsById.get>>; cassette: NonNullable<ReturnType<typeof snapshot.cassettesById.get>>; marks: GoldMark[]; truth: boolean; channel: 'recorded-verdict' | 'self-heal-pair' }[] = []
   for (const [sourceId, marks] of claims) {
     const source = snapshot.labelsById.get(sourceId), cassette = snapshot.cassettesById.get(sourceId)
     const sourceEntries = snapshot.entries.filter(entry => entry.cassetteId === sourceId)

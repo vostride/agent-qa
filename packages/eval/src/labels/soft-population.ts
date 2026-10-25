@@ -1,8 +1,9 @@
 import { actionDidNotFail, screenStateHash, sha256hex } from '@vostride/agent-qa-schema'
-import type { Action, CompletedRunHandoff, MarkReceipt, PerTestOutcome, StepEvidence, SubActionEvidence } from '@vostride/agent-qa-schema'
+import type { Action, CompletedRunHandoff, PerTestOutcome, StepEvidence, SubActionEvidence } from '@vostride/agent-qa-schema'
 import { canonicalJson } from '../canonical-json'
 import { resolveProductPartition } from './corpus-entry'
 import { deriveLeafCassetteId, deriveRunSlug } from '../extract/ids'
+import type { GoldMark } from './golden-plan'
 import type { LabelProvenance } from './label-record'
 import type { SoftRecoveringDecisionEvidence } from './soft-weight'
 
@@ -39,7 +40,7 @@ export interface SoftPopulation {
 export interface CollectSoftPopulationInput {
   handoffs: readonly CompletedRunHandoff[]
   /** Validated receipts; only the latest receipt at its actual address may govern. */
-  marks?: readonly MarkReceipt[]
+  marks?: readonly GoldMark[]
 }
 
 function actionKey(action: unknown): string | undefined {
@@ -64,8 +65,8 @@ function plannerEvidence(step: StepEvidence, recovering: SubActionEvidence): Sof
     ? { deterministicPath: true } : {}
 }
 
-function latestMarks(marks: readonly MarkReceipt[]): MarkReceipt[] {
-  const latest = new Map<string, MarkReceipt>()
+function latestMarks(marks: readonly GoldMark[]): GoldMark[] {
+  const latest = new Map<string, GoldMark>()
   for (const mark of marks) {
     const key = canonicalJson([mark.runId, mark.testIndex, mark.stepIndex ?? null])
     if ((latest.get(key)?.ordinal ?? 0) < mark.ordinal) latest.set(key, mark)
@@ -73,8 +74,8 @@ function latestMarks(marks: readonly MarkReceipt[]): MarkReceipt[] {
   return [...latest.values()]
 }
 
-function governingMark(marks: readonly MarkReceipt[], handoff: CompletedRunHandoff,
-  test: PerTestOutcome, step: StepEvidence, cassetteId: string): MarkReceipt | undefined {
+function governingMark(marks: readonly GoldMark[], handoff: CompletedRunHandoff,
+  test: PerTestOutcome, step: StepEvidence, cassetteId: string): GoldMark | undefined {
   return marks.filter(mark => mark.runId === handoff.runId && mark.testIndex === test.testIndex
     && (mark.testId === undefined || mark.testId === test.testId)
     && (mark.stepIndex === undefined || mark.stepIndex === step.stepIndex)
@@ -84,7 +85,7 @@ function governingMark(marks: readonly MarkReceipt[], handoff: CompletedRunHando
 }
 
 function observe(handoff: CompletedRunHandoff, test: PerTestOutcome, step: StepEvidence,
-  attempt: number, marks: readonly MarkReceipt[]): SoftObservation | SoftEvidenceSkipReason {
+  attempt: number, marks: readonly GoldMark[]): SoftObservation | SoftEvidenceSkipReason {
   const failedKey = actionKey(step.selfHeal?.failedDecision?.plannedAction)
   const recoveringKey = actionKey(step.selfHeal?.recoveringDecision?.plannedAction)
   if (failedKey === undefined || recoveringKey === undefined) return 'missing-action'

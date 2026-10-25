@@ -21,13 +21,14 @@
  * cassette or an existing record.
  */
 import { sha256hex } from '@vostride/agent-qa-schema'
-import type { Action, MarkReceipt } from '@vostride/agent-qa-schema'
+import type { Action } from '@vostride/agent-qa-schema'
 import { canonicalJson } from '../canonical-json'
 import type { LeafCassette } from '../cassette/cassette'
 import type { CassetteLabelLeg, ContrastivePairing } from '../cassette/label-leg'
 import { deriveRunSlug } from '../extract/ids'
 import type { MintedContrastivePair } from './pair-matching'
 import type { CorpusGenerator } from './corpus-entry'
+import type { GoldMark } from './golden-plan'
 import { generatorProvenance } from './corpus-entry'
 
 /** Single version gate for the standalone label record document (D-01). */
@@ -133,7 +134,7 @@ export interface ProjectUserMarkLabelRecordInput {
   cassette: LeafCassette
   runId: string
   goldCassetteId: string
-  mark: MarkReceipt
+  mark: GoldMark
   supersedes?: string
 }
 

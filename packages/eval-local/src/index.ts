@@ -15,8 +15,6 @@ export { runLabelCalibration } from './calibration-composition.js'
 export type { RunLabelCalibrationInput, RunLabelCalibrationResult } from './calibration-composition.js'
 export { loadLabelEvidence } from './label-evidence-source.js'
 export type { LoadLabelEvidenceInput, LabelEvidenceRead } from './label-evidence-source.js'
-export { freezeGoldenTrajectory } from './golden-composition.js'
-export type { FreezeGoldenTrajectoryInput, FreezeOutcome } from './golden-composition.js'
 export {
   FsMarkLedger,
   MARKS_LEDGER_FILE,

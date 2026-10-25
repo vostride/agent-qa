@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { MARK_RECEIPT_SCHEMA_VERSION, asRunId, type MarkReceipt } from '@vostride/agent-qa-schema'
+import { MARK_RECEIPT_SCHEMA_VERSION, asRunId } from '@vostride/agent-qa-schema'
 import * as core from '../../index'
 import { makeArtifactRefV2Handoff } from '../../__tests__/fixtures/handoff-fixtures'
 
 function fixture(n = 1, correct = n, channel: 'recorded-verdict' | 'self-heal-pair' = 'recorded-verdict') {
   const snapshot = { entries: [] as core.CorpusEntry[], labelsById: new Map<string, core.StandaloneLabelRecord>(), cassettesById: new Map<string, core.LeafCassette>(), blobPresentById: new Map<string, boolean>(), excludedLabelIds: undefined as ReadonlySet<string> | undefined }
-  const marks: MarkReceipt[] = []
+  const marks: core.GoldMark[] = []
   for (let i = 0; i < n; i++) {
     const handoff = makeArtifactRefV2Handoff()
     handoff.runId = asRunId(`calibration-${i}`)
@@ -18,14 +18,15 @@ function fixture(n = 1, correct = n, channel: 'recorded-verdict' | 'self-heal-pa
     snapshot.entries.push(core.projectCorpusEntry({ cassette, product, runId: handoff.runId, assignment: { split: 'natural' } }))
     snapshot.labelsById.set(cassette.id, record)
     snapshot.cassettesById.set(cassette.id, cassette)
-    const mark: MarkReceipt = { schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: `mark_${i.toString(16).padStart(12, '0')}`, runId: asRunId(handoff.runId), runSlug: core.deriveRunSlug(handoff.runId), testIndex: 0, stepIndex: 0,
+    const gold: core.MarkGoldClaim[] = []
+    const mark: core.GoldMark = { schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: `mark_${i.toString(16).padStart(12, '0')}`, runId: asRunId(handoff.runId), runSlug: core.deriveRunSlug(handoff.runId), testIndex: 0, stepIndex: 0,
       kind: i < correct ? 'confirmed-bug' : 'false-fail', origin: 'user', ordinal: 1, markedAt: 0,
-      disposition: { kind: 'confirmed-bug', confirmedRecords: 0 }, gold: [], evidence: { confirmed: 0, overturned: 0 } }
+      disposition: { kind: 'confirmed-bug', confirmedRecords: 0 }, gold, evidence: { confirmed: 0, overturned: 0 } }
     const plan = core.buildGoldenTrajectoryPlan({ handoff, cassettes: [{ cassette, blobs: [] }], mark, product })
     for (const row of plan.cases) {
       snapshot.entries.push(row.corpusEntry); snapshot.labelsById.set(row.cassetteId, row.labelRecord)
       snapshot.cassettesById.set(row.cassetteId, { ...cassette, id: row.cassetteId })
-      mark.gold.push({ cassetteId: row.cassetteId, sourceCassetteId: cassette.id, channel: row.labelRecord.label.sourceChannel as 'user-mark' })
+      gold.push({ cassetteId: row.cassetteId, sourceCassetteId: cassette.id, channel: row.labelRecord.label.sourceChannel as 'user-mark' })
     }
     marks.push(mark)
   }
@@ -78,7 +79,7 @@ describe('420 held-out calibration', () => {
     input.snapshot.entries.push({ ...entry, cassetteId: cloneId })
     input.snapshot.labelsById.set(cloneId, { ...gold, cassetteId: cloneId, label: { ...gold.label, sourceChannel: 'overturned-verdict' } })
     input.snapshot.cassettesById.set(cloneId, { ...input.snapshot.cassettesById.get(gold.cassetteId)!, id: cloneId })
-    mark.gold.push({ ...mark.gold[0]!, cassetteId: cloneId, channel: 'overturned-verdict' })
+    mark.gold = [...mark.gold, { ...mark.gold[0]!, cassetteId: cloneId, channel: 'overturned-verdict' }]
     const report = calibrate(input)
     expect(report?.channels[channel]).toMatchObject({ n: 1, n_gold: 1, status: 'uncalibrated' })
     expect(report.channels['overturned-verdict'].n_gold).toBe(1)

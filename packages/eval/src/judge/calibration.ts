@@ -1,4 +1,4 @@
-import { sha256hex, type MarkReceipt } from '@vostride/agent-qa-schema'
+import { sha256hex } from '@vostride/agent-qa-schema'
 import { canonicalJson } from '../canonical-json'
 import type { LeafCassette } from '../cassette/cassette'
 import type { CassetteReceipt } from '../cassette/receipt-leg'
@@ -8,6 +8,7 @@ import { generatorProvenance } from '../labels/corpus-entry'
 import type { CorpusGenerator, GeneratorKind, GeneratorProvenance } from '../labels/corpus-entry'
 import { deriveRunSlug } from '../extract/ids'
 import { effectiveGold } from '../labels/effective-gold'
+import type { GoldMark } from '../labels/golden-plan'
 import type { StandaloneLabelRecord } from '../labels/label-record'
 import { computeDecisionIdentity } from '../replay/identity'
 import type { ReplaySample } from '../replay/result'
@@ -189,7 +190,7 @@ export type JudgeCalibrationResult = { judgeTargeted: JudgeTargetedCalibrationDi
 
 export type JudgeCalibrationSkipReason = 'invalid-gold' | 'missing-source' | 'conflicting-gold'
   | 'missing-executable-correction' | 'invalid-executable-correction' | 'invalid-recorded-model'
-  | 'corpus-refused' | 'path-refused' | 'marks-unreadable' | 'handoff-refused'
+  | 'corpus-refused' | 'path-refused' | 'handoff-refused'
   | 'missing-replay' | 'malformed-replay' | 'foreign-replay' | 'stale-replay' | 'ambiguous-replay'
   | 'missing-profile-proof' | 'foreign-profile' | 'missing-candidate'
 export type JudgeCalibrationDiagnostics = Partial<Record<JudgeCalibrationSkipReason, number>>
@@ -336,11 +337,11 @@ const hash = (value: unknown) => sha256hex(canonicalJson(value))
 const compare = (a: unknown, b: unknown) => canonicalJson(a) < canonicalJson(b) ? -1 : canonicalJson(a) > canonicalJson(b) ? 1 : 0
 
 /** Governing marks and executable actions only; verifier verdicts are never equivalence truth. */
-export function selectJudgeCalibrationGold(input: { snapshot: CommittedCorpusSnapshot; marks: readonly MarkReceipt[] }) {
+export function selectJudgeCalibrationGold(input: { snapshot: CommittedCorpusSnapshot; marks: readonly GoldMark[] }) {
   const { snapshot } = input
   const skippedCounts: JudgeCalibrationDiagnostics = {}
   const skip = (reason: JudgeCalibrationSkipReason) => { skippedCounts[reason] = (skippedCounts[reason] ?? 0) + 1 }
-  const latest = new Map<string, MarkReceipt[]>()
+  const latest = new Map<string, GoldMark[]>()
   for (const mark of input.marks) {
     const key = canonicalJson([mark.runId, mark.testIndex, mark.stepIndex ?? null])
     const previous = latest.get(key)

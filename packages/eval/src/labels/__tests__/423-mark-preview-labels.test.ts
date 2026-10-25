@@ -1,4 +1,3 @@
-import type { MarkReceipt } from '@vostride/agent-qa-schema'
 import { describe, expect, it } from 'vitest'
 import { makeArtifactRefV2Handoff } from '../../__tests__/fixtures/handoff-fixtures'
 import { extractRunCassettes } from '../../extract/extract-run'
@@ -6,7 +5,7 @@ import { deriveRunSlug } from '../../extract/ids'
 import * as goldenPlan from '../golden-plan'
 import { MARK_RECEIPT_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 
-type Kind = MarkReceipt['kind']
+type Kind = goldenPlan.GoldMark['kind']
 type LabelIntent = goldenPlan.MarkLabelIntent
 function api() {
   expect(typeof goldenPlan.previewMarkLabels, 'golden-plan must export previewMarkLabels').toBe('function')
@@ -16,9 +15,9 @@ function api() {
 function setup(kind: Kind, stepIndex?: number) {
   const handoff = makeArtifactRefV2Handoff()
   handoff.tests[0]!.steps = handoff.tests[0]!.steps.slice(0, 2)
-  const address = { runId: handoff.runId as MarkReceipt['runId'], testIndex: 0,
+  const address = { runId: handoff.runId as goldenPlan.GoldMark['runId'], testIndex: 0,
     ...(stepIndex === undefined ? {} : { stepIndex }) }
-  const receipt = (ordinal: number, extra: Partial<MarkReceipt> = {}): MarkReceipt => ({
+  const receipt = (ordinal: number, extra: Partial<goldenPlan.GoldMark> = {}): goldenPlan.GoldMark => ({
     schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: 'mark_0123456789ab', runSlug: deriveRunSlug(handoff.runId), kind, origin: 'user',
     ordinal, markedAt: 1_700_000_000_000, disposition: { kind: 'confirmed-bug', confirmedRecords: 0 },
     gold: [], evidence: { confirmed: 0, overturned: 0 }, ...address, ...extra,

@@ -1,4 +1,4 @@
-import type { CompletedRunHandoff, Mark, MarkAddress, MarkReceipt, VerifierVerdict } from '@vostride/agent-qa-schema'
+import type { Action, CompletedRunHandoff, Mark, MarkAddress, MarkReceipt, VerifierVerdict } from '@vostride/agent-qa-schema'
 import type { ExtractedCassette } from '../extract/extract-run'
 import { deriveGoldCassetteId, deriveLeafCassetteId, deriveRunSlug } from '../extract/ids'
 import { collectStepSelections } from '../extract/select'
@@ -57,7 +57,13 @@ export function markedDecisionCount(handoff: CompletedRunHandoff, targets: reado
 }
 
 export type MarkGoldChannel = 'user-mark' | 'overturned-verdict'
-export type MarkLabelIntent = Pick<MarkReceipt, 'kind' | 'correctedExpectation' | 'correctedAction'>
+export type MarkGoldClaim = { cassetteId: string; sourceCassetteId: string; channel: MarkGoldChannel }
+export type GoldMark = Omit<MarkReceipt, 'gold' | 'correctedExpectation' | 'correctedAction'> & {
+  gold: readonly MarkGoldClaim[]
+  correctedExpectation?: string
+  correctedAction?: Action
+}
+export type MarkLabelIntent = Pick<GoldMark, 'kind' | 'correctedExpectation' | 'correctedAction'>
 
 /** 2026-09-15, 423 D-16: every marked decision freezes a user-mark label; a false-pass also freezes its overturned verdict. */
 export function markGoldChannels(kind: Mark): MarkGoldChannel[] {
@@ -86,7 +92,7 @@ export interface MarkLabelCorrectionPreview {
   verdict: 'pass' | 'fail'
   overturnedVerdict: VerifierVerdict
   correctedExpectation?: string
-  correctedAction?: MarkReceipt['correctedAction']
+  correctedAction?: Action
 }
 
 export interface MarkGroundTruthPreview {
@@ -95,7 +101,7 @@ export interface MarkGroundTruthPreview {
   verdict: 'pass' | 'fail'
   recordedVerdict: VerifierVerdict
   correctedExpectation?: string
-  correctedAction?: MarkReceipt['correctedAction']
+  correctedAction?: Action
 }
 
 export interface MarkLabelPreviewItem {
@@ -173,10 +179,10 @@ export function previewMarkLabels({ handoff, address, mark }: PreviewMarkLabelsI
 export interface BuildGoldenTrajectoryPlanInput {
   handoff: CompletedRunHandoff
   cassettes: readonly ExtractedCassette[]
-  mark: MarkReceipt
+  mark: GoldMark
   product: string
   supersedes?: string
-  priorGold?: MarkReceipt['gold']
+  priorGold?: GoldMark['gold']
 }
 
 /** Pure freeze plan. The writer executes these private assignments and observed bytes verbatim. */
@@ -236,8 +242,8 @@ export function buildGoldenTrajectoryPlan({
 }
 
 /** Only completed latest marks admit their gold; historical and unfinished files remain inspectable. */
-export function activeMarkedCorpusEntries(snapshot: CommittedCorpusSnapshot, marks: readonly MarkReceipt[]) {
-  const latest = new Map<string, MarkReceipt>()
+export function activeMarkedCorpusEntries(snapshot: CommittedCorpusSnapshot, marks: readonly GoldMark[]) {
+  const latest = new Map<string, GoldMark>()
   for (const mark of marks) {
     const key = JSON.stringify([mark.runId, mark.testIndex, mark.stepIndex ?? null])
     if ((latest.get(key)?.ordinal ?? 0) < mark.ordinal) latest.set(key, mark)

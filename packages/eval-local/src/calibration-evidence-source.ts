@@ -1,18 +1,17 @@
 import { existsSync, readFileSync, readdirSync, realpathSync } from 'node:fs'
 import { isAbsolute, join, relative, sep } from 'node:path'
-import { calibrationGoldSetDigest, canonicalJson, deriveRunSlug, resolveProductPartition, type CalibrationObservation, type LabelCalibrationInput } from '@vostride/agent-qa-eval'
+import { calibrationGoldSetDigest, canonicalJson, deriveRunSlug, resolveProductPartition, type CalibrationObservation, type GoldMark, type LabelCalibrationInput } from '@vostride/agent-qa-eval'
 import { HANDOFF_FILE, RUNS_SUBDIR, loadCompletedRunHandoff } from '@vostride/agent-qa-runner-local'
-import { ANALYSIS_FILE, admitAnalysisArtifactForRun, guardRunAnalysisArtifact, type CompletedRunHandoff, type MarkReceipt } from '@vostride/agent-qa-schema'
+import { ANALYSIS_FILE, admitAnalysisArtifactForRun, guardRunAnalysisArtifact, type CompletedRunHandoff } from '@vostride/agent-qa-schema'
 import { readActiveCommittedCorpus, readCommittedCorpus } from './committed-corpus-source.js'
 import { assertCalibrationPath, type LabelCalibrationRead } from './calibration-source.js'
-import { FsMarkLedger, MARKS_LEDGER_FILE } from './mark-ledger.js'
 
 export type CalibrationEvidenceMissingReason = 'corpus-refused' | 'invalid-run-link' | 'path-refused'
-  | 'marks-missing' | 'marks-unreadable' | 'handoff-missing' | 'handoff-unreadable' | 'handoff-refused'
+  | 'handoff-missing' | 'handoff-unreadable' | 'handoff-refused'
   | 'source-refused' | 'deterministic-missing' | 'deterministic-refused' | 'analysis-missing'
   | 'analysis-unreadable' | 'analysis-refused' | 'analyze-run-missing'
 export interface CalibrationEvidenceRead extends LabelCalibrationInput {
-  marks: MarkReceipt[]
+  marks: GoldMark[]
   observations: CalibrationObservation[]
   missingEvidenceCounts: Partial<Record<CalibrationEvidenceMissingReason, number>>
 }
@@ -37,22 +36,9 @@ export function loadCalibrationEvidence(input: { committedRoot: string; agentQaR
     link.invalid ||= runSlug !== deriveRunSlug(runId)
     links.set(runId, link)
   }
-  // Retired gold still locates its sovereign ledger, including newest empty receipts.
+  // A run that only labels reference still contributes its observations.
   for (const label of raw.snapshot.labelsById.values()) if (!links.has(label.provenance.runId)) {
     links.set(label.provenance.runId, { products: new Set<string>(), invalid: label.provenance.runSlug !== deriveRunSlug(label.provenance.runId) })
-  }
-  // readActiveCommittedCorpus owns retirement. Preflight its ledger reads before invoking it.
-  for (const runId of links.keys()) {
-    const path = join(input.agentQaRoot, RUNS_SUBDIR, deriveRunSlug(runId), MARKS_LEDGER_FILE)
-    try {
-      if (existsSync(path) && !contained(input.agentQaRoot, path)) {
-        missing('path-refused')
-        return { snapshot: { ...raw.snapshot, entries: [] }, marks: [], observations: [], missingEvidenceCounts }
-      }
-    } catch {
-      missing('marks-unreadable')
-      return { snapshot: { ...raw.snapshot, entries: [] }, marks: [], observations: [], missingEvidenceCounts }
-    }
   }
   const active = readActiveCommittedCorpus(input.committedRoot, input.agentQaRoot, input.calibrationRead)
   for (const _refusal of active.refusals) missing('corpus-refused')
@@ -64,11 +50,6 @@ export function loadCalibrationEvidence(input: { committedRoot: string; agentQaR
   for (const [runId, link] of [...links].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) {
     if (link.invalid) { missing('invalid-run-link'); excludeSources(runId); continue }
     const run = join(input.agentQaRoot, RUNS_SUBDIR, deriveRunSlug(runId))
-    const ledgerPath = join(run, MARKS_LEDGER_FILE)
-    try {
-      if (!existsSync(ledgerPath)) missing('marks-missing')
-      result.marks.push(...new FsMarkLedger({ root: input.agentQaRoot, runId }).latestPerAddress())
-    } catch { missing('marks-unreadable'); excludeSources(runId); continue }
     const handoffPath = join(run, HANDOFF_FILE)
     if (!existsSync(handoffPath)) { missing('handoff-missing'); excludeSources(runId); continue }
     let handoff: CompletedRunHandoff
@@ -114,7 +95,6 @@ export function loadCalibrationEvidence(input: { committedRoot: string; agentQaR
   }
   result.snapshot = { ...active.snapshot, excludedLabelIds: excluded }
   const compare = (a: unknown, b: unknown) => canonicalJson(a) < canonicalJson(b) ? -1 : canonicalJson(a) > canonicalJson(b) ? 1 : 0
-  result.marks.sort(compare)
   result.observations.sort(compare)
   return result
 }
