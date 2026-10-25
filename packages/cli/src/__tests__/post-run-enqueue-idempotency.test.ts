@@ -292,17 +292,10 @@ describe('SC1 — the real post-run tail run twice (ANLZ-01, D-03/D-07)', () => 
     // D-02: the chain addresses exactly the ids it enqueues kinds for — pinned by sorted literal
     // on both, so an extra derived id reds the first line and an extra enqueued row reds the
     // second, each by name.
-    //
-    // 2026-09-11 (422 D-13): three of each. The idempotency claim this file exists for gets
-    // STRONGER by the widening rather than merely surviving it — a second complete tail run over
-    // a three-stage chain has three chances to re-enqueue something, and the byte-identical
-    // logical dump below says it took none of them.
-    expect(Object.keys(ids).sort())
-      .toEqual(['analyzeRun', 'curateMemory', 'proposeImprovements'])
-    expect(afterSecond.rows.map((row) => row.kind).sort())
-      .toEqual(['analyze-run', 'curate-memory', 'propose-improvements'])
-    expect(afterSecond.rows.find((row) => row.kind === 'propose-improvements'))
-      .toMatchObject({ id: String(ids.proposeImprovements), status: 'done' })
+    expect(Object.keys(ids).sort()).toEqual(['analyzeRun', 'curateMemory'])
+    expect(afterSecond.rows.map((row) => row.kind).sort()).toEqual(['analyze-run', 'curate-memory'])
+    expect(afterSecond.rows.find((row) => row.kind === 'curate-memory'))
+      .toMatchObject({ id: String(ids.curateMemory), status: 'done' })
     expect(f.curateCalls).toEqual([RUN_ID])
 
     // The 385 D-03 comparator, and the strongest form of the claim: the second complete tail

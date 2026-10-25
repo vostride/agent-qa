@@ -195,7 +195,6 @@ function storedNotification(): RunNotification {
     stages: {
       analysis: { status: 'done' },
       curation: { status: 'done', curated: 2, deprecated: 0 },
-      proposals: { status: 'done', proposed: 1, skipped: 0 },
     },
   }
 }
@@ -204,7 +203,6 @@ function finishedChain(notification: RunNotification): PostProcessingChainState 
   return {
     analyzeRun: { status: 'done', claimed: false },
     curateMemory: { status: 'done', claimed: false },
-    proposeImprovements: { status: 'done', claimed: false },
     notification,
   }
 }
@@ -280,7 +278,6 @@ describe('C444-NOTIFICATION-VIEW', () => {
       stages: {
         analysis: { status: 'complete' },
         curation: { status: 'complete', curated: 2, deprecated: 0 },
-        proposals: { status: 'complete', proposed: 1, skipped: 0 },
       },
     })
     expect(stored).toEqual(before)
@@ -288,24 +285,22 @@ describe('C444-NOTIFICATION-VIEW', () => {
     const failed: RunNotification = {
       ...storedNotification(),
       outcome: 'failed',
-      stages: { analysis: { status: 'done' }, curation: { status: 'failed' }, proposals: { status: 'failed' } },
+      stages: { analysis: { status: 'done' }, curation: { status: 'failed' } },
     }
     const failedView = (await served(finishedChain(failed))).notification
     expect(failedView?.outcome).toBe('failed')
     expect(failedView?.stages).toEqual({
       analysis: { status: 'complete' },
       curation: { status: 'failed' },
-      proposals: { status: 'failed' },
     })
   })
 
-  it('the CLI chain terminal line and the proposals segment print complete', async () => {
+  it('the CLI chain terminal line prints complete', async () => {
     const status = await served(finishedChain(storedNotification()))
     const line = renderChainTerminalLine(status.notification!)
     expect(line.startsWith(`post-processing complete for ${RUN_ID} — `)).toBe(true)
     expect(line).toContain('analysis: complete')
     expect(line).toContain('curation: complete (2 curated, 0 deprecated)')
-    expect(line).toContain('proposals: complete (staged 1, skipped 0)')
     expect(line).not.toMatch(/\bdone\b/u)
   })
 

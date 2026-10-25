@@ -91,12 +91,6 @@ const STAGE_CHIPS: Record<JobKind, StageChipKinds | typeof NO_CHIP> = {
     failed: 'curationFailed',
   },
   consolidate: NO_CHIP,
-  // 422 D-13. The third CHAIN stage, and the one row here whose `no-chip` is a granted discretion
-  // rather than a statement that the kind is not a post-processing stage at all. Its progress is
-  // durable and is disclosed elsewhere — the `proposals-authored` checkpoint and the ONE
-  // chain-terminal line — so a chip would be a third spelling of a fact two surfaces already
-  // carry, and D-14's chip vocabulary stays closed at the two words every consumer renders.
-  'propose-improvements': NO_CHIP,
 }
 
 /**
@@ -106,9 +100,8 @@ const STAGE_CHIPS: Record<JobKind, StageChipKinds | typeof NO_CHIP> = {
  * them. `declared-chip-less` is a kind this build knows and deliberately gives no chip;
  * `unknown-kind` is a kind this build cannot classify at all — a row written by a later build,
  * or a quarantined kind. Both emit nothing (a chip is a claim, and neither has a vocabulary to
- * make one in), and that is exactly why they had to become distinguishable somewhere: silence
- * that means two things cannot be reviewed, and `propose-improvements` joined the chain by
- * riding the same silence as `chat`.
+ * make one in), and that is exactly why they have to be distinguishable somewhere: silence
+ * that means two things cannot be reviewed.
  */
 export type PostRunChipDecision =
   | { readonly kind: 'chips'; readonly chips: StageChipKinds }
@@ -306,11 +299,10 @@ export function createPostRunChipEmitter(
       const kind = job.kind
       if (kind === undefined) return
       const decision = postRunChipDecision(kind)
-      // Two silences, and this build now knows which one it is making. `chat` and `consolidate`
-      // are not post-processing stages; `propose-improvements` IS one and is chip-less by the
-      // D-13 discretion, its progress carried by its durable checkpoint and the chain-terminal
-      // line. A kind this build cannot classify is the third case and also emits nothing — a
-      // claim needs a vocabulary, and there is none for a row a later build wrote.
+      // Two silences, and this build knows which one it is making. `chat` and `consolidate` are
+      // not post-processing stages. A kind this build cannot classify is the other case and also
+      // emits nothing — a claim needs a vocabulary, and there is none for a row a later build
+      // wrote.
       if (decision.kind !== 'chips') return
       const chips = decision.chips
 

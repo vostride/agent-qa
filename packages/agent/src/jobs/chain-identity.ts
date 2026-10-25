@@ -41,15 +41,6 @@ export const POST_RUN_CHAIN_TERMINAL_KINDS: readonly JobKind[] = Object.freeze([
   'curate-memory',
 ])
 
-/**
- * The key set the derivation addresses, as a literal list. `satisfies` refuses a name
- * `ChainJobIds` does not declare.
- */
-export const CHAIN_JOB_ID_KEYS = [
-  'analyzeRun',
-  'curateMemory',
-] as const satisfies readonly (keyof ChainJobIds)[]
-
 /** The job ids one run's chain addresses, whether or not any of them exists. */
 export interface ChainJobIds {
   readonly analyzeRun: JobId

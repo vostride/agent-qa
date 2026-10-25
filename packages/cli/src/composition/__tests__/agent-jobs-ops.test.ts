@@ -181,7 +181,7 @@ describe('pumpAgentJobs — the kind-filtered, lease-holding drain (413 D-04/D-0
     })
     expect(outcome.stoppedOn).toBe('empty')
     expect([...outcome.excludedKinds].sort()).toEqual(
-      ['chat', 'consolidate', 'curate-memory', 'propose-improvements'],
+      ['chat', 'consolidate', 'curate-memory'],
     )
 
     const rows = await harness.dump()
@@ -573,7 +573,7 @@ describe('defaultAgentJobsOpsDeps — the composition the shipped pump runs (413
     // The belt, VISIBLE in the DTO the operator reads: the kind they named is excluded, so the
     // empty drain is reported rather than looking like an empty queue.
     expect([...outcome.excludedKinds].sort()).toEqual(
-      ['analyze-run', 'chat', 'consolidate', 'curate-memory', 'propose-improvements'],
+      ['analyze-run', 'chat', 'consolidate', 'curate-memory'],
     )
 
     // The row, untouched. `attempts: 0` is the load-bearing one: the engine spends an attempt at

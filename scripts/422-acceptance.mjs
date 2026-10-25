@@ -45,8 +45,7 @@ export const READ_ONLY_MODES = ['--inspect-demo', '--stage-demo', '--check-stage
  * The suites whose passing TAP IS the `production-path` leg.
  *
  * Named by file, in their owning package, because each was written by the plan that owns its
- * seam: the three-job chain and its durable receipts (`propose-improvements-*`), both host
- * bindings (`propose-improvements-daemon`, `misdirection-hosts`), the eligible-singleton and
+ * seam: the host bindings (`misdirection-hosts`), the eligible-singleton and
  * missing-sibling probe arms (`adversarial-probe-preflight`), the stage/admit tracer and the
  * admission cells, the integrated acceptance cells, and the zero-model BYOM promotion floor
  * whose bytes 422 must not have moved.
@@ -56,8 +55,6 @@ export const PRODUCTION_PATH_SUITES = [
   { package: 'cli', file: 'src/__tests__/adversarial-tracer.test.ts' },
   { package: 'cli', file: 'src/__tests__/adversarial-admit.test.ts' },
   { package: 'cli', file: 'src/__tests__/adversarial-probe-preflight.test.ts' },
-  { package: 'cli', file: 'src/curation/__tests__/propose-improvements-host.test.ts' },
-  { package: 'cli', file: 'src/curation/__tests__/propose-improvements-daemon.test.ts' },
   { package: 'cli', file: 'src/curation/__tests__/misdirection-hosts.test.ts' },
   { package: 'knowledge-local', file: 'src/curator/__tests__/promotion-floor.acceptance.test.ts' },
 ]

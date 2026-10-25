@@ -25,19 +25,18 @@ import type {
 } from '../composition/agent-jobs-ops.js'
 
 /**
- * The five declared kinds, spelled as a total `Record` rather than an array.
+ * The declared kinds, spelled as a total `Record` rather than an array.
  *
  * `jobKindValues` is deliberately not on the schema barrel (its own comment says publishing it
  * would invite a parallel registry), so the vocabulary is restated here — but as a total record,
- * so a sixth kind added to `JobKind` fails to COMPILE here instead of silently becoming an
- * `--only` value this parser rejects.
+ * so a kind added to `JobKind` fails to COMPILE here instead of silently becoming an `--only`
+ * value this parser rejects.
  */
 const JOB_KIND_DECLARED: Record<JobKind, true> = Object.freeze({
   chat: true,
   'analyze-run': true,
   'curate-memory': true,
   consolidate: true,
-  'propose-improvements': true,
 })
 
 const AGENT_JOB_KINDS = Object.freeze(Object.keys(JOB_KIND_DECLARED) as JobKind[])

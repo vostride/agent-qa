@@ -305,7 +305,6 @@ async function openDurableScene() {
       readChain: async (_ids: unknown, id: string) => id === excludedRunId ? undefined : ({
         analyzeRun: { status: 'done', claimed: false, attempts: 1 },
         curateMemory: { status: 'done', claimed: false, attempts: 2 },
-        proposeImprovements: { status: 'queued', claimed: true, attempts: 1 },
         curationSnapshot: snapshot,
       }),
     },
@@ -445,7 +444,7 @@ const READ_SCENARIOS: readonly ReadScenario[] = [
     expectPositive(result, scene) {
       const parsed = PostProcessingStatusSchema.parse(result)
       expect(parsed.chips).toEqual({ analysis: 'complete', curation: 'complete' })
-      expect(parsed).toMatchObject({ stageDetails: { analysis: { attempts: 1 }, curation: { attempts: 2 }, proposals: { attempts: 1 } } })
+      expect(parsed).toMatchObject({ stageDetails: { analysis: { attempts: 1 }, curation: { attempts: 2 } } })
       expect(parsed).toHaveProperty('curationSnapshot', durable(scene).snapshot)
       expect(parsed).not.toHaveProperty('notification')
       // 425 D-08: an ordinary run answers NO skipped key. The fact is minted from the durable

@@ -187,7 +187,6 @@ describe('agent-qa agent-jobs pump --only', () => {
       'analyze-run',
       'curate-memory',
       'consolidate',
-      'propose-improvements',
     ]) {
       expect(stderr).toContain(kind)
     }

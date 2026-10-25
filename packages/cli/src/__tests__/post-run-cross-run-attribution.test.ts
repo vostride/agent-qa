@@ -364,14 +364,10 @@ describe('the chip trail is scoped to the run whose tail is draining (ANLZ-05, D
     const f = fixture()
     const report = await driveTwoRuns(f)
 
-    // The guard is only load-bearing if the foreign work genuinely reached `observe()`: six jobs
-    // ran under B's pump — all three of A's chain stages as well as B's own three.
-    //
-    // 2026-09-11 (422 D-13): the count moved from four to six with the chain's third stage. The
-    // ENVELOPE count below deliberately did not, and the gap between the two numbers is the
-    // point: the proposal stage has no chip, so it runs, it is observed, and it appends nothing.
+    // The guard is only load-bearing if the foreign work genuinely reached `observe()`: four jobs
+    // ran under B's pump — both of A's chain stages as well as B's own two.
     expect(report.drain).toBe('drained')
-    expect(report.jobsRun).toBe(6)
+    expect(report.jobsRun).toBe(4)
 
     // Run A's log is byte-identical to the bytes its own runner left. Full-file equality, not a
     // prefix check: an appended envelope at the end is exactly the defect being excluded.
@@ -403,7 +399,7 @@ describe('the chip trail is scoped to the run whose tail is draining (ANLZ-05, D
     const relayed: RunEventEnvelope[] = []
     const report = await driveTwoRuns(f, (envelope) => { relayed.push(envelope) })
 
-    expect(report.jobsRun, "A's work genuinely ran under B's pump").toBe(6)
+    expect(report.jobsRun, "A's work genuinely ran under B's pump").toBe(4)
     expect(relayed.map((event) => event.runId), 'four envelopes, all B\'s').toEqual([
       RUN_B, RUN_B, RUN_B, RUN_B,
     ])
@@ -420,7 +416,7 @@ describe('the chip trail is scoped to the run whose tail is draining (ANLZ-05, D
   it('still advances the foreign run\'s durable rows under this tail\'s pump', async () => {
     const f = fixture()
     const report = await driveTwoRuns(f)
-    expect(report.jobsRun).toBe(6)
+    expect(report.jobsRun).toBe(4)
 
     // The push half dropped A's outcomes; the pull half must still say A's chain finished, or the
     // guard would have been a refusal to do the work rather than a refusal to CLAIM it.

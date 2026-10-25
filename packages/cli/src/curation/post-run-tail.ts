@@ -46,11 +46,7 @@ import {
   RUNS_DIGEST_FUNCTION_ID,
   RUNS_POST_PROCESSING_FUNCTION_ID,
 } from '@vostride/agent-qa-agent'
-import type {
-  JobModelCapability,
-  ProposeGate1Report,
-  ProposeImprovementsCheckpoint,
-} from '@vostride/agent-qa-agent'
+import type { JobModelCapability } from '@vostride/agent-qa-agent'
 import { DRAIN_BUDGET_MS, LOCAL_DAEMON_CAPABILITIES } from '@vostride/agent-qa-agent-local'
 import { recoverPendingPostVerdictContinuations } from './post-verdict-continuation.js'
 import type { LocalAgentHost } from '@vostride/agent-qa-agent-local'
@@ -207,22 +203,6 @@ export interface PostRunTailOperations {
    * what the `agent-qa digest` verb, M5's run page and 392's chat all serve.
    */
   readRunDigest(host: LocalAgentHost, runId: string): Promise<RunDigest>
-  /**
-   * This run's OWN `proposals-authored` Gate-1 leg, read back off the durable checkpoint
-   * (422 D-14; closes WINDOWS #424 without widening a persisted DTO).
-   *
-   * OPTIONAL, unlike every member above it, and the asymmetry is deliberate on two counts. It is
-   * a DISCLOSURE read: a tail that cannot perform it loses one clause of one line and must never
-   * lose the line, so an absent binding answers `not-recorded` exactly as an absent checkpoint
-   * does. And every existing harness that hands this table a partial override keeps compiling,
-   * which is what stops a disclosure from becoming a reason to touch twelve fixtures.
-   *
-   * The read goes through the host's OWN job store and the ONE shared `chainJobIdsForRun`
-   * derivation — the same store the pump drained and the same ids its chip trail addressed — so
-   * the record disclosed here is this run's third stage and not a neighbour's. It is read-only and
-   * it never opens a queue the tail did not already open.
-   */
-  readProposalGate1Report?(host: LocalAgentHost, runId: string): Promise<ProposalGate1Disclosure>
   /** The one wall clock, read only at tail boundaries. */
   now(): number
 }
@@ -238,7 +218,7 @@ export interface PostRunTailHostInput {
    */
   readonly mask?: RunCurationTailOptions['mask']
   /**
-   * The writer lease the PUMP holds, resolved at the Gate-1 claim (422 D-14).
+   * The writer lease the PUMP holds, resolved at the call.
    *
    * Threaded through the host input rather than rebuilt inside `composeHost` for the same reason
    * `curateRun` is: the lease belongs to the drain leg below, which takes it AFTER this host has
@@ -296,8 +276,8 @@ export function defaultPostRunTailOperations(): PostRunTailOperations {
       configPath: input.configPath,
       model: () => resolvePostRunJobModel(input.configPath),
       postRun: {
-        // 422-09 (D-14): the lease this tail's drain holds, handed to the composition as a
-        // CLOSURE so the Gate-1 bridge resolves it at the claim. The host is composed before the
+        // The lease this tail's drain holds, handed to the composition as a CLOSURE so the
+        // replay-gate bridge resolves it at the call. The host is composed before the
         // take (385 D-02 — the enqueue must not wait on a lease it does not need), so a value
         // read at this line is `undefined` for the whole life of the process.
         ...(input.resolveClaimAuthority === undefined
@@ -330,56 +310,8 @@ export function defaultPostRunTailOperations(): PostRunTailOperations {
       { runId },
       CLI_FUNCTION_CALLER,
     ) as RunDigest,
-    readProposalGate1Report: async (host, runId) => {
-      const jobs = await host.jobs()
-      // The SAME derivation the enqueue minted with and the chip trail addressed — never a
-      // run-keyed guess. The third id is built from the second, which is built from the first.
-      const chainIds = chainJobIdsForRun(runId, jobs.idSource)
-      const outcome = await jobs.store.readCheckpoint(
-        chainIds.proposeImprovements,
-        PROPOSALS_AUTHORED_CHECKPOINT,
-      )
-      return projectProposalGate1(outcome.found ? outcome.payload : undefined)
-    },
     now: Date.now,
   }
-}
-
-/** The checkpoint `realProposeImprovementsHandler` publishes at the chain terminal (422 D-13). */
-const PROPOSALS_AUTHORED_CHECKPOINT = 'proposals-authored'
-
-/**
- * Peel the checkpoint envelope and shape-check the Gate-1 block (422 D-14; WINDOWS #424).
- *
- * `publishCheckpoint` wraps its value in a `JobCheckpointRecord` exactly once, so the record sits
- * at `payload.value` — the envelope 422-09 recorded as costing it a debugging cycle.
- *
- * The check is NARROW AND STRICT for the three members this line renders, and the strictness is
- * what keeps `unreadable` a real arm: a block this build cannot read must not degrade into
- * `unbound`, because `unbound` is a positive claim that the host bound no gate capability. It is
- * not the handler's own `parseProposeGate1Allowance` — that reads the ALLOWANCE ledger, a
- * different checkpoint with a different shape and a much heavier safety obligation.
- */
-function projectProposalGate1(payload: unknown): ProposalGate1Disclosure {
-  if (payload === undefined) return { kind: 'not-recorded' }
-  const record = payload as { readonly value?: unknown } | null
-  const value = (record === null || typeof record !== 'object' ? undefined : record.value) as
-    | Partial<ProposeImprovementsCheckpoint>
-    | undefined
-  if (value === null || typeof value !== 'object') return { kind: 'unreadable' }
-  const gate1 = value.gate1
-  if (gate1 === undefined) return { kind: 'unbound' }
-  if (
-    gate1 === null || typeof gate1 !== 'object' ||
-    typeof (gate1 as ProposeGate1Report).disposition !== 'string' ||
-    !Array.isArray((gate1 as ProposeGate1Report).ungatedRemaining) ||
-    !Array.isArray((gate1 as ProposeGate1Report).screenedGate1) ||
-    !Array.isArray((gate1 as ProposeGate1Report).recoveredGate1Receipts) ||
-    !Array.isArray((gate1 as ProposeGate1Report).interruptedGate1)
-  ) {
-    return { kind: 'unreadable' }
-  }
-  return { kind: 'recorded', report: gate1 }
 }
 
 /**
@@ -690,9 +622,8 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
       // The same conditional spread the fold is threaded with: composeHost derives the
       // posture from this value's PRESENCE, so the tail never asserts a mask it lacks.
       ...(opts.mask === undefined ? {} : { mask: opts.mask }),
-      // The SAME `heldAuthority` closure `curateRun` reads above, and for the same reason: the
-      // fold and the Gate-1 write happen under one lease, and a second way to learn which lease
-      // is a second answer to who is writing (422 D-14).
+      // The SAME `heldAuthority` closure `curateRun` reads above, and for the same reason: a
+      // second way to learn which lease is held is a second answer to who is writing.
       resolveClaimAuthority: () => heldAuthority,
       curateRun,
     })
@@ -821,11 +752,6 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
         const ownChainJobIds = [
           String(chainIds.analyzeRun),
           String(chainIds.curateMemory),
-          // 422 D-13. Listed for the own-chain tracker rather than for the chips: the proposal
-          // stage has no chip (`STAGE_CHIPS` maps only the two), so the emitter's drop-guard
-          // admits its outcome and then finds nothing to draw. Omitting the id would instead
-          // have made this tail's own third stage read as another run's work.
-          String(chainIds.proposeImprovements),
         ]
         /**
          * The ONLY construction site (D-13).
@@ -1029,27 +955,6 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
        * whichever way the digest failed to arrive (JOBQ-06: the exit code froze long ago).
        */
       /**
-       * This run's persisted Gate-1 leg, read at most once and never at the cost of the line.
-       *
-       * A DISCLOSURE read has exactly one budget: its own clause. An unbound operation, a store
-       * that will not answer, a host whose `jobs()` handle is a harness stub — all of them are
-       * "this tail could not read a proposal record", which is what `not-recorded` says. The
-       * close-out line is the thing a user sees at the end of a run, and a store read taken for
-       * one parenthetical may never be the reason it disappears (the `summaryFailureWarning`
-       * posture, minus the warning: nothing was promised here).
-       */
-      const readProposalGate1 = async (
-        host: LocalAgentHost,
-      ): Promise<ProposalGate1Disclosure> => {
-        const read = ops().readProposalGate1Report
-        if (read === undefined) return { kind: 'not-recorded' }
-        try {
-          return await read(host, opts.runId)
-        } catch {
-          return { kind: 'not-recorded' }
-        }
-      }
-      /**
        * What actually backs this run's circularity claim (D-19).
        *
        * The RECORDED posture is this run's own `misdirection-posture.json`, written by the
@@ -1132,9 +1037,8 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
           log.info?.(renderChainTerminalLine(status.notification,
             { ...(receipt?.runId === opts.runId ? receipt : {}),
               trustPriorDisclosure: snapshot().disclosure,
-              // 422 D-14/D-19: two disclosure reads, both read-only, both on the leg that has the
-              // host already open. Each one costs at most its own clause — see `disclosureOf`.
-              proposalGate1: await readProposalGate1(openedHost),
+              // A read-only disclosure read on the leg that has the host already open. It costs
+              // at most its own clause — see `disclosureOf`.
               circularity: readCircularityBacking() }))
           await printDigestBlock(openedHost)
           return
@@ -1326,22 +1230,6 @@ export { MISDIRECTION_POSTURE_BOUND_AT_HOST }
 
 
 /**
- * What this run's persisted `proposals-authored` checkpoint says about its Gate-1 leg (422 D-14).
- *
- * FOUR ARMS, and none of them is a zero. `not-recorded` is a chain that never published the
- * checkpoint — every run written before 422 D-13, and every chain that halted at the fold.
- * `unreadable` is a checkpoint this build found and could not read, which is a different fact and
- * must never degrade into the first. `unbound` is the handler's own `disposition: 'unbound'`,
- * omitted from the checkpoint by `realProposeImprovementsHandler`: a host that bound no gate
- * capability did not screen zero candidates, it did not screen.
- */
-export type ProposalGate1Disclosure =
-  | { readonly kind: 'not-recorded' }
-  | { readonly kind: 'unreadable' }
-  | { readonly kind: 'unbound' }
-  | { readonly kind: 'recorded'; readonly report: ProposeGate1Report }
-
-/**
  * What backs this run's circularity claim (422 D-19).
  *
  * `posture` is what `misdirection-posture.json` RECORDED; `appliedAtHost` is whether the analysis
@@ -1377,25 +1265,18 @@ export type CircularityGuardDisclosure =
  * could not be folded — renders the legacy `N curated, M deprecated` pair exactly as before, since
  * the pair is all those rows carry; five buckets are never synthesized from it.
  *
- * 422 D-13/D-14/D-19: the third stage joins it, and the SAME rule governs every number it adds —
- * absent is not zero. `stages.proposals` absent renders `not recorded` (a v2 row, or a chain that
- * halted at the fold), a recorded stage with no counts renders `staged not recorded` (no staging
- * port was bound), and only a recorded `proposed: 0` renders a zero. `proposalGate1` and
- * `circularity` follow the same law, one arm per fact.
+ * `circularity` follows the same law — absent is not zero — one arm per fact.
  *
- * WHAT NEVER REACHES THIS LINE (D-11, T-422-17-01): no `reason` text from any of those records.
- * `ProposeGate1Report.reason` carries a corpus-posture refusal or a store error verbatim, and
- * `MisdirectionRunPostureRecord.reason` carries a root read failure — both are arbitrary strings
- * from layers with no masking boundary of their own. Only the closed disposition and posture
- * WORDS and the array LENGTHS are rendered; no candidate id, no digest, no authored text.
+ * WHAT NEVER REACHES THIS LINE: no `reason` text from any of those records.
+ * `MisdirectionRunPostureRecord.reason` carries a root read failure, an arbitrary string from a
+ * layer with no masking boundary of its own. Only the closed posture WORDS are rendered; no
+ * candidate id, no digest, no authored text.
  */
 export function renderChainTerminalLine(
   notification: RunNotificationView,
   report?: {
     canary?: CanaryCreditCounters
     trustPriorDisclosure?: TrustPriorDisclosure
-    /** This run's persisted Gate-1 leg; omitted entirely by a caller that read none. */
-    proposalGate1?: ProposalGate1Disclosure
     /** What actually backs this run's circularity claim; omitted by a caller that read none. */
     circularity?: CircularityGuardDisclosure
   },
@@ -1433,69 +1314,11 @@ export function renderChainTerminalLine(
     `analysis: ${stages.analysis.status}`,
     `curation: ${stages.curation.status}`
       + (curationCounts === '' ? '' : ` (${curationCounts})`),
-    renderProposalStageSegment(stages.proposals, report?.proposalGate1),
     ...(report?.circularity === undefined
       ? []
       : [renderCircularityGuardSegment(report.circularity)]),
     formatTrustPriorDisclosure(report?.trustPriorDisclosure),
   ].join(SUMMARY_SEPARATOR)}`
-}
-
-/**
- * The third stage's clause on the D-09 line (422 D-13/D-14).
- *
- * FOUR SENTENCES AND THEY ARE NOT INTERCHANGEABLE:
- *
- *   `proposals: not recorded`            the row carries no proposal stage, as for every chain
- *                                        that halted at a permanently failed fold. NOT a stage
- *                                        that staged nothing.
- *   `proposals: complete (staged not recorded…)`  the stage RAN and no staging port was bound, so the
- *                                        counts were omitted by the handler on purpose.
- *   `proposals: complete (staged 0, skipped 0…)`  a MEASURED zero — the port answered and staged
- *                                        nothing. This is the only arm that may print a zero.
- *   `proposals: failed`                  the stage ran and did not finish, which is why the chain
- *                                        outcome one clause up says `failed`.
- */
-function renderProposalStageSegment(
-  proposals: RunNotificationView['stages']['proposals'],
-  gate1: ProposalGate1Disclosure | undefined,
-): string {
-  if (proposals === undefined) return 'proposals: not recorded'
-  const counts =
-    proposals.proposed === undefined && proposals.skipped === undefined
-      ? ['staged not recorded']
-      : [
-          ...(proposals.proposed === undefined ? [] : [`staged ${proposals.proposed}`]),
-          ...(proposals.skipped === undefined ? [] : [`skipped ${proposals.skipped}`]),
-        ]
-  const parts = [...counts, ...(gate1 === undefined ? [] : [renderGate1Clause(gate1)])]
-  return `proposals: ${proposals.status} (${parts.join(', ')})`
-}
-
-/**
- * What the persisted `proposals-authored` Gate-1 leg says — WORDS AND LENGTHS ONLY.
- *
- * The four candidate-state members of `ProposeGate1Report` are deliberately not summable (422
- * D-14), so they are reported separately and the two that are routinely zero are omitted rather
- * than printed as noise. `ungatedRemaining` is printed unconditionally BECAUSE zero is meaningful
- * there: it is the difference between "the cap left work behind" and "the cap admitted everything
- * eligible", and an operator deciding whether to run the replay-gate verb needs to see the zero.
- *
- * `reason` is never rendered: it carries a corpus-posture refusal or a store error verbatim from
- * layers with no masking boundary of their own (D-11, T-422-17-01). The DISPOSITION word already
- * says which of the six situations produced the counts, and it is a closed vocabulary.
- */
-function renderGate1Clause(gate1: ProposalGate1Disclosure): string {
-  if (gate1.kind === 'not-recorded') return 'Gate-1 not recorded'
-  if (gate1.kind === 'unreadable') return 'Gate-1 unreadable'
-  if (gate1.kind === 'unbound') return 'Gate-1 not bound'
-  const { report } = gate1
-  const screened = report.screenedGate1.length + report.recoveredGate1Receipts.length
-  return `Gate-1 ${report.disposition}: ungated remaining ${report.ungatedRemaining.length}`
-    + (screened === 0 ? '' : `, screened ${screened}`)
-    + (report.interruptedGate1.length === 0
-      ? ''
-      : `, interrupted ${report.interruptedGate1.length}`)
 }
 
 /**
