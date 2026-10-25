@@ -193,11 +193,6 @@ describe('the chip set and its vocabulary are closed (404 D-01/D-04)', () => {
   it('projects EXACTLY the two chips, by key set', () => {
     // Read off the projection's own output rather than off the type: a type is erased before
     // anything runs, and it is the runtime object every surface iterates.
-    //
-    // 2026-09-11 (422 D-13): this cell is now also the pin that the chain's THIRD stage did not
-    // quietly become a third chip. The chips are a published vocabulary rendered by the
-    // dashboard and by chat; D-13 authorised a third chain id, not a third thing every surface
-    // has to learn to draw.
     expect(Object.keys(projectPostProcessingChips(undefined)).sort())
       .toEqual(['analysis', 'curation'])
     expect(Object.keys(projectPostProcessingChips({ analyzeRun: row('done') })).sort())
