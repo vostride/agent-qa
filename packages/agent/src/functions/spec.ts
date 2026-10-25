@@ -1065,10 +1065,7 @@ export interface FunctionDeps {
    * without depending on the function layer.
    */
   quarantine?: QuarantineOperationsPort
-  /**
-   * 419 GATE3-01: the mark port — assembled by the cli host over eval-local + the review
-   * port; absent on hosts that cannot freeze gold.
-   */
+  /** The mark port; absent, `runs.mark` is unbound by name and `runs.detail` lists no marks. */
   feedback?: FeedbackPort
   /**
    * 423 D-19: read-only feedback observations. Separate from `feedback` so a host can serve
