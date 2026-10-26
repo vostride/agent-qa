@@ -4,8 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import {
-  buildEvalReport, decisionCorrectnessVectors, extractRunCassettes, JUDGE_CONFIG,
-  guardDecisionVectorsDocument, projectDecisionVectorsDocument, resolveProductPartition,
+  buildEvalReport, extractRunCassettes, JUDGE_CONFIG, resolveProductPartition,
 } from '@vostride/agent-qa-eval'
 import type { JudgeIdentityBlock, LeafReplayResult } from '@vostride/agent-qa-eval'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -89,14 +88,6 @@ describe('assembleScoredBatch', () => {
     expect(report.honesty.refusalCounts['unsupported-brief']).toBe(1)
     expect(report.promptDriftRate).toEqual({ numerator: 1, denominator: 2, rate: 0.5 })
     expect(report.headline.firstAttemptDecisionAccuracy).toEqual({ numerator: 0, denominator: 2, rate: 0 })
-    const vectors = decisionCorrectnessVectors(batch.entries, batch.partitionsById)
-    expect(vectors.map(vector => [vector.key, vector.briefSource]))
-      .toEqual([['current-leaf#-#0', 'empty']])
-    const document = projectDecisionVectorsDocument({
-      batchKey: report.batchKey, matcherVersion: report.matcherVersion, vectors,
-    })
-    expect(guardDecisionVectorsDocument(JSON.parse(JSON.stringify(document))))
-      .toEqual({ kind: 'ok', document })
   })
 
   it('joins labels and persisted scores while retaining a corrupt replay as a refusal entry', async () => {

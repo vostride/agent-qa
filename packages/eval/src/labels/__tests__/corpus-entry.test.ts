@@ -1,4 +1,4 @@
-import { sha256hex } from '@vostride/agent-qa-schema'
+import { committedFileText, sha256hex } from '@vostride/agent-qa-schema'
 import type { CompletedRunHandoff, ScopeKey } from '@vostride/agent-qa-schema'
 import { describe, expect, it } from 'vitest'
 import {
@@ -10,7 +10,6 @@ import { canonicalJson } from '../../canonical-json'
 import type { LeafCassette } from '../../cassette/cassette'
 import { extractRunCassettes } from '../../extract/extract-run'
 import type { ArtifactSource } from '../../ports'
-import { committedFileText } from '../committed-file'
 import {
   CORPUS_ENTRY_SCHEMA_VERSION,
   projectCorpusEntry,

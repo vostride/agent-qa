@@ -1,4 +1,4 @@
-import { asRef, sha256hex } from '@vostride/agent-qa-schema'
+import { asRef, committedFileText, sha256hex } from '@vostride/agent-qa-schema'
 import type {
   CompletedRunHandoff,
   Decision,
@@ -15,7 +15,6 @@ import { canonicalJson } from '../../canonical-json'
 import type { LeafCassette } from '../../cassette/cassette'
 import { extractRunCassettes, type ExtractedCassette } from '../../extract/extract-run'
 import type { ArtifactSource } from '../../ports'
-import { committedFileText } from '../committed-file'
 import {
   LABEL_RECORD_SCHEMA_VERSION,
   projectPairLabelRecords,
@@ -249,18 +248,6 @@ describe('provenance (ROOT-03 base)', () => {
       })
       expect(record.provenance.capturedAtOrdinal).toBe(37)
     }
-  })
-})
-
-describe('committedFileText (D-17 idempotence precondition)', () => {
-  it('is byte-identical across key insertion orders, newline-terminated, and parseable', () => {
-    const first = committedFileText({ b: 1, a: { d: 2, c: 3 } })
-    const second = committedFileText({ a: { c: 3, d: 2 }, b: 1 })
-
-    expect(first).toBe(second)
-    expect(first.endsWith('\n')).toBe(true)
-    expect(first.endsWith('\n\n')).toBe(false)
-    expect(JSON.parse(first)).toEqual({ a: { c: 3, d: 2 }, b: 1 })
   })
 })
 

@@ -1,8 +1,7 @@
-import { sha256hex } from '@vostride/agent-qa-schema'
+import { committedFileText, sha256hex } from '@vostride/agent-qa-schema'
 import { describe, expect, it } from 'vitest'
 
 import { canonicalJson } from '../../canonical-json'
-import { committedFileText } from '../../labels/committed-file'
 import {
   BASELINE_POINTER_SCHEMA_VERSION,
   SEED_POLICIES,

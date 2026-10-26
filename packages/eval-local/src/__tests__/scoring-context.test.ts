@@ -5,7 +5,7 @@ import { afterEach, expect, it } from 'vitest'
 import { asRef } from '@vostride/agent-qa-schema'
 import {
   adjudicateCassetteScore, buildEvalReport, computeDecisionIdentity,
-  decisionCorrectnessVectors, extractRunCassettes, scoreCassetteReplay,
+  extractRunCassettes, scoreCassetteReplay,
   createScoringContext, JUDGE_CONFIG, type LeafReplayResult,
 } from '@vostride/agent-qa-eval'
 import { FsCassetteStore, FsReplayRecordStore, FsScoreStore, assembleScoredBatch, loadScoreRecord } from '../index.js'
@@ -60,7 +60,6 @@ it.each(['equivalent', 'different', 'unsure', 'error', 'not-invoked'] as const)(
     const expected = [{ cassetteId: f.cassette.id, outcome: f.outcome, score: f.record.score, label: f.cassette.label }]
     const batch = f.assemble()
     expect(batch.entries[0]!.score).toEqual(f.record.score)
-    expect(decisionCorrectnessVectors(batch.entries)).toEqual(decisionCorrectnessVectors(expected))
     expect(buildEvalReport(batch.entries).honesty).toEqual(buildEvalReport(expected).honesty)
   })
 
