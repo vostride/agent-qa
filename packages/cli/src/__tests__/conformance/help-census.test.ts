@@ -1027,10 +1027,14 @@ const RETIRED_CHANGE_TOOLS: readonly string[] = Object.freeze([
   'agent_qa_show_proposal',
 ])
 
-/** The approval model's vocabulary, by the claim each word would make (432 D-24). */
+/**
+ * The approval model's vocabulary, by the claim each word would make. `approval` is also the
+ * knowledge gates read's name for an accepted-policy receipt, so its receipt-kind phrases
+ * (`marks and approvals`, `mark and approval receipts`, `approval none`) are not the approval model.
+ */
 const APPROVAL_VOCABULARY: readonly (readonly [string, RegExp])[] = Object.freeze([
   ['a proposal', /\bpropos(?:al|als|e|ed|es|ing)\b/iu],
-  ['an approval', /\bapprov(?:al|als|e|ed|es|ing)\b/iu],
+  ['an approval', /\bapprov(?:e|ed|es|ing)\b|\bapprovals?\b(?<!\bmarks? and approvals?)(?! none\b| receipts?\b)/iu],
   ['a grant', /\bgrant(?:s|ed|ing)?\b/iu],
   ['a permission', /\bpermissions?\b/iu],
   ['an inbox', /\binbox\b/iu],
@@ -1095,6 +1099,11 @@ describe('C432-GUIDANCE-DIRECT: current guidance describes changes that apply in
       'planted: "spec/v2" describes a design-doc path',
       'planted: names the retired agent_qa_apply_proposal',
     ])
+    expect(approvalFindings([{
+      name: 'receipt kinds',
+      body: 'Which marks and approvals back a record? It lists mark and approval receipts. '
+        + 'standing: mark false-fail @6; approval none',
+    }])).toEqual([])
   })
 
   it('C432-GUIDANCE-DIRECT: the guide, the knowledge skill and its reference, and the README each state the change rule', () => {

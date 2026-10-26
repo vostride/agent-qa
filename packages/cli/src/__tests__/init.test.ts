@@ -1664,8 +1664,10 @@ skills/.staging/
         expect(body, `${name}: wrong knowledge is corrected by new feedback`).toMatch(/corrected by\s+new feedback/u)
         expect(body, `${name}: or by forgetting the record`).toMatch(/forgetting the\s+record/u)
         expect(body, `${name}: the change tool`).toContain('agent_qa_change_knowledge')
-        expect(body, `${name}: approval-model wording`)
-          .not.toMatch(/\bapprov|\bpropos|\bpending\b|\bawaiting\b|\bgrant/iu)
+        // `marks and approvals` names the gates read's receipt kinds, not the approval model.
+        expect(body, `${name}: approval-model wording`).not.toMatch(
+          /\bapprov(?!als?\b)|\bapprovals?\b(?<!\bmarks? and approvals?)|\bpropos|\bpending\b|\bawaiting\b|\bgrant/iu,
+        )
         expect(body, `${name}: a design-doc path a user does not have`).not.toMatch(/\bspec\/v\d/u)
       }
       expect(readme, 'the README still tells a reader to edit a fact or its evidence')

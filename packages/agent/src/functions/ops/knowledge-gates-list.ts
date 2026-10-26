@@ -1,4 +1,4 @@
-// 416 D-17: one read of committed gate history for every function-layer surface.
+// One read of a record's committed receipts and live promotion verdict for every function-layer surface.
 import { KnowledgeGatesListInputSchema, KnowledgeGatesListResultSchema,
   type KnowledgeGatesListInput, type KnowledgeGatesListResult } from '@vostride/agent-qa-schema'
 import type { FunctionSpec } from '../spec.js'
@@ -12,7 +12,7 @@ export class KnowledgeGatesUnboundError extends Error {
 }
 export const knowledgeGatesListSpec: FunctionSpec<KnowledgeGatesListInput, KnowledgeGatesListResult> = {
   id: KNOWLEDGE_GATES_LIST_FUNCTION_ID,
-  summary: 'Read a knowledge record’s gate history, standing receipts and current promotion verdict.',
+  summary: 'Read a knowledge record’s mark and approval receipts, promotion lines and live promotion verdict.',
   resultKind: 'unary',
   input: KnowledgeGatesListInputSchema,
   output: KnowledgeGatesListResultSchema,

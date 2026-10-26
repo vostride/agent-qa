@@ -34,12 +34,12 @@ A new record starts as a `candidate` and becomes `active` in one of two ways:
 
 - the deterministic verdict floor: confirmed outcome evidence from later runs, plus a matching
   element observation for a fact or a root cause for a caution;
-- Gate 3, a person: a run mark or an accepted policy. It promotes on its own.
+- a person: a run mark or an accepted policy. It promotes on its own.
 
-Each promotion leaves a promotion line in the record's history, and `knowledge gates` lists the
-receipts with it. The promotion path names how a record got in: `deterministic-verdict-floor` or
-`user-sovereign`. Gate 1 receipts, written by `eval replay-gate`, may appear in a record's history,
-but they do not promote it. A held record says why it is held.
+Each promotion leaves a promotion line in the record's history, and `knowledge gates` lists a
+record's mark and approval receipts with its promotion lines. The promotion path names how a
+record got in: `deterministic-verdict-floor` or `user-sovereign`. A held record says why it is
+held.
 
 ## Lifecycle
 
@@ -262,23 +262,20 @@ superseded (1)
 
 ### `agent_qa_list_knowledge_gates`
 
-A record's gate receipts, its standing on each gate and the live promotion verdict. CLI:
-`npx agent-qa knowledge gates <recordId>`.
+A record's mark and approval receipts, its promotion lines, its standing and the live promotion
+verdict. CLI: `npx agent-qa knowledge gates <recordId>`.
 
 Call: `{ "recordId": "fact-pay-button" }`
 
 Answer:
 
 ```text
-record fact-pay-button · fact · active · strongest path: user-sovereign
-gate 3 pass @12 by runs.mark digest a44f0e3b1c7d corpus - degradation -
-promotion user-sovereign @12 by promote cites 1 digest 0c9e8d7f6a5b
-standing:
-gate 1: none
-gate 3: pass @12
-held: not-candidate
+mark confirmed-bug @12 run checkout-run step s3 digest a44f0e3b1c7d
+promotion user-sovereign @12 cites a44f0e3b1c7d
+standing: mark confirmed-bug @12; approval none
+live: held: not-candidate
 ```
 
-The last line is the live verdict. Only a candidate can promote, so an active record reads
-`held: not-candidate`. A candidate reads `promote via <path>` when the gate would promote it now,
-or `held: <reason>`.
+The last line, `live:`, is the live verdict. Only a candidate can promote, so an active record
+reads `live: held: not-candidate`. A candidate reads `live: promote via <path>` when it would
+promote now, or `live: held: <reason>`.

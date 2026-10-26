@@ -1161,7 +1161,7 @@
       ]
     },
     {
-      "description": "Read a knowledge record’s gate history, standing receipts and current promotion verdict.",
+      "description": "Read a knowledge record’s mark and approval receipts, promotion lines and live promotion verdict.",
       "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
@@ -2159,5 +2159,5 @@
       "shortDescription": "Triage agent-qa run failures"
     }
   ],
-  "rowsDigest": "9f71dba5a2945b78dff82ad52d86b1b49cf37ab57b41175a84cb638062959d07"
+  "rowsDigest": "4b66dd63870da1b097e5f241735ea92c33deed175fc444d7c2f08d433c07db9e"
 }

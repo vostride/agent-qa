@@ -61,7 +61,7 @@ export const AGENT_QUESTION_MAP: readonly AgentQuestion[] = Object.freeze([
     mcp: 'agent_qa_diff_knowledge_records',
   },
   {
-    question: 'How did a record pass its gates?',
+    question: 'Which marks and approvals back a record, and would it promote?',
     cli: 'agent-qa knowledge gates <recordId>',
     mcp: 'agent_qa_list_knowledge_gates',
   },

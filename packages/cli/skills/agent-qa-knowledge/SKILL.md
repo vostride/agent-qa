@@ -48,7 +48,7 @@ file you then open with your image viewer.
 | Which knowledge bundles exist? | `agent_qa_list_knowledge_bundles` | `npx agent-qa knowledge bundles` |
 | Records by product, kind or scope | `agent_qa_inspect_knowledge_records` | `npx agent-qa knowledge inspect` |
 | What changed since a build? | `agent_qa_diff_knowledge_records` | `npx agent-qa knowledge diff <build>` |
-| How did a record pass its gates? | `agent_qa_list_knowledge_gates` | `npx agent-qa knowledge gates <recordId>` |
+| Which marks and approvals back a record, and would it promote? | `agent_qa_list_knowledge_gates` | `npx agent-qa knowledge gates <recordId>` |
 
 ## Rules
 
