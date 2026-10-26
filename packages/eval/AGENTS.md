@@ -2,8 +2,9 @@
 
 ## Scope
 
-This package owns provider- and storage-neutral eval contracts plus pure,
-deterministic cassette extraction from in-memory run evidence.
+This package owns provider- and storage-neutral eval contracts: the cassette
+contract, pure deterministic cassette extraction from in-memory run evidence,
+offline decision replay, the matcher with its judge, and the report builder.
 
 ## Read First
 

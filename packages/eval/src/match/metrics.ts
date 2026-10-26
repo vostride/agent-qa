@@ -1,16 +1,7 @@
-import { ORIGIN_PRIORS, sha256hex } from '@vostride/agent-qa-schema'
+import { sha256hex } from '@vostride/agent-qa-schema'
 
 import { canonicalJson } from '../canonical-json'
 import type { CassetteLabelLeg } from '../cassette/label-leg'
-import type { LabelWeight } from '../labels/label-record'
-import type { CorpusGenerator, CorpusSplit, HeldOutVisibility } from '../labels/corpus-entry'
-// 422 D-05/D-08: ONE generation projection, asked by both populations that have one. The census
-// counts committed membership and this file counts what a batch actually scored; the two sets are
-// different and each assembles its own input, but "which generations are in here" is one question
-// and two spellings of it would eventually answer it two ways. The edge is one-way: derive-census
-// imports only the `EvalBatchReport` TYPE from here, which erases at build.
-import { projectAdversarialGenerationMix } from '../census/derive-census'
-import type { AdversarialGenerationMix } from '../census/derive-census'
 import { BRIEF_SOURCES } from '../replay/brief-tiers'
 import type { BriefSource } from '../replay/brief-tiers'
 import { REPLAY_REFUSAL_REASONS } from '../replay/result'
@@ -93,20 +84,6 @@ interface JudgeHonesty {
 /** One replay outcome plus its optional matcher and label projections (D-14/D-15). */
 export interface ScoredBatchEntry {
   cassetteId: string
-  /** Authoritative source decision identity, shared by its active gold clones. */
-  logicalSourceId?: string
-  softWeight?: LabelWeight
-  /** Refused or quarantined label evidence; incurred work remains reportable. */
-  scoringExcluded?: boolean
-  split?: CorpusSplit
-  heldOutVisibility?: HeldOutVisibility
-  /**
-   * 2026-09-12, 422 D-05/D-11: the committed entry's generator provenance, copied by the batch
-   * assembler from this cassette's own corpus membership. Absent means the assembler could not
-   * resolve the entry — a DIFFERENT fact from an entry that names no family, and reported as
-   * `metadataUnavailable` rather than folded into `absent` provenance.
-   */
-  generator?: CorpusGenerator
   product?: string
   outcome: ReplayCassetteOutcome
   score?: CassetteScore
@@ -122,36 +99,11 @@ export interface ScoredBatchEntry {
 export interface EvalBatchReport {
   matcherVersion: number
   batchKey: string
-  /** Actual fresh-run inputs, never reconstructed from a later profile or corpus snapshot. */
-  runIdentity?: { fingerprint: string; corpusDigest: string }
   headline: {
     firstAttemptDecisionAccuracy: RateMetric
     verifierFalsePassRate: RateMetric
     perDecisionCost: PerDecisionCost
   }
-  perSplit: {
-    natural: SplitMetricCell
-    'held-out': { shared: SplitMetricCell; private: SplitMetricCell }
-    adversarial: SplitMetricCell
-    /** Entries lacking a complete recorded split assignment, including staged entries. */
-    unassignedCount: number
-  }
-  /**
-   * 2026-09-12, 422 D-05/D-08/D-11: how the SCORED adversarial population was generated.
-   *
-   * Additive-optional, and deliberately the opposite kind of field from `perSplit.adversarial`
-   * beside it. The cell is ALWAYS present — a batch with no adversarial member states four
-   * complete zero cells rather than omitting one (420 D-05) — because an empty scored population
-   * is a measurement. The mix is present ONLY when that population is non-empty, because a
-   * histogram of zeros beside an empty cell would read as "adversarial cases were scored and
-   * none came from anywhere". A report written before 422 carries no mix and never acquires one.
-   *
-   * The population is this batch's own adversarial entries, exactly the set `perSplit.adversarial`
-   * measures. It is NEVER the corpus census — the committed corpus and a scored batch are
-   * different sets, and silently substituting one for the other would attribute generations to a
-   * run that did not replay them.
-   */
-  adversarialGenerationMix?: AdversarialGenerationMix
   honesty: {
     tieCounts: Counts<TieCause>
     unscorableIdentityCounts: Counts<UnscorableIdentityCause>
@@ -198,9 +150,6 @@ export interface EvalBatchReport {
     recoveredPositiveCount: number
     eligiblePositiveCount: number
     recoveryAccuracy?: number
-    weightSum: number
-    weightedAccuracy?: number
-    pairsWithoutWeight: number
     /**
      * D-08 bucket: a full match on a contrastive-negative repeats the recorded mistake and is
      * excluded from the headline accuracy numerator AND denominator; counted here so the
@@ -226,13 +175,6 @@ export interface EvalBatchReport {
    * sorted and deduped. Data copied off the blocks, never a fabricated single identity.
    */
   mixedJudgeModelIds?: readonly string[]
-}
-
-interface SplitMetricCell {
-  firstAttemptDecisionAccuracy: RateMetric
-  verifierFalsePassRate: RateMetric
-  recovery: EvalBatchReport['recovery']
-  perDecisionCost: PerDecisionCost
 }
 
 function isReplayRefusal(outcome: ReplayCassetteOutcome): outcome is ReplayRefusal {
@@ -312,23 +254,20 @@ function hasDecisionScore(entry: ScoredBatchEntry | undefined): boolean {
 }
 
 function isScoringIncluded(entry: ScoredBatchEntry): boolean {
-  return entry.scoringExcluded !== true && !isReplayRefusal(entry.outcome)
+  return !isReplayRefusal(entry.outcome)
 }
 
 /** Resolve only the verifier population; other metric populations keep their own grain. */
 function verifierRepresentatives(entries: readonly ScoredBatchEntry[]): ScoredBatchEntry[] {
-  const bySource = new Map<string, ScoredBatchEntry>()
+  const byCassette = new Map<string, ScoredBatchEntry>()
   const rank = (entry: ScoredBatchEntry) => entry.label?.sourceChannel === 'overturned-verdict'
     ? 2 : entry.label?.sourceChannel === 'user-mark' ? 1 : 0
   for (const entry of entries) {
     if (!isScoringIncluded(entry) || entry.label === undefined) continue
-    const key = entry.logicalSourceId ?? entry.cassetteId, previous = bySource.get(key)
-    if (previous === undefined || rank(entry) > rank(previous)
-      || (rank(entry) === rank(previous) && entry.cassetteId < previous.cassetteId)) {
-      bySource.set(key, entry)
-    }
+    const previous = byCassette.get(entry.cassetteId)
+    if (previous === undefined || rank(entry) > rank(previous)) byCassette.set(entry.cassetteId, entry)
   }
-  return [...bySource.values()]
+  return [...byCassette.values()]
 }
 
 function verifierRate(representatives: readonly ScoredBatchEntry[]): RateMetric {
@@ -366,66 +305,6 @@ function decisionCost(total: TotalCost, judge: JudgeCost, decisionCount: number)
   }
 }
 
-function entryCosts(entries: readonly ScoredBatchEntry[]): PerDecisionCost {
-  const total: TotalCost = { sampleCount: 0, samplesMissingTokenUsage: 0,
-    promptTokens: 0, completionTokens: 0, totalTokens: 0, durationMs: 0 }
-  const judge: JudgeCost = { calls: 0, inputTokens: 0, outputTokens: 0, outcomesMissingUsage: 0 }
-  let decisionCount = 0
-  for (const entry of entries) {
-    for (const result of decisionResults(entry.outcome)) {
-      decisionCount++
-      for (const sample of result.samples) {
-        total.durationMs += sample.durationMs
-        total.promptTokens += sample.tokenUsage?.promptTokens ?? 0
-        total.completionTokens += sample.tokenUsage?.completionTokens ?? 0
-        total.totalTokens += sample.tokenUsage?.totalTokens ?? 0
-      }
-    }
-    for (const score of [...decisionScores(entry.score), ...decisionScores(entry.incurredJudgeScore)]) {
-      if (score.kind === 'scored' && score.judgeSettled !== undefined) addJudgeUsage(judge, score.judgeSettled.usage)
-      else if (score.kind === 'unresolved-tie' && score.judgeOutcome !== undefined
-        && score.judgeOutcome.kind !== 'not-invoked') addJudgeUsage(judge, score.judgeOutcome.usage)
-    }
-  }
-  return decisionCost(total, judge, decisionCount)
-}
-
-function splitKey(entry: ScoredBatchEntry): 'natural' | 'shared' | 'private' | 'adversarial' | undefined {
-  if (entry.split === 'natural' || entry.split === 'adversarial') return entry.split
-  if (entry.split === 'held-out') return entry.heldOutVisibility
-  return undefined
-}
-
-function splitMetrics(entries: readonly ScoredBatchEntry[], representatives: readonly ScoredBatchEntry[]): EvalBatchReport['perSplit'] {
-  const cell = (key: ReturnType<typeof splitKey>): SplitMetricCell => {
-    const members = entries.filter(entry => splitKey(entry) === key)
-    return {
-      firstAttemptDecisionAccuracy: accuracyMetrics(members).accuracy,
-      verifierFalsePassRate: verifierRate(representatives.filter(entry => splitKey(entry) === key)),
-      recovery: recoveryMetrics(members),
-      perDecisionCost: entryCosts(members),
-    }
-  }
-  return { natural: cell('natural'), 'held-out': { shared: cell('shared'), private: cell('private') },
-    adversarial: cell('adversarial'), unassignedCount: entries.filter(entry => splitKey(entry) === undefined).length }
-}
-
-/**
- * 422 D-05/D-08: the generation mix of the population `perSplit.adversarial` measures.
- *
- * `splitKey` is reused rather than re-testing `entry.split` so the mix's `total` cannot drift
- * from that cell's denominators. `undefined` is preserved into the projection: an entry whose
- * corpus membership the assembler could not resolve is `metadataUnavailable`, never a fabricated
- * `absent` stamp.
- */
-function adversarialGenerationMix(
-  entries: readonly ScoredBatchEntry[],
-): AdversarialGenerationMix | undefined {
-  const population = entries.filter(entry => splitKey(entry) === 'adversarial')
-  if (population.length === 0) return undefined
-  return projectAdversarialGenerationMix(population.map(entry => entry.generator))
-}
-
 function recoveryMetrics(entries: readonly ScoredBatchEntry[]): EvalBatchReport['recovery'] {
   const { negativeDecisionCount, negativeFullMatchCount } = accuracyMetrics(entries)
   const byCassetteId = new Map(entries.map(entry => [entry.cassetteId, entry]))
@@ -441,9 +320,6 @@ function recoveryMetrics(entries: readonly ScoredBatchEntry[]): EvalBatchReport[
 
   let eligiblePositiveCount = 0
   let recoveredPositiveCount = 0
-  let weightSum = 0
-  let recoveredWeight = 0
-  let pairsWithoutWeight = 0
   for (const entry of entries) {
     const pairing = entry.label?.pairing
     if (
@@ -453,15 +329,7 @@ function recoveryMetrics(entries: readonly ScoredBatchEntry[]): EvalBatchReport[
       continue
     }
     eligiblePositiveCount++
-    const prior = ORIGIN_PRIORS['agent-verified']
-    const weight = entry.softWeight?.value ?? prior.alpha / (prior.alpha + prior.beta)
-    if (!Number.isFinite(weight) || weight < 0 || weight > 1) throw new TypeError('invalid recovery weight')
-    if (entry.softWeight === undefined) pairsWithoutWeight++
-    weightSum += weight
-    if (decisionScores(entry.score).some(isDecisionFullMatch)) {
-      recoveredPositiveCount++
-      recoveredWeight += weight
-    }
+    if (decisionScores(entry.score).some(isDecisionFullMatch)) recoveredPositiveCount++
   }
 
   return {
@@ -470,9 +338,6 @@ function recoveryMetrics(entries: readonly ScoredBatchEntry[]): EvalBatchReport[
     eligiblePositiveCount,
     negativeDecisionCount,
     negativeFullMatchCount,
-    weightSum,
-    pairsWithoutWeight,
-    ...(weightSum === 0 ? {} : { weightedAccuracy: recoveredWeight / weightSum }),
     ...(eligiblePositiveCount === 0
       ? {}
       : { recoveryAccuracy: recoveredPositiveCount / eligiblePositiveCount }),
@@ -502,7 +367,6 @@ export function buildEvalReport(
     additionalHarnessErrorCount?: number
     /** Observed load refusals excluded from entries; returned replay refusals stay in entries. */
     additionalRefusalCounts?: Readonly<Partial<EvalBatchReport['honesty']['refusalCounts']>>
-    runIdentity?: EvalBatchReport['runIdentity']
   } = {},
 ): EvalBatchReport {
   const additionalHarnessErrorCount = opts.additionalHarnessErrorCount ?? 0
@@ -711,19 +575,11 @@ export function buildEvalReport(
   return {
     matcherVersion: MATCHER_CONFIG.matcherVersion,
     batchKey: computeBatchKey(entries.map(entry => entry.cassetteId)),
-    ...(opts.runIdentity === undefined ? {} : { runIdentity: { ...opts.runIdentity } }),
     headline: {
       firstAttemptDecisionAccuracy: accuracyMetrics(entries).accuracy,
       verifierFalsePassRate: verifierRate(representatives),
       perDecisionCost: decisionCost(totalCost, judgeHonesty.cost, decisionCount),
     },
-    perSplit: splitMetrics(entries, representatives),
-    // Absent for an empty adversarial population; the always-present cell above already states
-    // that emptiness, and a zero histogram beside it would state something else entirely.
-    ...(() => {
-      const mix = adversarialGenerationMix(entries)
-      return mix === undefined ? {} : { adversarialGenerationMix: mix }
-    })(),
     honesty: {
       tieCounts,
       unscorableIdentityCounts,

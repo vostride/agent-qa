@@ -101,7 +101,6 @@ export function assembleScoredBatch(input: {
 
     entries.push({
       cassetteId,
-      logicalSourceId: cassetteId,
       outcome,
       ...(score !== undefined ? { score } : {}),
       ...(incurredJudgeScore === undefined ? {} : { incurredJudgeScore }),

@@ -1,12 +1,5 @@
 export type { ArtifactSource } from './ports'
 export { judgeFamiliesIntersect } from './judge/family'
-export { collectSoftPopulation } from './labels/soft-population'
-export type { SoftPopulation, SoftObservation, SoftEvidenceSkip, SoftEvidenceSkipReason, CollectSoftPopulationInput } from './labels/soft-population'
-export { parseStandaloneLabelRecord, selectEffectiveLabels, deriveLabelRevisionId, createLabelRevision } from './labels/effective-labels'
-export type { LabelRecordParse, LabelHistoryRefusalReason, LabelHistoryRefusal, EffectiveLabelSelection } from './labels/effective-labels'
-export type { LabelWeight } from './labels/label-record'
-export { computeSoftWeight, SOFT_VERDICT_FACTORS, SOFT_TIER_FACTORS } from './labels/soft-weight'
-export type { ComputeSoftWeightInput, SoftRecoveringDecisionEvidence } from './labels/soft-weight'
 
 export { canonicalJson, canonicalValue } from './canonical-json'
 
@@ -97,11 +90,9 @@ export {
   scoreCassetteReplay,
   scoreDecision,
 } from './match/score'
-export { effectiveGold } from './labels/effective-gold'
 export { createScoringContext, resolveScoringContext, scoringContextSchema } from './match/scoring-context'
 export { judgeIdentitySchema, judgeUsageSchema, judgeMemberOutcomeSchema, hasValidScoreJudgeMetadata } from './match/scoring-context'
 export type { ScoringContext, ScoringJudgeRequest } from './match/scoring-context'
-export type { EffectiveGold } from './labels/effective-gold'
 export type {
   CassetteScore,
   DecisionAxes,
@@ -211,6 +202,7 @@ export type {
   SubActionSelection,
 } from './extract/select'
 export { projectInputLeg } from './extract/input-leg'
+export { resolveProductPartition } from './extract/product-partition'
 export type { ProjectInputLegInput } from './extract/input-leg'
 export { projectLabelLeg } from './extract/label-leg'
 export type { ProjectLabelLegInput } from './extract/label-leg'
@@ -249,8 +241,6 @@ export type {
   ProcedureDecisionInput,
 } from './extract/procedure'
 export { extractRunCassettes } from './extract/extract-run'
-export { maskCorpusText } from './extract/corpus-text-mask'
-export type { MaskCorpusTextOptions } from './extract/corpus-text-mask'
 export type {
   EmittedCassetteSummary,
   ExtractedCassette,
@@ -258,169 +248,3 @@ export type {
   ExtractionResult,
   ExtractRunCassettesInput,
 } from './extract/extract-run'
-
-export { collectSelfHealPairs } from './labels/pair-matching'
-export type {
-  CollectSelfHealPairsInput,
-  MintedContrastivePair,
-  PairSkip,
-  PairSkipReason,
-} from './labels/pair-matching'
-export { DEFAULT_SILVER_PER_TEST_CAP, selectSilverCassettes } from './labels/silver-sampling'
-export type {
-  SilverExclusion,
-  SilverExclusionReason,
-  SilverSamplingInput,
-  SilverSelection,
-} from './labels/silver-sampling'
-export {
-  LABEL_RECORD_SCHEMA_VERSION,
-  deriveAdversarialLabel,
-  projectPairLabelRecords,
-  projectSilverLabelRecord,
-  projectUserMarkLabelRecord,
-  projectOverturnedVerdictLabelRecord,
-} from './labels/label-record'
-export type {
-  DeriveAdversarialLabelInput,
-  LabelDerivation,
-  LabelProvenance,
-  LabelCorrection,
-  ProjectUserMarkLabelRecordInput,
-  ProjectOverturnedVerdictLabelRecordInput,
-  PairStateStamp,
-  StandaloneLabelRecord,
-} from './labels/label-record'
-
-export {
-  ADVERSARIAL_MUTATORS,
-  CORPUS_ENTRY_SCHEMA_VERSION,
-  CORPUS_SPLITS,
-  GENERATOR_KINDS,
-  GENERATOR_PROVENANCES,
-  generatorProvenance,
-  HELD_OUT_VISIBILITIES,
-  isProbeGeneratorKind,
-  isProposerVisibleEntry,
-  PROBE_GENERATOR_KINDS,
-  projectCorpusEntry,
-  resolveProductPartition,
-} from './labels/corpus-entry'
-export type {
-  AdversarialCorpusEntry,
-  AdversarialMutator,
-  AuthoringModel,
-  CorpusEntry,
-  CorpusEntryBase,
-  CorpusGenerator,
-  CorpusRunLinks,
-  CorpusSplit,
-  GeneratorKind,
-  GeneratorProvenance,
-  HeldOutVisibility,
-  NaturalCorpusEntry,
-  PrivateHeldOutCorpusEntry,
-  ProbeGeneratorKind,
-  ProjectCorpusEntryInput,
-  ProposerVisibleCorpusEntry,
-  SharedHeldOutCorpusEntry,
-  SplitAssignment,
-  TargetEnvironment,
-} from './labels/corpus-entry'
-export { assignSplit, BUCKET_BITS, bucketOf, PARTITION_VERSION } from './labels/split-assignment'
-export type { AssignSplitInput, PartitionParams } from './labels/split-assignment'
-
-export { Z_95, wilsonInterval } from './stats/wilson'
-
-export {
-  guardPartitionManifest,
-  PARTITION_MANIFEST_SCHEMA_VERSION,
-  partitionManifestSchema,
-  partitionParamsOf,
-  projectPartitionManifest,
-} from './labels/partition-manifest'
-export type {
-  PartitionManifest,
-  ProjectPartitionManifestInput,
-} from './labels/partition-manifest'
-export {
-  EXCLUSION_CLASSES,
-  guardRunExclusionRecord,
-  projectRunExclusion,
-  RUN_EXCLUSION_SCHEMA_VERSION,
-  runExclusionCore,
-  runExclusionRecordSchema,
-  VERDICT_PRODUCERS,
-} from './labels/run-exclusion'
-export type {
-  ExclusionClass,
-  ProjectRunExclusionInput,
-  RunExclusionBackfill,
-  RunExclusionRecord,
-  VerdictProducer,
-} from './labels/run-exclusion'
-export { buildSeedingPlan, admitSeedMember } from './labels/seeding-plan'
-export { activeMarkedCorpusEntries, buildGoldenTrajectoryPlan, markGoldChannels, markedDecisionCount, resolveMarkLabelTargets, resolveMarkedDecisions } from './labels/golden-plan'
-export type { GoldenTrajectoryPlan, GoldenTrajectoryTarget, BuildGoldenTrajectoryPlanInput, GoldMark, MarkGoldChannel, MarkGoldClaim, MarkLabelIntent, MarkLabelTargetResolution } from './labels/golden-plan'
-export type {
-  BuildSeedingPlanInput,
-  SeedingParams,
-  SeedingPlan,
-  SeedingPlanCase,
-} from './labels/seeding-plan'
-
-export {
-  BASELINE_POINTER_SCHEMA_VERSION,
-  composeBaselineProfileKey,
-  computeReplayProfileFingerprint,
-  guardBaselinePointer,
-  projectBaselinePointer,
-  SEED_POLICIES,
-} from './baseline/profile-key'
-export type {
-  BaselinePointer,
-  BaselinePointerLoad,
-  BaselineProfileKeyInput,
-  ReplayProfileFingerprintInput,
-  SeedPolicy,
-} from './baseline/profile-key'
-
-export {
-  countGateSet,
-  emptyGateSetCounts,
-  EXCLUSION_REASONS,
-  selectGateSet,
-} from './gate/gate-set'
-export type {
-  CandidateProvenance,
-  ExclusionReason,
-  GateSetCountPair,
-  GateSetCounts,
-  GateSetExclusion,
-  GateSetVerdict,
-  SelectGateSetInput,
-} from './gate/gate-set'
-
-export { computeCorpusDigest } from './census/corpus-digest'
-export {
-  CENSUS_SCHEMA_VERSION,
-  classifyStaticScorability,
-  deriveCensus,
-  projectAdversarialGenerationMix,
-} from './census/derive-census'
-export type {
-  AdversarialGenerationMix,
-  CensusCampaignInput,
-  CensusCampaignSummary,
-  CensusCrossCheckLine,
-  CensusProductBlock,
-  CensusRung,
-  CommittedCorpusSnapshot,
-  CorpusCensus,
-  DeriveCensusInput,
-  ExclusionCensusBlock,
-  PartitionCensusBlock,
-  StaticScorability,
-} from './census/derive-census'
-
-export { renderCensusMarkdown } from './census/render-census'

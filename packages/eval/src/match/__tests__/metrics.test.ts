@@ -40,13 +40,6 @@ it('preserves observed outer harness errors without inventing replay decisions o
     .toThrow(/harness.*count/i)
 })
 
-it('copies declared run identity without changing legacy report metadata', () => {
-  const runIdentity = { fingerprint: 'a'.repeat(64), corpusDigest: 'b'.repeat(64) }
-  const report = buildEvalReport([], undefined, undefined, { runIdentity })
-  expect(report.runIdentity).toEqual(runIdentity)
-  expect(buildEvalReport([])).not.toHaveProperty('runIdentity')
-})
-
 it('adds observed bundle-load refusals without inventing outcomes or double-counting replay refusals', () => {
   const outcome: ReplayRefusal = {
     kind: 'integrity-refusal', cassetteId: 'refused-replay', reason: 'completeness', detail: 'missing evidence',
@@ -620,9 +613,6 @@ describe('buildEvalReport', () => {
       recoveredPositiveCount: 1,
       eligiblePositiveCount: 2,
       recoveryAccuracy: 0.5,
-      weightSum: 4 / 3,
-      weightedAccuracy: 0.5,
-      pairsWithoutWeight: 2,
       negativeDecisionCount: 2,
       negativeFullMatchCount: 2,
     })
@@ -634,8 +624,6 @@ describe('buildEvalReport', () => {
       eligiblePositiveCount: 0,
       negativeDecisionCount: 0,
       negativeFullMatchCount: 0,
-      weightSum: 0,
-      pairsWithoutWeight: 0,
     })
     expect(Object.hasOwn(pairless.recovery, 'recoveryAccuracy')).toBe(false)
   })
