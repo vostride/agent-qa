@@ -7,8 +7,6 @@ import { buildEvalReport } from '../../match/metrics'
 import { UnservableDivergenceError } from '../exchange-server'
 import type { DecisionReplayResult, ReplayRefusal } from '../result'
 import { replayCassette } from '../replay-run'
-import { canonicalizeInputLeg } from '../../extract/receipt'
-import type { DeclaredBriefDelta } from '../brief-delta'
 import {
   actionsFactory,
   decisionPlan,
@@ -26,30 +24,6 @@ function isRefusal(outcome: unknown): outcome is ReplayRefusal {
 }
 
 describe('replayCassette — single sample', () => {
-  it('threads a declared injection into drift and the zero-harness-drift report', async () => {
-    const cassette = leafCassette()
-    cassette.receipt.promptInputHash = sha256hex(canonicalizeInputLeg(cassette.input))
-    const line = {
-      id: asRecordId('delta-observation'), kind: 'fact', summary: 'Declared observation',
-      tier: 'L2', trust: 0.5, status: 'active', servedAsCanary: false,
-    }
-    const declaredBriefDelta: DeclaredBriefDelta = {
-      kind: 'injected', line, tier: 'L2', renderedLine: `Observation: ${line.summary}`,
-      turnOrdinal: 0, position: 0, channel1Position: 0,
-    }
-    cassette.input.servedBrief.channel1.push(line)
-    const probe = actionsFactory([{ type: 'click', ref: 'e2' }])
-    const outcome = await replayCassette({
-      cassette, declaredBriefDelta, artifacts: emptyArtifacts,
-      plannerFactory: probe.factory, actionToolNames: new Set(), clock: fixedIncrementClock(),
-    })
-    expect(outcome).toMatchObject({
-      promptDrift: { drift: true, harnessDrift: false, declaredDelta: { kind: 'injected', id: line.id } },
-    })
-    expect(buildEvalReport([{ cassetteId: cassette.id, outcome }]).promptDriftRate)
-      .toEqual({ numerator: 0, denominator: 1, rate: 0 })
-  })
-
   it('Test 1: refuses an incomplete cassette without ever calling the factory', async () => {
     const probe = actionsFactory([{ type: 'click', ref: 'e2' }])
     const outcome = await replayCassette({

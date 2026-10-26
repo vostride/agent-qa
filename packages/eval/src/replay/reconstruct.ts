@@ -16,7 +16,6 @@ import type { StepContext } from '@vostride/agent-qa-runner'
 import type { CassetteInputLeg } from '../cassette/input-leg'
 import type { ArtifactSource } from '../ports'
 import { rebuildKnowledgeTiers } from './brief-tiers'
-import type { DeclaredBriefDelta } from './brief-delta'
 import type { BriefSource, TurnMatch } from './brief-tiers'
 
 /**
@@ -48,7 +47,6 @@ export class UnsupportedBriefError extends Error {
 
 export interface ReconstructDecisionContextInput {
   leg: CassetteInputLeg
-  declaredBriefDelta?: DeclaredBriefDelta
   captureMode: 'full' | 'textOnly'
   screenshotRef?: ArtifactRef
   artifacts: ArtifactSource
@@ -67,7 +65,7 @@ export function reconstructDecisionContext(
 ): ReconstructedDecisionContext {
   const { leg, captureMode, screenshotRef, artifacts, model } = input
 
-  const tiers = rebuildKnowledgeTiers(leg.servedBrief, leg.decisionOrdinal, input.declaredBriefDelta)
+  const tiers = rebuildKnowledgeTiers(leg.servedBrief, leg.decisionOrdinal)
 
   const workingMemory =
     leg.workingMemory !== undefined && leg.workingMemory.length > 0

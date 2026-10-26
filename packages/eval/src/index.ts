@@ -28,18 +28,6 @@ export {
 } from './replay/brief-tiers'
 export type { BriefSource, TurnMatch, RebuiltKnowledgeTiers } from './replay/brief-tiers'
 export { REPLAY_REFUSAL_REASONS } from './replay/result'
-export {
-  BRIEF_DELTA_KINDS,
-  applyBriefDelta,
-  reverseBriefDelta,
-  locateBriefLine,
-} from './replay/brief-delta'
-export type {
-  BriefDeltaKind,
-  BriefTier,
-  DeclaredBriefDelta,
-  LocateBriefLineOutcome,
-} from './replay/brief-delta'
 
 export {
   computeDecisionIdentity,

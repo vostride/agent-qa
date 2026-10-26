@@ -18,7 +18,6 @@ import type { CassetteReceipt } from '../cassette/receipt-leg'
 import type { CassetteSidecarLeg } from '../cassette/sidecar-leg'
 import type { ArtifactSource } from '../ports'
 import { computeReplayDrift } from './drift'
-import type { DeclaredBriefDelta } from './brief-delta'
 import { UnrenderableBriefError } from './brief-tiers'
 import type { BriefSource, TurnMatch } from './brief-tiers'
 import { computeDecisionIdentity, decisionIdentityKey } from './identity'
@@ -59,7 +58,6 @@ import type {
  * recorded exchange may never shadow.
  */
 export interface ReplayCassetteInput {
-  declaredBriefDelta?: DeclaredBriefDelta
   cassette: Cassette
   artifacts: ArtifactSource
   plannerFactory: ReplayPlannerFactory
@@ -70,7 +68,6 @@ export interface ReplayCassetteInput {
 }
 
 interface DecisionReplayContext {
-  declaredBriefDelta?: DeclaredBriefDelta
   cassetteId: string
   decisionOrdinal: number
   stepIndex?: number
@@ -147,7 +144,6 @@ async function replayLeaf(
     clock: input.clock,
     k: input.k ?? 1,
     escalationPredicate: input.escalationPredicate ?? neverEscalate,
-    ...(input.declaredBriefDelta === undefined ? {} : { declaredBriefDelta: input.declaredBriefDelta }),
   })
   if (isReplayRefusal(outcome)) return outcome
   return { granularity: 'leaf', ...outcome }
@@ -177,7 +173,6 @@ async function replayProcedure(
         clock: input.clock,
         k: input.k ?? 1,
         escalationPredicate: input.escalationPredicate ?? neverEscalate,
-        ...(input.declaredBriefDelta === undefined ? {} : { declaredBriefDelta: input.declaredBriefDelta }),
       })
       if (isReplayRefusal(decision)) return decision
       steps.push({
@@ -245,8 +240,7 @@ async function replayDecision(
 
   const totalDurationMs = context.clock.now() - decisionStart
   const agreement = aggregateAgreement(samples)
-  const promptDrift = computeReplayDrift(context.leg, context.receipt.promptInputHash,
-    context.declaredBriefDelta === undefined ? {} : { declaredBriefDelta: context.declaredBriefDelta })
+  const promptDrift = computeReplayDrift(context.leg, context.receipt.promptInputHash)
   const recordedModel = deriveRecordedModel(context.receipt)
   const unconsumedExchanges = lastUnconsumed !== undefined ? lastUnconsumed() : []
 
@@ -292,7 +286,6 @@ async function runSample(context: DecisionReplayContext, sampleIndex: number): P
   try {
     reconstructed = reconstructDecisionContext({
       leg,
-      ...(context.declaredBriefDelta === undefined ? {} : { declaredBriefDelta: context.declaredBriefDelta }),
       captureMode: leg.stateBefore.metadata.captureMode,
       ...(leg.decisionScreenshotRef !== undefined ? { screenshotRef: leg.decisionScreenshotRef } : {}),
       artifacts,
