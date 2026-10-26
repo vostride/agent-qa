@@ -75,7 +75,7 @@ describe('production panel host paths', () => {
     writeFileSync(join(root, '.env.secrets.local'), '')
     const resolved = await session.resolveEvalSession({ configPath })
     expect(llm.resolveModelAuth).not.toHaveBeenCalled()
-    const replay = await session.runReplayVerb(resolved, {}, { source: 'staged',
+    const replay = await session.runReplayVerb(resolved, {}, {
       plannerOverrides: { languageModels: planner.languageModels },
       judgeOverrides: { languageModels: Object.assign({}, ...judges.map(row => row.languageModels)) } })
     expect(replay.replayed).toBe(1)

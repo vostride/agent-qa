@@ -10,7 +10,7 @@ import { createHash, randomBytes } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import fs from 'node:fs'
 import { mkdtemp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
-import { dirname, join, resolve } from 'node:path'
+import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { generateRunId, generateTestId } from '@vostride/agent-qa-ids'
 import {
@@ -61,8 +61,6 @@ import type {
 import {
   FsReplayRecordStore,
   commitEvalReport,
-  committedCassettePath,
-  committedLabelPath,
   computeReplayProfileFingerprintFor,
   loadCassetteBundle,
   FsScoreStore,
@@ -91,8 +89,8 @@ import type {
 } from '../../eval-session-composition.js'
 import { createEvalCommand } from '../eval.js'
 
-/** Three real leaves seeded into the committed root, using generated identities and provider stubs. */
-async function seededReplayFixture(judged = false) {
+/** Three recorded runs extracted into staged cassettes, with generated identities and provider stubs. */
+async function stagedReplayFixture(judged = false) {
   const plannerModelId = 'gpt-floor-stub'
   const judgeModelId = 'claude-floor-stub'
   const { dir, configPath } = await writeReplayFixture('', plannerModelId)
@@ -121,7 +119,7 @@ async function seededReplayFixture(judged = false) {
     new FsHandoffStore({ root, runId }).save(handoff)
   }
   const session = await sessionFor(configPath)
-  expect(seedCommittedRoot(session)).toBe(3)
+  expect((await runExtractVerb(session)).cassettesWritten).toBe(6)
   const planner = replayStub(plannerModelId, judged ? () => ({
     ...clickGenerateResult(),
     content: [{ type: 'tool-call', toolCallId: 'fill-action', toolName: 'web_fill',
@@ -604,28 +602,28 @@ function replayDirFor(dir: string, id: string): string {
   return join(dir, '.agent-qa', 'eval', 'replays', ...id.split('/').map(segment => slugBranch(segment)))
 }
 
-describe('runReplayVerb — offline sweep through the sanctioned composition (D-02/D-06/D-08)', () => {
+describe('runReplayVerb sweeps staged cassettes through the sanctioned composition', () => {
   afterEach(() => vi.restoreAllMocks())
 
   it('reports observed spend, reported usage and supported seed from this invocation only', async () => {
-    const fixture = await seededReplayFixture()
+    const fixture = await stagedReplayFixture()
     fixture.session.evalConfig.seed = 11
     const clock = vi.spyOn(performance, 'now').mockReturnValue(100)
-    const first = await runReplayVerb(fixture.session, {}, { ...fixture.opts, source: 'committed' })
+    const first = await runReplayVerb(fixture.session, {}, fixture.opts)
+    // Each run stages a leaf and a procedure cassette, one decision apiece.
     expect(first.spend).toEqual({
-      seed: 11, seedHonored: true, decisions: 3, modelCalls: 3,
-      promptTokens: 30, completionTokens: 6, wallClockMs: 0,
-      sampleCount: 3, samplesMissingTokenUsage: 0,
+      seed: 11, seedHonored: true, decisions: 6, modelCalls: 6,
+      promptTokens: 60, completionTokens: 12, wallClockMs: 0,
+      sampleCount: 6, samplesMissingTokenUsage: 0,
       judgeCost: { calls: 0, inputTokens: 0, outputTokens: 0, outcomesMissingUsage: 0 },
     })
-    const oneId = (await readCommittedCorpus(join(fixture.dir, 'agent-qa-eval')))
-      .snapshot.entries[0]!.cassetteId
+    const oneId = (await stagedCassetteIds(fixture.dir)).find(id => id.endsWith('-leaf'))!
     const timed = replayStub(fixture.plannerModelId, () => {
       clock.mockReturnValue(137)
       return clickGenerateResult()
     })
     const second = await runReplayVerb(fixture.session, { cassette: oneId }, {
-      source: 'committed', plannerOverrides: timed.overrides,
+      plannerOverrides: timed.overrides,
     })
     expect(second.spend).toMatchObject({ decisions: 1, modelCalls: 1, promptTokens: 10,
       completionTokens: 2, wallClockMs: 37, sampleCount: 1 })
@@ -633,7 +631,7 @@ describe('runReplayVerb — offline sweep through the sanctioned composition (D-
   })
 
   it('counts provider retries separately from replay samples without inventing retry usage', async () => {
-    const fixture = await seededReplayFixture()
+    const fixture = await stagedReplayFixture()
     let calls = 0
     const retrying = replayStub(fixture.plannerModelId, () => {
       if (calls++ === 0) throw new APICallError({
@@ -643,59 +641,59 @@ describe('runReplayVerb — offline sweep through the sanctioned composition (D-
       return clickGenerateResult()
     })
     const result = await runReplayVerb(fixture.session, {}, {
-      source: 'committed', plannerOverrides: retrying.overrides,
+      plannerOverrides: retrying.overrides,
     })
-    expect(result.spend).toMatchObject({ modelCalls: 4, sampleCount: 3, promptTokens: 30,
-      completionTokens: 6, samplesMissingTokenUsage: 0, seed: null, seedHonored: null })
+    expect(result.spend).toMatchObject({ modelCalls: 7, sampleCount: 6, promptTokens: 60,
+      completionTokens: 12, samplesMissingTokenUsage: 0, seed: null, seedHonored: null })
     expect(retrying.captured).toHaveLength(result.spend.modelCalls)
   })
 
   it('retains missing sample usage on provider failures', async () => {
-    const fixture = await seededReplayFixture()
+    const fixture = await stagedReplayFixture()
     const failing = replayStub(fixture.plannerModelId, () => {
       throw new Error('unreported provider failure')
     })
     const result = await runReplayVerb(fixture.session, {}, {
-      source: 'committed', plannerOverrides: failing.overrides,
+      plannerOverrides: failing.overrides,
     })
-    expect(result.spend).toMatchObject({ sampleCount: 3, samplesMissingTokenUsage: 3,
+    expect(result.spend).toMatchObject({ sampleCount: 6, samplesMissingTokenUsage: 6,
       promptTokens: 0, completionTokens: 0 })
     expect(result.spend.modelCalls).toBe(failing.captured.length)
-    expect(result.spend.modelCalls).toBeGreaterThanOrEqual(3)
+    expect(result.spend.modelCalls).toBeGreaterThanOrEqual(6)
   })
 
   it('discloses unsupported seed evidence instead of asserting determinism', async () => {
-    const fixture = await seededReplayFixture()
+    const fixture = await stagedReplayFixture()
     fixture.session.evalConfig.seed = 0
     const failing = replayStub(fixture.plannerModelId, () => {
       return { ...clickGenerateResult(), warnings: [{ type: 'unsupported', feature: 'seed' }] }
     })
     const result = await runReplayVerb(fixture.session, {}, {
-      source: 'committed', plannerOverrides: failing.overrides,
+      plannerOverrides: failing.overrides,
     })
-    expect(result.spend).toMatchObject({ seed: 0, seedHonored: false, modelCalls: 3,
-      sampleCount: 3, samplesMissingTokenUsage: 0, promptTokens: 30, completionTokens: 6 })
+    expect(result.spend).toMatchObject({ seed: 0, seedHonored: false, modelCalls: 6,
+      sampleCount: 6, samplesMissingTokenUsage: 0, promptTokens: 60, completionTokens: 12 })
   })
 
   it('includes judge provider calls and reports their token contribution explicitly', async () => {
-    const fixture = await seededReplayFixture(true)
-    const result = await runReplayVerb(fixture.session, {}, { ...fixture.opts, source: 'committed' })
+    const fixture = await stagedReplayFixture(true)
+    const result = await runReplayVerb(fixture.session, {}, fixture.opts)
     // Each ambiguous fixture decision has two adjudicated tie axes.
-    expect(result.spend).toMatchObject({ modelCalls: 9, sampleCount: 3, promptTokens: 90,
-      completionTokens: 18,
-      judgeCost: { calls: 6, inputTokens: 60, outputTokens: 12, outcomesMissingUsage: 0 },
+    expect(result.spend).toMatchObject({ modelCalls: 18, sampleCount: 6, promptTokens: 180,
+      completionTokens: 36,
+      judgeCost: { calls: 12, inputTokens: 120, outputTokens: 24, outcomesMissingUsage: 0 },
     })
     expect(result.spend.modelCalls).toBe(fixture.planner.captured.length + fixture.judge.captured.length)
   })
 
-  it('returns zero spend for empty committed input without resolving models or credentials', async () => {
+  it('returns zero spend for an empty staged sweep without resolving models or credentials', async () => {
     const { configPath } = await writeReplayFixture()
     const session = await sessionFor(configPath)
     delete session.config.use!.llm
     session.evalConfig.judge = 'does-not-exist'
     session.evalConfig.seed = 11
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network forbidden'))
-    const result = await runReplayVerb(session, {}, { source: 'committed' })
+    const result = await runReplayVerb(session)
     expect(result.spend).toMatchObject({ seed: 11, seedHonored: null, decisions: 0,
       modelCalls: 0, promptTokens: 0, completionTokens: 0, sampleCount: 0,
       samplesMissingTokenUsage: 0 })
@@ -1177,154 +1175,6 @@ function seedCommittedRoot(session: EvalSession, run?: string): number {
   return seeded
 }
 
-// ---- 413-06 Task 2: --source committed on replay and report (D-08) ---------------------------
-
-/** Extract, replay and seed one run so the fixture COMMITTED root holds real cassette bundles. */
-async function committedCorpusFixture(): Promise<{
-  dir: string
-  configPath: string
-  session: EvalSession
-  committedRoot: string
-  leafId: string
-  procedureId: string
-}> {
-  const { dir, configPath } = await writeReplayFixture()
-  saveSeedRun(dir, 'run-alpha')
-  const session = await sessionFor(configPath)
-  await runExtractVerb(session)
-  expect(seedCommittedRoot(session)).toBe(1)
-  const ids = await stagedCassetteIds(dir)
-  const leafId = ids.find(id => id.endsWith('-leaf'))
-  const procedureId = ids.find(id => !id.endsWith('-leaf'))
-  if (leafId === undefined || procedureId === undefined) {
-    throw new Error('expected one staged leaf and one staged procedure cassette')
-  }
-  return { dir, configPath, session, committedRoot: resolve(dir, 'agent-qa-eval'), leafId, procedureId }
-}
-
-/** The committed bundle dir for one seeded leaf under the fixture's product partition. */
-function committedBundleDir(committedRoot: string, cassetteId: string): string {
-  return dirname(join(committedRoot, committedCassettePath('default', cassetteId)))
-}
-
-describe('eval --source committed — the whole committed corpus in ONE batch (413 D-08)', () => {
-  afterEach(() => {
-    vi.restoreAllMocks()
-  })
-
-  it('replay sweeps the committed root under the committed source and reports it', async () => {
-    const { dir, session, leafId } = await committedCorpusFixture()
-
-    const result = await runReplayVerb(
-      session,
-      {},
-      { source: 'committed', plannerOverrides: replayStub().overrides },
-    )
-
-    // Only the seeded leaf lives in the committed root — the whole corpus, not the staging root.
-    expect(result.source).toBe('committed')
-    expect(result.swept).toBe(1)
-    expect(result.replayed).toBe(1)
-    expect(result.loadRefusals).toEqual({})
-    expect(result.replayRefusals).toEqual({})
-    expect(result.batchKey).toBe(computeBatchKey([leafId]))
-    // D-07: replay records stay runtime staging even when the cassettes came from the committed root.
-    expect(result.replaysRoot).toBe(join(dir, '.agent-qa', 'eval', 'replays'))
-    expect(existsSync(join(replayDirFor(dir, leafId), 'replay.json'))).toBe(true)
-    expect(result.notices.some(notice => notice.includes('committed root'))).toBe(true)
-  })
-
-  it('counts a blob-less committed cassette as a missing-blob refusal under the committed source', async () => {
-    const { dir, session, committedRoot, leafId } = await committedCorpusFixture()
-    // The committed root gitignores blobs/, so a fresh clone replays cassettes whose bytes are
-    // absent locally. That entry is a COUNTED refusal — never dropped from the denominator.
-    await rm(join(committedBundleDir(committedRoot, leafId), 'blobs'), {
-      recursive: true,
-      force: true,
-    })
-
-    const result = await runReplayVerb(
-      session,
-      {},
-      { source: 'committed', plannerOverrides: replayStub().overrides },
-    )
-
-    expect(result.source).toBe('committed')
-    expect(result.swept).toBe(1)
-    expect(result.replayRefusals['missing-blob']).toBe(1)
-    expect(result.loadRefusals).toEqual({})
-    // A refusal IS an outcome: the record is persisted so the report counts the entry (Pitfall 4).
-    expect(existsSync(join(replayDirFor(dir, leafId), 'replay.json'))).toBe(true)
-  })
-
-  it('leaves the default staged source unchanged when no source is supplied', async () => {
-    const { dir, session } = await committedCorpusFixture()
-
-    const result = await runReplayVerb(session, {}, { plannerOverrides: replayStub().overrides })
-
-    expect(result.source).toBe('staged')
-    // Both staged bundles (leaf + procedure) entered — the staging root, not the committed one.
-    expect(result.swept).toBe(2)
-    expect(result.replayed).toBe(2)
-    expect(existsSync(join(dir, '.agent-qa', 'eval', 'cassettes'))).toBe(true)
-  })
-
-  it('report joins label legs from the committed source and reports the source', async () => {
-    const { session, committedRoot, leafId, procedureId } = await committedCorpusFixture()
-    await runReplayVerb(session, {}, { plannerOverrides: replayStub().overrides })
-    // The pairing lands ONLY on the authoritative committed label, leaving the recorded
-    // cassette and staged label unchanged.
-    await setBundlePairingAt(
-      join(committedRoot, committedLabelPath('default', leafId)),
-      'contrastive-negative',
-      procedureId,
-    )
-
-    const committed = await runReportVerb(session, {}, { source: 'committed' })
-    expect(committed.source).toBe('committed')
-    const members = readCommittedCorpus(committedRoot).snapshot.entries.map(entry => entry.cassetteId)
-    expect(members).toEqual([leafId])
-    expect(members).not.toContain(procedureId)
-    expect(committed.entries).toBe(members.length)
-    expect(committed.batchKey).toBe(computeBatchKey(members))
-    expect(committed.report.recovery.negativeDecisionCount).toBe(1)
-
-    const staged = await runReportVerb(session)
-    expect(staged.source).toBe('staged')
-    // Phase420: authoritative standalone labels govern staged scores too; split ownership remains unknown.
-    expect(staged.report.recovery.negativeDecisionCount).toBe(1)
-    expect(staged.report.perSplit.unassignedCount).toBe(staged.entries)
-  })
-
-  it('accepts --source committed and rejects an unknown source with exit 1 on both verbs', async () => {
-    const { configPath } = await committedCorpusFixture()
-
-    const accepted = captureConsole()
-    await buildProgram().parseAsync(
-      ['--config', configPath, 'eval', 'replay', '--source', 'committed', '--json'],
-      { from: 'user' },
-    )
-    expect(process.exitCode).not.toBe(1)
-    const dto = JSON.parse(accepted.logs.join('\n')) as ReplayVerbResult
-    expect(dto.source).toBe('committed')
-    vi.restoreAllMocks()
-
-    const rejected = captureConsole()
-    await buildProgram().parseAsync(
-      ['--config', configPath, 'eval', 'replay', '--source', 'bogus'],
-      { from: 'user' },
-    )
-    expect(process.exitCode).toBe(1)
-    expect(rejected.errors.join('\n')).toContain('--source')
-    expect(rejected.logs).toEqual([])
-
-    const flagsFor = (verb: string): (string | undefined)[] =>
-      createEvalCommand().commands.find(sub => sub.name() === verb)?.options.map(o => o.long) ?? []
-    expect(flagsFor('replay')).toEqual(expect.arrayContaining(['--source']))
-    expect(flagsFor('report')).toEqual(expect.arrayContaining(['--source']))
-  })
-})
-
 // ---- Task 2: the commander family, D-04 rendering purity, D-08 exit codes ---------------------
 
 /** Mirror of cli.ts: the global --config option on the program, eval as a direct child. */
@@ -1362,7 +1212,7 @@ describe('createEvalCommand registers extract, replay and report', () => {
     expect(flags).toEqual(expect.arrayContaining(['--run', '--product', '--json']))
   })
 
-  it('declares the full replay flag vocabulary: --run, --cassette, --product, --judge, --k, --seed, --source, --json', () => {
+  it('declares the replay flags: --run, --cassette, --product, --judge, --k, --seed, --json', () => {
     const replay = createEvalCommand().commands.find(sub => sub.name() === 'replay')
     const flags = replay?.options.map(option => option.long) ?? []
     expect(flags).toEqual(
@@ -1373,7 +1223,6 @@ describe('createEvalCommand registers extract, replay and report', () => {
         '--judge',
         '--k',
         '--seed',
-        '--source',
         '--json',
       ]),
     )
@@ -1424,6 +1273,16 @@ describe('eval subcommands that were removed', () => {
       expect(stderr).toContain(`error: unknown command '${verb}'`)
     },
   )
+})
+
+describe('eval options that were removed', () => {
+  it.each([
+    ['replay', '--source', 'committed'],
+  ])('refuses eval %s %s as an unknown option', async (verb, option, ...rest) => {
+    const { code, stderr } = await parseEval([verb, option, ...rest])
+    expect(code).toBe('commander.unknownOption')
+    expect(stderr).toContain(`unknown option '${option}'`)
+  })
 })
 
 describe('agent-qa eval report renders and exits from its DTO', () => {
@@ -1553,7 +1412,7 @@ describe('agent-qa eval extract — rendering and exit semantics (D-04/D-08)', (
   })
 })
 
-describe('agent-qa eval replay — rendering and exit semantics (372-06, D-04/D-08)', () => {
+describe('agent-qa eval replay renders and exits from its DTO', () => {
   afterEach(() => {
     vi.restoreAllMocks()
   })

@@ -379,7 +379,7 @@ function resolveCassettesRoot(
   }
 }
 
-// ---- the replay verb (372-06, D-02/D-06/D-07/D-08) --------------------------------------------
+// ---- the replay verb ----------------------------------------------------------------------------
 
 /** D-04 judge honesty counters folded from the PERSISTED score records, never recomputed. */
 export interface ReplayJudgeCounters {
@@ -392,7 +392,7 @@ export interface ReplayJudgeCounters {
   notInvoked: number
 }
 
-/** The replay verb's one DTO — the console renders FROM this, never around it (D-04). */
+/** The replay verb's one DTO; the console renders from it and `--json` prints it. */
 export interface ReplayVerbResult {
   /** sha256hex over the sorted replayed cassette ids ('empty' literal for a zero batch, D-02). */
   batchKey: string
@@ -410,8 +410,6 @@ export interface ReplayVerbResult {
   judge: ReplayJudgeCounters
   /** The staged replay-records root the persisted outcomes landed under. */
   replaysRoot: string
-  /** 413 D-08: which cassette population this batch swept — 'staged' unless asked otherwise. */
-  source: EvalCorpusSource
   /** Stderr-destined notices: no-judge / family-preflight warnings, harness errors, empty sweep. */
   notices: string[]
   /** Invocation calls include planner, judge and retries; tokens are persisted reported usage. */
@@ -437,9 +435,8 @@ export interface ReplayInvocationSpend {
 
 function replayInvocationSpend(
   entries: ScoredBatchEntry[], seed: number | undefined, modelCalls: number, started: number,
-  calibration?: EvalBatchReport['calibration'],
 ): ReplayInvocationSpend {
-  const report = buildEvalReport(entries, undefined, undefined, { declaredSeed: seed, calibration })
+  const report = buildEvalReport(entries, undefined, undefined, { declaredSeed: seed })
   const cost = report.totalCost
   const judgeCost = report.honesty.judge.cost
   return {
@@ -457,14 +454,13 @@ function replayInvocationSpend(
 }
 
 /**
- * The replay verb pipeline (D-01/D-02): sweep every staged cassette bundle (or the ones the
- * filters name), load each through loadCassetteBundle (typed refusals as data), and drive
- * runCassetteReplay — production planner profile, the session's declared mask (441 D-06),
- * D-03 judge bag, replay + score stores. After the loop the
- * judge counters are folded from the PERSISTED ScoreRecords (render from disk, never recompute,
- * D-04). No runSafetyScope wraps the model legs here. `opts` is the TEST-ONLY captured-boundary
- * stub seam (createModel overrides passthrough) — judge/k/seed are NOT verb parameters, they
- * arrive flag-merged on `session.evalConfig` (D-03).
+ * The replay verb pipeline: sweep every staged cassette bundle under `.agent-qa/eval/cassettes`
+ * (or the ones the filters name), load each through loadCassetteBundle (typed refusals as data),
+ * and drive runCassetteReplay with the production planner profile, the session's declared mask,
+ * the configured judges and the replay and score stores. Each cassette is scored against the
+ * label its run recorded. After the loop the judge counters are folded from the persisted score
+ * records. `opts` is the test seam for createModel overrides; judge, k and seed arrive
+ * flag-merged on `session.evalConfig`.
  */
 export async function runReplayVerb(
   session: EvalSession,
@@ -472,26 +468,18 @@ export async function runReplayVerb(
   opts: {
     plannerOverrides?: ModelProviderOverrides
     judgeOverrides?: ModelProviderOverrides
-    /** 413 D-08: sweep the committed corpus instead of the staging root. Defaults to 'staged'. */
-    source?: EvalCorpusSource
   } = {},
 ): Promise<ReplayVerbResult> {
   const started = performance.now()
   const agentQaRoot = resolve(session.configDir, '.agent-qa')
-  const source: EvalCorpusSource = opts.source ?? 'staged'
-  const sourceRoot = resolveCassettesRoot(session, source)
-  const cassettesRoot = sourceRoot.cassettesRoot
-  // D-07: replay output is runtime staging under .agent-qa/, whichever population was swept —
-  // the write-once committed root never receives a replay record.
+  const cassettesRoot = join(agentQaRoot, DEFAULT_EVAL_CASSETTES_SUBDIR)
   const replaysRoot = join(agentQaRoot, DEFAULT_EVAL_REPLAYS_SUBDIR)
 
-  // (1)+(2) sweep + load: every bundle dir enters; refusals fold by reason (D-02/D-08).
+  // (1)+(2) sweep + load: every bundle dir enters; refusals fold by reason.
   const { swept, loaded, loadRefusals } = loadCassetteBundles(cassettesRoot)
 
-  // (3) filters on the LOADED set — the ONE D-02 vocabulary; a named miss is the only throw.
-  const activeCorpus = readActiveCommittedCorpus(resolve(session.configDir, 'agent-qa-eval'), agentQaRoot)
-  const activeIds = source !== 'committed' ? undefined : new Set(activeCorpus.snapshot.entries.map(entry => entry.cassetteId))
-  let selected = activeIds === undefined ? loaded : loaded.filter(entry => activeIds.has(entry.cassette.id))
+  // (3) filters on the loaded set; a named miss is the only throw.
+  let selected = loaded
   if (filters.cassette !== undefined) {
     const named = filters.cassette
     selected = selected.filter(entry => entry.cassette.id === named)
@@ -516,8 +504,6 @@ export async function runReplayVerb(
   selected.sort((a, b) => (a.cassette.id < b.cassette.id ? -1 : a.cassette.id > b.cassette.id ? 1 : 0))
 
   const notices: string[] = []
-  if (sourceRoot.notice !== undefined) notices.push(sourceRoot.notice)
-  notices.push(...activeCorpus.refusals.map(refusal => `committed read refused ${refusal.path}: ${refusal.reason}`))
   const zeroJudge = (configured: boolean): ReplayJudgeCounters => ({
     configured,
     invoked: 0,
@@ -529,7 +515,7 @@ export async function runReplayVerb(
 
   // (4) empty batch: exit-0 data, no planner/judge resolution spend (D-02).
   if (selected.length === 0) {
-    notices.push(`empty sweep — no ${source} cassette bundles matched`)
+    notices.push('empty sweep — no staged cassette bundles matched')
     return {
       batchKey: 'empty',
       swept,
@@ -539,9 +525,8 @@ export async function runReplayVerb(
       scored: 0,
       judge: zeroJudge(selectedEvalJudgeNames(session.evalConfig).length > 0),
       replaysRoot,
-      source,
       notices,
-      spend: replayInvocationSpend([], session.evalConfig.seed, 0, started, activeCorpus?.calibration),
+      spend: replayInvocationSpend([], session.evalConfig.seed, 0, started),
     }
   }
 
@@ -560,7 +545,6 @@ export async function runReplayVerb(
   const { replayed, replayRefusals, replayedDirs, notices: replayNotices } =
     await sweepCassetteReplays({
       selected,
-      labelRecords: activeCorpus?.snapshot.labelsById,
       profile: planner.profile,
       auth: planner.auth,
       modelCallObservation: { onProviderCall: () => { modelCalls++ } },
@@ -598,11 +582,8 @@ export async function runReplayVerb(
     scored++
     foldJudgeDispositions(load.record.score, judge)
   }
-  const spendBatch = assembleScoredBatch({ replaysRoot, cassettesRoot, source,
-    recordDirs: replayedDirs, labelRecords: activeCorpus?.snapshot.labelsById,
-    corpusEntriesById: source === 'committed' ? activeCorpus.corpusEntriesById : undefined,
-    excludedLabelIds: activeCorpus?.snapshot.excludedLabelIds,
-    calibration: activeCorpus?.calibration })
+  const spendBatch = assembleScoredBatch({ replaysRoot, cassettesRoot, source: 'staged',
+    recordDirs: replayedDirs })
   notices.push(...spendBatch.notices)
 
   return {
@@ -614,9 +595,8 @@ export async function runReplayVerb(
     scored,
     judge,
     replaysRoot,
-    source,
     notices,
-    spend: replayInvocationSpend(spendBatch.entries, session.evalConfig.seed, modelCalls, started, spendBatch.calibration),
+    spend: replayInvocationSpend(spendBatch.entries, session.evalConfig.seed, modelCalls, started),
   }
 }
 

@@ -78,7 +78,6 @@ function renderReplaySummary(result: ReplayVerbResult): void {
     pc.bold(`replay: batch ${result.batchKey}`)
       + pc.dim(` (swept ${result.swept}, replayed ${result.replayed}, scored ${result.scored})`),
   )
-  console.log(`source: ${result.source}`)
   const spend = result.spend
   console.log(
     `replay seed=${spend.seed ?? 'none'}: decisions=${spend.decisions}`
@@ -263,11 +262,6 @@ export function createEvalCommand(): Command {
       .option('--judge <name>', 'replace the configured judges (repeat for a panel)', collectJudgeName)
       .option('--k <n>', 'sample budget per cassette', parseIntegerFlag('--k'))
       .option('--seed <n>', 'replay sampling seed', parseIntegerFlag('--seed'))
-      .option(
-        '--source <source>',
-        'cassette source: staged (default) or committed (the whole agent-qa-eval corpus, D-08)',
-        'staged',
-      )
       .option('--json', 'emit the typed result DTO to stdout')
       .action(
         async (
@@ -278,13 +272,11 @@ export function createEvalCommand(): Command {
             judge?: string[]
             k?: number
             seed?: number
-            source?: string
             json?: boolean
           },
           command: Command,
         ) => {
           try {
-            const source = parseSourceFlag(opts.source)
             const configPath = getGlobalConfigPath(command)
             const { resolveEvalSession, runReplayVerb } = await import(
               '../eval-session-composition.js'
@@ -299,15 +291,11 @@ export function createEvalCommand(): Command {
                 ...(opts.seed === undefined ? {} : { seed: opts.seed }),
               },
             })
-            const result = await runReplayVerb(
-              session,
-              {
-                ...(opts.run === undefined ? {} : { run: opts.run }),
-                ...(opts.cassette === undefined ? {} : { cassette: opts.cassette }),
-                ...(opts.product === undefined ? {} : { product: opts.product }),
-              },
-              { ...(source === undefined ? {} : { source }) },
-            )
+            const result = await runReplayVerb(session, {
+              ...(opts.run === undefined ? {} : { run: opts.run }),
+              ...(opts.cassette === undefined ? {} : { cassette: opts.cassette }),
+              ...(opts.product === undefined ? {} : { product: opts.product }),
+            })
             if (opts.json) {
               // D-04/Pitfall 11: exactly one JSON document on stdout — refusal counters, judge
               // dispositions, and notices are DATA inside the DTO; progress already rode stderr.
