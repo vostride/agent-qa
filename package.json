@@ -25,7 +25,6 @@
     "validate:skills": "node skills/scripts/validate-skills.mjs",
     "validate:agents": "node scripts/validate-agent-instructions.mjs",
     "validate:publish": "node scripts/validate-publish-surface.mjs",
-    "validate:eval-root-hygiene": "bash scripts/413-eval-root-hygiene.sh",
     "release:docker": "node scripts/release/docker.mjs",
     "release:docker:check": "node scripts/release/docker.mjs --check-local",
     "release:dry-run": "node scripts/release/dry-run.mjs",

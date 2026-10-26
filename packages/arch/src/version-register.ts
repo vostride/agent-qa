@@ -32,7 +32,6 @@ export type ExclusionCategory =
   | 'content-version'
   | 'domain-tag'
   | 'floor-asset'
-  | 'historical-script'
   | 'label'
 
 export interface VersionExclusion {
@@ -195,8 +194,6 @@ export const VERSION_EXCLUSIONS: readonly VersionExclusion[] = [
   { site: 'packages/knowledge-local/src/embedder-floor.ts', name: 'schemaVersion', category: 'floor-asset', reason: 'The exact check on the bundled floor manifest, which is not regenerated.', inline: { literal: 1, count: 1 } },
   { site: 'packages/knowledge-local/assets/potion-retrieval-32m/manifest.json', name: '"schemaVersion"', category: 'floor-asset', reason: 'The bundled floor manifest pins the model binary by sha256 and is not regenerated.' },
   { site: 'packages/knowledge-local/assets/potion-retrieval-32m/golden-vectors.json', name: '"schemaVersion"', category: 'floor-asset', reason: 'The golden vectors are pinned evidence for the bundled floor model.' },
-  { site: 'scripts/413-migrate-handoff-paths.mjs', name: 'schemaVersion', category: 'historical-script', reason: 'A one-shot path migration kept as history; the release does not run it.' },
-  { site: 'scripts/415-classifier-repeatability.mjs', name: 'schemaVersion', category: 'historical-script', reason: 'A one-shot measurement script kept as history; the release does not run it.' },
   { site: 'packages/knowledge-local/src/rebuild-marker.ts', name: "'schema-version'", category: 'label', reason: 'A rebuild-reason label that names why an index was rebuilt; it carries no value.' },
   { site: 'packages/knowledge-local/src/index-open.ts', name: "'schema-version'", category: 'label', reason: 'A health-probe label that names the failed probe; it carries no value.' },
 ]

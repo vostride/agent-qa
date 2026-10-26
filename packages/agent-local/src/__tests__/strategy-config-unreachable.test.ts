@@ -26,7 +26,6 @@
 // make impossible.
 
 import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import * as schemaExports from '@vostride/agent-qa-schema'
@@ -251,9 +250,5 @@ describe('the seam exists, and exists only as a composition option', () => {
     expect(composition).toContain('readonly chatReconcile?: ReconcileStrategy')
     // And a project configuration cannot name it. The config `agent-qa init` writes is checked
     // in the CLI's init-config-schema.test.ts; this package does not depend on the CLI.
-    const root = fileURLToPath(new URL('../../../../', import.meta.url))
-    const path = join(root, 'test-fixtures/eval-workspace/agent-qa.config.yaml')
-    expect(existsSync(path), path).toBe(true)
-    expect(readFileSync(path, 'utf8').toLowerCase()).not.toContain('reconcil')
   })
 })
