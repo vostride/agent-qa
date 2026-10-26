@@ -17,7 +17,8 @@ it.each([false, true])('round-trips complete panel comparison groups (noConsensu
   expect(f.record.judge?.panelSize).toBe(2)
   const raw = JSON.parse(readFileSync(f.written.file, 'utf8'))
   expect((raw.score.entry.score.judgeSettled ?? raw.score.entry.score.judgeOutcome).members).toHaveLength(noConsensus ? 6 : 2)
-  expect(resolveScoringContext({ ...f, expectedJudgeRequest: f.judgeRequest }).compatible).toBe(true)
+  expect(f.record.scoringContext.judgeRequest).toEqual(f.judgeRequest)
+  expect(resolveScoringContext(f).compatible).toBe(true)
 })
 
 it.each(['cardinality', 'duplicate', 'family', 'override', 'outcome-member', 'outcome-kind', 'usage', 'incomplete-group', 'extra-group', 'version'])(
@@ -46,14 +47,15 @@ it.each(['finalScoreDigest', 'judgeIdentityDigest', 'inputsDigest', 'replayDiges
     if (change === 'request') record.scoringContext.judgeRequest = { judgeModelId: 'foreign', allowSameFamily: false }
     else if (change === 'old-version') record.judge!.judgeVersion = 1
     else record.scoringContext[change as 'finalScoreDigest'] = 'f'.repeat(64)
-    expect(resolveScoringContext({ ...f, record, expectedJudgeRequest: f.judgeRequest }).compatible).toBe(false)
+    expect(resolveScoringContext({ ...f, record }).compatible).toBe(false)
   })
 
 it('refuses a self-consistent composite override request', async () => {
   const f = await panelScoreFixture(root())
   const judgeRequest = { ...f.judgeRequest, allowSameFamily: true }
   f.record.scoringContext = createScoringContext({ ...f, ...f.record, judgeRequest })
-  expect(resolveScoringContext({ ...f, expectedJudgeRequest: judgeRequest }).compatible).toBe(false)
+  expect(f.record.scoringContext.judgeRequest).toEqual(judgeRequest)
+  expect(resolveScoringContext(f).compatible).toBe(false)
 })
 
 it.each(['incomplete', 'reordered', 'over-cap'])('refuses corrupted no-consensus groups: %s', async change => {

@@ -31,7 +31,7 @@ afterEach(async () => {
 })
 
 function writeLeaves(root: string, count = 2): string[] {
-  const store = new evalLocal.FsCassetteStore({ root, outputDir: root })
+  const store = new evalLocal.FsCassetteStore({ root })
   return Array.from({ length: count }, (_, index) => {
     const handoff = makeLocalV2Handoff({ runId: asRunId(`replay-sweep-${index}`) })
     const extracted = extractRunCassettes({ handoff, artifacts: memArtifacts() }).cassettes.find(
@@ -43,10 +43,13 @@ function writeLeaves(root: string, count = 2): string[] {
   })
 }
 
-function stores(root: string, replaysRoot: string) {
+const cassettesUnder = (root: string) => join(root, evalLocal.DEFAULT_EVAL_CASSETTES_SUBDIR)
+const replaysUnder = (root: string) => join(root, evalLocal.DEFAULT_EVAL_REPLAYS_SUBDIR)
+
+function stores(root: string) {
   return {
-    recordStore: new evalLocal.FsReplayRecordStore({ root, outputDir: replaysRoot }),
-    scoreStore: new evalLocal.FsScoreStore({ root, outputDir: replaysRoot }),
+    recordStore: new evalLocal.FsReplayRecordStore({ root }),
+    scoreStore: new evalLocal.FsScoreStore({ root }),
   }
 }
 
@@ -55,11 +58,11 @@ describe('loadCassetteBundles', () => {
     expect(evalLocal.loadCassetteBundles).toBeTypeOf('function')
     const root = await tempRoot()
     const ids = writeLeaves(root)
-    const corrupt = join(root, 'corrupt')
+    const corrupt = join(cassettesUnder(root), 'corrupt')
     mkdirSync(corrupt)
     writeFileSync(join(corrupt, 'cassette.json'), '{invalid')
 
-    const result = evalLocal.loadCassetteBundles(root)
+    const result = evalLocal.loadCassetteBundles(cassettesUnder(root))
 
     expect(result.swept).toBe(3)
     expect(result.loaded.map(entry => entry.cassette.id)).toEqual(ids)
@@ -77,13 +80,12 @@ describe('loadCassetteBundles', () => {
 })
 
 describe('sweepCassetteReplays', () => {
-  it('persists both leaves and their scores under a retargeted root in the selected order', async () => {
+  it('persists both leaves and their scores under the replays root in the selected order', async () => {
     expect(evalLocal.sweepCassetteReplays).toBeTypeOf('function')
     const root = await tempRoot()
-    const cassettesRoot = join(root, 'cassettes')
-    const ids = writeLeaves(cassettesRoot).reverse()
-    const selected = evalLocal.loadCassetteBundles(cassettesRoot).loaded.reverse()
-    const replaysRoot = join(root, 'repeat-a', 'replays')
+    const ids = writeLeaves(root).reverse()
+    const selected = evalLocal.loadCassetteBundles(cassettesUnder(root)).loaded.reverse()
+    const replaysRoot = replaysUnder(root)
     const stub = capturingStub(() => actionGenerateResult())
     const progress: string[] = []
     const mask = vi.fn((text: string) => text)
@@ -96,7 +98,7 @@ describe('sweepCassetteReplays', () => {
       k: 1,
       seed: 17,
       mask,
-      ...stores(root, replaysRoot),
+      ...stores(root),
       replaysRoot,
       onProgress: id => progress.push(id),
     })
@@ -116,16 +118,14 @@ describe('sweepCassetteReplays', () => {
       expect(evalLocal.loadReplayRecord(dir).kind).toBe('loaded')
       expect(evalLocal.loadScoreRecord(dir).kind).toBe('loaded')
     }
-    expect(existsSync(join(root, evalLocal.DEFAULT_EVAL_REPLAYS_SUBDIR))).toBe(false)
   })
 
   it('counts a second-cassette harness error and still replays the following cassette', async () => {
     expect(evalLocal.sweepCassetteReplays).toBeTypeOf('function')
     const root = await tempRoot()
-    const cassettesRoot = join(root, 'cassettes')
-    const ids = writeLeaves(cassettesRoot, 3)
-    const replaysRoot = join(root, 'replays')
-    const persistence = stores(root, replaysRoot)
+    const ids = writeLeaves(root, 3)
+    const replaysRoot = replaysUnder(root)
+    const persistence = stores(root)
     const save = persistence.recordStore.save.bind(persistence.recordStore)
     // Provider errors become planner samples inside the engine. A store failure exercises the
     // outer harness-error boundary while retaining real replay/model/safety execution.
@@ -136,7 +136,7 @@ describe('sweepCassetteReplays', () => {
     const stub = capturingStub(() => actionGenerateResult())
 
     const result = await evalLocal.sweepCassetteReplays({
-      selected: evalLocal.loadCassetteBundles(cassettesRoot).loaded,
+      selected: evalLocal.loadCassetteBundles(cassettesUnder(root)).loaded,
       profile: stubProfile(),
       auth: noneAuth,
       modelOverrides: { languageModels: stub.languageModels },
@@ -160,9 +160,8 @@ describe('sweepCassetteReplays', () => {
   it('preserves first-sweep records and scores through a second sweep with distinct roots (isolation)', async () => {
     expect(evalLocal.sweepCassetteReplays).toBeTypeOf('function')
     const root = await tempRoot()
-    const cassettesRoot = join(root, 'cassettes')
-    writeLeaves(cassettesRoot)
-    const selected = evalLocal.loadCassetteBundles(cassettesRoot).loaded
+    writeLeaves(root)
+    const selected = evalLocal.loadCassetteBundles(cassettesUnder(root)).loaded
     const stub = capturingStub(() => actionGenerateResult())
     const input = {
       selected,
@@ -171,22 +170,21 @@ describe('sweepCassetteReplays', () => {
       modelOverrides: { languageModels: stub.languageModels },
       mask: (text: string) => text,
     }
-    const firstRoot = join(root, 'repeat-a', 'replays')
     const first = await evalLocal.sweepCassetteReplays({
       ...input,
-      ...stores(root, firstRoot),
-      replaysRoot: firstRoot,
+      ...stores(join(root, 'repeat-a')),
+      replaysRoot: replaysUnder(join(root, 'repeat-a')),
     })
     expect(first.replayed).toBe(2)
     const files = first.replayedDirs.flatMap(dir =>
       [evalLocal.REPLAY_RECORD_FILE, evalLocal.SCORE_FILE].map(name => join(dir, name)),
     )
     const before = files.map(file => readFileSync(file, 'utf8'))
-    const secondRoot = join(root, 'repeat-b', 'replays')
+    const secondRoot = replaysUnder(join(root, 'repeat-b'))
 
     const second = await evalLocal.sweepCassetteReplays({
       ...input,
-      ...stores(root, secondRoot),
+      ...stores(join(root, 'repeat-b')),
       replaysRoot: secondRoot,
     })
 

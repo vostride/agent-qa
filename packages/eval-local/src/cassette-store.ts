@@ -32,8 +32,6 @@ const BLOB_SHA_RE = /^[0-9a-f]{64}$/
 export interface FsCassetteStoreConfig {
   /** Runtime root (normally the workdir's `.agent-qa` directory). */
   root: string
-  /** Optional retargeted output directory. */
-  outputDir?: string
 }
 
 export interface WrittenCassette {
@@ -69,7 +67,7 @@ export class FsCassetteStore {
   private readonly outputRoot: string
 
   constructor(config: FsCassetteStoreConfig) {
-    this.outputRoot = config.outputDir ?? join(config.root, DEFAULT_EVAL_CASSETTES_SUBDIR)
+    this.outputRoot = join(config.root, DEFAULT_EVAL_CASSETTES_SUBDIR)
   }
 
   write(extracted: ExtractedCassette): WrittenCassette {

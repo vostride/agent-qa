@@ -116,14 +116,6 @@ describe('C441-EGRESS', () => {
     expect(session.mask('pw Hunter-42-zz env env-password-not-declared-77'))
       .toBe('pw [secret:PW_441] env env-password-not-declared-77')
   })
-
-  it('a key-only session refuses to mask', async () => {
-    const { configPath } = await writeFixture({ secrets: 'PW_441=Hunter-42-zz\n' })
-    const session = await resolveEvalSession({ configPath, keyOnly: true })
-
-    expect(() => session.mask('Hunter-42-zz'))
-      .toThrow('A key-only eval session has no declared secrets to mask with')
-  })
 })
 
 describe('resolveEvalJudge — named-LLM chain + family preflight (D-03/D-10)', () => {

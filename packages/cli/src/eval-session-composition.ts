@@ -115,7 +115,7 @@ export interface EvalSession {
   configPath: string
   configDir: string
   evalConfig: EvalCliConfig
-  /** Every declared secrets-file value as `[secret:<name>]`; a key-only session's mask throws. */
+  /** Every declared secrets-file value as `[secret:<name>]`. */
   mask: MaskFn
   executionContext: RunExecutionContext
 }
@@ -129,22 +129,11 @@ export interface EvalSession {
 export async function resolveEvalSession(input: {
   configPath?: string
   flags?: EvalSessionFlags
-  /** Declaration-only host probes read no secrets file, so their session cannot mask. */
-  keyOnly?: boolean
 } = {}): Promise<EvalSession> {
   const configPath = input.configPath ?? 'agent-qa.config.yaml'
   const configDir = dirname(resolve(configPath))
   const evalConfig = evalConfigFromFlags(input.flags)
-  const config = await resolveConfig({ configPath, loadAuthPlugins: input.keyOnly !== true })
-
-  if (input.keyOnly === true) {
-    return {
-      config, configPath, configDir,
-      evalConfig,
-      mask: () => { throw new Error('A key-only eval session has no declared secrets to mask with') },
-      executionContext: resolveRunExecutionContext(),
-    }
-  }
+  const config = await resolveConfig({ configPath })
 
   const secretStore = await loadEvalSecretStore(config, configDir)
   const { SecretRedactor } = await import('@vostride/agent-qa-runner')

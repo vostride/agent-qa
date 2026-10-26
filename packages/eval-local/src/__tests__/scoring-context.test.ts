@@ -8,7 +8,10 @@ import {
   extractRunCassettes, scoreCassetteReplay,
   createScoringContext, JUDGE_CONFIG, type LeafReplayResult,
 } from '@vostride/agent-qa-eval'
-import { FsCassetteStore, FsReplayRecordStore, FsScoreStore, assembleScoredBatch, loadScoreRecord } from '../index.js'
+import {
+  DEFAULT_EVAL_CASSETTES_SUBDIR, DEFAULT_EVAL_REPLAYS_SUBDIR, FsCassetteStore, FsReplayRecordStore, FsScoreStore,
+  assembleScoredBatch, loadScoreRecord,
+} from '../index.js'
 import { makeLocalV2Handoff } from './fixtures/local-handoff-fixture.js'
 import { memArtifacts } from './fixtures/replay-fixtures.js'
 
@@ -43,13 +46,14 @@ async function fixture(verdict: 'equivalent' | 'different' | 'unsure' | 'error' 
         : { kind: 'verdict' as const, verdict, confidence: 'high' as const, rationale: 'scripted',
           usage: { calls: 1, inputTokens: 10, outputTokens: 5 } }
     } } }) })
-  const cassettesRoot = join(root, 'cassettes'), replaysRoot = join(root, 'replays')
-  new FsCassetteStore({ root, outputDir: cassettesRoot }).write(extracted)
-  new FsReplayRecordStore({ root, outputDir: replaysRoot }).save(outcome)
+  const cassettesRoot = join(root, DEFAULT_EVAL_CASSETTES_SUBDIR)
+  const replaysRoot = join(root, DEFAULT_EVAL_REPLAYS_SUBDIR)
+  new FsCassetteStore({ root }).write(extracted)
+  new FsReplayRecordStore({ root }).save(outcome)
   const judgeRequest = verdict === 'not-invoked' ? null : { judgeModelId: 'claude-sonnet-4-5', allowSameFamily: false }
   const record = { cassetteId: cassette.id, matcherVersion: 1, diffs: [], ...adjudicated,
     scoringContext: createScoringContext({ cassette, outcome, ...adjudicated, judgeRequest }) }
-  new FsScoreStore({ root, outputDir: replaysRoot }).save(record)
+  new FsScoreStore({ root }).save(record)
   const assemble = () => assembleScoredBatch({ replaysRoot, cassettesRoot })
   return { root, replaysRoot, cassettesRoot, cassette, outcome, record, assemble }
 }
@@ -69,7 +73,7 @@ it.each(['replay', 'matcher', 'judge-version', 'judge-threshold', 'tampered-scor
     const old = structuredClone(f.record)
     if (change === 'replay') {
       const replay = structuredClone(f.outcome); replay.totalDurationMs = 17
-      new FsReplayRecordStore({ root: f.root, outputDir: f.replaysRoot }).save(replay)
+      new FsReplayRecordStore({ root: f.root }).save(replay)
     }
     if (change === 'matcher') old.matcherVersion = 2
     if (change === 'judge-version') {
@@ -78,7 +82,7 @@ it.each(['replay', 'matcher', 'judge-version', 'judge-threshold', 'tampered-scor
     }
     if (change === 'judge-threshold') old.judge!.confidenceThreshold = 'medium'
     if (change === 'tampered-score') old.score = scoreCassetteReplay(f.cassette, f.outcome)
-    new FsScoreStore({ root: f.root, outputDir: f.replaysRoot }).save(old)
+    new FsScoreStore({ root: f.root }).save(old)
     const batch = f.assemble()
     expect(batch.entries[0]!.score).toMatchObject({ entry: { kind: 'never-scored', reason: 'stale-scoring-context' } })
     const report = buildEvalReport(batch.entries)
@@ -91,7 +95,7 @@ it.each(['replay', 'matcher', 'judge-version', 'judge-threshold', 'tampered-scor
 
 it('rejects a malformed present scoring context on read', async () => {
   const f = await fixture('equivalent')
-  const written = new FsScoreStore({ root: f.root, outputDir: f.replaysRoot }).save(f.record)
+  const written = new FsScoreStore({ root: f.root }).save(f.record)
   const raw = JSON.parse(readFileSync(written.file, 'utf8'))
   raw.scoringContext.unrecognized = true
   writeFileSync(written.file, JSON.stringify(raw))

@@ -86,15 +86,6 @@ describe('FsReportStore', () => {
     expect(await readdir(root)).toEqual(['eval'])
   })
 
-  it('honors an explicit outputDir override', async () => {
-    const outputDir = join(root, 'retargeted-reports')
-    const batchReport = report('batch-gamma')
-    const written = new FsReportStore({ root, outputDir }).save(batchReport)
-
-    expect(written.file).toBe(join(outputDir, `${slugBranch('batch-gamma')}.json`))
-    expect(await exists(join(root, DEFAULT_EVAL_REPORTS_SUBDIR))).toBe(false)
-  })
-
   it('names the report path on an interrupted replacement and leaves the old report and no staging directory', async () => {
     const store = new FsReportStore({ root })
     const old = report('interrupted')

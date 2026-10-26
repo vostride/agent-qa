@@ -26,8 +26,6 @@ export const REPLAY_RECORD_FILE = 'replay.json'
 export interface FsReplayRecordStoreConfig {
   /** Runtime root (normally the workdir's `.agent-qa` directory). */
   root: string
-  /** Optional retargeted output directory. */
-  outputDir?: string
   /** Actual producer seed, embedded in the record bytes. */
   executionSeed?: number
 }
@@ -43,7 +41,7 @@ export class FsReplayRecordStore {
   private readonly executionSeed?: number
 
   constructor(config: FsReplayRecordStoreConfig) {
-    this.outputRoot = config.outputDir ?? join(config.root, DEFAULT_EVAL_REPLAYS_SUBDIR)
+    this.outputRoot = join(config.root, DEFAULT_EVAL_REPLAYS_SUBDIR)
     this.executionSeed = config.executionSeed
   }
 

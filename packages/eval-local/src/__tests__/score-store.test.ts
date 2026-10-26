@@ -169,14 +169,13 @@ describe('FsScoreStore (D-13, Pitfall 5)', () => {
     expect(raw).not.toContain('"judge"')
   })
 
-  it('defaults outputRoot to the replays subdir and honors an explicit outputDir override', async () => {
+  it('writes score.json under the replays subdir of the runtime root', async () => {
     expect(SCORE_FILE).toBe('score.json')
 
-    const outputDir = join(root, 'retargeted-scores')
-    const written = new FsScoreStore({ root, outputDir }).save(scoreRecord())
+    const written = new FsScoreStore({ root }).save(scoreRecord())
 
-    const expected = join(outputDir, ...CASSETTE_ID.split('/').map(s => slugBranch(s)))
+    const expected = join(root, DEFAULT_EVAL_REPLAYS_SUBDIR, ...CASSETTE_ID.split('/').map(s => slugBranch(s)))
     expect(written.dir).toBe(expected)
-    expect(await exists(join(root, DEFAULT_EVAL_REPLAYS_SUBDIR))).toBe(false)
+    expect(written.file).toBe(join(expected, SCORE_FILE))
   })
 })

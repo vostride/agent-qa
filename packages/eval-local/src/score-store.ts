@@ -49,8 +49,6 @@ export interface ScoreRecord {
 export interface FsScoreStoreConfig {
   /** Runtime root (normally the workdir's `.agent-qa` directory). */
   root: string
-  /** Optional retargeted output directory. */
-  outputDir?: string
 }
 
 export interface WrittenScoreRecord {
@@ -64,7 +62,7 @@ export class FsScoreStore {
 
   constructor(config: FsScoreStoreConfig) {
     // SAME subdir as the record store — the score sits beside its replay.json.
-    this.outputRoot = config.outputDir ?? join(config.root, DEFAULT_EVAL_REPLAYS_SUBDIR)
+    this.outputRoot = join(config.root, DEFAULT_EVAL_REPLAYS_SUBDIR)
   }
 
   save(record: ScoreRecord): WrittenScoreRecord {

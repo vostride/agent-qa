@@ -151,7 +151,7 @@ export function createScoringContext(input: ScoringInputs & {
 
 /** Score compatibility is independent of planner input and immutable recorded observations. */
 export function resolveScoringContext(input: ScoringInputs & {
-  record?: StoredScore; expectedJudgeRequest?: ScoringJudgeRequest
+  record?: StoredScore
 }): { score?: CassetteScore; incurredJudgeScore?: CassetteScore; compatible: boolean } {
   const { cassette, record } = input
   const refuse = (score: CassetteScore) => ({ score, compatible: false,
@@ -159,20 +159,16 @@ export function resolveScoringContext(input: ScoringInputs & {
   const currentJudge = record === undefined || (hasValidScoreJudgeMetadata(record) &&
     (record.judge === undefined || (record.judge.judgeVersion === JUDGE_CONFIG.judgeVersion &&
     record.judge.confidenceThreshold === JUDGE_CONFIG.confidenceThreshold)))
-  const expectedJudge = input.expectedJudgeRequest
-  const legacyJudgeMatches = expectedJudge === undefined || (expectedJudge === null ? record?.judge === undefined
-    : record?.judge?.judgeModelId === expectedJudge.judgeModelId &&
-      (record.judge.familyOverride !== undefined) === expectedJudge.allowSameFamily)
   const legacy = record?.scoringContext === undefined
   if (legacy && (record === undefined || (record.cassetteId === cassette.id && record.score.cassetteId === cassette.id &&
-    record.matcherVersion === MATCHER_CONFIG.matcherVersion && currentJudge && legacyJudgeMatches))) {
+    record.matcherVersion === MATCHER_CONFIG.matcherVersion && currentJudge))) {
     return { score: record?.score, compatible: true }
   }
   if (record?.scoringContext !== undefined) {
     const parsed = scoringContextSchema.safeParse(record.scoringContext)
     const context = parsed.success ? parsed.data : undefined
     const current = createScoringContext({ ...input, score: record.score, judge: record.judge,
-      judgeRequest: input.expectedJudgeRequest === undefined ? record.scoringContext.judgeRequest : input.expectedJudgeRequest })
+      judgeRequest: record.scoringContext.judgeRequest })
     if (context !== undefined && record.cassetteId === cassette.id && record.score.cassetteId === cassette.id &&
       record.matcherVersion === MATCHER_CONFIG.matcherVersion && canonicalJson(context) === canonicalJson(current) &&
       currentJudge && (record.judge === undefined || context.judgeRequest?.judgeModelId === record.judge.judgeModelId)) {

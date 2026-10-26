@@ -37,23 +37,23 @@ beforeEach(async () => {
 afterEach(async () => { vi.restoreAllMocks(); process.exitCode = 0; await rm(root, { recursive: true, force: true }) })
 
 describe('explicit judge declarations', () => {
-  it('normalizes zero and one without auth work on key-only sessions', async () => {
+  it('normalizes zero and one without auth work', async () => {
     const configPath = await fixture()
-    const empty = await composition.resolveEvalSession({ configPath, keyOnly: true, flags: { judge: [] } })
+    const empty = await composition.resolveEvalSession({ configPath, flags: { judge: [] } })
     expect(empty.evalConfig.judge).toBeUndefined()
     expect(empty.evalConfig.judges).toBeUndefined()
     expect((await composition.resolveEvalJudge(empty)).judge).toBeUndefined()
-    const single = await composition.resolveEvalSession({ configPath, keyOnly: true, flags: { judge: ['a'] } })
+    const single = await composition.resolveEvalSession({ configPath, flags: { judge: ['a'] } })
     expect(single.evalConfig).toEqual({ judge: 'a' })
     expect(llm.resolveModelAuth).not.toHaveBeenCalled()
   })
   it('refuses malformed runtime flags and more than three names without pruning', async () => {
     const configPath = await fixture()
-    await expect(composition.resolveEvalSession({ configPath, keyOnly: true,
+    await expect(composition.resolveEvalSession({ configPath,
       flags: { judge: ['a', 'b', 'a', 'b'] } })).rejects.toThrow(
       new composition.EvalJudgeDeclarationError('Pass at most 3 --judge names.'))
     for (const judge of [[''], [3], null, Array(2)]) {
-      await expect(composition.resolveEvalSession({ configPath, keyOnly: true,
+      await expect(composition.resolveEvalSession({ configPath,
         flags: { judge: judge as unknown as string[] } })).rejects.toThrow(
         new composition.EvalJudgeDeclarationError('--judge needs a nonempty registry name.'))
     }
@@ -61,7 +61,7 @@ describe('explicit judge declarations', () => {
   })
   it('keeps repeated --judge names in order as a panel', async () => {
     const configPath = await fixture()
-    const session = await composition.resolveEvalSession({ configPath, flags: { judge: ['b', 'a'] }, keyOnly: true })
+    const session = await composition.resolveEvalSession({ configPath, flags: { judge: ['b', 'a'] } })
     expect(session.evalConfig).toEqual({ judges: ['b', 'a'] })
     expect(llm.resolveModelAuth).not.toHaveBeenCalled()
   })

@@ -100,16 +100,13 @@ describe('FsReplayRecordStore (D-12)', () => {
     expect(JSON.parse(raw)).toEqual(outcome)
   })
 
-  it('defaults outputRoot to root/eval/replays and honors an explicit outputDir override', async () => {
+  it('writes replay.json under root/eval/replays', async () => {
     expect(DEFAULT_EVAL_REPLAYS_SUBDIR).toBe('eval/replays')
     expect(REPLAY_RECORD_FILE).toBe('replay.json')
 
-    const outputDir = join(root, 'retargeted-replays')
     const outcome = leafResult()
-    const written = new FsReplayRecordStore({ root, outputDir }).save(outcome)
+    const written = new FsReplayRecordStore({ root }).save(outcome)
 
-    const expected = join(outputDir, ...outcome.cassetteId.split('/').map(s => slugBranch(s)))
-    expect(written.dir).toBe(expected)
-    expect(await exists(join(root, DEFAULT_EVAL_REPLAYS_SUBDIR))).toBe(false)
+    expect(written.file).toBe(join(expectedDir(root, outcome.cassetteId), REPLAY_RECORD_FILE))
   })
 })

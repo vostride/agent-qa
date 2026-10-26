@@ -54,8 +54,8 @@ function leafOutcome(cassetteId: string): LeafReplayResult {
 describe('assembleScoredBatch', () => {
   it('reads historical unstamped replays without inventing brief provenance or NaN counters', async () => {
     const root = await tempRoot()
-    const replaysRoot = join(root, 'replays')
-    const store = new evalLocal.FsReplayRecordStore({ root, outputDir: replaysRoot })
+    const replaysRoot = join(root, evalLocal.DEFAULT_EVAL_REPLAYS_SUBDIR)
+    const store = new evalLocal.FsReplayRecordStore({ root })
     const legacy = leafOutcome('legacy-leaf')
     legacy.promptDrift.drift = true
     const written = store.save(legacy)
@@ -67,7 +67,7 @@ describe('assembleScoredBatch', () => {
     current.promptDrift.drift = true
     store.save(current)
     for (const cassetteId of [legacy.cassetteId, current.cassetteId]) {
-      new evalLocal.FsScoreStore({ root, outputDir: replaysRoot }).save({
+      new evalLocal.FsScoreStore({ root }).save({
         cassetteId, matcherVersion: 1, diffs: [],
         score: { kind: 'leaf', cassetteId, entry: { kind: 'decision', decisionOrdinal: 0,
           score: { kind: 'miss-by-failure', reason: 'no action', matcherVersion: 1 } } },
@@ -78,7 +78,7 @@ describe('assembleScoredBatch', () => {
       reason: 'unsupported-brief', detail: 'recorded before brief rendering',
     })
     const batch = evalLocal.assembleScoredBatch({
-      replaysRoot, cassettesRoot: join(root, 'cassettes'),
+      replaysRoot, cassettesRoot: join(root, evalLocal.DEFAULT_EVAL_CASSETTES_SUBDIR),
     })
     const report = buildEvalReport(batch.entries)
     expect(batch.entries.find(entry => entry.cassetteId === legacy.cassetteId)!.outcome)
@@ -93,11 +93,11 @@ describe('assembleScoredBatch', () => {
   it('joins labels and persisted scores while retaining a corrupt replay as a refusal entry', async () => {
     expect(evalLocal.assembleScoredBatch).toBeTypeOf('function')
     const root = await tempRoot()
-    const replaysRoot = join(root, 'repeat', 'replays')
-    const cassettesRoot = join(root, 'corpus', 'cassettes')
+    const replaysRoot = join(root, evalLocal.DEFAULT_EVAL_REPLAYS_SUBDIR)
+    const cassettesRoot = join(root, evalLocal.DEFAULT_EVAL_CASSETTES_SUBDIR)
     const leaf = leafFixture()
-    new evalLocal.FsCassetteStore({ root, outputDir: cassettesRoot }).write(leaf)
-    const recordStore = new evalLocal.FsReplayRecordStore({ root, outputDir: replaysRoot })
+    new evalLocal.FsCassetteStore({ root }).write(leaf)
+    const recordStore = new evalLocal.FsReplayRecordStore({ root })
     const scoredOutcome = leafOutcome(leaf.cassette.id)
     const unscoredOutcome = leafOutcome('unbundled/leaf')
     recordStore.save(scoredOutcome)
@@ -123,7 +123,7 @@ describe('assembleScoredBatch', () => {
       diffs: [],
       judge,
     }
-    new evalLocal.FsScoreStore({ root, outputDir: replaysRoot }).save(record)
+    new evalLocal.FsScoreStore({ root }).save(record)
     const corruptDir = join(replaysRoot, 'corrupt')
     mkdirSync(corruptDir)
     writeFileSync(join(corruptDir, evalLocal.REPLAY_RECORD_FILE), '{invalid')
@@ -159,12 +159,12 @@ describe('assembleScoredBatch', () => {
   it('reports refused bundle and score reads without discarding the replay outcome', async () => {
     expect(evalLocal.assembleScoredBatch).toBeTypeOf('function')
     const root = await tempRoot()
-    const cassettesRoot = join(root, 'cassettes')
-    mkdirSync(cassettesRoot)
+    const cassettesRoot = join(root, evalLocal.DEFAULT_EVAL_CASSETTES_SUBDIR)
+    mkdirSync(cassettesRoot, { recursive: true })
     writeFileSync(join(cassettesRoot, evalLocal.CASSETTE_FILE), '{invalid')
-    const replaysRoot = join(root, 'replays')
+    const replaysRoot = join(root, evalLocal.DEFAULT_EVAL_REPLAYS_SUBDIR)
     const outcome = leafOutcome('unbundled/leaf')
-    const written = new evalLocal.FsReplayRecordStore({ root, outputDir: replaysRoot }).save(outcome)
+    const written = new evalLocal.FsReplayRecordStore({ root }).save(outcome)
     writeFileSync(join(written.dir, evalLocal.SCORE_FILE), '{invalid')
 
     const result = evalLocal.assembleScoredBatch({ replaysRoot, cassettesRoot })
@@ -188,11 +188,11 @@ describe('assembleScoredBatch', () => {
       reason: 'missing-blob' as const,
       detail: 'Missing fixture blob',
     }
-    new evalLocal.FsReplayRecordStore({ root, outputDir: root }).save(outcome)
+    new evalLocal.FsReplayRecordStore({ root }).save(outcome)
 
     const result = evalLocal.assembleScoredBatch({
-      replaysRoot: root,
-      cassettesRoot: join(root, 'absent'),
+      replaysRoot: join(root, evalLocal.DEFAULT_EVAL_REPLAYS_SUBDIR),
+      cassettesRoot: join(root, evalLocal.DEFAULT_EVAL_CASSETTES_SUBDIR),
     })
 
     expect(result.entries).toEqual([{ cassetteId: outcome.cassetteId, outcome }])

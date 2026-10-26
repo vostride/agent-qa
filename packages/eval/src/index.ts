@@ -215,7 +215,6 @@ export { assembleReceipt, canonicalizeInputLeg } from './extract/receipt'
 export type { AssembleReceiptInput } from './extract/receipt'
 export {
   deriveLeafCassetteId,
-  deriveGoldCassetteId,
   deriveProcedureCassetteId,
   deriveRunSlug,
 } from './extract/ids'

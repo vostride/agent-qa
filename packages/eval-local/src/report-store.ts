@@ -26,8 +26,6 @@ export const DEFAULT_EVAL_REPORTS_SUBDIR = 'eval/reports'
 export interface FsReportStoreConfig {
   /** Runtime root (normally the workdir's `.agent-qa` directory). */
   root: string
-  /** Optional retargeted reports directory. */
-  outputDir?: string
 }
 
 export interface WrittenReport {
@@ -39,7 +37,7 @@ export class FsReportStore {
   private readonly outputRoot: string
 
   constructor(config: FsReportStoreConfig) {
-    this.outputRoot = config.outputDir ?? join(config.root, DEFAULT_EVAL_REPORTS_SUBDIR)
+    this.outputRoot = join(config.root, DEFAULT_EVAL_REPORTS_SUBDIR)
   }
 
   save(report: EvalBatchReport): WrittenReport {

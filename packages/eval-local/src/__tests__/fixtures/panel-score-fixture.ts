@@ -5,8 +5,8 @@ import {
   createPanelIdentity, createScoringContext, extractRunCassettes, scoreCassetteReplay,
   type JudgePort, type LeafReplayResult,
 } from '@vostride/agent-qa-eval'
-import { FsCassetteStore } from '../../cassette-store.js'
-import { FsReplayRecordStore } from '../../replay-record-store.js'
+import { DEFAULT_EVAL_CASSETTES_SUBDIR, FsCassetteStore } from '../../cassette-store.js'
+import { DEFAULT_EVAL_REPLAYS_SUBDIR, FsReplayRecordStore } from '../../replay-record-store.js'
 import { FsScoreStore } from '../../score-store.js'
 import { makeLocalV2Handoff } from './local-handoff-fixture.js'
 import { memArtifacts } from './replay-fixtures.js'
@@ -47,9 +47,10 @@ export async function panelScoreFixture(root: string, verdicts = ['different', '
   const judgeRequest = { judgeModelId: judge.judgeModelId, allowSameFamily: false }
   const record = { cassetteId: cassette.id, matcherVersion: 1, diffs: [], ...adjudicated,
     scoringContext: createScoringContext({ cassette, outcome, ...adjudicated, judgeRequest }) }
-  const cassettesRoot = join(root, 'cassettes'), replaysRoot = join(root, 'replays')
-  new FsCassetteStore({ root, outputDir: cassettesRoot }).write(extracted)
-  new FsReplayRecordStore({ root, outputDir: replaysRoot }).save(outcome)
-  const written = new FsScoreStore({ root, outputDir: replaysRoot }).save(record)
+  const cassettesRoot = join(root, DEFAULT_EVAL_CASSETTES_SUBDIR)
+  const replaysRoot = join(root, DEFAULT_EVAL_REPLAYS_SUBDIR)
+  new FsCassetteStore({ root }).write(extracted)
+  new FsReplayRecordStore({ root }).save(outcome)
+  const written = new FsScoreStore({ root }).save(record)
   return { cassette, outcome, record, written, cassettesRoot, replaysRoot, judgeRequest }
 }
