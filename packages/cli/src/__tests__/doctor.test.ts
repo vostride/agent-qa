@@ -397,12 +397,12 @@ describe('doctor command', () => {
     const configPath = resolve(process.cwd(), 'fixture', 'agent-qa.config.yaml')
     const legacyMemoryDir = resolve(process.cwd(), 'fixture', 'agent-qa-memory')
     mockExistsSync.mockImplementation(path => path === legacyMemoryDir)
+    const warning = `v1 memory data found at ${legacyMemoryDir} — no longer used by agent-qa; safe to delete`
+    forceTerminalWidth(warning.length + 120)
 
     await runDoctor(configPath)
 
-    expect(getOutput()).toContain(
-      `v1 memory data found at ${legacyMemoryDir} — no longer used by agent-qa; safe to delete`,
-    )
+    expect(getOutput()).toContain(warning)
     expect(getOutput()).toContain('WARN')
   })
 
@@ -996,7 +996,7 @@ targets:
 
   it('Overall result: all pass → exit 0', async () => {
     Object.defineProperty(process, 'version', { value: 'v24.10.0', writable: true })
-    mockExistsSync.mockImplementation(path => !String(path).endsWith('agent-qa-eval'))
+    mockExistsSync.mockReturnValue(true)
     mockExecSync.mockReturnValue(Buffer.from('ok'))
     mockResolveLLMAuth.mockResolvedValue({
       kind: 'unauthenticated',
@@ -1053,7 +1053,7 @@ targets:
 
   async function runHealthyHost(): Promise<void> {
     Object.defineProperty(process, 'version', { value: 'v24.10.0', writable: true })
-    mockExistsSync.mockImplementation(path => !String(path).endsWith('agent-qa-eval'))
+    mockExistsSync.mockReturnValue(true)
     mockExecSync.mockReturnValue(Buffer.from('ok'))
     mockResolveLLMAuth.mockResolvedValue({
       kind: 'unauthenticated',
