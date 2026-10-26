@@ -20,7 +20,6 @@ import {
   type ScopeKey,
   type ScreenState,
   type SearchOptions,
-  type TrustPriorTable,
 } from '@vostride/agent-qa-schema'
 
 import {
@@ -41,7 +40,7 @@ import {
   type KnowledgeReader,
   type OpenKnowledgeReaderOptions,
 } from '../index-reader.js'
-import { assemblePromotionGateInput, snapshotTrustPriors } from '../promotion-gate-input.js'
+import { assemblePromotionGateInput } from '../promotion-gate-input.js'
 import { scopeLadderPredicate } from '../retrieval/pre-filter.js'
 import { effectivePriorDigest, indexTrustEpochMatches } from '../trust-prior-context.js'
 import { selectCautions } from './get-cautions.js'
@@ -54,8 +53,6 @@ const CHARS_PER_TOKEN_ESTIMATE = 4
 
 export interface OpenServingKnowledgeReaderConfig {
   knowledgeRoot: string
-  /** Neutral host data, snapshotted when this reader is opened. */
-  priors?: TrustPriorTable
   product?: string
   scopeDefaults?: {
     asOfBuild?: number
@@ -127,7 +124,7 @@ export function readIndexRows(
     })
     // Pin eligibility before selection: rehydrating mismatched selected rows cannot recover
     // canonical bundles that another epoch's index omitted. Keep the shared SQL scope wall.
-    if (!indexTrustEpochMatches(reader.db, effectivePriorDigest(config.priors))) {
+    if (!indexTrustEpochMatches(reader.db, effectivePriorDigest())) {
       const admits = reader.db.prepare(`
         SELECT 1 FROM (SELECT ? AS product, ? AS scope_tier, ? AS scope_key) r
         WHERE ${predicate.sql}
@@ -192,13 +189,12 @@ export function hydrateRows(
     if (loaded.kind !== 'loaded' || !verifyBundleIntegrity(found.dir).ok) return []
 
     const { bundle } = loaded
-    const trust = deriveBundleTrust(bundle, config.priors)
+    const trust = deriveBundleTrust(bundle)
     const vetted = trust.status === 'candidate' && isVettedCandidate(
       assemblePromotionGateInput({
         knowledgeRoot: config.knowledgeRoot,
         bundleDir: found.dir,
         bundle,
-        priors: config.priors,
       }),
     )
     const entry: OriginStampedEntry = {
@@ -326,7 +322,7 @@ function searchEntries(
       ) {
         return false
       }
-      const trust = deriveBundleTrust(bundle, config.priors)
+      const trust = deriveBundleTrust(bundle)
       if (
         options.asOfBuild !== undefined
         && !validAtBuild(
@@ -387,7 +383,7 @@ function findReadableBundle(
     return undefined
   }
 
-  const trust = deriveBundleTrust(hydrated.bundle, config.priors)
+  const trust = deriveBundleTrust(hydrated.bundle)
   const asOfBuild = options?.asOfBuild ?? config.scopeDefaults?.asOfBuild
   if (
     asOfBuild !== undefined
@@ -556,5 +552,5 @@ export function openKnowledgeReader(
   // KnowledgeHintReader composition seam used by the runner.
   return typeof configOrKnowledgeRoot === 'string'
     ? openIndexKnowledgeReader(configOrKnowledgeRoot, opts)
-    : servingReader({ ...configOrKnowledgeRoot, priors: snapshotTrustPriors(configOrKnowledgeRoot.priors) })
+    : servingReader(configOrKnowledgeRoot)
 }

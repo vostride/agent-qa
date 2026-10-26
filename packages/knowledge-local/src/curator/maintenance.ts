@@ -1,5 +1,3 @@
-import type { TrustPriorTable } from '@vostride/agent-qa-schema'
-import { snapshotTrustPriors } from '../promotion-gate-input.js'
 import {
   acquireEmbedder,
   type AcquireEmbedderOutcome,
@@ -69,8 +67,6 @@ export interface MaintenanceBudget {
 
 export interface RunMaintenanceTailOptions {
   knowledgeRoot: string
-  /** Same host-resolved data supplied to drains and review stores. */
-  priors?: TrustPriorTable
   lease: { leaseId: string; epoch: number }
   /** Host-resolved posture; daemon callers pass worker-required, one-shot callers omit it. */
   embeddingCapability?: AcquireEmbedderOutcome
@@ -132,7 +128,6 @@ async function runWriterPass(
   const injectedRebuild = options.operations?.rebuildIndex !== undefined
   const rebuild = await operations.rebuildIndex({
     knowledgeRoot: options.knowledgeRoot,
-    ...(options.priors === undefined ? {} : { priors: options.priors }),
     ...(capability.kind === 'ready' ? { embedder: capability.embedder } : {}),
     // Production rebuilds retain Phase 385's fresh authority fence at every mutation boundary.
     // Fault-injection rebuilds keep their historical call shape and own their injected behavior.
@@ -169,8 +164,6 @@ function shouldSurfaceAuthorityLoss(
 export async function runMaintenanceTail(
   options: RunMaintenanceTailOptions,
 ): Promise<MaintenanceTailResult> {
-  const priors = snapshotTrustPriors(options.priors)
-  options = { ...options, ...(priors === undefined ? {} : { priors }) }
   const operations: MaintenanceOperations = {
     ...DEFAULT_OPERATIONS,
     ...options.operations,

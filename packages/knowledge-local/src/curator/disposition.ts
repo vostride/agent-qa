@@ -16,7 +16,6 @@ import {
   type ProcedureBodyPayload,
   type RecordId,
   type ScopeKey,
-  type TrustPriorTable,
 } from '@vostride/agent-qa-schema'
 
 import {
@@ -26,7 +25,6 @@ import {
   type LoadedBundle,
 } from '../bundle-read.js'
 import { enumerateBundleDirs } from '../bundle-scan.js'
-import { snapshotTrustPriors } from '../promotion-gate-input.js'
 import type { AuthoredDeltaCheckpoint, DispositionProfile } from './author-contract.js'
 import {
   SCOPE_BURST_THRESHOLD,
@@ -119,7 +117,6 @@ export interface DisposeDeltaInput {
   checkpoint: AuthoredDeltaCheckpoint
   profile: DispositionProfile
   knowledgeRoot: string
-  priors?: TrustPriorTable
   /**
    * Verified queue evidence needed for anchor and new-ordinal checks. Optional only for the
    * non-mutating delta shapes; Add and Supersede fail closed when it is absent.
@@ -231,7 +228,7 @@ function deltaTargetIds(delta: Delta): RecordId[] {
   return [...ids]
 }
 
-function truthLookup(knowledgeRoot: string, priors?: TrustPriorTable): TruthLookup {
+function truthLookup(knowledgeRoot: string): TruthLookup {
   const cache = new Map<RecordId, BundleTruth | undefined>()
   return (id) => {
     if (cache.has(id)) return cache.get(id)
@@ -240,8 +237,7 @@ function truthLookup(knowledgeRoot: string, priors?: TrustPriorTable): TruthLook
       const loaded = loadBundle(entry.dir)
       if (loaded.kind !== 'loaded' || loaded.bundle.manifest.id !== id) continue
       // BundleTruth consumes lifecycle and validity ordinals only, never numerical trust.
-      // Still carry the caller's snapshot so extending this projection cannot mix defaults.
-      const trust = deriveBundleTrust(loaded.bundle, priors)
+      const trust = deriveBundleTrust(loaded.bundle)
       const truth: BundleTruth = {
         dir: entry.dir,
         bundle: loaded.bundle,
@@ -1225,12 +1221,11 @@ function procedureBindingIntegrityReject(
  * decision is made from the persisted checkpoint and canonical bundle tree, never an index row.
  */
 export function disposeDelta(input: DisposeDeltaInput): DispositionOutcome {
-  const priors = snapshotTrustPriors(input.priors)
   const procedureReject = disposeProcedureExtraction(input)
   if (procedureReject !== undefined) {
     return { kind: 'noop', reason: procedureReject }
   }
-  const lookup = truthLookup(input.knowledgeRoot, priors)
+  const lookup = truthLookup(input.knowledgeRoot)
   const measurement = disposeMeasurementDrift(input, lookup)
   const dispositionInput = measurement.input
   const state: EvaluationState = {}

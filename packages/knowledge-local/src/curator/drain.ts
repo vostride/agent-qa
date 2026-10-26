@@ -10,7 +10,6 @@ import {
   type IndexEntry,
   type PromotionGateHoldReason,
   type PromotionPath,
-  type TrustPriorTable,
   type CurationSnapshot,
   type CurationSnapshotChange,
 } from '@vostride/agent-qa-schema'
@@ -87,7 +86,6 @@ import {
 import type { DispositionDrainState } from './disposition.js'
 import { constructFallbackDeltas } from './fallback.js'
 import { createLocalKnowledgeStore } from './knowledge-store.js'
-import { snapshotTrustPriors } from '../promotion-gate-input.js'
 import type { CanaryAuthorityHooks } from './knowledge-store.js'
 import {
   runMaintenanceTail,
@@ -254,8 +252,6 @@ export interface DrainOptions {
   executionContext: ExecutionContext
   /** Host-resolved posture; daemon sessions pass worker-required capability here. */
   embeddingCapability?: AcquireEmbedderOutcome
-  /** Already-resolved host snapshot; the host retains this data across queue retries. */
-  priors?: TrustPriorTable
   /** Default inline preserves one-shot behavior; daemon sessions skip for their own cadence. */
   maintenance?: 'inline' | 'skip'
   signal?: AbortSignal
@@ -848,19 +844,16 @@ function reconcileDependencies(
   operations: DrainOperations,
   knowledgeRoot: string,
   writerAuthority: CurrentWriterAuthority,
-  priors?: TrustPriorTable,
 ) {
   return {
     knowledgeRoot,
     writerAuthority,
     hasIndexRow: (bundleId: string) => operations.hasIndexRow(knowledgeRoot, bundleId),
     applyIndexDelta: (intent: CommitIntent) => {
-      operations.applyIndexDeltaForBundle({ knowledgeRoot, bundleId: intent.bundleId,
-        ...(priors === undefined ? {} : { priors }) })
+      operations.applyIndexDeltaForBundle({ knowledgeRoot, bundleId: intent.bundleId })
     },
     deriveIndexRowFromBundle: (bundleId: string) => {
-      operations.deriveIndexRowFromBundle({ knowledgeRoot, bundleId,
-        ...(priors === undefined ? {} : { priors }) })
+      operations.deriveIndexRowFromBundle({ knowledgeRoot, bundleId })
     },
   }
 }
@@ -880,7 +873,6 @@ function budgetMs(options: DrainOptions): number {
  * boundaries; an in-flight model request is cut off only by the host's own author signal.
  */
 export async function drainQueue(options: DrainOptions): Promise<DrainReport> {
-  const priors = snapshotTrustPriors(options.priors)
   const operations: DrainOperations = { ...DEFAULT_OPERATIONS, ...options.operations }
   const now = options.now ?? Date.now
   const startedAt = now()
@@ -916,7 +908,7 @@ export async function drainQueue(options: DrainOptions): Promise<DrainReport> {
   try {
     try {
       result.reconcile = operations.reconcileOnDrainStart(
-        reconcileDependencies(operations, options.knowledgeRoot, lease, priors),
+        reconcileDependencies(operations, options.knowledgeRoot, lease),
       )
     } catch (error) {
       recordFailure(result, 'reconcile', error)
@@ -999,7 +991,6 @@ export async function drainQueue(options: DrainOptions): Promise<DrainReport> {
             sourceRunId: canaryOutcome.runId,
             sourceJobId: claimed.candidateId,
             writerLeaseId: lease.leaseId,
-            ...(priors === undefined ? {} : { resolveTrustPriors: () => priors }),
             onPromotionOutcome: outcome => result.promotions.push(outcome),
             /**
              * CR-02: the terminal transition joins the canary tail's own held section through
@@ -1138,7 +1129,6 @@ export async function drainQueue(options: DrainOptions): Promise<DrainReport> {
               epoch: lease.epoch,
               profile: resolveDispositionProfile(executionContext),
               drainState,
-              ...(priors === undefined ? {} : { priors }),
               ...(!finalDelta || anySliceFailed ? { deferCompletion: true } : {}),
             },
             claimed,
@@ -1223,7 +1213,6 @@ export async function drainQueue(options: DrainOptions): Promise<DrainReport> {
     } else {
       const maintenance = await runMaintenanceTail({
         knowledgeRoot: options.knowledgeRoot,
-        ...(priors === undefined ? {} : { priors }),
         lease,
         ...(options.embeddingCapability === undefined
           ? {}

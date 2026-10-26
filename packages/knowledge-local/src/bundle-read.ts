@@ -37,7 +37,6 @@ import type {
   MeasurementObservation,
   RecordFrontmatter,
   ScreenState,
-  TrustPriorTable,
 } from '@vostride/agent-qa-schema'
 
 export interface LoadedBundle {
@@ -395,10 +394,10 @@ export function verifyBundleIntegrity(bundleDir: string): IntegrityReport {
 /**
  * Phase 375 consumes this exact disk-derived projection seam; no model-produced scalar enters it.
  */
-export function deriveBundleTrust(loaded: LoadedBundle, priors?: TrustPriorTable): DerivedTrustState {
+export function deriveBundleTrust(loaded: LoadedBundle): DerivedTrustState {
   return foldBundleTrust(loaded.events, {
     originClass: loaded.provenance.originClass,
     evidenceIncomplete: loaded.manifest.evidenceIncomplete,
     createdAtOrdinal: loaded.manifest.createdAtOrdinal,
-  }, priors)
+  })
 }

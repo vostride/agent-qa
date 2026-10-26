@@ -841,8 +841,6 @@ export {
   foldBundleTrust,
 } from './knowledge/index'
 export type { BundleStatus, DerivedTrustState } from './knowledge/index'
-export { guardTrustPriorTable } from './knowledge/trust-fold'
-export type { TrustPriorTable } from './knowledge/trust-fold'
 export {
   INSPECT_RECORD_VIEW_SCHEMA_VERSION,
   RECORD_CHANGE_SCHEMA_VERSION,

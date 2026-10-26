@@ -1,11 +1,10 @@
 import { createHash } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
-import { canonicalJson, guardTrustPriorTable, ORIGIN_PRIORS, type TrustPriorTable } from '@vostride/agent-qa-schema'
+import { canonicalJson, ORIGIN_PRIORS } from '@vostride/agent-qa-schema'
 
-/** Neutral fold identity: omitted origins have exactly the provisional meaning. */
-export function effectivePriorDigest(priors?: TrustPriorTable): string {
-  const table = priors === undefined ? undefined : guardTrustPriorTable(priors)
-  return createHash('sha256').update(canonicalJson({ ...ORIGIN_PRIORS, ...table })).digest('hex')
+/** The fold identity an index's trust values were computed under. */
+export function effectivePriorDigest(): string {
+  return createHash('sha256').update(canonicalJson({ ...ORIGIN_PRIORS })).digest('hex')
 }
 
 /** Call inside the same read transaction as the numerical index selection. */

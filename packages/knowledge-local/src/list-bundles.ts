@@ -8,7 +8,7 @@
 
 import { relative } from 'node:path'
 
-import type { KnowledgeBundleSummary, TrustPriorTable } from '@vostride/agent-qa-schema'
+import type { KnowledgeBundleSummary } from '@vostride/agent-qa-schema'
 
 import { deriveBundleTrust, loadBundle } from './bundle-read.js'
 import { enumerateBundleDirs } from './bundle-scan.js'
@@ -28,7 +28,7 @@ import { enumerateBundleDirs } from './bundle-scan.js'
  * Order is total and stable: product, then bundle directory name (which is the record id).
  * `enumerateBundleDirs` already sorts on exactly those two keys.
  */
-export function listBundles(knowledgeRoot: string, priors?: TrustPriorTable): KnowledgeBundleSummary[] {
+export function listBundles(knowledgeRoot: string): KnowledgeBundleSummary[] {
   const rows: KnowledgeBundleSummary[] = []
 
   for (const entry of enumerateBundleDirs(knowledgeRoot)) {
@@ -36,7 +36,7 @@ export function listBundles(knowledgeRoot: string, priors?: TrustPriorTable): Kn
     if (outcome.kind !== 'loaded') continue
 
     const { bundle } = outcome
-    const trust = deriveBundleTrust(bundle, priors)
+    const trust = deriveBundleTrust(bundle)
 
     rows.push({
       bundleId: bundle.manifest.id,

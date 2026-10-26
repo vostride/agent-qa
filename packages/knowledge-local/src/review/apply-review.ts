@@ -50,7 +50,6 @@ import type {
   KnowledgeReviewVerb,
   KnowledgeTargetRef,
   MarkChangeStamp,
-  TrustPriorTable,
 } from '@vostride/agent-qa-schema'
 
 import { deriveBundleTrust, loadBundle, readGateReceipts } from '../bundle-read.js'
@@ -60,7 +59,6 @@ import {
   KnowledgePromotionError,
   syntheticEvidenceToken,
 } from '../curator/knowledge-store.js'
-import { snapshotTrustPriors } from '../promotion-gate-input.js'
 import { diffSince } from '../diff-since.js'
 import { materializePolicy, policyShelfPath, PolicyTextRefusedError } from '../policy/materialize.js'
 import { acquireWriterLease, withCurrentWriterAuthority } from '../lease/writer-lease.js'
@@ -130,7 +128,6 @@ interface ReviewWriter {
   readonly executionContext: ExecutionContext
   /** Stamped as a Gate-3 receipt's `producedBy.opId`: the op that made this explicit change. */
   readonly opId: string
-  readonly resolveTrustPriors?: () => TrustPriorTable | undefined
   readonly now?: () => number
 }
 
@@ -333,9 +330,6 @@ function reviewStore(
     writerLeaseId: lease.leaseId,
     ...(change.mark === undefined ? {} : { sourceRunId: change.mark.runId }),
     ...(sourceBuildOrdinal === undefined ? {} : { sourceBuildOrdinal }),
-    ...(writer.resolveTrustPriors === undefined
-      ? {}
-      : { resolveTrustPriors: writer.resolveTrustPriors }),
   })
 }
 
@@ -739,7 +733,6 @@ export interface ApplyExplicitReviewInput {
   readonly resolveBundleShortId?: ResolveBundleShortId
   readonly delegate?: ExplicitReviewDelegate
   readonly writerAuthority?: WriterAuthority
-  readonly resolveTrustPriors?: () => TrustPriorTable | undefined
   readonly now?: () => number
   readonly delegateTimeoutMs?: number
 }
@@ -842,12 +835,10 @@ export async function applyExplicitReview(input: ApplyExplicitReviewInput): Prom
   if (typeof input.opId !== 'string' || input.opId.length === 0) {
     throw new TypeError('applyExplicitReview needs the op id that makes the change')
   }
-  const priors = snapshotTrustPriors(input.resolveTrustPriors?.())
   const writer: ReviewWriter = {
     knowledgeRoot: input.knowledgeRoot,
     executionContext: input.executionContext,
     opId: input.opId,
-    ...(input.resolveTrustPriors === undefined ? {} : { resolveTrustPriors: () => priors }),
     ...(input.now === undefined ? {} : { now: input.now }),
   }
   if (input.writerAuthority !== undefined) {

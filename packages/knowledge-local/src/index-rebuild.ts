@@ -16,7 +16,6 @@ import {
   anchorGraphNode,
   canonicalJson,
   guardDistilledObservation,
-  guardTrustPriorTable,
   recordGraphNode,
 } from '@vostride/agent-qa-schema'
 import type {
@@ -26,7 +25,6 @@ import type {
   GraphNodeNaturalKey,
   GraphNodeType,
   Platform,
-  TrustPriorTable,
 } from '@vostride/agent-qa-schema'
 
 import { deriveBundleTrust, loadBundle, verifyBundleIntegrity } from './bundle-read.js'
@@ -68,7 +66,6 @@ import {
 } from './lease/writer-lease.js'
 import { clearRebuildRequest } from './rebuild-marker.js'
 import { effectivePriorDigest } from './trust-prior-context.js'
-import { snapshotTrustPriors } from './promotion-gate-input.js'
 
 export interface RebuildReport {
   projected: number
@@ -100,7 +97,6 @@ export interface RebuildIndexHooks {
 
 export interface RebuildIndexOptions {
   knowledgeRoot: string
-  priors?: TrustPriorTable
   embedder?: EmbedderPort
   vecLoadablePath?: string
   writerAuthority?: WriterLeaseAuthority
@@ -109,7 +105,6 @@ export interface RebuildIndexOptions {
 
 export interface ProjectBundleIndexRowOptions {
   knowledgeRoot: string
-  priors?: TrustPriorTable
   bundleId: string
   /** Required whenever the same content-addressed id exists in more than one product. */
   product?: string
@@ -344,10 +339,9 @@ function upsertRecord(
   db: DatabaseSync,
   bundle: LoadedBundle,
   product: string,
-  priors?: TrustPriorTable,
 ): { recordRowid: number; status: BundleStatus } {
-  const trust = deriveBundleTrust(bundle, priors)
-  const digest = effectivePriorDigest(priors)
+  const trust = deriveBundleTrust(bundle)
+  const digest = effectivePriorDigest()
   // A delta may change one row to another epoch, but cannot certify the full index.
   db.prepare("DELETE FROM meta WHERE k = 'trust_prior_digest' AND v != ?").run(digest)
   db.prepare(`
@@ -633,14 +627,12 @@ function projectBundle(
   authority?: MutationAuthorityContext,
   beforeCommit?: () => void,
   hooks?: RebuildIndexHooks,
-  priors?: TrustPriorTable,
 ): void {
   transaction(db, () => {
     const { recordRowid, status } = upsertRecord(
       db,
       projected.bundle,
       projected.product,
-      priors,
     )
     replaceFtsAndAnchors(db, projected.bundle, projected.product, recordRowid)
     if (isDeadStatus(status)) {
@@ -683,7 +675,6 @@ function projectBundleIndexRowWithAuthority(
   opts: ProjectBundleIndexRowOptions,
   authority?: MutationAuthorityContext,
 ): void {
-  const priors = opts.priors === undefined ? undefined : guardTrustPriorTable(opts.priors)
   const target = resolveProductQualifiedBundleDir({
     knowledgeRoot: opts.knowledgeRoot,
     recordId: opts.bundleId,
@@ -709,7 +700,7 @@ function projectBundleIndexRowWithAuthority(
   const writer = openIndexWriter(opts.knowledgeRoot)
   const activeProfile = resolveActiveProfile(writer.db)
   try {
-    projectBundle(writer.db, writer.vec, projected, activeProfile, authority, undefined, undefined, priors)
+    projectBundle(writer.db, writer.vec, projected, activeProfile, authority)
     emitRelationEdges(writer.db, [projected], authority)
     const scanIssues: string[] = []
     emitObservationEdges(
@@ -1280,8 +1271,7 @@ function reconcileVecRows(
 
 /** Hash-selected projection plus the independent D-02 backfill and D-10 reconciliation passes. */
 export async function rebuildIndex(opts: RebuildIndexOptions): Promise<RebuildReport> {
-  const priors = snapshotTrustPriors(opts.priors)
-  const digest = effectivePriorDigest(priors)
+  const digest = effectivePriorDigest()
   const writerAuthority = opts.writerAuthority
   if (
     writerAuthority !== undefined
@@ -1359,7 +1349,7 @@ export async function rebuildIndex(opts: RebuildIndexOptions): Promise<RebuildRe
           // rendering, graph, embedding provenance, counters or lifecycle fields.
           transaction(writer.db, () => {
             writer.db.prepare('UPDATE records SET trust = ?, trust_prior_digest = ? WHERE bundle_id = ?')
-              .run(deriveBundleTrust(outcome.bundle, priors).trust, digest, outcome.bundle.manifest.id)
+              .run(deriveBundleTrust(outcome.bundle).trust, digest, outcome.bundle.manifest.id)
           }, authority, opts.hooks?.beforeTransactionCommit, { family: 'project-bundle', hooks: opts.hooks })
           report.projected += 1
         }
@@ -1382,7 +1372,6 @@ export async function rebuildIndex(opts: RebuildIndexOptions): Promise<RebuildRe
         authority,
         opts.hooks?.beforeTransactionCommit,
         opts.hooks,
-        priors,
       )
       projected.push(item)
       report.projected += 1

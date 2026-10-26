@@ -4,46 +4,13 @@ import {
   type OriginClass,
 } from './outcome-event'
 
-/**
- * PROVISIONAL origin priors for §7.5. M3 owns calibration once real attributed
- * outcomes exist. These are internal constitution values, never config keys.
- */
+/** The trust priors every fold uses, by origin class. Internal values, never config keys. */
 export const ORIGIN_PRIORS = {
   user: { alpha: 3, beta: 1 },
   'agent-verified': { alpha: 2, beta: 1 },
   'agent-observed': { alpha: 1, beta: 1 },
   import: { alpha: 0.5, beta: 1 },
 } as const satisfies Record<OriginClass, { alpha: number; beta: number }>
-
-/** Neutral pseudo-count data. Zero components are valid endpoint priors. */
-export type TrustPriorTable = Partial<Record<OriginClass, { alpha: number; beta: number }>>
-
-function priorDataObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
-    && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null)
-}
-
-/** Reject the whole supplied table, including unused rows, without exposing input bytes. */
-export function guardTrustPriorTable(value: unknown): TrustPriorTable {
-  try {
-    if (!priorDataObject(value)) throw new TypeError()
-    const table: TrustPriorTable = {}
-    for (const key of Reflect.ownKeys(value)) {
-      if (typeof key !== 'string' || !Object.hasOwn(ORIGIN_PRIORS, key)) throw new TypeError()
-      const row: unknown = Object.getOwnPropertyDescriptor(value, key)?.value
-      if (!priorDataObject(row) || Reflect.ownKeys(row).length !== 2) throw new TypeError()
-      const alpha: unknown = Object.getOwnPropertyDescriptor(row, 'alpha')?.value
-      const beta: unknown = Object.getOwnPropertyDescriptor(row, 'beta')?.value
-      if (typeof alpha !== 'number' || typeof beta !== 'number'
-        || !Number.isFinite(alpha) || !Number.isFinite(beta) || alpha < 0 || beta < 0
-        || !Number.isFinite(alpha + beta) || alpha + beta <= 0) throw new TypeError()
-      table[key as OriginClass] = { alpha, beta }
-    }
-    return table
-  } catch {
-    throw new TypeError('Invalid trust prior table')
-  }
-}
 
 /**
  * PROVISIONAL D-08 prior discount; M3 owns calibration against evidence-complete
@@ -115,9 +82,7 @@ export function foldBundleTrust(
     evidenceIncomplete: boolean
     createdAtOrdinal: number
   },
-  priors?: TrustPriorTable,
 ): DerivedTrustState {
-  const suppliedPriors = priors === undefined ? undefined : guardTrustPriorTable(priors)
   const survivingEvents = survivingOutcomeEvents(events)
 
   const counters = {
@@ -186,20 +151,15 @@ export function foldBundleTrust(
     }
   }
 
-  const prior = suppliedPriors?.[opts.originClass] ?? ORIGIN_PRIORS[opts.originClass]
+  const prior = ORIGIN_PRIORS[opts.originClass]
   const alpha = prior.alpha * (
     opts.evidenceIncomplete ? EVIDENCE_INCOMPLETE_ALPHA_DISCOUNT : 1
   )
   const positiveEvidence = counters.confirmed + SERVING_ATTRIBUTION_WEIGHT * counters.helpful
   const negativeEvidence = counters.contradicted + SERVING_ATTRIBUTION_WEIGHT * counters.harmful
-  // Discounting the smallest positive alpha can underflow. With no negative mass or
-  // observations the exact positive endpoint is still one; do not invent epsilon mass.
-  const trust = alpha === 0 && prior.beta === 0
-    && positiveEvidence === 0 && negativeEvidence === 0
-    ? 1
-    : (positiveEvidence + alpha) / (
-        positiveEvidence + negativeEvidence + alpha + prior.beta
-      )
+  const trust = (positiveEvidence + alpha) / (
+    positiveEvidence + negativeEvidence + alpha + prior.beta
+  )
 
   return {
     trust,

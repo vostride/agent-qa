@@ -13,7 +13,6 @@ import {
   type Anchor,
   type IndexEntry,
   type ScopeKey,
-  type TrustPriorTable,
   type VettedCandidateInput,
 } from '@vostride/agent-qa-schema'
 
@@ -146,7 +145,6 @@ function attachMemoryOffUnknowns(
   knowledgeRoot: string,
   candidates: readonly PipelineCandidate[],
   options: RetrieveOptions,
-  priors?: TrustPriorTable,
 ): PipelineCandidate[] {
   if (auditMode(options)) return [...candidates]
 
@@ -169,7 +167,7 @@ function attachMemoryOffUnknowns(
     const loaded = loadBundle(entry.dir)
     if (loaded.kind !== 'loaded' || loaded.bundle.frontmatter.kind !== 'unknown') continue
 
-    const trust = deriveBundleTrust(loaded.bundle, priors)
+    const trust = deriveBundleTrust(loaded.bundle)
     if (
       (trust.status !== 'active' && trust.status !== 'candidate')
       || trust.validity.closedAtOrdinal !== undefined
@@ -703,7 +701,6 @@ async function retrieveFromIndex(
     context.knowledgeRoot,
     authoritative,
     options,
-    context.priors,
   )
   const assembled = applyAssembly(
     withMemoryOffUnknowns,
@@ -841,7 +838,6 @@ async function retrieveFromScan(
     context.knowledgeRoot,
     candidates,
     options,
-    context.priors,
   )
   const assembled = applyAssembly(withMemoryOffUnknowns, [], options)
   return finalRecheck(context, assembled, scope, options).slice(0, options.n)

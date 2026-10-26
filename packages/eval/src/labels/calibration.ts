@@ -1,4 +1,4 @@
-import { ORIGIN_PRIORS, sha256hex, type OriginClass, type TrustPriorTable, type Verdict } from '@vostride/agent-qa-schema'
+import { ORIGIN_PRIORS, sha256hex, type OriginClass, type Verdict } from '@vostride/agent-qa-schema'
 import { canonicalJson } from '../canonical-json'
 import { computeCorpusDigest } from '../census/corpus-digest'
 import type { CommittedCorpusSnapshot } from '../census/derive-census'
@@ -8,6 +8,9 @@ import { wilsonInterval } from '../stats/wilson'
 import type { GoldMark } from './golden-plan'
 
 export type LabelCalibrationStatus = 'uncalibrated' | 'calibrated'
+
+type CalibratedPriors = Partial<Record<OriginClass, { alpha: number; beta: number }>>
+
 export const LABEL_CALIBRATION_STATUSES = ['uncalibrated', 'calibrated'] as const satisfies readonly LabelCalibrationStatus[]
 export const CHANNEL_TO_ORIGIN_CLASS = {
   'recorded-verdict': 'agent-verified',
@@ -44,7 +47,7 @@ export interface LabelCalibrationReport {
   minGold: { value: number; source: 'default' | 'flag' }
   corpusDigest: string
   goldSetDigest: string
-  priors: TrustPriorTable
+  priors: CalibratedPriors
   unchangedOrigins: readonly ['user', 'import']
   verifierFalsePassRate: Rate
   verifierFalseFailRate: Rate
@@ -151,7 +154,7 @@ export function calibrateLabels(input: LabelCalibrationInput): LabelCalibrationR
       members.set(key, values)
     }
   }
-  const priors: TrustPriorTable = {}
+  const priors: CalibratedPriors = {}
   const noisy = (channel: keyof typeof scores): NoisyChannelCalibration => {
     const { n, correct } = scores[channel]
     if (n < minGold.value) return { status: 'uncalibrated', n, n_gold: n }

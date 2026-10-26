@@ -23,7 +23,6 @@ import type {
   PromotionPath,
   RecordId,
   ScreenState,
-  TrustPriorTable,
 } from '@vostride/agent-qa-schema'
 
 import { copyArtifacts } from '../artifact-copy.js'
@@ -75,7 +74,7 @@ import {
   withCurrentWriterAuthority,
   WriterAuthorityLostError,
 } from '../lease/writer-lease.js'
-import { assemblePromotionGateInput, snapshotTrustPriors } from '../promotion-gate-input.js'
+import { assemblePromotionGateInput } from '../promotion-gate-input.js'
 import type { ClaimedCurationJob } from '../queue/curation-queue.js'
 import {
   writeJobState,
@@ -107,7 +106,6 @@ export interface CommitCurationDependencies {
   epoch: number
   profile: DispositionProfile
   drainState: DispositionDrainState
-  priors?: TrustPriorTable
   /**
    * Multi-delta disposal (D-02): when set, terminal paths skip queue completion so the
    * claimed candidate directory stays available for the checkpoint's remaining deltas.
@@ -188,7 +186,6 @@ export type CommitCurationOutcome =
 
 export interface ApplyIndexDeltaForBundleInput {
   knowledgeRoot: string
-  priors?: TrustPriorTable
   bundleId: string
   product?: string
 }
@@ -675,7 +672,6 @@ function commitUnknownMintIntentWithinCurrentAuthority(
     }
   }
   applyIndexDeltaForBundleWithinCurrentAuthority({
-    ...(deps.priors === undefined ? {} : { priors: deps.priors }),
     knowledgeRoot: deps.knowledgeRoot,
     bundleId: published.id,
     product: prepared.intent.scope.key,
@@ -709,7 +705,6 @@ function commitUnknownResolutionIntent(
   const failure = appendFailure(appended)
   if (failure !== undefined) return failure
   applyIndexDeltaForBundleWithinCurrentAuthority({
-    ...(deps.priors === undefined ? {} : { priors: deps.priors }),
     knowledgeRoot: deps.knowledgeRoot,
     bundleId: intent.targetId,
     product: target.product,
@@ -779,7 +774,6 @@ function finishCommitWithinCurrentAuthority(
     // Failure can leave a successful prefix whose normal index tail was never reached.
     if (projectSuccessfulPrefix) applyIndexDeltaForBundleWithinCurrentAuthority({ knowledgeRoot: deps.knowledgeRoot,
       bundleId: effect.recordId, product: effect.product,
-      ...(deps.priors === undefined ? {} : { priors: deps.priors }),
     })
     writeCurationEffectReceiptWithinCurrentAuthority({ knowledgeRoot: deps.knowledgeRoot,
       authority: { leaseId: job.leaseId, epoch: deps.epoch },
@@ -840,12 +834,10 @@ export function commitCurationDelta(
   job: CommitCurationJob,
   checkpoint: AuthoredDeltaCheckpoint,
 ): CommitCurationOutcome {
-  deps = { ...deps, ...(deps.priors === undefined ? {} : { priors: snapshotTrustPriors(deps.priors) }) }
   const beforeWork = staleEpoch(deps)
   if (beforeWork !== undefined) return beforeWork
 
   const disposed = disposeDelta({
-    ...(deps.priors === undefined ? {} : { priors: deps.priors }),
     delta: checkpoint.delta,
     checkpoint,
     profile: deps.profile,
@@ -1237,7 +1229,6 @@ export function commitCurationDelta(
                 knowledgeRoot: deps.knowledgeRoot,
                 bundleDir: promotionBundleDir,
                 bundle: loaded.bundle,
-                ...(deps.priors === undefined ? {} : { priors: deps.priors }),
               }))
               if (gate.verdict === 'promote') {
                 const promoted = appendOutcomeEvent(config, published.id, {
@@ -1315,7 +1306,6 @@ export function commitCurationDelta(
             if (freshlyPublished) deps.hooks?.afterBundlePublished?.(published.id)
             if (disposed.kind === 'apply' && disposed.bornActive === true) {
               applyIndexDeltaForBundleWithinCurrentAuthority({
-                ...(deps.priors === undefined ? {} : { priors: deps.priors }),
                 knowledgeRoot: deps.knowledgeRoot,
                 bundleId: published.id,
                 product: bundleProduct,
@@ -1452,7 +1442,6 @@ export function commitCurationDelta(
             }
             tailMutationAppended ||= closed.kind === 'appended'
             applyIndexDeltaForBundleWithinCurrentAuthority({
-              ...(deps.priors === undefined ? {} : { priors: deps.priors }),
               knowledgeRoot: deps.knowledgeRoot,
               bundleId: delta.victimId,
               product: victim.product,
@@ -1475,7 +1464,6 @@ export function commitCurationDelta(
           }
 
           applyIndexDeltaForBundleWithinCurrentAuthority({
-            ...(deps.priors === undefined ? {} : { priors: deps.priors }),
             knowledgeRoot: deps.knowledgeRoot,
             bundleId,
             product: bundleProduct,
