@@ -98,7 +98,6 @@ describe('panel comparison accounting', () => {
     expect(isDecisionFullMatch({ ...score, axes: { ...score.axes, opClass: { kind: 'mismatch', goldClass: 'activate', candidateClass: 'fill' } } })).toBe(false)
     expect(isDecisionFullMatch({ ...score, axes: { ...score.axes, value: { kind: 'scored', f1: 0.1, band: 'low' } } })).toBe(false)
     expect(isDecisionFullMatch({ ...score, loop: { kind: 'flagged', priorStepIndex: 0 } })).toBe(false)
-    expect(isDecisionFullMatch({ ...score, sideEffect: { kind: 'flagged', reason: 'unsafe', riskFamily: 'destructive' } })).toBe(false)
   })
 })
 
@@ -667,7 +666,6 @@ describe('adjudicateCassetteScore', () => {
     if (adjudicated.kind !== 'scored') return
     if (fixture.tie.partial === undefined) throw new Error('fixture tie lost its partial')
     expect(adjudicated.axes).toEqual(fixture.tie.partial.axes)
-    expect(adjudicated.sideEffect).toEqual(fixture.tie.partial.sideEffect)
     expect(adjudicated.loop).toEqual(fixture.tie.partial.loop)
     expect(adjudicated.tierReached).toBe(fixture.tie.partial.tierReached)
     expect(adjudicated.matcherVersion).toBe(fixture.tie.matcherVersion)

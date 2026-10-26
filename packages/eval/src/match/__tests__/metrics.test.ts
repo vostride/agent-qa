@@ -16,7 +16,6 @@ import {
   computeBatchKey,
 } from '../metrics'
 import type { ScoredBatchEntry } from '../metrics'
-import type { SideEffectVerdict } from '../risk'
 import type {
   DecisionPartialBreakdown,
   DecisionScore,
@@ -129,7 +128,6 @@ interface BreakdownOptions {
   elementIdentity?: ElementIdentityVerdict
   opClass?: OpClassVerdict
   value?: ValueAxisVerdict
-  sideEffect?: SideEffectVerdict
   loop?: LoopVerdict
   tierReached?: 1 | 2 | 3
 }
@@ -146,7 +144,6 @@ function breakdown(options: BreakdownOptions = {}): DecisionPartialBreakdown {
       opClass: options.opClass ?? { kind: 'match', opClass: 'activate' },
       value: options.value ?? { kind: 'not-applicable' },
     },
-    sideEffect: options.sideEffect ?? { kind: 'none' },
     loop: options.loop ?? { kind: 'none' },
     tierReached: options.tierReached ?? 2,
   }
@@ -573,11 +570,6 @@ describe('buildEvalReport', () => {
           elementIdentity: { kind: 'scored', level: 'miss', numeric: 0, tier: 2 },
           opClass: { kind: 'mismatch', goldClass: 'activate', candidateClass: 'value-entry' },
           value: { kind: 'not-evaluated' },
-          sideEffect: {
-            kind: 'flagged',
-            reason: 'candidate risk exceeds gold risk',
-            riskFamily: 'destructive',
-          },
           loop: { kind: 'flagged', priorStepIndex: 0 },
         }),
       ),
@@ -594,7 +586,6 @@ describe('buildEvalReport', () => {
       },
       value: { full: 1, mid: 1, low: 1, 'not-applicable': 1, 'not-evaluated': 2 },
       opClass: { match: 5, mismatch: 1 },
-      sideEffect: { none: 5, flagged: 1 },
       loop: { 'not-applicable': 0, none: 5, flagged: 1 },
     })
     expect(Object.hasOwn(report, 'score')).toBe(false)

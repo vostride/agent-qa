@@ -26,8 +26,6 @@ export const AGENT_QA_EVAL_FORBIDDEN_RESPONSIBILITIES = [
 export const AGENT_QA_EVAL_EXTERNAL_DEPENDENCIES = ['ai', 'zod'] as const
 export const AGENT_QA_EVAL_INTERNAL_DEPENDENCIES = [
   '@vostride/agent-qa-runner',
-  // Phase 369 D-05: reuse the live policy gate's one risk vocabulary.
-  '@vostride/agent-qa-safety',
   '@vostride/agent-qa-schema',
 ] as const
 

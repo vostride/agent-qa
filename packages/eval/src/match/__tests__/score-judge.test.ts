@@ -21,7 +21,6 @@ function breakdown(axes?: Partial<DecisionAxes>): DecisionPartialBreakdown {
       value: { kind: 'scored', f1: 1, band: 'full' },
       ...axes,
     },
-    sideEffect: { kind: 'none' },
     loop: { kind: 'not-applicable' },
     tierReached: 2,
   }

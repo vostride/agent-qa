@@ -139,7 +139,6 @@ describe('scoreDecision', () => {
         opClass: { kind: 'match', opClass: 'activate' },
         value: { kind: 'not-applicable' },
       },
-      sideEffect: { kind: 'none' },
       loop: { kind: 'not-applicable' },
       tierReached: 2,
       matcherVersion: MATCHER_CONFIG.matcherVersion,
@@ -320,7 +319,7 @@ describe('scoreDecision', () => {
     if (score.kind !== 'scored') return
 
     expect(Object.keys(score).sort()).toEqual(
-      ['kind', 'axes', 'sideEffect', 'loop', 'tierReached', 'matcherVersion'].sort(),
+      ['kind', 'axes', 'loop', 'tierReached', 'matcherVersion'].sort(),
     )
     expect(Object.keys(score.axes).sort()).toEqual(
       ['elementIdentity', 'opClass', 'value'].sort(),

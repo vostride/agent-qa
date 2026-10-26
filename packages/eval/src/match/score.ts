@@ -26,8 +26,6 @@ import type {
   LoopVerdict,
   ProcedurePriorIdentity,
 } from './loop'
-import { classifySideEffect } from './risk'
-import type { SideEffectVerdict } from './risk'
 import { runMatchTiers } from './tiers'
 import type {
   ElementIdentityVerdict,
@@ -185,7 +183,6 @@ export interface DecisionAxes {
 /** The attribution-grade breakdown carried by settled scores and unresolved ties. */
 export interface DecisionPartialBreakdown {
   axes: DecisionAxes
-  sideEffect: SideEffectVerdict
   loop: LoopVerdict
   tierReached: 1 | 2 | 3
 }
@@ -313,7 +310,6 @@ function buildBreakdown(
       opClass: tierResult.opClass,
       value: scoreValueAxis(sidecar, sample.outcome.action, tierResult.opClass),
     },
-    sideEffect: classifySideEffect(sidecar.goldAction, sample.outcome.action),
     loop: computeLoopVerdict(
       sample.outcome.identity,
       context.screenStateHash,
@@ -500,7 +496,7 @@ function decisionEntry(
 /**
  * The ONE stamp-aware full-match rule (370-04 metrics and 370-05 adjudication both consume
  * this export — the rule is never forked). Base rule: op class matches, element identity is
- * scored full, value is not-applicable or scored full, no side effect, loop not flagged.
+ * scored full, value is not-applicable or scored full, loop not flagged.
  * Overlay: a `judgeSettled` stamp with resolution 'equivalent' upgrades exactly the stamped
  * axis for match purposes — any scored identity level or any scored value band passes on that
  * axis alone — while the deterministic axis verdict object is never rewritten (D-01
@@ -508,7 +504,7 @@ function decisionEntry(
  */
 export function isDecisionFullMatch(score: DecisionScore): boolean {
   if (score.kind !== 'scored') return false
-  const { axes, sideEffect, loop, judgeSettled } = score
+  const { axes, loop, judgeSettled } = score
   const equivalentAxis =
     judgeSettled?.resolution === 'equivalent' ? judgeSettled.axis : undefined
   const identityFull =
@@ -522,7 +518,6 @@ export function isDecisionFullMatch(score: DecisionScore): boolean {
     axes.opClass.kind === 'match' &&
     identityFull &&
     valueFull &&
-    sideEffect.kind === 'none' &&
     loop.kind !== 'flagged'
   )
 }

@@ -68,7 +68,6 @@ function breakdown(value: ValueAxisVerdict = { kind: 'not-applicable' }): Decisi
       opClass: { kind: 'match', opClass: 'activate' },
       value,
     },
-    sideEffect: { kind: 'none' },
     loop: { kind: 'none' },
     tierReached: 2,
   }

@@ -21,7 +21,7 @@ export function metricEntry(cassetteId: string, full = true): ScoredBatchEntry {
       axes: {
         elementIdentity: { kind: 'scored', level: full ? 'full' : 'miss', numeric: full ? 1 : 0, tier: 2 },
         opClass: { kind: 'match', opClass: 'activate' }, value: { kind: 'not-applicable' },
-      }, sideEffect: { kind: 'none' }, loop: { kind: 'none' }, tierReached: 2,
+      }, loop: { kind: 'none' }, tierReached: 2,
     } } },
   }
 }

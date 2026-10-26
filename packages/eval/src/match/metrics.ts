@@ -206,7 +206,6 @@ export interface EvalBatchReport {
     >
     value: Counts<'full' | 'mid' | 'low' | 'not-applicable' | 'not-evaluated'>
     opClass: Counts<'match' | 'mismatch'>
-    sideEffect: Counts<'none' | 'flagged'>
     loop: Counts<'not-applicable' | 'none' | 'flagged'>
   }
   recovery: {
@@ -605,7 +604,6 @@ export function buildEvalReport(
     },
     value: { full: 0, mid: 0, low: 0, 'not-applicable': 0, 'not-evaluated': 0 },
     opClass: { match: 0, mismatch: 0 },
-    sideEffect: { none: 0, flagged: 0 },
     loop: { 'not-applicable': 0, none: 0, flagged: 0 },
   }
   const totalCost: TotalCost = {
@@ -695,7 +693,6 @@ export function buildEvalReport(
       if (value.kind === 'scored') axisDistributions.value[value.band]++
       else axisDistributions.value[value.kind]++
       axisDistributions.opClass[breakdown.axes.opClass.kind]++
-      axisDistributions.sideEffect[breakdown.sideEffect.kind]++
       axisDistributions.loop[breakdown.loop.kind]++
     }
   }

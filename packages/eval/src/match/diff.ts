@@ -20,7 +20,6 @@ import type {
   TieCause,
 } from './score'
 import type { LoopVerdict } from './loop'
-import type { SideEffectVerdict } from './risk'
 
 /** Replay attribution copied into every D-16 decision diff. */
 export interface DecisionDiffReplayContext {
@@ -53,7 +52,6 @@ export type DecisionDiff =
       kind: 'scored'
       tierReached: 1 | 2 | 3
       axes: DecisionAxes
-      sideEffect: SideEffectVerdict
       loop: LoopVerdict
     })
   | (DecisionDiffBase & {
@@ -137,7 +135,6 @@ export function buildDecisionDiff(input: BuildDecisionDiffInput): DecisionDiff {
     kind: 'scored',
     tierReached: input.score.tierReached,
     axes: input.score.axes,
-    sideEffect: input.score.sideEffect,
     loop: input.score.loop,
   }
 }

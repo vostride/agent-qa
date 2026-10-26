@@ -98,7 +98,6 @@ describe('buildDecisionDiff', () => {
       },
       tierReached: 2,
       axes: score.axes,
-      sideEffect: { kind: 'none' },
       loop: { kind: 'not-applicable' },
       replay: {
         promptDrift: result.promptDrift,

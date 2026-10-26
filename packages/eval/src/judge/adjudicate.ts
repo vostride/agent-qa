@@ -424,7 +424,6 @@ function extractBreakdown(
 ): DecisionPartialBreakdown {
   return {
     axes: score.axes,
-    sideEffect: score.sideEffect,
     loop: score.loop,
     tierReached: score.tierReached,
   }

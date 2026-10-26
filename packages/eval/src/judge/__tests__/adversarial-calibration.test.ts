@@ -40,7 +40,7 @@ function observation(id: string): core.JudgeCalibrationProbeObservation {
       score: { kind: 'scored', matcherVersion: MATCHER_CONFIG.matcherVersion, tierReached: 2,
         axes: { elementIdentity: { kind: 'scored', level: 'full', numeric: 1, tier: 2 } as never,
           opClass: { kind: 'match' } as never, value: { kind: 'not-applicable' } },
-        sideEffect: { kind: 'none' }, loop: { kind: 'not-flagged' } as never } } }
+        loop: { kind: 'not-flagged' } as never } } }
 }
 
 const probe = (kind: core.ProbeGeneratorKind, id: string, family: string): core.CorpusGenerator => ({

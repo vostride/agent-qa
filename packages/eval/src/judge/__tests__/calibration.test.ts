@@ -51,7 +51,7 @@ function observation(id: string, verdicts: ('equivalent' | 'different' | 'error'
       score: { kind: 'scored', matcherVersion: MATCHER_CONFIG.matcherVersion, tierReached: 2,
         axes: { elementIdentity: { kind: 'scored', level: 'full', numeric: 1, tier: 2 } as never,
           opClass: { kind: 'match' } as never, value: { kind: 'not-applicable' } },
-        sideEffect: { kind: 'none' }, loop: { kind: 'not-flagged' } as never } } }
+        loop: { kind: 'not-flagged' } as never } } }
 }
 function refused(id: string): core.JudgeCalibrationProbeObservation {
   return { decisionId: id, replayedModelId: 'gpt-5', recordedModelId: 'claude-sonnet-4',
@@ -179,17 +179,16 @@ describe('judge calibration independent source truth', () => {
     input.source.receipt.model = {}
     expect(select(input)?.gold[0]).not.toHaveProperty('recordedModelId')
   })
-  it('panel axis overlay preserves operation, value, side-effect and loop gates', () => {
+  it('panel axis overlay preserves operation, value and loop gates', () => {
     const score: core.DecisionScore = { kind: 'scored', matcherVersion: MATCHER_CONFIG.matcherVersion, tierReached: 2,
       axes: { elementIdentity: { kind: 'scored', level: 'partial' } as never, opClass: { kind: 'match' } as never, value: { kind: 'not-applicable' } },
-      sideEffect: { kind: 'none' }, loop: { kind: 'not-flagged' } as never }
+      loop: { kind: 'not-flagged' } as never }
     const overlay = (value: core.DecisionScore) => Reflect.get(core, 'judgeCalibrationFullMatch')?.(value, { axis: 'element-identity', resolution: 'equivalent' })
     expect(overlay(score)).toBe(true)
     const full = { ...score, axes: { ...score.axes, elementIdentity: { kind: 'scored', level: 'full', numeric: 1, tier: 2 } } } as core.DecisionScore
     expect(Reflect.get(core, 'judgeCalibrationFullMatch')?.(full, { axis: 'element-identity', resolution: 'different' })).toBe(false)
     expect(overlay({ ...score, axes: { ...score.axes, opClass: { kind: 'mismatch' } as never } })).toBe(false)
     expect(overlay({ ...score, axes: { ...score.axes, value: { kind: 'scored', f1: 0, band: 'low' } } })).toBe(false)
-    expect(overlay({ ...score, sideEffect: { kind: 'unexpected' } as never })).toBe(false)
     expect(overlay({ ...score, loop: { kind: 'flagged' } as never })).toBe(false)
   })
 })
