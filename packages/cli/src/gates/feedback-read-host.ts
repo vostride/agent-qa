@@ -9,8 +9,7 @@ import { dirname, join, resolve } from 'node:path'
 import type { KnowledgeReaderPort } from '@vostride/agent-qa-agent'
 import { createKnowledgeReader, FsMarkLedger, HANDOFF_FILE, MarkLedgerCorruptError, RUNS_SUBDIR } from '@vostride/agent-qa-agent-local'
 import { projectRecordContent, RunsMarkInputSchema, slugBranch, type FeedbackReadsPort, type KnowledgeRecordShowResult, type MarkHistoryChangedRecord, type MarkHistoryReadEntry, type MarkPreviewBasis, type MarkReceipt, type RunsMarkPreviewResult } from '@vostride/agent-qa-schema'
-import { resolveConfiguredKnowledgeRoot } from '../config.js'
-import { resolveEvalSession } from '../eval-session-composition.js'
+import { resolveConfig, resolveConfiguredKnowledgeRoot } from '../config.js'
 import { previewMarkConsequences, type MarkPlanBasis, type MarkPlanCuration } from './feedback-plan.js'
 
 export interface FeedbackReadsHostDeps {
@@ -50,12 +49,10 @@ export function createFeedbackReadsPortForHost(deps: FeedbackReadsHostDeps): Fee
     const configPath = deps.configPath
     let reader = deps.reader
     if (reader === undefined) {
-      // 2026-10-03 (quick 261003-lgd, Phase 432 review WR-05): a config that does not load cannot
-      // locate the knowledge root, which is the same named absence as having no config at all. The
-      // history read never needed the config before the join, so it must not throw because of it.
       try {
-        const session = await resolveEvalSession({ configPath, keyOnly: true })
-        const knowledgeRoot = resolveConfiguredKnowledgeRoot(session.config, dirname(resolve(configPath)))
+        // A config that does not load binds no read.
+        const config = await resolveConfig({ configPath, loadAuthPlugins: false })
+        const knowledgeRoot = resolveConfiguredKnowledgeRoot(config, dirname(resolve(configPath)))
         reader = createKnowledgeReader(() => knowledgeRoot)
       } catch {
         return absent('not-bound')

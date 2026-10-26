@@ -7,6 +7,8 @@ import { extractRunCassettes, guardCassette } from '@vostride/agent-qa-eval'
 import {
   FsEvidenceArtifactStore,
   FsHandoffStore,
+  HANDOFF_FILE,
+  loadCompletedRunHandoff,
   RUNS_SUBDIR,
   RUN_EVIDENCE_BLOBS_SUBDIR,
   slugBranch,
@@ -16,7 +18,6 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { FsRunArtifactSource } from '../artifact-source.js'
 import { BLOBS_SUBDIR, CASSETTE_FILE, FsCassetteStore } from '../cassette-store.js'
-import { FsHandoffSource } from '../handoff-source.js'
 import {
   LOCAL_FIXTURE_BLOB_BYTES,
   LOCAL_FIXTURE_BLOB_SHA,
@@ -56,10 +57,9 @@ describe('standalone cassette pipeline (CASS-02)', () => {
   })
 
   function runPipeline(options: { runRoot: string; bundleRoot: string }) {
-    const loaded = new FsHandoffSource({
-      root: options.runRoot,
-      runId: LOCAL_FIXTURE_RUN_ID,
-    }).load()
+    const loaded = loadCompletedRunHandoff(
+      join(options.runRoot, RUNS_SUBDIR, slugBranch(LOCAL_FIXTURE_RUN_ID), HANDOFF_FILE),
+    )
     const extraction = extractRunCassettes({
       handoff: loaded,
       artifacts: new FsRunArtifactSource({ root: options.runRoot, runId: LOCAL_FIXTURE_RUN_ID }),
@@ -211,8 +211,8 @@ describe('standalone cassette pipeline (CASS-02)', () => {
     new FsHandoffStore({ root: runRoot, runId: LOCAL_FIXTURE_RUN_ID }).save(
       makeLocalV2Handoff({ schemaVersion: 1 }),
     )
-    const source = new FsHandoffSource({ root: runRoot, runId: LOCAL_FIXTURE_RUN_ID })
+    const file = join(runRoot, RUNS_SUBDIR, slugBranch(LOCAL_FIXTURE_RUN_ID), HANDOFF_FILE)
 
-    expect(() => source.load()).toThrowError(HandoffVersionError)
+    expect(() => loadCompletedRunHandoff(file)).toThrowError(HandoffVersionError)
   })
 })

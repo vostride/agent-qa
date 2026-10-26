@@ -4,8 +4,8 @@ export const AGENT_QA_EVAL_LOCAL_PACKAGE_NAME = '@vostride/agent-qa-eval-local'
 export const AGENT_QA_EVAL_LOCAL_PACKAGE_DIR = 'packages/eval-local'
 export const AGENT_QA_EVAL_LOCAL_PACKAGE_CLASSES = ['storageImplementation'] as const
 export const AGENT_QA_EVAL_LOCAL_ALLOWED_RESPONSIBILITIES = [
-  'all eval filesystem IO behind the neutral handoff and artifact read ports',
-  'handoff and artifact reads composed over runner-local stores',
+  'all eval filesystem IO behind the neutral artifact read port',
+  'artifact reads composed over runner-local stores',
   'cassette bundle writes under the runtime workdir staging root',
   // Phase 368 D-04/D-05/D-06: the ONE sanctioned replay-composition helper (runCassetteReplay)
   // binding createModel egress + a temp-0 LLMPlanner (368-01 nonActionTools seam) with the

@@ -1,4 +1,4 @@
-export type { ArtifactSource, HandoffSource } from './ports'
+export type { ArtifactSource } from './ports'
 export { prepareJudgeCalibrationProbe, summarizeJudgeCalibration } from './judge/calibration'
 export type { JudgeCalibrationProbe, JudgeCalibrationProbeObservation } from './judge/calibration'
 export { selectJudgeCalibrationGold, resolveJudgeCalibrationTruth, judgeCalibrationFullMatch, JUDGE_CALIBRATION_GAP_REASONS, JUDGE_CALIBRATION_STATUSES, JUDGE_CALIBRATION_MIN_N, resolveJudgeCalibrationMinimum } from './judge/calibration'

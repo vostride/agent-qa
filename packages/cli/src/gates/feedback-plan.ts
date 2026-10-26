@@ -1,11 +1,10 @@
 // 2026-09-15, 423 D-16: the deterministic half of runs.mark, shared by the writer and its preview.
 // Nothing here opens an intent, lease, model or audit dir, mints an id or time, or writes.
-import { dirname, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { chainJobIdsForRun, type KnowledgeReaderPort } from '@vostride/agent-qa-agent'
-import { createKnowledgeReader, DIGEST_JOB_ID_SOURCE, FsMarkLedger, latestMarkReceiptFor, LOCAL_CURATION_CAPABILITIES, type LocalCurationCapabilities } from '@vostride/agent-qa-agent-local'
+import { createKnowledgeReader, DIGEST_JOB_ID_SOURCE, FsMarkLedger, HANDOFF_FILE, latestMarkReceiptFor, loadCompletedRunHandoff, LOCAL_CURATION_CAPABILITIES, RUNS_SUBDIR, type LocalCurationCapabilities } from '@vostride/agent-qa-agent-local'
 import { MARK_TARGET_REASONS, projectRecordContent, RunsMarkInputSchema, slugBranch, type CompletedRunHandoff, type ImprovementPlan, type KnowledgeRecordShowResult, type KnowledgeTargetRef, type Mark, type MarkAddress, type MarkPreviewKnowledge, type MarkPreviewKnowledgeRecord, type MarkQuarantineClass, type MarkReceipt, type NoDraftableFixChecked, type RunsMarkInput, type RunsMarkOutcome } from '@vostride/agent-qa-schema'
 import { resolveConfig, resolveConfiguredKnowledgeRoot } from '../config.js'
-import { FsHandoffSource } from '../eval-session-composition.js'
 
 export type MarkPlanCuration = Pick<LocalCurationCapabilities, 'triageMark' | 'servedIdsOn' | 'procedureReadOn' | 'applyFeedback' | 'readFeedbackRecord' | 'planMarkEvidence' | 'projectMarkEvidenceOutcome'>
 type MarkMember = CompletedRunHandoff['tests'][number]
@@ -34,7 +33,7 @@ export type MarkTarget =
 
 export function loadMarkTarget(agentQaRoot: string, input: RunsMarkInput): MarkTarget {
   let handoff: CompletedRunHandoff
-  try { handoff = new FsHandoffSource({ root: agentQaRoot, runId: input.runId }).load() }
+  try { handoff = loadCompletedRunHandoff(join(agentQaRoot, RUNS_SUBDIR, slugBranch(input.runId), HANDOFF_FILE)) }
   catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { kind: 'run-not-found', runId: input.runId }
     throw error

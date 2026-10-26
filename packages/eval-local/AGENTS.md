@@ -3,7 +3,8 @@
 ## Scope
 
 This package is the storageImplementation home for local eval filesystem IO. It
-binds eval read ports and owns cassette bundle writes under runtime workdirs.
+owns the cassette, replay-record, score and report stores, the judge binding and
+the replay composition under the runtime workdir.
 
 ## Read First
 

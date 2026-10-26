@@ -7,7 +7,7 @@ import type { ImprovementPlan } from '@vostride/agent-qa-schema'
 import { IMPROVEMENT_PLAN_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 import { generateText } from 'ai'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { resolveEvalSession } from '../../eval-session-composition.js'
+import { resolveConfig } from '../../config.js'
 import * as llm from '../../llm-utils.js'
 import { assertSameStructure, wordImprovementPlan, WORDING_MAX_OUTPUT_TOKENS, WORDING_TIMEOUT_MS, type WordingInput } from '../feedback-wording.js'
 import { createFeedbackPortForHost } from '../feedback-host.js'
@@ -31,11 +31,11 @@ describe('419 bounded feedback wording', () => {
     const plan = LOCAL_CURATION_CAPABILITIES.applyFeedback({ mark: { markId: 'mark_0123456789ab',
       runId: f.handoff.runId, runSlug: 'fixture', testIndex: 0, kind: 'false-fail' },
       handoff: f.handoff, resolvedStepIndex: 0, served: [facts] })
-    const session = await resolveEvalSession({ configPath: f.configPath, keyOnly: true })
-    session.config.registry = { llms: [{ name: 'fixture', provider: 'openai-compatible', model: 'fixture-model', vision: false, baseURL: 'http://127.0.0.1:1/v1' }] }
-    session.config.use = { ...session.config.use, llm: 'fixture' }
+    const config = await resolveConfig({ configPath: f.configPath, loadAuthPlugins: false })
+    config.registry = { llms: [{ name: 'fixture', provider: 'openai-compatible', model: 'fixture-model', vision: false, baseURL: 'http://127.0.0.1:1/v1' }] }
+    config.use = { ...config.use, llm: 'fixture' }
     model = vi.fn<typeof createModel>(() => ({}) as ReturnType<typeof createModel>)
-    input = { plan, config: session.config, executionContext: 'ci', mask: declaredMask,
+    input = { plan, config, executionContext: 'ci', mask: declaredMask,
       createModelForTest: model }
     vi.spyOn(llm, 'resolveModelAuth').mockResolvedValue({ kind: 'unauthenticated', credentialKey: 'fixture', provider: 'openai-compatible', optional: true, message: 'controlled fixture' })
     vi.mocked(generateText).mockReset()

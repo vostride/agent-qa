@@ -342,7 +342,7 @@ async function openFeedbackScene() {
   const doors = await openDoors({ registry: door.host.registry, agentHost: door.agentHost, db, maskText: text => text })
   return { root, runId, receipt: marked.receipt, doors,
     stores: [join(agentQaRoot, 'runs'), join(agentQaRoot, 'proposals'), join(agentQaRoot, 'eval'),
-      join(root, 'agent-qa-knowledge'), join(root, 'agent-qa-eval')],
+      join(root, 'agent-qa-knowledge')],
     async close() {
       await doors.close()
       await door.host.close()

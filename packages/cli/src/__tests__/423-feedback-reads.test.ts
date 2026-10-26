@@ -24,15 +24,14 @@ import { RUN_SERVICE_ROUTE_BINDINGS, registryDeclarations } from './conformance/
 import { catalogDocFieldsOf } from './conformance/catalog.js'
 import { censusDiff, OP_INPUT_CONTRACTS, scenarioRowFor, scenarioTableOpIds, unprojectedReasonKeyOf } from './conformance/scenario-table.js'
 
-// Eval initialization and the wording model call refuse while a preview runs. A key-only session
-// only resolves configured roots; it reads no secret or auth state.
+// The preview resolves config through resolveConfig and never touches the eval session or the
+// wording model, so both refuse while a preview runs.
 const denial = vi.hoisted(() => ({ active: false }))
 vi.mock('../eval-session-composition.js', async importOriginal => {
   const actual = await importOriginal<typeof import('../eval-session-composition.js')>()
-  const deny = (name: string) => { if (denial.active) throw new Error(`preview must not call ${name}`) }
   return { ...actual,
     resolveEvalSession: async (input?: Parameters<typeof actual.resolveEvalSession>[0]) => {
-      if (input?.keyOnly !== true) deny('resolveEvalSession')
+      if (denial.active) throw new Error('preview must not call resolveEvalSession')
       return await actual.resolveEvalSession(input) } }
 })
 vi.mock('../gates/feedback-wording.js', async importOriginal => {
@@ -442,7 +441,7 @@ describe('423-18 marks history registration and host binding (D-19)', () => {
     writeFileSync(join(root, '.env.secrets.local'), `HISTORY_SYNTHETIC_TOKEN=${SECRET}\n`)
     const agentQaRoot = join(root, '.agent-qa')
     return { root, configPath: join(root, 'agent-qa.config.yaml'), agentQaRoot,
-      stores: [join(agentQaRoot, 'runs'), join(agentQaRoot, 'proposals'), join(root, 'agent-qa-knowledge'), join(root, 'agent-qa-eval')] }
+      stores: [join(agentQaRoot, 'runs'), join(agentQaRoot, 'proposals'), join(root, 'agent-qa-knowledge')] }
   }
   const storeMaps = (stores: readonly string[]) => stores.map(tree)
 
@@ -829,7 +828,7 @@ describe('423-19 runs.mark.preview registration and composed invocation (D-16)',
     writeFileSync(join(root, '.env.secrets.local'), `HISTORY_SYNTHETIC_TOKEN=${SECRET}\n`)
     const agentQaRoot = join(root, '.agent-qa')
     return { root, configPath: join(root, 'agent-qa.config.yaml'), agentQaRoot,
-      stores: [join(agentQaRoot, 'runs'), join(agentQaRoot, 'proposals'), join(agentQaRoot, 'eval'), join(root, 'agent-qa-knowledge'), join(root, 'agent-qa-eval')] }
+      stores: [join(agentQaRoot, 'runs'), join(agentQaRoot, 'proposals'), join(agentQaRoot, 'eval'), join(root, 'agent-qa-knowledge')] }
   }
   const storeMaps = (stores: readonly string[]) => stores.map(tree)
   // The run-level address's latest mark is the confirmed-bug at ordinal 2, so a false-pass supersedes it.
@@ -993,7 +992,7 @@ describe('423-21 feedback reads over both HTTP doors (D-18)', () => {
     closers.push(() => new Promise<void>(resolve => remote.close(() => resolve())))
     const port = (server: { address(): unknown }) => (server.address() as { port: number }).port
     return { root, agentQaRoot, configPath, door,
-      stores: [join(agentQaRoot, 'runs'), join(agentQaRoot, 'proposals'), join(agentQaRoot, 'eval'), join(root, 'agent-qa-knowledge'), join(root, 'agent-qa-eval')],
+      stores: [join(agentQaRoot, 'runs'), join(agentQaRoot, 'proposals'), join(agentQaRoot, 'eval'), join(root, 'agent-qa-knowledge')],
       doors: [
         { name: 'local-human', base: `http://127.0.0.1:${port(started.server)}/api/runs`, headers: {} as Record<string, string> },
         // 432-21 (D-12): the run service is tokenless — the machine door sends no credential.

@@ -834,8 +834,7 @@ function mergeEvalConfig(
     ...(seed !== undefined ? { seed } : {}),
   }
 }
-// Gate hosts reach eval/runtime storage only through this established composition boundary.
-export { FsHandoffSource } from '@vostride/agent-qa-eval-local'
+// The feedback wording host reaches the model and the safety scope through this composition boundary.
 export { runSafetyScope } from '@vostride/agent-qa-safety-local'
 export { createModel } from '@vostride/agent-qa-model'
 export type { AgentQaConfig as FeedbackWordingConfig } from '@vostride/agent-qa-core'
