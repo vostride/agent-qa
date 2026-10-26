@@ -351,15 +351,8 @@ function renderGates(dto: KnowledgeGatesListResult): string {
   const describe = (receipt: GateReceipt) => receipt.policyApproval !== undefined
     ? `approval proposal ${receipt.policyApproval.proposalId} @${receipt.producedAtOrdinal}`
     : `mark ${receipt.mark} @${receipt.producedAtOrdinal}`
-  const receipts = dto.lines.filter((line): line is GateReceipt => !('kind' in line))
-  const latest = (approval: boolean) => receipts
-    .filter(receipt => (receipt.policyApproval !== undefined) === approval)
-    .reduce<GateReceipt | undefined>((standing, receipt) => (
-      standing === undefined || receipt.producedAtOrdinal >= standing.producedAtOrdinal
-        ? receipt : standing
-    ), undefined)
-  const standingMark = latest(false)
-  const standingApproval = latest(true)
+  const standingMark = dto.standing.find(receipt => receipt.policyApproval === undefined)
+  const standingApproval = dto.standing.find(receipt => receipt.policyApproval !== undefined)
   return [
     ...dto.lines.map(line => {
       if ('kind' in line) {

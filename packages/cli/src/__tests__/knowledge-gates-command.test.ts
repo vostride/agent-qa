@@ -174,9 +174,34 @@ describe('agent-qa knowledge gates', () => {
       'promotion deterministic-verdict-floor @6 cites none',
       `mark confirmed-bug @7 run checkout-run step s3 digest ${mark.receiptDigest.slice(0, 12)}`,
       `approval proposal kp_fixture @8 digest ${approval.receiptDigest.slice(0, 12)}`,
-      'standing: mark confirmed-bug @7; approval proposal kp_fixture @8',
+      'standing: mark none; approval proposal kp_fixture @8',
       `live: ${live}`,
     ])
+  })
+
+  it.each([
+    { order: 'a mark followed by an approval', markOrdinal: 7, approvalOrdinal: 8 },
+    { order: 'an approval followed by a mark', markOrdinal: 8, approvalOrdinal: 7 },
+  ])('prints the one standing receipt the JSON reports after $order', async ({ markOrdinal, approvalOrdinal }) => {
+    const { config, configPath, id } = fixture()
+    const mark = stampReceiptDigest({ schemaVersion: GATE_RECEIPT_SCHEMA_VERSION, gate: 3, verdict: 'fail',
+      candidateId: id, producedAtOrdinal: markOrdinal, producedBy: { opId: 'runs.mark' },
+      runId: 'checkout-run', mark: 'false-fail',
+    })
+    const approval = stampReceiptDigest({ schemaVersion: GATE_RECEIPT_SCHEMA_VERSION, gate: 3, verdict: 'pass',
+      candidateId: id, producedAtOrdinal: approvalOrdinal, producedBy: { opId: 'knowledge.review.apply' },
+      policyApproval: { proposalId: 'kp_fixture', recordId: id },
+    })
+    const [first, second] = markOrdinal < approvalOrdinal ? [mark, approval] : [approval, mark]
+    expect(appendGateReceipt(config, id, first)).toEqual({ kind: 'appended' })
+    expect(appendGateReceipt(config, id, second)).toEqual({ kind: 'appended' })
+    const dto = KnowledgeGatesListResultSchema.parse(JSON.parse(await invoke(configPath, [id, '--json'])))
+    if (dto.kind !== 'found') throw new Error('published record not found')
+    expect(dto.standing).toEqual([second])
+    const standingLine = (await invoke(configPath, [id])).split('\n').find(line => line.startsWith('standing: '))
+    expect(standingLine).toBe(second === mark
+      ? `standing: mark false-fail @${markOrdinal}; approval none`
+      : `standing: mark none; approval proposal kp_fixture @${approvalOrdinal}`)
   })
 
   it('shows a mark and the promotion it cites in human history', async () => {
