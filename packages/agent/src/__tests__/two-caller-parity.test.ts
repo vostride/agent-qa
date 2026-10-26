@@ -450,19 +450,17 @@ describe('a payload can claim nothing, and a record grants nothing (SC3 / 432-20
 /**
  * The credential axis.
  *
- * Read ops allow in every context, so the credential can only become observable at an
- * ask-tier action. This synthetic op is the smallest thing that classifies to `ask` while
- * staying inside the `read` scope both callers hold — so the scope check cannot be what
- * separates them, and whatever separates them has to be the credential or nothing.
+ * A synthetic op both callers can reach, so whatever could separate them would have to be the
+ * credential.
  */
-const askTierSpec: FunctionSpec<Record<string, never>, { ok: true }> = {
-  id: 'synthetic.ask',
-  summary: 'Synthetic ask-tier capability that makes the credential axis observable.',
+const credentialProbeSpec: FunctionSpec<Record<string, never>, { ok: true }> = {
+  id: 'synthetic.probe',
+  summary: 'Synthetic capability both callers reach, for observing the credential.',
   resultKind: 'unary',
   input: z.object({}).strict(),
   output: z.object({ ok: z.literal(true) }).strict(),
   risk: {
-    name: 'fn:synthetic.ask',
+    name: 'fn:synthetic.probe',
     recognized: true,
   },
   // 399.1-04: `classify` is a REQUIRED member now. A synthetic op's fold is the smallest honest
@@ -472,18 +470,16 @@ const askTierSpec: FunctionSpec<Record<string, never>, { ok: true }> = {
 }
 
 describe('the credential flows to the gate untouched (D-13)', () => {
-  const askRegistry = createRegistryFromSpecs([askTierSpec as FunctionSpec], {
+  const probeRegistry = createRegistryFromSpecs([credentialProbeSpec as FunctionSpec], {
     deps: DEPS,
   })
 
-  // RE-SPELLED 2026-09-30 (432-13) from 'never reads or rewrites it: A and B are refused
-  // identically at an ask-tier action'. With no op gate the formerly ask-tier action is served;
-  // the claim that survives is that holding a credential and holding none reach the identical
-  // outcome, and the layer leaves the credential as it found it.
-  it('C432-INVOKE-DIRECT: never reads or rewrites it — A and B are served identically at a formerly ask-tier action', async () => {
-    await expect(invokeFunction(askRegistry, 'synthetic.ask', {}, CALLER_A))
+  // Holding a credential and holding none reach the identical outcome, and the layer leaves the
+  // credential as it found it.
+  it('C432-INVOKE-DIRECT: never reads or rewrites it — A and B are served identically', async () => {
+    await expect(invokeFunction(probeRegistry, 'synthetic.probe', {}, CALLER_A))
       .resolves.toEqual({ ok: true })
-    await expect(invokeFunction(askRegistry, 'synthetic.ask', {}, CALLER_B))
+    await expect(invokeFunction(probeRegistry, 'synthetic.probe', {}, CALLER_B))
       .resolves.toEqual({ ok: true })
 
     // And the object itself comes back out the way it went in — same reference, same value.
@@ -500,9 +496,9 @@ describe('the credential flows to the gate untouched (D-13)', () => {
     expect(Object.keys(safety)).not.toContain('evaluate')
     expect(Object.keys(safety)).not.toContain('scopeMatches')
     // Served with and without the credential, in every context.
-    await expect(invokeFunction(askRegistry, 'synthetic.ask', {}, CALLER_A)).resolves.toEqual({ ok: true })
+    await expect(invokeFunction(probeRegistry, 'synthetic.probe', {}, CALLER_A)).resolves.toEqual({ ok: true })
     const uncredentialed = { ...CALLER_A, credential: undefined } as FunctionCaller
-    await expect(invokeFunction(askRegistry, 'synthetic.ask', {}, uncredentialed))
+    await expect(invokeFunction(probeRegistry, 'synthetic.probe', {}, uncredentialed))
       .resolves.toEqual({ ok: true })
   })
 })

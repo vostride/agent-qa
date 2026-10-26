@@ -239,7 +239,7 @@ describe('D-16: and from no environment variable either', () => {
 })
 
 describe('the seam exists, and exists only as a composition option', () => {
-  it('is named in the composition input and in no configuration document', () => {
+  it('is named in the composition input', () => {
     // The other direction of the same claim, and it is what stops the two assertions above from
     // being satisfied by the seam having quietly disappeared: `chatReconcile` IS reachable — by a
     // caller holding the code that composes a host, which is the only reach D-16 permits.
