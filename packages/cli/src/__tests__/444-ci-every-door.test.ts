@@ -254,7 +254,6 @@ describe('C444-CI-EVERY-DOOR', () => {
         vi.spyOn(process, 'exit').mockImplementation(() => { throw new Error('fixture command exit') })
         vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('provider forbidden'))
         vi.spyOn(tailComposition, 'composeCliPostRunTail').mockImplementation(() => ({
-          trustPriorDisclosure: undefined,
           drain: async () => { throw new Error('fixture tail failure') },
           finish: async () => undefined,
           report: () => ({ drain: 'not-attempted', jobsRun: 0 }),

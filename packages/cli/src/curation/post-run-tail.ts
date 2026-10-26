@@ -91,8 +91,6 @@ import {
   buildTrustPriorsResolver,
   TrustPriorsRefusedError,
   type trustPriorsForHost,
-  formatTrustPriorDisclosure,
-  type TrustPriorDisclosure,
 } from './trust-priors.js'
 
 /**
@@ -351,7 +349,6 @@ export interface RunPostRunTailOptions extends Pick<
  * enqueue happened in the shell whatever the flag said (RESEARCH Pitfall 8).
  */
 export interface PostRunTailHandle {
-  readonly trustPriorDisclosure?: TrustPriorDisclosure
   /**
    * Pump this run's chain.
    *
@@ -576,7 +573,6 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
   }
 
   return {
-    trustPriorDisclosure: trustPriors.kind === 'ready' ? trustPriors.disclosure : undefined,
     async drain(input: {
       readonly takeLease?: () => CurationWriterAuthority | undefined
       readonly withoutLease?: 'consult' | 'skip'
@@ -947,8 +943,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
           // omits them. The line prints the served view's words.
           const receipt = readCurationTailReceipt(completedRunDir(opts.agentQaRoot, opts.runId))
           log.info?.(renderChainTerminalLine(status.notification,
-            { ...(receipt?.runId === opts.runId ? receipt : {}),
-              trustPriorDisclosure: snapshot().disclosure }))
+            receipt?.runId === opts.runId ? receipt : undefined))
           await printDigestBlock(openedHost)
           return
         }
@@ -961,7 +956,6 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
           renderPostProcessingSummaryLine(
             status,
             postureOf(drainOutcome),
-            snapshot().disclosure,
             opts.executionContext,
           )
           + (analyzeRunCompleted
@@ -1104,7 +1098,6 @@ function postureOf(outcome: PostRunDrainOutcome): PostRunPendingPosture {
 export function renderPostProcessingSummaryLine(
   status: PostProcessingStatus,
   posture: PostRunPendingPosture,
-  trustPriorDisclosure?: TrustPriorDisclosure,
   executionContext?: ExecutionContext,
 ): string {
   const skipped = status.skipped
@@ -1121,7 +1114,6 @@ export function renderPostProcessingSummaryLine(
   return `post-processing — ${[
     stage('analysis', status.chips.analysis),
     stage('curation', status.chips.curation),
-    formatTrustPriorDisclosure(trustPriorDisclosure),
   ].join(SUMMARY_SEPARATOR)}`
 }
 
@@ -1150,7 +1142,6 @@ export function renderChainTerminalLine(
   notification: RunNotificationView,
   report?: {
     canary?: CanaryCreditCounters
-    trustPriorDisclosure?: TrustPriorDisclosure
   },
 ): string {
   const { verdictSummary, stages } = notification
@@ -1185,7 +1176,6 @@ export function renderChainTerminalLine(
     `analysis: ${stages.analysis.status}`,
     `curation: ${stages.curation.status}`
       + (curationCounts === '' ? '' : ` (${curationCounts})`),
-    formatTrustPriorDisclosure(report?.trustPriorDisclosure),
   ].join(SUMMARY_SEPARATOR)}`
 }
 

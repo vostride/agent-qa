@@ -103,9 +103,7 @@ it('keeps one snapshot across inline job fold, reader, drain, janitor and local 
   expect(h.handle.report().drain).toBe('drained')
   const local = vi.mocked(composeLocalAgent).mock.calls.at(-1)![0]
   expect(local.resolveTrustPriors?.()).toEqual(old.priors)
-  expect(h.handle.trustPriorDisclosure?.digest).toBe(old.generationId)
   expect(h.hostInput().trustPriors?.resolve).toBe(local.resolveTrustPriors)
-  expect(h.hostInput().trustPriors?.disclosure).toBe(h.handle.trustPriorDisclosure)
   expect(h.fold.mock.calls[0]![0].resolveTrustPriors).toBe(local.resolveTrustPriors)
   expect(h.sweep.mock.calls[0]![0].resolveTrustPriors).toBe(local.resolveTrustPriors)
   const read = vi.mocked(LOCAL_CURATION_CAPABILITIES.openKnowledgeReader).mock.calls.at(-1)![0] as unknown as { priors?: unknown }
@@ -171,7 +169,6 @@ it.each([false, true])('carries the selected local snapshot into its delayed tai
     expect(ready?.resolve).toBe(invocation.resolveTrustPriors)
     expect(ready?.resolve()).toEqual(selectedArtifact.priors)
     expect(ready?.disclosure.digest).toBe(selectedArtifact.generationId)
-    expect(host.trustPriorDisclosure.digest).toBe(old.generationId)
     expect(local.resolveTrustPriors?.()).toEqual(old.priors)
     expect(readLabelCalibration).toHaveBeenCalledTimes(otherProject ? 2 : 1)
   } finally { await host.close() }

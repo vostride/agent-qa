@@ -116,7 +116,6 @@ it('production local host loads once and refuses malformed calibration before co
   const replacement = composeCliLocalAgent({ configPath: join(root, 'agent-qa.config.yaml'), agentQaRoot: join(root, '.agent-qa') })
   try {
     expect(vi.mocked(composeLocalAgent).mock.calls.at(-1)![0].resolveTrustPriors?.()).toEqual(fixture(0.25).priors)
-    expect(replacement.trustPriorDisclosure.digest).toBe(fixture(0.25).generationId)
     expect(readLabelCalibration).toHaveBeenCalledTimes(2)
   } finally { await replacement.close() }
   writeArtifact({ privateCorrection: 'never disclose this' })
@@ -220,7 +219,6 @@ it.each([false, true])('local host selects request B priors before the producer 
       expect(producer.mock.calls[0]![0].resolveTrustPriors).not.toBe(local.resolveTrustPriors)
     }
     expect(local.resolveTrustPriors?.()).toEqual(fixture().priors)
-    expect(host.trustPriorDisclosure.digest).toBe(fixture().generationId)
     await expect(local.runExecution!.execute({ configPath: join(a.project, '.', 'agent-qa.config.yaml'), patterns: [a.testPattern] }))
       .rejects.toThrow('captured producer boundary')
     expect(producer.mock.calls.at(-1)![0].resolveTrustPriors).toBe(local.resolveTrustPriors)

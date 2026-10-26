@@ -2255,7 +2255,6 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
       clock: SYSTEM_CLOCK,
       idSource: DIGEST_JOB_ID_SOURCE,
     })
-    Object.assign(localAgent, { trustPriorDisclosure: trustPriors?.disclosure })
     operations.trace?.('local-agent-composed')
     const jobs = await localAgent.jobs()
     operations.trace?.('jobs-opened')

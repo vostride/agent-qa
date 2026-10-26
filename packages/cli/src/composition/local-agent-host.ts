@@ -17,7 +17,7 @@ import {
 } from '../gates/feedback-host.js'
 import { recordMarkEditAhead, type PendingTestWrite } from '../gates/mark-edit-record.js'
 import { createFeedbackReadsPortForHost } from '../gates/feedback-read-host.js'
-import { bindTrustPriorsToConfig, trustPriorsForHost, type ResolveTrustPriors, type TrustPriorDisclosure } from '../curation/trust-priors.js'
+import { bindTrustPriorsToConfig, trustPriorsForHost, type ResolveTrustPriors } from '../curation/trust-priors.js'
 // The CLI's half of the local host (Phase 384 plan 01, superseded in place by 385 plan 09, D-15).
 //
 // What used to live here — the runs reader, the knowledge listing binding and the registry
@@ -1884,7 +1884,7 @@ function projectRunsDbPath(configPath: string): string | undefined {
   }
 }
 
-export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAgentHost & { trustPriorDisclosure: TrustPriorDisclosure } {
+export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAgentHost {
   const trustPriors = input.trustPriors ?? trustPriorsForHost({ configPath: input.configPath })
   const resolveTrustPriors = trustPriors.resolve
   // Narrowed once, here, so the hook closures below close over a value TypeScript knows is present
@@ -2078,7 +2078,6 @@ export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAge
   })
   const closeHost = host.close.bind(host)
   return Object.assign(host, {
-    trustPriorDisclosure: trustPriors.disclosure,
     close: async () => {
       try {
         await closeHost()

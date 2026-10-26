@@ -70,7 +70,7 @@ const PREPARATION_HEAD = `Run ${RUN_ID}: post-verdict hand-off pending; analysis
 const POSTURES = ['handed-off', 'backlog-exhausted', 'none'] as const
 const CI_CONTEXTS = ['ci', 'cloud'] as const
 
-type Context = Parameters<typeof renderPostProcessingSummaryLine>[3]
+type Context = Parameters<typeof renderPostProcessingSummaryLine>[2]
 type Posture = Parameters<typeof renderPostProcessingSummaryLine>[1]
 
 const roots: string[] = []
@@ -87,7 +87,7 @@ function stagesOf(
   context: Context,
 ): string[] {
   const status = { runId: RUN_ID, chips: { analysis, curation } } as PostProcessingStatus
-  const line = renderPostProcessingSummaryLine(status, posture, undefined, context)
+  const line = renderPostProcessingSummaryLine(status, posture, context)
   return line.replace('post-processing — ', '').split(' · ').slice(0, 2)
 }
 

@@ -64,10 +64,8 @@ it.each([
     vi.spyOn(WebPlatformAdapter.prototype, 'setup').mockResolvedValue(undefined)
     vi.mocked(openRunKnowledgeComposition).mockImplementation(() => { throw new Error('captured serving boundary') })
     const actualTail = tail.composeCliPostRunTail
-    let disclosure: ReturnType<typeof actualTail>['trustPriorDisclosure']
     const composedTail = vi.spyOn(tail, 'composeCliPostRunTail').mockImplementation(input => {
       const handle = actualTail(input)
-      disclosure = handle.trustPriorDisclosure
       return { ...handle, drain: vi.fn(async () => undefined), finish: vi.fn(async () => undefined) }
     })
     const execution = vi.spyOn(drive, 'runInProcessCliRun').mockImplementation(async (input, request) => {
@@ -93,8 +91,6 @@ it.each([
       .rejects.toThrow('fixture command exit')
     expect(execution).toHaveBeenCalledTimes(1)
     expect(exit.mock.calls[0]![0]).toBe(0)
-    expect(disclosure?.digest).toBe(old.generationId)
-    expect(disclosure?.status).toBe('calibrated')
     const serving = vi.mocked(openRunKnowledgeComposition).mock.calls.at(-1)![0].resolveTrustPriors
     expect(composedTail.mock.calls[0]![0].trustPriors?.resolve).toBe(serving)
     expect(composedTail.mock.calls[0]![0].trustPriors?.resolve()).toEqual(old.priors)

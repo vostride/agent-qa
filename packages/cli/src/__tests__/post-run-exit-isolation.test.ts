@@ -599,7 +599,6 @@ describe('JOBQ-06 — the structural halves', () => {
       expect(lines(suffix)).toEqual([
         'post-processing — analysis: pending · curation: pending'
         // 389 D-12: nothing drained under --detach, so the line carries the fetch command.
-        + ' · trust priors: provisional'
         + ` · digest: ${digestFetchCommand(RUN_ID)}`,
       ])
     })

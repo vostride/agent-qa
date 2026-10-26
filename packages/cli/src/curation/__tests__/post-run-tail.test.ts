@@ -435,7 +435,7 @@ describe('the digest block — in-process analyze-run completed (D-17, over 389 
     expect(lines).toHaveLength(2)
     // The exit line first — untouched vocabulary, and NO pointer on this leg: the digest
     // itself is one line down, so a fetch command would be noise (the D-17 either/or).
-    expect(lines[0]).toBe('post-processing — analysis: complete · curation: pending · trust priors: provisional')
+    expect(lines[0]).toBe('post-processing — analysis: complete · curation: pending')
     expect(lines[0]).not.toContain('agent-qa digest')
     expect(lines[0]).not.toContain('changes applied')
 
@@ -545,7 +545,7 @@ describe('the digest block — in-process analyze-run completed (D-17, over 389 
 
     const lines = h.info.mock.calls.map(([message]) => String(message))
     expect(lines).toHaveLength(2)
-    expect(lines[0]).toBe('post-processing — analysis: complete · curation: pending · trust priors: provisional')
+    expect(lines[0]).toBe('post-processing — analysis: complete · curation: pending')
     expect(lines[1]).not.toContain('analysis — ')
     expect(lines[1]).toContain('marks — 2 changes applied:')
   })
@@ -583,8 +583,7 @@ describe('the extended exit line — everything else gets count + command (D-17,
     const lines = h.info.mock.calls.map(([message]) => String(message))
     expect(lines).toEqual([
       'post-processing — analysis: pending · curation: pending'
-      + ' · trust priors: provisional'
-        + ` · marks: 2 changes applied · digest: ${FETCH_COMMAND}`,
+      + ` · marks: 2 changes applied · digest: ${FETCH_COMMAND}`,
     ])
     // The digest IS read on this leg — the count on the line is its answer, not a guess — and
     // exactly once, because the pointer and the (unprinted) block share one read.
@@ -1050,7 +1049,7 @@ describe('425 D-20 — the chain-terminal line a real snapshot-bearing run print
     // A real fold's receipt also carries its canary counters, which close the same parenthesis.
     expect(terminal).toContain(
       'curation: complete (added 0, confirmed 0, superseded 0, deprecated 0, proposed 0; canary: '
-      + 'ride-along 0, non-signal 0, rerun-excluded 0) ·')
+      + 'ride-along 0, non-signal 0, rerun-excluded 0)')
     expect(terminal).not.toContain('curated')
   })
 })

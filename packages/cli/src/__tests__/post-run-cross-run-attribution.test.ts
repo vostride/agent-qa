@@ -485,7 +485,6 @@ describe('a starved own-chain is reported as backlog-exhausted, never a bare pen
         + ` · curation: pending${CURATION_BACKLOG_PARENTHETICAL}`
         // 389 D-12: a starved chain completed no analyze-run, so the line carries the fetch
         // command — the sentence stays one copy-paste away whoever drains the backlog.
-        + ' · trust priors: provisional'
         + ` · digest: ${digestFetchCommand(RUN_B)}`,
       ])
       // The posture is the TAIL's, never the DTO's — the same rule the daemon parenthetical obeys.

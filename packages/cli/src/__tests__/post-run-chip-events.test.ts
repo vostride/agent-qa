@@ -602,8 +602,7 @@ describe('the user-facing post-run lines (D-07 / D-08 / D-09)', () => {
       + ` · curation: ${status.chips.curation} (deferred to a later local run)`
       // 389 D-12: this process did not complete analyze-run, so the line carries the one
       // copy-paste that fetches the sentences once the daemon has drained.
-      + ' · trust priors: provisional'
-        + ` · digest: ${digestFetchCommand(RUN_ID)}`,
+      + ` · digest: ${digestFetchCommand(RUN_ID)}`,
     )
     // …and the values it rendered are the durable ones, not a control-flow word.
     expect(status.chips).toEqual({
@@ -648,7 +647,6 @@ describe('the user-facing post-run lines (D-07 / D-08 / D-09)', () => {
         // 389 D-12: the SECOND tail completed nothing in-process (the first one authored the
         // analysis), so its exit line still points at the fetch command rather than printing
         // sentences it never drained.
-        + ' · trust priors: provisional'
         + ` · digest: ${digestFetchCommand(RUN_ID)}`,
       ])
     })
@@ -662,8 +660,7 @@ describe('the user-facing post-run lines (D-07 / D-08 / D-09)', () => {
     expect(tail.report().drain).toBe('detached')
     expect(f.info.mock.calls.map(([message]) => String(message))).toEqual([
       'post-processing — analysis: pending · curation: pending'
-      + ' · trust priors: provisional'
-        + ` · digest: ${digestFetchCommand(RUN_ID)}`,
+      + ` · digest: ${digestFetchCommand(RUN_ID)}`,
     ])
   })
 
@@ -726,8 +723,7 @@ describe('the user-facing post-run lines (D-07 / D-08 / D-09)', () => {
       const line = renderPostProcessingSummaryLine(gateRun, 'handed-off')
       expect(line).toBe(
         'post-processing — analysis: skipped (gate run)'
-        + ' · curation: skipped (gate run)'
-        + ' · trust priors: provisional',
+        + ' · curation: skipped (gate run)',
       )
       expect(line).not.toContain('daemon will drain')
       expect(line).not.toContain('deferred to a later local run')
@@ -739,8 +735,7 @@ describe('the user-facing post-run lines (D-07 / D-08 / D-09)', () => {
         'handed-off',
       )).toBe(
         'post-processing — analysis: skipped (outcome-excluded)'
-        + ' · curation: skipped (outcome-excluded)'
-        + ' · trust priors: provisional',
+        + ' · curation: skipped (outcome-excluded)',
       )
 
       // And the same status WITHOUT the field is byte-identical to what the shipped exit-line
@@ -748,8 +743,7 @@ describe('the user-facing post-run lines (D-07 / D-08 / D-09)', () => {
       const { skipped: _absent, ...ordinary } = gateRun
       expect(renderPostProcessingSummaryLine(ordinary, 'handed-off')).toBe(
         'post-processing — analysis: pending (daemon will drain)'
-        + ' · curation: pending (deferred to a later local run)'
-        + ' · trust priors: provisional',
+        + ' · curation: pending (deferred to a later local run)',
       )
     })
 
