@@ -1,10 +1,9 @@
 import { openKnowledgeReader } from '@vostride/agent-qa-knowledge-local/reader'
 import type { KnowledgeHintReader, ServedRunBrief } from '@vostride/agent-qa-runner'
-import type { ScopeKey, TrustPriorTable } from '@vostride/agent-qa-schema'
+import type { ScopeKey } from '@vostride/agent-qa-schema'
 
 /** Inputs the composition root resolves when opening the run-scoped knowledge reader. */
 export interface ConstructKnowledgeReaderInput {
-  resolveTrustPriors?: () => TrustPriorTable | undefined
   knowledgeRoot: string
   product?: string
   /** Known containing scopes for a member (the suite scope on prepared-suite runs). */
@@ -57,7 +56,6 @@ export function constructKnowledgeReader(
   input: ConstructKnowledgeReaderInput,
 ): KnowledgeHintReader {
   return createFrozenKnowledgeReader(openKnowledgeReader({
-    ...(input.resolveTrustPriors === undefined ? {} : { priors: input.resolveTrustPriors() }),
     knowledgeRoot: input.knowledgeRoot,
     ...(input.product === undefined ? {} : { product: input.product }),
     scopeDefaults: {

@@ -62,16 +62,14 @@ it('JOIN-COMPOSED-PORT: actual composition returns maintenance data and per-ID m
 it('JOIN-READ-NOTHING: populated reads preserve all tree bytes and never sight supplied identities', async () => {
   const f = fixture()
   const sight = vi.fn(async () => { writeFileSync(join(f.root, 'address-ledger-sighting'), 'write forbidden') })
-  const priors = vi.fn(() => { throw new Error('maintenance reads need no numerical priors') })
   const port = createKnowledgeReaderPort({ resolveKnowledgeRoot: () => f.knowledgeRoot,
-    sightMemoryEntities: sight, resolveTrustPriors: priors })
+    sightMemoryEntities: sight })
   const before = tree(f.root)
   const read = boundBatch(port)
   const ids = [f.id, ...Array.from({ length: 99 }, (_, i) => `missing-${i}`)]
   expect(await read({ recordIds: [...ids, ...ids] })).toHaveLength(100)
   expect(await read({ recordIds: ids })).toHaveLength(100)
   expect(sight).not.toHaveBeenCalled()
-  expect(priors).not.toHaveBeenCalled()
   expect(tree(f.root)).toEqual(before)
 })
 

@@ -29,7 +29,6 @@ import {
   showRecords,
 } from '@vostride/agent-qa-knowledge-local/reader'
 import type { KnowledgeReaderPort } from '@vostride/agent-qa-agent'
-import type { TrustPriorTable } from '@vostride/agent-qa-schema'
 
 /**
  * Hand every entity id an output surfaced to the addressing ledger's sighting seam.
@@ -42,7 +41,6 @@ import type { TrustPriorTable } from '@vostride/agent-qa-schema'
 export type SightMemoryEntities = (bundleIds: readonly string[]) => Promise<void>
 
 export interface ConstructKnowledgeReaderPortInput {
-  resolveTrustPriors?: () => TrustPriorTable | undefined
   /**
    * Which knowledge root this invocation serves from, resolved per call.
    *
@@ -72,7 +70,6 @@ export function createKnowledgeReaderPort(
     // scans it; the chat and MCP doors mask declared values in every op result.
     async candidateInjection({ candidateId }) {
       return candidateInjectionFor({
-        ...(input.resolveTrustPriors === undefined ? {} : { priors: input.resolveTrustPriors() }),
         knowledgeRoot: await input.resolveKnowledgeRoot(), candidateId,
       })
     },
@@ -84,13 +81,12 @@ export function createKnowledgeReaderPort(
       })
     },
     async listBundles() {
-      const rows = listBundles(await input.resolveKnowledgeRoot(), input.resolveTrustPriors?.())
+      const rows = listBundles(await input.resolveKnowledgeRoot())
       await sight(rows.map((row) => row.bundleId))
       return rows
     },
     async inspectRecords({ filter }) {
       const records = inspectRecords({
-        ...(input.resolveTrustPriors === undefined ? {} : { priors: input.resolveTrustPriors() }),
         knowledgeRoot: await input.resolveKnowledgeRoot(),
         filter,
       })
@@ -111,7 +107,6 @@ export function createKnowledgeReaderPort(
     },
     async showRecord({ recordId }) {
       const result = showRecord({
-        ...(input.resolveTrustPriors === undefined ? {} : { priors: input.resolveTrustPriors() }),
         knowledgeRoot: await input.resolveKnowledgeRoot(),
         recordId,
       })

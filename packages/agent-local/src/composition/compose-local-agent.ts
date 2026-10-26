@@ -475,7 +475,7 @@ export interface LocalKnowledgeMaintenanceCapabilities {
 }
 
 interface ReceiptWriterInput extends Pick<CreateLocalKnowledgeStoreConfig,
-  'knowledgeRoot' | 'executionContext' | 'resolveTrustPriors' | 'sourceBuildOrdinal' | 'sourceRunId'> {
+  'knowledgeRoot' | 'executionContext' | 'sourceBuildOrdinal' | 'sourceRunId'> {
   /** The caller already holds this authority; these capabilities never acquire a lease. */
   lease: { leaseId: string; epoch: number }
 }
@@ -495,7 +495,6 @@ function receiptWriter(input: ReceiptWriterInput) {
     executionContext: input.executionContext,
     writerLeaseId: input.lease.leaseId,
     epoch: input.lease.epoch,
-    ...(input.resolveTrustPriors === undefined ? {} : { resolveTrustPriors: input.resolveTrustPriors }),
     ...(input.sourceBuildOrdinal === undefined ? {} : { sourceBuildOrdinal: input.sourceBuildOrdinal }),
     ...(input.sourceRunId === undefined ? {} : { sourceRunId: input.sourceRunId }),
   })
@@ -788,11 +787,9 @@ export function createRunsReader(agentQaRoot: string): RunsReaderPort {
 export function createKnowledgeReader(
   resolveKnowledgeRoot: () => Promise<string> | string,
   sightMemoryEntities?: SightMemoryEntities,
-  resolveTrustPriors?: CreateLocalKnowledgeStoreConfig['resolveTrustPriors'],
 ): KnowledgeReaderPort {
   return createKnowledgeReaderPort({
     resolveKnowledgeRoot,
-    ...(resolveTrustPriors === undefined ? {} : { resolveTrustPriors }),
     ...(sightMemoryEntities === undefined ? {} : { sightMemoryEntities }),
   })
 }
@@ -800,7 +797,6 @@ export function createKnowledgeReader(
 // ---- knowledge review: the WRITE half of the verb family (387 KREV-01 / D-17 · D-18) --------
 
 export interface CreateKnowledgeReviewInput {
-  readonly resolveTrustPriors?: CreateLocalKnowledgeStoreConfig['resolveTrustPriors']
   readonly agentQaRoot: string
   readonly resolveKnowledgeRoot: () => Promise<string> | string
   /**
@@ -894,7 +890,6 @@ export function createKnowledgeReview(input: CreateKnowledgeReviewInput): Knowle
         // `knowledge.reject` or `knowledge.forget`, which is the verb's own op id.
         opId: `knowledge.${request.verb}`,
         executionContext: (input.resolveExecutionContext ?? getActiveExecutionContext)(),
-        ...(input.resolveTrustPriors === undefined ? {} : { resolveTrustPriors: input.resolveTrustPriors }),
         ...(input.knowledgeChangeDelegate === undefined ? {} : { delegate: input.knowledgeChangeDelegate }),
         ...(authority === undefined ? {} : { writerAuthority: authority }),
       })
@@ -918,7 +913,6 @@ export interface ApplyKnowledgeChangeInput {
   readonly opId: string
   /** The caller's actual context, recorded as-is. An explicit change applies in every context. */
   readonly executionContext: ExecutionContext
-  readonly resolveTrustPriors?: CreateLocalKnowledgeStoreConfig['resolveTrustPriors']
   /**
    * How this host reaches a live writer-lease holder. The holder receives exactly the validated
    * request and identity, bounded; the lease is never taken. Absent, a held lease refuses by name.
@@ -945,7 +939,6 @@ export async function applyKnowledgeChange(input: ApplyKnowledgeChangeInput): Pr
       opId: input.opId,
       executionContext: input.executionContext,
       resolveBundleShortId: (shortId) => ledger.lookupByShortId(shortId)?.machineId,
-      ...(input.resolveTrustPriors === undefined ? {} : { resolveTrustPriors: input.resolveTrustPriors }),
       ...(input.delegate === undefined ? {} : { delegate: input.delegate }),
       ...(input.writerAuthority === undefined ? {} : { writerAuthority: input.writerAuthority }),
     })
@@ -1705,8 +1698,6 @@ export const UNCLAIMABLE_BY_PROSE_POSTURE: Record<CandidateProsePosture, readonl
 export interface ComposeLocalAgentInput {
   // 2026-10-14 (441-55, 441-16, D-06): the declared-secret mask for chat projections and run reads.
   readonly mask: MaskFn
-  /** Immutable neutral data resolved by the host, reused until recomposition. */
-  readonly resolveTrustPriors?: CreateLocalKnowledgeStoreConfig['resolveTrustPriors']
   readonly feedback?: FeedbackPort
   /**
    * 423 D-19/D-16: read-only mark history and consequence preview; absent leaves runs.marks.history
@@ -2919,7 +2910,6 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
       knowledge: createKnowledgeReader(
         input.knowledgeRoot,
         createMemorySightingHook(entityResolutionInput),
-        input.resolveTrustPriors,
       ),
       config: input.config,
       entities: createEntityDirectory(entityResolutionInput),
@@ -2928,8 +2918,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
       // that is genuinely read-only — a listing, a remote surface — reports the four mutating
       // verbs as `unbound` BY NAME rather than as a hole in the catalogue.
       knowledgeReview: createKnowledgeReview({
-        ...(input.resolveTrustPriors === undefined ? {} : { resolveTrustPriors: input.resolveTrustPriors }),
-            agentQaRoot: input.agentQaRoot,
+        agentQaRoot: input.agentQaRoot,
         resolveKnowledgeRoot: input.knowledgeRoot,
         ...(input.knowledgeChangeDelegate === undefined
           ? {}
