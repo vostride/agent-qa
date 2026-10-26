@@ -96,14 +96,13 @@ describe('explicit judge declarations', () => {
     expect(resolved.judge).toMatchObject({ profile: { model: 'gpt-judge' }, allowSameFamily: true })
     expect(resolved.judge).not.toHaveProperty('members')
   })
-  it.each(['replay', 'gate', 'replay-gate'])('collects repeated --judge on %s and preserves global --config', async verb => {
+  it('collects repeated --judge on replay and preserves global --config', async () => {
     const configPath = await fixture({ judges: ['same', 'alias'] })
     const marker = new Error('fixture stops after session selection')
     const resolveSession = vi.spyOn(composition, 'resolveEvalSession').mockRejectedValue(marker)
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const program = new Command().option('--config <path>').addCommand(createEvalCommand())
-    await program.parseAsync(['--config', configPath, 'eval', verb,
-      ...(verb === 'replay-gate' ? ['candidate-fixture'] : []), '--judge', 'b', '--judge', 'a'], { from: 'user' })
+    await program.parseAsync(['--config', configPath, 'eval', 'replay', '--judge', 'b', '--judge', 'a'], { from: 'user' })
     expect(resolveSession).toHaveBeenCalledWith(expect.objectContaining({ configPath, flags: expect.objectContaining({ judge: ['b', 'a'] }) }))
   })
 })

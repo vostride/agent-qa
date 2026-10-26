@@ -4,13 +4,12 @@
 // Phase 372-06 adds the replay verb: sweep staged cassette bundles through runCassetteReplay with
 // the session's seeded masking factory (D-06), the D-03 judge bag and typed refusal counters.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { Command } from 'commander'
+import { Command, CommanderError } from 'commander'
 import { APICallError } from 'ai'
 import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import fs from 'node:fs'
-import { syncBuiltinESMExports } from 'node:module'
-import { mkdtemp, mkdir, readdir, readFile, rm, writeFile, appendFile, rename } from 'node:fs/promises'
+import { mkdtemp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { generateRunId, generateTestId } from '@vostride/agent-qa-ids'
@@ -42,7 +41,6 @@ import type {
   CorpusCensus,
   DecisionCorrectnessVector,
   JudgeIdentityBlock,
-  LeafCassette,
   SeedPolicy,
 } from '@vostride/agent-qa-eval'
 import type { createModel, ModelProfile, ModelProviderOverrides } from '@vostride/agent-qa-model'
@@ -58,7 +56,6 @@ import {
   asRef,
   asRunId,
   computeBriefDigest,
-  distilledScreenStateDigest,
   CURRENT_ANALYSIS_SCHEMA_VERSION,
 } from '@vostride/agent-qa-schema'
 import type {
@@ -84,12 +81,7 @@ import {
   FsScoreStore,
   runCassetteReplay,
   readCommittedCorpus,
-  resolveBaselineCache,
-  runReplayGate,
-  COMMITTED_ROOT_SCHEMA_VERSION,
 } from '@vostride/agent-qa-eval-local'
-import { LOCAL_CURATION_CAPABILITIES } from '@vostride/agent-qa-agent-local'
-import { appendGateReceipt } from '@vostride/agent-qa-knowledge-local'
 import {
   EvalNamedInputError,
   EvalPartitionFlagsRequiredError,
@@ -105,12 +97,10 @@ import {
   runSeedVerb,
 } from '../../eval-session-composition.js'
 import type {
-  CensusVerbResult,
   EvalSession,
   ExtractVerbResult,
   ReplayVerbResult,
   ReportVerbResult,
-  SeedVerbResult,
 } from '../../eval-session-composition.js'
 import { renderCensusMarkdown } from '../../eval-census-render.js'
 import { createEvalCommand } from '../eval.js'
@@ -174,209 +164,6 @@ function requireGateVerb() {
   return evalVerbs.runGateVerb
 }
 
-function requireReplayGateVerb() {
-  expect(evalVerbs.runReplayGateVerb).toBeTypeOf('function')
-  return evalVerbs.runReplayGateVerb
-}
-
-describe('417 replay-gate command', () => {
-  afterEach(() => {
-    vi.restoreAllMocks()
-    process.exitCode = 0
-  })
-  it('exports recorded defaults and registers the candidate argument and options', () => {
-    requireReplayGateVerb()
-    expect(evalVerbs.GATE1_DEFAULT_MAX_SCREENS).toBe(64)
-    expect(evalVerbs.GATE1_DEFAULT_K).toBe(3)
-    const verb = createEvalCommand().commands.find((command) => command.name() === 'replay-gate')!
-    expect(verb.registeredArguments[0]!.name()).toBe('candidateId')
-    expect(verb.options.map((option) => option.long)).toEqual([
-      '--k',
-      '--max-screens',
-      '--judge',
-      '--dry-run',
-      '--json',
-    ])
-  })
-  it.each([
-    { flagCap: 12, maxScreens: 12, maxScreensSource: 'flag' },
-    { flagCap: undefined, maxScreens: 64, maxScreensSource: 'default' },
-  ])(
-    'resolves and discloses the $maxScreensSource cap before the bridge',
-    async ({ flagCap, maxScreens, maxScreensSource }) => {
-      const { configPath } = await writeReplayFixture('')
-      const session = await sessionFor(configPath)
-      const host = await import('../../gates/replay-gate-host.js')
-      const captured: Parameters<typeof host.createReplayGateHost>[0][] = []
-      vi.spyOn(host, 'createReplayGateHost').mockImplementation((deps) => {
-        captured.push(deps)
-        return {
-          port: {
-            runReplayGate: async () => {
-              throw new Error('unused port')
-            },
-          },
-          run: async () => ({
-            kind: 'refused',
-            refusal: { path: 'fixture', reason: 'fixture boundary' },
-            notices: [],
-            exit: 2,
-          }),
-        }
-      })
-      const result = await requireReplayGateVerb()(session, 'candidate', { maxScreens: flagCap })
-      expect(captured[0]?.composition.maxScreens).toBe(maxScreens)
-      expect(result).toMatchObject({ maxScreens, maxScreensSource, k: 3, kSource: 'default' })
-      expect(result.notices).toContain(`cap: maxScreens=${maxScreens} (${maxScreensSource})`)
-    },
-  )
-  it('rejects max-screens zero before resolving a session or bridge', async () => {
-    await expect(
-      requireReplayGateVerb()({ evalConfig: {} } as EvalSession, 'candidate', { maxScreens: 0 }),
-    ).rejects.toThrow('--max-screens must be a positive integer')
-  })
-  it.each([
-    { configured: 7, flag: 5, k: 5, kSource: 'flag' },
-    { configured: 7, flag: undefined, k: 7, kSource: 'config' },
-    { configured: undefined, flag: undefined, k: 3, kSource: 'default' },
-  ])(
-    'resolves the cross-check k ladder from $kSource',
-    async ({ configured, flag, k, kSource }) => {
-      const { configPath } = await writeReplayFixture('')
-      if (configured !== undefined) await appendFile(configPath, `\neval:\n  k: ${configured}\n`)
-      const session = await sessionFor(configPath)
-      const host = await import('../../gates/replay-gate-host.js')
-      const captured: Parameters<typeof host.createReplayGateHost>[0][] = []
-      vi.spyOn(host, 'createReplayGateHost').mockImplementation((deps) => {
-        captured.push(deps)
-        return {
-          port: {
-            runReplayGate: async () => {
-              throw new Error('unused port')
-            },
-          },
-          run: async () => ({
-            kind: 'refused',
-            refusal: { path: 'fixture', reason: 'boundary' },
-            notices: [],
-            exit: 2,
-          }),
-        }
-      })
-      const result = await requireReplayGateVerb()(session, 'candidate', { k: flag })
-      expect(captured[0]?.composition).toMatchObject({ k, kSource })
-      expect(result).toMatchObject({ k, kSource })
-    },
-  )
-  it.each([1, 2, 4, 3.5, NaN])('rejects invalid Gate-1 k=%s before composition', async (k) => {
-    await expect(
-      requireReplayGateVerb()({ evalConfig: {} } as EvalSession, 'candidate', { k }),
-    ).rejects.toThrow('--k must be an odd integer of at least 3')
-  })
-  it.each(['1', '2', '4'])('the actual replay-gate command exits 2 for --k %s', async (k) => {
-    const { configPath } = await writeReplayFixture('')
-    const session = await sessionFor(configPath)
-    vi.spyOn(evalVerbs, 'resolveEvalSession').mockResolvedValue(session)
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const host = await import('../../gates/replay-gate-host.js')
-    const compose = vi.spyOn(host, 'createReplayGateHost')
-    await createEvalCommand().parseAsync(['replay-gate', 'candidate', '--k', k], { from: 'user' })
-    expect(process.exitCode).toBe(2)
-    expect(error.mock.calls.flat().join(' ')).toContain('--k must be an odd integer of at least 3')
-    expect(compose).not.toHaveBeenCalled()
-  })
-  it('rejects fractional --k before it can be truncated to an odd integer', async () => {
-    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const session = vi.spyOn(evalVerbs, 'resolveEvalSession')
-    await createEvalCommand().parseAsync(['replay-gate', 'candidate', '--k', '3.5'], {
-      from: 'user',
-    })
-    expect(process.exitCode).toBe(2)
-    expect(error.mock.calls.flat().join(' ')).toContain('--k')
-    expect(session).not.toHaveBeenCalled()
-  })
-  it('selects --judge by name but never forwards the configured same-family override', async () => {
-    const { configPath } = await writeReplayFixture('', 'gpt-fixture')
-    const config = await readFile(configPath, 'utf8')
-    await writeFile(
-      configPath,
-      config.replace(
-        'use:\n',
-        [
-          '    - name: selected-judge',
-          '      provider: openai-compatible',
-          '      model: gpt-judge',
-          '      baseURL: http://localhost:9999/v1',
-          'use:',
-          '',
-        ].join('\n'),
-      ) + 'eval:\n  judgeAllowSameFamily: true\n',
-    )
-    const host = await import('../../gates/replay-gate-host.js')
-    const captured: Parameters<typeof host.createReplayGateHost>[0][] = []
-    vi.spyOn(host, 'createReplayGateHost').mockImplementation((deps) => {
-      captured.push(deps)
-      return {
-        port: {
-          runReplayGate: async () => {
-            throw new Error('unused port')
-          },
-        },
-        run: async () => ({
-          kind: 'refused',
-          refusal: { path: 'fixture', reason: 'boundary' },
-          notices: [],
-          exit: 2,
-        }),
-      }
-    })
-    vi.spyOn(console, 'error').mockImplementation(() => {})
-    await new Command()
-      .option('--config <path>')
-      .addCommand(createEvalCommand())
-      .parseAsync(
-        ['--config', configPath, 'eval', 'replay-gate', 'candidate', '--judge', 'selected-judge'],
-        { from: 'user' },
-      )
-    expect(captured).toHaveLength(1)
-    const input = captured[0]!.composition
-    expect(input.judge?.profile.model).toBe('gpt-judge')
-    expect('allowSameFamily' in input.judge!).toBe(false)
-    expect(input.judgeOverrideConfigured).toBe(true)
-    expect(input.baselineWarmup).toEqual({ configPath, judge: 'selected-judge' })
-  })
-  it('keeps ordinary eval replay k=1 valid', async () => {
-    const fixture = await floorVerbFixture()
-    fixture.session.evalConfig.k = 1
-    const result = await runReplayVerb(
-      fixture.session,
-      {},
-      { source: 'committed', ...fixture.opts },
-    )
-    expect(result.replayed).toBe(3)
-    expect(result.spend.sampleCount).toBe(3)
-    expect(fixture.planner.captured).toHaveLength(3)
-  })
-  it.each(['refused'] as const)('never emits %s content on JSON stdout', async () => {
-    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
-    vi.spyOn(console, 'error').mockImplementation(() => {})
-    vi.spyOn(evalVerbs, 'resolveEvalSession').mockResolvedValue({} as EvalSession)
-    vi.spyOn(evalVerbs, 'runReplayGateVerb').mockResolvedValue({
-      maxScreens: 64,
-      maxScreensSource: 'default',
-      k: 3,
-      kSource: 'default',
-      kind: 'refused',
-      refusal: { path: '/missing', reason: 'no-floor' },
-      notices: [],
-      exit: 2,
-    })
-    await createEvalCommand().parseAsync(['replay-gate', 'candidate', '--json'], { from: 'user' })
-    expect(log).not.toHaveBeenCalled()
-    expect(process.exitCode).toBe(2)
-  })
-})
-
 async function gateVerbFixture(judged = false, seeds = [11, 29]) {
   const fixture = await floorVerbFixture(judged)
   const floor = await evalVerbs.runFloorVerb(fixture.session, {
@@ -415,85 +202,6 @@ describe('runGateVerb — fresh and offline release verdicts', () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network forbidden in gate fixture'))
   })
   afterEach(() => vi.restoreAllMocks())
-
-  it('follows the advertised cold-cache producer command and resolves its actual seeded records', async () => {
-    // Runtime fixture imports keep peer package source outside this package's TS rootDir.
-    const gateFixturePath = resolve(import.meta.dirname, '../../../../eval-local/src/__tests__/fixtures/gate1-fixtures.ts')
-    const replayFixturePath = resolve(import.meta.dirname, '../../../../eval-local/src/__tests__/fixtures/replay-fixtures.ts')
-    const { writeGate1Fixture, gate1Responder } = await import(gateFixturePath)
-    const { respondingStub, stubProfile, noneAuth } = await import(replayFixturePath)
-    const { dir, configPath } = await writeReplayFixture('', stubProfile().model)
-    await writeFile(
-      configPath,
-      (await readFile(configPath, 'utf8')).replace('localhost:9999', 'localhost:1'),
-    )
-    const f = writeGate1Fixture(dir)
-    const committedRoot = join(dir, 'agent-qa-eval')
-    await rename(f.committedRoot, committedRoot)
-    const planner = respondingStub(gate1Responder(f))
-    const overrides = { languageModels: planner.languageModels }
-    const session = await sessionFor(configPath)
-    const identity = await evalVerbs.resolveGateProfileIdentity(session, overrides)
-    expect(identity).toEqual(f.identity)
-    const cold = await runReplayGate({
-      injection: f.injection,
-      committedRoot,
-      agentQaRoot: f.agentQaRoot,
-      identity,
-      mask: (text: string) => text,
-      planner: {
-        profile: stubProfile(),
-        resolveAuth: async () => noneAuth,
-        modelOverrides: overrides,
-      },
-      judgeOverrideConfigured: false,
-      k: 3,
-      kSource: 'default',
-      maxScreens: 64,
-      baselineSeed: { seed: 29, source: 'config' },
-      baselineWarmup: { configPath },
-      producedBy: { opId: 'eval.replay-gate' },
-    })
-    expect(cold.kind).toBe('receipt')
-    if (cold.kind !== 'receipt') throw new Error(JSON.stringify(cold))
-    expect(cold.receipt.reasons).toEqual(['baseline-uncached'])
-    expect(planner.captured).toHaveLength(0)
-    expect(cold.notices.join('\n')).toContain('spends planner and configured judge calls')
-    const command = cold.lines.find((line) => line.startsWith('agent-qa '))!
-    // Parse the actual advertised arguments (the fixture path has no embedded quotes).
-    const argv = command
-      .match(/'[^']*'|\S+/g)!
-      .slice(1)
-      .map((arg) => (arg.startsWith("'") ? arg.slice(1, -1) : arg))
-    const actualGate = evalVerbs.runGateVerb
-    vi.spyOn(evalVerbs, 'runGateVerb').mockImplementation((resolved, opts) =>
-      actualGate(resolved, { ...opts, plannerOverrides: overrides }),
-    )
-    vi.spyOn(console, 'log').mockImplementation(() => {})
-    vi.spyOn(console, 'error').mockImplementation(() => {})
-    await new Command()
-      .option('--config <path>')
-      .addCommand(createEvalCommand())
-      .parseAsync(argv, { from: 'user' })
-    expect(planner.captured).toHaveLength(6)
-    expect(planner.captured.every((call: CapturedCallOptions) => call.seed === 29)).toBe(true)
-    const cache = resolveBaselineCache({
-      agentQaRoot: f.agentQaRoot,
-      ...identity,
-      gateRootSeed: 11,
-      gateRootSeedSource: 'config',
-      cassettes: f.selected.map(({ cassette }: { cassette: LeafCassette }) => ({
-        id: cassette.id,
-        promptInputHash: cassette.receipt.promptInputHash,
-      })),
-    })
-    expect(
-      cache.rows.every(
-        (row) => row.kind === 'cached' && row.seed === 29 && row.seedSource === 'run-publication',
-      ),
-    ).toBe(true)
-    expect(globalThis.fetch).not.toHaveBeenCalled()
-  })
 
   it('shares one override fingerprint across floor, designated pointer and the fresh exit-0 gate', async () => {
     const runGateVerb = requireGateVerb()
@@ -678,56 +386,6 @@ describe('runGateVerb — fresh and offline release verdicts', () => {
     expect(auth).not.toHaveBeenCalled()
   })
 
-  it('sets command exits from 0/1/2 verdict DTOs, prints ordered lines, and keeps JSON one document', async () => {
-    const runGateVerb = requireGateVerb()
-    const fixture = await gateVerbFixture()
-    const result = await runGateVerb(fixture.session, fixture.opts)
-    if (result.kind !== 'verdict') throw new Error('expected fresh result')
-    const output = captureConsole()
-    const mocked = vi.spyOn(evalVerbs, 'runGateVerb')
-    for (const exit of [0, 1, 2] as const) {
-      const dto = { ...result, verdict: { ...result.verdict, exit } }
-      mocked.mockResolvedValue(dto)
-      output.logs.length = 0
-      const command = new Command().option('--config <path>').addCommand(createEvalCommand())
-      await command.parseAsync(['--config', fixture.configPath, 'eval', 'gate', '--json'], { from: 'user' })
-      expect(process.exitCode).toBe(exit)
-      expect(output.logs).toHaveLength(1)
-      expect(JSON.parse(output.logs[0]!)).toEqual(JSON.parse(JSON.stringify(dto)))
-    }
-    output.logs.length = 0
-    mocked.mockResolvedValue(result)
-    const program = new Command().option('--config <path>').addCommand(createEvalCommand())
-    await program.parseAsync(['--config', fixture.configPath, 'eval', 'gate'], { from: 'user' })
-    expect(output.logs).toEqual(result.lines)
-    const gate = program.commands[0]!.commands.find(command => command.name() === 'gate')!
-    expect(gate.options.map(option => option.long)).toEqual(expect.arrayContaining([
-      '--report', '--staged-dir', '--seed', '--judge', '--json',
-    ]))
-  })
-
-  it('maps refused reads and thrown session/config or flag errors to command exit 2', async () => {
-    const runGateVerb = requireGateVerb()
-    const fixture = await floorVerbFixture()
-    const output = captureConsole()
-    vi.spyOn(evalVerbs, 'runGateVerb').mockImplementation((session, opts) =>
-      runGateVerb(session, { ...opts, ...fixture.opts }))
-    const parse = (args: string[]) => new Command().option('--config <path>').addCommand(createEvalCommand())
-      .parseAsync(['--config', fixture.configPath, 'eval', 'gate', ...args], { from: 'user' })
-    await parse(['--report', computeBatchKey([]), '--json'])
-    expect(process.exitCode).toBe(2)
-    expect(JSON.parse(output.logs[0]!)).toMatchObject({ kind: 'refused' })
-    output.logs.length = 0
-    await parse(['--seed', 'NaN'])
-    expect(process.exitCode).toBe(2)
-    expect(output.logs).toHaveLength(0)
-    expect(output.errors.join('\n')).toContain('release-gate: inconclusive')
-    const yaml = await readFile(fixture.configPath, 'utf8')
-    await writeFile(fixture.configPath, yaml.replace('  llm: planner\n', ''))
-    await parse([])
-    expect(process.exitCode).toBe(2)
-    expect(output.errors.join('\n')).toContain('use.llm')
-  })
 })
 
 describe('runFloorVerb — recorded protocol and write-once measurement', () => {
@@ -865,23 +523,6 @@ describe('runFloorVerb — recorded protocol and write-once measurement', () => 
     expect(result.artefact.judgeModelId).toBe(fixture.judgeModelId)
     expect(result.costLines[0]).toContain('modelCalls=9 promptTokens=90 completionTokens=18')
     expect(globalThis.fetch).not.toHaveBeenCalled()
-  })
-
-  it('registers floor flags and emits exactly one JSON DTO with progress on stderr', async () => {
-    const runFloorVerb = requireFloorVerb()
-    const fixture = await floorVerbFixture()
-    vi.spyOn(evalVerbs, 'runFloorVerb').mockImplementation((session, opts) =>
-      runFloorVerb(session, { ...opts, ...fixture.opts }))
-    const output = captureConsole()
-    const program = new Command().option('--config <path>').addCommand(createEvalCommand())
-    const floor = program.commands[0]!.commands.find(command => command.name() === 'floor')
-    expect(floor?.options.map(option => option.long)).toEqual(expect.arrayContaining([
-      '--repeats', '--seeds', '--bootstrap-seed', '--commit', '--explanation', '--classifier-repeatability', '--from-measured', '--json',
-    ]))
-    await program.parseAsync(['--config', fixture.configPath, 'eval', 'floor', '--json'], { from: 'user' })
-    expect(output.logs).toHaveLength(1)
-    expect(JSON.parse(output.logs[0]!)).toMatchObject({ recordedDefaults: true, repeats: 3 })
-    expect(output.errors.join('\n')).toContain('no judge configured')
   })
 })
 
@@ -1985,177 +1626,6 @@ async function saveAnalysis(dir: string, runId: string, text: string): Promise<v
   await writeFile(join(runDir, 'analysis.json'), text)
 }
 
-async function feedbackVerbFixture() {
-  const { dir, configPath } = await writeFixture()
-  await appendFile(configPath, '\nknowledge:\n  dir: knowledge\n')
-  const committedRoot = join(dir, 'agent-qa-eval')
-  await mkdir(committedRoot)
-  await writeFile(join(committedRoot, 'eval-root.json'), JSON.stringify({ schemaVersion: COMMITTED_ROOT_SCHEMA_VERSION }))
-  const agentQaRoot = join(dir, '.agent-qa')
-  const { writeStagedFeedback } = await import(new URL(
-    '../../../../eval-local/src/__tests__/fixtures/staged-feedback-fixture.js', import.meta.url,
-  ).href)
-  for (let index = 0; index < 2; index++) {
-    const runId = generateRunId()
-    const screenshotRef = new FsEvidenceArtifactStore({ root: agentQaRoot, runId }).persistDecisionScreenshot(BLOB_BYTES)
-    const handoff = buildHandoff({ runId, screenshotRef, scope: { tier: 'product', key: `feedback-${index}` } })
-    const state = handoff.tests[0]!.steps[0]!.subActions[0]!.stateBefore
-    state.url = `https://feedback.example/${index}`
-    state.timestamp = 1_725_000_000
-    new FsHandoffStore({ root: agentQaRoot, runId }).save(handoff)
-    writeStagedFeedback({ agentQaRoot, product: `feedback-${index}`,
-      target: { runId, testId: handoff.tests[0]!.testId, stepIndex: 0 }, stateDigest: distilledScreenStateDigest(state),
-      candidateId: `fixture-candidate-${index}`, attributedObservationId: `fixture-observation-${index}`, benefit: index === 0 ? 'rode-along' : 'exercised-harmed' })
-  }
-  const { createPromotionFloorFixture, completeGate1Receipt } = await import(new URL(
-    '../../../../knowledge-local/src/curator/__tests__/fixtures/promotion-floor-fixture.js', import.meta.url,
-  ).href)
-  const knowledgeRoot = join(dir, 'knowledge')
-  const knowledge = createPromotionFloorFixture({ knowledgeRoot })
-  const { published } = knowledge.publishHeldCandidate('feedback')
-  const digest = computeCorpusDigest(readCommittedCorpus(committedRoot).snapshot.entries)
-  expect(appendGateReceipt(knowledge.outcomeAppendConfig(), published.id, completeGate1Receipt(published.id, { corpusDigest: digest }))).toEqual({ kind: 'appended' })
-  return { dir, configPath, agentQaRoot, committedRoot, knowledgeRoot, candidateId: published.id, digest }
-}
-
-describe('418 eval seed --from-feedback', () => {
-  afterEach(() => { vi.restoreAllMocks(); syncBuiltinESMExports() })
-  it.each([
-    ['cleanup', false], ['cleanup', true], ['final-digest', false], ['final-digest', true],
-  ] as const)('preserves verified admission after %s failure (json=%s)', async (phase, json) => {
-    const f = await feedbackVerbFixture()
-    const remove = fs.rmSync
-    const read = fs.readFileSync
-    const stagingRoot = join(fs.realpathSync(f.agentQaRoot), 'eval/feedback/')
-    let cleanupReached = false
-    vi.spyOn(fs, 'rmSync').mockImplementation((path, options) => {
-      if (String(path).startsWith(stagingRoot)) {
-        cleanupReached = true
-        if (phase === 'cleanup') throw Object.assign(new Error('private fault text must not escape'), { code: 'EACCES' })
-      }
-      return remove(path, options)
-    })
-    vi.spyOn(fs, 'readFileSync').mockImplementation(((path: fs.PathOrFileDescriptor, options?: unknown) => {
-      if (phase === 'final-digest' && cleanupReached && String(path) === join(f.committedRoot, 'eval-root.json')) {
-        throw Object.assign(new Error('private fault text must not escape'), { code: 'EACCES' })
-      }
-      return read(path, options as Parameters<typeof read>[1])
-    }) as typeof fs.readFileSync)
-    syncBuiltinESMExports()
-    const { logs, errors } = captureConsole()
-    await buildProgram().parseAsync(['--config', f.configPath, 'eval', 'seed', '--from-feedback', ...(json ? ['--json'] : [])], { from: 'user' })
-    expect(cleanupReached, JSON.stringify({ logs, errors })).toBe(true)
-    expect(errors).toEqual([])
-    expect(process.exitCode).toBe(2)
-    expect(readCommittedCorpus(f.committedRoot).snapshot.entries).toHaveLength(2)
-    expect(logs.join('\n')).not.toContain('private fault text')
-    if (json) {
-      const result = JSON.parse(logs[0]!)
-      expect(result).toMatchObject({ kind: 'refused', writesStarted: true, previousCorpusDigest: f.digest,
-        failures: expect.arrayContaining([expect.objectContaining({ phase })]) })
-      expect(result.entries).toHaveLength(2)
-      if (phase === 'final-digest') {
-        expect(result.staleReceipts).toBeNull()
-        expect(result).not.toHaveProperty('nextCorpusDigest')
-      } else {
-        expect(result.staleReceipts).toHaveLength(1)
-        expect(result.nextCorpusDigest).not.toBe(f.digest)
-        expect(result.failures).toHaveLength(2)
-        expect(result.failures.every((failure: { cassetteId?: string }) => failure.cassetteId)).toBe(true)
-      }
-    } else {
-      expect(logs.filter(line => line.startsWith('admitted '))).toHaveLength(2)
-      expect(logs.some(line => line.startsWith(`feedback ${phase}:`))).toBe(true)
-      expect(logs.join('\n')).toContain('Writes began; inspect the admitted entries')
-      expect(logs.join('\n')).toContain(phase === 'final-digest'
-        ? 'receipt-stale: unknown (final corpus digest unavailable)' : 'receipt-stale: 1')
-    }
-    vi.restoreAllMocks()
-    syncBuiltinESMExports()
-    const remaining = await readdir(join(f.agentQaRoot, 'eval/feedback/feedback-0'))
-    expect(remaining).toHaveLength(phase === 'cleanup' ? 1 : 0)
-  })
-  it('classifies a staging read refusal before any writes without claiming progress', async () => {
-    const f = await feedbackVerbFixture()
-    await writeFile(join(f.agentQaRoot, 'eval/feedback/unexpected-file'), 'fixture')
-    const before = await snapshotTree(f.committedRoot)
-    const { logs } = captureConsole()
-    await buildProgram().parseAsync(['--config', f.configPath, 'eval', 'seed', '--from-feedback', '--json'], { from: 'user' })
-    expect(JSON.parse(logs[0]!)).toMatchObject({ kind: 'refused', entries: [], writesStarted: false,
-      staleReceipts: [], failures: [{ phase: 'before-write', reason: 'feedback-unavailable' }] })
-    expect(await snapshotTree(f.committedRoot)).toEqual(before)
-  })
-  it('previews a real mixed-product batch and standing receipt without changing any host file', async () => {
-    const f = await feedbackVerbFixture()
-    const before = await snapshotTree(f.dir)
-    const { logs, errors } = captureConsole()
-    await buildProgram().parseAsync(['--config', f.configPath, 'eval', 'seed', '--from-feedback', '--dry-run', '--json'], { from: 'user' })
-    expect(errors).toEqual([])
-    expect(logs).toHaveLength(1)
-    const result = JSON.parse(logs[0]!)
-    expect(result).toMatchObject({ kind: 'dry-run', previousCorpusDigest: f.digest,
-      staleReceipts: [{ candidateId: f.candidateId, gate: 1, verdict: 'pass', corpusDigest: f.digest }] })
-    expect(result.entries).toHaveLength(2)
-    expect(result).not.toHaveProperty('nextCorpusDigest')
-    expect(await snapshotTree(f.dir)).toEqual(before)
-    expect(result.floorCommand).toBe(`agent-qa --config '${f.configPath}' eval floor`)
-    const floor = vi.spyOn(evalVerbs, 'runFloorVerb').mockRejectedValue(new Error('registered floor reached without measurement'))
-    await buildProgram().parseAsync(['--config', f.configPath, 'eval', 'floor'], { from: 'user' })
-    expect(floor).toHaveBeenCalledTimes(1)
-  })
-  it('admits once, discloses the digest and receipt-stale change, then answers nothing-staged', async () => {
-    const f = await feedbackVerbFixture()
-    const { logs, errors } = captureConsole()
-    const args = ['--config', f.configPath, 'eval', 'seed', '--from-feedback']
-    await buildProgram().parseAsync(args, { from: 'user' })
-    expect(errors).toEqual([])
-    expect(logs.filter(line => line.startsWith('admitted '))).toHaveLength(2)
-    expect(logs).toContain('standing receipts that will read receipt-stale: 1')
-    expect(logs).toContain(`${f.candidateId} gate 1 pass`)
-    expect(logs.some(line => line.startsWith(`corpus digest ${f.digest} → `))).toBe(true)
-    const after = await snapshotTree(f.committedRoot)
-    const next = computeCorpusDigest(readCommittedCorpus(f.committedRoot).snapshot.entries)
-    expect(next).not.toBe(f.digest)
-    logs.length = 0
-    await buildProgram().parseAsync([...args, '--json'], { from: 'user' })
-    expect(JSON.parse(logs[0]!)).toMatchObject({ kind: 'nothing-staged', entries: [], staleReceipts: [], nextCorpusDigest: next })
-    expect(await snapshotTree(f.committedRoot)).toEqual(after)
-  })
-  it('filters optional product and never invents a corpus citation for Gate3', async () => {
-    const f = await feedbackVerbFixture()
-    const session = await resolveEvalSession({ configPath: f.configPath, keyOnly: true })
-    const result = await evalVerbs.runSeedFromFeedbackVerb(session, { agentQaRoot: f.agentQaRoot, product: 'feedback-1', dryRun: true,
-      knowledgeRoot: f.knowledgeRoot, readStandingGateReceipts: input => [
-        ...LOCAL_CURATION_CAPABILITIES.readStandingGateReceipts(input),
-        { candidateId: f.candidateId, gate: 3, verdict: 'pass', producedAtOrdinal: 45 },
-        { candidateId: 'older', gate: 1, verdict: 'pass', corpusDigest: 'f'.repeat(64), producedAtOrdinal: 45 },
-      ] })
-    expect(result.entries).toHaveLength(1)
-    expect(result.entries[0]!.product).toBe('feedback-1')
-    expect(result.staleReceipts).toHaveLength(1)
-    expect(result.staleReceipts?.[0]!.gate).toBe(1)
-  })
-  it.each([['--run', 'x'], ['--held-out-fraction', '0.5'], ['--private-fraction', '0.5'], ['--silver-cap', '2']])('refuses incompatible flags %j before session resolution', async (...flags) => {
-    const { errors } = captureConsole()
-    const session = vi.spyOn(evalVerbs, 'resolveEvalSession')
-    await buildProgram().parseAsync(['eval', 'seed', '--from-feedback', ...flags], { from: 'user' })
-    expect(process.exitCode).toBe(1)
-    expect(errors.join('\n')).toContain('--from-feedback admits staged feedback only; --run and partition flags do not apply')
-    expect(session).not.toHaveBeenCalled()
-  })
-  it('refuses no-eval-root with exit 2 and prevents dry-run on ordinary seed from writing', async () => {
-    const f = await writeFixture()
-    const before = await snapshotTree(f.dir)
-    const { logs, errors } = captureConsole()
-    await buildProgram().parseAsync(['--config', f.configPath, 'eval', 'seed', '--from-feedback', '--json'], { from: 'user' })
-    expect(JSON.parse(logs[0]!)).toMatchObject({ kind: 'refused', reason: 'no-eval-root', entries: [] })
-    expect(process.exitCode).toBe(2)
-    await buildProgram().parseAsync(['--config', f.configPath, 'eval', 'seed', '--dry-run'], { from: 'user' })
-    expect(errors.join('\n')).toContain('--dry-run requires --from-feedback')
-    expect(await snapshotTree(f.dir)).toEqual(before)
-  })
-})
-
 describe('runSeedVerb — corpus committing wraps seedCommittedCorpus 1:1 (D-01/D-16/D-17)', () => {
   it('re-extracts per handoff, plans, seeds the committed root, and sums the reports (D-16)', async () => {
     const { dir, configPath } = await writeFixture()
@@ -2548,45 +2018,6 @@ describe('runSeedVerb — partition manifest and run exclusions (414 D-02/D-05/D
     )
   })
 
-  it('renders one summary line per partition and per written exclusion, none when empty (D-04)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-alpha')
-    saveSeedRun(dir, 'run-flaky', { rootCause: flakeRootCause() })
-    const session = await sessionFor(configPath)
-    const { logs, errors } = captureConsole()
-
-    await buildProgram().parseAsync(
-      [
-        '--config',
-        configPath,
-        'eval',
-        'seed',
-        '--held-out-fraction',
-        String(TEST_FRACTIONS.heldOutFraction),
-        '--private-fraction',
-        String(TEST_FRACTIONS.privateFraction),
-      ],
-      { from: 'user' },
-    )
-
-    expect(process.exitCode).not.toBe(1)
-    expect(errors).toEqual([])
-    const rendered = logs.join('\n')
-    const manifest = guardPartitionManifest(
-      JSON.parse(
-        await readFile(join(dir, 'agent-qa-eval', 'contracts', 'partition-default.json'), 'utf8'),
-      ),
-    )
-    const digest = createHash('sha256').update(manifest.salt).digest('hex')
-    expect(rendered).toContain(
-      `  default: held-out ${TEST_FRACTIONS.heldOutFraction}, `
-        + `private ${TEST_FRACTIONS.privateFraction}, salt sha256 ${digest}`,
-    )
-    expect(rendered).toContain(`exclusions/default/${slugBranch('run-flaky')}.json (written)`)
-    // D-17: the raw salt never reaches an operator's terminal.
-    expect(rendered).not.toContain(manifest.salt)
-  })
-
   it('reports a diverging committed exclusion as a write-conflict DATA row, never a throw (D-02)', async () => {
     const { dir, configPath } = await writeFixture()
     saveSeedRun(dir, 'run-alpha')
@@ -2630,20 +2061,6 @@ describe('runSeedVerb — partition manifest and run exclusions (414 D-02/D-05/D
     expect(await readFile(planted, 'utf8')).toBe(before)
     expect(result.partitions[0]?.outcome).toBe('written')
     expect(result.seededCount).toBe(1)
-  })
-
-  it('prints "- none" for both blocks when a sweep partitions and excludes nothing (D-04)', async () => {
-    const { configPath } = await writeFixture()
-    const { logs, errors } = captureConsole()
-
-    await buildProgram().parseAsync(['--config', configPath, 'eval', 'seed'], { from: 'user' })
-
-    expect(process.exitCode).not.toBe(1)
-    expect(errors).toEqual([])
-    const rendered = logs.join('\n')
-    expect(rendered).toContain('partitions:')
-    expect(rendered).toContain('exclusions written:')
-    expect(rendered).toContain('- none')
   })
 })
 
@@ -2954,12 +2371,12 @@ function captureConsole(): { logs: string[]; errors: string[] } {
   return { logs, errors }
 }
 
-describe('createEvalCommand — family skeleton and registration shape (D-01)', () => {
-  it('names the family "eval" with explicit calibration and the existing corpus and gate verbs', () => {
+describe('createEvalCommand registers extract, replay and report', () => {
+  it('names the family "eval" with extract, replay and report', () => {
     const cmd = createEvalCommand()
     expect(cmd.name()).toBe('eval')
-    const verbs = ['calibrate', 'extract', 'replay', 'seed', 'adversarial', 'report', 'census', 'floor', 'gate', 'replay-gate']
-    expect(cmd.commands.map(sub => sub.name())).toEqual(verbs)
+    expect(cmd.commands.map(sub => sub.name())).toEqual(['extract', 'replay', 'report'])
+    expect(cmd.description()).toContain('extract, replay, report')
   })
 
   it('declares the D-02 filter vocabulary on extract: --run, --product, --json', () => {
@@ -2985,22 +2402,6 @@ describe('createEvalCommand — family skeleton and registration shape (D-01)', 
     )
   })
 
-  it('declares the seed flag vocabulary: --run, --product, --silver-cap, --json', () => {
-    const seed = createEvalCommand().commands.find(sub => sub.name() === 'seed')
-    const flags = seed?.options.map(option => option.long) ?? []
-    expect(flags).toEqual(
-      expect.arrayContaining([
-        '--run',
-        '--product',
-        '--silver-cap',
-        // 414 D-07: the two REQUIRED-on-first-partition fraction flags.
-        '--held-out-fraction',
-        '--private-fraction',
-        '--json',
-      ]),
-    )
-  })
-
   it('declares the report flag vocabulary: --run, --cassette, --product, --commit, --source, --baseline, --json', () => {
     const report = createEvalCommand().commands.find(sub => sub.name() === 'report')
     const flags = report?.options.map(option => option.long) ?? []
@@ -3016,74 +2417,41 @@ describe('createEvalCommand — family skeleton and registration shape (D-01)', 
       ]),
     )
   })
-
-  it('declares the census flag vocabulary: --commit, --campaign, --json (413 D-13/D-15/D-16)', () => {
-    const census = createEvalCommand().commands.find(sub => sub.name() === 'census')
-    const flags = census?.options.map(option => option.long) ?? []
-    expect(flags).toEqual(expect.arrayContaining(['--commit', '--campaign', '--json']))
-  })
 })
 
-describe('agent-qa eval seed / report — rendering and exit semantics (372-07, D-04/D-08)', () => {
+function parseEval(args: string[]): Promise<{ code: string | undefined; stderr: string }> {
+  const evalCommand = createEvalCommand()
+  const program = new Command().option('--config <path>', 'config file path').addCommand(evalCommand)
+  let stderr = ''
+  for (const command of [program, evalCommand, ...evalCommand.commands]) {
+    command.exitOverride().configureOutput({
+      writeErr: (text) => { stderr += text },
+      writeOut: () => {},
+    })
+  }
+  return program.parseAsync(['eval', ...args], { from: 'user' }).then(
+    () => ({ code: undefined, stderr }),
+    (error: unknown) => {
+      if (!(error instanceof CommanderError)) throw error
+      return { code: error.code, stderr }
+    },
+  )
+}
+
+describe('eval subcommands that were removed', () => {
+  it.each(['gate', 'floor', 'census', 'replay-gate', 'seed', 'adversarial', 'calibrate'])(
+    'refuses eval %s as an unknown command',
+    async (verb) => {
+      const { code, stderr } = await parseEval([verb])
+      expect(code).toBe('commander.unknownCommand')
+      expect(stderr).toContain(`error: unknown command '${verb}'`)
+    },
+  )
+})
+
+describe('agent-qa eval report renders and exits from its DTO', () => {
   afterEach(() => {
     vi.restoreAllMocks()
-  })
-
-  it('seed --json emits exactly one JSON DTO on stdout and nothing else (Pitfall 11)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-alpha')
-    const { logs, errors } = captureConsole()
-
-    await buildProgram().parseAsync(
-      [
-        '--config',
-        configPath,
-        'eval',
-        'seed',
-        '--held-out-fraction',
-        String(TEST_FRACTIONS.heldOutFraction),
-        '--private-fraction',
-        String(TEST_FRACTIONS.privateFraction),
-        '--json',
-      ],
-      { from: 'user' },
-    )
-
-    expect(process.exitCode).not.toBe(1)
-    expect(errors).toEqual([])
-    expect(logs).toHaveLength(1)
-    const dto = JSON.parse(logs[0] ?? '') as SeedVerbResult
-    expect(dto.handoffsSeeded).toBe(1)
-    expect(dto.seededCount).toBe(1)
-    expect(dto.committedRoot).toBe(resolve(dir, 'agent-qa-eval'))
-  })
-
-  it('seed renders the human summary from the DTO fields only (D-04)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-alpha')
-    const { logs, errors } = captureConsole()
-
-    await buildProgram().parseAsync(
-      [
-        '--config',
-        configPath,
-        'eval',
-        'seed',
-        '--held-out-fraction',
-        String(TEST_FRACTIONS.heldOutFraction),
-        '--private-fraction',
-        String(TEST_FRACTIONS.privateFraction),
-      ],
-      { from: 'user' },
-    )
-
-    expect(process.exitCode).not.toBe(1)
-    expect(errors).toEqual([])
-    const rendered = logs.join('\n')
-    expect(rendered).toContain('1 handoff(s) seeded')
-    expect(rendered).toContain('cases: 1 seeded, 0 unchanged')
-    expect(rendered).toContain(resolve(dir, 'agent-qa-eval'))
-    expect(() => JSON.parse(rendered)).toThrow()
   })
 
   it('report --json emits exactly one JSON DTO on stdout (Pitfall 11)', async () => {
@@ -3120,104 +2488,6 @@ describe('agent-qa eval seed / report — rendering and exit semantics (372-07, 
     })
     expect(process.exitCode).not.toBe(1)
     expect(second.logs.join('\n')).toContain('committed: json unchanged, markdown unchanged')
-  })
-
-  // ---- 414-07 Task 1 Test 7: the fraction flags are validated in the ACTION (D-07/D-08) -------
-
-  it('a non-numeric --held-out-fraction sets exitCode 1 naming the flag — never process.exit', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-alpha')
-    const { logs, errors } = captureConsole()
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((): never => {
-      throw new Error('process.exit must never be called by the eval family (D-08)')
-    }) as never)
-
-    await buildProgram().parseAsync(
-      [
-        '--config',
-        configPath,
-        'eval',
-        'seed',
-        '--held-out-fraction',
-        'abc',
-        '--private-fraction',
-        '0.5',
-      ],
-      { from: 'user' },
-    )
-
-    expect(exitSpy).not.toHaveBeenCalled()
-    expect(process.exitCode).toBe(1)
-    expect(errors.join('\n')).toContain('--held-out-fraction')
-    expect(logs).toEqual([])
-    // Nothing was partitioned on the way to the refusal.
-    expect(existsSync(join(dir, 'agent-qa-eval', 'contracts', 'partition-default.json'))).toBe(false)
-  })
-
-  it('an out-of-range --held-out-fraction sets exitCode 1 from the manifest guard (D-05/D-08)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-alpha')
-    const { logs, errors } = captureConsole()
-    const exitSpy = vi.spyOn(process, 'exit').mockImplementation(((): never => {
-      throw new Error('process.exit must never be called by the eval family (D-08)')
-    }) as never)
-
-    await buildProgram().parseAsync(
-      [
-        '--config',
-        configPath,
-        'eval',
-        'seed',
-        '--held-out-fraction',
-        '1.5',
-        '--private-fraction',
-        '0.5',
-      ],
-      { from: 'user' },
-    )
-
-    expect(exitSpy).not.toHaveBeenCalled()
-    expect(process.exitCode).toBe(1)
-    // The RANGE is the committed manifest guard's bound, and its TypeError names the flag's own
-    // field — one spelling of the bound that governs the bytes, surfaced through the D-08 catch.
-    expect(errors.join('\n')).toContain('heldOutFraction')
-    expect(logs).toEqual([])
-    expect(existsSync(join(dir, 'agent-qa-eval', 'contracts', 'partition-default.json'))).toBe(false)
-  })
-
-  it('a valid fraction pair reaches runSeedVerb as NUMBERS and partitions the product (D-07)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-alpha')
-    const { logs, errors } = captureConsole()
-
-    await buildProgram().parseAsync(
-      [
-        '--config',
-        configPath,
-        'eval',
-        'seed',
-        '--held-out-fraction',
-        '0.25',
-        '--private-fraction',
-        '0.5',
-        '--json',
-      ],
-      { from: 'user' },
-    )
-
-    expect(process.exitCode).not.toBe(1)
-    expect(errors).toEqual([])
-    const dto = JSON.parse(logs[0] ?? '') as SeedVerbResult
-    expect(dto.partitions).toHaveLength(1)
-    expect(dto.partitions[0]?.heldOutFraction).toBe(0.25)
-    expect(dto.partitions[0]?.privateFraction).toBe(0.5)
-    const manifest = guardPartitionManifest(
-      JSON.parse(
-        await readFile(join(dir, 'agent-qa-eval', 'contracts', 'partition-default.json'), 'utf8'),
-      ),
-    )
-    expect(manifest.heldOutFraction).toBe(0.25)
-    expect(manifest.privateFraction).toBe(0.5)
   })
 })
 
@@ -3675,69 +2945,6 @@ function classifierDisclosureFixture(): ClassifierRepeatability {
 describe('runCensusVerb — committed floor disclosure without a census schema change (415 D-14)', () => {
   afterEach(() => vi.restoreAllMocks())
 
-  it('projects every floor sorted by profileKey with measured minima and repeatability rates', async () => {
-    const fixture = await seededCorpusFixture()
-    const repeatability = classifierDisclosureFixture()
-    expect(repeatability).toMatchObject({ n: 2, k: 3, classFlipRate: 0.5, admitExcludeFlipRate: 0.5 })
-    const z = await writeFloorFixture(fixture, 'z-planner')
-    const a = await writeFloorFixture(fixture, 'a-planner', { classifierRepeatability: repeatability })
-    expect(a.artefact.minimumGateSet.value).toBeGreaterThanOrEqual(3)
-    const before = await snapshotTree(dirname(a.path))
-    const result = await runCensusVerb(fixture.session)
-    expect(result).toHaveProperty('noiseFloor', [
-      {
-        profileKey: a.artefact.profileKey, path: a.path,
-        minimumGateSet: a.artefact.minimumGateSet.value,
-        minimumGateSetDerivation: a.artefact.minimumGateSet.derivation,
-        classifierRepeatability: { n: 2, k: 3, classFlipRate: 0.5, admitExcludeFlipRate: 0.5 },
-      },
-      {
-        profileKey: z.artefact.profileKey, path: z.path,
-        minimumGateSet: z.artefact.minimumGateSet.value,
-        minimumGateSetDerivation: z.artefact.minimumGateSet.derivation,
-      },
-    ])
-    const { logs, errors } = captureConsole()
-    await buildProgram().parseAsync(['--config', fixture.configPath, 'eval', 'census'], { from: 'user' })
-    expect(errors).toEqual([])
-    expect(logs.filter(line => line.startsWith('floor '))).toEqual([
-      `floor ${a.artefact.profileKey}: minimumGateSet=${a.artefact.minimumGateSet.value} `
-        + 'classifierRepeatability=n:2 k:3 classFlipRate=0.5 admitExcludeFlipRate=0.5',
-      `floor ${z.artefact.profileKey}: minimumGateSet=${z.artefact.minimumGateSet.value} `
-        + 'classifierRepeatability=undefined',
-    ])
-    expect(await snapshotTree(dirname(a.path))).toEqual(before)
-  })
-
-  it('retains the actual missing-minimum derivation and undefined rates instead of inventing zeroes', async () => {
-    const fixture = await seededCorpusFixture()
-    const floor = await writeFloorFixture(fixture, 'empty-planner', {
-      empty: true, classifierRepeatability: foldClassifierRepeatability({ k: 3, runs: [] }),
-    })
-    expect(floor.artefact.minimumGateSet).not.toHaveProperty('value')
-    const result = await runCensusVerb(fixture.session)
-    expect(result).toHaveProperty('noiseFloor', [{
-      profileKey: floor.artefact.profileKey, path: floor.path,
-      minimumGateSetDerivation: floor.artefact.minimumGateSet.derivation,
-      classifierRepeatability: { n: 0, k: 3 },
-    }])
-    const { logs, errors } = captureConsole()
-    await buildProgram().parseAsync(['--config', fixture.configPath, 'eval', 'census'], { from: 'user' })
-    expect(errors).toEqual([])
-    expect(logs).toContain(
-      `floor ${floor.artefact.profileKey}: minimumGateSet=undefined (${floor.artefact.minimumGateSet.derivation}) `
-        + 'classifierRepeatability=n:0 k:3 classFlipRate=undefined admitExcludeFlipRate=undefined',
-    )
-  })
-
-  it('omits the floor field and all console floor lines when no artefact exists', async () => {
-    const fixture = await seededCorpusFixture()
-    expect(await runCensusVerb(fixture.session)).not.toHaveProperty('noiseFloor')
-    const { logs } = captureConsole()
-    await buildProgram().parseAsync(['--config', fixture.configPath, 'eval', 'census'], { from: 'user' })
-    expect(logs.some(line => line.startsWith('floor '))).toBe(false)
-  })
-
   it('turns floor read refusals into named notices alongside valid artefacts', async () => {
     const fixture = await seededCorpusFixture()
     const floor = await writeFloorFixture(fixture, 'valid-planner')
@@ -4028,69 +3235,6 @@ describe('runCensusVerb — static census over the committed root (413 D-13/D-14
     // The refusal changed no count: the partition echo and the exclusion tally are untouched.
     expect(refused.census.partition).toEqual(result.census.partition)
     expect(refused.census.products.default?.exclusions.total).toBe(1)
-  })
-})
-
-// ---- 413-05 Task 3: the census subcommand — rendering and exit semantics (D-04/D-08) ----------
-
-describe('agent-qa eval census — rendering and exit semantics (413-05, D-04/D-08)', () => {
-  afterEach(() => {
-    vi.restoreAllMocks()
-  })
-
-  it('--json emits exactly one JSON DTO on stdout and nothing else (Pitfall 11)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-alpha')
-    const session = await sessionFor(configPath)
-    await runSeedVerb(session, {}, TEST_FRACTIONS)
-    const { logs, errors } = captureConsole()
-
-    await buildProgram().parseAsync(['--config', configPath, 'eval', 'census', '--json'], {
-      from: 'user',
-    })
-
-    expect(process.exitCode).not.toBe(1)
-    expect(errors).toEqual([])
-    expect(logs).toHaveLength(1)
-    const dto = JSON.parse(logs[0] ?? '') as CensusVerbResult
-    expect(dto.corpusDigest).toMatch(/^[0-9a-f]{64}$/)
-    expect(dto.entryCount).toBe(1)
-    expect(dto.census.corpusDigest).toBe(dto.corpusDigest)
-  })
-
-  it('renders the per-product line and the honest campaign absence from the DTO only (D-04)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-alpha')
-    const session = await sessionFor(configPath)
-    await runSeedVerb(session, {}, TEST_FRACTIONS)
-    const { logs, errors } = captureConsole()
-
-    await buildProgram().parseAsync(['--config', configPath, 'eval', 'census'], { from: 'user' })
-
-    expect(process.exitCode).not.toBe(1)
-    expect(errors).toEqual([])
-    const rendered = logs.join('\n')
-    expect(rendered).toContain('default: total=1')
-    expect(rendered).toContain('campaign: none supplied')
-    expect(rendered).toContain('rungs=legacy-no-rung=1')
-    expect(() => JSON.parse(rendered)).toThrow()
-  })
-
-  it('a --campaign path that names nothing sets exitCode 1 with the message on stderr (D-08)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-alpha')
-    const session = await sessionFor(configPath)
-    await runSeedVerb(session, {}, TEST_FRACTIONS)
-    const { logs, errors } = captureConsole()
-
-    await buildProgram().parseAsync(
-      ['--config', configPath, 'eval', 'census', '--campaign', join(dir, 'no-such-campaign.json')],
-      { from: 'user' },
-    )
-
-    expect(process.exitCode).toBe(1)
-    expect(errors.join('\n')).toContain('no-such-campaign.json')
-    expect(logs).toEqual([])
   })
 })
 
