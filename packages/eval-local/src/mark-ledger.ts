@@ -110,7 +110,7 @@ export class MarkLedgerNoRunError extends Error {
   }
 }
 
-/** Gate-side runtime ledger. The proposer reader entry never exports this store. */
+/** The per-run marks ledger under the run directory. */
 export class FsMarkLedger {
   private readonly dir: string
   private readonly file: string

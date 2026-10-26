@@ -49,7 +49,7 @@ export interface ScoreRecord {
 export interface FsScoreStoreConfig {
   /** Runtime root (normally the workdir's `.agent-qa` directory). */
   root: string
-  /** Optional retargeted root used by later committed-corpus composition. */
+  /** Optional retargeted output directory. */
   outputDir?: string
 }
 

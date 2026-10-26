@@ -32,7 +32,7 @@ const BLOB_SHA_RE = /^[0-9a-f]{64}$/
 export interface FsCassetteStoreConfig {
   /** Runtime root (normally the workdir's `.agent-qa` directory). */
   root: string
-  /** Optional retargeted root used by later committed-corpus composition. */
+  /** Optional retargeted output directory. */
   outputDir?: string
 }
 

@@ -1,8 +1,8 @@
 // Filesystem replay-record store (Phase 368, D-12).
 //
 // Persists each per-cassette replay outcome — a ReplayResult or a typed ReplayRefusal (refusals are
-// records too, never silent; Phase 372's baseline reader consumes them) — under an uncommitted
-// runtime staging root beside `eval/cassettes`:
+// records too, never silent; the report verb counts them) — under an uncommitted runtime staging
+// root beside `eval/cassettes`:
 //
 //   <output-root>/<slugged cassette id segments>/replay.json
 //
@@ -11,8 +11,8 @@
 // recreated in full (rm + mkdir) before writing so a re-run leaves no stale files behind (idempotent
 // overwrite). The write is deterministic: the same outcome yields the same path and the same bytes —
 // no timestamps or random ids are minted here; timing data already lives inside the outcome from the
-// engine clock. Records land ONLY under this output root — never knowledge dirs or committed trees;
-// the committed corpus root is Phase 371's leg. Records are written as handed over (441 D-15).
+// engine clock. Records land ONLY under this output root — never knowledge dirs. Records are
+// written as handed over.
 
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -26,9 +26,9 @@ export const REPLAY_RECORD_FILE = 'replay.json'
 export interface FsReplayRecordStoreConfig {
   /** Runtime root (normally the workdir's `.agent-qa` directory). */
   root: string
-  /** Optional retargeted root used by later committed-corpus composition. */
+  /** Optional retargeted output directory. */
   outputDir?: string
-  /** Actual producer seed; embedded in the bytes bound by the run publication. */
+  /** Actual producer seed, embedded in the record bytes. */
   executionSeed?: number
 }
 
