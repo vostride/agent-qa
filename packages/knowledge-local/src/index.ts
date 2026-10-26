@@ -737,9 +737,6 @@ export { GATES_REL_PATH, readGateReceipts } from './bundle-read.js'
 export { appendGateReceipt, appendPromotionReceipt } from './bundle-append.js'
 export { MUTABLE_BUNDLE_TARGETS } from './journal/bundle-mutation.js'
 
-// Read-only standing gate receipt digests from committed bundles.
-export { standingReceiptDigestsFor, type StandingReceiptDigest } from './gates/canary-posture-facts.js'
-
 // 2026-09-08, 419: deterministic user-mark drafting (writer entry only).
 export { applyFeedback, triageMark, selectFixKind, assertionDrift, procedureReadOn,
   servedIdsOn, type ApplyFeedbackInput, type ServedRecordFacts, type MarkTriage,

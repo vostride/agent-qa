@@ -91,12 +91,6 @@ export type { BuildRange, ReadOptions, SearchOptions } from '@vostride/agent-qa-
 // bundle files and folds their evidence, opening no write authority or derived index.
 export { gateReceiptsFor } from './gates/gate-receipt-read.js'
 export type { GateReceiptsForOptions } from './gates/gate-receipt-read.js'
-// 2026-09-07, 417 D-01: candidate brief DATA from committed bundles, with no write authority.
-export { candidateInjectionFor } from './gates/candidate-injection.js'
-export type { CandidateInjectionForOptions } from './gates/candidate-injection.js'
-
-// Read-only standing gate receipt digests from committed bundles.
-export { standingReceiptDigestsFor, type StandingReceiptDigest } from './gates/canary-posture-facts.js'
 // 2026-09-15, 423 D-16: the mark evidence PLANNING half. It resolves and folds committed bundles,
 // takes no lease and mints no markId; appendMarkEvidence executes the same plan on the main entry.
 export { MARK_EVIDENCE_TOKEN_PREFIX, markEvidenceEvent, planMarkEvidence, projectMarkEvidenceOutcome }

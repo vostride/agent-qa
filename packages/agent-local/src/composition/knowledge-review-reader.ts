@@ -20,7 +20,6 @@
 
 import {
   canaryAttributionsFor,
-  candidateInjectionFor,
   gateReceiptsFor,
   diffSince,
   inspectRecords,
@@ -66,13 +65,6 @@ export function createKnowledgeReaderPort(
   }
 
   return {
-    // 2026-09-07, 417 D-01: forward the candidate DATA verbatim. Since 441-41 (D-06) nothing here
-    // scans it; the chat and MCP doors mask declared values in every op result.
-    async candidateInjection({ candidateId }) {
-      return candidateInjectionFor({
-        knowledgeRoot: await input.resolveKnowledgeRoot(), candidateId,
-      })
-    },
     // The caller supplied the identity; forward the reader's answer verbatim.
     async gateReceipts({ candidateId }) {
       return gateReceiptsFor({

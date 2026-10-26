@@ -46,7 +46,7 @@ import type { OPTIONAL_FUNCTION_DEP_KEYS } from '../spec.js'
 // holds and returns observation ids and outcomes, with no verb through which anything can change.
 expectTypeOf<keyof KnowledgeReaderPort>().toEqualTypeOf<
   // 2026-09-07, 417 D-01: extend the 407/416 read set BY NAME; never loosen equality.
-  'listBundles' | 'inspectRecords' | 'diffSince' | 'showRecord' | 'showRecords' | 'canaryAttributions' | 'gateReceipts' | 'candidateInjection'
+  'listBundles' | 'inspectRecords' | 'diffSince' | 'showRecord' | 'showRecords' | 'canaryAttributions' | 'gateReceipts'
 >()
 
 // The same claim from the other side, and it is not redundant with the one above: it is what

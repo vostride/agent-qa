@@ -1636,8 +1636,6 @@ export type { KnowledgeGatesListInput, KnowledgeGatesListResult } from './functi
 
 export { BENEFITS, MARKS, gate3ArmSchema } from './knowledge/gate-receipt'
 export type { Benefit, Mark, Gate3Receipt } from './knowledge/gate-receipt'
-export { CandidateInjectionSchema, KnowledgeCandidateInjectionResultSchema } from './knowledge/candidate-injection'
-export type { CandidateInjection, KnowledgeCandidateInjectionResult } from './knowledge/candidate-injection'
 export { RecordAnchorsSchema, RecordScopeSchema } from './knowledge/record-frontmatter'
 export { BundleKindSchema, BundleStatusSchema } from './functions/knowledge'
 export { BriefLineSchema } from './brief/guard-lossless-served-brief'

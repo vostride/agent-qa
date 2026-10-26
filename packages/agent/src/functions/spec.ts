@@ -28,7 +28,6 @@ import type {
   JobStatus,
   KnowledgeAcceptInput,
   KnowledgeBundleSummary,
-  KnowledgeCandidateInjectionResult,
   KnowledgeChangeOutput,
   KnowledgeGatesListResult,
   KnowledgeForgetInput,
@@ -585,11 +584,6 @@ export interface KnowledgeReaderPort {
    * implementations and fakes remain type-valid; an unbound read refuses by name.
    */
   gateReceipts?(input: { candidateId: string }): Promise<KnowledgeGatesListResult>
-  /**
-   * 2026-09-07, 417 D-01: the DATA the Gate-1 bridge carries in. Optional so existing
-   * implementations and fakes stay type-valid; an unbound read refuses by name.
-   */
-  candidateInjection?(input: { candidateId: string }): Promise<KnowledgeCandidateInjectionResult>
   /** Every committed bundle, already projected to the schema-owned listing row. */
   listBundles(): Promise<readonly KnowledgeBundleSummary[]>
   /**

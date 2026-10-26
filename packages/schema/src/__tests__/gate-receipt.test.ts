@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
-import { CandidateInjectionSchema, KnowledgeCandidateInjectionResultSchema } from '../knowledge/candidate-injection'
 import {
   GATE_RECEIPT_SCHEMA_VERSION,
   GateReceiptSchema, PromotionReceiptSchema, receiptDigestOf, stampReceiptDigest,
@@ -32,26 +31,6 @@ it('policy Gate-3 approvals retain honest identity without fabricating a run mar
   const changed = { ...receipt, policyApproval: { ...receipt.policyApproval, proposalId: 'kp_changed' } }
   expect(receiptDigestOf(changed)).not.toBe(receipt.receiptDigest)
   expect(JSON.stringify(z.toJSONSchema(GateReceiptSchema))).toContain('policyApproval')
-})
-it('round-trips candidate DATA and absence, refusing missing rendered bytes and unknown keys', () => {
-  const injection = { candidateId: 'candidate', kind: 'fact', product: 'checkout',
-    scope: { tier: 'product', key: 'checkout' }, anchors: [], status: 'candidate',
-    line: { id: 'candidate', kind: 'fact', summary: 'Checkout', trust: 0.5,
-      status: 'candidate', servedAsCanary: false, tier: 'L2' },
-    renderedLine: '[observation] Checkout',
-    provenance: { runIds: ['run'], receiptDigests: [], capturedAtOrdinals: [42] },
-    target: { runId: 'run', stepIndex: 0, testId: 'test', sourceBuildOrdinal: 42 },
-    latestOrdinal: 42 }
-  expect(CandidateInjectionSchema.parse(injection)).toEqual(injection)
-  const { renderedLine: _renderedLine, ...missing } = injection
-  for (const value of [missing, { ...injection, renderedLine: '' }, { ...injection, extra: 1 },
-    { ...injection, target: { ...injection.target, extra: 1 } },
-    { ...injection, provenance: { ...injection.provenance, extra: 1 } },
-    { ...injection, line: { ...injection.line, extra: 1 } },
-  ]) expect(CandidateInjectionSchema.safeParse(value).success).toBe(false)
-  for (const result of [{ kind: 'found', injection }, { kind: 'not-found', recordId: 'missing' }]) {
-    expect(KnowledgeCandidateInjectionResultSchema.parse(result)).toEqual(result)
-  }
 })
 function gate3() {
   return stampReceiptDigest({ ...core(), gate: 3 as const, runId: 'run', stepId: 'step',

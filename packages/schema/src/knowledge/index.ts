@@ -187,8 +187,6 @@ export type { PromotionOutcome, GateReceiptRecordOutcome, PromotionCandidateProv
 
 export { BENEFITS, MARKS, gate3ArmSchema } from './gate-receipt'
 export type { Benefit, Mark, Gate3Receipt } from './gate-receipt'
-export { CandidateInjectionSchema, KnowledgeCandidateInjectionResultSchema } from './candidate-injection'
-export type { CandidateInjection, KnowledgeCandidateInjectionResult } from './candidate-injection'
 export { RecordAnchorsSchema, RecordScopeSchema } from './record-frontmatter'
 export { BundleKindSchema, BundleStatusSchema } from '../functions/knowledge'
 export { BriefLineSchema } from '../brief/guard-lossless-served-brief'
