@@ -1,10 +1,17 @@
 import { closeSync, existsSync, fsyncSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { canonicalJson } from '@vostride/agent-qa-eval'
-import { HANDOFF_FILE, RUNS_SUBDIR, slugBranch } from '@vostride/agent-qa-runner-local'
-import { ImprovementPlanSchema, MarkReceiptSchema, markAddressKey, type MarkAddress, type MarkReceipt } from '@vostride/agent-qa-schema'
+import {
+  canonicalJson,
+  ImprovementPlanSchema,
+  MarkReceiptSchema,
+  markAddressKey,
+  slugBranch,
+  type MarkAddress,
+  type MarkReceipt,
+} from '@vostride/agent-qa-schema'
 import { z } from 'zod'
+import { HANDOFF_FILE, RUNS_SUBDIR } from '../composition/run-layout.js'
 import { acquireMarkLock } from './mark-lock.js'
 
 export const MARKS_LEDGER_FILE = 'marks.jsonl'
@@ -12,7 +19,7 @@ export const MARKS_LEDGER_LOCK_FILE = 'marks.jsonl.lock'
 /** A run's one unfinished mark, beside its ledger. */
 export const MARK_INTENT_FILE = 'mark-intent.json'
 /**
- * 2026-09-30, 432-09 (D-04/D-11): the resumable mark. `operationId` is the stable identity every
+ * The resumable mark. `operationId` is the stable identity every
  * effect of this mark carries (the knowledge change id derives from it), so a retry at any stage
  * lands the same fix once. `applied` is the last stage: the fix is published and the receipt is
  * next, and only the receipt remains to be written. The applied change itself rides the mark's
@@ -54,10 +61,9 @@ export class MarkLedgerCorruptError extends Error {
 }
 
 /**
- * 2026-10-03 (quick 261003-lgd, Phase 432 review IN-23): the run's unfinished-mark record cannot be
- * resumed, refused by the record's own name. It used to surface as `MarkLedgerCorruptError` at the
- * NEXT ordinal, a line `marks.jsonl` does not have. D-02: nothing is migrated or read further; the
- * message names the file to remove, after which the run can be marked again.
+ * The run's unfinished-mark record cannot be resumed, refused by the record's own name. Nothing is
+ * migrated or read further; the message names the file to remove, after which the run can be
+ * marked again.
  */
 export class MarkIntentUnusableError extends Error {
   constructor(
@@ -74,7 +80,7 @@ export class MarkIntentUnusableError extends Error {
   }
 }
 
-/** Keys only a pre-432 intent carried: a filed proposal, the drafted stage, a stored test draft. */
+/** Keys only an older intent carried: a filed proposal, the drafted stage, a stored test draft. */
 function isEarlierVersionIntent(value: unknown): boolean {
   if (value === null || typeof value !== 'object') return false
   const intent = value as Record<string, unknown>

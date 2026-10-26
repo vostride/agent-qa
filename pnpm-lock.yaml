@@ -106,6 +106,9 @@ importers:
       '@vostride/agent-qa-web':
         specifier: workspace:*
         version: link:../web
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
     devDependencies:
       '@types/node':
         specifier: ~24.12.2

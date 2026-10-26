@@ -138,8 +138,8 @@ export const VERSION_REGISTER: readonly RegisteredVersion[] = [
   { id: 'recorded-retrieval-rung', site: 'packages/schema/src/brief/retrieval-rung.ts', field: 'schemaVersion', value: 2, rule: 'refuse' },
   { id: 'post-verdict-continuation', site: 'packages/cli/src/curation/post-verdict-continuation.ts', field: 'schemaVersion', value: 2, rule: 'refuse' },
   { id: 'mark-edit-record', site: 'packages/cli/src/gates/mark-edit-record.ts', field: 'schemaVersion', value: 2, rule: 'refuse' },
-  { id: 'mark-intent', site: 'packages/eval-local/src/mark-ledger.ts', field: 'schemaVersion', value: 2, rule: 'refuse' },
-  { id: 'mark-lock-owner', site: 'packages/eval-local/src/mark-lock.ts', field: 'schemaVersion', value: 2, rule: 'refuse' },
+  { id: 'mark-intent', site: 'packages/agent-local/src/store/mark-ledger.ts', field: 'schemaVersion', value: 2, rule: 'refuse' },
+  { id: 'mark-lock-owner', site: 'packages/agent-local/src/store/mark-lock.ts', field: 'schemaVersion', value: 2, rule: 'refuse' },
   { id: 'scoring-context', site: 'packages/eval/src/match/scoring-context.ts', field: 'schemaVersion', value: 2, rule: 'refuse' },
   { id: 'curation-observation', site: 'packages/knowledge-local/src/journal/curation-effect-receipt.ts', field: 'schemaVersion', value: 2, rule: 'refuse' },
   { id: 'curation-effect-receipt', site: 'packages/knowledge-local/src/journal/curation-effect-receipt.ts', field: 'schemaVersion', value: 2, rule: 'refuse' },
@@ -147,12 +147,12 @@ export const VERSION_REGISTER: readonly RegisteredVersion[] = [
 ]
 
 export const INLINE_STAMPS: readonly InlineStamp[] = [
+  { site: 'packages/agent-local/src/store/mark-ledger.ts', literal: 2, count: 2, id: 'mark-intent' },
+  { site: 'packages/agent-local/src/store/mark-lock.ts', literal: 2, count: 2, id: 'mark-lock-owner' },
   { site: 'packages/agent/src/functions/ops/knowledge-records-diff.ts', literal: 2, count: 1, id: 'records-diff-output' },
   { site: 'packages/agent/src/functions/ops/knowledge-records-inspect.ts', literal: 2, count: 1, id: 'records-inspect-output' },
   { site: 'packages/cli/src/curation/post-verdict-continuation.ts', literal: 2, count: 2, id: 'post-verdict-continuation' },
   { site: 'packages/cli/src/gates/mark-edit-record.ts', literal: 2, count: 2, id: 'mark-edit-record' },
-  { site: 'packages/eval-local/src/mark-ledger.ts', literal: 2, count: 2, id: 'mark-intent' },
-  { site: 'packages/eval-local/src/mark-lock.ts', literal: 2, count: 2, id: 'mark-lock-owner' },
   { site: 'packages/eval/src/census/derive-census.ts', literal: 2, count: 1, id: 'corpus-census' },
   { site: 'packages/eval/src/labels/corpus-entry-guard.ts', literal: 2, count: 4, id: 'corpus-entry' },
   { site: 'packages/eval/src/labels/corpus-entry.ts', literal: 2, count: 1, id: 'corpus-entry' },

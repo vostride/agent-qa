@@ -22,7 +22,7 @@ if (input.pauseRead) {
   }
   syncBuiltinESMExports()
 }
-const { acquireMarkLock } = await import('../../mark-lock.ts')
+const { acquireMarkLock } = await import('../../store/mark-lock.ts')
 const release = await acquireMarkLock(input.lock, input.runId, () => new Error('busy'))
 try {
   publishSignal(input.entered, fs.readFileSync(input.lock + '/owner.json'))

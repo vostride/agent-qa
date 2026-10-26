@@ -18,6 +18,7 @@ export const AGENT_QA_AGENT_LOCAL_ALLOWED_RESPONSIBILITIES = [
   'sqlite access for local agent persistence stores',
   'host-neutral run composition: assembling injected adapters, models and ports into a runnable run config',
   'run-scoped knowledge serving composition: budget derivation and read-only reader binding',
+  'marks ledger persistence beside each recorded run',
 ] as const
 // 2026-07-29 (Phase 385 plan 08, D-13): 'platform-adapter execution' was too blunt to survive the
 // dissection honestly. The composition builds handler closures that DELEGATE to an adapter it was
@@ -30,10 +31,8 @@ export const AGENT_QA_AGENT_LOCAL_FORBIDDEN_RESPONSIBILITIES = [
   'agent decision or planning logic',
   'knowledge curation semantics',
 ] as const
-// Still empty, and deliberately so. The composition names the provider-substrate model type through
-// the runner's own config rather than the substrate package, so nothing here was installed and
-// JOBQ-02's zero-new-dependency commitment is intact.
-export const AGENT_QA_AGENT_LOCAL_EXTERNAL_DEPENDENCIES = [] as const
+// zod validates the marks ledger's intent and lock-owner files.
+export const AGENT_QA_AGENT_LOCAL_EXTERNAL_DEPENDENCIES = ['zod'] as const
 // 2026-07-29 (Phase 385 plan 01): `schema` joins the internal set. The agent job store
 // persists and re-reads `Job` rows, and it parses each row back through the shipped
 // `jobSchema` at the boundary rather than casting — an opaque payload column and a row a

@@ -7,10 +7,10 @@
 import { existsSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import type { KnowledgeReaderPort } from '@vostride/agent-qa-agent'
-import { createKnowledgeReader } from '@vostride/agent-qa-agent-local'
-import { projectRecordContent, RunsMarkInputSchema, type FeedbackReadsPort, type KnowledgeRecordShowResult, type MarkHistoryChangedRecord, type MarkHistoryReadEntry, type MarkPreviewBasis, type MarkReceipt, type RunsMarkPreviewResult } from '@vostride/agent-qa-schema'
+import { createKnowledgeReader, FsMarkLedger, HANDOFF_FILE, MarkLedgerCorruptError, RUNS_SUBDIR } from '@vostride/agent-qa-agent-local'
+import { projectRecordContent, RunsMarkInputSchema, slugBranch, type FeedbackReadsPort, type KnowledgeRecordShowResult, type MarkHistoryChangedRecord, type MarkHistoryReadEntry, type MarkPreviewBasis, type MarkReceipt, type RunsMarkPreviewResult } from '@vostride/agent-qa-schema'
 import { resolveConfiguredKnowledgeRoot } from '../config.js'
-import { FsMarkLedger, HANDOFF_FILE, MarkLedgerCorruptError, resolveEvalSession, RUNS_SUBDIR, slugBranch } from '../eval-session-composition.js'
+import { resolveEvalSession } from '../eval-session-composition.js'
 import { previewMarkConsequences, type MarkPlanBasis, type MarkPlanCuration } from './feedback-plan.js'
 
 export interface FeedbackReadsHostDeps {

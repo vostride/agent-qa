@@ -835,8 +835,7 @@ function mergeEvalConfig(
   }
 }
 // Gate hosts reach eval/runtime storage only through this established composition boundary.
-export { FsHandoffSource, FsMarkLedger, MARK_INTENT_FILE, MarkLedgerCorruptError, latestMarkReceiptFor } from '@vostride/agent-qa-eval-local'
-export { HANDOFF_FILE, RUNS_SUBDIR, slugBranch } from '@vostride/agent-qa-runner-local'
+export { FsHandoffSource } from '@vostride/agent-qa-eval-local'
 export { runSafetyScope } from '@vostride/agent-qa-safety-local'
 export { createModel } from '@vostride/agent-qa-model'
 export type { AgentQaConfig as FeedbackWordingConfig } from '@vostride/agent-qa-core'

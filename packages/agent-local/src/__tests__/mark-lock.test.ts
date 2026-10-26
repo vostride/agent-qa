@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { afterEach, expect, it, vi } from 'vitest'
-import { acquireMarkLock } from '../mark-lock.js'
+import { acquireMarkLock } from '../store/mark-lock.js'
 
 const roots: string[] = []
 afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }) })
@@ -102,3 +102,27 @@ it('retains dead-G so a delayed competing reclaimer cannot remove newer live H',
     await Promise.all(closed)
   }
 }, 25_000)
+
+it('publishes a mark lock owner at 2 and keeps a dead owner stamped 1 busy until it reads 2', async () => {
+  const lock = join(fixture(), 'marks.jsonl.lock')
+  const release = await acquireMarkLock(lock, 'run', () => new Error('busy'))
+  const ownerFile = join(lock, 'owner.json')
+  const written = readFileSync(ownerFile, 'utf8')
+  const owner = JSON.parse(written)
+  expect(written).toBe(JSON.stringify(owner))
+  expect(owner).toMatchObject({ schemaVersion: 2, kind: 'mark-ledger-lock', pid: process.pid, runId: 'run' })
+  release()
+  mkdirSync(lock)
+  const planted = JSON.stringify({ ...owner, schemaVersion: 1 })
+  writeFileSync(ownerFile, planted)
+  vi.spyOn(process, 'kill').mockImplementation(() => { throw Object.assign(new Error('gone'), { code: 'ESRCH' }) })
+  vi.useFakeTimers()
+  const rejected = expect(acquireMarkLock(lock, 'run', () => new Error('busy'))).rejects.toThrow('busy')
+  await vi.advanceTimersByTimeAsync(10_000); await rejected
+  vi.useRealTimers()
+  expect(readFileSync(ownerFile, 'utf8')).toBe(planted)
+  writeFileSync(ownerFile, written)
+  const reaped = await acquireMarkLock(lock, 'run', () => new Error('busy'))
+  expect(JSON.parse(readFileSync(ownerFile, 'utf8')).token).not.toBe(owner.token)
+  reaped()
+})

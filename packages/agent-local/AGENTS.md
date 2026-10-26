@@ -4,9 +4,10 @@
 
 This package is the storageImplementation home for local agent persistence. It
 holds the local stores behind the neutral ports (`src/store/`: the sqlite job
-store and the checkpoint store), session logs and run analysis persistence, and
-the local composition root (`src/composition/`) that assembles the run session
-and the function registry every host shares.
+store, the checkpoint store and the marks ledger beside each recorded run),
+session logs and run analysis persistence, and the local composition root
+(`src/composition/`) that assembles the run session and the function registry
+every host shares.
 
 ## Read First
 

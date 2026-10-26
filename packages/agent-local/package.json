@@ -55,7 +55,8 @@
     "@vostride/agent-qa-safety": "workspace:*",
     "@vostride/agent-qa-safety-local": "workspace:*",
     "@vostride/agent-qa-schema": "workspace:*",
-    "@vostride/agent-qa-web": "workspace:*"
+    "@vostride/agent-qa-web": "workspace:*",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/node": "~24.12.2",

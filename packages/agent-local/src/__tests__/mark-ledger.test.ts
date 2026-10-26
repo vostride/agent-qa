@@ -3,13 +3,13 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { FsHandoffStore, RUNS_SUBDIR, slugBranch } from '@vostride/agent-qa-runner-local'
-import { asRunId, MARK_RECEIPT_SCHEMA_VERSION, type MarkReceipt } from '@vostride/agent-qa-schema'
+import { asRunId, canonicalJson, MARK_RECEIPT_SCHEMA_VERSION, type MarkReceipt } from '@vostride/agent-qa-schema'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
-  FsMarkLedger, MARKS_LEDGER_FILE, MARKS_LEDGER_LOCK_FILE,
+  FsMarkLedger, MARK_INTENT_FILE, MARKS_LEDGER_FILE, MARKS_LEDGER_LOCK_FILE,
   MarkIntentUnusableError, MarkLedgerBusyError, MarkLedgerCorruptError, MarkLedgerNoRunError,
-} from '../mark-ledger.js'
+} from '../store/mark-ledger.js'
 import { makeLocalV2Handoff } from './fixtures/local-handoff-fixture.js'
 
 describe('FsMarkLedger', () => {
@@ -222,6 +222,27 @@ describe('FsMarkLedger', () => {
     expect(await result).toBeInstanceOf(MarkLedgerBusyError)
     expect(fn).not.toHaveBeenCalled()
     expect(readFileSync(join(dir, MARKS_LEDGER_LOCK_FILE), 'utf8')).toBe('external holder')
+    expect(ledger.read()).toEqual([])
+  })
+
+  it('checkpoints a mark intent at 2 and refuses one stamped 1 by naming the file to remove', async () => {
+    const intentPath = join(dir, MARK_INTENT_FILE)
+    const operationId = '11111111-2222-4333-8444-555555555555'
+    await expect(ledger.transact(async ordinal => {
+      ledger.prepareIntent({ ...record, ordinal }, operationId)
+      throw new Error('crash before the receipt')
+    })).rejects.toThrow('crash before the receipt')
+    const written = JSON.parse(readFileSync(intentPath, 'utf8'))
+    expect(readFileSync(intentPath, 'utf8')).toBe(`${canonicalJson(written)}\n`)
+    expect(written.schemaVersion).toBe(2)
+    writeFileSync(intentPath, `${canonicalJson({ ...written, schemaVersion: 1 })}\n`)
+    const fn = vi.fn(async () => record)
+    const refusal = await ledger.transact(fn).then(() => undefined, (error: unknown) => error as Error)
+    expect(refusal).toBeInstanceOf(MarkIntentUnusableError)
+    expect(refusal).toMatchObject({ intentPath, reason: 'unreadable' })
+    expect(refusal?.message).toContain(`${intentPath} is unreadable`)
+    expect(refusal?.message).toContain('Remove that file, then mark again.')
+    expect(fn).not.toHaveBeenCalled()
     expect(ledger.read()).toEqual([])
   })
 })
