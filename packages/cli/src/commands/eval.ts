@@ -189,9 +189,17 @@ export function createEvalCommand(): Command {
       .option('--run <slug>', 'narrow to cassettes extracted from one recorded run')
       .option('--cassette <id>', 'replay exactly one staged cassette by id')
       .option('--product <slug>', 'narrow by product scope')
-      .option('--judge <name>', 'replace the configured judges (repeat for a panel)', collectJudgeName)
+      .option(
+        '--judge <name>',
+        'judge model registry name (repeat for a panel of up to three)',
+        collectJudgeName,
+      )
       .option('--k <n>', 'sample budget per cassette', parseIntegerFlag('--k'))
       .option('--seed <n>', 'replay sampling seed', parseIntegerFlag('--seed'))
+      .option(
+        '--judge-allow-same-family',
+        'allow a judge from the planner’s model family (disclosed on every score)',
+      )
       .option('--json', 'emit the typed result DTO to stdout')
       .action(
         async (
@@ -202,6 +210,7 @@ export function createEvalCommand(): Command {
             judge?: string[]
             k?: number
             seed?: number
+            judgeAllowSameFamily?: boolean
             json?: boolean
           },
           command: Command,
@@ -211,14 +220,14 @@ export function createEvalCommand(): Command {
             const { resolveEvalSession, runReplayVerb } = await import(
               '../eval-session-composition.js'
             )
-            // D-03: judge/k/seed flags flow into the session's field-wise flag merge — the verb
-            // itself takes no judge/k/seed parameters.
+            // The judge, same-family, k and seed flags are the session's only replay settings.
             const session = await resolveEvalSession({
               ...(configPath === undefined ? {} : { configPath }),
               flags: {
                 ...(opts.judge === undefined ? {} : { judge: opts.judge }),
                 ...(opts.k === undefined ? {} : { k: opts.k }),
                 ...(opts.seed === undefined ? {} : { seed: opts.seed }),
+                ...(opts.judgeAllowSameFamily === true ? { judgeAllowSameFamily: true } : {}),
               },
             })
             const result = await runReplayVerb(session, {

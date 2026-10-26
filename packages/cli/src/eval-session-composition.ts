@@ -1,5 +1,5 @@
-// The CLI composition root for the eval verbs. It resolves the one eval session (the merged eval
-// config, a SecretRedactor over the workspace secrets file as the mask, and the named planner and
+// The CLI composition root for the eval verbs. It resolves the one eval session (replay's flag
+// settings, a SecretRedactor over the workspace secrets file as the mask, and the named planner and
 // judge profiles through the same resolveNamedConfig → resolveModelAuth chain run uses) and runs
 // extract, replay and report. Errors are typed; the command layer maps them to exit codes. As a
 // surface it uses node builtins directly.
@@ -56,7 +56,7 @@ import { sha256hex } from '@vostride/agent-qa-schema'
 import type { MaskFn } from '@vostride/agent-qa-schema'
 import type { SecretStore } from '@vostride/agent-qa-runner'
 import type { AgentQaConfig } from '@vostride/agent-qa-core'
-import { loadConfigFile, resolveConfig } from './config.js'
+import { resolveConfig } from './config.js'
 import { resolveRunExecutionContext } from '@vostride/agent-qa-agent-local'
 import type { RunExecutionContext } from '@vostride/agent-qa-agent-local'
 
@@ -65,19 +65,18 @@ import type { RunExecutionContext } from '@vostride/agent-qa-agent-local'
 // that consumes record loads. Erased at build — no runtime coupling.
 export type { ReplayRecordLoad } from '@vostride/agent-qa-eval-local'
 
-/** The user-facing eval params (config `eval:` block merged with per-invocation flags, D-03). */
+/** Replay's settings, taken from the flags of `agent-qa eval replay`. */
 export interface EvalCliConfig {
   judge?: string
   judges?: readonly string[]
-  /** Owner override of D-10 (2026-07-12): explicit default-off same-family judging opt-in. */
   judgeAllowSameFamily?: boolean
   k?: number
   seed?: number
 }
 
-/** The one resolved session every eval verb consumes (D-05). */
 export interface EvalSessionFlags {
   judge?: string | readonly string[]
+  judgeAllowSameFamily?: boolean
   k?: number
   seed?: number
 }
@@ -86,22 +85,20 @@ export class EvalJudgeDeclarationError extends TypeError {
   constructor(message: string) { super(message); this.name = 'EvalJudgeDeclarationError' }
 }
 
-/** Validate the whole declaration before overrides; aliases retain multiplicity and order. */
-export function selectedEvalJudgeNames(config: Pick<EvalCliConfig, 'judge' | 'judges'>): readonly string[] {
-  if (config.judge !== undefined && config.judges !== undefined) {
-    throw new EvalJudgeDeclarationError('Set either eval.judge or eval.judges, never both; remove one declaration.')
-  }
-  if (config.judge !== undefined && typeof config.judge !== 'string') {
-    throw new EvalJudgeDeclarationError('eval.judge must be one nonempty registry name; use eval.judges for a list.')
-  }
-  const names = config.judge !== undefined ? [config.judge] : config.judges === undefined ? [] : config.judges
+/** Validate the `--judge` names; repeated names keep their multiplicity and order. */
+export function selectedEvalJudgeNames(judge: string | readonly string[] | undefined): readonly string[] {
+  const names = judge === undefined ? [] : typeof judge === 'string' ? [judge] : judge
   if (!Array.isArray(names) || Array.from(names).some(name => typeof name !== 'string' || name.trim().length === 0)) {
-    throw new EvalJudgeDeclarationError('eval.judges must be an array of nonempty registry names.')
+    throw new EvalJudgeDeclarationError('--judge needs a nonempty registry name.')
   }
   if (names.length > JUDGE_CONFIG.maxPanelMembers) {
-    throw new EvalJudgeDeclarationError(`Choose at most ${JUDGE_CONFIG.maxPanelMembers} explicit judge names.`)
+    throw new EvalJudgeDeclarationError(`Pass at most ${JUDGE_CONFIG.maxPanelMembers} --judge names.`)
   }
   return [...names]
+}
+
+function evalJudgeNames(config: EvalCliConfig): readonly string[] {
+  return selectedEvalJudgeNames(config.judges ?? config.judge)
 }
 
 function withJudgeOverrides(
@@ -124,10 +121,9 @@ export interface EvalSession {
 }
 
 /**
- * Resolve the one eval session (D-05). Validates the config through resolveConfig (which now
- * carries the typed `eval` block), loads the workspace secrets file into a SecretStore, merges
- * flag overrides over the config eval block (flags win field-wise, D-03), and masks with the
- * declared secrets alone. Config errors are typed Errors naming the offending path (D-08) —
+ * Resolve the one eval session. Validates the config through resolveConfig, takes replay's
+ * settings from its flags alone, loads the workspace secrets file into a SecretStore and masks
+ * with the declared secrets alone. Config errors are typed Errors naming the offending path,
  * never process.exit.
  */
 export async function resolveEvalSession(input: {
@@ -138,10 +134,8 @@ export async function resolveEvalSession(input: {
 } = {}): Promise<EvalSession> {
   const configPath = input.configPath ?? 'agent-qa.config.yaml'
   const configDir = dirname(resolve(configPath))
-  const raw = await loadConfigFile(configPath) as { eval?: EvalCliConfig } | null
-  if (raw?.eval && typeof raw.eval === 'object') selectedEvalJudgeNames(raw.eval)
+  const evalConfig = evalConfigFromFlags(input.flags)
   const config = await resolveConfig({ configPath, loadAuthPlugins: input.keyOnly !== true })
-  const evalConfig = mergeEvalConfig(config.eval, input.flags)
 
   if (input.keyOnly === true) {
     return {
@@ -318,7 +312,7 @@ function bumpCounter(counters: Record<string, number>, key: string): void {
 
 /** D-04 judge honesty counters folded from the PERSISTED score records, never recomputed. */
 export interface ReplayJudgeCounters {
-  /** Whether a judge resolved from `eval.judge` / `--judge` entered the batch (D-03). */
+  /** Whether a `--judge` name entered the batch. */
   configured: boolean
   invoked: number
   settled: number
@@ -394,8 +388,8 @@ function replayInvocationSpend(
  * and drive runCassetteReplay with the production planner profile, the session's declared mask,
  * the configured judges and the replay and score stores. Each cassette is scored against the
  * label its run recorded. After the loop the judge counters are folded from the persisted score
- * records. `opts` is the test seam for createModel overrides; judge, k and seed arrive
- * flag-merged on `session.evalConfig`.
+ * records. `opts` is the test seam for createModel overrides; judge, k and seed arrive from
+ * replay's flags on `session.evalConfig`.
  */
 export async function runReplayVerb(
   session: EvalSession,
@@ -458,7 +452,7 @@ export async function runReplayVerb(
       loadRefusals,
       replayRefusals: {},
       scored: 0,
-      judge: zeroJudge(selectedEvalJudgeNames(session.evalConfig).length > 0),
+      judge: zeroJudge(evalJudgeNames(session.evalConfig).length > 0),
       replaysRoot,
       notices,
       spend: replayInvocationSpend([], session.evalConfig.seed, 0, started),
@@ -467,8 +461,8 @@ export async function runReplayVerb(
 
   const batchKey = computeBatchKey(selected.map(entry => entry.cassette.id))
 
-  // (5) planner + judge through the run-parity named-LLM chain (D-03). resolveEvalJudge takes
-  // ONE argument: any `--judge` flag was already field-wise merged into session.evalConfig.
+  // (5) planner + judge through the run-parity named-LLM chain. resolveEvalJudge takes ONE
+  // argument: the `--judge` names are already on session.evalConfig.
   const planner = await resolveReplayPlanner(session)
   const judgeResolution = await resolveEvalJudge(session)
   if (judgeResolution.notice !== undefined) notices.push(judgeResolution.notice)
@@ -564,25 +558,24 @@ function foldJudgeDispositions(score: CassetteScore, judge: ReplayJudgeCounters)
 }
 
 /**
- * Resolve the configured judge (D-03/D-10). An absent `eval.judge` is a typed no-judge notice —
- * unresolved ties will record not-invoked. A resolvable judge flows through the named-LLM chain;
- * a judge whose model family equals the planner's family — or resolves to no family at all —
- * carries a stderr-destined warning notice. The preflight is SOFT: assessJudgeEligibility inside
- * runCassetteReplay stays the per-cassette authority (D-10).
+ * Resolve the `--judge` names. No `--judge` is a typed no-judge notice — unresolved ties will
+ * record not-invoked. A resolvable judge flows through the named-LLM chain; a judge whose model
+ * family equals the planner's family — or resolves to no family at all — carries a
+ * stderr-destined warning notice. The preflight is SOFT: assessJudgeEligibility inside
+ * runCassetteReplay stays the per-cassette authority.
  *
- * eval.judgeAllowSameFamily (owner override of D-10, 2026-07-12): when true, the flag is
- * threaded verbatim onto the judge bundle's allowSameFamily; a KNOWN-same-family pair then
- * yields an override-active ADVISORY instead of the refusal warning. Unknown families keep
- * the refusal-style notice regardless — the opt-in never relaxes unknown ⇒ forbidden.
+ * `--judge-allow-same-family` is threaded verbatim onto the judge bundle's allowSameFamily; a
+ * KNOWN-same-family pair then yields an advisory instead of the refusal warning. Unknown
+ * families keep the refusal-style notice regardless — the flag never relaxes unknown ⇒ forbidden.
  */
 export async function resolveEvalJudge(session: EvalSession): Promise<{
   judge?: import('@vostride/agent-qa-eval-local').RunCassetteReplayInput['judge']
   notice?: string
 }> {
-  const names = selectedEvalJudgeNames(session.evalConfig)
+  const names = evalJudgeNames(session.evalConfig)
   if (names.length === 0) {
     return {
-      notice: 'no judge configured — unresolved ties will record not-invoked{no-judge-configured}',
+      notice: 'no --judge given — unresolved ties will record not-invoked{no-judge-configured}',
     }
   }
 
@@ -590,7 +583,10 @@ export async function resolveEvalJudge(session: EvalSession): Promise<{
     const members = []
     for (const name of names) members.push(await resolveNamedProfile(name, session.configPath))
     return { judge: { members }, ...(session.evalConfig.judgeAllowSameFamily === true
-      ? { notice: 'eval.judgeAllowSameFamily is ignored for a composite judge panel; every member must be disjoint.' }
+      ? {
+          notice: '--judge-allow-same-family is ignored for a judge panel; every member must come '
+            + 'from a different family than the planner.',
+        }
       : {}) }
   }
   const resolved = await resolveNamedProfile(names[0], session.configPath)
@@ -605,10 +601,10 @@ export async function resolveEvalJudge(session: EvalSession): Promise<{
     return {
       judge,
       notice:
-        `D-10 override active (eval.judgeAllowSameFamily, owner decision 2026-07-12): judge model ` +
+        `same-family judging allowed (--judge-allow-same-family): judge model ` +
         `"${resolved.profile.model}" and planner model "${planner.profile.model}" share the ` +
-        `judge family '${judgeFamily}' — same-family judging runs and every scored entry ` +
-        'discloses familyOverride: same-family-allowed',
+        `judge family '${judgeFamily}'; every scored entry discloses ` +
+        'familyOverride: same-family-allowed',
     }
   }
 
@@ -815,23 +811,14 @@ async function loadEvalSecretStore(
   }
 }
 
-/** Field-wise merge of flag overrides over the config eval block — flags win (D-03). */
-function mergeEvalConfig(
-  fromConfig: AgentQaConfig['eval'],
-  flags?: EvalSessionFlags,
-): EvalCliConfig {
-  const configured = selectedEvalJudgeNames(fromConfig ?? {})
-  const names = flags?.judge === undefined ? configured
-    : selectedEvalJudgeNames(typeof flags.judge === 'string' ? { judge: flags.judge } : { judges: flags.judge })
-  const judgeAllowSameFamily = fromConfig?.judgeAllowSameFamily
-  const k = flags?.k ?? fromConfig?.k
-  const seed = flags?.seed ?? fromConfig?.seed
-
+/** Replay's settings from its flags alone; the config file carries none. */
+function evalConfigFromFlags(flags?: EvalSessionFlags): EvalCliConfig {
+  const names = selectedEvalJudgeNames(flags?.judge)
   return {
     ...(names.length === 1 ? { judge: names[0] } : names.length > 1 ? { judges: names } : {}),
-    ...(judgeAllowSameFamily !== undefined ? { judgeAllowSameFamily } : {}),
-    ...(k !== undefined ? { k } : {}),
-    ...(seed !== undefined ? { seed } : {}),
+    ...(flags?.judgeAllowSameFamily === true ? { judgeAllowSameFamily: true } : {}),
+    ...(flags?.k !== undefined ? { k: flags.k } : {}),
+    ...(flags?.seed !== undefined ? { seed: flags.seed } : {}),
   }
 }
 // The feedback wording host reaches the model and the safety scope through this composition boundary.

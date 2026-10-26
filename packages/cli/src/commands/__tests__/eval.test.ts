@@ -58,19 +58,19 @@ import type {
   ReplayVerbResult,
   ReportVerbResult,
 } from '../../eval-session-composition.js'
+import * as composition from '../../eval-session-composition.js'
 import { createEvalCommand } from '../eval.js'
 
 /** Three recorded runs extracted into staged cassettes, with generated identities and provider stubs. */
-async function stagedReplayFixture(judged = false) {
+async function stagedReplayFixture(judged = false, judgeModelId = 'claude-floor-stub') {
   const plannerModelId = 'gpt-floor-stub'
-  const judgeModelId = 'claude-floor-stub'
   const { dir, configPath } = await writeReplayFixture('', plannerModelId)
   if (judged) {
     const config = await readFile(configPath, 'utf8')
     await writeFile(configPath, config.replace('use:\n', [
       '    - name: judge', '      provider: openai-compatible',
       `      model: ${judgeModelId}`, '      baseURL: http://localhost:9999/v1', 'use:', '',
-    ].join('\n')) + 'eval:\n  judge: judge\n')
+    ].join('\n')))
   }
   const root = join(dir, '.agent-qa')
   for (let index = 0; index < 3; index++) {
@@ -89,7 +89,7 @@ async function stagedReplayFixture(judged = false) {
     }
     new FsHandoffStore({ root, runId }).save(handoff)
   }
-  const session = await sessionFor(configPath)
+  const session = await resolveEvalSession({ configPath, ...(judged ? { flags: { judge: 'judge' } } : {}) })
   expect((await runExtractVerb(session)).cassettesWritten).toBe(6)
   const planner = replayStub(plannerModelId, judged ? () => ({
     ...clickGenerateResult(),
@@ -806,7 +806,7 @@ describe('runReplayVerb sweeps staged cassettes through the sanctioned compositi
       errors: 0,
       notInvoked: 0,
     })
-    expect(result.notices.some(notice => notice.includes('no judge configured'))).toBe(true)
+    expect(result.notices.some(notice => notice.includes('no --judge given'))).toBe(true)
   })
 })
 
@@ -1062,7 +1062,7 @@ describe('createEvalCommand registers extract, replay and report', () => {
     expect(flags).toEqual(expect.arrayContaining(['--run', '--product', '--json']))
   })
 
-  it('declares the replay flags: --run, --cassette, --product, --judge, --k, --seed, --json', () => {
+  it('declares the replay flags: --run, --cassette, --product, --judge, --k, --seed, --judge-allow-same-family, --json', () => {
     const replay = createEvalCommand().commands.find(sub => sub.name() === 'replay')
     const flags = replay?.options.map(option => option.long) ?? []
     expect(flags).toEqual(
@@ -1073,6 +1073,7 @@ describe('createEvalCommand registers extract, replay and report', () => {
         '--judge',
         '--k',
         '--seed',
+        '--judge-allow-same-family',
         '--json',
       ]),
     )
@@ -1263,6 +1264,38 @@ describe('agent-qa eval extract — rendering and exit semantics (D-04/D-08)', (
 describe('agent-qa eval replay renders and exits from its DTO', () => {
   afterEach(() => {
     vi.restoreAllMocks()
+  })
+
+  it('--judge-allow-same-family lets a same-family judge run and discloses it on every scored entry', async () => {
+    const fixture = await stagedReplayFixture(true, 'gpt-judge-floor-stub')
+    const runReplay = composition.runReplayVerb
+    vi.spyOn(composition, 'runReplayVerb').mockImplementation((session, filters) =>
+      runReplay(session, filters, fixture.opts))
+    const { logs } = captureConsole()
+
+    await buildProgram().parseAsync([
+      '--config', fixture.configPath, 'eval', 'replay',
+      '--judge', 'judge', '--judge-allow-same-family', '--json',
+    ], { from: 'user' })
+
+    expect(process.exitCode).not.toBe(1)
+    const dto = JSON.parse(logs[0] ?? '') as ReplayVerbResult
+    expect(dto.notices).toContain(
+      'same-family judging allowed (--judge-allow-same-family): judge model ' +
+      '"gpt-judge-floor-stub" and planner model "gpt-floor-stub" share the judge family ' +
+      "'openai'; every scored entry discloses familyOverride: same-family-allowed",
+    )
+    expect(dto.judge.invoked).toBeGreaterThan(0)
+    expect(fixture.judge.captured).not.toHaveLength(0)
+    const ids = await stagedCassetteIds(fixture.dir)
+    expect(ids).not.toHaveLength(0)
+    for (const id of ids) {
+      const stored = JSON.parse(await readFile(join(replayDirFor(fixture.dir, id), 'score.json'), 'utf8'))
+      expect(stored.judge).toMatchObject({
+        judgeModelId: 'gpt-judge-floor-stub',
+        familyOverride: 'same-family-allowed',
+      })
+    }
   })
 
   it('--json emits exactly one JSON DTO on stdout; an empty sweep is data with batchKey "empty" (Pitfall 11/D-02)', async () => {
