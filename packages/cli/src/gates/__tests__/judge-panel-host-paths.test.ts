@@ -94,25 +94,4 @@ describe('production panel host paths', () => {
     expect(llm.resolveModelAuth).not.toHaveBeenCalled()
     expect(globalThis.fetch).not.toHaveBeenCalled()
   })
-
-  it('operator calibration crosses the sanctioned composition seam with actual key-only planner and complete members', async () => {
-    vi.mocked(llm.resolveModelAuth).mockImplementation(async name => ({ kind: 'api-key',
-      credentialKey: name, provider: 'openai-compatible', apiKey: 'operator-fixture-value' }))
-    const named = vi.spyOn(llm, 'resolveNamedConfig')
-    const factory = vi.spyOn(model, 'createModel').mockImplementation(() => { throw new Error('unexpected factory') })
-    const run = vi.spyOn(evalLocal, 'runJudgeCalibration').mockRejectedValue(new Error('captured operator boundary'))
-    writeFileSync(join(root, '.env.secrets.local'), '')
-    const resolved = await session.resolveEvalSession({ configPath })
-    expect(llm.resolveModelAuth).not.toHaveBeenCalled()
-    await expect(session.runJudgeCalibrateVerb(resolved)).rejects.toThrow('captured operator boundary')
-    expect(run).toHaveBeenCalledTimes(1)
-    expect(run.mock.calls[0]![0]).toMatchObject({ kind: 'probe', probe: {
-      profile: { plannerModelId: 'gpt-fixture', judgeModelId: createPanelIdentity(INITIAL).judgeModelId, judgeVersion: 2 },
-      replayProfile: { model: 'gpt-fixture' }, members: INITIAL.map(id => ({ profile: { model: id } })),
-    } })
-    expect(named.mock.calls.every(call => call[2]?.keyOnly === true)).toBe(true)
-    expect(vi.mocked(llm.resolveModelAuth).mock.calls.map(call => call[0])).toEqual(['judge-0', 'judge-1'])
-    expect(factory).not.toHaveBeenCalled()
-    expect(globalThis.fetch).not.toHaveBeenCalled()
-  })
 })

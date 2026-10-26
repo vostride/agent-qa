@@ -19,9 +19,8 @@ vi.mock('@vostride/agent-qa-agent-local', async original => {
     applyKnowledgeChange: vi.fn(actual.applyKnowledgeChange) }
 })
 import { LABEL_CALIBRATION_SCHEMA_VERSION, readLabelCalibration } from '@vostride/agent-qa-eval-local'
-import { applyKnowledgeChange, composeLocalAgent, createKnowledgeReader, openRunKnowledgeComposition, LOCAL_CURATION_CAPABILITIES } from '@vostride/agent-qa-agent-local'
+import { applyKnowledgeChange, composeLocalAgent, createKnowledgeReader, openRunKnowledgeComposition } from '@vostride/agent-qa-agent-local'
 import { composeCliLocalAgent } from '../../composition/local-agent-host.js'
-import { createReplayGateHost } from '../../gates/replay-gate-host.js'
 import { createFeedbackPortForHost } from '../../gates/feedback-host.js'
 import { markFixture } from '../../gates/__tests__/feedback-fixture.js'
 import { buildTrustPriorsResolver } from '../trust-priors.js'
@@ -160,43 +159,6 @@ it('production suite producer binds the captured snapshot after artifact replace
     expect(input.resolveTrustPriors?.()).toEqual(fixture().priors)
     expect(readLabelCalibration).toHaveBeenCalledTimes(1)
   } finally { await produced.finalize?.() }
-})
-
-it('standalone replay host binds a cached reader and refuses malformed data before any gate', async () => {
-  writeArtifact(fixture())
-  const deps = { configPath: join(root, 'agent-qa.config.yaml'), agentQaRoot: root,
-    session: { config: { knowledge: { dir: 'knowledge' } } }, record: false, composition: {} } as never
-  createReplayGateHost(deps)
-  const resolver = vi.mocked(createKnowledgeReader).mock.calls.at(-1)?.[2]
-  expect(resolver?.()).toEqual(fixture().priors)
-  writeArtifact(fixture(0.25))
-  expect(resolver?.()).toEqual(fixture().priors)
-  expect(readLabelCalibration).toHaveBeenCalledTimes(1)
-  writeArtifact({ secret: 'private mark' })
-  expect(() => createReplayGateHost(deps)).toThrow('Trust prior calibration is invalid or unavailable')
-})
-
-it('replay reader and receipt writer share the prior snapshot and preserve calibration bytes', async () => {
-  const f = markFixture()
-  rmSync(root, { recursive: true, force: true }); root = f.root
-  writeArtifact(fixture())
-  const { resolveEvalSession } = await import('../../eval-session-composition.js')
-  const { completeGate1Receipt } = await import(new URL('../../../../knowledge-local/src/curator/__tests__/fixtures/promotion-floor-fixture.js', import.meta.url).href)
-  const session = await resolveEvalSession({ configPath: f.configPath, keyOnly: true })
-  const recordGateReceipt = vi.fn<typeof LOCAL_CURATION_CAPABILITIES.recordGateReceipt>(async () => ({ kind: 'appended' as const }))
-  const host = createReplayGateHost({ configPath: f.configPath, agentQaRoot: f.agentQaRoot, session, record: true,
-    composition: {} as never, curation: { recordGateReceipt, maintenance: LOCAL_CURATION_CAPABILITIES.maintenance },
-    runReplayGate: async () => ({ kind: 'receipt', receipt: completeGate1Receipt(f.published.id),
-      lines: [], notices: [], refusals: [], modelCalls: 0, wallClockMs: 0 }),
-  })
-  writeArtifact(fixture(0.25))
-  const before = readFileSync(join(root, 'agent-qa-eval/labels/calibration.json'), 'utf8')
-  expect(await host.run(f.published.id)).toMatchObject({ kind: 'receipt', recorded: 'appended' })
-  const input = recordGateReceipt.mock.calls[0]![0] as Parameters<typeof LOCAL_CURATION_CAPABILITIES.recordGateReceipt>[0]
-  expect(input.resolveTrustPriors?.()).toEqual(fixture().priors)
-  expect(input.resolveTrustPriors).toBe(vi.mocked(createKnowledgeReader).mock.calls.at(-1)![2])
-  expect(readLabelCalibration).toHaveBeenCalledTimes(1)
-  expect(readFileSync(join(root, 'agent-qa-eval/labels/calibration.json'), 'utf8')).toBe(before)
 })
 
 it('composed local run forwards its snapshot through the in-process producer dispatch', async () => {

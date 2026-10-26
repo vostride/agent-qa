@@ -6,40 +6,30 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { Command, CommanderError } from 'commander'
 import { APICallError } from 'ai'
-import { createHash } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import fs from 'node:fs'
 import { mkdtemp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { generateRunId, generateTestId } from '@vostride/agent-qa-ids'
 import {
-  assignSplit,
-  BASELINE_POINTER_SCHEMA_VERSION,
   JUDGE_CONFIG,
   buildEvalReport,
-  canonicalJson,
+  buildSeedingPlan,
   committedFileText,
   composeBaselineProfileKey,
   computeBatchKey,
   computeCorpusDigest,
-  countGateSet,
-  deriveCensus,
-  foldClassifierRepeatability,
-  CAMPAIGN_MANIFEST_SCHEMA_VERSION,
   DECISION_VECTORS_SCHEMA_VERSION,
-  foldNoiseFloorArtefact,
+  extractRunCassettes,
   guardDecisionVectorsDocument,
-  guardNoiseFloorArtefact,
-  guardPartitionManifest,
-  guardRunExclusionRecord,
+  maskCorpusText,
   partitionParamsOf,
-  projectRunExclusion,
+  projectPartitionManifest,
+  resolveProductPartition,
 } from '@vostride/agent-qa-eval'
 import type {
-  ClassifierRepeatability,
-  CorpusCensus,
-  DecisionCorrectnessVector,
   JudgeIdentityBlock,
   SeedPolicy,
 } from '@vostride/agent-qa-eval'
@@ -49,6 +39,7 @@ import {
   FsHandoffStore,
   HANDOFF_FILE,
   RUNS_SUBDIR,
+  loadCompletedRunHandoff,
   slugBranch,
 } from '@vostride/agent-qa-runner-local'
 import {
@@ -56,13 +47,11 @@ import {
   asRef,
   asRunId,
   computeBriefDigest,
-  CURRENT_ANALYSIS_SCHEMA_VERSION,
 } from '@vostride/agent-qa-schema'
 import type {
   ArtifactRef,
   CompletedRunHandoff,
   MemberTestOutcome,
-  RunAnalysisArtifact,
   ScopeKey,
   ScreenState,
   ServedBrief,
@@ -71,30 +60,28 @@ import type {
 } from '@vostride/agent-qa-schema'
 import {
   FsReplayRecordStore,
-  FsReportStore,
   commitEvalReport,
   committedCassettePath,
   committedLabelPath,
   computeReplayProfileFingerprintFor,
-  loadStagedReport,
   loadCassetteBundle,
   FsScoreStore,
   runCassetteReplay,
   readCommittedCorpus,
+  FsRunArtifactSource,
+  loadLabelEvidence,
+  readPartitionManifests,
+  seedCommittedCorpus,
+  writePartitionManifest,
 } from '@vostride/agent-qa-eval-local'
 import {
   EvalNamedInputError,
-  EvalPartitionFlagsRequiredError,
-  EvalPartitionManifestConflictError,
   resolveEvalSession,
   resolveReplayProfileFingerprint,
   resolveReplayPlanner,
-  resolveTargetEnvironmentForProduct,
   runExtractVerb,
   runReplayVerb,
-  runCensusVerb,
   runReportVerb,
-  runSeedVerb,
 } from '../../eval-session-composition.js'
 import type {
   EvalSession,
@@ -102,13 +89,10 @@ import type {
   ReplayVerbResult,
   ReportVerbResult,
 } from '../../eval-session-composition.js'
-import { renderCensusMarkdown } from '../../eval-census-render.js'
 import { createEvalCommand } from '../eval.js'
-import * as evalVerbs from '../../eval-session-composition.js'
-import * as evalRender from '../../eval-report-render.js'
 
-/** Three real seeded leaves, using generated persistent identities and only provider stubs. */
-async function floorVerbFixture(judged = false) {
+/** Three real leaves seeded into the committed root, using generated identities and provider stubs. */
+async function seededReplayFixture(judged = false) {
   const plannerModelId = 'gpt-floor-stub'
   const judgeModelId = 'claude-floor-stub'
   const { dir, configPath } = await writeReplayFixture('', plannerModelId)
@@ -137,8 +121,7 @@ async function floorVerbFixture(judged = false) {
     new FsHandoffStore({ root, runId }).save(handoff)
   }
   const session = await sessionFor(configPath)
-  const seeded = await runSeedVerb(session, {}, TEST_FRACTIONS)
-  expect(seeded.seededCount).toBe(3)
+  expect(seedCommittedRoot(session)).toBe(3)
   const planner = replayStub(plannerModelId, judged ? () => ({
     ...clickGenerateResult(),
     content: [{ type: 'tool-call', toolCallId: 'fill-action', toolName: 'web_fill',
@@ -153,378 +136,6 @@ async function floorVerbFixture(judged = false) {
   return { dir, configPath, session, planner, judge, plannerModelId, judgeModelId,
     opts: { plannerOverrides: planner.overrides, ...(judged ? { judgeOverrides: judge.overrides } : {}) } }
 }
-
-function requireFloorVerb() {
-  expect(evalVerbs.runFloorVerb, 'the public floor measurement verb exists').toBeTypeOf('function')
-  return evalVerbs.runFloorVerb
-}
-
-function requireGateVerb() {
-  expect(evalVerbs.runGateVerb, 'the public release gate verb exists').toBeTypeOf('function')
-  return evalVerbs.runGateVerb
-}
-
-async function gateVerbFixture(judged = false, seeds = [11, 29]) {
-  const fixture = await floorVerbFixture(judged)
-  const floor = await evalVerbs.runFloorVerb(fixture.session, {
-    ...fixture.opts,
-    seeds,
-    commit: true,
-    explanation: 'measured CLI fixture',
-  })
-  expect(floor.committed?.kind).toBe('written')
-  fixture.session.evalConfig.seed = 11
-  const replay = await runReplayVerb(fixture.session, {}, { ...fixture.opts, source: 'committed' })
-  expect(replay.replayed).toBe(3)
-  const report = await runReportVerb(
-    fixture.session,
-    {},
-    {
-      source: 'committed',
-      commit: true,
-      baseline: true,
-      plannerOverrides: fixture.opts.plannerOverrides,
-    },
-  )
-  expect(report.committed?.kind).toBe('committed')
-  expect(report.baseline?.kind).toBe('written')
-  delete fixture.session.evalConfig.seed
-  fixture.planner.captured.length = 0
-  fixture.judge.captured.length = 0
-  return { ...fixture, floor, report }
-}
-
-describe('runGateVerb — fresh and offline release verdicts', () => {
-  beforeEach(() => {
-    vi.spyOn(Date, 'now').mockReturnValue(1_725_000_000)
-    vi.spyOn(performance, 'now').mockReturnValue(10)
-    vi.spyOn(process.stderr, 'write').mockReturnValue(true)
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network forbidden in gate fixture'))
-  })
-  afterEach(() => vi.restoreAllMocks())
-
-  it('shares one override fingerprint across floor, designated pointer and the fresh exit-0 gate', async () => {
-    const runGateVerb = requireGateVerb()
-    const fixture = await gateVerbFixture()
-    const committedBefore = await snapshotTree(join(fixture.dir, 'agent-qa-eval'))
-    const result = await runGateVerb(fixture.session, fixture.opts)
-    expect(result.kind).toBe('verdict')
-    if (result.kind !== 'verdict') throw new Error('expected comparable fixture')
-    expect(result.verdict.exit).toBe(0)
-    expect(result.verdict.pairing.n).toBe(3)
-    expect(result.profileKey).toBe(fixture.floor.profileKey)
-    expect(result.profileKey).toBe(fixture.report.profileKey)
-    expect(result.fingerprint).toBe(fixture.floor.fingerprint)
-    expect(result.fingerprint).toBe(await resolveReplayProfileFingerprint(
-      fixture.session, 'declared', fixture.opts.plannerOverrides,
-    ))
-    expect(result.fingerprint).not.toBe(await resolveReplayProfileFingerprint(fixture.session, 'declared'))
-    expect(result.currentReportFile).toContain(`/eval/gate/${slugBranch(result.profileKey)}/reports/`)
-    expect(result).toMatchObject({ mode: 'fresh', seed: 11, seedSource: 'floor', modelCalls: 3, wallClockMs: 0 })
-    expect(fixture.planner.captured).toHaveLength(3)
-    expect(await snapshotTree(join(fixture.dir, 'agent-qa-eval'))).toEqual(committedBefore)
-    expect(globalThis.fetch).not.toHaveBeenCalled()
-  })
-
-  it('resolves seed flag > config > profile floor > recorded default without changing the profile key', async () => {
-    const runGateVerb = requireGateVerb()
-    const fixture = await gateVerbFixture(false, [17, 31])
-    fixture.session.evalConfig.seed = 23
-    const flag = await runGateVerb(fixture.session, { ...fixture.opts, seed: 0 })
-    expect(flag).toMatchObject({ seed: 0, seedSource: 'flag', profileKey: fixture.floor.profileKey })
-    const config = await runGateVerb(fixture.session, fixture.opts)
-    expect(config).toMatchObject({ seed: 23, seedSource: 'config' })
-    delete fixture.session.evalConfig.seed
-    expect(await runGateVerb(fixture.session, fixture.opts)).toMatchObject({ seed: 17, seedSource: 'floor' })
-    const other = await floorVerbFixture()
-    expect(await runGateVerb(other.session, other.opts)).toMatchObject({
-      seed: 11, seedSource: 'default', verdict: { exit: 2 },
-    })
-  })
-
-  it('returns exit 1 for a real paired regression and preserves the unchanged comparator reasons', async () => {
-    const runGateVerb = requireGateVerb()
-    const fixture = await gateVerbFixture()
-    const regressing = replayStub(fixture.plannerModelId, () => ({
-      ...clickGenerateResult(),
-      content: [{ type: 'tool-call', toolCallId: 'wrong-action', toolName: 'web_fill',
-        input: JSON.stringify({ ref: 'e-continue', text: 'different operation', reasoning: 'fill',
-          confidence: 0.95, stepComplete: true, doesActionAdvanceUsTowardsGoal: true }) }],
-    }))
-    const result = await runGateVerb(fixture.session, { plannerOverrides: regressing.overrides })
-    expect(result.kind).toBe('verdict')
-    if (result.kind !== 'verdict') throw new Error('expected regression verdict')
-    expect(result.verdict.exit).toBe(1)
-    expect(result.verdict.pairing.n).toBe(3)
-    expect(result.verdict.regressions.length).toBeGreaterThan(0)
-    const offline = await runGateVerb(fixture.session, { plannerOverrides: regressing.overrides,
-      report: result.currentReport.batchKey })
-    expect(offline).toMatchObject({ kind: 'verdict', modelCalls: 0, verdict: result.verdict })
-    expect(regressing.captured).toHaveLength(3)
-  })
-
-  it('prefers the gate root over a stale default-staging-root report with the same batchKey', async () => {
-    const runGateVerb = requireGateVerb()
-    const fixture = await gateVerbFixture()
-    const fresh = await runGateVerb(fixture.session, fixture.opts)
-    if (fresh.kind !== 'verdict') throw new Error('expected fresh verdict')
-    const agentQaRoot = join(fixture.dir, '.agent-qa')
-    const staleReport = { ...fresh.currentReport }
-    delete staleReport.runIdentity
-    const stale = new FsReportStore({ root: agentQaRoot }).save(staleReport)
-    fixture.planner.captured.length = 0
-    const read = await runGateVerb(fixture.session, { ...fixture.opts, report: fresh.currentReport.batchKey })
-    expect(read).toMatchObject({ kind: 'verdict', currentReportFile: fresh.currentReportFile,
-      modelCalls: 0, verdict: fresh.verdict, probedDirs: [dirname(fresh.currentReportFile)] })
-    expect(read.notices).toContain(`gate --report: reading ${fresh.currentReportFile} (gate root)`)
-    const explicit = await runGateVerb(fixture.session, { ...fixture.opts,
-      report: fresh.currentReport.batchKey, stagedDir: dirname(stale.file) })
-    expect(explicit.kind).toBe('verdict')
-    if (explicit.kind !== 'verdict') throw new Error('expected historical inconclusive verdict')
-    expect(explicit.currentReportFile).toBe(stale.file)
-    expect(explicit.probedDirs).toEqual([dirname(stale.file)])
-    expect(explicit.verdict.exit).toBe(2)
-    expect(explicit.verdict.pairing.n).toBe(0)
-    expect(explicit.verdict.inconclusive).toEqual([
-      expect.objectContaining({ reason: 'no-decision-vector', detail: expect.stringMatching(/^current:/) }),
-    ])
-    expect(explicit.notices.join('\n')).toContain('no decisions sidecar')
-    expect(fixture.planner.captured).toHaveLength(0)
-  })
-
-  it('resolves an exact relative --staged-dir against configDir and falls back only on absent gate data', async () => {
-    const runGateVerb = requireGateVerb()
-    const fixture = await gateVerbFixture()
-    const fresh = await runGateVerb(fixture.session, fixture.opts)
-    if (fresh.kind !== 'verdict') throw new Error('expected fresh verdict')
-    const report = fresh.currentReport.batchKey
-    const gateDir = dirname(fresh.currentReportFile)
-    const read = await runGateVerb(fixture.session, { ...fixture.opts, report,
-      stagedDir: relative(fixture.dir, gateDir) })
-    expect(read).toMatchObject({ kind: 'verdict', currentReportFile: fresh.currentReportFile, verdict: fresh.verdict })
-    if (read.kind !== 'verdict') throw new Error('expected offline verdict')
-    expect(isAbsolute(read.currentReportFile)).toBe(true)
-    expect(read.probedDirs.every(isAbsolute)).toBe(true)
-    const loaded = loadStagedReport(join(fixture.dir, '.agent-qa'), report, gateDir)
-    if (loaded.kind !== 'loaded') throw new Error('expected staged evidence')
-    const fallback = new FsReportStore({ root: join(fixture.dir, '.agent-qa') })
-      .save(loaded.report, loaded.decisions)
-    await rm(fresh.currentReportFile)
-    const defaultRead = await runGateVerb(fixture.session, { ...fixture.opts, report })
-    expect(defaultRead).toMatchObject({ kind: 'verdict', currentReportFile: fallback.file,
-      verdict: fresh.verdict, modelCalls: 0, probedDirs: [gateDir, dirname(fallback.file)] })
-    expect(defaultRead.notices).toContain(`gate --report: reading ${fallback.file} (default staging root)`)
-  })
-
-  it.each(['report', 'decisions', 'identity'] as const)(
-    'does not replace a refused preferred %s with valid default-root evidence', async corruption => {
-      const runGateVerb = requireGateVerb()
-      const fixture = await gateVerbFixture()
-      const fresh = await runGateVerb(fixture.session, fixture.opts)
-      if (fresh.kind !== 'verdict') throw new Error('expected fresh verdict')
-      const report = fresh.currentReport.batchKey
-      const root = join(fixture.dir, '.agent-qa')
-      const loaded = loadStagedReport(root, report, dirname(fresh.currentReportFile))
-      if (loaded.kind !== 'loaded') throw new Error('expected staged evidence')
-      new FsReportStore({ root }).save(loaded.report, loaded.decisions)
-      const path = corruption === 'decisions'
-        ? fresh.currentReportFile.replace(/\.json$/, '.decisions.json') : fresh.currentReportFile
-      const changed = { ...fresh.currentReport }
-      delete changed.runIdentity
-      await writeFile(path, corruption === 'identity' ? JSON.stringify(changed) : '{broken')
-      fixture.planner.captured.length = 0
-      const result = await runGateVerb(fixture.session, { ...fixture.opts, report })
-      expect(result).toMatchObject({ kind: 'refused', refusal: { path },
-        probedDirs: [dirname(fresh.currentReportFile)] })
-      expect(fixture.planner.captured).toHaveLength(0)
-    },
-  )
-
-  it('names every missing probe and never leaves an explicit staged directory', async () => {
-    const runGateVerb = requireGateVerb()
-    const fixture = await floorVerbFixture()
-    const report = computeBatchKey([])
-    const result = await runGateVerb(fixture.session, { ...fixture.opts, report })
-    expect(result.kind).toBe('refused')
-    if (result.kind !== 'refused') throw new Error('expected missing report refusal')
-    expect(result.probedDirs).toHaveLength(2)
-    for (const dir of result.probedDirs) expect(result.refusal.reason).toContain(join(dir, `${report}.json`))
-    const explicit = await runGateVerb(fixture.session, { ...fixture.opts, report, stagedDir: 'chosen' })
-    expect(explicit).toMatchObject({ kind: 'refused', probedDirs: [join(fixture.dir, 'chosen')],
-      refusal: { path: join(fixture.dir, 'chosen', `${report}.json`) } })
-    expect(fixture.planner.captured).toHaveLength(0)
-  })
-
-  it('forwards fresh judge overrides and reads configured-judge evidence with auth/model creation forbidden', async () => {
-    const runGateVerb = requireGateVerb()
-    const fixture = await gateVerbFixture(true)
-    const fresh = await runGateVerb(fixture.session, fixture.opts)
-    expect(fresh).toMatchObject({ kind: 'verdict', modelCalls: 9, verdict: { exit: 0 } })
-    if (fresh.kind !== 'verdict') throw new Error('expected judged gate')
-    expect(fixture.planner.captured).toHaveLength(3)
-    expect(fixture.judge.captured).toHaveLength(6)
-    expect(fresh.currentReport.judge?.judgeModelId).toBe(fixture.judgeModelId)
-    expect(fresh.profileKey).toBe(fixture.floor.profileKey)
-    expect(fresh.profileKey).toBe(fixture.report.profileKey)
-    const auth = vi.spyOn(await import('../../llm-utils.js'), 'resolveModelAuth')
-      .mockRejectedValue(new Error('credential resolution forbidden'))
-    const model = vi.spyOn(await import('@vostride/agent-qa-model'), 'createModel')
-      .mockImplementation(() => { throw new Error('model creation forbidden') })
-    const offline = await runGateVerb(fixture.session, { ...fixture.opts, report: fresh.currentReport.batchKey })
-    expect(offline).toMatchObject({ kind: 'verdict', modelCalls: 0, wallClockMs: 0,
-      verdict: fresh.verdict, currentReport: fresh.currentReport })
-    expect(auth).not.toHaveBeenCalled()
-    expect(model).not.toHaveBeenCalled()
-    expect(globalThis.fetch).not.toHaveBeenCalled()
-  })
-
-  it('rejects --staged-dir without --report before model resolution', async () => {
-    const runGateVerb = requireGateVerb()
-    const fixture = await floorVerbFixture()
-    const auth = vi.spyOn(await import('../../llm-utils.js'), 'resolveModelAuth')
-    await expect(runGateVerb(fixture.session, { stagedDir: 'somewhere' })).rejects.toThrow('--report')
-    expect(auth).not.toHaveBeenCalled()
-  })
-
-})
-
-describe('runFloorVerb — recorded protocol and write-once measurement', () => {
-  beforeEach(() => {
-    // Freeze only clocks: real IO and async scheduling still execute.
-    vi.spyOn(Date, 'now').mockReturnValue(1_725_000_000)
-    vi.spyOn(performance, 'now').mockReturnValue(10)
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network forbidden in floor fixture'))
-  })
-  afterEach(() => vi.restoreAllMocks())
-
-  it.each([false, true])('recovers saved floor runs with auth and model creation forbidden (judge=%s)', async judged => {
-    const runFloorVerb = requireFloorVerb()
-    const fixture = await floorVerbFixture(judged)
-    const fresh = await runFloorVerb(fixture.session, fixture.opts)
-    await writeFile(join(fixture.dir, 'original-floor.log'), fresh.costLines.join('\n'))
-    const auth = vi.spyOn(await import('../../llm-utils.js'), 'resolveModelAuth')
-      .mockRejectedValue(new Error('credential resolution forbidden'))
-    const model = vi.spyOn(await import('@vostride/agent-qa-model'), 'createModel')
-      .mockImplementation(() => { throw new Error('model creation forbidden') })
-    const recovered = await runFloorVerb(fixture.session, { ...fixture.opts,
-      fromMeasured: 'original-floor.log', commit: true })
-    expect(recovered.artefact).toEqual(fresh.artefact)
-    expect(recovered.costLines).toEqual(fresh.costLines)
-    expect(recovered.committed?.kind).toBe('written')
-    expect(recovered.recovery).toEqual({ costLog: join(fixture.dir, 'original-floor.log'), modelCalls: 0 })
-    expect(auth).not.toHaveBeenCalled()
-    expect(model).not.toHaveBeenCalled()
-    expect(globalThis.fetch).not.toHaveBeenCalled()
-  })
-
-  it('records defaults, four actual cost lines, axis denominators and product census', async () => {
-    const runFloorVerb = requireFloorVerb()
-    const fixture = await floorVerbFixture()
-    const progress = vi.spyOn(process.stderr, 'write').mockReturnValue(true)
-    const result = await runFloorVerb(fixture.session, fixture.opts)
-    expect(result).toMatchObject({ repeats: 3, seeds: [11, 29], bootstrapSeed: 7,
-      recordedDefaults: true, corpusDigest: result.artefact.corpusDigest })
-    expect(result.artefact.profileKey).toBe(result.profileKey)
-    expect(result.fingerprint).toBe(await resolveReplayProfileFingerprint(
-      fixture.session, 'declared', fixture.opts.plannerOverrides,
-    ))
-    expect(result.artefact.axes.headline.n).toBe(3)
-    expect(result.artefact.runs.map(run => run.seed)).toEqual([11, 11, 11, 29])
-    expect(fixture.planner.captured).toHaveLength(12)
-    expect(result.artefact.cost.modelCalls).toBe(12)
-    expect(result.costLines).toHaveLength(4)
-    expect(result.costLines.every(line => /^floor r\d+ seed=\d+:/.test(line))).toBe(true)
-    expect(result.costLines[0]).toContain('modelCalls=3 promptTokens=30 completionTokens=6')
-    expect(progress.mock.calls).toHaveLength(16)
-    for (const root of result.runRoots) expect(existsSync(join(root, 'reports'))).toBe(true)
-    const lines = evalRender.renderFloorSummary(result)
-    expect(lines[0]).toBe('eval floor: repeats=3 seeds=11,29 bootstrapSeed=7 (recorded defaults)')
-    expect(lines).toContainEqual(expect.stringMatching(/^headline: floor=.+ n=3 sameSeed=0 twoSeed=0 wilson=/))
-    expect(lines).toContainEqual(expect.stringMatching(/^default: minimumGateSet=\d+ natural=\d+ heldOut=\d+$/))
-    expect(globalThis.fetch).not.toHaveBeenCalled()
-  })
-
-  it.each([{ repeats: 2 }, { seeds: [11] }, { seeds: [11, 11] }, { repeats: 3.5 }])(
-    'refuses protocol %j before planner or credential resolution', async options => {
-      const runFloorVerb = requireFloorVerb()
-      const { configPath } = await writeReplayFixture()
-      const session = await sessionFor(configPath)
-      const llmUtils = await import('../../llm-utils.js')
-      const resolution = vi.spyOn(llmUtils, 'resolveNamedConfig').mockRejectedValue(new Error('resolution forbidden'))
-      await expect(runFloorVerb(session, options)).rejects.toMatchObject({ code: 'FLOOR_PROTOCOL_MINIMUM' })
-      expect(resolution).not.toHaveBeenCalled()
-    },
-  )
-
-  it('guards the config-relative classifier file before auth and copies its measured block', async () => {
-    const runFloorVerb = requireFloorVerb()
-    const fixture = await floorVerbFixture()
-    const path = join(fixture.dir, 'classifier.json')
-    await writeFile(path, '{broken')
-    const llmUtils = await import('../../llm-utils.js')
-    const auth = vi.spyOn(llmUtils, 'resolveModelAuth')
-    await expect(runFloorVerb(fixture.session, { ...fixture.opts,
-      classifierRepeatability: 'classifier.json' })).rejects.toThrow(path)
-    expect(auth).not.toHaveBeenCalled()
-    await writeFile(path, JSON.stringify({ schemaVersion: 1 }))
-    await expect(runFloorVerb(fixture.session, { ...fixture.opts,
-      classifierRepeatability: path })).rejects.toBeInstanceOf(TypeError)
-    const measured = classifierDisclosureFixture()
-    await writeFile(path, JSON.stringify(measured))
-    const result = await runFloorVerb(fixture.session, { ...fixture.opts,
-      classifierRepeatability: path, seeds: [17, 31], repeats: 4, bootstrapSeed: 5 })
-    expect(result.artefact.classifierRepeatability).toEqual(measured)
-    expect(result).toMatchObject({ seeds: [17, 31], repeats: 4, bootstrapSeed: 5, recordedDefaults: false })
-    expect(result.costLines).toHaveLength(5)
-  })
-
-  it('commits written then unchanged, preserving a differing measurement as write-conflict data', async () => {
-    const runFloorVerb = requireFloorVerb()
-    const fixture = await floorVerbFixture()
-    const opts = { ...fixture.opts, commit: true, explanation: 'measured fixture protocol' }
-    const first = await runFloorVerb(fixture.session, opts)
-    expect(first.committed?.kind).toBe('written')
-    const second = await runFloorVerb(fixture.session, opts)
-    expect(second.committed?.kind).toBe('unchanged')
-    expect(second.artefact).toEqual(first.artefact)
-    const conflict = await runFloorVerb(fixture.session, { ...opts, explanation: 'different operator explanation' })
-    expect(conflict.committed?.kind).toBe('write-conflict')
-    expect(evalRender.renderFloorSummary(conflict)).toContainEqual(expect.stringContaining('committed: write-conflict'))
-  })
-
-  it('preserves zero-floor refusal without explanation and renders it as a notice', async () => {
-    const runFloorVerb = requireFloorVerb()
-    const fixture = await floorVerbFixture()
-    const local = await import('@vostride/agent-qa-eval-local')
-    const measure = local.runNoiseFloorMeasurement
-    // Finite nonempty Wilson samples have positive width. Inject only the zero-floor fold
-    // boundary here; the real writer still decides refusal/explanation/unchanged outcomes.
-    vi.spyOn(local, 'runNoiseFloorMeasurement').mockImplementation(async input => {
-      const result = await measure({ ...input, commit: false })
-      result.artefact.axes.headline.aggregateFloor = 0
-      return { ...result, committed: local.writeNoiseFloorArtefact({ artefact: result.artefact,
-        committedRoot: input.committedRoot }) }
-    })
-    const refused = await runFloorVerb(fixture.session, { ...fixture.opts, commit: true })
-    expect(refused.committed).toMatchObject({ kind: 'refused', refusal: { kind: 'zero-floor-without-explanation' } })
-    expect(refused.notices).toContainEqual(expect.stringContaining('zero-floor-without-explanation'))
-    const explained = { ...fixture.opts, commit: true, explanation: 'operator-supplied zero-floor rationale' }
-    expect((await runFloorVerb(fixture.session, explained)).committed?.kind).toBe('written')
-    expect((await runFloorVerb(fixture.session, explained)).committed?.kind).toBe('unchanged')
-  })
-
-  it('forwards judge overrides through the real stack and counts every planner and judge call', async () => {
-    const runFloorVerb = requireFloorVerb()
-    const fixture = await floorVerbFixture(true)
-    const result = await runFloorVerb(fixture.session, fixture.opts)
-    expect(fixture.planner.captured).toHaveLength(12)
-    expect(fixture.judge.captured).toHaveLength(24)
-    expect(result.artefact.cost.modelCalls).toBe(36)
-    expect(result.artefact.judgeModelId).toBe(fixture.judgeModelId)
-    expect(result.costLines[0]).toContain('modelCalls=9 promptTokens=90 completionTokens=18')
-    expect(globalThis.fetch).not.toHaveBeenCalled()
-  })
-})
 
 const BLOB_BYTES = Uint8Array.from(Buffer.from('agent-qa eval extract fixture blob\n', 'utf8'))
 const SUITE_SCOPE: ScopeKey = { tier: 'suite', key: 'eval-cli' }
@@ -997,7 +608,7 @@ describe('runReplayVerb — offline sweep through the sanctioned composition (D-
   afterEach(() => vi.restoreAllMocks())
 
   it('reports observed spend, reported usage and supported seed from this invocation only', async () => {
-    const fixture = await floorVerbFixture()
+    const fixture = await seededReplayFixture()
     fixture.session.evalConfig.seed = 11
     const clock = vi.spyOn(performance, 'now').mockReturnValue(100)
     const first = await runReplayVerb(fixture.session, {}, { ...fixture.opts, source: 'committed' })
@@ -1022,7 +633,7 @@ describe('runReplayVerb — offline sweep through the sanctioned composition (D-
   })
 
   it('counts provider retries separately from replay samples without inventing retry usage', async () => {
-    const fixture = await floorVerbFixture()
+    const fixture = await seededReplayFixture()
     let calls = 0
     const retrying = replayStub(fixture.plannerModelId, () => {
       if (calls++ === 0) throw new APICallError({
@@ -1040,7 +651,7 @@ describe('runReplayVerb — offline sweep through the sanctioned composition (D-
   })
 
   it('retains missing sample usage on provider failures', async () => {
-    const fixture = await floorVerbFixture()
+    const fixture = await seededReplayFixture()
     const failing = replayStub(fixture.plannerModelId, () => {
       throw new Error('unreported provider failure')
     })
@@ -1054,7 +665,7 @@ describe('runReplayVerb — offline sweep through the sanctioned composition (D-
   })
 
   it('discloses unsupported seed evidence instead of asserting determinism', async () => {
-    const fixture = await floorVerbFixture()
+    const fixture = await seededReplayFixture()
     fixture.session.evalConfig.seed = 0
     const failing = replayStub(fixture.plannerModelId, () => {
       return { ...clickGenerateResult(), warnings: [{ type: 'unsupported', feature: 'seed' }] }
@@ -1067,7 +678,7 @@ describe('runReplayVerb — offline sweep through the sanctioned composition (D-
   })
 
   it('includes judge provider calls and reports their token contribution explicitly', async () => {
-    const fixture = await floorVerbFixture(true)
+    const fixture = await seededReplayFixture(true)
     const result = await runReplayVerb(fixture.session, {}, { ...fixture.opts, source: 'committed' })
     // Each ambiguous fixture decision has two adjudicated tie axes.
     expect(result.spend).toMatchObject({ modelCalls: 9, sampleCount: 3, promptTokens: 90,
@@ -1497,52 +1108,20 @@ describe('runReportVerb — one batch, one report, one headline (D-13/D-14)', ()
   })
 })
 
-// ---- 372-07 Task 1: runSeedVerb — per-handoff plan-then-execute, wrapped 1:1 (D-01/D-16) ------
-
 /**
  * Seed fixture: the extract fixture with Luhn-safe state timestamps. The committed egress
  * checkpoint's credit-card detector Luhn-checks every 13-19 digit run and the extract fixture's
  * 1725000000100 stateBefore timestamp happens to pass — a 10-digit epoch keeps the committed
  * cassette text free of card-shaped numbers (the seeding-composition test precedent).
  */
-function saveSeedRun(
-  dir: string,
-  runId: string,
-  options: {
-    withPairSkipStep?: boolean
-    outcome?: MemberTestOutcome
-    rootCause?: Verdict
-  } = {},
-): void {
+function saveSeedRun(dir: string, runId: string): void {
   const root = join(dir, '.agent-qa')
   const ref = new FsEvidenceArtifactStore({ root, runId }).persistDecisionScreenshot(BLOB_BYTES)
-  const handoff = buildHandoff({
-    runId,
-    screenshotRef: ref,
-    ...(options.outcome === undefined ? {} : { outcome: options.outcome }),
-    ...(options.rootCause === undefined ? {} : { rootCause: options.rootCause }),
-  })
+  const handoff = buildHandoff({ runId, screenshotRef: ref })
   for (const test of handoff.tests) {
     for (const testStep of test.steps) {
       for (const subAction of testStep.subActions) {
         subAction.stateBefore = { ...subAction.stateBefore, timestamp: 1_725_000_000 }
-      }
-      if (options.withPairSkipStep) {
-        // A selfHeal block whose failed action matches NO recorded sub-action mints exactly one
-        // typed 'no-match' pair skip — never silent (T-371-18), carried verbatim by the verb.
-        const recorded = testStep.subActions[0]!
-        testStep.selfHeal = {
-          failedDecision: {
-            plan: 'Click a button that was never recorded',
-            plannedAction: { type: 'click', ref: asRef('e-nonexistent') },
-            result: structuredClone(recorded.result),
-          },
-          recoveringDecision: {
-            plan: recorded.plan,
-            plannedAction: structuredClone(recorded.plannedAction),
-            result: structuredClone(recorded.result),
-          },
-        }
       }
     }
   }
@@ -1550,654 +1129,53 @@ function saveSeedRun(
 }
 
 /**
- * 413-06 D-04 fixtures: the run's persisted analysis artifact (389 D-09) beside its handoff, and
- * the deterministic classification a retried-but-passed member carries on the handoff itself.
+ * Commit the recorded runs into the fixture's committed root through eval core's seeding plan,
+ * minting one partition manifest per product on first use. Returns the seeded case count.
  */
-function analysisArtifactFixture(
-  runId: string,
-  verdict: { class: Verdict['class']; producer: Verdict['producer'] },
-): RunAnalysisArtifact {
-  return {
-    schemaVersion: CURRENT_ANALYSIS_SCHEMA_VERSION,
-    runId,
-    verdicts: [
-      {
-        class: verdict.class,
-        producer: verdict.producer,
-        confidence: 0.9,
-        evidence: {
-          citedSteps: [],
-          citedAnchors: [],
-          citedArtifacts: [],
-          rationale: 'fixture analysis verdict',
-        },
-        memoryMisdirectionRuledOut: true,
-        perTest: 0,
-      },
-    ],
-    parts: [
-      {
-        perTest: 0,
-        groundingQuote: { source: 'test-outcome', quote: 'fixture' },
-        discriminator: 'fixture discriminator',
-        nextAction: 'fixture next action',
-        links: [],
-      },
-    ],
-  }
-}
-
-function flakeRootCause(): Verdict {
-  return {
-    class: 'flake',
-    producer: 'deterministic-classifier',
-    confidence: 0.5,
-    evidence: {
-      citedSteps: [0],
-      citedAnchors: [],
-      citedArtifacts: [],
-      rationale: 'passed on retry',
-    },
-    memoryMisdirectionRuledOut: true,
-    perTest: 0,
-  }
-}
-
-function testBugRootCause(): Verdict {
-  return {
-    class: 'test_bug',
-    producer: 'deterministic-classifier',
-    confidence: 0.7,
-    evidence: {
-      citedSteps: [0],
-      citedAnchors: [],
-      citedArtifacts: [],
-      rationale: 'assertion never matched',
-    },
-    memoryMisdirectionRuledOut: true,
-    perTest: 0,
-  }
-}
-
-/** Write `analysis.json` beside the run's handoff — raw text so a corrupt file is expressible. */
-async function saveAnalysis(dir: string, runId: string, text: string): Promise<void> {
-  const runDir = join(dir, '.agent-qa', RUNS_SUBDIR, slugBranch(runId))
-  await mkdir(runDir, { recursive: true })
-  await writeFile(join(runDir, 'analysis.json'), text)
-}
-
-describe('runSeedVerb — corpus committing wraps seedCommittedCorpus 1:1 (D-01/D-16/D-17)', () => {
-  it('re-extracts per handoff, plans, seeds the committed root, and sums the reports (D-16)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-alpha')
-    saveSeedRun(dir, 'run-beta')
-    const session = await sessionFor(configPath)
-    await runExtractVerb(session)
-    const ids = await stagedCassetteIds(dir)
-    const leafIds = ids.filter(id => id.endsWith('-leaf'))
-    expect(leafIds).toHaveLength(2)
-
-    const result = await runSeedVerb(session, {}, TEST_FRACTIONS)
-
-    // The committedRoot is ALWAYS <configDir>/agent-qa-eval (spec §B7, D-12) — no flag retargets it.
-    expect(result.committedRoot).toBe(resolve(dir, 'agent-qa-eval'))
-    expect(result.handoffsSeeded).toBe(2)
-    // Each run's single verified-pass live decision is one silver case (D-10/D-11).
-    expect(result.seededCount).toBe(2)
-    expect(result.unchangedCount).toBe(0)
-    expect(result.refusals).toEqual([])
-    expect(result.pairSkips).toBe(0)
-    expect(result.pairCounts).toEqual({ total: 0, sameState: 0, differingState: 0 })
-    // Committed files land under the product partition — cassette + label per admitted case.
-    for (const leafId of leafIds) {
-      expect(existsSync(join(result.committedRoot, committedCassettePath('default', leafId)))).toBe(true)
-      expect(existsSync(join(result.committedRoot, committedLabelPath('default', leafId)))).toBe(true)
-    }
-    expect(existsSync(join(result.committedRoot, 'eval-root.json'))).toBe(true)
-  })
-
-  it('re-seeds idempotently: the second sweep reports every case unchanged (D-17)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-alpha')
-    saveSeedRun(dir, 'run-beta')
-    const session = await sessionFor(configPath)
-
-    const first = await runSeedVerb(session, {}, TEST_FRACTIONS)
-    expect(first.seededCount).toBe(2)
-    expect(first.refusals).toEqual([])
-
-    const second = await runSeedVerb(session)
-    expect(second.unchangedCount).toBe(first.seededCount)
-    expect(second.seededCount).toBe(0)
-    expect(second.refusals).toEqual([])
-    // 414 D-07 read with D-05: a later seed accepts no fraction flags and re-derives nothing —
-    // the committed manifest is echoed back unchanged, never rewritten.
-    expect(second.partitions).toHaveLength(1)
-    expect(second.partitions[0]?.outcome).toBe('unchanged')
-    expect(second.partitions[0]?.saltDigest).toBe(first.partitions[0]?.saltDigest)
-  })
-
-  it('threads params.silverPerTestCap into buildSeedingPlan — cap 0 admits nothing (D-11)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-alpha')
-    const session = await sessionFor(configPath)
-
-    const capped = await runSeedVerb(session, {}, { silverPerTestCap: 0, ...TEST_FRACTIONS })
-    expect(capped.seededCount).toBe(0)
-    // The excluded candidate is a typed 'cap-exceeded' exclusion, never silently dropped.
-    expect(capped.silverExclusions).toBeGreaterThan(0)
-
-    const uncapped = await runSeedVerb(session)
-    expect(uncapped.seededCount).toBe(1)
-  })
-
-  it('carries typed pair skips verbatim from the SeedingReport (T-371-18)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-skips', { withPairSkipStep: true })
-    const session = await sessionFor(configPath)
-
-    const result = await runSeedVerb(session, {}, TEST_FRACTIONS)
-
-    expect(result.pairSkips).toBe(1)
-    // The selfHeal step's decision belongs to the pair channel, so silver excludes it too.
-    expect(result.seededCount).toBe(0)
-    expect(result.silverExclusions).toBeGreaterThan(0)
-  })
-
-  // ---- 413-06 Task 1: D-09 forward relative paths + the D-04 verdict filter -------------------
-
-  it('writes run_links as exactly { runId, runSlug } — the machine path is gone (414 D-13)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-alpha')
-    saveSeedRun(dir, 'run-beta')
-    const session = await sessionFor(configPath)
-
-    const result = await runSeedVerb(session, {}, TEST_FRACTIONS)
-    expect(result.seededCount).toBe(2)
-
-    const read = readCommittedCorpus(resolve(dir, 'agent-qa-eval'))
-    expect(read.snapshot.entries).toHaveLength(2)
-    for (const entry of read.snapshot.entries) {
-      // 414 D-13 superseded 413's T-413-27 relativisation by DELETING the field: a committed
-      // entry names the run, and the run dir is a machine-local fact nobody else can resolve.
-      // Deep equality (not a key probe) is what keeps a path from creeping back in.
-      expect(entry.run_links).toEqual({
-        runId: entry.run_links.runId,
-        runSlug: entry.run_links.runSlug,
-      })
-      expect(Object.keys(entry.run_links).sort()).toEqual(['runId', 'runSlug'])
-      expect(JSON.stringify(entry.run_links)).not.toContain(dir)
-    }
-  })
-
-  it('excludes a deterministic flake run with typed verdicts and seeds nothing for it (D-04)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-flaky', { rootCause: flakeRootCause() })
-    const session = await sessionFor(configPath)
-
-    const result = await runSeedVerb(session, {}, TEST_FRACTIONS)
-
-    expect(result.seededCount).toBe(0)
-    expect(result.handoffsSeeded).toBe(0)
-    expect(result.runsAdmitted).toEqual([])
-    expect(result.runsExcluded).toEqual([
-      {
-        runSlug: slugBranch('run-flaky'),
-        product: 'default',
-        verdicts: [{ class: 'flake', producer: 'deterministic-classifier' }],
-      },
-    ])
-    // The exclusion runs BEFORE the write-once root is touched: nothing landed for the run.
-    const read = readCommittedCorpus(resolve(dir, 'agent-qa-eval'))
-    expect(read.snapshot.entries).toEqual([])
-  })
-
-  it('excludes an analyze-run environment verdict read from analysis.json (D-04/389 D-10)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-env')
-    await saveAnalysis(
-      dir,
-      'run-env',
-      `${JSON.stringify(analysisArtifactFixture('run-env', {
-        class: 'environment',
-        producer: 'analyze-run',
-      }), null, 2)}\n`,
-    )
-    const session = await sessionFor(configPath)
-
-    const result = await runSeedVerb(session, {}, TEST_FRACTIONS)
-
-    expect(result.seededCount).toBe(0)
-    expect(result.runsExcluded).toEqual([
-      {
-        runSlug: slugBranch('run-env'),
-        product: 'default',
-        verdicts: [{ class: 'environment', producer: 'analyze-run' }],
-      },
-    ])
-  })
-
-  it('admits a clean run and a test_bug run, listing each admitted runs verdict producer (D-04)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-clean')
-    saveSeedRun(dir, 'run-testbug', { outcome: 'failed', rootCause: testBugRootCause() })
-    const session = await sessionFor(configPath)
-
-    const result = await runSeedVerb(session, {}, TEST_FRACTIONS)
-
-    expect(result.runsExcluded).toEqual([])
-    // D-04 excludes EXACTLY three classes — test_bug is an attributable failure and stays in.
-    expect(result.runsAdmitted).toEqual([
-      {
-        runSlug: slugBranch('run-clean'),
-        product: 'default',
-        verdicts: [],
-      },
-      {
-        runSlug: slugBranch('run-testbug'),
-        product: 'default',
-        verdicts: [{ class: 'test_bug', producer: 'deterministic-classifier' }],
-      },
-    ])
-    // The clean run still seeds its single verified-pass silver case, exactly as before.
-    expect(result.seededCount).toBe(1)
-  })
-
-  it('treats an unreadable analysis.json as artifact-absent with a notice, never a skip (T-413-26)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-alpha')
-    await saveAnalysis(dir, 'run-alpha', 'not json')
-    const session = await sessionFor(configPath)
-
-    const result = await runSeedVerb(session, {}, TEST_FRACTIONS)
-
-    // The deterministic floor answers instead — the run seeds and is never skipped.
-    expect(result.runsSkipped).toEqual([])
-    expect(result.seededCount).toBe(1)
-    expect(result.runsAdmitted).toHaveLength(1)
-    expect(
-      result.notices.some(
-        notice => notice.includes(slugBranch('run-alpha')) && notice.includes('analysis.json'),
-      ),
-    ).toBe(true)
-  })
-})
-
-// ---- 414-07 Task 1: the partition manifest and the committed run exclusions -------------------
-
-describe('runSeedVerb — partition manifest and run exclusions (414 D-02/D-05/D-06/D-07)', () => {
-  it('mints a 32-byte salt and commits the product manifest on the FIRST seed (D-05/D-06)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-alpha')
-    saveSeedRun(dir, 'run-beta')
-    const session = await sessionFor(configPath)
-
-    const result = await runSeedVerb(session, {}, TEST_FRACTIONS)
-
-    const manifestPath = join(dir, 'agent-qa-eval', 'contracts', 'partition-default.json')
-    const manifest = guardPartitionManifest(
-      JSON.parse(await readFile(manifestPath, 'utf8')),
-    )
-    expect(manifest.salt).toMatch(/^[0-9a-f]{64}$/)
-    expect(result.partitions).toEqual([
-      {
-        product: 'default',
-        path: 'contracts/partition-default.json',
-        outcome: 'written',
-        saltDigest: createHash('sha256').update(manifest.salt).digest('hex'),
-        heldOutFraction: TEST_FRACTIONS.heldOutFraction,
-        privateFraction: TEST_FRACTIONS.privateFraction,
-        partitionVersion: 1,
-      },
-    ])
-    // D-17: the raw salt is a partition secret. Only its digest may leave the manifest file.
-    expect(JSON.stringify(result)).not.toContain(manifest.salt)
-
-    // D-07: every entry's split is assignSplit over the COMMITTED params — the cli relabels nothing.
-    const read = readCommittedCorpus(resolve(dir, 'agent-qa-eval'))
-    expect(read.snapshot.entries).toHaveLength(2)
-    // D-08: a self-heal pair member is never bucketed and is always natural. This fixture mints
-    // no pair cases at all (asserted, so the `false` below can never go quietly vacuous), so
-    // every seeded entry is a bucketed silver leaf.
-    expect(result.pairCounts.total).toBe(0)
-    for (const entry of read.snapshot.entries) {
-      const expected = assignSplit({
-        ...partitionParamsOf(manifest),
-        cassetteId: entry.cassetteId,
-        isPairMember: false,
-      })
-      expect(entry.split).toBe(expected.split)
-      if (entry.split === 'held-out' && expected.split === 'held-out') {
-        expect(entry.heldOutVisibility).toBe(expected.heldOutVisibility)
-      }
-    }
-  })
-
-  it('re-seeds with no fraction flags: the manifest is echoed unchanged, bytes untouched (D-07)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-alpha')
-    const session = await sessionFor(configPath)
-    const first = await runSeedVerb(session, {}, TEST_FRACTIONS)
-    const manifestPath = join(dir, 'agent-qa-eval', 'contracts', 'partition-default.json')
-    const before = await readFile(manifestPath, 'utf8')
-
-    const second = await runSeedVerb(session)
-
-    expect(second.partitions).toHaveLength(1)
-    expect(second.partitions[0]?.outcome).toBe('unchanged')
-    expect(second.partitions[0]?.saltDigest).toBe(first.partitions[0]?.saltDigest)
-    expect(second.unchangedCount).toBeGreaterThan(0)
-    expect(await readFile(manifestPath, 'utf8')).toBe(before)
-  })
-
-  it('refuses a later seed whose fractions DISAGREE with the committed manifest (D-05)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-alpha')
-    const session = await sessionFor(configPath)
-    await runSeedVerb(session, {}, TEST_FRACTIONS)
-    const manifestPath = join(dir, 'agent-qa-eval', 'contracts', 'partition-default.json')
-    const before = await readFile(manifestPath, 'utf8')
-    const entriesBefore = readCommittedCorpus(resolve(dir, 'agent-qa-eval')).snapshot.entries.length
-
-    await expect(
-      runSeedVerb(session, {}, { ...TEST_FRACTIONS, heldOutFraction: 0.25 }),
-    ).rejects.toThrow(EvalPartitionManifestConflictError)
-    await expect(
-      runSeedVerb(session, {}, { ...TEST_FRACTIONS, heldOutFraction: 0.25 }),
-    ).rejects.toThrow(/default[\s\S]*contracts\/partition-default\.json|contracts\/partition-default\.json/)
-
-    // Nothing moved: a disagreeing manifest is refused, never merged over the committed one.
-    expect(await readFile(manifestPath, 'utf8')).toBe(before)
-    expect(readCommittedCorpus(resolve(dir, 'agent-qa-eval')).snapshot.entries).toHaveLength(
-      entriesBefore,
-    )
-  })
-
-  it('requires BOTH flags on a first partition — but the exclusion is already committed (D-02/D-07)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-alpha')
-    saveSeedRun(dir, 'run-flaky', { rootCause: flakeRootCause() })
-    const session = await sessionFor(configPath)
-
-    await expect(runSeedVerb(session)).rejects.toThrow(EvalPartitionFlagsRequiredError)
-    await expect(runSeedVerb(session)).rejects.toThrow(/default/)
-
-    const committedRoot = resolve(dir, 'agent-qa-eval')
-    expect(existsSync(join(committedRoot, 'corpus'))).toBe(false)
-    expect(existsSync(join(committedRoot, 'contracts', 'partition-default.json'))).toBe(false)
-    // D-02: provenance for a dropped run is written in phase (A), before and independently of the
-    // partition check — the operator learns what was excluded from the invocation that refused.
-    const exclusionPath = join(
-      committedRoot,
-      'exclusions',
-      'default',
-      `${slugBranch('run-flaky')}.json`,
-    )
-    expect(existsSync(exclusionPath)).toBe(true)
-
-    const retried = await runSeedVerb(session, {}, TEST_FRACTIONS)
-    expect(retried.exclusionsWritten).toEqual([
-      {
-        runSlug: slugBranch('run-flaky'),
-        product: 'default',
-        path: `exclusions/default/${slugBranch('run-flaky')}.json`,
-        outcome: 'unchanged',
-      },
-    ])
-    expect(retried.partitions[0]?.outcome).toBe('written')
-  })
-
-  it('commits an exclusion digesting the analysis.json bytes that decided it (D-02)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-alpha')
-    const analysisText = `${JSON.stringify(
-      analysisArtifactFixture('run-alpha', { class: 'flake', producer: 'analyze-run' }),
-      null,
-      2,
-    )}\n`
-    await saveAnalysis(dir, 'run-alpha', analysisText)
-    const session = await sessionFor(configPath)
-
-    const result = await runSeedVerb(session, {}, TEST_FRACTIONS)
-
-    expect(result.runsExcluded).toEqual([
-      {
-        runSlug: 'run-alpha',
-        product: 'default',
-        verdicts: [{ class: 'flake', producer: 'analyze-run' }],
-      },
-    ])
-    expect(result.exclusionsWritten).toEqual([
-      {
-        runSlug: 'run-alpha',
-        product: 'default',
-        path: 'exclusions/default/run-alpha.json',
-        outcome: 'written',
-      },
-    ])
-
-    const record = guardRunExclusionRecord(
-      JSON.parse(
-        await readFile(join(dir, 'agent-qa-eval', 'exclusions', 'default', 'run-alpha.json'), 'utf8'),
-      ),
-    )
-    expect(record.runSlug).toBe('run-alpha')
-    expect(record.reason).toBe('excluded-verdict-class')
-    expect(record.verdicts[0]?.producer).toBe('analyze-run')
-    expect(record.analysisDigest).toBe(
-      createHash('sha256').update(analysisText).digest('hex'),
-    )
-
-    // Write-once: an identical regeneration is `unchanged`, never a second decision.
-    const again = await runSeedVerb(session)
-    expect(again.exclusionsWritten[0]?.outcome).toBe('unchanged')
-  })
-
-  it('commits an exclusion for a deterministic-floor flake, digesting the verdict rows (D-02)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-flaky', { rootCause: flakeRootCause() })
-    const session = await sessionFor(configPath)
-
-    const result = await runSeedVerb(session, {}, TEST_FRACTIONS)
-
-    const record = guardRunExclusionRecord(
-      JSON.parse(
-        await readFile(
-          join(dir, 'agent-qa-eval', 'exclusions', 'default', `${slugBranch('run-flaky')}.json`),
-          'utf8',
-        ),
-      ),
-    )
-    // No analysis.json exists, so the digest covers the canonical resolved verdict rows the
-    // deterministic classifier produced — the evidence that actually decided the exclusion.
-    expect(record.verdicts).toEqual([{ class: 'flake', producer: 'deterministic-classifier' }])
-    expect(record.analysisDigest).toBe(
-      createHash('sha256')
-        .update(canonicalJson(result.runsExcluded[0]?.verdicts ?? []))
-        .digest('hex'),
-    )
-  })
-
-  it('reports a diverging committed exclusion as a write-conflict DATA row, never a throw (D-02)', async () => {
-    const { dir, configPath } = await writeFixture()
-    saveSeedRun(dir, 'run-alpha')
-    saveSeedRun(dir, 'run-flaky', { rootCause: flakeRootCause() })
-    const session = await sessionFor(configPath)
-    // Plant a VALID exclusion record for the same run whose core disagrees (a different
-    // analysisDigest): the write-once writer must refuse it rather than overwrite.
-    const planted = join(
-      dir,
-      'agent-qa-eval',
-      'exclusions',
-      'default',
-      `${slugBranch('run-flaky')}.json`,
-    )
-    await mkdir(dirname(planted), { recursive: true })
-    await writeFile(
-      planted,
-      committedFileText(
-        projectRunExclusion({
-          runId: 'run-flaky',
-          runSlug: slugBranch('run-flaky'),
-          product: 'default',
-          verdicts: [{ class: 'flake', producer: 'deterministic-classifier' }],
-          analysisDigest: 'a'.repeat(64),
-        }),
-      ),
-    )
-    const before = await readFile(planted, 'utf8')
-
-    const result = await runSeedVerb(session, {}, TEST_FRACTIONS)
-
-    // A refused write is DATA on the DTO — the sweep still partitions and still seeds run-alpha.
-    expect(result.exclusionsWritten).toEqual([
-      {
-        runSlug: slugBranch('run-flaky'),
-        product: 'default',
-        path: `exclusions/default/${slugBranch('run-flaky')}.json`,
-        outcome: 'write-conflict',
-      },
-    ])
-    expect(await readFile(planted, 'utf8')).toBe(before)
-    expect(result.partitions[0]?.outcome).toBe('written')
-    expect(result.seededCount).toBe(1)
-  })
-})
-
-// ---- 414-07 Task 2: the two optional D-04 provenance fields ----------------------------------
-
-/**
- * 414 D-04: a fixture whose `registry.targets` block is supplied by the cell.
- *
- * The environment is a property of the TARGET REGISTRY — a `CompletedRunHandoff` carries no
- * target at all — so every D-04 environment case has to be expressed here and nowhere else.
- */
-async function writeTargetsFixture(
-  targetLines: readonly string[],
-): Promise<{ dir: string; configPath: string }> {
-  const dir = await mkdtemp(join(tmpRoot, 'fixture-'))
-  const configPath = join(dir, 'agent-qa.config.yaml')
-  await writeFile(
-    configPath,
-    CONFIG_YAML.replace('use:\n', `${['  targets:', ...targetLines, 'use:'].join('\n')}\n`),
+function seedCommittedRoot(session: EvalSession, run?: string): number {
+  const agentQaRoot = resolve(session.configDir, '.agent-qa')
+  const committedRoot = resolve(session.configDir, 'agent-qa-eval')
+  const runsRoot = join(agentQaRoot, RUNS_SUBDIR)
+  const manifests = new Map(
+    readPartitionManifests(committedRoot).manifests.map(manifest => [manifest.product, manifest]),
   )
-  await writeFile(join(dir, '.env.secrets.local'), '')
-  return { dir, configPath }
-}
-
-function webTarget(
-  name: string,
-  fields: { product?: string; environment?: 'local' | 'shared' },
-): string[] {
-  return [
-    `    ${name}:`,
-    '      platform: web',
-    `      url: https://${name}.example.test`,
-    ...(fields.product === undefined ? [] : [`      product: ${fields.product}`]),
-    ...(fields.environment === undefined ? [] : [`      environment: ${fields.environment}`]),
-  ]
-}
-
-/** The fixture run's own clock — the ONLY source captured_at may come from (D-04). */
-async function handoffEndedAt(dir: string, runId: string): Promise<number> {
-  const raw = await readFile(
-    join(dir, '.agent-qa', RUNS_SUBDIR, slugBranch(runId), HANDOFF_FILE),
-    'utf8',
-  )
-  return (JSON.parse(raw) as { endedAt: number }).endedAt
-}
-
-describe('runSeedVerb — captured_at and targetEnvironment stamping (414 D-04)', () => {
-  it('stamps both fields when exactly one declared environment resolves for the product', async () => {
-    const { dir, configPath } = await writeTargetsFixture(
-      webTarget('checkout', { product: 'default', environment: 'shared' }),
-    )
-    saveSeedRun(dir, 'run-alpha')
-    const session = await sessionFor(configPath)
-
-    const result = await runSeedVerb(session, {}, TEST_FRACTIONS)
-    expect(result.seededCount).toBe(1)
-
-    const expectedCapturedAt = new Date(await handoffEndedAt(dir, 'run-alpha')).toISOString()
-    const read = readCommittedCorpus(resolve(dir, 'agent-qa-eval'))
-    expect(read.snapshot.entries).toHaveLength(1)
-    for (const entry of read.snapshot.entries) {
-      expect(entry.targetEnvironment).toBe('shared')
-      expect(entry.captured_at).toBe(expectedCapturedAt)
+  let seeded = 0
+  for (const slug of fs.readdirSync(runsRoot).sort()) {
+    if (run !== undefined && slug !== slugBranch(run)) continue
+    const handoff = loadCompletedRunHandoff(join(runsRoot, slug, HANDOFF_FILE))
+    const product = resolveProductPartition(handoff.scope)
+    let manifest = manifests.get(product)
+    if (manifest === undefined) {
+      manifest = projectPartitionManifest({
+        product, saltHex: randomBytes(32).toString('hex'), ...TEST_FRACTIONS,
+      })
+      expect(writePartitionManifest({ manifest, committedRoot }).kind).toBe('written')
+      manifests.set(product, manifest)
     }
-  })
-
-  it('OMITS targetEnvironment for a MIXED target set, keeping captured_at (D-04)', async () => {
-    const { dir, configPath } = await writeTargetsFixture([
-      ...webTarget('checkout', { product: 'default', environment: 'shared' }),
-      ...webTarget('staging', { product: 'default', environment: 'local' }),
-    ])
-    saveSeedRun(dir, 'run-alpha')
-    const session = await sessionFor(configPath)
-
-    await runSeedVerb(session, {}, TEST_FRACTIONS)
-
-    const read = readCommittedCorpus(resolve(dir, 'agent-qa-eval'))
-    expect(read.snapshot.entries).toHaveLength(1)
-    for (const entry of read.snapshot.entries) {
-      // A mixed set has no single answer, and a majority vote would be a fabricated one. The KEY
-      // is absent — asserting `toBe(undefined)` would pass on a key present with value undefined.
-      expect(Object.keys(entry)).not.toContain('targetEnvironment')
-      expect(Object.keys(entry)).toContain('captured_at')
-    }
-  })
-
-  it('OMITS targetEnvironment when no target, or an undeclared one, resolves (D-04)', async () => {
-    const cases: readonly string[][] = [
-      // No target resolves to the run's product at all.
-      webTarget('otherapp', { product: 'somewhere-else', environment: 'shared' }),
-      // The only matching target declares no environment — silence stays silence.
-      webTarget('checkout', { product: 'default' }),
-    ]
-    for (const targetLines of cases) {
-      const { dir, configPath } = await writeTargetsFixture(targetLines)
-      saveSeedRun(dir, 'run-alpha')
-      const session = await sessionFor(configPath)
-
-      await runSeedVerb(session, {}, TEST_FRACTIONS)
-
-      const read = readCommittedCorpus(resolve(dir, 'agent-qa-eval'))
-      expect(read.snapshot.entries).toHaveLength(1)
-      for (const entry of read.snapshot.entries) {
-        expect(Object.keys(entry)).not.toContain('targetEnvironment')
-        expect(Object.keys(entry)).toContain('captured_at')
-      }
-    }
-  })
-
-  it('resolveTargetEnvironmentForProduct answers shared, undefined, undefined (D-04)', async () => {
-    const single = await writeTargetsFixture(
-      webTarget('checkout', { product: 'default', environment: 'shared' }),
-    )
-    const mixed = await writeTargetsFixture([
-      ...webTarget('checkout', { product: 'default', environment: 'shared' }),
-      ...webTarget('staging', { product: 'default', environment: 'local' }),
-    ])
-    const undeclared = await writeTargetsFixture(webTarget('checkout', { product: 'default' }))
-
-    expect(
-      resolveTargetEnvironmentForProduct((await sessionFor(single.configPath)).config, 'default'),
-    ).toBe('shared')
-    expect(
-      resolveTargetEnvironmentForProduct((await sessionFor(mixed.configPath)).config, 'default'),
-    ).toBeUndefined()
-    expect(
-      resolveTargetEnvironmentForProduct(
-        (await sessionFor(undeclared.configPath)).config,
-        'default',
-      ),
-    ).toBeUndefined()
-    // A target the registry knows nothing about never invents a class for itself.
-    expect(
-      resolveTargetEnvironmentForProduct((await sessionFor(single.configPath)).config, 'nobody'),
-    ).toBeUndefined()
-  })
-})
+    const committed = readCommittedCorpus(committedRoot)
+    const evidence = loadLabelEvidence({ snapshot: committed.snapshot, agentQaRoot, incoming: handoff })
+    const incoming = maskCorpusText(handoff, session.mask)
+    const { cassettes } = extractRunCassettes({
+      handoff: incoming,
+      artifacts: new FsRunArtifactSource({ root: agentQaRoot, runId: handoff.runId }),
+    })
+    const plan = buildSeedingPlan({
+      handoff: incoming,
+      populationContext: {
+        snapshot: committed.snapshot,
+        handoffs: evidence.handoffs.map(source =>
+          source.runId === handoff.runId ? incoming : maskCorpusText(source, session.mask)),
+        marks: evidence.marks,
+      },
+      cassettes,
+      partition: partitionParamsOf(manifest),
+      capturedAt: new Date(handoff.endedAt).toISOString(),
+      mask: session.mask,
+    })
+    seeded += seedCommittedCorpus({ plan, cassettes, committedRoot, mask: session.mask }).seededCount
+  }
+  return seeded
+}
 
 // ---- 413-06 Task 2: --source committed on replay and report (D-08) ---------------------------
 
@@ -2214,8 +1192,7 @@ async function committedCorpusFixture(): Promise<{
   saveSeedRun(dir, 'run-alpha')
   const session = await sessionFor(configPath)
   await runExtractVerb(session)
-  const seeded = await runSeedVerb(session, {}, TEST_FRACTIONS)
-  expect(seeded.seededCount).toBe(1)
+  expect(seedCommittedRoot(session)).toBe(1)
   const ids = await stagedCassetteIds(dir)
   const leafId = ids.find(id => id.endsWith('-leaf'))
   const procedureId = ids.find(id => !id.endsWith('-leaf'))
@@ -2655,212 +1632,7 @@ describe('agent-qa eval replay — rendering and exit semantics (372-06, D-04/D-
   })
 })
 
-// ---- 413-05 Task 1: the deterministic census markdown projection (D-15/D-16) ------------------
-
-/** A fully-populated CorpusCensus DTO: one product, a campaign, one refused cross-check line. */
-/**
- * The raw partition salt behind the fixture's `saltDigest`. It exists ONLY so the render cell can
- * assert the markdown does not contain it — the DTO itself never carries a raw salt (T-414-29).
- */
-const CENSUS_FIXTURE_SALT = 'a3f'.repeat(21).concat('b')
-
-function censusFixture(): CorpusCensus {
-  return {
-    schemaVersion: 2,
-    corpusDigest: 'a'.repeat(64),
-    entryCount: 2,
-    products: {
-      default: {
-        total: 2,
-        scorableByTier: { tier1: 2, tier2: 1, tier3: 0 },
-        goldEvidence: 1,
-        staticScorability: {
-          'no-gold-evidence': 1,
-          'tier2-anchor': 1,
-          'tier3-annotation': 0,
-        },
-        labelTiers: { gold: 0, 'near-gold': 0, silver: 2 },
-        proofCoverage: { numerator: 0, denominator: 2, rate: 0 },
-        rungMix: { 'legacy-no-rung': 2 } as CorpusCensus['products'][string]['rungMix'],
-        briefContent: { 'empty-brief': 2, 'populated-brief': 0 },
-        blobsPresentLocally: { numerator: 2, denominator: 2, rate: 1 },
-        missingLabelRecord: 0,
-        missingCassette: 0,
-        runsSeeded: 1,
-        runsExcluded: { environment: 0, flake: 1, timeout: 0 },
-        runsExcludedByProducer: { 'analyze-run': 0, 'deterministic-classifier': 1 },
-        seededByProducer: {
-          'analyze-run': 1,
-          'deterministic-classifier': 0,
-          'no-verdict': 0,
-        },
-        repeatCounts: { 'eval-cli::extract-fixture': 2 },
-        splits: { natural: 1, heldOutShared: 1, heldOutPrivate: 0, adversarial: 0 },
-        fieldCoverage: {
-          capturedAt: { numerator: 2, denominator: 2, rate: 1 },
-          targetEnvironment: { numerator: 1, denominator: 2, rate: 0.5 },
-        },
-        exclusions: {
-          total: 1,
-          byClass: { environment: 0, flake: 1, timeout: 0 },
-          byProducer: { 'analyze-run': 0, 'deterministic-classifier': 1 },
-        },
-      },
-    },
-    partition: {
-      default: {
-        saltDigest: createHash('sha256').update(CENSUS_FIXTURE_SALT).digest('hex'),
-        heldOutFraction: 0.5,
-        privateFraction: 0.5,
-        partitionVersion: 1,
-      },
-    },
-    schemaVersionsSeen: { '2': 2 },
-    campaign: {
-      present: true,
-      manifestDigest: 'b'.repeat(64),
-      legs: 2,
-      runsSeeded: 1,
-      runsExcluded: 1,
-      modelCalls: 7,
-      promptTokens: 1_234,
-      completionTokens: 56,
-      wallClockMs: 449_000,
-    },
-    crossCheck: [
-      {
-        batchKey: '358327d21294f77b91645e3cefde46ad12fe065422757372835447a41865a71e',
-        decisionCount: 86,
-        corpusCassetteCount: 2,
-        membershipComparable: false,
-        unscorableIdentityCounts: { 'no-gold-evidence': 41 },
-        refusalCounts: {},
-        comparator: {
-          ok: false,
-          refusal: {
-            kind: 'same-family-override',
-            judgeModelId: 'gpt-5.6-sol',
-            judgeFamily: 'openai',
-            batchKey: '358327d21294f77b91645e3cefde46ad12fe065422757372835447a41865a71e',
-          },
-        },
-        designatedBy: [],
-      },
-    ],
-  }
-}
-
-describe('renderCensusMarkdown — byte-deterministic, counts-only projection (413 D-15/D-16)', () => {
-  it('copies marked gold counts and leaves unmarked markdown byte-identical', () => {
-    const census = censusFixture()
-    const before = renderCensusMarkdown(census)
-    expect(before).not.toContain('marked gold:')
-    census.products.default!.markedGold = { 'user-mark': 1, 'overturned-verdict': 1 }
-    const line = '- marked gold: user-mark 1 · overturned-verdict 1\n\n'
-    const rendered = renderCensusMarkdown(census)
-    expect(rendered).toContain(line)
-    expect(rendered.replace(line, '')).toBe(before)
-    census.products.default!.markedGold = { 'user-mark': 37, 'overturned-verdict': 0 }
-    expect(renderCensusMarkdown(census)).toContain('marked gold: user-mark 37 · overturned-verdict 0')
-  })
-  it('renders the same DTO to byte-identical text under the locked section structure', () => {
-    const census = censusFixture()
-
-    const first = renderCensusMarkdown(census)
-    const second = renderCensusMarkdown(census)
-
-    // Byte-determinism is what makes commitCensus's write-once re-compare meaningful (D-15).
-    expect(first).toBe(second)
-    expect(first).toContain('# Corpus Census')
-    expect(first).toContain('## Provenance')
-    expect(first).toContain('## Cross-check')
-    // The D-16 triple and the refused comparator both land verbatim from the DTO.
-    expect(first).toContain('- scorableByTier: tier1=2 tier2=1 tier3=0')
-    expect(first).toContain('comparator=refused:same-family-override')
-    // No clock, no locale: nothing in the output can move between two renders of one DTO.
-    expect(first).not.toMatch(/\d{4}-\d{2}-\d{2}T/)
-  })
-
-  it('states absence honestly and publishes no interpretation for an empty corpus (D-04/D-16)', () => {
-    const empty = deriveCensus({
-      snapshot: {
-        entries: [],
-        labelsById: new Map(),
-        cassettesById: new Map(),
-        blobPresentById: new Map(),
-      },
-    })
-
-    const rendered = renderCensusMarkdown(empty)
-
-    expect(Object.keys(empty.products)).toEqual([])
-    expect(rendered).toContain('## Campaign\n\n- none supplied')
-    expect(rendered).toContain('## Cross-check\n\n- none')
-    // 414 D-17: an unpartitioned root states its absence rather than printing a fabricated row.
-    expect(rendered).toContain('## Partition\n\n- none')
-    expect(rendered).toContain('- schemaVersionsSeen:\n  - none')
-    // D-16 forbids a percentage, a threshold and a minimum-n claim alike — the census is counts.
-    expect(rendered).not.toContain('%')
-    expect(rendered).not.toMatch(/\d\s*%/)
-    expect(rendered.toLowerCase()).not.toContain('threshold')
-    expect(rendered.toLowerCase()).not.toContain('makes no claim')
-  })
-
-  it('names the partition, splits, D-04 coverage and exclusions as counts only (414 D-17)', () => {
-    const census = censusFixture()
-
-    const first = renderCensusMarkdown(census)
-    const second = renderCensusMarkdown(census)
-    expect(first).toBe(second)
-
-    // The locked section order: Partition sits immediately after Provenance, before any product.
-    expect(first.split('\n').filter(line => line.startsWith('## '))).toEqual([
-      '## Provenance',
-      '## Partition',
-      '## default',
-      '## Campaign',
-      '## Cross-check',
-    ])
-
-    // Provenance names which entry schema versions the committed BYTES still declare.
-    expect(first).toContain('- schemaVersionsSeen:\n  - v2: 2')
-
-    // The partition echo: the salt DIGEST and the three re-derivable parameters, nothing else.
-    expect(first).toContain(
-      `- default: saltDigest=${createHash('sha256').update(CENSUS_FIXTURE_SALT).digest('hex')} `
-        + 'heldOutFraction=0.5 privateFraction=0.5 partitionVersion=1',
-    )
-    // T-414-29: the raw salt is a partition secret and never reaches committed prose.
-    expect(first).not.toContain(CENSUS_FIXTURE_SALT)
-
-    // Per product: the four split arms, the two D-04 rates, and the exclusion tallies.
-    expect(first).toContain(
-      '### Splits\n\n- adversarial: 0\n- heldOutPrivate: 0\n- heldOutShared: 1\n- natural: 1',
-    )
-    expect(first).toContain(
-      '### Field coverage\n\n- capturedAt: 2/2 (rate: 1)\n- targetEnvironment: 1/2 (rate: 0.5)',
-    )
-    expect(first).toContain('### Exclusions\n\n- total: 1')
-    expect(first).toContain('### By class\n\n- environment: 0\n- flake: 1\n- timeout: 0')
-    expect(first).toContain('### By producer\n\n- analyze-run: 0\n- deterministic-classifier: 1')
-
-    // D-16 stands over every value this plan added: counts and pairs, never an interpretation.
-    expect(first).not.toContain('%')
-    expect(first.toLowerCase()).not.toContain('threshold')
-    expect(first.toLowerCase()).not.toContain('minimum')
-  })
-})
-
-// ---- 413-05 Task 2: runCensusVerb — the ONE census pipeline (D-13/D-14/D-15/D-16) -------------
-
-/**
- * Byte-copied from the committed D-18 fixture's `judge` block (the same constant Plan 02's
- * comparator cell carries):
- * demo/init/agent-qa-eval/reports/358327d21294f77b91645e3cefde46ad12fe065422757372835447a41865a71e/report.json
- *
- * The in-place proof against the real file is the Task 3 real-root check; this fixture cell
- * proves the cross-check WIRING, so the two can never drift without one of them reddening.
- */
+/** A same-family judge identity block as a committed report records it. */
 const FIXTURE_JUDGE_BLOCK: JudgeIdentityBlock = {
   confidenceThreshold: 'high',
   familyOverride: 'same-family-allowed',
@@ -2869,10 +1641,7 @@ const FIXTURE_JUDGE_BLOCK: JudgeIdentityBlock = {
   judgeVersion: 1,
 }
 
-const FIXTURE_BATCH_KEY = '358327d21294f77b91645e3cefde46ad12fe065422757372835447a41865a71e'
-const NO_JUDGE_BATCH_KEY = 'f'.repeat(64)
-
-/** A seeded committed root holding exactly the two fixture cassettes (the census's corpus). */
+/** A seeded committed root holding exactly the two fixture cassettes. */
 async function seededCorpusFixture(): Promise<{
   dir: string
   configPath: string
@@ -2882,97 +1651,9 @@ async function seededCorpusFixture(): Promise<{
   saveSeedRun(dir, 'run-alpha')
   saveSeedRun(dir, 'run-beta')
   const session = await sessionFor(configPath)
-  const seeded = await runSeedVerb(session, {}, TEST_FRACTIONS)
-  expect(seeded.seededCount).toBe(2)
+  expect(seedCommittedRoot(session)).toBe(2)
   return { dir, configPath, session }
 }
-
-/** Pure synthetic repeats over fixture cassette identities, serialized with the committed law. */
-async function writeFloorFixture(
-  fixture: { dir: string; session: EvalSession },
-  plannerModelId: string,
-  options: { empty?: boolean; classifierRepeatability?: ClassifierRepeatability } = {},
-) {
-  const committedRoot = join(fixture.dir, 'agent-qa-eval')
-  const corpus = readCommittedCorpus(committedRoot)
-  const fingerprint = await resolveReplayProfileFingerprint(fixture.session, 'declared')
-  const profile = {
-    plannerModelId, fingerprint, matcherVersion: 1,
-    profileKey: composeBaselineProfileKey({ plannerModelId, fingerprint, matcherVersion: 1 }),
-  }
-  const vectors: DecisionCorrectnessVector[] = options.empty ? [] : corpus.snapshot.entries.map(
-    entry => ({
-      key: `${entry.cassetteId}#-#0`, cassetteId: entry.cassetteId,
-      decisionOrdinal: 0, product: entry.product, briefSource: 'empty',
-      axes: {
-        headline: 'correct', elementIdentity: 'correct', opClass: 'correct',
-        value: 'not-applicable', sideEffect: 'correct', loop: 'not-applicable',
-      },
-    }),
-  )
-  const artefact = foldNoiseFloorArtefact({
-    profile, corpusDigest: computeCorpusDigest(corpus.snapshot.entries), partitionVersion: 1,
-    seeds: [11, 29], repeats: 3, bootstrapSeed: 19,
-    runs: [11, 11, 11, 29].map((seed, index) => ({
-      index, seed, vectors, wallClockMs: 10,
-      report: buildEvalReport([], undefined, undefined, { declaredSeed: seed }),
-    })),
-    splitByCassetteId: new Map(corpus.snapshot.entries.map(entry => [entry.cassetteId, 'natural'])),
-    censusByProduct: { default: { natural: vectors.length, heldOutShared: 0, heldOutPrivate: 0 } },
-    ...(options.classifierRepeatability === undefined
-      ? {} : { classifierRepeatability: options.classifierRepeatability }),
-  })
-  expect(guardNoiseFloorArtefact(artefact).kind).toBe('ok')
-  const path = join(committedRoot, 'reports', 'noise-floor', `${slugBranch(profile.profileKey)}.json`)
-  await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, committedFileText(artefact))
-  return { path, artefact }
-}
-
-function classifierDisclosureFixture(): ClassifierRepeatability {
-  return foldClassifierRepeatability({
-    k: 3,
-    runs: [['unknown', 'flake', 'unknown'], ['unknown', 'unknown', 'unknown']].map(classes => ({
-      runSlug: generateRunId(), product: 'default',
-      sweeps: classes.map(cls => ({
-        analysisDigest: createHash('sha256').update(cls).digest('hex'),
-        verdicts: [{ class: cls as 'unknown' | 'flake' }],
-      })),
-    })),
-  })
-}
-
-describe('runCensusVerb — committed floor disclosure without a census schema change (415 D-14)', () => {
-  afterEach(() => vi.restoreAllMocks())
-
-  it('turns floor read refusals into named notices alongside valid artefacts', async () => {
-    const fixture = await seededCorpusFixture()
-    const floor = await writeFloorFixture(fixture, 'valid-planner')
-    const broken = join(dirname(floor.path), 'broken.json')
-    const stray = join(dirname(dirname(floor.path)), 'noise-floor.json')
-    await writeFile(broken, '{')
-    await writeFile(stray, committedFileText(floor.artefact))
-    const result = await runCensusVerb(fixture.session)
-    for (const path of [broken, stray]) {
-      expect(result.notices.some(notice => notice.startsWith(`committed read refused ${path}:`))).toBe(true)
-    }
-    expect(result).toHaveProperty('noiseFloor.0.profileKey', floor.artefact.profileKey)
-  })
-
-  it('preserves committed census JSON and markdown byte-for-byte after a floor is added', async () => {
-    const fixture = await seededCorpusFixture()
-    const first = await runCensusVerb(fixture.session, { commit: true })
-    expect(first.committed?.kind).toBe('committed')
-    const censusDir = join(fixture.dir, 'agent-qa-eval', 'reports', 'census', first.corpusDigest)
-    const before = await snapshotTree(censusDir)
-    await writeFloorFixture(fixture, 'measured-planner', { classifierRepeatability: classifierDisclosureFixture() })
-    const second = await runCensusVerb(fixture.session, { commit: true })
-    expect(second).toHaveProperty('noiseFloor')
-    expect(second.census).toEqual(first.census)
-    expect(second.committed).toMatchObject({ kind: 'committed', json: 'unchanged', markdown: 'unchanged' })
-    expect(await snapshotTree(censusDir)).toEqual(before)
-  })
-})
 
 /** Commit one report into the fixture committed root under an explicit batchKey. */
 function commitFixtureReport(
@@ -2988,255 +1669,6 @@ function commitFixtureReport(
   })
   expect(outcome.kind).toBe('committed')
 }
-
-function campaignManifest(): unknown {
-  return {
-    schemaVersion: CAMPAIGN_MANIFEST_SCHEMA_VERSION,
-    phase: '413',
-    submoduleHead: 'c'.repeat(40),
-    legs: [
-      {
-        testId: 'growth::alpha',
-        testFile: 'tests/growth-alpha.yaml',
-        product: 'default',
-        runSlug: 'run-growth-alpha',
-        repeat: 0,
-        exitCode: 0,
-        aggregateVerdict: 'passed',
-        verdicts: [{ class: 'unknown', producer: 'analyze-run' }],
-        excluded: false,
-        seeded: true,
-        wallClockMs: 54_000,
-        modelCalls: 4,
-        promptTokens: 900,
-        completionTokens: 40,
-        steps: 3,
-        proofSteps: 3,
-      },
-      {
-        testId: 'growth::beta',
-        testFile: 'tests/growth-beta.yaml',
-        product: 'default',
-        runSlug: 'run-growth-beta',
-        repeat: 0,
-        exitCode: 1,
-        aggregateVerdict: 'failed',
-        verdicts: [{ class: 'flake', producer: 'deterministic-classifier' }],
-        excluded: true,
-        seeded: false,
-        wallClockMs: 449_000,
-        modelCalls: 3,
-        promptTokens: 334,
-        completionTokens: 16,
-        steps: 2,
-        proofSteps: 0,
-      },
-    ],
-  }
-}
-
-describe('runCensusVerb — static census over the committed root (413 D-13/D-14/D-15/D-16)', () => {
-  it('derives the per-product triple from a legacy-shaped committed root with no campaign', async () => {
-    const { dir, session } = await seededCorpusFixture()
-
-    const result = await runCensusVerb(session)
-
-    expect(result.entryCount).toBe(2)
-    expect(result.census.entryCount).toBe(2)
-    expect(result.census.products.default?.total).toBe(2)
-    // Proof coverage denominator is the loaded-cassette count; the fixture briefs carry no proof.
-    expect(result.census.products.default?.proofCoverage.denominator).toBe(2)
-    expect(result.census.products.default?.proofCoverage.numerator).toBe(0)
-    // The fixture handoff carries no retrieval rung — counted as legacy, never folded away (D-07).
-    expect(result.census.products.default?.rungMix['legacy-no-rung']).toBe(2)
-    expect(result.census.crossCheck).toEqual([])
-    expect(result.census.campaign).toEqual({ present: false })
-    expect(result.committed).toBeUndefined()
-    // The digest NAMES the corpus the census was derived from (D-15).
-    const read = readCommittedCorpus(resolve(dir, 'agent-qa-eval'))
-    expect(result.corpusDigest).toBe(computeCorpusDigest(read.snapshot.entries))
-    expect(result.census.corpusDigest).toBe(result.corpusDigest)
-    expect(result.productsSeen).toContain('default')
-  })
-
-  it('cross-checks EVERY committed report and prints the same-family refusal (D-18/D-20, SC3)', async () => {
-    const { dir, session } = await seededCorpusFixture()
-    commitFixtureReport(dir, FIXTURE_BATCH_KEY, FIXTURE_JUDGE_BLOCK)
-    commitFixtureReport(dir, NO_JUDGE_BATCH_KEY, undefined)
-
-    const result = await runCensusVerb(session)
-
-    const lines = result.census.crossCheck
-    expect(lines.map(line => line.batchKey)).toEqual([FIXTURE_BATCH_KEY, NO_JUDGE_BATCH_KEY])
-    for (const line of lines) {
-      // RESEARCH F7: a report carries a batchKey, never its cassette-id list — the two
-      // populations are PRINTED side by side and never asserted equal.
-      expect(line.membershipComparable).toBe(false)
-      expect(line.corpusCassetteCount).toBe(2)
-      expect(line.designatedBy).toEqual([])
-    }
-    const sameFamily = lines[0]!
-    expect(sameFamily.comparator.ok).toBe(false)
-    expect(sameFamily.comparator.ok === false && sameFamily.comparator.refusal.judgeModelId).toBe(
-      'gpt-5.6-sol',
-    )
-    expect(lines[1]!.comparator).toEqual({ ok: true })
-
-    // The refusal and BOTH reconciliation lines are visible notices — never a silent omission.
-    expect(
-      result.notices.some(notice => notice.startsWith('baseline comparator refused: same-family-override')),
-    ).toBe(true)
-    for (const batchKey of [FIXTURE_BATCH_KEY, NO_JUDGE_BATCH_KEY]) {
-      expect(result.notices).toContain(
-        `cross-check ${batchKey}: report decisions 0 vs corpus cassettes 2 `
-          + '— batch membership differs (batchKey only)',
-      )
-    }
-
-    // A committed pointer naming a report designates it (D-19); the census states who.
-    const baselinesDir = join(dir, 'agent-qa-eval', 'reports', 'baselines')
-    await mkdir(baselinesDir, { recursive: true })
-    await writeFile(
-      join(baselinesDir, 'fixture-profile.json'),
-      `${JSON.stringify(
-        {
-          schemaVersion: BASELINE_POINTER_SCHEMA_VERSION,
-          profileKey: 'fixture-profile',
-          batchKey: NO_JUDGE_BATCH_KEY,
-          fingerprint: 'fixture-fingerprint',
-          corpusDigest: 'fixture-corpus',
-        },
-        null,
-        2,
-      )}\n`,
-    )
-
-    const designated = await runCensusVerb(session)
-    const designatedLine = designated.census.crossCheck.find(
-      line => line.batchKey === NO_JUDGE_BATCH_KEY,
-    )!
-    expect(designatedLine.designatedBy).toEqual(['fixture-profile'])
-  })
-
-  it('folds a guarded --campaign manifest and rejects a widened one as a typed error (D-16)', async () => {
-    const { dir, session } = await seededCorpusFixture()
-    const manifestPath = join(dir, 'campaign.json')
-    await writeFile(manifestPath, `${JSON.stringify(campaignManifest(), null, 2)}\n`)
-
-    const result = await runCensusVerb(session, { campaign: manifestPath })
-
-    expect(result.campaignManifest).toBe(manifestPath)
-    const campaign = result.census.campaign
-    expect(campaign.present).toBe(true)
-    expect(campaign.present === true && campaign.legs).toBe(2)
-    expect(campaign.present === true && campaign.runsSeeded).toBe(1)
-    expect(campaign.present === true && campaign.runsExcluded).toBe(1)
-    expect(campaign.present === true && campaign.modelCalls).toBe(7)
-    const block = result.census.products.default!
-    expect(block.runsExcluded.flake).toBe(1)
-    expect(block.runsExcludedByProducer['deterministic-classifier']).toBe(1)
-    expect(block.runsSeeded).toBe(1)
-    expect(block.repeatCounts['growth::alpha']).toBe(1)
-    expect(block.repeatCounts['growth::beta']).toBe(1)
-
-    // T-413-21: a widened manifest is a TypeError, never a silently dropped tally.
-    const widened = { ...(campaignManifest() as Record<string, unknown>), smuggled: true }
-    const widenedPath = join(dir, 'campaign-widened.json')
-    await writeFile(widenedPath, `${JSON.stringify(widened, null, 2)}\n`)
-    await expect(runCensusVerb(session, { campaign: widenedPath })).rejects.toThrow(
-      /^campaign manifest rejected:/,
-    )
-  })
-
-  it('--commit writes census.json + census.md once and reports unchanged on re-derivation (D-15)', async () => {
-    const { dir, session } = await seededCorpusFixture()
-
-    const first = await runCensusVerb(session, { commit: true })
-
-    expect(first.committed?.kind).toBe('committed')
-    expect(first.committed).toMatchObject({ json: 'written', markdown: 'written' })
-    const censusDir = join(
-      dir,
-      'agent-qa-eval',
-      'reports',
-      'census',
-      slugBranch(first.corpusDigest),
-    )
-    expect(existsSync(join(censusDir, 'census.json'))).toBe(true)
-    expect(existsSync(join(censusDir, 'census.md'))).toBe(true)
-    // census.json is eval core's ONE serializer over the DTO — nothing re-serialises it here.
-    expect(await readFile(join(censusDir, 'census.json'), 'utf-8')).toBe(
-      committedFileText(first.census),
-    )
-
-    const second = await runCensusVerb(session, { commit: true })
-    expect(second.committed).toMatchObject({ json: 'unchanged', markdown: 'unchanged' })
-    expect(second.corpusDigest).toBe(first.corpusDigest)
-  })
-
-  it('folds committed manifests, exclusions and schemaVersionsSeen, refusing a broken document by path (414 D-02/D-05/D-17)', async () => {
-    const { dir, session } = await seededCorpusFixture()
-    const committedRoot = resolve(dir, 'agent-qa-eval')
-
-    // Plant an analysis that makes run-alpha a flake; the re-seed's phase (A) commits its record.
-    await saveAnalysis(
-      dir,
-      'run-alpha',
-      `${JSON.stringify(
-        analysisArtifactFixture('run-alpha', { class: 'flake', producer: 'analyze-run' }),
-        null,
-        2,
-      )}\n`,
-    )
-    const reseeded = await runSeedVerb(session)
-    expect(reseeded.exclusionsWritten).toHaveLength(1)
-
-    const result = await runCensusVerb(session)
-
-    const manifest = guardPartitionManifest(
-      JSON.parse(await readFile(join(committedRoot, 'contracts', 'partition-default.json'), 'utf8')),
-    )
-    expect(result.census.partition.default).toEqual({
-      saltDigest: createHash('sha256').update(manifest.salt).digest('hex'),
-      heldOutFraction: TEST_FRACTIONS.heldOutFraction,
-      privateFraction: TEST_FRACTIONS.privateFraction,
-      partitionVersion: 1,
-    })
-    expect(result.census.partition.default?.saltDigest).toMatch(/^[0-9a-f]{64}$/)
-    // T-414-29: only the digest may leave the manifest file, in the DTO as in the markdown.
-    expect(JSON.stringify(result)).not.toContain(manifest.salt)
-
-    expect(result.census.products.default?.exclusions).toEqual({
-      total: 1,
-      byClass: { environment: 0, flake: 1, timeout: 0 },
-      byProducer: { 'analyze-run': 1, 'deterministic-classifier': 0 },
-    })
-    // Every seeded entry is v2, so the byte-version census names exactly that.
-    expect(result.census.schemaVersionsSeen).toEqual({ '2': 2 })
-    expect(result.census.products.default?.splits).toEqual(
-      countGateSet(readCommittedCorpus(committedRoot).snapshot.entries),
-    )
-
-    // T-414-41: a refused manifest or exclusion is NAMED, never silently missing from the counts.
-    await writeFile(join(committedRoot, 'contracts', 'partition-broken.json'), '{ not json')
-    await writeFile(join(committedRoot, 'exclusions', 'default', 'broken.json'), '{ not json')
-
-    const refused = await runCensusVerb(session)
-    for (const suffix of [
-      join('contracts', 'partition-broken.json'),
-      join('exclusions', 'default', 'broken.json'),
-    ]) {
-      expect(
-        refused.notices.some(
-          notice => notice.startsWith('committed read refused ') && notice.includes(suffix),
-        ),
-      ).toBe(true)
-    }
-    // The refusal changed no count: the partition echo and the exclusion tally are untouched.
-    expect(refused.census.partition).toEqual(result.census.partition)
-    expect(refused.census.products.default?.exclusions.total).toBe(1)
-  })
-})
 
 // ---- 413-06 Task 3: report --commit --baseline — the refusing per-profile pointer (D-19/D-20) --
 
@@ -3581,7 +2013,7 @@ describe('runReportVerb --commit --baseline — designation through the refusing
   it('writes the per-profile pointer after a committed abstention report (D-19)', async () => {
     const { dir, session } = await scoredRecordsFixture(BASELINE_PLANNER_MODEL_ID)
     saveSeedRun(dir, 'run-seed')
-    await runSeedVerb(session, { run: 'run-seed' }, TEST_FRACTIONS)
+    seedCommittedRoot(session, 'run-seed')
     const corpus = readCommittedCorpus(join(dir, 'agent-qa-eval'))
     expect(corpus.snapshot.entries.length).toBeGreaterThan(0)
 

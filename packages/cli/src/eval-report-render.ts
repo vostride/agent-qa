@@ -6,33 +6,7 @@
 // per-decision diff renderer stays JSON-DTO territory (369 D-16).
 
 import type { EvalBatchReport } from '@vostride/agent-qa-eval'
-import type { CensusVerbResult, FloorVerbResult, ReportVerbResult } from './eval-session-composition.js'
-
-/** Console-only floor disclosure, preserving denominators and undefined measurements. */
-export function renderFloorSummary(result: FloorVerbResult): string[] {
-  const lines = [
-    `eval floor: repeats=${result.repeats} seeds=${result.seeds.join(',')} bootstrapSeed=${result.bootstrapSeed}`
-      + (result.recordedDefaults ? ' (recorded defaults)' : ''),
-    `profile: ${result.profileKey}`,
-    `corpus: ${result.corpusDigest}`,
-  ]
-  for (const [axis, floor] of Object.entries(result.artefact.axes)) {
-    lines.push(`${axis}: floor=${floor.aggregateFloor ?? 'undefined'} n=${floor.n} `
-      + `sameSeed=${floor.sameSeedSpread ?? 'undefined'} twoSeed=${floor.twoSeedSpread ?? 'undefined'} `
-      + `wilson=${floor.wilsonHalfWidth ?? 'undefined'}`)
-  }
-  for (const product of Object.keys(result.artefact.products).sort()) {
-    const { minimumGateSet: minimum, census } = result.artefact.products[product]!
-    lines.push(`${product}: minimumGateSet=${minimum.value ?? `undefined (${minimum.derivation})`} `
-      + `natural=${census.natural} heldOut=${census.heldOutShared + census.heldOutPrivate}`)
-  }
-  const committed = result.committed
-  if (committed !== undefined) {
-    lines.push(`committed: ${committed.kind}` + ('path' in committed ? ` (${committed.path})` : ''))
-  }
-  for (const refusal of result.refusals) lines.push(`read refused: ${refusal.path}: ${refusal.reason}`)
-  return [...lines, ...result.notices]
-}
+import type { ReportVerbResult } from './eval-session-composition.js'
 
 /** Console-only evidence disclosure; committed report markdown below remains byte-stable. */
 export function renderReportEvidenceLines(result: ReportVerbResult): string[] {
@@ -47,20 +21,6 @@ export function renderReportEvidenceLines(result: ReportVerbResult): string[] {
   return lines
 }
 
-/** Values are copied from guarded artefacts, including their measured absence explanations. */
-export function renderCensusFloorLines(result: CensusVerbResult): string[] {
-  return (result.noiseFloor ?? []).map(floor => {
-    const minimum = floor.minimumGateSet === undefined
-      ? `undefined (${floor.minimumGateSetDerivation})` : String(floor.minimumGateSet)
-    const classifier = floor.classifierRepeatability
-    const repeatability = classifier === undefined ? 'undefined'
-      : `n:${classifier.n} k:${classifier.k} classFlipRate=${classifier.classFlipRate ?? 'undefined'} `
-        + `admitExcludeFlipRate=${classifier.admitExcludeFlipRate ?? 'undefined'}`
-    return `floor ${floor.profileKey}: minimumGateSet=${minimum} classifierRepeatability=${repeatability}`
-  })
-}
-
-/** Sorted-key counter group as markdown bullets — honest '- none' when empty (D-04). */
 function counterLines(title: string, counts: Readonly<Record<string, number>>): string[] {
   const lines = [`### ${title}`, '']
   const keys = Object.keys(counts).sort()
