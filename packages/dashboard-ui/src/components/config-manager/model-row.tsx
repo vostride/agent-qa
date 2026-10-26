@@ -689,8 +689,8 @@ function ModelPanel({
     }
   }
 
-  // Computed from the freshest config and recomputed once on field_changed (D-22). Once the delete
-  // settles, Retry computes nothing: a refused delete is not sent again (UI-SPEC E2).
+  // Until the delete settles, a retried write sends the same unset again. Once it settles, Retry
+  // sends nothing, so a refused delete is not repeated.
   async function deleteModel() {
     let settled = false
     const compute = (): ConfigChange[] =>
