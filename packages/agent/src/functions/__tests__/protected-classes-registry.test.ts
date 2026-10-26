@@ -5,10 +5,8 @@
 // could cover. 432-17 deleted `proposals.accept` and 432-18 deletes `grants.revoke`, the grant
 // ledger and the set itself, so claims 1-3 below (each member names exactly one registered op, and
 // its bare spelling none) lost their subject. What is kept: no op is protected because nothing
-// mints a grant, the knowledge changes classify at the local mutating floor, and claim 4 — no op
-// classifies `restricted` — is unchanged.
+// mints a grant, and the three knowledge change ops are registered with no propose class beside them.
 
-import { classifyRisk } from '@vostride/agent-qa-safety'
 import * as schema from '@vostride/agent-qa-schema'
 import {
   MASKED_RESOLVED_CONFIG_SCHEMA_VERSION,
@@ -92,42 +90,13 @@ describe('the protected action classes name real registered ops', () => {
     }
   })
 
-  // 2026-09-30, 432-12 (D-01/D-05): the three knowledge changes apply in the call. Their classes are
-  // not protected, and they sit at the recognized local mutating floor — the tier that allows in
-  // every execution context — so no gate asks before a change lands. The retired propose classes
-  // name no registered op at all.
-  it('C432-KNOWLEDGE-CHANGE-OPS: the three change classes are unprotected, local-tier and ask nobody', () => {
+  // The three knowledge changes apply in the call; the retired propose classes name no registered op.
+  it('registers the three knowledge change ops and no propose class beside them', () => {
     const listed = declarations()
     for (const id of ['knowledge.accept', 'knowledge.reject', 'knowledge.forget']) {
       const declaration = listed.find((row) => row.id === id)
       expect(declaration, id).toBeDefined()
-      expect(classifyRisk(declaration!.risk).riskTier, id).toBe('mutating-local')
       expect(listed.filter((row) => row.risk.name === `fn:${id}.propose`), `${id}.propose`).toEqual([])
     }
-  })
-
-  it('no registered op classifies as `restricted` today — a FORWARD RED, not a rule', () => {
-    // NOT a property anybody should preserve. It is a measurement of the catalogue as it stands,
-    // pinned so that the day it stops being true, somebody is told.
-    //
-    // Two things follow from it right now. First, `restricted` is unreachable through
-    // `invokeFunction`, which is why the deny-finality differential (plan 05, PROP-05) is driven
-    // against the shipped gate with fixture descriptors in
-    // `agent-local/src/__tests__/sovereignty-differentials.test.ts` rather than through a
-    // registered op — stated here so the choice is visible from the registry side too. Second, the
-    // only tier that BLOCKS is one no capability can currently reach, so nothing in the catalogue
-    // is un-runnable by classification alone.
-    //
-    // WHEN THIS GOES RED: an op has arrived that can never execute in any context, whatever the
-    // ledger says. Add the invokeFunction-level leg of the deny-finality differential over that
-    // op — it is now reachable — and re-state this case as the list of ops that are meant to be.
-    const restricted = declarations()
-      .map((declaration) => ({
-        id: declaration.id,
-        ...classifyRisk(declaration.risk),
-      }))
-      .filter((row) => row.riskTier === 'restricted')
-
-    expect(restricted).toEqual([])
   })
 })

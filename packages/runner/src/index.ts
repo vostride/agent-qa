@@ -375,7 +375,6 @@ export {
   defaultRegistry,
   buildTools,
   toolCallToActionPlan,
-  projectRiskAction,
 } from './tools/index.js'
 export type { ToolDefinition, ToolCategory } from './tools/index.js'
 export { EXPOSURE } from './tools/registry.js'

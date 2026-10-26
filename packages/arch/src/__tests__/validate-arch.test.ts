@@ -896,8 +896,8 @@ describe('arch lint run pins after the gate (432-19, D-03/D-15)', () => {
     for (const retired of RETIRED_GATE_VALUES) {
       expect(barrelValues, retired).not.toContain(retired)
     }
-    // Non-vacuity: the census reads the barrel's real values, which still include the classifier.
-    expect(barrelValues).toContain('classifyRisk')
+    // Non-vacuity: the census reads the barrel's real values.
+    expect(barrelValues).toContain('createMaskingMiddleware')
   })
 
   // RE-TITLED 2026-10-03 (quick-261003-tsr, IN-38): was '…the census fires on every form a returning
@@ -917,14 +917,14 @@ describe('arch lint run pins after the gate (432-19, D-03/D-15)', () => {
       .toHaveLength(1)
     expect(gateAcquisitions('import { createPolicyGateToolCallHook } from "../policy/gate-hook"', 'packages/safety/src/hooks/x.ts'))
       .toHaveLength(1)
-    expect(gateAcquisitions(['import {', '  classifyRisk,', '  evaluate,', '} from "@vostride/agent-qa-safety"'].join('\n'), 'packages/mcp/src/x.ts'))
+    expect(gateAcquisitions(['import {', '  createMaskingMiddleware,', '  evaluate,', '} from "@vostride/agent-qa-safety"'].join('\n'), 'packages/mcp/src/x.ts'))
       .toHaveLength(1)
     // And it stays quiet on what is not an acquisition: a type, a comment, a call token, an
     // unrelated value from the same barrel.
     expect(gateAcquisitions('import type { AuditSink } from "@vostride/agent-qa-safety"', 'packages/cli/src/x.ts')).toEqual([])
     expect(gateAcquisitions('// import { evaluate } from "@vostride/agent-qa-safety"', 'packages/cli/src/x.ts')).toEqual([])
     expect(gateAcquisitions('const t = await page.evaluate(() => document.title)', 'packages/web/src/x.ts')).toEqual([])
-    expect(gateAcquisitions('import { classifyRisk } from "@vostride/agent-qa-safety"', 'packages/eval/src/x.ts')).toEqual([])
+    expect(gateAcquisitions('import { createMaskingMiddleware } from "@vostride/agent-qa-safety"', 'packages/eval/src/x.ts')).toEqual([])
   })
 
   it('C432-INVOKE-DIRECT: the former surface, run-invocation and hook call-sites acquire nothing', () => {
@@ -972,7 +972,7 @@ describe('arch lint run pins after the gate (432-19, D-03/D-15)', () => {
     for (const source of [
       '// import { startRun } from "@vostride/agent-qa-runner"',
       'import type { RunConfig } from "@vostride/agent-qa-runner"',
-      'import { projectRiskAction } from "@vostride/agent-qa-runner"',
+      'import { renderObservationLine } from "@vostride/agent-qa-runner"',
       'const r = await page.evaluate(() => 1)',
     ]) {
       expect(startRunScan({ file: fourth, source }), source).toEqual([])

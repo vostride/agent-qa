@@ -2,13 +2,11 @@
 
 ## Scope
 
-This package is the browser-safe safety kernel. It owns four things:
+This package is the browser-safe safety kernel. It owns three things:
 
 - the provider-request prompt walker and the declared-secret masking middleware
   factory: `mapPromptLeaves`, `createMaskingMiddleware` and the
   `ProviderRequestParams` type;
-- the deterministic static risk-tier classifier and its destructive name
-  lexicon: `classifyRisk` and `TIER_ORDER`;
 - the neutral execution-context resolver seam: `getActiveExecutionContext`,
   `resolveExecutionContext`, `setActiveExecutionContextResolver`, and the
   `ExecutionContextResolver` and `ExecutionContextSignals` types;
@@ -21,7 +19,6 @@ This package is the browser-safe safety kernel. It owns four things:
 - `src/index.ts`
 - `src/egress/masking-middleware.ts`
 - `src/egress/map-prompt-leaves.ts`
-- `src/policy/risk-classifier.ts`
 - `src/policy/execution-context.ts`
 - `src/serving/data-delimiters.ts`
 

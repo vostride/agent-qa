@@ -483,7 +483,7 @@ const RETURN_LEGS: readonly ReturnLeg[] = [
     needles: [['remed', ''], ['Remed', '']],
   },
   {
-    leg: 'A75', subject: 'the hard destructive command patterns', regions: ['safety/src/policy/lexicon.ts', 'safety/src/index.ts'],
+    leg: 'A75', subject: 'the hard destructive command patterns', regions: [SAFETY],
     needles: [['HARD_DESTRUCTIVE', '_PATTERNS'], ['COMMAND_', 'PATTERNS']],
   },
   {

@@ -485,7 +485,7 @@ const RETURN_LEGS: readonly ReturnLeg[] = [
 
 const SAFETY_SURFACE: ReadonlyArray<readonly [string, readonly string[]]> = [
   ['safety/src/index.ts', [
-    'APP_OBSERVED_DATA_CLOSE', 'APP_OBSERVED_DATA_OPEN', 'TIER_ORDER', 'classifyRisk', 'createMaskingMiddleware',
+    'APP_OBSERVED_DATA_CLOSE', 'APP_OBSERVED_DATA_OPEN', 'createMaskingMiddleware',
     'getActiveExecutionContext', 'mapPromptLeaves', 'resolveExecutionContext', 'setActiveExecutionContextResolver',
     'wrapAppObservedData',
   ]],
@@ -597,8 +597,8 @@ describe('C441-RETURN census instruments', () => {
       }
     })
     const valuesOf = (source: string): string[] => parseModuleStatements(source).flatMap((statement) => readClause(statement.clause).valueNames)
-    expect(valuesOf(`export { classifyRisk } from './policy/risk-classifier'\nexport { ${joined(['createMaskin', 'gContext'])} } from './masking/context'`))
-      .toEqual(['classifyRisk', joined(['createMaskin', 'gContext'])])
+    expect(valuesOf(`export { createMaskingMiddleware } from './egress/masking-middleware'\nexport { ${joined(['createMaskin', 'gContext'])} } from './masking/context'`))
+      .toEqual(['createMaskingMiddleware', joined(['createMaskin', 'gContext'])])
     expect(valuesOf("export type { ProviderRequestParams } from './egress/map-prompt-leaves'")).toEqual([])
 
     const contextLeg = RETURN_LEGS[1]!

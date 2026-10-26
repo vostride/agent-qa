@@ -40,7 +40,6 @@ import {
   resolveExecutionContext,
   setActiveExecutionContextResolver,
 } from '@vostride/agent-qa-safety'
-import type { RiskActionDescriptor } from '@vostride/agent-qa-schema'
 import { MASKED_RESOLVED_CONFIG_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 import { Command } from 'commander'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -744,13 +743,6 @@ describe('runDaemonHost — standing leaseholder tracer', () => {
  * clause is now true by absence; the posture pin itself (the execution context) is retained.
  */
 describe('runDaemonHost — D-09 execution-posture pin (386-04 #2)', () => {
-  /** An ask-tier action: `recognized` floors it at mutating-local, the declaration raises it. */
-  const ASK_TIER_ACTION: RiskActionDescriptor = {
-    name: 'knowledge_publish_bundle',
-    recognized: true,
-    declaredTier: 'mutating-shared',
-  }
-
   /**
    * Run `body` with an ambient resolver that answers `local-interactive`.
    *
@@ -824,8 +816,6 @@ describe('runDaemonHost — D-09 execution-posture pin (386-04 #2)', () => {
       )
 
       expect(getActiveExecutionContext()).toBe('local-headless')
-      // The ask-tier action still classifies at its declared tier; nothing reads the tier to ask.
-      expect(safety.classifyRisk(ASK_TIER_ACTION).riskTier).toBe('mutating-shared')
 
       harness.signal('SIGTERM')
       await expect(running).resolves.toBe(0)

@@ -114,11 +114,9 @@ import {
   ASK_CAPABLE_OP_IDS,
   CONFORMANCE_EXECUTION_CONTEXT,
   coveringCallerFor,
-  deriveAskCapableOpIds,
   grantlessSurfaceCallers,
   surfaceInertCallers,
   surfaceShapedCallers,
-  type RiskClassifiable,
 } from './policy-fixtures.js'
 import {
   buildGoldenRows,
@@ -191,9 +189,6 @@ const SYNTHETIC_UNCARRIED_OP_ID = 'control.uncarried.397.03'
 const SYNTHETIC_STRAY_ROW_OP_ID = 'control.stray.row.397.03'
 const SYNTHETIC_ABSENT_OP_ID = 'control.absent.397.03'
 const SYNTHETIC_UNCLASSIFIABLE_REASON = 'control 397-03: prose in no declared class'
-const SYNTHETIC_ASKING_OP_ID = 'fn:control.asking.397.03'
-const SYNTHETIC_NON_ASKING_OP_ID = 'fn:control.reading.397.03'
-const SYNTHETIC_LOCAL_OP_ID = 'fn:control.local.397.03'
 
 /**
  * Plan 04's own synthetic fixtures, named for the plan that plants them.
@@ -1269,55 +1264,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
     })
   })
 
-  // ---- D-11: the ask set is PRODUCED by the shipped classifier, then pinned -------------------
-
-  // RE-SPELLED 2026-10-01 (432-19, D-15) from 'pins an ask-capable set equal to a fresh run of the
-  // shipped gate over the census'. The gate is deleted, so the derivation runs the shipped
-  // CLASSIFIER instead; the pin and its by-op-id red are unchanged.
-  it('pins a formerly-asking set equal to a fresh run of the shipped classifier over the census', () => {
-    // T-397-07. The pin exists so a reader can see which capabilities the deleted gate used to stop
-    // on; this cell exists so the pin cannot quietly stop being true. A lexicon edit, a declared-tier
-    // change or a new op arriving at `mutating-shared` reds HERE, by op id, rather than silently
-    // re-scoping the `direct` points 397-04's verdict legs are driven from.
-    const derived = deriveAskCapableOpIds(registryDeclarations())
-    expect(
-      derived,
-      'the pinned ask-capable set no longer equals what the shipped gate produces over the census',
-    ).toEqual([...ASK_CAPABLE_OP_IDS].sort())
-    expect(derived.length, 'no capability in this product can ask anyone anything').toBeGreaterThan(
-      0,
-    )
-    expect(
-      derived.length,
-      'every capability asks, which would make the ask point say nothing about any of them',
-    ).toBeLessThan(registryOpIds().length)
-
-    // 2026-10-01 (432-19, D-15): the context cell is retired with `requiresFailClosed`. The
-    // derivation takes no context because nothing fails closed in any context any more.
-    expect(deriveAskCapableOpIds.length, 'the derivation takes the census and nothing else').toBe(1)
-  })
-
-  it('control: the ask derivation tells an asking risk class from a non-asking one', () => {
-    // The derivation reports an ABSENCE for 36 of 41 ops, and an absence is what a derivation that
-    // cannot detect anything also reports. Synthetic descriptors drive both branches: a tier that
-    // reaches the confirm port and two that do not, under the same injected context.
-    const probes = [
-      {
-        id: SYNTHETIC_ASKING_OP_ID,
-        risk: { name: SYNTHETIC_ASKING_OP_ID, recognized: true, declaredTier: 'mutating-shared' },
-      },
-      {
-        id: SYNTHETIC_NON_ASKING_OP_ID,
-        risk: { name: SYNTHETIC_NON_ASKING_OP_ID, recognized: true, readOnly: true },
-      },
-      {
-        id: SYNTHETIC_LOCAL_OP_ID,
-        risk: { name: SYNTHETIC_LOCAL_OP_ID, recognized: true, declaredTier: 'mutating-local' },
-      },
-    ] as const satisfies readonly RiskClassifiable[]
-
-    expect(deriveAskCapableOpIds(probes)).toEqual([SYNTHETIC_ASKING_OP_ID])
-  })
+  // ---- The two ops that once asked a person first dispatch directly on every surface -------
 
   it('carries an ask policy point on exactly the ops that can ask, in both directions', () => {
     const rowsWithAsk = SCENARIO_TABLE.filter((row) => row.policyPoints.ask !== undefined)
@@ -1325,14 +1272,14 @@ describe('the parity suite ranges the registry census over every rostered surfac
       .sort()
     expect(
       rowsWithAsk,
-      'the rows declaring an ask policy point must be exactly the derived ask-capable set — a row '
+      'the rows declaring an ask policy point must be exactly the formerly-asking set — a row '
         + 'short is a verdict nobody asserts, a row over is a verdict that cannot happen',
     ).toEqual([...ASK_CAPABLE_OP_IDS].sort())
     // …and the other direction is a different statement: every ask-capable op has a ROW at all.
     for (const opId of ASK_CAPABLE_OP_IDS) {
       expect(
         scenarioRowFor(opId)?.policyPoints.ask,
-        `${opId}: the shipped classifier can ask for this capability and no scenario row says so`,
+        `${opId}: this op once asked a person first and no scenario row says it dispatches directly`,
       ).toBe('direct')
     }
   })
@@ -1355,7 +1302,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
         .toContain(forbidden)
     }
     // …and the sweep is over the real file rather than an empty string.
-    expect(code, 'the policy fixtures source read back empty').toContain('deriveAskCapableOpIds')
+    expect(code, 'the policy fixtures source read back empty').toContain('ASK_CAPABLE_OP_IDS')
     // The covering and refusing callers are DERIVED: no scope literal appears in the file at all.
     for (const scope of RETIRED_SCOPE_NAMES) {
       expect(code, `policy-fixtures.ts spells the ${scope} scope instead of reading it off the `

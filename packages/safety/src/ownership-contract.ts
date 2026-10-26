@@ -7,7 +7,6 @@ export const AGENT_QA_SAFETY_PACKAGE_CLASSES = ['providerNeutral', 'storageNeutr
 export const AGENT_QA_SAFETY_ALLOWED_RESPONSIBILITIES = [
   'provider-request prompt walker and declared-secret masking middleware factory',
   'neutral execution-context resolver seam',
-  'deterministic static risk-tier classifier and destructive name lexicon',
   'app-observed data delimiters',
 ] as const
 export const AGENT_QA_SAFETY_FORBIDDEN_RESPONSIBILITIES = [

@@ -1,8 +1,8 @@
 // The policy fixtures the verdict legs are driven with (Phase 397 plan 03, D-11).
 //
 // WHAT THIS FILE OWNS. Three things, and none of them is an expectation: the CALLERS each policy
-// point is exercised under, the execution context those points are decided in, and the set of ops
-// whose risk class can reach an `ask` at all. 397-04 owns the verdict comparisons themselves; the
+// point is exercised under, the execution context those points are decided in, and the ops that
+// once asked a person first. 397-04 owns the verdict comparisons themselves; the
 // scenario table owns which points each row declares. Splitting it that way is what keeps the
 // fixtures from quietly encoding the answer they are supposed to be measuring.
 //
@@ -18,21 +18,12 @@
 // `getActiveExecutionContext`, reads `process.env`, or consults a TTY; the context is a constant this
 // file exports and every consumer passes explicitly.
 //
-// THE FORMERLY-ASKING SET IS PRODUCED BY THE SHIPPED CLASSIFIER, NEVER HAND-PICKED (D-11).
-//
-// SINCE 432-13 (D-14/D-15) the function door asks nobody and dispatches these directly; the scenario
-// rows carry them as the `direct` policy point. 2026-10-01 (432-19, D-15): the gate (`evaluate`), its
-// ask ladder and its confirm port are deleted, so the set can no longer be OBSERVED by watching a
-// confirm port get consulted. It is derived from what is left: `classifyRisk`'s tier, and the two
-// tiers the deleted ladder used to ask about (`mutating-shared`, `destructive`). `restricted` was
-// never an ask (it was blocked) and stays out. The pinned constant is still the recorded output, and
-// `parity.test.ts` still asserts the two are equal, so classifier drift reds by op id.
+// THE FORMERLY-ASKING SET is a literal list: the two ops that once asked a person first. Every
+// surface now dispatches them directly, and the scenario rows carry them as the `direct` point.
 
 import type { FunctionDeclaration } from '@vostride/agent-qa-agent'
 import { CHAT_RESOLVER_CALLER } from '@vostride/agent-qa-agent-local'
-import { classifyRisk } from '@vostride/agent-qa-safety'
 import type { ExecutionContext, FunctionCaller } from '@vostride/agent-qa-schema'
-import type { RiskActionDescriptor } from '@vostride/agent-qa-schema'
 
 import { MCP_FUNCTION_CALLER } from '../../commands/mcp.js'
 
@@ -135,51 +126,8 @@ export function grantlessSurfaceCallers(): SurfaceShapedCallers {
   }
 }
 
-/** The minimum an op needs to be classified: its id and the risk descriptor it declares. */
-export interface RiskClassifiable {
-  readonly id: string
-  readonly risk: RiskActionDescriptor
-}
-
-/** The two tiers the deleted ask ladder resolved through a confirm (`baseVerdict` → `ask`). */
-const FORMERLY_ASKING_TIERS: ReadonlySet<string> = new Set(['mutating-shared', 'destructive'])
-
-/**
- * The ops whose risk class the deleted gate would have ASKED about, PRODUCED by the shipped
- * classifier.
- *
- * Until 432-19 this OBSERVED the gate: it ran `evaluate` with a declining confirm and recorded which
- * ops reached the port. The gate and its port are deleted (D-15), so there is nothing to observe; the
- * set is the classifier's own tier for each declaration's descriptor, filtered to the two tiers the
- * ladder asked on. Pure of ambient state, and drivable with synthetic descriptors, so
- * `parity.test.ts` can prove the derivation still tells an asking class from a non-asking one.
- */
-export function deriveAskCapableOpIds(ops: readonly RiskClassifiable[]): readonly string[] {
-  return ops
-    .filter((op) => FORMERLY_ASKING_TIERS.has(classifyRisk(op.risk).riskTier))
-    .map((op) => op.id)
-    .sort()
-}
-
-/**
- * The derived ask set, PINNED (2026-08-16, measured over the 41-op census).
- *
- * A pin rather than a bare derivation because a set computed fresh on every run and compared to
- * nothing is a set nobody has agreed to: the scenario table's ask points would silently follow the
- * classifier wherever it went. `parity.test.ts` asserts this constant set-equals a fresh derivation,
- * so a lexicon change or a declared-tier edit that moves a capability into or out of "asks a person
- * first" is a named RED on the PR that makes it — which is the whole reason the pin exists.
- *
- * Worth reading once: `grants.revoke` was here (until 432-18 deleted it) at `destructive` rather
- * than at the `mutating-shared` its spec declared, because the soft-destructive lexicon matches
- * `revoke` in its action name and the classifier takes the HIGHEST proposal. That is the classifier
- * working, and it is exactly the kind of fact a hand-picked list gets wrong.
- */
+// The two ops that once asked a person first; every surface now dispatches them directly.
 export const ASK_CAPABLE_OP_IDS: readonly string[] = Object.freeze([
   'authoring.draft.write',
-  // 2026-10-01 (432-17): `config.proposal.apply`, `knowledge.proposal.apply` and `proposals.accept`
-  // left the registry with the inbox, and so left this set. 2026-10-01 (432-18): `grants.revoke`
-  // left with the grant ledger.
-  // 2026-09-08, 419 D-13/D-20: measured by the same shipped ask derivation.
   'runs.mark',
 ])
