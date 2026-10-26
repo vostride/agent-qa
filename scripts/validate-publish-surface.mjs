@@ -176,10 +176,8 @@ function validatePublicPackage(record, allVersions, errors, options = { checkFil
     assert(record.pkg.exports?.['.']?.require === './dist/index.cjs', `${name} must export dist CJS`, errors)
   }
 
-  // 414 D-18: eval-local joined knowledge-local on a `./reader` subpath — the proposer's
-  // read-only door, walled off from the gate-side main entry by the arch lint. A per-package
-  // `if` is how a second package quietly ships an unguarded subpath, so the condition is a LIST.
-  const READER_SUBPATH_PACKAGES = ['@vostride/agent-qa-knowledge-local', '@vostride/agent-qa-eval-local']
+  // The packages that publish a `./reader` subpath beside their main entry.
+  const READER_SUBPATH_PACKAGES = ['@vostride/agent-qa-knowledge-local']
   if (READER_SUBPATH_PACKAGES.includes(record.pkg.name)) {
     assert(record.pkg.exports?.['./reader']?.types === './dist/reader.d.ts', `${name} reader must export dist types`, errors)
     assert(record.pkg.exports?.['./reader']?.import === './dist/reader.js', `${name} reader must export dist ESM`, errors)

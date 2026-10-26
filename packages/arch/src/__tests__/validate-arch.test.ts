@@ -35,11 +35,6 @@ import {
   READER_CARVEOUT_SCANNED_DIRS,
 } from '../lint/reader-carveout.js'
 import {
-  EVAL_LOCAL_MAIN_ENTRY_ALLOWLIST,
-  findEvalLocalAllowanceUnusedOffenders,
-  findEvalLocalMainEntryOffenders,
-} from '../lint/eval-local-reader-carveout.js'
-import {
   COMPOSITION_CARVEOUT_PACKAGE_DIR,
   findCompositionCarveoutOffenders,
   findCompositionCarveoutUnusedAllowances,
@@ -199,10 +194,6 @@ describe('arch lint (LINT-01..05)', () => {
     // "Exactly one importer" is a property of the workspace, not of any one package, so the
     // reader-scanned hits are accumulated and judged once after the loop.
     const readerScannedHits: SpecifierHit[] = []
-    // 414 D-20. The eval-local main-entry allowance is likewise a workspace property: "used by
-    // nobody" cannot be decided from one package's slice, so every contract's source hits are
-    // accumulated here and the unused-allowance direction is judged once after the loop.
-    const evalLocalHits: SpecifierHit[] = []
 
     for (const contract of contracts) {
       pinSources.push(...pinSourcesFor(contract.packageDir))
@@ -242,16 +233,9 @@ describe('arch lint (LINT-01..05)', () => {
         surfaceScans.push({ packageDir: contract.packageDir, hits: sourceHits })
       }
       offenders.push(...findKnowledgeLocalWallOffenders(contract, sourceHits))
-      // 414 D-20 / ROOT-10 SC5: over EVERY contract, not the reader carve-out's scanned-dirs
-      // slice — the packages this rule exists to hold (`agent`, `agent-local`,
-      // `knowledge-local`) are not in that list, and a rule that never sees them would pass
-      // forever while reading like proof.
-      offenders.push(...findEvalLocalMainEntryOffenders(contract, sourceHits))
-      evalLocalHits.push(...sourceHits)
     }
 
     offenders.push(...findKnowledgeWriterSingletonOffenders(readerScannedHits))
-    offenders.push(...findEvalLocalAllowanceUnusedOffenders(evalLocalHits))
     offenders.push(...findSurfaceFirewallOffenders(surfaceScans, SURFACE_FIREWALL_LEDGER))
     offenders.push(...findSurfaceClassGoldenSetOffenders(contracts))
     // 2026-10-01 (432-19, D-03/D-15): the evaluate() pin is deleted with the gate it policed. The
@@ -737,8 +721,6 @@ describe('arch lint composition carve-out (385-08 / D-13) registration and scope
     expect(aggregate).toContain('findCompositionCarveoutUnusedAllowances(contract, sourceHits)')
     expect(aggregate).toContain('findReaderCarveoutOffenders(sourceHits)')
     expect(aggregate).toContain('findKnowledgeWriterSingletonOffenders(readerScannedHits)')
-    expect(aggregate).toContain('findEvalLocalMainEntryOffenders(contract, sourceHits)')
-    expect(aggregate).toContain('findEvalLocalAllowanceUnusedOffenders(evalLocalHits)')
     expect(aggregate).toContain(
       'findResumePathModelFreeOffenders(resumePathModules(contract.packageDir, repoRoot))',
     )
@@ -768,26 +750,6 @@ describe('arch lint composition carve-out (385-08 / D-13) registration and scope
       expect(
         READER_CARVEOUT_SCANNED_DIRS.some(dir => entry.startsWith(`${dir}/`)),
       ).toBe(true)
-    }
-  })
-
-  // 414 D-20 / ROOT-10 SC5, and the same shape hazard one rule over. A prefix naming a directory
-  // that does not exist — or one no contract-bearing package owns, so the aggregate never walks
-  // it — matches nothing: the offender direction could never fire on the real tree, and the
-  // unused-allowance direction would fire on every run, which is the pressure that gets a rule
-  // deleted rather than fixed. Both halves are asserted, because either alone is satisfiable by a
-  // wrong value.
-  it('the eval-local main-entry allowance is one prefix, and it points inside a contract-bearing package that exists', () => {
-    expect([...EVAL_LOCAL_MAIN_ENTRY_ALLOWLIST]).toEqual(['packages/cli/'])
-
-    for (const entry of EVAL_LOCAL_MAIN_ENTRY_ALLOWLIST) {
-      expect(existsSync(join(repoRoot, entry))).toBe(true)
-      // Spelled through the shipped prefix rather than repeating 'packages/cli', so a future
-      // widening cannot leave this cell asserting about a package the rule no longer names.
-      const owner = ARCH_MANIFEST.packages.find(
-        contract => entry === `${contract.packageDir}/`,
-      )
-      expect(owner).toBeDefined()
     }
   })
 
@@ -1087,97 +1049,5 @@ describe('arch lint agent barrel export set (FUNC-01 / SC1) held-out fixtures', 
       'agent-barrel: missing type export CreateFunctionRegistryOptions',
       'agent-barrel: missing type export FunctionRegistry',
     ])
-  })
-})
-
-// 414 D-19 / D-20 / D-18, ROOT-10 SC5. The requirement says the proposer-side read port "has no
-// method that can return a private held-out entry — an arch lint cell REDs if one
-// is added", so the cell has to live HERE: the arch package's test run covers the whole of this
-// file, and a pin that only ran under the eval-local suite would satisfy the words but not the
-// requirement.
-//
-// It reads the barrel's RAW SOURCE rather than importing it, for two reasons. The arch package
-// must never import the thing it polices — that would make a firewall a dependent of what it
-// walls off — and raw source needs no `dist/`, so the cell is honest on a clean checkout and
-// during a broken build, which is exactly when a widening would slip through.
-//
-// This is one of THREE pins on the same surface. The other two live beside the port: the runtime
-// key-set cell in `packages/eval-local/src/__tests__/reader.test.ts` and the never-bar in
-// `packages/eval-local/src/__tests__/reader.test-d.ts`. This one is the only one in the arch
-// package, and the only one that sees a NEW export before anyone imports it.
-const EVAL_LOCAL_READER_BARREL = 'packages/eval-local/src/reader.ts'
-const PUBLISH_SURFACE_VALIDATOR = 'scripts/validate-publish-surface.mjs'
-
-/**
- * The sorted VALUE export names a barrel publishes.
- *
- * Values are the whole question: a value is power a proposer can reach, a type is not. So
- * `export type { … } from '…'` and `export type X =` / `export interface X` are excluded, and an
- * inline `type Foo` member inside a value clause is excluded with them. A bare `export { x }`
- * with no `from` counts exactly like a re-export — it widens the barrel by the same one name.
- *
- * A hand-rolled extractor rather than the TypeScript compiler for the same reason the file is
- * read raw: `packages/arch` may not depend on the packages it polices, and this rule must run
- * before anything is built.
- */
-function readerValueExports(source: string): string[] {
-  const names: string[] = []
-
-  for (const match of source.matchAll(/\bexport\s+(type\s+)?\{([^}]*)\}/g)) {
-    if (match[1] !== undefined) continue
-    for (const member of (match[2] ?? '').split(',')) {
-      const trimmed = member.trim()
-      if (trimmed === '' || /^type\s/.test(trimmed)) continue
-      const parts = trimmed.split(/\s+as\s+/)
-      names.push((parts[parts.length - 1] ?? trimmed).trim())
-    }
-  }
-
-  for (const match of source.matchAll(
-    /\bexport\s+(?!type\b|interface\b)(?:async\s+)?(?:function|const|class|let|var)\s+([A-Za-z_$][\w$]*)/g,
-  )) {
-    names.push(match[1] ?? '')
-  }
-
-  return names.sort()
-}
-
-describe('arch lint eval-local reader port (414 D-19/D-20) — source-anchored export-set pin', () => {
-  // The relocation hazard this file guards everywhere else: a path-keyed pin whose path has moved
-  // matches nothing, reports nothing, and still reads like proof. The barrel must EXIST.
-  it('the eval-local /reader subpath exports exactly one value, openCorpusReader (414 D-19/D-20)', () => {
-    expect(existsSync(join(repoRoot, EVAL_LOCAL_READER_BARREL))).toBe(true)
-
-    expect(readerValueExports(readRepoFile(EVAL_LOCAL_READER_BARREL))).toEqual(['openCorpusReader'])
-  })
-
-  // The pin above is only worth its line if the extractor can actually see an arrival. Both
-  // directions are fed literal source, so the extractor's failing direction is proven INSIDE
-  // the arch lint tests rather than asserted about elsewhere.
-  it('the export-set extractor sees a planted value export and ignores a type-only re-export', () => {
-    const barrel = readRepoFile(EVAL_LOCAL_READER_BARREL)
-
-    expect(
-      readerValueExports(`${barrel}\nexport function readPrivateEntries() { return [] }\n`),
-    ).toEqual(['openCorpusReader', 'readPrivateEntries'])
-
-    expect(readerValueExports(`${barrel}\nexport type { Foo } from './x.js'\n`)).toEqual([
-      'openCorpusReader',
-    ])
-  })
-
-  // D-18: the subpath is only a boundary if it is actually published. The publish-surface
-  // validator asserted the `./reader` triple for knowledge-local alone; a per-package `if` is how
-  // a second package quietly ships an unguarded subpath, so the condition is now a LIST and both
-  // members are named here.
-  it('the publish-surface validator asserts the ./reader triple for both subpath packages', () => {
-    const source = readRepoFile(PUBLISH_SURFACE_VALIDATOR)
-    const start = source.indexOf('READER_SUBPATH_PACKAGES')
-    expect(start).toBeGreaterThan(-1)
-
-    const declaration = source.slice(start, source.indexOf(']', start) + 1)
-    expect(declaration).toContain('@vostride/agent-qa-knowledge-local')
-    expect(declaration).toContain('@vostride/agent-qa-eval-local')
-    expect(source).toContain('READER_SUBPATH_PACKAGES.includes(record.pkg.name)')
   })
 })

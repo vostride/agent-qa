@@ -43,9 +43,6 @@ const ALLOWED_ESCAPES: Record<string, string> = {
   'packages/cli/src/__tests__/432-external-callers.test.ts':
     'D-12: the seven demo callers and the owner\'s miniwob checkout live outside agent-qa; their '
     + 'cells are not-run register entries in a standalone clone',
-  'packages/eval-local/src/__tests__/committed-brief-rendering.test.ts':
-    'D-12: the cassette sweep needs the super-repository\'s eval cassettes, part of the removed '
-    + 'model gate (V2-REL-02)',
 }
 
 const SKIPPED_DIRS = new Set(['node_modules', 'dist', '.turbo', 'coverage'])
@@ -203,7 +200,7 @@ describe('C434-NO-SUPER-REPO-READS — test code reads nothing outside the agent
   it('C434-NO-SUPER-REPO-READS: the scan universe is the workspace\'s test and test-helper code', () => {
     expect(UNIVERSE.length).toBeGreaterThanOrEqual(1_500)
     for (const file of [
-      'packages/eval-local/src/__tests__/judge-panel-contract.test.ts',
+      'packages/eval-local/src/__tests__/replay-composition.test.ts',
       'packages/cli/src/__tests__/432-external-callers.test.ts',
     ]) {
       expect(UNIVERSE, file).toContain(file)

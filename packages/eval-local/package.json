@@ -32,11 +32,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    },
-    "./reader": {
-      "types": "./dist/reader.d.ts",
-      "import": "./dist/reader.js",
-      "require": "./dist/reader.cjs"
     }
   },
   "files": [
@@ -56,7 +51,6 @@
     "@vostride/agent-qa-model": "workspace:*",
     "@vostride/agent-qa-runner": "workspace:*",
     "@vostride/agent-qa-runner-local": "workspace:*",
-    "@vostride/agent-qa-safety": "workspace:*",
     "@vostride/agent-qa-schema": "workspace:*",
     "ai": "6.0.174",
     "zod": "4.6.7"

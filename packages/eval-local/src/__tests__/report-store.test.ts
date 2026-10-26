@@ -9,8 +9,6 @@ import { slugBranch } from '@vostride/agent-qa-schema'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DEFAULT_EVAL_REPORTS_SUBDIR, FsReportStore, loadStagedReport } from '../report-store.js'
-import { runReleaseGate } from '../release-gate-composition.js'
-import { stubProfile } from './fixtures/floor-fixtures.js'
 
 vi.mock('node:fs', async importOriginal => ({
   ...await importOriginal<typeof import('node:fs')>(),
@@ -124,30 +122,6 @@ describe('FsReportStore (D-13/D-14)', () => {
     })
     return { batchReport, document }
   }
-
-  it('never loads old vectors after a replacement report succeeds and its sidecar write fails', async () => {
-    const store = new FsReportStore({ root })
-    const old = scoredPair(true)
-    const next = scoredPair(false)
-    const written = store.save(old.batchReport, old.document)
-    const write = fs.writeFileSync
-    vi.spyOn(fs, 'writeFileSync').mockImplementation((...args) => {
-      if (String(args[0]).endsWith('.decisions.json')) {
-        throw Object.assign(new Error('injected sidecar EIO'), { code: 'EIO', path: String(args[0]) })
-      }
-      return write(...args)
-    })
-    expect(() => store.save(next.batchReport, next.document)).toThrow('injected sidecar EIO')
-    expect(JSON.parse(await readFile(written.file, 'utf8')).headline.firstAttemptDecisionAccuracy)
-      .toEqual(next.batchReport.headline.firstAttemptDecisionAccuracy)
-    expect(loadStagedReport(root, next.batchReport.batchKey)).toMatchObject({ kind: 'refused' })
-    const gate = await runReleaseGate({
-      committedRoot: join(root, 'committed'), agentQaRoot: root,
-      profileKeyInputs: { plannerModelId: 'fixture-planner', matcherVersion: 1 },
-      mode: { kind: 'report', batchKey: next.batchReport.batchKey, profile: stubProfile() },
-    })
-    expect(gate.kind).toBe('refused')
-  })
 
   it('rejects sidecars from a different report generation even with the same run identity', async () => {
     const store = new FsReportStore({ root })

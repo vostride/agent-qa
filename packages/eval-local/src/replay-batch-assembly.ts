@@ -12,7 +12,6 @@ import type {
 } from '@vostride/agent-qa-eval'
 
 import { loadCassetteBundle } from './cassette-loader.js'
-import type { JudgeCalibrationRead } from './judge-calibration-source.js'
 import { sha256hex } from '@vostride/agent-qa-schema'
 import { loadStagedReport, type ReplayGeneration } from './report-store.js'
 import {
@@ -183,23 +182,6 @@ export function projectAssembledBatch(
     vectors: decisionCorrectnessVectors(entries, partitionsById),
     notices: batch.notices,
   }
-}
-
-/** Attach disclosure only after the caller has compared persisted score identities. */
-export function copyJudgeCalibrationToReport(report: EvalBatchReport, read?: JudgeCalibrationRead): void {
-  if (report.judgeIdentity === 'mixed' || report.judge?.panelSize === undefined) return
-  const artifact = read?.kind === 'loaded' ? read.artifact : undefined
-  const calibration: NonNullable<EvalBatchReport['judge']>['calibration'] = !artifact
-    ? { status: 'uncalibrated', n: 0, provenance: 'unavailable' }
-    : artifact.status === 'capability-gap' ? { status: 'capability-gap', reason: artifact.reason }
-    : artifact.status === 'uncalibrated' ? { status: 'uncalibrated', n: artifact.n }
-    : { status: 'calibrated', n: artifact.n, pooledAgreement: artifact.pooledAgreement!,
-      wilson95: { ...artifact.wilson95! }, perMember: artifact.perMember.map(member => ({
-        judgeModelId: member.judgeModelId, n: member.n,
-        ...(member.agreement === undefined ? {} : { agreement: member.agreement }),
-        ...(member.wilson95 === undefined ? {} : { wilson95: { ...member.wilson95 } }),
-      })) }
-  report.judge = { ...report.judge, calibration }
 }
 
 /** Existing producer publication must bind the full profile to these exact saved inputs. */

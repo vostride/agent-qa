@@ -1,18 +1,17 @@
-import { cpSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { buildEvalReport, composeBaselineProfileKey, JUDGE_CONFIG } from '@vostride/agent-qa-eval'
+import { buildEvalReport, JUDGE_CONFIG } from '@vostride/agent-qa-eval'
 import { SecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
 import { asRef, slugBranch } from '@vostride/agent-qa-schema'
 import { loadScoreRecord } from '../replay-read.js'
-import { resolveBaselineCache } from '../baseline-cache-read.js'
 import { runCassetteReplay } from '../replay-composition.js'
 import type { RunCassetteReplayInput } from '../replay-composition.js'
 import { FsReplayRecordStore } from '../replay-record-store.js'
 import { FsScoreStore } from '../score-store.js'
 import type { ScoreRecord } from '../score-store.js'
-import { FsReportStore, loadStagedReport } from '../report-store.js'
+import { FsReportStore } from '../report-store.js'
 import { makeReplayHandoff, extractLeaf, capturingStub, familyStubProfile, noneAuth,
   judgeGenerateResult, allContentParts } from './fixtures/replay-fixtures.js'
 import type { StubGenerateResult } from './fixtures/replay-fixtures.js'
@@ -60,7 +59,7 @@ async function run(judge?: RunCassetteReplayInput['judge'], sensitive = false, o
 
 describe('panel replay at the sanctioned model boundary', () => {
   it.each([2, 3].flatMap(size => [false, true].flatMap(noConsensus => [false, true].map(error => ({ size, noConsensus, error })))))
-    ('round-trips unsorted $size-member replay through score/report/cache (noConsensus=$noConsensus error=$error)', async ({ size, noConsensus, error }) => {
+    ('round-trips unsorted $size-member replay through the persisted score record (noConsensus=$noConsensus error=$error)', async ({ size, noConsensus, error }) => {
       const declared = ids.slice(0, size).reverse()
       const order: string[] = []
       const result = await run({ members: declared.map((id, index) => ({ profile: familyStubProfile(id), auth: noneAuth,
@@ -84,18 +83,6 @@ describe('panel replay at the sanctioned model boundary', () => {
         expect(member.outcome.kind).toBe(error && member.judgeModelId === declared[0] ? 'error' : 'settled')
         expect(member.usage?.calls).toBe(2)
       }
-      const profileKey = composeBaselineProfileKey({ plannerModelId: plannerId, fingerprint: 'a'.repeat(64), matcherVersion: 1, ...result.record.judge })
-      const runRoot = join(result.root, 'eval/floor', slugBranch(profileKey), 'r0-seed29')
-      cpSync(join(result.root, 'eval/replays'), join(runRoot, 'replays'), { recursive: true })
-      const report = buildEvalReport([{ cassetteId: result.cassette.id, outcome: result.outcome, score }], result.record.judge)
-      report.runIdentity = { fingerprint: 'a'.repeat(64), corpusDigest: 'b'.repeat(64) }
-      new FsReportStore({ root: result.root, outputDir: join(runRoot, 'reports') }).save(report)
-      expect(loadStagedReport(result.root, report.batchKey, join(runRoot, 'reports'))).toMatchObject({ kind: 'loaded', report })
-      if (result.cassette.granularity !== 'leaf') throw new Error('leaf required')
-      const cached = resolveBaselineCache({ agentQaRoot: result.root, profileKey, fingerprint: 'a'.repeat(64), matcherVersion: 1,
-        plannerModelId: plannerId, judgeIdentity: result.record.judge, gateRootSeed: 11, gateRootSeedSource: 'floor',
-        cassettes: [{ id: result.cassette.id, promptInputHash: result.cassette.receipt.promptInputHash }] })
-      expect(cached.rows).toMatchObject([{ kind: 'cached', score: result.record }])
     })
   it.each([2, 3])('runs all %i members sequentially, masked and observed', async size => {
     const order: string[] = []
