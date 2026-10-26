@@ -40,9 +40,8 @@
 //
 // KEPT, DATED 2026-10-02 (432-42 census decision): the `policyPoints` column stays under its name.
 // It is test-only (no shipped byte spells it), every value in it is the direct claim (`allow`), and
-// it feeds retained cells outside this file (C432-ALL-OPS-AVAILABLE, `423-read-contracts.test.ts`).
-// Renaming it would rename those claims without changing one; C432-REGISTRY-GOLDEN pins that no
-// point refuses.
+// cells outside this file read it, `423-read-contracts.test.ts` among them. Renaming it would rename
+// those claims without changing one; the registry golden pins that no point refuses.
 
 import {
   AgentAskInputSchema,

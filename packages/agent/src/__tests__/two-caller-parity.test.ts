@@ -476,7 +476,7 @@ describe('the credential flows to the gate untouched (D-13)', () => {
 
   // Holding a credential and holding none reach the identical outcome, and the layer leaves the
   // credential as it found it.
-  it('C432-INVOKE-DIRECT: never reads or rewrites it — A and B are served identically', async () => {
+  it('never reads or rewrites it — A and B are served identically', async () => {
     await expect(invokeFunction(probeRegistry, 'synthetic.probe', {}, CALLER_A))
       .resolves.toEqual({ ok: true })
     await expect(invokeFunction(probeRegistry, 'synthetic.probe', {}, CALLER_B))
