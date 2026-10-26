@@ -15,58 +15,36 @@ import {
   slugBranch,
 } from '@vostride/agent-qa-runner-local'
 import {
-  assertBaselineComparator,
   buildEvalReport,
   canonicalJson,
   computeBatchKey,
-  computeCorpusDigest,
-  decisionCorrectnessVectors,
   extractRunCassettes,
   JUDGE_CONFIG,
   judgeIdentitySchema,
-  projectBaselinePointer,
-  projectDecisionVectorsDocument,
-  renderBaselineComparatorRefusal,
   resolveJudgeFamily,
   resolveProductPartition,
-  SEED_POLICIES,
 } from '@vostride/agent-qa-eval'
 import type {
-  BaselineComparatorRefusal,
   CassetteScore,
   DecisionScoreEntry,
   EvalBatchReport,
   JudgeIdentityBlock,
-  SeedPolicy,
   ScoredBatchEntry,
 } from '@vostride/agent-qa-eval'
 import {
-  COMMITTED_CASSETTES_DIR,
   DEFAULT_EVAL_CASSETTES_SUBDIR,
   DEFAULT_EVAL_REPLAYS_SUBDIR,
   FsCassetteStore,
   FsReplayRecordStore,
   FsReportStore,
-  readReportProfileProof,
   FsRunArtifactSource,
   FsScoreStore,
   assembleScoredBatch,
-  copyJudgeCalibrationToReport,
-  readJudgeCalibration,
   cassetteProductPartition,
-  commitEvalReport,
-  computeReplayProfileFingerprintFor,
-  listCommittedReports,
   loadCassetteBundles,
   loadReplayRecord,
   loadScoreRecord,
-  readActiveCommittedCorpus,
   sweepCassetteReplays,
-  writeBaselinePointer,
-} from '@vostride/agent-qa-eval-local'
-import type {
-  CommitEvalReportOutcome,
-  WriteBaselinePointerOutcome,
 } from '@vostride/agent-qa-eval-local'
 import { runSafetyScope } from '@vostride/agent-qa-safety-local'
 import type {
@@ -79,7 +57,6 @@ import type { MaskFn } from '@vostride/agent-qa-schema'
 import type { SecretStore } from '@vostride/agent-qa-runner'
 import type { AgentQaConfig } from '@vostride/agent-qa-core'
 import { loadConfigFile, resolveConfig } from './config.js'
-import { renderEvalReportMarkdown } from './eval-report-render.js'
 import { resolveRunExecutionContext } from '@vostride/agent-qa-agent-local'
 import type { RunExecutionContext } from '@vostride/agent-qa-agent-local'
 
@@ -87,15 +64,6 @@ import type { RunExecutionContext } from '@vostride/agent-qa-agent-local'
 // value imports above (372-05/06); this type re-export stays for the report verb plan (372-07)
 // that consumes record loads. Erased at build — no runtime coupling.
 export type { ReplayRecordLoad } from '@vostride/agent-qa-eval-local'
-
-export type { BaselineComparatorRefusal } from '@vostride/agent-qa-eval'
-
-// 413-06 D-20: the ONE refusal renderer, re-exported so `commands/eval.ts` can print a refused
-// baseline designation WITHOUT minting a second surface-firewall edge of its own — the command
-// layer receives it through this ledgered root exactly as it receives the verb pipelines.
-export { renderBaselineComparatorRefusal, SEED_POLICIES } from '@vostride/agent-qa-eval'
-export type { SeedPolicy } from '@vostride/agent-qa-eval'
-export type { WriteBaselinePointerOutcome } from '@vostride/agent-qa-eval-local'
 
 /** The user-facing eval params (config `eval:` block merged with per-invocation flags, D-03). */
 export interface EvalCliConfig {
@@ -344,39 +312,6 @@ function listRunSlugsWithHandoff(runsRoot: string): string[] {
 
 function bumpCounter(counters: Record<string, number>, key: string): void {
   counters[key] = (counters[key] ?? 0) + 1
-}
-
-// ---- the cassette source (413-06, D-08) -------------------------------------------------------
-
-/**
- * 413 D-08: which cassette population a batch replays or reports over.
- *
- * `staged` is `.agent-qa/eval/cassettes/` — whatever the last `eval extract` put on this machine.
- * `committed` is `<configDir>/agent-qa-eval/cassettes/` — the REVIEWED corpus: the legacy entries
- * plus every freshly seeded cassette, which is the only population a whole-corpus baseline may be
- * measured over (the legacy cassettes are never re-extracted, so a staged sweep silently omits
- * them and the number would cover a different corpus than Phase 415's floor will).
- *
- * The replay RECORDS root is unaffected by either value: replay output is runtime staging (D-07)
- * and never lands inside the write-once committed root.
- */
-export type EvalCorpusSource = 'staged' | 'committed'
-
-/** Resolve the sweep root for a cassette source — the ONE place the two roots are spelled. */
-function resolveCassettesRoot(
-  session: EvalSession,
-  source: EvalCorpusSource,
-): { cassettesRoot: string; notice?: string } {
-  if (source === 'committed') {
-    const cassettesRoot = join(
-      resolve(session.configDir, 'agent-qa-eval'),
-      COMMITTED_CASSETTES_DIR,
-    )
-    return { cassettesRoot, notice: `cassette source: committed root ${cassettesRoot}` }
-  }
-  return {
-    cassettesRoot: join(resolve(session.configDir, '.agent-qa'), DEFAULT_EVAL_CASSETTES_SUBDIR),
-  }
 }
 
 // ---- the replay verb ----------------------------------------------------------------------------
@@ -713,162 +648,57 @@ export async function resolveReplayPlanner(
 // Trust-prior resolution reads label calibration through this composition boundary.
 export { readLabelCalibration, readCalibrationGoldIdentity } from '@vostride/agent-qa-eval-local'
 
-// ---- the report verb (372-07, D-13/D-14) -------------------------------------------------------
+// ---- the report verb ----------------------------------------------------------------------------
 
-/** The report verb's one DTO — the console renders FROM this, never around it (D-04). */
+/** The report verb's one DTO; the console renders from it and `--json` prints it. */
 export interface ReportVerbResult {
-  /** sha256hex over the sorted assembled cassette ids — minted by buildEvalReport (D-13). */
+  /** sha256hex over the sorted assembled cassette ids, minted by buildEvalReport. */
   batchKey: string
-  /** Records assembled this invocation, including refusals; zero for committed-history reads. */
+  /** Records assembled this invocation, including refusals. */
   entries: number
-  /** The ONE whole-corpus EvalBatchReport — one buildEvalReport call, one headline (D-14). */
+  /** The one EvalBatchReport over the whole batch: one buildEvalReport call, one headline. */
   report: EvalBatchReport
-  /** The staged file, present only when this invocation assembled and saved a report. */
-  stagedFile?: string
-  /** Actual report read for --from-committed; no staged file or run receipt is fabricated. */
-  committedFile?: string
-  /** Decision vectors actually projected for this invocation's report, including an empty set. */
-  decisionVectorCount?: number
-  /** The typed commitEvalReport outcome when `--commit` ran — write conflicts are DATA (D-08). */
-  committed?: CommitEvalReportOutcome
+  /** The staged report file under `.agent-qa/eval/reports`. */
+  stagedFile: string
   /** Batch-level judge identity: consistent blocks pass through; mixed/absent surface honestly. */
   judgeIdentity: 'present' | 'absent' | 'mixed'
-  /** 413 D-08: which cassette population supplied the label join — 'staged' unless asked. */
-  source: EvalCorpusSource
-  /**
-   * 413 D-19/D-20: the typed baseline-designation outcome when `--baseline` ran. Written,
-   * unchanged, REFUSED (a same-family report is not a gate comparator) or a write-conflict —
-   * all four are DATA, and the verb's exit code is unaffected by any of them.
-   */
-  baseline?: WriteBaselinePointerOutcome
-  /** 413 D-19: the profile key the designation was composed under, present whenever it ran. */
-  profileKey?: string
   /** Stderr-destined notices: read refusals, missing bundles, judge identity honesty. */
   notices: string[]
 }
 
 /**
- * The report verb pipeline (D-13/D-14): assemble ONE whole-corpus batch from every persisted
- * replay record under `.agent-qa/eval/replays/` via the 372-02 read legs — entries joined as
- * { cassetteId, outcome, score?, label? } from replay.json / score.json / the staged cassette's
- * label leg. A persisted refusal outcome IS an entry (Pitfall 4 — never dropped). Judge identity
- * threads from the persisted ScoreRecord.judge blocks: consistent blocks pass to buildEvalReport,
- * mixed or absent surfaces honestly — never fabricated (T-372-20). Exactly ONE buildEvalReport
- * call aggregates (the CLI never re-sums scores); the staged report always lands via
- * FsReportStore, and `--commit` additionally routes through commitEvalReport into the
- * committed root (D-13/D-17).
+ * The report verb pipeline: assemble one batch from every persisted replay record under
+ * `.agent-qa/eval/replays`, joined to its score, judge identity and the staged cassette's label
+ * leg. A persisted refusal outcome is an entry, never dropped. Judge identity threads from the
+ * persisted score records: consistent blocks pass to buildEvalReport, mixed or absent identities
+ * surface honestly and are never fabricated. Exactly one buildEvalReport call aggregates, and the
+ * report is saved once through FsReportStore.
  */
 export async function runReportVerb(
   session: EvalSession,
   filters: { run?: string; cassette?: string; product?: string } = {},
-  opts: {
-    commit?: boolean
-    source?: EvalCorpusSource
-    baseline?: boolean
-    /** Re-designate this exact committed batch without reading replay records or staging. */
-    fromCommitted?: string
-    /** Required explicit policy for a reviewed --from-committed designation. */
-    seedPolicy?: SeedPolicy
-    /** No model call: overrides only name the fingerprint shared with a stub-measured floor. */
-    plannerOverrides?: ModelProviderOverrides
-  } = {},
 ): Promise<ReportVerbResult> {
-  // D-19: a pointer designates a COMMITTED report. Designating a staged-only report would name a
-  // batch nobody else can read, so the combination is refused before any work happens (D-08 typed
-  // error — the command layer maps it to exit 1).
-  if (opts.fromCommitted !== undefined) {
-    if (opts.baseline !== true) throw new TypeError('--from-committed requires --baseline')
-    if (opts.seedPolicy === undefined) {
-      throw new TypeError('--from-committed requires --seed-policy <none|declared>')
-    }
-    if (opts.commit === true) throw new TypeError('--from-committed cannot be combined with --commit')
-    if (!/^[0-9a-f]{64}$/.test(opts.fromCommitted)) {
-      throw new TypeError('--from-committed requires a batchKey of 64 lowercase hexadecimal characters')
-    }
-    if (!SEED_POLICIES.includes(opts.seedPolicy)) {
-      throw new TypeError('--seed-policy must be "none" or "declared"')
-    }
-
-    const committedRoot = resolve(session.configDir, 'agent-qa-eval')
-    const reportList = listCommittedReports(committedRoot)
-    const requestedFile = join(committedRoot, 'reports', opts.fromCommitted, 'report.json')
-    const entry = reportList.reports.find(candidate => candidate.batchKey === opts.fromCommitted)
-    if (entry === undefined) {
-      const refusal = reportList.refusals.find(candidate => candidate.path === requestedFile)
-      throw new EvalNamedInputError(
-        'batchKey', opts.fromCommitted, refusal?.path ?? join(committedRoot, 'reports'),
-        'designate', refusal?.reason,
-      )
-    }
-    // The list's key comes from the directory; the light report guard preserves its body.
-    // Require all three identities before projecting a pointer to the named history (T-415-42).
-    if (entry.path !== requestedFile || entry.report.batchKey !== opts.fromCommitted) {
-      throw new EvalNamedInputError(
-        'batchKey', opts.fromCommitted, entry.path, 'designate',
-        `report batchKey "${entry.report.batchKey}" does not match the requested directory`,
-      )
-    }
-    const notices = reportList.refusals.map(
-      refusal => `committed read refused ${refusal.path}: ${refusal.reason}`,
-    )
-    const designation = await designateReportBaseline(
-      session, entry.report, opts.seedPolicy, opts.plannerOverrides, notices,
-    )
-    return {
-      batchKey: entry.report.batchKey,
-      entries: 0,
-      report: entry.report,
-      committedFile: entry.path,
-      judgeIdentity: entry.report.judgeIdentity === 'mixed'
-        ? 'mixed' : entry.report.judge === undefined ? 'absent' : 'present',
-      source: 'committed',
-      ...designation,
-      notices,
-    }
-  }
-  if (opts.baseline === true && opts.commit !== true) {
-    throw new Error(
-      '--baseline requires --commit: the pointer designates a COMMITTED report (413 D-19)',
-    )
-  }
   const agentQaRoot = resolve(session.configDir, '.agent-qa')
   const replaysRoot = join(agentQaRoot, DEFAULT_EVAL_REPLAYS_SUBDIR)
-  const source: EvalCorpusSource = opts.source ?? 'staged'
-  const sourceRoot = resolveCassettesRoot(session, source)
-  const cassettesRoot = sourceRoot.cassettesRoot
+  const cassettesRoot = join(agentQaRoot, DEFAULT_EVAL_CASSETTES_SUBDIR)
   const notices: string[] = []
-  if (sourceRoot.notice !== undefined) notices.push(sourceRoot.notice)
 
-  // (1)+(2) Join every persisted replay record to its score, judge identity, and cassette label.
-  const labelCorpus = readActiveCommittedCorpus(resolve(session.configDir, 'agent-qa-eval'), agentQaRoot)
-  const committedCorpus = source === 'committed' ? labelCorpus : undefined
-  notices.push(...labelCorpus.refusals.map(refusal => `committed read refused ${refusal.path}: ${refusal.reason}`))
+  // (1)+(2) Join every persisted replay record to its score, judge identity and cassette label.
   const {
     entries: assembled,
     judgeBlocks,
     partitionsById,
     missingBundleCount,
     notices: assemblyNotices,
-  } = assembleScoredBatch({ replaysRoot, cassettesRoot, source,
-    labelRecords: labelCorpus.snapshot.labelsById,
-    excludedLabelIds: labelCorpus.snapshot.excludedLabelIds,
-    ...(committedCorpus === undefined ? {} : {
-      productByCassetteId: new Map(committedCorpus.snapshot.entries.map(entry => [entry.cassetteId, entry.product])),
-      eligibleCassetteIds: new Set(committedCorpus.snapshot.entries.map(entry => entry.cassetteId)),
-      corpusEntriesById: committedCorpus.corpusEntriesById,
-    }),
-  })
+  } = assembleScoredBatch({ replaysRoot, cassettesRoot, source: 'staged' })
   notices.push(...assemblyNotices)
-  if (assembled.some(entry => entry.split === undefined)) {
-    notices.push('corpus split ownership unknown; entries without corpus metadata are unassigned')
-  }
   if (missingBundleCount > 0) {
     notices.push(
-      `${missingBundleCount} replay record(s) have no ${source} cassette bundle — label legs absent`,
+      `${missingBundleCount} replay record(s) have no staged cassette bundle — label legs absent`,
     )
   }
 
-  // (3) The ONE D-02 filter vocabulary, replay semantics: a named miss is the only throw.
+  // (3) The replay filter vocabulary: a named miss is the only throw.
   let entries = assembled
   if (filters.cassette !== undefined) {
     const named = filters.cassette
@@ -893,9 +723,9 @@ export async function runReportVerb(
   }
   entries.sort((a, b) => (a.cassetteId < b.cassetteId ? -1 : a.cassetteId > b.cassetteId ? 1 : 0))
 
-  // (4) Batch judge identity from the persisted blocks only (T-372-20): all defined blocks
-  // canonicalJson-equal ⇒ the identity passes through; none ⇒ honest absence; differing ⇒
-  // 'mixed' and the report carries NO judge block — an identity is never synthesized.
+  // (4) Batch judge identity from the persisted blocks only: all defined blocks canonicalJson-equal
+  // means the identity passes through; none means honest absence; differing blocks mean 'mixed'
+  // and the report carries no judge block, only the distinct persisted ids.
   let judgeIdentity: ReportVerbResult['judgeIdentity']
   let judgeForReport: JudgeIdentityBlock | undefined
   let mixedIdentity: { judgeIdentity: 'mixed'; judgeModelIds: readonly string[] } | undefined
@@ -910,9 +740,6 @@ export async function runReportVerb(
       judgeForReport = identities[0]
     } else {
       judgeIdentity = 'mixed'
-      // 413-15: the report carries the mixture as DATA — the distinct persisted ids, sorted —
-      // so `assertBaselineComparator` can refuse it instead of reading it as abstention. Still
-      // no synthesized block: a list of the ids actually seen is not an identity (T-372-20).
       mixedIdentity = {
         judgeIdentity: 'mixed',
         judgeModelIds: [...new Set(judgeBlocks.map(block => block.judgeModelId))].sort(),
@@ -924,190 +751,18 @@ export async function runReportVerb(
     }
   }
 
-  // (5) Exactly ONE buildEvalReport call — one batch, one report, one headline (D-14). The CLI
-  // never sums scores; every counter and rate is the aggregator's.
-  const report = buildEvalReport(entries, judgeForReport, mixedIdentity, { calibration: labelCorpus.calibration })
-  const reportSeedPolicy: SeedPolicy = session.evalConfig.seed !== undefined ? 'declared' : 'none'
-  let reportProfileProof: ReturnType<typeof readReportProfileProof>
-  if (report.judge?.panelSize !== undefined) {
-    // Key-only declarations select evidence; credentials and model binding are never needed.
-    let calibrationRead: ReturnType<typeof readJudgeCalibration> | undefined
-    try {
-      const replayProfile = await resolveReplayProfileDeclaration(session)
-      const actualModels = entries.flatMap(entry => {
-        if ('kind' in entry.outcome) return []
-        const results = entry.outcome.granularity === 'leaf' ? [entry.outcome]
-          : entry.outcome.steps.flatMap(step => step.kind === 'decision' ? [step.result] : [])
-        return results.map(result => result.replayedModel.modelId)
-      })
-      if (actualModels.length === 0 || actualModels.some(model => model !== replayProfile.model)) {
-        throw new Error('report replay profile unavailable')
-      }
-      const fingerprint = computeReplayProfileFingerprintFor({ profile: replayProfile,
-        seedPolicy: reportSeedPolicy, modelOverrides: opts.plannerOverrides })
-      reportProfileProof = readReportProfileProof({ agentQaRoot, replaysRoot, report, entries, fingerprint,
-        corpusDigest: computeCorpusDigest(labelCorpus.snapshot.entries), seed: session.evalConfig.seed })
-      if (!reportProfileProof) throw new Error('report full profile proof unavailable')
-      calibrationRead = readJudgeCalibration({ committedRoot: resolve(session.configDir, 'agent-qa-eval'), agentQaRoot,
-        identity: report.judge, profile: { plannerModelId: replayProfile.model, fingerprint,
-          matcherVersion: report.matcherVersion, judgeModelId: report.judge.judgeModelId, judgeVersion: report.judge.judgeVersion } })
-    } catch { /* Missing profile evidence is unavailable, never a fabricated identity. */ }
-    copyJudgeCalibrationToReport(report, calibrationRead)
-    if (calibrationRead?.kind !== 'loaded') notices.push('judge calibration unavailable: no matching guarded artifact')
-  }
-  const vectors = decisionCorrectnessVectors(entries, partitionsById)
-  const decisions = projectDecisionVectorsDocument({
-    batchKey: report.batchKey, matcherVersion: report.matcherVersion, vectors,
-  })
-
-  // (6) The staged report ALWAYS lands (uncommitted runtime staging, batchKey-derived filename).
-  if (reportProfileProof) report.runIdentity = reportProfileProof.runIdentity
-  const staged = new FsReportStore({ root: agentQaRoot }).save(report, decisions, reportProfileProof?.replayGeneration)
-
-  // (7) `--commit`: render the deterministic markdown projection and route all THREE parts through
-  // commitEvalReport into the committed root (D-13) — the typed outcome
-  // (committed / write-conflict) folds into the DTO as data (D-08).
-  const committedRoot = resolve(session.configDir, 'agent-qa-eval')
-  let committed: CommitEvalReportOutcome | undefined
-  if (opts.commit === true) {
-    committed = commitEvalReport({
-      report,
-      decisions,
-      markdown: renderEvalReportMarkdown(report),
-      committedRoot,
-    })
-  }
-
-  // (8) `--baseline`: designate this committed report as THE comparator for its profile (D-19).
-  // The writer refuses first through the ONE comparator predicate (D-20), so a report judged
-  // under the same-family override can never become a gate comparator — and the refusal rides
-  // the DTO and the notices rather than an exit code, because the report itself is still valid
-  // history (D-18). The pointer is per-PROFILE: a number produced by one planner under one
-  // matcher and one judge only compares against the same combination.
-  let baseline: WriteBaselinePointerOutcome | undefined
-  let profileKey: string | undefined
-  if (opts.baseline === true) {
-    if (committed?.kind !== 'committed') {
-      notices.push(
-        `baseline pointer skipped: report commit outcome was ${committed?.kind ?? 'absent'}`,
-      )
-    } else {
-      const designation = await designateReportBaseline(
-        session, report, reportSeedPolicy, opts.plannerOverrides, notices,
-      )
-      profileKey = designation.profileKey
-      baseline = designation.baseline
-    }
-  }
+  // (5) Exactly one buildEvalReport call; every counter and rate is the aggregator's.
+  const report = buildEvalReport(entries, judgeForReport, mixedIdentity)
+  const staged = new FsReportStore({ root: agentQaRoot }).save(report)
 
   return {
     batchKey: report.batchKey,
     entries: entries.length,
     report,
     stagedFile: staged.file,
-    decisionVectorCount: decisions.vectors.length,
-    ...(committed !== undefined ? { committed } : {}),
     judgeIdentity,
-    source,
-    ...(baseline !== undefined ? { baseline } : {}),
-    ...(profileKey !== undefined ? { profileKey } : {}),
     notices,
   }
-}
-
-/** Both report paths share the same v2 projection and comparator-first write-once writer. */
-async function designateReportBaseline(
-  session: EvalSession,
-  report: EvalBatchReport,
-  seedPolicy: SeedPolicy,
-  plannerOverrides: ModelProviderOverrides | undefined,
-  notices: string[],
-): Promise<{ profileKey: string; baseline: WriteBaselinePointerOutcome }> {
-  const committedRoot = resolve(session.configDir, 'agent-qa-eval')
-  const read = readActiveCommittedCorpus(committedRoot, resolve(session.configDir, '.agent-qa'))
-  notices.push(...read.notices)
-  for (const refusal of read.refusals) {
-    notices.push(`committed read refused ${refusal.path}: ${refusal.reason}`)
-  }
-  const pointer = projectBaselinePointer({
-    plannerModelId: await resolvePlannerModelId(session),
-    fingerprint: await resolveReplayProfileFingerprint(session, seedPolicy, plannerOverrides),
-    corpusDigest: computeCorpusDigest(read.snapshot.entries),
-    matcherVersion: report.matcherVersion,
-    ...(report.judge === undefined ? {} : {
-      judgeModelId: report.judge.judgeModelId,
-      ...(report.judge.judgeVersion === undefined ? {} : { judgeVersion: report.judge.judgeVersion }),
-    }),
-    batchKey: report.batchKey,
-  })
-  const baseline = writeBaselinePointer({ report, pointer, committedRoot })
-  if (baseline.kind === 'refused') notices.push(renderBaselineComparatorRefusal(baseline.refusal))
-  if (seedPolicy === 'none' && (baseline.kind === 'written' || baseline.kind === 'unchanged')) {
-    notices.push(
-      'baseline designated under seed policy none — eval gate compares against a declared-policy '
-      + 'pointer; re-designate with eval report --baseline --from-committed <batchKey> --seed-policy declared',
-    )
-  }
-  return { profileKey: pointer.profileKey, baseline }
-}
-
-/**
- * The replay planner's resolved MODEL ID for the D-19 profile key — config only, no credential.
- *
- * `resolveReplayPlanner` resolves auth and throws without a credential, which would make baseline
- * designation impossible on a machine that merely READS a committed report. The profile key needs
- * the declared model id and nothing else, so this reads the named registry entry directly through
- * the same `resolveNamedConfig` leg and stops there. An absent `use.llm` is the same typed error
- * `resolveReplayPlanner` raises — the planner identity is not optional for a comparator.
- */
-async function resolvePlannerModelId(session: EvalSession): Promise<string> {
-  return (await resolveBaselinePlannerConfig(session)).model
-}
-
-/**
- * D-11: config declaration only, with no credential resolution or model creation. The auth
- * declaration mirrors toAuthDeclaration's unresolved/missing case; resolveCapabilities ignores
- * it. Provider transport options are also irrelevant to the resolved replay capabilities.
- */
-export async function resolveReplayProfileFingerprint(
-  session: EvalSession,
-  seedPolicy: SeedPolicy,
-  modelOverrides?: ModelProviderOverrides,
-): Promise<string> {
-  const profile = await resolveReplayProfileDeclaration(session)
-  return computeReplayProfileFingerprintFor({ profile, seedPolicy, modelOverrides })
-}
-
-/** Shared unresolved declaration for fingerprinting and credential-free offline gate reads. */
-export async function resolveReplayProfileDeclaration(
-  session: EvalSession,
-  namedResolver?: typeof import('./llm-utils.js').resolveNamedConfig,
-): Promise<ModelProfile> {
-  const config = await resolveBaselinePlannerConfig(session, namedResolver)
-  return {
-    provider: config.provider,
-    model: config.model,
-    ...(config.baseURL !== undefined ? { baseURL: config.baseURL } : {}),
-    ...(config.providerHeaders !== undefined ? { headers: config.providerHeaders } : {}),
-    auth: { mode: 'none' },
-  }
-}
-
-/** The model-id and fingerprint readers share the same named-config validation. */
-async function resolveBaselinePlannerConfig(
-  session: EvalSession,
-  namedResolver?: typeof import('./llm-utils.js').resolveNamedConfig,
-) {
-  const plannerName = session.config.use?.llm
-  if (!plannerName) {
-    throw new Error(
-      'use.llm is not set in the config — the baseline profile key is keyed on the replay '
-      + 'planner, the named use.llm registry entry. Set use.llm in agent-qa.config.yaml.',
-    )
-  }
-  const { resolveNamedConfig } = await import('./llm-utils.js')
-  const { config } = await (namedResolver ?? resolveNamedConfig)(plannerName, session.configPath, { keyOnly: true })
-  return config
 }
 
 // ---- internals --------------------------------------------------------------------------------

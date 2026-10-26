@@ -4,14 +4,11 @@
 import { Command, InvalidArgumentError } from 'commander'
 import pc from 'picocolors'
 import { installEvalWarningLogger } from '../eval-warning-logger.js'
-import { renderReportEvidenceLines, renderReportLabelMetricLines } from '../eval-report-render.js'
+import { renderReportLabelMetricLines } from '../eval-report-render.js'
 import type {
-  BaselineComparatorRefusal,
-  EvalCorpusSource,
   ExtractVerbResult,
   ReplayVerbResult,
   ReportVerbResult,
-  SeedPolicy,
 } from '../eval-session-composition.js'
 
 // The auth.ts parent-opts idiom: the global `--config` lives on the program two levels above a
@@ -29,39 +26,6 @@ function parseIntegerFlag(flagName: string): (value: string) => number {
     }
     return Number.parseInt(value.trim(), 10)
   }
-}
-
-/**
- * Typed `--source` parser (413 D-08, the parseIntegerFlag idiom): anything but the two literals is
- * a loud InvalidArgumentError.
- *
- * It is applied inside the ACTION rather than as commander's own option parser, because commander
- * maps a parser throw to `Command.error()` → `process.exit(1)`, and this family's D-08 contract is
- * `process.exitCode = 1` with the message on stderr — never `process.exit` (which would also take
- * the whole vitest worker down with it).
- */
-function parseSourceFlag(value: string | undefined): EvalCorpusSource | undefined {
-  if (value === undefined) return undefined
-  if (value !== 'staged' && value !== 'committed') {
-    throw new InvalidArgumentError(
-      `--source must be "staged" or "committed", got "${value}".`,
-    )
-  }
-  return value
-}
-
-/** Validate inside the action against the lazily imported canonical vocabulary (D-08). */
-function parseSeedPolicyFlag(
-  value: string | undefined, policies: readonly SeedPolicy[],
-): SeedPolicy | undefined {
-  if (value === undefined) return undefined
-  const policy = policies.find(candidate => candidate === value)
-  if (policy === undefined) {
-    throw new InvalidArgumentError(
-      `--seed-policy must be "none" or "declared", got "${value}".`,
-    )
-  }
-  return policy
 }
 
 /** Render a Record counter as `reason=count …`, honest 'none' when empty (D-04). */
@@ -117,25 +81,10 @@ function sumCounts(counts: Record<string, number>): number {
   return Object.values(counts).reduce((total, count) => total + count, 0)
 }
 
-/**
- * Compact report summary rendered from the DTO fields only — a faithful projection (D-04).
- *
- * `renderBaselineComparatorRefusal` arrives as a PARAMETER rather than a module import: eval
- * core reaches this surface only through the ledgered composition root (FUNC-02, and that ledger
- * only ever shrinks), and the root is imported lazily per action so `agent-qa --help` never pays
- * for the eval stack. The refusal is printed red on the surface a person actually reads, because
- * a same-family report silently failing to become the comparator is exactly the repudiation
- * D-20 exists to prevent (ROOT-11).
- */
-function renderReportSummary(
-  result: ReportVerbResult,
-  renderBaselineComparatorRefusal: (refusal: BaselineComparatorRefusal) => string,
-): void {
+/** Compact report summary rendered from the DTO fields only. */
+function renderReportSummary(result: ReportVerbResult): void {
   const report = result.report
-  console.log(
-    pc.bold(`report: batch ${result.batchKey}`)
-      + pc.dim(result.committedFile === undefined ? ` (${result.entries} entries)` : ' (committed report)'),
-  )
+  console.log(pc.bold(`report: batch ${result.batchKey}`) + pc.dim(` (${result.entries} entries)`))
   const accuracy = report.headline.firstAttemptDecisionAccuracy
   console.log(
     'headline: firstAttemptDecisionAccuracy '
@@ -158,35 +107,16 @@ function renderReportSummary(
       + `${sumCounts(judge.notInvoked)} not-invoked`,
   )
   console.log(`judge identity: ${result.judgeIdentity}`)
-  console.log(`source: ${result.source}`)
+  const familyOverride = report.judge?.familyOverride
+  if (familyOverride !== undefined) {
+    console.log(
+      `judge family override: ${familyOverride} (self-preference bias condition disclosed)`,
+    )
+  }
   for (const notice of result.notices) {
     console.log(pc.dim(notice))
   }
-  if (result.stagedFile !== undefined) console.log(pc.dim(`staged file: ${result.stagedFile}`))
-  if (result.committedFile !== undefined) console.log(pc.dim(`committed file: ${result.committedFile}`))
-  if (result.committed !== undefined) {
-    // D-08: write conflicts are DATA — rendered loudly, never exit 1.
-    if (result.committed.kind === 'committed') {
-      console.log(
-        `committed: json ${result.committed.json}, markdown ${result.committed.markdown}`,
-      )
-      console.log(pc.dim(`report dir: ${result.committed.reportDir}`))
-    } else {
-      console.log(pc.red(`commit write-conflict: ${result.committed.path}`))
-    }
-  }
-  for (const line of renderReportEvidenceLines(result)) console.log(line)
-  const baseline = result.baseline
-  if (baseline !== undefined) {
-    // D-08/D-19: every designation outcome is DATA — loud where it must be, exit 0 throughout.
-    if (baseline.kind === 'written' || baseline.kind === 'unchanged') {
-      console.log(pc.dim(`baseline file: ${baseline.path}`))
-    } else if (baseline.kind === 'refused') {
-      console.log(pc.red(renderBaselineComparatorRefusal(baseline.refusal)))
-    } else {
-      console.log(pc.red(`baseline write-conflict: ${baseline.path}`))
-    }
-  }
+  console.log(pc.dim(`staged file: ${result.stagedFile}`))
 }
 
 /** Compact picocolors summary rendered from the DTO fields only — a faithful projection (D-04). */
@@ -315,73 +245,37 @@ export function createEvalCommand(): Command {
 
   cmd.addCommand(
     new Command('report')
-      .description('Assemble a replay report or designate an already-committed baseline')
+      .description('Assemble one report from the staged replay records')
       .option('--run <slug>', 'narrow to records extracted from one recorded run')
       .option('--cassette <id>', 'report over exactly one persisted record by cassette id')
       .option('--product <slug>', 'narrow by product scope')
-      .option('--commit', 'also write report.json + report.md + decisions.json into the committed root (D-13)')
-      .option(
-        '--source <source>',
-        'cassette source: staged (default) or committed (the whole agent-qa-eval corpus, D-08)',
-        'staged',
-      )
-      .option(
-        '--baseline',
-        'with --commit or --from-committed, designate the per-profile baseline pointer under '
-          + 'reports/baselines/ (D-19); refused for same-family reports (ROOT-11)',
-      )
-      .option('--from-committed <batchKey>', 'designate this committed report without replay assembly; requires --baseline and --seed-policy')
-      .option('--seed-policy <none|declared>', 'explicit policy for --from-committed designation')
       .option('--json', 'emit the typed result DTO to stdout')
       .action(
         async (
-          opts: {
-            run?: string
-            cassette?: string
-            product?: string
-            commit?: boolean
-            source?: string
-            baseline?: boolean
-            fromCommitted?: string
-            seedPolicy?: string
-            json?: boolean
-          },
+          opts: { run?: string; cassette?: string; product?: string; json?: boolean },
           command: Command,
         ) => {
           try {
-            const source = parseSourceFlag(opts.source)
             const configPath = getGlobalConfigPath(command)
-            const { resolveEvalSession, runReportVerb, renderBaselineComparatorRefusal, SEED_POLICIES } =
-              await import('../eval-session-composition.js')
-            const seedPolicy = parseSeedPolicyFlag(opts.seedPolicy, SEED_POLICIES)
+            const { resolveEvalSession, runReportVerb } = await import(
+              '../eval-session-composition.js'
+            )
             const session = await resolveEvalSession(
               configPath === undefined ? {} : { configPath },
             )
-            const result = await runReportVerb(
-              session,
-              {
-                ...(opts.run === undefined ? {} : { run: opts.run }),
-                ...(opts.cassette === undefined ? {} : { cassette: opts.cassette }),
-                ...(opts.product === undefined ? {} : { product: opts.product }),
-              },
-              {
-                ...(opts.commit === undefined ? {} : { commit: opts.commit }),
-                ...(source === undefined ? {} : { source }),
-                ...(opts.baseline === undefined ? {} : { baseline: opts.baseline }),
-                ...(opts.fromCommitted === undefined ? {} : { fromCommitted: opts.fromCommitted }),
-                ...(seedPolicy === undefined ? {} : { seedPolicy }),
-              },
-            )
+            const result = await runReportVerb(session, {
+              ...(opts.run === undefined ? {} : { run: opts.run }),
+              ...(opts.cassette === undefined ? {} : { cassette: opts.cassette }),
+              ...(opts.product === undefined ? {} : { product: opts.product }),
+            })
             if (opts.json) {
-              // D-04/Pitfall 11: exactly one JSON document on stdout — the committed outcome
-              // (incl. write conflicts) is DATA inside the DTO (D-08).
+              // Exactly one JSON document on stdout; notices are data inside the DTO.
               console.log(JSON.stringify(result, null, 2))
             } else {
-              renderReportSummary(result, renderBaselineComparatorRefusal)
+              renderReportSummary(result)
             }
           } catch (err) {
-            // D-08: typed named-input/config errors are the only failure modes — write-conflict
-            // committed outcomes are data and never reach this catch.
+            // Named-input and config errors are the only failure modes.
             console.error(pc.red(err instanceof Error ? err.message : String(err)))
             process.exitCode = 1
           }
