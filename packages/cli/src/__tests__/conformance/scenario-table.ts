@@ -36,13 +36,13 @@
 // originals and stay as written. Measured at the guidance cutover: 44 registry ops and 44 rows, 30
 // projected onto MCP behind 20 tools and 14 unprojected, 42 bound at the composition root and 2
 // unbound (C432-REGISTRY-GOLDEN pins these). The proposal and grant ops left in 432-17/18, and no
-// row's policy points refuse or ask: `refuse` is `allow` and `ask` is `direct` wherever it remains.
+// row's policy points refuse: `refuse` is `allow`.
 //
 // KEPT, DATED 2026-10-02 (432-42 census decision): the `policyPoints` column stays under its name.
-// It is test-only (no shipped byte spells it), every value in it is the direct claim (`allow`,
-// `direct`), and it feeds retained cells outside this file (C432-ALL-OPS-AVAILABLE,
-// `423-read-contracts.test.ts`, the ask derivation's four retained cells). Renaming it would rename
-// those claims without changing one; C432-REGISTRY-GOLDEN pins that no point refuses or asks.
+// It is test-only (no shipped byte spells it), every value in it is the direct claim (`allow`), and
+// it feeds retained cells outside this file (C432-ALL-OPS-AVAILABLE, `423-read-contracts.test.ts`).
+// Renaming it would rename those claims without changing one; C432-REGISTRY-GOLDEN pins that no
+// point refuses.
 
 import {
   AgentAskInputSchema,
@@ -450,19 +450,10 @@ const EVERY_ENTITY_CARD_KIND: EntityCardRenderExpectation = { kinds: ENTITY_KIND
  * grant minus one scope, which was `deny`; no scope is declared or read any more, so the formerly
  * refused caller is allowed exactly as the covering one is. The point is kept as a column so the
  * retired claim reads as its direct replacement rather than vanishing.
- *
- * `ask` is present on exactly the ops the shipped classifier can produce an `ask` verdict for, and
- * that set is DERIVED (`policy-fixtures.ts`) and asserted set-equal to the rows carrying the key in
- * both directions. Hand-picking it was the available shortcut and is exactly what D-11's discretion
- * clause forbids.
- *
- * Its VALUE is `direct` since 432-13 (D-14/D-15): the function door no longer asks, so a capability
- * the classifier would ask about is dispatched directly, like every other.
  */
 export interface PolicyPointExpectations {
   readonly grant: 'allow'
   readonly refuse: 'allow'
-  readonly ask?: 'direct'
 }
 
 /** One capability, as the suite drives it. */
@@ -630,7 +621,7 @@ export const SCENARIO_TABLE = Object.freeze([
       fn: { reachable: true },
     },
     renderExpect: { markers: ['fanOut', 'outcome'] },
-    policyPoints: { grant: 'allow', refuse: 'allow', ask: 'direct' },
+    policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
   // 394-07 D-12: the window is REQUIRED and closed, so `{}` would report an input error.
   // `all-time` is the arm with no further field, which is the honest sample for a fixture that has
@@ -1224,11 +1215,10 @@ export const SCENARIO_TABLE = Object.freeze([
       fn: { reachable: true },
     },
     renderExpect: { markers: ['receipt', 'kind'] },
-    policyPoints: { grant: 'allow', refuse: 'allow', ask: 'direct' },
+    policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
-  // 2026-09-15, 423-21 D-16/D-18: the consequence preview. runs.mark's exact input, answered
-  // read-tier: READ policy points (the postprocessing row's), never the writer's ask. Its markers
-  // are the consequences arm's required keys.
+  // The consequence preview: runs.mark's exact input, answered read-tier with the postprocessing
+  // row's policy points. Its markers are the consequences arm's required keys.
   scenario({
     opId: 'runs.mark.preview',
     input: { runId: FIXTURE_RUN_ID, kind: 'confirmed-bug' },

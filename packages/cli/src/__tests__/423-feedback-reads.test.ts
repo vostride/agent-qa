@@ -1174,7 +1174,7 @@ describe('423-21 read-op adjudication (D-04/D-18)', () => {
     }
   })
 
-  it('READ-POLICY-POINTS: the new reads carry read policy points and read-tier declarations; runs.mark keeps its ask', () => {
+  it('READ-POLICY-POINTS: the new reads carry read policy points and read-tier declarations; runs.mark stays a writer', () => {
     const readPoints = scenarioRowFor('runs.postprocessing')!.policyPoints
     // 432-20 (D-12): the refuse point is `allow` — nothing is refused for its grants.
     expect(readPoints).toEqual({ grant: 'allow', refuse: 'allow' })
@@ -1185,8 +1185,7 @@ describe('423-21 read-op adjudication (D-04/D-18)', () => {
       expect(declaration.risk, opId).toMatchObject({ readOnly: true })
       expect(Object.keys(declaration), opId).not.toContain('requiresHumanOrigin')
     }
-    // 432-13: the ask point's value is `direct` — the classifier would ask, the door does not.
-    expect(scenarioRowFor('runs.mark')?.policyPoints).toEqual({ grant: 'allow', refuse: 'allow', ask: 'direct' })
+    expect(scenarioRowFor('runs.mark')?.policyPoints).toEqual(readPoints)
     expect(declarationOf('runs.mark').risk.readOnly).toBe(false)
   })
 })

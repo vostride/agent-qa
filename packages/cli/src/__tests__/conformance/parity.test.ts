@@ -111,7 +111,6 @@ import {
 } from './adapters.js'
 import * as policyFixtures from './policy-fixtures.js'
 import {
-  ASK_CAPABLE_OP_IDS,
   CONFORMANCE_EXECUTION_CONTEXT,
   coveringCallerFor,
   grantlessSurfaceCallers,
@@ -1264,26 +1263,6 @@ describe('the parity suite ranges the registry census over every rostered surfac
     })
   })
 
-  // ---- The two ops that once asked a person first dispatch directly on every surface -------
-
-  it('carries an ask policy point on exactly the ops that can ask, in both directions', () => {
-    const rowsWithAsk = SCENARIO_TABLE.filter((row) => row.policyPoints.ask !== undefined)
-      .map((row) => row.opId)
-      .sort()
-    expect(
-      rowsWithAsk,
-      'the rows declaring an ask policy point must be exactly the formerly-asking set — a row '
-        + 'short is a verdict nobody asserts, a row over is a verdict that cannot happen',
-    ).toEqual([...ASK_CAPABLE_OP_IDS].sort())
-    // …and the other direction is a different statement: every ask-capable op has a ROW at all.
-    for (const opId of ASK_CAPABLE_OP_IDS) {
-      expect(
-        scenarioRowFor(opId)?.policyPoints.ask,
-        `${opId}: this op once asked a person first and no scenario row says it dispatches directly`,
-      ).toBe('direct')
-    }
-  })
-
   it('derives its policy fixtures from the declarations, and never from the ambient environment', () => {
     // Pitfall 3, as a source assertion rather than a hope. The shipped resolver answers `ci`
     // wherever CI markers are set — so a fixture that read the ambient context would compute one
@@ -1302,7 +1281,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
         .toContain(forbidden)
     }
     // …and the sweep is over the real file rather than an empty string.
-    expect(code, 'the policy fixtures source read back empty').toContain('ASK_CAPABLE_OP_IDS')
+    expect(code, 'the policy fixtures source read back empty').toContain('CONFORMANCE_EXECUTION_CONTEXT')
     // The covering and refusing callers are DERIVED: no scope literal appears in the file at all.
     for (const scope of RETIRED_SCOPE_NAMES) {
       expect(code, `policy-fixtures.ts spells the ${scope} scope instead of reading it off the `
@@ -1641,132 +1620,38 @@ describe('the parity suite ranges the registry census over every rostered surfac
     }
   })
 
-  // ---- The ASK points: verdict parity, handling per contract (2026-08-16, D-11) -----------------
+  // ---- Direct dispatch: every capability lands at its direct step --------------------------------
   //
-  // RE-SPELLED 2026-09-30 (432-13, D-14/D-15, C432-INVOKE-DIRECT). D-11's verdict parity was the
-  // ask being REACHED identically on both surfaces' callers, each surface then handling it its own
-  // way (chat paused at a confirm seam, MCP refused in band). `invokeFunction` no longer evaluates
-  // anything, so there is no ask to reach: the capabilities the classifier WOULD ask about are the
-  // `direct` policy point, and the parity that survives is that both surfaces' callers land at the
-  // same step past the scope check — derived from this composition's binding status — with no
-  // standing approval, no confirm and no context changing where.
+  // `invokeFunction` evaluates no policy, so both surfaces' callers land every capability at the
+  // step its binding status names, and the execution context does not move it.
 
-  it('dispatches every ask-capable capability directly, identically on both surfaces\' callers', async () => {
-    const askCapable = new Set(ASK_CAPABLE_OP_IDS)
+  it('dispatches every capability directly, identically on both surfaces\' callers', async () => {
     for (const declaration of registryDeclarations()) {
       const row = scenarioRowFor(declaration.id as ScenarioOpId)
       const callers = surfaceInertCallers()
       const onChat = await gateAnswerFor(declaration.id, row!.input, callers.chat)
       const onMcp = await gateAnswerFor(declaration.id, row!.input, callers.mcp)
-      expect(
-        onMcp.kind,
-        `${declaration.id}: the two surfaces' callers land at different steps`,
-      ).toBe(onChat.kind)
-      expect(onChat.kind, `${declaration.id}: nothing may deny a call since 432-13`)
-        .not.toBe('gate-denied')
-      if (askCapable.has(declaration.id)) {
-        const direct = declaration.bindingStatus === 'unbound' ? 'allowed-unbound' : 'allowed-dispatched'
-        expect(
-          onChat.kind,
-          `${declaration.id}: an ask-capable capability did not reach step `
-            + `${direct === 'allowed-unbound' ? 'binding' : 'dispatch'} with no approval`,
-        ).toBe(direct)
-      }
+      const direct = declaration.bindingStatus === 'unbound' ? 'allowed-unbound' : 'allowed-dispatched'
+      expect(onChat.kind, `${declaration.id}: the call did not reach its direct step`).toBe(direct)
+      expect(onMcp.kind, `${declaration.id}: the two surfaces' callers land at different steps`)
+        .toBe(onChat.kind)
     }
   }, 120_000)
 
-  it('lands an ask-capable call at the same step in a fail-closed context as in an interactive one', async () => {
-    // The context control, re-spelled: `ci` used to fail an ask closed before the confirm. Nothing
-    // reads the context on this road now, so both contexts must answer alike.
-    // 2026-10-01 (432-31, D-12): the `ci` resolver rode the retired, unread registry option, which
-    // is dropped.
-    // 2026-10-03 (quick-261003-tsr, WR-06): the two calls used to run in the same ambient context,
-    // so the cell compared one call with itself. Each now runs inside its own safety scope, the
-    // seam every ambient reader of the execution context resolves through.
-    for (const opId of ASK_CAPABLE_OP_IDS) {
-      const declaration = registryDeclarations().find((candidate) => candidate.id === opId)
-      const row = scenarioRowFor(opId as ScenarioOpId)
-      expect(declaration, `${opId} is not declared`).toBeDefined()
+  it('lands every capability at the same step in a ci context as in an interactive one', async () => {
+    // Each call runs inside its own safety scope, the seam every ambient reader of the execution
+    // context resolves through, so the two contexts are really different.
+    for (const declaration of registryDeclarations()) {
+      const row = scenarioRowFor(declaration.id as ScenarioOpId)
       const callers = surfaceInertCallers()
       const interactive = await runSafetyScope({ executionContext: 'local-interactive' }, () =>
-        gateAnswerFor(opId, row!.input, callers.chat))
-      const failClosed = await runSafetyScope({ executionContext: 'ci' }, () =>
-        gateAnswerFor(opId, row!.input, callers.chat))
-      const direct = declaration!.bindingStatus === 'unbound' ? 'allowed-unbound' : 'allowed-dispatched'
-      expect(interactive.kind, `${opId}: the interactive call did not reach its direct step`).toBe(direct)
-      expect(failClosed.kind, `${opId}: the execution context changed where the call landed`)
+        gateAnswerFor(declaration.id, row!.input, callers.chat))
+      const ci = await runSafetyScope({ executionContext: 'ci' }, () =>
+        gateAnswerFor(declaration.id, row!.input, callers.chat))
+      expect(ci.kind, `${declaration.id}: the execution context changed where the call landed`)
         .toBe(interactive.kind)
     }
   }, 120_000)
-
-  it('handles an ask-capable capability on CHAT by dispatching it, never by pausing', async () => {
-    // Chat's contract since 432-13: no confirm seam, no `prompted-denied`. The drive is the shipped
-    // REPL with no terminal and no pin; the op runs against the drive's own temp workspace.
-    for (const opId of ASK_CAPABLE_OP_IDS) {
-      const row = scenarioRowFor(opId as ScenarioOpId)
-      for (const executionContext of ['local-interactive', 'ci'] as const) {
-        const outcome = await driveChatDispatch({ opId, input: row!.input, executionContext })
-        expect(outcome.unhandled, `${opId} on chat (${executionContext}): the clause did not route`)
-          .toEqual([])
-        expect(outcome.receipt, `${opId} on chat (${executionContext}): no receipt`).toBeDefined()
-        expect(
-          outcome.receipt?.outcome,
-          `${opId} on chat (${executionContext}): the capability was denied`,
-        ).not.toBe('FunctionDeniedError')
-        expect(
-          outcome.auditRows.filter((auditRow) => auditRow.action === pinClassFor(opId)),
-          `${opId} on chat (${executionContext}): an approval row was written`,
-        ).toEqual([])
-      }
-    }
-  }, 300_000)
-
-  it('handles the ask on MCP per ITS contract — refuse-and-teach, or refuse in band', async () => {
-    // MCP's own contract, DERIVED from the mapping's own `kind` rather than picked per op.
-    // 2026-09-30 (432-12 D-05/D-14): the refuse-and-teach arm is GONE with the D-11 apply doors, and
-    // its absence is asserted rather than skipped: no projected ask-capable op sits behind an
-    // `apply` tool without the mark door's credential check, and the two apply ops that could ask
-    // were dispositioned with the removed proposal round until 432-17 deleted them; the last
-    // unprojected ask-capable op, the human-origin `grants.revoke`, left in 432-18, so every
-    // ask-capable op is projected. Every projected tool still gets the
-    // gate's own answer back in band, and none executes on a blind first call.
-    // 2026-10-02 (432-39): no scope set is handed in; the call is made as the shipped MCP caller.
-    let bandRefusals = 0
-    for (const opId of ASK_CAPABLE_OP_IDS) {
-      const projection = AGENT_QA_TOOL_PROJECTIONS.find((candidate) => candidate.ops.includes(opId))
-      if (projection === undefined) {
-        // 2026-10-01 (432-18): the last unprojected ask-capable op was `grants.revoke`, filed under
-        // the human-origin class; both are deleted, so no class excuses an unprojected one now.
-        expect.unreachable(
-          `${opId} on mcp (ask): it can ask and this surface does not project it — since 432-18 `
-            + 'no unprojected ask-capable op remains',
-        )
-      }
-      // 432-21 (D-12): the mark door is the one `apply` entry and it checks no credential; any other
-      // apply entry would be a refuse-and-teach door, which 432-12 removed.
-      expect(
-        projection.kind === 'apply' && projection.name !== 'agent_qa_mark_run',
-        `${opId} on mcp (ask): ${projection.name} is a refuse-and-teach apply door, which 432-12 removed`,
-      ).toBe(false)
-      const row = scenarioRowFor(opId as ScenarioOpId)
-      const answered = await driveMcpCall({
-        toolName: projection.name,
-        args: row!.input as Record<string, unknown>,
-      })
-      expect(answered.answered, `${opId} on mcp (ask): the protocol refused the call outright`)
-        .toBe(true)
-      const inBand = answered as Extract<typeof answered, { answered: true }>
-      bandRefusals += 1
-      // 432-21 (D-12): no `credential-required` arm — the mark door answers like every other door.
-      expect(inBand.structured?.['status'], `${opId}: no credential refusal survives`)
-        .not.toBe('credential-required')
-      expect(inBand.isError, `${opId} on mcp (ask): an ask-tier capability answered without the `
-        + 'gate refusing it').toBe(true)
-      expect(inBand.text, `${opId} on mcp (ask): the in-band refusal must name the capability`)
-        .toContain(opId)
-    }
-    expect(bandRefusals, 'no ask-capable op reached the in-band refusal arm').toBeGreaterThan(0)
-  }, 300_000)
 
   it('observes each surface through its own dispatch, never through the gate directly', () => {
     // PITFALL 5, AS A SOURCE ASSERTION. Every behavioural cell above would pass over a driver that
@@ -2652,7 +2537,6 @@ describe('C432-REGISTRY-GOLDEN: the registry, the twenty-tool mapping, the rows 
       if ('reachable' in mcp) expect(mcp.reachable.tool, row.opId).toBe(toolOf.get(row.opId))
       else expect(projected.has(row.opId), `${row.opId}: the row says unprojected`).toBe(false)
       expect(row.policyPoints.refuse, row.opId).toBe('allow')
-      expect(row.policyPoints.ask ?? 'direct', row.opId).toBe('direct')
     }
 
     // The live ledger, minted from the one shipped composition root: 42 bound and 2 unbound there.

@@ -1,10 +1,10 @@
 // The policy fixtures the verdict legs are driven with (Phase 397 plan 03, D-11).
 //
-// WHAT THIS FILE OWNS. Three things, and none of them is an expectation: the CALLERS each policy
-// point is exercised under, the execution context those points are decided in, and the ops that
-// once asked a person first. 397-04 owns the verdict comparisons themselves; the
-// scenario table owns which points each row declares. Splitting it that way is what keeps the
-// fixtures from quietly encoding the answer they are supposed to be measuring.
+// WHAT THIS FILE OWNS. Two things, and neither is an expectation: the CALLERS each policy point is
+// exercised under, and the execution context those points are decided in. The parity suite owns the
+// verdict comparisons themselves; the scenario table owns which points each row declares. Splitting
+// it that way is what keeps the fixtures from quietly encoding the answer they are supposed to be
+// measuring.
 //
 // NO CALLER HOLDS A GRANT (2026-10-01, 432-20, D-12). Until the permission wave the covering caller
 // held exactly an op's declared scopes and the refusing caller withheld one. Declarations carry no
@@ -17,9 +17,6 @@
 // context would be one answer on a laptop and another on a PR. Nothing here calls
 // `getActiveExecutionContext`, reads `process.env`, or consults a TTY; the context is a constant this
 // file exports and every consumer passes explicitly.
-//
-// THE FORMERLY-ASKING SET is a literal list: the two ops that once asked a person first. Every
-// surface now dispatches them directly, and the scenario rows carry them as the `direct` point.
 
 import type { FunctionDeclaration } from '@vostride/agent-qa-agent'
 import { CHAT_RESOLVER_CALLER } from '@vostride/agent-qa-agent-local'
@@ -125,9 +122,3 @@ export function grantlessSurfaceCallers(): SurfaceShapedCallers {
     mcp: Object.freeze({ ...inert.mcp, grantedScopes: [] } as FunctionCaller),
   }
 }
-
-// The two ops that once asked a person first; every surface now dispatches them directly.
-export const ASK_CAPABLE_OP_IDS: readonly string[] = Object.freeze([
-  'authoring.draft.write',
-  'runs.mark',
-])
