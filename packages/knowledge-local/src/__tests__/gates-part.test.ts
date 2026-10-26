@@ -7,7 +7,7 @@ import { appendGateReceipt, appendPromotionReceipt } from '../bundle-append.js'
 import { GATES_REL_PATH, loadBundle, readGateReceipts, verifyBundleIntegrity } from '../bundle-read.js'
 import { MUTABLE_BUNDLE_TARGETS } from '../journal/bundle-mutation.js'
 import { gateReceiptsFor } from '../gates/gate-receipt-read.js'
-import { completeGate1Receipt, createPromotionFloorFixture } from '../curator/__tests__/fixtures/promotion-floor-fixture.js'
+import { markReceipt, createPromotionFloorFixture } from '../curator/__tests__/fixtures/promotion-floor-fixture.js'
 
 describe('416 lazy journaled gate part', () => {
   let root: string
@@ -74,7 +74,7 @@ describe('416 lazy journaled gate part', () => {
     })
     expect(readGateReceipts(published.dir, published.id)).toHaveLength(1)
     expect(fixture.onlyBundle().bundle.events.filter(e => e.type === 'promoted')).toHaveLength(1)
-    const receipt = completeGate1Receipt(published.id)
+    const receipt = markReceipt(published.id)
     expect(appendGateReceipt(fixture.outcomeAppendConfig(), published.id, receipt)).toEqual({ kind: 'appended' })
     expect(appendGateReceipt(fixture.outcomeAppendConfig(), published.id, receipt)).toEqual({ kind: 'duplicate' })
     expect(readGateReceipts(published.dir, published.id)).toHaveLength(2)
@@ -104,7 +104,7 @@ describe('416 lazy journaled gate part', () => {
     writeFileSync(file, canonicalJson({ ...original, receiptDigest: '0'.repeat(64) }) + '\n')
     expect(() => readGateReceipts(published.dir, published.id)).toThrow('line 1: receiptDigest mismatch')
     writeFileSync(file, canonicalJson(original) + '\n')
-    const receipt = completeGate1Receipt('foreign')
+    const receipt = markReceipt('foreign')
     expect(() => appendGateReceipt(fixture.outcomeAppendConfig(), published.id, receipt)).toThrow('foreign candidateId')
     expect(() => appendGateReceipt(fixture.outcomeAppendConfig(), published.id,
       { ...receipt, candidateId: published.id })).toThrow('receiptDigest mismatch')
@@ -117,7 +117,7 @@ describe('416 lazy journaled gate part', () => {
       writeFileSync(file, text)
       expect(() => readGateReceipts(published.dir, published.id)).toThrow()
     }
-    const receipt = completeGate1Receipt(published.id)
+    const receipt = markReceipt(published.id)
     writeFileSync(file, canonicalJson({ ...receipt, extra: true }) + '\n')
     expect(() => readGateReceipts(published.dir, published.id)).toThrow()
     writeFileSync(file, JSON.stringify(receipt) + '\n')

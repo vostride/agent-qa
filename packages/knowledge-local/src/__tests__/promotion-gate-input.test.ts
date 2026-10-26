@@ -8,7 +8,7 @@ import { loadBundle, readGateReceipts } from '../bundle-read.js'
 import { publishBundle as publishBundleForTest } from '../bundle-publish.test-helper.js'
 import { assemblePromotionGateInput, candidateProvenanceOf } from '../promotion-gate-input.js'
 import { gateReceiptsFor } from '../gates/gate-receipt-read.js'
-import { completeGate1Receipt, createPromotionFloorFixture } from '../curator/__tests__/fixtures/promotion-floor-fixture.js'
+import { markReceipt, createPromotionFloorFixture } from '../curator/__tests__/fixtures/promotion-floor-fixture.js'
 
 describe('shared promotion input', () => {
   let root: string
@@ -34,8 +34,8 @@ describe('shared promotion input', () => {
   it('keeps gate receipts, drops promotion receipts and reports sorted unique surviving provenance', () => {
     const { published } = fixture.publishHeldCandidate('provenance')
     const config = fixture.outcomeAppendConfig()
-    const g1 = completeGate1Receipt(published.id)
-    expect(appendGateReceipt(config, published.id, g1)).toEqual({ kind: 'appended' })
+    const mark = markReceipt(published.id)
+    expect(appendGateReceipt(config, published.id, mark)).toEqual({ kind: 'appended' })
     expect(appendPromotionReceipt(config, published.id, { schemaVersion: GATE_RECEIPT_SCHEMA_VERSION, kind: 'promotion',
       candidateId: published.id, promotionPath: 'deterministic-verdict-floor', citedReceiptDigests: [],
       producedAtOrdinal: 50, producedBy: { opId: 'test' } })).toEqual({ kind: 'appended' })
@@ -46,7 +46,7 @@ describe('shared promotion input', () => {
     expect(appendOutcomeEvent(config, published.id, { type: 'retracted', evidenceToken: asEvidenceToken('rollback'),
       curationJobId: 'rollback', buildOrdinal: 100, retractsEvidenceToken: asEvidenceToken('retracted'),
       retractsCurationJobId: 'retracted', rollbackReceiptId: 'rollback' })).toEqual({ kind: 'appended' })
-    expect(assemble(published.dir).gateReceipts).toEqual([g1])
+    expect(assemble(published.dir).gateReceipts).toEqual([mark])
     expect(candidateProvenanceOf(published.dir, load(published.dir))).toEqual({
       runIds: ['held-checkout-provenance-run'],
       receiptDigests: readGateReceipts(published.dir, published.id)!.map(line => line.receiptDigest),

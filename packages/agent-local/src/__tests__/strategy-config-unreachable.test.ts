@@ -153,24 +153,6 @@ function strategyKnobKeys(keys: readonly string[]): string[] {
   })
 }
 
-// 2026-09-07, 417 D-13: this boolean DISCLOSES that the operator configured a
-// judge-family override which Gate 1 refused to honor. It cannot configure chat
-// reconciliation. Adjudicate its five published receipt paths, never its spelling
-// globally; any new config/alias/wrapper path still reds, even with the same schema object.
-const RECEIPT_DISCLOSURE_PATHS = [
-  'gate1ArmSchema.judge.overrideConfigured',
-  'GateReceiptSchema.judge.overrideConfigured',
-  'GateLineSchema.judge.overrideConfigured',
-  'KnowledgeGatesListResultSchema.lines[].judge.overrideConfigured',
-  'KnowledgeGatesListResultSchema.standing[].judge.overrideConfigured',
-] as const
-
-function isReceiptDisclosure(site: SchemaKeySite): boolean {
-  return site.key === 'overrideConfigured'
-    && (RECEIPT_DISCLOSURE_PATHS as readonly string[]).includes(site.path)
-    && site.owner === schemaExports.gate1ArmSchema.shape.judge.unwrap()
-}
-
 function strategyKnobSites(sites: readonly SchemaKeySite[]): SchemaKeySite[] {
   return sites.filter(site => strategyKnobKeys([site.key]).length > 0)
 }
@@ -210,13 +192,8 @@ describe('D-16: the reconciliation strategy is reachable from no configuration k
     for (const key of ['browser', 'device', 'timeouts']) expect(keys).toContain(key)
   })
 
-  it('no published schema exposes a strategy switch beyond the adjudicated receipt disclosure', () => {
-    const hits = strategyKnobSites(collectSchemaKeySites())
-    // Exact-set non-vacuity: a missing export or broken walk cannot silently erase
-    // a disposition, and a sixth occurrence is not covered by a count-only allowance.
-    expect(hits.filter(isReceiptDisclosure).map(site => site.path).sort())
-      .toEqual([...RECEIPT_DISCLOSURE_PATHS].sort())
-    expect(hits.filter(site => !isReceiptDisclosure(site))).toEqual([])
+  it('no published schema exposes a strategy switch', () => {
+    expect(strategyKnobSites(collectSchemaKeySites())).toEqual([])
   })
 
   it('POSITIVE CONTROL: the detector flags such a key when one exists', () => {
@@ -225,26 +202,6 @@ describe('D-16: the reconciliation strategy is reachable from no configuration k
     expect(strategyKnobKeys(['chatStrategy'])).toEqual(['chatStrategy'])
     expect(strategyKnobKeys(['reconciliationMode'])).toEqual(['reconciliationMode'])
     expect(strategyKnobKeys(['overrideConfigured'])).toEqual(['overrideConfigured'])
-  })
-
-  it('POSITIVE CONTROL: the same disclosure spelling and schema still fail on a configuration path', () => {
-    // Structural fixtures use the same definition interface as the real schemas;
-    // no package dependency is added solely to construct the injected config.
-    const config = { def: { type: 'object', shape: {
-      judge: schemaExports.gate1ArmSchema.shape.judge,
-      receipt: schemaExports.GateReceiptSchema,
-    } } }
-    for (const exports of [
-      { GateReceiptSchema: schemaExports.GateReceiptSchema, InjectedConfigSchema: config },
-      { InjectedConfigSchema: config, GateReceiptSchema: schemaExports.GateReceiptSchema },
-    ]) {
-      const hits = strategyKnobSites(collectSchemaKeySites(exports))
-      expect(hits.filter(site => !isReceiptDisclosure(site)).map(site => site.path).sort())
-        .toEqual([
-          'InjectedConfigSchema.judge.overrideConfigured',
-          'InjectedConfigSchema.receipt.judge.overrideConfigured',
-        ])
-    }
   })
 })
 

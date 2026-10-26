@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { appendGateReceipt } from '../bundle-append.js'
 import { standingReceiptDigestsFor } from '../gates/canary-posture-facts.js'
-import { completeGate1Receipt, createPromotionFloorFixture } from '../curator/__tests__/fixtures/promotion-floor-fixture.js'
+import { markReceipt, createPromotionFloorFixture } from '../curator/__tests__/fixtures/promotion-floor-fixture.js'
 
 describe('standing gate receipt digests', () => {
   let root: string
@@ -18,20 +18,20 @@ describe('standing gate receipt digests', () => {
   afterEach(() => rmSync(root, { recursive: true, force: true }))
   function seed(name = 'quiet') {
     const { published } = fixture.publishHeldCandidate(name)
-    const pass = completeGate1Receipt(published.id, { producedAtOrdinal: 10 })
+    const pass = markReceipt(published.id, { producedAtOrdinal: 10 })
     expect(appendGateReceipt(fixture.outcomeAppendConfig(), published.id, pass)).toEqual({ kind: 'appended' })
     return { ...published, pass }
   }
-  it('reads the standing pass and its corpus digest', () => {
+  it('reads the standing pass', () => {
     const planted = seed()
     expect(standingReceiptDigestsFor({ knowledgeRoot })).toEqual([{ candidateId: planted.id,
-      gate: 1, verdict: 'pass', corpusDigest: 'c'.repeat(64), producedAtOrdinal: 10 }])
+      gate: 3, verdict: 'pass', producedAtOrdinal: 10 }])
   })
   it('never revives a superseded pass', () => {
     const planted = seed()
     appendGateReceipt(fixture.outcomeAppendConfig(), planted.id,
-      completeGate1Receipt(planted.id, { producedAtOrdinal: 14, verdict: 'fail' }))
-    expect(standingReceiptDigestsFor({ knowledgeRoot }).find(row => row.gate === 1)?.verdict).toBe('fail')
+      markReceipt(planted.id, { producedAtOrdinal: 14, verdict: 'fail' }))
+    expect(standingReceiptDigestsFor({ knowledgeRoot }).find(row => row.gate === 3)?.verdict).toBe('fail')
   })
   it('refuses corrupt evidence instead of skipping the bundle', () => {
     const planted = seed()

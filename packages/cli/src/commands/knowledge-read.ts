@@ -31,6 +31,7 @@ import {
 } from '@vostride/agent-qa-schema'
 import type {
   BriefWhyResult,
+  GateReceipt,
   InspectFilter,
   InspectRecordView,
   KnowledgeBundleSummary,
@@ -346,24 +347,32 @@ function renderGates(dto: KnowledgeGatesListResult): string {
       ? `no gate receipts; would promote via ${dto.live.promotionPath}`
       : `no gate receipts; ${live}`
   }
+  const short = (digest: string) => digest.slice(0, 12)
+  const describe = (receipt: GateReceipt) => receipt.policyApproval !== undefined
+    ? `approval proposal ${receipt.policyApproval.proposalId} @${receipt.producedAtOrdinal}`
+    : `mark ${receipt.mark} @${receipt.producedAtOrdinal}`
+  const receipts = dto.lines.filter((line): line is GateReceipt => !('kind' in line))
+  const latest = (approval: boolean) => receipts
+    .filter(receipt => (receipt.policyApproval !== undefined) === approval)
+    .reduce<GateReceipt | undefined>((standing, receipt) => (
+      standing === undefined || receipt.producedAtOrdinal >= standing.producedAtOrdinal
+        ? receipt : standing
+    ), undefined)
+  const standingMark = latest(false)
+  const standingApproval = latest(true)
   return [
-    `record ${dto.recordId} · ${dto.recordKind} · ${dto.status} · strongest path: ${dto.strongestPromotionPath ?? 'none'}`,
     ...dto.lines.map(line => {
-      const by = [line.producedBy.jobId, line.producedBy.opId].filter(Boolean).join('|') || '-'
       if ('kind' in line) {
-        return `promotion ${line.promotionPath} @${line.producedAtOrdinal} by ${by} cites ${line.citedReceiptDigests.length} digest ${line.receiptDigest.slice(0, 12)}`
+        const cites = line.citedReceiptDigests.map(short).join(', ') || 'none'
+        return `promotion ${line.promotionPath} @${line.producedAtOrdinal} cites ${cites}`
       }
-      const corpus = line.gate === 3 ? '-' : line.corpusVersion.corpusDigest.slice(0, 12)
-      const degradation = line.gate === 1 ? line.degradation ?? '-' : '-'
-      return `gate ${line.gate} ${line.verdict} @${line.producedAtOrdinal} by ${by} digest ${line.receiptDigest.slice(0, 12)} corpus ${corpus} degradation ${degradation}`
+      const run = line.policyApproval !== undefined ? ''
+        : ` run ${line.runId}${line.stepId === undefined ? '' : ` step ${line.stepId}`}`
+      return `${describe(line)}${run} digest ${short(line.receiptDigest)}`
     }),
-    'standing:',
-    ...[1, 3].map(gate => {
-      const receipt = dto.standing.find(line => line.gate === gate)
-      return receipt === undefined ? `gate ${gate}: none`
-        : `gate ${gate}: ${receipt.verdict} @${receipt.producedAtOrdinal}`
-    }),
-    live,
+    `standing: ${standingMark === undefined ? 'mark none' : describe(standingMark)}; `
+      + `${standingApproval === undefined ? 'approval none' : describe(standingApproval)}`,
+    `live: ${live}`,
   ].join('\n')
 }
 
@@ -542,7 +551,7 @@ export function registerKnowledgeReadCommands(command: Command): void {
 
   command
     .command('gates <id>')
-    .description('Print a record\'s gate-and-promotion history through the agent function layer')
+    .description('Print a record\'s marks, approvals, promotion lines and live verdict through the agent function layer')
     .option('--json', 'output schema-validated masked JSON')
     .action(async (id: string, options: BundlesOptions, cmd: Command) => {
       let mask: MaskFn | undefined

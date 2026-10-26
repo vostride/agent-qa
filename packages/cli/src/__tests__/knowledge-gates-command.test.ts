@@ -145,39 +145,41 @@ describe('agent-qa knowledge gates', () => {
     expect(verifyBundleIntegrity(dir).ok).toBe(true)
   })
 
-  it('renders schema-valid history, standing and the live verdict over real bundles', async () => {
+  it('renders mark, approval and promotion lines with standing and the live verdict over real bundles', async () => {
     const { config, configPath, id } = fixture()
     expect(appendPromotionReceipt(config, id, {
       schemaVersion: GATE_RECEIPT_SCHEMA_VERSION, kind: 'promotion', candidateId: id, promotionPath: 'deterministic-verdict-floor',
       citedReceiptDigests: [], producedAtOrdinal: 6, producedBy: { opId: 'promote' },
     })).toEqual({ kind: 'appended' })
-    const score = { baseline: 0.5, candidate: 0.8, delta: 0.3, floor: 0.1, n: 10 }
-    const receipt = stampReceiptDigest({ schemaVersion: GATE_RECEIPT_SCHEMA_VERSION, gate: 1, verdict: 'pass',
-      candidateId: id, producedAtOrdinal: 7, producedBy: { jobId: 'replay-check' },
-      perAxisScore: { headline: score, elementIdentity: score, value: score, opClass: score,
-        sideEffect: score, loop: score },
-      corpusVersion: { corpusDigest: 'c'.repeat(64), partitionVersion: 2, gateSetSize: 10,
-        excludedCount: 0, minimumGateSet: 1 },
-      samples: { k: 1, seeds: [1], seedHonored: true, modelCalls: 0 }, crossCheck: 'held',
+    const mark = stampReceiptDigest({ schemaVersion: GATE_RECEIPT_SCHEMA_VERSION, gate: 3, verdict: 'pass',
+      candidateId: id, producedAtOrdinal: 7, producedBy: { opId: 'runs.mark' },
+      runId: 'checkout-run', stepId: 's3', mark: 'confirmed-bug',
     })
-    expect(appendGateReceipt(config, id, receipt)).toEqual({ kind: 'appended' })
+    const approval = stampReceiptDigest({ schemaVersion: GATE_RECEIPT_SCHEMA_VERSION, gate: 3, verdict: 'pass',
+      candidateId: id, producedAtOrdinal: 8, producedBy: { opId: 'knowledge.review.apply' },
+      policyApproval: { proposalId: 'kp_fixture', recordId: id },
+    })
+    expect(appendGateReceipt(config, id, mark)).toEqual({ kind: 'appended' })
+    expect(appendGateReceipt(config, id, approval)).toEqual({ kind: 'appended' })
     const dto = KnowledgeGatesListResultSchema.parse(JSON.parse(await invoke(configPath, [id, '--json'])))
     expect(dto.kind).toBe('found')
     if (dto.kind !== 'found') throw new Error('published record not found')
-    expect(dto.lines).toHaveLength(2)
-    expect(dto.standing).toEqual([receipt])
+    expect(dto.lines).toHaveLength(3)
+    expect(dto.lines.flatMap(line => 'gate' in line ? [line.gate] : [])).toEqual([3, 3])
+    expect(dto.standing).toEqual([approval])
     expect(dto.strongestPromotionPath).toBe('deterministic-verdict-floor')
-    const human = await invoke(configPath, [id])
-    expect(human).toContain(`record ${id} · fact · candidate · strongest path: deterministic-verdict-floor`)
-    expect(human).toContain('promotion deterministic-verdict-floor @6 by promote cites 0')
-    expect(human).toContain(`gate 1 pass @7 by replay-check digest ${receipt.receiptDigest.slice(0, 12)}`)
-    expect(human.indexOf('promotion deterministic-verdict-floor')).toBeLessThan(human.indexOf('gate 1 pass'))
-    expect(human).toContain('standing:\ngate 1: pass @7\ngate 3: none')
-    expect(human).toContain(dto.live.verdict === 'promote'
-      ? `promote via ${dto.live.promotionPath}` : `held: ${dto.live.reason}`)
+    const live = dto.live.verdict === 'promote'
+      ? `promote via ${dto.live.promotionPath}` : `held: ${dto.live.reason}`
+    expect((await invoke(configPath, [id])).split('\n')).toEqual([
+      'promotion deterministic-verdict-floor @6 cites none',
+      `mark confirmed-bug @7 run checkout-run step s3 digest ${mark.receiptDigest.slice(0, 12)}`,
+      `approval proposal kp_fixture @8 digest ${approval.receiptDigest.slice(0, 12)}`,
+      'standing: mark confirmed-bug @7; approval proposal kp_fixture @8',
+      `live: ${live}`,
+    ])
   })
 
-  it('shows a Gate-3 mark and its promotion receipt identity in human history', async () => {
+  it('shows a mark and the promotion it cites in human history', async () => {
     const { config, configPath, id } = fixture()
     const gate = stampReceiptDigest({
       schemaVersion: GATE_RECEIPT_SCHEMA_VERSION, gate: 3, verdict: 'pass', candidateId: id,
@@ -191,12 +193,16 @@ describe('agent-qa knowledge gates', () => {
     })).toEqual({ kind: 'appended' })
     const dto = KnowledgeGatesListResultSchema.parse(JSON.parse(await invoke(configPath, [id, '--json'])))
     if (dto.kind !== 'found') throw new Error('published record not found')
-    const human = await invoke(configPath, [id])
-    const lines = human.split('\n')
-    expect(lines.find(line => line.startsWith('gate 3 pass'))).toContain('by runs.mark')
-    expect(lines.find(line => line.startsWith('gate 3 pass'))).toContain('corpus -')
-    expect(lines.find(line => line.startsWith('promotion user-sovereign'))).toContain(`digest ${dto.lines[1].receiptDigest.slice(0, 12)}`)
-    expect(human).toContain('standing:\ngate 1: none\ngate 3: pass @6')
+    const lines = (await invoke(configPath, [id])).split('\n')
+    const digest = gate.receiptDigest.slice(0, 12)
+    expect(lines.slice(0, 3)).toEqual([
+      `mark false-fail @6 run marked-run digest ${digest}`,
+      `promotion user-sovereign @7 cites ${digest}`,
+      'standing: mark false-fail @6; approval none',
+    ])
+    expect(lines[3]).toBe(dto.live.verdict === 'promote'
+      ? `live: promote via ${dto.live.promotionPath}` : `live: held: ${dto.live.reason}`)
+    expect(lines).toHaveLength(4)
   })
 
   it('reports no gate receipts with the actual live answer and reports not found', async () => {

@@ -8,8 +8,6 @@ export interface StandingReceiptDigest {
   candidateId: string
   gate: GateReceipt['gate']
   verdict: GateReceipt['verdict']
-  /** Gate 3 is user evidence and has no corpus citation. */
-  corpusDigest?: string
   producedAtOrdinal: number
 }
 
@@ -22,7 +20,6 @@ export function standingReceiptDigestsFor(input: { knowledgeRoot: string }): Sta
       lines.filter((line): line is GateReceipt => !isPromotionReceipt(line)),
     ).map(receipt => ({
       candidateId: receipt.candidateId, gate: receipt.gate, verdict: receipt.verdict,
-      ...('corpusVersion' in receipt ? { corpusDigest: receipt.corpusVersion.corpusDigest } : {}),
       producedAtOrdinal: receipt.producedAtOrdinal,
     }))
   })

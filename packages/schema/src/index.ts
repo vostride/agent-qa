@@ -1634,15 +1634,8 @@ export { KnowledgeGatesListInputSchema, KnowledgeGatesListResultSchema,
   PromotionGateVerdictSchema } from './functions/knowledge'
 export type { KnowledgeGatesListInput, KnowledgeGatesListResult } from './functions/knowledge'
 
-export { PER_AXIS_SCORE_AXES, CROSS_CHECKS, DEGRADATIONS, BENEFITS, MARKS,
-  axisScoreSchema, perAxisScoreSchema, corpusVersionSchema, samplesSchema, noiseFloorRefSchema,
-  gate1ArmSchema, gate3ArmSchema } from './knowledge/gate-receipt'
-export type { PerAxisScoreAxis, CrossCheck, Degradation, Benefit, Mark,
-  Gate1Receipt, Gate3Receipt } from './knowledge/gate-receipt'
-// 2026-09-07, 417: neutral replay receipt and candidate DATA contracts.
-export { GATE1_REASONS, GATE1_TARGET_SOURCES, GATE1_K_SOURCES, GATE1_HARM_ORIGINS,
-  gate1CapSchema, gate1SpendSchema, gate1TargetSchema, gate1HarmedSchema } from './knowledge/gate-receipt'
-export type { Gate1Reason, Gate1TargetSource, Gate1KSource, Gate1HarmOrigin } from './knowledge/gate-receipt'
+export { BENEFITS, MARKS, gate3ArmSchema } from './knowledge/gate-receipt'
+export type { Benefit, Mark, Gate3Receipt } from './knowledge/gate-receipt'
 export { CandidateInjectionSchema, KnowledgeCandidateInjectionResultSchema } from './knowledge/candidate-injection'
 export type { CandidateInjection, KnowledgeCandidateInjectionResult } from './knowledge/candidate-injection'
 export { RecordAnchorsSchema, RecordScopeSchema } from './knowledge/record-frontmatter'

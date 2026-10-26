@@ -54,7 +54,7 @@ import type {
   StepEvidence,
 } from '@vostride/agent-qa-schema'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createPromotionFloorFixture, completeGate1Receipt } from './fixtures/promotion-capabilities.js'
+import { createPromotionFloorFixture, markReceipt } from './fixtures/promotion-capabilities.js'
 
 import { writeAnalysisArtifact } from '../../analysis/persist-analysis.js'
 import { AGENT_JOB_STORE_DB_FILE } from '../../store/sqlite-job-store.js'
@@ -273,7 +273,7 @@ describe('composeLocalAgent (D-15)', () => {
       await expect(LOCAL_CURATION_CAPABILITIES.promoteWithReceipts({ ...input, candidateId: published.id }))
         .resolves.toEqual({ kind: 'already-active', promotionPath: 'deterministic-verdict-floor' })
       expect(readGateReceipts(published.dir, published.id)).toHaveLength(1)
-      const receipt = completeGate1Receipt(published.id)
+      const receipt = markReceipt(published.id)
       await expect(LOCAL_CURATION_CAPABILITIES.recordGateReceipt({ ...input, receipt })).resolves.toEqual({ kind: 'appended' })
       await expect(LOCAL_CURATION_CAPABILITIES.recordGateReceipt({ ...input, receipt })).resolves.toEqual({ kind: 'duplicate' })
       const invalid = { ...input, lease: { leaseId: 'foreign', epoch: lease.epoch } }

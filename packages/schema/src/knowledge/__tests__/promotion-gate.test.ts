@@ -11,25 +11,10 @@ import {
   type PromotionGateInput,
 } from '../promotion-gate'
 
-function receipt(
-  gate: 1 | 3, verdict: GateVerdict, producedAtOrdinal = 5,
-  overrides: { corpusDigest?: string } = {},
-): GateReceipt {
-  const core = {
-    schemaVersion: GATE_RECEIPT_SCHEMA_VERSION as typeof GATE_RECEIPT_SCHEMA_VERSION,
-    candidateId: 'candidate', verdict, producedAtOrdinal,
-    producedBy: { opId: 'gate-test' },
-  }
-  const corpusDigest = overrides.corpusDigest ?? 'c'.repeat(64)
-  if (gate === 3) return stampReceiptDigest({ ...core, gate, runId: 'run', mark: 'confirmed-bug' })
-  const score = { baseline: 0.5, candidate: 0.8, delta: 0.3, floor: 0.1, n: 10 }
+function receipt(verdict: GateVerdict, producedAtOrdinal = 5): GateReceipt {
   return stampReceiptDigest({
-    ...core, gate,
-    perAxisScore: { headline: score, elementIdentity: score, value: score, opClass: score,
-      sideEffect: score, loop: score },
-    corpusVersion: { corpusDigest, partitionVersion: 2, gateSetSize: 63,
-      excludedCount: 0, minimumGateSet: 63 },
-    samples: { k: 1, seeds: [1], seedHonored: true, modelCalls: 0 }, crossCheck: 'held',
+    schemaVersion: GATE_RECEIPT_SCHEMA_VERSION, gate: 3, candidateId: 'candidate', verdict,
+    producedAtOrdinal, producedBy: { opId: 'gate-test' }, runId: 'run', mark: 'confirmed-bug',
   })
 }
 
@@ -224,7 +209,7 @@ describe('evaluatePromotionGate receipt paths', () => {
     }))
 
   it('promotes user-sovereign on a standing Gate-3 pass without any floor evidence', () => {
-    const g3 = receipt(3, 'pass')
+    const g3 = receipt('pass')
     for (const build of [factInput, cautionInput]) {
       expect(evaluatePromotionGate(build({ gateReceipts: [g3],
         confirmedOutcomeEvidenceTokens: [], distilledObservations: [], withheld: true,
@@ -235,40 +220,20 @@ describe('evaluatePromotionGate receipt paths', () => {
     }
   })
 
-  it('promotes user-sovereign beside a Gate-1 receipt on another corpus', () => {
-    const g3 = receipt(3, 'pass')
-    expect(withReceipts([receipt(1, 'pass', 10, { corpusDigest: 'd'.repeat(64) }), g3]))
-      .toEqual({ verdict: 'promote', promotionPath: 'user-sovereign',
-        citedReceiptDigests: [g3.receiptDigest] })
-  })
-
   it('reads the standing Gate-3 instead of an older sovereign pass', () => {
-    expect(withReceipts([receipt(3, 'pass', 4), receipt(3, 'fail', 5)])).toEqual(floor)
-    expect(withReceipts([receipt(3, 'pass', 5), receipt(3, 'abstain', 5)])).toEqual(floor)
-    expect(withReceipts([receipt(3, 'pass', 4), receipt(3, 'fail', 5)],
+    expect(withReceipts([receipt('pass', 4), receipt('fail', 5)])).toEqual(floor)
+    expect(withReceipts([receipt('pass', 5), receipt('abstain', 5)])).toEqual(floor)
+    expect(withReceipts([receipt('pass', 4), receipt('fail', 5)],
       { confirmedOutcomeEvidenceTokens: [] }))
       .toEqual({ verdict: 'hold', reason: 'no-confirmed-evidence' })
   })
-
-  it.each(['pass', 'fail', 'abstain'] as const)(
-    'decides by the floor alone beside a Gate-1 %s receipt',
-    (verdict) => {
-      const g1 = receipt(1, verdict)
-      expect(withReceipts([g1])).toEqual(floor)
-      expect(evaluatePromotionGate(cautionInput({ gateReceipts: [g1] }))).toEqual(floor)
-      expect(withReceipts([g1], { distilledObservations: [] }))
-        .toEqual({ verdict: 'hold', reason: 'no-element-observation' })
-      expect(withReceipts([g1], { confirmedOutcomeEvidenceTokens: [] }))
-        .toEqual({ verdict: 'hold', reason: 'no-confirmed-evidence' })
-    },
-  )
 
   it('keeps kind, status and window precedence over a sovereign pass', () => {
     for (const [override, reason] of [
       [{ kind: 'procedure' }, 'kind-excluded'], [{ kind: 'policy' }, 'kind-excluded'],
       [{ status: 'active' }, 'not-candidate'], [{ validityOpen: false }, 'window-closed'],
     ] as const) {
-      expect(withReceipts([receipt(1, 'pass'), receipt(3, 'pass')], override))
+      expect(withReceipts([receipt('pass')], override))
         .toEqual({ verdict: 'hold', reason })
     }
   })

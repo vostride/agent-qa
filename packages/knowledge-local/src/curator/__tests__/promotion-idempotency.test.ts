@@ -7,7 +7,7 @@ import { deriveBundleTrust, readGateReceipts } from '../../bundle-read.js'
 import { acquireWriterLease } from '../../lease/writer-lease.js'
 import { openIndexReaderConnection } from '../../index-open.js'
 import { createLocalKnowledgeStore, type CreateLocalKnowledgeStoreConfig } from '../knowledge-store.js'
-import { completeGate1Receipt, createPromotionFloorFixture } from './fixtures/promotion-floor-fixture.js'
+import { markReceipt, createPromotionFloorFixture } from './fixtures/promotion-floor-fixture.js'
 
 describe('promotion receipt writer contract', () => {
   let root: string
@@ -47,7 +47,7 @@ describe('promotion receipt writer contract', () => {
 
   it('records identical receipts as appended then duplicate', async () => {
     const { published, store } = await confirmed()
-    const receipt = completeGate1Receipt(published.id)
+    const receipt = markReceipt(published.id)
     expect(await store.recordGateReceipt(receipt)).toEqual({ kind: 'appended' })
     expect(await store.recordGateReceipt(receipt)).toEqual({ kind: 'duplicate' })
     expect(readGateReceipts(published.dir, published.id)).toEqual([receipt])
@@ -66,10 +66,10 @@ describe('promotion receipt writer contract', () => {
   })
   async function refusesInvalidBatch(defect: 'digest' | 'candidate') {
     const { published, store } = await confirmed()
-    const valid = completeGate1Receipt(published.id)
+    const valid = markReceipt(published.id)
     const invalid = defect === 'digest'
       ? { ...gate3(published.id), receiptDigest: 'f'.repeat(64) }
-      : completeGate1Receipt('foreign-candidate')
+      : markReceipt('foreign-candidate')
     const manifest = readFileSync(join(published.dir, 'manifest.json'), 'utf8')
     const events = readFileSync(join(published.dir, 'evidence/outcomes.jsonl'), 'utf8')
     const refused = store.promote(published.id, [valid, invalid])
@@ -87,9 +87,9 @@ describe('promotion receipt writer contract', () => {
   })
   it('refuses an unknown record and a tampered standalone receipt', async () => {
     const { published, store } = await confirmed()
-    await expect(store.recordGateReceipt(completeGate1Receipt(asRecordId('missing'))))
+    await expect(store.recordGateReceipt(markReceipt(asRecordId('missing'))))
       .rejects.toMatchObject({ name: 'KnowledgePromotionError', reason: 'not-found' })
-    await expect(store.recordGateReceipt({ ...completeGate1Receipt(published.id), receiptDigest: 'f'.repeat(64) }))
+    await expect(store.recordGateReceipt({ ...markReceipt(published.id), receiptDigest: 'f'.repeat(64) }))
       .rejects.toThrow(TypeError)
     expect(readGateReceipts(published.dir, published.id)).toBeUndefined()
   })
@@ -97,7 +97,7 @@ describe('promotion receipt writer contract', () => {
     const { published } = await confirmed()
     const reports = vi.fn()
     const proposeOnly = createLocalKnowledgeStore({ ...config, executionContext: 'ci', onPromotionOutcome: reports })
-    await expect(proposeOnly.promote(published.id, [completeGate1Receipt(published.id)]))
+    await expect(proposeOnly.promote(published.id, [markReceipt(published.id)]))
       .rejects.toMatchObject({ reason: 'propose-only' })
     expect(reports).not.toHaveBeenCalled()
     expect(readGateReceipts(published.dir, published.id)).toBeUndefined()
@@ -105,7 +105,7 @@ describe('promotion receipt writer contract', () => {
   it('requires the published writer authority for both receipt-writing methods', async () => {
     const { published } = await confirmed()
     const unauthorized = createLocalKnowledgeStore({ ...config, writerLeaseId: 'foreign-holder' })
-    const receipt = completeGate1Receipt(published.id)
+    const receipt = markReceipt(published.id)
     await expect(unauthorized.recordGateReceipt(receipt)).rejects.toMatchObject({ name: 'WriterAuthorityLostError' })
     await expect(unauthorized.promote(published.id, [receipt])).rejects.toMatchObject({ name: 'WriterAuthorityLostError' })
     expect(readGateReceipts(published.dir, published.id)).toBeUndefined()
