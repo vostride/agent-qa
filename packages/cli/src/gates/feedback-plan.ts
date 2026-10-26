@@ -5,7 +5,6 @@ import { chainJobIdsForRun, type KnowledgeReaderPort } from '@vostride/agent-qa-
 import { createKnowledgeReader, DIGEST_JOB_ID_SOURCE, LOCAL_CURATION_CAPABILITIES, type LocalCurationCapabilities } from '@vostride/agent-qa-agent-local'
 import { MARK_TARGET_REASONS, projectRecordContent, RunsMarkInputSchema, type CompletedRunHandoff, type ImprovementPlan, type KnowledgeRecordShowResult, type KnowledgeTargetRef, type Mark, type MarkAddress, type MarkPreviewKnowledge, type MarkPreviewKnowledgeRecord, type MarkQuarantineClass, type MarkReceipt, type NoDraftableFixChecked, type RunsMarkInput, type RunsMarkOutcome } from '@vostride/agent-qa-schema'
 import { resolveConfig, resolveConfiguredKnowledgeRoot } from '../config.js'
-import { trustPriorsForHost, type ResolveTrustPriors } from '../curation/trust-priors.js'
 import { FsHandoffSource, FsMarkLedger, latestMarkReceiptFor, slugBranch } from '../eval-session-composition.js'
 
 export type MarkPlanCuration = Pick<LocalCurationCapabilities, 'triageMark' | 'servedIdsOn' | 'procedureReadOn' | 'applyFeedback' | 'readFeedbackRecord' | 'planMarkEvidence' | 'projectMarkEvidenceOutcome'>
@@ -194,7 +193,6 @@ export interface MarkPreviewDeps {
   agentQaRoot: string
   curation?: MarkPlanCuration
   reader?: KnowledgeReaderPort
-  resolveTrustPriors?: ResolveTrustPriors
   /** Mirrors a writer host that binds invokeAuthoringDraftEdit; the preview never invokes it. */
   canDraftTestEdit?: boolean
 }
@@ -249,8 +247,7 @@ export async function previewMarkConsequences(deps: MarkPreviewDeps, raw: unknow
     if (store !== undefined) return store
     const config = await resolveConfig({ configPath: deps.configPath, loadAuthPlugins: false })
     const knowledgeRoot = resolveConfiguredKnowledgeRoot(config, dirname(resolve(deps.configPath)))
-    store = { knowledgeRoot, reader: deps.reader ?? createKnowledgeReader(() => knowledgeRoot, undefined,
-      deps.resolveTrustPriors ?? trustPriorsForHost(deps).resolve) }
+    store = { knowledgeRoot, reader: deps.reader ?? createKnowledgeReader(() => knowledgeRoot) }
     return store
   }
 

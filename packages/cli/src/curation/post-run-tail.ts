@@ -87,11 +87,6 @@ import {
   CURATION_BREAKDOWN_BUCKETS,
   POST_PROCESSING_SKIP_REASON_WORDS,
 } from '@vostride/agent-qa-schema'
-import {
-  buildTrustPriorsResolver,
-  TrustPriorsRefusedError,
-  type trustPriorsForHost,
-} from './trust-priors.js'
 
 /**
  * What became of the durable hand-off.
@@ -197,7 +192,6 @@ export interface PostRunTailOperations {
 }
 
 export interface PostRunTailHostInput {
-  readonly trustPriors?: ReturnType<typeof trustPriorsForHost>
   readonly agentQaRoot: string
   readonly configPath: string
   /**
@@ -249,7 +243,6 @@ export function defaultPostRunTailOperations(): PostRunTailOperations {
     loadCompletedRunHandoff: curationDefaults.loadCompletedRunHandoff,
     resolveKnowledgeRoot: curationDefaults.resolveKnowledgeRoot,
     composeHost: (input) => composeCliLocalAgent({
-      ...(input.trustPriors === undefined ? {} : { trustPriors: input.trustPriors }),
       agentQaRoot: input.agentQaRoot,
       configPath: input.configPath,
       model: () => resolvePostRunJobModel(input.configPath),
@@ -305,7 +298,6 @@ export interface RunPostRunTailOptions extends Pick<
 > {
   /** The resolved project config file; the composition resolves everything else from it. */
   configPath: string
-  trustPriors?: ReturnType<typeof trustPriorsForHost>
   /**
    * What the post-verdict step's enqueue answered (404 D-05).
    *
@@ -449,13 +441,6 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
       ? {}
       : { info: (message: string) => opts.log.info?.(mask(message)) }),
   }
-  // Read at composition; surface refusal inside each leg's verdict-preserving catch.
-  const trustPriors = opts.trustPriors ?? buildTrustPriorsResolver({ configPath: opts.configPath })
-  const snapshot = () => {
-    if (trustPriors.kind === 'refused') throw new TrustPriorsRefusedError()
-    return trustPriors
-  }
-  const resolveTrustPriors = trustPriors.kind === 'ready' ? trustPriors.resolve : undefined
   /**
    * Resolved on first use, INSIDE a leg's own try (JOBQ-06).
    *
@@ -536,7 +521,6 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
     const deadlineMs = input.deadlineMs ?? drainDeadlineMs
     const foldSignal = drainSignal ?? opts.signal
     const folded = await ops().curateCompletedRun({
-      resolveTrustPriors,
       runDir: curatedRunDir,
       handoff,
       knowledgeRoot: runKnowledgeRoot,
@@ -561,7 +545,6 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
 
   const openHost = (): LocalAgentHost => {
     host ??= ops().composeHost({
-      trustPriors: snapshot(),
       agentQaRoot: opts.agentQaRoot,
       configPath: opts.configPath,
       // The same conditional spread the fold is threaded with: composeHost derives the
@@ -615,8 +598,6 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
           ...(opts.executionContext === undefined ? {} : { executionContext: opts.executionContext }),
         })
         preparationRecoveryPending = recovery.some((result) => result.pending)
-        // Unreadable trust priors stop the drain here, before any lease is taken.
-        snapshot()
       } catch (error) {
         // Constructing the operations table reads the shipped modules, and a build where one of
         // those reads throws must not send the exception past `runVerdictFirstCurationTail` into
@@ -804,7 +785,6 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
         // (Pitfall 11). This run's own directory is already receipted by the fold the chain
         // just ran, so the sweep skips it rather than folding it twice.
         if (!preparationRecoveryPending) await ops().runCurationTail({
-          resolveTrustPriors,
           runId: opts.runId,
           agentQaRoot: opts.agentQaRoot,
           knowledgeConfig: opts.knowledgeConfig,

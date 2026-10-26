@@ -10,7 +10,6 @@ import type { KnowledgeReaderPort } from '@vostride/agent-qa-agent'
 import { createKnowledgeReader } from '@vostride/agent-qa-agent-local'
 import { projectRecordContent, RunsMarkInputSchema, type FeedbackReadsPort, type KnowledgeRecordShowResult, type MarkHistoryChangedRecord, type MarkHistoryReadEntry, type MarkPreviewBasis, type MarkReceipt, type RunsMarkPreviewResult } from '@vostride/agent-qa-schema'
 import { resolveConfiguredKnowledgeRoot } from '../config.js'
-import { trustPriorsForHost, type ResolveTrustPriors } from '../curation/trust-priors.js'
 import { FsMarkLedger, HANDOFF_FILE, MarkLedgerCorruptError, resolveEvalSession, RUNS_SUBDIR, slugBranch } from '../eval-session-composition.js'
 import { previewMarkConsequences, type MarkPlanBasis, type MarkPlanCuration } from './feedback-plan.js'
 
@@ -24,7 +23,6 @@ export interface FeedbackReadsHostDeps {
   /** Read halves only: the preview's type admits no append, fix, lease or model call. */
   curation?: MarkPlanCuration
   reader?: KnowledgeReaderPort
-  resolveTrustPriors?: ResolveTrustPriors
   /** Mirrors a writer host that binds the authoring draft edit; the preview never invokes it. */
   canDraftTestEdit?: boolean
 }
@@ -58,8 +56,7 @@ export function createFeedbackReadsPortForHost(deps: FeedbackReadsHostDeps): Fee
       try {
         const session = await resolveEvalSession({ configPath, keyOnly: true })
         const knowledgeRoot = resolveConfiguredKnowledgeRoot(session.config, dirname(resolve(configPath)))
-        reader = createKnowledgeReader(() => knowledgeRoot, undefined,
-          deps.resolveTrustPriors ?? trustPriorsForHost({ configPath }).resolve)
+        reader = createKnowledgeReader(() => knowledgeRoot)
       } catch {
         return absent('not-bound')
       }
@@ -87,7 +84,6 @@ export function createFeedbackReadsPortForHost(deps: FeedbackReadsHostDeps): Fee
     const previewed = await previewMarkConsequences({ configPath: configPath!, agentQaRoot: deps.agentQaRoot,
       ...(deps.curation === undefined ? {} : { curation: deps.curation }),
       ...(deps.reader === undefined ? {} : { reader: deps.reader }),
-      ...(deps.resolveTrustPriors === undefined ? {} : { resolveTrustPriors: deps.resolveTrustPriors }),
       canDraftTestEdit: deps.canDraftTestEdit === true }, input)
     const prospective = { runId: input.runId, prospective: true as const, markKind: input.kind }
     switch (previewed.kind) {

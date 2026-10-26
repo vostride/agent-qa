@@ -1,5 +1,4 @@
 import { dirname, join, resolve } from 'node:path'
-import { trustPriorsForHost, type ResolveTrustPriors } from '../curation/trust-priors.js'
 import type { KnowledgeReaderPort } from '@vostride/agent-qa-agent'
 import type { FeedbackPort } from '@vostride/agent-qa-schema'
 import { RUNS_MARK_FUNCTION_ID } from '@vostride/agent-qa-agent'
@@ -15,7 +14,6 @@ import { answerRecordedMarkEdit, clearMarkEditRecord, MARK_EDIT_RECORD_FILE, wit
 export { resolveMarkMember } from './feedback-plan.js'
 
 export interface FeedbackHostDeps {
-  resolveTrustPriors?: ResolveTrustPriors
   configPath: string
   agentQaRoot: string
   invokeAuthoringDraftEdit?: (input: AuthoringDraftEditInput) => Promise<AuthoringDraftEditOutput>
@@ -122,7 +120,6 @@ export function createFeedbackPortForHost(deps: FeedbackHostDeps): FeedbackPort 
     }
     return held.authority()
   }
-  const resolveTrustPriors = deps.resolveTrustPriors ?? trustPriorsForHost(deps).resolve
   const curation = deps.curation ?? LOCAL_CURATION_CAPABILITIES
   const ledgerFor = (runId: string) => new FsMarkLedger({ root: deps.agentQaRoot, runId })
   return {
@@ -196,7 +193,7 @@ export function createFeedbackPortForHost(deps: FeedbackHostDeps): FeedbackPort 
           mark.disposition = { kind: 'confirmed-bug', confirmedRecords: mark.evidence.confirmed }
         } else {
           const step = member.steps[planned.resolvedStep.stepIndex]!
-          const reader = deps.reader ?? createKnowledgeReader(() => knowledgeRoot, undefined, resolveTrustPriors)
+          const reader = deps.reader ?? createKnowledgeReader(() => knowledgeRoot)
           const { served, procedure } = await readMarkDraftFacts({ reader, curation, knowledgeRoot, member, step })
           let plan = intent.plan ?? curation.applyFeedback(markFeedbackInput(mark,
             { handoff, member, step, served, ...(procedure === undefined ? {} : { procedure }) }))
@@ -212,7 +209,7 @@ export function createFeedbackPortForHost(deps: FeedbackHostDeps): FeedbackPort 
             // landing it twice, and a held lease goes to its holder with this exact request.
             const applied = await (deps.applyKnowledgeChange ?? applyKnowledgeChange)({
               agentQaRoot: deps.agentQaRoot, knowledgeRoot, operationId: intent.operationId,
-              opId: RUNS_MARK_FUNCTION_ID, executionContext, resolveTrustPriors,
+              opId: RUNS_MARK_FUNCTION_ID, executionContext,
               request: { verb: 'mark', input: { target: knowledgePlan.target,
                 mark: { runId: mark.runId, testIndex: mark.testIndex,
                   ...(mark.stepIndex === undefined ? {} : { stepIndex: mark.stepIndex }),

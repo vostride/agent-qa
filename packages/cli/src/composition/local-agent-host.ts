@@ -17,7 +17,6 @@ import {
 } from '../gates/feedback-host.js'
 import { recordMarkEditAhead, type PendingTestWrite } from '../gates/mark-edit-record.js'
 import { createFeedbackReadsPortForHost } from '../gates/feedback-read-host.js'
-import { bindTrustPriorsToConfig, trustPriorsForHost, type ResolveTrustPriors } from '../curation/trust-priors.js'
 // The CLI's half of the local host (Phase 384 plan 01, superseded in place by 385 plan 09, D-15).
 //
 // What used to live here — the runs reader, the knowledge listing binding and the registry
@@ -285,7 +284,6 @@ export function currentRunDoor(): RunAttributeTrigger | undefined {
  * Both of the drive's own call sites and the daemon's composition defer for the same reason.
  */
 function createComposedRunExecution(input: {
-  readonly trustPriors: ReturnType<typeof trustPriorsForHost>
   readonly configPath: string
   readonly agentQaRoot: string
   readonly resolveExecutionContext: ComposeLocalAgentInput['resolveExecutionContext']
@@ -293,7 +291,6 @@ function createComposedRunExecution(input: {
   readonly runTrigger?: RunAttributeTrigger
   readonly analytics?: CliAnalyticsHost
 }): RunExecutionPort {
-  const selectTrustPriors = bindTrustPriorsToConfig(input)
   return {
     // 432-13: the port's second argument (the retired run gate's standing-approval reader) is not
     // taken. Nothing asks, so there is no approval for a reader to satisfy.
@@ -326,7 +323,6 @@ function createComposedRunExecution(input: {
         ...(request.patterns === undefined ? {} : { patterns: request.patterns }),
         warn,
       })
-      const trustPriors = selectTrustPriors(inputs.configFilePath)
       const runRecord = createRunRecord({
         attributes: doorRunAttributes(trigger),
         ...(input.runBridge?.record === undefined ? {} : { host: input.runBridge.record }),
@@ -340,7 +336,6 @@ function createComposedRunExecution(input: {
       try {
         const outcome = await runInProcessCliRun(
           {
-            resolveTrustPriors: trustPriors.resolve,
             configPath,
             agentQaRoot: input.agentQaRoot,
             executionContext,
@@ -405,7 +400,6 @@ function createComposedRunExecution(input: {
               const tail = composeCliPostRunTail({
                 postVerdict: context.postVerdict,
                 ...(context.postVerdictDeadlineMs === undefined ? {} : { deadlineMs: context.postVerdictDeadlineMs }),
-                trustPriors,
                 runId: context.runId,
                 configDir: context.configDir,
                 configFilePath: context.configFilePath,
@@ -463,8 +457,6 @@ function createComposedRunExecution(input: {
 }
 
 export interface ComposeCliLocalAgentInput {
-  /** An enclosing host supplies its ready snapshot, including the matching disclosure. */
-  trustPriors?: ReturnType<typeof trustPriorsForHost>
   /** The project's runtime root, i.e. `<configDir>/.agent-qa`. */
   agentQaRoot: string
   /**
@@ -1885,8 +1877,6 @@ function projectRunsDbPath(configPath: string): string | undefined {
 }
 
 export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAgentHost {
-  const trustPriors = input.trustPriors ?? trustPriorsForHost({ configPath: input.configPath })
-  const resolveTrustPriors = trustPriors.resolve
   // Narrowed once, here, so the hook closures below close over a value TypeScript knows is present
   // rather than re-reading an optional field at call time.
   const analytics = input.analytics
@@ -1929,7 +1919,6 @@ export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAge
   const host = composeLocalAgent({
     mask: declaredSecrets.mask,
     feedback: createFeedbackPortForHost({
-      resolveTrustPriors,
       configPath: input.configPath, agentQaRoot: input.agentQaRoot, randomUuid: randomUUID,
       invokeAuthoringDraftEdit: async draftInput => AuthoringDraftEditOutputSchema.parse(
         await invokeFunction(host.registry, AUTHORING_DRAFT_EDIT_FUNCTION_ID, draftInput, CLI_FUNCTION_CALLER),
@@ -1945,8 +1934,7 @@ export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAge
     // 423 D-16: its preview plans against this project's knowledge root with read capabilities only. The
     // writer above binds the authoring draft edit, so the preview reports a test edit where runs.mark drafts one.
     feedbackReads: createFeedbackReadsPortForHost({ agentQaRoot: input.agentQaRoot, configPath: input.configPath,
-      resolveTrustPriors, canDraftTestEdit: true }),
-    resolveTrustPriors,
+      canDraftTestEdit: true }),
     agentQaRoot: input.agentQaRoot,
     mintQuarantineIdentityPath: createQuarantineIdentityMint(input.configPath),
     // 401-05 (D-01/D-07): the default is the in-process policy-gated drive, and since 401-10 it is
@@ -1954,7 +1942,6 @@ export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAge
     // rather than merely unreferenced. `input.runExecution` stays the injectable override, which is
     // what cells substitute.
     runExecution: input.runExecution ?? createComposedRunExecution({
-      trustPriors,
       configPath: input.configPath,
       agentQaRoot: input.agentQaRoot,
       resolveExecutionContext: input.resolveExecutionContext,
@@ -2204,7 +2191,6 @@ export function delegateMarkViaDaemon(input: {
 export function createLeaseHolderFeedbackPort(input: {
   readonly configPath: string
   readonly agentQaRoot: string
-  readonly resolveTrustPriors?: ResolveTrustPriors
   readonly writerAuthority: MarkWriterAuthority
   readonly registry: () => FunctionRegistry
   readonly caller: FunctionCaller
@@ -2213,9 +2199,6 @@ export function createLeaseHolderFeedbackPort(input: {
     configPath: input.configPath,
     agentQaRoot: input.agentQaRoot,
     randomUuid: randomUUID,
-    ...(input.resolveTrustPriors === undefined
-      ? {}
-      : { resolveTrustPriors: input.resolveTrustPriors }),
     writerAuthority: input.writerAuthority,
     invokeAuthoringDraftEdit: async draftInput => AuthoringDraftEditOutputSchema.parse(
       await invokeFunction(

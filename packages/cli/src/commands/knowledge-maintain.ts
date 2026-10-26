@@ -63,7 +63,6 @@ import {
   type RemoveRegistrationOutcome,
 } from '../daemon/registration.js'
 import { daemonSocketOwnershipFor, unlinkDaemonSocket } from '../daemon/server.js'
-import { trustPriorsForHost } from '../curation/trust-priors.js'
 
 // The eleven maintenance verbs, taken off the local host's curation capabilities rather than
 // imported from the knowledge package directly (D-14). Bound once here so every call site below is
@@ -420,14 +419,11 @@ function recordInlineDrainSession(
 async function drainInline(
   paths: KnowledgePaths,
   options: DrainOptions,
-  trustPriors: ReturnType<typeof trustPriorsForHost>,
   mask: MaskFn,
 ): Promise<void> {
-  const resolveTrustPriors = trustPriors.resolve
   const seenCandidateIds = new Set<string>()
   let inlineAuthority: { leaseId: string; epoch: number } | undefined
   const report = await drainQueue({
-    priors: resolveTrustPriors(),
     knowledgeRoot: paths.knowledgeRoot,
     author: FALLBACK_CURATOR_AUTHOR,
     executionContext: resolveRunExecutionContext(),
@@ -780,7 +776,6 @@ function refuseDrainRouting(
 async function routeDrain(
   paths: KnowledgePaths,
   options: DrainOptions,
-  trustPriors: ReturnType<typeof trustPriorsForHost>,
   mask: MaskFn,
 ): Promise<void> {
   const classified = await classifyDrainHost(paths)
@@ -790,7 +785,7 @@ async function routeDrain(
   }
   if (refuseDrainRouting(classified, options, mask)) return
   if (classified.kind === 'absent') {
-    await drainInline(paths, options, trustPriors, mask)
+    await drainInline(paths, options, mask)
     return
   }
 
@@ -850,7 +845,7 @@ async function routeDrain(
   }
   const inline = routed()
   reportStrandedQuarantine(inline, mask)
-  await drainInline(paths, inline, trustPriors, mask)
+  await drainInline(paths, inline, mask)
 }
 
 function reportDrainError(error: unknown, mask: MaskFn | undefined): void {
@@ -1222,8 +1217,7 @@ export function registerKnowledgeMaintainCommands(command: Command): void {
           return
         }
 
-        const trustPriors = trustPriorsForHost({ configPath: paths.configPath })
-        await routeDrain(paths, options, trustPriors, mask)
+        await routeDrain(paths, options, mask)
       } catch (error) {
         reportDrainError(error, mask)
       }
@@ -1238,9 +1232,8 @@ export function registerKnowledgeMaintainCommands(command: Command): void {
       try {
         mask = declaredMaskFor(rebuildCommand)
         const paths = await resolveKnowledgePaths(rebuildCommand)
-        const trustPriors = trustPriorsForHost({ configPath: paths.configPath })
         const result = await withWriterLease('rebuild-index', paths.knowledgeRoot, mask, (writerAuthority) => (
-          rebuildIndex({ knowledgeRoot: paths.knowledgeRoot, writerAuthority, priors: trustPriors.resolve() })
+          rebuildIndex({ knowledgeRoot: paths.knowledgeRoot, writerAuthority })
         ))
         if (result.kind === 'refused') return
         if (options.json === true) emitJson(mask, result.value)

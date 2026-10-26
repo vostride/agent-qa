@@ -49,7 +49,6 @@ import { NON_SIGNAL_CLASSES } from './emit-canary-outcomes.js'
 import { emitCurationCandidates, type EmitReport } from './emit-candidates.js'
 import { exercisedAnchors } from './handoff-anchors.js'
 import { renderPromotionLine } from './promotion-line.js'
-import type { ResolveTrustPriors } from './trust-priors.js'
 import { resolveRunCurationContext } from './run-curation-context.js'
 import { ciResumeClause } from './resume-limit.js'
 
@@ -127,7 +126,6 @@ export interface CurationWriterAuthority {
 }
 
 export interface RunCurationTailOptions {
-  resolveTrustPriors?: ResolveTrustPriors
   runId: string
   /** Absolute `.agent-qa` runtime root the run handoff lives under. */
   agentQaRoot: string
@@ -433,7 +431,6 @@ type CurationAuthorCapability =
   Parameters<LocalCurationCapabilities['drainQueue']>[0]['author']
 
 export interface CurateCompletedRunInput {
-  resolveTrustPriors?: ResolveTrustPriors
   /** The run's own directory (`<agentQaRoot>/runs/<slug>`), derived by the caller. */
   runDir: string
   /** The already-loaded, already-guarded handoff for THAT directory. */
@@ -671,8 +668,7 @@ export async function curateCompletedRun(
       // beside (never inside) the noop warn and the complete predicate below.
       input.log.info?.(candidateSummaryLine(receiptIdentity.runId, candidates))
       // D-20: candidate and canary drops share this scope and crash boundary.
-      const reader = operations.openKnowledgeReader({ knowledgeRoot: input.knowledgeRoot,
-        priors: input.resolveTrustPriors?.() })
+      const reader = operations.openKnowledgeReader({ knowledgeRoot: input.knowledgeRoot })
       const canaries = await operations.emitCanaryOutcomes({
         handoff: input.handoff,
         knowledgeRoot: input.knowledgeRoot,
@@ -724,7 +720,6 @@ export async function curateCompletedRun(
             candidateId: row.candidateId, runId: input.handoff.runId,
             testId: row.testId, testIndex: row.testIndex, stepIndex: row.stepIndex,
           })]),
-        priors: input.resolveTrustPriors?.(),
         knowledgeRoot: input.knowledgeRoot,
         author,
         executionContext: input.handoff.executionContext,
@@ -978,7 +973,6 @@ export async function runCurationTail(opts: RunCurationTailOptions): Promise<voi
         runMask = context.mask
       }
       const folded = await curateCompletedRun({
-        resolveTrustPriors: opts.resolveTrustPriors,
         runDir,
         handoff,
         knowledgeRoot,

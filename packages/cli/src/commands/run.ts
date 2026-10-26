@@ -1,5 +1,4 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
-import { trustPriorsForHost, type ResolveTrustPriors } from '../curation/trust-priors.js'
 import { randomUUID } from 'node:crypto'
 import { realpathSync } from 'node:fs'
 import { resolve as resolvePath } from 'node:path'
@@ -1926,7 +1925,6 @@ async function executeSuites(
   globalOpts: { config?: string; verbose?: boolean; quiet?: boolean; logLevel?: string },
   configContent: string,
   effectiveLogLevel: string,
-  trustPriors: ReturnType<typeof trustPriorsForHost> | undefined,
   variableContext: {
     envFileVars: Record<string, string>
     inlineVars: Record<string, string>
@@ -2056,7 +2054,6 @@ async function executeSuites(
   try {
     const reporterSelection = requireReporterSelection(opts)
     const produced = await produceSuiteRunMembers({
-      resolveTrustPriors: trustPriors?.resolve,
       suiteFiles,
       preflight,
       config,
@@ -2159,7 +2156,6 @@ async function executeSuites(
           const postRunTail = composeCliPostRunTail({
             postVerdict,
             ...(postVerdictDeadlineMs === undefined ? {} : { deadlineMs: postVerdictDeadlineMs }),
-            trustPriors,
             runId,
             configDir,
             configFilePath,
@@ -2268,7 +2264,6 @@ export const isMintedCliRunId = isCanonicalRunId
 
 /** What the mode-aware default producer is handed. */
 export interface PatternMemberProductionContext {
-  readonly resolveTrustPriors?: ResolveTrustPriors
   readonly inputs: RunInvocationInputs
   readonly runId: string
   /** The run's record; the suite half opens it after its own production refusal (443-08, D-05). */
@@ -2335,7 +2330,6 @@ export async function produceMembersFromPatterns(
       }),
     )
     return produceDirectRunMembers({
-      ...(context.resolveTrustPriors === undefined ? {} : { resolveTrustPriors: context.resolveTrustPriors }),
       inputs: context.inputs,
       bindings: parseResult.bindings,
       runId: context.runId,
@@ -2353,7 +2347,6 @@ export async function produceMembersFromPatterns(
       configDir: context.inputs.configDir,
     })
     return produceSuiteRunMembers({
-      ...(context.resolveTrustPriors === undefined ? {} : { resolveTrustPriors: context.resolveTrustPriors }),
       suiteFiles: suites,
       preflight,
       config: context.inputs.config,
@@ -2559,7 +2552,6 @@ export async function resolveSuitePreflight(input: {
  * throws carrying the same rendered lines and the same code.
  */
 export interface SuiteRunMemberProductionInput {
-  readonly resolveTrustPriors?: ResolveTrustPriors
   readonly suiteFiles: readonly string[]
   readonly preflight: SuitePreflight
   readonly config: AgentQaConfig
@@ -2611,7 +2603,6 @@ export async function produceSuiteRunMembers(
   const config = input.config
   const configDir = input.configDir
   const configFilePath = input.configFilePath
-  const resolveTrustPriors = input.resolveTrustPriors ?? trustPriorsForHost({ configPath: configFilePath }).resolve
   const configContent = input.configContent
   const effectiveLogLevel = input.effectiveLogLevel
   const runId = input.runId
@@ -3696,7 +3687,6 @@ export async function produceSuiteRunMembers(
     bindKnowledge: (buildOrdinal: number) => {
       for (const prepared of preparedSuites) {
         const knowledge = openRunKnowledgeComposition({
-          resolveTrustPriors,
           knowledgeRoot,
           // 407 D-13: the hosted runtime root the embedder probe discovers its worker under —
           // the same `resolvePath(configDir, '.agent-qa')` idiom every other door here uses.
@@ -3750,7 +3740,6 @@ export async function produceSuiteRunMembers(
  * after the gate. `applyAssembly` is that assignment, named.
  */
 export interface DirectRunMemberProductionInput {
-  readonly resolveTrustPriors?: ResolveTrustPriors
   /** The resolved preflight — the producer never re-resolves a config a door already read. */
   readonly inputs: RunInvocationInputs
   /** The parsed bindings. `refuseZeroRunnableTests` has already had its say about an empty one. */
@@ -3914,7 +3903,6 @@ export async function produceDirectRunMembers(
     rawEnvFileContent,
     resolvedEnvFilePath,
   } = input.inputs
-  const resolveTrustPriors = input.resolveTrustPriors ?? trustPriorsForHost({ configPath: configFilePath }).resolve
   const opts: RunOptions = input.opts ?? ({} as RunOptions)
   const analytics = input.analytics
   const onMemberRunId = input.onMemberRunId
@@ -4247,7 +4235,6 @@ export async function produceDirectRunMembers(
         testCapabilityNotes += '\nNetwork log capture is DISABLED for this test run. The readNetworkLogs action will return no data. If a test step explicitly requires reading network logs, use stepFailed to fail the step — do not silently pass with empty data.'
       }
       const knowledge = openRunKnowledgeComposition({
-        resolveTrustPriors,
         knowledgeRoot: resolveKnowledgeRoot(config.knowledge, configDir),
         // 407 D-13: same hosted runtime root as the suite door — both doors resolve the rung.
         agentQaRoot: resolvePath(configDir, '.agent-qa'),
@@ -4874,14 +4861,9 @@ export function createRunCommand(): Command {
           composedAnalytics ??= await composeAnalyticsHost({ surface: 'cli', config })
         )
 
-        // One accepted calibration for this invocation, including both halves of --all.
-        // Read-only discovery commands never compose a run or its post-verdict tail.
-        const trustPriors = opts.dryRun || opts.listTests
-          ? undefined : trustPriorsForHost({ configPath: configFilePath })
-
         // Handle suite execution (early return)
         if (discoveredSuiteFiles.length > 0 && discoveredTestFiles.length === 0) {
-          const exitCode = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, trustPriors, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, inheritedRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins)
+          const exitCode = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, inheritedRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins)
           const suiteReporterSelection = resolveReporterSelection(opts).selection
           if (suiteReporterSelection) {
             await maybePrintPostRunUpdateNotice({
@@ -4898,7 +4880,7 @@ export function createRunCommand(): Command {
         // Handle --all: run suites first, then fall through to test execution
         let suitesFailed = false
         if (discoveredSuiteFiles.length > 0 && discoveredTestFiles.length > 0) {
-          suitesFailed = (await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, trustPriors, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, inheritedRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins)) !== 0
+          suitesFailed = (await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, inheritedRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins)) !== 0
         }
 
         const files = discoveredTestFiles
@@ -5107,7 +5089,6 @@ export function createRunCommand(): Command {
         const singleRunId = process.env.AGENT_QA_RUN_ID ?? generateRunId()
 
         const produced = await produceDirectRunMembers({
-          resolveTrustPriors: trustPriors?.resolve,
           inputs,
           bindings: filtered,
           runId: singleRunId,
@@ -5218,7 +5199,6 @@ export function createRunCommand(): Command {
                 const postRunTail = composeCliPostRunTail({
                   postVerdict,
                   ...(postVerdictDeadlineMs === undefined ? {} : { deadlineMs: postVerdictDeadlineMs }),
-                  trustPriors,
                   runId: singleRunId,
                   configDir,
                   configFilePath,

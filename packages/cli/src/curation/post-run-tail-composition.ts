@@ -42,7 +42,6 @@ import {
  * roots below are derived from them here so no caller derives them again.
  */
 export interface ComposeCliPostRunTailInput {
-  readonly trustPriors?: import('./post-run-tail.js').RunPostRunTailOptions['trustPriors']
   readonly runId: string
   /** The directory the project's config file lives in. `<configDir>/.agent-qa` is derived from it. */
   readonly configDir: string
@@ -83,7 +82,6 @@ export interface ComposeCliPostRunTailInput {
  */
 export function composeCliPostRunTail(input: ComposeCliPostRunTailInput): PostRunTailHandle {
   return runPostRunTail({
-    ...(input.trustPriors === undefined ? {} : { trustPriors: input.trustPriors }),
     runId: input.runId,
     agentQaRoot: resolve(input.configDir, '.agent-qa'),
     configPath: resolve(input.configFilePath),

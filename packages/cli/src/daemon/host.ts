@@ -5,11 +5,6 @@ import { dirname, join } from 'node:path'
 import type { Readable } from 'node:stream'
 import { isDeepStrictEqual } from 'node:util'
 import { renderPromotionLine } from '../curation/promotion-line.js'
-import {
-  bindTrustPriorsToConfig,
-  trustPriorsForHost,
-  type ResolveTrustPriors,
-} from '../curation/trust-priors.js'
 
 import type {
   ConfigReaderPort,
@@ -565,7 +560,6 @@ async function resolveHolderFeedback(input: {
   readonly configPath: string | undefined
   readonly agentQaRoot: string
   readonly knowledgeRoot: string
-  readonly resolveTrustPriors: ResolveTrustPriors | undefined
   readonly authority: () => { readonly leaseId: string; readonly epoch: number }
   readonly registry: () => LocalAgentHost['registry']
 }): Promise<ComposeLocalAgentInput['feedback']> {
@@ -574,9 +568,6 @@ async function resolveHolderFeedback(input: {
   return createLeaseHolderFeedbackPort({
     configPath: input.configPath,
     agentQaRoot: input.agentQaRoot,
-    ...(input.resolveTrustPriors === undefined
-      ? {}
-      : { resolveTrustPriors: input.resolveTrustPriors }),
     writerAuthority: { knowledgeRoot: input.knowledgeRoot, authority: input.authority },
     registry: input.registry,
     caller: DAEMON_FUNCTION_CALLER,
@@ -614,7 +605,6 @@ async function resolveHolderFeedback(input: {
  * and never a dead daemon; that is what 401-11's `CliRunInputError` conversion bought.
  */
 async function composeDaemonRunExecution(input: {
-  readonly trustPriors: ReturnType<typeof trustPriorsForHost>
   readonly configPath: string
   readonly agentQaRoot: string
   readonly analytics: CliAnalyticsHost | undefined
@@ -631,7 +621,6 @@ async function composeDaemonRunExecution(input: {
    */
   readonly resolveWriterAuthority: () => CurationWriterAuthority | undefined
 }): Promise<RunExecutionPort> {
-  const selectTrustPriors = bindTrustPriorsToConfig(input)
   const { createRunRecord, doorRunAttributes, resolveRunInvocationInputs } =
     await import('../commands/run.js')
   const { refuseUnhonourableRequestFields, runInProcessCliRun } =
@@ -698,7 +687,6 @@ async function composeDaemonRunExecution(input: {
         ...(request.patterns === undefined ? {} : { patterns: request.patterns }),
         warn: (message: string) => input.logger.info(message),
       })
-      const trustPriors = selectTrustPriors(inputs.configFilePath)
 
       // Read ONCE per run, here, so the conditional spread and the value it spreads are the same
       // reading — two calls could straddle a lease this daemon lost between them.
@@ -713,7 +701,6 @@ async function composeDaemonRunExecution(input: {
       try {
         const finished = await runInProcessCliRun(
           {
-            resolveTrustPriors: trustPriors.resolve,
             configPath,
             agentQaRoot: input.agentQaRoot,
             // D-07: THE POSTURE TRAVELS EXPLICITLY. The startup `pinLocalHeadlessExecutionContext()`
@@ -810,11 +797,6 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
   // D-09: this is deliberately the first effect and is never injectable or TTY-dependent.
   LOCAL_DAEMON_CAPABILITIES.pinLocalHeadlessExecutionContext()
 
-  // Validate before acquiring authority. A legacy host without a config has no eval root.
-  const trustPriors = input.configPath === undefined
-    ? undefined : trustPriorsForHost({ configPath: input.configPath })
-  const resolveTrustPriors = trustPriors?.resolve
-
   const operations = { ...defaultOperations(), ...input.operations }
   const logger = input.logger ?? DEFAULT_LOGGER
   const instanceId = randomUUID()
@@ -839,7 +821,6 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
   let runExecution = input.runExecution
   if (runExecution === undefined && input.configPath !== undefined) {
     runExecution = await composeDaemonRunExecution({
-      trustPriors: trustPriors!,
       configPath: input.configPath,
       agentQaRoot: input.agentQaRoot,
       analytics: input.analytics,
@@ -1654,7 +1635,6 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
       let report: Awaited<ReturnType<DaemonHostOperations['drainQueue']>>
       try {
         report = await operations.drainQueue({
-          priors: resolveTrustPriors?.(),
           knowledgeRoot: input.knowledgeRoot,
           budgetMs: deadlineMs === undefined ? 'unbounded' : Math.max(0, deadlineMs - operations.now()),
           lease: { leaseId: acquired.leaseId, epoch: acquired.epoch },
@@ -2166,7 +2146,6 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
       configPath: input.configPath,
       agentQaRoot: input.agentQaRoot,
       knowledgeRoot: input.knowledgeRoot,
-      resolveTrustPriors,
       authority: () => ({ leaseId: acquired.leaseId, epoch: acquired.epoch }),
       registry: () => {
         if (localAgent === undefined) {
@@ -2182,7 +2161,6 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
         : (await import('../composition/declared-secrets.js'))
           .createDeclaredSecretMask(input.configPath).mask,
       ...(feedback === undefined ? {} : { feedback }),
-      resolveTrustPriors,
       agentQaRoot: input.agentQaRoot,
       config: input.config,
       knowledgeRoot: () => input.knowledgeRoot,
@@ -2213,7 +2191,6 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
             completedRunHandoffPath(input.agentQaRoot, curatedRunId),
           )
           const folded = await curateCompletedRun({
-            resolveTrustPriors,
             operations: curationOperations,
             runDir: completedRunDir(input.agentQaRoot, curatedRunId),
             handoff,
@@ -2346,7 +2323,6 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
           : { kind: 'deferred' as const, reason: 'worker-unavailable' as const }
         try {
           await operations.runMaintenanceTail({
-            priors: resolveTrustPriors?.(),
             knowledgeRoot: input.knowledgeRoot,
             lease: { leaseId: acquired.leaseId, epoch: acquired.epoch },
             embeddingCapability,

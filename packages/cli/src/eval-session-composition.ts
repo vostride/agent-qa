@@ -645,9 +645,6 @@ export async function resolveReplayPlanner(
   return resolveNamedProfile(plannerName, session.configPath)
 }
 
-// Trust-prior resolution reads label calibration through this composition boundary.
-export { readLabelCalibration, readCalibrationGoldIdentity } from '@vostride/agent-qa-eval-local'
-
 // ---- the report verb ----------------------------------------------------------------------------
 
 /** The report verb's one DTO; the console renders from it and `--json` prints it. */
