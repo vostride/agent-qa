@@ -2,13 +2,9 @@ import { sha256hex } from '@vostride/agent-qa-schema'
 import { z } from 'zod'
 import { canonicalJson } from '../canonical-json'
 import type { Cassette } from '../cassette/cassette'
-import type { CassetteModelReceipt } from '../cassette/receipt-leg'
-import type { BaselineProfileKeyInput } from '../baseline/profile-key'
 import { JUDGE_CONFIG } from '../judge/config'
-import { assessPanelEligibility, createPanelIdentity } from '../judge/panel'
+import { createPanelIdentity } from '../judge/panel'
 import { resolveJudgeFamilies, judgeFamiliesIntersect } from '../judge/family'
-import { effectiveGold } from '../labels/effective-gold'
-import type { StandaloneLabelRecord } from '../labels/label-record'
 import type { ReplayCassetteOutcome } from '../replay/result'
 import { MATCHER_CONFIG } from './config'
 import { scoreCassetteReplay, type CassetteScore, type DecisionScoreEntry, type JudgeIdentityBlock } from './score'
@@ -114,7 +110,7 @@ export const scoringJudgeRequestSchema = z.object({
 }).strict().refine(request => !request.judgeModelId.startsWith('panel:') || !request.allowSameFamily,
   'composite judge requests cannot allow same-family judging')
 export type ScoringJudgeRequest = z.infer<typeof scoringJudgeRequestSchema> | null
-/** Additive score-file context. Absence remains readable for uncorrected legacy scores. */
+/** Additive score-file context. Absence remains readable for legacy scores. */
 export const scoringContextSchema = z.object({
   schemaVersion: z.literal(2), matcherVersion: z.number().int().nonnegative(),
   inputsDigest: digest, replayDigest: digest, finalScoreDigest: digest, judgeIdentityDigest: digest,
@@ -124,7 +120,6 @@ export type ScoringContext = z.infer<typeof scoringContextSchema>
 interface ScoringInputs {
   cassette: Cassette
   outcome: ReplayCassetteOutcome
-  labelRecord?: StandaloneLabelRecord
 }
 interface StoredScore {
   cassetteId: string
@@ -134,47 +129,13 @@ interface StoredScore {
   scoringContext?: ScoringContext
 }
 
-/** Pure admission of honest identity absence; callers must separately guard all stored digests. */
-export function isUnjudgedPanelRefusal(input: {
-  record: Pick<StoredScore, 'judge' | 'score'>; profile: BaselineProfileKeyInput
-  recordedModel: CassetteModelReceipt; replayedModelId: string
-}): boolean {
-  const { record, profile, recordedModel, replayedModelId } = input
-  if (record.judge !== undefined || !profile.judgeModelId?.startsWith('panel:')
-    || profile.judgeVersion !== JUDGE_CONFIG.judgeVersion || record.score.kind !== 'leaf'
-    || record.score.entry.kind !== 'decision') return false
-  let memberModelIds: string[]
-  try { memberModelIds = profile.judgeModelId.slice('panel:'.length).split('+').map(decodeURIComponent) }
-  catch { return false }
-  if (memberModelIds.length < 2 || memberModelIds.length > JUDGE_CONFIG.maxPanelMembers
-    || new Set(memberModelIds).size !== memberModelIds.length
-    || createPanelIdentity(memberModelIds).judgeModelId !== profile.judgeModelId) return false
-  const recordedModelId = recordedModel.declared?.modelId ?? recordedModel.resolvedModelId
-  const eligibility = assessPanelEligibility({ memberModelIds, replayedModelId,
-    ...(recordedModelId === undefined ? {} : { recordedModelId }) })
-  if (eligibility.eligible || eligibility.reason !== 'no-eligible-judge') return false
-  const decision = record.score.entry.score
-  if ('judgeSettled' in decision) return false
-  if ('judgeOutcome' in decision && decision.judgeOutcome !== undefined) {
-    if (decision.judgeOutcome.kind !== 'not-invoked' || decision.judgeOutcome.reason !== 'no-eligible-judge') return false
-    const declaredIds = decision.judgeOutcome.families?.members?.map(member => member.judgeModelId)
-    if (!declaredIds || canonicalJson([...declaredIds].sort()) !== canonicalJson([...memberModelIds].sort())) return false
-    const declaredEligibility = assessPanelEligibility({ memberModelIds: declaredIds,
-      replayedModelId, ...(recordedModelId === undefined ? {} : { recordedModelId }) })
-    return !declaredEligibility.eligible && declaredEligibility.reason === 'no-eligible-judge'
-      && canonicalJson(decision.judgeOutcome.families) === canonicalJson(declaredEligibility.families)
-  }
-  return true
-}
 const hash = (value: unknown): string => sha256hex(canonicalJson(value))
 function inputsDigest(input: ScoringInputs): string {
-  const gold = input.cassette.granularity === 'leaf' ? effectiveGold(input.cassette, input.labelRecord) : undefined
-  const cassette = gold?.kind === 'eligible' ? gold.cassette : input.cassette
-  // Label trust/weight is selected authoritatively by the report, not adjudicated by the judge.
+  const { cassette } = input
+  // The label leg feeds the report, not the score.
   const scoringCassette = cassette.granularity === 'leaf'
     ? { ...cassette, label: undefined } : cassette
-  return hash({ cassette: scoringCassette,
-    correction: input.labelRecord?.correction?.correctedAction ?? null })
+  return hash({ cassette: scoringCassette })
 }
 /** Called after the actual matcher/adjudicator completes; never mints a judge verdict. */
 export function createScoringContext(input: ScoringInputs & {
@@ -183,7 +144,6 @@ export function createScoringContext(input: ScoringInputs & {
   return { schemaVersion: 2, matcherVersion: MATCHER_CONFIG.matcherVersion,
     inputsDigest: inputsDigest(input),
     // executionSeed is the store's publication envelope; sample seeds/results are bound here.
-    // Baseline admission separately validates that envelope against its run publication.
     replayDigest: hash({ ...input.outcome, executionSeed: undefined }),
     finalScoreDigest: hash(input.score), judgeIdentityDigest: hash(input.judge ?? null),
     judgeRequest: input.judgeRequest }
@@ -191,16 +151,11 @@ export function createScoringContext(input: ScoringInputs & {
 
 /** Score compatibility is independent of planner input and immutable recorded observations. */
 export function resolveScoringContext(input: ScoringInputs & {
-  record?: StoredScore; expectedJudgeRequest?: ScoringJudgeRequest; scoringExcluded?: boolean
+  record?: StoredScore; expectedJudgeRequest?: ScoringJudgeRequest
 }): { score?: CassetteScore; incurredJudgeScore?: CassetteScore; compatible: boolean } {
   const { cassette, record } = input
-  if (input.scoringExcluded === true) return { compatible: false,
-    ...(record === undefined ? {} : { incurredJudgeScore: record.score }) }
-  const gold = cassette.granularity === 'leaf' ? effectiveGold(cassette, input.labelRecord) : undefined
   const refuse = (score: CassetteScore) => ({ score, compatible: false,
     ...(record === undefined ? {} : { incurredJudgeScore: record.score }) })
-  // Eligibility refusals retain their precise reason even when an older score exists.
-  if (gold?.kind === 'refused') return refuse(scoreCassetteReplay(cassette, input.outcome, input.labelRecord))
   const currentJudge = record === undefined || (hasValidScoreJudgeMetadata(record) &&
     (record.judge === undefined || (record.judge.judgeVersion === JUDGE_CONFIG.judgeVersion &&
     record.judge.confidenceThreshold === JUDGE_CONFIG.confidenceThreshold)))
@@ -208,7 +163,7 @@ export function resolveScoringContext(input: ScoringInputs & {
   const legacyJudgeMatches = expectedJudge === undefined || (expectedJudge === null ? record?.judge === undefined
     : record?.judge?.judgeModelId === expectedJudge.judgeModelId &&
       (record.judge.familyOverride !== undefined) === expectedJudge.allowSameFamily)
-  const legacy = record?.scoringContext === undefined && input.labelRecord?.correction === undefined
+  const legacy = record?.scoringContext === undefined
   if (legacy && (record === undefined || (record.cassetteId === cassette.id && record.score.cassetteId === cassette.id &&
     record.matcherVersion === MATCHER_CONFIG.matcherVersion && currentJudge && legacyJudgeMatches))) {
     return { score: record?.score, compatible: true }
@@ -224,7 +179,7 @@ export function resolveScoringContext(input: ScoringInputs & {
       return { score: record.score, compatible: true }
     }
   }
-  const deterministic = scoreCassetteReplay(cassette, input.outcome, input.labelRecord)
+  const deterministic = scoreCassetteReplay(cassette, input.outcome)
   if (deterministic.kind !== 'leaf' && deterministic.kind !== 'procedure') return refuse(deterministic)
   const stale = (entry: DecisionScoreEntry): DecisionScoreEntry =>
     entry.kind === 'skipped' ? entry : { kind: 'never-scored', decisionOrdinal: entry.decisionOrdinal,

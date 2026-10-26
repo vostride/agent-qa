@@ -32,16 +32,6 @@ import type {
   TieCause,
 } from './score'
 import type { ElementIdentityVerdict } from './tiers'
-import type { JudgeCalibrationGapReason } from '../judge/calibration'
-
-/** Report-only copied disclosure; never part of a score or request identity. */
-type ReportJudgeCalibration =
-  | { status: 'calibrated'; n: number; pooledAgreement: number;
-      wilson95: { lower: number; upper: number; halfWidth: number };
-      perMember: readonly { judgeModelId: string; n: number; agreement?: number;
-        wilson95?: { lower: number; upper: number; halfWidth: number } }[] }
-  | { status: 'uncalibrated'; n: number; provenance?: 'unavailable' }
-  | { status: 'capability-gap'; reason: JudgeCalibrationGapReason }
 
 type UnscorableIdentityCause = Extract<
   ElementIdentityVerdict,
@@ -56,11 +46,6 @@ interface RateMetric {
   denominator: number
   rate?: number
 }
-
-/** Summary copied from guarded calibration evidence; no correction or action payloads. */
-type BatchCalibration =
-  | { status: 'uncalibrated'; n_gold?: number; verifierFalsePassRate?: RateMetric }
-  | { status: 'calibrated'; n_gold: number; verifierFalsePassRate: RateMetric }
 
 interface TotalCost {
   sampleCount: number
@@ -144,7 +129,6 @@ export interface EvalBatchReport {
     verifierFalsePassRate: RateMetric
     perDecisionCost: PerDecisionCost
   }
-  calibration: BatchCalibration
   perSplit: {
     natural: SplitMetricCell
     'held-out': { shared: SplitMetricCell; private: SplitMetricCell }
@@ -228,7 +212,7 @@ export interface EvalBatchReport {
   }
   totalCost: TotalCost
   /** D-16 report-level judge identity receipt; absent when no judge existed for the batch. */
-  judge?: JudgeIdentityBlock & { calibration?: ReportJudgeCalibration }
+  judge?: JudgeIdentityBlock
   /**
    * 413-15 mixed-identity marker — the D-16 receipt's sibling for the case where one report's
    * persisted score records carried canonically DIFFERING judge identity blocks. Present ONLY
@@ -350,28 +334,6 @@ function verifierRepresentatives(entries: readonly ScoredBatchEntry[]): ScoredBa
 function verifierRate(representatives: readonly ScoredBatchEntry[]): RateMetric {
   const passes = representatives.filter(entry => entry.label?.verdict?.pass === true)
   return rateMetric(passes.filter(entry => entry.label?.sourceChannel === 'overturned-verdict').length, passes.length)
-}
-
-function copyCalibration(calibration: BatchCalibration | undefined): BatchCalibration {
-  if (calibration === undefined) return { status: 'uncalibrated' }
-  const { status, n_gold, verifierFalsePassRate: rate } = calibration
-  if (!['uncalibrated', 'calibrated'].includes(status)
-    || (n_gold !== undefined && (!Number.isSafeInteger(n_gold) || n_gold < 0))
-    || (status === 'calibrated' && (n_gold === undefined || rate === undefined))) {
-    throw new TypeError('invalid calibration summary')
-  }
-  if (rate !== undefined && (!Number.isSafeInteger(rate.numerator) || rate.numerator < 0
-    || !Number.isSafeInteger(rate.denominator) || rate.denominator < rate.numerator
-    || (rate.denominator === 0 ? rate.rate !== undefined : rate.rate !== rate.numerator / rate.denominator))) {
-    throw new TypeError('invalid calibration rate')
-  }
-  const copiedRate = rate === undefined ? undefined : {
-    numerator: rate.numerator, denominator: rate.denominator,
-    ...(rate.rate === undefined ? {} : { rate: rate.rate }),
-  }
-  if (status === 'calibrated') return { status, n_gold: n_gold!, verifierFalsePassRate: copiedRate! }
-  return { status, ...(n_gold === undefined ? {} : { n_gold }),
-    ...(copiedRate === undefined ? {} : { verifierFalsePassRate: copiedRate }) }
 }
 
 function accuracyMetrics(entries: readonly ScoredBatchEntry[]) {
@@ -541,7 +503,6 @@ export function buildEvalReport(
     /** Observed load refusals excluded from entries; returned replay refusals stay in entries. */
     additionalRefusalCounts?: Readonly<Partial<EvalBatchReport['honesty']['refusalCounts']>>
     runIdentity?: EvalBatchReport['runIdentity']
-    calibration?: BatchCalibration
   } = {},
 ): EvalBatchReport {
   const additionalHarnessErrorCount = opts.additionalHarnessErrorCount ?? 0
@@ -586,9 +547,6 @@ export function buildEvalReport(
     'all-samples-harness-error': 0,
     'modal-representative-missing': 0,
     'missing-cassette-decision': 0,
-    'missing-executable-correction': 0,
-    'invalid-executable-correction': 0,
-    'label-identity-mismatch': 0,
     'stale-scoring-context': 0,
   }
   const skippedCounts: Counts<SkippedReason> = { 'cache-served': 0, synthesized: 0 }
@@ -759,7 +717,6 @@ export function buildEvalReport(
       verifierFalsePassRate: verifierRate(representatives),
       perDecisionCost: decisionCost(totalCost, judgeHonesty.cost, decisionCount),
     },
-    calibration: copyCalibration(opts.calibration),
     perSplit: splitMetrics(entries, representatives),
     // Absent for an empty adversarial population; the always-present cell above already states
     // that emptiness, and a zero histogram beside it would state something else entirely.
