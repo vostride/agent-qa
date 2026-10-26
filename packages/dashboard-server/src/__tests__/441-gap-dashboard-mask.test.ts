@@ -412,11 +412,11 @@ describe('C441-GAP-CONFIG-WRITE', () => {
   })
 })
 
-const JUDGE_VALUE = 'qa'
-const JUDGE_MARKER = '[secret:X]'
-const judgeMask = (text: string): string => text.split(JUDGE_VALUE).join(JUDGE_MARKER)
+const NAME_VALUE = 'qa'
+const NAME_MARKER = '[secret:X]'
+const nameMask = (text: string): string => text.split(NAME_VALUE).join(NAME_MARKER)
 
-function judgeLines(firstJudge: string): string[] {
+function maskedNameLines(defaultModel: string): string[] {
   const llm = (name: string): string[] => [
     `    - name: ${name}`,
     '      provider: anthropic-compatible',
@@ -427,62 +427,59 @@ function judgeLines(firstJudge: string): string[] {
     ...BASE_LINES.slice(0, 8),
     'registry:',
     '  llms:',
-    ...llm(firstJudge),
-    ...llm('judge-two'),
+    ...llm(defaultModel),
+    ...llm('model-two'),
     ...llm('spare'),
-    'eval:',
-    '  judges:',
-    `    - ${firstJudge}`,
-    '    - judge-two',
     'use:',
+    `  llm: ${defaultModel}`,
     '  mobile:',
     '    appState: preserve',
     '',
   ]
 }
 
-// The change set the page's model delete builds from the masked read (judgeChangesAfterDelete).
+// A change set the page builds from the masked read: it expects the shown default model name,
+// then deletes another model.
 const DELETE_SPARE: ConfigChange[] = [
-  { op: 'expect', path: ['eval', 'judge'], value: null },
-  { op: 'expect', path: ['eval', 'judges'], value: [`judge-${JUDGE_MARKER}-1`, 'judge-two'] },
+  { op: 'expect', path: ['use', 'llm'], value: `model-${NAME_MARKER}-1` },
   { op: 'unset', path: ['registry', 'llms', { name: 'spare' }] },
 ]
 
 describe('C441-GAP2-WRITE-BACK', () => {
-  async function judgeWorkspace(): Promise<{ manager: ConfigManager; configPath: string }> {
-    const { configPath } = await configWorkspace(judgeLines('judge-qa-1'))
-    return { manager: new ConfigManager(configPath, judgeMask), configPath }
+  async function maskedNameWorkspace(): Promise<{ manager: ConfigManager; configPath: string }> {
+    const { configPath } = await configWorkspace(maskedNameLines('model-qa-1'))
+    return { manager: new ConfigManager(configPath, nameMask), configPath }
   }
 
-  it('deleting a model while a judge name holds a declared value lands and leaves the judges raw', async () => {
-    const { manager, configPath } = await judgeWorkspace()
+  it('deleting a model while the default model name holds a declared value lands and leaves the name raw', async () => {
+    const { manager, configPath } = await maskedNameWorkspace()
 
     const outcome = await manager.applyChanges(DELETE_SPARE)
 
     expect(outcome).toMatchObject({ kind: 'ok' })
     const after = await readFile(configPath, 'utf-8')
     expect(after).not.toContain('name: spare')
-    expect(after).toContain('  judges:\n    - judge-qa-1\n    - judge-two\n')
-    expect(after).not.toContain(JUDGE_MARKER)
+    expect(after).toContain('  llm: model-qa-1\n')
+    expect(after).not.toContain(NAME_MARKER)
   })
 
   it('an expect whose masked value no longer matches the file still refuses field_changed', async () => {
-    const { manager, configPath } = await judgeWorkspace()
-    await writeFile(configPath, judgeLines('judge-qa-9').join('\n'))
+    const { manager, configPath } = await maskedNameWorkspace()
+    await writeFile(configPath, maskedNameLines('model-qa-9').join('\n'))
     const before = await readFile(configPath, 'utf-8')
 
     const outcome = await manager.applyChanges(DELETE_SPARE)
 
-    expect(outcome).toEqual({ kind: 'refused', error: 'field_changed', path: ['eval', 'judges'] })
+    expect(outcome).toEqual({ kind: 'refused', error: 'field_changed', path: ['use', 'llm'] })
     expect(await readFile(configPath, 'utf-8')).toBe(before)
   })
 
   it('a set whose value holds a marker is still refused, with a sentence naming the config file', async () => {
-    const { manager, configPath } = await judgeWorkspace()
+    const { manager, configPath } = await maskedNameWorkspace()
     const before = await readFile(configPath, 'utf-8')
 
     const outcome = await manager.applyChanges([
-      { op: 'set', path: ['eval', 'judges'], value: [`judge-${JUDGE_MARKER}-1`] },
+      { op: 'set', path: ['use', 'llm'], value: `model-${NAME_MARKER}-1` },
     ])
 
     expect(outcome).toMatchObject({ kind: 'refused', error: 'marker_written_back' })

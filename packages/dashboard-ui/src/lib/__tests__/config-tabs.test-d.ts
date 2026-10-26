@@ -63,7 +63,6 @@ test('C429-CONFIG-SECTIONS-EXACT', () => {
     | 'logging'
     | 'pass-rate-scope'
     | 'mcp'
-    | 'eval'
     | 'config-file'
   type Listed = (typeof CONFIG_SECTIONS)[ConfigTab][number]
   expectTypeOf<ConfigSectionId>().toEqualTypeOf<Expected>()

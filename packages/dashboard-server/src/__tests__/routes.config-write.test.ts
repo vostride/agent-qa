@@ -373,7 +373,7 @@ function withoutLines(text: string, lines: readonly string[]): string {
 const TIMEOUT_LINES = ['  timeout:', '    step: 30s', '    test: 10m', '    navigation: 10s']
 const BROWSER_LINES = ['  browser:', '    name: chromium', '    headless: false']
 
-const judgeRegistry = [
+const modelRegistry = [
   'registry:',
   '  llms:',
   ...['a', 'b', 'c', 'd'].flatMap((name) => [`    - name: ${name}`, '      provider: gemini', '      model: gemini-2.5-flash']),
@@ -385,16 +385,17 @@ const judgeRegistry = [
   '        X-Org: org-secret-value',
 ].join('\n')
 
-function judgeConfig(judges: readonly string[]): string {
-  return baseConfig.replace('registry: {}', judgeRegistry)
-    + ['eval:', '  judges:', ...judges.map((judge) => `    - ${judge}`), ''].join('\n')
+function matchConfig(patterns: readonly string[]): string {
+  return baseConfig
+    .replace('registry: {}', modelRegistry)
+    .replace('  testMatch:\n    - tests/**/*.yaml', ['  testMatch:', ...patterns.map((pattern) => `    - ${pattern}`)].join('\n'))
 }
 
-const judgeWrite = {
+const matchWrite = {
   changes: [
-    { op: 'expect', path: ['eval', 'judges'], value: ['a', 'b'] },
-    { op: 'expect', path: ['eval', 'judge'], value: null },
-    { op: 'set', path: ['eval', 'judges'], value: ['a', 'b', 'c'] },
+    { op: 'expect', path: ['workspace', 'testMatch'], value: ['a/*.yaml', 'b/*.yaml'] },
+    { op: 'expect', path: ['use', 'llm'], value: null },
+    { op: 'set', path: ['workspace', 'testMatch'], value: ['a/*.yaml', 'b/*.yaml', 'c/*.yaml'] },
   ],
 }
 
@@ -470,31 +471,31 @@ describe('PATCH /api/config set-if-absent and expect (429-42)', () => {
   })
 
   it('EXPECT-MATCH-WRITES: a write whose expects match the file lands', async () => {
-    const configPath = await useConfigWorkspace(judgeConfig(['a', 'b']))
+    const configPath = await useConfigWorkspace(matchConfig(['a/*.yaml', 'b/*.yaml']))
 
-    const response = await patchConfig(judgeWrite)
+    const response = await patchConfig(matchWrite)
 
     expect(response.status, response.body).toBe(200)
-    const parsed = parseYaml(await readFile(configPath, 'utf-8')) as { eval: Record<string, unknown> }
-    expect(parsed.eval).toEqual({ judges: ['a', 'b', 'c'] })
+    const parsed = parseYaml(await readFile(configPath, 'utf-8')) as { workspace: Record<string, unknown> }
+    expect(parsed.workspace.testMatch).toEqual(['a/*.yaml', 'b/*.yaml', 'c/*.yaml'])
   })
 
   it('EXPECT-MISMATCH-REFUSED: a field changed outside refuses the whole set 409 and keeps the bytes', async () => {
-    const configPath = await useConfigWorkspace(judgeConfig(['a', 'b', 'd']))
+    const configPath = await useConfigWorkspace(matchConfig(['a/*.yaml', 'b/*.yaml', 'd/*.yaml']))
     const before = await readFile(configPath)
     mockRename.mockClear()
 
-    const response = await patchConfig(judgeWrite)
+    const response = await patchConfig(matchWrite)
 
     expect(response.status).toBe(409)
-    expect(JSON.parse(response.body)).toEqual({ error: 'field_changed', path: ['eval', 'judges'] })
+    expect(JSON.parse(response.body)).toEqual({ error: 'field_changed', path: ['workspace', 'testMatch'] })
     expect(Buffer.compare(await readFile(configPath), before)).toBe(0)
     expect(mockRename).not.toHaveBeenCalled()
   })
 
   // 441-21 (D-29): no path is classed secret, so an expect on a header is compared like any field.
   it('EXPECT-ON-HEADER-COMPARED: an expect on a header value refuses a wrong guess 409 like any field', async () => {
-    const configPath = await useConfigWorkspace(judgeConfig(['a', 'b']))
+    const configPath = await useConfigWorkspace(matchConfig(['a/*.yaml', 'b/*.yaml']))
     const before = await readFile(configPath)
     const headerPath = ['registry', 'llms', { name: 'proxy' }, 'providerHeaders', 'X-Org']
 

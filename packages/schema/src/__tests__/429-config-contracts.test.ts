@@ -40,8 +40,8 @@ test('C429-CONFIG-CHANGE-STRICT', () => {
         },
       ],
     },
-    { changes: [{ op: 'expect', path: ['eval', 'judges'], value: ['a', 'b'] }] },
-    { changes: [{ op: 'expect', path: ['eval', 'judge'], value: null }] },
+    { changes: [{ op: 'expect', path: ['workspace', 'testMatch'], value: ['a', 'b'] }] },
+    { changes: [{ op: 'expect', path: ['use', 'llm'], value: null }] },
   ]
   for (const body of accepted) {
     expect(schema.parse(body)).toEqual(body)
@@ -69,7 +69,7 @@ test('C429-CONFIG-CHANGE-STRICT', () => {
         },
       ],
     },
-    { changes: [{ op: 'expect', path: ['eval', 'judges'], value: ['a'], extra: true }] },
+    { changes: [{ op: 'expect', path: ['workspace', 'testMatch'], value: ['a'], extra: true }] },
     { changes: [{ op: 'set-if-absent', path: ['use', 'timeout', 'test'], value: '10m', extra: true }] },
     { changes: [{ op: 'move', from: ['a'], path: ['b'], extra: true }] },
   ]
@@ -157,7 +157,7 @@ test('PAGE-WRITABLE-EVERY-RENDERED-LEAF', () => {
     ['registry', 'llms'],
     ['registry', 'llms', { name: 'k' }],
     ['registry', 'targets', 'k'],
-    ['eval', 'judges'],
+    ['workspace', 'testMatch'],
     ['use', 'timeout'],
   ]
   const refused: api.ConfigPathSegment[][] = [

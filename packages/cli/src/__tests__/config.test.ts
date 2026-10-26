@@ -618,6 +618,7 @@ describe('C445-CONFIG-HINT', () => {
     'eval:',
     '  gate1:',
     '    maxPerJob: 2',
+    '  judge: gpt-judge',
     '',
   ].join('\n')
 
@@ -672,6 +673,9 @@ describe('C445-CONFIG-HINT', () => {
     expect(text).toContain('Config validation failed')
     expect(text).toContain(
       'eval.gate1 was removed: memory is no longer screened by replay before promotion. Delete this block.',
+    )
+    expect(text).toContain(
+      'eval.judge was removed: pass --judge <name> to agent-qa eval replay. Delete this key.',
     )
     expect(text).toContain(INVALID_CONFIG_FIX(configPath))
     expect(text).not.toContain(HARD_CUT_STEPS)

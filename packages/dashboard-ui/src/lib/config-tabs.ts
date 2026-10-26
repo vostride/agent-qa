@@ -40,7 +40,6 @@ export type ConfigSectionId =
   | 'logging'
   | 'pass-rate-scope'
   | 'mcp'
-  | 'eval'
   | 'config-file'
 // prettier-ignore
 export const CONFIG_SECTION_IDS = [
@@ -66,7 +65,6 @@ export const CONFIG_SECTION_IDS = [
   'logging',
   'pass-rate-scope',
   'mcp',
-  'eval',
   'config-file',
 ] as const satisfies readonly ConfigSectionId[]
 
@@ -75,7 +73,7 @@ export const CONFIG_SECTIONS = {
   targets: ['targets', 'devices', 'device-farms', 'login-states', 'mobile-app-state'],
   execution: ['browser', 'timeouts', 'runs', 'cache', 'recording', 'accessibility', 'log-capture'],
   project: ['test-discovery', 'files', 'knowledge', 'dashboard', 'logging', 'pass-rate-scope'],
-  advanced: ['mcp', 'eval', 'config-file'],
+  advanced: ['mcp', 'config-file'],
 } as const satisfies Record<ConfigTab, readonly ConfigSectionId[]>
 
 /** Palette words beside each section label, re-homed from the retired bucket map: no bucket names, no dotted paths. */
@@ -102,7 +100,6 @@ export const CONFIG_SECTION_ALIASES = {
   logging: ['log level'],
   'pass-rate-scope': ['pass rate', 'scope', 'attributes', 'flakiness'],
   mcp: ['mcp host', 'mcp port', 'mcp path'],
-  eval: ['eval', 'judge', 'judges'],
   'config-file': ['yaml', 'config file path', 'raw config'],
 } as const satisfies Record<ConfigSectionId, readonly string[]>
 

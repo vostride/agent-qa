@@ -27,8 +27,17 @@ const RETIRED_EVAL_KEY_MESSAGES: Record<string, string> = {
   gate1: 'eval.gate1 was removed: memory is no longer screened by replay before promotion. Delete this block.',
   gate2: 'eval.gate2 was removed: completed runs no longer replay served memory. Delete this block.',
   adversarial: 'eval.adversarial was removed: runs no longer stage adversarial probes. Delete this block.',
-  seeding: 'eval.seeding was removed: eval seed no longer reads its cap from the config. Delete this block.',
+  seeding: 'eval.seeding was removed: runs no longer seed an eval corpus. Delete this block.',
+  judge: 'eval.judge was removed: pass --judge <name> to agent-qa eval replay. Delete this key.',
+  judges: 'eval.judges was removed: repeat --judge <name> on agent-qa eval replay. Delete this key.',
+  judgeAllowSameFamily:
+    'eval.judgeAllowSameFamily was removed: pass --judge-allow-same-family to agent-qa eval replay. Delete this key.',
+  k: 'eval.k was removed: pass --k <n> to agent-qa eval replay. Delete this key.',
+  seed: 'eval.seed was removed: pass --seed <n> to agent-qa eval replay. Delete this key.',
 }
+
+const RETIRED_EVAL_BLOCK_MESSAGE =
+  'eval was removed: agent-qa eval replay takes its settings as flags. Delete this block.'
 
 // The old refilling planner key is cut with no alias, migration or fallback. The same message
 // fires for the project config and for test and suite `use` overrides.
@@ -80,17 +89,28 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
     })
   }
 
-  if (isPlainObject(value.eval)) {
-    for (const key of Object.keys(value.eval)) {
-      if (Object.hasOwn(RETIRED_EVAL_KEY_MESSAGES, key)) {
-        const message = RETIRED_EVAL_KEY_MESSAGES[key]
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          params: { retired: true },
-          path: ['eval', key],
-          message,
-        })
+  if (Object.hasOwn(value, 'eval')) {
+    let named = 0
+    if (isPlainObject(value.eval)) {
+      for (const key of Object.keys(value.eval)) {
+        if (Object.hasOwn(RETIRED_EVAL_KEY_MESSAGES, key)) {
+          named++
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            params: { retired: true },
+            path: ['eval', key],
+            message: RETIRED_EVAL_KEY_MESSAGES[key],
+          })
+        }
       }
+    }
+    if (named === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        params: { retired: true },
+        path: ['eval'],
+        message: RETIRED_EVAL_BLOCK_MESSAGE,
+      })
     }
   }
 

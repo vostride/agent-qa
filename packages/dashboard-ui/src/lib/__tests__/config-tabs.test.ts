@@ -41,13 +41,11 @@ describe('the tabs and their sections (429-12 Task 1)', () => {
       targets: ['targets', 'devices', 'device-farms', 'login-states', 'mobile-app-state'],
       execution: ['browser', 'timeouts', 'runs', 'cache', 'recording', 'accessibility', 'log-capture'],
       project: ['test-discovery', 'files', 'knowledge', 'dashboard', 'logging', 'pass-rate-scope'],
-      advanced: ['mcp', 'eval', 'config-file'],
+      advanced: ['mcp', 'config-file'],
     })
     expect(Object.keys(CONFIG_SECTIONS)).toEqual([...CONFIG_TABS])
     expect(CONFIG_SECTION_IDS).toEqual(CONFIG_TABS.flatMap((tab) => CONFIG_SECTIONS[tab]))
-    // 2026-10-01 (432-22, D-12): the run-service tokens section left with its key (25 -> 24).
-    expect(CONFIG_SECTION_IDS).toHaveLength(24)
-    expect(new Set(CONFIG_SECTION_IDS).size).toBe(24)
+    expect(new Set(CONFIG_SECTION_IDS).size).toBe(CONFIG_SECTION_IDS.length)
   })
 
   it('the palette aliases carry no storage vocabulary: no bucket word and no dotted path', () => {
@@ -182,7 +180,6 @@ describe('tab URLs and the section search (429-12 Task 1)', () => {
     expect(sectionsOf('pass rate')).toEqual(['pass-rate-scope'])
     expect(sectionsOf('default model')).toEqual(['models'])
     expect(sectionsOf('parallel')).toEqual(['runs'])
-    expect(sectionsOf('judge')).toEqual(['eval'])
     expect(sectionsOf('no such setting')).toEqual([])
   })
 

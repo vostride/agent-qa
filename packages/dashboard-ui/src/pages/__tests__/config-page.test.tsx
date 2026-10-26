@@ -1806,7 +1806,7 @@ describe('ConfigPage task tabs shell', () => {
 
     const panel = container!.querySelector('[data-config-panel="advanced"]') as HTMLElement
     expect(Array.from(panel.querySelectorAll('[data-config-section]')).map((element) => element.getAttribute('data-config-section')))
-      .toEqual(['mcp', 'eval', 'config-file'])
+      .toEqual(['mcp', 'config-file'])
     expect(section('run-service-tokens' as never)).toBeNull()
     expect(panel.querySelector('[data-field-list]')).toBeNull()
     expect(panel.querySelector('[data-token-row], [data-token-draft]')).toBeNull()

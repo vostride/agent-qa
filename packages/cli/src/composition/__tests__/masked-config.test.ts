@@ -53,8 +53,6 @@ describe('buildConfigVisibilityOracle (the schema-derived rule)', () => {
       'use.browser.headless',
       'registry.llms.0.model',
       'registry.llms.0.baseURL',
-      'eval.judge',
-      'eval.judges.0',
     ]) {
       expect(visibility.classify(key), key).toBe('constrained')
     }

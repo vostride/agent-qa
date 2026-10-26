@@ -3,14 +3,13 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Command } from 'commander'
-import { AgentQaConfigSchema } from '@vostride/agent-qa-core'
 import { assessPanelEligibility } from '@vostride/agent-qa-eval'
 import * as composition from '../eval-session-composition.js'
 import * as llm from '../llm-utils.js'
 import { createEvalCommand } from '../commands/eval.js'
 
 let root: string
-const raw = (evalBlock?: unknown) => ({
+const raw = () => ({
   workspace: { testMatch: ['tests/*.yaml'], suiteMatch: ['suites/*.yaml'], hooksFile: 'hooks.yaml',
     envFile: '.env', secretsFile: 'secrets.fixture' },
   registry: { llms: [
@@ -21,7 +20,6 @@ const raw = (evalBlock?: unknown) => ({
     { name: 'same', provider: 'openai-compatible', model: 'gpt-judge' },
   ].map(config => ({ ...config, baseURL: 'http://127.0.0.1:1/v1' })) },
   use: { llm: 'planner', mobile: { appState: 'preserve' } },
-  ...(evalBlock === undefined ? {} : { eval: evalBlock }),
 })
 async function fixture() {
   const configPath = join(root, 'agent-qa.config.yaml')
@@ -39,14 +37,6 @@ beforeEach(async () => {
 afterEach(async () => { vi.restoreAllMocks(); process.exitCode = 0; await rm(root, { recursive: true, force: true }) })
 
 describe('explicit judge declarations', () => {
-  it.each([[], ['a'], ['a', 'b'], ['a', 'alias', 'b']].map(judges => [judges]))('admits a complete strict declaration %j', judges => {
-    expect(AgentQaConfigSchema.safeParse(raw({ judges })).success).toBe(true)
-  })
-  it.each([{ judge: 'a', judges: [] }, { judges: ['a', 'b', 'a', 'b'] },
-    { judges: [''] }, { judge: '' }, { judges: 'a' }, { judges: [3] }, { judges: ['a'], pooling: 'max' }])(
-    'refuses malformed or ambiguous config %j', evalBlock => {
-      expect(AgentQaConfigSchema.safeParse(raw(evalBlock)).success).toBe(false)
-    })
   it('normalizes zero and one without auth work on key-only sessions', async () => {
     const configPath = await fixture()
     const empty = await composition.resolveEvalSession({ configPath, keyOnly: true, flags: { judge: [] } })

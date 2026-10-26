@@ -76,7 +76,6 @@ export const CONFIG_SECTION_LABELS = {
   logging: 'Logging',
   'pass-rate-scope': 'Pass-rate scope',
   mcp: 'MCP access',
-  eval: 'Evaluation',
   'config-file': 'Config file',
 } as const satisfies Record<ConfigSectionId, string>
 
@@ -815,24 +814,6 @@ export const MCP_PATH_ERROR = 'Start the path with /.'
 
 // 2026-10-01 (432-22, D-12): the access-token and run-service-token rows, their scope and trust-scope
 // labels and their errors are deleted with the token keys. MCP and the run service are tokenless.
-
-export const EVAL_GROUP_LABELS = {
-  judge: 'Judge',
-} as const satisfies Record<string, string>
-
-export const JUDGE_MODELS_LABEL = 'Judge models'
-export const JUDGE_LIMIT_TEXT = 'Up to three judges.'
-export const JUDGE_NO_MODELS_TEXT = 'Add a model first to pick a judge.'
-
-export const EVAL_FIELD_LABELS = {
-  judgeAllowSameFamily: 'Allow a judge from the same model family',
-  k: 'Runs per case',
-  seed: 'Seed',
-} as const satisfies Record<string, string>
-
-export const EVAL_FIELD_HELP = {
-  judgeAllowSameFamily: 'Off by default. Every score a same-family judge gives says so.',
-} as const satisfies Record<string, string>
 
 export const CONFIG_FILE_NOTE = 'Read-only. Edit the file in your editor; changes show here by themselves.'
 export const COPY_PATH_LABEL = 'Copy config file path'

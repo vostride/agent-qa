@@ -157,12 +157,6 @@ const { sampleConfig, fullConfig, page } = vi.hoisted(() => ({
       privacy: true,
       passRateScope: { attributes: { 'git.branch': 'master', 'user.email': { regex: '^ci@' } } },
     },
-    eval: {
-      k: 3,
-      seed: 7,
-      judges: ['claude-proxy', 'gemini-fast'],
-      judgeAllowSameFamily: false,
-    },
   },
   sampleConfig: {
   workspace: {
@@ -540,7 +534,7 @@ describe('ConfigPage schema coverage', () => {
     const uncovered = PAGE_LEAVES.filter((pattern) => !marks.some((mark) => coversLeaf(mark, pattern)))
     // 432-02 left allowProduction awaiting its owner; 432-22 adds it, so no leaf is pending.
     expect(uncovered, `schema leaves with no field on the page: ${uncovered.join(', ')}`).toEqual([])
-    for (const pattern of ['use.workers', 'use.buildTag', 'eval.k', 'allowProduction']) {
+    for (const pattern of ['use.workers', 'use.buildTag', 'allowProduction']) {
       expect(marks.some((mark) => mark.kind === 'path' && mark.value === pattern), pattern).toBe(true)
     }
   })

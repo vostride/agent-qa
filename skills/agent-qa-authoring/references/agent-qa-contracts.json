@@ -19,8 +19,7 @@
       "use",
       "plugins",
       "analytics",
-      "allowProduction",
-      "eval"
+      "allowProduction"
     ],
     "mcpFields": ["enabled", "transport", "host", "port", "path"]
   },

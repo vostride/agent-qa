@@ -56,7 +56,6 @@ import { DevicesSection } from "@/components/config-manager/devices-section"
 import { ProvidersSection } from "@/components/config-manager/providers-section"
 import { AnalyticsSection } from "@/components/config-manager/analytics-section"
 import { McpSection } from "@/components/config-manager/mcp-section"
-import { EvalSection } from "@/components/config-manager/eval-section"
 import { ConfigFileView } from "@/components/config-manager/config-file-view"
 
 interface SectionProps {
@@ -87,7 +86,6 @@ const SECTION_COMPONENTS: Partial<Record<ConfigSectionId, readonly ComponentType
   logging: [LoggingSection],
   "pass-rate-scope": [AnalyticsSection],
   mcp: [McpSection],
-  eval: [EvalSection],
   "config-file": [ConfigFileView],
 }
 

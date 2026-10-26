@@ -35,8 +35,6 @@ ${[{ name: 'planner', model: 'gpt-fixture' }, ...ids.map((model, i) => ({ name: 
     appState: preserve
 knowledge:
   dir: agent-qa-knowledge
-eval:
-  judges: [${ids.map((_, i) => `judge-${i}`).join(', ')}]
 `)
 }
 
@@ -72,7 +70,8 @@ describe('production panel host paths', () => {
     const judges = INITIAL.map(id => capturingStub(() => { order.push(id); return judgeGenerateResult('equivalent', 'high') }, id))
     const sweep = vi.spyOn(evalLocal, 'sweepCassetteReplays')
     writeFileSync(join(root, '.env.secrets.local'), '')
-    const resolved = await session.resolveEvalSession({ configPath })
+    const resolved = await session.resolveEvalSession({ configPath,
+      flags: { judge: INITIAL.map((_, i) => `judge-${i}`) } })
     expect(llm.resolveModelAuth).not.toHaveBeenCalled()
     const replay = await session.runReplayVerb(resolved, {}, {
       plannerOverrides: { languageModels: planner.languageModels },

@@ -102,9 +102,6 @@ const { fullConfig } = vi.hoisted(() => ({
       privacy: true,
       passRateScope: { attributes: { 'git.branch': 'master', 'user.email': { regex: '^ci@' } } },
     },
-    eval: {
-      judges: ['claude-proxy', 'gemini-fast'],
-    },
   },
 }))
 

@@ -123,7 +123,7 @@ const WORKSPACE = [
   '  secretsFile: .env.secrets.local',
 ]
 
-const modelsConfig = (evalBlock: readonly string[] = []) => [
+const modelsConfig = () => [
   ...WORKSPACE,
   'services: {}',
   'registry:',
@@ -147,7 +147,6 @@ const modelsConfig = (evalBlock: readonly string[] = []) => [
   '  llm: a',
   '  mobile:',
   '    appState: preserve',
-  ...evalBlock,
   '',
 ].join('\n')
 
@@ -234,32 +233,6 @@ describe('undoable config writes (429-11 Task 1)', () => {
     expect(text).toContain(MODEL_COMMENT)
     expect(text).toContain(INLINE_COMMENT)
     expect(text).toBe(modelsConfig())
-  })
-
-  it('UNDO-JUDGE-DELETE-RESTORES-BOTH: one Undo restores the model and its eval judge list', async () => {
-    const configPath = await useConfig(modelsConfig(['eval:', '  judges:', '    - gpt', '    - b']))
-
-    const deleted = await patchConfig({
-      undoable: true,
-      changes: [
-        deleteGpt,
-        { op: 'set', path: ['eval', 'judge'], value: 'b' },
-        { op: 'unset', path: ['eval', 'judges'] },
-      ],
-    })
-
-    expect(deleted.status).toBe(200)
-    const undo = undoOf(deleted)
-    const afterDelete = parseYaml(await readFile(configPath, 'utf-8')) as { eval: Record<string, unknown> }
-    expect(afterDelete.eval).toEqual({ judge: 'b' })
-
-    const restored = await postUndo(undo.token)
-
-    expect(restored.status).toBe(200)
-    expect(await llmNames(configPath)).toEqual(['a', 'gpt', 'b'])
-    const parsed = parseYaml(await readFile(configPath, 'utf-8')) as { eval: Record<string, unknown> }
-    expect(parsed.eval).toEqual({ judges: ['gpt', 'b'] })
-    expect(await readFile(configPath, 'utf-8')).toBe(modelsConfig(['eval:', '  judges:', '    - gpt', '    - b']))
   })
 
   it('UNDO-DATA-PATH: Undo of a data-path change restores the previous value', async () => {

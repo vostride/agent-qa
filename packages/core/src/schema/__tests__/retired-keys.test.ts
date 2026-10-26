@@ -84,19 +84,49 @@ describe('retired-key pre-scan — block-level services.memory issue', () => {
 })
 
 describe('retired-key pre-scan — removed eval blocks', () => {
-  const cases: [key: string, message: string][] = [
-    ['gate1', 'eval.gate1 was removed: memory is no longer screened by replay before promotion. Delete this block.'],
-    ['gate2', 'eval.gate2 was removed: completed runs no longer replay served memory. Delete this block.'],
-    ['adversarial', 'eval.adversarial was removed: runs no longer stage adversarial probes. Delete this block.'],
-    ['seeding', 'eval.seeding was removed: eval seed no longer reads its cap from the config. Delete this block.'],
+  const cases: [key: string, value: unknown, message: string][] = [
+    ['gate1', {}, 'eval.gate1 was removed: memory is no longer screened by replay before promotion. Delete this block.'],
+    ['gate2', {}, 'eval.gate2 was removed: completed runs no longer replay served memory. Delete this block.'],
+    ['adversarial', {}, 'eval.adversarial was removed: runs no longer stage adversarial probes. Delete this block.'],
+    ['seeding', {}, 'eval.seeding was removed: runs no longer seed an eval corpus. Delete this block.'],
+    ['judge', 'gpt-judge', 'eval.judge was removed: pass --judge <name> to agent-qa eval replay. Delete this key.'],
+    ['judges', ['a', 'b'], 'eval.judges was removed: repeat --judge <name> on agent-qa eval replay. Delete this key.'],
+    ['judgeAllowSameFamily', true,
+      'eval.judgeAllowSameFamily was removed: pass --judge-allow-same-family to agent-qa eval replay. Delete this key.'],
+    ['k', 3, 'eval.k was removed: pass --k <n> to agent-qa eval replay. Delete this key.'],
+    ['seed', 7, 'eval.seed was removed: pass --seed <n> to agent-qa eval replay. Delete this key.'],
   ]
 
-  it.each(cases)('eval.%s is refused with its removal message and asks for no hard cut', (key, message) => {
-    const config = { ...validBase, eval: { [key]: {} } }
+  it.each(cases)('eval.%s is refused with its removal message and asks for no hard cut', (key, value, message) => {
+    const config = { ...validBase, eval: { [key]: value } }
     expect(issueMessageAt(config, `eval.${key}`)).toBe(message)
     const result = AgentQaConfigSchema.safeParse(config)
     const issue = result.error?.issues.find(i => i.path.join('.') === `eval.${key}` && i.message === message)
     expect(issue && 'params' in issue ? issue.params : undefined).toEqual({ retired: true })
+    expect(issueAt(config, 'eval')).toBeUndefined()
+  })
+
+  it('a bare or unknown-keyed eval block is refused with the block message', () => {
+    for (const block of [{}, { other: 1 }, 'x']) {
+      const config = { ...validBase, eval: block }
+      const result = AgentQaConfigSchema.safeParse(config)
+      expect(result.success).toBe(false)
+      const atEval = result.error?.issues.filter(i => i.path[0] === 'eval') ?? []
+      expect(atEval).toHaveLength(1)
+      expect(atEval[0]?.path).toEqual(['eval'])
+      expect(atEval[0]?.message).toBe(
+        'eval was removed: agent-qa eval replay takes its settings as flags. Delete this block.',
+      )
+      expect(atEval[0] && 'params' in atEval[0] ? atEval[0].params : undefined).toEqual({ retired: true })
+    }
+  })
+
+  it('a block holding known keys gets each key message and no block line', () => {
+    const config = { ...validBase, eval: { judge: 'gpt-judge', k: 3, other: 1 } }
+    const result = AgentQaConfigSchema.safeParse(config)
+    const atEval = result.error?.issues.filter(i => i.path[0] === 'eval') ?? []
+    expect(atEval.map(i => i.path.join('.'))).toEqual(['eval.judge', 'eval.k'])
+    expect(issueAt(config, 'eval')).toBeUndefined()
   })
 })
 
