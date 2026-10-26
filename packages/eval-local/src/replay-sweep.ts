@@ -1,5 +1,4 @@
 import { join } from 'node:path'
-import type { StandaloneLabelRecord } from '@vostride/agent-qa-eval'
 
 import type {
   ModelProfile,
@@ -39,7 +38,6 @@ export function loadCassetteBundles(cassettesRoot: string): {
 export interface SweepCassetteReplaysInput {
   /** Caller-selected order; whole-corpus callers sort by cassette id before sweeping. */
   selected: readonly LoadedCassetteBundle[]
-  labelRecords?: ReadonlyMap<string, StandaloneLabelRecord>
   profile: ModelProfile
   auth: ResolvedModelAuth
   modelOverrides?: ModelProviderOverrides
@@ -85,7 +83,6 @@ export async function sweepCassetteReplays(
     try {
       outcome = await runCassetteReplay({
         cassette: entry.cassette,
-        labelRecord: input.labelRecords?.get(entry.cassette.id),
         artifacts: entry.artifacts,
         profile: input.profile,
         auth: input.auth,

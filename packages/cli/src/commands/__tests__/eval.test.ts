@@ -986,12 +986,11 @@ describe('runReportVerb builds one report from the staged records', () => {
     expect(existsSync(result.stagedFile)).toBe(true)
   })
 
-  it('writes the staged report and its publication receipt and nothing else', async () => {
+  it('writes exactly one file, the staged report', async () => {
     const { dir, session } = await scoredRecordsFixture()
     const result = await runReportVerb(session)
-    const key = slugBranch(result.batchKey)
-    expect((await readdir(join(dir, '.agent-qa', 'eval', 'reports'))).sort()).toEqual(
-      [`${key}.json`, `${key}.publication.json`],
+    expect(await readdir(join(dir, '.agent-qa', 'eval', 'reports'))).toEqual(
+      [`${slugBranch(result.batchKey)}.json`],
     )
     expect(existsSync(join(dir, 'agent-qa-eval'))).toBe(false)
   })

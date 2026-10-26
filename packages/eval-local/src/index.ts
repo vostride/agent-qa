@@ -38,7 +38,7 @@ export {
 } from './replay-read.js'
 export type { ReplayRecordLoad, ScoreRecordLoad } from './replay-read.js'
 
-export { computeReplayProfileFingerprintFor, runCassetteReplay, replayJudgeRequest } from './replay-composition.js'
+export { runCassetteReplay, replayJudgeRequest } from './replay-composition.js'
 export type { RunCassetteReplayInput } from './replay-composition.js'
 
 export { loadCassetteBundles, sweepCassetteReplays } from './replay-sweep.js'
@@ -48,7 +48,7 @@ export type {
   SweepCassetteReplaysResult,
 } from './replay-sweep.js'
 
-export { assembleScoredBatch, cassetteProductPartition, readReportProfileProof } from './replay-batch-assembly.js'
+export { assembleScoredBatch, cassetteProductPartition } from './replay-batch-assembly.js'
 
 export { bindJudgePort, bindJudgePanel } from './judge-binding.js'
 export type { JudgeBindingInput } from './judge-binding.js'
@@ -66,5 +66,5 @@ export type {
 export { FsScoreStore, SCORE_FILE } from './score-store.js'
 export type { FsScoreStoreConfig, ScoreRecord, WrittenScoreRecord } from './score-store.js'
 
-export { DEFAULT_EVAL_REPORTS_SUBDIR, FsReportStore, loadStagedReport } from './report-store.js'
-export type { FsReportStoreConfig, StagedReportLoad, WrittenReport } from './report-store.js'
+export { DEFAULT_EVAL_REPORTS_SUBDIR, FsReportStore } from './report-store.js'
+export type { FsReportStoreConfig, WrittenReport } from './report-store.js'

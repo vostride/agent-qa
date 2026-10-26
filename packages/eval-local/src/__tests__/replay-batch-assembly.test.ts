@@ -79,7 +79,7 @@ describe('assembleScoredBatch', () => {
       reason: 'unsupported-brief', detail: 'recorded before brief rendering',
     })
     const batch = evalLocal.assembleScoredBatch({
-      replaysRoot, cassettesRoot: join(root, 'cassettes'), source: 'history',
+      replaysRoot, cassettesRoot: join(root, 'cassettes'),
     })
     const report = buildEvalReport(batch.entries)
     expect(batch.entries.find(entry => entry.cassetteId === legacy.cassetteId)!.outcome)
@@ -137,7 +137,7 @@ describe('assembleScoredBatch', () => {
     mkdirSync(corruptDir)
     writeFileSync(join(corruptDir, evalLocal.REPLAY_RECORD_FILE), '{invalid')
 
-    const result = evalLocal.assembleScoredBatch({ replaysRoot, cassettesRoot, source: 'committed' })
+    const result = evalLocal.assembleScoredBatch({ replaysRoot, cassettesRoot })
 
     expect(result.entries).toHaveLength(3)
     expect(result.entries.find(entry => entry.cassetteId === leaf.cassette.id)).toEqual({
@@ -179,7 +179,7 @@ describe('assembleScoredBatch', () => {
     const written = new evalLocal.FsReplayRecordStore({ root, outputDir: replaysRoot }).save(outcome)
     writeFileSync(join(written.dir, evalLocal.SCORE_FILE), '{invalid')
 
-    const result = evalLocal.assembleScoredBatch({ replaysRoot, cassettesRoot, source: 'staged' })
+    const result = evalLocal.assembleScoredBatch({ replaysRoot, cassettesRoot })
 
     expect(result.entries).toEqual([{ cassetteId: outcome.cassetteId, logicalSourceId: outcome.cassetteId, outcome }])
     expect(result.judgeBlocks).toEqual([])
@@ -205,7 +205,6 @@ describe('assembleScoredBatch', () => {
     const result = evalLocal.assembleScoredBatch({
       replaysRoot: root,
       cassettesRoot: join(root, 'absent'),
-      source: 'committed',
     })
 
     expect(result.entries).toEqual([{ cassetteId: outcome.cassetteId, logicalSourceId: outcome.cassetteId, outcome }])

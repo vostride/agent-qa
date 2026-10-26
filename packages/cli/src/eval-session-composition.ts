@@ -517,8 +517,7 @@ export async function runReplayVerb(
     scored++
     foldJudgeDispositions(load.record.score, judge)
   }
-  const spendBatch = assembleScoredBatch({ replaysRoot, cassettesRoot, source: 'staged',
-    recordDirs: replayedDirs })
+  const spendBatch = assembleScoredBatch({ replaysRoot, cassettesRoot, recordDirs: replayedDirs })
   notices.push(...spendBatch.notices)
 
   return {
@@ -687,7 +686,7 @@ export async function runReportVerb(
     partitionsById,
     missingBundleCount,
     notices: assemblyNotices,
-  } = assembleScoredBatch({ replaysRoot, cassettesRoot, source: 'staged' })
+  } = assembleScoredBatch({ replaysRoot, cassettesRoot })
   notices.push(...assemblyNotices)
   if (missingBundleCount > 0) {
     notices.push(

@@ -23,9 +23,7 @@ import {
   assessPanelEligibility,
   createPanelIdentity,
   buildDecisionDiff,
-  computeReplayProfileFingerprint,
   createScoringContext,
-  effectiveGold,
   neverEscalate,
   replayCassette,
   scoreCassetteReplay,
@@ -35,7 +33,6 @@ import type {
   Cassette,
   CassetteScore,
   DecisionDiff,
-  DeclaredBriefDelta,
   ReplayCassetteInput,
   ReplayCassetteOutcome,
   ReplayClock,
@@ -43,8 +40,6 @@ import type {
   ReplayPlannerFactory,
   ReplayPlannerHandle,
   ReplayResult,
-  SeedPolicy,
-  StandaloneLabelRecord,
   ScoringJudgeRequest,
 } from '@vostride/agent-qa-eval'
 import {
@@ -71,10 +66,6 @@ type JudgeDeclaration = Omit<JudgeBindingInput, 'mask'>
 export interface RunCassetteReplayInput {
   /** A loaded, guarded cassette (leaf or procedure) — normally from loadCassetteBundle. */
   cassette: Cassette
-  /** Authoritative score metadata; never included in replayCassette's planner inputs. */
-  labelRecord?: StandaloneLabelRecord
-  /** 417 D-01 / 415 D-05: already applied by the caller; the engine reverses it only before hashing. */
-  declaredBriefDelta?: DeclaredBriefDelta
   /** Blob source for full-capture screenshot reconstruction (normally a DirArtifactSource). */
   artifacts: ArtifactSource
   /** The currently-configured model profile — the SOLE source of model selection (D-03). */
@@ -240,36 +231,6 @@ function decisionDiffs(
 }
 
 /**
- * Name the resolved temperature-zero replay profile without auth resolution or model creation.
- * D-11: keep these inputs aligned with the single createModel site below. Override names are
- * the injected provider identities; seed values and provider disclosures never enter the key.
- */
-export function computeReplayProfileFingerprintFor(input: {
-  profile: ModelProfile
-  seedPolicy: SeedPolicy
-  modelOverrides?: ModelProviderOverrides
-}): string {
-  const profileCopy: ModelProfile = {
-    ...input.profile,
-    ...(input.profile.capabilities !== undefined
-      ? { capabilities: { ...input.profile.capabilities } }
-      : {}),
-  }
-  const capabilities = resolveCapabilities(profileCopy)
-  return computeReplayProfileFingerprint({
-    provider: input.profile.provider,
-    modelId: input.profile.model,
-    temperature: 0,
-    seedPolicy: input.seedPolicy,
-    capabilities: {
-      vision: capabilities.vision,
-      ...(capabilities.maxOutput !== undefined ? { maxOutputTokens: capabilities.maxOutput } : {}),
-    },
-    modelOverrideKeys: Object.keys(input.modelOverrides?.languageModels ?? {}).sort(),
-  })
-}
-
-/**
  * Run one loaded cassette through the pure replay engine bound to the production planner/model/
  * safety stack, optionally persisting the typed outcome. The one sanctioned model+runner
  * composition in eval-local (D-04).
@@ -299,7 +260,6 @@ export async function runCassetteReplay(
 
   // The ONLY createModel call site and the ONLY egress path. The handle is shared across samples
   // (RESEARCH A3); per-sample freshness is confined to accounting + planner + exchange server.
-  // D-11: computeReplayProfileFingerprintFor must read these same resolved profile values.
   const model = createModel(profileCopy, input.auth, input.mask, input.modelOverrides ?? {}, input.modelCallObservation)
   const replayedModel = { provider: input.profile.provider, modelId: input.profile.model }
 
@@ -344,7 +304,6 @@ export async function runCassetteReplay(
     actionToolNames,
     clock,
     ...(input.k !== undefined ? { k: input.k } : {}),
-    ...(input.declaredBriefDelta !== undefined ? { declaredBriefDelta: input.declaredBriefDelta } : {}),
     escalationPredicate: input.escalationPredicate ?? neverEscalate,
   }
 
@@ -362,9 +321,7 @@ export async function runCassetteReplay(
   // instead). Score, adjudication, and diffs are computed in eval core (F9); this composition
   // only orchestrates and saves.
   if (input.scoreStore !== undefined && isReplayResult(outcome)) {
-    const score = scoreCassetteReplay(input.cassette, outcome, input.labelRecord)
-    const effective = input.cassette.granularity === 'leaf' ? effectiveGold(input.cassette, input.labelRecord) : undefined
-    const scoringCassette = effective?.kind === 'eligible' ? effective.cassette : input.cassette
+    const score = scoreCassetteReplay(input.cassette, outcome)
 
     // D-12/D-14 two-sided family eligibility, assessed ONCE at composition time against BOTH the
     // replayed profile's model and the cassette receipt's recorded identity. Ineligible ⇒ the
@@ -405,7 +362,7 @@ export async function runCassetteReplay(
     // Adjudication runs UNCONDITIONALLY so every tie is stamped with its disposition even when
     // no port exists (D-06/D-10/D-12); the pure scoreCassetteReplay output itself stays untouched.
     const adjudicated = await adjudicateCassetteScore({
-      cassette: scoringCassette,
+      cassette: input.cassette,
       outcome,
       score,
       eligibility,
@@ -416,9 +373,9 @@ export async function runCassetteReplay(
       cassetteId: input.cassette.id,
       matcherVersion: scoreMatcherVersion(adjudicated.score),
       score: adjudicated.score,
-      diffs: decisionDiffs(scoringCassette, outcome, adjudicated.score),
-      scoringContext: createScoringContext({ cassette: input.cassette, outcome, labelRecord: input.labelRecord,
-        ...adjudicated, judgeRequest: replayJudgeRequest(input.judge) }),
+      diffs: decisionDiffs(input.cassette, outcome, adjudicated.score),
+      scoringContext: createScoringContext({ cassette: input.cassette, outcome, ...adjudicated,
+        judgeRequest: replayJudgeRequest(input.judge) }),
       ...(adjudicated.judge !== undefined ? { judge: adjudicated.judge } : {}),
     })
   }
