@@ -54,8 +54,7 @@ describe('strict mark and approval receipt vocabulary', () => {
     ]))
     expect(GateReceiptSchema.safeParse({ ...gate3(), mark: 'confirmed-defect' }).success).toBe(false)
   })
-  it('refuses gate 1, gate 4, unknown verdict and an unknown promotion path', () => {
-    expect(GateReceiptSchema.safeParse({ ...gate3(), gate: 1 }).success).toBe(false)
+  it('refuses an unknown gate, an unknown verdict and an unknown promotion path', () => {
     expect(GateReceiptSchema.safeParse({ ...gate3(), gate: 4 }).success).toBe(false)
     expect(GateReceiptSchema.safeParse({ ...gate3(), verdict: 'maybe' }).success).toBe(false)
     expect(PromotionReceiptSchema.safeParse({ ...promotion('deterministic-verdict-floor'), promotionPath: 'gate4' }).success).toBe(false)

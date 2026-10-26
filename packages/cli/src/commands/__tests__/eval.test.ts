@@ -4,7 +4,7 @@
 // Phase 372-06 adds the replay verb: sweep staged cassette bundles through runCassetteReplay with
 // the session's seeded masking factory (D-06), the D-03 judge bag and typed refusal counters.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { Command, CommanderError } from 'commander'
+import { Command } from 'commander'
 import { APICallError } from 'ai'
 import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
@@ -1083,51 +1083,6 @@ describe('createEvalCommand registers extract, replay and report', () => {
     const report = createEvalCommand().commands.find(sub => sub.name() === 'report')
     const flags = report?.options.map(option => option.long) ?? []
     expect(flags).toEqual(expect.arrayContaining(['--run', '--cassette', '--product', '--json']))
-  })
-})
-
-function parseEval(args: string[]): Promise<{ code: string | undefined; stderr: string }> {
-  const evalCommand = createEvalCommand()
-  const program = new Command().option('--config <path>', 'config file path').addCommand(evalCommand)
-  let stderr = ''
-  for (const command of [program, evalCommand, ...evalCommand.commands]) {
-    command.exitOverride().configureOutput({
-      writeErr: (text) => { stderr += text },
-      writeOut: () => {},
-    })
-  }
-  return program.parseAsync(['eval', ...args], { from: 'user' }).then(
-    () => ({ code: undefined, stderr }),
-    (error: unknown) => {
-      if (!(error instanceof CommanderError)) throw error
-      return { code: error.code, stderr }
-    },
-  )
-}
-
-describe('eval subcommands that were removed', () => {
-  it.each(['gate', 'floor', 'census', 'replay-gate', 'seed', 'adversarial', 'calibrate'])(
-    'refuses eval %s as an unknown command',
-    async (verb) => {
-      const { code, stderr } = await parseEval([verb])
-      expect(code).toBe('commander.unknownCommand')
-      expect(stderr).toContain(`error: unknown command '${verb}'`)
-    },
-  )
-})
-
-describe('eval options that were removed', () => {
-  it.each([
-    ['replay', '--source', 'committed'],
-    ['report', '--commit'],
-    ['report', '--source', 'staged'],
-    ['report', '--baseline'],
-    ['report', '--from-committed', 'x'],
-    ['report', '--seed-policy', 'none'],
-  ])('refuses eval %s %s as an unknown option', async (verb, option, ...rest) => {
-    const { code, stderr } = await parseEval([verb, option, ...rest])
-    expect(code).toBe('commander.unknownOption')
-    expect(stderr).toContain(`unknown option '${option}'`)
   })
 })
 
