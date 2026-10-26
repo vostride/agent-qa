@@ -397,17 +397,17 @@ describe('C432-DECLARATION-KEYS: the 432-23 op specs carry no permission metadat
     { spec: entitiesResolveSpec, resultKind: 'unary', boundThrough: undefined,
       risk: { name: 'fn:entities.resolve', recognized: true, readOnly: true } },
     { spec: authoringVerifyDraftSpec, resultKind: 'unary', boundThrough: 'draftEvaluation',
-      risk: { name: 'fn:authoring.draft.verify', recognized: true, declaredTier: 'mutating-local' } },
+      risk: { name: 'fn:authoring.draft.verify', recognized: true } },
     { spec: runsEventsSpec, resultKind: 'stream', boundThrough: undefined,
       risk: { name: 'fn:runs.events', recognized: true, readOnly: true } },
     { spec: authoringDraftWriteSpec, resultKind: 'unary', boundThrough: 'draftShelf',
-      risk: { name: 'fn:authoring.draft.write', recognized: true, declaredTier: 'mutating-shared' } },
+      risk: { name: 'fn:authoring.draft.write', recognized: true } },
     { spec: runsGetSpec, resultKind: 'unary', boundThrough: undefined,
       risk: { name: 'fn:runs.get', recognized: true, readOnly: true } },
     { spec: knowledgeForgetSpec, resultKind: 'unary', boundThrough: 'knowledgeReview',
       risk: { name: 'fn:knowledge.forget', recognized: true, readOnly: false } },
     { spec: runsStartSpec, resultKind: 'unary', boundThrough: 'runInvocation',
-      risk: { name: 'fn:runs.start', recognized: true, declaredTier: 'mutating-local' } },
+      risk: { name: 'fn:runs.start', recognized: true } },
     { spec: configTargetEditSpec, resultKind: 'unary', boundThrough: 'configWrite',
       risk: { name: 'fn:config.target.edit', recognized: true, readOnly: false } },
   ] as const
@@ -464,7 +464,7 @@ describe('C432-DECLARATION-KEYS: the 432-24 op specs carry no permission metadat
     { spec: configFieldSetSpec, resultKind: 'unary', boundThrough: 'configWrite',
       risk: { name: 'fn:config.field.set', recognized: true, readOnly: false } },
     { spec: authoringDraftEditSpec, resultKind: 'unary', boundThrough: 'draftShelf',
-      risk: { name: 'fn:authoring.draft.edit', recognized: true, declaredTier: 'mutating-local' } },
+      risk: { name: 'fn:authoring.draft.edit', recognized: true } },
     { spec: knowledgeBriefWhySpec, resultKind: 'unary', boundThrough: undefined,
       risk: { name: 'fn:knowledge.brief.why', recognized: true, readOnly: true } },
     { spec: runsLiveUrlSpec, resultKind: 'unary', boundThrough: 'liveView',
@@ -472,7 +472,7 @@ describe('C432-DECLARATION-KEYS: the 432-24 op specs carry no permission metadat
     { spec: runsMarkPreviewSpec, resultKind: 'unary', boundThrough: 'feedbackReads',
       risk: { name: 'fn:runs.mark.preview', recognized: true, readOnly: true } },
     { spec: runsMarkSpec, resultKind: 'unary', boundThrough: 'feedback',
-      risk: { name: 'fn:runs.mark', recognized: true, readOnly: false, declaredTier: 'mutating-shared' } },
+      risk: { name: 'fn:runs.mark', recognized: true, readOnly: false } },
   ] as const
 
   it('spells neither retired permission key on any of the ten specs', () => {

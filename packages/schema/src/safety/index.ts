@@ -1,7 +1,3 @@
-// 2026-10-01 (432-19, D-15/D-16): the risk tier stays for eval's side-effect scoring. The
-// execution-policy verdict and result, the remedy vocabulary and the standing-approval contract are
-// deleted with the gate.
-export type { RiskTier } from './risk-tier'
 export type { RiskActionDescriptor } from './action-descriptor'
 // 401-15 (WR-01): the scrub, published from the descriptor module it was written for.
 // 2026-10-02 (432-42): the descriptor's disclosure field is deleted; the production refusal applies it.

@@ -1808,7 +1808,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
   //
   // WHAT THIS SECTION ADDS THAT NOTHING ABOVE HAS. Every leg above is a statement about the tree as
   // it stands: what is reachable, what refuses, what agrees. All of them stay green while a scope is
-  // widened, a risk tier is lowered or a capability is moved out of the MCP partition, because each
+  // widened, a risk hint is dropped or a capability is moved out of the MCP partition, because each
   // of those leaves a self-consistent tree. The ledger is the one artifact that compares the product
   // against its own past, and the comparison is readable: one line per field per capability.
 
@@ -1957,8 +1957,8 @@ describe('the parity suite ranges the registry census over every rostered surfac
     // THE NAMED-RED REQUIREMENT, DRIVEN. D-06/D-07 ask that a mismatch identify the capability and
     // the field rather than announce that two hashes differ. Proving that by breaking the committed
     // file would be a mutation of a shipped artifact; the comparator is pure, so the changes D-05
-    // exists to make visible — a lowered tier, a moved partition — are driven over real rows here,
-    // plus the presence columns, the result kind, a digest and the binding.
+    // exists to make visible — a dropped risk hint, a moved partition — are driven over real rows
+    // here, plus the presence columns, the result kind, a digest and the binding.
     const rows = buildGoldenRows(rootDeclarations)
     expect(goldenFindings(rows, rows), 'a ledger compared against itself must report nothing')
       .toEqual([])
@@ -1967,7 +1967,16 @@ describe('the parity suite ranges the registry census over every rostered surfac
     // 432-20 (D-10/D-12): the `requiredScopes` and `requiresHumanOrigin` columns are gone, so their
     // two mutations left this list; `classifies` and `resultKind` take their places.
     const mutations: readonly (readonly [string, GoldenRow])[] = [
-      ['risk', { ...subject, risk: { ...subject.risk, declaredTier: 'readOnly' } }],
+      [
+        'risk',
+        {
+          ...subject,
+          risk: {
+            ...subject.risk,
+            destructive: subject.risk.destructive === true ? undefined : true,
+          },
+        },
+      ],
       ['partition', { ...subject, partition: { kind: 'unprojected', reason: 'not-mid-flight-read' } }],
       // 2026-10-02 (432-42, D-14): the `discloses` column is deleted; `rendersResult` takes its place.
       ['rendersResult', { ...subject, rendersResult: subject.rendersResult === true ? undefined : true }],

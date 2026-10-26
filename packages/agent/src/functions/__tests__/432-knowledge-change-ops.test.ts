@@ -301,7 +301,7 @@ describe('C432-KNOWLEDGE-CHANGE-OPS: the three knowledge changes apply in the ca
 
   // RE-TITLED 2026-10-03 (quick-261003-tsr, IN-06): was '…declares the direct contract, a
   // knowledge-write scope and a local mutation'. Scopes are deleted; the title says what is read.
-  it('C432-KNOWLEDGE-CHANGE-OPS: each op is bound and declares a recognized, unraised local mutation with no origin requirement', () => {
+  it('each op is bound and declares a recognized, non-read-only risk with no origin requirement', () => {
     const declarations = new Map(
       registry(recordingPort().port).list(TOKENLESS_CALLER).map((row) => [row.id, row]),
     )
@@ -310,7 +310,6 @@ describe('C432-KNOWLEDGE-CHANGE-OPS: the three knowledge changes apply in the ca
       expect(declaration, id).toBeDefined()
       expect(declaration?.bindingStatus, id).toBe('bound')
       expect(declaration?.risk, id).toMatchObject({ name: `fn:${id}`, recognized: true, readOnly: false })
-      expect(declaration?.risk.declaredTier, `${id} is not raised to a shared mutation`).toBeUndefined()
       // 432-20 (D-10): declarations carry no origin requirement at all.
       expect(Object.keys(declaration ?? {}), id).not.toContain('requiresHumanOrigin')
       expect(declaration?.summary, id).not.toMatch(/propos|commit(s|ting)? nothing|removing nothing/i)

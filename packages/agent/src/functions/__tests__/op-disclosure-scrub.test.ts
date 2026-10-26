@@ -45,7 +45,7 @@ function echoDiscloseSpec(disclosed: string[]): FunctionSpec<{ label: string }, 
     resultKind: 'unary',
     input: z.object({ label: z.string() }).strict(),
     output: z.object({ ok: z.literal(true) }).strict(),
-    risk: { name: 'fn:test.echo.disclose', recognized: true, declaredTier: 'mutating-shared' },
+    risk: { name: 'fn:test.echo.disclose', recognized: true },
     classify: () => ({ status: 'executed' as const, outcome: '' }),
     disclose: (input: { label: string }) => {
       const text = `About to echo ${input.label}.`

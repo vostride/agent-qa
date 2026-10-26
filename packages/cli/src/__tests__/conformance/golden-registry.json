@@ -1,7 +1,7 @@
 {
   "$note": [
     "GENERATED — the capability ledger for Phase 397 (FUNC-05 leg 6, D-05/D-07).",
-    "One row per registered capability. A lowered risk tier, a changed schema",
+    "One row per registered capability. A dropped risk hint, a changed schema",
     "digest or a moved MCP partition lands here as a one-line reviewable diff.",
     "DO NOT EDIT BY HAND: regenerate with \"bash scripts/397-regen-golden.sh --write\" and commit the result",
     "as a deliberate, reviewed change. The script refuses to run while any other leg of the",
@@ -74,7 +74,6 @@
       },
       "resultKind": "unary",
       "risk": {
-        "declaredTier": "mutating-local",
         "name": "fn:authoring.draft.edit",
         "recognized": true
       }
@@ -91,7 +90,6 @@
       },
       "resultKind": "unary",
       "risk": {
-        "declaredTier": "mutating-local",
         "name": "fn:authoring.draft.verify",
         "recognized": true
       }
@@ -108,7 +106,6 @@
       },
       "resultKind": "unary",
       "risk": {
-        "declaredTier": "mutating-shared",
         "name": "fn:authoring.draft.write",
         "recognized": true
       }
@@ -669,7 +666,6 @@
       },
       "resultKind": "unary",
       "risk": {
-        "declaredTier": "mutating-shared",
         "name": "fn:runs.mark",
         "readOnly": false,
         "recognized": true
@@ -755,7 +751,6 @@
       },
       "resultKind": "unary",
       "risk": {
-        "declaredTier": "mutating-local",
         "name": "fn:runs.start",
         "recognized": true
       }

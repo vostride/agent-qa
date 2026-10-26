@@ -15,13 +15,12 @@ export const runsMarkSpec: FunctionSpec<RunsMarkInput, RunsMarkOutcome> = {
   boundThrough: 'feedback',
   input: RunsMarkInputSchema,
   output: RunsMarkOutcomeSchema,
-  // A mark applies its fix to committed knowledge or a test file, so mutating-local would understate
-  // its risk. No requiresHumanOrigin, bearer or scope: every caller on every door reaches it.
+  // A mark applies its fix to committed knowledge or a test file. No requiresHumanOrigin, bearer or
+  // scope: every caller on every door reaches it.
   risk: {
     name: `fn:${RUNS_MARK_FUNCTION_ID}`,
     recognized: true,
     readOnly: false,
-    declaredTier: 'mutating-shared',
   },
   classify(output): ClauseVerdict {
     // T-419-10: receipt text contains only governed kinds, never notes or producer strings.

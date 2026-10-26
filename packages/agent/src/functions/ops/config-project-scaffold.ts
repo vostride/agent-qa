@@ -23,8 +23,7 @@
 // naming both continuations. `booking.com` against `booking.de` is a coin flip review should not
 // have to catch, so the product declines to flip it.
 //
-// IT COMMITS NOTHING, WHICH IS WHY IT CARRIES NO `declaredTier`, on `config.field.set`'s stated
-// reasoning. A scaffold is always cross-boundary, and the change report says so.
+// A scaffold is always cross-boundary, and the change report says so.
 //
 // NO SCOPE (2026-10-01, 432-25, D-12). This op once declared `config-write`, and 395-07's two-sided
 // grant enforcement made a scaffold unsatisfiable by any standing grant. Both are deleted: every

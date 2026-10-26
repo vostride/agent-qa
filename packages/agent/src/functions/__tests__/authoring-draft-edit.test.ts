@@ -159,11 +159,10 @@ describe('the declared surface', () => {
     expect(AUTHORING_DRAFT_EDIT_FUNCTION_ID).toMatch(/^[a-z]+(?:\.[a-z]+)+$/)
   })
 
-  it('is classified mutating-local — it edits a file and starts nothing', () => {
+  it('declares a recognized risk and no disclosure', () => {
     expect(authoringDraftEditSpec.risk).toEqual({
       name: 'fn:authoring.draft.edit',
       recognized: true,
-      declaredTier: 'mutating-local',
     })
     // NO `disclose`. 394-08 added that channel for an op whose per-invocation COST a person has to
     // consent to; this one previews nothing because it spends nothing, and a disclosure composed

@@ -436,13 +436,19 @@ export type RetiredCallerSessionId = import('../index').FunctionCaller['sessionI
 // 2026-10-02 (432-42, D-12/D-14/D-15/D-22): the routed leftovers and the scope key set. Runtime sets
 // pinned beside their types: the descriptor's exact key set (compile-checked), the scrub that
 // survives it, the masking classes kept with a dated rationale, and the deleted runtime exports.
-const DESCRIPTOR_KEYS = ['name', 'recognized', 'surface', 'destructive', 'readOnly', 'declaredTier'] as const
+const DESCRIPTOR_KEYS = ['name', 'recognized', 'surface', 'destructive', 'readOnly'] as const
 const DESCRIPTOR_TYPE_IS_EXACT: ExactKeys<import('../index').RiskActionDescriptor, (typeof DESCRIPTOR_KEYS)[number]> = true
 
 describe('C432-RUNTIME-SETS: the 432-42 leftovers are absent and the retained neighbours are exact', () => {
-  it('C432-RUNTIME-SETS: the risk descriptor carries exactly its six static keys (no command, no disclosure)', () => {
+  it('the risk descriptor carries exactly its five static keys', () => {
     expect(DESCRIPTOR_TYPE_IS_EXACT).toBe(true)
-    expect([...DESCRIPTOR_KEYS].sort()).toEqual(['declaredTier', 'destructive', 'name', 'readOnly', 'recognized', 'surface'])
+    expect([...DESCRIPTOR_KEYS].sort()).toEqual([
+      'destructive',
+      'name',
+      'readOnly',
+      'recognized',
+      'surface',
+    ])
     const source = readFileSync(join(SRC, 'safety', 'action-descriptor.ts'), 'utf8')
     const declared = /export interface RiskActionDescriptor \{([\s\S]*?)\n\}/u.exec(source)?.[1] ?? ''
     expect(declared, 'the descriptor declaration was not found').not.toBe('')

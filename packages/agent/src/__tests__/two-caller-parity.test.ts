@@ -464,7 +464,6 @@ const askTierSpec: FunctionSpec<Record<string, never>, { ok: true }> = {
   risk: {
     name: 'fn:synthetic.ask',
     recognized: true,
-    declaredTier: 'mutating-shared',
   },
   // 399.1-04: `classify` is a REQUIRED member now. A synthetic op's fold is the smallest honest
   // one — the shape has a single arm, so there is nothing to discriminate.

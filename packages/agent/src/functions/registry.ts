@@ -307,8 +307,8 @@ const BUILT_IN_FUNCTION_SPECS: readonly FunctionSpec[] = [
   // existing COMMITTED test and a change to make to it; it has no position in the six-stage order,
   // and invoking it before, during or after a loop invocation answers the same question.
   //
-  // `mutating-local` and NOT the write op's `mutating-shared`: it takes one model call, starts zero
-  // runs, and writes only to the gitignored draft shelf. The consent that matters for an edit is
+  // Unlike the write op, it takes one model call, starts zero runs, and writes only to the
+  // gitignored draft shelf. The consent that matters for an edit is
   // the inbox accept that turns the proposal into a commit, which 391 already owns.
   //
   // Bound through the OPTIONAL `draftShelf` bundle; `draftEvaluation` is checked by the same name

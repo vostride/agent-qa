@@ -934,14 +934,13 @@ describe('daemon /invoke endpoint semantic parity', () => {
     const { registry } = await registryFixture([
       {
         id: 'synthetic.ask',
-        summary: 'A mutating-shared fixture the daemon local-headless posture dispatches directly.',
+        summary: 'A mutating fixture the daemon local-headless posture dispatches directly.',
         resultKind: 'unary',
         input: z.object({}).strict(),
         output: z.object({ ok: z.literal(true) }).strict(),
         risk: {
           name: 'fn:synthetic.ask',
           recognized: true,
-          declaredTier: 'mutating-shared',
         },
         invoke: () => Promise.resolve({ ok: true }),
       },

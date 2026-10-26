@@ -3,16 +3,16 @@
 //
 // WHAT THE GOLDEN IS FOR. Every other leg in this suite answers a question about TODAY: is this
 // capability reachable, does this surface refuse it, do the two schemas agree. None of them can see
-// a change — a risk tier quietly lowered, a capability quietly moved out of
+// a change — a risk hint quietly dropped, a capability quietly moved out of
 // the MCP partition — because each of those leaves a tree that is entirely self-consistent. The
 // golden is the only artifact here that compares the product against its own past, and it does it
 // the way a reviewer can read: one committed JSON file, one row per capability, one line per field.
-// A lowered tier is a one-line diff in a pull request. That is the whole mechanism. (Until 432-20
-// a widened scope was too; D-12 deleted the scopes, and the ledger lost both permission columns.)
+// A dropped risk hint is a one-line diff in a pull request. That is the whole mechanism. A widened
+// scope was too until the scopes were deleted, and the ledger lost both permission columns.
 //
 // PRODUCED, NEVER AUTHORED. Every value in a row comes out of a real registry — the declarations of
 // a REAL `composeLocalAgent()` composition (through the CLI's own `composeCliLocalAgent`), joined to
-// the shipped `mapping.ts` partition. Nothing below states an op id, a tier or a tool name.
+// the shipped `mapping.ts` partition. Nothing below states an op id, a risk hint or a tool name.
 // A hand-written golden can encode a value the producer cannot produce, and the diff leg then reds
 // only on that impossible row while agreeing with the code about everything real.
 //
@@ -101,7 +101,6 @@ export type GoldenPartition =
 export interface GoldenRiskProjection {
   readonly name: string
   readonly recognized: boolean
-  readonly declaredTier?: string
   readonly destructive?: boolean
   readonly readOnly?: boolean
 }
@@ -156,7 +155,7 @@ export interface GoldenFile {
  */
 export const GOLDEN_NOTE: readonly string[] = Object.freeze([
   'GENERATED — the capability ledger for Phase 397 (FUNC-05 leg 6, D-05/D-07).',
-  'One row per registered capability. A lowered risk tier, a changed schema',
+  'One row per registered capability. A dropped risk hint, a changed schema',
   'digest or a moved MCP partition lands here as a one-line reviewable diff.',
   `DO NOT EDIT BY HAND: regenerate with "bash ${GOLDEN_REGEN_SCRIPT} --write" and commit the result`,
   'as a deliberate, reviewed change. The script refuses to run while any other leg of the',
@@ -198,7 +197,6 @@ export const GOLDEN_EXCLUDED_DECLARATION_KEYS: readonly (readonly [string, strin
 export const GOLDEN_PROJECTED_RISK_KEYS: readonly string[] = Object.freeze([
   'name',
   'recognized',
-  'declaredTier',
   'destructive',
   'readOnly',
 ])
@@ -309,7 +307,6 @@ export function goldenRowOf(
     risk: {
       name: String(risk['name']),
       recognized: risk['recognized'] === true,
-      ...(risk['declaredTier'] === undefined ? {} : { declaredTier: String(risk['declaredTier']) }),
       ...(risk['destructive'] === undefined ? {} : { destructive: risk['destructive'] === true }),
       ...(risk['readOnly'] === undefined ? {} : { readOnly: risk['readOnly'] === true }),
     },
@@ -451,8 +448,8 @@ function sameValue(left: unknown, right: unknown): boolean {
  * PURE, TOTAL AND DRIVABLE. The named-RED requirement (D-06/D-07) is that a mismatch identifies the
  * OP and the FIELD rather than announcing that two hashes differ, and a comparator that only threw
  * could not be shown to do that without breaking the committed file. `parity.test.ts` drives this
- * with synthetically altered rows — a widened scope, a lowered tier, a moved partition — and asserts
- * each one is named.
+ * with synthetically altered rows — a widened scope, a dropped risk hint, a moved partition — and
+ * asserts each one is named.
  *
  * It reports FIELDS, not a diff document: the structural diff is vitest's own, printed by the
  * `toEqual` the leg performs per named op. Building a second diff renderer here would be a second

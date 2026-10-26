@@ -7,12 +7,8 @@
 //      and `unbound` in the one that did not — and `invokeFunction` refuses on exactly the
 //      answer a listing renders. This is what makes D-09's visible-unbound state a fact about
 //      a host rather than a literal somebody has to remember to flip.
-//   2. `mutating-local` is load-bearing THROUGH A DISPATCH. `risk-classification.test.ts`
-//      already proves the descriptor resolves to allow in every context, but until this phase
-//      that allow led nowhere: the binding check refused immediately afterwards, so no test
-//      could tell an allow that dispatches from an allow that does not. These cases run the
-//      whole pipeline and assert the op RAN. 2026-10-02 (432-42): no gate reads the tier or a
-//      context any more, so the four-context loop and the tier counterfactual below now hold by
+//   2. The op RUNS through a dispatch. No gate reads the risk descriptor or an execution
+//      context, so the four-context loop and the destructive-descriptor case below hold by
 //      construction; they are kept as the dispatch witness.
 //   3. The acknowledgment describes the RUN, not the request and not the port's report. The
 //      port says only which run it started; every field a caller reads comes off that run's
@@ -388,15 +384,10 @@ describe('bindingStatus is a fact about a COMPOSITION, computed (D-16)', () => {
   })
 })
 
-// RE-SPELLED 2026-09-30 (432-13, D-15). 'allows AND runs in every execution context, fail-closed
-// ones included' keeps its claim (the op dispatches everywhere) and loses its audit-row half: no
-// gate decides it. 'would lose the DISPATCH on a mutating-shared descriptor — the counterfactual'
-// inverts: with no gate, even a mutating-shared descriptor dispatches in ci.
-// 2026-10-01 (432-29, D-12): neither cell hands the registry a context any more. The retired option
-// was unread, so dispatch takes no execution context at all, and "every context" and "in ci" hold
-// because there is no context input left to refuse on. Each context still gets its own dispatch
-// and recorder below.
-describe('mutating-local, proven through a DISPATCH (Pitfall 10 / D-16)', () => {
+// Neither cell hands the registry a context: dispatch takes no execution context at all, and
+// "every context" holds because there is no context input left to refuse on. Each context still
+// gets its own dispatch and recorder below.
+describe('runs.start, proven through a dispatch', () => {
   it('allows AND runs in every execution context, fail-closed ones included', async () => {
     for (const context of EVERY_CONTEXT) {
       const recorder = recordingInvocation()
@@ -413,13 +404,13 @@ describe('mutating-local, proven through a DISPATCH (Pitfall 10 / D-16)', () => 
     }
   })
 
-  it('C432-INVOKE-DIRECT: keeps the DISPATCH even on a mutating-shared descriptor in ci', async () => {
+  it('keeps the dispatch even on a destructive descriptor', async () => {
     const recorder = recordingInvocation()
-    const shared: FunctionSpec = {
+    const destructive: FunctionSpec = {
       ...(runsStartSpec as FunctionSpec),
-      risk: { ...runsStartSpec.risk, declaredTier: 'mutating-shared' },
+      risk: { ...runsStartSpec.risk, destructive: true },
     }
-    const registry = createRegistryFromSpecs([shared], {
+    const registry = createRegistryFromSpecs([destructive], {
       deps: deps({ runInvocation: recorder.port }),
     })
 

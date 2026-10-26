@@ -179,20 +179,11 @@ export const authoringDraftEditSpec: FunctionSpec<
   boundThrough: 'draftShelf',
   input: AuthoringDraftEditInputSchema,
   output: AuthoringDraftEditOutputSchema,
-  // `mutating-local`, and the contrast with `authoring.draft.write` is deliberate. That op declares
-  // `mutating-shared` because it spends up to nine child `agent-qa run` processes of a person's
-  // compute (D-10). This op takes ONE model call, starts zero runs, and writes one file — the test
-  // it edited, over the exact bytes it read (432 D-06). 2026-10-01 (432-19/432-24, D-12/D-15): the
-  // tiers once decided who was asked and where an unanswerable ask denied; nothing asks or denies
-  // on a tier now, and the tier stays the honest classification of what the op touches.
-  //
-  // The mechanics: `recognized: true` with no `readOnly` puts the classifier's floor at
-  // mutating-local, `declaredTier` states that tier rather than relying on the floor, and the name
-  // tokens (fn · authoring · draft · edit) hit neither destructive lexicon.
+  // This op takes one model call, starts zero runs, and writes one file: the test it edited, over
+  // the exact bytes it read.
   risk: {
     name: `fn:${AUTHORING_DRAFT_EDIT_FUNCTION_ID}`,
     recognized: true,
-    declaredTier: 'mutating-local',
   },
   /**
    * An edit that returned STAGED a draft — there is no arm where it did not (399.1 D-01).

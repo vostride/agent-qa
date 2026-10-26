@@ -132,24 +132,12 @@ export const authoringVerifyDraftSpec: FunctionSpec<AuthoringVerifyDraftInput, D
   boundThrough: 'draftEvaluation',
   input: AuthoringVerifyDraftInputSchema,
   output: DraftReceiptSchema,
-  // The `runs.start` tier rationale, adapted — and it is the same argument because this op's whole
-  // effect is the runs it takes:
-  //   `recognized: true` with NO `readOnly` puts the classifier's floor at mutating-local;
-  //   `declaredTier` states that tier explicitly rather than relying on the floor alone;
-  //   the name tokens (fn · authoring · draft · verify) hit neither destructive lexicon, so
-  //   nothing raises the tier above what is declared.
-  // The tier was chosen when `mutating-shared` would have ASKED, and an ask in a fail-closed
-  // context denied, leaving 394's authoring loop unable to verify a draft in CI, the one context
-  // where the keep-filter most needs to run unattended. 2026-10-01 (432-19/432-23, D-12/D-15):
-  // nothing asks or denies on a tier any more; the tier stays the honest classification.
-  // Verifying a draft really is local: it spends this machine's resources, writes into this
-  // project's run directory and its gitignored receipts store, and — because every gate-run is
-  // flagged `excludedFromOutcomes` (WTST-06) — deliberately leaves no trace in the shared signals
-  // a colleague reads.
+  // Verifying a draft spends this machine's resources, writes into this project's run directory and
+  // its gitignored receipts store, and leaves no trace in the shared signals a colleague reads,
+  // because every gate-run is flagged `excludedFromOutcomes`.
   risk: {
     name: `fn:${AUTHORING_DRAFT_VERIFY_FUNCTION_ID}`,
     recognized: true,
-    declaredTier: 'mutating-local',
   },
   /**
    * A RECEIPT'S VERDICT ABOUT A DRAFT IS AN ANSWER, not a refusal (399.1 D-01, plan 03's razor).

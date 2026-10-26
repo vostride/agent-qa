@@ -119,37 +119,12 @@ export const authoringDraftWriteSpec: FunctionSpec<
   boundThrough: 'draftShelf',
   input: AuthoringDraftWriteInputSchema,
   output: AuthoringDraftWriteOutputSchema,
-  // `mutating-shared`, AND THE CONTRAST WITH `authoring.draft.verify` IS THE POINT (394-08, D-03).
-  //
-  // The mechanics first: `recognized: true` with no `readOnly` puts the classifier's floor at
-  // mutating-local, `declaredTier` raises it from there, and the name tokens (fn · authoring ·
-  // draft · write) hit neither destructive lexicon — so the declared tier is what the gate sees.
-  //
-  // `authoring-verify-draft.ts` chose `mutating-local` and its argument was correct FOR IT: an
-  // ask-tier op denies in every fail-closed context, and an evaluator that cannot verify a draft in
-  // CI is a keep-filter that stops working exactly where it needs to run unattended. Verifying is
-  // all cost and no consequence — gate-runs are `excludedFromOutcomes`, so they leave no trace a
-  // colleague reads.
-  //
-  // THIS OP IS GENUINELY DIFFERENT, and it differs in the two ways that decide a tier. It SPENDS a
-  // person's compute and model budget on their own machine — up to nine full child `agent-qa run`
-  // processes against their application (D-10) — and since 432 D-06 the artifact it produces is
-  // written straight into their suite.
-  //
-  // 2026-10-01 (432-19/432-23, 432 D-12/D-14/D-15): THE TIER NO LONGER ASKS. It was raised so a
-  // dispatch confirm would show the fan-out before the loop started, and so a fail-closed context
-  // (CI, the daemon) denied it with the gate's ways out (the session trust flag, a trust credential,
-  // a standing approval). The gate, its confirm and those ways out are deleted: every door runs this
-  // op without a prompt, and WTST-08's honest report on the verdict below is the control that
-  // remains. One call starts a loop that runs to its end; there is no mid-loop approval state and
-  // no approval token threaded through the stages.
-  //
-  // DO NOT HARMONISE THE TWO TIERS. They are different classifications because the ops differ;
-  // the tier still says honestly which one shares more.
+  // Every door runs this op without a prompt. One call starts a loop that runs to its end, spending
+  // up to nine child `agent-qa run` processes against the person's application, and writes the
+  // draft straight into their suite; there is no mid-loop approval state.
   risk: {
     name: `fn:${AUTHORING_DRAFT_WRITE_FUNCTION_ID}`,
     recognized: true,
-    declaredTier: 'mutating-shared',
   },
   // 2026-10-02 (432-42, D-14/D-15): the per-invocation `disclose` method is deleted. It rendered the
   // fan-out preview for the dispatch confirm, which 432-19 deleted, and nothing called it since; the

@@ -1,9 +1,8 @@
-import type { RiskTier } from './risk-tier'
 import type { Surface } from '../action'
 
 /**
- * Neutral, browser-safe descriptor the static risk classifier consumes.
- * Core, chat, skill, and shell actions project into this schema-owned shape.
+ * Neutral, browser-safe risk descriptor an op declares. The MCP projection reads `readOnly` and
+ * `destructive` to set each tool's hints.
  */
 export interface RiskActionDescriptor {
   /** Action verb/id, e.g. 'web_navigate', 'git_push', or 'trigger_cloud_run'. */
@@ -12,15 +11,10 @@ export interface RiskActionDescriptor {
   recognized: boolean
   /** Optional originating surface, when known. */
   surface?: Surface
-  /** Advisory "has a side effect" hint, not the destructive risk tier. */
+  /** Advisory "has a side effect" hint. */
   destructive?: boolean
   /** Advisory read-only hint. */
   readOnly?: boolean
-  /** Explicit tier declaration; later classifier signals may raise this floor. */
-  declaredTier?: RiskTier
-  // 2026-10-02 (432-42, D-14/D-16): the `command` payload and the per-invocation `disclosure` are
-  // deleted. The classifier stopped reading a command when the command-pattern list went (432-19),
-  // and the disclosure was display text for the confirm prompt, which no door shows any more.
 }
 
 

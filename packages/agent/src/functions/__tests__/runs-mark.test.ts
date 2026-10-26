@@ -80,14 +80,13 @@ function stub() {
 }
 
 describe('runs.mark registration and binding (419 GATE3-01)', () => {
-  it('declares the lowercase-dot identity, write scope, shared risk and feedback binding', () => {
+  it('declares the lowercase-dot identity, a non-read-only risk and the feedback binding', () => {
     expect(RUNS_MARK_FUNCTION_ID).toBe('runs.mark')
     expect(RUNS_MARK_FUNCTION_ID).toMatch(/^[a-z]+(?:\.[a-z]+)+$/)
     expect(runsMarkSpec.id).toBe(RUNS_MARK_FUNCTION_ID)
     // RE-SPELLED 2026-10-01 (432-24, D-12) from `requiredScopes` equal to ['knowledge-write']: the
-    // op declares no scope; its write is stated by the shared-tier risk below.
+    // op declares no scope; its write is stated by the risk below.
     expect(runsMarkSpec).not.toHaveProperty('requiredScopes')
-    expect(runsMarkSpec.risk.declaredTier).toBe('mutating-shared')
     expect(runsMarkSpec.risk.readOnly).toBe(false)
     expect(runsMarkSpec).not.toHaveProperty('requiresHumanOrigin')
     expect(runsMarkSpec.boundThrough).toBe('feedback')

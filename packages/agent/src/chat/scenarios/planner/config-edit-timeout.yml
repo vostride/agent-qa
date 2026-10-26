@@ -29,18 +29,6 @@
 # receipt's status stops being `executed` while the turn still completes), and on a planner that
 # stopped projecting registry ops as tools.
 #
-# THIS CELL NEEDS NO LIVE-DRAIN CREDENTIAL, AND THAT IS MEASURED RATHER THAN INHERITED.
-# `planner/write-test-for-checkout.yml` carries a precondition note because `authoring.draft.write`
-# is `mutating-shared`, which `baseVerdict` answers `ask` for and which fails closed in every
-# execution context but `local-interactive` — a vitest worker resolves `local-headless`, so that cell
-# needs a trust credential, a standing approval or an overridden context. `config.field.set` is a
-# PROPOSE op: it declares no `declaredTier`, and a recognized non-read-only verb floors to
-# `mutating-local`, which `safety/src/policy/gate.ts:102` allows in EVERY execution context per
-# spec §2.1. It commits nothing — it writes a proposal file into this machine's own runtime root.
-# THE RAISE LIVES ON `config.proposal.apply`, which is where a person's git history changes, and
-# this cell deliberately does not reach it: an arrival proof should measure that the capability is
-# reachable, not that a gate can be satisfied by a harness.
-#
 # THE PROPOSAL THIS TURN FILES TOUCHES NOTHING THE LIVE LANE CARES ABOUT. Construction re-reads the
 # gate config's bytes and writes a pending record under the lane's own temp `.agent-qa/proposals/`;
 # the configured YAML is not modified by a propose op under any outcome, and the temp root is

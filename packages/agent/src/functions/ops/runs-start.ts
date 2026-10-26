@@ -81,20 +81,9 @@ export const runsStartSpec: FunctionSpec<RunsStartInput, RunStartAcknowledgement
   boundThrough: 'runInvocation',
   input: RunsStartInputSchema,
   output: RunStartAcknowledgementSchema,
-  // Pitfall 10, and every field here is load-bearing:
-  //   `recognized: true` with NO `readOnly` puts the classifier's floor at mutating-local;
-  //   `declaredTier` states that tier explicitly rather than relying on the floor alone;
-  //   the name tokens (fn · runs · start) hit neither destructive lexicon, so nothing
-  //   raises the tier above what is declared.
-  // The tier was chosen when `mutating-shared` would have asked, and an ask in a fail-closed
-  // context denied, leaving the authoring loop unable to start a run in CI. 2026-10-01 (432-19/
-  // 432-23, D-12/D-15): nothing asks or denies on a tier any more; the tier stays the honest
-  // classification. Starting a run really is local: it spends this machine's resources and
-  // writes into this project's run directory. It touches nothing another party shares.
   risk: {
     name: `fn:${RUNS_START_FUNCTION_ID}`,
     recognized: true,
-    declaredTier: 'mutating-local',
   },
   /**
    * AN ACKNOWLEDGEMENT IS A START, NOT AN OUTCOME (399.1 D-01).

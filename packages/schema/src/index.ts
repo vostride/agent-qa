@@ -1468,7 +1468,7 @@ export {
 // port are deleted. 2026-10-01 (432-22, D-12): the trust-scope wire projection leaves with its last
 // consumer, the run-service token DTO. 2026-10-02 (432-39, D-12): the `TrustScope` and
 // `TrustCredential` caller types are deleted with the caller's `credential` member.
-export type { RiskActionDescriptor, RiskTier } from './safety/index'
+export type { RiskActionDescriptor } from './safety/index'
 // 392 CHAT-01/CHAT-05, D-14/D-18/D-24: the conversational surface's whole vocabulary — the session
 // log's event grammar and header, the per-clause turn receipts, the `agent.ask` contracts, and the
 // session-log port. Minted here rather than beside the turn engine because every one of them has

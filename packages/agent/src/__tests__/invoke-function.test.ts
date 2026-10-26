@@ -250,19 +250,19 @@ describe('invokeFunction pipeline', () => {
 })
 
 /**
- * A synthetic op at the tier the retired gate asked about (432-13). `mutating-shared` used to reach
- * the ask ladder: fail-closed in `ci` and `local-headless`, a confirm prompt in `local-interactive`.
+ * A synthetic mutating op shaped like `runs.mark`, the kind of op a person was once asked about
+ * before it ran.
  */
 function markLikeSpec(invocations: { count: number }): FunctionSpec<{ runId: string }, { ok: true }> {
   // 432-39: the retired scope declaration is smuggled past the type; nothing reads it.
   return {
     id: 'runs.mark.synthetic',
-    summary: 'Synthetic mutating-shared capability used to prove the op gate is gone.',
+    summary: 'Synthetic mutating capability used to prove the op gate is gone.',
     requiredScopes: ['run'],
     resultKind: 'unary',
     input: z.object({ runId: z.string().min(1) }).strict(),
     output: z.object({ ok: z.literal(true) }).strict(),
-    risk: { name: 'fn:runs.mark.synthetic', recognized: true, declaredTier: 'mutating-shared' },
+    risk: { name: 'fn:runs.mark.synthetic', recognized: true, readOnly: false },
     classify: () => ({ status: 'executed' as const, outcome: '' }),
     invoke: () => {
       invocations.count += 1
@@ -273,7 +273,7 @@ function markLikeSpec(invocations: { count: number }): FunctionSpec<{ runId: str
 
 describe('C432-INVOKE-DIRECT — invokeFunction dispatches with no gate (432-13)', () => {
   it.each(['ci', 'local-headless', 'local-interactive'] as const)(
-    'C432-INVOKE-DIRECT: a mutating-shared op in %s returns once with no confirm port and no audit row',
+    'a mutating op in %s returns once with no confirm port and no audit row',
     async (context) => {
       const invocations = { count: 0 }
       const registry = createRegistryFromSpecs([markLikeSpec(invocations) as FunctionSpec], {
