@@ -114,10 +114,10 @@ export const UNDO_LABEL = 'Undo'
 export const FIELD_CHANGED_TEXT = "This changed in the file. The page now shows the file's value."
 
 /** The past-tense line an explicit action leaves in the status; the status appends " · Undo". */
-export function undoLine(kind: ExplicitActionKind, name: string, opts: { judge?: boolean } = {}): string {
+export function undoLine(kind: ExplicitActionKind, name: string): string {
   switch (kind) {
     case 'delete-model':
-      return opts.judge ? `Deleted ${name}, an eval judge` : `Deleted ${name}`
+      return `Deleted ${name}`
     case 'delete-target':
       return `Deleted target ${name}`
     case 'delete-device':
@@ -269,7 +269,6 @@ export function modelHeaderLabel(header: string): string {
   return `${header} header`
 }
 
-export const USED_AS_JUDGE_LINE = 'Used as an eval judge.'
 export const DEFAULT_CANNOT_DELETE_LINE = 'This is the default model. Make another model the default first.'
 export const NO_MODELS_TEXT = 'Runs need a model. Add one to get started.'
 export const NO_DEFAULT_TEXT = 'No default model. Runs need one — make one of these the default.'

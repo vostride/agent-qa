@@ -41,7 +41,6 @@ interface WorkspaceReads {
 
 const LLMS_REF: ConfigFieldRef = { segments: ["registry", "llms"], tab: "models" }
 const DEFAULT_REF: ConfigFieldRef = { segments: ["use", "llm"], tab: "models" }
-const EVAL_REF: ConfigFieldRef = { segments: ["eval"], tab: "models" }
 const ADD_BUTTON = Symbol("add-model")
 
 function withName(names: ReadonlySet<string>, name: string, present: boolean): ReadonlySet<string> {
@@ -103,7 +102,6 @@ export function ModelList(_props: ModelListProps) {
   const defaultValue = autosave.valueOf(DEFAULT_REF)
   const defaultName = typeof defaultValue === "string" ? defaultValue : undefined
   const hasDefault = models.some((model) => model.name === defaultName)
-  const evalConfig = autosave.valueOf(EVAL_REF)
 
   function focusRow(name: string) {
     const rows = Array.from(list.current?.querySelectorAll<HTMLElement>("li[data-model-row]") ?? [])
@@ -294,7 +292,6 @@ export function ModelList(_props: ModelListProps) {
               facts={providerFacts(reads.providers, model.provider)}
               keyType={credentialKeyType(credentials, model)}
               isDefault={model.name === defaultName}
-              evalConfig={evalConfig}
               open={openName === model.name}
               landing={landing?.name === model.name ? landing : undefined}
               onToggle={() => {

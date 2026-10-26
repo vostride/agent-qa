@@ -36,7 +36,6 @@ function functionOutputs(): string[] {
     copy.configLoadFailedBody('The file is not valid YAML'),
     copy.configFileIssuesBody('Step timeout must be a duration such as 30s'),
     ...EXPLICIT_ACTION_KINDS.map((kind) => copy.undoLine(kind, 'gpt')),
-    copy.undoLine('delete-model', 'gpt', { judge: true }),
     ...deleteKinds.map((kind) => copy.deleteActionName(kind, 'staging')),
     copy.modelLine('gpt-5.6', 'OpenAI-compatible'),
     ...MODEL_STATUSES.flatMap((status) => [
@@ -111,9 +110,8 @@ describe('COPY-429: the Config strings of record (429-12 Task 2)', () => {
     expect(Object.keys(copy.CONFIG_SECTION_LABELS)).toEqual([...CONFIG_SECTION_IDS])
   })
 
-  it('COPY-429: the Undo lines name what happened, with the judge variant', () => {
+  it('the Undo lines name what happened', () => {
     expect(copy.undoLine('delete-model', 'gpt')).toBe('Deleted gpt')
-    expect(copy.undoLine('delete-model', 'gpt', { judge: true })).toBe('Deleted gpt, an eval judge')
     expect(copy.undoLine('delete-target', 'staging')).toBe('Deleted target staging')
     expect(copy.undoLine('sign-out', 'gpt')).toBe('Signed out of gpt')
     expect(copy.undoLine('remove-key', 'gpt')).toBe('Removed the key for gpt')

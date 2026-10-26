@@ -37,7 +37,6 @@ export interface PendingUndo {
   name: string
   token: string
   expiresAt: number
-  judge?: boolean
 }
 
 export interface ConfigAutosaveState {
@@ -61,7 +60,7 @@ export type ConfigAutosaveEvent =
   | { type: 'write-succeeded'; id: string }
   | { type: 'write-failed'; id: string; issues: readonly ConfigAutosaveIssue[]; message?: string }
   | { type: 'retry' }
-  | { type: 'undo-offered'; kind: ExplicitActionKind; name: string; token: string; expiresAt: number; judge?: boolean }
+  | { type: 'undo-offered'; kind: ExplicitActionKind; name: string; token: string; expiresAt: number }
   | { type: 'undo-finished' }
   | { type: 'drafts-restored'; entries: readonly RestoredDraft[] }
   | { type: 'draft-cleared'; fieldKey: string }
@@ -182,7 +181,6 @@ function reduceEvent(
           name: event.name,
           token: event.token,
           expiresAt: event.expiresAt,
-          ...(event.judge === undefined ? {} : { judge: event.judge }),
         },
       }
     case 'undo-finished':
@@ -237,11 +235,7 @@ export function deriveSaveStatus(state: ConfigAutosaveState, now: number): Confi
   }
   const undo = state.undo
   if (undo !== undefined && now < undo.expiresAt) {
-    const line = undoLine(
-      undo.kind,
-      undo.name,
-      undo.judge === undefined ? {} : { judge: undo.judge },
-    )
+    const line = undoLine(undo.kind, undo.name)
     return { ...status('undo'), undo: { line, name: undo.name, token: undo.token } }
   }
   if (state.write !== undefined) return status('saving')

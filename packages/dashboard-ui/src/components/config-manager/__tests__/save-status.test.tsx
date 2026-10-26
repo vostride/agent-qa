@@ -228,11 +228,11 @@ describe('the polite region (429-15 Task 2)', () => {
 
 describe('long text and motion (429-15 Task 2)', () => {
   it('UNDO-LINE-FULL-NAME: a long name truncates at max-w-40 and the full sentence is the accessible name', () => {
-    const line = undoLine('delete-model', LONG_NAME, { judge: true })
+    const line = undoLine('delete-model', LONG_NAME)
     show({ state: 'undo', failingFieldKeys: [], undo: { line, name: LONG_NAME, token: 'u3' } })
 
     const lineElement = statusElement().querySelector<HTMLElement>('[data-save-undo-line]')
-    expect(lineElement?.getAttribute('aria-label')).toBe(`Deleted ${LONG_NAME}, an eval judge`)
+    expect(lineElement?.getAttribute('aria-label')).toBe(`Deleted ${LONG_NAME}`)
     const name = statusElement().querySelector<HTMLElement>('[data-save-undo-name]')
     expect(name?.textContent).toBe(LONG_NAME)
     expect(name?.classList.contains('max-w-40')).toBe(true)

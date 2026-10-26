@@ -62,7 +62,6 @@ import {
   SIGN_OUT_LABEL,
   SUBSCRIPTION_PLAN_NAMES,
   TEST_CONNECTION_LABEL,
-  USED_AS_JUDGE_LINE,
   connectedSavedText,
   connectionSentence,
   fixedFactsLine,
@@ -74,7 +73,7 @@ import {
   type CredentialKeyType,
 } from "@/lib/config-copy"
 import type { ModelStatus, TestResult } from "@/lib/config-tabs"
-import { isEvalJudge, judgeChangesAfterDelete, modelFieldSegments } from "@/lib/model-workspace"
+import { modelFieldSegments } from "@/lib/model-workspace"
 import { cn } from "@/lib/utils"
 
 export interface SavedModel {
@@ -613,7 +612,6 @@ interface ModelPanelProps extends ModelRowActions {
   facts: ProviderFacts
   keyType: CredentialKeyType
   isDefault: boolean
-  evalConfig: unknown
   onMakeDefault: () => void
   header: RefObject<HTMLButtonElement | null>
   landing?: ModelLanding
@@ -626,7 +624,6 @@ function ModelPanel({
   facts,
   keyType,
   isDefault,
-  evalConfig,
   onMakeDefault,
   header,
   landing,
@@ -639,7 +636,6 @@ function ModelPanel({
   const test = useConnectionTest(model)
   const testing = test.line?.state === "testing"
   const connection = (FIXED_CONNECTION_LABELS as Record<string, string>)[model.provider] ?? facts.label
-  const judge = isEvalJudge(evalConfig, model.name)
   const signedIn = facts.signIn && status !== "not-connected"
   const keySaved = !facts.signIn && status === "key-saved"
   const [replacing, setReplacing] = useState(false)
@@ -697,15 +693,10 @@ function ModelPanel({
   // settles, Retry computes nothing: a refused delete is not sent again (UI-SPEC E2).
   async function deleteModel() {
     let settled = false
-    const compute = (config: Record<string, unknown>): ConfigChange[] =>
-      settled
-        ? []
-        : [
-            { op: "unset", path: ["registry", "llms", { name: model.name }] },
-            ...judgeChangesAfterDelete(isRecord(config.eval) ? config.eval : undefined, model.name),
-          ]
+    const compute = (): ConfigChange[] =>
+      settled ? [] : [{ op: "unset", path: ["registry", "llms", { name: model.name }] }]
     onRemoveStart()
-    await autosave.runComputed(compute, { kind: "delete-model", name: model.name, judge })
+    await autosave.runComputed(compute, { kind: "delete-model", name: model.name })
     settled = true
     onRemoveEnd()
   }
@@ -794,11 +785,6 @@ function ModelPanel({
             {fixedFactsLine(connection)}
           </p>
         )}
-        {judge ? (
-          <p data-model-judge className="text-xs text-muted-foreground">
-            {USED_AS_JUDGE_LINE}
-          </p>
-        ) : null}
         <div data-model-footer>
           {isDefault ? (
             <p data-model-default-line className="text-xs text-muted-foreground">
@@ -828,7 +814,6 @@ interface ModelRowProps extends ModelRowActions {
   facts: ProviderFacts
   keyType: CredentialKeyType
   isDefault: boolean
-  evalConfig: unknown
   open: boolean
   onToggle: () => void
   onMakeDefault: () => void
@@ -842,7 +827,6 @@ export function ModelRow({
   facts,
   keyType,
   isDefault,
-  evalConfig,
   open,
   onToggle,
   onMakeDefault,
@@ -907,7 +891,6 @@ export function ModelRow({
           facts={facts}
           keyType={keyType}
           isDefault={isDefault}
-          evalConfig={evalConfig}
           onMakeDefault={onMakeDefault}
           header={header}
           landing={landing}

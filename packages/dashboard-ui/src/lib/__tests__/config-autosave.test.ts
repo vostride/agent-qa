@@ -266,14 +266,13 @@ describe('the windows (429-15 Task 1)', () => {
         name: 'gpt',
         token: 'second',
         expiresAt: t + 100 + UNDO_WINDOW_MS,
-        judge: true,
       },
       t + 100,
     )
     expect(second.undo?.token).toBe('second')
     expect(deriveSaveStatus(second, t + 100)).toMatchObject({
       state: 'undo',
-      undo: { line: 'Deleted gpt, an eval judge', name: 'gpt', token: 'second' },
+      undo: { line: 'Deleted gpt', name: 'gpt', token: 'second' },
     })
     const afterSecond = t + 100 + UNDO_WINDOW_MS
     expect(deriveSaveStatus(second, afterSecond).state).toBe('idle')

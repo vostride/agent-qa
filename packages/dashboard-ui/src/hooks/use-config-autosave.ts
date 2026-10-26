@@ -69,7 +69,6 @@ export type ConfigLoadState =
 export interface ConfigUndoMeta {
   kind: ExplicitActionKind
   name: string
-  judge?: boolean
 }
 
 /** The action the last Undo reversed, once the re-read shows it again; seq tells repeats apart. */
@@ -588,7 +587,6 @@ function createEngine(host: EngineHost) {
           name: explicit.name,
           token: result.undo.token,
           expiresAt: Date.now() + UNDO_WINDOW_MS,
-          ...(explicit.judge === undefined ? {} : { judge: explicit.judge }),
         })
       }
       return true
@@ -869,7 +867,6 @@ function createEngine(host: EngineHost) {
       name: meta.name,
       token: ticket.token,
       expiresAt: Date.now() + UNDO_WINDOW_MS,
-      ...(meta.judge === undefined ? {} : { judge: meta.judge }),
     })
   }
 

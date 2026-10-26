@@ -729,38 +729,38 @@ describe("useConfigAutosave landed-write mirror for the new ops (429-45 Task 2)"
 })
 
 describe("useConfigAutosave computed writes (429-46 Task 1 · CR-01)", () => {
-  const judgesPath = ["eval", "judges"]
-  const judges: ConfigFieldRef = { segments: judgesPath, tab: "advanced" }
+  const patternsPath = ["workspace", "testMatch"]
+  const patterns: ConfigFieldRef = { segments: patternsPath, tab: "project" }
 
-  function withJudges(list: string[]) {
-    return { ...baseConfig, eval: { judges: list } }
+  function withPatterns(list: string[]) {
+    return { ...baseConfig, workspace: { ...baseConfig.workspace, testMatch: list } }
   }
 
   function fieldChanged() {
-    return new ApiError(409, "Conflict", { error: "field_changed", path: judgesPath })
+    return new ApiError(409, "Conflict", { error: "field_changed", path: patternsPath })
   }
 
-  /** Adds one judge to whatever list the config it is handed holds, stating that list first. */
-  function addJudge(name: string) {
+  /** Adds one pattern to whatever list the config it is handed holds, stating that list first. */
+  function addPattern(name: string) {
     return vi.fn((config: Record<string, unknown>): ConfigChange[] => {
-      const block = config.eval as { judges?: string[] } | undefined
-      const read = block?.judges ?? []
+      const block = config.workspace as { testMatch?: string[] } | undefined
+      const read = block?.testMatch ?? []
       return [
-        { op: "expect", path: judgesPath, value: read },
-        { op: "set", path: judgesPath, value: [...read, name] },
+        { op: "expect", path: patternsPath, value: read },
+        { op: "set", path: patternsPath, value: [...read, name] },
       ]
     })
   }
 
   it("COMPUTED-WRITE-MERGES-OUTSIDE-EDIT: a field_changed refusal re-reads, recomputes and lands on the file's list", async () => {
-    vi.mocked(fetchConfig).mockResolvedValue(answer(withJudges(["a", "b"])) as never)
+    vi.mocked(fetchConfig).mockResolvedValue(answer(withPatterns(["a", "b"])) as never)
     await mount()
     const first = deferred<never>()
     vi.mocked(applyConfigChanges).mockReturnValueOnce(first.promise)
     vi.mocked(applyConfigChanges).mockResolvedValueOnce({ baseRevision: "rev-5", revision: "rev-6" })
-    vi.mocked(fetchConfig).mockResolvedValue(answer(withJudges(["a", "b", "d"]), "rev-5") as never)
+    vi.mocked(fetchConfig).mockResolvedValue(answer(withPatterns(["a", "b", "d"]), "rev-5") as never)
     vi.mocked(fetchConfigRevision).mockResolvedValue({ revision: "rev-6" })
-    const compute = addJudge("c")
+    const compute = addPattern("c")
 
     let landing!: Promise<boolean>
     await act(async () => {
@@ -776,16 +776,16 @@ describe("useConfigAutosave computed writes (429-46 Task 1 · CR-01)", () => {
     expect(await landing).toBe(true)
     expect(writeCalls()).toEqual([
       [
-        { op: "expect", path: judgesPath, value: ["a", "b"] },
-        { op: "set", path: judgesPath, value: ["a", "b", "c"] },
+        { op: "expect", path: patternsPath, value: ["a", "b"] },
+        { op: "set", path: patternsPath, value: ["a", "b", "c"] },
       ],
       [
-        { op: "expect", path: judgesPath, value: ["a", "b", "d"] },
-        { op: "set", path: judgesPath, value: ["a", "b", "d", "c"] },
+        { op: "expect", path: patternsPath, value: ["a", "b", "d"] },
+        { op: "set", path: patternsPath, value: ["a", "b", "d", "c"] },
       ],
     ])
     expect(fetchConfig).toHaveBeenCalledTimes(2)
-    expect(hook!.valueOf(judges)).toEqual(["a", "b", "d", "c"])
+    expect(hook!.valueOf(patterns)).toEqual(["a", "b", "d", "c"])
     expect(hook!.status.state).toBe("saved")
     expect(seenStatuses).toContain("saving")
     expect(seenStatuses).not.toContain("failed")
@@ -805,11 +805,11 @@ describe("useConfigAutosave computed writes (429-46 Task 1 · CR-01)", () => {
   })
 
   it("COMPUTED-WRITE-GIVES-UP-HONESTLY: a second field_changed reads Couldn't save, and Retry recomputes from a fresh read", async () => {
-    vi.mocked(fetchConfig).mockResolvedValue(answer(withJudges(["a", "b"])) as never)
+    vi.mocked(fetchConfig).mockResolvedValue(answer(withPatterns(["a", "b"])) as never)
     await mount()
     vi.mocked(applyConfigChanges).mockRejectedValueOnce(fieldChanged()).mockRejectedValueOnce(fieldChanged())
-    vi.mocked(fetchConfig).mockResolvedValue(answer(withJudges(["a", "b", "d"]), "rev-5") as never)
-    const compute = addJudge("c")
+    vi.mocked(fetchConfig).mockResolvedValue(answer(withPatterns(["a", "b", "d"]), "rev-5") as never)
+    const compute = addPattern("c")
 
     let landed = true
     await act(async () => {
@@ -821,9 +821,9 @@ describe("useConfigAutosave computed writes (429-46 Task 1 · CR-01)", () => {
     expect(writeCalls()).toHaveLength(2)
     expect(hook!.status.state).toBe("failed")
     expect(hook!.status.message).toBe(FIELD_CHANGED_TEXT)
-    expect(hook!.valueOf(judges)).toEqual(["a", "b", "d"])
+    expect(hook!.valueOf(patterns)).toEqual(["a", "b", "d"])
 
-    vi.mocked(fetchConfig).mockResolvedValue(answer(withJudges(["a", "b", "d", "e"]), "rev-7") as never)
+    vi.mocked(fetchConfig).mockResolvedValue(answer(withPatterns(["a", "b", "d", "e"]), "rev-7") as never)
     vi.mocked(fetchConfigRevision).mockResolvedValue({ revision: "rev-8" })
     vi.mocked(applyConfigChanges).mockResolvedValueOnce({ baseRevision: "rev-7", revision: "rev-8" })
     const readsBefore = vi.mocked(fetchConfig).mock.calls.length
@@ -833,11 +833,11 @@ describe("useConfigAutosave computed writes (429-46 Task 1 · CR-01)", () => {
 
     expect(fetchConfig).toHaveBeenCalledTimes(readsBefore + 1)
     expect(compute).toHaveBeenCalledTimes(1)
-    expect(compute.mock.calls[0]![0]).toEqual(withJudges(["a", "b", "d", "e"]))
+    expect(compute.mock.calls[0]![0]).toEqual(withPatterns(["a", "b", "d", "e"]))
     expect(writeCalls()).toHaveLength(3)
     expect(writeCalls()[2]).toEqual([
-      { op: "expect", path: judgesPath, value: ["a", "b", "d", "e"] },
-      { op: "set", path: judgesPath, value: ["a", "b", "d", "e", "c"] },
+      { op: "expect", path: patternsPath, value: ["a", "b", "d", "e"] },
+      { op: "set", path: patternsPath, value: ["a", "b", "d", "e", "c"] },
     ])
     expect(hook!.status.state).toBe("saved")
   })
