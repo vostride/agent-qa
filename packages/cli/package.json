@@ -32,7 +32,9 @@
     "self-healing-tests",
     "mcp",
     "fair-source",
-    "fsl"
+    "fsl",
+    "pi-package",
+    "pi-skill"
   ],
   "license": "FSL-1.1-ALv2",
   "homepage": "https://github.com/vostride/agent-qa#readme",
@@ -70,6 +72,11 @@
     "LICENSE.md",
     "NOTICE.md"
   ],
+  "pi": {
+    "skills": [
+      "./skills"
+    ]
+  },
   "scripts": {
     "build": "tsup",
     "copy:skills": "node scripts/copy-skills.mjs",

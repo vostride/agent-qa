@@ -155,6 +155,9 @@ function validatePublicPackage(record, allVersions, errors, options = { checkFil
   if (record.pkg.name === entryPackageName) {
     assert(record.pkg.bin?.['agent-qa'] === './dist/cli.js', 'agent-qa must keep bin.agent-qa pointing at ./dist/cli.js', errors)
     assert(record.pkg.files?.includes('skills'), 'agent-qa files must include skills', errors)
+    assert(record.pkg.keywords?.includes('pi-package'), 'agent-qa keywords must include pi-package for the Pi package gallery', errors)
+    assert(record.pkg.keywords?.includes('pi-skill'), 'agent-qa keywords must include pi-skill for the Pi gallery skill badge', errors)
+    assert(Array.isArray(record.pkg.pi?.skills) && record.pkg.pi.skills.includes('./skills'), 'agent-qa pi.skills must include ./skills', errors)
   } else {
     assert(typeof record.pkg.name === 'string' && record.pkg.name.startsWith(`${scopedPrefix}-`), `${name} must be scoped under @vostride/*`, errors)
   }
