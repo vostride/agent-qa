@@ -6,6 +6,7 @@ import {
   PlannerConfigSchema,
   SuiteDefinitionSchema,
   TestDefinitionSchema,
+  TimeoutConfigSchema,
   readAuthStateMetadata,
   resolveAuthStatePaths,
   writeAuthStateFiles,
@@ -188,6 +189,30 @@ export async function resolveLivePlannerLimits(
     uses.push(use)
   }
   return resolvePlannerLimits(config.use, ...uses)
+}
+
+/**
+ * The navigation bound a live web session runs under, in milliseconds: the project config's
+ * `use.timeout.navigation`, then each entity's in order, parsed with the schema the CLI applies.
+ * Undefined when no layer sets a valid value, so the adapter keeps its default.
+ */
+export async function resolveLiveNavigationTimeoutMs(
+  configManager: ConfigManager | undefined,
+  entities: EntityRef | readonly EntityRef[] | undefined,
+  readers: LiveEntityDefinitionReaders,
+): Promise<number | undefined> {
+  const config = configManager === undefined ? {} : await readConfigValues(configManager)
+  const uses: unknown[] = [config.use]
+  for (const entity of ([] as EntityRef[]).concat(entities ?? [])) {
+    uses.push(await readEntityUse(entity, readers))
+  }
+  let navigation: number | undefined
+  for (const use of uses) {
+    if (!isConfigRecord(use) || !isConfigRecord(use.timeout)) continue
+    const parsed = TimeoutConfigSchema.shape.navigation.safeParse(use.timeout.navigation)
+    if (parsed.success) navigation = parsed.data
+  }
+  return navigation
 }
 
 export const IDLE_TIMEOUT_MS = 5 * 60 * 1000
@@ -814,7 +839,13 @@ export class LiveSession {
     } else {
       const { WebPlatformAdapter } = await import('@vostride/agent-qa-web')
       const adapter = new WebPlatformAdapter()
-      await adapter.setup({ platform: 'web', browser: { name: 'chromium', headless: config.headless ?? true } })
+      await adapter.setup({
+        platform: 'web',
+        browser: { name: 'chromium', headless: config.headless ?? true },
+        ...(config.navigationTimeoutMs === undefined
+          ? {}
+          : { timeouts: { navigation: config.navigationTimeoutMs } }),
+      })
       this.adapter = adapter
 
       if (config.url) {

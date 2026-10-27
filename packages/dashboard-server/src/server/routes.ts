@@ -21,6 +21,7 @@ import { HookRegistryManager, isHookRegistryMutationError } from '../hooks/hook-
 import { readJsonBody } from './body-parser.js'
 import {
   LivePlannerLimitsRefusedError,
+  resolveLiveNavigationTimeoutMs,
   resolveLivePlannerLimits,
 } from '../live-editor/live-session.js'
 import { refuseCrossSiteRequest } from './cross-site.js'
@@ -5085,6 +5086,11 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             ...(suiteFileManager === undefined ? {} : { findSuite: (id: string) => suiteFileManager.findBySuiteId(id) }),
           }
           const plannerLimits = await resolveLivePlannerLimits(configManager, entityRef, entityReaders)
+          const navigationTimeoutMs = await resolveLiveNavigationTimeoutMs(
+            configManager,
+            entityRef,
+            entityReaders,
+          )
           // Each test a session runs gets project, then the session's suite, then its own `use`:
           // the chain the CLI suite producer resolves per member.
           const sessionSuiteRef = entityRef?.type === 'suite' ? entityRef : undefined
@@ -5113,6 +5119,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
               hookRegistryError,
               url: body?.url,
               headless: body?.headless ?? false,
+              navigationTimeoutMs,
               useDeviceName: typeof body?.useDeviceName === 'string' ? body.useDeviceName : undefined,
               appState: body?.appState === 'preserve' || body?.appState === 'reset' ? body.appState : undefined,
               bundleId: typeof body?.bundleId === 'string' ? body.bundleId : undefined,

@@ -71,7 +71,10 @@ function invoke(router: ReturnType<typeof createRouter>, body: Record<string, un
   })
 }
 
-async function workspaceWith(testPlanner: string): Promise<{
+async function workspaceWith(
+  testPlanner: string,
+  timeouts: { projectNavigation?: string; testNavigation?: string } = {},
+): Promise<{
   router: ReturnType<typeof createRouter>
   createSession: ReturnType<typeof vi.fn>
 }> {
@@ -95,6 +98,9 @@ async function workspaceWith(testPlanner: string): Promise<{
       '  planner:',
       '    maxActions: 20',
       '    maxPlanningTurns: 15',
+      ...(timeouts.projectNavigation === undefined
+        ? []
+        : ['  timeout:', `    navigation: ${timeouts.projectNavigation}`]),
       '',
     ].join('\n'),
     'utf-8',
@@ -107,7 +113,20 @@ async function workspaceWith(testPlanner: string): Promise<{
   await mkdir(join(dir, 'tests'), { recursive: true })
   await writeFile(
     join(dir, 'tests', 'bulk.yaml'),
-    [`test-id: ${TEST_ID}`, 'name: Bulk archive', 'target: web', 'use:', '  planner:', testPlanner, 'steps:', '  - archive all', ''].join('\n'),
+    [
+      `test-id: ${TEST_ID}`,
+      'name: Bulk archive',
+      'target: web',
+      'use:',
+      '  planner:',
+      testPlanner,
+      ...(timeouts.testNavigation === undefined
+        ? []
+        : ['  timeout:', `    navigation: ${timeouts.testNavigation}`]),
+      'steps:',
+      '  - archive all',
+      '',
+    ].join('\n'),
     'utf-8',
   )
   await writeFile(
@@ -176,5 +195,36 @@ describe('C436-EFFECTIVE-LIMITS live door', () => {
     expect(typeof config.plannerLimitsForTest).toBe('function')
     expect(await config.plannerLimitsForTest(TEST_ID)).toEqual({ maxActions: 80, maxPlanningTurns: 15 })
     expect(await config.plannerLimitsForTest(OTHER_TEST_ID)).toEqual({ maxActions: 20, maxPlanningTurns: 15 })
+  })
+})
+
+describe('live door navigation timeout', () => {
+  it("the project's use.timeout.navigation reaches the session in milliseconds", async () => {
+    const { router, createSession } = await workspaceWith('    maxActions: 80', {
+      projectNavigation: '30s',
+    })
+    const res = await invoke(router, { platform: 'web', entity: { type: 'test', id: OTHER_TEST_ID } })
+    expect(res.status).toBe(201)
+    const config = (createSession.mock.calls[0] as unknown[])[0] as { navigationTimeoutMs?: number }
+    expect(config.navigationTimeoutMs).toBe(30_000)
+  })
+
+  it("the edited test's use.timeout.navigation wins over the project's", async () => {
+    const { router, createSession } = await workspaceWith('    maxActions: 80', {
+      projectNavigation: '30s',
+      testNavigation: '5s',
+    })
+    const res = await invoke(router, { platform: 'web', entity: { type: 'test', id: TEST_ID } })
+    expect(res.status).toBe(201)
+    const config = (createSession.mock.calls[0] as unknown[])[0] as { navigationTimeoutMs?: number }
+    expect(config.navigationTimeoutMs).toBe(5_000)
+  })
+
+  it('no configured navigation timeout leaves it unset', async () => {
+    const { router, createSession } = await workspaceWith('    maxActions: 80')
+    const res = await invoke(router, { platform: 'web', entity: { type: 'test', id: TEST_ID } })
+    expect(res.status).toBe(201)
+    const config = (createSession.mock.calls[0] as unknown[])[0] as { navigationTimeoutMs?: number }
+    expect(config.navigationTimeoutMs).toBeUndefined()
   })
 })

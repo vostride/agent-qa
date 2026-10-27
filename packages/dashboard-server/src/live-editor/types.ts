@@ -213,6 +213,8 @@ export interface LiveSessionConfig {
   hookRegistryError?: string
   url?: string
   headless?: boolean
+  /** The resolved `use.timeout.navigation`; unset leaves the web adapter's default. */
+  navigationTimeoutMs?: number
   useDeviceName?: string
   appState?: 'preserve' | 'reset'
   bundleId?: string

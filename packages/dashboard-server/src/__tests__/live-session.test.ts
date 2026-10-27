@@ -272,6 +272,18 @@ describe('LiveSession', () => {
     expect(session.status).toBe('idle')
   })
 
+  it('initialize passes the configured navigation timeout to the web adapter setup', async () => {
+    await session.initialize({ ...webConfig, navigationTimeoutMs: 30_000 })
+    expect(mockSetup).toHaveBeenCalledWith(
+      expect.objectContaining({ platform: 'web', timeouts: { navigation: 30_000 } }),
+    )
+  })
+
+  it('initialize leaves the navigation timeout to the adapter default when none is configured', async () => {
+    await session.initialize(webConfig)
+    expect(mockSetup).toHaveBeenCalledWith(expect.not.objectContaining({ timeouts: expect.anything() }))
+  })
+
   it('initialize navigates to URL when provided', async () => {
     await session.initialize({ ...webConfig, url: 'https://example.com' })
     expect(mockExecute).toHaveBeenCalledWith({ type: 'navigate', to: 'url', url: 'https://example.com' })
