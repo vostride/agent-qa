@@ -94,4 +94,17 @@ describe('assertion and extraction schemas', () => {
       }],
     }).success).toBe(false)
   })
+
+  it('an array field needs its item type', () => {
+    const schema = registryWithActions().getSchema('common_extractAI')
+
+    const parsed = schema.safeParse({
+      query: 'list the line items',
+      schema: [{ name: 'items', type: 'array', description: 'item names' }],
+    })
+
+    expect(parsed.success).toBe(false)
+    const issue = parsed.error?.issues.find((entry) => entry.path.join('.') === 'schema.0.item')
+    expect(issue?.message).toBe('item is required when type is array')
+  })
 })

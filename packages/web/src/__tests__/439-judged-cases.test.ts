@@ -120,7 +120,7 @@ async function extractPage(_query: string, screen: ScreenState): Promise<AiExtra
   }
 }
 
-const readLine = (page: string) => `page = "${page}", subtotal = "${SUBTOTALS[page]!}"`
+const readLine = (page: string) => `page = ${page}, subtotal = ${SUBTOTALS[page]!}`
 const extract = { type: 'extractAI', query: 'the page subtotal' }
 const extractTurn = (complete: boolean): ScriptedTurn => () => act(extract, complete, 'Read this page subtotal')
 const nextPage: ScriptedTurn = (screen) => act({ type: 'click', ref: refFor(screen, 'link', 'Next page') }, false, 'Go to page 2')

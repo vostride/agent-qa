@@ -162,8 +162,12 @@ export const extractFieldSchema = z.object({
   type: z.enum(['string', 'number', 'boolean', 'array', 'object']).describe('Output field value type'),
   description: z.string().describe('Natural-language description of the field to extract'),
   item: extractArrayItemSchema.optional()
-    .describe('Array item type. Omit when type is not array.'),
-}).strict()
+    .describe('Array item type, required when type is array. Omit when type is not array.'),
+}).strict().superRefine((field, ctx) => {
+  if (field.type === 'array' && field.item === undefined) {
+    ctx.addIssue({ code: 'custom', path: ['item'], message: 'item is required when type is array' })
+  }
+})
 
 export const extractAISchema = z.object({
   query: z.string().describe('Perceptual extraction request for the current rendered state'),

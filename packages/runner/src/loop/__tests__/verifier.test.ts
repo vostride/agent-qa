@@ -10,6 +10,7 @@ import { asRef } from '@vostride/agent-qa-schema'
 import type { Action } from '../../platform.js'
 import { makeScreenState } from '../../testing/screen-fixtures.js'
 import { LLMVerifier } from '../verifier.js'
+import type { ExtractField } from '../types.js'
 import { makeFakeTokenAccounting } from './loop-harness.js'
 
 vi.mock('ai', async (importOriginal) => {
@@ -351,6 +352,101 @@ describe('LLMVerifier', () => {
           abortSignal: controller.signal,
         }),
       ).rejects.toThrow('The operation was aborted')
+    })
+
+    const orderFields: ExtractField[] = [
+      { name: 'orderNumber', type: 'string', description: 'the order number' },
+      { name: 'total', type: 'number', description: 'the order total' },
+      { name: 'giftWrap', type: 'boolean', description: 'whether gift wrap is on' },
+      { name: 'items', type: 'array', description: 'the item names', item: { type: 'string' } },
+      { name: 'address', type: 'object', description: 'the delivery address' },
+      { name: 'notes', type: 'string', description: 'the delivery notes' },
+    ]
+    const orderAnswer = {
+      orderNumber: 'A-1042',
+      total: 59.9,
+      giftWrap: true,
+      items: ['Mug', 'Tea, loose leaf'],
+      address: '{"city":"Pune","pin":"411001"}',
+      notes: null,
+    }
+
+    async function extractWith(output: unknown, declared: ExtractField[] = orderFields) {
+      const { generateText } = await import('ai')
+      const mockGenerateText = vi.mocked(generateText)
+      mockGenerateText.mockResolvedValueOnce({
+        output,
+        usage: { inputTokens: 60, outputTokens: 10 },
+      } as any)
+      const verifier = new LLMVerifier({} as any, makeFakeTokenAccounting())
+      const result = await verifier.extractData('read the order', before, { fields: declared })
+      return { result, call: mockGenerateText.mock.calls[0]![0] as any }
+    }
+
+    const notTheFields = {
+      outcome: 'unresolved',
+      reason: "the model's answer did not match the declared fields",
+    }
+
+    it('the schema sent to the model is typed, nullable and complete', async () => {
+      const { call } = await extractWith(orderAnswer)
+      const { zodSchema } = await import('ai')
+      const sent = (await zodSchema(call.output.schema).jsonSchema) as any
+
+      expect(sent.required).toEqual(orderFields.map((field) => field.name))
+      expect(sent.properties.total.type).toEqual(['number', 'null'])
+      expect(sent.properties.address.type).toEqual(['string', 'null'])
+      expect(sent.properties.giftWrap.type).toEqual(['boolean', 'null'])
+    })
+
+    it('typed values and nulls come back typed', async () => {
+      const { result } = await extractWith(orderAnswer)
+
+      expect(result).toEqual({
+        outcome: 'extracted',
+        fields: {
+          orderNumber: 'A-1042',
+          total: 59.9,
+          giftWrap: true,
+          items: ['Mug', 'Tea, loose leaf'],
+          address: { city: 'Pune', pin: '411001' },
+          notes: null,
+        },
+      })
+    })
+
+    it('a string where a number is declared does not match the declared fields', async () => {
+      const { result } = await extractWith({ ...orderAnswer, total: '59.9' })
+      expect(result).toEqual(notTheFields)
+    })
+
+    it('a missing declared field does not match the declared fields', async () => {
+      const { notes: _notes, ...withoutNotes } = orderAnswer
+      const { result } = await extractWith(withoutNotes)
+      expect(result).toEqual(notTheFields)
+    })
+
+    it.each(['[1,2]', '5', 'not json'])(
+      'object text that is not a JSON object does not match the declared fields (%s)',
+      async (text) => {
+        const { result } = await extractWith({ ...orderAnswer, address: text })
+        expect(result).toEqual(notTheFields)
+      },
+    )
+
+    it('an array of objects decodes every item, and one bad item does not match', async () => {
+      const lines: ExtractField[] = [
+        { name: 'lines', type: 'array', description: 'the order lines', item: { type: 'object' } },
+      ]
+
+      const decoded = await extractWith({ lines: ['{"sku":"A"}', '{"sku":"B"}'] }, lines)
+      expect(decoded.result).toEqual({
+        outcome: 'extracted',
+        fields: { lines: [{ sku: 'A' }, { sku: 'B' }] },
+      })
+
+      const bad = await extractWith({ lines: ['{"sku":"A"}', 'x'] }, lines)
+      expect(bad.result).toEqual(notTheFields)
     })
   })
 })

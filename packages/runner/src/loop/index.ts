@@ -1665,9 +1665,9 @@ export async function executeStep(
         }
       }
     } else if (dispatchVerb === 'extractAI' && ports.verifier?.extractData) {
-      // One extraction per attempt through the verifier's model lane. The extracted fields go to
-      // run-scoped working memory; an extraction the model could not make ends the step unresolved
-      // and writes nothing.
+      // One extraction per attempt through the verifier's model lane. The typed fields are masked,
+      // then written to run-scoped working memory and the read line as JSON text; an extraction the
+      // model could not make ends the step unresolved and writes nothing.
       cacheBypass = true
       const av = action as { query?: unknown; scope?: unknown }
       const query = String(av.query ?? '')
@@ -1685,23 +1685,23 @@ export async function executeStep(
         execError = sentence
         unresolvedEnding = sentence
       } else {
-        const extracted = extraction.fields
-        const entries: WorkingMemoryEntry[] = Object.entries(extracted).map(([key, value]) => ({
+        const fields = redactSecretValue(extraction.fields, ports.secretRedactor)
+        const entries: WorkingMemoryEntry[] = Object.entries(fields).map(([key, value]) => ({
           key,
-          value: recordMask(String(value)),
+          value: extractedText(value),
           kind: 'extracted-value',
           provenance: 'toolResult',
           stepIndex: actionIndex,
         }))
         if (entries.length > 0) ports.workingMemory?.capture(entries, { step: actionIndex })
-        const values = entries.map((entry) => `${recordMask(entry.key)} = "${entry.value}"`)
+        const values = entries.map((entry) => `${recordMask(entry.key)} = ${entry.value}`)
         stepRecord.addRead({
           kind: 'extractAI',
           text: `"${recordMask(query)}": ${values.length > 0 ? values.join(', ') : 'no fields'}`,
         })
         const degradedScope = av.scope === 'global'
         recorder.recordAiJudgment({ verb: 'extractAI', ...(degradedScope ? { degradedScope: true } : {}) })
-        execResult = { success: true, metadata: { aiJudgment: { verb: 'extractAI' }, extracted } }
+        execResult = { success: true, metadata: { aiJudgment: { verb: 'extractAI' }, extracted: fields } }
         execError = undefined
       }
     } else if (dispatchVerb === 'assertValue' && (action as { source?: unknown }).source === 'expr-result') {
@@ -3223,6 +3223,12 @@ function assertValueReadText(source: string, value: unknown): { actual?: string 
     : value === null ? null
       : typeof value === 'object' ? JSON.stringify(value) : String(value)
   return { ...(actual !== undefined ? { actual } : {}), ...(entries !== undefined ? { entries } : {}) }
+}
+
+// An extracted value as working memory and the read line show it: a string as itself, anything
+// else as JSON, so null reads as null.
+function extractedText(value: unknown): string {
+  return typeof value === 'string' ? value : JSON.stringify(value)
 }
 
 function carriedItems(cell: CarriedArtifacts | undefined): { stepNumber: number; actionIndex: number; text: string }[] {

@@ -21,6 +21,7 @@ import {
 import { readAiJudgmentMeta } from '../../compound/metadata.js'
 import { LLMVerifier } from '../verifier.js'
 import { SecretRedactor, SecretStore } from '../secrets.js'
+import type { VerifierStepRecord } from '../step-record.js'
 
 // ---------------------------------------------------------------------------
 // Local harness helpers
@@ -159,12 +160,16 @@ function syntheticModel(answer: { error: Error } | { text: string }): V3Model & 
 }
 
 /** The real LLMVerifier's judge and extract lanes beside a scripted, counting step verifier. */
-function realJudgeVerifier(model: LanguageModel): Verifier & { verifyCalls: number } {
+function realJudgeVerifier(
+  model: LanguageModel,
+): Verifier & { verifyCalls: number; records: (VerifierStepRecord | undefined)[] } {
   const real = new LLMVerifier(model, makeFakeTokenAccounting())
   const verifier = {
     verifyCalls: 0,
+    records: [] as (VerifierStepRecord | undefined)[],
     async verify(...args: Parameters<Verifier['verify']>): Promise<VerifyResult> {
       verifier.verifyCalls++
+      verifier.records.push(args[10])
       const [step, , after, action] = args
       return {
         verification: scriptedVerification({ step, after, action, pass: true, reasoning: 'ok' }),
@@ -392,12 +397,15 @@ describe('extractAI extracts through the judge lane and captures run-scoped work
     const calls: Action[] = []
     const adapter = recordingAdapter(makeScreenState(), calls)
     const wm = recordingWorkingMemory()
-    const verifier = makeJudgeVerifier({ extracted: { orderId: 'ORD-9' } })
+    const verifier = makeJudgeVerifier({ extracted: { orderId: 'ORD-9', total: 12.5 } })
     const plan = makeActionPlan({
       action: {
         type: 'extractAI',
         query: 'extract the order id',
-        schema: [{ name: 'orderId', type: 'string', description: 'the order id shown on the receipt' }],
+        schema: [
+          { name: 'orderId', type: 'string', description: 'the order id shown on the receipt' },
+          { name: 'total', type: 'number', description: 'the order total' },
+        ],
         scope: 'run',
       },
       stepComplete: true,
@@ -411,7 +419,12 @@ describe('extractAI extracts through the judge lane and captures run-scoped work
 
     expect(result.status).toBe('passed')
     expect(verifier.extractDataCalls.length).toBe(1)
+    expect(subs(result)[0]?.result?.metadata?.extracted).toEqual({ orderId: 'ORD-9', total: 12.5 })
     expect(wm.calls.length).toBe(1)
+    expect(wm.calls[0]?.entries.map((entry) => [entry.key, entry.value])).toEqual([
+      ['orderId', 'ORD-9'],
+      ['total', '12.5'],
+    ])
     const entry = wm.calls[0]?.entries[0]
     expect(entry?.kind).toBe('extracted-value')
     expect(entry?.provenance).toBe('toolResult')
@@ -442,6 +455,106 @@ describe('extractAI extracts through the judge lane and captures run-scoped work
     expect(wm.calls.length).toBe(1)
     const judgment = (result.evidence as { aiJudgment?: { degradedScope?: boolean } }).aiJudgment
     expect(judgment?.degradedScope).toBe(true)
+  })
+})
+
+describe('extractAI returns its declared types', () => {
+  const step = 'Read the order'
+  const query = 'read the order'
+  const orderFields = [
+    { name: 'orderNumber', type: 'string', description: 'the order number' },
+    { name: 'total', type: 'number', description: 'the order total' },
+    { name: 'giftWrap', type: 'boolean', description: 'whether gift wrap is on' },
+    { name: 'items', type: 'array', description: 'the item names', item: { type: 'string' } },
+    { name: 'address', type: 'object', description: 'the delivery address' },
+    { name: 'notes', type: 'string', description: 'the delivery notes' },
+  ]
+
+  async function run(model: V3Model & { calls: number }, extra: Partial<LoopPorts> = {}) {
+    const planner = countingPlanner([
+      makeActionPlan({
+        action: { type: 'extractAI', query, schema: orderFields },
+        stepComplete: true,
+      }),
+    ])
+    const verifier = realJudgeVerifier(model)
+    const workingMemory = recordingWorkingMemory()
+    const result = await executeStep(
+      step,
+      ports({
+        adapter: recordingAdapter(makeScreenState(), []),
+        planner,
+        verifier,
+        workingMemory,
+        plannerConfig: cfg,
+        ...extra,
+      }),
+      makeStepContext(),
+    )
+    return { result, verifier, workingMemory }
+  }
+
+  it('typed values and nulls reach working memory and the read line as JSON text', async () => {
+    const model = syntheticModel({
+      text: '{"orderNumber":"A-1042","total":59.9,"giftWrap":true,"items":["Mug","Tea, loose leaf"],"address":"{\\"city\\":\\"Pune\\",\\"pin\\":\\"411001\\"}","notes":null}',
+    })
+    const { result, verifier, workingMemory } = await run(model)
+
+    expect(result.status).toBe('passed')
+    expect(workingMemory.calls).toHaveLength(1)
+    const lines = workingMemory.calls[0]?.entries.map((entry) => `${entry.key} = ${entry.value}`)
+    expect(lines).toEqual([
+      'orderNumber = A-1042',
+      'total = 59.9',
+      'giftWrap = true',
+      'items = ["Mug","Tea, loose leaf"]',
+      'address = {"city":"Pune","pin":"411001"}',
+      'notes = null',
+    ])
+    const read = verifier.records[0]?.reads.find((entry) => entry.kind === 'extractAI')
+    expect(read?.text).toBe(
+      '"read the order": orderNumber = A-1042, total = 59.9, giftWrap = true, items = ["Mug","Tea, loose leaf"], address = {"city":"Pune","pin":"411001"}, notes = null',
+    )
+    expect(subs(result)[0]?.result?.metadata?.extracted).toEqual({
+      orderNumber: 'A-1042',
+      total: 59.9,
+      giftWrap: true,
+      items: ['Mug', 'Tea, loose leaf'],
+      address: { city: 'Pune', pin: '411001' },
+      notes: null,
+    })
+  })
+
+  it('a secret inside an extracted object is masked before record', async () => {
+    const model = syntheticModel({
+      text: '{"orderNumber":"A-1042","total":59.9,"giftWrap":true,"items":[],"address":"{\\"city\\":\\"sk-live-supersecret\\"}","notes":null}',
+    })
+    const secretStore = new SecretStore({ TOKEN: 'sk-live-supersecret' })
+    const { result, workingMemory } = await run(model, {
+      secretStore,
+      secretRedactor: new SecretRedactor(secretStore),
+    })
+
+    expect(result.status).toBe('passed')
+    const extracted = subs(result)[0]?.result?.metadata?.extracted as Record<string, unknown>
+    expect(extracted.address).toEqual({ city: '[secret:TOKEN]' })
+    const address = workingMemory.calls[0]?.entries.find((entry) => entry.key === 'address')
+    expect(address?.value).toBe('{"city":"[secret:TOKEN]"}')
+    expect(JSON.stringify(result)).not.toContain('supersecret')
+  })
+
+  it('a wrongly typed extraction ends the step at once', async () => {
+    const model = syntheticModel({
+      text: '{"orderNumber":"A-1042","total":"59.9","giftWrap":true,"items":[],"address":null,"notes":null}',
+    })
+    const { result, workingMemory } = await run(model)
+
+    expect(result.status).toBe('failed')
+    expect(result.evidence?.conditionVerdicts?.ending).toBe('unresolved')
+    expect(result.error).toBe(
+      'extractAI could not extract "read the order": the model\'s answer did not match the declared fields',
+    )
+    expect(workingMemory.calls).toHaveLength(0)
   })
 })
 
