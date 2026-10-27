@@ -239,7 +239,7 @@ doc.registry.targets = shape === "local-form"
   ? { "local-form": { platform: "web", url: "http://127.0.0.1:8931/form.html" } }
   : {}
 delete doc.registry.devices
-doc.knowledge = { dir: "agent-qa-knowledge", commitArtifacts: "none" }
+doc.knowledge = { dir: "agent-qa-knowledge" }
 writeFileSync(destination, YAML.stringify(doc))
 ' "$DEMO_INIT/agent-qa.config.yaml" "$2" "$YAML_LIB" "$1/agent-qa.config.yaml" \
     || fatal "could not derive the lane config for $1"
