@@ -136,7 +136,7 @@ describe('buildConfigVisibilityOracle (the schema-derived rule)', () => {
     const grown = buildConfigVisibilityOracle(grownSchema)
 
     expect(grown.classify('deployment.capabilities')).toBe('free-form')
-    expect(grown.classify('deployment.capabilities.browserstackKey')).toBe('free-form')
+    expect(grown.classify('deployment.capabilities.vendorKey')).toBe('free-form')
     expect(grown.classify('deployment.region')).toBe('constrained')
     // The pre-existing tree is unaffected, so this is a genuine addition rather than a
     // schema that masks everything.
@@ -178,8 +178,8 @@ describe('the walker fails CLOSED (CR-02)', () => {
     }))
 
     expect(grown.classify('deployment.caps')).not.toBe('constrained')
-    expect(grown.classify('deployment.caps.browserstack')).not.toBe('constrained')
-    expect(grown.isOpaque('deployment.caps.browserstack')).toBe(true)
+    expect(grown.classify('deployment.caps.vendor')).not.toBe('constrained')
+    expect(grown.isOpaque('deployment.caps.vendor')).toBe(true)
     // The sibling control, in the same grown schema.
     expect(grown.classify('deployment.region')).toBe('constrained')
   })

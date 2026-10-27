@@ -420,7 +420,6 @@ describe('createRequire anchor census', () => {
       join('core', 'src', 'plugin-loader-util.ts'),
       join('core', 'src', 'version.ts'),
       join('core', 'src', 'version-check', 'index.ts'),
-      join('core', 'src', 'farm', 'capability-mapper.ts'),
     ]) {
       expect(
         offending.filter((entry) => entry.startsWith(`${clean}:`)),

@@ -10,7 +10,7 @@ Use exactly one category.
 | `element_not_found` | Locator, element, selector, or UI description was unavailable. | Failed step error, observation, screenshot, DOM/accessibility context. |
 | `assertion_failure` | App was reachable but expected content/state did not match. | Failed assert/verify step, observation, screenshot. |
 | `hook_failure` | Setup/teardown/hook execution blocked the run. | Hook logs, hook artifact sections, hook registry errors. |
-| `infrastructure` | Network, Docker, farm, device, filesystem, or service dependency failed. | Execution logs, stderr, artifact runtime errors. |
+| `infrastructure` | Network, Docker, device, filesystem, or service dependency failed. | Execution logs, stderr, artifact runtime errors. |
 | `unknown_failure` | Evidence is insufficient for a stronger category. | Missing sections and next evidence to collect. |
 
 Always include evidence and a next action.

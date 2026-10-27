@@ -552,11 +552,11 @@ describe('GET /api/runs route contract', () => {
     db.insertRun({
       id: 'run-remote',
       name: 'Remote Run',
-      metadata: { runDestination: 'BrowserStack' },
+      metadata: { runDestination: 'Remote' },
       testFileContent: ['name: Remote Run', 'target: hn-staging', 'steps: []'].join('\n'),
     })
 
-    const res = await invokeRoute(router, '/api/runs?destination=browserstack')
+    const res = await invokeRoute(router, '/api/runs?destination=remote')
     expect(res.status).toBe(200)
 
     const data = JSON.parse(res.body) as {

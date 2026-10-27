@@ -46,11 +46,11 @@ describe('useSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('rejects android use carrying browserstackApp', () => {
+  it('rejects android use carrying an unknown key', () => {
     const result = useSchema.safeParse({
       platform: 'android',
       device: 'pixel',
-      browserstackApp: 'app://x',
+      unknownKey: 'x',
     })
 
     expect(result.success).toBe(false)

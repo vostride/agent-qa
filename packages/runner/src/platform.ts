@@ -103,7 +103,7 @@ export interface PlatformAdapter<P extends Platform = Platform> {
   screenshot?(): Promise<Buffer | undefined>
   /**
    * 403 D-05: the optional live-stream producer for this adapter's current target. ABSENT means
-   * "no continuous stream" (non-Chromium, remote farm), not "no preview": the composition's
+   * "no continuous stream" (non-Chromium), not "no preview": the composition's
    * `liveStreamFor` wraps `screenshot()` in the labelled 1s snapshot producer instead, and uses
    * that producer as the fallback when a continuous stream fails to start (428 D-11/D-12). Only an
    * adapter with neither reads `{ kind: 'none' }`. An adapter whose `screenshot()` mutates shared
