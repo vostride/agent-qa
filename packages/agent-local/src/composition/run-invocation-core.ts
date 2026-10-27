@@ -159,7 +159,7 @@ export class RunIdAlreadyInUseError extends Error {
  * The identity refusals, asked against the run's own directory: an id this system would not have
  * minted, or one that already names a run.
  */
-export function refuseUnavailableRunId(input: {
+function refuseUnavailableRunId(input: {
   readonly configDir: string
   readonly runId: string
   readonly isMintedRunId: (value: string) => boolean

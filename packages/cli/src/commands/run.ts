@@ -7,10 +7,10 @@ import pc from 'picocolors'
 import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig, validateTrustedRunAttributes } from '@vostride/agent-qa-core'
 import { discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarget, resolveWorkspacePaths, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
-import type { AgentQaConfig, AuthStateMetadata, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
+import type { AgentQaConfig, AuthStateMetadata, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
 import { resolveTarget, type ResolvedTarget } from '../targets.js'
-import { loadLocalBindings, type LocalDeviceBindings, type ResolvedDevice } from '../devices.js'
+import { loadLocalBindings, type LocalDeviceBindings } from '../devices.js'
 import { resolveLLMModels, resolveModelAuth, toModelProfileAndAuth } from '../llm-utils.js'
 import { formatInstallBrowsersRetryCommand, type BrowserInstallSelection } from './install-browsers.js'
 import type { ParsedTestBinding, TestDefinition, ParseError, SuiteDefinition, SuiteResult, RunSuiteConfig } from '@vostride/agent-qa-core'
@@ -354,7 +354,7 @@ const runWebAccessibilityCheck: NonNullable<RunSuiteConfig['accessibilityCheck']
 
 export function buildPlatformConfig(
   platform: 'web' | 'android' | 'ios',
-  resolvedDevice: ResolvedDevice | undefined,
+  resolvedDevice: ResolvedMobileDevice | undefined,
   timeouts: PlatformConfig['timeouts'],
   globalBrowser?: { name?: string; headless?: boolean; viewport?: { width: number; height: number } },
   logCapture?: { console?: boolean; network?: boolean },
@@ -2678,7 +2678,7 @@ export async function produceSuiteRunMembers(
       ? readLocalBindings()
       : null
     let mobileResolved: ResolvedMobileRunConfig | undefined
-    let resolvedDevice: ResolvedDevice | undefined
+    let resolvedDevice: ResolvedMobileDevice | undefined
     if (suitePlatform === 'android' || suitePlatform === 'ios') {
       mobileResolved = resolveMobileRunOrThrow({
         config: config as unknown as Record<string, any>,
@@ -3813,7 +3813,7 @@ export async function produceDirectRunMembers(
       ? readLocalBindings()
       : null
     let testMobileResolved: ResolvedMobileRunConfig | undefined
-    let testResolvedDevice: ResolvedDevice | undefined
+    let testResolvedDevice: ResolvedMobileDevice | undefined
     if (testPlatform === 'android' || testPlatform === 'ios') {
       testMobileResolved = resolveMobileRunOrThrow({
         config: config as unknown as Record<string, any>,

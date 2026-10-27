@@ -27,12 +27,6 @@ export type LocalDeviceBindings = z.infer<typeof LocalDeviceBindingsSchema> & {
   filePath?: string
 }
 
-export interface ResolvedDevice {
-  name: string
-  platform: 'android' | 'ios'
-  match: Record<string, unknown>
-}
-
 export function loadLocalBindings(dir?: string): LocalDeviceBindings | null {
   const filePath = join(dir ?? process.cwd(), 'agent-qa.local.yaml')
   let content: string
