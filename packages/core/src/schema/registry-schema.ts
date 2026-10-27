@@ -10,7 +10,6 @@ export const AppInstallSchema = z.object({
   path: z.string()
     .refine((v) => !isAbsoluteAppPath(v), { message: 'app.path must be relative' })
     .optional(),
-  browserstack: z.string().optional(),
 }).strict()
 
 export const TargetSchema = z.object({

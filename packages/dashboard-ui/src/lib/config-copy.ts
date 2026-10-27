@@ -725,11 +725,10 @@ export const TARGET_FIELD_LABELS = {
   appPackage: 'App package',
   appActivity: 'App activity',
   appPath: 'App file',
-  browserstackApp: 'BrowserStack app',
   environment: 'Environment',
 } as const satisfies Record<string, string>
 
-/** Before an app file or BrowserStack app in a mobile target's summary. */
+/** Before an app file in a mobile target's summary. */
 export const TARGET_APP_SUMMARY_PREFIX = 'App'
 
 export const TARGET_NAME_REQUIRED_ERROR = 'Add a name for the target.'

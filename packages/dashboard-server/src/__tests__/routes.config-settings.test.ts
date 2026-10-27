@@ -896,7 +896,6 @@ describe('settings writes through PATCH /api/config (429-32)', () => {
         appActivity: 'org.wikipedia.main.MainActivity',
         app: {
           path: 'apps/wikipedia-alpha.apk',
-          browserstack: 'bs://uploaded-app',
         },
       }),
     ])
@@ -913,7 +912,6 @@ describe('settings writes through PATCH /api/config (429-32)', () => {
             appActivity: 'org.wikipedia.main.MainActivity',
             app: {
               path: 'apps/wikipedia-alpha.apk',
-              browserstack: 'bs://uploaded-app',
             },
           },
         },

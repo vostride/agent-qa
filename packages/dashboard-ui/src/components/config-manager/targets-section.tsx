@@ -57,7 +57,7 @@ interface TargetEntry {
   bundleId?: string
   appPackage?: string
   appActivity?: string
-  app?: { path?: string; browserstack?: string }
+  app?: { path?: string }
   url?: string
   environment?: string
 }
@@ -143,8 +143,7 @@ export function summarizeTarget(target: TargetEntry): string {
     const app = [target.appPackage, target.appActivity].filter(Boolean).join(" / ")
     if (app) parts.push(app)
   }
-  const install = [target.app?.path, target.app?.browserstack].filter(Boolean).join(" / ")
-  if (install) parts.push(`${TARGET_APP_SUMMARY_PREFIX}: ${install}`)
+  if (target.app?.path) parts.push(`${TARGET_APP_SUMMARY_PREFIX}: ${target.app.path}`)
   return parts.join(" · ")
 }
 
@@ -280,22 +279,13 @@ function TargetFields({ name, target }: { name: string; target: TargetEntry }) {
         </>
       ) : null}
       {platform === "web" ? null : (
-        <>
-          <ConfigField
-            field={{ ...at("app", "path"), pattern: "registry.targets.*.app.path" }}
-            label={TARGET_FIELD_LABELS.appPath}
-            kind="text"
-            placeholder="apps/app.apk"
-            parse={parseAppPath}
-          />
-          <ConfigField
-            field={{ ...at("app", "browserstack"), pattern: "registry.targets.*.app.browserstack" }}
-            label={TARGET_FIELD_LABELS.browserstackApp}
-            kind="text"
-            placeholder="bs://…"
-            parse={parseOptional}
-          />
-        </>
+        <ConfigField
+          field={{ ...at("app", "path"), pattern: "registry.targets.*.app.path" }}
+          label={TARGET_FIELD_LABELS.appPath}
+          kind="text"
+          placeholder="apps/app.apk"
+          parse={parseAppPath}
+        />
       )}
       <ConfigField
         field={{ ...at("product"), pattern: "registry.targets.*.product" }}

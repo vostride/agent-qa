@@ -9,7 +9,6 @@ export interface TargetDetail {
   appActivity?: string
   app?: {
     path?: string
-    browserstack?: string
   }
   product?: string
   deviceName?: string
@@ -75,7 +74,6 @@ export function useTargetDetails(): TargetDetailsState {
                 app: v.app && typeof v.app === 'object' && !Array.isArray(v.app)
                   ? {
                       path: typeof v.app.path === 'string' ? v.app.path : undefined,
-                      browserstack: typeof v.app.browserstack === 'string' ? v.app.browserstack : undefined,
                     }
                   : undefined,
                 product: v.product,

@@ -182,6 +182,26 @@ describe('retired-key pre-scan: removed BrowserStack keys', () => {
       }
     }
   })
+
+  it("a target's app.browserstack is refused with its removal message", () => {
+    const config = {
+      ...validBase,
+      registry: {
+        targets: {
+          'release-android': {
+            platform: 'android',
+            appPackage: 'org.wikipedia.alpha',
+            app: { path: 'apps/wikipedia.apk', browserstack: 'bs://uploaded-app' },
+          },
+        },
+      },
+    }
+    const path = 'registry.targets.release-android.app.browserstack'
+    expect(issueMessageAt(config, path)).toBe(
+      'registry.targets.<name>.app.browserstack was removed: BrowserStack is no longer supported; app.path is the app file. Delete this line.',
+    )
+    expect(paramsAt(config, path)).toEqual({ retired: true })
+  })
 })
 
 describe('agent-qa.local.yaml refusals', () => {

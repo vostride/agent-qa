@@ -231,7 +231,6 @@ describe('TargetSchema app install fields', () => {
       appActivity: '.MainActivity',
       app: {
         path: 'apps/wikipedia.apk',
-        browserstack: 'WikipediaApp',
       },
     })
 
@@ -261,17 +260,6 @@ describe('TargetSchema app install fields', () => {
         app: { path },
       })
       expect(result.success).toBe(false)
-    }
-  })
-
-  it('allows browserstack app references', async () => {
-    const schema = await getSchema()
-    for (const browserstack of ['bs://abc', 'CalculatorApp', 'exampleuser/CalculatorApp']) {
-      const result = schema.safeParse({
-        platform: 'android',
-        app: { browserstack },
-      })
-      expect(result.success).toBe(true)
     }
   })
 })

@@ -26,7 +26,6 @@ export const CONFIG_SCHEMA_LEAVES = Object.freeze([
   'registry.llms[].provider',
   'registry.llms[].providerHeaders.*',
   'registry.llms[].vision',
-  'registry.targets.*.app.browserstack',
   'registry.targets.*.app.path',
   'registry.targets.*.appActivity',
   'registry.targets.*.appPackage',

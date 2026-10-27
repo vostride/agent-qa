@@ -48,6 +48,9 @@ const RETIRED_REGISTRY_PROVIDERS_MESSAGE =
 const RETIRED_DEVICE_TRANSPORT_MESSAGE =
   'registry.devices.<name>.transport was removed: devices run on local Appium. Delete this line.'
 
+const RETIRED_APP_BROWSERSTACK_MESSAGE =
+  'registry.targets.<name>.app.browserstack was removed: BrowserStack is no longer supported; app.path is the app file. Delete this line.'
+
 const RETIRED_LOCAL_PROVIDERS_MESSAGE =
   'providers was removed: BrowserStack is no longer supported. Delete this block.'
 
@@ -155,6 +158,19 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
           params: { retired: true },
           path: ['registry', 'devices', name, 'transport'],
           message: RETIRED_DEVICE_TRANSPORT_MESSAGE,
+        })
+      }
+    }
+  }
+
+  if (isPlainObject(value.registry) && isPlainObject(value.registry.targets)) {
+    for (const [name, target] of Object.entries(value.registry.targets)) {
+      if (isPlainObject(target) && isPlainObject(target.app) && Object.hasOwn(target.app, 'browserstack')) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          params: { retired: true },
+          path: ['registry', 'targets', name, 'app', 'browserstack'],
+          message: RETIRED_APP_BROWSERSTACK_MESSAGE,
         })
       }
     }

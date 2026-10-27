@@ -80,7 +80,7 @@ const { fullConfig } = vi.hoisted(() => ({
           platform: 'android',
           appPackage: 'com.example.shop',
           appActivity: '.MainActivity',
-          app: { path: 'apps/shop.apk', browserstack: 'bs://shop' },
+          app: { path: 'apps/shop.apk' },
         },
       },
       devices: { iosLocal: { platform: 'ios', match: { udid: 'abc' } } },

@@ -2160,7 +2160,7 @@ describe('ConfigPage task tabs shell', () => {
     expect(fieldControl<HTMLInputElement>(['registry', 'targets', 'staging', 'product'])?.placeholder).toBe(firstPlaceholder)
   })
 
-  it('NO-SAVE-BUTTON-TARGETS: a mobile target\'s app file and BrowserStack app autosave by leaf from its row', async () => {
+  it("a mobile target's app file autosaves by leaf from its row", async () => {
     vi.mocked(fetchConfig).mockResolvedValueOnce(readAnswer({
       config: configWithTargets({
         releaseAndroid: {
@@ -2176,18 +2176,14 @@ describe('ConfigPage task tabs shell', () => {
     await openRow(section('targets')!.querySelector('[data-target="releaseAndroid"]'))
 
     const appPathInput = fieldControl<HTMLInputElement>(['registry', 'targets', 'releaseAndroid', 'app', 'path'])
-    const browserstackInput = fieldControl<HTMLInputElement>(['registry', 'targets', 'releaseAndroid', 'app', 'browserstack'])
     expect(appPathInput).not.toBeNull()
-    expect(browserstackInput).not.toBeNull()
 
     await typeTextAndBlur(appPathInput!, 'apps/wikipedia-alpha.apk')
-    await typeTextAndBlur(browserstackInput!, 'bs://uploaded-app')
 
     expect(vi.mocked(applyConfigChanges).mock.calls).toEqual([
       [[{ op: 'set', path: ['registry', 'targets', 'releaseAndroid', 'app', 'path'], value: 'apps/wikipedia-alpha.apk' }]],
-      [[{ op: 'set', path: ['registry', 'targets', 'releaseAndroid', 'app', 'browserstack'], value: 'bs://uploaded-app' }]],
     ])
-    expect(section('targets')?.textContent).toContain('App: apps/wikipedia-alpha.apk / bs://uploaded-app')
+    expect(section('targets')?.textContent).toContain('App: apps/wikipedia-alpha.apk')
     expect(API_EXPORTS).not.toContain('updateSettings')
     expect(document.body.querySelector('[role="dialog"]')).toBeNull()
   })

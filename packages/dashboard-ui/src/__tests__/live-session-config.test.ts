@@ -162,7 +162,6 @@ describe('buildLiveSessionConfig', () => {
         appActivity: 'org.wikipedia.main.MainActivity',
         app: {
           path: 'apps/wikipedia-alpha.apk',
-          browserstack: 'bs://uploaded-app',
         },
       },
     }
@@ -183,7 +182,6 @@ describe('buildLiveSessionConfig', () => {
       appActivity: 'org.wikipedia.main.MainActivity',
     })
     expect('appPath' in result).toBe(false)
-    expect('browserstackApp' in result).toBe(false)
   })
 })
 
