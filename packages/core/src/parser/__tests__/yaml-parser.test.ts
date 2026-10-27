@@ -78,11 +78,14 @@ describe('parseTestFile', () => {
         timeout: 15000,
       })
 
-      // Structured step with retries and screenshot
+      // Structured step with a capture block
       expect(steps[6]).toEqual({
         step: 'Complete the checkout',
-        retries: 3,
-        screenshot: true,
+        capture: {
+          variable: 'orderNumber',
+          method: 'regex',
+          pattern: 'Order #(\\d+)',
+        },
       })
     })
   })
@@ -193,6 +196,20 @@ describe('parseTestFile', () => {
       expect(result.tests).toHaveLength(1)
       const meta = result.tests[0].meta
       expect(meta?.retries).toBe(5)
+    })
+  })
+
+  describe('removed step fields', () => {
+    it("reports a step's retries with its path and the removal message", () => {
+      const content = 'test-id: t_brick-cinder-dawn-echo-forest-grove-harvest-isle-jade-kite\nname: checkout\ntarget: shop-app\nsteps:\n  - Open the cart\n  - step: Pay\n    retries: 2\n'
+      const result = parseTestFile(content, 'step-retries.yaml')
+
+      expect(result.tests).toHaveLength(0)
+      const text = result.errors.map((error) => formatParseError(error, { noColor: true })).join('\n')
+      expect(text).toContain('steps.1.retries')
+      expect(text).toContain(
+        'steps[].retries was removed: a test retries as a whole; set meta.retries. Delete this line.',
+      )
     })
   })
 })

@@ -141,3 +141,44 @@ describe('TestDefinitionSchema', () => {
     expect(result.error?.issues.map((issue) => issue.message)).toContain('Hook ID must be h_ followed by 10 id-agent words')
   })
 })
+
+describe('removed step fields', () => {
+  function issueAt(result: ReturnType<typeof TestDefinitionSchema.safeParse>, path: string) {
+    return result.error?.issues.find((issue) => issue.path.join('.') === path)
+  }
+
+  it("refuses a step's retries with its path and the removal message", () => {
+    const result = TestDefinitionSchema.safeParse(
+      makeTestDefinition({ steps: ['Open', 'Search', { step: 'Pay', retries: 2 }] }),
+    )
+
+    expect(result.success).toBe(false)
+    const issue = issueAt(result, 'steps.2.retries')
+    expect(issue?.message).toBe(
+      'steps[].retries was removed: a test retries as a whole; set meta.retries. Delete this line.',
+    )
+    expect((issue as { params?: unknown } | undefined)?.params).toEqual({ retired: true })
+  })
+
+  it("refuses a step's screenshot with its path and the removal message", () => {
+    const result = TestDefinitionSchema.safeParse(
+      makeTestDefinition({ steps: ['Open', 'Search', { step: 'Pay', screenshot: true }] }),
+    )
+
+    expect(result.success).toBe(false)
+    const issue = issueAt(result, 'steps.2.screenshot')
+    expect(issue?.message).toBe(
+      'steps[].screenshot was removed: screenshots are set per run; pass --screenshot-mode every-step to agent-qa run. Delete this line.',
+    )
+    expect((issue as { params?: unknown } | undefined)?.params).toEqual({ retired: true })
+  })
+
+  it("a step's timeout still parses", () => {
+    const result = TestDefinitionSchema.safeParse(
+      makeTestDefinition({ steps: [{ step: 'Pay', timeout: '15s' }] }),
+    )
+
+    expect(result.success).toBe(true)
+    expect(result.data?.steps[0]).toEqual({ step: 'Pay', timeout: 15000 })
+  })
+})

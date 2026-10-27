@@ -12,6 +12,8 @@ steps:
   - Upload ${file:receipt.pdf} to the receipt field
   - Save the order number as {{env:orderNumber}}
   - step: Complete the checkout
-    retries: 3
-    screenshot: true
+    capture:
+      variable: orderNumber
+      method: regex
+      pattern: 'Order #(\d+)'
   - Verify confirmation shows order {{env:orderNumber}}

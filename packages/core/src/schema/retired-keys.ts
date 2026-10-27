@@ -36,6 +36,13 @@ const RETIRED_EVAL_KEY_MESSAGES: Record<string, string> = {
   seed: 'eval.seed was removed: pass --seed <n> to agent-qa eval replay. Delete this key.',
 }
 
+const RETIRED_STEP_KEY_MESSAGES: Record<string, string> = {
+  retries:
+    'steps[].retries was removed: a test retries as a whole; set meta.retries. Delete this line.',
+  screenshot:
+    'steps[].screenshot was removed: screenshots are set per run; pass --screenshot-mode every-step to agent-qa run. Delete this line.',
+}
+
 const RETIRED_EVAL_BLOCK_MESSAGE =
   'eval was removed: agent-qa eval replay takes its settings as flags. Delete this block.'
 
@@ -217,6 +224,20 @@ export const retiredUseKeyScan = z.any().superRefine((value, ctx) => {
       params: { retired: true, hardCut: true },
       path: ['planner', RETIRED_PLANNER_KEY],
       message: RETIRED_MAX_SUB_ACTIONS_MESSAGE,
+    })
+  }
+})
+
+// Pre-stage for a test step: the strict step union would otherwise report a generic error.
+export const retiredStepKeyScan = z.any().superRefine((value, ctx) => {
+  if (!isPlainObject(value)) return
+  for (const [key, message] of Object.entries(RETIRED_STEP_KEY_MESSAGES)) {
+    if (!Object.hasOwn(value, key)) continue
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      params: { retired: true },
+      path: [key],
+      message,
     })
   }
 })
