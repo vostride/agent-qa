@@ -9,8 +9,8 @@
 // CLOSED REASONS, AND NOTHING ELSE MAY BE INVENTED. The output is constrained to
 // `CROSS_BOUNDARY_REASONS`, the closed vocabulary `schema` owns, because the grant machinery refuses
 // on these words and every surface renders them: a fifth class invented here would read fine in an
-// inbox and match nothing on the enforcement side. (2026-10-03, quick 261003-cpv: six reasons now,
-// with the two production members; the vocabulary is still schema's.)
+// inbox and match nothing on the enforcement side. There are four reasons, and the vocabulary is
+// schema's.
 //
 // WHOLE-INPUT BY CONSTRUCTION (D-03). Nothing here is a whitelist of settable fields, and the two
 // rules that could most easily have become one are deliberately not:
@@ -37,11 +37,6 @@ import {
 import type { CrossBoundaryReason } from '@vostride/agent-qa-schema'
 
 import type { ConfigFieldValue } from './ports.js'
-
-// 2026-10-03 (quick 261003-cpv, 432 review WR-01/WR-10): the production declaration (D-18). Only the
-// loosening direction is named; turning the opt-in off or declaring a target production tightens.
-const ALLOW_PRODUCTION_PATH = 'allowProduction'
-const TARGET_ENVIRONMENT_PATH = /^registry\.targets\.[^.]+\.environment$/
 
 /** One field this proposal edits, with the value it replaces — both sides, or the rule is blind. */
 export interface CrossBoundaryFieldEdit {
@@ -114,15 +109,6 @@ export function computeCrossBoundary(facts: CrossBoundaryFacts): CrossBoundaryVe
     // A value that is not a URL cannot change an origin — and a value that IS one is compared
     // against what it replaced, including the case where it replaced nothing.
     if (newOrigin !== undefined && newOrigin !== originOf(edit.oldValue)) found.add('new-origin')
-
-    if (edit.configPath === ALLOW_PRODUCTION_PATH && edit.newValue === true
-      && edit.oldValue !== true) {
-      found.add('production-opt-in')
-    }
-    if (TARGET_ENVIRONMENT_PATH.test(edit.configPath) && edit.oldValue === 'production'
-      && edit.newValue !== 'production') {
-      found.add('production-declassified')
-    }
   }
 
   if (facts.addsHook) found.add('hook-added')

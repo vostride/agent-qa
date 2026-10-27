@@ -1210,38 +1210,3 @@ describe('C432-CONFIG-MULTIFILE-TRUTH: a partial publication is reported as exac
       expect(answer.detail).toContain('nothing was written')
     })
 })
-
-// 2026-10-03 (quick 261003-cpv, 432 review WR-01/WR-10): the applied receipt names the production
-// crossing. Provenance only: every door may still write it (D-01/D-12/D-18), so each call below
-// answers `applied` and writes.
-describe('C261003-CPV-PRODUCTION-PROVENANCE: an applied production change is flagged on its receipt', () => {
-  const PRODUCTION_CONFIG = CONFIG.replace(
-    '      url: https://shop.example.com/cart\n',
-    '      url: https://shop.example.com/cart\n      environment: production\n',
-  )
-
-  it('config.field.set moving a production target to local answers applied with production-declassified',
-    async () => {
-      const test = harness({ config: PRODUCTION_CONFIG })
-      const answer = await call(test, 'config.field.set', {
-        path: 'registry.targets.shop.environment',
-        value: 'local',
-      })
-      expect(answer.outcome).toBe('applied')
-      if (answer.outcome !== 'applied') throw new Error('unreachable')
-      expect(test.text(CONFIG_FILE)).toContain('environment: local')
-      expect(answer.crossBoundary).toBe(true)
-      expect(answer.crossBoundaryReasons).toEqual(['production-declassified'])
-    })
-
-  it('declaring a target production is not a crossing', async () => {
-    const test = harness()
-    const answer = await call(test, 'config.field.set', {
-      path: 'registry.targets.shop.environment',
-      value: 'production',
-    })
-    if (answer.outcome !== 'applied') throw new Error('unreachable')
-    expect(answer.crossBoundary).toBe(false)
-    expect(answer.crossBoundaryReasons).toEqual([])
-  })
-})

@@ -26,15 +26,11 @@ export const TargetSchema = z.object({
   appActivity: z.string().optional(),
   app: AppInstallSchema.optional(),
   url: z.string().optional(),
-  // D-06 (phase 401): which environment a run against this target actually touches. Deliberately
-  // `.optional()` with NO default — an undeclared target must stay visibly undeclared; since 432
-  // (D-18) undeclared means non-production, decided where the production refusal reads it (the
-  // run gate that decided "shared" is deleted). A default here would make silence and an honest
-  // declaration indistinguishable at every later reader, and
-  // `.strict()` above is what turns a typoed key into a refusal rather than a silent undeclared.
-  // 432 D-18: `production` is the third declared class; only top-level `allowProduction: true`
-  // opts a run into it.
-  environment: z.enum(['local', 'shared', 'production']).optional(),
+  // A label only: agent-qa runs every target the same way, whatever it declares.
+  environment: z
+    .enum(['local', 'shared', 'production'])
+    .optional()
+    .describe("A label for this target's environment. agent-qa runs every target the same way."),
 }).strict().superRefine((val, ctx) => {
   if (val.platform === 'web' && !val.url) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Web targets must have a url' })

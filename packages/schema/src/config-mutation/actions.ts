@@ -62,7 +62,7 @@ export const ConfigTargetCreateInputSchema = z.object({
   /** The base URL, absolute. D-15's hostname gate runs before this op is reached. */
   url: z.string().min(1),
   // 2026-10-02 (quick 261002-ctr): no `authStateName`. See `ConfigAuthSetInputSchema`.
-  /** The target's class (432 D-19). Omitted means undeclared; production runs need allowProduction. */
+  /** A label for the target's environment. Omitted means undeclared. */
   environment: z.enum(CONFIG_TARGET_ENVIRONMENTS).optional(),
 }).strict()
 
@@ -265,10 +265,7 @@ export const ConfigChangeOutputSchema = z.discriminatedUnion('outcome', [
     summaryLine: z.string().min(1),
     files: z.array(z.string().min(1)).min(1),
     fields: z.array(z.string().min(1)).min(1),
-    /**
-     * Whether the change adds a hook, a new origin, a secret-adjacent field or an out-of-set file,
-     * turns `allowProduction` on, or moves a production target to another class (261003-cpv).
-     */
+    /** Whether the change adds a hook, a new origin, a secret-adjacent field or an out-of-set file. */
     crossBoundary: z.boolean(),
     crossBoundaryReasons: z.array(z.enum(CROSS_BOUNDARY_REASONS)),
     shownDiff: z.string().min(1),
