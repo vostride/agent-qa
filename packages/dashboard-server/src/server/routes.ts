@@ -20,6 +20,7 @@ import { createUndoStore, UNDO_RETENTION_MS } from '../config/undo-store.js'
 import { HookRegistryManager, isHookRegistryMutationError } from '../hooks/hook-registry-manager.js'
 import { readJsonBody } from './body-parser.js'
 import {
+  LiveNavigationTimeoutRefusedError,
   LivePlannerLimitsRefusedError,
   resolveLiveNavigationTimeoutMs,
   resolveLivePlannerLimits,
@@ -5095,8 +5096,12 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           jsonNoCors(res, { sessionId, sessionNumber }, 201)
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err)
-          // A planner limit the CLI refuses is refused here, before any session exists.
-          const status = err instanceof LivePlannerLimitsRefusedError ? 400 : 500
+          // A planner limit or navigation timeout the CLI refuses is refused here, before any
+          // session exists.
+          const refused =
+            err instanceof LivePlannerLimitsRefusedError ||
+            err instanceof LiveNavigationTimeoutRefusedError
+          const status = refused ? 400 : 500
           jsonNoCors(res, { error: message }, status)
         }
       })()

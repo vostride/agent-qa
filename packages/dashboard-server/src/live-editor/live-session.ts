@@ -114,6 +114,13 @@ export class LivePlannerLimitsRefusedError extends Error {
   }
 }
 
+export class LiveNavigationTimeoutRefusedError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'LiveNavigationTimeoutRefusedError'
+  }
+}
+
 const LIVE_LIMIT_LEAVES = ['maxActions', 'maxPlanningTurns'] as const
 type LiveLimitLeaf = (typeof LIVE_LIMIT_LEAVES)[number]
 type EntityUseSchema = typeof TestDefinitionSchema.shape.use | typeof SuiteDefinitionSchema.shape.use
@@ -122,8 +129,9 @@ function shownLimitValue(value: unknown): string {
   return typeof value === 'number' ? String(value) : JSON.stringify(value) ?? String(value)
 }
 
-// Only the limit leaves are checked, with the core schemas the CLI applies to them; other `use`
-// keys are not the live editor's to refuse.
+// Only the `use` leaves the live editor applies are checked, with the core schemas the CLI applies
+// to them: the limit leaves here and `timeout.navigation` in resolveLiveNavigationTimeoutMs. Other
+// `use` keys are not the live editor's to refuse.
 function useLeafIssue(schema: EntityUseSchema, key: LiveLimitLeaf, value: unknown): string | undefined {
   const parsed = schema.safeParse({ planner: { [key]: value } })
   return parsed.success ? undefined : parsed.error.issues[0]?.message ?? 'invalid value'
@@ -194,7 +202,8 @@ export async function resolveLivePlannerLimits(
 /**
  * The navigation bound a live web session runs under, in milliseconds: the project config's
  * `use.timeout.navigation`, then each entity's in order, parsed with the schema the CLI applies.
- * Undefined when no layer sets a valid value, so the adapter keeps its default.
+ * A value the CLI refuses is refused here too. Undefined when no layer sets one, so the adapter
+ * keeps its default.
  */
 export async function resolveLiveNavigationTimeoutMs(
   configManager: ConfigManager | undefined,
@@ -202,15 +211,26 @@ export async function resolveLiveNavigationTimeoutMs(
   readers: LiveEntityDefinitionReaders,
 ): Promise<number | undefined> {
   const config = configManager === undefined ? {} : await readConfigValues(configManager)
-  const uses: unknown[] = [config.use]
+  const layers: Array<{ layer: string; use: unknown }> = [
+    { layer: 'project config', use: config.use },
+  ]
   for (const entity of ([] as EntityRef[]).concat(entities ?? [])) {
-    uses.push(await readEntityUse(entity, readers))
+    const use = await readEntityUse(entity, readers)
+    layers.push({ layer: `${entity.type} file ${entity.id}`, use })
   }
   let navigation: number | undefined
-  for (const use of uses) {
+  for (const { layer, use } of layers) {
     if (!isConfigRecord(use) || !isConfigRecord(use.timeout)) continue
-    const parsed = TimeoutConfigSchema.shape.navigation.safeParse(use.timeout.navigation)
-    if (parsed.success) navigation = parsed.data
+    if (!Object.hasOwn(use.timeout, 'navigation')) continue
+    const value = use.timeout.navigation
+    const parsed = TimeoutConfigSchema.shape.navigation.safeParse(value)
+    if (!parsed.success) {
+      const issue = parsed.error.issues[0]?.message ?? 'invalid value'
+      throw new LiveNavigationTimeoutRefusedError(
+        `${layer} sets use.timeout.navigation to ${shownLimitValue(value)}: ${issue}. The CLI refuses this file too.`,
+      )
+    }
+    navigation = parsed.data
   }
   return navigation
 }

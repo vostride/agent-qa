@@ -227,4 +227,16 @@ describe('live door navigation timeout', () => {
     const config = (createSession.mock.calls[0] as unknown[])[0] as { navigationTimeoutMs?: number }
     expect(config.navigationTimeoutMs).toBeUndefined()
   })
+
+  it('an invalid use.timeout.navigation is refused with 400 and no session', async () => {
+    const { router, createSession } = await workspaceWith('    maxActions: 80', {
+      testNavigation: 'soon',
+    })
+    const res = await invoke(router, { platform: 'web', entity: { type: 'test', id: TEST_ID } })
+    expect(res.status).toBe(400)
+    const { error } = JSON.parse(res.body) as { error: string }
+    expect(error).toContain(`test file ${TEST_ID} sets use.timeout.navigation to "soon": `)
+    expect(error).toContain('The CLI refuses this file too.')
+    expect(createSession).not.toHaveBeenCalled()
+  })
 })
