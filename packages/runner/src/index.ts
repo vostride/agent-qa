@@ -104,6 +104,8 @@ export type {
   Planner,
   Verifier,
   AiJudgment,
+  AiExtraction,
+  ExtractField,
   Asserter,
   AssertionInput,
   AssertionResult,

@@ -21,7 +21,7 @@ import { describe, it, expect } from 'vitest'
 import type { ScreenState } from '@vostride/agent-qa-schema'
 import type { PlatformAdapter, Action, ActionResult } from '../../platform.js'
 import type { LoopPorts } from '../ports.js'
-import type { ActionPlan, AiJudgment, PlanResult, Planner, StepContext, Verifier } from '../types.js'
+import type { ActionPlan, AiExtraction, AiJudgment, PlanResult, Planner, StepContext, Verifier } from '../types.js'
 import type { VerifierStepRecord } from '../step-record.js'
 import { scriptedVerification, toVerificationResult } from '../../testing/condition-verdicts.js'
 import type { ScriptedVerdict } from '../../testing/condition-verdicts.js'
@@ -87,7 +87,7 @@ interface ScriptedVerifier extends Verifier {
   judgeClaimCalls: number
   extractCalls: number
   judgeClaim(claim: string, screen: ScreenState, opts?: Record<string, unknown>): Promise<AiJudgment>
-  extractData(query: string, screen: ScreenState, opts?: Record<string, unknown>): Promise<Record<string, unknown>>
+  extractData(...args: Parameters<NonNullable<Verifier['extractData']>>): Promise<AiExtraction>
 }
 
 type Verification = ScriptedVerdict
@@ -115,7 +115,7 @@ function makeScriptedVerifier(script: {
     },
     async extractData() {
       v.extractCalls++
-      return script.extracted ?? {}
+      return { outcome: 'extracted', fields: script.extracted ?? {} }
     },
   }
   return v

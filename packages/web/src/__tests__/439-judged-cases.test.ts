@@ -9,7 +9,7 @@ import { createServer } from 'node:http'
 import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import type { PlannerConfig, StepContext } from '@vostride/agent-qa-runner'
+import type { AiExtraction, PlannerConfig, StepContext } from '@vostride/agent-qa-runner'
 import type { ScreenState } from '@vostride/agent-qa-schema'
 import { WebPlatformAdapter } from '../adapter.js'
 import { act, giveUp, refFor, runScriptedStep, scriptedPlanner, scriptedVerifier } from './fixtures/436-scripted-loop.js'
@@ -108,12 +108,15 @@ function firstLine(screen: ScreenState, role: string): string | undefined {
 }
 
 /** What the scripted extractData read: the page number and subtotal shown on the screen. */
-async function extractPage(_query: string, screen: ScreenState): Promise<Record<string, unknown>> {
+async function extractPage(_query: string, screen: ScreenState): Promise<AiExtraction> {
   const page = screen.elements.find((element) => element.name.startsWith('Orders page '))
   const subtotal = /Subtotal: ([\d.]+)/.exec(screen.tree)
   return {
-    page: page?.name.replace('Orders page ', '') ?? 'unknown',
-    subtotal: subtotal?.[1] ?? 'unknown',
+    outcome: 'extracted',
+    fields: {
+      page: page?.name.replace('Orders page ', '') ?? 'unknown',
+      subtotal: subtotal?.[1] ?? 'unknown',
+    },
   }
 }
 

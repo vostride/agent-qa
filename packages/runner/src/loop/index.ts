@@ -84,6 +84,7 @@ import type { CarriedArtifacts, LoopPorts } from './ports.js'
 import { guardActionData } from './blob-guard.js'
 import type {
   ActionPlan,
+  ExtractField,
   PlanResult,
   StepContext,
   VerificationResult,
@@ -1657,35 +1658,45 @@ export async function executeStep(
         }
       }
     } else if (dispatchVerb === 'extractAI' && ports.verifier?.extractData) {
-      // D-07: extract through the same judge lane; write extracted fields into run-scoped working
-      // memory. scope 'global' degrades to the SAME run-scoped write with a degradedScope marker
-      // (durable memory is M2's curator, no write port exists in M1) — never an error.
+      // One extraction per attempt through the verifier's model lane. The extracted fields go to
+      // run-scoped working memory; an extraction the model could not make ends the step unresolved
+      // and writes nothing.
       cacheBypass = true
       const av = action as { query?: unknown; scope?: unknown }
       const query = String(av.query ?? '')
       const schema = (normalizedAction as { schema?: unknown }).schema
+      const fields: readonly ExtractField[] = Array.isArray(schema) ? schema : []
       meter.recordJudgeCall()
-      const extracted = await withAbort(
-        ports.verifier.extractData(query, screenState, { schema, abortSignal: ports.abortSignal, screenshot: context.screenshot }),
+      const extraction = await withAbort(
+        ports.verifier.extractData(query, screenState, { fields, abortSignal: ports.abortSignal, screenshot: context.screenshot }),
         ports.abortSignal,
       )
-      const entries: WorkingMemoryEntry[] = Object.entries(extracted).map(([key, value]) => ({
-        key,
-        value: recordMask(String(value)),
-        kind: 'extracted-value',
-        provenance: 'toolResult',
-        stepIndex: actionIndex,
-      }))
-      if (entries.length > 0) ports.workingMemory?.capture(entries, { step: actionIndex })
-      const fields = entries.map((entry) => `${recordMask(entry.key)} = "${entry.value}"`)
-      stepRecord.addRead({
-        kind: 'extractAI',
-        text: `"${recordMask(query)}": ${fields.length > 0 ? fields.join(', ') : 'no fields'}`,
-      })
-      const degradedScope = av.scope === 'global'
-      recorder.recordAiJudgment({ verb: 'extractAI', ...(degradedScope ? { degradedScope: true } : {}) })
-      execResult = { success: true, metadata: { aiJudgment: { verb: 'extractAI' }, extracted } }
-      execError = undefined
+      if (extraction.outcome === 'unresolved') {
+        const sentence = `extractAI could not extract "${recordMask(query)}": ${recordMask(extraction.reason)}`
+        recorder.recordAiJudgment({ verb: 'extractAI', unresolved: collapse(sentence).slice(0, 200) })
+        execResult = { success: false, error: sentence, metadata: { aiJudgment: { verb: 'extractAI', unresolved: true } } }
+        execError = sentence
+        unresolvedEnding = sentence
+      } else {
+        const extracted = extraction.fields
+        const entries: WorkingMemoryEntry[] = Object.entries(extracted).map(([key, value]) => ({
+          key,
+          value: recordMask(String(value)),
+          kind: 'extracted-value',
+          provenance: 'toolResult',
+          stepIndex: actionIndex,
+        }))
+        if (entries.length > 0) ports.workingMemory?.capture(entries, { step: actionIndex })
+        const values = entries.map((entry) => `${recordMask(entry.key)} = "${entry.value}"`)
+        stepRecord.addRead({
+          kind: 'extractAI',
+          text: `"${recordMask(query)}": ${values.length > 0 ? values.join(', ') : 'no fields'}`,
+        })
+        const degradedScope = av.scope === 'global'
+        recorder.recordAiJudgment({ verb: 'extractAI', ...(degradedScope ? { degradedScope: true } : {}) })
+        execResult = { success: true, metadata: { aiJudgment: { verb: 'extractAI' }, extracted } }
+        execError = undefined
+      }
     } else if (dispatchVerb === 'assertValue' && (action as { source?: unknown }).source === 'expr-result') {
       // 439 D-14: no platform reads a value for expr-result, so it is refused before dispatch.
       const unreadable = 'assertValue {source:"expr-result"} reads no value on any platform; assert on url, storage or network, or evaluate an expr.'

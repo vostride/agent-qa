@@ -10,7 +10,14 @@ import { z } from 'zod'
 import { CITATION_SOURCES, CONDITION_NEEDS, CONDITION_VERDICTS } from '@vostride/agent-qa-schema'
 import type { DeclaredModelProfile, OperationEvidence, ScreenState } from '@vostride/agent-qa-schema'
 import type { Action } from '../platform.js'
-import type { AiJudgment, Verifier, VerifierAuthorContext, VerifyResult } from './types.js'
+import type {
+  AiExtraction,
+  AiJudgment,
+  ExtractField,
+  Verifier,
+  VerifierAuthorContext,
+  VerifyResult,
+} from './types.js'
 import type { VerifierStepRecord } from './step-record.js'
 import type { LanguageModelUsage } from 'ai'
 import type { TokenAccounting } from './ports.js'
@@ -85,6 +92,7 @@ export const VerificationResultSchema = z.object({
 // model handle.
 
 const JUDGMENT_NOT_A_VERDICT = "the model's answer was not a valid verdict"
+const EXTRACTION_NOT_THE_FIELDS = "the model's answer did not match the declared fields"
 
 function modelCallFailed(error: unknown): string {
   return `the model call failed: ${error instanceof Error ? error.message : String(error)}`
@@ -128,21 +136,18 @@ function renderObservationInert(screen: ScreenState): string {
 }
 
 /**
- * Build the closed extraction output schema from the extractAI request's declared field list
- * (D-07): one string field per declared name. Closed by construction — an unknown/malformed
- * field list yields an empty object schema (the extraction degrades to no fields, never a throw).
+ * Build the closed extraction output schema from the declared field list: one string per declared
+ * field name.
  */
-function buildExtractionSchema(fields: unknown): z.ZodType {
-  const shape: Record<string, z.ZodType> = {}
-  if (Array.isArray(fields)) {
-    for (const field of fields) {
-      const name = (field as { name?: unknown } | null)?.name
-      if (typeof name === 'string' && name.length > 0) {
-        shape[name] = z.string().describe('Extracted value as a string; empty string when absent')
-      }
-    }
-  }
-  return z.object(shape)
+function buildExtractionSchema(fields: readonly ExtractField[]): z.ZodType<Record<string, string>> {
+  return z.object(
+    Object.fromEntries(
+      fields.map((field) => [
+        field.name,
+        z.string().describe('Extracted value as a string; empty string when absent'),
+      ]),
+    ),
+  )
 }
 
 export class LLMVerifier implements Verifier {
@@ -324,38 +329,38 @@ export class LLMVerifier implements Verifier {
   }
 
   /**
-   * D-07 AI extraction lane. A SINGLE structured call whose output schema is derived from the
-   * extractAI request's declared field list (each field a string). Returns the extracted field
-   * map; the loop writes it into run-scoped working memory and degrades a `scope:'global'`
-   * request to the same run-scoped write (D-07 — no durable-memory port in M1). Empty/overflow
-   * output degrades to an empty extraction (never a throw) — abort is the only rethrow.
+   * One structured extraction of the declared fields over the current observation. Returns the
+   * fields, or unresolved when the model call failed or its answer did not match the declared
+   * fields. An abort rethrows.
    */
   async extractData(
     query: string,
     screen: ScreenState,
-    opts?: Record<string, unknown>,
-  ): Promise<Record<string, unknown>> {
-    const abortSignal = opts?.abortSignal as AbortSignal | undefined
-    const screenshot = opts?.screenshot as Buffer | undefined
+    opts: { fields: readonly ExtractField[]; screenshot?: Buffer; abortSignal?: AbortSignal },
+  ): Promise<AiExtraction> {
+    const { fields, screenshot, abortSignal } = opts
+    const schema = buildExtractionSchema(fields)
     try {
       const promptText = `Extraction request: "${query}"\n\n${renderObservationInert(screen)}`
       const clamped = await this.runStructured(
         EXTRACT_STABLE_TIER,
         promptText,
         screenshot,
-        buildExtractionSchema(opts?.schema),
+        schema,
         'extracted_fields',
         'The requested fields extracted from the observed screen',
         abortSignal,
       )
-      const output = clamped.result.output
-      if (output !== null && typeof output === 'object') {
-        return { ...(output as Record<string, unknown>) }
-      }
-      return {}
+      // The answer is re-parsed through the declared fields; one that does not match is unresolved.
+      const parsed = schema.safeParse(clamped.result.output)
+      if (!parsed.success) return { outcome: 'unresolved', reason: EXTRACTION_NOT_THE_FIELDS }
+      return { outcome: 'extracted', fields: parsed.data }
     } catch (error: unknown) {
       if (abortSignal?.aborted) throw error
-      return {}
+      if (NoObjectGeneratedError.isInstance(error)) {
+        return { outcome: 'unresolved', reason: EXTRACTION_NOT_THE_FIELDS }
+      }
+      return { outcome: 'unresolved', reason: modelCallFailed(error) }
     }
   }
 

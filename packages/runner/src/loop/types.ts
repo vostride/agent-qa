@@ -240,6 +240,12 @@ export type AiJudgment =
   | { outcome: 'judged'; verdict: boolean; rationale: string }
   | { outcome: 'unresolved'; reason: string }
 
+export type ExtractField = Extract<Action, { type: 'extractAI' }>['schema'][number]
+
+export type AiExtraction =
+  | { outcome: 'extracted'; fields: Record<string, unknown> }
+  | { outcome: 'unresolved'; reason: string }
+
 export interface Verifier {
   verify(step: string, before: ScreenState, after: ScreenState, action: Action, screenshot?: Buffer, abortSignal?: AbortSignal, promptNote?: string, bulkCompletionPredicate?: string, authorContext?: VerifierAuthorContext, operationEvidence?: OperationEvidence, record?: VerifierStepRecord): Promise<VerifyResult>
   /**
@@ -249,12 +255,15 @@ export interface Verifier {
    */
   judgeClaim?(claim: string, screen: ScreenState, opts?: Record<string, unknown>): Promise<AiJudgment>
   /**
-   * D-07 AI extraction lane (EXEC-07, spec §9.6) — OPTIONAL, same no-new-port rationale as
-   * `judgeClaim`. Plan 09 implements it on LLMVerifier; the loop routes `extractAI` through it,
-   * writes the extracted fields into run-scoped working memory (`scope:'run'`), and degrades
-   * `scope:'global'` to the same run-scoped write (D-07). Returns the extracted field map.
+   * One structured extraction of the declared fields over the current observation. Returns the
+   * fields, or unresolved with the reason when the model call failed or its answer did not match
+   * the declared fields. An abort rethrows.
    */
-  extractData?(query: string, screen: ScreenState, opts?: Record<string, unknown>): Promise<Record<string, unknown>>
+  extractData?(
+    query: string,
+    screen: ScreenState,
+    opts: { fields: readonly ExtractField[]; screenshot?: Buffer; abortSignal?: AbortSignal },
+  ): Promise<AiExtraction>
 }
 
 // Assertion vocabulary (re-derived from v1 core/src/agent/types.ts). The asserter

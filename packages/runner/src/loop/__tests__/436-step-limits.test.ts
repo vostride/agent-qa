@@ -251,7 +251,7 @@ function judgingVerifier(): Verifier & { verifyCalls: number; judgeCalls: number
     },
     async extractData() {
       verifier.judgeCalls++
-      return { title: 'Home' }
+      return { outcome: 'extracted' as const, fields: { title: 'Home' } }
     },
   }
   return verifier

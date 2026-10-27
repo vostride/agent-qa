@@ -217,8 +217,9 @@ test('USAGE-ASSERTION: legacy AI assertions, structured judgments and extraction
   )).passed).toBe(true)
   expect(await f.scope.verifier!.judgeClaim!('visible', makeScreenState()))
     .toMatchObject({ outcome: 'judged', verdict: true })
-  expect(await f.scope.verifier!.extractData!('name', makeScreenState(), { schema: [{ name: 'name' }] }))
-    .toEqual({ name: 'visible' })
+  expect(await f.scope.verifier!.extractData!('name', makeScreenState(),
+    { fields: [{ name: 'name', type: 'string', description: 'the name' }] }))
+    .toEqual({ outcome: 'extracted', fields: { name: 'visible' } })
   expect(f.scope.finish()).toMatchObject({ started: 3, inputTokens: 300, outputTokens: 30,
     cachedInputTokens: 120, roles: { verifier: { respondingModelIds: ['raw-model'] },
       planner: { respondingModelIds: [] } } })

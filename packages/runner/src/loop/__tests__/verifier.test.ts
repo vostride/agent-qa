@@ -211,8 +211,10 @@ describe('LLMVerifier', () => {
     })
   })
 
-  describe('extractData (AI extraction lane, D-07)', () => {
-    it('makes exactly one generateText call and returns the extracted field map', async () => {
+  describe('extractData', () => {
+    const fields = [{ name: 'orderId', type: 'string' as const, description: 'the order id' }]
+
+    it('makes exactly one generateText call and returns the extracted fields', async () => {
       const { generateText } = await import('ai')
       const mockGenerateText = vi.mocked(generateText)
       mockGenerateText.mockResolvedValueOnce({
@@ -221,24 +223,76 @@ describe('LLMVerifier', () => {
       } as any)
 
       const verifier = new LLMVerifier({} as any, makeFakeTokenAccounting())
-      const fields = await verifier.extractData('extract the order id', before, {
-        schema: [{ name: 'orderId', type: 'string', description: 'the order id' }],
-        scope: 'run',
-      })
+      const result = await verifier.extractData('extract the order id', before, { fields })
 
       expect(mockGenerateText).toHaveBeenCalledTimes(1)
-      expect(fields).toEqual({ orderId: 'ORD-9' })
+      expect(result).toEqual({ outcome: 'extracted', fields: { orderId: 'ORD-9' } })
     })
 
-    it('degrades a failed extraction to an empty map, never throws', async () => {
+    it("a failed model call is unresolved with the provider's message", async () => {
       const { generateText } = await import('ai')
       const mockGenerateText = vi.mocked(generateText)
       mockGenerateText.mockRejectedValueOnce(new Error('Overloaded'))
 
       const verifier = new LLMVerifier({} as any, makeFakeTokenAccounting())
-      const fields = await verifier.extractData('extract the order id', before)
+      const result = await verifier.extractData('extract the order id', before, { fields })
 
-      expect(fields).toEqual({})
+      expect(result).toEqual({ outcome: 'unresolved', reason: 'the model call failed: Overloaded' })
+    })
+
+    it('an answer that does not match the declared fields is unresolved', async () => {
+      const { generateText } = await import('ai')
+      const mockGenerateText = vi.mocked(generateText)
+      mockGenerateText.mockResolvedValueOnce({
+        output: { orderId: 9 },
+        usage: { inputTokens: 60, outputTokens: 10 },
+      } as any)
+
+      const verifier = new LLMVerifier({} as any, makeFakeTokenAccounting())
+      const result = await verifier.extractData('extract the order id', before, { fields })
+
+      expect(result).toEqual({
+        outcome: 'unresolved',
+        reason: "the model's answer did not match the declared fields",
+      })
+    })
+
+    it('an answer the AI SDK rejects against the schema is unresolved', async () => {
+      const { generateText } = await import('ai')
+      const mockGenerateText = vi.mocked(generateText)
+      mockGenerateText.mockRejectedValueOnce(
+        new NoObjectGeneratedError({
+          message: 'No object generated: response did not match schema.',
+          text: '{"orderId":9}',
+          response: undefined as any,
+          usage: undefined as any,
+          finishReason: 'stop',
+        }),
+      )
+
+      const verifier = new LLMVerifier({} as any, makeFakeTokenAccounting())
+      const result = await verifier.extractData('extract the order id', before, { fields })
+
+      expect(result).toEqual({
+        outcome: 'unresolved',
+        reason: "the model's answer did not match the declared fields",
+      })
+    })
+
+    it('extractData rethrows when the abort signal is aborted', async () => {
+      const { generateText } = await import('ai')
+      const mockGenerateText = vi.mocked(generateText)
+      mockGenerateText.mockRejectedValueOnce(new Error('The operation was aborted'))
+
+      const controller = new AbortController()
+      controller.abort()
+      const verifier = new LLMVerifier({} as any, makeFakeTokenAccounting())
+      await expect(
+        verifier.extractData('extract the order id', before, {
+          fields,
+          abortSignal: controller.signal,
+        }),
+      ).rejects.toThrow('The operation was aborted')
     })
   })
 })

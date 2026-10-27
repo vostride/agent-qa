@@ -7,7 +7,7 @@ import type { ScreenState, WorkingMemoryEntry } from '@vostride/agent-qa-schema'
 import { stepOutcomeUnproven } from '@vostride/agent-qa-schema'
 import type { PlatformAdapter, Action, ActionResult } from '../../platform.js'
 import type { LoopPorts, WorkingMemoryPort } from '../ports.js'
-import type { AiJudgment, Planner, Verifier, VerifyResult } from '../types.js'
+import type { AiExtraction, AiJudgment, Planner, Verifier, VerifyResult } from '../types.js'
 import { scriptedVerification } from '../../testing/condition-verdicts.js'
 import type { ActionPlanCache } from '../../cache/port.js'
 import { executeStep } from '../index.js'
@@ -73,9 +73,9 @@ function recordingWorkingMemory(): WorkingMemoryPort & { calls: CaptureCall[] } 
 
 interface FakeJudgeVerifier extends Verifier {
   judgeClaim(claim: string, screen: ScreenState, opts?: Record<string, unknown>): Promise<AiJudgment>
-  extractData(query: string, screen: ScreenState, opts?: Record<string, unknown>): Promise<Record<string, unknown>>
+  extractData(...args: Parameters<NonNullable<Verifier['extractData']>>): Promise<AiExtraction>
   judgeClaimCalls: { claim: string; opts?: Record<string, unknown> }[]
-  extractDataCalls: { query: string; opts?: Record<string, unknown> }[]
+  extractDataCalls: { query: string; opts: Parameters<NonNullable<Verifier['extractData']>>[2] }[]
 }
 
 function makeJudgeVerifier(opts?: {
@@ -97,7 +97,7 @@ function makeJudgeVerifier(opts?: {
     },
     async extractData(query, _screen, o) {
       extractDataCalls.push({ query, opts: o })
-      return opts?.extracted ?? {}
+      return { outcome: 'extracted', fields: opts?.extracted ?? {} }
     },
   }
 }
@@ -406,6 +406,70 @@ describe('extractAI extracts through the judge lane and captures run-scoped work
     expect(wm.calls.length).toBe(1)
     const judgment = (result.evidence as { aiJudgment?: { degradedScope?: boolean } }).aiJudgment
     expect(judgment?.degradedScope).toBe(true)
+  })
+})
+
+describe('an extractAI extraction the model could not make ends the step', () => {
+  const step = 'Extract the order id'
+  const extractPlan = () =>
+    makeActionPlan({
+      action: {
+        type: 'extractAI',
+        query: 'extract the order id',
+        schema: [{ name: 'orderId', type: 'string', description: 'the order id' }],
+      },
+      stepComplete: true,
+    })
+
+  async function run(model: V3Model & { calls: number }) {
+    const planner = countingPlanner([extractPlan()])
+    const verifier = realJudgeVerifier(model)
+    const workingMemory = recordingWorkingMemory()
+    const result = await executeStep(
+      step,
+      ports({
+        adapter: recordingAdapter(makeScreenState(), []),
+        planner,
+        verifier,
+        workingMemory,
+        plannerConfig: cfg,
+      }),
+      makeStepContext(),
+    )
+    return { result, planner, verifier, workingMemory }
+  }
+
+  function expectUnresolved(outcome: Awaited<ReturnType<typeof run>>, sentence: string) {
+    const { result, planner, verifier, workingMemory } = outcome
+    expect(result.status).toBe('failed')
+    expect(result.error).toBe(sentence)
+    expect(result.evidence?.conditionVerdicts).toEqual({
+      ending: 'unresolved',
+      conditions: [{ quote: step, verdict: 'unverified', reason: sentence, citations: [] }],
+    })
+    expect(result.evidence?.aiJudgment).toEqual({ verb: 'extractAI', unresolved: sentence })
+    expect(readAiJudgmentMeta(subs(result)[0]?.result)).toEqual({ verb: 'extractAI', unresolved: true })
+    expect(workingMemory.calls).toHaveLength(0)
+    expect(verifier.verifyCalls).toBe(0)
+    expect(planner.calls).toBe(1)
+  }
+
+  it('a failed model call ends the step at once and writes nothing', async () => {
+    const model = syntheticModel({ error: new Error('Overloaded') })
+    expectUnresolved(
+      await run(model),
+      'extractAI could not extract "extract the order id": the model call failed: Overloaded',
+    )
+    expect(model.calls).toBe(1)
+  })
+
+  it('an answer that does not match the declared fields ends the step at once', async () => {
+    const model = syntheticModel({ text: '{"orderId":9}' })
+    expectUnresolved(
+      await run(model),
+      'extractAI could not extract "extract the order id": the model\'s answer did not match the declared fields',
+    )
+    expect(model.calls).toBe(1)
   })
 })
 
