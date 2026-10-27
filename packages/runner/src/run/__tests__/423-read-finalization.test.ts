@@ -742,14 +742,15 @@ test('EVID-TIMEOUT: non-cooperative started execution gets one timeout row and n
 test('EVID-CATCH-REDACTED: a thrown step error crosses the declared-secret redactor before it is recorded', async () => {
   const f = fixture()
   // Three characters sit below the live masker's floor, so only the declared redactor can catch it.
-  f.config.secretRedactor = { redactString: text => text.replaceAll('abc', '[secret]') }
-  f.config.executeStep = async () => { throw new Error('provider said abc twice: abc') }
+  // Letters outside hex keep a digest in the record from matching it by chance.
+  f.config.secretRedactor = { redactString: text => text.replaceAll('xyz', '[secret]') }
+  f.config.executeStep = async () => { throw new Error('provider said xyz twice: xyz') }
   const result = await runMemberTest(f.member, f.config)
   expect(result.steps[0].status).toBe('failed')
   expect(result.steps[0].error).toBe('provider said [secret] twice: [secret]')
   expect(f.terminals()).toHaveLength(1)
-  expect(f.terminals()[0].error).not.toContain('abc')
-  expect(JSON.stringify(result)).not.toContain('abc')
+  expect(f.terminals()[0].error).not.toContain('xyz')
+  expect(JSON.stringify(result)).not.toContain('xyz')
 })
 
 test.each(['missing-mask', 'missing-store', 'bad-ref', 'missing-drain'] as const)(

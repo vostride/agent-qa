@@ -330,6 +330,63 @@ describe('an assertAI judgment the model could not make ends the step', () => {
 // ---------------------------------------------------------------------------
 // extractAI
 // ---------------------------------------------------------------------------
+describe("assertAI's mode decides what the judge sees", () => {
+  const step = 'Assert the banner'
+
+  function screenshotAdapter(): PlatformAdapter {
+    return { ...recordingAdapter(makeScreenState(), []), screenshot: async () => Buffer.from('png') }
+  }
+
+  async function run(
+    mode: 'multimodal' | 'visual' | 'text',
+    adapter: PlatformAdapter,
+    verifier: FakeJudgeVerifier,
+  ) {
+    const plan = makeActionPlan({
+      action: { type: 'assertAI', claim: 'the banner is green', mode },
+      stepComplete: true,
+    })
+    return executeStep(
+      step,
+      ports({ adapter, planner: makePlanner([plan]), verifier, plannerConfig: cfg }),
+      makeStepContext(),
+    )
+  }
+
+  it('text sends the judge no image even when the gate attaches one', async () => {
+    const verifier = makeJudgeVerifier()
+    await run('text', screenshotAdapter(), verifier)
+
+    expect(verifier.judgeClaimCalls).toHaveLength(1)
+    expect(verifier.judgeClaimCalls[0]?.opts?.mode).toBe('text')
+    expect(verifier.judgeClaimCalls[0]?.opts).not.toHaveProperty('screenshot')
+  })
+
+  it("multimodal sends the judge the planner turn's screenshot", async () => {
+    const verifier = makeJudgeVerifier()
+    await run('multimodal', screenshotAdapter(), verifier)
+
+    expect(verifier.judgeClaimCalls).toHaveLength(1)
+    expect(verifier.judgeClaimCalls[0]?.opts?.mode).toBe('multimodal')
+    expect(verifier.judgeClaimCalls[0]?.opts?.screenshot).toEqual(Buffer.from('png'))
+  })
+
+  it('a visual claim with no screenshot ends the step without a judge call', async () => {
+    const verifier = makeJudgeVerifier()
+    const result = await run('visual', recordingAdapter(makeScreenState(), []), verifier)
+    const sentence = 'assertAI could not judge "the banner is green": no screenshot to judge a visual claim'
+
+    expect(verifier.judgeClaimCalls).toHaveLength(0)
+    expect(result.evidence?.limitUsage?.judgeCalls).toBe(0)
+    expect(result.status).toBe('failed')
+    expect(result.error).toBe(sentence)
+    expect(result.evidence?.conditionVerdicts).toEqual({
+      ending: 'unresolved',
+      conditions: [{ quote: step, verdict: 'unverified', reason: sentence, citations: [] }],
+    })
+  })
+})
+
 describe('extractAI extracts through the judge lane and captures run-scoped working memory', () => {
   it('scope:run puts extracted fields in the result AND writes working memory (kind extracted-value / provenance toolResult)', async () => {
     const calls: Action[] = []

@@ -131,7 +131,7 @@ export const waitForSchema = z.discriminatedUnion('on', [
 export const assertAISchema = z.object({
   claim: z.string().describe('AI-judged claim to verify against the current screen state'),
   mode: z.enum(['multimodal', 'visual', 'text']).default('multimodal')
-    .describe('multimodal = use all available evidence. Omit for multimodal.'),
+    .describe('What the judge looks at. multimodal: the screen text, plus the screenshot when there is one. visual: the screen text and the screenshot; with no screenshot the claim cannot be judged and the step ends. text: the screen text only, never the screenshot. Omit for multimodal.'),
 }).strict()
 
 const assertValueSourceSchema = z.object({

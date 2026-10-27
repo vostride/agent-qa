@@ -13,11 +13,13 @@ import type { Action } from '../platform.js'
 import type {
   AiExtraction,
   AiJudgment,
+  AssertAiMode,
   ExtractField,
   Verifier,
   VerifierAuthorContext,
   VerifyResult,
 } from './types.js'
+import { VISUAL_CLAIM_WITHOUT_SCREENSHOT } from './types.js'
 import type { VerifierStepRecord } from './step-record.js'
 import type { LanguageModelUsage } from 'ai'
 import type { TokenAccounting } from './ports.js'
@@ -92,6 +94,12 @@ export const VerificationResultSchema = z.object({
 // model handle.
 
 const JUDGMENT_NOT_A_VERDICT = "the model's answer was not a valid verdict"
+
+const JUDGE_MODE_LINE: Record<AssertAiMode, string> = {
+  multimodal: '',
+  visual: 'Judge it from the attached screenshot together with the accessibility tree.\n',
+  text: 'Judge it from the accessibility tree only; no screenshot is attached.\n',
+}
 const EXTRACTION_NOT_THE_FIELDS = "the model's answer did not match the declared fields"
 
 function modelCallFailed(error: unknown): string {
@@ -295,17 +303,21 @@ export class LLMVerifier implements Verifier {
   /**
    * One structured judgment of the claim over the current observation. Returns the verdict and
    * rationale, or unresolved when the model call failed or its answer was not a valid verdict.
+   * text never attaches the screenshot; visual with no screenshot is unresolved without a call.
    * An abort rethrows.
    */
   async judgeClaim(
     claim: string,
     screen: ScreenState,
-    opts?: Record<string, unknown>,
+    opts: { mode: AssertAiMode; screenshot?: Buffer; abortSignal?: AbortSignal },
   ): Promise<AiJudgment> {
-    const abortSignal = opts?.abortSignal as AbortSignal | undefined
-    const screenshot = opts?.screenshot as Buffer | undefined
+    const { mode, abortSignal } = opts
+    const screenshot = mode === 'text' ? undefined : opts.screenshot
+    if (mode === 'visual' && screenshot === undefined) {
+      return { outcome: 'unresolved', reason: VISUAL_CLAIM_WITHOUT_SCREENSHOT }
+    }
     try {
-      const promptText = `Claim to judge: "${claim}"\n\n${renderObservationInert(screen)}`
+      const promptText = `Claim to judge: "${claim}"\n${JUDGE_MODE_LINE[mode]}\n${renderObservationInert(screen)}`
       const clamped = await this.runStructured(
         JUDGE_STABLE_TIER,
         promptText,

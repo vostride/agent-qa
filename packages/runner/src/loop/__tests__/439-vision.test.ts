@@ -1,4 +1,4 @@
-// C439-VISION (439 D-19, SC3): through the real loop, a condition only a picture can settle is
+// Through the real loop, a condition only a picture can settle is
 // inconclusive when the verifier was given no image, whatever the model said, and the step cannot
 // pass; with an image attached the same condition passes, and a non-visual condition is unaffected.
 import { describe, expect, it } from 'vitest'
@@ -33,15 +33,18 @@ function verification(conditions: ConditionJudgment[]): VerificationResult {
   return { conditions, dialogs: [], isAppError: false, reasoning: 'overall' }
 }
 
-function verifier(result: VerificationResult): Verifier {
-  return {
+function verifier(result: VerificationResult): Verifier & { judgeCalls: number } {
+  const fake = {
+    judgeCalls: 0,
     async verify() {
       return { verification: result }
     },
     async judgeClaim() {
-      return { outcome: 'judged', verdict: true, rationale: 'The banner looks green' }
+      fake.judgeCalls++
+      return { outcome: 'judged' as const, verdict: true, rationale: 'The banner looks green' }
     },
   }
+  return fake
 }
 
 /** Plans in order; the turn after the last gives up, keeping each turn's failure context. */
@@ -75,15 +78,16 @@ async function run(options: {
   screenshot?: boolean
 }) {
   const seen: (string | undefined)[] = []
+  const fake = verifier(options.result)
   const ports: LoopPorts = {
     adapter: makeAdapter(options.screenshot ? { screenshot: async () => Buffer.from('png') } : {}),
     planner: planner(options.plans, seen),
-    verifier: verifier(options.result),
+    verifier: fake,
     plannerConfig: LIMITS,
     ...(options.visionGate ? { visionGate: options.visionGate } : {}),
   }
   const result = await executeStep(STEP, ports, makeStepContext({ stepInstruction: STEP }))
-  return { result, seen }
+  return { result, seen, judgeCalls: fake.judgeCalls }
 }
 
 const finalScreenCitation = [{ source: 'final-screen' as const, quote: 'button "Log in"' }]
@@ -123,16 +127,58 @@ describe('C439-VISION', () => {
     expect(step.evidence!.conditionVerdicts!.conditions[0]).toMatchObject({ verdict: 'met', needs: 'visual' })
   })
 
-  it('an assertAI visual judgment is not evidence without an image', async () => {
+  it('a visual claim under a text-only gate cannot be judged and ends the step', async () => {
     const result = verification([
       condition([{ source: 'read', quote: '"the banner is green" (visual): judged true' }], 'none'),
     ])
-    const { result: step } = await run({ result, plans: [visualClaim], visionGate: TEXT_ONLY })
+    const { result: step, judgeCalls } = await run({ result, plans: [visualClaim], visionGate: TEXT_ONLY })
 
+    expect(judgeCalls).toBe(0)
     expect(step.status).toBe('failed')
-    const recorded = step.evidence!.conditionVerdicts!.conditions[0]
-    expect(recorded).toMatchObject({ verdict: 'inconclusive', judged: 'met', guard: 'visual-text-only' })
-    expect(recorded.citations[0]).toMatchObject({ source: 'read', found: true })
+    expect(step.evidence!.conditionVerdicts).toEqual({
+      ending: 'unresolved',
+      conditions: [{
+        quote: STEP,
+        verdict: 'unverified',
+        reason: 'assertAI could not judge "the banner is green": no screenshot to judge a visual claim',
+        citations: [],
+      }],
+    })
+  })
+
+  it('a visual read is not evidence when the verify-time image is missing', () => {
+    const line = '"the banner is green" (visual): judged true: The banner looks green'
+    const judged = judgeConditions({
+      stepText: STEP,
+      output: verification([condition([{ source: 'read', quote: line }], 'none')]),
+      sources: { 'start-screen': '', 'final-screen': '', action: '', read: `read 1: assertAI ${line}`, carried: '' },
+      mask: (value) => value,
+      imageAttached: false,
+      ending: 'completion',
+      guards: {
+        finalElements: [],
+        platform: 'web',
+        imageAttached: false,
+        record: {
+          actions: [],
+          reads: [{
+            index: 1,
+            kind: 'assertAI',
+            text: line,
+            claim: 'the banner is green',
+            judged: true,
+            mode: 'visual',
+          }],
+        },
+      },
+    })
+
+    expect(judged.pass).toBe(false)
+    expect(judged.evidence.conditions[0]).toMatchObject({
+      verdict: 'inconclusive',
+      judged: 'met',
+      guard: 'visual-text-only',
+    })
   })
 
   it('a non-visual condition passes under a text-only gate', async () => {

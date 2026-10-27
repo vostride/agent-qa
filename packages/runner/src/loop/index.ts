@@ -84,12 +84,15 @@ import type { CarriedArtifacts, LoopPorts } from './ports.js'
 import { guardActionData } from './blob-guard.js'
 import type {
   ActionPlan,
+  AiJudgment,
+  AssertAiMode,
   ExtractField,
   PlanResult,
   StepContext,
   VerificationResult,
   VerifierAuthorContext,
 } from './types.js'
+import { VISUAL_CLAIM_WITHOUT_SCREENSHOT } from './types.js'
 import { PlanningLimitReachedError, PlanningTurnError } from './planner.js'
 import { withAbort, getTimeoutAbortReason } from './abort.js'
 import {
@@ -1615,13 +1618,25 @@ export async function executeStep(
       // verdict continues; a false verdict goes back to the planner as a self-correcting error; a
       // judgment the model could not make ends the step unresolved.
       cacheBypass = true
-      const av = action as { claim?: unknown }
+      // text never sends the screenshot; visual with no screenshot is unresolved without a call.
+      const av = action as { claim?: unknown; mode?: unknown }
       const claim = String(av.claim ?? '')
-      meter.recordJudgeCall()
-      const judgment = await withAbort(
-        ports.verifier.judgeClaim(claim, screenState, { abortSignal: ports.abortSignal, screenshot: context.screenshot }),
-        ports.abortSignal,
-      )
+      const mode: AssertAiMode = av.mode === 'visual' || av.mode === 'text' ? av.mode : 'multimodal'
+      const screenshot = mode === 'text' ? undefined : context.screenshot
+      let judgment: AiJudgment
+      if (mode === 'visual' && screenshot === undefined) {
+        judgment = { outcome: 'unresolved', reason: VISUAL_CLAIM_WITHOUT_SCREENSHOT }
+      } else {
+        meter.recordJudgeCall()
+        judgment = await withAbort(
+          ports.verifier.judgeClaim(claim, screenState, {
+            mode,
+            abortSignal: ports.abortSignal,
+            ...(screenshot !== undefined ? { screenshot } : {}),
+          }),
+          ports.abortSignal,
+        )
+      }
       if (judgment.outcome === 'unresolved') {
         const sentence = `assertAI could not judge "${recordMask(claim)}": ${recordMask(judgment.reason)}`
         recorder.recordAiJudgment({ verb: 'assertAI', unresolved: collapse(sentence).slice(0, 200) })
@@ -1632,15 +1647,13 @@ export async function executeStep(
         const rationale = redactSecretValue(judgment.rationale, ports.secretRedactor)
         recorder.recordAiJudgment({ verb: 'assertAI', verdict: judgment.verdict, rationale: recordMask(rationale) })
         const judgedClaim = recordMask(claim)
-        const mode = typeof (action as { mode?: unknown }).mode === 'string'
-          ? (action as { mode: string }).mode
-          : undefined
+        const declaredMode = typeof av.mode === 'string' ? av.mode : undefined
         stepRecord.addRead({
           kind: 'assertAI',
-          text: `"${judgedClaim}"${mode !== undefined ? ` (${mode})` : ''}: judged ${judgment.verdict ? 'true' : 'false'}: ${recordMask(rationale)}`,
+          text: `"${judgedClaim}"${declaredMode !== undefined ? ` (${declaredMode})` : ''}: judged ${judgment.verdict ? 'true' : 'false'}: ${recordMask(rationale)}`,
           claim: judgedClaim,
           judged: judgment.verdict,
-          ...(mode !== undefined ? { mode } : {}),
+          ...(declaredMode !== undefined ? { mode: declaredMode } : {}),
         })
         if (judgment.verdict) {
           execResult = { success: true, metadata: { aiJudgment: { verb: 'assertAI', verdict: true } } }

@@ -215,7 +215,7 @@ test('USAGE-ASSERTION: legacy AI assertions, structured judgments and extraction
   expect((await new LLMAssertionEvaluator(f.scope.verifierModel).evaluate(
     { type: 'ai', value: 'visible' }, makeScreenState(),
   )).passed).toBe(true)
-  expect(await f.scope.verifier!.judgeClaim!('visible', makeScreenState()))
+  expect(await f.scope.verifier!.judgeClaim!('visible', makeScreenState(), { mode: 'multimodal' }))
     .toMatchObject({ outcome: 'judged', verdict: true })
   expect(await f.scope.verifier!.extractData!('name', makeScreenState(),
     { fields: [{ name: 'name', type: 'string', description: 'the name' }] }))

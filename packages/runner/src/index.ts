@@ -105,6 +105,7 @@ export type {
   Verifier,
   AiJudgment,
   AiExtraction,
+  AssertAiMode,
   ExtractField,
   Asserter,
   AssertionInput,

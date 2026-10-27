@@ -138,7 +138,7 @@ describe('LLMVerifier', () => {
 
       const accounting = makeFakeTokenAccounting()
       const verifier = new LLMVerifier({} as any, accounting)
-      const result = await verifier.judgeClaim('the welcome banner is visible', before)
+      const result = await verifier.judgeClaim('the welcome banner is visible', before, { mode: 'multimodal' })
 
       expect(mockGenerateText).toHaveBeenCalledTimes(1)
       expect(mockGenerateText.mock.calls[0][0].maxRetries).toBe(0)
@@ -156,7 +156,7 @@ describe('LLMVerifier', () => {
       mockGenerateText.mockResolvedValueOnce({ output: undefined } as any)
 
       const verifier = new LLMVerifier({} as any, makeFakeTokenAccounting())
-      const result = await verifier.judgeClaim('anything', before)
+      const result = await verifier.judgeClaim('anything', before, { mode: 'multimodal' })
 
       expect(result).toEqual({
         outcome: 'unresolved',
@@ -178,7 +178,7 @@ describe('LLMVerifier', () => {
       )
 
       const verifier = new LLMVerifier({} as any, makeFakeTokenAccounting())
-      const result = await verifier.judgeClaim('anything', before)
+      const result = await verifier.judgeClaim('anything', before, { mode: 'multimodal' })
 
       expect(result).toEqual({
         outcome: 'unresolved',
@@ -192,7 +192,7 @@ describe('LLMVerifier', () => {
       mockGenerateText.mockRejectedValueOnce(new Error('Overloaded'))
 
       const verifier = new LLMVerifier({} as any, makeFakeTokenAccounting())
-      const result = await verifier.judgeClaim('anything', before)
+      const result = await verifier.judgeClaim('anything', before, { mode: 'multimodal' })
 
       expect(result).toEqual({ outcome: 'unresolved', reason: 'the model call failed: Overloaded' })
     })
@@ -206,8 +206,66 @@ describe('LLMVerifier', () => {
       controller.abort()
       const verifier = new LLMVerifier({} as any, makeFakeTokenAccounting())
       await expect(
-        verifier.judgeClaim('anything', before, { abortSignal: controller.signal }),
+        verifier.judgeClaim('anything', before, { mode: 'multimodal', abortSignal: controller.signal }),
       ).rejects.toThrow('The operation was aborted')
+    })
+
+    function turnParts(call: unknown): { type: string; text?: string }[] {
+      const messages = (call as { messages: { content: { type: string; text?: string }[] }[] }).messages
+      return messages[0]!.content
+    }
+
+    it('text sends a text-only turn even with a screenshot', async () => {
+      const { generateText } = await import('ai')
+      const mockGenerateText = vi.mocked(generateText)
+      mockGenerateText.mockResolvedValueOnce({
+        output: { verdict: true, rationale: 'the banner reads Welcome' },
+        usage: { inputTokens: 80, outputTokens: 20 },
+      } as any)
+
+      const verifier = new LLMVerifier({} as any, makeFakeTokenAccounting())
+      await verifier.judgeClaim('the banner is visible', before, {
+        mode: 'text',
+        screenshot: Buffer.from('png'),
+      })
+
+      const parts = turnParts(mockGenerateText.mock.calls[0][0])
+      expect(parts.some((part) => part.type === 'image')).toBe(false)
+      expect(parts[0]?.text).toContain(
+        'Judge it from the accessibility tree only; no screenshot is attached.',
+      )
+    })
+
+    it('visual with a screenshot attaches it and names the mode', async () => {
+      const { generateText } = await import('ai')
+      const mockGenerateText = vi.mocked(generateText)
+      mockGenerateText.mockResolvedValueOnce({
+        output: { verdict: true, rationale: 'the banner is green' },
+        usage: { inputTokens: 80, outputTokens: 20 },
+      } as any)
+
+      const verifier = new LLMVerifier({} as any, makeFakeTokenAccounting())
+      await verifier.judgeClaim('the banner is green', before, {
+        mode: 'visual',
+        screenshot: Buffer.from('png'),
+      })
+
+      const parts = turnParts(mockGenerateText.mock.calls[0][0])
+      expect(parts.some((part) => part.type === 'image')).toBe(true)
+      expect(parts[0]?.text).toContain(
+        'Judge it from the attached screenshot together with the accessibility tree.',
+      )
+    })
+
+    it('visual with no screenshot makes no model call', async () => {
+      const { generateText } = await import('ai')
+      const mockGenerateText = vi.mocked(generateText)
+
+      const verifier = new LLMVerifier({} as any, makeFakeTokenAccounting())
+      const result = await verifier.judgeClaim('the banner is green', before, { mode: 'visual' })
+
+      expect(mockGenerateText).not.toHaveBeenCalled()
+      expect(result).toEqual({ outcome: 'unresolved', reason: 'no screenshot to judge a visual claim' })
     })
   })
 

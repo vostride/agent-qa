@@ -240,6 +240,10 @@ export type AiJudgment =
   | { outcome: 'judged'; verdict: boolean; rationale: string }
   | { outcome: 'unresolved'; reason: string }
 
+export type AssertAiMode = Extract<Action, { type: 'assertAI' }>['mode']
+
+export const VISUAL_CLAIM_WITHOUT_SCREENSHOT = 'no screenshot to judge a visual claim'
+
 export type ExtractField = Extract<Action, { type: 'extractAI' }>['schema'][number]
 
 export type AiExtraction =
@@ -252,8 +256,16 @@ export interface Verifier {
    * One structured judgment of the claim over the current observation. Returns the verdict and
    * rationale, or unresolved with the reason when the model call failed or its answer was not a
    * valid verdict. An abort rethrows.
+   * multimodal judges from the screen text, plus the screenshot when there is one.
+   * visual judges from the screen text and the screenshot, and is unresolved without a call when
+   * there is no screenshot.
+   * text judges from the screen text only and never sends the screenshot.
    */
-  judgeClaim?(claim: string, screen: ScreenState, opts?: Record<string, unknown>): Promise<AiJudgment>
+  judgeClaim?(
+    claim: string,
+    screen: ScreenState,
+    opts: { mode: AssertAiMode; screenshot?: Buffer; abortSignal?: AbortSignal },
+  ): Promise<AiJudgment>
   /**
    * One structured extraction of the declared fields over the current observation. Returns the
    * fields, or unresolved with the reason when the model call failed or its answer did not match
