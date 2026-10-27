@@ -351,9 +351,4 @@ describe('observePage', () => {
     // hide + restore both ran; scroll capture is never reached.
     expect(mockPage.evaluate).toHaveBeenCalledTimes(2)
   })
-
-  it('does not extract DOM when extractDom is omitted', async () => {
-    const state = await observePage(createMockPage('- button "OK"') as any)
-    expect(state.metadata.domContext).toBeUndefined()
-  })
 })

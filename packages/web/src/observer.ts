@@ -1,7 +1,6 @@
 import type { Page } from 'playwright-core'
 import type { ScreenState, ElementState, ElementLabels } from '@vostride/agent-qa-schema'
 import { buildScreenState, type InterimNode } from '@vostride/agent-qa-runner'
-import { extractDom } from './dom-extractor.js'
 
 const INTERACTIVE_ROLES = new Set([
   'button', 'link', 'textbox', 'checkbox', 'radio', 'combobox', 'listbox',
@@ -354,7 +353,7 @@ function coerceString(value: unknown): string | undefined {
 
 export async function observePage(
   page: Page,
-  options?: { filterSelector?: string; extractDom?: boolean },
+  options?: { filterSelector?: string },
 ): Promise<ScreenState> {
   const locator = options?.filterSelector
     ? page.locator(options.filterSelector)
@@ -377,15 +376,6 @@ export async function observePage(
   // Web scroll + viewport are EXACT (D-10, Pitfall #2).
   const { viewport: capturedViewport, scroll } = await captureWebScroll(page)
 
-  let domContext: string | undefined
-  if (options?.extractDom) {
-    try {
-      domContext = await extractDom(page)
-    } catch {
-      // DOM extraction is best-effort
-    }
-  }
-
   const { nodes, nativeRefs } = ariaTree
     ? parseAriaSnapshot(ariaTree)
     : { nodes: [] as InterimNode[], nativeRefs: [] as (string | undefined)[] }
@@ -403,7 +393,6 @@ export async function observePage(
     coordSpace: 'viewport',
     timestamp,
     url,
-    ...(domContext ? { domContext } : {}),
   })
 
   return state

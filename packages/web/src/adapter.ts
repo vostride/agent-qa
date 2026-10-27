@@ -6,7 +6,6 @@ import type {
   ExecuteOptions,
   LiveStreamCapability,
   NetworkLogEntry,
-  ObserveOptions,
   OperationCaptureSupport,
   PlatformAdapter,
   PlatformConfig,
@@ -23,7 +22,6 @@ import {
 import type { ScreenState } from '@vostride/agent-qa-schema'
 import { convertKeysForPlatform, isMacPlatform } from '@vostride/agent-qa-runner'
 import { parseAriaSnapshot, enrichWebNodes, captureWebScroll } from './observer.js'
-import { extractDom } from './dom-extractor.js'
 import { ElementResolver, buildRefMap } from './element-resolver.js'
 import {
   bindingRefusal,
@@ -654,7 +652,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     return this.disconnected
   }
 
-  async observe(options?: ObserveOptions): Promise<ScreenState> {
+  async observe(): Promise<ScreenState> {
     if (!this.page) {
       throw new Error('WebPlatformAdapter not initialized — call setup() first')
     }
@@ -666,7 +664,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     // refused as stale-observation at dispatch (D-09).
     const epoch = await captureEpoch(page)
     try {
-      const state = await this.observeDocument(page, options)
+      const state = await this.observeDocument(page)
       await disposeEpoch(this.epoch)
       this.epoch = epoch
       return state
@@ -676,10 +674,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     }
   }
 
-  private async observeDocument(
-    page: Page,
-    options: ObserveOptions | undefined,
-  ): Promise<ScreenState> {
+  private async observeDocument(page: Page): Promise<ScreenState> {
     // ai-mode snapshot: Playwright annotates each element with a native [ref=eN] handle
     // (adapter-PRIVATE) that aria-ref locators resolve against — the enrichment ground
     // truth and the dispatch handle (D-06).
@@ -693,16 +688,6 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     }
     const { viewport, scroll } = await captureWebScroll(page)
 
-    // domContext is web-only (D-04), captured only when the loop asks for it.
-    let domContext: string | undefined
-    if (options?.extractDom) {
-      try {
-        domContext = await extractDom(page)
-      } catch {
-        // DOM extraction is best-effort — never block observation.
-      }
-    }
-
     // The shared runner builder mints refs, normalizes names, and assembles the schema
     // v2 ScreenState. The binding stays adapter-private; only the state crosses the port.
     const { state, binding } = buildScreenState({
@@ -713,7 +698,6 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
       coordSpace: 'viewport',
       timestamp: Date.now(),
       url: page.url(),
-      ...(domContext !== undefined ? { domContext } : {}),
     })
 
     this.lastRefs = buildRefMap(binding, nodes, nativeRefs, state.elements)
