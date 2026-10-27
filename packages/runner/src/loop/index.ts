@@ -1665,9 +1665,9 @@ export async function executeStep(
         }
       }
     } else if (dispatchVerb === 'extractAI' && ports.verifier?.extractData) {
-      // One extraction per attempt through the verifier's model lane. The typed fields are masked,
-      // then written to run-scoped working memory and the read line as JSON text; an extraction the
-      // model could not make ends the step unresolved and writes nothing.
+      // One extraction per attempt through the verifier's model lane. Every key and value is masked,
+      // then written to run-scoped working memory and the read line as JSON text, which is masked
+      // again; an extraction the model could not make ends the step unresolved and writes nothing.
       cacheBypass = true
       const av = action as { query?: unknown }
       const query = String(av.query ?? '')
@@ -1685,16 +1685,16 @@ export async function executeStep(
         execError = sentence
         unresolvedEnding = sentence
       } else {
-        const fields = redactSecretValue(extraction.fields, ports.secretRedactor)
+        const fields = maskExtracted(extraction.fields, recordMask) as Record<string, unknown>
         const entries: WorkingMemoryEntry[] = Object.entries(fields).map(([key, value]) => ({
           key,
-          value: extractedText(value),
+          value: recordMask(extractedText(value)),
           kind: 'extracted-value',
           provenance: 'toolResult',
           stepIndex: actionIndex,
         }))
         if (entries.length > 0) ports.workingMemory?.capture(entries, { step: actionIndex })
-        const values = entries.map((entry) => `${recordMask(entry.key)} = ${entry.value}`)
+        const values = entries.map((entry) => `${entry.key} = ${entry.value}`)
         stepRecord.addRead({
           kind: 'extractAI',
           text: `"${recordMask(query)}": ${values.length > 0 ? values.join(', ') : 'no fields'}`,
@@ -3223,6 +3223,24 @@ function assertValueReadText(source: string, value: unknown): { actual?: string 
 // else as JSON, so null reads as null.
 function extractedText(value: unknown): string {
   return typeof value === 'string' ? value : JSON.stringify(value)
+}
+
+// Masks an extracted value's strings, object keys, numbers and booleans. A number or boolean that
+// holds a declared secret becomes its masked text.
+function maskExtracted(value: unknown, mask: (text: string) => string): unknown {
+  if (typeof value === 'string') return mask(value)
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    const text = String(value)
+    const masked = mask(text)
+    return masked === text ? value : masked
+  }
+  if (Array.isArray(value)) return value.map((item) => maskExtracted(item, mask))
+  if (value !== null && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [mask(key), maskExtracted(item, mask)]),
+    )
+  }
+  return value
 }
 
 function carriedItems(cell: CarriedArtifacts | undefined): { stepNumber: number; actionIndex: number; text: string }[] {

@@ -515,6 +515,32 @@ describe('extractAI returns its declared types', () => {
     expect(JSON.stringify(result)).not.toContain('supersecret')
   })
 
+  it('a secret in a number field or an object key is masked before record', async () => {
+    const model = syntheticModel({
+      text: '{"orderNumber":"A-1042","total":4321,"giftWrap":true,"items":[],"address":"{\\"sk-live-supersecret\\":\\"Pune\\"}","notes":null}',
+    })
+    const secretStore = new SecretStore({ PIN: '4321', TOKEN: 'sk-live-supersecret' })
+    const { result, verifier, workingMemory } = await run(model, {
+      secretStore,
+      secretRedactor: new SecretRedactor(secretStore),
+    })
+
+    expect(result.status).toBe('passed')
+    const extracted = subs(result)[0]?.result?.metadata?.extracted as Record<string, unknown>
+    expect(extracted.total).toBe('[secret:PIN]')
+    expect(extracted.address).toEqual({ '[secret:TOKEN]': 'Pune' })
+    expect(JSON.stringify(extracted)).not.toContain('4321')
+    const values = Object.fromEntries(
+      workingMemory.calls[0]?.entries.map((entry) => [entry.key, entry.value]) ?? [],
+    )
+    expect(values.total).toBe('[secret:PIN]')
+    expect(values.address).toBe('{"[secret:TOKEN]":"Pune"}')
+    const read = verifier.records[0]?.reads.find((entry) => entry.kind === 'extractAI')
+    expect(read?.text).toContain('total = [secret:PIN]')
+    expect(read?.text).not.toContain('4321')
+    expect(JSON.stringify(result)).not.toContain('supersecret')
+  })
+
   it('a wrongly typed extraction ends the step at once', async () => {
     const model = syntheticModel({
       text: '{"orderNumber":"A-1042","total":"59.9","giftWrap":true,"items":[],"address":null,"notes":null}',
