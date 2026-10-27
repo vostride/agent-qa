@@ -500,21 +500,14 @@ describe('AgentQaConfigSchema — 4-bucket structure', () => {
     expect(result.success).toBe(false)
   })
 
-  it('requires global use.mobile.appState', () => {
-    const result = AgentQaConfigSchema.safeParse({
+  it('a web-only config validates without use.mobile.appState', () => {
+    expect(AgentQaConfigSchema.safeParse({
       workspace: validWorkspace,
       use: {
         browser: { name: 'chromium', headless: true },
       },
-    })
-
-    expect(result.success).toBe(false)
-    if (!result.success) {
-      const issue = result.error.issues.find(i => i.path.join('.') === 'use.mobile.appState')
-      expect(issue).toBeDefined()
-      expect(issue?.message).toContain('use.mobile.appState is required')
-      expect(issue?.message).toContain('preserve | reset')
-    }
+    }).success).toBe(true)
+    expect(AgentQaConfigSchema.safeParse({ workspace: validWorkspace }).success).toBe(true)
   })
 
   it('rejects invalid global use.mobile.appState', () => {

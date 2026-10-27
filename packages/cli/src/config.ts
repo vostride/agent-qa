@@ -323,8 +323,7 @@ export function formatConfigDebug(
  *
  *   1. there is no config file — nothing was ever declared, and
  *   2. there IS one, it declares `analytics.privacy: true`, and it failed schema validation for
- *      some unrelated reason (a missing `use.mobile.appState`, a legacy key, a typo three levels
- *      away).
+ *      some unrelated reason (a retired key, a typo three levels away).
  *
  * In state 2 a user set a shipped privacy control and was transmitted anyway, silently, with the
  * surface working normally so nothing ever looked wrong. A product cannot ship a config field and

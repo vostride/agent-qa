@@ -4,7 +4,7 @@ import { ServicesSchema } from './services-schema.js'
 import { KnowledgeConfigSchema } from './knowledge-schema.js'
 import { retiredKeyScan } from './retired-keys.js'
 import { RegistrySchema } from './registry-schema.js'
-import { MobileAppStateSchema, UseSchema } from './use-schema.js'
+import { UseSchema } from './use-schema.js'
 import { AnalyticsSchema } from './analytics-schema.js'
 
 export const AuthPluginDeclarationSchema = z.union([
@@ -70,13 +70,6 @@ const AgentQaConfigSchemaInner = z.object({
       code: z.ZodIssueCode.custom,
       path: ['use', 'llm'],
       message: `use.llm "${val.use.llm}" does not match any name in registry.llms`,
-    })
-  }
-  if (!MobileAppStateSchema.safeParse(val.use?.mobile?.appState).success) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['use', 'mobile', 'appState'],
-      message: 'use.mobile.appState is required and must be one of: preserve | reset',
     })
   }
 })

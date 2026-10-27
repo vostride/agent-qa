@@ -45,12 +45,8 @@ const CELL_PROJECT_KEY = 'phc_root_optout_cell'
 /**
  * A project on disk, with or without the one boolean under measurement.
  *
- * The shape is the minimal one `chat-command.test.ts` already writes, PLUS `use.mobile.appState`.
- * That addition is load-bearing and was measured, not guessed: `chat-command.test.ts`'s fixture is
- * accepted by the lazy masked reader inside the composition but REJECTED by `resolveConfig`
- * (`use.mobile.appState is required and must be one of: preserve | reset`). A cell built on it
- * would take the tolerant read's `undefined` branch and then assert the privacy arm — proving only
- * that an invalid config is not honoured, which is the availability posture rather than the fix.
+ * The config is a minimal valid one: `resolveConfig` accepts it, so the cells measure the privacy
+ * arm rather than the tolerant read's `undefined` branch.
  *
  * The privacy arm adds the shipped `analytics.privacy` field from
  * `packages/core/src/schema/analytics-schema.ts`.
@@ -86,12 +82,10 @@ function fixtureProject(
 
 /**
  * A project whose config DECLARES privacy and is REJECTED by `resolveConfig` for an unrelated
- * reason (Phase 398 gap round, finding F-1 / review CR-01).
+ * reason.
  *
- * `use.mobile.appState` is omitted deliberately — that is the exact rejection `fixtureProject`'s
- * own header records as measured (`use.mobile.appState is required and must be one of:
- * preserve | reset`), so this fixture reaches the tolerant read's failure branch by the same door
- * a real user's typo does, rather than by a rejection invented for the cell.
+ * It declares a `use.mobile` block without `appState`, which the schema refuses, so this fixture
+ * reaches the tolerant read's failure branch by the same door a real user's mistake does.
  *
  * The declaration itself is untouched and unambiguous: `analytics.privacy: true` sits in the
  * document exactly where the shipped schema puts it. The whole question is whether a root that
@@ -121,7 +115,7 @@ function invalidConfigDeclaringPrivacy(
         envFile: '.env',
         secretsFile: '.env.secrets.local',
       },
-      // `use.mobile.appState` OMITTED — this is what makes `resolveConfig` throw.
+      // A declared `use.mobile` without `appState` is what makes `resolveConfig` throw.
       use: { mobile: {} },
       ...(options.privacy === true ? { analytics: { privacy: true } } : {}),
     })}\n`,
