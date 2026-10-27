@@ -108,10 +108,7 @@ const { sampleConfig, fullConfig, page } = vi.hoisted(() => ({
       vision: { screenshotSize: '256k', effectiveResolution: 768 },
       mcp: {
         enabled: true,
-        transport: 'http',
-        host: '127.0.0.1',
         port: 4174,
-        path: '/mcp',
       },
     },
     registry: {

@@ -89,21 +89,10 @@ export function isLoopbackHost(host: string): boolean {
   return LOOPBACK_HOSTS.includes(host.trim())
 }
 
-const LoopbackHostSchema = z.string().trim().min(1).refine(
-  isLoopbackHost,
-  { message: 'MCP host must be localhost, 127.0.0.1, or ::1 in local-only mode' },
-)
-
-// 2026-10-01 (432-22, D-12/D-22): the per-caller credential declarations (`tokens`) and the stdio
-// config-write opt-in (`stdio.grantConfigWrite`, and with it the whole `stdio` object) are deleted.
-// MCP is tokenless since 432-21; a file that still declares either key gets the normal strict
-// unrecognized-key error, with no migration and no special message.
+// Whether the dashboard co-hosts the MCP endpoint, and the port it listens on.
 export const McpConfigSchema = z.object({
   enabled: z.boolean().optional(),
-  transport: z.enum(['http', 'stdio']).optional(),
-  host: LoopbackHostSchema.optional(),
   port: z.number().int().min(1).max(65535).optional(),
-  path: z.string().trim().min(1).regex(/^\//, 'MCP path must start with /').optional(),
 }).strict()
 
 export const CacheConfigSchema = z.object({

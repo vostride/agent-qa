@@ -564,13 +564,12 @@ describe('PATCH /api/config path policy (429-44)', () => {
     expect(mockRename).not.toHaveBeenCalled()
   })
 
-  // The stdio grant switch and the MCP token append were two of the security-relevant writes; both
-  // keys are deleted, so the claim is carried by the retained ones.
-  it('WRITE-DOOR-ADMITS-PAGE-WRITES: fields the page renders, security-relevant ones included, still land', async () => {
+  // A provider header and the MCP port stand for the security-relevant writes the page makes.
+  it('fields the page renders, security-relevant ones included, still land', async () => {
     const configPath = await useConfigWorkspace(policyConfig)
     const admitted = [
       { op: 'set', path: ['registry', 'llms', { name: 'gpt' }, 'providerHeaders', 'X-Org'], value: 'org-1' },
-      { op: 'set', path: ['services', 'mcp', 'host'], value: '127.0.0.1' },
+      { op: 'set', path: ['services', 'mcp', 'port'], value: 3471 },
     ]
 
     for (const change of admitted) {
@@ -581,7 +580,7 @@ describe('PATCH /api/config path policy (429-44)', () => {
       services: { mcp: unknown }
       registry: { llms: Array<{ providerHeaders?: unknown }> }
     }
-    expect(parsed.services.mcp).toEqual({ host: '127.0.0.1' })
+    expect(parsed.services.mcp).toEqual({ port: 3471 })
     expect(parsed.registry.llms[0]!.providerHeaders).toEqual({ 'X-Org': 'org-1' })
   })
 

@@ -81,10 +81,7 @@ describe('AgentQaConfigSchema — 4-bucket structure', () => {
         },
         mcp: {
           enabled: true,
-          transport: 'http' as const,
-          host: '127.0.0.1',
           port: 3471,
-          path: '/mcp',
         },
       },
       registry: {
@@ -875,26 +872,15 @@ describe('Sub-schemas — primitives', () => {
     ).toBe(true)
   })
 
-  it('McpConfigSchema accepts local HTTP and stdio settings', () => {
+  it('McpConfigSchema accepts the server switch and a port', () => {
     expect(McpConfigSchema.safeParse({}).success).toBe(true)
-    expect(McpConfigSchema.safeParse({
-      enabled: true,
-      transport: 'http',
-      host: '127.0.0.1',
-      port: 3471,
-      path: '/mcp',
-    }).success).toBe(true)
-    expect(McpConfigSchema.safeParse({
-      enabled: true,
-      transport: 'stdio',
-    }).success).toBe(true)
+    expect(McpConfigSchema.safeParse({ enabled: true, port: 3471 }).success).toBe(true)
+    expect(McpConfigSchema.safeParse({ enabled: false }).success).toBe(true)
   })
 
-  it('McpConfigSchema rejects unsupported keys and non-local endpoints', () => {
+  it('McpConfigSchema rejects unknown keys and an out-of-range port', () => {
     expect(McpConfigSchema.safeParse({ exposed: true }).success).toBe(false)
-    expect(McpConfigSchema.safeParse({ host: '0.0.0.0' }).success).toBe(false)
     expect(McpConfigSchema.safeParse({ port: 70000 }).success).toBe(false)
-    expect(McpConfigSchema.safeParse({ path: 'mcp' }).success).toBe(false)
   })
 
   it('AccessibilityConfigSchema requires all fields when present', () => {
@@ -1280,18 +1266,17 @@ describe('AgentQaConfigSchema — retired keys are strictly unknown (432 D-22)',
     }
   })
 
-  it('C432-OLD-KEYS-STRICT: the retained guardrail settings keep their contracts', () => {
+  it('the retained guardrail settings keep their contracts', () => {
     const kept = AgentQaConfigSchema.safeParse(withWorkspace({
       services: {
-        mcp: { enabled: true, transport: 'http', host: '127.0.0.1', port: 3471, path: '/mcp' },
+        mcp: { enabled: true, port: 3471 },
         dashboard: { port: 3470, host: '127.0.0.1', baseUrl: 'http://127.0.0.1:3470' },
       },
     }))
     expect(kept.success).toBe(true)
     if (kept.success) {
-      expect(kept.data.services?.mcp).toEqual({ enabled: true, transport: 'http', host: '127.0.0.1', port: 3471, path: '/mcp' })
+      expect(kept.data.services?.mcp).toEqual({ enabled: true, port: 3471 })
     }
-    expect(McpConfigSchema.safeParse({ host: '0.0.0.0' }).success, 'MCP stays loopback-only').toBe(false)
     expect(DashboardConfigSchema.safeParse({ baseUrl: 'javascript:alert(1)' }).success, 'the live-link base stays http(s)').toBe(false)
     expect(DashboardConfigSchema.safeParse({ host: '0.0.0.0' }).success, 'the bind refusal stays a runtime guard').toBe(true)
   })

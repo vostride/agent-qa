@@ -125,10 +125,7 @@ describe('config schema leaves', () => {
       'services.dashboard.port',
       'services.dashboard.workspace',
       'services.mcp.enabled',
-      'services.mcp.host',
-      'services.mcp.path',
       'services.mcp.port',
-      'services.mcp.transport',
     ])
     expect(walked.filter(leaf => leaf.split('.')[0] === 'plugins')).toEqual([
       'plugins.auth[].package',

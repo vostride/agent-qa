@@ -57,7 +57,6 @@ const { fullConfig } = vi.hoisted(() => ({
       vision: { screenshotSize: '256k', effectiveResolution: 768 },
       mcp: {
         enabled: true,
-        transport: 'http',
         port: 4174,
       },
     },

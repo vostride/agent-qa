@@ -216,6 +216,26 @@ describe('retired-key pre-scan: removed cache keys', () => {
   })
 })
 
+describe('retired-key pre-scan: removed MCP keys', () => {
+  const cases: [key: string, value: string, message: string][] = [
+    ['host', '127.0.0.1', 'services.mcp.host was removed: agent-qa mcp always listens on 127.0.0.1. Delete this line.'],
+    ['path', '/mcp', 'services.mcp.path was removed: the MCP server answers on any path. Delete this line.'],
+    [
+      'transport',
+      'http',
+      'services.mcp.transport was removed: agent-qa mcp uses stdio, or HTTP with --http. Delete this line.',
+    ],
+  ]
+
+  it.each(cases)('services.mcp.%s is refused with its removal message', (key, value, message) => {
+    const config = { ...validBase, services: { mcp: { enabled: true, port: 3471, [key]: value } } }
+    expect(issueMessageAt(config, `services.mcp.${key}`)).toBe(message)
+    expect(paramsAt(config, `services.mcp.${key}`)).toEqual({ retired: true })
+    const result = AgentQaConfigSchema.safeParse(config)
+    expect(result.error?.issues.filter(i => i.code === 'unrecognized_keys')).toEqual([])
+  })
+})
+
 describe('retired-key pre-scan: removed knowledge keys', () => {
   it('knowledge.contextBudgetTokens is refused with its removal message', () => {
     const config = { ...validBase, knowledge: { contextBudgetTokens: 4096 } }

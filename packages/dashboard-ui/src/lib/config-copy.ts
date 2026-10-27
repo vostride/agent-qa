@@ -765,25 +765,12 @@ export function removeMatchSettingName(device: string, key: string): string {
 
 export const MCP_FIELD_LABELS = {
   enabled: 'MCP server',
-  transport: 'Transport',
-  host: 'Host',
   port: 'Port',
-  path: 'Path',
 } as const satisfies Record<string, string>
 
 export const MCP_FIELD_HELP = {
   enabled: "When off, the dashboard doesn't host the MCP endpoint.",
-  host: 'Only localhost, 127.0.0.1 or ::1.',
 } as const satisfies Record<string, string>
-
-export const MCP_TRANSPORT_LABELS = {
-  http: 'HTTP',
-  stdio: 'Stdio',
-} as const satisfies Record<'http' | 'stdio', string>
-
-export const MCP_TRANSPORT_PLACEHOLDER = 'Not set'
-export const MCP_HOST_ERROR = 'Use localhost, 127.0.0.1 or ::1.'
-export const MCP_PATH_ERROR = 'Start the path with /.'
 
 // 2026-10-01 (432-22, D-12): the access-token and run-service-token rows, their scope and trust-scope
 // labels and their errors are deleted with the token keys. MCP and the run service are tokenless.

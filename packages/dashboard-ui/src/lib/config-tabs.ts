@@ -96,7 +96,7 @@ export const CONFIG_SECTION_ALIASES = {
   dashboard: ['port', 'db path', 'database', 'artifacts', 'artifacts dir', 'runs db'],
   logging: ['log level'],
   'pass-rate-scope': ['pass rate', 'scope', 'attributes', 'flakiness'],
-  mcp: ['mcp host', 'mcp port', 'mcp path'],
+  mcp: ['mcp port'],
   'config-file': ['yaml', 'config file path', 'raw config'],
 } as const satisfies Record<ConfigSectionId, readonly string[]>
 

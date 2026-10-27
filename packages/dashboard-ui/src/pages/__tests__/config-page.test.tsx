@@ -1782,22 +1782,14 @@ describe('ConfigPage task tabs shell', () => {
     expect(panel.querySelector('[data-config-section-shell]')).toBeNull()
   })
 
-  // 2026-10-01 (432-22, D-12): re-spelled from ADVANCED-TOKEN-LEAVES-HAVE-FIELDS. The MCP field claim
-  // survives; the token lists and the stdio switch are deleted with their keys, so they are absent.
-  it('ADVANCED-MCP-LEAVES-HAVE-FIELDS: the Advanced tab has a field for every MCP leaf', async () => {
+  it('the Advanced tab has a field for every MCP leaf', async () => {
     await renderAt('/config/advanced')
 
     const panel = container!.querySelector('[data-config-panel="advanced"]') as HTMLElement
     expect(panel).not.toBeNull()
     expect(section('mcp')).not.toBeNull()
     const mcpLeaves = CONFIG_SCHEMA_LEAVES.filter((pattern) => pattern.startsWith('services.mcp.'))
-    expect(mcpLeaves).toEqual([
-      'services.mcp.enabled',
-      'services.mcp.host',
-      'services.mcp.path',
-      'services.mcp.port',
-      'services.mcp.transport',
-    ])
+    expect(mcpLeaves).toEqual(['services.mcp.enabled', 'services.mcp.port'])
     for (const pattern of mcpLeaves) {
       expect(section('mcp')!.querySelector(`[data-field-path="${pattern}"]`), pattern).not.toBeNull()
     }

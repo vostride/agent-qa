@@ -224,7 +224,7 @@ describe('createDashboardCommand', () => {
       use: { llm: 'default' },
       services: {
         dashboard: { port: 4000 },
-        mcp: { enabled: true, port: 3472, path: '/mcp' },
+        mcp: { enabled: true, port: 3472 },
         vision: { screenshotSize: 524288, effectiveResolution: 768 },
       },
     }))
@@ -384,7 +384,7 @@ describe('createServeCommand', () => {
     mockResolveConfig.mockResolvedValue(makeDashboardConfig({
       services: {
         dashboard: { port: 4100, dbPath: '.agent-qa/custom.db' },
-        mcp: { enabled: true, port: 3472, path: '/mcp' },
+        mcp: { enabled: true, port: 3472 },
       },
     }))
 

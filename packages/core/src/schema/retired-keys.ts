@@ -61,6 +61,13 @@ const RETIRED_APP_BROWSERSTACK_MESSAGE =
 const RETIRED_CACHE_TTL_MESSAGE =
   'services.cache.ttl was removed: cached plans do not expire by age. Delete this line.'
 
+const RETIRED_MCP_KEY_MESSAGES: Record<string, string> = {
+  host: 'services.mcp.host was removed: agent-qa mcp always listens on 127.0.0.1. Delete this line.',
+  path: 'services.mcp.path was removed: the MCP server answers on any path. Delete this line.',
+  transport:
+    'services.mcp.transport was removed: agent-qa mcp uses stdio, or HTTP with --http. Delete this line.',
+}
+
 const RETIRED_KNOWLEDGE_KEY_MESSAGES: Record<string, string> = {
   contextBudgetTokens:
     "knowledge.contextBudgetTokens was removed: agent-qa sizes each run's knowledge itself. Delete this line.",
@@ -204,6 +211,19 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
       path: ['services', 'cache', 'ttl'],
       message: RETIRED_CACHE_TTL_MESSAGE,
     })
+  }
+
+  if (isPlainObject(value.services) && isPlainObject(value.services.mcp)) {
+    for (const key of Object.keys(value.services.mcp)) {
+      if (Object.hasOwn(RETIRED_MCP_KEY_MESSAGES, key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          params: { retired: true },
+          path: ['services', 'mcp', key],
+          message: RETIRED_MCP_KEY_MESSAGES[key],
+        })
+      }
+    }
   }
 
   if (isPlainObject(value.knowledge)) {

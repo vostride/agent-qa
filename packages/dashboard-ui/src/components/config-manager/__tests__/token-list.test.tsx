@@ -46,7 +46,7 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 
 const records = {
   services: {
-    mcp: { enabled: true, transport: 'http', host: '127.0.0.1', port: 3471, path: '/mcp' },
+    mcp: { enabled: true, port: 3471 },
     dashboard: { port: 3470 },
   },
 }
@@ -149,16 +149,10 @@ afterEach(async () => {
 })
 
 describe('no token controls (432-22, re-spelled from 429-27 Task 1)', () => {
-  it('C432-NO-TOKEN-CONTROLS: the MCP and dashboard sections render their fields and no token list, row, add row or stdio switch', async () => {
+  it('the MCP and dashboard sections render their fields and no token list, row, add row or stdio switch', async () => {
     await mount()
 
-    expect(fieldPaths(section('mcp'))).toEqual([
-      'services.mcp.enabled',
-      'services.mcp.transport',
-      'services.mcp.host',
-      'services.mcp.port',
-      'services.mcp.path',
-    ])
+    expect(fieldPaths(section('mcp'))).toEqual(['services.mcp.enabled', 'services.mcp.port'])
     expect(fieldPaths(section('dashboard'))).toEqual([
       'services.dashboard.port',
       'services.dashboard.host',
@@ -181,7 +175,7 @@ describe('no token controls (432-22, re-spelled from 429-27 Task 1)', () => {
     }
   })
 
-  it('C432-NO-TOKEN-CONTROLS: the token list module, its copy, its section and its delete actions are gone', () => {
+  it('the token list module, its copy, its section and its delete actions are gone', () => {
     expect(existsSync(join(HERE, '..', 'token-list.tsx'))).toBe(false)
     const retiredCopy = [
       'ACCESS_TOKENS_HEADING', 'ADD_TOKEN_LABEL', 'NO_TOKENS_TEXT', 'tokenEnvLine', 'TOKEN_FIELD_LABELS',
@@ -190,8 +184,8 @@ describe('no token controls (432-22, re-spelled from 429-27 Task 1)', () => {
       'TRUST_SCOPE_LABELS',
     ]
     expect(retiredCopy.filter((name) => name in copy)).toEqual([])
-    expect(Object.keys(copy.MCP_FIELD_LABELS)).toEqual(['enabled', 'transport', 'host', 'port', 'path'])
-    expect(Object.keys(copy.MCP_FIELD_HELP)).toEqual(['enabled', 'host'])
+    expect(Object.keys(copy.MCP_FIELD_LABELS)).toEqual(['enabled', 'port'])
+    expect(Object.keys(copy.MCP_FIELD_HELP)).toEqual(['enabled'])
     expect(copy.MCP_FIELD_HELP.enabled).not.toMatch(/token/i)
     expect(CONFIG_SECTION_IDS as readonly string[]).not.toContain('run-service-tokens')
     expect(EXPLICIT_ACTION_KINDS as readonly string[]).not.toContain('delete-mcp-token')
