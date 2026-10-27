@@ -73,16 +73,13 @@ describe('yamlToFormState', () => {
       'steps:',
       '  - step: Click login',
       '    timeout: 30s',
-      '    retries: 3',
     ].join('\n')
 
     const state = yamlToFormState(yaml)
     expect(state).not.toBeNull()
     expect(state!.steps).toHaveLength(1)
     expect(state!.steps[0].text).toBe('Click login')
-    expect(state!.steps[0].overrides.timeout).toBe('30s')
-    expect(state!.steps[0].overrides.retries).toBe(3)
-    expect(state!.steps[0].overrides.screenshot).toBeUndefined()
+    expect(state!.steps[0].overrides).toEqual({ timeout: '30s' })
   })
 
   it('parses setup and teardown hooks from YAML', () => {
@@ -122,20 +119,18 @@ describe('updateYamlStep', () => {
     expect(result).not.toContain('Click old button')
   })
 
-  it('editing text of an object step preserves override fields', () => {
+  it('editing text of an object step preserves its timeout', () => {
     const yaml = [
       'name: Test',
       'target: app',
       'steps:',
       '  - step: Click login',
       '    timeout: 30s',
-      '    retries: 2',
     ].join('\n')
 
     const result = updateYamlStep(yaml, 0, 'Click submit')
     expect(result).toContain('Click submit')
     expect(result).toContain('timeout: 30s')
-    expect(result).toContain('retries: 2')
     expect(result).not.toContain('Click login')
   })
 })
@@ -177,12 +172,14 @@ describe('updateYamlStepOverride', () => {
       'steps:',
       '  - step: Click button',
       '    timeout: 30s',
-      '    retries: 2',
+      '    capture:',
+      '      variable: orderNumber',
+      '      method: ai',
     ].join('\n')
 
     const result = updateYamlStepOverride(yaml, 0, 'timeout', '60s')
     expect(result).toContain('timeout: 60s')
-    expect(result).toContain('retries: 2')
+    expect(result).toContain('variable: orderNumber')
     expect(result).toContain('step: Click button')
   })
 })
@@ -342,14 +339,13 @@ describe('formStateToYaml', () => {
       context: '',
       setup: [],
       steps: [
-        { text: 'Click login', overrides: { timeout: '30s', retries: 3 } },
+        { text: 'Click login', overrides: { timeout: '30s' } },
       ],
       teardown: [],
     })
 
     expect(yaml).toContain('step: Click login')
     expect(yaml).toContain('timeout: 30s')
-    expect(yaml).toContain('retries: 3')
   })
 
   it('testId is included when non-empty', () => {

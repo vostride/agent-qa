@@ -36,8 +36,6 @@ function moveListItem<T>(items: T[], oldIndex: number, newIndex: number): T[] {
 
 export interface StepOverrides {
   timeout?: string
-  retries?: number
-  screenshot?: boolean
 }
 
 export interface StepFormState {
@@ -80,8 +78,6 @@ export function yamlToFormState(yamlContent: string): TestFormState | null {
               text: (obj.step as string) ?? '',
               overrides: {
                 timeout: obj.timeout as string | undefined,
-                retries: obj.retries as number | undefined,
-                screenshot: obj.screenshot as boolean | undefined,
               },
             }
           })

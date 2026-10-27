@@ -28,7 +28,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
 import { StepPillPreview, hasTemplateVars } from '@/components/step-pill-preview'
 import { useStepAutocomplete } from '@/components/step-autocomplete'
 import type { VariableSuggestion } from '@/hooks/use-variable-suggestions'
@@ -102,8 +101,6 @@ const LIVE_STATUS_META: Record<Exclude<StepCardLiveStatus, 'idle'>, { label: str
 function formatOverrideSummary(overrides: StepOverrides): string | null {
   const parts: string[] = []
   if (overrides.timeout) parts.push(`TIMEOUT: ${overrides.timeout.toUpperCase()}`)
-  if (overrides.retries != null) parts.push(`RETRIES: ${overrides.retries}`)
-  if (overrides.screenshot != null) parts.push(`SCREENSHOT: ${overrides.screenshot ? 'ON' : 'OFF'}`)
   return parts.length > 0 ? parts.join(' · ') : null
 }
 
@@ -433,7 +430,7 @@ export function StepCardEditor({
 
       {isSettingsOpen && (
         <div className="border-t px-3 py-3">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3">
             <div className="space-y-1">
               <Label htmlFor={`step-${index}-timeout`} className="text-[11px] text-muted-foreground">
                 Timeout
@@ -446,35 +443,6 @@ export function StepCardEditor({
                 disabled={disabled}
                 className="h-8 text-xs"
               />
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor={`step-${index}-retries`} className="text-[11px] text-muted-foreground">
-                Retries
-              </Label>
-              <Input
-                id={`step-${index}-retries`}
-                type="number"
-                min={0}
-                value={overrides.retries ?? ''}
-                onChange={(event) => onOverrideChange(index, 'retries', event.target.value ? Number(event.target.value) : undefined)}
-                placeholder="0"
-                disabled={disabled}
-                className="h-8 text-xs"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-[11px] text-muted-foreground">
-                Screenshot
-              </Label>
-              <div className="flex h-8 items-center">
-                <Switch
-                  checked={overrides.screenshot ?? false}
-                  onCheckedChange={(checked) => onOverrideChange(index, 'screenshot', checked ? true : undefined)}
-                  disabled={disabled}
-                />
-              </div>
             </div>
           </div>
         </div>
