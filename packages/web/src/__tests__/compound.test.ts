@@ -93,6 +93,7 @@ const mockContext = {
   addInitScript: vi.fn().mockResolvedValue(undefined),
   grantPermissions: vi.fn().mockResolvedValue(undefined),
   exposeBinding: vi.fn().mockResolvedValue(undefined),
+  setDefaultNavigationTimeout: vi.fn(),
   on: vi.fn(),
 }
 

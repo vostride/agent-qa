@@ -105,6 +105,7 @@ const mockContext = {
   pages: vi.fn().mockReturnValue([mockPage]),
   grantPermissions: vi.fn().mockResolvedValue(undefined),
   exposeBinding: vi.fn().mockResolvedValue(undefined),
+  setDefaultNavigationTimeout: vi.fn(),
   on: vi.fn(),
 }
 

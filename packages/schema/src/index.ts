@@ -106,6 +106,7 @@ export {
   ConfigPathSegmentSchema,
   ConfigUndoRequestSchema,
   ConfigWriteRequestSchema,
+  DEFAULT_NAVIGATION_TIMEOUT_MS,
   DEFAULT_PARALLEL_WORKERS,
   // 2026-10-07 (436-04, D-01..D-03): the one default pair and resolver every door calls.
   DEFAULT_PLANNER_LIMITS,

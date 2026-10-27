@@ -4,10 +4,10 @@
 // pages are inline; the network cells use a loopback server defined here.
 
 import { createServer } from 'node:http'
-import type { Server } from 'node:http'
+import type { Server, ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { afterEach, describe, expect, it } from 'vitest'
-import type { ActionPlan, PlannerConfig } from '@vostride/agent-qa-runner'
+import type { ActionPlan, PlannerConfig, PlatformConfig } from '@vostride/agent-qa-runner'
 import { WebPlatformAdapter } from '../adapter.js'
 import { act, giveUp, runScriptedStep, scriptedPlanner, scriptedVerifier } from './fixtures/436-scripted-loop.js'
 import type { ScriptedStepRun, ScriptedTurn } from './fixtures/436-scripted-loop.js'
@@ -27,19 +27,21 @@ const PING_PAGE = `<!doctype html><html><body><main><h1>Status</h1></main></body
 
 let adapter: WebPlatformAdapter | undefined
 let server: Server | undefined
+const hanging: ServerResponse[] = []
 
 afterEach(async () => {
   await adapter?.cleanup()
   adapter = undefined
+  for (const response of hanging.splice(0)) response.destroy()
   const open = server
   server = undefined
   if (open) await new Promise<void>((done) => open.close(() => done()))
 }, 60_000)
 
-async function launch(): Promise<WebPlatformAdapter> {
+async function launch(timeouts?: PlatformConfig['timeouts']): Promise<WebPlatformAdapter> {
   const created = new WebPlatformAdapter()
   try {
-    await created.setup({ platform: 'web', browser: { name: 'chromium', headless: true } })
+    await created.setup({ platform: 'web', browser: { name: 'chromium', headless: true }, timeouts })
   } catch (error) {
     throw new Error('Real Chromium required: run `pnpm exec playwright install chromium`', { cause: error })
   }
@@ -55,6 +57,10 @@ async function withContent(html: string): Promise<WebPlatformAdapter> {
 
 async function servePing(): Promise<string> {
   const created = createServer((request, response) => {
+    if (request.url === '/hang') {
+      hanging.push(response)
+      return
+    }
     if (request.url === '/api/ping') {
       response.writeHead(200, { 'content-type': 'application/json' })
       response.end('{"pong":true}')
@@ -168,6 +174,16 @@ describe('C439-WAITS-AND-READS', () => {
         expect.objectContaining({ level: 'warn', text: expect.stringContaining('low stock') }),
       ]),
     )
+  }, 60_000)
+
+  it('a navigation that never answers fails at timeouts.navigation', async () => {
+    const url = await servePing()
+    const web = await launch({ navigation: 400 })
+
+    const result = await web.execute({ type: 'navigate', to: 'url', url: `${url}hang` })
+
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('Timeout 400ms exceeded')
   }, 60_000)
 
   it('an expr that evaluates to undefined is unread, null is a read', async () => {

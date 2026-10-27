@@ -13,6 +13,7 @@ import type {
   RecordingCapability,
 } from '@vostride/agent-qa-runner'
 import type { LiveFrame } from '@vostride/agent-qa-schema'
+import { DEFAULT_NAVIGATION_TIMEOUT_MS } from '@vostride/agent-qa-schema'
 import {
   assertNever,
   buildScreenState,
@@ -180,6 +181,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   private epoch: ObservationEpoch | undefined
   private pageLogBuffers = new Map<Page, PageLogBuffers>()
   private logCaptureConfig: { console: boolean; network: boolean } = { console: true, network: true }
+  private navigationTimeoutMs = DEFAULT_NAVIGATION_TIMEOUT_MS
   private disconnected = false
   private intentionalClose = false
   // Persistent route interception + one-shot dialog arms live until an explicit unroute or
@@ -250,6 +252,8 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
       contextOptions.storageState = config.authState.storageStatePath
     }
     this.context = await this.browser.newContext(contextOptions)
+    this.navigationTimeoutMs = config.timeouts?.navigation ?? DEFAULT_NAVIGATION_TIMEOUT_MS
+    this.context.setDefaultNavigationTimeout(this.navigationTimeoutMs)
 
     // Clipboard write permission — chromium only (firefox/webkit reject this permission per Pitfall 3)
     if (browserName === 'chromium') {
@@ -736,6 +740,17 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     return withOperationMetadata(result, captured)
   }
 
+  // A navigation that timed out stays pending and blocks every later call on its page until stopped.
+  private async stopLoading(page: Page): Promise<void> {
+    try {
+      const cdp = await this.context!.newCDPSession(page)
+      await cdp.send('Page.stopLoading')
+      await cdp.detach()
+    } catch {
+      // Firefox and WebKit have no CDP session.
+    }
+  }
+
   private async executeWithErrorResult(action: ActionsFor<'web'>): Promise<ActionResult> {
     if (!this.page) {
       throw new Error('WebPlatformAdapter not initialized — call setup() first')
@@ -971,19 +986,24 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
       case 'navigate': {
         // Fold re-key: the schema `to` discriminant drives url/history/reload on the proven
         // legacy bodies (goto / goBack|goForward / reload).
-        switch (action.to) {
-          case 'url':
-            await page.goto(action.url, { waitUntil: 'domcontentloaded' })
-            break
-          case 'back':
-            await page.goBack({ waitUntil: 'domcontentloaded' })
-            break
-          case 'forward':
-            await page.goForward({ waitUntil: 'domcontentloaded' })
-            break
-          case 'reload':
-            await page.reload({ waitUntil: 'domcontentloaded' })
-            break
+        try {
+          switch (action.to) {
+            case 'url':
+              await page.goto(action.url, { waitUntil: 'domcontentloaded' })
+              break
+            case 'back':
+              await page.goBack({ waitUntil: 'domcontentloaded' })
+              break
+            case 'forward':
+              await page.goForward({ waitUntil: 'domcontentloaded' })
+              break
+            case 'reload':
+              await page.reload({ waitUntil: 'domcontentloaded' })
+              break
+          }
+        } catch (err) {
+          await this.stopLoading(page)
+          throw err
         }
         await waitForPageReady(page)
         return { success: true }
@@ -1022,13 +1042,12 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
 
       case 'waitForUrl': {
         try {
-          // Explicit 30s timeout overrides Playwright's infinite default (Pitfall 2)
-          await page.waitForURL(action.pattern, { timeout: 30_000 })
+          await page.waitForURL(action.pattern, { timeout: this.navigationTimeoutMs })
           return { success: true }
         } catch (err) {
           return {
             success: false,
-            error: `URL pattern "${action.pattern}" did not match within 30s. Hint: use "**" wildcards for substring matching (e.g., "**/dashboard**"). ${err instanceof Error ? err.message : String(err)}`,
+            error: `URL pattern "${action.pattern}" did not match within ${this.navigationTimeoutMs}ms. Hint: use "**" wildcards for substring matching (e.g., "**/dashboard**"). ${err instanceof Error ? err.message : String(err)}`,
           }
         }
       }
@@ -1104,7 +1123,12 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
         if (action.action === 'new') {
           const newPage = await this.context!.newPage()
           this.attachLogListeners(newPage)
-          await newPage.goto(action.url, { waitUntil: 'domcontentloaded' })
+          try {
+            await newPage.goto(action.url, { waitUntil: 'domcontentloaded' })
+          } catch (err) {
+            await this.stopLoading(newPage)
+            throw err
+          }
           await waitForPageReady(newPage)
           this.setActivePage(newPage)
           return { success: true }

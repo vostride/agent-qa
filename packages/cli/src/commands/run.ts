@@ -14,7 +14,13 @@ import { loadLocalBindings, type LocalDeviceBindings } from '../devices.js'
 import { resolveLLMModels, resolveModelAuth, toModelProfileAndAuth } from '../llm-utils.js'
 import { formatInstallBrowsersRetryCommand, type BrowserInstallSelection } from './install-browsers.js'
 import type { ParsedTestBinding, TestDefinition, ParseError, SuiteDefinition, SuiteResult, RunSuiteConfig } from '@vostride/agent-qa-core'
-import { asRunId, maskPayloadStrings, resolvePlannerLimits, type PlannerLimitsRecord } from '@vostride/agent-qa-schema'
+import {
+  asRunId,
+  DEFAULT_NAVIGATION_TIMEOUT_MS,
+  maskPayloadStrings,
+  resolvePlannerLimits,
+  type PlannerLimitsRecord,
+} from '@vostride/agent-qa-schema'
 import { memberPlannerConfig, plannerLimitsInfoLines, plannerLimitsRecord, type MemberPlannerConfig, type MemberPlannerLimits } from '../run-planner-limits.js'
 import type {
   DeclaredModelProfile,
@@ -2671,7 +2677,7 @@ export async function produceSuiteRunMembers(
     const testTimeouts = {
       step: typeof suiteTimeoutConfig?.step === 'number' ? suiteTimeoutConfig.step : 30000,
       test: typeof suiteTimeoutConfig?.test === 'number' ? suiteTimeoutConfig.test : 120000,
-      navigation: typeof suiteTimeoutConfig?.navigation === 'number' ? suiteTimeoutConfig.navigation : 30000,
+      navigation: typeof suiteTimeoutConfig?.navigation === 'number' ? suiteTimeoutConfig.navigation : DEFAULT_NAVIGATION_TIMEOUT_MS,
     }
 
     const suiteLocalBindings = suitePlatform === 'android' || suitePlatform === 'ios'
@@ -3806,7 +3812,10 @@ export async function produceDirectRunMembers(
     const testTimeoutsForSetup = {
       step: (testMergedConfig as any).use?.timeout?.step ?? config.use?.timeout?.step,
       test: (testMergedConfig as any).use?.timeout?.test ?? config.use?.timeout?.test,
-      navigation: (testMergedConfig as any).use?.timeout?.navigation ?? config.use?.timeout?.navigation,
+      navigation:
+        (testMergedConfig as any).use?.timeout?.navigation ??
+        config.use?.timeout?.navigation ??
+        DEFAULT_NAVIGATION_TIMEOUT_MS,
     }
 
     const testLocalBindings = testPlatform === 'android' || testPlatform === 'ios'
@@ -3982,7 +3991,7 @@ export async function produceDirectRunMembers(
       const testTimeouts = {
         step: testMergedConfig.use?.timeout?.step,
         test: testMergedConfig.use?.timeout?.test,
-        navigation: testMergedConfig.use?.timeout?.navigation,
+        navigation: testMergedConfig.use?.timeout?.navigation ?? DEFAULT_NAVIGATION_TIMEOUT_MS,
       }
 
       const testRecording = resolveRecordingSetting(opts.record, config.services?.recording, testDef.meta?.record)

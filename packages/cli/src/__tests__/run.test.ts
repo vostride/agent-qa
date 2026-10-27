@@ -1658,6 +1658,27 @@ describe('run command — auth state consumption', () => {
     }))
   })
 
+  it('a web suite with no use.timeout sets the adapter up with a 2m navigation timeout', async () => {
+    const cfg = defaultConfig()
+    delete (cfg.use as any).timeout
+    mockResolveConfig.mockResolvedValue(cfg)
+    mockGlob.mockResolvedValue([])
+    const { suitePath, configPath } = await createTempSuiteWorkspace()
+    mockParseSuiteFile.mockResolvedValue({
+      name: 'Web Suite',
+      target: 'test-app',
+      tests: [{ test: 'tests/login.yaml', id: 'suite-test-1' }],
+    })
+    mockParseTestFile.mockReturnValue({
+      tests: [makeTest()],
+      errors: [],
+    })
+
+    await runCommandWithGlobalArgs(['--config', configPath], suitePath)
+
+    expect(mockWebAdapterSetup.mock.calls[0][0].timeouts.navigation).toBe(120_000)
+  })
+
   it('allows a suite child test to repeat the same auth state', async () => {
     const { suitePath, configPath } = await createTempSuiteWorkspace()
     mockParseSuiteFile.mockResolvedValue({
@@ -3125,6 +3146,44 @@ describe('run command — reporter integration', () => {
         headless: true,
       }),
     }))
+  })
+
+  it('a test with no use.timeout sets the adapter up with a 2m navigation timeout', async () => {
+    const cfg = defaultConfig()
+    delete (cfg.use as any).timeout
+    mockResolveConfig.mockResolvedValue(cfg)
+    mockGlob.mockResolvedValue(['tests/a.yaml'])
+    mockParseAllTests.mockResolvedValue({ tests: [makeTest()], errors: [] })
+    mockRunMemberTest.mockResolvedValue({
+      name: 'Test One',
+      filePath: 'tests/a.yaml',
+      status: 'passed',
+      steps: [],
+      duration: 100,
+    })
+
+    await runCommand('tests/**/*.yaml')
+
+    expect(mockWebAdapterSetup.mock.calls[0][0].timeouts.navigation).toBe(120_000)
+  })
+
+  it("a test's use.timeout.navigation reaches the adapter setup", async () => {
+    const cfg = defaultConfig()
+    cfg.use.timeout = { step: 30000, test: 300000, navigation: 5_000 }
+    mockResolveConfig.mockResolvedValue(cfg)
+    mockGlob.mockResolvedValue(['tests/a.yaml'])
+    mockParseAllTests.mockResolvedValue({ tests: [makeTest()], errors: [] })
+    mockRunMemberTest.mockResolvedValue({
+      name: 'Test One',
+      filePath: 'tests/a.yaml',
+      status: 'passed',
+      steps: [],
+      duration: 100,
+    })
+
+    await runCommand('tests/**/*.yaml')
+
+    expect(mockWebAdapterSetup.mock.calls[0][0].timeouts.navigation).toBe(5_000)
   })
 
   // Phase 361 (D-01/SESSION-04): the single-test path is now ONE sequential RunSession per invocation.

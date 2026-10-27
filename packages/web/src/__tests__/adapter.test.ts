@@ -100,6 +100,7 @@ const mockContext = {
   addInitScript: vi.fn().mockResolvedValue(undefined),
   grantPermissions: vi.fn().mockResolvedValue(undefined),
   exposeBinding: vi.fn().mockResolvedValue(undefined),
+  setDefaultNavigationTimeout: vi.fn(),
   on: vi.fn(),
 }
 
@@ -183,6 +184,21 @@ describe('WebPlatformAdapter', () => {
     expect(mockBrowser.newContext.mock.invocationCallOrder[0]).toBeLessThan(
       mockContext.newPage.mock.invocationCallOrder[0],
     )
+  })
+
+  describe('setup — navigation timeout', () => {
+    it("sets the context's default navigation timeout to 2m when timeouts are unset", async () => {
+      await adapter.setup({ platform: 'web' })
+      expect(mockContext.setDefaultNavigationTimeout).toHaveBeenCalledWith(120_000)
+      expect(mockContext.setDefaultNavigationTimeout.mock.invocationCallOrder[0]).toBeLessThan(
+        mockContext.newPage.mock.invocationCallOrder[0],
+      )
+    })
+
+    it("sets the context's default navigation timeout to timeouts.navigation", async () => {
+      await adapter.setup({ platform: 'web', timeouts: { navigation: 5_000 } })
+      expect(mockContext.setDefaultNavigationTimeout).toHaveBeenCalledWith(5_000)
+    })
   })
 
   it('replaces Playwright missing-browser launch errors with agent-qa install guidance', async () => {
@@ -691,19 +707,20 @@ describe('WebPlatformAdapter', () => {
   })
 
   describe('execute — waitForUrl', () => {
-    it('calls page.waitForURL with explicit 30s timeout', async () => {
-      await adapter.setup({ platform: 'web' })
+    it('calls page.waitForURL with the configured navigation timeout', async () => {
+      await adapter.setup({ platform: 'web', timeouts: { navigation: 5_000 } })
       const result = await adapter.execute({ type: 'waitForUrl', pattern: '**/dashboard**' })
       expect(result.success).toBe(true)
-      expect(mockPage.waitForURL).toHaveBeenCalledWith('**/dashboard**', { timeout: 30_000 })
+      expect(mockPage.waitForURL).toHaveBeenCalledWith('**/dashboard**', { timeout: 5_000 })
     })
 
     it('returns success:false with helpful error message on timeout', async () => {
-      mockPage.waitForURL.mockRejectedValueOnce(new Error('Timeout 30000ms exceeded'))
-      await adapter.setup({ platform: 'web' })
+      mockPage.waitForURL.mockRejectedValueOnce(new Error('Timeout 5000ms exceeded'))
+      await adapter.setup({ platform: 'web', timeouts: { navigation: 5_000 } })
       const result = await adapter.execute({ type: 'waitForUrl', pattern: '/dashboard' })
       expect(result.success).toBe(false)
       expect(result.error).toContain('URL pattern "/dashboard"')
+      expect(result.error).toContain('within 5000ms')
       expect(result.error).toContain('**')
     })
   })

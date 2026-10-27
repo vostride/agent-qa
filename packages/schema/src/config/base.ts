@@ -9,6 +9,8 @@ export interface TimeoutConfig {
   navigation?: number
 }
 
+export const DEFAULT_NAVIGATION_TIMEOUT_MS = 120_000
+
 export interface PlatformBase {
   timeouts?: TimeoutConfig
   recording?: { enabled: boolean; videoDir: string; videoSize?: Viewport }
