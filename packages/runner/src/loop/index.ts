@@ -949,8 +949,8 @@ export async function executeStep(
       }
     }
 
-    // Inject the gated image + prompt note for the planner (D-11): text-only omits the
-    // image block and leans on the tree/DOM via the prompt note.
+    // Inject the gated image + prompt note for the planner: text-only attaches no image block
+    // and relies on the accessibility tree through the prompt note.
     context.screenshot = gate.attachImage && screenshot ? screenshot : undefined
     context.promptNote = gate.promptNote
 
