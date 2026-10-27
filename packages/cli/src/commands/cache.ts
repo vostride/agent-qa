@@ -1,6 +1,6 @@
 import { Command } from 'commander'
 import pc from 'picocolors'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { DEFAULT_AGENT_QA_CACHE_DIR } from '@vostride/agent-qa-core'
 import { purgeActionCache } from '@vostride/agent-qa-runner-local'
 import { resolveConfig } from '../config.js'
@@ -27,12 +27,13 @@ export function createCacheCommand(): Command {
       }
 
       const parentOpts = cmd.parent?.opts() ?? {}
-      const config = await resolveConfig({
-        configPath: parentOpts.config as string | undefined,
-      })
-      const cacheDir = config.services?.cache?.dir ?? CACHE_DIR_FALLBACK
+      const configPath = (parentOpts.config as string | undefined) ?? 'agent-qa.config.yaml'
+      const config = await resolveConfig({ configPath })
+      const configDir = dirname(resolve(configPath))
 
-      const count = await purgeAll(cacheDir)
+      const count = await purgeAll(
+        resolve(configDir, config.services?.cache?.dir ?? CACHE_DIR_FALLBACK),
+      )
       if (count === 0) {
         console.log(pc.dim('No cached plans found'))
       } else {

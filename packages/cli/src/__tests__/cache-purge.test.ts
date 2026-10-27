@@ -109,4 +109,42 @@ use:
 
     expect(await readdir(cacheDir)).toEqual([])
   })
+
+  it('resolves a relative services.cache.dir against the config file directory, not the cwd', async () => {
+    const { createCacheCommand } = await import('../commands/cache.js')
+    const projectDir = join(TMP_DIR, 'project')
+    const otherCwd = join(TMP_DIR, 'elsewhere')
+    const key = sha256hex16('main-0')
+    await seedEntry(join(projectDir, '.agent-qa', 'cache'), 'main', key)
+    await seedEntry(join(otherCwd, '.agent-qa', 'cache'), 'main', key)
+    const configPath = join(projectDir, 'agent-qa.config.yaml')
+    await writeFile(configPath, `
+workspace:
+  testMatch:
+    - tests/**/*.yaml
+  suiteMatch:
+    - suites/**/*.suite.yaml
+  hooksFile: hooks.yaml
+  envFile: .env
+  secretsFile: .env.secrets.local
+services:
+  cache:
+    dir: .agent-qa/cache
+`)
+
+    const parent = new Command().option('--config <path>')
+    parent.exitOverride()
+    parent.addCommand(createCacheCommand())
+
+    const originalCwd = process.cwd()
+    process.chdir(otherCwd)
+    try {
+      await parent.parseAsync(['node', 'test', '--config', configPath, 'cache', 'purge', '--all'])
+    } finally {
+      process.chdir(originalCwd)
+    }
+
+    expect(await readdir(join(projectDir, '.agent-qa', 'cache'))).toEqual([])
+    expect(await readdir(join(otherCwd, '.agent-qa', 'cache', 'main'))).toEqual([`${key}.json`])
+  })
 })
