@@ -18,7 +18,7 @@
 +# agent-qa init:end
 --- /dev/null
 +++ b/agent-qa.config.yaml
-@@ -0,0 +1,94 @@
+@@ -0,0 +1,89 @@
 +# agent-qa Configuration
 +
 +# File discovery and project settings
@@ -68,15 +68,10 @@
 +
 +# Named resource definitions (LLM configs, app targets)
 +registry:
-+  # Optional: local and cloud device/provider profiles.
++  # Optional: local device profiles.
 +  # devices:
 +  #   android-emu:
 +  #     platform: android
-+  #     transport: local
-+  # providers:
-+  #   browserstack:
-+  #     username: ${BROWSERSTACK_USERNAME}
-+  #     accessKey: ${BROWSERSTACK_ACCESS_KEY}
 +  targets:
 +    # Optional: add more web or mobile targets here.
 +    # my-mobile:

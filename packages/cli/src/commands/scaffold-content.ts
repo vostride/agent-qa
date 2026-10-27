@@ -268,15 +268,10 @@ export function addYamlComments(yamlStr: string): string {
       result += '  #   enabled: false\n'
       result += '  #   standard: wcag2aa\n'
     } else if (line === 'registry:') {
-      result += '  # Optional: local and cloud device/provider profiles.\n'
+      result += '  # Optional: local device profiles.\n'
       result += '  # devices:\n'
       result += '  #   android-emu:\n'
       result += '  #     platform: android\n'
-      result += '  #     transport: local\n'
-      result += '  # providers:\n'
-      result += '  #   browserstack:\n'
-      result += '  #     username: ${BROWSERSTACK_USERNAME}\n'
-      result += '  #     accessKey: ${BROWSERSTACK_ACCESS_KEY}\n'
     } else if (line === '  targets:') {
       result += '    # Optional: add more web or mobile targets here.\n'
       result += '    # my-mobile:\n'

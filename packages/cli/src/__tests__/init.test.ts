@@ -296,7 +296,7 @@ describe('init command', () => {
     expect(content).not.toContain('  # memory:')
     expect(content).toContain('# Named resource definitions')
     expect(content).toContain('  # devices:')
-    expect(content).toContain('  # providers:')
+    expect(content).toContain('  #     platform: android')
     expect(content).toContain('    # my-mobile:')
     expect(content).toContain('    #   appPackage: com.example.app')
     expect(content).toContain('    #   appActivity: .MainActivity')
