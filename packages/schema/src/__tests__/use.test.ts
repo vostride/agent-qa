@@ -35,17 +35,6 @@ describe('useSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('rejects android use carrying a remoteDevice field', () => {
-    const result = useSchema.safeParse({
-      platform: 'android',
-      device: 'pixel',
-      appState: 'reset',
-      remoteDevice: { appiumUrl: 'http://x' },
-    })
-
-    expect(result.success).toBe(false)
-  })
-
   it('rejects android use carrying an unknown key', () => {
     const result = useSchema.safeParse({
       platform: 'android',

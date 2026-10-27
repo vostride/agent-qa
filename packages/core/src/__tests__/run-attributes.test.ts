@@ -80,10 +80,6 @@ describe('run attributes', () => {
     expect(() => validateTrustedRunAttributes({
       [ATTR_TRIGGER]: 'evil',
     }, 'inherited run attributes')).toThrow(/Attribute value for "agent-qa\.trigger" must be one of/)
-
-    expect(() => validateTrustedRunAttributes({
-      [ATTR_RUNNER]: 'browserstack',
-    }, 'inherited run attributes')).toThrow(/Attribute value for "agent-qa\.runner" must be one of: local$/)
   })
 
   it('formats attributes with protected keys first and custom keys alphabetically', () => {

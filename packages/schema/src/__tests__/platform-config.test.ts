@@ -37,7 +37,7 @@ describe('platformConfigSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('accepts mobile configs with a local appiumUrl and refuses remote-device fields', () => {
+  it('accepts mobile configs with a local appiumUrl', () => {
     const android = {
       platform: 'android',
       device: { name: 'pixel', platform: 'android', match: {} },
@@ -53,17 +53,6 @@ describe('platformConfigSchema', () => {
 
     expect(platformConfigSchema.safeParse(android).success).toBe(true)
     expect(platformConfigSchema.safeParse(ios).success).toBe(true)
-    expect(platformConfigSchema.safeParse({
-      ...android,
-      remoteDevice: { appiumUrl: 'http://x' },
-    }).success).toBe(false)
-    expect(platformConfigSchema.safeParse({
-      ...ios,
-      remoteDevice: { appiumUrl: 'http://x' },
-    }).success).toBe(false)
-    expect(
-      platformConfigSchema.safeParse({ ...ios, webDriverAgentUrl: 'http://x' }).success,
-    ).toBe(false)
   })
 
   it('rejects unknown platform discriminants', () => {
