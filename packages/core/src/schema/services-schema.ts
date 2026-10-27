@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { SizeString } from './primitives.js'
 
 /**
- * Whether a configured value is an ABSOLUTE `http:`/`https:` URL (408 D-08, WR-04 — T-408-16).
+ * Whether a configured value is an ABSOLUTE `http:`/`https:` URL.
  *
  * FILE-LOCAL, DELIBERATELY, unlike `isLoopbackHost` below, which is exported for the dashboard's
  * bind guard in another package. This one has exactly one decision site — the parse boundary,
@@ -58,9 +58,7 @@ export const DashboardConfigSchema = z.object({
     { message: 'services.dashboard.baseUrl must be an absolute http(s) URL' },
   ).optional(),
   workspace: z.string().optional(),
-  // 2026-10-01 (432-22, D-12/D-22): `runServiceTokens` is deleted. The run service is tokenless
-  // since 432-21, and a file that still declares the key gets the normal strict unrecognized-key
-  // error, with no migration and no special message. The local doors never needed a credential.
+  // The run service and the other local doors are tokenless, so this block declares no token key.
   // The interface the dashboard binds. A plain string, because the pre-listen bind guard refuses
   // any non-loopback value at runtime, as the security refusal it is rather than a config-shape
   // error, and a loopback spelling other than the default (`localhost`, `::1`) stays configurable.

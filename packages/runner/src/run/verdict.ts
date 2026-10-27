@@ -41,7 +41,7 @@ export function deriveMemberOutcome(result: TestResult): MemberTestOutcome {
 
 /**
  * Fold member outcomes into the aggregate run verdict — the ratified spec §2.1 ordered
- * rule with the D-15 neutral-skipped clause. EVALUATED IN ORDER:
+ * rule with its neutral-skipped clause. EVALUATED IN ORDER:
  *
  *  1. `runCancelled` ⇒ `'cancelled'` (a whole-run cancel wins over everything)
  *  2. any member `'failed'` or `'timeout'` ⇒ `'failed'`
@@ -50,7 +50,7 @@ export function deriveMemberOutcome(result: TestResult): MemberTestOutcome {
  *  5. else ⇒ `'passed'`
  *
  * `'skipped'` members are neutral throughout — an all-skipped (or empty) run is
- * vacuously `'passed'` (D-15, the reconciled clause; matches every test runner).
+ * vacuously `'passed'`, as in every test runner.
  *
  * The quarantine skip is EXPLICIT IN THE RULE, right here in step 2 and nowhere else.
  * `quarantined[i] === true` marks a member whose failure the committed ledger has licensed:

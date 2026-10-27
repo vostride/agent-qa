@@ -1,13 +1,11 @@
-// The run shell — `startRun` and the RunSession it returns (D-01, SESSION-01/02/04/05). This is
-// the run lifecycle every later surface attaches to: it owns the bus, seq, the bounded member
-// pool (402-02 D-09 — N members concurrent in the run's process, `workers` default 1, exclusive
-// lanes for members that share a mutable execution resource), group-scoped fail-fast skip
-// production (absorbed from suite/runner.ts:530-554),
-// run-level cancel + wall-clock budget (D-03), the aggregate-verdict emission, and the one-per-run
-// handoff assembly + persistence (D-17). It carries ZERO verdict logic (deriveMemberOutcome/
-// deriveAggregateVerdict/classifyRootCause own it) and ZERO fs/provider access (validate:arch
-// storageNeutral) —
-// per-test execution stays behind the injected `executor` port, every I/O leg behind a run port.
+// The run shell — `startRun` and the RunSession it returns. This is the run lifecycle every later
+// surface attaches to: it owns the bus, seq, the bounded member pool (N members concurrent in the
+// run's process, `workers` default 1, exclusive lanes for members that share a mutable execution
+// resource), group-scoped fail-fast skip production, run-level cancel, the aggregate-verdict
+// emission, and the one-per-run handoff assembly + persistence. It carries ZERO verdict logic
+// (deriveMemberOutcome/deriveAggregateVerdict/classifyRootCause own it) and ZERO fs/provider access
+// (validate:arch storageNeutral) — per-test execution stays behind the injected `executor` port,
+// every I/O leg behind a run port.
 //
 // Terminal sequence is owned by ONE code path (RESEARCH Pitfall 7): compute the aggregate verdict,
 // publish `verdict` EXACTLY once (before any post-processing event, SESSION-02), set the terminal
@@ -149,10 +147,9 @@ function memberHandleIndex(member: RunMemberDescriptor, index: number): number {
  * run-level AbortController — then kicks the async member pool whose settled result feeds `done`.
  * Returns the addressable {@link RunSession} immediately.
  *
- * 402-02 (D-09): members execute through a BOUNDED CONCURRENT POOL rather than a `for` loop, but
- * everything after it is unchanged — the terminal sequence is still ONE code path, run once, after
- * the pool settles. Concurrency changes which member is in flight when; it does not change who
- * publishes the verdict, or when `runFinished` is last.
+ * Members execute through a BOUNDED CONCURRENT POOL, and the terminal sequence is ONE code path,
+ * run once, after the pool settles. Concurrency changes which member is in flight when; it does not
+ * change who publishes the verdict, or when `runFinished` is last.
  */
 export function startRun(config: RunConfig): RunSession {
   const mask: MaskFn = (text) => redactSecretValue(text, config.secretRedactor)

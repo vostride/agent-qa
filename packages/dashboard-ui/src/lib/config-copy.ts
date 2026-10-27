@@ -771,8 +771,7 @@ export const MCP_FIELD_HELP = {
   enabled: "When off, the dashboard doesn't host the MCP endpoint.",
 } as const satisfies Record<string, string>
 
-// 2026-10-01 (432-22, D-12): the access-token and run-service-token rows, their scope and trust-scope
-// labels and their errors are deleted with the token keys. MCP and the run service are tokenless.
+// MCP and the run service are tokenless, so this copy has no token rows.
 
 export const CONFIG_FILE_NOTE = 'Read-only. Edit the file in your editor; changes show here by themselves.'
 export const COPY_PATH_LABEL = 'Copy config file path'
