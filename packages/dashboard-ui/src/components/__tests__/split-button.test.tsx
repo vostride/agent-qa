@@ -90,7 +90,7 @@ describe("SplitButton", () => {
 
   it("lists exactly the cache actions a page passes, starting with Run without cache", () => {
     mount({ onPurgeCache: vi.fn() })
-    expect(menuItems()).toEqual(["Purge cache"])
+    expect(menuItems()).toEqual(["Purge all cached plans"])
     act(() => {
       root.unmount()
     })
@@ -99,7 +99,7 @@ describe("SplitButton", () => {
     const onRunNoCache = vi.fn()
     const onPurgeCache = vi.fn()
     const onRun = mount({ onRunNoCache, onPurgeCache })
-    expect(menuItems()).toEqual(["Run without cache", "Purge cache"])
+    expect(menuItems()).toEqual(["Run without cache", "Purge all cached plans"])
 
     click(container.querySelector("[data-menu-item]") ?? undefined)
     expect(onRunNoCache).toHaveBeenCalledTimes(1)

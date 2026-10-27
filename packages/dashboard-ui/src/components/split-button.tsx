@@ -89,7 +89,7 @@ export function SplitButton({
           )}
           {onPurgeCache && (
             <DropdownMenuItem onClick={onPurgeCache}>
-              Purge cache
+              Purge all cached plans
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>
