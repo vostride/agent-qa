@@ -1233,6 +1233,8 @@ describe('run command — reduced flag surface and target resolution', () => {
     await expect(parseRemovedRunFlag('--app', 'staging')).rejects.toMatchObject({ code: 'commander.unknownOption' })
     await expect(parseRemovedRunFlag('--env', 'staging')).rejects.toMatchObject({ code: 'commander.unknownOption' })
     await expect(parseRemovedRunFlag('--env-file', '.env.local')).rejects.toMatchObject({ code: 'commander.unknownOption' })
+    await expect(parseRemovedRunFlag('--bail')).rejects.toMatchObject({ code: 'commander.unknownOption' })
+    await expect(parseRemovedRunFlag('--screenshot-dir', './shots')).rejects.toMatchObject({ code: 'commander.unknownOption' })
   })
 
   it('resolves target: from test YAML via resolveTarget', async () => {
@@ -2290,40 +2292,6 @@ describe('run command — exit codes', () => {
 })
 
 
-describe('run command — bail mode', () => {
-  // Phase 361 (D-01/SESSION-04): the single-test path is now ONE RunSession per invocation whose
-  // members carry NO failFastGroup, so ungrouped members never fail-fast — every discovered test runs
-  // then the run aggregates. The old --bail short-circuit is dropped (the single-test analog of Plan
-  // 10's suite-parent parallel drop); --bail is a no-op under the one-RunSession law.
-  it('runs all members in one RunSession — --bail no longer short-circuits after the first failure', async () => {
-    mockGlob.mockResolvedValue(['tests/a.yaml'])
-    const test1 = makeTest({ name: 'Failing Test' })
-    const test2 = makeTest2({ name: 'Second Test' })
-    mockParseAllTests.mockResolvedValue({
-      tests: [test1, test2],
-      errors: [],
-    })
-
-    let callCount = 0
-    mockRunMemberTest.mockImplementation(async () => {
-      callCount++
-      return {
-        name: callCount === 1 ? 'Failing Test' : 'Second Test',
-        filePath: 'tests/a.yaml',
-        status: 'failed',
-        steps: [],
-        duration: 100,
-      }
-    })
-
-    await runCommand('--bail', 'tests/**/*.yaml')
-
-    // Both members execute inside the one session; the failed aggregate verdict still maps to exit 1.
-    expect(mockRunMemberTest).toHaveBeenCalledTimes(2)
-    expect(exitSpy).toHaveBeenCalledWith(1)
-  })
-})
-
 describe('run command — framework error handling', () => {
   it('exits 2 on config resolution failure', async () => {
     mockResolveConfig.mockRejectedValue(new Error('Invalid config: missing fields'))
@@ -2813,7 +2781,7 @@ describe('run command — reporter integration', () => {
     expect(allErrors).toContain('--reporter junit requires --junit-output <path>')
   })
 
-  it('treats screenshotDir as capture intent for runTestWithRetry config', async () => {
+  it('treats --screenshot-mode every-step as capture intent for runTestWithRetry config', async () => {
     mockGlob.mockResolvedValue(['tests/a.yaml'])
     mockParseAllTests.mockResolvedValue({
       tests: [makeTest()],
@@ -2827,11 +2795,10 @@ describe('run command — reporter integration', () => {
       duration: 100,
     })
 
-    await runCommand('--screenshot-dir', './shots', 'tests/**/*.yaml')
+    await runCommand('--screenshot-mode', 'every-step', 'tests/**/*.yaml')
 
     const runConfig = mockRunMemberTest.mock.calls[0][1]
     expect(runConfig).toEqual(expect.objectContaining({ captureScreenshots: true }))
-    expect(runConfig).not.toHaveProperty('screenshotDir')
   })
 
   it('passes services.accessibility into direct test execution', async () => {
@@ -3075,7 +3042,7 @@ describe('run command — reporter integration', () => {
     expect(exitSpy).toHaveBeenCalledWith(1)
   })
 
-  it('does not pass a default screenshotDir when not specified', async () => {
+  it('captures no screenshots unless --screenshot-mode every-step is passed', async () => {
     mockGlob.mockResolvedValue(['tests/a.yaml'])
     mockParseAllTests.mockResolvedValue({
       tests: [makeTest()],
@@ -3093,7 +3060,6 @@ describe('run command — reporter integration', () => {
 
     const runConfig = mockRunMemberTest.mock.calls[0][1]
     expect(runConfig).toEqual(expect.objectContaining({ captureScreenshots: false }))
-    expect(runConfig).not.toHaveProperty('screenshotDir')
   })
 
   it('lets test-level browser.headless false override global true', async () => {

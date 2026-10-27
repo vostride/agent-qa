@@ -352,10 +352,9 @@ describe('C443-REPORTER', () => {
     expect(rows(at).map((row) => row.id).join(','), 'the rows under runs.db').toBe(ids[0])
   }, CELL_BUDGET_MS)
 
-  it('screenshot capture follows only its own flags', async () => {
-    expect(await memberCaptureFor({}), 'capture with neither flag').toBe('false')
+  it('screenshot capture follows only --screenshot-mode', async () => {
+    expect(await memberCaptureFor({}), 'capture without --screenshot-mode').toBe('false')
     expect(await memberCaptureFor({ screenshotMode: 'every-step' }), 'capture with --screenshot-mode every-step').toBe('true')
-    expect(await memberCaptureFor({ screenshotDir: './shots' }), 'capture with --screenshot-dir').toBe('true')
   }, CELL_BUDGET_MS)
 })
 

@@ -191,16 +191,6 @@ export const DEBRIS_REGISTER: readonly DebrisSite[] = [
     disposition: 'delete',
     why: 'Same local cast breadth (the suite-child arm).',
   },
-  {
-    file: 'packages/cli/src/commands/run.ts',
-    token: 'suite-parent',
-    line: "// single-test analog of Plan 10's suite-parent parallel drop under the one-RunSession law).",
-    before: 1,
-    after: 1,
-    disposition: 'keep',
-    why: 'Historical prose. A comment naming a retirement that already happened is a record, not a '
-      + 'producer; deleting it would erase the reason a later reader needs.',
-  },
 
   // ---- dashboard-server: queue -----------------------------------------------------------------
   {

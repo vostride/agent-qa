@@ -70,7 +70,7 @@ const REFUSED_RETIRED_PROMPT = 86
 /** Every run flag a named caller still passes; each must stay declared on the shipped `run`. */
 const CALLER_RUN_FLAGS = [
   '--headless', '--detach', '--disable-cache', '--no-parallel', '--excluded-from-outcomes',
-  '--screenshot-mode', '--screenshot-dir', '--record', '--no-record', '--reporter',
+  '--screenshot-mode', '--record', '--no-record', '--reporter',
 ] as const
 
 const LANES = [
@@ -321,7 +321,7 @@ print(json.dumps(out))
     expect(found.argv).toEqual([
       null, null, '--config', 'agent-qa.config.yaml', 'run', 'tests/episode.yaml',
       '--disable-cache', '--no-parallel', '--excluded-from-outcomes', '--detach',
-      '--screenshot-mode', 'every-step', '--screenshot-dir', null,
+      '--screenshot-mode', 'every-step',
     ])
     expect(found.extra).toEqual(['--record', '--reporter', 'console', 'stdout-live', 'dashboard', '--no-record'])
     expect(found.flags).toEqual(['--disable-cache', '--no-parallel', '--excluded-from-outcomes', '--detach'])

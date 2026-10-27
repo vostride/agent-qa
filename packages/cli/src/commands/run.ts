@@ -479,11 +479,9 @@ export interface RunOptions {
   headless?: boolean
   disableCache?: boolean
   saveCache?: boolean
-  bail?: boolean
   dryRun?: boolean
   listTests?: boolean
   junitOutput?: string
-  screenshotDir?: string
   screenshotMode?: string
   reporter?: string[]
   record?: boolean
@@ -2864,7 +2862,7 @@ export async function produceSuiteRunMembers(
     // runner-local (arch lint: storageNeutral); the runner loop records only { name, fingerprint }.
     const suiteStorageState = await buildStorageStateStore(configDir)
 
-    const captureScreenshots = opts.screenshotMode === 'every-step' || Boolean(opts.screenshotDir)
+    const captureScreenshots = opts.screenshotMode === 'every-step'
 
     const suiteArtifactContext = buildRunArtifactContext({
       // 402-09 (D-11): an ordinary run artifact. The suite identity survives in the run row's
@@ -3682,7 +3680,7 @@ export async function produceDirectRunMembers(
   // `.agent-qa` dir (the FsActionCache rooting idiom); threaded into the loop's storageState port.
   const singleStorageState = await buildStorageStateStore(configDir)
 
-  const captureScreenshots = opts.screenshotMode === 'every-step' || Boolean(opts.screenshotDir)
+  const captureScreenshots = opts.screenshotMode === 'every-step'
 
   const { LogManager } = await import('@vostride/agent-qa-core')
 
@@ -4381,11 +4379,9 @@ export function createRunCommand(): Command {
     .option('--no-headless', 'run in headed mode')
     .option('--disable-cache', 'bypass action cache for this run')
     .option('--save-cache', 'write cache even on the default/protected branch')
-    .option('--bail', 'stop on first test failure')
     .option('--dry-run', 'parse and list tests without executing')
     .option('--list-tests', 'list discovered test files without executing')
     .option('--junit-output <path>', 'path for JUnit XML output')
-    .option('--screenshot-dir <dir>', 'directory for failure screenshots')
     .option('--screenshot-mode <mode>', 'when to capture: failure (default) or every-step')
     .option('--reporter <names...>', 'select reporters (default: console)')
     .option('--record', 'enable session video recording (services.recording.enabled)')
@@ -4707,12 +4703,10 @@ export function createRunCommand(): Command {
           process.exit(0)
         }
 
-        // ---- Compose the ONE RunSession per invocation (D-01/D-04, SESSION-01/04) ---------------
-        // Each discovered test file is a member of ONE RunSession. Members carry NO failFastGroup —
-        // ungrouped members never fail-fast (Plan 04 port contract), so today's run-all-then-aggregate
-        // behavior is preserved (the old parallel batching + --bail short-circuit are dropped, the
-        // single-test analog of Plan 10's suite-parent parallel drop under the one-RunSession law).
-        // The run-level SIGINT routes into session.cancel(); the D-14 verdict map owns the exit code.
+        // ---- Compose the one RunSession per invocation ---------------------------------------------
+        // Each discovered test file is a member of one RunSession. Members carry no failFastGroup,
+        // so every member runs and the run then aggregates. The run-level SIGINT routes into
+        // session.cancel(), and the verdict map owns the exit code.
         let shutdownRequested = false
         let frozenExitCode: number | undefined
         let activeRunSession: { cancel(): void } | undefined
