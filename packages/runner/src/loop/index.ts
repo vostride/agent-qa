@@ -1715,7 +1715,7 @@ export async function executeStep(
         execError = read.error
       } else {
         const av = action as { source?: unknown; expr?: unknown; op?: unknown; expected?: unknown }
-        const source = typeof av.source === 'string' ? av.source : (av.expr !== undefined ? 'expr-result' : 'unknown')
+        const source = typeof av.source === 'string' ? av.source : (av.expr !== undefined ? 'expr' : 'unknown')
         const plannedExpected = (normalizedAction as { expected?: unknown }).expected
         const expected = typeof plannedExpected === 'string'
           ? resolveSecretTemplatesInValue(plannedExpected, ports.secretStore)

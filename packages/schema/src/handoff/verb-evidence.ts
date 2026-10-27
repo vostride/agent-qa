@@ -75,7 +75,7 @@ export type AssertValueOp =
  * `expected`/`actual` are masked-before-record (T-360-01).
  */
 export interface AssertValueEvidence {
-  /** The value source the assertion read (e.g. url, storage, cookies, network, expr-result). */
+  /** The value source the assertion read: url, storage or network, or expr when it evaluated an expression. */
   source: string
   /** The comparison operator applied. */
   op: AssertValueOp

@@ -161,8 +161,8 @@ describe('Block A — compareAssertValue: one deterministic case per closed op (
   })
 
   it('gt / lt (numeric)', () => {
-    expect(compareAssertValue({ source: 'expr-result', op: 'gt', expected: '10', actual: '11' }).passed).toBe(true)
-    expect(compareAssertValue({ source: 'expr-result', op: 'lt', expected: '10', actual: '9' }).passed).toBe(true)
+    expect(compareAssertValue({ source: 'expr', op: 'gt', expected: '10', actual: '11' }).passed).toBe(true)
+    expect(compareAssertValue({ source: 'expr', op: 'lt', expected: '10', actual: '9' }).passed).toBe(true)
   })
 
   it('isNull / isDefined (no expected)', () => {
@@ -518,6 +518,29 @@ describe('Block B — assertValue orchestration and the deterministic verifier s
     const outcome = readAssertValueOutcomeMeta(subs(result)[0]?.result) as { passed?: boolean } | undefined
     expect(outcome).toBeDefined()
     expect(JSON.stringify(outcome)).not.toContain('supersecret')
+  })
+
+  it('an expr assertValue records its source as expr', async () => {
+    const adapter = readingAdapter(makeScreenState(), { success: true, data: '42' })
+    const verifier = makeScriptedVerifier({})
+    const plan = makeActionPlan({
+      action: { type: 'assertValue', expr: 'document.title', op: 'equals', expected: '42' },
+      stepComplete: true,
+    })
+
+    const result = await executeStep(
+      'Assert the title is 42',
+      ports({ adapter, planner: makePlanner([plan]), verifier, plannerConfig: cfg }),
+      makeStepContext(),
+    )
+
+    expect(readAssertValueOutcomeMeta(subs(result)[0]?.result)?.source).toBe('expr')
+    expect((result.evidence as { assertOutcome?: { source?: string } }).assertOutcome?.source).toBe('expr')
+    const record = verifier.verifyArgs[0]?.[10] as VerifierStepRecord | undefined
+    expect(record?.reads).toContainEqual(expect.objectContaining({
+      kind: 'assertValue',
+      text: 'expr equals "42": passed (read "42")',
+    }))
   })
 })
 

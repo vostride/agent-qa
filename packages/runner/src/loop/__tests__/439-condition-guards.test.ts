@@ -211,7 +211,7 @@ function assertRead(
   op: string,
   expected: string | undefined,
   passed: boolean,
-  source = 'expr-result',
+  source = 'expr',
 ): RecordedRead {
   const shown = expected !== undefined ? ` "${expected}"` : ''
   return {
