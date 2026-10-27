@@ -494,7 +494,7 @@ describe('C438-BUILDER-NO-POSITION', () => {
     const { state } = buildScreenState(input)
 
     expect(screenStateHash(state)).toBe(
-      'adf38a6749416f74583ebcf9ae2b9c33d602fb325359ce72e07a3586a634ec3b',
+      '7a4dacafb53299cb7594aefd70a10e033b872c35f16b4e08b0bde9f8ac3413eb',
     )
     expect(screenIdentityHash(state)).toBe(
       '0fcae011286525da2c4169ffebd3ed309de52595a43c39ca33048156eaad3b67',

@@ -103,4 +103,35 @@ describe('C436-PRE-CHANGE-HANDOFF', () => {
     expect(recomputed.length).toBeGreaterThan(0)
     expect(recomputed).toEqual(manifest.pins.decisions)
   })
+
+  it('a rerun origin carrying the pinned decision hashes still loads', () => {
+    const [test] = handoff.tests
+    const decisions = manifest.pins.decisions
+      .filter(pin => pin.testIndex === test.testIndex)
+      .map(pin => ({
+        runId: handoff.runId,
+        testId: test.testId,
+        testIndex: test.testIndex,
+        stepIndex: pin.stepIndex,
+        decisionOrdinal: pin.decisionOrdinal,
+        screenStateHash: pin.screenStateHash,
+        evidenceDigest: pin.evidenceDigest,
+        evidence: test.steps.find(step => step.stepIndex === pin.stepIndex),
+      }))
+    const origin = { attempt: 0, outcome: 'failed', decisions }
+    const rerun = {
+      ...handoff,
+      tests: [
+        {
+          ...test,
+          isRerun: true,
+          rerunAttempt: 1,
+          rerunOrigin: { ...origin, evidenceDigest: sha256hex(canonicalJson(origin)) },
+        },
+      ],
+    }
+
+    expect(decisions.length).toBeGreaterThan(0)
+    expect(() => guardCompletedRunHandoff(JSON.parse(JSON.stringify(rerun)))).not.toThrow()
+  })
 })

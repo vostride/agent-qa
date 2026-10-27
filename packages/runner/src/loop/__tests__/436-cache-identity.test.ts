@@ -23,9 +23,9 @@ const STEP = 'Sign in with the demo email'
 
 const PINNED_KEYS = ['ef8fe0803eb452f9', '6623bb8686ac4a41', 'd23f6c4cc7b9344b']
 const PINNED_SCREEN_STATE_HASHES = [
-  '439c59f8972016dec4930346827384ef08363774db04fee7aa633bb4b93f2957',
-  '70645d4951e5166247f81ae76b0dffd89b65ddeb0c686e2aca4f0a7141efe232',
-  '883ebc50bbdc1023bfbb371b11784c3fae73035dce155514b949d71d478b24dd',
+  '93b9aeaf3b2cd0c16e50b1759a3a1002c0c2897e697a9772faffad89d678ccd8',
+  '7bb75fd998350024bfa3bca49b3843b03e392aa08807e0df19b1faddf8a62338',
+  'e9a4863710df2f7aa042182ed58c6ab0b0751f54d320739c3ee43e77627ece27',
 ]
 const SCREENSHOT_BYTES = Buffer.from('agent-qa 436 fixed screenshot bytes')
 const PINNED_SCREENSHOT_SHA = 'e3664c4e81aef9f10bd60d796f5242fa6d5e5924871ee1a55fc22cee11c95142'
