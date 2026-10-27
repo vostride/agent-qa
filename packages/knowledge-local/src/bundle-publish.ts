@@ -42,7 +42,6 @@ export interface BundleStoreConfig {
   /** Absolute committed-root path. Deliberately no working-directory default. */
   knowledgeRoot: string
   productKey: string
-  commitArtifacts: 'none' | 'thumbnails'
   /** Active writer identity used to attribute crash-left staging trees. */
   writerLeaseId?: string
   /** Fencing epoch embedded in reader-invisible staging names. */
@@ -207,11 +206,6 @@ export function stageBundle(
   config: BundleStoreConfig,
   input: PublishBundleInput,
 ): StageBundleOutcome {
-  if (config.commitArtifacts === 'thumbnails') {
-    throw new Error(
-      "commitArtifacts 'thumbnails' is not implemented; Phase 380 visual review owns it",
-    )
-  }
   if (!isAbsolute(config.knowledgeRoot)) {
     throw new TypeError('BundleStoreConfig.knowledgeRoot must be absolute')
   }

@@ -104,7 +104,6 @@ describe('the MEM sighting source reports the status the store actually derived'
     return {
       knowledgeRoot,
       productKey: 'Memory Source Product',
-      commitArtifacts: 'none',
     }
   }
 

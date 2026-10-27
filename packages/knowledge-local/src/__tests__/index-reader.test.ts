@@ -82,7 +82,6 @@ describe('IDX-02 degrading knowledge reader', () => {
     return {
       knowledgeRoot,
       productKey,
-      commitArtifacts: 'none',
     }
   }
 

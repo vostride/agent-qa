@@ -764,7 +764,7 @@ describe('423-19 content-led consequence preview over the read host (D-16/D-17)'
     const lease = LOCAL_CURATION_CAPABILITIES.maintenance.acquireWriterLease(f.knowledgeRoot)
     if (lease.kind !== 'acquired') throw new Error('fixture must hold writer authority')
     const helpful = (recordId: string, observationId: string, token: string) => expect(appendOutcomeEvent({ knowledgeRoot: f.knowledgeRoot,
-      productKey: 'storefront', commitArtifacts: 'none', writerLeaseId: lease.leaseId, writerEpoch: lease.epoch },
+      productKey: 'storefront', writerLeaseId: lease.leaseId, writerEpoch: lease.epoch },
     asRecordId(recordId), { type: 'helpful', evidenceToken: asEvidenceToken(token), curationJobId: `canary-${token}`, buildOrdinal: 43, observationId }).kind).toBe('appended')
     // The deterministic emitter's persisted observation address for this run's step.
     helpful(f.published.id, `${runId}:test-0:step-0`, 'served-positive')

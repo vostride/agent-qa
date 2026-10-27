@@ -184,7 +184,6 @@ function seedBundle(
   const config: BundleStoreConfig = {
     knowledgeRoot: workspace.knowledgeRoot,
     productKey: product,
-    commitArtifacts: 'none',
   }
   const published = publishBundle(config, bundleInput(
     product,

@@ -141,7 +141,6 @@ function config(): BundleStoreConfig {
   return {
     knowledgeRoot,
     productKey: PRODUCT,
-    commitArtifacts: 'none',
   }
 }
 

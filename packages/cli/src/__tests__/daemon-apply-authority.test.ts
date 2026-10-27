@@ -88,7 +88,6 @@ async function seedRecord(where: Paths): Promise<string> {
     {
       knowledgeRoot: where.knowledgeRoot,
       productKey: 'Daemon Authority Product',
-      commitArtifacts: 'none',
     },
     {
       draft: {

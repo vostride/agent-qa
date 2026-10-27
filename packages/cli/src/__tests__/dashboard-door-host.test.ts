@@ -292,7 +292,6 @@ function seedCardUrlBundle(project: { root: string; knowledgeRoot: string }): st
   const config: BundleStoreConfig = {
     knowledgeRoot: project.knowledgeRoot,
     productKey: CARD_URL_PRODUCT,
-    commitArtifacts: 'none',
   }
   const input: PublishBundleInput = {
     draft: {

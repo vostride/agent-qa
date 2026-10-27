@@ -42,7 +42,6 @@ export function createPromotionFloorFixture({ knowledgeRoot }: { knowledgeRoot: 
     const published = publishBundleForTest({
       knowledgeRoot,
       productKey: 'storefront',
-      commitArtifacts: 'none',
       writerLeaseId: 'promotion-floor-fixture',
     }, {
       draft,

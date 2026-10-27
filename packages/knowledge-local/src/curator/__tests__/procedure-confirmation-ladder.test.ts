@@ -61,7 +61,6 @@ describe('procedure confirmation ladder (PROC-01/PROC-02 D-05)', () => {
     const outcome = publishBundle({
       knowledgeRoot,
       productKey: PRODUCT,
-      commitArtifacts: 'none',
       writerLeaseId: 'confirmation-ladder-test',
     }, {
       draft: makeProcedureBundleDraftFixture(),

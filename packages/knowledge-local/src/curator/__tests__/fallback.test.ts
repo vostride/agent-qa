@@ -391,7 +391,6 @@ describe('fallback and capable-author identity convergence (CUR-02)', () => {
     return {
       knowledgeRoot: join(root, 'agent-qa-knowledge'),
       productKey: 'storefront',
-      commitArtifacts: 'none' as const,
     }
   }
 

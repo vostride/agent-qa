@@ -128,7 +128,7 @@ describe('419 feedback host', () => {
     if (lease.kind !== 'acquired') throw new Error('expected authority')
     try {
       appendOutcomeEvent({ knowledgeRoot: f.knowledgeRoot,
-        productKey: 'storefront', commitArtifacts: 'none', writerLeaseId: lease.leaseId, writerEpoch: lease.epoch },
+        productKey: 'storefront', writerLeaseId: lease.leaseId, writerEpoch: lease.epoch },
       asRecordId(f.published.id), { type: 'helpful', evidenceToken: asEvidenceToken('prior-feedback'),
         curationJobId: 'fixture-job', buildOrdinal: 45, observationId: `${f.handoff.runId}:test-0:step-0` })
     } finally { LOCAL_CURATION_CAPABILITIES.maintenance.releaseLease({ knowledgeRoot: f.knowledgeRoot, leaseId: lease.leaseId }) }
@@ -144,7 +144,7 @@ describe('419 feedback host', () => {
     if (lease.kind !== 'acquired') throw new Error('expected authority')
     try {
       appendOutcomeEvent({ knowledgeRoot: f.knowledgeRoot,
-        productKey: 'storefront', commitArtifacts: 'none', writerLeaseId: lease.leaseId, writerEpoch: lease.epoch },
+        productKey: 'storefront', writerLeaseId: lease.leaseId, writerEpoch: lease.epoch },
       asRecordId(f.published.id), { type: 'helpful', evidenceToken: asEvidenceToken('unserved-feedback'),
         curationJobId: 'fixture-job', buildOrdinal: 45, observationId: `${f.handoff.runId}:test-0:step-0` })
     } finally { LOCAL_CURATION_CAPABILITIES.maintenance.releaseLease({ knowledgeRoot: f.knowledgeRoot, leaseId: lease.leaseId }) }

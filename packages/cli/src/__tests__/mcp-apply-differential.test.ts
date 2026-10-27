@@ -117,7 +117,7 @@ function porcelain(): string {
 /** One committed candidate record in the real store, through the layer's own publish helper. */
 function publishRecord(name: string): string {
   const outcome = publishBundleForTest(
-    { knowledgeRoot, productKey: 'Change Differential', commitArtifacts: 'none' },
+    { knowledgeRoot, productKey: 'Change Differential' },
     {
       draft: {
         kind: 'fact',

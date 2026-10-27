@@ -180,7 +180,6 @@ describe('knowledge.brief.why answers from the persisted trace (387-06)', () => 
     const config: BundleStoreConfig = {
       knowledgeRoot,
       productKey: PRODUCT,
-      commitArtifacts: 'none',
     }
     const outcome = publishBundleForTest(config, bundleInput(name, createdAtOrdinal))
     expect(outcome.kind).toBe('published')

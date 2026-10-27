@@ -108,7 +108,6 @@ describe('C432-PROPOSAL-FILES-UNREAD: the composed host leaves pre-432 proposal 
     return {
       knowledgeRoot,
       productKey: 'Inbox E2E Product',
-      commitArtifacts: 'none',
     }
   }
 

@@ -691,7 +691,6 @@ function bundleConfig(
   return {
     knowledgeRoot: input.knowledgeRoot,
     productKey,
-    commitArtifacts: 'none',
     ...(input.writerAuthority === undefined
       ? {}
       : { writerLeaseId: input.writerAuthority.leaseId }),

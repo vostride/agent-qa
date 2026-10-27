@@ -69,7 +69,6 @@ describe('diffSince deterministic maintenance history', () => {
     return {
       knowledgeRoot,
       productKey: 'shop',
-      commitArtifacts: 'none',
     }
   }
 

@@ -64,7 +64,6 @@ describe('canaryAttributionsFor joins served canary tuples to committed outcomes
     return {
       knowledgeRoot,
       productKey: 'shop',
-      commitArtifacts: 'none',
     }
   }
 

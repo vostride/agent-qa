@@ -84,7 +84,6 @@ describe('rollback-to-promotion public acceptance (PROM-01/DCAY-05)', () => {
     const published = publishBundle({
       knowledgeRoot,
       productKey: PRODUCT,
-      commitArtifacts: 'none',
       writerLeaseId: 'rollback-promotion-fixture',
     }, {
       draft: DRAFT,

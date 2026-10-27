@@ -129,7 +129,6 @@ describe('createAuthoringReader dense retrieval', () => {
     const store: BundleStoreConfig = {
       knowledgeRoot,
       productKey: PRODUCT,
-      commitArtifacts: 'none',
       writerLeaseId: 'authoring-reader-dense',
     }
     const outcome = publishBundle(store, {

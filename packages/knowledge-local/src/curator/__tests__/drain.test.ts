@@ -198,7 +198,7 @@ describe('drainQueue one-shot serialized engine (CUR-03/CUR-04)', () => {
     scaffoldKnowledgeRoot(knowledgeRoot)
     const draft = makeBundleDraftFixture()
     const published = publishBundle({
-      knowledgeRoot, productKey: 'storefront', commitArtifacts: 'none',
+      knowledgeRoot, productKey: 'storefront',
     }, {
       draft, discriminant: makeDiscriminantFixture(), originClass: 'agent-verified',
       createdAtOrdinal: 42, screenStates: [], initialEvents: [], relations: [], artifacts: [],
@@ -270,7 +270,7 @@ describe('drainQueue one-shot serialized engine (CUR-03/CUR-04)', () => {
     scaffoldKnowledgeRoot(knowledgeRoot)
     const draft = makeBundleDraftFixture()
     const published = publishBundle({
-      knowledgeRoot, productKey: 'storefront', commitArtifacts: 'none',
+      knowledgeRoot, productKey: 'storefront',
     }, {
       draft, discriminant: makeDiscriminantFixture(), originClass: 'agent-verified',
       createdAtOrdinal: 42, screenStates: [], initialEvents: [], relations: [], artifacts: [],
@@ -1172,7 +1172,6 @@ describe('drainQueue one-shot serialized engine (CUR-03/CUR-04)', () => {
       {
         knowledgeRoot,
         productKey: 'Writer Maintenance Product',
-        commitArtifacts: 'none',
       },
       {
         draft: makeBundleDraftFixture({

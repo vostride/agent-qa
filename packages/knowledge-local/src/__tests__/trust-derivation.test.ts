@@ -57,7 +57,6 @@ describe('BNDL-03 event-sourced trust derivation acceptance', () => {
     return {
       knowledgeRoot: join(root, 'agent-qa-knowledge'),
       productKey,
-      commitArtifacts: 'none',
     }
   }
 

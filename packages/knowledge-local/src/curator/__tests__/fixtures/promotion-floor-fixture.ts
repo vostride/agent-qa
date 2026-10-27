@@ -165,7 +165,6 @@ export function createPromotionFloorFixture({ knowledgeRoot }: { knowledgeRoot: 
     const published = publishBundle({
       knowledgeRoot,
       productKey: 'storefront',
-      commitArtifacts: 'none',
       writerLeaseId: 'promotion-floor-fixture',
     }, {
       draft,
@@ -205,7 +204,6 @@ export function createPromotionFloorFixture({ knowledgeRoot }: { knowledgeRoot: 
     return {
       knowledgeRoot,
       productKey: 'storefront',
-      commitArtifacts: 'none',
       writerLeaseId: 'promotion-floor-fixture',
     }
   }

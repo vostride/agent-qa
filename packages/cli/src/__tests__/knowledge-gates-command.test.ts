@@ -49,7 +49,6 @@ describe('agent-qa knowledge gates', () => {
     const agentQaRoot = join(root, '.agent-qa')
     const config: BundleStoreConfig = {
       knowledgeRoot: join(root, 'agent-qa-knowledge'), productKey: 'shop',
-      commitArtifacts: 'none',
     }
     const result = publishBundleForTest(config, {
       draft: { kind: 'fact', subtype: 'selector', anchors: [{ t: 'el', role: 'button', name: 'Checkout' }],

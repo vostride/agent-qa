@@ -37,7 +37,6 @@ export type MaterializeOutcome = { kind: 'written' | 'unchanged'; relPath: strin
 /**
  * The authored shelf is append-only under the caller's writer lease. An existing section ID
  * always wins, including when its human-edited body differs. Never rewrite that body.
- * commitArtifacts governs binary bundle artifacts, not policy text or git commits.
  * The authored text is written as given; no detector scans it (Phase 441, D-15).
  */
 export function materializePolicy(input: MaterializePolicyInput): MaterializeOutcome {

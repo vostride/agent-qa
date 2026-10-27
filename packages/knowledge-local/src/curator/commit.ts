@@ -475,7 +475,6 @@ function storeConfig(
   return {
     knowledgeRoot: deps.knowledgeRoot,
     productKey,
-    commitArtifacts: 'none',
     writerLeaseId,
     writerEpoch: deps.epoch,
     ...(Object.keys(hooks).length === 0 ? {} : { hooks }),

@@ -255,7 +255,6 @@ function storeConfig(f: Fixture): BundleStoreConfig {
   return {
     knowledgeRoot: f.knowledgeRoot,
     productKey: 'Batching Product',
-    commitArtifacts: 'none',
   }
 }
 

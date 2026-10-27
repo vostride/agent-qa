@@ -284,7 +284,6 @@ describe('D-06 an entity title is never retrievable as a learned fact', () => {
     return {
       knowledgeRoot,
       productKey: PRODUCT,
-      commitArtifacts: 'none',
       writerLeaseId: 'entity-index-test',
     }
   }

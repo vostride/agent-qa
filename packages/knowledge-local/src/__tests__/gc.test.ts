@@ -72,7 +72,6 @@ function config() {
   return {
     knowledgeRoot,
     productKey: PRODUCT,
-    commitArtifacts: 'none' as const,
   }
 }
 

@@ -92,7 +92,6 @@ function publishRecord(root: string, knowledgeRoot: string, summary: string): { 
   const outcome = publishBundle({
     knowledgeRoot,
     productKey: PRODUCT,
-    commitArtifacts: 'none',
     writerLeaseId: 'guide-exclusion',
   }, input)
   if (outcome.kind !== 'published') throw new Error(`expected publication, got ${outcome.kind}`)

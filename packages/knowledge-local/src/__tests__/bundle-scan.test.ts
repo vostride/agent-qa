@@ -51,7 +51,6 @@ describe('IDX-02 authoritative degraded bundle scan', () => {
     return {
       knowledgeRoot,
       productKey,
-      commitArtifacts: 'none',
     }
   }
 

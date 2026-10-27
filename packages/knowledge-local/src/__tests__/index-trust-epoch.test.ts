@@ -19,7 +19,7 @@ const input = JSON.parse(readFileSync(new URL('./fixtures/420-prior-baseline.jso
 async function indexedFixture() {
   const root = mkdtempSync(join(tmpdir(), 'agent-qa-trust-epoch-'))
   roots.push(root)
-  const config = { knowledgeRoot: join(root, 'knowledge'), productKey: 'fixture-storefront', commitArtifacts: 'none' as const }
+  const config = { knowledgeRoot: join(root, 'knowledge'), productKey: 'fixture-storefront' }
   const result = publishBundle(config, input)
   if (result.kind !== 'published') throw new Error('fixture refused')
   const lease = acquireWriterLease(config.knowledgeRoot)

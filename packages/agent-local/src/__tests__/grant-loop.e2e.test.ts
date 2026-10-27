@@ -97,7 +97,6 @@ describe('C432-NO-GRANT-OPS: the grant loop has no verbs left on the composed ho
     return {
       knowledgeRoot,
       productKey: 'Grant Loop Product',
-      commitArtifacts: 'none',
     }
   }
 

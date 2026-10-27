@@ -40,7 +40,7 @@ export async function appendMarkEvidence(input: AppendMarkEvidenceInput): Promis
         continue
       }
       const config: BundleStoreConfig = { knowledgeRoot: input.knowledgeRoot, productKey: target.productKey,
-        commitArtifacts: 'none', writerLeaseId: input.lease.leaseId, writerEpoch: input.lease.epoch }
+        writerLeaseId: input.lease.leaseId, writerEpoch: input.lease.epoch }
       let changed = false
       for (const effect of target.effects) {
         const outcome = appendOutcomeEvent(config, asRecordId(target.recordId),

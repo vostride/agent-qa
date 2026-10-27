@@ -103,7 +103,6 @@ function storeConfig(writerLeaseId?: string) {
   return {
     knowledgeRoot,
     productKey: scope.key,
-    commitArtifacts: 'none' as const,
     ...(writerLeaseId === undefined ? {} : { writerLeaseId }),
   }
 }

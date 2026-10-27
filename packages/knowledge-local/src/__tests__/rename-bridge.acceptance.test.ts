@@ -84,7 +84,6 @@ function publishVictim(): PublishedBundle {
     {
       knowledgeRoot,
       productKey: PRODUCT,
-      commitArtifacts: 'none',
     },
     {
       draft: makeBundleDraftFixture({
@@ -131,7 +130,6 @@ function publishLexicalDistractors(): void {
       {
         knowledgeRoot,
         productKey: PRODUCT,
-        commitArtifacts: 'none',
       },
       {
         draft: makeBundleDraftFixture({

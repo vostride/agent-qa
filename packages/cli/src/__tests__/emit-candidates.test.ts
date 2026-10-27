@@ -1026,7 +1026,6 @@ describe('emitCurationCandidates atomic queue drop (CUR-04)', () => {
       {
         knowledgeRoot: join(fixture.root, 'committed-knowledge'),
         productKey: 'storefront',
-        commitArtifacts: 'none',
       },
       {
         draft: {
@@ -1121,7 +1120,6 @@ describe('emitCurationCandidates atomic queue drop (CUR-04)', () => {
         {
           knowledgeRoot: servingRoot,
           productKey: 'storefront',
-          commitArtifacts: 'none',
         },
         {
           draft: {

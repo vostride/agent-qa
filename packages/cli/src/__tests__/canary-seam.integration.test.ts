@@ -257,7 +257,6 @@ describe('canary seam public integration (PROM-02/SC5 substrate)', () => {
     const storeConfig: BundleStoreConfig = {
       knowledgeRoot,
       productKey: PRODUCT,
-      commitArtifacts: 'none',
       writerLeaseId: 'canary-seam-seed',
     }
     const published = publishBundle(storeConfig, candidateInput())
@@ -396,7 +395,6 @@ describe('canary seam public integration (PROM-02/SC5 substrate)', () => {
     const storeConfig: BundleStoreConfig = {
       knowledgeRoot,
       productKey: PRODUCT,
-      commitArtifacts: 'none',
       writerLeaseId: 'canary-restart-seed',
     }
     const published = publishBundle(storeConfig, candidateInput())

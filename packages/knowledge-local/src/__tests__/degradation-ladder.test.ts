@@ -69,7 +69,6 @@ describe('automatic embedding degradation ladder', () => {
     return {
       knowledgeRoot,
       productKey,
-      commitArtifacts: 'none',
     }
   }
 

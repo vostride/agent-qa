@@ -91,7 +91,6 @@ describe('GRPH-01 graph rebuild determinism', () => {
     return {
       knowledgeRoot,
       productKey: 'Checkout Application',
-      commitArtifacts: 'none',
     }
   }
 

@@ -51,7 +51,6 @@ describe('D-16 widened lexical-only matching', () => {
     return {
       knowledgeRoot,
       productKey: PRODUCT,
-      commitArtifacts: 'none',
     }
   }
 

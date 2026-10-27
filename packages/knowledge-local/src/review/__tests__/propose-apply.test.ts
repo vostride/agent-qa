@@ -101,7 +101,6 @@ describe('a change computes its target and deltas, and a refused change writes n
     return {
       knowledgeRoot,
       productKey: product,
-      commitArtifacts: 'none',
     }
   }
 

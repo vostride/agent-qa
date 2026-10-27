@@ -674,7 +674,6 @@ describe('servingReader getProcedure end-to-end', () => {
     const outcome = publishBundle({
       knowledgeRoot,
       productKey: PRODUCT,
-      commitArtifacts: 'none',
       writerLeaseId: 'get-procedure-test',
     }, {
       draft: makeProcedureBundleDraftFixture(),

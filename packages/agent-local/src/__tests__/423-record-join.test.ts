@@ -24,8 +24,7 @@ function fixture() {
   const root = mkdtempSync(join(tmpdir(), 'agent-qa-423-port-join-'))
   roots.push(root)
   const knowledgeRoot = join(root, 'knowledge')
-  const saved = publishBundleForTest({ knowledgeRoot, productKey: 'port-join',
-    commitArtifacts: 'none' }, {
+  const saved = publishBundleForTest({ knowledgeRoot, productKey: 'port-join' }, {
     draft: { kind: 'fact', subtype: 'selector',
       anchors: [{ t: 'el', role: 'Button', name: '購入' }],
       scope: { tier: 'product', key: 'port-join' }, summary: '購入 e\u0301 🧪', body: 'Read the recorded 購入 control.',

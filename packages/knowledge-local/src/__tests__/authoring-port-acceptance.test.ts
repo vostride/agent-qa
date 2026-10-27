@@ -83,7 +83,6 @@ describe('createAuthoringReader through the public barrels (375-08 idiom)', () =
     return {
       knowledgeRoot,
       productKey: PRODUCT,
-      commitArtifacts: 'none',
       writerLeaseId: 'authoring-acceptance',
     }
   }

@@ -262,7 +262,6 @@ describe('commitCurationDelta serialized mutation boundary (CUR-01/SAFE-01/SAFE-
     const config = {
       knowledgeRoot,
       productKey: 'storefront',
-      commitArtifacts: 'none' as const,
       writerLeaseId: claimed.leaseId,
     }
     const baseline: MeasurementBaseline = {
@@ -391,7 +390,6 @@ describe('commitCurationDelta serialized mutation boundary (CUR-01/SAFE-01/SAFE-
     return {
       knowledgeRoot,
       productKey: 'storefront',
-      commitArtifacts: 'none',
       writerLeaseId: 'promotion-retraction-fixture',
     }
   }

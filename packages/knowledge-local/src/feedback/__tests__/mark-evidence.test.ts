@@ -27,7 +27,7 @@ describe('mark evidence appends through the production writer', () => {
   afterEach(() => rmSync(root, { recursive: true, force: true }))
 
   function plant(name: string, source?: { runId: string; curationJobId: string }) {
-    const result = publishBundle({ knowledgeRoot, productKey: 'storefront', commitArtifacts: 'none' }, {
+    const result = publishBundle({ knowledgeRoot, productKey: 'storefront' }, {
       draft: makeBundleDraftFixture({ scope, summary: name }),
       discriminant: { kind: 'fact', subtype: 'selector', elementRef: { role: 'button', name } },
       originClass: 'agent-verified', createdAtOrdinal: 10, screenStates: [], initialEvents: [],
@@ -59,7 +59,7 @@ describe('mark evidence appends through the production writer', () => {
   }
   function append(recordId: string, value: AppendMarkEvidenceInput, event: BundleOutcomeEvent) {
     const result = appendOutcomeEvent({ knowledgeRoot, productKey: 'storefront',
-      commitArtifacts: 'none', writerLeaseId: value.lease.leaseId, writerEpoch: value.lease.epoch },
+      writerLeaseId: value.lease.leaseId, writerEpoch: value.lease.epoch },
     asRecordId(recordId), event)
     expect(result.kind).toBe('appended')
   }

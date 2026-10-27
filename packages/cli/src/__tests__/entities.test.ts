@@ -124,7 +124,6 @@ function seedBundle(workspace: FixtureWorkspace, name: string): string {
   const config: BundleStoreConfig = {
     knowledgeRoot: workspace.knowledgeRoot,
     productKey: PRODUCT,
-    commitArtifacts: 'none',
   }
   const outcome = publishBundleForTest(config, bundleInput(name, 5))
   expect(outcome.kind).toBe('published')

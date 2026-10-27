@@ -189,7 +189,7 @@ describe('C432-PROPOSAL-FILES-UNREAD: old proposal files are never opened, claim
   })
 
   function storeConfig(): BundleStoreConfig {
-    return { knowledgeRoot, productKey: 'Unread Product', commitArtifacts: 'none' }
+    return { knowledgeRoot, productKey: 'Unread Product' }
   }
 
   function publish(summary: string): string {

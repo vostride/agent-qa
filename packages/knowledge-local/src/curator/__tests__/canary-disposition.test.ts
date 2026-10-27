@@ -90,7 +90,6 @@ describe('canary outcome deterministic disposition', () => {
     return {
       knowledgeRoot,
       productKey: 'storefront',
-      commitArtifacts: 'none',
       writerLeaseId: 'canary-disposition-test',
     }
   }

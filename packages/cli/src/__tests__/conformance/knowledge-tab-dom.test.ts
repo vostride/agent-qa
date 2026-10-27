@@ -451,7 +451,6 @@ function bundleStoreFor(
   return {
     knowledgeRoot: join(project.root, 'agent-qa-knowledge'),
     productKey: POPULATED_TARGET_NAME,
-    commitArtifacts: 'none',
     writerLeaseId,
   }
 }

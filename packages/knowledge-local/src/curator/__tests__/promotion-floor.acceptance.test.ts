@@ -215,7 +215,6 @@ describe('zero-model promotion floor acceptance (PROM-01/D-18)', () => {
     const published = publishBundle({
       knowledgeRoot,
       productKey: 'storefront',
-      commitArtifacts: 'none',
       writerLeaseId: 'promotion-floor-fixture',
     }, {
       draft,
@@ -255,7 +254,6 @@ describe('zero-model promotion floor acceptance (PROM-01/D-18)', () => {
     return {
       knowledgeRoot,
       productKey: 'storefront',
-      commitArtifacts: 'none',
       writerLeaseId: 'promotion-floor-fixture',
     }
   }

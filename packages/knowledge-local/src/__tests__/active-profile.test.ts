@@ -45,7 +45,6 @@ describe('active embedding profile resolution', () => {
     const config: BundleStoreConfig = {
       knowledgeRoot,
       productKey: 'Static Floor Product',
-      commitArtifacts: 'none',
     }
     const input: PublishBundleInput = {
       draft: makeBundleDraftFixture(),

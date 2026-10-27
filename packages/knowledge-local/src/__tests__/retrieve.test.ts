@@ -67,7 +67,6 @@ describe('379 read-side lifecycle treatments', () => {
     return {
       knowledgeRoot,
       productKey: PRODUCT,
-      commitArtifacts: 'none',
     }
   }
 

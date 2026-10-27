@@ -192,7 +192,6 @@ describe('writer authority and bundle publication are one indivisible protocol (
     return {
       knowledgeRoot,
       productKey: PRODUCT,
-      commitArtifacts: 'none',
       writerLeaseId: authority.leaseId,
       writerEpoch: authority.epoch,
       ...(beforePublishRename === undefined

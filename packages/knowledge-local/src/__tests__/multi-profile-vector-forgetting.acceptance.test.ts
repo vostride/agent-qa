@@ -110,7 +110,6 @@ describe('multi-profile vector forgetting acceptance', () => {
     return {
       knowledgeRoot,
       productKey,
-      commitArtifacts: 'none',
     }
   }
 

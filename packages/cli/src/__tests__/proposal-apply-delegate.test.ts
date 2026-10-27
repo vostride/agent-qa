@@ -118,7 +118,6 @@ async function seedRecord(where: Fixture): Promise<string> {
     {
       knowledgeRoot: where.knowledgeRoot,
       productKey: 'Delegate Product',
-      commitArtifacts: 'none',
     },
     {
       draft: {

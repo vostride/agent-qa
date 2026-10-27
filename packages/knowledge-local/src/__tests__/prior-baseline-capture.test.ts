@@ -83,7 +83,7 @@ describe('420 independently captured persisted prior baseline', () => {
     it(`preserves old bytes for ${entry.name} across every persisted history prefix`, () => {
       const root = mkdtempSync(join(tmpdir(), 'agent-qa-prior-baseline-'))
       try {
-        const config = { knowledgeRoot: join(root, 'knowledge'), productKey: 'baseline', commitArtifacts: 'none' as const }
+        const config = { knowledgeRoot: join(root, 'knowledge'), productKey: 'baseline' }
         const published = publishBundle(config, entry.input)
         expect(published.kind).toBe('published')
         if (published.kind !== 'published') throw new Error('baseline publication refused')

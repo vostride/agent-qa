@@ -108,7 +108,7 @@ function authority(): { leaseId: string; epoch: number } {
 }
 
 function storeConfig(): BundleStoreConfig {
-  return { knowledgeRoot, productKey: 'Containment Product', commitArtifacts: 'none' }
+  return { knowledgeRoot, productKey: 'Containment Product' }
 }
 
 function publish(summary: string): string {

@@ -52,7 +52,6 @@ describe('IDX-01 vec0 and brute dense-search parity', () => {
     return {
       knowledgeRoot,
       productKey,
-      commitArtifacts: 'none',
     }
   }
 

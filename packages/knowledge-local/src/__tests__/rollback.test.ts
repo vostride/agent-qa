@@ -127,7 +127,6 @@ describe('DCAY-05 provenance-keyed rollback resolution', () => {
     return {
       knowledgeRoot,
       productKey,
-      commitArtifacts: 'none',
     }
   }
 

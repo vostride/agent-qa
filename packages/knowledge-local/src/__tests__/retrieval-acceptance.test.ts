@@ -634,7 +634,6 @@ function config(knowledgeRoot: string, productKey = PRODUCT): BundleStoreConfig 
   return {
     knowledgeRoot,
     productKey,
-    commitArtifacts: 'none',
   }
 }
 

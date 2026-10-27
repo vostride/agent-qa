@@ -109,7 +109,6 @@ describe('bundle append atomic checkpoint units (D-11/BNDL-03)', () => {
     config = {
       knowledgeRoot: join(root, 'agent-qa-knowledge'),
       productKey: 'Example Store / production',
-      commitArtifacts: 'none',
       writerLeaseId: 'lease-append-fixture',
     }
     const input: PublishBundleInput = {
@@ -585,7 +584,7 @@ describe('C441-COMMITTED', () => {
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), 'knowledge-c441-committed-'))
     knowledgeRoot = join(root, 'agent-qa-knowledge')
-    config = { knowledgeRoot, productKey: 'Example Store / production', commitArtifacts: 'none' }
+    config = { knowledgeRoot, productKey: 'Example Store / production' }
   })
 
   afterEach(() => {

@@ -259,7 +259,6 @@ describe('observation graph rebuild integration', () => {
     return {
       knowledgeRoot,
       productKey,
-      commitArtifacts: 'none',
     }
   }
 

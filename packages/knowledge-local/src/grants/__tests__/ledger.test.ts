@@ -161,7 +161,7 @@ describe('C432-GRANTS-UNREAD-WRITER-ABSENT: an old grants.jsonl is never read, w
   })
 
   function storeConfig(): BundleStoreConfig {
-    return { knowledgeRoot, productKey: 'Grants Unread Product', commitArtifacts: 'none' }
+    return { knowledgeRoot, productKey: 'Grants Unread Product' }
   }
 
   function publish(summary: string): string {

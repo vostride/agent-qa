@@ -152,7 +152,6 @@ describe('openKnowledgeReader synchronous serving port', () => {
     return {
       knowledgeRoot,
       productKey: PRODUCT,
-      commitArtifacts: 'none',
       writerLeaseId: 'reader-test',
     }
   }

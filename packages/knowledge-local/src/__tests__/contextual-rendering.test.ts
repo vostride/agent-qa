@@ -207,7 +207,6 @@ describe('RETR-02 contextual rendering rebuild integration', () => {
     return {
       knowledgeRoot,
       productKey: 'Contextual Rendering Product',
-      commitArtifacts: 'none',
     }
   }
 

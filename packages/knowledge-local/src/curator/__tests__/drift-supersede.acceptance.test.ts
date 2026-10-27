@@ -106,7 +106,6 @@ describe('queue-to-commit measurement drift acceptance (DCAY-02)', () => {
     const published = publishBundle({
       knowledgeRoot,
       productKey: scope.key,
-      commitArtifacts: 'none',
       writerLeaseId: 'drift-acceptance-fixture',
     }, {
       draft,
@@ -157,7 +156,6 @@ describe('queue-to-commit measurement drift acceptance (DCAY-02)', () => {
     expect(writeMeasurementBaseline({
       knowledgeRoot,
       productKey: scope.key,
-      commitArtifacts: 'none',
       writerLeaseId: 'drift-acceptance-fixture',
     }, published.id, baseline)).toEqual({ kind: 'appended' })
     applyIndexDeltaForBundle({ knowledgeRoot, bundleId: published.id })

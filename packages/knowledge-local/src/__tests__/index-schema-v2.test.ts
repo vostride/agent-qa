@@ -118,7 +118,6 @@ describe('disposable index schema reset', () => {
     const config: BundleStoreConfig = {
       knowledgeRoot,
       productKey: 'Schema V2 Product',
-      commitArtifacts: 'none',
     }
     const input: PublishBundleInput = {
       draft: makeBundleDraftFixture(),

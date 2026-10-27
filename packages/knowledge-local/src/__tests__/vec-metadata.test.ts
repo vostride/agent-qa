@@ -43,7 +43,6 @@ describe('vec0 metadata lifecycle', () => {
     return {
       knowledgeRoot,
       productKey: 'Vec Metadata Product',
-      commitArtifacts: 'none',
     }
   }
 

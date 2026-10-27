@@ -386,7 +386,6 @@ function seedBundle(
   const config: BundleStoreConfig = {
     knowledgeRoot: workspace.knowledgeRoot,
     productKey: product,
-    commitArtifacts: 'none',
   }
   const published = publishBundle(config, bundleInput(options))
   if (published.kind !== 'published') {
@@ -1663,7 +1662,6 @@ describe('knowledge maintenance commands', () => {
       {
         knowledgeRoot: workspace.knowledgeRoot,
         productKey: secondaryProduct,
-        commitArtifacts: 'none',
       },
       asRecordId(secondary.id),
       BundleOutcomeEventSchema.parse({
@@ -1906,7 +1904,6 @@ describe('knowledge maintenance commands', () => {
     const config: BundleStoreConfig = {
       knowledgeRoot: workspace.knowledgeRoot,
       productKey: PRODUCT,
-      commitArtifacts: 'none',
     }
     expect(appendOutcomeEvent(config, asRecordId(bundle.id), {
       type: 'retracted',

@@ -215,7 +215,6 @@ describe('knowledge composition acceptance (D-14/SC1)', () => {
     const storeConfig: BundleStoreConfig = {
       knowledgeRoot,
       productKey: PRODUCT,
-      commitArtifacts: 'none',
       writerLeaseId: 'composition-reader-seed',
     }
     const published = publishBundle(storeConfig, committedFixtureInput())

@@ -131,7 +131,6 @@ function storeConfig(ws: Workspace): BundleStoreConfig {
   return {
     knowledgeRoot: ws.knowledgeRoot,
     productKey: 'Digest Command Product',
-    commitArtifacts: 'none',
   }
 }
 

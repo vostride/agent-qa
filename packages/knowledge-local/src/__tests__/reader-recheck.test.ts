@@ -63,7 +63,6 @@ describe('IDX-02 stale-index bundle recheck', () => {
     return {
       knowledgeRoot,
       productKey: PRODUCT,
-      commitArtifacts: 'none',
     }
   }
 

@@ -219,7 +219,6 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     return {
       knowledgeRoot,
       productKey: 'Apply Product',
-      commitArtifacts: 'none',
     }
   }
 

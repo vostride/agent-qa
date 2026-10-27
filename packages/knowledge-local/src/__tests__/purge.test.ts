@@ -240,7 +240,6 @@ describe('DCAY-05 sovereign purge', () => {
     return {
       knowledgeRoot,
       productKey,
-      commitArtifacts: 'none',
     }
   }
 
@@ -2733,7 +2732,7 @@ describe('C441-GAP-OLD-DATA', () => {
 
   function publishTarget(identity: string): PublishedBundle {
     const outcome = publishBundle(
-      { knowledgeRoot, productKey: PRODUCT, commitArtifacts: 'none' },
+      { knowledgeRoot, productKey: PRODUCT },
       {
         draft: makeBundleDraftFixture({
           anchors: [

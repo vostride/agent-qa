@@ -300,7 +300,7 @@ describe('423 curation snapshot', () => {
       evidenceToken: asEvidenceToken(f.claimed.payload.evidenceToken) }
     expect(commitCurationDelta(f.deps, f.claimed, f.checkpoint(confirm)).kind).toBe('applied')
     const config = { knowledgeRoot: f.root, productKey: 'storefront',
-      commitArtifacts: 'none' as const, writerLeaseId: f.authority.leaseId, writerEpoch: f.authority.epoch }
+      writerLeaseId: f.authority.leaseId, writerEpoch: f.authority.epoch }
     const append = (event: Parameters<typeof bundleAppend.appendOutcomeEvent>[2]) =>
       expect(bundleAppend.appendOutcomeEvent(config, f.victim.bundleId, event).kind).toBe('appended')
     append({ type: 'confirmed', buildOrdinal: 44, evidenceToken: asEvidenceToken('canary'), curationJobId: 'canary-job', observationId: 'attributed' })
@@ -323,7 +323,7 @@ describe('423 curation snapshot', () => {
     expect(fixed.breakdown).toEqual({ added: 1, confirmed: 0, superseded: 0, deprecated: 0, proposed: 0 })
     const fixedBytes = JSON.stringify(fixed)
     const config = { knowledgeRoot: f.root, productKey: 'storefront',
-      commitArtifacts: 'none' as const, writerLeaseId: f.authority.leaseId, writerEpoch: f.authority.epoch }
+      writerLeaseId: f.authority.leaseId, writerEpoch: f.authority.epoch }
     expect(bundleAppend.appendOutcomeEvent(config, f.victim.bundleId, { type: 'promoted', buildOrdinal: 60,
       evidenceToken: asEvidenceToken('later-promotion'), curationJobId: `promote:${f.victimJob.candidateId}` }).kind).toBe('appended')
     const attributed = diffSince({ knowledgeRoot: f.root, sinceOrdinal: 41 }).filter(row => row.sourceRunId === run)
@@ -380,7 +380,7 @@ describe('423 curation snapshot', () => {
     expect(commitCurationDelta(f.deps, f.claimed, f.checkpoint(confirm)).kind).toBe('applied')
     if (kind === 'deprecation') {
       const config = { knowledgeRoot: f.root, productKey: 'storefront',
-        commitArtifacts: 'none' as const, writerLeaseId: f.authority.leaseId, writerEpoch: f.authority.epoch }
+        writerLeaseId: f.authority.leaseId, writerEpoch: f.authority.epoch }
       expect(bundleAppend.appendOutcomeEvent(config, f.victim.bundleId, { type: 'deprecated', buildOrdinal: 44,
         evidenceToken: asEvidenceToken('canary-deprecation'), curationJobId: 'canary-job', observationId, reason: 'synthetic canary retirement' }).kind).toBe('appended')
     }

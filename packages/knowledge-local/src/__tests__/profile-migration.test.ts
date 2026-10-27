@@ -99,7 +99,6 @@ describe('D-19 active embedding profile migration', () => {
     return {
       knowledgeRoot,
       productKey,
-      commitArtifacts: 'none',
     }
   }
 

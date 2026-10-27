@@ -247,7 +247,6 @@ describe('queue and recovery writer-authority fencing (CR-02)', () => {
     const config = {
       knowledgeRoot,
       productKey: 'queue-authority-fencing',
-      commitArtifacts: 'none' as const,
     }
     const generations = Array.from(
       { length: supersededGenerations + 1 },

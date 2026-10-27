@@ -75,7 +75,6 @@ describe('publishBundle staged committed publish (D-11/D-12/D-15)', () => {
     return {
       knowledgeRoot,
       productKey: 'Example Store / production',
-      commitArtifacts: 'none',
       ...overrides,
     }
   }
@@ -250,13 +249,6 @@ describe('publishBundle staged committed publish (D-11/D-12/D-15)', () => {
         closeSync: vi.fn(),
       }),
     ).toThrow(error)
-  })
-
-  it('throws loudly when thumbnails are requested', () => {
-    expect(() => publishBundle(config({ commitArtifacts: 'thumbnails' }), input())).toThrow(
-      /Phase 380.*visual review/i,
-    )
-    expect(existsSync(knowledgeRoot)).toBe(false)
   })
 
   it('returns already-exists for the same complete content address', () => {

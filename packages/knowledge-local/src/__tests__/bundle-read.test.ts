@@ -75,7 +75,6 @@ describe('bundle read, integrity, and disk-driven trust (D-03/D-08)', () => {
     const config: BundleStoreConfig = {
       knowledgeRoot: join(root, 'agent-qa-knowledge'),
       productKey: 'Example Store / production',
-      commitArtifacts: 'none',
     }
     const input: PublishBundleInput = {
       draft: makeBundleDraftFixture(),

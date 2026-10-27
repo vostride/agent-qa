@@ -257,7 +257,6 @@ describe('KnowledgePort promote deterministic gate (PROM-01/D-17)', () => {
     return {
       knowledgeRoot,
       productKey: 'storefront',
-      commitArtifacts: 'none',
       writerLeaseId: 'knowledge-store-test',
     }
   }

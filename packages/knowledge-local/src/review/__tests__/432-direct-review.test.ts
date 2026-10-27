@@ -129,7 +129,7 @@ describe('432 direct explicit knowledge writer (D-04, D-05, D-08, D-09, D-11)', 
   }
 
   function storeConfig(): BundleStoreConfig {
-    return { knowledgeRoot, productKey: 'Direct Product', commitArtifacts: 'none' }
+    return { knowledgeRoot, productKey: 'Direct Product' }
   }
 
   function publish(summary: string, kind: 'fact' | 'policy' = 'fact'): string {

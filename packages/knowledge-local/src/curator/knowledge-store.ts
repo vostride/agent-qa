@@ -477,7 +477,6 @@ function buildLocalKnowledgeStore(
     return {
       knowledgeRoot: config.knowledgeRoot,
       productKey,
-      commitArtifacts: 'none',
       writerLeaseId: config.writerLeaseId,
     }
   }

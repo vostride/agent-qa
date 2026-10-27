@@ -68,7 +68,6 @@ describe('BNDL-01 tar-equivalent bundle self-sufficiency', () => {
     return {
       knowledgeRoot: join(root, 'agent-qa-knowledge'),
       productKey,
-      commitArtifacts: 'none',
     }
   }
 

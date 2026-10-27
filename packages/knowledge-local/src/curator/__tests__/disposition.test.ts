@@ -131,7 +131,6 @@ function publishActive(
     {
       knowledgeRoot,
       productKey: 'storefront',
-      commitArtifacts: 'none',
     },
     {
       draft,
@@ -219,7 +218,6 @@ function publishMeasurement(
     {
       knowledgeRoot,
       productKey: 'storefront',
-      commitArtifacts: 'none',
     },
     {
       draft,
@@ -245,7 +243,6 @@ function publishMeasurement(
   const config = {
     knowledgeRoot,
     productKey: 'storefront',
-    commitArtifacts: 'none' as const,
   }
   expect(writeMeasurementBaseline(config, published.id, baseline).kind).toBe('appended')
   for (const observation of observations) {
@@ -693,7 +690,6 @@ describe('automatic curation disposition by execution context (D-08)', () => {
       {
         knowledgeRoot,
         productKey: 'storefront',
-        commitArtifacts: 'none',
       },
       {
         draft: makeBundleDraftFixture({ anchors, scope }),
@@ -1088,7 +1084,6 @@ describe('cited-id integrity: the fallback is total over DeltaOrigin (CR-02′)'
       {
         knowledgeRoot,
         productKey: 'storefront',
-        commitArtifacts: 'none',
       },
       recordId,
       BundleOutcomeEventSchema.parse({
@@ -1357,7 +1352,6 @@ describe('the autonomy floor is total over DeltaOrigin (WR-03)', () => {
       {
         knowledgeRoot,
         productKey: 'storefront',
-        commitArtifacts: 'none',
       },
       victim.id,
       BundleOutcomeEventSchema.parse({

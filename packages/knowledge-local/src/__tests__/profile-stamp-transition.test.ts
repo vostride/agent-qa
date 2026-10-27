@@ -53,7 +53,6 @@ describe('embedding profile stamp transitions', () => {
     const config: BundleStoreConfig = {
       knowledgeRoot,
       productKey: 'Profile Transition Product',
-      commitArtifacts: 'none',
     }
     const input: PublishBundleInput = {
       draft: makeBundleDraftFixture(),
