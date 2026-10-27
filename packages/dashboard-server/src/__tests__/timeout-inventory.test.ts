@@ -134,17 +134,6 @@ const timeoutInventory: TimeoutInventoryEntry[] = [
     allowed: true,
   },
   {
-    id: 'cli-suite-navigation-timeout-fallback',
-    file: 'packages/cli/src/commands/run.ts',
-    literal: '30000',
-    contextIncludes: 'navigation:',
-    owner: 'CLI suite runner',
-    scope: 'suite navigation timeout fallback',
-    lifecycleAffecting: true,
-    rationale: 'Product fallback when neither suite nor config specifies a navigation timeout.',
-    allowed: true,
-  },
-  {
     id: 'cli-session04-cancel-grace-default',
     file: 'packages/cli/src/commands/run.ts',
     literal: '3000',
