@@ -902,8 +902,7 @@ export default function RunDetailPage() {
       m: () => setActiveTab('knowledge'),
       r: () => {
         if (!run) return
-        const wasLocal = run.attributes["agent-qa.runner"] === "local"
-        triggerRun({ file: run.filePath ?? run.name, local: wasLocal })
+        triggerRun({ file: run.filePath ?? run.name })
           .then((result) => {
             toast.success("Re-run started")
             navigate(routes.runLive(result.runId))

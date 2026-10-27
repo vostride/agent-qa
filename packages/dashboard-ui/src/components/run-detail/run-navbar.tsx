@@ -3,7 +3,7 @@ import { useNavigate } from "react-router"
 import { routes } from "@/lib/routes"
 import { toast } from "sonner"
 import {
-  ArrowUpRight, Clock, Cpu, ExternalLink,
+  ArrowUpRight, Clock, Cpu,
   RotateCcw, ChevronRight, Keyboard, PanelRightOpen,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -161,11 +161,8 @@ export function RunNavbar({
       : null
   const sourceLabel = isSuiteParent && run.suiteId ? "Open suite" : "Open test"
 
-  const farmUrl = (run.metadata as Record<string, unknown>)?.farmSessionUrl as string | undefined
-
   const handleRerun = () => {
-    const wasLocal = run.attributes["agent-qa.runner"] === "local"
-    triggerRun({ file: run.filePath ?? run.name, local: wasLocal })
+    triggerRun({ file: run.filePath ?? run.name })
       .then((result) => {
         toast.success("Re-run started")
         navigate(routes.runLive(result.runId))
@@ -365,14 +362,6 @@ export function RunNavbar({
         >
           <RotateCcw className="h-3.5 w-3.5" />
         </Button>
-
-        {farmUrl && (
-          <a href={farmUrl} target="_blank" rel="noopener noreferrer" title="BrowserStack">
-            <Button variant="ghost" size="icon-sm">
-              <ExternalLink className="h-3.5 w-3.5" />
-            </Button>
-          </a>
-        )}
         </div>
       </div>
     </div>

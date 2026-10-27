@@ -1,12 +1,6 @@
-import { ChevronDown, Globe, Monitor, Play } from "lucide-react"
+import { Play } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
 
@@ -14,12 +8,10 @@ interface TestRunOptionsPopoverProps {
   selectedCount: number
   hiddenCount: number
   useCache: boolean
-  browserStackAvailable: boolean
   open: boolean
   onOpenChange: (open: boolean) => void
   onUseCacheChange: (checked: boolean) => void
-  onRunLocal: () => void
-  onRunBrowserStack: () => void
+  onRun: () => void
   disabled?: boolean
 }
 
@@ -27,23 +19,15 @@ export function TestRunOptionsPopover({
   selectedCount,
   hiddenCount,
   useCache,
-  browserStackAvailable,
   open,
   onOpenChange,
   onUseCacheChange,
-  onRunLocal,
-  onRunBrowserStack,
+  onRun,
   disabled = false,
 }: TestRunOptionsPopoverProps) {
-  const handleRunLocal = () => {
+  const handleRun = () => {
     if (disabled) return
-    onRunLocal()
-    onOpenChange(false)
-  }
-
-  const handleRunBrowserStack = () => {
-    if (disabled || !browserStackAvailable) return
-    onRunBrowserStack()
+    onRun()
     onOpenChange(false)
   }
 
@@ -79,37 +63,10 @@ export function TestRunOptionsPopover({
           </label>
         </div>
         <Separator />
-        <div className="space-y-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" className="w-full justify-between" disabled={disabled}>
-                <span className="inline-flex items-center gap-2">
-                  <Play className="size-4" />
-                  Run
-                </span>
-                <ChevronDown className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[240px]">
-              <DropdownMenuItem onClick={handleRunLocal}>
-                <Monitor className="size-4" />
-                Run Local
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={handleRunBrowserStack}
-                disabled={!browserStackAvailable}
-              >
-                <Globe className="size-4" />
-                Run on BrowserStack
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {!browserStackAvailable ? (
-            <p className="text-xs text-muted-foreground">
-              BrowserStack is unavailable in the current config.
-            </p>
-          ) : null}
-        </div>
+        <Button size="sm" className="w-full" disabled={disabled} onClick={handleRun}>
+          <Play className="size-4" />
+          Run
+        </Button>
       </PopoverContent>
     </Popover>
   )

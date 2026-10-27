@@ -43,9 +43,6 @@ vi.mock("@/lib/api", () => ({
 }))
 
 vi.mock("@/hooks/use-page-title", () => ({ usePageTitle: () => {} }))
-vi.mock("@/hooks/use-run-config", () => ({
-  useRunConfig: () => ({ defaultRunMode: "local", hasFarm: true, isLoading: false }),
-}))
 vi.mock("@/hooks/use-keyboard-shortcuts", async () => {
   const actual = await vi.importActual<typeof import("@/hooks/use-keyboard-shortcuts")>(
     "@/hooks/use-keyboard-shortcuts",
@@ -109,23 +106,19 @@ vi.mock("@/components/batch-action-bar", () => ({
 }))
 vi.mock("@/components/test-run-options-popover", () => ({
   TestRunOptionsPopover: ({
-    browserStackAvailable,
     disabled,
     hiddenCount,
     onOpenChange,
-    onRunBrowserStack,
-    onRunLocal,
+    onRun,
     onUseCacheChange,
     open,
     selectedCount,
     useCache,
   }: {
-    browserStackAvailable: boolean
     disabled?: boolean
     hiddenCount: number
     onOpenChange: (open: boolean) => void
-    onRunBrowserStack: () => void
-    onRunLocal: () => void
+    onRun: () => void
     onUseCacheChange: (checked: boolean) => void
     open: boolean
     selectedCount: number
@@ -147,15 +140,8 @@ vi.mock("@/components/test-run-options-popover", () => ({
             />
             <span>Use cache</span>
           </label>
-          <button type="button" disabled={disabled} onClick={onRunLocal}>
-            Run Local
-          </button>
-          <button
-            type="button"
-            disabled={disabled || !browserStackAvailable}
-            onClick={onRunBrowserStack}
-          >
-            Run on BrowserStack
+          <button type="button" aria-label="Run selected" disabled={disabled} onClick={onRun}>
+            Run
           </button>
         </div>
       ) : null}
@@ -587,11 +573,10 @@ describe("RunsPage", () => {
     await flushRender()
 
     await clickByText("Run")
-    await clickByText("Run Local")
+    await clickByText("Run selected")
 
     expect(triggerRunMock).toHaveBeenCalledWith({
       file: "tests/web/login.yaml",
-      local: true,
       noCache: false,
     })
 

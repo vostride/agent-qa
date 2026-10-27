@@ -32,33 +32,6 @@ vi.mock("@/components/ui/button", () => ({
   ),
 }))
 
-vi.mock("@/components/ui/dropdown-menu", () => ({
-  DropdownMenu: ({ children }: { children: React.ReactNode }) => <div data-testid="dropdown-root">{children}</div>,
-  DropdownMenuTrigger: ({ children }: { children: React.ReactNode }) => <div data-testid="dropdown-trigger">{children}</div>,
-  DropdownMenuContent: ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div data-testid="dropdown-content" className={className}>
-      {children}
-    </div>
-  ),
-  DropdownMenuItem: ({
-    children,
-    disabled,
-    onClick,
-  }: {
-    children: React.ReactNode
-    disabled?: boolean
-    onClick?: () => void
-  }) => (
-    <div
-      data-testid="dropdown-item"
-      data-disabled={disabled ? "true" : "false"}
-      onClick={onClick}
-    >
-      {children}
-    </div>
-  ),
-}))
-
 vi.mock("@/components/ui/checkbox", () => ({
   Checkbox: ({ checked }: { checked?: boolean }) => (
     <input type="checkbox" checked={checked} readOnly />
@@ -89,12 +62,10 @@ async function renderPopover(
         selectedCount={3}
         hiddenCount={1}
         useCache
-        browserStackAvailable
         open
         onOpenChange={() => {}}
         onUseCacheChange={() => {}}
-        onRunLocal={() => {}}
-        onRunBrowserStack={() => {}}
+        onRun={() => {}}
         {...props}
       />,
     )
@@ -113,27 +84,45 @@ afterEach(() => {
   document.body.innerHTML = ""
 })
 
+function runButtons(view: HTMLElement): HTMLButtonElement[] {
+  return Array.from(view.querySelectorAll<HTMLButtonElement>('[data-testid="popover-content"] button'))
+}
+
 describe("TestRunOptionsPopover", () => {
-  it("renders the queue summary, cache toggle, and a primary run dropdown", async () => {
+  it("renders the queue summary, the cache toggle and one Run button", async () => {
     const view = await renderPopover()
-    const dropdownItems = Array.from(view.querySelectorAll('[data-testid="dropdown-item"]'))
 
     expect(view.textContent).toContain("3 selected")
     expect(view.textContent).toContain("1 hidden by filters")
     expect(view.textContent).toContain("Use cache")
-    expect(view.querySelector('[data-testid="dropdown-trigger"]')?.textContent).toContain("Run")
-    expect(dropdownItems).toHaveLength(2)
-    expect(dropdownItems[0]?.textContent).toContain("Run Local")
-    expect(dropdownItems[1]?.textContent).toContain("Run on BrowserStack")
+    expect(runButtons(view).map((button) => button.textContent)).toEqual(["Run"])
   })
 
-  it("keeps BrowserStack in the dropdown but disabled with explanatory copy when unavailable", async () => {
-    const view = await renderPopover({ browserStackAvailable: false })
-    const browserStackItem = Array.from(view.querySelectorAll('[data-testid="dropdown-item"]')).find(
-      (item) => item.textContent?.includes("Run on BrowserStack"),
-    ) as HTMLDivElement | undefined
+  it("runs and closes the popover when Run is clicked", async () => {
+    const onRun = vi.fn()
+    const onOpenChange = vi.fn()
+    const view = await renderPopover({ onRun, onOpenChange })
 
-    expect(browserStackItem?.dataset.disabled).toBe("true")
-    expect(view.textContent).toContain("BrowserStack is unavailable in the current config.")
+    await act(async () => {
+      runButtons(view)[0]!.click()
+    })
+
+    expect(onRun).toHaveBeenCalledTimes(1)
+    expect(onRun).toHaveBeenCalledWith()
+    expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it("does nothing when Run is clicked while disabled", async () => {
+    const onRun = vi.fn()
+    const onOpenChange = vi.fn()
+    const view = await renderPopover({ onRun, onOpenChange, disabled: true })
+
+    expect(runButtons(view)[0]!.disabled).toBe(true)
+    await act(async () => {
+      runButtons(view)[0]!.click()
+    })
+
+    expect(onRun).not.toHaveBeenCalled()
+    expect(onOpenChange).not.toHaveBeenCalled()
   })
 })

@@ -45,7 +45,6 @@ import { TestRunOptionsPopover } from "@/components/test-run-options-popover"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { usePageTitle } from "@/hooks/use-page-title"
 import { useSelectionQueue } from "@/hooks/use-selection-queue"
-import { useRunConfig } from "@/hooks/use-run-config"
 import {
   getSharedTestsSuitesColumnWidth,
   SHARED_TESTS_SUITES_COLUMN_IDS,
@@ -273,7 +272,6 @@ export default function TestsPage() {
   const [runOptionsOpen, setRunOptionsOpen] = useState(false)
   const [useCache, setUseCache] = useState(true)
   const navigate = useNavigate()
-  const { hasFarm, isLoading: isRunConfigLoading } = useRunConfig()
 
   useEffect(() => {
     let cancelled = false
@@ -418,14 +416,13 @@ export default function TestsPage() {
     setUseCache(true)
   }, [selectionQueue])
 
-  const handleRunDestination = useCallback(async (local: boolean) => {
+  const handleRun = useCallback(async () => {
     if (selectedPaths.length === 0) return
     setBatchLoading(true)
     try {
       const results = await Promise.allSettled(
         selectedPaths.map((path) => triggerRun({
           file: path,
-          local,
           noCache: !useCache,
         })),
       )
@@ -788,12 +785,10 @@ export default function TestsPage() {
                 selectedCount={selectionQueue.selectedCount}
                 hiddenCount={hiddenCount}
                 useCache={useCache}
-                browserStackAvailable={!isRunConfigLoading && hasFarm}
                 open={runOptionsOpen}
                 onOpenChange={setRunOptionsOpen}
                 onUseCacheChange={setUseCache}
-                onRunLocal={() => handleRunDestination(true)}
-                onRunBrowserStack={() => handleRunDestination(false)}
+                onRun={handleRun}
                 disabled={batchLoading}
               />
               <Button

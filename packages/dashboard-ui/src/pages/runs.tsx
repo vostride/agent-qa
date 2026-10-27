@@ -29,7 +29,6 @@ import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { useRunsSearchParams } from "@/hooks/use-runs-search-params"
 import { usePageTitle } from "@/hooks/use-page-title"
 import { useSelectionQueue } from "@/hooks/use-selection-queue"
-import { useRunConfig } from "@/hooks/use-run-config"
 import { ShortcutLegend } from "@/components/shortcut-hints"
 
 const NO_STATUSES: readonly string[] = []
@@ -89,7 +88,6 @@ export default function RunsPage() {
   const [batchLoading, setBatchLoading] = useState(false)
   const [runOptionsOpen, setRunOptionsOpen] = useState(false)
   const [useCache, setUseCache] = useState(true)
-  const { hasFarm, isLoading: isRunConfigLoading } = useRunConfig()
 
   const mergeActiveExecutions = useCallback(async (
     dbRuns: RunRow[],
@@ -262,7 +260,7 @@ export default function RunsPage() {
     setUseCache(true)
   }, [selectionQueue])
 
-  const handleRunDestination = useCallback(async (local: boolean) => {
+  const handleRun = useCallback(async () => {
     if (selectedRuns.length === 0) return
     const runnablePaths = selectedRuns.flatMap((run) => run.filePath ? [run.filePath] : [])
     if (runnablePaths.length === 0) {
@@ -275,7 +273,6 @@ export default function RunsPage() {
       const results = await Promise.allSettled(
         runnablePaths.map((filePath) => triggerRun({
           file: filePath,
-          local,
           noCache: !useCache,
         })),
       )
@@ -546,12 +543,10 @@ export default function RunsPage() {
               selectedCount={selectionQueue.selectedCount}
               hiddenCount={selectionQueue.hiddenCount}
               useCache={useCache}
-              browserStackAvailable={!isRunConfigLoading && hasFarm}
               open={runOptionsOpen}
               onOpenChange={setRunOptionsOpen}
               onUseCacheChange={setUseCache}
-              onRunLocal={() => handleRunDestination(true)}
-              onRunBrowserStack={() => handleRunDestination(false)}
+              onRun={handleRun}
               disabled={batchLoading}
             />
             <Button

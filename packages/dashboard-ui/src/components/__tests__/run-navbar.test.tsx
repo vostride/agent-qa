@@ -155,7 +155,6 @@ const HEADER_ITEM_MATCHERS: ReadonlyArray<readonly [string, (el: Element) => boo
   ["artifacts", el => el.getAttribute("aria-label") === "Open run artifacts"],
   ["shortcuts", el => el.getAttribute("aria-label") === "Keyboard shortcuts"],
   ["rerun", el => el.getAttribute("aria-label") === "Re-run"],
-  ["browserstack", el => el.tagName === "A" && el.getAttribute("title") === "BrowserStack"],
 ]
 
 /** What a SIGHTED reader sees on a root — the `sr-only` name is a separate claim, asserted apart. */
@@ -467,7 +466,7 @@ describe("RunNavbar", () => {
   it("HEADER-STACKS: the header is a container-query block that stacks into two rows and keeps every action", () => {
     mount(
       <RunNavbar
-        run={{ ...baseRun, metadata: { farmSessionUrl: "https://farm.example/session" } }}
+        run={baseRun}
         shortcutsOpen={false}
         onToggleShortcuts={() => {}}
       />,
@@ -488,7 +487,6 @@ describe("RunNavbar", () => {
     expect(cluster?.querySelector('button[aria-label="Open run artifacts"]')).not.toBeNull()
     expect(cluster?.querySelector('button[aria-label="Keyboard shortcuts"]')).not.toBeNull()
     expect(cluster?.querySelector('button[aria-label="Re-run"]')).not.toBeNull()
-    expect(cluster?.querySelector('a[title="BrowserStack"]')).not.toBeNull()
   })
 
   // THE NAME YIELDS FIRST, AND NOTHING ELSE DOES (425-04 · D-04).
@@ -543,7 +541,6 @@ describe("RunNavbar", () => {
         run={{
           ...baseRun,
           testId: "t_login",
-          metadata: { farmSessionUrl: "https://farm.example/session" },
         }}
         tokens={{ measuredSteps: 2, unmeasuredSteps: 0, promptTokens: 900, completionTokens: 100, totalTokens: 1000 }}
         hasPostProcessing
@@ -564,7 +561,6 @@ describe("RunNavbar", () => {
       "artifacts",
       "shortcuts",
       "rerun",
-      "browserstack",
     ])
 
     act(() => {
@@ -594,7 +590,7 @@ describe("RunNavbar", () => {
   // layout bug at ~400px, where every pixel of row 2 is spoken for. The cell asserts the strongest
   // form of "no gap": the only empty HTML leaf in the header is the deliberate rule between the
   // meta and the actions. Icons are SVG and are excluded by namespace, not by name.
-  it("HEADER-EMPTY-META: an unmeasured, unwired, un-farmed run renders no empty element", () => {
+  it("HEADER-EMPTY-META: an unmeasured, unwired run renders no empty element", () => {
     mount(
       <RunNavbar run={baseRun} shortcutsOpen={false} onToggleShortcuts={() => {}} />,
     )
@@ -604,7 +600,6 @@ describe("RunNavbar", () => {
     expect(container.querySelectorAll("button[aria-label]")).toHaveLength(3)
     expect(container.querySelector("[data-run-token-summary]")).toBeNull()
     expect(container.querySelector("[data-chips-state]")).toBeNull()
-    expect(container.querySelector('a[title="BrowserStack"]')).toBeNull()
 
     const emptyLeaves = Array.from(headerBlock().querySelectorAll("*")).filter(
       el =>
@@ -658,14 +653,22 @@ describe("RunNavbar", () => {
     expect(onToggleShortcuts).toHaveBeenCalledTimes(1)
   })
 
-  it("reruns suite parents with the stored suite file path", async () => {
+  it("reruns suite parents with only the stored suite file path", async () => {
     const triggerRunMock = vi.mocked(triggerRun)
     triggerRunMock.mockResolvedValue({ runId: "run_rerun", status: "queued" })
+    const readKeys: string[] = []
+    const attributes = new Proxy(baseRun.attributes, {
+      get(target, key, receiver) {
+        if (typeof key === "string") readKeys.push(key)
+        return Reflect.get(target, key, receiver)
+      },
+    })
 
     mount(
       <RunNavbar
         run={{
           ...baseRun,
+          attributes,
           name: "Sample Basic suite",
           filePath: "suites/sample-basic.suite.yaml",
           suiteId: "s_sample_basic",
@@ -686,7 +689,7 @@ describe("RunNavbar", () => {
 
     expect(triggerRunMock).toHaveBeenCalledWith({
       file: "suites/sample-basic.suite.yaml",
-      local: true,
     })
+    expect(readKeys).not.toContain("agent-qa.runner")
   })
 })
