@@ -28,7 +28,7 @@
 // Chromium's own request events, bodies included.
 //
 // AND THE RUN IS STARTED BY CLICKING THE PRODUCT'S OWN BUTTON. The cells select a row on the tests
-// page and walk the real Run → Run → Run Local path.
+// page and walk the real Run → Run path.
 //
 // A BROWSER THAT CANNOT LAUNCH IS A RED, NEVER A SKIP, and a stale `dist` is a red before that:
 // `dashboard-dom.test.ts`'s two rules, inherited verbatim. There is no environment predicate in
@@ -328,18 +328,17 @@ async function selectTest(page: Page, fileName: string): Promise<void> {
 }
 
 /**
- * Click Run → Run → Run Local, which is the product's own three-step path to a local run.
+ * Click Run → Run, which is the product's own two-step path to a run.
  *
  * THE INNER BUTTON IS SCOPED TO THE POPOVER rather than picked positionally: both are labelled
  * "Run", and a positional pick resolved before the popover rendered would click the trigger again
  * and close it — a flake, and exactly the kind this file must not ship.
  */
-async function clickRunLocal(page: Page): Promise<void> {
+async function clickRun(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Run', exact: true }).first().click()
   const popover = page.locator('[data-slot="popover-content"]')
   await popover.waitFor({ state: 'visible' })
   await popover.getByRole('button', { name: 'Run', exact: true }).click()
-  await page.getByRole('menuitem', { name: 'Run Local' }).click()
 }
 
 // ---- the file's own preconditions ----------------------------------------------------------------
@@ -406,7 +405,7 @@ describe('the run trigger confirm loop, closed through a real browser (UAT item 
       })
 
       await selectTest(page, 'direct.yaml')
-      await clickRunLocal(page)
+      await clickRun(page)
 
       await waitFor(() => { expect(scene.settled()).toHaveLength(1) })
       await waitFor(() => { expect(triggeredRunIds).toHaveLength(1) })
@@ -459,8 +458,8 @@ describe('the run trigger confirm loop, closed through a real browser (UAT item 
       })
 
       await selectTest(page, 'direct.yaml')
-      await clickRunLocal(page)
-      await clickRunLocal(page)
+      await clickRun(page)
+      await clickRun(page)
 
       await waitFor(() => { expect(triggeredRunIds).toHaveLength(2) })
       await waitFor(() => { expect(scene.settled()).toHaveLength(2) })

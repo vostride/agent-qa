@@ -58,7 +58,6 @@ vi.mock('react-router', () => ({
 
 vi.mock('@/hooks/use-mobile', () => ({ useIsMobile: () => false }))
 vi.mock('@/hooks/use-page-title', () => ({ usePageTitle: () => {} }))
-vi.mock('@/hooks/use-run-config', () => ({ useRunConfig: () => ({ defaultRunMode: 'local' }) }))
 vi.mock('@/hooks/use-keyboard-shortcuts', () => ({ useKeyboardShortcuts: () => {} }))
 vi.mock('@/hooks/use-variable-suggestions', () => ({
   useVariableSuggestions: () => ({ suggestions: [], isLoading: false }),
@@ -104,11 +103,11 @@ vi.mock('@/hooks/use-live-editor', () => ({
 }))
 
 vi.mock('@/components/test-navbar', () => ({
-  TestNavbar: ({ onSave, onValidate, onRun }: { onSave: () => void; onValidate: () => void; onRun: (local: boolean) => void }) => (
+  TestNavbar: ({ onSave, onValidate, onRun }: { onSave: () => void; onValidate: () => void; onRun: () => void }) => (
     <div>
       <button type="button" data-action="validate" onClick={onValidate}>Validate</button>
       <button type="button" data-action="save" onClick={onSave}>Save</button>
-      <button type="button" data-action="run" onClick={() => onRun(true)}>Run</button>
+      <button type="button" data-action="run" onClick={() => onRun()}>Run</button>
     </div>
   ),
 }))

@@ -32,7 +32,6 @@ vi.mock('@/lib/api', () => ({
   triggerRun: vi.fn(),
 }))
 
-vi.mock('@/hooks/use-run-config', () => ({ useRunConfig: () => ({ defaultRunMode: 'local', hasFarm: false }) }))
 vi.mock('@/hooks/use-page-title', () => ({ usePageTitle: () => {} }))
 vi.mock('@/hooks/use-keyboard-shortcuts', () => ({ useKeyboardShortcuts: vi.fn() }))
 vi.mock('@/hooks/use-suites-search-params', () => ({

@@ -27,7 +27,6 @@ vi.mock('@/lib/api', () => ({
   purgeCache: testViewerHarness.purgeCache,
 }))
 
-vi.mock('@/hooks/use-run-config', () => ({ useRunConfig: () => ({ defaultRunMode: 'local' }) }))
 vi.mock('@/hooks/use-page-title', () => ({ usePageTitle: () => {} }))
 vi.mock('@/hooks/use-keyboard-shortcuts', () => ({ useKeyboardShortcuts: () => {} }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
@@ -44,7 +43,7 @@ vi.mock('@/components/test-navbar', () => ({
     runButtonTourId,
     isRunning,
   }: {
-    onRun: (local: boolean) => void
+    onRun: () => void
     runButtonTourId?: string
     isRunning?: boolean
   }) => (
@@ -53,7 +52,7 @@ vi.mock('@/components/test-navbar', () => ({
       data-testid="navbar-run"
       data-tour-id={runButtonTourId}
       disabled={isRunning}
-      onClick={() => onRun(true)}
+      onClick={() => onRun()}
     >
       Run
     </button>
@@ -421,7 +420,7 @@ describe('TestViewerPage product tour run bridge', () => {
     const view = await renderAt('/test/t_alpha')
     await clickNavbarRun()
 
-    expect(triggerRun).toHaveBeenCalledWith({ file: 'tests/web/alpha.yaml', local: true })
+    expect(triggerRun).toHaveBeenCalledWith({ file: 'tests/web/alpha.yaml' })
     expect(testViewerHarness.advanceAfterRunStarted).not.toHaveBeenCalled()
     expect(toast.success).toHaveBeenCalledWith('Run started')
     expect(view.querySelector('[data-testid="location"]')?.getAttribute('data-pathname')).toBe(
@@ -436,7 +435,7 @@ describe('TestViewerPage product tour run bridge', () => {
     await renderAt('/test/t_alpha')
     await clickNavbarRun()
 
-    expect(triggerRun).toHaveBeenCalledWith({ file: 'tests/web/alpha.yaml', local: true })
+    expect(triggerRun).toHaveBeenCalledWith({ file: 'tests/web/alpha.yaml' })
     expect(testViewerHarness.advanceAfterRunStarted).toHaveBeenCalledWith('run_456', 'running')
   })
 

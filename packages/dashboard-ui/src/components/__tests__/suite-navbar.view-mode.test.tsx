@@ -16,10 +16,10 @@ vi.mock('@/components/split-button', () => ({
     shortcutKey,
   }: {
     label: string
-    onRun: (local: boolean) => void
+    onRun: () => void
     shortcutKey?: string
   }) => (
-    <button data-testid="split-button" onClick={() => onRun(true)}>
+    <button data-testid="split-button" onClick={() => onRun()}>
       {label}
       {shortcutKey ? <span data-testid="split-button-shortcut">{shortcutKey}</span> : null}
     </button>

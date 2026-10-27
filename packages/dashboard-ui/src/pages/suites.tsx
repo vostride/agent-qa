@@ -367,12 +367,12 @@ export default function SuitesPage() {
     [filteredData, selectedPaths],
   )
 
-  const handleBatchRun = useCallback(async (local: boolean) => {
+  const handleBatchRun = useCallback(async () => {
     if (selectedSuites.length === 0) return
     setBatchLoading(true)
     try {
       const results = await Promise.allSettled(
-        selectedSuites.map((s) => triggerRun({ file: s.path, local })),
+        selectedSuites.map((s) => triggerRun({ file: s.path })),
       )
       const succeeded = results.filter((r) => r.status === "fulfilled").length
       const failed = results.length - succeeded
@@ -387,12 +387,12 @@ export default function SuitesPage() {
     }
   }, [selectedSuites])
 
-  const handleBatchRunNoCache = useCallback(async (local: boolean) => {
+  const handleBatchRunNoCache = useCallback(async () => {
     if (selectedSuites.length === 0) return
     setBatchLoading(true)
     try {
       const results = await Promise.allSettled(
-        selectedSuites.map((s) => triggerRun({ file: s.path, noCache: true, local })),
+        selectedSuites.map((s) => triggerRun({ file: s.path, noCache: true })),
       )
       const succeeded = results.filter((r) => r.status === "fulfilled").length
       const failed = results.length - succeeded

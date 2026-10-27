@@ -1,19 +1,17 @@
-import { Play, ChevronDown, Monitor, Globe } from "lucide-react"
+import { Play, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import { ShortcutKey } from "@/components/shortcut-hints"
 import { cn } from "@/lib/utils"
-import { useRunConfig } from "@/hooks/use-run-config"
 
 interface SplitButtonProps {
-  onRun: (local: boolean) => void
-  onRunNoCache?: (local: boolean) => void
+  onRun: () => void
+  onRunNoCache?: () => void
   onPurgeCache?: () => void
   disabled?: boolean
   size?: "default" | "sm"
@@ -34,9 +32,7 @@ export function SplitButton({
   shortcutKey,
   runButtonTourId,
 }: SplitButtonProps) {
-  const { hasFarm } = useRunConfig()
-
-  const hasDropdownItems = hasFarm || !!onRunNoCache || !!onPurgeCache
+  const hasDropdownItems = !!onRunNoCache || !!onPurgeCache
   const buttonLabel = label ?? "Run"
   const shortcutBadge = shortcutKey ? (
     <ShortcutKey
@@ -50,7 +46,7 @@ export function SplitButton({
       <Button
         size={size}
         disabled={disabled}
-        onClick={() => onRun(true)}
+        onClick={() => onRun()}
         className={className}
         data-tour-id={runButtonTourId}
       >
@@ -66,7 +62,7 @@ export function SplitButton({
       <Button
         size={size}
         disabled={disabled}
-        onClick={() => onRun(true)}
+        onClick={() => onRun()}
         className="rounded-r-none"
         data-tour-id={runButtonTourId}
       >
@@ -86,19 +82,8 @@ export function SplitButton({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => onRun(true)}>
-            <Monitor className="mr-2 h-4 w-4" />
-            Run Local
-          </DropdownMenuItem>
-          {hasFarm && (
-            <DropdownMenuItem onClick={() => onRun(false)}>
-              <Globe className="mr-2 h-4 w-4" />
-              Run on Farm
-            </DropdownMenuItem>
-          )}
-          {(onRunNoCache || onPurgeCache) && <DropdownMenuSeparator />}
           {onRunNoCache && (
-            <DropdownMenuItem onClick={() => onRunNoCache(true)}>
+            <DropdownMenuItem onClick={() => onRunNoCache()}>
               Run without cache
             </DropdownMenuItem>
           )}

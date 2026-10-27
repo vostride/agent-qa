@@ -5,8 +5,8 @@ import { SplitButton } from "@/components/split-button"
 
 interface BatchActionBarProps {
   selectedCount: number
-  onRun?: (local: boolean) => void
-  onRunNoCache?: (local: boolean) => void
+  onRun?: () => void
+  onRunNoCache?: () => void
   onPurgeCache?: () => void
   onCancel: () => void
   isRunning?: boolean

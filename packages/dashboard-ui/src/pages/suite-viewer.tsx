@@ -34,7 +34,6 @@ import { PassRateChart } from "@/components/pass-rate-chart"
 import { DurationChart } from "@/components/duration-chart"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { usePageTitle } from "@/hooks/use-page-title"
-import { useRunConfig } from "@/hooks/use-run-config"
 import {
   fetchSuiteAnalytics,
   fetchSuiteFile,
@@ -221,7 +220,6 @@ export default function SuiteViewerPage() {
   const params = useParams<{ "suite-id": string }>()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { defaultRunMode } = useRunConfig()
 
   const suiteId = params["suite-id"] ?? ""
   const viewerState = useMemo(
@@ -346,11 +344,11 @@ export default function SuiteViewerPage() {
     }
   }, [suiteId])
 
-  const handleRun = async (local: boolean) => {
+  const handleRun = async () => {
     if (isRunning || !filePath) return
     setIsRunning(true)
     try {
-      const result = await triggerRun({ file: filePath, local })
+      const result = await triggerRun({ file: filePath })
       toast.success("Run started")
       navigate(routes.runLive(result.runId))
     } catch (err) {
@@ -368,7 +366,7 @@ export default function SuiteViewerPage() {
   useKeyboardShortcuts({
     e: () => navigate(editRoute),
     r: () => {
-      if (filePath) void handleRun(defaultRunMode === "local")
+      if (filePath) void handleRun()
     },
     l: () => navigate(liveRoute),
   })
@@ -487,7 +485,7 @@ export default function SuiteViewerPage() {
           onBack={() => navigate(routes.suites)}
           onSave={() => {}}
           onValidate={() => {}}
-          onRun={(local) => handleRun(local)}
+          onRun={handleRun}
           onLiveConnect={() => navigate(liveRoute)}
           onSettingsOpen={() => {}}
           onToggleShortcuts={() => setShortcutsOpen((prev) => !prev)}

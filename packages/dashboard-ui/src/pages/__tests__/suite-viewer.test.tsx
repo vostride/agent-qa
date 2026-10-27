@@ -115,7 +115,6 @@ vi.mock('@/lib/api', () => ({
   purgeCache: vi.fn(),
 }))
 
-vi.mock('@/hooks/use-run-config', () => ({ useRunConfig: () => ({ defaultRunMode: 'local' }) }))
 vi.mock('@/hooks/use-page-title', () => ({ usePageTitle: () => {} }))
 vi.mock('@/hooks/use-mobile', () => ({ useIsMobile: () => false }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
@@ -471,11 +470,9 @@ describe('SuiteViewerPage parity contract', () => {
 
     expect(vi.mocked(triggerRun)).toHaveBeenCalledWith({
       file: 'suites/beta.suite.yaml',
-      local: true,
     })
     expect(vi.mocked(triggerRun)).not.toHaveBeenCalledWith({
       file: 'suites/alpha.suite.yaml',
-      local: true,
     })
 
     await act(async () => {

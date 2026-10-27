@@ -118,10 +118,6 @@ vi.mock('@/hooks/use-page-title', () => ({
   },
 }))
 
-vi.mock('@/hooks/use-run-config', () => ({
-  useRunConfig: () => ({ defaultRunMode: 'cloud' }),
-}))
-
 vi.mock('@/hooks/use-keyboard-shortcuts', () => ({
   useKeyboardShortcuts: () => {},
 }))
@@ -213,7 +209,7 @@ vi.mock('@/components/suite-navbar', () => ({
     isLiveActionDisabled?: boolean
     liveSessionNumber?: number | null
     runDisabled?: boolean
-    onRun?: (local: boolean) => void
+    onRun?: () => void
   }) => (
     <div data-testid="suite-navbar">
       {onLiveConnect && !hasLiveSession && (
@@ -238,7 +234,7 @@ vi.mock('@/components/suite-navbar', () => ({
         type="button"
         data-testid="run-suite"
         disabled={!!runDisabled}
-        onClick={() => onRun?.(false)}
+        onClick={() => onRun?.()}
       >
         Run Suite
       </button>

@@ -61,10 +61,6 @@ vi.mock('@/hooks/use-page-title', () => ({
   usePageTitle: () => {},
 }))
 
-vi.mock('@/hooks/use-run-config', () => ({
-  useRunConfig: () => ({ defaultRunMode: 'cloud' }),
-}))
-
 vi.mock('@/hooks/use-keyboard-shortcuts', () => ({
   useKeyboardShortcuts: () => {},
 }))

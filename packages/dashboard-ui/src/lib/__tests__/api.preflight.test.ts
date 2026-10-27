@@ -117,10 +117,10 @@ describe('triggerRun preflights readiness at the ONE choke point', () => {
         resolve(JSON.parse(String(init?.body)) as Record<string, unknown>)
         return { ok: true, status: 202, json: async () => ({ runId: 'r', status: 'queued' }) } as unknown as Response
       }) as unknown as typeof fetch
-      void triggerRun({ file: 'tests/a.yaml', local: true })
+      void triggerRun({ file: 'tests/a.yaml' })
     })
 
-    expect(body).toEqual({ file: 'tests/a.yaml', local: true })
+    expect(body).toEqual({ file: 'tests/a.yaml' })
   })
 
   it('REFUSES to post when the host is not composed, and names the reason', async () => {

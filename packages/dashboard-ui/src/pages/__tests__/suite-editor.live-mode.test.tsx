@@ -132,7 +132,6 @@ vi.mock('@/hooks/use-page-title', () => ({
     document.title = title
   },
 }))
-vi.mock('@/hooks/use-run-config', () => ({ useRunConfig: () => ({ defaultRunMode: 'cloud' }) }))
 vi.mock('@/hooks/use-keyboard-shortcuts', () => ({ useKeyboardShortcuts: () => {} }))
 vi.mock('@/hooks/use-variable-suggestions', () => ({ useVariableSuggestions: () => ({ suggestions: [], isLoading: false }) }))
 vi.mock('@/hooks/use-target-details', () => ({

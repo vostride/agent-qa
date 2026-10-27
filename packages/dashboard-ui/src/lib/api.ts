@@ -818,7 +818,7 @@ async function assertRunReadiness(): Promise<void> {
  * all, so there is no half-started run to reconcile, and the caller's `catch` renders the reason
  * through the toast it already renders trigger failures through.
  */
-export async function triggerRun(opts: { file?: string; patterns?: string[]; noCache?: boolean; local?: boolean }): Promise<{ runId: string; status: string }> {
+export async function triggerRun(opts: { file?: string; patterns?: string[]; noCache?: boolean }): Promise<{ runId: string; status: string }> {
   await assertRunReadiness()
   return postJson('/api/runs/trigger', opts)
 }

@@ -34,7 +34,7 @@ interface SuiteNavbarProps {
   onBack: () => void
   onSave: () => void
   onValidate: () => void
-  onRun: (local: boolean) => void
+  onRun: () => void
   onLiveConnect?: () => void
   onLiveEnd?: () => void
   onSettingsOpen: () => void

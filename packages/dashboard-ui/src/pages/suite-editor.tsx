@@ -40,7 +40,6 @@ import type { Selection } from "@/lib/selection"
 import { useVariableSuggestions } from "@/hooks/use-variable-suggestions"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { usePageTitle } from "@/hooks/use-page-title"
-import { useRunConfig } from "@/hooks/use-run-config"
 import {
   fetchSuiteFile,
   createSuiteFile,
@@ -93,7 +92,6 @@ export default function SuiteEditorPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const isMobile = useIsMobile()
-  const { defaultRunMode } = useRunConfig()
   const { targets, globalUse, isLoading: isLoadingTargets } = useTargetDetails()
   const isCreateMode = !routeSuiteId
   const shouldAutoLaunchLive = searchParams.get("live") === "1"
@@ -339,11 +337,11 @@ export default function SuiteEditorPage() {
     }
   }, [content])
 
-  const handleRun = useCallback(async (local: boolean) => {
+  const handleRun = useCallback(async () => {
     if (isCreateMode) return
     setIsRunning(true)
     try {
-      const r = await triggerRun({ file: filePath, local })
+      const r = await triggerRun({ file: filePath })
       setRunId(r.runId)
       toast.success("Suite run started")
     } catch (err) {
@@ -648,10 +646,10 @@ export default function SuiteEditorPage() {
   // Keyboard shortcuts
   const shortcuts = useMemo(
     () => ({
-      r: () => { if (!isCreateMode) handleRun(defaultRunMode === 'local') },
+      r: () => { if (!isCreateMode) handleRun() },
       escape: () => { if (runId) handleRunClose() },
     }),
-    [isCreateMode, runId, handleRun, handleRunClose, defaultRunMode],
+    [isCreateMode, runId, handleRun, handleRunClose],
   )
   useKeyboardShortcuts(shortcuts)
 

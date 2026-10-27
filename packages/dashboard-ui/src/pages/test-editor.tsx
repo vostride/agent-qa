@@ -35,7 +35,6 @@ import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { useLiveEditor } from "@/hooks/use-live-editor"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { usePageTitle } from "@/hooks/use-page-title"
-import { useRunConfig } from "@/hooks/use-run-config"
 import { useTargetDetails, type TargetDetail } from "@/hooks/use-target-details"
 import {
   ApiError,
@@ -203,7 +202,6 @@ export default function TestEditorPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const isMobile = useIsMobile()
-  const { defaultRunMode } = useRunConfig()
   const { targets, globalUse, isLoading: isLoadingTargets } = useTargetDetails()
   const testId = t_id ?? ''
   const { suggestions: variableSuggestions } = useVariableSuggestions(testId || null)
@@ -643,7 +641,7 @@ export default function TestEditorPage() {
     }
   }
 
-  const handleRun = useCallback(async (local: boolean) => {
+  const handleRun = useCallback(async () => {
     if (isRunning) return
 
     // Auto-save first
@@ -676,7 +674,7 @@ export default function TestEditorPage() {
 
     setIsRunning(true)
     try {
-      const result = await triggerRun({ file: filePath, local })
+      const result = await triggerRun({ file: filePath })
       setRunId(result.runId)
       toast.success("Run started")
     } catch (err) {
@@ -809,13 +807,13 @@ export default function TestEditorPage() {
   const shortcuts = useMemo(
     () => ({
       r: () => {
-        if (!isCreateMode) handleRun(defaultRunMode === 'local')
+        if (!isCreateMode) handleRun()
       },
       escape: () => {
         if (runId) handleRunClose()
       },
     }),
-    [isCreateMode, runId, handleRun, handleRunClose, defaultRunMode],
+    [isCreateMode, runId, handleRun, handleRunClose],
   )
   useKeyboardShortcuts(shortcuts)
 

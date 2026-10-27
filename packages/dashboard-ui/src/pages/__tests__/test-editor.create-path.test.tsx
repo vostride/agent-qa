@@ -31,7 +31,6 @@ vi.mock('react-router', () => ({
 
 vi.mock('@/hooks/use-mobile', () => ({ useIsMobile: () => false }))
 vi.mock('@/hooks/use-page-title', () => ({ usePageTitle: () => {} }))
-vi.mock('@/hooks/use-run-config', () => ({ useRunConfig: () => ({ defaultRunMode: 'local' }) }))
 vi.mock('@/hooks/use-keyboard-shortcuts', () => ({ useKeyboardShortcuts: () => {} }))
 vi.mock('@/hooks/use-variable-suggestions', () => ({
   useVariableSuggestions: () => ({ suggestions: [], isLoading: false }),

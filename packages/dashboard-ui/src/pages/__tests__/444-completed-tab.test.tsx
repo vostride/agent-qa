@@ -11,9 +11,6 @@ import RunsPage from "@/pages/runs"
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }))
 vi.mock("@/hooks/use-page-title", () => ({ usePageTitle: () => {} }))
-vi.mock("@/hooks/use-run-config", () => ({
-  useRunConfig: () => ({ defaultRunMode: "local", hasFarm: false, isLoading: false }),
-}))
 
 const FINISHED = ["passed", "healed", "failed", "timeout", "cancelled"]
 

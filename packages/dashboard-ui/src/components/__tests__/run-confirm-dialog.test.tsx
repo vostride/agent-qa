@@ -40,7 +40,7 @@ vi.mock("@/pages/tests", async () => {
   return {
     default: () => (
       <div data-testid="tests-page">
-        <button type="button" data-run-button onClick={() => { void triggerRun({ file: "tests/a.yaml", local: true }) }}>
+        <button type="button" data-run-button onClick={() => { void triggerRun({ file: "tests/a.yaml" }) }}>
           Run
         </button>
         <button
@@ -164,7 +164,7 @@ describe("the Run button starts a run in one request, with no dialog (432-14)", 
     const triggers = harness.requests.filter((request) => request.url.includes("/api/runs/trigger"))
     expect(triggers).toHaveLength(1)
     expect(triggers[0]).toMatchObject({ method: "POST" })
-    expect(triggers[0]!.body).toEqual({ file: "tests/a.yaml", local: true })
+    expect(triggers[0]!.body).toEqual({ file: "tests/a.yaml" })
     expect(harness.requests.some((request) => request.url.includes("run-confirm"))).toBe(false)
     expect(approvalSurfaces(), "an approval surface rendered after the click").toEqual([])
   })

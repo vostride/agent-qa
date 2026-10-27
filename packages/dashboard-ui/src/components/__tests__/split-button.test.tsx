@@ -8,10 +8,6 @@ import { SplitButton } from "@/components/split-button"
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
-vi.mock("@/hooks/use-run-config", () => ({
-  useRunConfig: () => ({ defaultRunMode: "farm", hasFarm: true, isLoading: false }),
-}))
-
 vi.mock("@/components/shortcut-hints", () => ({
   ShortcutKey: ({ shortcut }: { shortcut: string }) => <span>{shortcut}</span>,
 }))
@@ -42,24 +38,34 @@ vi.mock("@/components/ui/dropdown-menu", () => ({
     children: ReactNode
     onClick?: (event: MouseEvent<HTMLButtonElement>) => void
   }) => (
-    <button type="button" onClick={onClick}>
+    <button type="button" data-menu-item onClick={onClick}>
       {children}
     </button>
   ),
-  DropdownMenuSeparator: () => <hr />,
 }))
 
 let container: HTMLDivElement
 let root: Root
 
-function mount(onRun = vi.fn()) {
+function mount(props: Partial<React.ComponentProps<typeof SplitButton>> = {}) {
+  const onRun = vi.fn()
   container = document.createElement("div")
   document.body.appendChild(container)
   root = createRoot(container)
   act(() => {
-    root.render(<SplitButton onRun={onRun} />)
+    root.render(<SplitButton onRun={onRun} {...props} />)
   })
   return onRun
+}
+
+function click(button: Element | undefined) {
+  act(() => {
+    button?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+  })
+}
+
+function menuItems(): string[] {
+  return Array.from(container.querySelectorAll("[data-menu-item]")).map((item) => item.textContent ?? "")
 }
 
 afterEach(() => {
@@ -71,16 +77,35 @@ afterEach(() => {
 })
 
 describe("SplitButton", () => {
-  it("keeps the primary dashboard run local even when farm is configured", () => {
+  it("is a plain Run button that calls onRun with no argument when no cache action is passed", () => {
     const onRun = mount()
-    const primaryRunButton = Array.from(container.querySelectorAll("button")).find((button) =>
-      button.textContent?.includes("Run") && !button.textContent?.includes("Run Local"),
-    )
+    const buttons = Array.from(container.querySelectorAll("button"))
 
+    expect(buttons.map((button) => button.textContent)).toEqual(["Run"])
+    click(buttons[0])
+
+    expect(onRun).toHaveBeenCalledTimes(1)
+    expect(onRun).toHaveBeenCalledWith()
+  })
+
+  it("lists exactly the cache actions a page passes, starting with Run without cache", () => {
+    mount({ onPurgeCache: vi.fn() })
+    expect(menuItems()).toEqual(["Purge cache"])
     act(() => {
-      primaryRunButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+      root.unmount()
     })
+    container.remove()
 
-    expect(onRun).toHaveBeenCalledWith(true)
+    const onRunNoCache = vi.fn()
+    const onPurgeCache = vi.fn()
+    const onRun = mount({ onRunNoCache, onPurgeCache })
+    expect(menuItems()).toEqual(["Run without cache", "Purge cache"])
+
+    click(container.querySelector("[data-menu-item]") ?? undefined)
+    expect(onRunNoCache).toHaveBeenCalledTimes(1)
+    expect(onRunNoCache).toHaveBeenCalledWith()
+
+    click(Array.from(container.querySelectorAll("button")).find((button) => button.textContent === "Run"))
+    expect(onRun).toHaveBeenCalledWith()
   })
 })

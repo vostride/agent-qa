@@ -10,8 +10,8 @@ import { TestNavbar } from '@/components/test-navbar'
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 vi.mock('@/components/split-button', () => ({
-  SplitButton: ({ label, onRun }: { label: string; onRun: (l: boolean) => void }) => (
-    <button data-testid="split-button" onClick={() => onRun(true)}>{label}</button>
+  SplitButton: ({ label, onRun }: { label: string; onRun: () => void }) => (
+    <button data-testid="split-button" onClick={() => onRun()}>{label}</button>
   ),
 }))
 

@@ -10,12 +10,12 @@ import { SuiteNavbar } from '@/components/suite-navbar'
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 vi.mock('@/components/split-button', () => ({
-  SplitButton: ({ label, disabled, onRun }: { label: string; disabled?: boolean; onRun: (l: boolean) => void }) => (
+  SplitButton: ({ label, disabled, onRun }: { label: string; disabled?: boolean; onRun: () => void }) => (
     <button
       data-testid="split-button"
       data-disabled={disabled ? 'true' : 'false'}
       disabled={disabled}
-      onClick={() => onRun(true)}
+      onClick={() => onRun()}
     >
       {label}
     </button>

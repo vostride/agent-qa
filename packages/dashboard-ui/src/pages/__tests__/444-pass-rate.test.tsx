@@ -19,9 +19,6 @@ const { chartData } = vi.hoisted(() => ({ chartData: [] as unknown[] }))
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }))
 vi.mock("@/hooks/use-page-title", () => ({ usePageTitle: () => {} }))
-vi.mock("@/hooks/use-run-config", () => ({
-  useRunConfig: () => ({ defaultRunMode: "local", hasFarm: false, isLoading: false }),
-}))
 vi.mock("@/components/monaco-editor", () => ({ MonacoEditor: () => <div /> }))
 vi.mock("@/components/visual-builder", () => ({ VisualBuilder: () => <div /> }))
 vi.mock("@/components/suite-visual-builder", () => ({ SuiteVisualBuilder: () => <div /> }))
