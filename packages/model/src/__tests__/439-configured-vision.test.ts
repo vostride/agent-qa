@@ -29,6 +29,8 @@ describe('C439-CONFIGURED-VISION', () => {
     const gate = resolveVisionGate({ vision: unknown })
     expect(gate.attachImage).toBe(false)
     expect(gate.captureMode).toBe('textOnly')
-    expect(gate.promptNote).toContain('Visual screenshot is unavailable for this step.')
+    expect(gate.promptNote).toBe(
+      'Visual screenshot is unavailable for this step. Rely on the accessibility tree for element identification, including roles, names, values, refs, and URLs. Verify functional state from the available structured context rather than purely visual appearance.',
+    )
   })
 })

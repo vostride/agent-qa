@@ -39,7 +39,7 @@ describe('model catalog', () => {
     expect(findEntry('openai-compatible', 'deepseek-chat')).toMatchObject({
       id: 'deepseek-chat',
       vision: false,
-      notes: expect.stringContaining('text-only'),
+      notes: 'Text-only model; use the accessibility tree.',
     })
     expect(findEntry('openai-compatible', 'qwen2.5-vl')).toMatchObject({
       id: 'qwen2.5-vl',

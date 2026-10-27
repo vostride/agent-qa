@@ -46,7 +46,7 @@ const LOCAL_OPENAI_WIRE: readonly AuthoredEntry[] = [
   {
     id: 'deepseek-chat',
     label: 'DeepSeek Chat',
-    notes: 'text-only model; use accessibility tree and DOM context.',
+    notes: 'Text-only model; use the accessibility tree.',
   },
   { id: 'deepseek-r1', label: 'DeepSeek R1', notes: 'Text-only reasoning model.' },
   { id: 'qwen2.5-vl', label: 'Qwen2.5 VL' },

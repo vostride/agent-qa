@@ -34,10 +34,10 @@ import {
 import { executeClampedCall, type ClampedCallResult } from './clamp.js'
 import { groundActionPlan } from '../grounding/gate.js'
 
-// The text-only fallback note appended to the current-instruction message when the
-// screenshot send fails (D-11). Byte-identical to v1's note so the fallback turn matches.
+// Appended to the current instruction when the screenshot send fails, so the retried turn
+// falls back to the accessibility tree.
 const SCREENSHOT_UNAVAILABLE_NOTE =
-  '[Note: Visual screenshot is unavailable for this step. Rely on the accessibility tree and DOM context for element identification.]'
+  '[Note: Visual screenshot is unavailable for this step. Rely on the accessibility tree for element identification.]'
 
 // Max characters of a provider `responseBody` to carry into log meta / rethrown messages —
 // bounds an accidentally-large error body so a swallowed catch never dumps an unbounded blob.

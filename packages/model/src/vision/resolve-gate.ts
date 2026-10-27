@@ -6,7 +6,7 @@ export interface VisionGate {
 
 const TEXT_ONLY_PROMPT_NOTE = [
   'Visual screenshot is unavailable for this step.',
-  'Rely on the accessibility tree and DOM context for element identification, including roles, names, values, refs, and URLs.',
+  'Rely on the accessibility tree for element identification, including roles, names, values, refs, and URLs.',
   'Verify functional state from the available structured context rather than purely visual appearance.',
 ].join(' ')
 

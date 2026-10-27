@@ -17,6 +17,5 @@ describe('resolveVisionGate', () => {
     expect(gate.attachImage).toBe(false)
     expect(gate.captureMode).toBe('textOnly')
     expect(gate.promptNote).toMatch(/accessibility tree/i)
-    expect(gate.promptNote).toMatch(/DOM/i)
   })
 })

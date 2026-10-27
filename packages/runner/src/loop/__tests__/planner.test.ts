@@ -101,7 +101,9 @@ describe('LLMPlanner', () => {
     // first call carried the image; the fallback turn retries with a text-only user
     // message carrying the note (the planning turn always drives via `messages`).
     const fallbackArgs = mock.mock.calls[1][0] as { messages?: { content?: unknown }[] }
-    expect(JSON.stringify(fallbackArgs.messages)).toContain('Visual screenshot is unavailable')
+    expect(JSON.stringify(fallbackArgs.messages)).toContain(
+      '[Note: Visual screenshot is unavailable for this step. Rely on the accessibility tree for element identification.]',
+    )
     expect(result.plan.action.type).toBe('click')
   })
 
