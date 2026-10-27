@@ -44,8 +44,7 @@ export function loadLocalBindings(dir?: string): LocalDeviceBindings | null {
     // This call was unguarded, so a duplicate key in the person's own local bindings left the
     // process through Node's default uncaught printer: the library's excerpt, the caret, the stack
     // and the `linePos` object. Measured on the shipped `agent-qa devices list`. The file is
-    // machine-local and typically holds device credentials, which makes it the WORST member of the
-    // class to have left unguarded, not the most obscure one.
+    // machine-local and holds this machine's device and app bindings.
     //
     // The READ above keeps its own arm: an ENOENT answers `null` and any other filesystem fault is
     // rethrown untouched, because neither is a fact about what the file contains (395-14 · E1b).
