@@ -73,9 +73,9 @@ afterAll(async () => {
   removeInProcessFixtures()
 })
 
-function project(environment: 'local' | 'production' = 'local'): InProcessFixture {
+function project(): InProcessFixture {
   refuseWithoutPosixRunLifecycle()
-  const created = createInProcessFixture({ origin: target.origin, environment })
+  const created = createInProcessFixture({ origin: target.origin, environment: 'local' })
   mkdirSync(join(created.project, 'no-browsers'), { recursive: true })
   return created
 }
@@ -211,18 +211,6 @@ describe('C443-RECORD-REFUSAL', () => {
     expect(namedRunIds(exit).join(','), 'run ids the command named').toBe('')
     expect(runDirectories(at).join(','), 'run directories').toBe('')
     expect(sha256(path) === before, 'the version-4 file changed').toBe(true)
-  }, CELL_BUDGET_MS)
-
-  it('a refused production agent-qa run creates no runs.db file', async () => {
-    const at = project('production')
-    appendFileSync(at.configPath, 'services:\n  dashboard: {}\n')
-
-    const exit = await run(at, ['run', at.testPattern])
-
-    expect(exit.code, `exit code; stderr: ${flat(exit.stderr)}`).toBe(2)
-    expect(exit.stderr.includes('Run denied:'), `stderr carries the production sentence: ${flat(exit.stderr)}`).toBe(true)
-    expect(existsSync(runsDbOf(at)), 'a runs.db file exists').toBe(false)
-    expect(runDirectories(at).join(','), 'run directories').toBe('')
   }, CELL_BUDGET_MS)
 
   it('a suite run whose runs.db cannot be opened is refused before its plugins load', async () => {

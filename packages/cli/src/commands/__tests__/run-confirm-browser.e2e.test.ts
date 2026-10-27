@@ -9,8 +9,7 @@
 // SINCE 432-13 (D-14/D-15) there was no loop to close: the run button's run asked nobody. SINCE
 // 432-14 there is nothing left of the loop at all — no channel the page holds open, no scope the
 // trigger carries, no dialog in the bundle. The cells below drive the same real clicks and pin that
-// a click is one request: a non-production run starts at once, and a production target is refused
-// by the core with the plain sentence the page then shows. History below kept as written.
+// a click is one request and the run starts at once. History below kept as written.
 //
 // WHAT WAS UNVERIFIED, AND WHY IT STAYED THAT WAY. 401-09 built both halves of this loop and could
 // measure neither end against the other: the SERVER end is driven end-to-end by
@@ -478,62 +477,6 @@ describe('the run trigger confirm loop, closed through a real browser (UAT item 
       expect(
         await page.evaluate(() => document.body.innerText),
       ).not.toContain('denied — nobody answered before the window closed')
-    } finally {
-      await target.close()
-    }
-  }, 300_000)
-
-  it('C432-BROWSER-RUN-ONE-CLICK: a production target is refused by the core, and the run page shows the plain reason', async () => {
-    const target = new CountingTarget()
-    await target.listen()
-    try {
-      const fixture = createInProcessFixture({ origin: target.origin, environment: 'production' })
-      const scene = await openScene({ fixture })
-      const { page, pageErrors } = await openDashboard(scene)
-      const triggers = recordTriggers(page)
-
-      const triggeredRunIds: string[] = []
-      page.on('response', (response) => {
-        if (!response.url().endsWith('/api/runs/trigger')) return
-        void response.json().then(
-          (body: unknown) => {
-            const runId = (body as { runId?: string }).runId
-            if (typeof runId === 'string') triggeredRunIds.push(runId)
-          },
-          () => undefined,
-        )
-      })
-
-      await selectTest(page, 'direct.yaml')
-      await clickRunLocal(page)
-
-      await waitFor(() => { expect(scene.settled()).toHaveLength(1) })
-      await waitFor(() => { expect(triggeredRunIds).toHaveLength(1) })
-      const runId = triggeredRunIds[0]!
-      const settled = scene.settled()[0]!
-
-      expect(triggers).toHaveLength(1)
-      expect(settled.status).toBe('failed')
-      expect(settled.details['refusedBeforeStart']).toBe(true)
-      expect(eventTypes(fixture)).toEqual([])
-      expect(buildOrdinalsExist(fixture)).toBe(false)
-      expect(target.hits).toEqual([])
-
-      await page.goto(`${scene.origin}/runs/${runId}`, { waitUntil: 'domcontentloaded' })
-      const banner = page.locator('[data-failure-banner]')
-      await banner.waitFor({ timeout: 60_000 })
-      const toggle = banner.locator('[data-failure-banner-toggle]')
-      if (await toggle.count() > 0) await toggle.click()
-      await page.locator('[data-failure-banner][data-failure-banner-state="full"]').waitFor()
-      const shown = await banner.locator('[data-failure-banner-text]').textContent() ?? ''
-      expect(shown).toContain('Refused before the run started')
-      expect(shown).toContain(`"${fixture.targetName}"`)
-      expect(shown).toContain('allowProduction: true')
-
-      const wire = await readWire(page)
-      expect(wire.eventSources.filter((url) => url.includes('run-confirm'))).toEqual([])
-      expect(wire.dialogs.filter((shot) => shot.present)).toEqual([])
-      expect(pageErrors).toEqual([])
     } finally {
       await target.close()
     }

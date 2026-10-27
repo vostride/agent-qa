@@ -6,16 +6,15 @@
 //
 //   refuse unhonourable request fields
 //     → resolve the run id (refuse an unminted or colliding one)
-//     → resolve the target's declared class (a config read; no network)
-//     → refuse a production target the config has not opted into (432-03, D-18)
+//     → afterRefusal (the door's own code: its run record, then its plugins)
 //     → persistence ports → assemble → startRun → onSession → await the run
 //
-// NOTHING ASKS (432-13, D-01/D-14/D-15). There is no approval ladder, no confirm port and no session
-// trust here any more: a non-production run starts in every execution context, and production is
-// refused in plain words unless the same config says `allowProduction: true`. Every refusal still
-// lands BEFORE assembly — assembly is where the run-start baseline probe fetches the target and
-// where the build-ordinal counter is advanced — so a refused run leaves no probe, no ordinal bump, no
-// run directory and no browser. `assembleRun` is a port this file calls once, below every refusal.
+// NOTHING ASKS. There is no approval ladder, no confirm port and no session trust here: a run
+// starts in every execution context, whatever environment its targets declare. The only refusals
+// are of the request itself and its run id, and both land BEFORE assembly — assembly is where the
+// run-start baseline probe fetches the target and where the build-ordinal counter is advanced — so a
+// refused run leaves no probe, no ordinal bump, no run directory and no browser. `assembleRun` is a
+// port this file calls once, below every refusal.
 //
 // THE ONE `startRun` OWNER. `packages/arch/src/lint/startrun-pin.ts` pins this file as the only
 // production file that starts a run in-process.
@@ -38,8 +37,6 @@ import type { PostVerdictPort, RunConfig } from '@vostride/agent-qa-runner'
 
 import { buildRunPorts, runDirFor } from './run-composition.js'
 import type { RunExecutionContext, RunPersistencePorts } from './run-composition.js'
-import { buildProductionRefusal } from './run-risk.js'
-import type { RunTargetClass } from './run-risk.js'
 
 /**
  * The assembler port's own vocabulary, re-exported from the module that DECLARES the port.
@@ -159,91 +156,8 @@ export class RunIdAlreadyInUseError extends Error {
 }
 
 /**
- * This run was refused before it started.
- *
- * Since 432-13 the one producer is the production refusal (`refuseProductionWithoutOptIn`): its
- * reason is the plain sentence naming the target and the config line. 2026-10-01 (432-19, D-15):
- * it carries no remedy list, because the remedy vocabulary left with the execution gate.
- * `neutralReason` is the same sentence; the dashboard and run-service doors read that member to
- * tell a run denial from any other rejection, and a door renders it and never composes its own.
- */
-export class RunDeniedError extends Error {
-  readonly neutralReason: string
-
-  constructor(
-    readonly runId: string,
-    readonly reason: string,
-  ) {
-    super(reason)
-    this.name = 'RunDeniedError'
-    this.neutralReason = reason
-  }
-}
-
-/**
- * What one resolution of this request's targets answers (401-14).
- *
- * THE CLASS AND THE NAMES COME BACK TOGETHER because they are two renderings of ONE pass over the
- * run's members: `targetClass` is the most-restrictive fold over them, `targetNames` the declared
- * names of the members it folded over. A door that answered them from two passes could refuse on
- * one reading of the config while the run it describes came from another.
- */
-export interface RunTargetDeclaration {
-  /** The DECLARED class of the run's members — a config read, never a probe (D-06). */
-  readonly targetClass: RunTargetClass
-  /**
-   * The distinct declared target names, in first-appearance member order.
-   *
-   * DISPLAY-ONLY (T-401-G3b). Members that declare no target contribute nothing, which is how an
-   * all-undeclared run arrives here as an empty list rather than as a list of invented names.
-   */
-  readonly targetNames: readonly string[]
-  /**
-   * The members' targets DECLARED `environment: production`, in first-appearance member order
-   * (432-03, D-18). Repeats are allowed; the refusal names each target once.
-   *
-   * REQUIRED, so a door that forgets it does not compile. It comes from the SAME resolution as
-   * `targetClass` and `targetNames`, which is what keeps a mixed run from hiding a production member
-   * behind its siblings.
-   */
-  readonly productionTargetNames: readonly string[]
-  /**
-   * The config's top-level `allowProduction`, read from the same config the targets resolved
-   * against. Only the literal `true` opts in; absence and `false` do not. No request field and no
-   * CLI flag reaches this.
-   */
-  readonly allowProduction?: boolean
-}
-
-/**
- * Refuse a run that drives a production target the config has not opted into (432-03, D-18).
- *
- * A production CLASS with no names still refuses, so a producer that folded the class but lost the
- * names fails closed. The refusal is a plain `RunDeniedError` carrying the sentence from
- * `buildProductionRefusal`.
- *
- * EXPORTED because a producer that must acquire a device or an adapter before the core runs (the
- * suite half) calls it first, so production is refused before that acquisition too.
- */
-export function refuseProductionWithoutOptIn(
-  runId: string,
-  declaration: Pick<RunTargetDeclaration, 'productionTargetNames' | 'allowProduction'> & {
-    readonly targetClass?: RunTargetClass
-  },
-): void {
-  const production =
-    declaration.productionTargetNames.length > 0 || declaration.targetClass === 'production'
-  if (!production || declaration.allowProduction === true) return
-  const reason = buildProductionRefusal(declaration.productionTargetNames)
-  throw new RunDeniedError(runId, reason)
-}
-
-/**
- * The identity refusals, asked against the run's own directory (401-20, CR-04).
- *
- * EXPORTED for the same producers `refuseProductionWithoutOptIn` is: a door that refuses production
- * ahead of the core asks these first, so a duplicate or unminted id keeps its own refusal on every
- * path.
+ * The identity refusals, asked against the run's own directory: an id this system would not have
+ * minted, or one that already names a run.
  */
 export function refuseUnavailableRunId(input: {
   readonly configDir: string
@@ -270,8 +184,6 @@ export interface RunAssemblyContext {
   readonly configDir: string
   /** The config file this run resolves against (request override honoured). */
   readonly configPath: string
-  /** The declared class the door resolved. Handed over so an assembler need not re-resolve it. */
-  readonly targetClass: RunTargetClass
 }
 
 /**
@@ -302,23 +214,6 @@ export interface RunInvocationCoreOptions {
    * question about the machine when the question is about the door.
    */
   readonly executionContext: RunExecutionContext
-  /**
-   * Resolve what this request's targets DECLARE (D-06; names added 401-14).
-   *
-   * INJECTED BECAUSE THE CONFIG LIVES BEHIND THE DOOR, not because any of it is negotiable. Target
-   * resolution needs the CLI's `resolveTarget`/`AgentQaConfig` vocabulary, which this package may
-   * not name. `undefined` is undeclared, which is not production.
-   *
-   * ONE RESOLUTION, ALL FIELDS, AND THAT IS THE POINT OF THE SHAPE. The class, the names, the
-   * production members and the opt-in come back from one pass, so the production refusal is asked
-   * about the members the run will actually drive.
-   *
-   * Must not touch the target, and must not probe. A resolver that read a URL would put a network
-   * call before the production refusal, which is the one ordering this file exists to hold.
-   */
-  readonly resolveTargetDeclaration: (
-    request: RunsStartInput,
-  ) => RunTargetDeclaration | Promise<RunTargetDeclaration>
   /** Build the `RunConfig`. Called ONLY once every refusal has passed. */
   readonly assembleRun: RunAssembler
   /**
@@ -370,7 +265,10 @@ export interface RunInvocationCoreOptions {
     readonly runId: string
     readonly configDir: string
   }) => PostVerdictPort
-  /** The door's first third-party code, awaited once the request is allowed and before any port. */
+  /**
+   * The door's own code, awaited once the request and its run id are allowed and before any port.
+   * A door opens its run record and loads its plugins here.
+   */
   readonly afterRefusal?: () => Promise<void>
 }
 
@@ -412,7 +310,7 @@ export function createRunInvocationCore(
       //   FREEDOM — does it already name a run? Asked against the run's OWN directory, through the
       //     same `runDirFor` the run's ports are rooted at.
       //
-      // ORDER IS THE CONTROL. Both refusals sit above the declaration resolve and above assembly —
+      // ORDER IS THE CONTROL. Both refusals sit above `afterRefusal` and above assembly —
       // so a refused request leaves no run directory, no build-ordinal bump and, above all, not one
       // byte changed in the run it named. A refusal that half-wrote into somebody else's run
       // directory would be the defect performing itself.
@@ -425,19 +323,8 @@ export function createRunInvocationCore(
       }
       const runId = request.runId ?? options.mintRunId()
 
-      // (3) The declaration, from the config itself. Cheap, and it must stay cheap: this is the
-      // last thing that happens before a run may be refused.
-      const declaration = await options.resolveTargetDeclaration(request)
-      const targetClass = declaration.targetClass
-
-      // (3a) PRODUCTION, BEFORE ANY EFFECT (432-03, D-18). Above the persistence ports and
-      // assembly, so a refused production run leaves no run directory, no probe, no build ordinal
-      // and no adapter. It asks nothing and offers nothing: the config opts in, or the run does not
-      // start. Since 432-13 it is the only refusal of a well-formed request.
-      refuseProductionWithoutOptIn(runId, declaration)
-
-      // (3b) 2026-10-16 (442-08, D-10): the door's own code runs only for an allowed request, and a
-      // failure here still leaves no run directory.
+      // (3) The door's own code runs only for an allowed request, and a failure here still leaves
+      // no run directory.
       await options.afterRefusal?.()
 
       // (4) Assembly — the first line that may touch the target, and it is below every refusal.
@@ -456,7 +343,6 @@ export function createRunInvocationCore(
         },
         configDir,
         configPath: request.configPath ?? options.configPath,
-        targetClass,
       })
 
       // (5) Start. The markers ride straight from the request onto the RunConfig — the chain that

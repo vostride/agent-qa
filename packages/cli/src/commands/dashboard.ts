@@ -22,7 +22,6 @@ import {
   type FunctionRegistry,
 } from '@vostride/agent-qa-agent'
 import type { LocalAgentHost } from '@vostride/agent-qa-agent-local'
-import { refuseProductionWithoutOptIn } from '@vostride/agent-qa-agent-local'
 import { resolveWorkspacePaths } from '@vostride/agent-qa-core'
 import type { RunAttributes } from '@vostride/agent-qa-core'
 import type {
@@ -114,12 +113,6 @@ export const DASHBOARD_FUNCTION_CALLER: FunctionCaller = Object.freeze({
   ...CLI_FUNCTION_CALLER,
   surface: 'dashboard',
 })
-
-/**
- * The run id a trigger's production refusal names (433-34, G-433-10). The refusal happens before
- * the queue mints one, so the denial carries this literal; it is never recorded and never shown.
- */
-const DASHBOARD_PREFLIGHT_RUN_ID = 'dashboard-trigger-preflight'
 
 // 2026-10-01 (432-14, D-15): `askingSessionOf` is deleted with the gate posture it fed. No
 // invocation through this door enters a frame, so nothing reads who is asking.
@@ -440,7 +433,7 @@ export function composeDashboardDoor(input: DashboardDoorInput): DashboardDoor {
  * scope per queued run and ran the invocation inside it, so an ask-tier run could ask the browser
  * that triggered it. There is nothing left to ask (432-13 removed the gates), so the scope, its
  * entry and the posture it decided are deleted: every dashboard run is dispatched as it is, and the
- * only refusal on this road is the core's production refusal, before any effect.
+ * only refusals on this road are the core's refusals of a request field or a run id.
  */
 export interface DashboardRunDoor {
   /** Handed to `composeDashboardDoor` BEFORE the host exists — see `bindHost`. */
@@ -559,15 +552,6 @@ export async function createDashboardRunDoor(input: {
    * and a door with no push channel is exactly today's behaviour.
    */
   readonly chipRelay?: (envelope: RunEventEnvelope) => void
-  /**
-   * The configuration file the composed host's runs resolve against (433-34, G-433-10).
-   *
-   * Present, the backend answers a trigger's preflight with the run core's production rule over
-   * this config, so a production target the config has not opted into is refused before the
-   * queue mints a row. Absent, there is no preflight and the core refuses at the run's start, as
-   * before; cells that compose this door to measure something else pass none.
-   */
-  readonly configPath?: string
 }): Promise<DashboardRunDoor> {
   const { createInProcessExecutionBackend } = await import('@vostride/agent-qa-dashboard')
 
@@ -605,29 +589,7 @@ export async function createDashboardRunDoor(input: {
     resolveRunFlags: (runId: string): DashboardRunFlags | undefined => entries.get(runId)?.flags,
   }
 
-  const configPath = input.configPath
   const backend = createInProcessExecutionBackend({
-    ...(configPath === undefined ? {} : {
-      // 433-34 (G-433-10, D-17): the trigger's refusal BEFORE the queue records anything. The
-      // members' declaration is read the producers' way and judged by the core's own rule, so the
-      // rejection is the core's `RunDeniedError` and carries its `neutralReason`. No run id has been
-      // minted yet; the denial names this fixed one and nothing records it. A request this read
-      // cannot resolve is not refused here: the run reports its own input error, as it always has.
-      preflightRun: async ({ args }) => {
-        const { patterns } = partitionDashboardRunArgs(args)
-        const { resolveRunTargetDeclaration } = await import('./run.js')
-        let declaration: Awaited<ReturnType<typeof resolveRunTargetDeclaration>>
-        try {
-          declaration = await resolveRunTargetDeclaration({
-            configPath,
-            ...(patterns.length === 0 ? {} : { patterns }),
-          })
-        } catch {
-          return
-        }
-        refuseProductionWithoutOptIn(DASHBOARD_PREFLIGHT_RUN_ID, declaration)
-      },
-    }),
     invokeRun: async ({ opts, onSession }) => {
       const host = boundHost
       if (host === undefined) {
@@ -829,7 +791,7 @@ export function composeRunServicePorts(input: RunServiceCompositionInput): RunSe
       ? {}
       : { patterns: [...start.patterns] }
     // THE SHIPPED DISPATCHER, NOT THE PORT UNDERNEATH IT (D-04). Going straight to the run
-    // execution would skip the input validation, the core's production refusal, the receipt
+    // execution would skip the input validation, the core's refusals, the receipt
     // classification and the ack law — the carve-out the no-private-powers law refuses.
     // 2026-10-17 (443-06, D-24): this request's run records `api`; the queue and the co-hosted MCP
     // endpoint share the host and record their own.
@@ -1166,7 +1128,6 @@ async function startDashboardBackedServices(
     const runDoor = await createDashboardRunDoor({
       db,
       chipRelay: postProcessingRelay.publish,
-      configPath: configFilePath,
     })
 
     // ---- The live-view composition (403 D-03/D-14 — closes WINDOWS #264) -----------------------

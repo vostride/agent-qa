@@ -6,8 +6,8 @@
 //
 //   1. THE POSTURE IS CARRIED, NOT SNIFFED (D-07). The daemon hands the drive an EXPLICIT
 //      `local-headless` and no confirm port, so ask-tier work with no credential fails closed BY
-//      CONSTRUCTION. (Since 432-13 nothing asks: the carried posture is what the ack reports, and
-//      the one refusal left is an un-opted-in production target, whatever the posture.) The old wire decided in the CHILD, whose context came from the child's own
+//      CONSTRUCTION. (Nothing asks now: the carried posture is what the ack reports, and a run
+//      starts whatever environment its target declares.) The old wire decided in the CHILD, whose context came from the child's own
 //      ambient — which is why the retired cell asserted `executionContext: 'ci'` when
 //      `GITHUB_ACTIONS` was set. So the cell below VARIES the ambient and requires the injected
 //      value to win. A cell that passed because the ambient default happened to be
@@ -140,7 +140,7 @@ interface DaemonProject {
 /** A run project the daemon will serve from, plus the empty browsers root the member fails on. */
 function daemonProject(input: {
   origin: string
-  environment: 'local' | 'shared' | 'production'
+  environment: 'local' | 'shared'
   declareUninstalledAuthPlugin?: boolean
 }): DaemonProject {
   const fixture = createInProcessFixture({
@@ -238,7 +238,7 @@ async function dispatchThroughDaemon(input: {
    * What the CALLER got instead, when it did not.
    *
    * `invokeViaDaemon` rehydrates a function-layer failure into a thrown `Error` rather than
-   * returning an envelope, so a denial arrives here — and this is the surface a person sees.
+   * returning an envelope, so a refusal arrives here — and this is the surface a person sees.
    */
   refusal: unknown
   analyticsEvents: CapturedEvent[]
@@ -351,7 +351,7 @@ describe('the daemon dispatches runs through the in-process core (401-06, INVK-0
         // THE MEMBER RAN. Without this a dispatch that assembled zero members would pass on
         // `runStarted` alone — which is the suite half's own failure mode.
         expect(events).toContain('testStarted')
-        // The run started, so the run-start baseline probe knocked: the converse of the denial.
+        // The run started, so the run-start baseline probe knocked.
         expect(target.hits).toEqual(['/in-process-thing'])
         expect(buildOrdinalsExist(fixture as never)).toBe(true)
 
@@ -418,63 +418,17 @@ describe('the daemon dispatches runs through the in-process core (401-06, INVK-0
     180_000,
   )
 
-  // RE-SPELLED 2026-09-30 (432-13). Was 'DENIAL — ask-tier work denies fail-closed under the
-  // daemon's EXPLICIT carriage' over a shared target; that run starts now (C432-DAEMON-DIRECT
-  // below). The denial moves to the one class still refused, with the ambient still varied.
+  // With no gate there is nothing for the context to change: a shared run started at the drive
+  // under local-interactive starts like any other.
   it(
-    'DENIAL — an un-opted-in production run is refused under the daemon\'s carriage, with the ambient varied against it',
-    async () => {
-      const target = new CountingTarget()
-      await target.listen()
-      try {
-        // ONE FIELD DIFFERENT from the parity cell: `environment: production` instead of `local`.
-        const project = daemonProject({ origin: target.origin, environment: 'production' })
-        const { fixture } = project
-        const { acknowledged, refusal } = await dispatchThroughDaemon({
-          project,
-          patterns: [fixture.suitePattern],
-          varyAmbient: 'local-interactive',
-        })
-
-        // (a) no decision row
-        expect(auditRows(fixture as never)).toEqual([])
-        // (b) no run events
-        expect(eventTypes(fixture as never)).toEqual([])
-        // (c) the durable assembly side effect never happened
-        expect(buildOrdinalsExist(fixture as never)).toBe(false)
-        // (d) nobody knocked on the target
-        expect(target.hits).toEqual([])
-        // (e) the reason the CALLER sees names the production target and the opt-in
-        expect(acknowledged).toBeUndefined()
-        expect(String((refusal as Error | undefined)?.message)).toContain(fixture.targetName)
-        expect(String((refusal as Error | undefined)?.message)).toContain('allowProduction: true')
-
-        // The daemon recorded the refused job HONESTLY: a typed denial, not a crash.
-        const completions = readDaemonEvents(fixture.agentQaRoot)
-          .filter((event) => event.kind === 'run-completed')
-        expect(completions).toHaveLength(1)
-        expect(completions[0]).toMatchObject({ kind: 'run-completed', outcome: 'failed' })
-      } finally {
-        await target.close()
-      }
-    },
-    180_000,
-  )
-
-  // RE-SPELLED 2026-09-30 (432-13). Was 'THE CROSSING IS REAL — the same input under
-  // local-interactive records prompted-denied': the discriminating pair was the gate's two deny
-  // arms. With no gate there is nothing for the context to change on a non-production run, and the
-  // production refusal does not read it either — which is what this cell now measures, at the drive.
-  it(
-    'THE CROSSING IS GONE — under local-interactive the production refusal is the same refusal, and a shared run starts',
+    'THE CROSSING IS GONE — under local-interactive a shared run starts',
     async () => {
       const target = new CountingTarget()
       await target.listen()
       try {
         const { runInProcessCliRun } = await import('../../composition/in-process-run-execution.js')
-        const drive = async (environment: 'shared' | 'production'): Promise<{ fixture: ReturnType<typeof daemonProject>['fixture']; denial: unknown }> => {
+        const drive = async (environment: 'shared'): Promise<{ fixture: ReturnType<typeof daemonProject>['fixture'] }> => {
           const { fixture } = daemonProject({ origin: target.origin, environment })
-          let denial: unknown
           try {
             await runInProcessCliRun(
               {
@@ -485,19 +439,11 @@ describe('the daemon dispatches runs through the in-process core (401-06, INVK-0
               },
               { patterns: [fixture.suitePattern] },
             )
-          } catch (error) {
-            denial = error
-          }
-          return { fixture, denial }
+          } catch { /* the member's framework error; the run still happened */ }
+          return { fixture }
         }
 
-        const production = await drive('production')
-        expect((production.denial as { name?: string } | undefined)?.name).toBe('RunDeniedError')
-        expect(eventTypes(production.fixture as never)).toEqual([])
-        expect(auditRows(production.fixture as never)).toEqual([])
-
         const shared = await drive('shared')
-        expect((shared.denial as { name?: string } | undefined)?.name).not.toBe('RunDeniedError')
         expect(eventTypes(shared.fixture as never)).toContain('runStarted')
         expect(auditRows(shared.fixture as never)).toEqual([])
       } finally {
@@ -826,23 +772,6 @@ describe('C443-DAEMON-RECORD', () => {
         db.close()
       }
       expect(hostErrors.filter((line) => line.includes('dashboard record is incomplete'))).toEqual([])
-    } finally {
-      await target.close()
-    }
-  }, 180_000)
-
-  it('a refused production run through the daemon opens no runs.db file', async () => {
-    const target = new CountingTarget()
-    await target.listen()
-    try {
-      const project = daemonProject({ origin: target.origin, environment: 'production' })
-      const { fixture } = project
-      const { acknowledged, refusal } =
-        await dispatchThroughDaemon({ project, patterns: [fixture.suitePattern] })
-
-      expect(acknowledged).toBeUndefined()
-      expect(String((refusal as Error | undefined)?.message)).toContain('allowProduction: true')
-      expect(existsSync(join(fixture.project, '.agent-qa', 'runs.db')), 'a refused run opened runs.db').toBe(false)
     } finally {
       await target.close()
     }

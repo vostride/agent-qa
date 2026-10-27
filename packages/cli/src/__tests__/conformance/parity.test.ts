@@ -57,7 +57,7 @@ import {
 import type { JsonDocument, ToolProjection } from '@vostride/agent-qa-mcp'
 import { generateTestId } from '@vostride/agent-qa-ids'
 import { runSafetyScope } from '@vostride/agent-qa-safety-local'
-import { buildProductionRefusal, committedFileText } from '@vostride/agent-qa-schema'
+import { committedFileText } from '@vostride/agent-qa-schema'
 import type { FunctionCaller } from '@vostride/agent-qa-schema'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { z } from 'zod'
@@ -2290,24 +2290,17 @@ describe('the parity suite ranges the registry census over every rostered surfac
 // The cells above were re-spelled one deletion at a time (432-13 through 432-39): no ask, no grant
 // wall, no human-origin divergence, no credential refusal. These two blocks state what replaced
 // them, as behaviour on the shipped doors, and pin the live partition the rows, the golden and the
-// catalogue range: a non-production change lands in its one call on the chat and MCP doors of one
-// project, and a declared production run is refused, plainly and identically, on both.
-
-/** The run-refusal sentence both doors must show, spelled by the shipped producer. */
-const PARITY_PRODUCTION_TARGET = 'prod-site'
+// catalogue range: a config change lands in its one call on the chat and MCP doors of one project.
 
 interface ParityProject {
   readonly root: string
   readonly configPath: string
   readonly agentQaRoot: string
-  readonly productionTest: string
-  readonly localTest: string
 }
 
-/** One project with one production target, one local target and no `allowProduction`. */
+/** One project with one local target. */
 function parityProject(): ParityProject {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'agent-qa-432-40-parity-')))
-  mkdirSync(join(root, 'tests'), { recursive: true })
   writeFileSync(join(root, 'agent-qa.config.yaml'), [
     'workspace:',
     '  testMatch:',
@@ -2319,11 +2312,6 @@ function parityProject(): ParityProject {
     '  secretsFile: .env.secrets.local',
     'registry:',
     '  targets:',
-    `    ${PARITY_PRODUCTION_TARGET}:`,
-    '      platform: web',
-    '      url: http://127.0.0.1:9/app',
-    '      product: parity-product',
-    '      environment: production',
     '    local-site:',
     '      platform: web',
     '      url: http://127.0.0.1:9/local',
@@ -2341,35 +2329,11 @@ function parityProject(): ParityProject {
   writeFileSync(join(root, 'hooks.yaml'), 'hooks: []\n')
   writeFileSync(join(root, '.env'), '')
   writeFileSync(join(root, '.env.secrets.local'), '')
-  writeFileSync(join(root, 'tests', 'prod.yaml'), [
-    `test-id: ${generateTestId()}`,
-    'name: the production test',
-    `target: ${PARITY_PRODUCTION_TARGET}`,
-    'steps:',
-    '  - Verify the page says "Example"',
-    '',
-  ].join('\n'))
-  writeFileSync(join(root, 'tests', 'local.yaml'), [
-    `test-id: ${generateTestId()}`,
-    'name: the local test',
-    'target: local-site',
-    'steps:',
-    '  - Verify the page says "Example"',
-    '',
-  ].join('\n'))
   return {
     root,
     configPath: join(root, 'agent-qa.config.yaml'),
     agentQaRoot: join(root, '.agent-qa'),
-    productionTest: 'tests/prod.yaml',
-    localTest: 'tests/local.yaml',
   }
-}
-
-/** What a refused run must not have left behind, and what a direct change must not have filed. */
-function runDirectories(project: ParityProject): readonly string[] {
-  const runs = join(project.agentQaRoot, 'runs')
-  return existsSync(runs) ? readdirSync(runs) : []
 }
 
 interface ParityToolAnswer {
@@ -2416,69 +2380,7 @@ async function callOnProjectMcp(
   }
 }
 
-describe('C432-CONFORMANCE-PARITY: one call on the chat and MCP doors, and production refused alike', () => {
-  // MEASURED 2026-10-02 (432-40): the MCP door answered the shipped sentence in band, while the CLI
-  // chat door's receipt carried the refusal's NAME only (`failed runs.start RunDeniedError`), so a
-  // chat user was not shown the target or the `allowProduction: true` line (432-40 deferred #1).
-  // FIXED 2026-10-02 (432-42, D-18): a refused clause adds its refusal's own sentence to the turn's
-  // answer, beside the unchanged receipt; this cell now asserts the sentence on BOTH doors.
-  it('C432-CONFORMANCE-PARITY: a declared production run is refused on the chat and MCP doors before anything runs', async () => {
-    const project = parityProject()
-    try {
-      const sentence = buildProductionRefusal([PARITY_PRODUCTION_TARGET])
-      expect(sentence, 'the shipped refusal no longer names the one line to add').toContain('allowProduction: true')
-
-      const onMcp = await callOnProjectMcp(project, 'agent_qa_start_run', { patterns: [project.productionTest] })
-      expect(onMcp.isError, `mcp answered a production run without refusing it: ${onMcp.text}`).toBe(true)
-      expect(onMcp.text, 'mcp: the refusal is not the shipped production sentence').toContain(sentence)
-
-      const onChat = await driveChatLines(
-        [genericFnClause('runs.start', { patterns: [project.productionTest] })],
-        'local-interactive',
-        { configPath: project.configPath },
-      )
-      const receipt = onChat.receipts.find((candidate) => candidate.functionId === 'runs.start')
-      expect(onChat.unhandled, 'chat: the /fn clause did not route').toEqual([])
-      expect(receipt, 'chat: runs.start filed no receipt').toBeDefined()
-      expect(receipt?.status, 'chat: a production run was executed').toBe('failed')
-      expect(receipt?.outcome, 'chat: the refusal is not the run core\'s production refusal')
-        .toBe('RunDeniedError')
-      expect(onChat.stdout, 'chat: the person is not shown the refusal sentence').toContain(sentence)
-
-      // Refused before effects on both doors, and nothing asked anybody anything.
-      expect(runDirectories(project), 'a refused production run left a run directory').toEqual([])
-      expect(onChat.auditRows, 'chat: an approval row was written').toEqual([])
-      expect(`${onMcp.text}\n${onChat.stdout}`).not.toMatch(/\bconfirm|\bapprov|\bgrant|--yes\b/iu)
-    } finally {
-      rmSync(project.root, { recursive: true, force: true })
-    }
-  }, 120_000)
-
-  // EDGE-04 at the two doors (432-40 task 2): a request that mixes a local and a production member
-  // is refused whole, before the local member runs, and the sentence names only the production one.
-  it('C432-CONFORMANCE-PARITY: a run mixing a local and a production member is refused whole on both doors, naming only the production target', async () => {
-    const project = parityProject()
-    try {
-      const patterns = [project.localTest, project.productionTest]
-      const onMcp = await callOnProjectMcp(project, 'agent_qa_start_run', { patterns })
-      expect(onMcp.isError, `mcp ran a mixed request: ${onMcp.text}`).toBe(true)
-      expect(onMcp.text).toContain(buildProductionRefusal([PARITY_PRODUCTION_TARGET]))
-      expect(onMcp.text, 'mcp: the local member is named as production').not.toContain('"local-site"')
-
-      const onChat = await driveChatLines(
-        [genericFnClause('runs.start', { patterns })],
-        'local-interactive',
-        { configPath: project.configPath },
-      )
-      const receipt = onChat.receipts.find((candidate) => candidate.functionId === 'runs.start')
-      expect(receipt?.status, 'chat: a mixed request was executed').toBe('failed')
-      expect(receipt?.outcome).toBe('RunDeniedError')
-      expect(runDirectories(project), 'the local member of a refused request ran').toEqual([])
-    } finally {
-      rmSync(project.root, { recursive: true, force: true })
-    }
-  }, 120_000)
-
+describe('one call on the chat and MCP doors', () => {
   it('C432-CONFORMANCE-PARITY: a non-production config change lands in its one call on the chat and MCP doors, with nothing filed for later', async () => {
     const project = parityProject()
     try {

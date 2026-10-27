@@ -1,29 +1,13 @@
 // THE FN/CHAT/MCP DOOR'S `runs.start` GATE (Phase 401 plan 05 — D-01/D-05/D-06/D-07/D-16).
 //
-// SINCE 432-13 there is no gate on this road: the op-level gate and the core's `evaluate()` are
-// gone, and the one refusal left is an un-opted-in production target. The history below is kept
-// as written; the cells were re-spelled where they measured a decision that no longer exists.
+// There is no gate on this road: the op-level gate and the core's `evaluate()` are gone, and a
+// well-formed request with a free run id is never refused.
 //
 // WHAT IS UNDER TEST is the door a caller actually reaches: `composeCliLocalAgent` → the 384
 // registry → `invokeFunction` → the REAL op-level gate → the bound run invocation → this host's
 // DEFAULT run execution → the in-process drive → the core's ONE `evaluate()`. Nothing on that path
 // is substituted. `input.runExecution` is never supplied by any cell in this file, because the
 // subject IS the default: a cell that injected a port would be measuring its own argument.
-//
-// THE RED BASELINE, measured on the pre-change build and pasted into the plan's SUMMARY rather
-// than paraphrased. Before Task 1 this host's default was `createCliRunExecution` — a child
-// process — and the two cells that discriminate could not pass:
-//
-//   FN-DOOR DENIAL  expected RunDeniedError, received RunProducedNoEventsError
-//                   (the child denied, exited 2, and the gate's reason died in its stderr)
-//   TWO GATES       expected 2 audit rows across 2 files, received 1
-//                   (the child's run-dir row was written under ITS OWN minted run id, and the
-//                    parent never saw a `run:start` decision at all)
-//
-// A DENIAL'S ASSERTION SURFACE IS FIVE ARTIFACTS, never an exit code or a message alone (401-03's
-// Mutation B): the audit row's `outcome`, no run events, no build-ordinal ledger, zero requests at
-// the target, and the reason read BACK off the row. Every denial cell below asserts all five and
-// is paired with an allow control differing in EXACTLY ONE field.
 
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from 'node:fs'
@@ -50,11 +34,7 @@ vi.mock('../in-process-run-execution.js', async (importOriginal) => {
 
 import { invokeFunction } from '@vostride/agent-qa-agent'
 import { generateRunId } from '@vostride/agent-qa-ids'
-import {
-  RunDeniedError,
-  RunIdAlreadyInUseError,
-  RunIdNotMintedError,
-} from '@vostride/agent-qa-agent-local'
+import { RunIdAlreadyInUseError, RunIdNotMintedError } from '@vostride/agent-qa-agent-local'
 import {
   getActiveExecutionContext,
   setActiveExecutionContextResolver,
@@ -231,48 +211,9 @@ describe('C432-DOOR-NONPRODUCTION — the host door starts a non-production run 
   )
 })
 
-// RE-SPELLED 2026-09-30 (432-13). This describe was the run gate's five-artifact denial and its
-// allow control, the D-07 crossing pair, the MCP posture (`confirm: undefined` refuses to ask), the
-// two-gates adjacency cell and the grant-name mechanism pair. Every one of them measured a decision
-// that no longer exists: the op carries no gate (C432-INVOKE-DIRECT), the run core evaluates nothing
-// (C432-PRODUCTION-BEFORE-EFFECTS), and no door builds a confirm port. What survives is the one
-// refusal left and its five artifacts, paired with an allow control differing in one field, plus the
-// stdout-silence half of the MCP posture — which is now a property of every door, not of a flag.
-describe('the fn/MCP door refuses only an un-opted-in production run (401-05, D-16; 432-13)', () => {
-  it('THE FN-DOOR DENIAL — a PRODUCTION target the config has not opted into, five artifacts', async () => {
-    const target = new CountingTarget()
-    await target.listen()
-    try {
-      const fixture = createInProcessFixture({ origin: target.origin, environment: 'production' })
-      pinAmbient('local-interactive', false)
-
-      const { ack, error } = await invokeRunsStartOutcome(
-        fixture,
-        { patterns: [fixture.testPattern] },
-        { resolveExecutionContext: () => 'local-headless' },
-      )
-
-      expect(ack).toBeUndefined()
-      expect(error).toBeInstanceOf(RunDeniedError)
-      const denial = error as RunDeniedError
-      expect(denial.neutralReason.length).toBeGreaterThan(0)
-      // (a) no decision row at either gate
-      expect(auditRows(fixture)).toEqual([])
-      expect(opAuditRows(fixture)).toEqual([])
-      // (b) the run never started
-      expect(eventTypes(fixture)).toEqual([])
-      // (c) the durable assembly side effect never happened
-      expect(buildOrdinalsExist(fixture)).toBe(false)
-      // (d) nobody knocked on the target
-      expect(target.hits).toEqual([])
-      // (e) the reason names the production target
-      expect(denial.reason).toContain(fixture.targetName)
-    } finally {
-      await target.close()
-    }
-  }, 120_000)
-
-  it('THE ALLOW CONTROL — one field different (environment: shared) and the run is acknowledged', async () => {
+// The stdout-silence half of the MCP posture is a property of every door: nothing asks.
+describe('the fn/MCP door starts a run and asks nothing', () => {
+  it('a shared target from a headless door is acknowledged with no decision row', async () => {
     const target = new CountingTarget()
     await target.listen()
     try {
@@ -343,32 +284,7 @@ describe('the fn/MCP door refuses only an un-opted-in production run (401-05, D-
 })
 
 describe('the empty-input and suite edges of a bare runs.start (401-05, INVK-02)', () => {
-  // RE-SPELLED 2026-09-30 (432-13): was '... and denies on class alone' over an undeclared target.
-  // An undeclared target now starts; production is the class that still refuses an empty request.
-  it('AN ARGUMENT-LESS runs.start RESOLVES THE CONFIGURED DEFAULT SET — and refuses production on it', async () => {
-    const target = new CountingTarget()
-    await target.listen()
-    try {
-      const fixture = createInProcessFixture({ origin: target.origin, environment: 'production' })
-      pinAmbient('local-interactive', false)
-
-      const { error } = await invokeRunsStartOutcome(
-        fixture,
-        {},
-        { resolveExecutionContext: () => 'local-headless' },
-      )
-
-      expect(error).toBeInstanceOf(RunDeniedError)
-      expect(eventTypes(fixture)).toEqual([])
-      expect(buildOrdinalsExist(fixture)).toBe(false)
-      expect(target.hits).toEqual([])
-      expect((error as RunDeniedError).reason).toContain(fixture.targetName)
-    } finally {
-      await target.close()
-    }
-  }, 120_000)
-
-  it('THE SAME EMPTY REQUEST, target declared local — the default set RAN, both members of it', async () => {
+  it('AN ARGUMENT-LESS runs.start RESOLVES THE CONFIGURED DEFAULT SET — both members of it ran', async () => {
     const target = new CountingTarget()
     await target.listen()
     try {

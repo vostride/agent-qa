@@ -1,8 +1,8 @@
 // THE IN-PROCESS RUN EXECUTION'S OWN CELLS (Phase 401 plan 11).
 //
 // This file grows across the plan. Task 1 lands the typed-input-error register — the proof that no
-// input failure on this path can terminate its host (T-401-31). Task 2 adds the composability cell,
-// its denial control and the D-07 ambient-crossing pair.
+// input failure on this path can terminate its host (T-401-31). Task 2 adds the composability cell
+// and the ambient-crossing pair.
 //
 // THE RED BASELINE FOR THE TASK-1 CELLS IS NOT A FAILING ASSERTION, and saying so plainly is more
 // honest than manufacturing one. Pre-task there was no `CliRunInputError` to catch: the preflight
@@ -293,7 +293,6 @@ import {
   getActiveExecutionContext,
   setActiveExecutionContextResolver,
 } from '@vostride/agent-qa-safety'
-import { RunDeniedError } from '@vostride/agent-qa-agent-local'
 import type { RunSession } from '@vostride/agent-qa-schema'
 
 import { runInProcessCliRun } from '../in-process-run-execution.js'
@@ -358,7 +357,6 @@ describe('a door holding only a RunsStartInput gets a policy-gated run, in proce
       // that framework error exactly as the shipped door does. The run still HAPPENED, which is
       // what every assertion below reads. Caught rather than asserted-against so this cell is about
       // the seam and not about the fixture's failure mode.
-      let denial: unknown
       try {
         await runInProcessCliRun(
           {
@@ -370,10 +368,7 @@ describe('a door holding only a RunsStartInput gets a policy-gated run, in proce
           },
           { patterns: [fixture.testPattern] },
         )
-      } catch (err) {
-        denial = err
-      }
-      expect(denial).not.toBeInstanceOf(RunDeniedError)
+      } catch { /* the member's framework error; the run still happened */ }
 
       // THE IN-PROCESS WITNESS. No child process can hand back a live object, so a cell that
       // asserts this cannot pass over a spawn.
@@ -388,54 +383,11 @@ describe('a door holding only a RunsStartInput gets a policy-gated run, in proce
       expect(runDirs(fixture as never).map((dir) => dir.split('/').pop())).toContain(
         session!.id as unknown as string,
       )
-      // The gate allowed it, so the baseline probe knocked — the converse of the denial control.
+      // The run started, so the baseline probe knocked.
       expect(target.hits).toEqual(['/in-process-thing'])
       expect(buildOrdinalsExist(fixture as never)).toBe(true)
       // 432-13: the start is not asked about, so it leaves no approval row.
       expect(auditRows(fixture as never)).toEqual([])
-    } finally {
-      await target.close()
-    }
-  }, 120_000)
-
-  // RE-SPELLED 2026-09-30 (432-13): was `environment: 'shared'`, refused by the run gate. A shared
-  // target now starts (C432-DOOR-NONPRODUCTION), so the one field that still refuses is a production
-  // declaration the config has not opted into.
-  it('THE DENIAL CONTROL — one field different, and all artifacts say refused', async () => {
-    const target = new CountingTarget()
-    await target.listen()
-    try {
-      const fixture = createInProcessFixture({ origin: target.origin, environment: 'production' })
-      let session: RunSession | undefined
-
-      let denial: unknown
-      try {
-        await runInProcessCliRun(
-          {
-            runRecord: testRunRecord(),
-            ...fixtureOptions(fixture),
-            executionContext: 'local-headless',
-            onSession: (started) => { session = started },
-          },
-          { patterns: [fixture.testPattern] },
-        )
-      } catch (err) {
-        denial = err
-      }
-
-      expect(denial).toBeInstanceOf(RunDeniedError)
-      // (a) no approval row: the production refusal is not a gate decision
-      expect(auditRows(fixture as never)).toEqual([])
-      // (b) no run events — `runStarted` is seq 1 of any run that began at all
-      expect(eventTypes(fixture as never)).toEqual([])
-      expect(session).toBeUndefined()
-      // (c) the durable assembly side effect never happened
-      expect(buildOrdinalsExist(fixture as never)).toBe(false)
-      // (d) nobody knocked on the target
-      expect(target.hits).toEqual([])
-      // (e) the reason names the production target
-      expect((denial as RunDeniedError).reason).toContain(fixture.targetName)
-      expect((denial as RunDeniedError).reason).toMatch(/production/i)
     } finally {
       await target.close()
     }
@@ -491,8 +443,7 @@ describe('a door holding only a RunsStartInput gets a policy-gated run, in proce
       // and it is written beside the config whose target declaration it read — so this is the
       // assertion that a dropped `configPath` could not survive: the classification would have come
       // off the composition's project instead.
-      // RE-SPELLED 2026-09-30 (432-13): the gate's audit row is gone, so the witness that the
-      // request's config was read is the named project's production declaration refusing below.
+      // No audit row is written beside either config.
       expect(auditRows(named as never)).toEqual([])
       expect(auditRows(composed as never)).toEqual([])
 
@@ -511,32 +462,6 @@ describe('a door holding only a RunsStartInput gets a policy-gated run, in proce
       // project holds no run dir at all and the whole run is the composed project's.
       expect(runDirs(named as never)).toEqual([])
       expect(runDirs(composed as never)).toHaveLength(1)
-    } finally {
-      await target.close()
-    }
-  }, 120_000)
-
-  it('THE REQUEST NAMES THE CONFIG — a production declaration in the NAMED config refuses (432-13)', async () => {
-    // The witness the retired audit row gave: the declaration read is the request's config's. The
-    // composed config is `local`, the named one `production`; only a port that read the named config
-    // refuses.
-    const target = new CountingTarget()
-    await target.listen()
-    try {
-      const composed = createInProcessFixture({ origin: target.origin, environment: 'local' })
-      const named = createInProcessFixture({ origin: target.origin, environment: 'production' })
-      let denial: unknown
-      try {
-        await runInProcessCliRun(
-          { runRecord: testRunRecord(), ...fixtureOptions(composed), executionContext: 'local-headless' },
-          { configPath: named.configPath, patterns: [named.testPattern] },
-        )
-      } catch (err) {
-        denial = err
-      }
-      expect(denial).toBeInstanceOf(RunDeniedError)
-      expect(eventTypes(composed as never)).toEqual([])
-      expect(target.hits).toEqual([])
     } finally {
       await target.close()
     }
@@ -632,17 +557,13 @@ describe('C432-DOOR-NONPRODUCTION: a shared target starts whatever the injected 
     try {
       pinAmbientExecutionContext(ambient)
       const fixture = createInProcessFixture({ origin: target.origin, environment: 'shared' })
-      let denial: unknown
       try {
         await runInProcessCliRun(
           { runRecord: testRunRecord(), ...fixtureOptions(fixture), executionContext: injected },
           { patterns: [fixture.testPattern] },
         )
-      } catch (err) {
-        denial = err
-      }
+      } catch { /* the member's framework error; the run still happened */ }
 
-      expect(denial).not.toBeInstanceOf(RunDeniedError)
       expect(eventTypes(fixture as never)).toContain('runStarted')
       expect(target.hits).toEqual(['/in-process-thing'])
       expect(auditRows(fixture as never)).toEqual([])
@@ -666,17 +587,13 @@ describe('the CLI door drives every target a two-target invocation names (401-14
         environment: 'shared',
         secondTarget: true,
       })
-      let denial: unknown
       try {
         await runInProcessCliRun(
           { runRecord: testRunRecord(), ...fixtureOptions(fixture), executionContext: 'local-interactive' },
           { patterns: [fixture.testPattern, fixture.secondTestPattern!] },
         )
-      } catch (err) {
-        denial = err
-      }
+      } catch { /* the member's framework error; the run still happened */ }
 
-      expect(denial).not.toBeInstanceOf(RunDeniedError)
       expect(eventTypes(fixture as never)).toContain('runStarted')
       expect([...target.hits].sort()).toEqual(['/in-process-thing', '/the-second-thing'])
     } finally {

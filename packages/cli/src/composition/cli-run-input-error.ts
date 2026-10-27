@@ -29,7 +29,6 @@
  *
  * EXIT CODES ARE THE COMMAND'S EXISTING ONES, not new ones: `1` for a missing/unreadable
  * configuration file (env, hooks, secrets), `2` for "nothing to run" and for a usage/parse refusal.
- * A policy denial is neither of these — it is `RunDeniedError`, and it also exits 2.
  */
 export class CliRunInputError extends Error {
   readonly lines: readonly string[]

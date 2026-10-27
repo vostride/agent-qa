@@ -1,15 +1,14 @@
 // The in-process invocation core, driven through its production factory (Phase 401 plan 03, D-02).
 //
 // WHAT THIS FILE MEASURES, and what it deliberately does not. The core's job is an ORDER —
-// refuse, identify, refuse production, assemble, start, await — so every cell here is about the
+// refuse, identify, run the door's own code, assemble, start, await — so every cell here is about the
 // order or about what the order lets through. The member EXECUTOR is a double, because a real one
 // needs a browser and a model; everything else is the shipped path: the real
 // `createRunInvocationCore`, the real `startRun`, and the real `FsEventLog`/`FsHandoffStore` under a
 // real `<configDir>/.agent-qa` root, read back off disk.
 //
-// 2026-09-30 (432-13, D-14/D-15): THE CORE ASKS NOBODY. The run-start `evaluate()`, its confirm port
-// and its session trust are gone; production is the one refusal of a well-formed request. The deny
-// leg below is re-spelled as starts in every context, and the gate census as the gate's absence.
+// THE CORE ASKS NOBODY. There is no run-start `evaluate()`, confirm port or session trust, and no
+// refusal of a well-formed request: a run starts in every context, whatever its targets declare.
 //
 // THE ROOT IS THE ONE THE EVIDENCE CHECK READS (RESEARCH Pitfall 5). `createLocalRunInvocation`
 // verifies a run happened by reading `buildRunPorts({ configDir: dirname(agentQaRoot) })`. If the
@@ -31,7 +30,6 @@ import { buildRunPorts } from '../run-composition.js'
 import type { RunExecutionContext } from '../run-composition.js'
 import {
   createRunInvocationCore,
-  RunDeniedError,
   RunIdAlreadyInUseError,
   RunIdNotMintedError,
   RunRequestFieldRefusedError,
@@ -40,7 +38,6 @@ import type { RunAssemblyContext, RunConfig } from '../run-invocation-core.js'
 // 2026-10-01 (432-19, D-15): the run gate's descriptor recipe is deleted; its action name is kept
 // here as a literal so the cells below can still assert no row ever names it.
 const RETIRED_RUN_START_ACTION = 'run:start'
-import type { RunTargetClass } from '../run-risk.js'
 
 const portBuilds = vi.hoisted(() => ({ order: [] as string[] }))
 vi.mock('../run-composition.js', async (importOriginal) => {
@@ -107,9 +104,6 @@ function recordingAssembler(): {
   }
 }
 
-/** The name the fake resolver declares, so a disclosure assertion has something to find. */
-const FAKE_TARGET_NAME = 'the-fixture-target'
-
 /**
  * This fixture's own mint shape (401-20).
  *
@@ -121,9 +115,6 @@ const FAKE_TARGET_NAME = 'the-fixture-target'
 const FIXTURE_MINTED_RUN_ID = (value: string): boolean => /^run_[a-z_]+$/.test(value)
 
 interface CoreInput {
-  targetClass: RunTargetClass
-  /** What this run's members DECLARE. Defaults to the one name every cell here resolves against. */
-  targetNames?: readonly string[]
   executionContext?: RunExecutionContext
   assemble?: (context: RunAssemblyContext) => RunConfig
   onSession?: (session: RunSession) => void
@@ -139,12 +130,6 @@ function makeCore(input: CoreInput): ReturnType<typeof createRunInvocationCore> 
     executionContext: input.executionContext ?? 'ci',
     mintRunId: input.mintRunId ?? (() => 'run_minted_by_the_core'),
     isMintedRunId: input.isMintedRunId ?? FIXTURE_MINTED_RUN_ID,
-    resolveTargetDeclaration: () => ({
-      targetClass: input.targetClass,
-      targetNames: input.targetNames ?? [FAKE_TARGET_NAME],
-      // 432-03: no member of these cells is production; the production arm has its own suite.
-      productionTargetNames: [],
-    }),
     assembleRun: input.assemble ?? recordingAssembler().assemble,
     ...(input.onSession === undefined ? {} : { onSession: input.onSession }),
   })
@@ -194,13 +179,10 @@ function recordedAuditRows(runId: string): Array<Record<string, unknown>> {
 }
 
 describe('the invocation core — the allow leg, end to end (D-02)', () => {
-  // RE-SPELLED 2026-09-30 (432-13): 'runs a local-declared target through gate → assembly → startRun
-  // → handoff, under the production root'. There is no gate step and no gate row.
-  it('runs a local-declared target through assembly → startRun → handoff, under the production root', async () => {
+  it('runs a request through assembly → startRun → handoff, under the production root', async () => {
     const assembler = recordingAssembler()
     const sessions: RunSession[] = []
     const core = makeCore({
-      targetClass: 'local',
       assemble: assembler.assemble,
       onSession: (session) => sessions.push(session),
     })
@@ -236,7 +218,7 @@ describe('the invocation core — the allow leg, end to end (D-02)', () => {
 
   it('carries the request markers onto the run and only the literal true (INVK-06 chain, shortened)', async () => {
     const assembler = recordingAssembler()
-    const core = makeCore({ targetClass: 'local', assemble: assembler.assemble })
+    const core = makeCore({ assemble: assembler.assemble })
 
     const started = await core.execute({ gateRun: true })
 
@@ -252,7 +234,7 @@ describe('the invocation core — the allow leg, end to end (D-02)', () => {
   })
 
   it('honours a caller-minted run id (the additive request field the child env variable used to be)', async () => {
-    const core = makeCore({ targetClass: 'local' })
+    const core = makeCore({})
 
     const started = await core.execute({ runId: 'run_from_the_door' as never })
 
@@ -261,20 +243,16 @@ describe('the invocation core — the allow leg, end to end (D-02)', () => {
   })
 })
 
-// 432-13 (D-01/D-15/D-18): the core asks nobody. Production is the one refusal left, and it lands
-// before every effect; every other class starts in every context with no confirm port and no trust.
-describe('C432-PRODUCTION-BEFORE-EFFECTS — production is the one refusal left (432-13)', () => {
-  it('C432-PRODUCTION-BEFORE-EFFECTS: shared and undeclared runs start in ci and local-headless with no confirm or trust', async () => {
+describe('the invocation core asks nobody', () => {
+  it('a run starts in ci, local-headless and local-interactive with no confirm or trust', async () => {
     const cases = [
-      { targetClass: 'shared', executionContext: 'ci', runId: 'run_shared_in_ci' },
-      { targetClass: undefined, executionContext: 'ci', runId: 'run_undeclared_in_ci' },
-      { targetClass: 'shared', executionContext: 'local-headless', runId: 'run_shared_headless' },
-      { targetClass: 'shared', executionContext: 'local-interactive', runId: 'run_shared_interactive' },
+      { executionContext: 'ci', runId: 'run_in_ci' },
+      { executionContext: 'local-headless', runId: 'run_headless' },
+      { executionContext: 'local-interactive', runId: 'run_interactive' },
     ] as const
     for (const scene of cases) {
       const assembler = recordingAssembler()
       const core = makeCore({
-        targetClass: scene.targetClass,
         executionContext: scene.executionContext,
         assemble: assembler.assemble,
         mintRunId: () => scene.runId,
@@ -294,73 +272,6 @@ describe('C432-PRODUCTION-BEFORE-EFFECTS — production is the one refusal left 
     }
   })
 
-  it('C432-PRODUCTION-BEFORE-EFFECTS: a production run in the same contexts refuses before the audit sink, ports and assembly', async () => {
-    for (const executionContext of ['ci', 'local-headless', 'local-interactive'] as const) {
-      const assembler = recordingAssembler()
-      const sessions: RunSession[] = []
-      const runId = `run_production_${executionContext.replace('-', '_')}`
-      const core = createRunInvocationCore({
-        configPath: join(projectDir, 'agent-qa.config.yaml'),
-        agentQaRoot: agentQaRoot(),
-        executionContext,
-        mintRunId: () => runId,
-        isMintedRunId: FIXTURE_MINTED_RUN_ID,
-        resolveTargetDeclaration: () => ({
-          targetClass: 'production',
-          targetNames: ['prod-eu'],
-          productionTargetNames: ['prod-eu'],
-        }),
-        assembleRun: assembler.assemble,
-        onSession: (session) => sessions.push(session),
-      })
-
-      const refusal = await core.execute({}).catch((error: unknown) => error)
-
-      expect(refusal).toBeInstanceOf(RunDeniedError)
-      expect((refusal as RunDeniedError).reason).toContain('"prod-eu"')
-      expect((refusal as RunDeniedError).reason).toContain('allowProduction: true')
-      expect(assembler.calls).toHaveLength(0)
-      expect(sessions).toHaveLength(0)
-      expect(existsSync(join(agentQaRoot(), 'runs', runId))).toBe(false)
-    }
-  })
-})
-
-// RE-SPELLED 2026-09-30 (432-13, D-14/D-15) from 'the invocation core — the deny leg (D-16
-// criterion 3, at the unit)'. Each former denial cell keeps its fixture and now proves the run
-// STARTS; the allow-controls (trust, credential, answered confirm) and the prompted-denial cell have
-// nothing left to control and are folded into C432-PRODUCTION-BEFORE-EFFECTS above (every
-// non-production class starts in every context). 'the descriptor the ONE evaluate() builds carries
-// a disclosure naming the target' lost its consumer with the confirm port; the disclosure recipe's
-// own content stays pinned in `run-risk.test.ts`.
-describe('the invocation core — the former deny leg starts (432-13)', () => {
-  it('starts a shared target in a non-interactive context, with no row and no remedies', async () => {
-    const assembler = recordingAssembler()
-    const sessions: RunSession[] = []
-    const core = makeCore({
-      targetClass: 'shared',
-      assemble: assembler.assemble,
-      onSession: (session) => sessions.push(session),
-    })
-
-    const started = await core.execute({})
-
-    expect(recordedAuditRows(String(started.runId))).toEqual([])
-    expect(assembler.calls).toHaveLength(1)
-    expect(recordedEvents(String(started.runId))[0]?.type).toBe('runStarted')
-    expect(sessions).toHaveLength(1)
-  })
-
-  it('starts an UNDECLARED target too — undeclared is not production (D-18)', async () => {
-    const assembler = recordingAssembler()
-    const core = makeCore({ targetClass: undefined, assemble: assembler.assemble })
-
-    const started = await core.execute({})
-
-    expect(assembler.calls).toHaveLength(1)
-    expect(recordedEvents(String(started.runId))[0]?.type).toBe('runStarted')
-  })
-
   it('the source asks nobody: no evaluate, confirm, trust or reader member remains', () => {
     const code = stripComments(readFileSync(CORE_SOURCE_PATH, 'utf8'))
     expect(code).not.toMatch(/\bevaluate\s*\(/)
@@ -376,7 +287,7 @@ describe('the invocation core — the refused request fields (D-07 / Pitfall 7)'
     'refuses a request-supplied %s before anything else happens',
     async (field) => {
       const assembler = recordingAssembler()
-      const core = makeCore({ targetClass: 'local', assemble: assembler.assemble })
+      const core = makeCore({ assemble: assembler.assemble })
 
       const refusal = await core
         .execute(
@@ -400,7 +311,6 @@ describe('the invocation core — the refused request fields (D-07 / Pitfall 7)'
     // The composition says `ci` — the fail-closed side. The request claims the interactive side,
     // which is the elevation this refusal exists to make unreachable.
     const core = makeCore({
-      targetClass: 'shared',
       executionContext: 'ci',
       assemble: assembler.assemble,
     })
@@ -410,7 +320,6 @@ describe('the invocation core — the refused request fields (D-07 / Pitfall 7)'
       .catch((error: unknown) => error)
 
     expect(refusal).toBeInstanceOf(RunRequestFieldRefusedError)
-    expect(refusal).not.toBeInstanceOf(RunDeniedError)
     expect(assembler.calls).toHaveLength(0)
   })
 })
@@ -521,29 +430,25 @@ describe('the core hygiene census (D-02 / D-07, pinned to the core file)', () =>
     expect(pin).toContain('export function parseModuleStatements')
   })
 
-  // RE-SPELLED 2026-09-30 (432-13): '... above the audit sink, the ONE evaluate() and assembly'. There
-  // is no evaluate() to sit above; the refusal still precedes the sink, the ports and assembly.
-  it('the production refusal sits above the audit sink and assembly (432-03, D-18)', () => {
+  it('the door hook sits below the id refusals and above the ports and assembly', () => {
     const code = stripComments(readFileSync(CORE_SOURCE_PATH, 'utf8'))
     const execute = code.slice(code.indexOf('async execute(request: RunsStartInput)'))
-    const refusal = execute.indexOf('refuseProductionWithoutOptIn(runId, declaration)')
+    const hook = execute.indexOf('await options.afterRefusal?.()')
     // Non-vacuity: the call is in the execute body, once.
-    expect(refusal).toBeGreaterThan(0)
-    expect(execute.split('refuseProductionWithoutOptIn(').length - 1).toBe(1)
-    expect(refusal).toBeGreaterThan(execute.indexOf('options.resolveTargetDeclaration(request)'))
+    expect(hook).toBeGreaterThan(0)
+    expect(execute.split('options.afterRefusal?.(').length - 1).toBe(1)
+    expect(hook).toBeGreaterThan(execute.indexOf('refuseUnavailableRunId('))
     expect(execute.indexOf('await evaluate(')).toBe(-1)
-    expect(refusal).toBeLessThan(execute.indexOf('buildRunPorts('))
-    expect(refusal).toBeLessThan(execute.indexOf('options.assembleRun('))
+    expect(hook).toBeLessThan(execute.indexOf('buildRunPorts('))
+    expect(hook).toBeLessThan(execute.indexOf('options.assembleRun('))
   })
 
-  // RE-SPELLED 2026-09-30 (432-13) from 'the gate has already decided by the time assembly is
-  // reached (the ordering, from inside)'. Nothing decides a non-production run, so the assembler
-  // finds no decision row: the run's audit trail is empty when assembly is reached.
+  // Nothing decides a run, so the assembler finds no decision row: the run's audit trail is empty
+  // when assembly is reached.
   it('nothing has been decided or recorded by the time assembly is reached (the ordering, from inside)', async () => {
     let rowsVisibleToAssembly: Array<Record<string, unknown>> = []
     const inner = recordingAssembler()
     const core = makeCore({
-      targetClass: 'local',
       mintRunId: () => 'run_ordering_probe',
       assemble: (context) => {
         rowsVisibleToAssembly = recordedAuditRows('run_ordering_probe')
@@ -586,7 +491,7 @@ describe('the core hygiene census (D-02 / D-07, pinned to the core file)', () =>
 describe('the invocation core — the identity step refuses before anything (CR-04)', () => {
   it('REFUSES an id this system would not have minted, by name, having written nothing', async () => {
     const assembler = recordingAssembler()
-    const core = makeCore({ targetClass: 'local', assemble: assembler.assemble })
+    const core = makeCore({ assemble: assembler.assemble })
 
     await expect(core.execute({ runId: 'not-a-minted-id' as never })).rejects.toThrow(
       RunIdNotMintedError,
@@ -599,7 +504,7 @@ describe('the invocation core — the identity step refuses before anything (CR-
 
   it('THE CONTROL — one field different (a minted id) and the same request runs', async () => {
     const assembler = recordingAssembler()
-    const core = makeCore({ targetClass: 'local', assemble: assembler.assemble })
+    const core = makeCore({ assemble: assembler.assemble })
 
     const started = await core.execute({ runId: 'run_a_minted_shape' as never })
 
@@ -614,7 +519,6 @@ describe('the invocation core — the identity step refuses before anything (CR-
   it('the predicate is ASKED about the caller-named id, and only about that one', async () => {
     const asked: string[] = []
     const core = makeCore({
-      targetClass: 'local',
       isMintedRunId: (value) => { asked.push(value); return true },
       mintRunId: () => 'run_the_core_minted_it',
     })
@@ -630,7 +534,7 @@ describe('the invocation core — the identity step refuses before anything (CR-
 
   it('REFUSES an id that already names a run, and the victim is byte-identical after', async () => {
     const victimId = 'run_the_victim'
-    const core = makeCore({ targetClass: 'local' })
+    const core = makeCore({})
 
     await core.execute({ runId: victimId as never })
     const runDir = join(agentQaRoot(), 'runs', victimId)
@@ -642,7 +546,7 @@ describe('the invocation core — the identity step refuses before anything (CR-
       expect.arrayContaining(['events.jsonl', 'handoff.json']),
     )
 
-    const second = makeCore({ targetClass: 'local' })
+    const second = makeCore({})
     await expect(second.execute({ runId: victimId as never })).rejects.toThrow(
       RunIdAlreadyInUseError,
     )
@@ -652,7 +556,7 @@ describe('the invocation core — the identity step refuses before anything (CR-
 
   it('the collision refusal lands ABOVE assembly — no row, no second event, no assembly', async () => {
     const victimId = 'run_the_second_victim'
-    await makeCore({ targetClass: 'local' }).execute({ runId: victimId as never })
+    await makeCore({}).execute({ runId: victimId as never })
 
     const rowsBefore = recordedAuditRows(victimId).length
     const eventsBefore = recordedEvents(victimId).length
@@ -660,27 +564,26 @@ describe('the invocation core — the identity step refuses before anything (CR-
     expect(eventsBefore).toBeGreaterThan(0)
 
     const assembler = recordingAssembler()
-    const declarations: number[] = []
+    const hooks: number[] = []
     const second = createRunInvocationCore({
       configPath: join(projectDir, 'agent-qa.config.yaml'),
       agentQaRoot: agentQaRoot(),
       executionContext: 'ci',
       mintRunId: () => 'run_never_minted',
       isMintedRunId: FIXTURE_MINTED_RUN_ID,
-      resolveTargetDeclaration: () => {
-        declarations.push(1)
-        return { targetClass: 'local', targetNames: [FAKE_TARGET_NAME], productionTargetNames: [] }
-      },
       assembleRun: assembler.assemble,
+      afterRefusal: async () => {
+        hooks.push(1)
+      },
     })
 
     await expect(second.execute({ runId: victimId as never })).rejects.toThrow(
       RunIdAlreadyInUseError,
     )
 
-    // The refusal is above the DECLARATION resolve — so nothing between the request and the run's
-    // own directory was even consulted.
-    expect(declarations).toEqual([])
+    // The refusal is above the door's own hook — so nothing between the request and the run's own
+    // directory ran.
+    expect(hooks).toEqual([])
     expect(assembler.calls).toEqual([])
     expect(recordedAuditRows(victimId)).toHaveLength(rowsBefore)
     expect(recordedEvents(victimId)).toHaveLength(eventsBefore)
@@ -689,7 +592,6 @@ describe('the invocation core — the identity step refuses before anything (CR-
   it('the MINT-YOUR-OWN path is untouched — no predicate call, no collision question', async () => {
     let collisionsAsked = 0
     const core = makeCore({
-      targetClass: 'local',
       isMintedRunId: () => { collisionsAsked += 1; return true },
       mintRunId: () => 'run_minted_twice_over',
     })
@@ -705,11 +607,11 @@ describe('the invocation core — the identity step refuses before anything (CR-
     expect(again.runId).toBe('run_minted_twice_over')
   })
 
-  it('the two refusals are NAMED and distinguishable from each other and from a denial', () => {
+  it('the two refusals are NAMED and distinguishable from each other and from a refused field', () => {
     expect(new RunIdNotMintedError('x').name).toBe('RunIdNotMintedError')
     expect(new RunIdAlreadyInUseError('x').name).toBe('RunIdAlreadyInUseError')
     expect(new RunIdNotMintedError('x')).not.toBeInstanceOf(RunIdAlreadyInUseError)
-    expect(new RunIdAlreadyInUseError('x')).not.toBeInstanceOf(RunDeniedError)
+    expect(new RunIdAlreadyInUseError('x')).not.toBeInstanceOf(RunRequestFieldRefusedError)
     expect(new RunIdNotMintedError('x')).not.toBeInstanceOf(RunRequestFieldRefusedError)
   })
 
@@ -742,7 +644,7 @@ describe('the invocation core — the identity step refuses before anything (CR-
     expect(code).not.toMatch(/\bcatch\b/)
     expect(code).not.toMatch(/\.catch\s*\(/)
     // Non-vacuity: the stripper left the file's actual code behind.
-    expect(code).toContain('refuseProductionWithoutOptIn(runId, declaration)')
+    expect(code).toContain('await options.afterRefusal?.()')
   })
 })
 
@@ -754,7 +656,6 @@ describe('C441-RUN-RECORDS', () => {
     const inner = recordingAssembler()
     const retiredKey = ['audit', 'Sink'].join('')
     const core = makeCore({
-      targetClass: 'local',
       mintRunId: () => 'run_with_no_audit_file',
       assemble: (context) => {
         const offered = (context as unknown as Record<string, unknown>)[retiredKey] as
@@ -777,8 +678,6 @@ describe('C441-RUN-RECORDS', () => {
 describe('C442-PLUGINS-AFTER-REFUSAL', () => {
   function hookedCore(input: {
     afterRefusal: () => Promise<void>
-    productionTargetNames?: readonly string[]
-    targetClass?: RunTargetClass
     mintRunId?: () => string
     assemble?: (context: RunAssemblyContext) => RunConfig
   }): ReturnType<typeof createRunInvocationCore> {
@@ -788,27 +687,16 @@ describe('C442-PLUGINS-AFTER-REFUSAL', () => {
       executionContext: 'ci',
       mintRunId: input.mintRunId ?? (() => 'run_minted_by_the_core'),
       isMintedRunId: FIXTURE_MINTED_RUN_ID,
-      resolveTargetDeclaration: () => ({
-        targetClass: input.targetClass ?? 'local',
-        targetNames: [FAKE_TARGET_NAME],
-        productionTargetNames: input.productionTargetNames ?? [],
-      }),
       assembleRun: input.assemble ?? recordingAssembler().assemble,
       afterRefusal: input.afterRefusal,
     })
   }
 
   it('the post-refusal hook never runs for a refused request', async () => {
-    await makeCore({ targetClass: 'local' }).execute({ runId: 'run_already_in_use' as never })
+    await makeCore({}).execute({ runId: 'run_already_in_use' as never })
     const refusals: Array<[string, () => Promise<unknown>, new (...args: never[]) => Error]> = [
       ['an unminted run id', () => hookedCore({ afterRefusal: hook }).execute({ runId: 'not-a-minted-id' as never }), RunIdNotMintedError],
       ['an in-use run id', () => hookedCore({ afterRefusal: hook }).execute({ runId: 'run_already_in_use' as never }), RunIdAlreadyInUseError],
-      ['production with names', () => hookedCore({
-        afterRefusal: hook, targetClass: 'production', productionTargetNames: ['prod-eu'], mintRunId: () => 'run_prod_named',
-      }).execute({}), RunDeniedError],
-      ['production with an empty name list', () => hookedCore({
-        afterRefusal: hook, targetClass: 'production', productionTargetNames: [], mintRunId: () => 'run_prod_unnamed',
-      }).execute({}), RunDeniedError],
     ]
     const calls: string[] = []
     let current = ''
@@ -818,8 +706,6 @@ describe('C442-PLUGINS-AFTER-REFUSAL', () => {
       await expect(attempt(), name).rejects.toThrow(refusal)
     }
     expect(calls).toEqual([])
-    expect(existsSync(join(agentQaRoot(), 'runs', 'run_prod_named'))).toBe(false)
-    expect(existsSync(join(agentQaRoot(), 'runs', 'run_prod_unnamed'))).toBe(false)
   })
 
   it('the post-refusal hook runs once before any port on an allowed request', async () => {

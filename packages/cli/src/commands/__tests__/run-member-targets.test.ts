@@ -27,8 +27,6 @@ describe('every member gets its own answer, in its own slot', () => {
   it('a mobile member contributes no probe URL while its web sibling in the SAME call contributes one', () => {
     const facts = resolveMemberTargetFacts(config, ['phone', 'web'])
     expect(facts.probeUrls).toEqual([undefined, 'https://web.example/one'])
-    // …and the mobile member is still CLASSIFIED. No probe is not no declaration.
-    expect(facts.declaredClasses).toEqual(['local', 'local'])
   })
 
   it('a web target with no url contributes no probe URL either', () => {
@@ -37,32 +35,24 @@ describe('every member gets its own answer, in its own slot', () => {
 
   it('two members naming the same target both carry that target’s URL — the dedupe is the probe’s job, not this pass’s', () => {
     // Stated as a cell because the alternative — collapsing here — would lose the alignment the
-    // classifier reads: the member at index 1 would have no baseline of its own.
+    // probe reads: the member at index 1 would have no baseline of its own.
     const facts = resolveMemberTargetFacts(config, ['web', 'web'])
     expect(facts.probeUrls).toEqual(['https://web.example/one', 'https://web.example/one'])
-    expect(facts.targetNames).toEqual(['web'])
   })
 
-  it('a member naming NO target occupies its slot with undefined and contributes no name', () => {
+  it('a member naming NO target occupies its slot with undefined', () => {
     const facts = resolveMemberTargetFacts(config, [undefined, 'web'])
-    expect(facts.declaredClasses).toEqual([undefined, 'local'])
     expect(facts.probeUrls).toEqual([undefined, 'https://web.example/one'])
-    expect(facts.targetNames).toEqual(['web'])
   })
 
-  it('a member naming an UNRESOLVABLE target keeps its slot, keeps its name, and gets no probe', () => {
+  it('a member naming an UNRESOLVABLE target keeps its slot and gets no probe', () => {
     const facts = resolveMemberTargetFacts(config, ['nowhere', 'web-shared'])
-    expect(facts.declaredClasses).toEqual([undefined, 'shared'])
     expect(facts.probeUrls).toEqual([undefined, 'https://web.example/two'])
-    // Declared is declared, whether or not it resolves — the preview names the run being approved.
-    expect(facts.targetNames).toEqual(['nowhere', 'web-shared'])
   })
 
-  it('the arrays are one-per-member, never one-per-distinct-target', () => {
+  it('the probe list is one-per-member, never one-per-distinct-target', () => {
     const members = ['web', 'phone', 'web', undefined, 'web-shared']
     const facts = resolveMemberTargetFacts(config, members)
-    expect(facts.declaredClasses).toHaveLength(members.length)
     expect(facts.probeUrls).toHaveLength(members.length)
-    expect(facts.targetNames).toEqual(['web', 'phone', 'web-shared'])
   })
 })

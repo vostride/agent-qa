@@ -1,9 +1,8 @@
 // THE DASHBOARD RUN DOOR (Phase 401 plan 07 — D-01/D-09/D-10/D-12, INVK-01).
 //
-// SINCE 432-13 (D-14/D-15/D-18) neither gate on this road exists: the queued run is dispatched with
-// no op-level decision and no run-level `evaluate()`, so no row is written at either. The one
-// refusal left is an un-opted-in production target, which the denial cell now drives; the posture
-// cell reads the context off the run's own `runStarted` payload. History below kept as written.
+// Neither gate on this road exists: the queued run is dispatched with no op-level decision and no
+// run-level `evaluate()`, so no row is written at either, whatever environment the target declares.
+// The posture cell reads the context off the run's own `runStarted` payload.
 //
 // WHAT IS UNDER TEST is the whole door a browser click reaches: the queue's backend →
 // `createDashboardRunDoor`'s starter → the shipped `invokeFunction` → the 384 registry → the REAL
@@ -20,17 +19,9 @@
 // a cell that assembled its own starter would be measuring a door this product does not ship.
 //
 // THE RED BASELINE, which is the point of the retirement rather than an incidental improvement.
-// Before this plan the dashboard's queue spawned `agent-qa run` and read its stdout. A policy
-// denial therefore reached the browser as an empty run: the child printed the gate's reason and
-// remedies on ITS stderr, exited 2, and the dashboard recorded "Process exited before test
-// completed". 401-05 measured the identical loss at the fn door and pasted the reading. Here the
-// denial arrives as the gate's own reason, on the run's failure record, which the cells below
-// assert by reading it BACK off the audit row rather than typing it in.
-//
-// A DENIAL'S ASSERTION SURFACE IS FIVE ARTIFACTS (401-03's Mutation B), never an exit code or a
-// message alone: the audit row's `outcome`, no run events, no build-ordinal ledger, zero requests at
-// the target, and the reason on the surface the caller sees. Every denial cell asserts all five and
-// is paired with an allow control differing in EXACTLY ONE field.
+// Before this plan the dashboard's queue spawned `agent-qa run` and read its stdout, so a run that
+// never started reached the browser as an empty run: the child printed its reason on ITS stderr,
+// exited 2, and the dashboard recorded "Process exited before test completed".
 
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -248,41 +239,6 @@ describe('a dashboard-triggered run is one more caller of runs.start (401-07, D-
       expect(driven.db.getRuns({}).map((row) => row.id)).toEqual([runId])
       expect(driven.db.getRun(runId)?.status).not.toBe('pending')
       expect(settled.runId).toBe(runId)
-    } finally {
-      await target.close()
-    }
-  }, 180_000)
-
-  // RE-SPELLED 2026-09-30 (432-13): was 'THE DENIAL — one field different (no `environment`)'. An
-  // undeclared target starts now; the one field that still refuses is a production declaration.
-  it('THE DENIAL — one field different (`environment: production`), five artifacts, and the reason REACHES the dashboard', async () => {
-    const target = new CountingTarget()
-    await target.listen()
-    try {
-      const fixture = createInProcessFixture({ origin: target.origin, environment: 'production' })
-      const driven = await composeDoor(fixture)
-      const runId = enqueue(driven.db, 'the parity test')
-
-      const settled = await runThroughQueue(driven, {
-        runId,
-        args: [fixture.testPattern],
-        source: 'dashboard',
-      })
-
-      // (a) no decision row: the production refusal is not a gate decision
-      expect(auditRows(fixture)).toEqual([])
-      // (b) THE RUN NEVER STARTED
-      expect(eventTypes(fixture)).toEqual([])
-      // (c) the durable assembly side effect never happened
-      expect(buildOrdinalsExist(fixture)).toBe(false)
-      // (d) nobody knocked on the target
-      expect(target.hits).toEqual([])
-      // (e) THE REASON ON THE SURFACE THE CALLER SEES names the target and the opt-in
-      expect(settled.status).toBe('failed')
-      expect(settled.details.reason).toContain(`"${fixture.targetName}"`)
-      expect(settled.details.reason).toContain('allowProduction: true')
-      expect(driven.envelopes(runId)).toEqual([])
-      expect(settled.details.refusedBeforeStart).toBe(true)
     } finally {
       await target.close()
     }

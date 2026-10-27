@@ -77,8 +77,8 @@ export interface AuditRow {
  *
  * This is the artifact that measures the ordering claim DIRECTLY rather than by proxy: "the gate
  * decides before any network touch of the target, including the run-start baseline probe". A
- * request recorded here is `agent-qa` touching the environment it was about to drive. A denied run
- * must leave the counter at zero — and an allow control must move it, or the zero would be a server
+ * request recorded here is `agent-qa` touching the environment it was about to drive. A dry run
+ * must leave the counter at zero — and a started run must move it, or the zero would be a server
  * nobody was ever going to call.
  */
 export class CountingTarget {
@@ -116,7 +116,7 @@ export class CountingTarget {
 }
 
 /** A target's `environment:` declaration — `undefined` writes NO declaration at all (D-06). */
-export type FixtureEnvironment = 'local' | 'shared' | 'production' | undefined
+export type FixtureEnvironment = 'local' | 'shared' | undefined
 
 export interface SuiteFixture {
   /** The project directory, real-pathed (macOS `/var` → `/private/var`) so scrubbing is exact. */

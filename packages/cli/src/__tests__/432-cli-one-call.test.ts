@@ -225,7 +225,7 @@ describe('C432-CLI-ONE-CALL — fn completes a direct call in one call (432-13)'
         expect(eventTypes(fixture as never)[0]).toBe('runStarted')
         expect(buildOrdinalsExist(fixture as never)).toBe(true)
         expect(target.hits).toEqual(['/in-process-thing'])
-        expect(printed.stderr).not.toMatch(/Denied|fail-closed|RunDeniedError/)
+        expect(printed.stderr).not.toMatch(/Denied|fail-closed/)
       } finally {
         if (savedBrowsers === undefined) delete process.env.PLAYWRIGHT_BROWSERS_PATH
         else process.env.PLAYWRIGHT_BROWSERS_PATH = savedBrowsers

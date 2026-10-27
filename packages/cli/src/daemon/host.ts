@@ -20,7 +20,6 @@ import {
   EmbedderWorkerTimeoutError,
   ENTITY_INDEX_SWEEP_INTERVAL_MS,
   LOCAL_DAEMON_CAPABILITIES,
-  RunDeniedError,
   SYSTEM_CLOCK,
   sweepEntityIndexProjection,
 } from '@vostride/agent-qa-agent-local'
@@ -708,9 +707,8 @@ async function composeDaemonRunExecution(input: {
             // THIS value, so a varied ambient cannot move it. Asserted in
             // `__tests__/daemon-run-execution.test.ts`.
             executionContext: 'local-headless',
-            // 432-13 (D-01/D-14): NO APPROVAL POSTURE. The worker injects no confirm and no trust:
-            // nothing asks, so a non-production run it is handed starts, and the core refuses a
-            // production one before any effect unless the config opts in.
+            // NO APPROVAL POSTURE. The worker injects no confirm and no trust: nothing asks, so a run
+            // it is handed starts, whatever environment its targets declare.
             inputs,
             runRecord,
             // ═══ 2026-08-26 — Phase 404 D-05/D-09: THIS DOOR HANDS OVER ITS OWN LEASE ═══
@@ -765,12 +763,6 @@ async function composeDaemonRunExecution(input: {
         )
         return { runId: asRunId(finished.runId) }
       } catch (error) {
-        if (error instanceof RunDeniedError) {
-          // A refused run is a failed JOB and never a crashed daemon; the refusal itself travels on
-          // to the caller with the core's own reason.
-          recordRunOutcome(jobAnalytics, error.runId, 'failed')
-          throw error
-        }
         if (startedRunId === undefined) throw error
         // The run BEGAN and then surfaced a framework error. See the D-03 note above: this is the
         // in-process spelling of a non-zero child exit, the evidence exists, and the composition's

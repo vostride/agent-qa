@@ -24,12 +24,6 @@
 // that needs a REAL gated run needs the composed host, and `dashboard-server` may not name
 // `@vostride/agent-qa-agent*` (validate:arch). The door is composed here for exactly that reason —
 // `dashboard-run-door.test.ts` is its sibling and made the same move.
-//
-// A DENIAL'S ASSERTION SURFACE IS FIVE ARTIFACTS (401-03's Mutation B), never an exit code or a
-// message alone: the audit row's `outcome`, no run events, no build-ordinal ledger, zero requests at
-// the target, and the reason on the surface the caller sees. The deny-on-silence cell asserts all
-// five, plus the D-15 remedies, and is paired with an allow control that differs in EXACTLY ONE
-// thing — the answer a person gave.
 
 import { randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs'
@@ -256,16 +250,9 @@ function startedContext(scene: Scene, runId: string): unknown {
   return started?.payload?.executionContext
 }
 
-// RE-SPELLED 2026-09-30 (432-13, D-14/D-15, C432-DOOR-NONPRODUCTION). Every cell in this describe
-// measured the ask the run button used to raise: deny on silence, accept, accept-always and its
-// standing approval, the channel vanishing mid-question, and the headless fail-closed arm. The
-// run is not asked about any more, so each cell now drives the same scene and pins that it starts
-// without a question — and the production refusal is the one thing that still stops a click.
-// RE-SPELLED 2026-10-01 (432-14, D-14): no cell opens a channel any more, because there is none to
-// open; each keeps its name and its claim about what the click does.
-// RE-TITLED 2026-10-03 (quick-261003-tsr, IN-12): the describe was 'an ask-tier run-button run asks
-// the browser that triggered it (D-11)'; its cells assert that nothing is asked.
-describe('the run button never asks: a click starts the run, or meets the production refusal', () => {
+// Every cell in this describe drives a scene the run button used to ask about, and pins that the
+// click starts the run without a question, whatever environment its target declares.
+describe('the run button never asks: a click starts the run', () => {
   it('DENY ON SILENCE — nothing is asked, so nothing is reaped: the run starts with the channel open', async () => {
     const target = new CountingTarget()
     await target.listen()
@@ -284,34 +271,6 @@ describe('the run button never asks: a click starts the run, or meets the produc
       expect(scene.buffered(runId).map((event) => event['type'])).toContain('runStarted')
       // 432-14: the door names nobody, so the run records the one context it answers.
       expect(startedContext(scene, runId)).toBe('local-headless')
-    } finally {
-      await target.close()
-    }
-  }, 240_000)
-
-  // RE-TITLED 2026-10-03 (quick-261003-tsr, IN-12): was 'THE ALLOW CONTROL — one thing different
-  // (a production declaration), and the click is refused unasked'.
-  it('A PRODUCTION DECLARATION — the one thing different, and the click is refused unasked before any effect', async () => {
-    const target = new CountingTarget()
-    await target.listen()
-    try {
-      const fixture = createInProcessFixture({ origin: target.origin, environment: 'production' })
-      const scene = await openScene({ fixture })
-      const runId = await triggerRun(scene)
-
-      await waitFor(() => { expect(scene.settled()).toHaveLength(1) })
-      const settled = scene.settled()[0]!
-
-      expect(runStartRows(fixture)).toEqual([])
-      expect(eventTypes(fixture)).toEqual([])
-      expect(buildOrdinalsExist(fixture)).toBe(false)
-      expect(target.hits).toEqual([])
-      expect(settled.status).toBe('failed')
-      expect(String(settled.details['reason'])).toContain(`"${fixture.targetName}"`)
-      expect(String(settled.details['reason'])).toContain('allowProduction: true')
-      expect(settled.details).not.toHaveProperty('remedies')
-      expect(scene.buffered(runId)).toEqual([])
-      expect(settled.details['refusedBeforeStart']).toBe(true)
     } finally {
       await target.close()
     }

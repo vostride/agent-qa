@@ -11,10 +11,9 @@
 // into a started in-process run. A door supplies its own posture and gets a run — without spawning
 // `agent-qa run`, and without naming a single CLI option.
 //
-// IT COMPOSES THE CORE AND ASKS NOBODY (432-13, D-14/D-15). This module hands the core the door's
-// `executionContext` and lets the core own the ORDER; the core refuses production before any
-// effect and starts everything else. No confirm port, session trust or approval reader exists on
-// this seam any more.
+// IT COMPOSES THE CORE AND ASKS NOBODY. This module hands the core the door's `executionContext`
+// and lets the core own the ORDER; the core starts every allowed request, whatever environment its
+// targets declare. No confirm port, session trust or approval reader exists on this seam.
 //
 // IT READS NO AMBIENT EXECUTION CONTEXT (D-07). There is no `resolveRunExecutionContext()` call
 // here, no `getActiveExecutionContext`, no TTY sniff: `executionContext` is a REQUIRED option with
@@ -39,8 +38,8 @@
 // (T-401-31). A library that can terminate its caller is a boundary of its own.
 //
 // A NON-ZERO EXIT CODE IS NOT AN ERROR. A failing suite exits non-zero and is a perfectly real run.
-// This module throws only `RunDeniedError` (the production refusal), `RunRequestFieldRefusedError`
-// and `CliRunInputError`.
+// This module throws only the core's refusals (a refused request field or run id) and
+// `CliRunInputError`.
 
 import { asRunId, resolveEffectiveWorkers } from '@vostride/agent-qa-schema'
 import type {
@@ -231,8 +230,8 @@ export interface InProcessCliRunExecutionOptions {
   /** The door's own reporters, attached inside the core's `onSession`. The record is not one. */
   readonly subscribers?: (input: RunSubscriberAttachInput) => { flush(): Promise<void> } | undefined
   /**
-   * The run's runs.db record (443-05, D-02/D-22). The drive opens it after the production refusal
-   * and attaches it itself; the door that built it closes it. Required (443-08): no door runs
+   * The run's runs.db record (443-05, D-02/D-22). The drive opens it once the request and its run
+   * id are allowed and attaches it itself; the door that built it closes it. Required (443-08): no door runs
    * unrecorded.
    */
   readonly runRecord: RunRecord
@@ -350,8 +349,8 @@ export interface InProcessCliRunExecutionOptions {
  * request must leave nothing behind. That property is the core's to state but not the core's to
  * KEEP once something stands in front of it. Everything the drive does before composing the core
  * resolves the caller's project config and secrets — reads made on behalf of a request this seam
- * was always going to refuse. (Plugins no longer load there; 442-08 moved them behind the core's
- * production refusal.)
+ * was always going to refuse. (Plugins do not load there; they load once the core has allowed the
+ * request and its run id.)
  *
  * Measured at the fn door rather than reasoned about: `agent-qa fn runs.start` carrying `scope`,
  * against a project declaring an auth plugin that is not installed, reported the PLUGIN's error
@@ -451,23 +450,9 @@ export async function runInProcessCliRun(
     // core with no default, so this line is not a policy this door chose — its absence is a
     // compile error.
     isMintedRunId: isMintedCliRunId,
-    // A CONFIG READ, NEVER A PROBE. The producer resolved the declared class before anything could
-    // touch a target.
-    //
-    // ONE RESOLUTION ANSWERS EVERY FIELD (401-14). The names come off the SAME producer pass that
-    // folded the class.
-    //
-    // 432-03 (D-18): the production names and the opt-in ride the same produced object, so the
-    // core refuses on the members the class was folded over and on the config those members were
-    // resolved against. Nothing on the request or this drive's options can set either.
-    resolveTargetDeclaration: () => ({
-      targetClass: produced.targetClass,
-      targetNames: produced.targetNames,
-      productionTargetNames: produced.productionTargetNames,
-      allowProduction: produced.allowProduction,
-    }),
     afterRefusal: async () => {
-      // 2026-10-17 (443-05, D-05): the record opens after the refusal and before any effect.
+      // The record opens once the request and its run id are allowed, then plugins load, before
+      // any effect.
       await options.runRecord.open({
         runId,
         configDir: produced.configDir,
@@ -631,8 +616,8 @@ export async function runInProcessCliRun(
     { executionContext: options.executionContext },
     async (): Promise<CliRunOutcome> => {
       try {
-        // The core refuses, assembles, starts and awaits the run. A production refusal throws
-        // `RunDeniedError` from inside here, before a single run event exists.
+        // The core refuses, assembles, starts and awaits the run. A refused request field or run id
+        // throws from inside here, before a single run event exists.
         await core.execute({ ...request, runId: asRunId(runId) })
         const session = startedSession
         if (session === undefined) {

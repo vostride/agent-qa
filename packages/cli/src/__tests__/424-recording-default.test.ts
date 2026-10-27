@@ -154,13 +154,12 @@ for (const path of ['suite', 'direct'] as const) {
           preflight: {
             definitions: new Map([[suiteFile, { 'suite-id': generateSuiteId(), name: 'Recording suite', target: 'fixture', tests: [{ test: 'one.yaml', id: testId }] }]]),
             preloadedTests: new Map([[filePath, { fileContent, parseResult: { tests: [test], errors: [] } }]]),
-            product: 'recording-fixture', productionTargetNames: [],
+            product: 'recording-fixture',
           },
           variableContext: { envFileVars: {}, inlineVars: {}, cliVars: {}, userRunAttributes: {}, secretStore, secretRedactor },
         } as SuiteRunMemberProductionInput)
     const core = createRunInvocationCore({
       configPath: configFilePath, agentQaRoot: join(root, '.agent-qa'), executionContext: 'ci',
-      resolveTargetDeclaration: () => ({ targetClass: 'local', targetNames: ['fixture'], productionTargetNames: [] }),
       mintRunId: () => runId, isMintedRunId: () => true,
       assembleRun: async context => {
         const assembly = await assembleCliRun({

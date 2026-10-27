@@ -40,14 +40,7 @@ import type { RunMemberDescriptor, ConfigDigests, MemberTestRunContext, MemberTe
 import { resolveRunQuarantineSnapshot } from '@vostride/agent-qa-agent-local'
 // 401-11 (D-02): the door renders the core's refusal; it no longer COMPOSES the core. That moved,
 // with the assembler hand-off, the audit sink, the safety-hook runner and the safety scope, into the ONE in-process drive both of this door's paths now call.
-import {
-  refuseProductionWithoutOptIn,
-  refuseUnavailableRunId,
-  RunDeniedError,
-  RunIdAlreadyInUseError,
-  RunIdNotMintedError,
-  type RunTargetClass,
-} from '@vostride/agent-qa-agent-local'
+import { RunIdAlreadyInUseError, RunIdNotMintedError } from '@vostride/agent-qa-agent-local'
 // 401-11: the ONE in-process drive. BOTH of this door's paths are callers of it — the door supplies
 // its posture, its members and its post-verdict tail; the drive owns the order.
 //
@@ -148,80 +141,17 @@ export function requireSingleInvocationProduct(
 }
 
 /**
- * THE DECLARED CLASS OF A WHOLE INVOCATION — one fold, both of this command's doors (401-12, CR-01).
- *
- * MOST RESTRICTIVE WINS. A run is ONE run and therefore ONE gate decision, so the class it is
- * decided under has to cover every target it will drive. One `shared` member makes the invocation
- * shared; one UNDECLARED member makes it undeclared, which `buildRunRiskDescriptor` reads as shared
- * (D-06). Only an invocation whose every target is declared `local` is decided as local — otherwise
- * an invocation could smuggle a production target in behind a loopback sibling.
- *
- * AN EMPTY OR UNRESOLVABLE SET IS `undefined`, NOT `'local'`. A target we could not resolve is a
- * target we know nothing about, and nothing-known is the undeclared case, which fails closed.
- *
- * ONE IMPLEMENTATION, DELIBERATELY. The suite path had this fold and the direct path did not: it
- * classified the whole invocation from `filtered[0]` alone, so the same two members allowed or
- * denied a run depending on which filename came first on the command line. Two spellings of a
- * security fold is how one of them stays wrong, so there is one, and both callers call it.
- *
- * WRITTEN POSITIVELY, SO THE ELSE-BRANCH IS THE REFUSAL (401-19, WR-02). `local` is answered only
- * for a set this function can PROVE is entirely local; every other set falls through to the
- * fail-closed answer. The enumerative spelling this replaces denied two known-bad shapes and
- * allowed everything else, which made a value neither `undefined` nor `'shared'` a whole
- * invocation's `mutating-local` — allowed in every context, with no credential and no confirm.
- * That value has a road: `resolveTarget` returns `targets[targetName] as TargetEntry` over an
- * `any` with no runtime check of its own (targets.ts:35-53), so a host that BUILDS a config in
- * memory instead of loading one through the validating reader reaches this fold with any string
- * it likes on `environment`. Defence-in-depth against a real seam, not a theoretical one — and on
- * every input the config CAN produce the two spellings are behaviourally identical.
- *
- * UNDECLARED OUTRANKS SHARED, and the order below says so. Both classify as shared downstream, so
- * the tier is the same either way; what differs is the SENTENCE a person approves, which names an
- * undeclared member as undeclared rather than calling it a declared shared one (401-15, WR-06).
- *
- * PRODUCTION OUTRANKS EVERYTHING (432-03, D-18). One production member makes the invocation
- * production, which the core refuses unless the config opts in. The production NAMES travel beside
- * the class (`MemberTargetFacts.productionTargetNames`), because a class alone cannot say which
- * members of a mixed run are the production ones.
- */
-export function foldMostRestrictiveTargetClass(
-  declared: readonly RunTargetClass[],
-): RunTargetClass {
-  if (declared.length === 0) return undefined
-  if (declared.includes('production')) return 'production'
-  if (declared.every((declaration) => declaration === 'local')) return 'local'
-  if (declared.includes(undefined)) return undefined
-  if (declared.includes('shared')) return 'shared'
-  return undefined
-}
-
-/**
  * WHAT ONE INVOCATION'S MEMBERS SAY ABOUT THEIR TARGETS — resolved once, per member, for both of
- * this command's doors (401-19, WR-04).
+ * this command's doors.
  *
- * INDEX-ALIGNED WITH THE MEMBER LIST, which is the whole point. `declaredClasses` folds into the
- * one tier decision; `probeUrls` decides which health reading belongs to which member. A run-level
- * probe URL — the FIRST resolvable web member's, applied to everyone — is what let a baseline taken
- * against member B's target be recorded as member A's environment failure.
- *
- * ONE PASS, ONE IMPLEMENTATION, both producers. The suite door and the direct door used to keep
- * their own loops, and the class fold has already been wrong in exactly one of them once
- * (401-12/CR-01). A member naming no target contributes `undefined` to both arrays and no name at
- * all — an invented default here would be a second answer to the question that decides the run.
+ * INDEX-ALIGNED WITH THE MEMBER LIST, which is the whole point: `probeUrls` decides which health
+ * reading belongs to which member. A run-level probe URL — the FIRST resolvable web member's,
+ * applied to everyone — is what let a baseline taken against member B's target be recorded as
+ * member A's environment failure. A member naming no target contributes `undefined`.
  */
 export interface MemberTargetFacts {
-  /** One entry per member, in member order: the target's DECLARED class, or `undefined`. */
-  readonly declaredClasses: readonly RunTargetClass[]
   /** One entry per member, in member order: the URL to probe, or `undefined` for no probe. */
   readonly probeUrls: readonly (string | undefined)[]
-  /** The DISTINCT declared names, in first-appearance member order (401-14, W-1). */
-  readonly targetNames: readonly string[]
-  /**
-   * The DISTINCT names whose resolved target declares `environment: production`, in first-appearance
-   * member order (432-03, D-18). Every production member of a mixed run is here; a member whose
-   * target does not resolve is undeclared, and undeclared is not production.
-   */
-  readonly productionTargetNames: readonly string[]
   /** The first member whose target resolved — the invocation's product when nothing else names it. */
   readonly firstResolvedProduct?: string
 }
@@ -230,46 +160,29 @@ export function resolveMemberTargetFacts(
   config: AgentQaConfig,
   memberTargetNames: readonly (string | undefined)[],
 ): MemberTargetFacts {
-  const declaredClasses: RunTargetClass[] = []
   const probeUrls: (string | undefined)[] = []
-  const targetNames: string[] = []
-  const productionTargetNames: string[] = []
   let firstResolvedProduct: string | undefined
 
   for (const targetName of memberTargetNames) {
     if (targetName === undefined) {
-      declaredClasses.push(undefined)
       probeUrls.push(undefined)
       continue
     }
-    // The DECLARED name, recorded before resolution has its say: a member that names a target the
-    // config cannot resolve still names it, and a preview that hid it would be describing a smaller
-    // run than the one being approved.
-    if (!targetNames.includes(targetName)) targetNames.push(targetName)
     try {
       const resolved = resolveTarget(config, targetName)
-      declaredClasses.push(resolved.environment)
-      // 432-03 (D-18): the class is the config's declaration, never the URL's spelling.
-      if (resolved.environment === 'production' && !productionTargetNames.includes(targetName)) {
-        productionTargetNames.push(targetName)
-      }
       // D-04: web targets only. A mobile member contributes no URL and therefore receives no
       // baseline — the device-session-create failure is the equivalent environment signal there.
       probeUrls.push(resolved.platform === 'web' && resolved.url ? resolved.url : undefined)
       firstResolvedProduct ??= resolved.product
     } catch {
-      // Unresolvable here is undeclared here — best-effort resolution, fail-closed classification.
-      // The member closure still surfaces the real target error as the framework error it is.
-      declaredClasses.push(undefined)
+      // Best-effort resolution: the member closure still surfaces the real target error as the
+      // framework error it is.
       probeUrls.push(undefined)
     }
   }
 
   return {
-    declaredClasses,
     probeUrls,
-    targetNames,
-    productionTargetNames,
     ...(firstResolvedProduct === undefined ? {} : { firstResolvedProduct }),
   }
 }
@@ -1412,8 +1325,8 @@ export interface RunInvocationInputs {
    */
   readonly discovered: { readonly tests: string[]; readonly suites: string[] }
   /**
-   * 2026-10-16 (442-08, D-10): the config is resolved plugin-free; this loads its auth and provider
-   * plugins once, after the production refusal. A no-op for `loadAuthPlugins: false`.
+   * The config is resolved plugin-free; this loads its auth and provider plugins once, after the
+   * run's request and id are allowed and its record is open. A no-op for `loadAuthPlugins: false`.
    */
   readonly loadPlugins: () => Promise<void>
 }
@@ -2075,7 +1988,6 @@ async function executeSuites(
     const members = produced.members
     const executor = produced.executor
     const runProduct = produced.product
-    const suiteTargetClass = produced.targetClass
     const buildTag = produced.buildTag
     const knowledgeRoot = produced.knowledgeRoot
     const runDigests = { runLevel: produced.configDigests }
@@ -2099,9 +2011,8 @@ async function executeSuites(
       }))
     }
 
-    // 432-13 (D-01/D-14): NOTHING ASKS. This door builds no confirm channel and carries no session
-    // trust: a non-production suite starts at a terminal, on a piped stdio and in CI alike, and the
-    // core refuses production before any effect unless the config opts in.
+    // NOTHING ASKS. This door builds no confirm channel and carries no session trust: a suite starts
+    // at a terminal, on a piped stdio and in CI alike, whatever environment its targets declare.
 
     // 401-11 (D-01/D-02): THE SUITE PATH IS A CALLER OF THE SAME ONE IN-PROCESS DRIVE the single-test
     // path calls. With this, `createRunInvocationCore` is composed in exactly ONE place in the whole
@@ -2266,7 +2177,7 @@ export const isMintedCliRunId = isCanonicalRunId
 export interface PatternMemberProductionContext {
   readonly inputs: RunInvocationInputs
   readonly runId: string
-  /** The run's record; the suite half opens it after its own production refusal (443-08, D-05). */
+  /** The run's record; the suite half opens it before it loads plugins or prepares a suite. */
   readonly runRecord?: RunRecord
   readonly opts?: RunOptions
   readonly analytics?: () => Promise<CliAnalyticsHost>
@@ -2387,71 +2298,6 @@ export async function produceMembersFromPatterns(
 }
 
 /**
- * What a request's members declare about production, read the way the producers read it and
- * nothing more (433-34, G-433-10).
- *
- * A door that must refuse BEFORE it records anything (the dashboard's trigger mints a row the
- * moment it enqueues) asks this, then hands the answer to `refuseProductionWithoutOptIn`, so the
- * rule keeps its one decision site. It resolves the same inputs and walks the same split, parse
- * and target facts as `produceMembersFromPatterns`, and builds no logger, cache, session, run
- * directory, probe or adapter. Config is read as `--dry-run` reads it, without auth plugins.
- *
- * A request this cannot resolve throws the producer's own input error; the run then reports it
- * exactly as it does without this read.
- */
-export async function resolveRunTargetDeclaration(input: {
-  readonly configPath?: string
-  readonly patterns?: readonly string[]
-}): Promise<{
-  readonly targetClass?: RunTargetClass
-  readonly productionTargetNames: readonly string[]
-  readonly allowProduction: boolean
-}> {
-  const inputs = await resolveRunInvocationInputs({
-    ...(input.configPath === undefined ? {} : { configPath: input.configPath }),
-    ...(input.patterns === undefined ? {} : { patterns: input.patterns }),
-    loadAuthPlugins: false,
-    warn: () => {},
-  })
-  const allowProduction = inputs.config.allowProduction === true
-  const { tests, suites } = inputs.discovered
-
-  if (tests.length > 0) {
-    const { parseAllTestBindings } = await import('@vostride/agent-qa-core')
-    const parseResult = await parseAllTestBindings([...tests])
-    if (parseResult.errors.length > 0) {
-      throw new CliRunParseError(
-        [pc.red(`Found ${parseResult.errors.length} parse error(s):`), '', ...formatParseErrorLines(parseResult.errors)],
-        parseResult.errors,
-        [...tests],
-      )
-    }
-    refuseZeroRunnableTests(tests, parseResult.bindings)
-    const facts = resolveMemberTargetFacts(
-      inputs.config,
-      parseResult.bindings.map((binding) => binding.test.target),
-    )
-    return {
-      targetClass: foldMostRestrictiveTargetClass(facts.declaredClasses),
-      productionTargetNames: facts.productionTargetNames,
-      allowProduction,
-    }
-  }
-
-  if (suites.length > 0) {
-    const preflight = await resolveSuitePreflight({
-      suiteFiles: suites,
-      config: inputs.config,
-      configDir: inputs.configDir,
-    })
-    // The suite producer refuses on the parsed names alone, before preparation; so does this.
-    return { productionTargetNames: preflight.productionTargetNames, allowProduction }
-  }
-
-  throw new CliRunInputError([pc.red('Error: No test or suite files resolved for this run.')], 2)
-}
-
-/**
  * The read-only suite preflight: parse every suite and its members, and decide the invocation's
  * single product. Nothing here touches a target, a device, a database or a counter.
  *
@@ -2464,12 +2310,6 @@ export interface SuitePreflight {
   readonly definitions: Map<string, SuiteDefinition>
   readonly preloadedTests: Map<string, PreloadedSuiteTest>
   readonly product: string | undefined
-  /**
-   * The suites' production targets, in member order, before anything is prepared (432-03, D-18).
-   * Suite preparation acquires devices, Appium and adapters, so the production refusal has to be
-   * decided from the parse alone.
-   */
-  readonly productionTargetNames: readonly string[]
 }
 
 export type PreloadedSuiteTest = {
@@ -2489,9 +2329,6 @@ export async function resolveSuitePreflight(input: {
   const definitions = new Map<string, SuiteDefinition>()
   const preloadedTests = new Map<string, PreloadedSuiteTest>()
   const suiteProductMembers: InvocationProductMember[] = []
-  // Each member's target in member order: the suite's own when it names one, since that is what
-  // every member is patched to, and otherwise each test's.
-  const memberTargetNames: (string | undefined)[] = []
 
   for (const suiteFile of input.suiteFiles) {
     const suite = await parseSuiteFile(suiteFile)
@@ -2509,8 +2346,6 @@ export async function resolveSuitePreflight(input: {
       const fileContent = await readFile(absolutePath, 'utf-8')
       const parseResult = parseTestFile(fileContent, absolutePath)
       preloadedTests.set(absolutePath, { fileContent, parseResult })
-      if (suite.target !== undefined) memberTargetNames.push(suite.target)
-      else memberTargetNames.push(...parseResult.tests.map((test) => test.target))
 
       if (suite.target === undefined) {
         const test = parseResult.errors.length === 0 ? parseResult.tests[0] : undefined
@@ -2528,7 +2363,6 @@ export async function resolveSuitePreflight(input: {
     definitions,
     preloadedTests,
     product: requireSingleInvocationProduct(suiteProductMembers),
-    productionTargetNames: resolveMemberTargetFacts(input.config, memberTargetNames).productionTargetNames,
   }
 }
 
@@ -2572,9 +2406,9 @@ export interface SuiteRunMemberProductionInput {
    * the host's URL wins, and this process manages nothing. See `AppiumUrlResolver`.
    */
   readonly resolveAppiumUrl?: AppiumUrlResolver
-  /** `RunInvocationInputs.loadPlugins`, awaited after this producer's production refusal. */
+  /** `RunInvocationInputs.loadPlugins`, awaited once the run's record is open. */
   readonly loadPlugins: () => Promise<void>
-  /** The run's record, opened after this producer's production refusal and before its plugins. */
+  /** The run's record, opened before this producer loads its plugins or prepares a suite. */
   readonly runRecord?: RunRecord
   readonly terminal?: RunTerminal
   // 2026-10-17 (444-22, D-46; 2026-10-18 444-25, D-60): only agent-qa run passes this; its
@@ -2617,20 +2451,9 @@ export async function produceSuiteRunMembers(
   const analytics = input.analytics
   const parsedSuiteDefinitions = input.preflight.definitions
   const preloadedSuiteTests = input.preflight.preloadedTests
-  const preflightRunProduct = input.preflight.product
+  const suitePreflightProduct = input.preflight.product
 
-  // 432-03 (D-18): PRODUCTION IS REFUSED BEFORE ANY SUITE IS PREPARED. Preparation acquires a
-  // device, Appium and an adapter, so waiting for the core would refuse after those effects. The
-  // identity refusals are asked first, so a duplicate or unminted id keeps its own refusal here as
-  // it does in the core; both are the core's own functions, so there is one spelling of each.
-  if (input.preflight.productionTargetNames.length > 0 && config.allowProduction !== true) {
-    refuseUnavailableRunId({ configDir, runId, isMintedRunId: isMintedCliRunId })
-    refuseProductionWithoutOptIn(runId, {
-      productionTargetNames: input.preflight.productionTargetNames,
-      allowProduction: config.allowProduction,
-    })
-  }
-  // 2026-10-17 (443-08, D-05): the record opens here, before plugins; the drive's later open is a no-op.
+  // The record opens here, before plugins; the drive's later open is a no-op.
   await input.runRecord?.open({
     runId,
     configDir,
@@ -2638,7 +2461,7 @@ export async function produceSuiteRunMembers(
       ? {}
       : { configuredDbPath: config.services.dashboard.dbPath }),
   })
-  // 2026-10-16 (442-08, D-10): plugins load only once production has been refused or allowed.
+  // Plugins load once the record is open, before any suite is prepared.
   await input.loadPlugins()
 
   const { parseTestFile, patchTestForSuite } = await import('@vostride/agent-qa-core')
@@ -3575,7 +3398,7 @@ export async function produceSuiteRunMembers(
   const runDigests = computeRunConfigDigests({ configContent, members: digestMembers })
   perMemberDigests = runDigests.perMember
 
-  const runProduct = preflightRunProduct
+  const runProduct = suitePreflightProduct
     ?? preparedSuites.find((p) => p.product)?.product
     ?? 'unknown'
 
@@ -3586,30 +3409,18 @@ export async function produceSuiteRunMembers(
   })
   const knowledgeRoot = resolveKnowledgeRoot(config.knowledge, configDir)
 
-  // 401-04 (D-02/D-05/D-06): the suite door's DECLARED TARGET CLASS, resolved here because the
-  // class is what the run gate classifies and the gate decides before anything touches a target.
-  // Resolution is a config read only — the probe that fetches the URL moved into `assembleCliRun`,
-  // i.e. behind the verdict, exactly as it did for the single-test path in 401-03.
-  //
-  // The most-restrictive-wins rule and its threat model live on `foldMostRestrictiveTargetClass`,
-  // which is the SAME function the direct path calls (401-12). Collecting the members is per-door;
-  // deciding what their classes add up to is not.
-  //
-  // 401-19 (WR-04): PER MEMBER, in the member array's own order — the same nesting `members` above
-  // was pushed in, so `facts.probeUrls[i]` belongs to `members[i]`. A suite-level `target:` is what
-  // `patchTestForSuite` gives every one of that suite's members, so it is that member's target.
+  // Each member's probe URL, resolved as a config read only — the probe that fetches the URL runs
+  // inside `assembleCliRun`. PER MEMBER, in the member array's own order — the same nesting
+  // `members` above was pushed in, so `facts.probeUrls[i]` belongs to `members[i]`. A suite-level
+  // `target:` is what `patchTestForSuite` gives every one of that suite's members, so it is that
+  // member's target.
   const suiteMemberTargetNames: (string | undefined)[] = []
   for (const prepared of preparedSuites) {
     for (const entry of prepared.testEntries) {
       suiteMemberTargetNames.push(prepared.suite.target ?? entry.test.target)
     }
   }
-  // 401-14: the NAMES come off the SAME pass that yields the classes — the disclosure the gate shows
-  // a person is built from this pass and no other. D-04's probe URLs ride it too (401-19).
   const suiteTargetFacts = resolveMemberTargetFacts(config, suiteMemberTargetNames)
-  const suiteTargetNames = suiteTargetFacts.targetNames
-  const suiteTargetClass: RunTargetClass =
-    foldMostRestrictiveTargetClass(suiteTargetFacts.declaredClasses)
 
   // Assigned by the assembler, which the core calls only after the gate allows the run. Both are
   // read strictly downstream of that call — the ordinal by the member closures (`asOfBuild`) and by
@@ -3644,10 +3455,6 @@ export async function produceSuiteRunMembers(
     configDir,
     configFilePath,
     knowledgeRoot,
-    targetClass: suiteTargetClass,
-    targetNames: suiteTargetNames,
-    productionTargetNames: suiteTargetFacts.productionTargetNames,
-    allowProduction: config.allowProduction === true,
     memberProbeUrls: suiteTargetFacts.probeUrls,
     concurrency: resolveRunConcurrencyConfig(
       config.use as Record<string, unknown> | undefined,
@@ -3792,36 +3599,11 @@ export interface ProducedCliRunMembers {
   readonly configDir: string
   readonly configFilePath: string
   readonly knowledgeRoot: string
-  /** The DECLARED class the gate classifies — a config read, never a probe (D-06). */
-  readonly targetClass: RunTargetClass
-  /**
-   * The DISTINCT declared target names, in first-appearance member order (401-14, W-1).
-   *
-   * BESIDE `targetClass` AND FROM THE SAME LOOP, never from a second `resolveTarget` pass: the
-   * names describe the very members whose classes were folded into the tier. Two passes would be
-   * free to disagree, which is the defect class this phase has hit more than once. Members
-   * declaring no target contribute nothing — an all-undeclared run arrives as `[]`, not as a list
-   * of invented names.
-   *
-   * DISPLAY-ONLY. 2026-10-02 (432-42, D-14): the descriptor field it used to reach is deleted.
-   */
-  readonly targetNames: readonly string[]
-  /**
-   * The DISTINCT production-declared names, in first-appearance member order, from the SAME pass as
-   * `targetClass` and `targetNames` (432-03, D-18). The core refuses on these before any effect.
-   */
-  readonly productionTargetNames: readonly string[]
-  /**
-   * The resolved config's top-level `allowProduction`, as a boolean: `true` only when the config
-   * the members were resolved against says so. Read from that config and nowhere else.
-   */
-  readonly allowProduction: boolean
   /**
    * ONE ENTRY PER MEMBER, in `members` order: the URL whose health reading belongs to THAT member,
    * or `undefined` for a member no probe applies to (401-19, WR-04).
    *
-   * A config read, like `targetClass` — the fetch itself happens inside `assembleCliRun`, behind
-   * the verdict, which dedupes by URL so members sharing a target cost one GET.
+   * A config read — the fetch itself happens inside `assembleCliRun`, which dedupes by URL so members sharing a target cost one GET.
    */
   readonly memberProbeUrls: readonly (string | undefined)[]
   /**
@@ -3877,7 +3659,7 @@ export interface ProducedCliRunMembers {
   getCurationModelDeps(): CurationTailModelDeps | undefined
   /** Any teardown the producer owns. The suite half finalises its lifecycle here. */
   finalize?(): Promise<void>
-  /** The run's plugin load (442-08, D-10), which the core awaits after its production refusal. */
+  /** The run's plugin load, which the core awaits once the request and its run id are allowed. */
   readonly loadPlugins: () => Promise<void>
   /** The run's own config's `services.dashboard.dbPath`, resolved only when the record opens (D-08). */
   readonly configuredRunsDbPath?: string
@@ -4570,27 +4352,13 @@ export async function produceDirectRunMembers(
     )
   }
 
-  // 401-03 (D-02/D-05/D-06): the targets are resolved here because their DECLARED CLASS is what
-  // the run gate classifies, and the gate decides before anything touches a target. The
-  // resolution itself is a config read — the probe that fetches the URL moved into
-  // `assembleCliRun`, i.e. behind the verdict.
-  //
-  // 401-12 (CR-01): EVERY member, not `filtered[0]`. This block used to classify the whole
-  // invocation from its first argument while the suite path folded over all of its members, so
-  // `run tests/local.yaml tests/shared.yaml` was ALLOWED and the same two files in the other order
-  // were DENIED — argument order decided authorization. The fold is
-  // `foldMostRestrictiveTargetClass`, the same function the suite path calls; its rationale lives
-  // there rather than being spelled a second time here.
-  //
-  // 401-19 (WR-04): `filtered` is what `buildDirectRunMembers` mapped 1:1 into `members`, so the
+  // Each member's probe URL, resolved as a config read — the probe that fetches the URL runs inside
+  // `assembleCliRun`. `filtered` is what `buildDirectRunMembers` mapped 1:1 into `members`, so the
   // facts below are index-aligned with the member array and each member's probe URL is its own.
   const directTargetFacts = resolveMemberTargetFacts(
     config,
     filtered.map((binding) => binding.test.target),
   )
-  const directTargetNames = directTargetFacts.targetNames
-  const singleTargetClass: RunTargetClass =
-    foldMostRestrictiveTargetClass(directTargetFacts.declaredClasses)
   // `requireSingleInvocationProduct` upstream already guarantees ONE product across the members, so
   // the first resolvable member's product is the invocation's product.
   singleRunProduct = directRunProduct ?? directTargetFacts.firstResolvedProduct ?? 'unknown'
@@ -4661,10 +4429,6 @@ export async function produceDirectRunMembers(
     configDir,
     configFilePath,
     knowledgeRoot: resolveKnowledgeRoot(config.knowledge, configDir),
-    targetClass: singleTargetClass,
-    targetNames: directTargetNames,
-    productionTargetNames: directTargetFacts.productionTargetNames,
-    allowProduction: config.allowProduction === true,
     memberProbeUrls: directTargetFacts.probeUrls,
     concurrency: resolveRunConcurrencyConfig(
       config.use as Record<string, unknown> | undefined,
@@ -5104,7 +4868,6 @@ export function createRunCommand(): Command {
         const executor = produced.executor
         const logger = produced.logger
         const singleRunProduct = produced.product
-        const singleTargetClass = produced.targetClass
         const singleBuildTag = produced.buildTag
         const runDigests = { runLevel: produced.configDigests }
         let singleQuarantined: readonly QuarantineAppliedEntry[] = []
@@ -5272,19 +5035,6 @@ export function createRunCommand(): Command {
           for (const line of err.lines) console.error(line)
           process.exit(err.exitCode)
         }
-        // 401-03 (D-15/D-16): the run was refused, so it never started — there is no run row to
-        // finalize, no crash to report, and nothing for `formatFrameworkError` to say. Since 432 the
-        // one refusal is production without the config opt-in (D-18), and its reason is the whole
-        // answer: it names the target and the config line. 2026-10-01 (432-19): no remedy line
-        // follows it, because the remedy vocabulary left with the execution gate.
-        //
-        // EXIT 2, NOT 1. `1` is "the tests failed", and a denial must never read as a failing
-        // suite: nothing ran. `2` is this command's existing "no verdict was produced" code.
-        if (err instanceof RunDeniedError) {
-          console.error(pc.red(redactSecretValue(`Run denied: ${err.reason}`, _crashSecretRedactor)))
-          await drainAnalytics()
-          process.exit(2)
-        }
         // 401-20 (CR-04): THE IDENTITY REFUSALS ARE DECISIONS, AND ARE DESCRIBED AS ONES. Measured
         // before this branch existed: `AGENT_QA_RUN_ID=not-a-minted-id agent-qa run …` printed
         // `Framework error: agent-qa cannot start a run under "not-a-minted-id"` — a refusal
@@ -5293,7 +5043,8 @@ export function createRunCommand(): Command {
         // failed, and the message the core minted is already the whole answer: the caller named an
         // id it may not name, and no remedy vocabulary is involved because no policy was consulted.
         //
-        // EXIT 2 on `RunDeniedError`'s reasoning: `1` is "the tests failed", and nothing ran.
+        // EXIT 2, NOT 1: `1` is "the tests failed", and nothing ran. `2` is this command's existing
+        // "no verdict was produced" code.
         if (err instanceof RunIdNotMintedError || err instanceof RunIdAlreadyInUseError) {
           console.error(pc.red(redactSecretValue(err.message, _crashSecretRedactor)))
           await drainAnalytics()

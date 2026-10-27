@@ -7,9 +7,7 @@
 // file always called the point: HONEST ABSENCE. A refusal is a plain reason, and the CLI appends
 // nothing a reader could try — no flag, no confirm, no approval or trust command.
 //
-// The one refusal left at this door is a production run without the config opt-in (D-18). Its
-// sentence is built by the shared producer and printed as `Run denied: <reason>`, which these cells
-// read off the shipped sources and the shipped producer rather than off a copy.
+// These cells read the shipped sources and the shipped receipt renderer rather than a copy.
 
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -17,7 +15,7 @@ import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
-import { buildProductionRefusal, type ClauseReceipt } from '@vostride/agent-qa-schema'
+import type { ClauseReceipt } from '@vostride/agent-qa-schema'
 
 import * as receiptLineModule from '../commands/receipt-line.js'
 import { receiptLine } from '../commands/receipt-line.js'
@@ -47,29 +45,6 @@ describe('C432-REMEDY-TYPES-ABSENT: the CLI has no remedy renderer', () => {
 })
 
 describe('C432-PLAIN-REFUSAL: a refused run prints a plain reason and suggests nothing', () => {
-  it('C432-PLAIN-REFUSAL: the run door prints exactly `Run denied: <reason>` for a run denial', () => {
-    const code = stripComments(readFileSync(join(COMMANDS, 'run.ts'), 'utf8'))
-    const branch = code.slice(code.indexOf('if (err instanceof RunDeniedError) {'))
-    expect(branch.length).toBeGreaterThan(0)
-    const body = branch.slice(0, branch.indexOf('process.exit(2)'))
-    // 2026-10-15 (441-63, CR-A03): the same sentence, through the run's redactor.
-    expect(body).toContain(
-      'console.error(pc.red(redactSecretValue(`Run denied: ${err.reason}`, _crashSecretRedactor)))',
-    )
-    // One print, of the reason alone.
-    expect(body.match(/console\.error/g) ?? []).toHaveLength(1)
-  })
-
-  it('C432-PLAIN-REFUSAL: the refusal names the target and the config line, and no approval or trust command', () => {
-    for (const names of [['prod-eu'], ['prod-eu', 'prod-us'], []]) {
-      const printed = `Run denied: ${buildProductionRefusal(names)}`
-      for (const name of names) expect(printed).toContain(`"${name}"`)
-      expect(printed).toContain('allowProduction: true')
-      expect(printed).not.toMatch(SUGGESTED_ACTION)
-      expect(printed.split('\n')).toHaveLength(1)
-    }
-  })
-
   it('C432-PLAIN-REFUSAL: a refused or failed receipt renders its own outcome and appends no suggested command', () => {
     const base: Omit<ClauseReceipt, 'status' | 'outcome'> = {
       clause: 'start a run on prod',
@@ -77,7 +52,7 @@ describe('C432-PLAIN-REFUSAL: a refused run prints a plain reason and suggests n
       origin: 'human',
     }
     for (const receipt of [
-      { ...base, status: 'refused', outcome: buildProductionRefusal(['prod-eu']) },
+      { ...base, status: 'refused', outcome: 'RunIdAlreadyInUseError' },
       { ...base, status: 'failed', outcome: 'FunctionInputError' },
     ] satisfies ClauseReceipt[]) {
       const line = receiptLine(receipt)

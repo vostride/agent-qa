@@ -119,7 +119,7 @@ for (const path of ['COMPOSED', 'DIRECT'] as const) {
           preflight: {
             definitions: new Map([[suiteFile, { 'suite-id': generateSuiteId(), name: 'Console suite', target: 'fixture', tests: [{ test: 'one.yaml', id: testId }] }]]),
             preloadedTests: new Map([[filePath, { fileContent, parseResult: { tests: [test], errors: [] } }]]),
-            product: 'console-fixture', productionTargetNames: [],
+            product: 'console-fixture',
           },
           variableContext: { envFileVars: {}, inlineVars: {}, cliVars: {}, userRunAttributes: {}, secretStore, secretRedactor },
         } as SuiteRunMemberProductionInput)
@@ -131,7 +131,6 @@ for (const path of ['COMPOSED', 'DIRECT'] as const) {
     let bytesAtPublication: Uint8Array | undefined
     const core = createRunInvocationCore({
       configPath: configFilePath, agentQaRoot: join(root, '.agent-qa'), executionContext: 'ci',
-      resolveTargetDeclaration: () => ({ targetClass: 'local', targetNames: ['fixture'], productionTargetNames: [] }),
       mintRunId: () => runId, isMintedRunId: () => true,
       assembleRun: async context => {
         store = context.ports.evidenceArtifacts

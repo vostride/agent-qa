@@ -82,19 +82,13 @@ export {
 } from './composition/knowledge-reader.js'
 export type { ConstructKnowledgeReaderInput } from './composition/knowledge-reader.js'
 
-// Phase 401 D-02: the one policy-gated in-process run invocation core, and the typed refusals it
-// can raise (two in D-02; 401-20 added the two identity refusals, so a caller can tell an id it may
-// not name, an id that already belongs to a run, and a policy denial apart from each other without
-// reading a message). Published for the reason the run composition is: it is the seam every host is
-// supposed to share, and a host that cannot reach it composes a run of its own — which is the
-// dual-mechanism class this phase exists to remove. (432-19: the run gate's descriptor recipe that
-// used to travel with it is deleted; the production refusal is the core's only denial.)
+// The one in-process run invocation core, and the typed refusals it can raise: a request field it
+// cannot honour, an id it would not have minted, and an id that already belongs to a run, each
+// told apart without reading a message. Published for the reason the run composition is: it is the
+// seam every host is supposed to share, and a host that cannot reach it composes a run of its own.
 export {
   createRunInvocationCore,
   REFUSED_RUN_REQUEST_FIELDS,
-  refuseProductionWithoutOptIn,
-  refuseUnavailableRunId,
-  RunDeniedError,
   RunIdAlreadyInUseError,
   RunIdNotMintedError,
   RunRequestFieldRefusedError,
@@ -103,7 +97,6 @@ export type {
   RunAssembler,
   RunAssemblyContext,
   RunInvocationCoreOptions,
-  RunTargetDeclaration,
 } from './composition/run-invocation-core.js'
 // The assembler port's own vocabulary, re-exported from the package that declares it.
 //
@@ -128,11 +121,6 @@ export type {
 // 401-11: the two symbols the CLI's one in-process run drive needs and could not legally name.
 // They live in their own composition module — see its header for why not in the core.
 export { mapVerdictToExitCode, runSafetyScope } from './composition/run-drive-vocabulary.js'
-export {
-  ALLOW_PRODUCTION_OPT_IN,
-  buildProductionRefusal,
-} from './composition/run-risk.js'
-export type { RunTargetClass } from './composition/run-risk.js'
 // 405-05 (D-12/D-13): the evidence-blob read port's binding — ONE lambda over the store the
 // runner wrote through, shared by the analysis job and by `runs.artifact`. Published because the
 // dashboard's own suite composes it directly: a reader written there would be a second answer to

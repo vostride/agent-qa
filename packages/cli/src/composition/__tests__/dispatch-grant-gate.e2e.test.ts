@@ -48,7 +48,6 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 
 import { invokeFunction } from '@vostride/agent-qa-agent'
 import * as agentLocal from '@vostride/agent-qa-agent-local'
-import { RunDeniedError } from '@vostride/agent-qa-agent-local'
 import {
   getActiveExecutionContext,
   setActiveExecutionContextResolver,
@@ -176,7 +175,6 @@ describe('one human ask, N gated runs, every one of them gated (D-08)', () => {
   /** The start artifacts every arm below asserts, identically. */
   function expectStartedWithNoDecision(fixture: Fixture, outcome: { ack?: RunStartAcknowledgement; error?: unknown }): void {
     expect(outcome.error, `runs.start refused: ${String(outcome.error)}`).toBeUndefined()
-    expect(outcome.error).not.toBeInstanceOf(RunDeniedError)
     expect(outcome.ack?.runId).toMatch(/^r_/)
     expect(runGateRowsPerDir(fixture).flat()).toEqual([])
     expect((auditRows(fixture) as GateAuditRow[]).map((row) => row.trustSource).filter(Boolean)).toEqual([])

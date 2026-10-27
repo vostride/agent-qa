@@ -4,8 +4,8 @@
 // `verifyBearer` port and the trust scope a token carried are deleted. Every cell below that
 // measured a bearer refusal is RE-SPELLED in place to the request the door still refuses — a
 // cross-site one, refused by the dashboard's shared same-site guard above the route table — or to
-// the tokenless success that replaced it. The production refusal, the never-forwarded run id and
-// the live-view signature's compare discipline are unchanged claims; 441-58 (D-01, D-12) deleted the
+// the tokenless success that replaced it. The never-forwarded run id and the live-view signature's
+// compare discipline are unchanged claims; 441-58 (D-01, D-12) deleted the
 // cells that had a run mask a door's or the environment's values, and 441-48 (D-01) the BIND-HALF
 // cells with the door's masking binder they measured.
 //
@@ -72,13 +72,8 @@ const LEGACY_HEADER_CLASSES = [
   { id: 'well-formed legacy bearer', headers: { Authorization: `Bearer ${TOKEN}` } as Record<string, string> },
 ] as const
 
-interface WorkspaceInput {
-  /** `undefined` writes NO declaration, which classifies the run's target as shared. */
-  readonly environment?: 'local' | 'production'
-}
-
-/** The 402-01 fixture project, with the target's environment as the knob (432-21: no token block). */
-function fixtureWorkspace(input: WorkspaceInput = {}): string {
+/** The fixture project: one local web target, and no token block. */
+function fixtureWorkspace(): string {
   const root = mkdtempSync(join(tmpdir(), 'agent-qa-402-06-'))
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(
@@ -97,9 +92,7 @@ function fixtureWorkspace(input: WorkspaceInput = {}): string {
           conformance: {
             platform: 'web',
             url: 'https://conformance.invalid',
-            // THE ONE AXIS THE DENIAL CELLS TURN. Since 432 (D-18) the only run the core refuses is
-            // a `production` target without the config opt-in; `local` and undeclared targets run.
-            ...(input.environment === undefined ? {} : { environment: input.environment }),
+            environment: 'local',
           },
         },
       },
@@ -131,8 +124,8 @@ interface ServiceFixture {
 const openFixtures: ServiceFixture[] = []
 
 /** The composition `agent-qa dashboard` performs, on an ephemeral port over a temp project. */
-async function openRunService(input: WorkspaceInput = {}): Promise<ServiceFixture> {
-  const configPath = fixtureWorkspace(input)
+async function openRunService(): Promise<ServiceFixture> {
+  const configPath = fixtureWorkspace()
   const configDir = dirname(resolve(configPath))
   const { DashboardDatabase, startServer } = await import('@vostride/agent-qa-dashboard')
   const db = new DashboardDatabase({ dbPath: join(configDir, 'dashboard.db') })
@@ -233,7 +226,7 @@ function probeTargetsFor(row: (typeof RUN_SERVICE_ROUTE_TABLE)[number]): readonl
 // census's own and unchanged.
 describe('the refusal census: every route on the table, every failure class (D-06)', () => {
   it('refuses all of them 403 with a body that is shape-identical beyond the reason', async () => {
-    const service = await openRunService({ environment: 'local' })
+    const service = await openRunService()
 
     // NON-VACUITY, FIRST. A census over an empty or shrunken table would pass by driving nothing.
     expect(RUN_SERVICE_ROUTE_TABLE.length).toBeGreaterThanOrEqual(3)
@@ -280,7 +273,7 @@ describe('the refusal census: every route on the table, every failure class (D-0
   }, 60_000)
 
   it('C432-TOKENLESS-RUN-SERVICE: a legacy Authorization header is neither needed nor read', async () => {
-    const service = await openRunService({ environment: 'local' })
+    const service = await openRunService()
     const answers: string[] = []
     for (const legacy of LEGACY_HEADER_CLASSES) {
       const response = await fetch(`${service.origin}/ok`, { headers: legacy.headers })
@@ -295,7 +288,7 @@ describe('the refusal census: every route on the table, every failure class (D-0
   }, 30_000)
 
   it('refuses a path NO row matches identically, so the table itself does not leak', async () => {
-    const service = await openRunService({ environment: 'local' })
+    const service = await openRunService()
     for (const failure of CROSS_SITE_CLASSES) {
       const response = await fetch(`${service.origin}/run/not-a-route/at-all`, {
         headers: failure.headers,
@@ -306,67 +299,24 @@ describe('the refusal census: every route on the table, every failure class (D-0
   }, 30_000)
 })
 
-// ---- (2) THE GATE DENIAL, RENDERED ON THE WIRE ------------------------------------------------
+// ---- (2) A RUN STARTED OVER THE WIRE ----------------------------------------------------------
 //
-// THE MEASUREMENT WINDOWS #227 ASKED FOR, history kept: 402-01 recorded that a declared token's
-// TrustScope reached `FunctionCaller.credential` and `evaluate()` read it. Both are deleted (432-13
-// for the gate, 432-21 for the token and the credential).
-
-// RE-SPELLED 2026-09-30 (432-13, D-14/D-18). No gate weighs the run over this door any more: an
-// undeclared target starts under either declared scope, and the one refusal left is an un-opted-in
-// production target, which answers the same typed 403 this describe always measured.
-describe('a credential whose scope does not satisfy the gate is DENIED over the wire', () => {
-  it('answers 403 with the typed denial, and no run is recorded', async () => {
-    const service = await openRunService({ environment: 'production' })
-    const response = await fetch(`${service.origin}/run`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ patterns: ['tests/probe.test.yaml'] }),
-    })
-
-    // NOT 500 — a policy denial is a decision, not a crash. NOT 2xx — production without the config
-    // opt-in never starts (D-18), whoever asks.
-    expect(response.status).toBe(403)
-    expect(response.headers.get('content-type')).toContain('application/json')
-    expect(response.headers.get('access-control-allow-origin')).toBeNull()
-
-    const body = (await response.json()) as Record<string, unknown>
-    expect(body.error).toBe('run_denied')
-    expect(typeof body.neutralReason).toBe('string')
-    expect((body.neutralReason as string).length).toBeGreaterThan(0)
-    // 432-19 (D-15): the body is the code and the plain reason, and no remedy list rides it.
-    expect(Object.keys(body).sort()).toEqual(['error', 'neutralReason'])
-
-    // THE 399 DEFECT, ASSERTED CLOSED. `--trust-session` is declared on exactly one CLI command;
-    // the gate's CANONICAL reason names it verbatim on this arm. A door that echoed that sentence
-    // would be handing a remote HTTP client a flag it has no way to pass.
-    expect(JSON.stringify(body)).not.toContain('--trust-session')
-    expect(JSON.stringify(body)).not.toContain('re-run locally')
-
-    // NO DURABLE RUN. A denied run never started, so nothing produced an event log.
-    expect(runsThatProducedEvents(service.configDir)).toEqual([])
-  }, 60_000)
-
-  it('still 404s the stream for the run that was never started', async () => {
-    const service = await openRunService({ environment: 'production' })
-    await fetch(`${service.origin}/run`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ patterns: ['tests/probe.test.yaml'] }),
-    })
-    const stream = await fetch(`${service.origin}/run/r_denied-never-started/events`)
+// No gate weighs a run over this door: a run starts with no credential, and a stream for a run
+// that never started answers 404.
+describe('a run started over the wire', () => {
+  it('404s the stream for a run that was never started', async () => {
+    const service = await openRunService()
+    const stream = await fetch(`${service.origin}/run/r_never-started/events`)
     expect(stream.status).toBe(404)
     expect(stream.headers.get('content-type')).toContain('application/json')
     expect(stream.headers.get('content-type')).not.toContain('text/event-stream')
     expect(await stream.json()).toEqual({ error: 'unknown_run' })
   }, 60_000)
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12) from 'WINDOWS #227 — the declared scope makes NO difference:
-  // an undeclared target starts under either'. No scope can be declared; the same undeclared run
-  // starts with no header and with a legacy bearer header alike.
-  it('WINDOWS #227 — no credential makes a difference: an undeclared target starts with or without a legacy bearer', async () => {
+  // No scope can be declared; the same run starts with no header and with a legacy bearer header.
+  it('no credential makes a difference: a run starts with or without a legacy bearer', async () => {
     for (const legacy of [LEGACY_HEADER_CLASSES[0], LEGACY_HEADER_CLASSES[2]]) {
-      const service = await openRunService({})
+      const service = await openRunService()
       const response = await fetch(`${service.origin}/run`, {
         method: 'POST',
         headers: { ...legacy.headers, 'Content-Type': 'application/json' },
@@ -378,11 +328,8 @@ describe('a credential whose scope does not satisfy the gate is DENIED over the 
     }
   }, 180_000)
 
-  it('THE TIER CONTROL — the same request against a LOCAL target is acked and recorded', async () => {
-    // ONE FIELD DIFFERENT from the denial cell: the target's declared environment. This is what
-    // makes "denied, and nothing ran" a fact about the policy decision rather than about a fixture
-    // that cannot run anything.
-    const service = await openRunService({ environment: 'local' })
+  it('a started run is acked and recorded', async () => {
+    const service = await openRunService()
     const response = await fetch(`${service.origin}/run`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -397,7 +344,7 @@ describe('a credential whose scope does not satisfy the gate is DENIED over the 
   // 432-21 (D-12, EDGE-17): two concurrent tokenless starts are two runs, each under the id the core
   // minted for it — no request can choose an id, and no request shares another's.
   it('C432-TOKENLESS-RUN-SERVICE: two concurrent tokenless starts get two distinct core-minted run ids', async () => {
-    const service = await openRunService({ environment: 'local' })
+    const service = await openRunService()
     const start = () => fetch(`${service.origin}/run`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -578,7 +525,7 @@ describe('the token value reaches no channel (T-402-21)', () => {
   // channel a person can read'. A presented bearer is not read; this sweep presents one alongside
   // each cross-site rung and asserts the value reaches no body, header or log line.
   it('a WRONG-token refusal leaks the declared value on no channel a person can read', async () => {
-    const service = await openRunService({ environment: 'local' })
+    const service = await openRunService()
     const out: string[] = []
     const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(((chunk: unknown) => {
       out.push(String(chunk))
@@ -634,7 +581,7 @@ describe('the door never forwards a caller’s run id, even with its own check b
     // `composeRunServicePorts` builds its `RunsStartInput` from `patterns` and nothing else, so a
     // value reaching past the HTTP check is dropped by construction. Called directly, which is the
     // only way to bypass that check.
-    const configPath = fixtureWorkspace({ environment: 'local' })
+    const configPath = fixtureWorkspace()
     const configDir = dirname(resolve(configPath))
     const { DashboardDatabase } = await import('@vostride/agent-qa-dashboard')
     const db = new DashboardDatabase({ dbPath: join(configDir, 'refusal.db') })

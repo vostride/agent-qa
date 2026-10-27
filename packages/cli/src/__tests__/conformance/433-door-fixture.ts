@@ -231,7 +231,7 @@ export async function openDashboardScene(
   })
   // The command hands the door its config path, so a trigger's production refusal happens at the
   // door (433-34, G-433-10); the scene composes it the same way.
-  const runDoor = await createDashboardRunDoor({ db, configPath: project.configPath })
+  const runDoor = await createDashboardRunDoor({ db })
   let boundOrigin: string | undefined
   const door = composeDashboardDoor({
     agentQaRoot: project.agentQaRoot,

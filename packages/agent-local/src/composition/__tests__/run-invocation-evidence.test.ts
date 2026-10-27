@@ -118,11 +118,9 @@ function coreExecution(
   return createRunInvocationCore({
     configPath: join(projectDir, 'agent-qa.config.yaml'),
     agentQaRoot,
-    // `mutating-local` allows in every context by ratified spec — this file is about EVIDENCE,
-    // and a denial leaves none. The gate's own refusals are measured next door, in
+    // This file is about EVIDENCE. The core's own refusals are measured next door, in
     // `run-invocation-core.test.ts` and in the cli door's `runs-start-gate.test.ts`.
     executionContext: 'ci',
-    resolveTargetDeclaration: () => ({ targetClass: 'local', targetNames: ['the-evidence-target'], productionTargetNames: [] }),
     mintRunId,
     // 401-20: the injected shape predicate. This file's runs are minted by the core, so the
     // predicate is never consulted; it is required, so it is supplied.

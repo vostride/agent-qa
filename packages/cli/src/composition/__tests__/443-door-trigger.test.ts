@@ -130,7 +130,7 @@ interface Scene {
 
 async function openScene(project: Fixture): Promise<Scene> {
   const db = new DashboardDatabase({ dbPath: runsDbOf(project), runOwnership: composeRunOwnership() })
-  const runDoor = await createDashboardRunDoor({ db, configPath: project.configPath })
+  const runDoor = await createDashboardRunDoor({ db })
   let boundOrigin: string | undefined
   const door = composeDashboardDoor({
     agentQaRoot: project.agentQaRoot,

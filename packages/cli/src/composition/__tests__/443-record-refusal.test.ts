@@ -12,7 +12,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { invokeFunction } from '@vostride/agent-qa-agent'
-import { RunDeniedError, RunIdAlreadyInUseError } from '@vostride/agent-qa-agent-local'
+import { RunIdAlreadyInUseError } from '@vostride/agent-qa-agent-local'
 import { DashboardDatabase } from '@vostride/agent-qa-dashboard'
 import { generateRunId } from '@vostride/agent-qa-ids'
 import type { RunStartAcknowledgement, RunsStartInput } from '@vostride/agent-qa-schema'
@@ -64,8 +64,8 @@ function posixOnly(): void {
   if (process.platform === 'win32') throw new Error('POSIX run lifecycle required; never skip')
 }
 
-function fixture(environment: 'local' | 'production' = 'local'): Fixture {
-  const created = createInProcessFixture({ origin: target.origin, environment })
+function fixture(): Fixture {
+  const created = createInProcessFixture({ origin: target.origin, environment: 'local' })
   const browsersRoot = join(created.project, 'no-browsers')
   mkdirSync(browsersRoot, { recursive: true })
   process.env.PLAYWRIGHT_BROWSERS_PATH = browsersRoot
@@ -172,16 +172,6 @@ describe('C443-RECORD-REFUSAL', () => {
     expect(messageOf(outcome.error)).toContain(
       `agent-qa could not open the runs database at ${path}, so the run was not started:`,
     )
-    expect(runDirs(project).length, 'run directories').toBe(0)
-  }, RUN_BUDGET_MS)
-
-  it('a production run refused by the core creates no runs.db file', async () => {
-    const project = fixture('production')
-
-    const outcome = await start(project, { patterns: [project.testPattern] })
-
-    expect(outcome.error, messageOf(outcome.error)).toBeInstanceOf(RunDeniedError)
-    expect(existsSync(runsDbOf(project)), 'a runs.db file exists').toBe(false)
     expect(runDirs(project).length, 'run directories').toBe(0)
   }, RUN_BUDGET_MS)
 
