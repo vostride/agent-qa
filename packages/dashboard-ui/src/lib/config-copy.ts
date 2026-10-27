@@ -593,6 +593,10 @@ export const TIMEOUT_FIELD_LABELS = {
   navigation: 'Navigation timeout',
 } as const
 
+export const TIMEOUT_FIELD_HELP = {
+  navigation: 'How long a web page load or URL wait can take. Default 2m. Android and iOS runs do not use it.',
+} as const
+
 export const RUNS_FIELD_LABELS = {
   parallel: 'Run tests in parallel',
   workers: 'Parallel workers',

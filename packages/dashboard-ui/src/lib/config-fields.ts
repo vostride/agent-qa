@@ -13,7 +13,7 @@ type LeafDefault = string | number | boolean
 
 // prettier-ignore
 export const REQUIRED_SIBLING_BLOCKS = {
-  'use.timeout': { step: '30s', test: '10m', navigation: '10s' },
+  'use.timeout': { step: '30s', test: '10m', navigation: '2m' },
   'use.planner': { previousStepCount: 5 },
   'use.logCapture': { console: true, network: true },
   'use.browser': { name: 'chromium', headless: true },

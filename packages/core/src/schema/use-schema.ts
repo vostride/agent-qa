@@ -99,7 +99,9 @@ export const UseOverrideSchema = z.object({
   timeout: z.object({
     step: DurationString.optional(),
     test: DurationString.optional(),
-    navigation: DurationString.optional(),
+    navigation: DurationString.optional().describe(
+      'How long a web page load or URL wait can take. Default 2m. Android and iOS runs do not use it.',
+    ),
   }).strict().optional(),
   planner: z.object({
     maxActions: z.number().int().positive().optional(),

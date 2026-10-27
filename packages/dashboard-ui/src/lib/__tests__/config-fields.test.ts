@@ -53,18 +53,18 @@ function added(changes: readonly ConfigChange[], result: readonly ConfigChange[]
 }
 
 describe('completeRequiredSiblings', () => {
-  it('SIBLING-COMPLETION: a set into an absent use.timeout carries test and navigation at their shown defaults', () => {
+  it('a set into an absent use.timeout carries test and navigation at their shown defaults', () => {
     const changes = [set(['use', 'timeout', 'step'], '45s')]
     const result = completeRequiredSiblings(changes, { use: { browser: { name: 'chromium', headless: true } } })
 
     expect(result.slice(0, 1)).toEqual(changes)
     expect(added(changes, result)).toEqual([
       ifAbsent(['use', 'timeout', 'test'], '10m'),
-      ifAbsent(['use', 'timeout', 'navigation'], '10s'),
+      ifAbsent(['use', 'timeout', 'navigation'], '2m'),
     ])
   })
 
-  it('SIBLING-COMPLETION: a present block, an unset, or a sibling already in the write adds nothing more', () => {
+  it('a present block, an unset, or a sibling already in the write adds nothing more', () => {
     const present = [set(['use', 'timeout', 'step'], '45s')]
     expect(completeRequiredSiblings(present, { use: { timeout: { step: '30s' } } })).toEqual(present)
 
@@ -73,7 +73,7 @@ describe('completeRequiredSiblings', () => {
 
     const both = [set(['use', 'timeout', 'step'], '45s'), set(['use', 'timeout', 'test'], '20m')]
     expect(added(both, completeRequiredSiblings(both, {}))).toEqual([
-      ifAbsent(['use', 'timeout', 'navigation'], '10s'),
+      ifAbsent(['use', 'timeout', 'navigation'], '2m'),
     ])
 
     const outside = [set(['workspace', 'envFile'], '.env')]

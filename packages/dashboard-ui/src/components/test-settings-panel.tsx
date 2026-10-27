@@ -449,7 +449,7 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
             <Input
               value={navTimeout ?? ''}
               onChange={(e) => handleSet(['use', 'timeout', 'navigation'], e.target.value || undefined)}
-              placeholder={ih(g?.timeout?.navigation ?? '15s')}
+              placeholder={ih(g?.timeout?.navigation ?? '2m')}
               className="h-7 text-xs"
             />
           </div>

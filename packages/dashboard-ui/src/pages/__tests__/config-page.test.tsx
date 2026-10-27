@@ -1289,7 +1289,7 @@ describe('ConfigPage task tabs shell', () => {
     expect(API_EXPORTS).not.toContain('updateSettings')
   })
 
-  it('TIMEOUT-ONE-LEAF-WRITE: with no timeouts in the file, the same write carries the two other timeouts at their shown defaults', async () => {
+  it('with no timeouts in the file, the same write carries the two other timeouts at their shown defaults', async () => {
     const { timeout: _timeout, ...useWithoutTimeout } = sampleConfig.use
     vi.mocked(fetchConfig).mockResolvedValueOnce(readAnswer({ config: { ...sampleConfig, use: useWithoutTimeout } }) as never)
     await renderAt('/config/execution?section=timeouts')
@@ -1306,7 +1306,23 @@ describe('ConfigPage task tabs shell', () => {
     expect(vi.mocked(applyConfigChanges).mock.calls[0]![0]).toEqual([
       { op: 'set', path: STEP_SEGMENTS, value: '45s' },
       { op: 'set-if-absent', path: ['use', 'timeout', 'test'], value: '10m' },
-      { op: 'set-if-absent', path: ['use', 'timeout', 'navigation'], value: '10s' },
+      { op: 'set-if-absent', path: ['use', 'timeout', 'navigation'], value: '2m' },
+    ])
+  })
+
+  it("the Timeouts section shows the navigation field's help line and no other", async () => {
+    await renderAt('/config/execution?section=timeouts')
+
+    expect(
+      Array.from(section('timeouts')!.querySelectorAll('[data-field-help]')).map((line) => [
+        line.closest('[data-config-field]')?.getAttribute('data-field-path'),
+        line.textContent,
+      ]),
+    ).toEqual([
+      [
+        'use.timeout.navigation',
+        'How long a web page load or URL wait can take. Default 2m. Android and iOS runs do not use it.',
+      ],
     ])
   })
 

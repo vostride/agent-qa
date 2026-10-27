@@ -114,7 +114,7 @@ const SCHEMA_MAP: SchemaField = {
           children: [
             { label: 'step', kind: 'string', detail: 'string', documentation: 'Per-step timeout (e.g., "30s", "5m")' },
             { label: 'test', kind: 'string', detail: 'string', documentation: 'Per-test timeout (e.g., "10m", "1h")' },
-            { label: 'navigation', kind: 'string', detail: 'string', documentation: 'Navigation timeout (e.g., "10s", "30s")' },
+            { label: 'navigation', kind: 'string', detail: 'string', documentation: 'How long a web page load or URL wait can take. Default 2m. Android and iOS runs do not use it.' },
           ],
         },
       ],

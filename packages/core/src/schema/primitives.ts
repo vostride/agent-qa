@@ -139,7 +139,9 @@ export const NamedLLMConfigSchema = ModelConfigBaseSchema.extend({
 export const TimeoutConfigSchema = z.object({
   step: DurationString,
   test: DurationString,
-  navigation: DurationString,
+  navigation: DurationString.describe(
+    'How long a web page load or URL wait can take. Default 2m. Android and iOS runs do not use it.',
+  ),
 }).strict()
 
 export const BrowserConfigSchema = z.object({
