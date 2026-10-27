@@ -230,9 +230,8 @@ export interface InProcessCliRunExecutionOptions {
   /** The door's own reporters, attached inside the core's `onSession`. The record is not one. */
   readonly subscribers?: (input: RunSubscriberAttachInput) => { flush(): Promise<void> } | undefined
   /**
-   * The run's runs.db record (443-05, D-02/D-22). The drive opens it once the request and its run
-   * id are allowed and attaches it itself; the door that built it closes it. Required (443-08): no door runs
-   * unrecorded.
+   * The run's runs.db record. The drive opens it once the request and its run id are allowed and
+   * attaches it itself; the door that built it closes it. Required: no door runs unrecorded.
    */
   readonly runRecord: RunRecord
   /**

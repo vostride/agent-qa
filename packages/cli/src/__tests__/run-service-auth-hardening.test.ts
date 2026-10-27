@@ -5,9 +5,9 @@
 // measured a bearer refusal is RE-SPELLED in place to the request the door still refuses — a
 // cross-site one, refused by the dashboard's shared same-site guard above the route table — or to
 // the tokenless success that replaced it. The never-forwarded run id and the live-view signature's
-// compare discipline are unchanged claims; 441-58 (D-01, D-12) deleted the
-// cells that had a run mask a door's or the environment's values, and 441-48 (D-01) the BIND-HALF
-// cells with the door's masking binder they measured.
+// compare discipline are unchanged claims. The cells that had a run mask a door's or the
+// environment's values are deleted, and so are the BIND-HALF cells with the door's masking binder
+// they measured.
 //
 // THE FRAME, STATED: every wire cell below drives the PRODUCTION COMPOSITION over real TCP —
 // `startServer` with `runService` from `composeRunServicePorts`, over a host from

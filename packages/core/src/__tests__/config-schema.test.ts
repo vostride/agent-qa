@@ -1308,7 +1308,7 @@ describe('AgentQaConfigSchema — retired keys are strictly unknown (432 D-22)',
 describe('AgentQaConfigSchema — the target environment label', () => {
   const productionTarget = { platform: 'web', url: 'https://shop.example.com', environment: 'production' }
 
-  it('C432-PRODUCTION-CONFIG: a target declares production, beside local, shared and undeclared', () => {
+  it('a target declares production, beside local, shared and undeclared', () => {
     for (const environment of ['local', 'shared', 'production', undefined] as const) {
       const target = environment === undefined
         ? { platform: 'web', url: 'https://shop.example.com' }
@@ -1321,7 +1321,7 @@ describe('AgentQaConfigSchema — the target environment label', () => {
     }
   })
 
-  it('C432-PRODUCTION-CONFIG: a target refuses malformed environment spellings', () => {
+  it('a target refuses malformed environment spellings', () => {
     for (const environment of ['Production', 'prod', 'staging', ' production', '', null, true]) {
       const result = TargetSchema.safeParse({ ...productionTarget, environment })
       expect(result.success, JSON.stringify(environment)).toBe(false)
