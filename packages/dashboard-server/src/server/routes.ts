@@ -87,7 +87,7 @@ import {
 import { createConnectInFlight, registerLlmConnectRoute } from './llm-connect-route.js'
 import type { PostProcessingRelay } from '../execution/post-processing-relay.js'
 import type { LLMAuthProviderPlugin, OAuthTokens } from '@vostride/agent-qa-core'
-import { AuthStateNameSchema, buildInternalRunAttributes, mergeRunAttributes, readAuth, writeAuth, removeAuth, getAgentQaVersion, getAgentQaUpdateStatus, getLLMAuthProviderPlugin, listAuthStateMetadata, listLLMAuthProviderPlugins, ModelConfigSchema, NameSlugSchema, TimeoutConfigSchema, AgentQaConfigSchema, TestDefinitionSchema, SuiteDefinitionSchema, parseEnvFile, serializeEnvFile, parseHooksFile, RUNTIME_IMAGE_MAP, validateUserRunAttributes, discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarget, SizeString } from '@vostride/agent-qa-core'
+import { AuthStateNameSchema, buildInternalRunAttributes, DEFAULT_AGENT_QA_CACHE_DIR, mergeRunAttributes, readAuth, writeAuth, removeAuth, getAgentQaVersion, getAgentQaUpdateStatus, getLLMAuthProviderPlugin, listAuthStateMetadata, listLLMAuthProviderPlugins, ModelConfigSchema, NameSlugSchema, TimeoutConfigSchema, AgentQaConfigSchema, TestDefinitionSchema, SuiteDefinitionSchema, parseEnvFile, serializeEnvFile, parseHooksFile, RUNTIME_IMAGE_MAP, validateUserRunAttributes, discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarget, SizeString } from '@vostride/agent-qa-core'
 import { SecretStore, SecretRedactor } from '@vostride/agent-qa-runner'
 import { DockerHookExecutor, purgeActionCache } from '@vostride/agent-qa-runner-local'
 import type { ResolvedWorkspacePaths, RunAttributes, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
@@ -4516,17 +4516,11 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             return
           }
           try {
-            const cfg = await readConfigValues(configManager)
-            const cacheDir = (cfg as {
+            const cfg = (await readConfigValues(configManager)) as {
               services?: { cache?: { dir?: string } }
-              cache?: { dir?: string }
-            }).services?.cache?.dir
-              ?? (cfg as { cache?: { dir?: string } }).cache?.dir
-            if (!cacheDir) {
-              json(res, { error: 'Cache directory not configured' }, 400)
-              return
             }
             const configDir = deps.configPath ? dirname(resolve(deps.configPath)) : process.cwd()
+            const cacheDir = cfg.services?.cache?.dir ?? DEFAULT_AGENT_QA_CACHE_DIR
             const purged = await purgeActionCache(resolve(configDir, cacheDir))
             json(res, { purged })
           } catch (err: unknown) {

@@ -774,7 +774,7 @@ describe("TestsPage", () => {
   })
 
   it("reports a failed purge of all cached plans", async () => {
-    purgeCacheMock.mockRejectedValue(new Error("Cache directory not configured"))
+    purgeCacheMock.mockRejectedValue(new Error("Cache purge failed"))
     await renderAt()
 
     await click(findRow("Login flow")?.querySelector('input[aria-label="Select row"]') as HTMLInputElement | null)
@@ -782,6 +782,6 @@ describe("TestsPage", () => {
     await click(findBatchButton("Purge all cached plans"))
 
     expect(purgeCacheMock).toHaveBeenCalledTimes(1)
-    expect(toastErrorMock).toHaveBeenCalledWith("Cache purge failed: Cache directory not configured")
+    expect(toastErrorMock).toHaveBeenCalledWith("Cache purge failed: Cache purge failed")
   })
 })

@@ -2471,6 +2471,51 @@ describe('API Routes', () => {
       expect(data.purged).toBe(1)
       await expect(stat(cacheEntryPath)).rejects.toMatchObject({ code: 'ENOENT' })
     })
+
+    it('with no services.cache.dir, purges the run cache folder beside the config', async () => {
+      const testsDir = await mkdtemp(join(tmpdir(), 'agent-qa-cache-purge-tests-'))
+      tempDirs.push(testsDir)
+
+      const configContent = [
+        'registry:',
+        '  targets:',
+        '    web:',
+        '      platform: web',
+        '      url: https://example.com',
+        '',
+      ].join('\n')
+      const { configManager, configPath } = await createConfigWorkspace(configContent)
+      const cacheDir = join(dirname(configPath), '.agent-qa', 'cache')
+
+      const entry = join(cacheDir, 'main', 'a1b2c3d4e5f60718.json')
+      const marker = join(cacheDir, 'feature-x', 'f0e1d2c3b4a59687.json')
+      await mkdir(dirname(entry), { recursive: true })
+      await mkdir(dirname(marker), { recursive: true })
+      await writeFile(
+        entry,
+        '{"schemaVersion":3,"value":{"plannedActions":[],"groundedLocator":[],"completesStep":true}}',
+        'utf-8',
+      )
+      await writeFile(marker, '{"schemaVersion":3,"suppressed":true}', 'utf-8')
+
+      router = createRouter({
+        db: db as any,
+        ...createWorkspaceManagers(testsDir),
+        configManager,
+        configPath,
+      })
+
+      const res = await invokeRoute('/api/cache/purge', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ all: true }),
+      })
+
+      expect(res.status).toBe(200)
+      expect(JSON.parse(res.body)).toEqual({ purged: 2 })
+      await expect(stat(entry)).rejects.toMatchObject({ code: 'ENOENT' })
+      await expect(stat(marker)).rejects.toMatchObject({ code: 'ENOENT' })
+    })
   })
 
   describe('GET /api/stats', () => {
