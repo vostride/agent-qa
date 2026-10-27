@@ -6,9 +6,9 @@
 // the scope and trust-scope add rows, and the undoable delete. 432 deletes `services.mcp.tokens`,
 // `services.mcp.stdio.grantConfigWrite` and `services.dashboard.runServiceTokens`, so the lists, the
 // stdio switch and their copy are gone. What survives is pinned here: the remaining MCP and dashboard
-// controls still save through the page's autosave transaction, and `allowProduction` is an ordinary
-// switch on that same transaction. The undoable unset-by-name claim of TOKEN-DELETE-UNDO lives on in
-// model-row's DELETE-MODEL-UNDO (`registry.llms`, the one named array left).
+// controls still save through the page's autosave transaction. The undoable unset-by-name claim of
+// TOKEN-DELETE-UNDO lives on in model-row's DELETE-MODEL-UNDO (`registry.llms`, the one named array
+// left).
 
 import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -28,7 +28,7 @@ import {
   useConfigAutosave,
   type ConfigAutosave,
 } from '@/hooks/use-config-autosave'
-import { ApiError, applyConfigChanges, fetchConfig, fetchConfigRevision } from '@/lib/api'
+import { applyConfigChanges, fetchConfig, fetchConfigRevision } from '@/lib/api'
 import * as copy from '@/lib/config-copy'
 import { CONFIG_SECTION_IDS, EXPLICIT_ACTION_KINDS } from '@/lib/config-tabs'
 
@@ -119,15 +119,6 @@ function control<T extends HTMLElement = HTMLInputElement>(segments: readonly st
   return document.getElementById(configFieldControlId(configFieldKeyOf(segments))) as T | null
 }
 
-async function click(element: HTMLElement | null) {
-  expect(element).not.toBeNull()
-  await act(async () => {
-    element!.focus()
-    element!.click()
-  })
-  await flush()
-}
-
 async function typeAndBlur(input: HTMLInputElement | null, value: string) {
   expect(input).not.toBeNull()
   await act(async () => {
@@ -181,6 +172,7 @@ describe('no token controls (432-22, re-spelled from 429-27 Task 1)', () => {
       'services.dashboard.baseUrl',
       'services.dashboard.workspace',
     ])
+    expect(fieldPaths(section('runs'))).toEqual(['use.parallel', 'use.workers', 'use.buildTag'])
     for (const id of ['mcp', 'dashboard', 'runs'] as const) {
       const scope = section(id)!
       expect(scope.querySelector('[data-token-row]'), id).toBeNull()
@@ -221,50 +213,5 @@ describe('no token controls (432-22, re-spelled from 429-27 Task 1)', () => {
       [{ op: 'set', path: ['services', 'mcp', 'port'], value: 4000 }],
       [{ op: 'set', path: ['services', 'dashboard', 'port'], value: 4100 }],
     ])
-  })
-
-  it('ALLOW-PRODUCTION-SWITCH: allowProduction is an ordinary Runs switch, off by default, saved by the autosave transaction', async () => {
-    await mount()
-
-    expect(fieldPaths(section('runs'))).toEqual(['use.parallel', 'use.workers', 'use.buildTag', 'allowProduction'])
-    const toggle = control<HTMLButtonElement>(['allowProduction'])
-    expect(toggle?.getAttribute('role')).toBe('switch')
-    expect(toggle?.getAttribute('aria-checked')).toBe('false')
-    const row = section('runs')!.querySelector('[data-field-path="allowProduction"]')!
-    expect(row.textContent).toContain(copy.RUNS_FIELD_LABELS.allowProduction)
-    expect(row.textContent).toContain(copy.RUNS_FIELD_HELP.allowProduction)
-
-    await click(toggle)
-    expect(writeCalls()).toEqual([[{ op: 'set', path: ['allowProduction'], value: true }]])
-    expect(toggle?.getAttribute('aria-checked')).toBe('true')
-
-    await click(toggle)
-    expect(writeCalls()).toEqual([
-      [{ op: 'set', path: ['allowProduction'], value: true }],
-      [{ op: 'set', path: ['allowProduction'], value: false }],
-    ])
-  })
-
-  it('ALLOW-PRODUCTION-SWITCH: a refused allowProduction write fails like any field, and Retry sends it again', async () => {
-    vi.mocked(fetchConfig).mockResolvedValue(answer({ ...records, allowProduction: false }) as never)
-    vi.mocked(applyConfigChanges).mockRejectedValueOnce(
-      new ApiError(422, 'Unprocessable', { error: 'validation_failed', issues: [] }),
-    )
-    await mount()
-
-    const toggle = control<HTMLButtonElement>(['allowProduction'])
-    expect(toggle?.getAttribute('aria-checked')).toBe('false')
-    await click(toggle)
-    expect(hook!.status.state).toBe('failed')
-
-    await act(async () => {
-      hook!.retry()
-    })
-    await flush()
-    expect(writeCalls()).toEqual([
-      [{ op: 'set', path: ['allowProduction'], value: true }],
-      [{ op: 'set', path: ['allowProduction'], value: true }],
-    ])
-    expect(hook!.status.state).not.toBe('failed')
   })
 })

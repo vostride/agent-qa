@@ -164,9 +164,8 @@ describe('tab URLs and the section search (429-12 Task 1)', () => {
     expect(sectionsOf('time')).toEqual(['timeouts'])
     expect(sectionsOf('TIME')).toEqual(['timeouts'])
     expect(sectionsOf('device')).toEqual(['devices', 'device-farms'])
-    // 432-22: no section is about tokens any more; production finds the Runs section.
+    // No section is about tokens any more.
     expect(sectionsOf('tokens')).toEqual([])
-    expect(sectionsOf('production')).toEqual(['runs'])
     for (const entry of searchConfigSections('')) {
       expect(CONFIG_SECTIONS[entry.tab] as readonly string[]).toContain(entry.section)
     }

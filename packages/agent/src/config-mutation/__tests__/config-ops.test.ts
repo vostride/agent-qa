@@ -1220,16 +1220,6 @@ describe('C261003-CPV-PRODUCTION-PROVENANCE: an applied production change is fla
     '      url: https://shop.example.com/cart\n      environment: production\n',
   )
 
-  it('config.field.set allowProduction: true answers applied with production-opt-in', async () => {
-    const test = harness()
-    const answer = await call(test, 'config.field.set', { path: 'allowProduction', value: true })
-    expect(answer.outcome).toBe('applied')
-    if (answer.outcome !== 'applied') throw new Error('unreachable')
-    expect(test.text(CONFIG_FILE)).toContain('allowProduction: true')
-    expect(answer.crossBoundary).toBe(true)
-    expect(answer.crossBoundaryReasons).toEqual(['production-opt-in'])
-  })
-
   it('config.field.set moving a production target to local answers applied with production-declassified',
     async () => {
       const test = harness({ config: PRODUCTION_CONFIG })

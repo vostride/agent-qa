@@ -564,13 +564,11 @@ describe('PATCH /api/config path policy (429-44)', () => {
     expect(mockRename).not.toHaveBeenCalled()
   })
 
-  // 432-22: re-spelled. The stdio grant switch and the MCP token append were two of the security-
-  // relevant writes; both keys are deleted, so the claim is carried by the retained ones and by the
-  // new production opt-in.
+  // The stdio grant switch and the MCP token append were two of the security-relevant writes; both
+  // keys are deleted, so the claim is carried by the retained ones.
   it('WRITE-DOOR-ADMITS-PAGE-WRITES: fields the page renders, security-relevant ones included, still land', async () => {
     const configPath = await useConfigWorkspace(policyConfig)
     const admitted = [
-      { op: 'set', path: ['allowProduction'], value: true },
       { op: 'set', path: ['registry', 'llms', { name: 'gpt' }, 'providerHeaders', 'X-Org'], value: 'org-1' },
       { op: 'set', path: ['services', 'mcp', 'host'], value: '127.0.0.1' },
     ]
@@ -580,16 +578,14 @@ describe('PATCH /api/config path policy (429-44)', () => {
       expect([change, response.status], response.body).toEqual([change, 200])
     }
     const parsed = parseYaml(await readFile(configPath, 'utf-8')) as {
-      allowProduction: unknown
       services: { mcp: unknown }
       registry: { llms: Array<{ providerHeaders?: unknown }> }
     }
-    expect(parsed.allowProduction).toBe(true)
     expect(parsed.services.mcp).toEqual({ host: '127.0.0.1' })
     expect(parsed.registry.llms[0]!.providerHeaders).toEqual({ 'X-Org': 'org-1' })
   })
 
-  it('C432-CONFIG-WRITE-POLICY: allowProduction is an ordinary write with Undo, and every retired key path is refused before a write', async () => {
+  it('a page-owned boolean is an ordinary write with Undo, and every retired key path is refused before a write', async () => {
     const configPath = await useConfigWorkspace(policyConfig)
     const before = await readFile(configPath)
     mockRename.mockClear()
@@ -609,61 +605,66 @@ describe('PATCH /api/config path policy (429-44)', () => {
     expect(Buffer.compare(await readFile(configPath), before)).toBe(0)
     expect(mockRename).not.toHaveBeenCalled()
 
-    // A cross-site caller is refused before the body is read, for the new field as for any other.
+    // A cross-site caller is refused before the body is read.
     const crossSite = await patchConfig(
-      { changes: [{ op: 'set', path: ['allowProduction'], value: true }] },
+      { changes: [{ op: 'set', path: ['services', 'recording', 'enabled'], value: false }] },
       { origin: 'https://evil.example' },
     )
     expect(crossSite.status).toBe(403)
     expect(JSON.parse(crossSite.body)).toEqual({ error: 'cross_site_refused' })
     expect(Buffer.compare(await readFile(configPath), before)).toBe(0)
 
-    // The plain root boolean lands through the same field merge, and only a boolean validates.
-    const wrong = await patchConfig({ changes: [{ op: 'set', path: ['allowProduction'], value: 'yes' }] })
+    // The boolean lands through the field merge, and only a boolean validates.
+    const recording = ['services', 'recording', 'enabled']
+    const wrong = await patchConfig({ changes: [{ op: 'set', path: recording, value: 'yes' }] })
     expect(wrong.status).toBe(422)
     expect(JSON.parse(wrong.body).error).toBe('validation_failed')
-    const landed = await patchConfig({ changes: [{ op: 'set', path: ['allowProduction'], value: true }], undoable: true })
+    const landed = await patchConfig({ changes: [{ op: 'set', path: recording, value: false }], undoable: true })
     expect(landed.status, landed.body).toBe(200)
     const answer = JSON.parse(landed.body) as { undo?: { token: string } }
     expect(answer.undo?.token).toEqual(expect.any(String))
-    expect((parseYaml(await readFile(configPath, 'utf-8')) as { allowProduction?: unknown }).allowProduction).toBe(true)
+    const parsed = parseYaml(await readFile(configPath, 'utf-8')) as { services?: { recording?: unknown } }
+    expect(parsed.services?.recording).toEqual({ enabled: false })
   })
 })
 
-// 432-22 (D-18): the production opt-in under the field merge's retry and concurrency rules, the
-// same rules every other page-owned leaf follows.
-describe('PATCH /api/config allowProduction under retry and concurrency (432-22)', () => {
-  it('C432-CONFIG-WRITE-POLICY: a stale expect on allowProduction is refused field_changed, and a fresh one lands', async () => {
-    const configPath = await useConfigWorkspace(baseConfig.replace('registry: {}', 'registry: {}\nallowProduction: false'))
-    const outside = (await readFile(configPath, 'utf-8')).replace('allowProduction: false', 'allowProduction: true')
+// A page-owned boolean under the field merge's retry and concurrency rules.
+describe('PATCH /api/config page-owned fields under retry and concurrency', () => {
+  it('a stale expect on a field is refused field_changed, and a fresh one lands', async () => {
+    const recording = ['services', 'recording', 'enabled']
+    const configPath = await useConfigWorkspace(
+      baseConfig.replace('services: {}', 'services:\n  recording:\n    enabled: false'),
+    )
+    const outside = (await readFile(configPath, 'utf-8')).replace('    enabled: false', '    enabled: true')
     await writeFile(configPath, outside, 'utf-8')
     const before = await readFile(configPath)
 
     const stale = await patchConfig({ changes: [
-      { op: 'expect', path: ['allowProduction'], value: false },
-      { op: 'set', path: ['allowProduction'], value: false },
+      { op: 'expect', path: recording, value: false },
+      { op: 'set', path: recording, value: false },
     ] })
     expect(stale.status).toBe(409)
     expect(JSON.parse(stale.body)).toMatchObject({ error: 'field_changed' })
     expect(Buffer.compare(await readFile(configPath), before)).toBe(0)
 
     const fresh = await patchConfig({ changes: [
-      { op: 'expect', path: ['allowProduction'], value: true },
-      { op: 'set', path: ['allowProduction'], value: false },
+      { op: 'expect', path: recording, value: true },
+      { op: 'set', path: recording, value: false },
     ] })
     expect(fresh.status, fresh.body).toBe(200)
-    expect((parseYaml(await readFile(configPath, 'utf-8')) as { allowProduction?: unknown }).allowProduction).toBe(false)
+    const parsed = parseYaml(await readFile(configPath, 'utf-8')) as { services?: { recording?: unknown } }
+    expect(parsed.services?.recording).toEqual({ enabled: false })
   })
 
-  it('C432-CONFIG-WRITE-POLICY: concurrent writes of allowProduction and an MCP field both land, each field merged', async () => {
+  it('concurrent writes of a recording field and an MCP field both land, each field merged', async () => {
     const configPath = await useConfigWorkspace()
     const answers = await Promise.all([
-      patchConfig({ changes: [{ op: 'set', path: ['allowProduction'], value: true }] }),
+      patchConfig({ changes: [{ op: 'set', path: ['services', 'recording', 'enabled'], value: false }] }),
       patchConfig({ changes: [{ op: 'set', path: ['services', 'mcp', 'port'], value: 4100 }] }),
     ])
     expect(answers.map(answer => answer.status)).toEqual([200, 200])
-    const parsed = parseYaml(await readFile(configPath, 'utf-8')) as { allowProduction?: unknown; services?: { mcp?: unknown } }
-    expect(parsed.allowProduction).toBe(true)
+    const parsed = parseYaml(await readFile(configPath, 'utf-8')) as { services?: { mcp?: unknown; recording?: unknown } }
+    expect(parsed.services?.recording).toEqual({ enabled: false })
     expect(parsed.services?.mcp).toEqual({ port: 4100 })
     expect(await readFile(configPath, 'utf-8')).toContain('# owner notes: keep the step timeout generous on CI')
   })

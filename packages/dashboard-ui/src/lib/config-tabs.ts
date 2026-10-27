@@ -88,7 +88,7 @@ export const CONFIG_SECTION_ALIASES = {
   'mobile-app-state': ['mobile', 'app state', 'app data', 'reset app data', 'preserve app data'],
   browser: ['viewport', 'headless', 'browser headless', 'engine'],
   timeouts: ['timeout', 'navigation timeout', 'step timeout'],
-  runs: ['parallel', 'workers', 'build tag', 'production', 'allow production'],
+  runs: ['parallel', 'workers', 'build tag'],
   cache: ['cache dir', 'cache directory', 'ttl'],
   recording: ['record', 'video'],
   accessibility: ['a11y', 'wcag'],

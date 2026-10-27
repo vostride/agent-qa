@@ -31,7 +31,6 @@ import {
   SAVE_SETTING_LABEL,
   SETTLE_DELAY_MS,
   TARGET_ENVIRONMENT_CHOICE_LABELS,
-  TARGET_ENVIRONMENT_HINTS,
   TARGET_ENVIRONMENT_LABELS,
   TARGET_FIELD_LABELS,
   TARGET_URL_REQUIRED_ERROR,
@@ -396,7 +395,7 @@ describe('TargetsSection and DevicesSection (429-22 Task 1)', () => {
     expect(hook!.draftTabs.has('targets')).toBe(false)
   })
 
-  it('C432-TARGET-CREATE-UI: the add row offers Undeclared, Local, Shared and Production with one line each, keeps typed labels, and saves the class', async () => {
+  it('the add row offers Undeclared, Local, Shared and Production as plain choices, keeps typed labels, and saves the class', async () => {
     await mount()
 
     await click(buttonIn(section('targets'), ADD_TARGET_LABEL))
@@ -412,14 +411,10 @@ describe('TargetsSection and DevicesSection (429-22 Task 1)', () => {
       item.getAttribute('data-environment-choice'))).toEqual([...choices])
     for (const choice of choices) {
       const item = group!.querySelector(`[data-environment-choice="${choice}"]`) as HTMLElement
-      expect(item.textContent).toContain(labels[choice])
+      expect(item.textContent).toBe(labels[choice])
       const radio = item.querySelector('[role="radio"]') as HTMLElement
-      const hint = document.getElementById(radio.getAttribute('aria-describedby') ?? '')
-      expect(hint?.textContent).toBe(TARGET_ENVIRONMENT_HINTS[choice])
+      expect(radio.hasAttribute('aria-describedby')).toBe(false)
     }
-    // RE-SPELLED 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW pillar 1): the hint names the switch's
-    // own label, not the raw config key.
-    expect(TARGET_ENVIRONMENT_HINTS.production).toBe('Runs need "Allow production runs" turned on (Execution tab).')
     const radioFor = (choice: (typeof choices)[number]) =>
       group!.querySelector(`[data-environment-choice="${choice}"] [role="radio"]`) as HTMLElement
     expect(radioFor('undeclared').getAttribute('aria-checked')).toBe('true')

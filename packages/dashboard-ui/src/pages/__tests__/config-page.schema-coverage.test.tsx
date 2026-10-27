@@ -152,7 +152,6 @@ const { sampleConfig, fullConfig, page } = vi.hoisted(() => ({
       buildTag: 'nightly',
       cache: true,
     },
-    allowProduction: true,
     analytics: {
       privacy: true,
       passRateScope: { attributes: { 'git.branch': 'master', 'user.email': { regex: '^ci@' } } },
@@ -440,7 +439,7 @@ async function assertConfigSectionShells(destinations: string[]) {
 
 // plugins.* is a file edit by decision; every other leaf of the published schema has a field on
 // the page (D-06). 429-44: the page's write door refuses the same roots, so both read one constant.
-// 2026-10-01 (432-22): safety.* left the schema and the denied roots; allowProduction has its owner.
+// safety.* is not in the schema or the denied roots.
 const DENIED_ROOTS: readonly string[] = CONFIG_WRITE_DENIED_ROOTS
 const PAGE_LEAVES = CONFIG_SCHEMA_LEAVES.filter(
   (pattern) => !DENIED_ROOTS.includes(pattern.split('.')[0]!),
@@ -532,9 +531,8 @@ describe('ConfigPage schema coverage', () => {
 
     const marks = await collectFieldMarks()
     const uncovered = PAGE_LEAVES.filter((pattern) => !marks.some((mark) => coversLeaf(mark, pattern)))
-    // 432-02 left allowProduction awaiting its owner; 432-22 adds it, so no leaf is pending.
     expect(uncovered, `schema leaves with no field on the page: ${uncovered.join(', ')}`).toEqual([])
-    for (const pattern of ['use.workers', 'use.buildTag', 'allowProduction']) {
+    for (const pattern of ['use.workers', 'use.buildTag']) {
       expect(marks.some((mark) => mark.kind === 'path' && mark.value === pattern), pattern).toBe(true)
     }
   })
@@ -563,8 +561,6 @@ describe('ConfigPage schema coverage', () => {
       ).toEqual(['models/planner-limits'])
     }
     expect(owned.filter((pattern) => !isPageWritableConfigPath(concretePath(pattern)))).toEqual([])
-    const production = marks.filter((mark) => mark.kind === 'path' && mark.value === 'allowProduction')
-    expect(production.map((mark) => mark.where)).toEqual(['execution/runs'])
   })
 
   it('SCHEMA-COVERAGE-EXACTLY-ONCE: each leaf is owned by exactly one section, and no field or list renders in two sections', async () => {

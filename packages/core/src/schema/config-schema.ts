@@ -44,12 +44,8 @@ const AgentQaConfigSchemaInner = z.object({
   use: UseSchema.optional(),
   plugins: PluginsSchema.optional(),
   analytics: AnalyticsSchema.optional(),
-  // 432 D-18: the one production opt-in. Optional with no default: its consumer reads absence as
-  // false, so only an explicit `true` in the validated config authorizes a production target.
-  allowProduction: z.boolean().optional(),
-  // 2026-10-01 (432-22, D-15/D-18/D-22): the `safety` section (`safety.trustMode`) is deleted with
-  // trust mode. `allowProduction` above is the only production opt-in, and a file that still
-  // declares `safety` gets the normal strict unrecognized-key error.
+  // There is no `safety` section: a file that still declares one gets the normal strict
+  // unrecognized-key error.
 }).strict()
 .superRefine((val, ctx) => {
   const llms = val.registry?.llms ?? []

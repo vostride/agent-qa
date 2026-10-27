@@ -18,8 +18,7 @@
       "registry",
       "use",
       "plugins",
-      "analytics",
-      "allowProduction"
+      "analytics"
     ],
     "mcpFields": ["enabled", "transport", "host", "port", "path"]
   },

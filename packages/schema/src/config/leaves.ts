@@ -7,7 +7,6 @@
 
 // prettier-ignore
 export const CONFIG_SCHEMA_LEAVES = Object.freeze([
-  'allowProduction',
   'analytics.passRateScope.attributes.*',
   'analytics.passRateScope.attributes.*.regex',
   'analytics.privacy',

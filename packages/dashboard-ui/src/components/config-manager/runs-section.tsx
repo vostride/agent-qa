@@ -8,13 +8,6 @@ function runsField(leaf: "parallel" | "workers" | "buildTag"): ConfigFieldTarget
   return { segments: ["use", leaf], tab: "execution", pattern: `use.${leaf}` }
 }
 
-// 432 D-18: the one production opt-in is a plain root boolean, saved like every other field.
-const ALLOW_PRODUCTION_FIELD: ConfigFieldTarget = {
-  segments: ["allowProduction"],
-  tab: "execution",
-  pattern: "allowProduction",
-}
-
 const WORKER_RULES = { min: 1, integer: true } as const
 
 // The schema trims the build tag and refuses an empty one, so blank input unsets it.
@@ -47,13 +40,6 @@ export function RunsSection() {
         kind="text"
         help={RUNS_FIELD_HELP.buildTag}
         parse={parseBuildTag}
-      />
-      <ConfigField
-        field={ALLOW_PRODUCTION_FIELD}
-        label={RUNS_FIELD_LABELS.allowProduction}
-        kind="switch"
-        help={RUNS_FIELD_HELP.allowProduction}
-        defaultChecked={false}
       />
     </>
   )

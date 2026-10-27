@@ -1289,7 +1289,6 @@ describe('AgentQaConfigSchema — retired keys are strictly unknown (432 D-22)',
 
   it('C432-OLD-KEYS-STRICT: the retained guardrail settings keep their contracts', () => {
     const kept = AgentQaConfigSchema.safeParse(withWorkspace({
-      allowProduction: true,
       services: {
         mcp: { enabled: true, transport: 'http', host: '127.0.0.1', port: 3471, path: '/mcp' },
         dashboard: { port: 3470, host: '127.0.0.1', baseUrl: 'http://127.0.0.1:3470' },
@@ -1298,7 +1297,6 @@ describe('AgentQaConfigSchema — retired keys are strictly unknown (432 D-22)',
     expect(kept.success).toBe(true)
     if (kept.success) {
       expect(kept.data.services?.mcp).toEqual({ enabled: true, transport: 'http', host: '127.0.0.1', port: 3471, path: '/mcp' })
-      expect(kept.data.allowProduction).toBe(true)
     }
     expect(McpConfigSchema.safeParse({ host: '0.0.0.0' }).success, 'MCP stays loopback-only').toBe(false)
     expect(DashboardConfigSchema.safeParse({ baseUrl: 'javascript:alert(1)' }).success, 'the live-link base stays http(s)').toBe(false)
@@ -1306,41 +1304,9 @@ describe('AgentQaConfigSchema — retired keys are strictly unknown (432 D-22)',
   })
 })
 
-// 432 D-18: production is a config declaration. A target may declare `environment: production`,
-// and only the top-level boolean `allowProduction` opts in; absence and false never do.
-describe('AgentQaConfigSchema — production declarations (432 D-18)', () => {
+// A target's `environment` is a label: local, shared, production or undeclared.
+describe('AgentQaConfigSchema — the target environment label', () => {
   const productionTarget = { platform: 'web', url: 'https://shop.example.com', environment: 'production' }
-
-  it('C432-PRODUCTION-CONFIG: allowProduction is optional, and absent stays absent rather than defaulting', () => {
-    const result = AgentQaConfigSchema.safeParse(withWorkspace({}))
-    expect(result.success).toBe(true)
-    if (!result.success) return
-    expect(Object.keys(result.data)).not.toContain('allowProduction')
-    expect(result.data.allowProduction).toBeUndefined()
-  })
-
-  it('C432-PRODUCTION-CONFIG: allowProduction accepts exactly false and true', () => {
-    for (const allowProduction of [false, true]) {
-      const result = AgentQaConfigSchema.safeParse(withWorkspace({
-        allowProduction,
-        registry: { targets: { shop: productionTarget } },
-      }))
-      expect(result.success, String(allowProduction)).toBe(true)
-      if (!result.success) continue
-      expect(result.data.allowProduction).toBe(allowProduction)
-      expect(result.data.registry?.targets?.shop?.environment).toBe('production')
-    }
-  })
-
-  it('C432-PRODUCTION-CONFIG: allowProduction refuses null, strings and other non-booleans', () => {
-    for (const allowProduction of [null, 'true', 'false', 'yes', '', 1, 0, {}, []]) {
-      const result = AgentQaConfigSchema.safeParse(withWorkspace({ allowProduction }))
-      expect(result.success, JSON.stringify(allowProduction)).toBe(false)
-      if (result.success) continue
-      expect(result.error.issues.map(issue => issue.path.join('.')), JSON.stringify(allowProduction))
-        .toContain('allowProduction')
-    }
-  })
 
   it('C432-PRODUCTION-CONFIG: a target declares production, beside local, shared and undeclared', () => {
     for (const environment of ['local', 'shared', 'production', undefined] as const) {
@@ -1364,20 +1330,15 @@ describe('AgentQaConfigSchema — production declarations (432 D-18)', () => {
     }
   })
 
-  it('C432-PRODUCTION-CONFIG: misplaced or misspelled opt-ins get the normal unrecognized-key error', () => {
-    const cases: readonly [Record<string, unknown>, string, string][] = [
-      [{ allowProd: true }, '', 'allowProd'],
-      [{ allowproduction: true }, '', 'allowproduction'],
-      [{ registry: { targets: { shop: { ...productionTarget, allowProduction: true } } } }, 'registry.targets.shop', 'allowProduction'],
-    ]
-    for (const [config, path, key] of cases) {
-      const result = AgentQaConfigSchema.safeParse(withWorkspace(config))
-      expect(result.success, key).toBe(false)
-      if (result.success) continue
-      const unrecognized = result.error.issues.filter(issue => issue.code === 'unrecognized_keys')
-      expect(unrecognized.map(issue => issue.path.join('.')), key).toEqual([path])
-      expect((unrecognized[0] as { keys: string[] }).keys).toEqual([key])
-    }
+  it('an unknown key under a target gets the normal unrecognized-key error', () => {
+    const result = AgentQaConfigSchema.safeParse(withWorkspace({
+      registry: { targets: { shop: { ...productionTarget, unknownTargetKey: true } } },
+    }))
+    expect(result.success).toBe(false)
+    if (result.success) return
+    const unrecognized = result.error.issues.filter(issue => issue.code === 'unrecognized_keys')
+    expect(unrecognized.map(issue => issue.path.join('.'))).toEqual(['registry.targets.shop'])
+    expect((unrecognized[0] as { keys: string[] }).keys).toEqual(['unknownTargetKey'])
   })
 })
 

@@ -1,7 +1,7 @@
 // 2026-09-26, 429-03 D-06: the published config schema's leaves, walked structurally and pinned
 // against the schema's leaf list, so a new schema leaf reds here until it is listed. 2026-10-15
 // (441-40, D-29): the list no longer carries masking classes.
-import { CONFIG_SCHEMA_LEAVES, isConfigSchemaPath } from '@vostride/agent-qa-schema'
+import { CONFIG_SCHEMA_LEAVES } from '@vostride/agent-qa-schema'
 import { describe, expect, it } from 'vitest'
 
 import { AgentQaConfigSchema } from '../schema/config-schema.js'
@@ -86,16 +86,6 @@ describe('config schema leaves', () => {
     ]) {
       expect(walked).toContain(witness)
     }
-  })
-
-  // 432-02 added allowProduction (101 leaves, interim); 432-22 removes the nine retired leaves.
-  it('C432-PRODUCTION-CONFIG: allowProduction is one plain top-level leaf of the walked schema', () => {
-    const walked = schemaLeaves()
-    expect(walked).toContain('allowProduction')
-    expect(walked).toContain('registry.targets.*.environment')
-    expect(walked.filter((leaf) => leaf.split('.')[0] === 'allowProduction')).toEqual(['allowProduction'])
-    expect(CONFIG_SCHEMA_LEAVES).toContain('allowProduction')
-    expect(isConfigSchemaPath(['allowProduction'])).toBe(true)
   })
 
   // The removed set is spelled by hand; the list/schema equality above is what makes an unlisted

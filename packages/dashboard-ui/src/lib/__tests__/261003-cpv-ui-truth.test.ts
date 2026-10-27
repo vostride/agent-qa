@@ -6,13 +6,7 @@ import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
-import {
-  CONFIG_TAB_LABELS,
-  RUNS_FIELD_LABELS,
-  TARGET_ENVIRONMENT_CHOICE_LABELS,
-  TARGET_ENVIRONMENT_HINTS,
-  TARGET_ENVIRONMENT_PLACEHOLDER,
-} from '@/lib/config-copy'
+import { TARGET_ENVIRONMENT_CHOICE_LABELS, TARGET_ENVIRONMENT_PLACEHOLDER } from '@/lib/config-copy'
 import * as feedbackView from '@/lib/feedback-view'
 import { BUCKET_MEANINGS, OPEN_QUESTION_NOTE, PROPOSED_NOTE } from '@/lib/knowledge-view'
 
@@ -28,11 +22,8 @@ describe('C261003-CPV-UI-TRUTH: copy that describes the no-review model', () => 
     expect(OPEN_QUESTION_NOTE).toMatch(/recorded/)
   })
 
-  it('C261003-CPV-UI-TRUTH: the no-class choice has one name, and the production hint names the switch', () => {
+  it('the no-class choice has one name', () => {
     expect(TARGET_ENVIRONMENT_PLACEHOLDER).toBe(TARGET_ENVIRONMENT_CHOICE_LABELS.undeclared)
-    expect(TARGET_ENVIRONMENT_HINTS.production).not.toContain('allowProduction')
-    expect(TARGET_ENVIRONMENT_HINTS.production).toContain(RUNS_FIELD_LABELS.allowProduction)
-    expect(TARGET_ENVIRONMENT_HINTS.production).toContain(CONFIG_TAB_LABELS.execution)
   })
 
   it('C261003-CPV-UI-TRUTH: a historical drafted mark reads as an older mark', () => {

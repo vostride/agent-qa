@@ -36,7 +36,6 @@ const { fullConfig } = vi.hoisted(() => ({
       envFile: '.env.local',
       secretsFile: '.env.secrets.local',
     },
-    allowProduction: true,
     knowledge: { dir: 'agent-qa-knowledge', commitArtifacts: 'none', contextBudgetTokens: 4000 },
     services: {
       dashboard: {

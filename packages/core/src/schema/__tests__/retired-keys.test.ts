@@ -130,6 +130,20 @@ describe('retired-key pre-scan — removed eval blocks', () => {
   })
 })
 
+describe('retired-key pre-scan: removed production keys', () => {
+  it('allowProduction is refused with its removal message whatever its value', () => {
+    for (const allowProduction of [true, false, null]) {
+      const config = { ...validBase, allowProduction }
+      expect(issueMessageAt(config, 'allowProduction'), String(allowProduction)).toBe(
+        'allowProduction was removed: production targets run like any other target. Delete this line.',
+      )
+      expect(paramsAt(config, 'allowProduction'), String(allowProduction)).toEqual({ retired: true })
+      const result = AgentQaConfigSchema.safeParse(config)
+      expect(result.error?.issues.filter(i => i.code === 'unrecognized_keys')).toEqual([])
+    }
+  })
+})
+
 describe('strict backstop — arbitrary unknown keys (D-07)', () => {
   it('still rejects an arbitrary unknown top-level key via strict parsing', () => {
     const result = AgentQaConfigSchema.safeParse({ ...validBase, totallyUnknownKey: 1 })

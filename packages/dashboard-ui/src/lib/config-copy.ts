@@ -602,14 +602,12 @@ export const RUNS_FIELD_LABELS = {
   parallel: 'Run tests in parallel',
   workers: 'Parallel workers',
   buildTag: 'Build tag',
-  allowProduction: 'Allow production runs',
 } as const
 
 export const RUNS_FIELD_HELP = {
   parallel: 'Run the tests of one run at the same time.',
   workers: 'The most tests that run at once.',
   buildTag: 'Names the app build under test.',
-  allowProduction: 'Lets runs reach targets marked Production. When off, those runs are refused.',
 } as const
 
 export const CACHE_FIELD_LABELS = {
@@ -722,15 +720,6 @@ export const TARGET_ENVIRONMENT_PLACEHOLDER = 'Undeclared'
 export const TARGET_ENVIRONMENT_CHOICE_LABELS = {
   undeclared: 'Undeclared',
   ...TARGET_ENVIRONMENT_LABELS,
-} as const satisfies Record<'undeclared' | 'local' | 'shared' | 'production', string>
-
-/** One line under each add-target environment choice. */
-export const TARGET_ENVIRONMENT_HINTS = {
-  undeclared: 'Treated as non-production.',
-  local: 'Runs against this machine.',
-  shared: 'A shared non-production target.',
-  // 2026-10-03 (quick 261003-cpv): the switch's own label and tab, not the raw config key.
-  production: `Runs need "${RUNS_FIELD_LABELS.allowProduction}" turned on (${CONFIG_TAB_LABELS.execution} tab).`,
 } as const satisfies Record<'undeclared' | 'local' | 'shared' | 'production', string>
 
 export const TARGET_FIELD_LABELS = {
