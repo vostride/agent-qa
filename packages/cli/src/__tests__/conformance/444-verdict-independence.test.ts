@@ -451,8 +451,9 @@ function pendingWord(stage: Stage): string {
 
 type StageWords = { readonly analysis: string; readonly curation: string }
 
-// The stage words first (T-444-40), on every surface that prints them, then no `done` or
-// `excluded` anywhere, then the verdict and the exit code beside it.
+// The stage words first, on every surface that prints them, then no `done` or `excluded`
+// anywhere but the run id, whose random words can be either, then the verdict and the exit
+// code beside it.
 function expectLeg(
   key: string,
   expected: {
@@ -502,7 +503,8 @@ function expectLeg(
     JSON.stringify(reads?.postProcessing?.body),
   ]
   for (const text of printed) {
-    expect(text, `${key} prints no done or excluded\n${seen()}`).not.toMatch(/\b(done|excluded)\b/u)
+    expect(text.replaceAll(run.runId, 'run-id'), `${key} prints no done or excluded\n${seen()}`)
+      .not.toMatch(/\b(done|excluded)\b/u)
   }
 
   expect(run.recordedVerdict, `${key}'s verdict\n${seen()}`).toEqual({ verdict: run.verdict })
