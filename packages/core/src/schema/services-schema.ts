@@ -104,7 +104,7 @@ export const RecordingConfigSchema = z.object({
 export const AccessibilityConfigSchema = z.object({
   enabled: z.boolean(),
   standard: z.enum(['wcag2a', 'wcag2aa', 'wcag2aaa']).optional(),
-  runAfter: z.enum(['every-step', 'navigation', 'test-end']).optional(),
+  runAfter: z.enum(['every-step', 'test-end']).optional(),
   failOnViolation: z.boolean().optional(),
   disableRules: z.array(z.string()).optional(),
   exclude: z.array(z.string()).optional(),

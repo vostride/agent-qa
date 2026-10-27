@@ -643,7 +643,6 @@ export const ACCESSIBILITY_ALL_RULES_TEXT = 'All rules'
 
 export const ACCESSIBILITY_RUN_AFTER_LABELS = {
   'every-step': 'Every step',
-  navigation: 'Navigation',
   'test-end': 'Test end',
 } as const
 

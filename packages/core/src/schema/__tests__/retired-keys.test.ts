@@ -236,6 +236,26 @@ describe('retired-key pre-scan: removed MCP keys', () => {
   })
 })
 
+describe('retired-key pre-scan: removed accessibility values', () => {
+  it('accessibility runAfter navigation is refused with its removal message', () => {
+    const config = { ...validBase, services: { accessibility: { enabled: true, runAfter: 'navigation' } } }
+    const result = AgentQaConfigSchema.safeParse(config)
+    expect(result.success).toBe(false)
+    expect(result.error?.issues).toHaveLength(1)
+    expect(issueMessageAt(config, 'services.accessibility.runAfter')).toBe(
+      'services.accessibility.runAfter: navigation was removed: it never ran a check. Use test-end, or delete the line for every-step.',
+    )
+    expect(paramsAt(config, 'services.accessibility.runAfter')).toEqual({ retired: true })
+  })
+
+  it('accessibility runAfter test-end and every-step still parse', () => {
+    for (const runAfter of ['test-end', 'every-step']) {
+      const config = { ...validBase, services: { accessibility: { enabled: true, runAfter } } }
+      expect(AgentQaConfigSchema.safeParse(config).success, runAfter).toBe(true)
+    }
+  })
+})
+
 describe('retired-key pre-scan: removed knowledge keys', () => {
   it('knowledge.contextBudgetTokens is refused with its removal message', () => {
     const config = { ...validBase, knowledge: { contextBudgetTokens: 4096 } }

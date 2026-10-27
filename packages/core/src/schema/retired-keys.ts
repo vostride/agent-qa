@@ -68,6 +68,9 @@ const RETIRED_MCP_KEY_MESSAGES: Record<string, string> = {
     'services.mcp.transport was removed: agent-qa mcp uses stdio, or HTTP with --http. Delete this line.',
 }
 
+const RETIRED_RUN_AFTER_NAVIGATION_MESSAGE =
+  'services.accessibility.runAfter: navigation was removed: it never ran a check. Use test-end, or delete the line for every-step.'
+
 const RETIRED_KNOWLEDGE_KEY_MESSAGES: Record<string, string> = {
   contextBudgetTokens:
     "knowledge.contextBudgetTokens was removed: agent-qa sizes each run's knowledge itself. Delete this line.",
@@ -224,6 +227,19 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
         })
       }
     }
+  }
+
+  if (
+    isPlainObject(value.services) &&
+    isPlainObject(value.services.accessibility) &&
+    value.services.accessibility.runAfter === 'navigation'
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      params: { retired: true },
+      path: ['services', 'accessibility', 'runAfter'],
+      message: RETIRED_RUN_AFTER_NAVIGATION_MESSAGE,
+    })
   }
 
   if (isPlainObject(value.knowledge)) {
