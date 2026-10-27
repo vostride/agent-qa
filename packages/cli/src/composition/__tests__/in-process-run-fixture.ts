@@ -85,6 +85,8 @@ export interface InProcessFixtureInput {
    * Ignored when `omitSecretsFile` is set; the two knobs answer opposite questions.
    */
   readonly plantedSecret?: string
+  /** The path the first target's URL carries after the origin. Defaults to `/in-process-thing`. */
+  readonly targetPath?: string
   /** The one step every test the fixture writes carries, in place of the default `Verify` step (441-12). */
   readonly stepText?: string
   /** Write a test file that parses to ZERO runnable tests (the RUNX-06 door). */
@@ -250,7 +252,7 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
       '  targets:',
       `    ${IN_PROCESS_TARGET_NAME}:`,
       '      platform: web',
-      `      url: ${input.origin}/in-process-thing`,
+      `      url: ${input.origin}${input.targetPath ?? '/in-process-thing'}`,
       ...(input.environment === undefined ? [] : [`      environment: ${input.environment}`]),
       // Only under the knob, so the default fixture's bytes are exactly what they were.
       ...(input.secondTarget === true ? ['      product: one-product'] : []),

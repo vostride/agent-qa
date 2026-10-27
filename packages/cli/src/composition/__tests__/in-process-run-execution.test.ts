@@ -419,7 +419,7 @@ describe('a door holding only a RunsStartInput gets a policy-gated run, in proce
     }
   }, 120_000)
 
-  it('THE REQUEST NAMES THE CONFIG — `request.configPath` decides what is resolved and gated', async () => {
+  it('THE REQUEST NAMES THE CONFIG — `request.configPath` decides what is resolved', async () => {
     // CARRIED FORWARD BY 401-10 from `fn-runs-start.test.ts`, which died with the child it drove.
     // The old cell read the `--config` operand the port put in front of the child. The contract
     // survived the retirement (`runInProcessCliRun`: `request.configPath ?? options.configPath`)
@@ -429,7 +429,11 @@ describe('a door holding only a RunsStartInput gets a policy-gated run, in proce
     await target.listen()
     try {
       const composed = createInProcessFixture({ origin: target.origin, environment: 'local' })
-      const named = createInProcessFixture({ origin: target.origin, environment: 'local' })
+      const named = createInProcessFixture({
+        origin: target.origin,
+        environment: 'local',
+        targetPath: '/named-thing',
+      })
       expect(named.configPath).not.toBe(composed.configPath)
 
       try {
@@ -439,13 +443,10 @@ describe('a door holding only a RunsStartInput gets a policy-gated run, in proce
         )
       } catch { /* the member's framework error; where the run LANDED is what this cell reads */ }
 
-      // THE GATE RAN AGAINST THE CONFIG THE REQUEST NAMED. The audit row is the gate's own record
-      // and it is written beside the config whose target declaration it read — so this is the
-      // assertion that a dropped `configPath` could not survive: the classification would have come
-      // off the composition's project instead.
-      // No audit row is written beside either config.
-      expect(auditRows(named as never)).toEqual([])
-      expect(auditRows(composed as never)).toEqual([])
+      // THE TARGET CAME FROM THE CONFIG THE REQUEST NAMED. Both configs declare the same target
+      // name, and only the named one points it at `/named-thing`, so a port that dropped
+      // `configPath` would have probed the composed project's `/in-process-thing` instead.
+      expect(target.hits).toEqual(['/named-thing'])
 
       // AND THE RUN'S DURABLE EVIDENCE FOLLOWS `agentQaRoot`, WHICH THE REQUEST CANNOT NAME. This
       // is asserted rather than smoothed over: the two halves of one run land in two projects when
