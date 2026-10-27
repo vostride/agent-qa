@@ -18,7 +18,7 @@ void cacheable
 // assertAI is excluded — a plan carrying it does NOT typecheck into CachedPlanValue.
 const withAssertAI: CachedPlanValue = {
   // @ts-expect-error D-08: assertAI is excluded from CacheablePlannedAction — unwritable.
-  plannedActions: [{ type: 'assertAI', claim: 'x', mode: 'multimodal', effort: 'medium', consensus: 1 }],
+  plannedActions: [{ type: 'assertAI', claim: 'x', mode: 'multimodal' }],
   groundedLocator: [],
   verificationOutcome: 'passed',
 }

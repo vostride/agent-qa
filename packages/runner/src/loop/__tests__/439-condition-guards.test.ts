@@ -241,7 +241,7 @@ function readRecord(reads: RecordedRead[]): GuardRecord {
   return {
     reads,
     actions: reads.map((read) => recorded(read.index, read.kind === 'assertAI'
-      ? { type: 'assertAI', claim: read.claim ?? '', mode: 'text', effort: 'low', consensus: 1 }
+      ? { type: 'assertAI', claim: read.claim ?? '', mode: 'text' }
       : { type: 'assertValue', expr, op: 'contains' } as Action)),
   }
 }

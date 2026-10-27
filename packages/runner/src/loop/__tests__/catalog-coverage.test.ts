@@ -250,7 +250,7 @@ describe('EXEC-07 — assertAI executes single-model cache-bypassed; assertValue
     const verifier = makeJudgeVerifier({ verdict: true, rationale: 'the welcome banner reads Welcome' })
     const calls: Action[] = []
     const plan = makeActionPlan({
-      action: { type: 'assertAI', claim: 'the welcome banner is visible', mode: 'multimodal', effort: 'medium', consensus: 1 } as ActionPlan['action'],
+      action: { type: 'assertAI', claim: 'the welcome banner is visible', mode: 'multimodal' } as ActionPlan['action'],
       stepComplete: true,
     })
 

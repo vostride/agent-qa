@@ -650,9 +650,8 @@ export class EvidenceRecorder {
   }
 
   /**
-   * Record the D-05/D-06/D-07/D-09 AI judge block (`assertAI`/`extractAI`): verdict, rationale
-   * (masked), the requested-but-deferred M3/M4 knobs, and the extractAI global-scope degradation
-   * marker. One judgment per attempt (single-model law).
+   * Record the assertAI or extractAI judge block: the verdict and masked rationale, or why the
+   * model could not judge or extract. One per attempt.
    */
   recordAiJudgment(evidence: AiJudgmentEvidence): void {
     this.aiJudgment = evidence

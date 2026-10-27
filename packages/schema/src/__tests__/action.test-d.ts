@@ -146,8 +146,6 @@ expectTypeOf<CommonAssertAI>().toMatchTypeOf<{
   type: 'assertAI'
   claim: string
   mode: 'multimodal' | 'visual' | 'text'
-  effort: 'low' | 'medium' | 'high'
-  consensus: number
 }>()
 expectTypeOf<Extract<CommonAction, { type: 'reportValue' }>>().not.toEqualTypeOf<never>()
 expectTypeOf<Extract<CommonAction, { type: 'openApp' }>>().not.toEqualTypeOf<never>()

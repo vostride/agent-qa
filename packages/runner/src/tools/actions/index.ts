@@ -128,17 +128,10 @@ export const waitForSchema = z.discriminatedUnion('on', [
   }).strict(),
 ])
 
-// D-06: assertAI is non-deterministic and should bypass runtime caches in M1; this phase records schema intent only.
 export const assertAISchema = z.object({
   claim: z.string().describe('AI-judged claim to verify against the current screen state'),
   mode: z.enum(['multimodal', 'visual', 'text']).default('multimodal')
     .describe('multimodal = use all available evidence. Omit for multimodal.'),
-  effort: z.enum(['low', 'medium', 'high']).default('medium')
-    .describe('Model reasoning effort for the assertion. Omit for medium.'),
-  consensus: z.number().int().min(1).max(5).default(1)
-    .describe('Number of model votes — accepted but NOT honored until M3/M4. Omit for single-judge.'),
-  video: z.boolean().optional()
-    .describe('Assert over a recorded clip — accepted but NOT honored until M3/M4. Omit when a still-frame assertion is enough.'),
 }).strict()
 
 const assertValueSourceSchema = z.object({
@@ -172,7 +165,6 @@ export const extractFieldSchema = z.object({
     .describe('Array item type. Omit when type is not array.'),
 }).strict()
 
-// D-06: extractAI is non-deterministic and should bypass runtime caches in M1; this phase records schema intent only.
 export const extractAISchema = z.object({
   query: z.string().describe('Perceptual extraction request for the current rendered state'),
   schema: z.array(extractFieldSchema).describe('Typed field-list output schema'),

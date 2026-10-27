@@ -365,10 +365,8 @@ export async function executeStep(
     pendingCautions = served
   }
 
-  // D-08 (Phase 360): a completing plan that dispatched an assertAI/extractAI step never
-  // writes the cache (the runtime half of the CacheablePlannedAction type exclusion). This
-  // one-shot latch threads the bypass stamp into finalize so cacheStatus emits 'bypass' —
-  // orthogonal to the classifyStep NonCacheableStepInput signal above.
+  // A completing plan that dispatched assertAI or extractAI never writes the cache; this latch
+  // makes finalize report 'bypass'.
   let cacheBypass = false
 
   // PROC-02 (381 D-09..D-12, F-381-51-1) per-step procedure state. `procedureConsulted`
@@ -1617,7 +1615,7 @@ export async function executeStep(
       // verdict continues; a false verdict goes back to the planner as a self-correcting error; a
       // judgment the model could not make ends the step unresolved.
       cacheBypass = true
-      const av = action as { claim?: unknown; consensus?: unknown; video?: unknown; effort?: unknown }
+      const av = action as { claim?: unknown }
       const claim = String(av.claim ?? '')
       meter.recordJudgeCall()
       const judgment = await withAbort(
@@ -1632,11 +1630,7 @@ export async function executeStep(
         unresolvedEnding = sentence
       } else {
         const rationale = redactSecretValue(judgment.rationale, ports.secretRedactor)
-        const requested: { consensus?: number; video?: boolean; effort?: 'low' | 'medium' | 'high' } = {}
-        if (typeof av.consensus === 'number') requested.consensus = av.consensus
-        if (typeof av.video === 'boolean') requested.video = av.video
-        if (av.effort === 'low' || av.effort === 'medium' || av.effort === 'high') requested.effort = av.effort
-        recorder.recordAiJudgment({ verb: 'assertAI', verdict: judgment.verdict, rationale: recordMask(rationale), requested })
+        recorder.recordAiJudgment({ verb: 'assertAI', verdict: judgment.verdict, rationale: recordMask(rationale) })
         const judgedClaim = recordMask(claim)
         const mode = typeof (action as { mode?: unknown }).mode === 'string'
           ? (action as { mode: string }).mode

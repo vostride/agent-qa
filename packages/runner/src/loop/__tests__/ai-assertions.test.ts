@@ -187,7 +187,7 @@ describe('assertAI executes through the verifier model lane — one judgment, ne
     const adapter = recordingAdapter(makeScreenState(), calls)
     const verifier = makeJudgeVerifier({ judgment: { outcome: 'judged', verdict: true, rationale: 'the banner reads Welcome' } })
     const plan = makeActionPlan({
-      action: { type: 'assertAI', claim: 'the welcome banner is visible', mode: 'multimodal', effort: 'medium', consensus: 1 },
+      action: { type: 'assertAI', claim: 'the welcome banner is visible', mode: 'multimodal' },
       stepComplete: true,
     })
 
@@ -206,7 +206,7 @@ describe('assertAI executes through the verifier model lane — one judgment, ne
     const adapter = recordingAdapter(makeScreenState(), calls)
     const verifier = makeJudgeVerifier({ judgment: { outcome: 'judged', verdict: true, rationale: 'the banner reads Welcome' } })
     const plan = makeActionPlan({
-      action: { type: 'assertAI', claim: 'the welcome banner is visible', mode: 'multimodal', effort: 'medium', consensus: 1 },
+      action: { type: 'assertAI', claim: 'the welcome banner is visible', mode: 'multimodal' },
       stepComplete: true,
     })
 
@@ -224,33 +224,12 @@ describe('assertAI executes through the verifier model lane — one judgment, ne
     expect(judgment?.rationale ?? '').toContain('Welcome')
   })
 
-  it('deferred knobs (consensus>1, video, effort) are recorded in the judgment evidence and never error', async () => {
-    const calls: Action[] = []
-    const adapter = recordingAdapter(makeScreenState(), calls)
-    const verifier = makeJudgeVerifier({ judgment: { outcome: 'judged', verdict: true, rationale: 'ok' } })
-    const plan = makeActionPlan({
-      action: { type: 'assertAI', claim: 'x', mode: 'multimodal', effort: 'high', consensus: 3, video: true },
-      stepComplete: true,
-    })
-
-    const result = await executeStep(
-      'Assert with deferred knobs',
-      ports({ adapter, planner: makePlanner([plan]), verifier, plannerConfig: cfg }),
-      makeStepContext(),
-    )
-
-    // Deferred knobs execute single-model in M1 — never an error.
-    expect(result.status).toBe('passed')
-    const judgment = (result.evidence as { aiJudgment?: { requested?: Record<string, unknown> } }).aiJudgment
-    expect(judgment?.requested).toMatchObject({ consensus: 3, video: true, effort: 'high' })
-  })
-
   it('a false claim is success:false with a self-correcting error carrying the model rationale, and the planner takes another turn', async () => {
     const calls: Action[] = []
     const adapter = recordingAdapter(makeScreenState(), calls)
     const verifier = makeJudgeVerifier({ judgment: { outcome: 'judged', verdict: false, rationale: 'no banner is present' } })
     const assertTurn = makeActionPlan({
-      action: { type: 'assertAI', claim: 'the welcome banner is visible', mode: 'multimodal', effort: 'medium', consensus: 1 },
+      action: { type: 'assertAI', claim: 'the welcome banner is visible', mode: 'multimodal' },
       stepComplete: true,
     })
     const bailTurn = makeActionPlan({ action: { type: 'reportValue', value: 'n/a' }, stepComplete: false, stepFailed: true })
@@ -482,7 +461,7 @@ describe('AI assertions are cache-bypassed at the write side', () => {
     const aiCache = makeCountingCache()
     const aiVerifier = makeJudgeVerifier({ judgment: { outcome: 'judged', verdict: true, rationale: 'ok' } })
     const aiPlan = makeActionPlan({
-      action: { type: 'assertAI', claim: 'ok', mode: 'multimodal', effort: 'medium', consensus: 1 },
+      action: { type: 'assertAI', claim: 'ok', mode: 'multimodal' },
       stepComplete: true,
     })
     const aiResult = await executeStep(

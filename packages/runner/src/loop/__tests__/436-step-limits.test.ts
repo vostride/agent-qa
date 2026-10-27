@@ -377,7 +377,7 @@ describe('C436-ACTION-PATHS', () => {
 
   it('assertAI and extractAI judges', async () => {
     for (const action of [
-      { type: 'assertAI', claim: 'the banner is visible', mode: 'multimodal', effort: 'medium', consensus: 1 },
+      { type: 'assertAI', claim: 'the banner is visible', mode: 'multimodal' },
       { type: 'extractAI', query: 'the page title' },
     ]) {
       const verifier = judgingVerifier()
@@ -482,7 +482,7 @@ describe('C436-ACTION-PATHS', () => {
     const planner: Planner = {
       async plan() {
         turn++
-        if (turn === 1) return { plan: makeActionPlan({ action: { type: 'assertAI', claim: 'banner', mode: 'multimodal', effort: 'medium', consensus: 1 }, stepComplete: false }) }
+        if (turn === 1) return { plan: makeActionPlan({ action: { type: 'assertAI', claim: 'banner', mode: 'multimodal' }, stepComplete: false }) }
         if (turn === 2) return { plan: makeActionPlan({ action: { type: 'extractAI', query: 'title' }, stepComplete: false }) }
         return { plan: makeActionPlan({ stepComplete: true }) }
       },

@@ -416,9 +416,6 @@ export const ACTION_WIRE_SCHEMAS_BY_TYPE = {
       type: z.literal('assertAI'),
       claim: z.string(),
       mode: z.enum(['multimodal', 'visual', 'text']),
-      effort: z.enum(['low', 'medium', 'high']),
-      consensus: z.number(),
-      video: z.boolean().optional(),
     })
     .passthrough(),
   assertValue: assertValueSchema,

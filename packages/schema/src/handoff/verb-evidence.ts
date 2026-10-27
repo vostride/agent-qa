@@ -37,11 +37,8 @@ export interface TerminationEvidence {
 }
 
 /**
- * The `assertAI`/`extractAI` judge block (D-05/D-06/D-07/D-09; spec §9.6/§12.2). The verb
- * routes through the verifier's injected model lane exactly once; the verdict + rationale are
- * recorded here, along with the requested-but-deferred M3/M4 knobs (so demand is visible) and
- * the `extractAI` `scope:'global'` degradation marker (D-07 — degraded to a run-scoped write,
- * never an error).
+ * The `assertAI` or `extractAI` judge block. assertAI records its verdict and masked rationale;
+ * either verb records `unresolved` when the model could not judge or extract.
  */
 export interface AiJudgmentEvidence {
   /** Which AI verb produced this judgment. */
@@ -55,15 +52,6 @@ export interface AiJudgmentEvidence {
    * it could.
    */
   unresolved?: string
-  /**
-   * The requested-but-deferred knobs (D-09). Executed single-model in M1 — recorded, never
-   * honored, so M3/M4 consensus/video/effort can see accumulated demand.
-   */
-  requested?: {
-    consensus?: number
-    video?: boolean
-    effort?: 'low' | 'medium' | 'high'
-  }
   /**
    * True ⇒ an `extractAI` `scope:'global'` request degraded to the same run-scoped write
    * (D-07); durable memory is M2's curator, no write port exists in M1. Never an error.

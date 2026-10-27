@@ -22,8 +22,6 @@ const ASSERT_CLAIM: Action = {
   type: 'assertAI',
   claim: 'The order was placed',
   mode: 'text',
-  effort: 'low',
-  consensus: 1,
 } as Action
 const EXTRACT: Action = {
   type: 'extractAI',

@@ -64,7 +64,7 @@ function planner(plans: ActionPlan[], seen: (string | undefined)[]): Planner {
 
 const clickLogIn = makeActionPlan({ action: { type: 'click', ref: 'e2' }, reasoning: 'Look at the banner' })
 const visualClaim = makeActionPlan({
-  action: { type: 'assertAI', claim: 'the banner is green', mode: 'visual', effort: 'low', consensus: 1 },
+  action: { type: 'assertAI', claim: 'the banner is green', mode: 'visual' },
   reasoning: 'Judge the banner colour',
 })
 

@@ -18,26 +18,20 @@ describe('assertion and extraction schemas', () => {
     expect(registry.get('common_extractAI')?.surface).toBe('common')
   })
 
-  it('validates assertAI claim-only and deferred-knob shapes', () => {
+  it('assertAI takes a claim and a mode, and refuses consensus, video and effort', () => {
     const schema = registryWithActions().getSchema('common_assertAI')
 
     const claimOnly = schema.safeParse({ claim: 'cart shows 3 items' })
     expect(claimOnly.success).toBe(true)
     if (claimOnly.success) {
-      expect(claimOnly.data).toMatchObject({
-        mode: 'multimodal',
-        effort: 'medium',
-        consensus: 1,
-      })
+      expect(claimOnly.data).toEqual({ claim: 'cart shows 3 items', mode: 'multimodal' })
     }
 
-    expect(schema.safeParse({
-      claim: 'cart shows 3 items',
-      mode: 'visual',
-      effort: 'high',
-      consensus: 3,
-      video: true,
-    }).success).toBe(true)
+    expect(schema.safeParse({ claim: 'cart shows 3 items', mode: 'visual' }).success).toBe(true)
+
+    expect(schema.safeParse({ claim: 'cart shows 3 items', consensus: 3 }).success).toBe(false)
+    expect(schema.safeParse({ claim: 'cart shows 3 items', video: true }).success).toBe(false)
+    expect(schema.safeParse({ claim: 'cart shows 3 items', effort: 'high' }).success).toBe(false)
 
     expect(schema.safeParse({
       claim: 'cart shows 3 items',

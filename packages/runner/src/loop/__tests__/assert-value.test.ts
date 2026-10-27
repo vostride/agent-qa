@@ -205,7 +205,7 @@ describe('Block B — assertValue orchestration and the deterministic verifier s
     const adapter = readingAdapter(makeScreenState(), { success: true })
     const verifier = makeShortCircuitVerifier({ verdict: true, rationale: 'the header is present' })
     const plan = makeActionPlan({
-      action: { type: 'assertAI', claim: 'the header is present', mode: 'multimodal', effort: 'medium', consensus: 1 },
+      action: { type: 'assertAI', claim: 'the header is present', mode: 'multimodal' },
       stepComplete: true,
     })
 
@@ -231,8 +231,6 @@ describe('Block B — assertValue orchestration and the deterministic verifier s
         type: 'assertAI',
         claim: 'The current screen is the dedicated #caturday hashtag page, although this browser session is logged out',
         mode: 'multimodal',
-        effort: 'medium',
-        consensus: 1,
       },
       stepComplete: true,
     })
@@ -268,7 +266,7 @@ describe('Block B — assertValue orchestration and the deterministic verifier s
       verdict: { success: true, reasoning: 'Bluesky shows the #caturday results', isAppError: false },
     })
     const plan = makeActionPlan({
-      action: { type: 'assertAI', claim: 'Bluesky shows the #caturday results', mode: 'multimodal', effort: 'medium', consensus: 1 },
+      action: { type: 'assertAI', claim: 'Bluesky shows the #caturday results', mode: 'multimodal' },
       stepComplete: true,
     })
 
@@ -290,7 +288,7 @@ describe('Block B — assertValue orchestration and the deterministic verifier s
     const adapter = readingAdapter(makeScreenState(), { success: true })
     const verifier = makeScriptedVerifier({ judgment: { verdict: false, rationale: 'no hashtag page is visible' } })
     const assertTurn = makeActionPlan({
-      action: { type: 'assertAI', claim: 'the #caturday hashtag page is visible', mode: 'multimodal', effort: 'medium', consensus: 1 },
+      action: { type: 'assertAI', claim: 'the #caturday hashtag page is visible', mode: 'multimodal' },
       stepComplete: true,
     })
     const bail = makeActionPlan({ action: { type: 'reportValue', value: 'n/a' }, stepComplete: false, stepFailed: true })
@@ -365,7 +363,7 @@ describe('Block B — assertValue orchestration and the deterministic verifier s
       verdict: { success: false, reasoning: 'The header is not visible', isAppError: false },
     })
     const plan = makeActionPlan({
-      action: { type: 'assertAI', claim: 'the header is present', mode: 'multimodal', effort: 'medium', consensus: 1 },
+      action: { type: 'assertAI', claim: 'the header is present', mode: 'multimodal' },
       stepComplete: true,
     })
 
@@ -395,7 +393,7 @@ describe('Block B — assertValue orchestration and the deterministic verifier s
       ],
     })
     const plan = makeActionPlan({
-      action: { type: 'assertAI', claim: 'the header is present', mode: 'multimodal', effort: 'medium', consensus: 1 },
+      action: { type: 'assertAI', claim: 'the header is present', mode: 'multimodal' },
       stepComplete: true,
     })
     const planner = capturingPlanner([plan])
@@ -420,7 +418,7 @@ describe('Block B — assertValue orchestration and the deterministic verifier s
       verdict: { success: true, reasoning: 'The login was refused as the test expects', isAppError: false },
     })
     const plan = makeActionPlan({
-      action: { type: 'assertAI', claim: "An 'Incorrect password' error is shown", mode: 'multimodal', effort: 'medium', consensus: 1 },
+      action: { type: 'assertAI', claim: "An 'Incorrect password' error is shown", mode: 'multimodal' },
       stepComplete: true,
     })
 
@@ -441,7 +439,7 @@ describe('Block B — assertValue orchestration and the deterministic verifier s
       verdict: { success: false, reasoning: 'The server returned HTTP 500', isAppError: true },
     })
     const plan = makeActionPlan({
-      action: { type: 'assertAI', claim: "An 'Incorrect password' error is shown", mode: 'multimodal', effort: 'medium', consensus: 1 },
+      action: { type: 'assertAI', claim: "An 'Incorrect password' error is shown", mode: 'multimodal' },
       stepComplete: true,
     })
     const planner = capturingPlanner([plan])

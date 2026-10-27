@@ -246,9 +246,8 @@ export interface StepEvidence {
   /** Whether this step's platform could capture downloads and clipboard writes at all (436 D-23). */
   operationCapture?: OperationCaptureAvailability
   /**
-   * The `assertAI`/`extractAI` judge block (D-05/D-06/D-07/D-09). Present when the step ran an
-   * AI verb through the verifier model lane; carries verdict, rationale, deferred knobs, and the
-   * extractAI global-scope degradation marker.
+   * Present when the step ran assertAI or extractAI through the verifier's model lane: the
+   * verdict and rationale, or why the model could not judge or extract.
    */
   aiJudgment?: AiJudgmentEvidence
   /**
