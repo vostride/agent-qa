@@ -20,9 +20,8 @@
 // enqueue plus a single writer-lease consult — and publishes whatever posture it decided. That
 // step is BOUNDED by `POST_VERDICT_STEP_BUDGET_MS` and degrades in every direction: absent, thrown,
 // warned or overrun all read `detached`, three of the four with a named `runWarning`. It NEVER
-// gates `done`, it publishes nothing itself, and `cancelBudget` / `liveStreams.close()` /
-// `bus.close()` are untouched behind it — so `done` still resolves after `runFinished` and a closed
-// bus (403-03 D-3).
+// gates `done`, it publishes nothing itself, and `liveStreams.close()` / `bus.close()` are
+// untouched behind it — so `done` still resolves after `runFinished` and a closed bus.
 //
 // The six post-processing chip events have no producer HERE — the chain pump emits them, one per
 // job outcome it observes (404-05). What this file owns of post-processing is the awaited step
@@ -253,7 +252,7 @@ export function startRun(config: RunConfig): RunSession {
       const quarantined = isMemberQuarantined(member, config.quarantined)
       const quarantineMarker = quarantined ? (true as const) : undefined
 
-      // Run aborted (cancel or budget) — skip the rest without invoking the executor (D-03).
+      // Run cancelled — skip the rest without invoking the executor.
       // 2026-10-17 (444-08, D-34): published like the fail-fast skip, so every surface lists it.
       if (runController.signal.aborted) {
         const skip = skippedPerTestOutcome(member, testIndex, quarantineMarker)
@@ -303,7 +302,7 @@ export function startRun(config: RunConfig): RunSession {
         ...(member.stepTexts !== undefined ? { stepTexts: member.stepTexts.map(mask) } : {}),
       })
 
-      // Member abort chained to the run controller so run-level cancel/budget aborts the active test.
+      // Member abort chained to the run controller so a run-level cancel aborts the active test.
       const memberController = new AbortController()
       const onRunAbort = (): void => memberController.abort()
       if (runController.signal.aborted) memberController.abort()
@@ -383,11 +382,11 @@ export function startRun(config: RunConfig): RunSession {
           duration: performance.now() - memberStartedAt,
         }
       } else {
-        // Abort won the race — the member did not settle after run-level cancel/budget. Finalize it
+        // Abort won the race — the member did not settle after a run-level cancel. Finalize it
         // as `cancelled` through the SAME deriveMemberOutcome/assemblePerTestOutcome helpers below so
-        // the "exactly one handoff / verdict once / runFinished last" invariants stay intact. The
-        // aggregate verdict is still run-level-first (deriveAggregateVerdict: cancel⇒cancelled,
-        // budget⇒timeout), so this member's own 'cancelled' outcome never changes the aggregate.
+        // the "exactly one handoff / verdict once / runFinished last" invariants stay intact. A
+        // run-level cancel wins the aggregate outright (deriveAggregateVerdict returns `cancelled`),
+        // so this member's own 'cancelled' outcome never changes the aggregate.
         result = {
           name,
           filePath: `${member.testId}.test.ts`,

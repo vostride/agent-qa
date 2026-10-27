@@ -1,13 +1,8 @@
-// Wave-0 RED scaffold (361-01, Task 3). Pins the SESSION-01/04/05 run-shell behavior
-// BEFORE any implementation exists — RED strictly on the unresolved import of the
-// not-yet-existing `../shell.js` module (right-reason RED). Turns green in Plan 06.
-//
-// Contract source: 361-CONTEXT.md D-01 (startRun owns session identity, bus, seq,
-// member iteration, aggregate verdict, handoff emission), D-03 (run-level SIGINT +
-// wall-clock budget), D-04 (fully-resolved RunConfig, no fs/providers), D-13/D-17
-// (session.done resolves { verdict, handoff }, handoff persisted exactly once),
-// D-16 (per-test outcome derivation) + spec/v2/runner.md §2.1/§2.2. RESEARCH Pitfall 4:
-// handoff step indices re-derived from array position, never all-zero.
+// Pins the run shell: startRun owns the session identity, the bus and its seq, member iteration,
+// the aggregate verdict and the handoff; a run-level cancel stops the run; the RunConfig arrives
+// fully resolved, with no fs or providers; session.done resolves { verdict, handoff } with the
+// handoff persisted exactly once; per-test outcomes are derived from the member results
+// (spec/v2/runner.md §2.1/§2.2); and handoff step indices come from array position, never all zero.
 //
 // Runner package convention: `.js`-suffixed relative import specifiers. Fully-faked
 // executor + ports — no real fs, providers, or timers.
