@@ -4,11 +4,11 @@ import { SizeString } from './primitives.js'
 /**
  * Whether a configured value is an ABSOLUTE `http:`/`https:` URL (408 D-08, WR-04 — T-408-16).
  *
- * FILE-LOCAL, DELIBERATELY, unlike `isLoopbackHost` below. That predicate is exported because TWO
- * mechanisms decide loopback membership and must not be two spellings; this one has exactly one
- * decision site — the parse boundary, immediately below. Exporting it would advertise a second
- * place to make the same check, and the whole point of a parse-time guard is that there is no
- * second place: nothing downstream should be re-deciding whether the base is safe.
+ * FILE-LOCAL, DELIBERATELY, unlike `isLoopbackHost` below, which is exported for the dashboard's
+ * bind guard in another package. This one has exactly one decision site — the parse boundary,
+ * immediately below. Exporting it would advertise a second place to make the same check, and the
+ * whole point of a parse-time guard is that there is no second place: nothing downstream should be
+ * re-deciding whether the base is safe.
  *
  * A RELATIVE VALUE IS REFUSED, not resolved. `new URL(value)` with no base throws for
  * `/relative/only` and for `not-a-url`, and the scheme test refuses `javascript:` and `mailto:`
