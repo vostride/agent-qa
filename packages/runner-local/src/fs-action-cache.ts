@@ -1,14 +1,14 @@
-// Concrete filesystem action-plan cache store (CACHE-04).
+// Concrete filesystem action-plan cache store.
 //
 // Implements the storage-neutral `ActionPlanCache` port from
-// @vostride/agent-qa-runner. This is the storageImplementation home for
-// node:fs/promises + node:path (D-01/D-02). On-disk layout:
+// @vostride/agent-qa-runner. On-disk layout:
 //
 //   <root>/<slug(branch)>/<cacheKey>.json
 //
-// The 16-hex CacheKey is the WHOLE filename (D-06) — no raw step text or secret
-// can appear on disk. Writes go only to the current-branch namespace; reads fall
-// back current-branch -> default-branch. An entry stamped with any other
+// The 16-hex CacheKey is the whole filename, so no raw step text or secret can
+// appear on disk. Writes go only to the current-branch namespace. Reads fall back
+// from the current branch to the default branch unless the current branch holds a
+// suppression marker for the key. An entry stamped with any other
 // CACHE_SCHEMA_VERSION is never read as valid.
 
 import { mkdir, readdir, readFile, rmdir, unlink, writeFile } from 'node:fs/promises'
@@ -26,10 +26,10 @@ export const CACHE_SCHEMA_VERSION = 2
 
 const CACHE_ENTRY_FILE_RE = /^[0-9a-f]{16}\.json$/
 
-interface CacheEnvelope {
-  schemaVersion: number
-  value: CachedPlanValue
-}
+type CacheEnvelope =
+  { schemaVersion: number; value: CachedPlanValue } | { schemaVersion: number; suppressed: true }
+
+type ReadResult = { kind: 'value'; value: CachedPlanValue } | { kind: 'suppressed' } | null
 
 export interface FsActionCacheConfig {
   /** Cache root (e.g. DEFAULT_AGENT_QA_CACHE_DIR = '.agent-qa/cache'). */
@@ -48,38 +48,46 @@ export class FsActionCache implements ActionPlanCache {
   }
 
   async get(key: CacheKey): Promise<CachedPlanValue | null> {
-    // --disable-cache short-circuits reads (D-15).
     if (this.policy.disableCache) return null
 
     const onCurrent = await this.readEntry(this.policy.currentBranch, key)
-    if (onCurrent !== null) return onCurrent
+    if (onCurrent?.kind === 'suppressed') return null
+    if (onCurrent?.kind === 'value') return onCurrent.value
 
-    // branch -> default read fallback (D-14). Never the other direction.
     if (this.policy.currentBranch !== this.policy.defaultBranch) {
-      return this.readEntry(this.policy.defaultBranch, key)
+      const onDefault = await this.readEntry(this.policy.defaultBranch, key)
+      return onDefault?.kind === 'value' ? onDefault.value : null
     }
     return null
   }
 
   async set(key: CacheKey, value: CachedPlanValue): Promise<void> {
-    // No-op when the write policy forbids it (protected branch, disable, etc.).
     if (!shouldWrite(this.policy)) return
-
-    // Writes go only to the current-branch namespace — a feature branch never
-    // overwrites the default branch's entries (D-14).
-    const dir = this.branchDir(this.policy.currentBranch)
-    await mkdir(dir, { recursive: true })
-    const envelope: CacheEnvelope = { schemaVersion: CACHE_SCHEMA_VERSION, value }
-    await writeFile(this.entryPath(dir, key), `${JSON.stringify(envelope, null, 2)}\n`, 'utf-8')
+    await this.writeEnvelope(key, { schemaVersion: CACHE_SCHEMA_VERSION, value })
   }
 
   async invalidate(key: CacheKey): Promise<void> {
-    const dir = this.branchDir(this.policy.currentBranch)
-    try {
-      await unlink(this.entryPath(dir, key))
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err
+    const { currentBranch, defaultBranch } = this.policy
+    // The default branch's entry is never changed from another branch: a marker on the
+    // current branch hides it instead.
+    if (currentBranch !== defaultBranch) {
+      const onDefault = await this.readEntry(defaultBranch, key)
+      if (onDefault?.kind === 'value') {
+        await this.writeEnvelope(key, { schemaVersion: CACHE_SCHEMA_VERSION, suppressed: true })
+        return
+      }
     }
+    try {
+      await unlink(this.entryPath(this.branchDir(currentBranch), key))
+    } catch (err) {
+      if (!isMissing(err)) throw err
+    }
+  }
+
+  private async writeEnvelope(key: CacheKey, envelope: CacheEnvelope): Promise<void> {
+    const dir = this.branchDir(this.policy.currentBranch)
+    await mkdir(dir, { recursive: true })
+    await writeFile(this.entryPath(dir, key), `${JSON.stringify(envelope, null, 2)}\n`, 'utf-8')
   }
 
   private branchDir(branch: string): string {
@@ -87,28 +95,28 @@ export class FsActionCache implements ActionPlanCache {
   }
 
   private entryPath(dir: string, key: CacheKey): string {
-    // The hex CacheKey is the whole filename (D-06).
     return join(dir, `${key}.json`)
   }
 
-  private async readEntry(branch: string, key: CacheKey): Promise<CachedPlanValue | null> {
+  private async readEntry(branch: string, key: CacheKey): Promise<ReadResult> {
     let raw: string
     try {
       raw = await readFile(this.entryPath(this.branchDir(branch), key), 'utf-8')
     } catch (err) {
-      if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null
+      if (isMissing(err)) return null
       throw err
     }
 
-    let envelope: CacheEnvelope
+    let envelope: Partial<{ schemaVersion: number; value: CachedPlanValue; suppressed: boolean }>
     try {
-      envelope = JSON.parse(raw) as CacheEnvelope
+      envelope = JSON.parse(raw) as typeof envelope
     } catch {
       return null // corrupt/partial entry is a miss, never a crash
     }
 
     if (envelope?.schemaVersion !== CACHE_SCHEMA_VERSION) return null
-    return envelope.value ?? null
+    if (envelope.suppressed === true) return { kind: 'suppressed' }
+    return envelope.value ? { kind: 'value', value: envelope.value } : null
   }
 }
 

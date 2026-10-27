@@ -181,6 +181,79 @@ describe('FsActionCache', () => {
   })
 })
 
+describe('a rejected entry on a branch that may write', () => {
+  let root: string
+  let mainFile: string
+  let featureFile: string
+  let mainBytes: string
+
+  const policy = makePolicy({
+    currentBranch: 'feature',
+    defaultBranch: 'main',
+    protectedBranches: ['main'],
+  })
+
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), 'fs-action-cache-reject-'))
+    mainFile = join(root, 'main', `${KEY}.json`)
+    featureFile = join(root, 'feature', `${KEY}.json`)
+    mainBytes = JSON.stringify({ schemaVersion: CACHE_SCHEMA_VERSION, value: makeValue() })
+    await mkdir(join(root, 'main'), { recursive: true })
+    await writeFile(mainFile, mainBytes, 'utf-8')
+  })
+
+  afterEach(async () => {
+    await rm(root, { recursive: true, force: true })
+  })
+
+  it('invalidating an entry read from the default branch suppresses it here and leaves the default entry untouched', async () => {
+    const cache = new FsActionCache({ root, policy })
+    expect(await cache.get(KEY)).toEqual(makeValue())
+
+    await cache.invalidate(KEY)
+
+    expect(await cache.get(KEY)).toBeNull()
+    expect(await readFile(mainFile, 'utf-8')).toBe(mainBytes)
+    const marker = JSON.parse(await readFile(featureFile, 'utf-8')) as Record<string, unknown>
+    expect(marker.suppressed).toBe(true)
+    expect(marker.schemaVersion).toBe(CACHE_SCHEMA_VERSION)
+    expect(marker).not.toHaveProperty('value')
+  })
+
+  it('a path the branch saves replaces its suppression marker', async () => {
+    const cache = new FsActionCache({ root, policy })
+    await cache.invalidate(KEY)
+
+    const other = makeValue()
+    other.groundedLocator = [{ role: 'button', name: 'Place order' }]
+    await cache.set(KEY, other)
+
+    expect(await cache.get(KEY)).toEqual(other)
+  })
+
+  it("an entry of the branch's own that shadows a default entry is suppressed, so the default entry is not served again", async () => {
+    await mkdir(join(root, 'feature'), { recursive: true })
+    await writeFile(
+      featureFile,
+      JSON.stringify({ schemaVersion: CACHE_SCHEMA_VERSION, value: makeValue('failed') }),
+      'utf-8',
+    )
+    const cache = new FsActionCache({ root, policy })
+
+    await cache.invalidate(KEY)
+
+    expect(await cache.get(KEY)).toBeNull()
+    expect(await readFile(mainFile, 'utf-8')).toBe(mainBytes)
+  })
+
+  it('purgeActionCache removes suppression markers', async () => {
+    await new FsActionCache({ root, policy }).invalidate(KEY)
+
+    expect(await purgeActionCache(root)).toBe(2)
+    expect(await readdir(root)).toEqual([])
+  })
+})
+
 describe('purgeActionCache', () => {
   let root: string
 
