@@ -61,6 +61,11 @@ const RETIRED_APP_BROWSERSTACK_MESSAGE =
 const RETIRED_CACHE_TTL_MESSAGE =
   'services.cache.ttl was removed: cached plans do not expire by age. Delete this line.'
 
+const RETIRED_KNOWLEDGE_KEY_MESSAGES: Record<string, string> = {
+  contextBudgetTokens:
+    "knowledge.contextBudgetTokens was removed: agent-qa sizes each run's knowledge itself. Delete this line.",
+}
+
 const RETIRED_LOCAL_PROVIDERS_MESSAGE =
   'providers was removed: BrowserStack is no longer supported. Delete this block.'
 
@@ -197,6 +202,19 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
       path: ['services', 'cache', 'ttl'],
       message: RETIRED_CACHE_TTL_MESSAGE,
     })
+  }
+
+  if (isPlainObject(value.knowledge)) {
+    for (const key of Object.keys(value.knowledge)) {
+      if (Object.hasOwn(RETIRED_KNOWLEDGE_KEY_MESSAGES, key)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          params: { retired: true },
+          path: ['knowledge', key],
+          message: RETIRED_KNOWLEDGE_KEY_MESSAGES[key],
+        })
+      }
+    }
   }
 
   if (hasRetiredPlannerKey(value.use)) {

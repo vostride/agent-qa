@@ -216,6 +216,18 @@ describe('retired-key pre-scan: removed cache keys', () => {
   })
 })
 
+describe('retired-key pre-scan: removed knowledge keys', () => {
+  it('knowledge.contextBudgetTokens is refused with its removal message', () => {
+    const config = { ...validBase, knowledge: { contextBudgetTokens: 4096 } }
+    expect(issueMessageAt(config, 'knowledge.contextBudgetTokens')).toBe(
+      "knowledge.contextBudgetTokens was removed: agent-qa sizes each run's knowledge itself. Delete this line.",
+    )
+    expect(paramsAt(config, 'knowledge.contextBudgetTokens')).toEqual({ retired: true })
+    const result = AgentQaConfigSchema.safeParse(config)
+    expect(result.error?.issues.filter(i => i.code === 'unrecognized_keys')).toEqual([])
+  })
+})
+
 describe('agent-qa.local.yaml refusals', () => {
   const filePath = '/work/project/agent-qa.local.yaml'
 

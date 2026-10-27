@@ -36,7 +36,7 @@ const { fullConfig } = vi.hoisted(() => ({
       envFile: '.env.local',
       secretsFile: '.env.secrets.local',
     },
-    knowledge: { dir: 'agent-qa-knowledge', commitArtifacts: 'none', contextBudgetTokens: 4000 },
+    knowledge: { dir: 'agent-qa-knowledge', commitArtifacts: 'none' },
     services: {
       dashboard: {
         port: 4173,

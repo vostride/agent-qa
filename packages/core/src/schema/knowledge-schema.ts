@@ -14,8 +14,4 @@ export const KnowledgeConfigSchema = z.object({
   // D-08: closed enum — deliberately no 'full' mode; full-res artifacts ride the
   // artifact store/git-LFS side channel per knowledge-store.md §5.
   commitArtifacts: z.enum(['none', 'thumbnails']).default('none'),
-  // Absent = no cap: the engine's derived budget serves everything it ranks useful; when set
-  // it is a hard ceiling min(cap, derived), clamped above min_brief — efficacy over token
-  // saving (D-09, binds Phase 380 brief budgeting).
-  contextBudgetTokens: z.number().int().positive().optional(),
 }).strict()

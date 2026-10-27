@@ -4,7 +4,6 @@ import {
   KNOWLEDGE_COMMIT_ARTIFACTS_LABELS,
   KNOWLEDGE_FIELD_HELP,
   KNOWLEDGE_FIELD_LABELS,
-  NO_CAP_PLACEHOLDER,
 } from "@/lib/config-copy"
 
 const COMMIT_ARTIFACTS_OPTIONS = Object.entries(KNOWLEDGE_COMMIT_ARTIFACTS_LABELS).map(([value, label]) => ({
@@ -28,18 +27,6 @@ export function KnowledgeSection() {
         kind="select"
         options={COMMIT_ARTIFACTS_OPTIONS}
         placeholder={KNOWLEDGE_COMMIT_ARTIFACTS_LABELS.none}
-      />
-      <ConfigField
-        field={{
-          segments: ["knowledge", "contextBudgetTokens"],
-          tab: "project",
-          pattern: "knowledge.contextBudgetTokens",
-        }}
-        label={KNOWLEDGE_FIELD_LABELS.contextBudgetTokens}
-        kind="number"
-        help={KNOWLEDGE_FIELD_HELP.contextBudgetTokens}
-        placeholder={NO_CAP_PLACEHOLDER}
-        number={{ min: 1, integer: true }}
       />
     </>
   )

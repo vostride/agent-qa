@@ -550,19 +550,17 @@ describe('AgentQaConfigSchema — 4-bucket structure', () => {
     if (result.success) {
       expect(result.data.knowledge.dir).toBe('agent-qa-knowledge')
       expect(result.data.knowledge.commitArtifacts).toBe('none')
-      expect(result.data.knowledge.contextBudgetTokens).toBeUndefined()
     }
   })
 
   it('accepts an explicit knowledge block', () => {
     const result = AgentQaConfigSchema.safeParse(withWorkspace({
-      knowledge: { dir: 'docs/knowledge', commitArtifacts: 'thumbnails', contextBudgetTokens: 4096 },
+      knowledge: { dir: 'docs/knowledge', commitArtifacts: 'thumbnails' },
     }))
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.knowledge.dir).toBe('docs/knowledge')
       expect(result.data.knowledge.commitArtifacts).toBe('thumbnails')
-      expect(result.data.knowledge.contextBudgetTokens).toBe(4096)
     }
   })
 
@@ -1262,11 +1260,10 @@ describe('AgentQaConfigSchema — retired keys are strictly unknown (432 D-22)',
 
   // EDGE-13: the removal is exact. The retired spellings stay legal where a free-form record owns
   // the key, and an unrelated strict object refuses them exactly as it always did.
-  it('C432-OLD-KEYS-STRICT: strict removal rejects exactly the retired keys and nothing that merely shares a name', () => {
+  it('strict removal rejects exactly the retired keys and nothing that merely shares a name', () => {
     const shared = AgentQaConfigSchema.safeParse(withWorkspace({
       analytics: { passRateScope: { attributes: { tokens: 'x', stdio: 'y', trustMode: 'z', runServiceTokens: 'w' } } },
       services: { mcp: { enabled: false } },
-      knowledge: { contextBudgetTokens: 4000 },
     }))
     expect(shared.success, JSON.stringify(shared.error?.issues)).toBe(true)
     if (shared.success) {

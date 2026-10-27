@@ -15,14 +15,13 @@ const minimalConfig = {
   },
 }
 
-describe('KnowledgeConfigSchema — defaults (D-08, D-09)', () => {
+describe('KnowledgeConfigSchema — defaults', () => {
   it('materializes knowledge defaults on a minimal config parse', () => {
     const result = AgentQaConfigSchema.safeParse(minimalConfig)
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.knowledge.dir).toBe('agent-qa-knowledge')
       expect(result.data.knowledge.commitArtifacts).toBe('none')
-      expect(result.data.knowledge.contextBudgetTokens).toBeUndefined()
     }
   })
 
@@ -30,7 +29,6 @@ describe('KnowledgeConfigSchema — defaults (D-08, D-09)', () => {
     const result = KnowledgeConfigSchema.parse({})
     expect(result.dir).toBe('agent-qa-knowledge')
     expect(result.commitArtifacts).toBe('none')
-    expect(result.contextBudgetTokens).toBeUndefined()
   })
 })
 
@@ -51,18 +49,6 @@ describe('KnowledgeConfigSchema — dir repo-relative predicate (D-10)', () => {
   it('rejects an empty dir', () => {
     const result = KnowledgeConfigSchema.safeParse({ dir: '' })
     expect(result.success).toBe(false)
-  })
-})
-
-describe('KnowledgeConfigSchema — contextBudgetTokens (D-09)', () => {
-  it('rejects zero and negative caps', () => {
-    expect(KnowledgeConfigSchema.safeParse({ contextBudgetTokens: 0 }).success).toBe(false)
-    expect(KnowledgeConfigSchema.safeParse({ contextBudgetTokens: -5 }).success).toBe(false)
-  })
-
-  it('accepts a positive integer cap', () => {
-    const result = KnowledgeConfigSchema.safeParse({ contextBudgetTokens: 1 })
-    expect(result.success).toBe(true)
   })
 })
 

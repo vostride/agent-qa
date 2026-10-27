@@ -77,7 +77,6 @@ describe('config navigation inventory', () => {
     expect(sectionsFor('cache dir')).toEqual(['cache'])
     expect(sectionsFor('saved auth')).toEqual(['login-states'])
     expect(sectionsFor('commit artifacts')).toEqual(['knowledge'])
-    expect(sectionsFor('context budget')).toEqual(['knowledge'])
     expect(sectionsFor('knowledge dir')).toEqual(['knowledge'])
     expect(sectionsFor('screenshot size')).toEqual(['screenshot-size'])
     for (const dotted of [

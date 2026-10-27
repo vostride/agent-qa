@@ -572,7 +572,6 @@ describe('settings writes through PATCH /api/config (429-32)', () => {
       set(['knowledge'], {
         dir: 'agent-qa-knowledge',
         commitArtifacts: 'thumbnails',
-        contextBudgetTokens: 4096,
       }),
       set(['services', 'vision'], {
         screenshotSize: '512k',
@@ -615,7 +614,6 @@ describe('settings writes through PATCH /api/config (429-32)', () => {
       knowledge: {
         dir: 'agent-qa-knowledge',
         commitArtifacts: 'thumbnails',
-        contextBudgetTokens: 4096,
       },
       services: {
         vision: {

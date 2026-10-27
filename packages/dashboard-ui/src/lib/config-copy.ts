@@ -439,20 +439,16 @@ export const PORT_RESTART_HELP = 'Takes effect after the dashboard restarts.'
 export const KNOWLEDGE_FIELD_LABELS = {
   dir: 'Knowledge folder',
   commitArtifacts: 'Images committed with knowledge',
-  contextBudgetTokens: 'Knowledge budget',
 } as const
 
 export const KNOWLEDGE_FIELD_HELP = {
   dir: 'A folder inside this repository.',
-  contextBudgetTokens: 'The most tokens of knowledge a run is given. Leave empty for no cap.',
 } as const
 
 export const KNOWLEDGE_COMMIT_ARTIFACTS_LABELS = {
   none: 'None',
   thumbnails: 'Thumbnails',
 } as const
-
-export const NO_CAP_PLACEHOLDER = 'No cap'
 
 export const DASHBOARD_FIELD_LABELS = {
   port: 'Port',

@@ -460,10 +460,9 @@ describe('buildMaskedResolvedConfig', () => {
     const config = buildMaskedResolvedConfig({
       configPath: 'agent-qa.config.yaml',
       resolved: {
-        services: { dashboard: { port: 4000 } },
+        services: { dashboard: { port: 4000, dbPath: null } },
         use: { browser: { headless: true } },
         workspace: { testMatch: [] },
-        knowledge: { contextBudgetTokens: null },
       },
       layers: [],
       mask: identity,
@@ -473,7 +472,7 @@ describe('buildMaskedResolvedConfig', () => {
     expect(byKey['services.dashboard.port']).toBe('4000')
     expect(byKey['use.browser.headless']).toBe('true')
     expect(byKey['workspace.testMatch']).toBe('[]')
-    expect(byKey['knowledge.contextBudgetTokens']).toBe('null')
+    expect(byKey['services.dashboard.dbPath']).toBe('null')
     for (const entry of config.entries) {
       expect(typeof entry.value).toBe('string')
     }

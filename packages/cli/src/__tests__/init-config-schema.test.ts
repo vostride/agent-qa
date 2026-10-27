@@ -55,7 +55,6 @@ describe('init generated config schema compatibility', () => {
       expect(config.services).not.toHaveProperty('memory')
       expect(parsed.knowledge.dir).toBe('agent-qa-knowledge')
       expect(parsed.knowledge.commitArtifacts).toBe('none')
-      expect(parsed.knowledge.contextBudgetTokens).toBeUndefined()
       expect(parsed.use?.timeout).toEqual(EXPECTED_TIMEOUT_MS)
       expect(parsed.use?.logCapture?.console).toBe(true)
       expect(parsed.use?.logCapture?.network).toBe(true)
