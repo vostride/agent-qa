@@ -41,6 +41,7 @@ export const CONDITION_ENDINGS = [
   'give-up',
   'infeasible',
   'limit-stop',
+  'unresolved',
   'timeout',
   'cancelled',
 ] as const
@@ -107,23 +108,25 @@ export const CONDITION_VERDICTS_EVIDENCE_KEYS = [
   'openDialogs',
 ] as const satisfies readonly (keyof ConditionVerdictsEvidence)[]
 
-const VERIFIER_ENDINGS: readonly ConditionEnding[] = [
+const UNPROVEN_ENDINGS: readonly ConditionEnding[] = [
   'completion',
   'give-up',
   'infeasible',
   'limit-stop',
+  'unresolved',
 ]
 
 /**
- * True when the verifier's judgment left the step unproven rather than failed: nothing is not met,
- * no open dialog bears on a condition, and something is unverified, inconclusive or unaccounted.
+ * True when the step is unproven rather than failed: the verifier's judgment left something
+ * unverified, inconclusive or unaccounted with nothing not met and no open dialog bearing on a
+ * condition, or an assertAI or extractAI step ended because the model could not judge or extract.
  * Timeout and cancelled blocks are recorded facts, not judgments, so they never count.
  */
 export function stepOutcomeUnproven(step: {
   conditionVerdicts?: ConditionVerdictsEvidence
 }): boolean {
   const block = step.conditionVerdicts
-  if (block === undefined || !VERIFIER_ENDINGS.includes(block.ending)) return false
+  if (block === undefined || !UNPROVEN_ENDINGS.includes(block.ending)) return false
   const dialogs = block.openDialogs ?? []
   if (block.conditions.some((condition) => condition.verdict === 'not-met')) return false
   if (dialogs.some((dialog) => dialog.account === 'bears-on-condition')) return false

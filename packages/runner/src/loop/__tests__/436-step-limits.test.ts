@@ -247,7 +247,7 @@ function judgingVerifier(): Verifier & { verifyCalls: number; judgeCalls: number
     },
     async judgeClaim() {
       verifier.judgeCalls++
-      return { verdict: true, rationale: 'Visible' }
+      return { outcome: 'judged' as const, verdict: true, rationale: 'Visible' }
     },
     async extractData() {
       verifier.judgeCalls++

@@ -17,16 +17,23 @@ import { classifyRootCause, UNKNOWN_SIGNAL_RATIONALE } from '../root-cause.js'
 const UNPROVEN_ERROR =
   'Step failed: The draft was not saved — Unverified: "the setting is saved" (no re-read after reload)'
 
-function block(verdict: ConditionVerdict): ConditionVerdictsEvidence {
+function block(
+  verdict: ConditionVerdict,
+  ending: ConditionVerdictsEvidence['ending'] = 'give-up',
+): ConditionVerdictsEvidence {
   return {
-    ending: 'give-up',
+    ending,
     conditions: [
       { quote: 'the setting is saved', verdict, reason: 'no re-read after reload', citations: [] },
     ],
   }
 }
 
-function judgedStep(verdict: ConditionVerdict, error: string = UNPROVEN_ERROR): StepResult {
+function judgedStep(
+  verdict: ConditionVerdict,
+  error: string = UNPROVEN_ERROR,
+  ending: ConditionVerdictsEvidence['ending'] = 'give-up',
+): StepResult {
   return {
     name: 'Save the setting',
     status: 'failed',
@@ -34,7 +41,7 @@ function judgedStep(verdict: ConditionVerdict, error: string = UNPROVEN_ERROR): 
     error,
     evidence: {
       verifierVerdict: { pass: false, reasoning: 'the verifier reasoning' },
-      conditionVerdicts: block(verdict),
+      conditionVerdicts: block(verdict, ending),
     } as unknown as StepEvidence,
   }
 }
@@ -87,6 +94,18 @@ describe('C439-ROOT-CAUSE', () => {
     const verdict = classifyRootCause({ result: failed([step]), outcome: 'failed', testIndex: 0 })
     expect(verdict?.class).toBe('unknown')
     expect(verdict?.evidence.rationale).toBe('the verifier reasoning')
+  })
+
+  it('a step whose model judgment could not be made is unknown, never environment', () => {
+    const error =
+      'assertAI could not judge "the banner is visible": the model call failed: connect ECONNREFUSED 127.0.0.1:443'
+    const verdict = classifyRootCause({
+      result: failed([judgedStep('unverified', error, 'unresolved')]),
+      outcome: 'failed',
+      testIndex: 0,
+    })
+    expect(verdict?.class).toBe('unknown')
+    expect(verdict?.confidence).toBe(0)
   })
 
   it('an unproven step is never classed environment by the error-token scans', () => {

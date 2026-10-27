@@ -20,7 +20,7 @@ import type { ScreenState } from '@vostride/agent-qa-schema'
 
 import type { PlatformAdapter, Action, ActionResult } from '../../platform.js'
 import type { LoopPorts } from '../ports.js'
-import type { Verifier, VerifyResult, ActionPlan } from '../types.js'
+import type { AiJudgment, Verifier, VerifyResult, ActionPlan } from '../types.js'
 import { scriptedVerification } from '../../testing/condition-verdicts.js'
 import type { ActionPlanCache } from '../../cache/port.js'
 
@@ -84,7 +84,7 @@ function subs(result: Awaited<ReturnType<typeof executeStep>>): LooseSub[] {
 }
 
 interface JudgeVerifier extends Verifier {
-  judgeClaim(claim: string, screen: ScreenState, opts?: Record<string, unknown>): Promise<{ verdict: boolean; rationale: string }>
+  judgeClaim(claim: string, screen: ScreenState, opts?: Record<string, unknown>): Promise<AiJudgment>
   judgeClaimCalls: number
   verifyCalls: number
 }
@@ -99,7 +99,7 @@ function makeJudgeVerifier(judgment: { verdict: boolean; rationale: string } = {
     },
     async judgeClaim() {
       v.judgeClaimCalls++
-      return judgment
+      return { outcome: 'judged', ...judgment }
     },
   }
   return v

@@ -123,10 +123,11 @@ export interface UniqueValueMeta {
   prefix: string
 }
 
-/** EXEC-07 AI-judgment block (D-05/D-06/D-07/D-09). Keyed `aiJudgment`. */
+/** The AI-judgment block, keyed `aiJudgment`. `unresolved` marks one the model could not make. */
 export interface AiJudgmentMeta {
   verb: 'assertAI' | 'extractAI'
   verdict?: boolean
+  unresolved?: true
 }
 
 /** EXEC-07 assertValue outcome block (D-10/D-11). Keyed `assertValueOutcome`. */
@@ -167,8 +168,9 @@ export function readUniqueValueMeta(actionResult?: MetadataCarrier): UniqueValue
 export function readAiJudgmentMeta(actionResult?: MetadataCarrier): AiJudgmentMeta | undefined {
   const raw = actionResult?.metadata?.['aiJudgment']
   if (raw && typeof raw === 'object' && 'verb' in raw) {
-    const { verb, verdict } = raw as Record<string, unknown>
+    const { verb, verdict, unresolved } = raw as Record<string, unknown>
     if (verb === 'assertAI' || verb === 'extractAI') {
+      if (unresolved === true) return { verb, unresolved: true }
       return typeof verdict === 'boolean' ? { verb, verdict } : { verb }
     }
   }

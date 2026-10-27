@@ -236,17 +236,18 @@ export interface VerifierAuthorContext {
   stepCount?: number
 }
 
+export type AiJudgment =
+  | { outcome: 'judged'; verdict: boolean; rationale: string }
+  | { outcome: 'unresolved'; reason: string }
+
 export interface Verifier {
   verify(step: string, before: ScreenState, after: ScreenState, action: Action, screenshot?: Buffer, abortSignal?: AbortSignal, promptNote?: string, bulkCompletionPredicate?: string, authorContext?: VerifierAuthorContext, operationEvidence?: OperationEvidence, record?: VerifierStepRecord): Promise<VerifyResult>
   /**
-   * D-05 AI judge lane (EXEC-07, spec §9.6/§12.2) — OPTIONAL so every existing Verifier
-   * implementor keeps compiling (D-05: no new port). Plan 09 implements this on LLMVerifier
-   * against the injected model handle; the loop (Plan 10 seam) routes `assertAI` through it
-   * exactly once per attempt (single-model law). A single-shot judgment over the current
-   * observation returning the verdict + rationale. `opts` carries the requested-but-deferred
-   * M3/M4 knobs (consensus/video/effort) so demand is recorded (D-09).
+   * One structured judgment of the claim over the current observation. Returns the verdict and
+   * rationale, or unresolved with the reason when the model call failed or its answer was not a
+   * valid verdict. An abort rethrows.
    */
-  judgeClaim?(claim: string, screen: ScreenState, opts?: Record<string, unknown>): Promise<{ verdict: boolean; rationale: string }>
+  judgeClaim?(claim: string, screen: ScreenState, opts?: Record<string, unknown>): Promise<AiJudgment>
   /**
    * D-07 AI extraction lane (EXEC-07, spec §9.6) — OPTIONAL, same no-new-port rationale as
    * `judgeClaim`. Plan 09 implements it on LLMVerifier; the loop routes `extractAI` through it,

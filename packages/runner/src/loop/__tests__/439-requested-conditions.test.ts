@@ -326,10 +326,12 @@ describe('C439-JUDGE', () => {
     ])
   })
 
-  it('stepOutcomeUnproven reads only verifier endings', () => {
+  it("stepOutcomeUnproven counts the verifier's endings and an unresolved judgment, never a timeout or a cancel", () => {
     expect(stepOutcomeUnproven(block('completion', ['met', 'unverified']))).toBe(true)
     expect(stepOutcomeUnproven(block('completion', ['unverified', 'not-met']))).toBe(false)
+    expect(stepOutcomeUnproven(block('unresolved', ['unverified']))).toBe(true)
     expect(stepOutcomeUnproven(block('timeout', ['unverified']))).toBe(false)
+    expect(stepOutcomeUnproven(block('cancelled', ['unverified']))).toBe(false)
     expect(stepOutcomeUnproven({})).toBe(false)
   })
 })

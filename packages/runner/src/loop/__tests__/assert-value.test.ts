@@ -21,7 +21,7 @@ import { describe, it, expect } from 'vitest'
 import type { ScreenState } from '@vostride/agent-qa-schema'
 import type { PlatformAdapter, Action, ActionResult } from '../../platform.js'
 import type { LoopPorts } from '../ports.js'
-import type { ActionPlan, PlanResult, Planner, StepContext, Verifier } from '../types.js'
+import type { ActionPlan, AiJudgment, PlanResult, Planner, StepContext, Verifier } from '../types.js'
 import type { VerifierStepRecord } from '../step-record.js'
 import { scriptedVerification, toVerificationResult } from '../../testing/condition-verdicts.js'
 import type { ScriptedVerdict } from '../../testing/condition-verdicts.js'
@@ -65,7 +65,7 @@ function subs(result: Awaited<ReturnType<typeof executeStep>>): LooseSub[] {
 
 interface ShortCircuitVerifier extends Verifier {
   verifyCalls: number
-  judgeClaim(claim: string, screen: ScreenState, opts?: Record<string, unknown>): Promise<{ verdict: boolean; rationale: string }>
+  judgeClaim(claim: string, screen: ScreenState, opts?: Record<string, unknown>): Promise<AiJudgment>
 }
 
 function makeShortCircuitVerifier(judgment: { verdict: boolean; rationale: string } = { verdict: true, rationale: 'ok' }): ShortCircuitVerifier {
@@ -76,7 +76,7 @@ function makeShortCircuitVerifier(judgment: { verdict: boolean; rationale: strin
       return { verification: scriptedVerification({ step, after, action, pass: true, reasoning: 'ok' }) }
     },
     async judgeClaim() {
-      return judgment
+      return { outcome: 'judged', ...judgment }
     },
   }
   return v
@@ -86,7 +86,7 @@ interface ScriptedVerifier extends Verifier {
   verifyArgs: unknown[][]
   judgeClaimCalls: number
   extractCalls: number
-  judgeClaim(claim: string, screen: ScreenState, opts?: Record<string, unknown>): Promise<{ verdict: boolean; rationale: string }>
+  judgeClaim(claim: string, screen: ScreenState, opts?: Record<string, unknown>): Promise<AiJudgment>
   extractData(query: string, screen: ScreenState, opts?: Record<string, unknown>): Promise<Record<string, unknown>>
 }
 
@@ -111,7 +111,7 @@ function makeScriptedVerifier(script: {
     },
     async judgeClaim() {
       v.judgeClaimCalls++
-      return script.judgment ?? { verdict: true, rationale: 'ok' }
+      return { outcome: 'judged', ...(script.judgment ?? { verdict: true, rationale: 'ok' }) }
     },
     async extractData() {
       v.extractCalls++

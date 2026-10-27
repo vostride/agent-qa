@@ -39,7 +39,7 @@ function verifier(result: VerificationResult): Verifier {
       return { verification: result }
     },
     async judgeClaim() {
-      return { verdict: true, rationale: 'The banner looks green' }
+      return { outcome: 'judged', verdict: true, rationale: 'The banner looks green' }
     },
   }
 }

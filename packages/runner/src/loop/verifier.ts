@@ -3,14 +3,14 @@
 // empty-output throw, and a never-crash catch-all fallback — abort is the only rethrow
 // (the loop's abort path depends on it, T-353-07 mitigation). §12.2 structured-assert
 // semantics are Phase 360; no semantic changes here.
-import { generateText, Output } from 'ai'
+import { generateText, NoObjectGeneratedError, Output } from 'ai'
 import { withStepModelCall } from '../run/step-model-observations.js'
 import type { LanguageModel, ModelMessage, SystemModelMessage } from 'ai'
 import { z } from 'zod'
 import { CITATION_SOURCES, CONDITION_NEEDS, CONDITION_VERDICTS } from '@vostride/agent-qa-schema'
 import type { DeclaredModelProfile, OperationEvidence, ScreenState } from '@vostride/agent-qa-schema'
 import type { Action } from '../platform.js'
-import type { Verifier, VerifierAuthorContext, VerifyResult } from './types.js'
+import type { AiJudgment, Verifier, VerifierAuthorContext, VerifyResult } from './types.js'
 import type { VerifierStepRecord } from './step-record.js'
 import type { LanguageModelUsage } from 'ai'
 import type { TokenAccounting } from './ports.js'
@@ -77,15 +77,20 @@ export const VerificationResultSchema = z.object({
   reasoning: z.string().describe('A short overall explanation of the judgment'),
 })
 
-// §9.6/§12.2 AI judge lane (D-05/D-06/D-07/D-09). The judge and extractor ride the SAME
-// verifier model + TokenAccounting as verify(), through the same executeClampedCall seam —
-// each is a SINGLE structured generateText call, maxRetries 0, no second judgment and no
-// retry loop (the planner mediates via the 358 ladder; single-model law). Their system tier
-// differs from verify()'s byte-for-byte, so the judge forms its own cache identity inherently
-// (D-05 — no distinct model, no new port). Provider-neutral: only 'ai' types + the injected
-// model handle; NO import from @vostride/agent-qa-model (validate:arch providerNeutral).
+// The AI judge lane. The judge and extractor use the verifier's model and TokenAccounting
+// through the same executeClampedCall seam: each is one structured generateText call with
+// maxRetries 0 and no retry. Their system tiers differ from verify()'s, so each forms its own
+// cache identity. A failed call or an answer that does not match the schema comes back
+// unresolved with the reason; an abort rethrows. Provider-neutral: only 'ai' and the injected
+// model handle.
 
-/** Closed judgment schema — a boolean verdict + rationale, never free text (D-06). */
+const JUDGMENT_NOT_A_VERDICT = "the model's answer was not a valid verdict"
+
+function modelCallFailed(error: unknown): string {
+  return `the model call failed: ${error instanceof Error ? error.message : String(error)}`
+}
+
+/** Closed judgment schema: a boolean verdict and a rationale, never free text. */
 export const AiJudgmentResultSchema = z.object({
   verdict: z.boolean().describe('Whether the claim is true given the observed screen state'),
   rationale: z.string().describe('Concise, evidence-grounded justification for the verdict'),
@@ -283,18 +288,15 @@ export class LLMVerifier implements Verifier {
   }
 
   /**
-   * D-05/D-06/D-09 AI judge lane. A SINGLE structured call over the current observation that
-   * returns the verdict + rationale. `opts` carries the requested-but-deferred M3/M4 knobs
-   * (consensus/video/effort) so demand is visible (D-09) — accepted, never honored, never an
-   * error; the loop records them into the AiJudgment evidence block. Empty/overflow model output
-   * degrades to a structured `verdict:false` failure (the verify() never-crash posture) — abort
-   * is the only rethrow.
+   * One structured judgment of the claim over the current observation. Returns the verdict and
+   * rationale, or unresolved when the model call failed or its answer was not a valid verdict.
+   * An abort rethrows.
    */
   async judgeClaim(
     claim: string,
     screen: ScreenState,
     opts?: Record<string, unknown>,
-  ): Promise<{ verdict: boolean; rationale: string }> {
+  ): Promise<AiJudgment> {
     const abortSignal = opts?.abortSignal as AbortSignal | undefined
     const screenshot = opts?.screenshot as Buffer | undefined
     try {
@@ -308,19 +310,16 @@ export class LLMVerifier implements Verifier {
         'Verdict and rationale for the perceptual claim',
         abortSignal,
       )
-      // Re-parse through the closed schema (never trust free text) — malformed/empty output
-      // degrades to a structured failure verdict rather than throwing (D-06 never-crash).
+      // The answer is re-parsed through the closed schema; one that does not match is unresolved.
       const parsed = AiJudgmentResultSchema.safeParse(clamped.result.output)
-      if (!parsed.success) {
-        return { verdict: false, rationale: 'AI judgment failed: the model returned no valid structured verdict' }
-      }
-      return { verdict: parsed.data.verdict, rationale: parsed.data.rationale }
+      if (!parsed.success) return { outcome: 'unresolved', reason: JUDGMENT_NOT_A_VERDICT }
+      return { outcome: 'judged', verdict: parsed.data.verdict, rationale: parsed.data.rationale }
     } catch (error: unknown) {
       if (abortSignal?.aborted) throw error
-      return {
-        verdict: false,
-        rationale: `AI judgment failed: ${error instanceof Error ? error.message : String(error)}`,
+      if (NoObjectGeneratedError.isInstance(error)) {
+        return { outcome: 'unresolved', reason: JUDGMENT_NOT_A_VERDICT }
       }
+      return { outcome: 'unresolved', reason: modelCallFailed(error) }
     }
   }
 

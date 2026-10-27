@@ -4,6 +4,7 @@
 // contract with a mocked `ai` model: structured output → VerifyResult, never-crash
 // fallback, and abort rethrow (T-353-07 — abort is the only rethrow).
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { NoObjectGeneratedError } from 'ai'
 import type { ScreenState } from '@vostride/agent-qa-schema'
 import { asRef } from '@vostride/agent-qa-schema'
 import type { Action } from '../../platform.js'
@@ -11,12 +12,14 @@ import { makeScreenState } from '../../testing/screen-fixtures.js'
 import { LLMVerifier } from '../verifier.js'
 import { makeFakeTokenAccounting } from './loop-harness.js'
 
-vi.mock('ai', () => ({
-  generateText: vi.fn(),
-  Output: {
-    object: vi.fn((config: any) => config),
-  },
-}))
+vi.mock('ai', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('ai')>()
+  return {
+    ...actual,
+    generateText: vi.fn(),
+    Output: { ...actual.Output, object: vi.fn((config: any) => config) },
+  }
+})
 
 const before: ScreenState = makeScreenState()
 const after: ScreenState = makeScreenState({ url: 'https://example.test/after' })
@@ -124,8 +127,7 @@ describe('LLMVerifier', () => {
     expect(accounting.recordUsageCalls[0].messages.length).toBeGreaterThan(0)
   })
 
-  // Phase 360-09 (EXEC-07 · D-05/D-06/D-07/D-09) — the single-model judge/extract lanes.
-  describe('judgeClaim (AI judge lane, D-05/D-06)', () => {
+  describe('judgeClaim', () => {
     it('makes exactly one generateText call and maps the closed judgment schema to verdict + rationale', async () => {
       const { generateText } = await import('ai')
       const mockGenerateText = vi.mocked(generateText)
@@ -136,21 +138,19 @@ describe('LLMVerifier', () => {
 
       const accounting = makeFakeTokenAccounting()
       const verifier = new LLMVerifier({} as any, accounting)
-      const result = await verifier.judgeClaim('the welcome banner is visible', before, {
-        consensus: 3,
-        video: true,
-        effort: 'high',
-      })
+      const result = await verifier.judgeClaim('the welcome banner is visible', before)
 
       expect(mockGenerateText).toHaveBeenCalledTimes(1)
       expect(mockGenerateText.mock.calls[0][0].maxRetries).toBe(0)
-      expect(result.verdict).toBe(true)
-      expect(result.rationale).toContain('Welcome')
-      // Deferred knobs (D-09) are accepted and never throw — recording is the loop's job.
+      expect(result).toEqual({
+        outcome: 'judged',
+        verdict: true,
+        rationale: 'the welcome banner reads Welcome',
+      })
       expect(accounting.recordUsageCalls).toHaveLength(1)
     })
 
-    it('degrades an empty/invalid model output to a structured false verdict, never throws', async () => {
+    it('an answer that is not a valid verdict is unresolved', async () => {
       const { generateText } = await import('ai')
       const mockGenerateText = vi.mocked(generateText)
       mockGenerateText.mockResolvedValueOnce({ output: undefined } as any)
@@ -158,11 +158,35 @@ describe('LLMVerifier', () => {
       const verifier = new LLMVerifier({} as any, makeFakeTokenAccounting())
       const result = await verifier.judgeClaim('anything', before)
 
-      expect(result.verdict).toBe(false)
-      expect(result.rationale).toContain('AI judgment failed')
+      expect(result).toEqual({
+        outcome: 'unresolved',
+        reason: "the model's answer was not a valid verdict",
+      })
     })
 
-    it('returns a structured false verdict on a non-abort model error, never throws', async () => {
+    it('an answer the AI SDK rejects against the schema is not a valid verdict', async () => {
+      const { generateText } = await import('ai')
+      const mockGenerateText = vi.mocked(generateText)
+      mockGenerateText.mockRejectedValueOnce(
+        new NoObjectGeneratedError({
+          message: 'No object generated: response did not match schema.',
+          text: '{"verdict":"yes"}',
+          response: undefined as any,
+          usage: undefined as any,
+          finishReason: 'stop',
+        }),
+      )
+
+      const verifier = new LLMVerifier({} as any, makeFakeTokenAccounting())
+      const result = await verifier.judgeClaim('anything', before)
+
+      expect(result).toEqual({
+        outcome: 'unresolved',
+        reason: "the model's answer was not a valid verdict",
+      })
+    })
+
+    it("a failed model call is unresolved with the provider's message", async () => {
       const { generateText } = await import('ai')
       const mockGenerateText = vi.mocked(generateText)
       mockGenerateText.mockRejectedValueOnce(new Error('Overloaded'))
@@ -170,8 +194,7 @@ describe('LLMVerifier', () => {
       const verifier = new LLMVerifier({} as any, makeFakeTokenAccounting())
       const result = await verifier.judgeClaim('anything', before)
 
-      expect(result.verdict).toBe(false)
-      expect(result.rationale).toContain('Overloaded')
+      expect(result).toEqual({ outcome: 'unresolved', reason: 'the model call failed: Overloaded' })
     })
 
     it('rethrows when the abort signal is aborted (the loop abort path depends on it)', async () => {

@@ -51,6 +51,11 @@ export interface AiJudgmentEvidence {
   /** The model rationale backing the verdict/extraction, masked-before-record (T-360-01). */
   rationale?: string
   /**
+   * Why the model could not judge or extract: the step's error, masked and bounded. Absent when
+   * it could.
+   */
+  unresolved?: string
+  /**
    * The requested-but-deferred knobs (D-09). Executed single-model in M1 — recorded, never
    * honored, so M3/M4 consensus/video/effort can see accumulated demand.
    */

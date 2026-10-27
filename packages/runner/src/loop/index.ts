@@ -210,7 +210,10 @@ function recordingOffsetFrom(zeroMs: number | undefined): number | undefined {
 //   7. policy denial or a planning failure → failed  (no verifier call)
 //   8. abort / timeout             → cancelled | failed  (no verifier call; the requested outcome
 //                                    is recorded unverified with their reason)
-// Execution failure and a rejected completion are NOT return paths — they inject failure
+//   9. assertAI or extractAI the model could not judge or extract → failed  (no verifier call;
+//                                    the requested outcome is recorded unverified, ending
+//                                    'unresolved')
+// Other execution failures and a rejected completion are NOT return paths — they inject failure
 // context and continue the loop (self-heal = replan-with-failure-context, D-12).
 export async function executeStep(
   stepInstruction: string,
@@ -291,6 +294,7 @@ export async function executeStep(
   // 439 D-03: everything the step did and read, for the verifier; never the planner's reasoning.
   const stepRecord = new StepRecordAccumulator()
   const recordMask = (value: string) => redactSecretValue(value, ports.secretRedactor)
+  const collapse = (value: string) => value.replace(/\s+/g, ' ').trim()
   // 439 D-04: what earlier steps of this test downloaded or copied, labelled by its producer.
   for (const item of carriedItems(ports.carriedArtifacts)) {
     stepRecord.addCarried({ stepNumber: item.stepNumber, actionIndex: item.actionIndex, text: recordMask(item.text) })
@@ -632,10 +636,12 @@ export async function executeStep(
   const withUnproven = (error: string, unproven: string): string =>
     unproven === '' ? error : `${error} — ${unproven}`
 
-  // 439 D-08: timeout, abort and cancel make no verifier call; the requested outcome is recorded
-  // unverified as a whole, with their reason.
-  const recordUnverifiedEnding = (ending: 'timeout' | 'cancelled', reason: string): void => {
-    const collapse = (value: string) => value.replace(/\s+/g, ' ').trim()
+  // Timeout, cancel and a model judgment or extraction that could not be made end the step with
+  // no verifier call; the requested outcome is recorded unverified as a whole, with the reason.
+  const recordUnverifiedEnding = (
+    ending: 'timeout' | 'cancelled' | 'unresolved',
+    reason: string,
+  ): void => {
     recorder.recordConditionVerdicts({
       ending,
       conditions: [{
@@ -1548,6 +1554,7 @@ export async function executeStep(
     // reaches the adapter and the failure routes into the heal / failure-context flow.
     let execResult: ActionResult
     let execError: string | undefined
+    let unresolvedEnding: string | undefined
     // 436 D-07: the one pre-dispatch debit for every executed action on every decision path; a
     // gate-forced cache error never executes and is not debited. The loop top already refused an
     // exhausted meter, so this debit cannot be refused here.
@@ -1605,11 +1612,9 @@ export async function executeStep(
         )
       }
     } else if (dispatchVerb === 'assertAI' && ports.verifier?.judgeClaim) {
-      // D-05/D-06/D-09: route the claim through the verifier's injected model lane exactly once —
-      // never adapter.execute; the claim is judged once per attempt, and at stepComplete the step
-      // verifier still decides the step. A true verdict is a success result carrying
-      // metadata.aiJudgment; a false verdict is an honest §7.1 self-correcting error the planner
-      // mediates (no internal retry). Requested-but-deferred M3/M4 knobs ride the judgment evidence.
+      // One judgment per attempt through the verifier's model lane, never the adapter. A true
+      // verdict continues; a false verdict goes back to the planner as a self-correcting error; a
+      // judgment the model could not make ends the step unresolved.
       cacheBypass = true
       const av = action as { claim?: unknown; consensus?: unknown; video?: unknown; effort?: unknown }
       const claim = String(av.claim ?? '')
@@ -1618,30 +1623,38 @@ export async function executeStep(
         ports.verifier.judgeClaim(claim, screenState, { abortSignal: ports.abortSignal, screenshot: context.screenshot }),
         ports.abortSignal,
       )
-      const rationale = redactSecretValue(judgment.rationale, ports.secretRedactor)
-      const requested: { consensus?: number; video?: boolean; effort?: 'low' | 'medium' | 'high' } = {}
-      if (typeof av.consensus === 'number') requested.consensus = av.consensus
-      if (typeof av.video === 'boolean') requested.video = av.video
-      if (av.effort === 'low' || av.effort === 'medium' || av.effort === 'high') requested.effort = av.effort
-      recorder.recordAiJudgment({ verb: 'assertAI', verdict: judgment.verdict, rationale: recordMask(rationale), requested })
-      const judgedClaim = recordMask(claim)
-      const mode = typeof (action as { mode?: unknown }).mode === 'string'
-        ? (action as { mode: string }).mode
-        : undefined
-      stepRecord.addRead({
-        kind: 'assertAI',
-        text: `"${judgedClaim}"${mode !== undefined ? ` (${mode})` : ''}: judged ${judgment.verdict ? 'true' : 'false'}: ${recordMask(rationale)}`,
-        claim: judgedClaim,
-        judged: judgment.verdict,
-        ...(mode !== undefined ? { mode } : {}),
-      })
-      if (judgment.verdict) {
-        execResult = { success: true, metadata: { aiJudgment: { verb: 'assertAI', verdict: true } } }
-        execError = undefined
+      if (judgment.outcome === 'unresolved') {
+        const sentence = `assertAI could not judge "${recordMask(claim)}": ${recordMask(judgment.reason)}`
+        recorder.recordAiJudgment({ verb: 'assertAI', unresolved: collapse(sentence).slice(0, 200) })
+        execResult = { success: false, error: sentence, metadata: { aiJudgment: { verb: 'assertAI', unresolved: true } } }
+        execError = sentence
+        unresolvedEnding = sentence
       } else {
-        const selfCorrecting = `Claim "${claim}" judged false: ${rationale} — re-observe the screen or declare the step failed via stepFailed.`
-        execResult = { success: false, error: selfCorrecting, metadata: { aiJudgment: { verb: 'assertAI', verdict: false } } }
-        execError = selfCorrecting
+        const rationale = redactSecretValue(judgment.rationale, ports.secretRedactor)
+        const requested: { consensus?: number; video?: boolean; effort?: 'low' | 'medium' | 'high' } = {}
+        if (typeof av.consensus === 'number') requested.consensus = av.consensus
+        if (typeof av.video === 'boolean') requested.video = av.video
+        if (av.effort === 'low' || av.effort === 'medium' || av.effort === 'high') requested.effort = av.effort
+        recorder.recordAiJudgment({ verb: 'assertAI', verdict: judgment.verdict, rationale: recordMask(rationale), requested })
+        const judgedClaim = recordMask(claim)
+        const mode = typeof (action as { mode?: unknown }).mode === 'string'
+          ? (action as { mode: string }).mode
+          : undefined
+        stepRecord.addRead({
+          kind: 'assertAI',
+          text: `"${judgedClaim}"${mode !== undefined ? ` (${mode})` : ''}: judged ${judgment.verdict ? 'true' : 'false'}: ${recordMask(rationale)}`,
+          claim: judgedClaim,
+          judged: judgment.verdict,
+          ...(mode !== undefined ? { mode } : {}),
+        })
+        if (judgment.verdict) {
+          execResult = { success: true, metadata: { aiJudgment: { verb: 'assertAI', verdict: true } } }
+          execError = undefined
+        } else {
+          const selfCorrecting = `Claim "${claim}" judged false: ${rationale} — re-observe the screen or declare the step failed via stepFailed.`
+          execResult = { success: false, error: selfCorrecting, metadata: { aiJudgment: { verb: 'assertAI', verdict: false } } }
+          execError = selfCorrecting
+        }
       }
     } else if (dispatchVerb === 'extractAI' && ports.verifier?.extractData) {
       // D-07: extract through the same judge lane; write extracted fields into run-scoped working
@@ -1826,6 +1839,7 @@ export async function executeStep(
       execError !== undefined
       && (gateForcedRefMiss || isRefResolutionFailure(execError) || startsBindingHeal(execResult))
       && !meter.actionsExhausted()
+      && unresolvedEnding === undefined
     ) {
       let freshState: ScreenState
       try {
@@ -2019,6 +2033,10 @@ export async function executeStep(
         grounding,
         ...(decisionEvidence ?? {}),
       })
+      if (unresolvedEnding !== undefined) {
+        recordUnverifiedEnding('unresolved', unresolvedEnding)
+        return failure(unresolvedEnding)
+      }
 
       context.subActionHistory!.push({
         action: JSON.stringify(action),
