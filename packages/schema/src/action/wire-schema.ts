@@ -159,7 +159,7 @@ const assertValueSchema = z.union([
   z
     .object({
       type: z.literal('assertValue'),
-      source: z.enum(['url', 'storage', 'network', 'expr-result']),
+      source: z.enum(['url', 'storage', 'network']),
       op: assertValueOpSchema,
       expected: z.string().optional(),
     })

@@ -24,8 +24,6 @@ const LATE_PAGE = `<!doctype html><html><body><main>
   <script>setTimeout(() => { document.getElementById('late').textContent = 'Payment accepted' }, 100)</script>
 </main></body></html>`
 const PING_PAGE = `<!doctype html><html><body><main><h1>Status</h1></main></body></html>`
-const EXPR_RESULT_REFUSAL =
-  'assertValue {source:"expr-result"} reads no value on any platform; assert on url, storage or network, or evaluate an expr.'
 
 let adapter: WebPlatformAdapter | undefined
 let server: Server | undefined
@@ -155,24 +153,6 @@ describe('C439-WAITS-AND-READS', () => {
 
     expect(subResult(run, 0).success).toBe(false)
     expect(run.result.status).toBe('failed')
-  }, 60_000)
-
-  it('expr-result reads nothing and fails', async () => {
-    const web = await withContent(PING_PAGE)
-
-    const run = await runScriptedStep({
-      adapter: web,
-      instruction: 'Check that the result is empty',
-      planner: scriptedPlanner([
-        assertTurn({ type: 'assertValue', source: 'expr-result', op: 'isNull' }),
-        () => giveUp('Nothing to read'),
-      ]),
-      verifier: rejectAll(),
-      plannerConfig: LIMITS,
-    })
-
-    expect(subResult(run, 0)).toMatchObject({ success: false, error: EXPR_RESULT_REFUSAL })
-    expect(run.executed.filter((action) => action.type === 'assertValue')).toEqual([])
   }, 60_000)
 
   it('an expr that evaluates to undefined is unread, null is a read', async () => {

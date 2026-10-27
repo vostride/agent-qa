@@ -2279,8 +2279,6 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
               success: false,
               error: 'assertValue {source:"network"} (HTTP log inspection) is not available on the Android adapter. Use a web target for network assertions, or assert on visible UI text.',
             }
-          case 'expr-result':
-            return { success: true, data: undefined }
         }
       }
 

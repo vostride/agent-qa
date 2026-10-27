@@ -135,7 +135,7 @@ export const assertAISchema = z.object({
 }).strict()
 
 const assertValueSourceSchema = z.object({
-  source: z.enum(['url', 'storage', 'network', 'expr-result'])
+  source: z.enum(['url', 'storage', 'network'])
     .describe('Deterministic machine-value source to assert against'),
   op: z.enum(['isNull', 'isDefined', 'equals', 'notEquals', 'gt', 'lt', 'contains'])
     .describe('Deterministic comparison operation'),

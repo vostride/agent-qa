@@ -1536,8 +1536,6 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
               success: false,
               error: 'assertValue {source:"network"} (HTTP log inspection) is not available on the iOS adapter. Use a web target for network assertions, or assert on visible UI text.',
             }
-          case 'expr-result':
-            return { success: true, data: undefined }
         }
       }
 

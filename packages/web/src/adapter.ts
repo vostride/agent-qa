@@ -1252,9 +1252,6 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
             case 'network':
               value = this.peekNetworkLogs()
               break
-            case 'expr-result':
-              value = undefined
-              break
           }
         }
         return { success: true, data: value }

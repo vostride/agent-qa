@@ -12,7 +12,7 @@ type ExtractAIField = {
 
 export type CommonAction = NoPlatform & (
   | { type: 'assertAI'; claim: string; mode: 'multimodal' | 'visual' | 'text' }
-  | { type: 'assertValue'; source: 'url' | 'storage' | 'network' | 'expr-result'; op: AssertValueOp; expected?: string }
+  | { type: 'assertValue'; source: 'url' | 'storage' | 'network'; op: AssertValueOp; expected?: string }
   | { type: 'assertValue'; expr: string; op: AssertValueOp; expected?: string }
   | { type: 'extractAI'; query: string; schema: ExtractAIField[] }
   | ({ type: 'waitFor' } & WaitFor)

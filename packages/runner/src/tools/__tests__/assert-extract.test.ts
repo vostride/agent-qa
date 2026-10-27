@@ -39,7 +39,7 @@ describe('assertion and extraction schemas', () => {
     }).success).toBe(false)
   })
 
-  it('validates deterministic assertValue source, expr, and op shapes', () => {
+  it('assertValue takes url, storage or network, or an expr, and refuses any other source', () => {
     const schema = registryWithActions().getSchema('common_assertValue')
 
     expect(schema.safeParse({
@@ -47,6 +47,12 @@ describe('assertion and extraction schemas', () => {
       op: 'contains',
       expected: '/checkout',
     }).success).toBe(true)
+
+    expect(schema.safeParse({ source: 'storage', op: 'isDefined' }).success).toBe(true)
+
+    expect(schema.safeParse({ source: 'network', op: 'contains', expected: '/api' }).success).toBe(true)
+
+    expect(schema.safeParse({ source: 'expr-result', op: 'isNull' }).success).toBe(false)
 
     expect(schema.safeParse({
       expr: 'window.cartCount',

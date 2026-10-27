@@ -1703,11 +1703,6 @@ export async function executeStep(
         execResult = { success: true, metadata: { aiJudgment: { verb: 'extractAI' }, extracted: fields } }
         execError = undefined
       }
-    } else if (dispatchVerb === 'assertValue' && (action as { source?: unknown }).source === 'expr-result') {
-      // 439 D-14: no platform reads a value for expr-result, so it is refused before dispatch.
-      const unreadable = 'assertValue {source:"expr-result"} reads no value on any platform; assert on url, storage or network, or evaluate an expr.'
-      execResult = { success: false, error: unreadable }
-      execError = unreadable
     } else if (dispatchVerb === 'assertValue') {
       // D-10 "adapter reads, runner judges": dispatch the source read to the adapter ONCE (it
       // returns the raw source value in data, or a §7.1 source-unavailable error), then apply the
