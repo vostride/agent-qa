@@ -40,6 +40,8 @@ export {
 
 export { TargetSchema, DeviceProfileSchema } from './registry-schema.js'
 
+export { refuseRetiredLocalBindings } from './retired-keys.js'
+
 export {
   CaptureConfigSchema,
   TestStepSchema,

@@ -432,7 +432,7 @@ function buildGitignoreEntries(): string[] {
 }
 
 function buildLocalConfigTemplate(): string {
-  return `# This file is for machine-specific device, app, and provider bindings.
+  return `# This file is for machine-specific device and app bindings.
 # Keep it out of git.
 # Add agent-qa.local.yaml to .gitignore.
 
@@ -445,12 +445,6 @@ apps:
   # Example app install binding:
   # example-android:
   #   path: apps/example.apk
-
-providers:
-  # Example cloud provider credentials:
-  # browserstack:
-  #   username: ${'${BROWSERSTACK_USERNAME}'}
-  #   accessKey: ${'${BROWSERSTACK_ACCESS_KEY}'}
 `
 }
 

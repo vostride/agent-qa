@@ -179,7 +179,6 @@ async function initDevices(): Promise<void> {
 
   const localFileContent = {
     devices: Object.keys(localDevices).length > 0 ? localDevices : {},
-    providers: {},
   }
 
   const yamlContent =

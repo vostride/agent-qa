@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { AgentQaConfigSchema } from '../config-schema.js'
+import { refuseRetiredLocalBindings } from '../retired-keys.js'
 
 const validWorkspace = {
   testMatch: ['tests/**/*.yaml'],
@@ -179,6 +180,54 @@ describe('retired-key pre-scan: removed BrowserStack keys', () => {
         expect(issueMessageAt(config, path), path).toBe(message)
         expect(paramsAt(config, path), path).toEqual({ retired: true })
       }
+    }
+  })
+})
+
+describe('agent-qa.local.yaml refusals', () => {
+  const filePath = '/work/project/agent-qa.local.yaml'
+
+  function thrownMessage(raw: unknown): string {
+    try {
+      refuseRetiredLocalBindings(raw, filePath)
+    } catch (err) {
+      return (err as Error).message
+    }
+    throw new Error('expected refuseRetiredLocalBindings to throw')
+  }
+
+  it("the local file's providers block is refused with its removal message, an empty block included", () => {
+    for (const raw of [
+      { providers: null },
+      { providers: {} },
+      { devices: {}, providers: { browserstack: { username: 'u', accessKey: 'k' } } },
+    ]) {
+      expect(thrownMessage(raw), JSON.stringify(raw)).toBe(
+        `${filePath}:\n  providers: providers was removed: BrowserStack is no longer supported. Delete this block.`,
+      )
+    }
+  })
+
+  it("a local app's browserstack is refused with its removal message", () => {
+    const message = thrownMessage({
+      apps: {
+        'release-android': { path: 'a.apk', browserstack: 'bs://x' },
+        'release-ios': { path: 'b.app' },
+      },
+    })
+    expect(message).toBe(
+      `${filePath}:\n  apps.release-android.browserstack: apps.<name>.browserstack was removed: BrowserStack is no longer supported; apps.<name>.path is the app file. Delete this line.`,
+    )
+  })
+
+  it('a local file with devices and app paths only is accepted', () => {
+    for (const raw of [
+      null,
+      'text',
+      { devices: { 'android-emu': { avd: 'Pixel_8_API_35' } }, apps: { 'release-android': { path: 'a.apk' } } },
+      { devices: null, apps: null },
+    ]) {
+      expect(() => refuseRetiredLocalBindings(raw, filePath), JSON.stringify(raw)).not.toThrow()
     }
   })
 })

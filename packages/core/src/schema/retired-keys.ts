@@ -48,6 +48,12 @@ const RETIRED_REGISTRY_PROVIDERS_MESSAGE =
 const RETIRED_DEVICE_TRANSPORT_MESSAGE =
   'registry.devices.<name>.transport was removed: devices run on local Appium. Delete this line.'
 
+const RETIRED_LOCAL_PROVIDERS_MESSAGE =
+  'providers was removed: BrowserStack is no longer supported. Delete this block.'
+
+const RETIRED_LOCAL_APP_BROWSERSTACK_MESSAGE =
+  'apps.<name>.browserstack was removed: BrowserStack is no longer supported; apps.<name>.path is the app file. Delete this line.'
+
 // The old refilling planner key is cut with no alias, migration or fallback. The same message
 // fires for the project config and for test and suite `use` overrides.
 export const RETIRED_MAX_SUB_ACTIONS_MESSAGE =
@@ -163,6 +169,29 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
     })
   }
 })
+
+// Refusals for removed agent-qa.local.yaml keys. Both local-file readers call this on the raw YAML
+// value before they normalize it. The message names the file and each key's path, never a value.
+export function refuseRetiredLocalBindings(raw: unknown, filePath: string): void {
+  if (!isPlainObject(raw)) return
+
+  const issues: Array<{ path: string; message: string }> = []
+  if (Object.hasOwn(raw, 'providers')) {
+    issues.push({ path: 'providers', message: RETIRED_LOCAL_PROVIDERS_MESSAGE })
+  }
+  if (isPlainObject(raw.apps)) {
+    for (const [name, app] of Object.entries(raw.apps)) {
+      if (isPlainObject(app) && Object.hasOwn(app, 'browserstack')) {
+        issues.push({ path: `apps.${name}.browserstack`, message: RETIRED_LOCAL_APP_BROWSERSTACK_MESSAGE })
+      }
+    }
+  }
+  if (issues.length === 0) return
+
+  throw new Error(
+    [`${filePath}:`, ...issues.map(issue => `  ${issue.path}: ${issue.message}`)].join('\n'),
+  )
+}
 
 // The pre-stage for a test or suite `use` override, for the same strict-parse reason as above.
 export const retiredUseKeyScan = z.any().superRefine((value, ctx) => {

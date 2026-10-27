@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path'
 import { parse as parseYaml } from 'yaml'
 import {
   MobileSetupError,
+  refuseRetiredLocalBindings,
   resolveMobileRunConfig,
 } from '@vostride/agent-qa-core'
 import type {
@@ -15,8 +16,7 @@ import { readConfigValues, type ConfigManager } from '../config/index.js'
 
 interface LocalMobileBindings {
   devices?: Record<string, Record<string, unknown>>
-  providers?: Record<string, Record<string, unknown>>
-  apps?: Record<string, { path?: string; browserstack?: string }>
+  apps?: Record<string, { path?: string }>
   filePath?: string
 }
 
@@ -47,15 +47,11 @@ async function loadLocalBindings(configPath: string): Promise<LocalMobileBinding
   const filePath = join(dirname(configPath), 'agent-qa.local.yaml')
   try {
     const content = await readFile(filePath, 'utf-8')
-    const parsed = parseYaml(content) as LocalMobileBindings | null
-    return parsed && typeof parsed === 'object'
-      ? {
-          devices: parsed.devices,
-          providers: parsed.providers,
-          apps: parsed.apps,
-          filePath,
-        }
-      : { filePath }
+    const parsed: unknown = parseYaml(content)
+    refuseRetiredLocalBindings(parsed, filePath)
+    if (!parsed || typeof parsed !== 'object') return { filePath }
+    const bindings = parsed as LocalMobileBindings
+    return { devices: bindings.devices, apps: bindings.apps, filePath }
   } catch (err: unknown) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null
     throw err

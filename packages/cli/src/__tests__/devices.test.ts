@@ -7,7 +7,7 @@ describe('loadLocalBindings', () => {
     expect(result).toBeNull()
   })
 
-  it('parses valid YAML with devices + providers + apps keys', async () => {
+  it('parses valid YAML with devices + apps keys', async () => {
     const { writeFileSync, mkdirSync, rmSync } = await import('node:fs')
     const { join } = await import('node:path')
     const dir = `/tmp/test-bindings-${Date.now()}`
@@ -17,27 +17,17 @@ describe('loadLocalBindings', () => {
       `devices:
   pixel-7:
     avd: Pixel_7_API_34
-providers:
-  browserstack:
-    username: testuser
-    accessKey: testkey123
 apps:
   release-android-wikipedia:
     path: build/wikipedia.apk
-    browserstack: build/wikipedia.apk
 `,
     )
     try {
       const result = loadLocalBindings(dir)
       expect(result).not.toBeNull()
       expect(result!.devices?.['pixel-7']).toEqual({ avd: 'Pixel_7_API_34' })
-      expect(result!.providers?.browserstack).toEqual({
-        username: 'testuser',
-        accessKey: 'testkey123',
-      })
       expect(result!.apps?.['release-android-wikipedia']).toEqual({
         path: 'build/wikipedia.apk',
-        browserstack: 'build/wikipedia.apk',
       })
     } finally {
       rmSync(dir, { recursive: true, force: true })
@@ -51,21 +41,19 @@ apps:
     mkdirSync(dir, { recursive: true })
     writeFileSync(
       join(dir, 'agent-qa.local.yaml'),
-      `# This file is for machine-specific device, app, and provider bindings.
+      `# This file is for machine-specific device and app bindings.
 # Keep it out of git.
+# Add agent-qa.local.yaml to .gitignore.
 
 devices:
+  # Example local device binding:
   # android-emu:
   #   avd: Pixel_8_API_35
 
 apps:
+  # Example app install binding:
   # example-android:
   #   path: apps/example.apk
-
-providers:
-  # browserstack:
-  #   username: \${BROWSERSTACK_USERNAME}
-  #   accessKey: \${BROWSERSTACK_ACCESS_KEY}
 `,
     )
 
@@ -74,27 +62,69 @@ providers:
       expect(result).not.toBeNull()
       expect(result!.devices).toEqual({})
       expect(result!.apps).toEqual({})
-      expect(result!.providers).toEqual({})
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
   })
 
-  it('still rejects incomplete non-empty provider entries', async () => {
+  it('refuses a local file that an older init wrote with a providers block', async () => {
     const { writeFileSync, mkdirSync, rmSync } = await import('node:fs')
     const { join } = await import('node:path')
-    const dir = `/tmp/test-bindings-incomplete-provider-${Date.now()}`
+    const dir = `/tmp/test-bindings-old-init-${Date.now()}`
     mkdirSync(dir, { recursive: true })
+    const filePath = join(dir, 'agent-qa.local.yaml')
     writeFileSync(
-      join(dir, 'agent-qa.local.yaml'),
-      `providers:
-  browserstack:
-    username: testuser
+      filePath,
+      `# This file is for machine-specific device, app, and provider bindings.
+# Keep it out of git.
+# Add agent-qa.local.yaml to .gitignore.
+
+devices:
+  # Example local device binding:
+  # android-emu:
+  #   avd: Pixel_8_API_35
+
+apps:
+  # Example app install binding:
+  # example-android:
+  #   path: apps/example.apk
+
+providers:
+  # Example cloud provider credentials:
+  # browserstack:
+  #   username: \${BROWSERSTACK_USERNAME}
+  #   accessKey: \${BROWSERSTACK_ACCESS_KEY}
 `,
     )
 
     try {
-      expect(() => loadLocalBindings(dir)).toThrow()
+      expect(() => loadLocalBindings(dir)).toThrow(
+        `${filePath}:\n  providers: providers was removed: BrowserStack is no longer supported. Delete this block.`,
+      )
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it("refuses a local app's browserstack with its removal message", async () => {
+    const { writeFileSync, mkdirSync, rmSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const dir = `/tmp/test-bindings-app-browserstack-${Date.now()}`
+    mkdirSync(dir, { recursive: true })
+    const filePath = join(dir, 'agent-qa.local.yaml')
+    writeFileSync(
+      filePath,
+      `apps:
+  release-android-wikipedia:
+    path: build/wikipedia.apk
+    browserstack: bs://wikipedia
+`,
+    )
+
+    try {
+      expect(() => loadLocalBindings(dir)).toThrow(
+        `${filePath}:\n  apps.release-android-wikipedia.browserstack: apps.<name>.browserstack was removed: BrowserStack is no longer supported; apps.<name>.path is the app file. Delete this line.`,
+      )
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }

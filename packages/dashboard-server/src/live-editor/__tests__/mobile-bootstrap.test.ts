@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+import { MobileSetupError } from '@vostride/agent-qa-core'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { prepareMobileLiveSession } from '../mobile-bootstrap.js'
 
@@ -202,6 +203,43 @@ describe('prepareMobileLiveSession', () => {
 
     expect(result.platformConfig).toMatchObject({
       appPath: join(dir, 'apps', 'wikipedia.apk'),
+    })
+  })
+
+  it("refuses a local app's browserstack with its removal message", async () => {
+    const { dir, configPath } = await createTempWorkspace()
+    await writeFile(
+      join(dir, 'agent-qa.local.yaml'),
+      [
+        'apps:',
+        '  release-android-wikipedia:',
+        '    path: apps/wikipedia.apk',
+        '    browserstack: bs://wikipedia',
+        '',
+      ].join('\n'),
+      'utf-8',
+    )
+
+    const prepared = prepareMobileLiveSession({
+      sessionId: 'live-app-browserstack',
+      platform: 'android',
+      targetName: 'release-android-wikipedia',
+      useDeviceName: 'release-android-emu',
+      appState: 'preserve',
+      configManager: makeConfigManager(config),
+      configPath,
+      appiumManager: makeAppiumManager(),
+    })
+
+    await expect(prepared).rejects.toBeInstanceOf(MobileSetupError)
+    await expect(prepared).rejects.toMatchObject({
+      category: 'device-resolution',
+      message: expect.stringContaining('Failed to read local device bindings'),
+    })
+    await expect(prepared).rejects.toMatchObject({
+      message: expect.stringContaining(
+        'apps.release-android-wikipedia.browserstack: apps.<name>.browserstack was removed: BrowserStack is no longer supported; apps.<name>.path is the app file. Delete this line.',
+      ),
     })
   })
 
