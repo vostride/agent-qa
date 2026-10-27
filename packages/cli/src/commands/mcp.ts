@@ -416,9 +416,8 @@ async function serveOverHttp(input: {
   )
   await new Promise<void>((listening, failed) => {
     server.once('error', failed)
-    // The bind address is a CONSTANT and never a config value. `services.mcp.host` accepts
-    // `localhost`, which on a dual-stack machine can resolve to `::1` and back — and an operator
-    // who could widen this to `0.0.0.0` through configuration would be one typo from exposing an
+    // The bind address is the constant MCP_HTTP_BIND_HOST and never a config value: an operator
+    // who could widen it to `0.0.0.0` through configuration would be one typo from exposing an
     // ungated function registry to their network.
     server.listen(input.port, MCP_HTTP_BIND_HOST, () => listening())
   })

@@ -277,10 +277,9 @@ export async function startServer(opts: StartServerOptions): Promise<{
   // built, and the tear-down path is where a refusal turns into a half-started process. Refusing
   // here means the refused configuration allocates nothing and listens on nothing.
   //
-  // MEMBERSHIP IS `isLoopbackHost`, IMPORTED — the same predicate `LoopbackHostSchema` refines on,
-  // never a second literal list (T-402-18). `services.dashboard.host` is deliberately a plain
-  // string in the config schema so this decision is reachable at all, and so a loopback SPELLING
-  // other than the default (`localhost`, `::1`) stays configurable.
+  // MEMBERSHIP IS `isLoopbackHost`, IMPORTED, never a second literal list. `services.dashboard.host`
+  // is deliberately a plain string in the config schema so this decision is reachable at all, and
+  // so a loopback SPELLING other than the default (`localhost`, `::1`) stays configurable.
   //
   // NO EXEMPTION — see `DashboardRemoteBindRefusedError`. A run-service credential once exempted a
   // non-loopback bind and never authenticated `/api/runs/trigger`; since 432-21 no credential
@@ -879,11 +878,6 @@ export async function startServer(opts: StartServerOptions): Promise<{
   process.on('SIGTERM', gracefulShutdown)
   process.on('SIGINT', gracefulShutdown)
 
-  // 396-01 D-10: the `services.mcp` read, the endpoint resolution, the `node:http` MCP listener and
-  // the `agent-qa.mcp.server.lifecycle` analytics that reported on it all lived here and are gone.
-  // The config KEY itself is deliberately retained in `ServicesSchema` — that object is `.strict()`,
-  // so deleting the key would make every existing project that declares `services.mcp` fail to
-  // parse.
   const cleanupRuntimeResources = () => {
     jobQueue.stop()
     executionBackend?.killAll()

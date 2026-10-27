@@ -13,7 +13,7 @@ import { DashboardConfigSchema, ServicesSchema } from '../services-schema.js'
 // finding is that a URL-shaped value reached an `href` with no scheme check at any hop.
 //
 // THE MESSAGE IS ASSERTED, not just the refusal. An operator who wrote a relative path needs to be
-// told what the value must BE — `LoopbackHostSchema` in the same file is the idiom.
+// told what the value must BE.
 
 const MESSAGE = 'services.dashboard.baseUrl must be an absolute http(s) URL'
 

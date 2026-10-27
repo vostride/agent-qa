@@ -61,26 +61,15 @@ export const DashboardConfigSchema = z.object({
   // 2026-10-01 (432-22, D-12/D-22): `runServiceTokens` is deleted. The run service is tokenless
   // since 432-21, and a file that still declares the key gets the normal strict unrecognized-key
   // error, with no migration and no special message. The local doors never needed a credential.
-  // Phase 402 D-07: the interface this server binds. Consumed by 402-05's pre-listen bind guard,
-  // which REFUSES any non-loopback value — unconditionally since the phase-402 verification round
-  // (a declared run-service credential authenticates the three run-service paths and nothing else,
-  // so it was never evidence that the rest of this server's surface was authed).
-  //
-  // DELIBERATELY NOT `LoopbackHostSchema` even so. That schema refuses at PARSE time, which would
-  // make the runtime refusal unreachable and would report the problem as a config-shape error
-  // rather than as the security refusal it is — and it would also refuse a loopback SPELLING this
-  // field exists to allow (`localhost`, `::1`, `127.0.0.2` is refused on purpose).
+  // The interface the dashboard binds. A plain string, because the pre-listen bind guard refuses
+  // any non-loopback value at runtime, as the security refusal it is rather than a config-shape
+  // error, and a loopback spelling other than the default (`localhost`, `::1`) stays configurable.
   host: z.string().trim().min(1).optional(),
 }).strict()
 
 /**
- * THE ONE MEMBER SET FOR "this host is loopback" (402-05 D-07 — T-402-18).
- *
- * Exported because two mechanisms now decide loopback membership and they must not be two
- * spellings: `LoopbackHostSchema` below refuses a non-loopback MCP host at PARSE time, and
- * `startServer`'s pre-listen bind guard refuses a non-loopback DASHBOARD host at RUNTIME, with no
- * exemption. A second literal list would let the two drift, and the direction it would drift in is
- * a host one mechanism calls loopback and the other does not.
+ * The one member set for "this host is loopback", used by the dashboard's pre-listen bind guard in
+ * `startServer`, which refuses a non-loopback dashboard host at runtime with no exemption.
  */
 export const LOOPBACK_HOSTS: readonly string[] = Object.freeze(['localhost', '127.0.0.1', '::1'])
 
