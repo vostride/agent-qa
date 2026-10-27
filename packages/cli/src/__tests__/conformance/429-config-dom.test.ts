@@ -114,7 +114,6 @@ const TASK1_CONFIG = [
   '  devices:',
   '    phone:',
   '      platform: ios',
-  '      transport: local',
   '      match:',
   `        udid: ${SENTINELS.udid}`,
   'plugins:',

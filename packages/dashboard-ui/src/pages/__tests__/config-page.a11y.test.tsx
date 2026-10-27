@@ -83,7 +83,7 @@ const { fullConfig } = vi.hoisted(() => ({
           app: { path: 'apps/shop.apk', browserstack: 'bs://shop' },
         },
       },
-      devices: { iosLocal: { platform: 'ios', transport: 'local', match: { udid: 'abc' } } },
+      devices: { iosLocal: { platform: 'ios', match: { udid: 'abc' } } },
     },
     use: {
       browser: { name: 'chromium', headless: true, viewport: { width: 1280, height: 720 } },

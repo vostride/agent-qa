@@ -62,18 +62,15 @@ const FIXTURE_CSS_SELECTOR = '#cookie-banner'
 
 const FIXTURE_CLEAN_TARGET_URL = 'https://clean.acme.test'
 
-/** Ten values under `registry.devices.<name>.match`, a free-form record. */
+/** Credential-shaped values under every key an android device's `match` allows. */
 const FIXTURE_DEVICE_MATCH_CREDENTIALS: Record<string, string> = {
-  jwt: 'sk-live-JWT-DO-NOT-LEAK-0001',
-  pem: 'sk-live-PEM-DO-NOT-LEAK-0002',
-  pfx: 'sk-live-PFX-DO-NOT-LEAK-0003',
-  dsn: 'sk-live-DSN-DO-NOT-LEAK-0004',
-  otp: 'sk-live-OTP-DO-NOT-LEAK-0005',
-  mnemonic: 'sk-live-MNEMONIC-DO-NOT-LEAK-0006',
-  seedPhrase: 'sk-live-SEEDPHRASE-DO-NOT-LEAK-0007',
-  connectionString: 'sk-live-CONNSTR-DO-NOT-LEAK-0008',
-  signingKey: 'sk-live-SIGNINGKEY-DO-NOT-LEAK-0009',
-  hmacKey: 'sk-live-HMACKEY-DO-NOT-LEAK-0010',
+  avd: 'sk-live-AVD-DO-NOT-LEAK-0001',
+  serial: 'sk-live-SERIAL-DO-NOT-LEAK-0002',
+  appPackage: 'sk-live-APPPACKAGE-DO-NOT-LEAK-0003',
+  appActivity: 'sk-live-APPACTIVITY-DO-NOT-LEAK-0004',
+  automationName: 'sk-live-AUTOMATION-DO-NOT-LEAK-0005',
+  browserName: 'sk-live-BROWSER-DO-NOT-LEAK-0006',
+  platformVersion: 'sk-live-PLATFORMVERSION-DO-NOT-LEAK-0007',
 }
 
 /**
@@ -203,9 +200,6 @@ function fixtureWorkspace(roots: string[]): FixtureWorkspace {
         devices: {
           pixel: {
             platform: 'android',
-            // A non-'local' transport is what leaves the `match` keys unrestricted, so
-            // this is the schema-legal shape an operator-named match value arrives in.
-            transport: 'browserstack',
             match: FIXTURE_DEVICE_MATCH_CREDENTIALS,
           },
         },

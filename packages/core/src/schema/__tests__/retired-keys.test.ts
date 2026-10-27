@@ -157,6 +157,30 @@ describe('retired-key pre-scan: removed BrowserStack keys', () => {
       expect(result.error?.issues.filter(i => i.code === 'unrecognized_keys'), label).toEqual([])
     }
   })
+
+  it("a device's transport is refused with its removal message, local included", () => {
+    const message =
+      'registry.devices.<name>.transport was removed: devices run on local Appium. Delete this line.'
+    const configs = [
+      { devices: { 'android-emu': { platform: 'android', transport: 'local' } }, names: ['android-emu'] },
+      { devices: { iphone: { platform: 'ios', transport: 'browserstack' } }, names: ['iphone'] },
+      {
+        devices: {
+          pixel: { platform: 'android', transport: 'local', match: { avd: 'Pixel_7' } },
+          sim: { platform: 'ios', transport: 'local' },
+        },
+        names: ['pixel', 'sim'],
+      },
+    ]
+    for (const { devices, names } of configs) {
+      const config = { ...validBase, registry: { devices } }
+      for (const name of names) {
+        const path = `registry.devices.${name}.transport`
+        expect(issueMessageAt(config, path), path).toBe(message)
+        expect(paramsAt(config, path), path).toEqual({ retired: true })
+      }
+    }
+  })
 })
 
 describe('strict backstop — arbitrary unknown keys (D-07)', () => {

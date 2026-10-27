@@ -38,7 +38,6 @@ import {
   type ConfigTab,
   type ConnectionChoice,
 } from '@/lib/config-tabs'
-import { DEVICE_TRANSPORT_OPTIONS } from '@/components/config-manager/devices-section'
 import { connectLLM, deleteAuthCredential, fetchAuthStatus, saveCredential, type AuthCredentialInfo } from '@/lib/api'
 import { LLM_PROVIDER_COMPLETION_VALUES } from '@/lib/yaml-completions'
 import {
@@ -137,7 +136,7 @@ const { sampleConfig, fullConfig, page } = vi.hoisted(() => ({
           app: { path: 'apps/shop.apk', browserstack: 'bs://shop' },
         },
       },
-      devices: { iosLocal: { platform: 'ios', transport: 'local', match: { udid: 'abc' } } },
+      devices: { iosLocal: { platform: 'ios', match: { udid: 'abc' } } },
     },
     use: {
       browser: { name: 'chromium', headless: true, viewport: { width: 1280, height: 720 } },
@@ -209,7 +208,7 @@ const { sampleConfig, fullConfig, page } = vi.hoisted(() => ({
       { name: 'claude-subscription', provider: 'anthropic-subscription', model: 'claude-sonnet-4-20250514' },
     ],
     targets: { staging: { platform: 'web', url: 'https://example.com' } },
-    devices: { iosLocal: { platform: 'ios', transport: 'local', match: { udid: 'abc' } } },
+    devices: { iosLocal: { platform: 'ios', match: { udid: 'abc' } } },
   },
   use: {
     browser: { name: 'chromium', headless: true, viewport: { width: 1280, height: 720 } },
@@ -790,11 +789,6 @@ describe('ConfigPage schema coverage', () => {
     expect(document.body.textContent).not.toContain('Gemini 2.0 Flash')
     expect(document.body.textContent).not.toContain('GPT-4o')
     expect(document.body.textContent).not.toContain('Claude Sonnet 4')
-  })
-
-  it('exposes only supported device transports in UI fixtures', () => {
-    expect(DEVICE_TRANSPORT_OPTIONS.map((option) => option.value)).toEqual(['local', 'browserstack'])
-    expect(DEVICE_TRANSPORT_OPTIONS.map((option) => option.label)).toEqual(['Local', 'BrowserStack'])
   })
 
   it('renders a real editor surface for every schema-backed destination', async () => {

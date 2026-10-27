@@ -203,7 +203,6 @@ registry:
   devices:
     release-android-emu:
       platform: android
-      transport: local
       match: {}
 `
 

@@ -7,13 +7,7 @@ import pc from 'picocolors'
 import { resolveConfig } from '../config.js'
 import { loadLocalBindings } from '../devices.js'
 
-function formatStatus(
-  transport: string,
-  localBinding: Record<string, unknown> | null,
-): string {
-  if (transport !== 'local') {
-    return pc.green('Ready') + pc.dim(' (no local binding required)')
-  }
+function formatStatus(localBinding: Record<string, unknown> | null): string {
   if (!localBinding) {
     return pc.red('UNBOUND') + pc.yellow(' - run `agent-qa devices init`')
   }
@@ -42,24 +36,21 @@ async function listDevices(): Promise<void> {
 
   const nameWidth = Math.max(12, ...Object.keys(devices).map(n => n.length))
   const platWidth = 10
-  const transWidth = 14
 
   console.log('')
   console.log(pc.bold('  Configured Devices'))
   console.log('')
   console.log(
-    `  ${pc.dim('Name'.padEnd(nameWidth))}  ${pc.dim('Platform'.padEnd(platWidth))}  ${pc.dim('Transport'.padEnd(transWidth))}  ${pc.dim('Status')}`,
+    `  ${pc.dim('Name'.padEnd(nameWidth))}  ${pc.dim('Platform'.padEnd(platWidth))}  ${pc.dim('Status')}`,
   )
   console.log(
-    `  ${pc.dim('─'.repeat(nameWidth))}  ${pc.dim('─'.repeat(platWidth))}  ${pc.dim('─'.repeat(transWidth))}  ${pc.dim('─'.repeat(30))}`,
+    `  ${pc.dim('─'.repeat(nameWidth))}  ${pc.dim('─'.repeat(platWidth))}  ${pc.dim('─'.repeat(30))}`,
   )
 
   for (const [name, profile] of Object.entries(devices) as [string, any][]) {
     const localBinding = localBindings?.devices?.[name] as Record<string, unknown> | undefined ?? null
-    const status = formatStatus(profile.transport, localBinding)
-    console.log(
-      `  ${name.padEnd(nameWidth)}  ${profile.platform.padEnd(platWidth)}  ${profile.transport.padEnd(transWidth)}  ${status}`,
-    )
+    const status = formatStatus(localBinding)
+    console.log(`  ${name.padEnd(nameWidth)}  ${profile.platform.padEnd(platWidth)}  ${status}`)
   }
   console.log('')
 }
@@ -172,8 +163,6 @@ async function initDevices(): Promise<void> {
   let bindCount = 0
 
   for (const [name, profile] of Object.entries(registryDevices) as [string, any][]) {
-    if (profile.transport !== 'local') continue
-
     if (profile.platform === 'android' && adbDevices.length > 0) {
       const device = adbDevices[0]
       localDevices[name] = { avd: device.model }

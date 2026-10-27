@@ -84,7 +84,6 @@ describe('buildConfigVisibilityOracle (the schema-derived rule)', () => {
     // than masking the subtree wholesale. Only the inner free-form node is opaque.
     for (const key of [
       'registry.devices.pixel.platform',
-      'registry.devices.pixel.transport',
       'registry.targets.web.url',
       'registry.targets.web.platform',
     ]) {

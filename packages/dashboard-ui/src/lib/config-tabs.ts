@@ -80,7 +80,7 @@ export const CONFIG_SECTION_ALIASES = {
   'screenshot-size': ['vision', 'screenshot', 'resolution'],
   'planner-limits': ['planner', 'sub actions', 'history limit'],
   targets: ['target', 'urls', 'bundle id', 'app package'],
-  devices: ['device', 'device profiles', 'transport'],
+  devices: ['device', 'device profiles'],
   'login-states': ['login state', 'auth state', 'auth states', 'saved auth'],
   'mobile-app-state': ['mobile', 'app state', 'app data', 'reset app data', 'preserve app data'],
   browser: ['viewport', 'headless', 'browser headless', 'engine'],

@@ -158,7 +158,6 @@ const secretConfig = [
   '  devices:',
   '    phone:',
   '      platform: ios',
-  '      transport: local',
   '      match:',
   `        udid: ${SENTINELS.udid}`,
   'analytics:',

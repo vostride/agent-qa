@@ -1,102 +1,57 @@
 import { describe, it, expect } from 'vitest'
 import { z } from 'zod'
 
-describe('TransportSchema', () => {
-  let TransportSchema: z.ZodType<'local' | 'browserstack'>
-
-  it('imports from primitives', async () => {
-    const mod = await import('../primitives.js')
-    TransportSchema = (mod as any).TransportSchema
-    expect(TransportSchema).toBeDefined()
-  })
-
-  it('accepts local', async () => {
-    const { TransportSchema } = await import('../primitives.js') as any
-    expect(TransportSchema.parse('local')).toBe('local')
-  })
-
-  it('accepts browserstack', async () => {
-    const { TransportSchema } = await import('../primitives.js') as any
-    expect(TransportSchema.parse('browserstack')).toBe('browserstack')
-  })
-
-  it('rejects saucelabs', async () => {
-    const { TransportSchema } = await import('../primitives.js') as any
-    expect(TransportSchema.safeParse('saucelabs').success).toBe(false)
-  })
-
-  it('rejects lambdatest', async () => {
-    const { TransportSchema } = await import('../primitives.js') as any
-    expect(TransportSchema.safeParse('lambdatest').success).toBe(false)
-  })
-
-  it('rejects invalid transport', async () => {
-    const { TransportSchema } = await import('../primitives.js') as any
-    expect(TransportSchema.safeParse('invalid').success).toBe(false)
-  })
-})
-
 describe('DeviceProfileSchema', () => {
   async function getSchema() {
     const mod = await import('../registry-schema.js') as any
     return mod.DeviceProfileSchema as z.ZodType<{ match: Record<string, unknown> }>
   }
 
-  it('accepts android local device with valid match', async () => {
+  it('accepts an android device with a valid match', async () => {
     const schema = await getSchema()
     const result = schema.safeParse({
       platform: 'android',
-      transport: 'local',
       match: { avd: 'Pixel_7' },
     })
     expect(result.success).toBe(true)
   })
 
-  it('accepts ios browserstack device', async () => {
+  it('refuses a match key outside the allowlist on any device, naming the platform', async () => {
     const schema = await getSchema()
     const result = schema.safeParse({
       platform: 'ios',
-      transport: 'browserstack',
       match: { deviceName: 'iPhone 15' },
     })
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues.map(issue => issue.message)).toEqual([
+        'Match field "deviceName" is not valid for an ios device. Allowed: udid, bundleId, automationName, platformVersion',
+      ])
+    }
   })
 
-  it('rejects android local with iOS-only field (udid)', async () => {
+  it('rejects an android device with the iOS-only field udid', async () => {
     const schema = await getSchema()
     const result = schema.safeParse({
       platform: 'android',
-      transport: 'local',
       match: { udid: 'xxx' },
     })
     expect(result.success).toBe(false)
   })
 
-  it('rejects ios local with Android-only field (avd)', async () => {
+  it('rejects an ios device with the Android-only field avd', async () => {
     const schema = await getSchema()
     const result = schema.safeParse({
       platform: 'ios',
-      transport: 'local',
       match: { avd: 'xxx' },
     })
     expect(result.success).toBe(false)
-  })
-
-  it('allows udid on android for farm transport (passthrough per D-08)', async () => {
-    const schema = await getSchema()
-    const result = schema.safeParse({
-      platform: 'android',
-      transport: 'browserstack',
-      match: { udid: 'xxx' },
-    })
-    expect(result.success).toBe(true)
   })
 
   it('defaults match to empty object', async () => {
     const schema = await getSchema()
     const result = schema.safeParse({
       platform: 'android',
-      transport: 'local',
     })
     expect(result.success).toBe(true)
     if (result.success) {
@@ -108,17 +63,15 @@ describe('DeviceProfileSchema', () => {
     const schema = await getSchema()
     const result = schema.safeParse({
       platform: 'windows',
-      transport: 'local',
       match: {},
     })
     expect(result.success).toBe(false)
   })
 
-  it('rejects android local match.noReset', async () => {
+  it('rejects match.noReset on an android device', async () => {
     const schema = await getSchema()
     const result = schema.safeParse({
       platform: 'android',
-      transport: 'local',
       match: { noReset: true },
     })
     expect(result.success).toBe(false)
@@ -129,11 +82,10 @@ describe('DeviceProfileSchema', () => {
     }
   })
 
-  it('rejects ios local match.noReset', async () => {
+  it('rejects match.noReset on an ios device', async () => {
     const schema = await getSchema()
     const result = schema.safeParse({
       platform: 'ios',
-      transport: 'local',
       match: { noReset: true },
     })
     expect(result.success).toBe(false)
@@ -156,7 +108,7 @@ describe('RegistrySchema with devices', () => {
     const result = schema.safeParse({
       llms: [],
       devices: {
-        pixel: { platform: 'android', transport: 'local', match: {} },
+        pixel: { platform: 'android', match: {} },
       },
     })
     expect(result.success).toBe(true)

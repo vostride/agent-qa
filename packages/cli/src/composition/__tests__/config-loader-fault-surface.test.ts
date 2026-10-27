@@ -283,13 +283,13 @@ apiToken: ${PLANTED_TEST_CREDENTIAL}
  */
 const CONFIG_WITH_DEVICE = WELL_FORMED_CONFIG.replace(
   'registry:\n  llms:',
-  'registry:\n  devices:\n    handset:\n      transport: local\n      platform: ios\n  llms:',
+  'registry:\n  devices:\n    handset:\n      platform: ios\n  llms:',
 )
 
 /** `agent-qa.local.yaml`, the same adjacency mechanism, on the file only this machine has. */
 const FAULTY_LOCAL_BINDINGS = `devices:
   handset:
-    transport: local
+    udid: 00008030-001A
 
 # pasted in from the provider dashboard, and again after a bad merge
 apiToken: ${PLANTED_LOCAL_CREDENTIAL}

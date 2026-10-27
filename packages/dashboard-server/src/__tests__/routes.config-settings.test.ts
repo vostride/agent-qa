@@ -585,7 +585,6 @@ describe('settings writes through PATCH /api/config (429-32)', () => {
       }),
       set(['registry', 'devices', 'simulator'], {
         platform: 'ios',
-        transport: 'local',
         match: {
           udid: 'iphone-17',
           bundleId: 'com.example.app',
@@ -635,7 +634,6 @@ describe('settings writes through PATCH /api/config (429-32)', () => {
         devices: {
           simulator: {
             platform: 'ios',
-            transport: 'local',
             match: {
               udid: 'iphone-17',
               bundleId: 'com.example.app',
@@ -954,11 +952,10 @@ describe('settings writes through PATCH /api/config (429-32)', () => {
     )).toBe(true)
   })
 
-  it('rejects invalid local device match fields with segment validation paths', async () => {
+  it('rejects invalid device match fields with segment validation paths', async () => {
     const issues = await expectPatchRefused([
       set(['registry', 'devices', 'iosSimulator'], {
         platform: 'ios',
-        transport: 'local',
         match: {
           serial: 'android-only',
         },
@@ -966,7 +963,7 @@ describe('settings writes through PATCH /api/config (429-32)', () => {
     ])
 
     expect(issues.map((issue) => `${dotted(issue)}: ${issue.message}`)).toContain(
-      'registry.devices.iosSimulator.match.serial: Match field "serial" is not valid for ios local transport. Allowed: udid, bundleId, automationName, platformVersion',
+      'registry.devices.iosSimulator.match.serial: Match field "serial" is not valid for an ios device. Allowed: udid, bundleId, automationName, platformVersion',
     )
   })
 })

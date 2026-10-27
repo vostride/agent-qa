@@ -40,8 +40,6 @@ export {
 
 export { TargetSchema, DeviceProfileSchema } from './registry-schema.js'
 
-export { TransportSchema } from './primitives.js'
-
 export {
   CaptureConfigSchema,
   TestStepSchema,

@@ -747,7 +747,6 @@ export function targetNameTakenError(name: string): string {
 export const DEVICE_FIELD_LABELS = {
   name: 'Name',
   platform: 'Platform',
-  transport: 'Connection',
   key: 'Setting',
   value: 'Value',
 } as const satisfies Record<string, string>
@@ -758,9 +757,9 @@ export function deviceNameTakenError(name: string): string {
   return `A device named ${name} already exists.`
 }
 
-/** Under Add setting on a local device: the settings that device can match on. */
+/** Under Add setting on a device: the settings that device can match on. */
 export function deviceMatchKeysHelp(platform: string, keys: readonly string[]): string {
-  return `A local ${platform} device can match on ${keys.join(', ')}.`
+  return `An ${platform} device can match on ${keys.join(', ')}.`
 }
 
 /** A device setting's accessible label, so each eye and Replace value names its own device and key. */

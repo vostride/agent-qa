@@ -45,6 +45,9 @@ const RETIRED_ALLOW_PRODUCTION_MESSAGE =
 const RETIRED_REGISTRY_PROVIDERS_MESSAGE =
   'registry.providers was removed: BrowserStack is no longer supported; runs use local Playwright and Appium. Delete this block.'
 
+const RETIRED_DEVICE_TRANSPORT_MESSAGE =
+  'registry.devices.<name>.transport was removed: devices run on local Appium. Delete this line.'
+
 // The old refilling planner key is cut with no alias, migration or fallback. The same message
 // fires for the project config and for test and suite `use` overrides.
 export const RETIRED_MAX_SUB_ACTIONS_MESSAGE =
@@ -136,6 +139,19 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
       path: ['registry', 'providers'],
       message: RETIRED_REGISTRY_PROVIDERS_MESSAGE,
     })
+  }
+
+  if (isPlainObject(value.registry) && isPlainObject(value.registry.devices)) {
+    for (const [name, device] of Object.entries(value.registry.devices)) {
+      if (isPlainObject(device) && Object.hasOwn(device, 'transport')) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          params: { retired: true },
+          path: ['registry', 'devices', name, 'transport'],
+          message: RETIRED_DEVICE_TRANSPORT_MESSAGE,
+        })
+      }
+    }
   }
 
   if (hasRetiredPlannerKey(value.use)) {

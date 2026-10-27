@@ -61,8 +61,8 @@ const records = {
       gamma: { platform: 'android', appPackage: 'com.example.gamma' },
     },
     devices: {
-      iosLocal: { platform: 'ios', transport: 'local', match: { udid: MASK } },
-      pixel: { platform: 'android', transport: 'local', match: {} },
+      iosLocal: { platform: 'ios', match: { udid: MASK } },
+      pixel: { platform: 'android', match: {} },
     },
   },
 }

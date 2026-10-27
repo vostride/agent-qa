@@ -138,7 +138,7 @@ const { sampleConfig, CONFIG_FILE_PATH } = vi.hoisted(() => ({
       contextWindow: '128k',
     }],
     targets: { staging: { platform: 'web', url: 'https://example.com' } },
-    devices: { iosLocal: { platform: 'ios', transport: 'local', match: { udid: 'abc' } } },
+    devices: { iosLocal: { platform: 'ios', match: { udid: 'abc' } } },
   },
   use: {
     browser: { name: 'chromium', headless: true, viewport: { width: 1280, height: 720 } },
@@ -2141,7 +2141,7 @@ describe('ConfigPage task tabs shell', () => {
 
     expect(document.body.querySelector('[role="dialog"]')).toBeNull()
     expect(section('devices')!.querySelector('[data-field-path="registry.devices.*.platform"]')).not.toBeNull()
-    expect(section('devices')!.textContent).toContain(DEVICE_FIELD_LABELS.transport)
+    expect(section('devices')!.textContent).toContain(DEVICE_FIELD_LABELS.platform)
     expect(document.body.textContent).not.toContain('Apply Device Changes')
   })
 
