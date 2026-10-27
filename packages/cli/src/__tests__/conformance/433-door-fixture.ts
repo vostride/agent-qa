@@ -25,7 +25,6 @@ import { composeDashboardDoor, composeRunServicePorts, createDashboardRunDoor } 
 import { composeRunOwnership } from '../../composition/run-owner-probe.js'
 import {
   POPULATED_RUN_ANCHORED_BUILDS,
-  POPULATED_TARGET_NAME,
   populatedRunFixtureProject,
   populatedRunSpawnEnv,
   startStubModelServer,
@@ -37,10 +36,6 @@ import {
 import { CLI_ENTRY, buildFreshness, hermeticEnv } from './spawned-chat.js'
 
 export interface RecordedDoorOptions {
-  /** Declare the target `environment: production`. */
-  readonly production?: boolean
-  /** Write the config's top-level `allowProduction: true`. */
-  readonly allowProduction?: boolean
   /** Give the test one bash setup hook that exits 0. */
   readonly setupHook?: boolean
   // 2026-10-14 (441-06): forwarded to the stub model as `fullBodies`.
@@ -87,8 +82,6 @@ export async function recordedDoorProject(label: string, opts: RecordedDoorOptio
 
     const config = JSON.parse(readFileSync(project.configPath, 'utf8')) as Record<string, any>
     config.services = { ...(config.services ?? {}), dashboard: {}, recording: { enabled: true } }
-    if (opts.production) config.registry.targets[POPULATED_TARGET_NAME].environment = 'production'
-    if (opts.allowProduction) config.allowProduction = true
     writeFileSync(project.configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8')
 
     if (opts.setupHook) {

@@ -7,9 +7,8 @@
 // built it; now `createTtyConfirmPort`, its disclosure writer and the composition's `confirm` input
 // are gone too. The cells that drove the prompt over injected streams are re-spelled as absence:
 // no factory, no prompt text in the CLI or the composition, no input field that could carry one,
-// and a mutating call without a terminal completes in one call and reads no stdin. The run-risk
-// disclosure's own scrub of a hostile target name is still measured by `run-risk.test.ts`; what
-// is gone is the channel it was printed on.
+// and a mutating call without a terminal completes in one call and reads no stdin. No channel
+// exists on which a disclosure could be printed.
 
 import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -207,7 +206,7 @@ describe('the CLI binds a confirmation exactly where there is somebody to ask', 
 // RE-SPELLED 2026-10-01 (432-16): these two cells drove a disclosure carrying a forged approval
 // line through the prompt and counted the lines that reached the stream. The prompt and its
 // `writeDisclosure` are deleted, so no line of a declared target name can reach a person as an
-// approval question; `run-risk.test.ts` keeps measuring the composed disclosure string itself.
+// approval question.
 describe('a hostile declared target name cannot author a line on the confirm channel', () => {
   it('there is no confirm channel: the host carries no disclosure writer and no question', () => {
     const host = code(join(__dirname, '..', 'composition', 'local-agent-host.ts'))

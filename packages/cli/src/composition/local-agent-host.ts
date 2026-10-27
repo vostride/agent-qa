@@ -240,9 +240,8 @@ export function currentRunDoor(): RunAttributeTrigger | undefined {
  * `input.resolveExecutionContext` when the host supplied one and this process's real TTY/CI
  * detection otherwise, which is exactly what `agent-qa run` resolves. The run records it.
  *
- * NOTHING ASKS (432-13, D-01/D-14/D-15). No confirm port, session trust or standing-approval reader
- * reaches the drive: a non-production run starts in one call from every context, and production
- * is refused by the core before any effect unless the config opts in. The `gate` argument the
+ * NOTHING ASKS. No confirm port, session trust or standing-approval reader reaches the drive: a
+ * run starts in one call from every context, whatever environment its targets declare. The `gate` argument the
  * composition used to hand this port (the dispatch-grant overlay) was deleted in 432-18.
  *
  * THE DOOR READS ITS OWN PREFLIGHT so the config, the env file and the secrets file are read once
@@ -434,8 +433,8 @@ function createComposedRunExecution(input: {
       } catch (error) {
         // ONE NARROW CATCH, AND IT CONVERTS EXACTLY ONE THING (D-03).
         //
-        // Everything raised before a session exists — a production refusal, a refused field, an
-        // input error, a crash — re-throws untouched. What is converted is a run that STARTED and then surfaced a
+        // Everything raised before a session exists — a refused field or run id, an input error,
+        // a crash — re-throws untouched. What is converted is a run that STARTED and then surfaced a
         // member's framework error: the drive re-raises that to preserve `agent-qa run`'s exit-2
         // contract, but this door is answering `runs.start`, whose ack is a START and not an
         // outcome. The retired child said the same thing by ignoring its own exit code —

@@ -3,9 +3,8 @@
 // Everything declared here in 384 is unchanged: the input contract (including the D-10
 // `gateRun` carrier), the acknowledgment it resolves, and the risk descriptor the classifier
 // reads. What arrived in 385 is the implementation, and with it the one line that says what the
-// implementation NEEDS — `boundThrough: 'runInvocation'`. 2026-10-01 (432-23, D-12): the `run`
-// scope it once cost is gone; every door can start a run, and the run core refuses only a
-// production target the config has not opted into (432-03, D-18).
+// implementation NEEDS — `boundThrough: 'runInvocation'`. The `run` scope it once cost is gone:
+// every door can start a run, whatever environment its targets declare.
 //
 // That is the whole of this module's say in whether it is bound. The ANSWER belongs to a
 // composition: a host that supplies a run-invocation port lists this op as `bound` and can

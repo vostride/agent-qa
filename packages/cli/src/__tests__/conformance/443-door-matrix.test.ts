@@ -1,14 +1,17 @@
 // C443-DOOR-MATRIX (Phase 443 plan 01; D-13, D-14, D-15, V2-RUN-02).
 //
 // One single-test run through each door, against one project and one runs.db, with real headless
-// Chromium and the stub model. Every door is driven once in `beforeAll`; each cell asserts on what
-// was recorded, so a door whose run is missing fails its cells and never skips.
+// Chromium and the stub model. The project's target is declared `environment: production`, so every
+// door is shown starting a production-declared run like any other. Every door is driven once in
+// `beforeAll`, an in-process door with `process.stdin` refusing every read; each cell asserts on
+// what was recorded, so a door whose run is missing fails its cells and never skips.
 
 import { spawn } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import type { Server } from 'node:http'
 import { join } from 'node:path'
+import { Readable } from 'node:stream'
 
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
@@ -38,6 +41,7 @@ import {
   POPULATED_FAILURE_STEP_MARKER,
   POPULATED_FAILURE_STEP_TEXT,
   POPULATED_SECOND_TEST_PATH,
+  POPULATED_TARGET_NAME,
   POPULATED_TEST_PATH,
   populatedRunFixtureProject,
   populatedRunSpawnEnv,
@@ -299,6 +303,30 @@ async function inProcess<T>(body: () => Promise<T>): Promise<T> {
     else process.env.CI = savedCi
     if (savedBrowsers === undefined) delete process.env.PLAYWRIGHT_BROWSERS_PATH
     else process.env.PLAYWRIGHT_BROWSERS_PATH = savedBrowsers
+  }
+}
+
+const stdinReads: string[] = []
+
+/** Run `body` with `process.stdin` replaced by a stream that records and refuses every read. */
+async function refuseStdinReads<T>(door: string, body: () => Promise<T>): Promise<T> {
+  const forbidden = new Readable({ read() {} }) as Readable & { isTTY?: boolean }
+  forbidden.isTTY = false
+  for (const member of ['on', 'once', 'addListener', 'prependListener', 'prependOnceListener', 'resume', 'read', 'setRawMode']) {
+    Object.defineProperty(forbidden, member, {
+      configurable: true,
+      value: (...args: unknown[]): never => {
+        stdinReads.push(`${door}: ${member}(${typeof args[0] === 'string' ? args[0] : ''})`)
+        throw new Error(`a read reached stdin through ${member}`)
+      },
+    })
+  }
+  const realStdin = process.stdin
+  Object.defineProperty(process, 'stdin', { value: forbidden, configurable: true })
+  try {
+    return await body()
+  } finally {
+    Object.defineProperty(process, 'stdin', { value: realStdin, configurable: true })
   }
 }
 
@@ -694,9 +722,15 @@ describe('C443-DOOR-MATRIX', () => {
     }, { secondStepText: POPULATED_FAILURE_STEP_TEXT })
     const config = JSON.parse(readFileSync(project.configPath, 'utf8')) as Record<string, any>
     config.services = { recording: { enabled: true } }
+    config.registry.targets[POPULATED_TARGET_NAME].environment = 'production'
     writeFileSync(project.configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8')
-    const written = JSON.parse(readFileSync(project.configPath, 'utf8')) as { services?: { dashboard?: unknown } }
+    const written = JSON.parse(readFileSync(project.configPath, 'utf8')) as {
+      services?: { dashboard?: unknown }
+      registry?: { targets?: Record<string, { environment?: string }> }
+    }
     expect(written.services?.dashboard, 'the matrix project declares no dashboard block').toBeUndefined()
+    expect(written.registry?.targets?.[POPULATED_TARGET_NAME]?.environment, 'the matrix target is declared production')
+      .toBe('production')
     expect(project.secondTestId, 'the project has a failing test').toBeDefined()
 
     for (const row of ROWS) records.push({ row })
@@ -710,8 +744,11 @@ describe('C443-DOOR-MATRIX', () => {
       try {
         const driver = DRIVERS[row.label]
         if (driver === undefined) throw new Error(`no driver for "${row.label}"`)
-        await driver(row, record)
-        if (record.finished === undefined) await waitForRunFinished(record)
+        const drive = async (): Promise<void> => {
+          await driver(row, record)
+          if (record.finished === undefined) await waitForRunFinished(record)
+        }
+        await (row.owner === 'self' ? refuseStdinReads(row.label, drive) : drive())
       } catch (error) {
         record.error = message(error)
         if (record.runId !== undefined && record.finished === undefined) await waitForRunFinished(record)
@@ -820,6 +857,11 @@ describe('C443-DOOR-MATRIX', () => {
       page: expect.objectContaining({ notFound: false, nameShown: true }),
     })))
     for (const record of records) expect(record.runId, `${record.row.label} returned no run id`).toBeDefined()
+  })
+
+  it('no door reads stdin', () => {
+    expect(records.filter((record) => record.row.owner === 'self').length, 'in-process doors were driven').toBeGreaterThan(0)
+    expect(stdinReads).toEqual([])
   })
 
   it('the stdio MCP door\'s stdout stays JSON-RPC through its run', () => {

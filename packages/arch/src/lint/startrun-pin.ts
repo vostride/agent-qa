@@ -3,8 +3,8 @@
 // 2026-10-01 (432-19, D-03/D-15): THIS IS NOW THE ONE ARCHITECTURE PIN ON A RUN. The evaluate()
 // gate pin it was written beside is deleted with the gate; its scanner helpers stay in
 // `evaluate-pin.ts`, which this file imports. What a run must pass on its way in is the core's
-// production refusal (432-03, D-18), and a second file acquiring the starter would walk past that
-// refusal exactly as it once would have walked past the gate. The history below is kept as written.
+// request and run-id refusals, and a second file acquiring the starter would walk past them
+// exactly as it once would have walked past the gate. The history below is kept as written.
 //
 // WHAT IT POLICES. `startRun` is the run shell's entry point: calling it BEGINS a run — a browser,
 // a build-ordinal advance, a run directory, a baseline probe against the target. Criterion 2 says
@@ -83,7 +83,7 @@ export const STARTRUN_PIN: Readonly<Record<string, string>> = {
   'packages/runner/src/index.ts':
     'The export seam (2026-08-23): re-export only. Nothing in this file starts a run; it republishes the shell entry point so the invocation core can acquire it across a package boundary at all. Present for the same reason safety\'s barrel was in the deleted evaluate() pin (432-19) — a detector keyed on the import keyword alone would report this file as a stale entry and fail the build for the wrong reason.',
   'packages/agent-local/src/composition/run-invocation-core.ts':
-    'The ONE call site (2026-08-23, Phase 401 D-02 / INVK-02 criterion 2; re-worded 2026-10-01, 432-19): the in-process invocation core, below its one production refusal (432-03 D-18). The run gate that once sat above the call was deleted in 432-13/432-19. Every trigger — `agent-qa run`, the fn/chat/MCP `runs.start` op, the daemon, the dashboard — reaches a run through here, so a second entry in this map would be a second way to begin a run without passing the production refusal. Cross-checked against the measured dispatch chain (`401-UAT-item09-D08-chain.md`): the gate-run road runs `createDraftEvaluation.startGateRun` → `invokeFunction(\'runs.start\')` → the bound invocation → the drive → this file, and acquires the starter at no point above it.',
+    'The ONE call site: the in-process invocation core, below its request and run-id refusals. Every trigger — `agent-qa run`, the fn/chat/MCP `runs.start` op, the daemon, the dashboard — reaches a run through here, so a second entry in this map would be a second way to begin a run without passing those refusals. Cross-checked against the measured dispatch chain (`401-UAT-item09-D08-chain.md`): the gate-run road runs `createDraftEvaluation.startGateRun` → `invokeFunction(\'runs.start\')` → the bound invocation → the drive → this file, and acquires the starter at no point above it.',
 }
 
 export interface StartRunPinSource {

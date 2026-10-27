@@ -1161,7 +1161,6 @@ describe('C432-GUIDANCE-DIRECT: current guidance describes changes that apply in
       expect(subject.body, `${subject.name}: the written-test receipt`).toMatch(/`written` receipt/u)
       expect(subject.body, `${subject.name}: the disposition`).toMatch(/disposition/u)
       expect(subject.body, `${subject.name}: changes apply in the call`).toMatch(/apply in the call/u)
-      expect(subject.body, `${subject.name}: the production refusal`).toContain('allowProduction: true')
       expect(subject.body, `${subject.name}: a review instruction`).not.toMatch(/\breview/iu)
     }
   })
