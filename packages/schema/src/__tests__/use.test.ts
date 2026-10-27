@@ -35,7 +35,7 @@ describe('useSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('accepts android use with a generic remoteDevice URL', () => {
+  it('rejects android use carrying a remoteDevice field', () => {
     const result = useSchema.safeParse({
       platform: 'android',
       device: 'pixel',
@@ -43,7 +43,7 @@ describe('useSchema', () => {
       remoteDevice: { appiumUrl: 'http://x' },
     })
 
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(false)
   })
 
   it('rejects android use carrying browserstackApp', () => {

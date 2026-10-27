@@ -40,8 +40,6 @@ export type { DeviceConfig } from './device'
 export { deviceConfigSchema } from './device'
 // 2026-10-01 (432-22, D-12/D-22): the MCP token entry, the stdio config-write switch and the
 // run-service token entry are deleted with the config keys that declared them.
-export type { RemoteDeviceConfig } from './remote-device'
-export { remoteDeviceSchema } from './remote-device'
 export type {
   AndroidPlatformConfig,
   IosPlatformConfig,

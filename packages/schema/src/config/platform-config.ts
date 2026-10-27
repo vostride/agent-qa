@@ -6,8 +6,6 @@ import type { BrowserConfig } from './browser'
 import { appStateSchema, browserConfigSchema } from './browser'
 import type { DeviceConfig } from './device'
 import { deviceConfigSchema } from './device'
-import type { RemoteDeviceConfig } from './remote-device'
-import { remoteDeviceSchema } from './remote-device'
 
 export interface WebAuthStateConfig {
   name: string
@@ -31,7 +29,6 @@ export interface AndroidPlatformConfig extends PlatformBase {
   appState?: 'preserve' | 'reset'
   appiumUrl?: string
   deepLinkAppId?: string
-  remoteDevice?: RemoteDeviceConfig
 }
 
 export interface IosPlatformConfig extends PlatformBase {
@@ -41,9 +38,7 @@ export interface IosPlatformConfig extends PlatformBase {
   appPath?: string
   appState?: 'preserve' | 'reset'
   appiumUrl?: string
-  webDriverAgentUrl?: string
   deepLinkAppId?: string
-  remoteDevice?: RemoteDeviceConfig
 }
 
 export type PlatformConfig = WebPlatformConfig | AndroidPlatformConfig | IosPlatformConfig
@@ -70,7 +65,6 @@ const androidArm = platformBase.extend({
   appState: appStateSchema.optional(),
   appiumUrl: z.string().optional(),
   deepLinkAppId: z.string().optional(),
-  remoteDevice: remoteDeviceSchema.optional(),
 }).strict()
 
 const iosArm = platformBase.extend({
@@ -80,9 +74,7 @@ const iosArm = platformBase.extend({
   appPath: z.string().optional(),
   appState: appStateSchema.optional(),
   appiumUrl: z.string().optional(),
-  webDriverAgentUrl: z.string().optional(),
   deepLinkAppId: z.string().optional(),
-  remoteDevice: remoteDeviceSchema.optional(),
 }).strict()
 
 export const platformConfigSchema = z.discriminatedUnion('platform', [webArm, androidArm, iosArm])

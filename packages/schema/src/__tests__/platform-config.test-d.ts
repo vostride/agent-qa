@@ -22,7 +22,6 @@ expectTypeOf<LegOwnKeys<AndroidPlatformConfig>>().toEqualTypeOf<
   | 'appState'
   | 'appiumUrl'
   | 'deepLinkAppId'
-  | 'remoteDevice'
 >()
 expectTypeOf<LegOwnKeys<IosPlatformConfig>>().toEqualTypeOf<
   | 'platform'
@@ -31,9 +30,7 @@ expectTypeOf<LegOwnKeys<IosPlatformConfig>>().toEqualTypeOf<
   | 'appPath'
   | 'appState'
   | 'appiumUrl'
-  | 'webDriverAgentUrl'
   | 'deepLinkAppId'
-  | 'remoteDevice'
 >()
 
 expectTypeOf<z.infer<typeof platformConfigSchema>>().toEqualTypeOf<PlatformConfig>()
@@ -56,7 +53,7 @@ const invalidWeb: PlatformConfig = {
 
 const invalidAndroid: PlatformConfig = {
   platform: 'android',
-  device: { name: 'pixel', platform: 'android', transport: 'remote', match: {} },
+  device: { name: 'pixel', platform: 'android', match: {} },
   // @ts-expect-error android configs have no `browser` field.
   browser: { name: 'chromium' },
 }

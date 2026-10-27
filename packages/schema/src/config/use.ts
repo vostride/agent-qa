@@ -2,8 +2,6 @@ import { z } from 'zod'
 
 import type { BrowserConfig } from './browser'
 import { appStateSchema, browserConfigSchema } from './browser'
-import type { RemoteDeviceConfig } from './remote-device'
-import { remoteDeviceSchema } from './remote-device'
 
 /**
  * useSchema validates authored test/suite overrides and intentionally requires
@@ -49,14 +47,12 @@ export interface UseAndroid extends UseConcurrency {
   platform: 'android'
   device?: string
   appState?: 'preserve' | 'reset'
-  remoteDevice?: RemoteDeviceConfig
 }
 
 export interface UseIos extends UseConcurrency {
   platform: 'ios'
   device?: string
   appState?: 'preserve' | 'reset'
-  remoteDevice?: RemoteDeviceConfig
 }
 
 export type Use = UseWeb | UseAndroid | UseIos
@@ -87,7 +83,6 @@ const useAndroidArm = z.object({
   platform: z.literal('android'),
   device: z.string().optional(),
   appState: appStateSchema.optional(),
-  remoteDevice: remoteDeviceSchema.optional(),
   ...useConcurrencyShape,
 }).strict()
 
@@ -95,7 +90,6 @@ const useIosArm = z.object({
   platform: z.literal('ios'),
   device: z.string().optional(),
   appState: appStateSchema.optional(),
-  remoteDevice: remoteDeviceSchema.optional(),
   ...useConcurrencyShape,
 }).strict()
 
