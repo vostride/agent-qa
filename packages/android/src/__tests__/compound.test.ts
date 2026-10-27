@@ -353,7 +353,7 @@ describe('AndroidPlatformAdapter compound behaviors (RED — Wave-0)', () => {
       })
       await adapter.setup({
         platform: 'android',
-        device: { name: 'android-emu', platform: 'android', transport: 'local', match: { automationName: 'UiAutomator2' } },
+        device: { name: 'android-emu', platform: 'android', match: { automationName: 'UiAutomator2' } },
         appPackage: 'app.linear',
       } as never)
       await adapter.observe()
@@ -424,7 +424,7 @@ describe('AndroidPlatformAdapter compound behaviors (RED — Wave-0)', () => {
       })
       await adapter.setup({
         platform: 'android',
-        device: { name: 'android-emu', platform: 'android', transport: 'local', match: { automationName: 'UiAutomator2' } },
+        device: { name: 'android-emu', platform: 'android', match: { automationName: 'UiAutomator2' } },
         appPackage: 'app.linear',
       } as never)
       await adapter.observe()

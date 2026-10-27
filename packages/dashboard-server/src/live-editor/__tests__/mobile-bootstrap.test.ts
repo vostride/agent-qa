@@ -39,12 +39,10 @@ const config = {
     devices: {
       'release-android-emu': {
         platform: 'android',
-        transport: 'local',
         match: { platformVersion: '15' },
       },
       'ios-sim': {
         platform: 'ios',
-        transport: 'local',
         match: { platformVersion: '26.2' },
       },
     },

@@ -29,32 +29,26 @@ function makeConfig(overrides?: {
       devices: {
         'android-emu': {
           platform: 'android',
-          transport: 'local',
           match: { automationName: 'UiAutomator2' },
         },
         'ios-sim': {
           platform: 'ios',
-          transport: 'local',
           match: { automationName: 'XCUITest' },
         },
         'explicit-ios': {
           platform: 'ios',
-          transport: 'local',
           match: { automationName: 'XCUITest' },
         },
         'use-ios': {
           platform: 'ios',
-          transport: 'local',
           match: { automationName: 'XCUITest' },
         },
         'target-ios': {
           platform: 'ios',
-          transport: 'local',
           match: { automationName: 'XCUITest' },
         },
         'config-ios': {
           platform: 'ios',
-          transport: 'local',
           match: { automationName: 'XCUITest' },
         },
         ...(overrides?.devices ?? {}),
@@ -172,7 +166,6 @@ describe('resolveMobileRunConfig', () => {
         devices: {
           conflictDevice: {
             platform: 'ios',
-            transport: 'local',
             match: { bundleId: 'com.example.device' },
           },
         },
@@ -198,7 +191,6 @@ describe('resolveMobileRunConfig', () => {
         devices: {
           conflictDevice: {
             platform: 'android',
-            transport: 'local',
             match: { appPackage: 'com.example.device' },
           },
         },

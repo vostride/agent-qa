@@ -172,7 +172,7 @@ describe('IOSPlatformAdapter', () => {
       const config: PlatformConfig = {
         platform: 'ios',
         appState: 'preserve',
-        device: { name: 'iphone-15', platform: 'ios', transport: 'local', match: { automationName: 'XCUITest', platformVersion: '17.0', deviceName: 'iPhone 15', app: '/path/to/app.app' } },
+        device: { name: 'iphone-15', platform: 'ios', match: { automationName: 'XCUITest', platformVersion: '17.0', deviceName: 'iPhone 15', app: '/path/to/app.app' } },
       }
 
       await adapter.setup(config)
@@ -210,7 +210,6 @@ describe('IOSPlatformAdapter', () => {
         device: {
           name: 'ios-sim',
           platform: 'ios',
-          transport: 'local',
           match: { automationName: 'XCUITest' },
         },
         bundleId: 'org.reactjs.native.example.wdiodemoapp',
@@ -230,7 +229,6 @@ describe('IOSPlatformAdapter', () => {
         device: {
           name: 'ios-sim',
           platform: 'ios',
-          transport: 'local',
           match: { automationName: 'XCUITest' },
         },
       })
@@ -247,7 +245,6 @@ describe('IOSPlatformAdapter', () => {
         device: {
           name: 'ios-sim',
           platform: 'ios',
-          transport: 'local',
           match: { automationName: 'XCUITest' },
         },
       })
@@ -264,7 +261,6 @@ describe('IOSPlatformAdapter', () => {
         device: {
           name: 'ios-sim',
           platform: 'ios',
-          transport: 'local',
           match: { automationName: 'XCUITest', noReset: true },
         },
       })
@@ -280,7 +276,6 @@ describe('IOSPlatformAdapter', () => {
         device: {
           name: 'ios-sim',
           platform: 'ios',
-          transport: 'local',
           match: { automationName: 'XCUITest' },
         },
         bundleId: 'org.reactjs.native.example.wdiodemoapp',
@@ -304,7 +299,6 @@ describe('IOSPlatformAdapter', () => {
         device: {
           name: 'ios-sim',
           platform: 'ios',
-          transport: 'local',
           match: { automationName: 'XCUITest' },
         },
         bundleId: 'org.reactjs.native.example.wdiodemoapp',

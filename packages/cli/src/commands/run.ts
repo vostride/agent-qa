@@ -377,7 +377,6 @@ export function buildPlatformConfig(
     device: resolvedDevice ? {
       name: resolvedDevice.name,
       platform: resolvedDevice.platform,
-      transport: resolvedDevice.transport,
       match: resolvedDevice.match,
     } : undefined,
     bundleId: mobileResolved?.app.bundleId,
@@ -611,10 +610,6 @@ function parseVarFlags(flags: string[] | undefined): Record<string, string> {
     vars[kv.slice(0, eqIdx)] = kv.slice(eqIdx + 1)
   }
   return vars
-}
-
-function resolveRunnerAttribute(transport: string | undefined): RunAttributeRunner {
-  return transport === 'browserstack' ? 'browserstack' : 'local'
 }
 
 function buildCliRunAttributes(userAttributes: RunAttributes, runner: RunAttributeRunner): RunAttributes {
@@ -2658,7 +2653,7 @@ export async function produceSuiteRunMembers(
 
     const suiteAttributes = resolveCliRunAttributes(
       variableContext?.userRunAttributes ?? {},
-      resolveRunnerAttribute(resolvedDevice?.transport),
+      'local',
       variableContext?.inheritedRunAttributes,
     )
     writeRunAttributesToEnv(suiteAttributes)
@@ -3696,7 +3691,6 @@ export async function produceDirectRunMembers(
       'local',
       inheritedRunAttributes,
     )
-    let analyticsMobileTransport: string | undefined
     let analyticsAppState: string | undefined
     let analyticsStartedAt = Date.now()
     let completedResult: TestResult | undefined
@@ -3787,12 +3781,11 @@ export async function produceDirectRunMembers(
       })
       analyticsAppState = testMobileResolved.appState
       testResolvedDevice = testMobileResolved.device
-      analyticsMobileTransport = testResolvedDevice?.transport
     }
 
     const testAttributes = resolveCliRunAttributes(
       userRunAttributes,
-      resolveRunnerAttribute(testResolvedDevice?.transport),
+      'local',
       inheritedRunAttributes,
     )
     analyticsAttributes = testAttributes

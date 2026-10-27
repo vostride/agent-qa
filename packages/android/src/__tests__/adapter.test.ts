@@ -94,7 +94,6 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'pixel-7',
           platform: 'android',
-          transport: 'local',
           match: { automationName: 'UiAutomator2', platformVersion: '14', serial: 'RZCT90BCMWW' },
         },
       }
@@ -137,7 +136,6 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-emu',
           platform: 'android',
-          transport: 'local',
           match: { automationName: 'UiAutomator2' },
         },
         appPath: '/tmp/wikipedia.apk',
@@ -156,7 +154,6 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-emu',
           platform: 'android',
-          transport: 'local',
           match: { automationName: 'UiAutomator2' },
         },
       })
@@ -173,7 +170,6 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-chrome',
           platform: 'android',
-          transport: 'local',
           match: { automationName: 'UiAutomator2', browserName: 'Chrome' },
         },
       })
@@ -190,7 +186,6 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-emu',
           platform: 'android',
-          transport: 'local',
           match: { automationName: 'UiAutomator2', noReset: true },
         },
       })
@@ -206,7 +201,6 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-chrome',
           platform: 'android',
-          transport: 'local',
           match: { automationName: 'UiAutomator2', browserName: 'Chrome' },
         },
         appPath: '/tmp/wikipedia.apk',
@@ -222,7 +216,6 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-emu',
           platform: 'android',
-          transport: 'local',
           match: { automationName: 'UiAutomator2' },
         },
         appPackage: 'org.wikipedia.alpha',
@@ -237,7 +230,6 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-emu',
           platform: 'android',
-          transport: 'local',
           match: { automationName: 'UiAutomator2' },
         },
         appPackage: 'app.linear',
@@ -257,7 +249,6 @@ describe('AndroidPlatformAdapter', () => {
           device: {
             name: 'android-emu',
             platform: 'android',
-            transport: 'local',
             match: { automationName: 'UiAutomator2' },
           },
           appPackage: 'app.linear',
@@ -386,7 +377,6 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-emu',
           platform: 'android',
-          transport: 'local',
           match: { automationName: 'UiAutomator2' },
         },
         appPackage: 'app.linear',
@@ -420,7 +410,6 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-emu',
           platform: 'android',
-          transport: 'local',
           match: { automationName: 'UiAutomator2' },
         },
         appPackage: 'app.linear',
@@ -458,7 +447,6 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-chrome',
           platform: 'android',
-          transport: 'local',
           match: { automationName: 'UiAutomator2', browserName: 'Chrome' },
         },
       })
@@ -480,7 +468,6 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-emu',
           platform: 'android',
-          transport: 'local',
           match: { automationName: 'UiAutomator2' },
         },
         appPackage: 'app.linear',

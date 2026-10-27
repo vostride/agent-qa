@@ -2,7 +2,6 @@ import { existsSync } from 'node:fs'
 import { dirname, resolve as resolvePath } from 'node:path'
 
 export type MobilePlatform = 'android' | 'ios'
-export type MobileTransport = 'local' | 'browserstack'
 export type MobileAppState = 'preserve' | 'reset'
 
 export type MobileSetupErrorCategory =
@@ -49,14 +48,11 @@ export class MobileSetupError extends Error {
 export interface ResolvedMobileDevice {
   name: string
   platform: MobilePlatform
-  transport: MobileTransport
   match: Record<string, unknown>
 }
 
 export interface ResolvedMobileAppInstall {
   path?: string
-  browserstack?: string
-  browserstackBaseDir?: string
   sourceTrace: Record<string, string>
 }
 
@@ -73,7 +69,6 @@ export interface ResolvedMobileRunConfig {
   platform: MobilePlatform
   targetName: string
   deviceName: string
-  transport: MobileTransport
   device: ResolvedMobileDevice
   app: ResolvedMobileApp
   appState: MobileAppState
@@ -90,7 +85,7 @@ export interface ResolveMobileRunConfigInput {
   appState?: MobileAppState
   localBindings?: {
     devices?: Record<string, Record<string, unknown>>
-    apps?: Record<string, { path?: string; browserstack?: string }>
+    apps?: Record<string, { path?: string }>
     filePath?: string
   } | null
   configFilePath?: string
@@ -105,23 +100,17 @@ interface TargetEntry {
   appActivity?: string
   app?: {
     path?: string
-    browserstack?: string
   }
   device?: string
 }
 
 interface DeviceProfile {
   platform?: string
-  transport?: string
   match?: Record<string, unknown>
 }
 
 function isMobilePlatform(value: unknown): value is MobilePlatform {
   return value === 'android' || value === 'ios'
-}
-
-function isMobileTransport(value: unknown): value is MobileTransport {
-  return value === 'local' || value === 'browserstack'
 }
 
 function asOptionalString(value: unknown): string | undefined {
@@ -237,20 +226,6 @@ function resolveAppInstall(
       ? baseDirFor(input.configFilePath)
       : undefined
 
-  const localBrowserStack = asOptionalString(localApp?.browserstack)
-  const targetBrowserStack = asOptionalString(target.app?.browserstack)
-  const browserstackValue = localBrowserStack ?? targetBrowserStack
-  const browserstackSource = localBrowserStack
-    ? `agent-qa.local.yaml apps.${input.targetName}.browserstack`
-    : targetBrowserStack
-      ? `agent-qa.config.yaml registry.targets.${input.targetName}.app.browserstack`
-      : undefined
-  const browserstackBaseDir = localBrowserStack
-    ? baseDirFor(input.localConfigFilePath ?? input.localBindings?.filePath)
-    : targetBrowserStack
-      ? baseDirFor(input.configFilePath)
-      : undefined
-
   const install: ResolvedMobileAppInstall = { sourceTrace: installSourceTrace }
 
   if (pathValue) {
@@ -278,24 +253,7 @@ function resolveAppInstall(
     }
   }
 
-  if (browserstackValue) {
-    if (isAbsoluteAppInstallValue(browserstackValue)) {
-      throw appInstallError(`Configured BrowserStack app value must be relative or a BrowserStack reference: ${browserstackValue}`, input, {
-        platform,
-        deviceName,
-        appId: browserstackValue,
-        sourceTrace: [...sourceTrace, `app.browserstack=${browserstackSource}`],
-      })
-    }
-    install.browserstack = browserstackValue
-    install.browserstackBaseDir = browserstackBaseDir
-    if (browserstackSource) {
-      installSourceTrace['app.browserstack'] = browserstackSource
-      sourceTrace.push(`app.browserstack=${browserstackSource}`)
-    }
-  }
-
-  return install.path || install.browserstack ? install : undefined
+  return install.path ? install : undefined
 }
 
 export function resolveMobileRunConfig(input: ResolveMobileRunConfigInput): ResolvedMobileRunConfig {
@@ -356,7 +314,6 @@ export function resolveMobileRunConfig(input: ResolveMobileRunConfigInput): Reso
     )
   }
 
-  const transport = isMobileTransport(deviceProfile.transport) ? deviceProfile.transport : 'local'
   const localMatch = input.localBindings?.devices?.[deviceName] ?? null
   const mergedMatch = { ...(deviceProfile.match ?? {}), ...(localMatch ?? {}) }
 
@@ -402,11 +359,9 @@ export function resolveMobileRunConfig(input: ResolveMobileRunConfigInput): Reso
     platform,
     targetName: input.targetName,
     deviceName,
-    transport,
     device: {
       name: deviceName,
       platform,
-      transport,
       match: mergedMatch,
     },
     app,

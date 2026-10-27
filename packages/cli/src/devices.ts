@@ -35,7 +35,6 @@ export type LocalDeviceBindings = z.infer<typeof LocalDeviceBindingsSchema> & {
 export interface ResolvedDevice {
   name: string
   platform: 'android' | 'ios'
-  transport: 'local' | 'browserstack'
   match: Record<string, unknown>
 }
 

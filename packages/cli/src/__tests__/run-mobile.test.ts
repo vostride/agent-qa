@@ -109,14 +109,12 @@ describe('buildPlatformConfig', () => {
     const resolvedDevice = {
       name: 'pixel-7',
       platform: 'android' as const,
-      transport: 'local' as const,
       match: { avd: 'Pixel_7_API_34', appPackage: 'com.example.app' },
     }
     const config = buildPlatformConfig('android', resolvedDevice, { step: 15000 })
 
     expect(config.platform).toBe('android')
     expect(config.device?.name).toBe('pixel-7')
-    expect(config.device?.transport).toBe('local')
     expect(config.device?.match.avd).toBe('Pixel_7_API_34')
     expect(config.browser).toBeUndefined()
     expect(config.timeouts).toEqual({ step: 15000 })
@@ -126,14 +124,12 @@ describe('buildPlatformConfig', () => {
     const resolvedDevice = {
       name: 'android-emu',
       platform: 'android' as const,
-      transport: 'local' as const,
       match: { automationName: 'UiAutomator2' },
     }
     const config = buildPlatformConfig('android', resolvedDevice, undefined, undefined, undefined, {
       platform: 'android',
       targetName: 'release-android-wikipedia',
       deviceName: 'android-emu',
-      transport: 'local',
       device: resolvedDevice,
       app: {
         appPackage: 'org.wikipedia.alpha',
@@ -157,14 +153,12 @@ describe('buildPlatformConfig', () => {
     const resolvedDevice = {
       name: 'android-emu',
       platform: 'android' as const,
-      transport: 'local' as const,
       match: { automationName: 'UiAutomator2' },
     }
     const config = buildPlatformConfig('android', resolvedDevice, undefined, undefined, undefined, {
       platform: 'android',
       targetName: 'release-android-wikipedia',
       deviceName: 'android-emu',
-      transport: 'local',
       device: resolvedDevice,
       app: {
         appPackage: 'org.wikipedia.alpha',
@@ -188,14 +182,12 @@ describe('buildPlatformConfig', () => {
     const resolvedDevice = {
       name: 'android-emu',
       platform: 'android' as const,
-      transport: 'local' as const,
       match: { automationName: 'UiAutomator2' },
     }
     const config = buildPlatformConfig('android', resolvedDevice, undefined, undefined, undefined, {
       platform: 'android',
       targetName: 'release-android-wikipedia',
       deviceName: 'android-emu',
-      transport: 'local',
       device: resolvedDevice,
       app: {
         appPackage: 'org.wikipedia.alpha',
@@ -215,14 +207,12 @@ describe('buildPlatformConfig', () => {
     const resolvedDevice = {
       name: 'iphone-15',
       platform: 'ios' as const,
-      transport: 'local' as const,
       match: { udid: '00008120-001E44F11ABC001E', bundleId: 'com.example.ios' },
     }
     const config = buildPlatformConfig('ios', resolvedDevice, undefined)
 
     expect(config.platform).toBe('ios')
     expect(config.device?.name).toBe('iphone-15')
-    expect(config.device?.transport).toBe('local')
     expect(config.device?.match.bundleId).toBe('com.example.ios')
     expect(config.browser).toBeUndefined()
   })
@@ -231,14 +221,12 @@ describe('buildPlatformConfig', () => {
     const resolvedDevice = {
       name: 'ios-sim',
       platform: 'ios' as const,
-      transport: 'local' as const,
       match: { automationName: 'XCUITest' },
     }
     const config = buildPlatformConfig('ios', resolvedDevice, undefined, undefined, undefined, {
       platform: 'ios',
       targetName: 'release-ios-wdio',
       deviceName: 'ios-sim',
-      transport: 'local',
       device: resolvedDevice,
       app: {
         bundleId: 'org.reactjs.native.example.wdiodemoapp',

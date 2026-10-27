@@ -229,11 +229,9 @@ describe('LiveSession.executeTestCommand (suite-mode orchestration)', () => {
       platform: 'android',
       targetName: 'release-android-wikipedia',
       deviceName: 'release-android-emu',
-      transport: 'local',
       device: {
         name: 'release-android-emu',
         platform: 'android',
-        transport: 'local',
         match: {},
       },
       app: {
@@ -500,7 +498,6 @@ describe('LiveSession.executeTestCommand (suite-mode orchestration)', () => {
               devices: {
                 'release-android-emu': {
                   platform: 'android',
-                  transport: 'local',
                   match: {},
                 },
               },

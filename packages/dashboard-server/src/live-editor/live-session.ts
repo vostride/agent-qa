@@ -702,7 +702,6 @@ export class LiveSession {
         ? {
             name: config.device.name,
             platform,
-            transport: 'local',
             match: config.device,
           }
         : undefined,

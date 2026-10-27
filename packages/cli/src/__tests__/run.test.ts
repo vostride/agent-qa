@@ -398,11 +398,9 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => {
     })(),
     platform: input.platform,
     targetName: input.targetName,
-    transport: 'local',
     device: {
       name: input.explicitDeviceName ?? input.useDeviceName,
       platform: input.platform,
-      transport: 'local',
       match: {},
     },
     app: {},
@@ -1766,7 +1764,6 @@ describe('run command — mobile app state and device resolution', () => {
     ;(cfg.registry as any).devices = {
       'android-emu': {
         platform: 'android',
-        transport: 'local',
         match: { automationName: 'UiAutomator2' },
       },
     }

@@ -182,7 +182,6 @@ export interface BrowserConfig {
 export interface DeviceConfig {
   name: string
   platform: 'android' | 'ios'
-  transport: 'local' | 'browserstack'
   match: Record<string, unknown>
 }
 
