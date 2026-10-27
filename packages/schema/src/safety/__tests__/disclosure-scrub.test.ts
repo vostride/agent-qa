@@ -1,18 +1,13 @@
-// The disclosure scrub, measured where it is published (401-15, WR-01 / T-401-G5 / T-401-G6).
-//
-// `RiskActionDescriptor.disclosure` states a law — composition-derived, never caller input — and
-// these two functions are its enforcement. The compositions that APPLY them are measured in their
-// own packages (`run-risk.test.ts`, `op-disclosure-scrub.test.ts`); this file measures the rule.
+// The disclosure fragment scrub, measured where it is published: one untrusted fragment comes out
+// with its control bytes replaced, its length capped with a visible mark, and quoted.
 
 import { describe, expect, it } from 'vitest'
 
 import {
   DISCLOSURE_FRAGMENT_MAX_LENGTH,
   DISCLOSURE_REPLACEMENT_CHARACTER,
-  DISCLOSURE_TEXT_MAX_LENGTH,
   DISCLOSURE_TRUNCATION_MARK,
   scrubDisclosureFragment,
-  scrubDisclosureText,
 } from '../action-descriptor'
 
 /** C0 and C1 together — the whole control range a terminal or a browser acts on. */
@@ -71,28 +66,6 @@ describe('scrubDisclosureFragment — an untrusted noun, safe on one line', () =
 
   it('an empty fragment is still a legible nothing rather than an invisible one', () => {
     expect(scrubDisclosureFragment('')).toBe('""')
-  })
-})
-
-describe('scrubDisclosureText — a whole composed sentence, safe on one line', () => {
-  it.each(ACTING_BYTES)('replaces $label with a visible byte', ({ value }) => {
-    const scrubbed = scrubDisclosureText(`About to echo ${value}.`)
-
-    expect(scrubbed).not.toMatch(CONTROL_BYTES)
-    expect(scrubbed).toContain(DISCLOSURE_REPLACEMENT_CHARACTER)
-  })
-
-  it('does NOT quote — an op composes its own prose and a quoted prompt is a quotation', () => {
-    expect(scrubDisclosureText('About to author 9 child runs.')).toBe(
-      'About to author 9 child runs.',
-    )
-  })
-
-  it('caps an unbounded sentence and marks the truncation', () => {
-    const scrubbed = scrubDisclosureText('y'.repeat(DISCLOSURE_TEXT_MAX_LENGTH + 10))
-
-    expect(scrubbed.length).toBe(DISCLOSURE_TEXT_MAX_LENGTH + 1)
-    expect(scrubbed).toContain(DISCLOSURE_TRUNCATION_MARK)
   })
 })
 

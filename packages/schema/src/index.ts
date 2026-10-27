@@ -92,11 +92,8 @@ export type {
   WebPlatformConfig,
 } from './config/index'
 export {
-  // 432 D-18: the production refusal's one sentence (the run core and the live editor).
-  ALLOW_PRODUCTION_OPT_IN,
   appStateSchema,
   browserConfigSchema,
-  buildProductionRefusal,
   CONFIG_ACTION_REFUSALS,
   CONFIG_NAMED_ARRAYS,
   CONFIG_REVISION_ABSENT,
@@ -114,7 +111,6 @@ export {
   // 2026-10-07 (436-04, D-01..D-03): the one default pair and resolver every door calls.
   DEFAULT_PLANNER_LIMITS,
   deviceConfigSchema,
-  distinctInFirstOccurrenceOrder,
   isConfigSchemaPath,
   isPageWritableConfigPath,
   // 441 GAP2-D4: the marker_written_back refusal's one sentence.
@@ -1449,16 +1445,12 @@ export type {
 // deleted with the MCP bearer credential that carried it (432-21, D-12).
 // 2026-10-02 (432-42, D-12): the scope key set (391-11) is deleted with its module; no caller,
 // credential or projection ranges it any more.
-// 401-15 (WR-01 / T-401-G5 / T-401-G6): the disclosure scrub. 2026-10-02 (432-42, D-14): the
-// descriptor field it was written for and the per-op disclosure are deleted; the production refusal
-// sentence (`config/production.ts`) is the composition that applies it now.
+// The disclosure fragment scrub: one untrusted fragment made safe to read on a single line.
 export {
   DISCLOSURE_FRAGMENT_MAX_LENGTH,
   DISCLOSURE_REPLACEMENT_CHARACTER,
-  DISCLOSURE_TEXT_MAX_LENGTH,
   DISCLOSURE_TRUNCATION_MARK,
   scrubDisclosureFragment,
-  scrubDisclosureText,
 } from './safety/index'
 // 2026-10-01 (432-19, D-15): the remedy vocabulary, the execution-policy verdict and result, and the
 // standing-approval contract are deleted with the gate. A refusal is a plain reason.

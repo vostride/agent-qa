@@ -1,13 +1,11 @@
 // @vitest-environment jsdom
 
-// A denial on the dashboard shows its reason and nothing else (D-06). Whatever stale remedy list an
-// older wire still carries, the box is the same, and the canonical reason, which named another
-// surface's flag, is never composed into the DOM.
+// A denial on the dashboard shows its reason and nothing else. Whatever stale remedy list an older
+// wire still carries, the box is the same, and the canonical reason, which named another surface's
+// flag, is never composed into the DOM.
 //
-// 2026-10-01 (432-19, D-15): the remedy vocabulary is deleted with the gate, so the wire fixtures
-// below are LEGACY bytes an older build could still send, spelled without the retired kind names
-// (the 430 census forbids them anywhere in this tree; C432-430-HANDOFF). The one live denial is the
-// production refusal, and it renders as the plain sentence it is (C432-PLAIN-REFUSAL).
+// The wire fixtures below are legacy bytes an older build could still send, spelled without the
+// retired remedy kind names, which no source in this tree may name.
 //
 // Mounted into document.body through createRoot, the call main.tsx makes, so a broken mount path
 // cannot pass here.
@@ -15,8 +13,6 @@
 import { act, type ReactElement } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it } from 'vitest'
-
-import { buildProductionRefusal } from '@vostride/agent-qa-schema'
 
 import { DenialBlock } from '@/components/run-detail/denial-block'
 
@@ -146,23 +142,11 @@ describe('DenialBlock renders its reason only (D-06)', () => {
     expect(denials[0]?.textContent).toBe('')
   })
 
-  it('C432-PLAIN-REFUSAL: the production refusal renders as its one plain sentence, naming the target and the config line', () => {
-    const reason = buildProductionRefusal(['prod-eu'])
-    const dom = mount(<DenialBlock neutralReason={reason} />)
-    const denials = dom.querySelectorAll('[data-entry="denial"]')
-    expect(denials).toHaveLength(1)
-    expect(denials[0]?.textContent).toBe(reason)
-    expect(dom.textContent).toContain('"prod-eu"')
-    expect(dom.textContent).toContain('allowProduction: true')
-    expect(dom.textContent).not.toMatch(/--trust-session|\[y\/N\]|approve|grant/i)
-    expect(dom.querySelectorAll('button, a, [data-remedy-kind]')).toHaveLength(0)
-  })
-
   // 2026-10-02 (432-44): the current owner of the 430 mutation leg R14 (was DENIAL-REASON-ONLY,
   // which stays). The box is one line, the reason, whatever it says; any line rendered after it, a
   // suggested command or a remedy chip, is the returned remedy render.
   it('C432-430-R14-REASON-ONLY: the denial box holds one line, the reason, and no remedy line follows it', () => {
-    for (const reason of [buildProductionRefusal(['prod-eu']), 'refused: plain reason', '']) {
+    for (const reason of ['Target "shop" refused the mark: no unique address.', 'refused: plain reason', '']) {
       const dom = mount(<DenialBlock neutralReason={reason} />)
       const box = dom.querySelector('[data-entry="denial"]')
       expect(box).not.toBeNull()
@@ -198,7 +182,7 @@ describe('DenialBlock renders its reason only (D-06)', () => {
 // project's destructive token rather than a raw warning amber, with an icon that adds no text.
 describe('C261003-CPV-DENIAL-READS-AS-REFUSAL', () => {
   it('C261003-CPV-DENIAL-READS-AS-REFUSAL: semantic destructive token, an aria-hidden icon, and the reason alone as text', () => {
-    const reason = 'this target is production and the config does not allow production runs'
+    const reason = 'The mark was not recorded: the step has no unique address.'
     const dom = mount(<DenialBlock neutralReason={reason} />)
     const block = dom.querySelector<HTMLElement>('[data-entry="denial"]')!
     expect(block.className).not.toMatch(/amber/)

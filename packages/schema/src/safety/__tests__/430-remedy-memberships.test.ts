@@ -66,10 +66,8 @@ describe('the remedy memberships, exact (430 D-06)', () => {
       expect(Object.keys(safety), `safety: ${name}`).not.toContain(name)
     }
     // Non-vacuity: these are the real barrels.
-    expect(typeof schema.buildProductionRefusal).toBe('function')
-    // RE-SPELLED 2026-10-02 (432-42): the safety barrel's non-vacuity anchor was the deleted scope
-    // key set; the disclosure scrub is a member it still publishes.
-    expect(typeof safety.scrubDisclosureText).toBe('function')
+    expect(typeof schema.scrubDisclosureFragment).toBe('function')
+    expect(typeof safety.scrubDisclosureFragment).toBe('function')
   })
 
   it('the remedy module and the policy-result DTO are deleted', () => {

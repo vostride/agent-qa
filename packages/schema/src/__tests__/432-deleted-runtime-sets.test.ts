@@ -173,7 +173,7 @@ describe('C432-NO-GRANT-CONTRACTS: the grant ledger, grant op, protected-class a
     expect(exported('TRUST_SCOPE_KEYS')).toBeUndefined()
     expect(Object.keys(safety)).not.toContain('TRUST_SCOPE_KEYS')
     expect(exported('FUNCTION_CALLER_ORIGINS')).toBeDefined()
-    expect(Object.keys(safety)).toContain('scrubDisclosureText')
+    expect(Object.keys(safety)).toContain('scrubDisclosureFragment')
   })
 
   it('C432-NO-GRANT-CONTRACTS: no schema source imports the deleted projection module', () => {
@@ -239,9 +239,8 @@ describe('C432-NO-TRUST-CONTRACT: token declarations and the trust-scope project
   })
 })
 
-// 2026-10-01, 432-22 (D-14/D-15/D-22): an ask turn answers no approval or trust refusal. The only
-// target policy sentence is the plain production refusal; an old session's recorded approval
-// decision stays readable and nothing writes a new one.
+// An ask turn answers no approval or trust refusal. An old session's recorded approval decision
+// stays readable and nothing writes a new one.
 describe('C432-ASK-PLAIN-REFUSAL: the ask contract carries no approval or trust refusal', () => {
   it('C432-ASK-PLAIN-REFUSAL: a turn result has no denial, remedy or approval member', () => {
     expect(keysOf(exported('AgentAskResultSchema'))).toEqual(sorted([
@@ -256,15 +255,6 @@ describe('C432-ASK-PLAIN-REFUSAL: the ask contract carries no approval or trust 
     const parsed = turn.safeParse({ ...failClosed, denials: [{ remedies: [] }] })
     expect(parsed.success).toBe(true)
     expect(Object.keys(parsed.data as object)).not.toContain('denials')
-  })
-
-  it('C432-ASK-PLAIN-REFUSAL: the production refusal is one plain sentence naming the target and the opt-in line', () => {
-    const build = exported('buildProductionRefusal') as (names: readonly string[]) => string
-    const optIn = exported('ALLOW_PRODUCTION_OPT_IN') as string
-    const message = build(['shop'])
-    expect(message).toContain('shop')
-    expect(message).toContain(optIn)
-    expect(message).not.toMatch(/approv|confirm|grant|trust|--yes|\[y\/N\]|remed/i)
   })
 
   it('C432-ASK-PLAIN-REFUSAL: an old recorded approval_decision event stays readable by the session reader', () => {
@@ -454,9 +444,8 @@ describe('C432-RUNTIME-SETS: the 432-42 leftovers are absent and the retained ne
     expect(declared, 'the descriptor declaration was not found').not.toBe('')
     const members = [...declared.matchAll(/^\s{2}(\w+)\??:/gmu)].map((match) => match[1]).sort()
     expect(members).toEqual([...DESCRIPTOR_KEYS].sort())
-    // The scrub outlives the field it was written for: the production refusal applies it.
-    expect(typeof exported('scrubDisclosureText')).toBe('function')
-    expect(typeof exported('buildProductionRefusal')).toBe('function')
+    // Non-vacuity: the root barrel still publishes the fragment scrub beside the descriptor.
+    expect(typeof exported('scrubDisclosureFragment')).toBe('function')
   })
 
   it('C432-RUNTIME-SETS: the scope key set, the mark refusal body and their types are published by no barrel', () => {

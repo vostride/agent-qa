@@ -34,12 +34,6 @@ export {
 // The published config schema's leaf list; 441-40 (D-29) deleted the masking map it came from.
 export type { ConfigLeafPattern } from './leaves'
 export { CONFIG_SCHEMA_LEAVES, configLeafOwner, isConfigSchemaPath } from './leaves'
-// 432 D-18: the production refusal's one sentence, shared by the run core and the live editor.
-export {
-  ALLOW_PRODUCTION_OPT_IN,
-  buildProductionRefusal,
-  distinctInFirstOccurrenceOrder,
-} from './production'
 export type { BrowserConfig } from './browser'
 export { appStateSchema, browserConfigSchema, viewportSchema } from './browser'
 export type { DeviceConfig } from './device'

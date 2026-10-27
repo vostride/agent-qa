@@ -78,10 +78,9 @@ describe('C432-INVOKE-DIRECT: dispatch composes no per-op disclosure (432-13)', 
     expect(disclosed).toEqual([])
   })
 
-  it('the source agrees: invokeFunction reads no disclose member and names no scrub', () => {
+  it('the source agrees: invokeFunction reads no disclose member', () => {
     const source = executableSource(readFileSync(join(__dirname, '..', 'invoke.ts'), 'utf8'))
     expect(source).not.toMatch(/\.disclose\b/)
-    expect(source).not.toMatch(/scrubDisclosureText/)
     // Non-vacuity: the file really is the dispatcher.
     expect(source).toContain('export async function invokeFunction(')
   })

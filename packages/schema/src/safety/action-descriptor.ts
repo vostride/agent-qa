@@ -18,12 +18,10 @@ export interface RiskActionDescriptor {
 }
 
 
-// ---- the scrub, beside the descriptor it used to serve (401-15, WR-01 / T-401-G5 / T-401-G6) ----
+// ---- the disclosure fragment scrub ----
 //
-// The scrub was written for the deleted per-invocation disclosure. It survives because the
-// production refusal (`config/production.ts`) interpolates target names out of a config document
-// into its one sentence, and those names are text this module does not own: control bytes are
-// replaced, length is capped and the cut is visible, on every channel the sentence reaches.
+// One untrusted fragment, made safe to interpolate into a single line a person reads: control bytes
+// are replaced, length is capped and the cut is visible, on every channel the line reaches.
 //
 // PURE, SYNCHRONOUS, DEPENDENCY-FREE. `packages/schema` is browser-safe with zero internal
 // dependencies and may take none; everything below is string work.
@@ -74,27 +72,4 @@ export function scrubDisclosureFragment(fragment: string): string {
     ? `${flattened.slice(0, DISCLOSURE_FRAGMENT_MAX_LENGTH)}${DISCLOSURE_TRUNCATION_MARK}`
     : flattened
   return `"${capped}"`
-}
-
-/** How much of a whole composed disclosure line survives. */
-export const DISCLOSURE_TEXT_MAX_LENGTH = 512
-
-/**
- * The same hygiene for a WHOLE composed disclosure, where the composition owns the prose.
- *
- * SEPARATE FROM THE FRAGMENT FORM BECAUSE THE INPUT IS A DIFFERENT SHAPE. A fragment is a noun the
- * sentence interpolates and quoting it is exactly right; a whole composed sentence (since 432-42
- * only the production refusal's, `buildProductionRefusal`; the per-op `FunctionSpec.disclose` is
- * deleted) would render as a quotation if wrapped. What
- * both share is the rule that actually matters — no byte on this channel may act on the channel.
- *
- * THE CAP IS GENEROUS AND STILL A CAP. An op composes its own prose, so the realistic risk is an
- * unbounded caller-derived substring rather than a long sentence; a bound that no honest disclosure
- * reaches still removes "unbounded" from what a caller controls.
- */
-export function scrubDisclosureText(text: string): string {
-  const flattened = text.replace(DISCLOSURE_UNSAFE, DISCLOSURE_REPLACEMENT_CHARACTER)
-  return flattened.length > DISCLOSURE_TEXT_MAX_LENGTH
-    ? `${flattened.slice(0, DISCLOSURE_TEXT_MAX_LENGTH)}${DISCLOSURE_TRUNCATION_MARK}`
-    : flattened
 }

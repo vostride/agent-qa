@@ -54,7 +54,7 @@ describe('the ONE scope key set', () => {
     expect(Object.keys(root)).not.toContain('TRUST_SCOPE_KEYS')
     expect(Object.keys(safety).filter((name) => /scope/iu.test(name))).toEqual([])
     // Non-vacuity: these are the real barrels.
-    expect(Object.keys(safety)).toContain('scrubDisclosureText')
+    expect(Object.keys(safety)).toContain('scrubDisclosureFragment')
     expect(Object.keys(root)).toContain('FUNCTION_CALLER_ORIGINS')
   })
 })
