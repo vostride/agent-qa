@@ -85,7 +85,7 @@ export function createStepReadFinalizer(
       consoleEvidence = { kind: 'console', state: 'present', ref, counts: {
         total: document.records.length,
         errors: document.records.filter(record => record.level === 'error').length,
-        warnings: document.records.filter(record => record.level === 'warn' || record.level === 'warning').length,
+        warnings: document.records.filter(record => record.level === 'warn').length,
       } }
     } catch {
       consoleFailed()
