@@ -991,9 +991,6 @@ importers:
       '@axe-core/playwright':
         specifier: 4.11.3
         version: 4.11.3(playwright-core@1.61.0)
-      '@vostride/agent-qa-core':
-        specifier: workspace:*
-        version: link:../core
       '@vostride/agent-qa-runner':
         specifier: workspace:*
         version: link:../runner
@@ -1010,6 +1007,9 @@ importers:
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
+      '@vostride/agent-qa-core':
+        specifier: workspace:*
+        version: link:../core
       tsup:
         specifier: ~8.5.1
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.13)(typescript@6.0.3)(yaml@2.8.4)

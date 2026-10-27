@@ -30,7 +30,7 @@ export interface ScreencastRecording extends RecordingCapability {
 export function createScreencastRecording(
   getPage: () => Page | null,
   config: NonNullable<PlatformConfig['recording']>,
-  getPageRevision?: () => number,
+  getPageRevision: () => number,
 ): ScreencastRecording {
   let active: { page: Page; stagingPath: string } | undefined
   let recovery: typeof active
@@ -92,8 +92,6 @@ export function createScreencastRecording(
       const before = scene
       const epoch = firstFrameEpoch
       const revision = sceneRevision
-      // Remote farm clocks are not proven to share this process's epoch.
-      if (!getPageRevision) return undefined
       const pageRevision = getPageRevision()
       if (!recording || !before || epoch === undefined || getPage() !== recording.page) return undefined
       const viewport = recording.page.viewportSize()

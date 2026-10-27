@@ -1,5 +1,4 @@
 export { WebPlatformAdapter } from './adapter.js'
-export { FarmWebAdapter } from './farm-adapter.js'
 export { observePage, parseAriaSnapshot } from './observer.js'
 export { ElementResolver } from './element-resolver.js'
 export { validateAction, ActionValidationError } from './action-validator.js'

@@ -3,8 +3,8 @@
 ## Scope
 
 This package owns browser automation through Playwright, DOM extraction, action
-validation, smart waits, scrolling helpers, farm adapters, screenshots, and
-accessibility checks.
+validation, smart waits, scrolling helpers, screenshots, and accessibility
+checks.
 
 ## Read First
 

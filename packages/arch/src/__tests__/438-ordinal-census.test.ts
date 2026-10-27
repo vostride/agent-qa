@@ -284,7 +284,6 @@ const WEB_TYPES = 'web/src/types.ts'
 const WEB_OBSERVER = 'web/src/observer.ts'
 const SNAPSHOT_FILES = [
   'web/src/adapter.ts',
-  'web/src/farm-adapter.ts',
   'web/src/binding.ts',
   WEB_RESOLVER,
   'web/src/compound-web.ts',

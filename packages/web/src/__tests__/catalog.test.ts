@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { WebPlatformAdapter } from '../adapter.js'
-import { FarmWebAdapter } from '../farm-adapter.js'
 
 // ---------------------------------------------------------------------------
 // Wave-0 RED catalog suite — Phase 360 Plan 02, Task 2 (EXEC-06; D-12/D-14/D-18).
@@ -9,21 +8,19 @@ import { FarmWebAdapter } from '../farm-adapter.js'
 // phase (new cases: focus/route/unroute/networkState/storageState/handleDialog; fold
 // re-keys: navigate history/reload, tab new/switch, inspect console/network/cookies/
 // localStorage, keypress down/up, waitFor on-shapes) against a call-logging mocked
-// page/context. Every pin runs against BOTH web execute switches — the main
-// WebPlatformAdapter and the often-forgotten FarmWebAdapter — via the describe.each
-// parameterization below.
+// page/context, driven through WebPlatformAdapter's execute switch.
 //
 // RED convention: these fail on missing / legacy-keyed case behavior (uncalled mocks,
 // assertNever fall-through), NEVER on compile errors — execution-shaped action literals
 // are cast via `as unknown as ExecAction`, legal both before and after the Plan-04
 // Action-union flip. The mocks are injected directly onto the adapter (page/context/
-// lastRefs), bypassing setup so the same pins drive the farm switch without a live farm.
+// lastRefs), bypassing setup so the pins run without a live browser.
 //
 // The pre-existing adapter.test.ts + compound.test.ts stay GREEN (standalone file).
 // ---------------------------------------------------------------------------
 
 type ExecAction = Parameters<WebPlatformAdapter['execute']>[0]
-type WebAdapter = WebPlatformAdapter | FarmWebAdapter
+type WebAdapter = WebPlatformAdapter
 
 let calls: string[] = []
 
@@ -123,8 +120,7 @@ function documentHandle() {
 }
 
 // Direct injection: page/context/lastRefs and the observation's document epoch onto the private
-// fields so a single set of pins drives BOTH the main and farm execute switches without a live
-// browser/farm session.
+// fields so the pins drive the execute switch without a live browser.
 function inject(adapter: WebAdapter): WebAdapter {
   ;(adapter as any).page = mockPage
   ;(adapter as any).context = mockContext
@@ -135,7 +131,6 @@ function inject(adapter: WebAdapter): WebAdapter {
 
 const ADAPTERS: Array<[string, () => WebAdapter]> = [
   ['WebPlatformAdapter (main execute switch)', () => new WebPlatformAdapter()],
-  ['FarmWebAdapter (farm execute switch)', () => new FarmWebAdapter()],
 ]
 
 describe.each(ADAPTERS)('web catalog RED — %s', (_label, factory) => {

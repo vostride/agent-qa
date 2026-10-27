@@ -1,9 +1,7 @@
-// Web execute() compound behaviors shared by both web execute surfaces (adapter.ts +
-// farm-adapter.ts). Phase 359 · EXEC-01/02/03 · D-05..D-09. The runner owns the pure verdict
-// machine (compareFillReread) and loop discipline (runUntilVisibleLoop / runDirectionScroll /
-// runToEndScroll over injected ScrollPrimitives); this module supplies the Playwright primitives
-// and stitches them into ONE ActionResult per compound. Extracted here (inside packages/web/src)
-// so the two adapter classes reuse one implementation instead of copy-pasting the compound.
+// Web execute() compound behaviors used by the web adapter (adapter.ts). The runner owns the pure
+// verdict machine (compareFillReread) and loop discipline (runUntilVisibleLoop /
+// runDirectionScroll / runToEndScroll over injected ScrollPrimitives); this module supplies the
+// Playwright primitives and stitches them into ONE ActionResult per compound.
 
 import type { Frame, JSHandle, Locator, Page } from 'playwright-core'
 import type { ActionResult } from '@vostride/agent-qa-runner'
