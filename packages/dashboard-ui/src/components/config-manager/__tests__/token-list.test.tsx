@@ -26,7 +26,6 @@ import {
   configFieldControlId,
   configFieldKeyOf,
   useConfigAutosave,
-  type ConfigAutosave,
 } from '@/hooks/use-config-autosave'
 import { applyConfigChanges, fetchConfig, fetchConfigRevision } from '@/lib/api'
 import * as copy from '@/lib/config-copy'
@@ -56,11 +55,8 @@ function answer(config: Record<string, unknown>) {
   return { config, provider: null, revision: 'rev-1', file: { path: CONFIG_PATH, lines: [] } }
 }
 
-let hook: ConfigAutosave | undefined
-
 function Harness() {
   const autosave = useConfigAutosave()
-  hook = autosave
   if (autosave.load.kind !== 'ready') return null
   return (
     <ConfigAutosaveProvider value={autosave}>
@@ -103,7 +99,6 @@ async function unmount() {
   root = null
   container?.remove()
   container = null
-  hook = undefined
 }
 
 function section(id: 'mcp' | 'dashboard' | 'runs') {

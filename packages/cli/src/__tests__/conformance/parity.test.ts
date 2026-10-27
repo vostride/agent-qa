@@ -20,7 +20,6 @@
 
 import {
   existsSync,
-  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -55,7 +54,6 @@ import {
   withoutLegacyResultWrap,
 } from '@vostride/agent-qa-mcp'
 import type { JsonDocument, ToolProjection } from '@vostride/agent-qa-mcp'
-import { generateTestId } from '@vostride/agent-qa-ids'
 import { runSafetyScope } from '@vostride/agent-qa-safety-local'
 import { committedFileText } from '@vostride/agent-qa-schema'
 import type { FunctionCaller } from '@vostride/agent-qa-schema'
