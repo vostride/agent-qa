@@ -19,12 +19,6 @@ export function CacheSection() {
         kind="text"
         placeholder={CACHE_DEFAULTS.dir}
       />
-      <ConfigField
-        field={{ segments: ["services", "cache", "ttl"], tab: "execution", pattern: "services.cache.ttl" }}
-        label={CACHE_FIELD_LABELS.ttl}
-        kind="duration"
-        placeholder={CACHE_DEFAULTS.ttl}
-      />
     </>
   )
 }

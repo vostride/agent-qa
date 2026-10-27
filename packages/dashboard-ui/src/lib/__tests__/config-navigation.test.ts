@@ -75,7 +75,6 @@ describe('config navigation inventory', () => {
     expect(sectionsFor('db path')).toEqual(['dashboard'])
     expect(sectionsFor('artifacts dir')).toEqual(['dashboard'])
     expect(sectionsFor('cache dir')).toEqual(['cache'])
-    expect(sectionsFor('ttl')).toEqual(['cache'])
     expect(sectionsFor('saved auth')).toEqual(['login-states'])
     expect(sectionsFor('commit artifacts')).toEqual(['knowledge'])
     expect(sectionsFor('context budget')).toEqual(['knowledge'])
@@ -83,7 +82,6 @@ describe('config navigation inventory', () => {
     expect(sectionsFor('screenshot size')).toEqual(['screenshot-size'])
     for (const dotted of [
       'services.dashboard.dbPath',
-      'services.cache.ttl',
       'services.authState.dir',
       'knowledge.dir',
       'services.vision.screenshotSize',

@@ -193,12 +193,12 @@ describe('command palette config navigation', () => {
     expect(configItem).toBeDefined()
     expect(configItem?.getAttribute('data-value')).not.toContain('services.dashboard.artifactsDir')
 
-    await typeSearch('ttl')
+    await typeSearch('cache dir')
     configItem = configItemLabelled('Config: Execution / Cache')
     expect(configItem).toBeDefined()
-    expect(configItem?.getAttribute('data-value')).not.toContain('services.cache.ttl')
+    expect(configItem?.getAttribute('data-value')).not.toContain('services.cache.dir')
 
-    for (const dotted of ['knowledge.dir', 'services.dashboard.artifactsDir', 'services.cache.ttl']) {
+    for (const dotted of ['knowledge.dir', 'services.dashboard.artifactsDir', 'services.cache.dir']) {
       await typeSearch(dotted)
       expect(configItems()).toEqual([])
     }

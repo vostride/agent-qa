@@ -664,7 +664,7 @@ function defaultConfig() {
     },
     // Flat aliases removed — run command now reads from workspace.* (4-bucket config)
     services: {
-      cache: { dir: '.agent-qa/cache', ttl: '7d' },
+      cache: { dir: '.agent-qa/cache' },
       logging: { level: 'warn' },
       dashboard: undefined as any,
     },
@@ -3617,7 +3617,7 @@ describe('run command — runtime cache paths', () => {
     const configDir = mkdtempSync(join(tmpdir(), 'agent-qa-cache-config-'))
     tempDirs.push(configDir)
     const cfg = defaultConfig()
-    cfg.services.cache = { dir: '.agent-qa/custom-cache', ttl: '7d' } as any
+    cfg.services.cache = { dir: '.agent-qa/custom-cache' } as any
     mockResolveConfig.mockResolvedValue(cfg)
     mockGlob.mockResolvedValue(['tests/a.yaml'])
     mockParseAllTests.mockResolvedValue({
@@ -3634,9 +3634,8 @@ describe('run command — runtime cache paths', () => {
 
     await runCommandWithGlobalArgs(['--config', join(configDir, 'agent-qa.config.yaml')], 'tests/**/*.yaml')
 
-    // Phase 356: the composition root constructs the runner-local FsActionCache with a
-    // resolved branch CachePolicy over the config-relative cache root (no ttl — the v1
-    // core file store is retired).
+    // The composition root constructs the runner-local FsActionCache with a resolved branch
+    // CachePolicy over the config-relative cache root.
     expect(mockFsActionCache).toHaveBeenCalledWith(expect.objectContaining({
       root: join(configDir, '.agent-qa/custom-cache'),
       policy: expect.objectContaining({
@@ -3736,7 +3735,7 @@ describe('run command — runtime cache paths', () => {
     writeFileSync(join(cacheEntry, 'a1b2c3d4e5f60718.json'), '{"schemaVersion":10}')
 
     const cfg = defaultConfig()
-    cfg.services.cache = { dir: '.agent-qa/custom-cache', ttl: '7d' } as any
+    cfg.services.cache = { dir: '.agent-qa/custom-cache' } as any
     mockResolveConfig.mockResolvedValue(cfg)
     mockGlob.mockResolvedValue(['tests/a.yaml'])
     mockParseAllTests.mockResolvedValue({

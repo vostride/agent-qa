@@ -62,7 +62,7 @@ function workspaceFixture(roots: string[]): Workspace {
       envFile: '.env',
       secretsFile: '.env.secrets.local',
     },
-    services: { cache: { dir: cacheDir, ttl: '7d' } },
+    services: { cache: { dir: cacheDir } },
     use: { mobile: { appState: 'preserve' } },
   }, null, 2)}\n`, 'utf8')
   return { root, configPath, cacheDir }

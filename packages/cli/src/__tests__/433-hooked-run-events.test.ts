@@ -403,7 +403,7 @@ function defaultConfig() {
       secretsFile: '.secrets.local',
     },
     services: {
-      cache: { dir: '.agent-qa/cache', ttl: '7d' },
+      cache: { dir: '.agent-qa/cache' },
       logging: { level: 'warn' },
     },
     registry: {

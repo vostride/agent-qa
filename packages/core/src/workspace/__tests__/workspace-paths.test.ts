@@ -45,7 +45,6 @@ export async function createSampleWorkspaceConfigFixture(): Promise<SampleWorksp
       },
       cache: {
         dir: '.agent-qa/custom-cache',
-        ttl: 604_800_000,
       },
       logging: {
         level: 'warn',
@@ -104,7 +103,6 @@ describe('workspace path resolver', () => {
 
     expect(fixture.config.services?.dashboard?.artifactsDir).toBe('.agent-qa/custom-artifacts')
     expect(fixture.config.services?.cache?.dir).toBe('.agent-qa/custom-cache')
-    expect(fixture.config.services?.cache?.ttl).toBe(604_800_000)
     expect(fixture.config.services?.logging?.level).toBe('warn')
     expect(fixture.config.services?.recording?.enabled).toBe(false)
     expect(fixture.config.services?.accessibility?.enabled).toBe(false)

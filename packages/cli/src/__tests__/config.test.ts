@@ -19,7 +19,7 @@ function makeValidConfig(overrides: Record<string, unknown> = {}): Record<string
       secretsFile: '.env.secrets.local',
     },
     services: {
-      cache: { dir: '.agent-qa/cache', ttl: '7d' },
+      cache: { dir: '.agent-qa/cache' },
       logging: { level: 'warn' },
       vision: { screenshotSize: '1m' },
     },

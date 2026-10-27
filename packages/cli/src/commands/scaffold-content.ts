@@ -178,7 +178,7 @@ export function buildScaffoldConfig(
     },
     services: {
       dashboard: { port: 3100, artifactsDir: '.agent-qa/artifacts' },
-      cache: { dir: facts.cacheDir, ttl: '7d' },
+      cache: { dir: facts.cacheDir },
       authState: { dir: facts.authStatesDir },
       vision: { screenshotSize: DEFAULT_SCREENSHOT_SIZE, effectiveResolution: DEFAULT_EFFECTIVE_RESOLUTION },
       ...(hasWeb(platform)
@@ -251,6 +251,11 @@ export function addYamlComments(yamlStr: string): string {
         "  # Accessibility checks run once at the end of each test; results show in the dashboard's run detail.\n"
     } else if (line === '  planner:') {
       result += '  # Per-step limits: maxActions (actions) and maxPlanningTurns (planner calls); a step that needs more stops with the limit reason\n'
+    } else if (line === '  authState:' && !yamlStr.includes('\n  accessibility:\n')) {
+      result += '  # Optional accessibility service example:\n'
+      result += '  # accessibility:\n'
+      result += '  #   enabled: false\n'
+      result += '  #   standard: wcag2aa\n'
     }
     result += line + '\n'
 
@@ -262,11 +267,6 @@ export function addYamlComments(yamlStr: string): string {
     } else if (line === '    artifactsDir: .agent-qa/artifacts') {
       result += '    # Optional: persist dashboard state to a custom SQLite path.\n'
       result += '    # dbPath: .agent-qa/dashboard.sqlite\n'
-    } else if (line === '    ttl: 7d' && !yamlStr.includes('\n  accessibility:\n')) {
-      result += '  # Optional accessibility service example:\n'
-      result += '  # accessibility:\n'
-      result += '  #   enabled: false\n'
-      result += '  #   standard: wcag2aa\n'
     } else if (line === 'registry:') {
       result += '  # Optional: local device profiles.\n'
       result += '  # devices:\n'

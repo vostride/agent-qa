@@ -58,6 +58,9 @@ const RETIRED_DEVICE_TRANSPORT_MESSAGE =
 const RETIRED_APP_BROWSERSTACK_MESSAGE =
   'registry.targets.<name>.app.browserstack was removed: BrowserStack is no longer supported; app.path is the app file. Delete this line.'
 
+const RETIRED_CACHE_TTL_MESSAGE =
+  'services.cache.ttl was removed: cached plans do not expire by age. Delete this line.'
+
 const RETIRED_LOCAL_PROVIDERS_MESSAGE =
   'providers was removed: BrowserStack is no longer supported. Delete this block.'
 
@@ -181,6 +184,19 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
         })
       }
     }
+  }
+
+  if (
+    isPlainObject(value.services) &&
+    isPlainObject(value.services.cache) &&
+    Object.hasOwn(value.services.cache, 'ttl')
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      params: { retired: true },
+      path: ['services', 'cache', 'ttl'],
+      message: RETIRED_CACHE_TTL_MESSAGE,
+    })
   }
 
   if (hasRetiredPlannerKey(value.use)) {

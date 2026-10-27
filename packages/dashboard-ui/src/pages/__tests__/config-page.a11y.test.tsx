@@ -43,7 +43,7 @@ const { fullConfig } = vi.hoisted(() => ({
         dbPath: '.agent-qa/runs.db',
         artifactsDir: '.agent-qa/artifacts',
       },
-      cache: { dir: '.agent-qa/cache', ttl: '7d' },
+      cache: { dir: '.agent-qa/cache' },
       logging: { level: 'info' },
       recording: { enabled: true, keepFailuresOnly: false },
       accessibility: {

@@ -28,7 +28,7 @@ const SCHEMA_REQUIRED_KEYS: Record<string, readonly string[]> = {
   'use.logCapture': ['console', 'network'],
   'use.browser': ['name', 'headless'],
   'use.browser.viewport': ['width', 'height'],
-  'services.cache': ['dir', 'ttl'],
+  'services.cache': ['dir'],
   'services.accessibility': ['enabled'],
 }
 

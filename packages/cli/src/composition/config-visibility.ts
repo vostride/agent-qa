@@ -86,7 +86,7 @@ const MAX_WALK_DEPTH = 64
  *     config is mostly made of; the schema fixes the value's type.
  *   - `transform` — `DurationString` / `SizeString` leaves are `.transform()`ed, so they
  *     resolve through their pipe and land on the transform node. Omitting it would mask
- *     `services.cache.ttl` and five siblings.
+ *     `use.timeout.step`.
  *   - `object`, `interface`, `array` — an EMPTY container is a leaf to the flattener, so a
  *     path can land on the container itself (`workspace.testMatch: []`). The non-empty case
  *     never lands here; it is descended through by the branches below.

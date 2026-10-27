@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { DurationString, SizeString } from './primitives.js'
+import { SizeString } from './primitives.js'
 
 /**
  * Whether a configured value is an ABSOLUTE `http:`/`https:` URL (408 D-08, WR-04 — T-408-16).
@@ -108,7 +108,6 @@ export const McpConfigSchema = z.object({
 
 export const CacheConfigSchema = z.object({
   dir: z.string(),
-  ttl: DurationString,
 }).strict()
 
 export const AuthStateConfigSchema = z.object({

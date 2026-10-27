@@ -18,7 +18,7 @@ export const REQUIRED_SIBLING_BLOCKS = {
   'use.logCapture': { console: true, network: true },
   'use.browser': { name: 'chromium', headless: true },
   'use.browser.viewport': { width: 1280, height: 720 },
-  'services.cache': { dir: '.agent-qa/cache', ttl: '7d' },
+  'services.cache': { dir: '.agent-qa/cache' },
   'services.accessibility': { enabled: false },
 } as const satisfies Readonly<Record<string, Readonly<Record<string, LeafDefault>>>>
 

@@ -127,7 +127,6 @@ services:
     port: 3470
   cache:
     dir: .cache
-    ttl: 7d
 
 registry:
   llms:
@@ -283,7 +282,6 @@ services:
     port: 3470
   cache:
     dir: .cache
-    ttl: 7d
 
 registry:
   llms:
@@ -385,7 +383,7 @@ describe('ConfigManager', () => {
 
     it('applyChanges for services.cache keeps it before use block', async () => {
       expect((await manager.applyChanges([
-        { op: 'set', path: ['services', 'cache'], value: { dir: '.new-cache', ttl: '30d' } },
+        { op: 'set', path: ['services', 'cache'], value: { dir: '.new-cache' } },
       ])).kind).toBe('ok')
       const content = await readFile(configPath, 'utf-8')
       const servicesIdx = content.indexOf('services:')

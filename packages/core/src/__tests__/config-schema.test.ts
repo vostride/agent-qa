@@ -69,7 +69,7 @@ describe('AgentQaConfigSchema — 4-bucket structure', () => {
       },
       services: {
         dashboard: { port: 3470, artifactsDir: '.agent-qa/artifacts' },
-        cache: { dir: '.agent-qa/cache', ttl: '7d' },
+        cache: { dir: '.agent-qa/cache' },
         authState: { dir: '.agent-qa/auth-states' },
         logging: { level: 'warn' as const },
         recording: { enabled: true },
@@ -302,7 +302,6 @@ describe('AgentQaConfigSchema — 4-bucket structure', () => {
         },
         cache: {
           dir: '.agent-qa/custom-cache',
-          ttl: '7d',
         },
         authState: {
           dir: '.agent-qa/custom-auth-states',
@@ -323,7 +322,6 @@ describe('AgentQaConfigSchema — 4-bucket structure', () => {
     if (result.success) {
       expect(result.data.services?.dashboard?.artifactsDir).toBe('.agent-qa/custom-artifacts')
       expect(result.data.services?.cache?.dir).toBe('.agent-qa/custom-cache')
-      expect(result.data.services?.cache?.ttl).toBe(604_800_000)
       expect(result.data.services?.authState?.dir).toBe('.agent-qa/custom-auth-states')
       expect(result.data.services?.logging?.level).toBe('warn')
       expect(result.data.services?.recording?.enabled).toBe(false)
@@ -846,7 +844,7 @@ describe('Sub-schemas — primitives', () => {
 
   it('CacheConfigSchema requires all fields', () => {
     expect(CacheConfigSchema.safeParse({}).success).toBe(false)
-    expect(CacheConfigSchema.safeParse({ dir: '.cache', ttl: '7d' }).success).toBe(true)
+    expect(CacheConfigSchema.safeParse({ dir: '.cache' }).success).toBe(true)
   })
 
   it('AuthStateConfigSchema requires a non-empty dir only', () => {
@@ -1275,7 +1273,7 @@ describe('AgentQaConfigSchema — retired keys are strictly unknown (432 D-22)',
       expect(shared.data.analytics?.passRateScope?.attributes).toEqual({ tokens: 'x', stdio: 'y', trustMode: 'z', runServiceTokens: 'w' })
       expect(shared.data.services?.mcp).toEqual({ enabled: false })
     }
-    const elsewhere = AgentQaConfigSchema.safeParse(withWorkspace({ services: { cache: { dir: '.c', ttl: '1d', tokens: [] } } }))
+    const elsewhere = AgentQaConfigSchema.safeParse(withWorkspace({ services: { cache: { dir: '.c', tokens: [] } } }))
     expect(elsewhere.success).toBe(false)
     if (!elsewhere.success) {
       expect(elsewhere.error.issues.map(issue => [issue.code, issue.path.join('.')])).toEqual([['unrecognized_keys', 'services.cache']])

@@ -86,7 +86,7 @@ export const CONFIG_SECTION_ALIASES = {
   browser: ['viewport', 'headless', 'browser headless', 'engine'],
   timeouts: ['timeout', 'navigation timeout', 'step timeout'],
   runs: ['parallel', 'workers', 'build tag'],
-  cache: ['cache dir', 'cache directory', 'ttl'],
+  cache: ['cache dir', 'cache directory'],
   recording: ['record', 'video'],
   accessibility: ['a11y', 'wcag'],
   'log-capture': ['console capture', 'network capture'],

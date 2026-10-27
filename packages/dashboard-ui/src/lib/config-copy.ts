@@ -612,7 +612,6 @@ export const RUNS_FIELD_HELP = {
 export const CACHE_FIELD_LABELS = {
   enabled: 'Reuse cached actions',
   dir: 'Cache folder',
-  ttl: 'Keep cached actions for',
 } as const
 
 export const RECORDING_FIELD_LABELS = {

@@ -2890,7 +2890,6 @@ export async function produceSuiteRunMembers(
       cache: {
         enabled: suiteEffectiveCacheEnabled,
         dir: config.services?.cache?.dir,
-        ttl: config.services?.cache?.ttl,
       },
       source: {
         kind: 'suite',
@@ -4018,7 +4017,6 @@ export async function produceDirectRunMembers(
         cache: {
           enabled: effectiveCacheEnabled,
           dir: config.services?.cache?.dir,
-          ttl: config.services?.cache?.ttl,
         },
         source: {
           kind: 'test',

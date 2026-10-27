@@ -690,6 +690,18 @@ describe('init command', () => {
     expect(consoleOutput()).not.toContain('suites/examples.suite.yaml')
   })
 
+  it('an Android scaffold keeps the optional accessibility example after the cache block', async () => {
+    await runInit(['--dir', '/tmp/test-project', '--platform', 'android'])
+
+    const content = String(findWriteCallEndingWith('agent-qa.config.yaml')?.[1])
+    const cache = content.indexOf('\n  cache:\n')
+    const example = content.indexOf('# Optional accessibility service example:')
+    const authState = content.indexOf('\n  authState:\n')
+    expect(cache).toBeGreaterThan(-1)
+    expect(example).toBeGreaterThan(cache)
+    expect(authState).toBeGreaterThan(example)
+  })
+
   it('creates an empty local secrets file', async () => {
     await runInit(['--dir', '/tmp/test-project', '--platform', 'web'])
 

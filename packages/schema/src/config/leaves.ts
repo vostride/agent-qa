@@ -42,7 +42,6 @@ export const CONFIG_SCHEMA_LEAVES = Object.freeze([
   'services.accessibility.standard',
   'services.authState.dir',
   'services.cache.dir',
-  'services.cache.ttl',
   'services.dashboard.artifactsDir',
   'services.dashboard.baseUrl',
   'services.dashboard.dbPath',

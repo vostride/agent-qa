@@ -204,6 +204,18 @@ describe('retired-key pre-scan: removed BrowserStack keys', () => {
   })
 })
 
+describe('retired-key pre-scan: removed cache keys', () => {
+  it('services.cache.ttl is refused with its removal message', () => {
+    const config = { ...validBase, services: { cache: { dir: '.agent-qa/cache', ttl: '7d' } } }
+    expect(issueMessageAt(config, 'services.cache.ttl')).toBe(
+      'services.cache.ttl was removed: cached plans do not expire by age. Delete this line.',
+    )
+    expect(paramsAt(config, 'services.cache.ttl')).toEqual({ retired: true })
+    const result = AgentQaConfigSchema.safeParse(config)
+    expect(result.error?.issues.filter(i => i.code === 'unrecognized_keys')).toEqual([])
+  })
+})
+
 describe('agent-qa.local.yaml refusals', () => {
   const filePath = '/work/project/agent-qa.local.yaml'
 

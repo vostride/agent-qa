@@ -18,7 +18,7 @@
 +# agent-qa init:end
 --- /dev/null
 +++ b/agent-qa.config.yaml
-@@ -0,0 +1,89 @@
+@@ -0,0 +1,88 @@
 +# agent-qa Configuration
 +
 +# File discovery and project settings
@@ -44,7 +44,6 @@
 +    # dbPath: .agent-qa/dashboard.sqlite
 +  cache:
 +    dir: .agent-qa/cache
-+    ttl: 7d
 +  authState:
 +    dir: .agent-qa/auth-states
 +  vision:
