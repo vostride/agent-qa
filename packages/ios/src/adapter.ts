@@ -117,19 +117,6 @@ function firstErrorLine(err: unknown): string {
 // A zero-duration touch does not reliably flip an iOS 27 switch knob; a held one does.
 const IOS_TAP_HOLD_MS = 100
 
-// WebDriverIO's action().perform() calls DELETE /session/{id}/actions (releaseActions)
-// after performing. Some XCUITest servers answer that endpoint with "resource not found"
-// although the actions ran, so this wrapper swallows that specific error.
-async function safePerform(chain: { perform: () => Promise<void> }): Promise<void> {
-  try {
-    await chain.perform()
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err)
-    if (msg.includes('actions') && msg.includes('DELETE')) return
-    throw err
-  }
-}
-
 const IOS_SYSLOG_REGEX = /^.*?\s+(\S+)\[(\d+)\].*?:\s+(.*)/
 const IOS_APPIUM_LOG_REGEX = /^\S+\s+\S+\s+\[(\w+)\]\s+\[(\S+)\]\s+(.*)/
 
@@ -640,12 +627,12 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
   }
 
   private async tapAt(point: { x: number; y: number }): Promise<void> {
-    await safePerform(this.driver!.action('pointer', { parameters: { pointerType: 'touch' } })
+    await this.driver!.action('pointer', { parameters: { pointerType: 'touch' } })
       .move({ x: Math.round(point.x), y: Math.round(point.y) })
       .down({ button: 0 })
       .pause(IOS_TAP_HOLD_MS)
       .up({ button: 0 })
-      )
+      .perform()
   }
 
   private async readRect(elementId: string): Promise<Rect | undefined> {
@@ -902,12 +889,12 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
           sy = Math.round(center.y)
         }
         const pts = computeSwipe(sx, sy, fingerDirectionFor(direction), distance)
-        await safePerform(driver.action('pointer', { parameters: { pointerType: 'touch' } })
+        await driver.action('pointer', { parameters: { pointerType: 'touch' } })
           .move({ x: pts.startX, y: pts.startY })
           .down({ button: 0 })
           .move({ x: pts.endX, y: pts.endY, duration: 300 })
           .up({ button: 0 })
-          )
+          .perform()
         // XCUITest/WDA report no movement or boundary for a swipe or a direction scroll.
         return 'unknown'
       },
@@ -1256,12 +1243,12 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
         warnIfOutOfBounds({ x: pts.endX, y: pts.endY }, { width, height }, 'swipe')
         const swipeDuration = action.durationMs
 
-        await safePerform(driver.action('pointer', { parameters: { pointerType: 'touch' } })
+        await driver.action('pointer', { parameters: { pointerType: 'touch' } })
           .move({ x: pts.startX, y: pts.startY })
           .down({ button: 0 })
           .move({ x: pts.endX, y: pts.endY, duration: swipeDuration })
           .up({ button: 0 })
-          )
+          .perform()
         return {
           success: true,
           startCoordinates: { x: pts.startX, y: pts.startY },
@@ -1332,12 +1319,12 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
 
       case 'longpress': {
         const { center } = resolver.resolve(action.ref)
-        await safePerform(driver.action('pointer', { parameters: { pointerType: 'touch' } })
+        await driver.action('pointer', { parameters: { pointerType: 'touch' } })
           .move({ x: Math.round(center.x), y: Math.round(center.y) })
           .down({ button: 0 })
           .pause(action.duration ?? 1000)
           .up({ button: 0 })
-          )
+          .perform()
         return { success: true }
       }
 
@@ -1557,13 +1544,13 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
       case 'drag': {
         const from = resolver.resolve(action.fromRef)
         const to = resolver.resolve(action.toRef)
-        await safePerform(driver.action('pointer', { parameters: { pointerType: 'touch' } })
+        await driver.action('pointer', { parameters: { pointerType: 'touch' } })
           .move({ x: Math.round(from.center.x), y: Math.round(from.center.y) })
           .down({ button: 0 })
           .pause(300)
           .move({ x: Math.round(to.center.x), y: Math.round(to.center.y), duration: 500 })
           .up({ button: 0 })
-          )
+          .perform()
         return { success: true }
       }
 
@@ -1571,14 +1558,14 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
         const { center, bounds } = resolver.resolve(action.ref)
         const x = Math.round(center.x)
         const y = Math.round(center.y)
-        await safePerform(driver.action('pointer', { parameters: { pointerType: 'touch' } })
+        await driver.action('pointer', { parameters: { pointerType: 'touch' } })
           .move({ x, y })
           .down({ button: 0 })
           .up({ button: 0 })
           .pause(50)
           .down({ button: 0 })
           .up({ button: 0 })
-          )
+          .perform()
         return { success: true, coordinates: center, boundingBox: bounds }
       }
 
@@ -1690,12 +1677,12 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
           case 'bottom':
             start = { x: midX, y: height - 1 }; end = { x: midX, y: Math.round(height * 0.4) }; break
         }
-        await safePerform(driver.action('pointer', { parameters: { pointerType: 'touch' } })
+        await driver.action('pointer', { parameters: { pointerType: 'touch' } })
           .move({ x: start.x, y: start.y })
           .down({ button: 0 })
           .move({ x: end.x, y: end.y, duration: 300 })
           .up({ button: 0 })
-          )
+          .perform()
         return { success: true, startCoordinates: start, endCoordinates: end }
       }
 
