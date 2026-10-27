@@ -831,8 +831,9 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
 
     if (this.logCaptureConfig.console) {
       page.on('console', (msg) => {
+        const type = msg.type()
         buffers.consoleLogs.push({
-          level: msg.type(),
+          level: type === 'warning' ? 'warn' : type,
           text: msg.text(),
           location: msg.location(),
           timestamp: Date.now(),

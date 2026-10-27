@@ -429,6 +429,16 @@ describe('WebPlatformAdapter', () => {
       expect(errors[0].text).toBe('tab2 error')
     })
 
+    it('drainConsoleLogs returns a console warning under the warn filter', async () => {
+      await adapter.setup({ platform: 'web' })
+      simulateConsole(mockPageListeners, 'low stock', 'warning')
+      simulateConsole(mockPageListeners, 'plain log', 'log')
+
+      const warnings = (adapter as any).drainConsoleLogs('warn')
+      expect(warnings).toHaveLength(1)
+      expect(warnings[0]).toMatchObject({ text: 'low stock', level: 'warn' })
+    })
+
     it('drainNetworkLogs collects from all tabs', async () => {
       await setupTwoTabs()
       // Simulate network via request+response events

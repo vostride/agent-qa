@@ -155,6 +155,21 @@ describe('C439-WAITS-AND-READS', () => {
     expect(run.result.status).toBe('failed')
   }, 60_000)
 
+  it("inspect console returns a page's console.warn under the warn level", async () => {
+    const web = await withContent(
+      '<!doctype html><html><body><script>console.warn("low stock")</script></body></html>',
+    )
+
+    const result = await web.execute({ type: 'inspect', what: 'console', level: 'warn' })
+
+    expect(result.success).toBe(true)
+    expect(result.data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ level: 'warn', text: expect.stringContaining('low stock') }),
+      ]),
+    )
+  }, 60_000)
+
   it('an expr that evaluates to undefined is unread, null is a read', async () => {
     const web = await withContent(PING_PAGE)
     const verifier = scriptedVerifier(() => ({ pass: true, reason: 'The value is null' }))
