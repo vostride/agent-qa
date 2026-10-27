@@ -431,17 +431,6 @@ function appendFailureContext(parts: string[], context: StepContext): void {
   parts.push('Adapt your strategy based on the failure above. Try a different element, selector, or approach.')
 }
 
-function appendDomContext(parts: string[], screenState: ScreenState): void {
-  // D-04: domContext is a typed, web-only optional on the v2 metadata (absent on
-  // Android/iOS). Read the discriminated-union optional directly — no cast.
-  const domContext = screenState.metadata.domContext
-  if (domContext) {
-    parts.push('')
-    parts.push('DOM structure (supplementary context — use ARIA element refs above for all action targeting):')
-    parts.push(domContext)
-  }
-}
-
 function appendPromptNote(parts: string[], promptNote?: string): void {
   // D-11: text-only runs carry a non-empty note (visual screenshot unavailable);
   // full-capture runs pass an empty/absent note and nothing is injected.
@@ -662,7 +651,6 @@ export function composeTurnMessages(
   const obsParts: string[] = []
   obsParts.push('Current screen state:')
   obsParts.push(truncateScreenState(screenState))
-  appendDomContext(obsParts, screenState)
   const obsText = obsParts.join('\n')
   if (context.screenshot) {
     messages.push({

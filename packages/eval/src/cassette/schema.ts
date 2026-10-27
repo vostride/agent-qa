@@ -112,7 +112,6 @@ const metadataBaseShape = {
   viewportWidth: z.number(),
   viewportHeight: z.number(),
   scroll: screenScrollSchema,
-  domContext: z.string().optional(),
 }
 
 const screenMetadataSchema = z.discriminatedUnion('captureMode', [

@@ -17,7 +17,6 @@ function makeInput(nodes: InterimNode[], overrides: Partial<BuildScreenStateInpu
     coordSpace: 'viewport',
     timestamp: 1700000000000,
     url: 'https://example.test/checkout',
-    domContext: 'checkout',
     ...overrides,
   }
 }
@@ -141,7 +140,7 @@ describe('buildScreenState — state derivations (D-08)', () => {
 })
 
 describe('buildScreenState — metadata', () => {
-  it('stamps textOnly modality and copies scroll/viewport/coordSpace/domContext', () => {
+  it('stamps textOnly modality and copies scroll/viewport/coordSpace', () => {
     const { state } = buildScreenState(makeInput([{ role: 'button', name: 'Save' }]))
     expect(state.platform).toBe('web')
     expect(state.url).toBe('https://example.test/checkout')
@@ -152,7 +151,6 @@ describe('buildScreenState — metadata', () => {
       viewportWidth: 390,
       viewportHeight: 100,
       scroll: { offsetX: 0, offsetY: 0, contentWidth: 390, contentHeight: 320 },
-      domContext: 'checkout',
     })
   })
 })
@@ -492,11 +490,11 @@ describe('C438-BUILDER-NO-POSITION', () => {
     })
   })
 
-  it('ElementInfo and the tree are byte-identical to a56b861fe', () => {
+  it('the screen hashes and the rendered tree equal the pinned values', () => {
     const { state } = buildScreenState(input)
 
     expect(screenStateHash(state)).toBe(
-      '7a4dacafb53299cb7594aefd70a10e033b872c35f16b4e08b0bde9f8ac3413eb',
+      'adf38a6749416f74583ebcf9ae2b9c33d602fb325359ce72e07a3586a634ec3b',
     )
     expect(screenIdentityHash(state)).toBe(
       '0fcae011286525da2c4169ffebd3ed309de52595a43c39ca33048156eaad3b67',

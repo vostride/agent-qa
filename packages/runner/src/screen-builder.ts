@@ -80,8 +80,6 @@ export interface BuildScreenStateInput {
   /** Caller-supplied — keeps the builder pure and deterministic. */
   timestamp: number
   url?: string
-  /** Web-only (D-04); lands in metadata.domContext. */
-  domContext?: string
 }
 
 /**
@@ -228,7 +226,6 @@ export function buildScreenState(input: BuildScreenStateInput): BuildScreenState
       contentWidth: input.scroll.contentWidth,
       contentHeight: input.scroll.contentHeight,
     },
-    ...(input.domContext !== undefined ? { domContext: input.domContext } : {}),
   }
 
   const state: ScreenState = {
@@ -334,7 +331,6 @@ export function stampCaptureMode(state: ScreenState, capture: CaptureStamp): Scr
       contentWidth: state.metadata.scroll.contentWidth,
       contentHeight: state.metadata.scroll.contentHeight,
     },
-    ...(state.metadata.domContext !== undefined ? { domContext: state.metadata.domContext } : {}),
   }
 
   const metadata: ScreenStateMetadata =

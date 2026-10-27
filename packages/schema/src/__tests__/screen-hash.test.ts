@@ -57,7 +57,6 @@ function makeState(options: {
       viewportWidth: 390,
       viewportHeight: 100,
       scroll: { offsetX: 0, offsetY: scrollOffsetY, contentWidth: 390, contentHeight: 320 },
-      domContext: 'checkout',
     },
   }
 }

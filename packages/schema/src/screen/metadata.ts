@@ -8,7 +8,6 @@ export interface ScreenStateMetadataBase {
     contentWidth: number
     contentHeight: number
   }
-  domContext?: string
 }
 
 export type ScreenStateMetadata =

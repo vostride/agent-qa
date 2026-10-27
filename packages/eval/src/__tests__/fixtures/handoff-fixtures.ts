@@ -188,7 +188,6 @@ function makeScreenState(timestamp: number): ScreenState {
         contentWidth: 1_280,
         contentHeight: 1_440,
       },
-      domContext: 'checkout-frame',
     },
   }
 }

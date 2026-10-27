@@ -36,7 +36,6 @@ export interface LooseMetadata {
   viewportWidth?: number
   viewportHeight?: number
   scroll?: ScreenState['metadata']['scroll']
-  domContext?: string
 }
 
 export interface LooseScreenState {
@@ -83,16 +82,13 @@ function toRefMap(
 }
 
 function toMetadata(base: ScreenState['metadata'], m: LooseMetadata | undefined): ScreenState['metadata'] {
-  const merged: ScreenState['metadata'] = {
+  return {
     captureMode: 'textOnly',
     coordSpace: m?.coordSpace ?? base.coordSpace,
     viewportWidth: m?.viewportWidth ?? base.viewportWidth,
     viewportHeight: m?.viewportHeight ?? base.viewportHeight,
     scroll: m?.scroll ?? base.scroll,
   }
-  const domContext = m?.domContext ?? base.domContext
-  if (domContext !== undefined) merged.domContext = domContext
-  return merged
 }
 
 /**
