@@ -123,7 +123,7 @@ export function deriveLaneLocators(
 export interface BuildCachedPlanValueInput {
   plannedActions: readonly Action[]
   elements: readonly ElementInfo[]
-  verificationOutcome: 'passed' | 'failed'
+  completesStep: boolean
   /** The completing decision's stated target per lane; supplies a locator's row words. */
   statedTargets?: StatedTargets
 }
@@ -142,6 +142,6 @@ export function buildCachedPlanValue(input: BuildCachedPlanValueInput): CachedPl
   return {
     plannedActions: input.plannedActions.map(sanitizeAction),
     groundedLocator,
-    verificationOutcome: input.verificationOutcome,
+    completesStep: input.completesStep,
   }
 }

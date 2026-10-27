@@ -84,7 +84,7 @@ describe('C438-STRICT-REPLAY', () => {
     const cache = cacheOf({
       plannedActions: [{ type: 'click' } as unknown as CacheablePlannedAction],
       groundedLocator: [{ role: 'button', name: 'Cart (3)' }],
-      verificationOutcome: 'passed',
+      completesStep: true,
     })
     const planner = plannerOf(makeActionPlan({ action: { type: 'click', ref: 'e1' } }))
 
@@ -115,7 +115,7 @@ describe('C438-STRICT-REPLAY', () => {
         { role: 'listitem', name: 'Row one' },
         { role: 'listitem', name: 'Row two' },
       ],
-      verificationOutcome: 'passed',
+      completesStep: true,
     })
     const planner = plannerOf(giveUp)
 
@@ -137,7 +137,7 @@ describe('C438-STRICT-REPLAY', () => {
     const cache = cacheOf({
       plannedActions: [{ type: 'click' } as unknown as CacheablePlannedAction],
       groundedLocator: [],
-      verificationOutcome: 'passed',
+      completesStep: true,
     })
     const planner = plannerOf(giveUp)
 
@@ -170,7 +170,7 @@ describe('C438-STRICT-REPLAY', () => {
     const cache = cacheOf({
       plannedActions: [{ type: 'click' } as unknown as CacheablePlannedAction],
       groundedLocator: [{ role: 'treeitem', name: 'Invoices', row: '2025' }],
-      verificationOutcome: 'passed',
+      completesStep: true,
     })
     const planner = plannerOf(giveUp)
 

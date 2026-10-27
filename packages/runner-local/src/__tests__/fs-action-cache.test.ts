@@ -11,11 +11,11 @@ import type { CachePolicy } from '../write-policy.js'
 
 const KEY = '0123456789abcdef' as CacheKey
 
-function makeValue(outcome: 'passed' | 'failed' = 'passed'): CachedPlanValue {
+function makeValue(completesStep = true): CachedPlanValue {
   return {
     plannedActions: [],
     groundedLocator: [{ role: 'button', name: 'Submit' }],
-    verificationOutcome: outcome,
+    completesStep,
   }
 }
 
@@ -68,7 +68,7 @@ describe('FsActionCache', () => {
       root,
       policy: makePolicy({ currentBranch: 'main', defaultBranch: 'main' }),
     })
-    const value = makeValue('failed')
+    const value = makeValue(false)
     await defaultCache.set(KEY, value)
 
     // Read from a feature branch with no entry of its own.
@@ -95,19 +95,21 @@ describe('FsActionCache', () => {
     expect(await mainCache.get(KEY)).toBeNull()
   })
 
-  it.each([1, 9, 10, 11, 12])('stamps 2 and reads any other stamp as a miss (%i)', async (stamp) => {
-    expect(CACHE_SCHEMA_VERSION).toBe(2)
-    const dir = join(root, 'main')
-    await mkdir(dir, { recursive: true })
-    await writeFile(
-      join(dir, `${KEY}.json`),
-      JSON.stringify({ schemaVersion: stamp, value: makeValue() }),
-      'utf-8',
-    )
+  it.each([1, 2, 9, 10])(
+    'reads an entry stamped with another schema version as a miss (%i)',
+    async (stamp) => {
+      const dir = join(root, 'main')
+      await mkdir(dir, { recursive: true })
+      await writeFile(
+        join(dir, `${KEY}.json`),
+        JSON.stringify({ schemaVersion: stamp, value: makeValue() }),
+        'utf-8',
+      )
 
-    const cache = new FsActionCache({ root, policy: makePolicy() })
-    expect(await cache.get(KEY)).toBeNull()
-  })
+      const cache = new FsActionCache({ root, policy: makePolicy() })
+      expect(await cache.get(KEY)).toBeNull()
+    },
+  )
 
   it('round-trips a current envelope', async () => {
     const dir = join(root, 'main')
@@ -235,7 +237,7 @@ describe('a rejected entry on a branch that may write', () => {
     await mkdir(join(root, 'feature'), { recursive: true })
     await writeFile(
       featureFile,
-      JSON.stringify({ schemaVersion: CACHE_SCHEMA_VERSION, value: makeValue('failed') }),
+      JSON.stringify({ schemaVersion: CACHE_SCHEMA_VERSION, value: makeValue(false) }),
       'utf-8',
     )
     const cache = new FsActionCache({ root, policy })

@@ -49,10 +49,10 @@ describe('buildCachedPlanValue — no ref/selector/coordinates/data in the value
     const value = buildCachedPlanValue({
       plannedActions: [action],
       elements,
-      verificationOutcome: 'passed',
+      completesStep: true,
     })
 
-    expect(value.verificationOutcome).toBe('passed')
+    expect(value.completesStep).toBe(true)
     expect(value.groundedLocator).toHaveLength(1)
     expect(value.groundedLocator[0]).toEqual({ role: 'button', name: 'Checkout' })
 
@@ -87,7 +87,7 @@ describe('toGroundedLocator — the stated row (438 D-11)', () => {
     const value = buildCachedPlanValue({
       plannedActions: [click('e1')],
       elements: rows,
-      verificationOutcome: 'passed',
+      completesStep: true,
       statedTargets: { ref: { role: 'button', name: 'Edit label', row: '7 Elm Street' } },
     })
 

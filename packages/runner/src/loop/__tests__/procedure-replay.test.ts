@@ -2064,7 +2064,7 @@ describe('planSource evidence + ledger-metered hint rendering (D-12 · T-381-20)
     const hit: CachedPlanValue = {
       plannedActions: [{ type: 'click' } as unknown as CacheablePlannedAction],
       groundedLocator: [{ role: 'button', name: 'Log in' }],
-      verificationOutcome: 'passed',
+      completesStep: true,
     }
     const hitCache = makeCacheSpy(hit)
     const { adapter: hitAdapter } = capturingAdapter([makeScreenState()])

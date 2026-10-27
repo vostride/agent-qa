@@ -193,7 +193,7 @@ async function seededCache() {
     cache.store.set(keys[index], buildCachedPlanValue({
       plannedActions: [subAction.plannedAction as unknown as Action],
       elements: subAction.stateBefore.elements,
-      verificationOutcome: 'failed',
+      completesStep: false,
     }))
   })
   cache.gets.length = 0

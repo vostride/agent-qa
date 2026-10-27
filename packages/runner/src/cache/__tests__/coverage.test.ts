@@ -125,7 +125,7 @@ describe('CACHE roll-call — one green proof per phase acceptance criterion (35
     const value = buildCachedPlanValue({
       plannedActions: [action],
       elements,
-      verificationOutcome: 'passed',
+      completesStep: true,
     })
 
     // Descriptor-only: the serialized value never carries the raw ref or step data.

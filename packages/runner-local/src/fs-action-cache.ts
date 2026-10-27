@@ -21,8 +21,8 @@ import type { CacheKey } from '@vostride/agent-qa-schema'
 import { slugBranch } from './branch-resolver.js'
 import { shouldWrite, type CachePolicy } from './write-policy.js'
 
-/** Envelopes live under <root>/<branchSlug>/<key>.json; any other stamp reads as a miss. */
-export const CACHE_SCHEMA_VERSION = 2
+// An entry stamped with any other version reads as a miss.
+export const CACHE_SCHEMA_VERSION = 3
 
 const CACHE_ENTRY_FILE_RE = /^[0-9a-f]{16}\.json$/
 

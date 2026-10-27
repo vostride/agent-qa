@@ -216,7 +216,7 @@ const ACCEPT: ScriptedVerdict = { success: true, reasoning: 'Done', isAppError: 
 const CACHED_LOGIN: CachedPlanValue = {
   plannedActions: [{ type: 'click' } as unknown as CacheablePlannedAction],
   groundedLocator: [{ role: 'button', name: 'Log in' }],
-  verificationOutcome: 'passed',
+  completesStep: true,
 }
 
 function scriptedAdapter(

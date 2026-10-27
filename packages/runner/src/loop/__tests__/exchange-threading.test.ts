@@ -200,7 +200,7 @@ describe('executeStep exchange threading', () => {
     const cachedPlan: CachedPlanValue = {
       plannedActions: [{ type: 'click' } as CacheablePlannedAction],
       groundedLocator: [{ role: 'button', name: 'Log in' }],
-      verificationOutcome: 'passed',
+      completesStep: true,
     }
     const cache: ActionPlanCache = {
       async get() {

@@ -1516,7 +1516,7 @@ export async function executeStep(
       await ports.cache.set(cacheKey, buildCachedPlanValue({
         plannedActions: [normalizedAction],
         elements: screenState.elements,
-        verificationOutcome: 'passed',
+        completesStep: true,
         ...(statedTargets !== undefined ? { statedTargets } : {}),
       }))
     }
@@ -2405,7 +2405,7 @@ function replayFromCache(value: CachedPlanValue, elements: readonly ElementInfo[
       reasoning: 'Replayed from cache',
       action: replayAction as ActionPlan['action'],
       confidence: 1,
-      stepComplete: value.verificationOutcome === 'passed',
+      stepComplete: value.completesStep,
     },
   }
 }

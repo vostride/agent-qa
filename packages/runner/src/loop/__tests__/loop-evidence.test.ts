@@ -130,7 +130,7 @@ describe('loop evidence matrix (SCREEN-02 / D-15)', () => {
       // re-grounds to the fresh `log in` button (e2) in the observation.
       plannedActions: [{ type: 'click' } as unknown as CacheablePlannedAction],
       groundedLocator: [{ role: 'button', name: 'Log in' }],
-      verificationOutcome: 'passed',
+      completesStep: true,
     }
     const cache: ActionPlanCache = {
       async get() { return cachedLogin },

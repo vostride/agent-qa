@@ -203,7 +203,7 @@ describe('executeStep — cache (redesigned per-key port + hit ladder)', () => {
     // fresh `log in` button (e2) against the observation at replay time.
     plannedActions: [{ type: 'click' } as unknown as CacheablePlannedAction],
     groundedLocator: [{ role: 'button', name: 'Log in' }],
-    verificationOutcome: 'passed',
+    completesStep: true,
   }
 
   it('exact-key hit re-grounds the descriptor and replays without calling the planner', async () => {
@@ -224,7 +224,7 @@ describe('executeStep — cache (redesigned per-key port + hit ladder)', () => {
     const staleHit: CachedPlanValue = {
       plannedActions: [{ type: 'click' } as unknown as CacheablePlannedAction],
       groundedLocator: [{ role: 'button', name: 'Gone' }],
-      verificationOutcome: 'passed',
+      completesStep: true,
     }
     const cache: ActionPlanCache = {
       async get() { return staleHit },
@@ -485,7 +485,7 @@ describe('executeStep — decision screenshot persistence (CASS-02)', () => {
     const cachedLogin: CachedPlanValue = {
       plannedActions: [{ type: 'click' } as unknown as CacheablePlannedAction],
       groundedLocator: [{ role: 'button', name: 'Log in' }],
-      verificationOutcome: 'passed',
+      completesStep: true,
     }
     const cache: ActionPlanCache = {
       async get() { return cachedLogin },

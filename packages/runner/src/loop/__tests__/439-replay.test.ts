@@ -180,7 +180,7 @@ async function seededCache(): Promise<RecordingCache> {
   )
   expect(seed.status).toBe('passed')
   expect(cache.sets).toHaveLength(1)
-  expect(cache.store.get(cache.sets[0])?.verificationOutcome).toBe('passed')
+  expect(cache.store.get(cache.sets[0])?.completesStep).toBe(true)
   cache.gets.length = 0
   cache.sets.length = 0
   return cache

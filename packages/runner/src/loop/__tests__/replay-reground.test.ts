@@ -53,7 +53,7 @@ describe('replay re-ground mapping (Q4)', () => {
     const cached: CachedPlanValue = {
       plannedActions: [{ type: 'click' } as unknown as CacheablePlannedAction],
       groundedLocator: [{ role: 'button', name: 'Log in' }],
-      verificationOutcome: 'passed',
+      completesStep: true,
     }
     const plannerSpy = vi.fn()
     const result = await executeStep(
@@ -71,7 +71,7 @@ describe('replay re-ground mapping (Q4)', () => {
     const cached = (): CachedPlanValue => ({
       plannedActions: [{ type: 'click' } as unknown as CacheablePlannedAction],
       groundedLocator: [{ role: 'button', name: 'Log in' }],
-      verificationOutcome: 'passed',
+      completesStep: true,
     })
     const moved = screenWith([el('e7', 'button', 'Log in')])
     const plannerSpy = vi.fn()
@@ -103,7 +103,7 @@ describe('replay re-ground mapping (Q4)', () => {
       plannedActions: [{ type: 'click' } as unknown as CacheablePlannedAction],
       // Two survivors of role + exact name ⇒ not-unique ⇒ a miss on the cache path (D-10).
       groundedLocator: [{ role: 'button', name: 'Add' } satisfies GroundedLocator],
-      verificationOutcome: 'passed',
+      completesStep: true,
     }
     const invalidateSpy = { invalidate: vi.fn() }
     const plannerSpy = vi.fn().mockResolvedValue({ plan: makeActionPlan({ action: { type: 'click', ref: 'e1' } }) })
@@ -125,7 +125,7 @@ describe('replay re-ground mapping (Q4)', () => {
         { role: 'listitem', name: 'Row one' },
         { role: 'listitem', name: 'Row two' },
       ],
-      verificationOutcome: 'passed',
+      completesStep: true,
     }
     const plannerSpy = vi.fn()
     const result = await executeStep(
@@ -143,7 +143,7 @@ describe('replay re-ground mapping (Q4)', () => {
     const cachedCoord: CachedPlanValue = {
       plannedActions: [{ type: 'tapCoordinate', coordSpace: 'viewport' } as unknown as CacheablePlannedAction],
       groundedLocator: [],
-      verificationOutcome: 'passed',
+      completesStep: true,
     }
     const invalidateSpy = { invalidate: vi.fn() }
     const plannerSpy = vi.fn().mockResolvedValue({ plan: makeActionPlan({ action: { type: 'tapCoordinate', x: 10, y: 20, coordSpace: 'viewport' } }) })

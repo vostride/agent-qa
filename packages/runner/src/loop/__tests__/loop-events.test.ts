@@ -166,7 +166,7 @@ describe('loop tokenUsage on stepFinalized (405 D-05 — absent is not zero)', (
     const cachedLogin: CachedPlanValue = {
       plannedActions: [{ type: 'click' } as unknown as CacheablePlannedAction],
       groundedLocator: [{ role: 'button', name: 'Log in' }],
-      verificationOutcome: 'passed',
+      completesStep: true,
     }
     const cache: ActionPlanCache = {
       async get() { return cachedLogin },

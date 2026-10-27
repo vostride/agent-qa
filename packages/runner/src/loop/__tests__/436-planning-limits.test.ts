@@ -219,7 +219,7 @@ describe('C436-PLANNING-LIMITS', () => {
     const cachedValue: CachedPlanValue = {
       plannedActions: [{ type: 'click' } as unknown as CacheablePlannedAction],
       groundedLocator: [{ role: 'button', name: 'Log in' }],
-      verificationOutcome: 'passed',
+      completesStep: true,
     }
     let gets = 0
     const cache: ActionPlanCache = {

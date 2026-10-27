@@ -30,16 +30,12 @@ export interface GroundedLocator {
   row?: string
 }
 
-/**
- * The cached plan value. `plannedActions` are stored in sanitized (locator-free,
- * data-free) form AND statically exclude the AI-assertion verbs (D-08); grounding is carried
- * only by `groundedLocator` descriptors so no run-specific ref/selector/coordinate or step
- * `data` value ever persists (D-12).
- */
+// One turn's sanitized action and its descriptor locators. `completesStep` is true when that
+// turn finished the step.
 export interface CachedPlanValue {
   plannedActions: CacheablePlannedAction[]
   groundedLocator: GroundedLocator[]
-  verificationOutcome: 'passed' | 'failed'
+  completesStep: boolean
 }
 
 /**

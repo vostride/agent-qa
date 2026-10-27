@@ -11,7 +11,7 @@ import type { Action } from '../../platform.js'
 const cacheable: CachedPlanValue = {
   plannedActions: [{ type: 'click', ref: 'e1' } as unknown as CacheablePlannedAction],
   groundedLocator: [],
-  verificationOutcome: 'passed',
+  completesStep: true,
 }
 void cacheable
 
@@ -20,7 +20,7 @@ const withAssertAI: CachedPlanValue = {
   // @ts-expect-error D-08: assertAI is excluded from CacheablePlannedAction — unwritable.
   plannedActions: [{ type: 'assertAI', claim: 'x', mode: 'multimodal' }],
   groundedLocator: [],
-  verificationOutcome: 'passed',
+  completesStep: true,
 }
 void withAssertAI
 
@@ -29,7 +29,7 @@ const withExtractAI: CachedPlanValue = {
   // @ts-expect-error D-08: extractAI is excluded from CacheablePlannedAction — unwritable.
   plannedActions: [{ type: 'extractAI', query: 'q', schema: [] }],
   groundedLocator: [],
-  verificationOutcome: 'passed',
+  completesStep: true,
 }
 void withExtractAI
 
