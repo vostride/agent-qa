@@ -29,7 +29,7 @@ memory/index/
 memory/queue/
 .lease
 .epoch
-**/artifacts/        # binary blobs; flip to thumbnails via knowledge.commitArtifacts
+**/artifacts/        # binary blobs
                      # (artifact inventories are committed and live OUTSIDE artifacts/)
 skills/.staging/
 `

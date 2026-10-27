@@ -1235,7 +1235,7 @@ memory/queue/
 memory/*/bundles/.staging/
 .lease
 .writer-authority.sqlite*
-**/artifacts/        # binary blobs; flip to thumbnails via knowledge.commitArtifacts
+**/artifacts/        # binary blobs
 skills/.staging/
 .*.agent-qa-init-*.tmp
 `
