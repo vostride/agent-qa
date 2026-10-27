@@ -42,6 +42,9 @@ const RETIRED_EVAL_BLOCK_MESSAGE =
 const RETIRED_ALLOW_PRODUCTION_MESSAGE =
   'allowProduction was removed: production targets run like any other target. Delete this line.'
 
+const RETIRED_REGISTRY_PROVIDERS_MESSAGE =
+  'registry.providers was removed: BrowserStack is no longer supported; runs use local Playwright and Appium. Delete this block.'
+
 // The old refilling planner key is cut with no alias, migration or fallback. The same message
 // fires for the project config and for test and suite `use` overrides.
 export const RETIRED_MAX_SUB_ACTIONS_MESSAGE =
@@ -123,6 +126,15 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
       params: { retired: true },
       path: ['allowProduction'],
       message: RETIRED_ALLOW_PRODUCTION_MESSAGE,
+    })
+  }
+
+  if (isPlainObject(value.registry) && Object.hasOwn(value.registry, 'providers')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      params: { retired: true },
+      path: ['registry', 'providers'],
+      message: RETIRED_REGISTRY_PROVIDERS_MESSAGE,
     })
   }
 

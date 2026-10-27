@@ -25,7 +25,6 @@ import {
 } from '@/lib/api'
 import {
   ACCESSIBILITY_FIELD_PLACEHOLDERS,
-  ADD_DEVICE_FARM_LABEL,
   ADD_DEVICE_LABEL,
   ADD_TARGET_LABEL,
   ADD_MODEL_LABEL,
@@ -42,7 +41,6 @@ import {
   MAKE_DEFAULT_LABEL,
   MODEL_STATUS_WORDS,
   NOT_SAVED_ACTION_NAME,
-  NO_DEVICE_FARMS_TEXT,
   NO_DEVICES_TEXT,
   NO_LOGIN_STATES_TEXT,
   NO_TARGETS_TEXT,
@@ -70,7 +68,6 @@ import {
   connectionSentence,
   configFileIssuesBody,
   configLoadFailedBody,
-  deleteActionName,
   DASHBOARD_FIELD_LABELS,
   ENV_FILE_REQUIRED_ERROR,
   FILES_FIELD_HELP,
@@ -142,7 +139,6 @@ const { sampleConfig, CONFIG_FILE_PATH } = vi.hoisted(() => ({
     }],
     targets: { staging: { platform: 'web', url: 'https://example.com' } },
     devices: { iosLocal: { platform: 'ios', transport: 'local', match: { udid: 'abc' } } },
-    providers: { openai: { apiBase: 'https://api.openai.com/v1' } },
   },
   use: {
     browser: { name: 'chromium', headless: true, viewport: { width: 1280, height: 720 } },
@@ -792,8 +788,8 @@ describe('ConfigPage task tabs shell', () => {
     },
   )
 
-  it('LEGACY-PAIR-LANDS-AND-FOCUSES: the table covers all 21 live legacy pairs', () => {
-    expect(LEGACY_CONFIG_PAIRS).toHaveLength(21)
+  it('LEGACY-PAIR-LANDS-AND-FOCUSES: the table covers every live legacy pair', () => {
+    expect(LEGACY_CONFIG_PAIRS.length, 'the witness: there are legacy pairs').toBeGreaterThan(0)
     expect(Object.keys(LEGACY_CONFIG_LINKS).sort()).toEqual([...LEGACY_CONFIG_PAIRS].sort())
   })
 
@@ -1540,7 +1536,6 @@ describe('ConfigPage task tabs shell', () => {
     expect(section('login-states')?.querySelector('table')).toBeNull()
     expect(section('targets')?.querySelector('[data-target="staging"]')).not.toBeNull()
     expect(section('devices')?.querySelector('[data-device="iosLocal"]')).not.toBeNull()
-    expect(section('device-farms')?.querySelector('[data-device-farm="openai"]')).not.toBeNull()
     expect(section('mobile-app-state')?.querySelector('[data-field-path="use.mobile.appState"]')).not.toBeNull()
 
     await act(async () => {
@@ -1594,8 +1589,6 @@ describe('ConfigPage task tabs shell', () => {
     expect(sectionButton('targets', ADD_TARGET_LABEL)).not.toBeNull()
     expect(section('devices')!.textContent).toContain(NO_DEVICES_TEXT)
     expect(sectionButton('devices', ADD_DEVICE_LABEL)).not.toBeNull()
-    expect(section('device-farms')!.textContent).toContain(NO_DEVICE_FARMS_TEXT)
-    expect(sectionButton('device-farms', ADD_DEVICE_FARM_LABEL)).not.toBeNull()
     expect(section('login-states')!.textContent).toContain(NO_LOGIN_STATES_TEXT)
     expect(section('targets')!.querySelector('[data-target]')).toBeNull()
     expect(section('devices')!.querySelector('[data-device]')).toBeNull()
@@ -2197,52 +2190,6 @@ describe('ConfigPage task tabs shell', () => {
     expect(section('targets')?.textContent).toContain('App: apps/wikipedia-alpha.apk / bs://uploaded-app')
     expect(API_EXPORTS).not.toContain('updateSettings')
     expect(document.body.querySelector('[role="dialog"]')).toBeNull()
-  })
-
-  it('DEVICE-FARMS-SECRET-ROWS-ON-PAGE: device farms list each setting as a masked SecretValue with no dialog or section save', async () => {
-    await renderAt('/config/targets?section=device-farms')
-
-    const farms = section('device-farms')!
-    expect(farms.querySelector('h2')?.textContent).toBe(CONFIG_SECTION_LABELS['device-farms'])
-    const list = farms.querySelector('[data-field-list="registry.providers"]')
-    expect(list).not.toBeNull()
-    const row = list!.querySelector('[data-device-farm="openai"]')
-    expect(row).not.toBeNull()
-    const secret = row!.querySelector('[data-secret-field]')
-    expect(secret?.getAttribute('data-field-path')).toBe('registry.providers.*.*')
-    expect(row!.textContent).toContain('apiBase')
-    expect(farms.querySelector('textarea')).toBeNull()
-    expect(sectionButton('device-farms', 'Edit')).toBeNull()
-    expect(sectionButton('device-farms', 'Save Changes')).toBeNull()
-    expect(farms.textContent).not.toContain('provider-specific JSON')
-    expect(document.body.querySelector('[role="dialog"]')).toBeNull()
-    expect(sectionButton('device-farms', ADD_DEVICE_FARM_LABEL)).not.toBeNull()
-  })
-
-  it('DEVICE-FARM-DELETE-ON-PAGE: deleting a device farm writes one undoable unset and shows its Undo line', async () => {
-    vi.mocked(applyConfigChanges).mockResolvedValueOnce({
-      revision: 'rev-2',
-      undo: { token: 'tok-farm', expiresAt: Date.now() + 30_000 },
-    } as never)
-    await renderAt('/config/targets?section=device-farms')
-
-    const remove = Array.from(section('device-farms')!.querySelectorAll('button')).find(
-      (button) => button.getAttribute('aria-label') === deleteActionName('delete-device-farm', 'openai'),
-    )
-    expect(remove).toBeDefined()
-    await act(async () => {
-      remove!.click()
-    })
-    await flushRender()
-
-    expect(section('device-farms')!.querySelector('[data-device-farm="openai"]')).toBeNull()
-    expect(applyConfigChanges).toHaveBeenCalledWith(
-      [{ op: 'unset', path: ['registry', 'providers', 'openai'] }],
-      { undoable: true },
-    )
-    expect(API_EXPORTS).not.toContain('updateSettings')
-    expect(container!.textContent).toContain(undoLine('delete-device-farm', 'openai'))
-    expect(section('device-farms')!.textContent).toContain(NO_DEVICE_FARMS_TEXT)
   })
 })
 

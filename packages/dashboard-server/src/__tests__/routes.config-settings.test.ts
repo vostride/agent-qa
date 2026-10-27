@@ -591,10 +591,6 @@ describe('settings writes through PATCH /api/config (429-32)', () => {
           bundleId: 'com.example.app',
         },
       }),
-      set(['registry', 'providers', 'browserstack'], {
-        project: 'agent-qa',
-        retries: 2,
-      }),
       set(['analytics', 'passRateScope'], {
         attributes: {
           'git.branch': { regex: '^(main|master)$' },
@@ -644,12 +640,6 @@ describe('settings writes through PATCH /api/config (429-32)', () => {
               udid: 'iphone-17',
               bundleId: 'com.example.app',
             },
-          },
-        },
-        providers: {
-          browserstack: {
-            project: 'agent-qa',
-            retries: 2,
           },
         },
       },

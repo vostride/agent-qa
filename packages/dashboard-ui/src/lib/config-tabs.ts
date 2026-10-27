@@ -23,7 +23,6 @@ export type ConfigSectionId =
   | 'planner-limits'
   | 'targets'
   | 'devices'
-  | 'device-farms'
   | 'login-states'
   | 'mobile-app-state'
   | 'browser'
@@ -48,7 +47,6 @@ export const CONFIG_SECTION_IDS = [
   'planner-limits',
   'targets',
   'devices',
-  'device-farms',
   'login-states',
   'mobile-app-state',
   'browser',
@@ -70,7 +68,7 @@ export const CONFIG_SECTION_IDS = [
 
 export const CONFIG_SECTIONS = {
   models: ['models', 'screenshot-size', 'planner-limits'],
-  targets: ['targets', 'devices', 'device-farms', 'login-states', 'mobile-app-state'],
+  targets: ['targets', 'devices', 'login-states', 'mobile-app-state'],
   execution: ['browser', 'timeouts', 'runs', 'cache', 'recording', 'accessibility', 'log-capture'],
   project: ['test-discovery', 'files', 'knowledge', 'dashboard', 'logging', 'pass-rate-scope'],
   advanced: ['mcp', 'config-file'],
@@ -83,7 +81,6 @@ export const CONFIG_SECTION_ALIASES = {
   'planner-limits': ['planner', 'sub actions', 'history limit'],
   targets: ['target', 'urls', 'bundle id', 'app package'],
   devices: ['device', 'device profiles', 'transport'],
-  'device-farms': ['device farm', 'farm', 'access key'],
   'login-states': ['login state', 'auth state', 'auth states', 'saved auth'],
   'mobile-app-state': ['mobile', 'app state', 'app data', 'reset app data', 'preserve app data'],
   browser: ['viewport', 'headless', 'browser headless', 'engine'],
@@ -117,7 +114,6 @@ export type LegacyConfigPair =
   | 'registry:llms'
   | 'registry:targets'
   | 'registry:devices'
-  | 'registry:providers'
   | 'use:browser'
   | 'use:timeouts'
   | 'use:planner'
@@ -140,7 +136,6 @@ export const LEGACY_CONFIG_PAIRS = [
   'registry:llms',
   'registry:targets',
   'registry:devices',
-  'registry:providers',
   'use:browser',
   'use:timeouts',
   'use:planner',
@@ -158,7 +153,6 @@ export const LEGACY_CONFIG_LINKS = {
   'use:planner': { tab: 'models', section: 'planner-limits' },
   'registry:targets': { tab: 'targets', section: 'targets' },
   'registry:devices': { tab: 'targets', section: 'devices' },
-  'registry:providers': { tab: 'targets', section: 'device-farms' },
   'services:auth-states': { tab: 'targets', section: 'login-states' },
   'use:mobile': { tab: 'targets', section: 'mobile-app-state' },
   'use:browser': { tab: 'execution', section: 'browser' },
@@ -240,7 +234,6 @@ export type ExplicitActionKind =
   | 'delete-model'
   | 'delete-target'
   | 'delete-device'
-  | 'delete-device-farm'
   | 'sign-out'
   | 'remove-key'
   | 'change-knowledge-dir'
@@ -251,7 +244,6 @@ export const EXPLICIT_ACTION_KINDS = [
   'delete-model',
   'delete-target',
   'delete-device',
-  'delete-device-farm',
   'sign-out',
   'remove-key',
   'change-knowledge-dir',

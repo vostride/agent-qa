@@ -21,7 +21,7 @@ import {
 
 export interface SecretValueTarget {
   segments: readonly ConfigPathSegment[]
-  /** The leaf's schema pattern, for example registry.providers.*.* */
+  /** The leaf's schema pattern, for example registry.llms[].providerHeaders.* */
   pattern: string
 }
 

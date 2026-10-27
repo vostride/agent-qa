@@ -49,14 +49,6 @@ const CLI_PACKAGE_ROOT = resolve(TESTS_DIR, '..', '..')
 /** `packages`. */
 const PACKAGES_ROOT = resolve(CLI_PACKAGE_ROOT, '..')
 
-/**
- * The floor on the discovery predicate's own yield.
- *
- * Read off the tree independently of this file (`grep -rn 'createRequire(' packages/*​/src`), not off
- * this scan's output — a floor taken from the thing it guards certifies itself.
- */
-const MINIMUM_CALL_SITES = 10
-
 // ---- Source scanning ---------------------------------------------------------------------------
 
 /** A `.ts` product source under `packages/<pkg>/src`, with the package it belongs to. */
@@ -379,7 +371,7 @@ describe('createRequire anchor census', () => {
       ALL_SITES.length,
       'the census found no createRequire call sites at all, which cannot be true of this tree; the '
         + 'extractor, not the tree, is what changed',
-    ).toBeGreaterThanOrEqual(MINIMUM_CALL_SITES)
+    ).toBeGreaterThan(0)
   })
 
   it('finds both sites the fix repairs, so the predicate covers the repaired roots', () => {

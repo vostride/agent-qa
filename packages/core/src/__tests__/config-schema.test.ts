@@ -1266,13 +1266,13 @@ describe('AgentQaConfigSchema — retired keys are strictly unknown (432 D-22)',
   // the key, and an unrelated strict object refuses them exactly as it always did.
   it('C432-OLD-KEYS-STRICT: strict removal rejects exactly the retired keys and nothing that merely shares a name', () => {
     const shared = AgentQaConfigSchema.safeParse(withWorkspace({
-      registry: { providers: { farm: { tokens: 'x', stdio: 'y', trustMode: 'z', runServiceTokens: 'w' } } },
+      analytics: { passRateScope: { attributes: { tokens: 'x', stdio: 'y', trustMode: 'z', runServiceTokens: 'w' } } },
       services: { mcp: { enabled: false } },
       knowledge: { contextBudgetTokens: 4000 },
     }))
     expect(shared.success, JSON.stringify(shared.error?.issues)).toBe(true)
     if (shared.success) {
-      expect(shared.data.registry?.providers?.farm).toEqual({ tokens: 'x', stdio: 'y', trustMode: 'z', runServiceTokens: 'w' })
+      expect(shared.data.analytics?.passRateScope?.attributes).toEqual({ tokens: 'x', stdio: 'y', trustMode: 'z', runServiceTokens: 'w' })
       expect(shared.data.services?.mcp).toEqual({ enabled: false })
     }
     const elsewhere = AgentQaConfigSchema.safeParse(withWorkspace({ services: { cache: { dir: '.c', ttl: '1d', tokens: [] } } }))

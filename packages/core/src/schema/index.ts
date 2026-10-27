@@ -38,7 +38,7 @@ export {
   isLoopbackHost,
 } from './services-schema.js'
 
-export { TargetSchema, DeviceProfileSchema, ProviderConfigSchema } from './registry-schema.js'
+export { TargetSchema, DeviceProfileSchema } from './registry-schema.js'
 
 export { TransportSchema } from './primitives.js'
 

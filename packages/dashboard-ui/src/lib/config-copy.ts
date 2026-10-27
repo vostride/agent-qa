@@ -59,7 +59,6 @@ export const CONFIG_SECTION_LABELS = {
   'planner-limits': 'Planner limits',
   targets: 'Targets',
   devices: 'Devices',
-  'device-farms': 'Device farms',
   'login-states': 'Saved login states',
   'mobile-app-state': 'Mobile app state',
   browser: 'Browser',
@@ -122,8 +121,6 @@ export function undoLine(kind: ExplicitActionKind, name: string): string {
       return `Deleted target ${name}`
     case 'delete-device':
       return `Deleted device ${name}`
-    case 'delete-device-farm':
-      return `Deleted device farm ${name}`
     case 'sign-out':
       return `Signed out of ${name}`
     case 'remove-key':
@@ -148,8 +145,6 @@ export function deleteActionName(kind: DeleteActionKind, name: string): string {
       return `Delete target ${name}`
     case 'delete-device':
       return `Delete device ${name}`
-    case 'delete-device-farm':
-      return `Delete device farm ${name}`
   }
 }
 
@@ -666,7 +661,6 @@ export const LOG_CAPTURE_FIELD_LABELS = {
 
 export const NO_TARGETS_TEXT = 'No targets yet.'
 export const NO_DEVICES_TEXT = 'No devices yet.'
-export const NO_DEVICE_FARMS_TEXT = 'No device farms yet.'
 export const NO_LOGIN_STATES_TEXT = 'No saved login states yet. Save one from a web Live Mode session.'
 export const LOGIN_STATES_LOADING_TEXT = 'Loading saved login states…'
 export const LOGIN_STATES_LOAD_FAILED_TEXT = "Couldn't load saved login states."
@@ -830,18 +824,6 @@ export function keepValueName(label: string): string {
 export const SAVE_SETTING_LABEL = 'Save setting'
 export const DISCARD_SETTING_LABEL = 'Discard setting'
 export const ADD_SETTING_LABEL = 'Add setting'
-export const ADD_DEVICE_FARM_LABEL = 'Add device farm'
-
-export const DEVICE_FARM_FIELD_LABELS = {
-  name: 'Name',
-  key: 'Setting',
-  value: 'Value',
-} as const satisfies Record<string, string>
-
-/** A farm setting's accessible label, so each Replace value names its own farm and key. */
-export function deviceFarmSettingLabel(farm: string, key: string): string {
-  return `${farm} ${key}`
-}
 
 export const TOUR_LLM_SETUP_BODY =
   "A run needs a model. Add one: choose how you connect, and it's tested and saved as soon as it works."

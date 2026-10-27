@@ -145,20 +145,19 @@ describe('DeviceProfileSchema', () => {
   })
 })
 
-describe('RegistrySchema with devices + providers', () => {
+describe('RegistrySchema with devices', () => {
   async function getSchema() {
     const mod = await import('../registry-schema.js') as any
     return mod.RegistrySchema as z.ZodType
   }
 
-  it('accepts devices and providers fields', async () => {
+  it('accepts a devices field', async () => {
     const schema = await getSchema()
     const result = schema.safeParse({
       llms: [],
       devices: {
         pixel: { platform: 'android', transport: 'local', match: {} },
       },
-      providers: {},
     })
     expect(result.success).toBe(true)
   })

@@ -25,7 +25,7 @@ vi.mock('@/lib/api', async (importOriginal) => ({
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const CONFIG_PATH = '/work/projects/a-rather-long-folder-name/agent-qa.config.yaml'
-const DECLARED = '[secret:BS_ACCESS_KEY]'
+const DECLARED = '[secret:ACCESS_KEY]'
 
 const LINES: ConfigFileLine[] = [
   { n: 1, text: 'workspace:' },
@@ -34,16 +34,14 @@ const LINES: ConfigFileLine[] = [
   { n: 4, text: '  auth:' },
   { n: 5, text: '    - package: "@acme/agent-qa-auth-sso"' },
   { n: 6, text: 'registry:' },
-  { n: 7, text: '  providers:' },
-  { n: 8, text: '    browserstack:' },
-  { n: 9, text: `      accessKey: ${DECLARED}` },
-  { n: 10, text: '  llms:' },
-  { n: 11, text: '    - name: gateway' },
-  { n: 12, text: '      providerHeaders:' },
-  { n: 13, text: '        X-Api-Key: undeclared-header-value' },
-  { n: 14, text: 'services:' },
-  { n: 15, text: '  mcp:' },
-  { n: 16, text: '    port: 3471' },
+  { n: 7, text: '  llms:' },
+  { n: 8, text: '    - name: gateway' },
+  { n: 9, text: '      providerHeaders:' },
+  { n: 10, text: `        x-access: ${DECLARED}` },
+  { n: 11, text: '        X-Api-Key: undeclared-header-value' },
+  { n: 12, text: 'services:' },
+  { n: 13, text: '  mcp:' },
+  { n: 14, text: '    port: 3471' },
 ]
 
 function answer(lines: ConfigFileLine[], revision = 'rev-1') {
@@ -164,8 +162,8 @@ describe('ConfigFileView (429-28 Task 2)', () => {
     expect(items.map((item) => item.textContent)).toEqual(LINES.map((l) => l.text))
     expect(items.every((item) => !item.hasAttribute('data-masking-class'))).toBe(true)
     expect(line(5)!.textContent).toContain('@acme/agent-qa-auth-sso')
-    expect(line(9)!.textContent).toBe(`      accessKey: ${DECLARED}`)
-    expect(line(13)!.textContent).toBe('        X-Api-Key: undeclared-header-value')
+    expect(line(10)!.textContent).toBe(`        x-access: ${DECLARED}`)
+    expect(line(11)!.textContent).toBe('        X-Api-Key: undeclared-header-value')
 
     expect(list.querySelectorAll('button')).toHaveLength(0)
     expect(section().querySelector('input, textarea, select, [contenteditable]')).toBeNull()

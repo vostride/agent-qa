@@ -100,7 +100,7 @@ const maskedConfig: MaskedResolvedConfig = {
   configPath: '/workspace/agent-qa.config.yaml',
   entries: [
     { key: 'workspace.testMatch', value: '["tests/**/*.yaml"]', source: 'config-file', masked: false },
-    { key: 'registry.providers.acme.apiKey', value: '[secret:PW_441]', source: 'config-file', masked: true },
+    { key: 'registry.llms.0.providerHeaders.x-acme-access', value: '[secret:PW_441]', source: 'config-file', masked: true },
   ],
 }
 

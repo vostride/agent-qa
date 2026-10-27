@@ -35,18 +35,31 @@ const CONFIG_PATH = '/work/agent-qa.config.yaml'
 const MASK = '[masked]'
 const TYPED = 'typed-new-secret-9X4'
 
+const HEADERS: ConfigPathSegment[] = ['registry', 'llms', { name: 'proxy' }, 'providerHeaders']
 const accessKey = {
-  segments: ['registry', 'providers', 'browserstack', 'accessKey'] as ConfigPathSegment[],
-  pattern: 'registry.providers.*.*',
+  segments: [...HEADERS, 'x-access'] as ConfigPathSegment[],
+  pattern: 'registry.llms[].providerHeaders.*',
 }
 const region = {
-  segments: ['registry', 'providers', 'browserstack', 'region'] as ConfigPathSegment[],
-  pattern: 'registry.providers.*.*',
+  segments: [...HEADERS, 'x-region'] as ConfigPathSegment[],
+  pattern: 'registry.llms[].providerHeaders.*',
 }
 
-const maskedConfig = {
-  registry: { providers: { browserstack: { accessKey: MASK, region: MASK } } },
+function proxyWithHeaders(providerHeaders: Record<string, string>) {
+  return {
+    registry: {
+      llms: [{
+        name: 'proxy',
+        provider: 'anthropic-compatible',
+        model: 'claude-proxy',
+        baseURL: 'https://llm.example.test/v1',
+        providerHeaders,
+      }],
+    },
+  }
 }
+
+const maskedConfig = proxyWithHeaders({ 'x-access': MASK, 'x-region': MASK })
 
 function answer(config: Record<string, unknown>) {
   return { config, provider: null, revision: 'rev-1', file: { path: CONFIG_PATH, lines: [] } }
@@ -63,7 +76,7 @@ function Harness({ children }: { children: ReactNode }) {
 
 function Secrets() {
   const autosave = useConfigAutosaveContext()
-  const maskedAt = (segments: ConfigPathSegment[]) => String(autosave.valueOf({ segments, tab: 'targets' }) ?? '')
+  const maskedAt = (segments: ConfigPathSegment[]) => String(autosave.valueOf({ segments, tab: 'models' }) ?? '')
   return (
     <div>
       <SecretValue field={accessKey} label="Access key" maskedText={maskedAt(accessKey.segments)} />
@@ -184,16 +197,16 @@ afterEach(async () => {
 
 describe('C441-CONFIG', () => {
   it("the secret field shows the server's text and offers no reveal", async () => {
-    vi.mocked(fetchConfig).mockResolvedValue(answer({
-      registry: { providers: { browserstack: { accessKey: '[secret:BS_KEY]', region: 'eu-west' } } },
-    }) as never)
+    vi.mocked(fetchConfig).mockResolvedValue(
+      answer(proxyWithHeaders({ 'x-access': '[secret:ACCESS_KEY]', 'x-region': 'eu-west' })) as never,
+    )
     const network = vi.spyOn(globalThis, 'fetch')
     await mount()
     const reads = vi.mocked(fetchConfig).mock.calls.length
 
     const [first, second] = groups()
     expect(first!.getAttribute('data-field-path')).toBe(accessKey.pattern)
-    expect(first!.querySelector('code')?.textContent).toBe('[secret:BS_KEY]')
+    expect(first!.querySelector('code')?.textContent).toBe('[secret:ACCESS_KEY]')
     expect(first!.querySelector('code')?.className).toContain('wrap-anywhere')
     expect(second!.querySelector('code')?.textContent).toBe('eu-west')
     for (const group of [first!, second!]) {

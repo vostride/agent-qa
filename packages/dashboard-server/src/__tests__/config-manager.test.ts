@@ -932,9 +932,13 @@ describe('ConfigManager masked read (441-21)', () => {
       'knowledge:',
       '  dir: *secret',
       'registry:',
-      '  providers:',
-      '    farm:',
-      '      accessKey: *plain',
+      '  llms:',
+      '    - name: router',
+      '      provider: anthropic-compatible',
+      '      model: claude-proxy',
+      '      baseURL: https://llm.example.invalid/v1',
+      '      providerHeaders:',
+      '        x-access: *plain',
       '',
     ].join('\n'))
 
@@ -945,7 +949,7 @@ describe('ConfigManager masked read (441-21)', () => {
     const config = read.config as { workspace: Record<string, string>; knowledge: { dir: string }; registry: any }
     expect(config.workspace.secretsFile).toBe('secret-[secret:LEAK].local')
     expect(config.knowledge.dir).toBe('secret-[secret:LEAK].local')
-    expect(config.registry.providers.farm.accessKey).toBe('plain-anchor.env')
+    expect(config.registry.llms[0].providerHeaders['x-access']).toBe('plain-anchor.env')
     expect(config.workspace.envFile).toBe('plain-anchor.env')
     expect(JSON.stringify(read)).not.toContain('DO-NOT-LEAK')
   })
@@ -1017,13 +1021,17 @@ describe('C441-CONFIG', () => {
   })
 
   it('there is no reveal route', async () => {
-    await writeFile(configPath, ORDERED_CONFIG.replace('registry:\n', 'registry:\n  providers:\n    farm:\n      accessKey: Hunter-42-zz\n'))
+    await writeFile(configPath, ORDERED_CONFIG.replace(
+      'registry:\n  llms:\n',
+      'registry:\n  llms:\n    - name: router\n      provider: anthropic-compatible\n      model: claude-proxy\n'
+        + '      baseURL: https://llm.example.invalid/v1\n      providerHeaders:\n        x-access: Hunter-42-zz\n',
+    ))
 
     // Composed, so no package source spells the retired route (441-49's grep).
     const answer = await invokeRoute(['/api/config', 'reveal'].join('/'), {
       method: 'POST',
       headers: { ...SELF_HOST_HEADERS, origin: `http://${SELF_HOST_HEADERS.host}`, 'sec-fetch-site': 'same-origin' },
-      body: JSON.stringify({ path: ['registry', 'providers', 'farm', 'accessKey'] }),
+      body: JSON.stringify({ path: ['registry', 'llms', 0, 'providerHeaders', 'x-access'] }),
     })
 
     expect(answer.status).toBe(404)

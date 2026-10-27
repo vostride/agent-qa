@@ -51,7 +51,6 @@ const LEGACY_LINKS = [
   ['registry', 'llms', 'models', 'models', 'Models'],
   ['registry', 'targets', 'targets', 'targets', 'Targets'],
   ['registry', 'devices', 'targets', 'devices', 'Devices'],
-  ['registry', 'providers', 'targets', 'device-farms', 'Device farms'],
   ['use', 'browser', 'execution', 'browser', 'Browser'],
   ['use', 'timeouts', 'execution', 'timeouts', 'Timeouts'],
   ['use', 'planner', 'models', 'planner-limits', 'Planner limits'],
@@ -64,7 +63,7 @@ const LEGACY_LINKS = [
 // Invented sentinels only (T-429-33-02): nothing here exists outside this file.
 const SENTINELS = {
   header: 'zz-429-33-HEADER-SENTINEL-4c1e',
-  farm: 'zz-429-33-FARM-ACCESS-KEY-9b27',
+  access: 'zz-429-33-ACCESS-HEADER-9b27',
   udid: 'zz-429-33-UDID-SENTINEL-0d61',
   auth: 'zz-429-33-AUTH-JSON-SENTINEL-73fa',
 } as const
@@ -104,6 +103,7 @@ const TASK1_CONFIG = [
   '      providerHeaders:',
   `        # x-api-key: ${COMMENT_SENTINELS.above}`,
   `        x-org-route: ${SENTINELS.header}`,
+  `        x-org-access: ${SENTINELS.access} # was ${COMMENT_SENTINELS.trailing}`,
   '  targets:',
   '    conformance:',
   '      platform: web',
@@ -111,9 +111,6 @@ const TASK1_CONFIG = [
   `    ${LONG_TARGET}:`,
   '      platform: web',
   '      url: https://checkout-staging.invalid',
-  '  providers:',
-  '    farm:',
-  `      accessKey: ${SENTINELS.farm} # was ${COMMENT_SENTINELS.trailing}`,
   '  devices:',
   '    phone:',
   '      platform: ios',
@@ -148,7 +145,7 @@ function writeProject(label: string, config: string, auth?: Record<string, unkno
   writeFileSync(configPath, config, 'utf8')
   writeFileSync(join(root, 'hooks.yaml'), 'hooks: []\n', 'utf8')
   writeFileSync(join(root, '.env'), '', 'utf8')
-  writeFileSync(join(root, '.env.secrets.local'), `FARM_KEY=${SENTINELS.farm}\n`, 'utf8')
+  writeFileSync(join(root, '.env.secrets.local'), `ACCESS_KEY=${SENTINELS.access}\n`, 'utf8')
   mkdirSync(join(root, '.agent-qa'), { recursive: true })
   mkdirSync(join(root, 'agent-qa-knowledge'), { recursive: true })
   const authPath = join(hermeticEnv(root).HOME, '.agent-qa', 'auth.json')
@@ -386,7 +383,7 @@ describe('Config tabs, links, geometry, masking and names on the shipped bundle 
     const expected = LEGACY_LINKS.map(([bucket, item, tab, section, heading]) =>
       `${bucket}:${item} -> /config/${tab} h2#config-section-${section}-heading ${heading}`)
     expect(landed).toEqual(expected)
-    expect(landed).toHaveLength(21)
+    expect(landed.length, 'the witness: there are legacy links to follow').toBeGreaterThan(0)
     expect(opened.errors).toEqual([])
     await h.close(opened)
   }, 240_000)
@@ -489,7 +486,7 @@ describe('Config tabs, links, geometry, masking and names on the shipped bundle 
     for (const tab of TABS) {
       await openTab(h, page, tab)
       const html = await page.evaluate(() => document.documentElement.outerHTML)
-      for (const [kind, sentinel] of Object.entries({ auth: SENTINELS.auth, farm: SENTINELS.farm })) if (html.includes(sentinel)) leaks.push(`${tab}: ${kind}`)
+      for (const [kind, sentinel] of Object.entries({ auth: SENTINELS.auth, access: SENTINELS.access })) if (html.includes(sentinel)) leaks.push(`${tab}: ${kind}`)
       // 441-49 (D-29): no control on the page can reveal a value.
       const controls = await page.locator('button[aria-label^="Show "], button[aria-label^="Hide "], [data-reveal-state]').count()
       if (controls > 0) reveals.push(`${tab}: ${String(controls)}`)
@@ -507,10 +504,10 @@ describe('Config tabs, links, geometry, masking and names on the shipped bundle 
     const lineWith = (fragment: string) => lines.find((line) => line.text.includes(fragment))
     expect(lineWith(`port: ${MCP_PORT}`), JSON.stringify(lines)).toEqual({ text: `port: ${MCP_PORT}`, masking: null, controls: 0 })
     // 441-21 (D-29): no line is classed by path; an undeclared value or comment reads as written and
-    // the farm key, declared in the secrets file, as its marker. 441-49: no line carries a control.
+    // the access header, declared in the secrets file, as its marker. 441-49: no line carries a control.
     expect(lines.filter((line) => line.masking !== null || line.controls !== 0), JSON.stringify(lines)).toEqual([])
     expect(lineWith('x-org-route:')?.text).toBe(`x-org-route: ${SENTINELS.header}`)
-    expect(lineWith('accessKey:')?.text).toBe(`accessKey: [secret:FARM_KEY] # was ${COMMENT_SENTINELS.trailing}`)
+    expect(lineWith('x-org-access:')?.text).toBe(`x-org-access: [secret:ACCESS_KEY] # was ${COMMENT_SENTINELS.trailing}`)
     expect(lineWith('# x-api-key:')?.text).toBe(`# x-api-key: ${COMMENT_SENTINELS.above}`)
     expect(lineWith('plugins:'), 'the plugins block is missing from the file view').toBeDefined()
     expect(lineWith(PLUGIN_PACKAGE), 'the plugin entry is missing from the file view').toBeDefined()

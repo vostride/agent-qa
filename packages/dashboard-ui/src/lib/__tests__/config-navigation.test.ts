@@ -30,7 +30,6 @@ describe('config navigation inventory', () => {
       'registry:llms',
       'registry:targets',
       'registry:devices',
-      'registry:providers',
       'use:browser',
       'use:timeouts',
       'use:planner',

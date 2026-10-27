@@ -38,7 +38,6 @@ const baseConfig = {
   use: { timeout: { step: "30s", test: "10m" }, browser: { headless: true } },
   registry: {
     llms: [{ name: "primary", provider: "openai-compatible", model: "gpt-4.1" }],
-    providers: { farm: { accessKey: "••••••••" } },
   },
 }
 
@@ -46,7 +45,10 @@ const headless: ConfigFieldRef = { segments: ["use", "browser", "headless"], tab
 const step: ConfigFieldRef = { segments: ["use", "timeout", "step"], tab: "execution" }
 const envFile: ConfigFieldRef = { segments: ["workspace", "envFile"], tab: "project" }
 const testTimeout: ConfigFieldRef = { segments: ["use", "timeout", "test"], tab: "execution" }
-const farmKey: ConfigFieldRef = { segments: ["registry", "providers", "farm", "accessKey"], tab: "targets" }
+const accessHeader: ConfigFieldRef = {
+  segments: ["registry", "llms", { name: "primary" }, "providerHeaders", "x-access"],
+  tab: "models",
+}
 const maxActions: ConfigFieldRef = { segments: ["use", "planner", "maxActions"], tab: "models" }
 const previousStepCount: ConfigFieldRef = { segments: ["use", "planner", "previousStepCount"], tab: "models" }
 
@@ -951,12 +953,12 @@ describe("C441-CONFIG", () => {
     await mount()
     let landed = false
     await act(async () => {
-      landed = await hook!.runExplicit([{ op: "set", path: [...farmKey.segments], value: "AKIA-NEW-1" }])
+      landed = await hook!.runExplicit([{ op: "set", path: [...accessHeader.segments], value: "AKIA-NEW-1" }])
     })
     await flush()
 
     expect(landed).toBe(true)
-    expect(hook!.valueOf(farmKey)).toBe("AKIA-NEW-1")
+    expect(hook!.valueOf(accessHeader)).toBe("AKIA-NEW-1")
     expect(fetchConfig).toHaveBeenCalledTimes(1)
   })
 })

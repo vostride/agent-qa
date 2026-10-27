@@ -59,22 +59,18 @@ describe('buildConfigVisibilityOracle (the schema-derived rule)', () => {
   })
 
   it('classifies every operator-named record with a free-form value as free-form', () => {
-    // The three the schema declares TODAY. They are not listed anywhere in the masker —
-    // the walk finds them because a `z.record` with an open string key and an
-    // unknown/primitive value is what "the operator names this" looks like in the schema.
+    // None of these is listed in the masker. The walk finds them because a `z.record` with an
+    // open string key and an unknown/primitive value is what "the operator names this" looks
+    // like in the schema.
     for (const key of [
-      // z.record(z.string(), z.unknown()) — the device-farm match block (round 2's leak)
+      // z.record(z.string(), z.unknown()) — the device match block
       'registry.devices.pixel.match',
       'registry.devices.pixel.match.anything-at-all',
-      // z.record(z.string(), z.unknown()) — a provider config
-      'registry.providers.acme',
-      'registry.providers.acme.region',
       // z.record(z.string(), z.string()) — operator-named key, primitive value
       'registry.llms.0.providerHeaders',
       'registry.llms.0.providerHeaders.x-key',
-      // The FOURTH the schema already had, which no plan had enumerated: an analytics
-      // attribute predicate is `string | { regex }`, and the bare-string arm means the
-      // schema constrains the shape of the value and nothing about its content — the same
+      // An analytics attribute predicate is `string | { regex }`, and the bare-string arm means
+      // the schema constrains the shape of the value and nothing about its content — the same
       // relation providerHeaders has. The rule finds it without being told.
       'analytics.passRateScope.attributes.tier',
     ]) {
@@ -612,7 +608,6 @@ describe('C441-CONFIG', () => {
           baseURL: userinfoUrl,
           providerHeaders: { 'X-Api-Key': credentialShaped },
         }],
-        providers: { acme: { apiKey: credentialShaped } },
         devices: { pixel: { platform: 'android', match: { jwt: credentialShaped } } },
       },
     }
@@ -626,7 +621,6 @@ describe('C441-CONFIG', () => {
     for (const [key, value] of [
       ['registry.llms.0.baseURL', userinfoUrl],
       ['registry.llms.0.providerHeaders.X-Api-Key', credentialShaped],
-      ['registry.providers.acme.apiKey', credentialShaped],
       ['registry.devices.pixel.match.jwt', credentialShaped],
     ] as const) {
       expect(config.entries, key).toContainEqual({ key, value, source: 'config-file', masked: false })

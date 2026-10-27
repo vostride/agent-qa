@@ -144,6 +144,21 @@ describe('retired-key pre-scan: removed production keys', () => {
   })
 })
 
+describe('retired-key pre-scan: removed BrowserStack keys', () => {
+  it('registry.providers is refused with its removal message, an empty block included', () => {
+    for (const providers of [null, {}, { browserstack: { username: 'u', accessKey: 'k' } }]) {
+      const config = { ...validBase, registry: { providers } }
+      const label = JSON.stringify(providers)
+      expect(issueMessageAt(config, 'registry.providers'), label).toBe(
+        'registry.providers was removed: BrowserStack is no longer supported; runs use local Playwright and Appium. Delete this block.',
+      )
+      expect(paramsAt(config, 'registry.providers'), label).toEqual({ retired: true })
+      const result = AgentQaConfigSchema.safeParse(config)
+      expect(result.error?.issues.filter(i => i.code === 'unrecognized_keys'), label).toEqual([])
+    }
+  })
+})
+
 describe('strict backstop — arbitrary unknown keys (D-07)', () => {
   it('still rejects an arbitrary unknown top-level key via strict parsing', () => {
     const result = AgentQaConfigSchema.safeParse({ ...validBase, totallyUnknownKey: 1 })

@@ -1,6 +1,6 @@
 // THE CONFIG PAGE'S CLOSED VOCABULARY (429 D-02/D-03/D-04 · PXH-CONF-01).
 //
-// Five tabs, their sections in order, the total map from the 21 live legacy `bucket:item` links,
+// Five tabs, their sections in order, the total map from the live legacy `bucket:item` links,
 // the resolver the page, the palette and the tour share, and every UI closed set. The type
 // twins of the C429-*-EXACT cells are in config-tabs.test-d.ts.
 
@@ -38,7 +38,7 @@ describe('the tabs and their sections (429-12 Task 1)', () => {
   it('C429-CONFIG-SECTIONS-EXACT: each tab lists its sections in the UI-SPEC S2 order', () => {
     expect(CONFIG_SECTIONS).toEqual({
       models: ['models', 'screenshot-size', 'planner-limits'],
-      targets: ['targets', 'devices', 'device-farms', 'login-states', 'mobile-app-state'],
+      targets: ['targets', 'devices', 'login-states', 'mobile-app-state'],
       execution: ['browser', 'timeouts', 'runs', 'cache', 'recording', 'accessibility', 'log-capture'],
       project: ['test-discovery', 'files', 'knowledge', 'dashboard', 'logging', 'pass-rate-scope'],
       advanced: ['mcp', 'config-file'],
@@ -62,7 +62,7 @@ describe('the tabs and their sections (429-12 Task 1)', () => {
 })
 
 describe('the legacy links (429-12 Task 1)', () => {
-  it('LEGACY-LINKS-TOTAL: the 21 live pairs each map to exactly one tab and section', () => {
+  it('LEGACY-LINKS-TOTAL: each live pair maps to exactly one tab and section', () => {
     expect(LEGACY_CONFIG_PAIRS).toEqual([
       'workspace:discovery',
       'workspace:files',
@@ -77,7 +77,6 @@ describe('the legacy links (429-12 Task 1)', () => {
       'registry:llms',
       'registry:targets',
       'registry:devices',
-      'registry:providers',
       'use:browser',
       'use:timeouts',
       'use:planner',
@@ -93,7 +92,6 @@ describe('the legacy links (429-12 Task 1)', () => {
       'use:planner': { tab: 'models', section: 'planner-limits' },
       'registry:targets': { tab: 'targets', section: 'targets' },
       'registry:devices': { tab: 'targets', section: 'devices' },
-      'registry:providers': { tab: 'targets', section: 'device-farms' },
       'services:auth-states': { tab: 'targets', section: 'login-states' },
       'use:mobile': { tab: 'targets', section: 'mobile-app-state' },
       'use:browser': { tab: 'execution', section: 'browser' },
@@ -124,7 +122,7 @@ describe('the legacy links (429-12 Task 1)', () => {
 
     const sectionsHit = LEGACY_CONFIG_PAIRS.map((pair) => LEGACY_CONFIG_LINKS[pair].section)
     expect(sectionsHit.filter((section) => section === 'models')).toHaveLength(2)
-    expect(new Set(sectionsHit).size).toBe(20)
+    expect(new Set(sectionsHit).size).toBe(LEGACY_CONFIG_PAIRS.length - 1)
   })
 
   it('LEGACY-LINK-EMPTY: no bucket parameter is no legacy link at all', () => {
@@ -163,7 +161,7 @@ describe('tab URLs and the section search (429-12 Task 1)', () => {
     expect(sectionsOf('   ')).toEqual([...CONFIG_SECTION_IDS])
     expect(sectionsOf('time')).toEqual(['timeouts'])
     expect(sectionsOf('TIME')).toEqual(['timeouts'])
-    expect(sectionsOf('device')).toEqual(['devices', 'device-farms'])
+    expect(sectionsOf('device')).toEqual(['devices'])
     // No section is about tokens any more.
     expect(sectionsOf('tokens')).toEqual([])
     for (const entry of searchConfigSections('')) {
@@ -224,13 +222,11 @@ describe('the UI closed sets (429-12 Task 1)', () => {
     expect(TEST_RESULTS).toEqual(['testing', 'connected', 'connected-without-key', 'failed'])
   })
 
-  // 432-22 (D-12): the two token deletes left with the token lists (eleven -> nine).
-  it('C429-EXPLICIT-ACTION-KINDS-EXACT: the nine kinds of S6', () => {
+  it('the explicit action kinds, in order', () => {
     expect(EXPLICIT_ACTION_KINDS).toEqual([
       'delete-model',
       'delete-target',
       'delete-device',
-      'delete-device-farm',
       'sign-out',
       'remove-key',
       'change-knowledge-dir',

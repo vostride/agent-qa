@@ -58,11 +58,8 @@ export const DeviceProfileSchema = z.object({
   }
 })
 
-export const ProviderConfigSchema = z.record(z.string(), z.unknown())
-
 export const RegistrySchema = z.object({
   llms: z.array(NamedLLMConfigSchema).optional().default([]),
   targets: z.record(TargetNameSchema, TargetSchema).optional(),
   devices: z.record(z.string(), DeviceProfileSchema).optional(),
-  providers: z.record(z.string(), ProviderConfigSchema).optional(),
 }).strict()

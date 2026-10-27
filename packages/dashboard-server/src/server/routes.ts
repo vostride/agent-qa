@@ -1521,7 +1521,7 @@ export function sanitizeQueuedExecutionTimeout(value: unknown): number | undefin
  *     405-07: this line used to name the run-detail timeline module that read it, which 405-03
  *     deleted; that plan's scope boundary kept it out of server code, so the dangling reference
  *     was carried here as a deferred item and is scrubbed with the rest of the retired feed.)
- *   - `farmSessionUrl`, `runDevice` — read by the run navbar for a device-farm run.
+ *   - `farmSessionUrl`, `runDevice` — read by the run navbar for a BrowserStack run.
  *
  * WHAT IS DELIBERATELY OFF IT: `confirmScope`, the leak this closes — and everything a caller
  * stuffed into `POST /api/queue/enqueue`'s free-form `metadata`, which used to round-trip verbatim

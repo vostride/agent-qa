@@ -138,7 +138,6 @@ const { sampleConfig, fullConfig, page } = vi.hoisted(() => ({
         },
       },
       devices: { iosLocal: { platform: 'ios', transport: 'local', match: { udid: 'abc' } } },
-      providers: { browserstack: { username: 'qa-team' } },
     },
     use: {
       browser: { name: 'chromium', headless: true, viewport: { width: 1280, height: 720 } },
@@ -211,7 +210,6 @@ const { sampleConfig, fullConfig, page } = vi.hoisted(() => ({
     ],
     targets: { staging: { platform: 'web', url: 'https://example.com' } },
     devices: { iosLocal: { platform: 'ios', transport: 'local', match: { udid: 'abc' } } },
-    providers: { openai: { apiBase: 'https://api.openai.com/v1' } },
   },
   use: {
     browser: { name: 'chromium', headless: true, viewport: { width: 1280, height: 720 } },
@@ -293,7 +291,6 @@ const EXPECTED_DESTINATIONS = [
   'registry:llms',
   'registry:targets',
   'registry:devices',
-  'registry:providers',
   'use:browser',
   'use:timeouts',
   'use:planner',
@@ -317,7 +314,6 @@ const SURFACE_MARKERS: Record<string, { title: string; marker: string }> = {
   'registry:llms': { title: 'Models', marker: ADD_MODEL_LABEL },
   'registry:targets': { title: 'Targets', marker: 'Add target' },
   'registry:devices': { title: 'Devices', marker: 'Add device' },
-  'registry:providers': { title: 'Device farms', marker: 'Add device farm' },
   'use:browser': { title: 'Browser', marker: 'Viewport width' },
   'use:timeouts': { title: 'Timeouts', marker: 'Step timeout' },
   'use:planner': { title: 'Planner limits', marker: PLANNER_FIELD_LABELS.maxActions },
@@ -815,7 +811,7 @@ describe('ConfigPage schema coverage', () => {
     }
   })
 
-  it('Config section shells: all 21 legacy destinations', async () => {
+  it('Config section shells: every legacy destination', async () => {
     const destinations: string[] = [...LEGACY_CONFIG_PAIRS]
 
     expect(destinations).toEqual(EXPECTED_DESTINATIONS)
@@ -867,11 +863,10 @@ describe('ConfigPage schema coverage', () => {
     ])
   })
 
-  it('Config section shells: Targets Devices Providers sections', async () => {
+  it('Config section shells: Targets and Devices sections', async () => {
     await assertConfigSectionShells([
       'registry:targets',
       'registry:devices',
-      'registry:providers',
     ])
   })
 

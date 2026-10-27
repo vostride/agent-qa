@@ -116,7 +116,7 @@ describe('COPY-429: the Config strings of record (429-12 Task 2)', () => {
     expect(copy.undoLine('sign-out', 'gpt')).toBe('Signed out of gpt')
     expect(copy.undoLine('remove-key', 'gpt')).toBe('Removed the key for gpt')
     expect(copy.undoLine('change-db-path', 'ignored')).toBe('Changed the database')
-    expect(copy.deleteActionName('delete-device-farm', 'bs')).toBe('Delete device farm bs')
+    expect(copy.deleteActionName('delete-device', 'pixel')).toBe('Delete device pixel')
     expect(copy.applyActionName('database')).toBe('Apply database')
   })
 

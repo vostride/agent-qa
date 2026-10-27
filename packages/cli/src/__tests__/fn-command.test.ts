@@ -137,6 +137,9 @@ function fixtureWorkspace(roots: string[]): FixtureWorkspace {
               'x-key': FIXTURE_HEADER_KEY,
               'x-cred': FIXTURE_HEADER_CRED,
               'x-pwd': FIXTURE_HEADER_PWD,
+              'x-acme-access': FIXTURE_API_KEY,
+              'x-acme-key': FIXTURE_PROVIDER_KEY,
+              'x-acme-origin': 'https://acme.test',
             },
           },
           // Two more schema-legal entries carrying baseURLs the URL parser will NOT resolve
@@ -165,13 +168,6 @@ function fixtureWorkspace(roots: string[]): FixtureWorkspace {
             baseURL: `https://ops.acme.test/v1/keys/${FIXTURE_KEY_IN_PATH_SECRET}`,
           },
         ],
-        providers: {
-          acme: {
-            apiKey: FIXTURE_API_KEY,
-            key: FIXTURE_PROVIDER_KEY,
-            baseURL: 'https://acme.test',
-          },
-        },
         // A web target requires a url, so this is the schema-legal shape the SECOND
         // credential-bearing visible field arrives in.
         targets: {
@@ -208,7 +204,7 @@ function fixtureWorkspace(roots: string[]): FixtureWorkspace {
           pixel: {
             platform: 'android',
             // A non-'local' transport is what leaves the `match` keys unrestricted, so
-            // this is the schema-legal shape a device-farm credential arrives in.
+            // this is the schema-legal shape an operator-named match value arrives in.
             transport: 'browserstack',
             match: FIXTURE_DEVICE_MATCH_CREDENTIALS,
           },
@@ -866,17 +862,17 @@ describe('agent-qa fn (generic function invoker)', () => {
     const config = JSON.parse(result.stdout) as MaskedResolvedConfig
     expect(config.configPath).toBe(workspace.configPath)
     const apiKey = config.entries.find(
-      (entry) => entry.key === 'registry.providers.acme.apiKey',
+      (entry) => entry.key === 'registry.llms.0.providerHeaders.x-acme-access',
     )
     expect(apiKey).toEqual({
-      key: 'registry.providers.acme.apiKey',
+      key: 'registry.llms.0.providerHeaders.x-acme-access',
       value: FIXTURE_API_KEY_MARKER,
       source: 'config-file',
       masked: true,
     })
     // A neighbouring undeclared leaf in the same record is shown as written.
     expect(config.entries).toContainEqual({
-      key: 'registry.providers.acme.baseURL',
+      key: 'registry.llms.0.providerHeaders.x-acme-origin',
       value: 'https://acme.test',
       source: 'config-file',
       masked: false,
@@ -904,7 +900,7 @@ describe('agent-qa fn (generic function invoker)', () => {
       ['registry.llms.0.providerHeaders.x-key', FIXTURE_HEADER_KEY],
       ['registry.llms.0.providerHeaders.x-cred', FIXTURE_HEADER_CRED],
       ['registry.llms.0.providerHeaders.x-pwd', FIXTURE_HEADER_PWD],
-      ['registry.providers.acme.key', FIXTURE_PROVIDER_KEY],
+      ['registry.llms.0.providerHeaders.x-acme-key', FIXTURE_PROVIDER_KEY],
       [
         'registry.llms.0.baseURL',
         `https://ops:${FIXTURE_URL_PASSWORD}@llm.acme.test/v1?ticket=${FIXTURE_URL_QUERY_SECRET}#assertion=${FIXTURE_URL_FRAGMENT_SECRET}`,
@@ -933,7 +929,7 @@ describe('agent-qa fn (generic function invoker)', () => {
       expect(byKey[key], key).toEqual({ key, value, source: 'config-file', masked: false })
     }
     expect(config.entries.filter((entry) => entry.masked).map((entry) => entry.key))
-      .toEqual(['registry.providers.acme.apiKey'])
+      .toEqual(['registry.llms.0.providerHeaders.x-acme-access'])
   })
 
   it('shows which packages load in-process, for BOTH plugin kinds (M-01)', async () => {

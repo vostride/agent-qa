@@ -702,19 +702,29 @@ describe('PATCH /api/config move (429-52)', () => {
     expect(text).not.toContain('X-Org')
   })
 
-  // 441-21 (D-29): a move is no longer refused by the masking class of either end.
-  it('MOVE-SUBTREE-ACROSS-PATHS-LANDS: a block moved between paths the map once classed differently lands whole', async () => {
-    const withProvider = headerConfig.replace('registry:\n', 'registry:\n  providers:\n    farm:\n      platform: android\n      transport: local\n')
-    const configPath = await useConfigWorkspace(withProvider)
+  it('MOVE-SUBTREE-ACROSS-PATHS-LANDS: a block moved to another entry lands whole and leaves its old path', async () => {
+    const withRelay = headerConfig.replace('  llms:\n', [
+      '  llms:',
+      '    - name: relay',
+      '      provider: anthropic-compatible',
+      '      model: claude-relay',
+      '      baseURL: https://relay.example.test/v1',
+      '',
+    ].join('\n'))
+    const configPath = await useConfigWorkspace(withRelay)
 
     const response = await patchConfig({
-      changes: [{ op: 'move', from: ['registry', 'providers', 'farm'], path: ['registry', 'devices', 'farm'] }],
+      changes: [{ op: 'move', from: HEADERS, path: ['registry', 'llms', { name: 'relay' }, 'providerHeaders'] }],
     })
 
     expect(response.status, response.body).toBe(200)
-    const parsed = parseYaml(await readFile(configPath, 'utf-8')) as { registry: Record<string, unknown> }
-    expect(parsed.registry.devices).toEqual({ farm: { platform: 'android', transport: 'local' } })
-    expect(parsed.registry).not.toHaveProperty('providers')
+    expect(response.body).not.toContain(HEADER_SECRET)
+    const parsed = parseYaml(await readFile(configPath, 'utf-8')) as {
+      registry: { llms: Array<{ name: string; providerHeaders?: unknown }> }
+    }
+    const byName = Object.fromEntries(parsed.registry.llms.map((llm) => [llm.name, llm]))
+    expect(byName.relay!.providerHeaders).toEqual({ 'X-Org': HEADER_SECRET })
+    expect(byName.proxy).not.toHaveProperty('providerHeaders')
   })
 
   it('MOVE-FROM-MISSING-REFUSED: a move from a header that is not there is refused 422 and nothing is written', async () => {

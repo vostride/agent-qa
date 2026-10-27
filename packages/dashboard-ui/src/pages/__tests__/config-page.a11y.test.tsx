@@ -84,7 +84,6 @@ const { fullConfig } = vi.hoisted(() => ({
         },
       },
       devices: { iosLocal: { platform: 'ios', transport: 'local', match: { udid: 'abc' } } },
-      providers: { browserstack: { username: 'qa-team' } },
     },
     use: {
       browser: { name: 'chromium', headless: true, viewport: { width: 1280, height: 720 } },
@@ -341,18 +340,18 @@ async function openTab(tab: ConfigTab) {
   }
 }
 
-async function deleteDeviceFarm() {
+async function deleteDevice() {
   vi.mocked(applyConfigChanges).mockResolvedValueOnce({
     revision: 'rev-2',
-    undo: { token: 'tok-farm', expiresAt: Date.now() + 30_000 },
+    undo: { token: 'tok-device', expiresAt: Date.now() + 30_000 },
   } as never)
   await renderAt('/config/targets')
   const remove = (Array.from(panel('targets').querySelectorAll('button')) as HTMLButtonElement[]).find(
-    (button) => button.getAttribute('aria-label') === deleteActionName('delete-device-farm', 'browserstack'),
+    (button) => button.getAttribute('aria-label') === deleteActionName('delete-device', 'iosLocal'),
   )
-  expect(remove, 'the device farm delete button').toBeDefined()
+  expect(remove, 'the device delete button').toBeDefined()
   await click(remove!)
-  expect(container!.textContent).toContain(undoLine('delete-device-farm', 'browserstack'))
+  expect(container!.textContent).toContain(undoLine('delete-device', 'iosLocal'))
 }
 
 describe('ConfigPage accessibility', () => {
@@ -376,7 +375,7 @@ describe('ConfigPage accessibility', () => {
       expect.arrayContaining(['tab', 'switch', 'radio', 'combobox']),
     )
 
-    await deleteDeviceFarm()
+    await deleteDevice()
     const unnamed = unnamedControls()
     expect(unnamed, `after a delete: unnamed controls:\n${unnamed.join('\n')}`).toEqual([])
     expect(unhiddenGlyphs()).toEqual([])
@@ -392,7 +391,7 @@ describe('ConfigPage accessibility', () => {
       container = null
     }
 
-    await deleteDeviceFarm()
+    await deleteDevice()
     expect(dialogs(), 'after a delete').toEqual([])
   })
 })

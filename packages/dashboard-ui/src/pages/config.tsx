@@ -53,7 +53,6 @@ import { KnowledgeSection } from "@/components/config-manager/knowledge-section"
 import { VisionSection } from "@/components/config-manager/vision-section"
 import { TargetsSection } from "@/components/config-manager/targets-section"
 import { DevicesSection } from "@/components/config-manager/devices-section"
-import { ProvidersSection } from "@/components/config-manager/providers-section"
 import { AnalyticsSection } from "@/components/config-manager/analytics-section"
 import { McpSection } from "@/components/config-manager/mcp-section"
 import { ConfigFileView } from "@/components/config-manager/config-file-view"
@@ -69,7 +68,6 @@ const SECTION_COMPONENTS: Partial<Record<ConfigSectionId, readonly ComponentType
   "planner-limits": [PlannerSection],
   targets: [TargetsSection],
   devices: [DevicesSection],
-  "device-farms": [ProvidersSection],
   "login-states": [AuthStatesSection],
   "mobile-app-state": [MobileSection],
   browser: [BrowserSection],
