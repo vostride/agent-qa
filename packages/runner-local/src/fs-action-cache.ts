@@ -41,6 +41,7 @@ export interface FsActionCacheConfig {
 export class FsActionCache implements ActionPlanCache {
   private readonly root: string
   private readonly policy: CachePolicy
+  private readonly skipped = new Set<CacheKey>()
 
   constructor(config: FsActionCacheConfig) {
     this.root = config.root
@@ -48,7 +49,7 @@ export class FsActionCache implements ActionPlanCache {
   }
 
   async get(key: CacheKey): Promise<CachedPlanValue | null> {
-    if (this.policy.disableCache) return null
+    if (this.policy.disableCache || this.skipped.has(key)) return null
 
     const onCurrent = await this.readEntry(this.policy.currentBranch, key)
     if (onCurrent?.kind === 'suppressed') return null
@@ -67,6 +68,12 @@ export class FsActionCache implements ActionPlanCache {
   }
 
   async invalidate(key: CacheKey): Promise<void> {
+    // A run that may not write the cache never deletes or marks an entry; it skips the key
+    // for the rest of this store's life, and the next run that may write replaces the entry.
+    if (!shouldWrite(this.policy)) {
+      this.skipped.add(key)
+      return
+    }
     const { currentBranch, defaultBranch } = this.policy
     // The default branch's entry is never changed from another branch: a marker on the
     // current branch hides it instead.

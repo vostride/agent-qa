@@ -254,6 +254,58 @@ describe('a rejected entry on a branch that may write', () => {
   })
 })
 
+describe('a rejected entry on a branch that may not write', () => {
+  let root: string
+  let mainFile: string
+  let mainBytes: string
+
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), 'fs-action-cache-no-write-'))
+    mainFile = join(root, 'main', `${KEY}.json`)
+    mainBytes = JSON.stringify({ schemaVersion: CACHE_SCHEMA_VERSION, value: makeValue() })
+    await mkdir(join(root, 'main'), { recursive: true })
+    await writeFile(mainFile, mainBytes, 'utf-8')
+  })
+
+  afterEach(async () => {
+    await rm(root, { recursive: true, force: true })
+  })
+
+  it('a protected branch deletes and marks nothing, and the same store skips the entry afterwards', async () => {
+    const policy = makePolicy({
+      currentBranch: 'main',
+      defaultBranch: 'main',
+      protectedBranches: ['main'],
+    })
+    const cache = new FsActionCache({ root, policy })
+    expect(await cache.get(KEY)).toEqual(makeValue())
+
+    await cache.invalidate(KEY)
+
+    expect(await readFile(mainFile, 'utf-8')).toBe(mainBytes)
+    expect(await readdir(root)).toEqual(['main'])
+    expect(await readdir(join(root, 'main'))).toEqual([`${KEY}.json`])
+    expect(await cache.get(KEY)).toBeNull()
+    expect(await new FsActionCache({ root, policy }).get(KEY)).toEqual(makeValue())
+  })
+
+  it('a protected feature branch writes no marker over an inherited entry', async () => {
+    const cache = new FsActionCache({
+      root,
+      policy: makePolicy({
+        currentBranch: 'feature',
+        defaultBranch: 'main',
+        protectedBranches: ['main', 'feature'],
+      }),
+    })
+
+    await cache.invalidate(KEY)
+
+    expect(await readdir(root)).toEqual(['main'])
+    expect(await cache.get(KEY)).toBeNull()
+  })
+})
+
 describe('purgeActionCache', () => {
   let root: string
 
