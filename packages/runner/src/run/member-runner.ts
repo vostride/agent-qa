@@ -208,7 +208,7 @@ export interface MemberRunConfig {
   accessibility?: {
     enabled: boolean
     standard?: 'wcag2a' | 'wcag2aa' | 'wcag2aaa'
-    runAfter?: 'every-step' | 'navigation' | 'test-end'
+    runAfter?: 'every-step' | 'test-end'
     failOnViolation?: boolean
     disableRules?: string[]
     exclude?: string[]
