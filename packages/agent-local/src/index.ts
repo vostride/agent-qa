@@ -309,6 +309,8 @@ export {
 
 export { HANDOFF_FILE, RUNS_SUBDIR, loadCompletedRunHandoff } from './composition/run-layout.js'
 
+export { purgeActionCache } from './composition/action-cache.js'
+
 // A standing host adopts the durable queue through this recovery entry before it opens the
 // ordinary local-agent composition. Publishing the entry keeps that ordering shared instead of
 // making each surface reach into agent-local's private source tree and re-create the recovery law.

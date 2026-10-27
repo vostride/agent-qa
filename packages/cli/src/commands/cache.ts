@@ -1,8 +1,8 @@
 import { Command } from 'commander'
 import pc from 'picocolors'
 import { dirname, resolve } from 'node:path'
+import { purgeActionCache } from '@vostride/agent-qa-agent-local'
 import { DEFAULT_AGENT_QA_CACHE_DIR } from '@vostride/agent-qa-core'
-import { purgeActionCache } from '@vostride/agent-qa-runner-local'
 import { resolveConfig } from '../config.js'
 
 const CACHE_DIR_FALLBACK = DEFAULT_AGENT_QA_CACHE_DIR || '.agent-qa/cache'
