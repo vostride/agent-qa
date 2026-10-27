@@ -76,10 +76,11 @@ const POST_VERDICT_TIMED_OUT: unique symbol = Symbol('post-verdict-budget-expire
 /**
  * Race a promise against a bounded one-shot, on the run's OWN clock when it has one.
  *
- * `ports.timer` is the clock `runBudgetMs` is armed on, so a unit pin that fires the fake timer
- * drives this bound deterministically; without one, a real unref'd `setTimeout` bounds it exactly
- * as the bus's default clock does. The timer is ALWAYS cancelled — a bound that outlived the race
- * it bounded would keep the process alive past a run that had already finished.
+ * `ports.timer` is the post-verdict bound's clock, kept apart from the bus heartbeat, so a unit pin
+ * that fires the fake timer drives this bound deterministically; without one, a real unref'd
+ * `setTimeout` bounds it exactly as the bus's default clock does. The timer is ALWAYS cancelled —
+ * a bound that outlived the race it bounded would keep the process alive past a run that had
+ * already finished.
  *
  * The loser is not cancelled, and cannot be: a promise the host handed over has no abort seam. A
  * step that answers after the budget answers into a void, which is what "detached" already means.
@@ -213,20 +214,7 @@ export function startRun(config: RunConfig): RunSession {
 
   let status: 'running' | RunStatus = 'running'
   let runCancelled = false
-  let runBudgetExpired = false
   const runController = new AbortController()
-
-  // Run-budget clock (D-03): expiry aborts the active member and rolls up to a `timeout` verdict.
-  //
-  // 2026-10-02 (432-42, D-14): ONE-SHOT. The D-10 pause credit re-armed the budget for time a person
-  // spent at a confirm prompt; no run asks, the supplier always answered 0, and it is deleted.
-  let cancelBudget: (() => void) | undefined
-  if (config.runBudgetMs !== undefined && timer) {
-    cancelBudget = timer.schedule(config.runBudgetMs, () => {
-      runBudgetExpired = true
-      runController.abort()
-    })
-  }
 
   const done: Promise<RunCompletion> = (async (): Promise<RunCompletion> => {
     const memberCount = config.members.length
@@ -595,7 +583,6 @@ export function startRun(config: RunConfig): RunSession {
     // ---- Terminal sequence — ONE owner (Pitfall 7) -------------------------------------------
     const verdict = deriveAggregateVerdict({
       runCancelled,
-      runBudgetExpired,
       outcomes: memberOutcomes,
       quarantined: memberQuarantined,
     })
@@ -640,8 +627,8 @@ export function startRun(config: RunConfig): RunSession {
     // and `bus.close()` still behind it: an absent port (no warning: nothing was promised), a
     // throw, a resolution carrying its own warning, and a step that outlives
     // POST_VERDICT_STEP_BUDGET_MS. The budget is raced on `ports.timer` when one is injected — the
-    // SAME clock `runBudgetMs` is armed on, so a fake timer drives the timeout deterministically —
-    // and on a real one-shot otherwise.
+    // post-verdict bound's own clock, kept apart from the bus heartbeat, so a fake timer drives the
+    // timeout deterministically — and on a real one-shot otherwise.
     let disposition: PostProcessingDisposition = 'detached'
     if (ports.postVerdict !== undefined) {
       const step = ports.postVerdict
@@ -690,7 +677,6 @@ export function startRun(config: RunConfig): RunSession {
       finalSeq: bus.currentSeq + 1,
     })
 
-    cancelBudget?.()
     // Every started screencast stops before the bus closes — the hub's warnings still have a bus.
     await liveStreams.close()
     bus.close()

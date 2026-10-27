@@ -426,9 +426,8 @@ export interface RunPorts {
    */
   runArtifactStore?: RunArtifactStorePort
   /**
-   * The run-budget clock (D-03). The shell arms `runBudgetMs` on this timer; it is NOT
-   * routed into the bus heartbeat (the two clocks stay distinct so firing the injected
-   * budget timer is unambiguous — see the shell's timer note).
+   * The clock the post-verdict step's bound runs on. It is NOT routed into the bus heartbeat:
+   * the two clocks stay apart so a fake timer drives that bound deterministically.
    */
   timer?: RunTimerPort
   // 2026-10-02 (432-42, D-14): no pause supplier. It credited time a person spent at a confirm
@@ -502,7 +501,6 @@ export interface RunConfig {
    * else. Absent ⇒ the run's events are published as written.
    */
   secretRedactor?: SecretRedactorPort
-  runBudgetMs?: number
   ports?: RunPorts
   /**
    * The D-08 config + source artifact snapshot the CLI composition root assembles (the
@@ -536,11 +534,10 @@ export interface RunConfig {
    * changes until a config resolves a higher value. Effective concurrency is
    * `min(members.length, workers)`; values below 1 and non-finite values resolve to 1.
    *
-   * CONFIG-RESOLVED, NEVER REQUEST-SUPPLIED (D-12). It arrives on the already-resolved RunConfig
-   * the composition root builds, exactly like `runBudgetMs` — `RunsStartInput` carries no
-   * concurrency field, so a remote token-holder cannot raise the concurrency of a target whose
-   * owner tuned it down (the refused-request-fields posture), and unbounded concurrency
-   * (T-402-08) has no reachable input.
+   * CONFIG-RESOLVED, NEVER REQUEST-SUPPLIED. It arrives on the already-resolved RunConfig the
+   * composition root builds. `RunsStartInput` carries no concurrency field, so a remote
+   * token-holder cannot raise the concurrency of a target whose owner tuned it down (the
+   * refused-request-fields posture), and unbounded concurrency has no reachable input.
    */
   workers?: number
 }

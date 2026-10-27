@@ -44,23 +44,21 @@ export function deriveMemberOutcome(result: TestResult): MemberTestOutcome {
  * rule with the D-15 neutral-skipped clause. EVALUATED IN ORDER:
  *
  *  1. `runCancelled` ⇒ `'cancelled'` (a whole-run cancel wins over everything)
- *  2. `runBudgetExpired` ⇒ `'timeout'` (reserved for the whole-run wall-clock budget;
- *     a member 'timeout' is NOT this — it falls to the failed branch below)
- *  3. any member `'failed'` or `'timeout'` ⇒ `'failed'`
- *  4. any member `'cancelled'` (none failed) ⇒ `'cancelled'`
- *  5. any member `'healed'` (none failed) ⇒ `'healed'`
- *  6. else ⇒ `'passed'`
+ *  2. any member `'failed'` or `'timeout'` ⇒ `'failed'`
+ *  3. any member `'cancelled'` (none failed) ⇒ `'cancelled'`
+ *  4. any member `'healed'` (none failed) ⇒ `'healed'`
+ *  5. else ⇒ `'passed'`
  *
  * `'skipped'` members are neutral throughout — an all-skipped (or empty) run is
  * vacuously `'passed'` (D-15, the reconciled clause; matches every test runner).
  *
- * PHASE 390 D-14 — the quarantine skip is EXPLICIT IN THE RULE, right here in step 3 and nowhere
- * else. `quarantined[i] === true` marks a member whose failure the committed ledger has licensed:
- * step 3 passes over it, so a run whose only failures are quarantined aggregates `'passed'` and
+ * The quarantine skip is EXPLICIT IN THE RULE, right here in step 2 and nowhere else.
+ * `quarantined[i] === true` marks a member whose failure the committed ledger has licensed:
+ * step 2 passes over it, so a run whose only failures are quarantined aggregates `'passed'` and
  * exits 0 through the untouched {@link mapVerdictToExitCode}. Three things this deliberately does
  * NOT do: it does not rewrite the member outcome (`'failed'` stays `'failed'` — the projection
  * window and the auto-exit keep seeing reality), it does not touch any other branch (a sibling
- * `'cancelled'`/`'healed'` still governs, and the two run-level branches still win outright), and
+ * `'cancelled'`/`'healed'` still governs, and the run-level cancel branch still wins outright), and
  * it does not widen either closed union. `quarantined` absent — or shorter than `outcomes` — is
  * byte-identical pre-390 behavior, which is why every existing call site compiles unchanged.
  *
@@ -70,12 +68,10 @@ export function deriveMemberOutcome(result: TestResult): MemberTestOutcome {
  */
 export function deriveAggregateVerdict(input: {
   runCancelled: boolean
-  runBudgetExpired: boolean
   outcomes: readonly MemberTestOutcome[]
   quarantined?: readonly boolean[]
 }): RunStatus {
   if (input.runCancelled) return 'cancelled'
-  if (input.runBudgetExpired) return 'timeout'
   const quarantined = input.quarantined
   if (
     input.outcomes.some(

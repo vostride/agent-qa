@@ -282,9 +282,9 @@ describe('run lifecycle emission (SESSION-04, spec §2.2)', () => {
   })
 })
 
-// ---- Cancellation + budget (D-03) ----------------------------------------
+// ---- Cancellation ----------------------------------------------------------
 
-describe('run-level cancel + budget (D-03)', () => {
+describe('run-level cancel', () => {
   it('session.cancel() aborts the active member, skips the rest, aggregates cancelled', async () => {
     const calls: string[] = []
     const session = startRun(baseConfig({ executor: abortableExecutor(calls) }))
@@ -294,132 +294,6 @@ describe('run-level cancel + budget (D-03)', () => {
     expect(verdict).toBe('cancelled')
     // The second member is never started once the run is cancelled.
     expect(calls).toEqual(['a'])
-  })
-
-  it('run-budget expiry aborts the active member and aggregates timeout', async () => {
-    const timer = makeFakeTimer()
-    const calls: string[] = []
-    const session = startRun(
-      baseConfig({ executor: abortableExecutor(calls), runBudgetMs: 5_000, ports: { handoffStore: makeFakeHandoffStore(), timer } }),
-    )
-    drain(session)
-    timer.fireLatest() // simulate budget expiry
-    const { verdict } = await done(session)
-    expect(verdict).toBe('timeout')
-  })
-})
-
-// ---- Pause-aware run-budget expiry (D-10, plan 362-04) — RETIRED 2026-10-02 (432-42, D-14) ----
-//
-// D-10 credited human confirm time back to the run budget: when the budget "expired" while an
-// injected `confirmPausedMs` supplier reported un-credited confirm time, the shell re-armed for that
-// delta. No run asks since 432-13/19, the supplier always answered 0, and 432-42 deletes it from
-// `RunPorts` with the re-arm. These four cells are re-spelled to the one-shot budget each title now
-// states (old titles in the notes). Where a cell hands a legacy supplier, it is smuggled past the
-// type and proven unread: it is never called and the budget is armed exactly once.
-
-/** A legacy pause supplier, smuggled past `RunPorts`; it counts every call it gets. */
-function smuggledPauseSupplier(pausedMs: number): { readonly calls: () => number; readonly ports: object } {
-  let calls = 0
-  return {
-    calls: () => calls,
-    ports: { confirmPausedMs: () => { calls += 1; return pausedMs } },
-  }
-}
-
-describe('pause-aware run-budget expiry (D-10)', () => {
-  // RE-TITLED 2026-10-02 (432-42) from 'Test 1: expiry re-arms for accrued confirm-pause instead of
-  // aborting; run completes normally'.
-  it('Test 1: a smuggled legacy pause supplier is never read; expiry aborts with budget-timeout semantics', async () => {
-    const timer = makeFakeTimer()
-    const calls: string[] = []
-    const legacy = smuggledPauseSupplier(3_000)
-    const session = startRun(
-      baseConfig({
-        executor: abortableExecutor(calls),
-        runBudgetMs: 5_000,
-        ports: { handoffStore: makeFakeHandoffStore(), timer, ...legacy.ports },
-      }),
-    )
-    drain(session)
-    timer.fireLatest()
-    const { verdict } = await done(session)
-    expect(verdict).toBe('timeout')
-    expect(legacy.calls(), 'the shell read the deleted pause supplier').toBe(0)
-  })
-
-  // RE-TITLED 2026-10-02 (432-42) from 'Test 2: re-armed expiry with no further pause aborts with
-  // budget-timeout semantics'.
-  it('Test 2: the first expiry aborts; nothing re-arms the budget', async () => {
-    const base = makeFakeTimer()
-    const delays: number[] = []
-    const recordingTimer: FakeTimer = {
-      now: base.now,
-      fireLatest: base.fireLatest,
-      schedule(delayMs: number, fn: () => void) {
-        delays.push(delayMs)
-        return base.schedule(delayMs, fn)
-      },
-    }
-    const calls: string[] = []
-    const session = startRun(
-      baseConfig({
-        executor: abortableExecutor(calls),
-        runBudgetMs: 5_000,
-        ports: { handoffStore: makeFakeHandoffStore(), timer: recordingTimer },
-      }),
-    )
-    drain(session)
-    base.fireLatest()
-    const { verdict } = await done(session)
-    expect(verdict).toBe('timeout')
-    expect(delays).toEqual([5_000])
-  })
-
-  it('Test 3: no confirmPausedMs supplier bound — expiry aborts immediately (byte-identical to today)', async () => {
-    const timer = makeFakeTimer()
-    const calls: string[] = []
-    const session = startRun(
-      baseConfig({
-        executor: abortableExecutor(calls),
-        runBudgetMs: 5_000,
-        ports: { handoffStore: makeFakeHandoffStore(), timer },
-      }),
-    )
-    drain(session)
-    timer.fireLatest()
-    const { verdict } = await done(session)
-    expect(verdict).toBe('timeout')
-  })
-
-  // RE-TITLED 2026-10-02 (432-42) from 'Test 4: cumulative pause across multiple confirms re-arms
-  // for the un-credited delta only (never double-counts)'.
-  it('Test 4: the budget is armed once for runBudgetMs, whatever a legacy supplier would report', async () => {
-    const base = makeFakeTimer()
-    const delays: number[] = []
-    const recordingTimer: FakeTimer = {
-      now: base.now,
-      fireLatest: base.fireLatest,
-      schedule(delayMs: number, fn: () => void) {
-        delays.push(delayMs)
-        return base.schedule(delayMs, fn)
-      },
-    }
-    const calls: string[] = []
-    const legacy = smuggledPauseSupplier(5_000)
-    const session = startRun(
-      baseConfig({
-        executor: abortableExecutor(calls),
-        runBudgetMs: 5_000,
-        ports: { handoffStore: makeFakeHandoffStore(), timer: recordingTimer, ...legacy.ports },
-      }),
-    )
-    drain(session)
-    base.fireLatest()
-    const { verdict } = await done(session)
-    expect(verdict).toBe('timeout')
-    expect(delays).toEqual([5_000])
-    expect(legacy.calls()).toBe(0)
   })
 })
 

@@ -396,7 +396,7 @@ describe('fail-fast poisoning is disposition-aware (CR-01, D-14)', () => {
 // ---- The rule itself (D-14: the skip is EXPLICIT in deriveAggregateVerdict) ----
 
 describe('deriveAggregateVerdict quarantine skip', () => {
-  const base = { runCancelled: false, runBudgetExpired: false }
+  const base = { runCancelled: false }
 
   it('skips quarantined failed AND timeout members', () => {
     for (const outcome of ['failed', 'timeout'] as MemberTestOutcome[]) {
@@ -426,23 +426,14 @@ describe('deriveAggregateVerdict quarantine skip', () => {
     ).toBe('passed')
   })
 
-  it('leaves every other branch untouched — the run-level branches win regardless', () => {
+  it('leaves every other branch untouched — the run-level cancel wins regardless', () => {
     expect(
       deriveAggregateVerdict({
         runCancelled: true,
-        runBudgetExpired: false,
         outcomes: ['failed'],
         quarantined: [true],
       }),
     ).toBe('cancelled')
-    expect(
-      deriveAggregateVerdict({
-        runCancelled: false,
-        runBudgetExpired: true,
-        outcomes: ['failed'],
-        quarantined: [true],
-      }),
-    ).toBe('timeout')
     // A quarantined member never suppresses a sibling 'cancelled' or 'healed' signal.
     expect(
       deriveAggregateVerdict({

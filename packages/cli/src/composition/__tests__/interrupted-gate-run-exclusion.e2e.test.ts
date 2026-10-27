@@ -32,11 +32,6 @@
 // the mechanism is — never as evidence that the marker works. A cell that implied otherwise would
 // be describing a control it does not have.
 //
-// WHAT IS STILL NOT RANGED, AND WHY THAT IS THE RIGHT ANSWER: a run aborted mid-step by
-// `runBudgetMs`, with partial step evidence on the record. `runBudgetMs` is UNWIRED — it is
-// UNREACHABLE, not untested — so a cell against it could only be a vacuous guard on a path nothing
-// can enter. The abstention is deliberate and recorded in 401-22's SUMMARY with its reason.
-//
 // ---- ONE SUBSTITUTION, DECLARED --------------------------------------------------------------
 //
 // The COMPLETED sibling's own durable handoff is rewritten on disk with a member list the

@@ -464,18 +464,6 @@ describe('SESSION-04 — one RunSession over N members: the ratified aggregate r
     expect(mapVerdictToExitCode(verdict)).toBe(1)
   })
 
-  it('whole-run budget expiry ⇒ aggregate timeout ⇒ exit 1', async () => {
-    const timer = makeFakeTimer()
-    const session = startRun(
-      baseConfig({ executor: abortableExecutor(), runBudgetMs: 5_000, ports: { handoffStore: makeFakeHandoffStore(), timer } }),
-    )
-    drain(session)
-    timer.fireLatest() // simulate the wall-clock budget firing
-    const { verdict } = await session.done
-    expect(verdict).toBe('timeout')
-    expect(mapVerdictToExitCode(verdict)).toBe(1)
-  })
-
   it('run-level cancel ⇒ aggregate cancelled ⇒ exit 130 via mapVerdictToExitCode', async () => {
     const session = startRun(baseConfig({ executor: abortableExecutor() }))
     drain(session)
@@ -486,8 +474,8 @@ describe('SESSION-04 — one RunSession over N members: the ratified aggregate r
   })
 
   it('the ratified ordered rule + D-15 neutral-skipped clause hold directly on deriveAggregateVerdict', () => {
-    const agg = (outcomes: MemberTestOutcome[], flags: { runCancelled?: boolean; runBudgetExpired?: boolean } = {}): RunStatus =>
-      deriveAggregateVerdict({ runCancelled: flags.runCancelled ?? false, runBudgetExpired: flags.runBudgetExpired ?? false, outcomes })
+    const agg = (outcomes: MemberTestOutcome[], flags: { runCancelled?: boolean } = {}): RunStatus =>
+      deriveAggregateVerdict({ runCancelled: flags.runCancelled ?? false, outcomes })
     expect(agg(['passed', 'failed'])).toBe('failed')
     expect(agg(['passed', 'timeout'])).toBe('failed')
     expect(agg(['passed', 'healed'])).toBe('healed')
@@ -496,7 +484,6 @@ describe('SESSION-04 — one RunSession over N members: the ratified aggregate r
     expect(agg(['skipped', 'skipped'])).toBe('passed')
     expect(agg([])).toBe('passed')
     expect(agg(['passed'], { runCancelled: true })).toBe('cancelled')
-    expect(agg(['passed'], { runBudgetExpired: true })).toBe('timeout')
   })
 
   it('delegate source anchor — BOTH CLI run paths cut over to startRun, with the exit-code pins beside them', () => {

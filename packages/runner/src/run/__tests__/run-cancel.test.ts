@@ -19,7 +19,7 @@ import type {
   RunConfig,
   RunMemberDescriptor,
 } from '../shell.js'
-import type { EventLogPort, HandoffStorePort, RunTimerPort } from '../ports.js'
+import type { EventLogPort, HandoffStorePort } from '../ports.js'
 import type { TestResult } from '../../result.js'
 import type { CompletedRunHandoff, RunEventEnvelope, RunSession } from '@vostride/agent-qa-schema'
 
@@ -50,26 +50,6 @@ function makeFakeEventLog(): EventLogPort {
     },
     read(fromSeq: number) {
       return store.filter(event => event.seq >= fromSeq)
-    },
-  }
-}
-
-interface FakeTimer extends RunTimerPort {
-  fireLatest(): void
-}
-
-function makeFakeTimer(): FakeTimer {
-  let scheduled: (() => void) | undefined
-  return {
-    schedule(_delayMs: number, fn: () => void) {
-      scheduled = fn
-      return () => {
-        if (scheduled === fn) scheduled = undefined
-      }
-    },
-    now: () => 1_700_000_000_000,
-    fireLatest() {
-      scheduled?.()
     },
   }
 }
@@ -141,7 +121,7 @@ function resolvesWithin<T>(promise: Promise<T>, ms: number): Promise<T | typeof 
 
 // ---- The regression lock -------------------------------------------------
 
-describe('run-level cancel/budget on a member wedged on a truly-pending promise (SESSION-04)', () => {
+describe('run-level cancel on a member wedged on a truly-pending promise', () => {
   afterEach(() => {
     vi.useRealTimers()
   })
@@ -156,25 +136,6 @@ describe('run-level cancel/budget on a member wedged on a truly-pending promise 
     expect(settled).not.toBe(TIMED_OUT)
     expect((settled as { verdict: string }).verdict).toBe('cancelled')
     // The second member never starts once the run is cancelled.
-    expect(calls).toEqual(['a'])
-  })
-
-  it('2. run-budget expiry mid-wedged-member settles done to timeout without waiting on the member (D-03)', async () => {
-    const timer = makeFakeTimer()
-    const calls: string[] = []
-    const session = startRun(
-      baseConfig({
-        executor: pendingWedgedExecutor(calls),
-        runBudgetMs: 5_000,
-        ports: { handoffStore: makeFakeHandoffStore(), timer },
-      }),
-    )
-    drain(session)
-    timer.fireLatest() // simulate whole-run budget expiry
-
-    const settled = await resolvesWithin(done(session), 200)
-    expect(settled).not.toBe(TIMED_OUT)
-    expect((settled as { verdict: string }).verdict).toBe('timeout')
     expect(calls).toEqual(['a'])
   })
 

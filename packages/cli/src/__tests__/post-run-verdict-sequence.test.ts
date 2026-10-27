@@ -8,15 +8,15 @@
 // what a person, the dashboard, the SSE replay and 408's embed all actually read. A cell over the
 // bus would be green for a shell that published correctly and a log writer that reordered, and the
 // log writer is on the path every consumer takes. So every leg here constructs a REAL `FsEventLog`
-// in a temp root (legs 2–4) or spawns the shipped binary (leg 1), and asserts by `seq` — never by
-// array position, which would make the claim about how the file happened to be flushed.
+// in a temp root (legs 2 and 4) or spawns the shipped binary (leg 1), and asserts by `seq` — never
+// by array position, which would make the claim about how the file happened to be flushed.
 //
-// FOUR RUN SHAPES, BECAUSE "DETERMINED BY TEST EXECUTION ALONE" IS ONLY INTERESTING AT THE EDGES.
+// THREE RUN SHAPES, BECAUSE "DETERMINED BY TEST EXECUTION ALONE" IS ONLY INTERESTING AT THE EDGES.
 // A green N-member suite proves almost nothing: the interesting inputs are the ones where the run
-// ENDED for a reason other than its members finishing — a run-level cancel, a wall-clock budget
-// expiry, a fail-fast group that skipped the rest. Each still publishes exactly one verdict, and
-// each still publishes it after every member's own finish, including the finishes the shell
-// SYNTHESIZED for members it never executed.
+// ENDED for a reason other than its members finishing — a run-level cancel, or a fail-fast group
+// that skipped the rest. Each still publishes exactly one verdict, and each still publishes it
+// after every member's own finish, including the finishes the shell SYNTHESIZED for members it
+// never executed.
 //
 // MUTATION CONTROL (recorded 2026-08-26, not a cell): a second `bus.publish('verdict', { verdict })`
 // inserted immediately after the shipped one in `runner/src/run/shell.ts` reds every leg below on
@@ -34,7 +34,6 @@ import type {
   MemberTestRunContext,
   RunConfig,
   RunMemberDescriptor,
-  RunTimerPort,
 } from '@vostride/agent-qa-runner'
 import { FsEventLog, RUNS_SUBDIR, slugBranch } from '@vostride/agent-qa-runner-local'
 import type { CompletedRunHandoff, RunEventEnvelope, RunSession } from '@vostride/agent-qa-schema'
@@ -79,7 +78,7 @@ function parseEventsFile(path: string): LoggedEvent[] {
 }
 
 /**
- * The one ordering assertion every leg makes, so four legs cannot drift into four claims.
+ * The one ordering assertion every leg makes, so three legs cannot drift into three claims.
  *
  * By `seq` throughout: the file's line order and the run's event order are two different facts, and
  * only the second one is what LIFE-01 is about.
@@ -99,7 +98,7 @@ function assertVerdictSequence(events: LoggedEvent[], leg: string): LoggedEvent 
   return verdict
 }
 
-// ---- Legs 2-4: the shipped shell over a REAL FsEventLog -------------------------------------
+// ---- Legs 2 and 4: the shipped shell over a REAL FsEventLog ---------------------------------
 
 function passResult(name: string): TestResult {
   return {
@@ -148,22 +147,6 @@ function scriptedExecutor(
   return async (member: RunMemberDescriptor) => {
     calls.push(member.testId)
     return script[member.testId] ?? passResult(member.testId)
-  }
-}
-
-function makeFakeTimer(): RunTimerPort & { fireLatest(): void } {
-  let scheduled: (() => void) | undefined
-  return {
-    schedule(_delayMs: number, fn: () => void) {
-      scheduled = fn
-      return () => {
-        if (scheduled === fn) scheduled = undefined
-      }
-    },
-    now: () => 1_700_000_000_000,
-    fireLatest() {
-      scheduled?.()
-    },
   }
 }
 
@@ -230,28 +213,6 @@ describe('LIFE-01 (a): one verdict, after the last testFinished, on every run sh
       verdict.payload.verdict,
       'cancel: the one verdict carries the aggregate the cancel produced',
     ).toBe('cancelled')
-  })
-
-  it('leg 3 — a run-budget expiry still publishes exactly one verdict, after every member finish', async () => {
-    const timer = makeFakeTimer()
-    const calls: string[] = []
-    const { session, eventsPath } = startLoggedRun(
-      [
-        { testId: 'a', name: 'test a', filePath: 'a.test.ts' },
-        { testId: 'b', name: 'test b', filePath: 'b.test.ts' },
-      ],
-      abortableExecutor(calls),
-      { runBudgetMs: 5_000, ports: { timer } },
-    )
-    ;(session as unknown as { subscribe(from: number, h: (e: RunEventEnvelope) => void): void })
-      .subscribe(1, () => undefined)
-    timer.fireLatest()
-    const completion = await settled(session)
-    expect(completion.verdict).toBe('timeout')
-
-    const events = parseEventsFile(eventsPath)
-    const verdict = assertVerdictSequence(events, 'budget')
-    expect(verdict.payload.verdict, 'budget: the aggregate the expiry produced').toBe('timeout')
   })
 
   it('leg 4 — a fail-fast skip publishes one verdict, and EVERY skipped member finished before it', async () => {

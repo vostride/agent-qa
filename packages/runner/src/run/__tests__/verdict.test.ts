@@ -107,28 +107,26 @@ describe('deriveMemberOutcome (D-15/D-16) — pure total function', () => {
 interface AggregateCase {
   name: string
   runCancelled: boolean
-  runBudgetExpired: boolean
   outcomes: MemberTestOutcome[]
   expected: RunStatus
 }
 
 const AGGREGATE_CASES: AggregateCase[] = [
-  { name: 'runCancelled wins over everything', runCancelled: true, runBudgetExpired: true, outcomes: ['failed', 'passed'], expected: 'cancelled' },
-  { name: 'runBudgetExpired ⇒ timeout (below cancel)', runCancelled: false, runBudgetExpired: true, outcomes: ['failed', 'passed'], expected: 'timeout' },
-  { name: 'any member failed ⇒ failed', runCancelled: false, runBudgetExpired: false, outcomes: ['passed', 'failed', 'healed'], expected: 'failed' },
-  { name: 'any member timeout ⇒ failed', runCancelled: false, runBudgetExpired: false, outcomes: ['passed', 'timeout'], expected: 'failed' },
-  { name: 'any member cancelled (no failed) ⇒ cancelled', runCancelled: false, runBudgetExpired: false, outcomes: ['passed', 'cancelled'], expected: 'cancelled' },
-  { name: 'some healed none failed ⇒ healed', runCancelled: false, runBudgetExpired: false, outcomes: ['passed', 'healed'], expected: 'healed' },
-  { name: 'all passed ⇒ passed', runCancelled: false, runBudgetExpired: false, outcomes: ['passed', 'passed'], expected: 'passed' },
-  { name: 'skipped members are neutral ⇒ passed', runCancelled: false, runBudgetExpired: false, outcomes: ['passed', 'skipped'], expected: 'passed' },
-  { name: 'all-skipped ⇒ passed (vacuous, D-15)', runCancelled: false, runBudgetExpired: false, outcomes: ['skipped', 'skipped'], expected: 'passed' },
-  { name: 'skipped + healed ⇒ healed', runCancelled: false, runBudgetExpired: false, outcomes: ['skipped', 'healed'], expected: 'healed' },
-  { name: 'empty run ⇒ passed', runCancelled: false, runBudgetExpired: false, outcomes: [], expected: 'passed' },
+  { name: 'runCancelled wins over everything', runCancelled: true, outcomes: ['failed', 'passed'], expected: 'cancelled' },
+  { name: 'any member failed ⇒ failed', runCancelled: false, outcomes: ['passed', 'failed', 'healed'], expected: 'failed' },
+  { name: 'any member timeout ⇒ failed', runCancelled: false, outcomes: ['passed', 'timeout'], expected: 'failed' },
+  { name: 'any member cancelled (no failed) ⇒ cancelled', runCancelled: false, outcomes: ['passed', 'cancelled'], expected: 'cancelled' },
+  { name: 'some healed none failed ⇒ healed', runCancelled: false, outcomes: ['passed', 'healed'], expected: 'healed' },
+  { name: 'all passed ⇒ passed', runCancelled: false, outcomes: ['passed', 'passed'], expected: 'passed' },
+  { name: 'skipped members are neutral ⇒ passed', runCancelled: false, outcomes: ['passed', 'skipped'], expected: 'passed' },
+  { name: 'all-skipped ⇒ passed (vacuous)', runCancelled: false, outcomes: ['skipped', 'skipped'], expected: 'passed' },
+  { name: 'skipped + healed ⇒ healed', runCancelled: false, outcomes: ['skipped', 'healed'], expected: 'healed' },
+  { name: 'empty run ⇒ passed', runCancelled: false, outcomes: [], expected: 'passed' },
 ]
 
 describe('deriveAggregateVerdict (spec §2.1 ratified rule + D-15 neutral-skipped)', () => {
-  it.each(AGGREGATE_CASES)('$name', ({ runCancelled, runBudgetExpired, outcomes, expected }) => {
-    expect(deriveAggregateVerdict({ runCancelled, runBudgetExpired, outcomes })).toBe(expected)
+  it.each(AGGREGATE_CASES)('$name', ({ runCancelled, outcomes, expected }) => {
+    expect(deriveAggregateVerdict({ runCancelled, outcomes })).toBe(expected)
   })
 })
 

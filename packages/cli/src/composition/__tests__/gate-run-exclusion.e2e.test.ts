@@ -262,11 +262,10 @@ describe('a gate run reaches no counter and no candidacy input (INVK-06, D-15)',
       // a backstop again. What is still asserted here is that the marker survives on a run that did
       // not pass, and that the run contributes nothing.
       //
-      // WHAT IT STILL DOES NOT RANGE, stated rather than implied: a run aborted by `runBudgetMs`
-      // mid-step (a different interruption, with partial step evidence on the record), and the
-      // ABSENT-handoff arm — a run that left no handoff at all cannot be handed to
-      // `projectRunOutcomes`, so "it contributes nothing" is a statement about the fold's input
-      // being absent rather than about a decision the fold makes. That half stays a backstop.
+      // WHAT IT STILL DOES NOT RANGE, stated rather than implied: the ABSENT-handoff arm — a run
+      // that left no handoff at all cannot be handed to `projectRunOutcomes`, so "it contributes
+      // nothing" is a statement about the fold's input being absent rather than about a decision
+      // the fold makes. That half stays a backstop.
       expect(marked.aggregateVerdict).toBe('failed')
       expect(marked.excludedFromOutcomes).toBe(true)
       expect(project(marked).tests).toEqual([])
