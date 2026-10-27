@@ -118,8 +118,8 @@ function firstErrorLine(err: unknown): string {
 const IOS_TAP_HOLD_MS = 100
 
 // WebDriverIO's action().perform() calls DELETE /session/{id}/actions (releaseActions)
-// after performing. BrowserStack iOS doesn't support this endpoint and throws
-// "resource not found" errors. This wrapper swallows that specific error.
+// after performing. Some XCUITest servers answer that endpoint with "resource not found"
+// although the actions ran, so this wrapper swallows that specific error.
 async function safePerform(chain: { perform: () => Promise<void> }): Promise<void> {
   try {
     await chain.perform()
@@ -331,12 +331,12 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
     this.config = config as IOSAdapterConfig
     this.captureConsole = config.logCapture?.console !== false
     this.bundleId = this.config.bundleId ?? (config.device?.match?.bundleId as string | undefined) ?? null
-    this.sessionSnapshotDepth = resolveIOSSnapshotDepth(config.farmSession?.capabilities)
+    this.sessionSnapshotDepth = resolveIOSSnapshotDepth()
     this.snapshotDepth = this.sessionSnapshotDepth
     this.readsAtLoweredDepth = 0
     this.snapshotDepthWarned = false
 
-    this.driver = await createIOSSession(this.config, config.farmSession)
+    this.driver = await createIOSSession(this.config)
 
     const bundleId = this.bundleId
     if (bundleId) {

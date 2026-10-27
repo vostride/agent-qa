@@ -10,7 +10,7 @@ import { discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarge
 import type { AgentQaConfig, AuthStateMetadata, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
 import { resolveTarget, type ResolvedTarget } from '../targets.js'
-import { resolveDevice, loadLocalBindings, resolveProviderCredentials, type ResolvedDevice } from '../devices.js'
+import { loadLocalBindings, type ResolvedDevice } from '../devices.js'
 import { resolveLLMModels, resolveModelAuth, toModelProfileAndAuth } from '../llm-utils.js'
 import { formatInstallBrowsersRetryCommand, type BrowserInstallSelection } from './install-browsers.js'
 import type { ParsedTestBinding, TestDefinition, ParseError, SuiteDefinition, SuiteResult, RunSuiteConfig } from '@vostride/agent-qa-core'
@@ -358,7 +358,6 @@ export function buildPlatformConfig(
   timeouts: PlatformConfig['timeouts'],
   globalBrowser?: { name?: string; headless?: boolean; viewport?: { width: number; height: number } },
   logCapture?: { console?: boolean; network?: boolean },
-  farmSession?: PlatformConfig['farmSession'],
   mobileResolved?: ResolvedMobileRunConfig,
 ): PlatformConfig {
   if (platform === 'web') {
@@ -387,11 +386,9 @@ export function buildPlatformConfig(
     deepLinkAppId: mobileResolved?.app.deepLinkAppId,
     appState: mobileResolved?.appState,
     appPath: mobileResolved?.app.install?.path,
-    browserstackApp: mobileResolved?.app.install?.browserstack,
     appiumUrl: mobileResolved?.appium.url,
     timeouts,
     logCapture,
-    farmSession,
   }
 }
 
@@ -1627,84 +1624,6 @@ function buildRunArtifactContext(input: {
   }) as { artifact: Record<string, unknown> & { kind: 'test' } }
 }
 
-export async function resolveDeviceAndFarmSession(
-  config: AgentQaConfig,
-  deviceName: string | undefined,
-  testPlatform: 'web' | 'android' | 'ios',
-  testName: string,
-  testTimeout?: number,
-  preResolvedDevice?: ResolvedDevice,
-  localBindingsOverride?: ReturnType<typeof loadLocalBindings>,
-  mobileResolved?: ResolvedMobileRunConfig,
-): Promise<{ resolvedDevice?: ResolvedDevice; farmSession?: PlatformConfig['farmSession'] }> {
-  if (!deviceName || testPlatform === 'web') return {}
-
-  const localBindings = localBindingsOverride ?? loadLocalBindings()
-  const resolved = preResolvedDevice ?? resolveDevice(config, deviceName, localBindings)
-
-  if (resolved.transport === 'local') {
-    return { resolvedDevice: resolved }
-  }
-
-  const credentials = resolveProviderCredentials(resolved.transport, localBindings)
-  const { getProvider, registerAllProviders } = await import('@vostride/agent-qa-core')
-  registerAllProviders()
-  const provider = getProvider(resolved.transport)
-  if (!provider) {
-    throw new Error(`Farm provider "${resolved.transport}" not found. Available: browserstack`)
-  }
-  const browserstackApp = mobileResolved?.app.install?.browserstack
-  if (!browserstackApp && hasNativeAppIdentity(mobileResolved) && !isBrowserMode(resolved.match)) {
-    throw new MobileSetupError({
-      category: 'app-install',
-      message: `BrowserStack native app target "${mobileResolved?.targetName ?? 'unknown'}" requires app.browserstack; app.path is local-only and is not used as a BrowserStack fallback.`,
-      platform: resolved.platform,
-      targetName: mobileResolved?.targetName,
-      deviceName: resolved.name,
-      appId: mobileResolved?.app.deepLinkAppId,
-      sourceTrace: mobileResolved?.sourceTrace,
-    })
-  }
-  let farmSession: PlatformConfig['farmSession']
-  try {
-    farmSession = await provider.resolveMobileCapabilities({
-      match: resolved.match,
-      platform: resolved.platform,
-      credentials,
-      testName,
-      testTimeout,
-      app: browserstackApp,
-      appState: mobileResolved?.appState,
-      appBaseDir: mobileResolved?.app.install?.browserstackBaseDir,
-      appSourceTrace: mobileResolved?.sourceTrace,
-    })
-  } catch (err) {
-    if (err instanceof MobileSetupError) throw err
-    if (browserstackApp) {
-      throw new MobileSetupError({
-        category: 'app-install',
-        message: `Failed to resolve BrowserStack app reference: ${err instanceof Error ? err.message : String(err)}`,
-        platform: resolved.platform,
-        targetName: mobileResolved?.targetName,
-        deviceName: resolved.name,
-        appId: browserstackApp,
-        cause: err,
-      })
-    }
-    throw err
-  }
-  return { resolvedDevice: resolved, farmSession }
-}
-
-function isBrowserMode(match: Record<string, unknown>): boolean {
-  return typeof match.browserName === 'string' && match.browserName.trim().length > 0
-}
-
-function hasNativeAppIdentity(mobileResolved?: ResolvedMobileRunConfig): boolean {
-  const app = mobileResolved?.app
-  return Boolean(app?.bundleId || app?.appPackage || app?.appActivity || app?.deepLinkAppId)
-}
-
 function wrapMobileSetupError(err: unknown): never {
   if (err instanceof MobileSetupError) {
     throw new Error(`${err.category}: ${err.message}`)
@@ -2721,7 +2640,6 @@ export async function produceSuiteRunMembers(
       : null
     let mobileResolved: ResolvedMobileRunConfig | undefined
     let resolvedDevice: ResolvedDevice | undefined
-    let farmSession: PlatformConfig['farmSession'] | undefined
     if (suitePlatform === 'android' || suitePlatform === 'ios') {
       mobileResolved = resolveMobileRunOrThrow({
         config: config as unknown as Record<string, any>,
@@ -2735,19 +2653,9 @@ export async function produceSuiteRunMembers(
         localConfigFilePath: suiteLocalBindings?.filePath,
         appiumUrl: resolveHostAppiumUrl(input.resolveAppiumUrl),
       })
-      const resolved = await resolveDeviceAndFarmSession(
-        config, mobileResolved.deviceName, suitePlatform,
-        `Suite: ${suite.name} — ${new Date().toISOString().slice(0, 19)}`,
-        testTimeouts.test,
-        mobileResolved.device,
-        suiteLocalBindings,
-        mobileResolved,
-      )
-      resolvedDevice = resolved.resolvedDevice
-      farmSession = resolved.farmSession
+      resolvedDevice = mobileResolved.device
     }
 
-    const useFarm = resolvedDevice?.transport !== undefined && resolvedDevice.transport !== 'local'
     const suiteAttributes = resolveCliRunAttributes(
       variableContext?.userRunAttributes ?? {},
       resolveRunnerAttribute(resolvedDevice?.transport),
@@ -2756,7 +2664,7 @@ export async function produceSuiteRunMembers(
     writeRunAttributesToEnv(suiteAttributes)
 
     // Auto-start Appium for mobile platforms
-    if ((suitePlatform === 'ios' || suitePlatform === 'android') && !useFarm) {
+    if (suitePlatform === 'ios' || suitePlatform === 'android') {
       try {
         const appiumUrl = await acquireAppium(effectiveLogLevel, input.resolveAppiumUrl)
         if (mobileResolved) {
@@ -2787,7 +2695,7 @@ export async function produceSuiteRunMembers(
 
     const suiteBrowser = (mergedUse.browser as Record<string, unknown> | undefined) ?? config.use?.browser
     const suiteLogCapture = (mergedUse.logCapture as Record<string, unknown> | undefined) ?? (config as any).use?.logCapture
-    const platformConfig = buildPlatformConfig(suitePlatform, resolvedDevice, testTimeouts, suiteBrowser as any, suiteLogCapture, farmSession, mobileResolved)
+    const platformConfig = buildPlatformConfig(suitePlatform, resolvedDevice, testTimeouts, suiteBrowser as any, suiteLogCapture, mobileResolved)
     platformConfig.authState = suiteAuthState
     platformConfig.verbose = effectiveLogLevel === 'debug'
     if (opts.headless !== undefined && platformConfig.browser) {
@@ -3864,7 +3772,6 @@ export async function produceDirectRunMembers(
       : null
     let testMobileResolved: ResolvedMobileRunConfig | undefined
     let testResolvedDevice: ResolvedDevice | undefined
-    let testFarmSession: PlatformConfig['farmSession'] | undefined
     if (testPlatform === 'android' || testPlatform === 'ios') {
       testMobileResolved = resolveMobileRunOrThrow({
         config: config as unknown as Record<string, any>,
@@ -3879,20 +3786,10 @@ export async function produceDirectRunMembers(
         appiumUrl: resolveHostAppiumUrl(input.resolveAppiumUrl),
       })
       analyticsAppState = testMobileResolved.appState
-      const resolved = await resolveDeviceAndFarmSession(
-        config, testMobileResolved.deviceName, testPlatform,
-        `${test.name} — ${new Date().toISOString().slice(0, 19)}`,
-        testTimeoutsForSetup.test,
-        testMobileResolved.device,
-        testLocalBindings,
-        testMobileResolved,
-      )
-      testResolvedDevice = resolved.resolvedDevice
-      testFarmSession = resolved.farmSession
+      testResolvedDevice = testMobileResolved.device
       analyticsMobileTransport = testResolvedDevice?.transport
     }
 
-    const useFarm = testResolvedDevice?.transport !== undefined && testResolvedDevice.transport !== 'local'
     const testAttributes = resolveCliRunAttributes(
       userRunAttributes,
       resolveRunnerAttribute(testResolvedDevice?.transport),
@@ -3907,7 +3804,6 @@ export async function produceDirectRunMembers(
       appActivity: testMobileResolved?.app.appActivity,
       bundleId: testMobileResolved?.app.bundleId,
       appPath: testMobileResolved?.app.install?.path,
-      browserstackApp: testMobileResolved?.app.install?.browserstack,
     })
 
       // Each direct test owns its adapter so parallel batches cannot share mutable browser/mobile state.
@@ -3915,8 +3811,8 @@ export async function produceDirectRunMembers(
         currentPlatform = testPlatform
         currentAdapterKey = adapterKey
 
-        // Auto-start Appium for mobile platforms (if not already running and not in farm mode)
-        if ((testPlatform === 'ios' || testPlatform === 'android') && !useFarm) {
+        // Auto-start Appium for mobile platforms (if not already running)
+        if (testPlatform === 'ios' || testPlatform === 'android') {
           try {
             const appiumUrl = await acquireAppium(effectiveLogLevel, input.resolveAppiumUrl)
             if (testMobileResolved) {
@@ -3942,7 +3838,7 @@ export async function produceDirectRunMembers(
         )
 
         const mergedBrowser = (mergedUse as Record<string, unknown>).browser as Record<string, unknown> | undefined
-        const platformConfig = buildPlatformConfig(testPlatform, testResolvedDevice, testTimeoutsForSetup, mergedBrowser ?? config.use?.browser, (testMergedConfig as any).use?.logCapture ?? config.use?.logCapture, testFarmSession, testMobileResolved)
+        const platformConfig = buildPlatformConfig(testPlatform, testResolvedDevice, testTimeoutsForSetup, mergedBrowser ?? config.use?.browser, (testMergedConfig as any).use?.logCapture ?? config.use?.logCapture, testMobileResolved)
         platformConfig.authState = activeTestAuthState
         platformConfig.verbose = effectiveLogLevel === 'debug'
         if (opts.headless !== undefined) {
@@ -3962,14 +3858,8 @@ export async function produceDirectRunMembers(
 
         await adapter.setup(platformConfig)
 
-        // Exit cleanup for farm sessions on mobile
-        if (useFarm && (testPlatform === 'android' || testPlatform === 'ios')) {
-          const farmAdapter = adapter
-          process.on('exit', () => { void Promise.resolve(farmAdapter.cleanup()).catch(() => {}) })
-        }
-
         if (effectiveLogLevel === 'debug') {
-          input.terminal?.printDebugLine(`  Platform: ${testPlatform}${useFarm ? ` (farm: ${testResolvedDevice?.transport})` : ''}${testPlatform !== 'web' ? ' (adapter re-created)' : ''}`)
+          input.terminal?.printDebugLine(`  Platform: ${testPlatform}${testPlatform !== 'web' ? ' (adapter re-created)' : ''}`)
         }
       }
 
@@ -4258,30 +4148,6 @@ export async function produceDirectRunMembers(
               identity: { phase: 'teardown', scope: 'test', testIndex: ctx.testIndex },
             })
           } catch {}
-        }
-      }
-
-      // Capture farm session URL and device context for metadata
-      if (useFarm && adapter) {
-        try {
-          const farmSessionUrl = (adapter as any).getSessionUrl?.()
-          result.metadata = {
-            ...result.metadata,
-            ...(farmSessionUrl ? { farmSessionUrl } : {}),
-            runDevice: testPlatform === 'web'
-              ? `${config.use?.browser?.name ?? 'chromium'} (remote)`
-              : `${testResolvedDevice?.name ?? testPlatform} (remote)`,
-          }
-          if (result.status === 'failed') {
-            (adapter as any).markFailed?.()
-          }
-        } catch { /* best-effort session URL capture */ }
-      } else {
-        result.metadata = {
-          ...result.metadata,
-          runDevice: testPlatform === 'web'
-            ? `${config.use?.browser?.name ?? 'chromium'} (local)`
-            : `${testResolvedDevice?.name ?? testPlatform} (local)`,
         }
       }
 

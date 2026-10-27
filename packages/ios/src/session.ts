@@ -14,17 +14,11 @@ function positiveInteger(value: unknown): number | undefined {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined
 }
 
-// Farm capabilities are merged over the local ones, so a farm depth is the depth the session starts with.
-export function resolveIOSSnapshotDepth(farmCapabilities?: Record<string, unknown>): number {
-  return positiveInteger(farmCapabilities?.[IOS_SNAPSHOT_DEPTH_CAPABILITY])
-    ?? positiveInteger(process.env[IOS_SNAPSHOT_DEPTH_ENV])
-    ?? IOS_SNAPSHOT_MAX_DEPTH
+export function resolveIOSSnapshotDepth(): number {
+  return positiveInteger(process.env[IOS_SNAPSHOT_DEPTH_ENV]) ?? IOS_SNAPSHOT_MAX_DEPTH
 }
 
-export async function createIOSSession(
-  config: IOSAdapterConfig,
-  farmSession?: { hostname: string; port: number; path: string; capabilities: Record<string, unknown> },
-) {
+export async function createIOSSession(config: IOSAdapterConfig) {
   const match = config.device?.match ?? {}
   const appiumUrl = process.env.AGENT_QA_APPIUM_URL ?? config.appiumUrl ?? 'http://localhost:4723'
   const url = new URL(appiumUrl)
@@ -59,18 +53,6 @@ export async function createIOSSession(
     if (capabilities[key] === undefined) {
       delete capabilities[key]
     }
-  }
-
-  if (farmSession) {
-    Object.assign(capabilities, farmSession.capabilities)
-    return remote({
-      protocol: 'https',
-      hostname: farmSession.hostname,
-      port: farmSession.port,
-      path: farmSession.path,
-      logLevel: config.verbose ? 'info' : 'silent',
-      capabilities: capabilities as WebdriverIO.Capabilities,
-    })
   }
 
   return remote({

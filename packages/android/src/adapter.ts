@@ -655,7 +655,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
     this.captureConsole = config.logCapture?.console !== false
     this.appPackage = this.config.appPackage ?? (config.device?.match?.appPackage as string | undefined) ?? null
 
-    this.driver = await createAndroidSession(this.config, config.farmSession)
+    this.driver = await createAndroidSession(this.config)
 
     const appPackage = this.appPackage
     if (appPackage && !this.config.browserName && !this.config.device?.match?.browserName) {

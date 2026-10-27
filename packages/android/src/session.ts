@@ -2,10 +2,7 @@ import { remote } from 'webdriverio'
 import { MobileSetupError } from '@vostride/agent-qa-core'
 import type { AndroidAdapterConfig } from './types.js'
 
-export async function createAndroidSession(
-  config: AndroidAdapterConfig,
-  farmSession?: { hostname: string; port: number; path: string; capabilities: Record<string, unknown> },
-) {
+export async function createAndroidSession(config: AndroidAdapterConfig) {
   const match = config.device?.match ?? {}
   const appiumUrl = process.env.AGENT_QA_APPIUM_URL ?? config.appiumUrl ?? 'http://localhost:4723'
   const url = new URL(appiumUrl)
@@ -57,18 +54,6 @@ export async function createAndroidSession(
     if (capabilities[key] === undefined) {
       delete capabilities[key]
     }
-  }
-
-  if (farmSession) {
-    Object.assign(capabilities, farmSession.capabilities)
-    return remote({
-      protocol: 'https',
-      hostname: farmSession.hostname,
-      port: farmSession.port,
-      path: farmSession.path,
-      logLevel: config.verbose ? 'info' : 'silent',
-      capabilities: capabilities as WebdriverIO.Capabilities,
-    })
   }
 
   return remote({

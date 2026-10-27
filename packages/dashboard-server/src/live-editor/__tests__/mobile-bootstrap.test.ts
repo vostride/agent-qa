@@ -186,7 +186,6 @@ describe('prepareMobileLiveSession', () => {
         'apps:',
         '  release-android-wikipedia:',
         '    path: apps/wikipedia.apk',
-        '    browserstack: bs://uploaded-app',
         '',
       ].join('\n'),
       'utf-8',
@@ -205,7 +204,6 @@ describe('prepareMobileLiveSession', () => {
 
     expect(result.platformConfig).toMatchObject({
       appPath: join(dir, 'apps', 'wikipedia.apk'),
-      browserstackApp: 'bs://uploaded-app',
     })
   })
 
@@ -236,7 +234,6 @@ describe('prepareMobileLiveSession', () => {
     })
 
     expect(result.platformConfig.appPath).toBeUndefined()
-    expect(result.platformConfig.browserstackApp).toBeUndefined()
   })
 
   it('surfaces missing live app path as app-install', async () => {

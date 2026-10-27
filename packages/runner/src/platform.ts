@@ -165,12 +165,10 @@ export interface PlatformConfig {
   deepLinkAppId?: string
   appState?: 'preserve' | 'reset'
   appPath?: string
-  browserstackApp?: string
   appiumUrl?: string
   timeouts?: TimeoutConfig
   recording?: { enabled: boolean; videoDir: string; videoSize?: { width: number; height: number } }
   verbose?: boolean
-  farmSession?: { hostname: string; port: number; path: string; capabilities: Record<string, unknown> }
   logCapture?: { console?: boolean; network?: boolean }
   authState?: RuntimeAuthStateConfig
 }

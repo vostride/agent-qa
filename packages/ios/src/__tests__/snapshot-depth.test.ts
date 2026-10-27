@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-// P3: iOS sessions request a WDA snapshotMaxDepth of their own (farm capability, then
-// AGENT_QA_IOS_SNAPSHOT_MAX_DEPTH, then 62). A kAXErrorIllegalArgument read lowers it to 50 for
+// P3: iOS sessions request a WDA snapshotMaxDepth of their own (AGENT_QA_IOS_SNAPSHOT_MAX_DEPTH,
+// then 62). A kAXErrorIllegalArgument read lowers it to 50 for
 // the rest of the session, and the session's own depth is retried every 20 lowered reads.
 
 const XML = `<?xml version="1.0" encoding="UTF-8"?>
@@ -54,8 +54,6 @@ vi.mock('webdriverio', () => ({
 
 import { IOSPlatformAdapter } from '../adapter.js'
 import { resolveIOSSnapshotDepth } from '../session.js'
-
-const FARM = { hostname: 'farm.test', port: 443, path: '/wd/hub' }
 
 describe('iOS snapshot depth (P3)', () => {
   let adapter: IOSPlatformAdapter
@@ -111,27 +109,6 @@ describe('iOS snapshot depth (P3)', () => {
       expect(resolveIOSSnapshotDepth()).toBe(62)
     })
 
-    it('requests it on a farm session, where the farm capabilities still win', async () => {
-      const farmSession = { ...FARM, capabilities: { 'farm:token': 'x' } }
-      await adapter.setup({ platform: 'ios', farmSession })
-      expect(await requestedDepth(0)).toBe(62)
-
-      await adapter.setup({ platform: 'ios', farmSession: { ...FARM, capabilities: { [DEPTH_CAP]: 40 } } })
-      expect(await requestedDepth(1)).toBe(40)
-    })
-
-    it('ranks the farm capability over the env var, and the env var over 62', async () => {
-      process.env[ENV] = '70'
-      const farmCapabilities = { [DEPTH_CAP]: 40 }
-      await adapter.setup({ platform: 'ios', farmSession: { ...FARM, capabilities: farmCapabilities } })
-      expect(await requestedDepth()).toBe(40)
-      expect(resolveIOSSnapshotDepth(farmCapabilities)).toBe(40)
-      expect(resolveIOSSnapshotDepth({ 'farm:token': 'x' })).toBe(70)
-      expect(resolveIOSSnapshotDepth({ [DEPTH_CAP]: '45' })).toBe(45)
-      expect(resolveIOSSnapshotDepth({ [DEPTH_CAP]: 0 })).toBe(70)
-      delete process.env[ENV]
-      expect(resolveIOSSnapshotDepth({ [DEPTH_CAP]: 'deep' })).toBe(62)
-    })
   })
 
   describe('sticky fallback', () => {
@@ -216,19 +193,21 @@ describe('iOS snapshot depth (P3)', () => {
   })
 
   describe("the session's own depth", () => {
-    it('probes back to a farm depth of 70, never 62', async () => {
+    it('probes back to a session depth of 70, never 62', async () => {
       driver.getPageSource.mockRejectedValueOnce(snapshotError()).mockResolvedValue(XML)
-      await adapter.setup({ platform: 'ios', farmSession: { ...FARM, capabilities: { [DEPTH_CAP]: 70 } } })
+      process.env[ENV] = '70'
+      await adapter.setup({ platform: 'ios' })
       await observeTimes(21)
 
       expect(driver.updateSettings.mock.calls).toEqual([[{ snapshotMaxDepth: 50 }], [{ snapshotMaxDepth: 70 }]])
       expect(String(warn.mock.calls[0][0])).toContain('70')
     })
 
-    it('does not lower a farm depth of 40: the read is retried once at the same depth', async () => {
+    it('does not lower a session depth of 40: the read is retried once at the same depth', async () => {
       const second = snapshotError('Original error: kAXErrorIllegalArgument (second read)')
       driver.getPageSource.mockRejectedValueOnce(snapshotError()).mockRejectedValueOnce(second)
-      await adapter.setup({ platform: 'ios', farmSession: { ...FARM, capabilities: { [DEPTH_CAP]: 40 } } })
+      process.env[ENV] = '40'
+      await adapter.setup({ platform: 'ios' })
 
       await expect(adapter.observe()).rejects.toBe(second)
       expect(driver.getPageSource).toHaveBeenCalledTimes(2)

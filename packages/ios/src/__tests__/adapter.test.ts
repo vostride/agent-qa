@@ -982,26 +982,6 @@ describe('IOSPlatformAdapter', () => {
         expect(deepLinkExecutes()).toEqual([])
       })
     })
-
-    it('uses driver.url in a BrowserStack browser session without querying the foreground app', async () => {
-      await adapter.setup({
-        platform: 'ios',
-        device: { name: 'iPhone 15', platform: 'ios', transport: 'browserstack', match: { browserName: 'Safari' } },
-        farmSession: {
-          hostname: 'hub-cloud.browserstack.com',
-          port: 443,
-          path: '/wd/hub',
-          capabilities: { 'appium:browserName': 'Safari' },
-        },
-      })
-
-      const result = await adapter.execute({ type: 'openUniversalLink', url: LINK })
-
-      expect(result.success).toBe(true)
-      expect(mockDriver.url).toHaveBeenCalledWith(LINK)
-      expect(foregroundReads()).toBe(0)
-      expect(mockDriver.pause).not.toHaveBeenCalled()
-    })
   })
 
   describe('execute — waitFor (schema on-modes replace legacy condition/timeout)', () => {

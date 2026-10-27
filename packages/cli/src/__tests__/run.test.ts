@@ -301,14 +301,6 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => {
   DEFAULT_AGENT_QA_SCREENSHOTS_DIR: '.agent-qa/artifacts/screenshots',
   DEFAULT_AGENT_QA_VIDEOS_DIR: '.agent-qa/artifacts/videos',
   parseEnvFile: vi.fn(() => ({})),
-  registerAllProviders: vi.fn(),
-  getProvider: vi.fn(() => ({
-    resolveMobileCapabilities: vi.fn(async () => ({
-      provider: 'browserstack',
-      endpoint: 'wss://browserstack.example.test/playwright',
-      capabilities: {},
-    })),
-  })),
   validateUserRunAttributes: vi.fn((input: unknown, sourceLabel = 'run attributes') => {
     if (input === undefined || input === null) return {}
     if (!input || typeof input !== 'object' || Array.isArray(input)) {
@@ -852,8 +844,6 @@ afterEach(async () => {
   delete process.env.AGENT_QA_RUN_ID
   delete process.env.AGENT_QA_RUN_ATTRIBUTES_JSON
   delete process.env.AGENT_QA_LIVE_EVENTS
-  delete process.env.BROWSERSTACK_USERNAME
-  delete process.env.BROWSERSTACK_ACCESS_KEY
   defaultSecretsFilePath = undefined
   defaultEnvFilePath = undefined
   defaultHooksFilePath = undefined
@@ -2111,136 +2101,6 @@ describe('run command — run attributes', () => {
     expect(allErrors).toContain('inherited run attributes')
     expect(allErrors).toContain('agent-qa.custom')
     expect(allErrors).toContain('reserved prefix "agent-qa."')
-  })
-
-  it('recomputes inherited runner attributes after direct BrowserStack device resolution', async () => {
-    const { resolveMobileRunConfig } = await import('@vostride/agent-qa-core')
-    const cfg = defaultConfig()
-    cfg.registry.targets = {
-      'mobile-browser': {
-        platform: 'android',
-        product: 'mobile-browser',
-        url: 'https://example.com',
-      },
-    } as any
-    ;(cfg.use as any).mobile = { appState: 'preserve' }
-    mockResolveConfig.mockResolvedValue(cfg)
-    mockResolveTarget.mockReturnValue({
-      name: 'mobile-browser',
-      product: 'mobile-browser',
-      platform: 'android',
-      url: 'https://example.com',
-      // 401-03 (D-06): declared local — see the note on the default fixture above.
-      environment: 'local',
-    })
-    vi.mocked(resolveMobileRunConfig).mockImplementationOnce((input: any) => ({
-      deviceName: 'cloud-phone',
-      platform: 'android',
-      targetName: input.targetName,
-      transport: 'browserstack',
-      device: {
-        name: 'cloud-phone',
-        platform: 'android',
-        transport: 'browserstack',
-        match: { browserName: 'chrome' },
-      },
-      app: { sourceTrace: {} },
-      appState: input.appState,
-      appium: { url: input.appiumUrl },
-      sourceTrace: [],
-    }))
-    process.env.BROWSERSTACK_USERNAME = 'user'
-    process.env.BROWSERSTACK_ACCESS_KEY = 'key'
-    process.env.AGENT_QA_RUN_ID = freshRunId('dashboard')
-    process.env.AGENT_QA_RUN_ATTRIBUTES_JSON = JSON.stringify({
-      'agent-qa.trigger': 'dashboard',
-      'agent-qa.runner': 'local',
-      'git.branch': 'phase247-review',
-    })
-    mockGlob.mockResolvedValue(['tests/mobile.yaml'])
-    mockParseAllTests.mockResolvedValue({
-      tests: [makeTest({ target: 'mobile-browser', use: { device: 'cloud-phone' } })],
-      errors: [],
-    })
-    mockRunMemberTest.mockResolvedValue({
-      name: 'Test One',
-      filePath: 'tests/mobile.yaml',
-      status: 'passed',
-      steps: [],
-      duration: 100,
-    })
-
-    await runCommand('tests/**/*.yaml')
-
-    // 363-11: the recomputed runner attribute (browserstack) is observable in the printed block.
-    const allOutput = logSpy.mock.calls.map((c: string[]) => c.join(' ')).join('\n')
-    expect(allOutput).toContain('agent-qa.runner=browserstack')
-    expect(allOutput).toContain('git.branch=phase247-review')
-  })
-
-  it('recomputes inherited runner attributes after suite BrowserStack device resolution', async () => {
-    const { resolveMobileRunConfig } = await import('@vostride/agent-qa-core')
-    const { suitePath, configPath } = await createTempSuiteWorkspace()
-    const cfg = defaultConfig()
-    cfg.registry.targets = {
-      'mobile-browser': {
-        platform: 'android',
-        product: 'mobile-browser',
-        url: 'https://example.com',
-      },
-    } as any
-    ;(cfg.use as any).mobile = { appState: 'preserve' }
-    mockResolveConfig.mockResolvedValue(cfg)
-    mockResolveTarget.mockReturnValue({
-      name: 'mobile-browser',
-      product: 'mobile-browser',
-      platform: 'android',
-      url: 'https://example.com',
-      // 401-03 (D-06): declared local — see the note on the default fixture above.
-      environment: 'local',
-    })
-    vi.mocked(resolveMobileRunConfig).mockImplementationOnce((input: any) => ({
-      deviceName: 'cloud-phone',
-      platform: 'android',
-      targetName: input.targetName,
-      transport: 'browserstack',
-      device: {
-        name: 'cloud-phone',
-        platform: 'android',
-        transport: 'browserstack',
-        match: { browserName: 'chrome' },
-      },
-      app: { sourceTrace: {} },
-      appState: input.appState,
-      appium: { url: input.appiumUrl },
-      sourceTrace: [],
-    }))
-    process.env.BROWSERSTACK_USERNAME = 'user'
-    process.env.BROWSERSTACK_ACCESS_KEY = 'key'
-    process.env.AGENT_QA_RUN_ID = freshRunId('suite')
-    process.env.AGENT_QA_RUN_ATTRIBUTES_JSON = JSON.stringify({
-      'agent-qa.trigger': 'api',
-      'agent-qa.runner': 'local',
-      'git.branch': 'phase247-review',
-    })
-    mockParseSuiteFile.mockResolvedValue({
-      name: 'Mobile Cloud Suite',
-      target: 'mobile-browser',
-      use: { device: 'cloud-phone' },
-      tests: [{ test: 'tests/login.yaml', id: 'suite-test-1' }],
-    })
-    mockParseTestFile.mockReturnValue({
-      tests: [makeTest({ target: 'mobile-browser' })],
-      errors: [],
-    })
-
-    await runCommandWithGlobalArgs(['--config', configPath], suitePath)
-
-    // 363-11: the per-member config no longer carries the suite artifact context; the recomputed
-    // runner attribute (browserstack, post device-resolution) is emitted via printRunAttributes.
-    const printed = logSpy.mock.calls.map((c: unknown[]) => c.join(' ')).join(String.fromCharCode(10))
-    expect(printed).toContain('browserstack')
-    expect(printed).toContain('phase247-review')
   })
 
   it('rejects malformed --run-attr values before execution', async () => {

@@ -161,7 +161,6 @@ export async function prepareMobileLiveSession(
       appActivity: resolved.app.appActivity,
       deepLinkAppId: resolved.app.deepLinkAppId,
       appPath: resolved.app.install?.path,
-      browserstackApp: resolved.app.install?.browserstack,
       appState: resolved.appState,
     },
   }
