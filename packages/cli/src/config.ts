@@ -17,7 +17,6 @@ const ENV_MAPPING: Record<string, string> = {
   AGENT_QA_DASHBOARD_PORT: 'services.dashboard.port',
   AGENT_QA_MCP_PORT: 'services.mcp.port',
   AGENT_QA_CACHE_DIR: 'services.cache.dir',
-  AGENT_QA_CACHE_TTL: 'services.cache.ttl',
   AGENT_QA_LOG_LEVEL: 'services.logging.level',
   AGENT_QA_HEADLESS: 'use.browser.headless',
 }

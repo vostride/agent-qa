@@ -114,9 +114,8 @@ describe('loadEnvOverrides', () => {
 
   it('maps AGENT_QA_CACHE_DIR to services.cache.dir', () => {
     process.env.AGENT_QA_CACHE_DIR = '/tmp/cache'
-    process.env.AGENT_QA_CACHE_TTL = '24h'
     const result = loadEnvOverrides()
-    expect(result).toEqual({ services: { cache: { dir: '/tmp/cache', ttl: '24h' } } })
+    expect(result).toEqual({ services: { cache: { dir: '/tmp/cache' } } })
   })
 
   it('maps AGENT_QA_HEADLESS=true to use.browser.headless boolean true', () => {
