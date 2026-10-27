@@ -10,7 +10,7 @@ export type { ActionPlanCache, StorageStatePort, StorageStateReference, StorageS
 export type { CacheKey } from '@vostride/agent-qa-schema'
 
 // Concrete filesystem store + its bumped on-disk schema version (D-03/D-06/D-14).
-export { FsActionCache, CACHE_SCHEMA_VERSION } from './fs-action-cache.js'
+export { FsActionCache, CACHE_SCHEMA_VERSION, purgeActionCache } from './fs-action-cache.js'
 export type { FsActionCacheConfig } from './fs-action-cache.js'
 
 // Concrete filesystem storage-state store (D-14) — raw-but-local auth persistence.

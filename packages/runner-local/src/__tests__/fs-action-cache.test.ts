@@ -6,7 +6,7 @@ import type { CachedPlanValue } from '@vostride/agent-qa-runner'
 import type { CacheKey } from '@vostride/agent-qa-schema'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { CACHE_SCHEMA_VERSION, FsActionCache } from '../fs-action-cache.js'
+import { CACHE_SCHEMA_VERSION, FsActionCache, purgeActionCache } from '../fs-action-cache.js'
 import type { CachePolicy } from '../write-policy.js'
 
 const KEY = '0123456789abcdef' as CacheKey
@@ -178,5 +178,48 @@ describe('FsActionCache', () => {
     const onDisk = await readFile(join(root, 'main', files[0]), 'utf-8')
     expect(files[0].replace('.json', '')).toBe(KEY)
     expect(onDisk).toContain(`"schemaVersion": ${CACHE_SCHEMA_VERSION}`)
+  })
+})
+
+describe('purgeActionCache', () => {
+  let root: string
+
+  beforeEach(async () => {
+    root = await mkdtemp(join(tmpdir(), 'fs-action-cache-purge-'))
+  })
+
+  afterEach(async () => {
+    await rm(root, { recursive: true, force: true })
+  })
+
+  it('removes the entries the cache wrote and the branch directories they leave empty', async () => {
+    await new FsActionCache({ root, policy: makePolicy({ currentBranch: 'main' }) }).set(KEY, makeValue())
+    await new FsActionCache({ root, policy: makePolicy({ currentBranch: 'feature/login' }) })
+      .set(KEY, makeValue())
+
+    expect(await purgeActionCache(root)).toBe(2)
+    expect(await readdir(root)).toEqual([])
+  })
+
+  it('leaves every other file and directory under the root in place', async () => {
+    await new FsActionCache({ root, policy: makePolicy({ currentBranch: 'main' }) }).set(KEY, makeValue())
+    const kept = [
+      join(root, 'notes.txt'),
+      join(root, 'main', 'README.md'),
+      join(root, 'runs', 'run-1', 'handoff.json'),
+      join(root, 'runs', 'summary.json'),
+    ]
+    for (const path of kept) {
+      await mkdir(join(path, '..'), { recursive: true })
+      await writeFile(path, 'kept')
+    }
+
+    expect(await purgeActionCache(root)).toBe(1)
+    for (const path of kept) expect(await readFile(path, 'utf-8')).toBe('kept')
+    expect(await readdir(join(root, 'main'))).toEqual(['README.md'])
+  })
+
+  it('returns 0 for a root that does not exist', async () => {
+    expect(await purgeActionCache(join(root, 'absent'))).toBe(0)
   })
 })

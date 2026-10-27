@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { mkdir, writeFile, rm, readdir } from 'node:fs/promises'
+import { mkdir, writeFile, rm, readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { Command } from 'commander'
+import { sha256hex16 } from '@vostride/agent-qa-schema'
 
 // Phase 356 cache layout: <cacheRoot>/<branch-slug>/<cacheKey>.json. The 16-hex cacheKey
 // is opaque + content-addressed over masked step text and a runtime screenIdentityHash, so
@@ -29,12 +30,36 @@ describe('purgeAll', () => {
   it('deletes all cache-key entries across branch namespaces', async () => {
     const { purgeAll } = await import('../commands/cache.js')
     const cacheDir = join(TMP_DIR, 'cache')
-    for (let i = 0; i < 3; i++) await seedEntry(cacheDir, 'main', `key${i}0000000000000`)
-    for (let i = 0; i < 2; i++) await seedEntry(cacheDir, 'feature-y', `keyf${i}000000000000`)
+    for (let i = 0; i < 3; i++) await seedEntry(cacheDir, 'main', sha256hex16(`main-${i}`))
+    for (let i = 0; i < 2; i++) await seedEntry(cacheDir, 'feature-y', sha256hex16(`feature-${i}`))
 
     const count = await purgeAll(cacheDir)
     expect(count).toBe(5)
     expect(await readdir(cacheDir)).toEqual([])
+  })
+
+  it('leaves every file and directory the cache did not write in place', async () => {
+    const { purgeAll } = await import('../commands/cache.js')
+    const cacheDir = join(TMP_DIR, 'cache')
+    await seedEntry(cacheDir, 'main', sha256hex16('main-0'))
+    await seedEntry(cacheDir, 'feature-y', sha256hex16('feature-0'))
+    const kept = [
+      join(cacheDir, 'notes.txt'),
+      join(cacheDir, 'runs', 'run-1', 'handoff.json'),
+      join(cacheDir, 'runs', 'summary.json'),
+      join(cacheDir, 'main', 'README.md'),
+    ]
+    for (const path of kept) {
+      await mkdir(join(path, '..'), { recursive: true })
+      await writeFile(path, 'kept')
+    }
+
+    const count = await purgeAll(cacheDir)
+
+    expect(count).toBe(2)
+    for (const path of kept) expect(await readFile(path, 'utf-8')).toBe('kept')
+    expect((await readdir(cacheDir)).sort()).toEqual(['main', 'notes.txt', 'runs'])
+    expect(await readdir(join(cacheDir, 'main'))).toEqual(['README.md'])
   })
 
   it('returns 0 for non-existent cache dir', async () => {

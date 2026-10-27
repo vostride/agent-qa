@@ -8,6 +8,7 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, 
 import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 
+import { sha256hex16 } from '@vostride/agent-qa-schema'
 import { Command, CommanderError } from 'commander'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -176,8 +177,8 @@ describe('432 cache purge executes declared intent', () => {
   describe('C432-CACHE-NO-PROMPT', () => {
     it('C432-CACHE-NO-PROMPT: purge --all removes exactly the selected cache from a non-TTY with stdin forbidden', async () => {
       const workspace = workspaceFixture(roots)
-      for (let i = 0; i < 3; i++) seedEntry(workspace.cacheDir, 'main', `main${i}000000000000`)
-      for (let i = 0; i < 2; i++) seedEntry(workspace.cacheDir, 'feature-z', `feat${i}000000000000`)
+      for (let i = 0; i < 3; i++) seedEntry(workspace.cacheDir, 'main', sha256hex16(`main-${i}`))
+      for (let i = 0; i < 2; i++) seedEntry(workspace.cacheDir, 'feature-z', sha256hex16(`feature-${i}`))
       const sibling = join(workspace.root, '.agent-qa', 'runs', 'keep.json')
       mkdirSync(join(workspace.root, '.agent-qa', 'runs'), { recursive: true })
       writeFileSync(sibling, '{"kept":true}\n')

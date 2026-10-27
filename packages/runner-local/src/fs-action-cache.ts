@@ -11,7 +11,8 @@
 // back current-branch -> default-branch. An entry stamped with any other
 // CACHE_SCHEMA_VERSION is never read as valid.
 
-import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, readFile, rmdir, unlink, writeFile } from 'node:fs/promises'
+import type { Dirent } from 'node:fs'
 import { join } from 'node:path'
 
 import type { ActionPlanCache, CachedPlanValue } from '@vostride/agent-qa-runner'
@@ -22,6 +23,8 @@ import { shouldWrite, type CachePolicy } from './write-policy.js'
 
 /** Envelopes live under <root>/<branchSlug>/<key>.json; any other stamp reads as a miss. */
 export const CACHE_SCHEMA_VERSION = 2
+
+const CACHE_ENTRY_FILE_RE = /^[0-9a-f]{16}\.json$/
 
 interface CacheEnvelope {
   schemaVersion: number
@@ -107,4 +110,45 @@ export class FsActionCache implements ActionPlanCache {
     if (envelope?.schemaVersion !== CACHE_SCHEMA_VERSION) return null
     return envelope.value ?? null
   }
+}
+
+function isMissing(err: unknown): boolean {
+  return (err as NodeJS.ErrnoException).code === 'ENOENT'
+}
+
+/**
+ * Removes every `<root>/<branch-slug>/<16-hex>.json` entry, and a branch directory only when that
+ * leaves it empty. Nothing else under `root` is touched, so a cache root that also holds other
+ * files keeps them. Returns the number of entries removed.
+ */
+export async function purgeActionCache(root: string): Promise<number> {
+  let branches: Dirent[]
+  try {
+    branches = await readdir(root, { withFileTypes: true })
+  } catch (err) {
+    if (isMissing(err)) return 0
+    throw err
+  }
+
+  let purged = 0
+  for (const branch of branches) {
+    if (!branch.isDirectory() || slugBranch(branch.name) !== branch.name) continue
+    const dir = join(root, branch.name)
+    const entries = await readdir(dir, { withFileTypes: true })
+    let removed = 0
+    for (const entry of entries) {
+      if (!entry.isFile() || !CACHE_ENTRY_FILE_RE.test(entry.name)) continue
+      try {
+        await unlink(join(dir, entry.name))
+      } catch (err) {
+        if (!isMissing(err)) throw err
+      }
+      removed++
+    }
+    purged += removed
+    if (removed > 0 && removed === entries.length) {
+      await rmdir(dir).catch(() => {})
+    }
+  }
+  return purged
 }

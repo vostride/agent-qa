@@ -2382,6 +2382,37 @@ describe('API Routes', () => {
       }
     })
 
+    it('leaves every file and directory the cache did not write in place', async () => {
+      const entries = await seedCacheWorkspace()
+      const cacheDir = dirname(dirname(entries[0]))
+      const kept = [
+        join(cacheDir, 'notes.txt'),
+        join(cacheDir, 'runs', 'run-1', 'handoff.json'),
+        join(cacheDir, 'runs', 'summary.json'),
+        join(cacheDir, 'main', 'README.md'),
+      ]
+      for (const path of kept) {
+        await mkdir(dirname(path), { recursive: true })
+        await writeFile(path, 'kept', 'utf-8')
+      }
+
+      const res = await invokeRoute('/api/cache/purge', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ all: true }),
+      })
+
+      expect(res.status).toBe(200)
+      expect(JSON.parse(res.body)).toEqual({ purged: 2 })
+      for (const entry of entries) {
+        await expect(stat(entry)).rejects.toMatchObject({ code: 'ENOENT' })
+      }
+      for (const path of kept) {
+        expect(await readFile(path, 'utf-8')).toBe('kept')
+      }
+      await expect(stat(join(cacheDir, 'feature-x'))).rejects.toMatchObject({ code: 'ENOENT' })
+    })
+
     it('refuses a purge request without all and deletes nothing', async () => {
       const entries = await seedCacheWorkspace()
 

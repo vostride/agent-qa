@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { randomUUID } from 'node:crypto'
-import { readFile, writeFile, stat, readdir, rm } from 'node:fs/promises'
-import { join, isAbsolute, basename, resolve, dirname } from 'node:path'
+import { readFile, writeFile } from 'node:fs/promises'
+import { isAbsolute, basename, resolve, dirname } from 'node:path'
 
 import type { AttributePredicate, DashboardDatabase, InsightsBreakdownDimension, RunArtifactRow, RunRow } from '../db/database.js'
 import { isRunStatusWord, memberOutcomeClass, runStatusClass, type RunStatusClass } from '../db/run-status-class.js'
@@ -88,7 +88,7 @@ import type { PostProcessingRelay } from '../execution/post-processing-relay.js'
 import type { LLMAuthProviderPlugin, OAuthTokens } from '@vostride/agent-qa-core'
 import { AuthStateNameSchema, buildInternalRunAttributes, mergeRunAttributes, readAuth, writeAuth, removeAuth, getAgentQaVersion, getAgentQaUpdateStatus, getLLMAuthProviderPlugin, listAuthStateMetadata, listLLMAuthProviderPlugins, ModelConfigSchema, NameSlugSchema, TimeoutConfigSchema, AgentQaConfigSchema, TestDefinitionSchema, SuiteDefinitionSchema, parseEnvFile, serializeEnvFile, parseHooksFile, RUNTIME_IMAGE_MAP, validateUserRunAttributes, discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarget, SizeString } from '@vostride/agent-qa-core'
 import { SecretStore, SecretRedactor } from '@vostride/agent-qa-runner'
-import { DockerHookExecutor } from '@vostride/agent-qa-runner-local'
+import { DockerHookExecutor, purgeActionCache } from '@vostride/agent-qa-runner-local'
 import type { ResolvedWorkspacePaths, RunAttributes, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, fetchLiveModels, getModelCatalog, listProviders, mergeCatalog, resolveVisionConfig, type ProviderDescriptor } from '@vostride/agent-qa-model'
 import { parse as parseYaml } from 'yaml'
@@ -4525,45 +4525,8 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
               json(res, { error: 'Cache directory not configured' }, 400)
               return
             }
-            // Layout: <cacheRoot>/<branch-slug>/<cacheKey>.json
             const configDir = deps.configPath ? dirname(resolve(deps.configPath)) : process.cwd()
-            const resolvedCacheDir = resolve(configDir, cacheDir)
-            let branchDirs: string[]
-            try {
-              branchDirs = await readdir(resolvedCacheDir)
-            } catch (err: unknown) {
-              if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
-                json(res, { purged: 0 })
-                return
-              }
-              throw err
-            }
-            let purged = 0
-            for (const branch of branchDirs) {
-              const branchPath = join(resolvedCacheDir, branch)
-              let entryStat
-              try {
-                entryStat = await stat(branchPath)
-              } catch {
-                continue
-              }
-              if (!entryStat.isDirectory()) {
-                await rm(branchPath, { force: true })
-                continue
-              }
-              let files: string[]
-              try {
-                files = await readdir(branchPath)
-              } catch {
-                continue
-              }
-              for (const file of files) {
-                if (!file.endsWith('.json')) continue
-                await rm(join(branchPath, file), { force: true })
-                purged++
-              }
-              await rm(branchPath, { recursive: true, force: true }).catch(() => {})
-            }
+            const purged = await purgeActionCache(resolve(configDir, cacheDir))
             json(res, { purged })
           } catch (err: unknown) {
             json(res, { error: err instanceof Error ? err.message : 'Cache purge failed' }, 500)
