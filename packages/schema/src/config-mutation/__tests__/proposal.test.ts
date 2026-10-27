@@ -187,7 +187,7 @@ describe('the blocked arm cannot carry the payload it blocked (D-10)', () => {
   }
   const finding = {
     path: 'agent-qa.config.yaml',
-    field: 'registry.providers.farm.accessKey',
+    field: 'workspace.secretsFile',
     detector: 'known-secret',
     redactedFingerprint: 'sha256:9f86…0a08',
   }
@@ -357,14 +357,13 @@ describe('the cross-boundary reason vocabulary is closed (D-02)', () => {
 })
 
 describe('the secret-adjacent field set is roots, and matching is by subtree (D-03)', () => {
-  it('names the eight roots', () => {
+  it('names the roots', () => {
     expect([...SECRET_ADJACENT_CONFIG_FIELDS]).toEqual([
       'workspace.envFile',
       'workspace.secretsFile',
       'services.authState',
       'plugins.auth',
       'plugins.providers',
-      'registry.providers',
       'registry.targets.*.authState',
       // 395-05 added this one WITH THE FIELD THAT SHOWED IT, which is what the constant's retune
       // comment asks for. `registry.targets.*.authState` above came from `WebPlatformConfig`, the
@@ -399,7 +398,7 @@ describe('the secret-adjacent field set is roots, and matching is by subtree (D-
       'services.authState.dir',
       'plugins.auth.0.package',
       'plugins.providers.0.path',
-      'registry.providers.farm.accessKey',
+      'use.authState.capture',
       'registry.targets.shop.authState.name',
     ]) {
       expect({ path, flagged: isSecretAdjacentConfigField(path) }).toEqual({ path, flagged: true })

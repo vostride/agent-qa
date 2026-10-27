@@ -3897,34 +3897,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // POST /api/config/farm/test-connection — test farm provider credentials
-    if (path === '/api/config/farm/test-connection' && req.method === 'POST') {
-      readJsonBody<{ provider: string; username: string; accessKey: string }>(req)
-        .then(async (body) => {
-          if (body.provider !== 'browserstack') {
-            json(res, { error: 'Only BrowserStack is currently supported' }, 400)
-            return
-          }
-          try {
-            const auth = Buffer.from(`${body.username}:${body.accessKey}`).toString('base64')
-            const response = await fetch('https://api-cloud.browserstack.com/app-automate/devices.json', {
-              headers: { Authorization: `Basic ${auth}` },
-            })
-            if (response.ok) {
-              json(res, { success: true })
-            } else if (response.status === 401) {
-              json(res, { success: false, error: 'Invalid credentials' })
-            } else {
-              json(res, { success: false, error: `BrowserStack API returned ${response.status}` })
-            }
-          } catch (err) {
-            json(res, { success: false, error: err instanceof Error ? err.message : 'Connection failed' })
-          }
-        })
-        .catch(() => json(res, { error: 'Invalid request body' }, 400))
-      return
-    }
-
     // DELETE /api/auth/:configName — remove stored credential
     if (path.startsWith('/api/auth/') && req.method === 'DELETE') {
       const segments = path.split('/')
