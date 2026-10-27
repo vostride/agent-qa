@@ -222,7 +222,7 @@ export async function openDashboardScene(
     dbPath: options.dbPath ?? resolveDashboardDbPath({ configDir: project.root }),
     runOwnership: composeRunOwnership(),
   })
-  // The command hands the door its config path; the scene composes it the same way.
+  // The door is built from the scene's database, as `agent-qa dashboard` builds it from its own.
   const runDoor = await createDashboardRunDoor({ db })
   let boundOrigin: string | undefined
   const door = composeDashboardDoor({
