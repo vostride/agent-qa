@@ -16,7 +16,7 @@ import { FeedbackEntryButton, type FeedbackEntryButtonProps } from "@/components
 import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip"
 import type { PostProcessingView } from "@/lib/post-processing-view"
 import type { RunRow } from "@/lib/api"
-import { RunDeniedError, triggerRun } from "@/lib/api"
+import { triggerRun } from "@/lib/api"
 import { TOKEN_USAGE_TRIGGER_LABEL, tokenPairLine } from "@/lib/run-detail-view"
 import { statusBadgeLook } from "@/lib/status"
 import { cn, formatDuration } from "@/lib/utils"
@@ -170,7 +170,7 @@ export function RunNavbar({
         toast.success("Re-run started")
         navigate(routes.runLive(result.runId))
       })
-      .catch((err: unknown) => toast.error(err instanceof RunDeniedError ? err.message : "Failed to start re-run"))
+      .catch(() => toast.error("Failed to start re-run"))
   }
 
   return (

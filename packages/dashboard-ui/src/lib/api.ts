@@ -259,35 +259,6 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * The dashboard trigger refused this run before anything started (433-34, G-433-10).
- *
- * The answer is the run core's own denial, `{ error: 'run_denied', neutralReason }`, today the
- * production refusal: one sentence naming the target and the config line to add. `message` IS that
- * sentence, so every control that already shows `err.message` shows it unchanged. Nothing asks the
- * person anything; the config is the only opt-in.
- */
-export class RunDeniedError extends ApiError {
-  readonly neutralReason: string
-
-  constructor(status: number, statusText: string, payload: Record<string, unknown>, neutralReason: string) {
-    super(status, statusText, payload)
-    this.name = 'RunDeniedError'
-    this.message = neutralReason
-    this.neutralReason = neutralReason
-  }
-}
-
-/** The distinct denial sentences among a bulk run's rejections, joined, or nothing. */
-export function deniedRunSentences(results: readonly PromiseSettledResult<unknown>[]): string | undefined {
-  const sentences: string[] = []
-  for (const result of results) {
-    if (result.status !== 'rejected' || !(result.reason instanceof RunDeniedError)) continue
-    if (!sentences.includes(result.reason.neutralReason)) sentences.push(result.reason.neutralReason)
-  }
-  return sentences.length === 0 ? undefined : sentences.join(' ')
-}
-
 async function parseErrorPayload(res: Response): Promise<Record<string, unknown> | null> {
   try {
     const parsed: unknown = await res.json()
@@ -849,18 +820,7 @@ async function assertRunReadiness(): Promise<void> {
  */
 export async function triggerRun(opts: { file?: string; patterns?: string[]; noCache?: boolean; local?: boolean }): Promise<{ runId: string; status: string }> {
   await assertRunReadiness()
-  try {
-    return await postJson('/api/runs/trigger', opts)
-  } catch (error) {
-    // 433-34 (G-433-10): the trigger's refusal, rendered as the sentence it carries.
-    if (error instanceof ApiError && error.payload?.error === 'run_denied') {
-      const neutralReason = error.payload.neutralReason
-      if (typeof neutralReason === 'string' && neutralReason.trim().length > 0) {
-        throw new RunDeniedError(error.status, error.statusText, error.payload, neutralReason)
-      }
-    }
-    throw error
-  }
+  return postJson('/api/runs/trigger', opts)
 }
 
 /** What {@link openRunStream} accepts: which member to watch, and what to do with the frames. */

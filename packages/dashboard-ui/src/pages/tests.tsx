@@ -51,7 +51,7 @@ import {
   SHARED_TESTS_SUITES_COLUMN_IDS,
 } from "@/pages/tests-suites-table-widths"
 import { ShortcutLegend } from "@/components/shortcut-hints"
-import { deleteTestFile, deniedRunSentences, fetchTestFiles, fetchTestSummaries, purgeCache, triggerRun, type TestFileInfo, type TestSummary } from "@/lib/api"
+import { deleteTestFile, fetchTestFiles, fetchTestSummaries, purgeCache, triggerRun, type TestFileInfo, type TestSummary } from "@/lib/api"
 import { memberStatus, runStatusClass } from "@/lib/status"
 import { cn, formatDate } from "@/lib/utils"
 
@@ -432,8 +432,7 @@ export default function TestsPage() {
       const succeeded = results.filter((r) => r.status === "fulfilled").length
       const failed = results.length - succeeded
       if (failed > 0) {
-        const denied = deniedRunSentences(results)
-        toast.error(`${succeeded} runs queued, ${failed} failed${denied === undefined ? "" : `. ${denied}`}`)
+        toast.error(`${succeeded} runs queued, ${failed} failed`)
       } else {
         toast.success(`${succeeded} runs queued`)
       }

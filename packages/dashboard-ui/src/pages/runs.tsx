@@ -24,7 +24,7 @@ import { EmptyState } from "@/components/empty-state"
 import { RunsTable, type VisibleRunRow } from "@/components/runs-table"
 import { BatchActionBar } from "@/components/batch-action-bar"
 import { TestRunOptionsPopover } from "@/components/test-run-options-popover"
-import { deleteRun, deniedRunSentences, fetchRuns, fetchActiveExecutions, fetchQueueStatus, triggerRun, purgeCache, type RunRow, type QueueStatus } from "@/lib/api"
+import { deleteRun, fetchRuns, fetchActiveExecutions, fetchQueueStatus, triggerRun, purgeCache, type RunRow, type QueueStatus } from "@/lib/api"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { useRunsSearchParams } from "@/hooks/use-runs-search-params"
 import { usePageTitle } from "@/hooks/use-page-title"
@@ -282,8 +282,7 @@ export default function RunsPage() {
       const succeeded = results.filter((r) => r.status === "fulfilled").length
       const failed = results.length - succeeded
       if (failed > 0) {
-        const denied = deniedRunSentences(results)
-        toast.error(`${succeeded} runs queued, ${failed} failed${denied === undefined ? "" : `. ${denied}`}`)
+        toast.error(`${succeeded} runs queued, ${failed} failed`)
       } else {
         toast.success(`${succeeded} runs queued`)
       }

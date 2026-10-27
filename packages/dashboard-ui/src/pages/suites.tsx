@@ -52,7 +52,7 @@ import {
 } from "@/pages/tests-suites-table-widths"
 import { ShortcutLegend } from "@/components/shortcut-hints"
 import { useSuitesSearchParams } from "@/hooks/use-suites-search-params"
-import { deleteSuiteFile, deniedRunSentences, fetchSuiteFiles, fetchSuiteSummaries, triggerRun, type SuiteFileInfo, type SuiteSummary } from "@/lib/api"
+import { deleteSuiteFile, fetchSuiteFiles, fetchSuiteSummaries, triggerRun, type SuiteFileInfo, type SuiteSummary } from "@/lib/api"
 import { runStatusClass } from "@/lib/status"
 import { formatDate } from "@/lib/utils"
 
@@ -377,8 +377,7 @@ export default function SuitesPage() {
       const succeeded = results.filter((r) => r.status === "fulfilled").length
       const failed = results.length - succeeded
       if (failed > 0) {
-        const denied = deniedRunSentences(results)
-        toast.error(`${succeeded} runs queued, ${failed} failed${denied === undefined ? "" : `. ${denied}`}`)
+        toast.error(`${succeeded} runs queued, ${failed} failed`)
       } else {
         toast.success(`${succeeded} runs queued`)
       }
@@ -398,8 +397,7 @@ export default function SuitesPage() {
       const succeeded = results.filter((r) => r.status === "fulfilled").length
       const failed = results.length - succeeded
       if (failed > 0) {
-        const denied = deniedRunSentences(results)
-        toast.error(`${succeeded} runs queued (no cache), ${failed} failed${denied === undefined ? "" : `. ${denied}`}`)
+        toast.error(`${succeeded} runs queued (no cache), ${failed} failed`)
       } else {
         toast.success(`${succeeded} runs queued (no cache)`)
       }

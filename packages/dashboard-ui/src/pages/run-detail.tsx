@@ -30,7 +30,7 @@ import { PlayerLightbox } from '@/components/run-detail/player-lightbox'
 import { buildSuiteTimeline, suiteSeek, suiteProgress, suiteClock } from '@/lib/suite-timeline'
 import { Timeline } from '@/components/run-detail/timeline'
 import type { ReasoningPipelineHandle } from "@/components/reasoning-pipeline"
-import { fetchRun, fetchRunAnalysis, fetchRunDetail, fetchRunKnowledge, triggerRun, RunDeniedError, fetchExecutionLogs, fetchRunArtifact, watchPostProcessing, markRun } from "@/lib/api"
+import { fetchRun, fetchRunAnalysis, fetchRunDetail, fetchRunKnowledge, triggerRun, fetchExecutionLogs, fetchRunArtifact, watchPostProcessing, markRun } from "@/lib/api"
 import type { RunRow, ExecutionLogEntry, RunArtifactResponse, KnowledgeRead, PostProcessingRead } from "@/lib/api"
 import type { AnalysisGetOutput, RunDetailProjection, RunDetailSubAction } from "@vostride/agent-qa-schema"
 import {
@@ -908,7 +908,7 @@ export default function RunDetailPage() {
             toast.success("Re-run started")
             navigate(routes.runLive(result.runId))
           })
-          .catch((err: unknown) => toast.error(err instanceof RunDeniedError ? err.message : "Failed to start re-run"))
+          .catch(() => toast.error("Failed to start re-run"))
       },
       escape: () => {
         if (lightboxSha) setLightboxSha(null)
