@@ -2,10 +2,6 @@
 // It pinned each kind's exact surface members, the five doors and an empty dashboard projection;
 // the vocabulary is deleted, so each type is now one a consumer cannot name. `@ts-expect-error` is
 // two-way: a line fails `tsc --noEmit` the moment its type comes back.
-import { expectTypeOf, test } from 'vitest'
-
-import type { RunServiceDenialBody } from '../../index'
-
 // @ts-expect-error C432-REMEDY-TYPES-ABSENT: the remedy type is deleted
 export type RetiredGateRemedy = import('../../index').GateRemedy
 // @ts-expect-error C432-REMEDY-TYPES-ABSENT: the remedy kind union is deleted
@@ -16,8 +12,3 @@ export type RetiredGateRemedySurface = import('../../index').GateRemedySurface
 export type RetiredRemedyKindFor = import('../../index').RemedyKindFor<'cli'>
 // @ts-expect-error C432-REMEDY-TYPES-ABSENT: the chat clause denial is deleted
 export type RetiredClauseDenial = import('../../index').ClauseDenial
-
-test('C432-REMEDY-TYPES-ABSENT', () => {
-  // The run denial a door still answers with is a reason and a code, nothing a caller acts on.
-  expectTypeOf<RunServiceDenialBody>().toEqualTypeOf<{ error: 'run_denied'; neutralReason: string }>()
-})

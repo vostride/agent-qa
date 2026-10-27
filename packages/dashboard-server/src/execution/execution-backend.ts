@@ -64,43 +64,14 @@ export interface RunSettledDetails {
    * scope guarantee: every other arm of the reconciliation reads exactly what it read before.
    */
   readonly refusedBeforeStart?: true
-  /**
-   * The refusal said without naming any surface's affordance (401-18, G-401-16).
-   *
-   * The gate composed two sentences per decision: the canonical one, which named the session trust
-   * flag and landed in the execution-audit row, and the neutral one, which stops at the classification and the outcome.
-   * A browser reader was being handed the first, so the record's only account of why a run never
-   * happened told them to pass a flag to a command they were not running.
-   *
-   * READ STRUCTURALLY OFF THE REJECTION, and ABSENT where the
-   * rejection carries no neutral form — an input error is not a gate decision and has no second
-   * phrasing. The consumer then falls back to the rejection's own message, which for those refusals
-   * names no surface's affordance either.
-   */
-  readonly neutralReason?: string
   /** Diagnostic lines — a rejection's own message. The typed successor to scraped stderr. */
   readonly output: readonly string[]
 }
 
 export type RunSettledStatus = 'completed' | 'failed' | 'cancelled' | 'timeout'
 
-/** A trigger's request as the queue would carry it, before anything is recorded (433-34). */
-export interface PreflightOptions {
-  readonly args: string[]
-  readonly source: 'dashboard' | 'suite'
-}
-
 export interface ExecutionBackend extends EventEmitter {
   execute(opts: ExecuteOptions): void
-  /**
-   * Ask the run core whether this request may start, before a row is minted or anything enqueued
-   * (433-34, G-433-10).
-   *
-   * The composing host answers with the core's own production rule over the members' declared
-   * targets; this package decides nothing about production. A refusal rejects with the core's
-   * denial, which carries `neutralReason`. Absent on a backend whose host composes no preflight.
-   */
-  preflight?(opts: PreflightOptions): Promise<void>
   kill(runId: string): boolean
   killAll(): void
   /**

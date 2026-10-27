@@ -73,12 +73,6 @@ export const RUN_SERVICE_ERROR_CODES = [
   // words to itself exactly as `run_start_failed` does and for the same reason.
   'live_view_unavailable',
   'live_url_mint_failed',
-  // 402-06 (D-01 discretion, T-402-22): the run was refused before it started — since 432 (D-18)
-  // only the production refusal answers it, the policy gate being deleted. A member of the SAME
-  // closed set so the code vocabulary stays one vocabulary, but the only code this door answers
-  // with a body wider than one key — see `RunServiceDenialBodySchema` for why that widening is
-  // sound exactly here and nowhere else.
-  'run_denied',
 ] as const
 
 export type RunServiceErrorCode = (typeof RUN_SERVICE_ERROR_CODES)[number]
@@ -103,42 +97,11 @@ export const RunServiceErrorBodySchema = z.object({
 export type RunServiceErrorBody = z.infer<typeof RunServiceErrorBodySchema>
 
 /**
- * What a RUN DENIAL answers with — the one body on this door wider than a single key (402-06).
+ * What a REPLAY-FLOOR refusal answers with — the one body on this door wider than one key.
  *
- * WHY THE ONE-KEY LAW DOES NOT GOVERN HERE, and this is the whole of the argument. That law exists
- * because a refusal shown to an UNAUTHENTICATED caller must not fingerprint the route map, a run
- * id's existence, or how many credentials are declared — every fact it could carry is a fact the
- * caller has not earned. A run denial is answered only AFTER the same-site guard admitted the
- * caller (since 432-21; before it, after a declared credential matched). The reader is a party this
- * process has already decided to talk to, and telling them nothing but a word turns a
- * decidable situation ("this project's policy refuses runs of this class from this context") into
- * an unexplained failure they will retry forever.
- *
- * WHAT IS ON IT, AND WHAT IS DELIBERATELY NOT.
- *
- *   `neutralReason` — the run core's plain refusal sentence. Since 432 the only run denial is the
- *   production refusal (D-18): it names the target and the one config line that allows it, and it
- *   asks the reader to do nothing else.
- *
- *   2026-10-01 (432-19, D-15): there is no `remedies` list. The remedy vocabulary left with the
- *   execution gate that minted it, and the production refusal never carried one.
- *
- *   No `runId`. A denied run never started; publishing the id the core happened to mint would name
- *   a run that does not exist and cannot be streamed.
- */
-export const RunServiceDenialBodySchema = z.object({
-  error: z.literal('run_denied'),
-  neutralReason: z.string().min(1),
-}).strict()
-
-export type RunServiceDenialBody = z.infer<typeof RunServiceDenialBodySchema>
-
-/**
- * What a REPLAY-FLOOR refusal answers with — the second body on this door wider than one key
- * (403-03, D-13 · INVK-05).
- *
- * WHY THE ONE-KEY LAW DOES NOT GOVERN HERE EITHER, on `RunServiceDenialBodySchema`'s exact
- * argument and with one addition of its own. A 410 is answered only AFTER the same-site guard
+ * WHY THE ONE-KEY LAW DOES NOT GOVERN HERE. That law exists because a refusal shown to a caller
+ * the door has not admitted must not fingerprint the route map or a run id's existence. A 410 is
+ * answered only AFTER the same-site guard
  * admitted the caller on the run-service door (a declared credential until 432-21), and only behind
  * the bind guard on the local one — the reader is a
  * party this process has already decided to talk to. And what the second key carries is not a host

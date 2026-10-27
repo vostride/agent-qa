@@ -27,21 +27,8 @@ interface RunnerInstance {
   getActiveExecutions: Mock
   closeRun: (runId: string, status: CloseStatus, output?: string[]) => void
   /** 401-18: a run the gate or the host refused before it began — never a `closeRun` with a flag. */
-  refuseRun: (runId: string, details: {
-    reason: string
-    neutralReason?: string
-  }) => void
+  refuseRun: (runId: string, details: { reason: string }) => void
 }
-
-/**
- * The neutral sentence the gate composes for a reader whose surface is not a terminal (401-18).
- *
- * Spelled out rather than imported — `packages/dashboard-server` may not import `safety`. What the
- * cells below assert is the SHAPE (a decision said without naming any surface's affordance) and the
- * absence of `--trust-session`, both of which are asserted directly.
- */
-const NEUTRAL_REFUSAL_PROSE =
-  'prompted-denied: declared tier: mutating-shared: the interactive prompt was declined'
 
 const mockState = vi.hoisted(() => ({
   appiumInstances: [] as AppiumInstance[],
@@ -79,15 +66,11 @@ class FakeExecutionBackend extends EventEmitter {
    * is a run that happened and stopped, this is a run that never started. Every existing cell keeps
    * calling `closeRun` and therefore keeps measuring the unchanged arms.
    */
-  refuseRun = (runId: string, details: {
-    reason: string
-    neutralReason?: string
-  }): void => {
+  refuseRun = (runId: string, details: { reason: string }): void => {
     this.emit('run-settled', runId, 'failed', {
       output: details.reason.split('\n'),
       reason: details.reason,
       refusedBeforeStart: true,
-      ...(details.neutralReason === undefined ? {} : { neutralReason: details.neutralReason }),
     })
   }
 
@@ -244,13 +227,11 @@ function createConfigPath(content = MOBILE_CONFIG): { configPath: string; worksp
 async function startDashboard(opts: {
   configContent?: string
   llm?: boolean
-  preflight?: ExecutionBackend['preflight']
 } = {}): Promise<number> {
   const db = new DashboardDatabase({ dbPath: ':memory:' })
   currentDb = db
   const { configPath, workspacePaths } = createConfigPath(opts.configContent)
   const backend = new FakeExecutionBackend() as unknown as ExecutionBackend
-  if (opts.preflight) backend.preflight = opts.preflight
   started = await startServer({
     declaredSecretMask: (text) => text,
     db,
@@ -471,11 +452,7 @@ describe('dashboard Appium ownership', () => {
     const runner = currentRunner()
     await waitFor(() => expect(runner.execute).toHaveBeenCalledTimes(1))
 
-    runner.refuseRun(run.runId, {
-      reason: 'Run denied: prompted-denied: declared tier: mutating-shared: the interactive prompt'
-        + ' was declined; re-run and approve, or opt in with --trust-session',
-      neutralReason: NEUTRAL_REFUSAL_PROSE,
-    })
+    runner.refuseRun(run.runId, { reason: 'Unrecognised run request field: scope' })
 
     const stored = currentDb!.getRun(run.runId)
     expect(stored?.status).toBe('failed')
@@ -484,34 +461,10 @@ describe('dashboard Appium ownership', () => {
       'a run that never started is still summarised as a process that exited',
     ).not.toBe('Process exited before test completed')
     expect(stored?.failureSummary).toContain('Refused before the run started')
-    expect(stored?.failureSummary).toContain('prompted-denied')
+    expect(stored?.failureSummary).toContain('Unrecognised run request field')
   })
 
-  it('hands the refused run the surface-neutral prose, never the canonical CLI sentence', async () => {
-    const port = await startDashboard()
-    const run = await postJson<QueueResponse>(port, '/api/queue/enqueue', {
-      name: 'Refused prose channel',
-      platform: 'web',
-    })
-
-    const runner = currentRunner()
-    await waitFor(() => expect(runner.execute).toHaveBeenCalledTimes(1))
-
-    runner.refuseRun(run.runId, {
-      reason: 'Run denied: prompted-denied: declared tier: mutating-shared: the interactive prompt'
-        + ' was declined; re-run and approve, or opt in with --trust-session',
-      neutralReason: NEUTRAL_REFUSAL_PROSE,
-    })
-
-    const stored = currentDb!.getRun(run.runId)
-    expect(stored?.errorLog).toBe(NEUTRAL_REFUSAL_PROSE)
-    expect(
-      `${stored?.failureSummary ?? ''}\n${stored?.errorLog ?? ''}`,
-      'a CLI flag is offered as the way forward to somebody in a browser',
-    ).not.toContain('--trust-session')
-  })
-
-  it('describes a refusal that is not a gate denial as a refusal, and invents no way forward', async () => {
+  it('describes a refusal by its own message, and invents no way forward', async () => {
     const port = await startDashboard()
     const run = await postJson<QueueResponse>(port, '/api/queue/enqueue', {
       name: 'Refused request field',
@@ -521,8 +474,7 @@ describe('dashboard Appium ownership', () => {
     const runner = currentRunner()
     await waitFor(() => expect(runner.execute).toHaveBeenCalledTimes(1))
 
-    // No neutral form — an unrecognised request field is not a gate decision. It is
-    // still a run that never started, and the record has to say so.
+    // A run that never started, and the record has to say so.
     runner.refuseRun(run.runId, {
       reason: 'The dashboard run door does not honour --headed.',
     })
@@ -644,32 +596,5 @@ describe('dashboard Appium ownership', () => {
     expect(killAllIndex).toBeGreaterThanOrEqual(0)
     expect(releaseIndex).toBeGreaterThan(killAllIndex)
     expect(shutdownIndex).toBeGreaterThan(releaseIndex)
-  })
-})
-
-describe('C442-ENQUEUE-REFUSAL', () => {
-  it('a refused android enqueue takes no Appium lease and executes nothing', async () => {
-    const neutralReason = 'Target "release-android-wikipedia" is declared environment: production.'
-    const preflight = vi.fn(async () => {
-      throw Object.assign(new Error('refused'), { neutralReason })
-    })
-    const port = await startDashboard({ preflight })
-    const response = await fetch(`http://127.0.0.1:${port}/api/queue/enqueue`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ name: 'Android', platform: 'android', parallel: true }),
-    })
-    const body = (await response.json()) as Record<string, unknown>
-    await new Promise((resolve) => setTimeout(resolve, 100))
-
-    expect({ status: response.status, body }).toEqual({
-      status: 403,
-      body: { error: 'run_denied', neutralReason },
-    })
-    expect(preflight).toHaveBeenCalledWith({ args: [], source: 'dashboard' })
-    expect(currentAppium().acquireLease).not.toHaveBeenCalled()
-    expect(currentRunner().execute).not.toHaveBeenCalled()
-    expect(currentDb!.getPendingRuns()).toEqual([])
-    expect(currentDb!.getRuns({})).toEqual([])
   })
 })

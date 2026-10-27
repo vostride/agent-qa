@@ -115,34 +115,6 @@ interface Drive {
   session?: FakeRunSession
 }
 
-/**
- * The neutral sentence the gate composes for a browser reader (`buildDecisionNeutralReason`).
- *
- * Written out here rather than imported: `packages/dashboard-server` may not import `safety`, so a
- * cell that reached for the producer would be measuring a dependency `validate:arch` forbids. What
- * is load-bearing is the SHAPE — a decision said without naming any surface's affordance — and the
- * absence of `--trust-session`, which is asserted directly.
- */
-const NEUTRAL_DENIAL_PROSE =
-  'fail-closed (local-headless): declared tier: mutating-shared: this action needs an approval this context has not established'
-
-/**
- * A gate denial as it ARRIVES here: an object carrying `reason`, `remedies` and `neutralReason`.
- *
- * Deliberately not an instance of anything this package can name — see the structural-read cell.
- */
-// 2026-10-01 (432-19, D-15): a run denial carries no remedy list any more, and the canonical message
-// it used to carry beside the neutral one named `--trust-session`. The fixture keeps that LEGACY
-// message (an older daemon could still send one) and a stale remedy entry whose kind is assembled,
-// never spelled, so the cells below still prove neither reaches the settle.
-const buildDenial = (): unknown => Object.assign(
-  new Error(
-    'Run denied: fail-closed: ask in local-headless without trust (declared tier: mutating-shared): '
-    + 're-run locally to confirm interactively or opt in with --trust-session',
-  ),
-  { remedies: [{ kind: ['answer', 'confirm'].join('-') }], neutralReason: NEUTRAL_DENIAL_PROSE },
-)
-
 // 2026-10-17 (444-06, D-11, D-43): a cancelled run's status is its own verdict, so a cancelled fake
 // session publishes one.
 const cancelledVerdict = (runId: string, seq = 1): RunEventEnvelope => ({
@@ -397,18 +369,17 @@ describe('native lifecycle mapping — cancel, timeout, completion (401-07, D-12
 })
 
 describe('a refusal is not silence — the completion vocabulary (401-07, D-04/INVK-01)', () => {
-  it('A DENIAL — the starter rejects with NO session, and the reason reaches the consumers', async () => {
+  it('A REFUSAL — the starter rejects with NO session, and the reason reaches the consumers', async () => {
     const drive = await driveOneRun({
-      runId: 'denied-run',
+      runId: 'refused-run',
       startSession: false,
-      rejectWith: new Error('Run denied: fail-closed: ask in local-headless without trust (declared tier: mutating-shared)'),
+      rejectWith: new Error('Unrecognised run request field: scope'),
     })
 
     expect(drive.settled[0]!.status).toBe('failed')
-    // The gate's own words, carried to the surface a person reads — where the retiring wire lost
-    // them in a child's stderr.
-    expect(drive.settled[0]!.details.reason).toContain('mutating-shared')
-    expect(drive.settled[0]!.details.output.join('\n')).toContain('Run denied')
+    // The refusal's own words, carried to the surface a person reads.
+    expect(drive.settled[0]!.details.reason).toContain('Unrecognised run request field')
+    expect(drive.settled[0]!.details.output.join('\n')).toContain('scope')
     // NO RUN HAPPENED, and the settle says so by name rather than by the absence of frames between
     // two synthetic bookends — which is what this used to read (405-07, D-19).
     expect(drive.settled[0]!.details.refusedBeforeStart).toBe(true)
@@ -435,40 +406,23 @@ describe('a refusal is not silence — the completion vocabulary (401-07, D-04/I
     const drive = await driveOneRun({
       runId: 'marked-refusal',
       startSession: false,
-      rejectWith: buildDenial(),
+      rejectWith: Object.assign(new Error('Unrecognised run request field: scope'), { remedies: [] }),
     })
     expect(drive.settled[0]!.details.refusedBeforeStart).toBe(true)
-  })
-
-  it('THE NEUTRAL FORM IS READ STRUCTURALLY OFF THE REJECTION — no class check, no regex', async () => {
-    // The carrier is a PLAIN object with the field on it, never a `RunDeniedError`: this package may
-    // not import the package that mints one, so a cell that needed the class would be measuring a
-    // dependency the architecture forbids. That is exactly `dashboardRemediesOf`'s precedent.
-    const drive = await driveOneRun({
-      runId: 'neutral-refusal',
-      startSession: false,
-      rejectWith: buildDenial(),
-    })
-    expect(drive.settled[0]!.details.neutralReason).toBe(NEUTRAL_DENIAL_PROSE)
-    expect(drive.settled[0]!.details.neutralReason).not.toContain('--trust-session')
-    // C432-PLAIN-REFUSAL (432-09 D-15): the rejection still carries a remedy list, and the settle
-    // is plain facts only — no remedy member is projected or carried at all.
+    // The settle is plain facts only: nothing else the rejection carries is projected.
     expect(drive.settled[0]!.details).not.toHaveProperty('remedies')
     expect(Object.keys(drive.settled[0]!.details).sort())
-      .toEqual(['neutralReason', 'output', 'reason', 'refusedBeforeStart'])
+      .toEqual(['output', 'reason', 'refusedBeforeStart'])
   })
 
-  it('A REFUSAL WITH NO NEUTRAL FORM IS STILL A REFUSAL — the marker does not depend on the prose', async () => {
-    // The other members of the refusal family: an unrecognised request field, an input error, the
-    // host asked to start a run before it was composed. None of them is a gate decision, so none
-    // carries a neutral form — and every one of them still never started a run.
+  it('AN INPUT ERROR IS A REFUSAL, AND ITS OWN MESSAGE IS THE REASON', async () => {
+    // An input error never started a run, so it is marked a refusal like any other.
     const drive = await driveOneRun({
       runId: 'field-refusal',
       startSession: false,
       rejectWith: new Error('The dashboard run door does not honour --headed.'),
     })
     expect(drive.settled[0]!.details.refusedBeforeStart).toBe(true)
-    expect(drive.settled[0]!.details.neutralReason).toBeUndefined()
     expect(drive.settled[0]!.details.reason).toContain('does not honour --headed')
     expect(drive.settled[0]!.details).not.toHaveProperty('remedies')
   })
@@ -479,7 +433,6 @@ describe('a refusal is not silence — the completion vocabulary (401-07, D-04/I
       rejectWith: new Error('agent-qa browser support is not installed for Chromium'),
     })
     expect(drive.settled[0]!.details.refusedBeforeStart).toBeUndefined()
-    expect(drive.settled[0]!.details.neutralReason).toBeUndefined()
   })
 
   it('A RUN THAT ENDS WITH NO TERMINAL ENVELOPE IS `failed`, NOT `completed`', async () => {
@@ -619,22 +572,20 @@ describe('the spawn vocabulary is gone from this module (401-07, INVK-01 source 
     expect(code).toContain('handle.testName =')
   })
 
-  it('THE REFUSAL FACTS ARE READ STRUCTURALLY — no class name, no regex over the message (401-18)', () => {
+  it('THE REFUSAL FACT IS READ STRUCTURALLY — no class name, no regex over the message', () => {
     // The two things a repair here could reach for and must not. Naming the class would be an
     // import `validate:arch` forbids; a regex over the message would be a second parser over prose
     // another package composes — the defect this repair exists to close, one layer down.
     const REFUSAL_CLASS_CHECK = /instanceof\s+\w*(?:Denied|Refused)\w*Error/
     const REGEX_OVER_MESSAGE = /(?:message|reason)\s*\.(?:match|search)\(|\.test\(\s*(?:message|reason)\s*\)/
-    expect(code).not.toContain('RunDeniedError')
     expect(code).not.toContain(['Function', 'Denied', 'Error'].join(''))
     expect(code).not.toMatch(REFUSAL_CLASS_CHECK)
     expect(code).not.toMatch(REGEX_OVER_MESSAGE)
-    // What it DOES: reads the field off the value, structurally.
-    expect(code).toContain('neutralReason?: unknown')
+    // What it DOES: a refusal is a rejection with no started session.
     expect(code).toContain('handle.session === undefined')
     // NON-VACUITY, BEFORE THE VERDICT ABOVE IS WORTH ANYTHING: both predicates must fire on the
     // very shapes they forbid, or two `not.toMatch`es are green because they match nothing at all.
-    expect('if (error instanceof RunDeniedError) return error.neutralReason')
+    expect('if (error instanceof StartRefusedError) return error.message')
       .toMatch(REFUSAL_CLASS_CHECK)
     expect('if (/fail-closed/.test(message)) return message').toMatch(REGEX_OVER_MESSAGE)
     expect('const hit = message.match(/--trust-session/)').toMatch(REGEX_OVER_MESSAGE)

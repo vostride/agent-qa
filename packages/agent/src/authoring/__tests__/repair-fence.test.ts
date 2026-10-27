@@ -191,22 +191,19 @@ const HARNESS_EMISSION_CEILING = 12
 interface ProbeScript {
   /** One entry per probe, in order. `undefined` models a probe whose record is unreadable. */
   readonly probes: readonly (readonly MemberFixture[] | undefined)[]
-  /**
-   * Probe indices the run boundary refuses (432-04, D-18): `start` throws {@link RunRefusal} for
-   * them, as the host's run core does for a production target the config has not opted into.
-   */
+  /** Probe indices the run boundary refuses: `start` throws {@link RunRefusal} for them. */
   readonly refuseProbes?: readonly number[]
   /** The final stability gate is refused the same way: its gate runs never start. */
   readonly refuseVerify?: boolean
 }
 
 /**
- * The refusal the host's run boundary raises. `agent` may not import the host, so this stands in
- * for its `RunDeniedError`: what repair must do with it is the same for any refusal a start throws.
+ * A refusal the host's run boundary raises when a start is refused. What repair must do with it is
+ * the same for any refusal a start throws.
  */
 class RunRefusal extends Error {
   constructor() {
-    super('Target "prod-form" is declared environment: production, and this config does not allow production runs.')
+    super('The run port refused to start this run.')
     this.name = 'RunRefusal'
   }
 }
@@ -725,10 +722,9 @@ describe('one receipt per draft, and one disposition derivation', () => {
   })
 })
 
-// 432-04 (D-18): a probe is a run, and so is the repaired draft's final verification. Both go
-// through the run port, so the host's run boundary (a production target without the config's
-// opt-in) refuses them. Repair does not catch that refusal: it reaches the caller at once, and
-// nothing after it is asked, patched, probed or verified.
+// A probe is a run, and so is the repaired draft's final verification. Both go through the run
+// port, so the host's run boundary can refuse them. Repair does not catch that refusal: it reaches
+// the caller at once, and nothing after it is asked, patched, probed or verified.
 describe('a refusal at the run boundary ends repair where it lands', () => {
   it('a refused probe reaches the caller, and repair asks for no further patch and verifies nothing', async () => {
     const { repairDraft } = await loadRepair()

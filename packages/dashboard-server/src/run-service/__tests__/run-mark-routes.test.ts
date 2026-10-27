@@ -71,7 +71,7 @@ describe('markRun delegates to the shared gate and feedback port', () => {
     const f = fixture()
     const legacyName = ['Function', 'Denied', 'Error'].join('')
     const invokeFunction = vi.fn(async () => {
-      throw { name: legacyName, message: NOTE, reason: NOTE, neutralReason: NOTE,
+      throw { name: legacyName, message: NOTE, reason: NOTE,
         remedies: [{ kind: ['answer', 'confirm'].join('-') }] }
     })
     const denied = await markRun({ ...f.host, invokeFunction }, RUN_ID, { kind: 'false-fail', note: NOTE })

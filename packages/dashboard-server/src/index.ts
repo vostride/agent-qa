@@ -83,8 +83,6 @@ export {
   createRunServiceRoutes,
   matchRunServiceRoute,
   ownsRunServicePath,
-  // 402-06 (T-402-22): the structural denial read the 403 body is built from.
-  runDenialOf,
 } from './run-service/run-service-routes.js'
 // 403 D-06: the live-view surface — the served page, the frame proxy, and the wire vocabulary
 // both ends type against. Published because the CLI composes the proxy's deps and the conformance

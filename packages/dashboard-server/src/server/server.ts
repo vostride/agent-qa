@@ -359,14 +359,10 @@ export async function startServer(opts: StartServerOptions): Promise<{
           // anything started has no exit to report — and the summary is the line a runs list shows,
           // so it was the sentence a person read about every denied dashboard run.
           //
-          // THE PROSE IS THE GATE'S NEUTRAL FORM, NOT ITS CANONICAL ONE. The canonical sentence
-          // named the session trust flag, declared on one CLI command, and this reader is in a
-          // browser. Where the rejection carries no neutral form — an unrecognised request field, an
-          // input error — its own message is used, which names no surface's affordance either.
-          //
-          // 2026-09-30, 432-09 (D-15): the refusal is this plain sentence. No remedy list rides it.
+          // The prose is the rejection's own message (an unrecognised request field, an input
+          // error), which names no surface's affordance. No remedy list rides it.
           dbStatus = 'failed'
-          refusalProse = details.neutralReason ?? details.reason
+          refusalProse = details.reason
           failureSummary = refusalProse
             ? `Refused before the run started: ${refusalProse}`.slice(0, 300)
             : 'Refused before the run started'

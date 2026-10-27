@@ -258,21 +258,6 @@ function refusalMessage(error: unknown): string {
 }
 
 /**
- * A REFUSAL's own user-facing sentence, when the error is one (2026-10-02, 432-42, D-18).
- *
- * A refusal is an error that carries `neutralReason`: the run core's production refusal is the one
- * producer, and its sentence names the target and the one config line to add. The receipt keeps
- * the refusal NAME (the 399.1 charter is unchanged); the sentence is added to the turn's answer so
- * the chat person reads what the MCP door, `agent-qa run` and the dashboard already show. Any other
- * failure adds nothing, so no failing op's message reaches the answer through this path.
- */
-function refusalSentenceOf(error: unknown): string | undefined {
-  if (typeof error !== 'object' || error === null) return undefined
-  const sentence = (error as { neutralReason?: unknown }).neutralReason
-  return typeof sentence === 'string' && sentence.trim() !== '' ? sentence : undefined
-}
-
-/**
  * The boundary verdict, ABOVE the change it is a verdict about (399.1, RC-2, criterion 4).
  *
  * WHAT WAS WRONG (history, 399.1). The pre-confirm render answered "what does this change do" —
@@ -1003,8 +988,6 @@ async function runTurnThrough(
           status: 'failed',
           outcome: refusalName(error),
         }
-        const refusal = refusalSentenceOf(error)
-        if (refusal !== undefined) answerLines.push(refusal)
       }
     }
     // THE ONE DERIVATION (399.1-09, D-12). Every receipt this loop mints passes here — the

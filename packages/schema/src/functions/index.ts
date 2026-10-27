@@ -265,14 +265,12 @@ export {
   RUN_SERVICE_CONTRACT_VERSION,
   RUN_SERVICE_ERROR_CODES,
   RUN_SERVICE_REFUSED_REQUEST_FIELDS,
-  RunServiceDenialBodySchema,
   RunServiceErrorBodySchema,
   RunServiceReadinessSchema,
   RunServiceReplayFloorBodySchema,
   RunServiceStartRequestSchema,
 } from './run-service'
 export type {
-  RunServiceDenialBody,
   RunServiceErrorBody,
   RunServiceErrorCode,
   RunServiceReadiness,

@@ -814,7 +814,7 @@ interface CodeProbe {
   drive: () => Promise<{ readonly status: number; readonly body: Record<string, unknown> }>
   /** The status this refusal carries, so the census also pins the code-to-status mapping. */
   readonly status: number
-  /** `true` for the two bodies deliberately wider than one key (`run_denied`, `replay_floor`). */
+  /** `true` for the one body deliberately wider than one key (`replay_floor`). */
   readonly wide?: true
 }
 
@@ -869,24 +869,6 @@ const CODE_PROBES: readonly CodeProbe[] = Object.freeze([
       headers: { ...authed, 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
       ports: fakePorts({ invokeRunStart: () => { throw new Error('the host is gone') } }),
-    }),
-  },
-  {
-    code: 'run_denied',
-    status: 403,
-    wide: true,
-    drive: () => refusalAt('/run', {
-      method: 'POST',
-      headers: { ...authed, 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-      ports: fakePorts({
-        invokeRunStart: () => {
-          throw Object.assign(new Error('denied'), {
-            neutralReason: 'this project refuses runs of this class from this context',
-            remedies: [],
-          })
-        },
-      }),
     }),
   },
   {
@@ -957,8 +939,7 @@ describe('the refusal-CODE census is a complete set over RUN_SERVICE_ERROR_CODES
       + 'this file certifying an answer that is gone',
     ).toEqual([...RUN_SERVICE_ERROR_CODES].sort())
     // Non-vacuity: a census over an empty probe list agrees with an empty code set for free.
-    // 432-21: three bearer codes out, one same-site code in.
-    expect(CODE_PROBES.length).toBeGreaterThanOrEqual(14)
+    expect(CODE_PROBES.length).toBeGreaterThan(0)
     expect(new Set(probed).size).toBe(CODE_PROBES.length)
   })
 
@@ -971,16 +952,16 @@ describe('the refusal-CODE census is a complete set over RUN_SERVICE_ERROR_CODES
       expect(observed.body.error).toBe(code)
       if (probe.wide !== true) {
         // THE ONE-KEY LAW, re-measured per code rather than asserted once: a refusal that grew a
-        // second key would be a fingerprinting surface, and the two that legitimately carry one
-        // are declared here by name rather than discovered.
+        // second key would be a fingerprinting surface, and the one that legitimately carries one
+        // is declared here by name rather than discovered.
         expect(Object.keys(observed.body), `${code} carries exactly one key`).toEqual(['error'])
       }
     },
   )
 
-  it('the two WIDE bodies are exactly the two this door declares, and they parse', () => {
-    expect(CODE_PROBES.filter((probe) => probe.wide === true).map((probe) => probe.code).sort())
-      .toEqual(['replay_floor', 'run_denied'])
+  it('the one WIDE body is exactly the one this door declares', () => {
+    expect(CODE_PROBES.filter((probe) => probe.wide === true).map((probe) => probe.code))
+      .toEqual(['replay_floor'])
   })
 
   it('the replay_floor body satisfies its published schema', async () => {

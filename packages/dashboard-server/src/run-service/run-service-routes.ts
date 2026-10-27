@@ -26,13 +26,6 @@
 // EVERY REFUSAL WRITES THE SAME BODY SHAPE — one key, a closed code (see
 // `RunServiceErrorBodySchema`). Nothing echoes the caller's input or names a run id.
 //
-// WITH EXACTLY ONE EXCEPTION, AND IT IS ON THE OTHER SIDE OF THE GUARD (402-06). A run DENIAL is
-// answered 403 with the run core's plain refusal sentence (`RunServiceDenialBodySchema`). The
-// one-key law's whole argument is about what a caller refused at the door may learn; a run denial is
-// reached only by a caller the guard admitted, and a bare word would turn a decidable situation into
-// a failure they will retry forever. Since 432 the one run denial is production without the config
-// opt-in (D-18), and since 432-19 the body carries no remedy list.
-//
 // THE STREAM SERVES THE FROZEN BUS ENVELOPE VERBATIM (D-13). SSE `id` is the envelope's `seq`,
 // `event` is its `type`, and `data` is the envelope's own JSON. There is no projection layer and
 // no re-mint: the bus IS the wire contract, so there is no second event vocabulary to drift, and
@@ -94,7 +87,6 @@ import {
   parseHandleParam,
   passesHandleFilter,
   type RunEventEnvelope,
-  type RunServiceDenialBody,
   type RunServiceErrorCode,
   type RunServiceReadiness,
   type RunsLiveUrlResult,
@@ -430,7 +422,7 @@ function refuse(res: ServerResponse, status: number, error: RunServiceErrorCode)
 }
 
 /**
- * The ONE non-2xx body on this door wider than a single key besides `run_denied` (403-03, D-13).
+ * The ONE non-2xx body on this door wider than a single key.
  *
  * The shape is `RunServiceReplayFloorBodySchema`'s — see that schema for why the second key is
  * sound exactly here: `earliestAvailableSeq` is a fact about the CALLER'S OWN request, and without
@@ -559,8 +551,7 @@ export function resumePointOf(
 /**
  * The REPLAY FLOOR this rejection reports, if it is one — read structurally, never by class.
  *
- * ON `runDenialOf`S EXACT PRECEDENT one function down, and for a reason that is stronger here than
- * a package boundary. `@vostride/agent-qa-runner` IS a declared dependency of this package, so an
+ * `@vostride/agent-qa-runner` IS a declared dependency of this package, so an
  * `instanceof ReplayIncompleteError` would compile — and it would still be the wrong instrument.
  * The error arrives through {@link RunSession.subscribe}, a schema-declared port whose implementer
  * this module does not choose: a cloud host, a test fixture or a future replay source can all
@@ -840,30 +831,6 @@ export function serveRunEventStream(
   req.on('close', teardown)
 }
 
-/**
- * The DENIAL this rejection is, if it is one — read structurally, never by class (402-06, T-402-22).
- *
- * ON `dashboardNeutralReasonOf`'S EXACT PRECEDENT (`execution/in-process-backend.ts`), and for the
- * same architectural reason: the rejection is a `RunDeniedError` minted in `agent-local`, and this
- * package may not import `agent`, `agent-local` or `safety` — the arch package tests are the
- * mechanical proof.
- *
- * THE DISCRIMINATOR IS `neutralReason`, DELIBERATELY. Only a run denial carries it: an
- * unrecognised request field, an input error and "the host was asked to start a run before it was
- * composed" carry none, and those are exactly the rejections that must stay a 500 with no words on
- * them. Keying on the class NAME would be a string compare against another package's private
- * vocabulary.
- *
- * 2026-10-01 (432-19, D-15): there is no remedy list to validate or project. The production refusal
- * never carried one, and the remedy vocabulary left with the execution gate.
- */
-export function runDenialOf(error: unknown): RunServiceDenialBody | undefined {
-  if (typeof error !== 'object' || error === null) return undefined
-  const neutralReason = (error as { neutralReason?: unknown }).neutralReason
-  if (typeof neutralReason !== 'string' || neutralReason.trim().length === 0) return undefined
-  return { error: 'run_denied', neutralReason }
-}
-
 export function createRunServiceRoutes(ports: RunServicePorts): RunServiceRouter {
   /** Every live stream's teardown, so a host can count them and a close removes exactly one. */
   const openStreams = new Set<() => void>()
@@ -900,15 +867,8 @@ export function createRunServiceRoutes(ports: RunServicePorts): RunServiceRouter
         ack = await ports.invokeRunStart(
           parsed.data.patterns === undefined ? {} : { patterns: parsed.data.patterns },
         )
-      } catch (error) {
-        // A POLICY DENIAL IS A DECISION, NOT A CRASH, and it is the one rejection this door
-        // RENDERS rather than flattens. Read structurally — see `runDenialOf`.
-        const denial = runDenialOf(error)
-        if (denial !== undefined) {
-          respondJson(res, 403, denial)
-          return
-        }
-        // Everything else keeps its words to itself: a crash message is composed from this
+      } catch {
+        // Every rejection keeps its words to itself: a crash message is composed from this
         // process's own state and is not this caller's to read. The run's own diagnostics reach
         // whoever reads the run.
         refuse(res, 500, 'run_start_failed')

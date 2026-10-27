@@ -52,7 +52,6 @@ import type { RunEventEnvelope, RunSession } from '@vostride/agent-qa-schema'
 import type {
   ExecuteOptions,
   ExecutionBackend,
-  PreflightOptions,
   RunSettledDetails,
 } from './execution-backend.js'
 
@@ -146,11 +145,6 @@ export interface InProcessExecutionBackendOptions {
    * to refuse. `invokeRun` also says what this one does: it invokes the `runs.start` OP (D-10).
    */
   readonly invokeRun: InProcessRunStarter
-  /**
-   * The host's pre-enqueue check, forwarded as `preflight` (433-34, G-433-10). It runs the run
-   * core's production rule over the request; a rejection carrying `neutralReason` is a denial.
-   */
-  readonly preflightRun?: (opts: PreflightOptions) => Promise<void>
   /** Applied when an `ExecuteOptions` carries no `timeout` of its own. */
   readonly defaultTimeout?: number
   /** How long a settled run's handle survives before it is dropped. */
@@ -198,10 +192,6 @@ export class InProcessExecutionBackend extends EventEmitter implements Execution
     super()
     this.options = options
     this.retentionMs = options.retentionMs ?? DEFAULT_HANDLE_RETENTION_MS
-  }
-
-  async preflight(opts: PreflightOptions): Promise<void> {
-    await this.options.preflightRun?.(opts)
   }
 
   execute(opts: ExecuteOptions): void {
@@ -313,12 +303,10 @@ export class InProcessExecutionBackend extends EventEmitter implements Execution
     // 401-18 (G-401-16): the two facts the host used to have to guess at. 2026-09-30, 432-09 (D-15):
     // a refusal settles as these plain facts; no remedy list is projected or carried.
     let refusedBeforeStart = false
-    let neutralReason: string | undefined
     if (error !== undefined) {
-      neutralReason = dashboardNeutralReasonOf(error)
       const message = error instanceof Error ? error.message : String(error)
       for (const line of message.split('\n')) handle.output.push(line)
-      // A rejection reaching here without a started session is a denial / refusal / input error —
+      // A rejection reaching here without a started session is a refusal or an input error —
       // the run never began. With one, it is a post-start framework error on a run that did.
       //
       // 401-18: THAT DISTINCTION NOW LEAVES THIS FUNCTION. It was computed here and spent on a
@@ -345,7 +333,6 @@ export class InProcessExecutionBackend extends EventEmitter implements Execution
     const details: RunSettledDetails = {
       ...(handle.completionReason === undefined ? {} : { reason: handle.completionReason }),
       ...(refusedBeforeStart ? { refusedBeforeStart: true as const } : {}),
-      ...(neutralReason === undefined ? {} : { neutralReason }),
       output: [...handle.output],
     }
     this.emit('run-settled', handle.runId, handle.status, details)
@@ -355,33 +342,6 @@ export class InProcessExecutionBackend extends EventEmitter implements Execution
     }, this.retentionMs)
     cleanup.unref()
   }
-}
-
-/**
- * The surface-neutral prose a rejection is carrying, if it carries any (401-18, G-401-16).
- *
- * READ STRUCTURALLY, because the rejection is minted in `agent-local` or `agent`, and this package may not import
- * `agent`, `agent-local` or `safety` — the arch package tests are the mechanical proof. So the field is
- * read off the value, never through a class test.
- *
- * AND NEVER BY A REGEX OVER THE MESSAGE. Splitting the canonical sentence apart here would be a
- * second parser over prose another package composes, which is the defect class this whole repair
- * exists to close — the gate composes both phrasings from one decision, or neither is trustworthy.
- *
- * ABSENT IS A SUPPORTED ANSWER. Only a gate decision has a second phrasing; an unrecognised request
- * field, an input error and "the host was asked to start a run before it was composed" do not, and
- * they name no surface's affordance in their own messages either. The consumer falls back to the
- * rejection's own message for those, which is what it should show.
- *
- * VALIDATED AS FAR AS PROSE CAN BE: a non-empty string, or nothing. There is no closed vocabulary
- * to check it against, so what this refuses is a non-string and an empty one, and it passes
- * through no instructions of its own.
- */
-function dashboardNeutralReasonOf(error: unknown): string | undefined {
-  if (typeof error !== 'object' || error === null) return undefined
-  const carried = (error as { neutralReason?: unknown }).neutralReason
-  if (typeof carried !== 'string' || carried.trim().length === 0) return undefined
-  return carried
 }
 
 export function createInProcessExecutionBackend(

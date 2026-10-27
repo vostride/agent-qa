@@ -77,11 +77,7 @@ describe('the remedy memberships, exact (430 D-06)', () => {
   })
 
   it('C432-REMEDY-TYPES-ABSENT: no denial DTO on any door carries a remedy list', () => {
-    // The two shared denial bodies that used to: the run-service 403 and the chat clause denial.
-    const runDenial = schema.RunServiceDenialBodySchema
-    expect(Object.keys(runDenial.shape).sort()).toEqual(['error', 'neutralReason'])
-    expect(runDenial.safeParse({ error: 'run_denied', neutralReason: 'refused' }).success).toBe(true)
-    expect(runDenial.safeParse({ error: 'run_denied', neutralReason: 'refused', remedies: [] }).success).toBe(false)
+    // The chat clause denial is gone, and the ask result carries no denials.
     expect(Object.keys(schema)).not.toContain('ClauseDenialSchema')
     expect(Object.keys(schema.AgentAskResultSchema.shape)).not.toContain('denials')
   })
