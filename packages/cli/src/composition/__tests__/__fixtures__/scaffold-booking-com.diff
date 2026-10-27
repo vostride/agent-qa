@@ -18,7 +18,7 @@
 +# agent-qa init:end
 --- /dev/null
 +++ b/agent-qa.config.yaml
-@@ -0,0 +1,87 @@
+@@ -0,0 +1,85 @@
 +# agent-qa Configuration
 +
 +# File discovery and project settings
@@ -90,8 +90,6 @@
 +    viewport:
 +      width: 1280
 +      height: 720
-+  mobile:
-+    appState: preserve
 +  timeout:
 +    step: 20m
 +    test: 90m

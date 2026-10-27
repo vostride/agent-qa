@@ -247,8 +247,8 @@ describe('init command', () => {
     expect(content).toContain('komazon-cart-total-bug:')
     expect(content).toContain('url: https://playground.vostride.dev/shop/?bug=cart-total')
     expect(content).toContain('use:')
-    expect(content).toContain('mobile:')
-    expect(content).toContain('appState: preserve')
+    expect(content).not.toMatch(/^\s*mobile:/m)
+    expect(content).not.toContain('appState: preserve')
     expect(content).toContain('dir: .agent-qa/cache')
     expect(content).toContain('plugins:')
     expect(content).toContain('package: "@vostride/agent-qa-subscription-auth"')
@@ -378,7 +378,7 @@ describe('init command', () => {
     expect(config.services.vision).toEqual({ screenshotSize: '256k', effectiveResolution: 768 })
     expect(config.registry.llms[0]).not.toHaveProperty('apiKey')
     expect(config.registry.llms[0]).not.toHaveProperty('authMethod')
-    expect(config.use.mobile.appState).toBe('preserve')
+    expect(config.use.mobile).toBeUndefined()
     expect(config.use.browser.viewport).toEqual({ width: 1280, height: 720 })
     expect(config.use.logCapture).toEqual({ console: true, network: true })
     expect(config.use.parallel).toBe(false)
@@ -409,7 +409,7 @@ describe('init command', () => {
     expect(config.services.vision).toEqual({ screenshotSize: '256k', effectiveResolution: 768 })
     expect(config.registry.llms[0]).not.toHaveProperty('authMethod')
     expect(config.registry.llms[0]).not.toHaveProperty('apiKey')
-    expect(config.use.mobile.appState).toBe('preserve')
+    expect(config.use.mobile).toBeUndefined()
     expect(config.use.browser.viewport).toEqual({ width: 1280, height: 720 })
     expect(config.use.logCapture).toEqual({ console: true, network: true })
     expect(config.use.parallel).toBe(false)
@@ -439,7 +439,7 @@ describe('init command', () => {
   })
 
   it.each(['web', 'android', 'ios', 'web+android', 'web+ios'] as const)(
-    'builds %s config with required mobile app state',
+    'builds %s config with a mobile app state only for mobile platforms',
     (platform) => {
       const config = buildDefaultConfig(
         platform,
@@ -447,7 +447,11 @@ describe('init command', () => {
         'claude-sonnet-4-6',
       ) as any
 
-      expect(config.use.mobile.appState).toBe('preserve')
+      if (platform === 'web') {
+        expect(config.use.mobile).toBeUndefined()
+      } else {
+        expect(config.use.mobile.appState).toBe('preserve')
+      }
       expect(config.use.logCapture).toEqual({ console: true, network: true })
       expect(config.use.parallel).toBe(false)
       expect(config.services.authState).toEqual({ dir: '.agent-qa/auth-states' })

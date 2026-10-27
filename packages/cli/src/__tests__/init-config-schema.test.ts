@@ -73,7 +73,7 @@ describe('init generated config schema compatibility', () => {
   )
 
   it.each(['web', 'android', 'ios', 'web+android'] as const)(
-    'writes the %s config with the cache under .agent-qa, the canonical workspace and preserved app state, and no retired key or reconciliation',
+    'writes the %s config with the cache under .agent-qa, the canonical workspace and app state for mobile platforms, and no retired key or reconciliation',
     (platform) => {
       const config = buildDefaultConfig(platform, 'anthropic-subscription', 'claude-sonnet-4-6')
       const parsed = parseGeneratedConfig(config)
@@ -82,7 +82,11 @@ describe('init generated config schema compatibility', () => {
       expect(parsed.services?.cache?.dir).toBe('.agent-qa/cache')
       expect(written).toContain('dir: .agent-qa/cache')
       expect(config.workspace).toEqual(CANONICAL_WORKSPACE)
-      expect(parsed.use?.mobile?.appState).toBe('preserve')
+      if (platform === 'web') {
+        expect(parsed.use?.mobile).toBeUndefined()
+      } else {
+        expect(parsed.use?.mobile?.appState).toBe('preserve')
+      }
       for (const retired of ['memory:', 'agentRules', 'actionProofs']) {
         expect(written).not.toContain(retired)
       }

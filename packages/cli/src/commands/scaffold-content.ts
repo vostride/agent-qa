@@ -102,6 +102,10 @@ export function hasWeb(platform: InitPlatformInput): boolean {
   return normalizePlatformSelection(platform).capabilities.includes('web')
 }
 
+export function hasMobile(platform: InitPlatformInput): boolean {
+  return normalizePlatformSelection(platform).capabilities.includes('mobile')
+}
+
 /**
  * The `registry.targets` block.
  *
@@ -209,7 +213,7 @@ export function buildScaffoldConfig(
       : {}),
     use: {
       ...(hasWeb(platform) ? { browser: { name: 'chromium', headless: true, viewport: { width: 1280, height: 720 } } } : {}),
-      mobile: { appState: 'preserve' },
+      ...(hasMobile(platform) ? { mobile: { appState: 'preserve' } } : {}),
       timeout: { step: '20m', test: '90m', navigation: '2m' },
       planner: {
         maxActions: DEFAULT_PLANNER_LIMITS.maxActions,
