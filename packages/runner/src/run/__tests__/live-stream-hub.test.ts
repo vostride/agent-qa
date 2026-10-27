@@ -13,11 +13,12 @@ import {
 import type { RunTimerPort } from '../ports.js'
 
 /**
- * A MULTI-SLOT fake timer. The `run-cancel.test.ts` fake holds ONE pending callback, which is
- * enough for the run budget but not here: the hub arms an ack bound per in-flight frame AND a stop
- * grace, so a single-slot fake would silently drop whichever was armed first and the cells would be
- * measuring the fake, not the hub. Callbacks are keyed by the delay they were scheduled with, so a
- * cell fires exactly the timer it means (`fire(LIVE_STREAM_STOP_GRACE_MS)`), never "the latest".
+ * A MULTI-SLOT fake timer. The `run-shell.test.ts` fake holds ONE pending callback, which is
+ * enough for the post-verdict bound but not here: the hub arms an ack bound per in-flight frame AND
+ * a stop grace, so a single-slot fake would silently drop whichever was armed first and the cells
+ * would be measuring the fake, not the hub. Callbacks are keyed by the delay they were scheduled
+ * with, so a cell fires exactly the timer it means (`fire(LIVE_STREAM_STOP_GRACE_MS)`), never "the
+ * latest".
  */
 interface FakeTimer extends RunTimerPort {
   fire(delayMs: number): number

@@ -255,7 +255,7 @@ export interface RunArtifactStorePort {
 }
 
 /**
- * Injectable timer seam for the heartbeat + run-budget clocks (spec §2.2 liveness / D-03).
+ * Injectable timer seam for the bus heartbeat, the frame hub's bounds and the post-verdict bound.
  * `schedule(delayMs, fn)` arms a one-shot and returns a cancel handle; `now()` supplies the
  * envelope `ts`. The default impl wraps global setTimeout/clearTimeout (unref'd so it never
  * keeps the process alive); unit pins inject a deterministic fake — no real timers, no watch
@@ -426,12 +426,11 @@ export interface RunPorts {
    */
   runArtifactStore?: RunArtifactStorePort
   /**
-   * The clock the post-verdict step's bound runs on. It is NOT routed into the bus heartbeat:
-   * the two clocks stay apart so a fake timer drives that bound deterministically.
+   * The clock the post-verdict step's bound and the frame hub's bounds run on. It is NOT routed
+   * into the bus heartbeat: the clocks stay apart so a fake timer drives those bounds
+   * deterministically.
    */
   timer?: RunTimerPort
-  // 2026-10-02 (432-42, D-14): no pause supplier. It credited time a person spent at a confirm
-  // prompt back to the run budget; no run asks, its only supplier answered 0, and it is deleted.
   /**
    * The CASS-02 run-scoped decision-screenshot artifact store (Plan 11). The runner-local
    * `FsEvidenceArtifactStore` is constructed run-scoped at the CLI composition root and injected

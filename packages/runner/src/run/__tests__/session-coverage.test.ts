@@ -234,9 +234,9 @@ describe('SESSION-02 — the typed event bus implements bus schema v1 over a gap
   })
 
   it('a ~10s heartbeat fires through the injected bus timer after silence (liveness)', async () => {
-    // Drive the bus heartbeat clock via the injected timer: startRun wires the run-budget on
-    // config.ports.timer, but the bus builds its own default clock — so we prove the heartbeat
-    // seam directly through createRunEventBus's timer contract.
+    // startRun hands config.ports.timer to the post-verdict bound and the frame hub, but the bus
+    // builds its own default clock — so we prove the heartbeat seam directly through
+    // createRunEventBus's timer contract.
     const events: RunEventEnvelope[] = []
     const timer = makeFakeTimer()
     // A never-resolving executor keeps the run open so a heartbeat can fire mid-run.

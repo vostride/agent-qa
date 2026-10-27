@@ -145,9 +145,9 @@ function memberHandleIndex(member: RunMemberDescriptor, index: number): number {
 }
 
 /**
- * Start a run (D-01). Constructs the session SYNCHRONOUSLY — the bus, `runStarted` at seq 1, the
- * run-budget arm, the run-level AbortController — then kicks the async member pool whose settled
- * result feeds `done`. Returns the addressable {@link RunSession} immediately.
+ * Start a run. Constructs the session SYNCHRONOUSLY — the bus, `runStarted` at seq 1, the
+ * run-level AbortController — then kicks the async member pool whose settled result feeds `done`.
+ * Returns the addressable {@link RunSession} immediately.
  *
  * 402-02 (D-09): members execute through a BOUNDED CONCURRENT POOL rather than a `for` loop, but
  * everything after it is unchanged — the terminal sequence is still ONE code path, run once, after
@@ -160,8 +160,8 @@ export function startRun(config: RunConfig): RunSession {
   const timer = ports.timer
 
   // The bus heartbeat runs on its own default clock — the injected `ports.timer` is reserved for
-  // the run-budget so that firing it in a test is unambiguous (heartbeat re-arm on every publish
-  // would otherwise clobber the budget on a single shared fake timer).
+  // the post-verdict bound and the frame hub, so that firing it in a test is unambiguous (heartbeat
+  // re-arm on every publish would otherwise clobber those bounds on a single shared fake timer).
   const bus = createRunEventBus({ runId: config.runId, eventLog: ports.eventLog })
 
   // 403 D-05: ONE frame hub per run. Frames are DATA on a side channel — the hub publishes no bus
