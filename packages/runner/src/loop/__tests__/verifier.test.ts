@@ -187,6 +187,28 @@ describe('LLMVerifier', () => {
       })
     })
 
+    it('an empty answer is a failed model call', async () => {
+      const { generateText } = await import('ai')
+      const mockGenerateText = vi.mocked(generateText)
+      mockGenerateText.mockRejectedValueOnce(
+        new NoObjectGeneratedError({
+          message: 'No object generated: could not parse the response.',
+          text: '',
+          response: undefined as any,
+          usage: undefined as any,
+          finishReason: 'stop',
+        }),
+      )
+
+      const verifier = new LLMVerifier({} as any, makeFakeTokenAccounting())
+      const result = await verifier.judgeClaim('anything', before, { mode: 'multimodal' })
+
+      expect(result).toEqual({
+        outcome: 'unresolved',
+        reason: 'the model call failed: the model returned an empty answer',
+      })
+    })
+
     it("a failed model call is unresolved with the provider's message", async () => {
       const { generateText } = await import('ai')
       const mockGenerateText = vi.mocked(generateText)
@@ -335,6 +357,28 @@ describe('LLMVerifier', () => {
       expect(result).toEqual({
         outcome: 'unresolved',
         reason: "the model's answer did not match the declared fields",
+      })
+    })
+
+    it('an empty answer is a failed model call', async () => {
+      const { generateText } = await import('ai')
+      const mockGenerateText = vi.mocked(generateText)
+      mockGenerateText.mockRejectedValueOnce(
+        new NoObjectGeneratedError({
+          message: 'No object generated: could not parse the response.',
+          text: '',
+          response: undefined as any,
+          usage: undefined as any,
+          finishReason: 'stop',
+        }),
+      )
+
+      const verifier = new LLMVerifier({} as any, makeFakeTokenAccounting())
+      const result = await verifier.extractData('extract the order id', before, { fields })
+
+      expect(result).toEqual({
+        outcome: 'unresolved',
+        reason: 'the model call failed: the model returned an empty answer',
       })
     })
 

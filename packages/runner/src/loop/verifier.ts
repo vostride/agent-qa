@@ -106,6 +106,14 @@ function modelCallFailed(error: unknown): string {
   return `the model call failed: ${error instanceof Error ? error.message : String(error)}`
 }
 
+const EMPTY_ANSWER = 'the model call failed: the model returned an empty answer'
+
+// An answer that does not parse against the schema is the lane's malformed reason, but an empty
+// answer is a failed call.
+function unparsedAnswer(error: NoObjectGeneratedError, malformed: string): string {
+  return error.text?.trim() ? malformed : EMPTY_ANSWER
+}
+
 /** Closed judgment schema: a boolean verdict and a rationale, never free text. */
 export const AiJudgmentResultSchema = z.object({
   verdict: z.boolean().describe('Whether the claim is true given the observed screen state'),
@@ -383,7 +391,7 @@ export class LLMVerifier implements Verifier {
     } catch (error: unknown) {
       if (abortSignal?.aborted) throw error
       if (NoObjectGeneratedError.isInstance(error)) {
-        return { outcome: 'unresolved', reason: JUDGMENT_NOT_A_VERDICT }
+        return { outcome: 'unresolved', reason: unparsedAnswer(error, JUDGMENT_NOT_A_VERDICT) }
       }
       return { outcome: 'unresolved', reason: modelCallFailed(error) }
     }
@@ -433,7 +441,7 @@ export class LLMVerifier implements Verifier {
     } catch (error: unknown) {
       if (abortSignal?.aborted) throw error
       if (NoObjectGeneratedError.isInstance(error)) {
-        return { outcome: 'unresolved', reason: EXTRACTION_NOT_THE_FIELDS }
+        return { outcome: 'unresolved', reason: unparsedAnswer(error, EXTRACTION_NOT_THE_FIELDS) }
       }
       return { outcome: 'unresolved', reason: modelCallFailed(error) }
     }
