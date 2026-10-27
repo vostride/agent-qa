@@ -158,7 +158,7 @@ const extractArrayItemSchema = z.object({
 }).strict()
 
 export const extractFieldSchema = z.object({
-  name: z.string().describe('Output field name'),
+  name: z.string().min(1, 'field names must not be empty').describe('Output field name'),
   type: z.enum(['string', 'number', 'boolean', 'array', 'object']).describe('Output field value type'),
   description: z.string().describe('Natural-language description of the field to extract'),
   item: extractArrayItemSchema.optional()
@@ -171,7 +171,15 @@ export const extractFieldSchema = z.object({
 
 export const extractAISchema = z.object({
   query: z.string().describe('Perceptual extraction request for the current rendered state'),
-  schema: z.array(extractFieldSchema).describe('Typed field-list output schema'),
+  schema: z.array(extractFieldSchema).superRefine((fields, ctx) => {
+    const seen = new Set<string>()
+    fields.forEach((field, index) => {
+      if (seen.has(field.name)) {
+        ctx.addIssue({ code: 'custom', path: [index, 'name'], message: 'field names must be unique' })
+      }
+      seen.add(field.name)
+    })
+  }).describe('Typed field-list output schema'),
 }).strict()
 
 export const openAppSchema = z.union([

@@ -120,4 +120,33 @@ describe('assertion and extraction schemas', () => {
     const issue = parsed.error?.issues.find((entry) => entry.path.join('.') === 'schema.0.item')
     expect(issue?.message).toBe('item is required when type is array')
   })
+
+  it('extractAI refuses a field name declared twice', () => {
+    const schema = registryWithActions().getSchema('common_extractAI')
+
+    const parsed = schema.safeParse({
+      query: 'read the order',
+      schema: [
+        { name: 'total', type: 'string', description: 'the total as shown' },
+        { name: 'total', type: 'number', description: 'the order total' },
+      ],
+    })
+
+    expect(parsed.success).toBe(false)
+    const issue = parsed.error?.issues.find((entry) => entry.path.join('.') === 'schema.1.name')
+    expect(issue?.message).toBe('field names must be unique')
+  })
+
+  it('extractAI refuses an empty field name', () => {
+    const schema = registryWithActions().getSchema('common_extractAI')
+
+    const parsed = schema.safeParse({
+      query: 'read the order',
+      schema: [{ name: '', type: 'string', description: 'the order number' }],
+    })
+
+    expect(parsed.success).toBe(false)
+    const issue = parsed.error?.issues.find((entry) => entry.path.join('.') === 'schema.0.name')
+    expect(issue?.message).toBe('field names must not be empty')
+  })
 })
