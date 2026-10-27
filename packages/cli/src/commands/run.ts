@@ -10,7 +10,7 @@ import { discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarge
 import type { AgentQaConfig, AuthStateMetadata, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
 import { resolveTarget, type ResolvedTarget } from '../targets.js'
-import { loadLocalBindings, type ResolvedDevice } from '../devices.js'
+import { loadLocalBindings, type LocalDeviceBindings, type ResolvedDevice } from '../devices.js'
 import { resolveLLMModels, resolveModelAuth, toModelProfileAndAuth } from '../llm-utils.js'
 import { formatInstallBrowsersRetryCommand, type BrowserInstallSelection } from './install-browsers.js'
 import type { ParsedTestBinding, TestDefinition, ParseError, SuiteDefinition, SuiteResult, RunSuiteConfig } from '@vostride/agent-qa-core'
@@ -1191,6 +1191,45 @@ function secretsRefusal(err: DeclaredSecretsUnavailableError): CliRunInputError 
   return new CliRunInputError([pc.red(first), ...rest.map((line) => pc.dim(line))], 1)
 }
 
+/**
+ * `agent-qa.local.yaml`, read at most once per run. A file the loader refuses becomes an input
+ * refusal, so the producer can read it before the run is recorded whenever a member runs on a
+ * device.
+ */
+function createRunLocalBindingsReader(): () => LocalDeviceBindings | null {
+  let read: { readonly bindings: LocalDeviceBindings | null } | undefined
+  return () => {
+    if (read === undefined) {
+      try {
+        read = { bindings: loadLocalBindings() }
+      } catch (err) {
+        const [first = '', ...rest] = (err instanceof Error ? err.message : String(err)).split('\n')
+        throw new CliRunInputError(
+          [pc.red(`Config error: ${first}`), ...rest.map((line) => pc.dim(line))],
+          1,
+        )
+      }
+    }
+    return read.bindings
+  }
+}
+
+function anyTargetRunsOnDevice(
+  config: AgentQaConfig,
+  targetNames: readonly (string | undefined)[],
+): boolean {
+  return targetNames.some((targetName) => {
+    if (targetName === undefined) return false
+    try {
+      const platform = resolveTarget(config, targetName).platform
+      return platform === 'android' || platform === 'ios'
+    } catch {
+      // The member closure reports an unresolvable target itself.
+      return false
+    }
+  })
+}
+
 async function loadRuntimeSecrets(input: {
   config: AgentQaConfig
   configDir: string
@@ -2367,6 +2406,11 @@ export async function produceSuiteRunMembers(
   const preloadedSuiteTests = input.preflight.preloadedTests
   const suitePreflightProduct = input.preflight.product
 
+  // Read before the run is recorded, so a refused local file refuses the run instead of failing it.
+  const readLocalBindings = createRunLocalBindingsReader()
+  const suiteTargetNames = [...parsedSuiteDefinitions.values()].map((suite) => suite.target)
+  if (anyTargetRunsOnDevice(config, suiteTargetNames)) readLocalBindings()
+
   // The record opens here, before plugins; the drive's later open is a no-op.
   await input.runRecord?.open({
     runId,
@@ -2631,7 +2675,7 @@ export async function produceSuiteRunMembers(
     }
 
     const suiteLocalBindings = suitePlatform === 'android' || suitePlatform === 'ios'
-      ? loadLocalBindings()
+      ? readLocalBindings()
       : null
     let mobileResolved: ResolvedMobileRunConfig | undefined
     let resolvedDevice: ResolvedDevice | undefined
@@ -3597,6 +3641,10 @@ export async function produceDirectRunMembers(
   const directRunProduct = input.product
   const singleRunMask: MaskFn = (text) => runtimeSecrets.secretRedactor.redactString(text)
 
+  // Read before the run is recorded, so a refused local file refuses the run instead of failing it.
+  const readLocalBindings = createRunLocalBindingsReader()
+  if (anyTargetRunsOnDevice(config, filtered.map(({ test }) => test.target))) readLocalBindings()
+
   // The late-bound slots the run's own lifecycle fills. `singleRunProduct` and `singleBuildOrdinal` are declared with the block
   // below, exactly where the command declared them; these two are new only in the sense that the
   // command held them in its own scope.
@@ -3762,7 +3810,7 @@ export async function produceDirectRunMembers(
     }
 
     const testLocalBindings = testPlatform === 'android' || testPlatform === 'ios'
-      ? loadLocalBindings()
+      ? readLocalBindings()
       : null
     let testMobileResolved: ResolvedMobileRunConfig | undefined
     let testResolvedDevice: ResolvedDevice | undefined

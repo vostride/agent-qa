@@ -32,7 +32,14 @@ async function listDevices(): Promise<void> {
     return
   }
 
-  const localBindings = loadLocalBindings()
+  let localBindings
+  try {
+    localBindings = loadLocalBindings()
+  } catch (err) {
+    console.error(pc.red(`Config error: ${err instanceof Error ? err.message : String(err)}`))
+    process.exitCode = 1
+    return
+  }
 
   const nameWidth = Math.max(12, ...Object.keys(devices).map(n => n.length))
   const platWidth = 10

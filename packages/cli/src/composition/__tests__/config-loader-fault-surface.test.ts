@@ -51,13 +51,14 @@
 //                                  around the whole loader would reword it and red here.
 
 import { spawnSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { inspect } from 'node:util'
 
 import { invokeFunction } from '@vostride/agent-qa-agent'
+import { generateTestId } from '@vostride/agent-qa-ids'
 import {
   formatDiagnostics,
   parseTestFile,
@@ -774,6 +775,98 @@ describe('the other person-visible yaml-parse roads report position-only (395-18
     // The uncaught printer's own marks. A report is not a crash.
     expect(combined, `the command's output:\n${combined}`).not.toMatch(/YAMLParseError/)
     expect(combined, `the command's output:\n${combined}`).not.toMatch(/linePos/)
+  })
+})
+
+/** The `agent-qa.local.yaml` an older `agent-qa init` wrote: a `providers:` block holding only comments. */
+const OLDER_INIT_LOCAL_BINDINGS = `# This file is for machine-specific device, app, and provider bindings.
+# Keep it out of git.
+# Add agent-qa.local.yaml to .gitignore.
+
+devices:
+  # Example local device binding:
+  # android-emu:
+  #   avd: Pixel_8_API_35
+
+apps:
+  # Example app install binding:
+  # example-android:
+  #   path: apps/example.apk
+
+providers:
+  # Example cloud provider credentials:
+`
+
+/** `CONFIG_WITH_DEVICE` with an iOS target, so a test on it runs on the registered device. */
+const CONFIG_WITH_DEVICE_TARGET = CONFIG_WITH_DEVICE.replace(
+  'registry:\n',
+  'registry:\n  targets:\n    my-app:\n      platform: ios\n      bundleId: com.example.app\n',
+)
+
+function deviceTest(testId: string): string {
+  return `test-id: ${testId}\nname: probe\ntarget: my-app\nuse:\n  device: handset\nsteps:\n  - Tap the login button\n`
+}
+
+function runShipped(args: readonly string[]): { status: number | null; combined: string } {
+  const run = spawnSync(process.execPath, [CLI_DIST, ...args], {
+    cwd: root,
+    encoding: 'utf8',
+    env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' },
+  })
+  return { status: run.status, combined: `${run.stdout ?? ''}${run.stderr ?? ''}` }
+}
+
+function expectLocalFileRefusal(result: { status: number | null; combined: string }): void {
+  const { status, combined } = result
+  expect(combined, `the command's output:\n${combined}`)
+    .toMatch(/agent-qa\.local\.yaml:\s+providers: providers was removed: .* Delete this block\./)
+  expect(status, `the command's output:\n${combined}`).toBe(1)
+  // Node's uncaught printer leaves a stack frame and its version line.
+  expect(combined, `the command's output:\n${combined}`).not.toMatch(/^\s+at /m)
+  expect(combined, `the command's output:\n${combined}`).not.toMatch(/Node\.js v\d+/)
+}
+
+describe('a refused agent-qa.local.yaml refuses the command that reads it', () => {
+  it('the SHIPPED `agent-qa devices list` reports the refusal and exits 1', () => {
+    seedConfig(CONFIG_WITH_DEVICE)
+    seedFile('agent-qa.local.yaml', OLDER_INIT_LOCAL_BINDINGS)
+
+    expectLocalFileRefusal(runShipped(['devices', 'list']))
+  })
+
+  it('the SHIPPED `agent-qa run` on a device test refuses before the run is recorded', () => {
+    seedConfig(CONFIG_WITH_DEVICE_TARGET)
+    seedWorkspaceSupportFiles()
+    seedFile('hooks.yaml', 'hooks: []\n')
+    seedFile('tests/probe.yaml', deviceTest(generateTestId()))
+    seedFile('agent-qa.local.yaml', OLDER_INIT_LOCAL_BINDINGS)
+
+    const result = runShipped(['run', 'tests/probe.yaml'])
+
+    expectLocalFileRefusal(result)
+    expect(result.combined, `the command's output:\n${result.combined}`).not.toMatch(/Framework error/)
+    expect(result.combined, `the command's output:\n${result.combined}`).not.toMatch(/Run ID:/)
+    expect(existsSync(join(root, '.agent-qa', 'runs.db'))).toBe(false)
+  })
+
+  it('the SHIPPED `agent-qa run --suite` on a device suite refuses before the run is recorded', () => {
+    seedConfig(CONFIG_WITH_DEVICE_TARGET)
+    seedWorkspaceSupportFiles()
+    seedFile('hooks.yaml', 'hooks: []\n')
+    const testId = generateTestId()
+    seedFile('tests/probe.yaml', deviceTest(testId))
+    seedFile(
+      'suites/device.suite.yaml',
+      `name: device\ntarget: my-app\ntests:\n  - test: tests/probe.yaml\n    id: ${testId}\n`,
+    )
+    seedFile('agent-qa.local.yaml', OLDER_INIT_LOCAL_BINDINGS)
+
+    const result = runShipped(['run', '--suite', 'suites/device.suite.yaml'])
+
+    expectLocalFileRefusal(result)
+    expect(result.combined, `the command's output:\n${result.combined}`).not.toMatch(/Framework error/)
+    expect(result.combined, `the command's output:\n${result.combined}`).not.toMatch(/Run ID:/)
+    expect(existsSync(join(root, '.agent-qa', 'runs.db'))).toBe(false)
   })
 })
 
