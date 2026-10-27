@@ -394,13 +394,12 @@ describe('ConfigManager', () => {
 
     it('applyChanges persists the knowledge block as one unit', async () => {
       expect((await manager.applyChanges([
-        { op: 'set', path: ['knowledge'], value: { dir: 'agent-qa-knowledge', commitArtifacts: 'thumbnails' } },
+        { op: 'set', path: ['knowledge'], value: { dir: 'agent-qa-knowledge' } },
       ])).kind).toBe('ok')
 
       const config = await readConfig()
       expect(config.knowledge).toMatchObject({
         dir: 'agent-qa-knowledge',
-        commitArtifacts: 'thumbnails',
       })
     })
 

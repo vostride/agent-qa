@@ -1211,7 +1211,7 @@ export function populatedRunFixtureProject(
           envFile: '.env',
           secretsFile: '.env.secrets.local',
         },
-        knowledge: { dir: 'agent-qa-knowledge', commitArtifacts: 'none' },
+        knowledge: { dir: 'agent-qa-knowledge' },
         use: { mobile: { appState: 'preserve' }, llm: POPULATED_MODEL_NAME },
         registry: {
           targets: {

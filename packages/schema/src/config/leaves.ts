@@ -10,7 +10,6 @@ export const CONFIG_SCHEMA_LEAVES = Object.freeze([
   'analytics.passRateScope.attributes.*',
   'analytics.passRateScope.attributes.*.regex',
   'analytics.privacy',
-  'knowledge.commitArtifacts',
   'knowledge.dir',
   'plugins.auth[].package',
   'plugins.auth[].path',

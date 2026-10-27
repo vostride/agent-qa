@@ -226,6 +226,18 @@ describe('retired-key pre-scan: removed knowledge keys', () => {
     const result = AgentQaConfigSchema.safeParse(config)
     expect(result.error?.issues.filter(i => i.code === 'unrecognized_keys')).toEqual([])
   })
+
+  it('knowledge.commitArtifacts is refused with its removal message whatever its value', () => {
+    for (const commitArtifacts of ['none', 'thumbnails']) {
+      const config = { ...validBase, knowledge: { commitArtifacts } }
+      expect(issueMessageAt(config, 'knowledge.commitArtifacts'), commitArtifacts).toBe(
+        'knowledge.commitArtifacts was removed: knowledge bundles never commit images. Delete this line.',
+      )
+      expect(paramsAt(config, 'knowledge.commitArtifacts'), commitArtifacts).toEqual({ retired: true })
+      const result = AgentQaConfigSchema.safeParse(config)
+      expect(result.error?.issues.filter(i => i.code === 'unrecognized_keys'), commitArtifacts).toEqual([])
+    }
+  })
 })
 
 describe('agent-qa.local.yaml refusals', () => {
@@ -287,12 +299,11 @@ describe('valid configs still parse through the pipe', () => {
   it('parses a valid config with a knowledge block', () => {
     const result = AgentQaConfigSchema.safeParse({
       ...validBase,
-      knowledge: { dir: 'docs/knowledge', commitArtifacts: 'thumbnails' },
+      knowledge: { dir: 'docs/knowledge' },
     })
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.knowledge.dir).toBe('docs/knowledge')
-      expect(result.data.knowledge.commitArtifacts).toBe('thumbnails')
     }
   })
 

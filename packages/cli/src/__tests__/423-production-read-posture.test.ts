@@ -61,7 +61,7 @@ function productionFixture() {
   writeFileSync(configPath, JSON.stringify({
     workspace: { testMatch: ['tests/**/*.yaml'], suiteMatch: ['suites/**/*.yaml'],
       hooksFile: 'hooks.yaml', envFile: '.env', secretsFile: '.env.secrets.local' },
-    knowledge: { dir: 'agent-qa-knowledge', commitArtifacts: 'none' },
+    knowledge: { dir: 'agent-qa-knowledge' },
     registry: { llms: [{ name: 'unused', provider: 'openai-compatible', model: 'unused',
       baseURL: 'http://127.0.0.1:1/v1' }],
       targets: { local: { platform: 'web', url: 'http://127.0.0.1:1' } } },

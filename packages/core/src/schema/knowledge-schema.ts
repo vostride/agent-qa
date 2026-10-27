@@ -11,7 +11,4 @@ export const KnowledgeConfigSchema = z.object({
       message: 'knowledge.dir must be repo-relative — the committed knowledge root must live inside the repo for PR review and the committed .gitignore split',
     })
     .default('agent-qa-knowledge'),
-  // D-08: closed enum — deliberately no 'full' mode; full-res artifacts ride the
-  // artifact store/git-LFS side channel per knowledge-store.md §5.
-  commitArtifacts: z.enum(['none', 'thumbnails']).default('none'),
 }).strict()

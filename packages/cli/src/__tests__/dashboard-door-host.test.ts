@@ -268,7 +268,7 @@ function cardUrlProject(): { parent: string; root: string; knowledgeRoot: string
         envFile: '.env',
         secretsFile: '.env.secrets.local',
       },
-      knowledge: { dir: 'agent-qa-knowledge', commitArtifacts: 'none' },
+      knowledge: { dir: 'agent-qa-knowledge' },
       use: { mobile: { appState: 'reset' } },
       registry: {
         targets: {

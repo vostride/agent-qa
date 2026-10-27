@@ -66,7 +66,6 @@ describe('runtime path static contract', () => {
       'services.dashboard.artifactsDir',
       'services.cache.dir',
       'knowledge.dir',
-      'knowledge.commitArtifacts',
     ]) {
       expect(uiSource).toContain(path)
     }

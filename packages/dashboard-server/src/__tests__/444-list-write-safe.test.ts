@@ -243,7 +243,7 @@ async function workspace(name: string): Promise<Workspace> {
         envFile: '.env',
         secretsFile: '.env.secrets.local',
       },
-      knowledge: { dir: 'agent-qa-knowledge', commitArtifacts: 'none' },
+      knowledge: { dir: 'agent-qa-knowledge' },
     },
     configPath,
   })

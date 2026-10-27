@@ -21,14 +21,12 @@ describe('KnowledgeConfigSchema — defaults', () => {
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.knowledge.dir).toBe('agent-qa-knowledge')
-      expect(result.data.knowledge.commitArtifacts).toBe('none')
     }
   })
 
   it('parses an empty knowledge object to full defaults', () => {
     const result = KnowledgeConfigSchema.parse({})
     expect(result.dir).toBe('agent-qa-knowledge')
-    expect(result.commitArtifacts).toBe('none')
   })
 })
 
@@ -49,18 +47,6 @@ describe('KnowledgeConfigSchema — dir repo-relative predicate (D-10)', () => {
   it('rejects an empty dir', () => {
     const result = KnowledgeConfigSchema.safeParse({ dir: '' })
     expect(result.success).toBe(false)
-  })
-})
-
-describe('KnowledgeConfigSchema — commitArtifacts closed enum (D-08)', () => {
-  it("rejects 'full' — no full mode exists", () => {
-    const result = KnowledgeConfigSchema.safeParse({ commitArtifacts: 'full' })
-    expect(result.success).toBe(false)
-  })
-
-  it("accepts 'thumbnails'", () => {
-    const result = KnowledgeConfigSchema.safeParse({ commitArtifacts: 'thumbnails' })
-    expect(result.success).toBe(true)
   })
 })
 

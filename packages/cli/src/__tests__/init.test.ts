@@ -241,8 +241,6 @@ describe('init command', () => {
     expect(content).not.toContain('agent-qa-memory')
     expect(content).toContain('# knowledge:')
     expect(content).toContain('#   dir: agent-qa-knowledge')
-    expect(content).toContain('#   commitArtifacts: none')
-    expect(content).not.toContain('thumbnail')
     expect(content).toContain('authState:')
     expect(content).toContain('dir: .agent-qa/auth-states')
     expect(content).toContain('registry:')

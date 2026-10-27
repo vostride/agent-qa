@@ -42,7 +42,7 @@ describe('agent-qa knowledge gates', () => {
     writeFileSync(configPath, JSON.stringify({
       workspace: { testMatch: ['tests/**/*.yaml'], suiteMatch: ['suites/**/*.suite.yaml'],
         hooksFile: 'hooks.yaml', envFile: '.env', secretsFile: '.env.secrets.local' },
-      knowledge: { dir: 'agent-qa-knowledge', commitArtifacts: 'none' },
+      knowledge: { dir: 'agent-qa-knowledge' },
       use: { mobile: { appState: 'preserve' } },
     }) + '\n')
     writeFileSync(join(root, '.env.secrets.local'), '')

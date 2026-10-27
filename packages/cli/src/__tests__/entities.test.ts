@@ -69,7 +69,6 @@ function fixtureWorkspace(roots: string[]): FixtureWorkspace {
       },
       knowledge: {
         dir: 'agent-qa-knowledge',
-        commitArtifacts: 'none',
       },
       use: {
         mobile: { appState: 'preserve' },

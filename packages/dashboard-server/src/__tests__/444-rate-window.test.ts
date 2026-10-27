@@ -127,7 +127,7 @@ async function seedRateWindow(): Promise<RateWindow> {
         envFile: '.env',
         secretsFile: '.env.secrets.local',
       },
-      knowledge: { dir: 'agent-qa-knowledge', commitArtifacts: 'none' },
+      knowledge: { dir: 'agent-qa-knowledge' },
     },
     configPath,
   })
@@ -373,7 +373,7 @@ async function seedCountingClasses(): Promise<{ origin: string; tests: Record<Te
         envFile: '.env',
         secretsFile: '.env.secrets.local',
       },
-      knowledge: { dir: 'agent-qa-knowledge', commitArtifacts: 'none' },
+      knowledge: { dir: 'agent-qa-knowledge' },
     },
     configPath,
   })
@@ -599,7 +599,7 @@ describe('C444-RATE-WINDOW', () => {
           envFile: '.env',
           secretsFile: '.env.secrets.local',
         },
-        knowledge: { dir: 'agent-qa-knowledge', commitArtifacts: 'none' },
+        knowledge: { dir: 'agent-qa-knowledge' },
       },
       configPath,
     })

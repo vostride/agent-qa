@@ -435,7 +435,7 @@ export function dashboardFixtureProject(label: string): {
           envFile: '.env',
           secretsFile: '.env.secrets.local',
         },
-        knowledge: { dir: 'agent-qa-knowledge', commitArtifacts: 'none' },
+        knowledge: { dir: 'agent-qa-knowledge' },
         use: { mobile: { appState: 'preserve' } },
         registry: {
           targets: {

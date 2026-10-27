@@ -341,7 +341,7 @@ function createWorkspacePaths(
         envFile: '.env',
         secretsFile: '.env.secrets.local',
       },
-      knowledge: { dir: 'agent-qa-knowledge', commitArtifacts: 'none' },
+      knowledge: { dir: 'agent-qa-knowledge' },
     },
     configPath: join(workspaceDir, 'agent-qa.config.yaml'),
   })

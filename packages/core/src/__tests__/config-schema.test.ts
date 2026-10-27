@@ -549,18 +549,16 @@ describe('AgentQaConfigSchema — 4-bucket structure', () => {
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.knowledge.dir).toBe('agent-qa-knowledge')
-      expect(result.data.knowledge.commitArtifacts).toBe('none')
     }
   })
 
   it('accepts an explicit knowledge block', () => {
     const result = AgentQaConfigSchema.safeParse(withWorkspace({
-      knowledge: { dir: 'docs/knowledge', commitArtifacts: 'thumbnails' },
+      knowledge: { dir: 'docs/knowledge' },
     }))
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.knowledge.dir).toBe('docs/knowledge')
-      expect(result.data.knowledge.commitArtifacts).toBe('thumbnails')
     }
   })
 

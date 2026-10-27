@@ -240,7 +240,6 @@ export function addYamlComments(yamlStr: string): string {
       result += '\n# Committed knowledge root (optional block; these defaults apply when absent)\n'
       result += '# knowledge:\n'
       result += '#   dir: agent-qa-knowledge\n'
-      result += '#   commitArtifacts: none\n'
       result += '\n# Named resource definitions (LLM configs, app targets)\n'
     } else if (line.startsWith('plugins:')) {
       result += '\n# Optional subscription auth plugin declarations\n'

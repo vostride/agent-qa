@@ -91,7 +91,6 @@ function workspace(label: string, llm: string, llms: string, targetUrl: string):
       '  secretsFile: .env.secrets.local',
       'knowledge:',
       '  dir: agent-qa-knowledge',
-      '  commitArtifacts: none',
       'use:',
       '  mobile:',
       '    appState: preserve',

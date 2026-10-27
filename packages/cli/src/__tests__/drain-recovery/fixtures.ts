@@ -34,7 +34,7 @@ export function writeWorkspaceConfig(root: string, knowledgeDir = 'agent-qa-know
         envFile: '.env',
         secretsFile: '.env.secrets.local',
       },
-      knowledge: { dir: knowledgeDir, commitArtifacts: 'none' },
+      knowledge: { dir: knowledgeDir },
       use: { mobile: { appState: 'preserve' } },
     }, null, 2)}\n`,
     'utf8',

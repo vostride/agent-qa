@@ -110,7 +110,6 @@ const { sampleConfig, CONFIG_FILE_PATH } = vi.hoisted(() => ({
   },
   knowledge: {
     dir: 'agent-qa-knowledge',
-    commitArtifacts: 'none',
   },
   services: {
     dashboard: {
@@ -1711,7 +1710,6 @@ describe('ConfigPage task tabs shell', () => {
     expect(panel).not.toBeNull()
     for (const path of [
       'knowledge.dir',
-      'knowledge.commitArtifacts',
       'services.dashboard.dbPath',
       'services.dashboard.artifactsDir',
       'services.dashboard.port',

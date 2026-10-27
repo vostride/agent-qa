@@ -92,7 +92,7 @@ export const CONFIG_SECTION_ALIASES = {
   'log-capture': ['console capture', 'network capture'],
   'test-discovery': ['tests', 'discovery', 'test match', 'suite match', 'ignore patterns'],
   files: ['hooks file', 'env file', 'environment file', 'secrets file'],
-  knowledge: ['knowledge dir', 'commit artifacts'],
+  knowledge: ['knowledge dir'],
   dashboard: ['port', 'db path', 'database', 'artifacts', 'artifacts dir', 'runs db'],
   logging: ['log level'],
   'pass-rate-scope': ['pass rate', 'scope', 'attributes', 'flakiness'],

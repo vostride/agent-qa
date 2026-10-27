@@ -571,7 +571,6 @@ describe('settings writes through PATCH /api/config (429-32)', () => {
       set(['workspace', 'secretsFile'], './.env.secrets.local'),
       set(['knowledge'], {
         dir: 'agent-qa-knowledge',
-        commitArtifacts: 'thumbnails',
       }),
       set(['services', 'vision'], {
         screenshotSize: '512k',
@@ -613,7 +612,6 @@ describe('settings writes through PATCH /api/config (429-32)', () => {
       },
       knowledge: {
         dir: 'agent-qa-knowledge',
-        commitArtifacts: 'thumbnails',
       },
       services: {
         vision: {

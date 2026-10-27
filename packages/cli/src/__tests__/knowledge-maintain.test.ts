@@ -300,7 +300,6 @@ function fixtureWorkspace(
       },
       knowledge: {
         dir: knowledgeDir,
-        commitArtifacts: 'none',
       },
       use: {
         mobile: { appState: 'preserve' },

@@ -124,7 +124,7 @@ async function workspaceWith(testPlanner: string): Promise<{
         envFile: '.env',
         secretsFile: '.env.secrets.local',
       },
-      knowledge: { dir: 'agent-qa-knowledge', commitArtifacts: 'none' },
+      knowledge: { dir: 'agent-qa-knowledge' },
     },
     configPath,
   })

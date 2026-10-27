@@ -18,7 +18,7 @@
 +# agent-qa init:end
 --- /dev/null
 +++ b/agent-qa.config.yaml
-@@ -0,0 +1,88 @@
+@@ -0,0 +1,87 @@
 +# agent-qa Configuration
 +
 +# File discovery and project settings
@@ -63,7 +63,6 @@
 +# Committed knowledge root (optional block; these defaults apply when absent)
 +# knowledge:
 +#   dir: agent-qa-knowledge
-+#   commitArtifacts: none
 +
 +# Named resource definitions (LLM configs, app targets)
 +registry:

@@ -89,7 +89,6 @@ const TASK1_CONFIG = [
   '  secretsFile: .env.secrets.local',
   'knowledge:',
   '  dir: agent-qa-knowledge',
-  '  commitArtifacts: none',
   'services:',
   '  mcp:',
   '    enabled: false',

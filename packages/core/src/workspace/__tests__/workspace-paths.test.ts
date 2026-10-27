@@ -36,7 +36,7 @@ export async function createSampleWorkspaceConfigFixture(): Promise<SampleWorksp
       envFile: 'config/env/public.env',
       secretsFile: 'config/env/secrets.local',
     },
-    knowledge: { dir: 'agent-qa-knowledge', commitArtifacts: 'none' },
+    knowledge: { dir: 'agent-qa-knowledge' },
     services: {
       dashboard: {
         port: 3470,

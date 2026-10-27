@@ -64,7 +64,7 @@ async function composeWorkspace() {
         envFile: '.env',
         secretsFile: '.env.secrets.local',
       },
-      knowledge: { dir: 'agent-qa-knowledge', commitArtifacts: 'none' },
+      knowledge: { dir: 'agent-qa-knowledge' },
     },
     configPath: join(dir, 'agent-qa.config.yaml'),
   })

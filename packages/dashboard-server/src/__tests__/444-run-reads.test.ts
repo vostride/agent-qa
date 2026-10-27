@@ -130,7 +130,7 @@ function writeSuiteWorkspace(suites: ReadonlyArray<{ suiteId: string; name: stri
         envFile: '.env',
         secretsFile: '.env.secrets.local',
       },
-      knowledge: { dir: 'agent-qa-knowledge', commitArtifacts: 'none' },
+      knowledge: { dir: 'agent-qa-knowledge' },
     },
     configPath,
   })

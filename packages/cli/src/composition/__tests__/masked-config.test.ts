@@ -47,7 +47,6 @@ describe('buildConfigVisibilityOracle (the schema-derived rule)', () => {
       'workspace.testMatch.0',
       'workspace.hooksFile',
       'knowledge.dir',
-      'knowledge.commitArtifacts',
       'services.dashboard.port',
       'services.logging.level',
       'use.browser.headless',

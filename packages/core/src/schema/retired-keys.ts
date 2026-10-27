@@ -64,6 +64,8 @@ const RETIRED_CACHE_TTL_MESSAGE =
 const RETIRED_KNOWLEDGE_KEY_MESSAGES: Record<string, string> = {
   contextBudgetTokens:
     "knowledge.contextBudgetTokens was removed: agent-qa sizes each run's knowledge itself. Delete this line.",
+  commitArtifacts:
+    'knowledge.commitArtifacts was removed: knowledge bundles never commit images. Delete this line.',
 }
 
 const RETIRED_LOCAL_PROVIDERS_MESSAGE =
