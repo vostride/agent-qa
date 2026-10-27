@@ -13,7 +13,6 @@ import { LoggingConfigSchema } from '../schema/services-schema.js'
 describe('Per-source Zod data schemas', () => {
   it('AgentLogDataSchema validates correct shape', () => {
     const result = AgentLogDataSchema.safeParse({
-      extractDom: true,
       hasScreenshot: false,
       duration: 150,
       elementCount: 42,

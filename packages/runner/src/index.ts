@@ -1,7 +1,6 @@
 export type {
   PlatformAdapter,
   ActionsFor,
-  ObserveOptions,
   Action,
   ActionResult,
   PlatformConfig,

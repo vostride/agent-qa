@@ -44,7 +44,6 @@ export interface ScopedLogger {
 
 // Per-source Zod data schemas
 export const AgentLogDataSchema = z.object({
-  extractDom: z.boolean().optional(),
   hasScreenshot: z.boolean().optional(),
   duration: z.number().optional(),
   elementCount: z.number().optional(),

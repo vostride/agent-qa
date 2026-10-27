@@ -867,7 +867,7 @@ export async function executeStep(
     let settledHash: string
     try {
       const settled = await settle(
-        () => withAbort(ports.adapter.observe({ extractDom: true }), ports.abortSignal),
+        () => withAbort(ports.adapter.observe(), ports.abortSignal),
         {
           maxPolls: DEFAULT_SETTLE_MAX_POLLS,
           intervalMs: DEFAULT_SETTLE_INTERVAL_MS,
@@ -1855,7 +1855,7 @@ export async function executeStep(
     ) {
       let freshState: ScreenState
       try {
-        freshState = await withAbort(ports.adapter.observe({ extractDom: true }), ports.abortSignal)
+        freshState = await withAbort(ports.adapter.observe(), ports.abortSignal)
       } catch (err) {
         const abortDuringHeal = checkAbort()
         if (abortDuringHeal) return abortDuringHeal

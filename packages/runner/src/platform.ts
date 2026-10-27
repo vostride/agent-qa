@@ -13,10 +13,6 @@ import type {
 } from '@vostride/agent-qa-schema'
 import type { ConsoleLogEntry, NetworkLogEntry } from './result.js'
 
-export interface ObserveOptions {
-  extractDom?: boolean
-}
-
 // D-15 (Phase 360): the runner's action world IS the schema `ActionsFor<P>` projection. The
 // legacy runner-owned action union and its folded/runtime-only verb groups plus the local shape
 // declarations were demolished here — `Extract` keyed on the `type` string only, so the legacy
@@ -98,7 +94,7 @@ export interface PlatformAdapter<P extends Platform = Platform> {
 
   setup(config: PlatformConfig): Promise<void>
   cleanup(): Promise<void>
-  observe(options?: ObserveOptions): Promise<ScreenState>
+  observe(): Promise<ScreenState>
   execute(action: ActionsFor<P>, options?: ExecuteOptions): Promise<ActionResult>
   screenshot?(): Promise<Buffer | undefined>
   /**

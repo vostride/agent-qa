@@ -11,7 +11,6 @@ import type {
   FillSubmitMeta,
   FillVerdictMeta,
   InterimNode,
-  ObserveOptions,
   PlatformAdapter,
   LiveStreamCapability,
   PlatformConfig,
@@ -731,7 +730,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
   // falling back to native (which returns an opaque WebView and can crash UiAutomator2).
   private hasSeenWebContext = false
 
-  async observe(_options?: ObserveOptions): Promise<ScreenState> {
+  async observe(): Promise<ScreenState> {
     if (!this.driver) {
       throw new Error('AndroidPlatformAdapter not initialized — call setup() first')
     }

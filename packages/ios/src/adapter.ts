@@ -9,7 +9,6 @@ import type {
   Direction,
   InterimNode,
   LiveStreamCapability,
-  ObserveOptions,
   PlatformAdapter,
   PlatformConfig,
   ScrollPrimitives,
@@ -380,7 +379,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
     return this.liveStreamCapability
   }
 
-  async observe(_options?: ObserveOptions): Promise<ScreenState> {
+  async observe(): Promise<ScreenState> {
     if (!this.driver) {
       throw new Error('IOSPlatformAdapter not initialized — call setup() first')
     }
