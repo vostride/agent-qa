@@ -42,7 +42,6 @@ import {
   fetchTestFile,
   fetchTestAnalytics,
   triggerRun,
-  purgeCache,
   type TestAnalyticsDetail,
   type TestHistoryRun,
 } from "@/lib/api"
@@ -347,17 +346,6 @@ export default function TestViewerPage() {
       )
     } finally {
       setIsRunning(false)
-    }
-  }
-
-  const handlePurgeCache = async () => {
-    try {
-      const { purged } = await purgeCache({ file: filePath })
-      toast.success(`Purged ${purged} cached plan${purged !== 1 ? 's' : ''}`)
-    } catch (err) {
-      toast.error(
-        `Cache purge failed: ${err instanceof Error ? err.message : String(err)}`
-      )
     }
   }
 

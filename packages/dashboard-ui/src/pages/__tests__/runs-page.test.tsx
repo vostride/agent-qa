@@ -557,7 +557,7 @@ describe("RunsPage", () => {
     expect(checkboxAfterClear?.checked).toBe(true)
   })
 
-  it("routes run and purge-cache actions through the selection-only bottom toolbar", async () => {
+  it("routes run and purge-all-cached-plans actions through the selection-only bottom toolbar", async () => {
     useRealRunsTable.current = true
     await renderAt("/runs")
 
@@ -580,9 +580,10 @@ describe("RunsPage", () => {
       noCache: false,
     })
 
-    await clickByText("Purge cache")
+    await clickByText("Purge all cached plans")
 
-    expect(purgeCacheMock).toHaveBeenCalledWith({ file: "tests/web/login.yaml" })
+    expect(purgeCacheMock).toHaveBeenCalledTimes(1)
+    expect(purgeCacheMock).toHaveBeenCalledWith()
   })
 
   it("deletes selected runs from the shared bottom toolbar", async () => {

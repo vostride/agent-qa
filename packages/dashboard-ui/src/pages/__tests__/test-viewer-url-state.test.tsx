@@ -15,7 +15,6 @@ const testViewerHarness = vi.hoisted(() => ({
   fetchTestFile: vi.fn(),
   fetchTestAnalytics: vi.fn(),
   triggerRun: vi.fn(),
-  purgeCache: vi.fn(),
   advanceAfterRunStarted: vi.fn(),
   productTourEnabled: false,
 }))
@@ -24,7 +23,6 @@ vi.mock('@/lib/api', () => ({
   fetchTestFile: testViewerHarness.fetchTestFile,
   fetchTestAnalytics: testViewerHarness.fetchTestAnalytics,
   triggerRun: testViewerHarness.triggerRun,
-  purgeCache: testViewerHarness.purgeCache,
 }))
 
 vi.mock('@/hooks/use-page-title', () => ({ usePageTitle: () => {} }))
@@ -214,7 +212,6 @@ beforeEach(() => {
     },
   })
   testViewerHarness.triggerRun.mockReset()
-  testViewerHarness.purgeCache.mockReset()
   testViewerHarness.advanceAfterRunStarted.mockReset()
   testViewerHarness.productTourEnabled = false
 })

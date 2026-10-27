@@ -439,27 +439,17 @@ export default function TestsPage() {
     }
   }, [selectedPaths, useCache])
 
-  const handleBatchPurgeCache = useCallback(async () => {
-    if (selectedPaths.length === 0) return
+  const handlePurgeAllCachedPlans = useCallback(async () => {
     setBatchLoading(true)
     try {
-      const results = await Promise.allSettled(
-        selectedPaths.map((path) => purgeCache({ file: path })),
-      )
-      const succeeded = results.filter((result) => result.status === "fulfilled").length
-      const totalPurged = results
-        .filter((result): result is PromiseFulfilledResult<{ purged: number }> => result.status === "fulfilled")
-        .reduce((sum, result) => sum + result.value.purged, 0)
-      const failed = results.length - succeeded
-      if (failed > 0) {
-        toast.error(`Purged ${totalPurged} plans from ${succeeded} tests, ${failed} failed`)
-      } else {
-        toast.success(`Purged ${totalPurged} cached plan${totalPurged !== 1 ? "s" : ""}`)
-      }
+      const { purged } = await purgeCache()
+      toast.success(`Purged ${purged} cached plan${purged !== 1 ? "s" : ""}`)
+    } catch (err) {
+      toast.error(`Cache purge failed: ${err instanceof Error ? err.message : String(err)}`)
     } finally {
       setBatchLoading(false)
     }
-  }, [selectedPaths])
+  }, [])
 
   const handleBatchDelete = useCallback(async () => {
     if (selectedTests.length === 0) return
@@ -794,10 +784,10 @@ export default function TestsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleBatchPurgeCache}
+                onClick={handlePurgeAllCachedPlans}
                 disabled={batchLoading}
               >
-                Purge cache
+                Purge all cached plans
               </Button>
             </div>
           )}

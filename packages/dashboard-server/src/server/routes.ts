@@ -4501,16 +4501,16 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // POST /api/cache/purge — purge cached action plans for a test or all tests
+    // POST /api/cache/purge — clears every cached plan
     if (path === '/api/cache/purge' && req.method === 'POST') {
       if (!configManager) {
         json(res, { error: 'Config management not available' }, 503)
         return
       }
-      readJsonBody<{ file?: string; all?: boolean }>(req)
+      readJsonBody<{ all?: boolean }>(req)
         .then(async (body) => {
-          if (!body.file && !body.all) {
-            json(res, { error: 'Either file or all is required' }, 400)
+          if (body.all !== true) {
+            json(res, { error: 'all is required' }, 400)
             return
           }
           try {
@@ -4524,12 +4524,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
               json(res, { error: 'Cache directory not configured' }, 400)
               return
             }
-            // Redesigned cache layout (Phase 356): <cacheRoot>/<branch-slug>/<cacheKey>.json.
-            // The 16-hex cacheKey is opaque and content-addressed over masked step text + a
-            // runtime screenIdentityHash, carrying no raw step text on disk (D-06). Per-test
-            // targeting can no longer be recomputed statically, so a `file` purge clears the
-            // whole branch-namespaced cache — the requested test's stale plans are guaranteed
-            // gone. Both `file` and `all` therefore remove all `<branch-slug>/*.json` entries.
+            // Layout: <cacheRoot>/<branch-slug>/<cacheKey>.json
             const configDir = deps.configPath ? dirname(resolve(deps.configPath)) : process.cwd()
             const resolvedCacheDir = resolve(configDir, cacheDir)
             let branchDirs: string[]

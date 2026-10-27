@@ -289,35 +289,17 @@ export default function RunsPage() {
     }
   }, [selectedRuns, useCache])
 
-  const handleBatchPurgeCache = useCallback(async () => {
-    if (selectedRuns.length === 0) return
-    const filePaths = Array.from(new Set(
-      selectedRuns.flatMap((run) => run.filePath ? [run.filePath] : []),
-    ))
-    if (filePaths.length === 0) {
-      toast.error("No selected runs have file paths to purge")
-      return
-    }
-
+  const handlePurgeAllCachedPlans = useCallback(async () => {
     setBatchLoading(true)
     try {
-      const results = await Promise.allSettled(
-        filePaths.map((filePath) => purgeCache({ file: filePath })),
-      )
-      const succeeded = results.filter((r) => r.status === "fulfilled").length
-      const totalPurged = results
-        .filter((r): r is PromiseFulfilledResult<{ purged: number }> => r.status === "fulfilled")
-        .reduce((sum, r) => sum + r.value.purged, 0)
-      const failed = results.length - succeeded
-      if (failed > 0) {
-        toast.error(`Purged ${totalPurged} plans from ${succeeded} tests, ${failed} failed`)
-      } else {
-        toast.success(`Purged ${totalPurged} cached plan${totalPurged !== 1 ? 's' : ''} from ${succeeded} test${succeeded !== 1 ? 's' : ''}`)
-      }
+      const { purged } = await purgeCache()
+      toast.success(`Purged ${purged} cached plan${purged !== 1 ? "s" : ""}`)
+    } catch (err) {
+      toast.error(`Cache purge failed: ${err instanceof Error ? err.message : String(err)}`)
     } finally {
       setBatchLoading(false)
     }
-  }, [selectedRuns])
+  }, [])
 
   const handleBatchDelete = useCallback(async () => {
     if (selectedRuns.length === 0) return
@@ -552,10 +534,10 @@ export default function RunsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleBatchPurgeCache}
+              onClick={handlePurgeAllCachedPlans}
               disabled={batchLoading}
             >
-              Purge cache
+              Purge all cached plans
             </Button>
           </div>
         )}

@@ -758,4 +758,30 @@ describe("TestsPage", () => {
     expect(findRow("Signup flow")).toBeUndefined()
     expect(container?.querySelector('[data-testid="batch-actions"]')).toBeNull()
   })
+
+  it("purges all cached plans in one request from the shared bottom toolbar", async () => {
+    purgeCacheMock.mockResolvedValue({ purged: 3 })
+    await renderAt()
+
+    await click(findRow("Login flow")?.querySelector('input[aria-label="Select row"]') as HTMLInputElement | null)
+    await click(findRow("Signup flow")?.querySelector('input[aria-label="Select row"]') as HTMLInputElement | null)
+
+    await click(findBatchButton("Purge all cached plans"))
+
+    expect(purgeCacheMock).toHaveBeenCalledTimes(1)
+    expect(purgeCacheMock).toHaveBeenCalledWith()
+    expect(toastSuccessMock).toHaveBeenCalledWith("Purged 3 cached plans")
+  })
+
+  it("reports a failed purge of all cached plans", async () => {
+    purgeCacheMock.mockRejectedValue(new Error("Cache directory not configured"))
+    await renderAt()
+
+    await click(findRow("Login flow")?.querySelector('input[aria-label="Select row"]') as HTMLInputElement | null)
+
+    await click(findBatchButton("Purge all cached plans"))
+
+    expect(purgeCacheMock).toHaveBeenCalledTimes(1)
+    expect(toastErrorMock).toHaveBeenCalledWith("Cache purge failed: Cache directory not configured")
+  })
 })

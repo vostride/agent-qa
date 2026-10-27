@@ -1028,8 +1028,8 @@ export async function deleteRun(runId: string): Promise<{ deleted: boolean; dele
   return postJson(`/api/runs/${encodeURIComponent(runId)}`, undefined, 'DELETE')
 }
 
-export async function purgeCache(opts: { file?: string; all?: boolean }): Promise<{ purged: number }> {
-  return postJson('/api/cache/purge', opts)
+export async function purgeCache(): Promise<{ purged: number }> {
+  return postJson('/api/cache/purge', { all: true })
 }
 
 // Test analytics API

@@ -2329,7 +2329,7 @@ describe('API Routes', () => {
   })
 
   describe('POST /api/cache/purge', () => {
-    it('purges the branch-namespaced cache entries for a file request (Phase 356 layout)', async () => {
+    async function seedCacheWorkspace() {
       const testsDir = await mkdtemp(join(tmpdir(), 'agent-qa-cache-purge-tests-'))
       const cacheDir = await mkdtemp(join(tmpdir(), 'agent-qa-cache-purge-cache-'))
       tempDirs.push(testsDir, cacheDir)
@@ -2340,28 +2340,21 @@ describe('API Routes', () => {
         `    dir: ${cacheDir}`,
         'registry:',
         '  targets:',
-        '    maps-android:',
-        '      platform: android',
-        '      appPackage: com.google.android.apps.maps',
+        '    web:',
+        '      platform: web',
+        '      url: https://example.com',
         '',
       ].join('\n')
       const { configManager, configPath } = await createConfigWorkspace(configContent)
-      const testContent = [
-        'name: Android-only flow',
-        'test-id: t_android_only',
-        'target: maps-android',
-        'steps:',
-        '  - Open Google Maps',
-        '',
-      ].join('\n')
-      await writeFile(join(testsDir, 'android-only.yaml'), testContent, 'utf-8')
 
-      // Redesigned layout: <cacheRoot>/<branch-slug>/<cacheKey>.json (opaque, D-06). Seed two
-      // entries across two branch namespaces; a file purge clears the whole cache.
-      await mkdir(join(cacheDir, 'main'), { recursive: true })
-      await writeFile(join(cacheDir, 'main', 'a1b2c3d4e5f60718.json'), '{"schemaVersion":10}', 'utf-8')
-      await mkdir(join(cacheDir, 'feature-x'), { recursive: true })
-      await writeFile(join(cacheDir, 'feature-x', 'f0e1d2c3b4a59687.json'), '{"schemaVersion":10}', 'utf-8')
+      const entries = [
+        join(cacheDir, 'main', 'a1b2c3d4e5f60718.json'),
+        join(cacheDir, 'feature-x', 'f0e1d2c3b4a59687.json'),
+      ]
+      for (const entry of entries) {
+        await mkdir(dirname(entry), { recursive: true })
+        await writeFile(entry, '{"schemaVersion":10}', 'utf-8')
+      }
 
       router = createRouter({
         db: db as any,
@@ -2369,16 +2362,40 @@ describe('API Routes', () => {
         configManager,
         configPath,
       })
+      return entries
+    }
+
+    it('purges every branch-namespaced cache entry', async () => {
+      const entries = await seedCacheWorkspace()
 
       const res = await invokeRoute('/api/cache/purge', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ file: 'android-only.yaml' }),
+        body: JSON.stringify({ all: true }),
       })
 
       expect(res.status).toBe(200)
       const data = JSON.parse(res.body) as { purged: number }
       expect(data.purged).toBe(2)
+      for (const entry of entries) {
+        await expect(stat(entry)).rejects.toMatchObject({ code: 'ENOENT' })
+      }
+    })
+
+    it('refuses a purge request without all and deletes nothing', async () => {
+      const entries = await seedCacheWorkspace()
+
+      const res = await invokeRoute('/api/cache/purge', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ file: 'web-flow.yaml' }),
+      })
+
+      expect(res.status).toBe(400)
+      expect(JSON.parse(res.body)).toEqual({ error: 'all is required' })
+      for (const entry of entries) {
+        await expect(stat(entry)).resolves.toBeDefined()
+      }
     })
 
     it('resolves relative services.cache.dir from the config file directory', async () => {
@@ -2399,15 +2416,6 @@ describe('API Routes', () => {
       const { configManager, configPath } = await createConfigWorkspace(configContent)
       const configDir = dirname(configPath)
       const cacheDir = join(configDir, '.agent-qa/custom-cache')
-      const testContent = [
-        'name: Web flow',
-        'test-id: t_web_flow',
-        'target: web',
-        'steps:',
-        '  - Open the homepage',
-        '',
-      ].join('\n')
-      await writeFile(join(testsDir, 'web-flow.yaml'), testContent, 'utf-8')
 
       const branchDir = join(cacheDir, 'main')
       const cacheEntryPath = join(branchDir, 'a1b2c3d4e5f60718.json')
@@ -2424,7 +2432,7 @@ describe('API Routes', () => {
       const res = await invokeRoute('/api/cache/purge', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ file: 'web-flow.yaml' }),
+        body: JSON.stringify({ all: true }),
       })
 
       expect(res.status).toBe(200)
