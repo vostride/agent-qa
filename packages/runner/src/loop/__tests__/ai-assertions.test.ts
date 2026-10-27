@@ -393,7 +393,7 @@ describe("assertAI's mode decides what the judge sees", () => {
 })
 
 describe('extractAI extracts through the judge lane and captures run-scoped working memory', () => {
-  it('scope:run puts extracted fields in the result AND writes working memory (kind extracted-value / provenance toolResult)', async () => {
+  it('extracted fields are in the result and in run-scoped working memory', async () => {
     const calls: Action[] = []
     const adapter = recordingAdapter(makeScreenState(), calls)
     const wm = recordingWorkingMemory()
@@ -406,7 +406,6 @@ describe('extractAI extracts through the judge lane and captures run-scoped work
           { name: 'orderId', type: 'string', description: 'the order id shown on the receipt' },
           { name: 'total', type: 'number', description: 'the order total' },
         ],
-        scope: 'run',
       },
       stepComplete: true,
     })
@@ -428,33 +427,6 @@ describe('extractAI extracts through the judge lane and captures run-scoped work
     const entry = wm.calls[0]?.entries[0]
     expect(entry?.kind).toBe('extracted-value')
     expect(entry?.provenance).toBe('toolResult')
-  })
-
-  it('scope:global degrades to the SAME run-scoped write with a degraded-scope marker in evidence, never an error', async () => {
-    const calls: Action[] = []
-    const adapter = recordingAdapter(makeScreenState(), calls)
-    const wm = recordingWorkingMemory()
-    const verifier = makeJudgeVerifier({ extracted: { token: 'abc' } })
-    const plan = makeActionPlan({
-      action: {
-        type: 'extractAI',
-        query: 'extract the session token',
-        schema: [{ name: 'token', type: 'string', description: 'the session token' }],
-        scope: 'global',
-      },
-      stepComplete: true,
-    })
-
-    const result = await executeStep(
-      'Extract the token globally',
-      ports({ adapter, planner: makePlanner([plan]), verifier, workingMemory: wm, plannerConfig: cfg }),
-      makeStepContext(),
-    )
-
-    expect(result.status).toBe('passed')
-    expect(wm.calls.length).toBe(1)
-    const judgment = (result.evidence as { aiJudgment?: { degradedScope?: boolean } }).aiJudgment
-    expect(judgment?.degradedScope).toBe(true)
   })
 })
 

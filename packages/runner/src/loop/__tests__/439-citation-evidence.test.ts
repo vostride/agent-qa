@@ -27,7 +27,6 @@ const EXTRACT: Action = {
   type: 'extractAI',
   query: 'The confirmation number shown',
   schema: [],
-  scope: 'run',
 } as unknown as Action
 
 function action(index: number, entry: Omit<RecordedAction, 'index'>): RecordedAction {

@@ -52,11 +52,6 @@ export interface AiJudgmentEvidence {
    * it could.
    */
   unresolved?: string
-  /**
-   * True ⇒ an `extractAI` `scope:'global'` request degraded to the same run-scoped write
-   * (D-07); durable memory is M2's curator, no write port exists in M1. Never an error.
-   */
-  degradedScope?: boolean
 }
 
 /**

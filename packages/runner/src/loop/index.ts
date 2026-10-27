@@ -1669,7 +1669,7 @@ export async function executeStep(
       // then written to run-scoped working memory and the read line as JSON text; an extraction the
       // model could not make ends the step unresolved and writes nothing.
       cacheBypass = true
-      const av = action as { query?: unknown; scope?: unknown }
+      const av = action as { query?: unknown }
       const query = String(av.query ?? '')
       const schema = (normalizedAction as { schema?: unknown }).schema
       const fields: readonly ExtractField[] = Array.isArray(schema) ? schema : []
@@ -1699,8 +1699,7 @@ export async function executeStep(
           kind: 'extractAI',
           text: `"${recordMask(query)}": ${values.length > 0 ? values.join(', ') : 'no fields'}`,
         })
-        const degradedScope = av.scope === 'global'
-        recorder.recordAiJudgment({ verb: 'extractAI', ...(degradedScope ? { degradedScope: true } : {}) })
+        recorder.recordAiJudgment({ verb: 'extractAI' })
         execResult = { success: true, metadata: { aiJudgment: { verb: 'extractAI' }, extracted: fields } }
         execError = undefined
       }

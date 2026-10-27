@@ -769,7 +769,7 @@ export function formatAction(action: Action): string {
     case 'assertAI':
       return `assertAI "${action.claim}" (${action.mode})`
     case 'extractAI':
-      return `extractAI "${action.query}" (scope: ${action.scope})`
+      return `extractAI "${action.query}"`
     case 'reportValue':
       return `reportValue "${action.value}"`
     case 'uniqueValue':

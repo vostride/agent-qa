@@ -424,7 +424,6 @@ export const ACTION_WIRE_SCHEMAS_BY_TYPE = {
       type: z.literal('extractAI'),
       query: z.string(),
       schema: z.array(extractAIFieldSchema),
-      scope: z.enum(['run', 'global']),
     })
     .passthrough(),
   waitFor: waitForSchema,

@@ -172,8 +172,6 @@ export const extractFieldSchema = z.object({
 export const extractAISchema = z.object({
   query: z.string().describe('Perceptual extraction request for the current rendered state'),
   schema: z.array(extractFieldSchema).describe('Typed field-list output schema'),
-  scope: z.enum(['run', 'global']).default('run')
-    .describe('Where extracted values may be reused. Omit for run scope.'),
 }).strict()
 
 export const openAppSchema = z.union([

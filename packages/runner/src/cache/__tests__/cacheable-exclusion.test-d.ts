@@ -27,7 +27,7 @@ void withAssertAI
 // extractAI is excluded too.
 const withExtractAI: CachedPlanValue = {
   // @ts-expect-error D-08: extractAI is excluded from CacheablePlannedAction — unwritable.
-  plannedActions: [{ type: 'extractAI', query: 'q', schema: [], scope: 'run' }],
+  plannedActions: [{ type: 'extractAI', query: 'q', schema: [] }],
   groundedLocator: [],
   verificationOutcome: 'passed',
 }

@@ -71,7 +71,6 @@ describe('assertion and extraction schemas', () => {
         description: 'item names',
         item: { type: 'string' },
       }],
-      scope: 'run',
     }).success).toBe(true)
 
     expect(schema.safeParse({
@@ -93,6 +92,14 @@ describe('assertion and extraction schemas', () => {
         item: { type: 'string', extra: 'not allowed' },
       }],
     }).success).toBe(false)
+  })
+
+  it('extractAI refuses scope', () => {
+    const schema = registryWithActions().getSchema('common_extractAI')
+
+    const query = 'list the line items'
+    expect(schema.safeParse({ query, schema: [] }).success).toBe(true)
+    expect(schema.safeParse({ query, schema: [], scope: 'run' }).success).toBe(false)
   })
 
   it('an array field needs its item type', () => {

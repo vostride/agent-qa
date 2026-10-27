@@ -108,7 +108,7 @@ describe('buildVerificationPrompt — AI-judged actions are unverified planner c
   })
 
   it('renders an extractAI action as observation only with the extraction query', () => {
-    const extractAi = { type: 'extractAI', query: 'the page title', scope: 'run' } as unknown as Action
+    const extractAi = { type: 'extractAI', query: 'the page title' } as unknown as Action
     const out = buildVerificationPrompt('Read the page title', before, after, extractAi, true, '', undefined)
     expect(out).toContain('Action taken: observation only; planner\'s extraction query: "the page title"')
   })
