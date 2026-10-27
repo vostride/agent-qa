@@ -1,7 +1,7 @@
 import { Command } from 'commander'
 import pc from 'picocolors'
 import { readdir, rm, stat } from 'node:fs/promises'
-import { join, resolve, basename } from 'node:path'
+import { join, resolve } from 'node:path'
 import { DEFAULT_AGENT_QA_CACHE_DIR } from '@vostride/agent-qa-core'
 import { resolveConfig } from '../config.js'
 
@@ -74,17 +74,7 @@ async function countCacheEntries(cacheRoot: string): Promise<number> {
   return count
 }
 
-/**
- * Per-test targeting is not possible under the redesigned cache: keys are opaque,
- * content-addressed over masked step text + a runtime screenIdentityHash, and carry no raw
- * step text on disk (D-06). `--test` therefore clears the whole branch-namespaced cache so
- * the requested test's stale plans are guaranteed gone.
- */
-export async function purgeTest(_testPath: string, cacheDir: string): Promise<number> {
-  return removeCacheEntries(resolve(cacheDir))
-}
-
-// Running `cache purge --all` is the intent (Phase 432 D-14): there is no confirmation step.
+// Running `cache purge --all` is the intent: there is no confirmation step.
 export async function purgeAll(cacheDir: string): Promise<number> {
   const resolvedDir = resolve(cacheDir)
   const total = await countCacheEntries(resolvedDir)
@@ -98,11 +88,10 @@ export function createCacheCommand(): Command {
   cmd
     .command('purge')
     .description('Clear cached action plans')
-    .option('--test <path>', 'purge cache for a specific test file')
     .option('--all', 'purge all cached plans')
     .action(async (opts) => {
-      if (!opts.test && !opts.all) {
-        console.error(pc.red('Specify --test <path> or --all'))
+      if (!opts.all) {
+        console.error(pc.red('Specify --all'))
         process.exitCode = 1
         return
       }
@@ -113,20 +102,11 @@ export function createCacheCommand(): Command {
       })
       const cacheDir = config.services?.cache?.dir ?? CACHE_DIR_FALLBACK
 
-      if (opts.test) {
-        const count = await purgeTest(opts.test, cacheDir)
-        if (count === 0) {
-          console.log(pc.dim('No cached plans found'))
-        } else {
-          console.log(pc.green(`Purged ${count} cached plans for ${basename(opts.test)}`))
-        }
-      } else if (opts.all) {
-        const count = await purgeAll(cacheDir)
-        if (count === 0) {
-          console.log(pc.dim('No cached plans found'))
-        } else {
-          console.log(pc.green(`Purged ${count} cached plans (all)`))
-        }
+      const count = await purgeAll(cacheDir)
+      if (count === 0) {
+        console.log(pc.dim('No cached plans found'))
+      } else {
+        console.log(pc.green(`Purged ${count} cached plans (all)`))
       }
     })
 

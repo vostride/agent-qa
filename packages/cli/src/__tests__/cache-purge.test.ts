@@ -24,43 +24,6 @@ afterEach(async () => {
   await rm(TMP_DIR, { recursive: true, force: true })
 })
 
-describe('purgeTest', () => {
-  it('clears all branch-namespaced cache entries (per-test targeting is not recomputable)', async () => {
-    const { purgeTest } = await import('../commands/cache.js')
-    const cacheDir = join(TMP_DIR, 'cache')
-    await seedEntry(cacheDir, 'main', 'a1b2c3d4e5f60718')
-    await seedEntry(cacheDir, 'main', 'f0e1d2c3b4a59687')
-    await seedEntry(cacheDir, 'feature-x', '1122334455667788')
-
-    const testPath = join(TMP_DIR, 'login.yaml')
-    await writeFile(testPath, 'url: https://example.com\nsteps:\n  - Click login\n')
-
-    const count = await purgeTest(testPath, cacheDir)
-    expect(count).toBe(3)
-    expect(await readdir(cacheDir)).toEqual([])
-  })
-
-  it('returns 0 for a non-existent cache dir', async () => {
-    const { purgeTest } = await import('../commands/cache.js')
-    const testPath = join(TMP_DIR, 'nope.yaml')
-    await writeFile(testPath, 'url: https://example.com\nsteps: []\n')
-    const count = await purgeTest(testPath, join(TMP_DIR, 'nonexistent'))
-    expect(count).toBe(0)
-  })
-
-  it('ignores non-json files and stray top-level files', async () => {
-    const { purgeTest } = await import('../commands/cache.js')
-    const cacheDir = join(TMP_DIR, 'cache')
-    await seedEntry(cacheDir, 'main', 'a1b2c3d4e5f60718')
-    await mkdir(join(cacheDir, 'main'), { recursive: true })
-    await writeFile(join(cacheDir, 'main', 'README.txt'), 'not a cache entry')
-    await writeFile(join(cacheDir, 'stray.tmp'), 'top-level junk')
-
-    const count = await purgeTest(join(TMP_DIR, 'x.yaml'), cacheDir)
-    expect(count).toBe(1)
-  })
-})
-
 describe('purgeAll', () => {
   // 2026-10-01 (432-15, D-14): re-spelled from "…with force=true"; purgeAll has no force flag.
   it('deletes all cache-key entries across branch namespaces', async () => {
