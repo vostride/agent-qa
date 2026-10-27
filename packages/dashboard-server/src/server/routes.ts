@@ -21,10 +21,7 @@ import { HookRegistryManager, isHookRegistryMutationError } from '../hooks/hook-
 import { readJsonBody } from './body-parser.js'
 import {
   LivePlannerLimitsRefusedError,
-  LiveProductionRefusedError,
-  liveProductionRefusal,
   resolveLivePlannerLimits,
-  resolveLiveTargetProduction,
 } from '../live-editor/live-session.js'
 import { refuseCrossSiteRequest } from './cross-site.js'
 import { tryParseRequestUrl } from './request-url.js'
@@ -5099,15 +5096,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             entity?: { type?: string; id?: string }
           }>(req)
           const targetName = typeof body?.targetName === 'string' ? body.targetName : undefined
-          // 432 D-18: a production target is refused here, before the session and any of its
-          // setup. The request names the target; the environment and the opt-in are read from
-          // the current config, never from the request.
-          const production = await resolveLiveTargetProduction(configManager, targetName)
-          const productionRefusal = liveProductionRefusal(production)
-          if (productionRefusal !== undefined) {
-            jsonNoCors(res, { error: productionRefusal.message }, 403)
-            return
-          }
           const platform = body?.platform ?? 'web'
           const runtimeLLM = await resolveDashboardRuntimeLLM(configManager, llmConfig, authFetch)
           if (!runtimeLLM.ok) {
@@ -5184,7 +5172,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             {
               platform: platform as 'web' | 'android' | 'ios',
               targetName,
-              production: { productionTargetNames: production.productionTargetNames },
               plannerLimits,
               plannerLimitsForTest,
               llmConfig: runtimeLLM.llmConfig,
@@ -5210,11 +5197,8 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           jsonNoCors(res, { sessionId, sessionNumber }, 201)
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err)
-          // The config changed between the door's read and `initialize`'s: the same refusal.
-          // 436 D-03: a limit the CLI refuses is refused here, before any session exists.
-          const status = err instanceof LiveProductionRefusedError
-            ? 403
-            : err instanceof LivePlannerLimitsRefusedError ? 400 : 500
+          // A planner limit the CLI refuses is refused here, before any session exists.
+          const status = err instanceof LivePlannerLimitsRefusedError ? 400 : 500
           jsonNoCors(res, { error: message }, status)
         }
       })()

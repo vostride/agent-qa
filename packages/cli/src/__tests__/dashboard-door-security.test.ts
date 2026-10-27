@@ -56,9 +56,6 @@ const MARK_BODY = JSON.stringify({ kind: 'false-fail', note: 'door security' })
 /** A run row the dashboard's own run read serves, so gap 7's synchronous read arm has a subject. */
 const READ_RUN = 'run-432-14-read'
 
-/** A declared production target: the live-editor arm refuses it by name, before any session. */
-const PRODUCTION_TARGET = 'door-production'
-
 // ---- the fixture project -------------------------------------------------------------------
 
 /** The `surface-dispatch.ts` fixture project, verbatim in shape (see the door cell's own note). */
@@ -80,11 +77,6 @@ function fixtureWorkspace(secrets = ''): string {
       registry: {
         targets: {
           conformance: { platform: 'web', url: 'https://conformance.invalid' },
-          // 2026-10-03 (quick-261003-tsr, WR-07): the live-editor arm's same-origin control names
-          // this target, so the admitted create stops at the production refusal, before a browser.
-          [PRODUCTION_TARGET]: {
-            platform: 'web', url: 'https://door-production.invalid', environment: 'production',
-          },
         },
       },
     })}\n`,
@@ -345,8 +337,8 @@ function expectDispatchedOnce(label: string, door: DoorFixture, response: RawRes
 // these seven arms never cross, and drove them with a mark body none of them could act on. Each arm
 // now names the seam it writes through, is driven with a body it WOULD act on, and has a same-origin
 // control showing that body acts. The live-editor arm is the one that cannot be driven to its write
-// here (an admitted create starts a browser), so its control stops at the production refusal, past
-// the cross-site check, and its seam is the session list.
+// here (an admitted create starts a browser), so its control stops at the create's next refusal past
+// the cross-site check, before any session, and its seam is the session list.
 
 /** The machine-wide credential name the credential, move and delete arms act on. */
 const PROBE_CREDENTIAL = 'door-probe'
@@ -425,7 +417,7 @@ const RETAINED_SAME_SITE_ARMS: readonly SameSiteArm[] = [
     method: 'POST',
     path: '/api/live-editor/sessions',
     seam: 'the live-editor session list',
-    arrange: () => Promise.resolve(JSON.stringify({ platform: 'web', targetName: PRODUCTION_TARGET })),
+    arrange: () => Promise.resolve(JSON.stringify({ platform: 'web', targetName: 'conformance' })),
     read: async ({ door }) => {
       const listed = await rawRequest(door.port, {
         method: 'GET', path: '/api/live-editor/sessions', headers: { origin: sameOrigin(door) },
@@ -434,11 +426,11 @@ const RETAINED_SAME_SITE_ARMS: readonly SameSiteArm[] = [
       return listed.body
     },
     admitted: async (scene, response, before) => {
-      // Past the cross-site check, the create answers its own production refusal by name.
-      expect(response.status, `6g /api/live-editor/sessions: ${response.body}`).toBe(403)
+      // Past the cross-site check, the create answers its next refusal: the fixture declares no model.
+      expect(response.status, `6g /api/live-editor/sessions: ${response.body}`).toBe(400)
       const { error } = JSON.parse(response.body) as { error: string }
       expect(error).not.toBe('cross_site_refused')
-      expect(error).toContain(PRODUCTION_TARGET)
+      expect(error).toContain('LLM not configured')
       expect(await RETAINED_SAME_SITE_ARMS[2]!.read(scene)).toBe(before)
     },
   },

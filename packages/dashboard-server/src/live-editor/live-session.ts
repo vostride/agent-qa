@@ -40,7 +40,7 @@ import type {
   HookDefinition,
   MobilePlatform,
 } from '@vostride/agent-qa-core'
-import { buildProductionRefusal, distinctInFirstOccurrenceOrder, resolvePlannerLimits } from '@vostride/agent-qa-schema'
+import { resolvePlannerLimits } from '@vostride/agent-qa-schema'
 import type { DeclaredModelProfile, PlannerLimits } from '@vostride/agent-qa-schema'
 import { parse as parseYaml } from 'yaml'
 import type {
@@ -78,62 +78,8 @@ import type {
   ServerMessage,
 } from './types.js'
 
-/**
- * What the current config declares about the one target a live session names (432 D-18).
- *
- * A session drives at most one target. It is production only when the request names a target the
- * config declares `environment: production`; a raw URL with no target name, or a name the config
- * does not declare, is not production. `allowProduction` is the config's top-level key, and only
- * the literal `true` opts in.
- */
-export interface LiveTargetProduction {
-  readonly productionTargetNames: readonly string[]
-  readonly allowProduction: boolean
-}
-
-/** A live session refused because its target is production and the config has not opted in. */
-export class LiveProductionRefusedError extends Error {
-  readonly productionTargetNames: readonly string[]
-
-  constructor(productionTargetNames: readonly string[]) {
-    super(buildProductionRefusal(productionTargetNames))
-    this.name = 'LiveProductionRefusedError'
-    this.productionTargetNames = distinctInFirstOccurrenceOrder(productionTargetNames)
-  }
-}
-
 function isConfigRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
-}
-
-/** The target name a session is labelled with: trimmed, and absent when blank. */
-function liveTargetName(targetName: unknown): string | undefined {
-  if (typeof targetName !== 'string') return undefined
-  const trimmed = targetName.trim()
-  return trimmed.length > 0 ? trimmed : undefined
-}
-
-/**
- * Read the current config for the target a session names. The request supplies the name only;
- * the environment and the opt-in come from the config file as it is now.
- */
-export async function resolveLiveTargetProduction(
-  configManager: ConfigManager | undefined,
-  targetName: string | undefined,
-): Promise<LiveTargetProduction> {
-  const name = liveTargetName(targetName)
-  if (name === undefined || configManager === undefined) {
-    return { productionTargetNames: [], allowProduction: false }
-  }
-  const config = await readConfigValues(configManager)
-  const registry = isConfigRecord(config.registry) ? config.registry : undefined
-  const targets = registry !== undefined && isConfigRecord(registry.targets) ? registry.targets : undefined
-  const declared = targets !== undefined && Object.hasOwn(targets, name) ? targets[name] : undefined
-  const production = isConfigRecord(declared) && declared.environment === 'production'
-  return {
-    productionTargetNames: production ? [name] : [],
-    allowProduction: config.allowProduction === true,
-  }
 }
 
 /** The workspace readers the create door already holds, by canonical id. */
@@ -242,14 +188,6 @@ export async function resolveLivePlannerLimits(
     uses.push(use)
   }
   return resolvePlannerLimits(config.use, ...uses)
-}
-
-/** The refusal a finding calls for, or nothing when the target is not production or is opted in. */
-export function liveProductionRefusal(
-  found: LiveTargetProduction,
-): LiveProductionRefusedError | undefined {
-  if (found.productionTargetNames.length === 0 || found.allowProduction) return undefined
-  return new LiveProductionRefusedError(found.productionTargetNames)
 }
 
 export const IDLE_TIMEOUT_MS = 5 * 60 * 1000
@@ -839,19 +777,6 @@ export class LiveSession {
   }
 
   async initialize(config: LiveSessionConfig): Promise<void> {
-    // 432 D-18: refuse a production target before the first setup effect. The door has already
-    // asked, and this asks again because `initialize` is callable apart from it. A name the door
-    // found production stays refused here unless the config read now opts in.
-    const found = await resolveLiveTargetProduction(this.deps.configManager, config.targetName)
-    const refusal = liveProductionRefusal({
-      productionTargetNames: distinctInFirstOccurrenceOrder([
-        ...(config.production?.productionTargetNames ?? []),
-        ...found.productionTargetNames,
-      ]),
-      allowProduction: found.allowProduction,
-    })
-    if (refusal !== undefined) throw refusal
-
     this.platform = config.platform
     this.targetName = typeof config.targetName === 'string' && config.targetName.trim().length > 0
       ? config.targetName.trim()
