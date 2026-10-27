@@ -155,6 +155,8 @@ function valueSchema(type: 'string' | 'number' | 'boolean' | 'object'): z.ZodTyp
       return z.boolean()
     case 'object':
       return z.string().describe(OBJECT_AS_TEXT)
+    default:
+      throw new Error(`extraction field type "${String(type)}" is not supported`)
   }
 }
 
@@ -392,7 +394,8 @@ export class LLMVerifier implements Verifier {
    * declared field with its declared type, null where the screen does not show it, and object
    * text decoded to an object. Unresolved when the model call failed, or when its answer did not
    * match the declared fields: a wrong type, a missing field, or object text that is not a JSON
-   * object. Nothing is converted. An abort rethrows.
+   * object. A declared type outside string, number, boolean, array and object is unresolved the
+   * same way, with no model call. Nothing is converted. An abort rethrows.
    */
   async extractData(
     query: string,
@@ -400,7 +403,12 @@ export class LLMVerifier implements Verifier {
     opts: { fields: readonly ExtractField[]; screenshot?: Buffer; abortSignal?: AbortSignal },
   ): Promise<AiExtraction> {
     const { fields, screenshot, abortSignal } = opts
-    const schema = buildExtractionSchema(fields)
+    let schema: z.ZodType<Record<string, unknown>>
+    try {
+      schema = buildExtractionSchema(fields)
+    } catch {
+      return { outcome: 'unresolved', reason: EXTRACTION_NOT_THE_FIELDS }
+    }
     try {
       const promptText = `Extraction request: "${query}"\n\n${renderObservationInert(screen)}`
       const clamped = await this.runStructured(

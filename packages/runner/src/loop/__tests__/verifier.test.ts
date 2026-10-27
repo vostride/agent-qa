@@ -434,6 +434,26 @@ describe('LLMVerifier', () => {
       },
     )
 
+    it.each([
+      ['a field type outside the declared types', { name: 'when', type: 'date', description: 'd' }],
+      ['a field with no type', { name: 'when', description: 'd' }],
+      [
+        'an array item type outside the declared types',
+        { name: 'when', type: 'array', description: 'd', item: { type: 'date' } },
+      ],
+    ])('%s does not match the declared fields and makes no model call', async (_label, field) => {
+      const { generateText } = await import('ai')
+      const mockGenerateText = vi.mocked(generateText)
+      const verifier = new LLMVerifier({} as any, makeFakeTokenAccounting())
+
+      const result = await verifier.extractData('read the order', before, {
+        fields: [field as unknown as ExtractField],
+      })
+
+      expect(result).toEqual(notTheFields)
+      expect(mockGenerateText).not.toHaveBeenCalled()
+    })
+
     it('an array of objects decodes every item, and one bad item does not match', async () => {
       const lines: ExtractField[] = [
         { name: 'lines', type: 'array', description: 'the order lines', item: { type: 'object' } },
