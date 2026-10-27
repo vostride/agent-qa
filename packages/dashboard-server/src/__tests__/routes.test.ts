@@ -1574,7 +1574,7 @@ describe('API Routes', () => {
       const res = await invokeRoute('/api/runs/trigger', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ file: 'web/15-github-trending.yaml', local: true }),
+        body: JSON.stringify({ file: 'web/15-github-trending.yaml' }),
       })
 
       expect(res.status).toBe(202)
@@ -1621,7 +1621,7 @@ describe('API Routes', () => {
       const res = await invokeRoute('/api/runs/trigger', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ patterns: ['web/*.yaml'], local: true }),
+        body: JSON.stringify({ patterns: ['web/*.yaml'] }),
       })
 
       expect(res.status).toBe(202)
@@ -1653,7 +1653,7 @@ describe('API Routes', () => {
       const res = await invokeRoute('/api/runs/trigger', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ file: 'global-parallel.yaml', local: true, parallel: false }),
+        body: JSON.stringify({ file: 'global-parallel.yaml', parallel: false }),
       })
 
       expect(res.status).toBe(202)
@@ -1693,7 +1693,7 @@ describe('API Routes', () => {
       const res = await invokeRoute('/api/runs/trigger', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ file: 'serial-local.yaml', local: true }),
+        body: JSON.stringify({ file: 'serial-local.yaml' }),
       })
 
       expect(res.status).toBe(202)
@@ -1721,7 +1721,7 @@ describe('API Routes', () => {
       const res = await invokeRoute('/api/runs/trigger', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ patterns: ['web/*.yaml'], local: true }),
+        body: JSON.stringify({ patterns: ['web/*.yaml'] }),
       })
 
       expect(res.status).toBe(202)
@@ -1749,7 +1749,7 @@ describe('API Routes', () => {
       const res = await invokeRoute('/api/runs/trigger', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ patterns: [join(outsideDir, '*.yaml')], local: true }),
+        body: JSON.stringify({ patterns: [join(outsideDir, '*.yaml')] }),
       })
 
       expect(res.status).toBe(400)
@@ -1771,7 +1771,7 @@ describe('API Routes', () => {
       const res = await invokeRoute('/api/runs/trigger', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ patterns: ['../*.yaml'], local: true }),
+        body: JSON.stringify({ patterns: ['../*.yaml'] }),
       })
 
       expect(res.status).toBe(400)
@@ -1795,7 +1795,7 @@ describe('API Routes', () => {
       const res = await invokeRoute('/api/runs/trigger', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ file: 'web/15-github-trending.yaml', local: true }),
+        body: JSON.stringify({ file: 'web/15-github-trending.yaml' }),
       })
 
       expect(res.status).toBe(202)
@@ -1823,7 +1823,7 @@ describe('API Routes', () => {
       const res = await invokeRoute('/api/runs/trigger', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ file: join(outsideDir, 'outside.yaml'), local: true }),
+        body: JSON.stringify({ file: join(outsideDir, 'outside.yaml') }),
       })
 
       expect(res.status).toBe(400)
@@ -1845,7 +1845,7 @@ describe('API Routes', () => {
       const res = await invokeRoute('/api/runs/trigger', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ file: '../../outside.yaml', local: true }),
+        body: JSON.stringify({ file: '../../outside.yaml' }),
       })
 
       expect(res.status).toBe(400)
@@ -1868,7 +1868,7 @@ describe('API Routes', () => {
       const res = await invokeRoute('/api/runs/trigger', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ file: join(outsideDir, 'outside.suite.yaml'), local: true }),
+        body: JSON.stringify({ file: join(outsideDir, 'outside.suite.yaml') }),
       })
 
       expect(res.status).toBe(400)
@@ -1929,7 +1929,7 @@ describe('API Routes', () => {
       const res = await invokeRoute('/api/runs/trigger', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ file: 'suites/slow.suite.yaml', local: true }),
+        body: JSON.stringify({ file: 'suites/slow.suite.yaml' }),
       })
 
       expect(res.status).toBe(202)
@@ -2000,7 +2000,7 @@ describe('API Routes', () => {
       const res = await invokeRoute('/api/runs/trigger', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ file: 'suites/parallel.suite.yaml', local: true }),
+        body: JSON.stringify({ file: 'suites/parallel.suite.yaml' }),
       })
 
       expect(res.status).toBe(202)
@@ -2014,7 +2014,7 @@ describe('API Routes', () => {
       }))
     })
 
-    it('passes the cache override through to the queued args and labels BrowserStack explicitly', async () => {
+    it('passes the cache override through to the queued args and labels the run local', async () => {
       const testsDir = join(tmpdir(), `agent-qa-trigger-tests-${randomUUID()}`, 'e2e-specs')
       tempDirs.push(dirname(testsDir))
       await mkdir(join(testsDir, 'web'), { recursive: true })
@@ -2033,7 +2033,6 @@ describe('API Routes', () => {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           file: 'web/15-github-trending.yaml',
-          local: false,
           noCache: true,
         }),
       })
@@ -2043,7 +2042,7 @@ describe('API Routes', () => {
         filePath: 'web/15-github-trending.yaml',
         attributes: {
           'agent-qa.trigger': 'dashboard',
-          'agent-qa.runner': 'browserstack',
+          'agent-qa.runner': 'local',
         },
         metadata: expect.objectContaining({
           args: [
@@ -2084,7 +2083,7 @@ describe('API Routes', () => {
       const res = await invokeRoute('/api/runs/trigger', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ file: 'android-only.yaml', local: true }),
+        body: JSON.stringify({ file: 'android-only.yaml' }),
       })
 
       expect(res.status).toBe(202)
@@ -2125,7 +2124,7 @@ describe('API Routes', () => {
       const res = await invokeRoute('/api/runs/trigger', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ file: 'slow-local.yaml', local: true }),
+        body: JSON.stringify({ file: 'slow-local.yaml' }),
       })
 
       expect(res.status).toBe(202)
@@ -2174,7 +2173,7 @@ describe('API Routes', () => {
       const res = await invokeRoute('/api/runs/trigger', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ file: 'slow.suite.yaml', local: true }),
+        body: JSON.stringify({ file: 'slow.suite.yaml' }),
       })
 
       expect(res.status).toBe(202)
@@ -2207,7 +2206,7 @@ describe('API Routes', () => {
       const res = await invokeRoute('/api/runs/trigger', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ file: 'config-timeout.yaml', local: true }),
+        body: JSON.stringify({ file: 'config-timeout.yaml' }),
       })
 
       expect(res.status).toBe(202)
@@ -2236,7 +2235,7 @@ describe('API Routes', () => {
       const res = await invokeRoute('/api/runs/trigger', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ file: 'draft.yaml', local: true }),
+        body: JSON.stringify({ file: 'draft.yaml' }),
       })
 
       expect(res.status).toBe(202)
@@ -2271,7 +2270,6 @@ describe('API Routes', () => {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           file: 'trusted-timeout.yaml',
-          local: true,
           timeout: 1,
           metadata: { timeout: 1 },
         }),

@@ -6,12 +6,12 @@ export const ATTR_RUNNER = 'agent-qa.runner'
 export const ATTR_GATE_RUN = 'agent-qa.gate-run'
 
 export type RunAttributeTrigger = 'cli' | 'dashboard' | 'api' | 'mcp'
-export type RunAttributeRunner = 'local' | 'browserstack'
+export type RunAttributeRunner = 'local'
 
 export const RUN_ATTRIBUTE_KEY_MAX_LENGTH = 256
 export const RUN_ATTRIBUTE_VALUE_MAX_LENGTH = 4096
 const RUN_ATTRIBUTE_TRIGGERS: RunAttributeTrigger[] = ['cli', 'dashboard', 'api', 'mcp']
-const RUN_ATTRIBUTE_RUNNERS: RunAttributeRunner[] = ['local', 'browserstack']
+const RUN_ATTRIBUTE_RUNNERS: RunAttributeRunner[] = ['local']
 
 export interface ParsedRunAttrFlags {
   attributes: RunAttributes

@@ -841,12 +841,11 @@ function normalizeRunFilterValue(value: string | null | undefined): string | nul
 
 function buildRunRequestAttributes(input: {
   trigger: 'dashboard' | 'api' | 'mcp'
-  runner?: 'local' | 'browserstack'
   userAttributes?: unknown
 }): RunAttributes {
   const internal = buildInternalRunAttributes({
     trigger: input.trigger,
-    runner: input.runner ?? 'local',
+    runner: 'local',
   })
   const user = validateUserRunAttributes(input.userAttributes, 'run attributes')
   return mergeRunAttributes(internal, user)
@@ -1412,7 +1411,7 @@ async function normalizeDashboardSuitePath(
  * appears in a run's `metadata` is written by this server: `args`/`isSuite` by the enqueue routes,
  * `timeout`/`timeoutSource`/`timeoutBaseMs`/`timeoutBufferMs` by `toExecutionTimeoutMetadata`,
  * `confirmScope` by `/api/runs/trigger` until 432-14 deleted the run-confirm pair (a row written
- * before then may still carry it), and `suiteIndex`/`farmSessionUrl`/`runDevice` by the CLI runner. A caller's OWN labels have their own
+ * before then may still carry it), and `suiteIndex` by the CLI runner. A caller's OWN labels have their own
  * first-class door on this route — `attributes`, validated by `buildRunRequestAttributes` and
  * persisted in its own column. There is nothing left for a client to legitimately put here.
  *
@@ -1441,9 +1440,7 @@ export const CLIENT_WRITABLE_QUEUED_RUN_METADATA_KEYS: ReadonlySet<string> = new
 export const SERVER_OWNED_RUN_METADATA_KEYS: ReadonlySet<string> = new Set<string>([
   'args',
   'confirmScope',
-  'farmSessionUrl',
   'isSuite',
-  'runDevice',
   'suiteIndex',
   'target',
   'timeout',
@@ -1521,7 +1518,6 @@ export function sanitizeQueuedExecutionTimeout(value: unknown): number | undefin
  *     405-07: this line used to name the run-detail timeline module that read it, which 405-03
  *     deleted; that plan's scope boundary kept it out of server code, so the dangling reference
  *     was carried here as a deferred item and is scrubbed with the rest of the retired feed.)
- *   - `farmSessionUrl`, `runDevice` — read by the run navbar for a BrowserStack run.
  *
  * WHAT IS DELIBERATELY OFF IT: `confirmScope`, the leak this closes — and everything a caller
  * stuffed into `POST /api/queue/enqueue`'s free-form `metadata`, which used to round-trip verbatim
@@ -1538,8 +1534,6 @@ export const RESPONSE_SAFE_RUN_METADATA_KEYS: ReadonlySet<string> = new Set([
   'timeoutBaseMs',
   'timeoutBufferMs',
   'suiteIndex',
-  'farmSessionUrl',
-  'runDevice',
 ])
 
 /**
@@ -3010,7 +3004,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           try {
             attributes = buildRunRequestAttributes({
               trigger: 'api',
-              runner: 'local',
               userAttributes: body.attributes,
             })
           } catch (err) {
@@ -3075,7 +3068,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         json(res, { error: 'Queue not available' }, 503)
         return
       }
-      readJsonBody<{ file?: string; patterns?: string[]; tags?: unknown; noCache?: boolean; local?: boolean; triggerSource?: unknown }>(req)
+      readJsonBody<{ file?: string; patterns?: string[]; tags?: unknown; noCache?: boolean; triggerSource?: unknown }>(req)
         .then(async (body) => {
           if (body.tags !== undefined) {
             json(res, { error: 'tags are not supported for dashboard-triggered runs' }, 400)
@@ -3178,7 +3171,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             kind: 'test',
             attributes: buildRunRequestAttributes({
               trigger: triggerSource.trigger,
-              runner: body.local === false ? 'browserstack' : 'local',
             }),
             platform,
             parallel: effectiveParallel,

@@ -1105,8 +1105,6 @@ describe('CR-02 — no run-reading response hands out the confirm scope', () => 
       timeoutBaseMs: 50_000,
       timeoutBufferMs: 10_000,
       suiteIndex: 2,
-      farmSessionUrl: 'https://farm.example/session/9',
-      runDevice: 'chromium (remote)',
     }
     db.insertRun({ id: 'run-plain', name: 'Plain Run', metadata: publishable })
     const res = await invokeRoute(router, '/api/runs/run-plain')

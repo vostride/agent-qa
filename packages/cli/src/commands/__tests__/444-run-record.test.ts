@@ -233,7 +233,7 @@ describe('C444-CRASH-CATCH', () => {
 
 type ResolveCliRunAttributes = (
   user: Record<string, string>,
-  runner: 'local' | 'browserstack',
+  runner: 'local',
   inherited?: Record<string, string>,
 ) => Record<string, string>
 

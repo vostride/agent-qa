@@ -63,11 +63,11 @@ describe('run attributes', () => {
   it('accepts trusted internal attributes plus custom attributes', () => {
     expect(validateTrustedRunAttributes({
       [ATTR_TRIGGER]: 'dashboard',
-      [ATTR_RUNNER]: 'browserstack',
+      [ATTR_RUNNER]: 'local',
       'git.branch': 'phase223-main',
     }, 'inherited run attributes')).toEqual({
       [ATTR_TRIGGER]: 'dashboard',
-      [ATTR_RUNNER]: 'browserstack',
+      [ATTR_RUNNER]: 'local',
       'git.branch': 'phase223-main',
     })
   })
@@ -80,6 +80,10 @@ describe('run attributes', () => {
     expect(() => validateTrustedRunAttributes({
       [ATTR_TRIGGER]: 'evil',
     }, 'inherited run attributes')).toThrow(/Attribute value for "agent-qa\.trigger" must be one of/)
+
+    expect(() => validateTrustedRunAttributes({
+      [ATTR_RUNNER]: 'browserstack',
+    }, 'inherited run attributes')).toThrow(/Attribute value for "agent-qa\.runner" must be one of: local$/)
   })
 
   it('formats attributes with protected keys first and custom keys alphabetically', () => {

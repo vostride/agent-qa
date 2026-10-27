@@ -327,8 +327,8 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => {
       if (key === 'agent-qa.trigger' && !['cli', 'dashboard', 'api', 'mcp'].includes(value)) {
         throw new Error(`${sourceLabel}: Attribute value for "${key}" must be one of: cli, dashboard, api, mcp`)
       }
-      if (key === 'agent-qa.runner' && !['local', 'browserstack'].includes(value)) {
-        throw new Error(`${sourceLabel}: Attribute value for "${key}" must be one of: local, browserstack`)
+      if (key === 'agent-qa.runner' && value !== 'local') {
+        throw new Error(`${sourceLabel}: Attribute value for "${key}" must be one of: local`)
       }
       if (key.startsWith('agent-qa.') && key !== 'agent-qa.trigger' && key !== 'agent-qa.runner') {
         throw new Error(`${sourceLabel}: Attribute key "${key}" uses the reserved prefix "agent-qa."`)

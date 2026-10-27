@@ -1,6 +1,6 @@
-// 2026-10-17 (443-14, GAP-D2/GAP-D3): the record through the shipped drive and producer, on a lent
-// handle as a long-lived host lends its own: a run that rejects after its session started, and a
-// suite whose producer resolved a BrowserStack runner.
+// The record through the shipped drive and producer, on a lent handle as a long-lived host lends its
+// own: a run that rejects after its session started, and a queued run whose routes' attributes win
+// over the producer's.
 
 import { mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -172,9 +172,9 @@ const rejectingFinalize = (): ProducedCliRunMembers['finalize'] => async () => {
   throw new Error('producer finalize failed')
 }
 
-const BROWSERSTACK_SEED: RunAttributes = {
+const PRODUCER_SEED: RunAttributes = {
   'agent-qa.trigger': 'cli',
-  'agent-qa.runner': 'browserstack',
+  'agent-qa.runner': 'local',
   team: 'checkout',
 }
 
@@ -236,32 +236,6 @@ describe('C443-RECORD-FLUSH', () => {
 })
 
 describe('C443-RECORD-RUNNER', () => {
-  it("a suite whose producer resolved a BrowserStack runner records browserstack under the door's trigger", async () => {
-    posixOnly()
-    const project = fixture()
-    const real = openRunsDb(project)
-    try {
-      const outcome = await drive({
-        project,
-        door: 'mcp',
-        pattern: project.suitePattern,
-        host: { db: real, queueRun: () => undefined },
-        override: (produced) => overriding(produced, 'subscriberSeed', (shipped) => ({
-          ...shipped.subscriberSeed,
-          attributes: BROWSERSTACK_SEED,
-        })),
-      })
-
-      expect(outcome.runId, `the drive reported no session: ${messageOf(outcome.error)}`).toBeDefined()
-      const attributes = real.getRun(outcome.runId!)?.attributes
-      expect(attributes?.['agent-qa.runner']).toBe('browserstack')
-      expect(attributes?.['agent-qa.trigger']).toBe('mcp')
-      expect(attributes?.team).toBe('checkout')
-    } finally {
-      real.close()
-    }
-  }, RUN_BUDGET_MS)
-
   it("a queued run keeps its routes' attributes over the producer's", async () => {
     posixOnly()
     const project = fixture()
@@ -275,7 +249,7 @@ describe('C443-RECORD-RUNNER', () => {
         host: { db: real, queueRun: () => ({ attributes: queued }) },
         override: (produced) => overriding(produced, 'subscriberSeed', (shipped) => ({
           ...shipped.subscriberSeed,
-          attributes: BROWSERSTACK_SEED,
+          attributes: PRODUCER_SEED,
         })),
       })
 

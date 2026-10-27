@@ -90,7 +90,7 @@ const runs: SuiteRunRow[] = [
     duration: 22000,
     attributes: {
       "agent-qa.trigger": "cli",
-      "agent-qa.runner": "browserstack",
+      "agent-qa.runner": "local",
       "git.branch": "phase223-main",
       "user.email": "CI",
     },
@@ -122,7 +122,7 @@ const runs: SuiteRunRow[] = [
         duration: 4300,
         attributes: {
           "agent-qa.trigger": "cli",
-          "agent-qa.runner": "browserstack",
+          "agent-qa.runner": "local",
           "git.branch": "phase223-main",
         },
         environment: null,

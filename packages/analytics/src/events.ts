@@ -129,7 +129,7 @@ export const ANALYTICS_AGENT_PRODUCTS = [
 ] as const
 
 export const ANALYTICS_TRIGGER_SOURCES = ['cli', 'chat', 'mcp', 'daemon', 'unknown'] as const
-export const ANALYTICS_RUNNERS = ['local', 'browserstack', 'unknown'] as const
+export const ANALYTICS_RUNNERS = ['local', 'unknown'] as const
 export const ANALYTICS_PLATFORMS = ['web', 'android', 'ios', 'unknown'] as const
 export const ANALYTICS_RUN_STATUSES = [
   'passed',
