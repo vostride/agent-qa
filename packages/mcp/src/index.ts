@@ -69,15 +69,6 @@ export type {
   UnprojectedOp,
 } from './mapping.js'
 
-// 2026-08-17 (Phase 398 plan 02, D-13/D-14 · XPLN-03): the v1 -> v2 tool-name migration map. It is
-// on the barrel because two consumers outside this package read it — the redirect at the unknown-
-// tool seam and the regen script that PROJECTS it into the committed capability manifest — and a
-// second transcription for the second consumer is exactly the drift the census cell forbids.
-// Publishing declared data hands a consumer no capability: these are the names of tools that no
-// longer exist and the rulings that retired them.
-export { V1_TOOL_MIGRATION_MAP } from './migration-map.js'
-export type { V1MigrationArm, V1ToolMigrationEntry } from './migration-map.js'
-
 export { maskedToolResult } from './masked-result.js'
 
 // 2026-08-31 (Phase 408 plan 01, D-01/D-04 · MCPA-01): the MCP App surface, published on the same

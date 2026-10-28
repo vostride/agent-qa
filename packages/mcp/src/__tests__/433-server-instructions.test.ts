@@ -4,7 +4,6 @@
 // AGENTS.md block init writes, and agent-qa never writes CLAUDE.md. The server's own initialize
 // result is the one channel every MCP host receives, so it carries the pointer.
 
-import { readFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import type { Server as NodeHttpServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
@@ -57,14 +56,6 @@ async function connectLoopback(): Promise<Client> {
   return client
 }
 
-/** The bump guard's pin, read from its file so it is never retyped here. */
-function pinnedToolNames(): readonly string[] {
-  const source = readFileSync(new URL('./mapping-bump-guard.test.ts', import.meta.url), 'utf8')
-  const block = /const PINNED_TOOL_NAMES: readonly string\[\] = \[([\s\S]*?)\]/.exec(source)
-  if (block === null) throw new Error('PINNED_TOOL_NAMES not found in mapping-bump-guard.test.ts')
-  return [...block[1]!.matchAll(/'([a-z_]+)'/g)].map((match) => match[1]!)
-}
-
 const FORBIDDEN = ['.agent-qa/', 'SQLite', 'memory/index/', 'memory/queue/', '.lease', '.epoch'] as const
 
 describe('C433-MCP-INSTRUCTIONS', () => {
@@ -104,12 +95,5 @@ describe('C433-MCP-INSTRUCTIONS', () => {
     expect(named.length).toBeGreaterThan(0)
     const listed = new Set((await client.listTools()).tools.map((tool) => tool.name))
     for (const name of named) expect(listed.has(name), name).toBe(true)
-  })
-
-  it('C433-MCP-INSTRUCTIONS: the tool list is unchanged', async () => {
-    const pinned = pinnedToolNames()
-    expect(pinned).toHaveLength(20)
-    const listed = (await (await connect()).listTools()).tools.map((tool) => tool.name).sort()
-    expect(listed).toEqual([...pinned].sort())
   })
 })

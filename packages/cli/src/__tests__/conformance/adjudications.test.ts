@@ -3,7 +3,7 @@
 // WHY THIS FILE EXISTS. Earlier phases wrote promissory notes against 397: a reservation in
 // `function-scope.ts` saying this phase would extend the scope union, and two `adjudication: '397'`
 // entries in `mapping.ts`'s degraded-output list. The deletion inventory's pending rows were ruled
-// too; that inventory is retired, and the migration map in `packages/mcp` carries its rulings.
+// too; that inventory is retired.
 // D-20 pays them AT the artifact that carries the promise, dated and in place, rather than in a
 // central adjudication document — so the artifacts answer and the phase SUMMARY only narrates.
 //
