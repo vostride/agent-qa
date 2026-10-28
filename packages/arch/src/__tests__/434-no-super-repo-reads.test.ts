@@ -1,11 +1,9 @@
 /**
- * 434 D-14 / SC3: test code never resolves a path outside the agent-qa root.
+ * Test code never resolves a path outside the agent-qa root.
  *
  * agent-qa is released as its own repository. A test that reaches into the checkout around it
  * passes inside the super-repository and fails only in the release layout, so this census walks
  * every test and test-helper file and fails on any path it resolves above the repository root.
- * The only permitted escapes are the files whose out-of-root cells the not-run register records
- * (D-12), and each of them must still escape, so a stale allowance reds as well.
  *
  * THE UNIVERSE is every .ts/.tsx/.mts/.mjs/.js file under packages/<name>/src and
  * scripts/__tests__ that sits in a __tests__ directory or carries a .test. name. Build output
@@ -37,12 +35,6 @@ interface Hit {
   file: string
   line: number
   rule: Rule
-}
-
-const ALLOWED_ESCAPES: Record<string, string> = {
-  'packages/cli/src/__tests__/432-external-callers.test.ts':
-    'D-12: the seven demo callers and the owner\'s miniwob checkout live outside agent-qa; their '
-    + 'cells are not-run register entries in a standalone clone',
 }
 
 const SKIPPED_DIRS = new Set(['node_modules', 'dist', '.turbo', 'coverage'])
@@ -196,15 +188,10 @@ const UP = '../'
 const DEMO = ['de', 'mo'].join('')
 const plantedRules = (text: string) => scanSource(PLANTED, text).map(hit => hit.rule)
 
-describe('C434-NO-SUPER-REPO-READS — test code reads nothing outside the agent-qa root (434 D-14)', () => {
-  it('C434-NO-SUPER-REPO-READS: the scan universe is the workspace\'s test and test-helper code', () => {
+describe('test code reads nothing outside the agent-qa root', () => {
+  it('the scan universe is the workspace\'s test and test-helper code', () => {
     expect(UNIVERSE.length).toBeGreaterThanOrEqual(1_500)
-    for (const file of [
-      'packages/eval-local/src/__tests__/replay-composition.test.ts',
-      'packages/cli/src/__tests__/432-external-callers.test.ts',
-    ]) {
-      expect(UNIVERSE, file).toContain(file)
-    }
+    expect(UNIVERSE).toContain('packages/eval-local/src/__tests__/replay-composition.test.ts')
   })
 
   it('C434-NO-SUPER-REPO-READS: every detection rule fires on its planted shape and ignores comments and data strings', () => {
@@ -224,15 +211,8 @@ describe('C434-NO-SUPER-REPO-READS — test code reads nothing outside the agent
     expect(plantedRules(`join(root, '${MINIWOB_CHECKOUT}')`)).toEqual(['R-DEMO'])
   })
 
-  it('C434-NO-SUPER-REPO-READS: no test or test helper resolves a path outside the agent-qa root except the not-run register\'s files', () => {
-    expect(REAL_HITS.filter(hit => !(hit.file in ALLOWED_ESCAPES)).map(describeHit)).toEqual([])
-  })
-
-  it('C434-NO-SUPER-REPO-READS: every allowed escape still escapes', () => {
-    for (const file of Object.keys(ALLOWED_ESCAPES)) {
-      expect(UNIVERSE, file).toContain(file)
-      expect(REAL_HITS.filter(hit => hit.file === file).length, file).toBeGreaterThan(0)
-    }
+  it('no test or test helper resolves a path outside the agent-qa root', () => {
+    expect(REAL_HITS.map(describeHit)).toEqual([])
   })
 
   it('C434-NO-SUPER-REPO-READS: this file matches none of its own rules', () => {
