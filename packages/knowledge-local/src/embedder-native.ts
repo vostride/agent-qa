@@ -115,7 +115,7 @@ async function loadPinnedPipeline(
     const originalAllowRemoteModels = transformers.env.allowRemoteModels
 
     if (allowDownload) {
-      // Transformers.js v4.2's tokenizer metadata probe drops its options. Pin the
+      // The tokenizer metadata probe (get_tokenizer_files) ignores the load options. Pin the
       // process-local URL template so even that probe addresses this exact revision.
       transformers.env.remotePathTemplate = `{model}/resolve/${encodeURIComponent(profile.revision)}/`
     } else {
@@ -137,8 +137,8 @@ async function loadPinnedPipeline(
       ])
       if (tokenizerResult.status === 'rejected') {
         if (modelResult.status === 'rejected') {
-          // v4.2's option-dropping tokenizer metadata lookup can collapse an empty local
-          // directory into a generic TypeError. The model loader retains the actionable
+          // The option-dropping tokenizer metadata lookup can collapse an empty local
+          // directory into a generic TypeError. The model loader keeps the actionable
           // local-files-only error, which the acquisition ladder classifies as a cold artifact.
           throw modelResult.reason
         }

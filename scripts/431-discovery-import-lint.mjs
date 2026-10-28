@@ -70,13 +70,10 @@ export const PINNED_FORBIDDEN_RUNTIME = Object.freeze([
   '@protobufjs/pool',
   '@protobufjs/utf8',
   'adm-zip',
-  'boolean',
   'define-data-property',
   'define-properties',
-  'detect-node',
   'es-define-property',
   'es-errors',
-  'es6-error',
   'escape-string-regexp',
   'flatbuffers',
   'global-agent',
@@ -84,7 +81,6 @@ export const PINNED_FORBIDDEN_RUNTIME = Object.freeze([
   'gopd',
   'guid-typescript',
   'has-property-descriptors',
-  'json-stringify-safe',
   'long',
   'matcher',
   'object-keys',
@@ -93,9 +89,6 @@ export const PINNED_FORBIDDEN_RUNTIME = Object.freeze([
   'onnxruntime-web',
   'platform',
   'protobufjs',
-  'roarr',
-  'semver-compare',
-  'sprintf-js',
 ])
 
 // The acquisition module that must be inside the eager graph for a clean verdict to mean anything.
