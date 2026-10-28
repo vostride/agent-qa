@@ -1106,11 +1106,17 @@ const RUN_TERMINAL: RunTerminal = {
   printDebugLine: (line) => printRunText(pc.dim(line), (text) => console.log(text)),
 }
 
-// 436 D-06: printed at the terminal door only, before the first test and at every log level. The
-// producers never print: the MCP host's stdout is its JSON-RPC connection.
+// Printed at the terminal door only, before the first test and at every log level. A test's own
+// limits quote its name, so that block prints through the run-text helper. The producers never
+// print: the MCP host's stdout is its JSON-RPC connection.
 function printPlannerLimits(record: PlannerLimitsRecord | undefined): void {
   if (record === undefined) return
-  for (const line of plannerLimitsInfoLines(record)) console.log(line)
+  const text = plannerLimitsInfoLines(record).join('\n')
+  if ((record.perTest ?? []).length > 0) {
+    printRunText(text, (block) => console.log(block))
+    return
+  }
+  console.log(text)
 }
 
 function isGlobLikePattern(value: string): boolean {

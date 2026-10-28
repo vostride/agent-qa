@@ -17,8 +17,18 @@ import {
 
 const CRAFTED_NAME = '::set-output name=x::y ##[error]x'
 const CRAFTED_STEPS = '::set-output name=x::y'
+const INJECTED_NAME = 'MARK ##[error]x\n::set-output name=x::y'
 const WRAPPED_PARSE_ERRORS =
   /::stop-commands::([0-9a-f]{32})\nFound 1 parse error\(s\):\n[\s\S]*?\n::\1::\n/u
+const WRAPPED_BLOCK = /::stop-commands::([0-9a-f]{32})\n[\s\S]*?::\1::\n/gu
+
+function wrappedBlocks(text: string): string[] {
+  return [...text.matchAll(WRAPPED_BLOCK)].map((match) => match[0])
+}
+
+function outsidePairs(text: string): string {
+  return text.replace(WRAPPED_BLOCK, '')
+}
 
 function project(label: string, testYaml: (testId: string) => string): string {
   const { root, configPath } = fixtureProject(`actions-output-${label}`)
@@ -38,6 +48,22 @@ function craftedNameProject(): string {
       `name: ${JSON.stringify(CRAFTED_NAME)}`,
       `test-id: ${testId}`,
       'target: web',
+      'steps:',
+      '  - Open the page',
+      '',
+    ].join('\n'),
+  )
+}
+
+function limitsProject(): string {
+  return project('limits', (testId) =>
+    [
+      `name: ${JSON.stringify(INJECTED_NAME)}`,
+      `test-id: ${testId}`,
+      'target: web',
+      'use:',
+      '  planner:',
+      '    maxActions: 7',
       'steps:',
       '  - Open the page',
       '',
@@ -104,5 +130,35 @@ describe('agent-qa run output under GitHub Actions', () => {
     expect(outcome.stderr).toContain(`steps: "${CRAFTED_STEPS}"`)
     expect(outcome.stdout).not.toContain(CRAFTED_STEPS)
     expect(`${outcome.stdout}${outcome.stderr}`).not.toContain('::stop-commands::')
+  })
+
+  it('run prints a test named in its planner limits inside a stop-commands pair under GitHub Actions', async () => {
+    const root = limitsProject()
+    const outcome = await spawnCollecting(root, [CLI_ENTRY, 'run'], { GITHUB_ACTIONS: 'true' })
+    expect(outcome.stdout).toMatch(
+      /::stop-commands::([0-9a-f]{32})\nLimits: \d+ actions, \d+ planning turns per step\nLimits for "MARK ##\[error\]x\n::set-output name=x::y": 7 actions, \d+ planning turns per step\n::\1::\n/u,
+    )
+    const outside = outsidePairs(outcome.stdout)
+    expect(outside).not.toMatch(/^\s*::/mu)
+    expect(outside).not.toContain('##[')
+    expect(outcome.stderr).not.toContain('##[')
+  })
+
+  it('run prints the same planner limits with no stop-commands line off GitHub Actions', async () => {
+    const root = limitsProject()
+    const outcome = await spawnCollecting(root, [CLI_ENTRY, 'run'])
+    expect(outcome.stdout).toMatch(
+      /^Limits: [^\n]*\nLimits for "MARK ##\[error\]x\n::set-output name=x::y": 7 actions, /mu,
+    )
+    expect(outcome.stdout).toContain(`Limits for "${INJECTED_NAME}": 7 actions, `)
+    expect(outcome.stdout).not.toContain('::stop-commands::')
+  })
+
+  it('run prints its own limits line bare when no test overrides the limits', async () => {
+    const root = craftedNameProject()
+    const outcome = await spawnCollecting(root, [CLI_ENTRY, 'run'], { GITHUB_ACTIONS: 'true' })
+    expect(outsidePairs(outcome.stdout)).toMatch(
+      /^Limits: \d+ actions, \d+ planning turns per step$/mu,
+    )
   })
 })
