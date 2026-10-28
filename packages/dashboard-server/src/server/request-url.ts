@@ -82,6 +82,24 @@ export function refuseUnparseableRequest(res: ServerResponse): void {
   res.end(body)
 }
 
+/** Nothing from the request reaches this answer; the body is composed only from the bound port. */
+export function refuseForeignHostPage(res: ServerResponse, port: number): void {
+  if (res.headersSent) {
+    res.destroy()
+    return
+  }
+  const p = String(port)
+  const body =
+    'The agent-qa dashboard answers only at localhost, 127.0.0.1 or [::1].\n'
+    + `Open http://localhost:${p}/ on the machine it runs on, or forward the port with `
+    + `ssh -L ${p}:localhost:${p} <host>.\n`
+  res.writeHead(403, {
+    'Content-Type': 'text/plain; charset=utf-8',
+    'Content-Length': Buffer.byteLength(body),
+  })
+  res.end(body)
+}
+
 /**
  * The process-level backstop's answer: a 500 in fixed bytes, or a destroyed socket if it is late.
  *

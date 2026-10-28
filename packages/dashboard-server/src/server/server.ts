@@ -6,7 +6,12 @@ import { cpus } from 'node:os'
 import type { DashboardDatabase } from '../db/database.js'
 import { classifyRunOwner } from '../db/run-owner.js'
 import { createRouter, sanitizeQueuedExecutionTimeout } from './routes.js'
-import { backstopServerError, refuseUnparseableRequest, tryParseRequestUrl } from './request-url.js'
+import {
+  backstopServerError,
+  refuseForeignHostPage,
+  refuseUnparseableRequest,
+  tryParseRequestUrl,
+} from './request-url.js'
 import type { ExecutionBackend, RunSettledDetails, RunSettledStatus } from '../execution/execution-backend.js'
 import { JobQueue } from '../queue/job-queue.js'
 import { TestFileManager } from '../tests/test-file-manager.js'
@@ -636,6 +641,14 @@ export async function startServer(opts: StartServerOptions): Promise<{
       // API routes
       if (path.startsWith('/api/')) {
         apiRouter(req, res)
+        return
+      }
+
+      // Pages answer only at a loopback Host, so a rebound name cannot load them.
+      if (refuseNonLoopbackHost(req) !== undefined) {
+        const address = server.address()
+        const boundPort = typeof address === 'object' && address !== null ? address.port : port
+        refuseForeignHostPage(res, boundPort)
         return
       }
 
