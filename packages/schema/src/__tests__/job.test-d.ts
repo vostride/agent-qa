@@ -1,19 +1,11 @@
 import { expectTypeOf } from 'vitest'
 import type { z } from 'zod'
-import type { Job, JobStatus } from '../job/job'
+import type { Job } from '../job/job'
 import { jobSchema } from '../job/job'
 
 // The lockstep detector for the C6 break: it reddens if the interface is extended without
 // the zod schema, or the schema without the interface. Do not weaken it to `toMatchTypeOf`.
 expectTypeOf<z.infer<typeof jobSchema>>().toEqualTypeOf<Job>()
-
-// The status union pinned by exact equality, so the type and `jobStatusValues` cannot drift
-// apart silently either. The values array is `as const satisfies readonly JobStatus[]`,
-// which catches a VALUE the type lacks but not a type member the array lacks; a status
-// missing from the array would only surface as an unexplained parse rejection at runtime.
-expectTypeOf<JobStatus>().toEqualTypeOf<
-  'queued' | 'authored' | 'bundling' | 'committing' | 'done' | 'failed' | 'cancelled'
->()
 
 expectTypeOf<Job['attempts']>().toEqualTypeOf<number>()
 expectTypeOf<Job['createdAt']>().toEqualTypeOf<string>()

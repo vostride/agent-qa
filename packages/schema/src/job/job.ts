@@ -11,33 +11,13 @@ export type JobKind =
   | 'curate-memory'
   | 'consolidate'
 
-// 385 C6 (JOBQ-01): `failed` and `cancelled` are the two TERMINAL statuses the agent job
-// queue needs and the v47 contract lacked — a bounded-retry queue that cannot record
-// exhaustion has no way to stop, and a cooperative cancel has no state to land in.
-export type JobStatus =
-  | 'queued'
-  | 'authored'
-  | 'bundling'
-  | 'committing'
-  | 'done'
-  | 'failed'
-  | 'cancelled'
+// The statuses the agent job store writes: a row is inserted `queued` and ends `done`, `failed`
+// or `cancelled`.
+export type JobStatus = 'queued' | 'done' | 'failed' | 'cancelled'
 
-// `unreadable_kind` is the conclusion a row reaches when this build cannot read the KIND it
-// was written under: a kind an earlier build declared and this one no longer does. It is a
-// conclusion and not a kind, so the kind vocabulary above stays strict and the row that cannot
-// join it gets an outcome instead of an exemption. Nothing ever handles such a row; it is landed
-// permanently at claim with its attempt spent, so the queue neither loops on it nor pretends it
-// never existed.
-export type JobConclusionKind =
-  | 'no_issue'
-  | 'needs_user_input'
-  | 'insufficient_evidence'
-  | 'knowledge_skipped_draft'
-  | 'model_capability_error'
-  | 'provider_error'
-  | 'insufficient_model_output'
-  | 'unreadable_kind'
+// Derived at read time for a row whose kind this build cannot read; such a row is landed at claim
+// with its attempt spent, so the queue neither loops on it nor hides it.
+export type JobConclusionKind = 'unreadable_kind'
 
 // 385 C6 (JOBQ-01): `attempts` is incremented at CLAIM (D-18), so a job that kills its host
 // every time still exhausts its bound instead of crash-looping. `createdAt`/`updatedAt` are
@@ -71,26 +51,14 @@ export const jobKindValues = [
 
 const jobStatusValues = [
   'queued',
-  'authored',
-  'bundling',
-  'committing',
   'done',
   'failed',
   'cancelled',
 ] as const satisfies readonly JobStatus[]
 
-// Exported on the same terms as `jobKindValues`: for sibling modules and for the contract tests
-// that pin this vocabulary EXACTLY, never on the package barrel. A consumer that needs to talk
-// about a conclusion has the `JobConclusionKind` type; publishing the array would invite the
-// parallel registry the comment above warns about.
+// Exported on the same terms as `jobKindValues`: for sibling modules, never on the package
+// barrel. A consumer that needs to talk about a conclusion has the `JobConclusionKind` type.
 export const jobConclusionKindValues = [
-  'no_issue',
-  'needs_user_input',
-  'insufficient_evidence',
-  'knowledge_skipped_draft',
-  'model_capability_error',
-  'provider_error',
-  'insufficient_model_output',
   'unreadable_kind',
 ] as const satisfies readonly JobConclusionKind[]
 

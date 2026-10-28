@@ -727,7 +727,7 @@
       "classifies": true,
       "id": "runs.postprocessing",
       "inputSchemaDigest": "55df3bfd3c544e0140548637d1539243fb285899b52998dc36a6dbe1989aee6d",
-      "outputSchemaDigest": "029548fdfd39adc229decfe4b02a5e9522458a0a392e440d16ac3e39f4da3109",
+      "outputSchemaDigest": "a9bd342369047edac0817e28ad2705f86a0159719eccef2f1693078d08e6e98f",
       "partition": {
         "kind": "unprojected",
         "reason": "not-mid-flight-read"

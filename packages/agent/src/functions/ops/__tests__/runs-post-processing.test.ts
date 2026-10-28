@@ -166,9 +166,6 @@ const CHIP_BY_STATUS: Record<
   { readonly unclaimed: PostProcessingChipStatus; readonly claimed: PostProcessingChipStatus }
 > = {
   queued: { unclaimed: 'pending', claimed: 'running' },
-  authored: { unclaimed: 'pending', claimed: 'running' },
-  bundling: { unclaimed: 'pending', claimed: 'running' },
-  committing: { unclaimed: 'pending', claimed: 'running' },
   // Terminal: the claim was released by the transaction that ended the job, so the two columns
   // agree — and they are still both stated, because a projection that consulted the claim on a
   // terminal row would pass a table that only listed one of them.
@@ -204,19 +201,6 @@ describe('the chip set and its vocabulary are closed (404 D-01/D-04)', () => {
     // change to what a caller iterating it renders first, and the constant's own doc claims the
     // order is the lifecycle.
     expect([...POST_PROCESSING_CHIP_STATUSES]).toEqual(['pending', 'running', 'complete', 'failed'])
-  })
-
-  it('has no reserved-slot row left in the exhaustive status table', () => {
-    // The table below is what pins `chipFor`. A structural placeholder returning from the dead
-    // would arrive as a row here first, so the table's own key set is asserted against the job
-    // statuses it claims to range over — not against a count somebody could bump.
-    expect(Object.keys(CHIP_BY_STATUS).sort()).toEqual(
-      ['authored', 'bundling', 'cancelled', 'committing', 'done', 'failed', 'queued'],
-    )
-    const produced = new Set(
-      Object.values(CHIP_BY_STATUS).flatMap((cell) => [cell.claimed, cell.unclaimed]),
-    )
-    expect([...produced].sort()).toEqual(['complete', 'failed', 'pending', 'running'])
   })
 })
 

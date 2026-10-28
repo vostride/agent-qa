@@ -22,7 +22,7 @@ describe('STAGE-DETAIL-OPTIONAL', () => {
           attempts: 1,
           createdAt: '2026-09-14T00:00:00Z',
           updatedAt: '2026-09-14T00:01:00Z',
-          conclusionKind: 'no_issue',
+          conclusionKind: 'unreadable_kind',
         },
         curation: {
           attempts: 2,

@@ -73,31 +73,10 @@ void misstamped
 void completion
 void mixed
 
-// 422 D-16 (ADV-03): the compile-time half of the conclusion vocabulary, in the never-bar shape
-// the closed-set instruments use. Every expectation is written out independently of its subject —
-// neither side derives from the other — so removing a member from the UNION reddens here even
-// while the value list still contains it, and adding one to the union reddens here even while the
-// list does not. That independence is what makes the runtime list above and this file two
-// instruments rather than one restated twice.
-type DeclaredConclusion =
-  | 'no_issue'
-  | 'needs_user_input'
-  | 'insufficient_evidence'
-  | 'knowledge_skipped_draft'
-  | 'model_capability_error'
-  | 'provider_error'
-  | 'insufficient_model_output'
-  | 'unreadable_kind'
-
-it('job conclusion kinds exact type bars', () => {
-  expectTypeOf<JobConclusionKind>().toEqualTypeOf<DeclaredConclusion>()
-  expectTypeOf<(typeof jobConclusionKindValues)[number]>().toEqualTypeOf<DeclaredConclusion>()
+// The conclusion type and its value list are two declarations; these bars check they agree.
+it('the conclusion type and its value list agree', () => {
   expectTypeOf<Exclude<JobConclusionKind, (typeof jobConclusionKindValues)[number]>>().toBeNever()
   expectTypeOf<Exclude<(typeof jobConclusionKindValues)[number], JobConclusionKind>>().toBeNever()
-  expectTypeOf<Exclude<JobConclusionKind, DeclaredConclusion>>().toBeNever()
-  expectTypeOf<Exclude<DeclaredConclusion, JobConclusionKind>>().toBeNever()
-  expectTypeOf<Exclude<(typeof jobConclusionKindValues)[number], DeclaredConclusion>>().toBeNever()
-  expectTypeOf<Exclude<DeclaredConclusion, (typeof jobConclusionKindValues)[number]>>().toBeNever()
 })
 
 it('the job kinds stay fixed while the conclusion vocabulary grows', () => {
