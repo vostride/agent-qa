@@ -25,6 +25,7 @@ const outcome: RunsMarkOutcome = { kind: 'marked', receipt: {
   note: '<SECRET_0>', disposition: { kind: 'quarantined', class: 'flake' },
   evidence: { confirmed: 0, overturned: 0 },
 } }
+const JSON_HEADERS = { 'Content-Type': 'application/json' }
 const closers: Array<() => Promise<void>> = []
 afterEach(async () => { for (const close of closers.splice(0)) await close() })
 
@@ -126,7 +127,7 @@ describe('registered POST /api/runs/:id/mark', () => {
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
     closers.push(() => new Promise<void>(resolve => server.close(() => resolve())))
     const response = await fetch(`http://127.0.0.1:${String((server.address() as AddressInfo).port)}`, {
-      method: 'POST', body: JSON.stringify({ kind: 'false-fail' }),
+      method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ kind: 'false-fail' }),
     })
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual(outcome)
@@ -134,7 +135,9 @@ describe('registered POST /api/runs/:id/mark', () => {
 
   it('reaches the real router and answers the receipt text as stored (441 D-07)', async () => {
     const f = fixture()
-    const response = await fetch(await socket(f.host), { method: 'POST', body: JSON.stringify({ kind: 'false-fail' }) })
+    const response = await fetch(await socket(f.host), {
+      method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ kind: 'false-fail' }),
+    })
     expect(response.status).toBe(200)
     expect(response.headers.get('access-control-allow-origin')).toBeNull()
     expect(await response.json()).toEqual(outcome)
@@ -146,7 +149,10 @@ describe('registered POST /api/runs/:id/mark', () => {
   // refused by the op's strict input before dispatch, with no reflection of the value.
   it.each(['run-trigger:5f8c6e2a-1b1d-4c3e-9a3f-7d2e1c0b9a88', 'chat:abc', null, 7])('rejects invalid confirmScope %j', async confirmScope => {
     const f = fixture()
-    const response = await fetch(await socket(f.host), { method: 'POST', body: JSON.stringify({ kind: 'false-fail', note: NOTE, ['confirm' + 'Scope']: confirmScope }) })
+    const response = await fetch(await socket(f.host), {
+      method: 'POST', headers: JSON_HEADERS,
+      body: JSON.stringify({ kind: 'false-fail', note: NOTE, ['confirm' + 'Scope']: confirmScope }),
+    })
     expect(response.status).toBe(400)
     expect(await response.json()).toEqual({ error: 'invalid_mark_input' })
     expect(f.mark).not.toHaveBeenCalled()
@@ -165,17 +171,23 @@ describe('registered POST /api/runs/:id/mark', () => {
   it('C432-INVOKE-DIRECT: lands a channel-less mark, and rejects malformed JSON without reflection', async () => {
     const f = fixture()
     const url = await socket(f.host)
-    const landed = await fetch(url, { method: 'POST', body: JSON.stringify({ kind: 'false-fail', note: NOTE }) })
+    const landed = await fetch(url, {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ kind: 'false-fail', note: NOTE }),
+    })
     expect(landed.status).toBe(200)
     expect(await landed.json()).toEqual(outcome)
     expect(f.mark).toHaveBeenCalledOnce()
-    const malformed = await fetch(url, { method: 'POST', body: NOTE })
+    const malformed = await fetch(url, { method: 'POST', headers: JSON_HEADERS, body: NOTE })
     expect(malformed.status).toBe(400)
     expect(await malformed.json()).toEqual({ error: 'invalid_mark_input' })
   })
 
   it('reports an absent composed host', async () => {
-    const response = await fetch(await socket(), { method: 'POST', body: '{}' })
+    const response = await fetch(await socket(), {
+      method: 'POST', headers: JSON_HEADERS, body: '{}',
+    })
     expect(response.status).toBe(503)
     expect(await response.json()).toEqual({ error: 'agent_host_unavailable' })
   })

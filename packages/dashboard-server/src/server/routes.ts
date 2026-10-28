@@ -18,7 +18,7 @@ import { readConfigValues, type ConfigManager } from '../config/index.js'
 import { holdsShownMarker } from '../config/config-manager.js'
 import { createUndoStore, UNDO_RETENTION_MS } from '../config/undo-store.js'
 import { HookRegistryManager, isHookRegistryMutationError } from '../hooks/hook-registry-manager.js'
-import { readJsonBody } from './body-parser.js'
+import { carriesNonJsonBody, readJsonBody } from './body-parser.js'
 import {
   LiveNavigationTimeoutRefusedError,
   LivePlannerLimitsRefusedError,
@@ -2050,6 +2050,10 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     // Every /api request, reads included, passes the same-site and Host check here before any route.
     if (refuseCrossSiteRequest(req) !== undefined) {
       json(res, { error: 'cross_site_refused' }, 403)
+      return
+    }
+    if (carriesNonJsonBody(req)) {
+      json(res, { error: 'unsupported_media_type' }, 415)
       return
     }
     const path = url.pathname

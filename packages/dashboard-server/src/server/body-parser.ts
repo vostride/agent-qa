@@ -2,6 +2,14 @@ import type { IncomingMessage } from 'node:http'
 
 const DEFAULT_MAX_BYTES = 1024 * 1024 // 1MB
 
+export function carriesNonJsonBody(req: IncomingMessage): boolean {
+  const hasBody = req.headers['transfer-encoding'] !== undefined
+    || Number(req.headers['content-length'] ?? '0') > 0
+  if (!hasBody) return false
+  const type = req.headers['content-type']
+  return type === undefined || type.split(';', 1)[0]!.trim().toLowerCase() !== 'application/json'
+}
+
 export function readJsonBody<T>(req: IncomingMessage, maxBytes = DEFAULT_MAX_BYTES): Promise<T> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = []

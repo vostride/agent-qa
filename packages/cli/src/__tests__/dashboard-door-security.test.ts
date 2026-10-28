@@ -533,14 +533,13 @@ describe('the fourth door refuses a cross-origin drive before anything happens (
     expectNoSideEffect('6b', door, answered, 403)
   })
 
-  // RE-SPELLED 2026-10-01 (432-14): was 'refuses a text/plain drive bearing no Origin at all (the
-  // Content-Type leg alone)'. The media-type leg belonged to the run-confirm router and was deleted
-  // with it; no surviving door has one. A browser always sends `Origin` on a cross-origin POST, so
-  // a request with none is a local client, and the mark door admits it exactly once.
-  it('6c — admits a text/plain drive bearing no Origin at all as a local client, exactly once', async () => {
+  // The media-type leg alone: with no Origin the same-site check admits the drive, and the body
+  // is refused because it does not say it is JSON.
+  it('6c — refuses a text/plain drive bearing no Origin at all with 415, before the host', async () => {
     const door = await openDoor()
     const answered = await driveMark(door.port, { 'content-type': 'text/plain;charset=UTF-8' })
-    expectDispatchedOnce('6c', door, answered)
+    expectNoSideEffect('6c', door, answered, 415)
+    expect(JSON.parse(answered.body)).toEqual({ error: 'unsupported_media_type' })
   })
 
   it('6d — ACCEPTS the same-origin browser drive, which dispatches the mark once', async () => {
