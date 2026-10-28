@@ -233,6 +233,20 @@ describe('a rejected entry on a branch that may write', () => {
     expect(await cache.get(KEY)).toEqual(other)
   })
 
+  it('a rejected inherited entry the branch saves again is served from the branch, and the default entry is untouched', async () => {
+    const cache = new FsActionCache({ root, policy })
+    await cache.invalidate(KEY)
+
+    const resaved = makeValue(false)
+    await cache.set(KEY, resaved)
+
+    expect(await cache.get(KEY)).toEqual(resaved)
+    const own = JSON.parse(await readFile(featureFile, 'utf-8')) as Record<string, unknown>
+    expect(own).not.toHaveProperty('suppressed')
+    expect(own.value).toEqual(resaved)
+    expect(await readFile(mainFile, 'utf-8')).toBe(mainBytes)
+  })
+
   it("an entry of the branch's own that shadows a default entry is suppressed, so the default entry is not served again", async () => {
     await mkdir(join(root, 'feature'), { recursive: true })
     await writeFile(

@@ -401,7 +401,9 @@ export async function executeStep(
     ...(ports.workingMemory?.entries().map((entry) => entry.value) ?? []),
   ])
   // Keys replayed from the cache since the step's last rejection, and every key the step
-  // invalidated. An invalidated key that the passing path replayed is written again.
+  // invalidated. Replayed turns the verifier rejected are still turns the passing step took, so
+  // they are written again with the live turns after them, without a completion claim. On a
+  // branch that may write, that copy replaces the deleted entry or the suppression marker.
   let replayedKeys: CacheKey[] = []
   const invalidatedKeys = new Set<CacheKey>()
   // Cache writes are best effort: a store that cannot be written never fails the step.
