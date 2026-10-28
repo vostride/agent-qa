@@ -12,7 +12,11 @@ import type {
   ReadWriterLeaseOutcome,
   WriterLease,
 } from '@vostride/agent-qa-agent-local'
-import { guardJsonText, printRunText, reserveStdoutForData } from '@vostride/agent-qa-core'
+import {
+  guardJsonText,
+  printRunText,
+  reserveStdoutForData,
+} from '@vostride/agent-qa-core/run-text-output'
 import { Command } from 'commander'
 import pc from 'picocolors'
 

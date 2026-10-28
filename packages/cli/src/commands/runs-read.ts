@@ -16,7 +16,11 @@ import {
   RUNS_LIST_FUNCTION_ID,
   RUNS_OVERVIEW_FUNCTION_ID,
 } from '@vostride/agent-qa-agent'
-import { guardJsonText, printRunText, reserveStdoutForData } from '@vostride/agent-qa-core'
+import {
+  guardJsonText,
+  printRunText,
+  reserveStdoutForData,
+} from '@vostride/agent-qa-core/run-text-output'
 import {
   EVIDENCE_KINDS,
   POST_PROCESSING_SKIP_REASON_WORDS,

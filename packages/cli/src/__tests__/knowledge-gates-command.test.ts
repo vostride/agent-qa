@@ -25,9 +25,8 @@ const DATA_LAYER_PACKAGES = [
   '@vostride/agent-qa-runner-local',
 ] as const
 
-// Core's output helpers read no data, so their import is the one core import a verb may carry.
-const CORE_OUTPUT_IMPORT =
-  "import { guardJsonText, printRunText, reserveStdoutForData } from '@vostride/agent-qa-core'\n"
+// Core's run-text output subpath reads no data, so it is the one core specifier a verb may name.
+const CORE_OUTPUT_SPECIFIER = "'@vostride/agent-qa-core/run-text-output'"
 
 describe('agent-qa knowledge gates', () => {
   const roots: string[] = []
@@ -247,7 +246,12 @@ describe('agent-qa knowledge gates', () => {
   it('keeps every verb free of data-layer imports', () => {
     const source = readFileSync(new URL('../commands/knowledge-read.ts', import.meta.url), 'utf8')
     expect(source).toContain('invokeFunction')
-    const withoutOutputImport = source.replace(CORE_OUTPUT_IMPORT, '')
-    for (const name of DATA_LAYER_PACKAGES) expect(withoutOutputImport).not.toContain(name)
+    const withoutOutputSpecifier = (text: string): string =>
+      text.replaceAll(CORE_OUTPUT_SPECIFIER, '')
+    for (const name of DATA_LAYER_PACKAGES) {
+      expect(withoutOutputSpecifier(source)).not.toContain(name)
+      const planted = `import { x } from '${name}'\n${source}`
+      expect(withoutOutputSpecifier(planted)).toContain(name)
+    }
   })
 })

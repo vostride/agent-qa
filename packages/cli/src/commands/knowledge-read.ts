@@ -22,7 +22,11 @@ import { dirname, resolve } from 'node:path'
 
 import { invokeFunction } from '@vostride/agent-qa-agent'
 import { resolveBuildTag } from '@vostride/agent-qa-agent-local'
-import { guardJsonText, printRunText, reserveStdoutForData } from '@vostride/agent-qa-core'
+import {
+  guardJsonText,
+  printRunText,
+  reserveStdoutForData,
+} from '@vostride/agent-qa-core/run-text-output'
 import {
   guardInspectRecordView,
   guardRecordChange,

@@ -187,6 +187,13 @@ function validatePublicPackage(record, allVersions, errors, options = { checkFil
     assert(record.pkg.exports?.['./reader']?.require === './dist/reader.cjs', `${name} reader must export dist CJS`, errors)
   }
 
+  // Core publishes its run-text output helper as a subpath the firewalled surfaces may import.
+  if (record.pkg.name === '@vostride/agent-qa-core') {
+    assert(record.pkg.exports?.['./run-text-output']?.types === './dist/run-text-output.d.ts', `${name} run-text-output must export dist types`, errors)
+    assert(record.pkg.exports?.['./run-text-output']?.import === './dist/run-text-output.js', `${name} run-text-output must export dist ESM`, errors)
+    assert(record.pkg.exports?.['./run-text-output']?.require === './dist/run-text-output.cjs', `${name} run-text-output must export dist CJS`, errors)
+  }
+
   if (record.pkg.name === '@vostride/agent-qa-dashboard-ui') {
     assert(!record.pkg.exports, '@vostride/agent-qa-dashboard-ui must not add exports unless package.json is exported for dashboard resolution', errors)
   }

@@ -1,4 +1,4 @@
-import { guardJsonText, reserveStdoutForData } from '@vostride/agent-qa-core'
+import { guardJsonText, reserveStdoutForData } from '@vostride/agent-qa-core/run-text-output'
 import { Command } from 'commander'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'

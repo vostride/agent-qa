@@ -50,6 +50,15 @@ export const SURFACE_ALLOWED_INTERNAL_PACKAGES = [
 ] as const
 
 /**
+ * Whole specifiers a firewalled surface may name although their package is not allowed. Core's
+ * run-text output helper wraps what a surface prints and reads no data. The core root and every
+ * other core subpath stay forbidden.
+ */
+export const SURFACE_ALLOWED_INTERNAL_SPECIFIERS = [
+  '@vostride/agent-qa-core/run-text-output',
+] as const
+
+/**
  * D-02 golden set: every package declaring the `surface` class, pinned exactly.
  * A fifth surface cannot land unpinned, and a pinned one cannot silently drop the
  * class. Names are the `packageName` strings the four ownership contracts declare —
@@ -88,6 +97,13 @@ export function isFirewalledSurfaceDir(packageDir: string): boolean {
 export function isForbiddenInternalSpecifier(specifier: string): boolean {
   const classified = classifySpecifier(specifier)
   if (classified.kind !== 'internal') {
+    return false
+  }
+  if (
+    SURFACE_ALLOWED_INTERNAL_SPECIFIERS.includes(
+      specifier as (typeof SURFACE_ALLOWED_INTERNAL_SPECIFIERS)[number],
+    )
+  ) {
     return false
   }
 

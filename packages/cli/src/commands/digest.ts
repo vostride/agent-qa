@@ -18,7 +18,11 @@
 import { dirname, resolve } from 'node:path'
 
 import { invokeFunction, RUNS_DIGEST_FUNCTION_ID } from '@vostride/agent-qa-agent'
-import { guardJsonText, printRunText, reserveStdoutForData } from '@vostride/agent-qa-core'
+import {
+  guardJsonText,
+  printRunText,
+  reserveStdoutForData,
+} from '@vostride/agent-qa-core/run-text-output'
 import type { RunDigest, RunSummary } from '@vostride/agent-qa-schema'
 import { Command } from 'commander'
 import pc from 'picocolors'

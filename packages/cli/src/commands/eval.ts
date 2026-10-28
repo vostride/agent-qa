@@ -1,7 +1,11 @@
 // The `agent-qa eval` family: extract, replay and report. Each action resolves the session, calls
 // its verb pipeline and renders from the returned DTO; `--json` prints only the DTO.
 
-import { guardJsonText, printRunText, reserveStdoutForData } from '@vostride/agent-qa-core'
+import {
+  guardJsonText,
+  printRunText,
+  reserveStdoutForData,
+} from '@vostride/agent-qa-core/run-text-output'
 import { Command, InvalidArgumentError } from 'commander'
 import pc from 'picocolors'
 import { installEvalWarningLogger } from '../eval-warning-logger.js'

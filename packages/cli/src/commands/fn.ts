@@ -9,7 +9,11 @@ import { dirname, resolve } from 'node:path'
 import { invokeFunction } from '@vostride/agent-qa-agent'
 import type { FunctionDeclaration } from '@vostride/agent-qa-agent'
 import type { RunExecutionPort } from '@vostride/agent-qa-agent-local'
-import { guardJsonText, printRunText, reserveStdoutForData } from '@vostride/agent-qa-core'
+import {
+  guardJsonText,
+  printRunText,
+  reserveStdoutForData,
+} from '@vostride/agent-qa-core/run-text-output'
 import { maskPayloadTree, type MaskFn } from '@vostride/agent-qa-schema'
 import { Command } from 'commander'
 import pc from 'picocolors'

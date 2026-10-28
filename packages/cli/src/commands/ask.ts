@@ -24,7 +24,7 @@
 import { dirname, resolve } from 'node:path'
 
 import { AGENT_ASK_FUNCTION_ID, invokeFunction } from '@vostride/agent-qa-agent'
-import { printRunText } from '@vostride/agent-qa-core'
+import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { AgentAskResult, MaskFn } from '@vostride/agent-qa-schema'
 import { Command } from 'commander'
 import pc from 'picocolors'

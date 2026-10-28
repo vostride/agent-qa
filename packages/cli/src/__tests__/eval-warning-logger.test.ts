@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { reserveStdoutForData } from '@vostride/agent-qa-core'
+import { reserveStdoutForData } from '@vostride/agent-qa-core/run-text-output'
 import type { LogWarningsFunction } from 'ai'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 

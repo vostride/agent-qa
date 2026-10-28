@@ -43,7 +43,7 @@ import {
 } from '@vostride/agent-qa-schema'
 
 import { analyticsRunId } from '@vostride/agent-qa-analytics'
-import { printRunText } from '@vostride/agent-qa-core'
+import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 
 import { analyticsEvent } from '../composition/analytics-host.js'
 import type { CliAnalyticsHost } from '../composition/analytics-host.js'

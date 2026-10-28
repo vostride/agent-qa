@@ -33,6 +33,11 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
+    },
+    "./run-text-output": {
+      "types": "./dist/run-text-output.d.ts",
+      "import": "./dist/run-text-output.js",
+      "require": "./dist/run-text-output.cjs"
     }
   },
   "files": [

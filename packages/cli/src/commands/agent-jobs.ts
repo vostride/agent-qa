@@ -14,7 +14,11 @@
 import { Command, InvalidArgumentError } from 'commander'
 import pc from 'picocolors'
 
-import { guardJsonText, printRunText, reserveStdoutForData } from '@vostride/agent-qa-core'
+import {
+  guardJsonText,
+  printRunText,
+  reserveStdoutForData,
+} from '@vostride/agent-qa-core/run-text-output'
 import type { JobKind } from '@vostride/agent-qa-schema'
 
 import type {

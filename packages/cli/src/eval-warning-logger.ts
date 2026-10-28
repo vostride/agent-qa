@@ -1,4 +1,4 @@
-import { printRunText } from '@vostride/agent-qa-core'
+import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { LogWarningsFunction } from 'ai'
 
 /** Eval stdout is a data channel. The SDK's default logger emits a one-time stdout tip. */

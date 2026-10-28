@@ -53,8 +53,8 @@ const KNOWLEDGE_READ_SOURCE_PATH = join(
 /**
  * Packages whose presence anywhere in this file would mean a verb reads data for itself
  * instead of asking the function layer for it. The assertion covers the whole file and is
- * checked against a planted control so it cannot go vacuous. Core is the one exception, and
- * only for its output helpers, which read no data.
+ * checked against a planted control so it cannot go vacuous. Core's run-text output subpath is
+ * the one exception, because it reads no data; the core root stays refused.
  */
 const DATA_LAYER_PACKAGES = [
   '@vostride/agent-qa-core',
@@ -62,12 +62,7 @@ const DATA_LAYER_PACKAGES = [
   '@vostride/agent-qa-runner-local',
 ] as const
 
-const CORE = '@vostride/agent-qa-core'
-const CORE_OUTPUT_BINDINGS: readonly string[] = [
-  'guardJsonText',
-  'printRunText',
-  'reserveStdoutForData',
-]
+const CORE_OUTPUT = '@vostride/agent-qa-core/run-text-output'
 
 interface InvocationResult {
   stdout: string
@@ -411,17 +406,26 @@ describe('knowledge-read.ts source shape (what plan 06 will enforce)', () => {
 
     // The extractor is live against THIS file, not just a synthetic control.
     expect(specifiers.length).toBeGreaterThan(4)
-    expect(specifiers.filter(isDataPackage).filter((specifier) => specifier !== CORE)).toEqual([])
-    expect(importedBindings(source, (specifier) => specifier === CORE)
-      .filter((binding) => !CORE_OUTPUT_BINDINGS.includes(binding))).toEqual([])
+    expect(specifiers).toContain(CORE_OUTPUT)
+    expect(specifiers.filter(isDataPackage).filter((specifier) => specifier !== CORE_OUTPUT))
+      .toEqual([])
 
     // Non-vacuous by CONTROL rather than by the file happening to violate the rule: plant the
     // exact import `inspect` used to carry and require the check to catch it. Without this,
     // an empty result is indistinguishable from an extractor that stopped extracting.
-    const planted = `import { inspectRecords } from '@vostride/agent-qa-knowledge-local/reader'\n${source}`
+    const planted = [
+      "import { inspectRecords } from '@vostride/agent-qa-knowledge-local/reader'",
+      "import { printRunText } from '@vostride/agent-qa-core'",
+      "import { guardRunText } from '@vostride/agent-qa-core/logging'",
+      source,
+    ].join('\n')
     expect(importSpecifiers(planted).filter(isDataPackage)
-      .filter((specifier) => specifier !== CORE))
-      .toEqual(['@vostride/agent-qa-knowledge-local/reader'])
+      .filter((specifier) => specifier !== CORE_OUTPUT))
+      .toEqual([
+        '@vostride/agent-qa-knowledge-local/reader',
+        '@vostride/agent-qa-core',
+        '@vostride/agent-qa-core/logging',
+      ])
 
     // And the data every verb renders still arrives the sanctioned way.
     expect(bundlesRegistrationBlock(source)).toContain('invokeFunction')

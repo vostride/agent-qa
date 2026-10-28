@@ -1,5 +1,5 @@
-import { guardJsonText } from '@vostride/agent-qa-core'
-import type { RunTextEnv } from '@vostride/agent-qa-core'
+import { guardJsonText } from '@vostride/agent-qa-core/run-text-output'
+import type { RunTextEnv } from '@vostride/agent-qa-core/run-text-output'
 import type { RunEventEnvelope } from '@vostride/agent-qa-schema'
 
 // The stdout wire is captured by operators and CI, so it stays masked: payloads are masked at the

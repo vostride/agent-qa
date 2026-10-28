@@ -22,7 +22,8 @@ import {
   type FunctionRegistry,
 } from '@vostride/agent-qa-agent'
 import type { LocalAgentHost } from '@vostride/agent-qa-agent-local'
-import { printRunText, resolveWorkspacePaths } from '@vostride/agent-qa-core'
+import { resolveWorkspacePaths } from '@vostride/agent-qa-core'
+import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { RunAttributes } from '@vostride/agent-qa-core'
 import type {
   AgentHost,

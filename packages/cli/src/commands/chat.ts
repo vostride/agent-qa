@@ -39,7 +39,7 @@ import {
 } from '@vostride/agent-qa-agent'
 import { listSessions } from '@vostride/agent-qa-agent-local'
 import type { ChatSessionListing, LocalAgentHost } from '@vostride/agent-qa-agent-local'
-import { printRunText } from '@vostride/agent-qa-core'
+import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { AgentAskResult, MaskFn } from '@vostride/agent-qa-schema'
 import { Command } from 'commander'
 import pc from 'picocolors'

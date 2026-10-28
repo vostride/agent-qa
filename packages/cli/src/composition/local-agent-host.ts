@@ -106,7 +106,6 @@ import {
   DEFAULT_AGENT_QA_RUNS_DB_PATH,
   parseTestFile,
   parseTestFileWithTokens,
-  printRunText,
   renderPatchedTestDoc,
   resolveKnowledgeRoot,
   resolveWorkspacePaths,
@@ -117,6 +116,7 @@ import {
   // file emits are unchanged — only the definition moved.
   yamlParseFailureMessage,
 } from '@vostride/agent-qa-core'
+import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { RunAttributeTrigger, TestDefinition } from '@vostride/agent-qa-core'
 import type {
   ExplicitReviewDelegate,

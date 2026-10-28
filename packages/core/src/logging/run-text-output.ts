@@ -7,7 +7,19 @@ export interface PrintRunTextOptions {
   readonly stdoutIsData?: boolean
 }
 
-let stdoutReservations = 0
+// The root entry and the subpath entry each bundle a copy of this module, so the count lives on
+// globalThis where a reservation taken through either is seen by both.
+const STDOUT_RESERVATIONS = Symbol.for('agent-qa.run-text-output.stdout-reservations')
+
+interface StdoutReservations {
+  count: number
+}
+
+function stdoutReservations(): StdoutReservations {
+  const holder = globalThis as typeof globalThis & { [STDOUT_RESERVATIONS]?: StdoutReservations }
+  holder[STDOUT_RESERVATIONS] ??= { count: 0 }
+  return holder[STDOUT_RESERVATIONS]
+}
 
 export function isGitHubActions(env: RunTextEnv = process.env): boolean {
   const value = env.GITHUB_ACTIONS
@@ -28,12 +40,13 @@ export function guardJsonText(serialized: string, env: RunTextEnv = process.env)
 
 /** Marks this process's stdout as carrying a JSON document or protocol; returns the release. */
 export function reserveStdoutForData(): () => void {
-  stdoutReservations += 1
+  const reservations = stdoutReservations()
+  reservations.count += 1
   let released = false
   return () => {
     if (released) return
     released = true
-    stdoutReservations -= 1
+    reservations.count -= 1
   }
 }
 
@@ -48,7 +61,7 @@ export function printRunText(
     return
   }
   const block = guardRunText(text, env)
-  if (options.stdoutIsData ?? stdoutReservations > 0) {
+  if (options.stdoutIsData ?? stdoutReservations().count > 0) {
     print(block.slice(0, -1))
     return
   }

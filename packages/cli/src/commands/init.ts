@@ -10,9 +10,8 @@ import {
   DEFAULT_AGENT_QA_CACHE_DIR,
   DEFAULT_AGENT_QA_RUNTIME_DIR,
   getAgentQaVersion,
-  guardJsonText,
-  reserveStdoutForData,
 } from '@vostride/agent-qa-core'
+import { guardJsonText, reserveStdoutForData } from '@vostride/agent-qa-core/run-text-output'
 import { getProvider, listProviders } from '@vostride/agent-qa-model'
 // D-04: the scaffold's CONTENT, shared with `config.project.scaffold`. This file keeps the
 // filesystem machinery and the interactive conversation; the substance being written comes from

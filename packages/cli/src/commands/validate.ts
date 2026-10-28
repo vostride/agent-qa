@@ -1,10 +1,10 @@
 import { Command } from 'commander'
 import {
   formatDiagnostics,
-  printRunText,
   resolveWorkspacePaths,
   validateProject,
 } from '@vostride/agent-qa-core'
+import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import { resolveConfig } from '../config.js'
 
 export function createValidateCommand(): Command {

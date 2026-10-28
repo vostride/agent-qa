@@ -1,6 +1,10 @@
 import { dirname, resolve } from 'node:path'
 import { invokeFunction, RUNS_MARK_FUNCTION_ID } from '@vostride/agent-qa-agent'
-import { guardJsonText, printRunText, reserveStdoutForData } from '@vostride/agent-qa-core'
+import {
+  guardJsonText,
+  printRunText,
+  reserveStdoutForData,
+} from '@vostride/agent-qa-core/run-text-output'
 import { MARKS, RunsMarkOutcomeSchema, type RunsMarkOutcome } from '@vostride/agent-qa-schema'
 import { Command, InvalidArgumentError, Option } from 'commander'
 import { CLI_FUNCTION_CALLER, composeCliLocalAgent } from '../composition/local-agent-host.js'

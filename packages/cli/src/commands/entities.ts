@@ -14,7 +14,11 @@
 import { dirname, resolve } from 'node:path'
 
 import { invokeFunction } from '@vostride/agent-qa-agent'
-import { guardJsonText, printRunText, reserveStdoutForData } from '@vostride/agent-qa-core'
+import {
+  guardJsonText,
+  printRunText,
+  reserveStdoutForData,
+} from '@vostride/agent-qa-core/run-text-output'
 import { maskPayloadTree } from '@vostride/agent-qa-schema'
 import type {
   ActionRef,

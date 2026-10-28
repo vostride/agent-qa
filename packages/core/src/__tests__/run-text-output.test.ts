@@ -1,3 +1,5 @@
+import { spawnSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   guardJsonText,
@@ -127,5 +129,30 @@ describe('printRunText', () => {
     expect(print).toHaveBeenCalledTimes(1)
     expect(print).toHaveBeenCalledWith('::add-mask::x')
     expect(stdoutSpy).not.toHaveBeenCalled()
+  })
+})
+
+describe('the stdout reservation across the built entry points', () => {
+  it('a reservation through the subpath keeps the root entry\'s LogManager off stdout', () => {
+    const script = `
+      import { reserveStdoutForData } from '@vostride/agent-qa-core/run-text-output'
+      import { LogManager } from '@vostride/agent-qa-core'
+      const release = reserveStdoutForData()
+      new LogManager({ displayLevel: 'info' }).log('info', 'runner', 'while held ::add-mask::x')
+      release()
+      new LogManager({ displayLevel: 'info' }).log('info', 'runner', 'after release')
+    `
+    const child = spawnSync(process.execPath, ['--input-type=module', '-e', script], {
+      cwd: fileURLToPath(new URL('../..', import.meta.url)),
+      env: { ...process.env, GITHUB_ACTIONS: 'true' },
+      encoding: 'utf8',
+    })
+    expect(child.status, child.stderr).toBe(0)
+    expect(child.stdout).toMatch(PAIR)
+    expect(child.stdout).toContain('after release')
+    expect(child.stdout).not.toContain('while held')
+    expect(child.stderr).toMatch(PAIR)
+    expect(child.stderr).toContain('while held ::add-mask::x')
+    expect(child.stderr).not.toContain('after release')
   })
 })

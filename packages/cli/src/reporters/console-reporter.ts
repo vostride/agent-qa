@@ -1,6 +1,6 @@
 import pc from 'picocolors'
-import { guardRunText, isGitHubActions } from '@vostride/agent-qa-core'
-import type { RunTextEnv } from '@vostride/agent-qa-core'
+import { guardRunText, isGitHubActions } from '@vostride/agent-qa-core/run-text-output'
+import type { RunTextEnv } from '@vostride/agent-qa-core/run-text-output'
 import { quarantineAppliesToTest } from '@vostride/agent-qa-schema'
 import type { QuarantineAppliedEntry } from '@vostride/agent-qa-schema'
 import type {

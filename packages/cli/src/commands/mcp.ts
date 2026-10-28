@@ -54,7 +54,7 @@ import {
 } from '@modelcontextprotocol/server'
 import { buildAgentQaMcpServer, createAgentQaMcpNodeHandler } from '@vostride/agent-qa-mcp'
 import type { LiveLinkSupplier } from '@vostride/agent-qa-mcp'
-import { reserveStdoutForData } from '@vostride/agent-qa-core'
+import { reserveStdoutForData } from '@vostride/agent-qa-core/run-text-output'
 import type { FunctionCaller } from '@vostride/agent-qa-schema'
 import { Command } from 'commander'
 import pc from 'picocolors'

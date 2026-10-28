@@ -57,6 +57,7 @@ import {
   findSurfaceFirewallOffenders,
   isFirewalledSurfaceDir,
   SURFACE_ALLOWED_INTERNAL_PACKAGES,
+  SURFACE_ALLOWED_INTERNAL_SPECIFIERS,
   type SurfaceFirewallScan,
 } from '../lint/surface-firewall.js'
 import {
@@ -557,6 +558,32 @@ describe('arch lint surface firewall (FUNC-02) held-out fixtures', () => {
     ).toEqual([])
   })
 
+  it('held-out firewall admits core\'s run-text output subpath and nothing else of core', () => {
+    expect(
+      findSurfaceFirewallOffenders(
+        surfaceScan([surfaceHit('@vostride/agent-qa-core/run-text-output', 3)]),
+        [],
+      ),
+    ).toEqual([])
+
+    expect(
+      findSurfaceFirewallOffenders(
+        surfaceScan([
+          surfaceHit('@vostride/agent-qa-core', 4),
+          surfaceHit('@vostride/agent-qa-core/logging', 5),
+          surfaceHit('@vostride/agent-qa-core/run-text-output/extra', 6),
+          surfaceHit('@vostride/agent-qa-core/run-text-output.js', 7),
+        ]),
+        [],
+      ),
+    ).toEqual([
+      `packages/cli | ${FIXTURE_SURFACE_FILE}:4 | @vostride/agent-qa-core | surface-firewall un-ledgered internal import`,
+      `packages/cli | ${FIXTURE_SURFACE_FILE}:5 | @vostride/agent-qa-core/logging | surface-firewall un-ledgered internal import`,
+      `packages/cli | ${FIXTURE_SURFACE_FILE}:6 | @vostride/agent-qa-core/run-text-output/extra | surface-firewall un-ledgered internal import`,
+      `packages/cli | ${FIXTURE_SURFACE_FILE}:7 | @vostride/agent-qa-core/run-text-output.js | surface-firewall un-ledgered internal import`,
+    ])
+  })
+
   it('held-out firewall leaves non-firewalled surfaces alone until M5 admits them', () => {
     expect(FIREWALLED_SURFACE_DIRS).toEqual(['packages/cli', 'packages/mcp'])
     expect(EXPECTED_SURFACE_CLASS_PACKAGES).toContain('@vostride/agent-qa-dashboard')
@@ -796,6 +823,12 @@ describe('arch lint composition carve-out (385-08 / D-13) registration and scope
       // widening narrows what can emit rather than widening it.
       '@vostride/agent-qa-analytics',
       '@vostride/agent-qa-schema',
+    ])
+  })
+
+  it('the surface specifier allowance is exactly core\'s run-text output subpath', () => {
+    expect([...SURFACE_ALLOWED_INTERNAL_SPECIFIERS]).toEqual([
+      '@vostride/agent-qa-core/run-text-output',
     ])
   })
 })

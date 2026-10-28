@@ -32,7 +32,11 @@ import type {
   RollbackReport,
   WriterLeaseAuthority,
 } from '@vostride/agent-qa-agent-local'
-import { guardJsonText, printRunText, reserveStdoutForData } from '@vostride/agent-qa-core'
+import {
+  guardJsonText,
+  printRunText,
+  reserveStdoutForData,
+} from '@vostride/agent-qa-core/run-text-output'
 import { asRecordId, maskPayloadTree } from '@vostride/agent-qa-schema'
 import type { MaskFn, OriginClass } from '@vostride/agent-qa-schema'
 import { Command } from 'commander'

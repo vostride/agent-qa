@@ -12,13 +12,12 @@ import { loadProviderPluginsForRawConfig } from '../provider-plugins.js'
 import {
   discoverWorkspaceFiles,
   formatAppiumInstallGuidance,
-  isGitHubActions,
-  printRunText,
   resolveAppiumExecutable,
   resolveWorkspacePaths,
   type AgentQaConfig,
   type ResolvedWorkspacePaths,
 } from '@vostride/agent-qa-core'
+import { isGitHubActions, printRunText } from '@vostride/agent-qa-core/run-text-output'
 import { createModel, getProvider } from '@vostride/agent-qa-model'
 import { createKnowledgeChecks } from './doctor-knowledge-checks.js'
 // 407-30 (REVIEW IN-06): the row renderer lives in its own module now. This command imports the
