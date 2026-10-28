@@ -393,6 +393,13 @@ export async function executeStep(
     storedCompletesStep: boolean | undefined
   }[] = []
   const reportMarks: { held: number; line: string }[] = []
+  // Values minted or reported in this step. A turn that types one, or a working-memory value,
+  // is not saved, because its replay would type the value of the run that saved it.
+  const stepRunValues = new Set<string>()
+  const typesRunValue = (action: Action): boolean => carriesRunValue(action, [
+    ...stepRunValues,
+    ...(ports.workingMemory?.entries().map((entry) => entry.value) ?? []),
+  ])
   // Keys replayed from the cache since the step's last rejection, and every key the step
   // invalidated. An invalidated key that the passing path replayed is written again.
   let replayedKeys: CacheKey[] = []
@@ -1639,7 +1646,9 @@ export async function executeStep(
       // adapter.execute. The answer surfaces on metadata.reportedValue and lands masked-before-
       // record in StepEvidence.reportedValue. reportValue is NON-terminal (D-02): the plan-field
       // envelope (stepComplete/stepFailed) stays the sole termination mechanism.
-      const reportedValue = recordMask(String((action as { value?: unknown }).value ?? ''))
+      const rawReportedValue = String((action as { value?: unknown }).value ?? '')
+      stepRunValues.add(rawReportedValue)
+      const reportedValue = recordMask(rawReportedValue)
       execResult = mintReportedValue({ value: reportedValue })
       execError = undefined
       recorder.recordReportedValue({ value: reportedValue })
@@ -1660,6 +1669,7 @@ export async function executeStep(
       execError = undefined
       const uv = readUniqueValueMeta(minted)
       if (uv) {
+        stepRunValues.add(uv.value)
         ports.workingMemory?.capture(
           [{ key: prefix, value: recordMask(uv.value), kind: 'extracted-value', provenance: 'toolResult', stepIndex: actionIndex }],
           { step: actionIndex },
@@ -2148,6 +2158,7 @@ export async function executeStep(
     const isReport = normalizedAction.type === 'reportValue'
     const saveable = !isReport
       && isReplayableActionShape(normalizedAction.type, Object.keys(normalizedAction))
+      && !typesRunValue(normalizedAction)
     if (!isReport) {
       pathEndsAtLastHeld = false
       if (saveable && cacheActive && !procedureReplayed && cacheKey !== undefined) {
@@ -2449,6 +2460,20 @@ function deriveEnvSetNames(stepText: string): string[] {
 // maps its two per-field locators onto fromRef/toRef; every other element action maps its
 // single locator onto ref. A locator-less action (navigate/waitFor/…) has no lane, but an
 // action type that must name an element always has its ref lane (438-09).
+function carriesRunValue(action: Action, values: readonly string[]): boolean {
+  const texts: string[] = []
+  const collect = (value: unknown): void => {
+    if (typeof value === 'string') texts.push(value)
+    else if (Array.isArray(value)) value.forEach(collect)
+    else if (value !== null && typeof value === 'object') Object.values(value).forEach(collect)
+  }
+  for (const [key, value] of Object.entries(action)) if (key !== 'type') collect(value)
+  return values.some((value) => {
+    const needle = value.trim()
+    return needle !== '' && texts.some((text) => text.includes(needle))
+  })
+}
+
 function replayLanes(action: Record<string, unknown>, locatorCount: number): string[] {
   if (action.type === 'drag') return ['fromRef', 'toRef']
   return locatorCount >= 1 || requiresElementRef(String(action.type ?? '')) ? ['ref'] : []

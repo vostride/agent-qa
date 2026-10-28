@@ -185,10 +185,12 @@ export async function runStep(options: {
   results?: ActionResult[]
   verifier?: Verifier
   adapter?: PlatformAdapter
+  extraPorts?: Partial<LoopPorts>
 }) {
   return executeStep(
     STEP,
     ports({
+      ...options.extraPorts,
       adapter: options.adapter ?? adapterOver(options.screens ?? formScreens(), options.results),
       planner: options.planner,
       verifier: options.verifier ?? makeVerifier(),

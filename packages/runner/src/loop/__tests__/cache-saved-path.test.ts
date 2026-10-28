@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ScreenState } from '@vostride/agent-qa-schema'
 import type { ActionPlan, Verifier } from '../types.js'
 import { metVerification } from '../../testing/condition-verdicts.js'
+import { WorkingMemoryStore } from '../working-memory/store.js'
 import { makeActionPlan, makeVerifier } from './loop-harness.js'
 import {
   CLICK_SAVE,
@@ -305,5 +306,105 @@ describe('a report is never saved or replayed', () => {
     expect(cache.store.get(cache.sets[0])!.plannedActions[0].type).toBe('fill')
     expect(cache.store.get(cache.sets[0])!.completesStep).toBe(false)
     expect(storedText(cache)).not.toContain(REPORT_TEXT)
+  })
+})
+
+function signupScreens(): ScreenState[] {
+  return [
+    screen('https://signup.test/new', [
+      el('e1', 'textbox', 'Username', 120),
+      el('e2', 'button', 'Register', 180),
+    ]),
+    screen('https://signup.test/new', [
+      el('e1', 'textbox', 'Username', 120, 'filled'),
+      el('e2', 'button', 'Register', 180),
+    ]),
+    screen('https://signup.test/welcome', [el('e1', 'heading', 'Welcome', 80)]),
+  ]
+}
+
+function typeUsername(text: string): ActionPlan {
+  return makeActionPlan({
+    reasoning: 'Type the username',
+    action: { type: 'fill', ref: 'e1', text },
+    stepComplete: false,
+  })
+}
+
+const REGISTER = makeActionPlan({
+  reasoning: 'Register the account',
+  action: { type: 'click', ref: 'e2' },
+  stepComplete: true,
+})
+
+describe('a value the run produced is never replayed', () => {
+  it('a typed value minted in the step is not saved, and the rerun types the value it mints itself', async () => {
+    const mint = makeActionPlan({
+      reasoning: 'Make a unique username',
+      action: { type: 'uniqueValue', prefix: 'user-' },
+      stepComplete: false,
+    })
+    const cache = recordingCache()
+    const first = await runStep({
+      cache,
+      screens: signupScreens(),
+      planner: scriptedPlanner([mint, typeUsername('user-first'), REGISTER]),
+      extraPorts: { uniqueValueGenerator: () => 'first' },
+    })
+
+    expect(first.status).toBe('passed')
+    expect(cache.sets).toHaveLength(2)
+    expect(storedText(cache)).not.toContain('user-first')
+
+    forgetCalls(cache)
+    const adapter = adapterOver(signupScreens())
+    const planner = scriptedPlanner([typeUsername('user-second')])
+    const second = await runStep({
+      cache,
+      planner,
+      adapter,
+      extraPorts: { uniqueValueGenerator: () => 'second' },
+    })
+
+    expect(second.status).toBe('passed')
+    expect(cache.gets.map((get) => get.hit)).toEqual([true, false, true])
+    expect(planner.calls).toBe(1)
+    expect(adapter.executed.map((action) => (action as { text?: string }).text)).toEqual([
+      'user-second',
+      undefined,
+    ])
+  })
+
+  it('a typed value an earlier step left in working memory is not saved', async () => {
+    const workingMemory = new WorkingMemoryStore()
+    workingMemory.capture([
+      { key: 'orderNumber', value: 'A-1042', kind: 'extracted-value', provenance: 'toolResult' },
+    ])
+    const cache = recordingCache()
+    const first = await runStep({
+      cache,
+      screens: signupScreens(),
+      planner: scriptedPlanner([typeUsername('A-1042'), REGISTER]),
+      extraPorts: { workingMemory },
+    })
+
+    expect(first.status).toBe('passed')
+    expect(cache.sets).toHaveLength(1)
+    expect(cache.store.get(cache.sets[0])!.plannedActions[0].type).toBe('click')
+    expect(storedText(cache)).not.toContain('A-1042')
+  })
+
+  it('a typed value the step reported is not saved', async () => {
+    const cache = recordingCache()
+    const first = await runStep({
+      cache,
+      screens: signupScreens(),
+      planner: scriptedPlanner([report('A-1042', false), typeUsername('A-1042'), REGISTER]),
+    })
+
+    expect(first.status).toBe('passed')
+    expect(cache.sets).toHaveLength(1)
+    expect(cache.store.get(cache.sets[0])!.plannedActions[0].type).toBe('click')
+    expect(storedText(cache)).not.toContain('A-1042')
   })
 })
