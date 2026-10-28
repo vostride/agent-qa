@@ -5,6 +5,7 @@ import { metVerification } from '../../testing/condition-verdicts.js'
 import { makeActionPlan, makeVerifier } from './loop-harness.js'
 import {
   CLICK_SAVE,
+  adapterOver,
   FILL_EMAIL,
   FILL_NAME,
   el,
@@ -103,6 +104,51 @@ describe('a passing step saves its whole path', () => {
     expect(planner.calls).toBe(0)
     expect(cache.gets.every((get) => get.hit)).toBe(true)
     expect(second.evidence!.cacheStatus).toBe('hit')
+  })
+
+  it('a turn that cannot replay keeps its place, so the rerun plans it live before replaying the saved turn after it', async () => {
+    const termsScreens = (): ScreenState[] => [
+      screen('https://signup.test/terms', [
+        el('e1', 'checkbox', 'Accept the terms', 120),
+        el('e2', 'button', 'Submit', 180),
+      ]),
+      screen('https://signup.test/terms', [
+        el('e1', 'checkbox', 'Accept the terms', 120, 'checked'),
+        el('e2', 'button', 'Submit', 180),
+      ]),
+      screen('https://signup.test/done', [el('e1', 'heading', 'Thanks for signing up', 80)]),
+    ]
+    const tapTerms = makeActionPlan({
+      reasoning: 'Tick the terms box',
+      action: { type: 'tapCoordinate', x: 30, y: 142 },
+      stepComplete: false,
+    })
+    const submit = makeActionPlan({
+      reasoning: 'Submit the form',
+      action: { type: 'click', ref: 'e2' },
+      stepComplete: true,
+    })
+    const cache = recordingCache()
+    const first = await runStep({
+      cache,
+      screens: termsScreens(),
+      planner: scriptedPlanner([tapTerms, submit]),
+    })
+
+    expect(first.status).toBe('passed')
+    expect(cache.gets[1].key).not.toBe(cache.gets[0].key)
+    expect(cache.sets).toEqual([cache.gets[1].key])
+
+    forgetCalls(cache)
+    const adapter = adapterOver(termsScreens())
+    const planner = scriptedPlanner([tapTerms])
+    const second = await runStep({ cache, planner, adapter })
+
+    expect(second.status).toBe('passed')
+    expect(cache.gets.map((get) => get.hit)).toEqual([false, true])
+    expect(adapter.executed.map((action) => action.type)).toEqual(['tapCoordinate', 'click'])
+    expect(planner.calls).toBe(1)
+    expect(second.evidence!.cacheStatus).toBe('miss')
   })
 
   it('a rerun that needs a live turn after replaying saved turns is a miss, and only the live turn is saved', async () => {

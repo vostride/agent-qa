@@ -184,11 +184,12 @@ export async function runStep(options: {
   screens?: ScreenState[]
   results?: ActionResult[]
   verifier?: Verifier
+  adapter?: PlatformAdapter
 }) {
   return executeStep(
     STEP,
     ports({
-      adapter: adapterOver(options.screens ?? formScreens(), options.results),
+      adapter: options.adapter ?? adapterOver(options.screens ?? formScreens(), options.results),
       planner: options.planner,
       verifier: options.verifier ?? makeVerifier(),
       cache: options.cache,

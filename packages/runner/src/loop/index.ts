@@ -379,8 +379,9 @@ export async function executeStep(
   let cacheBypass = false
 
   // The step's saved path: each successful saveable turn is held until the verifier passes the
-  // step, then written under a key whose step index is the turn's place in that path. A report is
-  // never saved; each one marks where it fell in the path and the read line it added.
+  // step, then written under a key whose step index is the turn's place among the step's
+  // successful turns. A report is never saved and takes no place; each one marks where it fell in
+  // the path and the read line it added.
   let pathOrdinal = 0
   let pathEndsAtLastHeld = false
   const savedPath: {
@@ -1219,7 +1220,7 @@ export async function executeStep(
         suiteConfigDigest: ports.configDigests?.suiteConfigDigest ?? '',
         testConfigDigest: ports.configDigests?.testConfigDigest ?? '',
         stepText: stepInstruction,
-        // The step's earlier saveable turns that succeeded: failed turns and reports leave no gap.
+        // The step's earlier turns that succeeded: failed turns and reports leave no gap.
         stepIndex: pathOrdinal,
         testIndex: 0,
         envVars: cacheEnvVars,
@@ -2142,12 +2143,14 @@ export async function executeStep(
     if (cached && cacheKey !== undefined) replayedKeys.push(cacheKey)
 
     // A report leaves the end of the saved path where it was; any other turn not held ends it.
+    // Every other turn takes its place in the path, held or not, so a turn that cannot replay
+    // leaves a gap the rerun plans live instead of replaying a later saved turn in its place.
     const isReport = normalizedAction.type === 'reportValue'
     const saveable = !isReport
       && isReplayableActionShape(normalizedAction.type, Object.keys(normalizedAction))
-    if (saveable) {
+    if (!isReport) {
       pathEndsAtLastHeld = false
-      if (cacheActive && !procedureReplayed && cacheKey !== undefined) {
+      if (saveable && cacheActive && !procedureReplayed && cacheKey !== undefined) {
         savedPath.push({
           key: cacheKey,
           action: normalizedAction,
@@ -2159,8 +2162,6 @@ export async function executeStep(
         pathEndsAtLastHeld = true
       }
       pathOrdinal++
-    } else if (!isReport) {
-      pathEndsAtLastHeld = false
     }
 
     // 5. VERIFY — only when the planner signals stepComplete (three-outcome strategy).
