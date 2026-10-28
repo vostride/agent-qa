@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { asRef, type Ref, type Surface } from '@vostride/agent-qa-schema'
 import type { ToolRegistry } from '../registry.js'
 import type { ToolDefinition } from '../types.js'
-import { NON_EXPOSED, VERB_SURFACE } from './surface-map.js'
+import { VERB_SURFACE } from './surface-map.js'
 
 const CURRENT_SCREEN_REF_DESCRIPTION = 'current-screen element reference (e.g. e12), never a CSS selector or label'
 const ELEMENT_DESCRIPTION_SCHEMA = z.string().optional()
@@ -47,7 +47,6 @@ function actionWithSurface(
     id: `${surface}_${verb}`,
     type: verb,
     surface,
-    exposed: !NON_EXPOSED.has(verb),
     description,
     category: 'action',
     schema,

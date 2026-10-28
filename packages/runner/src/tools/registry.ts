@@ -61,7 +61,7 @@ export class ToolRegistry {
 
   getForPlatform(platform: Platform): ToolDefinition[] {
     const surfaces = EXPOSURE[platform]
-    return this.getAll().filter(def => def.exposed !== false && surfaces.has(def.surface))
+    return this.getAll().filter(def => surfaces.has(def.surface))
   }
 
   getSchema(id: string): z.ZodType {

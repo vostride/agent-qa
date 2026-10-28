@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { z } from 'zod'
 import { ToolRegistry, EXPOSURE } from '../registry.js'
 import { registerAllActions } from '../actions/index.js'
-import { NON_EXPOSED } from '../actions/surface-map.js'
 import { toolCallToActionPlan } from '../builder.js'
 import type { ToolDefinition } from '../types.js'
 import type { Platform } from '@vostride/agent-qa-schema'
@@ -45,7 +44,7 @@ function idsFor(registry: ToolRegistry, platform: Platform): string[] {
 
 function expectedSliceCount(registry: ToolRegistry, platform: Platform): number {
   const surfaces = EXPOSURE[platform]
-  return registry.getAll().filter(def => def.exposed !== false && surfaces.has(def.surface)).length
+  return registry.getAll().filter(def => surfaces.has(def.surface)).length
 }
 
 describe('ToolRegistry', () => {
@@ -89,7 +88,7 @@ describe('ToolRegistry', () => {
         type: 'b',
         surface: 'common',
         description: 'B',
-        category: 'file',
+        category: 'action',
         schema: z.object({}),
       })
       expect(registry.getAll()).toHaveLength(2)
@@ -214,17 +213,6 @@ describe('ToolRegistry', () => {
         'setLocalStorage',
       ]) {
         expect(types).not.toContain(type)
-      }
-    })
-
-    it('omits non-exposed escape-hatch verbs from every platform slice', () => {
-      registerAllActions(registry)
-
-      for (const platform of platforms) {
-        const types = typesFor(registry, platform)
-        for (const type of NON_EXPOSED) {
-          expect(types).not.toContain(type)
-        }
       }
     })
 

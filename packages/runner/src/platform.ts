@@ -19,12 +19,11 @@ import type { ConsoleLogEntry, NetworkLogEntry } from './result.js'
 // member shapes silently won over the schema shapes (RESEARCH §Type-Level Flip). The
 // planner-reachable surface is now the single schema truth; adapters read schema execution shapes.
 //
-// `RunnerRuntimeVerbs` is a documented named alias re-exporting the three author-channel verbs that
-// already exist as schema members — NOT new union members. It marks the surviving runner-runtime
-// surface so a future reader knows these three are runtime-owned, not planner catalog verbs:
-//   - executeScript → Phase 363 author-facing variable resolution + lifecycle-hook plumbing
-//   - setVariable   → Phase 363 author-facing variable resolution + lifecycle-hook plumbing
-//   - stopApp       → author channel (test lifecycle app teardown)
+// `RunnerRuntimeVerbs` names three schema action members that the runtime owns rather than the
+// planner catalog. It adds no union members:
+//   - executeScript serves author-facing variable resolution and hook plumbing
+//   - setVariable serves author-facing variable resolution and hook plumbing
+//   - stopApp is a schema action member with mobile adapter arms and no producer yet
 export type RunnerRuntimeVerbs =
   | Extract<SchemaAction, { type: 'executeScript' }>
   | Extract<SchemaAction, { type: 'setVariable' }>

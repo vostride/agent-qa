@@ -119,9 +119,9 @@ describe('C438-TARGET-SCHEMA', () => {
     expect(code).toBe('schema_invalid')
   })
 
-  it('every exposed target is described as sent alongside the ref, never "never both"', () => {
+  it('every target is described as sent alongside the ref, never "never both"', () => {
     let targets = 0
-    for (const definition of defaultRegistry.getAll().filter((tool) => tool.exposed)) {
+    for (const definition of defaultRegistry.getAll()) {
       for (const shape of shapesOf(definition.schema)) {
         for (const key of TARGET_KEYS) {
           const field = shape[key]

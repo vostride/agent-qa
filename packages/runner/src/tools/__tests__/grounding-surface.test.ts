@@ -70,7 +70,6 @@ describe('grounding surface', () => {
   it('keeps common_waitFor as the only selector-accepting verb', () => {
     const registry = buildRegistry()
     const selectorAcceptingIds = registry.getAll()
-      .filter(definition => definition.exposed !== false)
       .filter(definition => hasField(definition.schema, 'selector'))
       .map(definition => definition.id)
 

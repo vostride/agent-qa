@@ -8,7 +8,7 @@ function actionLines(docs: string): string[] {
 
 function expectedLineCount(platform: Platform): number {
   const surfaces = EXPOSURE[platform]
-  return defaultRegistry.getAll().filter(def => def.exposed !== false && surfaces.has(def.surface)).length
+  return defaultRegistry.getAll().filter(def => surfaces.has(def.surface)).length
 }
 
 const CAT_02_WEB_IDS = [

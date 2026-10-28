@@ -57,5 +57,3 @@ export const VERB_SURFACE: Record<string, Surface> = {
   waitForUrl: 'web',
   inspect: 'web',
 }
-
-export const NON_EXPOSED = new Set<string>([])
