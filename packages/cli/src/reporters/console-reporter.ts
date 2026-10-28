@@ -125,6 +125,8 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
   let stepsCancelled = 0
   let cacheHits = 0
   let cacheMisses = 0
+  const cacheDisabledTests = new Set<number>()
+  const cacheUsedTests = new Set<number>()
 
   // per-test buckets (reset on testStarted and testRetryScheduled)
   let ptPassed = 0
@@ -251,6 +253,8 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
 
     if (payload.cacheStatus === 'hit') cacheHits++
     else if (payload.cacheStatus === 'miss') cacheMisses++
+    if (payload.cacheStatus === 'disabled') cacheDisabledTests.add(payload.testIndex)
+    else cacheUsedTests.add(payload.testIndex)
 
     const stepText = stepTextByIndex.get(payload.stepIndex) ?? `Step ${payload.stepIndex + 1}`
     const dur = humanDuration(payload.durationMs ?? 0)
@@ -337,6 +341,14 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
     println('')
   }
 
+  function formatCacheLine(): string {
+    const disabled = cacheDisabledTests.size
+    if (disabled > 0 && cacheUsedTests.size === 0) return 'disabled'
+    const tally = `${cacheHits} hits, ${cacheMisses} misses`
+    if (disabled === 0) return tally
+    return `${tally} (disabled for ${disabled} ${disabled === 1 ? 'test' : 'tests'})`
+  }
+
   function onRunFinished(_payload: RunFinishedPayload): void {
     println('')
     const total = testsPassed + testsFailed + testsSkipped + testsCancelled
@@ -356,7 +368,7 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
     const segments = `${cancelledSegment}${renderQuarantineSummarySegment(quarantinedFailures)}`
     println(`Tests:  ${testsPassed} of ${total} passed${segments}`)
     println(`Steps:  ${formatStepsLine()}`)
-    println(`Cache:  ${cacheHits} hits, ${cacheMisses} misses`)
+    println(`Cache:  ${formatCacheLine()}`)
     println(`Time:   ${humanDuration(totalDurationMs)}`)
     println('')
   }

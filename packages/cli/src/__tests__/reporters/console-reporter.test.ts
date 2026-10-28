@@ -250,6 +250,83 @@ describe('C444.1-REPORTER-WORDS', () => {
   })
 })
 
+describe('the Cache line', () => {
+  const render = (statusesByTest: readonly (readonly string[])[]): string => {
+    const capture = createCapture()
+    const reporter = createConsoleReporter({
+      plain: true,
+      colorize: false,
+      write: capture.write,
+      isTTY: false,
+    })
+    for (const envelope of cacheStream(statusesByTest)) reporter.handler(envelope)
+    return capture.output()
+  }
+  const cacheLine = (output: string): string =>
+    output.split('\n').find((line) => line.startsWith('Cache:')) ?? ''
+
+  it('a run where no test used the cache prints Cache: disabled', () => {
+    const line = cacheLine(render([['disabled', 'disabled']]))
+    expect(line).toBe('Cache:  disabled')
+    expect(line).not.toContain('hits,')
+  })
+
+  it('a run where one test had the cache off names it', () => {
+    expect(cacheLine(render([['hit'], ['disabled']]))).toBe(
+      'Cache:  1 hits, 0 misses (disabled for 1 test)',
+    )
+  })
+
+  it('two tests with the cache off are counted as tests', () => {
+    expect(cacheLine(render([['miss'], ['disabled', 'disabled'], ['disabled']]))).toContain(
+      '(disabled for 2 tests)',
+    )
+  })
+
+  it('a run with the cache on prints hits and misses as before', () => {
+    expect(cacheLine(render([['hit'], ['miss']]))).toBe('Cache:  1 hits, 1 misses')
+  })
+})
+
+function cacheStream(statusesByTest: readonly (readonly string[])[]): RunEventEnvelope[] {
+  let seq = 0
+  const env = (type: RunEventType, payload: object): RunEventEnvelope =>
+    ({ seq: seq++, ts: 1_000 + seq, runId: 'run-cache-line', type, payload }) as RunEventEnvelope
+  return [
+    env('runStarted', {
+      busSchemaVersion: CURRENT_BUS_SCHEMA_VERSION,
+      scope: { tier: 'suite', key: 'shop' },
+      executionContext: 'local-headless',
+      buildOrdinal: 1,
+      configDigests: { suiteConfigDigest: 'aaaa', testConfigDigest: 'bbbb' },
+      memberTestCount: statusesByTest.length,
+    }),
+    ...statusesByTest.flatMap((statuses, testIndex) => [
+      env('testStarted', {
+        testId: `t${testIndex}`,
+        testIndex,
+        name: `Test ${testIndex}`,
+        filePath: `tests/t${testIndex}.yaml`,
+      }),
+      ...statuses.flatMap((cacheStatus, stepIndex) => [
+        env('stepStarted', { testIndex, stepIndex, stepText: `Step ${stepIndex}` }),
+        env('stepFinalized', {
+          testIndex,
+          stepIndex,
+          cacheStatus,
+          verifierVerdict: { pass: true, reasoning: 'passed' },
+          selfHealOccurred: false,
+          briefDigest: 'digest',
+          status: 'passed',
+          durationMs: 100,
+        }),
+      ]),
+      env('testFinished', { testId: `t${testIndex}`, testIndex, outcome: 'passed', durationMs: 100 }),
+    ]),
+    env('runFinished', { aggregateVerdict: 'passed' }),
+  ]
+}
+
 function cancelledStream(): RunEventEnvelope[] {
   let seq = 0
   const env = (type: RunEventType, payload: object): RunEventEnvelope =>
