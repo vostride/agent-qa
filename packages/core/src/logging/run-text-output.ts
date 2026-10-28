@@ -61,10 +61,11 @@ export function printRunText(
     return
   }
   const block = guardRunText(text, env)
+  // The runner reads stdout and stderr on separate threads, so every wrapped block shares one
+  // stream: stdout, or stderr when stdout carries data. The caller's print never sees a block.
   if (options.stdoutIsData ?? stdoutReservations().count > 0) {
-    print(block.slice(0, -1))
+    process.stderr.write(block)
     return
   }
-  // The runner reads stdout and stderr on separate threads, so every wrapped block shares stdout.
   process.stdout.write(block)
 }

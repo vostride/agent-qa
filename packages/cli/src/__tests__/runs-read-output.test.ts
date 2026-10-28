@@ -54,6 +54,7 @@ interface Invocation {
   stdout: string
   stderr: string
   writes: string[]
+  errorWrites: string[]
   exitCode: number | string | undefined
 }
 
@@ -71,6 +72,11 @@ async function runs(configPath: string, args: readonly string[]): Promise<Invoca
     writes.push(String(chunk))
     return true
   })
+  const errorWrites: string[] = []
+  const errorWrite = vi.spyOn(process.stderr, 'write').mockImplementation((chunk: unknown) => {
+    errorWrites.push(String(chunk))
+    return true
+  })
   const priorExit = process.exitCode
   process.exitCode = undefined
   try {
@@ -79,12 +85,19 @@ async function runs(configPath: string, args: readonly string[]): Promise<Invoca
       .addCommand(createRunsCommand())
     program.exitOverride()
     await program.parseAsync(['node', 'agent-qa', '--config', configPath, 'runs', ...args])
-    return { stdout: stdout.join('\n'), stderr: stderr.join('\n'), writes, exitCode: process.exitCode }
+    return {
+      stdout: stdout.join('\n'),
+      stderr: stderr.join('\n'),
+      writes,
+      errorWrites,
+      exitCode: process.exitCode,
+    }
   } finally {
     process.exitCode = priorExit
     log.mockRestore()
     error.mockRestore()
     write.mockRestore()
+    errorWrite.mockRestore()
   }
 }
 
@@ -138,7 +151,9 @@ describe('agent-qa runs output under GitHub Actions', () => {
     expect(invocation.exitCode).toBe(1)
     expect(invocation.writes).toEqual([])
     expect(invocation.stdout).toBe('')
-    expect(`${invocation.stderr}\n`).toMatch(PAIR)
+    expect(invocation.stderr).toBe('')
+    expect(invocation.errorWrites).toHaveLength(1)
+    expect(invocation.errorWrites[0]).toMatch(PAIR)
   })
 
   it('a refused evidence flag under --json stays off stdout', async () => {
@@ -150,8 +165,10 @@ describe('agent-qa runs output under GitHub Actions', () => {
     expect(invocation.exitCode).toBe(1)
     expect(invocation.writes).toEqual([])
     expect(invocation.stdout).toBe('')
-    expect(`${invocation.stderr}\n`).toMatch(PAIR)
-    expect(invocation.stderr).toContain('agent-qa runs evidence: name a document')
+    expect(invocation.stderr).toBe('')
+    expect(invocation.errorWrites).toHaveLength(1)
+    expect(invocation.errorWrites[0]).toMatch(PAIR)
+    expect(invocation.errorWrites[0]).toContain('agent-qa runs evidence: name a document')
   })
 
   it('runs mark prints its outcome inside a pair and its --json receipt unwrapped', async () => {

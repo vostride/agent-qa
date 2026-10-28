@@ -87,6 +87,7 @@ interface InvocationResult {
   stdout: string
   stderr: string
   writes: string[]
+  errorWrites: string[]
   exitCode: typeof process.exitCode
 }
 
@@ -355,6 +356,11 @@ async function invoke(
     writes.push(String(chunk))
     return true
   })
+  const errorWrites: string[] = []
+  const errorWrite = vi.spyOn(process.stderr, 'write').mockImplementation((chunk: unknown) => {
+    errorWrites.push(String(chunk))
+    return true
+  })
   process.exitCode = undefined
 
   try {
@@ -374,12 +380,14 @@ async function invoke(
       stdout: stdout.join('\n'),
       stderr: stderr.join('\n'),
       writes,
+      errorWrites,
       exitCode: process.exitCode,
     }
   } finally {
     log.mockRestore()
     error.mockRestore()
     write.mockRestore()
+    errorWrite.mockRestore()
   }
 }
 
@@ -1337,8 +1345,10 @@ describe('agent-qa fn under GitHub Actions', () => {
     expect(result.exitCode).toBe(1)
     expect(result.stdout).toBe('')
     expect(result.writes).toEqual([])
-    expect(result.stderr).toMatch(/^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::$/u)
-    expect(result.stderr).toContain(CRAFTED)
+    expect(result.stderr).toBe('')
+    expect(result.errorWrites).toHaveLength(1)
+    expect(result.errorWrites[0]).toMatch(/^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::\n$/u)
+    expect(result.errorWrites[0]).toContain(CRAFTED)
   })
 
   it('a failure without --json prints its message inside a pair on stdout', async () => {

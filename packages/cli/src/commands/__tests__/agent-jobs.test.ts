@@ -265,10 +265,11 @@ describe('agent-qa agent-jobs under GitHub Actions', () => {
   async function jobs(
     deps: AgentJobsCommandDeps,
     args: readonly string[],
-  ): Promise<{ stdout: string[]; stderr: string[]; writes: string[] }> {
+  ): Promise<{ stdout: string[]; stderr: string[]; writes: string[]; errorWrites: string[] }> {
     const stdout: string[] = []
     const stderr: string[] = []
     const writes: string[] = []
+    const errorWrites: string[] = []
     const log = vi.spyOn(console, 'log').mockImplementation((value: unknown) => {
       stdout.push(String(value))
     })
@@ -279,13 +280,18 @@ describe('agent-qa agent-jobs under GitHub Actions', () => {
       writes.push(String(chunk))
       return true
     })
+    const errorWrite = vi.spyOn(process.stderr, 'write').mockImplementation((chunk: unknown) => {
+      errorWrites.push(String(chunk))
+      return true
+    })
     try {
       await createAgentJobsCommand(deps).parseAsync([...args], { from: 'user' })
-      return { stdout, stderr, writes }
+      return { stdout, stderr, writes, errorWrites }
     } finally {
       log.mockRestore()
       error.mockRestore()
       write.mockRestore()
+      errorWrite.mockRestore()
     }
   }
 
@@ -343,9 +349,10 @@ describe('agent-qa agent-jobs under GitHub Actions', () => {
     expect(human.writes[0]).toContain(CRAFTED)
     expect(json.writes).toEqual([])
     expect(json.stdout).toEqual([])
-    expect(json.stderr).toHaveLength(1)
-    expect(json.stderr[0]).toMatch(/^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::$/u)
-    expect(json.stderr[0]).toContain(CRAFTED)
+    expect(json.stderr).toEqual([])
+    expect(json.errorWrites).toHaveLength(1)
+    expect(json.errorWrites[0]).toMatch(PAIR)
+    expect(json.errorWrites[0]).toContain(CRAFTED)
   })
 
   it('prints the listing and the error exactly as before off GitHub Actions', async () => {

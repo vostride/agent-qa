@@ -65,13 +65,16 @@ describe('guardJsonText', () => {
 
 describe('printRunText', () => {
   let stdoutSpy: ReturnType<typeof vi.spyOn>
+  let stderrSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
     stdoutSpy = vi.spyOn(process.stdout, 'write').mockReturnValue(true)
+    stderrSpy = vi.spyOn(process.stderr, 'write').mockReturnValue(true)
   })
 
   afterEach(() => {
     stdoutSpy.mockRestore()
+    stderrSpy.mockRestore()
     vi.unstubAllEnvs()
   })
 
@@ -80,31 +83,39 @@ describe('printRunText', () => {
     const print = vi.fn()
     printRunText('::add-mask::x', print)
     expect(print).not.toHaveBeenCalled()
+    expect(stderrSpy).not.toHaveBeenCalled()
     expect(stdoutSpy).toHaveBeenCalledTimes(1)
     const block = String(stdoutSpy.mock.calls[0]?.[0])
     expect(PAIR.exec(block)?.[2]).toBe('::add-mask::x\n')
   })
 
-  it('keeps the wrapped block on the caller stream when stdout carries data', () => {
+  it('writes the block to stderr once, skipping the caller print, when stdout is data', () => {
     const print = vi.fn()
     printRunText('::add-mask::x', print, { env: ACTIONS, stdoutIsData: true })
+    expect(print).not.toHaveBeenCalled()
     expect(stdoutSpy).not.toHaveBeenCalled()
-    expect(print).toHaveBeenCalledTimes(1)
-    const printed = String(print.mock.calls[0]?.[0])
-    expect(PAIR.exec(`${printed}\n`)?.[2]).toBe('::add-mask::x\n')
+    expect(stderrSpy).toHaveBeenCalledTimes(1)
+    expect(PAIR.exec(String(stderrSpy.mock.calls[0]?.[0]))?.[2]).toBe('::add-mask::x\n')
   })
 
-  it('keeps the wrapped block on the caller stream while stdout is reserved for data', () => {
-    const print = vi.fn()
+  it('writes each block to stderr once while stdout is reserved, skipping the caller print', () => {
+    const ignoresItsText = vi.fn()
+    const splitsItsText = vi.fn((text: string) => text.split('\n'))
     const release = reserveStdoutForData()
     try {
-      printRunText('::add-mask::x', print, { env: ACTIONS })
+      printRunText('::add-mask::x', () => ignoresItsText(), { env: ACTIONS })
+      printRunText('a\nb', splitsItsText, { env: ACTIONS })
+      printRunText('::add-mask::y', undefined, { env: ACTIONS })
     } finally {
       release()
     }
+    expect(ignoresItsText).not.toHaveBeenCalled()
+    expect(splitsItsText).not.toHaveBeenCalled()
     expect(stdoutSpy).not.toHaveBeenCalled()
-    expect(print).toHaveBeenCalledTimes(1)
-    expect(PAIR.test(`${String(print.mock.calls[0]?.[0])}\n`)).toBe(true)
+    expect(stderrSpy).toHaveBeenCalledTimes(3)
+    expect(PAIR.exec(String(stderrSpy.mock.calls[0]?.[0]))?.[2]).toBe('::add-mask::x\n')
+    expect(PAIR.exec(String(stderrSpy.mock.calls[1]?.[0]))?.[2]).toBe('a\nb\n')
+    expect(PAIR.exec(String(stderrSpy.mock.calls[2]?.[0]))?.[2]).toBe('::add-mask::y\n')
   })
 
   it('releasing a reservation twice releases it once', () => {
@@ -112,14 +123,13 @@ describe('printRunText', () => {
     const inner = reserveStdoutForData()
     inner()
     inner()
-    const print = vi.fn()
-    printRunText('x', print, { env: ACTIONS })
-    expect(print).toHaveBeenCalledTimes(1)
+    printRunText('x', vi.fn(), { env: ACTIONS })
+    expect(stderrSpy).toHaveBeenCalledTimes(1)
     expect(stdoutSpy).not.toHaveBeenCalled()
 
     outer()
-    printRunText('x', print, { env: ACTIONS })
-    expect(print).toHaveBeenCalledTimes(1)
+    printRunText('x', vi.fn(), { env: ACTIONS })
+    expect(stderrSpy).toHaveBeenCalledTimes(1)
     expect(stdoutSpy).toHaveBeenCalledTimes(1)
   })
 
@@ -129,6 +139,7 @@ describe('printRunText', () => {
     expect(print).toHaveBeenCalledTimes(1)
     expect(print).toHaveBeenCalledWith('::add-mask::x')
     expect(stdoutSpy).not.toHaveBeenCalled()
+    expect(stderrSpy).not.toHaveBeenCalled()
   })
 })
 

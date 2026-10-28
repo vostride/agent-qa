@@ -1345,9 +1345,9 @@ describe('agent-qa eval under GitHub Actions', () => {
     return configPath
   }
 
-  function captureWrites(): string[] {
+  function captureWrites(stream: NodeJS.WriteStream): string[] {
     const writes: string[] = []
-    vi.spyOn(process.stdout, 'write').mockImplementation((chunk: unknown) => {
+    vi.spyOn(stream, 'write').mockImplementation((chunk: unknown) => {
       writes.push(String(chunk))
       return true
     })
@@ -1356,12 +1356,13 @@ describe('agent-qa eval under GitHub Actions', () => {
 
   async function extract(configPath: string, args: readonly string[] = []) {
     const { logs, errors } = captureConsole()
-    const writes = captureWrites()
+    const writes = captureWrites(process.stdout)
+    const errorWrites = captureWrites(process.stderr)
     await buildProgram().parseAsync(['--config', configPath, 'eval', 'extract', ...args], {
       from: 'user',
     })
     vi.restoreAllMocks()
-    return { logs, errors, writes }
+    return { logs, errors, writes, errorWrites }
   }
 
   it('prints the human summary and its skip reasons inside one stop-commands pair', async () => {
@@ -1409,9 +1410,10 @@ describe('agent-qa eval under GitHub Actions', () => {
     expect(human.writes[0]).toContain(CRAFTED)
     expect(json.writes).toEqual([])
     expect(json.logs).toEqual([])
-    expect(json.errors).toHaveLength(1)
-    expect(json.errors[0]).toMatch(/^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::$/u)
-    expect(json.errors[0]).toContain(CRAFTED)
+    expect(json.errors).toEqual([])
+    expect(json.errorWrites).toHaveLength(1)
+    expect(json.errorWrites[0]).toMatch(PAIR)
+    expect(json.errorWrites[0]).toContain(CRAFTED)
   })
 
   it('prints the summary and the error line by line, as before, off GitHub Actions', async () => {

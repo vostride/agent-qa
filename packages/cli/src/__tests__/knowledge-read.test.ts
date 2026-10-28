@@ -35,6 +35,7 @@ interface InvocationResult {
   stdout: string
   stderr: string
   writes: string[]
+  errorWrites: string[]
   exitCode: typeof process.exitCode
 }
 
@@ -193,6 +194,11 @@ async function invoke(workspace: FixtureWorkspace, args: readonly string[]): Pro
     writes.push(String(chunk))
     return true
   })
+  const errorWrites: string[] = []
+  const errorWrite = vi.spyOn(process.stderr, 'write').mockImplementation((chunk: unknown) => {
+    errorWrites.push(String(chunk))
+    return true
+  })
   process.exitCode = undefined
 
   try {
@@ -212,12 +218,14 @@ async function invoke(workspace: FixtureWorkspace, args: readonly string[]): Pro
       stdout: stdout.join('\n'),
       stderr: stderr.join('\n'),
       writes,
+      errorWrites,
       exitCode: process.exitCode,
     }
   } finally {
     log.mockRestore()
     error.mockRestore()
     write.mockRestore()
+    errorWrite.mockRestore()
   }
 }
 
@@ -438,7 +446,9 @@ describe('knowledge read commands under GitHub Actions', () => {
     expect(json.exitCode).toBe(1)
     expect(json.writes).toEqual([])
     expect(json.stdout).toBe('')
-    expect(`${json.stderr}\n`).toMatch(PAIR)
+    expect(json.stderr).toBe('')
+    expect(json.errorWrites).toHaveLength(1)
+    expect(json.errorWrites[0]).toMatch(PAIR)
   })
 
   it('prints the same text and JSON as before without the variable', async () => {
