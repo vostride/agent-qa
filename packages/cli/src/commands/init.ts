@@ -10,6 +10,8 @@ import {
   DEFAULT_AGENT_QA_CACHE_DIR,
   DEFAULT_AGENT_QA_RUNTIME_DIR,
   getAgentQaVersion,
+  guardJsonText,
+  reserveStdoutForData,
 } from '@vostride/agent-qa-core'
 import { getProvider, listProviders } from '@vostride/agent-qa-model'
 // D-04: the scaffold's CONTENT, shared with `config.project.scaffold`. This file keeps the
@@ -930,22 +932,28 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
       // property of the control flow instead of a claim about it — there is no branch below this
       // one that a manifest read can reach.
       if (opts.agent === true) {
-        // IMPORTED HERE AND NOT AT THE TOP, deliberately. The manifest reads the local
-        // composition's posture, so its module graph reaches the agent host — and `init`'s ordinary
-        // job is to write a scaffold into a directory where no host could compose yet. A top-level
-        // import would make every `init` run (and every test of one) evaluate a composition root
-        // that only this branch has any use for. Measured 2026-08-17: it also broke `init.test.ts`,
-        // whose partial `node:fs` mock the durable-store module underneath that graph needs more of.
-        const { buildAgentManifest } = await import('../capability-catalog/manifest.js')
-        const globalOpts = command.parent?.opts<{ config?: string }>() ?? {}
-        // `--dir`-relative when no explicit `--config` was given: `init` is a command aimed at a
-        // directory, and reporting a posture read out of the caller's shell instead would describe
-        // the wrong workspace.
-        const configPath = globalOpts.config ?? join(resolve(opts.dir), 'agent-qa.config.yaml')
-        const manifest = await buildAgentManifest({ configPath })
-        // STDOUT AND NOTHING ELSE ON IT. The whole of this command's output under `--agent` is one
-        // JSON document, so it pipes into a parser without a filter in between.
-        console.log(JSON.stringify(manifest, null, 2))
+        const releaseStdout = reserveStdoutForData()
+        try {
+          // IMPORTED HERE AND NOT AT THE TOP, deliberately. The manifest reads the local
+          // composition's posture, so its module graph reaches the agent host, and `init`'s
+          // ordinary job is to write a scaffold into a directory where no host could compose yet.
+          // A top-level import would make every `init` run (and every test of one) evaluate a
+          // composition root that only this branch has any use for. It also breaks
+          // `init.test.ts`, whose partial `node:fs` mock the durable-store module underneath that
+          // graph needs more of.
+          const { buildAgentManifest } = await import('../capability-catalog/manifest.js')
+          const globalOpts = command.parent?.opts<{ config?: string }>() ?? {}
+          // `--dir`-relative when no explicit `--config` was given: `init` is a command aimed at a
+          // directory, and reporting a posture read out of the caller's shell instead would
+          // describe the wrong workspace.
+          const configPath = globalOpts.config ?? join(resolve(opts.dir), 'agent-qa.config.yaml')
+          const manifest = await buildAgentManifest({ configPath })
+          // STDOUT AND NOTHING ELSE ON IT. The whole of this command's output under `--agent` is
+          // one JSON document, so it pipes into a parser without a filter in between.
+          console.log(guardJsonText(JSON.stringify(manifest, null, 2)))
+        } finally {
+          releaseStdout()
+        }
         // 2026-08-17 (Phase 398 plan 10, D-16/D-18): AND NOTHING IS EMITTED ON THIS PATH. `--agent`
         // is a READ — it writes no file, creates no project, and returns before any scaffold exists
         // — so there is no init to report the completion of. Reporting one would count every

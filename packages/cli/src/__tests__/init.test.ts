@@ -97,7 +97,10 @@ vi.mock('@inquirer/password', () => ({
   default: vi.fn(),
 }))
 
-vi.mock('@vostride/agent-qa-core', () => ({
+vi.mock('@vostride/agent-qa-core', async (importOriginal) => ({
+  guardJsonText: (await importOriginal<typeof import('@vostride/agent-qa-core')>()).guardJsonText,
+  reserveStdoutForData:
+    (await importOriginal<typeof import('@vostride/agent-qa-core')>()).reserveStdoutForData,
   writeAuth: vi.fn(() => Promise.resolve()),
   resolveAppiumExecutable: vi.fn(() => ({ command: 'appium', source: 'path' })),
   formatAppiumInstallGuidance: vi.fn(() => 'Install Appium locally with `npm install -D appium` or globally with `npm install -g appium`.'),

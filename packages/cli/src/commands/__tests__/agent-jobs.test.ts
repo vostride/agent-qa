@@ -21,6 +21,7 @@ import type { Command } from 'commander'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createAgentJobsCommand } from '../agent-jobs.js'
+import type { AgentJobsCommandDeps } from '../agent-jobs.js'
 import type { AgentJobsOpsDeps } from '../../composition/agent-jobs-ops.js'
 
 /**
@@ -72,7 +73,10 @@ const clock = { now: (): string => new Date().toISOString() }
 
 let roots: string[] = []
 
-function harnessDeps(): { deps: AgentJobsOpsDeps; seed: (payload: unknown) => Promise<void> } {
+function harnessDeps(): {
+  deps: AgentJobsOpsDeps
+  seed: (payload: unknown, runId?: string) => Promise<void>
+} {
   const root = mkdtempSync(join(tmpdir(), 'agent-qa-413-10-cmd-'))
   roots.push(root)
   const agentQaRoot = join(root, '.agent-qa')
@@ -116,10 +120,10 @@ function harnessDeps(): { deps: AgentJobsOpsDeps; seed: (payload: unknown) => Pr
       releaseLease: maintenance.releaseLease,
       refreshWriterLeaseAuthority: maintenance.refreshWriterLeaseAuthority,
     },
-    async seed(payload) {
+    async seed(payload, runId = 'r_list') {
       const host = open()
       try {
-        await host.queue.enqueue('analyze-run', payload, 'r_list')
+        await host.queue.enqueue('analyze-run', payload, runId)
       } finally {
         host.close()
       }
@@ -247,5 +251,115 @@ describe('agent-qa agent-jobs requeue <jobId>', () => {
     // requeues a row a drainer already owns must be told, and must not have their driver abort.
     expect(stdout).toBe('{"kind":"not-terminal","status":"queued"}')
     expect(process.exitCode).not.toBe(1)
+  })
+})
+
+describe('agent-qa agent-jobs under GitHub Actions', () => {
+  const CRAFTED = '##[error]x ::set-output name=x::y'
+  const PAIR = /^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::\n$/u
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  async function jobs(
+    deps: AgentJobsCommandDeps,
+    args: readonly string[],
+  ): Promise<{ stdout: string[]; stderr: string[]; writes: string[] }> {
+    const stdout: string[] = []
+    const stderr: string[] = []
+    const writes: string[] = []
+    const log = vi.spyOn(console, 'log').mockImplementation((value: unknown) => {
+      stdout.push(String(value))
+    })
+    const error = vi.spyOn(console, 'error').mockImplementation((value: unknown) => {
+      stderr.push(String(value))
+    })
+    const write = vi.spyOn(process.stdout, 'write').mockImplementation((chunk: unknown) => {
+      writes.push(String(chunk))
+      return true
+    })
+    try {
+      await createAgentJobsCommand(deps).parseAsync([...args], { from: 'user' })
+      return { stdout, stderr, writes }
+    } finally {
+      log.mockRestore()
+      error.mockRestore()
+      write.mockRestore()
+    }
+  }
+
+  async function craftedQueue(): Promise<AgentJobsCommandDeps> {
+    const harness = harnessDeps()
+    await harness.seed({ runId: CRAFTED }, CRAFTED)
+    return { opsFor: async () => harness.deps }
+  }
+
+  const failing: AgentJobsCommandDeps = {
+    opsFor: async () => {
+      throw new Error(CRAFTED)
+    },
+  }
+
+  it('prints list --json with no # that parses back to the same rows', async () => {
+    const deps = await craftedQueue()
+    const plain = await jobs(deps, ['list', '--json'])
+    expect(plain.stdout.join('')).toContain(CRAFTED)
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const actions = await jobs(deps, ['list', '--json'])
+
+    expect(actions.writes).toEqual([])
+    expect(actions.stdout).toHaveLength(1)
+    expect(actions.stdout[0]).not.toContain('#')
+    expect(JSON.parse(actions.stdout[0] ?? '')).toEqual(JSON.parse(plain.stdout[0] ?? ''))
+  })
+
+  it('prints the human listing of the same job inside one stop-commands pair', async () => {
+    const deps = await craftedQueue()
+    const plain = await jobs(deps, ['list'])
+    expect(plain.stdout.join('\n')).toContain(CRAFTED)
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const actions = await jobs(deps, ['list'])
+
+    expect(actions.stdout).toEqual([])
+    expect(actions.writes).toHaveLength(1)
+    expect(actions.writes[0]).toMatch(PAIR)
+    expect(actions.writes[0]).toContain(`\n${plain.stdout.join('\n')}\n`)
+  })
+
+  it('prints an error inside a pair, on stderr while --json holds stdout', async () => {
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const human = await jobs(failing, ['list'])
+    expect(process.exitCode).toBe(1)
+    const json = await jobs(failing, ['list', '--json'])
+    expect(process.exitCode).toBe(1)
+
+    expect(human.stderr).toEqual([])
+    expect(human.writes).toHaveLength(1)
+    expect(human.writes[0]).toMatch(PAIR)
+    expect(human.writes[0]).toContain(CRAFTED)
+    expect(json.writes).toEqual([])
+    expect(json.stdout).toEqual([])
+    expect(json.stderr).toHaveLength(1)
+    expect(json.stderr[0]).toMatch(/^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::$/u)
+    expect(json.stderr[0]).toContain(CRAFTED)
+  })
+
+  it('prints the listing and the error exactly as before off GitHub Actions', async () => {
+    const deps = await craftedQueue()
+
+    const listing = await jobs(deps, ['list'])
+    const failure = await jobs(failing, ['list'])
+
+    expect(listing.writes).toEqual([])
+    expect(listing.stdout).toHaveLength(1)
+    expect(listing.stdout[0]).toContain(CRAFTED)
+    expect(failure.writes).toEqual([])
+    expect(failure.stderr).toHaveLength(1)
+    expect(failure.stderr[0]).toContain(`agent job queue list error: ${CRAFTED}`)
+    expect(failure.stderr[0]).not.toContain('::stop-commands::')
   })
 })

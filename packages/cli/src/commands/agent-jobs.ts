@@ -14,6 +14,7 @@
 import { Command, InvalidArgumentError } from 'commander'
 import pc from 'picocolors'
 
+import { guardJsonText, printRunText, reserveStdoutForData } from '@vostride/agent-qa-core'
 import type { JobKind } from '@vostride/agent-qa-schema'
 
 import type {
@@ -157,10 +158,17 @@ function renderRequeue(jobId: string, result: RequeueAgentJobOutcome): string {
 }
 
 function reportError(verb: string, error: unknown): void {
-  console.error(
-    pc.red(`agent job queue ${verb} error: ${error instanceof Error ? error.message : String(error)}`),
-  )
+  const message = error instanceof Error ? error.message : String(error)
+  printRunText(pc.red(`agent job queue ${verb} error: ${message}`), (block) => console.error(block))
   process.exitCode = 1
+}
+
+function printRefusal(refusal: Extract<PumpAgentJobsOutcome, { kind: 'refused' }>): void {
+  printRunText(renderRefusal(refusal), (block) => console.error(block))
+}
+
+function holdStdoutForJson(json: boolean | undefined): (() => void) | undefined {
+  return json === true ? reserveStdoutForData() : undefined
 }
 
 export function createAgentJobsCommand(deps: AgentJobsCommandDeps = DEFAULT_DEPS): Command {
@@ -180,13 +188,16 @@ export function createAgentJobsCommand(deps: AgentJobsCommandDeps = DEFAULT_DEPS
     .description('Show every row of the agent job queue, without any payload body')
     .option('--json', 'emit the typed result DTO to stdout')
     .action(async (opts: { json?: boolean }, command: Command) => {
+      const releaseStdout = holdStdoutForJson(opts.json)
       try {
         const ops = await import('../composition/agent-jobs-ops.js')
         const result = await ops.listAgentJobs(await deps.opsFor(configPathFor(command)))
-        if (opts.json === true) console.log(JSON.stringify(result))
-        else console.log(renderList(result))
+        if (opts.json === true) console.log(guardJsonText(JSON.stringify(result)))
+        else printRunText(renderList(result))
       } catch (error) {
         reportError('list', error)
+      } finally {
+        releaseStdout?.()
       }
     })
 
@@ -196,6 +207,7 @@ export function createAgentJobsCommand(deps: AgentJobsCommandDeps = DEFAULT_DEPS
     .requiredOption('--only <kind>', 'the one agent job kind this pump may claim', parseOnlyKind)
     .option('--json', 'emit the typed result DTO to stdout')
     .action(async (opts: { only: JobKind; json?: boolean }, command: Command) => {
+      const releaseStdout = holdStdoutForJson(opts.json)
       try {
         const ops = await import('../composition/agent-jobs-ops.js')
         const result = await ops.pumpAgentJobs(
@@ -203,21 +215,23 @@ export function createAgentJobsCommand(deps: AgentJobsCommandDeps = DEFAULT_DEPS
           await deps.opsFor(configPathFor(command)),
         )
         if (opts.json === true) {
-          console.log(JSON.stringify(result))
+          console.log(guardJsonText(JSON.stringify(result)))
           if (result.kind === 'refused') process.exitCode = 1
           return
         }
         if (result.kind === 'refused') {
-          console.error(renderRefusal(result))
+          printRefusal(result)
           process.exitCode = 1
           return
         }
         // A pumped outcome always exits 0. A failed or retry-scheduled disposition is DATA about
         // what the queue durably did — a driver that read it as a command failure would abort a
         // campaign leg over a job the queue has already scheduled to retry.
-        console.log(renderPump(result))
+        printRunText(renderPump(result))
       } catch (error) {
         reportError('pump', error)
+      } finally {
+        releaseStdout?.()
       }
     })
 
@@ -227,22 +241,25 @@ export function createAgentJobsCommand(deps: AgentJobsCommandDeps = DEFAULT_DEPS
     .argument('<jobId>', 'the agent job id to cancel')
     .option('--json', 'emit the typed result DTO to stdout')
     .action(async (jobId: string, opts: { json?: boolean }, command: Command) => {
+      const releaseStdout = holdStdoutForJson(opts.json)
       try {
         const ops = await import('../composition/agent-jobs-ops.js')
         const result = await ops.cancelAgentJob(jobId, await deps.opsFor(configPathFor(command)))
         if (opts.json === true) {
-          console.log(JSON.stringify(result))
+          console.log(guardJsonText(JSON.stringify(result)))
           if (result.kind === 'refused') process.exitCode = 1
           return
         }
         if (result.kind === 'refused') {
-          console.error(renderRefusal(result))
+          printRefusal(result)
           process.exitCode = 1
           return
         }
-        console.log(renderCancel(jobId, result))
+        printRunText(renderCancel(jobId, result))
       } catch (error) {
         reportError('cancel', error)
+      } finally {
+        releaseStdout?.()
       }
     })
 
@@ -252,22 +269,25 @@ export function createAgentJobsCommand(deps: AgentJobsCommandDeps = DEFAULT_DEPS
     .argument('<jobId>', 'the agent job id to return to the agent job queue')
     .option('--json', 'emit the typed result DTO to stdout')
     .action(async (jobId: string, opts: { json?: boolean }, command: Command) => {
+      const releaseStdout = holdStdoutForJson(opts.json)
       try {
         const ops = await import('../composition/agent-jobs-ops.js')
         const result = await ops.requeueAgentJob(jobId, await deps.opsFor(configPathFor(command)))
         if (opts.json === true) {
-          console.log(JSON.stringify(result))
+          console.log(guardJsonText(JSON.stringify(result)))
           if (result.kind === 'refused') process.exitCode = 1
           return
         }
         if (result.kind === 'refused') {
-          console.error(renderRefusal(result))
+          printRefusal(result)
           process.exitCode = 1
           return
         }
-        console.log(renderRequeue(jobId, result))
+        printRunText(renderRequeue(jobId, result))
       } catch (error) {
         reportError('requeue', error)
+      } finally {
+        releaseStdout?.()
       }
     })
 

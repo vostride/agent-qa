@@ -1,3 +1,4 @@
+import { guardJsonText, reserveStdoutForData } from '@vostride/agent-qa-core'
 import { Command } from 'commander'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
@@ -107,30 +108,36 @@ export function createSkillsCommand(options: SkillsCommandOptions = {}): Command
     .description('List packaged agent-qa skills')
     .option('--json', 'print machine-readable output')
     .action((opts: { json?: boolean }) => {
-      const resolved = resolveAgentQaSkillsDirectory(options.startDir)
-      const skills = listAgentQaSkills(resolved.path)
+      const releaseStdout = opts.json === true ? reserveStdoutForData() : undefined
+      try {
+        const resolved = resolveAgentQaSkillsDirectory(options.startDir)
+        const skills = listAgentQaSkills(resolved.path)
 
-      if (resolved.source === 'missing' || skills.length === 0) {
-        const payload = { path: resolved.path, source: resolved.source, skills: [] }
-        if (opts.json) {
-          stdout.write(`${JSON.stringify(payload, null, 2)}\n`)
-        } else {
-          stderr.write(`agent-qa skills not found at ${resolved.path}\n`)
+        if (resolved.source === 'missing' || skills.length === 0) {
+          const payload = { path: resolved.path, source: resolved.source, skills: [] }
+          if (opts.json) {
+            stdout.write(`${guardJsonText(JSON.stringify(payload, null, 2))}\n`)
+          } else {
+            stderr.write(`agent-qa skills not found at ${resolved.path}\n`)
+          }
+          process.exitCode = 1
+          return
         }
-        process.exitCode = 1
-        return
-      }
 
-      if (opts.json) {
-        stdout.write(`${JSON.stringify({ path: resolved.path, source: resolved.source, skills }, null, 2)}\n`)
-        return
-      }
+        if (opts.json) {
+          const payload = { path: resolved.path, source: resolved.source, skills }
+          stdout.write(`${guardJsonText(JSON.stringify(payload, null, 2))}\n`)
+          return
+        }
 
-      stdout.write(`agent-qa skills\n`)
-      stdout.write(`Path: ${resolved.path}\n`)
-      stdout.write(`Source: ${resolved.source}\n`)
-      for (const skill of skills) {
-        stdout.write(`- ${skill.name}${skill.description ? `: ${skill.description}` : ''}\n`)
+        stdout.write(`agent-qa skills\n`)
+        stdout.write(`Path: ${resolved.path}\n`)
+        stdout.write(`Source: ${resolved.source}\n`)
+        for (const skill of skills) {
+          stdout.write(`- ${skill.name}${skill.description ? `: ${skill.description}` : ''}\n`)
+        }
+      } finally {
+        releaseStdout?.()
       }
     })
 }
