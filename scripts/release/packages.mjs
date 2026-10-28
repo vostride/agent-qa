@@ -12,7 +12,6 @@ export const publicPackageNames = [
   '@vostride/agent-qa-agent',
   '@vostride/agent-qa-model',
   '@vostride/agent-qa-knowledge-local',
-  '@vostride/agent-qa-tools-local',
   '@vostride/agent-qa-safety-local',
   '@vostride/agent-qa-eval-local',
   '@vostride/agent-qa-core',

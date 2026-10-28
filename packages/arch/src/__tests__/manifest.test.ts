@@ -44,7 +44,6 @@ const expectedPackageDirs = [
   // with, which is what the rest of this list does.
   'packages/analytics',
   'packages/cli',
-  'packages/tools-local',
   'packages/dashboard-server',
   'packages/dashboard-ui',
   'packages/eval',

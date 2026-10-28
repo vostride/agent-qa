@@ -35,7 +35,6 @@ COPY packages/runner-local/package.json packages/runner-local/
 COPY packages/safety/package.json packages/safety/
 COPY packages/safety-local/package.json packages/safety-local/
 COPY packages/schema/package.json packages/schema/
-COPY packages/tools-local/package.json packages/tools-local/
 COPY packages/web/package.json packages/web/
 
 RUN pnpm install --frozen-lockfile

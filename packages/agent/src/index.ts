@@ -1,7 +1,6 @@
 export type {
   AuthoringReadPort,
   KnowledgePort,
-  ToolsPort,
   PersistencePort,
   ClockPort,
 } from './ports/index.js'

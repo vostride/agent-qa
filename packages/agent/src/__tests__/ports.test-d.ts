@@ -1,8 +1,6 @@
 import { expectTypeOf } from 'vitest'
-import type { ClockPort, KnowledgePort, PersistencePort, ToolsPort } from '../ports/index.js'
+import type { ClockPort, KnowledgePort, PersistencePort } from '../ports/index.js'
 import type {
-  Action,
-  ActionResult,
   CanaryOutcome,
   Delta,
   GateReceipt,
@@ -13,12 +11,10 @@ import type {
 } from '@vostride/agent-qa-schema'
 
 declare const knowledge: KnowledgePort
-declare const tools: ToolsPort
 declare const persistence: PersistencePort
 declare const clock: ClockPort
 
 expectTypeOf(knowledge).toMatchTypeOf<KnowledgePort>()
-expectTypeOf(tools).toMatchTypeOf<ToolsPort>()
 expectTypeOf(persistence).toMatchTypeOf<PersistencePort>()
 expectTypeOf(clock).toMatchTypeOf<ClockPort>()
 
@@ -38,9 +34,6 @@ expectTypeOf<Parameters<KnowledgePort['promote']>>().toEqualTypeOf<[candidateId:
 expectTypeOf<ReturnType<KnowledgePort['promote']>>().toEqualTypeOf<Promise<PromotionOutcome>>()
 expectTypeOf<Parameters<KnowledgePort['recordGateReceipt']>>().toEqualTypeOf<[receipt: GateReceipt]>()
 expectTypeOf<ReturnType<KnowledgePort['recordGateReceipt']>>().toEqualTypeOf<Promise<GateReceiptRecordOutcome>>()
-
-expectTypeOf<Parameters<ToolsPort['execute']>>().toEqualTypeOf<[action: Action]>()
-expectTypeOf<ReturnType<ToolsPort['execute']>>().toEqualTypeOf<Promise<ActionResult>>()
 
 // 385 plan 02 (D-06), narrowed by 391 plan 02 (D-09). The exact key set, pinned by equality
 // rather than by a list of per-method assertions. Per-method assertions can only say what IS

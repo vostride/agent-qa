@@ -18,7 +18,6 @@ import { AGENT_QA_RUNNER_LOCAL_OWNERSHIP_CONTRACT } from '../../runner-local/src
 import { AGENT_QA_SAFETY_OWNERSHIP_CONTRACT } from '../../safety/src/ownership-contract.js'
 import { AGENT_QA_SAFETY_LOCAL_OWNERSHIP_CONTRACT } from '../../safety-local/src/ownership-contract.js'
 import { AGENT_QA_SCHEMA_OWNERSHIP_CONTRACT } from '../../schema/src/ownership-contract.js'
-import { AGENT_QA_TOOLS_LOCAL_OWNERSHIP_CONTRACT } from '../../tools-local/src/ownership-contract.js'
 import { AGENT_QA_WEB_OWNERSHIP_CONTRACT } from '../../web/src/ownership-contract.js'
 import { PACKAGE_CLASS_RULES } from './contract-types.js'
 import type { OwnershipContract } from './contract-types.js'
@@ -48,7 +47,6 @@ export const ARCH_MANIFEST = {
     // rules and its cycle position taken on trust.
     AGENT_QA_ANALYTICS_OWNERSHIP_CONTRACT,
     AGENT_QA_CLI_OWNERSHIP_CONTRACT,
-    AGENT_QA_TOOLS_LOCAL_OWNERSHIP_CONTRACT,
     AGENT_QA_DASHBOARD_OWNERSHIP_CONTRACT,
     AGENT_QA_DASHBOARD_UI_OWNERSHIP_CONTRACT,
     AGENT_QA_EVAL_OWNERSHIP_CONTRACT,

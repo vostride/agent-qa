@@ -53,7 +53,6 @@ const NAMED_BUILDS = [
   '^build',
   '@vostride/agent-qa-schema#build',
   '@vostride/agent-qa-agent#build',
-  '@vostride/agent-qa-tools-local#build',
   '@vostride/agent-qa-core#build',
   'agent-qa#build',
 ]

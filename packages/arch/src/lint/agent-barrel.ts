@@ -874,7 +874,6 @@ export const EXPECTED_AGENT_BARREL_TYPE_EXPORTS: readonly string[] = [
   'StepEvidenceLookup',
   // 394-07 plan 07, D-14: see the funnel note beside `AuthoringFunnelPortLike` above.
   'SuiteOutcomeHistoryPortLike',
-  'ToolsPort',
   'TurnEngine',
   'TurnEngineDeps',
 ]
