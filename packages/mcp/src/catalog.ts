@@ -392,8 +392,7 @@ export function buildAgentQaMcpServer(deps: AgentQaMcpServerDeps): McpServer {
   for (const projection of AGENT_QA_TOOL_PROJECTIONS) {
     if (registered.has(projection.name)) {
       // Unreachable while the mapping table holds distinct names, and asserted anyway: a silent
-      // last-wins here would drop a capability from every caller's vocabulary and leave the bump
-      // guard comparing two sets that both lost the same member.
+      // last-wins here would drop a capability from every caller's vocabulary.
       throw new McpProjectionError(
         projection.name,
         'is declared twice in the mapping table; another projection already occupies that name',

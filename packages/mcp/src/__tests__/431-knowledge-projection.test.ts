@@ -4,15 +4,10 @@
 // projects, and the exact schema objects those ops enforce with. Everything else is read off the
 // registry, the mapping or a real server, so a cell here compares the table against a producer.
 //
-// MUTATION SUBJECTS (observed 2026-09-28 against this file and `mapping-bump-guard.test.ts`, each
-// subject restored byte for byte and its sha-256 re-checked; 431-13 owns the re-runnable harness):
-//   N1 a retired name returned (`agent_qa_get_run_artifact` over runs.get) in mapping.ts  -> MCP-NAMES-EXACT
-//   N2 `agent_qa_get_run_overview` deleted from mapping.ts                        -> MCP-NAMES-EXACT, MCP-PARTITION
-//   O1 the evidence fold's ops swapped to [runs.artifact, runs.evidence]           -> MCP-OPS-EXACT, fold arms
-//   A1 `'407'` returned to UNPROJECTED_ADJUDICATIONS                               -> MCP-ADJUDICATIONS only
-//   A2 `'423'` returned to UNPROJECTED_ADJUDICATIONS                               -> MCP-ADJUDICATIONS only
-//   P1 runs.overview folded into agent_qa_get_run_knowledge                        -> MCP-OPS-EXACT, MCP-PARTITION
-//   S1 agent_qa_list_knowledge_bundles renamed agent_qa_search_knowledge_bundles   -> REGISTRY-NO-SEARCH, MCP-NAMES-EXACT
+// MUTATION SUBJECTS (observed 2026-09-28 against this file, each subject restored byte for byte
+// and its sha-256 re-checked; 431-13 owns the re-runnable harness):
+//   O1 the evidence fold's ops swapped to [runs.artifact, runs.evidence]           -> fold arms
+//   S1 agent_qa_list_knowledge_bundles renamed agent_qa_search_knowledge_bundles   -> REGISTRY-NO-SEARCH
 //   V1 the visibleToCaller filter removed from catalog.ts                          -> READ-SCOPE-ONLY, HIDDEN-NAME-INVOCATION
 //      (2026-10-01, 432-20, D-12: V1 is now the shipped behaviour; both blocks are re-spelled to
 //      pin that every caller lists and reaches all eight tools.)

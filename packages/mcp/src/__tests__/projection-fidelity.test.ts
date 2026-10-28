@@ -80,7 +80,7 @@ interface AdvertisedTool {
   readonly annotations?: Record<string, unknown>
 }
 
-/** See `mapping-bump-guard.test.ts` for why empty deps are the honest fixture for a listing. */
+/** Empty deps: a listing reads deps only for each op's binding status, not for which ops exist. */
 function builtInRegistry(): FunctionRegistry {
   return createFunctionRegistry({ deps: {} as unknown as FunctionDeps })
 }
@@ -262,9 +262,9 @@ describe('the advertised schema equals the function layer\'s own projection (D-1
   //
   // Union folds are excluded and the exclusion is structural rather than a gap: a composed union is
   // a NEW object by construction, so identity cannot hold for one. What stands in for it there is
-  // the pair of produced checks that bracket it — the bump guard reads the arm literals back out of
-  // the composed schema, and the drift cell above compares each advertised arm against that arm
-  // op's own projection.
+  // the pair of produced checks that bracket it — `446-tool-schema.test.ts` reads the arm literals
+  // back out of the listed fold schema, and the drift cell above compares each advertised arm
+  // against that arm op's own projection.
   it('advertises the op\'s OWN contract object, not one that merely agrees with it', () => {
     let checked = 0
     for (const projection of AGENT_QA_TOOL_PROJECTIONS) {
@@ -373,7 +373,7 @@ describe('the build is deterministic (idempotency)', () => {
     expect(second).toEqual(first)
     // The order is the MAPPING's declaration order — grouped by workflow, not alphabetised — and it
     // is asserted as such rather than sorted, because a sort here would be a second ordering
-    // nothing derives from and the sorted spelling is already pinned by the bump guard.
+    // nothing derives from.
     expect(first).toEqual(AGENT_QA_TOOL_PROJECTIONS.map((projection) => projection.name))
   })
 

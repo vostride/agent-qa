@@ -4,15 +4,15 @@
 // to reach data its own way; the whole point of the re-derivation is that a tool is a PROJECTION of
 // a registry op and nothing else. What is left over once the handlers are gone is DATA — which tool
 // names exist, which op ids each one stands in front of, and what class of thing it does — and this
-// module is where that data lives so a single artifact can be pinned by the bump guard and ranged
-// over by 397's parity suite. Anything that is not data belongs in `projection.ts` or `catalog.ts`.
+// module is where that data lives so a single artifact can be ranged over by 397's parity suite.
+// Anything that is not data belongs in `projection.ts` or `catalog.ts`.
 //
 // 2026-09-15, 423-21 D-04/D-18: sixteen tools over twenty-six registry ops; the other TWENTY-FIVE
 // ops are listed below in `UNPROJECTED_OPS` with a reason each. Twenty-six plus twenty-five is the
-// registry's own count, and `__tests__/mapping-bump-guard.test.ts` asserts that partition against
-// the registry's enumeration rather than against the arithmetic in this sentence. The two new
-// tools are the feedback reads (marks history and the mark consequence preview); the typed
-// evidence read lands unprojected on `runs.detail`'s completed-run footing.
+// registry's own count, and `packages/cli/src/__tests__/conformance/parity.test.ts` checks that
+// partition against the registry's enumeration rather than against the arithmetic in this
+// sentence. The two new tools are the feedback reads (marks history and the mark consequence
+// preview); the typed evidence read lands unprojected on `runs.detail`'s completed-run footing.
 //
 // 2026-09-25 (428 D-07): the unprojected side grows to TWENTY-SIX when `editor.liveurl` is
 // registered; the projected side and the tool count do not move. The editor subject's mint is
@@ -41,15 +41,16 @@
 // `grants.list` and `grants.revoke` are deleted with the grant ledger.
 //
 // 2026-08-17 (398 D-09): the unprojected side moved from nineteen to twenty when `agent.explain`
-// was registered. This sentence is prose and the guard is the mechanism — but the prose is updated
-// in the same change-set anyway, because a header that goes on stating a partition the code stopped
-// having is the class of untruth the ops' own docstrings were caught in (397 D-18).
+// was registered. This sentence is prose and the parity suite's partition check is the mechanism —
+// but the prose is updated in the same change-set anyway, because a header that goes on stating a
+// partition the code stopped having is the class of untruth the ops' own docstrings were caught in
+// (397 D-18).
 //
 // 2026-08-29 (407-01 D-05): the unprojected side grows again, and the registry with it, when
 // `runs.knowledge` is registered — so the partition holds with both sides one larger. Unprojected
 // DELIBERATELY and on `runs.detail`'s footing: a completed run's whole used-and-learned projection
-// is a large one-shot payload, not a mid-flight read. The guard is the mechanism; this sentence is
-// updated in the same change-set for the reason the paragraph below states.
+// is a large one-shot payload, not a mid-flight read. The partition check is the mechanism; this
+// sentence is updated in the same change-set for the reason the paragraph below states.
 //
 // 2026-08-25 (403-01 D-03): twenty to twenty-one, and the registry from forty-two to forty-three,
 // when `runs.liveurl` was registered. Unprojected DELIBERATELY: minting a live-view capability
@@ -158,7 +159,7 @@ export type ToolProjectionKind = 'read' | 'workflow' | 'apply'
  *
  * A third field on the entry would have been a third thing to keep in step with the first two, and
  * the failure it would have hidden is a fold declared `single` — which registers a tool advertising
- * one arm's contract while the guard reports two arms and agrees with itself.
+ * one arm's contract while the entry declares two.
  */
 export type ToolComposition = 'single' | 'union' | 'pipeline'
 
@@ -170,7 +171,7 @@ export const RUN_READ_MAX_RESULT_SIZE_CHARS = 100000
 
 /** One declared tool. */
 export interface ToolProjection {
-  /** Curated `verb_noun` name per spec section 3.3 (D-04). The bump guard pins the exact list. */
+  /** Curated `verb_noun` name per spec section 3.3 (D-04). */
   readonly name: string
   /** The registry op ids this tool projects. Length 1 = 1:1; length > 1 = a declared fold. */
   readonly ops: readonly string[]
@@ -383,7 +384,7 @@ export const AGENT_QA_OP_CONTRACTS: Readonly<Record<string, ToolOpContracts>> = 
 })
 
 /**
- * THE CATALOGUE. Twenty tools, and the bump guard pins this exact list by name and by op set.
+ * THE CATALOGUE. Twenty tools.
  * (Sixteen until 2026-09-28, when 431 D-01 added the eight discovery reads; twenty-four until
  * 2026-09-30, when 432-12 removed the four proposal tools.)
  *
@@ -394,9 +395,9 @@ export const AGENT_QA_OP_CONTRACTS: Readonly<Record<string, ToolOpContracts>> = 
  * `apply` entry, and since 432-21 (D-12) it checks no credential.
  *
  * WHY THERE IS NO PROPOSAL TOOL AT ALL. The inbox's verbs declared a human-origin requirement, so a
- * tool over either decision verb would have listed for every caller and refused every call; the
- * bump guard stated the rule generally until 432-39 deleted the field. 432-12 unprojected the whole
- * inbox and 432-17 deleted it, ops and all (re-spelled 2026-10-02, 432-42).
+ * tool over either decision verb would have listed for every caller and refused every call.
+ * 432-12 unprojected the whole inbox and 432-17 deleted it, ops and all (re-spelled 2026-10-02,
+ * 432-42).
  */
 export const AGENT_QA_TOOL_PROJECTIONS: readonly ToolProjection[] = Object.freeze([
   Object.freeze({
@@ -657,8 +658,8 @@ export const DEGRADED_OUTPUT_CONTRACTS: readonly OutputSchemaDegradation[] = Obj
  * THE DATED SCOPING NOTE IS THIS TABLE, not a comment beside it. 397's parity suite ranges over the
  * projected set, and a suite that scoped itself to whatever happened to be in the mapping would be
  * discovering an accident rather than honouring a decision. Every op the registry declares appears
- * either above or here — the bump guard asserts that partition against the registry's own
- * enumeration, so a new op cannot land undispositioned.
+ * either above or here — `packages/cli/src/__tests__/conformance/parity.test.ts` checks that
+ * partition against the registry's own enumeration, so a new op cannot land undispositioned.
  *
  * `agent.ask` LEADS THE LIST because its exclusion is the one with a decision behind it (D-03).
  * Projecting the agent's own turn entry over MCP is nested-agent delegation: a caller's tool call
@@ -680,37 +681,31 @@ export interface UnprojectedOp {
    * to admit `'398'` on 2026-08-17 for `agent.explain`, and the widening is the honest move rather
    * than a convenience: 397 could not have adjudicated an op that did not exist, and stamping this
    * one `'397'` to keep a literal green would have made the field record a ruling nobody made — the
-   * one thing a provenance column is for. The vocabulary is a CLOSED set and the bump guard pins
-   * which entries carry which adjudicator by name, so it cannot widen again by habit.
+   * one thing a provenance column is for. The vocabulary is a CLOSED set.
    *
    * 405-05 adds `runs.artifact` under the SAME `'405'` stamp on the same day and by the same
    * ruling; the vocabulary does not widen for it.
    *
    * WIDENED AGAIN on 2026-08-27 (405-01, D-03) for `runs.detail`, on exactly the 398 and 403
    * reasoning and for no new one: 397 could not have ruled on an op registered eight phases
-   * later. The bump guard names which entry carries this adjudicator, in both directions, so an
-   * entry stamped `'405'` because it was easier reds there rather than joining a set that has
-   * quietly become "any phase number".
+   * later.
    *
    * WIDENED AGAIN on 2026-08-29 (407-01, D-05) for `runs.knowledge`, on exactly that reasoning and
-   * for no new one: 397 could not have ruled on an op registered ten phases later. Membership is
-   * still spelled by op id in the bump guard, in both directions.
+   * for no new one: 397 could not have ruled on an op registered ten phases later.
    *
    * RE-STAMPED on 2026-08-31 (408 D-01): `'403'` LEAVES this vocabulary and `'408'` enters. This is
    * not a widening and not a rename — it is the provenance moving with the ruling. `runs.liveurl`
    * was the ONLY `'403'` entry, and its 403 stamp recorded a DEFERRAL ("Phase 408's question");
    * 408 D-01 answered that question, so the phase that decided this absence is now 408 and saying
    * `'403'` would credit 403 with a ruling it explicitly declined to make. Leaving `'403'` in a
-   * closed set with no member would also be exactly the empty literal the bump guard's
-   * non-vacuity check passes silently over, which is the hole that check exists to close.
+   * closed set with no member would also leave a literal that no entry carries.
    */
   // WIDENED AGAIN on 2026-09-15 (423-21, D-04) for `runs.evidence`, on the same reasoning: 397
-  // could not have ruled on an op registered in 423. Membership is spelled by op id in the guard.
+  // could not have ruled on an op registered in 423.
   // WIDENED AGAIN on 2026-09-25 (428 D-07) for `editor.liveurl`, on the same reasoning.
   // NARROWED on 2026-09-28 (431-04 D-10): `'407'` and `'423'` LEAVE. Their only members,
-  // `runs.knowledge` and `runs.evidence`, are projected, and a member-less literal is the hole the
-  // guard's non-vacuity check exists to close (the 408 re-stamp precedent). Their rulings live on in
-  // `PROJECTED_RULING_ADDENDA`.
+  // `runs.knowledge` and `runs.evidence`, are projected, and a literal with no member does not stay
+  // (the 408 re-stamp precedent). Their rulings live on in `PROJECTED_RULING_ADDENDA`.
   // WIDENED on 2026-09-30 (432-12, D-05) for the five pre-432 proposal ops that leave the projected
   // side: the ruling that removed their tools is 432's, and 432-17 deletes the ops themselves.
   // NARROWED on 2026-10-01 (432-17, D-05): the five ops are deleted from the registry, so `'432'`

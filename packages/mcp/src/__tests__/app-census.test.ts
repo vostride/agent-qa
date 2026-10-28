@@ -49,10 +49,9 @@
 //   M1  A THIRD CARRIER ROW in `mapping.ts` (`agent_qa_list_runs` given a `ui` declaration).
 //       Declared with `runIdFrom: 'output'` on a read-only op -> `(C2)` red BY NAME
 //       ("agent_qa_list_runs reads its runId off the wrong source"). Declared CONSISTENTLY
-//       (`'input'`) it passes here — and reds `mapping-bump-guard.test.ts`'s
-//       `PINNED_TOOL_UI_CARRIERS` and `projection-fidelity.test.ts`'s pinned census instead.
-//       THAT DIVISION OF LABOUR IS DELIBERATE and is why this file does not restate the pair:
-//       plan 01's pin owns "the carrier set may not GROW without somebody saying so"; this file
+//       (`'input'`) it passes here — and reds `projection-fidelity.test.ts`'s pinned census
+//       instead. THAT DIVISION OF LABOUR IS DELIBERATE and is why this file does not restate the
+//       pair: that census owns "the carrier set may not GROW without somebody saying so"; this file
 //       owns "the table and the wire may not DISAGREE", which is the failure a pin cannot see.
 //   M2  `projection.ts` stops deriving `_meta` from the declaration -> `(C1)` red by name: the
 //       table names two carriers and the advertised document names none.
@@ -123,7 +122,7 @@ const callerWith = (grantedScopes: readonly string[]): FunctionCaller => ({
 
 const identity = (text: string): string => text
 
-/** See `mapping-bump-guard.test.ts`: empty deps are the honest fixture for a LISTING. */
+/** Empty deps: a listing reads deps only for each op's binding status, not for which ops exist. */
 function builtInRegistry(): FunctionRegistry {
   return createFunctionRegistry({ deps: {} as unknown as FunctionDeps })
 }
