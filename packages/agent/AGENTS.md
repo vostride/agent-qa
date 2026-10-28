@@ -3,8 +3,8 @@
 ## Scope
 
 This package owns the provider-neutral and storage-neutral agent layer: the
-port contracts for knowledge, tools, persistence, the job store, authoring
-reads and the clock, and the typed function layer every host
+port contracts for knowledge, persistence, the job store, authoring reads and
+the clock, and the typed function layer every host
 composes (`src/functions/`: the registry, `invokeFunction` and the op specs).
 The chat planner, authoring, analysis, explain, job queue, prompts and config
 mutation are built on those ports. Concrete storage and host adapters live in
@@ -19,7 +19,6 @@ other packages.
 - `src/functions/invoke.ts`
 - `src/functions/spec.ts`
 - `src/ports/knowledge.ts`
-- `src/ports/tools.ts`
 - `src/ports/persistence.ts`
 - `src/ports/job-store.ts`
 - `src/ports/authoring-read.ts`
