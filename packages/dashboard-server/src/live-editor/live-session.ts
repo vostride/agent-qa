@@ -7,6 +7,7 @@ import {
   SuiteDefinitionSchema,
   TestDefinitionSchema,
   TimeoutConfigSchema,
+  getAgentQaVersion,
   readAuthStateMetadata,
   resolveAuthStatePaths,
   writeAuthStateFiles,
@@ -660,7 +661,7 @@ export class LiveSession {
       }
 
       const result = await runHooks([hookDef], {
-        executor: new DockerHookExecutor(),
+        executor: new DockerHookExecutor({ version: getAgentQaVersion() }),
         env: this.getHookEnvVars(),
         secretStore: this.secretStore,
         secretRedactor: this.secretRedactor,
@@ -942,7 +943,7 @@ export class LiveSession {
 
         const startedAt = performance.now()
         try {
-          const result = await new DockerHookExecutor().execute(hookDef, {
+          const result = await new DockerHookExecutor({ version: getAgentQaVersion() }).execute(hookDef, {
             env: this.getHookEnvVars(),
             secretEnv: resolveSecretEnv(this.secretStore),
             secretRedactor: this.secretRedactor,

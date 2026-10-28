@@ -87,7 +87,7 @@ import {
 import { createConnectInFlight, registerLlmConnectRoute } from './llm-connect-route.js'
 import type { PostProcessingRelay } from '../execution/post-processing-relay.js'
 import type { LLMAuthProviderPlugin, OAuthTokens } from '@vostride/agent-qa-core'
-import { AuthStateNameSchema, buildInternalRunAttributes, DEFAULT_AGENT_QA_CACHE_DIR, mergeRunAttributes, readAuth, writeAuth, removeAuth, getAgentQaVersion, getAgentQaUpdateStatus, getLLMAuthProviderPlugin, listAuthStateMetadata, listLLMAuthProviderPlugins, ModelConfigSchema, NameSlugSchema, TimeoutConfigSchema, AgentQaConfigSchema, TestDefinitionSchema, SuiteDefinitionSchema, parseEnvFile, serializeEnvFile, parseHooksFile, RUNTIME_IMAGE_MAP, validateUserRunAttributes, discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarget, SizeString } from '@vostride/agent-qa-core'
+import { AuthStateNameSchema, buildInternalRunAttributes, DEFAULT_AGENT_QA_CACHE_DIR, mergeRunAttributes, readAuth, writeAuth, removeAuth, getAgentQaVersion, getAgentQaUpdateStatus, getLLMAuthProviderPlugin, listAuthStateMetadata, listLLMAuthProviderPlugins, ModelConfigSchema, NameSlugSchema, TimeoutConfigSchema, AgentQaConfigSchema, TestDefinitionSchema, SuiteDefinitionSchema, parseEnvFile, serializeEnvFile, parseHooksFile, hookRunnerImage, validateUserRunAttributes, discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarget, SizeString } from '@vostride/agent-qa-core'
 import { SecretStore, SecretRedactor } from '@vostride/agent-qa-runner'
 import { DockerHookExecutor, purgeActionCache } from '@vostride/agent-qa-runner-local'
 import type { ResolvedWorkspacePaths, RunAttributes, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
@@ -4620,7 +4620,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
               return
             }
             const workspaceEnv = await readWorkspaceEnvVars(workspacePaths)
-            const result = await new DockerHookExecutor().execute(resolvedHook, {
+            const result = await new DockerHookExecutor({ version: getAgentQaVersion() }).execute(resolvedHook, {
               env: {
                 ...workspaceEnv,
                 ...validation.overrides,
@@ -4657,7 +4657,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
               variables: shown.variables,
               sandbox: {
                 runtime: resolvedHook.runtime,
-                image: RUNTIME_IMAGE_MAP[resolvedHook.runtime],
+                image: hookRunnerImage(resolvedHook.runtime, getAgentQaVersion()),
                 networkMode: resolvedHook.network ? 'enabled' : 'disabled',
                 dockerVersion: null,
                 networkLogsAvailable: shown.networkLogs.length > 0,

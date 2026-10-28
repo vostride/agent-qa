@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { DockerHookExecutor, checkDockerAvailable } from '../hook-executor.js'
+import {
+  DockerHookExecutor,
+  checkDockerAvailable,
+  type DockerHookExecutorConfig,
+} from '../hook-executor.js'
 import type { HookDefinition, HookExecuteOptions } from '@vostride/agent-qa-runner'
 import { SecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
 
@@ -42,8 +46,12 @@ function opts(partial: Partial<HookExecuteOptions> = {}): HookExecuteOptions {
   return { env: {}, secretEnv: {}, ...partial }
 }
 
-function run(hook: HookDefinition, partial: Partial<HookExecuteOptions> = {}, config = {}) {
-  return new DockerHookExecutor(config).execute(hook, opts(partial))
+function run(
+  hook: HookDefinition,
+  partial: Partial<HookExecuteOptions> = {},
+  config: Partial<DockerHookExecutorConfig> = {},
+) {
+  return new DockerHookExecutor({ version: '1.2.3', ...config }).execute(hook, opts(partial))
 }
 
 beforeEach(() => {
@@ -69,6 +77,28 @@ describe('checkDockerAvailable', () => {
 })
 
 describe('DockerHookExecutor.execute', () => {
+  it('names the image tagged with the running version in inspect, pull and run', async () => {
+    const calls: string[][] = []
+    mockExecFile.mockImplementation((_cmd: any, args: any, _o: any, cb: any) => {
+      if (typeof _o === 'function') cb = _o
+      calls.push(args)
+      if (args[0] === 'image') cb(new Error('No such image'), '', '')
+      else cb(null, '', '')
+      return {} as any
+    })
+    mockReadFile.mockRejectedValue(Object.assign(new Error('ENOENT'), { code: 'ENOENT' }))
+
+    await run(makeHook())
+
+    const image = 'vostride/agent-qa-hook-runner-node:1.2.3'
+    const inspect = calls.find((a) => a[0] === 'image')
+    const pull = calls.find((a) => a[0] === 'pull')
+    const runArgs = calls.find((a) => a[0] === 'run')
+    expect(inspect?.at(-1)).toBe(image)
+    expect(pull?.at(-1)).toBe(image)
+    expect(runArgs).toContain(image)
+  })
+
   it('returns success result when container exits 0', async () => {
     mockExecFile.mockImplementation((_cmd: any, args: any, _o: any, cb: any) => {
       if (typeof _o === 'function') cb = _o
@@ -262,10 +292,10 @@ describe('DockerHookExecutor.execute', () => {
 
   it('uses correct runtime command for each runtime', async () => {
     const runtimes: Array<{ runtime: HookDefinition['runtime']; expectedImage: string; expectedCommand: string }> = [
-      { runtime: 'node', expectedImage: 'vostride/agent-qa-hook-runner-node', expectedCommand: 'node' },
-      { runtime: 'bun', expectedImage: 'vostride/agent-qa-hook-runner-bun', expectedCommand: 'bun' },
-      { runtime: 'python', expectedImage: 'vostride/agent-qa-hook-runner-python', expectedCommand: 'python3' },
-      { runtime: 'bash', expectedImage: 'vostride/agent-qa-hook-runner-bash', expectedCommand: 'bash' },
+      { runtime: 'node', expectedImage: 'vostride/agent-qa-hook-runner-node:1.2.3', expectedCommand: 'node' },
+      { runtime: 'bun', expectedImage: 'vostride/agent-qa-hook-runner-bun:1.2.3', expectedCommand: 'bun' },
+      { runtime: 'python', expectedImage: 'vostride/agent-qa-hook-runner-python:1.2.3', expectedCommand: 'python3' },
+      { runtime: 'bash', expectedImage: 'vostride/agent-qa-hook-runner-bash:1.2.3', expectedCommand: 'bash' },
     ]
 
     for (const { runtime, expectedImage, expectedCommand } of runtimes) {

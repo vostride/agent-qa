@@ -100,6 +100,7 @@ vi.mock('@vostride/agent-qa-core', () => ({
     }
   },
   resolveMobileRunConfig: (...args: unknown[]) => mockResolveMobileRunConfig(...args),
+  getAgentQaVersion: () => '0.0.0',
   executeStep: (...args: unknown[]) => mockExecuteStep(...args),
   LLMPlanner: vi.fn().mockImplementation(function () { return { plan: vi.fn() } }),
   LLMVerifier: vi.fn().mockImplementation(function () { return { verify: vi.fn() } }),

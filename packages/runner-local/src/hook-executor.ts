@@ -22,7 +22,7 @@ import type {
   RuntimeAuthStateConfig,
 } from '@vostride/agent-qa-runner'
 import {
-  RUNTIME_IMAGE_MAP,
+  hookRunnerImage,
   parseEnvFile,
   AUTH_STATE_HOOK_CONTAINER_STORAGE_STATE_PATH,
   AUTH_STATE_HOOK_STORAGE_STATE_FILENAME,
@@ -35,20 +35,20 @@ import {
 const DEFAULT_DOCKER_BIN = 'docker'
 
 export interface DockerHookExecutorConfig {
+  version: string
   dockerBin?: string
   pullPolicy?: 'always' | 'if-not-present' | 'never'
 }
 
-/**
- * The D-06 hook-execution impl. Constructed once at the CLI composition root and threaded
- * into the runner `runHooks` orchestration behind the {@link HookExecutorPort}. A per-hook
- * timeout resolves a FAILED {@link HookResult} (exit-124-style error), never a throw.
- */
+// One executor per host composition root. A per-hook timeout resolves a failed result,
+// never a throw.
 export class DockerHookExecutor implements HookExecutorPort {
+  private readonly version: string
   private readonly dockerBin: string
   private readonly pullPolicy: 'always' | 'if-not-present' | 'never'
 
-  constructor(config: DockerHookExecutorConfig = {}) {
+  constructor(config: DockerHookExecutorConfig) {
+    this.version = config.version
     this.dockerBin = config.dockerBin ?? DEFAULT_DOCKER_BIN
     this.pullPolicy = config.pullPolicy ?? 'if-not-present'
   }
@@ -58,7 +58,7 @@ export class DockerHookExecutor implements HookExecutorPort {
     const pullPolicy = this.pullPolicy
     const start = Date.now()
 
-    const image = RUNTIME_IMAGE_MAP[hook.runtime]
+    const image = hookRunnerImage(hook.runtime, this.version)
 
     if (pullPolicy === 'always' || pullPolicy === 'if-not-present') {
       const needsPull = pullPolicy === 'always' || !(await imageExists(dockerBin, image))

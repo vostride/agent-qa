@@ -21,6 +21,7 @@ vi.mock('@vostride/agent-qa-runner-local', async (importOriginal) => ({
   DockerHookExecutor: class { execute(...args: unknown[]) { return mockRunHookInSandbox(...args) } },
 }))
 
+import { getAgentQaVersion } from '@vostride/agent-qa-core'
 import { ConfigManager, readConfigValues } from '../config/index.js'
 import { createRouter } from '../server/routes.js'
 import { resolveWorkspacePaths, type ResolvedWorkspacePaths } from '@vostride/agent-qa-core'
@@ -932,7 +933,7 @@ describe('POST /api/hooks/:hookId/run', () => {
       variables: { RESULT: 'abc' },
       sandbox: {
         runtime: 'node',
-        image: 'vostride/agent-qa-hook-runner-node',
+        image: `vostride/agent-qa-hook-runner-node:${getAgentQaVersion()}`,
         networkMode: 'disabled',
         dockerVersion: null,
         networkLogsAvailable: false,
@@ -1051,7 +1052,7 @@ describe('POST /api/hooks/:hookId/run', () => {
     expect(JSON.parse(res.body)).toEqual(expect.objectContaining({
       sandbox: {
         runtime: 'bun',
-        image: 'vostride/agent-qa-hook-runner-bun',
+        image: `vostride/agent-qa-hook-runner-bun:${getAgentQaVersion()}`,
         networkMode: 'enabled',
         dockerVersion: null,
         networkLogsAvailable: false,

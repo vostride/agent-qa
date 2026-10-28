@@ -32,3 +32,7 @@ export const RUNTIME_IMAGE_MAP: Record<HookRuntime, string> = {
   python: 'vostride/agent-qa-hook-runner-python',
   bash: 'vostride/agent-qa-hook-runner-bash',
 }
+
+export function hookRunnerImage(runtime: HookRuntime, version: string): string {
+  return `${RUNTIME_IMAGE_MAP[runtime]}:${version}`
+}

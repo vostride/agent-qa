@@ -1,6 +1,6 @@
 // Barrel for the runner-owned hook contracts + orchestration (Phase 363 D-06).
 export type { HookRuntime, HookDefinition, HookResult } from './types.js'
-export { RUNTIME_IMAGE_MAP } from './types.js'
+export { RUNTIME_IMAGE_MAP, hookRunnerImage } from './types.js'
 export { parseEnvFile, serializeEnvFile } from './env-file.js'
 export {
   AUTH_STATE_HOOK_JSON_ENV,
