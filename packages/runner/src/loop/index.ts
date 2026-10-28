@@ -37,6 +37,7 @@ import type {
   CacheKey,
   CautionBlock,
   CautionLine,
+  ConditionVerdictsEvidence,
   Decision,
   ElementInfo,
   GroundingAttempt,
@@ -109,8 +110,13 @@ import {
   renderOperationEvidence,
 } from './prompts.js'
 import { judgeConditions, type CitationSources, type ConditionGuardFacts } from './requested-conditions.js'
-import type { SavedFile } from './condition-guards.js'
-import { StepRecordAccumulator, type RecordedAction, type RecordedActionOutcome } from './step-record.js'
+import { lineHolds, type SavedFile } from './condition-guards.js'
+import {
+  StepRecordAccumulator,
+  readLine,
+  type RecordedAction,
+  type RecordedActionOutcome,
+} from './step-record.js'
 import { EvidenceRecorder, collapseAnnotation, persistAriaEvidence, projectLegacyTrace } from './evidence.js'
 import type { RecordSubActionInput } from './evidence.js'
 import { maskToolExchanges } from './mask-exchanges.js'
@@ -373,8 +379,10 @@ export async function executeStep(
   let cacheBypass = false
 
   // The step's saved path: each successful saveable turn is held until the verifier passes the
-  // step, then written under a key whose step index is the turn's place in that path.
+  // step, then written under a key whose step index is the turn's place in that path. A report is
+  // never saved; each one marks where it fell in the path and the read line it added.
   let pathOrdinal = 0
+  let pathEndsAtLastHeld = false
   const savedPath: {
     key: CacheKey
     action: Action
@@ -383,13 +391,28 @@ export async function executeStep(
     turn: number
     storedCompletesStep: boolean | undefined
   }[] = []
+  const reportMarks: { held: number; line: string }[] = []
 
-  // A replayed turn is written again only when its completion flag changes.
-  const flushSavedPath = async (completingTurn: number): Promise<void> => {
-    if (!ports.cache || cacheBypass || savedPath.length === 0) return
-    const last = savedPath[savedPath.length - 1]
-    const lastCompletes = last.turn === completingTurn
-    for (const held of savedPath) {
+  // A report the passing verdict cites is read live on replay, so the path ends before it and
+  // claims no completion. A closing report it does not cite is dropped and the completion claim
+  // moves to the last saved action. A replayed turn is written again only when its flag changes.
+  const flushSavedPath = async (
+    completing: { turn: number; report: boolean },
+    verdict?: ConditionVerdictsEvidence,
+  ): Promise<void> => {
+    if (!ports.cache || cacheBypass) return
+    const citedReads = (verdict?.conditions ?? [])
+      .filter((condition) => condition.verdict === 'met')
+      .flatMap((condition) => condition.citations)
+      .filter((citation) => citation.source === 'read' && citation.found === true)
+    const needed = reportMarks.find((mark) =>
+      citedReads.some((citation) => lineHolds(mark.line, citation.quote, recordMask)))
+    const path = needed !== undefined ? savedPath.slice(0, needed.held) : savedPath
+    const last = path.at(-1)
+    if (last === undefined) return
+    const lastCompletes = needed === undefined
+      && (last.turn === completing.turn || (completing.report && pathEndsAtLastHeld))
+    for (const held of path) {
       const completesStep = lastCompletes && held === last
       if (held.storedCompletesStep === completesStep) continue
       await ports.cache.set(held.key, buildCachedPlanValue({
@@ -1597,7 +1620,12 @@ export async function executeStep(
       execResult = mintReportedValue({ value: reportedValue })
       execError = undefined
       recorder.recordReportedValue({ value: reportedValue })
-      stepRecord.addRead({ kind: 'reportValue', text: `"${reportedValue}"` })
+      const read = { kind: 'reportValue' as const, text: `"${reportedValue}"` }
+      stepRecord.addRead(read)
+      reportMarks.push({
+        held: savedPath.length,
+        line: readLine({ index: stepRecord.recordedActions().length + 1, ...read }),
+      })
     } else if (dispatchVerb === 'uniqueValue') {
       // D-16: mint prefix + injectable-generator suffix here (zero adapter.execute), then auto-write
       // the minted value into run-scoped working memory keyed by the prefix (kind extracted-value /
@@ -2085,10 +2113,12 @@ export async function executeStep(
     // Execution succeeded — clear failure context.
     context.failureContext = undefined
 
-    if (
-      normalizedAction.type !== 'reportValue'
+    // A report leaves the end of the saved path where it was; any other turn not held ends it.
+    const isReport = normalizedAction.type === 'reportValue'
+    const saveable = !isReport
       && isReplayableActionShape(normalizedAction.type, Object.keys(normalizedAction))
-    ) {
+    if (saveable) {
+      pathEndsAtLastHeld = false
       if (cacheActive && !procedureReplayed && cacheKey !== undefined) {
         savedPath.push({
           key: cacheKey,
@@ -2098,8 +2128,11 @@ export async function executeStep(
           turn: actionIndex,
           storedCompletesStep: cached ? storedCompletesStep : undefined,
         })
+        pathEndsAtLastHeld = true
       }
       pathOrdinal++
+    } else if (!isReport) {
+      pathEndsAtLastHeld = false
     }
 
     // 5. VERIFY — only when the planner signals stepComplete (three-outcome strategy).
@@ -2218,7 +2251,7 @@ export async function executeStep(
           annotation,
         )
         pendingSelfHeal = undefined
-        await flushSavedPath(actionIndex)
+        await flushSavedPath({ turn: actionIndex, report: isReport }, judged.evidence)
         // F-381-51-1 · D-09: the verifier ACCEPTED a successful replayed step — re-arm the
         // cross-step carry when body steps remain (the only write site; take-then-rearm).
         if (procedureReplayed) rearmProcedureFlowCarry()
@@ -2315,7 +2348,7 @@ export async function executeStep(
       )
       pendingSelfHeal = undefined
       void idx
-      await flushSavedPath(actionIndex)
+      await flushSavedPath({ turn: actionIndex, report: isReport })
       // F-381-51-1 · D-09: verifier-less harness state — the trusted completion accepts
       // the replayed step, so the cross-step carry re-arms when body steps remain.
       if (procedureReplayed) rearmProcedureFlowCarry()

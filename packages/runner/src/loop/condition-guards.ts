@@ -260,7 +260,7 @@ function asksForLess(
   return properSubstring(asked, wanted) || fewerItems(asked, wanted)
 }
 
-function lineHolds(line: string, quote: string, mask: (value: string) => string): boolean {
+export function lineHolds(line: string, quote: string, mask: (value: string) => string): boolean {
   const raw = collapse(quote)
   if (raw.length === 0) return false
   return collapse(line).includes(raw) || collapse(mask(line)).includes(collapse(mask(raw)))

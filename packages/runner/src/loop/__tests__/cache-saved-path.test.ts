@@ -7,6 +7,7 @@ import type { LoopPorts } from '../ports.js'
 import type { ActionPlan, Planner, PlanResult, Verifier } from '../types.js'
 import { executeStep } from '../index.js'
 import { makeScreenState } from '../../testing/screen-fixtures.js'
+import { metVerification } from '../../testing/condition-verdicts.js'
 import { makeActionPlan, makeStepContext, makeVerifier } from './loop-harness.js'
 
 const STEP = 'Save the contact details'
@@ -291,5 +292,145 @@ describe('a passing step saves its whole path', () => {
     expect(second.evidence!.cacheStatus).toBe('miss')
     expect(cache.sets).toEqual([cache.gets[2].key])
     expect(cache.store.get(cache.gets[2].key)!.completesStep).toBe(true)
+  })
+})
+
+function reportScreens(): ScreenState[] {
+  const [blank, named] = formScreens()
+  const saved = screen('https://contacts.test/saved', [el('e1', 'heading', 'Contact saved', 80)])
+  return [blank, named, saved]
+}
+
+const REPORT_TEXT = 'Ada is listed among the saved contacts'
+
+const OPEN_SAVE = makeActionPlan({
+  reasoning: 'Save the contact',
+  action: { type: 'click', ref: 'e3' },
+  stepComplete: false,
+})
+
+function report(value: string, stepComplete: boolean): ActionPlan {
+  return makeActionPlan({
+    reasoning: 'Report what the page shows',
+    action: { type: 'reportValue', value },
+    stepComplete,
+  })
+}
+
+// A met verdict that cites the report's read.
+function citingVerifier(quote: string): Verifier {
+  return {
+    async verify(step, _before, after, action) {
+      const met = metVerification({ step, after, action })
+      return {
+        verification: {
+          ...met,
+          conditions: met.conditions.map((condition) => ({
+            ...condition,
+            citations: [{ source: 'read' as const, quote }],
+          })),
+        },
+      }
+    },
+  }
+}
+
+function storedText(cache: RecordingCache): string {
+  return JSON.stringify([...cache.store.values()])
+}
+
+describe('a report is never saved or replayed', () => {
+  it('a closing report the step does not need is not saved, and the rerun claims completion on the last replayed action', async () => {
+    const cache = recordingCache()
+    const first = await runStep({
+      cache,
+      screens: reportScreens(),
+      planner: scriptedPlanner([FILL_NAME, OPEN_SAVE, report(REPORT_TEXT, true)]),
+    })
+
+    expect(first.status).toBe('passed')
+    expect(cache.sets).toHaveLength(2)
+    expect(cache.sets.map((key) => cache.store.get(key)!.completesStep)).toEqual([false, true])
+    expect(cache.store.get(cache.sets[1])!.plannedActions[0].type).toBe('click')
+    for (const value of cache.store.values()) {
+      expect(value.plannedActions.map((action) => action.type)).not.toContain('reportValue')
+    }
+    expect(storedText(cache)).not.toContain(REPORT_TEXT)
+
+    forgetCalls(cache)
+    const planner = silentPlanner()
+    const second = await runStep({ cache, planner, screens: reportScreens() })
+
+    expect(second.status).toBe('passed')
+    expect(planner.calls).toBe(0)
+    expect(cache.gets.every((get) => get.hit)).toBe(true)
+    expect(second.evidence!.cacheStatus).toBe('hit')
+    expect(second.evidence!.reportedValue).toBeUndefined()
+  })
+
+  it('a report the verdict cites keeps the saved path from claiming completion, and the rerun reads it live', async () => {
+    const cache = recordingCache()
+    const first = await runStep({
+      cache,
+      screens: reportScreens(),
+      planner: scriptedPlanner([FILL_NAME, OPEN_SAVE, report(REPORT_TEXT, true)]),
+      verifier: citingVerifier(REPORT_TEXT),
+    })
+
+    expect(first.status).toBe('passed')
+    expect(cache.sets).toHaveLength(2)
+    expect(cache.sets.map((key) => cache.store.get(key)!.completesStep)).toEqual([false, false])
+    expect(storedText(cache)).not.toContain(REPORT_TEXT)
+
+    forgetCalls(cache)
+    const rerunText = 'Ada appears once among the saved contacts'
+    const planner = scriptedPlanner([report(rerunText, true)])
+    const second = await runStep({
+      cache,
+      planner,
+      screens: reportScreens(),
+      verifier: citingVerifier(rerunText),
+    })
+
+    expect(second.status).toBe('passed')
+    expect(planner.calls).toBe(1)
+    expect(cache.gets.map((get) => get.hit)).toEqual([true, true, false])
+    expect(second.evidence!.cacheStatus).toBe('miss')
+    expect(second.evidence!.reportedValue).toEqual({ value: rerunText })
+    expect(storedText(cache)).not.toContain(rerunText)
+  })
+
+  it('a closing report after an action that cannot replay moves no completion claim', async () => {
+    const cache = recordingCache()
+    const tap = makeActionPlan({
+      reasoning: 'Tap the save area',
+      action: { type: 'tapCoordinate', x: 195, y: 262 },
+      stepComplete: false,
+    })
+    const first = await runStep({
+      cache,
+      screens: reportScreens(),
+      planner: scriptedPlanner([FILL_NAME, tap, report(REPORT_TEXT, true)]),
+    })
+
+    expect(first.status).toBe('passed')
+    expect(cache.sets).toHaveLength(1)
+    expect(cache.store.get(cache.sets[0])!.completesStep).toBe(false)
+  })
+
+  it('a cited report in the middle of a step ends the saved path before it', async () => {
+    const cache = recordingCache()
+    const first = await runStep({
+      cache,
+      screens: reportScreens(),
+      planner: scriptedPlanner([FILL_NAME, report(REPORT_TEXT, false), CLICK_SAVE]),
+      verifier: citingVerifier(REPORT_TEXT),
+    })
+
+    expect(first.status).toBe('passed')
+    expect(cache.sets).toHaveLength(1)
+    expect(cache.store.get(cache.sets[0])!.plannedActions[0].type).toBe('fill')
+    expect(cache.store.get(cache.sets[0])!.completesStep).toBe(false)
+    expect(storedText(cache)).not.toContain(REPORT_TEXT)
   })
 })
