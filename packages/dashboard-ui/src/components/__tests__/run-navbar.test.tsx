@@ -114,7 +114,6 @@ const baseRun = {
   testFileContent: null,
   modelName: null,
   llmProvider: null,
-  parentRunId: null,
   attemptNumber: 1,
   retryCount: 0,
   maxRetries: 0,
@@ -671,7 +670,6 @@ describe("RunNavbar", () => {
           name: "Sample Basic suite",
           filePath: "suites/sample-basic.suite.yaml",
           suiteId: "s_sample_basic",
-          parentRunId: null,
         }}
         shortcutsOpen={false}
         onToggleShortcuts={() => {}}

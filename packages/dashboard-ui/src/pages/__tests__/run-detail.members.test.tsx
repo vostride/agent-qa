@@ -195,7 +195,6 @@ function runRow(id: string, over: Record<string, unknown> = {}) {
     testFileContent: null,
     modelName: null,
     llmProvider: null,
-    parentRunId: null,
     attemptNumber: 1,
     retryCount: 0,
     maxRetries: 0,

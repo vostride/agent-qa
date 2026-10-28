@@ -96,7 +96,7 @@ function formatTarget(run: RunRow) {
 }
 
 function isSuiteParent(run: RunRow) {
-  return run.suiteId != null && run.parentRunId == null
+  return run.suiteId != null
 }
 
 function sortAttributeEntries(

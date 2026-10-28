@@ -150,10 +150,8 @@ export interface RunArtifactFinalizeInput extends RunArtifactStageInput {
 
 export interface RunArtifactReporterContext {
   runId?: string
-  parentRunId?: string | null
   artifact?: RunArtifactStageInput & {
     kind?: RunArtifactKind
     suiteIndex?: number
-    parentRunId?: string | null
   }
 }

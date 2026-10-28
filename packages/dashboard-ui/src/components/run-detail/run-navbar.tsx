@@ -153,7 +153,7 @@ export function RunNavbar({
   feedbackEntry,
 }: RunNavbarProps) {
   const navigate = useNavigate()
-  const isSuiteParent = run.suiteId != null && run.parentRunId == null
+  const isSuiteParent = run.suiteId != null
   const sourceHref = isSuiteParent && run.suiteId
     ? routes.suiteView(run.suiteId)
     : run.testId

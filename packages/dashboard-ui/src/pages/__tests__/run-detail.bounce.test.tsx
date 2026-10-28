@@ -154,7 +154,6 @@ function runRow(status: string) {
     testFileContent: null,
     modelName: null,
     llmProvider: null,
-    parentRunId: null,
   }
 }
 

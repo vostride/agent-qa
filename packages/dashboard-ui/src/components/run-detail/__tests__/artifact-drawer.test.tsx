@@ -33,7 +33,7 @@ const run: RunRow = {
   attributes: {}, environment: null, metadata: null, startedAt: null, endedAt: null,
   failureSummary: null, errorLog: null, testId: null, suiteId: null,
   platform: 'web', testFileContent: null, modelName: null, llmProvider: null,
-  parentRunId: null, attemptNumber: 1, retryCount: 0, maxRetries: 0,
+  attemptNumber: 1, retryCount: 0, maxRetries: 0,
   createdAt: '2026-09-20T00:00:00Z',
 }
 

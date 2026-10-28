@@ -217,7 +217,6 @@ function runRow(id: string, status = "passed") {
     testFileContent: null,
     modelName: null,
     llmProvider: null,
-    parentRunId: null,
   }
 }
 

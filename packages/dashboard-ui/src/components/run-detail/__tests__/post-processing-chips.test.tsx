@@ -755,7 +755,6 @@ function runRow(status: string): RunRow {
     testFileContent: null,
     modelName: null,
     llmProvider: null,
-    parentRunId: null,
     attemptNumber: 1,
     retryCount: 0,
     maxRetries: 0,

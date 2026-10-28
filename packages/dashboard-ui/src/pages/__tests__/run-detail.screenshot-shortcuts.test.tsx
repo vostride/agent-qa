@@ -232,7 +232,6 @@ function makeRun(id: string, status = "passed") {
     modelName: null,
     llmProvider: null,
     parallel: false,
-    parentRunId: null,
     attemptNumber: 1,
     retryCount: 0,
     maxRetries: 0,

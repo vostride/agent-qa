@@ -321,7 +321,6 @@ function makeRun(id: string) {
     testFileContent: null,
     modelName: null,
     llmProvider: null,
-    parentRunId: null,
     attemptNumber: 1,
     retryCount: 0,
     maxRetries: 0,

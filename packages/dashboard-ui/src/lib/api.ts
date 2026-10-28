@@ -46,7 +46,6 @@ export interface RunRow {
   testFileContent: string | null
   modelName: string | null
   llmProvider: string | null
-  parentRunId: string | null
   attemptNumber: number
   retryCount: number
   maxRetries: number
