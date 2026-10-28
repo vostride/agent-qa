@@ -34,8 +34,11 @@ const TAG_ORDINAL = 10
 interface InvocationResult {
   stdout: string
   stderr: string
+  writes: string[]
   exitCode: typeof process.exitCode
 }
+
+const PAIR = /^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::\n$/u
 
 interface FixtureWorkspace {
   root: string
@@ -185,6 +188,11 @@ async function invoke(workspace: FixtureWorkspace, args: readonly string[]): Pro
   const error = vi.spyOn(console, 'error').mockImplementation((...values: unknown[]) => {
     stderr.push(values.map(String).join(' '))
   })
+  const writes: string[] = []
+  const write = vi.spyOn(process.stdout, 'write').mockImplementation((chunk: unknown) => {
+    writes.push(String(chunk))
+    return true
+  })
   process.exitCode = undefined
 
   try {
@@ -203,11 +211,13 @@ async function invoke(workspace: FixtureWorkspace, args: readonly string[]): Pro
     return {
       stdout: stdout.join('\n'),
       stderr: stderr.join('\n'),
+      writes,
       exitCode: process.exitCode,
     }
   } finally {
     log.mockRestore()
     error.mockRestore()
+    write.mockRestore()
   }
 }
 
@@ -356,5 +366,92 @@ describe('knowledge read commands', () => {
     expect(diff.exitCode).toBe(1)
     expect(diff.stdout).toBe('')
     expect(stripVTControlCharacters(diff.stderr)).toContain('scan incomplete')
+  })
+})
+
+describe('knowledge read commands under GitHub Actions', () => {
+  const roots: string[] = []
+  const CRAFTED = '##[error]x ::add-mask::x'
+  let originalExitCode: typeof process.exitCode
+
+  beforeEach(() => {
+    originalExitCode = process.exitCode
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    process.exitCode = originalExitCode
+    for (const root of roots.splice(0)) {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  function craftedWorkspace(): FixtureWorkspace {
+    const workspace = fixtureWorkspace(roots)
+    const published = publishBundle(
+      { knowledgeRoot: workspace.knowledgeRoot, productKey: PRODUCT },
+      bundleInput({ name: CRAFTED, kind: 'fact', createdAtOrdinal: 5 }),
+    )
+    expect(published.kind).toBe('published')
+    return workspace
+  }
+
+  it('prints knowledge text carrying a workflow command inside one pair', async () => {
+    const workspace = craftedWorkspace()
+    const plain = await invoke(workspace, ['inspect'])
+    expect(plain.stdout).toContain('::add-mask::x')
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const result = await invoke(workspace, ['inspect'])
+
+    expect(result.stdout).toBe('')
+    expect(result.writes).toHaveLength(1)
+    expect(result.writes[0]).toMatch(PAIR)
+    expect(result.writes[0]).toContain(`\n${plain.stdout}\n`)
+  })
+
+  it('prints --json with no # and the same value', async () => {
+    const workspace = craftedWorkspace()
+    const plain = await invoke(workspace, ['inspect', '--json'])
+    expect(plain.stdout).toContain('##[error]x')
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const result = await invoke(workspace, ['inspect', '--json'])
+
+    expect(result.writes).toEqual([])
+    expect(result.stdout).not.toContain('#')
+    expect(JSON.parse(result.stdout)).toEqual(JSON.parse(plain.stdout))
+  })
+
+  it('prints an error inside a pair, on stderr while --json holds stdout', async () => {
+    const workspace = craftedWorkspace()
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const human = await invoke(workspace, ['inspect', '--status', 'invented'])
+    const json = await invoke(workspace, ['inspect', '--status', 'invented', '--json'])
+
+    expect(human.exitCode).toBe(1)
+    expect(human.stderr).toBe('')
+    expect(human.writes).toHaveLength(1)
+    expect(human.writes[0]).toMatch(PAIR)
+    expect(human.writes[0]).toContain('[invalid-filter]')
+    expect(json.exitCode).toBe(1)
+    expect(json.writes).toEqual([])
+    expect(json.stdout).toBe('')
+    expect(`${json.stderr}\n`).toMatch(PAIR)
+  })
+
+  it('prints the same text and JSON as before without the variable', async () => {
+    const workspace = craftedWorkspace()
+
+    const human = await invoke(workspace, ['inspect'])
+    const json = await invoke(workspace, ['inspect', '--json'])
+
+    expect(human.writes).toEqual([])
+    expect(human.stdout).toContain(CRAFTED)
+    expect(human.stdout).not.toContain('::stop-commands::')
+    expect(json.writes).toEqual([])
+    expect(json.stdout).toBe(JSON.stringify(JSON.parse(json.stdout), null, 2))
+    expect(json.stdout).toContain(CRAFTED)
   })
 })

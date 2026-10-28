@@ -22,6 +22,7 @@ import { dirname, resolve } from 'node:path'
 
 import { invokeFunction } from '@vostride/agent-qa-agent'
 import { resolveBuildTag } from '@vostride/agent-qa-agent-local'
+import { guardJsonText, printRunText, reserveStdoutForData } from '@vostride/agent-qa-core'
 import {
   guardInspectRecordView,
   guardRecordChange,
@@ -225,11 +226,15 @@ function resolvedDiffOrdinal(
 // 2026-10-14 (441-14, D-07): everything this file prints is masked and never restored; JSON is
 // masked leaf by leaf before it is serialized. 2026-10-15 (441-62, IN-A07): keys too.
 function emitJson(mask: MaskFn, value: unknown): void {
-  console.log(JSON.stringify(maskPayloadTree(value, mask), null, 2))
+  console.log(guardJsonText(JSON.stringify(maskPayloadTree(value, mask), null, 2)))
 }
 
 function emitHuman(mask: MaskFn, text: string): void {
-  console.log(mask(text))
+  printRunText(mask(text))
+}
+
+function reserveStdoutForJson(options: { json?: boolean }): (() => void) | undefined {
+  return options.json === true ? reserveStdoutForData() : undefined
 }
 
 function formatInspectRecord(record: InspectRecordView): string {
@@ -424,8 +429,9 @@ type KnowledgeReadAction = 'inspect' | 'diff' | 'bundles' | 'gates' | 'show' | '
 
 function printUnavailable(error: DeclaredSecretsUnavailableError): void {
   const [first, ...rest] = error.lines
-  if (first !== undefined) console.error(pc.red(first))
-  for (const line of rest) console.error(pc.dim(line))
+  if (first === undefined) return
+  printRunText([pc.red(first), ...rest.map((line) => pc.dim(line))].join('\n'),
+    (text) => console.error(text))
 }
 
 // A refusal raised before the loader exists has nothing to mask with.
@@ -440,7 +446,7 @@ function printErrorLine(line: string, mask: MaskFn | undefined): void {
       return
     }
   }
-  console.error(pc.red(shown))
+  printRunText(pc.red(shown), (text) => console.error(text))
 }
 
 function reportError(action: KnowledgeReadAction, error: unknown, mask: MaskFn | undefined): void {
@@ -485,6 +491,7 @@ export function registerKnowledgeReadCommands(command: Command): void {
     .option('--json', 'output schema-validated masked JSON')
     .action(async (options: InspectOptions, inspectCommand: Command) => {
       let mask: MaskFn | undefined
+      const releaseStdout = reserveStdoutForJson(options)
       try {
         const input = declaredReadInput(inspectCommand)
         mask = input.declaredSecrets.mask
@@ -509,6 +516,8 @@ export function registerKnowledgeReadCommands(command: Command): void {
         emitHuman(mask, renderInspect(records))
       } catch (error) {
         reportError('inspect', error, mask)
+      } finally {
+        releaseStdout?.()
       }
     })
 
@@ -520,6 +529,7 @@ export function registerKnowledgeReadCommands(command: Command): void {
     .option('--json', 'output schema-validated masked JSON')
     .action(async (ref: string, options: DiffOptions, diffCommand: Command) => {
       let mask: MaskFn | undefined
+      const releaseStdout = reserveStdoutForJson(options)
       try {
         const composition = declaredReadInput(diffCommand)
         mask = composition.declaredSecrets.mask
@@ -539,6 +549,8 @@ export function registerKnowledgeReadCommands(command: Command): void {
         emitHuman(mask, renderDiff(changes, ordinal))
       } catch (error) {
         reportError('diff', error, mask)
+      } finally {
+        releaseStdout?.()
       }
     })
 
@@ -548,6 +560,7 @@ export function registerKnowledgeReadCommands(command: Command): void {
     .option('--json', 'output schema-validated masked JSON')
     .action(async (id: string, options: BundlesOptions, cmd: Command) => {
       let mask: MaskFn | undefined
+      const releaseStdout = reserveStdoutForJson(options)
       try {
         const input = declaredReadInput(cmd)
         mask = input.declaredSecrets.mask
@@ -564,6 +577,8 @@ export function registerKnowledgeReadCommands(command: Command): void {
         emitHuman(mask, renderGates(dto))
       } catch (error) {
         reportError('gates', error, mask)
+      } finally {
+        releaseStdout?.()
       }
     })
 
@@ -573,6 +588,7 @@ export function registerKnowledgeReadCommands(command: Command): void {
     .option('--json', 'print the knowledge.record.show result unchanged')
     .action(async (recordId: string, options: BundlesOptions, cmd: Command) => {
       let mask: MaskFn | undefined
+      const releaseStdout = reserveStdoutForJson(options)
       try {
         const input = declaredReadInput(cmd)
         mask = input.declaredSecrets.mask
@@ -593,6 +609,8 @@ export function registerKnowledgeReadCommands(command: Command): void {
         }
       } catch (error) {
         reportError('show', error, mask)
+      } finally {
+        releaseStdout?.()
       }
     })
 
@@ -605,6 +623,7 @@ export function registerKnowledgeReadCommands(command: Command): void {
     .option('--json', 'print the knowledge.brief.why result unchanged')
     .action(async (runId: string, options: BriefWhyOptions, cmd: Command) => {
       let mask: MaskFn | undefined
+      const releaseStdout = reserveStdoutForJson(options)
       try {
         const input = declaredReadInput(cmd)
         mask = input.declaredSecrets.mask
@@ -634,6 +653,8 @@ export function registerKnowledgeReadCommands(command: Command): void {
         }
       } catch (error) {
         reportError('brief-why', error, mask)
+      } finally {
+        releaseStdout?.()
       }
     })
 
@@ -647,6 +668,7 @@ export function registerKnowledgeReadCommands(command: Command): void {
     .option('--json', 'output schema-validated masked JSON')
     .action(async (options: BundlesOptions, bundlesCommand: Command) => {
       let mask: MaskFn | undefined
+      const releaseStdout = reserveStdoutForJson(options)
       try {
         const input = declaredReadInput(bundlesCommand)
         mask = input.declaredSecrets.mask
@@ -667,6 +689,8 @@ export function registerKnowledgeReadCommands(command: Command): void {
         emitHuman(mask, renderBundles(rows))
       } catch (error) {
         reportError('bundles', error, mask)
+      } finally {
+        releaseStdout?.()
       }
     })
 }

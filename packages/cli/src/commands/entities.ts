@@ -14,6 +14,7 @@
 import { dirname, resolve } from 'node:path'
 
 import { invokeFunction } from '@vostride/agent-qa-agent'
+import { guardJsonText, printRunText, reserveStdoutForData } from '@vostride/agent-qa-core'
 import { maskPayloadTree } from '@vostride/agent-qa-schema'
 import type {
   ActionRef,
@@ -87,11 +88,11 @@ function declaredSecretsFor(command: Command): DeclaredSecretMask {
 // 2026-10-14 (441-14, D-07): everything this file prints is masked and never restored; JSON is
 // masked leaf by leaf before it is serialized. 2026-10-15 (441-62, IN-A07): keys too.
 function emitJson(mask: MaskFn, value: unknown): void {
-  console.log(JSON.stringify(maskPayloadTree(value, mask), null, 2))
+  console.log(guardJsonText(JSON.stringify(maskPayloadTree(value, mask), null, 2)))
 }
 
 function emitHuman(mask: MaskFn, text: string): void {
-  console.log(mask(text))
+  printRunText(mask(text))
 }
 
 /**
@@ -201,8 +202,9 @@ function renderResolution(resolution: EntityCardResolution): string {
 
 function printUnavailable(error: DeclaredSecretsUnavailableError): void {
   const [first, ...rest] = error.lines
-  if (first !== undefined) console.error(pc.red(first))
-  for (const line of rest) console.error(pc.dim(line))
+  if (first === undefined) return
+  printRunText([pc.red(first), ...rest.map((line) => pc.dim(line))].join('\n'),
+    (text) => console.error(text))
 }
 
 function reportError(action: 'resolve' | 'get', error: unknown, mask: MaskFn | undefined): void {
@@ -227,7 +229,7 @@ function reportError(action: 'resolve' | 'get', error: unknown, mask: MaskFn | u
       return
     }
   }
-  console.error(pc.red(shown))
+  printRunText(pc.red(shown), (text) => console.error(text))
 }
 
 function requireRef(ref: string | undefined, what: string): string {
@@ -249,6 +251,7 @@ export function createEntitiesCommand(): Command {
     .option('--via-daemon', 'dispatch through the project daemon instead of in-process')
     .action(async (ref: string | undefined, options: EntitiesOptions, resolveCommand: Command) => {
       let mask: MaskFn | undefined
+      const releaseStdout = options.json === true ? reserveStdoutForData() : undefined
       try {
         const declaredSecrets = declaredSecretsFor(resolveCommand)
         mask = declaredSecrets.mask
@@ -267,6 +270,8 @@ export function createEntitiesCommand(): Command {
         emitHuman(mask, renderResolution(result))
       } catch (error) {
         reportError('resolve', error, mask)
+      } finally {
+        releaseStdout?.()
       }
     })
 
@@ -278,6 +283,7 @@ export function createEntitiesCommand(): Command {
     .option('--via-daemon', 'dispatch through the project daemon instead of in-process')
     .action(async (id: string | undefined, options: EntitiesOptions, getCommand: Command) => {
       let mask: MaskFn | undefined
+      const releaseStdout = options.json === true ? reserveStdoutForData() : undefined
       try {
         const declaredSecrets = declaredSecretsFor(getCommand)
         mask = declaredSecrets.mask
@@ -296,6 +302,8 @@ export function createEntitiesCommand(): Command {
         emitHuman(mask, renderCard(card))
       } catch (error) {
         reportError('get', error, mask)
+      } finally {
+        releaseStdout?.()
       }
     })
 

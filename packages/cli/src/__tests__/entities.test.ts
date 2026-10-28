@@ -42,8 +42,11 @@ const PRODUCT = 'shop'
 interface InvocationResult {
   stdout: string
   stderr: string
+  writes: string[]
   exitCode: typeof process.exitCode
 }
+
+const PAIR = /^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::\n$/u
 
 interface FixtureWorkspace {
   root: string
@@ -143,6 +146,11 @@ async function invoke(
   const error = vi.spyOn(console, 'error').mockImplementation((...values: unknown[]) => {
     stderr.push(values.map(String).join(' '))
   })
+  const writes: string[] = []
+  const write = vi.spyOn(process.stdout, 'write').mockImplementation((chunk: unknown) => {
+    writes.push(String(chunk))
+    return true
+  })
   process.exitCode = undefined
 
   try {
@@ -158,10 +166,16 @@ async function invoke(
       'entities',
       ...args,
     ])
-    return { stdout: stdout.join('\n'), stderr: stderr.join('\n'), exitCode: process.exitCode }
+    return {
+      stdout: stdout.join('\n'),
+      stderr: stderr.join('\n'),
+      writes,
+      exitCode: process.exitCode,
+    }
   } finally {
     log.mockRestore()
     error.mockRestore()
+    write.mockRestore()
   }
 }
 
@@ -266,5 +280,86 @@ describe('agent-qa entities (the addressing debug verb)', () => {
 
     expect(result.exitCode).toBe(1)
     expect(stripVTControlCharacters(result.stderr)).toContain('[missing-ref]')
+  })
+})
+
+describe('agent-qa entities under GitHub Actions', () => {
+  const roots: string[] = []
+  const CRAFTED = '##[error]x ::set-output name=x::y'
+  let originalExitCode: typeof process.exitCode
+
+  beforeEach(() => {
+    originalExitCode = process.exitCode
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    process.exitCode = originalExitCode
+    for (const root of roots.splice(0)) {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it('prints a card carrying a workflow command inside one stop-commands pair', async () => {
+    const workspace = fixtureWorkspace(roots)
+    const bundleId = seedBundle(workspace, CRAFTED)
+    const plain = await invoke(workspace, ['resolve', bundleId])
+    expect(plain.stdout).toContain('::set-output name=x::y')
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const result = await invoke(workspace, ['resolve', bundleId])
+
+    expect(result.stdout).toBe('')
+    expect(result.writes).toHaveLength(1)
+    expect(result.writes[0]).toMatch(PAIR)
+    expect(result.writes[0]).toContain(`\n${plain.stdout}\n`)
+  })
+
+  it('prints --json with no # and the same value', async () => {
+    const workspace = fixtureWorkspace(roots)
+    const bundleId = seedBundle(workspace, CRAFTED)
+    const plain = await invoke(workspace, ['resolve', bundleId, '--json'])
+    expect(plain.stdout).toContain('##[error]x')
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const result = await invoke(workspace, ['resolve', bundleId, '--json'])
+
+    expect(result.writes).toEqual([])
+    expect(result.stdout).not.toContain('#')
+    expect(JSON.parse(result.stdout)).toEqual(JSON.parse(plain.stdout))
+  })
+
+  it('prints an error inside a pair, on stderr while --json holds stdout', async () => {
+    const workspace = fixtureWorkspace(roots)
+    seedBundle(workspace, 'Checkout')
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const human = await invoke(workspace, ['get', 'MEM-404'])
+    const json = await invoke(workspace, ['get', 'MEM-404', '--json'])
+
+    expect(human.exitCode).toBe(1)
+    expect(human.stderr).toBe('')
+    expect(human.writes).toHaveLength(1)
+    expect(human.writes[0]).toMatch(PAIR)
+    expect(human.writes[0]).toContain('Entities get error')
+    expect(json.exitCode).toBe(1)
+    expect(json.writes).toEqual([])
+    expect(json.stdout).toBe('')
+    expect(`${json.stderr}\n`).toMatch(PAIR)
+  })
+
+  it('prints the same card and JSON as before without the variable', async () => {
+    const workspace = fixtureWorkspace(roots)
+    const bundleId = seedBundle(workspace, CRAFTED)
+
+    const human = await invoke(workspace, ['resolve', bundleId])
+    const json = await invoke(workspace, ['resolve', bundleId, '--json'])
+
+    expect(human.writes).toEqual([])
+    expect(human.stdout).toContain(CRAFTED)
+    expect(human.stdout).not.toContain('::stop-commands::')
+    expect(json.writes).toEqual([])
+    expect(json.stdout).toBe(JSON.stringify(JSON.parse(json.stdout), null, 2))
+    expect(json.stdout).toContain(CRAFTED)
   })
 })

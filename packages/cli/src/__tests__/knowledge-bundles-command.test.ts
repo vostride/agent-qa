@@ -52,21 +52,22 @@ const KNOWLEDGE_READ_SOURCE_PATH = join(
 
 /**
  * Packages whose presence anywhere in this file would mean a verb reads data for itself
- * instead of asking the function layer for it.
- *
- * 2026-08-02 (Phase 387 plan 09, D-20): the scope of the assertion below WIDENED from the
- * bundles registration block to the whole file, because `inspect` and `diff` no longer import
- * these — the reason the narrow scope existed is gone. The widening was not optional: with
- * nothing in the file binding a data package, "the bundles block contains none of those
- * bindings" is true of every possible block, and a vacuous claim is worse than no claim
- * because it keeps reporting a pass. The file-wide version is checked against a planted
- * control so it cannot go vacuous the same way.
+ * instead of asking the function layer for it. The assertion covers the whole file and is
+ * checked against a planted control so it cannot go vacuous. Core is the one exception, and
+ * only for its output helpers, which read no data.
  */
 const DATA_LAYER_PACKAGES = [
   '@vostride/agent-qa-core',
   '@vostride/agent-qa-knowledge-local',
   '@vostride/agent-qa-runner-local',
 ] as const
+
+const CORE = '@vostride/agent-qa-core'
+const CORE_OUTPUT_BINDINGS: readonly string[] = [
+  'guardJsonText',
+  'printRunText',
+  'reserveStdoutForData',
+]
 
 interface InvocationResult {
   stdout: string
@@ -410,13 +411,16 @@ describe('knowledge-read.ts source shape (what plan 06 will enforce)', () => {
 
     // The extractor is live against THIS file, not just a synthetic control.
     expect(specifiers.length).toBeGreaterThan(4)
-    expect(specifiers.filter(isDataPackage)).toEqual([])
+    expect(specifiers.filter(isDataPackage).filter((specifier) => specifier !== CORE)).toEqual([])
+    expect(importedBindings(source, (specifier) => specifier === CORE)
+      .filter((binding) => !CORE_OUTPUT_BINDINGS.includes(binding))).toEqual([])
 
     // Non-vacuous by CONTROL rather than by the file happening to violate the rule: plant the
     // exact import `inspect` used to carry and require the check to catch it. Without this,
     // an empty result is indistinguishable from an extractor that stopped extracting.
     const planted = `import { inspectRecords } from '@vostride/agent-qa-knowledge-local/reader'\n${source}`
-    expect(importSpecifiers(planted).filter(isDataPackage))
+    expect(importSpecifiers(planted).filter(isDataPackage)
+      .filter((specifier) => specifier !== CORE))
       .toEqual(['@vostride/agent-qa-knowledge-local/reader'])
 
     // And the data every verb renders still arrives the sanctioned way.

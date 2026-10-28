@@ -25,6 +25,10 @@ const DATA_LAYER_PACKAGES = [
   '@vostride/agent-qa-runner-local',
 ] as const
 
+// Core's output helpers read no data, so their import is the one core import a verb may carry.
+const CORE_OUTPUT_IMPORT =
+  "import { guardJsonText, printRunText, reserveStdoutForData } from '@vostride/agent-qa-core'\n"
+
 describe('agent-qa knowledge gates', () => {
   const roots: string[] = []
   const originalExitCode = process.exitCode
@@ -243,6 +247,7 @@ describe('agent-qa knowledge gates', () => {
   it('keeps every verb free of data-layer imports', () => {
     const source = readFileSync(new URL('../commands/knowledge-read.ts', import.meta.url), 'utf8')
     expect(source).toContain('invokeFunction')
-    for (const name of DATA_LAYER_PACKAGES) expect(source).not.toContain(name)
+    const withoutOutputImport = source.replace(CORE_OUTPUT_IMPORT, '')
+    for (const name of DATA_LAYER_PACKAGES) expect(withoutOutputImport).not.toContain(name)
   })
 })

@@ -32,6 +32,7 @@ import type {
   RollbackReport,
   WriterLeaseAuthority,
 } from '@vostride/agent-qa-agent-local'
+import { guardJsonText, printRunText, reserveStdoutForData } from '@vostride/agent-qa-core'
 import { asRecordId, maskPayloadTree } from '@vostride/agent-qa-schema'
 import type { MaskFn, OriginClass } from '@vostride/agent-qa-schema'
 import { Command } from 'commander'
@@ -250,19 +251,19 @@ function declaredMaskFor(command: Command): MaskFn {
 // 2026-10-14 (441-14, D-07): everything this file prints is masked and never restored; JSON is
 // masked leaf by leaf before it is serialized. 2026-10-15 (441-62, IN-A07): keys too.
 function emitJson(mask: MaskFn, value: unknown): void {
-  console.log(JSON.stringify(maskPayloadTree(value, mask), null, 2))
+  console.log(guardJsonText(JSON.stringify(maskPayloadTree(value, mask), null, 2)))
 }
 
 function emitHuman(mask: MaskFn, text: string, stream: OutputStream = 'stdout'): void {
-  const rendered = `${mask(text)}\n`
-  if (stream === 'stderr') process.stderr.write(rendered)
-  else process.stdout.write(rendered)
+  const target = stream === 'stderr' ? process.stderr : process.stdout
+  printRunText(mask(text), (block) => target.write(`${block}\n`))
 }
 
 function printUnavailable(error: DeclaredSecretsUnavailableError): void {
   const [first, ...rest] = error.lines
-  if (first !== undefined) console.error(pc.red(first))
-  for (const line of rest) console.error(pc.dim(line))
+  if (first === undefined) return
+  printRunText([pc.red(first), ...rest.map((line) => pc.dim(line))].join('\n'),
+    (text) => console.error(text))
 }
 
 // A refusal raised before the loader exists has nothing to mask with.
@@ -273,7 +274,7 @@ function reportErrorLine(line: string, error: unknown, mask: MaskFn | undefined)
     return
   }
   if (mask === undefined) {
-    process.stderr.write(`${pc.red(line)}\n`)
+    printRunText(pc.red(line), (text) => process.stderr.write(`${text}\n`))
     return
   }
   try {
@@ -1207,6 +1208,7 @@ export function registerKnowledgeMaintainCommands(command: Command): void {
     )
     .action(async (options: DrainOptions, drainCommand: Command) => {
       let mask: MaskFn | undefined
+      const releaseStdout = options.json === true ? reserveStdoutForData() : undefined
       try {
         mask = declaredMaskFor(drainCommand)
         const paths = await resolveKnowledgePaths(drainCommand)
@@ -1220,6 +1222,8 @@ export function registerKnowledgeMaintainCommands(command: Command): void {
         await routeDrain(paths, options, mask)
       } catch (error) {
         reportDrainError(error, mask)
+      } finally {
+        releaseStdout?.()
       }
     })
 
@@ -1229,6 +1233,7 @@ export function registerKnowledgeMaintainCommands(command: Command): void {
     .option('--json', 'output the typed RebuildReport as masked JSON')
     .action(async (options: RebuildOptions, rebuildCommand: Command) => {
       let mask: MaskFn | undefined
+      const releaseStdout = options.json === true ? reserveStdoutForData() : undefined
       try {
         mask = declaredMaskFor(rebuildCommand)
         const paths = await resolveKnowledgePaths(rebuildCommand)
@@ -1240,6 +1245,8 @@ export function registerKnowledgeMaintainCommands(command: Command): void {
         else emitHuman(mask, renderRebuildReport(result.value))
       } catch (error) {
         reportError('rebuild-index', error, mask)
+      } finally {
+        releaseStdout?.()
       }
     })
 
@@ -1254,6 +1261,7 @@ export function registerKnowledgeMaintainCommands(command: Command): void {
     .option('--json', 'output the typed RollbackReport as masked JSON')
     .action(async (options: RollbackOptions, rollbackCommand: Command) => {
       let mask: MaskFn | undefined
+      const releaseStdout = options.json === true ? reserveStdoutForData() : undefined
       try {
         mask = declaredMaskFor(rollbackCommand)
         const selector = rollbackSelector(options)
@@ -1295,6 +1303,8 @@ export function registerKnowledgeMaintainCommands(command: Command): void {
         else emitHuman(mask, renderRollbackReport(leaseResult.value.report))
       } catch (error) {
         reportError('rollback', error, mask)
+      } finally {
+        releaseStdout?.()
       }
     })
 
@@ -1305,6 +1315,7 @@ export function registerKnowledgeMaintainCommands(command: Command): void {
     .option('--json', 'output the typed PurgeReceipt as masked JSON')
     .action(async (recordIdValue: string, options: PurgeOptions, purgeCommand: Command) => {
       let mask: MaskFn | undefined
+      const releaseStdout = options.json === true ? reserveStdoutForData() : undefined
       try {
         const purgeMask = declaredMaskFor(purgeCommand)
         mask = purgeMask
@@ -1374,6 +1385,8 @@ export function registerKnowledgeMaintainCommands(command: Command): void {
         )
       } catch (error) {
         reportError('purge', error, mask)
+      } finally {
+        releaseStdout?.()
       }
     })
 }
