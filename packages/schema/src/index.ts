@@ -55,7 +55,6 @@ export {
   STATIC_FLOOR_EMBEDDING_PROFILE,
 } from './embedding-profile/index'
 export type {
-  AndroidPlatformConfig,
   BrowserConfig,
   ConfigActionRefusal,
   ConfigChange,
@@ -73,22 +72,12 @@ export type {
   ConfigWriteResult,
   DeviceConfig,
   EffectiveWorkersInput,
-  IosPlatformConfig,
   PlatformBase,
-  PlatformConfig,
   // 2026-10-07 (436-04, D-01..D-03)
   PlannerLimits,
   PlannerLimitsPerTest,
   PlannerLimitsRecord,
   TimeoutConfig,
-  Use,
-  UseAndroid,
-  UseConcurrency,
-  UseIos,
-  UseWeb,
-  UseWebAuthState,
-  WebAuthStateConfig,
-  WebPlatformConfig,
 } from './config/index'
 export {
   appStateSchema,
@@ -116,12 +105,10 @@ export {
   // 441 GAP2-D4: the marker_written_back refusal's one sentence.
   MARKER_WRITTEN_BACK_SENTENCE,
   platformBase,
-  platformConfigSchema,
   PLANNER_LIMIT_KEYS,
   resolveEffectiveWorkers,
   resolvePlannerLimits,
   timeoutConfigSchema,
-  useSchema,
   viewportSchema,
 } from './config/index'
 export {

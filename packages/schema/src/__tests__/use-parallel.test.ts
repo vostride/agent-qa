@@ -1,75 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { DEFAULT_PARALLEL_WORKERS, resolveEffectiveWorkers, useSchema } from '../config/use'
+import { DEFAULT_PARALLEL_WORKERS, resolveEffectiveWorkers } from '../config/use'
 
-/**
- * 402-03 (D-12): member concurrency is a CONFIG fact.
- *
- * Two halves are pinned here and nowhere else: the shape a config author may write, and the ONE
- * formula that turns it into a worker count. The formula lives beside the fields it reads so a
- * reader of either finds the other, and so both doors (`agent-qa run` and the service's
- * `runs.start`) reach one spelling rather than each folding the default themselves.
- *
- * The request half of D-12 — that a CALLER cannot name either field — is pinned in
- * `runs-start-input-posture.test.ts`.
- */
-describe('use.parallel / use.workers — the authored shape', () => {
-  it('accepts parallel on its own', () => {
-    const result = useSchema.safeParse({ platform: 'web', parallel: true })
-
-    expect(result.success).toBe(true)
-  })
-
-  it('accepts parallel with an explicit worker count', () => {
-    const result = useSchema.safeParse({ platform: 'web', parallel: true, workers: 5 })
-
-    expect(result.success).toBe(true)
-    if (result.success) expect(result.data).toMatchObject({ parallel: true, workers: 5 })
-  })
-
-  it('accepts the fields on the mobile arms too — concurrency is not a web-only knob', () => {
-    for (const platform of ['android', 'ios'] as const) {
-      const result = useSchema.safeParse({ platform, device: 'pixel', parallel: true, workers: 2 })
-
-      expect(result.success).toBe(true)
-    }
-  })
-
-  it('parses with both fields absent — the addition is optional, not a new requirement', () => {
-    const result = useSchema.safeParse({ platform: 'web', browser: { name: 'chromium' } })
-
-    expect(result.success).toBe(true)
-    if (result.success) {
-      expect('parallel' in result.data).toBe(false)
-      expect('workers' in result.data).toBe(false)
-    }
-  })
-
-  it('refuses workers: 0', () => {
-    const result = useSchema.safeParse({ platform: 'web', parallel: true, workers: 0 })
-
-    expect(result.success).toBe(false)
-  })
-
-  it('refuses a negative worker count', () => {
-    const result = useSchema.safeParse({ platform: 'web', parallel: true, workers: -2 })
-
-    expect(result.success).toBe(false)
-  })
-
-  it('refuses a non-integer worker count', () => {
-    const result = useSchema.safeParse({ platform: 'web', parallel: true, workers: 2.5 })
-
-    expect(result.success).toBe(false)
-  })
-
-  it('refuses a worker count that is not a number at all', () => {
-    const result = useSchema.safeParse({ platform: 'web', parallel: true, workers: '4' })
-
-    expect(result.success).toBe(false)
-  })
-})
-
+// The one formula that turns a config's `parallel` and `workers` into a worker count. That a
+// caller cannot name either field is checked in `runs-start-input-posture.test.ts`.
 describe('resolveEffectiveWorkers — the one formula', () => {
   it('resolves 1 when parallel is absent, whatever workers says', () => {
     expect(resolveEffectiveWorkers({ memberCount: 8 })).toBe(1)

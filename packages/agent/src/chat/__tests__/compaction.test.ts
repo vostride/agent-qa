@@ -21,9 +21,7 @@ import {
   browserConfigSchema,
   deviceConfigSchema,
   platformBase,
-  platformConfigSchema,
   timeoutConfigSchema,
-  useSchema,
   viewportSchema,
 } from '@vostride/agent-qa-schema'
 import type { ModelMessage } from 'ai'
@@ -395,8 +393,6 @@ describe('replayToModelMessages', () => {
 
 /** Every schema the config surface publishes, walked as one inventory. */
 const CONFIG_SCHEMAS = [
-  useSchema,
-  platformConfigSchema,
   platformBase,
   browserConfigSchema,
   deviceConfigSchema,

@@ -43,26 +43,8 @@ export type { BrowserConfig } from './browser'
 export { appStateSchema, browserConfigSchema, viewportSchema } from './browser'
 export type { DeviceConfig } from './device'
 export { deviceConfigSchema } from './device'
-// 2026-10-01 (432-22, D-12/D-22): the MCP token entry, the stdio config-write switch and the
-// run-service token entry are deleted with the config keys that declared them.
-export type {
-  AndroidPlatformConfig,
-  IosPlatformConfig,
-  PlatformConfig,
-  WebAuthStateConfig,
-  WebPlatformConfig,
-} from './platform-config'
-export { platformConfigSchema } from './platform-config'
-export type {
-  EffectiveWorkersInput,
-  Use,
-  UseAndroid,
-  UseConcurrency,
-  UseIos,
-  UseWeb,
-  UseWebAuthState,
-} from './use'
-export { DEFAULT_PARALLEL_WORKERS, resolveEffectiveWorkers, useSchema } from './use'
+export type { EffectiveWorkersInput } from './use'
+export { DEFAULT_PARALLEL_WORKERS, resolveEffectiveWorkers } from './use'
 // 2026-10-07 (436-04, D-01..D-03): the per-step planner limits' one default pair and resolver.
 export type { PlannerLimits, PlannerLimitsPerTest, PlannerLimitsRecord } from './planner-limits'
 export { DEFAULT_PLANNER_LIMITS, PLANNER_LIMIT_KEYS, resolvePlannerLimits } from './planner-limits'

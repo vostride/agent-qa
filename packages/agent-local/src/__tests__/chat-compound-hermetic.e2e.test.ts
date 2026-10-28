@@ -42,8 +42,7 @@ import {
   MASKED_RESOLVED_CONFIG_SCHEMA_VERSION,
   browserConfigSchema,
   deviceConfigSchema,
-  platformConfigSchema,
-  useSchema,
+  platformBase,
 } from '@vostride/agent-qa-schema'
 import type {
   AgentAskResult,
@@ -370,7 +369,7 @@ describe('the composed compound turn: complete, or loud (CHAT-01 / D-10 / D-11 /
 // any file says about one. T-392-24 is exactly that key existing.
 // ---------------------------------------------------------------------------------------
 
-const CONFIG_SCHEMAS = [useSchema, platformConfigSchema, browserConfigSchema, deviceConfigSchema]
+const CONFIG_SCHEMAS = [platformBase, browserConfigSchema, deviceConfigSchema]
 
 interface ZodDef {
   readonly type?: string
