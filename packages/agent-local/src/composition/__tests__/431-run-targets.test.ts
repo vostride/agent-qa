@@ -1,8 +1,7 @@
-// Phase 431 plan 01 (D-08, EDGE-17, T-431-01): the targets a run recorded WHEN IT HAPPENED.
-//
-// The local reader answers from the run's own artifact snapshot, written here through the runner's
-// own stores. Current configuration is never an input, so renaming a target today cannot rewrite
-// what an old run recorded, and a run with no readable snapshot stays `unknown`.
+// The local reader answers from the target names a run's artifact recorded when it ran, written
+// here through the runner's own stores. Current configuration is never an input, so renaming a
+// target today cannot rewrite what an old run recorded, and a run with no recorded names stays
+// `unknown`.
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -32,8 +31,6 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { createRunsReader } from '../compose-local-agent.js'
 
-// 2026-10-02 (432-38, D-12): no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither (432-20).
 const READER: FunctionCaller = {
   surface: 'test',
   origin: 'agent',
@@ -75,7 +72,7 @@ function complete(runId: string, endedAt: number): void {
   new FsHandoffStore({ root: agentQaRoot, runId }).save(handoff)
 }
 
-function recordSingleTest(runId: string, target: unknown): void {
+function recordTargets(runId: string, targets: readonly string[]): void {
   new FsRunArtifactStore({ root: agentQaRoot, runId }).stage({
     source: {
       kind: 'test',
@@ -83,28 +80,14 @@ function recordSingleTest(runId: string, target: unknown): void {
       name: `Checkout ${runId}`,
       filePath: 'tests/checkout.yaml',
       rawYaml: 'name: Checkout',
-      resolvedDefinition: { name: `Checkout ${runId}`, target, steps: ['open the cart'] },
+      resolvedDefinition: {
+        name: `Checkout ${runId}`,
+        target: 'a-line-in-the-file',
+        steps: ['open the cart'],
+      },
       loadStatus: 'loaded',
     },
-  })
-}
-
-function recordSuite(runId: string, targets: readonly unknown[]): void {
-  new FsRunArtifactStore({ root: agentQaRoot, runId }).stage({
-    source: {
-      kind: 'suite',
-      suiteId: null,
-      name: 'Regression',
-      filePath: 'suites/regression.suite.yaml',
-      loadStatus: 'loaded',
-      members: targets.map((target, index) => ({
-        index,
-        ref: { test: `tests/member-${index}.yaml` },
-        name: `Member ${index}`,
-        target,
-        loadStatus: 'loaded',
-      })),
-    } as never,
+    targets: [...targets],
   })
 }
 
@@ -118,22 +101,36 @@ function lookup(runId: string) {
   return createRunsReader(agentQaRoot).getRecordedTargets!(runId as RunId)
 }
 
-describe('RUN-TARGET-HISTORY: the local reader answers from the recorded snapshot', () => {
-  it('reads a single-test run target from its resolved definition', async () => {
+describe('the local reader answers from the recorded target names', () => {
+  it('reads a run that recorded one target', async () => {
     complete('run-single', 1_000)
-    recordSingleTest('run-single', 'staging-web')
+    recordTargets('run-single', ['staging-web'])
 
     expect(await lookup('run-single')).toEqual({ status: 'recorded', names: ['staging-web'] })
   })
 
-  it('reads every suite member target as one stable, unique, sorted list', async () => {
+  it('reads several recorded targets as one stable, unique, sorted list', async () => {
     complete('run-suite', 1_000)
-    recordSuite('run-suite', ['web-prod', 'android-qa', 'web-prod'])
+    recordTargets('run-suite', ['web-prod', 'android-qa', 'web-prod'])
 
     expect(await lookup('run-suite')).toEqual({
       status: 'recorded',
       names: ['android-qa', 'web-prod'],
     })
+  })
+
+  it('a run recorded with a source and no targets reads unknown', async () => {
+    complete('run-source-only', 1_000)
+    new FsRunArtifactStore({ root: agentQaRoot, runId: 'run-source-only' }).stage({
+      source: {
+        kind: 'test',
+        name: 'Checkout',
+        resolvedDefinition: { name: 'Checkout', target: 'staging-web', steps: ['open the cart'] },
+        loadStatus: 'loaded',
+      },
+    })
+
+    expect(await lookup('run-source-only')).toEqual({ status: 'unknown' })
   })
 
   it('answers unknown when the run recorded no artifact snapshot', async () => {
@@ -144,30 +141,17 @@ describe('RUN-TARGET-HISTORY: the local reader answers from the recorded snapsho
 
   it.each([
     ['unparseable JSON', '{"schemaVersion":1,'],
-    ['no source snapshot', JSON.stringify({ schemaVersion: RUN_ARTIFACT_SCHEMA_VERSION })],
-    ['a non-string target', JSON.stringify({
+    ['no recorded targets', JSON.stringify({ schemaVersion: RUN_ARTIFACT_SCHEMA_VERSION })],
+    ['an empty target list', JSON.stringify({ schemaVersion: RUN_ARTIFACT_SCHEMA_VERSION, targets: [] })],
+    ['a non-string target', JSON.stringify({ schemaVersion: RUN_ARTIFACT_SCHEMA_VERSION, targets: [42] })],
+    ['an empty target', JSON.stringify({ schemaVersion: RUN_ARTIFACT_SCHEMA_VERSION, targets: [''] })],
+    ['targets that are not a list', JSON.stringify({
       schemaVersion: RUN_ARTIFACT_SCHEMA_VERSION,
-      source: { kind: 'test', resolvedDefinition: { target: 42 } },
+      targets: 'staging-web',
     })],
-    ['an empty target', JSON.stringify({
+    ['a list with one malformed target', JSON.stringify({
       schemaVersion: RUN_ARTIFACT_SCHEMA_VERSION,
-      source: { kind: 'test', resolvedDefinition: { target: '' } },
-    })],
-    ['suite members that are not a list', JSON.stringify({
-      schemaVersion: RUN_ARTIFACT_SCHEMA_VERSION,
-      source: { kind: 'suite', members: { target: 'web' } },
-    })],
-    ['a suite member with a malformed target', JSON.stringify({
-      schemaVersion: RUN_ARTIFACT_SCHEMA_VERSION,
-      source: { kind: 'suite', members: [{ target: 'web' }, { target: ['android'] }] },
-    })],
-    ['a suite with no member target at all', JSON.stringify({
-      schemaVersion: RUN_ARTIFACT_SCHEMA_VERSION,
-      source: { kind: 'suite', members: [{ target: null }] },
-    })],
-    ['an unrecognised source kind', JSON.stringify({
-      schemaVersion: RUN_ARTIFACT_SCHEMA_VERSION,
-      source: { kind: 'config', resolvedDefinition: { target: 'web' } },
+      targets: ['staging-web', ['android']],
     })],
   ])('answers unknown, never an empty known list, for %s', async (_label, contents) => {
     complete('run-malformed', 1_000)
@@ -179,12 +163,12 @@ describe('RUN-TARGET-HISTORY: the local reader answers from the recorded snapsho
   it('never resolves an id the reader does not enumerate as a completed run', async () => {
     writeRawArtifact('run-orphan', JSON.stringify({
       schemaVersion: RUN_ARTIFACT_SCHEMA_VERSION,
-      source: { kind: 'test', resolvedDefinition: { target: 'orphan-target' } },
+      targets: ['orphan-target'],
     }))
     mkdirSync(join(agentQaRoot, 'outside'), { recursive: true })
     writeFileSync(join(agentQaRoot, 'outside', ARTIFACT_FILE), JSON.stringify({
       schemaVersion: RUN_ARTIFACT_SCHEMA_VERSION,
-      source: { kind: 'test', resolvedDefinition: { target: 'escaped' } },
+      targets: ['escaped'],
     }))
 
     expect(await lookup('run-orphan')).toEqual({ status: 'unknown' })
@@ -194,7 +178,7 @@ describe('RUN-TARGET-HISTORY: the local reader answers from the recorded snapsho
 
   it('never answers one run from another run directory', async () => {
     complete('run-a', 1_000)
-    recordSingleTest('run-a', 'good-target')
+    recordTargets('run-a', ['good-target'])
     const impostorDir = join(agentQaRoot, RUNS_SUBDIR, 'run-b')
     mkdirSync(impostorDir, { recursive: true })
     writeFileSync(join(impostorDir, 'handoff.json'), JSON.stringify({
@@ -211,15 +195,15 @@ describe('RUN-TARGET-HISTORY: the local reader answers from the recorded snapsho
     }))
     writeRawArtifact('run-b', JSON.stringify({
       schemaVersion: RUN_ARTIFACT_SCHEMA_VERSION,
-      source: { kind: 'test', resolvedDefinition: { target: 'impostor-target' } },
+      targets: ['impostor-target'],
     }))
 
     expect(await lookup('run-a')).toEqual({ status: 'recorded', names: ['good-target'] })
   })
 
-  it('answers unknown when the snapshot disappears after the run list was read (EDGE-17)', async () => {
+  it('answers unknown when the snapshot disappears after the run list was read', async () => {
     complete('run-vanishing', 1_000)
-    recordSingleTest('run-vanishing', 'staging-web')
+    recordTargets('run-vanishing', ['staging-web'])
     const reader = createRunsReader(agentQaRoot)
     const [listed] = await reader.list()
     rmSync(join(agentQaRoot, RUNS_SUBDIR, 'run-vanishing', ARTIFACT_FILE))
@@ -228,7 +212,7 @@ describe('RUN-TARGET-HISTORY: the local reader answers from the recorded snapsho
   })
 })
 
-describe('RUN-TARGET-HISTORY: runs.list filters on recorded targets, not current configuration', () => {
+describe('runs.list filters on recorded targets, not current configuration', () => {
   let currentTargets: readonly string[]
 
   function maskedConfig(): MaskedResolvedConfig {
@@ -273,8 +257,6 @@ describe('RUN-TARGET-HISTORY: runs.list filters on recorded targets, not current
           get: () => Promise.resolve(undefined),
         },
       } as never,
-      // 2026-10-02 (432-38, D-12): no `resolveExecutionContext` registry option; the registry reads
-      // no context (432-20).
     })
   }
 
@@ -284,9 +266,9 @@ describe('RUN-TARGET-HISTORY: runs.list filters on recorded targets, not current
 
   it('keeps a historical target match after the target is renamed in current configuration', async () => {
     complete('run-old', 1_000)
-    recordSingleTest('run-old', 'staging-web')
+    recordTargets('run-old', ['staging-web'])
     complete('run-suite', 2_000)
-    recordSuite('run-suite', ['android-qa', 'staging-web'])
+    recordTargets('run-suite', ['staging-web', 'android-qa'])
     complete('run-unrecorded', 3_000)
     currentTargets = ['staging-web', 'android-qa']
     writeCurrentConfig()

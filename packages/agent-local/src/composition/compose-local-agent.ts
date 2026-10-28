@@ -612,30 +612,14 @@ function isTargetName(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
 }
 
-/**
- * The target names an artifact snapshot recorded (431 D-08), read out of an UNTRUSTED document:
- * a single test's resolved definition, or every suite member that recorded one. Any shape it does
- * not recognise answers `unknown`, so malformed metadata can never read as "recorded no targets".
- * Only the names cross this seam; no other part of the snapshot does.
- */
+// The target names a run recorded in its untrusted `artifact.json`. Anything but a non-empty list
+// of non-empty names answers `unknown`, so a run recorded without them never reads as recorded.
 function recordedTargetsOf(artifact: unknown): RecordedTargets {
-  const source = isRecord(artifact) ? artifact.source : undefined
-  if (!isRecord(source)) return { status: 'unknown' }
-
-  if (source.kind === 'test') {
-    const target = isRecord(source.resolvedDefinition) ? source.resolvedDefinition.target : undefined
-    return isTargetName(target) ? { status: 'recorded', names: [target] } : { status: 'unknown' }
+  const targets = isRecord(artifact) ? artifact.targets : undefined
+  if (!Array.isArray(targets) || targets.length === 0 || !targets.every(isTargetName)) {
+    return { status: 'unknown' }
   }
-  if (source.kind !== 'suite' || !Array.isArray(source.members)) return { status: 'unknown' }
-
-  const names = new Set<string>()
-  for (const member of source.members) {
-    if (!isRecord(member)) return { status: 'unknown' }
-    if (member.target === undefined || member.target === null) continue
-    if (!isTargetName(member.target)) return { status: 'unknown' }
-    names.add(member.target)
-  }
-  return names.size === 0 ? { status: 'unknown' } : { status: 'recorded', names: [...names].sort() }
+  return { status: 'recorded', names: [...new Set(targets)].sort() }
 }
 
 /**

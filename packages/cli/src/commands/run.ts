@@ -27,6 +27,7 @@ import type {
   MaskFn,
   ModelCapabilities,
   QuarantineAppliedEntry,
+  RunArtifactStageInput,
   RunEventEnvelope,
   RunFinishedPayload,
   RunSession,
@@ -773,6 +774,44 @@ function maskRunArtifactSnapshot(
   return {
     ...(isSnapshotRecord(artifact.config) ? { config: maskPayloadStrings(artifact.config, mask) } : {}),
     ...(isSnapshotRecord(artifact.source) ? { source: maskPayloadStrings(artifact.source, mask) } : {}),
+  }
+}
+
+// The run's `artifact.json`: its source as written, masked with the run's mask, and the sorted
+// target names its tests ran on. Target names are config registry keys and are written as they are.
+function stagedRunArtifact(
+  source: Record<string, unknown>,
+  targetNames: readonly (string | undefined)[],
+  mask: MaskFn,
+): RunArtifactStageInput {
+  const masked = maskRunArtifactSnapshot({ source }, { mask }).source
+  return {
+    ...(masked === undefined ? {} : { source: masked }),
+    targets: [...new Set(targetNames.filter((name): name is string => !!name))].sort(),
+  }
+}
+
+function directRunSource(bindings: readonly ParsedTestBinding[]): Record<string, unknown> {
+  const snapshot = ({ test, filePath, fileContent }: ParsedTestBinding) => ({
+    testId: test['test-id'] ?? null,
+    name: test.name,
+    filePath,
+    rawYaml: fileContent || null,
+    resolvedDefinition: test,
+    loadStatus: 'loaded',
+  })
+  if (bindings.length === 1) return { kind: 'test', ...snapshot(bindings[0]!) }
+  return {
+    kind: 'tests',
+    members: bindings.map((binding, index) => ({
+      index,
+      ref: {
+        test: binding.filePath,
+        ...(binding.test['test-id'] === undefined ? {} : { id: binding.test['test-id'] }),
+      },
+      target: binding.test.target,
+      ...snapshot(binding),
+    })),
   }
 }
 
@@ -3613,6 +3652,8 @@ export interface ProducedCliRunMembers {
   readonly loadPlugins: () => Promise<void>
   /** The run's own config's `services.dashboard.dbPath`, resolved only when the record opens (D-08). */
   readonly configuredRunsDbPath?: string
+  /** The masked source and target names the run stages as `artifact.json`. */
+  readonly runArtifact?: RunArtifactStageInput
 }
 
 export async function produceDirectRunMembers(
@@ -4362,6 +4403,11 @@ export async function produceDirectRunMembers(
     ...(config.services?.dashboard?.dbPath === undefined
       ? {}
       : { configuredRunsDbPath: config.services.dashboard.dbPath }),
+    runArtifact: stagedRunArtifact(
+      directRunSource(filtered),
+      filtered.map((binding) => binding.test.target),
+      singleRunMask,
+    ),
   }
 }
 

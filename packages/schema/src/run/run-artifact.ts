@@ -133,6 +133,8 @@ export interface RunArtifactPayload {
     | RunArtifactSuiteSourceSnapshot
     | RunArtifactTestsSourceSnapshot
     | ArtifactRecord
+  // The resolved target names the run's tests ran on, sorted and unique.
+  targets?: string[]
   runtime?: RunArtifactRuntimeSnapshot
   errors?: RunArtifactTerminalError[]
   metadata?: RunArtifactMetadata

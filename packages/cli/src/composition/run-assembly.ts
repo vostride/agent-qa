@@ -32,7 +32,12 @@
 // (probe/ordinal before or after the verdict?) once per copy. One assembler, one order, one name
 // that says which door it belongs to: `assembleCliRun`.
 
-import type { PlannerLimitsRecord, QuarantineAppliedEntry, RunId } from '@vostride/agent-qa-schema'
+import type {
+  PlannerLimitsRecord,
+  QuarantineAppliedEntry,
+  RunArtifactStageInput,
+  RunId,
+} from '@vostride/agent-qa-schema'
 import {
   resolveRunBuildOrdinal,
   resolveRunQuarantineSnapshot,
@@ -96,6 +101,8 @@ export interface CliRunAssemblyInput {
   readonly workers?: number
   /** 436 D-06: the producer's resolved planner limits, carried onto the run's own record. */
   readonly plannerLimits?: PlannerLimitsRecord
+  /** The masked source and target names the run stages as `artifact.json`. */
+  readonly runArtifact?: RunArtifactStageInput
 }
 
 export interface CliRunAssembly {
@@ -176,6 +183,7 @@ export async function assembleCliRun(
     ...(quarantined.length > 0 ? { quarantined } : {}),
     ...(input.workers !== undefined && input.workers > 1 ? { workers: input.workers } : {}),
     ...(input.plannerLimits === undefined ? {} : { plannerLimits: input.plannerLimits }),
+    ...(input.runArtifact === undefined ? {} : { runArtifact: input.runArtifact }),
   }
 
   return {
