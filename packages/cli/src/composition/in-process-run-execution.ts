@@ -38,8 +38,7 @@
 // (T-401-31). A library that can terminate its caller is a boundary of its own.
 //
 // A NON-ZERO EXIT CODE IS NOT AN ERROR. A failing suite exits non-zero and is a perfectly real run.
-// This module throws only the core's refusals (a refused request field or run id) and
-// `CliRunInputError`.
+// This module throws only the core's run-id refusals and `CliRunInputError`.
 
 import { asRunId, resolveEffectiveWorkers } from '@vostride/agent-qa-schema'
 import type {
@@ -57,8 +56,6 @@ import type {
 // may not name directly.
 import {
   DRAIN_BUDGET_MS,
-  REFUSED_RUN_REQUEST_FIELDS,
-  RunRequestFieldRefusedError,
   createRunInvocationCore,
   mapVerdictToExitCode,
   runSafetyScope,
@@ -323,48 +320,6 @@ export interface InProcessCliRunExecutionOptions {
   readonly resolveRunFlags?: (runId: string) => { readonly disableCache?: boolean } | undefined
 }
 
-/**
- * Run ONE `agent-qa` run, in this process.
- *
- * The order is the load-bearing part, and every step of it is somebody's answer rather than this
- * function's opinion:
- *
- *   1. resolve the inputs (reads only) — or take the door's, if it already has them;
- *   2. mint or accept the run's identity;
- *   3. produce members and an executor — mode-aware by default, overridable by a door with its own;
- *   4. build the audit sink and safety-hook runner, and bind the hooks back into the producer;
- *   5. compose the core, which owns the refuse/assemble/start order;
- *   6. inside the run's safety scope: execute, await `done`, finalise, flush, re-surface a member's
- *      framework error, map the verdict, and let the door's tail have the last word on the code.
- *
- * NO DEFENSIVE CATCH ANYWHERE (D-03). Crash-through is the accepted posture; the runner's
- * budget/abort machinery is the orderly containment. The `finally` below closes the run out and
- * does nothing else.
- */
-/**
- * Refuse the request fields this seam does not honour, BEFORE anything is read (401-05).
- *
- * THE CORE MAKES THIS CHECK TOO, and its own header explains why it is first there: a refused
- * request must leave nothing behind. That property is the core's to state but not the core's to
- * KEEP once something stands in front of it. Everything the drive does before composing the core
- * resolves the caller's project config and secrets — reads made on behalf of a request this seam
- * was always going to refuse. (Plugins do not load there; they load once the core has allowed the
- * request and its run id.)
- *
- * Measured at the fn door rather than reasoned about: `agent-qa fn runs.start` carrying `scope`,
- * against a project declaring an auth plugin that is not installed, reported the PLUGIN's error
- * instead of the refusal. `__tests__/fn-command.test.ts` asserts both halves — the refusal's name
- * AND the absence of that plugin error — so the order cannot regress silently.
- *
- * EXPORTED because a door that reads its own preflight (the `inputs?` contract) does that read
- * before it calls in, so the drive's own call to this is too late for it. One function, one
- * constant, one error class, N call sites — never a second spelling of which fields are refused.
- */
-export function refuseUnhonourableRequestFields(request: RunsStartInput): void {
-  const refused = REFUSED_RUN_REQUEST_FIELDS.filter((field) => request[field] !== undefined)
-  if (refused.length > 0) throw new RunRequestFieldRefusedError(refused)
-}
-
 // 2026-10-18 (444-14, D-22): in `ci` and `cloud` the line states the resume limit, not a promise.
 export function preparationPendingWarning(
   runId: string,
@@ -377,13 +332,28 @@ export function preparationPendingWarning(
     : `Run ${runId}: post-verdict hand-off pending; analysis is not yet queued. Durable intent: ${pendingPath}. The next local run or daemon drain resumes eligible pending hand-offs.`
 }
 
+/**
+ * Run ONE `agent-qa` run, in this process.
+ *
+ * The order is the load-bearing part, and every step of it is somebody's answer rather than this
+ * function's opinion:
+ *
+ *   1. resolve the inputs (reads only) — or take the door's, if it already has them;
+ *   2. mint or accept the run's identity;
+ *   3. produce members and an executor — mode-aware by default, overridable by a door with its own;
+ *   4. build the audit sink and safety-hook runner, and bind the hooks back into the producer;
+ *   5. compose the core, which owns the run-id check, assembly and start order;
+ *   6. inside the run's safety scope: execute, await `done`, finalise, flush, re-surface a member's
+ *      framework error, map the verdict, and let the door's tail have the last word on the code.
+ *
+ * NO DEFENSIVE CATCH ANYWHERE (D-03). Crash-through is the accepted posture; the runner's
+ * budget/abort machinery is the orderly containment. The `finally` below closes the run out and
+ * does nothing else.
+ */
 export async function runInProcessCliRun(
   options: InProcessCliRunExecutionOptions,
   request: RunsStartInput,
 ): Promise<CliRunOutcome> {
-  // (0) THE REFUSAL, BEFORE ANYTHING IS READ. See `refuseUnhonourableRequestFields`.
-  refuseUnhonourableRequestFields(request)
-
   const configPath = request.configPath ?? options.configPath
   const runId = request.runId ?? mintCliRunId()
 

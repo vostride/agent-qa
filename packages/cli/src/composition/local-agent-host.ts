@@ -296,18 +296,10 @@ function createComposedRunExecution(input: {
     async execute(request: RunsStartInput): Promise<{ runId: RunId }> {
       const trigger = currentRunDoor() ?? input.runTrigger ?? 'cli'
       const { createRunRecord, doorRunAttributes, resolveRunInvocationInputs } = await import('../commands/run.js')
-      const {
-        refuseUnhonourableRequestFields,
-        runInProcessCliRun,
-      } = await import('./in-process-run-execution.js')
+      const { runInProcessCliRun } = await import('./in-process-run-execution.js')
       const analytics = input.analytics
       const runSession =
         analytics === undefined ? undefined : await import('../run-session-composition.js')
-
-      // THE REFUSAL COMES FIRST, and at THIS door rather than only inside the drive: the
-      // preflight below reads the caller's config and secrets, which a refused call should not
-      // cost. It is the drive's own exported predicate over the core's own field set.
-      refuseUnhonourableRequestFields(request)
 
       // The request may name another config; the drive resolves against exactly this expression, so
       // a preflight read here that used a different one would resolve a different project.

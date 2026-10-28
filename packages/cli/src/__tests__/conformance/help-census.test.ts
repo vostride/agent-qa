@@ -47,13 +47,11 @@ import {
   CHAT_RESOLVER_TABLE,
   resolveClause,
 } from '@vostride/agent-qa-agent'
-import { REFUSED_RUN_REQUEST_FIELDS } from '@vostride/agent-qa-agent-local'
 import {
   AGENT_QA_MCP_INSTRUCTIONS,
   AGENT_QA_TOOL_PROJECTIONS,
   V1_TOOL_MIGRATION_MAP,
 } from '@vostride/agent-qa-mcp'
-import { RunsStartInputSchema } from '@vostride/agent-qa-schema'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -1515,148 +1513,6 @@ describe('C446-PLACEHOLDERS', () => {
     expect(prose.filter((line) => !/build ordinal or tag/u.test(line)), 'the guide leaves <build> unexplained')
       .toEqual([])
     expect(EVIDENCE_KINDS.filter((kind) => !new RegExp(`\\b${kind}\\b`, 'u').test(guide))).toEqual([])
-  })
-})
-
-// 2026-10-21 (446-14, D-30, D-31): a passage is a paragraph, list item, heading or table row; fenced blocks quote CLI output (D-09)
-function claimUnits(body: string): readonly string[] {
-  const units: string[] = []
-  let current: string[] = []
-  let fenced = false
-  const flush = (): void => {
-    if (current.length > 0) units.push(current.join('\n'))
-    current = []
-  }
-  for (const line of body.split('\n')) {
-    const trimmed = line.trim()
-    if (/^(?:```|~~~)/u.test(trimmed)) {
-      flush()
-      fenced = !fenced
-      continue
-    }
-    if (fenced) continue
-    if (trimmed === '') {
-      flush()
-      continue
-    }
-    if (/^#{1,6}\s/u.test(trimmed) || trimmed.startsWith('|')) {
-      flush()
-      units.push(trimmed)
-      continue
-    }
-    if (/^(?:[-*]|\d+\.)\s/u.test(trimmed)) flush()
-    current.push(trimmed)
-  }
-  flush()
-  return units
-}
-
-function sentencesOf(unit: string): readonly string[] {
-  return unit.split('\n').join(' ').split(/(?<=[.!?])\s+/u).filter((sentence) => sentence.length > 0)
-}
-
-function claimNamePattern(name: string): RegExp {
-  const words = name.split(/(?=[A-Z])/u).map((word) => word.toLowerCase())
-  const spellings = words.length > 1 ? [name, words.join('\\s+')] : [name]
-  return new RegExp(`(?<![\\w-])(?:--)?(?:${spellings.join('|')})(?![\\w:-])`, 'iu')
-}
-
-interface ClaimCensus {
-  readonly passage: RegExp
-  readonly names: readonly string[]
-  readonly allowed: RegExp
-}
-
-function argumentClaimFindings(
-  subjects: readonly GuidanceSubject[],
-  census: ClaimCensus,
-): { readonly passages: number; readonly findings: readonly string[] } {
-  let passages = 0
-  const findings: string[] = []
-  for (const subject of subjects) {
-    for (const unit of claimUnits(subject.body)) {
-      if (!census.passage.test(unit)) continue
-      passages += 1
-      for (const sentence of sentencesOf(unit)) {
-        if (census.allowed.test(sentence)) continue
-        for (const name of census.names) {
-          if (claimNamePattern(name).test(sentence)) findings.push(`${subject.name}: names ${name} in "${sentence}"`)
-        }
-      }
-    }
-  }
-  return { passages, findings: sorted(findings) }
-}
-
-function namedSubjects(names: readonly string[]): readonly GuidanceSubject[] {
-  const skills = skillSubjects()
-  return names.map((name) => skills.find((subject) => subject.name === name) ?? { name, body: '' })
-}
-
-const START_RUN_CLAIMS: ClaimCensus = {
-  passage: /\bagent_qa_start_run\b/u,
-  names: REFUSED_RUN_REQUEST_FIELDS,
-  allowed: /\brefuse[sd]?\b|\bnot accept/iu,
-}
-
-const START_RUN_SKILL_FILES = SKILL_TREES.flatMap((tree) =>
-  ['agent-qa-authoring', 'agent-qa-debug-fix'].map((skill) => `${tree}${skill}/SKILL.md`))
-
-// C446-START-RUN-ARGS (446-14, D-30): the skills name only arguments the local run core accepts
-describe('C446-START-RUN-ARGS', () => {
-  it('no source or packaged skill names an agent_qa_start_run argument the local run core refuses', () => {
-    for (const subject of namedSubjects(START_RUN_SKILL_FILES)) {
-      expect(argumentClaimFindings([subject], START_RUN_CLAIMS).passages,
-        `no agent_qa_start_run passage was scanned in ${subject.name}`).toBeGreaterThan(0)
-    }
-    expect(argumentClaimFindings(skillSubjects(), START_RUN_CLAIMS).findings,
-      'a skill names an agent_qa_start_run argument the local run core refuses').toEqual([])
-  })
-
-  it('the authoring and debug-fix skills in both trees name the tests to run with patterns, an argument the run core accepts', () => {
-    const refused: readonly string[] = REFUSED_RUN_REQUEST_FIELDS
-    expect(Object.keys(RunsStartInputSchema.shape)).toContain('patterns')
-    expect(refused).not.toContain('patterns')
-    const silent = namedSubjects(START_RUN_SKILL_FILES)
-      .filter((subject) => !claimUnits(subject.body)
-        .some((unit) => START_RUN_CLAIMS.passage.test(unit) && unit.includes('`patterns`')))
-      .map((subject) => subject.name)
-    expect(silent, 'a skill starts runs without naming patterns').toEqual([])
-  })
-
-  it('a planted scope claim is named, a sentence saying the server refuses scope is not, and a census that finds no agent_qa_start_run passage fails', () => {
-    expect(argumentClaimFindings([{
-      name: 'planted',
-      body: '- Start runs with `agent_qa_start_run` rather than shelling out. The test-or-suite scope is an\n  argument to it, not a second tool.',
-    }], START_RUN_CLAIMS)).toEqual({
-      passages: 1,
-      findings: ['planted: names scope in "The test-or-suite scope is an argument to it, not a second tool."'],
-    })
-    expect(argumentClaimFindings([{
-      name: 'planted',
-      body: '- Name the test files to `agent_qa_start_run` with `patterns`; the local agent-qa server refuses `scope`.',
-    }], START_RUN_CLAIMS)).toEqual({ passages: 1, findings: [] })
-    expect(argumentClaimFindings([{
-      name: 'planted',
-      body: [
-        '- `agent_qa_start_run` takes an Execution Context.',
-        '- `agent_qa_start_run` records `executionContext`, and pass --SCOPE too.',
-        '- `agent_qa_start_run` runs the scopes and the executionContexts you list.',
-        '',
-        '```yaml',
-        '# agent_qa_start_run with scope',
-        '```',
-      ].join('\n'),
-    }], START_RUN_CLAIMS)).toEqual({
-      passages: 3,
-      findings: [
-        'planted: names executionContext in "- `agent_qa_start_run` records `executionContext`, and pass --SCOPE too."',
-        'planted: names executionContext in "- `agent_qa_start_run` takes an Execution Context."',
-        'planted: names scope in "- `agent_qa_start_run` records `executionContext`, and pass --SCOPE too."',
-      ],
-    })
-    expect(argumentClaimFindings([{ name: 'planted', body: 'Pass the scope to `agent_qa_list_runs`.' }], START_RUN_CLAIMS))
-      .toEqual({ passages: 0, findings: [] })
   })
 })
 

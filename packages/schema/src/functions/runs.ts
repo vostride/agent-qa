@@ -402,10 +402,6 @@ export const RunsStartInputSchema = z.object({
    * with the child process removed from underneath it — which is the whole of D-01.
    */
   runId: runIdSchema.optional(),
-  /** Scope the run addresses; absent resolves from the config. */
-  scope: scopeKeySchema.optional(),
-  /** Execution context to record on the run; absent resolves from the environment. */
-  executionContext: z.enum(executionContextValues).optional(),
   /** Config file the composition root resolves the run against. */
   configPath: z.string().optional(),
   /**

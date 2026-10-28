@@ -32,7 +32,6 @@ import {
   createRunInvocationCore,
   RunIdAlreadyInUseError,
   RunIdNotMintedError,
-  RunRequestFieldRefusedError,
 } from '../run-invocation-core.js'
 import type { RunAssemblyContext, RunConfig } from '../run-invocation-core.js'
 // 2026-10-01 (432-19, D-15): the run gate's descriptor recipe is deleted; its action name is kept
@@ -279,48 +278,6 @@ describe('the invocation core asks nobody', () => {
     expect(code).not.toMatch(/readonly (confirm|trust|reader)\?/)
     // Non-vacuity: the stripped file still holds the core.
     expect(code).toContain('export function createRunInvocationCore(')
-  })
-})
-
-describe('the invocation core — the refused request fields (D-07 / Pitfall 7)', () => {
-  it.each(['scope', 'executionContext'] as const)(
-    'refuses a request-supplied %s before anything else happens',
-    async (field) => {
-      const assembler = recordingAssembler()
-      const core = makeCore({ assemble: assembler.assemble })
-
-      const refusal = await core
-        .execute(
-          field === 'scope'
-            ? { scope: { tier: 'product', key: 'other-product' } }
-            : { executionContext: 'local-interactive' },
-        )
-        .catch((error: unknown) => error)
-
-      expect(refusal).toBeInstanceOf(RunRequestFieldRefusedError)
-      expect((refusal as RunRequestFieldRefusedError).refusedFields).toEqual([field])
-      // The refusal precedes the gate, so nothing was classified, nothing was assembled, and no
-      // run id exists for a caller to ask about later.
-      expect(assembler.calls).toHaveLength(0)
-      expect(recordedAuditRows('run_minted_by_the_core')).toHaveLength(0)
-    },
-  )
-
-  it('a request-supplied executionContext can NEVER become the gate context (T-401-06)', async () => {
-    const assembler = recordingAssembler()
-    // The composition says `ci` — the fail-closed side. The request claims the interactive side,
-    // which is the elevation this refusal exists to make unreachable.
-    const core = makeCore({
-      executionContext: 'ci',
-      assemble: assembler.assemble,
-    })
-
-    const refusal = await core
-      .execute({ executionContext: 'local-interactive' })
-      .catch((error: unknown) => error)
-
-    expect(refusal).toBeInstanceOf(RunRequestFieldRefusedError)
-    expect(assembler.calls).toHaveLength(0)
   })
 })
 
@@ -607,12 +564,10 @@ describe('the invocation core — the identity step refuses before anything (CR-
     expect(again.runId).toBe('run_minted_twice_over')
   })
 
-  it('the two refusals are NAMED and distinguishable from each other and from a refused field', () => {
+  it('the two refusals are named and distinguishable from each other', () => {
     expect(new RunIdNotMintedError('x').name).toBe('RunIdNotMintedError')
     expect(new RunIdAlreadyInUseError('x').name).toBe('RunIdAlreadyInUseError')
     expect(new RunIdNotMintedError('x')).not.toBeInstanceOf(RunIdAlreadyInUseError)
-    expect(new RunIdAlreadyInUseError('x')).not.toBeInstanceOf(RunRequestFieldRefusedError)
-    expect(new RunIdNotMintedError('x')).not.toBeInstanceOf(RunRequestFieldRefusedError)
   })
 
   it('the shape predicate is REQUIRED, with no default and no fallback (source)', () => {

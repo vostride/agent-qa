@@ -299,28 +299,28 @@ describe('leg (b) — POST /run with a wrong token', () => {
   })
 })
 
-describe('the request may not name the terms of its own authorization', () => {
-  it('refuses a body carrying executionContext with a typed 400', async () => {
+describe('the request may name only the tests to run', () => {
+  it('refuses a body naming runId as a refused request field', async () => {
     const service = await openRunService()
     const response = await fetch(`${service.origin}/run`, {
       method: 'POST',
       headers: authed,
-      body: JSON.stringify({ executionContext: 'local-interactive' }),
+      body: JSON.stringify({ runId: 'r_whatever' }),
     })
     expect(response.status).toBe(400)
     expect(await response.json()).toEqual({ error: 'refused_request_field' })
   })
 
-  it('refuses runId and scope the same way', async () => {
+  it('refuses a body naming executionContext or scope as an invalid request body', async () => {
     const service = await openRunService()
-    for (const body of [{ runId: 'r_whatever' }, { scope: 'main' }]) {
+    for (const body of [{ executionContext: 'local-interactive' }, { scope: 'main' }]) {
       const response = await fetch(`${service.origin}/run`, {
         method: 'POST',
         headers: authed,
         body: JSON.stringify(body),
       })
       expect(response.status).toBe(400)
-      expect(await response.json()).toEqual({ error: 'refused_request_field' })
+      expect(await response.json()).toEqual({ error: 'invalid_request_body' })
     }
   })
 

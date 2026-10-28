@@ -695,22 +695,7 @@ describe('agent-qa fn (generic function invoker)', () => {
     expect(JSON.parse(result.stdout)).toEqual([])
   })
 
-  it('no longer refuses runs.start by binding — the refusal is now the HOST executor speaking', async () => {
-    // The 384 version of this case asserted `FunctionNotBoundError` from this exact command.
-    // It cannot be asserted here any more, and its replacement has to prove the same two
-    // things it did: that the refusal is distinguishable from an unknown id, and that the
-    // capability is reached rather than short-circuited.
-    //
-    // `scope` is a field the run command has no way to carry, so the host's executor refuses it
-    // BEFORE launching anything — which makes this a zero-child-process proof that the invocation
-    // crossed the gate, cleared the binding check, and reached the port the composition bound. A
-    // composition that still refused by binding would report `FunctionNotBoundError` here instead,
-    // and it is asserted absent.
-    //
-    // IT USED TO BE `gateRun`, and 393 moved it. Both durable markers left the unsupported list
-    // when the run command grew `--gate-run` / `--excluded-from-outcomes`, so asking for one is now
-    // an ordinary accepted request and would have launched a child. `scope` and `executionContext`
-    // are what remain, and they belong to the run-invocation work rather than to this phase.
+  it('refuses a runs.start input naming scope at the input check, before anything is read', async () => {
     const workspace = fixtureWorkspace(roots)
 
     const result = await invoke(
@@ -720,18 +705,11 @@ describe('agent-qa fn (generic function invoker)', () => {
 
     expect(result.exitCode).toBe(1)
     expect(result.stdout).toBe('')
-    // 401-05: the SUCCESSOR name. The refusal moved from the spawn port's own pre-filter to the
-    // in-process drive, reading the core's exported field set — `UnsupportedRunRequestError` dies
-    // with `createCliRunExecution` in 401-10 and is no longer on this path.
-    expect(result.stderr).toContain('RunRequestFieldRefusedError')
+    expect(result.stderr).toContain('Invalid input for runs.start')
     expect(result.stderr).toContain('scope')
-    expect(result.stderr).not.toContain('FunctionNotBoundError')
     expect(result.stderr).not.toContain('Unknown function')
-    // AND NOTHING WAS READ ON THE WAY TO IT, which is the half a name change could have quietly
-    // dropped. This fixture's config declares an auth plugin that is NOT installed, so a refusal
-    // that arrived after the project's config resolution would report `PluginNotInstalledError`
-    // here — third-party code loaded for a request this seam was always going to refuse. That is
-    // the exact regression the drive's own hoisted check exists to hold.
+    // This fixture's config declares an auth plugin that is not installed, so a refusal that came
+    // after the project's config was resolved would report the plugin's error instead.
     expect(result.stderr).not.toContain('PluginNotInstalledError')
   })
 

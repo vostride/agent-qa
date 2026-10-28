@@ -82,16 +82,14 @@ export {
 } from './composition/knowledge-reader.js'
 export type { ConstructKnowledgeReaderInput } from './composition/knowledge-reader.js'
 
-// The one in-process run invocation core, and the typed refusals it can raise: a request field it
-// cannot honour, an id it would not have minted, and an id that already belongs to a run, each
-// told apart without reading a message. Published for the reason the run composition is: it is the
-// seam every host is supposed to share, and a host that cannot reach it composes a run of its own.
+// The one in-process run invocation core, and the typed refusals it can raise: an id it would not
+// have minted, and an id that already belongs to a run, told apart without reading a message.
+// Published for the reason the run composition is: it is the seam every host is supposed to share,
+// and a host that cannot reach it composes a run of its own.
 export {
   createRunInvocationCore,
-  REFUSED_RUN_REQUEST_FIELDS,
   RunIdAlreadyInUseError,
   RunIdNotMintedError,
-  RunRequestFieldRefusedError,
 } from './composition/run-invocation-core.js'
 export type {
   RunAssembler,

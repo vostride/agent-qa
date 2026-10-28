@@ -571,16 +571,11 @@ describe('the token value reaches no channel (T-402-21)', () => {
 
 describe('the door never forwards a caller’s run id, even with its own check bypassed (#231)', () => {
   it('the composition builds the request from patterns ALONE — an injected id is not honoured', async () => {
-    // WINDOWS #231 ASKS WHETHER `runId` HAS A SECOND REFUSAL. `RUN_SERVICE_REFUSED_REQUEST_FIELDS`
-    // rejects the key at the HTTP door, and the core's `REFUSED_RUN_REQUEST_FIELDS` covers `scope`
-    // and `executionContext` a layer down but NOT `runId` — deliberately, because the local
-    // dashboard door legitimately supplies one (its queue minted the row). A core-level refusal
-    // would break that door, so defence in depth for this field cannot live there.
-    //
-    // It lives HERE instead, and this cell is what makes that a fact rather than a reading:
-    // `composeRunServicePorts` builds its `RunsStartInput` from `patterns` and nothing else, so a
-    // value reaching past the HTTP check is dropped by construction. Called directly, which is the
-    // only way to bypass that check.
+    // `RUN_SERVICE_REFUSED_REQUEST_FIELDS` rejects `runId` at the HTTP door. The core cannot refuse
+    // it, because the local dashboard door supplies one from its queue. So the second refusal is
+    // here: `composeRunServicePorts` builds its `RunsStartInput` from `patterns` and nothing else,
+    // and a value reaching past the HTTP check is dropped. Called directly, which is the only way to
+    // bypass that check.
     const configPath = fixtureWorkspace()
     const configDir = dirname(resolve(configPath))
     const { DashboardDatabase } = await import('@vostride/agent-qa-dashboard')

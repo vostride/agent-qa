@@ -622,8 +622,7 @@ async function composeDaemonRunExecution(input: {
 }): Promise<RunExecutionPort> {
   const { createRunRecord, doorRunAttributes, resolveRunInvocationInputs } =
     await import('../commands/run.js')
-  const { refuseUnhonourableRequestFields, runInProcessCliRun } =
-    await import('../composition/in-process-run-execution.js')
+  const { runInProcessCliRun } = await import('../composition/in-process-run-execution.js')
   const analytics = input.analytics
   const runSession =
     analytics === undefined ? undefined : await import('../run-session-composition.js')
@@ -668,11 +667,6 @@ async function composeDaemonRunExecution(input: {
                 agent_product: currentInvokeAgentProduct() ?? 'unknown',
               },
             }
-      // (0) THE REFUSAL, BEFORE ANYTHING IS READ — and it is made HERE rather than left to the
-      // drive's own step (0) because this door reads its own preflight, which happens first. Before
-      // 442-08 that preflight loaded auth plugins, so a `runs.start` naming `scope` reported
-      // `PluginNotInstalledError` instead of the refusal (`daemon-run-execution.test.ts`).
-      refuseUnhonourableRequestFields(request)
       // The request may name another config; the drive resolves against exactly this expression, so
       // a preflight read here that used a different one would resolve a different project.
       const configPath = request.configPath ?? input.configPath

@@ -523,7 +523,7 @@
       "classifies": true,
       "id": "runs.detail",
       "inputSchemaDigest": "55df3bfd3c544e0140548637d1539243fb285899b52998dc36a6dbe1989aee6d",
-      "outputSchemaDigest": "0bf0766130704d707476f4e5a0d4870af6972398705f7d183f8f1fb1c01fc402",
+      "outputSchemaDigest": "baa64aaaae6ead91c97897d7cafeb9f15e24cfed2b6f9e5db32771b66ef8006b",
       "partition": {
         "kind": "unprojected",
         "reason": "not-mid-flight-read"
@@ -743,7 +743,7 @@
       "bindingStatusAtRoot": "bound",
       "classifies": true,
       "id": "runs.start",
-      "inputSchemaDigest": "a1d47c889b37bab978687bc7bf5cb67d840e3d64854ca0d5b488da191b5fd172",
+      "inputSchemaDigest": "a5ce22f3bc6e11d5ca739d56bfddd80fa6b48d6d2f80287b65989f0406bcc09f",
       "outputSchemaDigest": "9c339a01ae6a999449165c24202c49d8f237f6fd09ddc333c72c4cb5844e755a",
       "partition": {
         "kind": "projected",

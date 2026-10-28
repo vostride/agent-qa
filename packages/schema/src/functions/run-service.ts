@@ -128,16 +128,10 @@ export const RunServiceReplayFloorBodySchema = z.object({
 export type RunServiceReplayFloorBody = z.infer<typeof RunServiceReplayFloorBodySchema>
 
 /**
- * The request fields this door REFUSES outright (D-07 / D-12, 401's law carried to the wire).
- *
- * A caller may not name the terms of its own authorization, may not choose the identity its
- * run is addressed by, and may not turn up concurrency on a target whose config owner tuned it.
- * The core's own `REFUSED_RUN_REQUEST_FIELDS` refuses `scope` and `executionContext` a layer down;
- * `runId` joins them HERE because the local dashboard door legitimately supplies one (its queue
- * minted the row) and the remote door legitimately does not — the difference is a property of the
- * door, so it is stated at the door.
+ * The request fields this door refuses: a caller may not choose the run id its run is addressed
+ * by. The local dashboard door supplies one from its queue and the remote door does not.
  */
-export const RUN_SERVICE_REFUSED_REQUEST_FIELDS = ['runId', 'scope', 'executionContext'] as const
+export const RUN_SERVICE_REFUSED_REQUEST_FIELDS = ['runId'] as const
 
 /**
  * What a remote caller may say when starting a run: the pattern set, and nothing else.

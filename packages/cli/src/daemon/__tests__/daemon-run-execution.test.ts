@@ -495,25 +495,13 @@ function callerSurface(refusal: unknown): string {
   return `${error?.name ?? ''}: ${error?.message ?? String(refusal)}`
 }
 
-describe('the daemon refuses an unhonourable request field BEFORE it reads anything (401-10)', () => {
-  it('THE ORDERING — `scope` is refused with no auth plugin loaded, and nothing is dispatched', async () => {
-    // ASSIGNED TO 401-10 by the orchestrator, from 401-05's finding at the fn door and filed in
-    // `deferred-items.md`. `composeDaemonRunExecution` read its own preflight — which is right, and
-    // is what keeps `config.safety.trustMode` reaching this gate — and THEN called the drive, whose
-    // step (0) is the refusal. So a `runs.start` naming a field the seam was always going to refuse
-    // still resolved the project's config first, and `resolveRunInvocationInputs` LOADS AUTH
-    // PLUGINS: third-party code executed on behalf of a refused request.
-    //
-    // A DOOR THAT READS ITS OWN PREFLIGHT MUST MAKE THE REFUSAL ITSELF; the drive's check is too
-    // late for it. Same shape as `__tests__/fn-command.test.ts`'s "no longer refuses runs.start by
-    // binding", and deliberately so — one contract, one assertion shape, two doors.
+describe('the daemon refuses a runs.start input naming scope before it reads anything', () => {
+  it('scope is refused by the input check with no auth plugin loaded, and nothing is dispatched', async () => {
     const target = new CountingTarget()
     await target.listen()
     try {
-      // THE FIXTURE IS THE MEASUREMENT. Its config declares an auth plugin that is not installed,
-      // so a refusal arriving after config resolution reports `PluginNotInstalledError` and a
-      // refusal arriving before it reports `RunRequestFieldRefusedError`. Without the plugin the
-      // two orderings produce identical output and this cell would be green at rest.
+      // The fixture's config declares an auth plugin that is not installed, so a refusal that came
+      // after config resolution would report `PluginNotInstalledError` instead of the input error.
       const project = daemonProject({
         origin: target.origin,
         environment: 'local',
@@ -528,18 +516,12 @@ describe('the daemon refuses an unhonourable request field BEFORE it reads anyth
       })
 
       expect(acknowledged).toBeUndefined()
-      // The NAME and the message together — `invokeViaDaemon` rehydrates both, and the pair is
-      // what a caller sees. Read as one string so a refusal that changed which half carries the
-      // class cannot slip past.
       const surface = callerSurface(refusal)
-      expect(surface).toContain('RunRequestFieldRefusedError')
+      expect(surface).toContain('Invalid input for runs.start')
       expect(surface).toContain('scope')
-      // THE HALF THE NAME ALONE CANNOT CARRY: nothing was read on the way to the refusal.
       expect(surface).not.toContain('PluginNotInstalledError')
       expect(surface).not.toContain(UNINSTALLED_AUTH_PLUGIN_PACKAGE)
 
-      // …and a refused request left nothing behind, which is the core's own stated property and
-      // the reason the ordering matters at all beyond the plugin load.
       expect(eventTypes(fixture as never)).toEqual([])
       expect(buildOrdinalsExist(fixture as never)).toBe(false)
       expect(target.hits).toEqual([])
@@ -549,10 +531,9 @@ describe('the daemon refuses an unhonourable request field BEFORE it reads anyth
     }
   }, 120_000)
 
-  it('THE ALLOW CONTROL — the SAME fixture without that one field dispatches a real run', async () => {
-    // One field different. Without this arm the cell above would pass for a daemon that refused
-    // every request — including for a daemon that could not read this fixture's config at all,
-    // which is precisely the failure mode the uninstalled plugin introduces.
+  it('the same fixture without scope reaches the preflight and its plugin load', async () => {
+    // Without this arm the cell above would pass for a daemon that refused every request, or one
+    // that could not read this fixture's config at all.
     const target = new CountingTarget()
     await target.listen()
     try {
@@ -568,13 +549,11 @@ describe('the daemon refuses an unhonourable request field BEFORE it reads anyth
         patterns: [fixture.testPattern],
       })
 
-      // The plugin IS loaded on this arm — the request is honourable, so the preflight runs — and
-      // the fixture's declaration is therefore what a real project would hit. The run is refused by
-      // the plugin loader, NOT by the field check, and the two refusals are distinguishable.
+      // The input is valid, so the preflight runs and the plugin loader refuses the run.
       const surface = callerSurface(refusal)
       expect(acknowledged, `unexpected ack: ${JSON.stringify(acknowledged)}`).toBeUndefined()
       expect(surface).toContain('PluginNotInstalledError')
-      expect(surface).not.toContain('RunRequestFieldRefusedError')
+      expect(surface).not.toContain('Invalid input for runs.start')
     } finally {
       await target.close()
     }

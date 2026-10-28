@@ -336,7 +336,7 @@ describe('the empty-input and suite edges of a bare runs.start (401-05, INVK-02)
     }
   }, 120_000)
 
-  it('AN UNHONOURABLE FIELD IS REFUSED BEFORE ANYTHING IS READ', async () => {
+  it('an input naming scope is refused by the input check before anything is read', async () => {
     const target = new CountingTarget()
     await target.listen()
     try {
@@ -349,15 +349,12 @@ describe('the empty-input and suite edges of a bare runs.start (401-05, INVK-02)
         { resolveExecutionContext: () => 'local-headless' },
       )
 
-      expect((error as Error).name).toBe('RunRequestFieldRefusedError')
+      expect((error as Error).name).toBe('FunctionInputError')
       expect((error as Error).message).toContain('scope')
-      // NOTHING WAS READ, NOTHING WAS DECIDED, NOTHING WAS MINTED. The core states this ordering;
-      // a drive standing in front of it is where the property is actually kept, because everything
-      // before the core resolves the caller's config and loads its auth plugins.
+      // The strict input check runs before the binding, so nothing was read, decided or minted.
       expect(runDirs(fixture)).toEqual([])
       expect(buildOrdinalsExist(fixture)).toBe(false)
       expect(target.hits).toEqual([])
-      // 432-13: the op has no gate, so no op row either.
       expect(opAuditRows(fixture)).toEqual([])
       expect(auditRows(fixture)).toEqual([])
     } finally {

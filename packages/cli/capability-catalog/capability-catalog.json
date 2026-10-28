@@ -2078,15 +2078,6 @@
             "const": true,
             "type": "boolean"
           },
-          "executionContext": {
-            "enum": [
-              "local-interactive",
-              "local-headless",
-              "ci",
-              "cloud"
-            ],
-            "type": "string"
-          },
           "gateRun": {
             "const": true,
             "type": "boolean"
@@ -2099,28 +2090,6 @@
           },
           "runId": {
             "type": "string"
-          },
-          "scope": {
-            "additionalProperties": false,
-            "properties": {
-              "key": {
-                "type": "string"
-              },
-              "tier": {
-                "enum": [
-                  "global",
-                  "product",
-                  "suite",
-                  "test"
-                ],
-                "type": "string"
-              }
-            },
-            "required": [
-              "tier",
-              "key"
-            ],
-            "type": "object"
           }
         },
         "type": "object"
@@ -2159,5 +2128,5 @@
       "shortDescription": "Triage agent-qa run failures"
     }
   ],
-  "rowsDigest": "4b66dd63870da1b097e5f241735ea92c33deed175fc444d7c2f08d433c07db9e"
+  "rowsDigest": "9f80a09cd900df37f5ef374373f423eaeaedfc6900eb703b507652487ec56fe6"
 }

@@ -4,17 +4,16 @@
 // daemon drainer, the dashboard's run button — resolves to ONE function here. It owns the ORDER a
 // run is started in:
 //
-//   refuse unhonourable request fields
-//     → resolve the run id (refuse an unminted or colliding one)
+//   resolve the run id (refuse an unminted or colliding one)
 //     → afterRefusal (the door's own code: its run record, then its plugins)
 //     → persistence ports → assemble → startRun → onSession → await the run
 //
 // NOTHING ASKS. There is no approval ladder, no confirm port and no session trust here: a run
 // starts in every execution context, whatever environment its targets declare. The only refusals
-// are of the request itself and its run id, and both land BEFORE assembly — assembly is where the
-// run-start baseline probe fetches the target and where the build-ordinal counter is advanced — so a
-// refused run leaves no probe, no ordinal bump, no run directory and no browser. `assembleRun` is a
-// port this file calls once, below every refusal.
+// are of the request's run id, and they land BEFORE assembly — assembly is where the run-start
+// baseline probe fetches the target and where the build-ordinal counter is advanced — so a refused
+// run leaves no probe, no ordinal bump, no run directory and no browser. `assembleRun` is a port
+// this file calls once, below every refusal.
 //
 // THE ONE `startRun` OWNER. `packages/arch/src/lint/startrun-pin.ts` pins this file as the only
 // production file that starts a run in-process.
@@ -61,52 +60,10 @@ export type {
 } from '@vostride/agent-qa-runner'
 
 /**
- * The request fields this seam refuses, and the reason is not the one the CLI host had.
+ * The request named a run id this system would not have minted.
  *
- * `createCliRunExecution` refused these because the `run` COMMAND had no argv to express them
- * (`local-agent-host.ts`). This core can express both — and honouring either would be the defect
- * RESEARCH Pitfall 7 names:
- *
- *   `executionContext` — the context a run records comes from the composition that owns the door
- *     (D-07) and from nowhere else. The FIELD survives on the contract as the label a run RECORDS,
- *     and it is refused here until some door has a use for recording a label that differs from the
- *     context it was started in.
- *
- *   `scope` — resolves from the config's own target/product resolution. Accepting an override
- *     would let a caller address one product's run ledger while running another's.
- *
- * Read OFF the request rather than enumerated positively, so a field added to `RunsStartInput`
- * with no plan for carrying it shows up here as a refusal instead of as a silent drop.
- */
-export const REFUSED_RUN_REQUEST_FIELDS = [
-  'scope',
-  'executionContext',
-] as const satisfies readonly (keyof RunsStartInput)[]
-
-/**
- * The request named a field this seam refuses, so the request is refused rather than reshaped.
- *
- * The successor to `UnsupportedRunRequestError` (cli `local-agent-host.ts`), which dies with the
- * spawn port in 401-05. Same class of refusal, different rationale: that one could not express the
- * fields, this one declines to.
- */
-export class RunRequestFieldRefusedError extends Error {
-  constructor(readonly refusedFields: readonly string[]) {
-    super(
-      `agent-qa cannot start a run with: ${refusedFields.join(', ')}. ` +
-        'scope resolves from the config the run is started against, and executionContext is ' +
-        'supplied by the composition that owns the door — a caller-named execution context ' +
-        'would be a caller relabelling where its run came from.',
-    )
-    this.name = 'RunRequestFieldRefusedError'
-  }
-}
-
-/**
- * The request named a run id this system would not have minted (2026-08-23, 401-20 · CR-04).
- *
- * A DECISION, NOT A FAULT, and it joins `RunRequestFieldRefusedError` under the same rule: the
- * caller asked for something this seam declines, and says so by name before anything happens.
+ * A decision, not a fault: the caller asked for something this seam declines, and it says so by
+ * name before anything happens.
  *
  * WHY IT IS ASKED HERE AND NOT IN THE SCHEMA. `packages/schema` owns PATH-SAFETY on the id — the
  * id becomes a directory name and that is judgeable with no dependencies — but it may not name
@@ -174,7 +131,7 @@ function refuseUnavailableRunId(input: {
 export interface RunAssemblyContext {
   /** The run's identity, already resolved. The core starts the run under THIS id and no other. */
   readonly runId: string
-  /** The caller's request, refused fields already rejected. */
+  /** The caller's request, its run id already checked. */
   readonly request: RunsStartInput
   /** The context the door carried — the same value, so a run cannot record a different one. */
   readonly executionContext: RunExecutionContext
@@ -291,12 +248,7 @@ export function createRunInvocationCore(
 
   return {
     async execute(request: RunsStartInput): Promise<{ runId: RunId }> {
-      // (1) The refusal, first — before an id is minted or a config is read. A refused request
-      // must not leave a run id behind that a caller could later ask about.
-      const refused = REFUSED_RUN_REQUEST_FIELDS.filter((field) => request[field] !== undefined)
-      if (refused.length > 0) throw new RunRequestFieldRefusedError(refused)
-
-      // (2) Identity, and it REFUSES before it resolves (401-20, CR-04).
+      // (1) Identity, and it REFUSES before it resolves (401-20, CR-04).
       //
       // A caller-supplied id carries exactly the trust the old `AGENT_QA_RUN_ID` child environment
       // variable carried — the door minting it is the door running it. What it does NOT carry, and
@@ -323,11 +275,11 @@ export function createRunInvocationCore(
       }
       const runId = request.runId ?? options.mintRunId()
 
-      // (3) The door's own code runs only for an allowed request, and a failure here still leaves
+      // (2) The door's own code runs only for an allowed request, and a failure here still leaves
       // no run directory.
       await options.afterRefusal?.()
 
-      // (4) Assembly — the first line that may touch the target, and it is below every refusal.
+      // (3) Assembly — the first line that may touch the target, and it is below every refusal.
       const ports = buildRunPorts({ configDir, runId })
       // 404 D-05/D-10: the post-verdict step, built ONCE per run and spread into the ports the
       // assembler receives — so it rides the same hop `handoffStore` does and reaches
@@ -345,7 +297,7 @@ export function createRunInvocationCore(
         configPath: request.configPath ?? options.configPath,
       })
 
-      // (5) Start. The markers ride straight from the request onto the RunConfig — the chain that
+      // (4) Start. The markers ride straight from the request onto the RunConfig — the chain that
       // used to be request → port → argv → command flag → RunConfig is now request → RunConfig,
       // and only the literal `true` carries (a `false` is a refusal, not a synonym for absence).
       // `runId` is stamped over whatever the assembler returned so the id this call acknowledges

@@ -850,9 +850,7 @@ export function createRunServiceRoutes(ports: RunServicePorts): RunServiceRouter
       }
       const refused = refusedFieldsIn(raw as Record<string, unknown>)
       if (refused.length > 0) {
-        // A caller may not name the terms of its own authorization, may not choose the identity
-        // its run is addressed by, and may not tune a target's concurrency. The door composes
-        // context and the core mints the id.
+        // A caller may not choose the identity its run is addressed by.
         refuse(res, 400, 'refused_request_field')
         return
       }
