@@ -17,6 +17,7 @@ import { runInProcessCliRun } from '../in-process-run-execution.js'
 import {
   CountingTarget,
   IN_PROCESS_TARGET_NAME,
+  SECOND_TARGET_NAME,
   closeTestRunRecords,
   createInProcessFixture,
   removeInProcessFixtures,
@@ -92,5 +93,21 @@ describe('a run records the targets its tests ran on', () => {
     expect(artifact.targets).toEqual([IN_PROCESS_TARGET_NAME])
     expect((artifact.source as { kind?: unknown }).kind).toBe('test')
     expect(artifactText).not.toContain(planted)
+  }, 120_000)
+
+  it("a suite run is found by the suite's target, not its member's own target line", async () => {
+    const fixture = await runFixture(
+      { secondTarget: true, suiteOnSecondTarget: true },
+      (made) => made.suitePattern,
+    )
+
+    const { runId, artifactText } = onlyRun(fixture)
+    expect(await listedByTarget(fixture, SECOND_TARGET_NAME)).toEqual([runId])
+    expect(await listedByTarget(fixture, IN_PROCESS_TARGET_NAME)).toEqual([])
+
+    const artifact = JSON.parse(artifactText) as Record<string, unknown>
+    expect(artifact.targets).toEqual([SECOND_TARGET_NAME])
+    expect((artifact.source as { kind?: unknown }).kind).toBe('suite')
+    expect(artifact).not.toHaveProperty('config')
   }, 120_000)
 })

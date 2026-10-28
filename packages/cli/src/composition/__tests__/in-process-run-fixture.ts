@@ -177,6 +177,8 @@ export interface InProcessFixtureInput {
   readonly workerCount?: number
   /** Write `use.cache: false` in the config, so every test the fixture writes runs with the cache off. */
   readonly cacheOff?: boolean
+  /** With `secondTarget`, the suite's `target:` names the second target while its member keeps the first. */
+  readonly suiteOnSecondTarget?: boolean
 }
 
 /** The package name the knob above declares. Not installed, and named so a reader can tell. */
@@ -355,7 +357,11 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
     [
       `suite-id: ${generateSuiteId()}`,
       'name: the in-process suite',
-      `target: ${IN_PROCESS_TARGET_NAME}`,
+      `target: ${
+        input.secondTarget === true && input.suiteOnSecondTarget === true
+          ? SECOND_TARGET_NAME
+          : IN_PROCESS_TARGET_NAME
+      }`,
       'tests:',
       '  - test: tests/member.yaml',
       `    id: ${memberTestId}`,

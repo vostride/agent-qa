@@ -791,6 +791,15 @@ function stagedRunArtifact(
   }
 }
 
+function suiteRunSource(
+  artifacts: readonly (Record<string, unknown> | undefined)[],
+): Record<string, unknown> {
+  const sources = artifacts
+    .map((artifact) => artifact?.source)
+    .filter((source): source is Record<string, unknown> => isSnapshotRecord(source))
+  return sources.length === 1 ? sources[0]! : { kind: 'suites', suites: sources }
+}
+
 function directRunSource(bindings: readonly ParsedTestBinding[]): Record<string, unknown> {
   const snapshot = ({ test, filePath, fileContent }: ParsedTestBinding) => ({
     testId: test['test-id'] ?? null,
@@ -3457,6 +3466,11 @@ export async function produceSuiteRunMembers(
     ...(config.services?.dashboard?.dbPath === undefined
       ? {}
       : { configuredRunsDbPath: config.services.dashboard.dbPath }),
+    runArtifact: stagedRunArtifact(
+      suiteRunSource(preparedSuites.map((prepared) => prepared.suiteArtifact)),
+      suiteMemberTargetNames,
+      suiteRunMask,
+    ),
     subscriberSeed: (() => {
       const first = preparedSuites[0]
       if (first === undefined) return {}
