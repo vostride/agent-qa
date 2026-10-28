@@ -13,9 +13,8 @@
 // because editor and client configurations out in the world encode `agent-qa mcp` and D-09 rates
 // moving the server into the daemon as a costly reversal for precisely that reason.
 //
-// STDOUT IS THE PROTOCOL CHANNEL. Every diagnostic goes to stderr. One stray byte on stdout ahead
-// of a response breaks every client on the connection, which is why the confirm port is refused
-// below rather than merely absent, and why there is no `console.log` in this file.
+// STDOUT IS THE PROTOCOL CHANNEL. Every diagnostic goes to stderr, and the stdio server reserves
+// stdout while it serves so text wrapped under GitHub Actions stays on stderr too.
 //
 // TWO TRANSPORTS, ONE SERVER (D-10, plan 05). `--http` binds a stateless loopback endpoint beside
 // the stdio default. Both reach `buildAgentQaMcpServer` through the same `mcpServerDeps` helper with
@@ -55,6 +54,7 @@ import {
 } from '@modelcontextprotocol/server'
 import { buildAgentQaMcpServer, createAgentQaMcpNodeHandler } from '@vostride/agent-qa-mcp'
 import type { LiveLinkSupplier } from '@vostride/agent-qa-mcp'
+import { reserveStdoutForData } from '@vostride/agent-qa-core'
 import type { FunctionCaller } from '@vostride/agent-qa-schema'
 import { Command } from 'commander'
 import pc from 'picocolors'
@@ -375,25 +375,30 @@ async function serveOverStdio(input: {
 }): Promise<void> {
   // 2026-10-01 (432-21/432-22, D-12): no stdio grant. The `grantConfigWrite` opt-in that added
   // `config-write` to a stdio caller is deleted; a stdio caller is the HTTP caller.
-  const handle = serveStdio(() =>
-    buildAgentQaMcpServer(
-      mcpServerDeps({
-        registry: input.registry,
-        maskText: input.maskText,
-        ...(input.liveLink === undefined ? {} : { liveLink: input.liveLink }),
-      }),
-    ),
-  )
-  // stderr, never stdout — see the file header. Written after the serving entry is live so the line
-  // is a fact about a running server rather than an intention.
-  process.stderr.write(`${MCP_STDIO_STARTUP_MESSAGE}\n`)
-  input.onServing?.()
-  // The process serves until its stdin closes, which is how a spawning client stops it.
-  await new Promise<void>((settle) => {
-    process.stdin.once('end', () => settle())
-    process.stdin.once('close', () => settle())
-  })
-  await handle.close()
+  const releaseStdout = reserveStdoutForData()
+  try {
+    const handle = serveStdio(() =>
+      buildAgentQaMcpServer(
+        mcpServerDeps({
+          registry: input.registry,
+          maskText: input.maskText,
+          ...(input.liveLink === undefined ? {} : { liveLink: input.liveLink }),
+        }),
+      ),
+    )
+    // stderr, never stdout — see the file header. Written after the serving entry is live so the
+    // line is a fact about a running server rather than an intention.
+    process.stderr.write(`${MCP_STDIO_STARTUP_MESSAGE}\n`)
+    input.onServing?.()
+    // The process serves until its stdin closes, which is how a spawning client stops it.
+    await new Promise<void>((settle) => {
+      process.stdin.once('end', () => settle())
+      process.stdin.once('close', () => settle())
+    })
+    await handle.close()
+  } finally {
+    releaseStdout()
+  }
 }
 
 async function serveOverHttp(input: {

@@ -43,6 +43,7 @@ import {
 } from '@vostride/agent-qa-schema'
 
 import { analyticsRunId } from '@vostride/agent-qa-analytics'
+import { printRunText } from '@vostride/agent-qa-core'
 
 import { analyticsEvent } from '../composition/analytics-host.js'
 import type { CliAnalyticsHost } from '../composition/analytics-host.js'
@@ -307,8 +308,8 @@ export interface DaemonHostOptions {
 }
 
 const DEFAULT_LOGGER: DaemonHostLogger = {
-  info: (message) => console.log(message),
-  error: (message) => console.error(message),
+  info: (message) => printRunText(message),
+  error: (message) => printRunText(message, (line) => console.error(line)),
 }
 
 async function waitForEmbedderWorkerReady(

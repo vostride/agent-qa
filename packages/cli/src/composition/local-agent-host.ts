@@ -106,6 +106,7 @@ import {
   DEFAULT_AGENT_QA_RUNS_DB_PATH,
   parseTestFile,
   parseTestFileWithTokens,
+  printRunText,
   renderPatchedTestDoc,
   resolveKnowledgeRoot,
   resolveWorkspacePaths,
@@ -304,11 +305,11 @@ function createComposedRunExecution(input: {
       // The request may name another config; the drive resolves against exactly this expression, so
       // a preflight read here that used a different one would resolve a different project.
       const configPath = request.configPath ?? input.configPath
-      // Both `warn` seams, pointed at one place. `console.warn` writes to stderr, which is the only
-      // channel free at every door this host serves: `agent-qa fn --json` owns stdout and the MCP
-      // host's stdout IS the JSON-RPC connection. Dropping them — the drive's own default — would
-      // make this the one door where a quarantine fold happens silently.
-      const warn = (message: string): void => { console.warn(message) }
+      // Both `warn` seams print to stderr locally. Under GitHub Actions they are wrapped, and they
+      // stay on stderr when the door's stdout carries JSON or the MCP protocol.
+      const warn = (message: string): void => {
+        printRunText(message, (line) => console.warn(line))
+      }
       const inputs = await resolveRunInvocationInputs({
         configPath,
         ...(request.patterns === undefined ? {} : { patterns: request.patterns }),

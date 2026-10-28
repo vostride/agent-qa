@@ -1,3 +1,4 @@
+import { printRunText } from '@vostride/agent-qa-core'
 import type { LogWarningsFunction } from 'ai'
 
 /** Eval stdout is a data channel. The SDK's default logger emits a one-time stdout tip. */
@@ -7,7 +8,10 @@ export function installEvalWarningLogger(): () => void {
   if (previous === false || typeof previous === 'function') return () => {}
   const logger: LogWarningsFunction = ({ warnings, provider, model }) => {
     for (const warning of warnings) {
-      process.stderr.write(`AI SDK Warning (${provider} / ${model}): ${JSON.stringify(warning)}\n`)
+      printRunText(
+        `AI SDK Warning (${provider} / ${model}): ${JSON.stringify(warning)}`,
+        (text) => process.stderr.write(`${text}\n`),
+      )
     }
   }
   globalThis.AI_SDK_LOG_WARNINGS = logger
