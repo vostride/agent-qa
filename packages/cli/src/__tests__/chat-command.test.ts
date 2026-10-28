@@ -581,3 +581,45 @@ describe('agent-qa chat (the REPL over one turn engine)', () => {
     expect(shared).toContain('JSON.stringify(payload, null, 2)')
   })
 })
+
+describe('agent-qa chat under GitHub Actions', () => {
+  const PAIR = /^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::\n$/u
+  const roots: string[] = []
+  let originalExitCode: typeof process.exitCode
+
+  beforeEach(() => {
+    originalExitCode = process.exitCode
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    process.exitCode = originalExitCode
+    for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
+  })
+
+  it('a secrets file it cannot read is reported inside one pair', async () => {
+    const configPath = fixtureWorkspace(roots)
+    const secretsPath = join(dirname(configPath), '.env.secrets.local')
+    rmSync(secretsPath)
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+    const writes: string[] = []
+    const write = vi.spyOn(process.stdout, 'write').mockImplementation((chunk: unknown) => {
+      writes.push(String(chunk))
+      return true
+    })
+
+    let result: InvocationResult
+    try {
+      result = await runChat(configPath, [])
+    } finally {
+      write.mockRestore()
+    }
+
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toBe('')
+    expect(writes).toHaveLength(1)
+    expect(writes[0]).toMatch(PAIR)
+    expect(writes[0]).toContain(`Secrets file not found: ${secretsPath}`)
+    expect(writes[0]).toContain('Create the file before running tests.')
+  })
+})

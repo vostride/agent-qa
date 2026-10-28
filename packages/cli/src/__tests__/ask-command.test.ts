@@ -12,7 +12,7 @@
 
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 
 import type { AgentAskResult } from '@vostride/agent-qa-schema'
@@ -397,6 +397,22 @@ describe('agent-qa ask under GitHub Actions', () => {
     expect(written).toHaveLength(1)
     expect(written[0]).toMatch(PAIR)
     expect(written[0]).toContain(`\n${ANSWER}\n`)
+  })
+
+  it('a secrets file it cannot read is reported inside one pair', async () => {
+    const configPath = fixtureWorkspace(roots)
+    const secretsPath = join(dirname(configPath), '.env.secrets.local')
+    rmSync(secretsPath)
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const result = await runAsk(configPath, ['what changed'])
+
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toBe('')
+    expect(result.writes).toHaveLength(1)
+    expect(result.writes[0]).toMatch(PAIR)
+    expect(result.writes[0]).toContain(`Secrets file not found: ${secretsPath}`)
+    expect(result.writes[0]).toContain('Create the file before running tests.')
   })
 
   it('prints a model answer and its error exactly as before off GitHub Actions', async () => {

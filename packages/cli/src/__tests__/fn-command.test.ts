@@ -1351,6 +1351,23 @@ describe('agent-qa fn under GitHub Actions', () => {
     expect(result.errorWrites[0]).toContain(CRAFTED)
   })
 
+  it('a secrets file it cannot read is reported inside one pair', async () => {
+    const workspace = fixtureWorkspace(roots)
+    rmSync(join(workspace.root, '.env.secrets.local'))
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const result = await invoke(workspace, ['runs.list'])
+
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toBe('')
+    expect(result.writes).toHaveLength(1)
+    expect(result.writes[0]).toMatch(PAIR)
+    expect(result.writes[0]).toContain(
+      `Secrets file not found: ${join(workspace.root, '.env.secrets.local')}`,
+    )
+    expect(result.writes[0]).toContain('Create the file before running tests.')
+  })
+
   it('a failure without --json prints its message inside a pair on stdout', async () => {
     const workspace = fixtureWorkspace(roots)
     vi.stubEnv('GITHUB_ACTIONS', 'true')

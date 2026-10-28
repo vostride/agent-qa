@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto'
 import { readFile, stat } from 'node:fs/promises'
 import { join, extname, resolve } from 'node:path'
 import { cpus } from 'node:os'
+import { format } from 'node:util'
 import type { DashboardDatabase } from '../db/database.js'
 import { classifyRunOwner } from '../db/run-owner.js'
 import { createRouter, sanitizeQueuedExecutionTimeout } from './routes.js'
@@ -818,7 +819,8 @@ export async function startServer(opts: StartServerOptions): Promise<{
         session.clearIdleTimer()
         const handler = createSessionHandler(session, () => {
           void sessionManager.terminateSession(sessionId).catch((error: unknown) => {
-            console.error(`[live-editor] could not end session ${sessionId}`, error)
+            const line = `[live-editor] could not end session ${sessionId}`
+            printRunText(format(line, error), () => console.error(line, error))
           })
         }, (event) => {
           db.insertTokenEvent(event)

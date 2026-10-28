@@ -101,8 +101,9 @@ function chatPresentThrough(mask: MaskFn): (text: string) => void {
 
 function printUnavailable(error: DeclaredSecretsUnavailableError): void {
   const [first, ...rest] = error.lines
-  if (first !== undefined) console.error(pc.red(first))
-  for (const line of rest) console.error(pc.dim(line))
+  if (first === undefined) return
+  printRunText([pc.red(first), ...rest.map((line) => pc.dim(line))].join('\n'),
+    (text) => console.error(text))
 }
 
 function reportError(error: unknown, mask?: MaskFn): void {
