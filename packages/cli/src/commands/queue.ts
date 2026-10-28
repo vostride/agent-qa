@@ -2,11 +2,8 @@ import { Command } from 'commander'
 import pc from 'picocolors'
 import { resolveConfig } from '../config.js'
 
-// This command operates the RUN QUEUE — the v1 test-execution queue whose implementation is
-// dashboard-server's `JobQueue` class (see Phase 60); all run triggers (dashboard, webhook, CLI,
-// API) route through it. It is not the curation queue (v51 knowledge curation, drained under the
-// writer lease) and not the agent job queue (v52 durable background agent jobs, .agent-qa/
-// agent-jobs.db). D-21 fixes those three names; D-22 keeps this command called `queue`.
+// This command drives the dashboard server's run queue, which every run trigger goes through.
+// It is not the curation queue or the agent job queue.
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -24,7 +21,7 @@ async function resolveServerUrl(opts: { server?: string }, globalOpts: { config?
   if (envUrl) return envUrl
   try {
     const config = await resolveConfig({ configPath: globalOpts.config })
-    const port = (config as any).dashboard?.port || 3470
+    const port = config.services?.dashboard?.port ?? 3470
     return `http://localhost:${port}`
   } catch {
     return 'http://localhost:3470'
@@ -33,10 +30,10 @@ async function resolveServerUrl(opts: { server?: string }, globalOpts: { config?
 
 export function createQueueCommand(): Command {
   const cmd = new Command('queue')
-    .description('Manage the run queue (v1 test execution)')
+    .description("Manage the dashboard's run queue")
     .addHelpText(
       'after',
-      '\nAgentQA runs three separate queues; this command manages the first only:\n' +
+      '\nagent-qa runs three separate queues; this command manages the first only:\n' +
         '  run queue        test executions dispatched by the dashboard server (this command)\n' +
         '  curation queue   knowledge curation work, drained under the writer lease\n' +
         '  agent job queue  durable background agent jobs in .agent-qa/agent-jobs.db\n' +
