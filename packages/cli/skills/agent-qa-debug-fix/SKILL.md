@@ -27,8 +27,7 @@ metadata:
    patches from evidence alone.
 5. Apply the smallest code or YAML change that explains the evidence.
 6. Re-run the narrowest affected agent-qa test, suite, hook, or unit test. Name the test files
-   to `agent_qa_start_run` with `patterns` (paths or globs); the local agent-qa server refuses
-   `scope`.
+   to `agent_qa_start_run` with `patterns` (paths or globs).
 7. Report the root cause, changed files, verification command, and any remaining risk.
 
 ## Fix Rules

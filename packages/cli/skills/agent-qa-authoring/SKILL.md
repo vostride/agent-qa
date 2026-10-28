@@ -56,8 +56,7 @@ metadata:
 
 - Verify the draft first (step 6).
 - Start runs with `agent_qa_start_run` rather than shelling out, and name the test files to run
-  with `patterns` (paths or globs). Its input also lists `scope`, which the local agent-qa server
-  refuses, so never pass it.
+  with `patterns` (paths or globs).
 - A run starts in the call, with no prompt.
 - `agent_qa_list_runs` enumerates recent runs; `agent_qa_get_run_digest` reports one.
 
