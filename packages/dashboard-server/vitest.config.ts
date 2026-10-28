@@ -7,6 +7,7 @@ export default defineConfig({
     // of the default. Matches the precedent knowledge-local already set.
     testTimeout: 30_000,
     include: ['src/**/__tests__/**/*.test.ts'],
+    env: { GITHUB_ACTIONS: '' },
     globals: true,
     hookTimeout: 30_000,
     typecheck: {

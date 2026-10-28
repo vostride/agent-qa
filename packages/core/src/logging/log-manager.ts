@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { LOG_LEVEL_PRIORITY } from './types.js'
 import type { LogLevel, LogSource, LogEntry, LogStorage, ScopedLogger } from './types.js'
 import { formatLogEntry } from './cli-formatter.js'
-import { printRunText, type RunTextEnv } from './run-text-output.js'
+import { guardJsonText, printRunText, type RunTextEnv } from './run-text-output.js'
 import { redactSecretValue, type SecretRedactor } from '@vostride/agent-qa-runner'
 
 /**
@@ -145,7 +145,7 @@ export class LogManager {
    */
   private emitNdjson(entry: LogEntry): void {
     process.stdout.write(
-      `AGENT_QA_EVENT:${JSON.stringify({ type: 'log', ...entry })}\n`,
+      `AGENT_QA_EVENT:${guardJsonText(JSON.stringify({ type: 'log', ...entry }), this.env)}\n`,
     )
   }
 

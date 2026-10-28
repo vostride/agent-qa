@@ -194,6 +194,32 @@ describe('LogManager', () => {
     expect(json.data.model).toBe('gpt-4')
   })
 
+  it('NDJSON line carries no # under GitHub Actions and parses back to the same entry', () => {
+    const lm = new LogManager({
+      runId: 'run-1',
+      displayLevel: 'silent',
+      ndjson: true,
+      env: { GITHUB_ACTIONS: 'true' },
+    })
+    lm.log('warn', 'agent', '##[error]x', { note: '#1' })
+    const [entry] = lm.getBuffer()
+    expect(stdoutSpy).toHaveBeenCalledTimes(1)
+    const written = String(stdoutSpy.mock.calls[0][0])
+    expect(written.startsWith('AGENT_QA_EVENT:')).toBe(true)
+    expect(written).not.toContain('#')
+    expect(JSON.parse(written.slice('AGENT_QA_EVENT:'.length))).toEqual({ type: 'log', ...entry })
+  })
+
+  it('NDJSON line is the plain serialized entry off GitHub Actions', () => {
+    const lm = new LogManager({ runId: 'run-1', displayLevel: 'silent', ndjson: true })
+    lm.log('warn', 'agent', '##[error]x', { note: '#1' })
+    const [entry] = lm.getBuffer()
+    expect(stdoutSpy).toHaveBeenCalledTimes(1)
+    expect(stdoutSpy).toHaveBeenCalledWith(
+      `AGENT_QA_EVENT:${JSON.stringify({ type: 'log', ...entry })}\n`,
+    )
+  })
+
   it('data defaults to empty object when not provided', () => {
     const lm = new LogManager({ runId: 'run-1', displayLevel: 'silent' })
     lm.log('info', 'runner', 'step started')

@@ -12,6 +12,7 @@ export default defineConfig({
     // keep it.
     hookTimeout: 120_000,
     include: ['src/**/__tests__/**/*.test.ts'],
+    env: { GITHUB_ACTIONS: '' },
     globalSetup: ['./src/__tests__/package-folders-unchanged.ts'],
     globals: true,
     typecheck: {
