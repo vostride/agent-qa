@@ -71,6 +71,23 @@ function limitsProject(): string {
   )
 }
 
+function configNamesProject(
+  label: string,
+  edit: { platform?: string; secretsFile?: string } = {},
+): string {
+  const { root, configPath } = fixtureProject(`actions-output-${label}`)
+  const config = JSON.parse(readFileSync(configPath, 'utf8')) as {
+    workspace: Record<string, unknown>
+    registry?: unknown
+  }
+  config.registry = { devices: { [INJECTED_NAME]: { platform: edit.platform ?? 'android' } } }
+  if (edit.secretsFile !== undefined) config.workspace.secretsFile = edit.secretsFile
+  writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8')
+  writeFileSync(join(root, '.env'), '', 'utf8')
+  writeFileSync(join(root, 'hooks.yaml'), 'hooks: []\n', 'utf8')
+  return root
+}
+
 function parseErrorProject(): string {
   return project('parse', (testId) =>
     [
@@ -160,5 +177,104 @@ describe('agent-qa run output under GitHub Actions', () => {
     expect(outsidePairs(outcome.stdout)).toMatch(
       /^Limits: \d+ actions, \d+ planning turns per step$/mu,
     )
+  })
+})
+
+describe('agent-qa devices list output under GitHub Actions', () => {
+  beforeAll(() => {
+    expect(buildFreshness(), REBUILD_INSTRUCTION).toEqual({ missing: [], stale: [] })
+  })
+
+  afterEach(() => {
+    cleanupTempRoots()
+  })
+
+  it('devices list prints its device rows inside a stop-commands pair under GitHub Actions', async () => {
+    const root = configNamesProject('devices')
+    const outcome = await spawnCollecting(root, [CLI_ENTRY, 'devices', 'list'], {
+      GITHUB_ACTIONS: 'true',
+    })
+    expect(outcome.code).toBe(0)
+    expect(
+      wrappedBlocks(outcome.stdout).some(
+        (block) => block.includes(INJECTED_NAME) && block.includes('android'),
+      ),
+    ).toBe(true)
+    const outside = outsidePairs(outcome.stdout)
+    expect(outside).toContain('Configured Devices')
+    expect(outside).not.toMatch(/^\s*::/mu)
+    expect(outside).not.toContain('##[')
+  })
+
+  it('devices list prints the same rows with no stop-commands line off GitHub Actions', async () => {
+    const root = configNamesProject('devices')
+    const outcome = await spawnCollecting(root, [CLI_ENTRY, 'devices', 'list'])
+    expect(outcome.code).toBe(0)
+    expect(outcome.stdout).toContain(INJECTED_NAME)
+    expect(outcome.stdout).not.toContain('::stop-commands::')
+  })
+
+  it('devices list prints a config error naming a device inside a pair on stdout', async () => {
+    const root = configNamesProject('devices-invalid', { platform: 'web' })
+    const outcome = await spawnCollecting(root, [CLI_ENTRY, 'devices', 'list'], {
+      GITHUB_ACTIONS: 'true',
+    })
+    expect(outcome.code).toBe(1)
+    expect(
+      wrappedBlocks(outcome.stdout).some(
+        (block) => block.includes('Config error:') && block.includes('MARK ##[error]x'),
+      ),
+    ).toBe(true)
+    expect(outcome.stderr).not.toContain('##[')
+  })
+})
+
+describe('agent-qa config show output under GitHub Actions', () => {
+  beforeAll(() => {
+    expect(buildFreshness(), REBUILD_INSTRUCTION).toEqual({ missing: [], stale: [] })
+  })
+
+  afterEach(() => {
+    cleanupTempRoots()
+  })
+
+  it('config show prints its resolved table inside a stop-commands pair under GitHub Actions', async () => {
+    const root = configNamesProject('config')
+    const outcome = await spawnCollecting(root, [CLI_ENTRY, 'config', 'show'], {
+      GITHUB_ACTIONS: 'true',
+    })
+    expect(outcome.code).toBe(0)
+    expect(
+      wrappedBlocks(outcome.stdout).some((block) =>
+        block.includes(`registry.devices.${INJECTED_NAME}.platform`),
+      ),
+    ).toBe(true)
+    const outside = outsidePairs(outcome.stdout)
+    expect(outside).toContain('Resolved Configuration:')
+    expect(outside).not.toMatch(/^\s*::/mu)
+    expect(outside).not.toContain('##[')
+  })
+
+  it('config show prints the same table with no stop-commands line off GitHub Actions', async () => {
+    const root = configNamesProject('config')
+    const outcome = await spawnCollecting(root, [CLI_ENTRY, 'config', 'show'])
+    expect(outcome.code).toBe(0)
+    expect(outcome.stdout).toContain(`registry.devices.${INJECTED_NAME}.platform`)
+    expect(outcome.stdout).not.toContain('::stop-commands::')
+  })
+
+  it('config show prints a refusal naming the secrets file inside a pair on stdout', async () => {
+    const root = configNamesProject('config-secrets', { secretsFile: '##[error]x.secrets.local' })
+    const outcome = await spawnCollecting(root, [CLI_ENTRY, 'config', 'show'], {
+      GITHUB_ACTIONS: 'true',
+    })
+    expect(outcome.code).toBe(1)
+    expect(
+      wrappedBlocks(outcome.stdout).some(
+        (block) =>
+          block.includes('Secrets file not found') && block.includes('##[error]x.secrets.local'),
+      ),
+    ).toBe(true)
+    expect(outcome.stderr).not.toContain('##[')
   })
 })

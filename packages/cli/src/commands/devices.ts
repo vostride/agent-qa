@@ -4,6 +4,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { stringify } from 'yaml'
 import pc from 'picocolors'
+import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import { resolveConfig } from '../config.js'
 import { loadLocalBindings } from '../devices.js'
 
@@ -21,7 +22,8 @@ async function listDevices(): Promise<void> {
   try {
     config = await resolveConfig({})
   } catch (err) {
-    console.error(pc.red(`Config error: ${err instanceof Error ? err.message : String(err)}`))
+    const message = err instanceof Error ? err.message : String(err)
+    printRunText(pc.red(`Config error: ${message}`), (text) => console.error(text))
     process.exitCode = 1
     return
   }
@@ -36,7 +38,8 @@ async function listDevices(): Promise<void> {
   try {
     localBindings = loadLocalBindings()
   } catch (err) {
-    console.error(pc.red(`Config error: ${err instanceof Error ? err.message : String(err)}`))
+    const message = err instanceof Error ? err.message : String(err)
+    printRunText(pc.red(`Config error: ${message}`), (text) => console.error(text))
     process.exitCode = 1
     return
   }
@@ -54,11 +57,13 @@ async function listDevices(): Promise<void> {
     `  ${pc.dim('─'.repeat(nameWidth))}  ${pc.dim('─'.repeat(platWidth))}  ${pc.dim('─'.repeat(30))}`,
   )
 
+  const rows: string[] = []
   for (const [name, profile] of Object.entries(devices) as [string, any][]) {
     const localBinding = localBindings?.devices?.[name] as Record<string, unknown> | undefined ?? null
     const status = formatStatus(localBinding)
-    console.log(`  ${name.padEnd(nameWidth)}  ${profile.platform.padEnd(platWidth)}  ${status}`)
+    rows.push(`  ${name.padEnd(nameWidth)}  ${profile.platform.padEnd(platWidth)}  ${status}`)
   }
+  printRunText(rows.join('\n'), (text) => console.log(text))
   console.log('')
 }
 

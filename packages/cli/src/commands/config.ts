@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { createInterface } from 'node:readline'
 import { MARKER_WRITTEN_BACK_SENTENCE, type MaskFn } from '@vostride/agent-qa-schema'
+import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 
 import {
   createDeclaredSecretMask,
@@ -75,10 +76,11 @@ function reportConfigFileFailure(verb: 'read' | 'write', configPath: string, err
 }
 
 function printUnavailable(error: DeclaredSecretsUnavailableError): void {
-  const [first, ...rest] = error.lines
-  if (first !== undefined) console.error(pc.red(first))
-  for (const line of rest) console.error(pc.dim(line))
   process.exitCode = 1
+  const [first, ...rest] = error.lines
+  if (first === undefined) return
+  printRunText([pc.red(first), ...rest.map((line) => pc.dim(line))].join('\n'),
+    (text) => console.error(text))
 }
 
 async function readStdin(): Promise<string> {
@@ -229,7 +231,7 @@ async function showAction(command: Command): Promise<void> {
   const globalConfig = mergeConfigs(fileConfig, envOverrides, {})
   const table = formatConfigDebug(globalConfig, {}, {}, mask)
   console.log(pc.bold('\nResolved Configuration:\n'))
-  console.log(table)
+  printRunText(table, (text) => console.log(text))
   console.log()
 }
 
