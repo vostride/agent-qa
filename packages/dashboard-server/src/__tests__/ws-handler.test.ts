@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest'
+import { generateTestId } from '@vostride/agent-qa-ids'
 import { createSessionHandler } from '../live-editor/ws-handler.js'
 import { IDLE_TIMEOUT_MS, LiveSession } from '../live-editor/live-session.js'
 import type { ServerMessage, SessionState } from '../live-editor/types.js'
+import type { TestFileManager } from '../tests/test-file-manager.js'
 
 const HOOK_ID = 'h_amber-birch-coral-delta-ember-falcon-garden-harbor-island-jungle'
 
@@ -515,5 +517,121 @@ describe('ws-handler', () => {
 
     await vi.advanceTimersByTimeAsync(IDLE_TIMEOUT_MS * 2)
     expect(onTerminate, 'the re-attach cleared the idle window').not.toHaveBeenCalled()
+  })
+})
+
+describe('execute-test console lines', () => {
+  const PAIR = /^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::\n$/u
+  const NAME = '::set-output name=x::y'
+  const TEST_YAML =
+    `test-id: ${generateTestId()}\nname: "${NAME}"\ntarget: web\nsteps:\n  - Click login\n`
+  let writes: string[]
+  let logSpy: Mock
+  let errSpy: Mock
+
+  beforeEach(() => {
+    writes = []
+    vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+      writes.push(String(chunk))
+      return true
+    })
+    logSpy = vi.spyOn(console, 'log').mockImplementation(() => {}) as unknown as Mock
+    errSpy = vi.spyOn(console, 'error').mockImplementation(() => {}) as unknown as Mock
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllEnvs()
+  })
+
+  async function executeTest(read: () => Promise<string>): Promise<void> {
+    const ws = new MockWebSocket()
+    const session = createMockSession({
+      executeTestCommand: vi.fn().mockResolvedValue({
+        status: 'failed',
+        duration: 7,
+        error: '##[error]x',
+        setupHookExecutions: [],
+        stepResults: [],
+        teardownHookExecutions: [],
+      }),
+    } as Partial<LiveSession>)
+    const files = { read: vi.fn(read) } as unknown as TestFileManager
+    createSessionHandler(session, vi.fn(), undefined, files)(ws as any)
+    ws.simulateMessage({ type: 'execute-test', testExecutionId: 'e1', testId: 'x', path: 'a.yaml' })
+    await vi.waitFor(() => {
+      const types = ws.sentMessages.map((m) => (JSON.parse(m) as { type: string }).type)
+      const ended = types.filter((type) => type === 'test-complete' || type === 'test-error')
+      expect(ended).toHaveLength(1)
+    })
+  }
+
+  it('prints the starting and finished lines in a pair each under GitHub Actions', async () => {
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    await executeTest(async () => TEST_YAML)
+
+    expect(writes).toHaveLength(2)
+    for (const block of writes) {
+      expect(block).toMatch(PAIR)
+      expect(block).toContain(`"${NAME}"`)
+    }
+    expect(writes[0]).toContain('execute-test: starting')
+    expect(writes[1]).toContain('execute-test: finished')
+    expect(writes[1]).toContain('error=##[error]x')
+    expect(logSpy).not.toHaveBeenCalled()
+  })
+
+  it('prints a read failure and the caught error in a pair each under GitHub Actions', async () => {
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    await executeTest(async () => {
+      throw new Error(NAME)
+    })
+
+    expect(writes).toHaveLength(2)
+    for (const block of writes) expect(block).toMatch(PAIR)
+    expect(writes[0]).toContain('execute-test: read failed for path=a.yaml')
+    expect(writes[0]).toContain(NAME)
+    expect(writes[1]).toContain('execute-test: caught error for path=a.yaml')
+    expect(writes[1]).toContain(`Cannot read test file "a.yaml": ${NAME}`)
+    expect(errSpy).not.toHaveBeenCalled()
+  })
+
+  it('prints parse errors inside one pair under GitHub Actions', async () => {
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    await executeTest(async () => 'name: [\n')
+
+    expect(writes).toHaveLength(2)
+    expect(writes[0]).toMatch(PAIR)
+    expect(writes[0]).toContain('execute-test: parse errors for a.yaml')
+    expect(writes[0]).toContain('not readable as YAML')
+    expect(errSpy).not.toHaveBeenCalled()
+  })
+
+  it('passes console.log and console.error the same arguments as before off Actions', async () => {
+    await executeTest(async () => TEST_YAML)
+    const readError = new Error('gone')
+    await executeTest(async () => {
+      throw readError
+    })
+
+    expect(logSpy.mock.calls).toEqual([
+      [`[ws-handler] execute-test: starting "${NAME}" (1 steps, setup=0, teardown=0)`],
+      [`[ws-handler] execute-test: finished "${NAME}" status=failed duration=7ms error=##[error]x`],
+    ])
+    expect(errSpy.mock.calls).toEqual([
+      ['[ws-handler] execute-test: read failed for path=a.yaml', readError],
+      [
+        '[ws-handler] execute-test: caught error for path=a.yaml',
+        {
+          message: 'Cannot read test file "a.yaml": gone',
+          stack: expect.any(String),
+          code: undefined,
+        },
+      ],
+    ])
+    expect(writes).toHaveLength(0)
   })
 })

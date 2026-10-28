@@ -90,7 +90,8 @@ vi.mock('@vostride/agent-qa-runner-local', async (importOriginal) => ({
   DockerHookExecutor: class { execute(...args: unknown[]) { return mockRunHookInSandbox(...args) } },
 }))
 
-vi.mock('@vostride/agent-qa-core', () => ({
+vi.mock('@vostride/agent-qa-core', async (importOriginal) => ({
+  printRunText: (await importOriginal<typeof import('@vostride/agent-qa-core')>()).printRunText,
   MobileSetupError: class MobileSetupError extends Error {
     category: string
     constructor(options: { category: string; message: string }) {

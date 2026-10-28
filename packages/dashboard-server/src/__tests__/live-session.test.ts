@@ -207,6 +207,7 @@ vi.mock('@vostride/agent-qa-core', async () => {
     redactSecretValue,
     resolveSecretTemplatesInValue,
     PlannerConfigSchema: actual.PlannerConfigSchema,
+    printRunText: actual.printRunText,
     TestDefinitionSchema: actual.TestDefinitionSchema,
     SuiteDefinitionSchema: actual.SuiteDefinitionSchema,
   }
@@ -1234,5 +1235,75 @@ describe('C436-EFFECTIVE-LIMITS live refusal', () => {
     expect(result.teardownHookExecutions).toEqual([])
     expect(mockExecuteStep).not.toHaveBeenCalled()
     expect(mockRunHooks).not.toHaveBeenCalled()
+  })
+})
+
+describe('executeTestCommand warnings', () => {
+  const PAIR = /^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::\n$/u
+  const draft = {
+    testIndex: 0,
+    testId: 't_warn',
+    testName: 'Warn',
+    steps: ['archive all'],
+    setup: [],
+    teardown: [],
+  }
+  let session: LiveSession
+
+  beforeEach(async () => {
+    session = new LiveSession('warning-session')
+    vi.clearAllMocks()
+    variableStoreEntries.clear()
+    mockRunHooks.mockResolvedValue({
+      results: new Map(),
+      variables: {},
+      allPassed: true,
+      duration: 5,
+    })
+    mockExecuteStep.mockResolvedValue({
+      name: 'test-step',
+      status: 'failed',
+      duration: 100,
+      error: '::set-output name=x::y',
+    })
+    await session.initialize(webConfig)
+  })
+
+  afterEach(() => {
+    mockExecuteStep.mockResolvedValue({ name: 'test-step', status: 'passed', duration: 100 })
+    vi.restoreAllMocks()
+    vi.unstubAllEnvs()
+  })
+
+  it('prints a failed step warning inside one pair on stdout under GitHub Actions', async () => {
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+    const writes: string[] = []
+    vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+      writes.push(String(chunk))
+      return true
+    })
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    await session.executeTestCommand('exec-warn', draft)
+
+    const blocks = writes.filter((chunk) => chunk.includes('executeTestCommand'))
+    expect(blocks).toHaveLength(1)
+    expect(blocks[0]).toMatch(PAIR)
+    expect(blocks[0]).toContain('Step 1 (archive all) failed: ::set-output name=x::y')
+    expect(blocks[0]).toContain("testName: 'Warn'")
+    expect(warnSpy).not.toHaveBeenCalled()
+  })
+
+  it('passes console.warn the same arguments as before off GitHub Actions', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    await session.executeTestCommand('exec-warn', draft)
+
+    expect(warnSpy.mock.calls).toEqual([
+      [
+        '[live-session] executeTestCommand: Step 1 (archive all) failed: ::set-output name=x::y',
+        { testName: 'Warn' },
+      ],
+    ])
   })
 })
