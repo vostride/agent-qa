@@ -5,7 +5,6 @@ import { createRoot, type Root } from 'react-dom/client'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { APPROVED_SAAS_PLACEHOLDER_SLUGS } from '@vostride/agent-qa-ids'
 import { CONFIG_SCHEMA_LEAVES, configLeafOwner } from '@vostride/agent-qa-schema'
 
 import {
@@ -23,6 +22,7 @@ import {
   startPluginAuth,
   testLLMConnection,
 } from '@/lib/api'
+import { APPROVED_SAAS_PLACEHOLDER_SLUGS } from '@/lib/product-placeholders'
 import {
   ACCESSIBILITY_FIELD_PLACEHOLDERS,
   ADD_DEVICE_LABEL,

@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
+
 import {
   APPROVED_SAAS_PLACEHOLDERS,
   APPROVED_SAAS_PLACEHOLDER_NAMES,
   APPROVED_SAAS_PLACEHOLDER_SLUGS,
   selectApprovedSaasPlaceholder,
   selectApprovedSaasPlaceholderSlug,
-} from '../product-placeholders.js'
+} from '@/lib/product-placeholders'
 
 const EXPECTED_NAMES = ['Linear', 'Vercel', 'Notion', 'Stripe', 'GitHub', 'Slack', 'Figma', 'Shopify', 'Datadog', 'Supabase']
 const EXPECTED_SLUGS = ['linear', 'vercel', 'notion', 'stripe', 'github', 'slack', 'figma', 'shopify', 'datadog', 'supabase']
@@ -19,8 +20,8 @@ describe('product placeholder contract', () => {
   })
 
   it('keeps placeholder names and slugs unique', () => {
-    expect(new Set(APPROVED_SAAS_PLACEHOLDER_NAMES).size).toBe(10)
-    expect(new Set(APPROVED_SAAS_PLACEHOLDER_SLUGS).size).toBe(10)
+    expect(new Set(APPROVED_SAAS_PLACEHOLDER_NAMES).size).toBe(APPROVED_SAAS_PLACEHOLDER_NAMES.length)
+    expect(new Set(APPROVED_SAAS_PLACEHOLDER_SLUGS).size).toBe(APPROVED_SAAS_PLACEHOLDER_SLUGS.length)
   })
 
   it('selects placeholders deterministically by seed', () => {

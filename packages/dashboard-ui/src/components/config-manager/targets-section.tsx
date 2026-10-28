@@ -1,4 +1,4 @@
-// TARGETS (429-22 · D-02, D-19, D-23, D-24 · UI-SPEC S2 "Record/list editors", S6, E6, E8).
+// The targets editor.
 //
 // Each target is a row: its name and summary, opened in place to edit its fields, which autosave
 // by leaf. Add target opens an inline draft row that writes the whole target once it is valid.
@@ -6,7 +6,6 @@
 
 import { useEffect, useId, useRef, useState, type FocusEvent } from "react"
 import { Plus } from "lucide-react"
-import { selectApprovedSaasPlaceholderSlug } from "@vostride/agent-qa-ids"
 
 import { ConfigField } from "@/components/config-manager/config-field"
 import {
@@ -48,6 +47,7 @@ import {
   deleteActionName,
   targetNameTakenError,
 } from "@/lib/config-copy"
+import { selectApprovedSaasPlaceholderSlug } from "@/lib/product-placeholders"
 
 type TargetPlatform = keyof typeof TARGET_PLATFORM_LABELS
 

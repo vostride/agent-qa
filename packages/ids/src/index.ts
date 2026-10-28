@@ -19,12 +19,3 @@ export {
   type EntityIdContract,
   type EntityIdType,
 } from './persistent-id.js'
-
-export {
-  type ApprovedSaasPlaceholder,
-  APPROVED_SAAS_PLACEHOLDERS,
-  APPROVED_SAAS_PLACEHOLDER_NAMES,
-  APPROVED_SAAS_PLACEHOLDER_SLUGS,
-  selectApprovedSaasPlaceholder,
-  selectApprovedSaasPlaceholderSlug,
-} from './product-placeholders.js'
