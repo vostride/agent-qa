@@ -486,15 +486,16 @@ describe('C432-RUN-ROUTES-SAME-ORIGIN: the dashboard\'s own Run and a local clie
     })
   }
 
-  it('C432-RUN-ROUTES-SAME-ORIGIN: an unrelated route keeps the shared preflight grant (whole-server CORS is unchanged)', async () => {
+  it('a cross-site preflight on /api/runs is refused with no grant', async () => {
     const db = createMockDatabase()
     const { router } = createQueueRouter(db)
     const res = await invokeRoute(router, '/api/runs', {
       method: 'OPTIONS',
       headers: { origin: 'https://evil.example', 'access-control-request-method': 'GET' },
     })
-    expect(res.status).toBe(204)
-    expect(res.headers['access-control-allow-origin']).toBe('*')
+    expect(res.status).toBe(403)
+    expect(JSON.parse(res.body)).toEqual({ error: 'cross_site_refused' })
+    expect(res.headers['access-control-allow-origin']).toBeUndefined()
   })
 })
 

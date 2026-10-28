@@ -2104,15 +2104,16 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
   const undoStore = createUndoStore({ retentionMs: UNDO_RETENTION_MS })
 
   return (req: IncomingMessage, res: ServerResponse) => {
-    // 400-16 (gap 7): the SAME guarded parse `server.ts`'s listener uses, not a second copy. In the
-    // shipped process the listener has already refused an unparseable request line, so this arm is
-    // defence in depth — but this router is EXPORTED and mounted directly (the conformance suite
-    // stands it up on its own `node:http` server), and on that mount an unguarded parse is a live
-    // throw. The refusal is answered before every route, so no frame below ever sees a URL that
-    // could not be parsed.
+    // The listener's own guarded parse. This router is also mounted directly on its own server,
+    // so an unparseable request line is refused here before any route sees it.
     const url = tryParseRequestUrl(req)
     if (url === undefined) {
       json(res, { error: 'Bad Request' }, 400)
+      return
+    }
+    // Every /api request, reads included, passes the same-site and Host check here before any route.
+    if (refuseCrossSiteRequest(req) !== undefined) {
+      jsonNoCors(res, { error: 'cross_site_refused' }, 403)
       return
     }
     const path = url.pathname
@@ -2172,23 +2173,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         inFlight: connectsInFlight,
       })
       return
-    }
-
-    // 2026-10-01 (432-21, owner decision recorded in 432-14 #4): THE RUN TRIGGER AND THE QUEUE
-    // ENQUEUE ARE SAME-SITE ONLY, AHEAD OF THE SHARED OPTIONS ARM. With the run approval gone
-    // (432-13/14), a page on another origin could start any non-production run with a simple
-    // cross-site POST to either path; these two never had the refusal the mark, config-write,
-    // live-editor and credential doors carry. The guard runs for every method on exactly these two
-    // paths, so a cross-site preflight is refused too and gets no wildcard grant, and it runs before
-    // the queue is consulted or a body is read, so a refused request queues and starts nothing.
-    // The dashboard's own Run (same origin) and a local client that sends no `Origin` — the CLI,
-    // `curl`, the conformance harness, `dashboard-smoke.mjs` — are admitted. The whole-server CORS
-    // posture (WINDOWS CR-01) is unchanged.
-    if (path === '/api/runs/trigger' || path === '/api/queue/enqueue') {
-      if (refuseCrossSiteRequest(req) !== undefined) {
-        jsonNoCors(res, { error: 'cross_site_refused' }, 403)
-        return
-      }
     }
 
     if (req.method === 'OPTIONS') {

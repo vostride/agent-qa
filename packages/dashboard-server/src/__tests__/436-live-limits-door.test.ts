@@ -31,7 +31,7 @@ function createMockRequest(url: string, headers: IncomingHttpHeaders, body: stri
   const req = new IncomingMessage(new Socket())
   req.method = 'POST'
   req.url = url
-  req.headers = headers
+  req.headers = { host: '127.0.0.1:3470', ...headers }
   process.nextTick(() => {
     req.push(Buffer.from(body))
     req.push(null)

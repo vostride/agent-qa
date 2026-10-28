@@ -554,12 +554,9 @@ describe('the live-url mint door refuses a cross-site browser request (SC-2, LIV
 
     const attackerPort = await reserveEphemeralPort()
     const dash = `http://127.0.0.1:${String(f.dashboard.port)}`
-    // THE CONTROL IS `/api/stats` AND NOT `/api/runs` (405 CR-01). This control exists to prove the
-    // page, the browser and the door are all live, so it must be a read that a foreign document is
-    // still ALLOWED to make. `/api/runs` was that read until 405-10 put restored cleartext on its
-    // body and CR-01 took the wildcard grant off it; using it here would now assert that the
-    // dashboard leaks the run list cross-origin, and the cell would be pinning the defect open.
-    // `/api/stats` is a legacy read on the unchanged wildcard posture and carries no run content.
+    // The control proves the page, the browser and the door are live. No /api read is readable from
+    // another origin, so it is a `no-cors` fetch: an opaque answer means the request reached the
+    // door, and the listener sees the door refuse it with 403.
     const controlUrl = `${dash}/api/stats`
     const liveUrl = `${dash}/api/runs/${encodeURIComponent(f.runId)}/live-url`
 
@@ -571,8 +568,8 @@ describe('the live-url mint door refuses a cross-site browser request (SC-2, LIV
       (async () => {
         const reading = { phase: 'done', control: null, controlError: null, target: null, targetError: null };
         try {
-          const response = await fetch(${JSON.stringify(controlUrl)});
-          reading.control = { status: response.status, bodyHead: (await response.text()).slice(0, 80) };
+          const response = await fetch(${JSON.stringify(controlUrl)}, { mode: 'no-cors' });
+          reading.control = { type: response.type };
         } catch (error) { reading.controlError = String(error); }
         try {
           const response = await fetch(${JSON.stringify(liveUrl)});
@@ -585,7 +582,7 @@ describe('the live-url mint door refuses a cross-site browser request (SC-2, LIV
     attackerServer = await serveAttackerPage(attackerPort, html)
 
     interface PageScriptReading {
-      control: { status: number; bodyHead: string } | null
+      control: { type: string } | null
       controlError: string | null
       target: { status: number; bodyHead: string } | null
       targetError: string | null
@@ -638,17 +635,17 @@ describe('the live-url mint door refuses a cross-site browser request (SC-2, LIV
       // THE LISTENER'S OWN NON-VACUITY, ASSERTED FIRST.
       expect(
         controlResponses.map((response) => response.status),
-        `${context} — the response listener must observe the control at 200`,
-      ).toContain(200)
+        `${context} — the response listener must observe the door refuse the cross-site control read`,
+      ).toContain(403)
 
       expect(
-        reading.control?.status,
+        reading.control?.type,
         `${context} — THE CONTROL: this page must be able to reach the dashboard cross-origin at `
         + 'all. A blocked target below means nothing if the browser could not reach the door.',
-      ).toBe(200)
+      ).toBe('opaque')
       expect(
         reading.controlError,
-        `${context} — the control read a body back, so the page, the browser and the door are all live`,
+        `${context} — the control got an answer, so the page, the browser and the door are all live`,
       ).toBeNull()
 
       expect(
@@ -1239,7 +1236,7 @@ describe('the live-editor surface refuses a cross-site caller (428 D-08, WINDOWS
 
     const attackerPort = await reserveEphemeralPort()
     const dash = `http://127.0.0.1:${String(port)}`
-    // The control is a read a foreign document is still allowed to make, as in cell (2).
+    // The control is the `no-cors` liveness read of cell (2).
     const controlUrl = `${dash}/api/stats`
     const mintUrl = `${dash}${editorMintPath(f.sessionId)}`
     const html = `<!doctype html><meta charset="utf-8"><title>second origin</title><body><script>
@@ -1247,8 +1244,8 @@ describe('the live-editor surface refuses a cross-site caller (428 D-08, WINDOWS
       (async () => {
         const reading = { phase: 'done', control: null, controlError: null, target: null, targetError: null };
         try {
-          const response = await fetch(${JSON.stringify(controlUrl)});
-          reading.control = { status: response.status, bodyHead: (await response.text()).slice(0, 80) };
+          const response = await fetch(${JSON.stringify(controlUrl)}, { mode: 'no-cors' });
+          reading.control = { type: response.type };
         } catch (error) { reading.controlError = String(error); }
         try {
           const response = await fetch(${JSON.stringify(mintUrl)});
@@ -1260,7 +1257,7 @@ describe('the live-editor surface refuses a cross-site caller (428 D-08, WINDOWS
     const attacker = await serveAttackerPage(attackerPort, html)
 
     interface PageReading {
-      control: { status: number; bodyHead: string } | null
+      control: { type: string } | null
       controlError: string | null
       target: { status: number; bodyHead: string } | null
       targetError: string | null
@@ -1293,9 +1290,9 @@ describe('the live-editor surface refuses a cross-site caller (428 D-08, WINDOWS
 
     for (const reading of arms) {
       const context = `arm ${String(reading.arm)} of 5: ${JSON.stringify(reading)}. ${childContext(f.dashboard)}`
-      expect(reading.control?.status, `${context} — THE CONTROL: the page reaches the dashboard at all`)
-        .toBe(200)
-      expect(reading.controlError, `${context} — the control read a body back`).toBeNull()
+      expect(reading.control?.type, `${context} — THE CONTROL: the page reaches the dashboard at all`)
+        .toBe('opaque')
+      expect(reading.controlError, `${context} — the control got an answer`).toBeNull()
       expect(
         (reading.target?.bodyHead ?? '').includes('liveUrl'),
         `${context} — a page on another origin must not obtain an editor liveUrl`,

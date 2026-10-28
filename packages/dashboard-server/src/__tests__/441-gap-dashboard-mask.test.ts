@@ -77,7 +77,7 @@ function invokeRoute(
     const req = new IncomingMessage(new Socket())
     req.method = options.method ?? 'GET'
     req.url = url
-    req.headers = options.headers ?? {}
+    req.headers = { host: '127.0.0.1:3470', ...options.headers }
     process.nextTick(() => {
       if (options.body) req.push(Buffer.from(options.body))
       req.push(null)

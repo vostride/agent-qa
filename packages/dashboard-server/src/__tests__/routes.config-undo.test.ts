@@ -63,7 +63,7 @@ function createMockRequest(
   const req = new IncomingMessage(new Socket())
   req.method = options.method ?? 'GET'
   req.url = url
-  req.headers = options.headers ?? {}
+  req.headers = { host: '127.0.0.1:3470', ...options.headers }
   process.nextTick(() => {
     if (options.body) req.push(Buffer.from(options.body))
     req.push(null)
@@ -525,6 +525,18 @@ describe('UNDO-SAME-SITE (429-11 Task 2)', () => {
       expect(refused.headers['access-control-allow-origin']).toBeUndefined()
       expect(mockWriteAuth).not.toHaveBeenCalled()
       expect(authStore.current).toEqual({})
+    })
+
+    it(`GET /api/config/undo refuses ${caller.name} before the method check`, async () => {
+      const configPath = await useConfig(modelsConfig())
+      const before = await readFile(configPath)
+
+      const refused = await invokeRoute('/api/config/undo', { method: 'GET', headers: caller.headers })
+
+      expect(refused.status).toBe(403)
+      expect(JSON.parse(refused.body)).toEqual({ error: 'cross_site_refused' })
+      expect(refused.headers['access-control-allow-origin']).toBeUndefined()
+      expect(Buffer.compare(await readFile(configPath), before)).toBe(0)
     })
 
     it(`UNDO-SAME-SITE: DELETE /api/auth/:configName refuses ${caller.name} and removes nothing`, async () => {
