@@ -10,8 +10,6 @@ export type RunAttributeRunner = 'local'
 
 export const RUN_ATTRIBUTE_KEY_MAX_LENGTH = 256
 export const RUN_ATTRIBUTE_VALUE_MAX_LENGTH = 4096
-const RUN_ATTRIBUTE_TRIGGERS: RunAttributeTrigger[] = ['cli', 'dashboard', 'api', 'mcp']
-const RUN_ATTRIBUTE_RUNNERS: RunAttributeRunner[] = ['local']
 
 export interface ParsedRunAttrFlags {
   attributes: RunAttributes
@@ -34,46 +32,6 @@ function assertValidUserAttributeKey(key: string, sourceLabel: string): void {
   }
 }
 
-function assertValidAttributeKeyShape(key: string, sourceLabel: string): void {
-  if (key.length === 0) {
-    throw new Error(`${sourceLabel}: Attribute key must be non-empty`)
-  }
-  if (key.length > RUN_ATTRIBUTE_KEY_MAX_LENGTH) {
-    throw new Error(`${sourceLabel}: Attribute key "${key}" exceeds ${RUN_ATTRIBUTE_KEY_MAX_LENGTH} characters`)
-  }
-}
-
-function assertValidAttributeValue(key: string, value: unknown, sourceLabel: string): asserts value is string {
-  if (typeof value !== 'string') {
-    throw new Error(`${sourceLabel}: Attribute value for "${key}" must be a string`)
-  }
-  if (value.length > RUN_ATTRIBUTE_VALUE_MAX_LENGTH) {
-    throw new Error(`${sourceLabel}: Attribute value for "${key}" exceeds ${RUN_ATTRIBUTE_VALUE_MAX_LENGTH} characters`)
-  }
-}
-
-function assertValidInternalAttribute(key: string, value: string, sourceLabel: string): void {
-  if (key === ATTR_TRIGGER) {
-    if (!RUN_ATTRIBUTE_TRIGGERS.includes(value as RunAttributeTrigger)) {
-      throw new Error(`${sourceLabel}: Attribute value for "${key}" must be one of: ${RUN_ATTRIBUTE_TRIGGERS.join(', ')}`)
-    }
-    return
-  }
-  if (key === ATTR_RUNNER) {
-    if (!RUN_ATTRIBUTE_RUNNERS.includes(value as RunAttributeRunner)) {
-      throw new Error(`${sourceLabel}: Attribute value for "${key}" must be one of: ${RUN_ATTRIBUTE_RUNNERS.join(', ')}`)
-    }
-    return
-  }
-  if (key === ATTR_GATE_RUN) {
-    if (value !== 'true') {
-      throw new Error(`${sourceLabel}: Attribute value for "${key}" must be "true"`)
-    }
-    return
-  }
-  throw new Error(`${sourceLabel}: Attribute key "${key}" uses the reserved prefix "${INTERNAL_ATTRIBUTE_PREFIX}"`)
-}
-
 export function validateUserRunAttributes(input: unknown, sourceLabel = 'run attributes'): RunAttributes {
   if (input === undefined || input === null) return {}
   if (!isPlainRecord(input)) {
@@ -88,24 +46,6 @@ export function validateUserRunAttributes(input: unknown, sourceLabel = 'run att
     }
     if (value.length > RUN_ATTRIBUTE_VALUE_MAX_LENGTH) {
       throw new Error(`${sourceLabel}: Attribute value for "${key}" exceeds ${RUN_ATTRIBUTE_VALUE_MAX_LENGTH} characters`)
-    }
-    attributes[key] = value
-  }
-  return attributes
-}
-
-export function validateTrustedRunAttributes(input: unknown, sourceLabel = 'run attributes'): RunAttributes {
-  if (input === undefined || input === null) return {}
-  if (!isPlainRecord(input)) {
-    throw new Error(`${sourceLabel}: attributes must be a plain object`)
-  }
-
-  const attributes = Object.create(null) as RunAttributes
-  for (const [key, value] of Object.entries(input)) {
-    assertValidAttributeKeyShape(key, sourceLabel)
-    assertValidAttributeValue(key, value, sourceLabel)
-    if (key.startsWith(INTERNAL_ATTRIBUTE_PREFIX)) {
-      assertValidInternalAttribute(key, value, sourceLabel)
     }
     attributes[key] = value
   }

@@ -7,7 +7,6 @@ import {
   formatRunAttributesBlock,
   mergeRunAttributes,
   parseRunAttrFlags,
-  validateTrustedRunAttributes,
   validateUserRunAttributes,
 } from '../run-attributes.js'
 
@@ -32,10 +31,6 @@ describe('run attributes', () => {
     const userAttributes = validateUserRunAttributes(JSON.parse('{"__proto__":"value"}'))
     expect(Object.hasOwn(userAttributes, '__proto__')).toBe(true)
     expect(userAttributes.__proto__).toBe('value')
-
-    const trustedAttributes = validateTrustedRunAttributes(JSON.parse('{"__proto__":"trusted"}'))
-    expect(Object.hasOwn(trustedAttributes, '__proto__')).toBe(true)
-    expect(trustedAttributes.__proto__).toBe('trusted')
   })
 
   it('parses repeated CLI flags with last value wins and duplicate warnings', () => {
@@ -60,28 +55,6 @@ describe('run attributes', () => {
     })
   })
 
-  it('accepts trusted internal attributes plus custom attributes', () => {
-    expect(validateTrustedRunAttributes({
-      [ATTR_TRIGGER]: 'dashboard',
-      [ATTR_RUNNER]: 'local',
-      'git.branch': 'phase223-main',
-    }, 'inherited run attributes')).toEqual({
-      [ATTR_TRIGGER]: 'dashboard',
-      [ATTR_RUNNER]: 'local',
-      'git.branch': 'phase223-main',
-    })
-  })
-
-  it('rejects unknown or invalid protected trusted attributes', () => {
-    expect(() => validateTrustedRunAttributes({
-      'agent-qa.custom': 'evil',
-    }, 'inherited run attributes')).toThrow(/inherited run attributes: Attribute key "agent-qa\.custom" uses the reserved prefix/)
-
-    expect(() => validateTrustedRunAttributes({
-      [ATTR_TRIGGER]: 'evil',
-    }, 'inherited run attributes')).toThrow(/Attribute value for "agent-qa\.trigger" must be one of/)
-  })
-
   it('formats attributes with protected keys first and custom keys alphabetically', () => {
     expect(formatRunAttributesBlock({
       'z.custom': 'last',
@@ -100,13 +73,13 @@ describe('run attributes', () => {
 
 // 2026-10-17 (443-07, D-09): a verify run's row carries one internal mark.
 describe('C443-VERIFY-MARK', () => {
-  it('the gate-run mark is an internal attribute with one value', () => {
+  it('the gate-run mark is an internal attribute a user cannot set', () => {
     expect(ATTR_GATE_RUN, 'the mark key').toBe('agent-qa.gate-run')
-    const marked = validateTrustedRunAttributes(mergeRunAttributes(
+    const marked = mergeRunAttributes(
       { ...buildInternalRunAttributes({ trigger: 'cli', runner: 'local' }), [ATTR_GATE_RUN]: 'true' },
       { 'git.branch': 'main' },
-    ))
-    expect({ ...marked }, 'the marked attributes after merge and validation').toEqual({
+    )
+    expect({ ...marked }, 'the marked attributes after merge').toEqual({
       'git.branch': 'main',
       'agent-qa.trigger': 'cli',
       'agent-qa.runner': 'local',
@@ -115,11 +88,6 @@ describe('C443-VERIFY-MARK', () => {
     const unmarked = buildInternalRunAttributes({ trigger: 'cli', runner: 'local' })
     expect(Object.hasOwn(unmarked, ATTR_GATE_RUN), 'unmarked attributes carry no mark').toBe(false)
 
-    expect(validateTrustedRunAttributes({ [ATTR_GATE_RUN]: 'true' })[ATTR_GATE_RUN]).toBe('true')
-    for (const value of ['false', 'TRUE', '1', '']) {
-      expect(() => validateTrustedRunAttributes({ [ATTR_GATE_RUN]: value }), `value ${JSON.stringify(value)}`)
-        .toThrow(/Attribute value for "agent-qa\.gate-run" must be "true"/)
-    }
     expect(() => validateUserRunAttributes({ [ATTR_GATE_RUN]: 'true' })).toThrow(/reserved prefix/)
     expect(() => parseRunAttrFlags([`${ATTR_GATE_RUN}=true`])).toThrow(/reserved prefix/)
   })
