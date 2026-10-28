@@ -3,7 +3,6 @@ import { idAgent } from 'id-agent'
 import {
   CANONICAL_ID_WORDS,
   ENTITY_ID_TYPES,
-  LEGACY_OBSERVATION_ID_WORDS,
   generateCanonicalId,
   generateHookId,
   generateObservationId,
@@ -60,18 +59,18 @@ describe('persistent ID contract', () => {
     }
   })
 
-  it('rejects wrong prefixes and legacy 6-word ids in canonical validators', () => {
-    const legacyTestId = idAgent({ prefix: 't', words: LEGACY_OBSERVATION_ID_WORDS })
-    const legacySuiteId = idAgent({ prefix: 's', words: LEGACY_OBSERVATION_ID_WORDS })
-    const legacyHookId = idAgent({ prefix: 'h', words: LEGACY_OBSERVATION_ID_WORDS })
-    const legacyObservationId = idAgent({ prefix: 'obs', words: LEGACY_OBSERVATION_ID_WORDS })
-    const legacyRunId = idAgent({ prefix: 'r', words: LEGACY_OBSERVATION_ID_WORDS })
+  it('rejects wrong prefixes and 6-word ids in canonical validators', () => {
+    const shortTestId = idAgent({ prefix: 't', words: 6 })
+    const shortSuiteId = idAgent({ prefix: 's', words: 6 })
+    const shortHookId = idAgent({ prefix: 'h', words: 6 })
+    const shortObservationId = idAgent({ prefix: 'obs', words: 6 })
+    const shortRunId = idAgent({ prefix: 'r', words: 6 })
 
-    expect(isCanonicalTestId(legacyTestId)).toBe(false)
-    expect(isCanonicalSuiteId(legacySuiteId)).toBe(false)
-    expect(isCanonicalHookId(legacyHookId)).toBe(false)
-    expect(isCanonicalObservationId(legacyObservationId)).toBe(false)
-    expect(isCanonicalRunId(legacyRunId)).toBe(false)
+    expect(isCanonicalTestId(shortTestId)).toBe(false)
+    expect(isCanonicalSuiteId(shortSuiteId)).toBe(false)
+    expect(isCanonicalHookId(shortHookId)).toBe(false)
+    expect(isCanonicalObservationId(shortObservationId)).toBe(false)
+    expect(isCanonicalRunId(shortRunId)).toBe(false)
 
     expect(isCanonicalTestId(generateRunId())).toBe(false)
     expect(isCanonicalSuiteId(generateTestId())).toBe(false)
@@ -80,12 +79,8 @@ describe('persistent ID contract', () => {
     expect(isCanonicalRunId(generateObservationId())).toBe(false)
   })
 
-  it('accepts both canonical and legacy observation ids for read compatibility', () => {
-    const canonicalObservationId = generateObservationId()
-    const legacyObservationId = idAgent({ prefix: 'obs', words: LEGACY_OBSERVATION_ID_WORDS })
-
-    expect(isObservationId(canonicalObservationId)).toBe(true)
-    expect(isObservationId(legacyObservationId)).toBe(true)
+  it('accepts canonical observation ids', () => {
+    expect(isObservationId(generateObservationId())).toBe(true)
     expect(isObservationId(generateTestId())).toBe(false)
   })
 })

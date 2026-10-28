@@ -1,7 +1,6 @@
 export {
   CANONICAL_ID_WORDS,
   ENTITY_ID_TYPES,
-  LEGACY_OBSERVATION_ID_WORDS,
   generateCanonicalId,
   generateHookId,
   generateObservationId,

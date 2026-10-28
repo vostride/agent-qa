@@ -1,7 +1,6 @@
 import { idAgent, parse } from 'id-agent'
 
 export const CANONICAL_ID_WORDS = 10
-export const LEGACY_OBSERVATION_ID_WORDS = 6
 
 const PREFIX = {
   test: 't',
@@ -83,7 +82,6 @@ export function isCanonicalId(type: EntityIdType, value: string): boolean {
 
 export function isObservationId(value: string): boolean {
   return isCanonicalObservationId(value)
-    || hasPrefixAndWordCount(value, PREFIX.observation, LEGACY_OBSERVATION_ID_WORDS)
 }
 
 export function getEntityIdContract(type: EntityIdType): EntityIdContract {
