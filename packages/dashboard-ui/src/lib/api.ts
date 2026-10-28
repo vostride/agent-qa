@@ -40,7 +40,6 @@ export interface RunRow {
   endedAt: string | null
   failureSummary: string | null
   errorLog: string | null
-  memoryLog: string | null
   testId: string | null
   suiteId: string | null
   platform: string
@@ -102,14 +101,6 @@ export interface Stats {
   avgDuration: number
   runs: { date: string; passed: number; failed: number; healed: number; duration: number }[]
   scope?: AnalyticsScope
-  memory?: {
-    runs: number
-    added: number
-    confirmed: number
-    deprecated: number
-    deleted: number
-    curatorTokens: number
-  }
 }
 
 export interface RunsFilter {

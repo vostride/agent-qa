@@ -225,7 +225,6 @@ function makeRun(id: string, status = "passed") {
     source: "dashboard",
     failureSummary: null,
     errorLog: null,
-    memoryLog: null,
     testId: null,
     suiteId: null,
     platform: "web",

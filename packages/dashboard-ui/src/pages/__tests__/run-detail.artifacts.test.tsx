@@ -181,7 +181,6 @@ function makeRun() {
     endedAt: "2026-04-18T00:00:01.200Z",
     failureSummary: null,
     errorLog: null,
-    memoryLog: null,
     testId: null,
     suiteId: null,
     platform: "web",

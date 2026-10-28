@@ -211,7 +211,6 @@ function runRow(id: string, status = "passed") {
     endedAt: "2026-08-27T00:00:01.000Z",
     failureSummary: null,
     errorLog: null,
-    memoryLog: null,
     testId: null,
     suiteId: null,
     platform: "web",

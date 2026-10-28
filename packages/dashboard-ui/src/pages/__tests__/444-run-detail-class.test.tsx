@@ -97,7 +97,6 @@ function runRow(status: string) {
     endedAt: "2026-10-17T09:00:30.000Z",
     failureSummary: SUMMARY,
     errorLog: ERROR_LOG,
-    memoryLog: null,
     testId: "t_checkout",
     suiteId: null,
     platform: "web",

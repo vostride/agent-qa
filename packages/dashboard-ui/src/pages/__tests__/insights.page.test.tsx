@@ -30,13 +30,6 @@ type MockStats = {
     scopedCount: number
     totalCount: number
   }
-  memory?: {
-    runs: number
-    added: number
-    confirmed: number
-    deprecated: number
-    curatorTokens: number
-  }
 }
 
 type MockBreakdownRow = {
@@ -335,13 +328,6 @@ function defaultStats(overrides: Partial<MockStats> = {}): MockStats {
       { date: "2026-04-11", passed: 6, failed: 2, healed: 1, duration: 94000 },
       { date: "2026-04-12", passed: 7, failed: 3, healed: 1, duration: 101000 },
     ],
-    memory: {
-      runs: 8,
-      added: 5,
-      confirmed: 3,
-      deprecated: 1,
-      curatorTokens: 4200,
-    },
     ...overrides,
   }
 }

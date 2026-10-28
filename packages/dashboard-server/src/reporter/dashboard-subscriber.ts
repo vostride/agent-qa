@@ -102,13 +102,6 @@ export interface DashboardRunIngestDeps {
 /**
  * The post-run section the CLI closure supplies to `finalize()` — data the bus never carries,
  * so it arrives out-of-band at flush.
- *
- * The v1 `memory` member is DELETED (407-05 · D-02). It was the last writer feeding the dead
- * artifact-drawer memory tab, no producer in `packages/cli` or `packages/runner-local` has passed
- * it since v1, and a field only a test could supply is a contract claiming a producer that does
- * not exist. `runs.memory_log` has NO remaining production writer either (407-16 corrects 407-05's
- * claim of a second writer): its insights reader is historical-only, reporting zeroes on every
- * install created since, and its retirement belongs to the insights v1 sweep.
  */
 export interface DashboardRunIngestFinalizeExtra {
   runtime?: ArtifactRecord

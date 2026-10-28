@@ -33,7 +33,6 @@ interface MockRun {
   videoPath: string | null
   failureSummary: string | null
   errorLog: string | null
-  memoryLog: string | null
   testId: string | null
   suiteId: string | null
   platform: string
@@ -136,7 +135,6 @@ function createMockDatabase() {
         videoPath: run.videoPath ?? null,
         failureSummary: run.failureSummary ?? null,
         errorLog: run.errorLog ?? null,
-        memoryLog: run.memoryLog ?? null,
         testId: run.testId ?? null,
         suiteId: run.suiteId ?? null,
         platform: run.platform ?? 'web',

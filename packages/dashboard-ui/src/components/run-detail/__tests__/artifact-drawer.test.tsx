@@ -31,7 +31,7 @@ function sections(element: Element) {
 const run: RunRow = {
   id: generateRunId(), name: 'Checkout suite', filePath: null, status: 'passed', duration: 1,
   attributes: {}, environment: null, metadata: null, startedAt: null, endedAt: null,
-  failureSummary: null, errorLog: null, memoryLog: null, testId: null, suiteId: null,
+  failureSummary: null, errorLog: null, testId: null, suiteId: null,
   platform: 'web', testFileContent: null, modelName: null, llmProvider: null,
   parentRunId: null, attemptNumber: 1, retryCount: 0, maxRetries: 0,
   createdAt: '2026-09-20T00:00:00Z',

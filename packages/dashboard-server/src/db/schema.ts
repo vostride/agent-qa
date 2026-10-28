@@ -53,7 +53,6 @@ export const MIGRATIONS: DashboardMigration[] = [
         llm_provider TEXT,
         parallel INTEGER DEFAULT 0,
         error_log TEXT,
-        memory_log TEXT,
         test_id TEXT,
         suite_id TEXT,
         owner_pid INTEGER,

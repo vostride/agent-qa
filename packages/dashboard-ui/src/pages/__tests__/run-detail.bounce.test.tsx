@@ -148,7 +148,6 @@ function runRow(status: string) {
     source: "cli",
     failureSummary: null,
     errorLog: null,
-    memoryLog: null,
     testId: null,
     suiteId: null,
     platform: "web",

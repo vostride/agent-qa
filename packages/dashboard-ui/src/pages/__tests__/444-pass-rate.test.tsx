@@ -74,7 +74,6 @@ function run(id: string, status: string, createdAt: string, members: Member[]) {
     endedAt: status === "running" ? null : createdAt,
     failureSummary: null,
     errorLog: null,
-    memoryLog: null,
     testId: null,
     suiteId: null,
     platform: "web",

@@ -749,7 +749,6 @@ function runRow(status: string): RunRow {
     endedAt: null,
     failureSummary: null,
     errorLog: null,
-    memoryLog: null,
     testId: null,
     suiteId: null,
     platform: "web",

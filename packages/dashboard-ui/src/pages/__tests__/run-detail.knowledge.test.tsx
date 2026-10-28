@@ -125,7 +125,6 @@ function runRow(id: string) {
     endedAt: "2026-08-29T00:00:10.000Z",
     failureSummary: null,
     errorLog: null,
-    memoryLog: null,
     testId: null,
     suiteId: "s_suite",
     platform: "web",
@@ -704,45 +703,6 @@ describe("the Learned half paints what a failed chain committed, and states its 
     expect(view.querySelector("[data-learned-chain-note]")).toBeNull()
     expect(view.querySelector("[data-learned-state]")?.getAttribute("data-learned-state"))
       .toBe("failed")
-  })
-})
-
-describe("the v1 Memory surface is GONE from the main pane, not guarded (407-16 · REVIEW WR-04, D-02)", () => {
-  // `runs.memory_log` lost its last production writer in 407-05 (`92773959`), but the pane kept a
-  // collapsible that ran `JSON.parse` on the raw column INSIDE a render function. A legacy row
-  // whose bytes are truncated therefore threw during render and took the whole page with it — and
-  // the block was the second surface claiming to show what a run remembered, which D-02 gave to
-  // the Knowledge tab alone. Deleting it answers both at once, which is why these cells assert an
-  // ABSENCE rather than a guard: a guarded block would still be a second surface.
-  const memoryTriggers = (view: HTMLElement) =>
-    Array.from(view.querySelectorAll("button"))
-      .filter(button => (button.textContent ?? "").startsWith("Memory"))
-
-  it("renders a legacy run whose memory-log column holds malformed bytes, and paints no v1 Memory block", async () => {
-    fetchRunMock.mockImplementation((id: string) =>
-      Promise.resolve({ run: { ...runRow(id), memoryLog: '{"added": 1,' } }))
-
-    const view = await renderAt(`/runs/${RUN_ID}?tab=knowledge`)
-
-    expect(knowledgeState(view)).toBe("ready")
-    expect(memoryTriggers(view)).toHaveLength(0)
-  })
-
-  it("paints no v1 Memory block for a WELL-FORMED legacy row either — the block is gone, not guarded", async () => {
-    fetchRunMock.mockImplementation((id: string) =>
-      Promise.resolve({
-        run: {
-          ...runRow(id),
-          memoryLog: JSON.stringify({
-            added: 3, confirmed: 2, deprecated: 1, errors: [], curatorDuration: 1500,
-          }),
-        },
-      }))
-
-    const view = await renderAt(`/runs/${RUN_ID}?tab=knowledge`)
-
-    expect(knowledgeState(view)).toBe("ready")
-    expect(memoryTriggers(view)).toHaveLength(0)
   })
 })
 

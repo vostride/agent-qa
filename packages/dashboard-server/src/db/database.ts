@@ -65,7 +65,6 @@ export interface RunRow {
   endedAt: string | null
   failureSummary: string | null
   errorLog: string | null
-  memoryLog: string | null
   testId: string | null
   suiteId: string | null
   platform: string
@@ -600,7 +599,6 @@ export class DashboardDatabase {
     endedAt?: string
     failureSummary?: string
     errorLog?: string
-    memoryLog?: string
     attributes?: RunAttributes
     platform?: string
     testId?: string
@@ -618,8 +616,6 @@ export class DashboardDatabase {
     if (updates.endedAt !== undefined) { fields.push('ended_at = ?'); values.push(updates.endedAt) }
     if (updates.failureSummary !== undefined) { fields.push('failure_summary = ?'); values.push(updates.failureSummary) }
     if (updates.errorLog !== undefined) { fields.push('error_log = ?'); values.push(updates.errorLog) }
-    // HISTORICAL-ONLY: no production caller passes `memoryLog` — see the marker on `memorySummary`.
-    if (updates.memoryLog !== undefined) { fields.push('memory_log = ?'); values.push(updates.memoryLog) }
     if (updates.attributes !== undefined) { fields.push('attributes = ?'); values.push(JSON.stringify(updates.attributes)) }
     if (updates.platform !== undefined) { fields.push('platform = ?'); values.push(updates.platform) }
     if (updates.testId !== undefined) { fields.push('test_id = ?'); values.push(updates.testId) }
@@ -1526,14 +1522,6 @@ export class DashboardDatabase {
     avgDuration: number
     totalTokens: number
     runs: { date: string; passed: number; failed: number; healed: number; duration: number }[]
-    memory: {
-      runs: number
-      added: number
-      confirmed: number
-      deprecated: number
-      deleted: number
-      curatorTokens: number
-    }
   } {
     const runs = this.listRunsForInsights('platform', opts)
     const healedRunIds = this.getHealedRunIds(runs.map((run) => run.id))
@@ -1578,51 +1566,6 @@ export class DashboardDatabase {
         `).get(...runIds) as Record<string, unknown>).total_tokens as number) || 0
       : 0
 
-    /*
-     * HISTORICAL-ONLY (407-16, REVIEW WR-04).
-     *
-     * `runs.memory_log` has NO production writer. 407-05 (`92773959`) deleted the last one along
-     * with the artifact drawer's v1 memory tab, and 407-16 deleted the run-detail collapsible that
-     * was still parsing the raw column inside a render function. This aggregate therefore reads
-     * LEGACY ROWS ONLY: on every install created since 407-05 it reports `runs: 0` and six zeroes,
-     * and it is retained solely so a database that predates the deletion keeps reporting what it
-     * actually recorded rather than silently losing it.
-     *
-     * The `memoryLog` setter on `updateRun` is retained for the same reason — historical-row tests
-     * need a way to plant such a row. Neither is a live path.
-     *
-     * RETIREMENT TRAVELS WITH THE INSIGHTS V1 SWEEP, not with this gap. Since 433-30 (F-433-26) the
-     * insights page's "Memory Curator" section no longer reads this value: it reads each window
-     * run's knowledge changes through `GET /api/insights/knowledge-changes`. Deleting the column,
-     * its setter and this aggregate is the pending todo STATE.md already carries for `memory_log`
-     * and `RunArtifactConfigSnapshot.memory`.
-     */
-    const memorySummary = {
-      runs: 0,
-      added: 0,
-      confirmed: 0,
-      deprecated: 0,
-      deleted: 0,
-      curatorTokens: 0,
-    }
-    for (const run of runs) {
-      if (!run.memoryLog) continue
-      memorySummary.runs++
-      try {
-        const parsed = JSON.parse(run.memoryLog) as Record<string, unknown>
-        memorySummary.added += Number(parsed.added ?? 0) || 0
-        memorySummary.confirmed += Number(parsed.confirmed ?? 0) || 0
-        memorySummary.deprecated += Number(parsed.deprecated ?? 0) || 0
-        memorySummary.deleted += Number(parsed.deleted ?? 0) || 0
-        const tokenUsage = parsed.tokenUsage && typeof parsed.tokenUsage === 'object'
-          ? parsed.tokenUsage as Record<string, unknown>
-          : {}
-        memorySummary.curatorTokens += Number(tokenUsage.totalTokens ?? 0) || 0
-      } catch {
-        // Ignore malformed historical memory logs in aggregate insights.
-      }
-    }
-
     return {
       totalRuns: summary.totalRuns,
       passed: summary.passed,
@@ -1632,7 +1575,6 @@ export class DashboardDatabase {
       avgDuration: summary.avgDuration,
       totalTokens,
       runs: daily,
-      memory: memorySummary,
     }
   }
 
@@ -2158,7 +2100,6 @@ export class DashboardDatabase {
       endedAt: r.ended_at as string | null,
       failureSummary: (r.failure_summary as string) ?? null,
       errorLog: (r.error_log as string) ?? null,
-      memoryLog: (r.memory_log as string) ?? null,
       testId: (r.test_id as string) ?? null,
       suiteId: (r.suite_id as string) ?? null,
       platform: (r.platform as string) ?? 'web',

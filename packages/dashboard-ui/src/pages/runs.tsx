@@ -124,7 +124,6 @@ export default function RunsPage() {
           endedAt: null,
           failureSummary: null,
           errorLog: null,
-          memoryLog: null,
           testId: null,
           suiteId: null,
           platform: "web",

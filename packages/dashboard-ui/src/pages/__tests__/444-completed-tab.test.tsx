@@ -28,7 +28,6 @@ function runRow(id: string, name: string, status: string) {
     endedAt: status === "running" || status === "pending" ? null : "2026-10-17T10:00:01.000Z",
     failureSummary: null,
     errorLog: null,
-    memoryLog: null,
     testId: `t_${id}`,
     suiteId: null,
     platform: "web",

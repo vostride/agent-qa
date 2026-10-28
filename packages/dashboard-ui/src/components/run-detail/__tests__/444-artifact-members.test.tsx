@@ -14,7 +14,7 @@ const CHECKOUT_YAML = 'name: Checkout\nsteps:\n  - Click Pay\n'
 const run: RunRow = {
   id: generateRunId(), name: 'Login · Checkout', filePath: null, status: 'passed', duration: 1,
   attributes: {}, environment: null, metadata: null, startedAt: null, endedAt: null,
-  failureSummary: null, errorLog: null, memoryLog: null, testId: null, suiteId: null,
+  failureSummary: null, errorLog: null, testId: null, suiteId: null,
   platform: 'web', testFileContent: null, modelName: null, llmProvider: null,
   parentRunId: null, attemptNumber: 1, retryCount: 0, maxRetries: 0,
   createdAt: '2026-10-17T00:00:00Z',

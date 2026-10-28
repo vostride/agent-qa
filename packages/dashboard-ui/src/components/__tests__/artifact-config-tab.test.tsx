@@ -53,7 +53,6 @@ function makeRun() {
     endedAt: "2026-04-18T00:00:01.200Z",
     failureSummary: null,
     errorLog: null,
-    memoryLog: null,
     testId: "t_login",
     suiteId: null,
     platform: "web",

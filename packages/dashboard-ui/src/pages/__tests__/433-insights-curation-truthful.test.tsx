@@ -57,7 +57,6 @@ function stats() {
     flakeRate: 0,
     avgDuration: 42000,
     runs: [{ date: "2026-10-04", passed: 5, failed: 1, healed: 0, duration: 42000 }],
-    memory: { runs: 4, added: 9, confirmed: 7, deprecated: 0, deleted: 0, curatorTokens: 1200 },
   }
 }
 

@@ -189,7 +189,6 @@ function runRow(id: string, over: Record<string, unknown> = {}) {
     endedAt: "2026-04-18T00:00:10.000Z",
     failureSummary: null,
     errorLog: null,
-    memoryLog: null,
     testId: null,
     suiteId: "s_suite",
     platform: "web",

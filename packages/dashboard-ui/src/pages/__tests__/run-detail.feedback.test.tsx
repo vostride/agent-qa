@@ -267,7 +267,6 @@ function runRow(id: string) {
     endedAt: '2026-09-23T00:00:10.000Z',
     failureSummary: null,
     errorLog: null,
-    memoryLog: null,
     testId: null,
     suiteId: null,
     platform: 'web',

@@ -139,7 +139,6 @@ describe('DashboardDatabase', () => {
         'llm_provider',
         'parallel',
         'error_log',
-        'memory_log',
         'test_id',
         'suite_id',
         'owner_pid',
@@ -637,28 +636,6 @@ describe('DashboardDatabase', () => {
       const stats = db.getStats({ from: '2026-02-01T00:00:00Z' })
       expect(stats.totalRuns).toBe(1)
       expect(stats.failed).toBe(1)
-    })
-
-    it('includes deleted memory counts in stats', () => {
-      const runId = insertSampleRun({ startedAt: '2026-03-01T10:00:00Z' })
-      db.updateRun(runId, {
-        memoryLog: JSON.stringify({
-          added: 1,
-          confirmed: 2,
-          deprecated: 3,
-          deleted: 4,
-          errors: [],
-          curatorDuration: 10,
-          tokenUsage: { totalTokens: 20 },
-        }),
-      })
-
-      const stats = db.getStats()
-      expect(stats.memory.added).toBe(1)
-      expect(stats.memory.confirmed).toBe(2)
-      expect(stats.memory.deprecated).toBe(3)
-      expect(stats.memory.deleted).toBe(4)
-      expect(stats.memory.curatorTokens).toBe(20)
     })
   })
 

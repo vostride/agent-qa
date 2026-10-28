@@ -47,7 +47,6 @@ function run(
     endedAt: status === "running" ? null : createdAt,
     failureSummary: null,
     errorLog: null,
-    memoryLog: null,
     testId: row.testId ?? null,
     suiteId: row.suiteId ?? null,
     platform: "web",
