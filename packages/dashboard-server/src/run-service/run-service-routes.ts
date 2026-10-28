@@ -32,11 +32,9 @@
 // payloads were masked at emit. `Last-Event-ID` resume falls out of seq-as-id nearly free, but the
 // full replay/attach acceptance is 403's (INVK-05); 402 claims delivery, not the attach contract.
 //
-// NO CROSS-ORIGIN GRANT, AT ALL. This file writes no `Access-Control-Allow-Origin`, following the
-// chat door's adjudication rather than the legacy run stream's wildcard. Until 432-21 that was the
-// whole of this door's CSRF story: every route required an `Authorization` header, which made every
-// request non-simple. With no header required, a page could send a SIMPLE cross-site POST, so the
-// same-site guard above the table is what refuses it now, preflight or not.
+// NO CROSS-ORIGIN GRANT, AT ALL. This file writes no `Access-Control-Allow-Origin`, and no route
+// requires an `Authorization` header, so a page could send a simple cross-site POST. The router's
+// same-site guard refuses it before the route table, preflight or not.
 //
 // THE `?handle=` FILTER IS SERVER-SIDE, AND ITS PREDICATE LIVES IN THE SCHEMA (402-04, D-14).
 // A parallel run is ONE run id with N attachable per-member handles. The optional `handle` query
@@ -368,10 +366,9 @@ export function matchRunServiceRoute(
 /**
  * Whether a path belongs to this door — the MOUNT's whole question, and method-blind on purpose.
  *
- * A host consults this before its own routing so that every request to a service path, including
- * an `OPTIONS` preflight and a method this table has no row for, is answered by this door rather
- * than by the host's generic handling. That is what keeps the host's wildcard CORS preflight and
- * its SPA fallback away from this surface.
+ * A host consults this before its own routing, so every request to a service path, `OPTIONS` and
+ * methods this table has no row for included, gets this router's same-site and media-type checks
+ * rather than the host's page arms.
  *
  * DERIVED FROM THE TABLE, never a second list: the prefixes are read off the rows, so a route
  * added above is mounted the same commit.

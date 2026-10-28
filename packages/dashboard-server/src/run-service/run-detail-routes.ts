@@ -119,19 +119,9 @@ export async function readRunDetail(
 }
 
 /**
- * This door's JSON writer — and the ABSENCE of a cross-origin grant on it is load-bearing (405 CR-01).
- *
- * `serveRunDetailRead` answers a run's whole stored projection. `Content-Type` and `Content-Length`
- * are the whole header set on purpose: no `Access-Control-Allow-Origin`, because a page on another
- * origin that the operator happens to have open must not be able to read a run out of this
- * response. Until CR-01 that posture was
- * an accident of which writer this file inherited rather than a decision, and the sibling arms in
- * `server/routes.ts` — which answered through the wildcard-writing `json()` — proved how easily the
- * accident goes the other way. If a later refactor wants one JSON writer across both files, the one
- * it converges on must be the no-grant one.
- *
- * EXPORTED SINCE 406-01: `run-analysis-routes.ts` is that later refactor's first caller, and it
- * converged on this writer rather than minting a second one.
+ * This door's JSON writer, which `run-analysis-routes.ts` shares. It writes only Content-Type and
+ * Content-Length; no dashboard answer carries a cross-origin grant, so a page on another origin
+ * cannot read a run's stored projection out of `serveRunDetailRead`'s response.
  */
 export function respondJson(res: ServerResponse, status: number, data: unknown): void {
   if (res.headersSent || res.writableEnded) {
