@@ -626,14 +626,8 @@ export async function startServer(opts: StartServerOptions): Promise<{
       }
       const path = url.pathname
 
-      // THE RUN SERVICE, CONSULTED FIRST (402-01, D-02/D-06 — INVK-03).
-      //
-      // ABOVE EVERYTHING, INCLUDING THE `OPTIONS` PREFLIGHT ARM AND THE SPA FALLBACK, and the
-      // order is the guard. The preflight arm below writes a wildcard `Access-Control-Allow-Origin`
-      // and the SPA fallback answers 200 with an HTML page for any unknown path; either reaching
-      // this surface would be a grant nobody decided. `ownsRunServicePath` is METHOD-BLIND for
-      // exactly that reason — every request to a service path is this door's to refuse, and its
-      // same-site guard runs before its route table (432-21, D-13).
+      // Run-service paths go to their own router first, for every method. That router guards its
+      // head before its route table and writes no cross-origin grant.
       if (runServiceRouter !== undefined && ownsRunServicePath(path)) {
         runServiceRouter(req, res)
         return
@@ -645,14 +639,9 @@ export async function startServer(opts: StartServerOptions): Promise<{
         return
       }
 
-      // OPTIONS preflight
       if (req.method === 'OPTIONS') {
-        res.writeHead(204, {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
-        })
-        res.end()
+        res.writeHead(404, { 'Content-Type': 'text/plain' })
+        res.end('Not Found')
         return
       }
 
@@ -715,7 +704,6 @@ export async function startServer(opts: StartServerOptions): Promise<{
             res.writeHead(200, {
               'Content-Type': contentType,
               'Content-Length': content.length,
-              'Access-Control-Allow-Origin': '*',
             })
             res.end(content)
             return
@@ -731,7 +719,6 @@ export async function startServer(opts: StartServerOptions): Promise<{
           res.writeHead(200, {
             'Content-Type': 'text/html',
             'Content-Length': content.length,
-            'Access-Control-Allow-Origin': '*',
           })
           res.end(content)
           return

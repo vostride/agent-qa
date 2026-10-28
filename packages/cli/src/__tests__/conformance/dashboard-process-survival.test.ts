@@ -332,10 +332,8 @@ describe('the shipped dashboard process survives a malformed request path', () =
     's5 — ACCEPTS CONTROL: a deleted chat path answers the shared 404, and a healthy request 200',
     { timeout: 120_000 },
     async () => {
-      // A REFUSE-EVERYTHING FIX PASSES THE FOUR CELLS ABOVE. This one is what it fails: the
-      // malformed path has to travel past the guarded parse and the backstop to the router's
-      // generic 404. Since 430 D-02 no dispatch owns this prefix, so the answer is the shared arm's,
-      // which carries the wildcard grant the removed router never wrote.
+      // A refuse-everything fix passes the four cells above and fails this one: the malformed path
+      // has to travel past the guarded parse and the backstop to the router's generic 404.
       const result = await survive('s5-accepts-control', 'GET /api/chat/sessions/%/events')
       expectSurvived('s5', result)
       expect(
@@ -346,8 +344,8 @@ describe('the shipped dashboard process survives a malformed request path', () =
       expect(JSON.parse(result.hostile.body)).toEqual({ error: 'Not found' })
       expect(
         result.hostile.head,
-        's5: the 404 carried no wildcard grant, so it did not come from the shared arm',
-      ).toMatch(/^access-control-allow-origin: \*$/imu)
+        's5: the 404 carried a cross-origin grant',
+      ).not.toMatch(/^access-control-allow-origin:/imu)
     },
   )
 })

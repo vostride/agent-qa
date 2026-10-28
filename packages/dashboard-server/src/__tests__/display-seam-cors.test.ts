@@ -1,18 +1,6 @@
 /**
- * THE RUN-TEXT READS CARRY NO CROSS-ORIGIN READ GRANT AND NO REBINDABLE HOST (405 CR-01).
- *
- * WHAT THESE ARMS ARE. 405-10 put a display-restore walk on the local door's run reads, and CR-01
- * took the wildcard `Access-Control-Allow-Origin` off them, because a page on any origin the
- * operator happens to have open could otherwise `fetch` the run list, read the ids out of it, then
- * `fetch` the artifact and read the run's text. 441-15 (D-07) removed the restore: every arm now
- * serves the text as it was stored, masked at write. The no-grant posture and the Host check stay,
- * because what a run recorded is still not something another origin should read.
- *
- *   PREDICATE A — THE WIRE. Drives the SHIPPED router over a real socket with real Host, Origin
- *   and Sec-Fetch-Site headers, and reads the response headers a browser would read. It is blind
- *   to which source symbol wrote them, so a rename or a second private JSON writer cannot fool it.
- *   It carries a CONTROL — a legacy read that must still answer `*` — so the cell cannot pass by
- *   the header capture having quietly broken.
+ * The run-text reads answer their own origin and local clients that send no Origin, and carry no
+ * cross-origin grant. A page on another origin and a rebound Host are refused.
  */
 
 import { createServer, request as httpRequest, type Server } from 'node:http'
@@ -39,9 +27,6 @@ const RUN_TEXT_READ_PATHS: readonly string[] = [
   // 407-01 (D-05): the Knowledge panel's read, over every step's text and served brief line.
   `/api/runs/${RUN_ID}/knowledge`,
 ]
-
-/** A legacy read that is NOT guarded. Its wildcard is unchanged and this cell says so. */
-const LEGACY_READ_PATH = '/api/stats'
 
 function seedDatabase(): DashboardDatabase {
   const db = new DashboardDatabase({ dbPath: ':memory:' })
@@ -150,12 +135,6 @@ async function probe(
 }
 
 describe('PREDICATE A — the wire', () => {
-  it('the CONTROL still grants the wildcard, so an absent grant below is a fact and not a broken probe', async () => {
-    const answer = await probe(LEGACY_READ_PATH)
-    expect(answer.status).toBe(200)
-    expect(answer.allowOrigin).toBe('*')
-  })
-
   it.each(RUN_TEXT_READ_PATHS)('%s answers a same-origin reader and grants NO cross-origin read', async (path) => {
     const answer = await probe(path, {
       origin: `http://127.0.0.1:${String(port)}`,

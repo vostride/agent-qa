@@ -594,29 +594,8 @@ function llmConnectionTestTimeoutMs(config: { provider?: unknown; baseURL?: unkn
   return REMOTE_LLM_CONNECTION_TEST_TIMEOUT_MS
 }
 
+/** No answer carries a cross-origin grant. */
 function json(res: ServerResponse, data: unknown, status = 200): void {
-  const body = JSON.stringify(data)
-  res.writeHead(status, {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  })
-  res.end(body)
-}
-
-/**
- * An answer that carries NO cross-origin read grant.
- *
- * ADDITIVE, and `json()` above is untouched on purpose: its wildcard posture serves the legacy
- * read routes and re-platforming those is Phase 402's question, not this one's. What this writer
- * exists for is the narrow class of answers that hand out a CAPABILITY. `Access-Control-Allow-Origin: *`
- * on such an answer means a document on any origin may READ the token out of the response — the
- * refusal beside it would be worthless if the body were still readable through a redirect or a
- * misconfigured proxy. No wildcard, no allow-methods: the dashboard's own page is same-origin and
- * needs neither, and every non-browser client ignores both.
- */
-function jsonNoCors(res: ServerResponse, data: unknown, status = 200): void {
   const body = JSON.stringify(data)
   res.writeHead(status, { 'Content-Type': 'application/json' })
   res.end(body)
@@ -729,15 +708,6 @@ async function readInsightsKnowledgeChanges(
 
 function notFound(res: ServerResponse, message = 'Not found'): void {
   json(res, { error: message }, 404)
-}
-
-function cors(res: ServerResponse): void {
-  res.writeHead(204, {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  })
-  res.end()
 }
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
@@ -2079,28 +2049,22 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     }
     // Every /api request, reads included, passes the same-site and Host check here before any route.
     if (refuseCrossSiteRequest(req) !== undefined) {
-      jsonNoCors(res, { error: 'cross_site_refused' }, 403)
+      json(res, { error: 'cross_site_refused' }, 403)
       return
     }
     const path = url.pathname
 
-    // 2026-10-01 (432-14, D-14): the run-confirm prefix is no longer dispatched. It was mounted
-    // here, ahead of the shared OPTIONS arm, so its answers carried no wildcard grant. Its two paths
-    // now fall to the same arms as any path this server does not serve — the shared preflight and
-    // the generic 404 — not redirected and not stubbed.
-
-    // 429-01 D-19: the field-merge config write, ahead of the shared OPTIONS arm so its answers
-    // never pass through the wildcard grant.
+    // The field-merge config write.
     if (path === '/api/config' && req.method === 'PATCH') {
       if (!configManager) {
-        jsonNoCors(res, { error: 'config_unavailable' }, 503)
+        json(res, { error: 'config_unavailable' }, 503)
         return
       }
       registerConfigWriteRoute(req, res, { configManager, undoStore })
       return
     }
 
-    // 429-11 D-24: the Undo door answers every method itself, so no preflight grant reaches it.
+    // The Undo door answers every method itself.
     if (path === '/api/config/undo') {
       registerConfigUndoRoute(req, res, {
         configManager,
@@ -2117,18 +2081,17 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     // 429-06 D-22: the cheap revision read the page polls to notice an outside edit.
     if (path === '/api/config/revision' && req.method === 'GET') {
       if (!configManager) {
-        jsonNoCors(res, { error: 'config_unavailable' }, 503)
+        json(res, { error: 'config_unavailable' }, 503)
         return
       }
       registerConfigRevisionRoute(req, res, { configManager })
       return
     }
 
-    // 429-10 D-15/D-17: the draft connect transaction, ahead of the shared OPTIONS arm so its
-    // answers never pass through the wildcard grant.
+    // The draft connect transaction.
     if (path === '/api/llm/connect' && req.method === 'POST') {
       if (!configManager) {
-        jsonNoCors(res, { error: 'config_unavailable' }, 503)
+        json(res, { error: 'config_unavailable' }, 503)
         return
       }
       registerLlmConnectRoute(req, res, {
@@ -2138,11 +2101,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         connectionTimeoutMs: llmConnectionTestTimeoutMs,
         inFlight: connectsInFlight,
       })
-      return
-    }
-
-    if (req.method === 'OPTIONS') {
-      cors(res)
       return
     }
 
@@ -2174,7 +2132,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       const statuses = url.searchParams.getAll('status')
       const unknownStatus = statuses.find((word) => !isRunStatusWord(word))
       if (unknownStatus !== undefined) {
-        jsonNoCors(res, { error: `Unknown run status: ${unknownStatus}.` }, 400)
+        json(res, { error: `Unknown run status: ${unknownStatus}.` }, 400)
         return
       }
       const name = url.searchParams.get('name') ?? undefined
@@ -2214,13 +2172,13 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           const filtered = platformFilteredRuns.filter(run => matchesTargetFilter(run, target))
 
           const runs = filtered.slice(offset, offset + limit)
-          jsonNoCors(res, {
+          json(res, {
             runs,
             total: filtered.length,
             targets: targetOptions,
           })
         })
-        .catch(() => jsonNoCors(res, { error: 'Failed to list runs' }, 500))
+        .catch(() => json(res, { error: 'Failed to list runs' }, 500))
       return
     }
 
@@ -2271,7 +2229,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         return
       }
       const bundle = db.getRunArtifactBundle(runId)
-      jsonNoCors(res, {
+      json(res, {
         run,
         artifact: sanitizeArtifactForResponse(bundle.artifact),
         missingSections: getArtifactMissingSections(bundle.artifact),
@@ -2307,21 +2265,21 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       // no child rows — one `runs` row per run since 402-09 — and a suite's hook logs are written
       // against that one id, carrying `test_index`/`step_index` to say where in the run they ran.
       const logs = db.getExecutionLogs({ runId: id, stepId, type })
-      jsonNoCors(res, { logs })
+      json(res, { logs })
       return
     }
 
     // 419 D-13: register before the run catch-all; no private feedback implementation here.
     if (path.startsWith('/api/runs/') && path.endsWith('/mark') && req.method === 'POST') {
       if (deps.agentHost === undefined) {
-        jsonNoCors(res, { error: 'agent_host_unavailable' }, 503)
+        json(res, { error: 'agent_host_unavailable' }, 503)
         return
       }
       let runId: string
       try {
         runId = decodeURIComponent(path.slice('/api/runs/'.length, -'/mark'.length))
       } catch {
-        jsonNoCors(res, { error: 'invalid_mark_input' }, 400)
+        json(res, { error: 'invalid_mark_input' }, 400)
         return
       }
       registerRunMarkRoute(req, res, { host: deps.agentHost, runId })
@@ -2332,14 +2290,14 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     // adapter guards, parses and dispatches the registered op, and this arm owns no feedback logic.
     if (req.method === 'POST' && /^\/api\/runs\/[^/]+\/mark-preview$/.test(path)) {
       if (deps.agentHost === undefined) {
-        jsonNoCors(res, { error: 'agent_host_unavailable' }, 503)
+        json(res, { error: 'agent_host_unavailable' }, 503)
         return
       }
       let runId: string
       try {
         runId = decodeURIComponent(path.slice('/api/runs/'.length, -'/mark-preview'.length))
       } catch {
-        jsonNoCors(res, { error: 'invalid_run_id' }, 400)
+        json(res, { error: 'invalid_run_id' }, 400)
         return
       }
       serveRunMarkPreviewRead(req, res, { runId, host: deps.agentHost })
@@ -2447,14 +2405,14 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     // than by matching a message — a message is prose and prose gets rewritten.
     if (req.method === 'GET' && /^\/api\/runs\/[^/]+\/live-url$/.test(path)) {
       if (!deps.mintLiveUrl) {
-        jsonNoCors(res, { error: 'live_view_unavailable' }, 503)
+        json(res, { error: 'live_view_unavailable' }, 503)
         return
       }
       let liveUrlRunId: string
       try {
         liveUrlRunId = decodeURIComponent(path.slice('/api/runs/'.length, -'/live-url'.length))
       } catch {
-        jsonNoCors(res, { error: 'unknown_run' }, 404)
+        json(res, { error: 'unknown_run' }, 404)
         return
       }
       // THE RAW `handle` PARAMETER THROUGH THE SCHEMA'S OWN READER, on the run-stream door's
@@ -2463,20 +2421,17 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       const rawHandle = handleParamOf(req)
       const parsedHandle = parseHandleParam(rawHandle)
       if (parsedHandle.kind === 'invalid') {
-        jsonNoCors(res, { error: 'invalid_handle' }, 400)
+        json(res, { error: 'invalid_handle' }, 400)
         return
       }
       const handle = parsedHandle.kind === 'absent' ? 0 : parsedHandle.index
-      // EVERY ARM THROUGH `jsonNoCors`, the success one most of all: the success body IS the token.
-      // The refusals go the same way so that the door has one posture rather than a posture per
-      // outcome — an arm left on `json()` would be the one a later reader copies.
       void deps.mintLiveUrl(liveUrlRunId, handle).then(
-        (result) => { jsonNoCors(res, result) },
+        (result) => { json(res, result) },
         (error: unknown) => {
           const name = error instanceof Error ? error.name : ''
-          if (name === 'UnknownRunError') { jsonNoCors(res, { error: 'unknown_run' }, 404); return }
-          if (name === 'LiveViewUnavailableError') { jsonNoCors(res, { error: 'live_view_unavailable' }, 503); return }
-          jsonNoCors(res, { error: 'live_url_mint_failed' }, 500)
+          if (name === 'UnknownRunError') { json(res, { error: 'unknown_run' }, 404); return }
+          if (name === 'LiveViewUnavailableError') { json(res, { error: 'live_view_unavailable' }, 503); return }
+          json(res, { error: 'live_url_mint_failed' }, 500)
         },
       )
       return
@@ -2528,14 +2483,14 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
 
     if (req.method === 'GET' && /^\/api\/runs\/[^/]+\/evidence$/.test(path)) {
       if (!deps.agentHost) {
-        jsonNoCors(res, { error: 'agent_host_unavailable' }, 503)
+        json(res, { error: 'agent_host_unavailable' }, 503)
         return
       }
       let runId: string
       try {
         runId = decodeURIComponent(path.slice('/api/runs/'.length, -'/evidence'.length))
       } catch {
-        jsonNoCors(res, { error: 'invalid_run_id' }, 400)
+        json(res, { error: 'invalid_run_id' }, 400)
         return
       }
       serveRunEvidenceRead(req, res, { runId, host: deps.agentHost })
@@ -2545,14 +2500,14 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     // 423-21 D-18: marks history, above the `/api/runs/:id` catch-all like its read siblings.
     if (req.method === 'GET' && /^\/api\/runs\/[^/]+\/marks$/.test(path)) {
       if (!deps.agentHost) {
-        jsonNoCors(res, { error: 'agent_host_unavailable' }, 503)
+        json(res, { error: 'agent_host_unavailable' }, 503)
         return
       }
       let runId: string
       try {
         runId = decodeURIComponent(path.slice('/api/runs/'.length, -'/marks'.length))
       } catch {
-        jsonNoCors(res, { error: 'invalid_run_id' }, 400)
+        json(res, { error: 'invalid_run_id' }, 400)
         return
       }
       serveRunMarksHistoryRead(req, res, { runId, host: deps.agentHost })
@@ -2728,7 +2683,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       // produced, so a page rendering them rendered an empty tree that looked like a bug rather
       // than like an absence. The run's members, steps and sub-actions are `GET /api/runs/:id/detail`'s,
       // through `runs.detail`.
-      jsonNoCors(res, { run })
+      json(res, { run })
       return
     }
 
@@ -2746,14 +2701,14 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     // machine boundary: only counts leave this arm.
     if (path === '/api/insights/knowledge-changes' && req.method === 'GET') {
       if (!deps.agentHost) {
-        jsonNoCors(res, { status: 'unavailable', reason: 'agent_host_unavailable' }, 503)
+        json(res, { status: 'unavailable', reason: 'agent_host_unavailable' }, 503)
         return
       }
       const from = url.searchParams.get('from') ?? undefined
       const to = url.searchParams.get('to') ?? undefined
       void readInsightsKnowledgeChanges(deps.agentHost, db, { from, to }).then(
-        (body) => { jsonNoCors(res, body) },
-        () => { jsonNoCors(res, { status: 'unavailable', reason: 'read_failed' }, 500) },
+        (body) => { json(res, body) },
+        () => { json(res, { status: 'unavailable', reason: 'read_failed' }, 500) },
       )
       return
     }
@@ -3770,14 +3725,14 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     // GET /api/config — return masked config with active provider info
     if (path === '/api/config' && req.method === 'GET') {
       if (!configManager) {
-        jsonNoCors(res, { error: 'Config management not available' }, 501)
+        json(res, { error: 'Config management not available' }, 501)
         return
       }
       ;(async () => {
         try {
           const read = await configManager.readMasked()
           if (read.kind === 'file_invalid') {
-            jsonNoCors(res, { error: 'file_invalid', message: read.message }, 409)
+            json(res, { error: 'file_invalid', message: read.message }, 409)
             return
           }
           const { config, revision, lines, fileIssues } = read
@@ -3789,7 +3744,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             ? llms.find((c) => c?.name === activeLlm)
             : undefined
           const provider = (defaultCfg?.provider as string) ?? null
-          jsonNoCors(res, {
+          json(res, {
             config,
             provider,
             revision,
@@ -3797,7 +3752,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             ...(fileIssues.length > 0 ? { fileIssues } : {}),
           })
         } catch (err: unknown) {
-          jsonNoCors(res, { error: err instanceof Error ? err.message : 'Failed to read config' }, 500)
+          json(res, { error: err instanceof Error ? err.message : 'Failed to read config' }, 500)
         }
       })()
       return
@@ -3821,13 +3776,13 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
                 return credential
               })
               if (removed === undefined) {
-                jsonNoCors(res, { deleted: false })
+                json(res, { deleted: false })
                 return
               }
               const undo = undoStore.put({ kind: 'credential', name: providerName, credential: removed }, Date.now())
-              jsonNoCors(res, { deleted: true, undo })
+              json(res, { deleted: true, undo })
             } catch (err: unknown) {
-              jsonNoCors(res, { error: err instanceof Error ? err.message : 'Failed to delete credential' }, 500)
+              json(res, { error: err instanceof Error ? err.message : 'Failed to delete credential' }, 500)
             }
           })()
           return
@@ -3974,7 +3929,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       const plugin = provider ? getLLMAuthProviderPlugin(provider) : undefined
 
       if (!plugin) {
-        jsonNoCors(res, { error: `Auth plugin provider "${provider}" is not registered` }, 404)
+        json(res, { error: `Auth plugin provider "${provider}" is not registered` }, 404)
         return
       }
 
@@ -3982,14 +3937,14 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         readJsonBody<{ configName?: string; callbackUrl?: string }>(req)
           .then(async (body) => {
             if (!plugin.startAuth) {
-              jsonNoCors(res, { error: `Provider "${provider}" does not support dashboard auth start` }, 400)
+              json(res, { error: `Provider "${provider}" does not support dashboard auth start` }, 400)
               return
             }
 
             try {
               const target = await requirePluginAuthConfig(configManager, body.configName, plugin)
               if (!target.ok) {
-                jsonNoCors(res, credentialRefusalBody(target), target.status)
+                json(res, credentialRefusalBody(target), target.status)
                 return
               }
               const started = await plugin.startAuth({
@@ -4030,17 +3985,17 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
                   .finally(() => cleanupPluginOAuthSession(session))
               }
 
-              jsonNoCors(res, {
+              json(res, {
                 authorizeUrl: started.authorizeUrl,
                 sessionId,
                 mode: plugin.dashboardAuth.mode,
                 created: target.created,
               })
             } catch (err: unknown) {
-              jsonNoCors(res, { error: err instanceof Error ? err.message : 'Failed to start auth plugin flow' }, 500)
+              json(res, { error: err instanceof Error ? err.message : 'Failed to start auth plugin flow' }, 500)
             }
           })
-          .catch(() => jsonNoCors(res, { error: 'Invalid request body' }, 400))
+          .catch(() => json(res, { error: 'Invalid request body' }, 400))
         return
       }
 
@@ -4071,22 +4026,22 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         readJsonBody<{ sessionId?: string; code?: string }>(req)
           .then(async (body) => {
             if (!plugin.exchangeCode) {
-              jsonNoCors(res, { error: `Provider "${provider}" does not support code exchange` }, 400)
+              json(res, { error: `Provider "${provider}" does not support code exchange` }, 400)
               return
             }
             const sessionId = typeof body.sessionId === 'string' ? body.sessionId.trim() : ''
             const code = typeof body.code === 'string' ? body.code.trim() : ''
             if (!sessionId || !code) {
-              jsonNoCors(res, { error: 'sessionId and code are required' }, 400)
+              json(res, { error: 'sessionId and code are required' }, 400)
               return
             }
             const session = pluginOAuthSessions.get(sessionId)
             if (!session || session.providerId !== provider) {
-              jsonNoCors(res, { error: 'Auth session not found' }, 404)
+              json(res, { error: 'Auth session not found' }, 404)
               return
             }
             if (session.status !== 'pending') {
-              jsonNoCors(res, { error: 'Auth session is no longer pending' }, 409)
+              json(res, { error: 'Auth session is no longer pending' }, 409)
               return
             }
 
@@ -4109,22 +4064,22 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
                 session.error = CREDENTIAL_PROVIDER_CONFLICT.message
                 cleanupPluginOAuthSession(session)
                 pluginOAuthSessions.delete(sessionId)
-                jsonNoCors(res, credentialRefusalBody(CREDENTIAL_PROVIDER_CONFLICT), CREDENTIAL_PROVIDER_CONFLICT.status)
+                json(res, credentialRefusalBody(CREDENTIAL_PROVIDER_CONFLICT), CREDENTIAL_PROVIDER_CONFLICT.status)
                 return
               }
               session.status = 'completed'
               cleanupPluginOAuthSession(session)
               pluginOAuthSessions.delete(sessionId)
-              jsonNoCors(res, { status: 'completed', saved: true })
+              json(res, { status: 'completed', saved: true })
             } catch (err: unknown) {
               session.status = 'error'
               session.error = err instanceof Error ? err.message : 'Token exchange failed'
               cleanupPluginOAuthSession(session)
               pluginOAuthSessions.delete(sessionId)
-              jsonNoCors(res, { error: session.error }, 500)
+              json(res, { error: session.error }, 500)
             }
           })
-          .catch(() => jsonNoCors(res, { error: 'Invalid request body' }, 400))
+          .catch(() => json(res, { error: 'Invalid request body' }, 400))
         return
       }
 
@@ -4146,34 +4101,34 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           const secret = typeof body.secret === 'string' ? body.secret.trim() : ''
 
           if (typeof body.configName !== 'string' || body.configName.trim() === '') {
-            jsonNoCors(res, { error: 'configName is required' }, 400)
+            json(res, { error: 'configName is required' }, 400)
             return
           }
           if (!provider || !isKnownLLMProvider(provider)) {
-            jsonNoCors(res, { error: 'valid provider is required' }, 400)
+            json(res, { error: 'valid provider is required' }, 400)
             return
           }
           if (credentialType !== 'api-key' && credentialType !== 'bearer-token') {
-            jsonNoCors(res, { error: 'type must be api-key or bearer-token' }, 400)
+            json(res, { error: 'type must be api-key or bearer-token' }, 400)
             return
           }
           if (!secret) {
-            jsonNoCors(res, { error: 'secret is required' }, 400)
+            json(res, { error: 'secret is required' }, 400)
             return
           }
 
           if (getLLMAuthProviderPlugin(provider)) {
-            jsonNoCors(res, { error: 'Subscription providers use OAuth login' }, 400)
+            json(res, { error: 'Subscription providers use OAuth login' }, 400)
             return
           }
 
           if (credentialType === 'bearer-token' && provider !== 'anthropic-compatible') {
-            jsonNoCors(res, { error: 'bearer-token credentials are only supported for anthropic-compatible configs' }, 400)
+            json(res, { error: 'bearer-token credentials are only supported for anthropic-compatible configs' }, 400)
             return
           }
 
           if (credentialType === 'api-key' && !API_KEY_CREDENTIAL_PROVIDERS.has(provider)) {
-            jsonNoCors(res, { error: 'api-key credentials are not supported for this provider' }, 400)
+            json(res, { error: 'api-key credentials are not supported for this provider' }, 400)
             return
           }
 
@@ -4189,15 +4144,15 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
               return checked
             })
             if (!target.ok) {
-              jsonNoCors(res, credentialRefusalBody(target), target.status)
+              json(res, credentialRefusalBody(target), target.status)
               return
             }
-            jsonNoCors(res, { saved: true, created: target.created })
+            json(res, { saved: true, created: target.created })
           } catch (err: unknown) {
-            jsonNoCors(res, { error: err instanceof Error ? err.message : 'Failed to save credential' }, 500)
+            json(res, { error: err instanceof Error ? err.message : 'Failed to save credential' }, 500)
           }
         })
-        .catch(() => jsonNoCors(res, { error: 'Invalid request body' }, 400))
+        .catch(() => json(res, { error: 'Invalid request body' }, 400))
       return
     }
 
@@ -4209,17 +4164,17 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         .then(async (raw) => {
           const parsed = LlmCredentialMoveRequestSchema.safeParse(raw)
           if (!parsed.success) {
-            jsonNoCors(res, { error: 'invalid_setup_input' }, 400)
+            json(res, { error: 'invalid_setup_input' }, 400)
             return
           }
           const from = checkCredentialName(parsed.data.from)
           const to = checkCredentialName(parsed.data.to)
           if (!from.ok || !to.ok) {
-            jsonNoCors(res, { error: 'name_invalid' }, 400)
+            json(res, { error: 'name_invalid' }, 400)
             return
           }
           if (!configManager) {
-            jsonNoCors(res, { error: 'Config manager is required to move credentials' }, 400)
+            json(res, { error: 'Config manager is required to move credentials' }, 400)
             return
           }
           try {
@@ -4237,15 +4192,15 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
               return undefined
             })
             if (refusal) {
-              jsonNoCors(res, credentialRefusalBody(refusal), refusal.status)
+              json(res, credentialRefusalBody(refusal), refusal.status)
               return
             }
-            jsonNoCors(res, { moved: true })
+            json(res, { moved: true })
           } catch (err: unknown) {
-            jsonNoCors(res, { error: err instanceof Error ? err.message : 'Failed to move credential' }, 500)
+            json(res, { error: err instanceof Error ? err.message : 'Failed to move credential' }, 500)
           }
         })
-        .catch(() => jsonNoCors(res, { error: 'invalid_setup_input' }, 400))
+        .catch(() => json(res, { error: 'invalid_setup_input' }, 400))
       return
     }
 
@@ -4261,7 +4216,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         .then(async (body) => {
           const rawBody = body as Record<string, unknown>
           if ('apiKey' in rawBody) {
-            jsonNoCors(res, {
+            json(res, {
               success: false,
               error: 'invalid_request',
               message: 'apiKey is not accepted in LLM test requests. Save credentials for the named config instead.',
@@ -4271,7 +4226,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           const providerName = typeof body.provider === 'string' ? body.provider.trim() : ''
           const modelName = typeof body.model === 'string' ? body.model.trim() : ''
           if (!providerName || !modelName) {
-            jsonNoCors(res, { success: false, error: 'invalid_request', message: 'provider and model are required' }, 400)
+            json(res, { success: false, error: 'invalid_request', message: 'provider and model are required' }, 400)
             return
           }
           const configName = typeof body.configName === 'string' ? body.configName.trim() : ''
@@ -4300,7 +4255,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
 
           const parsedConfig = ModelConfigSchema.safeParse(llmCandidate)
           if (!parsedConfig.success) {
-            jsonNoCors(res, {
+            json(res, {
               success: false,
               error: 'invalid_request',
               message: parsedConfig.error.issues
@@ -4323,7 +4278,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           }
           const resolvedAuth = await coreAuth.resolveLLMAuth(configName, llmConfig)
           if (resolvedAuth.kind === 'missing') {
-            jsonNoCors(res, {
+            json(res, {
               success: false,
               error: 'missing_credential',
               message: resolvedAuth.message,
@@ -4357,7 +4312,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
               clearTimeout(timeout)
             }
 
-            jsonNoCors(res, {
+            json(res, {
               success: true,
               model: modelName,
               provider: providerName,
@@ -4375,7 +4330,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
               ? providerErrorSentence(errorClass, '').trimEnd()
               : providerErrorSentence(errorClass, providerMessage)
 
-            jsonNoCors(res, {
+            json(res, {
               success: false,
               error: errorClass,
               message,
@@ -4386,7 +4341,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             })
           }
         })
-        .catch(() => jsonNoCors(res, { success: false, error: 'invalid_request', message: 'Invalid request body' }, 400))
+        .catch(() => json(res, { success: false, error: 'invalid_request', message: 'Invalid request body' }, 400))
       return
     }
 
@@ -4758,15 +4713,14 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // GET /api/live-editor/sessions/:id/live-url — the editor mint door (428 D-07).
+    // GET /api/live-editor/sessions/:id/live-url — the editor mint door.
     //
     // A copy of the run mint door above, arm for arm: 503 when unbound,
-    // the op's result verbatim and its refusals mapped by error name. Every arm answers through
-    // `jsonNoCors`, because the success body is the token. The DELETE arm below matches one path
-    // segment after the id, so it never sees a `/live-url` suffix.
+    // the op's result verbatim and its refusals mapped by error name. The DELETE arm below matches
+    // one path segment after the id, so it never sees a `/live-url` suffix.
     if (req.method === 'GET' && /^\/api\/live-editor\/sessions\/[^/]+\/live-url$/.test(path)) {
       if (!deps.mintEditorLiveUrl) {
-        jsonNoCors(res, { error: 'live_view_unavailable' }, 503)
+        json(res, { error: 'live_view_unavailable' }, 503)
         return
       }
       let editorSessionId: string
@@ -4775,16 +4729,16 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           path.slice('/api/live-editor/sessions/'.length, -'/live-url'.length),
         )
       } catch {
-        jsonNoCors(res, { error: 'unknown_session' }, 404)
+        json(res, { error: 'unknown_session' }, 404)
         return
       }
       void deps.mintEditorLiveUrl(editorSessionId).then(
-        (result) => { jsonNoCors(res, result) },
+        (result) => { json(res, result) },
         (error: unknown) => {
           const name = error instanceof Error ? error.name : ''
-          if (name === 'UnknownLiveEditorSessionError') { jsonNoCors(res, { error: 'unknown_session' }, 404); return }
-          if (name === 'LiveViewUnavailableError') { jsonNoCors(res, { error: 'live_view_unavailable' }, 503); return }
-          jsonNoCors(res, { error: 'live_url_mint_failed' }, 500)
+          if (name === 'UnknownLiveEditorSessionError') { json(res, { error: 'unknown_session' }, 404); return }
+          if (name === 'LiveViewUnavailableError') { json(res, { error: 'live_view_unavailable' }, 503); return }
+          json(res, { error: 'live_url_mint_failed' }, 500)
         },
       )
       return
@@ -4794,7 +4748,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     const liveEditorAuthStateMatch = path.match(/^\/api\/live-editor\/sessions\/([^/]+)\/auth-state$/)
     if (liveEditorAuthStateMatch && req.method === 'POST') {
       if (!sessionManager) {
-        jsonNoCors(res, { error: 'Live editor not available' }, 503)
+        json(res, { error: 'Live editor not available' }, 503)
         return
       }
       ;(async () => {
@@ -4804,30 +4758,30 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           const body = await readJsonBody<{ name?: unknown; replace?: unknown }>(req)
           const parsedName = AuthStateNameSchema.safeParse(typeof body?.name === 'string' ? body.name : '')
           if (!parsedName.success) {
-            jsonNoCors(res, { error: 'Auth state name must be a lowercase slug.' }, 400)
+            json(res, { error: 'Auth state name must be a lowercase slug.' }, 400)
             return
           }
 
           stateName = parsedName.data
           session = sessionManager.getSession(decodeURIComponent(liveEditorAuthStateMatch[1]))
           if (!session) {
-            jsonNoCors(res, { error: 'Session not found' }, 404)
+            json(res, { error: 'Session not found' }, 404)
             return
           }
 
           if (typeof session.captureWebAuthState !== 'function') {
-            jsonNoCors(res, {
+            json(res, {
               error: `Could not save auth state "${stateName}" for target "${getSessionTargetNameForAuthState(session)}".`,
             }, 500)
             return
           }
 
           const authState = await session.captureWebAuthState(stateName, { replace: body?.replace === true })
-          jsonNoCors(res, { authState })
+          json(res, { authState })
         } catch (err: unknown) {
           const targetName = getSessionTargetNameForAuthState(session)
           const response = buildAuthStateSaveErrorMessage(stateName || 'unknown', targetName, err)
-          jsonNoCors(res, { error: response.message }, response.status)
+          json(res, { error: response.message }, response.status)
         }
       })()
       return
@@ -4836,7 +4790,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     // POST /api/live-editor/sessions — create a new live editor session
     if (path === '/api/live-editor/sessions' && req.method === 'POST') {
       if (!sessionManager) {
-        jsonNoCors(res, { error: 'Live editor not available' }, 503)
+        json(res, { error: 'Live editor not available' }, 503)
         return
       }
       ;(async () => {
@@ -4860,7 +4814,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           const platform = body?.platform ?? 'web'
           const runtimeLLM = await resolveDashboardRuntimeLLM(configManager, llmConfig, authFetch)
           if (!runtimeLLM.ok) {
-            jsonNoCors(res, { error: runtimeLLM.error }, 400)
+            json(res, { error: runtimeLLM.error }, 400)
             return
           }
           const setupHooks = Array.isArray(body?.setupHooks)
@@ -4887,7 +4841,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           let resolvedHooks = new Map<string, import('@vostride/agent-qa-core').HookDefinition>()
           let hookRegistryError: string | undefined
           if (!workspacePaths) {
-            jsonNoCors(res, { error: 'Workspace path resolution not available' }, 500)
+            json(res, { error: 'Workspace path resolution not available' }, 500)
             return
           }
 
@@ -4895,7 +4849,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             const envContent = await readFile(workspacePaths.envFile.absolutePath, 'utf-8')
             envVars = parseEnvFile(envContent)
           } catch {
-            jsonNoCors(res, { error: `workspace.envFile file could not be loaded: ${workspacePaths.envFile.workspaceRelativePath}` }, 400)
+            json(res, { error: `workspace.envFile file could not be loaded: ${workspacePaths.envFile.workspaceRelativePath}` }, 400)
             return
           }
 
@@ -4904,7 +4858,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             secretStore = SecretStore.fromEnvContent(secretsContent)
             secretRedactor = new SecretRedactor(secretStore)
           } catch {
-            jsonNoCors(res, { error: `workspace.secretsFile file could not be loaded: ${workspacePaths.secretsFile.workspaceRelativePath}` }, 400)
+            json(res, { error: `workspace.secretsFile file could not be loaded: ${workspacePaths.secretsFile.workspaceRelativePath}` }, 400)
             return
           }
 
@@ -4961,7 +4915,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             },
             entityRef,
           )
-          jsonNoCors(res, { sessionId, sessionNumber }, 201)
+          json(res, { sessionId, sessionNumber }, 201)
         } catch (err: unknown) {
           const message = err instanceof Error ? err.message : String(err)
           // A planner limit or navigation timeout the CLI refuses is refused here, before any
@@ -4970,7 +4924,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             err instanceof LivePlannerLimitsRefusedError ||
             err instanceof LiveNavigationTimeoutRefusedError
           const status = refused ? 400 : 500
-          jsonNoCors(res, { error: message }, status)
+          json(res, { error: message }, status)
         }
       })()
       return
@@ -4979,10 +4933,10 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     // GET /api/live-editor/sessions — list all active live editor sessions
     if (path === '/api/live-editor/sessions' && req.method === 'GET') {
       if (!sessionManager) {
-        jsonNoCors(res, { error: 'Live editor not available' }, 503)
+        json(res, { error: 'Live editor not available' }, 503)
         return
       }
-      jsonNoCors(res, { sessions: sessionManager.listSessions() })
+      json(res, { sessions: sessionManager.listSessions() })
       return
     }
 
@@ -4990,16 +4944,16 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     const liveEditorSessionMatch = path.match(/^\/api\/live-editor\/sessions\/([^/]+)$/)
     if (liveEditorSessionMatch && req.method === 'DELETE') {
       if (!sessionManager) {
-        jsonNoCors(res, { error: 'Live editor not available' }, 503)
+        json(res, { error: 'Live editor not available' }, 503)
         return
       }
       const sessionId = liveEditorSessionMatch[1]
       ;(async () => {
         const terminated = await sessionManager.terminateSession(sessionId)
         if (terminated) {
-          jsonNoCors(res, { ok: true })
+          json(res, { ok: true })
         } else {
-          jsonNoCors(res, { error: 'Session not found' }, 404)
+          json(res, { error: 'Session not found' }, 404)
         }
       })()
       return

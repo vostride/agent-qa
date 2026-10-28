@@ -2544,20 +2544,19 @@ describe('API Routes', () => {
     })
   })
 
-  describe('CORS', () => {
-    it('includes CORS headers on the legacy read routes', async () => {
-      // MOVED OFF `/api/runs` BY 405 CR-01, and the move is the point. `json()`'s wildcard still
-      // serves the legacy reads — that posture is unchanged and this cell still guards it — but
-      // `/api/runs` stopped being one of them the moment 405-10 put restored cleartext on its body.
+  describe('cross-origin grants', () => {
+    it('a read carries no cross-origin grant', async () => {
       const res = await invokeRoute('/api/stats')
-      expect(res.headers['access-control-allow-origin']).toBe('*')
+      expect(res.status).toBe(200)
+      expect(res.headers['access-control-allow-origin']).toBeUndefined()
     })
 
-    it('handles OPTIONS preflight', async () => {
+    it('an admitted OPTIONS gets the router 404 with no grant', async () => {
       const res = await invokeRoute('/api/runs', { method: 'OPTIONS' })
-      expect(res.status).toBe(204)
-      expect(res.headers['access-control-allow-origin']).toBe('*')
-      expect(res.headers['access-control-allow-methods']).toContain('GET')
+      expect(res.status).toBe(404)
+      expect(JSON.parse(res.body)).toEqual({ error: 'Not found' })
+      expect(res.headers['access-control-allow-origin']).toBeUndefined()
+      expect(res.headers['access-control-allow-methods']).toBeUndefined()
     })
   })
 
