@@ -1309,36 +1309,3 @@ describe('the authoring funnel window stamp (394-19)', () => {
     expect(run.invocations[0]?.input).not.toHaveProperty('sessionRef')
   })
 })
-
-// 2026-10-03 (quick 261003-cpv, 432 review IN-05): THE LIVE PATH, not the hermetic tripwire. The
-// planner double below plans `runs.list` for any clause, which is what a live model may do with the
-// text of a retired verb. A retired `/pin` or bare `proposals` is answered by name at stage 1 and
-// never reaches the planner, so nothing a model would plan from it can run.
-describe('C261003-CPV-RETIRED-VERBS: a retired chat verb is answered by name and never planned', () => {
-  const PLANS_ANYTHING = { toolCalls: [{ toolName: toToolName(RUNS_LIST), input: {} }] }
-
-  for (const message of [
-    '/pin fn:runs.start',
-    '/PIN runs.list',
-    '/pin',
-    'proposals',
-    '/pin fn:runs.start and write a test for 2FA',
-  ]) {
-    it(`C261003-CPV-RETIRED-VERBS: ${JSON.stringify(message)} refuses with zero planner calls`, async () => {
-      const run = harness({ planned: PLANS_ANYTHING })
-      const result = await run.runTurn({ message })
-
-      expect(result.status).toBe('fail_closed')
-      expect(run.plannerCalls).toBe(0)
-      expect(run.invocations).toHaveLength(0)
-      expect(result.unhandled?.reason).toMatch(/retired/)
-      expect(run.log.events.filter((event) => event.kind === 'mark_unhandled')).toHaveLength(1)
-    })
-  }
-
-  it('C261003-CPV-RETIRED-VERBS: an undeclared slash word still flows to the planner (D-09 near-miss)', async () => {
-    const run = harness({ planned: PLANS_ANYTHING })
-    await run.runTurn({ message: '/pinned runs' })
-    expect(run.plannerCalls).toBe(1)
-  })
-})

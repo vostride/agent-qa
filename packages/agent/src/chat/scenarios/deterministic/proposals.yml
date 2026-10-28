@@ -1,14 +1,7 @@
-# 2026-10-03 (quick 261003-cpv, 432 review IN-05): the retired `proposals` alias is now answered
-# BY NAME at stage 1 ("the proposals inbox was retired in this version"), so the planner is never
-# consulted. Before, the hermetic tripwire refused it at stage 2, while a live model could plan an
-# op from the word. The hermetic runner pins zero planner calls and the retired-verb reason here.
-# 432-13 (D-05/D-14): THE `proposals` INBOX ALIAS IS GONE, and this cell now measures its absence.
-#
-# Changes apply in the call, so there is no pending-decision inbox for a bare word to route to. The
-# table no longer resolves `proposals`; the hermetic lane's tripwire planner cannot route it either,
-# so the turn refuses by name with zero executions. 432-17 deleted the inbox and `proposals.list`
-# with it, so nothing reads a pre-432 record at all. The id is kept so the retired route stays a
-# committed, measured absence rather than a deleted file.
+# `proposals` is not an alias: changes apply in the call, so there is no inbox for the word to route
+# to. Stage 1 does not resolve it, so it is an ordinary clause that goes to the planner; the
+# hermetic lane's tripwire planner cannot route it, and the turn refuses, naming the clause, with
+# zero executions.
 id: proposals
 class: deterministic
 lane: hermetic

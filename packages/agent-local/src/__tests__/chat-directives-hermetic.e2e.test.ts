@@ -1,13 +1,9 @@
-// RE-SPELLED 2026-10-01 (432-17, D-05): `proposals.list` is deleted with the inbox. The read these
-// cells drive through the composed host is now `quarantine.list`, another allow-tier read that
-// answers honestly (an empty listing) in a bare temp project, so every claim keeps its subject.
-// The directives, measured through the REAL composition (Phase 392 plan 08, D-04/D-21/D-23).
-//
-// 2026-09-30 (432-13, D-14): `/pin` IS GONE. It was a session deny overlay over the op gate, and there
-// is no op gate. Its four cells are re-spelled as the verb's absence (C432-CHAT-DIRECT): a typed
-// `/pin` is an unroutable clause that refuses by name, pins nothing, publishes nothing to live state
-// and writes no `approval_decision`. The chat confirm seam cell is re-spelled as the factory never
-// being called. `/model`, `/help`, `/quit` and the live state are unchanged.
+// The directives, measured through the REAL composition. `/pin` is not one: it is an ordinary
+// clause stage 1 does not resolve, so on a host with no planner bound the turn refuses it, naming
+// the clause, and it pins nothing, publishes nothing to live state and writes no
+// `approval_decision`. A supplied chat-confirm factory is never called. The reads these cells drive
+// go through `quarantine.list`, an allow-tier read that answers with an empty listing in a bare
+// temp project.
 //
 // WHAT THIS FILE EXISTS TO CATCH is a directive that is handled and reaches nothing. Every one of
 // them is a mechanism whose failure mode is a confirmation line and no effect: a `/pin` recorded
@@ -148,9 +144,8 @@ describe('the composed session directives reach something (D-04 / D-21 / RESEARC
       .map((line) => JSON.parse(line) as ChatSessionEvent)
   }
 
-  // RE-SPELLED 2026-09-30 (432-13) from '/pin reaches the gate — the two-sided differential (D-21 /
-  // T-392-28)'. Each cell keeps its utterance and now proves the retired verb reaches nothing.
-  describe('C432-CHAT-DIRECT — a typed /pin reaches nothing (432-13)', () => {
+  // Each cell types `/pin` and checks that it reaches nothing.
+  describe('a typed /pin reaches nothing', () => {
     it('C432-CHAT-DIRECT: the op runs before and after a typed /pin, in the same session and outside it',
       async () => {
         const host = compose()
@@ -197,8 +192,8 @@ describe('the composed session directives reach something (D-04 / D-21 / RESEARC
 
     it('refuses BY NAME as an unroutable clause, leaving one countable row', async () => {
       const host = compose()
-      // The clause is not a directive any more, so a headless host refuses it as it refuses any
-      // other unrouted text: by name, through the engine's ONE refusal path.
+      // `/pin` is not a directive, so a host with no planner refuses it as it refuses any other
+      // unrouted text, naming the clause, through the engine's ONE refusal path.
       const result = await ask(host, '/pin config-write')
 
       expect(result.status).toBe('fail_closed')

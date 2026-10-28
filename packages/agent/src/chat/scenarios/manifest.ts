@@ -163,12 +163,13 @@ export const SCENARIO_CORPUS: readonly ScenarioCorpusEntry[] = Object.freeze([
   entry({ id: 'status', class: 'deterministic', lane: 'hermetic', kind: 'should_execute' }),
   entry({ id: 'test-ref', class: 'deterministic', lane: 'hermetic', kind: 'should_execute' }),
   entry({ id: 'digest', class: 'deterministic', lane: 'hermetic', kind: 'should_execute' }),
-  // 432-13: the inbox alias is retired; the cell is its measured absence (v10).
+  // `proposals` is an ordinary clause stage 1 does not resolve, so the hermetic turn refuses it.
   entry({ id: 'proposals', class: 'deterministic', lane: 'hermetic', kind: 'fail_closed' }),
   entry({ id: 'fn', class: 'deterministic', lane: 'hermetic', kind: 'should_execute' }),
   // The directives. `executed: 0` on a `should_execute` arm is the SHAPE, not a compromise: a
   // directive names no capability, so it crosses the function layer zero times on a turn that did
-  // exactly what was asked (392-08's flip). 432-13 retired `/pin`; its cell is its absence (v10).
+  // exactly what was asked. `/pin` is not a directive but an ordinary clause stage 1 does not
+  // resolve, so the hermetic turn refuses it.
   entry({ id: 'model', class: 'deterministic', lane: 'hermetic', kind: 'should_execute' }),
   entry({ id: 'pin', class: 'deterministic', lane: 'hermetic', kind: 'fail_closed' }),
   entry({ id: 'help', class: 'deterministic', lane: 'hermetic', kind: 'should_execute' }),

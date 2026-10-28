@@ -1,27 +1,11 @@
-# 432-13 (D-14): `/pin` IS NO LONGER A DIRECTIVE. Both clauses are now unrouted text in the hermetic
-# lane, so the turn still refuses whole with zero executions — and the side-effect assertion this
-# cell was admitted to make bite (no `approval_decision`, no verb-sourced `model_change`) now holds
-# by construction: no turn writes an approval row at all.
+# An unroutable `/pin` clause plus a write-test clause. `/pin` is not a directive, so stage 1
+# resolves neither; both go to the planner, the hermetic lane's tripwire planner cannot route them,
+# and the turn refuses whole, naming the `/pin` clause, with zero executions.
 #
-# THE CR-04 PROBE, ADMITTED AS A PERMANENT CELL (392-11, gap round).
+# The runner asserts the events a refused turn must not leave (no `approval_decision`, no
+# verb-sourced `model_change`), not only `executed == 0`. No turn writes an approval row.
 #
-# A DIRECTIVE PLUS AN UNROUTABLE CLAUSE. Run through the shipped stack this returned `fail_closed`
-# with the message "The turn was refused before anything ran, so nothing in the request was carried
-# out" — while the pin was already recorded, the gate's deny predicate already fired, and an
-# `approval_decision` row was already on the append-only log. The pin is irrevocable by design (the
-# holder publishes no unpin), so the refusal's message was not merely inaccurate: it described a
-# session that no longer existed.
-#
-# THE CORPUS COULD NOT SEE IT, and that is the second finding this file answers. A directive never
-# crosses `invokeFunction`, so `executed == 0` — the only thing the fail-closed arm asserted — was
-# true throughout. The runner now asserts the EVENTS a refused turn must not have left, and this
-# cell is what makes that assertion bite: it is the one cell in the corpus that names a directive
-# on a turn that fails.
-#
-# HERMETIC, DELIBERATELY. RE-SPELLED 2026-10-03 (quick 261003-cpv, 432 review IN-05): the retired
-# `/pin` clause is refused by name at stage 1, before the planner, so the write-test half is never
-# planned at all. No live model can make this cell's outcome different, so nothing is bought by
-# spending one.
+# Hermetic, and the exception is named in `scenario-manifest.test.ts`.
 id: pin-and-write-test
 class: compound
 lane: hermetic

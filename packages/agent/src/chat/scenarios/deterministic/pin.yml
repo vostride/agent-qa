@@ -1,14 +1,6 @@
-# 2026-10-03 (quick 261003-cpv, 432 review IN-05): a retired `/pin` is now answered BY NAME at stage
-# 1 ("/pin was retired in this version"), so the planner is never consulted. Before, the hermetic
-# tripwire refused it at stage 2, while a live model could plan the op the clause names. The
-# hermetic runner pins zero planner calls and the retired-verb reason for this cell.
-# 432-13 (D-14): `/pin` IS NO LONGER A DIRECTIVE, and this cell now measures its absence.
-#
-# It was a session deny overlay over the op gate (391 D-07, 392 D-21), and there is no op gate:
-# nothing asks, so there is nothing for a pin to tighten. The table no longer resolves it, so the
-# clause flows on like any other unrouted text; the hermetic lane's tripwire planner cannot route
-# it, and the turn refuses by name with zero executions and no `approval_decision` row. The id is
-# kept so the retired verb stays a committed, measured absence rather than a deleted file.
+# `/pin` is not a directive or an alias. Stage 1 does not resolve it, so it is an ordinary clause
+# that goes to the planner; the hermetic lane's tripwire planner cannot route it, and the turn
+# refuses, naming the clause, with zero executions and no `approval_decision` row.
 id: pin
 class: deterministic
 lane: hermetic

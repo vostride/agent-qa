@@ -311,14 +311,11 @@ describe('a typed /pin reaches no conversation (W-03; /pin retired 432-13)', () 
     ) as Promise<AgentAskResult>
   }
 
-  /**
-   * RE-SPELLED 2026-09-30 (432-13, D-14) from 'denies the session that pinned it and NOT a second
-   * session on the same host'. `/pin` is no longer a directive, so no conversation can deny anything
-   * to itself or to a sibling: the typed `/pin` is an unroutable clause (this host binds no planner,
-   * so the turn refuses by name), and BOTH sessions keep running the op. The W-03 isolation claim
-   * survives in its strongest form — one conversation's turn changes nothing another can do.
-   */
-  it('C432-CHAT-DIRECT: a typed /pin denies nothing, in the session that typed it or in a second one', async () => {
+  // `/pin` is not a directive, so no conversation can deny anything to itself or to a sibling: the
+  // typed `/pin` is an ordinary clause stage 1 does not resolve, this host binds no planner, so the
+  // turn refuses it, naming the clause, and BOTH sessions keep running the op. One conversation's
+  // turn changes nothing another can do.
+  it('a typed /pin denies nothing, in the session that typed it or in a second one', async () => {
     const host = compose()
     const a = await ask(host, '/fn quarantine.list')
     const b = await ask(host, '/fn quarantine.list')

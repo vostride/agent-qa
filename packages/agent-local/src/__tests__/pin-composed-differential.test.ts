@@ -1,18 +1,10 @@
-// RE-SPELLED 2026-10-01 (432-17, D-05): `proposals.list` is deleted with the inbox. The read these
-// cells drive through the composed host is now `quarantine.list`, another allow-tier read that
-// answers honestly (an empty listing) in a bare temp project, so every claim keeps its subject.
-// THE COMPOSED `/pin` DIFFERENTIAL (Phase 392 plan 10, D-21), RE-SPELLED AS ITS ABSENCE (432-13).
-//
-// 392-05/392-10 proved that typing `/pin <class>` made the very next turn asking for that capability
-// come back refused through `invokeFunction`, with a `session-pin-denied` row in the execution audit.
-// 432-13 (D-14/D-15) removed the op gate the pin overlay tightened and `/pin` from chat resolution,
-// so the same three arms now prove the retired verb reaches nothing: the op executes before AND
-// after a typed `/pin`, the scope control is unchanged, no row is written at the file the
-// composition writes, and no `approval_decision` lands in the session.
-//
-// THE PLANNER IS BOUND AND COUNTS. Every canonical utterance still goes untouched by it, and since
-// 2026-10-03 (quick 261003-cpv, IN-05) so does the retired `/pin`: the turn refuses it by name at
-// stage 1, before any model could plan the op its text names.
+// `/pin` through the composed stack. `/pin` is not a directive or an alias: it is an ordinary
+// clause stage 1 does not resolve, so it reaches the planner, here a tripwire that refuses, and the
+// turn fails closed with nothing run. The three arms check it reaches nothing else: the op executes
+// before and after a typed `/pin`, the scope control is unchanged, no row is written at the
+// execution audit file the composition writes, and no `approval_decision` lands in the session.
+// The reads go through `quarantine.list`, an allow-tier read that answers with an empty listing in
+// a bare temp project.
 
 import { mkdirSync, mkdtempSync, existsSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -66,24 +58,19 @@ const JOB_MODEL: JobModelCapability = {
 
 const MINT_IDENTITY = (filePath: string): string => filePath
 
-/** A model that FAILS the turn if it is ever reached, and counts the attempt either way. */
-function plannerTripwire(): { model: ChatLanguageModel; calls: () => number } {
-  let calls = 0
+// A planner that fails the turn whenever it is reached.
+function plannerTripwire(): ChatLanguageModel {
   const reached = (): never => {
-    calls += 1
-    throw new Error('a canonical utterance consulted the planner')
+    throw new Error('the planner tripwire refuses every clause')
   }
   return {
-    model: {
-      specificationVersion: 'v3',
-      provider: 'fixture',
-      modelId: 'fixture:never-called',
-      supportedUrls: {},
-      doGenerate: reached,
-      doStream: reached,
-    } as unknown as ChatLanguageModel,
-    calls: () => calls,
-  }
+    specificationVersion: 'v3',
+    provider: 'fixture',
+    modelId: 'fixture:tripwire',
+    supportedUrls: {},
+    doGenerate: reached,
+    doStream: reached,
+  } as unknown as ChatLanguageModel
 }
 
 interface AuditRow {
@@ -97,13 +84,11 @@ describe('D-21 retired: a typed /pin reaches nothing through the composed stack 
   let root: string
   let agentQaRoot: string
   let host: LocalAgentHost
-  let tripwire: ReturnType<typeof plannerTripwire>
 
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), 'pin-composed-'))
     agentQaRoot = join(root, '.agent-qa')
     mkdirSync(agentQaRoot, { recursive: true })
-    tripwire = plannerTripwire()
     host = composeLocalAgent({
       mask: (text) => text,
       mintQuarantineIdentityPath: MINT_IDENTITY,
@@ -111,7 +96,7 @@ describe('D-21 retired: a typed /pin reaches nothing through the composed stack 
       config: { getMasked: () => Promise.resolve(MASKED_CONFIG) },
       knowledgeRoot: () => join(root, 'agent-qa-knowledge'),
       model: () => JOB_MODEL,
-      chatModel: tripwire.model,
+      chatModel: plannerTripwire(),
     })
   })
 
@@ -148,9 +133,7 @@ describe('D-21 retired: a typed /pin reaches nothing through the composed stack 
       .map((line) => JSON.parse(line) as AuditRow)
   }
 
-  // RE-SPELLED 2026-09-30 (432-13) from 'all three arms: execute, then deny-with-audit-row, then the
-  // scope control'.
-  it('C432-CHAT-DIRECT: all three arms execute, before and after a typed /pin, with no audit row', async () => {
+  it('all three arms execute, before and after a typed /pin, with no audit row', async () => {
     // ---- ARM 1: no pin. The op executes; no gate records a decision.
     const before = await ask('/fn quarantine.list')
     expect(before.status).toBe('completed')
@@ -159,7 +142,7 @@ describe('D-21 retired: a typed /pin reaches nothing through the composed stack 
     ])
     expect(before.receipts[0]?.status).toBe('executed')
 
-    // ---- The retired verb, typed into the SAME session: an unroutable clause, refused by name.
+    // ---- `/pin`, typed into the SAME session: a clause nothing routes, so the turn refuses it.
     const pinned = await ask(`/pin ${QUARANTINE_LIST_FUNCTION_ID}`, before.sessionId)
     expect(pinned.status).toBe('fail_closed')
     expect(pinned.receipts).toEqual([])
@@ -181,11 +164,6 @@ describe('D-21 retired: a typed /pin reaches nothing through the composed stack 
 
     // No decision row of any kind at the file the composition writes.
     expect(auditRows()).toEqual([])
-    // RE-SPELLED 2026-10-03 (quick 261003-cpv, 432 review IN-05): the retired `/pin` is answered by
-    // name at stage 1, so NOTHING reached the planner, the clause a live model could have planned
-    // from included.
-    expect(tripwire.calls()).toBe(0)
-    expect(pinned.unhandled?.reason ?? '').toContain('/pin was retired in this version')
   })
 
   // RE-SPELLED 2026-09-30 (432-13) from 'the pin is a LIVE view: a second class pinned mid-session

@@ -72,7 +72,6 @@ import { diffChatConfig, foldChatConfigState } from './config-drift.js'
 import type { ChatConfigState } from './config-drift.js'
 import { replayToModelMessages } from './compaction.js'
 import { directiveNotBoundReason, resolveClause } from './resolver-table.js'
-import { retiredChatVerbReason } from './retired-chat-verbs.js'
 import { replaySession } from './session-repair.js'
 import { SESSION_STAMPED_FUNCTION_IDS, WINDOW_STAMPED_FUNCTION_IDS } from './session-stamps.js'
 import type { ChatDirectiveName, ChatResolverTable } from './resolver-table.js'
@@ -576,18 +575,6 @@ async function runTurnThrough(
     outcome:
       mapped.length + directives.length === clauses.length ? 'resolved' : 'unresolved',
   })
-
-  // ---- Retired verbs, answered by name before any model sees them (261003-cpv, 432 IN-05).
-  //
-  // A clause stage 1 left unresolved goes to the planner, and in a live session a model may plan
-  // the op named in a retired `/pin fn:runs.start`. The retired spellings are refused here, through
-  // the same `refuse()` every refusal takes, so the planner is never consulted and nothing runs.
-  for (const clause of clauses) {
-    if (mapped.some((resolved) => resolved.clause.index === clause.index)) continue
-    if (directives.some((entry) => entry.clause.index === clause.index)) continue
-    const retired = retiredChatVerbReason(clause.text)
-    if (retired !== undefined) return refuse(clause.text, retired)
-  }
 
   // ---- Directives, ASKED ABOUT here and carried out below the verdict (D-10, CR-04).
   //

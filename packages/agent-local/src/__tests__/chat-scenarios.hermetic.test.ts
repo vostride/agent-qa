@@ -210,14 +210,6 @@ function scriptedPlanner(
  * Every other cell in the lane still gets the tripwire, and the zero-calls assertion still holds
  * over the `should_execute` arm, which no entry here may join.
  */
-/** The absence cells for 432-13's retired verbs, refused by name before the planner (261003-cpv). */
-const RETIRED_VERB_CELLS: ReadonlySet<string> = new Set([
-  'pin',
-  'proposals',
-  'pin-and-write-test',
-  'pin-and-pin-nonsense',
-])
-
 const SCRIPTED_PLANNERS: ReadonlyMap<
   string,
   readonly { readonly toolName: string; readonly input: string }[]
@@ -463,18 +455,6 @@ describe('the hermetic lane: the frozen deterministic corpus over the real compo
           ['planner', 'resolved'],
           ['reconcile', 'unresolved'],
         ])
-      }
-
-      // 2026-10-03 (quick 261003-cpv, 432 review IN-05): THE RETIRED-VERB CELLS MEASURE THE LIVE
-      // PATH. The tripwire refused them before as well, by throwing at stage 2, which is exactly
-      // what a live model does not do: it may plan the op a retired `/pin` names. So these cells pin
-      // that the answer is the retired-verb refusal and that the model was never reached.
-      if (RETIRED_VERB_CELLS.has(scenario.id)) {
-        expect(cell.plannerCalls).toBe(0)
-        expect(result.unhandled?.reason ?? '').toMatch(/retired in this version/)
-        expect(
-          cell.events.filter((event) => event.kind === 'stage_outcome').map((event) => event.stage),
-        ).toEqual(['resolver'])
       }
 
       // THE STRONG FORM OF "NO LLM IN THIS LANE", and it applies to the arm that claims it: a
