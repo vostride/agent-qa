@@ -99,6 +99,24 @@ describe('DockerHookExecutor.execute', () => {
     expect(runArgs).toContain(image)
   })
 
+  it('a pull that fails resolves a failed hook naming the tagged image', async () => {
+    const calls: string[][] = []
+    mockExecFile.mockImplementation((_cmd: any, args: any, _o: any, cb: any) => {
+      if (typeof _o === 'function') cb = _o
+      calls.push(args)
+      if (args[0] === 'image') cb(new Error('No such image'), '', '')
+      else if (args[0] === 'pull') cb(new Error('manifest unknown'), '', '')
+      else cb(null, '', '')
+      return {} as any
+    })
+
+    const result = await run(makeHook())
+
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('vostride/agent-qa-hook-runner-node:1.2.3')
+    expect(calls.some((a) => a[0] === 'run')).toBe(false)
+  })
+
   it('returns success result when container exits 0', async () => {
     mockExecFile.mockImplementation((_cmd: any, args: any, _o: any, cb: any) => {
       if (typeof _o === 'function') cb = _o

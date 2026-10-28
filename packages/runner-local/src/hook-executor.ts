@@ -60,15 +60,15 @@ export class DockerHookExecutor implements HookExecutorPort {
 
     const image = hookRunnerImage(hook.runtime, this.version)
 
-    if (pullPolicy === 'always' || pullPolicy === 'if-not-present') {
-      const needsPull = pullPolicy === 'always' || !(await imageExists(dockerBin, image))
-      if (needsPull) {
-        await pullImage(dockerBin, image)
-      }
-    }
-
     let workDir: string | undefined
     try {
+      if (pullPolicy === 'always' || pullPolicy === 'if-not-present') {
+        const needsPull = pullPolicy === 'always' || !(await imageExists(dockerBin, image))
+        if (needsPull) {
+          await pullImage(dockerBin, image)
+        }
+      }
+
       workDir = await mkdtemp(join(tmpdir(), 'agent-qa-hook-'))
       await mkdir(join(workDir, 'tmp'), { recursive: true })
 
