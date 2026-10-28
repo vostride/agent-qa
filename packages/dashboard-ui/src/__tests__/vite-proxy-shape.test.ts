@@ -42,12 +42,10 @@ function proxyEntries(block: string): { key: string; valueStart: string }[] {
 }
 
 describe('VITE-PROXY-SHAPE', () => {
-  it('VITE-PROXY-SHAPE: every dev proxy entry is an object literal, never a bare target string', () => {
+  it('every dev proxy entry is an object literal, never a bare target string', () => {
     const entries = proxyEntries(proxyBlock(viteConfig))
 
-    expect(entries.map((entry) => entry.key)).toEqual(
-      expect.arrayContaining(['/api/live-editor/ws', '/api', '/screenshots', '/videos']),
-    )
+    expect(entries.map((entry) => entry.key)).toEqual(['/api/live-editor/ws', '/api'])
     for (const entry of entries) {
       expect(entry.valueStart, `${entry.key} maps to an object, so Vite does not set changeOrigin`)
         .toBe('{')

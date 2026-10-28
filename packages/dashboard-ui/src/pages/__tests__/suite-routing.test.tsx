@@ -80,7 +80,6 @@ vi.mock('@/components/page-skeleton', () => ({
   FormSkeleton: () => <div />,
 }))
 vi.mock('@/components/split-button', () => ({ SplitButton: () => <div /> }))
-vi.mock('@/components/stat-card', () => ({ StatCard: () => <div /> }))
 vi.mock('@/components/pass-rate-chart', () => ({ PassRateChart: () => <div /> }))
 vi.mock('@/components/duration-chart', () => ({ DurationChart: () => <div /> }))
 vi.mock('@/components/shortcut-hints', () => ({ ShortcutKey: () => <span /> }))

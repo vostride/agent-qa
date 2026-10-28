@@ -100,7 +100,6 @@ vi.mock("@/components/run-detail/run-navbar", () => ({
 vi.mock("@/components/run-detail/step-tree", () => ({ StepTree: () => <div data-testid="step-tree" /> }))
 vi.mock("@/components/run-detail/tab-panels", () => ({ TabPanels: () => <div data-testid="tab-panels" /> }))
 vi.mock("@/components/run-detail/artifact-drawer", () => ({ ArtifactDrawer: () => <div /> }))
-vi.mock("@/components/run-detail/hook-detail-panel", () => ({ HookDetailPanel: () => <div /> }))
 vi.mock("@/components/ui/tooltip", () => ({
   TooltipProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
 }))

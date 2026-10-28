@@ -166,7 +166,6 @@ vi.mock("@/components/run-detail/tab-panels", () => ({
   },
 }))
 vi.mock("@/components/run-detail/artifact-drawer", () => ({ ArtifactDrawer: () => <div /> }))
-vi.mock("@/components/run-detail/hook-detail-panel", () => ({ HookDetailPanel: () => <div /> }))
 vi.mock("@/components/ui/tooltip", () => ({
   TooltipProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
 }))
