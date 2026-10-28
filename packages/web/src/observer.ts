@@ -1,6 +1,6 @@
 import type { Page } from 'playwright-core'
-import type { ScreenState, ElementState, ElementLabels } from '@vostride/agent-qa-schema'
-import { buildScreenState, type InterimNode } from '@vostride/agent-qa-runner'
+import type { ElementState, ElementLabels } from '@vostride/agent-qa-schema'
+import type { InterimNode } from '@vostride/agent-qa-runner'
 
 const INTERACTIVE_ROLES = new Set([
   'button', 'link', 'textbox', 'checkbox', 'radio', 'combobox', 'listbox',
@@ -143,24 +143,6 @@ export function parseAriaSnapshot(ariaTree: string): {
   }
 
   return { nodes, nativeRefs }
-}
-
-// Browser-context functions use (globalThis as any) to access document
-// because the Node tsconfig has no DOM lib — these functions serialize and run in browser
-function hideAgentQaElements() {
-  const doc = (globalThis as any).document
-  doc.querySelectorAll('[data-agent-qa-internal]').forEach((el: any) => {
-    el.style.display = 'none'
-    el.setAttribute('aria-hidden', 'true')
-  })
-}
-
-function restoreAgentQaElements() {
-  const doc = (globalThis as any).document
-  doc.querySelectorAll('[data-agent-qa-internal]').forEach((el: any) => {
-    el.style.display = ''
-    el.removeAttribute('aria-hidden')
-  })
 }
 
 /**
@@ -349,53 +331,6 @@ function coerceBounds(
 
 function coerceString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined
-}
-
-export async function observePage(
-  page: Page,
-  options?: { filterSelector?: string },
-): Promise<ScreenState> {
-  const locator = options?.filterSelector
-    ? page.locator(options.filterSelector)
-    : page.locator(':root')
-
-  // Hide framework-injected elements from ARIA snapshot
-  await page.evaluate(hideAgentQaElements)
-
-  let ariaTree: string
-  try {
-    ariaTree = await locator.ariaSnapshot()
-  } finally {
-    // Restore framework-injected elements (always, even if snapshot fails)
-    await page.evaluate(restoreAgentQaElements)
-  }
-
-  const timestamp = Date.now()
-  const url = page.url()
-
-  // Web scroll + viewport are EXACT (D-10, Pitfall #2).
-  const { viewport: capturedViewport, scroll } = await captureWebScroll(page)
-
-  const { nodes, nativeRefs } = ariaTree
-    ? parseAriaSnapshot(ariaTree)
-    : { nodes: [] as InterimNode[], nativeRefs: [] as (string | undefined)[] }
-
-  // Exact per-element enrichment via aria-ref locators (honest-absence fallback).
-  if (nodes.length > 0) {
-    await enrichWebNodes(page, nodes, nativeRefs)
-  }
-
-  const { state } = buildScreenState({
-    platform: 'web',
-    nodes,
-    viewport: capturedViewport,
-    scroll,
-    coordSpace: 'viewport',
-    timestamp,
-    url,
-  })
-
-  return state
 }
 
 /** Coerce an untrusted value to a finite number, falling back when malformed. */

@@ -25,8 +25,7 @@ import type { StatedTargets } from '../grounding/stated-target.js'
 import type { VerifierStepRecord } from './step-record.js'
 
 /**
- * A planned action plus the frozen v45 plan envelope (D-09). Structural mirror of
- * core's ActionPlanSchema output; the v45 tool registry (this plan, task 3) produces it.
+ * A planned action plus its plan envelope, produced by the tool registry.
  */
 export interface ActionPlan {
   reasoning: string

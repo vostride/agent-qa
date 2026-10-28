@@ -51,9 +51,7 @@ export interface RunSuiteConfig {
   compressor?: ScreenshotCompressor
   plannerModel: LanguageModel
   verifierModel: LanguageModel
-  reporters?: never[]
   captureScreenshots?: boolean
-  screenshotMode?: 'failure' | 'every-step'
   timeouts?: { step?: number; test?: number; navigation?: number }
   logger?: LogManager
   configContent?: string

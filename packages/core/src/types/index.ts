@@ -7,5 +7,3 @@ export type {
   RegistryConfig,
   UseConfig,
 } from './config.js'
-
-export type { ActionPlan } from '../schema/action-schema.js'

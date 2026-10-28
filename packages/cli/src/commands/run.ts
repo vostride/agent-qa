@@ -2964,7 +2964,6 @@ export async function produceSuiteRunMembers(
       plannerModel,
       verifierModel,
       captureScreenshots,
-      screenshotMode: (opts.screenshotMode as 'failure' | 'every-step') ?? 'failure',
       timeouts: testTimeouts,
       logger,
       configContent,

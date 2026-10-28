@@ -49,8 +49,6 @@ export {
   TestDefinitionSchema,
 } from './test-schema.js'
 
-export { ActionPlanSchema } from './action-schema.js'
-export type { ActionPlan } from './action-schema.js'
 export { resolveKnowledgeRoot } from './resolve-knowledge-root.js'
 
 export { SuiteDefinitionSchema, SuiteTestEntrySchema } from './suite-schema.js'

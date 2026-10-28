@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { parseAriaSnapshot, enrichWebNodes, captureWebScroll, observePage } from '../observer.js'
+import { parseAriaSnapshot, enrichWebNodes, captureWebScroll } from '../observer.js'
 import type { InterimNode } from '@vostride/agent-qa-runner'
 
 describe('parseAriaSnapshot — interim node emission', () => {
@@ -257,98 +257,5 @@ describe('enrichWebNodes — aria-ref locator enrichment', () => {
     const nodes: InterimNode[] = [{ role: 'button', name: 'Submit' }]
     await expect(enrichWebNodes(mockPage as any, nodes, ['e1'])).resolves.toBeUndefined()
     expect(nodes[0].bounds).toBeUndefined()
-  })
-})
-
-describe('observePage', () => {
-  function createMockPage(ariaTree: string, url = 'https://example.com') {
-    return {
-      locator: vi.fn().mockReturnValue({
-        ariaSnapshot: vi.fn().mockResolvedValue(ariaTree),
-      }),
-      url: vi.fn().mockReturnValue(url),
-      evaluate: vi.fn().mockResolvedValue(undefined),
-      viewportSize: vi.fn().mockReturnValue({ width: 1280, height: 720 }),
-    }
-  }
-
-  it('returns a schema v2 ScreenState built from interim nodes', async () => {
-    const mockAriaTree = [
-      '- heading "Test Page" [level=1]',
-      '- button "Submit"',
-    ].join('\n')
-
-    const state = await observePage(createMockPage(mockAriaTree) as any)
-
-    expect(state.platform).toBe('web')
-    expect(state.url).toBe('https://example.com')
-    expect(state.elements).toHaveLength(2)
-    // Builder mints the refs — they land on elements, never in the parser.
-    expect(state.elements.map(e => e.ref)).toEqual(['e1', 'e2'])
-    expect(state.tree).toContain('[ref=e1]')
-    expect(state.tree).toContain('[ref=e2]')
-    expect(state.metadata.captureMode).toBe('textOnly')
-    expect(state.metadata.scroll).toBeDefined()
-    expect(typeof state.timestamp).toBe('number')
-  })
-
-  it('handles an empty ARIA tree (zero elements)', async () => {
-    const state = await observePage(createMockPage('', 'about:blank') as any)
-
-    expect(state.elements).toHaveLength(0)
-    expect(state.tree).toContain('[0 elements]')
-  })
-
-  it('uses filterSelector when provided', async () => {
-    const mockPage = createMockPage('- button "OK"')
-
-    await observePage(mockPage as any, { filterSelector: '#app' })
-
-    expect(mockPage.locator).toHaveBeenCalledWith('#app')
-  })
-
-  it('hides data-agent-qa-internal elements before the snapshot and restores after', async () => {
-    const evaluateCalls: number[] = []
-    let snapshotCallOrder = 0
-    let callCounter = 0
-
-    const mockPage = {
-      locator: vi.fn().mockReturnValue({
-        ariaSnapshot: vi.fn().mockImplementation(() => {
-          snapshotCallOrder = ++callCounter
-          return Promise.resolve('- button "OK"')
-        }),
-      }),
-      url: vi.fn().mockReturnValue('https://example.com'),
-      evaluate: vi.fn().mockImplementation(() => {
-        evaluateCalls.push(++callCounter)
-        return Promise.resolve(undefined)
-      }),
-      viewportSize: vi.fn().mockReturnValue({ width: 1280, height: 720 }),
-    }
-
-    await observePage(mockPage as any)
-
-    // hide (before snapshot), restore (after snapshot), scroll capture.
-    expect(evaluateCalls[0]).toBeLessThan(snapshotCallOrder)
-    expect(evaluateCalls[1]).toBeGreaterThan(snapshotCallOrder)
-    expect(typeof mockPage.evaluate.mock.calls[0][0]).toBe('function')
-    expect(typeof mockPage.evaluate.mock.calls[1][0]).toBe('function')
-  })
-
-  it('restores elements even if ariaSnapshot throws (try/finally)', async () => {
-    const mockPage = {
-      locator: vi.fn().mockReturnValue({
-        ariaSnapshot: vi.fn().mockRejectedValue(new Error('Snapshot failed')),
-      }),
-      url: vi.fn().mockReturnValue('https://example.com'),
-      evaluate: vi.fn().mockResolvedValue(undefined),
-      viewportSize: vi.fn().mockReturnValue({ width: 1280, height: 720 }),
-    }
-
-    await expect(observePage(mockPage as any)).rejects.toThrow('Snapshot failed')
-
-    // hide + restore both ran; scroll capture is never reached.
-    expect(mockPage.evaluate).toHaveBeenCalledTimes(2)
   })
 })
