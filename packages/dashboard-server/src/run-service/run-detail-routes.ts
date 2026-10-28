@@ -32,7 +32,6 @@ import {
 
 import type { AgentHost } from '../chat/host.js'
 import { readJsonBody } from '../server/body-parser.js'
-import { refuseCrossSiteRequest } from '../server/cross-site.js'
 
 /** A refusal, already carrying its status and its single-key body. */
 export interface RunDetailRefusal {
@@ -152,27 +151,14 @@ export interface RunDetailReadDeps {
   readonly runId: string
   /** The injected host. Its absence is the ROUTER'S 503, not this function's. */
   readonly host: AgentHost
-  /**
-   * WHO IS ON THE OTHER END OF THIS SOCKET (405-10, D-09). Both doors serve the same body, masked
-   * at write, and nothing restores it (441 D-07); `'human'` only turns on the same-site guard.
-   *
-   * `'human'` IS PASSED BY THE LOCAL door's arms in `routes.ts`. The authed REMOTE door's
-   * `GET /run/:runId/detail` (`run-service-routes.ts`, 405-05) passes nothing, because it is
-   * legitimately reached at a non-loopback Host.
-   */
-  readonly boundary?: 'human' | 'machine'
 }
 
-/** Parsed evidence shares the guarded human boundary; raw artifacts never enter this path. */
+/** Parsed evidence only; raw artifacts never enter this path. */
 export function serveRunEvidenceRead(
   req: IncomingMessage,
   res: ServerResponse,
   deps: RunDetailReadDeps,
 ): void {
-  if (deps.boundary === 'human' && refuseCrossSiteRequest(req)) {
-    respondJson(res, 403, { error: 'cross_site_refused' })
-    return
-  }
   const query = new URL(req.url ?? '/', 'http://localhost').searchParams
   const entries: Array<[string, unknown]> = [['runId', deps.runId]]
   const seen = new Set(['runId'])
@@ -229,10 +215,6 @@ export function serveRunMarksHistoryRead(
   res: ServerResponse,
   deps: RunDetailReadDeps,
 ): void {
-  if (deps.boundary === 'human' && refuseCrossSiteRequest(req) !== undefined) {
-    respondJson(res, 403, { error: 'cross_site_refused' })
-    return
-  }
   // The op's input is the run id alone; a query string is a second, unvalidated address.
   if (new URL(req.url ?? '/', 'http://localhost').search !== '') {
     respondJson(res, 400, { error: 'invalid_marks_input' })
@@ -259,10 +241,6 @@ export function serveRunMarkPreviewRead(
   res: ServerResponse,
   deps: RunDetailReadDeps,
 ): void {
-  if (deps.boundary === 'human' && refuseCrossSiteRequest(req) !== undefined) {
-    respondJson(res, 403, { error: 'cross_site_refused' })
-    return
-  }
   void readJsonBody<unknown>(req).then((body) => {
     const parsed = RunsMarkInputSchema.safeParse(body)
     if (!parsed.success) {
@@ -284,34 +262,6 @@ export function serveRunDetailRead(
   res: ServerResponse,
   deps: RunDetailReadDeps,
 ): void {
-  // THE SAME-SITE GUARD, AND IT IS GATED ON `boundary` BECAUSE THIS FUNCTION SERVES TWO DOORS
-  // (405 CR-01, second pass).
-  //
-  // WHY IT LIVES HERE AND NOT AT THE ROUTER'S DISPATCH. This arm answers the richest body on the
-  // door — the whole run-detail projection — from this file, so the guard sits beside that answer.
-  // A future caller that opts into `'human'` inherits the guard instead of having to remember it.
-  //
-  // WHY `boundary === 'human'` AND NOT UNCONDITIONALLY. The authed REMOTE door dispatches this same
-  // function with no `boundary`, and that door is legitimately reached at a NON-loopback Host. An
-  // unconditional loopback check here would refuse every real remote read — a guard that breaks the
-  // door it was not written for. Gating on `boundary` makes the refusal fire on the local human
-  // arm, and only it.
-  //
-  // WHAT IT IS FOR, GIVEN CORS IS ALREADY CLOSED HERE. `respondJson` writes no cross-origin grant,
-  // so a page on another ORIGIN already cannot read this body. What the grant's absence does NOT
-  // stop is DNS rebinding — the attacker's own name resolves to loopback, so the browser treats the
-  // read as same-origin and asks for no grant at all. The Host check inside `refuseCrossSiteRequest`
-  // is the rung that closes that, and it ADMITS the caller that sends no `Origin` at all, which is
-  // the local non-browser drive this door also serves.
-  //
-  // ORDERING. The router decodes the run id before calling this function, so a cross-site caller
-  // with an undecodable id still meets that 400 first. That is left as it is: the 400 is a statement
-  // about the caller's own input and discloses nothing about any run, where every answer this
-  // function can give does.
-  if (deps.boundary === 'human' && refuseCrossSiteRequest(req) !== undefined) {
-    respondJson(res, 403, { error: 'cross_site_refused' })
-    return
-  }
   void readRunDetail(deps.host, deps.runId).then(
     (outcome) => {
       if (outcome.kind === 'refused') {

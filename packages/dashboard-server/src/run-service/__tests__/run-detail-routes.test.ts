@@ -1008,13 +1008,6 @@ describe('the artifact arm reads no store of its own (D-13, the fourth-door law)
   })
 })
 
-// ---- 405-10 (D-09): the `boundary` option, and what each of its two values promises -----------
-//
-// `serveRunDetailRead` serves BOTH doors — the local one a person's browser reads and the authed
-// remote one a bearer token reads. Since 441-15 (D-07) both answer the projection as stored, and
-// `boundary: 'human'` only turns on the local same-site guard. These cells drive the adapter
-// directly, because the claim is about which VALUE the option carries.
-
 /** A `ServerResponse` stand-in that records the one write the adapter makes. */
 function recordingResponse(): {
   res: ServerResponse
@@ -1066,15 +1059,15 @@ function storedProjection(text: string): Record<string, unknown> {
   }
 }
 
-describe("serveRunDetailRead's boundary option (405-10, D-09)", () => {
-  it("serves the stored projection unchanged when boundary is 'human'", async () => {
+describe('serveRunDetailRead', () => {
+  it('serves the stored projection unchanged', async () => {
     const projection = storedProjection('<SECRET_0>')
     const recorder = recordingResponse()
 
     serveRunDetailRead(
       { headers: { host: '127.0.0.1:3470' } } as never,
       recorder.res,
-      { runId: RUN_ID, host: plantedHost(projection), boundary: 'human' },
+      { runId: RUN_ID, host: plantedHost(projection) },
     )
     await recorder.done
 
@@ -1082,12 +1075,10 @@ describe("serveRunDetailRead's boundary option (405-10, D-09)", () => {
     expect(recorder.raw()).toBe(JSON.stringify(projection))
   })
 
-  it('serves the stored projection unchanged without a boundary, at a non-loopback Host (the remote door)', async () => {
+  it('serves the same projection at a non-loopback Host, because its door decides who may call', async () => {
     const projection = storedProjection('<SECRET_0>')
     const recorder = recordingResponse()
 
-    // A 200 at a real hostname is the assertion that the same-site guard is gated on `boundary`
-    // and not on the function (405 CR-01, second pass).
     serveRunDetailRead(
       { headers: { host: 'runs.example.com' } } as never,
       recorder.res,
