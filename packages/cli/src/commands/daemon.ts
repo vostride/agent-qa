@@ -12,6 +12,7 @@ import type {
   ReadWriterLeaseOutcome,
   WriterLease,
 } from '@vostride/agent-qa-agent-local'
+import { guardJsonText, printRunText, reserveStdoutForData } from '@vostride/agent-qa-core'
 import { Command } from 'commander'
 import pc from 'picocolors'
 
@@ -220,7 +221,8 @@ export function createDaemonCommand(deps: DaemonCommandDeps = DEFAULT_DEPS): Com
         await analytics.shutdown()
         process.exitCode = exitCode
       } catch (error) {
-        console.error(pc.red(`Daemon error: ${error instanceof Error ? error.message : String(error)}`))
+        const message = error instanceof Error ? error.message : String(error)
+        printRunText(pc.red(`Daemon error: ${message}`), (block) => console.error(block))
         process.exitCode = 1
       }
     })
@@ -230,6 +232,7 @@ export function createDaemonCommand(deps: DaemonCommandDeps = DEFAULT_DEPS): Com
     .description('Report daemon liveness and pending work depth')
     .option('--json', 'output the raw status object')
     .action(async (opts: { json?: boolean }, command: Command) => {
+      const releaseStdout = opts.json ? reserveStdoutForData() : undefined
       try {
         const paths = await deps.resolvePaths(configPathFor(command))
         const inspected = await inspectRegistration(deps, paths.agentQaRoot)
@@ -257,13 +260,14 @@ export function createDaemonCommand(deps: DaemonCommandDeps = DEFAULT_DEPS): Com
           }
         }
 
-        if (opts.json) console.log(JSON.stringify(status))
+        if (opts.json) console.log(guardJsonText(JSON.stringify(status)))
         else renderStatusHuman(status)
       } catch (error) {
-        console.error(
-          pc.red(`Daemon status error: ${error instanceof Error ? error.message : String(error)}`),
-        )
+        const message = error instanceof Error ? error.message : String(error)
+        printRunText(pc.red(`Daemon status error: ${message}`), (block) => console.error(block))
         process.exitCode = 1
+      } finally {
+        releaseStdout?.()
       }
     })
 

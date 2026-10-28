@@ -22,7 +22,7 @@ import {
   type FunctionRegistry,
 } from '@vostride/agent-qa-agent'
 import type { LocalAgentHost } from '@vostride/agent-qa-agent-local'
-import { resolveWorkspacePaths } from '@vostride/agent-qa-core'
+import { printRunText, resolveWorkspacePaths } from '@vostride/agent-qa-core'
 import type { RunAttributes } from '@vostride/agent-qa-core'
 import type {
   AgentHost,
@@ -964,7 +964,8 @@ export async function mountCoHostedMcp(input: {
   readonly warn?: (line: string) => void
 }): Promise<McpCoHostListenResult> {
   const { server, port } = input
-  const warn = input.warn ?? ((line: string) => console.error(pc.yellow(line)))
+  const warn = input.warn
+    ?? ((line: string) => printRunText(pc.yellow(line), (block) => console.error(block)))
 
   try {
     await new Promise<void>((listening, failed) => {
@@ -1374,7 +1375,8 @@ async function startDashboardBackedServices(
     process.on('SIGINT', shutdown)
     process.on('SIGTERM', shutdown)
   } catch (err) {
-    console.error(pc.red(`${labels.error} error: ${err instanceof Error ? err.message : String(err)}`))
+    const message = err instanceof Error ? err.message : String(err)
+    printRunText(pc.red(`${labels.error} error: ${message}`), (block) => console.error(block))
     process.exit(2)
   }
 }
