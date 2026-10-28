@@ -1,5 +1,6 @@
 import { dirname, resolve } from 'node:path'
 import { invokeFunction, RUNS_MARK_FUNCTION_ID } from '@vostride/agent-qa-agent'
+import { guardJsonText, printRunText, reserveStdoutForData } from '@vostride/agent-qa-core'
 import { MARKS, RunsMarkOutcomeSchema, type RunsMarkOutcome } from '@vostride/agent-qa-schema'
 import { Command, InvalidArgumentError, Option } from 'commander'
 import { CLI_FUNCTION_CALLER, composeCliLocalAgent } from '../composition/local-agent-host.js'
@@ -41,6 +42,7 @@ export function createRunsCommand(): Command {
     .option('--json', 'output the schema-validated receipt')
     .action(async (runId: string, options, cmd: Command) => {
       let host: ReturnType<typeof composeCliLocalAgent> | undefined
+      const releaseStdout = options.json === true ? reserveStdoutForData() : undefined
       try {
         const configPath = resolve(cmd.optsWithGlobals<{ config?: string }>().config ?? 'agent-qa.config.yaml')
         host = composeCliLocalAgent({ configPath, agentQaRoot: resolve(dirname(configPath), '.agent-qa') })
@@ -50,12 +52,17 @@ export function createRunsCommand(): Command {
           ...(options.step === undefined ? {} : { stepIndex: options.step }),
           ...(options.note === undefined ? {} : { note: options.note }),
         }, CLI_FUNCTION_CALLER))
-        console.log(options.json === true ? JSON.stringify(dto) : renderMarkOutcome(dto))
+        if (options.json === true) console.log(guardJsonText(JSON.stringify(dto)))
+        else printRunText(renderMarkOutcome(dto))
         if (dto.kind !== 'marked' && dto.kind !== 'already-marked') process.exitCode = 1
       } catch (error) {
-        console.error(`agent-qa runs mark: ${error instanceof Error ? error.message : String(error)}`)
+        printRunText(`agent-qa runs mark: ${error instanceof Error ? error.message : String(error)}`,
+          (line) => console.error(line))
         process.exitCode = 1
-      } finally { host?.close() }
+      } finally {
+        releaseStdout?.()
+        host?.close()
+      }
     })
   registerRunReadCommands(command)
   return command
