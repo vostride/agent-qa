@@ -1,4 +1,6 @@
 import pc from 'picocolors'
+import { guardRunText, isGitHubActions } from '@vostride/agent-qa-core'
+import type { RunTextEnv } from '@vostride/agent-qa-core'
 import { quarantineAppliesToTest } from '@vostride/agent-qa-schema'
 import type { QuarantineAppliedEntry } from '@vostride/agent-qa-schema'
 import type {
@@ -41,6 +43,7 @@ export interface ConsoleReporterOptions {
    * line and the exit code cannot tell different stories about the same member.
    */
   quarantined?: readonly QuarantineAppliedEntry[]
+  env?: RunTextEnv
 }
 
 /**
@@ -86,8 +89,9 @@ interface TestMeta {
  */
 export function createConsoleReporter(options: ConsoleReporterOptions = {}): ConsoleReporterHandle {
   const verbose = options.verbose ?? false
+  const env = options.env ?? process.env
   const isTTY = options.isTTY ?? process.stdout.isTTY === true
-  const plain = options.plain ?? (!isTTY || process.env.CI === 'true')
+  const plain = options.plain ?? (!isTTY || process.env.CI === 'true' || isGitHubActions(env))
   const colorize = plain ? false : (options.colorize ?? true)
   const canOverwrite = !plain && isTTY && options.logLevel !== 'debug'
   const sink = options.write ?? ((chunk: string) => void process.stdout.write(chunk))
@@ -107,6 +111,15 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
     } else {
       emit(text + '\n')
     }
+  }
+
+  // Run-derived lines print as one block, so under GitHub Actions they share one stop-commands pair.
+  function printBlock(lines: readonly string[]): void {
+    if (isGitHubActions(env)) {
+      emit(guardRunText(`${lines.join('\n')}\n`, env))
+      return
+    }
+    for (const line of lines) println(line)
   }
 
   function c(fn: (s: string) => string, text: string): string {
@@ -258,10 +271,11 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
 
     const stepText = stepTextByIndex.get(payload.stepIndex) ?? `Step ${payload.stepIndex + 1}`
     const dur = humanDuration(payload.durationMs ?? 0)
-    println(`${statusIcon(status)} ${stepText} ${c(pc.dim, dur)}`)
+    const lines = [`${statusIcon(status)} ${stepText} ${c(pc.dim, dur)}`]
     if (status === 'failed' && payload.error) {
-      println(`  ${c(pc.red, 'Error:')} ${payload.error}`)
+      lines.push(`  ${c(pc.red, 'Error:')} ${payload.error}`)
     }
+    printBlock(lines)
   }
 
   function onHookStarted(payload: HookStartedPayload): void {

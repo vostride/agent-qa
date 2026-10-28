@@ -367,6 +367,75 @@ function cancelledStream(): RunEventEnvelope[] {
   ]
 }
 
+const ACTIONS_ENV = { GITHUB_ACTIONS: 'true' }
+const WRAPPED_BLOCK = /^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::\n$/u
+
+function failedStepStream(errors: readonly string[]): RunEventEnvelope[] {
+  let seq = 0
+  const env = (type: RunEventType, payload: object): RunEventEnvelope =>
+    ({ seq: seq++, ts: 1_000 + seq, runId: 'run-actions-output', type, payload }) as RunEventEnvelope
+  return errors.flatMap((error, stepIndex) => [
+    env('stepStarted', { testIndex: 0, stepIndex, stepText: `Submit form ${stepIndex}` }),
+    env('stepFinalized', {
+      testIndex: 0,
+      stepIndex,
+      cacheStatus: 'miss',
+      verifierVerdict: { pass: false, reasoning: 'failed' },
+      selfHealOccurred: false,
+      briefDigest: 'digest',
+      status: 'failed',
+      durationMs: 100,
+      error,
+    }),
+  ])
+}
+
+function recordChunks(
+  envelopes: readonly RunEventEnvelope[],
+  options: { plain?: boolean; isTTY?: boolean } = { plain: true, isTTY: false },
+): string[] {
+  const chunks: string[] = []
+  const reporter = createConsoleReporter({
+    ...options,
+    colorize: false,
+    write: (chunk) => {
+      chunks.push(chunk)
+    },
+    env: ACTIONS_ENV,
+  })
+  for (const envelope of envelopes) reporter.handler(envelope)
+  return chunks
+}
+
+describe('the console reporter under GitHub Actions', () => {
+  it('wraps a failing step and its error in one stop-commands pair', () => {
+    const chunks = recordChunks(failedStepStream(['::set-output name=x::y\n##[error]x']))
+    const blocks = chunks.filter((chunk) => chunk.includes('set-output'))
+    expect(blocks).toHaveLength(1)
+    const [block] = blocks
+    expect(block).toMatch(WRAPPED_BLOCK)
+    expect(block).toContain('x Submit form 0 100ms\n')
+    expect(block).toContain('  Error: ::set-output name=x::y\n##[error]x\n')
+  })
+
+  it('gives each failing step its own token', () => {
+    const chunks = recordChunks(failedStepStream(['::set-output name=a::b', '##[error]c']))
+    const tokens = chunks
+      .filter((chunk) => chunk.includes('Error:'))
+      .map((chunk) => WRAPPED_BLOCK.exec(chunk)?.[1])
+    expect(tokens).toHaveLength(2)
+    expect(tokens[0]).toBeDefined()
+    expect(tokens[1]).toBeDefined()
+    expect(tokens[0]).not.toBe(tokens[1])
+  })
+
+  it('is plain without a plain option, so no line is cleared or overwritten', () => {
+    const chunks = recordChunks(failedStepStream(['##[error]x']), { isTTY: true })
+    expect(chunks.length).toBeGreaterThan(0)
+    for (const chunk of chunks) expect(chunk.startsWith('\x1B[2K\r')).toBe(false)
+  })
+})
+
 describe('renderQuarantineSummarySegment (the pure composer)', () => {
   it('is SILENT at zero — every pre-390 summary line stays byte-frozen', () => {
     expect(renderQuarantineSummarySegment(0)).toBe('')
