@@ -185,10 +185,9 @@ describe('D-16: the reconciliation strategy is reachable from no configuration k
     const keys = [...new Set(collectSchemaKeySites().map(site => site.key))]
     // A walker that silently returned nothing would pass the assertion below forever.
     expect(keys.length).toBeGreaterThan(100)
-    // And it must actually be reaching the project configuration, not only the DTOs: these three
-    // keys exist in the config schemas plan 07 named by hand, so their presence proves the
-    // discovered walk covers at least the surface the hand-written one did.
-    for (const key of ['browser', 'device', 'timeouts']) expect(keys).toContain(key)
+    // And it must reach the config schemas, not only the DTOs: one key each from the browser,
+    // device and platform-base schemas the hand-written walk in the compound e2e names.
+    for (const key of ['headless', 'match', 'timeouts']) expect(keys).toContain(key)
   })
 
   it('no published schema exposes a strategy switch', () => {
