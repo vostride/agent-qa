@@ -1200,7 +1200,7 @@ export function registerKnowledgeMaintainCommands(command: Command): void {
     .option('--json', 'output the drain result as JSON')
     .addHelpText(
       'after',
-      '\nAgentQA keeps three work lanes; this command drains the second only:\n'
+      '\nagent-qa keeps three work lanes; this command drains the second only:\n'
       + '  run queue        test executions dispatched by the dashboard server\n'
       + '  curation queue   knowledge curation work drained by this command\n'
       + '  agent job queue  durable background agent jobs in .agent-qa/agent-jobs.db\n',

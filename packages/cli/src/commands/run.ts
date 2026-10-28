@@ -4460,16 +4460,12 @@ export function createRunCommand(): Command {
     .option('--parallel', 'run this run\'s members concurrently (config: use.parallel)')
     .option('--no-parallel', 'run this run\'s members one at a time')
     .option('--workers <count>', 'ceiling on concurrent members when parallel (config: use.workers; default 3)')
-    // 393 WTST-06: the two durable run markers, as flags, because a run started through
-    // `runs.start` is executed by re-entering THIS command as a child process — so a marker with no
-    // flag has no way to reach the handoff, and `authoring.draft.verify` cannot take a gate-run at
-    // all. They are DISTINCT axes and each is its own flag: C8 ratifies that a gate-run still feeds
-    // curation, so a caller that wants the verify-before-present marker without the outcome
-    // exclusion (or the reverse) must be able to say so.
-    .option('--gate-run', 'mark this run as a verify-before-present gate-run (D-10 carrier)')
+    // Both run markers are flags because a run started through `runs.start` re-enters this command
+    // as a child process. They are separate axes, so a caller may set either alone.
+    .option('--gate-run', 'mark this run as a gate run: a check of a drafted test before it is shown')
     .option(
       '--excluded-from-outcomes',
-      'exclude this run from the outcome projection: no flake counters, no exemplar ranking, no quarantine window (D-14 §6)',
+      'exclude this run from the outcome projection: no flake counters, no exemplar ranking, no quarantine window',
     )
     .action(async (patterns: string[], opts: RunOptions, command: Command) => {
       // 2026-10-17 (443-08, D-02; 444-09): the direct path's record, so the catch can close it.

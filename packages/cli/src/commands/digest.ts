@@ -72,7 +72,7 @@ function mostRecent(summaries: readonly RunSummary[]): string {
 
 export function createDigestCommand(): Command {
   return new Command('digest')
-    .description("Render one run's digest — verdicts, chain, and the decisions waiting on you")
+    .description("Render one run's digest: verdicts and its post-run chain")
     .argument('[runId]', 'the run to digest; omitted means the most recently finished run')
     .option('--json', 'emit the structured digest instead of its rendered lines')
     .action(async (runId: string | undefined, options: DigestOptions, command: Command) => {
