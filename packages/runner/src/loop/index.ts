@@ -404,9 +404,19 @@ export async function executeStep(
   // invalidated. An invalidated key that the passing path replayed is written again.
   let replayedKeys: CacheKey[] = []
   const invalidatedKeys = new Set<CacheKey>()
+  // Cache writes are best effort: a store that cannot be written never fails the step.
+  const cacheWrite = async (what: string, write: () => Promise<void>): Promise<void> => {
+    try {
+      await write()
+    } catch (err) {
+      ports.logger?.createScopedLogger('cache')?.warn(`Cache ${what} failed`, {
+        error: err instanceof Error ? err.message : String(err),
+      })
+    }
+  }
   const invalidateKey = async (key: CacheKey): Promise<void> => {
     invalidatedKeys.add(key)
-    await ports.cache!.invalidate(key)
+    await cacheWrite('invalidate', () => ports.cache!.invalidate(key))
   }
 
   // A report the passing verdict cites is read live on replay, so the path ends before it and
@@ -431,12 +441,13 @@ export async function executeStep(
     for (const held of path) {
       const completesStep = lastCompletes && held === last
       if (held.storedCompletesStep === completesStep && !invalidatedKeys.has(held.key)) continue
-      await ports.cache.set(held.key, buildCachedPlanValue({
+      const cache = ports.cache
+      await cacheWrite('write', () => cache.set(held.key, buildCachedPlanValue({
         plannedActions: [held.action],
         elements: held.elements,
         completesStep,
         ...(held.statedTargets !== undefined ? { statedTargets: held.statedTargets } : {}),
-      }))
+      })))
     }
   }
 

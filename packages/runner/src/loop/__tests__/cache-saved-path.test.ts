@@ -408,3 +408,45 @@ describe('a value the run produced is never replayed', () => {
     expect(storedText(cache)).not.toContain('A-1042')
   })
 })
+
+describe('a cache that cannot be written does not fail the step', () => {
+  it('a passing step whose saved path cannot be written still passes with its evidence', async () => {
+    const cache = recordingCache()
+    cache.set = async () => {
+      throw new Error('EACCES: permission denied')
+    }
+    const step = await runStep({
+      cache,
+      planner: scriptedPlanner([FILL_NAME, FILL_EMAIL, CLICK_SAVE]),
+    })
+
+    expect(step.status).toBe('passed')
+    expect(step.evidence).toBeDefined()
+  })
+
+  it('a rejected replay whose entries cannot be invalidated still repairs and passes', async () => {
+    const cache = recordingCache()
+    await runStep({ cache, planner: scriptedPlanner([FILL_NAME, FILL_EMAIL, CLICK_SAVE]) })
+    forgetCalls(cache)
+    cache.invalidate = async () => {
+      throw new Error('ENOSPC: no space left on device')
+    }
+    const step = await runStep({
+      cache,
+      planner: scriptedPlanner([
+        makeActionPlan({
+          reasoning: 'Open the saved contact',
+          action: { type: 'click', ref: 'e1' },
+          stepComplete: true,
+        }),
+      ]),
+      verifier: makeVerifier([
+        { success: false, reasoning: 'The saved contact is not shown' },
+        { success: true, reasoning: 'The contact is saved' },
+      ]),
+    })
+
+    expect(step.status).toBe('passed')
+    expect(step.evidence!.selfHeal).toBeDefined()
+  })
+})
