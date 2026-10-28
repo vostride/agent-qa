@@ -4,9 +4,9 @@
 
 This package owns the Model Context Protocol server factory, the declared
 tool -> registry op mapping and its projection into tool schemas, masked tool
-results, entity resource templates, the v1 tool migration map, and the loopback
-HTTP face. Every tool is a projection of a function-layer registry op invoked
-through `invokeFunction`; the CLI's `agent-qa mcp` serves it over stdio or HTTP.
+results, entity resource templates, and the loopback HTTP face. Every tool is a
+projection of a function-layer registry op invoked through `invokeFunction`;
+the CLI's `agent-qa mcp` serves it over stdio or HTTP.
 
 ## Read First
 

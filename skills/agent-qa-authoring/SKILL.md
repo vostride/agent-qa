@@ -10,9 +10,9 @@ metadata:
 ## Workflow
 
 1. Discover the surface from the protocol itself: `tools/list` names every tool, and every caller
-   sees and may call the same set. For the full picture — the capability catalog, the v1 to v2
-   tool-name migration map, and this workspace's posture — run `npx agent-qa init --agent`, which
-   prints one JSON document and writes nothing.
+   sees and may call the same set. For the full picture — the capability catalog and this
+   workspace's posture — run `npx agent-qa init --agent`, which prints one JSON document and writes
+   nothing.
 2. Read the workspace posture from that same manifest: whether this workspace has a configuration
    that reads. No MCP tool reads configuration.
 3. Load `references/agent-qa-contracts.json` when you need exact schema fields or ID contracts.
@@ -78,6 +78,3 @@ metadata:
 - Do not use legacy root config buckets.
 - Do not hand-write IDs.
 - Do not mutate files outside the configured workspace patterns.
-- Do not call a v1 tool name. Every retired name and what answers its need instead is carried by the
-  migration map in `npx agent-qa init --agent`; calling one returns that ruling rather than a
-  result.
