@@ -1660,61 +1660,6 @@ describe('C446-START-RUN-ARGS', () => {
   })
 })
 
-// 2026-10-21 (446-14, D-31): no product constant says the target filter answers no runs (F-446-12-1, todo
-// 2026-10-20-list-runs-target-filter-answers-no-runs); drop target here when the filter works
-const RUN_FILTER_CLAIMS: ClaimCensus = {
-  passage: /\bagent_qa_list_runs\b|\bruns\s+list\b/u,
-  names: ['target'],
-  allowed: /answers no runs/iu,
-}
-
-const RUN_FILTER_SKILL_FILES = SKILL_TREES.flatMap((tree) =>
-  ['SKILL.md', 'references/knowledge-reads.md'].map((file) => `${tree}agent-qa-knowledge/${file}`))
-
-// C446-RUN-FILTERS (446-14, D-31): the skills offer no run-listing filter that answers no runs
-describe('C446-RUN-FILTERS', () => {
-  it('no source or packaged skill offers target as an agent_qa_list_runs or runs list filter', () => {
-    for (const subject of namedSubjects(RUN_FILTER_SKILL_FILES)) {
-      expect(argumentClaimFindings([subject], RUN_FILTER_CLAIMS).passages,
-        `no run-listing passage was scanned in ${subject.name}`).toBeGreaterThan(0)
-    }
-    expect(argumentClaimFindings(skillSubjects(), RUN_FILTER_CLAIMS).findings,
-      'a skill offers target to narrow a run listing').toEqual([])
-  })
-
-  it('a planted target filter is named, a sentence saying target answers no runs is not, and a census that finds no list passage fails', () => {
-    expect(argumentClaimFindings([{
-      name: 'planted',
-      body: [
-        '1. Find the run with `agent_qa_list_runs`.',
-        '   Narrow it with `verdict`, `target` or `limit`.',
-        '',
-        'CLI: `npx agent-qa runs list`, with `--test` and `--target`.',
-      ].join('\n'),
-    }], RUN_FILTER_CLAIMS)).toEqual({
-      passages: 2,
-      findings: [
-        'planted: names target in "CLI: `npx agent-qa runs list`, with `--test` and `--target`."',
-        'planted: names target in "Narrow it with `verdict`, `target` or `limit`."',
-      ],
-    })
-    expect(argumentClaimFindings([{
-      name: 'planted',
-      body: [
-        '- `agent_qa_list_runs`: its `target` filter answers no runs in this version.',
-        '- `npx agent-qa runs list` lists runs across all targets.',
-        '- `agent_qa_list_runs` reads a test whose header sets `target: komazon`.',
-        '',
-        '```yaml',
-        '# agent_qa_list_runs with --target',
-        '```',
-      ].join('\n'),
-    }], RUN_FILTER_CLAIMS)).toEqual({ passages: 3, findings: [] })
-    expect(argumentClaimFindings([{ name: 'planted', body: 'Narrow it with `target`.' }], RUN_FILTER_CLAIMS))
-      .toEqual({ passages: 0, findings: [] })
-  })
-})
-
 // 2026-10-21 (446-15, D-32): a forced init rebuilds agent-qa.config.yaml; a backtick ends a code span
 const INIT_FORCE = /\binit\b[^`\n]*--force\b/u
 

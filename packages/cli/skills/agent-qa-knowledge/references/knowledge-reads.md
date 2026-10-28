@@ -79,8 +79,7 @@ twice. Wrong knowledge is corrected by new feedback (a run mark) or by forgettin
 ### `agent_qa_list_runs`
 
 Which runs exist, newest first. CLI: `npx agent-qa runs list`, with `--verdict`, `--test`,
-`--since` (RFC3339 with an offset) and `--limit` (default 20). `--target` answers no runs in this
-version, because agent-qa records no targets for a run.
+`--target`, `--since` (RFC3339 with an offset) and `--limit` (default 20).
 
 Call: `{ "verdict": "failed", "limit": 2 }`
 

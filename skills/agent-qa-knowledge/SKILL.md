@@ -12,9 +12,7 @@ Get the whole picture first, then fetch only the piece the question needs.
 ## Workflow
 
 1. Find the run with `agent_qa_list_runs`: completed runs, newest first, each naming its tests.
-   Narrow it with `verdict`, `test`, `since` or `limit` when the question does. Its `target` filter
-   answers no runs in this version, because agent-qa records no targets for a run: list without it
-   and read the run by its id.
+   Narrow it with `verdict`, `test`, `target`, `since` or `limit` when the question does.
 2. Map it with `agent_qa_get_run_overview` and `{ "runId": "<runId>" }`. It lists every test and
    step with its verdict, screenshot shas, evidence kinds with counts, served records, whether a
    brief trace exists, and what the run learned. It carries addresses, not bodies.
