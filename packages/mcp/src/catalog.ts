@@ -37,7 +37,7 @@
 // variance either), SEP-2549 (list results carry cache hints), SEP-2106 (full JSON Schema 2020-12
 // for the advertised contracts).
 
-import { McpServer, ProtocolError, ProtocolErrorCode } from '@modelcontextprotocol/server'
+import { McpServer } from '@modelcontextprotocol/server'
 import type { CallToolResult } from '@modelcontextprotocol/server'
 import { invokeFunction, RUNS_ARTIFACT_FUNCTION_ID } from '@vostride/agent-qa-agent'
 import type { FunctionRegistry } from '@vostride/agent-qa-agent'
@@ -59,8 +59,6 @@ import {
   maskedToolError,
   maskedToolResult,
 } from './masked-result.js'
-import { V1_TOOL_MIGRATION_MAP } from './migration-map.js'
-import type { V1ToolMigrationEntry } from './migration-map.js'
 import { McpProjectionError, toRegisterToolConfig } from './projection.js'
 import type { ProjectedOpSpec } from './projection.js'
 import { registerEntityResources } from './resources.js'
@@ -346,226 +344,6 @@ function createProjectionHandler(
   }
 }
 
-// ---------------------------------------------------------------------------------------------
-// The retired-v1-name redirect (Phase 398 plan 05, D-15 · XPLN-03)
-// ---------------------------------------------------------------------------------------------
-//
-// WHAT THIS IS. `migration-map.ts` holds thirty-three rulings about names this surface no longer
-// serves. An external agent still pinned to one of them gets the ruling instead of a bare
-// unknown-tool error — and gets it as an ERROR, always. Nothing below invokes anything, forwards
-// anything, or registers anything: a v1 name that became a listed alias would be the v1 surface
-// resurrected with a mismatched input shape, which is the door D-15 refuses to reopen.
-//
-// WHY IT LIVES HERE AND NOT IN `http.ts`. Both hosts reach this one factory — `serveStdio` wraps it
-// on stdio and `createMcpHandler` wraps it on loopback HTTP — so a redirect installed on either
-// transport would answer on one and not the other. SEP-2567's per-request factory model is also
-// what makes the answer per-CALLER: the wrapper below closes over `registered`, the set this
-// instance built for THIS caller, and never over connection state.
-//
-// WHY IT WRAPS THE DISPATCH EDGE (measured 2026-08-17, recorded in `__tests__/redirect.test.ts`).
-// A name nobody registered never reaches code this package wrote: `McpServer` installs its own
-// `tools/call` handler, looks the name up in its registered-tool table, and throws `InvalidParams`
-// on a miss. There is no fall-through to hook and no unknown-tool callback in the SDK's surface, so
-// the only seam that can answer a name with NO handler is that installed handler itself. It is
-// wrapped rather than replaced, and the wrapper's non-member branch is a bare call to the SDK's own
-// function with the arguments it was given — which is what makes "answers exactly as today" a
-// structural fact rather than a string this package keeps in step by hand.
-
-/** The JSON-RPC method the wrapper owns. Named once. */
-const TOOLS_CALL_METHOD = 'tools/call'
-
-/**
- * The narrow shape of the SDK's low-level handler table.
- *
- * Reaching for it is the one liberty this module takes with its dependency, and it is taken with
- * eyes open: `removeRequestHandler` is public API, `setRequestHandler` is public API, and the only
- * unpublished thing is READING BACK the handler already installed so it can be delegated to.
- * The alternative — writing a `tools/call` handler that dispatches registered tools itself — is a
- * second dispatch path through the SDK's private validation, execution and wire-projection steps,
- * which is a far larger bet than one map lookup.
- */
-interface LowLevelDispatch {
-  readonly _requestHandlers?: Map<string, (request: unknown, ctx: unknown) => Promise<unknown>>
-  removeRequestHandler(method: string): void
-  setRequestHandler(method: string, handler: (request: unknown, ctx: unknown) => unknown): void
-}
-
-/** The tool name a `tools/call` carries, or `undefined` when the request is not shaped like one. */
-function callToolName(request: unknown): string | undefined {
-  if (typeof request !== 'object' || request === null) return undefined
-  const params = (request as { params?: unknown }).params
-  if (typeof params !== 'object' || params === null) return undefined
-  const name = (params as { name?: unknown }).name
-  return typeof name === 'string' ? name : undefined
-}
-
-/**
- * The map entry for an EXACT wire name, or `undefined`.
- *
- * `===` on the string the caller sent, with no normalisation of any kind. Membership is byte
- * equality because the retired set is a set of NAMES: a case-variant is a name nobody ever served,
- * and answering it with a retirement notice would widen the distinguishable set from "the closed
- * v1 list" to "anything that case-folds onto it" — a strictly larger oracle for nothing gained.
- */
-function v1MigrationEntryFor(toolName: string): V1ToolMigrationEntry | undefined {
-  return V1_TOOL_MIGRATION_MAP.find((entry) => entry.v1Name === toolName)
-}
-
-/**
- * The redirect's whole decision: which entry, if any, answers this name on this instance.
- *
- * A LIVE HANDLER ALWAYS WINS. The migration map and the live tool vocabulary are disjoint — asserted
- * by name in `__tests__/mapping-bump-guard.test.ts` — and this ordering is what makes that
- * assertion's failure harmless instead of catastrophic: the worst a bad map entry could do is fail
- * to redirect, never shadow a tool a caller can actually call.
- *
- * It is a separate exported function for one reason. Inside the wrapper the ordering is
- * observationally inert while disjointness holds, so no cell driving the server could tell it from
- * its own absence — a guard nothing can red is decoration (measured: mutation leg M9 reds nothing
- * through the server). Pulled out here it takes a `registered` set a cell can doctor, and the
- * ordering becomes a claim with a bar.
- */
-export function v1RedirectFor(
-  toolName: string,
-  registered: ReadonlySet<string>,
-): V1ToolMigrationEntry | undefined {
-  if (registered.has(toolName)) return undefined
-  return v1MigrationEntryFor(toolName)
-}
-
-/**
- * One line about how the v2 tool is called, DERIVED from its declared composition.
- *
- * Not a hand-written sentence per tool: the thing a v1 caller actually gets wrong is the SHAPE, and
- * the shape is exactly what `compositionOf` already reads off the mapping. A fold's line names its
- * discriminant and every arm, because "which arm" is the field v1's one-tool-per-verb vocabulary
- * has no equivalent for.
- */
-function v1InputShapeNote(projection: ToolProjection): string {
-  switch (compositionOf(projection)) {
-    case 'single':
-      return 'it takes one input object'
-    case 'union':
-      return `set \`${projection.discriminant!}\` to one of ${projection.ops
-        .map((op) => `\`${op}\``)
-        .join(', ')} and pass that arm's own fields`
-    case 'pipeline':
-      return 'it takes one entity reference and answers the card that reference resolves to'
-  }
-}
-
-/**
- * What a caller who named a retired v1 tool is told.
- *
- * THE WITHHOLDING IS IN THE SIGNATURE, not in a branch inside the text. `visibleTarget` is passed
- * ONLY when the caller may see that tool, so the sighted sentence cannot be written without it and
- * the unsighted branch has no tool name in scope to leak. A conditional on a boolean would have put
- * the name in scope on both sides, which is how the wrong branch ends up carrying it.
- *
- * The `retired` and `pending` arms take no caller-dependent input at all — they read the entry and
- * nothing else — so their bytes are the same for every caller by construction rather than by a
- * cell's permission (T-398-13).
- */
-export function v1RedirectMessage(
-  entry: V1ToolMigrationEntry,
-  visibleTarget?: ToolProjection,
-): string {
-  const opening = `\`${entry.v1Name}\` is a retired agent-qa v1 tool name and is not served.`
-
-  if (entry.arm === 'renamed-to') {
-    if (visibleTarget === undefined) {
-      // The retirement notice. It names no tool, because the caller cannot see the one that
-      // carries this capability and a name they cannot call is a grant hint, not help (D-08).
-      return (
-        `${opening} Call \`tools/list\` for the tools you may call on this server, and `
-        + `\`agent-qa init --agent\` for this workspace's capability manifest, which carries the `
-        + 'v1 tool-name migration map.'
-      )
-    }
-    return (
-      `${opening} The capability it named is now \`${visibleTarget.name}\`. ${entry.note} `
-      + `Its input shape is not v1's — ${v1InputShapeNote(visibleTarget)}; \`tools/list\` `
-      + 'advertises the contract the call is validated against.'
-    )
-  }
-
-  if (entry.arm === 'pending') {
-    const owned
-      = entry.owner === undefined
-        ? ''
-        : ` The capability it named is a known gap owned by ${entry.owner}.`
-    const until = entry.route === undefined ? '' : ` Until then: ${entry.route}`
-    return `${opening}${owned} ${entry.note}${until}`
-  }
-
-  return `${opening} ${entry.note}${entry.route === undefined ? '' : ` Instead: ${entry.route}`}`
-}
-
-/** What the redirect needs to know about the instance it is being installed on. */
-interface V1RedirectDeps {
-  /**
-   * The tool names registered on THIS instance — i.e. exactly what `tools/list` answers.
-   *
-   * Consulting the recorded set rather than recomputing it is deliberate: "named by the redirect"
-   * and "listed by `tools/list`" are the SAME fact rather than two computations that agree today.
-   * Since 432-20 (D-12) the only reason a tool is absent is an op this composition does not
-   * register, and naming a tool this host cannot serve would be a worse answer than saying nothing.
-   */
-  readonly registered: ReadonlySet<string>
-  readonly maskText: (text: string) => string
-}
-
-/**
- * Wrap the installed `tools/call` handler so exact v1 names are answered and nothing else changes.
- *
- * TWO OUTCOMES AND NOTHING ELSE.
- *   * `v1RedirectFor` answers `undefined` — for a live tool, for a non-member, for a request that is
- *     not shaped like a `tools/call` — and the SDK's own function is called with the arguments it
- *     was given, and its answer returned unchanged. Byte identity is not maintained on this path;
- *     it is impossible to lose on it.
- *   * It answers an entry, and the entry is THROWN as the same `InvalidParams` class the SDK throws
- *     for a name nobody serves, so the sole thing distinguishing a retired name from an unknown one
- *     is the sentence — which is history, not a grant. Throwing before any dispatch is also what
- *     makes "never invokes anything" structural (T-398-12).
- */
-function installV1NameRedirect(server: McpServer, deps: V1RedirectDeps): void {
-  const dispatch = server.server as unknown as LowLevelDispatch
-  const sdkHandler = dispatch._requestHandlers?.get(TOOLS_CALL_METHOD)
-  if (typeof sdkHandler !== 'function') {
-    // Fail loudly rather than ship a server whose redirect silently is not there. This is the same
-    // class as the other throws in this file — the package's belief about its own dependency turned
-    // out to be false — and it surfaces at the first build, which is where an SDK upgrade should
-    // meet it rather than in a caller's error log months later.
-    throw new McpProjectionError(
-      TOOLS_CALL_METHOD,
-      'has no installed request handler to wrap; the SDK no longer registers tool dispatch where '
-        + 'this package reads it, so the retired-v1-name redirect cannot be placed',
-    )
-  }
-
-  dispatch.removeRequestHandler(TOOLS_CALL_METHOD)
-  dispatch.setRequestHandler(TOOLS_CALL_METHOD, (request: unknown, ctx: unknown) => {
-    const name = callToolName(request)
-    // 432-20 (D-12): no tool is hidden from a caller any more, so there is no hidden-tool refusal
-    // to answer here. The mark tool is registered for every caller and its own handler answers.
-    const entry = name === undefined ? undefined : v1RedirectFor(name, deps.registered)
-    if (entry === undefined) return sdkHandler(request, ctx)
-
-    const target
-      = entry.arm === 'renamed-to' && entry.v2Tool !== undefined && deps.registered.has(entry.v2Tool)
-        ? AGENT_QA_TOOL_PROJECTIONS.find((projection) => projection.name === entry.v2Tool)
-        : undefined
-
-    // Masked for the reason every other string this package emits is masked: the exemption list is
-    // the thing that goes wrong, not the mask. The text is declared data, so this is a no-op today
-    // and stays one only because nobody has to remember that it is.
-    throw new ProtocolError(
-      ProtocolErrorCode.InvalidParams,
-      deps.maskText(v1RedirectMessage(entry, target)),
-    )
-  })
-}
-
 /**
  * Build the server this caller sees.
  *
@@ -654,10 +432,6 @@ export function buildAgentQaMcpServer(deps: AgentQaMcpServerDeps): McpServer {
       createProjectionHandler(projection, invoke, deps.maskText, deps.liveLink),
     )
   }
-
-  // D-15: the retired v1 names, answered at the dispatch edge with `registered` — the set the loop
-  // above just built — as the authority on what may be named.
-  installV1NameRedirect(server, { registered, maskText: deps.maskText })
 
   // D-13: the six entity Resource Templates, resolving through the SAME wall. Registered here rather than by the host so a `resource_link` in any tool result
   // above is dereferenceable on the instance that produced it.

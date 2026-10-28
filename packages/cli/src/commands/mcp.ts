@@ -290,9 +290,7 @@ export function createMcpCommand(deps: McpCommandDeps = {}): Command {
         // `buildAgentQaMcpServer`, and the two things a host holds — the registry and the caller —
         // cannot observe it: the registry's internals are keyed by object identity in a `WeakMap`,
         // so a decorating wrapper is simply an object `invokeFunction` finds no specs on, and the
-        // caller is a record rather than an invoke. Wrapping the SDK's `tools/call` dispatch is
-        // possible and is exactly what `installV1NameRedirect` does — inside `packages/mcp`, which
-        // is where a hook belongs.
+        // caller is a record rather than an invoke.
         //
         // WHAT IT NEEDS: an optional `onToolInvoked` observation on `AgentQaMcpServerDeps`, called
         // at the two `registerTool` sites with the tool name, a duration and a success/error verdict
