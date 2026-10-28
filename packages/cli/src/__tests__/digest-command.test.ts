@@ -46,7 +46,10 @@ afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 
-function rootCause(perTest: number): Verdict {
+function rootCause(
+  perTest: number,
+  rationale = 'the submit control is gone from the checkout DOM',
+): Verdict {
   return {
     class: 'app_bug',
     producer: 'deterministic-classifier',
@@ -55,14 +58,18 @@ function rootCause(perTest: number): Verdict {
       citedSteps: [0],
       citedAnchors: [],
       citedArtifacts: [],
-      rationale: 'the submit control is gone from the checkout DOM',
+      rationale,
     },
     memoryMisdirectionRuledOut: true,
     perTest,
   } as Verdict
 }
 
-function handoff(runId: string, endedAt: number): CompletedRunHandoff {
+function handoff(
+  runId: string,
+  endedAt: number,
+  rationale = 'the submit control is gone from the checkout DOM',
+): CompletedRunHandoff {
   return {
     schemaVersion: CURRENT_HANDOFF_SCHEMA_VERSION,
     runId: asRunId(runId),
@@ -81,7 +88,7 @@ function handoff(runId: string, endedAt: number): CompletedRunHandoff {
         testIndex: 0,
         outcome: 'failed',
         steps: [],
-        rootCause: rootCause(0),
+        rootCause: rootCause(0, rationale),
       },
     ],
   } as unknown as CompletedRunHandoff
@@ -267,6 +274,97 @@ describe('agent-qa digest (D-17, the on-demand channel)', () => {
     expect(invocation.stdout).toBe('')
     expect(invocation.stderr).toContain('RunNotFoundError')
     expect(invocation.exitCode).toBe(1)
+  })
+})
+
+const CRAFTED_RATIONALE = '##[error]x ::set-output name=x::y'
+const PAIR = /^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::\n$/u
+
+function craftedWorkspace(): Workspace {
+  const ws = workspace()
+  const runDir = join(ws.agentQaRoot, RUNS_SUBDIR, slugBranch(NEWER_RUN))
+  writeFileSync(
+    join(runDir, HANDOFF_FILE),
+    `${JSON.stringify(handoff(NEWER_RUN, 900, CRAFTED_RATIONALE))}\n`,
+    'utf8',
+  )
+  return ws
+}
+
+async function runCapturingWrites(
+  ws: Workspace,
+  args: readonly string[],
+): Promise<Invocation & { writes: string[] }> {
+  const writes: string[] = []
+  const write = vi.spyOn(process.stdout, 'write').mockImplementation((chunk: unknown) => {
+    writes.push(String(chunk))
+    return true
+  })
+  try {
+    return { ...(await run(ws, args)), writes }
+  } finally {
+    write.mockRestore()
+  }
+}
+
+describe('agent-qa digest under GitHub Actions', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('prints the digest lines as one stop-commands pair on stdout', async () => {
+    const ws = craftedWorkspace()
+    const digest = await digestThroughTheOp(ws, NEWER_RUN)
+    const rendered = digest.lines.join('\n')
+    expect(rendered).toContain(CRAFTED_RATIONALE)
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const invocation = await runCapturingWrites(ws, ['digest', NEWER_RUN])
+
+    expect(invocation.stdout).toBe('')
+    expect(invocation.writes).toHaveLength(1)
+    expect(invocation.writes[0]).toMatch(PAIR)
+    expect(invocation.writes[0]).toContain(`\n${rendered}\n`)
+  })
+
+  it('prints the --json document with no # and parses back to the digest', async () => {
+    const ws = craftedWorkspace()
+    const digest = await digestThroughTheOp(ws, NEWER_RUN)
+    expect(JSON.stringify(digest)).toContain('#')
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const invocation = await runCapturingWrites(ws, ['digest', NEWER_RUN, '--json'])
+
+    expect(invocation.writes.join('')).not.toContain('::stop-commands::')
+    expect(invocation.stdout).not.toContain('#')
+    expect(invocation.stdout).not.toContain('::stop-commands::')
+    expect(JSON.parse(invocation.stdout)).toEqual(digest)
+  })
+
+  it('prints a run-derived error inside a pair on stdout', async () => {
+    const ws = craftedWorkspace()
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const invocation = await runCapturingWrites(ws, ['digest', 'run-that-never-happened'])
+
+    expect(invocation.exitCode).toBe(1)
+    expect(invocation.stderr).toBe('')
+    expect(invocation.writes).toHaveLength(1)
+    expect(invocation.writes[0]).toMatch(PAIR)
+    expect(invocation.writes[0]).toContain('RunNotFoundError')
+  })
+
+  it('prints the same lines and JSON as before without the variable', async () => {
+    const ws = craftedWorkspace()
+    const digest = await digestThroughTheOp(ws, NEWER_RUN)
+
+    const human = await runCapturingWrites(ws, ['digest', NEWER_RUN])
+    const json = await runCapturingWrites(ws, ['digest', NEWER_RUN, '--json'])
+
+    expect(human.writes).toEqual([])
+    expect(human.stdout).toBe(digest.lines.join('\n'))
+    expect(json.writes).toEqual([])
+    expect(json.stdout).toBe(JSON.stringify(digest, null, 2))
   })
 })
 

@@ -18,6 +18,7 @@
 import { dirname, resolve } from 'node:path'
 
 import { invokeFunction, RUNS_DIGEST_FUNCTION_ID } from '@vostride/agent-qa-agent'
+import { guardJsonText, printRunText, reserveStdoutForData } from '@vostride/agent-qa-core'
 import type { RunDigest, RunSummary } from '@vostride/agent-qa-schema'
 import { Command } from 'commander'
 import pc from 'picocolors'
@@ -77,6 +78,7 @@ export function createDigestCommand(): Command {
     .option('--json', 'emit the structured digest instead of its rendered lines')
     .action(async (runId: string | undefined, options: DigestOptions, command: Command) => {
       const host = composeCliLocalAgent(compositionInput(command))
+      const releaseStdout = options.json === true ? reserveStdoutForData() : undefined
       try {
         const target = runId ?? mostRecent(
           await invokeFunction(
@@ -94,18 +96,22 @@ export function createDigestCommand(): Command {
         ) as RunDigest
 
         if (options.json === true) {
-          console.log(JSON.stringify(digest, null, 2))
+          console.log(guardJsonText(JSON.stringify(digest, null, 2)))
           return
         }
         // The op's own bytes, joined and printed. Nothing is added, reordered or annotated.
-        console.log(digest.lines.join('\n'))
+        printRunText(digest.lines.join('\n'))
       } catch (error) {
-        console.error(pc.red(
-          `Digest error [${error instanceof Error ? error.name : 'unknown'}]: ${
-            error instanceof Error ? error.message : String(error)}`,
-        ))
+        printRunText(
+          pc.red(
+            `Digest error [${error instanceof Error ? error.name : 'unknown'}]: ${
+              error instanceof Error ? error.message : String(error)}`,
+          ),
+          (line) => console.error(line),
+        )
         process.exitCode = 1
       } finally {
+        releaseStdout?.()
         await host.close()
       }
     })
