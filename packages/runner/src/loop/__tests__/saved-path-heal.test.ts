@@ -1,9 +1,25 @@
 import { describe, expect, it } from 'vitest'
-import type { ElementInfo, ScreenState } from '@vostride/agent-qa-schema'
+import {
+  PROCEDURE_BODY_SCHEMA_VERSION,
+  asRecordId,
+  asRef,
+  serializeProcedureBody,
+} from '@vostride/agent-qa-schema'
+import type {
+  ElementInfo,
+  ProcedureBodyPayload,
+  ProcedureGuardTarget,
+  ProcedureMatch,
+  ScreenState,
+} from '@vostride/agent-qa-schema'
 import type { CachedPlanValue } from '../../cache/port.js'
+import type { KnowledgeHintReader } from '../../knowledge-hint-reader.js'
 import type { StepResult, TestResult } from '../../result.js'
 import { deriveMemberOutcome } from '../../run/verdict.js'
-import { makeActionPlan, makeVerifier } from './loop-harness.js'
+import { makeScreenState } from '../../testing/screen-fixtures.js'
+import { executeStep } from '../index.js'
+import { makeActionPlan, makeStepContext, makeVerifier } from './loop-harness.js'
+import { noCautions, servedBrief } from './fixtures/served-trace.js'
 import {
   CLICK_SAVE,
   FILL_EMAIL,
@@ -197,5 +213,153 @@ describe('healed means a saved path failed and was repaired', () => {
     expect(step.evidence!.selfHeal).toBeDefined()
     expect(step.evidence!.selfHeal!.failedDecision.plan).toBe('Replayed from cache')
     expect(outcomeOf(step)).toBe('healed')
+  })
+})
+
+const INVOICES = 'https://billing.test/invoices'
+const PROCEDURE_ID = asRecordId('proc-open-invoice')
+
+function link(ref: string, name: string): ElementInfo {
+  return {
+    ref: asRef(ref),
+    role: 'link',
+    name,
+    nameNormalized: 'invoice',
+    bounds: { x: 10, y: 10, width: 100, height: 40 },
+    center: { x: 60, y: 30 },
+    state: { enabled: true, focused: false, visible: true },
+    labels: {},
+    attributes: {},
+  }
+}
+
+function invoiceScreen(elements: ElementInfo[]): ScreenState {
+  const refMap: ScreenState['refMap'] = {}
+  for (const element of elements) {
+    refMap[element.ref] = { bounds: element.bounds!, center: element.center! }
+  }
+  return makeScreenState({ url: INVOICES, elements, refMap })
+}
+
+const invoice947: ProcedureGuardTarget = {
+  role: 'link',
+  nameNormalized: 'invoice',
+  name: 'Invoice 947',
+}
+
+function openInvoiceBody(route = INVOICES): ProcedureBodyPayload {
+  return {
+    schemaVersion: PROCEDURE_BODY_SCHEMA_VERSION,
+    parameters: [],
+    steps: [{
+      instruction: 'Open invoice 947',
+      action: { type: 'click', targets: { ref: invoice947 }, values: {} },
+      guard: { target: invoice947, pageAnchor: { t: 'page', route } },
+    }],
+    successAssertion: 'Invoice 947 is open',
+  }
+}
+
+function procedureReader(payload: ProcedureBodyPayload): KnowledgeHintReader {
+  const match: ProcedureMatch = {
+    id: PROCEDURE_ID,
+    flowAnchor: { t: 'flow', name: 'open-invoice' },
+    confidence: 0.9,
+    authoringModelTier: 'full',
+    parameterSchema: [],
+    replayRecommendation: 'replay',
+  }
+  return {
+    getRunBrief: () =>
+      servedBrief({ tiers: { L0: '', L1: '', L2: '' }, lines: [], truncation: '', admissions: [] }),
+    search: () => [],
+    read: (id) => ({
+      id,
+      title: 'Open an invoice',
+      body: serializeProcedureBody(payload),
+      anchors: [{ t: 'flow', name: 'open-invoice' }],
+      evidenceDigest: 'digest',
+      relations: [],
+    }),
+    getCautions: () => noCautions(),
+    getProcedure: () => match,
+    emitCanaryOutcome: () => {},
+  }
+}
+
+async function runProcedureStep(payload: ProcedureBodyPayload, page: ScreenState, liveRef: string) {
+  const planner = scriptedPlanner([
+    makeActionPlan({ action: { type: 'click', ref: liveRef }, stepComplete: true }),
+  ])
+  const step = await executeStep(
+    'Open invoice 947',
+    {
+      adapter: {
+        platform: 'web',
+        async setup() {},
+        async cleanup() {},
+        async observe() {
+          return page
+        },
+        async execute() {
+          return { success: true }
+        },
+      },
+      planner,
+      verifier: makeVerifier(),
+      knowledgeReader: procedureReader(payload),
+    },
+    makeStepContext({ stepInstruction: 'Open invoice 947', testName: 'open an invoice' }),
+  )
+  return { step, planner }
+}
+
+function guardMissOf(step: StepResult) {
+  const source = step.evidence!.planSource
+  return source?.kind === 'procedure-replay' ? source.guard.miss?.reason : undefined
+}
+
+describe('healed means a saved procedure failed and was repaired', () => {
+  it('a procedure target that is gone makes the repair read healed', async () => {
+    const page = invoiceScreen([link('e1', 'Invoice 946')])
+
+    const { step, planner } = await runProcedureStep(openInvoiceBody(), page, 'e1')
+
+    expect(guardMissOf(step)).toBe('descriptor-missing')
+    expect(planner.calls).toBe(1)
+    expect(step.status).toBe('passed')
+    expect(step.evidence!.selfHeal).toBeDefined()
+    expect(step.evidence!.selfHeal!.failedDecision.plan).toBe('Replayed from a saved procedure')
+    expect(step.evidence!.selfHeal!.failedDecision.result.success).toBe(false)
+    expect(outcomeOf(step)).toBe('healed')
+  })
+
+  it('a procedure target that is no longer unique makes the repair read healed', async () => {
+    const page = invoiceScreen([link('e1', 'Invoice 947'), link('e2', 'Invoice 947')])
+
+    const { step, planner } = await runProcedureStep(openInvoiceBody(), page, 'e2')
+
+    expect(guardMissOf(step)).toBe('descriptor-ambiguous')
+    expect(planner.calls).toBe(1)
+    expect(step.status).toBe('passed')
+    expect(step.evidence!.selfHeal).toBeDefined()
+    expect(step.evidence!.selfHeal!.failedDecision.plan).toBe('Replayed from a saved procedure')
+    expect(outcomeOf(step)).toBe('healed')
+  })
+
+  it('a procedure matched to another page is a plain miss', async () => {
+    const page = invoiceScreen([link('e1', 'Invoice 946'), link('e2', 'Invoice 947')])
+
+    const { step, planner } = await runProcedureStep(
+      openInvoiceBody('https://billing.test/receipts'),
+      page,
+      'e2',
+    )
+
+    expect(guardMissOf(step)).toBe('page-anchor-mismatch')
+    expect(planner.calls).toBe(1)
+    expect(step.status).toBe('passed')
+    expect(step.evidence!.selfHeal).toBeUndefined()
+    expect(outcomeOf(step)).toBe('passed')
   })
 })

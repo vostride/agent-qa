@@ -1179,6 +1179,14 @@ export async function executeStep(
           reason: attempt.reason,
         }
         recordProcedureReplaySource()
+        const goneTarget = SAVED_TARGET_GONE[attempt.reason]
+        if (goneTarget !== undefined) {
+          pendingSelfHeal = {
+            plan: 'Replayed from a saved procedure',
+            plannedAction: { type: procedureStep.action.type } as unknown as SchemaAction,
+            result: toRecordedActionResult({ success: false, error: recordMask(goneTarget) }),
+          }
+        }
         // D-11 demotion: project only the typed structural facts the recovery turn may see.
         // The projector is the raw-input firewall; the renderer accepts only its closed DTO
         // plus the whole-string masker, so authored procedure prose and bound values cannot
@@ -2451,9 +2459,11 @@ type CacheReplay = { ok: true; plan: ActionPlan } | { ok: false; reason: CacheMi
 
 // A saved target that is gone or no longer unique means the app changed under the saved path,
 // so the step's live repair is a heal. Any other miss is a plain miss.
-const SAVED_TARGET_GONE: Partial<Record<CacheMissReason, string>> = {
+const SAVED_TARGET_GONE: Partial<Record<CacheMissReason | ProcedureGuardMissReason, string>> = {
   'strict-absent': 'The saved target is not on the page',
   'strict-not-unique': 'The saved target is no longer unique',
+  'descriptor-missing': 'The saved target is not on the page',
+  'descriptor-ambiguous': 'The saved target is no longer unique',
 }
 
 // Replay rung of the hit ladder (D-13): reconstruct an ActionPlan from a descriptor-only
