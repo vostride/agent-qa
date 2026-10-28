@@ -392,6 +392,14 @@ export async function executeStep(
     storedCompletesStep: boolean | undefined
   }[] = []
   const reportMarks: { held: number; line: string }[] = []
+  // Keys replayed from the cache since the step's last rejection, and every key the step
+  // invalidated. An invalidated key that the passing path replayed is written again.
+  let replayedKeys: CacheKey[] = []
+  const invalidatedKeys = new Set<CacheKey>()
+  const invalidateKey = async (key: CacheKey): Promise<void> => {
+    invalidatedKeys.add(key)
+    await ports.cache!.invalidate(key)
+  }
 
   // A report the passing verdict cites is read live on replay, so the path ends before it and
   // claims no completion. A closing report it does not cite is dropped and the completion claim
@@ -414,7 +422,7 @@ export async function executeStep(
       && (last.turn === completing.turn || (completing.report && pathEndsAtLastHeld))
     for (const held of path) {
       const completesStep = lastCompletes && held === last
-      if (held.storedCompletesStep === completesStep) continue
+      if (held.storedCompletesStep === completesStep && !invalidatedKeys.has(held.key)) continue
       await ports.cache.set(held.key, buildCachedPlanValue({
         plannedActions: [held.action],
         elements: held.elements,
@@ -1224,7 +1232,7 @@ export async function executeStep(
           storedCompletesStep = hit.completesStep
         } else {
           recorder.recordCacheMiss({ reason: replay.reason })
-          await ports.cache!.invalidate(cacheKey)
+          await invalidateKey(cacheKey)
           ports.logger?.createScopedLogger('cache')?.debug(
             'Cached target does not replay — re-planning', { actionIndex, reason: replay.reason },
           )
@@ -2088,9 +2096,9 @@ export async function executeStep(
         ...historyEvidence,
       })
 
-      // A failed replay of a cached plan invalidates that key and re-plans (D-13).
+      // A failed replay of a cached plan invalidates that key and re-plans.
       if (cached && cacheKey && ports.cache) {
-        await ports.cache.invalidate(cacheKey)
+        await invalidateKey(cacheKey)
       }
 
       // Failure context injected for the next planning turn (the surviving mitigation).
@@ -2116,6 +2124,7 @@ export async function executeStep(
 
     // Execution succeeded — clear failure context.
     context.failureContext = undefined
+    if (cached && cacheKey !== undefined) replayedKeys.push(cacheKey)
 
     // A report leaves the end of the saved path where it was; any other turn not held ends it.
     const isReport = normalizedAction.type === 'reportValue'
@@ -2299,8 +2308,12 @@ export async function executeStep(
       }
 
       // The verifier rejected the completion claim: replan with its reasoning as failure context.
-      // The next observation is this sub-action's stateAfter, and a rejected replayed claim arms
-      // the heal.
+      // The next observation is this sub-action's stateAfter. A rejected replayed claim arms the
+      // heal, and a rejected cached claim invalidates every key replayed since the last rejection.
+      if (cached && ports.cache) {
+        for (const key of replayedKeys) await invalidateKey(key)
+      }
+      replayedKeys = []
       const failedIdx = recordSuccess(
         recorder,
         reasoning,

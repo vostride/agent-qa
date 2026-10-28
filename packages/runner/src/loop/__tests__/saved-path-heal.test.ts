@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest'
 import type { CachedPlanValue } from '../../cache/port.js'
 import type { StepResult, TestResult } from '../../result.js'
 import { deriveMemberOutcome } from '../../run/verdict.js'
+import { makeActionPlan, makeVerifier } from './loop-harness.js'
 import {
   CLICK_SAVE,
   FILL_EMAIL,
   FILL_NAME,
   forgetCalls,
+  formScreens,
   recordingCache,
   runStep,
   scriptedPlanner,
@@ -24,9 +26,25 @@ function outcomeOf(step: StepResult) {
   return deriveMemberOutcome(test)
 }
 
+const CONFIRM_SAVED = makeActionPlan({
+  reasoning: 'Open the saved contact',
+  action: { type: 'click', ref: 'e1' },
+  stepComplete: true,
+})
+
+function rejectOnceVerifier() {
+  return makeVerifier([
+    { success: false, reasoning: 'The saved contact is not shown' },
+    { success: true, reasoning: 'The contact is saved' },
+  ])
+}
+
 async function savedThreeTurnPath(): Promise<{ cache: RecordingCache; keys: string[] }> {
   const cache = recordingCache()
-  const first = await runStep({ cache, planner: scriptedPlanner([FILL_NAME, FILL_EMAIL, CLICK_SAVE]) })
+  const first = await runStep({
+    cache,
+    planner: scriptedPlanner([FILL_NAME, FILL_EMAIL, CLICK_SAVE]),
+  })
   expect(first.status).toBe('passed')
   const keys = [...cache.sets]
   expect(new Set(keys).size).toBe(3)
@@ -67,5 +85,41 @@ describe('healed means a saved path failed and was repaired', () => {
     expect(step.evidence!.cacheMiss?.reason).toBe('non-replayable')
     expect(step.evidence!.selfHeal).toBeUndefined()
     expect(outcomeOf(step)).toBe('passed')
+  })
+
+  it('a cached replay the verifier rejects is invalidated, every replayed turn with it, and the repaired step reads healed', async () => {
+    const { cache, keys } = await savedThreeTurnPath()
+
+    const step = await runStep({
+      cache,
+      planner: scriptedPlanner([CONFIRM_SAVED]),
+      verifier: rejectOnceVerifier(),
+    })
+
+    expect(step.status).toBe('passed')
+    expect(cache.gets.map((get) => get.hit)).toEqual([true, true, true, false])
+    expect(cache.invalidated).toEqual(keys)
+    expect(step.evidence!.selfHeal).toBeDefined()
+    expect(outcomeOf(step)).toBe('healed')
+    const liveKey = cache.gets[3].key
+    expect(new Set(cache.sets)).toEqual(new Set([...keys, liveKey]))
+    expect(cache.store.get(liveKey)!.completesStep).toBe(true)
+    expect(keys.map((key) => cache.store.get(key)!.completesStep)).toEqual([false, false, false])
+  })
+
+  it('a claim a live turn makes after replayed turns is not a saved-path failure', async () => {
+    const { cache } = await savedThreeTurnPath()
+
+    const step = await runStep({
+      cache,
+      screens: formScreens(true),
+      planner: scriptedPlanner([CLICK_SAVE, CONFIRM_SAVED]),
+      verifier: rejectOnceVerifier(),
+    })
+
+    expect(step.status).toBe('passed')
+    expect(cache.gets.slice(0, 3).map((get) => get.hit)).toEqual([true, true, false])
+    expect(cache.invalidated).toEqual([])
+    expect(step.evidence!.selfHeal).toBeUndefined()
   })
 })

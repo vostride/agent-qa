@@ -10,7 +10,13 @@ import { makeActionPlan, makeStepContext, makeVerifier } from '../loop-harness.j
 
 export const STEP = 'Save the contact details'
 
-export function el(ref: string, role: string, name: string, y: number, value?: string): ElementInfo {
+export function el(
+  ref: string,
+  role: string,
+  name: string,
+  y: number,
+  value?: string,
+): ElementInfo {
   const bounds = { x: 20, y, width: 350, height: 44 }
   return {
     ref: asRef(ref),

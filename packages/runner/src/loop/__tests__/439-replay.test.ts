@@ -136,16 +136,19 @@ interface RecordingCache extends ActionPlanCache {
   store: Map<string, CachedPlanValue>
   gets: { key: string; hit: boolean }[]
   sets: string[]
+  invalidated: string[]
 }
 
 function recordingCache(events?: string[]): RecordingCache {
   const store = new Map<string, CachedPlanValue>()
   const gets: { key: string; hit: boolean }[] = []
   const sets: string[] = []
+  const invalidated: string[] = []
   return {
     store,
     gets,
     sets,
+    invalidated,
     async get(key: CacheKey) {
       const value = store.get(key) ?? null
       gets.push({ key, hit: value !== null })
@@ -157,6 +160,7 @@ function recordingCache(events?: string[]): RecordingCache {
       store.set(key, value)
     },
     async invalidate(key: CacheKey) {
+      invalidated.push(key)
       store.delete(key)
     },
   }
@@ -311,7 +315,7 @@ describe('C439-REPLAY', () => {
     expect(result.evidence!.conditionVerdicts!.conditions[0].verdict).toBe('met')
   })
 
-  it('a hit whose verdict is unproven is not a pass and is not re-cached', async () => {
+  it('a hit whose verdict is unproven is not a pass, and its saved turn is invalidated and not re-cached', async () => {
     const cache = await seededCache()
     const live = planner([GIVE_UP])
     const judge = verifier(['met-uncited', 'not-met'])
@@ -322,10 +326,11 @@ describe('C439-REPLAY', () => {
     expect(result.status).toBe('failed')
     expect(result.evidence!.subActions[0].plan).toBe('Replayed from cache')
     expect(live.calls).toBe(1)
+    expect(cache.invalidated).toEqual([cache.gets[0].key])
     expect(cache.sets).toEqual([])
   })
 
-  it('the cached outcome never decides the verdict', async () => {
+  it('the cached outcome never decides the verdict, and a rejected replay is invalidated', async () => {
     const cache = await seededCache()
     const live = planner([GIVE_UP])
     const judge = verifier(['not-met'])
@@ -335,6 +340,7 @@ describe('C439-REPLAY', () => {
     expect(cache.gets[0].hit).toBe(true)
     expect(result.status).not.toBe('passed')
     expect(result.evidence!.verifierVerdict.pass).toBe(false)
+    expect(cache.invalidated).toEqual([cache.gets[0].key])
     expect(cache.sets).toEqual([])
   })
 
