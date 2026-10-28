@@ -2,6 +2,7 @@ import { request } from 'node:http'
 import { spawn, type ChildProcess } from 'node:child_process'
 import {
   formatAppiumInstallGuidance,
+  printRunText,
   resolveAppiumExecutable,
   type ResolvedAppiumExecutable,
 } from '@vostride/agent-qa-core'
@@ -162,7 +163,7 @@ export class AppiumManager {
       if (err.code === 'ENOENT') {
         console.error(`${APPIUM_PREFIX} Appium not found. ${formatAppiumInstallGuidance()}`)
       } else {
-        console.error(`${APPIUM_PREFIX} Error: ${err.message}`)
+        printRunText(`${APPIUM_PREFIX} Error: ${err.message}`, (text) => console.error(text))
       }
     })
 
@@ -170,7 +171,7 @@ export class AppiumManager {
       if (this.logLevel !== 'debug') return
       const lines = chunk.toString().split('\n').filter(Boolean)
       for (const line of lines) {
-        console.log(`${APPIUM_PREFIX} ${pc.dim(line)}`)
+        printRunText(`${APPIUM_PREFIX} ${pc.dim(line)}`, (text) => console.log(text))
       }
     })
 
@@ -178,7 +179,7 @@ export class AppiumManager {
       if (this.logLevel !== 'debug') return
       const lines = chunk.toString().split('\n').filter(Boolean)
       for (const line of lines) {
-        console.error(`${APPIUM_PREFIX} ${pc.dim(line)}`)
+        printRunText(`${APPIUM_PREFIX} ${pc.dim(line)}`, (text) => console.error(text))
       }
     })
 

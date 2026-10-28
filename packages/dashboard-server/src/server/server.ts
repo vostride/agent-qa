@@ -37,6 +37,7 @@ import type {
 } from '@vostride/agent-qa-schema'
 import {
   isLoopbackHost,
+  printRunText,
   type ResolvedWorkspacePaths,
 } from '@vostride/agent-qa-core'
 import type { DashboardLLMConfig } from '../llm-model-mapping.js'
@@ -470,7 +471,9 @@ export async function startServer(opts: StartServerOptions): Promise<{
         mobileRuns.set(run.id, platform)
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err)
-        console.error(`Failed to start Appium for run ${run.id}: ${message}`)
+        printRunText(`Failed to start Appium for run ${run.id}: ${message}`, (text) =>
+          console.error(text),
+        )
         db.updateRun(run.id, {
           status: 'failed',
           failureSummary: `Appium server failed to start: ${message}`,

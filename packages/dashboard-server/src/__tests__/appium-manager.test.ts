@@ -511,6 +511,90 @@ describe('AppiumManager', () => {
       errSpy.mockRestore()
     })
 
+    describe('forwarded output under GitHub Actions', () => {
+      const PAIR = /^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::\n$/u
+      let writes: string[]
+
+      beforeEach(() => {
+        writes = []
+        vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+          writes.push(String(chunk))
+          return true
+        })
+      })
+
+      afterEach(() => {
+        vi.unstubAllEnvs()
+      })
+
+      it('prints a forwarded stdout line inside one pair on stdout', async () => {
+        vi.stubEnv('GITHUB_ACTIONS', 'true')
+        const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+        const { child, mgr } = setupForLogTest('debug')
+        await mgr.ensureRunning()
+        logSpy.mockClear()
+        writes.length = 0
+
+        child.stdout!.emit('data', Buffer.from('##[error]x\n'))
+
+        expect(writes).toHaveLength(1)
+        expect(writes[0]).toMatch(PAIR)
+        expect(writes[0]).toContain('##[error]x')
+        expect(logSpy).not.toHaveBeenCalled()
+      })
+
+      it('prints a forwarded stderr line inside one pair on stdout', async () => {
+        vi.stubEnv('GITHUB_ACTIONS', 'true')
+        const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+        vi.spyOn(console, 'log').mockImplementation(() => {})
+        const { child, mgr } = setupForLogTest('debug')
+        await mgr.ensureRunning()
+        writes.length = 0
+
+        child.stderr!.emit('data', Buffer.from('##[error]x\n'))
+
+        expect(writes).toHaveLength(1)
+        expect(writes[0]).toMatch(PAIR)
+        expect(writes[0]).toContain('##[error]x')
+        expect(errSpy).not.toHaveBeenCalled()
+      })
+
+      it('prints an Appium process error inside one pair on stdout', async () => {
+        vi.stubEnv('GITHUB_ACTIONS', 'true')
+        const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+        vi.spyOn(console, 'log').mockImplementation(() => {})
+        const { child, mgr } = setupForLogTest('normal')
+        await mgr.ensureRunning()
+        writes.length = 0
+
+        child.emit('error', new Error('::set-output name=x::y'))
+
+        expect(writes).toHaveLength(1)
+        expect(writes[0]).toMatch(PAIR)
+        expect(writes[0]).toContain('Error: ::set-output name=x::y')
+        expect(errSpy).not.toHaveBeenCalled()
+      })
+
+      it('prints forwarded lines and errors through console as before off Actions', async () => {
+        const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+        const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+        const { child, mgr } = setupForLogTest('debug')
+        await mgr.ensureRunning()
+        logSpy.mockClear()
+
+        child.stdout!.emit('data', Buffer.from('out line\n'))
+        child.stderr!.emit('data', Buffer.from('err line\n'))
+        child.emit('error', new Error('boom'))
+
+        expect(logSpy.mock.calls).toEqual([['[magenta][appium][/magenta] [dim]out line[/dim]']])
+        expect(errSpy.mock.calls).toEqual([
+          ['[magenta][appium][/magenta] [dim]err line[/dim]'],
+          ['[magenta][appium][/magenta] Error: boom'],
+        ])
+        expect(writes).toHaveLength(0)
+      })
+    })
+
     it('constructor defaults logLevel to normal', () => {
       const mgr = new AppiumManager()
       expect(mgr.getRefCount()).toBe(0)

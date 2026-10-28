@@ -597,3 +597,63 @@ describe('dashboard Appium ownership', () => {
     expect(shutdownIndex).toBeGreaterThan(releaseIndex)
   })
 })
+
+describe('an Appium start failure for a queued run', () => {
+  const PAIR = /^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::\n$/u
+  const spies: Array<{ mockRestore: () => void }> = []
+
+  afterEach(() => {
+    for (const spy of spies.splice(0)) spy.mockRestore()
+    vi.unstubAllEnvs()
+  })
+
+  async function enqueueFailingMobileRun(message: string): Promise<string> {
+    const port = await startDashboard()
+    currentAppium().acquireLease.mockRejectedValueOnce(new Error(message))
+    const run = await postJson<QueueResponse>(port, '/api/queue/enqueue', {
+      name: 'Android',
+      platform: 'android',
+      parallel: true,
+    })
+    await waitFor(() => expect(currentDb!.getRun(run.runId)?.status).toBe('failed'))
+    return run.runId
+  }
+
+  it('prints the failure inside one pair on stdout under GitHub Actions', async () => {
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+    const writes: string[] = []
+    const errors: unknown[][] = []
+    spies.push(
+      vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+        writes.push(String(chunk))
+        return true
+      }),
+      vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
+        errors.push(args)
+      }),
+    )
+
+    const runId = await enqueueFailingMobileRun('::set-output name=x::y')
+
+    const blocks = writes.filter((chunk) => chunk.includes('Failed to start Appium'))
+    expect(blocks).toHaveLength(1)
+    expect(blocks[0]).toMatch(PAIR)
+    expect(blocks[0]).toContain(`Failed to start Appium for run ${runId}: ::set-output name=x::y`)
+    expect(errors.filter((args) => String(args[0]).includes('Failed to start Appium'))).toEqual([])
+  })
+
+  it('prints the same console.error line as before off GitHub Actions', async () => {
+    const errors: unknown[][] = []
+    spies.push(
+      vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
+        errors.push(args)
+      }),
+    )
+
+    const runId = await enqueueFailingMobileRun('boom')
+
+    expect(errors.filter((args) => String(args[0]).includes('Failed to start Appium'))).toEqual([
+      [`Failed to start Appium for run ${runId}: boom`],
+    ])
+  })
+})
