@@ -226,17 +226,10 @@ function walk(dir: string): string[] {
   return found
 }
 
-// 2026-09-26, 429-07 D-08: the schema-derived visibility walker left the run path when `config
-// show` moved onto the shared masking map. It stays as the test oracle the map's parity cells
-// check against; no production module imports it, and the reconciliation below asserts that.
-const OFF_RUN_PATH_FILES = ['cli/src/composition/config-visibility.ts'] as const
-
 const PINNED_SET = [
   ...PINNED_DIRECTORIES.flatMap((dir) => walk(join(PACKAGES, dir))),
   ...PINNED_FILES.map((file) => join(PACKAGES, file)),
-]
-  .filter((path) => !OFF_RUN_PATH_FILES.some((file) => path === join(PACKAGES, file)))
-  .sort()
+].sort()
 
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 // PREDICATE 2's population: the transitive first-party import closure of the run-path roots.
@@ -519,8 +512,6 @@ describe('(3) THE RECONCILIATION — what each predicate is blind to, the other 
       'a pinned run-path module no door can reach: either it is not on the run path, or the root '
         + 'set below is missing a door',
     ).toEqual([])
-    // The named exemption stays true: an off-run-path module no door reaches.
-    expect(OFF_RUN_PATH_FILES.filter((file) => reachable.has(join(PACKAGES, file)))).toEqual([])
   })
 
   it('EVERY REACHED HOLDER THE PIN DOES NOT SCAN IS NAMED — the 401-08 catch', () => {

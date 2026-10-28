@@ -685,10 +685,6 @@ describe('arch lint surface firewall (FUNC-02) held-out fixtures', () => {
     const newInPhase384 = [
       'packages/cli/src/commands/fn.ts',
       'packages/cli/src/composition/masked-config.ts',
-      // The schema-derived visibility walker (Plan 10). It reads the config schema as DATA
-      // handed in at the composition root, so it names no internal package of its own —
-      // pinned here so that stays true rather than being remembered.
-      'packages/cli/src/composition/config-visibility.ts',
     ]
 
     for (const entry of SURFACE_FIREWALL_LEDGER) {
