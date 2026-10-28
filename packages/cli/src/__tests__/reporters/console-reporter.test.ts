@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { CURRENT_BUS_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 import type {
@@ -13,6 +13,7 @@ import {
   createConsoleReporter,
   renderQuarantineSummarySegment,
 } from '../../reporters/console-reporter.js'
+import type { ConsoleReporterOptions } from '../../reporters/console-reporter.js'
 import {
   QUARANTINED_CHECKOUT,
   QUARANTINED_ELSEWHERE,
@@ -390,9 +391,16 @@ function failedStepStream(errors: readonly string[]): RunEventEnvelope[] {
   ])
 }
 
+function actionsStream(events: readonly (readonly [RunEventType, object])[]): RunEventEnvelope[] {
+  return events.map(
+    ([type, payload], seq) =>
+      ({ seq, ts: 1_000 + seq, runId: 'run-actions-output', type, payload }) as RunEventEnvelope,
+  )
+}
+
 function recordChunks(
   envelopes: readonly RunEventEnvelope[],
-  options: { plain?: boolean; isTTY?: boolean } = { plain: true, isTTY: false },
+  options: ConsoleReporterOptions = { plain: true, isTTY: false },
 ): string[] {
   const chunks: string[] = []
   const reporter = createConsoleReporter({
@@ -433,6 +441,107 @@ describe('the console reporter under GitHub Actions', () => {
     const chunks = recordChunks(failedStepStream(['##[error]x']), { isTTY: true })
     expect(chunks.length).toBeGreaterThan(0)
     for (const chunk of chunks) expect(chunk.startsWith('\x1B[2K\r')).toBe(false)
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  const runStarted = {
+    busSchemaVersion: CURRENT_BUS_SCHEMA_VERSION,
+    scope: { tier: 'suite', key: 'shop' },
+    executionContext: 'local-headless',
+    buildOrdinal: 1,
+    configDigests: { suiteConfigDigest: 'aaaa', testConfigDigest: 'bbbb' },
+    memberTestCount: 1,
+  }
+
+  it('wraps the run start line that names the model', () => {
+    vi.stubEnv('AGENT_QA_LLM_MODEL', '::set-output name=x::y')
+    const chunks = recordChunks(actionsStream([['runStarted', runStarted]]))
+    expect(chunks).toHaveLength(1)
+    expect(chunks[0]).toMatch(WRAPPED_BLOCK)
+    expect(chunks[0]).toContain('Model: ::set-output name=x::y')
+  })
+
+  it('wraps a failing hook, its error and its variables in one stop-commands pair', () => {
+    const chunks = recordChunks(
+      actionsStream([
+        [
+          'hookFinished',
+          {
+            hookName: 'seed-db',
+            phase: 'setup',
+            hookExecutionId: 'h1',
+            scope: 'test',
+            status: 'failed',
+            durationMs: 300,
+            stdout: '',
+            stderr: '',
+            error: '::add-mask::x',
+            variables: { REGION: '##[error]v' },
+            kind: 'hook',
+          },
+        ],
+      ]),
+      { plain: true, isTTY: false, verbose: true },
+    )
+    expect(chunks).toHaveLength(1)
+    const [block] = chunks
+    expect(block).toMatch(WRAPPED_BLOCK)
+    expect(block).toContain('  x seed-db 300ms\n')
+    expect(block).toContain('    Error: ::add-mask::x\n')
+    expect(block).toContain('    -> REGION=##[error]v\n')
+  })
+
+  it('wraps the suite line, a named hook label and a test result line in separate pairs', () => {
+    const crafted = '::set-output name=x::y'
+    const chunks = recordChunks(
+      actionsStream([
+        [
+          'testStarted',
+          { testId: 't0', testIndex: 0, name: crafted, suiteId: 's1', suiteName: crafted },
+        ],
+        [
+          'hookStarted',
+          { hookName: crafted, phase: 'inline', hookExecutionId: 'h1', scope: 'test' },
+        ],
+        ['testFinished', { testId: 't0', testIndex: 0, outcome: 'passed', durationMs: 100 }],
+      ]),
+    )
+    const suite = chunks.find((chunk) => chunk.includes('Suite:'))
+    const hook = chunks.find((chunk) => chunk.includes('Running hook:'))
+    const result = chunks.find((chunk) => chunk.includes('PASS'))
+    for (const block of [suite, hook, result]) {
+      expect(block).toMatch(WRAPPED_BLOCK)
+      expect(block).toContain(crafted)
+    }
+  })
+
+  it('wraps each failed test with its summary and leaves the labels and totals bare', () => {
+    const chunks = recordChunks(
+      actionsStream([
+        ['runStarted', runStarted],
+        ['testStarted', { testId: 't0', testIndex: 0, name: '##[error]x' }],
+        [
+          'testFinished',
+          {
+            testId: 't0',
+            testIndex: 0,
+            outcome: 'failed',
+            durationMs: 100,
+            failureSummary: 'first ::warning::a\nsecond ##[error]b',
+          },
+        ],
+        ['runFinished', { aggregateVerdict: 'failed' }],
+      ]),
+    )
+    const failure = chunks.find((chunk) => chunk.includes('first ::warning::a'))
+    expect(failure).toMatch(WRAPPED_BLOCK)
+    expect(failure).toContain('  x ##[error]x\n    first ::warning::a\n    second ##[error]b\n')
+    expect(chunks).toContain('Failed tests:\n')
+    const totals = chunks.filter((chunk) => /^(Tests|Steps|Cache|Time):/u.test(chunk))
+    expect(totals).toHaveLength(4)
   })
 })
 

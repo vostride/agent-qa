@@ -234,7 +234,9 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
     const modelInfo = model
       ? `  ${c(pc.dim, `Model: ${model}${provider ? ` (${provider})` : ''}`)}\n`
       : ''
-    println(`\n${c(pc.bold, `Running ${memberTestCount} test(s)...`)}\n${modelInfo}`)
+    const text = `\n${c(pc.bold, `Running ${memberTestCount} test(s)...`)}\n${modelInfo}`
+    if (model) printBlock([text])
+    else println(text)
   }
 
   function onTestStarted(payload: TestStartedPayload): void {
@@ -246,7 +248,7 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
     if (payload.suiteId && payload.suiteId !== currentSuiteId) {
       currentSuiteId = payload.suiteId
       sawSuite = true
-      println(`\n${c(pc.bold, `Suite: ${payload.suiteName ?? payload.suiteId}`)}`)
+      printBlock([`\n${c(pc.bold, `Suite: ${payload.suiteName ?? payload.suiteId}`)}`])
     }
     const indent = sawSuite ? '  ' : ''
     transient(`${indent}${testBadge('running')} ${payload.filePath ?? payload.name}`)
@@ -288,20 +290,23 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
         : payload.phase === 'teardown'
           ? 'Running teardown hooks'
           : `Running hook: ${payload.hookName}`
-    println(`${plain ? 'RUN' : c(pc.bold, '▶')} ${label}`)
+    const line = `${plain ? 'RUN' : c(pc.bold, '▶')} ${label}`
+    if (payload.phase === 'inline') printBlock([line])
+    else println(line)
   }
 
   function onHookFinished(payload: HookFinishedPayload): void {
     const icon = statusIcon(payload.status === 'passed' ? 'passed' : payload.status === 'failed' ? 'failed' : 'skipped')
-    println(`  ${icon} ${payload.hookName} ${c(pc.dim, humanDuration(payload.durationMs))}`)
+    const lines = [`  ${icon} ${payload.hookName} ${c(pc.dim, humanDuration(payload.durationMs))}`]
     if (payload.status === 'failed' && payload.error) {
-      println(`    ${c(pc.red, 'Error:')} ${payload.error}`)
+      lines.push(`    ${c(pc.red, 'Error:')} ${payload.error}`)
     }
     if (verbose && payload.variables && Object.keys(payload.variables).length > 0) {
       for (const [key, value] of Object.entries(payload.variables)) {
-        println(`    ${plain ? '->' : c(pc.dim, '↳')} ${key}=${value}`)
+        lines.push(`    ${plain ? '->' : c(pc.dim, '↳')} ${key}=${value}`)
       }
     }
+    printBlock(lines)
   }
 
   function onTestRetryScheduled(_payload: TestRetryScheduledPayload): void {
@@ -351,7 +356,7 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
     const dur = skipped || cancelled ? `(${outcome})` : humanDuration(payload.durationMs ?? 0)
     // Empty at zero quarantined, so this line is byte-identical to its pre-390 self.
     const disposition = quarantined ? ` ${c(pc.yellow, QUARANTINE_TEST_ANNOTATION)}` : ''
-    println(`${indent}${badge} ${name} ${c(pc.dim, dur)}${disposition}`)
+    printBlock([`${indent}${badge} ${name} ${c(pc.dim, dur)}${disposition}`])
     println('')
   }
 
@@ -371,12 +376,13 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
       println(c(pc.red, 'Failed tests:'))
       for (const failure of failedTests) {
         const disposition = failure.quarantined ? ` ${c(pc.yellow, QUARANTINE_TEST_ANNOTATION)}` : ''
-        println(`  ${plain ? 'x' : c(pc.red, '✗')} ${failure.name}${disposition}`)
+        const lines = [`  ${plain ? 'x' : c(pc.red, '✗')} ${failure.name}${disposition}`]
         if (failure.failureSummary) {
           for (const line of failure.failureSummary.split('\n')) {
-            println(`    ${c(pc.dim, line)}`)
+            lines.push(`    ${c(pc.dim, line)}`)
           }
         }
+        printBlock(lines)
       }
     }
     const segments = `${cancelledSegment}${renderQuarantineSummarySegment(quarantinedFailures)}`
