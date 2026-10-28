@@ -38,10 +38,9 @@ export const RUN_SERVICE_CONTRACT_VERSION = 2
 /**
  * Every code any non-2xx answer on this door carries. Closed, and shared across all routes.
  *
- * 2026-10-01 (432-21, D-12/D-13): the three bearer refusal reasons left with the bearer, and
- * `cross_site_refused` took their place above the route table. The door answers a request a page on
- * another origin drove — or one naming a Host this loopback server never agreed to answer to — with
- * that word and nothing else, the same word the dashboard's other same-site doors use.
+ * Two words can be answered before the route table: `cross_site_refused` for a request from
+ * another site or naming a foreign Host, and `unsupported_media_type` for a body whose
+ * Content-Type is not application/json.
  */
 export const RUN_SERVICE_ERROR_CODES = [
   'cross_site_refused',
@@ -73,6 +72,8 @@ export const RUN_SERVICE_ERROR_CODES = [
   // words to itself exactly as `run_start_failed` does and for the same reason.
   'live_view_unavailable',
   'live_url_mint_failed',
+  // A request body whose Content-Type is not application/json.
+  'unsupported_media_type',
 ] as const
 
 export type RunServiceErrorCode = (typeof RUN_SERVICE_ERROR_CODES)[number]
@@ -83,8 +84,8 @@ export type RunServiceErrorCode = (typeof RUN_SERVICE_ERROR_CODES)[number]
  * ONE KEY, DELIBERATELY. A refusal body that varied its SHAPE by route or by reason would be a
  * fingerprinting surface: a caller refused at the door could learn which routes exist or whether a
  * run id is real by diffing the bodies it is refused with. With one key and a closed vocabulary the
- * only thing that varies is the word, and the word that can appear before the route table is
- * reached is `cross_site_refused` and nothing else.
+ * only thing that varies is the word, and the words that can appear before the route table is
+ * reached are `cross_site_refused` and `unsupported_media_type`.
  *
  * It is also why nothing here echoes the caller's input. Naming the offending field, the run id or
  * anything else would each put an attacker-chosen or a host-held string into a body served to a

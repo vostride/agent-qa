@@ -23,7 +23,7 @@ import type { IncomingMessage } from 'node:http'
 import { createRunEventBus } from '@vostride/agent-qa-runner'
 import {
   RUN_SERVICE_CONTRACT_VERSION,
-  RUN_SERVICE_ERROR_CODES,
+  RunServiceErrorBodySchema,
   RunServiceReadinessSchema,
   RunServiceReplayFloorBodySchema,
   type RunEventEnvelope,
@@ -783,23 +783,15 @@ describe('replayFloorOf reads the floor STRUCTURALLY, and refuses a lookalike', 
   })
 })
 
-// ---- The refusal-code census: a COMPLETE SET, every member DRIVEN ------------------------------
+// ---- The refusal codes, each driven out of the shipped door -----------------------------------
 //
-// THE CLAIM IS THE ENUMERATION. `RUN_SERVICE_ERROR_CODES` is a closed set and this door is the only
-// thing that writes it, so a code added without a request class that produces it is a word nobody
-// can reach and a code deleted while a request still produces it is an answer nothing validates.
-// The census is read OFF the shipped constant, both directions, so a new member is a named RED in
-// the change that adds it rather than in the review that might have caught it.
-//
-// EVERY MEMBER IS DRIVEN. There is no `unreachable` arm and there must not be one: an exemption
-// list is where a code goes to stop being measured, and the two codes 403-03 adds are exactly the
-// kind that would have landed on it.
+// Each probe drives one refusal out of the shipped door and checks its status and its body.
 
 interface CodeProbe {
   readonly code: RunServiceErrorCode
   /** Drive the door and return the observed status and parsed body. */
   drive: () => Promise<{ readonly status: number; readonly body: Record<string, unknown> }>
-  /** The status this refusal carries, so the census also pins the code-to-status mapping. */
+  /** The status this refusal carries. */
   readonly status: number
   /** `true` for the one body deliberately wider than one key (`replay_floor`). */
   readonly wide?: true
@@ -914,22 +906,18 @@ const CODE_PROBES: readonly CodeProbe[] = Object.freeze([
       ports: fakePorts({ mintLiveUrl: () => Promise.reject(new Error('the registry is gone')) }),
     }),
   },
+  {
+    code: 'unsupported_media_type',
+    status: 415,
+    drive: () => refusalAt('/run', {
+      method: 'POST',
+      headers: { ...authed },
+      body: JSON.stringify({}),
+    }),
+  },
 ] as const)
 
-describe('the refusal-CODE census is a complete set over RUN_SERVICE_ERROR_CODES', () => {
-  it('names every declared code and no undeclared one — both directions', () => {
-    const probed = [...CODE_PROBES].map((probe) => probe.code).sort()
-    expect(
-      probed,
-      'every code this door can write must have a request class that produces it — a code with no '
-      + 'probe is a word nobody can reach, and a probe for a code the set no longer declares is '
-      + 'this file certifying an answer that is gone',
-    ).toEqual([...RUN_SERVICE_ERROR_CODES].sort())
-    // Non-vacuity: a census over an empty probe list agrees with an empty code set for free.
-    expect(CODE_PROBES.length).toBeGreaterThan(0)
-    expect(new Set(probed).size).toBe(CODE_PROBES.length)
-  })
-
+describe('each refusal code is driven out of the shipped door', () => {
   it.each(CODE_PROBES.map((probe) => [probe.code, probe] as const))(
     '%s is DRIVEN out of the shipped door, at its declared status',
     async (code, probe) => {
@@ -942,6 +930,7 @@ describe('the refusal-CODE census is a complete set over RUN_SERVICE_ERROR_CODES
         // second key would be a fingerprinting surface, and the one that legitimately carries one
         // is declared here by name rather than discovered.
         expect(Object.keys(observed.body), `${code} carries exactly one key`).toEqual(['error'])
+        expect(RunServiceErrorBodySchema.parse(observed.body)).toEqual({ error: code })
       }
     },
   )

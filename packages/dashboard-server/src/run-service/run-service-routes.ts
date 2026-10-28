@@ -95,7 +95,7 @@ import {
 } from '@vostride/agent-qa-schema'
 
 import type { AgentHost } from '../chat/host.js'
-import { readJsonBody } from '../server/body-parser.js'
+import { carriesNonJsonBody, readJsonBody } from '../server/body-parser.js'
 import { refuseCrossSiteRequest } from '../server/cross-site.js'
 // 405-05 (D-12 / 402 D-16): THE SAME TWO ADAPTERS THE LOCAL DOOR CALLS. Imported rather than
 // re-implemented, because "both doors answer the same bytes" is a claim about there being one
@@ -985,10 +985,14 @@ export function createRunServiceRoutes(ports: RunServicePorts): RunServiceRouter
     try {
       const path = (req.url ?? '/').split('?')[0] ?? '/'
 
-      // Every path and method this door owns, unmatched paths and preflights included, passes the
-      // same-site and Host check here, before the route table.
+      // Every path this door owns passes the same-site and Host check, then the JSON media-type
+      // check, before the route table.
       if (refuseCrossSiteRequest(req) !== undefined) {
         refuse(res, 403, 'cross_site_refused')
+        return
+      }
+      if (carriesNonJsonBody(req)) {
+        refuse(res, 415, 'unsupported_media_type')
         return
       }
 

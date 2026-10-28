@@ -282,7 +282,7 @@ describe('leg (b) — POST /run with a wrong token', () => {
     const service = await openRunService()
     const response = await fetch(`${service.origin}/run`, {
       method: 'POST',
-      headers: { Authorization: 'Basic abc' },
+      headers: { Authorization: 'Basic abc', 'Content-Type': 'application/json' },
       body: JSON.stringify({ runId: 'r_mine' }),
     })
     // Not refused for the header — refused for the field it names, like any caller.
