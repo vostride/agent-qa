@@ -11,7 +11,6 @@ import { generateRunId } from '@vostride/agent-qa-ids'
 import type { RunEventEnvelope } from '@vostride/agent-qa-schema'
 
 import { composeRunOwnership } from '../../composition/run-owner-probe.js'
-import * as runModule from '../run.js'
 import { createRunRecord, doorRunAttributes, type RunRecordHostBinding } from '../run.js'
 
 const NO_VERDICT = 'The run ended before it reached a verdict.'
@@ -231,18 +230,6 @@ describe('C444-CRASH-CATCH', () => {
   })
 })
 
-type ResolveCliRunAttributes = (
-  user: Record<string, string>,
-  runner: 'local',
-  inherited?: Record<string, string>,
-) => Record<string, string>
-
-function resolveCliRunAttributes(): ResolveCliRunAttributes {
-  const resolve = (runModule as Record<string, unknown>).resolveCliRunAttributes
-  expect(typeof resolve, 'run.ts exports no resolveCliRunAttributes').toBe('function')
-  return resolve as ResolveCliRunAttributes
-}
-
 function ownRecord(attributes = doorRunAttributes('cli')) {
   const record = createRunRecord({ attributes, warn: () => {} })
   cleanups.push(() => record.close())
@@ -285,27 +272,7 @@ describe('C444-RECORD-CLOSED', () => {
   })
 })
 
-describe('C444-GATE-MARK', () => {
-  it('an inherited gate-run mark never reaches the row', async () => {
-    const resolved = resolveCliRunAttributes()({}, 'local', { [GATE_RUN]: 'true', team: 'x' })
-    expect(resolved.team).toBe('x')
-    expect(Object.keys(resolved), 'the inherited mark survived').not.toContain(GATE_RUN)
-
-    const dir = configDir()
-    const runId = generateRunId()
-    const record = ownRecord(resolved)
-    await record.open({ runId, configDir: dir })
-    const subscriber = record.subscriber({
-      mask: (text) => text,
-      members: [{ testId: 't-a', name: 'Member A', filePath: 'tests/a.yaml' }],
-    })
-    subscriber.handler({ seq: 1, ts: 1, runId, type: 'runStarted', payload: { memberTestCount: 1 } } as RunEventEnvelope)
-
-    const attributes = record.db?.getRun(runId)?.attributes
-    expect(attributes?.team, 'the row lost the inherited user attribute').toBe('x')
-    expect(Object.keys(attributes ?? {}), 'the row carries the inherited mark').not.toContain(GATE_RUN)
-  })
-
+describe('the gate-run mark', () => {
   it("a verify run's own flag still marks its row", async () => {
     const dir = configDir()
     const runId = generateRunId()

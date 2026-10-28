@@ -61,7 +61,6 @@ beforeEach(() => {
   vi.clearAllMocks()
   vi.stubEnv('AGENT_QA_LLM_MODEL', '')
   vi.stubEnv('AGENT_QA_LLM_PROVIDER', '')
-  vi.stubEnv('AGENT_QA_RUN_ATTRIBUTES_JSON', '')
   vi.stubEnv('AGENT_QA_RUN_ID', '')
   // The production command treats an empty run ID as supplied at some boundaries.
   delete process.env.AGENT_QA_RUN_ID

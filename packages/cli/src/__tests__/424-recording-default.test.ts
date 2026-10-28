@@ -95,7 +95,7 @@ let root: string
 beforeEach(() => {
   root = mkdtempSync(join(tmpdir(), 'agent-qa-424-default-'))
   vi.clearAllMocks()
-  for (const key of ['AGENT_QA_LLM_MODEL', 'AGENT_QA_LLM_PROVIDER', 'AGENT_QA_RUN_ATTRIBUTES_JSON']) vi.stubEnv(key, '')
+  for (const key of ['AGENT_QA_LLM_MODEL', 'AGENT_QA_LLM_PROVIDER']) vi.stubEnv(key, '')
   vi.stubEnv('AGENT_QA_RUN_ID', undefined)
 })
 afterEach(() => {

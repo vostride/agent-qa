@@ -5,7 +5,7 @@ import { resolve as resolvePath } from 'node:path'
 import { Command } from 'commander'
 import pc from 'picocolors'
 import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
-import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig, validateTrustedRunAttributes } from '@vostride/agent-qa-core'
+import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
 import { discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarget, resolveWorkspacePaths, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
 import type { AgentQaConfig, AuthStateMetadata, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
@@ -624,47 +624,8 @@ function buildCliRunAttributes(userAttributes: RunAttributes, runner: RunAttribu
   )
 }
 
-function readRunAttributesFromEnv(): RunAttributes | undefined {
-  const raw = process.env.AGENT_QA_RUN_ATTRIBUTES_JSON
-  if (!raw) return undefined
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(raw)
-  } catch {
-    throw new Error('inherited run attributes: AGENT_QA_RUN_ATTRIBUTES_JSON must contain valid run attributes JSON')
-  }
-  const attributes = validateTrustedRunAttributes(parsed, 'inherited run attributes')
-  return Object.keys(attributes).length > 0 ? attributes : undefined
-}
-
-export function resolveCliRunAttributes(
-  userAttributes: RunAttributes,
-  runner: RunAttributeRunner,
-  inheritedAttributes?: RunAttributes,
-): RunAttributes {
-  if (!inheritedAttributes) return buildCliRunAttributes(userAttributes, runner)
-  const trigger = inheritedAttributes[ATTR_TRIGGER] as RunAttributeTrigger | undefined
-  // 2026-10-17 (444-09, D-26): only the record writes the gate-run mark, from the run's own flag.
-  const inheritedUserAttributes = Object.fromEntries(
-    Object.entries(inheritedAttributes)
-      .filter(([key]) => key !== ATTR_TRIGGER && key !== ATTR_RUNNER && key !== ATTR_GATE_RUN),
-  )
-  return mergeRunAttributes(
-    buildInternalRunAttributes({ trigger: trigger ?? 'cli', runner }),
-    inheritedUserAttributes,
-  )
-}
-
-/**
- * The two run attributes the analytics subscriber is told, read off the SAME resolved attributes
- * this command already stamps on the run (398-10).
- *
- * The v1 subscriber parsed `AGENT_QA_RUN_ATTRIBUTES_JSON` for itself, which put an environment read
- * inside a module a run drives and let the two answers drift. These are read here, once, from the
- * object that produced that environment variable in the first place. Values the union does not
- * recognise normalise to `unknown` inside the subscriber — this function does not police them,
- * because the vocabulary belongs to the union and a second gate here would be a second list.
- */
+// The trigger and runner the analytics subscriber is told are read from the attributes this
+// command resolved for the run.
 function analyticsRunAttribution(
   attributes: RunAttributes,
 ): { triggerSource?: string; runner?: string } {
@@ -674,10 +635,6 @@ function analyticsRunAttribution(
     ...(typeof triggerSource === 'string' ? { triggerSource } : {}),
     ...(typeof runner === 'string' ? { runner } : {}),
   }
-}
-
-function writeRunAttributesToEnv(attributes: RunAttributes): void {
-  process.env.AGENT_QA_RUN_ATTRIBUTES_JSON = JSON.stringify(attributes)
 }
 
 function printRunAttributes(attributes: RunAttributes | undefined): void {
@@ -1395,7 +1352,6 @@ export interface RunInvocationInputs {
   readonly cliVars: Record<string, string>
   readonly inlineVars: Record<string, string>
   readonly userRunAttributes: RunAttributes
-  readonly inheritedRunAttributes: RunAttributes | undefined
   /**
    * BOTH HALVES OF THE DISCOVERY SPLIT, untouched.
    *
@@ -1459,9 +1415,6 @@ export async function resolveRunInvocationInputs(
   const configDir = workspacePaths.configDir
 
   const cliVars = parseVarFlags(request.varFlags === undefined ? undefined : [...request.varFlags])
-  const inheritedRunAttributes = process.env.AGENT_QA_RUN_ID
-    ? readRunAttributesFromEnv()
-    : undefined
   let userRunAttributes: RunAttributes
   try {
     const parsedRunAttrs = parseRunAttrFlags(
@@ -1640,7 +1593,6 @@ export async function resolveRunInvocationInputs(
     cliVars,
     inlineVars,
     userRunAttributes,
-    inheritedRunAttributes,
     discovered: { tests: discoveredTestFiles, suites: discoveredSuiteFiles },
     loadPlugins,
   }
@@ -1852,7 +1804,6 @@ async function executeSuites(
     secretRedactor?: SecretRedactor
     secretsFileMetadata?: SecretsFileArtifactMetadata | null
     userRunAttributes: RunAttributes
-    inheritedRunAttributes?: RunAttributes
   } | undefined,
   hooksContext: { resolvedHooks: Map<string, HookDefinition>; sandboxOptions: SandboxRunnerOptions } | undefined,
   // 398-10: the invocation's analytics, composed ONCE at the command root and handed down. It is a
@@ -1925,11 +1876,7 @@ async function executeSuites(
 
   // 2026-10-17 (443-08, D-02/D-03): one record per invocation, written whatever the config holds.
   const record = createRunRecord({
-    attributes: resolveCliRunAttributes(
-      variableContext?.userRunAttributes ?? {},
-      'local',
-      variableContext?.inheritedRunAttributes,
-    ),
+    attributes: buildCliRunAttributes(variableContext?.userRunAttributes ?? {}, 'local'),
     warn: (line) => console.warn(pc.yellow(line)),
   })
   const forceExit = (code: number): never => {
@@ -2007,11 +1954,9 @@ async function executeSuites(
     if (analyticsHost !== undefined) {
       extraSubscribers.push(buildAnalyticsRunSubscriber({
         analytics: analyticsHost,
-        ...analyticsRunAttribution(resolveCliRunAttributes(
-          variableContext?.userRunAttributes ?? {},
-          'local',
-          variableContext?.inheritedRunAttributes,
-        )),
+        ...analyticsRunAttribution(
+          buildCliRunAttributes(variableContext?.userRunAttributes ?? {}, 'local'),
+        ),
       }))
     }
 
@@ -2283,9 +2228,6 @@ export async function produceMembersFromPatterns(
         secretRedactor: context.inputs.runtimeSecrets.secretRedactor,
         secretsFileMetadata: context.inputs.runtimeSecrets.secretsFileMetadata,
         userRunAttributes: context.inputs.userRunAttributes,
-        ...(context.inputs.inheritedRunAttributes === undefined
-          ? {}
-          : { inheritedRunAttributes: context.inputs.inheritedRunAttributes }),
       },
       hooksContext: {
         resolvedHooks: context.inputs.resolvedHooks,
@@ -2430,7 +2372,6 @@ export interface SuiteVariableContext {
   secretRedactor?: SecretRedactor
   secretsFileMetadata?: SecretsFileArtifactMetadata | null
   userRunAttributes: RunAttributes
-  inheritedRunAttributes?: RunAttributes
 }
 
 export async function produceSuiteRunMembers(
@@ -2566,10 +2507,9 @@ export async function produceSuiteRunMembers(
   }
 
   const prepareSuite = async (suiteFile: string, suite: SuiteDefinition): Promise<PreparedSuite> => {
-    const suiteFailureAttributes = resolveCliRunAttributes(
+    const suiteFailureAttributes = buildCliRunAttributes(
       variableContext?.userRunAttributes ?? {},
       'local',
-      variableContext?.inheritedRunAttributes,
     )
     let suiteFileContent = ''
     try { suiteFileContent = await readFile(suiteFile, 'utf-8') } catch { /* best-effort */ }
@@ -2746,12 +2686,7 @@ export async function produceSuiteRunMembers(
       resolvedDevice = mobileResolved.device
     }
 
-    const suiteAttributes = resolveCliRunAttributes(
-      variableContext?.userRunAttributes ?? {},
-      'local',
-      variableContext?.inheritedRunAttributes,
-    )
-    writeRunAttributesToEnv(suiteAttributes)
+    const suiteAttributes = buildCliRunAttributes(variableContext?.userRunAttributes ?? {}, 'local')
 
     // Auto-start Appium for mobile platforms
     if (suitePlatform === 'ios' || suitePlatform === 'android') {
@@ -3682,7 +3617,6 @@ export async function produceDirectRunMembers(
     inlineVars,
     effectiveLogLevel,
     userRunAttributes,
-    inheritedRunAttributes,
     resolvedHooks,
     sandboxOptions,
     rawEnvFileContent,
@@ -3790,10 +3724,9 @@ export async function produceDirectRunMembers(
     let analyticsFilePath = filePath
     let analyticsPlatform: 'web' | 'android' | 'ios' | undefined
     let analyticsTestId: string | undefined
-    let analyticsAttributes: RunAttributes | undefined = resolveCliRunAttributes(
+    let analyticsAttributes: RunAttributes | undefined = buildCliRunAttributes(
       userRunAttributes,
       'local',
-      inheritedRunAttributes,
     )
     let analyticsAppState: string | undefined
     let analyticsStartedAt = Date.now()
@@ -3890,13 +3823,8 @@ export async function produceDirectRunMembers(
       testResolvedDevice = testMobileResolved.device
     }
 
-    const testAttributes = resolveCliRunAttributes(
-      userRunAttributes,
-      'local',
-      inheritedRunAttributes,
-    )
+    const testAttributes = buildCliRunAttributes(userRunAttributes, 'local')
     analyticsAttributes = testAttributes
-    writeRunAttributesToEnv(testAttributes)
     const adapterKey = JSON.stringify({
       platform: testPlatform,
       device: testResolvedDevice?.name,
@@ -4569,7 +4497,6 @@ export function createRunCommand(): Command {
           cliVars,
           inlineVars,
           userRunAttributes,
-          inheritedRunAttributes,
         } = inputs
         _crashSecretRedactor = runtimeSecrets.secretRedactor
         let discoveredTestFiles: string[] = [...inputs.discovered.tests]
@@ -4591,7 +4518,7 @@ export function createRunCommand(): Command {
 
         // Handle suite execution (early return)
         if (discoveredSuiteFiles.length > 0 && discoveredTestFiles.length === 0) {
-          const exitCode = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, inheritedRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins)
+          const exitCode = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins)
           const suiteReporterSelection = resolveReporterSelection(opts).selection
           if (suiteReporterSelection) {
             await maybePrintPostRunUpdateNotice({
@@ -4608,7 +4535,7 @@ export function createRunCommand(): Command {
         // Handle --all: run suites first, then fall through to test execution
         let suitesFailed = false
         if (discoveredSuiteFiles.length > 0 && discoveredTestFiles.length > 0) {
-          suitesFailed = (await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, inheritedRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins)) !== 0
+          suitesFailed = (await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins)) !== 0
         }
 
         const files = discoveredTestFiles
@@ -4637,7 +4564,7 @@ export function createRunCommand(): Command {
         let currentRunId: string | undefined
         // 2026-10-17 (443-08, D-03/D-05): one record for this path, written whatever the config holds.
         const record = createRunRecord({
-          attributes: resolveCliRunAttributes(userRunAttributes, 'local', inheritedRunAttributes),
+          attributes: buildCliRunAttributes(userRunAttributes, 'local'),
           warn: (line) => console.warn(pc.yellow(line)),
         })
         _crashRecord = record
@@ -4649,7 +4576,7 @@ export function createRunCommand(): Command {
             console.error(formatParseError(err))
           }
           const validationRunId = createTestRunId()
-          const validationAttributes = resolveCliRunAttributes(userRunAttributes, 'local', inheritedRunAttributes)
+          const validationAttributes = buildCliRunAttributes(userRunAttributes, 'local')
           // 2026-10-17 (443-08, D-26): the failure row is filed under the id this command prints.
           await record.open({
             runId: validationRunId,
@@ -4857,9 +4784,7 @@ export function createRunCommand(): Command {
         const singleAnalytics = await analytics()
         singleExtraSubscribers.push(buildAnalyticsRunSubscriber({
           analytics: singleAnalytics,
-          ...analyticsRunAttribution(
-            resolveCliRunAttributes(userRunAttributes, 'local', inheritedRunAttributes),
-          ),
+          ...analyticsRunAttribution(buildCliRunAttributes(userRunAttributes, 'local')),
         }))
 
         const { runInProcessCliRun } = await import('../composition/in-process-run-execution.js')

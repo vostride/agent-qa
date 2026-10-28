@@ -14,10 +14,8 @@
 //      happens. It is not a decision here at all: an opted-out host composes a port with no
 //      transport, so this module emits into a wall and never learns the difference. One decision
 //      site, in `compose.ts`, is what D-19 buys and what the ownership contract forbids re-opening.
-//   2. The environment read for run attributes. `AGENT_QA_RUN_ATTRIBUTES_JSON` was parsed here,
-//      which put an env read in a module a run drives. The trigger and runner are now handed in by
-//      whoever composed the port — they are facts about how the process was started, and the
-//      composition root is the only thing that actually knows them.
+//   2. Run attributes. The trigger and runner are passed in by the caller that resolved the run's
+//      attributes; this module reads no environment for them.
 //   3. Raw id pass-through. v1 forwarded whatever string the bus carried into `run_id`/`test_id`.
 //      Those fields are known-id codecs in the closed union now, so a foreign string reaching one
 //      is exactly the free-text channel the union exists to close. Ids are filtered through the

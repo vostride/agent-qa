@@ -62,11 +62,8 @@ export const REPLAY_FROM_START = 1
  * command composed instead of a `config` it would consult itself. The bus-facing shape —
  * `{ handler, flush }` — is byte-for-byte the one `attachRunSubscribers` already subscribes.
  *
- * THREE FACTS THE V1 SUBSCRIBER READ FOR ITSELF ARE PASSED IN NOW. The trigger source and the
- * runner came from `AGENT_QA_RUN_ATTRIBUTES_JSON`, parsed inside a module a run drives; they are
- * facts about how this process was started, so the caller — which resolved those attributes to put
- * them on the run in the first place — states them. The privacy posture came from a second read of
- * the config; it is now expressed by which transport the composed port holds.
+ * The trigger source and the runner are passed in by the caller that resolved the run's
+ * attributes. The privacy posture is expressed by which transport the composed port holds.
  */
 export function buildAnalyticsRunSubscriber(input: {
   /** The invocation's composed analytics. Opted out ⇒ its port has no transport. */

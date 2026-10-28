@@ -42,15 +42,12 @@ const INCOMPLETE = 'but its dashboard record is incomplete'
 
 const target = new CountingTarget()
 const priorBrowsersPath = process.env.PLAYWRIGHT_BROWSERS_PATH
-const priorRunAttributes = process.env.AGENT_QA_RUN_ATTRIBUTES_JSON
 
 beforeAll(async () => { await target.listen() })
 afterAll(async () => {
   await target.close()
   if (priorBrowsersPath === undefined) delete process.env.PLAYWRIGHT_BROWSERS_PATH
   else process.env.PLAYWRIGHT_BROWSERS_PATH = priorBrowsersPath
-  if (priorRunAttributes === undefined) delete process.env.AGENT_QA_RUN_ATTRIBUTES_JSON
-  else process.env.AGENT_QA_RUN_ATTRIBUTES_JSON = priorRunAttributes
   removeInProcessFixtures()
 })
 

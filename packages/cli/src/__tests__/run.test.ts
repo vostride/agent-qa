@@ -315,28 +315,6 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => {
     }
     return attributes
   }),
-  validateTrustedRunAttributes: vi.fn((input: unknown, sourceLabel = 'run attributes') => {
-    if (input === undefined || input === null) return {}
-    if (!input || typeof input !== 'object' || Array.isArray(input)) {
-      throw new Error(`${sourceLabel}: attributes must be a plain object`)
-    }
-    const attributes: Record<string, string> = {}
-    for (const [key, value] of Object.entries(input)) {
-      if (!key) throw new Error(`${sourceLabel}: Attribute key must be non-empty`)
-      if (typeof value !== 'string') throw new Error(`${sourceLabel}: Attribute value for "${key}" must be a string`)
-      if (key === 'agent-qa.trigger' && !['cli', 'dashboard', 'api', 'mcp'].includes(value)) {
-        throw new Error(`${sourceLabel}: Attribute value for "${key}" must be one of: cli, dashboard, api, mcp`)
-      }
-      if (key === 'agent-qa.runner' && value !== 'local') {
-        throw new Error(`${sourceLabel}: Attribute value for "${key}" must be one of: local`)
-      }
-      if (key.startsWith('agent-qa.') && key !== 'agent-qa.trigger' && key !== 'agent-qa.runner') {
-        throw new Error(`${sourceLabel}: Attribute key "${key}" uses the reserved prefix "agent-qa."`)
-      }
-      attributes[key] = value
-    }
-    return attributes
-  }),
   parseRunAttrFlags: vi.fn((flags: string[] | undefined) => {
     const rawAttributes: Record<string, string> = {}
     const seen = new Set<string>()
@@ -841,7 +819,6 @@ afterEach(async () => {
   logSpy.mockRestore()
   errorSpy.mockRestore()
   delete process.env.AGENT_QA_RUN_ID
-  delete process.env.AGENT_QA_RUN_ATTRIBUTES_JSON
   delete process.env.AGENT_QA_LIVE_EVENTS
   defaultSecretsFilePath = undefined
   defaultEnvFilePath = undefined
@@ -2112,24 +2089,6 @@ describe('run command — run attributes', () => {
     expect(allErrors).toContain('reserved prefix "agent-qa."')
   })
 
-  it('rejects invalid inherited protected run attributes before execution', async () => {
-    process.env.AGENT_QA_RUN_ID = freshRunId('dashboard')
-    process.env.AGENT_QA_RUN_ATTRIBUTES_JSON = JSON.stringify({
-      'agent-qa.trigger': 'dashboard',
-      'agent-qa.runner': 'local',
-      'agent-qa.custom': 'evil',
-    })
-
-    await runCommand('tests/**/*.yaml')
-
-    expect(exitSpy).toHaveBeenCalledWith(2)
-    expect(mockRunMemberTest).not.toHaveBeenCalled()
-    const allErrors = errorSpy.mock.calls.map((c: string[]) => c.join(' ')).join('\n')
-    expect(allErrors).toContain('inherited run attributes')
-    expect(allErrors).toContain('agent-qa.custom')
-    expect(allErrors).toContain('reserved prefix "agent-qa."')
-  })
-
   it('rejects malformed --run-attr values before execution', async () => {
     await runCommand('tests/**/*.yaml', '--run-attr', 'noEquals')
 
@@ -2137,36 +2096,6 @@ describe('run command — run attributes', () => {
     expect(mockRunMemberTest).not.toHaveBeenCalled()
     const allErrors = errorSpy.mock.calls.map((c: string[]) => c.join(' ')).join('\n')
     expect(allErrors).toContain('KEY=VALUE')
-  })
-})
-
-// 2026-10-17 (443-09, D-11/D-25): the retired names are built from halves so no file spells them.
-describe('C443-ENV-RETIRED', () => {
-  it('inherits run attributes only under AGENT_QA_RUN_ID', async () => {
-    const retired = [['AGENT_QA_SUITE', '_QUEUE_ID'], ['AGENT_QA_PARENT', '_RUN_ID']]
-      .map((halves) => halves.join(''))
-    for (const name of retired) vi.stubEnv(name, freshRunId('retired'))
-    process.env.AGENT_QA_RUN_ATTRIBUTES_JSON = JSON.stringify({
-      'agent-qa.trigger': 'dashboard',
-      'agent-qa.runner': 'local',
-      'git.branch': 'phase443-inherited',
-    })
-    mockGlob.mockResolvedValue(['tests/a.yaml'])
-    mockParseAllTests.mockResolvedValue({ tests: [makeTest()], errors: [] })
-    mockRunMemberTest.mockResolvedValue({
-      name: 'Test One', filePath: 'tests/a.yaml', status: 'passed', steps: [], duration: 100,
-    })
-
-    try {
-      await runCommand('tests/**/*.yaml')
-    } finally {
-      vi.unstubAllEnvs()
-    }
-
-    const allOutput = logSpy.mock.calls.map((c: string[]) => c.join(' ')).join('\n')
-    expect(allOutput.includes('agent-qa.trigger=cli'), 'the run carries its own trigger').toBe(true)
-    expect(allOutput.includes('git.branch=phase443-inherited'), 'inherited without AGENT_QA_RUN_ID')
-      .toBe(false)
   })
 })
 
@@ -2675,10 +2604,6 @@ describe('run command — reporter integration', () => {
       environment: 'local',
     })
     process.env.AGENT_QA_RUN_ID = freshRunId('dashboard')
-    process.env.AGENT_QA_RUN_ATTRIBUTES_JSON = JSON.stringify({
-      'agent-qa.trigger': 'dashboard',
-      'agent-qa.runner': 'local',
-    })
     mockGlob.mockResolvedValue(['tests/mobile.yaml'])
     mockParseAllTests.mockResolvedValue({
       tests: [makeTest({ target: 'mobile-app', use: { device: 'mobile-device' } })],
