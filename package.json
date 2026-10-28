@@ -55,6 +55,7 @@
     }
   },
   "devDependencies": {
+    "knip": "6.41.0",
     "semver": "7.7.4",
     "turbo": "~2.9.7",
     "typescript": "~6.0.3",

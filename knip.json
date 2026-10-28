@@ -1,27 +1,9 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "workspaces": {
-    "packages/core": {
-      "entry": ["src/agent/index.ts"]
-    },
-    "packages/cli": {
-      "entry": ["src/commands/*.ts"]
-    },
-    "packages/schema": {
-      "entry": [
-        "src/index.ts",
-        "src/**/__tests__/*.test-d.ts",
-        "src/**/__tests__/*.test.ts"
-      ],
-      "project": ["src/**/*.ts"],
-      "ignoreExportsUsedInFile": true
+    "packages/*": {
+      "entry": ["src/**/*.test-d.ts"]
     }
   },
-  "ignoreDependencies": [
-    "@ai-sdk/google",
-    "playwright-core"
-  ],
-  "ignoreWorkspaces": [
-    "packages/dashboard-ui"
-  ]
+  "ignoreBinaries": ["adb", "mkfifo"]
 }
