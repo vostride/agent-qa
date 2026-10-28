@@ -368,9 +368,38 @@ export async function executeStep(
     pendingCautions = served
   }
 
-  // A completing plan that dispatched assertAI or extractAI never writes the cache; this latch
-  // makes finalize report 'bypass'.
+  // A step that dispatched assertAI or extractAI writes nothing to the cache; this latch makes
+  // finalize report 'bypass'.
   let cacheBypass = false
+
+  // The step's saved path: each successful saveable turn is held until the verifier passes the
+  // step, then written under a key whose step index is the turn's place in that path.
+  let pathOrdinal = 0
+  const savedPath: {
+    key: CacheKey
+    action: Action
+    elements: readonly ElementInfo[]
+    statedTargets: StatedTargets | undefined
+    turn: number
+    storedCompletesStep: boolean | undefined
+  }[] = []
+
+  // A replayed turn is written again only when its completion flag changes.
+  const flushSavedPath = async (completingTurn: number): Promise<void> => {
+    if (!ports.cache || cacheBypass || savedPath.length === 0) return
+    const last = savedPath[savedPath.length - 1]
+    const lastCompletes = last.turn === completingTurn
+    for (const held of savedPath) {
+      const completesStep = lastCompletes && held === last
+      if (held.storedCompletesStep === completesStep) continue
+      await ports.cache.set(held.key, buildCachedPlanValue({
+        plannedActions: [held.action],
+        elements: held.elements,
+        completesStep,
+        ...(held.statedTargets !== undefined ? { statedTargets: held.statedTargets } : {}),
+      }))
+    }
+  }
 
   // PROC-02 (381 D-09..D-12, F-381-51-1) per-step procedure state. `procedureConsulted`
   // makes the getProcedure consult a strict at-most-once-per-step event (D-09) — a carried
@@ -1062,6 +1091,7 @@ export async function executeStep(
     // settled screenIdentityHash as the 8th component (D-05/D-09). Branch never enters key
     // material. Undefined for non-cacheable (bypassed) steps or when no cache is bound.
     let cacheKey: CacheKey | undefined
+    let storedCompletesStep: boolean | undefined
     const cacheActive = !nonCacheable && !!ports.cache
 
     // 2b. GUARDED PROCEDURE REPLAY (D-09/D-10/D-11, F-381-51-1): each test step consumes
@@ -1153,7 +1183,8 @@ export async function executeStep(
         suiteConfigDigest: ports.configDigests?.suiteConfigDigest ?? '',
         testConfigDigest: ports.configDigests?.testConfigDigest ?? '',
         stepText: stepInstruction,
-        stepIndex: actionIndex,
+        // The step's earlier saveable turns that succeeded: failed turns and reports leave no gap.
+        stepIndex: pathOrdinal,
         testIndex: 0,
         envVars: cacheEnvVars,
         screenIdentityHash: settledHash,
@@ -1168,6 +1199,7 @@ export async function executeStep(
         if (replay.ok) {
           planResult = { plan: replay.plan }
           cached = true
+          storedCompletesStep = hit.completesStep
         } else {
           recorder.recordCacheMiss({ reason: replay.reason })
           await ports.cache!.invalidate(cacheKey)
@@ -1489,37 +1521,6 @@ export async function executeStep(
       statedTargets,
       recordMask,
     )
-
-    // Persist the completing decision's plan into the per-key cache as a descriptor-only
-    // value (D-12 overfit guard: buildCachedPlanValue strips ref/coords/data and derives
-    // role + exact name locators, with the decision's stated row words when the observed row
-    // holds them, D-11). setVariable actions are never cached (env provenance). No-op for
-    // bypassed steps, cache hits, or when no cache is bound.
-    const cacheCompletingPlan = async (): Promise<void> => {
-      // Pitfall 4 cache-vs-procedure precedence: a procedure-replayed completing plan is
-      // NEVER persisted into the action cache. The procedure store owns replaying whole
-      // flows ACROSS test steps — one body step per test step, resumed through the
-      // member-scoped carry (F-381-51-1 · D-09) — and replayed completing plans stay out
-      // of the cache; double-storing a replayed action under a decision cache key would
-      // let the cached flag claim what planSource already attributes — evidence separation
-      // (D-12) requires exactly one provenance per decision. (Structurally `cacheKey` is
-      // already undefined here because replayed decisions skip the cache consult; this
-      // guard makes the precedence decision explicit.)
-      if (procedureReplayed) return
-      if (!cacheActive || cached || !cacheKey || !ports.cache) return
-      if (normalizedAction.type === 'setVariable') return
-      // D-08 write guard (Phase 360): an AI-assertion plan is never persisted. Narrowing the
-      // action away from the assertAI/extractAI members IS the CacheablePlannedAction typecheck
-      // proof (Plan 09's Exclude type) — buildCachedPlanValue below receives only cacheable
-      // members without a cast, and the bypass stamp threads through finalize.
-      if (normalizedAction.type === 'assertAI' || normalizedAction.type === 'extractAI') return
-      await ports.cache.set(cacheKey, buildCachedPlanValue({
-        plannedActions: [normalizedAction],
-        elements: screenState.elements,
-        completesStep: true,
-        ...(statedTargets !== undefined ? { statedTargets } : {}),
-      }))
-    }
 
     const abortAfterPlan = checkAbort()
     if (abortAfterPlan) return abortAfterPlan
@@ -2084,6 +2085,23 @@ export async function executeStep(
     // Execution succeeded — clear failure context.
     context.failureContext = undefined
 
+    if (
+      normalizedAction.type !== 'reportValue'
+      && isReplayableActionShape(normalizedAction.type, Object.keys(normalizedAction))
+    ) {
+      if (cacheActive && !procedureReplayed && cacheKey !== undefined) {
+        savedPath.push({
+          key: cacheKey,
+          action: normalizedAction,
+          elements: screenState.elements,
+          statedTargets,
+          turn: actionIndex,
+          storedCompletesStep: cached ? storedCompletesStep : undefined,
+        })
+      }
+      pathOrdinal++
+    }
+
     // 5. VERIFY — only when the planner signals stepComplete (three-outcome strategy).
     let verifierReasoning: string | undefined
     if (rawPlan.stepComplete && ports.verifier) {
@@ -2200,7 +2218,7 @@ export async function executeStep(
           annotation,
         )
         pendingSelfHeal = undefined
-        await cacheCompletingPlan()
+        await flushSavedPath(actionIndex)
         // F-381-51-1 · D-09: the verifier ACCEPTED a successful replayed step — re-arm the
         // cross-step carry when body steps remain (the only write site; take-then-rearm).
         if (procedureReplayed) rearmProcedureFlowCarry()
@@ -2271,7 +2289,6 @@ export async function executeStep(
         failed: { plan: reasoning, plannedAction: recordedPair.plannedAction, result: toRecordedActionResult(toSchemaResult(execResult, annotation)) },
       }
       stageFailureCautions(action, afterState)
-      // Non-completing decision — not cached (only the step-completing plan is persisted).
       continue
     }
 
@@ -2298,7 +2315,7 @@ export async function executeStep(
       )
       pendingSelfHeal = undefined
       void idx
-      await cacheCompletingPlan()
+      await flushSavedPath(actionIndex)
       // F-381-51-1 · D-09: verifier-less harness state — the trusted completion accepts
       // the replayed step, so the cross-step carry re-arms when body steps remain.
       if (procedureReplayed) rearmProcedureFlowCarry()
@@ -2334,7 +2351,6 @@ export async function executeStep(
       data: guardActionData(execResult.data, ports.guardBlob),
       ...historyEvidence,
     })
-    // Non-completing decision — not cached (only the step-completing plan is persisted).
   }
 }
 
@@ -2353,12 +2369,8 @@ function deriveEnvSetNames(stepText: string): string[] {
   return stepText.match(ENV_NAME_TOKEN) ?? []
 }
 
-// Replayability is judged by the ONE schema-shared list (`isReplayableActionShape` —
-// NON_REPLAYABLE_ACTION_TYPES + COORDINATE_ACTION_KEYS). The former loop-local
-// COORDINATE_KEYS/COORDINATE_ACTION_TYPES copies were retired for the shared import
-// (381 Pitfall 6: cache write guard, extraction disposition, and procedure replay must
-// never fork the list). Behavior-compatible on the cache path: the extra non-replayable
-// types (setVariable/assertAI/extractAI) are never persisted by cacheCompletingPlan.
+// Replayability is judged by the one schema-shared list (`isReplayableActionShape`), and the
+// saved path holds only turns that list accepts.
 
 // The ordered ref-field lanes replay must re-resolve for an action (Pitfall 5a): a drag
 // maps its two per-field locators onto fromRef/toRef; every other element action maps its

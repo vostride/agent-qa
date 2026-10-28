@@ -11,7 +11,6 @@ import {
 import type { ArtifactRef, CacheKey, ElementInfo, ScreenState } from '@vostride/agent-qa-schema'
 import type { Action, ActionResult, PlatformAdapter } from '../../platform.js'
 import type { ActionPlanCache, CachedPlanValue } from '../../cache/port.js'
-import { buildCachedPlanValue } from '../../cache/value.js'
 import type { EvidenceArtifactStorePort, LoopPorts } from '../ports.js'
 import type { ActionPlan, Planner, PlanResult, Verifier } from '../types.js'
 import { executeStep } from '../index.js'
@@ -183,37 +182,27 @@ async function firstRun(cache: RecordingCache) {
   return { result, planner }
 }
 
-// The loop writes only the step-completing decision. The two earlier decisions are seeded from
-// the first run's own evidence through the same value builder, marked non-completing.
-async function seededCache() {
+async function savedCache() {
   const cache = recordingCache()
   const first = await firstRun(cache)
-  const keys = cache.gets.map(get => get.key)
-  first.result.evidence!.subActions.slice(0, 2).forEach((subAction, index) => {
-    cache.store.set(keys[index], buildCachedPlanValue({
-      plannedActions: [subAction.plannedAction as unknown as Action],
-      elements: subAction.stateBefore.elements,
-      completesStep: false,
-    }))
-  })
   cache.gets.length = 0
   cache.sets.length = 0
   return { cache, first }
 }
 
 describe('C436-CACHE-IDENTITY', () => {
-  it('cache keys for the fixed three-action fixture equal the 5e3e932a2 literals', async () => {
+  it('cache keys for the fixed three-action fixture equal the pinned literals, and each passing turn is saved under its key', async () => {
     const cache = recordingCache()
     const { result, planner } = await firstRun(cache)
     expect(result.status).toBe('passed')
     expect(planner.calls).toBe(3)
     expect(cache.gets.map(get => get.key)).toEqual(PINNED_KEYS)
     expect(cache.gets.every(get => !get.hit)).toBe(true)
-    expect(cache.sets).toEqual([PINNED_KEYS[2]])
+    expect(cache.sets).toEqual(PINNED_KEYS)
   })
 
-  it('a seeded cache replays every decision with zero planner calls', async () => {
-    const { cache } = await seededCache()
+  it('a saved cache replays every decision with zero planner calls', async () => {
+    const { cache } = await savedCache()
     const planner = scriptedPlanner(FIXTURE_PLANS)
     const adapter = adapterOver(fixtureScreens())
     const result = await executeStep(
@@ -230,7 +219,7 @@ describe('C436-CACHE-IDENTITY', () => {
   })
 
   it('a screen with a different identity gains no hit', async () => {
-    const { cache } = await seededCache()
+    const { cache } = await savedCache()
     const screens = fixtureScreens(true)
     expect(screenIdentityHash(screens[0])).not.toBe(screenIdentityHash(fixtureScreens()[0]))
     const planner = scriptedPlanner(FIXTURE_PLANS)

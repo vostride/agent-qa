@@ -1,6 +1,6 @@
 // C439-REPLAY (439 D-15, SC3): a cache hit and a procedure replay make no planning call but are
-// still judged by the verifier on a fresh observation under the per-condition contract. The
-// cached outcome never decides the verdict, and the cache is written only after a computed pass.
+// still judged by the verifier on a fresh observation under the per-condition contract. The cached
+// outcome never decides the verdict, and saved turns are written only after a computed pass.
 
 import { describe, expect, it } from 'vitest'
 import {
@@ -338,7 +338,7 @@ describe('C439-REPLAY', () => {
     expect(cache.sets).toEqual([])
   })
 
-  it('the cache is written only after a computed pass', async () => {
+  it('every saved turn is written only after a computed pass', async () => {
     const events: string[] = []
     const cache = recordingCache(events)
     const live = planner([CLICK_CONTINUE])
@@ -348,9 +348,9 @@ describe('C439-REPLAY', () => {
 
     expect(result.status).toBe('passed')
     expect(judge.calls).toBe(2)
-    expect(cache.sets).toHaveLength(1)
-    expect(events).toEqual(['verify', 'verify', 'set'])
-    expect(cache.sets[0]).toBe(cache.gets[1].key)
+    expect(events).toEqual(['verify', 'verify', 'set', 'set'])
+    expect(cache.sets).toEqual(cache.gets.map((get) => get.key))
+    expect(cache.sets.map((key) => cache.store.get(key)?.completesStep)).toEqual([false, true])
   })
 
   it('procedure replay re-verifies each replayed step', async () => {
