@@ -224,7 +224,7 @@ export interface StepStartedPayload {
 export interface StepFinalizedPayload {
   testIndex: number
   stepIndex: number
-  cacheStatus: 'hit' | 'miss' | 'bypass'
+  cacheStatus: 'hit' | 'miss' | 'bypass' | 'disabled'
   verifierVerdict: VerifierVerdict
   selfHealOccurred: boolean
   briefDigest: string

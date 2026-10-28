@@ -141,6 +141,25 @@ describe('loop evidence matrix (SCREEN-02 / D-15)', () => {
     expect(result.status).toBe('passed')
     expect(result.evidence!.cacheStatus).toBe('hit')
   })
+
+  it('a step with no cache bound records its cache as disabled', async () => {
+    const planner = makePlanner([makeActionPlan({ action: { type: 'click', ref: 'e2' }, stepComplete: true })])
+    const result = await executeStep('One sub-action', ports({ adapter: makeAdapter(), planner }), makeStepContext())
+    expect(result.status).toBe('passed')
+    expect(result.evidence!.cacheStatus).toBe('disabled')
+  })
+
+  it('a step that would bypass records disabled when no cache is bound', async () => {
+    const store = new SecretStore({ PASSWORD: 'hunter2' })
+    const instruction = 'Type {{secret:PASSWORD}} into the password field'
+    const planner = makePlanner([makeActionPlan({ action: { type: 'click', ref: 'e2' }, stepComplete: true })])
+    const result = await executeStep(
+      instruction,
+      ports({ adapter: makeAdapter(), planner, secretStore: store, secretRedactor: new SecretRedactor(store) }),
+      makeStepContext({ stepInstruction: instruction }),
+    )
+    expect(result.evidence!.cacheStatus).toBe('disabled')
+  })
 })
 
 // 407-07 · D-13/D-16: the loop is HANDED a rung (resolved once at the composition root) and

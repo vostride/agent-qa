@@ -175,6 +175,8 @@ export interface InProcessFixtureInput {
    * explicit-count arm. Written only when set, so every existing fixture's bytes are unchanged.
    */
   readonly workerCount?: number
+  /** Write `use.cache: false` in the config, so every test the fixture writes runs with the cache off. */
+  readonly cacheOff?: boolean
 }
 
 /** The package name the knob above declares. Not installed, and named so a reader can tell. */
@@ -279,6 +281,7 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
         : []),
       ...(input.parallelRuns === true ? ['  parallel: true'] : []),
       ...(input.workerCount === undefined ? [] : [`  workers: ${input.workerCount}`]),
+      ...(input.cacheOff === true ? ['  cache: false'] : []),
       '  llm: unreachable',
       '  mobile:',
       '    appState: preserve',

@@ -615,7 +615,7 @@ export interface RunDetailStep {
   stepIndex: number
   /** The instruction text, cached from this step's own `stepStarted`. */
   stepText?: string
-  cacheStatus: 'hit' | 'miss' | 'bypass'
+  cacheStatus: 'hit' | 'miss' | 'bypass' | 'disabled'
   verifierVerdict: VerifierVerdict
   selfHealOccurred: boolean
   briefDigest: string
@@ -795,7 +795,7 @@ export const RunDetailStepSchema = z.object({
   testIndex: z.number().int().nonnegative(),
   stepIndex: z.number().int().nonnegative(),
   stepText: z.string().optional(),
-  cacheStatus: z.enum(['hit', 'miss', 'bypass']),
+  cacheStatus: z.enum(['hit', 'miss', 'bypass', 'disabled']),
   verifierVerdict: VerifierVerdictSchema,
   selfHealOccurred: z.boolean(),
   briefDigest: z.string(),

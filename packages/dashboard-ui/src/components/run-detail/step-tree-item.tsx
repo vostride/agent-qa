@@ -55,11 +55,9 @@ export function StepTreeItem({ step, isSelected, isExpanded, selection, playhead
   const subActions = step.subActions ?? []
   const hasSubActions = subActions.length > 0
 
-  // THE STEP OWNS THE CACHE ANSWER, AND IT IS THREE-VALUED (D-01). `hit` means this step was served
-  // from cache — every action under it with it. `miss` and `bypass` mean it was not, and there is
-  // no partial state to render: the v1 shape counted cached sub-actions, and the projection that
-  // replaced it records nothing per sub-action, so a "2 of 5" here would be a measurement nobody
-  // took.
+  // The step owns the cache answer. `hit` means every action in the step came from the cache;
+  // `miss`, `bypass` and `disabled` mean it was not. Nothing per sub-action is recorded, so there
+  // is no partial state to render.
   const servedFromCache = step.cacheStatus === 'hit'
 
   const hasChildren = hasSubActions || inlineLogs.length > 0

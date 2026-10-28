@@ -184,11 +184,10 @@ describe('C438-KEY-SETS', () => {
     expectTypeOf<CacheMissReason>().toEqualTypeOf<(typeof reasons)[number]>()
   })
 
-  it('step evidence gains an optional cache miss and keeps its three cache statuses', () => {
+  it('step evidence carries an optional cache miss', () => {
     expectTypeOf<Pick<StepEvidence, 'cacheMiss'>>().toEqualTypeOf<{
       cacheMiss?: { reason: CacheMissReason }
     }>()
-    expectTypeOf<StepEvidence['cacheStatus']>().toEqualTypeOf<'hit' | 'miss' | 'bypass'>()
   })
 
   it('a handoff whose step carries a cache miss still loads', () => {

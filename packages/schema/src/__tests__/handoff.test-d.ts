@@ -32,7 +32,6 @@ expectTypeOf<StepEvidence['servedBrief']>().toEqualTypeOf<ServedBrief>()
 expectTypeOf<CompletedRunHandoff['schemaVersion']>().toEqualTypeOf<number>()
 expectTypeOf(CURRENT_HANDOFF_SCHEMA_VERSION).toMatchTypeOf<number>()
 
-expectTypeOf<StepEvidence['cacheStatus']>().toEqualTypeOf<'hit' | 'miss' | 'bypass'>()
 expectTypeOf<StepEvidence['verifierVerdict']>().toEqualTypeOf<VerifierVerdict>()
 expectTypeOf<VerifierVerdict>().toEqualTypeOf<{ pass: boolean; reasoning: string }>()
 

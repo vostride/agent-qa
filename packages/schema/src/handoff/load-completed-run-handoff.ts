@@ -448,7 +448,8 @@ function hasCompleteStepShape(value: unknown): boolean {
     typeof value.stepText === 'string' &&
     (value.cacheStatus === 'hit' ||
       value.cacheStatus === 'miss' ||
-      value.cacheStatus === 'bypass') &&
+      value.cacheStatus === 'bypass' ||
+      value.cacheStatus === 'disabled') &&
     isNonArrayObject(servedBrief) &&
     Array.isArray(servedBrief.channel1) &&
     servedBrief.channel1.every(isNonArrayObject) &&

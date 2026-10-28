@@ -2,16 +2,11 @@
 //
 // THE CACHE MARKERS ON THE DURABLE TREE (405-08).
 //
-// REPOINTED FROM THE v1 SHAPE (405-08). These cells used to drive the markers off
-// `SubActionData.cached` — a per-sub-action boolean the deleted v1 projection carried. The durable
-// projection records `cacheStatus` on the STEP, three-valued (`hit` / `miss` / `bypass`), and
-// records nothing per sub-action. So the step's own status is what the marker reads, and a
-// sub-action's marker is the step's answer applied to it: when the step was served from cache,
-// every action under it was.
-//
-// THE PARTIAL STATE LOST ITS PRODUCER, and the cell that pinned it now pins the honest successor:
-// a step that MISSED or BYPASSED the cache renders no marker at all. Inventing a "some" from a
-// three-valued step status would be a measurement nobody took.
+// The projection records `cacheStatus` on the step (`hit`, `miss`, `bypass` or `disabled`) and
+// nothing per sub-action. So the step's own status is what the marker reads, and a sub-action's
+// marker is the step's answer applied to it: when the step was served from cache, every action
+// under it was. A step that was not served from cache renders no marker at all; there is no
+// partial state to invent.
 
 import { act, type ReactElement, type ReactNode } from "react"
 import { createRoot, type Root } from "react-dom/client"
@@ -140,8 +135,8 @@ describe("run detail cache markers", () => {
     expect(view.textContent).not.toContain("accelerated")
   })
 
-  it.each(["miss", "bypass"] as const)(
-    "renders NO cache marker for a step that %sed the cache — there is no partial state to invent",
+  it.each(["miss", "bypass", "disabled"] as const)(
+    "renders NO cache marker for a step whose cache status is %s",
     (cacheStatus) => {
       const view = mount(
         <ul>

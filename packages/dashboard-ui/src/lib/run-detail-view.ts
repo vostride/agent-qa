@@ -320,10 +320,10 @@ export function usageCoverageLine(tokens: RunTokenTotals): string | undefined {
 /**
  * The provider's cached-input report, and NOTHING ELSE (425-05 · D-24, RESEARCH reconciliation 4).
  *
- * `cachedInputTokens` is the only input. A step's execution cache verdict — hit, miss or bypass —
- * is a fact about THIS product replaying a step without a model call at all, and rendering it here
- * would attribute a discount to the provider that the provider never reported, on the line a person
- * reads as a bill. The absence of the field is the absence of the claim, and this file is grepped
+ * `cachedInputTokens` is the only input. A step's execution cache verdict — hit, miss, bypass or
+ * disabled — is a fact about THIS product replaying a step without a model call at all, and
+ * rendering it here would attribute a discount to the provider that the provider never reported, on
+ * the line a person reads as a bill. The absence of the field is the absence of the claim, and this file is grepped
  * for that step field by name with ZERO matches required.
  *
  * THE NARROWER CLAUSE NAMES ITS OWN DENOMINATOR. When the cache report covers fewer steps than were

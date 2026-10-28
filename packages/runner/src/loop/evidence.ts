@@ -140,9 +140,8 @@ function makeChannel1ServedBrief(input: {
 }
 
 // ---------------------------------------------------------------------------
-// foldCacheStatus — per-step fold of v1's per-sub-action `cached` booleans. Any miss
-// ⇒ 'miss', all hit ⇒ 'hit'. 'bypass' is unused until Phase 356's cache redesign
-// (documented here for that phase; do not emit it from this fold).
+// foldCacheStatus — per-step fold of the per-sub-action `cached` flags: all hit ⇒ 'hit',
+// otherwise 'miss'. `finalize` decides 'disabled' and 'bypass' before this fold.
 // ---------------------------------------------------------------------------
 
 export function foldCacheStatus(subActionCacheFlags: boolean[]): StepEvidence['cacheStatus'] {
@@ -746,18 +745,18 @@ export class EvidenceRecorder {
     }
   }
 
-  /** Finalize the accumulated evidence into a §A8 StepEvidence. cacheStatus is the
-   * per-step fold; servedBrief is always present (empty when no reader bound).
+  /** Finalize the accumulated evidence into a §A8 StepEvidence; servedBrief is always present
+   * (empty when no reader bound).
    *
-   * `options.nonCacheable` threads the D-08 bypass signal (Pitfall 7): when a step was
-   * classified NonCacheableStepInput the loop never touched the cache, so cacheStatus is
-   * `'bypass'` DIRECTLY — orthogonal to the boolean hit/miss fold (a cached sub-action's
-   * flag must not fold to `'hit'` for a bypassed step). */
+   * cacheStatus is `'disabled'` when no cache was bound for the step (`options.cacheDisabled`),
+   * else `'bypass'` when the loop left the cache untouched for a non-cacheable step
+   * (`options.nonCacheable`), else the per-step hit/miss fold. */
   finalize(
     verdict: VerifierVerdict,
     stepIndex: number,
     stepText: string,
     options?: {
+      cacheDisabled?: boolean
       nonCacheable?: boolean
       /**
        * The step's `{{env:NAME}}` provenance pairs (PROC-01 · 381 D-03/D-08), stamped only
@@ -772,7 +771,11 @@ export class EvidenceRecorder {
     const evidence: StepEvidence = {
       stepIndex,
       stepText,
-      cacheStatus: options?.nonCacheable ? 'bypass' : foldCacheStatus(this.cacheFlags),
+      cacheStatus: options?.cacheDisabled
+        ? 'disabled'
+        : options?.nonCacheable
+          ? 'bypass'
+          : foldCacheStatus(this.cacheFlags),
       servedBrief: this.servedBrief,
       subActions: this.subActions,
       verifierVerdict: verdict,

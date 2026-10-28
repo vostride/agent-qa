@@ -574,12 +574,9 @@ export async function executeStep(
   // becomes the step's selfHeal.
   let pendingSelfHeal: Decision | undefined
 
-  // CACHE-02 (D-07/D-08): classify the step by resolution provenance ONCE. A step that
-  // reads a live secret ({{secret:X}} / [secret:*] marker) or sets an env/secret variable
-  // is NonCacheableStepInput — the loop bypasses the cache entirely (no get, no set) and
-  // finalize emits cacheStatus='bypass' (Pitfall 7). The read path reuses the shipped
-  // findSecretTemplates/marker provenance; the set path reuses the setVariable verb
-  // vocabulary until the live resolver-reported provenance is wired (Phase 362).
+  // Classify the step by resolution provenance once. A step that reads a live secret
+  // ({{secret:X}} / [secret:*] marker) or sets an env/secret variable is non-cacheable: the loop
+  // makes no cache get or set, and finalize records 'bypass' (or 'disabled' when no cache is bound).
   const classification = classifyStep({
     stepText: stepInstruction,
     envSets: deriveEnvSetNames(stepInstruction),
@@ -657,6 +654,7 @@ export async function executeStep(
     // raw, so the emit fold's exact-string match would miss and replay would stay
     // permanently `hint`. Do not "harden" this by adding a mask; that IS the bug.
     const evidence = recorder.finalize(verdict, 0, stepInstruction, {
+      cacheDisabled: ports.cache === undefined,
       nonCacheable: nonCacheable || cacheBypass,
       ...(context.interpolatedVariables ? { interpolatedVariables: context.interpolatedVariables } : {}),
     })

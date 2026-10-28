@@ -134,11 +134,11 @@ export interface InterpolatedVariable {
 export interface StepEvidence {
   stepIndex: number
   stepText: string
-  cacheStatus: 'hit' | 'miss' | 'bypass'
+  /** `disabled` means no cache was bound for the step's test. */
+  cacheStatus: 'hit' | 'miss' | 'bypass' | 'disabled'
   /**
    * The first cache key hit in this step whose stored target was not the only strict match, or
-   * could not replay (438 D-11). Present only when `cacheStatus` is 'miss'; `cacheStatus` stays
-   * the three-value union (optional-additive).
+   * could not replay. Present only when `cacheStatus` is 'miss'.
    */
   cacheMiss?: { reason: CacheMissReason }
   servedBrief: ServedBrief

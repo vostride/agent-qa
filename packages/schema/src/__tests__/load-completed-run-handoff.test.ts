@@ -205,6 +205,16 @@ describe('member-grain rerun markers at the load boundary (418 D-09, approved OQ
   })
 })
 
+describe('step cache status at the load boundary', () => {
+  it('a handoff whose step records a disabled cache loads', () => {
+    const doc = makeHandoffWithStep()
+    const tests = doc.tests as Array<{ steps: Record<string, unknown>[] }>
+    tests[0]!.steps[0]!.cacheStatus = 'disabled'
+    const guarded = guardCompletedRunHandoff(doc)
+    expect(guarded.tests[0]?.steps[0]?.cacheStatus).toBe('disabled')
+  })
+})
+
 describe('StepEvidence.retrievalRung at the load boundary (407 D-13, TRST-01)', () => {
   it('the current handoff schemaVersion is 2', () => {
     expect(CURRENT_HANDOFF_SCHEMA_VERSION).toBe(2)
