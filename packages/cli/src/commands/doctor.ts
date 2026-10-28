@@ -12,6 +12,8 @@ import { loadProviderPluginsForRawConfig } from '../provider-plugins.js'
 import {
   discoverWorkspaceFiles,
   formatAppiumInstallGuidance,
+  isGitHubActions,
+  printRunText,
   resolveAppiumExecutable,
   resolveWorkspacePaths,
   type AgentQaConfig,
@@ -680,20 +682,28 @@ export function createDoctorCommand(): Command {
       // registration cleanup is touched by it: the checks above still answer exactly what they
       // answered before, and doctor still only reads.
       const width = resolveTerminalWidth()
+      // Rows quote config names, so under GitHub Actions the table prints once as one wrapped
+      // block after the last check; elsewhere each row prints as its check finishes.
+      const table: string[] | undefined = isGitHubActions() ? [] : undefined
+      const printLine = (line: string): void => {
+        if (table === undefined) console.log(line)
+        else table.push(line)
+      }
 
       for (const check of checks) {
         const result = await check.check()
         results.push({ check, result })
 
         const row = formatCheckRow(check.name, result.message, result.status, width)
-        console.log(composeRow(row, { dots: pc.dim, status: formatStatus }))
-        for (const line of row.continuations) console.log(line)
+        printLine(composeRow(row, { dots: pc.dim, status: formatStatus }))
+        for (const line of row.continuations) printLine(line)
 
         if (result.status === 'fail') {
-          for (const line of formatFixLines(check.fixInstructions, width)) console.log(pc.dim(line))
+          for (const line of formatFixLines(check.fixInstructions, width)) printLine(pc.dim(line))
           hasFailure = true
         }
       }
+      if (table !== undefined) printRunText(table.join('\n'))
 
       console.log('')
       if (hasFailure) {

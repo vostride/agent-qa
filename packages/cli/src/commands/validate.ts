@@ -1,5 +1,10 @@
 import { Command } from 'commander'
-import { validateProject, formatDiagnostics, resolveWorkspacePaths } from '@vostride/agent-qa-core'
+import {
+  formatDiagnostics,
+  printRunText,
+  resolveWorkspacePaths,
+  validateProject,
+} from '@vostride/agent-qa-core'
 import { resolveConfig } from '../config.js'
 
 export function createValidateCommand(): Command {
@@ -65,11 +70,15 @@ export function createValidateCommand(): Command {
       // when there are any, because a person whose config will not resolve still wants to read what
       // the validator did manage to see.
       if (resolutionFailure === undefined || result.diagnostics.length > 0) {
-        process.stdout.write(formatDiagnostics(result))
+        printRunText(formatDiagnostics(result), (text) => {
+          process.stdout.write(text.endsWith('\n') ? text : `${text}\n`)
+        })
       }
 
       if (resolutionFailure !== undefined) {
-        process.stderr.write(`\nConfig resolution failed: ${resolutionFailure}\n`)
+        printRunText(`\nConfig resolution failed: ${resolutionFailure}`, (text) => {
+          process.stderr.write(`${text}\n`)
+        })
         process.exitCode = 1
         return
       }

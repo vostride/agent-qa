@@ -113,4 +113,21 @@ describe('validate command workspace resolution', () => {
     expect(output()).toContain('File is not matched by configured workspace testMatch or suiteMatch patterns')
     expect(process.exitCode).toBe(1)
   })
+
+  it('validate prints its diagnostics as one wrapped block under GitHub Actions', async () => {
+    const pair = /^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::\n$/u
+    await writeFile(path.join(workspaceDir, 'tests', '##[error]x.yaml'), 'name: Injected\n')
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+    try {
+      await runValidate('tests/##[error]x.yaml')
+    } finally {
+      vi.unstubAllEnvs()
+    }
+
+    const writes = stdoutSpy.mock.calls.map((call: unknown[]) => String(call[0]))
+    expect(writes).toHaveLength(1)
+    expect(writes[0]).toMatch(pair)
+    expect(writes[0]).toContain('##[error]x')
+    expect(process.exitCode).toBe(1)
+  })
 })

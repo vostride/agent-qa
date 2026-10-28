@@ -1310,6 +1310,53 @@ targets:
     )
     expect(lines).toContain(preChangeRow('Retrieval rung', 'memidex', 'PASS'))
   })
+
+  it('doctor prints its check table as one wrapped block under GitHub Actions', async () => {
+    const pair = /^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::\n$/u
+    mockReadFile.mockResolvedValue(`
+workspace:
+  testMatch:
+    - tests/**/*.yaml
+  suiteMatch:
+    - suites/**/*.suite.yaml
+  hooksFile: hooks.yaml
+  envFile: .env
+  secretsFile: '::set-output name=x::y'
+registry:
+  llms:
+    - name: planner
+      provider: openai-compatible
+      model: deepseek-chat
+      baseURL: https://remote.example/api/v1
+use:
+  llm: planner
+` as never)
+    mockExistsSync.mockImplementation((p) => String(p).endsWith('::set-output name=x::y'))
+    const writes: string[] = []
+    const stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+      writes.push(String(chunk))
+      return true
+    })
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+    try {
+      await runDoctor()
+    } finally {
+      vi.unstubAllEnvs()
+      stdoutSpy.mockRestore()
+    }
+
+    const blocks = writes.filter((write) => write.includes('::stop-commands::'))
+    expect(blocks).toHaveLength(1)
+    expect(blocks[0]).toMatch(pair)
+    expect(blocks[0]).toContain('::set-output name=x::y found')
+    expect(blocks[0]).toContain('Node.js')
+    expect(blocks[0]).toContain('Test discovery')
+    expect(blocks[0]).not.toContain('agent-qa doctor')
+    const printed = getOutput()
+    expect(printed).toContain('agent-qa doctor')
+    expect(printed).toMatch(/All checks passed|Some checks failed/u)
+    expect(printed).not.toContain('::set-output')
+  })
 })
 
 
