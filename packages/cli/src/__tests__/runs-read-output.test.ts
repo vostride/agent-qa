@@ -141,6 +141,19 @@ describe('agent-qa runs output under GitHub Actions', () => {
     expect(`${invocation.stderr}\n`).toMatch(PAIR)
   })
 
+  it('a refused evidence flag under --json stays off stdout', async () => {
+    const { configPath, runId } = project()
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const invocation = await runs(configPath, ['evidence', runId, '--json'])
+
+    expect(invocation.exitCode).toBe(1)
+    expect(invocation.writes).toEqual([])
+    expect(invocation.stdout).toBe('')
+    expect(`${invocation.stderr}\n`).toMatch(PAIR)
+    expect(invocation.stderr).toContain('agent-qa runs evidence: name a document')
+  })
+
   it('runs mark prints its outcome inside a pair and its --json receipt unwrapped', async () => {
     const { configPath } = project()
     const missing = generateRunId()

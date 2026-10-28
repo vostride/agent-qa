@@ -115,8 +115,11 @@ export function createDigestCommand(): Command {
         )
         process.exitCode = 1
       } finally {
-        releaseStdout?.()
-        await host.close()
+        try {
+          await host.close()
+        } finally {
+          releaseStdout?.()
+        }
       }
     })
 }

@@ -130,8 +130,11 @@ async function withHost(
   } catch (error) {
     reportFailure(verb, error)
   } finally {
-    releaseStdout?.()
-    await host?.close()
+    try {
+      await host?.close()
+    } finally {
+      releaseStdout?.()
+    }
   }
 }
 
@@ -488,7 +491,12 @@ export function registerRunReadCommands(command: Command): void {
         request = evidenceRequest(options)
         if (request.mode === 'artifact') preflightExportDestination(request.out)
       } catch (error) {
-        reportFailure('evidence', error)
+        const releaseStdout = options.json === true ? reserveStdoutForData() : undefined
+        try {
+          reportFailure('evidence', error)
+        } finally {
+          releaseStdout?.()
+        }
         return
       }
       await withHost('evidence', cmd, options.json, async (host) => {

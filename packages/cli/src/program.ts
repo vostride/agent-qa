@@ -1,3 +1,4 @@
+import { reserveStdoutForData } from '@vostride/agent-qa-core/run-text-output'
 import { Command } from 'commander'
 import { VERSION } from './index.js'
 import {
@@ -44,6 +45,12 @@ export function createAgentQaProgram(): Command {
     .option('--log-level <level>', 'log verbosity: silent|error|warn|info|debug')
     .option('--verbose', 'shorthand for --log-level debug')
     .option('--quiet', 'shorthand for --log-level silent')
+
+  // A process runs one action, and a --json action's stdout stays reserved until the process
+  // exits: a detached run tail or host teardown can still print after the action returns.
+  program.hook('preAction', (_program, action) => {
+    if (action.opts<{ json?: unknown }>().json === true) reserveStdoutForData()
+  })
 
   program.addCommand(createRunCommand())
   program.addCommand(createRunsCommand())
