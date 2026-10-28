@@ -9,6 +9,7 @@ import { dirname, resolve } from 'node:path'
 import { invokeFunction } from '@vostride/agent-qa-agent'
 import type { FunctionDeclaration } from '@vostride/agent-qa-agent'
 import type { RunExecutionPort } from '@vostride/agent-qa-agent-local'
+import { guardJsonText, printRunText, reserveStdoutForData } from '@vostride/agent-qa-core'
 import { maskPayloadTree, type MaskFn } from '@vostride/agent-qa-schema'
 import { Command } from 'commander'
 import pc from 'picocolors'
@@ -145,15 +146,15 @@ async function renderStream(
     const stamped = element as SeqStamped
     lastSeq = stamped.seq
     if (json) {
-      console.log(JSON.stringify(streamLine(element, mask)))
+      console.log(guardJsonText(JSON.stringify(streamLine(element, mask))))
       continue
     }
     const label = `${pc.dim(`seq ${stamped.seq ?? '?'}`)}  ${pc.bold(stamped.type ?? 'event')}`
-    console.log(mask(label))
+    printRunText(mask(label))
   }
 
   if (!json) {
-    console.log(mask(pc.dim(
+    printRunText(mask(pc.dim(
       `${count} event${count === 1 ? '' : 's'} · last seq ${lastSeq ?? 'none'}`,
     )))
   }
@@ -163,7 +164,7 @@ async function renderStream(
 // JSON-special character can neither break the document nor slip past the mask.
 // 2026-10-15 (441-62, GAP-D2): keys too.
 function emitJson(mask: MaskFn, value: unknown): void {
-  console.log(JSON.stringify(maskPayloadTree(value, mask), null, 2))
+  console.log(guardJsonText(JSON.stringify(maskPayloadTree(value, mask), null, 2)))
 }
 
 /**
@@ -184,7 +185,7 @@ export function renderFnResult(result: unknown): string {
 }
 
 function emitHuman(mask: MaskFn, text: string): void {
-  console.log(mask(text))
+  printRunText(mask(text))
 }
 
 /**
@@ -248,7 +249,7 @@ function reportError(error: unknown, mask?: MaskFn): void {
       return
     }
   }
-  console.error(pc.red(shown))
+  printRunText(pc.red(shown), (block) => console.error(block))
 }
 
 /**
@@ -274,6 +275,7 @@ export function createFnCommand(deps: FnCommandDeps = {}): Command {
     .option('--via-daemon', 'dispatch through the project daemon instead of in-process')
     .action(async (id: string | undefined, options: FnOptions, command: Command) => {
       let mask: MaskFn | undefined
+      const releaseStdout = options.json === true ? reserveStdoutForData() : undefined
       try {
         const composition = compositionInput(command)
         const declaredSecrets = createDeclaredSecretMask(composition.configPath)
@@ -348,6 +350,8 @@ export function createFnCommand(deps: FnCommandDeps = {}): Command {
         emitHuman(mask, renderFnResult(maskPayloadTree(result, mask)))
       } catch (error) {
         reportError(error, mask)
+      } finally {
+        releaseStdout?.()
       }
     })
 }

@@ -86,6 +86,7 @@ const FIXTURE_PROVIDER_PLUGIN_PACKAGE = '@acme/provider-plugin-SHOW-ME-5678'
 interface InvocationResult {
   stdout: string
   stderr: string
+  writes: string[]
   exitCode: typeof process.exitCode
 }
 
@@ -349,6 +350,11 @@ async function invoke(
   const error = vi.spyOn(console, 'error').mockImplementation((...values: unknown[]) => {
     stderr.push(values.map(String).join(' '))
   })
+  const writes: string[] = []
+  const write = vi.spyOn(process.stdout, 'write').mockImplementation((chunk: unknown) => {
+    writes.push(String(chunk))
+    return true
+  })
   process.exitCode = undefined
 
   try {
@@ -364,10 +370,16 @@ async function invoke(
       'fn',
       ...args,
     ])
-    return { stdout: stdout.join('\n'), stderr: stderr.join('\n'), exitCode: process.exitCode }
+    return {
+      stdout: stdout.join('\n'),
+      stderr: stderr.join('\n'),
+      writes,
+      exitCode: process.exitCode,
+    }
   } finally {
     log.mockRestore()
     error.mockRestore()
+    write.mockRestore()
   }
 }
 
@@ -1209,5 +1221,152 @@ describe('C441-GAP2-DISPLAY', () => {
     expect(lines.map((line) => line.runId)).toEqual(Array(5).fill('run-alpha'))
     expect(JSON.stringify(lines)).toContain('[secret:PW_441]')
     expect(result.stdout).not.toContain('Hunter-42-zz')
+  })
+})
+
+describe('agent-qa fn under GitHub Actions', () => {
+  const CRAFTED = '##[error]x ::set-output name=x::y'
+  const PAIR = /^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::\n$/u
+  const roots: string[] = []
+  let originalExitCode: typeof process.exitCode
+
+  beforeEach(() => {
+    originalExitCode = process.exitCode
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    process.exitCode = originalExitCode
+    for (const root of roots.splice(0)) {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  function craftedRun(): FixtureWorkspace {
+    const workspace = fixtureWorkspace(roots)
+    seedRuns(workspace, [handoff({
+      runId: 'run-alpha',
+      buildOrdinal: 11,
+      aggregateVerdict: 'failed',
+      tests: [{
+        testId: 'test-1',
+        testName: CRAFTED,
+        filePath: 'tests/crafted.yaml',
+        testIndex: 0,
+        outcome: 'failed',
+        steps: [],
+      }],
+    })])
+    return workspace
+  }
+
+  const getAlpha = ['runs.get', '--input', JSON.stringify({ runId: 'run-alpha' })]
+
+  it('prints a unary result as text inside one stop-commands pair', async () => {
+    const workspace = craftedRun()
+    const plain = await invoke(workspace, getAlpha)
+    expect(plain.stdout).toContain(CRAFTED)
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const result = await invoke(workspace, getAlpha)
+
+    expect(result.exitCode).toBeUndefined()
+    expect(result.stdout).toBe('')
+    expect(result.writes).toHaveLength(1)
+    expect(result.writes[0]).toMatch(PAIR)
+    expect(result.writes[0]).toContain(`\n${plain.stdout}\n`)
+  })
+
+  it('prints a --json result with no # that parses back to the same value', async () => {
+    const workspace = craftedRun()
+    const plain = await invoke(workspace, [...getAlpha, '--json'])
+    expect(plain.stdout).toContain('#')
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const result = await invoke(workspace, [...getAlpha, '--json'])
+
+    expect(result.writes).toEqual([])
+    expect(result.stdout).not.toContain('#')
+    expect(result.stdout).not.toContain('::stop-commands::')
+    expect(JSON.parse(result.stdout)).toEqual(JSON.parse(plain.stdout))
+  })
+
+  it('prints each NDJSON stream line with no # and the same parsed element', async () => {
+    const workspace = fixtureWorkspace(roots)
+    seedEvents(workspace, 'run-alpha', fiveEvents().map((event) => ({
+      ...event, payload: { note: CRAFTED } as never,
+    })))
+    const args = ['runs.events', '--input', JSON.stringify({ runId: 'run-alpha' }), '--json']
+    const plain = await invoke(workspace, args)
+    expect(plain.stdout).toContain('#')
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const result = await invoke(workspace, args)
+
+    expect(result.writes).toEqual([])
+    expect(result.stdout).not.toContain('#')
+    expect(result.stdout).not.toContain('::stop-commands::')
+    const lines = result.stdout.split('\n').filter((line) => line.length > 0)
+    const plainLines = plain.stdout.split('\n').filter((line) => line.length > 0)
+    expect(lines).toHaveLength(5)
+    expect(lines.map((line) => JSON.parse(line) as unknown))
+      .toEqual(plainLines.map((line) => JSON.parse(line) as unknown))
+  })
+
+  it('prints the human stream labels and footer inside pairs', async () => {
+    const workspace = fixtureWorkspace(roots)
+    seedEvents(workspace, 'run-alpha', fiveEvents())
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const result = await invoke(workspace, [
+      'runs.events', '--input', JSON.stringify({ runId: 'run-alpha' }),
+    ])
+
+    expect(result.stdout).toBe('')
+    expect(result.writes).toHaveLength(6)
+    for (const write of result.writes) expect(write).toMatch(PAIR)
+    expect(result.writes[5]).toContain('last seq 5')
+  })
+
+  it('a --json failure prints its message inside a pair on stderr, not stdout', async () => {
+    const workspace = fixtureWorkspace(roots)
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const result = await invoke(workspace, [CRAFTED, '--json'])
+
+    expect(result.exitCode).toBe(1)
+    expect(result.stdout).toBe('')
+    expect(result.writes).toEqual([])
+    expect(result.stderr).toMatch(/^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::$/u)
+    expect(result.stderr).toContain(CRAFTED)
+  })
+
+  it('a failure without --json prints its message inside a pair on stdout', async () => {
+    const workspace = fixtureWorkspace(roots)
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const result = await invoke(workspace, [CRAFTED])
+
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toBe('')
+    expect(result.writes).toHaveLength(1)
+    expect(result.writes[0]).toMatch(PAIR)
+    expect(result.writes[0]).toContain(CRAFTED)
+  })
+
+  it('prints a unary result and a failure exactly as before off GitHub Actions', async () => {
+    const workspace = craftedRun()
+
+    const result = await invoke(workspace, getAlpha)
+    const failure = await invoke(workspace, [
+      'runs.get', '--input', JSON.stringify({ runId: 'run-missing' }), '--json',
+    ])
+
+    expect(result.writes).toEqual([])
+    expect(result.stdout).toContain(CRAFTED)
+    expect(result.stdout).not.toContain('::stop-commands::')
+    expect(failure.writes).toEqual([])
+    expect(failure.stderr).toContain('Function error [RunNotFoundError]')
+    expect(failure.stderr).not.toContain('::stop-commands::')
   })
 })
