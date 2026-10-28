@@ -1,19 +1,16 @@
-// The manifest legs: the projected migration map, the derived example calls, and `init --agent`
-// (Phase 398 plan 08 — XPLN-01 / XPLN-03, D-08 / D-14 / D-16).
+// The manifest legs: the derived example calls and `init --agent`.
 //
-// WHAT THIS FILE IS FOR. Plan 01 made the catalog one committed artifact. This plan makes it the
-// WHOLE answer: the migration map projected in beside the rows, an example call derived per op, and
-// one non-interactive read — `agent-qa init --agent` — that hands an external agent all of it plus
-// this workspace's posture. The claim SC-1 makes is that those are the same bytes, and the cells
-// below are what turn that claim into a measurement.
+// WHAT THIS FILE IS FOR. The catalog is one committed artifact: the rows, an example call derived
+// per op, and one non-interactive read — `agent-qa init --agent` — that hands an external agent all
+// of it plus this workspace's posture. The cells below measure that those are the same bytes.
 //
 // WHERE EACH CELL POINTS, AND WHY IT MATTERS. The census cells here read the LIVE mint, exactly as
 // plan 01's six censuses do, and that is a deliberate division of labour rather than a convenience:
 // ONE cell in this directory owns "committed versus live" (the freshness leg in `catalog.test.ts`,
-// which byte-compares the whole document including these two new sections), and every other cell
-// asserts a property of what the producer produces. Two cells owning the same comparison would mean
-// a stale artifact reds twice and says two different things, and — the reason that matters here —
-// the regen script's refuse-while-red gate allows exactly ONE red by name. A census cell that read
+// which byte-compares the whole document), and every other cell asserts a property of what the
+// producer produces. Two cells owning the same comparison would mean a stale artifact reds twice
+// and says two different things, and — the reason that matters here — the regen script's
+// refuse-while-red gate allows exactly ONE red by name. A census cell that read
 // the committed file would make the artifact unregenerable the moment the producer legitimately
 // changed, which is the one state the script exists to let a person out of.
 //
@@ -25,11 +22,9 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { V1_TOOL_MIGRATION_MAP } from '@vostride/agent-qa-mcp'
 import {
   AgentManifestPostureSchema,
   AgentManifestSchema,
-  CatalogMigrationArmSchema,
   canonicalJson,
   type CapabilityCatalog,
   type CatalogOpRow,
@@ -42,115 +37,9 @@ import { CLI_FUNCTION_CALLER } from '../../composition/local-agent-host.js'
 import { registryOpIds } from './adapters.js'
 import {
   CATALOG_PATH,
-  CATALOG_REGEN_INSTRUCTION,
   catalogExampleCallOf,
   capabilityCatalogFromRoot,
 } from './catalog.js'
-
-// ---- The projected migration map (D-14) --------------------------------------------------------
-
-describe('the catalog\'s migration map projection (D-14, XPLN-03)', () => {
-  let live: CapabilityCatalog
-
-  beforeAll(async () => {
-    live = await capabilityCatalogFromRoot()
-  })
-
-  it('projects exactly the shipped map, in both directions', () => {
-    // THE COMPLETE-SET LAW, applied to the pair D-14 names. One direction alone is the failure
-    // this shape prevents twice over: a projection that carried every source entry could still
-    // carry an invented one, and a projection every one of whose entries came from the source
-    // could still be missing twenty of them.
-    const projected = live.migrationMap.map((entry) => entry.v1Name).sort()
-    const source = V1_TOOL_MIGRATION_MAP.map((entry) => entry.v1Name).sort()
-
-    const missing = source.filter((name) => !projected.includes(name))
-    const stray = projected.filter((name) => !source.includes(name))
-    expect(missing, 'the shipped migration map carries v1 names the catalog does not project')
-      .toEqual([])
-    expect(stray, 'the catalog projects v1 names the shipped migration map does not carry')
-      .toEqual([])
-    // …and the set equality behind the two named lists, so a cancelling pair (one dropped, one
-    // invented) cannot pass by making both lists non-empty in a way nobody reads.
-    expect(projected, 'the projection and the source disagree about the v1 name set')
-      .toEqual(source)
-  })
-
-  it('projects every field of every entry VERBATIM, never a re-worded one', () => {
-    // The member set above says WHICH names travelled; this says the entry a caller reads is the
-    // entry the adjudication ruled. A projection free to re-word a `route` is a second place the
-    // product answers a v1 caller, and the two would agree until somebody improved one of them.
-    const bySource = new Map(V1_TOOL_MIGRATION_MAP.map((entry) => [entry.v1Name, entry]))
-    const drifted: string[] = []
-    for (const projected of live.migrationMap) {
-      const source = bySource.get(projected.v1Name)
-      if (source === undefined) continue
-      // Through the ONE canonical serializer, so an absent key and an `undefined` value are the
-      // same fact and field order cannot make two equal entries look different.
-      if (canonicalJson(projected) !== canonicalJson({ ...source })) {
-        drifted.push(
-          `${projected.v1Name}: the catalog projects ${canonicalJson(projected)}, the shipped map `
-          + `declares ${canonicalJson({ ...source })}`,
-        )
-      }
-    }
-    expect(drifted, 'projected migration entries disagree with the shipped map').toEqual([])
-    // The comparison above is vacuous over an empty projection, so the denominator is asserted.
-    expect(live.migrationMap.length, 'the catalog projected no migration entries at all')
-      .toBe(V1_TOOL_MIGRATION_MAP.length)
-    expect(live.migrationCount, 'the catalog\'s own migration count disagrees with its entries')
-      .toBe(live.migrationMap.length)
-  })
-
-  it('sorts the projection by v1 name, so a re-ordered source is a zero-line diff', () => {
-    const names = live.migrationMap.map((entry) => entry.v1Name)
-    expect(names, 'the projected migration map is not sorted by v1 name').toEqual([...names].sort())
-  })
-
-  it('lands in the COMMITTED artifact, entry for entry, as the shipped map declares it', () => {
-    // THE ARTIFACT ITSELF, not the mint that would produce it. Every cell above measures the
-    // producer; this one measures the bytes a shipped install reads, through the ONE loader — the
-    // difference being that a producer improved in a branch nobody regenerated is invisible to all
-    // of them and visible to this.
-    //
-    // IT IS A COMMITTED-ARTIFACT CELL, and the regen script's gate knows it by name: a legitimate
-    // change to the shipped map REDs this and the freshness leg together, and the whole point of
-    // the one writer is that a person can then regenerate. See ALLOWED_RED in
-    // `scripts/398-regen-catalog.sh`.
-    const committed = loadCapabilityCatalog(CATALOG_PATH)
-    const projected = committed.migrationMap.map((entry) => entry.v1Name).sort()
-    const source = V1_TOOL_MIGRATION_MAP.map((entry) => entry.v1Name).sort()
-
-    expect(
-      source.filter((name) => !projected.includes(name)),
-      `the committed catalog projects no entry for these v1 names — ${CATALOG_REGEN_INSTRUCTION}`,
-    ).toEqual([])
-    expect(
-      projected.filter((name) => !source.includes(name)),
-      `the committed catalog projects v1 names the shipped map does not carry — `
-      + CATALOG_REGEN_INSTRUCTION,
-    ).toEqual([])
-    expect(
-      canonicalJson(committed.migrationMap),
-      `the committed catalog's migration entries disagree with the shipped map — `
-      + CATALOG_REGEN_INSTRUCTION,
-    ).toBe(canonicalJson(live.migrationMap))
-    expect(committed.migrationCount, 'the committed migration count disagrees with its entries')
-      .toBe(committed.migrationMap.length)
-  })
-
-  it('spells exactly the arms the shipped map uses — no member here that nothing carries', () => {
-    // THE TIE ON THE SECOND SPELLING. `CatalogMigrationArmSchema` restates `V1MigrationArm`
-    // because a DTO package may not import a surface package. The COMPILE side of the tie is the
-    // producer's projection function (an arm minted in `mcp` and missing here does not typecheck);
-    // this is the other side — an arm written here that the shipped map does not carry is a
-    // vocabulary the catalog offers a reader and the product never uses.
-    const declared = [...CatalogMigrationArmSchema.options].sort()
-    const carried = [...new Set(V1_TOOL_MIGRATION_MAP.map((entry) => entry.arm))].sort()
-    expect(declared, 'the catalog\'s arm vocabulary and the shipped map\'s arms disagree')
-      .toEqual(carried)
-  })
-})
 
 // ---- The derived example calls (spec §3.3, D-08) -----------------------------------------------
 
@@ -437,7 +326,7 @@ describe('the agent manifest (D-16, XPLN-01)', () => {
     return root
   }
 
-  it('IS the committed catalog: rows and migration map, through the ONE loader', async () => {
+  it('IS the committed catalog: rows, through the ONE loader', async () => {
     // SC-1's "the same manifest" clause, as a comparison rather than a sentence. Both sides read
     // the committed artifact through `loadCapabilityCatalog`, which is exactly the claim — the
     // manifest is a LOAD, so a consumer that got its rows from the manifest and a consumer that got
@@ -449,14 +338,8 @@ describe('the agent manifest (D-16, XPLN-01)', () => {
 
     expect(manifest.rows, 'the manifest and the committed catalog disagree about the rows')
       .toEqual(catalog.rows)
-    expect(
-      manifest.migrationMap,
-      'the manifest and the committed catalog disagree about the migration map',
-    ).toEqual(catalog.migrationMap)
     // The vacuity floor: two empty sides agree perfectly and prove nothing.
     expect(manifest.rows.length, 'the manifest carried no rows').toBeGreaterThan(0)
-    expect(manifest.migrationMap.length, 'the manifest carried no migration entries')
-      .toBeGreaterThan(0)
   })
 
   it('emits EVERY row, unfiltered — it documents, it does not grant (D-16, P1)', async () => {

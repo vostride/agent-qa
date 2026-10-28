@@ -55,42 +55,6 @@ export const CatalogExampleCallSchema = z.object({
 export type CatalogExampleCall = z.infer<typeof CatalogExampleCallSchema>
 
 /**
- * Which of the migration map's three closed answers a retired v1 tool name gets (D-13).
- *
- * THIS IS A SECOND SPELLING OF `V1MigrationArm`, AND IT IS TIED RATHER THAN TRUSTED. The arm
- * vocabulary is owned by `packages/mcp`'s migration map, which cannot be imported here: `mcp`
- * depends on `schema`, and a DTO package that imported a surface package would invert the workspace
- * (384 D-16). The two spellings are held together from both sides — the producer's projection
- * function takes a `V1ToolMigrationEntry` and returns this DTO, so an arm minted in `mcp` and
- * missing here fails to COMPILE; and a census cell asserts these options set-equal the arms the
- * shipped map actually carries, so an arm written here that nothing uses is a named RED.
- */
-export const CatalogMigrationArmSchema = z.enum(['renamed-to', 'retired', 'pending'])
-export type CatalogMigrationArm = z.infer<typeof CatalogMigrationArmSchema>
-
-/**
- * One v1 tool name and its ruled disposition, projected VERBATIM from the shipped map (D-14).
- *
- * `.strict()` for the reason every DTO here is strict, and one more: this section is what an
- * external agent still pinned to a v1 name reads, so a field that arrived by accident would be a
- * sentence the product did not mean to say to a caller it cannot see.
- */
-export const CatalogMigrationEntrySchema = z.object({
-  /** The v1 tool name, verbatim from the inventory's tool table. */
-  v1Name: z.string().min(1),
-  arm: CatalogMigrationArmSchema,
-  /** The live v2 tool carrying the capability. Present only on `renamed-to`. */
-  v2Tool: z.string().min(1).optional(),
-  /** The inventory's ruled reason, dated. */
-  note: z.string().min(1),
-  /** What to call instead. Present on `retired` and `pending`. */
-  route: z.string().min(1).optional(),
-  /** The milestone owning the absence. Present only on `pending`. */
-  owner: z.string().min(1).optional(),
-}).strict()
-export type CatalogMigrationEntry = z.infer<typeof CatalogMigrationEntrySchema>
-
-/**
  * One registry op, as a person reads it.
  *
  * `mcpUnprojectedReasonKey` is the VISIBLE ABSENCE arm (D-06): an op with no MCP door carries the
@@ -182,31 +146,15 @@ export const CapabilityCatalogSchema = z.object({
   rowCount: z.number().int().nonnegative(),
   rowsDigest: z.string().min(1),
   rows: z.array(CatalogRowSchema),
-  /**
-   * The v1→v2 migration map, projected from `packages/mcp` (D-14, XPLN-03).
-   *
-   * It sits BESIDE the rows rather than among them because it is not a capability: an entry says
-   * a name is gone and what answers the need instead, and a row kind for it would put retired
-   * history into the set every consumer counts as "what this product can do".
-   */
-  migrationMap: z.array(CatalogMigrationEntrySchema),
-  /**
-   * The migration section's own count sentence.
-   *
-   * `rowCount` exists so a mint that produced a truncated document cannot reach the committed
-   * file; this is the same mechanical self-check for the section `rowCount` does not cover. A new
-   * section with no count is the hole `rowCount` was added to close, re-opened one field over.
-   */
-  migrationCount: z.number().int().nonnegative(),
 }).strict()
 
 // ---- The `init --agent` manifest (398-08, D-16 · XPLN-01) ----------------------------------------
 //
-// WHAT THE MANIFEST IS. One local, non-interactive, idempotent read: the committed catalog's rows
-// and migration map, verbatim and UNFILTERED, plus this workspace's posture. It is the machine entry
-// point spec §3.3 names — what an external agent reads instead of guessing — and because it is
-// produced by LOADING the committed artifact rather than by re-deriving anything, `manifest ≡
-// catalog` is a cell rather than a promise.
+// WHAT THE MANIFEST IS. One local, non-interactive, idempotent read: the committed catalog's rows,
+// verbatim and UNFILTERED, plus this workspace's posture. It is the machine entry point spec §3.3
+// names — what an external agent reads instead of guessing — and because it is produced by LOADING
+// the committed artifact rather than by re-deriving anything, `manifest ≡ catalog` is a cell rather
+// than a promise.
 //
 // IT IS UNFILTERED, AND THE SHAPE SAYS SO. The rows are every row, for every caller. 2026-10-02
 // (432-39, D-12): no door filters a listing per caller any more (432-20 deleted the MCP `tools/list`
@@ -243,7 +191,6 @@ export type AgentManifestPosture = z.infer<typeof AgentManifestPostureSchema>
 export const AgentManifestSchema = z.object({
   $note: z.array(z.string().min(1)).min(1),
   rows: z.array(CatalogRowSchema),
-  migrationMap: z.array(CatalogMigrationEntrySchema),
   posture: AgentManifestPostureSchema,
 }).strict()
 export type AgentManifest = z.infer<typeof AgentManifestSchema>

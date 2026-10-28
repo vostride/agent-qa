@@ -1544,16 +1544,12 @@ export type {
 // 398-01 (D-05 / D-08 · XPLN-01): the capability-catalog row DTOs. Minted here per 384 D-16 —
 // the artifact is produced in `packages/cli` and read back by the CLI's runtime loader, so the
 // contract between the producer and every consumer belongs in the package neither of them owns.
-// 398-08 (D-08 / D-14 · XPLN-03): the derived example call and the projected migration entry join
-// the same block — one artifact, one contract, one place a consumer reads its shape from.
 export {
   AgentManifestPostureSchema,
   AgentManifestSchema,
   CapabilityCatalogSchema,
   CatalogAliasRowSchema,
   CatalogExampleCallSchema,
-  CatalogMigrationArmSchema,
-  CatalogMigrationEntrySchema,
   CatalogOpRowSchema,
   CatalogRowSchema,
   CatalogSkillRowSchema,
@@ -1566,8 +1562,6 @@ export type {
   CapabilityCatalog,
   CatalogAliasRow,
   CatalogExampleCall,
-  CatalogMigrationArm,
-  CatalogMigrationEntry,
   CatalogOpRow,
   CatalogRow,
   CatalogSkillRow,

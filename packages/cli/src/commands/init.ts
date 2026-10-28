@@ -921,8 +921,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
     )
     .option(
       '--agent',
-      'print the JSON capability manifest (catalog, v1 name map, local posture) and exit; '
-      + 'writes nothing',
+      'print the JSON capability manifest (catalog and local posture) and exit; writes nothing',
     )
     .action(async (opts, command: Command) => {
       // `--agent` IS A READ, AND IT RETURNS BEFORE ANYTHING ELSE HAPPENS (D-16). Ahead of it lies

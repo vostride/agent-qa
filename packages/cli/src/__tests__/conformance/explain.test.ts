@@ -127,7 +127,7 @@ describe('the empty-catalog differential (SC-2, D-12) — PRODUCED, not literal'
     // `capabilityCatalogDocumentOf` and the bytes by `capabilityCatalogText`. Nothing about this
     // document is typed by hand, which is the difference between proving the abstention and proving
     // that a hand-written shape reaches it.
-    writeFileSync(catalogPath, capabilityCatalogText(capabilityCatalogDocumentOf([], [])), 'utf8')
+    writeFileSync(catalogPath, capabilityCatalogText(capabilityCatalogDocumentOf([])), 'utf8')
 
     // AND IT GOES BACK THROUGH THE ONE LOADER. The loader is built to tell a produced zero-row
     // catalog apart from a missing one (398-01), and this is the cell that depends on it: if it
@@ -151,7 +151,7 @@ describe('the empty-catalog differential (SC-2, D-12) — PRODUCED, not literal'
     // The short-circuit is control flow, not a hope about what a model does with no grounding data.
     const root = workspace()
     const catalogPath = join(root, 'capability-catalog.json')
-    writeFileSync(catalogPath, capabilityCatalogText(capabilityCatalogDocumentOf([], [])), 'utf8')
+    writeFileSync(catalogPath, capabilityCatalogText(capabilityCatalogDocumentOf([])), 'utf8')
 
     let asked = 0
     const shipped = createCliCapabilityCatalogPort({ agentQaRoot: root, catalogPath })
@@ -361,7 +361,7 @@ describe('the counter hooks carry counts and never the query (D-14, T-398-15)', 
     // the signal useless in exactly the case it exists for.
     const root = workspace()
     const catalogPath = join(root, 'capability-catalog.json')
-    writeFileSync(catalogPath, capabilityCatalogText(capabilityCatalogDocumentOf([], [])), 'utf8')
+    writeFileSync(catalogPath, capabilityCatalogText(capabilityCatalogDocumentOf([])), 'utf8')
 
     const empty: ExplainAbstainedCounts[] = []
     await explain(

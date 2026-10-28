@@ -47,11 +47,7 @@ import {
   CHAT_RESOLVER_TABLE,
   resolveClause,
 } from '@vostride/agent-qa-agent'
-import {
-  AGENT_QA_MCP_INSTRUCTIONS,
-  AGENT_QA_TOOL_PROJECTIONS,
-  V1_TOOL_MIGRATION_MAP,
-} from '@vostride/agent-qa-mcp'
+import { AGENT_QA_MCP_INSTRUCTIONS, AGENT_QA_TOOL_PROJECTIONS } from '@vostride/agent-qa-mcp'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -377,51 +373,17 @@ function filesUnderSkill(root: string): readonly string[] {
 }
 
 /**
- * Every `agent_qa_*` identifier a document mentions.
- *
- * TOKENISED, NOT SUBSTRING-MATCHED, and the difference is the cell rather than a nicety:
- * `agent_qa_get_run` is a retired v1 name AND a prefix of the live `agent_qa_get_run_digest`, so a
- * `body.includes(v1Name)` guard would red on the correct replacement and stay red until somebody
- * "fixed" it by putting the retired name back. The scan reads whole identifiers and asks about
- * membership.
+ * Every `agent_qa_*` identifier a document mentions, read as whole identifiers so a name that is a
+ * prefix of another is not mistaken for it.
  */
 function toolTokensIn(body: string): readonly string[] {
   return sorted(body.match(/agent_qa_[a-z0-9_]+/gu) ?? [])
 }
 
 describe('the shipped skills quote only live commands', () => {
-  it('names no member of the v1 migration map (the list produced from the module)', () => {
-    // THE FORBIDDEN SET IS THE MODULE'S, READ AT TEST TIME. Spelling the retired names here would
-    // be a copy that stops covering the map the day it grows — and the map growing is precisely
-    // when a skill is most likely to be quoting something that just died.
-    const retired = new Set(V1_TOOL_MIGRATION_MAP.map((entry) => entry.v1Name))
-    expect(retired.size, 'the migration map is empty — this cell would forbid nothing')
-      .toBeGreaterThan(0)
-
-    const files = shippedSkillFiles()
-    expect(files.length, 'no shipped skill file was found — the cell would range nothing')
-      .toBeGreaterThan(0)
-
-    const findings: string[] = []
-    for (const file of files) {
-      for (const token of toolTokensIn(readFileSync(file.path, 'utf8'))) {
-        if (retired.has(token)) findings.push(`${file.name}: ${token}`)
-      }
-    }
-
-    expect(
-      findings,
-      'a shipped skill instructs a RETIRED v1 tool name — the skills are doc links in the '
-      + 'capability catalog, so a skill quoting a dead command is the product telling an agent to '
-      + 'call something that answers unknown-tool (Pitfall 5)',
-    ).toEqual([])
-  })
-
   it('every tool a skill names is one the shipped mapping actually projects', () => {
-    // THE STRONGER RULE, AND WHY BOTH ARE HERE. The cell above refuses what the migration map can
-    // NAME, so a tool renamed in some future phase without an inventory row would slip past it.
-    // This one asks the opposite question at the choke point — is this name LIVE — which needs no
-    // list of what is forbidden and cannot be defeated by a name nobody wrote down.
+    // Asks of every name a skill quotes whether it is LIVE, so no list of forbidden names is
+    // needed and a name nobody wrote down cannot slip past.
     const live = new Set(AGENT_QA_TOOL_PROJECTIONS.map((projection) => projection.name))
     expect(live.size, 'the shipped mapping projects no tools — this cell would allow anything')
       .toBeGreaterThan(0)
@@ -1283,29 +1245,6 @@ describe('C432-CATALOG-CURRENT: the committed catalogue describes only the live 
     }
     expect(catalog.$note.join(' '), 'the note still describes per-caller filtering or a grant')
       .not.toMatch(/per-caller|\bgrants?\b/iu)
-  })
-
-  it('C432-CATALOG-CURRENT: every migration route answers with a live tool and no proposal', () => {
-    const catalog = loadCapabilityCatalog()
-    const live = new Set(AGENT_QA_TOOL_PROJECTIONS.map((projection) => projection.name))
-    expect(catalog.migrationMap.length).toBe(catalog.migrationCount)
-    expect(catalog.migrationMap.length).toBe(V1_TOOL_MIGRATION_MAP.length)
-    for (const entry of catalog.migrationMap) {
-      if (entry.v2Tool !== undefined) expect(live.has(entry.v2Tool), `${entry.v1Name}: ${entry.v2Tool}`).toBe(true)
-      for (const text of [entry.route ?? '', entry.v2Tool ?? '']) {
-        expect(text, `${entry.v1Name}: the current answer describes the approval model`)
-          .not.toMatch(/\bpropos|\bapprov|\binbox\b/iu)
-      }
-      for (const tool of toolTokensIn(entry.route ?? '')) {
-        expect(live.has(tool), `${entry.v1Name}: the route names ${tool}, which is not projected`).toBe(true)
-      }
-    }
-    for (const v1Name of ['agent_qa_create_test', 'agent_qa_create_suite', 'agent_qa_update_suite']) {
-      const entry = catalog.migrationMap.find((candidate) => candidate.v1Name === v1Name)
-      expect(entry, v1Name).toBeDefined()
-      expect(`${entry!.note} ${entry!.route ?? ''}`, `${v1Name}: the dated direct-write answer`)
-        .toMatch(/in the call/u)
-    }
   })
 })
 

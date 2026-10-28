@@ -507,16 +507,10 @@ describe('the built-binary anchors (D-02)', () => {
         manifest.rows,
         'the shipped `init --agent` and the committed catalog disagree about the capability rows',
       ).toEqual(committed.rows)
-      expect(
-        manifest.migrationMap,
-        'the shipped `init --agent` and the committed catalog disagree about the migration map',
-      ).toEqual(committed.migrationMap)
 
-      // The two comparisons above are vacuous against two empty documents, so each side's
-      // denominator is asserted on its own line.
+      // The comparison above is vacuous against two empty documents, so its denominator is
+      // asserted on its own line.
       expect(manifest.rows.length, 'the shipped manifest carried no rows').toBeGreaterThan(0)
-      expect(manifest.migrationMap.length, 'the shipped manifest carried no migration entries')
-        .toBeGreaterThan(0)
 
       // THE POSTURE IS SHAPE-ASSERTED, NOT BYTE-PINNED, and that is the honest bar: it is a fact
       // about the workspace the binary ran in — a temporary directory here — so pinning its bytes

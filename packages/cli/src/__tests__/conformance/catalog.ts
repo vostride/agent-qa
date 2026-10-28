@@ -29,7 +29,6 @@ import { fileURLToPath } from 'node:url'
 
 import type { FunctionDeclaration } from '@vostride/agent-qa-agent'
 import { CHAT_RESOLVER_TABLE } from '@vostride/agent-qa-agent'
-import { V1_TOOL_MIGRATION_MAP, type V1ToolMigrationEntry } from '@vostride/agent-qa-mcp'
 import {
   canonicalJson,
   catalogRowKey,
@@ -38,7 +37,6 @@ import {
   type CapabilityCatalog,
   type CatalogAliasRow,
   type CatalogExampleCall,
-  type CatalogMigrationEntry,
   type CatalogOpRow,
   type CatalogRow,
   type CatalogSkillRow,
@@ -116,8 +114,6 @@ export const CATALOG_NOTE: readonly string[] = Object.freeze([
   'IT DESCRIBES, IT DOES NOT GATE. Nothing here allows or withholds a capability, and since',
   '2026-10-01 (432 D-12) nothing anywhere does: no caller is shown or refused a capability',
   'by who it is.',
-  '`migrationMap` is the v1 -> v2 tool-name adjudication (XPLN-03), projected verbatim from',
-  '`packages/mcp`. It is retired HISTORY, not capability: nothing in it is callable today.',
   'Each op row\'s `exampleCall` is DERIVED from that row\'s own `params` — a null arm with a stated',
   'reason means the contract carries a construct a placeholder could not be shown to satisfy.',
 ])
@@ -567,55 +563,6 @@ export function catalogExampleCallOf(params: Record<string, unknown>, opId: stri
   return { exampleCall: { arguments: derived.value as Record<string, unknown> } }
 }
 
-// ---- The migration map projection (D-14) ---------------------------------------------------------
-
-/**
- * One shipped map entry, as the catalog carries it.
- *
- * THIS SIGNATURE IS HALF OF THE ARM TIE, and it is deliberate rather than incidental: it takes the
- * `mcp` package's own entry type and returns the `schema` package's DTO, so an arm minted in the
- * map and absent from `CatalogMigrationArmSchema` does not COMPILE. The other half — an arm spelled
- * in the DTO that the shipped map does not carry — is the census cell in `manifest.test.ts`. A
- * second spelling held by neither side is the drift D-14 is about.
- *
- * VERBATIM, field for field. A projection free to re-word a `route` would be a second place the
- * product answers a v1 caller, and the two would agree right up until somebody improved one.
- */
-function catalogMigrationEntryOf(entry: V1ToolMigrationEntry): CatalogMigrationEntry {
-  return {
-    v1Name: entry.v1Name,
-    arm: entry.arm,
-    ...(entry.v2Tool === undefined ? {} : { v2Tool: entry.v2Tool }),
-    note: entry.note,
-    ...(entry.route === undefined ? {} : { route: entry.route }),
-    ...(entry.owner === undefined ? {} : { owner: entry.owner }),
-  }
-}
-
-/**
- * The migration section, sorted by v1 name.
- *
- * SORTED HERE AND NOT IN THE SOURCE. The shipped map is in the inventory document's row order so
- * the two can be read side by side; the committed artifact is byte-compared, so a source re-order
- * that changed nothing must produce a zero-line diff here. Two orders, each right where it is.
- */
-export function buildCatalogMigrationEntries(): readonly CatalogMigrationEntry[] {
-  const projected = V1_TOOL_MIGRATION_MAP.map(catalogMigrationEntryOf)
-  const seen = new Set<string>()
-  for (const entry of projected) {
-    if (seen.has(entry.v1Name)) {
-      throw new Error(
-        `the shipped migration map carries "${entry.v1Name}" twice — a duplicated v1 name would `
-        + 'project two answers for one call, and the both-directions census cannot see it because '
-        + 'the duplicate is on both sides',
-      )
-    }
-    seen.add(entry.v1Name)
-  }
-  return [...projected].sort((left, right) =>
-    left.v1Name < right.v1Name ? -1 : left.v1Name > right.v1Name ? 1 : 0)
-}
-
 // ---- The alias probe table (D-05) ----------------------------------------------------------------
 
 /**
@@ -991,24 +938,19 @@ export function buildCatalogRows(
  * `sha256hex(canonicalJson(rows))` in a test would have been the second spelling of the digest
  * rule, and a fixture whose digest was computed by a copy proves nothing about the original.
  */
-export function capabilityCatalogDocumentOf(
-  rows: readonly CatalogRow[],
-  migrationMap: readonly CatalogMigrationEntry[],
-): CapabilityCatalog {
+export function capabilityCatalogDocumentOf(rows: readonly CatalogRow[]): CapabilityCatalog {
   return {
     $note: [...CATALOG_NOTE],
     rowCount: rows.length,
     rowsDigest: sha256hex(canonicalJson(rows)),
     rows: [...rows],
-    migrationMap: [...migrationMap],
-    migrationCount: migrationMap.length,
   }
 }
 
 export function capabilityCatalogOf(
   declarations: readonly FunctionDeclaration[],
 ): CapabilityCatalog {
-  return capabilityCatalogDocumentOf(buildCatalogRows(declarations), buildCatalogMigrationEntries())
+  return capabilityCatalogDocumentOf(buildCatalogRows(declarations))
 }
 
 /** THE recipe, shared by the regen script and the freshness leg. */

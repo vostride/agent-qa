@@ -1,15 +1,14 @@
 // `init --agent`: the machine entry point (Phase 398 plan 08, D-16 · XPLN-01 / XPLN-03).
 //
 // WHAT AN EXTERNAL AGENT GETS FROM ONE READ. Every capability this product has, in the words a
-// person reads; the v1 tool names that no longer exist and what answers those needs instead; and
-// whether THIS workspace has a configuration that reads. Local, non-interactive, idempotent: it opens
-// no prompt, writes no file and reaches no network.
+// person reads, and whether THIS workspace has a configuration that reads. Local, non-interactive,
+// idempotent: it opens no prompt, writes no file and reaches no network.
 //
 // THE MANIFEST IS A LOAD, NOT A DERIVATION, and that is the whole of why SC-1's "the same manifest"
 // clause is a measurement rather than a promise. `loadCapabilityCatalog()` reads the committed
-// bytes; the rows and the migration map cross into the output VERBATIM. There is no second recipe
-// here that could be improved out of agreement with the artifact, which is why `manifest ≡ catalog`
-// can be a suite cell at all.
+// bytes; the rows cross into the output VERBATIM. There is no second recipe here that could be
+// improved out of agreement with the artifact, which is why `manifest ≡ catalog` can be a suite
+// cell at all.
 //
 // 2026-08-17 — UNFILTERED BY DESIGN (D-16, prohibition P1). Every row is emitted, for every caller,
 // with no scope filter applied anywhere below. 2026-10-01 (432-20/432-21, D-12): there is no
@@ -127,9 +126,8 @@ export async function buildAgentManifest(
 
   return {
     $note: [...catalog.$note, ...AGENT_MANIFEST_NOTE],
-    // VERBATIM, both of them. No filter, no re-sort, no re-shape — see this file's header.
+    // VERBATIM. No filter, no re-sort, no re-shape — see this file's header.
     rows: catalog.rows,
-    migrationMap: catalog.migrationMap,
     posture: {
       // 2026-10-02 (432-39, D-12): no `defaultScopes`, `safeMode` or `tokenEnvRefs`. Each reported a
       // constant since 432-20/21 (every scope name, `false`, empty) and leaves with the permission

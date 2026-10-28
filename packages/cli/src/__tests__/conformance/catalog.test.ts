@@ -179,11 +179,6 @@ describe('the capability catalog loader', () => {
         rowCount: 0,
         rowsDigest: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
         rows: [],
-        // The migration section takes the same zero arm. A catalog produced from an empty tree
-        // describes no capabilities and rewrites no history; the edge this cell pins is that BOTH
-        // empty sections load as themselves rather than as a broken artifact (398-08).
-        migrationMap: [],
-        migrationCount: 0,
       }
       writeFileSync(path, committedFileText(empty), 'utf8')
 

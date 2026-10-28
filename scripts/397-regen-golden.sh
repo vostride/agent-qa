@@ -94,13 +94,12 @@ GOLDEN="$ROOT/$GOLDEN_REL"
 # owed and never for a tree fault: the positive all-door parity and masking cells beside it in
 # `423-read-contracts.test.ts` measure the TREE and are deliberately NOT listed.
 #
-# THE SIXTH AND SEVENTH NAMES (2026-09-30, 432-12) are admitted on the same rule and no other. A
-# public tool rename moves the golden AND the catalogue in one cutover, and two catalogue-agreement
-# cells then go red beside the golden: the migration map's projection into the COMMITTED catalogue
-# (the renamed `renamed-to` target), and LIVE-GUIDANCE-TOOLS, whose subject is the guidance naming a
-# tool whose ops the COMMITTED catalogue does not carry yet. Both are red exactly while the
-# catalogue regeneration that follows this one is owed, never for a tree fault: the guidance
-# cells that measure the TREE (live names, dead names, the pointer) are deliberately NOT listed.
+# THE SIXTH NAME is admitted on the same rule and no other. A public tool rename moves the golden
+# AND the catalogue in one cutover, and LIVE-GUIDANCE-TOOLS, whose subject is the guidance naming a
+# tool whose ops the COMMITTED catalogue does not carry yet, then goes red beside the golden. It is
+# red exactly while the catalogue regeneration that follows this one is owed, never for a tree
+# fault: the guidance cells that measure the TREE (live names, dead names, the pointer) are
+# deliberately NOT listed.
 #
 # A PLAIN MULTI-LINE STRING, not a heredoc inside a command substitution — measured on the bash 3.2
 # macOS ships, where the heredoc form dies at an unrelated line with `arg: unbound variable`.
@@ -109,7 +108,6 @@ the capability catalog regenerates byte-identically from the live seams into the
 the capability catalog census carries exactly the capabilities the committed golden ledger records (D-01)
 399.1 D-01 — the classifier census: no capability ships without a fold agrees with the committed ledger, so an op that STOPS folding is a reviewed diff
 423-38 committed artifacts carry the reviewed read contracts GOLDEN-CATALOG-COMPLETE: the committed golden ledger and capability catalog carry every addressed read op as the live tree declares it
-the catalog's migration map projection (D-14, XPLN-03) lands in the COMMITTED artifact, entry for entry, as the shipped map declares it
 LIVE-GUIDANCE: the guide, pointer and every source and packaged skill quote only live names LIVE-GUIDANCE-TOOLS: every agent_qa_* name is a projected tool whose ops the catalog carries"
 # Vacuity floor. A gate that passed because the suite collected nothing is the CI-shaped version of
 # the failure this whole phase exists to prevent. Measured 2026-08-16: 71 tests in the directory;

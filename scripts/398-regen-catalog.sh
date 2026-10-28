@@ -70,45 +70,40 @@ CATALOG="$ROOT/$CATALOG_REL"
 #
 # The names are vitest's `fullName`: the describe title and the cell title, joined by one space.
 #
-# THE THIRD NAME (2026-09-15, 423-38) is admitted on the rule above: its subject is the committed
+# THE SECOND NAME is admitted on the rule above: its subject is the committed
 # catalog (and the committed golden it is census-tied to) agreeing with the live tree for the six
 # read contracts Phase 423 added or widened. After the golden writer has run, it stays red only on
 # the catalog half, which is exactly the state this script exists to let a person out of. The
 # all-door parity and masking cells beside it measure the TREE and are deliberately NOT listed.
 #
-# THE FOURTH NAME (2026-09-30, 432-12) is admitted on the same rule: LIVE-GUIDANCE-TOOLS's subject is
+# THE THIRD NAME is admitted on the same rule: LIVE-GUIDANCE-TOOLS's subject is
 # the guidance naming a projected tool whose ops the COMMITTED catalogue does not carry yet. A
 # public tool rename rewrites the guidance and the catalogue in one cutover, so after the golden
 # writer has run the cell is red exactly while this script's write is owed. The guidance cells that
 # measure the TREE (live names, dead names, the pointer) are deliberately NOT listed.
 #
-# THE FIFTH AND SIXTH NAMES (2026-09-30, 432-13) are admitted on the same rule: both cells' subject
+# THE FOURTH AND FIFTH NAMES are admitted on the same rule: both cells' subject
 # is the COMMITTED catalogue's alias rows agreeing with the live help entries. Removing a chat alias
 # (`proposals`, with the `/pin` directive) rewrites the resolver table, the help entries and the
 # catalogue in one cutover, so these two cells are red exactly while this script's write is owed.
 # The help-census cells that measure the TREE (help vs the live table, the rendered text, the
 # second-list sweep) are deliberately NOT listed.
 #
-# THE SEVENTH AND EIGHTH NAMES (2026-10-02, 432-40) are admitted on the same rule: both
-# C432-CATALOG-CURRENT cells' subject is the COMMITTED catalogue agreeing with the live tree (op rows
-# against the registry, tools against the twenty projections, migration routes against the shipped
-# map). A guidance cutover that re-spells a migration route rewrites `packages/mcp` and the
-# catalogue in one change, so these cells are red exactly while this script's write is owed. The
-# C432-GUIDANCE-DIRECT and C432-PACKAGED-SKILLS cells measure the TREE and are deliberately NOT
-# listed.
+# THE SIXTH NAME is admitted on the same rule: its subject is the COMMITTED catalogue agreeing
+# with the live tree (op rows against the registry, tools against the projected tools), so it is red
+# exactly while this script's write is owed. The guidance and packaged-skills cells measure the TREE
+# and are deliberately NOT listed.
 #
 # A PLAIN MULTI-LINE STRING, not a heredoc inside a command substitution. Measured 2026-08-17 on the
 # bash 3.2 macOS ships: `VAR="$(cat <<'X' ... X )"` mis-parses there and the script dies at an
 # unrelated line with `arg: unbound variable`, which is the least helpful diagnosis available for
 # it. The rest of this file avoids bash-4 idioms for the same reason the header states.
 ALLOWED_RED_NAMES="the capability catalog regenerates byte-identically from the live seams into the committed artifact (D-03)
-the catalog's migration map projection (D-14, XPLN-03) lands in the COMMITTED artifact, entry for entry, as the shipped map declares it
 423-38 committed artifacts carry the reviewed read contracts GOLDEN-CATALOG-COMPLETE: the committed golden ledger and capability catalog carry every addressed read op as the live tree declares it
 LIVE-GUIDANCE: the guide, pointer and every source and packaged skill quote only live names LIVE-GUIDANCE-TOOLS: every agent_qa_* name is a projected tool whose ops the catalog carries
 the /help census — one list of what chat understands set-equals the committed catalog's aliases plus the directives plus the passthrough
 the chat host's discovery UX is a projection of the catalog offers every alias row in the form the shipped resolver actually answers
-C432-CATALOG-CURRENT: the committed catalogue describes only the live tree C432-CATALOG-CURRENT: op rows are the live registry, tools are the twenty projected tools, and no row names a retired capability or a permission
-C432-CATALOG-CURRENT: the committed catalogue describes only the live tree C432-CATALOG-CURRENT: every migration route answers with a live tool and no proposal"
+C432-CATALOG-CURRENT: the committed catalogue describes only the live tree C432-CATALOG-CURRENT: op rows are the live registry, tools are the twenty projected tools, and no row names a retired capability or a permission"
 # Vacuity floor. A gate that passed because the suite collected nothing is the CI-shaped version of
 # the failure this artifact exists to prevent. Measured 2026-08-16: 88 tests in the directory;
 # 2026-08-17 (398-08): 115, after the manifest legs, the `init --agent` cells and the two shipped-
@@ -140,13 +135,8 @@ FROZEN_MIN_TESTS=129
 # with the grant ledger, so the measured mint is 44 registry ops + 4 chat op-aliases + 4 shipped
 # skills. The floor is the exact observed baseline; the argument is the two deleted ops.
 # Confirmed 2026-10-02 (432-40): 52, measured again at the guidance cutover — 44 registry ops + 4
-# chat op-aliases + 4 shipped skills. No row moved; only migration-map route text changed.
+# chat op-aliases + 4 shipped skills. No row moved.
 FROZEN_MIN_ROWS=52
-# The migration section's floor (398-08, D-14). It is SEPARATE from the row floor because it is a
-# separate section with a separate source: a mint that folded every capability correctly and dropped
-# the projected map would clear FROZEN_MIN_ROWS and write a manifest that answers no v1 caller.
-# Measured 2026-08-17: the shipped map's 33 adjudicated tool rows.
-FROZEN_MIN_MIGRATION_ENTRIES=33
 
 EMIT_FLAG="AGENT_QA_398_CATALOG_EMIT"
 EMIT_BEGIN="<<<398-01-CATALOG-BEGIN>>>"
@@ -221,21 +211,15 @@ CLASSIFY_MJS
 
 cat > "$SANDBOX/inspect.mjs" <<'INSPECT_MJS'
 // Answer, with ONE parse, every question a truncated mint would fail: is it valid JSON at all, how
-// many rows does it carry, and how many migration entries. Each SECTION reports its own length and
-// its own count sentence, because a document that folded one section correctly and dropped the
-// other is a document both halves of a single count would call complete.
+// many rows does it carry, and does its own count sentence agree.
 import { readFileSync } from 'node:fs'
 try {
   const catalog = JSON.parse(readFileSync(process.argv[2], 'utf8'))
   const rows = Array.isArray(catalog.rows) ? catalog.rows.length : -1
-  const migration = Array.isArray(catalog.migrationMap) ? catalog.migrationMap.length : -1
-  process.stdout.write(
-    `ROWS=${rows}\nCOUNT=${Number(catalog.rowCount ?? -1)}\n`
-    + `MIGRATION=${migration}\nMIGRATIONCOUNT=${Number(catalog.migrationCount ?? -1)}\n`,
-  )
+  process.stdout.write(`ROWS=${rows}\nCOUNT=${Number(catalog.rowCount ?? -1)}\n`)
 } catch (err) {
   process.stdout.write(
-    `ROWS=-1\nCOUNT=-1\nMIGRATION=-1\nMIGRATIONCOUNT=-1\n`
+    `ROWS=-1\nCOUNT=-1\n`
     + `ERROR=${err instanceof Error ? err.message : err}\n`,
   )
 }
@@ -349,20 +333,14 @@ mint_catalog() {
 
   [ -s "$out" ] || fatal "the suite printed no catalog between the sentinels — is $EMIT_FLAG still read by catalog.ts?"
 
-  local inspected rows count migration migration_count
+  local inspected rows count
   inspected="$(node "$SANDBOX/inspect.mjs" "$out")"
   rows="$(printf '%s\n' "$inspected" | sed -n 's/^ROWS=//p')"
   count="$(printf '%s\n' "$inspected" | sed -n 's/^COUNT=//p')"
-  migration="$(printf '%s\n' "$inspected" | sed -n 's/^MIGRATION=//p')"
-  migration_count="$(printf '%s\n' "$inspected" | sed -n 's/^MIGRATIONCOUNT=//p')"
   [ "$rows" -ge "$FROZEN_MIN_ROWS" ] \
     || fatal "the minted catalog carries $rows rows, fewer than the frozen floor of $FROZEN_MIN_ROWS ($(printf '%s' "$inspected" | tr '\n' ' '))"
   [ "$count" = "$rows" ] || fatal "the minted catalog's own count sentence ($count) disagrees with its rows ($rows)"
-  [ "$migration" -ge "$FROZEN_MIN_MIGRATION_ENTRIES" ] \
-    || fatal "the minted catalog carries $migration migration entries, fewer than the frozen floor of $FROZEN_MIN_MIGRATION_ENTRIES ($(printf '%s' "$inspected" | tr '\n' ' '))"
-  [ "$migration_count" = "$migration" ] \
-    || fatal "the minted catalog's own migration count sentence ($migration_count) disagrees with its entries ($migration)"
-  note "mint: $rows rows, $migration migration entries"
+  note "mint: $rows rows"
   MINTED="$out"
 }
 
