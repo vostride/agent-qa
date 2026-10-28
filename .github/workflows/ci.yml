@@ -141,6 +141,34 @@ jobs:
       - name: Check CI matrix coverage
         run: node scripts/check-ci-matrix.mjs
 
+  knip:
+    name: Unused code report (knip)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      # The report never fails the job.
+      - name: Report unused code
+        continue-on-error: true
+        run: pnpm exec knip
+
   mcp-conformance:
     name: MCP conformance (ubuntu)
     runs-on: ubuntu-latest
