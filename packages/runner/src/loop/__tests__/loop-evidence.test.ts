@@ -38,7 +38,8 @@ describe('loop evidence matrix (SCREEN-02 / D-15)', () => {
   // special-case (D-15a) — stateAfter === stateBefore. Both the verb and the reuse branch were
   // deleted this plan; a no-verifier completion no longer reuses stateBefore. The deterministic
   // assertion-outcome behavior that replaces it is pinned in assert-value.test.ts (Plan 10), so
-  // it is NOT duplicated here. The surviving stateAfter paths are covered by (3) and (4) below.
+  // it is NOT duplicated here. The surviving stateAfter paths are covered by (3) and the
+  // failed-then-recovered cell below.
 
   it('(3) a verified sub-action gets the verifier re-observation as stateAfter (D-15b)', async () => {
     const before = makeScreenState({ url: 'https://example.test/before' })
@@ -57,7 +58,7 @@ describe('loop evidence matrix (SCREEN-02 / D-15)', () => {
     expect(sub.stateBefore.url).toBe('https://example.test/before')
   })
 
-  it('(4) a failed-then-recovered pair shares the boundary observation and records the contrastive selfHeal pair (D-15c)', async () => {
+  it('a failed-then-recovered pair with no saved path shares the boundary observation and records no self-heal', async () => {
     const screen1 = makeScreenState({ url: 'https://example.test/1' })
     const screen2 = makeScreenState({ url: 'https://example.test/2' })
     const adapter = makeAdapter({
@@ -75,9 +76,7 @@ describe('loop evidence matrix (SCREEN-02 / D-15)', () => {
     // recovering sub-action's stateBefore (identical-state sharing, one capture).
     expect(failed.stateAfter).toEqual(recovering.stateBefore)
     expect(failed.stateAfter?.url).toBe('https://example.test/2')
-    expect(result.evidence!.selfHeal).toBeDefined()
-    expect(result.evidence!.selfHeal?.failedDecision.plannedAction.type).toBe('click')
-    expect(result.evidence!.selfHeal?.recoveringDecision.plan).toBe('right')
+    expect(result.evidence!.selfHeal).toBeUndefined()
   })
 
   it('(5) a sub-action at no boundary has no stateAfter', async () => {

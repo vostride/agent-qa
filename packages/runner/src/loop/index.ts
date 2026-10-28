@@ -559,11 +559,12 @@ export async function executeStep(
     }
   }
 
-  // D-15c self-heal boundary carry: the previous failed sub-action's index +
-  // Decision. On the next iteration's observation (which reveals the failure), that
-  // observation is attached as the failed sub-action's stateAfter AND is naturally the
-  // recovering sub-action's stateBefore (identical-state sharing, one capture).
-  let pendingSelfHeal: { index: number; failed: Decision } | undefined
+  // The failed or rejected sub-action whose stateAfter is the next observation, which is also
+  // the recovering sub-action's stateBefore.
+  let pendingBoundary: number | undefined
+  // A failed saved path's decision, held until a later turn in the step succeeds; that pair
+  // becomes the step's selfHeal.
+  let pendingSelfHeal: Decision | undefined
 
   // CACHE-02 (D-07/D-08): classify the step by resolution provenance ONCE. A step that
   // reads a live secret ({{secret:X}} / [secret:*] marker) or sets an env/secret variable
@@ -936,10 +937,8 @@ export async function executeStep(
       throw err
     }
 
-    // D-15c: the observation that reveals a prior failure is the failed sub-action's
-    // stateAfter (and this iteration's planning stateBefore — the same object).
-    if (pendingSelfHeal) {
-      recorder.attachStateAfter(pendingSelfHeal.index, screenState)
+    if (pendingBoundary !== undefined) {
+      recorder.attachStateAfter(pendingBoundary, screenState)
     }
 
     let screenshot: Buffer | undefined
@@ -2027,6 +2026,7 @@ export async function executeStep(
         ...(decisionEvidence ?? {}),
       })
       context.failureContext = undefined
+      pendingBoundary = undefined
       pendingSelfHeal = undefined
       // setVariable is inherently non-cacheable — no cache write here (Pitfall 6).
       return success()
@@ -2044,8 +2044,8 @@ export async function executeStep(
     const abortAfterPostShot = checkAbort()
     if (abortAfterPostShot) return abortAfterPostShot
 
-    // 4. EXECUTION FAILURE → self-heal = replan-with-failure-context (D-12). No counter
-    // (D-10). The failed sub-action's stateAfter lands on the next observation (D-15c).
+    // 4. EXECUTION FAILURE: replan with the failure as context. The failed sub-action's stateAfter
+    // is the next observation, and a failed replay of a saved path arms the heal.
     if (execError) {
       if (pendingProcedureReplay !== undefined && procedureReplay) {
         procedureReplay.aborted = true
@@ -2099,9 +2099,13 @@ export async function executeStep(
         `Failed action: ${JSON.stringify(action)}\n` +
         `Adapt your approach — try a different element or strategy.`
 
-      pendingSelfHeal = {
-        index: failedIdx,
-        failed: { plan: reasoning, plannedAction: recordedPair.plannedAction, result: toRecordedActionResult(toSchemaResult(execResult, annotation)) },
+      pendingBoundary = failedIdx
+      if (cached || procedureReplayed) {
+        pendingSelfHeal = {
+          plan: reasoning,
+          plannedAction: recordedPair.plannedAction,
+          result: toRecordedActionResult(toSchemaResult(execResult, annotation)),
+        }
       }
       // D-13: a grounding miss is a failed action in substance. It reaches this same branch after
       // the conservative re-ground-first heal has exhausted, so all execution-failure shapes stage
@@ -2250,6 +2254,7 @@ export async function executeStep(
           execResult,
           annotation,
         )
+        pendingBoundary = undefined
         pendingSelfHeal = undefined
         await flushSavedPath({ turn: actionIndex, report: isReport }, judged.evidence)
         // F-381-51-1 · D-09: the verifier ACCEPTED a successful replayed step — re-arm the
@@ -2293,9 +2298,9 @@ export async function executeStep(
         }
       }
 
-      // Verifier says not done — planner was wrong about stepComplete. Treat as a
-      // self-heal boundary: replan with the verifier's reasoning as failure context
-      // (D-12), and let the next observation land as this sub-action's stateAfter (D-15c).
+      // The verifier rejected the completion claim: replan with its reasoning as failure context.
+      // The next observation is this sub-action's stateAfter, and a rejected replayed claim arms
+      // the heal.
       const failedIdx = recordSuccess(
         recorder,
         reasoning,
@@ -2317,9 +2322,13 @@ export async function executeStep(
       })
       context.failureContext = `Sub-action ${actionIndex + 1} did not accomplish the goal: ${verifierReasoning}\n` +
         `Adapt your approach — try a different element or strategy.`
-      pendingSelfHeal = {
-        index: failedIdx,
-        failed: { plan: reasoning, plannedAction: recordedPair.plannedAction, result: toRecordedActionResult(toSchemaResult(execResult, annotation)) },
+      pendingBoundary = failedIdx
+      if (cached || procedureReplayed) {
+        pendingSelfHeal = {
+          plan: reasoning,
+          plannedAction: recordedPair.plannedAction,
+          result: toRecordedActionResult(toSchemaResult(execResult, annotation)),
+        }
       }
       stageFailureCautions(action, afterState)
       continue
@@ -2346,6 +2355,7 @@ export async function executeStep(
         execResult,
         annotation,
       )
+      pendingBoundary = undefined
       pendingSelfHeal = undefined
       void idx
       await flushSavedPath({ turn: actionIndex, report: isReport })
@@ -2375,6 +2385,7 @@ export async function executeStep(
       execResult,
       annotation,
     )
+    pendingBoundary = undefined
     pendingSelfHeal = undefined
     context.subActionHistory!.push({
       action: JSON.stringify(action),
@@ -3477,19 +3488,19 @@ function recordSuccess(
 
 function maybeRecordSelfHeal(
   recorder: EvidenceRecorder,
-  pending: { index: number; failed: Decision } | undefined,
+  failed: Decision | undefined,
   reasoning: string,
   plannedAction: SchemaAction,
   execResult: ActionResult,
   annotation: ActionAnnotation | undefined,
 ): void {
-  if (!pending) return
+  if (!failed) return
   const recovering: Decision = {
     plan: reasoning,
     plannedAction,
     result: toRecordedActionResult(toSchemaResult(execResult, annotation)),
   }
-  recorder.recordSelfHeal(pending.failed, recovering)
+  recorder.recordSelfHeal(failed, recovering)
 }
 
 function buildStepTrace(
