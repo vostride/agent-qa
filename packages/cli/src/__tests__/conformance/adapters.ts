@@ -195,9 +195,9 @@ export const CONFORMANCE_CENSUS_CALLER: FunctionCaller = Object.freeze({
 /**
  * The built-in registry, with empty deps.
  *
- * Honest for a listing question and the precedent is `mapping-bump-guard.test.ts`: `list()` consults
- * the deps for one thing — whether an op is BOUND in this composition — and membership of the
- * catalogue is a property of the catalogue rather than of a host.
+ * Honest for a listing question: `list()` consults the deps for one thing — whether an op is BOUND
+ * in this composition — and membership of the catalogue is a property of the catalogue rather than
+ * of a host.
  *
  * EMPTY DEPS ARE THE ZERO-MUTATION GUARANTEE FOR THE VERDICT LEGS, and structurally rather than by
  * assertion: 30 of the 41 capabilities read `unbound` in this composition and refuse by name at

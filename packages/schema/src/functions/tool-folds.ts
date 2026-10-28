@@ -21,9 +21,9 @@
 // handler reads the discriminant, checks it against the tool's DECLARED op set, and invokes exactly
 // that op. A short verb would have needed a verb -> op map somewhere, and a map is a place two
 // spellings of one fact can disagree. The op ids are spelled as literals here because this package
-// may not import the function layer; `packages/mcp`'s bump guard reads them back OUT of the
-// composed schema and compares them against the registry's own enumeration, so the restatement is
-// pinned by a produced-not-literal check rather than trusted.
+// may not import the function layer; `packages/mcp`'s tool-schema test reads them back OUT of the
+// listed fold schema and compares them against the tool's declared op set, so the restatement is
+// checked against a produced schema rather than trusted.
 
 import { z } from 'zod'
 
@@ -61,9 +61,9 @@ import {
  * The key whose literal names which arm a fold call is about.
  *
  * A constant rather than the string `'action'` written at each of its call sites: the key the
- * union discriminates on, the key the tool handler strips, and the key the bump guard reads back
- * are THE SAME key, and two spellings of it would fail as a call that validates and then dispatches
- * nowhere.
+ * union discriminates on, the key the tool handler strips, and the key the tool-schema test reads
+ * back are THE SAME key, and two spellings of it would fail as a call that validates and then
+ * dispatches nowhere.
  */
 export const TOOL_FOLD_DISCRIMINANT = 'action'
 

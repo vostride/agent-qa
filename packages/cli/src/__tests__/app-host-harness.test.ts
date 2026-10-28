@@ -854,8 +854,8 @@ describe('leg 1 — a negotiating host reaches the App over the wire (D-05, D-09
         .sort()
 
       // ENUMERATED FROM THE WIRE, then checked for shape rather than for a hardcoded pair — the
-      // pair itself is pinned by the mcp package's own census and bump guard (408-01 D-E), and
-      // restating it here would be a third copy free to disagree with both.
+      // pair itself is pinned by the mcp package's own carrier census, and restating it here would
+      // be a second copy free to disagree with it.
       expect(carriers.length, 'at least one tool carries the App reference').toBeGreaterThan(0)
       for (const name of carriers) {
         const tool = listed.tools.find((candidate) => candidate.name === name)

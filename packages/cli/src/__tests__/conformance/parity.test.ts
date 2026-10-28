@@ -557,10 +557,9 @@ describe('the parity suite ranges the registry census over every rostered surfac
   })
 
   it('enumerates over MCP exactly the op set the declared mapping projects', () => {
-    // The comparand is DERIVED from the mapping rather than pinned here. Tool names are pinned by
-    // the shipped bump guard and re-pinning them in this suite would be a second catalogue: what
-    // this cell claims is that the LIVE listing, folded through the declared mapping, reaches the
-    // ops that mapping declares — a different claim than the guard's, over a live server.
+    // The comparand is DERIVED from the mapping rather than pinned here, because pinning tool names
+    // in this suite would be a second catalogue: what this cell claims is that the LIVE listing,
+    // folded through the declared mapping, reaches the ops that mapping declares.
     const projected = sorted(AGENT_QA_TOOL_PROJECTIONS.flatMap((p) => [...p.ops]))
     expect(sorted(enumerationOf('mcp').opIds), 'the live MCP listing, fold-expanded to op ids')
       .toEqual(projected)
@@ -1106,9 +1105,8 @@ describe('the parity suite ranges the registry census over every rostered surfac
 
   it('EDITOR-LIVEURL-UNPROJECTED-RULING: editor.liveurl stays unprojected by the 428 ruling (428 D-07)', () => {
     // D-07: an editor session's view credential is private to the dashboard page that owns it, and
-    // the owner declined an MCP watch carrier for a draft execution. mapping-bump-guard pins the
-    // counts; this cell pins the ruling on the conformance layer, so a mint tool for an editor
-    // session reds here by name as well.
+    // the owner declined an MCP watch carrier for a draft execution. This cell pins the ruling on
+    // the conformance layer, so a mint tool for an editor session reds here by name.
     const entry = UNPROJECTED_OPS.find((candidate) => candidate.opId === 'editor.liveurl')
     expect(entry, 'editor.liveurl left the unprojected register — re-home this ruling before it does')
       .toBeDefined()
