@@ -281,42 +281,16 @@ describe('GET /api/runs/:id/knowledge — the read (D-05)', () => {
   })
 })
 
-describe('serveRunKnowledgeRead — the door (405 CR-01 · 405-10 D-09)', () => {
-  it('refuses a cross-site request before any dispatch', async () => {
-    let dispatched = 0
-    const host = {
-      ...hostOver(composeRegistry(recordedRun())),
-      invokeFunction: (): Promise<unknown> => {
-        dispatched += 1
-        return Promise.resolve(undefined)
-      },
-    } as unknown as AgentHost
-    const recorder = recordingResponse()
-
-    // An attacker-controlled Host that resolves to loopback is what DNS rebinding looks like from
-    // this door's side; the absent CORS grant does not stop it, and this guard does.
-    serveRunKnowledgeRead(
-      { headers: { host: 'evil.example.com', origin: 'http://evil.example.com' } } as never,
-      recorder.res,
-      { runId: RUN_ID, host, boundary: 'human' },
-    )
-    await recorder.done
-
-    expect(recorder.status()).toBe(403)
-    expect(JSON.parse(recorder.raw())).toEqual({ error: 'cross_site_refused' })
-    expect(dispatched).toBe(0)
-  })
-
+describe('serveRunKnowledgeRead', () => {
   const STORED_STEP = 'Sign in with [secret:PW_441] or <SECRET_0>'
 
-  it("serves a step's stored text unchanged when boundary is 'human' (441 D-07)", async () => {
+  it("serves a step's stored text unchanged", async () => {
     const registry = composeRegistry(recordedRun(STORED_STEP))
     const recorder = recordingResponse()
 
     serveRunKnowledgeRead(LOOPBACK, recorder.res, {
       runId: RUN_ID,
       host: hostOver(registry),
-      boundary: 'human',
     })
     await recorder.done
 
@@ -324,13 +298,10 @@ describe('serveRunKnowledgeRead — the door (405 CR-01 · 405-10 D-09)', () => 
     expect(recorder.raw()).toContain(STORED_STEP)
   })
 
-  it('serves the same stored text with no boundary, at a non-loopback Host', async () => {
+  it('serves the same stored text at a non-loopback Host', async () => {
     const registry = composeRegistry(recordedRun(STORED_STEP))
     const recorder = recordingResponse()
 
-    // NO `boundary`, AND A NON-LOOPBACK HOST: an authed remote row is reached at a real hostname
-    // and must not inherit a loopback check written for a person's local browser session. A 200
-    // here is the assertion that the guard is gated on `boundary` and not on the function.
     serveRunKnowledgeRead(
       { headers: { host: 'runs.example.com' } } as never,
       recorder.res,

@@ -249,19 +249,13 @@ const RUN_SERVICE_LIVE_URL_PATTERN = /^\/run\/([^/]+)\/live-url$/
  * and the preflight was liveness and early token validation in one round-trip.)
  */
 /**
- * The durable run-detail READ (405-05, D-12 / 402 D-16) — the remote twin of the local door's
- * `GET /api/runs/:id/detail`.
+ * The durable run-detail READ — the remote twin of the local door's `GET /api/runs/:id/detail`.
  *
  * IT DISPATCHES THROUGH THE SAME ADAPTER THE LOCAL DOOR CALLS. `serveRunDetailRead` is one
  * function, so the two doors cannot come to disagree about what a run's projection is; a second
  * spelling here would agree on the day it was written and be a wire-contract fork thereafter.
  *
- * THIS ROW IS MASKED, and deliberately. It is a machine wire like `/run/:runId/events` one line up
- * — its consumer (the CLI's own `emitHuman`, 408's embed) is where a person meets the text, and
- * that consumer is the display boundary. The alternative would restore declared secrets onto a
- * machine wire, extending the disclosure surface to every client and every intermediary, which is
- * not what "the browser is never the boundary" (400-06) asks for. 405-10
- * applies the unmask seam to the LOCAL door only and enrols this row on the masked side.
+ * This row serves the same stored body the local door serves, masked at write.
  */
 export const RUN_SERVICE_DETAIL_TEMPLATE = '/run/:runId/detail'
 const RUN_SERVICE_DETAIL_PATTERN = /^\/run\/([^/]+)\/detail$/
@@ -281,18 +275,13 @@ const RUN_SERVICE_EVIDENCE_PATTERN = /^\/run\/([^/]+)\/evidence$/
 export const RUN_SERVICE_ARTIFACT_TEMPLATE = '/run/:runId/artifacts/:sha'
 const RUN_SERVICE_ARTIFACT_PATTERN = /^\/run\/([^/]+)\/artifacts\/([^/]+)$/
 /**
- * The run-ANALYSIS read (406-01, D-04) — the remote twin of the local door's
- * `GET /api/runs/:id/analysis`.
+ * The run-ANALYSIS read — the remote twin of the local door's `GET /api/runs/:id/analysis`.
  *
  * IT DISPATCHES THROUGH THE SAME ADAPTER THE LOCAL DOOR CALLS, for the reason its detail sibling
  * does: `serveRunAnalysisRead` is one function, so the two doors cannot come to disagree about
  * what a run's analysis is.
  *
- * THIS ROW IS MASKED, AND FOR THE REASON ITS SIBLING IS. The verdict sentence quotes the failing
- * step's recorded error, which carries declared placeholders at rest; restoring them onto a
- * machine wire would hand them to every client and every intermediary, and this row's
- * consumer — the CLI's own emit, 408's embed — is where a person meets the text. The dispatch
- * below passes no `boundary`, and the option's `'machine'` default is what keeps it masked.
+ * This row serves the same stored body the local door serves, masked at write.
  */
 export const RUN_SERVICE_ANALYSIS_TEMPLATE = '/run/:runId/analysis'
 const RUN_SERVICE_ANALYSIS_PATTERN = /^\/run\/([^/]+)\/analysis$/
@@ -957,15 +946,11 @@ export function createRunServiceRoutes(ports: RunServicePorts): RunServiceRouter
   }
 
   /**
-   * The two READ arms (405-05, D-12 / 402 D-16) — the remote twins of `routes.ts`'s own.
+   * The READ arms — the remote twins of `routes.ts`'s own.
    *
    * THEY CALL THE LOCAL DOOR'S ADAPTERS AND FORMAT NOTHING, on `handleLiveUrl`'s rule and for its
    * reason: a second shaping here would be a second contract for what a run's projection or an
    * artifact's headers ARE, and the parity corpus would then compare two shapings rather than one.
-   *
-   * NO `boundary` OPTION IS PASSED, and that is this door's masked posture stated by omission:
-   * 405-10 gives `serveRunDetailRead` a `boundary` that DEFAULTS to machine (masked), and only the
-   * LOCAL arm opts into `'human'`. A row that wanted the human boundary would have to say so.
    *
    * AN UNCOMPOSED HOST IS 503 IN THE ADAPTERS' OWN VOCABULARY, not this door's closed error set.
    * These two rows serve a shape the closed `RunServiceErrorCode` set was never written for — a
@@ -1000,13 +985,8 @@ export function createRunServiceRoutes(ports: RunServicePorts): RunServiceRouter
     try {
       const path = (req.url ?? '/').split('?')[0] ?? '/'
 
-      // THE SAME-SITE GUARD, FIRST, ABOVE THE ROUTE TABLE (D-06 / D-15; 432-21 D-13). Every route,
-      // every method, every path this door owns — including a path no row matches, and a preflight.
-      // Nothing below this line runs, and no body is read, for a request naming a non-loopback Host,
-      // a foreign `Origin` or a cross-site `Sec-Fetch-Site`. The predicate is the dashboard's one
-      // shared spelling (`server/cross-site.ts`), so this door and the mark, config and live-url
-      // doors cannot disagree about what cross-site means. Until 432-21 this rung was the bearer
-      // verdict; the credential is deleted (D-12) and the network boundary is what remains.
+      // Every path and method this door owns, unmatched paths and preflights included, passes the
+      // same-site and Host check here, before the route table.
       if (refuseCrossSiteRequest(req) !== undefined) {
         refuse(res, 403, 'cross_site_refused')
         return
@@ -1045,12 +1025,6 @@ export function createRunServiceRoutes(ports: RunServicePorts): RunServiceRouter
           return
         case 'analysis':
           handleAgentRead(req, res, matched.params[0] ?? '', (runId, host) => {
-            // NO DISPLAY OPT-IN, AND THAT IS THE WHOLE DECISION (406 D-04, 405-10's precedent).
-            // The shared adapter's option defaults to `'machine'`; this door's callers are machine
-            // clients, not a person's browser session, so this body stays masked. Opting this arm
-            // in reds the roll-call's `machine:remote-run-analysis` row and a source cell in
-            // `run-service-routes.test.ts` that greps this very block — which is the review the
-            // reversal deserves.
             serveRunAnalysisRead(req, res, { runId, host })
           })
           return

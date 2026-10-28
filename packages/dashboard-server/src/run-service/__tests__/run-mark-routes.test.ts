@@ -118,7 +118,7 @@ describe('markRun delegates to the shared gate and feedback port', () => {
 })
 
 describe('registered POST /api/runs/:id/mark', () => {
-  it('answers a machine-boundary success as the op returned it', async () => {
+  it('answers a success as the op returned it', async () => {
     const f = fixture()
     const server = createServer((req, res) => registerRunMarkRoute(req, res, {
       host: f.host, runId: RUN_ID,

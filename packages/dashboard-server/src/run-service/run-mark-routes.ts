@@ -10,7 +10,6 @@ import {
 
 import type { AgentHost } from '../chat/host.js'
 import { readJsonBody } from '../server/body-parser.js'
-import { refuseCrossSiteRequest } from '../server/cross-site.js'
 import { refusalFor, respondJson, type RunDetailRefusal } from './run-detail-routes.js'
 
 // 2026-10-02 (432-42, D-15): no 403 refusal arm. It carried the `mark_denied` body the execution
@@ -49,20 +48,15 @@ export async function markRun(
   }
 }
 
-/** POST /api/runs/:id/mark. Both doors answer the op's outcome as it is; `'human'` adds the same-site guard. */
+/** POST /api/runs/:id/mark. Both doors answer the op's outcome as it is. */
 export function registerRunMarkRoute(
   req: IncomingMessage,
   res: ServerResponse,
   deps: {
     readonly host: AgentHost
     readonly runId: string
-    readonly boundary?: 'human' | 'machine'
   },
 ): void {
-  if (deps.boundary === 'human' && refuseCrossSiteRequest(req) !== undefined) {
-    respondJson(res, 403, { error: 'cross_site_refused' })
-    return
-  }
   void readJsonBody<unknown>(req).then(async (body) => {
     const outcome = await markRun(deps.host, deps.runId, body)
     if (outcome.kind === 'refused') {

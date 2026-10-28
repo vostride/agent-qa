@@ -13,9 +13,8 @@
 // one read through two implementations means "the same run's knowledge" depends on which
 // credential asked.
 //
-// BOTH DOORS SERVE THE STORED BODY (441 D-07). The projection carries producer text throughout,
-// masked at write, and neither door restores anything. The local arm's `boundary: 'human'` only
-// turns on the same-site guard below.
+// BOTH DOORS SERVE THE STORED BODY. The projection carries producer text throughout, masked at
+// write, and neither door restores anything.
 //
 // THE REFUSAL VOCABULARY IS IMPORTED, NEVER RESPELLED. `refusalFor` is the detail adapter's;
 // `unknown_run` / `agent_host_unavailable` / `read_failed` mean here exactly what they mean two
@@ -31,7 +30,6 @@ import {
 } from '@vostride/agent-qa-schema'
 
 import type { AgentHost } from '../chat/host.js'
-import { refuseCrossSiteRequest } from '../server/cross-site.js'
 import { refusalFor, respondJson, type RunDetailRefusal } from './run-detail-routes.js'
 
 export type RunKnowledgeReadOutcome =
@@ -74,12 +72,6 @@ export interface RunKnowledgeReadDeps {
   readonly runId: string
   /** The injected host. Its absence is the ROUTER'S 503, not this function's. */
   readonly host: AgentHost
-  /**
-   * WHO IS ON THE OTHER END OF THIS SOCKET. Both values serve the same stored body (441 D-07);
-   * `'human'` only turns on the same-site guard. It is passed by exactly one arm, the LOCAL door's
-   * `GET /api/runs/:id/knowledge` in `routes.ts`; any authed remote row passes nothing.
-   */
-  readonly boundary?: 'human' | 'machine'
 }
 
 /** `GET /api/runs/:id/knowledge` — the Knowledge tab's one read (D-05). */
@@ -88,19 +80,6 @@ export function serveRunKnowledgeRead(
   res: ServerResponse,
   deps: RunKnowledgeReadDeps,
 ): void {
-  // THE SAME-SITE GUARD, GATED ON `boundary` FOR THE REASON THE DETAIL ADAPTER RECORDS (405
-  // CR-01): any remote door dispatches the same function from a legitimately non-loopback Host, and
-  // an unconditional check would refuse the door it was not written for.
-  //
-  // `respondJson` already writes no cross-origin grant, so a page on another ORIGIN cannot read
-  // this body. What that does not stop is DNS rebinding — the attacker's own name resolves to
-  // loopback, so the browser treats the read as same-origin and asks for no grant at all. The Host
-  // check inside `refuseCrossSiteRequest` is the rung that closes it, and it ADMITS the caller
-  // that sends no `Origin`, which is the local non-browser drive this door also serves.
-  if (deps.boundary === 'human' && refuseCrossSiteRequest(req) !== undefined) {
-    respondJson(res, 403, { error: 'cross_site_refused' })
-    return
-  }
   void readRunKnowledge(deps.host, deps.runId).then(
     (outcome) => {
       if (outcome.kind === 'refused') {

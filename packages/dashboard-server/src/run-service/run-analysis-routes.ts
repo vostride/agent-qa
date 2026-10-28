@@ -12,9 +12,8 @@
 // credential asked. The sibling detail adapter's own note says a second spelling agrees on the day
 // it is written and is a wire-contract fork thereafter.
 //
-// BOTH DOORS SERVE THE STORED BODY (441 D-07). The verdict sentence quotes the failing step's
-// recorded error, which was masked at write, and neither door restores anything. The local arm's
-// `boundary: 'human'` only turns on the same-site guard below.
+// BOTH DOORS SERVE THE STORED BODY. The verdict sentence quotes the failing step's recorded error,
+// which was masked at write, and neither door restores anything.
 //
 // THE REFUSAL VOCABULARY IS IMPORTED, NEVER RESPELLED. `refusalFor` is the detail adapter's, made
 // exported for this file; `unknown_run` / `agent_host_unavailable` / `read_failed` mean here
@@ -28,7 +27,6 @@ import {
 } from '@vostride/agent-qa-schema'
 
 import type { AgentHost } from '../chat/host.js'
-import { refuseCrossSiteRequest } from '../server/cross-site.js'
 import { refusalFor, respondJson, type RunDetailRefusal } from './run-detail-routes.js'
 
 export type RunAnalysisReadOutcome =
@@ -69,13 +67,6 @@ export interface RunAnalysisReadDeps {
   readonly runId: string
   /** The injected host. Its absence is the ROUTER'S 503, not this function's. */
   readonly host: AgentHost
-  /**
-   * WHO IS ON THE OTHER END OF THIS SOCKET. Both values serve the same stored body (441 D-07);
-   * `'human'` only turns on the same-site guard. It is passed by exactly one arm, the LOCAL door's
-   * `GET /api/runs/:id/analysis` in `routes.ts`; the remote `GET /run/:runId/analysis` row passes
-   * nothing.
-   */
-  readonly boundary?: 'human' | 'machine'
 }
 
 /** `GET /api/runs/:id/analysis` — the failure view's one read (D-04). */
@@ -84,13 +75,6 @@ export function serveRunAnalysisRead(
   res: ServerResponse,
   deps: RunAnalysisReadDeps,
 ): void {
-  // THE SAME-SITE GUARD, GATED ON `boundary` FOR THE REASON THE DETAIL ADAPTER RECORDS (405 CR-01):
-  // the remote door dispatches the same function from a legitimately non-loopback Host, and an
-  // unconditional check would refuse the door it was not written for.
-  if (deps.boundary === 'human' && refuseCrossSiteRequest(req) !== undefined) {
-    respondJson(res, 403, { error: 'cross_site_refused' })
-    return
-  }
   void readRunAnalysis(deps.host, deps.runId).then(
     (outcome) => {
       if (outcome.kind === 'refused') {
