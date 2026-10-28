@@ -1185,7 +1185,7 @@ export async function executeStep(
           reason: attempt.reason,
         }
         recordProcedureReplaySource()
-        const goneTarget = SAVED_TARGET_GONE[attempt.reason]
+        const goneTarget = attempt.unjudgeable ? undefined : SAVED_TARGET_GONE[attempt.reason]
         if (goneTarget !== undefined) {
           pendingSelfHeal = {
             plan: 'Replayed from a saved procedure',
@@ -2556,6 +2556,7 @@ type ProcedureReplayAttempt =
       ok: false
       reason: ProcedureGuardMissReason
       location: ProcedureGuardMissLocation
+      unjudgeable?: true
     }
 
 // 2026-10-09 (438-10): no stored or derived position reaches the recovery context (D-12).
@@ -2658,17 +2659,20 @@ function projectProcedureRecoverySuppliedSource(
 }
 
 /**
- * Re-find one committed procedure target strictly (438 D-11): the one element with its role,
- * exact name and stored row words. A target without a stored name (a body committed before
- * 438) cannot be judged and is 'descriptor-missing'; no ordinal is read and nothing is picked.
+ * Re-find one committed procedure target strictly: the one element with its role, exact name and
+ * stored row words. A target without a stored name (a body committed before names were stored)
+ * cannot be judged: it is an unjudgeable 'descriptor-missing', not a target gone from the page.
+ * No ordinal is read and nothing is picked.
  */
 function strictProcedureTarget(
   target: ProcedureGuardTarget,
   elements: readonly ElementInfo[],
 ):
   | { ok: true; ref: Ref }
-  | { ok: false; reason: 'descriptor-missing' | 'descriptor-ambiguous' } {
-  if (target.name === undefined) return { ok: false, reason: 'descriptor-missing' }
+  | { ok: false; reason: 'descriptor-missing' | 'descriptor-ambiguous'; unjudgeable?: true } {
+  if (target.name === undefined) {
+    return { ok: false, reason: 'descriptor-missing', unjudgeable: true }
+  }
   const match = strictMatch({ role: target.role, name: target.name, row: target.row }, elements)
   if (match.kind === 'resolved') return { ok: true, ref: match.ref }
   return {
@@ -2711,14 +2715,24 @@ function attemptProcedureReplayAction(input: {
   for (const [lane, target] of Object.entries(spec.targets)) {
     const match = strictProcedureTarget(target, input.screenState.elements)
     if (!match.ok) {
-      return { ok: false, reason: match.reason, location: { kind: 'action-target', lane } }
+      return {
+        ok: false,
+        reason: match.reason,
+        location: { kind: 'action-target', lane },
+        ...(match.unjudgeable ? { unjudgeable: true as const } : {}),
+      }
     }
     action[lane] = match.ref
   }
 
   const guardMatch = strictProcedureTarget(input.step.guard.target, input.screenState.elements)
   if (!guardMatch.ok) {
-    return { ok: false, reason: guardMatch.reason, location: { kind: 'guard-target' } }
+    return {
+      ok: false,
+      reason: guardMatch.reason,
+      location: { kind: 'guard-target' },
+      ...(guardMatch.unjudgeable ? { unjudgeable: true as const } : {}),
+    }
   }
 
   const stored = normalizeAnchor(input.step.guard.pageAnchor) as Extract<Anchor, { t: 'page' }>

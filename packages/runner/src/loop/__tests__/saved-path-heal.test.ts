@@ -347,6 +347,28 @@ describe('healed means a saved procedure failed and was repaired', () => {
     expect(outcomeOf(step)).toBe('healed')
   })
 
+  it('a procedure target stored with no name is a plain miss that ends passed', async () => {
+    const unnamed: ProcedureGuardTarget = { role: 'link', nameNormalized: 'invoice' }
+    const body = openInvoiceBody()
+    const payload: ProcedureBodyPayload = {
+      ...body,
+      steps: body.steps.map((step) => ({
+        ...step,
+        action: { ...step.action, targets: { ref: unnamed } },
+        guard: { ...step.guard, target: unnamed },
+      })),
+    }
+    const page = invoiceScreen([link('e1', 'Invoice 947')])
+
+    const { step, planner } = await runProcedureStep(payload, page, 'e1')
+
+    expect(guardMissOf(step)).toBe('descriptor-missing')
+    expect(planner.calls).toBe(1)
+    expect(step.status).toBe('passed')
+    expect(step.evidence!.selfHeal).toBeUndefined()
+    expect(outcomeOf(step)).toBe('passed')
+  })
+
   it('a procedure matched to another page is a plain miss', async () => {
     const page = invoiceScreen([link('e1', 'Invoice 946'), link('e2', 'Invoice 947')])
 
