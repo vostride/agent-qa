@@ -9,6 +9,7 @@ export default defineConfig({
     include: ['src/**/__tests__/**/*.test.ts'],
     globals: true,
     maxWorkers: 1,
+    env: { GITHUB_ACTIONS: '' },
     typecheck: {
       enabled: true,
       tsconfig: './tsconfig.json',

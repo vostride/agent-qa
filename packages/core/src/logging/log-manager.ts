@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { LOG_LEVEL_PRIORITY } from './types.js'
 import type { LogLevel, LogSource, LogEntry, LogStorage, ScopedLogger } from './types.js'
 import { formatLogEntry } from './cli-formatter.js'
+import { printRunText, type RunTextEnv } from './run-text-output.js'
 import { redactSecretValue, type SecretRedactor } from '@vostride/agent-qa-runner'
 
 /**
@@ -52,6 +53,7 @@ export class LogManager {
   private readonly ndjson: boolean
   private redactor?: SecretRedactor
   private readonly memberScope?: AsyncScopeStore<MemberLogScope>
+  private readonly env?: RunTextEnv
 
   constructor(opts: {
     runId?: string
@@ -60,6 +62,7 @@ export class LogManager {
     ndjson?: boolean
     redactor?: SecretRedactor
     memberScope?: AsyncScopeStore<MemberLogScope>
+    env?: RunTextEnv
   }) {
     this.runId = opts.runId ?? ''
     this.runIdSet = !!opts.runId
@@ -68,6 +71,7 @@ export class LogManager {
     this.ndjson = opts.ndjson ?? false
     this.redactor = opts.redactor
     this.memberScope = opts.memberScope
+    this.env = opts.env
   }
 
   setRedactor(redactor: SecretRedactor | undefined): void {
@@ -111,7 +115,13 @@ export class LogManager {
     if (scope && !entry.runId) scope.pending.push(entry)
 
     if (this.shouldDisplay(level)) {
-      process.stderr.write(formatLogEntry(entry) + '\n')
+      printRunText(
+        formatLogEntry(entry),
+        (line) => {
+          process.stderr.write(`${line}\n`)
+        },
+        { env: this.env },
+      )
     }
 
     if (this.ndjson) {

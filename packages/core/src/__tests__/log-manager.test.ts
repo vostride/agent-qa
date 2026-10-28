@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { LogManager, MemberLogScopeUnavailableError } from '../logging/log-manager.js'
 import type { MemberLogScope } from '../logging/log-manager.js'
 import type { LogStorage, LogEntry } from '../logging/types.js'
+import { formatLogEntry } from '../logging/cli-formatter.js'
 import { SecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
 
 describe('LogManager', () => {
@@ -82,6 +83,29 @@ describe('LogManager', () => {
     expect(output).toContain('info msg')
     expect(output).toContain('warn msg')
     expect(output).toContain('error msg')
+  })
+
+  it('prints a displayed entry carrying a workflow command inside its own stop-commands pair on stdout under GitHub Actions', () => {
+    const lm = new LogManager({
+      runId: 'run-1',
+      displayLevel: 'info',
+      env: { GITHUB_ACTIONS: 'true' },
+    })
+    lm.log('info', 'agent', '::set-output name=x::y')
+    expect(stderrSpy).not.toHaveBeenCalled()
+    expect(stdoutSpy).toHaveBeenCalledTimes(1)
+    const block = String(stdoutSpy.mock.calls[0][0])
+    expect(block).toMatch(/^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::\n$/u)
+    expect(block).toContain('::set-output name=x::y')
+  })
+
+  it('prints a displayed entry to stderr exactly as formatted off GitHub Actions', () => {
+    const lm = new LogManager({ runId: 'run-1', displayLevel: 'info' })
+    lm.log('info', 'agent', '::set-output name=x::y')
+    const [entry] = lm.getBuffer()
+    expect(stderrSpy).toHaveBeenCalledTimes(1)
+    expect(stderrSpy).toHaveBeenCalledWith(formatLogEntry(entry) + '\n')
+    expect(stdoutSpy).not.toHaveBeenCalled()
   })
 
   it('silent displayLevel shows nothing', () => {
