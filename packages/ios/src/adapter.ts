@@ -36,6 +36,7 @@ import {
   deriveMobileScroll,
   IOS_EDITABLE_TYPES,
   parseMobileSource,
+  printRunText,
   warnIfOutOfBounds,
 } from '@vostride/agent-qa-core'
 import type { MobileRefMap } from '@vostride/agent-qa-core'
@@ -611,8 +612,9 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
           const detail = (readErr instanceof Error ? readErr.message : String(readErr))
             .split('\n')[0]
             .slice(0, 160)
-          console.warn(
+          printRunText(
             `[ios-adapter] page source failed at snapshotMaxDepth ${failedDepth}; later reads stay at ${IOS_SNAPSHOT_FALLBACK_DEPTH} and retry ${this.sessionSnapshotDepth} every ${IOS_SNAPSHOT_PROBE_INTERVAL} reads (${detail})`,
+            (text) => console.warn(text),
           )
         }
       }

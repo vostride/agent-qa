@@ -138,6 +138,31 @@ describe('iOS snapshot depth (P3)', () => {
       expect(message).not.toContain('<AppiumAUT>')
     })
 
+    it('prints the depth warning inside a stop-commands pair under GitHub Actions', async () => {
+      const pair =
+        /^::stop-commands::([0-9a-f]{32})\n\[ios-adapter\] page source failed[^\n]*##\[error\]x[^\n]*\n::\1::\n$/u
+      const stdoutWrite = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+      driver.getPageSource
+        .mockRejectedValueOnce(
+          snapshotError('##[error]x kAXErrorIllegalArgument getting snapshot for element'),
+        )
+        .mockResolvedValue(XML)
+      vi.stubEnv('GITHUB_ACTIONS', 'true')
+      try {
+        await adapter.setup({ platform: 'ios' })
+        await adapter.observe()
+      } finally {
+        vi.unstubAllEnvs()
+      }
+
+      const pairs = stdoutWrite.mock.calls
+        .map((call: unknown[]) => String(call[0]))
+        .filter((write) => write.startsWith('::stop-commands::'))
+      expect(pairs).toHaveLength(1)
+      expect(pairs[0]).toMatch(pair)
+      expect(warn).not.toHaveBeenCalled()
+    })
+
     it('retries the session depth after 20 lowered reads, before reading', async () => {
       driver.getPageSource.mockRejectedValueOnce(snapshotError()).mockResolvedValue(XML)
       await adapter.setup({ platform: 'ios' })
