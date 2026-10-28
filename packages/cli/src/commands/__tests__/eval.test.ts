@@ -1326,3 +1326,107 @@ describe('agent-qa eval replay renders and exits from its DTO', () => {
       promptTokens: 0, completionTokens: 0, seedHonored: null })
   })
 })
+
+describe('agent-qa eval under GitHub Actions', () => {
+  const CRAFTED = '##[error]x ::set-output name=x::y'
+  const PAIR = /^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::\n$/u
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.restoreAllMocks()
+  })
+
+  async function craftedSkipFixture(): Promise<string> {
+    const { dir, configPath } = await writeFixture()
+    saveRun(dir, 'run-alpha')
+    const corruptDir = join(dir, '.agent-qa', RUNS_SUBDIR, slugBranch('run-corrupt'))
+    await mkdir(corruptDir, { recursive: true })
+    await writeFile(join(corruptDir, HANDOFF_FILE), CRAFTED)
+    return configPath
+  }
+
+  function captureWrites(): string[] {
+    const writes: string[] = []
+    vi.spyOn(process.stdout, 'write').mockImplementation((chunk: unknown) => {
+      writes.push(String(chunk))
+      return true
+    })
+    return writes
+  }
+
+  async function extract(configPath: string, args: readonly string[] = []) {
+    const { logs, errors } = captureConsole()
+    const writes = captureWrites()
+    await buildProgram().parseAsync(['--config', configPath, 'eval', 'extract', ...args], {
+      from: 'user',
+    })
+    vi.restoreAllMocks()
+    return { logs, errors, writes }
+  }
+
+  it('prints the human summary and its skip reasons inside one stop-commands pair', async () => {
+    const configPath = await craftedSkipFixture()
+    const plain = await extract(configPath)
+    expect(plain.logs.join('\n')).toContain('#')
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const actions = await extract(configPath)
+
+    expect(actions.logs).toEqual([])
+    expect(actions.writes).toHaveLength(1)
+    expect(actions.writes[0]).toMatch(PAIR)
+    expect(actions.writes[0]).toContain(`\n${plain.logs.join('\n')}\n`)
+  })
+
+  it('prints --json with no # that parses back to the same document', async () => {
+    const configPath = await craftedSkipFixture()
+    const plain = await extract(configPath, ['--json'])
+    expect(plain.logs.join('\n')).toContain('#')
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const actions = await extract(configPath, ['--json'])
+
+    expect(actions.writes).toEqual([])
+    expect(actions.logs).toHaveLength(1)
+    expect(actions.logs[0]).not.toContain('#')
+    expect(JSON.parse(actions.logs[0] ?? '')).toEqual(JSON.parse(plain.logs[0] ?? ''))
+  })
+
+  it('prints an error inside a pair, on stderr while --json holds stdout', async () => {
+    const configPath = await craftedSkipFixture()
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const human = await extract(configPath, ['--run', CRAFTED])
+    expect(process.exitCode).toBe(1)
+    process.exitCode = undefined
+    const json = await extract(configPath, ['--run', CRAFTED, '--json'])
+    expect(process.exitCode).toBe(1)
+    process.exitCode = undefined
+
+    expect(human.errors).toEqual([])
+    expect(human.writes).toHaveLength(1)
+    expect(human.writes[0]).toMatch(PAIR)
+    expect(human.writes[0]).toContain(CRAFTED)
+    expect(json.writes).toEqual([])
+    expect(json.logs).toEqual([])
+    expect(json.errors).toHaveLength(1)
+    expect(json.errors[0]).toMatch(/^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::$/u)
+    expect(json.errors[0]).toContain(CRAFTED)
+  })
+
+  it('prints the summary and the error line by line, as before, off GitHub Actions', async () => {
+    const configPath = await craftedSkipFixture()
+
+    const summary = await extract(configPath)
+    const failure = await extract(configPath, ['--run', CRAFTED])
+    process.exitCode = undefined
+
+    expect(summary.writes).toEqual([])
+    expect(summary.logs.length).toBeGreaterThan(3)
+    expect(summary.logs.join('\n')).not.toContain('::stop-commands::')
+    expect(failure.writes).toEqual([])
+    expect(failure.errors).toHaveLength(1)
+    expect(failure.errors[0]).toContain(CRAFTED)
+    expect(failure.errors[0]).not.toContain('::stop-commands::')
+  })
+})

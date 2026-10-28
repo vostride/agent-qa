@@ -39,6 +39,7 @@ import {
 } from '@vostride/agent-qa-agent'
 import { listSessions } from '@vostride/agent-qa-agent-local'
 import type { ChatSessionListing, LocalAgentHost } from '@vostride/agent-qa-agent-local'
+import { printRunText } from '@vostride/agent-qa-core'
 import type { AgentAskResult, MaskFn } from '@vostride/agent-qa-schema'
 import { Command } from 'commander'
 import pc from 'picocolors'
@@ -228,7 +229,7 @@ function reportError(error: unknown, mask?: MaskFn): void {
       return
     }
   }
-  console.error(pc.red(shown))
+  printRunText(pc.red(shown), (block) => console.error(block))
 }
 
 /**
@@ -274,7 +275,7 @@ function resolveSessionId(
 
 function emitHuman(mask: MaskFn, text: string): void {
   if (text === '') return
-  console.log(mask(text))
+  printRunText(mask(text))
 }
 
 export function createChatCommand(deps: ChatCommandDeps = {}): Command {
@@ -398,7 +399,9 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
           // non-TTY would make the one automatable reading of this clause unavailable.
           chatPresent: (text: string) => {
             const stream = deps.output ?? process.stdout
-            stream.write(`${declaredSecrets.mask(text)}\n`)
+            printRunText(declaredSecrets.mask(text), (block) => {
+              stream.write(`${block}\n`)
+            })
           },
         })
         const chat = host.chat

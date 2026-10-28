@@ -24,6 +24,7 @@
 import { dirname, resolve } from 'node:path'
 
 import { AGENT_ASK_FUNCTION_ID, invokeFunction } from '@vostride/agent-qa-agent'
+import { printRunText } from '@vostride/agent-qa-core'
 import type { AgentAskResult, MaskFn } from '@vostride/agent-qa-schema'
 import { Command } from 'commander'
 import pc from 'picocolors'
@@ -86,13 +87,15 @@ function renderTurn(result: AgentAskResult): string {
 
 // 2026-10-14 (441-06, D-07): everything this file prints is masked and never restored.
 function emitHuman(mask: MaskFn, text: string): void {
-  console.log(mask(text))
+  printRunText(mask(text))
 }
 
 // 395-22 · D-14: the mid-turn render, on stdout and unconditional (piped stdin included).
 function chatPresentThrough(mask: MaskFn): (text: string) => void {
   return (text) => {
-    process.stdout.write(`${mask(text)}\n`)
+    printRunText(mask(text), (block) => {
+      process.stdout.write(`${block}\n`)
+    })
   }
 }
 
@@ -124,7 +127,7 @@ function reportError(error: unknown, mask?: MaskFn): void {
       return
     }
   }
-  console.error(pc.red(shown))
+  printRunText(pc.red(shown), (block) => console.error(block))
 }
 
 export function createAskCommand(): Command {

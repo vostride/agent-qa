@@ -6,15 +6,16 @@
 // because the function layer let it, and 397's parity suite picks the verb up from the registry
 // without the CLI being consulted.
 //
-// Nothing here is stubbed. The command builds the real registry through the real composition root
-// in both cases below; the failure case is driven by a real refusal from the real dispatch pipeline
-// rather than by a thrown fixture, which is what makes the error-reporting assertion mean anything.
+// The command builds the real registry through the real composition root, and the failure cases are
+// driven by real refusals from the real dispatch pipeline rather than by thrown fixtures. Only the
+// GitHub Actions cells stand in a turn result, because no model is bound here to write an answer.
 
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 
+import type { AgentAskResult } from '@vostride/agent-qa-schema'
 import { Command } from 'commander'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -40,6 +41,19 @@ import type { SpawnOutcome } from './conformance/spawned-chat.js'
  */
 const compositionInputs = vi.hoisted(() => [] as { chatPresent?: (text: string) => void }[])
 
+const standInTurn = vi.hoisted(() => ({ result: undefined as AgentAskResult | undefined }))
+
+vi.mock('@vostride/agent-qa-agent', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@vostride/agent-qa-agent')>()
+  return {
+    ...original,
+    invokeFunction: (...args: Parameters<typeof original.invokeFunction>) =>
+      standInTurn.result === undefined
+        ? original.invokeFunction(...args)
+        : Promise.resolve(standInTurn.result),
+  }
+})
+
 vi.mock('../composition/local-agent-host.js', async (importOriginal) => {
   const original = await importOriginal<typeof import('../composition/local-agent-host.js')>()
   return {
@@ -54,6 +68,7 @@ vi.mock('../composition/local-agent-host.js', async (importOriginal) => {
 interface InvocationResult {
   stdout: string
   stderr: string
+  writes: string[]
   exitCode: number | string | undefined
 }
 
@@ -87,6 +102,11 @@ async function runAsk(configPath: string, args: string[]): Promise<InvocationRes
   const error = vi.spyOn(console, 'error').mockImplementation((...values: unknown[]) => {
     stderr.push(values.map(String).join(' '))
   })
+  const writes: string[] = []
+  const write = vi.spyOn(process.stdout, 'write').mockImplementation((chunk: unknown) => {
+    writes.push(String(chunk))
+    return true
+  })
   process.exitCode = undefined
 
   try {
@@ -95,10 +115,16 @@ async function runAsk(configPath: string, args: string[]): Promise<InvocationRes
       .addCommand(createAskCommand())
     program.exitOverride()
     await program.parseAsync(['node', 'agent-qa', '--config', configPath, 'ask', ...args])
-    return { stdout: stdout.join('\n'), stderr: stderr.join('\n'), exitCode: process.exitCode }
+    return {
+      stdout: stdout.join('\n'),
+      stderr: stderr.join('\n'),
+      writes,
+      exitCode: process.exitCode,
+    }
   } finally {
     log.mockRestore()
     error.mockRestore()
+    write.mockRestore()
   }
 }
 
@@ -292,6 +318,102 @@ describe('agent-qa ask (the one-shot chat verb)', () => {
     expect(result.stdout).toContain('refs-only')
 
     expect(result.exitCode).toBeUndefined()
+  })
+})
+
+describe('agent-qa ask under GitHub Actions', () => {
+  const ANSWER = '::add-mask::secret-looking ##[error]x'
+  const PAIR = /^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::\n$/u
+  const roots: string[] = []
+  let originalExitCode: typeof process.exitCode
+
+  function turn(overrides: Partial<AgentAskResult>): AgentAskResult {
+    return {
+      sessionId: 'session-1', turnId: 'turn-1', status: 'completed', receipts: [], results: [],
+      ...overrides,
+    }
+  }
+
+  beforeEach(() => {
+    originalExitCode = process.exitCode
+    compositionInputs.length = 0
+  })
+
+  afterEach(() => {
+    standInTurn.result = undefined
+    vi.unstubAllEnvs()
+    process.exitCode = originalExitCode
+    for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
+  })
+
+  it('prints a model answer as text inside one stop-commands pair', async () => {
+    const configPath = fixtureWorkspace(roots)
+    standInTurn.result = turn({ answer: ANSWER })
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const result = await runAsk(configPath, ['what changed'])
+
+    expect(result.exitCode).toBeUndefined()
+    expect(result.stdout).toBe('')
+    expect(result.writes).toHaveLength(1)
+    expect(result.writes[0]).toMatch(PAIR)
+    expect(result.writes[0]).toContain(`\n${ANSWER}\n`)
+  })
+
+  it('prints an error carrying model text inside its own pair', async () => {
+    const configPath = fixtureWorkspace(roots)
+    standInTurn.result = turn({
+      status: 'fail_closed', unhandled: { clause: 'what changed', reason: ANSWER },
+    })
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const result = await runAsk(configPath, ['what changed'])
+
+    expect(result.exitCode).toBe(1)
+    expect(result.stderr).toBe('')
+    expect(result.writes).toHaveLength(2)
+    expect(result.writes[1]).toMatch(PAIR)
+    expect(result.writes[1]).toContain(ANSWER)
+  })
+
+  it('prints a mid-turn render inside one pair', async () => {
+    const configPath = fixtureWorkspace(roots)
+    standInTurn.result = turn({})
+    await runAsk(configPath, ['what changed'])
+    const chatPresent = compositionInputs[0]?.chatPresent
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+
+    const written: string[] = []
+    const write = vi.spyOn(process.stdout, 'write').mockImplementation((chunk: unknown) => {
+      written.push(String(chunk))
+      return true
+    })
+    try {
+      chatPresent?.(ANSWER)
+    } finally {
+      write.mockRestore()
+    }
+
+    expect(written).toHaveLength(1)
+    expect(written[0]).toMatch(PAIR)
+    expect(written[0]).toContain(`\n${ANSWER}\n`)
+  })
+
+  it('prints a model answer and its error exactly as before off GitHub Actions', async () => {
+    const configPath = fixtureWorkspace(roots)
+    standInTurn.result = turn({ answer: ANSWER })
+    const answered = await runAsk(configPath, ['what changed'])
+    standInTurn.result = turn({
+      status: 'fail_closed', unhandled: { clause: 'what changed', reason: ANSWER },
+    })
+    const refused = await runAsk(configPath, ['what changed'])
+
+    expect(answered.writes).toEqual([])
+    expect(answered.stdout.split('\n').at(-1)).toBe(ANSWER)
+    expect(refused.writes).toEqual([])
+    expect(stripVTControlCharacters(refused.stderr))
+      .toContain(`Ask error [fail-closed]: ${ANSWER}`)
+    expect(refused.stderr).not.toContain('::stop-commands::')
   })
 })
 
