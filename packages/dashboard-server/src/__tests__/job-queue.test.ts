@@ -546,3 +546,51 @@ describe('C443-QUEUE-FLIP', () => {
     queue.stop()
   })
 })
+
+describe('a queue dispatch failure under GitHub Actions', () => {
+  const PAIR = /^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::\n$/u
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllEnvs()
+  })
+
+  function failDispatch(message: string): void {
+    vi.spyOn(queue, 'processNext').mockImplementation(() => {
+      throw new Error(message)
+    })
+    queue.start(60000)
+    queue.enqueue({ name: 'Dispatch fails' })
+  }
+
+  it('prints the failure inside one stop-commands pair on stdout', () => {
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+    const writes: string[] = []
+    vi.spyOn(process.stdout, 'write').mockImplementation((chunk) => {
+      writes.push(String(chunk))
+      return true
+    })
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    failDispatch('::set-output name=x::y')
+
+    const blocks = writes.filter((chunk) => chunk.includes('Queue could not dispatch'))
+    expect(blocks).toHaveLength(1)
+    expect(blocks[0]).toMatch(PAIR)
+    expect(blocks[0]).toContain(
+      'Queue could not dispatch the next run after an enqueue: ::set-output name=x::y',
+    )
+    expect(errorSpy).not.toHaveBeenCalled()
+  })
+
+  it('prints the same console.error line as before off GitHub Actions', () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    failDispatch('::set-output name=x::y')
+
+    expect(errorSpy).toHaveBeenCalledOnce()
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Queue could not dispatch the next run after an enqueue: ::set-output name=x::y',
+    )
+  })
+})

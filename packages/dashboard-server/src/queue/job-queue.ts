@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events'
 import { cpus } from 'node:os'
+import { printRunText } from '@vostride/agent-qa-core'
 import type { RunAttributes } from '@vostride/agent-qa-core'
 import type { RunArtifactKind } from '@vostride/agent-qa-schema'
 import type { DashboardDatabase, RunRow } from '../db/database.js'
@@ -160,7 +161,9 @@ export class JobQueue extends EventEmitter {
       this.processNext()
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      console.error(`Queue could not dispatch the next run after ${trigger}: ${message}`)
+      printRunText(`Queue could not dispatch the next run after ${trigger}: ${message}`, (text) =>
+        console.error(text),
+      )
     }
   }
 
