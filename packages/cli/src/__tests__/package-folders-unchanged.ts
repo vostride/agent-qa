@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path'
 const packageRoot = resolve(import.meta.dirname, '..', '..')
 const watched = ['.agent-qa', 'dashboard-artifacts']
 
-function listFiles(): string[] {
+function listPaths(): string[] {
   return watched.flatMap((name) => {
     const dir = join(packageRoot, name)
     if (!existsSync(dir)) return []
@@ -13,13 +13,13 @@ function listFiles(): string[] {
 }
 
 export default function setup() {
-  const before = new Set(listFiles())
+  const before = new Set(listPaths())
   return function teardown() {
-    const added = listFiles().filter((path) => !before.has(path))
+    const added = listPaths().filter((path) => !before.has(path))
     if (added.length === 0) return
     console.error(
       [
-        `Tests wrote ${added.length} file(s) into packages/cli:`,
+        `Tests added ${added.length} path(s) (files and directories) to packages/cli:`,
         ...added.slice(0, 20).map((path) => `  ${path}`),
         'Give the test a temporary config root so its run output lands outside the package.',
       ].join('\n'),
