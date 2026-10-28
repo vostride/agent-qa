@@ -245,6 +245,7 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => {
   // and the union constrains that field to a semver — a stubbed string here would let a cell pass
   // on a value the schema would refuse in production.
   getAgentQaVersion: actual.getAgentQaVersion,
+  printRunText: actual.printRunText,
   parseAllTests: mockParseAllTests,
   parseAllTestBindings: vi.fn(async (filePaths: string[]) => {
     const result = await mockParseAllTests(filePaths)

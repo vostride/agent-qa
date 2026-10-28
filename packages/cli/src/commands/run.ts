@@ -6,7 +6,7 @@ import { Command } from 'commander'
 import pc from 'picocolors'
 import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
-import { discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarget, resolveWorkspacePaths, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
+import { discoverWorkspaceFiles, isWorkspacePathMatch, printRunText, resolveWorkspaceFileTarget, resolveWorkspacePaths, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
 import type { AgentQaConfig, AuthStateMetadata, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
 import { resolveTarget, type ResolvedTarget } from '../targets.js'
@@ -197,20 +197,20 @@ export function resolveMemberTargetFacts(
 /**
  * Every post-run line's CHANNEL, in one place — and exported because the channel is a promise.
  *
- * JOBQ-06 says post-processing never gates the verdict or the navigation, and the operational
- * form of that promise is that no post-run line ever lands on stdout, where the reporter and
- * the navigation live. Both members here write to stderr for that reason. Exported so the
- * byte-proof binds THIS object rather than a copy of it: a proof against a re-declared log
- * would keep passing on the day somebody routes a close-out line to `console.log`.
+ * Post-processing never gates the verdict or the navigation, so no post-run line lands on stdout,
+ * where the reporter and the navigation live: both members write to stderr. Under GitHub Actions
+ * each line prints inside its own stop-commands pair on stdout instead, like all run-derived text.
+ * Exported so the byte-proof binds THIS object rather than a copy of it: a proof against a
+ * re-declared log would keep passing on the day somebody routes a close-out line to `console.log`.
  */
 export const curationTailLog = {
   warn(message: string): void {
-    console.warn(pc.yellow(`Warning: ${message}`))
+    printRunText(pc.yellow(`Warning: ${message}`), (text) => console.warn(text))
   },
-  // 381-50: the per-run candidate summary line — same stderr channel as warn so the
-  // ladder run log captures it, but never dressed as a warning.
+  // The per-run candidate summary line: the same stderr channel as warn, so the ladder run log
+  // captures it, but never dressed as a warning.
   info(message: string): void {
-    console.error(message)
+    printRunText(message, (text) => console.error(text))
   },
 }
 
@@ -640,7 +640,7 @@ function analyticsRunAttribution(
 function printRunAttributes(attributes: RunAttributes | undefined): void {
   if (!attributes || Object.keys(attributes).length === 0) return
   const block = formatRunAttributesBlock(attributes)
-  if (block) console.log(block)
+  if (block) printRunText(block, (text) => console.log(text))
 }
 
 function resolveReporterSelection(opts: RunOptions): { selection?: ReporterSelection; error?: string } {
@@ -1080,7 +1080,8 @@ function formatParseErrorLines(errors: ParseError[]): string[] {
 }
 
 function formatParseErrors(errors: ParseError[]): void {
-  for (const line of formatParseErrorLines(errors)) console.error(line)
+  const lines = formatParseErrorLines(errors)
+  if (lines.length > 0) printRunText(lines.join('\n'), (text) => console.error(text))
 }
 
 function createTestRunId(): string {
@@ -1101,7 +1102,7 @@ export interface RunTerminal {
 const RUN_TERMINAL: RunTerminal = {
   printRunId,
   printRunAttributes,
-  printDebugLine: (line) => console.log(pc.dim(line)),
+  printDebugLine: (line) => printRunText(pc.dim(line), (text) => console.log(text)),
 }
 
 // 436 D-06: printed at the terminal door only, before the first test and at every log level. The
@@ -1388,7 +1389,8 @@ export interface RunInvocationInputs {
 export async function resolveRunInvocationInputs(
   request: RunInvocationInputRequest = {},
 ): Promise<RunInvocationInputs> {
-  const warn = request.warn ?? ((message: string) => { console.warn(message) })
+  const warn = request.warn
+    ?? ((message: string) => { printRunText(message, (text) => console.warn(text)) })
 
   const config = await resolveConfig({
     configPath: request.configPath,
@@ -1848,14 +1850,16 @@ async function executeSuites(
       0,
     )
     console.log(pc.bold(`\nFound ${suiteFiles.length} suite(s), ${suiteMemberCount} test(s):\n`))
+    const listing: string[] = []
     for (const suiteFile of suiteFiles) {
       const suite = preflight.definitions.get(suiteFile)
       if (suite === undefined) continue
-      console.log(`  ${pc.green('●')} ${suite.name}`)
+      listing.push(`  ${pc.green('●')} ${suite.name}`)
       for (const member of suite.tests) {
-        console.log(`      ${member.test}`)
+        listing.push(`      ${member.test}`)
       }
     }
+    if (listing.length > 0) printRunText(listing.join('\n'), (text) => console.log(text))
     return 0
   }
 
@@ -1877,7 +1881,7 @@ async function executeSuites(
   // 2026-10-17 (443-08, D-02/D-03): one record per invocation, written whatever the config holds.
   const record = createRunRecord({
     attributes: buildCliRunAttributes(variableContext?.userRunAttributes ?? {}, 'local'),
-    warn: (line) => console.warn(pc.yellow(line)),
+    warn: (line) => printRunText(pc.yellow(line), (text) => console.warn(text)),
   })
   const forceExit = (code: number): never => {
     closeOwnRowAtForcedExit(record)
@@ -1997,7 +2001,8 @@ async function executeSuites(
             quarantined,
           })
         },
-        warn: (message) => console.warn(pc.yellow(`  Quarantine: ${message}`)),
+        warn: (message) =>
+          printRunText(pc.yellow(`  Quarantine: ${message}`), (text) => console.warn(text)),
         postVerdictSignal: curationAbortController.signal,
         freezeVerdict: (verdict) => {
           clearGraceTimer()
@@ -3767,9 +3772,14 @@ export async function produceDirectRunMembers(
     const effectiveCacheEnabled = !opts.disableCache && (mergedUse as Record<string, unknown>).cache !== false
 
     if (opts.configDebug) {
-      console.log(pc.bold(`\nConfig for: ${test.name}`))
-      console.log(formatConfigDebug(config, test.use, testFlagOverrides, singleRunMask))
-      console.log()
+      printRunText(
+        [
+          pc.bold(`\nConfig for: ${test.name}`),
+          formatConfigDebug(config, test.use, testFlagOverrides, singleRunMask),
+          '',
+        ].join('\n'),
+        (text) => console.log(text),
+      )
     }
 
     const testPlatform: 'web' | 'android' | 'ios' = testResolvedTarget.platform
@@ -4478,7 +4488,7 @@ export function createRunCommand(): Command {
           })(),
           ...(opts.var === undefined ? {} : { varFlags: opts.var }),
           ...(opts.runAttr === undefined ? {} : { runAttrFlags: opts.runAttr }),
-          warn: (message) => { console.warn(message) },
+          warn: (message) => { printRunText(message, (text) => console.warn(text)) },
         })
 
         const {
@@ -4542,8 +4552,8 @@ export function createRunCommand(): Command {
 
         if (opts.listTests) {
           console.log(pc.bold(`\nDiscovered ${files.length} test file(s):\n`))
-          for (const file of files) {
-            console.log(`  ${file}`)
+          if (files.length > 0) {
+            printRunText(files.map((file) => `  ${file}`).join('\n'), (text) => console.log(text))
           }
           process.exit(0)
         }
@@ -4565,16 +4575,19 @@ export function createRunCommand(): Command {
         // 2026-10-17 (443-08, D-03/D-05): one record for this path, written whatever the config holds.
         const record = createRunRecord({
           attributes: buildCliRunAttributes(userRunAttributes, 'local'),
-          warn: (line) => console.warn(pc.yellow(line)),
+          warn: (line) => printRunText(pc.yellow(line), (text) => console.warn(text)),
         })
         _crashRecord = record
         const configuredRunsDbPath = config.services?.dashboard?.dbPath
 
         if (parseResult.errors.length > 0) {
-          console.error(pc.red(`Found ${parseResult.errors.length} parse error(s):\n`))
-          for (const err of parseResult.errors) {
-            console.error(formatParseError(err))
-          }
+          printRunText(
+            [
+              pc.red(`Found ${parseResult.errors.length} parse error(s):\n`),
+              ...parseResult.errors.map((err) => formatParseError(err)),
+            ].join('\n'),
+            (text) => console.error(text),
+          )
           const validationRunId = createTestRunId()
           const validationAttributes = buildCliRunAttributes(userRunAttributes, 'local')
           // 2026-10-17 (443-08, D-26): the failure row is filed under the id this command prints.
@@ -4669,17 +4682,20 @@ export function createRunCommand(): Command {
         if (opts.dryRun) {
           console.log(pc.bold(`\nFound ${filtered.length} test(s):\n`))
           for (const { test } of filtered) {
-            console.log(`  ${pc.green('●')} ${test.name}`)
+            const lines = [`  ${pc.green('●')} ${test.name}`]
             if (opts.configDebug) {
-              console.log(pc.bold(`\n  Config for: ${test.name}`))
-              console.log(formatConfigDebug(
-                config,
-                test.use,
-                flagOverrides,
-                (text) => runtimeSecrets.secretRedactor.redactString(text),
-              ))
-              console.log()
+              lines.push(
+                pc.bold(`\n  Config for: ${test.name}`),
+                formatConfigDebug(
+                  config,
+                  test.use,
+                  flagOverrides,
+                  (text) => runtimeSecrets.secretRedactor.redactString(text),
+                ),
+                '',
+              )
             }
+            printRunText(lines.join('\n'), (text) => console.log(text))
           }
           process.exit(0)
         }
@@ -4826,7 +4842,8 @@ export function createRunCommand(): Command {
                   quarantined,
                 })
               },
-              warn: (message) => console.warn(pc.yellow(`  Quarantine: ${message}`)),
+              warn: (message) =>
+                printRunText(pc.yellow(`  Quarantine: ${message}`), (text) => console.warn(text)),
               // The post-verdict tail, run INSIDE the run's own safety scope so its curation egress
               // masks like every other. The `--all` fold happens on the freeze line below and is
               // untouched by this rework.
@@ -4919,7 +4936,9 @@ export function createRunCommand(): Command {
         // daemon composing the same producer no longer dies on a config typo.
         //
         if (err instanceof CliRunInputError) {
-          for (const line of err.lines) console.error(line)
+          if (err.lines.length > 0) {
+            printRunText(err.lines.join('\n'), (text) => console.error(text))
+          }
           process.exit(err.exitCode)
         }
         // 401-20 (CR-04): THE IDENTITY REFUSALS ARE DECISIONS, AND ARE DESCRIBED AS ONES. Measured
@@ -4933,18 +4952,27 @@ export function createRunCommand(): Command {
         // EXIT 2, NOT 1: `1` is "the tests failed", and nothing ran. `2` is this command's existing
         // "no verdict was produced" code.
         if (err instanceof RunIdNotMintedError || err instanceof RunIdAlreadyInUseError) {
-          console.error(pc.red(redactSecretValue(err.message, _crashSecretRedactor)))
+          printRunText(
+            pc.red(redactSecretValue(err.message, _crashSecretRedactor)),
+            (text) => console.error(text),
+          )
           await drainAnalytics()
           process.exit(2)
         }
         // 2026-10-17 (443-08, D-05): a run this command cannot record is refused, exit 2, no id.
         if (err instanceof RunRecordUnavailableError) {
-          console.error(pc.red(redactSecretValue(err.message, _crashSecretRedactor)))
+          printRunText(
+            pc.red(redactSecretValue(err.message, _crashSecretRedactor)),
+            (text) => console.error(text),
+          )
           await drainAnalytics()
           process.exit(2)
         }
         const errMsg = err instanceof Error ? err.message : String(err)
-        console.error(pc.red(frameworkErrorTerminalLine(errMsg, _crashSecretRedactor)))
+        printRunText(
+          pc.red(frameworkErrorTerminalLine(errMsg, _crashSecretRedactor)),
+          (text) => console.error(text),
+        )
 
         // 2026-10-17 (444-09, D-19): no cause is guessed and no row is written here; the record's
         // flush already closed a verdictless own row (D-16).
