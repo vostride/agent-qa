@@ -711,6 +711,7 @@ let exitSpy: any
 let logSpy: any
 let errorSpy: any
 const tempDirs: string[] = []
+let defaultConfigRoot = ''
 
 /**
  * A run id unique to this test, and to this process (401-20 · CR-04).
@@ -859,8 +860,14 @@ async function runCommand(...args: string[]) {
 }
 
 async function runCommandWithGlobalArgs(globalArgs: string[], ...runArgs: string[]) {
+  defaultConfigRoot = mkdtempSync(join(tmpdir(), 'agent-qa-run-test-'))
+  tempDirs.push(defaultConfigRoot)
   const program = new Command()
-  program.option('--config <path>', 'config file path', 'agent-qa.config.yaml')
+  program.option(
+    '--config <path>',
+    'config file path',
+    join(defaultConfigRoot, 'agent-qa.config.yaml'),
+  )
   program.option('--log-level <level>', 'log verbosity: silent|error|warn|info|debug')
   program.option('--verbose', 'shorthand for --log-level debug')
   program.option('--quiet', 'shorthand for --log-level silent')
@@ -3395,11 +3402,11 @@ describe('run command — DashboardReporter wiring', () => {
 
     expect(mockDashboardDatabase).toHaveBeenCalled()
     expect(mockResolveDashboardDbPath).toHaveBeenCalledWith({
-      configDir: process.cwd(),
+      configDir: defaultConfigRoot,
       configuredDbPath: undefined,
     })
     expect(mockDashboardDatabase).toHaveBeenCalledWith({
-      dbPath: resolve(process.cwd(), '.agent-qa/runs.db'),
+      dbPath: resolve(defaultConfigRoot, '.agent-qa/runs.db'),
       runOwnership: composeRunOwnership(),
     })
     // 363-09: dashboard history is written by the Plan-08 bus ingest, not the deleted v1 DashboardReporter.
@@ -3431,11 +3438,11 @@ describe('run command — DashboardReporter wiring', () => {
     await runCommand('tests/**/*.yaml')
 
     expect(mockResolveDashboardDbPath).toHaveBeenCalledWith({
-      configDir: process.cwd(),
+      configDir: defaultConfigRoot,
       configuredDbPath: '.agent-qa/dashboard.db',
     })
     expect(mockDashboardDatabase).toHaveBeenCalledWith({
-      dbPath: resolve(process.cwd(), '.agent-qa/dashboard.db'),
+      dbPath: resolve(defaultConfigRoot, '.agent-qa/dashboard.db'),
       runOwnership: composeRunOwnership(),
     })
   })
@@ -3497,7 +3504,7 @@ describe('run command — recording staging root', () => {
     expect(mockWebAdapterSetup).toHaveBeenCalledWith(
       expect.objectContaining({
         recording: expect.objectContaining({
-          videoDir: resolve(process.cwd(), '.agent-qa/recording-staging'),
+          videoDir: resolve(defaultConfigRoot, '.agent-qa/recording-staging'),
         }),
       }),
     )
@@ -3547,7 +3554,7 @@ describe('run command — recording staging root', () => {
     expect(mockWebAdapterSetup).toHaveBeenCalledWith(
       expect.objectContaining({
         recording: expect.objectContaining({
-          videoDir: resolve(process.cwd(), '.agent-qa', 'recording-staging'),
+          videoDir: resolve(defaultConfigRoot, '.agent-qa', 'recording-staging'),
         }),
       }),
     )
@@ -3573,7 +3580,7 @@ describe('run command — recording staging root', () => {
     await runCommand('tests/**/*.yaml')
 
     expect(mockWebAdapterSetup.mock.calls[0][0].recording).toEqual(expect.objectContaining({
-      videoDir: resolve(process.cwd(), '.agent-qa', 'recording-staging'),
+      videoDir: resolve(defaultConfigRoot, '.agent-qa', 'recording-staging'),
     }))
   })
 })
