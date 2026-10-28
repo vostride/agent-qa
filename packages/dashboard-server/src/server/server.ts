@@ -79,38 +79,20 @@ const MIME_TYPES: Record<string, string> = {
 }
 
 /**
- * The refusal that keeps the dashboard surface off the network (402-05, D-07; 432 D-13).
- *
- * NAMES THE HOST AND THE CONFIG KEY, AND NOTHING ELSE (395-16 measured Node's default uncaught
- * printer walking a `cause` chain with `util.inspect`, which is how a config file's contents once
- * reached a person's terminal). There is deliberately no `cause` attached.
- *
- * WHY A REFUSAL AND NOT A WARNING. Nothing this server mounts asks for a credential: the run
- * trigger, the queue enqueue, the run service, the artifact serving, the config reads. 2026-10-01
- * (432-21, D-12/D-13): that is now true of the run service too — its bearer tokens are deleted — so
- * the loopback bind is the whole of what keeps another machine off every one of them.
- *
- * AND WHY THE REFUSAL IS UNCONDITIONAL. This guard originally exempted a process that had declared
- * a run-service credential, on the premise that "the operator who genuinely wants remote access
- * declares a credential — which is the same act that makes the remote surface an authed one".
- * Phase-402 verification measured that premise FALSE off a real interface: a credential
- * authenticates exactly `ownsRunServicePath` — `POST /run`, `GET /run/:runId/events`, `GET /ok` —
- * and declaring one was precisely what unlocked the bind. With `host: 0.0.0.0` and one token,
- * `POST /api/runs/trigger` carrying no Authorization header answered `202` and started a run, and
- * `GET /api/runs` answered `200` with the run list. The token count was never evidence about the
- * surface this guard protects, so it is no longer consulted. Since 432-21 there is no credential to
- * consult at all. Publishing this server to a network needs a front-door login first (432 D-13's
- * forward note); until there is one, the honest answer is no.
+ * The dashboard binds loopback only, because nothing it serves asks for a credential. The message
+ * names the host and the config key and attaches no cause.
  */
 export class DashboardRemoteBindRefusedError extends Error {
-  constructor(readonly host: string) {
+  constructor(readonly host: string, port: number) {
+    const p = String(port === 0 ? 3470 : port)
     super(
       `The dashboard was asked to bind ${host}, which is not a loopback interface. Nothing this `
       + 'server serves — the run trigger, the queue enqueue, the run service, the artifact '
       + 'serving, the config reads — asks for a credential, so a non-loopback bind would publish '
       + 'an anonymous run trigger to the network. Leave '
-      + `services.dashboard.host unset (it defaults to ${DEFAULT_DASHBOARD_HOST}), and reach a `
-      + 'remote dashboard through an authenticating proxy or a tunnel you control.',
+      + `services.dashboard.host unset (it defaults to ${DEFAULT_DASHBOARD_HOST}). To use the `
+      + `dashboard from another machine, forward its port with ssh -L ${p}:localhost:${p} <host> `
+      + `and open http://localhost:${p}/.`,
     )
     this.name = 'DashboardRemoteBindRefusedError'
   }
@@ -122,14 +104,7 @@ export const DEFAULT_DASHBOARD_HOST = '127.0.0.1'
 interface StartServerOptions {
   db: DashboardDatabase
   port?: number
-  /**
-   * The interface this server binds (402-05, D-07 — INVK-03).
-   *
-   * DEFAULTS TO LOOPBACK, and a non-loopback value is REFUSED before anything listens — with no
-   * exemption. This is BREAKING for anyone who relied on the previous `server.listen(port)`, which
-   * bound every interface, and there is no migration flag: the v2 ethos ships no back-compat shim
-   * for a hole. Remote access goes through an authenticating proxy (432 D-13's forward note).
-   */
+  /** Defaults to loopback; any other value is refused before anything listens. */
   host?: string
   uiDir?: string
   /**
@@ -267,23 +242,10 @@ export async function startServer(opts: StartServerOptions): Promise<{
   const runServiceAttach = opts.runServiceAttach ?? runService?.attach
   const host = opts.host?.trim() || DEFAULT_DASHBOARD_HOST
 
-  // ---- THE BIND GUARD (402-05, D-07 — T-402-16) ---------------------------------------------
-  //
-  // FIRST STATEMENT WITH ANY EFFECT, and that placement is the whole mechanism. Below this line the
-  // function opens a database, starts a queue, acquires Appium leases and constructs a WebSocket
-  // server; a guard placed after any of them would be a guard that has to tear down what it just
-  // built, and the tear-down path is where a refusal turns into a half-started process. Refusing
-  // here means the refused configuration allocates nothing and listens on nothing.
-  //
-  // MEMBERSHIP IS `isLoopbackHost`, IMPORTED, never a second literal list. `services.dashboard.host`
-  // is deliberately a plain string in the config schema so this decision is reachable at all, and
-  // so a loopback SPELLING other than the default (`localhost`, `::1`) stays configurable.
-  //
-  // NO EXEMPTION — see `DashboardRemoteBindRefusedError`. A run-service credential once exempted a
-  // non-loopback bind and never authenticated `/api/runs/trigger`; since 432-21 no credential
-  // exists to consult.
+  // The bind guard runs before anything is opened or listens, so a refused host allocates nothing.
+  // Membership is `isLoopbackHost`, so `localhost` and `::1` stay configurable.
   if (!isLoopbackHost(host)) {
-    throw new DashboardRemoteBindRefusedError(host)
+    throw new DashboardRemoteBindRefusedError(host, port)
   }
 
   const resolvedConfigPath = configPath ?? resolve('agent-qa.config.yaml')

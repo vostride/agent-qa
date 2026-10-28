@@ -169,6 +169,25 @@ describe('the dashboard bind contract (D-07)', () => {
     expect(message).toContain('services.dashboard.host')
   })
 
+  it('the bind refusal tells a person to forward the port with ssh', async () => {
+    const error = await start({ host: NON_LOOPBACK_HOST, port: 0 }).catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(DashboardRemoteBindRefusedError)
+    const message = (error as Error).message
+    expect(message).toContain(
+      'forward its port with ssh -L 3470:localhost:3470 <host> and open http://localhost:3470/.',
+    )
+    expect(message).toContain('services.dashboard.host')
+    expect(message).not.toContain('proxy')
+  })
+
+  it('the bind refusal names the requested port in the ssh forward', async () => {
+    const error = await start({ host: NON_LOOPBACK_HOST, port: 4123 }).catch((e: unknown) => e)
+    expect(error).toBeInstanceOf(DashboardRemoteBindRefusedError)
+    const message = (error as Error).message
+    expect(message).toContain('ssh -L 4123:localhost:4123 <host>')
+    expect(message).toContain('http://localhost:4123/')
+  })
+
   // THE CELL THIS REPLACES PINNED THE HOLE. It asserted that declaring a run-service credential
   // BINDS a non-loopback host, on the premise — written into the guard's own class doc — that
   // "the operator who genuinely wants remote access declares a credential, which is the same act
