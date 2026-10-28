@@ -160,14 +160,6 @@ export type { ProjectedOpSpec, RegisterToolConfig } from './projection.js'
 // 2026-10-01 (432-20, D-12): `visibleToCaller` is deleted with the per-caller visibility law; every
 // caller sees the same catalogue.
 
-// The dormant task seam (plan 03, D-12). Published on the barrel and reached by NOTHING in the
-// server build — the two facts are not in tension: a later phase registering the tasks extension is
-// a consumer of this package, so the projection has to be reachable from outside it, while the
-// coupling MCPS-06 forbids is `catalog.ts` importing it. That absence is import-anchored by an
-// acceptance grep rather than by this comment.
-export { JOB_STATUS_TO_MCP_TASK_STATE, projectJobAsTask } from './task-seam.js'
-export type { McpTaskProjection, McpTaskState } from './task-seam.js'
-
 // THE OWNERSHIP CONTRACT IS DELIBERATELY NOT RE-EXPORTED, and a running guard is why. Plan 01 first
 // published it here on the reasoning that it describes this package; `pnpm validate:publish` refused
 // the build outright — "dist must not ship the ownership contract" — because the contract is an

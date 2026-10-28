@@ -205,13 +205,7 @@ export interface ToolProjection {
    * `agent_qa_get_run_digest` is asked about a run by id, so its reference is derivable from the
    * INPUT, which is what makes it the late-attach door (D-07).
    *
-   * THE TASK-SHAPE QUESTION D-05 LEFT OPEN IS CLOSED, and closed by measurement rather than by
-   * preference: the task seam is dormant — "It registers nothing, advertises nothing and routes
-   * nothing" (task-seam.ts:21-23, and catalog.ts:34-36 states the matching absence) — so both
-   * carriers are plain tools answering immediate results, and there is no task completion or
-   * status poll for a reference to ride. (2026-08-31; the 2.0.0 core SDK has since grown the Tasks
-   * vocabulary, which makes the seam's own dated deferral stale at the SDK layer and changes
-   * nothing here: registering Tasks is not this phase's job.)
+   * Both carriers are plain tools that answer immediately, so the reference rides their result.
    */
   readonly ui?: {
     readonly resource: 'live-run'

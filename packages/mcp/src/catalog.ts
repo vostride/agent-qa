@@ -33,10 +33,6 @@
 // acceptance grep counts occurrences of that symbol and requires zero, and a guard a comment can
 // defeat is not a guard.
 //
-// THE TASK SEAM IS NOT IMPORTED HERE, and that absence is MCPS-06's actual content (D-12): a seam
-// that took the JobQueue contract would make every queue change an MCP change. `task-seam.ts` is
-// published on the barrel for a later consumer and reached by nothing in this build.
-//
 // Protocol grounding: SEP-2567 (no per-connection list variance — and since 432-20 no per-caller
 // variance either), SEP-2549 (list results carry cache hints), SEP-2106 (full JSON Schema 2020-12
 // for the advertised contracts).
