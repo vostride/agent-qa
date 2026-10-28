@@ -71,7 +71,7 @@ function runBin(args: readonly string[], spoof?: string): FloorRun {
   preloads.push('--import', pathToFileURL(join(root, 'register.mjs')).href)
   const result = spawnSync(process.execPath, [...preloads, CLI_ENTRY, ...args], {
     cwd: root,
-    env: { ...hermeticEnv(root), DO_NOT_TRACK: '1', TRACE_FILE: traceFile },
+    env: { ...hermeticEnv(root), TRACE_FILE: traceFile },
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
     timeout: 60_000,

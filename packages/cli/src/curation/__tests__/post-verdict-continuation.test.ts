@@ -616,7 +616,6 @@ it.each((['direct', 'suite'] as const).flatMap(mode =>
 
 async function commandSignalFixture(mode: 'direct' | 'suite', timing: 'post-verdict' | 'active-run' | 'second-signal') {
   const f = continuationFixture()
-  vi.stubEnv('DO_NOT_TRACK', '1')
   isolateUpdateCheck()
   vi.spyOn(console, 'log').mockImplementation(() => undefined)
   vi.spyOn(console, 'warn').mockImplementation(() => undefined)
@@ -693,7 +692,6 @@ async function commandSignalFixture(mode: 'direct' | 'suite', timing: 'post-verd
 
 it('CR-11 actual --all command freezes an earlier suite failure into a passing direct result', async () => {
   const f = continuationFixture()
-  vi.stubEnv('DO_NOT_TRACK', '1')
   isolateUpdateCheck()
   vi.spyOn(console, 'log').mockImplementation(() => undefined)
   vi.spyOn(console, 'warn').mockImplementation(() => undefined)
@@ -722,7 +720,6 @@ it.each((['direct', 'suite'] as const).flatMap(mode =>
   (['pending', 'late-failure', 'failed', 'settled-before-finish', 'skipped'] as const).map(state => ({ mode, state })),
 ))('actual $mode command reports $state preparation without a false chain', async ({ mode, state }) => {
   const f = continuationFixture()
-  vi.stubEnv('DO_NOT_TRACK', '1')
   isolateUpdateCheck()
   vi.spyOn(console, 'log').mockImplementation(() => undefined)
   const output = vi.spyOn(console, 'error').mockImplementation(() => undefined)

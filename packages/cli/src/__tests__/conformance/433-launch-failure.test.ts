@@ -327,7 +327,7 @@ describe('C433-LAUNCH-FAILURE: the dashboard door', () => {
     const target = await withTarget()
     const project = launchProject('dashboard', target.origin, 'http://127.0.0.1:1/v1')
     const dashboard = await spawnDashboard(project.root, project.configPath, await reserveEphemeralPort(), 60_000,
-      { CI: 'true', NO_COLOR: '1', DO_NOT_TRACK: '1', PLAYWRIGHT_BROWSERS_PATH: project.noBrowsers })
+      { CI: 'true', NO_COLOR: '1', PLAYWRIGHT_BROWSERS_PATH: project.noBrowsers })
     cleanups.push(() => dashboard.stop())
     expect(dashboard.ready, `the dashboard started\n${dashboard.stderr()}`).toBe(true)
 

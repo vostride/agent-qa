@@ -122,7 +122,6 @@ async function drive(): Promise<void> {
         ...hermeticEnv(project.root),
         CI: 'true',
         NO_COLOR: '1',
-        DO_NOT_TRACK: '1',
         PLAYWRIGHT_BROWSERS_PATH: noBrowsers,
         AGENT_QA_RUN_ID: runId,
       },

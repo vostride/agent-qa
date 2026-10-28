@@ -124,7 +124,6 @@ export async function spawnCliRun(
     ...populatedRunSpawnEnv(),
     CI: 'true',
     NO_COLOR: '1',
-    DO_NOT_TRACK: '1',
   }
   delete env.AGENT_QA_RUN_ID
   Object.assign(env, options.env ?? {})

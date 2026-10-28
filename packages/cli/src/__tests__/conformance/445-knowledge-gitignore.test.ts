@@ -111,7 +111,6 @@ async function cli(root: string, args: readonly string[]): Promise<Leg> {
     env: {
       ...hermeticEnv(root),
       ...populatedRunSpawnEnv(),
-      DO_NOT_TRACK: '1',
       CI: 'true',
       NO_COLOR: '1',
     },

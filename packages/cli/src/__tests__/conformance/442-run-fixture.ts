@@ -140,7 +140,6 @@ export function startCliRun(
     ...hermeticEnv(project.project),
     CI: 'true',
     NO_COLOR: '1',
-    DO_NOT_TRACK: '1',
   }
   delete childEnv.AGENT_QA_RUN_ID
   Object.assign(childEnv, env)

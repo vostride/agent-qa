@@ -482,7 +482,6 @@ async function driveCliLeg(
         ...populatedRunSpawnEnv(),
         CI: 'true',
         NO_COLOR: '1',
-        DO_NOT_TRACK: '1',
         // Research Pitfall 4: the grace backstop's exit 130 can never stand in for the run's own.
         AGENT_QA_CANCEL_GRACE_MS: '120000',
         AGENT_QA_RUN_ID: runId,

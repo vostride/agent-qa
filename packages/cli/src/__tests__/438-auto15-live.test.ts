@@ -131,7 +131,6 @@ function coldWorkspace(step: string): string {
 function childEnv(): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {
     CI: 'true',
-    DO_NOT_TRACK: '1',
     AGENT_QA_DEBUG_LLM: '1',
     NO_COLOR: '1',
   }

@@ -111,7 +111,6 @@ function spawnRun(rig: Rig, args: readonly string[], runId: string): {
       ...populatedRunSpawnEnv(),
       CI: 'true',
       NO_COLOR: '1',
-      DO_NOT_TRACK: '1',
       AGENT_QA_CANCEL_GRACE_MS: '120000',
       AGENT_QA_RUN_ID: runId,
     },

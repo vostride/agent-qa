@@ -244,7 +244,6 @@ describe('C444-CI-EVERY-DOOR', () => {
       for (const context of ['local-headless', 'ci'] as const) {
         const fixture = createInProcessFixture({ origin: 'http://127.0.0.1:1', environment: 'local' })
         roots.push(fixture.project)
-        vi.stubEnv('DO_NOT_TRACK', '1')
         if (context === 'ci') vi.stubEnv('CI', 'true')
         else for (const marker of CI_MARKERS) vi.stubEnv(marker, '')
         vi.spyOn(console, 'log').mockImplementation(() => undefined)

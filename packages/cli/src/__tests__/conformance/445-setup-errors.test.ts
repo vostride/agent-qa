@@ -128,7 +128,7 @@ async function spawnCli(
     [CLI_ENTRY, '--config', join(root, 'agent-qa.config.yaml'), ...args],
     {
       cwd: root,
-      env: { ...hermeticEnv(root), CI: 'true', NO_COLOR: '1', DO_NOT_TRACK: '1', ...extraEnv },
+      env: { ...hermeticEnv(root), CI: 'true', NO_COLOR: '1', ...extraEnv },
       stdio: ['ignore', 'pipe', 'pipe'],
     },
   )

@@ -173,7 +173,6 @@ function spawnedEnv(): NodeJS.ProcessEnv {
     ...populatedRunSpawnEnv(),
     CI: 'true',
     NO_COLOR: '1',
-    DO_NOT_TRACK: '1',
   }
   delete env.AGENT_QA_RUN_ID
   return env

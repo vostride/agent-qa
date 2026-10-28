@@ -468,7 +468,7 @@ describe('C445-EXAMPLES', () => {
     realFs.writeFileSync(scriptPath, script.replaceAll(HOOK_ENV_FILE, output))
     const run = realChildProcess.spawnSync(process.execPath, [scriptPath], {
       cwd: root,
-      env: { ...hermeticEnv(root), DO_NOT_TRACK: '1' },
+      env: hermeticEnv(root),
       encoding: 'utf8',
     })
 

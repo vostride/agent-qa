@@ -159,7 +159,7 @@ async function runCliWithEnv(
   overrides: Record<string, string>,
   ...args: string[]
 ): Promise<{ status: number | null; stdout: string; stderr: string }> {
-  const env: NodeJS.ProcessEnv = { ...process.env, NO_COLOR: '1', DO_NOT_TRACK: '1' }
+  const env: NodeJS.ProcessEnv = { ...process.env, NO_COLOR: '1' }
   // A run id inherited from this process would attach the child's run to another run's directory —
   // and an EMPTY string is not the same as absent: `?? generateRunId()` keeps `''`, which slugs to
   // a run directory called `default`. Deleted, not blanked.

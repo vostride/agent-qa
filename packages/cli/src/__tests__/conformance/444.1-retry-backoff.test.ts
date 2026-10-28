@@ -75,7 +75,6 @@ async function runOnce(project: PopulatedRunProject, testPath: string): Promise<
       ...populatedRunSpawnEnv(),
       ...(FORWARDED_CI === undefined ? {} : { CI: FORWARDED_CI }),
       NO_COLOR: '1',
-      DO_NOT_TRACK: '1',
       AGENT_QA_RUN_ID: leg.runId,
     },
     stdio: ['ignore', 'pipe', 'pipe'],

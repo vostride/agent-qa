@@ -105,7 +105,6 @@ function headlessEnv(project: PopulatedRunProject, runId: string): NodeJS.Proces
     ...hermeticEnv(project.root),
     ...populatedRunSpawnEnv(),
     CI: 'true',
-    DO_NOT_TRACK: '1',
     AGENT_QA_RUN_ID: runId,
   }
   delete env.NO_COLOR

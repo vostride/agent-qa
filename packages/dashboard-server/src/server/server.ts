@@ -73,13 +73,6 @@ const MIME_TYPES: Record<string, string> = {
   '.webp': 'image/webp',
 }
 
-function isAnalyticsPrivacyEnabled(config: unknown): boolean {
-  if (!config || typeof config !== 'object') return false
-  const analytics = (config as { analytics?: unknown }).analytics
-  return Boolean(analytics && typeof analytics === 'object'
-    && (analytics as { privacy?: unknown }).privacy === true)
-}
-
 /**
  * The refusal that keeps the dashboard surface off the network (402-05, D-07; 432 D-13).
  *

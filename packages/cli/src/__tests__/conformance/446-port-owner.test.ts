@@ -71,7 +71,7 @@ describe('C446-PORT-OWNER', () => {
     const dir = join(root, 'workspace')
     const result = spawnSync(process.execPath, [CLI_ENTRY, 'init', '--platform', 'web', '--dir', dir], {
       cwd: root,
-      env: { ...hermeticEnv(root), DO_NOT_TRACK: '1' },
+      env: hermeticEnv(root),
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: INIT_BUDGET_MS - 10_000,

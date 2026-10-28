@@ -132,7 +132,7 @@ function output(leg: Leg | undefined): string {
 function cli(root: string, args: readonly string[]): Leg {
   const result = spawnSync(process.execPath, [CLI_ENTRY, ...args], {
     cwd: root,
-    env: { ...hermeticEnv(root), DO_NOT_TRACK: '1', CI: 'true', NO_COLOR: '1' },
+    env: { ...hermeticEnv(root), CI: 'true', NO_COLOR: '1' },
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
   })

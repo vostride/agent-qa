@@ -246,7 +246,6 @@ async function runCli(fixture, args) {
   const env = {
     ...process.env,
     NO_COLOR: '1',
-    DO_NOT_TRACK: '1',
     HOME: fixture.home,
     USERPROFILE: fixture.home,
     // PIN THE BROWSER POSTURE, so the reading is a property of the build rather than of the

@@ -40,7 +40,7 @@ export function createHelpReader(root: string): HelpReader {
     if (cached !== undefined) return cached
     const result = spawnSync(process.execPath, [CLI_ENTRY, ...path, '--help'], {
       cwd: root,
-      env: { ...hermeticEnv(root), DO_NOT_TRACK: '1' },
+      env: hermeticEnv(root),
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: 60_000,

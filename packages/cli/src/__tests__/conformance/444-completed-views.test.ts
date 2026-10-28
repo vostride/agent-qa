@@ -139,7 +139,6 @@ async function seed(project: PopulatedRunProject, stub: StubModelServer, spec: S
       ...populatedRunSpawnEnv(),
       CI: 'true',
       NO_COLOR: '1',
-      DO_NOT_TRACK: '1',
       AGENT_QA_CANCEL_GRACE_MS: '120000',
       AGENT_QA_RUN_ID: seeded.runId,
     },
@@ -198,7 +197,6 @@ async function readMcpList(project: PopulatedRunProject): Promise<Scene['mcp']> 
     ...populatedRunSpawnEnv(),
     CI: 'true',
     NO_COLOR: '1',
-    DO_NOT_TRACK: '1',
   }).filter((entry): entry is [string, string] => entry[1] !== undefined))
   const transport = new StdioClientTransport({
     command: process.execPath,

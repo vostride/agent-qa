@@ -139,7 +139,6 @@ function childEnv(project: PopulatedRunProject, runId?: string): NodeJS.ProcessE
     ...populatedRunSpawnEnv(),
     ...(FORWARDED_CI === undefined ? {} : { CI: FORWARDED_CI }),
     NO_COLOR: '1',
-    DO_NOT_TRACK: '1',
     ...(runId === undefined ? {} : { AGENT_QA_RUN_ID: runId }),
   }
 }

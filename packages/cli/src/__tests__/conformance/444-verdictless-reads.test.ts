@@ -76,7 +76,6 @@ function stdioEnv(): Record<string, string> {
     ...populatedRunSpawnEnv(),
     CI: 'true',
     NO_COLOR: '1',
-    DO_NOT_TRACK: '1',
   }
   delete env.AGENT_QA_RUN_ID
   return Object.fromEntries(Object.entries(env).filter((entry): entry is [string, string] => entry[1] !== undefined))

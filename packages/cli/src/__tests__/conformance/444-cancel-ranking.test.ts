@@ -158,7 +158,6 @@ async function readMcp(project: PopulatedRunProject, runId: string): Promise<Rea
     ...populatedRunSpawnEnv(),
     CI: 'true',
     NO_COLOR: '1',
-    DO_NOT_TRACK: '1',
   }).filter((entry): entry is [string, string] => entry[1] !== undefined))
   const transport = new StdioClientTransport({
     command: process.execPath,
@@ -229,7 +228,6 @@ async function driveRanking(): Promise<void> {
         ...populatedRunSpawnEnv(),
         CI: 'true',
         NO_COLOR: '1',
-        DO_NOT_TRACK: '1',
         AGENT_QA_CANCEL_GRACE_MS: '120000',
         AGENT_QA_RUN_ID: runId,
       },
