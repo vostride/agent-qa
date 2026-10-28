@@ -23,6 +23,7 @@ vi.mock('@inquirer/select', () => ({
 }))
 
 vi.mock('@vostride/agent-qa-core', () => ({
+  getAgentQaVersion: vi.fn(() => '1.2.3'),
   getCredential: vi.fn(() => null),
   getLLMAuthProviderPlugin: vi.fn(() => undefined),
   readAuth: vi.fn(() => ({})),
@@ -310,14 +311,14 @@ describe('auth provider mode contract', () => {
     expect(getOutput()).toContain('Provider "openai-subscription" is configured for "codex", but no auth plugin is registered.')
     expect(getOutput()).toContain('"devDependencies": { "@vostride/agent-qa-subscription-auth": "<agent-qa version>" }')
     expect(getOutput()).toContain('plugins.auth')
-    expect(getOutput()).toContain('agent-qa dashboard')
+    expect(getOutput()).toContain('Then run: agent-qa auth login --config codex')
     expect(getOutput()).not.toContain('requires an auth plugin')
 
     await expect(runAuthCommand(['login', '--config', 'claude'])).resolves.toBeUndefined()
     expect(getOutput()).toContain('Provider "anthropic-subscription" is configured for "claude", but no auth plugin is registered.')
     expect(getOutput()).toContain('"devDependencies": { "@vostride/agent-qa-subscription-auth": "<agent-qa version>" }')
     expect(getOutput()).toContain('plugins.auth')
-    expect(getOutput()).toContain('agent-qa dashboard')
+    expect(getOutput()).toContain('Then run: agent-qa auth login --config claude')
     expect(getOutput()).not.toContain('requires an auth plugin')
 
     expect(mockWriteAuth).not.toHaveBeenCalled()
@@ -396,7 +397,7 @@ describe('auth provider mode contract', () => {
     expect(getOutput()).toContain('Authenticated claude-subscription with Anthropic subscription')
   })
 
-  it('auth login guides to dashboard when manual-code plugin lacks exchangeCode', async () => {
+  it('auth login names the command-line fix when a manual-code plugin cannot exchange a code', async () => {
     const plugin = createMockAuthPlugin({
       providerId: 'anthropic-subscription',
       credentialProviderId: 'anthropic-subscription',
@@ -418,8 +419,52 @@ describe('auth provider mode contract', () => {
 
     await expect(runAuthCommand(['login', '--config', 'claude-subscription'])).resolves.toBeUndefined()
 
-    expect(getOutput()).toContain('Provider "anthropic-subscription" does not support CLI code exchange. Use agent-qa dashboard.')
+    expect(getOutput()).toContain(
+      'The auth plugin for "anthropic-subscription" cannot sign in from the command line.',
+    )
+    expect(getOutput()).toContain(
+      'Install @vostride/agent-qa-subscription-auth@1.2.3 and run: agent-qa auth login --config claude-subscription',
+    )
     expect(mockWriteAuth).not.toHaveBeenCalled()
+    expect(process.exitCode).toBe(1)
+  })
+
+  it('auth login names the command-line fix when the plugin has no startAuth', async () => {
+    mockGetLLMAuthProviderPlugin.mockReturnValue(createMockAuthPlugin({ startAuth: undefined }))
+    setNamedConfig({ name: 'codex', provider: 'openai-subscription', model: 'gpt-5.3-codex' })
+
+    await expect(runAuthCommand(['login', '--config', 'codex'])).resolves.toBeUndefined()
+
+    expect(getOutput()).toContain(
+      'The auth plugin for "openai-subscription" cannot sign in from the command line.',
+    )
+    expect(getOutput()).toContain(
+      'Install @vostride/agent-qa-subscription-auth@1.2.3 and run: agent-qa auth login --config codex',
+    )
+    expect(mockWriteAuth).not.toHaveBeenCalled()
+    expect(process.exitCode).toBe(1)
+  })
+
+  it('auth login names the command-line fix when a browser plugin returns no token wait', async () => {
+    const cleanup = vi.fn()
+    mockGetLLMAuthProviderPlugin.mockReturnValue(
+      createMockAuthPlugin({
+        startAuth: vi.fn(async () => ({ authorizeUrl: 'https://auth.example/openai', cleanup })),
+      }),
+    )
+    setNamedConfig({ name: 'codex', provider: 'openai-subscription', model: 'gpt-5.3-codex' })
+
+    await expect(runAuthCommand(['login', '--config', 'codex'])).resolves.toBeUndefined()
+
+    expect(getOutput()).toContain(
+      'The auth plugin for "openai-subscription" cannot sign in from the command line.',
+    )
+    expect(getOutput()).toContain(
+      'Install @vostride/agent-qa-subscription-auth@1.2.3 and run: agent-qa auth login --config codex',
+    )
+    expect(mockWriteAuth).not.toHaveBeenCalled()
+    expect(cleanup).toHaveBeenCalled()
+    expect(process.exitCode).toBe(1)
   })
 
   it('auth login parses local --config when the root command also has --config', async () => {

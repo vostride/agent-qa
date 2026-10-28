@@ -121,13 +121,28 @@ function printMissingSubscriptionPluginGuidance(configName: string, provider: Su
   console.log(pc.dim('  plugins:'))
   console.log(pc.dim('    auth:'))
   console.log(pc.dim('      - package: @vostride/agent-qa-subscription-auth'))
-  console.log(pc.dim('Then authenticate from agent-qa dashboard or rerun this command.'))
+  console.log(pc.dim(`Then run: agent-qa auth login --config ${configName}`))
+}
+
+function printCommandLineSignInFix(
+  provider: SubscriptionProvider,
+  configName: string,
+  version: string,
+): void {
+  console.log(pc.red(`The auth plugin for "${provider}" cannot sign in from the command line.`))
+  console.log(
+    pc.dim(
+      `Install @vostride/agent-qa-subscription-auth@${version} and run: agent-qa auth login --config ${configName}`,
+    ),
+  )
 }
 
 async function readTokensFromPlugin(
   provider: SubscriptionProvider,
   plugin: LLMAuthProviderPlugin,
   started: Awaited<ReturnType<NonNullable<LLMAuthProviderPlugin['startAuth']>>>,
+  configName: string,
+  version: string,
 ): Promise<OAuthTokens | null> {
   if (started.waitForTokens) {
     return await started.waitForTokens
@@ -135,7 +150,7 @@ async function readTokensFromPlugin(
 
   if (plugin.dashboardAuth.mode === 'manual-code') {
     if (!plugin.exchangeCode) {
-      console.log(pc.red(`Provider "${provider}" does not support CLI code exchange. Use agent-qa dashboard.`))
+      printCommandLineSignInFix(provider, configName, version)
       process.exitCode = 1
       return null
     }
@@ -148,13 +163,15 @@ async function readTokensFromPlugin(
     return await plugin.exchangeCode({ code, sessionState: started.sessionState })
   }
 
-  console.log(pc.red(`Provider "${provider}" does not support CLI auth login. Use agent-qa dashboard.`))
+  printCommandLineSignInFix(provider, configName, version)
   process.exitCode = 1
   return null
 }
 
 async function runSubscriptionPluginLogin(configName: string, provider: SubscriptionProvider): Promise<void> {
-  const { getLLMAuthProviderPlugin, writeAuth } = await import('@vostride/agent-qa-core')
+  const { getAgentQaVersion, getLLMAuthProviderPlugin, writeAuth } = await import(
+    '@vostride/agent-qa-core'
+  )
   const plugin = getLLMAuthProviderPlugin(provider)
 
   if (!plugin) {
@@ -163,8 +180,10 @@ async function runSubscriptionPluginLogin(configName: string, provider: Subscrip
     return
   }
 
+  const version = getAgentQaVersion()
+
   if (!plugin.startAuth) {
-    console.log(pc.red(`Provider "${provider}" does not support CLI auth login. Use agent-qa dashboard.`))
+    printCommandLineSignInFix(provider, configName, version)
     process.exitCode = 1
     return
   }
@@ -175,7 +194,7 @@ async function runSubscriptionPluginLogin(configName: string, provider: Subscrip
     console.log(`Open this URL to authenticate: ${pc.cyan(started.authorizeUrl)}`)
     openAuthorizationUrl(started.authorizeUrl)
 
-    const tokens = await readTokensFromPlugin(provider, plugin, started)
+    const tokens = await readTokensFromPlugin(provider, plugin, started, configName, version)
     if (!tokens) return
 
     await writeAuth(configName, {
