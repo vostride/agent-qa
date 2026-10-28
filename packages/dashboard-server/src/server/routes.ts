@@ -622,40 +622,6 @@ function jsonNoCors(res: ServerResponse, data: unknown, status = 200): void {
   res.end(body)
 }
 
-/**
- * Refuse a cross-site driver on a run-text read, and refuse it with NO cross-origin grant on the
- * refusal either.
- *
- * WHY THESE ARMS AND NOT THE OTHERS (405 CR-01). They answer a run's stored text, served as it
- * was stored (441 D-07), and they keep the no-grant posture CR-01 gave them.
- *
- * WHY THE REFUSAL AND NOT ONLY THE MISSING HEADER. Dropping the wildcard stops a page on another
- * ORIGIN from READING the body. It does not stop DNS rebinding, where the attacker's own name
- * resolves to a loopback address and the browser therefore treats the read as same-origin and asks
- * for no grant at all. `refuseCrossSiteRequest` carries the Host check that closes that, and it
- * ADMITS the caller that sends no `Origin` — the CLI, `curl`, the conformance harness — which is
- * the local drive these arms exist for.
- *
- * SCOPE, DELIBERATELY NARROW. Only the run-text arms. `json()` above keeps its wildcard
- * for the legacy read routes, whose whole-server posture is the re-platform question its own
- * docstring defers; widening it here would change the posture of routes this fix does not own.
- *
- * THE SHARED PREFLIGHT ARM IS LEFT ALONE, and that is a decision rather than an oversight. `cors()`
- * still answers every OPTIONS with the wildcard. All four arms here are SIMPLE GETs, so a browser
- * needs no preflight to send them and a preflight grant confers no read; what confers the read is
- * the grant on the ACTUAL response, and that is the one removed. A preflighted variant now gets a
- * permissive OPTIONS followed by a response the browser refuses to hand to the page — it fails
- * closed. Excluding these paths from `cors()` would mean claiming the `/api/runs/` prefix ahead of
- * the shared arm the way the run-confirm prefix used to claim its own (deleted in 432-14), which
- * would capture the trigger, cancel, delete, live-url, detail and post-processing routes too: the
- * whole-server posture change this fix is deliberately not making.
- */
-function refuseCrossSiteDisplayRead(req: IncomingMessage, res: ServerResponse): boolean {
-  if (refuseCrossSiteRequest(req) === undefined) return false
-  jsonNoCors(res, { error: 'cross_site_refused' }, 403)
-  return true
-}
-
 const INSIGHTS_KNOWLEDGE_RUN_CAP = 200
 const INSIGHTS_KNOWLEDGE_CONCURRENCY = 4
 
@@ -2205,8 +2171,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
 
     // GET /api/runs
     if (path === '/api/runs' && req.method === 'GET') {
-      // THE SAME-SITE GUARD, FIRST (405 CR-01) — see `refuseCrossSiteDisplayRead`.
-      if (refuseCrossSiteDisplayRead(req, res)) return
       const statuses = url.searchParams.getAll('status')
       const unknownStatus = statuses.find((word) => !isRunStatusWord(word))
       if (unknownStatus !== undefined) {
@@ -2300,8 +2264,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     // GET /api/runs/:id/artifact
     const runArtifactMatch = path.match(/^\/api\/runs\/([^/]+)\/artifact$/)
     if (runArtifactMatch && req.method === 'GET') {
-      // THE SAME-SITE GUARD, FIRST (405 CR-01) — see `refuseCrossSiteDisplayRead`.
-      if (refuseCrossSiteDisplayRead(req, res)) return
       const runId = decodeURIComponent(runArtifactMatch[1])
       const run = db.getRun(runId)
       if (!run) {
@@ -2331,8 +2293,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
 
     // GET /api/runs/:id/execution-logs
     if (path.startsWith('/api/runs/') && path.endsWith('/execution-logs') && req.method === 'GET') {
-      // THE SAME-SITE GUARD, FIRST (405 CR-01) — see `refuseCrossSiteDisplayRead`.
-      if (refuseCrossSiteDisplayRead(req, res)) return
       const segments = path.split('/')
       const id = segments[3]
       const run = db.getRun(id)
@@ -2364,7 +2324,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         jsonNoCors(res, { error: 'invalid_mark_input' }, 400)
         return
       }
-      registerRunMarkRoute(req, res, { host: deps.agentHost, runId, boundary: 'human' })
+      registerRunMarkRoute(req, res, { host: deps.agentHost, runId })
       return
     }
 
@@ -2382,7 +2342,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         jsonNoCors(res, { error: 'invalid_run_id' }, 400)
         return
       }
-      serveRunMarkPreviewRead(req, res, { runId, host: deps.agentHost, boundary: 'human' })
+      serveRunMarkPreviewRead(req, res, { runId, host: deps.agentHost })
       return
     }
 
@@ -2486,21 +2446,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     // one the function layer published. The refusals are the op's own, mapped by ERROR NAME rather
     // than by matching a message — a message is prose and prose gets rewritten.
     if (req.method === 'GET' && /^\/api\/runs\/[^/]+\/live-url$/.test(path)) {
-      // THE SAME-SITE GUARD, FIRST — before the door decides anything else about this request.
-      //
-      // 403 gap round 1 (SC-2, T-403-20). This route hands out the frame socket's ONLY credential,
-      // so it is the choke point: a page that cannot obtain a token cannot open the socket. Before
-      // this check, a page on any origin open in the developer's own browser could `fetch` a view
-      // token and stream the app under test. The loopback bind is not a defence against that — it
-      // stops a remote HOST, and the attacker here is the developer's own browser reaching another
-      // ORIGIN. The predicate is the chat door's, shared rather than re-derived, and it ADMITS the
-      // caller that sends no `Origin` at all (the CLI, `curl`, the conformance harness), which is
-      // the local drive this door exists for.
-      const crossSite = refuseCrossSiteRequest(req)
-      if (crossSite !== undefined) {
-        jsonNoCors(res, { error: 'cross_site_refused' }, 403)
-        return
-      }
       if (!deps.mintLiveUrl) {
         jsonNoCors(res, { error: 'live_view_unavailable' }, 503)
         return
@@ -2593,7 +2538,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         jsonNoCors(res, { error: 'invalid_run_id' }, 400)
         return
       }
-      serveRunEvidenceRead(req, res, { runId, host: deps.agentHost, boundary: 'human' })
+      serveRunEvidenceRead(req, res, { runId, host: deps.agentHost })
       return
     }
 
@@ -2610,7 +2555,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         jsonNoCors(res, { error: 'invalid_run_id' }, 400)
         return
       }
-      serveRunMarksHistoryRead(req, res, { runId, host: deps.agentHost, boundary: 'human' })
+      serveRunMarksHistoryRead(req, res, { runId, host: deps.agentHost })
       return
     }
 
@@ -2640,9 +2585,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         json(res, { error: 'invalid_run_id' }, 400)
         return
       }
-      // THE LOCAL HUMAN DOOR (405-10, D-09): `boundary: 'human'` turns on the same-site guard. The
-      // authed REMOTE door's `/run/:runId/detail` passes nothing; both serve the body as stored.
-      serveRunDetailRead(req, res, { runId: detailRunId, host: deps.agentHost, boundary: 'human' })
+      serveRunDetailRead(req, res, { runId: detailRunId, host: deps.agentHost })
       return
     }
 
@@ -2669,9 +2612,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         json(res, { error: 'invalid_run_id' }, 400)
         return
       }
-      // THE HUMAN DOOR (D-04): `boundary: 'human'` turns on the same-site guard. The authed REMOTE
-      // row passes no `boundary`; both serve the body as stored (441 D-07).
-      serveRunAnalysisRead(req, res, { runId: analysisRunId, host: deps.agentHost, boundary: 'human' })
+      serveRunAnalysisRead(req, res, { runId: analysisRunId, host: deps.agentHost })
       return
     }
 
@@ -2702,12 +2643,9 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         json(res, { error: 'invalid_run_id' }, 400)
         return
       }
-      // THE HUMAN DOOR (405-10 D-09): `boundary: 'human'` turns on the same-site guard, as on its
-      // two neighbours. The body is served as stored (441 D-07).
       serveRunKnowledgeRead(req, res, {
         runId: knowledgeRunId,
         host: deps.agentHost,
-        boundary: 'human',
       })
       return
     }
@@ -2778,12 +2716,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         notFound(res)
         return
       }
-      // THE SAME-SITE GUARD (405 CR-01) — see `refuseCrossSiteDisplayRead`. It sits AFTER the shape
-      // check and not above it because this arm is the `/api/runs/` catch-all: the length test is
-      // what decides whether this request is the single-run door at all, and a path that is not
-      // that door should keep answering the generic 404 rather than a refusal about a door it
-      // never reached.
-      if (refuseCrossSiteDisplayRead(req, res)) return
       const id = segments[3]
       const run = db.getRun(id)
       if (!run) {
@@ -2813,7 +2745,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     // F-433-26). Each run is read through `runs.knowledge`, the op the Knowledge tab reads, on the
     // machine boundary: only counts leave this arm.
     if (path === '/api/insights/knowledge-changes' && req.method === 'GET') {
-      if (refuseCrossSiteDisplayRead(req, res)) return
       if (!deps.agentHost) {
         jsonNoCors(res, { status: 'unavailable', reason: 'agent_host_unavailable' }, 503)
         return
@@ -3838,9 +3769,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
 
     // GET /api/config — return masked config with active provider info
     if (path === '/api/config' && req.method === 'GET') {
-      // 429-41 (CR-02): the answer carries file text and the file's absolute path, so it is read
-      // same-site only and no outcome grants a cross-origin read.
-      if (refuseCrossSiteDisplayRead(req, res)) return
       if (!configManager) {
         jsonNoCors(res, { error: 'Config management not available' }, 501)
         return
@@ -3883,10 +3811,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         if (providerName === 'status' || providerName === 'credential' || providerName === 'oauth') {
           // Fall through to other handlers
         } else {
-          if (refuseCrossSiteRequest(req) !== undefined) {
-            jsonNoCors(res, { error: 'cross_site_refused' }, 403)
-            return
-          }
           // 429-11 D-24: the removed entry is held server-side for Undo; the answer never carries it.
           ;(async () => {
             try {
@@ -4047,17 +3971,10 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       const segments = path.split('/')
       const provider = segments.length >= 6 ? decodeURIComponent(segments[4] ?? '') : ''
       const action = segments.length >= 6 ? segments[5] : ''
-      // 429-09: start and code exchange plant a machine-wide credential, so both are same-site only
-      // and no answer on them carries a cross-origin grant.
-      const authDoor = req.method === 'POST' && (action === 'start' || action === 'exchange')
-      if (authDoor && refuseCrossSiteRequest(req) !== undefined) {
-        jsonNoCors(res, { error: 'cross_site_refused' }, 403)
-        return
-      }
       const plugin = provider ? getLLMAuthProviderPlugin(provider) : undefined
 
       if (!plugin) {
-        ;(authDoor ? jsonNoCors : json)(res, { error: `Auth plugin provider "${provider}" is not registered` }, 404)
+        jsonNoCors(res, { error: `Auth plugin provider "${provider}" is not registered` }, 404)
         return
       }
 
@@ -4217,10 +4134,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
 
     // POST /api/auth/credential — store typed credentials from dashboard
     if (path === '/api/auth/credential' && req.method === 'POST') {
-      if (refuseCrossSiteRequest(req) !== undefined) {
-        jsonNoCors(res, { error: 'cross_site_refused' }, 403)
-        return
-      }
       readJsonBody<{
         configName?: string
         provider?: string
@@ -4292,10 +4205,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     // name is still editable. Only between names that are not in registry.llms, and never onto a
     // name that already holds a credential.
     if (path === '/api/auth/credential/move' && req.method === 'POST') {
-      if (refuseCrossSiteRequest(req) !== undefined) {
-        jsonNoCors(res, { error: 'cross_site_refused' }, 403)
-        return
-      }
       readJsonBody<unknown>(req)
         .then(async (raw) => {
           const parsed = LlmCredentialMoveRequestSchema.safeParse(raw)
@@ -4341,13 +4250,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     }
 
     // POST /api/llm/test — test LLM connection
-    // Same-site only and no wildcard grant on any answer: this arm spends a saved credential
-    // against a provider, so a page on another origin must not be able to drive it.
     if (path === '/api/llm/test' && req.method === 'POST') {
-      if (refuseCrossSiteRequest(req) !== undefined) {
-        jsonNoCors(res, { error: 'cross_site_refused' }, 403)
-        return
-      }
       readJsonBody<{
         configName?: string
         provider?: string
@@ -4857,15 +4760,11 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
 
     // GET /api/live-editor/sessions/:id/live-url — the editor mint door (428 D-07).
     //
-    // A copy of the run mint door above, arm for arm: the same-site guard first, 503 when unbound,
+    // A copy of the run mint door above, arm for arm: 503 when unbound,
     // the op's result verbatim and its refusals mapped by error name. Every arm answers through
     // `jsonNoCors`, because the success body is the token. The DELETE arm below matches one path
     // segment after the id, so it never sees a `/live-url` suffix.
     if (req.method === 'GET' && /^\/api\/live-editor\/sessions\/[^/]+\/live-url$/.test(path)) {
-      if (refuseCrossSiteRequest(req) !== undefined) {
-        jsonNoCors(res, { error: 'cross_site_refused' }, 403)
-        return
-      }
       if (!deps.mintEditorLiveUrl) {
         jsonNoCors(res, { error: 'live_view_unavailable' }, 503)
         return
@@ -4891,16 +4790,9 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // THE LIVE-EDITOR DOORS (428 D-08 — WINDOWS #275). These four arms create, list, end and read
-    // auth state out of sessions that drive a real browser, which is more than the live-url grants.
-    // Each runs the one same-site predicate first and answers every arm, success and refusal alike,
-    // through `jsonNoCors`: a wildcard grant on an admitted answer would leave a readable session
-    // list behind for any origin (RESEARCH P6). The rest of this router keeps its posture.
     // POST /api/live-editor/sessions/:id/auth-state — save auth state from active web Live Mode context
     const liveEditorAuthStateMatch = path.match(/^\/api\/live-editor\/sessions\/([^/]+)\/auth-state$/)
     if (liveEditorAuthStateMatch && req.method === 'POST') {
-      // 428 D-08 (WINDOWS #275): the same-site guard first, and no wildcard grant on any answer.
-      if (refuseCrossSiteDisplayRead(req, res)) return
       if (!sessionManager) {
         jsonNoCors(res, { error: 'Live editor not available' }, 503)
         return
@@ -4943,8 +4835,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
 
     // POST /api/live-editor/sessions — create a new live editor session
     if (path === '/api/live-editor/sessions' && req.method === 'POST') {
-      // 428 D-08 (WINDOWS #275): the same-site guard first, and no wildcard grant on any answer.
-      if (refuseCrossSiteDisplayRead(req, res)) return
       if (!sessionManager) {
         jsonNoCors(res, { error: 'Live editor not available' }, 503)
         return
@@ -5088,8 +4978,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
 
     // GET /api/live-editor/sessions — list all active live editor sessions
     if (path === '/api/live-editor/sessions' && req.method === 'GET') {
-      // 428 D-08 (WINDOWS #275): the same-site guard first, and no wildcard grant on any answer.
-      if (refuseCrossSiteDisplayRead(req, res)) return
       if (!sessionManager) {
         jsonNoCors(res, { error: 'Live editor not available' }, 503)
         return
@@ -5101,8 +4989,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     // DELETE /api/live-editor/sessions/:id — terminate a live editor session
     const liveEditorSessionMatch = path.match(/^\/api\/live-editor\/sessions\/([^/]+)$/)
     if (liveEditorSessionMatch && req.method === 'DELETE') {
-      // 428 D-08 (WINDOWS #275): the same-site guard first, and no wildcard grant on any answer.
-      if (refuseCrossSiteDisplayRead(req, res)) return
       if (!sessionManager) {
         jsonNoCors(res, { error: 'Live editor not available' }, 503)
         return

@@ -1,17 +1,6 @@
-// The same-site predicate every same-site capability door of this server shares: the mark door,
-// the config and credential writes, the live editor and the `live-url` mint routes. CR-01 records
-// the remaining posture in a filed WINDOWS row owned by the phase that takes whole-server CORS
-// posture, not as solved here.
-//
-// WHY THIS FILE EXISTS. The predicate below was written for the chat door in 400-14 and lived
-// private inside that door's router. Phase 403's verification found the live-url MINT door
-// standing open with the identical shape of hole, and a second door needs the identical answer:
-// two spellings of "is this cross-site" is two policies, free to disagree the first time either is
-// edited. The chat door, and later the run-confirm pair that inherited its router, were deleted
-// (430 D-02, 432-14 D-14); the predicate stayed here, rung for rung.
-//
-// THE POLICY IS UNCHANGED BY THE MOVE. What follows is the chat door's recorded policy verbatim,
-// rung for rung, comment for comment.
+// The dashboard's one same-site predicate. The API router head, the run service router head and the
+// live-editor socket call `refuseCrossSiteRequest`; the page arms and the frame socket call
+// `refuseNonLoopbackHost`.
 
 import type { IncomingMessage } from 'node:http'
 import { isLoopbackHost } from '@vostride/agent-qa-core'
@@ -46,30 +35,15 @@ export function refuseNonLoopbackHost(req: IncomingMessage): string | undefined 
 }
 
 /**
- * Refuse a request that a page on another origin drove (400-14, gap 6 — T-400-G6-01/02).
+ * Refuse a request that a page on another origin drove. Three rules:
  *
- * THE RECORDED POLICY, and each rung is a decision rather than a default:
+ * - The Host must name a loopback interface.
+ * - An `Origin`, when present, must name the request's own Host. The literal `null` is refused.
+ * - `Sec-Fetch-Site`, when sent, must be `same-origin` or `none`.
  *
- * - An ABSENT `Origin` is ALLOWED. This is a localhost door and its shipped norm is a person with a
- *   terminal: `curl`, a script, the CLI. No browser omits `Origin` on a cross-origin POST, so
- *   absence is evidence of a non-browser caller, and refusing it would brick every local drive to
- *   defend against nothing.
- * - An `Origin` whose HOST equals the request's own `Host` is allowed — that is the dashboard's own
- *   page driving its own door, which is exactly what must keep working.
- * - The literal `null` and every other value are REFUSED. `null` is what a sandboxed iframe, a
- *   `data:` document and a redirected cross-origin request send; it is not "no origin", it is an
- *   origin that declined to name itself.
- * - `Sec-Fetch-Site`, when the browser sends it, must say `same-origin` or `none`. It is checked
- *   BESIDE `Origin` and not instead of it: it is unforgeable by page script where `Origin` is only
- *   unforgeable by fetch, and it is absent on every non-browser client, so neither alone is total.
- *
- * WHY THE SCHEME IS NOT COMPARED. The bound door speaks `http` on loopback and the header carries
- * an absolute origin; comparing hosts keeps the check honest behind the `https` terminator an
- * operator may put in front of it, which is the deployment shape Phase 402 owns.
- *
- * WHY THIS LIVES HERE AND NOT IN `body-parser.ts`. That parser also serves the legacy read routes
- * whose wildcard-CORS posture is Phase 402's re-platform question. Widening it here would change
- * the posture of routes this phase does not own.
+ * An absent `Origin` is admitted: browsers send one on every cross-origin write, so its absence
+ * marks a local client (the CLI, `curl`, a script). Hosts are compared and schemes are not, so
+ * the check holds behind an `https` terminator.
  */
 export function refuseCrossSiteRequest(req: IncomingMessage): string | undefined {
   const hostRefusal = refuseNonLoopbackHost(req)

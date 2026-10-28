@@ -34,7 +34,6 @@ import {
 } from '../llm-model-mapping.js'
 import { respondJson } from '../run-service/run-detail-routes.js'
 import { readJsonBody } from './body-parser.js'
-import { refuseCrossSiteRequest } from './cross-site.js'
 
 export interface LlmConnectDeps {
   readonly configManager: ConfigManager
@@ -295,10 +294,6 @@ export function registerLlmConnectRoute(
   res: ServerResponse,
   deps: LlmConnectDeps,
 ): void {
-  if (refuseCrossSiteRequest(req) !== undefined) {
-    respondJson(res, 403, { error: 'cross_site_refused' })
-    return
-  }
   void readJsonBody<unknown>(req).then(async (body) => {
     const answer = await connectLlm(body, deps)
     respondJson(res, answer.status, answer.body)

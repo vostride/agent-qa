@@ -1,5 +1,5 @@
-// 2026-09-26, 429-01 D-19/D-22: the field-merge config write. A page on another site may never
-// drive it, and no answer carries a cross-origin read grant.
+// The config write and undo routes; the API router's head refuses a cross-site request before
+// either runs.
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
 import {
@@ -13,7 +13,6 @@ import type { ConfigManager } from '../config/index.js'
 import type { UndoStore } from '../config/undo-store.js'
 import { respondJson } from '../run-service/run-detail-routes.js'
 import { readJsonBody } from './body-parser.js'
-import { refuseCrossSiteRequest } from './cross-site.js'
 
 /**
  * PATCH /api/config. The body is a change set; the answer is the revision now on disk, and for an
@@ -24,10 +23,6 @@ export function registerConfigWriteRoute(
   res: ServerResponse,
   deps: { readonly configManager: ConfigManager; readonly undoStore: UndoStore },
 ): void {
-  if (refuseCrossSiteRequest(req) !== undefined) {
-    respondJson(res, 403, { error: 'cross_site_refused' })
-    return
-  }
   void readJsonBody<unknown>(req).then(async (body) => {
     const parsed = ConfigWriteRequestSchema.safeParse(body)
     if (!parsed.success) {
@@ -104,10 +99,6 @@ export function registerConfigUndoRoute(
 ): void {
   if (req.method !== 'POST') {
     respondJson(res, 405, { error: 'method_not_allowed' })
-    return
-  }
-  if (refuseCrossSiteRequest(req) !== undefined) {
-    respondJson(res, 403, { error: 'cross_site_refused' })
     return
   }
   void readJsonBody<unknown>(req).then(async (body) => {
