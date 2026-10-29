@@ -14,8 +14,7 @@ export const AGENT_QA_KNOWLEDGE_LOCAL_FORBIDDEN_RESPONSIBILITIES = [
   'agent decision or planning logic',
   'platform-adapter execution',
 ] as const
-// D-11 pins the native vec0 accelerator; D-07 uses zod at the machine-local marker boundary.
-// 376 D-09/D-12 keep the native embedding runtime and floor tokenizer behind this seam.
+// Native vec0, the embedding runtime and the floor tokenizer stay behind this seam.
 export const AGENT_QA_KNOWLEDGE_LOCAL_EXTERNAL_DEPENDENCIES = [
   '@huggingface/tokenizers',
   '@huggingface/transformers',

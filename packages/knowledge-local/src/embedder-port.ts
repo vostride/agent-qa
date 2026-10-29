@@ -1,19 +1,8 @@
-/**
- * D-02's types-only memidex embedding seam from memory.md §5.2.
- *
- * Phase 376 binds the real implementation without changing rebuild logic. The fake embedder in
- * Phase 375 Plan 06 is the first implementer, keeping this phase free of model runtime code.
- */
+// A types-only seam, so rebuild logic carries no model runtime code.
 export interface EmbedderPort {
-  /**
-   * Embed a canonical document rendering using the profile's document prefix (D-02, §5.2).
-   * Phase 376 supplies the runtime; callers never observe prefix application.
-   */
+  // The profile's document prefix is applied inside; callers pass the bare rendering.
   embedDocument(rendering: string): Promise<Float32Array>
 
-  /**
-   * Embed a query rendering using the profile's query prefix (D-02, §5.2).
-   * Phase 376 supplies the runtime through the same rebuild-logic-neutral contract.
-   */
+  // The profile's query prefix is applied inside; callers pass the bare rendering.
   embedQuery(rendering: string): Promise<Float32Array>
 }

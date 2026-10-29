@@ -21,17 +21,8 @@ import {
   type WriterLeaseAuthority,
 } from './lease/writer-lease.js'
 
-/**
- * PROVISIONAL D-13 superseded-generation retention depth. M3 may calibrate the
- * value against gate receipts, but it remains an internal constitution value
- * and never a runtime config key.
- */
 export const GC_SUPERSEDED_RETAIN_K = 3
 
-/**
- * D-13 gate seam. M2 always passes `{ kind: 'none' }`; M3 plugs real gate
- * receipt ordinals into the second variant with zero shape change.
- */
 export type GateHorizon =
   | { kind: 'none' }
   | { kind: 'ordinal'; deepestGateOrdinal: number }
@@ -212,15 +203,7 @@ function buildWithinKExclusion(
   return { supersededChainIds, withinK }
 }
 
-/**
- * Trim only whole superseded bundle directories after constructing every D-13
- * exclusion set. No projection SQL exists here by design: the drain tail feeds
- * trimmedRecordIds straight into removeBundleProjectionRows, so the disposable
- * index heals in the same drain.
- *
- * RATIFICATION: this typed in-memory summary, surfaced through drain diagnostics,
- * is the low-cost §9.2-style operational note. GC writes no persisted note artifact.
- */
+// Trims whole superseded bundle directories; the drain tail removes their projection rows.
 export function runKnowledgeGc(
   input: RunKnowledgeGcInput,
   writerAuthority: WriterLeaseAuthority,
@@ -233,7 +216,7 @@ export function runKnowledgeGc(
   const snapshots = scanCanonicalBundles(input.knowledgeRoot)
   const loaded = loadGcBundles(input.knowledgeRoot)
 
-  // Pitfall 10: build the complete exclusion set before the first destructive write.
+  // Build the complete exclusion set before the first destructive write.
   const unknownRef = buildUnknownReferenceExclusion(loaded.values())
   const { supersededChainIds, withinK } = buildWithinKExclusion(snapshots, retainK)
   const userOrigin = new Set(
@@ -278,7 +261,7 @@ export function runKnowledgeGc(
       input.knowledgeRoot,
       writerAuthority,
       () => {
-        // never delete a bundle reached through a link out of the knowledge root.
+        // Never delete a bundle reached through a link out of the knowledge root.
         assertWithinKnowledgeRoot(input.knowledgeRoot, candidate.dir)
         rmSync(candidate.dir, { recursive: true, force: false })
       },

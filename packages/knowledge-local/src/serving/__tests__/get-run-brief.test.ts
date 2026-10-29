@@ -5,11 +5,7 @@ import { describe, expect, it } from 'vitest'
 import type { PolicyLadder } from '../policy-ladder.js'
 import { assembleRunBrief } from '../get-run-brief.js'
 
-/**
- * `assembleRunBrief` returns `{ brief, trace }` as ONE value. These cases pin the
- * BRIEF's own tiering, budgeting and order-independence, which are unchanged; the composite
- * itself and every trace claim are pinned in `serve-trace.test.ts`.
- */
+// These cases pin the brief; the composite and trace claims are pinned in `serve-trace.test.ts`.
 function briefOnly(input: Parameters<typeof assembleRunBrief>[0]): ReturnType<typeof assembleRunBrief>['brief'] {
   return assembleRunBrief(input).brief
 }

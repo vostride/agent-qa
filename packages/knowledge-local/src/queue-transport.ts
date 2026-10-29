@@ -10,7 +10,7 @@ import {
 } from 'node:fs'
 import { dirname, isAbsolute, join } from 'node:path'
 
-/** Gitignored durable curation transport root; provisional until M2 field evidence retunes it. */
+/** Gitignored durable curation transport root. */
 export const QUEUE_DIR = 'memory/queue'
 /** Pending candidates visible to a drainer. */
 export const QUEUED_SUBDIR = 'queued'

@@ -1,8 +1,4 @@
-/**
- * knowledge-local implementation of the agent-side AuthoringReadPort: the 4th channel's
- * composition boundary. Shares the serving reader's hydration internals and the one derived
- * index SQLite; keeps servingReader/KnowledgeHintReader untouched.
- */
+// Shares the serving reader's hydration and index connection, and leaves the hint reader untouched.
 import { existsSync } from 'node:fs'
 
 import type { AuthoringReadPort } from '@vostride/agent-qa-agent'
@@ -32,10 +28,7 @@ import {
   type OpenServingKnowledgeReaderConfig,
 } from './reader.js'
 
-/**
- * PROVISIONAL authoring-brief budget, computed as a plain number at this composition boundary
- * (377 D-07 lineage: budgets are numbers passed down, never config reads inside assemblies).
- */
+// A plain number passed down; assemblies never read config.
 export const AUTHORING_BRIEF_DEFAULT_BUDGET = 2_000
 
 /** PROVISIONAL dense candidate cap pending authoring-channel retrieval telemetry. */
@@ -46,12 +39,7 @@ export interface AuthoringReaderDependencies {
   discoverKnownTests?: () => readonly AuthoringTestRef[]
   /** Test/integration seam; production omission uses denseLeg's automatic acquisition ladder. */
   embedder?: EmbedderPort
-  /**
-   * ISO-8601 instant the quarantine fold compares expiry against. A seam rather than a
-   * clock read inside the fold: `'expired'` is COMPUTED from this value, so pinning an expiry
-   * boundary one second either side has to be possible without waiting for wall time. Production
-   * omission reads the clock ONCE per brief, at this composition boundary.
-   */
+  // A seam so expiry is testable either side of a deadline; production reads the clock per brief.
   now?: () => string
 }
 
@@ -66,20 +54,7 @@ interface OutcomeRow {
   last_outcomes_json: string
 }
 
-/**
- * The identities the committed ledger currently suppresses, keyed exactly the way the
- * projection is keyed — `(product, filePath, testName)`, with the ledger's `product` carrying the
- * same slugged partition the projection rows do.
- *
- * Only `'quarantined'` counts. `'expired'` and both released states are deliberately NOT excluded:
- * an entry whose deadline lapsed has stopped suppressing while staying listed, and a
- * released entry is a decision someone made.
- *
- * NO try/catch. A ledger this build cannot read propagates its typed error, because the one
- * outcome that must be impossible here is degrading unreadable committed truth to "nothing is
- * quarantined" — that silently un-quarantines every entry in the file. Refused individual LINES
- * are already surfaced as data by the read itself and never became entries.
- */
+// No try/catch: an unreadable ledger must not read as nothing quarantined, un-quarantining all.
 function quarantinedIdentityKeys(knowledgeRoot: string, now: string): ReadonlySet<string> {
   const { events } = readQuarantineLedger(knowledgeRoot)
   return new Set(
@@ -110,12 +85,7 @@ function parseLastOutcomes(json: string): { buildOrdinal: number; passed: boolea
   }
 }
 
-/**
- * Read the run-outcome projection through the one index reader connection and the same
- * scope ladder as ordinary knowledge records. The tables are deliberately outside
- * REQUIRED_INDEX_TABLES, so an absent or pre-partition shape is an empty projection —
- * the ABRF-02 empty edge, never a throw or an unfiltered cross-product read.
- */
+// The tables are outside `REQUIRED_INDEX_TABLES`, so an absent shape reads as empty, never a throw.
 function readProjectionRows(
   config: OpenServingKnowledgeReaderConfig,
   scope: ScopeKey,
@@ -196,13 +166,7 @@ function readProjectionRows(
   }
 }
 
-/**
- * PROVISIONAL screenless target-anchor derivation (D-13: intent on the dense leg, page:/flow:
- * anchors on the lexical leg). Every derived anchor goes through the one normalizeAnchor
- * authority: '/'-prefixed and 'page:'-prefixed intent tokens become page anchors;
- * 'flow:'-prefixed tokens and the whole intent become flow-name candidates. The scope key
- * contributes through the SQL scope ladder, not through anchors.
- */
+// Intent tokens prefixed `/` or `page:` become page anchors; `flow:` tokens and the intent, flows.
 function deriveTargetAnchors(intent: string): Anchor[] {
   const anchors: Anchor[] = []
   for (const token of intent.split(/\s+/)) {
@@ -253,8 +217,7 @@ function knownTestUniverse(
   for (const { filePath, testName } of discovered) {
     byIdentity.set(identityTupleKey([filePath, testName]), { filePath, testName })
   }
-  // Projection-known identities are the floor, never the ceiling. Re-setting them last makes
-  // the trusted projection identity win without allowing consumer-owned content across D-16.
+  // Projection identities are set last, so the trusted identity wins over consumer-owned content.
   for (const { filePath, testName } of projectionRows) {
     byIdentity.set(identityTupleKey([filePath, testName]), { filePath, testName })
   }
@@ -264,11 +227,7 @@ function knownTestUniverse(
   ))
 }
 
-/**
- * Read optional dense scores without widening the authoring-reader contract. Embedder
- * acquisition and query failures deliberately degrade to the deterministic lexical/anchor
- * floor required by ABRF-01; they never abort the authoring channel.
- */
+// Embedder or query failures fall back to the lexical and anchor floor; they never abort it.
 async function readDenseScores(
   config: OpenServingKnowledgeReaderConfig,
   deps: AuthoringReaderDependencies,
@@ -295,8 +254,6 @@ async function readDenseScores(
       clamp01(candidate.rawScores.cosine ?? 0),
     ]))
   } catch {
-    // The dense leg is optional by contract: acquisition or query failure deliberately
-    // degrades silently to the deterministic lexical/anchor floor instead of aborting ABRF-01.
     return undefined
   } finally {
     connection.db.close()
@@ -311,8 +268,7 @@ export function createAuthoringReader(
   return {
     async getAuthoringBrief(intent: string, scope: ScopeKey): Promise<AuthoringBrief> {
       const entries = hydrateRows(config, readIndexRows(config, scope), false)
-      // ONE clock read per brief, here at the composition boundary — the quarantine fold below is
-      // pure in `now`, and a second read could put two rows on two sides of one deadline.
+      // One clock read per brief: a second read could put two rows on two sides of one deadline.
       const projectionRows = readProjectionRows(
         config,
         scope,
@@ -323,16 +279,11 @@ export function createAuthoringReader(
         projectionRows,
         deps.discoverKnownTests?.() ?? [],
       )
-      // the assembly seam ALWAYS produces the trace, so capture is already running for the
-      // 4th channel. The AuthoringReadPort contract still carries only the brief because there is
-      // no authoring evidence artifact to persist it onto yet; 393/394 mint the draft receipt and
-      // then only have to stop discarding this value. Deliberately not a fabricated persistence
-      // path today: a trace written nowhere would be a trace nobody could answer from.
+      // Only the brief is returned: no authoring evidence artifact exists to persist the trace on.
       const { brief } = assembleAuthoringBrief({
         entries,
         projectionRows,
-        // the consumer owns the filesystem and supplies identity refs only. Projection
-        // identities remain a deterministic floor, while never-run tests widen the universe.
+        // The consumer owns the filesystem and supplies refs; never-run tests widen the projection.
         knownTests,
         intent,
         scope,

@@ -1,17 +1,4 @@
-/**
- * The D-16 structural claim, pinned where a runtime case cannot pin it.
- *
- * D-16 says it is IMPOSSIBLE to serve without producing a trace. That is a claim about SIGNATURES,
- * and this package's vitest config type-checks `*.test-d.ts` only — 387-02 proved the consequence
- * by experiment, deleting a schema interface field outright and watching 702 runtime cases stay
- * green. So the impossibility is asserted here as a compile-time fact: the three serving entries
- * return composites, and a bare brief is NOT assignable to any of their return types.
- *
- * What would have to be written for a trace-less serve to exist: one of these entries would have
- * to return `BriefBlock` / `CautionBlock` / `AuthoringBrief` directly again. Each `toEqualTypeOf`
- * below fails on exactly that edit, and each `@ts-expect-error` below becomes an unused
- * expect-error — which is itself a type error — if the return type ever narrows back.
- */
+// Vitest type-checks only `*.test-d.ts`, so the serve-without-trace impossibility is asserted here.
 import type {
   AuthoringBrief,
   BriefBlock,

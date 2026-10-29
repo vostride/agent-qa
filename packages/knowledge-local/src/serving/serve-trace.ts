@@ -1,20 +1,4 @@
-// Serve-time trace composition for the four serving channels.
-//
-// D-16 makes producing a trace inseparable from serving: every serving entry returns brief and
-// trace as ONE value, so no code path can hand a caller a brief while quietly discarding how it
-// was chosen. This module owns the two small decisions that composition needs — which leg a
-// channel's ranking attributes to, and how the truncation ledger is bounded — so those decisions
-// live in one place with their reasoning rather than being restated per channel.
-//
-// LEG ATTRIBUTION, STATED HONESTLY. The trace's leg vocabulary is the RETRIEVAL vocabulary, and
-// the run-brief/caution assemblies do NOT run the retrieval legs: Channel 1 orders candidates by
-// `trust x anchorMatch(anchors, scope)` and Channel 3 admits a caution only when one of its
-// anchors matches the failure anchors. In both, the ONLY query-shaped signal is anchor overlap —
-// no FTS scan and no embedding participates. `anchor` is therefore what actually put a line in
-// those channels, and naming any other leg would be a fabricated attribution in exactly the place
-// KREV-02 exists to make honest. The authoring channel is different: its relevance really is a
-// weighted sum of an anchor term, a lexical term and an optional dense term, so it attributes per
-// line to whichever term contributed most (see `dominantAuthoringLeg`).
+// Brief and trace are one value; Channels 1 and 3 attribute `anchor`, the only signal ranking them.
 import {
   RETRIEVAL_TRACE_LEGS,
   RETRIEVAL_TRACE_SCHEMA_VERSION,
@@ -86,12 +70,7 @@ export function traceLine(input: {
   }
 }
 
-/**
- * Bound the truncation ledger at the pinned top-K. The cut set is unbounded in principle;
- * the ledger keeps the highest-ranked cuts because those are the ones a "why didn't it mention X"
- * question is actually asked about. Input order IS rank order at every call site, so this keeps a
- * prefix rather than re-sorting a ranking somebody else produced.
- */
+// Input order is rank order at every call site, so this keeps a prefix instead of re-sorting.
 export function boundTruncationLedger(lines: readonly TraceLine[]): TraceLine[] {
   return lines.slice(0, TRACE_TRUNCATION_TOP_K)
 }

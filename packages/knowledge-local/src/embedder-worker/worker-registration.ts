@@ -40,13 +40,10 @@ export const EMBEDDER_WORKER_PROTOCOL_SCHEMA_VERSION = 2
 export const EMBEDDER_WORKER_SOCKET_PATH_BUDGET_BYTES = 100
 export const MAX_EMBEDDER_WORKER_BODY_BYTES = 4_194_304
 
-/** D-15 provisional request deadline; retune from daemon telemetry without adding config. */
 export const EMBEDDER_WORKER_REQUEST_TIMEOUT_MS = 30_000
 
-/** D-15 provisional child-readiness deadline; retune from daemon telemetry without adding config. */
 export const EMBEDDER_WORKER_START_TIMEOUT_MS = 15_000
 
-/** D-15 provisional TERM grace; retune from daemon telemetry without adding config. */
 export const EMBEDDER_WORKER_TERM_GRACE_MS = 5_000
 
 export type EmbedderWorkerTimeoutPhase = 'request' | 'start' | 'terminate'

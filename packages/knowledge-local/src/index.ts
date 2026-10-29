@@ -10,11 +10,7 @@ export {
 } from './canary-emit.js'
 export type { QueuedCanaryPayloadRead } from './canary-emit.js'
 
-// entity addressing: the durable ledger and the tier-(a) resolver.
-//
-// The composition root is the only importer of this entry (the reader carve-out enforces
-// that), so a surface reaching the resolver goes through composeLocalAgent and the function
-// layer rather than around them.
+// Only the composition root imports this entry, so surfaces reach the resolver via functions.
 export {
   ADDRESSING_LEDGER_BUSY_TIMEOUT_MS,
   ADDRESSING_LEDGER_DB_FILE,
@@ -32,8 +28,7 @@ export {
   describeAllEntities,
   getEntityDescriptor,
   resolveEntityRef,
-  // the sighting leg, published so the LIST-VERB sighting site mints through the
-  // same mechanism the resolver's own hit does rather than through a second copy of it.
+  // Published so the list-verb sighting mints through the resolver's own mechanism.
   sightEntity,
 } from './resolver/resolve.js'
 export {
@@ -51,9 +46,7 @@ export type {
   ResolveEntityRefDeps,
 } from './resolver/resolve.js'
 export { createMemorySightingSource } from './resolver/memory-source.js'
-// The D-06 projection. Composed retrieval STAGES stay off this barrel (the D-13 rule the
-// barrel-surface suite pins): what a composition root needs is the ability to open, maintain
-// and rebuild the projection, never the legs the resolver runs over it.
+// Retrieval stages stay off this barrel; a composition root only opens, maintains and rebuilds.
 export {
   ENTITY_INDEX_DB_FILE,
   ENTITY_INDEX_SWEEP_INTERVAL_MS,
@@ -72,14 +65,7 @@ export type {
   OpenEntityIndexOptions,
 } from './entity-index/entity-index.js'
 
-// the committed standing-grant ledger, its reader and the grant
-// verbs are deleted. An old `grants.jsonl` stays on disk and nothing in this package opens it.
-// the committed quarantine ledger — read, pure state fold. The event DTOs and
-// the state vocabulary live in schema; this package owns the bytes and the fold over them.
-// The APPEND is deliberately NOT published: it writes a committed artifact whose
-// unserialized-third-caller residual is real, and a smaller public write surface is a smaller
-// residual. The three in-package writers — the verbs, detection, and the run-outcome projection —
-// import it from './quarantine/ledger.js' directly, so nothing outside was withheld from anyone.
+// The append stays unpublished; in-package writers import it directly, keeping writes narrow.
 export {
   QUARANTINE_LEDGER_FILENAME,
   foldQuarantineLedgerState,
@@ -91,9 +77,7 @@ export type {
   QuarantineLedgerRead,
   RefusedQuarantineLine,
 } from './quarantine/ledger.js'
-// the detection ladder's pure rule and its pinned thresholds. Plan 06's
-// provider composes these; QUARANTINE_WINDOW_ORDINALS is deliberately absent here because it is
-// already published below from the window read that declares it — one symbol, one export site.
+// `QUARANTINE_WINDOW_ORDINALS` is exported once, below, from the window read that declares it.
 export {
   AUTO_QUARANTINE_CLASSES,
   QUARANTINE_AUTO_EXIT_PASSES,
@@ -112,16 +96,7 @@ export type {
   QuarantineDisposition,
   QuarantineOrdinalOutcome,
 } from './quarantine/detection.js'
-// the three verbs' one implementation. The PORT type lives in schema (both `agent`
-// and this package consume it and neither may import the other); what is published here is the
-// factory the composition root binds, plus the two literals a manual entry records where an auto
-// entry records a real fingerprint.
-// `QuarantineIdentityRefusedError` is on the barrel because a surface rendering
-// `quarantine.add` needs to tell an operator WHY a path was refused, and an error it cannot name
-// is an error it renders as "unknown". Its blocked-write sibling went with the committed-egress
-// check. This is an
-// error type, not a power — `underWriterLease` and `appendQuarantineEvents` stay off the barrel,
-// where 390-11 put the second one, because the committed-write surface only ever shrinks.
+// `QuarantineIdentityRefusedError` is exported so a surface can say why a path is refused.
 export {
   QUARANTINE_MANUAL_ENTRY_CLASS,
   QUARANTINE_MANUAL_ENTRY_FINGERPRINT,
@@ -293,9 +268,7 @@ export type {
   RunOutcomesProjection,
   RunOutcomeTestDelta,
 } from './projection/run-outcomes.js'
-// the run-outcome projection's read side: per-test failure history keyed
-// (product, filePath, testName), plus the two pure derivations 389's consumers compose
-// (D-02 prior-build discriminator channel; D-08 live kth-failure recurrence join).
+// Per-test failure history keyed by product, file path and test name, plus its pure derivations.
 export {
   failureRecurrence,
   listTestsInFile,
@@ -308,8 +281,7 @@ export type {
   TestOutcomeHistory,
   TestOutcomeIdentity,
 } from './projection/run-outcome-read.js'
-// the fingerprint-keyed recurrence window: detection's substrate, read per query
-// over the sliding ordinal window. Keyed by (product, fingerprint), never testId.
+// The recurrence window, keyed by product and fingerprint, never test id.
 export {
   fingerprintRecurrence,
   QUARANTINE_WINDOW_ORDINALS,
@@ -320,9 +292,7 @@ export type {
   FingerprintWindowIdentity,
   FingerprintWindowRow,
 } from './projection/fingerprint-window-read.js'
-// the suite-fingerprint table: gate 3's comparison substrate, folded by the
-// same pass as the run-outcome projection and read through `createSuiteFingerprintIndex`. Keyed
-// by the stable (filePath, testName) identity, never testId; gate-run handoffs never enter it.
+// Keyed by file path and test name, never test id; gate-run handoffs never enter it.
 export {
   applySuiteFingerprints,
   createSuiteFingerprintIndex,
@@ -589,14 +559,7 @@ export type {
   MaintenanceTailResult,
   RunMaintenanceTailOptions,
 } from './curator/maintenance.js'
-/**
- * `ACQUIRE_WRITER_LEASE_DEADLINE_MS` and `WriterLeaseUnreclaimableError` are deliberately
- * NOT re-exported here. Nothing outside `lease/writer-lease.ts` imported either one, and the CLI —
- * the only surface that renders the refusal — reaches this package through `agent-local`'s
- * composition edge, so binding them would have meant widening a second package's surface to keep a
- * symbol company. The refusal is still fully legible to consumers: `AcquireWriterLeaseOutcome`
- * carries the error instance and its `reason` literal, which is what every call site renders.
- */
+// The deadline constant and unreclaimable error stay internal; the outcome carries both facts.
 export {
   acquireWriterLease,
   CorruptEpochStateError,
@@ -660,10 +623,7 @@ export type { DiffSinceOptions } from './diff-since.js'
 export { showRecord } from './show-record.js'
 export type { ShowRecordOptions } from './show-record.js'
 
-// the knowledge review write path. Published through the WRITER
-// entry and deliberately not through `/reader`: this is the one path a change's bytes take.
-// the propose half, the proposals store, its claim/rename machinery
-// and the inbox are deleted; a change applies in the call and old proposal files are never read.
+// The review write path is published through the writer entry only, never through `/reader`.
 export { FORGET_SCRUBBED_PROJECTIONS } from './review/propose-review.js'
 export type { ResolveBundleShortId, ReviewChangeRequest } from './review/propose-review.js'
 export {
@@ -671,8 +631,7 @@ export {
   ApplyDelegateTimeoutError,
   ApplyDelegateUnavailableError,
   ReviewTargetVanishedError,
-  // the direct door — a validated explicit change applied in the call, with
-  // no envelope, in every execution context. The explicit store entry beneath it stays internal.
+  // The direct door: a validated explicit change applied in the call, in every execution context.
   applyExplicitReview,
 } from './review/apply-review.js'
 export type {
@@ -682,9 +641,7 @@ export type {
   ExplicitReviewRequest,
   ExplicitReviewResult,
 } from './review/apply-review.js'
-// the draft-receipts store: the atomic-file store idiom applied to keep-gate
-// receipts. One schema-versioned `<contentDigest>.json` per draft under the gitignored
-// `<agentQaRoot>/draft-receipts/`, written atomically, refs never run payloads.
+// One schema-versioned `<contentDigest>.json` per draft, written atomically; refs, never payloads.
 export {
   createDraftReceiptsStore,
   DRAFT_RECEIPTS_DIR_NAME,
@@ -732,12 +689,12 @@ export type {
 
 export type LocalKnowledgeStore = KnowledgePort
 export type LocalKnowledgeReader = KnowledgeHintReader
-// committed gate part read/write seams (writer entry only).
+// Gate part read and write seams, on the writer entry only.
 export { GATES_REL_PATH, readGateReceipts } from './bundle-read.js'
 export { appendGateReceipt, appendPromotionReceipt } from './bundle-append.js'
 export { MUTABLE_BUNDLE_TARGETS } from './journal/bundle-mutation.js'
 
-// 2026-09-08, 419: deterministic user-mark drafting (writer entry only).
+// Deterministic user-mark drafting, on the writer entry only.
 export { applyFeedback, triageMark, selectFixKind, assertionDrift, procedureReadOn,
   servedIdsOn, type ApplyFeedbackInput, type ServedRecordFacts, type MarkTriage,
   type FixSelection } from './feedback/apply-feedback.js'

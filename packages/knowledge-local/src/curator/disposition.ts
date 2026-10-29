@@ -453,10 +453,7 @@ interface MeasurementDisposition {
   confirmedDriftSupersede: boolean
 }
 
-/**
- * RATIFICATION A6: non-numeric measurement values retain the existing inequality-supersede
- * semantics outside the drift tree. Otherwise string-valued measurements could never widen.
- */
+// Non-numeric values keep inequality-supersede outside the drift tree, or strings never widen.
 function finiteMeasurementValue(value: string | undefined): number | undefined {
   if (value === undefined) return undefined
   const parsed = Number(value)
@@ -549,16 +546,7 @@ function disposeMeasurementDrift(
   }
 }
 
-/**
- * Every way `checkCitedIdIntegrity` can decide this store cannot stand behind a cited id.
- *
- * The registry exists so the count stops being something a comment or a corpus has to keep in
- * step. Round 2 measured what happens when it is not one: the check's second return is a
- * three-way disjunction, the corpus and the doc comment both said "three conditions", and
- * carving `scope-mismatch` out of the refusal for every origin left 3 files / 70 tests green.
- * A fifth member added here is a compile error at `citedIdIntegrityFailure`'s derivation and at
- * the corpus's `satisfies Record<CitedIdIntegrityCondition, …>` fixture table.
- */
+// A new member is a compile error at `citedIdIntegrityFailure` and at the corpus fixture table.
 export const CITED_ID_INTEGRITY_CONDITIONS = [
   'not-a-persisted-neighbor',
   'missing-from-disk',

@@ -1,14 +1,4 @@
-/**
- * Executable source assertions for the 387-04 acceptance criteria.
- *
- * These claims are about what the serve path DOES NOT do — "no second selection pass for the
- * trace", "no score recomputed at persistence time" — and a claim of absence has no runtime
- * observation. So each check runs over comment-stripped statements AND is exercised against a
- * PLANTED violation, because a source scan that has never rejected anything is not evidence.
- *
- * `grep` is deliberately not used anywhere here: it has silently returned nothing for patterns
- * demonstrably present in these files, and a scan that can fail open is worse than no scan.
- */
+// Absence has no runtime observation, so each scan reads stripped statements and a planted fault.
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
@@ -61,9 +51,7 @@ describe('the trace reuses the selection the brief already ran', () => {
 
   it('names no retrieval leg, index open, or embedder call in the assembly', () => {
     const source = statements(path)
-    // The trace's leg is a decision about which ranking ran, taken once in `serve-trace.ts`.
-    // If the assembly ever started consulting a real leg it would be doing retrieval at serve
-    // time, which is a different design than the one D-13 ratified.
+    // The leg is decided once in `serve-trace.ts`; a real leg here would be serve-time retrieval.
     for (const forbidden of [
       'lexicalLeg',
       'denseLeg',

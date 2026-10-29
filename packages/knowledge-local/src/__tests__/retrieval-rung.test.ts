@@ -1,9 +1,4 @@
-// The ONE fold and the ONE resolver behind TRST-01.
-//
-// The fold table is pinned HERE, before any of its three callers exists — the runner's evidence
-// recorder, `doctor` and, through the recorded evidence, the run header banner
-// Three callers folding the same two axes independently is exactly how a banner and a
-// doctor row come to disagree about the same machine; a table asserted row by row is what stops it.
+// One table pins the fold its callers share, so a banner and a doctor row cannot disagree.
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'

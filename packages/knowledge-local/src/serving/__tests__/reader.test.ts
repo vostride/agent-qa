@@ -552,12 +552,7 @@ describe('openKnowledgeReader synchronous serving port', () => {
     ).toBe('hint')
   })
 
-  /**
-   * G-381-4 read-face admission. The committed procedure is minted through the LIVE
-   * `commitCurationDelta` path (the same job assembly the D-02 commit suite asserts), not a
-   * hand-rolled index entry — the gap was precisely that a genuinely committed bundle was
-   * unreadable, so the fixture shape has to be the live one.
-   */
+  // Minted through the live `commitCurationDelta` path, not a hand-rolled index entry.
   function commitLiveProcedure(
     overrides: Partial<CommitFixtureProcedureOptions> = {},
   ): { bundleId: RecordId; bundleDir: string } {
@@ -662,10 +657,7 @@ describe('openKnowledgeReader synchronous serving port', () => {
     expect(reader.read(unvettedFact)).toBeUndefined()
   })
 
-  // the byte comparisons below now cover the COMPOSITE `{ brief, trace }`, so they pin
-  // the serve-time trace's bytes as well as the brief's. That is deliberately stronger than the
-  // pre-387 form — a leaked procedure would show up as a trace attribution even if the rendered
-  // brief text somehow hid it.
+  // The byte comparisons cover `{ brief, trace }`, so a leaked procedure shows in the trace too.
   it('leaks no procedure into brief or caution serving — bytes identical across the commit', async () => {
     const before = openKnowledgeReader({ knowledgeRoot, product: PRODUCT })
     const briefBefore = JSON.stringify(before.getRunBrief(SCOPE, 2_000))

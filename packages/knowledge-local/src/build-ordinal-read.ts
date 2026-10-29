@@ -1,11 +1,4 @@
-/**
- * Pure read-only mirror of runner-local/src/build-tag-map.ts latestBuildOrdinal semantics.
- *
- * knowledge-local deliberately cannot import runner-local, so D-14 resolves the shared
- * build-ordinals.json contract through this small host-local reader instead. `runtimeRoot` is the
- * explicitly supplied agent runtime root, not the committed knowledge root. Missing, corrupt, or
- * wrong-shaped state falls through without advancing, rewriting, or creating the counter file.
- */
+// Mirrors runner-local's `latestBuildOrdinal` read, which this package cannot import.
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 

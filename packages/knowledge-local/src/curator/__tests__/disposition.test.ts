@@ -989,25 +989,7 @@ describe('cited-id integrity: the fallback is total over DeltaOrigin', () => {
     system: 'downgrades-to-mint-unknown',
   } satisfies Record<DeltaOrigin, CitedIdIntegrityOutcome>
 
-  /**
-   * The ways `checkCitedIdIntegrity` can fail — COUNTED BY THE REGISTRY, not by this comment.
-   *
-   * The previous version of this block said "the THREE ways", and it was wrong when it was
-   * written: the check's second return is a three-way disjunction (`truth === undefined ||
-   * status === 'deprecated' || !sameScope(…)`), so there were always four. Round 2's verifier
-   * proved the omission by mutation — carving `scope-mismatch` out of the refusal for EVERY
-   * origin left 3 files / 70 tests green, because no row in this corpus ever reached it.
-   *
-   * So the walk is driven by a registry rather than by a list somebody keeps in step. A fifth
-   * condition added to the union reds this walk by EXISTING: the fixture table below is
-   * `satisfies Record<CitedIdIntegrityCondition, …>`, so a member with no fixture is a compile
-   * error, and a fixture naming no member is the same.
-   *
-   * Scoping the refusal to `status === 'deprecated'` alone would be the same one-axis-out error
-   * this phase keeps paying for: the check's failure domain is "this delta cites something this
-   * store cannot stand behind", and a vanished record, an unpersisted neighbour or a record
-   * addressed at a scope it does not carry is that fact just as much as a tombstoned one.
-   */
+  // Driven by the registry's `satisfies` table, so a condition without a fixture fails to compile.
   const FAILURE_CONDITIONS = CITED_ID_INTEGRITY_CONDITIONS
 
   function confirmCiting(origin: DeltaOrigin, targetId: RecordId): Delta {

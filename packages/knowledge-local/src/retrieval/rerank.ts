@@ -59,19 +59,11 @@ const SCOPE_ORDER: Readonly<Record<ScopeKey['tier'], number>> = {
   global: 3,
 }
 
-/**
- * PROVISIONAL D-05 trust dampener. M3 owns calibration from attributed outcomes;
- * this remains an internal constitution value, never a config key.
- */
 export const UNCONFIRMED_DOWNRANK_FACTOR = 0.6
 
-/** LOCKED D-05 durable-fact default: authority softens only after five builds. */
 export const UNCONFIRMED_WINDOW_DURABLE_BUILDS = 5
 
-/**
- * PROVISIONAL D-06 volatile window. Measurements age sooner than the locked
- * durable default; M3 owns calibration, never user configuration.
- */
+// Measurements age sooner than durable facts.
 export const UNCONFIRMED_WINDOW_VOLATILE_BUILDS = 3
 
 function compareBundleIds(left: string, right: string): number {
@@ -103,12 +95,7 @@ function unconfirmedWindow(entry: RerankEntry): number {
     : UNCONFIRMED_WINDOW_DURABLE_BUILDS
 }
 
-/**
- * Apply D-05/D-06 staleness and D-20 cold-start treatment as trust modulation
- * before precedence sorting. Validity remains the first comparator axis: this
- * function never filters, changes validity, or adds another sort dimension.
- * Every annotation is re-derived from the supplied as-of ordinal; nothing is stored.
- */
+// Modulates trust before precedence sorting; never filters, changes validity or adds a sort axis.
 export function applyLifecycleTrustTreatments<T extends RerankEntry>(
   entries: readonly T[],
   asOfBuild: number,
@@ -122,7 +109,7 @@ export function applyLifecycleTrustTreatments<T extends RerankEntry>(
     let trust = entry.trust
     let unconfirmedSinceOrdinal: number | undefined
 
-    // D-06 binding: sovereign user knowledge is exempt from autonomous decay.
+    // Sovereign user knowledge is exempt from autonomous decay.
     if (
       entry.originClass !== 'user'
       && asOfBuild - entry.lastConfirmedOrdinal >= unconfirmedWindow(entry)
@@ -177,14 +164,11 @@ function collapseKey(entry: RerankEntry): string | undefined {
   const anchors = identityBearingAnchors(entry.anchors)
   if (anchors.length === 0) return undefined
 
-  // Read-side mirror of spec §7.3.2; Phase 378's writer uses the same schema authority.
+  // Read-side mirror of the writer's supersession key, from the same schema authority.
   return supersessionKey(anchors)
 }
 
-/**
- * Collapse agent-authored supersession groups onto their maximum creation ordinal.
- * Sovereign user entries and both annotated sides of a MintUnknown conflict always survive.
- */
+// Sovereign user entries and both sides of a `MintUnknown` conflict always survive.
 export function collapseByOrdinal<T extends RerankEntry>(
   entries: readonly T[],
   options: CollapseByOrdinalOptions = {},

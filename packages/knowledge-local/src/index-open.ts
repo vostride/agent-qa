@@ -1,12 +1,4 @@
-/**
- * Derived-index SQLite host for IDX-01.
- *
- * D-10 keeps the records.embedding BLOB canonical even when vec0 is unavailable;
- * D-11/D-12 isolate native loading behind a capability flag and test seam; D-13
- * keeps WAL/lock/checkpoint tuning as internal constants. The database lives in
- * the gitignored memory/index partition (Research Pitfall 10), so these derived
- * writes intentionally do not pass through the committed-bundle egress gate.
- */
+// The index lives in the gitignored `memory/index`, so its writes skip the committed egress gate.
 import { existsSync, mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -27,24 +19,10 @@ export const INDEX_DB_FILE = 'knowledge.db'
 /** Any other stamp resets the index. */
 export const INDEX_SCHEMA_VERSION = 2
 
-/**
- * Phase 377 D-04 rendering epoch.
- *
- * Bump only when contextual-rendering bytes change. A stale stamp remains durable through writer
- * open, forces one full render/vector pass, and is advanced only when that pass succeeds.
- */
+// Bump only when contextual-rendering bytes change; a stale stamp forces one full render pass.
 export const INDEX_RENDERING_SCHEMA_VERSION = 2
 
-/**
- * One-time derived-embedding invalidation epoch.
- *
- * Epoch 1 records the Phase 376 pre-lock-to-locked repair. The former writer could restamp an
- * index to the locked profile while preserving same-dimension bytes from the old revision, which
- * destroyed the mismatch evidence needed to prove their provenance. An absent or stale epoch
- * therefore forces invalidation before the marker's first upsert in the same transaction; a crash
- * rolls both back and a retry repeats the idempotent transition. Increment only if a future defect
- * again requires every persisted index to perform a one-time full re-embed.
- */
+// An absent or stale epoch forces one full invalidation, in the same transaction as the marker.
 const EMBEDDING_TRANSITION_EPOCH = 1
 
 /**
@@ -73,28 +51,10 @@ export const REQUIRED_INDEX_TABLES = [
   'meta',
 ] as const
 
-/**
- * Writer busy timeout in milliseconds.
- *
- * PROVISIONAL 2000 pending Phase 375 contention measurements. The value may be
- * tuned, but the constant-driven shape remains internal and config-free.
- */
 export const WRITER_BUSY_TIMEOUT_MS = 2000
 
-/**
- * Reader busy timeout in milliseconds.
- *
- * PROVISIONAL 500 pending Phase 375 contention measurements. The value may be
- * tuned, but the constant-driven shape remains internal and config-free.
- */
 export const READER_BUSY_TIMEOUT_MS = 500
 
-/**
- * Number of committed bundles between passive WAL checkpoints.
- *
- * PROVISIONAL 32 pending Phase 375 write-volume measurements. The value may be
- * tuned, but the constant-driven shape remains internal and config-free.
- */
 export const CHECKPOINT_EVERY_N_BUNDLES = 32
 
 export type VecCapability = 'vec0' | 'brute'
@@ -130,18 +90,12 @@ export type IndexHealth =
     }
 
 interface IndexOpenOptions {
-  /** D-12 test seam. Production callers resolve sqlite-vec's pinned prebuild. */
+  // Test seam; production resolves sqlite-vec's pinned prebuild.
   vecLoadablePath?: string
 }
 
 export interface IndexReaderOpenOptions extends IndexOpenOptions {
-  /**
-   * For a probe that only ASKS about the index and releases the connection at once (`doctor`).
-   * With no `-wal` beside the database, no connection holds it in WAL mode and the writer's close
-   * checkpointed every page into the main file, so the open is `mode=ro&immutable=1` and SQLite
-   * creates no `-wal`/`-shm` (432-09 #5). With a `-wal` present the open is the ordinary read-only
-   * one, so a live writer's frames are still read. Serving readers never set it.
-   */
+  // Opens `immutable=1` when no `-wal` exists, so a probe makes no sidecars; serving never sets it.
   inspectCheckpointedImmutably?: boolean
 }
 
@@ -391,13 +345,7 @@ export function isEmbeddingVecCleanupCurrent(db: DatabaseSync): boolean {
   return readVecCleanupEpoch(db) === String(EMBEDDING_VEC_CLEANUP_EPOCH)
 }
 
-/**
- * Resolve the one active profile authority from the derived index's meta stamp.
- *
- * This is RESEARCH Pattern 5 step 1: Plan 07 flips this stamp atomically. D-18
- * keeps M2 selection closed to schema-owned constants, so absent, unknown, or
- * pre-bootstrap metadata always falls back to the ratified default.
- */
+// Absent, unknown or pre-bootstrap metadata falls back to the default profile.
 export function resolveActiveProfile(db: DatabaseSync): EmbeddingProfile {
   const stamp = readEmbeddingProfileStamp(db)
 
@@ -421,26 +369,7 @@ function bootstrapVecSchema(db: DatabaseSync, activeProfile: EmbeddingProfile): 
   `)
 }
 
-/**
- * Run-outcome projection tables.
- *
- * Derived per-test outcome counters and exercised-anchor sets live in this same gitignored
- * index SQLite — one derived-state home, one writer role, no new DB file. Rows carry test
- * identity (product + file_path + test_name) within the folded handoff's raw scope pair,
- * counters, and normalized anchors ONLY; no test file content ever enters the store.
- * `run_outcome_applied_runs` is the per-product/runId idempotency marker that makes
- * refolding a crash-rerun tail safe (receipt-gated at the caller, DB-gated here).
- * `run_fingerprint_windows` carries one row per applied FAILED member keyed by
- * the failure fingerprint, which is the substrate the quarantine detection rule windows over.
- * All four tables are disposable: `rebuildRunOutcomes` reproduces them from
- * `.agent-qa/runs/<runId>/handoff.json` (plus each run's `analysis.json`) scans alone (L12).
- * Deliberately absent from REQUIRED_INDEX_TABLES — like the per-profile vec tables, a lost
- * projection heals on the next writer open + rebuild rather than failing health probes.
- * `run_outcome_projection_version` is the singleton stamp that says WHICH fold semantics produced
- * the rows beside it; `reconcileRunOutcomesProjection` compares it against
- * `RUN_OUTCOMES_PROJECTION_VERSION` and rebuilds the family whenever it is absent or differs, so
- * an index folded by older semantics converges instead of staying silently stale.
- */
+// Disposable and rebuilt from run handoffs, so not in `REQUIRED_INDEX_TABLES`; holds no test file.
 export function ensureRunOutcomeTables(db: DatabaseSync): void {
   const outcomeColumns = db.prepare("PRAGMA table_info('run_test_outcomes')").all()
     .map((row) => String(row.name))
@@ -639,23 +568,7 @@ function stampRenderingSchemaVersion(db: DatabaseSync): void {
   `).run(String(INDEX_RENDERING_SCHEMA_VERSION))
 }
 
-/**
- * Close the pre-lock D-07 relabeling gap before a profile stamp and epoch are written.
- *
- * The transition also fires when the stamp already matches but the current epoch is absent: the
- * former writer could pair the locked stamp with old-revision, same-dimension `present` bytes and
- * erase every mismatch clue. The only sound repair is one full invalidation behind a durable
- * marker; genuinely healthy locked indexes pay the same one-time re-embed cost. Pending rows ride
- * D-19's unchanged benign-lag backfill selector. Old revision vec tables remain disposable,
- * embed-cache rows stay inert under revision keys, and no embedding work runs at open.
- *
- * A brute connection cannot execute DML against an unloaded vec0 virtual table, so it invalidates
- * canonical bytes and leaves vec cleanup pending. The next vec0 writer clears the active table
- * before publishing cleanup current; an ordinary rebuild then reconciles it from canonical state.
- * On vec0 connections both the canonical UPDATE and active-table DELETE run before stampMeta
- * inside one BEGIN IMMEDIATE transaction, so no crash can commit fresh metadata beside stale
- * bytes.
- */
+// Invalidates before the stamp in one transaction; a brute connection leaves vec cleanup pending.
 function invalidateDerivedEmbeddings(db: DatabaseSync): void {
   db.prepare(`
     UPDATE records

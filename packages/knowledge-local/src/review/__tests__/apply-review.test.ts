@@ -1,18 +1,4 @@
-// Apply routes through the ONE commit path, race-safely and idempotently.
-//
-// RE-SPELLED 2026-10-01. The proposal door this corpus drove is deleted with the
-// inbox. Every case now stages its change in memory (`stage`, below) and applies it through
-// `applyExplicitReview` under a stable operation identity; the receipt id is `prop_<identity>`, the
-// shape receipts already carried, so the receipt assertions are unchanged. What each door-specific
-// claim became is stated at its case: "already-applied" is the same-identity retry, "the proposal
-// stays applicable" is "the change stays retryable", and the four CR-03 claim-window cases left with
-// the claim/rename machinery they measured (C432-PROPOSAL-FILES-UNREAD pins its absence).
-//
-// The zero-recall case is the one that had to be built carefully rather than merely written. A
-// "the record is gone from search" assertion is worthless unless the record was FINDABLE first, on
-// BOTH legs, so each leg is asserted present before the forget and absent after. The vec leg in
-// particular is populated with a real embedder-shaped backfill; without that, "no vec row" would
-// have been true before the verb ran and the whole half would have been measuring nothing.
+// Each recall leg is asserted findable before the forget, so its absence afterwards is meaningful.
 
 import { createHash } from 'node:crypto'
 import {
@@ -127,18 +113,7 @@ async function applyReview(input: ApplyInput): Promise<Applied> {
   })
 }
 
-/**
- * A content hash of every regular file under a directory tree, path-relative and sorted.
- *
- * Paths are part of the digest, not just contents: an apply that created an empty marker file
- * or renamed a bundle directory would leave every byte of content identical, and a
- * contents-only digest would call that "unchanged".
- *
- * DELIBERATELY DUPLICATED from propose-apply.test.ts:48-74 rather than extracted to a shared
- * module. The sibling wave-11 plan 387-18 owns that file and runs in the same wave; a shared
- * helper would couple the two diffs for no gain, and a digest helper is exactly the kind of
- * thing each corpus should be able to read in full without leaving its own file.
- */
+// Paths are in the digest: a created marker file or renamed directory leaves contents identical.
 function hashTree(root: string): string {
   const digest = createHash('sha256')
   const walk = (dir: string): void => {
@@ -367,9 +342,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
   })
 
   it('concurrent mark applies answer the same durable receipt and commit once', async () => {
-    // RE-SPELLED: without a claim, the overlapping call meets the first one's writer lease
-    // and is refused by name with no host delegate; its retry under the same identity answers the
-    // first call's receipt and commits nothing more. The composed port serializes its own calls.
+    // The overlapping call meets the writer lease and is refused; a same-identity retry adds none.
     const proposalId = proposeMark(publish('concurrent checkout'))
     const settled = await Promise.allSettled([1, 2].map(() => applyReview({ agentQaRoot, knowledgeRoot, proposalId })))
     const applied = settled.filter(entry => entry.status === 'fulfilled')
@@ -407,8 +380,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
       event.type === 'confirmed' && event.origin === 'user' && event.buildOrdinal === 101)).toBe(true)
   })
 
-  // 432 D-04 replaces the 419 propose-only refusal: an explicit mark is authority in every
-  // context, so the CI apply commits and promotes while the record keeps its actual context.
+  // An explicit mark is authority in every context, so the CI apply commits and promotes.
   it('mark application in ci commits under the actual context and promotes through the sovereign gate', async () => {
     const recordId = publish('CI checkout')
     const proposalId = proposeMark(recordId)
@@ -423,7 +395,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     const entry = enumerateBundleDirs(knowledgeRoot).map(found => loadBundle(found.dir))
       .find(loaded => loaded.kind === 'loaded' && loaded.bundle.manifest.id === id)
     expect(entry?.kind === 'loaded' && entry.bundle.provenance).toMatchObject({ authorship: { executionContext: 'ci' } })
-    // RE-SPELLED: no applied record is written; the same-identity retry answers the receipt.
+    // The same-identity retry answers the receipt; no applied record is written.
     expect((await applyReview({ agentQaRoot, knowledgeRoot, proposalId, executionContext: 'ci' })).commitReceipt)
       .toEqual(receipt)
   })
@@ -480,7 +452,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     expect(result).not.toHaveProperty('commitReceipt')
     expect(hashTree(join(knowledgeRoot, 'memory'))).toBe(before)
     expect(existsSync(join(knowledgeRoot, 'policies'))).toBe(false)
-    // RE-SPELLED: nothing was filed to restore; a retry refuses the same way.
+    // Nothing is filed to restore; a retry refuses the same way.
     expect(existsSync(join(agentQaRoot, 'proposals'))).toBe(false)
     expect((await applyReview({ agentQaRoot, knowledgeRoot, proposalId })).outcome).toBe('policy-materialize-refused')
   })
@@ -538,25 +510,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     return listBundles(knowledgeRoot).filter((row) => row.bundleId === recordId)
   }
 
-  /**
-   * The CR-02 integrity assertion, applied identically to every cell of the matrix.
-   *
-   * THE CANDIDATE SCAN IS STORE-WIDE, AND THAT IS THE WHOLE POINT OF THIS HELPER. The first draft
-   * of it filtered every assertion to rows whose `bundleId` equals the target id, on the
-   * verifier's wording ("no second directory claims the record id") — and that draft PASSED
-   * against the unmodified defect. Dumping the minted bundle showed why: the unauthored record is
-   * a verbatim CLONE of the target's own content (same anchors, same scope, same summary)
-   * re-addressed under `originClass: user` at the next ordinal, so its content address DIFFERS
-   * from the target's and it lands under the scope-derived product directory rather than the
-   * target's. An id-scoped scan cannot see it. The row that matters is the one
-   * `isEligibleCandidate` (serving/brief-selection.ts:142-151) would re-admit into serving, and it
-   * carries whatever id the clone hashed to — so the assertion is over the STORE, not over an id.
-   *
-   * Four facts, each load-bearing: the store is row-for-row unchanged; no `candidate` row exists
-   * anywhere (the serving re-admission channel); exactly one directory claims the target id (the
-   * duplicate-id wedge); and the POSITIVE post-state holds — a guard that refused the whole apply
-   * would satisfy all three negatives and still be wrong.
-   */
+  // The scan is store-wide: the unauthored clone hashes to another id, which an id scan would miss.
   function expectNoUnauthoredMint(
     recordId: string,
     expectedStatus: string,
@@ -629,10 +583,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
   })
 
   it('is idempotent: a same-identity retry commits nothing', async () => {
-    // RE-SPELLED: the proposal door answered the FIRST receipt verbatim off its applied
-    // record. The direct door keeps no such record: a retried forget lands nothing and answers the
-    // same records, and re-mints its receipt (deferred-items 432-16 #3). What is asserted is the
-    // half that survives — nothing is committed twice.
+    // A retried forget commits nothing twice and answers the same records.
     const recordId = publish('checkout button')
     await projectIndex()
     const proposalId = proposeForget(recordId)
@@ -649,10 +600,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
   })
 
   it('records exactly one application even when two applies overlap', async () => {
-    // RE-SPELLED: both calls are started before either is awaited. With no claim to race
-    // for, the first acquires the writer lease synchronously and the overlapping call meets it held
-    // and, with no delegate on this host, is refused BY TYPE. Exactly one call commits, and the
-    // store shows one application.
+    // Both calls start before either is awaited; the second meets the lease held and is refused.
     const recordId = publish('checkout button')
     await projectIndex()
     const proposalId = proposeForget(recordId)
@@ -701,9 +649,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     // The receipt states what IS: already tombstoned. The status is read back after the commit,
     // never copied forward from the preview.
     expect(second.forgetReceipt?.resultingBundleStatus).toBe('tombstoned')
-    // WR-02, added by 387-12: this case previously asserted nothing about the scrub list, so the
-    // short-circuit's three unperformed scrub claims passed through it unread. Silence is not
-    // pinning, but it is the reason the dishonesty survived — the assertion is now explicit.
+    // A second, independent forget scrubs nothing, so its receipt claims no scrubs.
     expect(second.forgetReceipt?.projectionsScrubbed).toEqual([])
     // …and the FIRST receipt did claim its three scrubs, because that apply really performed them.
     expect(firstReceipt?.projectionsScrubbed).toEqual([...FORGET_SCRUBBED_PROJECTIONS])
@@ -711,11 +657,6 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     expect(listBundles(knowledgeRoot)).toEqual(afterFirst)
   })
 
-  // 2026-10-02 (quick 261002-lse, 432-16 #3): a RETRY of the same forget (the same operation
-  // identity) is the same change, so it answers the receipt its first application recorded, byte
-  // for byte. It used to re-mint `forgottenAt` and claim no scrubs, where reject's retry already
-  // answered identically. A SECOND, independently minted forget (the cell above) keeps WR-02's
-  // empty scrub list.
   it('answers a retried forget with its first receipt, byte for byte, and lands nothing twice', async () => {
     const recordId = publish('checkout button')
     await projectIndex()
@@ -777,59 +718,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     expect(JSON.stringify(secondRetried)).toBe(JSON.stringify(second))
   })
 
-  // ── CR-03: deleted 2026-10-01. The four claim-window cases (a parked claim refused by
-  // type, a winner publishing or restoring during the wait, an id never minted) measured the
-  // claim/rename machinery the inbox owned. A change is no longer claimed: the identity is the
-  // caller's, and a live writer is met through the lease (see the overlap case above).
-
-  // ── CR-02: the complete {reject, forget} × {deprecated, superseded} matrix ──────────────────
-  //
-  // The suite's input domain before this block contained exactly one cell — forget over a target
-  // a forget had tombstoned — and the defect lived in every other cell. `propose-review.ts` emits
-  // an IDENTICAL `Deprecate` delta for reject (:183-188) and forget (:190-195), so the hazard
-  // belongs to the DELTA KIND; a guard scoped to one verb of the emitting set is the same
-  // root-cause shape as a status table scoped to hand-picked members of a union.
-  // The cases are therefore written over the whole set, not over the member that failed.
-  //
-  // RED BASELINE, observed against unmodified apply-review.ts (short-circuit still
-  // `proposal.verb === 'forget' && …` at :297), transcribed from the failing run:
-  //
-  //   × a reject over an ALREADY-DEPRECATED target (prior reject) mints nothing
-  //     → AssertionError: the store must be row-for-row unchanged … expected [ {…}, {…} ] to
-  //       deeply equal [ {…} ]
-  //   × a reject over an ALREADY-DEPRECATED target (prior FORGET) mints nothing
-  //     → AssertionError: the store must be row-for-row unchanged … expected [ {…}, {…} ] to
-  //       deeply equal [ {…} ]
-  //   × a forget over an already-superseded target claims ZERO scrubs it did not perform
-  //     → AssertionError: expected [ 'fts', 'vec', 'graph' ] to deeply equal []
-  //   × (FUNC-04 adjacency, below) a forget over a forgotten target
-  //     → AssertionError: expected [ 'fts', 'vec', 'graph' ] to deeply equal []
-  //   × a THIRD addressed operation on a twice-applied record id still resolves
-  //     → AssertionError: the store must be row-for-row unchanged … two rows in, two rows out,
-  //       differing — the third reject reached commit() and mutated the clone
-  //
-  // ONE CELL WAS ALREADY GREEN PRE-FIX, and saying so is more useful than a matrix that reds
-  // uniformly, because the green cell says where the hazard actually lives:
-  //
-  //   ✓ reject over an already-SUPERSEDED target — measured green before the fix. The Deprecate
-  //     had real work to do (the target was not `deprecated`), so it committed an ordinary
-  //     `deprecated` outcome event at the apply's build ordinal, which the fold ranks BELOW the
-  //     supersede at ordinal 43 — status stays `superseded` and nothing is minted. The defect
-  //     needs a target that is already `deprecated` specifically. The case is kept as a
-  //     regression pin over the cell, not as a reproduction of it.
-  //
-  // The third-operation case reds, but NOT with the verifier's
-  // `BundleTargetResolutionError: … is ambiguous`. That error needs the minted clone to collide
-  // with the target's record id; in this fixture it does not, because the clone re-addresses
-  // under `originClass: user` at the next ordinal and hashes differently (dumped:
-  // `fact-el-button-checkout-ac9994…` beside the target's `…969cd289…`, under the scope-derived
-  // product dir `apply-storefront/` rather than the fixture's `Apply-Product/`). The ambiguity
-  // wedge is therefore reachable but fixture-dependent; what this suite observes instead is the
-  // third reject reaching commit() and mutating the clone. Stated rather than implied.
-  //
-  // What DID reproduce in every red cell is the sharper fact: the unauthored record is a verbatim
-  // CLONE of the fact the reviewer just rejected — same anchors, same scope, same summary —
-  // published `status: candidate`, which `isEligibleCandidate` re-admits into serving.
+  // Reject and forget both emit the same `Deprecate` delta, so both walk every tombstone state.
 
   it('a reject over an ALREADY-DEPRECATED target (prior reject) mints nothing', async () => {
     const recordId = publish('checkout button')
@@ -914,10 +803,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
 
     const receipt = forgotten.forgetReceipt
     if (receipt === undefined) throw new Error('a forget must produce a receipt')
-    // the branch committed nothing and scrubbed nothing. `scrubSetSchema`
-    // (schema/src/knowledge/proposal.ts:140-146) admits any unique SUBSET including the empty one,
-    // so an honest empty list is expressible — and a receipt asserting work nobody did is exactly
-    // what propose-review.ts:44-45 forbids.
+    // The branch committed and scrubbed nothing, and the schema admits an empty scrub list.
     expect(receipt.projectionsScrubbed).toEqual([])
     // …while the rest of the receipt still reports the post-state honestly rather than going silent.
     expect(receipt.tombstonedRecords.map((row) => row.recordId)).toEqual([recordId])
@@ -945,11 +831,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     // leave behind can still be addressed, so its baseline is that state, whatever it is.
     const before = listBundles(knowledgeRoot)
 
-    // The wedge the verifier observed: with two directories claiming one id, resolving the target
-    // throws `BundleTargetResolutionError: … is ambiguous` — a retryable-looking error that can
-    // never succeed, because the failing apply restores its own proposal to pending each time.
-    // BOTH halves are asserted, because the throw can land on either: the propose resolves AND
-    // the apply settles.
+    // Two directories claiming one id make resolution ambiguous; propose and apply are asserted.
     const thirdId = proposeReject(recordId, 'third')
     const third = await applyReview({ agentQaRoot, knowledgeRoot, proposalId: thirdId })
 
@@ -982,8 +864,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
   })
 
   it('leaves the change RETRYABLE when the commit refuses', async () => {
-    // RE-SPELLED: there is no pending proposal to keep applicable. A held lease refuses the
-    // change before anything is written, and the same identity applies once the lease is free.
+    // A held lease refuses the change before any write; the same identity applies once it is free.
     const recordId = publish('checkout button')
     const proposalId = proposeForget(recordId)
     const before = listBundles(knowledgeRoot)
@@ -1047,49 +928,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     expect(APPLY_DELEGATE_TIMEOUT_MS).toBeGreaterThan(1_000)
   })
 
-  // ── CR-02′: the matrix is driven from the VERB REGISTRY, not from a list of verbs ──────────
-  //
-  // The block above walks {reject, forget}. That set was hand-picked — it is the set of verbs
-  // whose hazard had been NOTICED — and `accept` was simply absent, so `expectNoUnauthoredMint`
-  // was never applied to the third verb and the identical mint reproduced through it. Round 1's
-  // verifier measured the omission exactly: zero occurrences of `accept` in this file.
-  //
-  // The correction is mechanical rather than another case. The walk iterates
-  // `KNOWLEDGE_REVIEW_VERBS` — the RUNTIME registry in `schema/src/knowledge/proposal.ts`, which
-  // is the authority independent of anything this file writes down — and looks each verb's
-  // expected behaviour up in a table declared `satisfies Record<KnowledgeReviewVerb, …>`. A
-  // fourth verb added to the registry with no row here is a COMPILE ERROR, and a row here naming
-  // no registry member is the same. So the corpus cannot fall behind the vocabulary the way it
-  // just did; `proposalFor`'s switch is exhaustive over the same union for the same reason.
-  //
-  // RED BASELINE, observed against unmodified disposition.ts + apply-review.ts (before the
-  // origin-discriminated refusal of Task 2), transcribed from the failing run:
-  //
-  //   × accept over a target already deprecated by a prior applied reject → refuses (CR-02′)
-  //     → AssertionError: an accept over a tombstoned target must REFUSE by type, never report
-  //       a confirmation it did not perform: expected 'resolved' to be 'rejected'
-  //   × accept over a target already deprecated by a prior applied forget → refuses (CR-02′)
-  //     → (byte-identical failure)
-  //
-  // …and with that first assertion replaced by a dump, in the same run, the defect's own
-  // artifacts — printed for BOTH provenances, character for character identical:
-  //
-  //   PROBE accept reject resolved applied dirs 1 -> 2 rows
-  //     [["memory/Apply-Product/bundles/fact-el-button-checkout-969cd289e646aae2","deprecated"],
-  //      ["memory/apply-storefront/bundles/fact-el-button-checkout-ac9994c92f7366a8","candidate"]]
-  //   PROBE accept forget resolved applied dirs 1 -> 2 rows  … (the same two rows)
-  //   → AssertionError: the store must be row-for-row unchanged: any new row is a record nobody
-  //     authored: expected [ { …(13) }, { …(13) } ] to deeply equal [ { …(13) } ]
-  //
-  // The second row is the mint: a verbatim CLONE of the fact the reviewer removed, re-addressed
-  // under the scope-derived product directory (`apply-storefront/`, not the fixture's
-  // `Apply-Product/`) at a different content address, `status: 'candidate'` — which
-  // `isEligibleCandidate` re-admits into serving. Same clone id the round-0 CR-02 block names at
-  // the top of this file; the same defect, arriving through the verb the matrix did not walk.
-  //
-  // BOTH provenances of `deprecated` are walked (a prior reject and a prior forget), because a
-  // fix keyed on HOW the target got tombstoned would pass one and fail the other — the
-  // full-input-set law this phase has now paid for twice.
+  // Walks the runtime verb registry via a `satisfies` table, so a verb without a row won't compile.
 
   type TombstonedTargetExpectation = 'refuses' | 'short-circuits-applied'
 
@@ -1122,8 +961,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
       case 'forget':
         return proposeForget(recordId)
       case 'mark': {
-        // A real mark proposal exercises the shared citation fence now; Gate-3 receipt
-        // emission for live targets belongs to the confirmation arm in Plan 419-07.
+        // A real mark proposal exercises the shared citation fence.
         const target = { grain: 'record' as const, recordId }
         const runId = asRunId('tombstone-mark-run')
         const mark = { markId: 'mark_0123456789ab', runId, testIndex: 0,
@@ -1182,8 +1020,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
             expect(error).toBeInstanceOf(UserDeltaCitationIntegrityError)
             expect(error?.name).toBe('UserDeltaCitationIntegrityError')
             expect((error as UserDeltaCitationIntegrityError | undefined)?.recordId).toBe(recordId)
-            // NOTHING was filed or published: the caller is never told `applied` for a
-            // confirmation that confirmed nothing (432-17: there is no proposal to restore).
+            // The caller is never told `applied` for a confirmation that confirmed nothing.
             expect(existsSync(join(agentQaRoot, 'proposals'))).toBe(false)
           } else {
             expect(settled.kind).toBe('resolved')
@@ -1226,11 +1063,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     expect(bundleDirCount(), 'an ordinary Confirm mints nothing').toBe(dirsBefore)
     expect(listBundles(knowledgeRoot).filter((row) => row.status === 'candidate')).toHaveLength(0)
 
-    // STATED LIMIT, on the 387-12 finding-3 precedent: this cell was GREEN before the fix. It is
-    // a REGRESSION PIN over the admit half, not a reproduction of anything — `superseded` never
-    // reached `checkCitedIdIntegrity`'s deprecated arm, which is exactly why the defect needed a
-    // target that is `deprecated` specifically. Its job is to red if the refusal is ever widened
-    // from "the cited-id-integrity check failed" to "the target looks tombstoned".
+    // A regression pin over the admit half: it fails if the refusal widens to tombstoned targets.
   })
 
   it('ADMIT: accept over a LIVE candidate commits normally', async () => {
@@ -1251,50 +1084,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     expect(new Set(rowsFor(recordId).map((row) => row.dir)).size).toBe(1)
   })
 
-  // ── CR-02″: the refusal's neutrality is measured over the WHOLE knowledge root ──────────────
-  //
-  // The two cases below exist because round 2's gates could not see the leak they were written
-  // to catch. `expectNoUnauthoredMint` reads `listBundles`, and `bundleDirCount` reads
-  // `enumerateBundleDirs`; both observe the BUNDLE tree, and round 1's refusal moved the residue
-  // one directory over — into `memory/queue/claimed/`, where the knowledge-port bridge had
-  // already materialized a curation candidate seeded from the tombstoned record's own
-  // `summarySeed` / `anchors` / `bodySeed` / `kind` before disposition ever ran. Nothing unwound
-  // it on the throw, `reconcileOnDrainStart` requeued it under the next lease, and the curator
-  // re-authored the removed fact one drain later with `origin: 'agent'`.
-  //
-  // So the invariant here is the WHOLE root, not a shape of harm somebody enumerated. The bundle
-  // gates stay — they name the specific harm and print a legible diff — but the digest is what
-  // makes the next narrowing a test failure rather than an argument.
-  //
-  // RED BASELINE, observed against unmodified knowledge-store.ts (bridgeDelta still writing),
-  // transcribed from the failing run:
-  //
-  //   × a refused accept leaves the WHOLE knowledge root byte-identical (CR-02″)
-  //     → AssertionError: a refused apply may not leave a file ANYWHERE under the knowledge root
-  //       — the queue tree is inside the invariant, not outside it:
-  //       expected [ '.epoch', '.gitignore', …(10) ] to deeply equal [ '.epoch', … …(9) ]
-  //       - Expected  + Received
-  //       + "memory/queue/claimed/867e619b-7876-444a-8d26-eb89789674e8/
-  //          07491443aeead09c87ccc3fe31b96da13ec8728c516528e6f002055c1e4f030e/payload.json"
-  //   × the next drain adopts NOTHING from a refused accept (CR-02″ requeue half)
-  //     → AssertionError: a refusal must leave the next drain nothing to adopt: expected 1 to be 0
-  //
-  // (the leaked payload.json is the candidate the requeue then adopts — one leak, two cases. The
-  // lease uuid and the candidate content address vary per run.)
-  //
-  // WHY THE FIRST CASE HOLDS THE LEASE ITSELF. With the leak fixed, the digest STILL moved, and
-  // the second measurement named the reason: `.epoch` and `.writer-authority.sqlite`, and nothing
-  // else. `acquireWriterLease` advances the fencing epoch on every acquisition, so an apply that
-  // takes its own lease moves those two bytes whether it commits, refuses, or does nothing at
-  // all. Leaving them inside the window would force the invariant to become "equal except for
-  // this list", and a hand-written exclusion list is the exact shape this phase keeps paying for.
-  // The lease is therefore acquired by the FIXTURE and handed in through `writerAuthority` (the
-  // holder branch — same `commitAndPublish`, same store, same bridge), which takes the lease
-  // lifecycle out of the measured window instead of carving it out of the assertion. The
-  // acquire-and-release CONTROL below proves the exclusion is really the lease's own doing rather
-  // than an assumption: a bare lease round-trip, committing nothing, must move the digest and
-  // must move NOTHING under `memory/`. The ordinary acquiring path is covered end-to-end by the
-  // adoption case that follows, which asserts over the queue tree directly.
+  // The fixture holds the lease, so only the apply's own effects fall inside the whole-root digest.
 
   /** Entries under `memory/` — the curation state, as opposed to root-level lease bookkeeping. */
   function curationEntries(entries: string[]): string[] {
@@ -1446,9 +1236,6 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     expect(existsSync(join(agentQaRoot, 'proposals'))).toBe(false)
     expect((await applyReview({ agentQaRoot, knowledgeRoot, proposalId })).outcome).toBe('applied')
 
-    // EACH FIELD ALONE still works, and neither half is duplicated here: `delegate` alone is
-    // covered by 'delegates instead of stealing when a live holder exists, and waits BOUNDED'
-    // above, and `writerAuthority` alone by the daemon-authority suite in
-    // knowledge-proposal-apply's tests. What this case adds is only the conjunction.
+    // Each field alone is covered elsewhere; this case adds only their conjunction.
   })
 })

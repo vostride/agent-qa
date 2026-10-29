@@ -27,11 +27,7 @@ const PRODUCT_A = 'parity-alpha'
 const PRODUCT_B = 'parity-beta'
 const BUNDLE_COUNT = 24
 
-/**
- * Vec0 operates over Float32 storage while brute search accumulates in JavaScript float64.
- * Phase 375 research measured a maximum delta of 6.8e-8 at dimension 4; D-13 therefore fixes
- * this dimension-384 allowance at 1e-5. Widening the contract requires an explicit constant edit.
- */
+// Vec0 stores Float32 while brute search sums in float64, so the two distances differ slightly.
 const PARITY_DISTANCE_TOLERANCE = 1e-5
 
 describe('vec0 and brute dense-search parity', () => {

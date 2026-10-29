@@ -637,7 +637,7 @@ describe('the anti-silencing differential in BOTH directions: flake and app_bug'
   const FLAKE_TEST = `${TEST_NAME} [flake]`
   const APP_BUG_TEST = `${TEST_NAME} [app_bug]`
 
-  /** Plan 01's run-start snapshot rule, spelled the way agent-local spells it: state === open. */
+  /** The run-start snapshot rule, spelled the way agent-local spells it: state === open. */
   function activeQuarantineSet(env: FoldHarness): string[] {
     const read = readQuarantineLedger(env.knowledgeRoot)
     return foldQuarantineLedgerState(read.events, NOW)

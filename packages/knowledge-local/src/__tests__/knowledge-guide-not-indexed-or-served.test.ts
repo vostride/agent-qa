@@ -1,8 +1,4 @@
-// the guide `init` writes at `agent-qa-knowledge/AGENTS.md` is
-// never indexed as learned memory and never served as policy. Structure already guarantees it —
-// the scanner descends `memory/<product>/bundles/` and the policy ladder reads two named files —
-// so these cells run the real rebuild and the real serving reader rather than adding exclusion
-// code. Each carries a known-bad subject proving its assertion can fail.
+// Structure, not exclusion code, keeps the guide unindexed and unserved; each cell can fail.
 import { randomUUID } from 'node:crypto'
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'

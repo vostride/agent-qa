@@ -25,11 +25,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const JOURNAL_FILE = 'mutation.json'
 const RECOVERY_DIR = 'recovery'
 const DIRECT_LIBRARY_LEASE_ID = 'direct-library'
-/**
- * 378-17 canonical mutable-target order, additively extended by 379 D-03:
- * record, provenance, outcomes, measurements, relations, then manifest.
- */
-// the seventh mutable part is born only on first receipt append.
+// Canonical order with `manifest.json` last; `evidence/gates.jsonl` exists after a receipt append.
 // prettier-ignore
 export const MUTABLE_BUNDLE_TARGETS = ['record.md', 'provenance.json', 'evidence/outcomes.jsonl', 'evidence/measurements.json', 'evidence/gates.jsonl', 'relations.json', 'manifest.json'] as const
 const MUTABLE_TARGETS = new Set<string>(MUTABLE_BUNDLE_TARGETS)
@@ -103,8 +99,7 @@ function assertBundleLocation(knowledgeRoot: string, bundleDir: string, bundleId
   if (rel.length !== 4 || rel[0] !== 'memory' || rel[2] !== 'bundles') {
     throw new TypeError('bundleDir must use the canonical memory/<product>/bundles/<id> layout')
   }
-  // the checks above are lexical. A `memory/`, product, `bundles/` or bundle directory
-  // linked out of the knowledge root is refused before any journal or replacement is written.
+  // The checks above are lexical; a directory linked out of the root is refused before any write.
   assertWithinKnowledgeRoot(knowledgeRoot, bundleDir)
   assertWithinKnowledgeRoot(knowledgeRoot, join(dirname(bundleDir), '.staging'))
 }

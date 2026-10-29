@@ -1,19 +1,4 @@
-/**
- * D-06/D-07/D-08 degrading reader facade for IDX-02 and memory.md §8.2.
- *
- * Index health is resolved at open and every later index operation is guarded. Any unhealthy state
- * permanently swaps the facade to an authoritative bundle scan plus a durable rebuild request,
- * while healthy readers stay read-only and query-only through openIndexReaderConnection. This
- * module never acquires the writer role or rebuilds inline.
- *
- * ONE ladder, ONE core, two callers: `classifyIndexFaceWithConnection`
- * runs the degrade ladder exactly once per call and hands back the live connection on the healthy
- * arm. `classifyIndexFace` is the PROBE wrapper — it releases that connection and writes nothing,
- * so `doctor`, the retrieval-rung resolver and the local composition root can ask about the index
- * without mutating it or leaking a handle. `openKnowledgeReader` is the SERVING facade — it KEEPS
- * the connection the ladder blessed and owns the marker write. The facade never closes what it is
- * about to reopen, so there is no window in which contention can degrade a healthy index.
- */
+// The probe releases its connection and writes nothing; the serving facade keeps the blessed one.
 import { existsSync, statSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import type { DatabaseSync } from 'node:sqlite'
@@ -152,7 +137,7 @@ const RECORD_COLUMNS = `
 const MAX_SQL_LIMIT = 2_147_483_647
 
 export interface OpenKnowledgeReaderOptions {
-  /** D-12 test seam. Production callers resolve sqlite-vec's pinned prebuild. */
+  // Test seam; production resolves sqlite-vec's pinned prebuild.
   vecLoadablePath?: string
 }
 
@@ -172,7 +157,7 @@ function requestRebuildBestEffort(
   try {
     requestRebuild({ knowledgeRoot, reason, detail })
   } catch {
-    // D-07 is an operations signal, not a serving gate. Bundle truth remains available.
+    // A degraded index is an operations signal, not a serving gate; bundle truth stays available.
   }
 }
 
@@ -237,7 +222,7 @@ function safeBundleDir(knowledgeRoot: string, hit: KnowledgeHit): string | undef
   return join(knowledgeRoot, 'memory', hit.product, 'bundles', hit.bundleId)
 }
 
-/** refresh complete truth from a digest-verified bundle and preserve ranking metadata. */
+// Refreshes full truth from a digest-verified bundle and keeps ranking metadata.
 function recheckAuthoritativeHits<THit extends KnowledgeHit>(
   knowledgeRoot: string,
   hits: readonly THit[],
@@ -386,8 +371,7 @@ function scanReader(knowledgeRoot: string): InternalKnowledgeReader {
       return scanBundles({ knowledgeRoot, text, ...opts })
     },
     lookupAnchor(anchor, opts = {}): KnowledgeHit[] {
-      // vec:none is the only reader rung allowed to widen beyond full identity.
-      // Normalize through the schema authority before the scan compares role + name.
+      // `vec: none` alone widens past full identity, so the anchor is normalized before the scan.
       return scanBundles({ knowledgeRoot, anchor: normalizeAnchor(anchor), ...opts })
     },
     searchDense(): DenseHit[] {
@@ -791,13 +775,7 @@ function degrade(
   return scanReader(knowledgeRoot)
 }
 
-/**
- * Which face the derived index presents to a reader RIGHT NOW.
- *
- * `scan` carries the reason the ladder degraded, the detail the rebuild request would have
- * quoted, and whether the file was there at all — `absent` and `corrupt` are the same word to a
- * serving caller but different operator situations, and `doctor` says which.
- */
+// `absent` and `corrupt` read alike to a serving caller but not an operator; `doctor` splits them.
 export type IndexFace =
   | { source: 'index' }
   | {
@@ -807,19 +785,7 @@ export type IndexFace =
       filePresent: boolean
     }
 
-/**
- * The degrade ladder, ONE core, with the live connection on the healthy arm.
- *
- * The healthy arm returns the connection it just probed WITHOUT closing it, because the caller
- * that is about to serve from the index must keep the very connection the ladder blessed. Closing
- * here and reopening in the facade opened a TOCTOU window: a writer, a drain or a sibling reader
- * holding the database across it made the reopen throw SQLITE_BUSY, which the facade could only
- * read as a `locked` degrade — a durable rebuild request plus a process-lifetime swap to bundle
- * scan, for an index that was healthy the whole time. The trust surface must never report a
- * degradation the trust surface itself caused.
- *
- * Unhealthy arms still close: nothing downstream wants a connection to an index that just failed.
- */
+// The healthy arm keeps its connection: reopening in the facade lets contention fake a degrade.
 type ClassifiedIndex =
   | { face: { source: 'index' }; connection: IndexReaderConnection }
   | { face: Extract<IndexFace, { source: 'scan' }>; connection?: undefined }
@@ -876,19 +842,7 @@ function classifyIndexFaceWithConnection(
   return { face: { source: 'index' }, connection }
 }
 
-/**
- * The degrade ladder as a PURE READ.
- *
- * ONE ladder, ONE core, two callers. {@link openKnowledgeReader} below is the SERVING facade: it
- * keeps the connection the core blessed and keeps the side effect — a degraded open still writes
- * the durable D-07 rebuild request. This function is the PROBE half: the identical checks in the
- * identical order over the identical core, but it releases the connection and writes no marker,
- * because its other callers are the retrieval-rung resolver that `doctor` and the runner's
- * evidence recorder invoke, and the local composition root's knowledge probes. A probe that
- * requested a rebuild would make merely ASKING about the index a mutation of the knowledge root;
- * a probe that returned a live handle would make every `doctor` call a connection leak. The probe
- * hands back a face, never a handle — only the serving facade holds a connection.
- */
+// The probe half: same checks, but it releases the connection and writes no rebuild marker.
 export function classifyIndexFace(
   knowledgeRoot: string,
   opts: ClassifyIndexFaceOptions = {},
@@ -936,30 +890,14 @@ function indexFileFingerprint(knowledgeRoot: string): IndexFileFingerprint | und
   }
 }
 
-/**
- * 2026-10-03 (quick 261003-lgd, Phase 432 review IN-26): the immutable probe's check and its open
- * are not one step. A writer that opened the index in between (its `-wal` is now there), or that
- * checkpointed while the probe read (the main file changed), changed bytes under a connection
- * SQLite was told cannot change, so a failure read that way is a busy index, not a corrupt one.
- * Only `stat` and `existsSync` are used here: the probe still creates no `-wal`/`-shm`.
- */
+// A writer opening or checkpointing during the immutable probe means busy, not corrupt; stat only.
 function indexFileChangedSince(knowledgeRoot: string, before: IndexFileFingerprint): boolean {
   const after = indexFileFingerprint(knowledgeRoot)
   return after === undefined || after.walPresent || after.mtimeMs !== before.mtimeMs
     || after.ctimeMs !== before.ctimeMs || after.size !== before.size || after.ino !== before.ino
 }
 
-/**
- * The SERVING facade: classify once, then serve from the connection the classifier blessed.
- *
- * this used to call the pure probe and then open a SECOND connection of its own,
- * so a lock acquired in the gap between the probe's close and this open degraded a healthy index
- * — writing the durable rebuild marker and dropping every later retrieval in the process to
- * bundle scan on nothing but contention. It also let `resolveRetrievalRung` report `memidex` while
- * the reader it was describing served `bundle-scan`, the exact banner/reality disagreement D-17's
- * one-fold rule exists to prevent. The facade must never close what it is about to reopen: there
- * is one open on the healthy path and no window for a lock to arrive in.
- */
+// Serves from the classifier's connection; a second open lets contention degrade a healthy index.
 export function openKnowledgeReader(
   knowledgeRoot: string,
   opts: OpenKnowledgeReaderOptions = {},

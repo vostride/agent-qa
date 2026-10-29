@@ -30,7 +30,7 @@ export function writeObservationLines(
   return observationPath
 }
 
-/** Publishes through Phase 374's real writer before adding Phase 377's fixture-only evidence. */
+// Publishes through the real writer, then adds fixture-only evidence.
 export function publishObservationFixture(
   config: BundleStoreConfig,
   input: PublishBundleInput,

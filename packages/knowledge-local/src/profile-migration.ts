@@ -1,11 +1,4 @@
-/**
- * D-19 active-profile migration over the derived index.
- *
- * M2 keeps this library-only: Phase 378's drainer binds it to runtime
- * coordination, while Phase 382 owns any eventual CLI cutover surface. Rows
- * projected after the frozen snapshot take the benign lag direction: the flip
- * marks them pending so 375's unchanged backfill selector heals them.
- */
+// The flip marks rows projected after the snapshot pending, so the backfill selector heals them.
 import type { DatabaseSync } from 'node:sqlite'
 
 import type { EmbeddingProfile } from '@vostride/agent-qa-schema'
@@ -319,11 +312,7 @@ function stagedPresentByRowid(
   return staged
 }
 
-/**
- * SC5 completeness law: subtract staged-present member ids from the frozen
- * eligible ids and require the difference to be empty. Row counts are never a
- * proxy for identity; a post-snapshot row cannot stand in for a missing member.
- */
+// Compares member ids, never row counts, so a post-snapshot row cannot stand in for a missing one.
 function missingFrozenMembers(
   frozenMembers: readonly FrozenMember[],
   currentByRowid: ReadonlyMap<number, CurrentMember>,

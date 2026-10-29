@@ -25,8 +25,7 @@ import {
 
 export const CANARY_QUEUE_SCHEMA_VERSION = 2
 
-// 2026-09-07, 418 SC1: pin persisted payload.json vocabulary in edited local source.
-// satisfies bounds membership; the test-d never-bars enforce completeness.
+// `satisfies` bounds membership; the type-level tests enforce completeness.
 // prettier-ignore
 export const PAYLOAD_BENEFITS = ['exercised-benefited', 'rode-along', 'exercised-harmed'] as const satisfies readonly Benefit[]
 
@@ -86,10 +85,7 @@ export type EnqueueCanaryOutcome =
   | { kind: 'enqueued'; entryId: string }
   | { kind: 'coalesced'; entryId: string }
 
-/**
- * D-20's one emit pattern: synchronously publish with the same durable staging and rename
- * semantics as a curation drop, so crashes and retries cannot multiply one attributed outcome.
- */
+// Staged and renamed like a curation drop, so a crash or retry cannot multiply one outcome.
 export function enqueueCanaryOutcome(
   knowledgeRoot: string,
   outcome: CanaryOutcome,

@@ -14,27 +14,16 @@ import {
   type ProcedureMatch,
 } from '@vostride/agent-qa-schema'
 
-/**
- * D-05 replay-eligibility confirmation bars per curator tier (PROVISIONAL, retrieval/constants.ts
- * style — internal constitution values, never config keys; M3 owns calibration from attributed
- * outcomes). Degraded authorship needs a higher confirmation bar than full; floor tier has no bar
- * because it is hint-only forever and is deliberately absent from this record.
- */
+// Degraded authorship needs more confirmations than full; floor tier is hint-only, with no bar.
 export const PROCEDURE_REPLAY_CONFIRMATIONS: Record<'full' | 'degraded', number> = {
   full: 2,
   degraded: 4,
 }
 
-/**
- * D-05 minimum composed confidence for a replay recommendation (PROVISIONAL). Below it a match
- * still serves as a hint; the fold can only ever downrank, never promote past this floor.
- */
+// Below it a match still serves as a hint; the fold can downrank but never promote past it.
 export const PROCEDURE_REPLAY_CONFIDENCE_FLOOR = 0.5
 
-/**
- * D-06 tier factor of the confidence fold (PROVISIONAL). Floor tier is discounted hardest and is
- * additionally hard-walled out of replay below, so this factor only shapes hint ordering there.
- */
+// Floor tier is also walled out of replay, so this factor only shapes its hint order.
 const PROCEDURE_TIER_FACTOR: Record<CuratorTier, number> = {
   full: 1,
   degraded: 0.8,
@@ -54,11 +43,7 @@ const PROCEDURE_LEXICAL_WEIGHT = 0.5
  */
 const PROCEDURE_DENSE_WEIGHT = 0.25
 
-/**
- * D-08 fillability downrank factor (PROVISIONAL). An unfillable required parameter both halves
- * confidence and hard-walls the match out of replay — the factor exists so hint ordering still
- * prefers fillable procedures.
- */
+// An unfillable required parameter also walls replay; this factor ranks fillable hints first.
 const PROCEDURE_UNFILLABLE_FACTOR = 0.5
 
 /**
@@ -81,7 +66,7 @@ export interface MatchProcedureInput {
   intent: string
   /** ScreenState-derived anchors; normalized here via canonicalJson(normalizeAnchor(...)). */
   anchors: readonly Anchor[]
-  /** Source-tagged binding NAMES only — no value ever reaches the matcher. */
+  // Source-tagged binding names only; no value ever reaches the matcher.
   availability: ProcedureBindingAvailability
   /** Optional additive dense-leg scores keyed by record id, present only when an embedder is up. */
   denseScoreByRecordId?: ReadonlyMap<string, number>
@@ -97,21 +82,7 @@ function compareRecordId(left: IndexEntry, right: IndexEntry): number {
   return leftId < rightId ? -1 : leftId > rightId ? 1 : 0
 }
 
-/**
- * The ONE kind-aware procedure admission predicate, shared by BOTH serving faces:
- * the MATCH face (`matchProcedure` below) and the READ face (`findReadableBundle` in
- * serving/reader.ts). Procedures can never be `active` in M2 (379 D-16 excludes procedure-kind
- * from promotion) and the brief's vetted-candidate path is fact/caution-only, so candidate-status
- * procedures are admitted here through explicit status walls — candidate + validity-open +
- * not-withheld + no surviving user-deprecate.
- *
- * Sharing it is load-bearing, not tidiness: the two faces had diverged, so the matcher could
- * recommend a replay whose body the reader then refused to serve, silently starving every earned
- * replay into a hint. Keep this the sole admission authority for both faces so they cannot
- * diverge again. This is READ admission, never promotion — nothing here makes a procedure
- * `active`, brief-servable, or caution-servable. TRUST lives in the fold (hint/replay), never in
- * admission.
- */
+// The sole admission predicate for both faces, so the matcher never recommends what reads refuse.
 export function admitsProcedure({ entry, bundle }: ProcedureMatchCandidate): boolean {
   if (entry.kind !== 'procedure') return false
   if (entry.status === 'active') return true
@@ -141,12 +112,7 @@ function lexicalRelevance(bundle: ProcedureMatchCandidate['bundle'], intent: str
   return tokens.filter((token) => text.includes(token)).length / tokens.length
 }
 
-/**
- * Surviving Confirm evidence minus the creation/authoring observation. A run-linked bundle's
- * creation event shares the bundle-creating candidate id with provenance.curationJobId; counting
- * it would cross every D-05 bar one organic canary early. Re-extraction and canary
- * confirmations arrive from distinct curation jobs and continue to count.
- */
+// The creation event shares the job id, so counting it would cross every bar one canary early.
 function confirmationCount(
   events: readonly BundleOutcomeEvent[],
   provenance: BundleProvenance,
@@ -169,13 +135,7 @@ interface ScoredMatch {
   match: ProcedureMatch
 }
 
-/**
- * D-07 pure procedure matcher: pre-filter (kind-aware admission) -> anchor match (normalized-key
- * equality, lexical intent as a secondary additive signal) -> rerank fold (tier x confirmations x
- * fillability). Deterministic on the zero-embedder lexical floor: snapshot-pure inputs only, no
- * wall-clock, float-order-stable single-pass scoring, ties broken by record id. Misses return
- * undefined, never a throw.
- */
+// Snapshot-pure and single-pass, ties broken by record id; a miss returns `undefined`, not a throw.
 export function matchProcedure(input: MatchProcedureInput): ProcedureMatch | undefined {
   const requestedKeys = new Set(input.anchors.map(normalizedAnchorKey))
 
@@ -210,8 +170,7 @@ export function matchProcedure(input: MatchProcedureInput): ProcedureMatch | und
       candidate.bundle.events,
       candidate.bundle.provenance,
     )
-    // The shared schema contract is also enforced by the loop binder. Matcher admission and
-    // loop-side source/type binding therefore cannot drift.
+    // The loop binder enforces the same schema contract, so admission and binding cannot drift.
     const { fillable } = procedureParameterFillability(payload, input.availability)
 
     // Laplace-shaped confirmation factor: 0 confirmations => 0.5, saturating toward 1. Hint

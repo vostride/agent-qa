@@ -1,9 +1,4 @@
-// `listBundles` — the read-only bundle listing the /reader entry serves (Phase 384, Plan 03).
-//
-// The function layer's `knowledge.bundles.list` capability binds to this export through the
-// PHYSICALLY read-only package subpath. The suite therefore imports it from `../reader.js`
-// rather than from the writer-gated main entry: if the re-export is missing, this file fails
-// to resolve, which is exactly the regression the reader carve-out exists to catch.
+// Imported from `../reader.js`, so a missing reader re-export fails to resolve.
 
 import { mkdtempSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'

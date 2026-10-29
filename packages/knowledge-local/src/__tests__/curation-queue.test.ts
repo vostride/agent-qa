@@ -711,7 +711,6 @@ describe('curation queue atomic emit drop', () => {
   })
 
   describe('queue rows written with retired capture fields', () => {
-    // Spelled in parts: the retired field names appear nowhere in packages (441-25, census leg 10).
     const RETIRED_RECEIPT_KEY = ['capture', 'Receipt'].join('')
 
     function seedRowWrittenBefore44125(): string {

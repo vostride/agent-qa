@@ -108,10 +108,7 @@ function affinityTokens(value: string): Set<string> {
   return new Set(value.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [])
 }
 
-/**
- * PROVISIONAL §10 scope affinity: one baseline point plus the largest normalized anchor-token
- * overlap with the scope key. M3 may calibrate weights, not its deterministic/no-model posture.
- */
+// One baseline point plus the largest normalized anchor-token overlap with the scope key.
 function anchorMatch(anchors: readonly Anchor[], scope: ScopeKey): number {
   const scopeTokens = affinityTokens(scope.key)
   let bestOverlap = 0
@@ -164,7 +161,7 @@ function preFilter(
   const admittedScopeKeys = new Set(predicate.binds.slice(1))
 
   return input.candidates.filter((candidate) => {
-    // a rule is either sovereign or it is not yet a rule.
+    // A rule is either sovereign or not yet a rule.
     if (candidate.kind === 'policy') return false
     if (
       material.includeSuperseded !== true
@@ -256,7 +253,7 @@ function compareScored(
   return (
     kindPrecedence(left.candidate.record.kind) - kindPrecedence(right.candidate.record.kind)
     || right.score - left.score
-    // PROVISIONAL deterministic tie-break; M3 may retune scoring, never input-order dependence.
+    // Ties break on record id, so the order never depends on input order.
     || compareServingRecordIds(left.candidate.record, right.candidate.record)
   )
 }
@@ -312,15 +309,7 @@ function stageCandidates(
     .sort(compareScored)
 }
 
-/**
- * One selected record together with the two facts the selection ALREADY computed about it:
- * the score it was ordered by and its 1-based position in that order.
- *
- * These are not new quantities. `score` is exactly what `scoreCandidates` produced and
- * `compareScored` ordered by; `rank` is the position that order put the record in. The serve-time
- * trace needs both, and re-deriving them at a later moment would answer about *now* — the precise
- * dishonesty KREV-02 exists to prevent. So the selection surfaces what it knew instead.
- */
+// Score and rank come from the selection; re-deriving them later would describe a later state.
 export interface ServingSelectionEntry {
   readonly record: IndexEntry
   readonly score: number

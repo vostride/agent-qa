@@ -1,10 +1,4 @@
-/**
- * D-15 provenance-keyed rollback.
- *
- * Resolution is derived exclusively from canonical bundle files. Disposable records rows are
- * never consulted, so deleting or rebuilding the local index cannot change the affected set.
- * Task 2 attaches the append-only inverse emitter to this resolution authority.
- */
+// Resolved from canonical bundle files only, so deleting or rebuilding the index cannot change it.
 import { isAbsolute } from 'node:path'
 
 import {
@@ -150,12 +144,7 @@ export type ResolveRollbackAffectedSetInput =
   | RollbackCurationJobInput
   | RollbackCampaignInput
 
-/**
- * a rollback must never attest success at a resolution ordinal that is powerless to
- * change lifecycle status. At equal buildOrdinal the trust fold's fixed STATUS_PRECEDENCE keeps
- * active above deprecated, and an older event can never replace a newer status, so a
- * non-strictly-later resolvedAtOrdinal cannot causally invert a minted bundle.
- */
+// At equal `buildOrdinal` the fold keeps active above deprecated; only a later ordinal inverts.
 export class RollbackCausalityError extends Error {
   readonly offendingRecordIds: RecordId[]
   readonly minimumRequiredOrdinal: number
@@ -757,12 +746,7 @@ function maintenanceCheckpoint(delta: Delta, targetRecordId: RecordId): Authored
   }
 }
 
-/**
- * RATIFICATION / Pitfall 8: inverse Deprecates are mechanical maintenance deltas with origin
- * `system`. They pass the ordinary deterministic disposition floor; `agent` would be downgraded
- * for an active target, while `user` would incorrectly make this lifecycle choice sovereign and
- * permanent. The disposed delta is then emitted through the canonical append + projection tail.
- */
+// Origin `system`: `agent` is downgraded on an active target, and `user` would make it sovereign.
 function appendInverseDeprecate(
   input: RollbackBaseInput,
   resolution: RollbackResolution,
@@ -854,16 +838,7 @@ function latestSurvivingLifecycleOrdinal(bundle: LoadedBundle): number {
   return latest
 }
 
-/**
- * Atomic strictly-later causal preflight. Runs before ANY append or projection write:
- * every minted bundle in the resolved set must be invertible at input.resolvedAtOrdinal. A
- * bundle is admitted when its surviving fold status is already deprecated (the inverse
- * end-state already holds) or when its log already carries this receipt's exact
- * inverse-deprecate identity (byte replay). Otherwise the resolution must be strictly later
- * than the bundle's latest surviving lifecycle ordinal — at an equal ordinal the fold's fixed
- * status precedence makes the inverse deprecation lose, so success would be a lie. All
- * violators are collected first and reported in one throw; no partial mutation ever precedes it.
- */
+// Collects every violator before any append or projection write, so nothing partial precedes it.
 function assertCausalResolution(
   input: RollbackBaseInput,
   resolution: RollbackResolution,

@@ -1,11 +1,4 @@
-// The entity index projection.
-//
-// Three claims, and the third is the load-bearing one: an entity is not a learned fact, and a
-// run brief that ever served one would pollute planner context and corrupt trust math. That
-// claim is only worth asserting if the assertion CAN fail, so the Pitfall-6 case ships with a
-// positive control — the same marker, seeded into the RECORDS index instead, must reach the
-// brief. Without the control the negative half would be indistinguishable from a brief path
-// that simply cannot render a marker at all.
+// The brief case has a positive control: the same marker in the records index must reach it.
 
 import { randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -156,14 +149,7 @@ describe('the entity index is a rebuildable projection in its own database file'
     expect(incremental.password).toEqual(['TST-002'])
     expect(incremental.address).toEqual(['TST-002'])
 
-    // Arbitrary damage: a row deleted, a rendering corrupted, every FTS entry dropped — and a
-    // STALE row that the descriptor set does not contain.
-    //
-    // The stale row is the case that makes this a rebuild rather than a repair, and it is here
-    // because without it the assertion was defective: re-projecting each descriptor by upsert
-    // heals every OTHER kind of damage on its own, so the "drop everything first" half of
-    // `rebuildEntityIndex` could be deleted with the suite still green (probe p1). A projection
-    // that can only add and correct is one that accumulates whatever it once believed.
+    // The stale row makes this a rebuild test: upserting each descriptor heals everything else.
     handle.connection.db.exec("DELETE FROM records WHERE bundle_id = 'TST-001'")
     handle.connection.db
       .prepare('UPDATE records SET summary = ?, embedding_input = ? WHERE bundle_id = ?')
@@ -231,8 +217,7 @@ describe('the entity index is a rebuildable projection in its own database file'
     expect(candidates[0]?.bundleId).toBe('TST-001')
     expect(candidates[0]?.rawScores.cosine).toBeCloseTo(1, 10)
     expect(candidates.slice(1).map(({ rawScores }) => rawScores.cosine)).toEqual([0, 0])
-    // The vec0 rung's per-profile bookkeeping stays entirely inside the records index
-    // (RESEARCH A3): a virtual table here would be a second, unpinned spelling of it.
+    // Vec0 bookkeeping stays in the records index; a virtual table here would be a second spelling.
     const vecTables = handle.connection.db.prepare(`
       SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'vec_%'
     `).all().map((row) => String(row.name))
@@ -441,8 +426,7 @@ describe('a sighting maintains the projection, and a rebuild is driven by the le
   it('rebuilds the whole projection from the ledger, skipping addresses no source describes', async () => {
     await resolveEntityRef('bundle-checkout', deps())
     await resolveEntityRef('bundle-login', deps())
-    // An address whose owning store has forgotten the entity. It keeps resolving through tier
-    // (a) forever but must not become a fuzzy-match target with no title.
+    // The owning store forgot this entity: it resolves by address but is no fuzzy-match target.
     ledger.mint('MEM', 'bundle-vanished')
     handle.connection.db.exec('DELETE FROM records')
 
@@ -456,17 +440,7 @@ describe('a sighting maintains the projection, and a rebuild is driven by the le
 })
 
 describe('no statement in entity-index/ can reach the knowledge index', () => {
-  // The plan's criterion was written as "no statement names the records FTS table". It cannot
-  // be that: this projection presents the records SHAPE on purpose, because that is what
-  // reusing `lexicalLeg`/`denseLeg` means (see the module header), so the words `records` and
-  // `fts_records` appear here by design and naming them proves nothing either way.
-  //
-  // What the criterion is actually protecting is that entity writes cannot land in the
-  // knowledge index. That is a claim about which FILE a statement can reach, so this scan is
-  // written against the file: the module may not name the knowledge index's path, its file
-  // name, or any of the helpers that open it. A runtime half — the knowledge index staying
-  // byte-identical across a refresh and a rebuild — is asserted above; this half catches a
-  // future edit that reaches for one of those helpers before anyone runs it.
+  // Scans for the knowledge index file and its openers; the records shape is reused by design.
 
   const FORBIDDEN = [
     'knowledge.db',

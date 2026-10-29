@@ -1,6 +1,4 @@
-// Per-mutation bundle writes rewrite the content and manifest as one journaled unit. BNDL-03
-// deduplicates before writing, while the schema fold repeats that defense in depth. Every mutable
-// file uses a full same-directory temp rewrite plus atomic rename (§4).
+// Every mutable file is a full same-directory temp rewrite plus atomic rename.
 
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
@@ -50,7 +48,7 @@ export type AppendOutcome =
   | { kind: 'duplicate' }
   | { kind: 'not-found' }
 
-/** receipt identity is its verified content digest, before any committed write. */
+// Receipt identity is its verified content digest, checked before any committed write.
 export function appendGateReceipt(
   config: BundleStoreConfig, id: RecordId, receipt: GateReceipt,
 ): AppendOutcome {
@@ -69,7 +67,7 @@ export function appendGateReceipt(
     rewriteManifest(manifest, GATES_REL_PATH, rewrittenText))
 }
 
-/** one promotion line per candidate/path; lifecycle bytes remain unchanged. */
+// One promotion line per candidate and path; lifecycle bytes stay unchanged.
 export function appendPromotionReceipt(
   config: BundleStoreConfig,
   id: RecordId,
@@ -235,10 +233,7 @@ export function appendOutcomeEvent(
   return rewriteBundleFile(config, dir, id, OUTCOMES_REL_PATH, rewrittenText, manifestText)
 }
 
-/**
- * Persist D-03's immutable validity-window snapshot. An existing measurements
- * file is an idempotent refusal: baseline bytes are never rewritten.
- */
+// An existing measurements file is an idempotent refusal: baseline bytes are never rewritten.
 export function writeMeasurementBaseline(
   config: BundleStoreConfig,
   id: RecordId,
@@ -289,11 +284,7 @@ export function appendMeasurementObservation(
   return rewriteBundleFile(config, dir, id, MEASUREMENTS_REL_PATH, rewrittenText, manifestText)
 }
 
-/**
- * Confirm a capable-model duplicate Add while backfilling only the mutable prose and provenance
- * fields of a fallback bundle. The identity frontmatter is parsed and re-emitted unchanged; the
- * stable content address therefore cannot drift during CUR-02 enrichment.
- */
+// Identity frontmatter is re-emitted unchanged, so the content address cannot drift on enrichment.
 export function appendOutcomeEventWithEnrichment(
   config: BundleStoreConfig,
   id: RecordId,

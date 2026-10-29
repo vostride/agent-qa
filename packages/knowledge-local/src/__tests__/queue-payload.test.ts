@@ -326,7 +326,6 @@ describe('format-local durability versions and strict public surface', () => {
 })
 
 describe('new queue payloads carry no retired fields', () => {
-  // Spelled in parts: the retired field names appear nowhere in packages (441-25, census leg 10).
   const RETIRED_KEYS = [
     ['capture', 'Evidence'].join(''),
     ['step', 'Interactions'].join(''),

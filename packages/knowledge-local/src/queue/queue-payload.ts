@@ -109,10 +109,7 @@ const candidateSeedShape = {
   executionContext: executionContextSchema,
   kind: bundleKindSchema,
   subtype: factSubtypeSchema.optional(),
-  /**
-   * 379 D-16 additive-optional typed caution evidence. Existing queue-v2
-   * bytes remain valid; when present this real evidence joins the address.
-   */
+  // Optional, so existing queue-v2 bytes stay valid; when present it joins the address.
   rootCauseClass: cautionRootCauseClassSchema.optional(),
   anchors: z.array(anchorSchema).min(1),
   summarySeed: z.string(),

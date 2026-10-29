@@ -1,17 +1,4 @@
-/**
- * Screenless authoring-brief assembly.
- *
- * The 4th serving channel: facts/cautions/procedures from already-hydrated store entries plus
- * projection-ranked exemplar TEST REFERENCES — no ScreenState anywhere in the signature. The
- * assembly is pure (snapshot inputs only, no wall-clock, no file reads) and deterministic on the
- * zero-embedder lexical floor: intent tokens drive the lexical relevance leg, `page:`/`flow:`
- * target anchors drive the anchor leg, and dense scores join only as an optional additive term.
- *
- * Locked tight-budget precedence (Pitfall 8 — deliberately NOT the run brief's L0-L2 tiers):
- * caution > procedure > exemplar > fact. Buckets admit in that order against one shared
- * admission ledger; once a bucket sheds anything, every lower-precedence bucket is shed whole,
- * so an exemplar can never be dropped before a fact at the same budget.
- */
+// Buckets admit as caution, procedure, exemplar, fact; once one sheds, every lower one sheds whole.
 import {
   asRecordId,
   canonicalJson,
@@ -48,25 +35,14 @@ import {
 } from './brief-render.js'
 import { matchProcedure, type ProcedureMatchCandidate } from './get-procedure.js'
 
-/**
- * PROVISIONAL exemplar cap (D-15's "~3-5"). Internal constitution value in the
- * retrieval/constants.ts style — never a config key; M3 owns calibration.
- */
 export const AUTHORING_EXEMPLAR_CAP = 4
 
-/** PROVISIONAL top-N procedures served to the authoring consumer. */
 export const AUTHORING_PROCEDURE_CAP = 5
 
-/**
- * PROVISIONAL bounded-excerpt budget in UTF-16 code units. The excerpt is title +
- * outcome outline composed from projection-known metadata — never test file content.
- */
+// In UTF-16 code units; the excerpt holds projection metadata, never test file content.
 export const AUTHORING_EXCERPT_CHAR_BUDGET = 240
 
-/**
- * PROVISIONAL discount for never-run exemplars (D-15's ratified degraded posture): flagged
- * `unverifiedOutcomes`, discounted below any observed pass-rate signal, never dropped.
- */
+// Never-run exemplars are flagged and discounted below any observed pass rate, never dropped.
 const AUTHORING_UNVERIFIED_OUTCOMES_DISCOUNT = 0.25
 
 /**
@@ -90,7 +66,7 @@ const AUTHORING_DENSE_WEIGHT = 0.25
 /** Hydrated store entry: `LoadedBundle`-backed entries satisfy this structurally. */
 export type AuthoringEntryCandidate = ProcedureMatchCandidate
 
-/** One run-outcome projection row (381-05 tables), read through the index reader connection. */
+// One run-outcome projection row, read through the index reader connection.
 export interface AuthoringExemplarRow {
   filePath: string
   testName: string
@@ -102,7 +78,7 @@ export interface AuthoringExemplarRow {
   quarantined: boolean
   /** Last-N window entries — ordinals only, wall-clock never. */
   lastOutcomes: readonly { buildOrdinal: number; passed: boolean }[]
-  /** canonicalJson(normalizeAnchor(...)) keys — the ABRF-02 byte-deterministic encoding. */
+  // `canonicalJson(normalizeAnchor(...))` keys, so the encoding is byte-deterministic.
   anchorKeys: readonly string[]
 }
 
@@ -117,12 +93,7 @@ export interface AssembleAuthoringBriefInput {
   entries: readonly AuthoringEntryCandidate[]
   /** Per-test outcome counters + exercised-anchor sets from the run-outcome projection. */
   projectionRows: readonly AuthoringExemplarRow[]
-  /**
-   * D-15 never-run discovery universe: test references the CALLER knows about (the consumer
-   * owns the filesystem; M4 passes its authored shelf, the M2 reader passes projection-known
-   * identities). Refs absent from the projection surface flagged `unverifiedOutcomes`,
-   * discounted, never dropped — and still work against an EMPTY projection.
-   */
+  // Refs absent from the projection are flagged `unverifiedOutcomes` and discounted, never dropped.
   knownTests?: readonly AuthoringTestRef[]
   intent: string
   scope: ScopeKey
@@ -175,7 +146,7 @@ function isServableEntry(entry: IndexEntry, kind: 'fact' | 'caution'): boolean {
 interface ScoredEntry {
   entry: IndexEntry
   score: number
-  /** D-16 attribution: whichever weighted relevance term contributed most to `score`. */
+  // Whichever weighted relevance term contributed most to `score`.
   leg: RetrievalTraceLeg
 }
 
@@ -190,9 +161,7 @@ function scoreEntries(
       if (!isServableEntry(entry, kind)) return []
       const candidateKeys = new Set(entry.anchors.map(normalizedAnchorKey))
       const dense = input.denseScoreByRecordId?.get(String(entry.id)) ?? 0
-      // The three weighted terms are named once and both summed AND attributed from, so the
-      // recorded leg is a decomposition of the number that actually ranked this entry rather
-      // than a second, independently computed opinion about it.
+      // The terms are summed and attributed from one record, so the leg decomposes the real score.
       const contributions: Record<RetrievalTraceLeg, number> = {
         anchor: anchorOverlapShare(candidateKeys, targetKeys),
         lexical: AUTHORING_LEXICAL_WEIGHT
@@ -268,12 +237,7 @@ function verifiedExemplarCandidate(
   targetKeys: ReadonlySet<string>,
   tokens: readonly string[],
 ): ExemplarCandidate[] {
-  // D-15 hard excludes fire on the FIRST observed negative signal: any observed flake or a
-  // currently-failing recent window, before relevance scoring. The quarantine leg is the third,
-  // and as of 390 D-02 its truth is the COMMITTED ledger's state fold, not a derived projection
-  // column — this assembler stays pure, so the flag arrives already resolved on the row and the
-  // reader that hydrates it owns the ledger read. (Store-status candidate/deprecated exclusion is
-  // vacuous in M2 — tests are never memidex records; the clause activates if that ever changes.)
+  // Hard excludes fire on the first negative signal, before scoring; quarantine arrives resolved.
   const latestOutcome = row.lastOutcomes.at(-1)
   if (row.quarantined || row.flakeCount >= 1 || latestOutcome?.passed === false) return []
   const windowPasses = row.lastOutcomes.filter(({ passed }) => passed).length
@@ -300,7 +264,7 @@ function verifiedExemplarCandidate(
   return [{
     identity: identityTupleKey([row.filePath, row.testName]),
     anchorKeys: new Set(matchedKeys),
-    // D-15 fold: trust (neutral 1 for projection-verified rows) x recent-pass-rate x relevance.
+    // Trust is a neutral 1 for projection-verified rows, so the score is pass rate times relevance.
     score: recentPassRate * relevance,
     leg: dominantAuthoringLeg(contributions),
     exemplar: {
@@ -443,16 +407,12 @@ function exemplarRecordId(exemplar: ExemplarTest): string {
 interface ServableItem {
   metadata: ServingRecordMetadata
   serve: () => void
-  /** D-16 attribution carried from the scoring that produced this candidate's position. */
+  // Carried from the scoring that produced this candidate's position.
   leg: RetrievalTraceLeg
   score: number
 }
 
-/**
- * The §10.6 authoring brief together with its serve-time trace. The 4th channel returns the
- * composite for the same reason the run brief does — capture is generic at the SEAM, so 393/394
- * inherit it by destructuring rather than by re-implementing it.
- */
+// Returns the composite like the run brief, so consumers destructure instead of re-capturing.
 export interface AssembledAuthoringBrief {
   readonly brief: AuthoringBrief
   readonly trace: ServedRetrievalTraceV1
@@ -556,9 +516,7 @@ export function assembleAuthoringBrief(
   for (const bucket of [cautionItems, procedureItems, exemplarItems, factItems]) {
     eligible += bucket.length
     if (closed) {
-      // A closed bucket is shed WHOLE without consulting the ledger. Those candidates are
-      // recorded here rather than inferred later from what is missing from the brief — a
-      // whole-bucket shed is exactly the "why didn't it mention X" case D-14 exists for.
+      // A closed bucket sheds whole without the ledger, so its candidates are recorded here.
       for (const item of bucket) {
         rank += 1
         truncated.push(cutLine(item, rank))

@@ -3,10 +3,7 @@ import { join } from 'node:path'
 
 import { slugBranch } from '@vostride/agent-qa-schema'
 
-/**
- * Provisional authored-policy warning threshold. This is an operator
- * signal only, never a serving budget or user-facing configuration key.
- */
+// An operator signal only, never a serving budget or configuration key.
 const POLICY_SIZE_WARNING_CHARACTERS = 16_000
 
 export interface OversizedPolicy {
@@ -171,8 +168,7 @@ export function readPolicyLadder(
   })
 
   return {
-    // Validated active policy bytes are concatenated whole. Labels frame
-    // sources but no active text is summarized, truncated, normalized, or reflowed.
+    // Active policy bytes are concatenated whole; labels frame sources and no text is reflowed.
     text: renderPolicyLadder(rungs),
     files: rungs.map(({ file }) => file),
     oversized: rungs.flatMap(({ file, text }) =>

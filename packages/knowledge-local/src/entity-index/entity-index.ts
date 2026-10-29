@@ -21,42 +21,16 @@ import {
 import type { RetrievalLegScope } from '../retrieval/legs.js'
 import { renderEntity, type EntityRendering } from './renderings.js'
 
-/**
- * The projection's own file name, beside the knowledge index rather than inside it.
- *
- * Beside, because an entity is not a learned fact. Its own file, because the knowledge
- * index's schema version, rebuild and per-profile vec bookkeeping belong to records, and
- * sharing them would have coupled two projections whose only similarity is their shape.
- */
+// Its own file, because the knowledge index's schema version and rebuild belong to records.
 export const ENTITY_INDEX_DB_FILE = 'entity-index.db'
 
-/**
- * Stamped into `PRAGMA user_version` at creation and checked on every open.
- *
- * Stamp and hard-fail, never migrate — the 385 D-04 house style. Migration would be effort
- * spent on a file whose contents can be regenerated in full from the ledger; a refusal that
- * says which version it found is more useful than a migration nobody would maintain.
- */
+// Stamped and checked on every open; a mismatch refuses, because the ledger regenerates the file.
 export const ENTITY_INDEX_USER_VERSION = 2
 
 /** Busy timeout in milliseconds; the projection is written at a human-paced grain. */
 export const ENTITY_INDEX_BUSY_TIMEOUT_MS = 2000
 
-/**
- * How often a standing daemon re-renders the projection from its sources.
- *
- * PROVISIONAL 600_000 (ten minutes); retune from operational evidence without adding config,
- * the `LEASE_HEARTBEAT_TTL_MS` house style. What it is bounding is STALENESS of a title or a
- * status in a fuzzy-match target — never correctness of an address, which the ledger owns and
- * no cadence can affect. Sightings already refresh an entity the moment anything touches it,
- * so this sweep exists for the entities nothing has touched since their source data moved.
- *
- * Deliberately its own interval rather than the daemon's `MAINTENANCE_CADENCE_MS`. That
- * cadence runs the lease-holding maintenance tail; this sweep must never require the writer
- * lease because it writes only this file, and sharing a timer with lease-gated
- * work would have made a lease-free projection stop being maintained the moment a lease was
- * lost — a coupling nothing in the projection's own contract asks for.
- */
+// Bounds staleness of titles and statuses; its own timer, so a lost writer lease cannot stop it.
 export const ENTITY_INDEX_SWEEP_INTERVAL_MS = 600_000
 
 /**
@@ -71,13 +45,7 @@ export const ENTITY_INDEX_PRODUCT = 'agentqa-entities'
 /** The one scope key every entity row carries; entities are global by construction. */
 export const ENTITY_INDEX_SCOPE_KEY = 'scope:entities'
 
-/**
- * The projection's row state, which is NOT the entity's status.
- *
- * The scope predicate excludes `deprecated`/`superseded` rows from every scan. An entity that
- * a store reports as quarantined or tombstoned is still a nameable thing that must resolve
- * so its row stays admissible and the store's own word lives in `status_source`.
- */
+// Row state, not entity status: a quarantined or tombstoned entity must still resolve.
 const ENTITY_INDEX_ROW_STATUS = 'active'
 
 /** Rows are derived, never authored: the closest origin the records vocabulary offers. */
@@ -166,10 +134,7 @@ export interface EntityIndexHandle {
 export interface OpenEntityIndexOptions {
   /** Absolute path to the projection file, typically `entityIndexDbPath(knowledgeRoot)`. */
   readonly path: string
-  /**
-   * The knowledge root the path lives under. When given, the path's directory chain must stay
-   * inside it: a linked `memory/` or `memory/index/` is refused before the open.
-   */
+  // A linked `memory/` or `memory/index/` that leaves this root is refused before the open.
   readonly knowledgeRoot?: string
   readonly timeoutMs?: number
 }
@@ -311,28 +276,14 @@ function upsertEntityRow(db: DatabaseSync, descriptor: EntityDescriptor): void {
   writeFtsRow(db, recordRowid, rendering)
 }
 
-/**
- * Project one entity into the index (D-06's incremental half).
- *
- * Called from the resolver's sighting/mint path, so every process posture — daemon, one-shot
- * CLI, a test harness — maintains the projection by using it. Idempotent: re-projecting an
- * unchanged entity leaves the same row.
- */
+// Called from the resolver's sighting path, so every process maintains the projection; idempotent.
 export function refreshEntity(handle: EntityIndexHandle, descriptor: EntityDescriptor): void {
   immediateTransaction(handle.connection.db, () => {
     upsertEntityRow(handle.connection.db, descriptor)
   })
 }
 
-/**
- * Drop everything and re-project from the supplied descriptor set (D-06's healing half).
- *
- * The set comes from the ledger plus the owning stores, which is what makes this a rebuild
- * rather than a repair: nothing in this file is consulted to produce the new contents, so a
- * file damaged in any way at all converges to the same result as a file that never existed.
- * Embeddings are re-derived rather than carried, because a rebuild that preserved derived
- * bytes would preserve exactly the state a rebuild is run to be rid of.
- */
+// Reads nothing from the existing file and re-derives embeddings, so any damage converges.
 export function rebuildEntityIndex(
   handle: EntityIndexHandle,
   descriptors: Iterable<EntityDescriptor>,
@@ -355,13 +306,7 @@ export interface EntityIndexSweepReport {
   readonly refreshed: number
 }
 
-/**
- * Re-project the entities whose source data moved (D-06's maintenance-cadence half).
- *
- * A sweep is maintenance of a disposable projection, so it writes only where a row disagrees
- * with its source. It never touches the addressing ledger — the ledger is not a projection
- * and it takes no writer lease, because everything it writes lives in this file.
- */
+// Writes only rows that disagree with their source, and never touches the addressing ledger.
 export function sweepEntityIndex(
   handle: EntityIndexHandle,
   descriptors: Iterable<EntityDescriptor>,

@@ -1,10 +1,4 @@
-// the direct explicit knowledge writer.
-//
-// An explicit mark, accept, reject or forget is authority in every execution context, so it
-// lands in the call: no inbox envelope is written or read, the actual ExecutionContext is kept
-// on the durable record, and the writer lease, delta validation and every promotion gate still
-// apply. Automatic curation keeps its own context profile (ci/cloud stay
-// proposed), which is why the two matrices are measured separately below.
+// An explicit change lands in the call with its actual context; automatic curation has its own.
 
 import { createHash } from 'node:crypto'
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs'
@@ -186,10 +180,7 @@ describe('direct explicit knowledge writer', () => {
     return listBundles(knowledgeRoot).find(row => row.bundleId === recordId)?.status
   }
 
-  // an explicit per-test timeout, on 432-09's label-calibration precedent. The
-  // cell drives four contexts through a real writer lease and promotion gates (about 4 s alone); in
-  // the forced workspace gate beside the rest of this package it took 17-20 s and reached vitest's
-  // 15 s default in three consecutive runs. The claim is unchanged.
+  // Four contexts through a real lease and promotion gates can pass vitest's 15 s default on load.
   it('explicit mark, accept, reject and forget apply in every execution context, including explicit CI promotion', async () => {
     for (const context of EXECUTION_CONTEXTS) {
       useRoot(context)
@@ -331,9 +322,6 @@ describe('direct explicit knowledge writer', () => {
     const forgetFirst = await explicit({ ...base('ci'), request: forgetRequest })
     const forgetTree = canonicalFiles(knowledgeRoot)
     const forgetAgain = await explicit({ ...base('ci'), request: forgetRequest })
-    // RE-SPELLED 2026-10-02 (quick 261002-lse, 432-16 #3): the retry answers the FIRST receipt byte
-    // for byte, as the mark and the accept above do. It used to re-mint `forgottenAt` and claim an
-    // empty scrub list, which this leg pinned.
     expect(forgetAgain).toMatchObject({ outcome: 'applied', recordIds: [forgotten],
       forgetReceipt: { tombstonedRecords: [{ recordId: forgotten }],
         projectionsScrubbed: ['fts', 'vec', 'graph'] } })

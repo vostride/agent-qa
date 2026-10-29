@@ -25,17 +25,11 @@ export const THRASH_MAX_SUPERSESSIONS = 3
  */
 export const THRASH_WINDOW_BUILDS = 5
 
-/**
- * PROVISIONAL 379 Open Question 1 ratification. Stable-window closure runs
- * disposition-side on Confirm and provisionally reuses the five-build thrash
- * width; a later calibrated phase may retune this constant, never via config.
- */
+// Stable-window closure runs disposition-side on Confirm, reusing the thrash window's width.
 export const STABLE_WINDOW_BUILDS = 5
 
-/** PROVISIONAL D-09 burst threshold; calibration owns later tuning, not config. */
 export const SCOPE_BURST_THRESHOLD = 8
 
-/** PROVISIONAL D-09 ordinal window; calibration owns later tuning, not config. */
 export const SCOPE_BURST_WINDOW_BUILDS = 5
 
 export interface CanonicalBundleSnapshot {
@@ -129,13 +123,7 @@ export function scanCanonicalBundles(knowledgeRoot: string): CanonicalBundleSnap
     .sort(compareSnapshots)
 }
 
-/**
- * Fold superseded depth by the one schema-owned supersession identity.
- *
- * Pitfall 5: only `superseded` events count. A stable multimodal widening emits
- * Confirm and therefore contributes depth zero; a real regime walk emits a
- * Supersede and advances this counter.
- */
+// Only `superseded` events count: a stable widening emits Confirm and adds no depth.
 export function foldSupersessionLineage(
   bundles: readonly CanonicalBundleSnapshot[],
   options: OrdinalWindowOptions,

@@ -1,12 +1,4 @@
-/**
- * The receipt each forget answered, recorded under its change id (quick 261002-lse, 432-16 #3).
- *
- * A retry of the same operation identity is the same change, so it must answer the same receipt,
- * byte for byte. `forgottenAt` is a wall-clock instant nothing else in the store records, so the
- * first answer is kept here, beside the commit intents and completed-effect receipts: gitignored
- * operational state under `memory/queue/`, written atomically inside the writer's authority. The
- * text is the answer's own serialization, so a retry parses back the same keys in the same order.
- */
+// `forgottenAt` is a wall-clock instant recorded nowhere else, so the first answer is kept.
 import { randomUUID } from 'node:crypto'
 import {
   closeSync,

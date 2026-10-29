@@ -1,9 +1,4 @@
-// Binary artifact bytes land only in the gitignore-covered artifacts/ directory and bypass the
-// committed-text checkpoint, following the eval-local blob precedent. The writer
-// commits a separately checkpointed inventory containing only this function's `copied` rows.
-// This layer verifies content hashes, enforces copied-byte caps, and never emits a row before its
-// content-addressed file exists. 2026-10-15: DOM and accessibility snapshots
-// are written through the caller's declared mask; every other artifact is copied byte-for-byte.
+// DOM and accessibility snapshots pass through the caller's mask; other artifacts copy verbatim.
 
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'

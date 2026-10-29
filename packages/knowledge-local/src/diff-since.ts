@@ -35,20 +35,7 @@ function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0
 }
 
-/**
- * The run this event's curation belongs to, or `undefined` when it is not DERIVABLE (Phase 407,
- * LERN-02 · D-10 as reconciled by 407-01).
- *
- * There is no single "this run's curation job id" to join on: a commit stamps
- * `curationJobId = candidateId`, a promotion stamps `promote:<candidateId>`, and a canary outcome
- * stamps a sha-derived observation id. The bundle's own `run-linked` provenance carries BOTH the
- * run and the candidate id those two job spellings are built from, so an event whose job id is one
- * of them was produced by this bundle's own curation and no other.
- *
- * An event carrying a NEIGHBOURING candidate's job id gets nothing. A change attributed to the
- * wrong run is worse than one attributed to no run: a person reading "this run deprecated that
- * fact" acts on it.
- */
+// Only job ids built from the bundle's own candidate link a run; a wrong run is worse than none.
 function linkedRunId(
   event: BundleOutcomeEvent,
   provenance: BundleProvenance,
@@ -206,9 +193,7 @@ export function diffSince(options: DiffSinceOptions): RecordChange[] {
         recordId: bundle.manifest.id,
         change: 'added',
         atOrdinal: earliestOrdinal,
-        // the appearance of a record IS the run's doing whenever the bundle
-        // records one — no `curationJobId` match is needed, because no event produced this
-        // change. A standalone bundle names no run and gets no key.
+        // A run-linked bundle's appearance is the run's doing; a standalone bundle gets no run key.
         ...(bundle.provenance.mode === 'run-linked'
           ? { sourceRunId: bundle.provenance.runId }
           : {}),

@@ -1,9 +1,4 @@
-/**
- * Phase 377 D-08 bounded graph expansion (memory.md §5.5.4).
- *
- * The hot path is strictly one hop. Hubs are skipped entirely in both directions; the spec's
- * matched-anchor-type-only alternative is a deliberate non-choice.
- */
+// Strictly one hop, and hubs are skipped in both directions.
 import type { DatabaseSync } from 'node:sqlite'
 
 import {
@@ -88,9 +83,7 @@ function readNeighbors(
   const hasRecordNodes = db
     .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'graph_nodes'")
     .get() !== undefined
-  // D-22 completes undirected record-relation traversal. The ordinary incident rows retain
-  // edge-owner provenance; this extra arm materializes an outgoing record-node target so a live
-  // rename replacement can reach its scrubbed predecessor when audit posture re-admits it.
+  // Materializes outgoing record targets so a live rename reaches its scrubbed predecessor.
   const outgoingRecordTargets = hasRecordNodes
     ? `
       UNION ALL
@@ -223,7 +216,7 @@ export function expandOneHop(
   const byBundle = new Map<string, CandidateAccumulator>()
 
   for (const seed of normalizeSeeds(seeds)) {
-    // global records remain direct-match-only and never descend into product records.
+    // Global records stay direct-match-only and never descend into product records.
     if (!seedMayExpand(db, seed.bundleId)) continue
     for (const seedNodeId of seed.nodeIds) {
       if (hubs.has(seedNodeId)) continue
@@ -253,14 +246,11 @@ export function expandOneHop(
 
   const expanded: ExpansionCandidate[] = []
   for (const { best, seedBundleIds } of byBundle.values()) {
-    /**
-     * D-11/§13.1 deliberately treats graph ubiquity as a poison/hub signal rather than a
-     * relevance boost. This exclusion is expansion-local; direct recall remains the only door.
-     */
+    // Graph ubiquity is a hub signal, not a relevance boost; this exclusion is expansion-only.
     if (seedBundleIds.size > FAN_IN_THRESHOLD_K) continue
     expanded.push({ ...best, seedBundleIds: [...seedBundleIds].sort(compareText) })
   }
 
-  // D-07's count cap is deliberately single-owned by fusion.capExpansion; N is contract input only.
+  // The count cap belongs to `capExpansion` alone.
   return expanded.sort(compareCandidates)
 }

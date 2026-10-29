@@ -1,23 +1,4 @@
-// The review target and the deltas a change computes, and a refused change writes nothing
-//
-// RE-SPELLED 2026-10-01. This file was the corpus for the propose half and the
-// proposals store: a propose computed a proposal and wrote it under `<agentQaRoot>/proposals/`
-// without touching the knowledge root, and the store claimed, published and restored proposals under
-// a race. Both are deleted with the inbox. What the corpus established that is still true is kept
-// here over the direct door (`applyExplicitReview`) and the pure helpers it computes with:
-//
-//   - a mark plan that fails its integrity check is refused BEFORE anything is written;
-//   - a target that names nothing is a typed `target-not-found`, never a throw, and writes nothing;
-//   - accept computes a user `Confirm` and reject a user `Deprecate` carrying the reviewer's reason;
-//   - forget addresses the same record through either grain.
-//
-// Left with their subject, and carried by C432-PROPOSAL-FILES-UNREAD's absence cells: the filed
-// mark proposal and its persisted wording, the propose-writes-nothing invariance over three verbs,
-// the forget preview, and the whole store describe (filesystem round trip, single winner, the CR-03
-// windows, the traversal-id refusal and the restore-on-failure).
-//
-// The load-bearing control is still the potency of the hash: an invariance assertion over a hash
-// that could not notice a write would report success forever.
+// The hash must notice a write, or an invariance assertion over it passes forever.
 
 import { createHash } from 'node:crypto'
 import {

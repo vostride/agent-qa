@@ -210,10 +210,7 @@ describe('diffSince deterministic maintenance history', () => {
       evidenceToken: 'superseded-at-12',
       byRecordId: confirmedId,
     })
-    // the synthetic `added` change carries the bundle's OWN run link,
-    // which every fixture here publishes with `mode: 'run-linked'`. The lifecycle changes above
-    // do not, because this fixture's provenance names no `curationJobId` for their events to
-    // match — which is the point of the rule and not an omission in the fixture.
+    // Only the synthetic `added` change has a run link; the provenance names no `curationJobId`.
     expect(changes).toContainEqual({
       schemaVersion: RECORD_CHANGE_SCHEMA_VERSION,
       recordId: addedId,
@@ -444,10 +441,7 @@ describe('diffSince deterministic maintenance history', () => {
     expect(first).toEqual(sorted)
   })
 
-  // 407-04 (LERN-02 · D-10 as reconciled by 407-01). The run link is stamped from the two places
-  // it is DURABLE — the bundle's own `run-linked` provenance and the outcome event's observation
-  // id — and nowhere else. A change attributed to the wrong run is worse than one attributed to
-  // no run at all, because a person reading "this run deprecated that fact" acts on it.
+  // A change attributed to the wrong run is worse than none, so links come from durable sources.
   describe('the run link', () => {
     it("stamps the bundle's own run on the synthetic added change", () => {
       const recordId = publishFact('Run linked added', 'run-linked-added', 3, [], {
@@ -723,12 +717,7 @@ describe('diffSince deterministic maintenance history', () => {
   })
 })
 
-// the canary observation identity moved to `serving/canary-observation-id.ts` so the
-// READER entry may import it — `curator/disposition.ts` names the writer-side bundle store, the
-// egress checkpoint and the queue payloads, none of which a read may reach. The move is only
-// safe if it is a MOVE: the writer stamps this id onto the event it appends and the reader
-// recomputes it to find that event again, so a second spelling would be a silent attribution
-// failure rather than a compile error.
+// The writer stamps this id and the reader recomputes it, so a second spelling breaks attribution.
 describe('canaryOutcomeObservationId has exactly one implementation', () => {
   it('is the SAME function reference through both module paths, for the same bytes', async () => {
     const serving = await import('../serving/canary-observation-id.js')

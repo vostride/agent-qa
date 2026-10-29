@@ -70,7 +70,6 @@ function mergeRawScores(
   }
 }
 
-/** Apply D-06's disjunctive admission gate before a candidate receives a rank. */
 export function admitCandidate(
   candidate: Pick<FusionCandidate, 'rawScores'>,
   floors: AdmissionFloors,
@@ -83,10 +82,7 @@ export function admitCandidate(
   )
 }
 
-/**
- * Fuse already-admitted per-leg rankings with weighted RRF.
- * Expanded contributions receive the fixed discount, while final ties end in bundle identity.
- */
+// Expanded contributions take the fixed discount; final ties break on bundle identity.
 export function fuseWeightedRrf<T extends FusionCandidate>(
   legs: readonly WeightedRrfLeg<T>[],
 ): FusedCandidate<T>[] {
@@ -144,10 +140,7 @@ export function fuseWeightedRrf<T extends FusionCandidate>(
     )
 }
 
-/**
- * Keep at most ceil(f*N) expanded candidates while preserving every direct candidate.
- * Input rank order is preserved. retrieve() owns final top-N after assembly and recheck.
- */
+// Keeps every direct candidate and at most `ceil(f*N)` expanded ones; `retrieve()` owns the top N.
 export function capExpansion<T extends Pick<FusionCandidate, 'source'>>(
   fused: readonly T[],
   n: number,

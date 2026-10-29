@@ -1,9 +1,4 @@
-/**
- * Public memory.md §5.5 retrieval composition.
- *
- * Usage telemetry (§5.5.9) is deferred by architecture: reader connections are query_only, so
- * counters land with Phases 378/380's writer-owned paths and are never an input to trust.
- */
+// Reader connections are `query_only`, so usage telemetry is not recorded and never feeds trust.
 import type { DatabaseSync } from 'node:sqlite'
 
 import {
@@ -136,11 +131,7 @@ function thrashTriggerKey(anchor: Anchor | undefined): string | undefined {
   return match?.[1]
 }
 
-/**
- * D-07 targeted canonical lookup: a derived index may disappear, so the committed
- * unresolved unknown remains the serving switch. Only digest-verified unknowns
- * matching a retrieved fact group can suppress or enter this query.
- */
+// A derived index may vanish, so the committed unresolved unknown stays the serving switch.
 function attachMemoryOffUnknowns(
   knowledgeRoot: string,
   candidates: readonly PipelineCandidate[],
@@ -534,7 +525,7 @@ function applyAssembly(
           }
         : {}),
   }))
-  // D-05/D-20 are ordinary serving treatments. Audit reads preserve raw authority.
+  // Audit reads keep raw authority; staleness and cold-start treatments apply to serving only.
   const treated = audit || resolvedAsOf === undefined
     ? valid
     : applyLifecycleTrustTreatments(valid, resolvedAsOf)

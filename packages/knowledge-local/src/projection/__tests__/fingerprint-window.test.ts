@@ -41,11 +41,7 @@ const ERROR_TEXT = 'the payment sheet never opened'
  */
 const ELEMENT_GOLDEN = '{"name":"pay now","ordinal":0,"role":"button","t":"el"}'
 
-/**
- * The anchorless golden: with no sub-actions there is no element or page contact, so the recipe
- * falls to its error arm over `errorTextOf`'s answer — the verifier reasoning — and
- * `normalizeAnchor`'s error arm casefolds, collapses whitespace and digit-runs to '#'.
- */
+// With no sub-actions the recipe falls to its error arm, which casefolds and collapses digit runs.
 const ANCHORLESS_GOLDEN = '{"message":"the payment sheet never opened","t":"error"}'
 
 const extractAnchors = (step: StepEvidence): Anchor[] =>
@@ -229,15 +225,7 @@ describe('the fingerprint-keyed recurrence window', () => {
     }])
   })
 
-  // The plan specified uniqueness over (product, fingerprint, build_ordinal, run_id); the shipped
-  // constraint is WIDER, carrying file_path and test_name. This case is the whole difference: under
-  // the narrower form the second test's row collides with the first and INSERT OR IGNORE drops it
-  // SILENTLY, so a crossing on that fingerprint could only ever name one of the two tests it
-  // actually describes. The identity has to survive because the ledger is keyed by
-  // (product, filePath, testName) — a window row that cannot say which test it belongs to cannot
-  // author an `entered` event. Refold idempotency is unaffected either way: a re-apply produces
-  // byte-identical tuples (deduped under BOTH forms) and is short-circuited by the applied-runs
-  // marker before any insert, while recurrence counts DISTINCT ordinals and so cannot inflate.
+  // The key has `file_path` and `test_name`, so two tests sharing a fingerprint keep both rows.
   it('keeps BOTH tests when two members of one run share a fingerprint', () => {
     const db = openDb()
     const runId = 'run-shared-fingerprint'

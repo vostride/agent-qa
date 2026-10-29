@@ -1,10 +1,4 @@
-/**
- * D-14's one true-delete exemption for confirmed-sensitive material.
- *
- * This library function owns only local store surfaces. It performs no git operation and never
- * attempts to rewrite repository history; Phase 382's sovereign CLI binding leaves that
- * destructive, repository-wide decision with the human operator.
- */
+// Owns local store surfaces only; it runs no git operation and never rewrites repository history.
 import { createHash, randomUUID } from 'node:crypto'
 import {
   existsSync,
@@ -126,16 +120,7 @@ const PurgeAffectedSetSchema = z.object({
 
 export const PURGE_INTENT_SCHEMA_VERSION = 2
 
-/**
- * the durable, content-free purge intent published before the first irreversible
- * mutation. It embeds the complete receipt payload plus the exact resolved bundle dirs, queue
- * candidate ids, and queue payload dirs, so a retry after a crash replays destruction from
- * persisted identities and completes to byte-identical receipt publication instead of returning
- * not-found over half-destroyed state. Every list is deterministically sorted at construction;
- * purged prose, anchors, observations, and vectors have no representable field.
- *
- * The intent also embeds its receipt cycle and the canonical affected set.
- */
+// Published before the first irreversible step, so a crashed purge replays persisted identities.
 export const PurgeIntentSchema = z.object({
   schemaVersion: z.literal(PURGE_INTENT_SCHEMA_VERSION),
   purgedRecordId: z.string().regex(SAFE_RECORD_ID),
@@ -164,7 +149,7 @@ export function guardPurgeIntent(value: unknown): PurgeIntent {
 export interface PurgeRecordInput {
   knowledgeRoot: string
   recordId: RecordId
-  /** Caller-owned sovereign identity; Phase 382 supplies the confirmed user identity. */
+  // The confirmed user identity, supplied by the caller.
   initiator: string
   /** Runtime-counter reservation used for a fresh destruction receipt; resumes reuse intent. */
   purgedAtOrdinal?: number
@@ -403,11 +388,7 @@ function purgeIndexSurfaces(
         )
       `)
 
-      /**
-       * RATIFICATION A4 / RESEARCH Pitfall 9: clear the entire cache rather than guessing every
-       * historical rendering hash. The table is a pure auto-rebuilt cache; sovereignty over the
-       * invertible-vector channel outranks cache warmth.
-       */
+      // Clears the whole cache instead of guessing old rendering hashes; it rebuilds itself.
       const cachePresent = writer.db
         .prepare(`
           SELECT 1
@@ -536,12 +517,7 @@ function looselyCarriesPurgedContent(
   })
 }
 
-/**
- * D-14/CR-03 deletion authority: a queue payload is destroyed iff it carries the purged content
- * or curation-job lineage — candidateId lineage, exact seed equality, or artifact digest
- * intersection. Anchor overlap never selects. The full set is resolved before any irreversible
- * mutation so the exact deletion intent exists ahead of destruction.
- */
+// A queue payload is destroyed only on content or job lineage; anchor overlap never selects it.
 export function resolveQueueSweepTargets(
   knowledgeRoot: string,
   matches: readonly ResolvedBundle[],
@@ -631,7 +607,7 @@ function sweepQueuePayloads(
 ): void {
   const root = queueRoot(input.knowledgeRoot)
   for (const target of targets) {
-    // never delete through a queue directory linked out of the knowledge root.
+    // Never delete through a queue directory linked out of the knowledge root.
     assertWithinKnowledgeRoot(input.knowledgeRoot, target.candidateDir)
     assertWithinKnowledgeRoot(input.knowledgeRoot,
       dirname(jobStatePath(input.knowledgeRoot, target.candidateId)))
@@ -1254,7 +1230,7 @@ function publishReceiptAndRetire(
   receiptCycle: number,
 ): PurgeRecordOutcome {
   input.hooks?.beforeReceiptPublish?.()
-  // `memory/receipts/` linked out of the knowledge root is refused before writing.
+  // A `memory/receipts/` linked out of the knowledge root is refused before writing.
   assertWithinKnowledgeRoot(input.knowledgeRoot,
     dirname(receiptCyclePath(input.knowledgeRoot, input.recordId, receiptCycle)))
   const writeOutcome = writeDurableExclusive(
@@ -1337,19 +1313,7 @@ function resumeFromIntent(input: PurgeRecordInput, intent: PurgeIntent): PurgeRe
   )
 }
 
-/**
- * Hard-remove one confirmed-sensitive record from every recoverable local-store surface.
- *
- * Recovery invariant: nothing irreversible ever precedes a durable intent, so a retry
- * either re-resolves intact state (crash before the intent) or replays the intent's persisted
- * identities to the identical completion receipt (crash at any later boundary).
- *
- * Revival ratification (SC-4/DCAY-05, option a): bundle ids are deterministic content addresses,
- * so purged-then-re-learned content re-mints the SAME record id. Receipt-exists-but-live-surfaces
- * therefore runs a FRESH destruction cycle publishing the next append-only versioned receipt in
- * the series; original audit receipts are never rewritten, and already-purged is attested only
- * over verified-dead surfaces (live resolution always precedes any receipt-based attestation).
- */
+// Nothing irreversible precedes the durable intent, so a retry replays to the identical receipt.
 export function purgeRecord(input: PurgeRecordInput): PurgeRecordOutcome {
   assertInput(input)
 
@@ -1384,7 +1348,7 @@ export function purgeRecord(input: PurgeRecordInput): PurgeRecordOutcome {
   // The exact queue deletion set came from the same canonical resolution shown to the caller.
   const queueSweepTargets = resolved.queueSweepTargets
 
-  // The intent publication is the LAST act before the first irreversible mutation.
+  // The intent publication is the last act before the first irreversible mutation.
   const intent = buildIntent(
     input,
     receipt,

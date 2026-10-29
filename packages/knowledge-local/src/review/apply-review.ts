@@ -1,25 +1,4 @@
-// Apply: the ONE path a knowledge change's bytes take.
-//
-// An explicit mark, accept, reject or forget applies in the call. The caller's stable
-// operation identity is the change identity, so a retry is the same change: its evidence tokens,
-// receipts and record ids repeat and nothing lands twice. Every change routes its deltas through the
-// Curator's `commit()` — the same epoch-fenced path every curation write takes — and the receipt is
-// assembled around the commit from the disposition outcome plus post-commit reads.
-//
-// LEASE ROUTING is decided by `acquireWriterLease` itself rather than by a classification
-// this module performs first. That is deliberate: a read-then-decide would have a window between
-// the read and the acquire, and the primitive already refuses a fresh holder. So "the lease is
-// held by somebody alive" arrives here as an ordinary `held` outcome, and the caller delegates the
-// same validated request and identity to the holder, bounded. There is no code path in this file
-// that acquires when a live holder exists, because there is no second acquisition primitive.
-//
-// An explicit change is authority in every execution context, so it writes through the store's
-// narrow explicit entry, which skips only the automatic propose-only downgrade and keeps the actual
-// ExecutionContext on every durable record. Delta validation and every promotion gate still apply.
-//
-// the proposal door is deleted with the inbox — the claim by atomic
-// rename, the applied/rejected publication, the in-flight wait and the restore-to-pending on failure.
-// Old proposal files are never read again.
+// The one write path: every change commits through the curator, and a retried identity lands once.
 
 import { existsSync } from 'node:fs'
 import { join, relative } from 'node:path'
@@ -69,15 +48,6 @@ import { readRecordedForgetReceipt, recordForgetReceipt } from './forget-receipt
 import { FORGET_SCRUBBED_PROJECTIONS, resolveReviewTarget, reviewDeltasFor } from './propose-review.js'
 import type { ResolveBundleShortId, ReviewChangeRequest } from './propose-review.js'
 
-/**
- * How long a delegating process waits for the leaseholder to finish an apply.
- *
- * PINNED, not configured, on the `LEASE_HEARTBEAT_TTL_MS` idiom. 30s is chosen as "longer than any
- * commit this store performs, shorter than a person's patience": a commit is a handful of file
- * appends plus one bundle re-projection, all local. RETUNE from an observed apply that legitimately
- * exceeded it — never from a flaky test, which is a symptom of a wedged holder rather than a slow
- * one, and the wedged holder is exactly what this bound exists to refuse rather than wait out.
- */
 export const APPLY_DELEGATE_TIMEOUT_MS = 30_000
 
 /** The typed refusal a bounded wait produces. Never a generic timeout, never a takeover. */
@@ -111,10 +81,7 @@ export class ReviewTargetVanishedError extends Error {
   }
 }
 
-/**
- * One review change: a validated direct request. `id` is the receipt identity, derived from
- * the caller's stable operation identity.
- */
+// `id` is the receipt identity, derived from the caller's stable operation identity.
 interface ReviewChange {
   readonly id: string
   readonly verb: KnowledgeReviewVerb
@@ -146,31 +113,7 @@ type ReviewEffect =
     }
   | { readonly kind: 'policy-materialize-refused' }
 
-/**
- * The delta kind a review verb emits when it means "this record stops standing".
- *
- * BOTH `reject` and `forget` emit it (propose-review.ts:183-195 — identical `Deprecate` deltas
- * differing only in the recorded reason), so the guard below is keyed on the kind rather than on
- * either verb's name.
- *
- * WHAT THE GUARD BELOW IS, and the previous version of this comment got it wrong, so it is
- * stated plainly: it is an IDEMPOTENCY short-circuit. A deprecating change over an already
- * tombstoned target has nothing left to destroy, and the honest answer is a receipt naming the
- * state that already holds rather than a second destructive change (FUNC-04's adjacency edge,
- * D-19's "nothing silently partial").
- *
- * WHAT IT IS NOT: the owner of the unauthored-mint hazard. This comment used to claim the guard's
- * kind-scoping was what stopped a clone being minted, and round 1's verifier measured that claim
- * false by reproducing the identical mint through `accept` — which emits a `Confirm` and walks
- * straight past everything in this file. The hazard lives one layer down, at the curator's
- * `checkCitedIdIntegrity`, whose id domain is `deltaTargetIds` = cited ids ∪ target/victim/
- * conflict ids — strictly wider than `targetRecordIds` below, which reads only `delta.targetId`.
- * Every review delta of every verb passes through that one check funnel regardless of its kind,
- * which is why the closure had to land there and not here: see
- * `UserDeltaCitationIntegrityError` and the origin-keyed fallback table beside it in
- * `curator/disposition.ts`, where a user-authored delta whose citation cannot be honoured is
- * refused by type instead of degraded into minted content.
- */
+// Both reject and forget emit `Deprecate`, so the idempotency guard below keys on the kind.
 const DEPRECATE_DELTA_KIND = 'Deprecate'
 
 /** Whether a change's deltas deprecate anything. */
@@ -195,17 +138,7 @@ function locateRecord(knowledgeRoot: string, recordId: string) {
   return undefined
 }
 
-/**
- * Whether every record a deprecating change addresses is ALREADY tombstoned.
- *
- * `every`, not `some`: a bundle-grained verb over a partially-tombstoned set still has work to
- * do, and treating it as complete would be the silent partiality D-19 forbids.
- *
- * Judged through the SHARED mapping rather than a table local to this module. The local
- * table this replaced named `withdrawn` and `retired` — neither is a `BundleStatus` member, so
- * both were dead weight — and the shared one is `satisfies Record<BundleStatus, …>`, which makes
- * a fifth member a compile error here instead of a status that silently reads as untombstoned.
- */
+// `every`, not `some`: a partially tombstoned set still has work to do.
 function alreadyTombstoned(knowledgeRoot: string, change: ReviewChange): boolean {
   const ids = targetRecordIds(change)
   if (ids.length === 0) return false
@@ -233,16 +166,7 @@ function targetRecordIds(change: ReviewChange): string[] {
   return [...ids].sort()
 }
 
-/**
- * The effects of a Confirm or Add change that already landed (432-06 retry), or `undefined`.
- *
- * Each delta's committed event carries an evidence token derived from the delta itself, but the
- * curation job id that dedups the append is derived from the build ordinal, so a retried change
- * would land as a second, distinct event. A plain read: the caller already holds the writer
- * lease, so nothing can land in between, and entering the authority fence here would move lease
- * bookkeeping on a change that then refuses. Partial effects are refused by type, exactly as a
- * partial supersession is.
- */
+// A retried change would land a second event, because the dedup job id uses the build ordinal.
 function landedEffects(
   knowledgeRoot: string,
   change: ReviewChange,
@@ -273,21 +197,7 @@ function landedEffects(
   return { recordIds: [...new Set(found.map(row => row.id))].sort(), ordinal: found[0]!.ordinal }
 }
 
-/**
- * Build the forget receipt from POST-COMMIT reads, never from the preview.
- *
- * The preview says what would happen; the receipt must say what did. Copying the preview forward
- * would have produced a receipt that is always right by construction and therefore evidence of
- * nothing — including in the one case that matters, where the commit tombstoned less than the
- * preview predicted.
- *
- * `projectionsScrubbed` is a PARAMETER for the same reason. It used to be the constant
- * scrub set spliced in unconditionally, which made the receipt right by construction on the one
- * path where it was wrong: the short-circuit runs no commit, so no projection is rebuilt and no
- * recall row is removed, and a receipt naming three scrubs there asserts work nobody performed.
- * `scrubSetSchema` (schema/src/knowledge/change.ts) declares this field a SUBSET of the
- * scrub set with no minimum length, so the empty list is the honest, already-legal answer.
- */
+// Built from post-commit reads: the receipt says what happened, not what the preview predicted.
 function assembleForgetReceipt(
   knowledgeRoot: string,
   change: ReviewChange,
@@ -588,37 +498,18 @@ async function writeReviewChange(
       }
     }
   }
-  // FUNC-04's adjacency edge, decided BEFORE the commit rather than hoped for after it.
-  //
-  // Deprecating an already-tombstoned record must be "a receipt naming the already-tombstoned
-  // state, never a second destructive change", and that is ALL this branch does. Idempotency
-  // lives here, over the target's STATE rather than only over the change id, because rejecting
-  // the same record twice is the most ordinary repetition a review invites.
-  //
-  // CORRECTED, because the earlier version of this comment claimed more than it delivers: this
-  // branch is NOT what stops an unauthored clone being minted. It cannot be — it is reachable
-  // only for a change that deprecates, and round 1's verifier reproduced the identical mint
-  // through `accept`, whose `Confirm` never enters here. The mint is the curator's response to
-  // a cited-id-integrity failure, and it is refused at that check now, for every review delta
-  // of every kind, by `UserDeltaCitationIntegrityError`. What is true and worth keeping: the
-  // clone really is a verbatim copy of the target's anchors, scope and summary republished as
-  // a fresh `candidate`, which `isEligibleCandidate` (serving/brief-selection.ts:142-151)
-  // re-admits into serving — that is why the refusal, not merely a no-op, is the right answer.
+  // Idempotent over the target's state: deprecating a tombstoned record answers a receipt only.
   if (deprecatesRecords(change) && alreadyTombstoned(writer.knowledgeRoot, change)) {
     const recordIds = targetRecordIds(change)
     // reject carries no receipt on any path; the record ids are the whole answer.
     if (change.verb !== 'forget') return { kind: 'applied', recordIds }
-    // 2026-10-02 (quick 261002-lse, 432-16 #3): a retry of the SAME change answers the receipt its
-    // first application recorded, byte for byte, as reject's retry already answers its record ids.
+    // A retry of the same change answers its first receipt byte for byte.
     const recorded = readRecordedForgetReceipt(writer.knowledgeRoot, change.id)
     const recordedIds = recorded?.tombstonedRecords.map(row => row.recordId)
     if (recorded !== undefined && canonicalJson(recordedIds) === canonicalJson(recordIds)) {
       return { kind: 'applied', recordIds, forgetReceipt: recorded }
     }
-    // when something ELSE tombstoned these records, no commit ran for this change, so no
-    // projection was rebuilt and no recall row was removed. The scrub list is EMPTY because that
-    // is what happened. A tombstone this change itself committed (its receipt was never recorded)
-    // did scrub them, and says so.
+    // If something else tombstoned these records, no commit ran here, so the scrub list is empty.
     const scrubbed = tombstonedByThisForget(writer.knowledgeRoot, change)
       ? FORGET_SCRUBBED_PROJECTIONS
       : []
@@ -643,16 +534,7 @@ async function writeReviewChange(
   return { kind: 'applied', recordIds, forgetReceipt }
 }
 
-/**
- * A leaseholder never delegates, and the input may not claim to be both.
- *
- * The two fields are mutually exclusive by MEANING: `writerAuthority` says "I hold the lease and
- * will commit in this process", `delegate` says "somebody else holds it and here is how to reach
- * them". Supplying both was previously refused only by reading the code — the authority branch
- * is taken first and returns, so a caller that passed both silently got the in-process commit and
- * never learned its delegate was ignored. A source-scan-only rule is one refactor away from being
- * untrue; this makes it structural, and it fires before any lease is asked for.
- */
+// A leaseholder never delegates, and this refuses both fields before any lease is asked for.
 function assertSingleWritePath(
   input: { readonly writerAuthority?: unknown; readonly delegate?: unknown },
   entry: 'applyExplicitReview',
@@ -697,8 +579,6 @@ async function withBoundedWait<T>(
   }
 }
 
-// ---- 432-06: the direct door ------------------------------------------------------------------
-
 /** A validated mark, accept, reject or forget, in the shape the review verbs already take. */
 export type ExplicitReviewRequest = ReviewChangeRequest
 
@@ -708,12 +588,7 @@ export interface ExplicitReviewDelegation {
   readonly operationId: string
 }
 
-/**
- * Hand the direct request to the leaseholder and wait bounded for its answer. Injected as
- * an optional operation rather than built here: `knowledge-local` neither knows nor may know that a
- * unix socket exists. A host supplies its transport; the leaseholder's own composition supplies
- * nothing, which makes delegation recursion impossible by construction.
- */
+// Injected because this package must not know a socket exists; the leaseholder supplies none.
 export type ExplicitReviewDelegate = (delegation: ExplicitReviewDelegation) => Promise<ExplicitReviewResult>
 
 export interface ApplyExplicitReviewInput {
@@ -820,13 +695,7 @@ async function applyExplicitAsHolder(
   }
 }
 
-/**
- * Apply an explicit knowledge change in the call.
- *
- * No envelope is written, claimed or reloaded. A holder commits with its own authority, a free lease is acquired and released, and a live holder is
- * handed the same validated request and identity, bounded, and is never stolen from. Retrying
- * the same `operationId` lands nothing twice and answers the same record ids.
- */
+// A live holder gets the same request and identity, bounded, and is never stolen from.
 export async function applyExplicitReview(input: ApplyExplicitReviewInput): Promise<ExplicitReviewResult> {
   assertSingleWritePath(input, 'applyExplicitReview')
   const request = validatedRequest(input.request)

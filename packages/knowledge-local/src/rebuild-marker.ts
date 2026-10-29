@@ -1,8 +1,4 @@
-/**
- * D-07's durable, idempotent rebuild signal survives the one-shot CLI process that detected a
- * degraded index. Phase 378's drainer consumes it. The marker lives in the gitignored
- * memory/index partition (Research Pitfall 10), so it deliberately bypasses committed egress.
- */
+// Lives in the gitignored `memory/index` partition, so it bypasses committed egress.
 import { randomUUID } from 'node:crypto'
 import {
   existsSync,
@@ -25,7 +21,7 @@ export type RebuildReason = 'absent' | 'corrupt' | 'locked' | 'schema-version'
 export interface RebuildRequest {
   reason: RebuildReason
   detail: string
-  /** D-17 diagnostic operations metadata only; never an input to validity or serving decisions. */
+  // Diagnostic only; never an input to validity or serving decisions.
   requestedAt: string
 }
 

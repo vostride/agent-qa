@@ -1,5 +1,4 @@
-// the shared brief renderer lives in runner.
-// Keep knowledge-local's serving import paths stable through these re-exports.
+// The brief renderer lives in runner; these re-exports keep serving import paths stable.
 export {
   CHARS_PER_TOKEN_ESTIMATE,
   estimateRenderedServingCost,

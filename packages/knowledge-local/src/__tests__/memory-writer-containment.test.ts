@@ -1,12 +1,4 @@
-// 2026-10-03 (quick 261003-mqc, closing 261003-lgd new finding 2): every knowledge writer refuses
-// a directory chain that leaves the knowledge root through a link.
-//
-// 261003-lgd contained only the lease guard. The knowledge root is a shared git repository, and a
-// tracked symlink is checked out even under an ignored directory, so `memory/`, `memory/queue/`,
-// `memory/index/` or `policies/` can point anywhere. Each cell plants such a link at an outside
-// temp sentinel directory this file created, runs one writer, and requires the shared
-// `KnowledgeRootContainmentError` and an untouched sentinel. A link that stays inside the root is
-// still followed (the last cell).
+// A tracked symlink can point `memory/` or `policies/` anywhere, so writers refuse escaping links.
 import { randomUUID } from 'node:crypto'
 import {
   mkdirSync,

@@ -1,26 +1,4 @@
-// old proposal files stay on disk and nothing opens them (432-17,
-// D-02 / D-05 / D-22).
-//
-// RE-SPELLED 2026-10-01. This file was the corpus for the Phase 391 proposals inbox over
-// 387's store substrate: the `.rejected.json` sibling, enumeration over the five durable name shapes,
-// expiry computed at read, the WR-03 orphaned-claim reap and the absorb-as-data reading of 387-era
-// bare documents. 432 deletes that inbox with the store, the claim/rename machinery and the
-// envelope, so every one of those claims lost its subject. What survives is the claim the inbox
-// owed the files it leaves behind: a workspace that still holds them is a fresh workspace,
-// they are never read, claimed, published, reaped or migrated, and a malformed one cannot
-// break anything because nothing parses it.
-//
-// HOW "NEVER OPENED" IS MEASURED. `node:fs` and `node:fs/promises` are wrapped for this file's
-// module graph, so every path-taking call made by the knowledge-local sources under test is
-// recorded. The cells run the shipped explicit change door and the shipped reads with old and
-// malformed proposal files planted beside the knowledge root, then assert that no recorded path
-// lies under `<agentQaRoot>/proposals` and that the directory's bytes are unchanged. A recorder that
-// could not see such a call would make that a vacuous pass, so a control cell drives one through
-// the same wrapper and requires it to be recorded.
-//
-// AUTOMATIC CANDIDATE STATE IS NOT THE INBOX. Curation's `proposed-supersession-of` relation and
-// the CI/cloud propose-only profile are a knowledge-candidate disposition and survive; the
-// last cell keeps them measured beside the absence.
+// Old proposal files are never opened; wrapped `node:fs` calls and a control cell prove it.
 
 import { createHash } from 'node:crypto'
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
@@ -219,8 +197,7 @@ describe('old proposal files are never opened, claimed, published or migrated', 
     expect(touchedInbox()).toEqual([inbox])
   })
 
-  // Twelve real fsync'd writes across four contexts: 2.1 s alone, past vitest's 15 s default in
-  // 432-17 gate run 5 at load average 18. Same budget as C432-EXPLICIT-ALL-CONTEXTS.
+  // Many fsync'd writes across contexts can pass vitest's 15 s default under load.
   it('explicit accept, reject and forget apply in every context and never open an old proposal file', async () => {
     const before = digestDirectory(inbox)
     // Fixture publication is not under measurement; only the door and the reads are.

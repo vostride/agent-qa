@@ -1,10 +1,4 @@
-/**
- * Per-candidate write-ahead intents for the deterministic commit tail.
- *
- * Plan 378-10 must write and fsync an intent before a bundle publish rename can happen, then
- * clear it only after the index delta apply confirms. One file per candidate makes both
- * replacement and removal atomic without log compaction.
- */
+// The intent is fsynced before the publish rename and cleared only after the index delta applies.
 import { randomUUID } from 'node:crypto'
 import {
   closeSync,
@@ -147,20 +141,7 @@ export type QuarantineStaleCommitIntentOutcome =
   | { kind: 'quarantined'; name: string }
   | { kind: 'already-gone' }
 
-/**
- * Preserve a superseded generation's intent bytes under a name `listCommitIntents` never
- * returns. Discarding them silently would erase the only record that a fenced-out writer
- * reached the journal at all.
- *
- * The name carries a per-invocation discriminator because `(epoch, candidateId)` is not unique
- * over time: one candidate can be authored more than once at the same stale epoch, and a
- * `renameSync` onto an existing quarantine file would destroy the earlier evidence silently.
- *
- * ENOENT on the source is the one benign classification: the file is already gone, so no
- * evidence can be lost and the caller's pass — which runs inside a held authority section —
- * has nothing left to do for it. Every other errno means bytes exist and we failed to preserve
- * them, and still propagates (386-28's contract that real failures surface).
- */
+// A per-call discriminator: a candidate can recur at a stale epoch, and a rename would clobber it.
 export function quarantineStaleCommitIntent(
   knowledgeRoot: string,
   candidateId: string,

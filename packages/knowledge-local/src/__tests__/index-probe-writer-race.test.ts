@@ -1,15 +1,4 @@
-// 2026-10-03 (quick 261003-lgd, Phase 432 review IN-26): the immutable doctor probe checks for a
-// `-wal` and then opens the index `immutable=1`. A writer that opens the index in between, or
-// checkpoints while the probe reads, changes the main file under a connection SQLite was told
-// cannot change, and the probe could then read a torn page and report the index `corrupt`.
-//
-// The race is driven at the module boundary: right after the probe's immutable open, a real
-// writer connection opens the index (its `-wal` appears) and the main file's bytes change under
-// the probe, as a checkpoint would change them. The probe must then answer busy (`locked`, a
-// writer is active), not `corrupt`. A probe that nothing interrupts keeps its ordinary answers,
-// and it still creates no `-wal`/`-shm` itself (C-HYG-PROBE-NO-SIDECARS stands).
-//
-// OBSERVED RED on agent-qa e7bc9c8c3: { source: 'scan', reason: 'corrupt', ... }.
+// A writer opening or checkpointing during the immutable probe reads as `locked`, not `corrupt`.
 import { closeSync, mkdtempSync, openSync, readdirSync, rmSync, writeSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'

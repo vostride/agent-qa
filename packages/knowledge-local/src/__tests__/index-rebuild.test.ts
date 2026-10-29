@@ -1183,7 +1183,7 @@ describe('derived-index rebuild projection', () => {
     const victim = publishNamed(product, 'Dual suppression redacted victim')
 
     projectBundleIndexRow({ knowledgeRoot, bundleId: victim.id })
-    // nothing writes the terminal value now; an old row may hold it.
+    // No writer emits the terminal value; only a legacy row can hold it.
     const legacyWriter = new DatabaseSync(join(knowledgeRoot, 'memory', 'index', INDEX_DB_FILE))
     try {
       legacyWriter

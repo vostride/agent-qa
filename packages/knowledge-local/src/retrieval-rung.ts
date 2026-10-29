@@ -1,22 +1,4 @@
-/**
- * The ONE fold from the host's two retrieval axes to the recorded rung.
- *
- * ONE resolver, three callers: the runner's evidence recorder stamps the value into
- * `StepEvidence.retrievalRung`, `doctor` grades it live, and the run header banner
- * renders the recorded copy. Three callers deriving a rung independently from the same
- * two axes is exactly how a banner and a doctor row come to disagree about one machine, so the
- * fold table lives here once and its cells are pinned by `__tests__/retrieval-rung.test.ts`.
- *
- * WHAT THE VALUE MEANS. It is the HOST's ladder at serve time — never a claim about how any
- * individual brief line was ranked. The run-brief serve path reads index rows directly and
- * attributes channels 1 and 3 to the `anchor` leg by construction; the dense leg and the
- * bundle-scan fallback belong to the general `retrieve()` path the curator, the entity resolver
- * and the authoring reader use. A surface renders "retrieval was on rung X for this run".
- *
- * This module lives in knowledge-local because it is the only package that can see either axis:
- * the index face is `index-reader`'s degrade ladder and the embedder outcome is
- * `embedder-acquire`'s capability probe. What it hands back is the schema-owned value.
- */
+// The host's ladder at serve time, folded once so the banner and the doctor row agree.
 import {
   DEFAULT_EMBEDDING_PROFILE,
   type EmbeddingProfile,
@@ -39,13 +21,7 @@ export type IndexAxis = IndexFace
 /** The embedder half of the fold — `embedder-acquire`'s capability outcome, unchanged. */
 export type EmbedderAxis = AcquireEmbedderOutcome
 
-/**
- * `RebuildReason` → the recorded cause, as a total map for the same reason as below.
- *
- * `schema-version` and `corrupt` share one cause: both mean "rebuild requested" and the operator
- * does the same thing for either. `index-unavailable` is deliberately NOT a value here — it is the
- * historical word for a scan whose cause was never recorded, and no current fold may mint it.
- */
+// `schema-version` and `corrupt` share a cause; no current fold mints `index-unavailable`.
 const INDEX_REASONS: Record<RebuildReason, RetrievalRungReason> = {
   absent: 'index-not-built',
   locked: 'index-locked',
@@ -64,17 +40,7 @@ const DEFERRED_REASONS: Record<DeferReason, RetrievalRungReason> = {
   'worker-unavailable': 'profile-unresolved',
 }
 
-/**
- * Fold the two axes into the value that gets recorded.
- *
- * ORDERING IS PART OF THE CONTRACT: the index axis is consulted FIRST. No dense leg can run
- * against an index that will not open, whatever the embedder resolved to, so a `scan` face is
- * `bundle-scan` even on a host with a live native embedder. Folding the embedder first would
- * label a host with an unopenable index `memidex` and make the banner lie.
- *
- * `reason` is ABSENT for `memidex` — the top rung is not a degradation and has no cause to name.
- * Every lower rung carries one, which is what lets the banner say rung AND cause in one line.
- */
+// The index axis comes first: a `scan` face is `bundle-scan` even with a live native embedder.
 export function foldRetrievalRung(
   index: IndexAxis,
   embedder: EmbedderAxis,
@@ -114,25 +80,10 @@ export interface ResolveRetrievalRungOptions {
   /** Explicit hosted runtime root for worker discovery; defaults to the acquirer's own rule. */
   agentQaRoot?: string
   preferredProfile?: EmbeddingProfile
-  /** D-12/D-17 test seam, passed through unchanged. Production callers omit it. */
   probes?: EmbedderProbes
 }
 
-/**
- * Probe both axes and fold them. NEVER throws, NEVER downloads, NEVER writes.
- *
- * - `allowDownload: false` is hard-coded, not an option: this call answers "what is this host
- *   doing today", and a probe that fetched a model would change the answer by asking it.
- * - A `scan` face short-circuits before the embedder is touched at all. The fold does not need the
- *   embedder axis in that arm, and the probe can cost a model load.
- * - A rejected capability probe folds to `deferred/load-failure` rather than propagating. This
- *   resolver's callers are a banner, a doctor row and an evidence recorder; none of them has a
- *   sensible behaviour for "asking about the ladder threw".
- * - `classifyIndexFace` writes no rebuild marker, so asking is not a mutation of the knowledge root.
- *
- * The memo inside `resolveEmbedderCapability` is what makes a second call in the same process free,
- * which is why `doctor` and the runner can both ask without paying twice.
- */
+// Never throws, downloads or writes: a probe that fetched a model would change its own answer.
 export async function resolveRetrievalRung(
   options: ResolveRetrievalRungOptions,
 ): Promise<RecordedRetrievalRung> {

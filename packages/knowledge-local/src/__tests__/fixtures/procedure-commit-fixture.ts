@@ -32,18 +32,7 @@ export interface CommitFixtureProcedureOptions {
   attributingObservationId?: string
 }
 
-/**
- * The LIVE procedure commit path, shared by the D-02 commit suite's shape assertions and by
- * read-face suites that need a genuinely committed agent-verified procedure bundle rather
- * than a hand-rolled index entry. Mirrors `procedure-commit.test.ts`'s job assembly exactly:
- * a content-addressed claimed candidate with per-step artifacts, a capture receipt, and an
- * authored Add delta, driven through `commitCurationDelta`.
- */
-/**
- * the commit fence now requires the exact published holder, so this fixture holds a real
- * lease instead of naming one. An existing holder is adopted so a suite that already acquired
- * keeps its own identity rather than being fenced out by its own fixture.
- */
+// Holds a real lease, adopting an existing holder so a suite is not fenced out by its own fixture.
 function fixtureWriterAuthority(knowledgeRoot: string): { leaseId: string; epoch: number } {
   const lease = acquireWriterLease(knowledgeRoot)
   if (lease.kind === 'acquired') return { leaseId: lease.leaseId, epoch: lease.epoch }

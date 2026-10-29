@@ -731,7 +731,7 @@ describe('quarantine rows with credential-shaped text', () => {
   })
 })
 
-// ---- The committed-root placement claim (DR-1: no sibling precedent) -----
+// ---- The committed-root placement claim -----
 
 describe('the ledger is genuinely committed at the knowledge root', () => {
   it('is not swallowed by any knowledge-root ignore rule', () => {

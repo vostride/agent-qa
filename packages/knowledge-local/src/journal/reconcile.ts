@@ -193,12 +193,7 @@ function loadedBundleIds(knowledgeRoot: string): Map<string, string> {
   return loaded
 }
 
-/**
- * Reconcile the root after lease acquisition and before the first queue claim.
- *
- * Index writes are caller-injected so Plan 378-10 and this recovery path share one projection
- * authority. A thrown apply/derive operation intentionally leaves the intent in place for retry.
- */
+// Runs after lease acquisition, before the first claim; a thrown apply leaves the intent to retry.
 function reconcileOnDrainStartWithinCurrentAuthority(
   deps: ReconcileOnDrainStartDependencies,
 ): ReconcileReport {

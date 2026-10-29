@@ -312,8 +312,7 @@ function parseBinary(bytes: Buffer): Omit<FloorAssets, 'tokenizer'> {
   return { vocabularySize, dimension, scales, weights }
 }
 
-// the runtime package loads at the first acquisition, never at import, so a host that only
-// reads never resolves it. A failed load is dropped so the next acquisition retries.
+// Loads at the first acquisition, never at import; a failed load is dropped so the next retries.
 function loadTokenizerRuntime(): Promise<typeof import('@huggingface/tokenizers')> {
   tokenizerRuntime ??= import('@huggingface/tokenizers').catch((error: unknown) => {
     tokenizerRuntime = undefined

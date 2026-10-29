@@ -1,11 +1,4 @@
-/**
- * Pure D-14/D-15 temporal admission for memory.md §5.5.5.
- *
- * The write path expresses the deterministic drift exemption by minting the correction `active`;
- * this stage never invents a second candidate gate, so that born-active fact remains admissible.
- * Status withdrawal stays in pre-filter.ts, while range audit is deliberately status-agnostic so
- * includeSuperseded and asOfRange remain orthogonal.
- */
+// Range audit is status-agnostic, so `includeSuperseded` and `asOfRange` stay orthogonal.
 import { supersessionKey } from '@vostride/agent-qa-schema'
 import type { Anchor } from '@vostride/agent-qa-schema'
 

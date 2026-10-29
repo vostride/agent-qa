@@ -463,10 +463,7 @@ describe('createAuthoringReader dense retrieval', () => {
     expect(brief.exemplars).toEqual([])
   })
 
-  // the exemplar quarantine exclude used to read a DERIVED column the projection
-  // stamped from a lifetime flake threshold. That column is gone: the committed ledger is now the
-  // one thing called "quarantined", and every case below varies exactly ONE input (the ledger
-  // bytes, or the clock the fold is asked about) while the projection rows stay identical.
+  // Each case varies one input, the ledger bytes or the clock; the projection rows stay identical.
   describe('quarantine exclusion re-sourced to the committed ledger', () => {
     const QUARANTINED_REF = {
       filePath: 'tests/ledger-quarantined.yaml',
@@ -482,7 +479,7 @@ describe('createAuthoringReader dense retrieval', () => {
     const EXPIRES_AT = '2026-08-15T00:00:00.000Z'
     /** Inside the window the `entered` event opened. */
     const BEFORE_EXPIRY = '2026-08-05T00:00:00.000Z'
-    /** One day past the deadline — the fold COMPUTES 'expired' from this, D-11. */
+    // One day past the deadline; the fold computes `expired` from it.
     const AFTER_EXPIRY = '2026-08-16T00:00:00.000Z'
 
     function foldExemplar(

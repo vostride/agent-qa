@@ -47,12 +47,7 @@ export type AcquireEmbedderOutcome =
   | { kind: 'deferred'; reason: DeferReason }
   | { kind: 'lexical-only' }
 
-/**
- * D-12/D-17 test-only capability injection seam.
- *
- * Production callers must omit this field so rung selection reflects host truth. No probe is a
- * user-facing selector, configuration key, environment variable, or CLI switch.
- */
+// Test-only: production callers omit it so rung selection reflects the host.
 export interface EmbedderProbes {
   discoverWorker?: (agentQaRoot: string) => Promise<WorkerDiscoveryResult>
   createNativeEmbedder?: (options: {
@@ -73,7 +68,6 @@ export interface AcquireEmbedderOptions {
     db: DatabaseSync
     mode: EmbedCacheMode
   }
-  /** D-12/D-17 test seam. Production callers resolve actual host capabilities. */
   probes?: EmbedderProbes
 }
 
@@ -84,7 +78,6 @@ export interface ResolveEmbedderCapabilityOptions {
   workerPolicy?: EmbedderWorkerPolicy
   /** Explicit hosted runtime root. Required policy must never infer it from ambient cwd. */
   agentQaRoot?: string
-  /** D-12/D-17 test seam. Production callers resolve actual host capabilities. */
   probes?: EmbedderProbes
 }
 
@@ -141,7 +134,7 @@ function isWorkerBackedDiscovery(
   return candidate.profile !== undefined && candidate.embedder !== undefined
 }
 
-/** D-09's worker arm, rooted in the hosted project rather than ambient process cwd. */
+// Rooted in the hosted project, not the process cwd.
 export async function discoverEmbedderWorker(
   agentQaRoot: string,
   options: DiscoverEmbedderWorkerOptions = {},
@@ -339,13 +332,7 @@ async function probeCapability({
   }
 }
 
-/**
- * Resolve the automatic ladder once per profile for this process.
- *
- * Every host/runtime failure collapses to a typed capability outcome; callers cannot select a
- * rung. Injected test seams receive an isolated memo while production keys solely by the stable
- * embedding profile identity.
- */
+// Memoised per profile; injected test seams get an isolated memo.
 export function resolveEmbedderCapability(
   options: ResolveEmbedderCapabilityOptions,
 ): Promise<CapabilityOutcome> {

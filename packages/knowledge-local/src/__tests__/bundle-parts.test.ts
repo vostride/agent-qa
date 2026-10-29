@@ -102,7 +102,6 @@ function part(input: ReturnType<typeof renderBundleParts>, relPath: string) {
 }
 
 describe('renderBundleParts committed layout', () => {
-  // optional seventh mutable part; G-12 measures this cell.
   it('declares exactly the seven mutable bundle targets, in declaration order', () => {
     expect([...MUTABLE_BUNDLE_TARGETS]).toEqual([
       'record.md',

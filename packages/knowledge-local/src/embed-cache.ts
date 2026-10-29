@@ -1,10 +1,4 @@
-/**
- * Rebuildable content-hash cache for both embedding legs.
- *
- * The raw rendering hash deliberately excludes profile prefixes because prefix application belongs
- * to EmbedderPort. The explicit leg discriminator closes RESEARCH Pitfall 6: asymmetric document
- * and query embeddings must never alias even when their raw rendering is byte-identical.
- */
+// The leg discriminator keeps document and query embeddings of identical text from aliasing.
 import { createHash } from 'node:crypto'
 import type { DatabaseSync } from 'node:sqlite'
 
@@ -143,13 +137,7 @@ export function dropEmbedCacheForModel(db: DatabaseSync, modelId: string): void 
   db.prepare('DELETE FROM embed_cache WHERE model_id = ?').run(modelId)
 }
 
-/**
- * Decorate an embedder with the M2 connection-role posture.
- *
- * Reader connections use check-only: they benefit from materialized rows but never write on a
- * miss. Writer-role backfill, migration, and bench paths use check-and-store, which is where the
- * steady-state cache materializes. Callers must ensure the table once through a writer first.
- */
+// Readers check only and never write on a miss; writer-role paths check and store.
 export function wrapEmbedderWithCache({
   embedder,
   profile,

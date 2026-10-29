@@ -60,8 +60,7 @@ function receiptFixture(overrides: {
       falsifiable: true,
       captureSignatureHits: [],
     }],
-    // F3: the definitive-pass arm arrives as `healed`, so the fixture carries one — a store that
-    // round-trips only the tidy shapes is not round-tripping the shape this phase measured.
+    // The definitive-pass arm arrives as `healed`, so the fixture round-trips that shape too.
     gateRuns: [{ runId: 'run-1', memberOutcome: 'healed', definitive: true, healed: true }],
     addsValueFinding: {
       novelElements: ['{"anchor":{"name":"order number","ordinal":0,"role":"text","t":"el"}}'],

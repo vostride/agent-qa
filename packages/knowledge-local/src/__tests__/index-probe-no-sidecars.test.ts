@@ -1,8 +1,4 @@
-// C-HYG-PROBE-NO-SIDECARS (quick 261002-hyg, 432-09 #5): asking about a checkpointed index
-// must not change the knowledge root. An ordinary read-only open of the WAL-mode index creates
-// SQLite's `-wal`/`-shm` beside it; the probe's `inspectCheckpointedImmutably` opens a checkpointed
-// index immutably instead. Its answers are the ordinary probe's, and with a `-wal` present (a live
-// connection) it falls back to the ordinary open.
+// Asking about a checkpointed index must not create `-wal` or `-shm` files in the knowledge root.
 import {
   existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync,
 } from 'node:fs'

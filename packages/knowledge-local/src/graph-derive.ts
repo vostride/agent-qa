@@ -1,11 +1,4 @@
-/**
- * Phase 377 D-09 deterministic graph projection (memory.md §6.1).
- *
- * Open Question 3 is pinned here: element-to-surface containment remains `part-of`, as emitted by
- * the anchor projection and consumed by D-02 situating lines. `on` is reserved for Step→WebPage or
- * Step→MobileScreen observations. Every edge below is derived from guarded observations or typed
- * anchors; no model output or wall-clock value participates.
- */
+// `part-of` is element-to-surface containment; `on` is only for step-to-page or step-to-screen.
 import {
   anchorGraphNode,
   graphNodeId,

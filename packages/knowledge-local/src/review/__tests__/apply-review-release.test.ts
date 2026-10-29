@@ -1,12 +1,4 @@
-// 2026-10-03 (quick 261003-lgd, Phase 432 review WR-11): a change that landed is reported as
-// landed, whatever the release after it meets.
-//
-// `applyExplicitReview` gives a lease it acquired back in a `finally`. A release that throws there
-// (the lease guard stayed busy for its whole wait, or the guard's directory chain was refused)
-// used to replace the applied result with that throw, so the caller saw a failure for a change
-// that had been committed. The release failure is now a named warning, and the lease lapses by
-// its heartbeat TTL. The throw is injected at the module boundary because a guard busy for its
-// whole wait is a 12 s state that this cell does not need to rebuild (the lease cells drive it).
+// A release that throws after the change landed is a named warning, never a failure for the change.
 
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'

@@ -1,14 +1,4 @@
-// `canaryAttributionsFor` — what became of the canary lines a run served.
-//
-// The join is between two things a run cannot hold at once: the SERVE-time marker, which is a
-// fact about the run and lives in its evidence, and the ATTRIBUTED outcome, which is a fact about
-// the committed knowledge store and lives in a bundle's outcomes log. The observation id is the
-// only thing that spans them, and it is recomputed here from the run's own tuples rather than
-// read from anywhere — which is what makes an answer here evidence rather than a claim.
-//
-// Every cell below reads COMMITTED bytes. Nothing in this file mints, appends or retracts an
-// outcome event to make an assertion true: the write path stays behind the writer lease, and a
-// read that could write would be the T-407-11 tampering hazard rather than its mitigation.
+// Every cell reads committed bytes; nothing appends an outcome event to make an assertion true.
 
 import {
   mkdirSync,
@@ -365,10 +355,7 @@ describe('canaryAttributionsFor joins served canary tuples to committed outcomes
     ])
     expect(candidateId).toBe(probe)
 
-    // A bundle directory some other process left half-written — one this run never served, never
-    // touched, and has no opinion about. Its name sorts BEFORE the healthy bundle's, so the skip is
-    // exercised on the way to the line under test rather than harmlessly after it. Before 407-14
-    // this single unparseable file made the WHOLE Knowledge tab read `read_failed`.
+    // Its name sorts before the healthy bundle's, so the skip runs before the line under test.
     const malformed = join(
       knowledgeRoot,
       'memory',
@@ -405,15 +392,7 @@ describe('canaryAttributionsFor joins served canary tuples to committed outcomes
     ])
     expect(candidateId).toBe(probe)
 
-    // The second failure mode `loadMaintenanceBundle` raises: bytes that parse but no longer hash
-    // to what the manifest committed. Skipping it is not forgiving the tamper — the maintenance
-    // scan next door still refuses to answer for this store; it is refusing to let a tampered
-    // record decide whether an UNRELATED, still-verifying line gets its outcome.
-    //
-    // The skip must be exercised BEFORE the line under test, and `enumerateMaintenanceBundleDirs`
-    // sorts by DIRECTORY name — which is content-derived, NOT the anchor's display name. So the
-    // published directory is renamed under a controlled `aaa-` prefix and this cell ASSERTS it
-    // now sorts first, instead of assuming an ordering nothing establishes.
+    // Directories sort by content-derived name, so the tampered one is renamed `aaa-` to go first.
     const sibling = publishCandidateEntry('Tampered sibling', [])
     const bundlesDir = dirname(sibling.dir)
     const tamperedName = `aaa-tampered-${basename(sibling.dir).slice(-16)}`

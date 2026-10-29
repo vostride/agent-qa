@@ -1,8 +1,4 @@
-/**
- * The deterministic memory.md §5.5.8 query door. Every identity anchor is normalized
- * through the schema authority before keys or matching helpers are derived. Raw selector atoms
- * remain lexical-only; dense text and fallback regions are assembled from structured fields.
- */
+// Identity anchors are normalized first; raw selector atoms stay lexical-only.
 import {
   canonicalJson,
   normalizeAnchor,
@@ -62,10 +58,7 @@ function normalizedElementAnchor(element: ElementInfo): Extract<Anchor, { t: 'el
   >
 }
 
-/**
- * The role+name key used by the vec:none scan rung's widened D-16 comparison. Indexed callers
- * continue to use anchorLookupKey(), which retains the complete normalized identity.
- */
+// The `vec: none` scan's widened key; indexed callers keep `anchorLookupKey()`'s full identity.
 export function widenedRoleNameKey(anchor: Anchor): string | undefined {
   const normalized = normalizeAnchor(anchor)
   if (normalized.t !== 'el') return undefined
@@ -261,11 +254,7 @@ function buildFallbackRenderings(
   })
 }
 
-/**
- * Build both recall inputs from structured runner state. Fallback renderings are candidates only:
- * callers use them after exact/normalized anchor lookup misses and may set the admission
- * anchorExact carve-out only after a lexical hit re-confirms reconfirmToken.
- */
+// Fallback renderings are candidates only, used after exact and normalized anchor lookups miss.
 export function buildRetrievalQuery(input: RetrievalQueryInput): RetrievalQuery {
   const normalizedAnchors = input.anchors.map((anchor) => normalizeAnchor(anchor))
   const anchorLookupKeys = normalizedAnchors.map((anchor) => canonicalJson(anchor))

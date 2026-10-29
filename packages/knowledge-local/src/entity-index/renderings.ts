@@ -1,21 +1,4 @@
-// Entity renderings for the D-06 projection, under the §5.3 embed-human-renderings law.
-//
-// Two audiences, one descriptor, and keeping them apart is the whole point.
-//
-// The DENSE leg indexes MEANING. What it must be able to answer is "the test where we buy
-// something" -> the checkout test, and the only text that can support that is text a human
-// would recognise: the kind said in words, the title as somebody wrote it. An opaque machine
-// id contributes nothing an embedding model can use and actively costs — it is a long token
-// of noise sitting inside a vector that has a fixed budget of meaning.
-//
-// The LEXICAL leg indexes IDENTITY. `TST-001`, the URI and the machine id are exact handles:
-// they either match or they do not, and BM25 over the identity column is exactly the right
-// instrument for that. They live there and nowhere else.
-//
-// The one deliberate crossing is slug-addressed kinds: a target's machine id ALREADY is
-// the human name its config gave it, so `checkout-web` is meaning, not a digest. Its words are
-// split out and embedded, because refusing to would make the one kind whose machine id is
-// readable the one kind semantic phrasing could not find.
+// Dense text is meaning, lexical text is identity; a readable slug machine id is embedded too.
 
 import { ENTITY_URI_SEGMENTS, isSlugAddressedKind } from '@vostride/agent-qa-schema'
 import type { EntityDescriptor } from '@vostride/agent-qa-schema'
@@ -70,8 +53,7 @@ export function renderEntityForEmbedding(descriptor: EntityDescriptor): string {
 /** Project one descriptor onto its four indexed columns. */
 export function renderEntity(descriptor: EntityDescriptor): EntityRendering {
   const identity = [descriptor.shortId, descriptor.uri, descriptor.machineId]
-  // A recorded rename keeps the predecessor findable by the successor's handle too, which is
-  // what makes an old CI log's short-ID an explanation rather than a dead end.
+  // A recorded rename keeps the predecessor findable by the successor's handle.
   if (descriptor.successorMachineId !== undefined) identity.push(descriptor.successorMachineId)
 
   return {

@@ -1,24 +1,4 @@
-// D-17's two halves, measured through the REAL matcher.
-//
-// Procedure-by-reference is a claim with two parts, and this file exists because only one of them
-// can be checked where the authoring code lives.
-//
-//   THE COMMITTED FILE CARRIES NO RECORD ID.  A property of what the compile prompt renders, and
-//   `packages/agent`'s own suite owns it.
-//   THE STEP'S WORDS ACTUALLY REACH THE PROCEDURE.  A property of `matchProcedure`, and nothing in
-//   `packages/agent` can see it: that matcher lives here, and `agent` declares exactly `runner`,
-//   `safety`, `schema`, `ai` and `zod`, so importing it there is a `validate:arch` violation with
-//   no legal repair. This package already depends on `agent`, so the link is expressible in this
-//   direction and in no other.
-//
-// WHY THE MEASUREMENT MATTERS RATHER THAN THE ASSERTION. "Author the step in the anchor's
-// vocabulary" is a design choice that could easily be decorative — the matcher admits on ANCHOR
-// overlap, which is a fact about the screen rather than about the step text, so a reader could
-// reasonably conclude the words make no difference. They do, and the difference is the one that
-// decides whether a procedure is REPLAYED or merely hinted at: the step text enters the fold as a
-// lexical term, and on a partially-matched anchor set it is what carries the composed confidence
-// across the replay floor. Both directions are driven below over one candidate that differs in
-// nothing but the intent it is asked about.
+// The matcher lives here and `agent` cannot import it, so the step-words half is measured here.
 
 import {
   asRecordId,
@@ -38,7 +18,7 @@ import { describe, expect, it } from 'vitest'
 import { makeProcedureBodyPayloadFixture } from '../../__tests__/fixtures/bundle-fixture.js'
 import { matchProcedure, type ProcedureMatchCandidate } from '../get-procedure.js'
 
-/** The record's flow anchor — the one D-17 says a compiled step is authored in the words of. */
+// The record's flow anchor, whose words a compiled step is authored in.
 const SIGN_IN_FLOW: Anchor = { t: 'flow', name: 'Sign in with a saved account' }
 
 /**
@@ -196,21 +176,14 @@ describe('a step that matches no procedure simply plans normally', () => {
       availability: AVAILABILITY,
     })
 
-    // D-17's graceful miss, at the seam that decides it. `undefined` is what the runner's step-start
-    // consult reads as "no procedure applies", and it then plans the step exactly as it plans any
-    // other — so an authored step whose flow this project has never learned costs nothing and
-    // behaves like ordinary prose, which is the property that makes authoring to the vocabulary
-    // safe to do unconditionally.
+    // `undefined` means no procedure applies: an unlearned flow costs nothing and plans as prose.
     expect(match).toBeUndefined()
   })
 })
 
 describe('the vocabulary is derived from the anchor alone', () => {
   it('renders every anchor arm in the record own words, and can carry no record id', () => {
-    // The function's ARGUMENT is the mitigation: a `ProcedureMatch` carries `id`, and a
-    // vocabulary derived from an `Anchor` has no id in scope to leak into an authored file. This
-    // cell states that as a property of the values it produces, arm by arm, so a later widening of
-    // the signature to take the whole match would have to move this line too.
+    // Takes an `Anchor`, not a `ProcedureMatch`, so no record id can leak into an authored file.
     const rendered = [
       procedureStepVocabulary({ t: 'flow', name: 'Sign in with a saved account' }),
       procedureStepVocabulary({ t: 'page', route: '/login' }),

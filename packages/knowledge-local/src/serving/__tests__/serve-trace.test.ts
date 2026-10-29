@@ -1,15 +1,4 @@
-/**
- * The serve-time retrieval trace at every serving entry.
- *
- * These cases pin what the trace CLAIMS, not merely that a trace object exists. Two failure modes
- * this file is deliberately built against:
- *
- *  - a bound whose input domain never reaches it (the truncation cases feed EXACTLY the pinned
- *    top-K and exactly K+1, never "a lot");
- *  - an attribution nothing could contradict (the authoring cases construct one candidate per leg
- *    so a constant `leg` fails, and the leg-vocabulary case executes the real retrieval legs
- *    rather than reading their source).
- */
+// Truncation cases feed exactly top K and K+1, and authoring cases give each leg one candidate.
 import {
   asRecordId,
   canonicalJson,
@@ -103,8 +92,7 @@ describe('Channel-1 run brief returns brief and trace as one value', () => {
     ])
     expect(CHANNEL_1_SERVING_LEG).toBe('anchor')
     expect(served.trace.truncated).toEqual([])
-    // The persisted shape must survive the boundary 387-02 put in front of the handoff loader:
-    // a trace that cannot parse would make the whole run handoff unloadable.
+    // A trace that cannot parse would make the whole run handoff unloadable.
     expect(ServedRetrievalTraceV1Schema.safeParse(served.trace).success).toBe(true)
   })
 
@@ -355,8 +343,7 @@ describe('Channel-3 caution selection returns block and trace as one value', () 
     })
 
     expect(result.overflow).toBeDefined()
-    // The reserved overflow line reports only a COUNT; the trace names the records, which is
-    // exactly the "why didn't it mention X" gap D-14 exists to close.
+    // The overflow line reports only a count; the trace names the records.
     expect(result.trace.truncated.map(({ recordId }) => recordId)).toEqual([
       'c_one',
       'c_two',
@@ -494,10 +481,7 @@ describe('§10.6 authoring channel returns brief and trace as one value', () => 
   })
 
   it('records the whole-bucket shed a tight authoring budget produces', () => {
-    // The authoring assembly sheds a bucket WHOLE once any earlier bucket shed anything, without
-    // consulting the ledger again. Those candidates leave no mark in the brief at all, so a trace
-    // that only recorded ledger REFUSALS would be silent about exactly the case D-14 exists for.
-    // This corpus forces the caution bucket to shed, which closes the exemplar and fact buckets.
+    // Shedding the caution bucket closes the exemplar and fact buckets, which leave no brief mark.
     const corpus = authoringInput({
       entries: [
         entryCandidate({
@@ -579,8 +563,7 @@ describe('§10.6 authoring channel returns brief and trace as one value', () => 
 
 describe('a trace line is always persistable', () => {
   it('normalizes a non-finite score and a sub-1 rank rather than emitting an unloadable trace', () => {
-    // 387-02 gave the handoff loader a present-implies-valid clause for the trace, so ONE bad
-    // number would make an entire run handoff unloadable instead of degrading one attribution.
+    // One bad number in a trace would make the whole run handoff unloadable.
     const line = traceLine({
       recordId: 'r',
       leg: 'anchor',

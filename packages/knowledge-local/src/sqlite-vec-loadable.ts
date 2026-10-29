@@ -1,3 +1,2 @@
-// D-11 keeps native-extension package resolution behind one internal boundary.
-// index-open consumes this named export and remains responsible for load failures.
+// Native-extension resolution stays behind this boundary; `index-open` owns load failures.
 export { getLoadablePath } from 'sqlite-vec'

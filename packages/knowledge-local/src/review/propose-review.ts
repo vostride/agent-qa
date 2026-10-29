@@ -1,14 +1,4 @@
-// Resolve a review target and compute the deltas a change writes.
-//
-// Every function in this module is a READ of the knowledge store. Nothing here imports the curator,
-// `commit`, `publishBundle`, `appendOutcomeEvent`, the index, or the writer lease — there is no
-// handle in this file through which a byte of the knowledge store could change. `apply-review.ts`
-// holds the one write path and calls in here for the target and the deltas.
-//
-// the propose half that minted proposal files into
-// `<agentQaRoot>/proposals/` is deleted with the inbox. A change applies in the call through
-// `applyExplicitReview`; old proposal files are never read again. The module keeps its name so its
-// history stays addressable.
+// Reads only: nothing here can change a byte of the knowledge store; `apply-review.ts` writes.
 
 import { asRecordId, canonicalJson, KnowledgeMarkInputSchema } from '@vostride/agent-qa-schema'
 import type {
@@ -106,35 +96,7 @@ export function resolveReviewTarget(
   return undefined
 }
 
-/**
- * The deltas a change commits.
- *
- * `origin: 'user'` on all three, and it is the load-bearing field rather than boilerplate: a
- * review verb exists because a PERSON decided something about a record, and `agent` origin is
- * downgraded by disposition's autonomy floor precisely so an agent cannot make this call for
- * itself. Attributing a human's accept to the agent would launder the decision.
- *
- * `authorship` is deliberately UNSET, and the reason is a real gap rather than a preference.
- * `CurationAuthorshipPath` is `llm | llm-repaired | deterministic-fallback` — there is no member
- * meaning "a person decided this". `deterministic-fallback` is the closest in spirit, but it names
- * the code-built fallback, which never authors a `Deprecate`, so claiming it would misstate who
- * decided. So the deltas carry no authorship and the bridge's own default applies, and
- * the human attribution lives where it is actually true: `origin: 'user'` on the committed delta. Widening the authorship vocabulary is a
- * curator-contract change with a trust-fold blast radius; 391, which owns the review engine and
- * the standing-grant model, is where a `human` path belongs. Recorded in `.planning/WINDOWS.md`.
- *
- * Forget is a `Deprecate` and not a new delta kind. §7.7's law is tombstone-never-destroy plus
- * scrub-every-projection, and that is exactly what a deprecation already does in this store: the
- * outcome event is appended (history is never rewritten), the derived status becomes `deprecated`,
- * and the projection unit's `scrubDeadRecallRows` removes the lexical, dense and graph recall rows
- * on the next projection. A new kind would have been a SECOND write vocabulary reaching the same
- * machinery — and the destructive verb, `purgeRecord`, is D-14's true-delete exemption which
- * forget is explicitly not.
- *
- * `changeId` is the stable identity of the change, derived from the caller's operation identity
- * Accept's evidence
- * token and forget's reason are derived from it, so a retried change is the same change.
- */
+// `origin: 'user'` matters: agent origin is downgraded so an agent cannot make a person's call.
 export function reviewDeltasFor(
   request: ReviewChangeRequest,
   resolved: ResolvedReviewTarget,

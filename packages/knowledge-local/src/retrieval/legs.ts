@@ -1,9 +1,4 @@
-/**
- * Fail-closed recall legs for memory.md §5.5.2 (377 D-13/T-377-21..23).
- *
- * SQLite owns scope/status exclusion at each scan. Scores stay on their native positive scales for
- * the admission gate, and every ordering ends in a stable record or bundle identity.
- */
+// SQLite excludes by scope and status at each scan; every ordering ends in a stable identity.
 import type { DatabaseSync } from 'node:sqlite'
 
 import {

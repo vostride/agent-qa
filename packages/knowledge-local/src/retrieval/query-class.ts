@@ -1,7 +1,4 @@
-/**
- * D-06's closed query-class contract. The classifier is deterministic and total; future learned
- * weights may replace class vectors, but they must not replace or widen these classes implicitly.
- */
+// Closed and total: learned weights may replace class vectors, never the classes.
 export type QueryClass = 'literal' | 'mixed' | 'semantic'
 
 const ID_SELECTOR_TOKEN = /^#[A-Za-z_][A-Za-z0-9_-]*[.,;!?]?$/
@@ -44,10 +41,7 @@ function isOnlyLiteralShape(value: string, tokens: readonly string[]): boolean {
   return tokens.length > 0 && tokens.every(isLiteralToken)
 }
 
-/**
- * Classify query text through anchored linear-time detectors only.
- * Empty or detector-free input is semantic; literal-shaped input plus prose is mixed.
- */
+// Anchored linear-time detectors only; empty input is semantic, literal shapes plus prose mixed.
 export function classifyQuery(lexicalQuery: string): QueryClass {
   const value = lexicalQuery.trim()
   if (value === '') return 'semantic'

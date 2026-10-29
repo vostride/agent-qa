@@ -1,14 +1,4 @@
-// FLOOR-LAZY-IMPORT (431-06 task 1 · D-09 · T-431-13): the floor tokenizer runtime loads when an
-// embedding is acquired, never when the wrapper is imported.
-//
-// THE OBSERVATION IS A LOAD, NOT A CALL. The mock factory below runs exactly when some module
-// resolves `@huggingface/tokenizers`, and it hands back the real package, so every vector here is
-// a real floor vector. Each cell re-registers the factory over a reset module graph, because a
-// mocked module instance otherwise survives `vi.resetModules()`; the counter is what that cold
-// graph loaded. A failing factory re-registers itself, so a retry is a genuine second load.
-//
-// The cross-process proof (a real MCP host under a pre-import loader trap) is
-// packages/cli/src/__tests__/mcp-cold-start-no-embedder.test.ts.
+// The factory hands back the real package and runs on each resolve, so it counts loads, not calls.
 
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'

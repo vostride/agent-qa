@@ -207,9 +207,7 @@ const curationAuthorshipSchema: z.ZodType<CurationAuthorship> = z
   .strict()
 
 const envelopeShape = {
-  // Projected from the schema package's registry rather than re-listed here. A hand-written
-  // member list is the class of defect this phase keeps closing: it is a second vocabulary that
-  // has to be kept in step with the first, and nothing makes it.
+  // Projected from the schema registry, so no second vocabulary has to be kept in step.
   origin: z.enum(DELTA_ORIGINS),
   scope: scopeSchema,
   citedIds: z.array(recordIdSchema),

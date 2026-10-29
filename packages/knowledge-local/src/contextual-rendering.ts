@@ -1,9 +1,4 @@
-/**
- * Phase 377 D-01/D-02 contextual rendering (memory.md §5.3).
- *
- * The complete rendering is a derived-index projection only. Committed bundle bytes retain their
- * self-fields rendering and never depend on cross-bundle graph state.
- */
+// A derived-index projection only; committed bundle bytes never depend on cross-bundle graph state.
 import type { DatabaseSync } from 'node:sqlite'
 
 import { recordGraphNode } from '@vostride/agent-qa-schema'

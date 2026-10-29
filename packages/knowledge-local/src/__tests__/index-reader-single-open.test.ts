@@ -1,15 +1,4 @@
-// The serving facade opens the index ONCE (407-13, REVIEW CR-02).
-//
-// 407-03 extracted the degrade ladder into `classifyIndexFace` so `doctor` and the runner's rung
-// resolver could ASK about the index without mutating it. The extraction closed the probe's
-// connection unconditionally and had `openKnowledgeReader` open a SECOND one — a TOCTOU window in
-// which lock contention from a writer, a drain or a sibling reader turns a perfectly healthy index
-// into a durable `locked` rebuild request plus a process-lifetime swap to bundle scan.
-//
-// These cells instrument `openIndexReaderConnection` itself, because the defect is not visible in
-// any observable of a single open: it is the SECOND open existing at all. The instrumented opener
-// makes "how many times did the serving path open?" a first-class assertion, and lets cell (2)
-// hold the lock across a window that no wall-clock race could hit reliably.
+// Instruments the opener: the defect is a second open, invisible in any single open's result.
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -116,10 +105,7 @@ describe('openKnowledgeReader — one open on the healthy path', () => {
     const knowledgeRoot = await healthyRoot()
     opener.mockClear()
 
-    // The whole CR-02 mechanism, made deterministic: the FIRST open answers the real healthy
-    // connection, and every later open behaves exactly as a contended sqlite open does — it
-    // throws `database is locked`. Pre-fix this answered `scan` and wrote a `locked` rebuild
-    // marker for an index that was, and remained, perfectly healthy.
+    // The first open is healthy; each later open throws `database is locked`, like a contended one.
     opener.mockImplementationOnce((root, opts) => realOpen(root, opts))
     opener.mockImplementation(() => {
       throw new Error('database is locked')
@@ -152,7 +138,6 @@ describe('openKnowledgeReader — one open on the healthy path', () => {
 
     expect(classifyIndexFace(knowledgeRoot)).toEqual({ source: 'index' })
     expect(opener.mock.calls.length).toBe(1)
-    // asking about the index is not a mutation of it, and it is not a connection leak.
     expect(closeCalls).toBe(1)
     expect(markerExists(knowledgeRoot)).toBe(false)
   })

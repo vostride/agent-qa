@@ -346,17 +346,7 @@ describe('fail-closed retrieval legs', () => {
     })
   })
 
-  /**
-   * 387-04 (387-02 handoff note 1): the retrieval-leg vocabulary is declared TWICE — as the
-   * module-private `CandidateLeg` in `retrieval/legs.ts`, and as `RETRIEVAL_TRACE_LEGS` in
-   * `schema`, which the serve-time trace's `leg` field is closed over. `schema` sits BELOW this
-   * package, so it cannot import the private type; this package depends on both and is the only
-   * place the two can be compared. A comment in the trace DTO claims they agree — this executes
-   * the real legs and measures it.
-   *
-   * Two-sided by construction: a fourth leg name emitted here fails the equality, and a name
-   * dropped from the schema vocabulary fails it too.
-   */
+  // `schema` cannot import the private `CandidateLeg`, so only this package can compare the two.
   it('emits exactly the leg names the trace vocabulary declares', async () => {
     const rowid = insertRecord({ bundleId: 'tri-leg', vector: unitVector(1) })
     insertFts(rowid, { identity: 'checkout' })

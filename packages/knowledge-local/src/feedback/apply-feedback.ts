@@ -1,4 +1,4 @@
-// mechanical drafting over recorded data only.
+// Mechanical drafting over recorded data only.
 import {
   IMPROVEMENT_PLAN_SCHEMA_VERSION,
   ImprovementPlanSchema,

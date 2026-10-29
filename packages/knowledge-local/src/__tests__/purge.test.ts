@@ -698,7 +698,7 @@ describe('sovereign purge', () => {
       caught = error
     }
     expect(caught).toBeInstanceOf(purgePlanningApi().PurgeTargetChangedError)
-    // the fingerprint is the caller's preview, not a confirmation.
+    // The fingerprint is the caller's preview, not a confirmation.
     expect(caught).toMatchObject({
       code: 'purge-target-changed',
       message: 'purge target set changed after the preview',

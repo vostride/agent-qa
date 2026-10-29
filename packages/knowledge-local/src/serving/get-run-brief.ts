@@ -83,10 +83,7 @@ function truncationSignal(
   return signals.join('\n')
 }
 
-/**
- * The Channel-1 brief together with the serve-time trace that explains it. One value,
- * never two calls: a caller cannot obtain the brief without also receiving how it was chosen.
- */
+// One value, so a caller cannot get the brief without the trace that explains it.
 export interface AssembledRunBrief {
   readonly brief: BriefBlock
   readonly trace: ServedRetrievalTraceV1
@@ -137,16 +134,7 @@ function assembleTrace(
   return composeServedTrace({ servedLines, truncated })
 }
 
-/**
- * Assemble the deterministic Channel-1 brief over records already loaded by the reader, together
- * with its serve-time retrieval trace.
- * L0 is sovereign and whole; the supplied budget applies only to learned L1/L2 records.
- *
- * The trace covers the LEARNED lines only. Sovereign L0 user facts never enter the ranking — they
- * are filtered out before selection and served whole because they are sovereign — so listing them
- * in a retrieval trace would attribute them to a leg that took no part in serving them. Their
- * "why" is the sovereignty rule, not a retrieval decision.
- */
+// L0 is served whole and outside the trace; the budget applies to learned L1 and L2 records only.
 export function assembleRunBrief(input: AssembleRunBriefInput): AssembledRunBrief {
   const userFacts = input.candidates.filter(isUserFact).sort(compareRecordId)
   const learnedCandidates = input.candidates.filter((entry) => !isUserFact(entry))

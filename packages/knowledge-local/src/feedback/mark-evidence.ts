@@ -1,5 +1,4 @@
-// append evidence under the caller's authority.
-// executes the shared read-only plan; only the append half stays here.
+// Executes the shared read-only plan and appends evidence under the caller's authority.
 import { asRecordId, type CompletedRunHandoff, type ExecutionContext, type MarkReceipt } from '@vostride/agent-qa-schema'
 import { appendOutcomeEvent } from '../bundle-append.js'
 import type { BundleStoreConfig } from '../bundle-publish.js'

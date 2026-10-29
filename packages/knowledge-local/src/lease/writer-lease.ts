@@ -46,19 +46,7 @@ export const WRITER_AUTHORITY_DB_FILE = '.writer-authority.sqlite'
  */
 export const MUTATION_LOCK_BUSY_TIMEOUT_MS = 2_000
 
-/**
- * Provisional acquisition deadline; retune from operational evidence without adding config.
- *
- * V-02: the retry loop's only exits used to be facts about the lease and the lock, and a state the
- * phase itself models — an epoch-invalid lease kept fresh by a renewal sidecar while a live owner
- * holds the authority transaction — satisfies none of them. A contender then spins on the caller's
- * main thread forever, which is what `agent-qa daemon` startup and `agent-qa knowledge drain` do.
- *
- * The bound is therefore anchored OUTSIDE that vocabulary: a monotonic clock reading taken at loop
- * entry plus an attempt counter, neither of which any on-disk value can influence. Deliberately
- * greater than MUTATION_LOCK_TAKEOVER_MS so a legitimate escalated takeover still fits inside the
- * budget and the deadline never pre-empts a reclaim that was going to succeed.
- */
+// A monotonic deadline no on-disk value can move; above the takeover bound, so a reclaim fits.
 export const ACQUIRE_WRITER_LEASE_DEADLINE_MS = 60_000
 
 /** Provisional cap on one `ps` incarnation fork; retune from operational evidence without config. */
@@ -134,15 +122,7 @@ export type AcquireWriterLeaseOutcome =
   | {
       kind: 'refused'
       reason: 'mutation-lock-unreclaimable'
-      /**
-       * Both refusal arms carry a thrown-shaped `error` ON PURPOSE.
-       *
-       * Every caller of this union already renders `refused` as `[reason]: error.message` or
-       * rethrows it, so a new arm that also carries one is surfaced by name at every entry point —
-       * including any added later — without a list of call sites to keep in step. Naming the
-       * refusal is the requirement; enumerating the callers who must name it is the failure mode
-       * this phase keeps rediscovering.
-       */
+      // Both refusal arms carry an `error`, so every caller renders a new arm by name.
       error: WriterLeaseUnreclaimableError
       attempts: number
       waitedMs: number

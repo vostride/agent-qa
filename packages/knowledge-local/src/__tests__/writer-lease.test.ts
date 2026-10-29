@@ -47,16 +47,13 @@ import {
 import { RESOLVE_TS_SOURCE_HOOK } from '../lease/__tests__/source-import-hook.js'
 
 const WRITER_LEASE_MODULE_URL = new URL('../lease/writer-lease.ts', import.meta.url).href
-/**
- * `writer-lease.ts` now imports the shared knowledge-root
- * containment check, so a child loading it from source resolves its `.js` specifiers to `.ts`.
- */
+// A child loading `writer-lease.ts` from source needs its `.js` specifiers resolved to `.ts`.
 const LEASE_SOURCE_CHILD_ARGV = [
   '--experimental-strip-types', '--input-type=module',
   '--import', `data:text/javascript,${encodeURIComponent(RESOLVE_TS_SOURCE_HOOK)}`,
 ]
 
-/** WR-04 crash seam: the acquired path publishes the epoch before it publishes the lease. */
+// Crash seam: the acquired path publishes the epoch before it publishes the lease.
 type AcquireWithEpochSeam = (
   knowledgeRoot: string,
   hooks: {
@@ -67,12 +64,7 @@ type AcquireWithEpochSeam = (
 
 const acquireWithEpochSeam = acquireWriterLease as AcquireWithEpochSeam
 
-/**
- * W-05 observation seam: report every process-incarnation resolution the escalation path performs.
- *
- * Mirrors the `mutationLockTakeoverMs` / `acquireDeadlineMs` idiom — a test-only observer that
- * never replaces the production resolver, so the count being asserted is the count production pays.
- */
+// Test-only observer of every incarnation resolution; the production resolver still runs.
 type AcquireWithIncarnationObserver = (
   knowledgeRoot: string,
   hooks: {
@@ -186,20 +178,7 @@ function waitForFileInTest(file: string, timeoutMs: number): Promise<void> {
   return waitForConditionInTest(() => existsSync(file), timeoutMs, `file ${file}`)
 }
 
-/**
- * Wait for a subprocess-written pid file to hold a COMPLETE value, then answer it.
- *
- * 395-15's discipline applied to the read site it did not reach: a marker another process writes
- * is ready when its CONTENT parses, never when its inode appears. `writeFileSync` in the child is
- * create-then-write at the syscall level, so a reader that waits on `existsSync` can and does
- * observe zero bytes — and `Number(''.trim())` is `0`, which is why the failure spelled itself
- * `bad orphan pid: 0`. That value is unreachable from any COMPLETED write: the child writes
- * `String(child.pid)`, which is either a positive integer or the string `undefined`. Measured on
- * the same writer schedule under contention: the inode shape faulted 3000/3000, this one 0/3000.
- *
- * The deadline names the path AND the last thing the file held, so a genuine red — a child that
- * really never wrote — reads as itself rather than as a bare timeout.
- */
+// Waits for the content to parse, not the inode: a child's create-then-write can be read as empty.
 async function waitForPidFileInTest(file: string, timeoutMs: number): Promise<number> {
   let lastSeen = '<file absent>'
   let pid = 0
@@ -339,13 +318,7 @@ function spawnClaimedLeaseAcquirer(
   )
 }
 
-/**
- * An unrelated process that merely occupies a pid.
- *
- * CR-04's threat is a crashed owner whose pid is later handed to a stranger. This child never
- * touches the authority store, so anything that reaches it arrived purely because a durable row
- * still names its pid.
- */
+// A stranger holding a crashed owner's pid; anything that reaches it came through a durable row.
 function spawnIdleSurrogate(exitPermitFile: string): ChildProcessWithoutNullStreams {
   const source = `
     const { existsSync } = await import('node:fs');
@@ -1018,14 +991,7 @@ describe('writer lease mutation lock ownership', () => {
   }, 10_000)
 })
 
-/**
- * one three-valued freshness derivation, and a beat the mutation lock cannot starve.
- *
- * The two live together because they are the same mechanism change: freshness is derived from the
- * disk epoch and the lease TTL alone, and the heartbeat writes `.lease` directly. There is no
- * second freshness channel for an unreadable epoch to be laundered through, and no contention
- * state for the beat to diverge into.
- */
+// Freshness comes from the disk epoch and lease TTL alone; the heartbeat writes `.lease` directly.
 describe('three-valued freshness and the lock-free heartbeat', () => {
   let root: string
   let knowledgeRoot: string
@@ -1075,14 +1041,7 @@ describe('three-valued freshness and the lock-free heartbeat', () => {
     }
   }
 
-  /**
-   * The CR-01 rejecting corpus, drawn from OUTSIDE the guard's own assumption.
-   *
-   * The previous derivation only ever answered a boolean, so an unreadable `.epoch` — EACCES, EIO,
-   * EMFILE, not corrupt bytes — produced the same value a genuinely expired lease produces. Both
-   * directions of that collapse are asserted here: over a fresh lease AND over a TTL-stale one the
-   * answer is `unknown`, so nothing inside the derivation resolves it toward either boolean.
-   */
+  // An unreadable `.epoch` answers `unknown` over both a fresh and a stale lease, never a boolean.
   it.runIf(canMakeFilesUnreadable)(
     'answers unknown for an unreadable epoch over both a fresh and a stale lease',
     () => {
@@ -1220,14 +1179,7 @@ describe('three-valued freshness and the lock-free heartbeat', () => {
     },
   )
 
-  /**
-   * The decisive CR-01 direction at the escalation gate, driven at the process level.
-   *
-   * An unreadable `.epoch` used to collapse to "not fresh", which is the same value a genuinely
-   * expired lease produces, so a healthy holder inside its own governed mutation became a SIGKILL
-   * target on a read error. The refusal must be typed and the holder must be untouched: no signal,
-   * no lease rewrite, no epoch rewrite.
-   */
+  // An unreadable `.epoch` at the escalation gate refuses, typed, and leaves the holder untouched.
   it.runIf(canMakeFilesUnreadable)(
     'refuses instead of escalating when the epoch turns unreadable over a live holder',
     async () => {
@@ -1276,14 +1228,7 @@ describe('three-valued freshness and the lock-free heartbeat', () => {
   })
 })
 
-/**
- * the mutation-lock row's generation token authenticates the ROW, not the process that
- * currently occupies the recorded pid. After a crash plus pid reuse, escalation would otherwise be
- * a local arbitrary-process-termination primitive.
- *
- * The lock table's shape is written out literally here on purpose: these cases pin the durable
- * contract a contender reads, independently of whatever the module names its own column.
- */
+// The token authenticates the row, not whoever holds the pid; the shape is the durable contract.
 const LEGACY_MUTATION_LOCK_TABLE = `
   CREATE TABLE IF NOT EXISTS mutation_lock (
     id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -1629,19 +1574,7 @@ describe('mutation-lock owner process incarnation', () => {
     expect(await surrogateExit).toMatchObject({ code: 0, signal: null })
   }, 25_000)
 
-  /**
-   * W-06: the schema upgrade is an unserialized check-then-ALTER, so two daemons starting against
-   * one legacy store can both decide the column is missing.
-   *
-   * The race is driven deterministically rather than hoped for: the winner holds the write
-   * transaction, this process enters the upgrade and blocks inside `ALTER` (its busy timeout is
-   * 2 s), and the winner adds the column and commits INSIDE that window. The loser then wakes,
-   * re-prepares against the new schema, and gets `duplicate column name` — an error `isSqliteBusy`
-   * does not match, so before the fix it escaped as a raw SqliteError and killed a starting daemon.
-   *
-   * The `elapsedMs` assertion is the leg's own precondition, not decoration: an upgrade that
-   * returned promptly never blocked, which means the window was missed and the case proved nothing.
-   */
+  // The `ALTER` race loser must tolerate `duplicate column name`; `elapsedMs` proves it blocked.
   it('completes a schema upgrade that loses the ALTER race to another connection', async () => {
     seedMutationLockRow({
       pid: process.pid,
@@ -1693,17 +1626,7 @@ describe('mutation-lock owner process incarnation', () => {
     expect(acquireWriterLease(knowledgeRoot, { mutationLockTakeoverMs: 0 }).kind).not.toBe('refused')
   }, 40_000)
 
-  /**
-   * The other half of W-06, and the one the duplicate-column case cannot reach: the catch must be
-   * a CLASSIFIER, not a swallow.
-   *
-   * Found by probing my own control — a `catch { }` that discards every ALTER failure passes the
-   * race case above, because that case only ever asks whether the benign error was tolerated. Here
-   * the upgrade fails for a reason that is NOT benign (the write lock is held past the whole
-   * acquisition budget), and the difference is observable: keeping the error's meaning yields the
-   * typed unreclaimable refusal, while discarding it lets the flow proceed onto a table that still
-   * has no `incarnation` column and die there with a raw SQL logic error.
-   */
+  // A non-duplicate `ALTER` failure must stay a typed refusal, not be swallowed.
   it('keeps a non-duplicate upgrade failure meaningful instead of swallowing it', () => {
     seedMutationLockRow({
       pid: process.pid,
@@ -1731,7 +1654,7 @@ describe('mutation-lock owner process incarnation', () => {
     }
   }, 40_000)
 
-  /** A repeated upgrade over an already-upgraded store stays a no-op (the cheap half of W-06). */
+  /** A repeated upgrade over an already-upgraded store stays a no-op. */
   it('leaves an already-upgraded store untouched when the upgrade runs again', () => {
     seedMutationLockRow({
       pid: process.pid,
@@ -1750,16 +1673,7 @@ describe('mutation-lock owner process incarnation', () => {
   }, 25_000)
 })
 
-/**
- * W-05: what an escalated takeover COSTS the caller that asked for the lock.
- *
- * Both legs use the one shape that makes the post-signal wait genuinely run: an owner whose parent
- * never reaps it. `SIGKILL` cannot be survived, but a killed child of a process that never returns
- * to its event loop stays an unreaped zombie, and `kill(pid, 0)` keeps answering "alive" for as
- * long as that parent lives. This is not a contrived shape — a daemon spinning synchronously on its
- * main thread is precisely the V-02 finding this phase reproduced, and its children are precisely
- * these zombies.
- */
+// An unreaped zombie child keeps answering `kill(pid, 0)`, so the post-signal wait really runs.
 describe('escalation cost and budget on the acquisition hot path', () => {
   let root: string
   let knowledgeRoot: string
@@ -1938,7 +1852,7 @@ describe('escalation cost and budget on the acquisition hot path', () => {
         }
         expect(processState(orphanPid)).toBe('Z')
         const ownerResolutions = resolvedPids.filter((pid) => pid === orphanPid)
-        // The 386-31 mandate: the identity is re-read immediately before every signal decision.
+        // The identity is re-read immediately before every signal decision.
         expect(ownerResolutions.length).toBeGreaterThanOrEqual(1)
         // ...and nowhere else. The exit wait polls kill(pid, 0); moving incarnation resolution
         // into that loop turns one shell fork per attempt into one per 10 ms poll.
@@ -1951,16 +1865,7 @@ describe('escalation cost and budget on the acquisition hot path', () => {
   )
 })
 
-/**
- * V-02: the acquisition retry loop must end, and the bound must be anchored OUTSIDE the lease
- * vocabulary it is arbitrating.
- *
- * The verifier reproduced an unbounded synchronous spin here with two probes. Both are converted
- * below into rejecting tests, and both keep their adversary ALIVE for the entire observation
- * window — a probe whose blocker dies early proves nothing about a bound. The contender runs in a
- * child process so a still-defective build fails as "no outcome within the watchdog" rather than
- * hanging the suite, which is exactly how the verifier had to observe it (SIGKILL at 25 s / 100 s).
- */
+// The retry loop must end on a bound outside the lease vocabulary; the contender runs in a child.
 describe('writer lease acquisition deadline against an unreclaimable owner', () => {
   let root: string
   let knowledgeRoot: string
@@ -2171,9 +2076,7 @@ describe('writer lease acquisition deadline against an unreclaimable owner', () 
     const lease = JSON.parse(
       readFileSync(join(knowledgeRoot, LEASE_FILE), 'utf8'),
     ) as WriterLease
-    // The verifier's decisive shape, carried across the mechanism change: the published lease
-    // names a superseded epoch while a live writer keeps beating it, so the epoch-strict
-    // busy-catch will never accept it as `held` and only the deadline can end the wait.
+    // A superseded epoch a live writer beats is never `held`, so only the deadline ends the wait.
     writeFileSync(join(knowledgeRoot, EPOCH_FILE), `${lease.epoch + 1}\n`, 'utf8')
     const renewer = spawnLeaseBeater(lease.leaseId)
     await waitForOutput(renewer, 'beating\n')
@@ -2221,20 +2124,7 @@ describe('writer lease acquisition deadline against an unreclaimable owner', () 
   }, 60_000)
 })
 
-/**
- * the `ps` fork on the pre-signal path is the last wait beneath the acquisition deadline
- * that could outlive it.
- *
- * The guard-REJECTING input domain is a process table that will not answer: these legs hand the
- * child's code under test, through the test-only `psExecutable` seam, a `ps` that sleeps far past
- * any budget, which is the one input class the cap exists to refuse. The accepting control hands
- * it a pass-through to `/bin/ps`, so the only difference between "no signal" and "SIGKILL" is
- * whether the resolution returned inside its cap.
- *
- * Platform bound, stated rather than hidden: `resolveProcessIncarnation` reads `/proc/<pid>/stat`
- * on Linux and forks `ps` everywhere else POSIX. The residual being closed therefore only EXISTS
- * on the `ps` hosts, and so does its rejecting corpus. Windows resolves to `undefined` outright.
- */
+// Only hosts that fork `ps` (not Linux or Windows) can hang on a process table that never answers.
 const runsPsIncarnation = process.platform !== 'win32' && process.platform !== 'linux'
 const itOnPsHosts = runsPsIncarnation ? it : it.skip
 
@@ -2503,23 +2393,7 @@ describe('budget-capped process-incarnation resolution on the escalation path', 
     90_000,
   )
 
-  /**
-   * The OWN-pid fork, which round 5 found still spending the deadline on a bare constant.
-   *
-   * The three legs below are all driven from a CHILD process, deliberately and not for isolation
-   * hygiene: `ownProcessIncarnation` memoises at module scope, so in this suite's own process the
-   * question "did this claim fork `ps`?" has already been answered by whichever leg ran first.
-   * 386-46 measured exactly that trap (its deviation 2) and left the finding at
-   * `writer-lease.test.ts`'s leg-B comment. A fresh child is the only fixture that can still
-   * produce the value under test, so every assertion here reads a first-claim/second-claim pair
-   * inside one child rather than a count accumulated across sibling tests.
-   *
-   * What is read is the on-disk `mutation_lock` row's `incarnation` column, sampled at
-   * `afterMutationLockClaimed` (the claim is committed and the held transaction has not begun),
-   * because that column is the artifact a contender's `verifyMutationLockOwnerIdentity` actually
-   * consults. An assertion about the memo would be an assertion about this module's bookkeeping;
-   * an assertion about the row is an assertion about whether this daemon stays escalatable.
-   */
+  // Each leg runs in a fresh child, because `ownProcessIncarnation` memoises at module scope.
   const OWN_INCARNATION_CHILD_PRELUDE = `
     const { existsSync } = await import('node:fs');
     const { DatabaseSync } = await import('node:sqlite');
@@ -2628,8 +2502,7 @@ describe('budget-capped process-incarnation resolution on the escalation path', 
       // Phase 2 is the property. On the unmodified tree this is still `null` for the rest of the
       // process's life, and every one of its rows is `unverifiable` to every contender.
       expect(report.row2).toEqual({ pid: report.pid, incarnation: expectedIncarnation })
-      // Anchored to the OS, so a retry that invented or defaulted a token would fail here rather
-      // than pass a non-null check (the plan's prohibition, asserted).
+      // Anchored to the OS, so a retry that invented or defaulted a token fails here.
       expect(expectedIncarnation.startsWith('ps-lstart-utc:')).toBe(true)
     },
     90_000,
@@ -2733,15 +2606,7 @@ describe('budget-capped process-incarnation resolution on the escalation path', 
   )
 })
 
-/**
- * store contention on the owner read is a typed absence, not daemon death.
- *
- * The rejecting input is a store nobody can read: `readCommittedMutationLockOwner` opens read-only
- * with `timeout: 0`, and both of its callers publish its answer as part of a promise — the
- * busy-catch's `MutationLockBusyError`, and the acquisition deadline's typed
- * `mutation-lock-unreclaimable` refusal. A raw `SqliteError` from that read reached neither: it
- * propagated straight out of `acquireWriterLease`.
- */
+// Store contention on the owner read must be a typed absence, not escape `acquireWriterLease`.
 describe('store contention during acquisition diagnostics', () => {
   let root: string
   let knowledgeRoot: string
@@ -2856,14 +2721,7 @@ describe('store contention during acquisition diagnostics', () => {
   }, 60_000)
 })
 
-/**
- * the lease module's public export surface carries no fallow symbols.
- *
- * A symbol exported from the package index and imported by nobody is a claim the package makes
- * about its own contract that no consumer has ever tested. The two named residuals are checked
- * from OUTSIDE the module that defines them — through the package index itself — so the assertion
- * is about the surface rather than about the file.
- */
+// Checked through the package index, so the assertion is about the exported surface, not the file.
 describe('writer lease public export surface', () => {
   it('publishes no unreachable acquisition-refusal symbols', () => {
     const surface = publicWriterSurface as unknown as Record<string, unknown>
@@ -2876,19 +2734,7 @@ describe('writer lease public export surface', () => {
   })
 })
 
-/**
- * Round-5 CR-01: the sibling authority file gets the third value the epoch file already has.
- *
- * `.epoch` cannot be read -> `CorruptEpochStateError('unreadable')` -> `{kind:'unknown'}` -> every
- * consumer refuses. `.lease` could not be read, and answered `malformed` — the value a file full
- * of garbage bytes produces, which every consumer reads as *"nobody holds authority"*. The verifier
- * ran the difference as a controlled two-process differential and one leg ended with a live,
- * healthy, transaction-holding process dead of SIGKILL. That differential is this block.
- *
- * The corpus is drawn from OUTSIDE the guard's own assumption in the exact way the sibling-input
- * law names: the `chmod 0o000` primitive was already in this file six times and every one of them
- * targeted `EPOCH_FILE`. Here it targets `LEASE_FILE`.
- */
+// An unreadable `.lease` answers like an unreadable `.epoch`: unknown, so every consumer refuses.
 describe('the unreadable lease read and every consumer that names it', () => {
   let root: string
   let knowledgeRoot: string
@@ -2953,14 +2799,7 @@ describe('the unreadable lease read and every consumer that names it', () => {
     return holder.exit
   }
 
-  /**
-   * The read itself, at the boundary the derivation's own W-01 note puts the guard at.
-   *
-   * ENOENT is the only read failure that is evidence of absence; bytes that WERE read and failed
-   * to parse are still `malformed`; everything else is `unreadable` and carries its errno. The
-   * `existsSync` fallback the previous implementation used is what degraded an EMFILE read into
-   * `absent` under fd exhaustion — the file handle it needs is the one that just ran out.
-   */
+  // Only ENOENT is absence; unparseable bytes are `malformed`, every other failure `unreadable`.
   it.runIf(canMakeFilesUnreadable)(
     'answers unreadable with its errno for a lease file that exists and cannot be opened',
     () => {
@@ -3015,14 +2854,7 @@ describe('the unreadable lease read and every consumer that names it', () => {
     expect(await releaseLiveHolder(holder)).toMatchObject({ code: 0, signal: null })
   }, 25_000)
 
-  /**
-   * Leg B — the rejecting direction, discriminated from leg A by exactly one `chmod`.
-   *
-   * Round 5 observed `{kind:'acquired', epoch:2}` here (spot-check 2) and, at the escalation
-   * surface, the owner dead of SIGKILL (spot-check 3b). Both consequences are asserted against:
-   * the typed refusal, `.epoch` byte-identical (nothing was minted), and the owner exiting on its
-   * own release permit with no signal.
-   */
+  // Must refuse, typed, with `.epoch` unchanged and the owner exiting on its own permit.
   it.runIf(canMakeFilesUnreadable)(
     'refuses by name and leaves an unreadable-lease second-process holder untouched (leg B)',
     async () => {
@@ -3071,17 +2903,7 @@ describe('the unreadable lease read and every consumer that names it', () => {
     25_000,
   )
 
-  /**
-   * The escalation veto, PINNED — WINDOWS #46 inverted into a reachable failing case.
-   *
-   * 386-43 removed this veto entirely and reddened 0 of 111 cases, because every corpus contender
-   * reached escalation through `acquireWriterLease`, whose pre-check dominates it. The
-   * production-reachable path that does NOT pass through that pre-check is a fenced-out writer
-   * retrying its commit: `withCurrentWriterAuthority` claims the mutation lock before it reads any
-   * lease at all. Under a chmod-000 `.lease` that contender is one `leasePermitsEscalation`
-   * verdict away from SIGKILLing a live holder, so the veto is the last lease guard on this path
-   * and this leg is what makes it evidence.
-   */
+  // A fenced-out writer retrying its commit reaches escalation past the pre-check; the veto holds.
   it.runIf(canMakeFilesUnreadable)(
     'never signals a live mutation-lock owner reached without the acquisition pre-check (veto pin)',
     async () => {
@@ -3156,24 +2978,7 @@ describe('the unreadable lease read and every consumer that names it', () => {
   )
 })
 
-/**
- * The third member of the authority input set: the writer-authority DB itself.
- *
- * Round 5's headline lesson is that a guard reading N files of the same class needs its
- * fault-injection primitive applied to EVERY member, not to whichever one the round happened to be
- * reasoning about. `chmod 0o000` had been applied to `EPOCH_FILE` six times and to `LEASE_FILE`
- * never, and the gap was the defect. The remaining members of the set this module reads on the
- * authority path are the SQLite store under `WRITER_AUTHORITY_DB_FILE` (here) and the CLI's
- * `daemon.json` (in `packages/cli/src/__tests__/daemon-host.test.ts`).
- *
- * The store is a different KIND of input from the two text files: it is not parsed by this module
- * at all, it is opened by SQLite, so the question is not "what value does the read return" but
- * "what does an open failure do to a contender that was about to mint authority". The fail-safe
- * direction is the assertion — refusal or a thrown error, never `{kind:'acquired'}` — rather than
- * a specific arm, because the honest answer today is a rethrow (`isSqliteBusy` matches only
- * locked/busy, and an unopenable file is neither) and pinning the arm rather than the direction
- * would convert a future typed refusal into a test failure for no reason.
- */
+// An unopenable store must never yield `{kind:'acquired'}`; the direction is asserted, not the arm.
 describe('the writer-authority DB as an unreadable authority input', () => {
   let root: string
   let knowledgeRoot: string
@@ -3279,32 +3084,7 @@ describe('the writer-authority DB as an unreadable authority input', () => {
   )
 })
 
-/**
- * CR-03's containment ARGUMENT, executed rather than asserted in prose (386-42 UAT item 4).
- *
- * `heartbeatLease` no longer takes the mutation lock, and its docstring concedes that dropping it
- * opens exactly one race: a holder resuming from a >=TTL wedge can land its read-check-write
- * astride a contender's reclaim and clobber the successor's lease. The docstring then claims the
- * race is CONTAINED — not prevented — by the epoch fence, because a reclaim rewrites `.epoch`
- * strictly BEFORE it publishes `.lease`, both inside the lock, so any lease clobbered afterwards
- * names a superseded epoch and every classifier reads it as recovery input.
- *
- * Until these two cases the whole invariant rested on the adjacency of two lines a refactor could
- * reverse with every other case staying green. A real lock was replaced by a written argument, and
- * the argument had never been run.
- *
- * Both interleavings a beat can have with a reclaim's publication window are driven here without
- * any timing dependence and without any production change:
- *
- *   - the beat's ladder BEFORE the reclaim and its write AFTER it (the clobber), driven through
- *     the `Date.now()` stamp that `heartbeatLease` takes between its last check and its only
- *     write — already a spied seam in this file;
- *   - the beat's whole ladder INSIDE the window, driven through the production `afterEpochRewrite`
- *     seam that fires between the reclaim's two rewrites.
- *
- * Both cases redden when `atomicRewrite(.epoch)` and `atomicRewrite(.lease)` are swapped, which is
- * the only reason either of them is evidence for the ordering the argument rests on.
- */
+// A reclaim rewrites `.epoch` before `.lease`; both cases fail if that order is swapped.
 describe('the lock-free beat astride a reclaim: containment by the epoch fence', () => {
   let root: string
   let knowledgeRoot: string

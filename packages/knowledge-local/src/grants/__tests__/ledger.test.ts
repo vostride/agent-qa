@@ -1,27 +1,4 @@
-// a workspace's old grants.jsonl stays on disk and nothing opens
-// it.
-//
-// RE-SPELLED 2026-10-01. This file was the corpus for the Phase 391 committed grant ledger:
-// the read and pure fold (ENOENT, empty, unparseable and structurally broken lines refused as data,
-// unknown scope keys, newer versions hard-failing, file-order folding, revoke-by-id) and the checked
-// append (canonical JSON, the two version legs, the shape leg, the committed-egress checkpoint,
-// all-or-nothing). 432-18 deletes the ledger, its reader, the grant verbs and every export, so each
-// of those claims lost its subject. What survives is what the ledger owes the file it leaves
-// behind: a workspace that still holds `grants.jsonl` is a fresh workspace, the file is
-// never read, written, renamed or cleaned up, and a damaged one cannot break anything because
-// nothing parses it. No grant-shaped store replaces it.
-//
-// THE WRITER-LEASE AND EGRESS CLAIMS MOVE TO THE DIRECT WRITERS. The deleted grant verbs refused
-// typed while another writer held the lease and when the egress checkpoint refused their bytes
-// (`operations.test.ts`, deleted with them). The direct writers that remain carry the same two
-// refusals, and the cells below drive them beside a damaged legacy ledger: the explicit change door
-// refuses a held lease by name, the quarantine add refuses a held lease and a secret-bearing value by
-// name, and in every case the legacy file is byte-identical.
-//
-// HOW "NEVER OPENED" IS MEASURED. `node:fs` and `node:fs/promises` are wrapped for this file's module
-// graph, so every path-taking call the knowledge-local sources under test make is recorded. A control
-// cell drives one call at the legacy file through the same wrapper and requires it to be recorded,
-// so "no recorded path" cannot be a recorder that records nothing.
+// A leftover `grants.jsonl` is never opened; the `node:fs` wrappers record every path to prove it.
 
 import { createHash } from 'node:crypto'
 import { chmodSync, existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
@@ -292,7 +269,6 @@ describe('an old grants.jsonl is never read, written, renamed or cleaned up', ()
     expect(grantShapedSiblings()).toEqual([])
   }, 120_000)
 
-  // 432-18 task 2: the retry, unreadable-file and absent-file edges.
   it('a retried explicit change answers its first outcome and still never opens it', async () => {
     const before = digest(ledger)
     const recordId = publish('retry')

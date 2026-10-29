@@ -1,10 +1,4 @@
-// The read-only bundle listing served by the /reader entry.
-//
-// `knowledge.bundles.list` had no reader-entry function before this module: bundle
-// enumeration and loading lived only behind the writer-gated main entry, so a surface that
-// wanted a listing had to reach through the write side. This composes the two existing read
-// faces — `enumerateBundleDirs` and `loadBundle`/`deriveBundleTrust` — into the schema-owned
-// `KnowledgeBundleSummary` projection and nothing else. No writer, no lease, no index.
+// Composes the read faces only: no writer, no lease, no index.
 
 import { relative } from 'node:path'
 

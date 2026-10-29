@@ -27,11 +27,7 @@ export interface CautionSelectionOverflow {
 export interface CautionSelectionResult {
   block: CautionBlock
   overflow?: CautionSelectionOverflow
-  /**
-   * The serve-time trace for this Channel-3 selection. Produced as part of selecting, not
-   * as a second pass over the result: `rank` is the position in the ranking below and `score` is
-   * the trust value that ranking ordered by after the anchor-match priority.
-   */
+  // Produced while selecting: `rank` is the position below and `score` the trust it ordered by.
   trace: ServedRetrievalTraceV1
 }
 
@@ -114,11 +110,7 @@ function rankedCautions(input: SelectCautionsInput): RankedCaution[] {
     ))
 }
 
-/**
- * Select automatic Channel-3 cautions without consulting Channel-1 membership. D-16 deliberately
- * re-surfaces an L1 caution at the failure moment; dedup against the frozen brief does not belong
- * at this selection site.
- */
+// Ignores Channel-1 membership on purpose: an L1 caution re-surfaces at the failure moment.
 export function selectCautions(input: SelectCautionsInput): CautionSelectionResult {
   const ranked = rankedCautions(input)
   const recordCap = input.recordCap ?? ranked.length
@@ -134,12 +126,7 @@ export function selectCautions(input: SelectCautionsInput): CautionSelectionResu
       anchors: candidate.record.anchors,
       renderedCost: candidate.cost,
     })
-    /**
-     * the trace records the ONE ranking this loop walks. `rank` is that position; `score`
-     * is the trust the ranking ordered by within an anchor-match priority band, so a caution and
-     * a cut caution report the same quantity. The band itself is not a score and is deliberately
-     * not flattened into one — the rank already carries it.
-     */
+    // `score` is the trust ordered within an anchor-match band; `rank` carries the band itself.
     const line = traceLine({
       recordId: String(candidate.record.id),
       leg: CHANNEL_3_CAUTION_LEG,

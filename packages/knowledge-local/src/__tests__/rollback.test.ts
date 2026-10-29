@@ -709,7 +709,7 @@ describe('provenance-keyed rollback resolution', () => {
     })
     await knowledgeLocal.rebuildIndex({ knowledgeRoot, embedder: makeFakeEmbedder() })
 
-    // nothing writes the terminal value now; an old row may hold it.
+    // No writer emits the terminal value; only a legacy row can hold it.
     writeLegacySuppressedRow(victim.id)
     expect(embedState(victim.id)).toEqual({
       embedStatus: EMBED_STATUS_SUPPRESSED,
@@ -739,7 +739,7 @@ describe('provenance-keyed rollback resolution', () => {
     })
     expect(report.restoredVictims).toEqual([victim.id])
     expect(knowledgeLocal.deriveBundleTrust(loaded(victim)).status).toBe('active')
-    // The revival reset must be unable to match the SAFE-02 terminal value on restore.
+    // The revival reset must not match the terminal value on restore.
     expect(embedState(victim.id)).toEqual({
       embedStatus: EMBED_STATUS_SUPPRESSED,
       embeddingPresent: false,

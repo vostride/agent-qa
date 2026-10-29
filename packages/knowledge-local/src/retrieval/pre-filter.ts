@@ -1,10 +1,4 @@
-/**
- * The single memory.md §5.5.1 scope/status predicate authority (377 D-15, §13.3).
- * FTS joins, brute scans, anchor seeds, and expansion admission bind this exact fragment so the
- * tenancy wall cannot drift between consumers. The vec0 leg in Plan 377-08 mirrors these clauses
- * in vec0 metadata syntax; any predicate change must update that named mirror site in the same
- * change. Scope keys remain caller-owned outputs of the schema scope-key helpers.
- */
+// The vec0 leg mirrors these clauses in metadata syntax; change both together.
 export interface PreFilterOptions {
   product: string
   testKey: string

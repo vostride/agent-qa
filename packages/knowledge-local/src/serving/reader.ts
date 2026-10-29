@@ -367,15 +367,7 @@ function findReadableBundle(
 
   const hydrated = hydrateRows(config, [row], false)[0]
   if (hydrated === undefined) return undefined
-  /**
-   * `currentServingEntries` is the BRIEF/CAUTION serving wall — it admits candidates
-   * only through the vetted-canary flag, which is fact/caution-only, so a committed procedure
-   * (agent-verified candidate, promotion-excluded in M2 by 379 D-16) was permanently unreadable
-   * even when `getProcedure` had just recommended replaying it. The read face therefore falls
-   * back to the matcher's OWN admission predicate: what getProcedure can recommend, read() can
-   * serve. This is read admission only — `currentServingEntries` is untouched, so nothing new
-   * reaches getRunBrief, getCautions, or search.
-   */
+  // Falls back to the matcher's admission, so a recommended procedure is readable.
   if (
     currentServingEntries([hydrated]).length === 0
     && !admitsProcedure({ entry: hydrated.entry, bundle: hydrated.bundle })
@@ -466,8 +458,7 @@ function servingReader(
       const entries = currentServingEntries(
         hydrateRows(config, readIndexRows(config, scope), true),
       )
-      // the composite is returned verbatim. The reader does not unwrap and re-wrap it,
-      // so there is no point in this path at which a brief exists without its trace.
+      // Returned verbatim, so no path holds a brief without its trace.
       return assembleRunBrief({
         candidates: entries,
         policy: readPolicyLadder(config.knowledgeRoot, config.product),
@@ -531,7 +522,7 @@ function servingReader(
     },
 
     emitCanaryOutcome(payload: CanaryOutcome) {
-      // one synchronous, atomic, content-addressed emit pattern.
+      // One synchronous, atomic, content-addressed emit pattern.
       enqueueCanaryOutcome(config.knowledgeRoot, payload)
     },
   }

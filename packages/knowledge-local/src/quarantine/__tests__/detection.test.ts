@@ -198,8 +198,7 @@ describe('the floor arm: a floor-eligible class AND a per-test signature', () =>
     expect([...FLOOR_ELIGIBLE_AUTO_CLASSES].sort()).toEqual(['flake', 'timeout'])
   })
 
-  // THE REACHABILITY THIS PHASE FAILED TO ESTABLISH THREE TIMES. There is no authored verdict
-  // anywhere in this input and an `entered` line is authored anyway.
+  // No authored verdict anywhere in this input, and an `entered` line is authored anyway.
   it('AUTO-QUARANTINES a floor-produced timeout CARRYING the signature — no analysis budget', () => {
     const result = evaluate({
       failures: [failure({
@@ -474,18 +473,7 @@ describe('the per-run floor cap RATE-LIMITS fan-out — a budget, not a ceiling'
     expect(result.events.map((event) => event.testName)).toEqual(MEMBER_NAMES)
   })
 
-  // THE ONLY LEG WHOSE ANSWER DEPENDS ON THE WORD "PER-RUN".
-  //
-  // Every other leg here is a single `evaluate(...)` and is satisfied IDENTICALLY by a module-scope
-  // `let floorAdmissions = 0` — which would make this a PROCESS-LIFETIME cap, under which the third
-  // genuine flake in a project is never auto-quarantined again for the life of the daemon. This leg
-  // is also the only evidence for the plan's central safety argument: an overflow identity crosses
-  // again on a LATER applied run and may be admitted then, so the cap slows the floor path down
-  // rather than closing it — which is the argument that makes K = 2 acceptable at all.
-  //
-  // The mechanism it rides: `evaluateQuarantineDetection` consults `activeKeys` at the TOP of the
-  // failure loop, ahead of the escalate branch, so carrying call 1's admitted identities in as
-  // `quarantined` entries makes call 2 skip them before the admission path — the drain.
+  // A module-scope counter passes every other leg; only this one shows the cap is per call.
   it('is PER CALL and the overflow DRAINS: the next K enter on the next evaluation, by name', () => {
     const failures = suite({
       verdictClass: 'timeout',

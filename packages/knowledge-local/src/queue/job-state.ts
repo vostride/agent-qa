@@ -51,9 +51,7 @@ export const curationJobStateSchema = z
     candidateId: z.string().regex(/^[0-9a-f]{64}$/),
     lifecycle: jobLifecycleSchema,
     embedCrashCount: z.number().int().nonnegative().default(0),
-    /**
-     * Opaque transport slot. Plan 378-06's authoredCheckpointSchema owns semantic validation.
-     */
+    // Opaque transport slot; the authored checkpoint schema validates its contents.
     authored: z.unknown().optional(),
     /** Diagnostic wall-clock metadata only; never identity, ordering, or disposition input. */
     updatedAt: z.string(),
@@ -173,11 +171,7 @@ export function readJobState(
   }
 }
 
-/**
- * Atomically replaces one lifecycle file. Writing done removes both the state file and any
- * claimed candidate directory. State-file absence for an absent candidate therefore means
- * done/never-existed; Plan 378-05's journal reconciliation distinguishes those cases.
- */
+// Writing done removes the state file and any claimed dir, so absence means done or never existed.
 type WriteJobStateWithinCurrentAuthorityOptions = Omit<
   WriteJobStateOptions,
   'authority'

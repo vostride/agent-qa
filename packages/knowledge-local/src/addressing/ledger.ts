@@ -1,32 +1,4 @@
-// The addressing ledger.
-//
-// The one DURABLE, never-rebuilt store this phase mints. Everything else 387 builds is a
-// projection that a rebuild heals; this file is not, and the difference is the whole reason
-// it lives in its own database beside `agent-jobs.db` rather than as a table inside the
-// knowledge index. Index tables are rebuildable by law, and rebuilding an ordinal ledger
-// would REASSIGN published addresses — `MEM-001` in a CI log from last month would start
-// pointing at a different memory.
-//
-// Three laws, and each is enforced by the database rather than by discipline:
-//
-//   append-only    BEFORE DELETE and BEFORE UPDATE triggers on `addresses` abort. Not a
-//                  convention about which functions this module exports — a rule that holds
-//                  against a future call site, an older binary, and someone at a sqlite3
-//                  prompt. The exported surface is open/mint/lookup, and the triggers are
-//                  what make that surface's narrowness a property of the data.
-//   never-reuse    ordinals come from `MAX(ordinal) + 1` per kind, and since nothing is ever
-//                  deleted that sequence is strictly increasing forever. `UNIQUE(kind,
-//                  ordinal)` means a second row could not claim a spent one even if some
-//                  future code computed the wrong next value.
-//   lost race      mint is one `BEGIN IMMEDIATE` transaction ending in `ON CONFLICT DO
-//                  NOTHING` followed by a read-back, so two processes minting the same
-//                  (kind, machine-id) simultaneously BOTH return the winner's ordinal and
-//                  neither sees a constraint error (the 385 D-02 idiom).
-//
-// Lease-free, deliberately. Addressing metadata is not learned knowledge, and the CLI
-// has to be able to mint with no daemon running. Nothing here reads the writer lease, and
-// nothing on a run/test/bundle CREATION path calls it — minting happens only when something
-// SIGHTS an entity.
+// Durable and never rebuilt, because a rebuild would reassign addresses already published.
 
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
@@ -39,25 +11,10 @@ import {
 } from '@vostride/agent-qa-schema'
 import type { EntityKind } from '@vostride/agent-qa-schema'
 
-/**
- * Stamped into `PRAGMA user_version` at creation and checked on every open.
- *
- * Stamp and hard-fail, never migrate — the 385 D-04 convention. The milestone ships nothing
- * between its releases, so a ledger written by another build is a development artifact, and
- * migration machinery for it would be code with no user that everything afterwards has to
- * keep working. Note what this does NOT license: the ROWS are permanent regardless. A version
- * refusal tells an operator to move a stale development file aside; it never rewrites one.
- */
+// Stamped at creation and checked on every open; a mismatch refuses and never migrates.
 export const ADDRESSING_LEDGER_USER_VERSION = 2
 
-/**
- * Busy timeout for every connection.
- *
- * D-02's story is "any process mints, sqlite arbitrates", which only works if a writer
- * waiting on the write lock retries rather than failing immediately. Matched to the job
- * store's window because the transactions are the same shape and size: retune from observed
- * contention, not from a guess about how many hosts there are.
- */
+// Writers wait on the write lock instead of failing, so any process can mint and sqlite arbitrates.
 export const ADDRESSING_LEDGER_BUSY_TIMEOUT_MS = 2000
 
 /** The ledger's own file name under the agent-qa root, beside `agent-jobs.db`. */
@@ -79,15 +36,7 @@ export class AddressingLedgerSchemaVersionError extends Error {
   }
 }
 
-/**
- * An EXPLICITLY recorded target rename.
- *
- * There is no heuristic rename detection in this file and there must not be. Inferring that
- * two target slugs are "the same target" from their spelling, their order of appearance or
- * their contents is a guess, and ENTY-01's never-guess law is not weaker inside the ledger
- * than it is inside the resolver — a wrong link here would silently re-point a published
- * address, which is the exact failure D-02 exists to make impossible.
- */
+// No rename is inferred from spelling or order; a wrong link would re-point a published address.
 export interface TargetRename {
   readonly fromSlug: string
   readonly toSlug: string
@@ -117,23 +66,9 @@ export interface AddressingLedger {
   lookup(kind: EntityKind, machineId: string): EntityAddress | undefined
   /** The address a published short-ID names, or `undefined`. Tier (a)'s whole job. */
   lookupByShortId(shortId: string): EntityAddress | undefined
-  /**
-   * Every address ever minted, in a fixed order (kind, then short-ID).
-   *
-   * READ-only, and the append-only law is what makes it worth having: this list only grows, so
-   * a caller enumerating it is reading a complete history rather than a snapshot that could
-   * have lost rows. The entity index is rebuilt FROM this — a projection can only claim
-   * to heal if the thing it is rebuilt from can be enumerated in full.
-   */
+  // Append-only, so this enumeration is complete history; the entity index is rebuilt from it.
   listAddresses(): EntityAddress[]
-  /**
-   * Record that a config target was renamed. See {@link TargetRename} for why this is
-   * the only way a link between two slugs ever comes to exist.
-   *
-   * Both slugs are minted, so both keep their own permanent address: the predecessor keeps
-   * the one already sitting in somebody's CI log, and the successor gets its own rather than
-   * inheriting one. Recording is idempotent — a repeat is the same fact, not a second one.
-   */
+  // Both slugs keep their own permanent address; recording the same rename again is idempotent.
   recordTargetRename(fromSlug: string, toSlug: string): TargetRename
   /** The rename recorded FOR this slug, if any. Never the reverse direction. */
   lookupTargetRename(fromSlug: string): TargetRename | undefined
@@ -167,12 +102,7 @@ const SCHEMA_STATEMENTS = [
      BEGIN
        SELECT RAISE(ABORT, 'a minted address never changes (387 D-04)');
      END`,
-  // Renames live in their OWN table rather than as a nullable column on `addresses`, and the
-  // reason is the trigger directly above: a rename is a fact recorded LATER about a row that
-  // must never change, so writing it onto the address row would require exactly the statement
-  // this ledger forbids. Additive, and the stamped version does not move — nothing between
-  // this milestone's releases has written a v1 file, and `IF NOT EXISTS` heals a development
-  // one. D-04's never-rebuild law is about ORDINALS, which no statement here touches.
+  // Renames get their own table: writing one onto an immutable address row would need an update.
   `CREATE TABLE IF NOT EXISTS target_renames (
      from_slug   TEXT NOT NULL PRIMARY KEY,
      to_slug     TEXT NOT NULL,
@@ -229,9 +159,7 @@ export function openAddressingLedger(options: OpenAddressingLedgerOptions): Addr
     db.exec(`PRAGMA user_version=${String(ADDRESSING_LEDGER_USER_VERSION)}`)
   }
 
-  // Every statement is parameterized. No SQL in this file is built by concatenating a caller's
-  // string, and the two `PRAGMA` statements above are the only interpolations — both of pinned
-  // integer constants declared in this module.
+  // Parameterized throughout; the only interpolations are the pinned integer `PRAGMA` values.
   const insertAddress = db.prepare(
     `INSERT INTO addresses (kind, machine_id, ordinal, short_id, minted_at)
      VALUES (?, ?, ?, ?, ?)

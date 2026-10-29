@@ -1,28 +1,4 @@
-// The durable draft-receipts store.
-//
-// A KEEP-GATE EVALUATION IS A DECISION SOMEBODY HAS TO BE ABLE TO READ BACK. The op returns the
-// receipt AND persists it, because 394's accept flow carries it as evidence refs and the author of
-// a rejected draft is owed the exact reason days later — neither of which survives in memory. So
-// this is the proposals-store idiom applied to a second kind of durable
-// record: one `<contentDigest>.json` per draft under a gitignored `<agentQaRoot>/draft-receipts/`,
-// a sibling of `proposals/`, written atomically through a `.tmp` name that is never enumerated.
-//
-// KEYED BY THE DRAFT'S CONTENT DIGEST, not by its path or its test id. That is what makes a
-// receipt mean "this evaluation is about THESE bytes": an author who edits the draft mints a new
-// digest and therefore cannot inherit the verdict earned by the version that was actually run. It
-// is also why the store needs no versioning of its own — a superseding evaluation of the SAME
-// bytes replaces the record, and an evaluation of different bytes is a different record.
-//
-// WHAT IT WILL NOT HOLD. Receipts are refs plus findings, never run payloads and never resolved
-// secrets (D-19, map-not-territory). That is enforced structurally rather than by convention:
-// `DraftReceiptSchema` is `.strict()` and is parsed on the way OUT as well as on the way in, so a
-// payload smuggled onto a receipt is a typed refusal at the moment of writing rather than a field
-// somebody notices in a durable file months later.
-//
-// STAMP AND HARD-FAIL. The schema pins `schemaVersion` as a literal. A record written under a
-// future shape is refused loudly here rather than reinterpreted under today's — the house
-// convention `AddressingLedgerSchemaVersionError` and `QuarantineLedgerVersionError` already set,
-// and the only safe answer for a store whose whole purpose is to say what was decided.
+// Keyed by content digest, so an edited draft cannot inherit the verdict its earlier bytes earned.
 
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -42,18 +18,7 @@ export const DRAFT_RECEIPTS_DIR_NAME = 'draft-receipts'
 const RECEIPT_SUFFIX = '.json'
 const TEMP_SUFFIX = '.tmp'
 
-/**
- * The digest shapes this store will turn into a path.
- *
- * IN-03, applied where the joining happens (the proposals-store precedent: the shape check lives
- * in the module that calls `join`, not only in the function layer one package away). A
- * `contentDigest` arrives from a caller and becomes a filename two lines later, so a value
- * carrying `../` is a caller-supplied arbitrary-path primitive on both the read and the write
- * verb. Deliberately WIDER than sha256-hex — the DTO promises only a non-empty string, and a
- * store that refused a legitimate digest of another width would be enforcing a rule the
- * vocabulary does not make — but narrow enough that no member of it can name a path separator, a
- * parent directory, or a hidden file.
- */
+// A caller's digest becomes a filename, so the shape excludes separators, parent dirs and dotfiles.
 const SAFE_DIGEST = /^[A-Za-z0-9_-]{1,128}$/
 
 /** Thrown when a content digest could not be safely turned into a filename. */

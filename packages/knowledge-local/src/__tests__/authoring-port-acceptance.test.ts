@@ -165,9 +165,7 @@ describe('createAuthoringReader through the public barrels', () => {
         flake: false,
         anchorKeys: [canonicalJson(normalizeAnchor(LOGIN_PAGE))],
       }],
-      // this fixture seeds the OUTCOME counters only. The suite-fingerprint deltas ride
-      // the same projection now, and an empty list is the honest value for a hand-built projection
-      // that carries no step evidence to derive elements from.
+      // An empty list is the honest value: a hand-built projection carries no step evidence.
       fingerprints: [],
     }
     const writer = openIndexWriter(knowledgeRoot)

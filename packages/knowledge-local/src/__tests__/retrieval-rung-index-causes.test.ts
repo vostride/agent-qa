@@ -1,6 +1,4 @@
-// the fold records WHY the index face degraded instead of one historical word.
-// Plan 423-23 owns the mutation script; RUNG-ABSENT/LOCKED/CORRUPT/SCHEMA and LEGACY-HISTORICAL
-// are its required named RED cells.
+// The fold records why the index face degraded, not a single catch-all word.
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'

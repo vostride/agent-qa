@@ -1,27 +1,4 @@
-// The addressing ledger's laws (Phase 387, plan 01 Task 2 — ENTY-01 / D-02 / D-03 / D-04).
-//
-// Four laws, and each case is written against the thing that could actually break it rather
-// than against a restatement of the law
-// (numbered 1, 2, 3 and 5 — law 4 left with the Issue-slot cleanup on 2026-09-02, Phase 412):
-//
-//   idempotent   two mints of one key are one row, and the SECOND mint returns the FIRST
-//                ordinal — not merely "an ordinal".
-//   race-safe    two OS PROCESSES, not two calls, because the mechanism under test is a
-//                cross-process sqlite write lock and an in-process pair would exercise the
-//                early return instead. The children load this module's SOURCE through Node's
-//                type transform, so the leg cannot pass against a stale dist.
-//   never-reuse  proven twice over: no API on the handle can free an ordinal (an exact-set
-//                assertion, not a contains check), and no writer at all can — the BEFORE
-//                DELETE / BEFORE UPDATE triggers are probed with a RAW connection that never
-//                touches this module's exports.
-//   TGT rename   both slugs keep their own permanent addresses and the link between them
-//                exists only because something recorded it.
-//
-// The source assertion at the bottom carries its own positive controls. A check that scans a
-// file for forbidden statements is exactly the shape that passes forever while checking
-// nothing, so every pattern it claims to catch is planted into a scratch copy and the check
-// is required to catch it. It never shells out to a line matcher: a count that cannot tell
-// "zero hits" apart from "the matcher printed nothing" is not a gate.
+// Races use two OS processes loading source, because the lock under test is cross-process.
 
 import { spawn } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -132,8 +109,7 @@ describe('the addressing ledger', () => {
       child.on('error', reject)
       child.on('exit', (code) => {
         if (code === 0) resolve(out)
-        // A constraint error escaping either child is the exact failure D-02 forbids, so it is
-        // surfaced with the child's own stderr rather than collapsed into a bare exit code.
+        // A constraint error escaping a child is surfaced with its stderr, not a bare exit code.
         else reject(new Error(`mint child exited ${String(code)}: ${err}`))
       })
     })
@@ -180,9 +156,7 @@ describe('the addressing ledger', () => {
     // direction this assertion exists to catch.
     expect(Object.keys(ledger).sort()).toEqual([
       'close',
-      // enumeration, which the entity index is rebuilt FROM. It reads and
-      // cannot write, so it frees no ordinal — the exact-set assertion is doing its job by
-      // making a new member somebody's deliberate decision rather than an unnoticed one.
+      // Read-only enumeration that the entity index is rebuilt from; it frees no ordinal.
       'listAddresses',
       'lookup',
       'lookupByShortId',
@@ -201,8 +175,7 @@ describe('the addressing ledger', () => {
 
     expect(ledger.listAddresses().map(({ shortId }) => shortId))
       .toEqual(['MEM-001', 'MEM-002', 'TGT-checkout'])
-    // Ordinals reflect FIRST-MENTION order, not the order of the machine ids — the
-    // listing sorts by address, so a rebuild driven from it is stable across processes.
+    // Ordinals follow first-mention order and the listing sorts by address, so rebuilds are stable.
     expect(ledger.listAddresses().map(({ machineId }) => machineId))
       .toEqual(['bundle-b', 'bundle-a', 'checkout'])
     expect(ledger.listAddresses()).toEqual(ledger.listAddresses())
