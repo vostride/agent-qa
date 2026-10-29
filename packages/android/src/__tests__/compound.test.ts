@@ -1,19 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-// ---------------------------------------------------------------------------
-// Wave-0 RED scaffold — Phase 359 Plan 02, Task 2 (EXEC-01/02/03; D-05..D-08,
-// D-10..D-12, Pitfall 9). Pins the ANDROID adapter fill/scroll/openApp compound
-// sequences against a call-logging mocked webdriverio driver — no live Appium.
-//
-// RED convention: these fail on not-yet-implemented compound behavior (the current
-// `case 'fill'` sets a value but never re-reads via getText(); `case 'scroll'` has
-// no native `mobile: scroll` rung; `openApp` is not a handled action). They MUST NOT
-// fail on compile errors — execution-shaped action literals are cast via
-// `as unknown as Parameters<typeof adapter.execute>[0]`.
-//
-// The pre-existing adapter.test.ts and conformance.test.ts stay GREEN (standalone
-// file; legacy `fill {value}` / `scroll {value}` contracts untouched).
-// ---------------------------------------------------------------------------
+// Compound fill, scroll and openApp sequences against a call-logging mocked driver; no live Appium.
 
 const ANDROID_XML = `<?xml version="1.0" encoding="UTF-8"?>
 <hierarchy rotation="0">
@@ -97,8 +84,7 @@ function createMockDriver() {
     getContexts: vi.fn().mockResolvedValue(['NATIVE_APP']),
     switchContext: vi.fn().mockResolvedValue(undefined),
     url: vi.fn().mockRejectedValue(new Error('not supported')),
-    // only the focused-node lookup finds the field; the showing-hint and multiline probes
-    // match nothing, so the field reads as a non-empty single value.
+    // Only the focused-node lookup finds the field, so it reads as a non-empty single value.
     $: vi.fn().mockImplementation((selector: string) =>
       Promise.resolve(selector === '//*[@focused="true"]' ? mockElement : { isExisting: () => Promise.resolve(false) })),
     _pointerAction: pointerAction,
@@ -319,8 +305,7 @@ describe('AndroidPlatformAdapter compound behaviors (RED — Wave-0)', () => {
 
       expect(await p.swipeOnce('down')).toBe('moved')
       expect(gestureCalls()).toHaveLength(1)
-      // 436-12 (live A1): the area keeps to the middle 60% of the swipe axis, clear of the system
-      // gesture zones.
+      // The area keeps to the middle 60% of the swipe axis, clear of the system gesture zones.
       expect(gestureCalls()[0][1]).toEqual({ left: 0, top: 384, width: 1080, height: 1152, direction: 'down', percent: 0.75 })
 
       expect(await p.swipeOnce('up', ref)).toBe('at-boundary')
@@ -406,7 +391,7 @@ describe('AndroidPlatformAdapter compound behaviors (RED — Wave-0)', () => {
   describe('a WebView touch swipe is judged over every WebView scroller', () => {
     type Primitives = { swipeOnce(direction: string, ref?: string): Promise<string> }
     type Member = { id: string; x: number; y: number; maxX: number; maxY: number }
-    // members carry an identity; the document scroller is always `document`.
+    // Members carry an identity; the document scroller is always `document`.
     const doc = (y: number, maxY: number, x = 0, maxX = 0): Member => ({ id: 'document', x, y, maxX, maxY })
     const el = (id: string, y: number, maxY: number, x = 0, maxX = 0): Member => ({ id, x, y, maxX, maxY })
     const LIST = '0/1/0|div#list.feed'
@@ -449,7 +434,7 @@ describe('AndroidPlatformAdapter compound behaviors (RED — Wave-0)', () => {
         [doc(700, 700), el(LIST, 300, 1200)], [doc(700, 700), el(LIST, 300, 1200)],
       ])
       expect(await p.swipeOnce('down')).toBe('at-boundary')
-      // HARN-03 adjacency: the document at its end with a nested scroller short of its end.
+      // The document at its end with a nested scroller short of its end.
       expect(await p.swipeOnce('down')).toBe('unknown')
     })
 

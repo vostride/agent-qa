@@ -1,10 +1,4 @@
-// Branch write-skip policy for the local action-plan cache store.
-//
-// Branch is a storage namespace, never a cache-key component. The policy is
-// resolved in the CLI / runner-local composition root (branch + CI + flags) and
-// passed to the store; the key builder in `@vostride/agent-qa-runner` never sees
-// a branch. Reads are always allowed (the store handles branch -> default
-// fallback); this predicate governs writes only.
+// Branch is a storage namespace, never a cache-key component; this governs writes only.
 
 export interface CachePolicy {
   /** The branch the current run executes on (raw, un-slugged). */
@@ -21,11 +15,7 @@ export interface CachePolicy {
   disableCache: boolean
 }
 
-/**
- * Writes are skipped when the current branch is protected (default ∪ configured)
- * unless `--save-cache` or CI; `--disable-cache` forbids all writes. Reads are not
- * governed here.
- */
+// Skipped on a protected branch unless `--save-cache` or CI; `--disable-cache` forbids all writes.
 export function shouldWrite(policy: CachePolicy): boolean {
   if (policy.disableCache) return false
   const protectedNow = policy.protectedBranches.includes(policy.currentBranch)

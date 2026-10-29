@@ -2,12 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { buildScreenState, screenConformanceCases, type ConformanceInput } from '@vostride/agent-qa-runner'
 import { parseMobileSource, deriveMobileScroll } from '@vostride/agent-qa-core'
 
-// The shared adapter conformance suite run against the ANDROID native walk: real
-// UiAutomator2 page-source XML is fed through parseMobileSource into the interim nodes the
-// builder consumes, then every case in screenConformanceCases asserts the pinned
-// builder-contract invariants over those nodes. Beyond the shared cases, android-specific
-// pins assert the D-08 attribute lift (resource-id/content-desc → labels; checked/
-// selected/focused truthfully mapped with typed-absence) and the D-10 best-effort scroll.
+// Real UiAutomator2 page source through `parseMobileSource`, checked against the shared cases.
 
 const VIEWPORT = { width: 1080, height: 1920 }
 // Fixed so repeated builds are byte-identical (the determinism case builds twice and
@@ -61,7 +56,7 @@ describe('android adapter conformance (shared cases)', () => {
     })
   }
 
-  // --- Android-specific pins beyond the shared cases (D-08 attribute lift) ---
+  // Android-specific pins beyond the shared cases.
 
   it('resource-id → labels.testId and content-desc → labels.ariaLabel', () => {
     const { nodes } = parseMobileSource(ANDROID_STATE_XML, 'android', VIEWPORT)

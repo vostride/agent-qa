@@ -1,11 +1,4 @@
-// Filesystem cassette bundle loader.
-//
-// Inverts FsCassetteStore's write leg: reads `cassette.json`, version-gates + structurally validates
-// it through guardCassette (the V5 input-validation control), and binds a DirArtifactSource over the
-// bundle's `blobs/` directory. A cassette bundle is an untrusted, hand-editable, cross-machine
-// document, so every failure — an unreadable/missing file, unparseable JSON, or a guard rejection —
-// becomes a typed ReplayRefusal instead of a throw. The cassette is never partially loaded and never
-// replayed on refusal; the refusal surfaces in reports and the surrounding batch always survives.
+// A bundle is untrusted, so every load failure becomes a typed refusal, never a throw.
 
 import { readFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
@@ -43,12 +36,7 @@ function recoverCassetteId(document: unknown, fallback: string): string {
   return fallback
 }
 
-/**
- * Load a cassette bundle directory into a guarded Cassette + DirArtifactSource over its blobs.
- * Never throws for a malformed bundle — read/parse failures map to a 'parse-failed' refusal and
- * guard rejections (version or structural) map to 'guard-failed', each carrying the underlying
- * message in `detail`.
- */
+// Never throws: read or parse failures are `parse-failed`, guard rejections `guard-failed`.
 export function loadCassetteBundle(bundleDir: string): CassetteBundleLoad {
   const fallbackId = basename(bundleDir)
   const cassettePath = join(bundleDir, CASSETTE_FILE)

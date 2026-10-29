@@ -1,15 +1,4 @@
-// Injectable git-branch resolver for the local cache store.
-//
-// This is the ONLY sanctioned home for node:fs / node:child_process git reads
-// (storageImplementation, D-01/D-02). The resolver degrades gracefully in a
-// git-less directory — every step falls back to the configured default rather
-// than throwing. Detection method (per 356-RESEARCH Git-Branch Detection):
-//   current branch : .git/HEAD fast path (no subprocess)
-//   remote default : git symbolic-ref refs/remotes/origin/HEAD
-//   final fallback : configured default -> main
-//
-// It never imports @vostride/agent-qa-safety-local — peer storage-impls must not
-// cross-import; isCI is resolved in the CLI and passed via CachePolicy.
+// Degrades to the configured default in a git-less directory; it never imports safety-local.
 
 import { execFileSync } from 'node:child_process'
 import { readFileSync, statSync } from 'node:fs'
@@ -110,12 +99,7 @@ interface RunGitSymbolicRefOptions {
   exec?: GitExec
 }
 
-/**
- * Read `git symbolic-ref refs/remotes/origin/HEAD` with a finite timeout so the
- * synchronous subprocess can never wedge pre-run branch resolution (RUNX-02 / D1
- * secondary hazard). Any failure — including an ETIMEDOUT or kill-by-signal —
- * degrades to null so the resolver falls back to the configured default branch.
- */
+// A finite timeout so the subprocess never wedges branch resolution; any failure answers `null`.
 export function runGitSymbolicRef(
   cwd: string,
   options: RunGitSymbolicRefOptions = {},

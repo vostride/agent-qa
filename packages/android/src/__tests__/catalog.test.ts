@@ -1,21 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-// ---------------------------------------------------------------------------
-// Wave-0 RED catalog suite — Phase 360 Plan 02, Task 3.
-//
-// Pins the driver-call contract for every Android verb gaining or changing execution
-// this phase against a call-logging mocked webdriverio driver — no live Appium. New
-// android-only cases (pressBack/Home/Recent, openNotifications, openQuickSettings,
-// intent, keyevent), the injection-safety mitigations (typed-args-only intent, KEYCODE
-// allow-list keyevent — T-360-02, the 359 escapeUiSelectorText precedent), the fold
-// re-keys (waitFor on-shapes, keypress mode, swipe path), and the retired assert/openLink/
-// launchApp cases (pinned to the post-flip unreachable outcome so they go green when Plan
-// 06 deletes them).
-//
-// RED convention: these fail on missing / legacy-keyed case behavior (uncalled `mobile:`
-// mocks, assertNever fall-through), NEVER on compile errors — action literals are cast via
-// `as unknown as ExecAction`. The pre-existing adapter.test.ts + compound.test.ts stay GREEN.
-// ---------------------------------------------------------------------------
+// Driver-call contract for each Android verb against a call-logging mocked driver; no live Appium.
 
 const ANDROID_XML = `<?xml version="1.0" encoding="UTF-8"?>
 <hierarchy rotation="0">

@@ -1,17 +1,4 @@
-// Concrete sharp-based screenshot compressor + image utilities (Phase 363, D-08 / Q10).
-//
-// This is the host-adapter home for `sharp` (the runner is storageNeutral / storage-agnostic and
-// bans native image codecs by construction, Pitfall 9). Phase 356's ownership ledger claimed the
-// compression pipeline would move out of core "by Phase 356"; RESEARCH Q10 found that claim STALE —
-// the pipeline was still core-side. This module makes the truthful end-state real: `sharp` leaves
-// core and lands here, behind the runner's `ScreenshotCompressor` port. `SharpScreenshotCompressor`
-// is constructed once at the CLI composition root and injected into `runTest` (the injected-host-impl
-// shape the member-runner keeps), so no core code constructs a compressor.
-//
-// `alignToWindow` + `getImageDimensions` are exported alongside the port impl because the mobile
-// adapters (`@vostride/agent-qa-android`, `@vostride/agent-qa-ios`) call them directly for
-// action-space alignment / drift assertions — they are host-side sharp utilities with the same
-// storageImplementation home, not part of the `ScreenshotCompressor` port surface.
+// The host home for `sharp`, which the storage-neutral runner bans.
 
 import sharp from 'sharp'
 import type { CompressedScreenshot, ScreenshotCompressor } from '@vostride/agent-qa-runner'
@@ -37,13 +24,7 @@ export interface CompressResult {
   imageHeight: number
 }
 
-/**
- * Resize + optional JPEG-quality compression of a screenshot buffer (v1 pipeline, verbatim).
- * fit:'inside' constrains both dimensions preserving AR (longer edge becomes eR);
- * withoutEnlargement avoids upscaling small images. The JPEG pass only runs when a byte
- * budget is set, iterating quality down to a graceful minimum-quality fallback (Pitfall 4 — never
- * re-resize inside the loop).
- */
+// `fit: 'inside'` keeps aspect ratio; the JPEG pass only lowers quality and never re-resizes.
 async function compressScreenshot(
   buffer: Buffer,
   opts: CompressOptions,
@@ -108,12 +89,7 @@ async function compressScreenshot(
   return { buffer: data, imageWidth: resizedWidth, imageHeight: resizedHeight }
 }
 
-/**
- * The runner `ScreenshotCompressor` port impl (D-08 / Q10). `compress` covers the LLM-planner
- * compression call site; `dimensions` covers the action-space-width metadata fallback done inline
- * via `sharp(screenshot).metadata()` at v1 loop.ts. The loop applies `stampCaptureMode` itself
- * (runner-owned since 352), so this stays purely pixel-level and returns v1's CompressResult shape.
- */
+// Pixel-level only: the loop stamps the capture mode itself.
 export class SharpScreenshotCompressor implements ScreenshotCompressor {
   constructor(private readonly logger?: ScreenshotCompressorLogger) {}
 
@@ -149,8 +125,7 @@ export interface ImageDimensions {
   height: number
 }
 
-/** Read image buffer width/height without decoding pixels. Used by mobile adapters for
- *  action-space drift assertions. */
+// Reads width and height without decoding pixels.
 export async function getImageDimensions(buffer: Buffer): Promise<ImageDimensions | undefined> {
   const meta = await sharp(buffer).metadata()
   if (!meta.width || !meta.height) return undefined

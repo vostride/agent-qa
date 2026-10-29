@@ -12,9 +12,7 @@ import {
   validatePosthogReleaseArtifacts,
 } from '../release/posthog.mjs'
 
-// the fixture builds the key artifacts at the analytics package's paths, because
-// that is where the release now writes and validates them. `compose.ts` stands in for the source
-// the validator reads — the composition root that owns both the baked key and the deny arm.
+// Builds the key artifacts at the analytics package's paths; `compose.ts` stands in for the source.
 function createPosthogFixture(rootDir, distKey = 'phc_test_key', packagePath = 'packages/analytics') {
   const sourceDir = join(rootDir, packagePath, 'src')
   const distDir = join(rootDir, packagePath, 'dist')

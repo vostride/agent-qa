@@ -7,9 +7,7 @@ const session: RunSession = {
   id: asRunId('run_execution_context'),
   status: 'passed',
   executionContext: resolveExecutionContext({ isTty: false, ciMarkers: true }),
-  // The M1-lite RunSession expanded the provisional three-field DTO with the
-  // live subscribe/cancel/done seam, and 403 D-05 added the per-handle frame seam; this
-  // type-only fixture stubs them — the assertion below still targets executionContext alone.
+  // Stubs the run session's other members; the assertion targets `executionContext` alone.
   subscribe: () => () => {},
   subscribeFrames: () => undefined,
   streamCapabilityOf: () => ({ kind: 'none' }),

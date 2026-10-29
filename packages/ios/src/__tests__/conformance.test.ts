@@ -8,11 +8,7 @@ import {
 import { deriveMobileScroll, parseMobileSource } from '@vostride/agent-qa-core'
 import { screenIdentityHash } from '@vostride/agent-qa-schema'
 
-// iOS side of the shared adapter conformance spec. The XCUITest page source is
-// lifted into platform-neutral interim nodes by parseMobileSource, then the ONE shared
-// builder assembles the schema v2 ScreenState — so every case here runs against exactly
-// the pipeline the live iOS observe() uses. The Android mirror of the cross-platform
-// identity check lives in the android package; this file is self-sufficient.
+// Runs the same parser and shared builder the live iOS `observe()` uses.
 
 const VIEWPORT = { width: 390, height: 844 }
 const TIMESTAMP = 1_700_000_000_000

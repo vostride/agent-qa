@@ -1,13 +1,6 @@
 name: CI
 
 # Continuous verification on every push and PR.
-#
-# Why this file exists: until 2026-08-02 every workflow in this repo was
-# `workflow_dispatch:` only, so nothing ran automatically and `Release` — the only
-# workflow containing `pnpm test` — had never been run once. Every "suite green"
-# claim rested on a local developer run. That also quietly weakened the phase
-# prohibition sets, where a `test`-tier statement asserts "a suite enforces this",
-# which is only true if something runs the suite. (WINDOWS #50.)
 
 on:
   push:
@@ -173,39 +166,10 @@ jobs:
     name: MCP conformance (ubuntu)
     runs-on: ubuntu-latest
 
-    # Generous on purpose. The 395 lesson: a CI timeout tuned to a local stopwatch
-    # turns a slow cold runner into a red build with nothing wrong in it. The run
-    # itself is ~13s of suite plus an npm fetch and a workspace build; twenty-five
-    # minutes leaves room for a cold cache, a slow registry and a busy runner
-    # without ever leaving a hung server wedged (the script's own readiness bound
-    # and EXIT trap are the inner guards — T-396-23).
+    # Generous: a short suite plus an npm fetch and a build, on a runner that may be cold.
     timeout-minutes: 25
 
-    # A JOB OF ITS OWN RATHER THAN A STEP IN `workspace`, deliberately. This gate
-    # measures the external suite's verdict on the shipped MCP server; the
-    # workspace job measures this repository's own suites. Keeping them separate
-    # means a conformance regression names itself in the checks list instead of
-    # arriving as "Full workspace failed", and a red here never obscures a red
-    # there.
-    #
-    # WHAT GATES: the conformance tool's OWN exit code, which is exactly D-18 —
-    # a failure listed in `packages/mcp/conformance-baseline.yaml` is expected and
-    # exits 0; a NEW failure exits 1; a baselined entry that has started passing
-    # exits 1 as a stale entry. The SCORE never gates. There is no threshold in
-    # this workflow, none in the script, and none in the baseline — adding one is
-    # the thing D-18 forbids, and this job deliberately contains no arithmetic
-    # over the counts it publishes.
-    #
-    # WHAT GETS PUBLISHED: the script writes the raw passed/total counts into
-    # `$GITHUB_STEP_SUMMARY` on every run, so the number is visible on a green
-    # build and not only on a red one. Nothing here commits: the baseline
-    # is edited by a human in a reviewed change, never by CI.
-    #
-    # THE PIN IS EXACT (`@modelcontextprotocol/conformance@0.2.0-alpha.11`,
-    # `--requirements 2026-07-28`) and lives in the script, invoked directly
-    # rather than through the project's composite action — the action tag lags the
-    # npm alphas, so routing through it would float the version this job's whole
-    # premise depends on being frozen (RESEARCH A5).
+    # Its own job, so a conformance regression names itself; the tool's exit code gates, no score.
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -246,23 +210,7 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 40
 
-    # Scoped deliberately to the two daemon/lease packages rather than the full
-    # workspace: macOS runner minutes bill at 10x on private repos, and the legs
-    # that CANNOT run on ubuntu are concentrated here.
-    #
-    # `resolveProcessIncarnation` reads /proc/<pid>/stat on Linux and forks `ps`
-    # everywhere else POSIX (D-44-04), so every leg gated on
-    # `platform !== 'win32' && platform !== 'linux'` is `it.skip` on ubuntu — and
-    # `it.skip` reports green. That is currently all three of 386-47's round-6
-    # regression legs plus 386-44's WR-04 legs, in
-    # knowledge-local/src/__tests__/writer-lease.test.ts. (WINDOWS #51.)
-    #
-    # `agent-qa` (the cli package) is included because the daemon suites exercise
-    # UDS sockets, process signalling and fs semantics that differ meaningfully
-    # between Linux and BSD — the exact surfaces this project's lease/fencing work
-    # depends on.
-    #
-    # The legs split agent-qa so no leg nears the timeout; 36 of 40 minutes were used on run 40022673226.
+    # macOS legs for suites that skip on Linux, where `resolveProcessIncarnation` reads /proc.
     strategy:
       fail-fast: false
       matrix:

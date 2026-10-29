@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-// 437 D-08..D-15, D-17: the Android fill paths against a selector-aware mocked driver. The focused
-// field is a small model (value, hint, multiline, password); `driver.$` answers each focused XPath
-// from it, the way UiAutomator2 answers XPath over page-source attributes (Pitfall 5).
+// `driver.$` answers each focused XPath from a small field model, as UiAutomator2 does.
 
 const ANDROID_XML = `<?xml version="1.0" encoding="UTF-8"?>
 <hierarchy rotation="0">
@@ -34,19 +32,16 @@ interface FieldModel {
   setValueThrows: boolean
   focusThrows: boolean
   pressKeyError?: string
-  // the keyboard path. A hidden handle makes `//*[@focused="true"]` absent; revealOnType
-  // shows it once `mobile: type` has run. Ctrl+A then DEL clears the model.
+  // A hidden handle makes the focused XPath absent; `revealOnType` shows it after `mobile: type`.
   focusHidden?: boolean
   revealOnType?: boolean
   typeThrows?: boolean
   clearThrows?: boolean
-  // the focused node's `bounds` attribute; unset answers as UiAutomator2 does for
-  // an unknown attribute name.
+  // The focused node's `bounds`; unset answers as UiAutomator2 does for an unknown attribute.
   bounds?: string
 }
 
-// a WebView field. The focus probe answers editable/matches/multiline/secure/value from it,
-// W3C keys and `mobile: type` act on its value, and the read-back answers `readBack` when set.
+// A WebView field: the focus probe, W3C keys and `mobile: type` act on it; `readBack` overrides.
 interface WebFieldModel {
   editable: boolean
   matches: boolean
@@ -57,7 +52,7 @@ interface WebFieldModel {
   readBack?: () => unknown
   typeThrows?: boolean
   keysThrow?: boolean
-  // answers for the first probes, in order; later probes answer from the model.
+  // Answers for the first probes, in order; later probes answer from the model.
   probes?: Array<{ editable: boolean; matches: boolean }>
   probeThrows?: boolean
 }
@@ -78,7 +73,7 @@ let taps: Array<{ ctx: string; move: unknown }> = []
 let selectedAll = false
 let pageXml = ANDROID_XML
 
-// the observed Username EditText with a raw input-type attribute.
+// The observed Username EditText with a raw input-type attribute.
 function usernameInputType(value: string): void {
   pageXml = ANDROID_XML.replace('content-desc="Username"', `content-desc="Username" input-type="${value}"`)
 }
@@ -518,8 +513,7 @@ describe('fill on the native setValue path', () => {
     expect(result.metadata?.fillSubmit).toEqual({ sent: false, outcome: 'not-sent', reason: 'mismatch' })
   })
 
-  // the tap must leave the referenced field focused; only bounds that are read and
-  // lie outside the ref's refuse.
+  // The tap must leave the referenced field focused; only read bounds outside the ref's refuse.
   const PASSWORD_BOUNDS = '[100,400][980,500]'
   const FOCUS_ELSEWHERE_ERROR =
     /^fill: after tapping \S+, input focus is on another field; nothing was typed\. Input is never sent to a field other than the target\. Re-observe and target the field itself\.$/
@@ -715,9 +709,7 @@ describe('fill on the native setValue path', () => {
   })
 })
 
-// the keyboard path runs when the tap leaves no focused handle. Replace clears with
-// Ctrl+A then DEL through `mobile: pressKey`, the text goes through one `mobile: type`, the value is
-// read back from a re-found handle when there is one, and a requested Enter is sent once.
+// The keyboard path: Ctrl+A then DEL, one `mobile: type`, a read-back, and Enter at most once.
 const CTRL_A = 'execute:mobile: pressKey:{"keycode":29,"metastate":4096}'
 const DEL = 'execute:mobile: pressKey:{"keycode":67}'
 
@@ -876,8 +868,7 @@ describe('fill on the keyboard (mobile: type) path', () => {
   })
 })
 
-// clearText on the native and keyboard paths is checked like a fill. Empty is
-// exact, leftover text is a mismatch, and an unreadable field is unverified.
+// Empty is exact, leftover text is a mismatch, and an unreadable field is unverified.
 describe('clearText is read back like a fill', () => {
   it('a native clear reads back empty and is exact', async () => {
     field.value = 'old text'
@@ -935,8 +926,6 @@ describe('clearText is read back like a fill', () => {
     expect(JSON.stringify(result)).not.toContain('topSecretPw')
   })
 
-  // 437-21 (WR-04, owner 2026-10-09, "Mismatch if text left"): a password field that still holds
-  // text after the clear fails the clear, naming only the leftover length.
   it('a secure native clear that leaves text is a mismatch and names only its length', async () => {
     field.value = 'topSecretPw'
     field.password = true
@@ -1046,7 +1035,7 @@ describe('clearText is read back like a fill', () => {
     })
   })
 
-  // the same focus-target check as the fill.
+  // The same focus-target check as the fill.
   it('a clear whose tap left another field focused clears nothing', async () => {
     field.value = 'pw-kept'
     field.bounds = '[100,400][980,500]'
@@ -1124,8 +1113,6 @@ describe('clearText is read back like a fill', () => {
   })
 })
 
-// The assumption-delta invariant: every fill delivers its text through exactly one path
-// and presses Enter at most once. 437-06 adds the WebView cells and 437-07 the keyboard cells.
 describe('every fill delivers its text through one path and presses Enter at most once', () => {
   it('a native setValue that throws is never typed again', async () => {
     field.setValueThrows = true
@@ -1280,10 +1267,7 @@ describe('every fill delivers its text through one path and presses Enter at mos
   })
 })
 
-// the WebView fill acts like a user through the driver. A W3C touch tap in the
-// WebView context focuses the ref, a read-only probe checks the focus, W3C keys clear,
-// `mobile: type` from NATIVE_APP types, a read-only script reads the value back, and one
-// `mobile: pressKey 66` from NATIVE_APP submits. No script writes the field or builds a key event.
+// Acts like a user: no page script writes the field or builds a key event.
 describe('fill on the WebView path', () => {
   const WRITES_OR_EVENTS = [
     /\.(value|innerText|textContent|innerHTML|outerHTML)\s*(\+?=)(?!=)/,

@@ -41,9 +41,9 @@ const MIDDLEWARE: LanguageModelMiddleware[] = [
   toolSchemaMiddleware,
   deriveExamplesMiddleware(),
   addToolInputExamplesMiddleware(),
-  // flag-gated debug logging (AGENT_QA_DEBUG_LLM); catches the raw APICallError first.
+  // Flag-gated by `AGENT_QA_DEBUG_LLM`; first, so it catches the raw `APICallError`.
   debugLoggingMiddleware(),
-  // strip empty-content messages just before the wire.
+  // Strips empty-content messages just before the wire.
   dropEmptyMessagesMiddleware(),
 ]
 

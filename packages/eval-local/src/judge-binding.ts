@@ -1,12 +1,4 @@
-// The eval-local JudgePort binding. The pure eval-core judge
-// module builds every prompt; this binding ONLY transports: one createModel handle (the pinned-last
-// mask/guardrail middleware stack — the sole egress path, exactly like runCassetteReplay's planner
-// leg) executes one generateText + Output.object structured verdict per order-tagged request at
-// temperature 0 with maxRetries 0. Structured-output repair is the model package's middleware job
-// (repair + extract-json in createModel's stack) — no second application-level retry loop exists
-// here. The port NEVER throws: unparseable output and provider failure each mint a
-// typed call-error. Invoked only from runCassetteReplay's flow (the ownership
-// contract's forbidden provider-invocation clause); 370-07 composes it inside the safety scope.
+// Transport only: one `createModel` handle, temperature 0, no retries, and it never throws.
 
 import { NoObjectGeneratedError, NoOutputGeneratedError, Output, generateText } from 'ai'
 import type { SystemModelMessage } from 'ai'
@@ -29,7 +21,7 @@ import type {
 import type { MaskFn } from '@vostride/agent-qa-schema'
 
 export interface JudgeBindingInput {
-  /** The judge model profile — a SECOND profile, never the replay planner's (D-12 disjointness). */
+  // A second profile, never the replay planner's, so judge and planner families differ.
   profile: ModelProfile
   /** Resolved provider auth for the judge model. */
   auth: ResolvedModelAuth
@@ -45,9 +37,7 @@ export function bindJudgePanel(inputs: readonly JudgeBindingInput[]): JudgePanel
     members: inputs.map(bindJudgePort) }
 }
 
-// The closed D-09 verdict schema: forced explicit-unsure vocabulary + categorical confidence.
-// Output.object validates against it inside generateText; the safeParse below re-checks the
-// resolved output defensively (never trust free text — the verifier's D-06 posture).
+// `Output.object` validates inside `generateText`; the `safeParse` below re-checks defensively.
 const verdictSchema = z.object({
   verdict: z.enum(['equivalent', 'different', 'unsure']),
   confidence: z.enum(['high', 'medium', 'low']),
@@ -60,11 +50,7 @@ const verdictOutput = Output.object({
   description: 'Equivalence verdict, confidence category, and rationale for the judged pair',
 })
 
-/**
- * Bind the tier-4 JudgePort over the production createModel recipe: a fresh ModelProfile copy
- * (createModel mutates `profile.capabilities` — RESEARCH Pitfall 8), ONE handle built at bind
- * time and shared across calls, model identity from the caller profile only.
- */
+// A fresh profile copy, because `createModel` mutates `profile.capabilities`; one shared handle.
 export function bindJudgePort(input: JudgeBindingInput): JudgePort {
   const profileCopy: ModelProfile = {
     ...input.profile,
@@ -72,7 +58,7 @@ export function bindJudgePort(input: JudgeBindingInput): JudgePort {
       ? { capabilities: { ...input.profile.capabilities } }
       : {}),
   }
-  // The ONLY createModel call site for the judge leg and its ONLY egress path.
+  // The judge leg's only `createModel` call and only egress path.
   const model = createModel(profileCopy, input.auth, input.mask, input.modelOverrides ?? {}, input.modelCallObservation)
 
   return {
@@ -89,10 +75,7 @@ export function bindJudgePort(input: JudgeBindingInput): JudgePort {
             providerOptions: { anthropic: { cacheControl: { type: 'ephemeral' } } },
           },
         ]
-        // temperature 0 through the same mechanism the replay planner rides: passed on the call,
-        // stripped by stripUnsupportedParamsMiddleware inside createModel's stack for providers
-        // that reject the setting. The prompt is transported verbatim (D-15: templates stay
-        // hash-covered pure-side — the binding never assembles or edits prompt content).
+        // Temperature 0 rides the call; `stripUnsupportedParamsMiddleware` drops it where rejected.
         const result = await generateText({
           model,
           maxRetries: 0,

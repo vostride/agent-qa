@@ -1,5 +1,4 @@
-// Phase 375 RED contract: durable per-product build-tag resolution
-// lives beside build-ordinals.json and preserves the first ordinal seen for each tag.
+// Build-tag resolution lives beside `build-ordinals.json` and keeps each tag's first ordinal.
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'

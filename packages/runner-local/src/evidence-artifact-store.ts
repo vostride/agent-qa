@@ -1,24 +1,4 @@
-// Concrete filesystem content-addressed evidence artifact store.
-//
-// Implements the storage-neutral `EvidenceArtifactStorePort` from @vostride/agent-qa-runner. This
-// is a storageImplementation home for node:crypto + node:fs + node:path (the FsHandoffStore /
-// FsRunArtifactStore boundary) — the sha-keyed screenshot-byte writes live here, never in the
-// runner (validate:arch storageNeutral). On-disk layout, in the SAME run family as
-// events.jsonl / handoff.json / artifact.json:
-//
-//   <root>/runs/<slug(runId)>/blobs/<sha>
-//
-// The runId directory component is slugged traversal-safe (the shared `slugBranch` idiom via
-// RUNS_SUBDIR) so a planner-supplied `../..`-shaped runId can never escape the runs root; the path
-// is never re-minted here. Filenames ARE the lowercase SHA-256 of their exact bytes, so a repeat
-// write of identical bytes overwrites the same file and stays idempotent. `getBlob` validates the
-// lowercase 64-hex shape before any path use so a malformed/traversal-shaped sha can never address
-// an arbitrary file; ENOENT is honest absence, other host failures surface.
-//
-// PRESENCE IS A STAT, NOT A READ. `hasBlob` answers whether a run still holds
-// the bytes behind an artifact ref so a durable read can annotate a whole run's refs without
-// loading a single screenshot; it runs the SAME regex guard first, for the same reason, and
-// touches the filesystem only after the shape is known good.
+// Filenames are the SHA-256 of their bytes; the sha shape is checked before any path use.
 
 import { createHash, randomUUID } from 'node:crypto'
 import {

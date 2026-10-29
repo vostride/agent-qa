@@ -1,13 +1,4 @@
-// DockerHookExecutor — the runner-local storageImplementation of
-// the runner `HookExecutorPort`. The sandbox-runner body moved VERBATIM from
-// core/src/hooks/sandbox-runner.ts: image pull policy, tmpdir workdir copy of
-// file + deps + packageFile, authState mount, env + secret injection, container
-// limits (512m / 1cpu / pids256 / read-only), network-none unless hook.network,
-// /tmp/agent-qa.env variable extraction, secret-valued output-variable filtering,
-// stdout/stderr redaction, and timeout→exit-124. This is the ONLY home for
-// node:child_process / node:fs on the hook path — the runner stays storageNeutral
-// (Pitfall 3: ALL sandbox-side redaction/filtering preserved; the sink mask is
-// additive, never a replacement).
+// The only child-process and fs home on the hook path; the sink mask adds to sandbox redaction.
 
 import { execFile, type ChildProcess } from 'node:child_process'
 import { readFile, mkdtemp, mkdir, rm, cp } from 'node:fs/promises'
@@ -192,8 +183,7 @@ function buildDockerArgs(input: DockerArgsInput): string[] {
   }
 
   const envVars: Record<string, string> = { ...input.env }
-  // Secret values overlay normal env vars in the container (already-resolved by the
-  // composition root; the runner-local impl never touches the SecretStore, D-06).
+  // Secret values overlay normal env vars; this package never touches the SecretStore.
   Object.assign(envVars, input.secretEnv)
   Object.assign(envVars, buildAuthStateHookEnv(
     input.authState,

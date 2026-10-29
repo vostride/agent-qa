@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-// P3: iOS sessions request a WDA snapshotMaxDepth of their own (AGENT_QA_IOS_SNAPSHOT_MAX_DEPTH,
-// then 62). A kAXErrorIllegalArgument read lowers it to 50 for
-// the rest of the session, and the session's own depth is retried every 20 lowered reads.
+// A `kAXErrorIllegalArgument` read lowers the snapshot depth; the session retries its own later.
 
 const XML = `<?xml version="1.0" encoding="UTF-8"?>
 <AppiumAUT>
@@ -311,7 +309,7 @@ describe('iOS snapshot depth (P3)', () => {
       expect(driver.pause).not.toHaveBeenCalled()
     })
 
-    // toEnd no longer reads the interim tree; untilVisible's visibility probe does.
+    // `untilVisible`'s visibility probe reads the interim tree.
     it('an untilVisible scroll finds the target when one interim-tree read hits the snapshot error', async () => {
       driver.getPageSource.mockRejectedValueOnce(snapshotError())
       await adapter.setup({ platform: 'ios' })

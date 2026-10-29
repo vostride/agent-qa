@@ -1,19 +1,4 @@
-// RPLY-04 modality / offline / mobile proof (Phase 368, Plan 07).
-//
-// Copies the captured-provider-boundary pattern (see replay-boundary.test.ts): a capturing stub
-// injected through runCassetteReplay's `modelOverrides` records the doGenerate params POST the
-// pinned-last middleware. This suite proves the EXACT recorded modality is reproduced at the
-// boundary and that replay is fully offline with no device:
-//
-//   - Text-only cassette  ⇒ ZERO image/file content parts (over every message, not just the last).
-//   - Vision cassette      ⇒ exactly one image part whose bytes deep-equal the bundle's blobs/<sha>.
-//   - Android cassette      ⇒ a grounded 'tap' decision with the android action-tool slice at the
-//                             boundary and no device/adapter construction anywhere in the path.
-//   - Offline              ⇒ the caller profile points at an unreachable baseURL while the stub
-//                             serves every call — the suite passes with zero real network I/O.
-//
-// No environment-keyed skips: the suite is unconditional and runs on a CPU-only host with no
-// browser, no emulator, and no provider key.
+// The recorded modality reaches the boundary exactly, offline and with no device.
 
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'

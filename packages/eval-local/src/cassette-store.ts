@@ -1,15 +1,4 @@
-// Filesystem cassette bundle store.
-//
-// Owns the storageImplementation write leg behind eval's in-memory ExtractedCassette contract.
-// Each deterministic bundle is recreated in full before publication:
-//
-//   <output-root>/<slugged cassette id segments>/
-//   ├── cassette.json
-//   └── blobs/<verified lowercase 64-hex sha>
-//
-// Every id segment delegates to schema's security-reviewed slugBranch sanitizer. Blob names are
-// validated and their bytes are hashed with node:crypto before path use; corrupt copy-in degrades
-// completeness loudly instead of publishing bytes under an untrue content address.
+// Blob names are validated and hashed before path use; corrupt copy-in degrades completeness.
 
 import { createHash } from 'node:crypto'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'

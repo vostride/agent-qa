@@ -1,10 +1,4 @@
-// Wave-0 RED scaffold (361-01, Task 3). Pins the D-18 buildOrdinal counter BEFORE any
-// implementation exists — RED strictly on the unresolved import of the not-yet-existing
-// `../build-ordinal.js` module (right-reason RED). Turns green in the runner-local impl plan.
-//
-// Contract source: 361-CONTEXT.md D-18 (project-local .agent-qa state file, per-product
-// key, read → write-temp → atomic-rename increment; monotonic best-effort, corrupt/missing
-// state restarts at 1, never throws; no lockfile) + eval-and-core-types.md §A8 buildOrdinal.
+// Per-product counter with an atomic-rename increment; corrupt or missing state restarts at 1.
 import { spawn } from 'node:child_process'
 import { readFileSync, readdirSync } from 'node:fs'
 import { mkdtemp, readFile, rm, readdir, writeFile } from 'node:fs/promises'

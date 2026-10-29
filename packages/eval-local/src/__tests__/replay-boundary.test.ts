@@ -1,18 +1,4 @@
-// RPLY-02 captured-provider-boundary proof (Phase 368, Plan 07 — D-05/D-06).
-//
-// This suite copies the Phase 345/362 captured-provider-boundary pattern
-// (cli/__tests__/masking-provider-boundary.test.ts): a capturing stub injected through
-// runCassetteReplay's `modelOverrides` records the doGenerate params POST the pinned-last
-// mask/guardrail middleware — the exact provider boundary. Every proof drives the ONE sanctioned
-// helper (runCassetteReplay) over a bundle produced by the REAL extract → store → load round trip
-// into temp dirs; the helper is itself under proof. No environment-keyed skips — the suite is
-// unconditional and runs offline on a CPU-only host (the caller profile points at an unreachable
-// baseURL; the stub serves every call).
-//
-// Proven: temperature 0 on every replayed request; masked observation content (raw sentinel absent,
-// placeholder present); an empty-but-structured ServedBrief preserving truncation-only coverage without
-// learned tiers; an evidence-incomplete bundle refused before any planner invocation (doGenerate
-// count 0); and the production system tier + action tool slice present at the boundary.
+// Captures `doGenerate` params after the pinned-last middleware, the exact provider boundary.
 
 import { readFileSync } from 'node:fs'
 import { mkdtemp, rm } from 'node:fs/promises'

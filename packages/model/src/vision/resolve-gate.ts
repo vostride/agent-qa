@@ -10,7 +10,7 @@ const TEXT_ONLY_PROMPT_NOTE = [
   'Verify functional state from the available structured context rather than purely visual appearance.',
 ].join(' ')
 
-/** the configured `vision` when set, otherwise what the capability table says. */
+// The configured `vision` when set, otherwise the capability table's answer.
 export function visionFromConfig(
   configured: boolean | undefined,
   capabilities: { vision: boolean },

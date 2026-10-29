@@ -8,9 +8,7 @@ dist/
 # Local config and credentials
 .env*
 agent-qa.local.yaml
-# the generated PostHog key file. Core's entry retired
-# here together with the module it guarded — plan 11 deleted that directory and re-pointed the
-# release scripts at this path, so there is no longer a second file to un-ignore.
+# The generated PostHog key file; the release pipeline writes the real key.
 packages/analytics/src/posthog-project.ts
 
 # agent-qa runtime output
@@ -18,9 +16,7 @@ packages/analytics/src/posthog-project.ts
 .agent-qa-cache/
 .agent-qa-screenshots/
 
-# Test and report output
-# `run.test.ts` flushes working memory to a relative `dashboard-artifacts/`, so a full suite run
-# drops JSON here at whatever the cwd was.
+# Test and report output; `run.test.ts` writes `dashboard-artifacts/` relative to its cwd.
 dashboard-artifacts/
 coverage/
 results/

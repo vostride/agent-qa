@@ -106,7 +106,7 @@ import type { PlatformAdapter, PlatformConfig } from '@vostride/agent-qa-runner'
 import type { LiveFrame } from '@vostride/agent-qa-schema'
 import zlib from 'node:zlib'
 
-// --- PNG helpers (avoids adding sharp as ios dep per Pitfall 5) ---
+// PNG helpers, so the ios package needs no sharp dependency.
 function pngCrc32(buf: Buffer): number {
   const table: number[] = []
   for (let i = 0; i < 256; i++) {
@@ -415,8 +415,7 @@ describe('IOSPlatformAdapter', () => {
     })
   })
 
-  // a zero-duration touch flipped an iOS 27 Settings switch knob 2 of
-  // 11 times live; the same touch held 100 ms between down and up flipped it every time.
+  // A zero-duration touch flips an iOS Settings switch unreliably; a 100 ms hold flips it.
   describe('single taps hold the touch between down and up', () => {
     function chainSteps(): string[] {
       const chain = mockDriver._pointerAction

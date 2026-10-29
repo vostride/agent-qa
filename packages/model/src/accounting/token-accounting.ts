@@ -1,15 +1,11 @@
-// The conversation-scoped token-accounting instance.
-// Closure-state factory: options in, closure-captured anchor
-// state, an object of methods out. Provider-neutral: operates only on AI SDK `ModelMessage[]`.
+// Closure-state factory over AI SDK `ModelMessage[]` only; provider-neutral.
 
 import type { ModelMessage } from 'ai'
 
 import { degrade as pureDegrade } from './degrade.js'
 import type { DegradeOptions, DegradeOutcome, TokenAccounting, TokenAccountingOptions } from './types.js'
 
-// Anthropic's large-image ceiling ≈ (1568×1568)/750 ≈ 1,533 tokens at v2 downscaled capture
-// sizes; 1,600 is the safe conservative over-estimate (RESEARCH Q8/D-12). Injectable, never
-// user-facing config. Over-charging degrades slightly early — the safe direction.
+// A conservative over-estimate of a large image; over-charging degrades early, the safe direction.
 const DEFAULT_PER_IMAGE_TOKENS = 1600
 
 interface Anchor {
@@ -54,8 +50,7 @@ export function createTokenAccounting(options: TokenAccountingOptions): TokenAcc
   return { estimate, recordUsage, getCeilings, degrade }
 }
 
-/** The anchored prefix still matches when messages are ≥ the anchored length and the leading
- * `prefixLength` messages hash identically — an identity, never an array cursor (D-01/Pitfall 6). */
+// An identity match on the hashed prefix, never an array cursor.
 function prefixMatches(messages: ModelMessage[], anchor: Anchor): boolean {
   if (messages.length < anchor.prefixLength) return false
   const prefix = messages.length === anchor.prefixLength ? messages : messages.slice(0, anchor.prefixLength)
@@ -92,8 +87,7 @@ function outputTextChars(output: unknown): number {
   return 0
 }
 
-/** One flat charge per image part — inline user `ImagePart`s and historical `ToolResultOutput
- * { type:'content' }` `image-data`/`media` parts alike; base64 length is never read (RESEARCH Q8). */
+// One flat charge per image part, inline or in tool output; base64 length is never read.
 function messageImageCount(message: ModelMessage): number {
   const content = message.content
   if (typeof content === 'string') return 0

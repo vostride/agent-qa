@@ -302,7 +302,7 @@ describe('runCassetteReplay — sanctioned composition', () => {
       modelOverrides: { languageModels: stub.languageModels },
     })) as LeafReplayResult
 
-    // The replayed id derives ONLY from the caller profile (never the recorded id, D-03).
+    // The replayed id derives only from the caller profile, never the recorded id.
     expect(outcome.replayedModel).toEqual({ provider: 'openai-compatible', modelId: STUB_MODEL_ID })
     // The recorded id is stamped from the receipt and differs — a visible mismatch, never enforced.
     expect(outcome.recordedModel).toBeDefined()
@@ -368,7 +368,7 @@ describe('runCassetteReplay — sanctioned composition', () => {
   })
 })
 
-// ─── Task 2: end-to-end composition proof over the production round trip ───
+// End-to-end composition over the production round trip.
 
 const RECORDED_LOOKUP_MARKER = 'RECORDED-LOOKUP-RESULT-XYZ'
 
@@ -443,8 +443,7 @@ describe('runCassetteReplay — production round-trip spine', () => {
     expect(load.kind).toBe('loaded')
     if (load.kind !== 'loaded') throw new Error('expected a loaded bundle')
 
-    // A throwing stub proves the planner factory is never reached — a completeness refusal is
-    // filtered before any sample runs (RPLY-02: a missing recorded observation is a hard error).
+    // A throwing stub proves no sample runs: a completeness refusal is filtered first.
     let doGenerateCalls = 0
     const throwingStub: StubLanguageModel = {
       specificationVersion: 'v3',
@@ -515,8 +514,7 @@ describe('runCassetteReplay — production round-trip spine', () => {
     const leaf = outcome as LeafReplayResult
     expect(leaf.samples[0]!.outcome.kind).toBe('decision')
 
-    // The exchange server served the recorded result, and the second-round request carried it back
-    // to the model — proving the 368-01 seam + exchange server work through production planner code.
+    // The second request carries the served exchange result back to the model.
     expect(stub.captured).toHaveLength(2)
     expect(JSON.stringify(stub.captured[1]!)).toContain(RECORDED_LOOKUP_MARKER)
     // No recorded exchange left unconsumed.
@@ -524,7 +522,7 @@ describe('runCassetteReplay — production round-trip spine', () => {
   })
 })
 
-// ─── Task 3: optional score persistence through the sanctioned composition ───
+// Optional score persistence through the sanctioned composition.
 
 describe('runCassetteReplay — optional score persistence', () => {
   const tempRoots: string[] = []
@@ -556,8 +554,7 @@ describe('runCassetteReplay — optional score persistence', () => {
 
     if (!('granularity' in outcome)) throw new Error('expected a replay result, got a refusal')
 
-    // Both files landed in the SAME slugged cassette dir — record-then-score ordering means the
-    // record store's dir-recreate ran BEFORE the file-scoped score write (OQ-2).
+    // Record-then-score: the record dir is recreated before the file-scoped score write.
     const records = findReplayRecords(join(storeRoot, 'eval', 'replays'))
     expect(records).toHaveLength(1)
     const scoreFile = join(dirname(records[0]!), SCORE_FILE)
@@ -608,10 +605,9 @@ describe('runCassetteReplay — optional score persistence', () => {
   })
 })
 
-// ─── Task 3: the tier-4 judge leg through the sanctioned composition (JUDGE-01/03/04) ───
+// The judge leg through the sanctioned composition.
 
-// Family-resolvable model ids (RESEARCH Pitfall 6): the default stub ids resolve to NO judge
-// family, which would forbid every judge under D-12 — the judge leg needs explicit families.
+// Default stub ids resolve to no judge family, so the judge leg needs explicit families.
 const REPLAY_MODEL_ID = 'gpt-replay-stub' // openai family
 const JUDGE_MODEL_ID = 'claude-judge-stub' // claude family — disjoint from replay AND recorded
 const SAME_FAMILY_JUDGE_MODEL_ID = 'gpt-judge-stub' // openai family — same as the replay profile
@@ -622,13 +618,7 @@ const GOLD_FILL_TEXT = 'hello world foo'
 // element-identity match ⇒ the deterministic matcher mints unresolved-tie{value-mid-band}.
 const CANDIDATE_FILL_TEXT = 'hello world bar'
 
-/**
- * A handoff staged to produce a value-mid-band tie: the recorded gold decision is a fill with
- * GOLD_FILL_TEXT on the recorded control; the replay stub answers with a fill on the SAME ref
- * carrying CANDIDATE_FILL_TEXT. The recorded model identity is set explicitly so the D-14
- * recorded-side family input is deterministic (the default fixture planner id resolves to no
- * family, which would forbid every judge).
- */
+// A fill on the same ref with different text produces a value-mid-band tie.
 function midBandHandoff(stepText = 'Fill the checkout note field'): CompletedRunHandoff {
   const handoff = makeLocalV2Handoff()
   const step = handoff.tests[0]!.steps[0]!
@@ -785,12 +775,12 @@ describe('runCassetteReplay — tier-4 judge leg', () => {
       },
     })
 
-    // The override lifted the known-same-family refusal: the judge actually ran (D-08 pair).
+    // The override lifted the known-same-family refusal, so the judge ran.
     expect(judgeStub.captured).toHaveLength(2)
     const score = leafDecisionScore(persisted)
     if (score.kind !== 'scored') throw new Error('expected a judge-settled scored decision')
     expect(score.judgeSettled).toMatchObject({ judgeId: SAME_FAMILY_JUDGE_MODEL_ID })
-    // The persisted D-16 identity block carries the honest override marker.
+    // The persisted identity block carries the override marker.
     expect(persisted.judge).toEqual({
       judgeModelId: SAME_FAMILY_JUDGE_MODEL_ID,
       judgeFamily: 'openai',
@@ -831,7 +821,7 @@ describe('runCassetteReplay — tier-4 judge leg', () => {
       judgeVersion: JUDGE_CONFIG.judgeVersion,
       confidenceThreshold: 'high',
     })
-    // Exactly the two physically order-swapped calls, each pinned to temperature 0.
+    // One call per order, each pinned to temperature 0.
     expect(judgeStub.captured).toHaveLength(2)
     for (const captured of judgeStub.captured) {
       expect(captured.temperature).toBe(0)
@@ -879,7 +869,7 @@ describe('runCassetteReplay — tier-4 judge leg', () => {
       judgeVersion: JUDGE_CONFIG.judgeVersion,
       usage: { calls: 2 },
     })
-    // The eligible walk ran, so the D-16 identity block still rides the record.
+    // The eligible walk ran, so the identity block rides the record.
     expect(persisted.judge).toEqual({
       judgeModelId: JUDGE_MODEL_ID,
       judgeFamily: 'claude',

@@ -1,9 +1,4 @@
-// FsStorageStateStore unit pins.
-//   - raw save/load round-trips byte-identical (auth material persists verbatim);
-//   - a traversal-shaped name slugs to a filename that stays INSIDE storage-states/
-//     (resolved-path-prefix assertion — the security pin);
-//   - the fingerprint is stable for identical content and differs for different content;
-//   - loading a missing name returns undefined, never throws.
+// Raw round-trip, traversal-safe names, stable fingerprints and `undefined` for a missing name.
 import { readdir, rm, mkdtemp } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve, sep } from 'node:path'
@@ -43,7 +38,7 @@ describe('FsStorageStateStore', () => {
     const loaded = await store.load('admin')
 
     expect(loaded).toEqual(blob)
-    // The reference carries only name + fingerprint — never the blob (evidence-safe, D-14).
+    // The reference carries only name and fingerprint, never the blob.
     expect(ref.name).toBe('admin')
     expect(ref.fingerprint).toMatch(/^[0-9a-f]{16}$/)
     expect(Object.keys(ref)).toEqual(['name', 'fingerprint'])

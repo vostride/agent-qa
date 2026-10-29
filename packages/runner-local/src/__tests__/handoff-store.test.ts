@@ -1,10 +1,4 @@
-// Wave-0 RED scaffold (361-01, Task 3). Pins the D-17/D-19 fs handoff store BEFORE any
-// implementation exists — RED strictly on the unresolved import of the not-yet-existing
-// `../handoff-store.js` module (right-reason RED). Turns green in the runner-local impl plan.
-//
-// Contract source: 361-CONTEXT.md D-17 (handoff.json in the run's .agent-qa dir beside
-// events.jsonl, one JSON document) + D-19 (the read side loadCompletedRunHandoff:
-// parse → version-check → reject newer with a typed error) + eval-and-core-types.md §A8.
+// `handoff.json` beside `events.jsonl`; a newer schema version is rejected with a typed error.
 import { mkdtemp, rm, readFile, writeFile, mkdir } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -158,7 +152,6 @@ describe('FsHandoffStore + loadCompletedRunHandoff', () => {
     expect(thrown).toBeDefined()
     expect((thrown as { name: string }).name).toBe('HandoffVersionError')
     expect((thrown as { foundVersion: number }).foundVersion).toBe(1)
-    // 373-01 bumped CURRENT_HANDOFF_SCHEMA_VERSION to 3; pin the constant, not a literal
     expect((thrown as { supportedVersion: number }).supportedVersion).toBe(
       CURRENT_HANDOFF_SCHEMA_VERSION,
     )

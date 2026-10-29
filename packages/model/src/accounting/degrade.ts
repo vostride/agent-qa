@@ -1,8 +1,4 @@
-// The deterministic degrade pipeline over AI SDK `ModelMessage[]`.
-// Hygiene always, damage on demand: the hygiene pass runs unconditionally every call
-// and is near-lossless; eviction/truncation (Task 3) run only while estimate > budget.
-// Determinism is load-bearing: no clock, no randomness, sorted keys before
-// iteration so nothing leaks nondeterminism into the downstream settle-hash signal.
+// Hygiene runs every call; eviction and truncation only while the estimate exceeds the budget.
 
 import { pruneMessages, type ModelMessage, type ToolContent, type ToolResultPart } from 'ai'
 
@@ -15,19 +11,12 @@ const SCREENSHOT_OMITTED = '…[historical screenshot omitted]'
 const DUPLICATE_ELIDED = '…[duplicate tool result elided]'
 const TRUNCATION_MARKER = '…[truncated to fit context budget]'
 
-/**
- * The deterministic degrade pipeline: always-on hygiene, then — only while
- * the prompt exceeds `options.budget` — exchange-atomic eviction of the oldest unpinned tool
- * exchange followed by proportional truncation of the largest remaining unpinned message.
- * system messages, the final message, and any `options.pin`-matched message are never evicted
- * or truncated. If that protected content alone exceeds the budget, returns the structured
- * cannot-fit outcome (never throws, never violates a pin).
- */
+// System, final and pinned messages are never evicted; if they alone overflow, cannot-fit.
 export function degrade(messages: ModelMessage[], options: DegradeOptions): DegradeOutcome {
   const estimate = options.estimate ?? defaultEstimate
   let working = runHygiene(messages)
 
-  // D-09 hard floor: protected (system + final + pinned) content alone exceeds the budget.
+  // Hard floor: protected content alone exceeds the budget.
   if (estimate(protectedMessages(working, options)) > options.budget) {
     return { ok: false, reason: 'pinned-content-exceeds-budget', messages: working }
   }
@@ -77,7 +66,7 @@ function defaultEstimate(messages: ModelMessage[]): number {
   return Math.ceil(chars / 4)
 }
 
-/** system + final message + caller-pinned are the inviolable protected set. */
+// System, final and caller-pinned messages are the protected set.
 function makeIsProtected(messages: ModelMessage[], options: DegradeOptions): (index: number) => boolean {
   const lastIndex = messages.length - 1
   return (index: number): boolean => {
@@ -110,12 +99,7 @@ function resultIdsOf(message: ModelMessage): string[] {
   return ids
 }
 
-/**
- * Evict the oldest unpinned tool EXCHANGE atomically: the assistant tool-call message
- * plus every message that carries a `tool-result` for any of its `toolCallId`s (a following
- * `role:'tool'` message, or an assistant-embedded provider-executed result). An exchange
- * touching any protected message is skipped so no pin is ever violated and no reply orphaned.
- */
+// Evicts a tool call with all its results; an exchange touching protected content is skipped.
 function evictOldestExchange(messages: ModelMessage[], options: DegradeOptions): ModelMessage[] | undefined {
   const isProtectedAt = makeIsProtected(messages, options)
   for (let i = 0; i < messages.length; i++) {
@@ -302,10 +286,7 @@ function contentHash(value: unknown): string {
   return (hash >>> 0).toString(16)
 }
 
-/**
- * Cycle-safe, key-sorted stringify (V5): never throws on cyclic tool-result values, and
- * sorts object keys so identical content hashes identically regardless of key order.
- */
+// Never throws on cyclic values, and sorts keys so identical content hashes identically.
 function safeStringify(value: unknown): string {
   const ancestors: object[] = []
   const walk = (node: unknown): unknown => {

@@ -15,9 +15,7 @@ export interface ProviderDescriptor {
   modelAdapter?: 'openai-responses' | 'anthropic-messages'
   baseURLPlaceholder?: string
   defaultModel?: string
-  // SDK-level `LanguageModelV3CallOptions` param names this provider's backend rejects.
-  // The model layer strips exactly these at egress (stripUnsupportedParamsMiddleware)
-  // before the wire — e.g. openai-subscription rejects `maxOutputTokens`.
+  // SDK-level call option names this provider's backend rejects; stripped at egress.
   unsupportedParams?: readonly string[]
 }
 

@@ -1,21 +1,4 @@
-// The ONE sanctioned replay-composition helper. This is the single
-// host binding that wires the pure eval-core replay engine to the production runner/model/safety
-// stack — eval-local deliberately becomes the SECOND package (after cli) importing both `model`
-// and `runner`, a contract-visible arch change recorded in ownership-contract.ts. Phase 372's
-// CLI wraps exactly this function.
-//
-// Composition law:
-//   - `createModel` is the ONLY egress path and the ONLY call site here — every replayed prompt
-//     rides its pinned-last mask/guardrail middleware (safety package tests enforce it). A FRESH
-//     ModelProfile copy is built before the call because createModel mutates `profile.capabilities`
-//     (RESEARCH Pitfall 8); the handle is shared across samples (RESEARCH A3).
-//   - The replay planner runs at temperature 0 via the 366 sampling seam
-//     (DeclaredModelProfile.sampling), with a FRESH createTokenAccounting + LLMPlanner per sample
-//     (RESEARCH Pitfall 6) — the 368-01 `nonActionTools` ctor seam threads the recorded-exchange
-//     server through unmodified production planner code.
-//   - Model selection derives ONLY from the caller-supplied profile, never the recorded id:
-//     recorded vs replayed ids are both stamped on the result, neither is enforced.
-//   - Every model request is masked with the caller's declared mask.
+// `createModel` is the only egress and mutates `profile.capabilities`, so it gets a fresh copy.
 
 import {
   adjudicateCassetteScore,
@@ -68,7 +51,7 @@ export interface RunCassetteReplayInput {
   cassette: Cassette
   /** Blob source for full-capture screenshot reconstruction (normally a DirArtifactSource). */
   artifacts: ArtifactSource
-  /** The currently-configured model profile — the SOLE source of model selection. */
+  // The configured model profile, the sole source of model selection.
   profile: ModelProfile
   /** Resolved provider auth for the configured model. */
   auth: ResolvedModelAuth
@@ -80,27 +63,15 @@ export interface RunCassetteReplayInput {
   clock?: ReplayClock
   /** Sample budget. Defaults to the engine's k=1. */
   k?: number
-  /** Optional replay seed applied through the 366 sampling seam when the provider supports it. */
+  /** Optional replay seed, applied through the sampling seam when the provider supports it. */
   seed?: number
   /** k-sample escalation seam. Defaults to the imported neverEscalate — never re-minted. */
   escalationPredicate?: ReplayEscalationPredicate
   /** Optional persistence: when supplied, the outcome is saved after the replay returns. */
   recordStore?: FsReplayRecordStore
-  /**
-   * Optional D-13 score persistence: when supplied and the outcome is a ReplayResult (refusals are
-   * never scored — reports count them instead), the score + per-decision diffs are computed in
-   * eval core and saved AFTER recordStore.save (record-then-score ordering, OQ-2).
-   */
+  // Saved after `recordStore.save`; refusals are never scored.
   scoreStore?: FsScoreStore
-  /**
-   * Optional D-06 tier-4 judge bag: an EXPLICIT second ModelProfile plus its auth and stub seam
-   * (372's CLI surfaces it as config). No auto-pick from configured models, no fallback scanning —
-   * absence is a first-class configuration, in which case every unresolved tie is stamped
-   * not-invoked{no-judge-configured} whenever the score leg runs.
-   * allowSameFamily (owner override of D-10, 2026-07-12): explicit default-off opt-in threaded
-   * verbatim into assessJudgeEligibility — it lifts ONLY known-same-family refusal and stamps
-   * the D-16 identity block with familyOverride; unknown families stay forbidden.
-   */
+  // An explicit second profile; absent, every unresolved tie is stamped not-invoked.
   judge?: (JudgeDeclaration & { allowSameFamily?: boolean }) |
     { members: readonly JudgeDeclaration[]; allowSameFamily?: boolean }
   mask: MaskFn
@@ -134,10 +105,7 @@ function isReplayResult(outcome: ReplayCassetteOutcome): outcome is ReplayResult
   return 'granularity' in outcome
 }
 
-/**
- * The matcher-constitution stamp already minted inside the eval-core score — read for the persisted
- * record's attribution field, never computed here (F9).
- */
+// Read from the eval-core score for attribution, never computed here.
 function scoreMatcherVersion(score: CassetteScore): number {
   if (score.kind === 'shape-mismatch') return score.matcherVersion
   const entries =
@@ -151,12 +119,7 @@ function scoreMatcherVersion(score: CassetteScore): number {
   throw new Error('cassette score carries no matcher-version stamp')
 }
 
-/**
- * The recorded model identity from the cassette's reproducibility receipt — the D-14 recorded-side
- * eligibility input. Declared identity wins over the provider-resolved id; a procedure reads its
- * first decision record's receipt; absence is typed (the recorded side of the family check is then
- * skipped, D-14 "when resolvable").
- */
+// Declared identity wins over the resolved id; a procedure reads its first decision's receipt.
 function recordedReceiptModelId(cassette: Cassette): string | undefined {
   if (cassette.granularity === 'leaf') {
     return cassette.receipt.model.declared?.modelId ?? cassette.receipt.model.resolvedModelId
@@ -171,11 +134,7 @@ function recordedReceiptModelId(cassette: Cassette): string | undefined {
   return undefined
 }
 
-/**
- * Orchestrate eval core's buildDecisionDiff over every scored decision entry — joining each entry
- * back to its recorded sidecar/elements and its replayed decision result. Pure plumbing: the diff
- * content itself is computed entirely in eval core (F9).
- */
+// Joins each scored entry to its sidecar and replayed result; eval core computes the diff.
 function decisionDiffs(
   cassette: Cassette,
   outcome: ReplayResult,
@@ -230,16 +189,11 @@ function decisionDiffs(
   return diffs
 }
 
-/**
- * Run one loaded cassette through the pure replay engine bound to the production planner/model/
- * safety stack, optionally persisting the typed outcome. The one sanctioned model+runner
- * composition in eval-local.
- */
+// The one model and runner composition in eval-local, optionally persisting the outcome.
 export async function runCassetteReplay(
   input: RunCassetteReplayInput,
 ): Promise<ReplayCassetteOutcome> {
-  // Fresh ModelProfile copy: createModel mutates `profile.capabilities` (RESEARCH Pitfall 8), so
-  // the caller's object is never touched and the one call site owns its own copy.
+  // A fresh copy, because `createModel` mutates `profile.capabilities`.
   const profileCopy: ModelProfile = {
     ...input.profile,
     ...(input.profile.capabilities !== undefined
@@ -248,8 +202,7 @@ export async function runCassetteReplay(
   }
   const capabilities = resolveCapabilities(profileCopy)
 
-  // Temp-0 declared profile via the 366 sampling seam — model identity comes ONLY from the caller
-  // profile, sampling pins temperature 0 with an optional caller-supplied seed.
+  // Model identity comes only from the caller profile; sampling pins temperature 0.
   const replayProfile: DeclaredModelProfile = {
     provider: input.profile.provider,
     modelId: input.profile.model,
@@ -258,8 +211,7 @@ export async function runCassetteReplay(
     sampling: { temperature: 0, ...(input.seed !== undefined ? { seed: input.seed } : {}) },
   }
 
-  // The ONLY createModel call site and the ONLY egress path. The handle is shared across samples
-  // (RESEARCH A3); per-sample freshness is confined to accounting + planner + exchange server.
+  // The only `createModel` call and egress path; the handle is shared across samples.
   const model = createModel(profileCopy, input.auth, input.mask, input.modelOverrides ?? {}, input.modelCallObservation)
   const replayedModel = { provider: input.profile.provider, modelId: input.profile.model }
 
@@ -269,8 +221,7 @@ export async function runCassetteReplay(
       const accounting = createTokenAccounting({
         getCapabilities: () => resolveCapabilities(profileCopy),
       })
-      // Fresh unmodified LLMPlanner per sample; the 368-01 nonActionTools ctor seam threads the
-      // recorded-exchange server through the real bounded tool-loop.
+      // A fresh unmodified `LLMPlanner` per sample; `nonActionTools` threads the exchange server.
       const planner = new LLMPlanner(
         model,
         platform,
@@ -288,8 +239,7 @@ export async function runCassetteReplay(
     },
   }
 
-  // The action slice a recorded exchange may never shadow (RESEARCH Open Q2): derived here in the
-  // host from buildTools so the engine stays pure. plan() rebuilds the same slice internally.
+  // The action slice a recorded exchange may never shadow, derived here so the engine stays pure.
   const actionToolNames: ReadonlySet<string> = new Set(
     Object.keys(buildTools(defaultRegistry, { platform: cassettePlatform(input.cassette) })),
   )
@@ -313,20 +263,11 @@ export async function runCassetteReplay(
     input.recordStore.save(outcome)
   }
 
-  // Write ordering is strict and load-bearing (OQ-2/D-05, Pitfall 2): recordStore.save → score
-  // (sync, eval core) → adjudicate (async) → diffs over the FINAL score →
-  // exactly ONE scoreStore.save. The record store recreates the cassette dir in full (rm + mkdir),
-  // so the file-scoped score write MUST land after it — never before — or a re-run would wipe the
-  // fresh score.json. Refusals save a record but never a score (they are counted in reports
-  // instead). Score, adjudication, and diffs are computed in eval core (F9); this composition
-  // only orchestrates and saves.
+  // The record store recreates the dir, so the one score write must land after it.
   if (input.scoreStore !== undefined && isReplayResult(outcome)) {
     const score = scoreCassetteReplay(input.cassette, outcome)
 
-    // D-12/D-14 two-sided family eligibility, assessed ONCE at composition time against BOTH the
-    // replayed profile's model and the cassette receipt's recorded identity. Ineligible ⇒ the
-    // judge port never binds and the batch proceeds deterministically (soft-but-loud: the refusal
-    // is data on every tie's stamp, never a thrown error).
+    // Eligibility is assessed once; an ineligible judge never binds, and each tie records why.
     const recordedModelId = recordedReceiptModelId(input.cassette)
     const declaration = input.judge
     const members = declaration !== undefined && 'members' in declaration ? declaration.members : undefined
@@ -359,8 +300,7 @@ export async function runCassetteReplay(
       : single === undefined ? undefined
       : bindJudgePort(observedBinding(single))
 
-    // Adjudication runs UNCONDITIONALLY so every tie is stamped with its disposition even when
-    // no port exists; the pure scoreCassetteReplay output itself stays untouched.
+    // Adjudication runs even with no port, so every tie is stamped with its disposition.
     const adjudicated = await adjudicateCassetteScore({
       cassette: input.cassette,
       outcome,

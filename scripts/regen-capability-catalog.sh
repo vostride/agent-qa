@@ -1,45 +1,5 @@
 #!/usr/bin/env bash
-#
-# regen-capability-catalog.sh — the ONE writer of the committed capability catalog.
-#
-# WHAT THIS IS FOR, IN ONE LINE: `packages/cli/capability-catalog/capability-catalog.json` is the
-# single data source behind `init --agent`, the chat `/` type-ahead, the starter prompts and the
-# `explain` op. Every answer this product gives about what it can do is a projection of those bytes,
-# so the bytes must not be one keystroke from silently blessed. The discipline is 397's, verbatim:
-#
-#   * NO TEST-RUNNER UPDATE PATH REACHES IT. There is no snapshot, no `-u`, no `--update`. Nothing
-#     under `src/__tests__/conformance/` opens the artifact for writing, and `catalog.test.ts`
-#     asserts that as source over every file in the directory, including files added later. The
-#     suite offers this script a PRINT between sentinels; the writing happens here.
-#   * THE REGEN REFUSES WHILE THE SUITE IS RED FOR ANY OTHER REASON. A regeneration against a broken
-#     tree would launder the breakage into the artifact — the catalog would faithfully describe
-#     whatever the broken tree declares, and the reviewer would see a diff with no failing test
-#     beside it. The only failures allowed through the gate are the cells whose SUBJECT is the
-#     committed artifact agreeing with the live tree, by exact name (see ALLOWED_RED_NAMES).
-#   * THE GATE IS SELF-TESTING. `--selftest` injects a deliberately failing probe into the suite and
-#     requires the refusal to fire, then requires the gate to pass again once the probe is removed.
-#     A gate nobody has seen fire is a comment.
-#   * WRITING IS EXPLICIT. Without `--write` this script prints the diff and touches nothing.
-#
-# ONE RECIPE, NEVER TWO. The catalog this script emits is built by `buildCatalogRows` in
-# `conformance/catalog.ts` — the same function the freshness cell compares against, over the same
-# composition root the golden ledger walks. A regen that re-derived the rows its own way would agree
-# with whatever the code does on the day it ran, which is an artifact that pins nothing.
-#
-# STALE DIST IS A REAL FAILURE MODE HERE. The cli tests resolve `@vostride/agent-qa-*` through built
-# `dist`, so a catalog minted against a stale build describes the PREVIOUS build's capabilities. The
-# workspace is therefore rebuilt in dependency order before anything is measured.
-#
-# USAGE
-#   bash agent-qa/scripts/regen-capability-catalog.sh     # from the super-repository root
-#   bash scripts/regen-capability-catalog.sh              # from the agent-qa root: mint + diff only
-#   bash scripts/regen-capability-catalog.sh --write      # …and overwrite the committed artifact
-#   bash scripts/regen-capability-catalog.sh --selftest   # prove the refuse-while-red gate fires
-#   bash scripts/regen-capability-catalog.sh --no-build   # skip the rebuild (iteration only)
-#   bash scripts/regen-capability-catalog.sh --gate-only  # INTERNAL: run the gate, exit 0/1
-#
-# Case lookups and plain functions rather than associative arrays: macOS ships bash 3.2, where
-# `declare -A` silently becomes an indexed array and every named key reads as unbound under `set -u`.
+# The one writer of the committed capability catalog; it refuses while the suite is otherwise red.
 
 set -euo pipefail
 
@@ -49,93 +9,16 @@ SUITE_REL="src/__tests__/conformance/"
 CATALOG_REL="packages/cli/capability-catalog/capability-catalog.json"
 CATALOG="$ROOT/$CATALOG_REL"
 
-# ── The pins. Every one of these is a deliberate-commit knob, not a default. ────────────────────
-#
-# The failures the gate lets through, by EXACT full name, one per line. Exact rather than a pattern:
-# a pattern is a hole that widens on its own, and this list is the whole of what "refuses while red"
-# means.
-#
-# WHAT MAKES A CELL ELIGIBLE, STATED SO THE LIST CANNOT GROW BY HABIT. Every
-# member is a cell whose SUBJECT IS THE COMMITTED ARTIFACT AGREEING WITH THE LIVE TREE. Those are
-# exactly the cells a stale artifact reds, and exactly the state this script exists to let a person
-# out of — leaving them out would make the one writer unusable the moment a producer change reddened
-# more than one of them, which is the deadlock a second cell of that class introduces. A cell that
-# measures anything else — a census, a loader refusal, a parity anchor's enumeration — is NOT
-# eligible, because a regeneration performed while one of those is red records a tree nobody has
-# fixed.
-#
-# AND THE LIST CHECKS ITSELF. Every name below must MATCH A CELL THE SUITE ACTUALLY RAN; a stale
-# entry naming a renamed or deleted cell is a hole that is invisible precisely because nothing ever
-# fires through it. `classify.mjs` reports the misses and the gate FATALs on them.
-#
-# The names are vitest's `fullName`: the describe title and the cell title, joined by one space.
-#
-# THE SECOND NAME is admitted on the rule above: its subject is the committed
-# catalog (and the committed golden it is census-tied to) agreeing with the live tree for the six
-# read contracts Phase 423 added or widened. After the golden writer has run, it stays red only on
-# the catalog half, which is exactly the state this script exists to let a person out of. The
-# all-door parity and masking cells beside it measure the TREE and are deliberately NOT listed.
-#
-# THE THIRD NAME is admitted on the same rule: LIVE-GUIDANCE-TOOLS's subject is
-# the guidance naming a projected tool whose ops the COMMITTED catalogue does not carry yet. A
-# public tool rename rewrites the guidance and the catalogue in one cutover, so after the golden
-# writer has run the cell is red exactly while this script's write is owed. The guidance cells that
-# measure the TREE (live names, dead names, the pointer) are deliberately NOT listed.
-#
-# THE FOURTH AND FIFTH NAMES are admitted on the same rule: both cells' subject
-# is the COMMITTED catalogue's alias rows agreeing with the live help entries. Removing a chat alias
-# (`proposals`, with the `/pin` directive) rewrites the resolver table, the help entries and the
-# catalogue in one cutover, so these two cells are red exactly while this script's write is owed.
-# The help-census cells that measure the TREE (help vs the live table, the rendered text, the
-# second-list sweep) are deliberately NOT listed.
-#
-# THE SIXTH NAME is admitted on the same rule: its subject is the COMMITTED catalogue agreeing
-# with the live tree (op rows against the registry, tools against the projected tools), so it is red
-# exactly while this script's write is owed. The guidance and packaged-skills cells measure the TREE
-# and are deliberately NOT listed.
-#
-# A PLAIN MULTI-LINE STRING, not a heredoc inside a command substitution. Measured 2026-08-17 on the
-# bash 3.2 macOS ships: `VAR="$(cat <<'X' ... X )"` mis-parses there and the script dies at an
-# unrelated line with `arg: unbound variable`, which is the least helpful diagnosis available for
-# it. The rest of this file avoids bash-4 idioms for the same reason the header states.
+# Exact full names of the cells allowed red; each one's subject is the artifact's freshness.
 ALLOWED_RED_NAMES="the capability catalog regenerates byte-identically from the live seams into the committed artifact
 committed artifacts carry the reviewed read contracts GOLDEN-CATALOG-COMPLETE: the committed golden ledger and capability catalog carry every addressed read op as the live tree declares it
 LIVE-GUIDANCE: the guide, pointer and every source and packaged skill quote only live names LIVE-GUIDANCE-TOOLS: every agent_qa_* name is a projected tool whose ops the catalog carries
 the /help census — one list of what chat understands set-equals the committed catalog's aliases plus the directives plus the passthrough
 the chat host's discovery UX is a projection of the catalog offers every alias row in the form the shipped resolver actually answers
 the committed catalogue describes only the live tree op rows are the live registry, tools are the twenty projected tools, and no row names a retired capability or a permission"
-# Vacuity floor. A gate that passed because the suite collected nothing is the CI-shaped version of
-# the failure this artifact exists to prevent. Measured 2026-08-16: 88 tests in the directory;
-# 115, after the manifest legs, the `init --agent` cells and the two shipped-
-# binary anchors joined. 2026-08-17: 133, after the eighteen explain differentials joined.
-# Raised in the same diff that added them, which is the rule the knob is for; the margin is the
-# original's, about nine per cent under the measurement.
-# 140, after the seven help-census / second-list / skills-vocabulary cells
-# joined. Raised in the same diff that added them; the margin stays the original's.
+# Vacuity floor: a gate that collected nothing must not pass; raise it in the diff that adds cells.
 FROZEN_MIN_TESTS=129
-# The artifact's own floor, so a mint that produced a truncated or empty file cannot be written.
-# Measured 2026-08-16: 41 registry ops + 5 chat op-aliases + 3 shipped skills = 49 rows.
-# Raised 2026-08-17: `agent.explain` is the 42nd registry op, so 50. This is the knob
-# working as designed — a plan that adds a row raises the floor in the SAME diff, and a plan that
-# lowers one is doing something that needs an argument.
-# Raised 2026-09-29: the floor had stood at 50 through ten more registry ops.
-# Measured at this regeneration: 53 registry ops + 5 chat op-aliases + 3 shipped skills = 61 rows,
-# `runs.overview` being the newest. The floor is the exact observed baseline.
-# Raised 2026-09-29: 61 -> 62. The fourth shipped skill, `agent-qa-knowledge`, adds
-# one skill row once copy:skills mirrors it: 53 registry ops + 5 chat op-aliases + 4 shipped skills.
-# Lowered 2026-09-30: 62 -> 61. The `proposals` chat op-alias left the
-# resolver table with the inbox route (its op stays reachable through `/fn proposals.list`), so the
-# measured mint is 53 registry ops + 4 chat op-aliases + 4 shipped skills. The floor is the exact
-# observed baseline; the argument for lowering it is the removed alias, not a truncated mint.
-# Lowered 2026-10-01: 61 -> 54. The inbox is deleted with its seven ops —
-# `proposals.list/show/accept/reject`, `knowledge.proposal.apply`, `config.proposal.apply` and
-# `config.undo.propose` — so the measured mint is 46 registry ops + 4 chat op-aliases + 4 shipped
-# skills. The floor is the exact observed baseline; the argument is the seven deleted ops.
-# Lowered 2026-10-01: 54 -> 52. `grants.list` and `grants.revoke` are deleted
-# with the grant ledger, so the measured mint is 44 registry ops + 4 chat op-aliases + 4 shipped
-# skills. The floor is the exact observed baseline; the argument is the two deleted ops.
-# Confirmed 2026-10-02: 52, measured again at the guidance cutover — 44 registry ops + 4
-# chat op-aliases + 4 shipped skills. No row moved.
+# The artifact's row floor, so a truncated or empty mint cannot be written; it follows the mint.
 FROZEN_MIN_ROWS=52
 
 EMIT_FLAG="AGENT_QA_398_CATALOG_EMIT"
@@ -319,11 +202,7 @@ MINTED=""
 mint_catalog() {
   local out="$SANDBOX/minted.json"
   note "mint: emitting a fresh catalog from the composition root"
-  # `--disable-console-intercept` so the sentinels reach this shell rather than the runner's buffer.
-  # the mint runs the ONE file that emits, not the whole directory. With the
-  # directory, output from parallel workers' red cells landed between the sentinels and corrupted
-  # the JSON (logged in 432-02, then measured twice in a row in 432-12). The gate above still runs
-  # the whole suite; the mint only needs the emitting file, and the emitted text is unchanged.
+  # The mint runs only the emitting file: parallel workers' output corrupts the sentinel JSON.
   (cd "$CLI_DIR" && env "$EMIT_FLAG=1" npx vitest run "${SUITE_REL}catalog.test.ts" --disable-console-intercept) \
     > "$SANDBOX/mint.stdout" 2>&1 || true
 

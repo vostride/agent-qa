@@ -1,11 +1,4 @@
-// Wave-0 RED scaffold (361-01, Task 3). Pins the D-06 fs event-log sink BEFORE any
-// implementation exists — RED strictly on the unresolved import of the not-yet-existing
-// `../event-log.js` module (right-reason RED). Turns green in the runner-local impl plan.
-//
-// Contract source: 361-CONTEXT.md D-06 (events.jsonl under the run's .agent-qa artifact
-// dir, appended line-per-event, keyed by runId with the traversal-safe slug idiom, crash-safe
-// — complete up to the last emitted event) + T-361-01 (slugBranch traversal neutralization,
-// the T-360-03 idiom) + the synchronous mkdir-then-append-one-line discipline in event-log.ts.
+// One JSON line per event under the run's slugged dir, complete up to the last emitted event.
 import { mkdtemp, rm, readFile, appendFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve, sep } from 'node:path'

@@ -1,8 +1,6 @@
 import type { ExecutionContext } from '@vostride/agent-qa-schema'
 
-// the execution context stays. It is a durable field on handoffs, bus
-// events, deltas, bundles and run DTOs, and D-08's CI switch reads it. Only the gate's fail-closed
-// reading of a context left, with the ask ladder that was its one reader.
+// A durable field on handoffs, bus events, deltas, bundles and run DTOs; the CI switch reads it.
 
 export interface ExecutionContextSignals {
   isTty: boolean

@@ -389,8 +389,7 @@ describe('AndroidPlatformAdapter', () => {
 
     it('observes a webview when the context belongs to the target app package', async () => {
       mockDriver.getContexts.mockResolvedValue(['NATIVE_APP', 'WEBVIEW_app.linear'])
-      // Reworked WEB_OBSERVER_SCRIPT emits serializable interim nodes only (Pitfall #5):
-      // no refs, no tree text — the shared builder mints refs and renders the tree.
+      // The observer script emits serializable interim nodes only; the shared builder mints refs.
       mockDriver.execute.mockResolvedValueOnce({
         nodes: [{
           role: 'button',
@@ -514,8 +513,7 @@ describe('AndroidPlatformAdapter', () => {
       const usernameEl = state.elements.find(e => e.name === 'Username')
       expect(usernameEl).toBeDefined()
 
-      // Mock the focused element finder — the compound re-reads via getText() and probes
-      // getAttribute('password') for the secure lane. The showing-hint probe matches nothing.
+      // The compound re-reads via `getText()` and probes `password`; the hint probe finds nothing.
       const mockElement = {
         isExisting: vi.fn().mockResolvedValue(true),
         setValue: vi.fn().mockResolvedValue(undefined),
@@ -608,7 +606,6 @@ describe('AndroidPlatformAdapter', () => {
   })
 
   describe('execute — scroll', () => {
-    // a native scroll is the driver's scrollGesture, not a raw touch swipe.
     it('performs one scrollGesture over the screen area in the specified direction', async () => {
       await adapter.setup({ platform: 'android' })
       await adapter.observe()
@@ -619,8 +616,7 @@ describe('AndroidPlatformAdapter', () => {
 
       const gestures = mockDriver.execute.mock.calls.filter((c: unknown[]) => c[0] === 'mobile: scrollGesture')
       expect(gestures).toHaveLength(1)
-      // viewport 1080x1920; content direction is passed as-is; halfPage halves the 0.75 page percent.
-      // 436-12 (live A1): the area is the middle 60% of the swipe axis, clear of the gesture zones.
+      // The area is the middle 60% of the swipe axis, clear of the system gesture zones.
       expect(gestures[0][1]).toEqual({ left: 0, top: 384, width: 1080, height: 1152, direction: 'down', percent: 0.375 })
       expect(mockDriver.action).not.toHaveBeenCalled()
     })
@@ -652,8 +648,6 @@ describe('AndroidPlatformAdapter', () => {
     })
   })
 
-  // openLink retired — the deep-link-open behavior re-keys onto the typed `intent` verb
-  // (mobile: startActivity). Exhaustive hostile-input pins live in catalog.test.ts.
   describe('execute — intent', () => {
     it('maps action + data + package to typed mobile: startActivity args (uri, never a shell string)', async () => {
       await adapter.setup({ platform: 'android' })
@@ -777,9 +771,6 @@ describe('AndroidPlatformAdapter', () => {
       expect(mockDriver.keys).not.toHaveBeenCalled()
     })
   })
-
-  // assert retired — deterministic checks now route through the runner-side assertValue
-  // comparator and claim-shaped checks through assertAI; there is no adapter assert case.
 
   describe('screenshot', () => {
     it('returns PNG buffer from base64', async () => {

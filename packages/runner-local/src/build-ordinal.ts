@@ -1,14 +1,4 @@
-// Concrete per-product buildOrdinal counter.
-//
-// A storageImplementation home for node:fs + node:path (the FsActionCache / FsStorageStateStore
-// boundary) — this project-local counter fs write lives here, never in the runner. On-disk layout:
-//
-//   <root>/build-ordinals.json   ({ [product]: number })
-//
-// D-18 derivation (spec/v2/eval-and-core-types.md §A8): buildOrdinal is a per-product run counter
-// incremented at run start. The complete read/validate/increment/replace unit is serialized across
-// processes and durably replaced, so run starts and maintenance reservations share one monotonic
-// authority without lost updates or fixed-temp collisions.
+// Increments are serialized across processes and durably replaced, so no update is lost.
 
 import { randomUUID } from 'node:crypto'
 import {

@@ -1,11 +1,4 @@
-// Durable per-product build-tag resolution.
-//
-// The mapping lives beside build-ordinals.json at <root>/build-tags.json and records the
-// first buildOrdinal observed for each product/tag pair (spec/v2/eval-and-core-types.md §A8).
-// It deliberately mirrors the ordinal counter's lock-free, write-temp + same-dir rename
-// persistence. Concurrent writers can lose a write, but a repeated observation restores it;
-// an existing tag is never overwritten by a later ordinal. This truth is persisted because it
-// cannot be reconstructed reliably from retained evidence bundles after pruning or corruption.
+// Lock-free like the ordinal counter: a lost write is restored on the next observation.
 
 import { readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'

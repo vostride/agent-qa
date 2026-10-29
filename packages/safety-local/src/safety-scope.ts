@@ -9,12 +9,10 @@ export interface SafetyScopeBundle {
   executionContext?: ExecutionContext
 }
 
-// exactly ONE AsyncLocalStorage store carries the run-safety bundle, feeding the active
-// execution-context resolver with one nesting-safe, concurrency-safe scope.
+// One `AsyncLocalStorage` store gives one nesting-safe, concurrency-safe scope.
 const als = new AsyncLocalStorage<SafetyScopeBundle>()
 
-// Single install site (Pitfall 9). Reachable from the package barrel so any import of
-// @vostride/agent-qa-safety-local wires the scope.
+// The single install site, reached from the barrel so any import wires the scope.
 setActiveExecutionContextResolver(() => als.getStore()?.executionContext ?? detectExecutionContext())
 
 export function runSafetyScope<T>(bundle: SafetyScopeBundle, fn: () => T): T {

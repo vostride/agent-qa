@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-// 437 D-18 (SC4): `keyevent` and `openQuickSettings` keep their `mobile: shell` route. Secure Appium
-// refuses that route with a fixed message; the refusal is recorded as unavailable and any other
-// driver error as failed. Neither is ever a pass, and neither escapes `execute()` as a throw.
+// `keyevent` and `openQuickSettings` use `mobile: shell`; a secure-Appium refusal is unavailable.
 
 const ANDROID_XML = `<?xml version="1.0" encoding="UTF-8"?>
 <hierarchy rotation="0">

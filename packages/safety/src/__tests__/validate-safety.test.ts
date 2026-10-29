@@ -3,20 +3,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
-// SAFE-03 release gate. This is the closing enforcement conformance gate. It
-// carries one detection:
-//   (a) STRUCTURAL — createModel's per-call middleware array ends with ...MIDDLEWARE and
-//       then createMaskingMiddleware(mask), with createModel's own MaskFn (441 D-06, E7).
-// (b), the registrar's fail-closed guardrail policy load, and (c), the
-// audit-into-context import firewall, are deleted with the registrar and the audit port.
-//
-// House style mirrors the tools and arch validator tests: self-contained
-// scan helpers (no cross-package import), offender lists, and held-out fixtures that
-// prove each check rejects its violation. The model registry is read AS TEXT — never
-// imported — so the safety package never depends on model (dependency inversion would
-// trip the arch lint's direction/cycle firewalls — RESEARCH Pitfall 4). Test files are
-// exempt from safety's ownership source-scan (arch's sourceFilesFor filters __tests__),
-// so node:fs here is fine.
+// The model registry is read as text, so safety never depends on model.
 
 const testDir = dirname(fileURLToPath(import.meta.url))
 const packagesRoot = join(testDir, '..', '..', '..')
@@ -71,8 +58,7 @@ function splitTopLevelEntries(inner: string): string[] {
   return entries.map(entry => entry.trim()).filter(Boolean)
 }
 
-// Assert presence AND position; tolerate formatting-only edits; never merely check
-// that the identifier appears somewhere (RESEARCH Pitfall 5).
+// Asserts presence and position, tolerating formatting-only edits.
 function findSeamStructuralOffenders(rawSource: string, label: string): string[] {
   const source = stripComments(rawSource)
   const rule = (name: string, detail: string) => `${label} | ${name} | ${detail}`

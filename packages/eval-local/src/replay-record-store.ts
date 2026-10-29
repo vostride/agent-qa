@@ -1,18 +1,4 @@
-// Filesystem replay-record store.
-//
-// Persists each per-cassette replay outcome — a ReplayResult or a typed ReplayRefusal (refusals are
-// records too, never silent; the report verb counts them) — under an uncommitted runtime staging
-// root beside `eval/cassettes`:
-//
-//   <output-root>/<slugged cassette id segments>/replay.json
-//
-// The store mirrors FsCassetteStore's posture exactly: every id segment delegates to schema's
-// security-reviewed slugBranch sanitizer (path-traversal control, T-368-10), and each record is
-// recreated in full (rm + mkdir) before writing so a re-run leaves no stale files behind (idempotent
-// overwrite). The write is deterministic: the same outcome yields the same path and the same bytes —
-// no timestamps or random ids are minted here; timing data already lives inside the outcome from the
-// engine clock. Records land ONLY under this output root — never knowledge dirs. Records are
-// written as handed over.
+// Each record dir is recreated in full, so a re-run leaves no stale files; bytes are deterministic.
 
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'

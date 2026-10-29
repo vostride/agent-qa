@@ -4,10 +4,7 @@ import { describe, expect, it } from 'vitest'
 import * as safety from '../../index'
 import * as executionContext from '../execution-context'
 
-// RE-SPELLED 2026-10-01. This file pinned `requiresFailClosed`, the gate's reading of
-// a context (fail closed everywhere but `local-interactive`). It is deleted with the ask ladder that
-// was its one reader. The execution context ITSELF is retained: it is a durable field on handoffs,
-// bus events, deltas, bundles and run DTOs, and D-08's CI switch reads it.
+// The execution context is a durable field on handoffs, bus events, bundles and run DTOs.
 const ALL_CONTEXTS: readonly ExecutionContext[] = ['local-interactive', 'local-headless', 'ci', 'cloud']
 
 describe('requiresFailClosed', () => {

@@ -22,8 +22,7 @@ describe('compactLogs — normalization', () => {
       { source: 'console', level: 'error', message: 'at 2026-07-04T12:34:56.789Z the host 192.168.1.24 replied' },
       { source: 'console', level: 'error', message: 'token 0xDEADBEEF hash a1b2c3d4e5f6a7b8 count 4217' },
     ]
-    // Normalization is asserted on the grouped class headers; raw samples
-    // legitimately preserve the original tokens for diagnostic value.
+    // Normalization is asserted on class headers; raw samples keep their original tokens.
     const headers = headerLines(compactLogs(entries)).join('\n')
     expect(headers).toContain('user <*> failed')
     expect(headers).toContain('at <*> the host <*> replied')

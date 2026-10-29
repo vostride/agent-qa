@@ -1,24 +1,4 @@
-// a pre-import trap that fails any embedding runtime load.
-//
-// USE: `node --import <this file> <entry>` with AGENT_QA_431_TRAP_REPORT naming a report file. The
-// same `--import` in NODE_OPTIONS carries it into every descendant Node process.
-//
-// THE MECHANISM (Node >= 24, measured, not assumed):
-//   - `module.registerHooks({ resolve })` runs in-thread for EVERY resolution: ESM `import`,
-//     `import()`, CommonJS `require()` (conditions carry `require`) and builtins. A forbidden
-//     identity is refused by bare specifier before resolution and by resolved file path after it.
-//   - `process.dlopen` is wrapped, so a native addon under a forbidden package cannot load.
-//   - `fs` readers (`readFileSync`, `readFile`, `openSync`, `open`, `createReadStream` and the
-//     `fs/promises` `readFile`/`open`) are wrapped and re-synced into ESM named exports, so a read
-//     of a model asset (the committed floor assets, the model cache, an .onnx/.i8bin file) fails.
-//   The forbidden set is `deriveForbiddenRuntime`, the embedder acquisition modules' own
-//   executable imports and their acquisition-only closure, matched by real directory.
-//
-// FAIL CLOSED. Every event is a JSONL line appended synchronously to the report: `installed`, one
-// `observed` per loader path (esm, cjs) and every `violation`. A violation also writes the
-// AGENT_QA_431_RUNTIME_LOAD_TRAPPED sentinel to stderr and throws, so the load never happens. The
-// reader (`readTrapReport`) refuses a report with no `installed` line or an unobserved loader path;
-// install self-proves both paths with builtin canaries before any host module is imported.
+// Fails closed: refuses any embedding runtime load and records each event in the JSONL report.
 
 import { appendFileSync, realpathSync } from 'node:fs'
 import { createRequire, registerHooks, syncBuiltinESMExports } from 'node:module'

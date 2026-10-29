@@ -7,35 +7,16 @@ export const AGENT_QA_EVAL_LOCAL_ALLOWED_RESPONSIBILITIES = [
   'all eval filesystem IO behind the neutral artifact read port',
   'artifact reads composed over runner-local stores',
   'cassette bundle writes under the runtime workdir staging root',
-  // the ONE sanctioned replay-composition helper (runCassetteReplay)
-  // binding createModel egress + a temp-0 LLMPlanner (368-01 nonActionTools seam) with the
-  // caller's declared mask on every request + optional replay-record persistence. This
-  // deliberately makes eval-local the SECOND package (after cli) importing both model and runner;
-  // Phase 372's CLI wraps exactly this helper. 441-32: no safety scope or audit sink.
+  // Eval-local imports both model and runner for this helper, as cli does.
   'the single sanctioned replay-composition helper wiring createModel + LLMPlanner',
-  // per-cassette score persistence — score.json written BESIDE its replay.json in
-  // the same slugged cassette dir, FILE-scoped overwrite (never a dir recreate: Pitfall 5) so the
-  // composition's record-then-score ordering keeps both files alive across re-runs (OQ-2).
-  // Serialization only: every score and diff arrives computed from eval core (F9) — the
-  // forbidden-scoring clause below stays true.
+  // Score files sit beside replay files and are overwritten per file, so both survive re-runs.
   'per-cassette score and diff persistence beside replay records',
   // The aggregated EvalBatchReport as its own artifact under eval/reports/, keyed by the
   // deterministic replay-batch key: uncommitted runtime staging beside eval/replays.
   'aggregated eval batch-report persistence under the runtime staging root',
-  // the tier-4 judge leg — bindJudgePort routes every judge call through
-  // createModel (the pinned-last mask/guardrail middleware stack, JUDGE-03) at temperature 0,
-  // maxRetries 0, one structured Output.object verdict per order-tagged request, parsed against
-  // a closed zod schema with typed call-error degradation (the port never throws, D-11). Prompt
-  // content arrives fully built from eval core — the binding transports, never assembles.
-  // bindJudgePanel composes N existing bindJudgePort handles at this same factory site.
-  // Only replay invokes them; this exception does not authorize another factory or general
-  // provider invocation.
+  // Every judge call goes through `createModel`; this exception authorizes no other factory.
   'the tier-4 judge-port binding through createModel, including bindJudgePanel as N existing bindings during replay',
-  // Phase 372 G2/D-02/D-08: the read legs inverting the replay-record, score, and cassette-bundle
-  // write legs — loadReplayRecord/loadScoreRecord mirror the loader's typed-refusal posture (every
-  // read/parse failure is a returned ReplayRefusal, absence of score.json is typed, never a
-  // throw), plus deterministic sorted sweep enumeration (ENOENT ⇒ empty) so every CLI verb sweeps
-  // staged trees and the report verb rebuilds its inputs integrity-checked from disk.
+  // Read legs return typed refusals, never throw, and enumerate sweeps in sorted order.
   'replay-record, score, and staged-bundle read legs with typed refusals and sweep enumeration',
 ] as const
 export const AGENT_QA_EVAL_LOCAL_FORBIDDEN_RESPONSIBILITIES = [

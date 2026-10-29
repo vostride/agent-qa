@@ -5,10 +5,7 @@ import type {
   LanguageModelV3Prompt,
 } from '@ai-sdk/provider'
 
-// RUNX-04. Flag-gated (AGENT_QA_DEBUG_LLM) debug surface: per model call it logs the request
-// shape and, on a provider failure, the error's structured fields, then re-throws the error
-// unchanged. Disabled, it is a pure passthrough.
-// a line carries no header value, query string or provider free text.
+// Gated by `AGENT_QA_DEBUG_LLM`; a line carries no header value, query string or provider text.
 
 export interface DebugLoggingOptions {
   /** Force enable/disable. When omitted, resolves from the `AGENT_QA_DEBUG_LLM` env flag. */

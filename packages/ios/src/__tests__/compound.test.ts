@@ -1,20 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-// ---------------------------------------------------------------------------
-// Wave-0 RED scaffold — Phase 359 Plan 02, Task 3 (EXEC-01/02/03; D-05..D-08,
-// D-10, D-12, Pitfalls 5/7/9). Pins the iOS adapter fill/scroll/openApp compound
-// sequences against a call-logging mocked webdriverio driver — no live Appium,
-// no simctl/child_process (ownership contract: webdriverio only).
-//
-// RED convention: these fail on not-yet-implemented compound behavior (the current
-// `case 'fill'` sets a value but never re-reads getAttribute('value'); `case 'scroll'`
-// has no native `mobile: scroll` predicate rung; `openApp` is not a handled action).
-// They MUST NOT fail on compile errors — execution-shaped action literals are cast via
-// `as unknown as Parameters<typeof adapter.execute>[0]`.
-//
-// The pre-existing adapter.test.ts and conformance.test.ts stay GREEN (standalone
-// file; legacy `fill {value}` / `scroll {value}` contracts untouched).
-// ---------------------------------------------------------------------------
+// Compound fill, scroll and openApp sequences against a call-logging mocked driver; no live Appium.
 
 const IOS_XML = `<?xml version="1.0" encoding="UTF-8"?>
 <AppiumAUT>
@@ -192,7 +178,7 @@ describe('IOSPlatformAdapter compound behaviors (RED — Wave-0)', () => {
     it('secure field (XCUIElementTypeSecureTextField) verdicts on non-emptiness only; raw value absent from result', async () => {
       await adapter.setup({ platform: 'ios' })
       const ref = await refFor('Password')
-      fieldValueReturn = '•••••••' // masked bullets — length may not equal typed length (A3)
+      fieldValueReturn = '•••••••' // masked bullets — length may not equal typed length
 
       const result = await adapter.execute({ type: 'fill', ref, text: 'topSecretPw', clearMode: 'replace', submit: false } as unknown as ExecAction)
 

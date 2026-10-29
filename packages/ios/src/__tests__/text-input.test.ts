@@ -1,8 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-// AUTO-18 observe-to-execute text-input cells: an observed iOS screen drives fill/clearText
-// through a call-logging mocked webdriverio driver (no live Appium). Elements are located by
-// XCUI type + observed bounds, and keyboard focus is read from getActiveElement.
+// An observed iOS screen drives fill and clearText through a call-logging mocked driver.
 
 const W3C_ELEMENT_KEY = 'element-6066-11e4-a52e-4f735a1b0f2d'
 

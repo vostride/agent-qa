@@ -1,11 +1,4 @@
-// Phase 364 RUNX-01 defense-in-depth — dropEmptyMessagesMiddleware strips empty-content
-// messages from `params.prompt` just before the provider wire, so even if a caller
-// reintroduces a `{ role:'system', content:'' }` message it can never reach the OpenAI
-// Responses API (which rejects empty message content with HTTP 400). This is the second
-// layer behind the runner-side assembly filter (planner-system-tiers).
-//
-// RED BY DESIGN: the middleware module does not exist until the fix lands. The failing
-// reason must be the missing export, not a fixture typo.
+// Empty-content messages never reach the provider, which rejects them with HTTP 400.
 import { describe, it, expect } from 'vitest'
 import type { LanguageModelV3Prompt } from '@ai-sdk/provider'
 import { dropEmptyMessagesMiddleware } from '../index.js'

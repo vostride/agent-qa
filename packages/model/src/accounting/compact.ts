@@ -1,10 +1,4 @@
-// Deterministic pre-prompt compaction. Two lanes, both pure:
-//   compactLogs — log-shaped bursts: normalize variable tokens → group by
-//     source::level::normalized_message → count + first-5 samples.
-//   guardBlob   — one-shot structured values: safe-stringify + a generous honest
-//     size bound with the visible truncation marker; NEVER token-normalized.
-// Determinism is load-bearing: no clock, no randomness, sorted keys
-// before render so compacted output cannot smuggle run-to-run variance downstream.
+// Deterministic and pure: no clock, no randomness, sorted keys, so no run-to-run variance leaks.
 
 export type LogEntry = { source: string; level?: string; message: string }
 
@@ -13,9 +7,7 @@ const MAX_SAMPLES = 5
 const SAMPLE_PREFIX = '  · '
 const TRUNCATION_MARKER = '…[truncated to fit context budget]'
 
-// A single structured value is one thing, not a burst — so it earns a much more
-// generous bound than the v1 2000-char guillotine: 8000 chars (~2000 tokens, 4×)
-// keeps real signal while still capping an adversarial huge/repeating blob.
+// A single structured value is one thing, not a burst, so it gets a far larger bound.
 const BLOB_CEILING = 8000
 
 // Variable-token normalization, applied in this fixed precedence so a broader
@@ -40,13 +32,7 @@ function normalize(message: string): string {
 
 type LogClass = { source: string; level: string; normalized: string; count: number; samples: string[] }
 
-/**
- * Compact a log-shaped burst into a deterministic, bounded string.
- * Groups typed `{source, level, message}` entries by `source::level::normalized`,
- * counts each class, and renders it with the first ≤5 raw samples seen (monotonic:
- * once a class has 5 samples, growing the burst never changes which 5 are shown;
- * the onset occurrence is always retained). Classes render in sorted-key order.
- */
+// Samples are the first five seen, so a growing burst never changes which are shown.
 export function compactLogs(entries: LogEntry[]): string {
   const classes = new Map<string, LogClass>()
 
@@ -75,12 +61,7 @@ export function compactLogs(entries: LogEntry[]): string {
   return blocks.join('\n')
 }
 
-/**
- * Bound a single structured value for prompt inclusion. Safe-stringifies the
- * value verbatim (variable tokens preserved — the planner may need them exactly) and,
- * only if it exceeds `BLOB_CEILING`, slices and appends the visible truncation marker.
- * `undefined` in ⇒ `undefined` out. Never throws on cyclic input (V5).
- */
+// Variable tokens stay verbatim; never throws on cyclic input.
 export function guardBlob(value: unknown): string | undefined {
   if (value === undefined) return undefined
   const str = safeStringify(value)
@@ -113,13 +94,7 @@ function asLogEntry(value: unknown): LogEntry | undefined {
   return undefined
 }
 
-/**
- * The composed pre-prompt guard for one tool-output value: a burst of
- * log-shaped entries (console `{level, text}` / network `{url, method, status}` /
- * generic `{source?, level?, message}`) routes through {@link compactLogs};
- * anything else through {@link guardBlob}. Compacted output is still bounded by
- * the blob ceiling so a burst of all-distinct classes cannot flood the prompt.
- */
+// Compacted output is still bounded by the blob ceiling, so distinct classes cannot flood it.
 export function guardToolOutput(value: unknown): string | undefined {
   if (Array.isArray(value) && value.length > 0) {
     const entries = value.map(asLogEntry)
@@ -132,7 +107,7 @@ export function guardToolOutput(value: unknown): string | undefined {
   return guardBlob(value)
 }
 
-/** Cycle-safe stringify preserving key order (verbatim, D-14); never throws (V5). */
+// Cycle-safe stringify preserving key order; never throws.
 function safeStringify(value: unknown): string {
   const seen = new WeakSet<object>()
   try {

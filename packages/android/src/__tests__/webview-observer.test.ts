@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-// the exact WebView observer script the adapter sends through driver.execute,
-// evaluated against a small hand-built DOM stub. The stub implements only what the script reads.
+// The exact observer script the adapter sends, run against a DOM stub of what it reads.
 
 interface StubRect {
   left: number

@@ -1,12 +1,4 @@
-// Phase 372 G2 read legs — the report verb's input integrity layer.
-//
-// Inverts FsReplayRecordStore's and FsScoreStore's write legs: reads `replay.json` / `score.json`
-// back from a staged cassette dir with the exact typed-refusal posture of loadCassetteBundle —
-// staged files are hand-editable, cross-machine documents, so every read/parse failure becomes a
-// typed ReplayRefusal instead of a throw (D-08: refusals are data; the surrounding batch always
-// survives). A missing score.json is typed ABSENCE, not an error: refusal outcomes are never
-// scored, the report verb counts them instead. eval-local serializes/deserializes only (F9) —
-// no scoring or aggregation logic lives here; deep validation stays with eval core's guards.
+// Staged files are untrusted, so read failures are typed refusals; a missing score is absence.
 
 import { existsSync, readFileSync, readdirSync, type Dirent } from 'node:fs'
 import { basename, join } from 'node:path'
@@ -100,11 +92,7 @@ export function loadScoreRecord(dir: string): ScoreRecordLoad {
   return { kind: 'loaded', record: read.document as ScoreRecord }
 }
 
-// Recursive walk collecting every directory that directly contains the marker file. Cassette ids
-// are multi-segment slugged paths, so staged dirs nest at arbitrary depth — the walk must recurse,
-// not glob one level. The root read is ENOENT-safe (a missing root is an empty sweep, D-02) and
-// the result is sorted lexicographically before returning: deterministic sweep order, no
-// readdir-ordering leaks (the eval determinism law).
+// Cassette ids nest at any depth, so the walk recurses and sorts; a missing root is empty.
 function listMarkerDirs(root: string, markerFile: string): string[] {
   const found: string[] = []
 

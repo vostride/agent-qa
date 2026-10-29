@@ -39,7 +39,7 @@ function paramsWithSecret(): LanguageModelV3CallOptions {
   } as unknown as LanguageModelV3CallOptions
 }
 
-// A codex Responses 400 exactly like the live RUNX-01 capture.
+// A codex Responses 400 shaped like a live capture.
 function makeApiCallError(): APICallError {
   return new APICallError({
     message: 'Bad Request',

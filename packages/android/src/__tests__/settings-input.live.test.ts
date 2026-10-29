@@ -1,20 +1,4 @@
-// the toggle fix run live on an emulator's Settings app
-// (com.android.settings), through the real runner loop with a scripted planner and verifier. No
-// model is called. It proves on a device that an ordinary node exposing `selected` is never
-// skipped as already satisfied: a row tapped under desiredState unselected is sent, by ref and by
-// coordinate. A real toggle keeps desired-state idempotency on its checked state: the Dark theme
-// switch already in the requested state is not tapped and is recorded as no input sent, and out of
-// state it is tapped once. The switch's original state is restored after each cell.
-//
-// on an Appium started without relaxed security or any
-// insecure feature, a shell key event (`keyevent`, `openQuickSettings`) is refused by the server
-// and recorded as unavailable with reason adb-shell-disabled; nothing throws and the step does not
-// pass, even with a verifier that would accept any screen.
-//
-// Skipped unless AGENT_QA_437_ANDROID_LIVE=1, with a booted emulator and Appium reachable at
-// AGENT_QA_APPIUM_URL or http://localhost:4723. The secure cells also need
-// AGENT_QA_437_SECURE_APPIUM_URL naming such a plain Appium server; they point the session at it
-// for their own setup only. A skip is never a pass.
+// Live on an emulator's Settings app; skipped without the live env flag, and a skip never passes.
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { executeStep, scriptedVerification } from '@vostride/agent-qa-runner'

@@ -1,26 +1,5 @@
 #!/usr/bin/env node
-// no embedding runtime on the MCP discovery request path, read from the
-// TypeScript AST rather than from grep.
-//
-// WHAT IS AN EDGE. Executable module edges only: `import` declarations (including a type-only
-// specifier list, which `verbatimModuleSyntax` keeps as an import), `export ... from`, `import x =
-// require()`, `require('literal')` and `import('literal')`. `import type`, `export type`,
-// `typeof import('x')` and comments are not edges. A `require` inside a function and every
-// literal `import()` are LAZY; everything else is EAGER.
-//
-// WHAT IS FORBIDDEN. The runtime packages reachable only through the embedder acquisition modules'
-// own executable imports (`deriveForbiddenRuntime`), pinned below. Packages some other workspace
-// package also depends on (sharp, through runner-local's screenshot compressor) are not
-// acquisition-only and are not forbidden.
-//
-// THE RULES, over the eager graph grown from the discovery entries (workspace `@vostride/agent-qa-*`
-// aliases resolve through their package `exports` to `src`):
-//   eager-runtime-import       any module in the graph eagerly imports a forbidden package
-//   request-path-runtime-import an entry module imports a forbidden package, eager or lazy
-//   request-path-acquisition-call an entry module calls an acquisition export by name
-//   unresolved-workspace-edge  a relative or workspace edge that resolves to no source file
-// An entry's lazy edges are followed like eager ones: a request handler that imports at call time
-// imports on the request path.
+// Executable edges only, read from the TypeScript AST; an entry's lazy edges count as eager.
 
 import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from 'node:fs'
 import { isBuiltin } from 'node:module'

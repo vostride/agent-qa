@@ -1,13 +1,4 @@
-// Filesystem artifact-source implementations for eval extraction (Phase 367, D-02 / Open Q1a).
-//
-// No run directory currently owns a sha-keyed blob store. `absentArtifactSource` states that fact
-// honestly so a present-but-unservable reference becomes evidence-incomplete downstream. The
-// directory-backed implementation is the real copy-in seam for tests and future callers:
-//
-//   <dir>/<lowercase 64-hex sha>
-//
-// The sha is validated before any path or filesystem use. A future runner-local blob write leg can
-// bind the same eval port without changing pure extraction logic.
+// `absentArtifactSource` marks unservable refs; the sha is validated before any path use.
 
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'

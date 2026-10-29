@@ -1,75 +1,5 @@
 #!/usr/bin/env bash
-#
-# mcp-conformance.sh — the external MCP conformance suite, pinned, frozen, ratcheted.
-#
-# WHAT THIS IS FOR, IN ONE LINE: "know the number, don't hit one". This script publishes a
-# raw-count conformance score for the shipped MCP server and reds only on a NEW failure. It is
-# complementary to — never a substitute for — 397's parity suite.
-#
-# WHAT IT DRIVES. The BUILT binary (`packages/cli/dist/cli.js mcp --http <port>`) serving loopback
-# HTTP against a hermetic temp-project fixture with a config planted. Never the developer's own
-# project, never a hand-assembled server. (2026-10-02, 432-45: the fixture planted a
-# `services.mcp.tokens` env-ref until 432-21/22 deleted the bearer and the key, D-12; a fixture still
-# declaring it fails strict validation, so `mcp`'s tolerant read served it as an unresolved config
-# rather than the resolved one this script means to drive.)
-#
-#   D-17 DEVIATION, RECORDED RATHER THAN SILENT. D-17 as written says "a spawned stdio server". The
-#   conformance CLI's `server` mode takes `--url` and has NO `--command`: spawning a command is
-#   `client` mode's mechanism, and it spawns the client under test. So the decision is UNRUNNABLE as
-#   written. Its intent — drive the SHIPPED ARTIFACT against a hermetic fixture rather than a
-#   hand-built server — is preserved exactly: this script starts the built binary and points the
-#   suite's `--url` at it. What changed is the transport, and only because the tool has one.
-#   (RESEARCH §Conformance Facts, Pitfall 1.)
-#
-# THE RATCHET IS THE TOOL'S OWN SEMANTICS — there is no wrapper differ here and there must never be
-# one. `--expected-failures` gives exactly D-18: a failure IN the baseline exits 0; a failure NOT in
-# the baseline exits 1 (regression); a baselined entry that PASSES exits 1 (stale — remove it). The
-# score level itself gates nothing. There is no threshold anywhere in this file, and adding one
-# would be the thing D-18 forbids.
-#
-# THE PIN IS EXACT AND NEVER FLOATS. `0.2.0-alpha.11`, `--requirements 2026-07-28`. Bumping either
-# is a deliberate reviewed commit, because a floating suite turns an upstream scenario addition into
-# a red build that nobody changed anything to cause. The floating dist-tag npm would resolve is not
-# spellable anywhere in this file: an acceptance grep for it must count zero, and this sentence
-# deliberately does not name it, because a comment ABOUT the prohibition would defeat the grep that
-# enforces it.
-#
-# THE VACUITY GATES ARE THE POINT OF THIS SCRIPT AS MUCH AS THE RUN IS.
-#
-#   Three plans of this phase in a row shipped an acceptance check that answered the same number on
-#   both sides of the mutation it was supposed to forbid. The CI-shaped version of that failure is a
-#   job that passes because it ran nothing: the registry was unreachable, the server never came up,
-#   a flag typo narrowed the set to one scenario, or a baseline entry silently matched no check. An
-#   exit code alone cannot tell any of those from a clean run. So this script pins the EXECUTED CASE
-#   COUNT and the DENOMINATOR, not just the exit code:
-#
-#     G1  the shipped requirement set must contain exactly FROZEN_REQUIRED_SERVER_SCENARIOS entries
-#         (a pin bump that changes the denominator stops the run instead of silently re-scoring)
-#     G2  the run must have produced exactly FROZEN_EXECUTED_SCENARIOS scenario result directories
-#     G3  every required scenario must have a result directory of its own
-#     G4  the score denominator must equal the frozen required count
-#     G5  every baseline entry must have MATCHED a check in this run. The tool ignores an entry
-#         whose check id does not exist — a typo or a renamed check becomes dead weight that hides
-#         a real failure forever, and nothing in the tool's own exit code notices.
-#
-#   `--selftest` PROVES those gates can fail, by running the suite over a deliberately smaller set
-#   and requiring the FATAL. A gate nobody has seen fire is a comment.
-#
-# EXIT CODES ARE READ FROM THE PROCESS, NEVER THROUGH A PIPE.
-#
-# NETWORK FAILURE IS LOUD. The pinned CLI is installed into the sandbox before anything runs; if the
-# registry is unreachable the install fails and so does this script. A conformance job that passes
-# when it could not fetch its own referee is vacuity gate 1 wearing a different hat.
-#
-# USAGE
-#   bash agent-qa/scripts/mcp-conformance.sh            # from the super-repository root
-#   bash scripts/mcp-conformance.sh                     # from the agent-qa root
-#   bash scripts/mcp-conformance.sh --selftest          # prove this script can fail
-#   bash scripts/mcp-conformance.sh --mint-baseline     # print a fresh baseline body to stdout
-#   bash scripts/mcp-conformance.sh --no-build          # skip `pnpm build` (iteration only)
-#
-# Case lookups and plain functions rather than associative arrays: macOS ships bash 3.2, where
-# `declare -A` silently becomes an indexed array and every named key reads as unbound under `set -u`.
+# Runs the pinned MCP conformance suite against the built binary and reds only on a new failure.
 
 set -euo pipefail
 
@@ -78,8 +8,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # ── The pins. Every one of these is a deliberate-commit knob, not a default. ────────────────────
 CONFORMANCE_PIN="0.2.0-alpha.11"
 REQUIREMENTS_REVISION="2026-07-28"
-# The frozen denominator: how many scenarios `requirements/2026-07-28.yaml` lists under `server`.
-# Measured 2026-08-16 against the pin above. If a pin bump changes it, G1 stops the run.
+# The frozen denominator: the `server` scenarios the pinned requirements list.
 FROZEN_REQUIRED_SERVER_SCENARIOS=37
 # Required (37) + not-scored (13: 10 tasks-extension, 3 pending). Everything the run must execute.
 FROZEN_EXECUTED_SCENARIOS=50
@@ -115,8 +44,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# ── Helper programs. Written to files, never passed as shell strings: 396-03's harness measured an
-# implementation nobody wrote after shell quoting mangled `?? ''`. Anything with a quote is data.
+# Helper programs are files, never shell strings, so quoting cannot mangle them.
 cat > "$SANDBOX/required.mjs" <<'REQUIRED_MJS'
 // Print the frozen required SERVER scenario list, one per line, read from the suite's OWN shipped
 // requirements file. Restating the list here would be a second copy free to disagree with the tool.
@@ -242,9 +170,7 @@ REQUIRED_COUNT="$(grep -c '' "$SANDBOX/required.txt" || true)"
 [ "$REQUIRED_COUNT" -eq "$FROZEN_REQUIRED_SERVER_SCENARIOS" ] \
   || fatal "G1: requirements $REQUIREMENTS_REVISION lists $REQUIRED_COUNT server scenarios, the frozen denominator is $FROZEN_REQUIRED_SERVER_SCENARIOS. A pin bump changed the set — re-mint the baseline and update the frozen counts in a deliberate commit."
 
-# ── Step 3: the hermetic fixture. D-17's "config planted", in a mktemp sandbox that is never the
-# developer's own project. 2026-10-02: no token is planted — the listener reads no
-# credential, so every request the suite makes is the one caller and sees all twenty tools.
+# The hermetic fixture, in a mktemp sandbox that is never the developer's own project.
 FIXTURE="$SANDBOX/fixture"
 mkdir -p "$FIXTURE/.agent-qa"
 cat > "$FIXTURE/agent-qa.config.yaml" <<'FIXTURE_YAML'
@@ -270,8 +196,7 @@ start_fixture_server() {
     > "$SANDBOX/server.out" 2> "$SANDBOX/server.err" &
   SERVER_PID=$!
   URL="http://127.0.0.1:$PORT/mcp"
-  # Bounded readiness wait. 60 x 0.5s = 30s: generous enough for a cold CI runner, bounded so a
-  # server that never comes up cannot wedge the job.
+  # Bounded readiness wait: generous for a cold runner, bounded so a dead server cannot wedge.
   local attempt=0
   while [ "$attempt" -lt 60 ]; do
     if kill -0 "$SERVER_PID" 2>/dev/null && curl -sf -o /dev/null \
@@ -322,8 +247,7 @@ publish_score() {
   local exit_code="$1" declared="$2"
   local pct
   pct="$(node -e 'const [p,t]=process.argv.slice(1).map(Number);process.stdout.write(t?((100*p)/t).toFixed(1):"0.0")' "$SCORE_PASSED" "$SCORE_TOTAL")"
-  # RAW COUNTS, always, with the percentage only ever beside them (D-19 precision row). A rounded
-  # rate on its own hides both a shrinking numerator and a shrinking denominator.
+  # Raw counts always, the percentage only beside them: a rate alone hides a shrinking denominator.
   local headline="MCP conformance: ${SCORE_PASSED}/${SCORE_TOTAL} required server scenarios passed (${pct}%)"
   echo ""
   echo "$headline"

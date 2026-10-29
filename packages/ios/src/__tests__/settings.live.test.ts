@@ -1,20 +1,4 @@
-// the toggle fix run live on a booted simulator's Settings app
-// (com.apple.Preferences), through the real runner loop with a scripted planner and verifier. No
-// model is called. It proves through the shared parser and comparator that an iOS switch's value
-// is read as its checked state and that a real switch keeps desired-state idempotency: the
-// Prefer Non-Blinking Cursor switch already in the requested state is not tapped and is recorded
-// as no input sent, and out of state it is tapped once. The switch's original value is restored
-// after each cell. The ordinary General row is not a toggle, so a tap planned under desiredState
-// unselected is still sent and opens the General page.
-//
-// Each Settings switch row nests a labelled outer switch over an unlabelled knob, and only a tap on
-// the knob flips it, so the cells target the knob: the switch whose parent is the labelled one.
-//
-// Skipped unless AGENT_QA_437_IOS_LIVE=1, with a booted simulator (its udid in
-// AGENT_QA_437_IOS_UDID, or Appium's choice) and Appium with XCUITest reachable at
-// AGENT_QA_APPIUM_URL or http://localhost:4723. On a Mac without Simulator.app at the path XCUITest
-// expects, start Appium with --default-capabilities '{"appium:isHeadless":true}'.
-// A skip is never a pass.
+// Live on a simulator's Settings app; only a tap on a switch's unlabelled knob flips it.
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { executeStep, scriptedVerification } from '@vostride/agent-qa-runner'

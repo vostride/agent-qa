@@ -1,6 +1,4 @@
-// the vision gate reads the configured `vision` when set and
-// otherwise the model capability table, so a model the table does not know is text-only unless
-// the config says otherwise.
+// The configured `vision` wins; a model the capability table does not know is text-only.
 
 import { beforeEach, describe, expect, it } from 'vitest'
 import type { ModelProfile } from '@vostride/agent-qa-schema'

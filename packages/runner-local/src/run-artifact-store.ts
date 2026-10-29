@@ -1,23 +1,4 @@
-// Concrete filesystem run-artifact store.
-//
-// Implements the storage-neutral `RunArtifactStorePort` from @vostride/agent-qa-runner. This is a
-// storageImplementation home for node:fs + node:path (the FsEventLog / FsHandoffStore boundary) —
-// the durable artifact fs write lives here, never in the runner (validate:arch storageNeutral).
-// On-disk layout — one JSON document beside the run's events.jsonl / handoff.json (D-08, one
-// self-contained run directory):
-//
-//   <root>/runs/<slug(runId)>/artifact.json
-//
-// The runId directory component is slugged traversal-safe (the T-360-03 `slugBranch` idiom, shared
-// with FsEventLog via `RUNS_SUBDIR`) so a planner-supplied `../..`-shaped runId can never escape
-// the runs root — the path is NEVER re-minted here.
-//
-// Per the RESEARCH Q5 keep/drop table the FILE artifact keeps ONLY the config snapshot, the
-// test/suite source snapshot, terminal errors, and metadata. The top-level `runtime` section is
-// DROPPED from new documents (it is derivable from events.jsonl / handoff.json), so `stage`/
-// `finalize` strip any incoming top-level `runtime` before writing. `stage` persists config+source
-// once after runStarted; `finalize` merges terminal errors + `finalizedAt` before runFinished
-// (the dashboard staged/finalize idiom — a crashed run still leaves a staged artifact.json).
+// Only config, source, terminal errors and metadata; incoming top-level `runtime` is stripped.
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'

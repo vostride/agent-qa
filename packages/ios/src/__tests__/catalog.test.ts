@@ -1,20 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-// ---------------------------------------------------------------------------
-// Wave-0 RED catalog suite — Phase 360 Plan 02, Task 3.
-//
-// Pins the driver-call contract for every iOS verb gaining or changing execution this
-// phase against a call-logging mocked webdriverio driver — no live Appium, no simctl.
-// New iOS-only cases (pressButton with the simulator degradation lane, pickerSelect
-// value/index lanes, swipeFromEdge, openUniversalLink re-keyed from openLink), the fold
-// re-keys (waitFor on-shapes, keypress mode, swipe path), and the retired assert/openLink/
-// launchApp cases (pinned to the post-flip unreachable outcome so they go green when Plan
-// 07 deletes them).
-//
-// RED convention: these fail on missing / legacy-keyed case behavior (uncalled `mobile:`
-// mocks, assertNever fall-through), NEVER on compile errors — action literals are cast via
-// `as unknown as ExecAction`. The pre-existing adapter.test.ts + compound.test.ts stay GREEN.
-// ---------------------------------------------------------------------------
+// Driver-call contract for each iOS verb against a call-logging mocked driver; no live Appium.
 
 const IOS_XML = `<?xml version="1.0" encoding="UTF-8"?>
 <AppiumAUT>
@@ -53,7 +39,7 @@ function createMockElement() {
 }
 let mockElement: ReturnType<typeof createMockElement>
 
-// listApps throwing is this codebase's simulator signal (Pitfall 5 degradation lane).
+// `listApps` throwing is the simulator signal.
 let listAppsThrows: boolean
 
 function createMockDriver() {
