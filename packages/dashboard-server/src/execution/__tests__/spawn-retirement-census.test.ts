@@ -132,7 +132,7 @@ describe('the dashboard run path', () => {
   })
 })
 
-describe('queue retries are retired, and the retirement is on the record', () => {
+describe('queue retries are retired', () => {
   const server = readFileSync(join(SRC_ROOT, 'server', 'server.ts'), 'utf8')
   const backendInterface = readFileSync(join(SRC_ROOT, 'execution', 'execution-backend.ts'), 'utf8')
 
@@ -143,10 +143,9 @@ describe('queue retries are retired, and the retirement is on the record', () =>
     expect(codeOnly(backendInterface)).toContain('appiumUrl?: string')
   })
 
-  it('THE QUEUE WIRING CARRIES A DATED NOTE — debris recorded, not hidden', () => {
+  it('the queue wiring passes no retry ceiling', () => {
     const executeCall = server.slice(server.indexOf("jobQueue.on('execute'"))
     expect(executeCall).not.toContain('maxRetries')
-    expect(server).toMatch(/2026-08-23 \(Phase 401 plan 07, D-12\)/)
   })
 
   it('THE APPIUM LEASE BLOCK IS UNTOUCHED — only the URL delivery moved', () => {

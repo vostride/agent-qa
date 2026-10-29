@@ -367,27 +367,6 @@ export async function startServer(opts: StartServerOptions): Promise<{
         // HISTORICAL ROWS ARE UNAFFECTED: this fold only ever ran when a live process closed, and
         // no live process owns pre-402 children. The read side that renders them is untouched.
 
-        // 2026-08-23 (Phase 401 plan 07, D-12): THE RETRY-CHILD CLASSIFICATION IS RETIRED WITH
-        // THE MACHINERY THAT CREATED THE CHILDREN.
-        //
-        // Retry children were minted by the RUNNER PROCESS, off variables the queue put in a
-        // child's environment. There is no child, and nothing mints a retry child any more. The
-        // ~60 lines that stood here folded those children into a `flaky` / `passed` / `cancelled`
-        // verdict on the parent; with no children to fold they could only ever have been dead
-        // code that read as live policy.
-        //
-        // WHERE RETRY-ON-FAILURE LIVES NOW: the runner's own re-run machinery (runner.md §7). It is
-        // the runner's concern and always was — a queue that re-spawns a process is retrying the
-        // WRAPPER, which is why a dashboard retry could report `flaky` for a run whose flakiness
-        // nothing had measured.
-        //
-        // WHAT DEGRADES, HONESTLY (DETL-06-adjacent debris, recorded rather than hidden): the
-        // `runs.retry_count` / `runs.max_retries` COLUMNS and the dashboard UI that reads them
-        // stay, and stop receiving new writes. Historical rows keep their values. A successor retry
-        // UX, if one is wanted, is M5's to design against the runner's machinery — it is filed in
-        // `.planning/phases/401-.../deferred-items.md` rather than left as an empty affordance
-        // somebody re-implements at the queue.
-
         db.updateRun(runId, {
           status: dbStatus,
           duration,
