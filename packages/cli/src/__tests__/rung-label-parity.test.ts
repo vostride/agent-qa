@@ -1,27 +1,4 @@
-// THE ELEVEN CAUSE LABELS, HELD EQUAL ACROSS TWO DOORS (Phase 407 plan 11 · TRST-01 / TRST-02,
-// D-15 / D-18; widened by 423 D-22).
-//
-// WHY THIS CELL EXISTS AT ALL. The retrieval rung is printed by two surfaces that share no module:
-// `agent-qa doctor`'s three retrieval rows (407-08, `cli/src/commands/doctor-knowledge-checks.ts`)
-// and the run header's degradation banner (407-10, `dashboard-ui/src/lib/knowledge-view.ts`).
-// `packages/cli` cannot import a React package's lib — dashboard-ui ships a built app bundle, not
-// a library entry, and every package pins `rootDir` to its own `src` so a cross-package relative
-// import is a `tsc --noEmit` error. So the eight labels are spelled TWICE by necessity, and the
-// only thing that can stop them drifting is a cell that reads both and refuses to let them differ.
-// One wording, two doors: a label edited on either side reds HERE, naming the reason it moved.
-//
-// HOW THE DASHBOARD'S TABLE IS REACHED, AND WHY IT IS TEXT. `@vostride/agent-qa-dashboard-ui`
-// declares no `exports`/`main` — its `dist` is a Vite app, not an importable module — so there is
-// no `import()` of a built lib entry to prefer over this. The table is therefore read as SOURCE
-// TEXT and its eight `'{key}': '{label}'` pairs extracted, on `adjudications.test.ts`'s precedent
-// for reading a sibling package's source from `REPO_ROOT`. That is stated rather than implied
-// because a future reader should not have to re-derive why an import was not used.
-//
-// THE FOURTH CELL IS A PROPERTY, NOT AN EXAMPLE. It folds EVERY index face against EVERY embedder
-// outcome against both shipped profiles, drives the real `createKnowledgeChecks` with injected
-// read-only probes, and requires every retrieval `warn` a degraded host produces to be spelled out of the
-// table. A cell that checked one host's row would pass while seven of the eight labels were
-// unreachable prose.
+// Doctor and the dashboard banner both spell the labels, so this reads both and refuses drift.
 
 import { mkdtempSync, mkdirSync, rmSync } from 'node:fs'
 import { readFileSync } from 'node:fs'
@@ -93,13 +70,7 @@ const RECORDED_REASONS = [...RETRIEVAL_RUNG_REASONS].sort()
 
 // ── The property cell's host matrix ──────────────────────────────────────────────────────────────
 
-/**
- * Every index face the classifier can answer with.
- *
- * Both `filePresent` arms are present because they are two different doctor rows: a file that is
- * absent is a `warn` naming the scanning cause, and a file that is present and will not open is
- * the errored subsystem D-19 reserves `fail` for.
- */
+// Both `filePresent` arms, because an absent file warns and an unopenable one fails.
 const FACES: readonly { readonly label: string; readonly face: IndexFace }[] = [
   { label: 'index', face: { source: 'index' } },
   {
@@ -280,9 +251,7 @@ describe('the retrieval-rung cause labels are one wording on two doors', () => {
             }
           }
 
-          // THE STRONG CLAIM, on the one row whose whole subject is the rung. D-19 forbids it from
-          // ever being a `fail`, so a degraded host's rung row is a `warn` reading exactly
-          // `{rung} — {label}` — the same two words the banner puts in its own sentence.
+          // The rung row never fails; a degraded host's row warns with exactly `{rung} — {label}`.
           const fold = foldRetrievalRung(face, outcome, profile)
           const rungRow = rows.find((row) => row.name === 'Retrieval rung')
           const expected = fold.rung === 'memidex'
@@ -315,9 +284,6 @@ describe('the retrieval-rung cause labels are one wording on two doors', () => {
     ).toEqual([])
   }, 30_000)
 })
-
-// ── 423 D-22 / D-23: distinct index causes, one historical word, and doctor as current health ──
-// Plan 423-23 owns the mutation script; RUNG-LABEL-PARITY is its required named RED cell.
 
 /** Hand-spelled, never derived from `RETRIEVAL_RUNG_REASONS`. */
 const EXPECTED_REASONS = [
@@ -422,8 +388,7 @@ describe('DOCTOR-CURRENT-SEPARATE', () => {
   it('adds no current-health read op; current health stays on agent-qa doctor', () => {
     const registry = createFunctionRegistry({
       deps: {} as unknown as FunctionDeps,
-      // no `resolveExecutionContext` registry option, and the listing
-      // caller carries no `grantedScopes`/`safeMode`; the registry reads neither.
+      // No `resolveExecutionContext`, `grantedScopes` or `safeMode`; the registry reads none.
     })
     const ids = registry.list({
       surface: 'test',

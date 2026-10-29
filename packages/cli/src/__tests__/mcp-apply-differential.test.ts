@@ -1,31 +1,4 @@
-// The write path at the wire: one call writes the change and answers what it changed (432-12,
-// D-04/D-05/D-07/D-13/D-14).
-//
-// WHAT THIS FILE WAS. From 396-06 to 432-11 it drove the two MCP apply doors over the shipped
-// composition and a real git repository: the first apply refused and taught the exact re-call,
-// `confirmed: true` made exactly one commit, a replay answered `already-applied`, and the SEP-2322
-// form rode only on a connection that declared `elicitation`. 432-12 deletes that round with the
-// tools, and every claim moves to its direct form here:
-//
-//   the first apply refuses and commits nothing       -> section 2: the change tool writes on its
-//                                                        one call; the repository still has no
-//                                                        commit and no proposal is filed
-//   the confirmed apply commits exactly once          -> sections 1-2: exactly one change, read
-//                                                        back from disk; zero commits
-//   a replayed confirmation answers as data           -> section 3: a repeated operation identity
-//                                                        answers the same records and lands once
-//   doctored one-shots commit nothing                 -> section 4: `confirmed` is not an input and
-//                                                        is refused at the schema wall, changing
-//                                                        nothing
-//   both eras, and the capability that decides shape  -> section 4: no form on either era, even
-//                                                        for a client that can answer one
-//   the second door and the family split              -> section 5: the retired door names are
-//                                                        unknown tools, and the two change tools
-//                                                        each reach only their own ops
-//
-// DRIVEN AS BEFORE: the SHIPPED composition (`composeCliLocalAgent`), the real knowledge store on
-// disk, a real git repository and a real MCP client over the SDK's in-process handler, with every
-// exchange's raw bytes recorded so payload cells assert on what a caller actually received.
+// One change call writes and answers what it changed: no commit, no proposal, no confirm input.
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -165,10 +138,7 @@ interface Era {
 const LEGACY: Era = { wire: 'legacy', elicitation: false }
 const MODERN_CAPABLE: Era = { wire: 'modern', elicitation: true }
 
-/**
- * Connect a REAL MCP client to a server built by the SHIPPED factory over the SHIPPED composition.
- * the caller is the one tokenless MCP caller; every change tool is listed for it.
- */
+// A real MCP client on a server from the shipped factory; every change tool is listed for it.
 async function connect(era: Era = LEGACY): Promise<Session> {
   const frames: Frame[] = []
   const elicited: unknown[] = []
@@ -246,7 +216,7 @@ beforeEach(() => {
   mkdirSync(agentQaRoot, { recursive: true })
   mkdirSync(knowledgeRoot, { recursive: true })
   writeFileSync(configPath, SEEDED_CONFIG)
-  // the MCP masker reads this project's declared secrets.
+  // The MCP masker reads this project's declared secrets.
   writeFileSync(join(root, '.env.secrets.local'), '')
 
   git('init', '--quiet')
@@ -295,7 +265,7 @@ describe('1 · changing config writes in the call and commits nothing', () => {
       expect(structured.files).toEqual([CONFIG_FILE])
       expect(allFrames(session)).toContain('applied')
 
-      // a plain edit git shows as modified; no commit, and no proposal record.
+      // A plain edit git shows as modified; no commit, and no proposal record.
       expect(commitCount(), 'changing must not commit').toBe(before)
       expect(porcelain()).toBe(`M ${CONFIG_FILE}`)
       expect(readFileSync(configPath, 'utf8')).toContain('step: 45s')
@@ -331,8 +301,7 @@ describe('2 · knowledge changes apply on their one call', () => {
       // The prose a person reads is the same masked serialization as the machine channel.
       expect(JSON.parse(rendered(reject))).toEqual(reject.structuredContent)
 
-      // knowledge is gitignored here, so nothing the repository tracks moved, and no
-      // commit was made; D-05: no proposal was filed.
+      // Knowledge is gitignored here: nothing tracked moved, no commit, no proposal filed.
       expect(commitCount()).toBe(before)
       expect(porcelain()).toBe('')
       expect(existsSync(join(agentQaRoot, 'proposals'))).toBe(false)

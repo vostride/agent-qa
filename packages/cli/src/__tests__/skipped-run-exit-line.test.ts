@@ -1,5 +1,4 @@
-// a gate run and an outcome-excluded run print D-13's exit line, and
-// their tail starts no drain: nothing was queued, and a gate run never drains other runs' jobs.
+// Gate and outcome-excluded runs print the skipped exit line, and their tail starts no drain.
 
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'

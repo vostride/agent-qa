@@ -1,22 +1,4 @@
-// The run service's credential mechanics, RETIRED
-// 2026-10-01.
-//
-// RE-SPELLED from the resolver's own cells.
-// `run-service-token-resolution.ts` — `resolveRunServiceTokens`, `matchServiceBearer`,
-// `runServiceTokenSecretStore` and `RunServiceTokenEnvVarUnsetError` — is deleted with the
-// run-service tokens, and the router's `verifyBearer` port with it. Each retired cell is replaced by
-// the claim that now holds in its place:
-//
-//   * the startup refusal for an unset declaration -> the composer dereferences nothing, so it
-//     composes with a declaration on disk and an empty environment alike;
-//   * the two-arm verdict with no permissive third -> the door reads no `Authorization` header, and
-//     what it refuses first is a cross-site request (`run-service-auth-hardening.test.ts`);
-//   * the masker seeded by declared name -> the composer binds no store at all;
-//   * `/ok`'s `authConfigured` from a resolved count -> always `false`, and since 432-22 absent.
-//
-// the refs-only config cells that followed are re-spelled too.
-// `services.dashboard.runServiceTokens` is deleted, so a declared block is refused by the strict
-// parser with the normal unrecognized-key error.
+// The composer dereferences nothing and the door reads no `Authorization`; token blocks fail.
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -57,9 +39,6 @@ describe('the run-service bearer resolver is deleted, not bypassed', () => {
     expect(offenders).toEqual([])
   })
 
-  // RE-SPELLED from 'start-time resolution refuses an unset declaration by NAME' and 'the masker is
-  // seeded by DECLARED name': nothing is declared to the composer, so nothing can refuse, and it
-  // holds no store. 441-48: a door has no masking binder for it to call.
   it('the composer takes no declarations, refuses nothing, binds no store', () => {
     const composition = composeRunServicePorts({ door: door() })
     try {
@@ -72,8 +51,6 @@ describe('the run-service bearer resolver is deleted, not bypassed', () => {
     }
   })
 
-  // RE-SPELLED from 'the verdict has TWO arms and no permissive third': there is no verdict.
-  // Readiness carries no credential fact at all — no credential can be configured.
   it('readiness reports no credential configured, whatever the environment holds', () => {
     const previous = process.env[PLANTED_VAR]
     process.env[PLANTED_VAR] = PLANTED
@@ -89,8 +66,7 @@ describe('the run-service bearer resolver is deleted, not bypassed', () => {
   })
 })
 
-// re-spelled from 'the config block accepts a declaration and refuses an inline value'. The
-// declaration and its default are gone; refusing a value is now refusing the whole key.
+// Refusing a token value is refusing the whole key.
 describe('services.dashboard declares no run-service token', () => {
   const base = {
     workspace: {

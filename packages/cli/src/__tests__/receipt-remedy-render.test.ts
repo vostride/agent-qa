@@ -1,13 +1,4 @@
-// The CLI's half of D-15 — RE-SPELLED 2026-10-01.
-//
-// This file proved that the CLI rendered the remedies IT could take (the trust-session flag named
-// with the command it is declared on, the confirm answer) under a gate denial, and nothing when the
-// projection was empty. The execution gate that minted remedies is deleted and the vocabulary with
-// it, so the renderer (`denialDetailLines`) is deleted too. What survives is the harder half the
-// file always called the point: HONEST ABSENCE. A refusal is a plain reason, and the CLI appends
-// nothing a reader could try — no flag, no confirm, no approval or trust command.
-//
-// These cells read the shipped sources and the shipped receipt renderer rather than a copy.
+// A refusal is a plain reason, and the CLI appends no flag, confirm, approval or trust command.
 
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'

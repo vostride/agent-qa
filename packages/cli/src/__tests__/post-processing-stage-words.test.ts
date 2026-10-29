@@ -1,7 +1,4 @@
-// one stage vocabulary on every surface. A finished stage reads
-// `complete`; `done` stays only as agent-jobs.db's own job and notification words.
-// a run whose chain was never enqueued reads `skipped (<reason>)`.
-// a run that ended with no verdict reads `skipped (no verdict)`.
+// One stage vocabulary everywhere: `complete`, and `skipped (<reason>)` for a chain never enqueued.
 
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'

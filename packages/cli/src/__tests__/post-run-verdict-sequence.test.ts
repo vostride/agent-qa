@@ -1,26 +1,4 @@
-// LIFE-01 (a): exactly one `verdict`, in the right place, on real runs.
-//
-// THE CLAIM, IN ONE SENTENCE: `verdict` is the exactly-once terminal event determined by test
-// execution ALONE — after the last `testFinished`, before any post-processing envelope — and it is
-// read off `events.jsonl`, the run's own durable record, never off an in-memory bus.
-//
-// WHY THE FILE AND NOT THE BUS. The bus is a live object a cell can inspect for free; the file is
-// what a person, the dashboard, the SSE replay and 408's embed all actually read. A cell over the
-// bus would be green for a shell that published correctly and a log writer that reordered, and the
-// log writer is on the path every consumer takes. So every leg here constructs a REAL `FsEventLog`
-// in a temp root (legs 2 and 4) or spawns the shipped binary (leg 1), and asserts by `seq` — never
-// by array position, which would make the claim about how the file happened to be flushed.
-//
-// THREE RUN SHAPES, BECAUSE "DETERMINED BY TEST EXECUTION ALONE" IS ONLY INTERESTING AT THE EDGES.
-// A green N-member suite proves almost nothing: the interesting inputs are the ones where the run
-// ENDED for a reason other than its members finishing — a run-level cancel, or a fail-fast group
-// that skipped the rest. Each still publishes exactly one verdict, and each still publishes it
-// after every member's own finish, including the finishes the shell SYNTHESIZED for members it
-// never executed.
-//
-// MUTATION CONTROL (recorded 2026-08-26, not a cell): a second `bus.publish('verdict', { verdict })`
-// inserted immediately after the shipped one in `runner/src/run/shell.ts` reds every leg below on
-// "exactly one verdict". The red line and the restored-diff proof are in 404-01-SUMMARY.md.
+// Read off `events.jsonl` by `seq`, not the bus, as a log writer could reorder the events.
 
 import { mkdtempSync, readdirSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -77,12 +55,7 @@ function parseEventsFile(path: string): LoggedEvent[] {
     .map(line => JSON.parse(line) as LoggedEvent)
 }
 
-/**
- * The one ordering assertion every leg makes, so three legs cannot drift into three claims.
- *
- * By `seq` throughout: the file's line order and the run's event order are two different facts, and
- * only the second one is what LIFE-01 is about.
- */
+// By `seq`: the file's line order and the run's event order are different facts.
 function assertVerdictSequence(events: LoggedEvent[], leg: string): LoggedEvent {
   const verdicts = events.filter(event => event.type === 'verdict')
   expect(verdicts, `${leg}: exactly one verdict envelope per run`).toHaveLength(1)
@@ -289,10 +262,6 @@ describePosix('(a) leg 1: the shipped binary, with post-processing envelopes pre
       })
       expect(
         tail.report.drain,
-        // the spawned run acquires the lease only if a pump of its own asks for it, and
-        // this fixture dies above its tail — so it exits leaving the lease exactly as it found it.
-        // Either way the claim this cell needs is the same one: no lease of that run's is still
-        // held, so the in-process tail can pump and emit chips.
         'the spawned run holds no lease of its own afterwards, so the in-process tail can pump and emit chips',
       ).not.toBe('handed-off')
     } finally {

@@ -138,8 +138,7 @@ describe('resolveTarget — environment declaration', () => {
   })
 })
 
-// production joins the declared classes. The CLI resolver and eval's per-product
-// fold carry all four states, absence included, and never read a class off a hostname.
+// Production joins the declared classes; resolvers carry every state and never read a hostname.
 describe('CLI target environment', () => {
   const STATES = ['local', 'shared', 'production', undefined] as const
 

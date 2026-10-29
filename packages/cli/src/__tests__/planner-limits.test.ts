@@ -1,5 +1,4 @@
-// every CLI producer resolves a member's limits through one helper
-// over the same merged blocks, and the run states them before it starts without asking anything.
+// Every CLI producer resolves a member's limits through one helper, and the run states them first.
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'

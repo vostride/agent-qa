@@ -1,51 +1,4 @@
-// THE D-16 MUTATION PROOF.
-//
-// The phase's falsifiability capstone, and the shape of it is the whole claim: the REAL host is
-// assembled TWICE — deterministic override ON, deterministic override OFF — and the NAMED committed
-// compound scenario is measured GREEN in the first assembly and RED in the second. Green-on-first-
-// write is not evidence that a safety mechanism works; the only evidence that it works is a measured
-// difference between a system that has it and the same system without it.
-//
-// IT RUNS THROUGH THE COMPOSITION ROOT AND NOWHERE ELSE. Both arms go through
-// `composeCliLocalAgent`, which is a thin passthrough over `composeLocalAgent` — the ONE composition
-// root — and the strategy reaches the engine through `ComposeLocalAgentInput.chatReconcile`,
-// the composition-only seam D-16 names. This file assembles no turn engine, no resolver table and no
-// reconciler, and it does NOT import the shipped strategy module: a differential built out of parts
-// can pass while the composition wires those parts wrongly or not at all, which is the one failure
-// mode a mutation proof must not have (RESEARCH Pitfall 3, the produced-not-literal law). A source
-// assertion at the bottom pins that absence by SPECIFIER rather than by vocabulary — this header
-// discusses reconciliation continuously and must stay free to (392-08's lesson).
-//
-// WHAT "OVERRIDE OFF" MEANS HERE, stated precisely because a vague off-arm proves nothing. The
-// shipped strategy walks the CLAUSES and lets the deterministic table's verdict win wherever stage 1
-// resolved one. The off-arm strategy below never reads `input.mapped` at all: its verdict IS the
-// model's plan, one step per action call the model proposed, in the order it proposed them. That is
-// the honest meaning of "trusts the model verbatim", and it is what D-16 asks to be switchable by a
-// differential and by nothing else.
-//
-// WHY THE OFF-ARM RED IS STRUCTURAL RATHER THAN A MATTER OF MODEL LUCK. The turn engine consults the
-// planner ONLY for the clauses stage 1 could not bind (`turn-engine.ts`, stage 2). For this
-// scenario that is one clause of two, so the model is asked about the digest half and answers with
-// one action call. A strategy that never consults the mapper therefore holds ONE binding for TWO
-// clauses — and the half the person actually typed as a canonical command is the half that
-// disappears. The off-arm's failure does not depend on the model choosing badly; it depends only on
-// the model being asked what it is asked, which is the same thing that makes the on-arm green.
-//
-// THE PREDICTIONS WERE WRITTEN BEFORE THE FIRST RUN, and they are recorded verbatim below so a
-// later reader can tell a prediction apart from a description. What was actually measured is in
-// `392-10-SUMMARY.md` beside them.
-//
-//   ARM A (override on)  — predicted GREEN: status `completed`; receipts `[runs.start, runs.digest]`
-//     both `executed`, origins `[human, agent]`; the run executor called exactly once with the
-//     MAPPER's binding `{ patterns: ['test 42'] }`.
-//   ARM B (override off) — predicted RED, shape named in advance: ONE receipt (`runs.digest`), not
-//     two; ZERO runs started, because the clause the table bound is gone from the plan; and — the
-//     dangerous part — a turn that still reports `completed`, so the loss is silent. The scenario's
-//     own assertion fails on the op list and on the executed count.
-//
-// A release gate, not a per-commit one: the off-arm consults a real model, so it costs tokens and
-// wall-clock. `AGENT_QA_LIVE_CHAT_CONFIG` is the switch. Without it the live describe is skipped,
-// and vitest's summary reports the skipped cells.
+// Both arms go through the composition root; only the deterministic override differs between them.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -104,8 +57,7 @@ const SEEDED_RUN_ID = 'RUN-1'
 /** What the deterministic table binds for the scenario's first clause — the mapper's own verdict. */
 const MAPPER_BINDING: RunsStartInput = { patterns: ['test 42'] }
 
-// no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither.
+// No `grantedScopes` or `safeMode` on the caller; the registry reads neither.
 const HUMAN: FunctionCaller = {
   surface: 'test',
   origin: 'human',
@@ -137,11 +89,7 @@ const modelVerbatimStrategy: ReconcileStrategy = (input: ReconcileInput): Reconc
     args: call.input,
     source: 'planner',
   }))
-  // The OLD turn-level prose carry, re-derived here on purpose. `PlannerStageOutcome.answer` was
-  // removed in 392-14 because it carried the first `answer_only` call's text for a whole turn; this
-  // instrument keeps that behaviour deliberately, because what it models is the reconciler as it
-  // was before the override existed — a strategy that quietly gained the new per-claim accounting
-  // would be a weaker mutation than the one this differential claims to apply.
+  // The turn-level prose carry, re-derived: the instrument models a reconciler with no override.
   const firstAnswer = input.planned.toolCalls.find(
     (call) => call.toolName === ANSWER_ONLY_TOOL_NAME,
   )?.input
@@ -236,17 +184,7 @@ describe("the mutation proof's subject and build", () => {
   })
 
   it('is loaded against a FRESH build of the corpus it measures', () => {
-    // The stale-dist trap, asserted rather than assumed (RESEARCH Pitfall 4). Both arms run in one
-    // process against one build, so the hazard is not between the arms — it is that the whole file
-    // ran against a dist predating 392-09's correction, in which case the on-arm would be measuring
-    // an utterance that could only ever fail closed and the proof would be red-versus-red.
-    //
-    // MEASURED AGAINST THE SOURCE, not against a number written here. A literal pin made
-    // this guard fire on every later corpus edit — a red that says "the manifest moved" while
-    // claiming to say "your dist is stale", which is the way a tripwire teaches people to edit it.
-    // What the check is actually about is the DISTANCE between the built package and the source it
-    // was built from, so it reads both: the version the imported dist reports must equal the
-    // version the manifest source declares, and it must not predate 392-09's correction.
+    // Compares the built corpus version with the source's, so a stale dist fails here.
     const declared = /SCENARIO_CORPUS_VERSION = (\d+)/.exec(
       readFileSync(join(SCENARIOS_ROOT, 'manifest.ts'), 'utf8'),
     )?.[1]
@@ -291,10 +229,7 @@ describe.skipIf(LIVE_CONFIG === undefined)(
      */
     async function runArm(utterance: string, reconcile?: ReconcileStrategy): Promise<Arm> {
       const startedRuns: RunsStartInput[] = []
-      // A FAITHFUL executor, not a stub: the composition reads a run's own durable event log back
-      // and refuses a host that reported a run without producing one. It also RECORDS the request,
-      // which is the one seam in the composed path where a bound argument is observable —
-      // `ClauseReceipt` carries no arguments and must not.
+      // A faithful executor that records the request, the one place a bound argument is observable.
       const runExecution: RunExecutionPort = {
         execute(request) {
           startedRuns.push(request)
@@ -312,8 +247,7 @@ describe.skipIf(LIVE_CONFIG === undefined)(
         agentQaRoot,
         configPath: String(LIVE_CONFIG),
         runExecution,
-        // the proposal apply delegate is deleted; the live gate still opens no
-        // socket to a daemon that may be running.
+        // The live gate opens no socket to a daemon that may be running.
         knowledgeChangeDelegate: () => Promise.reject(new Error('no change delegation in the live gate')),
         ...(capabilities === undefined
           ? {}
@@ -351,21 +285,7 @@ describe.skipIf(LIVE_CONFIG === undefined)(
       ).toBeDefined()
     })
 
-    /**
-     * PAIRED ATTEMPTS, and the pairing is what stops model variance from manufacturing a proof.
-     *
-     * The two arms of a differential must differ in ONE thing. Run as two independent cases at
-     * k = 1 they differ in two: the strategy, and whichever plan the model happened to produce
-     * that call. This cell is KNOWN to flap — plan 09 recorded one run of five in which the model
-     * answered the digest clause in prose instead of calling `runs.digest`, and plan 10's first
-     * live execution reproduced it — so an attempt runs BOTH arms and is DECISIVE only if the
-     * on-arm satisfied the scenario. The first decisive attempt is the one asserted on.
-     *
-     * IT NEVER ROUNDS. If no attempt is decisive the suite FAILS with every attempt in its failure
-     * message, which reports an unstable corpus cell rather than converting one into a passing
-     * proof. That is the live lane's own retune path applied where it belongs: raise k for the
-     * lane, never soften the assertion of the cell that flapped.
-     */
+    // Each attempt runs both arms and counts only if the on-arm passes; no decisive attempt fails.
     const MAX_ATTEMPTS = 3
     let decisiveOn: Arm | undefined
     let decisiveOff: Arm | undefined
@@ -467,10 +387,7 @@ describe.skipIf(LIVE_CONFIG === undefined)(
 describe('the differential is built out of the composition, not out of parts', () => {
   it('imports no reconciliation module and no vendor adapter — SPECIFIERS, never vocabulary', () => {
     const source = readFileSync(fileURLToPath(import.meta.url), 'utf8')
-    // The header discusses reconciliation, the shipped strategy and provider clients at length and
-    // must stay free to — 392-08's lesson is that a pin which forbids a WORD reds on the comment
-    // that explains the rule. So what is walked is the file's own IMPORT SPECIFIERS, and the claim
-    // is about which modules this differential is built out of.
+    // Walks the file's import specifiers, because the header names what the file must not import.
     const specifiers = [...source.matchAll(/^import[^'\n]*'([^']+)'/gm)].map((match) => match[1]!)
     expect(specifiers.length).toBeGreaterThan(5)
     expect(specifiers.filter((specifier) => specifier.includes('reconcil'))).toEqual([])

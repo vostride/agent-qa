@@ -1,27 +1,4 @@
-// The DETACHED post-processing leg, on a real in-process run.
-//
-// WHAT IS UNDER TEST IS AN ORDER, and orders are exactly what spot-checks cannot carry. Every cell
-// below drives the SHIPPED `runInProcessCliRun` over a real project — a real gate, a real assembly,
-// a real run to a real verdict — and supplies a `postRunTail` whose settlement the CELL controls
-// through a deferred promise. That is the only way to say "`execute()` resolved BEFORE the drain
-// settled" rather than "`execute()` resolved and the drain also happened": with a tail that
-// resolves on its own, the two orderings are indistinguishable.
-//
-// THE THREE CLAIMS, AND WHY EACH IS ITS OWN CELL:
-//
-//   1. RESOLVE-BEFORE-DRAIN (RESEARCH Pitfall 2). `dashboard-server`'s in-process backend emits
-//      `'run-settled'` — db finalize, Appium lease release, handle cleanup — when the `invokeRun`
-//      promise settles. A drain awaited inside `execute()` holds all three for up to
-//      `DRAIN_BUDGET_MS`. The cell awaits the outcome while the tail is still parked.
-//   2. DISPOSE-AFTER-DRAIN is gone: the verdict context carries a `mask`, with nothing
-//      to dispose.
-//   3. AFTER-VERDICT-FIRST. A door supplying both hooks gets them in sequence and never
-//      concurrently, so `--all`'s exit-code fold can never race a drain.
-//
-// THE SUITE ARM IS DRIVEN, NOT THE TEST ARM, and that is load-bearing rather than incidental: the
-// standalone test file's member ends in a framework error, which `in-process-run-execution.ts`
-// re-throws ABOVE `afterVerdict` — so neither hook would run and every cell here would be green
-// over a path nothing took. The suite arm reaches a verdict and returns an outcome.
+// The tail's settlement is a deferred the cell controls, so `execute()` resolving first shows.
 
 import { existsSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -47,7 +24,7 @@ afterAll(() => {
   if (pinnedTmpdir !== undefined) removeTempRoots([pinnedTmpdir.root])
 })
 
-// every drive call carries a record; each cell closes the ones it opened.
+// Every drive call carries a record; each cell closes the ones it opened.
 afterEach(() => { closeTestRunRecords() })
 
 /** A promise the cell settles by hand — the deferred the whole ordering claim rests on. */
@@ -65,8 +42,7 @@ function fixtureOptions(fixture: { configPath: string; agentQaRoot: string; proj
   configPath: string
   agentQaRoot: string
 } {
-  // An empty browsers root, so a member's failure is a property of the fixture rather than of the
-  // machine — the same pin the parity generator and the 401-11 cells use.
+  // An empty browsers root, so a member's failure is the fixture's, not the machine's.
   const browsersRoot = join(fixture.project, 'no-browsers')
   if (!existsSync(browsersRoot)) mkdirSync(browsersRoot, { recursive: true })
   process.env.PLAYWRIGHT_BROWSERS_PATH = browsersRoot
@@ -112,8 +88,7 @@ describe('the detached post-run leg', () => {
         .toContain('runStarted')
       expect(outcome.exitCode, 'a non-zero exit code is a real run, not an error').toBeTypeOf('number')
 
-      // (2) `execute()` is HERE and the tail is still parked. This is the whole of Pitfall 2: a
-      //     drain awaited inside the drive would have blocked this await for DRAIN_BUDGET_MS.
+      // (2) `execute()` returned while the tail is parked; an awaited drain would block it.
       expect(tailEntered, 'the tail was started, not merely declared').toBe(true)
       expect(outcome.settled, 'the in-flight leg is exposed so a caller MAY wait').toBeDefined()
 
@@ -170,8 +145,7 @@ describe('the detached post-run leg', () => {
       { patterns: [fixture.suitePattern] },
     )
 
-    // JOBQ-06 at this seam: post-processing may never cost the verdict, and a detached leg that
-    // rejected with nobody listening would be an unhandled rejection rather than a warning.
+    // Post-processing never costs the verdict, so a rejected detached leg must not be unhandled.
     await expect(outcome.settled, 'the exposed promise never rejects').resolves.toBeUndefined()
     const named = warnings.filter((message) => message.includes('the post-run tail did not complete'))
     expect(named, 'the failure is NAMED, not silently absorbed').toHaveLength(1)
@@ -196,9 +170,7 @@ describe('the detached post-run leg', () => {
       )
 
       expect(outcome.settled, 'no leg was started, so there is nothing to expose').toBeUndefined()
-      // 404-01's measured regression: an ordinary run acquires no lease, so the no-leak backstop
-      // has nothing to release and nothing to say. A `released untaken` line here is the stderr
-      // noise `run-parity.e2e.test.ts` exists to keep out of ordinary runs.
+      // An ordinary run takes no lease, so the no-leak backstop prints no `released untaken` line.
       expect(warnings.filter((message) => message.includes('released untaken'))).toEqual([])
     }, 120_000)
 
@@ -213,9 +185,7 @@ describe('the detached post-run leg', () => {
         ...fixtureOptions(fixture),
         executionContext: 'local-headless',
         postRunTail: async (context) => {
-          // The door's own gating rule, exercised on the real box: `undefined` means somebody else
-          // holds the lease (or the posture was detached), and pumping anyway would be a second
-          // consult answered `held` by this very process (RESEARCH Pitfall 3).
+          // `undefined` means another holder or detached; pumping anyway would consult twice.
           taken = context.postVerdict.takeAcquiredLease()
           secondTake = context.postVerdict.takeAcquiredLease()
         },

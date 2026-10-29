@@ -1,4 +1,4 @@
-// the shipped contracts file is the config, test, suite and hook schemas
+// The shipped contracts file is the config, test, suite and hook schemas.
 
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'

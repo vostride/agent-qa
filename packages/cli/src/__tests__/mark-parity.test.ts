@@ -1,7 +1,4 @@
-// Four shipped doors over byte-identical scratch runs, with independent durable ledgers.
-//
-// no door asks. The terminal stream is still handed to the fn and CLI doors and
-// must stay empty; the HTTP door is posted to with no confirmation channel open at all.
+// Each shipped door marks a byte-identical scratch run with its own ledger, and none asks.
 import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
@@ -47,9 +44,8 @@ function scratch(template: ReturnType<typeof markFixture>) {
   cpSync(template.root, root, { recursive: true })
   const configPath = join(root, 'agent-qa.config.yaml')
   const config = AgentQaConfigSchema.parse(parse(readFileSync(configPath, 'utf8')))
-  // `safety.trustMode` is deleted from the schema, so there is no trust to pin off.
   writeFileSync(configPath, JSON.stringify(config))
-  // the MCP masker reads this project's declared secrets.
+  // The MCP masker reads this project's declared secrets.
   writeFileSync(join(root, '.env.secrets.local'), '')
   const agentQaRoot = join(root, '.agent-qa')
   const ledger = join(agentQaRoot, 'runs', slugBranch(template.handoff.runId), 'marks.jsonl')
@@ -58,11 +54,7 @@ function scratch(template: ReturnType<typeof markFixture>) {
 }
 type Scratch = ReturnType<typeof scratch>
 
-/**
- * the terminal confirm factory is deleted and neither composition input
- * declares a confirm. The port below records any ask and is smuggled past the type as an excess
- * field, so "none of them asked" stays a measurement rather than a consequence of passing nothing.
- */
+// The port records any ask and arrives as an excess field, so no ask is a measurement, not a given.
 function terminalConfirmation() {
   let prompt = ''
   return {
@@ -81,8 +73,7 @@ function receiptOf(value: unknown): MarkReceipt {
 }
 
 async function mcpDoor(scene: Scratch) {
-  // the MCP door is tokenless. A legacy bearer value is still presented by one client
-  // to show it changes nothing; it is never copied from the environment or printed on the wire.
+  // The MCP door is tokenless; one client presents a legacy bearer to show it changes nothing.
   const token = 'agent-qa-parity-fixture-writer-419'
   writeFileSync(scene.configPath, JSON.stringify(scene.config))
   const composed = host.composeCliLocalAgent({ configPath: scene.configPath, agentQaRoot: scene.agentQaRoot,
@@ -162,8 +153,7 @@ describe('mark receipt parity across the four sovereign doors', () => {
     } finally { spy.mockRestore(); output.mockRestore(); errors.mockRestore() }
 
     const mcp = await mcpDoor(scenes[2])
-    // the mark tool is listed and served for every caller; the tokenless client lands
-    // the mark, and the client still sending a legacy bearer then gets the identical repeat.
+    // The mark tool is served to every caller; a client with a legacy bearer gets the same repeat.
     expect((await mcp.anonymous.listTools()).tools.map(tool => tool.name)).toContain('agent_qa_mark_run')
     expect(existsSync(scenes[2].ledger)).toBe(false)
     const called = await mcp.anonymous.callTool({ name: 'agent_qa_mark_run', arguments: input })

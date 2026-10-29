@@ -1,30 +1,4 @@
-// Where `scope` IS documented, and the structural reason it is not everywhere (Phase 400 plan 12,
-// gap round 1 — D-19's doc half, WINDOWS #189).
-//
-// WHAT THIS FILE IS FOR. 400-04 shipped one `.describe()` on `AuthoringDraftWriteInputSchema.scope`
-// and claimed six human-facing surfaces inherit it "because they all project the one committed
-// artifact". Verification measured that FALSE for three of them, and the measurement found the
-// reason: `/help`, the starter prompts and the type-ahead project a DIFFERENT FIELD of the same
-// artifact (the alias row's `description`, and the typable form) — and `explain` withholds `params`
-// from its prompt by charter. The truth is restated to name only the surfaces that carry the params
-// document, and a restated truth whose supporting fact is only prose is the failure this file
-// exists to prevent. So the fact is a cell:
-//
-//   1. COMMITTED — the catalog row carries the scope description, read through the ONE loader.
-//   2. SERVED — until 430 this leg read the dashboard's served catalog over a real socket.
-//      the dashboard serves no documentation surface of its own; its server
-//      door was deleted, so the leg is an absence cell: the composed door's router answers 404 on
-//      the catalog path. 2026-10-01: the router is the dashboard's shipped one, since the
-//      run-confirm router this leg used to mount is deleted too. The committed catalog, `init --agent` and MCP `tools/list` are the surfaces
-//      that carry the scope description.
-//   3. RENDER BUDGET — the structural fact the restatement leans on: the summary-rendering and
-//      typable-form surfaces cannot carry an op's params, because their inputs are alias rows and
-//      `/fn <id>` forms respectively. Each leg carries its own non-vacuity control, because "the
-//      op id is absent from this output" is trivially true of an empty output.
-//
-// THE ACCEPTANCE BAR IS THE MUTATION, NOT THE PASS. Cell 1 is measured against a catalog
-// regenerated from a `scope` declaration with its `.describe()` stripped; cell 3 against a starter
-// render fed op rows. Both REDs were observed before this file was accepted (400-12-SUMMARY.md).
+// The committed catalog, `init --agent` and MCP `tools/list` carry the scope text.
 
 import { createServer, type Server } from 'node:http'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
@@ -41,7 +15,7 @@ import { buildStarterPrompts, completionCandidatesFor } from '../capability-cata
 import { loadCapabilityCatalog } from '../capability-catalog/loader.js'
 import { composeDashboardDoor } from '../commands/dashboard.js'
 
-/** The op whose `scope` D-19 documents. Spelled once. */
+// The op whose `scope` is documented, spelled once.
 const AUTHORING_OP = 'authoring.draft.write'
 
 /** The typed form the passthrough completer emits candidates under. */
@@ -101,13 +75,12 @@ describe('the committed catalog documents `scope` (committed surface)', () => {
     const description = scopeDescriptionOf(row.params)
     expect(description, '`scope` carries a description').toBeTypeOf('string')
     expect((description ?? '').trim().length).toBeGreaterThan(0)
-    // The 400-04 text's subject: which PRODUCT this test is authored for. Matching the word rather
-    // than the paragraph keeps the cell from being an editing veto on prose it does not own.
+    // Matches the word, not the paragraph, so the cell vetoes no edit to prose it does not own.
     expect(description ?? '').toMatch(/product/iu)
   })
 })
 
-/** The deleted catalog path, built from two halves so the 430 census never counts this file. */
+/** The deleted catalog path, built from two halves so the route census never counts this file. */
 const DELETED_CATALOG_PATH = '/api/' + 'chat/catalog'
 
 describe('the dashboard serves no documentation surface of its own (served surface)', () => {
@@ -211,7 +184,7 @@ describe('the summary-rendering surfaces structurally cannot carry an op\'s para
     expect(opIds.length, 'the catalog carries op rows to be excluded').toBeGreaterThan(1)
     expect(opIds.filter((id) => unbounded.some((line) => line.includes(id)))).toEqual([])
 
-    // And the params TEXT itself — the thing D-19 is about — reaches no line.
+    // And the params text itself reaches no line.
     expect(unbounded.some((line) => line.includes(scopeDescription))).toBe(false)
   })
 
@@ -245,10 +218,7 @@ describe('the summary-rendering surfaces structurally cannot carry an op\'s para
 
     const scopeDescription = scopeDescriptionOf(opRow(rows, AUTHORING_OP)?.params ?? {}) ?? ''
     expect(scopeDescription.length).toBeGreaterThan(0)
-    // EVERY candidate is exactly `<passthrough> <id>` — no candidate carries prose at all, so
-    // there is no render into which a params description could be projected without minting a
-    // second kind of candidate (and re-deriving the D-17 stamped-fields projection to know which
-    // params a `/fn` caller may supply).
+    // Every candidate is exactly `<passthrough> <id>`, so none could carry a params description.
     const offeredIds = new Set(
       rows.filter((row) => row.kind === 'op').map((row) => row.id),
     )

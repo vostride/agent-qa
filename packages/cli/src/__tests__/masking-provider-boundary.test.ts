@@ -1,5 +1,4 @@
-// The captured provider boundary of a run-shaped createModel. 2026-10-15 (441-30,
-// D-12/D-15): the stamped-audit integration proof is deleted with the per-run hook registrar.
+// The captured provider boundary of a run-shaped `createModel`.
 
 import {
   SecretRedactor,

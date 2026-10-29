@@ -1,46 +1,4 @@
-// JOBQ-06's byte-proof: the post-run chain is invisible to the verdict.
-//
-// The requirement's own sentence is three claims — the verdict is reported and the exit code
-// determined BEFORE the enqueue, an enqueue failure is surfaced but never thrown, and
-// post-processing never gates the verdict or the navigation. The first two already have
-// executed regressions. The third is the one this file exists for, and it is the one
-// spot-checks cannot carry: `expect(exitCode).toBe(1)` passes just as happily against a tail
-// that interleaved a warning through the reporter's summary block (RESEARCH Pitfall 10).
-//
-// ═══ 2026-08-26 — Phase 404 D-05/D-10 SUPERSEDE THE FIRST CLAUSE, DELIBERATELY ═══
-//
-// "the exit code is determined BEFORE the enqueue" was true of a build where the enqueue lived in
-// `commands/run.ts`'s tail. It is no longer: D-10 has the runner SHELL await a post-verdict step
-// between `verdict` and `runFinished`, and D-05 put the durable hand-off inside it — so the
-// enqueue happens before `mapVerdictToExitCode` is ever reached, on EVERY door rather than on
-// this one. That is the ratified design and not a regression: the step is bounded at
-// `POST_VERDICT_STEP_BUDGET_MS`, its failure degrades to `detached` + a named `runWarning`, and
-// `runFinished` still publishes last. The enqueue's own failure legs therefore moved to
-// `curation/__tests__/post-verdict-step.test.ts` with the enqueue.
-//
-// WHAT SURVIVES HERE IS THE PART THAT WAS ALWAYS THE POINT: nothing the post-run TAIL does can
-// change the frozen exit code, and no post-run byte may precede a verdict byte. The scenario
-// below therefore compares a clean run against one whose STEP already failed — the posture the
-// tail is told about through `enqueueOutcome: 'failed'` — plus the tail's own induced failures.
-//
-// So the same scenario runs TWICE — post-processing induced to fail, and not — and what is compared is
-// the WHOLE captured byte sequence of each channel, the 385 D-03 logical-dump discipline
-// applied to output. Three things make the comparison non-vacuous rather than a comparison of
-// two empty strings:
-//
-//   1. The verdict-scoped output is the SHIPPED console reporter's rendering of the shipped
-//      envelope fixture, through the reporter's own injected writer. Real bytes, ~2 KB of them,
-//      produced by the code a user actually reads.
-//   2. The tail's log is the REAL `curationTailLog` from `run.ts`, so which CHANNEL each
-//      post-run line lands on is under test rather than chosen by this file. Route the D-08
-//      line to `console.log` in run.ts and the stdout comparison goes red.
-//   3. The two scenarios genuinely diverge after the boundary: A prints a close-out line, B
-//      prints the D-07 warning. A comparison that held over identical suffixes would be
-//      proving nothing; this one holds over a prefix whose suffixes differ.
-//
-// The tail is bound through `runVerdictFirstCurationTail` — the SAME wrapper entry both
-// production sites use — so the freeze-then-enqueue ordering is the subject rather than a
-// reconstruction of it.
+// Byte sequences of both channels are compared, so no post-run byte precedes a verdict byte.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -79,20 +37,13 @@ import { enqueueThroughTheStep } from './post-run-step-harness.js'
 import { createConsoleReporter } from '../reporters/console-reporter.js'
 import { buildReporterFixture } from './reporters/fixtures.js'
 
-/**
- * The composition's REQUIRED quarantine identity mint. Passthrough here: this
- * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
- * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
- */
+// Passthrough: the fixture speaks canonical workspace-relative bytes, and core pins the recipe.
 const MINT_IDENTITY = (filePath: string): string => filePath
 
 const RUN_ID = 'run-388-05-isolation'
 const EVENTS_FILE = 'events.jsonl'
 
-// 389-04's author swap put unknown-floor members on the model path, so a throwing stub
-// now aborts the chain under test. Unparseable text makes the author degrade per-test to
-// the byte-identical deterministic floor (plan 04's proven posture) — chain mechanics
-// keep their 388-era shape.
+// Unparseable text, not a throw: a throwing model aborts the chain; this degrades to the floor.
 const TEST_MODEL: JobModelCapability = {
   modelId: 'test:post-run-exit-isolation',
   generate: async () => ({ text: 'not an author payload' }),
@@ -255,14 +206,7 @@ function fixture(): Fixture {
   }
 }
 
-/**
- * The two process channels, captured as ordered byte sequences.
- *
- * `console.log` is stdout and `console.error`/`console.warn` are stderr — Node's contract, and
- * the reason the split is meaningful here: the reporter and the CLI's navigation lines are the
- * stdout stream a `| tee` or a CI log parser consumes, and JOBQ-06 is the promise that a
- * post-run concern never appears in it.
- */
+// Stdout is what a `| tee` or CI log parser consumes, so no post-run concern may appear in it.
 interface Channels {
   stdout: string
   stderr: string
@@ -302,14 +246,7 @@ interface Scenario {
   stdoutAtDrain: string | undefined
 }
 
-/**
- * One complete run of the production shape: reporter → navigation → freeze → wrapper → tail.
- *
- * The reporter, the navigation line and the exit-code freeze happen before the snapshot; the
- * tail is CONSTRUCTED after it, so the snapshot boundary is exactly where run.ts's boundary is
- * and anything the tail does — including anything its construction does — falls on
- * the far side of the comparison.
- */
+// The tail is built after the snapshot, so anything it does falls past the comparison boundary.
 async function runScenario(
   f: Fixture,
   input: {
@@ -406,17 +343,7 @@ function lines(text: string): string[] {
   return text.split('\n').filter((line) => line.length > 0)
 }
 
-/**
- * The PUMP, rejected inside the store — the truest form of "the drain failed".
- *
- * The real composition is WRAPPED rather than replaced: everything else about the host, the
- * queue and the handlers stays the shipped thing, so what the clean run and this run differ by
- * is one rejected call and nothing else.
- *
- * this used to reject `queue.enqueue`. The tail does not enqueue any more,
- * so the equivalent injection one layer along is the claim the pump makes — same host, same
- * wrapper idiom, same single rejected call.
- */
+// The real composition wrapped, so the runs differ by one rejected pump call and nothing else.
 function rejectThePump(f: Fixture, message: string): Partial<PostRunTailOperations> {
   return {
     composeHost: (composeInput) => {
@@ -456,9 +383,7 @@ describe('an induced post-processing failure is invisible to the verdict', () =>
   it('is byte-identical to the clean run in exit code and verdict-scoped output', async () => {
     const clean = await runScenario(fixture())
     const failing = fixture()
-    // The 404 D-05 posture: the SHELL's step already failed the hand-off and already published
-    // `post-run-enqueue-failed` on the bus. What this scenario measures is what the tail does
-    // with that news — which is nothing at all, on either channel.
+    // The shell's step already failed the hand-off and said so; the tail adds nothing more.
     const failed = await runScenario(failing, { enqueueOutcome: 'failed' })
 
     // The verdict-scoped output is REAL and substantial — a byte comparison of two empty
@@ -483,31 +408,23 @@ describe('an induced post-processing failure is invisible to the verdict', () =>
     // 3. The stderr prefix — everything written before the tail — is byte-identical too.
     expect(failed.verdictScopedStderr).toBe(clean.verdictScopedStderr)
 
-    // 4. The failed run adds NOTHING after the boundary. The D-07 warning is the shell's now, so
-    //    a tail that printed one here would be the second, quieter copy of a sentence a user
-    //    already read — and any byte at all here would have to be one nobody asked for.
+    // The failed run adds nothing after the boundary; the enqueue warning is the shell's.
     const failedSuffix = tailSuffix(failed.stderr, failed.verdictScopedStderr)
     const cleanSuffix = tailSuffix(clean.stderr, clean.verdictScopedStderr)
     expect(lines(failedSuffix)).toEqual([])
-    // The clean run's own close-out is the other half of the divergence: the suffixes DIFFER,
-    // which is why the prefix identity above is a claim and not an artefact. Since 389 D-12
-    // the clean drain also prints a block after the close-out, and since 391 D-17 that block
-    // is the DIGEST — headed by the run, carrying the same clustered analysis section through
-    // the same relocated renderer, and then the chain and the decisions waiting on a human.
+    // The clean run's suffix differs, with close-out and digest, so the prefix identity is a claim.
     const cleanLines = lines(cleanSuffix)
     expect(cleanLines[0]).toContain(`post-processing complete for ${RUN_ID}`)
     expect(cleanLines[1]).toBe(`digest — ${RUN_ID}`)
     expect(cleanLines[2]).toBe('analysis — 2 distinct problems:')
-    // The sections D-18 names, all present and all counts. 432-09: nothing waits on a
-    // human; this host reads no mark ledger, and the digest says so rather than omitting the line.
+    // Every digest section is present; this host reads no mark ledger, and the digest says so.
     expect(cleanSuffix).toContain('marks — ledger not read here')
     expect(cleanSuffix).not.toMatch(/pending overall|minted this run/)
     expect(cleanSuffix).toContain('candidates — ')
     expect(cleanSuffix).toContain('quarantine — 0 quarantined · 0 expired')
     expect(cleanSuffix).not.toBe(failedSuffix)
 
-    // 5. Nothing escaped the tail. The wrapper's defensive boundary was never needed — a tail
-    //    that rethrew would land here even though the exit code survived.
+    // Nothing escaped the tail: a tail that rethrew would land here even with the exit code intact.
     expect(clean.unexpectedErrors).toEqual([])
     expect(failed.unexpectedErrors).toEqual([])
   })
@@ -567,9 +484,7 @@ describe('the structural halves', () => {
       const f = fixture()
       const scenario = await runScenario(f)
 
-      // A behavioural pin, not a source grep: a wrapper that moved a post-run leg ahead of the
-      // freeze, or past the detach gate, reorders this list. Two landmarks rather than three
-      // since 404 D-05 — the hand-off is the shell's, and it is bounded and degraded there.
+      // Moving a post-run leg ahead of the freeze or past the detach gate reorders this list.
       expect(scenario.order).toEqual([
         'verdict-output',
         'exit-code-frozen',
@@ -588,9 +503,7 @@ describe('the structural halves', () => {
       const f = fixture()
       const scenario = await runScenario(f, { detach: true })
 
-      // D-03 under the 404 D-05 tail shape: the close-out runs, the drain does not, and the
-      // hand-off already happened in the shell — which is what `--detach` has always meant
-      // (RESEARCH Pitfall 8) and no longer needs a leg here to express.
+      // Under `--detach` the close-out runs and the drain does not; the shell already handed off.
       expect(scenario.order).toEqual(['verdict-output', 'exit-code-frozen', 'finish'])
       expect(scenario.stdout).toBe(scenario.verdictScopedStdout)
       expect(scenario.exitCode).toBe(mapVerdictToExitCode('failed'))
@@ -598,7 +511,7 @@ describe('the structural halves', () => {
       const suffix = tailSuffix(scenario.stderr, scenario.verdictScopedStderr)
       expect(lines(suffix)).toEqual([
         'post-processing — analysis: pending · curation: pending'
-        // nothing drained under --detach, so the line carries the fetch command.
+        // Nothing drained under `--detach`, so the line carries the fetch command.
         + ` · digest: ${digestFetchCommand(RUN_ID)}`,
       ])
     })
@@ -608,31 +521,15 @@ describe('the structural halves', () => {
       new URL('../commands/run.ts', import.meta.url),
       'utf8',
     )
-    // Pitfall 1's regression pin: two sites, one helper, TWO legs each since 404 D-05.
-    //
-    // the helper is `composeCliPostRunTail`, and `runPostRunTail` is named at NEITHER
-    // site any more. The composition moved so the `runs.start` door could reach the same one —
-    // three spellings of "how this project's tail is composed" is how a field added to the tail
-    // reaches two of them.
+    // Each verdict site composes its tail through `composeCliPostRunTail`.
     expect(source.match(/composeCliPostRunTail\(/gu) ?? []).toHaveLength(2)
     expect(source.match(/runPostRunTail\(/gu) ?? []).toHaveLength(0)
     expect(source.match(/runVerdictFirstCurationTail\(/gu) ?? []).toHaveLength(2)
-    // neither site enqueues. A site that reacquired an enqueue leg would be a SECOND
-    // durable hand-off path — invisible behind the store's idempotency index, and the reason the
-    // dashboard, MCP and daemon doors queued nothing at all before the relocation.
+    // Neither site enqueues; a second enqueue would be a durable hand-off hidden by idempotency.
     expect(source.match(/postRunTail\.enqueue\(\)/gu) ?? []).toHaveLength(0)
     // …and both sites tell the shell's step what to do about post-processing.
     expect(source.match(/postProcessing:/gu) ?? []).toHaveLength(2)
-    // both drains now PUMP UNDER THE LEASE the shell's post-verdict step decided
-    // on. The pin follows the call shape rather than loosening to `drain(`, because a site that
-    // went back to a bare `drain()` would be a site consulting the writer lease a second time —
-    // answered `held` by its own process, handing the chain off to nobody (Pitfall 3).
-    //
-    // the shape is a THUNK. Taking the authority is what acquires it, so a
-    // site that evaluates the take as the ARGUMENT has minted the lease before `drain()` is
-    // entered — outside the try whose `finally` releases, and past the take-once flag the step's
-    // no-leak backstop reads. A composition failure inside `drain()` then held the project's
-    // writer fence, unheartbeated, for its whole TTL under a wire that already said `drained`.
+    // A thunk: evaluating the take as an argument acquires the lease outside the releasing `try`.
     expect(
       source.match(
         /postRunTail\.drain\(\{\s*takeLease: \(\) => postVerdict\.takeAcquiredLease\(\),\s*\}\)/gu,
@@ -644,7 +541,7 @@ describe('the structural halves', () => {
       'CR-01: a pre-evaluated authority is acquired outside the pump\'s own release',
     ).toHaveLength(0)
     expect(source.match(/postRunTail\.finish\(/gu) ?? []).toHaveLength(2)
-    // The v51 per-site tail is named at neither site any more (388-02's extraction).
+    // Neither site names the per-site curation tail.
     expect(source.match(/runCurationTail\(/gu) ?? []).toHaveLength(0)
     // …and the navigation line this file mirrors is on stdout, where the tail never writes.
     expect(source).toContain('console.log(`Run ID: ${runId}`)')

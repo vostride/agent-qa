@@ -54,9 +54,7 @@ const {
     mockLLMVerifier: vi.fn(function () { return {} }),
     mockMultiReporterInstance: multiReporter,
     mockWebAdapterCleanup: vi.fn(),
-    // Phase 361 Plan 11: the single-test path now composes startRun with runner-local persistence
-    // ports (FsEventLog/FsHandoffStore/nextBuildOrdinal) + the cache/storage stores. Mock the module
-    // so the hook-identity assertions stay isolated from fs (mirrors run.test.ts).
+    // The single-test path composes runner-local persistence ports, mocked so hook ids stay off fs.
     mockFsEventLog: vi.fn(function () { return { append: vi.fn(), read: vi.fn(() => []) } }),
     mockFsHandoffStore: vi.fn(function () { return { save: vi.fn() } }),
     mockNextBuildOrdinal: vi.fn(async () => 1),
@@ -76,11 +74,10 @@ vi.mock('@vostride/agent-qa-model', async () => {
   }
 })
 
-// LLMPlanner/LLMVerifier moved to the runner package; run.ts now
-// imports them from @vostride/agent-qa-runner, so intercept them there.
+// `run.ts` imports `LLMPlanner` and `LLMVerifier` from the runner, so they are intercepted there.
 vi.mock('@vostride/agent-qa-runner', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@vostride/agent-qa-runner')>()
-  // runHooks moved to runner in Phase 363 D-06; intercept it while keeping every other export real.
+  // Intercepts `runHooks` while keeping every other runner export real.
   return { ...actual, LLMPlanner: mockLLMPlanner, LLMVerifier: mockLLMVerifier, runHooks: mockRunHooks, runMemberTest: mockRunMemberTest }
 })
 
@@ -90,9 +87,9 @@ vi.mock('@vostride/agent-qa-runner-local', () => ({
   resolveBranch: mockResolveBranch,
   FsEventLog: mockFsEventLog,
   FsHandoffStore: mockFsHandoffStore,
-  // buildRunPorts + buildScreenshotCompressor construct these; legs never exercised here.
+  // `buildRunPorts` and `buildScreenshotCompressor` construct these; no cell exercises them.
   FsRunArtifactStore: class { stage(): void {} finalize(): void {} },
-  // buildRunPorts also constructs the run-scoped evidence artifact store.
+  // `buildRunPorts` also constructs the run-scoped evidence artifact store.
   FsEvidenceArtifactStore: class {
     persistDecisionScreenshot(): { id: string; sha: string } { return { id: 'decision-screenshot:mock', sha: 'mock' } }
     getBlob(): Uint8Array | undefined { return undefined }
@@ -106,8 +103,7 @@ vi.mock('@vostride/agent-qa-runner-local', () => ({
     }
   },
   nextBuildOrdinal: mockNextBuildOrdinal,
-  // the run paths construct DockerHookExecutor here; runHooks is mocked so execute
-  // is never actually invoked, but the constructor must exist.
+  // The run paths construct `DockerHookExecutor`; `runHooks` is mocked, but it must exist.
   DockerHookExecutor: class { async execute() { return { success: true, variables: {}, output: '', stdout: '', stderr: '', duration: 0 } } },
   // The run composition's `runDirFor` roots the run's own directory via the shared run-dir slug —
   // expose both so the mock stays complete.
@@ -115,15 +111,7 @@ vi.mock('@vostride/agent-qa-runner-local', () => ({
   slugBranch: (name: string) => String(name),
 }))
 
-// `workspaceRelativeIdentityPath` is pulled from the REAL module rather than stubbed — it
-// decides the bytes the committed quarantine ledger keys on, and a stub would leave these pins
-// measuring the test's idea of identity instead of the shipped one.
-// the run command composes its analytics at the root now, and the binding stamps
-// `agent_qa_version` on every event from the SHIPPED reader. Passed through from the real module for
-// the same reason `workspaceRelativeIdentityPath` is — a stub would be a second answer to a question
-// the product already answers, and here it would be a version the closed union's semver refuses.
-// the run-completion subscriber comes from the analytics package now; only that
-// factory is replaced, so this command's composition root still makes the real opt-out decision.
+// Only the run-completion subscriber factory is replaced, so the real opt-out decision still runs.
 vi.mock('@vostride/agent-qa-analytics', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@vostride/agent-qa-analytics')>()
   return { ...actual, createAnalyticsRunSubscriber: mockCreateAnalyticsRunSubscriber }
@@ -141,8 +129,7 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => ({
   ATTR_TRIGGER: (await importOriginal<typeof import('@vostride/agent-qa-core')>()).ATTR_TRIGGER,
   ATTR_RUNNER: (await importOriginal<typeof import('@vostride/agent-qa-core')>()).ATTR_RUNNER,
   DEFAULT_AGENT_QA_ARTIFACTS_DIR: '.agent-qa/artifacts',
-  // `commands/scaffold-content.ts` — D-04's one scaffold producer — reads this, and it is
-  // now in this command's module graph through the composition root.
+  // `commands/scaffold-content.ts` reads this, and the composition root imports it here.
   DEFAULT_AGENT_QA_AUTH_STATES_DIR: '.agent-qa/auth-states',
   DEFAULT_AGENT_QA_CACHE_DIR: '.agent-qa/cache',
   DEFAULT_AGENT_QA_RUNS_DB_PATH: '.agent-qa/runs.db',
@@ -241,7 +228,7 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => ({
   },
   LogManager: vi.fn(function () {
     return {
-      // faithful pass-through — the real one binds a per-member run id here.
+      // A faithful pass-through; the real one binds a per-member run id here.
       runInMemberScope: vi.fn(async (fn: () => unknown) => await fn()),
       setRunId: vi.fn(),
       setCurrentStep: vi.fn(),
@@ -254,9 +241,7 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => ({
   MultiReporter: vi.fn(function () { return mockMultiReporterInstance }),
   resolveKnowledgeRoot: vi.fn((knowledge: { dir?: string } | undefined, configDir: string) =>
     path.resolve(configDir, knowledge?.dir ?? 'agent-qa-knowledge')),
-  // a fresh id per CALL — a colliding caller-named run id is now refused, and this
-  // fixture writes a real run directory that survives the process, so a constant would collide on
-  // the second execution of this file. No cell here compares two mints, so per-call is enough.
+  // A fresh id per call: a colliding run id is refused, and run directories outlive the process.
   generateRunId: vi.fn(((): (() => string) => {
     let ordinal = 0
     return () => {
@@ -355,7 +340,7 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => ({
   isPathInsideDir: vi.fn((candidatePath: string) => !candidatePath.includes('..')),
 }))
 
-// every run opens its record; these cells read hooks, not runs.db rows.
+// Every run opens its record; these cells read hooks, not `runs.db` rows.
 vi.mock('@vostride/agent-qa-dashboard', () => ({
   resolveDashboardDbPath: ({ configDir }: { configDir: string }) => `${configDir}/.agent-qa/runs.db`,
   DashboardDatabase: vi.fn(function () {
@@ -453,9 +438,7 @@ beforeEach(async () => {
     product: 'test-app',
     platform: 'web',
     url: 'https://example.com',
-    // declared, because the run gate classifies every run by this field and an
-    // undeclared target fails closed in a non-interactive context. `local` is honest here —
-    // nothing in this suite reaches a network. See run.test.ts for the full note.
+    // Declared `local`: nothing in this suite reaches a network.
     environment: 'local',
   })
   mockGlob.mockResolvedValue(['tests/hook-id.yaml'])

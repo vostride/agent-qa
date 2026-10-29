@@ -1,8 +1,4 @@
-// D-05 structural conformance proof (the 354↔355 seam). cli is the only package that may
-// import BOTH runner and model (core does not depend on model), so this type-level proof lives
-// here. It asserts that model's `createTokenAccounting` return structurally conforms to the
-// runner's provider-neutral `TokenAccounting` port. Both sides type the same pinned ai@6.0.174
-// `ModelMessage`/`LanguageModelUsage`, so the match is real — and any drift becomes a tsc error.
+// cli alone may import runner and model, so the token-accounting port conformance is proved here.
 
 import { expectTypeOf } from 'vitest'
 import { createTokenAccounting } from '@vostride/agent-qa-model'

@@ -1,19 +1,4 @@
-// The one-commit apply, against a REAL git repository.
-//
-// 394 made accepting a `test-draft` proposal the first write this product made to a user's own
-// history: the draft was written to its target and committed alone, a dirty target refused, an
-// absent git refused, a moved target refused, and a failed commit put the index back.
-//
-// AGENT-QA MAKES NO GIT COMMITS. `applyTestDraftAsOneCommit`, its
-// injected git exec seam, the index capture/restore helpers and the test-draft apply port are
-// deleted; no host binds them. A final authored test is written by `publishAuthoredTest`,
-// the direct writer whose own suite is `test-draft-accept.e2e.test.ts`.
-// The cells here are re-spelled in place. Where the claim survives it is measured on the direct
-// writer against the same real repository — the workspace boundary, the source digest, raw bytes,
-// a failed write that leaves the target as it was — and every cell also reads git back to show that
-// HEAD, the index and the history did not move. Where the claim was about git itself (one commit,
-// the proposal id in the message, the `--` separator, no `--amend`, the timeout, the index
-// rollback, a conflicted index) it becomes the absence of that machinery.
+// A final authored test is written by `publishAuthoredTest`; HEAD, index and history never move.
 
 import { createHash } from 'node:crypto'
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
@@ -121,13 +106,7 @@ afterEach(() => {
   rmSync(root, { recursive: true, force: true })
 })
 
-// RE-TITLED 2026-10-03 (quick-261003-tsr, IN-14): the describe was 'applyTestDraftAsOneCommit',
-// a function 432-16 deleted; its cells drive the direct writer.
 describe('publishAuthoredTest (the direct writer)', () => {
-  // RE-SPELLED 2026-10-01: was 'rethrows a non-ENOENT spawn failure', 'puts the --
-  // operand separator before every caller-controlled path', 'issues no --amend, no -a and no
-  // ref-moving subcommand' and 'bounds every git invocation with a finite timeout'. There is no git
-  // invocation left to shape.
   it('the host exports no one-commit apply, index helpers or git exec seam', () => {
     const exported = Object.keys(cliHost)
     for (const name of [
@@ -141,8 +120,6 @@ describe('publishAuthoredTest (the direct writer)', () => {
     expect(exported).toContain('publishAuthoredTest')
   })
 
-  // RE-SPELLED 2026-10-01: was 'writes the draft to its target and makes exactly ONE
-  // commit of exactly ONE file' and 'names the proposal id in the commit message'.
   it('writes the draft to its target and makes no commit', () => {
     const before = repository()
 
@@ -153,10 +130,6 @@ describe('publishAuthoredTest (the direct writer)', () => {
     expect(git('status', '--porcelain', '--', TARGET_PATH).stdout.trim()).toBe(`?? ${TARGET_PATH}`)
   })
 
-  // RE-SPELLED 2026-10-01: was 'refuses a DIRTY target by name', 'does NOT block on an
-  // unrelated dirty file', 'keeps an unrelated STAGED file out of the commit' and 'stages nothing
-  // but its own target'. A dirty tree is ordinary now: the target the caller read is replaced, and
-  // the person's other work — dirty or staged — is exactly where they left it.
   it('writes into a dirty, partly staged tree and stages nothing', () => {
     commitTarget('name: a person\'s own version\n', 'a person committed this test')
     const read = createHash('sha256').update(readFileSync(join(root, TARGET_PATH))).digest('hex')
@@ -172,8 +145,6 @@ describe('publishAuthoredTest (the direct writer)', () => {
     expect(readFileSync(join(root, 'notes.md'), 'utf8')).toBe('dirty and untracked\n')
   })
 
-  // RE-SPELLED 2026-10-01: was 'refuses by name when git is absent, rather than skipping'.
-  // The writer never runs git, so a directory with no repository is an ordinary target.
   it('writes with no repository at all, because it never asks git anything', () => {
     rmSync(join(root, '.git'), { recursive: true, force: true })
 
@@ -219,19 +190,12 @@ describe('publishAuthoredTest (the direct writer)', () => {
   })
 })
 
-// RE-SPELLED 2026-10-01: the describe measured the index rollback after a failed COMMIT
-// no index entry left behind, the pre-apply entry restored rather than
-// blanket-unstaged, a succeeded commit not reverted, nothing-to-commit named, a pre-staged blob
-// restored, a failed capture refused byte-unchanged, an absent entry restored as absent, and a
-// conflicted entry refused. The direct writer never touches the index, so the one claim left is
-// that a failed WRITE leaves the target and the index as they were.
+// The writer never touches the index, so a failed write leaves the target and index unchanged.
 /** Whether a read-only directory refuses this process a write: not as root, and not on Windows. */
 const canDenyWrites = process.platform !== 'win32' && process.getuid?.() !== 0
 
 describe('a FAILED apply leaves the repository exactly as it found it', () => {
-  // 2026-10-03 (quick-261003-tsr, IN-17): a read-only directory does not stop root, nor Windows,
-  // from writing, so the failure cannot be caused there; the cell runs where it can be, and checks
-  // that the directory really refuses a write before it measures the publish.
+  // A read-only directory does not stop root or Windows, so the cell runs elsewhere and checks it.
   it.runIf(canDenyWrites)('a write that fails leaves the target\'s bytes, the index and the history untouched, and no temp behind', () => {
     commitTarget('name: the version the draft was built over\n', 'a person committed this test')
     const read = createHash('sha256').update(readFileSync(join(root, TARGET_PATH))).digest('hex')
@@ -255,22 +219,7 @@ describe('a FAILED apply leaves the repository exactly as it found it', () => {
   })
 })
 
-/**
- * A person's committed test whose bytes are NOT valid UTF-8, built byte-wise on purpose.
- *
- * THE FIXTURE IS CONSTRUCTED, NEVER LITERAL. Three plans in this repository have shipped raw
- * control bytes into a source file and made `grep` answer nothing over hundreds of readable lines;
- * assembling the sequence from numbers keeps THIS file pure ASCII while the bytes under test are
- * not. `0xC3 0x28` is a truncated two-byte sequence and `0xFF 0xFE` is not a UTF-8 lead pair at
- * all — every one of them decodes to U+FFFD, which is exactly the loss WR-04 is about.
- *
- * AND IT IS A DOCUMENT THE PARSER ACCEPTS. The digests below are no longer minted
- * here — they arrive through `parseDraft`, the only producer of `TestDraftApplyRequest.sourceDigest`
- * — and a producer refuses a file it cannot parse, so a fixture that was merely a `name` and
- * `steps` could pin only a digest no producer emits. `test-id` and `target` are required by
- * `TestDefinitionSchema`, so they are here; the hazard bytes sit in a trailing comment, which is
- * what makes the decoding parse while the bytes stay a UTF-8 hazard.
- */
+// Built from numbers so this file stays ASCII; the hazard bytes sit in a trailing comment.
 const NON_UTF8_TARGET_BYTES = Buffer.concat([
   Buffer.from(
     'test-id: t_amber-birch-coral-delta-ember-falcon-garden-harbor-island-jungle\n'
@@ -288,37 +237,14 @@ function sha256File(path: string): string {
   return createHash('sha256').update(readFileSync(path)).digest('hex')
 }
 
-/**
- * The digest as the PRODUCT produces it — `parseDraft`, and nothing hand-minted beside it.
- *
- * WHY EVERY NON-UTF-8 CELL BELOW GOES THROUGH HERE. `createHash(...).update(bytes)`
- * spelled in a test is a claim about a value, not about the system: it can pin an input no producer
- * emits, and a mutation differential over such a fixture reds only on the impossible one — it
- * cannot tell a vacuous corpus from a real closure. `parseDraft`'s `contentDigest` is the ONE
- * producer of `TestDraftApplyRequest.sourceDigest` (it reaches the request through
- * `authoring-draft-edit.ts`), so a digest obtained here is a digest the product can actually put on
- * a proposal.
- *
- * The `kind` is asserted before the digest is read, because a refused parse would otherwise hand
- * every caller `undefined` and let the cell pass for a reason that has nothing to do with its
- * subject.
- */
+// Through `parseDraft`, the one producer of `sourceDigest`, so no cell pins a digest nothing emits.
 async function sourceDigestThroughTheProducer(): Promise<string> {
   const outcome = await createDraftAuthoringPort(configPath).parseDraft(TARGET_PATH)
   expect(outcome.kind).toBe('parsed')
   return (outcome as { draft: { contentDigest: string } }).draft.contentDigest
 }
 
-/**
- * The integrity half of every byte-fidelity cell, and without it they are vacuous.
- *
- * An assertion about bytes that never reached the subject unaltered passes for a reason that has
- * nothing to do with the subject. So before any of the WR-04 cells asks what the apply did, this
- * asks two things of the harness itself: the bytes on disk after `git add`/`git commit` are still
- * the bytes the fixture wrote (nothing between here and the subject re-encoded them), and they are
- * genuinely a UTF-8 hazard (a decode/re-encode round-trip CHANGES them). If the second ever stops
- * holding, the cells below would pass against the very round-trip they exist to forbid.
- */
+// Checks the harness kept the bytes and that a decode round-trip changes them.
 function assertNonUtf8BytesSurviveTheHarness(absolutePath: string, expected: Buffer): void {
   const onDisk = readFileSync(absolutePath)
   expect(onDisk.equals(expected)).toBe(true)
@@ -326,10 +252,7 @@ function assertNonUtf8BytesSurviveTheHarness(absolutePath: string, expected: Buf
 }
 
 
-// RE-SPELLED 2026-10-01: the describe measured WR-04 on the one-commit apply — the write
-// inside the rollback's reach, the rollback byte-true. The direct writer digests and writes raw
-// bytes too; what is left to measure is that it accepts an untouched non-UTF-8 target and that a
-// failed write leaves those bytes exactly as they were.
+// The writer digests and writes raw bytes, so an untouched non-UTF-8 target is accepted and kept.
 describe('the write is INSIDE the rollback\'s reach, and both halves are bytes', () => {
   it('digests the target\'s RAW BYTES, so a target that is not valid UTF-8 still matches the request', async () => {
     commitTarget(NON_UTF8_TARGET_BYTES, 'a person committed a test whose bytes are not UTF-8')
@@ -358,14 +281,7 @@ describe('the write is INSIDE the rollback\'s reach, and both halves are bytes',
   })
 })
 
-/**
- * ONE DIGEST RECIPE, BOTH SIDES.
- *
- * The producer (`parseDraft`) and the writer must hash the same thing — raw bytes — or a clean
- * non-UTF-8 target is refused forever. A PAIR on purpose: the first says the guard accepts what
- * nobody touched, the third says it still refuses what somebody did. 2026-10-01: the
- * writer is `publishAuthoredTest`; the claims are unchanged.
- */
+// The producer and the writer hash raw bytes alike, or a clean non-UTF-8 target is refused forever.
 describe('the digest the producer emits is the digest the apply computes', () => {
   it('ACCEPTS an untouched non-UTF-8 target whose sourceDigest came through parseDraft', async () => {
     commitTarget(NON_UTF8_TARGET_BYTES, 'a person committed a test whose bytes are not UTF-8')

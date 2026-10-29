@@ -1,22 +1,4 @@
-// SC4's crash half: a real daemon SIGKILLed between the two chain stages.
-//
-// Everything load-bearing here is a real operating-system fact rather than a simulation of one.
-// A real daemon process holds the real writer lease and serves the real agent-job dispatcher; a
-// real CLI-side `runPostRunTail` in THIS process durably enqueues `analyze-run` and is told
-// `handed-off` by the real `acquireWriterLease`; the daemon really claims that job, really commits
-// `completeAndChain`, and is really SIGKILLed while parked inside `curate-memory`'s handler. Only
-// then are the durable rows read, and read from a cold composition over the same database.
-//
-// The kill's POSITION is the part a sleep could not have given us: the daemon-side curation fold
-// publishes a marker the instant it is entered and then parks, so by the time the signal goes out
-// `analyze-run`'s completion and its successor's insertion have committed in one transaction and
-// `curate-memory` is claimed by a process about to stop existing. That is precisely the window
-// SC4 names.
-//
-// What is NOT real, and why: the daemon-side fold's BODY. The shipped closure needs an author
-// factory and a guardrail policy — real provider credentials — and plan 04's in-process proof
-// substitutes the same one callable for the same reason. Its production wiring is pinned
-// structurally at the bottom of this file instead, where it can be stated exactly.
+// A real daemon is SIGKILLed while parked in `curate-memory`; only the fold's body is substituted.
 
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -120,9 +102,7 @@ describePosix('a daemon killed mid-chain loses nothing (concurrency edge)', () =
       const analyzeAfterKill = afterKill.find((row) => row.kind === 'analyze-run')
       const curateAfterKill = afterKill.find((row) => row.kind === 'curate-memory')
 
-      // The successor EXISTS because it was inserted in the predecessor's own completion
-      // transaction. Nothing was lost: one stage is durably terminal, the other is durably
-      // claimed by a process that no longer exists.
+      // The successor is inserted in the predecessor's completion transaction, so nothing is lost.
       expect(analyzeAfterKill).toMatchObject({ status: 'done', claimed: false, attempts: 1 })
       expect(curateAfterKill).toMatchObject({ status: 'queued', claimed: true, attempts: 1 })
       expect(afterKill.map((row) => row.kind).sort()).toEqual(['analyze-run', 'curate-memory'])
@@ -187,15 +167,7 @@ describePosix('a daemon killed mid-chain loses nothing (concurrency edge)', () =
         },
       })
 
-      // Checkpoint replay stability, split the way the 385 matrix splits it — outcome asserted
-      // byte-for-byte, history asserted with an exact value rather than dropped.
-      //
-      // The stage that COMPLETED before the crash owns the outcome half: `analyze-run`'s
-      // verdicts-authored artifact is the analysis this phase exists to produce, and a chain
-      // resumed from a crash must not re-author it. The stage that was INTERRUPTED owns the
-      // history half: its checkpoint is legitimately re-authored, and the attempt stamped into it
-      // is the record of that — a comparison that demanded byte-identity there would be demanding
-      // the resumed attempt lie about which attempt it was.
+      // The completed stage replays byte for byte; the interrupted one records its new attempt.
       const checkpointsAfterRestart = readCheckpointFiles(paths.agentQaRoot)
       const analyzeJobId = String(chainJobIdsForRun(RUN_ID, DIGEST_JOB_ID_SOURCE).analyzeRun)
       const curateJobId = String(chainJobIdsForRun(RUN_ID, DIGEST_JOB_ID_SOURCE).curateMemory)
@@ -247,9 +219,7 @@ describePosix('a daemon killed mid-chain loses nothing (concurrency edge)', () =
 describe('the daemon-claimed chain runs the production curation fold', () => {
   test('binds curate-memory to `curateCompletedRun` at exactly one site in the daemon host', () => {
     const source = readFileSync(new URL('../daemon/host.ts', import.meta.url), 'utf8')
-    // The daemon composes ONE post-run binding, and what it binds is the same per-run fold the
-    // CLI tail binds. Two sites, or a body of the daemon's own, is the divergence D-01 forbids:
-    // the curation chip would then depend on which process happened to hold the lease.
+    // One post-run binding, the CLI tail's per-run fold, or chips depend on the lease holder.
     expect(source.match(/^\s*postRun: \{$/gmu) ?? []).toHaveLength(1)
     expect(source.match(/curateRun: async \(\{/gu) ?? []).toHaveLength(1)
     expect(source.match(/await curateCompletedRun\(\{/gu) ?? []).toHaveLength(1)
@@ -262,9 +232,7 @@ describe('the daemon-claimed chain runs the production curation fold', () => {
       new URL('./post-run-daemon/daemon.fixture.ts', import.meta.url),
       'utf8',
     )
-    // Comments stripped BEFORE the scan. The 388-02/388-03 hazard, met here in miniature: the
-    // header of that file explains what it deliberately does not double, and a scan over prose
-    // reads every one of those names as the thing it is promising not to do.
+    // Comments are stripped first, because the file's prose names what it does not do.
     const code = raw.split('\n').filter((line) => !line.trim().startsWith('//')).join('\n')
     // `runDaemonHost` is the real entry; the fixture supplies an operations table and nothing else.
     expect(code).toContain('runDaemonHost({')
@@ -288,14 +256,7 @@ describe('the daemon-claimed chain runs the production curation fold', () => {
     // Comments stripped BEFORE the scan (the idiom above): a rationale comment naming the
     // posture value must never be countable as a second declaration.
     const code = raw.split('\n').filter((line) => !line.trim().startsWith('//')).join('\n')
-    // The pin that makes the fixture divergence honest and stated (388-10, UF-388-01): the
-    // SC4 crash legs above compose a daemon whose SUBSTITUTED fold never reaches the
-    // candidate projection and which therefore declares the MASKED posture — those legs
-    // still exercise the real dispatcher, the real store, the real lease and a real SIGKILL
-    // against a real claimed curate-memory row, the evidence 388-SECURITY.md's T-388-18 and
-    // T-388-19 rest on. PRODUCTION declares the other posture, so its host never claims the
-    // kind whose fold it cannot mask, and this assertion is what stops that difference from
-    // becoming a silent drift toward the posture the fixtures declare.
+    // Production declares `no-masker`, so it never claims a fold it cannot mask; fixtures differ.
     expect(code.match(/'no-masker'/gu) ?? []).toHaveLength(1)
   })
 

@@ -1,33 +1,4 @@
-// A mark made while a live daemon holds the knowledge writer lease (quick 261002-mrk, closing
-// 432-13 #1 and 432-09 #2).
-//
-// The mark's evidence step and its fix both write knowledge, so a CLI, dashboard or MCP mark used
-// to stop at its evidence step with `Mark evidence writer lease held` whenever a daemon was
-// running. The CLI host now hands the WHOLE `runs.mark` call to
-// the lease holder over the existing `/invoke` socket, with the same registered op and the same
-// input. The daemon runs it under the lease it already holds, and the caller answers the daemon's
-// result unchanged. No op, endpoint or contract is added.
-//
-// The identity a retry carries is the mark's own: the run's mark ledger holds the resumable intent
-// and its operation id, and the daemon and the CLI read the same ledger. So a retry, from either
-// process, resumes that intent or answers the first receipt.
-//
-// These cells start the SHIPPED daemon (`runDaemonHost`, with only the lifecycle-heavy operations
-// stubbed exactly as `daemon-apply-authority.test.ts` stubs them) over a temp mark fixture, and
-// mark through the SHIPPED CLI composition (`composeCliLocalAgent` → `invokeFunction`).
-//
-// OBSERVED RED against agent-qa 527739eb4 (before the delegation), 2026-10-02:
-//
-//   Error: Mark evidence writer lease held; no mark receipt appended
-//
-// Follow-up: a holder that is not a daemon is waited out, bounded, before any refusal.
-// OBSERVED RED against agent-qa 749bd9c7a, before the wait:
-//
-//   C-MRK-HOLDER-RELEASES  DaemonNotRunningError: agent-qa daemon is not running (absent).
-//   C-MRK-HOLDER-KEEPS     expected DaemonNotRunningError … to match object { name: 'MarkWriterLeaseBusyError', … }
-//
-// C-MRK-DELEGATED-ONCE and C-MRK-DAEMON-UNREACHABLE are the controls: a daemon holder is delegated
-// to, or refused at once, exactly as before.
+// With a daemon holding the lease, the CLI hands the whole `runs.mark` call to it over `/invoke`.
 
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
@@ -149,8 +120,7 @@ async function startDaemon(f: Fixture): Promise<LiveDaemon> {
     if (Date.now() >= deadline) throw new Error('daemon never wrote its registration')
     await new Promise(resolve => setTimeout(resolve, 10))
   }
-  // 2026-10-03 (quick-261003-tsr, IN-18): `stop()` answers the exit instead of asserting it, so a
-  // cell that calls it from `finally` reports its own failure first and asserts the exit after.
+  // `stop()` answers the exit rather than asserting it, so a `finally` caller reports first.
   return {
     stop: async (): Promise<unknown> => {
       const listener = signals.get('SIGTERM')
@@ -287,9 +257,7 @@ describe('a mark under a lease-holding daemon is delegated whole', () => {
     expect(receiptLines(f)).toBe(1)
   }, 60_000)
 
-  // 2026-10-02 (261002-mrk follow-up): a lease held by another agent-qa process that is NOT a
-  // daemon (a dashboard's post-run curation, another terminal's change) is waited out for a bounded
-  // time, and only a holder that outlasts the budget refuses, by name. Short injected budgets here.
+  // A non-daemon holder is waited out for a bounded time; only one that outlasts it is refused.
   it('C-MRK-HOLDER-RELEASES: a non-daemon holder that releases within the budget lets the mark land locally, once', async () => {
     const f = fixture()
     const holder = holdLease(f)
@@ -316,7 +284,7 @@ describe('a mark under a lease-holding daemon is delegated whole', () => {
       const refusal = await markThroughCli(f, { runId: f.handoff.runId, kind: 'false-fail' }, shortBudget(f, 200))
         .then(() => undefined, (error: unknown) => error as Error & { holderPid?: number })
       expect(refusal).toMatchObject({ name: 'MarkWriterLeaseBusyError', holderPid: process.pid })
-      // the holder is this very process, and the refusal says so.
+      // The holder is this very process, and the refusal says so.
       expect(refusal?.message).toContain(`This agent-qa process (pid ${process.pid}) is already writing`)
       expect(refusal?.message).not.toContain('Another agent-qa process')
       expect(refusal?.message).toContain('Retry the mark when it finishes')

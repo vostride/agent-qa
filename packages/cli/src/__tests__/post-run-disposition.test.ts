@@ -1,55 +1,4 @@
-// LIFE-02's posture cells, measured on the SHIPPED BINARY.
-//
-// WHY A SPAWNED RUN AND NOT A UNIT MAPPING. `runFinished.disposition` is decided inside the runner
-// shell, by a step composed at a CLI composition root, threaded through the invocation core, over a
-// writer lease that lives on disk. A unit test of the decision function is blind to every one of
-// those hops — and the defect this phase exists to retire is precisely a door that never calls the
-// step at all (D-12: "a unit-level mapping test [is] blind to a door that never calls the
-// post-verdict step"). So the assertion is made against `events.jsonl` — the run's own permanent
-// record — after `node dist/cli.js run` has exited.
-//
-// RED BASELINE, measured 2026-08-26 against the version-0.2 checkout at 6ec921b2 with the same
-// hermetic fixture this cell builds:
-//
-//     5 runFinished {"aggregateVerdict":"cancelled","disposition":"detached","finalSeq":5}
-//
-// The literal was hardcoded in `shell.ts`, so a run with no daemon anywhere reported that nobody
-// would drain it while it was about to drain itself. Forcing that literal back reds this file.
-//
-// THE FIXTURE FAILS FAST ON PURPOSE. `hermeticEnv` points `HOME` into the temp project, so the
-// spawned CLI resolves no browser and the single member ends `skipped` in milliseconds. That is
-// enough for this claim: the terminal sequence — verdict, then the post-verdict step, then
-// `runFinished` — runs identically whatever the members did, and a cell that drove a real browser
-// would be measuring Chromium's availability rather than the run's disposition.
-//
-// ═══ 2026-08-26 — Phase 404 plan 04 completes D-12's set ═══
-//
-// Four cells now, and each one is a posture NOBODY can reach by reading the code:
-//
-//   `drained`   — no daemon anywhere. The step probes a free lease and the wire says this process
-//                 will pump. (404-01's cell, kept verbatim.)
-//   `handedOff` — a REAL `agent-qa daemon` holds the writer lease over the SAME project root. This
-//                 is the one that cannot be faked: it needs two processes, one lease file and one
-//                 `agent-jobs.db` between them.
-//   `detached`  — `--detach`. The lease is skipped and the wire says so — but the durable row is
-//                 STILL there, because detaching asks this process not to SPEND itself on the work,
-//                 never to forget the work exists (RESEARCH Pitfall 8).
-//   gate-run    — `--gate-run`. Nothing is queued at all; the queue database is never even created.
-//                 (D-08.)
-//
-// THE ROW COUNT IS HALF OF EVERY CELL, and it is the half that measures D-05. These runs end on a
-// FRAMEWORK ERROR — `agent-qa browser support is not installed` — which
-// `in-process-run-execution.ts` re-throws above `afterVerdict`, so the CLI's post-run TAIL never
-// runs. Before the enqueue moved into the shell's post-verdict step, that meant a run like this
-// queued nothing whatsoever and its analysis was lost with the process. Every row asserted below
-// exists because the step queued it between `verdict` and `runFinished`, on a path the tail never
-// reached.
-//
-// WHAT THESE CELLS DO NOT ASSERT, and why saying so is better than a vacuous assertion: no chip
-// line. The tail is where chips are emitted, and the framework error means it never runs — for the
-// `drained` posture as much as for the others. `post-run-verdict-sequence.test.ts` drives the
-// shipped tail in-process over the same run directory afterwards for exactly this reason, and
-// `post-run-door-drain.test.ts` measures the in-process drain leg directly.
+// Spawned: each posture's `runFinished.disposition` and queued rows are read from `events.jsonl`.
 
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -83,17 +32,7 @@ const describePosix = process.platform === 'win32' ? describe.skip : describe
 /** The id shape the parser accepts: `t_` plus ten id-agent words. */
 const PROBE_TEST_ID = 't_ponent-toa-base-fred-click-sigma-lad-agen-report-sticky'
 
-/**
- * A project a real `agent-qa run` completes against, with NOTHING it does not need.
- *
- * `fixtureProject` in the conformance harness serves the chat/MCP anchors and declares no target,
- * no hooks file and no env files — a `run` refuses on each of those in turn before it reaches a
- * verdict. This builds the minimum a run accepts: one unreachable local target, one member, and the
- * three empty files the config resolver requires to exist.
- *
- * Exported so 404-04's added legs and the LIFE-01 sequence cells drive the SAME project rather than
- * a second one that could differ in a way nobody notices.
- */
+// The minimum a run accepts: an unreachable local target, one member and the required files.
 export function runFixtureProject(label: string, memberCount = 1, into?: string): {
   root: string
   configPath: string
@@ -274,9 +213,7 @@ describePosix('runFinished.disposition on the shipped binary', () => {
       'no daemon holds the lease, so THIS process took it and will pump — the wire must say drained',
     ).toBe('drained')
 
-    // D-05, measured: this run ended on a framework error, so the CLI's tail never ran — and the
-    // row exists anyway, because the SHELL's post-verdict step queued it. Before the relocation
-    // this project's `agent-jobs.db` would have been empty and the analysis lost with the process.
+    // The run ends on a framework error so the tail never runs, yet the shell's step queues it.
     const rows = await analyzeRunRows(root)
     expect(rows, 'exactly one durable hand-off, idempotent by runId').toHaveLength(1)
     expect(rows[0]!.status, 'nobody drained it: this process died above its own tail').toBe('queued')
@@ -288,10 +225,7 @@ describePosix('runFinished.disposition on the shipped binary', () => {
 
   it('a run whose project a REAL daemon holds the writer lease over writes disposition: handedOff',
     async () => {
-      // THE CELL THAT CANNOT BE FAKED. Two processes, one lease file, one `agent-jobs.db`: the
-      // daemon acquires the writer lease over this project's knowledge root and heartbeats it, and
-      // the spawned `agent-qa run` — a different process, over the SAME root — probes that lease
-      // and reads a live current-epoch holder. `handedOff` is D-09's promise about WHO will pump.
+      // A daemon and the run share one lease file and `agent-jobs.db`; the run reads a live holder.
       const paths = makePostRunDaemonRoot('handedoff')
       const { root } = runFixtureProject('handedoff', 1, paths.root)
       expect(
@@ -352,9 +286,7 @@ describePosix('runFinished.disposition on the shipped binary', () => {
 
     const { disposition, events } = terminalSequence(root)
     expect(disposition, 'the lease was skipped, so nothing is promised about draining').toBe('detached')
-    // THE HALF THAT MATTERS. `--detach` asks this process not to SPEND itself on the work; it has
-    // never meant "forget the work exists", and a build that treated detach as "skip the step"
-    // would leave nothing for a later run or a daemon to drain (RESEARCH Pitfall 8).
+    // Detaching skips spending this process on the work, never the record of it.
     expect(await analyzeRunRows(root), 'detaching keeps the record and skips the spending').toHaveLength(1)
     expect(chipLines(events), 'nothing drained here, so nothing emitted').toEqual([])
   }, LEG_TIMEOUT_MS)

@@ -1,11 +1,4 @@
-// a run whose post-run chain was never enqueued carries the skipped fact
-// beside its curation chip on the run's overview and knowledge reads, on the CLI and MCP alike, so a
-// gate run's never-run curation no longer reads as a bare `pending`. The fact is the same fold
-// `runs.postprocessing` serves, read from the run's own handoff.
-//
-// Built on run-read-verbs.test.ts's harness: completed handoffs written through
-// FsHandoffStore, the in-process `cli()` driver over createRunsCommand(), and the composed MCP
-// reader. The fixtures live in this file.
+// A run whose chain was never enqueued carries the skipped fact beside its curation chip.
 
 import { createServer } from 'node:http'
 import { writeFileSync } from 'node:fs'
@@ -176,8 +169,6 @@ async function overviewCuration(p: ReturnType<typeof skippedRuns>, runId: string
   return (overview as OverviewCuration).learned.curation
 }
 
-// ---- C444-OVERVIEW-SKIPPED ------------------------------------------------------------------------
-
 describe('the overview carries skipped curation', () => {
   it("a gate run's overview carries skipped with reason gate-run beside its curation chip", async () => {
     const p = skippedRuns()
@@ -218,7 +209,7 @@ describe('the overview carries skipped curation', () => {
   })
 })
 
-// ---- C444-KNOWLEDGE-SKIPPED -----------------------------------------------------------------------
+// The knowledge read carries skipped curation.
 
 type KnowledgeCuration = { kind: string; curation: Record<string, unknown> }
 

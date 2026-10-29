@@ -1,33 +1,4 @@
-// THE SERVICE DOOR'S REJECTION CELLS.
-//
-// TOKENLESS. The run-service tokens, their resolver, the door's
-// `verifyBearer` port and the trust scope a token carried are deleted. Every cell below that
-// measured a bearer refusal is RE-SPELLED in place to the request the door still refuses — a
-// cross-site one, refused by the dashboard's shared same-site guard above the route table — or to
-// the tokenless success that replaced it. The never-forwarded run id and the live-view signature's
-// compare discipline are unchanged claims. The cells that had a run mask a door's or the
-// environment's values are deleted, and so are the BIND-HALF cells with the door's masking binder
-// they measured.
-//
-// THE FRAME, STATED: every wire cell below drives the PRODUCTION COMPOSITION over real TCP —
-// `startServer` with `runService` from `composeRunServicePorts`, over a host from
-// `composeDashboardDoor` and a run door from `createDashboardRunDoor`. Same boot as 402-01's
-// `run-service-door.e2e.test.ts`, parameterised on the two axes this file turns: the declared
-// target's ENVIRONMENT (which decides the run's risk tier) and the credential's TRUST SCOPE
-// (which decides whether the gate's credential arm can satisfy the ask).
-//
-// 402-01 proved DELIVERY: a valid credential starts a run and its envelopes arrive. This file
-// proves the other half — that every guard the door ships is exercised on inputs it REFUSES, and
-// that a refusal says the same thing whatever it refused.
-//
-// WHAT THIS FILE DOES NOT CARRY. The behavioural half of the compare-discipline pin lives in
-// `run-service-compare-discipline.test.ts`, which replaces `node:crypto` for its whole module
-// graph — a thing this file may not do, because it boots a database, a dashboard host and a TCP
-// server, all of which hash. What is here is that claim's SOURCE half: the shape of the scan and
-// the number of compare SITES, read off the file with comments and string literals removed so that
-// neither an import line nor a JSDoc mention can satisfy or break it (the failure this phase has
-// already paid for twice — 402-01's `timingSafeEqual` grep answered 2, 402-03's
-// `resolveEffectiveWorkers` grep passed a mutation that deleted the expression entirely).
+// Wire cells drive the production composition over real TCP; refusals are cross-site.
 
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import type { Server } from 'node:http'
@@ -49,23 +20,18 @@ import {
   createDashboardRunDoor,
 } from '../commands/dashboard.js'
 
-/**
- * A bearer value a pre-432 client might still present, hunted for in every captured channel.
- *
- * THE VARIABLE NAME CARRIES NO CREDENTIAL-SHAPED SUFFIX, deliberately: a probe called
- * `PROBE_API_TOKEN` would be masked by machinery that has nothing to do with this door.
- */
+// A bearer an older client might present, named without a credential suffix.
 const TOKEN = 'zz-402-06-planted-run-credential-4b91ce'
 const TOKEN_VAR = 'AGENT_QA_402_06_RUN_CRED'
 
-/** what the door refuses before its route table — the shared same-site guard's rungs. */
+// What the door refuses before its route table: the shared same-site guard's rungs.
 const CROSS_SITE_CLASSES = [
   { id: 'foreign Origin', headers: { Origin: 'https://evil.example' } as Record<string, string> },
   { id: 'null Origin', headers: { Origin: 'null' } as Record<string, string> },
   { id: 'cross-site fetch metadata', headers: { 'Sec-Fetch-Site': 'cross-site' } as Record<string, string> },
 ] as const
 
-/** legacy Authorization shapes a pre-432 client may send. None is read, none is refused. */
+// Legacy `Authorization` shapes an older client may send; none is read or refused.
 const LEGACY_HEADER_CLASSES = [
   { id: 'absent header', headers: {} as Record<string, string> },
   { id: 'malformed scheme', headers: { Authorization: `Basic ${TOKEN}` } as Record<string, string> },
@@ -199,31 +165,16 @@ function runsThatProducedEvents(configDir: string): readonly string[] {
   })
 }
 
-// ---- (1) THE REFUSAL CENSUS -------------------------------------------------------------------
-//
-// EVERY ROW OF THE MODULE'S OWN ROUTE TABLE, TIMES EVERY FAILURE CLASS. The denominator is read off
-// `RUN_SERVICE_ROUTE_TABLE`, so a fourth route added tomorrow joins this corpus without anybody
-// editing the cell — which is the whole reason 402-01 published the table as data.
+// The denominator is read off `RUN_SERVICE_ROUTE_TABLE`, so a new route joins the census unedited.
 
 /** A row's template turned into a concrete request target. */
 function probeTargetsFor(row: (typeof RUN_SERVICE_ROUTE_TABLE)[number]): readonly string[] {
   if (row.pattern === undefined) return [row.path]
   const concrete = row.path.replace(/:([A-Za-z0-9_]+)/g, 'r_census-probe')
-  // THE TEMPLATED ROW IS DRIVEN THREE WAYS, and the third one is load-bearing. 402-04 added a
-  // `?handle=` parameter with two refusals of its own, both answered before any stream header —
-  // which puts them in the same region of the dispatch as the guard. A WELL-FORMED handle does not
-  // discriminate the ordering at all (a mutation that validated the handle above the guard survived
-  // a census that drove only `?handle=1`, measured). The MALFORMED one does: it is the input the
-  // early check would refuse 400 on, so a census that drives it proves the guard still stands first
-  // — and therefore that a handle refusal cannot be used as a run-existence oracle by a page on
-  // another origin.
+  // A malformed handle proves the guard runs first, so a refusal reveals no run cross-site.
   return [concrete, `${concrete}?handle=1`, `${concrete}?handle=not-a-number`]
 }
 
-// RE-SPELLED 2026-10-01. The census's classes were the three ways to fail to
-// present a declared credential, answered 401; they are now the three rungs of the same-site guard,
-// answered 403 `cross_site_refused`. The denominator, the shape law and the no-grant law are the
-// census's own and unchanged.
 describe('the refusal census: every route on the table, every failure class', () => {
   it('refuses all of them 403 with a body that is shape-identical beyond the reason', async () => {
     const service = await openRunService()
@@ -341,8 +292,7 @@ describe('a run started over the wire', () => {
     expect(runsThatProducedEvents(service.configDir).length).toBeGreaterThan(0)
   }, 180_000)
 
-  // two concurrent tokenless starts are two runs, each under the id the core
-  // minted for it — no request can choose an id, and no request shares another's.
+  // Concurrent tokenless starts each get the id the core minted; no request chooses or shares one.
   it('two concurrent tokenless starts get two distinct core-minted run ids', async () => {
     const service = await openRunService()
     const start = () => fetch(`${service.origin}/run`, {
@@ -358,12 +308,7 @@ describe('a run started over the wire', () => {
   }, 180_000)
 })
 
-// ---- (3) THE COMPARE DISCIPLINE, SOURCE HALF --------------------------------------------------
-//
-// the bearer compare module is deleted. The secret compare the run
-// service still depends on is the live-view link signature (`live-url-signer.ts`), which D-13
-// keeps; the source half is measured there, and a census pins that no other CLI module grew a
-// second constant-time compare of a credential.
+// The live-view signature is the run service's one secret compare; no CLI module adds another.
 
 const TOKEN_MODULE = fileURLToPath(
   new URL('../composition/live-url-signer.ts', import.meta.url),
@@ -493,11 +438,6 @@ function channelsOf(error: unknown): readonly string[] {
 }
 
 describe('the token value reaches no channel', () => {
-  // RE-SPELLED 2026-10-01 from 'the STARTUP refusal names the variable and never a
-  // value, and carries no cause' and 'an EMPTY or whitespace-only value refuses startup identically
-  // to an unset one'. The composer reads no declaration and no environment, so there is no startup
-  // refusal to leak through: it composes whatever the environment holds, and nothing it returns or
-  // throws carries the value.
   it('the composer reads no declaration and no environment, and refuses nothing', () => {
     const previous = process.env[TOKEN_VAR]
     process.env[TOKEN_VAR] = TOKEN
@@ -521,9 +461,6 @@ describe('the token value reaches no channel', () => {
     }
   })
 
-  // RE-SPELLED 2026-10-01 from 'a WRONG-token refusal leaks the declared value on no
-  // channel a person can read'. A presented bearer is not read; this sweep presents one alongside
-  // each cross-site rung and asserts the value reaches no body, header or log line.
   it('a WRONG-token refusal leaks the declared value on no channel a person can read', async () => {
     const service = await openRunService()
     const out: string[] = []
@@ -567,7 +504,7 @@ describe('the token value reaches no channel', () => {
   }, 60_000)
 })
 
-// ---- (6) THE SECOND REFUSAL OF `runId` -----------------------------------------
+// The second refusal of `runId`.
 
 describe('the door never forwards a caller’s run id, even with its own check bypassed', () => {
   it('the composition builds the request from patterns ALONE — an injected id is not honoured', async () => {

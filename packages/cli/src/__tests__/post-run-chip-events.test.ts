@@ -1,12 +1,4 @@
-// The chip trail an in-process drain leaves behind.
-//
-// Driven through the REAL tail against a real sqlite store, a real handoff and the real handler
-// bodies, because the claim is about what a finished run's `events.jsonl` CONTAINS after the
-// chain ran — and a fake pump would let the emitter agree with a story nothing durable told.
-// The events file is written by hand as a three-line fixture rather than by a real run: what
-// matters to the seq claim is only that a log with a `runFinished` at `finalSeq` exists, and
-// standing a whole runner up to produce one would put the runner between this proof and its
-// subject.
+// Through the real tail and sqlite store, as the claim is what `events.jsonl` holds afterwards.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -44,20 +36,13 @@ import {
 } from '../curation/post-run-tail.js'
 import { enqueueThroughTheStep } from './post-run-step-harness.js'
 
-/**
- * The composition's REQUIRED quarantine identity mint. Passthrough here: this
- * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
- * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
- */
+// Passthrough: the fixture speaks canonical workspace-relative bytes, and core pins the recipe.
 const MINT_IDENTITY = (filePath: string): string => filePath
 
 const RUN_ID = 'run-388-04-chips'
 const EVENTS_FILE = 'events.jsonl'
 
-// 389-04's author swap put unknown-floor members on the model path, so a throwing stub
-// now aborts the chain under test. Unparseable text makes the author degrade per-test to
-// the byte-identical deterministic floor (plan 04's proven posture) — chain mechanics
-// keep their 388-era shape.
+// Unparseable text, not a throw: a throwing model aborts the chain; this degrades to the floor.
 const TEST_MODEL: JobModelCapability = {
   modelId: 'test:post-run-chip-events',
   generate: async () => ({ text: 'not an author payload' }),
@@ -288,10 +273,7 @@ describe('the post-run chip emitter', () => {
     }
   })
 
-  // the reserved job kind lost its `STAGE_CHIPS` row and the three
-  // `issues*` event names left `RUN_EVENT_TYPES` entirely. The cell survives as the runtime
-  // proof that the reserved kind emits NOTHING — the enum removal alone cannot say that,
-  // because a row could still be re-added naming any surviving name.
+  // The reserved job kind emits nothing at runtime, which an enum alone cannot show.
   it('emits no issues chip at all — the reserved job kind emits nothing', async () => {
     const f = fixture()
     const tail = runPostRunTail(f.options())
@@ -411,8 +393,7 @@ describe('the post-run chip emitter', () => {
       new URL('../curation/post-run-chip-emitter.ts', import.meta.url),
       'utf8',
     )
-    // Anchored at the start of a line and on `import`/`}` so a rationale comment naming a
-    // module is not scanned as one (the 388-02 specifier-extractor hazard, in miniature).
+    // Anchored at line start on `import` or `}`, so a comment naming a module is not scanned.
     const specifiers = [...source.matchAll(/^(?:import .*|\})\s*from '([^']+)'/gmu)]
       .map((match) => match[1]!)
       .sort()
@@ -428,17 +409,7 @@ describe('the post-run chip emitter', () => {
   })
 })
 
-/**
- * The emitter's SECOND SINK — the dashboard relay.
- *
- * WHAT THE SINK MAY AND MAY NOT COST. The trail is the record: `events.jsonl` is what
- * `runs.postprocessing` is reconciled against and what a later reader replays. The relay is a
- * convenience for a browser that happens to be open right now — so it runs AFTER the line is on
- * disk, it hands over the same object rather than a copy anybody could have edited on the way, and
- * a listener that throws is swallowed here for the run bus's own subscriber-fault reason. The
- * strongest statement of all of that is the byte cell: a run drained with a relay and a run drained
- * without one leave IDENTICAL files.
- */
+// The relay runs after the line is on disk; runs drained with and without it leave identical files.
 describe("the relay is the emitter's second sink and never its first", () => {
   it('hands the relay every appended envelope, in order, AFTER the line is on disk', async () => {
     const f = fixture()
@@ -600,8 +571,7 @@ describe('the user-facing post-run lines', () => {
     expect(line).toBe(
       `post-processing — analysis: ${status.chips.analysis} (daemon will drain)`
       + ` · curation: ${status.chips.curation} (deferred to a later local run)`
-      // this process did not complete analyze-run, so the line carries the one
-      // copy-paste that fetches the sentences once the daemon has drained.
+      // This process did not complete analyze-run, so the line carries the digest fetch command.
       + ` · digest: ${digestFetchCommand(RUN_ID)}`,
     )
     // …and the values it rendered are the durable ones, not a control-flow word.
@@ -623,8 +593,7 @@ describe('the user-facing post-run lines', () => {
       await first.drain()
       expect(first.report().drain).toBe('budget-exhausted')
 
-      // Second tail, same store, lease now held by a daemon: work stays queued and somebody
-      // has been nudged. This is the ONE posture where D-08's example line is literally true.
+      // A second tail with the lease held by a daemon: work stays queued and the daemon is nudged.
       const second = runPostRunTail(f.options({
         acquireWriterLease: () => ({ kind: 'held', holder: { pid: 4242 } }),
         nudgeDaemon: async () => undefined,
@@ -644,9 +613,7 @@ describe('the user-facing post-run lines', () => {
       })
       expect(f.info.mock.calls.map(([message]) => String(message))).toEqual([
         'post-processing — analysis: complete · curation: pending (deferred to a later local run)'
-        // the SECOND tail completed nothing in-process (the first one authored the
-        // analysis), so its exit line still points at the fetch command rather than printing
-        // sentences it never drained.
+        // The second tail drained nothing in-process, so its exit line points at the fetch command.
         + ` · digest: ${digestFetchCommand(RUN_ID)}`,
       ])
     })
@@ -666,16 +633,7 @@ describe('the user-facing post-run lines', () => {
 
   it('never promises a daemon drain for curation, the kind no daemon may claim',
     async () => {
-      // The defect this pins: the parenthetical was chosen by POSTURE alone and pasted onto
-      // whichever stages were `pending`, so a handed-off leg told the user a daemon would
-      // drain curation. Since 388-10 that is false BY CONSTRUCTION, not by timing — the
-      // production daemon declares `candidateProse: 'no-masker'`, and
-      // `UNCLAIMABLE_BY_PROSE_POSTURE` makes `curate-memory` unclaimable for exactly that
-      // posture inside the claim SELECT. Only a masked leg can drain it, and a masked leg is
-      // a local run's tail.
-      // The plain fixture, so BOTH drainable stages are still `pending` and the two
-      // parentheticals are therefore comparable — the whole point of this pin is that the
-      // same posture now renders two different promises.
+      // The production daemon cannot claim `curate-memory`, so one posture promises per stage.
       const f = fixture()
       const handedOff = runPostRunTail(f.options({
         acquireWriterLease: () => ({ kind: 'held', holder: { pid: 4242 } }),
@@ -707,10 +665,7 @@ describe('the user-facing post-run lines', () => {
       expect(analysisStage).toBe('analysis: pending (daemon will drain)')
     })
 
-  // EXIT-LINE-EXCLUDED. A gate or benchmark run never enqueues a chain, so its
-  // chips read `pending` forever and the posture parenthetical promises a drain nobody will perform.
-  // The skipped fact the op mints from the run's durable handoff replaces BOTH stage clauses
-  // with the words the digest chain line and the dashboard print — and takes the promise with it.
+  // A gate or benchmark run enqueues no chain, so both stages read skipped with no promise.
   it('EXIT-LINE-EXCLUDED: renders both stages skipped with the reason and no posture promise',
     () => {
       const gateRun: PostProcessingStatus = {
@@ -773,11 +728,7 @@ describe('the user-facing post-run lines', () => {
 
   it('says NOTHING at all when the step reported a failed hand-off',
     async () => {
-      // The D-07 warning itself — the run id, "verdict and exit code are unaffected", and the
-      // handoff's own path as the manual re-queue route — is now published by the SHELL, off the
-      // step's `post-run-enqueue-failed` outcome, and is pinned in `post-verdict-step.test.ts`.
-      // What is pinned HERE is the tail's half of that split: told `failed`, it prints no
-      // close-out line and adds no second, quieter warning of its own.
+      // The shell publishes the enqueue-failed warning; told `failed`, the tail prints nothing.
       const f = fixture()
       const tail = runPostRunTail({ ...f.options(), enqueueOutcome: 'failed' })
       await tail.finish()

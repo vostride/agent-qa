@@ -1,41 +1,4 @@
-// the hermetic exclusion differential: three exclusions and one inclusion,
-// off the SAME flagged handoff, each leg asserting BOTH cells.
-//
-// WHY TWINS AND NOT A SINGLE FIXTURE. "Zero rows for a flagged handoff" is satisfied just as well
-// by a fixture that could never have produced a row at all — a handoff with no members, an anchor
-// walk that extracts nothing, a run dir the fold cannot read. Every leg below therefore folds a
-// SECOND handoff that is byte-identical except for the markers, into its own knowledge root, and
-// asserts that side MOVED. A leg whose flag-off cell is dead proves nothing, and that is the
-// 388/390 two-sided law this suite is written under. `the twins differ ONLY by the markers` below
-// pins the premise itself, so a later edit cannot make the twins diverge in some other field and
-// quietly turn every differential into a comparison of two unrelated runs.
-//
-// WHAT EACH LEG OWNS, and why leg 2 is not leg 1 restated:
-//
-//   leg 1  run_test_outcomes        the flake counters — passes/failures/heals/flakeCount
-//   leg 2  suite_fingerprints       gate 3's exemplar-ranking substrate, a DIFFERENT TABLE in a
-//                                   DIFFERENT MODULE, shipped by plan 393-03
-//   leg 3  run_fingerprint_windows  390's quarantine detection window
-//   leg 4  the curation queue       the POSITIVE half — candidates ARE emitted (C8)
-//   leg 5  the analyze-run queue     a flagged run is NEVER queued at all
-//
-// Leg 2 is deliberately its own named assertion even though plan 393-03 enforced the exclusion
-// with ONE gated member list in `projectRunOutcomes` that BOTH projections are computed from —
-// meaning that today leg 1 and leg 2 die to the same deleted line. That shared line is good
-// design and this leg is not an argument against it; the leg exists because the failure mode it
-// guards is a table acquiring its OWN way in. `suite_fingerprints` is written by a different
-// module with its own `applySuiteFingerprints` writer, and the cheapest imaginable "fix" for a
-// future gate-3 miss is a second fold pass over `handoff.tests` that never consults the gate.
-// That change would leave leg 1 green — the counters would still be empty — and leg 2 is the
-// only thing in the tree that would red. A leg that can only red together with its sibling today
-// but can red alone tomorrow is worth its own name; see the SUMMARY for the measurement.
-//
-// ISSUE CANDIDACY — STRUCTURAL NOTE, NOT AN ASSERTION. 2026-09-02: the Issue
-// engine this note once reserved a consumer contract for left with the Issue-slot cleanup.
-// Nothing reads `excludedFromOutcomes` at candidacy time because there
-// is no candidacy; the gate-run exclusion is complete in the legs above and no fifth leg is owed.
-// Kept as prose rather than a skipped test because an `it.skip` would claim coverage of a
-// mechanism that does not exist.
+// Each leg folds a twin handoff differing only by the markers and asserts that side moved.
 
 import { createHash } from 'node:crypto'
 import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
@@ -85,7 +48,7 @@ const PASSING_NAME = 'checkout completes the payment sheet'
 const FAILING_FILE = 'tests/login.yaml'
 const FAILING_NAME = 'login accepts a returning customer'
 
-/** The composition's REQUIRED quarantine identity mint. Passthrough here. */
+// The composition's required quarantine identity mint, passed through.
 const MINT_IDENTITY = (filePath: string): string => filePath
 
 const TEST_MODEL: JobModelCapability = {
@@ -205,8 +168,7 @@ function members(): PerTestOutcome[] {
       testName: FAILING_NAME,
       filePath: FAILING_FILE,
       testIndex: 1,
-      // A FAILED member is what puts a row in `run_fingerprint_windows` — leg 3 is
-      // unobservable without one, and a suite of passes would make that leg silently vacuous.
+      // A failed member puts a row in `run_fingerprint_windows`, so leg 3 is observable.
       outcome: 'failed',
       steps: [step(0, 'signin', 'Sign in', 'signin')],
       rootCause: FAILURE_VERDICT,
@@ -362,15 +324,7 @@ function openTargetHost(target: Side): LocalAgentHost {
   return host
 }
 
-/**
- * Run the SHIPPED post-verdict step over this side, with the markers the shell would have copied
- * off `RunConfig`, and report the posture it decided.
- *
- * The step and not the tail: the enqueue lives there now, and so does D-08's skip. The
- * markers are passed on the STEP INPUT rather than read back out of the handoff, because that is
- * exactly how the shell supplies them — `shell.ts` spreads `config.gateRun`/`config.excludedFromOutcomes`
- * onto the step input, and a cell that fed them in some other way would be measuring its own wiring.
- */
+// The markers go on the step input, as `shell.ts` spreads them, not read back from the handoff.
 async function runStepOver(
   target: Side,
   markers: { gateRun?: true; excludedFromOutcomes?: true } = {},
@@ -489,12 +443,7 @@ describe('leg-1-flake-counters — a flagged run moves no run_test_outcomes row'
 
 describe('leg-2-exemplar-ranking — a flagged run seeds no suite_fingerprints row', () => {
   it('writes zero ranking-substrate rows for the flagged twin while the unflagged twin writes some', () => {
-    // What this adds over leg 1: a DIFFERENT TABLE, written by a DIFFERENT MODULE
-    // (`applySuiteFingerprints`), reached today through the SAME gate. Gate 3 compares a draft
-    // against this union, so a gate-run that seeded it would let a draft compare against itself
-    // and pass gate 3 on first evaluation and fail it on re-evaluation with no suite change
-    // (Pitfall 8). Leg 1 cannot observe that: the counters could stay empty while the union
-    // filled up through a second, ungated fold pass.
+    // Another table and module behind the same gate; a seeded row would let a draft match itself.
     const { flagged, plain } = twins()
     fold(flagged)
     fold(plain)
@@ -608,10 +557,7 @@ describe('leg-5-analyze-run-queue — a flagged run is never queued at all', () 
   })
 
   it('each marker suppresses the queue INDEPENDENTLY — the flags are distinct axes', async () => {
-    // The adjacency WTST-06 resolves explicitly: the flags are DISTINCT axes. A gate run that
-    // still counts (`gateRun` alone) and an excluded run that is not a gate run
-    // (`excludedFromOutcomes` alone) are both real, and a skip that keyed on one flag while
-    // reading the other would be invisible to the both-flags case above.
+    // The flags are distinct axes: a counting gate run and an excluded non-gate run are both real.
     const gateOnly = side('gate-only', { gateRun: true })
     expect(await runStepOver(gateOnly, { gateRun: true })).toBe('detached')
     expect(await analyzeRunRows(gateOnly)).toHaveLength(0)

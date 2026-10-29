@@ -1,19 +1,4 @@
-// C432-NO-GIT-COMMIT and C432-LEFTOVERS-UNREAD over ONE project.
-//
-// agent-qa makes no git commits. A config change, an authored test and a mark's knowledge fix
-// are plain uncommitted edits: HEAD, the index and the history stay exactly where the person left
-// them, and `git status` shows what changed. The earlier cells prove each publication alone
-// (`proposal-author-attribution.test.ts`, `config-direct-write.test.ts`); this file drives all three
-// through the shipped CLI composition IN ONE REPOSITORY, then again in a dirty tree and in a
-// directory with no repository, and once more with the mark interrupted before its receipt, so a
-// retried mark is seen to publish its fix once.
-//
-// old `grants.jsonl`, `.agent-qa/proposals/*.json` and `execution_audit.jsonl`
-// files are never read again. A fresh project neither creates nor needs any of them; a project that
-// still holds malformed ones — sealed so that any open, listing or stat under them fails — gets the
-// same answers as a clean one, and the legacy bytes and modes are left exactly as they were.
-//
-// Every fixture lives in a temporary directory (the mark fixture's own `mkdtemp` root).
+// A config change, an authored test and a mark's fix are uncommitted edits; legacy files go unread.
 
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -87,7 +72,7 @@ interface Publications {
   readonly test: unknown
 }
 
-/** The three publications D-07 names, each in its one call, through the shipped CLI composition. */
+// Each publication in its one call, through the shipped CLI composition.
 async function publishAll(fixture: Fixture): Promise<Publications> {
   const host = composeCliLocalAgent({
     agentQaRoot: fixture.agentQaRoot,
@@ -166,9 +151,7 @@ describe('three publications in one project leave git alone', () => {
     expect(existsSync(join(fixture.root, '.git')), 'a repository was created').toBe(false)
   }, 120_000)
 
-  // Repeated mark faults do not duplicate fixes (C432-MARK-RETRY-ONCE's claim, through the composed
-  // CLI host): the receipt write is blocked once, the call fails, and the retry lands the same fix
-  // without publishing it a second time — and still commits nothing.
+  // The receipt write is blocked once; the retry lands the same fix without publishing it again.
   it('a mark interrupted before its receipt lands its fix once on retry, and commits nothing either time', async () => {
     const fixture = project()
     const git = commitProject(fixture)
@@ -199,7 +182,7 @@ describe('three publications in one project leave git alone', () => {
   }, 120_000)
 })
 
-/** The pre-432 leftovers a workspace may still hold, malformed on purpose. */
+/** The legacy leftovers a workspace may still hold, malformed on purpose. */
 function plantLegacy(fixture: Fixture): { readonly files: readonly string[]; readonly dirs: readonly string[] } {
   const grants = join(fixture.knowledgeRoot, 'grants.jsonl')
   writeFileSync(grants, '{"kind":"grant-issued","actionClass":"fn:runs.mark"\n\u0000garbled\n')
@@ -227,9 +210,7 @@ describe('legacy approval state is neither created, needed nor opened', () => {
     expect(audits, 'an execution audit was written').toEqual([])
   }, 120_000)
 
-  // 2026-10-03 (quick-261003-tsr, IN-17): a mode-0 seal binds no reader running as root, nor on
-  // Windows, so there the cell could not measure "never opened"; it runs only where the seal holds,
-  // and checks that it does.
+  // A mode-0 seal binds no root reader and nothing on Windows, so the cell runs where it holds.
   it.runIf(canSealFiles)('present malformed legacy files, sealed against any open, change no answer and are left byte- and mode-identical', async () => {
     const clean = project()
     const expected = await publishAll(clean)

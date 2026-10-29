@@ -55,9 +55,7 @@ function createCapturingModel(): {
     },
   }
 
-  // openai-compatible declares no unsupported sampling params, so the provider-scoped
-  // stripUnsupportedParams middleware leaves temperature/topP/stop/seed intact. Capturing
-  // doGenerate therefore observes the post-middleware provider boundary required by D-13.
+  // openai-compatible strips no sampling params, so `doGenerate` sees the provider boundary.
   const model = createModel(
     {
       provider: 'openai-compatible',

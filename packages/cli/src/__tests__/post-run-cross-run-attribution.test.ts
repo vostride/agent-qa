@@ -1,18 +1,4 @@
-// Whose chain did this tail just watch? (Phase 388 plan 07, ANLZ-05 / D-13.)
-//
-// The round-1 chip suite pinned a single run into a module-level `RUN_ID` and created exactly one
-// run directory, so no assertion in the phase could observe the one discriminator the emitter had
-// dropped: the identity of the job the pump claimed. The queue's claim predicate is a GLOBAL FIFO
-// (`sqlite-job-store.ts` `selectClaimable` orders by `created_at, id` with no run predicate), so
-// an in-process drain routinely runs other runs' work — and every outcome it observed was being
-// stamped into THIS run's `events.jsonl`.
-//
-// Two runs, one store, one `agent-jobs.db`, and both halves of the contract named in their own
-// test titles: the push half emits only for the run this tail is draining, and the pull half still
-// sees the foreign run's rows advance under this pump. An assertion that something did NOT happen
-// is load-bearing only if the input could have made it happen — so run A's jobs are genuinely
-// claimed and genuinely run here (`jobsRun === 4`), and it is the drop-guard, not an empty queue,
-// that keeps them out of run B's log.
+// Claims are a global FIFO, so the drop-guard, not an empty queue, keeps A out of B's log.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -48,11 +34,7 @@ import {
 } from '../curation/post-run-tail.js'
 import { enqueueThroughTheStep } from './post-run-step-harness.js'
 
-/**
- * The composition's REQUIRED quarantine identity mint. Passthrough here: this
- * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
- * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
- */
+// Passthrough: the fixture speaks canonical workspace-relative bytes, and core pins the recipe.
 const MINT_IDENTITY = (filePath: string): string => filePath
 
 /** Queued first and never drained by its own process — the `--detach` posture. */
@@ -61,10 +43,7 @@ const RUN_A = 'run-aaa-detached'
 const RUN_B = 'run-bbb-inprocess'
 const EVENTS_FILE = 'events.jsonl'
 
-// 389-04's author swap put unknown-floor members on the model path, so a throwing stub
-// now aborts the chain under test. Unparseable text makes the author degrade per-test to
-// the byte-identical deterministic floor (plan 04's proven posture) — chain mechanics
-// keep their 388-era shape.
+// Unparseable text, not a throw: a throwing model aborts the chain; this degrades to the floor.
 const TEST_MODEL: JobModelCapability = {
   modelId: 'test:post-run-cross-run-attribution',
   generate: async () => ({ text: 'not an author payload' }),
@@ -326,20 +305,10 @@ async function readStatusThroughTheOp(
   }
 }
 
-/**
- * Run A is queued by its step and detaches; run B is queued by its step and drains the shared
- * queue in-process (404 D-05: the hand-off is the step's on both sides).
- */
+// Run A is queued by its step and detaches; run B's step queues it and drains the shared queue.
 async function driveTwoRuns(
   f: Fixture,
-  /**
-   * the dashboard's second chip sink, attached to run B's tail only.
-   *
-   * Threaded through this shared driver rather than into a fourth copy of it, because the claim
-   * the relay cell makes is exactly the claim this driver already sets up: run B's pump genuinely
-   * claims and runs run A's jobs, so an outcome the drop-guard discards genuinely reaches
-   * `observe()`. A relay cell over a fixture with no foreign work would be measuring nothing.
-   */
+  // The dashboard's second chip sink, on run B's tail only, where foreign outcomes are observed.
   relay?: (envelope: RunEventEnvelope) => void,
 ): Promise<{ jobsRun: number; drain: string }> {
   const tailA = runPostRunTail(f.options(RUN_A, {
@@ -432,19 +401,10 @@ describe('the chip trail is scoped to the run whose tail is draining', () => {
   })
 })
 
-/**
- * The exact parenthetical a starved own-chain earns, stated once.
- *
- * Pinned as a constant in the test rather than imported from the renderer: the claim is about
- * what a user READS, and a test that imported the string would agree with any wording the
- * renderer later drifted to.
- */
+// A constant, not imported from the renderer, so the cell checks what a user reads.
 const BACKLOG_PARENTHETICAL = ' (queued behind other runs; the daemon or a later run will drain)'
 
-/**
- * Curation's own, because a daemon may not claim `curate-memory` at all — the
- * one stage whose backlog is drained by a later LOCAL run and by nothing else.
- */
+// A daemon may not claim `curate-memory`, so only a later local run drains its backlog.
 const CURATION_BACKLOG_PARENTHETICAL =
   ' (queued behind other runs; a later local run will drain)'
 
@@ -478,13 +438,11 @@ describe('a starved own-chain is reported as backlog-exhausted, never a bare pen
         analysis: 'pending',
         curation: 'pending',
       })
-      // Token for token, in the ONE chip vocabulary: the parenthetical is posture and the words
-      // around it are the op's, exactly as the handed-off line is built.
+      // Token for token: the parenthetical is posture, and the words around it are the op's.
       expect(f.info.mock.calls.map(([message]) => String(message))).toEqual([
         `post-processing — analysis: pending${BACKLOG_PARENTHETICAL}`
         + ` · curation: pending${CURATION_BACKLOG_PARENTHETICAL}`
-        // a starved chain completed no analyze-run, so the line carries the fetch
-        // command — the sentence stays one copy-paste away whoever drains the backlog.
+        // A starved chain completed no analyze-run, so the line carries the fetch command.
         + ` · digest: ${digestFetchCommand(RUN_B)}`,
       ])
       // The posture is the TAIL's, never the DTO's — the same rule the daemon parenthetical obeys.

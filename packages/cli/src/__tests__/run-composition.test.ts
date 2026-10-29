@@ -26,22 +26,13 @@ afterAll(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 
-// 363-09 Task 2 / Task 1 — the composition swap seam: the D-11 unmasking confirm decorator and the
-// shared `attachRunSubscribers` helper both startRun sites use (Pitfall 8). Reporter RENDERING is
-// unit-tested in reporters/*.test.ts; here we pin the composition contract.
+// The composition contract: `attachRunSubscribers`, shared by both `startRun` sites.
 
-// RE-SPELLED 2026-10-01 (432-19, D-14/D-15; 432-14 deferred #3). `buildUnmaskingConfirm` unmasked
-// the action name on a confirm prompt for the person reading it, paused the live line around the
-// question and left the gate's masked record untouched. It had no production caller after 432-14,
-// and the `ConfirmPort` it decorated is deleted with the gate, so it goes too. The masking claim it
-// carried — a human-facing render unmasks exactly once while the record stays masked — is held by
-// every surviving human render (`unmask-boundary-rollcall.test.ts`); what is pinned here is that the
-// decorator cannot come back as an export of this module.
+// The confirm decorator is not exported; surviving human renders hold the masking claim.
 describe('buildUnmaskingConfirm', () => {
   it('the confirm decorator is not exported, so nothing can wrap a prompt any more', () => {
     expect(Object.keys(runSessionComposition)).not.toContain('buildUnmaskingConfirm')
-    // Non-vacuity: the namespace is the real module, with its retained presentation symbols.
-    // (2026-10-02, 432-42: the live pause controller left too; the subscriber helper is the anchor.)
+    // Non-vacuity: the namespace is the real module; the subscriber helper is the anchor.
     expect(typeof runSessionComposition.attachRunSubscribers).toBe('function')
     expect(Object.keys(runSessionComposition)).not.toContain('createLivePauseController')
   })
@@ -64,7 +55,7 @@ describe('attachRunSubscribers (bus composition swap)', () => {
       extraSubscribers: [extra],
     })
 
-    // console + junit + wire + one extra = 4 subscriptions, every one from seq 1 (D-04 full replay).
+    // Console, JUnit, wire and the extra subscriber each subscribe from seq 1.
     expect(session.subscribe).toHaveBeenCalledTimes(4)
     for (const call of session.subscribe.mock.calls) {
       expect(call[0]).toBe(1)
@@ -74,8 +65,7 @@ describe('attachRunSubscribers (bus composition swap)', () => {
     expect(extraFlush).toHaveBeenCalledTimes(1)
   })
 
-  // the live seam is deleted, so the second half of this title is now its
-  // absence — a legacy controller smuggled in is never bound (old title kept for the console half).
+  // A legacy live controller smuggled in is never bound.
   it('skips the console subscriber and unbinds the live seam when console is false', async () => {
     const session = fakeSession()
     const bind = vi.fn()
@@ -113,12 +103,7 @@ describe('attachRunSubscribers (bus composition swap)', () => {
   })
 })
 
-// ---- 390 D-15/D-16: the run-start snapshot reaches BOTH reporters from ONE input --------------
-//
-// `attachRunSubscribers` is the single place either reporter is constructed (Pitfall 8), so it is
-// the single place the disposition can be dropped. Pinned by OBSERVING both surfaces render it from
-// one `quarantined` argument — a wiring test that only asserted the argument was accepted would
-// stay green while a reporter silently ignored it.
+// `attachRunSubscribers` builds both reporters, so both are observed rendering one snapshot.
 
 describe('attachRunSubscribers threads the quarantine snapshot to both reporters', () => {
   it('renders the disposition on the console AND in the JUnit document from one input', async () => {
@@ -191,7 +176,7 @@ describe('attachRunSubscribers threads the quarantine snapshot to both reporters
   })
 })
 
-// ---- 385-08: the dissection's two load-bearing controls ------------------------------
+// The run-session module's export controls.
 
 // Control 1 — the anti-shim pin. The dissection is only real if the moved symbols stopped being
 // reachable through this path. A module that re-published them would leave every call site
@@ -212,18 +197,11 @@ describe('the CLI run-session module exports presentation ONLY', () => {
 
     expect(declared).toEqual([
       'AttachRunSubscribersInput',
-      // the replay floor the drive subscribes the run's record at.
+      // The replay floor the drive subscribes the run's record at.
       'REPLAY_FROM_START',
       'attachRunSubscribers',
-      // the run-completion analytics subscriber factory. It belongs beside
-      // `attachRunSubscribers` for that helper's own reason — `run.ts` has two `startRun` sites
-      // (Pitfall 8), and a subscriber constructed separately at each is one that can be configured
-      // differently at each. It is presentation in the same sense the reporters are: something a
-      // host attaches to the bus and flushes, which a headless drainer would substitute.
+      // The run-completion analytics subscriber, shared like the reporters so both sites agree.
       'buildAnalyticsRunSubscriber',
-      // the per-run hook registrar's assembly left.
-      // 'buildUnmaskingConfirm' left with the confirm port it decorated.
-      // 'createLivePauseController' left with the pause seam it built.
     ].sort())
   })
 
@@ -233,5 +211,3 @@ describe('the CLI run-session module exports presentation ONLY', () => {
   })
 })
 
-// Control 2, the describe 'human decoration composes OUTSIDE the
-// pause timing', is deleted with the per-run hook registrar it drove.

@@ -1,17 +1,4 @@
-// The ONE test-side spelling of "this run's post-verdict enqueue happened".
-//
-// WHY THIS EXISTS. D-05 moved the durable `analyze-run` enqueue out of `runPostRunTail`'s
-// `enqueue()` leg and into the shell-awaited post-verdict step, so every suite that drove the tail
-// against a REAL store now has to queue its rows some other way — and "some other way" written six
-// times, six slightly different ways, would be six fixtures quietly disagreeing about what a run
-// owes its chain. This is the shipped `enqueueAnalyzeRun`, called through one adapter, so a suite
-// that drives the pump is still driving rows the PRODUCT put there.
-//
-// IT IS NOT A REIMPLEMENTATION. Nothing here mints a payload, chooses an idempotency key or decides
-// what `deduped` means; the only thing this file owns is the shape change between the tail's
-// `composeHost(input: PostRunTailHostInput)` and the step's `composeHost({ agentQaRoot, configPath })`.
-// A fixture's host factory ignores that argument anyway — it closes over the fixture's own roots —
-// which is exactly why the adapter can be one line.
+// The shipped `enqueueAnalyzeRun` through one adapter, so suites drive rows the product queued.
 
 import type { LocalAgentHost } from '@vostride/agent-qa-agent-local'
 

@@ -1,136 +1,4 @@
-// THE CREDENTIAL SURFACE OF THE NEW MCP WIRE (396-06 · Pitfall 9 · T-395-R5-10's class).
-//
-// THE DEBT THIS PAYS. Phase 396 deleted the v1 MCP server and, with it, two suites that were the
-// product's only pins on credential disclosure through an MCP channel:
-// `agent-qa-server-masking.test.ts` and `credential-surface-parity.test.ts`. Both were written
-// against `agent_qa_get_config`, a tool this surface no longer has. Deleting a test because the
-// thing it tested was rewritten is how a closed defect reopens, so every assertion those two files
-// made is accounted for below — re-derived against the new wire, or RETIRED WITH A REASON.
-//
-// ASSERTED ON THE SURFACE A CALLER READS. Every absence cell reads the RECORDED RESPONSE BODIES —
-// the bytes the transport actually received — and not an internal object. 395 round 5 is the reason
-// that sentence is in this header: ten cells passed while two shipped commands leaked a planted
-// credential, because the corpus asserted on `error.message` while the live channel was the error's
-// serialization. The frames are the only thing here that cannot lie about what left the process.
-//
-// ABSENCE IS WINDOWED AT EIGHT CHARACTERS. A cell that asks only whether the WHOLE credential is
-// present is satisfied by a partial mask, which is a disclosure budget nobody set — v1's own suite
-// had learned that and pinned a four-character tail sentinel. Windowing generalises it: no eight
-// consecutive characters of any planted value may appear anywhere.
-//
-// AND EVERY ABSENCE IS PAIRED. An absence over a dead channel is the trap this project keeps
-// recording, so each cell below travels with one of two companions:
-//   · an INTEGRITY half — a fingerprint computed with `node:crypto`, OUTSIDE this codebase's own
-//     hashing, matched against the fingerprint the pipeline itself published. The pipeline
-//     demonstrably held those exact bytes and disclosed none of them.
-//   · a HOSTILE CONTROL — the same channel, the same helper, an UNSEEDED value: it arrives
-//     verbatim, and the helper finds it. That is what proves these cells can fail.
-//
-// ─────────────────────────────────────────────────────────────────────────────────────────────
-// THE RE-DERIVATION LEDGER — every assertion of the two deleted v1 suites, one row each.
-// Recovered with:
-//   git show $(git log --diff-filter=D --format=%H -1 -- <path>)^:<path>
-// ─────────────────────────────────────────────────────────────────────────────────────────────
-//
-// FROM agent-qa-server-masking.test.ts:
-//
-// | v1 assertion                                          | here                                  |
-// |-------------------------------------------------------|---------------------------------------|
-// | (M1) a scalar `apiToken` never returned by             | RETIRED WITH THE DATA PATH. `config.  |
-// |      `agent_qa_get_config`                             | get` is in `UNPROJECTED_OPS` — no     |
-// |                                                        | whole-config render exists on this    |
-// |                                                        | surface at all. The residual config-  |
-// |                                                        | bytes channel is the change diff,     |
-// |                                                        | masked by declaration.|
-// | (M1) a URL-userinfo credential never returned          | RETIRED 2026-10-14: config |
-// |                                                        | changes are not scanned; a declared   |
-// |                                                        | value in a diff is masked             |
-// |                                                        |.                      |
-// | (M1) a `providerHeaders` credential never returned     | RE-DERIVED as C441-MCP-DIFF for a     |
-// |                                                        | declared value, and its BOUND         |
-// |                                                        | measured in F2 for an undeclared      |
-// |                                                        | one — see the bound note.             |
-// | (M1) the partial-mask tail is gone, not shortened      | RE-DERIVED as the windowing rule      |
-// |                                                        | itself: groups B, C, D.               |
-// | (M1) `<redacted>` occurs three times — something WAS   | RE-DERIVED as A2 + B1's integrity     |
-// |      redacted                                          | halves (the marker is present where   |
-// |                                                        | the plant was).                       |
-// | (M2) credential-free members of the same container     | RE-DERIVED as group G.                |
-// |      survive verbatim                                  |                                       |
-//
-// FROM credential-surface-parity.test.ts:
-//
-// | v1 assertion                                          | here                                  |
-// |-------------------------------------------------------|---------------------------------------|
-// | (P0) every plant is really in the fixture              | RE-DERIVED as A1.                     |
-// | (P0) the ancestor plants are NOT credential-shaped, so | RE-DERIVED IN A NEW VOCABULARY as A2: |
-// |      the name arm is what carries the cell             | the new surface's one arm is the      |
-// | (P0) the auth-mix plant IS credential-shaped           | masker's DECLARED set, and A2 pins    |
-// | (P0) the auth redactor's early return really fires     | it. The v1 arms belong to             |
-// |                                                        | `maskSensitive`, deleted with the v1  |
-// |                                                        | server.                               |
-// | (P1) every plant counts ZERO on BOTH shipped artefacts | HALF RE-DERIVED, HALF RETIRED, said   |
-// |      (`config show` AND `agent_qa_get_config`)         | plainly: the MCP half is groups B-D;  |
-// |                                                        | the CLI half lives in `packages/cli/  |
-// |                                                        | src/composition/__tests__/masked-     |
-// |                                                        | config.test.ts`. The cross-surface    |
-// |                                                        | RELATION retires because the second   |
-// |                                                        | channel does — a relation needs two   |
-// |                                                        | renders of the same bytes and there   |
-// |                                                        | is now one.                           |
-// | (P1) the leak is measured at the exit code a person    | RETIRED WITH THE CLI ARM (this file   |
-// |      actually gets                                     | drives no command).                   |
-// | (P2) a sibling OUTSIDE the credential container, and   | RE-DERIVED as group G.                |
-// |      the credential-free members, survive              |                                       |
-// | (P2) the rows are MARKED, not dropped                  | RETIRED WITH `config show` (no row-   |
-// |                                                        | oriented render on this surface).     |
-// | (P2) the tool response is not wholesale opaque         | RE-DERIVED as G1.                     |
-// | (P3) a non-credential sibling INSIDE a credential-     | RETIRED WITH THE RENDER. The new      |
-// |      named container is redacted on both surfaces      | surface has no container-walking      |
-// |                                                        | config render; the containment rule   |
-// |                                                        | still governs `config show`, whose    |
-// |                                                        | own suite owns it.                    |
-//
-// ─────────────────────────────────────────────────────────────────────────────────────────────
-// THE BOUND, STATED BECAUSE IT IS MEASURED (F2). The masker knows the values declared in the secrets
-// file and nothing else. A value that is not declared is not masked, and F2 drives exactly
-// such a value all the way to the wire rather than describing it. A credential a person wants hidden
-// is declared in the secrets file (B, D, C441-MCP-DIFF).
-//
-// ─────────────────────────────────────────────────────────────────────────────────────────────
-// WHAT THIS FILE FOUND — the defect RESEARCH Pitfall 9 named before anyone had driven the channel.
-//
-// Cell (B1b) was written because the mutation harness measured that no cell in this file exercised
-// the generic handler's SUCCESS-path masking at all: every echoing channel here was a refusal, so
-// severing the success-path `maskText` left the whole suite green. A corpus whose absence cells all
-// live on one channel has measured one channel. The cell added to close that hole then failed, and
-// what it failed on was the shipped implementation (2026-08-16, before the fix):
-//
-//   AssertionError: structuredContent carried the plant — the machine channel a person never
-//   reads: expected 'prop_qxr' to be undefined
-//
-// `catalog.ts` masked `content` and set `structuredContent` from the RAW op output, so a credential
-// this host had itself DECLARED reached the wire verbatim in the object a model reads while the text
-// beside it read `<SECRET_0>`. Both handlers now answer both channels from ONE masked serialization
-// (`packages/mcp/src/masked-result.ts`), which is also why they can no longer disagree.
-//
-// OBSERVED REDS — 2026-08-16, from the phase's credential mutation driver (since removed):
-//
-//   C1 (1) the success path stops masking       → (B1b) `the text channel carried the plant`
-//   C2 (1) THE SHIPPED DEFECT restored — the    → (B1b) `structuredContent carried the plant — the
-//          object channel parsed from the             machine channel a person never reads`
-//          UNMASKED document
-//   C3 (2) the error path stops masking         → (B1), (C1)
-//   C4 (1) the apply refusal's teach unmasked   → (D1)
-//   C5 (3) declared credentials stop reaching   → (A2) `the declared-token arm did not seed the
-//          the masker; environment arm intact          masker`, (B1), (D1) — and the environment
-//                                                      arm's cells GREEN in the same run
-//
-// C5's cross-arm green was measured while an environment seed arm still existed; 441-07 and 441-18
-// deleted that arm and the config-write group it carried.
-//
-// That driver's neutered self-test (since removed) exited 1 with
-// `C1: the suite stayed green under the mutation`, which is what proved the harness could fail.
+// Absence is checked on recorded response bodies over every 8-character window, with controls.
 
 import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
@@ -159,9 +27,7 @@ import { composeCliLocalAgent } from '../composition/local-agent-host.js'
 // Each one exercises a DIFFERENT arm, and the file says which. Two share no arm with each other,
 // which is what stops a single mechanism from carrying every cell.
 
-// the masker reads only the secrets file, where the three plants below
-// are declared. 441-18: the environment plants that fed the construction scan's seed arm,
-// and the credential-shaped config plant its pattern arm caught, are deleted with the scan.
+// The masker reads only the secrets file, where the plants below are declared.
 const ENV_PLANT = 'qeb4t7zmv1x8s3d0g5j2n9'
 
 const TOKEN_PLANT = 'wnk9j2p6r4y7c1f8h3l5b0'
@@ -178,10 +44,10 @@ const TOKEN_PLANT = 'wnk9j2p6r4y7c1f8h3l5b0'
  */
 const ECHO_PLANT = 'prop_qxr7t2mv9s4d1g8j5n3b6'
 
-/** Declared to nothing and shaped like nothing. The hostile control's value (F1). */
+/** Declared to nothing and shaped like nothing: the hostile control's value. */
 const UNSEEDED_PLANT = 'hzp5r8u2i7o4a9e6k3m1v8'
 
-/** Opaque, under a credential-NAMED key the shipped census does not enumerate. The bound (F2). */
+/** Opaque, under a credential-named key the shipped census does not enumerate: the bound. */
 const OPAQUE_HEADER_PLANT = 'tealwood7412delta5510sierra'
 
 /**
@@ -268,14 +134,7 @@ function git(...args: string[]): string {
   return result.stdout
 }
 
-/**
- * The first eight-character window of `plant` that occurs in `haystack`, or `undefined`.
- *
- * WINDOWED, not whole-string. A mask that disclosed a prefix, a suffix, or any run of eight
- * characters would satisfy a whole-string check and would still be a disclosure. This helper is
- * also the one the hostile control (F1) requires to FIND something, which is what proves the cells
- * that require `undefined` are capable of failing.
- */
+// Windowed, so a partial disclosure fails; the hostile control proves this helper finds a value.
 function leakedWindow(haystack: string, plant: string, size = 8): string | undefined {
   for (let at = 0; at + size <= plant.length; at += 1) {
     const window = plant.slice(at, at + size)
@@ -333,7 +192,7 @@ async function openWorkspace(configBody: string): Promise<void> {
   handler = createMcpHandler(() =>
     buildAgentQaMcpServer({
       registry: host!.registry,
-      // the one tokenless caller; no stdio grant exists to resolve.
+      // The one tokenless caller; no stdio grant exists to resolve.
       caller: MCP_FUNCTION_CALLER,
       maskText: masking!.mask,
     }),
@@ -401,8 +260,7 @@ describe('A · the plants are what the ledger says they are (the non-vacuity gat
       expect(masking!.mask(value), `${name} was not masked`).toBe(`[secret:${name}]`)
     }
 
-    // a value only the environment holds, under a credential-named
-    // variable, is not a declared secret and is not hidden.
+    // A value only the environment holds is not a declared secret, so it is not hidden.
     process.env['AGENT_QA_441_07_ENV_ONLY_TOKEN'] = UNSEEDED_PLANT
     try {
       expect(masking!.mask(UNSEEDED_PLANT), 'an environment-only value was masked')
@@ -441,8 +299,7 @@ describe('B · no declared credential reaches the wire through a read tool', () 
   it('the SUCCESS payload of a read tool that echoes the caller\'s own string is masked on '
     + 'BOTH channels — text and structuredContent', async () => {
     await headless(async () => {
-      // `agent_qa_show_proposal` left with the proposal round. The record read's not-found
-      // arm echoes the caller's own id on its success channel, which is the same claim.
+      // The record read's not-found arm echoes the caller's own id on its success channel.
       const answer = await call('agent_qa_show_knowledge_record', { recordId: ECHO_PLANT })
 
       // The integrity half: this really is the echoing SUCCESS arm, not a refusal.
@@ -485,13 +342,7 @@ describe('C · the error channels', () => {
   it('the SDK-composed input-validation error is a channel this host does NOT mask, and it '
     + 'is measured empty', async () => {
     await headless(async () => {
-      // NAMED RATHER THAN ASSUMED. The SDK validates a call against the advertised `inputSchema`
-      // and composes the refusal ITSELF, before any handler runs — so `maskText` is not on this
-      // path and could not be. Measured on 2.0.0: the message names the field and the
-      // rule and never quotes the rejected value. This cell reds the day that changes, which is the
-      // only way a channel outside our masker can be watched at all.
-      // the proposal read is gone; a MEM short-ID refinement on the knowledge change tool is
-      // the SDK-validated input that now refuses the plant, before any handler or writer runs.
+      // The SDK refuses schema-invalid input before any handler, naming the field, not the value.
       const answer = await call('agent_qa_change_knowledge', {
         action: 'knowledge.forget',
         target: { grain: 'bundle', shortId: ENV_PLANT },
@@ -507,9 +358,7 @@ describe('C · the error channels', () => {
 })
 
 describe('D · the direct change answer renders the caller\'s target, and masks it', () => {
-  // the apply refusal payload is gone with the apply tools. The
-  // payload that now carries caller-supplied content back is the change tool's own answer: a typed
-  // absence echoes the target it was asked about, through the one masked serialization.
+  // A typed absence echoes the target it is asked about, through the one masked serialization.
   it('neither the prose nor the structured answer carries a window of a declared plant',
     async () => {
       await headless(async () => {
@@ -532,9 +381,7 @@ describe('D · the direct change answer renders the caller\'s target, and masks 
     })
 })
 
-// group E (the config-write construction scan) is deleted with the scan.
-// A config change is not scanned; a declared value in its diff reaches the wire as its marker
-// (C441-MCP-DIFF below).
+// A config change is not scanned; a declared value in its diff reaches the wire as its marker.
 
 describe('F · the controls, and the bound they measure', () => {
   it('HOSTILE CONTROL: an UNSEEDED value travels the same channel verbatim, and the helper '
@@ -542,9 +389,7 @@ describe('F · the controls, and the bound they measure', () => {
     await headless(async () => {
       const answer = await call('agent_qa_get_run_digest', { runId: UNSEEDED_PLANT })
 
-      // The whole point. If this cell did not find the value, every `toBeUndefined()` above would
-      // be an assertion over a dead channel — which is how an absence corpus passes while a
-      // credential leaks (T-395-R5-10's own shape).
+      // If this control did not find the value, every absence above would be over a dead channel.
       expect(leakedWindow(rendered(answer), UNSEEDED_PLANT), 'the echo channel is DEAD: the '
         + 'absence cells above prove nothing').toBeDefined()
       expect(leakedWindow(wire(), UNSEEDED_PLANT)).toBeDefined()
@@ -571,17 +416,12 @@ describe('F · the controls, and the bound they measure', () => {
       })
       const outcome = answer.structuredContent as { outcome?: string; shownDiff?: string }
 
-      // WRITTEN AS IT IS, NOT AS IT SHOULD BE. The change is written (432-11: in the call); the
-      // diff's context lines
-      // carry a neighbouring `providerHeaders.X-Client-Auth` value; and the value is neither
-      // seeded, nor credential-shaped, nor under a key the shipped census enumerates — so nothing
-      // on this road recognises it.
+      // The change is written, and its diff carries an undeclared neighbouring header value as is.
       expect(outcome.outcome, rendered(answer)).toBe('applied')
       expect(leakedWindow(outcome.shownDiff ?? '', OPAQUE_HEADER_PLANT), 'the bound closed — '
         + 'update this cell and the ledger, and tell 397').toBeDefined()
 
-      // AND WHAT BOUNDS THE BOUND: a value declared in the secrets file reaches the wire as its
-      // marker. This one is not declared, so it is not masked.
+      // A declared value reaches the wire as its marker; this one is undeclared.
       expect(masking!.mask(OPAQUE_HEADER_PLANT)).toBe(OPAQUE_HEADER_PLANT)
     })
   })
@@ -594,7 +434,7 @@ describe('config-change diffs over MCP', () => {
     await host?.close().catch(() => {})
     rmSync(root, { recursive: true, force: true })
     await openWorkspace(configWithOpaqueHeaderCredential())
-    // the plant needs no YAML quoting; D-03 masks raw values only.
+    // The plant needs no YAML quoting; masking applies to raw values only.
     appendFileSync(join(root, '.env.secrets.local'), `X_CLIENT_AUTH_441=${OPAQUE_HEADER_PLANT}\n`)
 
     await headless(async () => {
@@ -653,7 +493,7 @@ describe('G · redaction lands on credentials, not on the config', () => {
       expect(outcome.shownDiff).toContain('step: 45s')
       expect(outcome.shownDiff).toContain(CONFIG_FILE)
 
-      // And the response is not wholesale opaque — v1's (P2) last assertion, re-derived.
+      // And the response is not wholesale opaque.
       expect(JSON.stringify(outcome).length).toBeGreaterThan(200)
     })
   })

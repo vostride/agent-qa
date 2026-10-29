@@ -1,4 +1,4 @@
-// the consequence plan runs.mark consumes, previewed with no write.
+// The consequence plan `runs.mark` consumes, previewed with no write.
 import { createHash } from 'node:crypto'
 import { createServer, type Server } from 'node:http'
 import { chmodSync, cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -195,9 +195,7 @@ describe('shared mark consequence plan', () => {
   })
 })
 
-// marks history over the real ledger, observed with no write.
-// history projects each mark's applied change and never reads
-// the retired proposal inbox, readable or not.
+// Marks history over the real ledger: each mark's applied change, with no write.
 const SECRET = 'synthetic-423-18-history-token'
 const CHIP = '[secret:HISTORY_SYNTHETIC_TOKEN]'
 type Mask = (text: string) => string
@@ -306,8 +304,6 @@ describe('read-only marks history host', () => {
     expect(existsSync(dirname(absentRoot))).toBe(false)
   })
 
-  // RE-SPELLED 432-09 from 'PROPOSAL-CURRENT/MISSING: drafted receipts join the store classifier
-  // state; missing never reads as pending': history now joins the records each fix changed.
   it('each applied fix joins the records it changed, read now; an unbound or missing record is a typed absence', async () => {
     const s = scene()
     const [first, , third] = template.receipts as [MarkReceipt, MarkReceipt, MarkReceipt]
@@ -339,7 +335,7 @@ describe('read-only marks history host', () => {
     const clean = scene()
     const expected = await historyOf(readsFor({ agentQaRoot: clean.agentQaRoot, configPath: clean.configPath }), template.runId)
     const s = scene()
-    // Seed exactly what a pre-432 workspace leaves behind: a garbled envelope, a claim and an unreadable directory.
+    // What an older workspace leaves: a garbled envelope, a claim and an unreadable directory.
     mkdirSync(join(s.proposals, 'claimed'), { recursive: true })
     writeFileSync(join(s.proposals, 'prop_0123456789ab.json'), '{"not":"a proposal"')
     writeFileSync(join(s.proposals, 'claimed', 'prop_0123456789ab.json'), '\u0000garbled')
@@ -357,8 +353,6 @@ describe('read-only marks history host', () => {
     expect(tree(s.root), 'the legacy tree and every store are left exactly as they were').toEqual(before)
   })
 
-  // RE-SPELLED 432-09 from 'WITHDRAWAL-REASON: the withdrawn proposal carries its decision reason,
-  // and every free-text field crosses the mask': nothing is withdrawn; the joined content is masked.
   it('HISTORY-MASKED: every free-text field and every joined record content crosses the mask', async () => {
     const s = scene()
     const [first, , third] = template.receipts as [MarkReceipt, MarkReceipt, MarkReceipt]
@@ -419,7 +413,7 @@ describe('read-only marks history host', () => {
   })
 })
 
-// runs.marks.history registered and bound on every existing local host composition.
+// `runs.marks.history` is registered and bound on every local host composition.
 const HISTORY = 'runs.marks.history'
 
 describe('marks history registration and host binding', () => {
@@ -451,9 +445,9 @@ describe('marks history registration and host binding', () => {
     const [first, second, third] = template.receipts as [MarkReceipt, MarkReceipt, MarkReceipt]
     expect(entries.map(entry => [entry.markId, entry.ordinal, entry.active, entry.supersededBy ?? null, entry.disposition.kind]))
       .toEqual([[first.markId, 1, false, second.markId, 'applied'], [second.markId, 2, true, null, 'confirmed-bug'], [third.markId, 3, true, null, 'applied']])
-    // a cold host masks the declared secret and leaves the rest as written.
+    // A cold host masks the declared secret and leaves the rest as written.
     expect(entries.map(entry => entry.note ?? null)).toEqual(['first run-level note', null, `step note ${CHIP}`])
-    // the applied fix's records are joined by id, and their content crosses the same mask.
+    // The applied fix's records are joined by id, and their content crosses the same mask.
     expect(entries[0]!.changedRecords!.map(record => record.recordId)).toEqual(changedRecordIdsOf(first))
     expect(entries[0]!).not.toHaveProperty('proposal')
     expect(JSON.stringify(result)).not.toContain(SECRET)
@@ -518,7 +512,7 @@ describe('marks history registration and host binding', () => {
   })
 })
 
-// runs.mark.preview through the read host, content-led and write-free.
+// `runs.mark.preview` through the read host, content-led and write-free.
 const CONTENT_SECRET = 'Held checkout marked'
 type PreviewFixture = ReturnType<typeof markFixture>
 type Consequences = Extract<RunsMarkPreviewResult, { kind: 'consequences' }>
@@ -806,8 +800,7 @@ describe('content-led consequence preview over the read host', () => {
   }, 120_000)
 })
 
-// runs.mark.preview registered and bound on every CLI host composition.
-// Plan 423-21 projects it to MCP as agent_qa_preview_run_mark; fn reaches it now, with no model.
+// `runs.mark.preview` is registered and bound on every CLI host composition.
 const PREVIEW = 'runs.mark.preview'
 
 describe('runs.mark.preview registration and composed invocation', () => {
@@ -834,7 +827,7 @@ describe('runs.mark.preview registration and composed invocation', () => {
   // The run-level address's latest mark is the confirmed-bug at ordinal 2, so a false-pass supersedes it.
   const input = (): RunsMarkInput => ({ runId: template.runId, kind: 'false-pass', note: `preview ${SECRET}` })
 
-  /** a cold host masks with the project's declared secrets. */
+  // A cold host masks with the project's declared secrets.
   async function expectedColdPreview(s: ReturnType<typeof coldScene>) {
     const reads = createFeedbackReadsPortForHost({ agentQaRoot: s.agentQaRoot, configPath: s.configPath })
     expect(typeof reads.preview, 'gates/feedback-read-host must expose preview').toBe('function')
@@ -962,8 +955,7 @@ describe('runs.mark.preview registration and composed invocation', () => {
   }, 180_000)
 })
 
-// both feedback reads over the shipped dashboard door's two HTTP boundaries,
-// against the same real ledger, proposals store and preview inputs the fn parity cells use.
+// Both feedback reads over the dashboard door's HTTP boundaries, against the fn cells' ledger.
 describe('feedback reads over both HTTP doors', () => {
   const roots: string[] = []
   const closers: Array<() => void | Promise<void>> = []
@@ -995,7 +987,7 @@ describe('feedback reads over both HTTP doors', () => {
       stores: [join(agentQaRoot, 'runs'), join(agentQaRoot, 'proposals'), join(agentQaRoot, 'eval'), join(root, 'agent-qa-knowledge')],
       doors: [
         { name: 'local-human', base: `http://127.0.0.1:${port(started.server)}/api/runs`, headers: {} as Record<string, string> },
-        // the run service is tokenless — the machine door sends no credential.
+        // The run service is tokenless, so the machine door sends no credential.
         { name: 'remote-machine', base: `http://127.0.0.1:${port(remote)}/run`, headers: {} as Record<string, string> },
       ] }
   }
@@ -1047,9 +1039,7 @@ describe('feedback reads over both HTTP doors', () => {
     expect(storeMaps(s.stores)).toEqual(before)
   }, 180_000)
 
-  // RE-AIMED 2026-10-14: both doors mask a cold read with the project's declared
-  // secrets, so the declared span reads as its `[secret:<name>]` marker and the rest as written. The
-  // cold read scope, its allowlist and the installed warm context are gone, and so is the warm half.
+  // Both doors mask a cold read with declared secrets: a declared span reads as its marker.
   it('HTTP-FEEDBACK-HUMAN-POSTURE: both doors show cold read-scope free text with declared-secret chips, and warm text as the read masked it', async () => {
     const s = await httpScene()
     const [human, machine] = s.doors as [typeof s.doors[0], typeof s.doors[1]]
@@ -1064,9 +1054,7 @@ describe('feedback reads over both HTTP doors', () => {
         content: [served, ...unserved.sort()] }
     }
     const redacted = CHIP
-    // the template's two false-fail marks applied their fixes, so the store now holds
-    // those records and this false-pass preview reaches them after the served one. Their content is
-    // the floor-worded fix, and the user's note inside it crosses the same mask as the note itself.
+    // The template's false-fail marks applied their fixes, so this preview reaches those records.
     const appliedFix = (note: string) => 'false-fail / fact: Click Continue\n'
       + 'Overturned verifier reading: The recorded state advanced\n'
       + 'Superseded claim: Held checkout marked selector\n'
@@ -1085,7 +1073,7 @@ describe('feedback reads over both HTTP doors', () => {
   it('FEEDBACK-HTTP-WRITES-NOTHING: HTTP history and preview leave every store byte-identical and create nothing', async () => {
     const s = await httpScene()
     const runDir = join(s.agentQaRoot, 'runs', template.runSlug)
-    // a legacy proposal tree is left as it is; neither door opens or reaps it.
+    // A legacy proposal tree is left as it is; neither door opens or reaps it.
     mkdirSync(join(s.agentQaRoot, 'proposals'), { recursive: true })
     writeFileSync(join(s.agentQaRoot, 'proposals', 'prop_0123456789ab.json.claim-1'), '{"legacy":true}')
     const before = storeMaps(s.stores)
@@ -1104,9 +1092,7 @@ describe('feedback reads over both HTTP doors', () => {
   }, 180_000)
 })
 
-// the three new read ops, adjudicated against the one registry by the
-// conformance tables every surface leg reads: input contract, scenario row, MCP ruling, doc
-// adjudication, authed remote route binding and read policy points.
+// The read ops, adjudicated against the one registry by the conformance tables every leg reads.
 describe('read-op adjudication', () => {
   const NEW_READS = ['runs.evidence', 'runs.marks.history', 'runs.mark.preview'] as const
   const declarationOf = (opId: string) => {
@@ -1125,14 +1111,9 @@ describe('read-op adjudication', () => {
     for (const opId of ['runs.marks.history', 'runs.mark.preview'] as const) {
       expect(AGENT_QA_OP_CONTRACTS[opId]?.input, opId).toBe(contracts[opId])
     }
-    // runs.evidence is projected through the evidence fold, so the MCP
-    // contract table carries its own input singleton too.
+    // `runs.evidence` is projected through the evidence fold, so the MCP table carries its input.
     expect(AGENT_QA_OP_CONTRACTS['runs.evidence']?.input).toBe(contracts['runs.evidence'])
     const registryIds = registryDeclarations().map(entry => entry.id)
-    // 52 — editor.liveurl registered, dashboard-only and MCP-unprojected.
-    // 53 — runs.overview registered, with its own input singleton.
-    // 46 — the seven proposal-inbox, apply and undo-propose ops deleted.
-    // 44 — grants.list and grants.revoke deleted with the ledger.
     expect(registryIds).toHaveLength(44)
     expect(censusDiff(registryIds, Object.keys(contracts))).toEqual({ missing: [], stray: [] })
   })
@@ -1164,7 +1145,6 @@ describe('read-op adjudication', () => {
       expect(RUN_SERVICE_ROUTE_BINDINGS.filter(binding => 'opId' in binding && binding.opId === opId).map(binding => binding.key), opId)
         .toEqual([routes[opId]])
     }
-    // the 423 ruling moved to the projected side with a dated addendum.
     expect(UNPROJECTED_OPS.filter(entry => entry.opId === 'runs.evidence')).toEqual([])
     // The widened completed-run reads keep the same one-rule marker sets over the 51-op registry.
     for (const opId of ['runs.detail', 'runs.postprocessing', 'runs.knowledge'] as const) {
@@ -1176,7 +1156,7 @@ describe('read-op adjudication', () => {
 
   it('READ-POLICY-POINTS: the new reads carry read policy points and read-tier declarations; runs.mark stays a writer', () => {
     const readPoints = scenarioRowFor('runs.postprocessing')!.policyPoints
-    // the refuse point is `allow` — nothing is refused for its grants.
+    // The refuse point is `allow`: nothing is refused for its grants.
     expect(readPoints).toEqual({ grant: 'allow', refuse: 'allow' })
     for (const opId of NEW_READS) {
       expect(scenarioRowFor(opId)?.policyPoints, opId).toEqual(readPoints)

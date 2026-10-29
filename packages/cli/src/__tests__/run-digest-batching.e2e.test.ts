@@ -1,34 +1,4 @@
-// SC3: one heartbeat, N proposals, ONE digest, ONE notify row.
-//
-// PROP-04's rationale is a product complaint — "an approval UX that fires 40 times per nightly
-// run is a worse product than one that fires once" — and this file is where the answer stops
-// being an argument. The run below mints several proposals through the shipped store seam while
-// its post-processing chain runs for real, and the tail is observed to render EXACTLY ONE
-// digest naming all of them. Batching is not enforced by a throttle anywhere; the digest is a
-// projection keyed by `runId`, and a projection keyed by a run cannot fire per event.
-//
-// TWO REPRESENTATIONS, PINNED SEPARATELY, so neither masks the other:
-//
-//   (a) the DIGEST render — one block, listing exactly the run-attributed proposals;
-//   (b) the durable NOTIFY ROW — still exactly one for the run, still passing
-//       `guardRunNotification`'s exact-key comparison, i.e. nobody widened the frozen DTO to
-//       carry any of what the digest now says.
-//
-// A fixture asserting only (a) would pass while the row grew a `proposals` field; one asserting
-// only (b) would pass while the tail printed forty blocks. They are different claims about
-// different artifacts and they are made in different assertions.
-//
-// THE SECOND RUN IS THE CONTROL. A single-run fixture is structurally incapable of noticing a
-// run-scoping defect, and that blind spot shipped a cross-instance attribution bug in phase 388
-// that roughly thirty-five differentials missed. So one proposal is attributed to a second run,
-// and its absence from this run's digest is asserted BESIDE its presence in its own — an
-// absence claim is load-bearing only if the same input could have produced the presence.
-//
-// EVERY PROPOSAL IS A PRE-432 RECORD. 2026-09-30, 432-12: the three knowledge changes apply
-// in the call and file nothing, so no production path mints a proposal any more. Each mint below
-// writes the record the retired `knowledge.forget.propose` op wrote, through the same review port
-// member and with the same attribution (emitter and run), which is the shape a pre-432 project has
-// on disk. What this file measures is that the digest reads NONE of them.
+// Every proposal here is an older record the digest reads none of; a second run is the control.
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -82,9 +52,7 @@ const ANCHOR: Anchor = { t: 'el', role: 'Button', name: 'Checkout' }
 
 const TEST_MODEL: JobModelCapability = {
   modelId: 'test:run-digest-batching',
-  // Unparseable text makes the author degrade per-test to the deterministic floor, which is the
-  // 388/389 fixtures' proven posture: chain mechanics keep their shape and no provider is
-  // needed for the chain to reach its terminal.
+  // Unparseable text degrades the author to the deterministic floor, so no provider is needed.
   generate: async () => ({ text: 'not an author payload' }),
 }
 
@@ -279,12 +247,7 @@ function composeCold(f: Fixture): LocalAgentHost {
   })
 }
 
-/**
- * Queue this run's `analyze-run` row through the SHIPPED post-verdict step.
- *
- * The hand-off left the tail, so a suite that drives the pump has to put its rows there the way
- * the product does — `enqueueAnalyzeRun` over a cold composition of the same project.
- */
+// Queues this run's `analyze-run` row through the shipped step, as the product does.
 async function stepEnqueue(f: Fixture, runId: string): Promise<void> {
   await enqueueThroughTheStep({
     runId,
@@ -329,7 +292,7 @@ function publishRecord(f: Fixture, summary: string): string {
   return published.id
 }
 
-/** One real record, then one pre-432 proposal about it, attributed to the run. */
+// One real record, then one older proposal about it, attributed to the run.
 async function mint(f: Fixture, runId: string, summary: string): Promise<string> {
   const recordId = publishRecord(f, summary)
   return await filePre432KnowledgeProposal({
@@ -374,8 +337,6 @@ async function digestThroughTheOp(f: Fixture, runId: string): Promise<RunDigest>
 const DIGEST_BLOCK_PREFIX = 'digest — '
 
 describe('one heartbeat, N proposals, ONE digest, ONE notify row', () => {
-  // RE-SPELLED 432-09 from 'renders exactly one digest for the run, listing exactly its
-  // own proposals': the one render stands; the digest now lists and counts no proposal of any run.
   it('renders exactly one digest for the run, and lists no proposal of any run', async () => {
     const f = fixture()
     // Three proposals mint into ONE store while one run's chain is about to drain: two belong
@@ -432,10 +393,7 @@ describe('one heartbeat, N proposals, ONE digest, ONE notify row', () => {
     const rows = await notificationsFor(f, RUN_ID)
     expect(rows).toHaveLength(1)
 
-    // The frozen DTO is unwidened. `guardRunNotification` compares the SORTED KEY SET by exact
-    // equality, so a row that had grown a `proposals` or `digest` member to carry any of what
-    // the digest now renders would throw here — which is the whole of T-391-18 as an assertion
-    // rather than as a promise.
+    // `guardRunNotification` compares the sorted key set exactly, so a widened row throws here.
     const guarded = guardRunNotification(rows[0]?.payload)
     expect(guarded.runId).toBe(RUN_ID)
     expect(guarded.outcome).toBe('done')
@@ -469,14 +427,11 @@ describe('one heartbeat, N proposals, ONE digest, ONE notify row', () => {
       expect(digest.lines.some((line) => line === 'candidates — 2 curated · 1 deprecated'))
         .toBe(true)
 
-      // …and they are REPORTED, not offered for decision. 432-09: no proposal section
-      // remains, so the one minted envelope is listed and counted nowhere.
+      // No proposal section remains, so the minted envelope is listed and counted nowhere.
       expect(digest).not.toHaveProperty('proposalsMintedThisRun')
       expect(digest).not.toHaveProperty('pendingProposalCount')
     })
 
-  // RE-SPELLED 432-09 from 'renders the zero-proposal arm as zeros, and its exit line reads 0
-  // pending': the exit line carries no proposal count, and the run's own sections read zero.
   it('renders the zero arm as zeros, and its exit line carries no proposal count', async () => {
     const f = fixture()
     // The store is NOT empty: two proposals exist, both belonging to the OTHER run. That makes
@@ -485,8 +440,7 @@ describe('one heartbeat, N proposals, ONE digest, ONE notify row', () => {
     await mint(f, OTHER_RUN, 'checkout button')
     await mint(f, OTHER_RUN, 'payment button')
 
-    // Handed off rather than drained, so this leg takes the exit-line arm of D-17's either/or:
-    // no digest block, and the pointer carries the count instead.
+    // Handed off rather than drained, so no digest block, and the exit-line pointer instead.
     const tail = runPostRunTail({
       ...f.options(EMPTY_RUN),
       operations: {

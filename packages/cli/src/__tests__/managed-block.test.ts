@@ -1,9 +1,4 @@
-// one managed-block writer for every comment syntax.
-//
-// Everything outside a block's two marker lines is the user's, byte for byte: line endings,
-// Unicode, and whether the file ends in a newline. A block that already exists is rewritten
-// where it stands, never relocated. Malformed or ambiguous markers refuse before any text is
-// produced, because a guess would rewrite bytes nobody handed over.
+// Everything outside a block's marker lines is the user's, byte for byte; bad markers refuse first.
 
 import {
   chmodSync,
@@ -321,9 +316,7 @@ describe('MANAGED-MARKERS', () => {
   })
 })
 
-// ---------------------------------------------------------------------------------------------
-// The filesystem half: validated, locked, atomic publication (431-09 Task 2 · EDGE-02).
-// ---------------------------------------------------------------------------------------------
+// The filesystem half: validated, locked, atomic publication.
 
 const roots: string[] = []
 
@@ -616,9 +609,7 @@ describe('MANAGED-CONCURRENCY', () => {
   })
 })
 
-// ---------------------------------------------------------------------------------------------
-// the root pointer through the shared writer, and its write-free preflight.
-// ---------------------------------------------------------------------------------------------
+// The root pointer through the shared writer, and its write-free preflight.
 
 describe('MANAGED-POINTER', () => {
   const POINTER: ManagedBlockContent = {

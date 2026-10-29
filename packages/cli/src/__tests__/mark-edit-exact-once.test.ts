@@ -1,29 +1,4 @@
-// A mark's test edit is exact-once across a crash inside the edit (quick 261002-mrk, closing
-// 432-09 #4).
-//
-// `authoring.draft.edit` is one call: a model call, then a digest-guarded write of the edited test.
-// The mark host checkpoints only after that call returns, so a crash between the write and the
-// return left the file edited and the mark's intent without the edit. The retry then invoked the
-// edit again against the already-edited file: a second model call and a second edit on top.
-//
-// These cells drive the REAL edit op over the REAL CLI shelf host (`createDraftAuthoringPort`, the
-// final-test writer the composition binds), reached through `invokeFunction` exactly as the CLI's
-// mark host reaches it. The only fault is injected at the shelf port: the real write runs, and the
-// port then throws before the op can return.
-//
-// OBSERVED RED against agent-qa 76a72be76 (before the fix), 2026-10-02:
-//
-//   C-MRK-EDIT-ONCE      the model was asked once: expected 2 to be 1
-//   C-MRK-EDIT-CHANGED   promise resolved "{ kind: 'marked', ... }" instead of rejecting
-//                        (the retry edited again over a person's change)
-//
-// 2026-10-03 (quick 261003-lgd, Phase 432 review WR-04): C-MRK-EDIT-CHANGED re-spelled. It pinned a
-// refusal ("target-changed ... Retry the mark") that no retry could ever clear: the edit record and
-// the intent both survived it, so every later mark on the run failed the same way. A record whose
-// target holds neither the bytes the edit read nor the bytes it wrote now completes the mark from
-// the record: the receipt names what the mark wrote, the person's later change is left as theirs,
-// and the model is not asked again and nothing is edited again. OBSERVED RED on agent-qa
-// 481f0a153: both legs rejected with "Mark fix was not applied (target-changed)".
+// A retry finds the edit record and completes the mark from it, so the model is not asked again.
 
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'

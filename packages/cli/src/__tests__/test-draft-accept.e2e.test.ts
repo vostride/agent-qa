@@ -1,16 +1,4 @@
-// A final authored test is written straight to its target, over the CLI host's
-// real writer, a real workspace and — where a repository exists — a real git repository.
-//
-// RE-SPELLED IN PLACE, 2026-09-30. This file used to prove that ACCEPTING a `test-draft` proposal
-// wrote it and made one commit of one file. Nothing waits for acceptance now and agent-qa
-// makes no commits, so every claim here keeps its subject — the bytes that land at the target — and
-// measures the direct write instead: the exact bytes, the workspace boundary and the source-digest
-// guard the old apply checked, no commit, no index change, success in a dirty tree and without git,
-// no bytes for a rejected draft, and a failed write reported as not written.
-//
-// WHY THIS FILE IS IN `packages/cli`. The writer needs `workspaceRelativeIdentityPath` from
-// `@vostride/agent-qa-core`, which neither `agent` nor `agent-local` may name, so the CLI host is the
-// only place the loop, the real writer and a real repository can be in one process.
+// A final authored test is written straight to its target; only the CLI host has the writer.
 
 import { createHash } from 'node:crypto'
 import {

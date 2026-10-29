@@ -1,31 +1,4 @@
-// COLD-MCP-NO-RUNTIME (431-06 task 2 · D-09 · T-431-13 / T-431-14): a real MCP host, started cold
-// and driven through every discovery read, loads no embedding runtime and reads no model asset.
-//
-// THE TRAP IS INSTALLED BEFORE THE HOST EXISTS. Each child is the built `dist/cli.js`, started as
-// `node --import scripts/embedding-runtime-trap.mjs`, with the same `--import` in NODE_OPTIONS for
-// any descendant. The trap's resolve hook sees ESM and CommonJS loads alike, `process.dlopen` and
-// the fs readers are wrapped, and the forbidden set is derived from the acquisition modules' own
-// imports (see the trap's header for the measured mechanism). A report with no `installed` line,
-// or with either loader path unobserved, fails the cell: an inert trap cannot pass.
-//
-// TWO REAL DOORS. The standalone `agent-qa mcp` over stdio is the door a coding agent spawns; this
-// fixture keeps its database at the default `.agent-qa/runs.db`, so that door binds its run-detail
-// reader through the lazy dashboard import and answers all eight reads and both evidence arms under
-// the trap. The dashboard's co-hosted MCP endpoint binds the reader through its own entry and
-// answers the same. Every answer is checked for its populated content, so a refusal or an empty
-// result can never count as a clean load.
-//
-// POSITIVE CONTROLS (TRAP-CONTROLS): the same trap, in a fresh process, refuses an ESM import and a
-// CommonJS require of the tokenizer runtime, an import of the inference runtime, a read of a floor
-// asset, and a real floor acquisition through knowledge-local's shipped acquisition ladder.
-//
-// MUTATION SUBJECT (observed 2026-09-28, restored byte for byte and rebuilt):
-//   M1 `import type { Tokenizer }` turned back into the eager `import { Tokenizer }` in
-//      knowledge-local's embedder-floor.ts, then `pnpm build` -> 3 of 10 red: both COLD-MCP-NO-RUNTIME
-//      doors ("Connection closed" / "the dashboard never mounted MCP", each `trapped ["module
-//      @huggingface/tokenizers"]`) and the real-acquisition control, whose barrel no longer loads
-//
-// BUILD PREREQUISITE: every child spawns `dist/cli.js`. Run `pnpm build` first.
+// Each child spawns built `dist/cli.js` under the embedding-runtime trap; run `pnpm build` first.
 
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -158,8 +131,7 @@ function discoveryProject(mcpPort: number) {
   writeFileSync(f.configPath, [
     'workspace:', '  testMatch: [tests/**/*.yaml]', '  suiteMatch: [suites/**/*.suite.yaml]',
     '  hooksFile: hooks.yaml', '  envFile: .env', '  secretsFile: .env.secrets.local',
-    // no `safety` block and no MCP token list; both keys are deleted, and the
-    // co-hosted endpoint mounts for a declared `services.mcp` block alone.
+    // No `safety` block and no MCP token list; a declared `services.mcp` block mounts the endpoint.
     'use:', '  mobile:', '    appState: preserve',
     'services:', '  mcp:', `    port: ${String(mcpPort)}`, '',
   ].join('\n'))

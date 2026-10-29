@@ -294,7 +294,7 @@ describe('the agent-qa-knowledge skill', () => {
   })
 })
 
-// after a stated-value refusal the agent shows what was lost and stops.
+// After a stated-value refusal the agent shows what is lost and stops.
 describe('the authoring skill copies', () => {
   const sourceCopy = path.join(SOURCE_SKILLS_DIR, 'agent-qa-authoring', 'SKILL.md')
   const packagedCopy = path.resolve(
@@ -323,7 +323,7 @@ describe('the authoring skill copies', () => {
   })
 })
 
-// only declared secrets are masked, and the skill says so.
+// Only declared secrets are masked, and the skill says so.
 describe('the declared-secrets advice in the authoring skill', () => {
   const skillCopies = [
     path.join(SOURCE_SKILLS_DIR, 'agent-qa-authoring', 'SKILL.md'),

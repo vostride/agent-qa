@@ -1,22 +1,4 @@
-// Delegate-and-wait: a knowledge change is synchronous from the caller's seat in BOTH lease states
-// (387-08, D-18 — the 386 D-14 drain contract).
-//
-// The lease-held case is the load-bearing one and it is run over a REAL unix socket: a real
-// `startInvokeServer`, a real registration, a real `invokeViaDaemon`, the real `/invoke` route
-// reaching the real op. No new daemon code exists for it to exercise — that is the claim, and the
-// test is what makes it checkable rather than asserted.
-//
-// The structural-refusal half is what the case is really for. It is not enough that the delegating
-// process ANSWERS; it must be shown never to have taken the lease, so the holder's lease id and
-// epoch are read before and after and the delegator's own acquisition is asserted to be refused
-// throughout.
-//
-// RE-SPELLED AS DIRECT CHANGES. The first describe used to hand a
-// pre-432 forget PROPOSAL to `knowledge.proposal.apply`, record a standing approval first so the
-// ask-tier apply would pass the gate, and route the proposal id through `applyDelegate`. The gate
-// and the approval are gone and a change files no proposal, so each of its three claims is now
-// measured on the direct `knowledge.forget` change: in-process when the lease is free, handed to
-// the live holder with its operation identity when it is not, and bounded rather than hanging.
+// Over a real unix socket, asserting the delegating process never takes the lease.
 
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -41,11 +23,7 @@ import {
   writeDaemonRegistration,
 } from '../daemon/registration.js'
 
-/**
- * The composition's REQUIRED quarantine identity mint. Passthrough here: this
- * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
- * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
- */
+// Passthrough: the fixture speaks canonical workspace-relative bytes, and core pins the recipe.
 const MINT_IDENTITY = (filePath: string): string => filePath
 
 const roots: string[] = []
@@ -165,8 +143,6 @@ async function serveHolder(where: Fixture, registry: LocalAgentHost['registry'])
 }
 
 describe('a knowledge change routes by lease state', () => {
-  // RE-SPELLED 2026-10-01: was the pre-432 forget proposal applied through
-  // `knowledge.proposal.apply` after a recorded standing approval.
   it('commits in-process when no daemon holds the lease (one-shot posture)', async () => {
     const where = fixture('free')
     const recordId = await seedRecord(where)
@@ -186,9 +162,6 @@ describe('a knowledge change routes by lease state', () => {
     expect(rows.map((row) => row.status)).toEqual(['deprecated'])
   })
 
-  // RE-SPELLED 2026-10-01: the delegator used to be handed a proposal id through
-  // `applyDelegate`; it now binds the CLI host's shipped change delegate and hands the change op and
-  // its identity over.
   it('delegates over the daemon socket to a live holder and never takes the lease', async () => {
     const where = fixture('held')
     const recordId = await seedRecord(where)
@@ -246,10 +219,7 @@ describe('a knowledge change routes by lease state', () => {
     }[]
     expect(rows.map((row) => row.status)).toEqual(['deprecated'])
 
-    // 432-16 task 2: the retry edge. The same identity delegated again lands once — the same
-    // records answered, the same one deprecated record — and the lease is still the holder's.
-    // 2026-10-02 (quick 261002-lse, 432-16 #3): and it answers the FIRST receipt byte for byte; it
-    // used to re-mint `forgottenAt` and an empty scrub list on the holder's side.
+    // The same identity delegated again lands once and answers the first receipt byte for byte.
     const retried = await invokeFunction(caller.registry, 'knowledge.forget', {
       target: { grain: 'record', recordId }, operationId,
     }, CALLER) as KnowledgeChangeOutput
@@ -269,8 +239,6 @@ describe('a knowledge change routes by lease state', () => {
     releaseLease({ knowledgeRoot: where.knowledgeRoot, leaseId: held.leaseId })
   })
 
-  // RE-SPELLED 2026-10-01: the unresponsive holder was an `applyDelegate` that never
-  // answered a proposal id; it is now a change delegate that never answers.
   it('refuses at the bound rather than hanging on an unresponsive holder', async () => {
     const where = fixture('wedged')
     const recordId = await seedRecord(where)
@@ -305,9 +273,7 @@ describe('a knowledge change routes by lease state', () => {
   })
 })
 
-// a DIRECT knowledge change takes the same lease routing, with no
-// proposal id to hand over. The live holder receives the change op and the change's own identity
-// over the same socket, applies with its authority, and nothing is filed or claimed anywhere.
+// A direct knowledge change routes by lease state; the holder applies it with its own authority.
 describe('a direct knowledge change routes by lease state', () => {
   it('delegates the change op and its identity to a live holder over the daemon socket, filing nothing and never taking the lease', async () => {
     const where = fixture('direct-held')
@@ -380,12 +346,7 @@ describe('a direct knowledge change routes by lease state', () => {
   })
 })
 
-// 2026-10-02 (quick 261002-hyg, the 432-13 #1 knowledge-change note): a change that meets a fresh
-// writer lease held by another agent-qa process that is NOT a registered daemon (a dashboard's
-// post-run curation, another terminal's change) used to answer `DaemonNotRunningError` ("Start
-// agent-qa daemon"). The holder is a process that is writing, not a missing daemon, so the CLI's
-// delegate now refuses by name with the holder's pid and the mark's wording. A registered daemon
-// nobody answers for keeps `DaemonNotRunningError`. Nothing is written in either case.
+// A non-daemon holder is refused by name with its pid; nothing is written in either case.
 describe('a knowledge change under a holder that is not a live daemon', () => {
   async function snapshot(where: Fixture): Promise<string> {
     const { readdirSync, readFileSync, statSync } = await import('node:fs')
@@ -424,8 +385,7 @@ describe('a knowledge change under a holder that is not a live daemon', () => {
     }, CALLER).then(() => undefined, (error: unknown) => error as Error & { holderPid?: number })
 
     expect(refusal).toMatchObject({ name: 'KnowledgeWriterLeaseBusyError', holderPid: process.pid })
-    // the fixture holds the lease in this very process, so the
-    // refusal must say so instead of naming it "another" process.
+    // The fixture holds the lease in this process, so the refusal names this process, not another.
     expect(refusal?.message).toContain(`This agent-qa process (pid ${process.pid}) is already writing`)
     expect(refusal?.message).not.toContain('Another agent-qa process')
     expect(refusal?.message).toContain('nothing was changed')

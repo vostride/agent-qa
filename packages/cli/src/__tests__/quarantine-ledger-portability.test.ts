@@ -1,27 +1,4 @@
-// The one thing the committed ledger is committed FOR: quarantine state written on machine A
-// suppresses on checkout B.
-//
-// WHY THIS FILE EXISTS. `quarantine.jsonl` lives at the knowledge root and travels in git so a
-// fresh CI checkout inherits the disposition. The match that decides whether it applies is an exact
-// string compare on `(filePath, testName)`. Before 390-08 the `filePath` leg was the CLI's ABSOLUTE
-// resolved path, so the bytes a ledger carried were bytes only the machine that wrote them could
-// ever produce — the artifact was committed for an inheritance it structurally could not deliver,
-// and no single-root fixture could see it, because under one root the absolute paths agree.
-//
-// THE SHAPE OF THE PIN (the 388 two-sided contract law). Both halves run through PRODUCTION code
-// and they run under DIFFERENT temp roots:
-//
-//   writer half, under root A   real descriptors from `buildDirectRunMembers` -> a handoff ->
-//                               `LOCAL_CURATION_CAPABILITIES.foldRunOutcomes`, three failing
-//                               ordinals, until detection itself authors the `entered` event
-//   the artifact travels        the committed file is COPIED to root B, the way git would deliver it
-//   reader half, under root B   real descriptors minted under root B -> `resolveRunQuarantineSnapshot`
-//                               -> `quarantineAppliesToTest`
-//
-// Neither half is handed the other's bytes. The assertions anchor OUTSIDE the code's own field
-// relations — exact fixture strings, the exact schemaVersion number, and the ABSENCE of either
-// temp-root prefix anywhere in the committed file — so "both sides agree" cannot be satisfied by
-// two halves that are wrong in the same way.
+// Writer and reader run under different temp roots, so absolute paths cannot agree by accident.
 
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync, appendFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -113,12 +90,7 @@ function checkout(prefix: string): Checkout {
   return { configDir, knowledgeRoot, agentQaRoot, absoluteTestFile }
 }
 
-/**
- * The member identity THIS checkout mints, through the production descriptor builder.
- *
- * This is the load-bearing hop: reverting `buildDirectRunMembers` to copy the binding's absolute
- * path is exactly the pre-390-08 defect, and it reds every assertion below.
- */
+// The member identity this checkout mints; copying the absolute path instead reds every assertion.
 function mintedIdentity(env: Checkout): string {
   const parsed = parseTestFile(TEST_YAML, env.absoluteTestFile)
   expect(parsed.errors).toEqual([])
@@ -183,27 +155,7 @@ function failingStep(buildOrdinal: number): StepEvidence {
   } as unknown as StepEvidence
 }
 
-/**
- * AUTHORED since 390-19, and STILL authored after 390-21 for a live reason rather than a dead one
- * (corrected 390-22; 390-21 filed this sentence as a known stale comment).
- *
- * This file's subject is LEDGER PORTABILITY — that a committed entry suppresses on a checkout that
- * never saw the machine that wrote it, and that no checkout root leaks into the bytes — so it needs
- * a crossing the gate genuinely ADMITS in order to have an entry to carry at all.
- *
- * WHAT CHANGED. 390-19's floor arm requires a per-crossing `sameBuildPassAndFail`, and for one wave
- * the fold's only construction site supplied a constant `false`, so a floor-produced crossing was
- * inert in-tree by construction. That interval is CLOSED: 390-21 replaced the constant with a read
- * of the crossing test's own outcome window, and the floor path is reachable end to end.
- *
- * WHY AUTHORED IS STILL THE RIGHT CHOICE HERE. The floor arm is reachable, not free: it needs the
- * crossing test's window to carry a pass and a fail at ONE build ordinal, which takes two separate
- * applied runs at the same `handoff.buildOrdinal` and which an in-run retry can never produce. This
- * harness drives one run per checkout because the checkout, not the run count, is its subject.
- * `analyze-run` admits on the first disjunct — untouched by either round — so the portability
- * assertions keep exercising a real committed entry without the fixture having to simulate a CI
- * job re-run it is not about.
- */
+// An authored verdict, as the floor arm needs a pass and a fail from applied runs at one ordinal.
 function flakeVerdict(): Verdict {
   return {
     class: 'flake',
@@ -373,7 +325,7 @@ describe('the committed quarantine ledger crosses checkout roots', () => {
     driveCrossingUnder(machineA)
     deliverLedger(machineA, ciCheckoutB)
 
-    // A human (or a pre-390-08 build) writes a machine-local identity into the committed file.
+    // A human or an older build writes a machine-local identity into the committed file.
     const damaged = {
       schemaVersion: CURRENT_QUARANTINE_LEDGER_SCHEMA_VERSION,
       kind: 'entered',
@@ -417,24 +369,7 @@ describe('the committed quarantine ledger crosses checkout roots', () => {
   })
 })
 
-// ---- the WRITE-verb half of the same contract -----------------------------------
-//
-// The block above pins the RUN writer. This one pins the two HUMAN write verbs — the documented
-// human half of the exit path, and the surface most likely to receive a path pasted out
-// of a failure report. Round 1 hardened the read and the run path and left these two as an
-// unnormalized door into the same committed file: `quarantine.add` answered `entered` over a line
-// the reader refuses, `list` could not show it, `release` could not undo it, a retry duplicated it,
-// and every later run reported it as damage.
-//
-// EVERY PART HERE IS PRODUCTION CODE, which is only possible in `cli`: core's mint, knowledge-local's
-// verbs, agent-local's snapshot reader and schema's match all meet in this one package. The writer
-// half runs entirely under root A with the REAL `workspaceRelativeIdentityPath` pre-bound to root
-// A's config directory, exactly as `composeCliLocalAgent` binds it; the committed file is then
-// copied to root B the way git delivers it, and the reader half never sees root A's bytes.
-//
-// THE INVARIANT, one case per measured input class: for every input the verb either STORES the
-// minted canonical identity or REFUSES with the ledger byte-unchanged. There is no third outcome —
-// no committed line the reader refuses, and no line that lists but can never match.
+// The human write verbs either store the minted canonical identity or refuse, ledger unchanged.
 
 describe('the human write verbs mint the identity the reader joins on', () => {
   function verbsUnder(env: Checkout): ReturnType<typeof createQuarantineOperations> {
@@ -529,14 +464,7 @@ describe('the human write verbs mint the identity the reader joins on', () => {
   })
 
   it('Class 3 — a BACKSLASH path is refused by the ledger contract, byte-unchanged', async () => {
-    // MEASURED, not assumed, and this is the arm that ships on a POSIX runner: `path.resolve` treats
-    // `tests\checkout.yaml` as ONE filename containing a backslash, so the mint has nothing to
-    // rewrite and hands the bytes back unchanged. 390-11's structural write guard then refuses them
-    // — a backslash is not something the mint can emit, so no reader would consume the line. The
-    // invariant holds through the OTHER arm: refused, with the ledger byte-unchanged.
-    //
-    // On a Windows runner the mint would separate the segments and this would land on the stored
-    // arm instead. Either way the third outcome — a committed line the reader refuses — is absent.
+    // On POSIX `tests\checkout.yaml` is one filename, so the write guard refuses it.
     const machineA = checkout('agent-qa-390-verbmint-slash-A-')
 
     const refused = verbsUnder(machineA).add({

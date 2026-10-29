@@ -1,25 +1,4 @@
-// Who a config-apply commit says proposed it.
-//
-// no door mints a config proposal any more — the config operations write
-// in the call. The apply path still read the records already on disk until 432-16/17.
-//
-// agent-qa MAKES NO GIT COMMITS, so there is no author to attribute. The
-// one-commit config apply, its human-first preserve commit, the `Agent-QA-Proposal:` trailer and
-// the per-surface author map are deleted, and the CLI host binds no config apply port. The cells
-// that read the author off `git log` are re-spelled as the claim that replaces them: a config
-// change from every door — the co-hosted MCP endpoint included — writes the file and leaves HEAD,
-// the index and the history where they were, and a pre-432 record handed to the old accept verb
-// is refused by name without touching the file or the history.
-//
-// 430-REVIEW WR-01 IS CLOSED BY DELETION. It was a config proposal minted over the co-hosted MCP
-// endpoint committing under an unrecorded surface: the dashboard's composition supplied no minting
-// surface, so the commit's author read `unrecorded` although a known door had asked. The comment
-// this file used to carry beside cell (1) said stored `origin.surface: 'dashboard'` values came
-// only from dashboard-chat proposals; that was wrong, since co-hosted MCP proposals reached the same
-// composition with no surface at all. Neither kind of record is applied or attributed now.
-//
-// MODEL-FREE. `chatModel` is unsupplied on every composition here, which is the shipped headless
-// posture rather than a stub — `config.field.set` is a deterministic op and reaches no provider.
+// No git commits, so a config change from every door writes the file and moves no ref.
 
 import { execFileSync } from 'node:child_process'
 import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
@@ -43,14 +22,11 @@ import { SURFACE_ROSTER } from './conformance/roster.js'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 
-/** The chat door's caller surface (`CHAT_SURFACE` until 432-17 deleted it with `mintingSurface`). */
+// The chat door's caller surface.
 const CHAT_SURFACE = 'chat'
 const PACKAGES_ROOT = join(HERE, '..', '..', '..')
 
-/**
- * A pre-432 config proposal's bytes, as the shipped propose path wrote them at commit `b87b4f48`
- * No `surface` is recorded in its origin.
- */
+// An older config proposal's bytes, with no `surface` in its origin.
 const LEGACY_FIXTURE = join(HERE, 'fixtures', 'legacy-config-proposal.json')
 
 /** `config-apply-discipline.test.ts`'s seed, so the legacy record's `baseDigest` matches it. */
@@ -145,11 +121,7 @@ interface Door {
   }
 }
 
-/**
- * The doors a config change arrives through. The co-hosted MCP endpoint is the dashboard door's
- * own registry (`composeDashboardDoor`, which `mountCoHostedMcp` serves) called by an MCP caller;
- * that composition supplies no minting surface, which is the WR-01 arrangement.
- */
+// The doors a config change arrives through; co-hosted MCP serves the dashboard registry.
 const DOORS: readonly Door[] = [
   {
     name: 'cli',
@@ -169,8 +141,7 @@ const DOORS: readonly Door[] = [
   },
   {
     name: 'mcp',
-    // the one tokenless MCP caller. 2026-10-02: the legacy full scope set it
-    // carried is deleted with the caller field; nothing read it.
+    // The one tokenless MCP caller.
     caller: MCP_FUNCTION_CALLER,
     compose: (workspace) => composeCliLocalAgent({
       agentQaRoot: workspace.agentQaRoot,
@@ -179,8 +150,7 @@ const DOORS: readonly Door[] = [
   },
   {
     name: 'co-hosted mcp',
-    // the one tokenless MCP caller. 2026-10-02: the legacy full scope set it
-    // carried is deleted with the caller field; nothing read it.
+    // The one tokenless MCP caller.
     caller: MCP_FUNCTION_CALLER,
     compose: (workspace) => composeDashboardDoor({
       agentQaRoot: workspace.agentQaRoot,
@@ -201,7 +171,7 @@ async function changeStep(door: Door, workspace: Workspace): Promise<{ outcome: 
   }
 }
 
-/** The pre-432 accept, from the host where a person used to accept proposals. */
+/** The legacy accept, from the host where a person accepted proposals. */
 async function acceptPre432(workspace: Workspace, proposalId: string): Promise<unknown> {
   const host = composeCliLocalAgent({
     agentQaRoot: workspace.agentQaRoot,
@@ -338,8 +308,7 @@ describe('a config change has no author because it makes no commit', () => {
   })
 })
 
-// 432-16 task 2: the other two publications D-07 names — an authored test and a mark's fix — and
-// the retry edge of a config change, each read back off git.
+// An authored test, a mark's fix and a config change's retry, each read back off git.
 describe('every publication leaves the history alone', () => {
   it('a mark lands its gold, evidence and knowledge fix and leaves HEAD, the index and the history alone', async () => {
     const f = markFixture()
@@ -414,11 +383,7 @@ describe('every publication leaves the history alone', () => {
 })
 
 describe('an older config record is never applied or committed', () => {
-  // RE-SPELLED 2026-10-01: cells (1)-(4) accepted a stored record and read its author off
-  // `git log` — a dashboard-surfaced record (1), a chat-minted one (2), an unrecognised surface (4)
-  // and a legacy record with none (3). The CLI host binds no config apply port now, so each of them
-  // is refused by name before any file or ref moves. 432-17 deleted the accept verb itself, so the
-  // refusal is now `UnknownFunctionError` rather than `FunctionNotBoundError`, and still nothing moves.
+  // No config apply port or accept verb, so an older record is refused by name; nothing moves.
   const LEGACY_RECORD = JSON.parse(readFileSync(LEGACY_FIXTURE, 'utf8')) as {
     id: string
     origin: Record<string, unknown>
@@ -478,15 +443,13 @@ describe('an older config record is never applied or committed', () => {
 
 describe('no door supplies a minting surface', () => {
   it('(5) no rostered door supplies a minting surface — the census, over the roster itself', () => {
-    // RE-SPELLED 2026-10-01: `mintingSurface` stamped the proposal records the inbox held,
-    // and is deleted with them. The census now proves no door module still supplies one.
+    // The census proves no door module supplies a minting surface.
     const MODULE_FOR_DOOR: Readonly<Record<string, string>> = {
       chat: 'chat.ts',
       mcp: 'mcp.ts',
       fn: 'fn.ts',
     }
-    // the run-service door's exemption was its least-privilege scope list, deleted
-    // with its tokens. It is exempt because it has no change route at all — it starts and reads runs.
+    // The run-service door is exempt because it has no change route: it starts and reads runs.
     const CANNOT_MINT: Readonly<Record<string, string>> = {
       'run-service': 'no change route: the door starts runs and reads them',
     }

@@ -436,20 +436,7 @@ describe('createRequire anchor census', () => {
     ).toBeGreaterThan(0)
   })
 
-  // `cli/src/daemon/host.ts`'s read was `input.cliEntry ?? process.argv[1] ?? ''` — the entry path
-  // the daemon handed the piped `agent-qa run` child it spawned. `cli/src/composition/
-  // local-agent-host.ts`'s was the same expression inside `createCliRunExecution`, the terminal
-  // host's own child. Both hosts now run the run in their own process, 401-10 deleted the machinery
-  // outright, and neither read is in the tree. They are REMOVED rather than relaxed: this list is a
-  // set of files that must be FOUND, so a member the tree no longer contains would be a permanently
-  // red pin, and the survivor is asserted exactly as strictly as before. The counterpart of those
-  // removals — that nothing on the run path launches a child any more — is asserted positively by
-  // the complete-set censuses in `daemon/__tests__/daemon-run-execution.test.ts` and
-  // `composition/__tests__/spawn-absence-census.test.ts`, so the fact did not stop being checked.
-  //
-  // THE SURVIVOR IS THE DESIGN-OF-RECORD ONE. `knowledge-local`'s embedder worker entry reads the
-  // argument vector because it IS a child — the daemon-owned worker INVK-01's scoping sentence
-  // keeps. That it is what remains here is the same fact the spawn-absence census allow-lists.
+  // Neither host spawns a run child, so only the embedder worker's argv read remains to be found.
   it('registers the one known non-createRequire argv site the asserting property cannot see', () => {
     const registered = new Set(ARGV_REGISTER.map((entry) => entry.relPath))
     for (const known of [

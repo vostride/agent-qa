@@ -1,58 +1,4 @@
-// The phase's headline story, executable: in, visibly suppressed, auto-out, honest again — and
-// never a silent forever (Phase 390, FLAK-02 / FLAK-03, CONTEXT "Specific Ideas").
-//
-// Eight runs against ONE knowledge root, driving the REAL machinery at every hop:
-//
-//   - the run-start snapshot        `resolveRunQuarantineSnapshot` over the committed ledger
-//   - the run itself                the real `startRun` member loop over production-shape
-//                                   descriptors, which is where the disposition decides whether
-//                                   OTHER tests run — the aggregate and the exit
-//                                   code are read off that session, never computed beside it
-//   - both reporters                the real JUnit document and the real console bytes
-//   - the durable artifacts         the handoff `startRun` ITSELF produced, written to the run dir
-//                                   — plus, when the run had an analysis budget, the `analyze-run`
-//                                   job's `analysis.json` beside it, which is the only place an
-//                                   authored verdict can live
-//   - the post-run fold             `LOCAL_CURATION_CAPABILITIES.foldRunOutcomes` over that run
-//                                   DIRECTORY — real sqlite, real projection, real detection, real
-//                                   ledger append
-//
-// Nothing here is stubbed except the browser: member outcomes are scripted, because the phenomenon
-// under test is what the SYSTEM does with a sequence of pass/fail results, not how a test fails.
-//
-// FOUR LAWS THIS FILE OBEYS
-//
-//  1. EVERY HOP IS ID-ADDRESSED AND TWO-SIDED (the 388 contract law). Each transition asserts the
-//     ledger BEFORE and AFTER by runId/ordinal, reading the real `quarantine.jsonl` bytes rather
-//     than inheriting a conclusion from the previous assertion. `released-auto` is pinned ABSENT
-//     after the fourth passing ordinal and PRESENT after the fifth, so the threshold is a
-//     measurement and not a coincidence.
-//
-//  2. RUN A'S OWN FAILURE IS PINNED, NOT TOLERATED. Detection is one run behind BY DESIGN
-//     the crossing is computed in the post-run fold, and the disposition is read at
-//     the NEXT run's start. So the run that crosses still fails honestly. That red is the timing
-//     law holding, and a change that "fixed" it would have quarantine relieving its own crossing —
-//     which is how a real regression gets silenced by the build that discovers it.
-//
-//  3. THE VERDICT LEG CROSSES THE MEMBER LOOP (390-10, closing CR-01). Every hop drives `startRun`
-//     over TWO same-group members — the tracked test plus a sibling — because a one-member run
-//     cannot observe the fail-fast poisoning at all, and computing the aggregate BESIDE the shell
-//     (which is what this file did until 390-10) leaves the loop where the poisoning lives
-//     unexercised at all eight hops. `executed` is asserted in both directions: an un-licensed
-//     failure still fail-fasts its sibling (run A, run H), a licensed one does not (run B). The
-//     anti-silencing direction — a licensed failure in front of a genuinely failing, UN-licensed
-//     sibling — has its own pin at the bottom of this file, because it is the direction that turns
-//     a red build green and an execution-only assertion would not catch it.
-//
-//  4. THE HANDOFF IS THE RUN'S OWN, AND SO IS EVERY VERDICT IN IT (390-21, closing CR-01/WR-05).
-//     Until this round the harness awaited the real handoff, read four scalars off it, threw it
-//     away, and wrote and folded a HAND-BUILT one carrying `producer: 'analyze-run'` — a shape the
-//     pipeline cannot produce, since the runner persists `handoff.json` at run end before any
-//     analyst has run. Four assertions rested on it. Now the object written to the run directory,
-//     the object detection folds and the object `startRun` returned are one value; an authored
-//     verdict enters only through `analysis.json`, exactly as production does it; and the floor's
-//     verdicts are whatever `classifyRootCause` answers for the scripted member. An input the
-//     runner cannot emit can no longer be asserted about here.
+// Runs over one knowledge root through the real machinery; only member outcomes are scripted.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -94,11 +40,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { createConsoleReporter, QUARANTINE_TEST_ANNOTATION } from '../reporters/console-reporter.js'
 import { JUNIT_QUARANTINE_MARKER_BLOCK, createJunitReporter } from '../reporters/junit-reporter.js'
 
-/**
- * The composition's REQUIRED quarantine identity mint. Passthrough here: this
- * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
- * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
- */
+// Passthrough: the fixture speaks canonical workspace-relative bytes, and core pins the recipe.
 const MINT_IDENTITY = (filePath: string): string => filePath
 
 // The committed ledger's path is spelled here as a LITERAL rather than imported from the package
@@ -120,12 +62,7 @@ const ANCHOR_NAME = 'pay now'
  */
 const SUITE_GROUP = 'tests/checkout.suite.yaml'
 
-/**
- * A second test in the SAME suite as the tracked one — never quarantined, never folded into the
- * projection. It exists so the member loop is non-degenerate: with one member there is nothing
- * behind the tracked test for a poisoned group to skip, and the whole CR-01 defect class is
- * unobservable.
- */
+// A sibling in the same suite, so a poisoned group has a member behind the tracked test to skip.
 const SIBLING_FILE_PATH = 'tests/login.yaml'
 const SIBLING_TEST_NAME = 'login accepts a returning customer'
 
@@ -243,29 +180,10 @@ function failingStep(buildOrdinal: number): StepEvidence {
 /** The ordinary element-not-found failure the lifecycle timeline is driven with. */
 const ELEMENT_NOT_FOUND = `Error: element "${ANCHOR_NAME}" not found`
 
-/**
- * THE RUNNER'S OWN TEST-DEADLINE MESSAGE, from the single mint site that defines it.
- *
- * `deriveMemberOutcome` answers `'timeout'` for a failed member iff a failing step's error is
- * exactly this string, and `classifyRootCause` then mints `timeout` on the deterministic floor. It
- * is minted here rather than written out because the matcher and the mint are deliberately
- * single-sourced: a literal would pin a message the runner stops emitting the day the format moves.
- */
+// Minted by the runner's own helper, because `deriveMemberOutcome` matches this exact string.
 const TEST_DEADLINE_ERROR = createTimeoutAbortReason('test', 30_000).message
 
-/**
- * THE `analyze-run` JOB'S DURABLE OUTPUT, IN ITS OWN FILE — which is where an authored verdict
- * actually lives (390 D-09/D-10, `resolveRunVerdicts`).
- *
- * WHAT THIS REPLACES AND WHY. Until now this file put `producer: 'analyze-run'`
- * directly onto a hand-built `CompletedRunHandoff`. That is a shape the pipeline cannot produce:
- * the runner assembles and persists `handoff.json` at run end, BEFORE any `analyze-run` job has
- * run, so every verdict a handoff carries is the deterministic floor's. An authored verdict reaches
- * a consumer only through `analysis.json` beside it, which `resolveRunVerdicts` reads and lets
- * OVERWRITE the floor. So the lifecycle below still exercises the authored arm — the same arm it
- * always did — but through the artifact seam production uses, over the handoff `startRun` really
- * produced.
- */
+// An authored verdict reaches a consumer only through `analysis.json`, never the persisted handoff.
 function authoredFlakeArtifact(runId: string): RunAnalysisArtifact {
   return {
     schemaVersion: CURRENT_ANALYSIS_SCHEMA_VERSION,
@@ -307,14 +225,7 @@ interface RunScript {
   analysisBudget?: false
 }
 
-/**
- * The runner-level result a scripted member answers with.
- *
- * THE FAILING STEP CARRIES THE FIXTURE'S RICH `StepEvidence`. `assemblePerTestOutcome`
- * passes a step's `evidence` THROUGH when present and synthesizes a thinner one only when absent,
- * so attaching it here is what keeps the anchors the fold extracts — and therefore the failure
- * fingerprint recurrence counts — real once the run's own handoff is the one being folded.
- */
+// The failing step carries rich `StepEvidence`, so the fold extracts real anchors and fingerprints.
 function shellResult(
   testId: string,
   outcome: 'passed' | 'failed',
@@ -344,28 +255,11 @@ interface ShellLeg {
   memberQuarantined: boolean
   /** Which members the executor was actually reached for, in order. */
   executed: readonly string[]
-  /**
-   * THE handoff this run produced. Returned rather than discarded: what the harness
-   * writes to the run directory and what detection folds are now the SAME OBJECT. Until this
-   * round `runThroughShell` awaited it, read four scalars off it and threw it away while a
-   * hand-built stand-in was written and folded beside it — which is how an impossible shape became
-   * load-bearing at four assertions (390-REVIEW CR-01, WR-05).
-   */
+  // The handoff this run produced, which is the object written and folded.
   handoff: CompletedRunHandoff
 }
 
-/**
- * The run itself — `startRun` over the production descriptor shape (390-10, closing CR-01).
- *
- * This is the leg that used to be a direct `deriveAggregateVerdict` call sitting BESIDE the shell.
- * Computing the verdict from a scripted outcome answered the aggregate question correctly and asked
- * the member-loop question not at all: the fail-fast poisoning that decides whether the sibling ever
- * executes lives in the loop, and no hop crossed it. Now the aggregate, the exit code and the
- * per-member disposition all come off one real session, so a change to the loop is visible here.
- *
- * The run-start snapshot is passed as plain data exactly as `run.ts` passes it; the runner
- * gains no port for it.
- */
+// The aggregate, exit code and disposition come off one real session; the snapshot is plain data.
 async function runThroughShell(
   script: RunScript,
   snapshotAtStart: readonly QuarantineAppliedEntry[],
@@ -481,14 +375,14 @@ type FoldReport = ReturnType<typeof LOCAL_CURATION_CAPABILITIES.foldRunOutcomes>
 interface DrivenRun {
   runId: string
   buildOrdinal: number
-  /** What the ledger licensed for THIS run, read once before any member could execute. */
+  // What the ledger licensed for this run, read once before any member could execute.
   snapshotAtStart: readonly QuarantineAppliedEntry[]
   memberQuarantined: boolean
   aggregate: RunStatus
   exitCode: number
   /** Which members the run shell actually reached the executor for. */
   executed: readonly string[]
-  /** The handoff the run PRODUCED — the same object written to the run dir and folded. */
+  // The handoff the run produced, the same object written to the run dir and folded.
   handoff: CompletedRunHandoff
   /** What the post-run fold answered — the detection events and the loud refusals it reported. */
   fold: FoldReport
@@ -515,10 +409,7 @@ async function driveRun(env: Harness, script: RunScript, now = NOW): Promise<Dri
     product: PRODUCT,
     now,
   })
-  // (2) THE RUN — the real member loop over production-shape descriptors. The aggregate, the exit
-  //     code and the tracked member's disposition are all read off this one session rather than
-  //     computed beside it, so the fail-fast poisoning decision is on every hop's path.
-  //     The sibling passes here; the anti-silencing case gives it a failure of its own.
+  // The run: aggregate, exit code and disposition off one session, so fail-fast is on the path.
   const { aggregate, exitCode, memberQuarantined, executed, handoff } = await runThroughShell(
     script,
     snapshotAtStart,
@@ -547,9 +438,7 @@ async function driveRun(env: Harness, script: RunScript, now = NOW): Promise<Dri
   }
   await junit.flush()
 
-  // (4) the durable handoff a later surface reads — THE ONE THE RUN PRODUCED. Nothing is
-  //     rebuilt here: the bytes on disk and the object detection evaluates are the same value, so
-  //     an assertion below cannot be true of a shape the runner would never emit.
+  // The durable handoff the run produced, so the bytes on disk and the object folded are one value.
   const runDir = join(env.agentQaRoot, RUNS_SUBDIR, slugBranch(script.runId))
   mkdirSync(runDir, { recursive: true })
   writeFileSync(join(runDir, 'handoff.json'), `${JSON.stringify(handoff)}\n`, 'utf8')
@@ -606,7 +495,7 @@ describe('the quarantine lifecycle, end to end', () => {
     expect(pre1.exitCode).toBe(1)
 
     const pre2 = await driveRun(env, { runId: 'run-lifecycle-2', buildOrdinal: 2, outcome: 'failed' })
-    // two occurrences FLAG (visibility only) and write not one byte of ledger
+    // Occurrences under the entry threshold flag for visibility and write no ledger byte.
     expect(pre2.ledgerBefore).toEqual([])
     expect(pre2.ledgerAfter).toEqual([])
     expect(pre2.exitCode).toBe(1)
@@ -618,11 +507,10 @@ describe('the quarantine lifecycle, end to end', () => {
     expect(runA.ledgerBefore).toEqual([])
     expect(runA.snapshotAtStart).toEqual([])
     expect(runA.memberQuarantined).toBe(false)
-    // THE TIMING LAW: the run that discovers the flake fails honestly
+    // The run that discovers the flake fails honestly.
     expect(runA.aggregate).toBe('failed')
     expect(runA.exitCode).toBe(1)
-    // …and because nothing licenses it, the failure poisons its suite group and the sibling behind
-    // it never runs — pre-390 within-suite fail-fast, unchanged by the disposition guard
+    // Unlicensed, the failure poisons its suite group, so the sibling behind it never runs.
     expect(runA.executed).toEqual(['checkout'])
     expect(runA.junitXml).toContain('<failure')
     expect(runA.junitXml).not.toContain(JUNIT_QUARANTINE_MARKER_BLOCK)
@@ -653,19 +541,16 @@ describe('the quarantine lifecycle, end to end', () => {
     // the member outcome is untouched; the AGGREGATE is what the disposition changed
     expect(runB.aggregate).toBe('passed')
     expect(runB.exitCode).toBe(0)
-    // THE OTHER HALF OF FLAK-02: the licensed failure changes the aggregate rule
-    // and NOTHING ELSE. It does not poison its group, so the sibling behind it still runs. Compare
-    // run A one hop above — identical members, identical group, opposite disposition, opposite
-    // answer to "did the sibling execute".
+    // The licensed failure changes only the aggregate rule, so the sibling behind it still runs.
     expect(runB.executed).toEqual(['checkout', 'login'])
-    // the correct amount of red on a green build
+    // The correct amount of red on a green build.
     expect(runB.junitXml).toContain('<failure')
     expect(runB.junitXml).toContain(JUNIT_QUARANTINE_MARKER_BLOCK)
     expect(runB.junitXml).toContain('failures="1"')
     expect(runB.junitXml).not.toContain('<skipped')
     expect(runB.consoleOutput).toContain(`FAIL ${TEST_NAME} 1s ${QUARANTINE_TEST_ANNOTATION}`)
     expect(runB.consoleOutput).toContain('Tests:  0 of 1 passed · 1 quarantined failure')
-    // after: suppression writes nothing — the entry is already open (D-10 re-entry suppression)
+    // Suppression writes nothing, because the entry is already open.
     expect(runB.ledgerAfter).toEqual(runB.ledgerBefore)
 
     // --- RUNS C..G (ordinals 5..9): five consecutive passing ordinals --------------------------
@@ -689,7 +574,7 @@ describe('the quarantine lifecycle, end to end', () => {
       // nothing failed, so nothing poisoned: both members ran
       expect(run.executed).toEqual(['checkout', 'login'])
     }
-    // D-10's boundary, one step either side: NOT after the fourth passing ordinal…
+    // The release boundary, one step either side: not after the fourth passing ordinal.
     expect(runF.ledgerAfter.some((line) => line.kind === 'released-auto')).toBe(false)
     // …and released after the fifth
     expect(runG.ledgerBefore).toEqual(runF.ledgerAfter)
@@ -719,16 +604,7 @@ describe('the quarantine lifecycle, end to end', () => {
   }, 120_000)
 })
 
-// ---- the anti-silencing direction (390-10, closing CR-01) --------------------------------------
-//
-// Runs A..H assert that a licensed failure lets its sibling EXECUTE. That is necessary and not
-// sufficient: a build that runs the sibling and then swallows its failure would satisfy it. The
-// property actually at risk is that an UN-licensed failure behind a licensed one still reaches the
-// exit code — that is the inversion the verifier measured on 2026-08-05 (executed ["flaky"] only,
-// verdict 'passed', exit 0, where pre-390 the same run exited 1).
-//
-// So this pin gives the sibling a real failure and asserts the aggregate and the exit code, over a
-// ledger entry authored by the same detection ladder every other hop uses.
+// An unlicensed failure behind a licensed one must still reach the aggregate and the exit code.
 
 describe('a quarantined failure never silences an un-quarantined one', () => {
   it('the failing sibling runs AND fails the build at exit 1, behind a licensed failure', async () => {
@@ -774,30 +650,7 @@ describe('a quarantined failure never silences an un-quarantined one', () => {
   }, 120_000)
 })
 
-// ---- THE NO-BUDGET REACHABILITY RUN (390-21, closing G-390-5's reachability half) ---------------
-//
-// THE CLAIM, WITH ITS CONDITION IN THE SAME SENTENCE — because this phase has now overstated this
-// exact reachability three times, and the correction is never to weaken the claim but to make it
-// travel with the fact that makes it true:
-//
-//   A failing member with NO analysis budget is auto-quarantined end to end — through the real
-//   shell, the real handoff and the real fold — WHEN its per-test outcome window carries a pass and
-//   a fail at ONE build ordinal, which takes TWO SEPARATE APPLIED RUNS at the same
-//   `handoff.buildOrdinal` (in practice a CI job re-run without an ordinal bump).
-//
-// THE BOUND, stated because a reader will otherwise assume the cheaper thing: an IN-RUN RETRY
-// CANNOT PRODUCE THIS SIGNATURE. The member-runner collapses retries into one member outcome and
-// `countedOutcome` maps `healed` to a pass — one applied run leaves exactly ONE entry per member.
-// That is why the fixture below drives an EXTRA passing run at an ordinal it already failed at,
-// rather than scripting a retry.
-//
-// AND THE MECHANISM THAT SHIPS, which is NOT the one 390-16 described. 390-16 claimed a
-// floor-minted `flake` kept auto-quarantine alive without an analysis budget. `classifyRootCause`
-// mints `flake` only inside its `passed || healed` arm, and a passing member carries no failure
-// row, so no crossing can ever carry that class on the floor. What is live instead is `timeout`:
-// the floor mints it on a FAILING member whose failed step carries the test-deadline message, and
-// 390-19 made that class floor-eligible on the condition that the crossing ALSO carries the
-// per-test same-build pass∧fail — which 390-21 taught the fold to compute.
+// With no budget, a failing member is quarantined only if applied runs pass and fail at an ordinal.
 
 describe('a failing member with no analysis budget can still be quarantined', () => {
   /** Every run here is scripted to blow the test deadline, and none of them gets an analyst. */
@@ -835,22 +688,7 @@ describe('a failing member with no analysis budget can still be quarantined', ()
 
     const crossing = await driveCrossing(env, { sameOrdinalPass: true })
 
-    // (1) NO AUTHORED VERDICT PARTICIPATED — asserted POSITIVELY, off the handoff the run produced,
-    //     rather than by the absence of a file (which a path typo satisfies just as well). That
-    //     sentence was always right; the ATTRIBUTION around it was backwards, so say plainly what
-    //     this block does and does not prove (both halves measured, round 4).
-    //
-    //     WHAT IT PROVES: the producer the crossing's handoff carries for this member is the
-    //     floor's. That is a fact about `resolveRunVerdicts` being PURE — it never writes an
-    //     authored verdict back onto the handoff it read — so these lines pass VERBATIM with an
-    //     authored `flake` analysis.json sitting beside every run. They pin identity; they are NOT
-    //     the budget control, and reading them as one launders the no-budget claim.
-    //
-    //     WHERE THE BUDGET CONTROL ACTUALLY LIVES: (i) the SIBLING negative leg below — same
-    //     crossing, no same-ordinal pass — which reds under a budget-on mutation because its
-    //     escalated line is then authored `flake` rather than the floor's `timeout`; and (ii) the
-    //     `verdictClass: 'timeout'` pin on the entered line in block (2), which reds in THIS leg
-    //     under that same mutation, because with an analyst present the member enters as `flake`.
+    // (1) The handoff carries the floor producer: an identity pin, not a budget control.
     const tracked = crossing.handoff.tests.find((test) => test.testId === TRACKED_MEMBER.testId)
     expect(tracked?.rootCause).toMatchObject({
       class: 'timeout',
@@ -895,7 +733,7 @@ describe('a failing member with no analysis budget can still be quarantined', ()
       .toBe('skipped')
     expect(crossing.fold.quarantine.escalatedNotQuarantined).toEqual([])
 
-    // (4) THE TIMING LAW still holds: the run that discovers it still fails honestly.
+    // The run that discovers it still fails honestly.
     expect(crossing.aggregate).toBe('failed')
     expect(crossing.exitCode).toBe(1)
   }, 120_000)
@@ -923,18 +761,7 @@ describe('a failing member with no analysis budget can still be quarantined', ()
   }, 120_000)
 })
 
-// ---- what the expiry lapse actually BUYS -------------------------------------------------------
-//
-// What D-11's lapse does, pinned against ONE ledger file: suppression stops, the run fails again,
-// and the sentence a human reads says why. Either consequence alone would leave the other free to
-// drift, so both are asserted here.
-//
-// What it does NOT do — though this block's earlier name claimed a mechanism that would have — is
-// BOUND the suppression. Measured 2026-08-06: the lapse buys exactly
-// ONE red build, and the same run that goes red re-suppresses itself, because the snapshot is taken
-// at run start (entry lapsed ⇒ red) while the post-run fold immediately authors a fresh `entered`
-// with a full new deadline. Nobody has to notice, decide, claim, renew or release anything. The
-// multi-cycle characterization leg at the bottom of this block pins that loop directly.
+// A lapsed deadline buys one red build; that run's fold re-enters with a fresh deadline.
 
 describe('the expiry lapse: what one lapsed deadline buys', () => {
   // The crossing's 30-day deadline is behind both the run-start instant and the
@@ -945,7 +772,7 @@ describe('the expiry lapse: what one lapsed deadline buys', () => {
   it('a lapsed deadline fails the run again AND reads as expired in the sentence', async () => {
     const env = harness('agent-qa-390-expiry-')
 
-    // three failing ordinals at the past instant → an entry that expires 2026-07-01
+    // Failing ordinals at the past instant give an entry whose deadline has passed.
     for (const buildOrdinal of [1, 2, 3]) {
       await driveRun(
         env,
@@ -998,13 +825,7 @@ describe('the expiry lapse: what one lapsed deadline buys', () => {
     expect(afterLapse.junitXml).not.toContain(JUNIT_QUARANTINE_MARKER_BLOCK)
     expect(afterLapse.consoleOutput).not.toContain(QUARANTINE_TEST_ANNOTATION)
 
-    // …and the honest red is ALL the lapse buys: exactly one failing build. That run's own fold
-    // sees a still-crossed window and RE-ENTERS with a fresh full-lifetime deadline (390-05's
-    // accepted re-entry shape; D-10's "re-entry needs no special rule"), so the very next build is
-    // green again with no human in the loop. Pinned rather than tolerated: the repeated `entered`
-    // lines ARE the history D-03 chose an event log to keep, and a reader of the committed file
-    // must be able to tell a re-entry from a duplicate. That the loop then repeats without
-    // attenuation is the multi-cycle leg's business, below.
+    // The lapse buys one failing build; its fold re-enters with a fresh deadline, then green.
     const afterReentry = ledgerLines(env)
     expect(afterReentry.map((line) => line.kind)).toEqual(['entered', 'entered'])
     expect(afterReentry[0]).toMatchObject({ kind: 'entered', expiresAt: LAPSED_EXPIRY })
@@ -1016,7 +837,7 @@ describe('the expiry lapse: what one lapsed deadline buys', () => {
       owner: QUARANTINE_UNASSIGNED_OWNER,
       expiresAt: EXPECTED_EXPIRY,
     })
-    // nothing was released: an expired entry is a visible state, never a deletion
+    // Nothing is released: an expired entry is a visible state, never a deletion.
     expect(afterReentry.some((line) => line.kind.startsWith('released'))).toBe(false)
 
     // The differential closes on ONE surface: the SAME accessor over the SAME ledger file now reads
@@ -1033,25 +854,7 @@ describe('the expiry lapse: what one lapsed deadline buys', () => {
     expect(ledgerLines(env)).toEqual(afterReentry)
   }, 120_000)
 
-  // ---- CHARACTERIZATION: the loop, over four full cycles ---------------------------------------
-  //
-  // THIS LEG DOES NOT ASSERT THAT THE BEHAVIOUR IS DESIRABLE. It is a characterization pin: it
-  // records what the shipped system does so that a later change to it must red a test rather than
-  // pass unnoticed, and so that the corrected prose above SITE A/B/D has something enforcing it.
-  // Plan 390-18 is the follow-on that makes this loop legible to a human — a re-entry counter on
-  // the entry and a triage order that surfaces a test on its fourth lap differently from its
-  // first. When a bound on the repetition is eventually chosen, it will be chosen against the
-  // counter's evidence, and THIS is the baseline it starts from.
-  //
-  // The probe that produced it (390-UAT-DECISIONS-PROBE.md §4.1) is a document nobody can re-run.
-  // These seven runs are the same measurement, committed and re-runnable, through the same real
-  // `driveRun` path — real snapshot, real member loop, real fold, real ledger bytes.
-  //
-  // Three facts together say "unbounded, with no attenuation":
-  //   N entered lines · N DISTINCT full-lifetime deadlines · ZERO released.
-  // The zero is load-bearing in a way it was not before 390-17: the auto-exit now DOES admit a
-  // lapsed window, so nothing releases here because the test never recovers — not because the exit
-  // path cannot see the entry.
+  // A characterization pin, not an endorsement: entries repeat with fresh deadlines, no release.
   describe('the loop it repeats, characterized over four cycles', () => {
     // One day past each preceding deadline, so every cycle starts on a genuinely lapsed entry.
     // Deadlines are hand-computed from QUARANTINE_DEFAULT_EXPIRY_DAYS = 30 so the constant is
@@ -1122,8 +925,7 @@ describe('the expiry lapse: what one lapsed deadline buys', () => {
 
       const lines = ledgerLines(env)
 
-      // FACT 1 — four `entered` lines, and NOTHING was released. The exit path saw every one of
-      // these lapsed entries and correctly declined: the test never recovered.
+      // Nothing is released: the exit path declines each lapsed entry, as the test never recovers.
       expect(lines.map((line) => line.kind)).toEqual(['entered', 'entered', 'entered', 'entered'])
       expect(lines.some((line) => line.kind.startsWith('released'))).toBe(false)
 

@@ -1,10 +1,4 @@
-// the dedicated CLI reads over their canonical ops.
-//
-// In-process cells drive the Commander verbs against a populated project and compare `--json` with
-// the MCP `structuredContent` answered by the same composition. `runs.overview` and the document arm
-// of `runs.evidence` bind through a run-detail reader; these cells hand the composition the
-// shipped dashboard reader over the project's runs database. Spawned cells run the built
-// `dist/cli.js`: run `pnpm build` at the repository root first.
+// CLI `--json` reads are compared with MCP `structuredContent` from the same composition.
 
 import { createHash } from 'node:crypto'
 import { createServer } from 'node:http'
@@ -264,7 +258,7 @@ type WireResult = {
 async function mcpReader(p: { configPath: string; agentQaRoot: string }) {
   const composed = host.composeCliLocalAgent({ configPath: p.configPath, agentQaRoot: p.agentQaRoot })
   cleanups.push(() => composed.close())
-  // tokenless. The client below still sends a legacy reader bearer, which is ignored.
+  // Tokenless; the client below sends a legacy reader bearer, which is ignored.
   const masking = composeMcpMasking({ configPath: p.configPath })
   const server = createServer(createMcpHttpRequestListener({
     registry: composed.registry, maskText: (text) => masking.mask(text),
@@ -379,7 +373,7 @@ describe('CLI-RUN-READ-PARITY: runs list, overview and knowledge', () => {
     const visible = json(await cli(project.configPath, ['runs', 'list', '--test', 'LOGIN AS', '--json']))
     expect((visible as { runId: string }[]).map((row) => row.runId)).toEqual([runId])
 
-    // 2026-10-14 (441-16, E3): without a readable secrets file the list refuses with the loader's message.
+    // Without a readable secrets file the list refuses with the loader's message.
     rmSync(join(project.root, '.env.secrets.local'))
     for (const test of ['LOGIN AS', 't-login']) {
       const unmaskable = await cli(project.configPath, ['runs', 'list', '--test', test, '--json'])

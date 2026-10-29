@@ -14,7 +14,7 @@ import { assembleCliRun } from '../composition/run-assembly.js'
 import { runInProcessCliRun } from '../composition/in-process-run-execution.js'
 import { closeTestRunRecords, testRunRecord } from '../composition/__tests__/in-process-run-fixture.js'
 
-// every drive call carries a record; each cell closes the ones it opened.
+// Every drive call carries a record; each cell closes the ones it opened.
 afterEach(() => { closeTestRunRecords() })
 
 const boundary = vi.hoisted(() => ({

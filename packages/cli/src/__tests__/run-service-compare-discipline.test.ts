@@ -1,21 +1,4 @@
-// THE COMPARE DISCIPLINE, MEASURED RATHER THAN GREPPED.
-//
-// RE-SPELLED. This file measured `matchServiceBearer`, the run
-// service's bearer compare, and that module is deleted with the run-service tokens. The one secret
-// compare the run service still depends on is the live-view link's signature check — the signed,
-// short-lived, subject-bound token D-13 keeps — so the same discipline is measured there: the
-// constant-time primitive is REACHED for a signature of the right width, exactly once per check, a
-// wrong-width signature is refused without reaching it (and without throwing), and a tampered or
-// foreign-key signature is refused.
-//
-// WHY THIS FILE EXISTS SEPARATELY FROM `run-service-auth-hardening.test.ts`. It replaces
-// `node:crypto` for the whole module graph it loads, which a file may do only if it loads almost
-// nothing: the hardening suite boots a database, a dashboard host and a TCP server, all of which
-// hash. The hardening file states the same claim's SOURCE half.
-//
-// WHY A CALL COUNT AND NOT A SOURCE GREP. A count of `timingSafeEqual` INVOCATIONS observed at run
-// time cannot be satisfied by an import, a comment, a JSDoc mention or a dead function: it is the
-// number of times the constant-time primitive actually ran while a signature was being verified.
+// Counts `timingSafeEqual` calls at run time on the live-view signature check, not a source grep.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 

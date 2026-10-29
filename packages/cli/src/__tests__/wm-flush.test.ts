@@ -1,7 +1,4 @@
-// The run-end working-memory flush: every value is masked with the
-// run's declared mask and written as is, the store is disposed, and the
-// flush never throws (Pitfall 5: the run exit code is untouched).
-//   flushWorkingMemory(store, { artifactsDir, mask }) → Promise<{ path, entriesWritten }>
+// The run-end flush masks every value with the declared mask, disposes the store, never throws.
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mkdir, rm, readFile } from 'node:fs/promises'
 import { join } from 'node:path'

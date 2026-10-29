@@ -1,14 +1,4 @@
-// The terminal confirmation, and the two hosts that differed over it.
-//
-// 391 gave the v48 gate's ask ladder its first host binding: a `[y/N]` prompt the CLI bound when
-// both of its streams were a terminal, and that the daemon never bound.
-//
-// THE PROMPT IS DELETED. Since 432-13 no gate asked and no door
-// built it; now `createTtyConfirmPort`, its disclosure writer and the composition's `confirm` input
-// are gone too. The cells that drove the prompt over injected streams are re-spelled as absence:
-// no factory, no prompt text in the CLI or the composition, no input field that could carry one,
-// and a mutating call without a terminal completes in one call and reads no stdin. No channel
-// exists on which a disclosure could be printed.
+// No terminal confirm: a mutating call without a terminal completes in one call, no stdin read.
 
 import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -84,8 +74,6 @@ use:
 const PROMPT_TEXT = /needs your approval|\[y\/N\]|\[y\/a\/N\]|Proceed\?/u
 
 describe('the CLI binds a confirmation exactly where there is somebody to ask', () => {
-  // RE-SPELLED 2026-10-01: was 'binds NOTHING without a terminal — the gate keeps its
-  // deny-by-default'. There is no factory left to bind anything, with a terminal or without one.
   it('the CLI host exports no terminal or chat confirm factory', () => {
     const exported = Object.keys(cliHost)
     expect(exported).not.toContain('createTtyConfirmPort')
@@ -93,9 +81,6 @@ describe('the CLI binds a confirmation exactly where there is somebody to ask', 
     expect(exported).toContain('composeCliLocalAgent')
   })
 
-  // RE-SPELLED 2026-10-01: was 'answers yes to an explicit yes', 'accepts the long form
-  // too' and 'refuses everything else'. Their subject, the prompt, is gone from both packages that
-  // composed it.
   it('no prompt text survives in the CLI or the composition sources', () => {
     const scanned = [
       ...productSources(join(__dirname, '..')),
@@ -149,8 +134,7 @@ describe('the CLI binds a confirmation exactly where there is somebody to ask', 
     }
   })
 
-  // 432-16 task 2: the same one-call claim through the real `agent-qa fn` door, with stdin as the
-  // test runner leaves it (not a terminal): the change lands and nothing waits for an answer.
+  // The same one-call claim through the real `agent-qa fn` door, with stdin not a terminal.
   it('`agent-qa fn` applies a change without a terminal, in one call', async () => {
     const root = mkdtempSync(join(tmpdir(), 'tty-confirm-fn-door-'))
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
@@ -181,8 +165,6 @@ describe('the CLI binds a confirmation exactly where there is somebody to ask', 
     }
   })
 
-  // RE-SPELLED 2026-10-01: was 'is bound by THIS host and not by the daemon composition'.
-  // Neither host binds one now.
   it('is bound by neither this host nor the daemon composition', () => {
     const daemonHost = code(join(__dirname, '..', 'daemon', 'host.ts'))
     expect(daemonHost).not.toContain('confirm:')
@@ -193,7 +175,6 @@ describe('the CLI binds a confirmation exactly where there is somebody to ask', 
     expect(cliComposition).not.toMatch(/\bconfirm:/)
   })
 
-  // `agent-qa run` no longer binds it.
   it('is bound by no run door', () => {
     const run = code(join(__dirname, '..', 'commands', 'run.ts'))
     expect(run).toContain('createRunCommand')
@@ -201,12 +182,7 @@ describe('the CLI binds a confirmation exactly where there is somebody to ask', 
   })
 })
 
-// ---- THE CHANNEL A PERSON READ ---------------------------------------
-//
-// RE-SPELLED 2026-10-01: these two cells drove a disclosure carrying a forged approval
-// line through the prompt and counted the lines that reached the stream. The prompt and its
-// `writeDisclosure` are deleted, so no line of a declared target name can reach a person as an
-// approval question.
+// No line of a declared target name can reach a person as an approval question.
 describe('a hostile declared target name cannot author a line on the confirm channel', () => {
   it('there is no confirm channel: the host carries no disclosure writer and no question', () => {
     const host = code(join(__dirname, '..', 'composition', 'local-agent-host.ts'))

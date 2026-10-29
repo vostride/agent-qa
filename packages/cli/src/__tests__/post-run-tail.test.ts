@@ -1,16 +1,4 @@
-// The shared post-run tail's postures.
-//
-// Every operation is injected, so what is under test here is the tail's DECISION TABLE — who
-// drains, who hands off, when the pump stops, what a failure costs — rather than sqlite or a
-// lease file. The durable half (one row for two tail runs) is proven against the real store in
-// `post-run-enqueue-idempotency.test.ts`; splitting them keeps each proof about one thing.
-//
-// THE ENQUEUE CELLS LEFT THIS FILE. The payload's shape, its idempotency
-// key, `deduped`-is-a-success and the D-07 warning are now pinned in
-// `curation/__tests__/post-verdict-step.test.ts`, because that is where the enqueue is. What
-// replaced them here is the complementary claim — this tail enqueues NOTHING — plus the two legs
-// that used to depend on `enqueue()` having run first: `drain()` resolves its own knowledge root
-// and composes its own host, and `finish()` composes one for the detach posture that never drains.
+// Every operation is injected, so this tests the tail's decision table; this tail enqueues nothing.
 
 import { describe, expect, it, vi } from 'vitest'
 import type { Mock } from 'vitest'
@@ -31,13 +19,7 @@ const configDir = '/workspace/project'
 const configPath = '/workspace/project/agent-qa.config.yaml'
 const knowledgeRoot = '/workspace/project/agent-qa-knowledge'
 const runId = 'run-post-run-tail'
-/**
- * The ids THIS run's chain addresses, derived the way the tail derives them.
- *
- * The fakes below claim jobs by id now, because the tail scopes what it emits and what it counts
- * as its own by id. A stand-in id invented here would model a job no run could enqueue,
- * and every own-chain assertion made against it would be measuring the fixture.
- */
+// Ids derived as the tail derives them, because the fakes claim jobs by id.
 const OWN_CHAIN = chainJobIdsForRun(runId, DIGEST_JOB_ID_SOURCE)
 
 const handoff = {
@@ -103,7 +85,7 @@ function harness(overrides: {
       drainKind: 'drained' as const,
     })),
     runCurationTail,
-    // another run's fixture context, as its own run-config record would give it.
+    // Another run's fixture context, as its own run-config record would give it.
     resolveRunCurationContext: vi.fn(async () => ({ mask: (text: string) => text, knowledgeRoot })),
     now: () => clock.value,
   } as unknown as PostRunTailOperations
@@ -152,14 +134,7 @@ describe('the shared post-run tail', () => {
   })
 
   it('pumps under a HANDED lease and never consults the writer lease again', async () => {
-    // THE ONE-LEASE RULE, from the tail's side. The 404 D-10 post-verdict step acquires exactly
-    // once and hands the authority over; a tail that consulted for itself would be answered
-    // `held` — BY ITS OWN PROCESS — and would then "hand off" this run's chain to nobody, leaving
-    // the rows claimed and the chips frozen.
-    //
-    // The harness's acquisition is rigged to answer `held` precisely so the two behaviours are
-    // distinguishable: a tail that honours the handed lease pumps and reports `drained`; one that
-    // re-acquires reports `handed-off` and nudges a daemon that does not exist.
+    // The harness answers `held`, so a tail re-acquiring for itself reports `handed-off`.
     const h = harness({ lease: { kind: 'held', holder: { pid: 4242 } } as never })
     const tail = runPostRunTail(options(h))
     await tail.drain({ takeLease: () => ({ leaseId: 'lease-from-the-step', epoch: 9 }) })
@@ -189,7 +164,7 @@ describe('the shared post-run tail', () => {
     const tail = runPostRunTail(options(h))
     await tail.drain()
 
-    // Pitfall 7, in order: adopt the epoch the lease minted, reclaim abandoned claims, then pump.
+    // In order: adopt the epoch the lease minted, reclaim abandoned claims, then pump.
     expect(h.adoptEpoch).toHaveBeenCalledWith(7)
     expect(h.recoverAbandonedClaims).toHaveBeenCalledWith({ fence: { epoch: 7 } })
     expect(h.runNextJob).toHaveBeenCalledTimes(3)
@@ -209,7 +184,7 @@ describe('the shared post-run tail', () => {
     expect(h.runCurationTail).toHaveBeenCalledTimes(1)
     const swept = h.runCurationTail.mock.calls[0]![0] as Record<string, unknown>
     expect(swept.authority).toEqual({ leaseId: 'lease-1', epoch: 7 })
-    // one budget. The sweep's stop point is the tail's own deadline, not a second knob.
+    // One budget: the sweep stops at the tail's own deadline, not a second knob.
     expect(swept.deadlineMs).toBe(1_000 + 60_000)
   })
 
@@ -232,8 +207,7 @@ describe('the shared post-run tail', () => {
     const tail = runPostRunTail(options(h))
     await tail.drain()
 
-    // the store skips the retrying row until its not-before time, so
-    // the pump never sleeps on the backoff and claims whatever else is ready.
+    // The store skips the retrying row until its not-before time; the pump claims what is ready.
     expect(runNextJob).toHaveBeenCalledTimes(3)
     expect(tail.report()).toEqual({ enqueue: 'skipped', drain: 'retry-scheduled', jobsRun: 2 })
   })
@@ -305,10 +279,7 @@ describe('the shared post-run tail', () => {
 
   it('reports backlog-exhausted at the pump bound when every claimed job was foreign (a CONTROL)',
     async () => {
-      // CONTROL, not a detector: this case passed BEFORE the exit classification existed — the
-      // shipped guard already covered the `bound` exit — and it passes after. It is here to pin
-      // the table's `bound` member so the classification cannot silently flip, not as evidence
-      // the G-388-3 fix works. Static clock, so the loop runs to its bound and falls out.
+      // A control: it pins the table's `bound` member so the classification cannot silently flip.
       const h = harness({
         runNextJob: vi.fn(async () => ({
           ran: true,
@@ -520,12 +491,7 @@ describe('the tail budget signal', () => {
 
 describe('the tail can never reach the exit code', () => {
   it('survives a tail whose own operation table cannot be resolved', async () => {
-    // The environment `run.test.ts`'s mocked unit runs live in: a partially-stubbed
-    // `runner-local` where merely BUILDING the operation table throws. Reproduced here as a
-    // throwing accessor because the spread that assembles the table is what reads the export.
-    // Discovered by that suite going to exit 2 the moment the tail moved to the call site —
-    // a post-run concern reaching the process code is exactly what JOBQ-06 forbids, so
-    // constructing the tail must cost nothing until a leg is awaited.
+    // A throwing accessor, because building the operation table under `run.test.ts`'s stubs throws.
     const exploding = Object.defineProperty({}, 'now', {
       enumerable: true,
       configurable: true,
@@ -551,9 +517,7 @@ describe('the tail can never reach the exit code', () => {
     })
 
     expect(exitCode).toBe(0)
-    // `drain()` is the leg that builds the table now, so it is the leg that must absorb
-    // a table that cannot be built. The claim is unchanged — a post-run concern may never reach
-    // the process code — only the leg that carries it.
+    // `drain()` builds the table, so it must absorb a table that cannot be built.
     expect(tail.report().drain).toBe('not-attempted')
     expect(warn).toHaveBeenCalledTimes(1)
   })

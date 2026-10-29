@@ -197,9 +197,7 @@ for (const path of ['COMPOSED', 'DIRECT'] as const) {
         expect(rows?.steps[0]?.evidence).toEqual(terminal.evidence)
         const registry = createFunctionRegistry({
           deps: { runDetail: createDashboardRunDetailReader(coldDb) } as FunctionDeps,
-          // no `resolveExecutionContext` registry option, and the caller
-          // carries no `grantedScopes`/`safeMode` (or the cast that carried them); the registry
-          // reads neither.
+          // No `resolveExecutionContext`, `grantedScopes` or `safeMode`; the registry reads none.
         })
         const detail = RunDetailProjectionSchema.parse(await invokeFunction(
           registry, RUNS_DETAIL_FUNCTION_ID, { runId: asRunId(runId) },
@@ -223,9 +221,7 @@ for (const path of ['COMPOSED', 'DIRECT'] as const) {
   })
 }
 
-// This slice uses the real runner, sink, subscriber, disk stores and function registry.
-// Platform/model are deterministic ports. runs.evidence selection belongs to 423-29/09;
-// here runs.detail selects the recorded child and the existing store reads its SHA bytes.
+// Real runner, sink, subscriber, stores and registry; `runs.detail` selects the recorded child.
 async function ariaReadback(mode: 'two' | 'empty' | 'missing' | 'mobile' | 'childless' | 'historical') {
   const runId = generateRunId()
   const secret = 'synthetic-aria-late-secret'
@@ -318,9 +314,7 @@ async function ariaReadback(mode: 'two' | 'empty' | 'missing' | 'mobile' | 'chil
         runDetail: createDashboardRunDetailReader(cold), runs: { get: forbidden },
         evidenceBlobs: { read: blobRead, has: async (_runId: unknown, sha: string) => reopened.hasBlob(sha) ? 'found' : 'blob_absent' },
       } as unknown as FunctionDeps,
-      // no `resolveExecutionContext` registry option, and the caller
-      // carries no `grantedScopes`/`safeMode` (or the cast that carried them); the registry reads
-      // neither.
+      // No `resolveExecutionContext`, `grantedScopes` or `safeMode`; the registry reads none.
     })
     const detail = RunDetailProjectionSchema.parse(await invokeFunction(
       registry, RUNS_DETAIL_FUNCTION_ID, { runId: asRunId(runId) },

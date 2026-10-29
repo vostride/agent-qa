@@ -1,22 +1,4 @@
-// A real MCP client spawns the SHIPPED binary (Phase 396 plan 01, D-09 / D-17's spirit).
-//
-// WHY A SECOND CELL WHEN THE TRACER ALREADY PASSES. The tracer drives the catalog in process. Every
-// interesting thing about STDIO is invisible from there: whether the built artifact starts at all,
-// whether the command still resolves, whether the era negotiation the serving entry owns actually
-// completes over a pipe, and — the one that breaks every client in the field when it goes wrong —
-// whether anything but JSON-RPC reaches stdout. None of those are provable against an in-process
-// handler, and stdio is how every editor and desktop client will actually reach this server.
-//
-// THE STDOUT CLAIM IS PROVEN BY THE ROUND TRIP ITSELF, not by a string search. A stray byte on
-// stdout ahead of a response is not a cosmetic blemish — it corrupts the framing and the transport
-// fails outright — so a completed `tools/list` over this pipe IS the assertion that stdout carried
-// protocol and nothing else. The startup line is asserted separately, on captured STDERR, which is
-// the other half of the same law: the diagnostic exists AND it is not on the protocol channel.
-//
-// BUILD PREREQUISITE (the stale-dist law). These cells measure the BUILT artifact. Run
-// `pnpm build` — or at minimum the schema, agent, mcp and cli filters in dependency order —
-// before running them, or the binary spawned here is a previous revision wearing this one's name.
-// The guard below refuses with that instruction rather than spawning something that does not exist.
+// A completed `tools/list` over the pipe proves stdout carried only protocol; build first.
 
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -37,14 +19,7 @@ afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 
-/**
- * A real project on disk — produced, not a literal path handed to the child.
- *
- * `legacyTokens` writes the pre-432 MCP credential block: one declared token
- * whose variable is set nowhere, and the stdio config-write switch off. Before 432-21 the unset
- * variable refused startup by name; now nothing reads the block, and since 432-22 both keys are
- * unknown to the strict schema.
- */
+// `legacyTokens` writes an old MCP credential block that nothing reads and the schema rejects.
 function fixtureProject(legacyTokens = false): string {
   const root = mkdtempSync(join(tmpdir(), 'agent-qa-396-01-stdio-'))
   roots.push(root)
@@ -76,7 +51,7 @@ function fixtureProject(legacyTokens = false): string {
     )}\n`,
     'utf8',
   )
-  // the MCP masker reads this project's declared secrets.
+  // The MCP masker reads this project's declared secrets.
   writeFileSync(join(root, '.env.secrets.local'), '')
   mkdirSync(join(root, '.agent-qa'), { recursive: true })
   return root
@@ -132,13 +107,10 @@ describe('agent-qa mcp over spawned stdio', () => {
       const listed = await client.listTools()
       const names = listed.tools.map((entry) => entry.name)
 
-      // (a) The catalog reached a client that spawned the shipped binary.
-      // `agent_qa_list_proposals` left with the proposal round; the run list stands in.
+      // The catalog reached a client that spawned the shipped binary.
       expect(names).toContain('agent_qa_list_runs')
 
-      // (b) RE-SPELLED 2026-10-01 from D-07's default grant (every scope except
-      // `config-write`, with a stdio opt-in for the last one). Neither the grant nor the opt-in
-      // exists: a stdio caller with no switch set lists the config-write tool like every other.
+      // A stdio caller with no switch set lists the config-write tool like every other.
       expect(names).toContain('agent_qa_change_config')
       expect(names).toContain('agent_qa_mark_run')
 
@@ -154,10 +126,7 @@ describe('agent-qa mcp over spawned stdio', () => {
     }
   }, 30_000)
 
-  // the legacy credential block is left on disk and never read. Before 432-21 a
-  // declared token whose variable was unset refused startup naming the variable; now the binary
-  // starts and lists exactly what it lists for a project with no block at all. 432-22: the keys are
-  // deleted, so the file fails strict validation; `agent-qa mcp`'s tolerant read serves anyway.
+  // The legacy block is never read, and `agent-qa mcp`'s tolerant read serves despite it.
   it('a legacy token block with an unset variable refuses nothing and changes no listing', async () => {
     expect(existsSync(CLI_ENTRY), `the built CLI entry is missing at ${CLI_ENTRY}`).toBe(true)
     const plain = await listOverStdio(fixtureProject())

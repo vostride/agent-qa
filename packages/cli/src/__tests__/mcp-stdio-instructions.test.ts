@@ -1,8 +1,4 @@
-// C433-MCP-INSTRUCTIONS-PARITY.
-//
-// The shipped `agent-qa mcp` binary answers the server's instructions over stdio, and they forbid
-// every path init's guide and pointer forbid. init itself still writes no CLAUDE.md.
-// AGENT_QA_433_PARITY_CLI points the spawned cells at another build (the pinned pre-fix one for RED).
+// The shipped `agent-qa mcp` binary's stdio instructions forbid every path init's guide forbids.
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
