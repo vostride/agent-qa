@@ -1,12 +1,4 @@
-// Shared fixture for the reporter subscriber suites (Plan 363-07).
-//
-// One declared-secret mask + one canonical envelope stream, built from the REAL schema
-// envelope/payload types (never hand-rolled shapes). Masked markers are planted
-// exactly where the sink would put them: a step `error`, a `hookFinished` variable
-// value, and a `testFinished.failureSummary`. Every reporter prints them as they are
-// (441 D-07: nothing restores a value).
-// the mask is the runner's declared `SecretRedactor`, not the deleted
-// masking context, so the markers read `[secret:<name>]`.
+// Masked markers are planted where the sink puts them, and every reporter prints them as they are.
 
 import { SecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
 import { CURRENT_BUS_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
@@ -200,15 +192,7 @@ export function buildReporterFixture(): ReporterFixture {
   return { mask, stepSecret, hookSecret, summarySecret, envelopes }
 }
 
-/**
- * The run-start quarantine snapshot entry that licenses the fixture's FAILING member.
- *
- * Its identity is `(filePath, testName)` taken verbatim from `test1Started` — the same two fields
- * the runner matches on, so a reporter that agrees with this entry agrees with the aggregate
- * verdict rule about the same member. `product` is present because the handoff records it, and is
- * deliberately NOT part of the match (the composition layer filtered by product before the
- * snapshot was handed over — D-16).
- */
+// Matched on `(filePath, testName)` as the runner does; `product` is recorded but not matched.
 export const QUARANTINED_CHECKOUT: QuarantineAppliedEntry = {
   product: 'shop-web',
   filePath: 'tests/checkout.yaml',

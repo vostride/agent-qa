@@ -1,35 +1,4 @@
-// The fourth door's security posture, DRIVEN (Phase 400 plan 14, verification gaps 6 and 7).
-//
-// WHY EVERY CELL BELOW OPENS A SOCKET. The phase's shipped CORS corpus asserted that a response
-// carried no `Access-Control-Allow-Origin`. That is an assertion about what an attacker gets to
-// READ, and the threat is what an attacker gets to DO: a CORS simple request needs no preflight,
-// so a 204-no-grant OPTIONS arm never runs, the browser sends the POST anyway, and the action
-// executes. Withholding the reply header hides the answer and not the side effect. So no cell here
-// asserts a header alone: every REJECTS cell measures the SIDE-EFFECT SURFACE — whether the request
-// reached the composed host at all — around a request written byte-by-byte onto a real socket.
-//
-// RAW SOCKETS RATHER THAN `fetch`, for two reasons that are both load-bearing. `fetch` normalises
-// a path, and gap 7's probe is a request target (`//`) that no URL builder will hand to a server.
-// And `Origin` is a forbidden header name in a browser, so a corpus that could only set the headers
-// `fetch` permits could not state the attacker's request at all.
-//
-// ACCEPTS CONTROLS ARE NOT OPTIONAL HERE. A REJECTS-only corpus is green against a door that
-// refuses everything, which is a door nobody can use. The two axes the policy allows — a
-// same-origin browser drive and an Origin-less local drive — are pinned SEPARATELY, so a fix that
-// closed either one reds a cell.
-//
-// 430: the cross-site corpus was driven on the run-confirm pair.
-//
-// the run-confirm pair is deleted, and with it the router whose
-// method-level guards this corpus measured. The same-site refusal survives on every mutating route
-// that had one, so the corpus moves to them and is driven through the SHIPPED server
-// (`startServer` over the composed host): the mark door, which is the dashboard's own mark
-// control, and the credential and editor doors, which refuse before they touch anything. Each
-// cell below says which of its claims moved and which retired with the router.
-//
-// 7a (the session-id route) and 7b-i (the turn's fold guard) are deleted
-// with the routes they drove. The generic 404 those paths now answer is carried by
-// C430-DELETED-CHAT-ROUTES-SHARED-404 and process survival's s5.
+// Raw sockets: `fetch` normalises `//` and cannot set `Origin`; each refusal reads side effects.
 
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
@@ -136,8 +105,7 @@ async function openDoor(options: {
     declaredSecretMask,
     db,
     port: 0,
-    // 2026-10-03 (quick-261003-tsr, WR-07): the fixture's own config, so the config and undo arms
-    // write a temporary file rather than one resolved from the test's working directory.
+    // The fixture's own config, so the config and undo arms write a temporary file.
     configPath,
     agentHost: options.wrapHost === undefined ? counted : options.wrapHost(counted),
   })
@@ -296,15 +264,7 @@ interface SeamReading {
   readonly after: string
 }
 
-/**
- * The whole REJECTS assertion, in one place so no cell can quietly assert less than its siblings.
- *
- * STATUS IS THE WEAKEST OF THESE and it is deliberately not alone: a door that answered 403 and
- * acted anyway would pass a status-only cell. The side effect a mark has is its dispatch, so the
- * surface measured is whether the composed host was asked to do anything at all. An arm that
- * writes past the host (a file, a credential, a provider request) passes its own seam reading too
- * (2026-10-03, quick-261003-tsr WR-07).
- */
+// A door that answered 403 and acted anyway passes on status alone, so each arm's seam is read too.
 function expectNoSideEffect(
   label: string,
   door: DoorFixture,
@@ -331,14 +291,7 @@ function expectDispatchedOnce(label: string, door: DoorFixture, response: RawRes
   expect(door.invocations).toEqual([RUNS_MARK_FUNCTION_ID])
 }
 
-// ---- the retained same-site arms, each with its own side-effect seam -----------------------
-//
-// 2026-10-03 (quick-261003-tsr, WR-07): 6g used to measure only `door.invocations`, which six of
-// these seven arms never cross, and drove them with a mark body none of them could act on. Each arm
-// now names the seam it writes through, is driven with a body it WOULD act on, and has a same-origin
-// control showing that body acts. The live-editor arm is the one that cannot be driven to its write
-// here (an admitted create starts a browser), so its control stops at the create's next refusal past
-// the cross-site check, before any session, and its seam is the session list.
+// Each arm names the seam it writes through and is driven with a body it would act on.
 
 /** The machine-wide credential name the credential, move and delete arms act on. */
 const PROBE_CREDENTIAL = 'door-probe'
@@ -562,10 +515,6 @@ describe('the fourth door refuses a cross-origin drive before anything happens',
     expectDispatchedOnce('6e', door, answered)
   })
 
-  // RE-SPELLED 2026-10-01: was 'refuses a cross-origin answer to somebody else's
-  // outstanding run confirm'. There is no outstanding question to spend. The claim that survives is
-  // that the refusal is about the ORIGIN and never about the body: the byte-identical request is
-  // refused from another origin and accepted from the door's own.
   it('6f — refuses a cross-origin mark, and the identical request from the page itself dispatches', async () => {
     const door = await openDoor()
     const refused = await driveMark(door.port, {
@@ -581,13 +530,7 @@ describe('the fourth door refuses a cross-origin drive before anything happens',
     expectDispatchedOnce('6f', door, accepted)
   })
 
-  // RE-SPELLED 2026-10-01: was 'refuses EVERY mutating route the router's own table
-  // declares'. The table was the run-confirm router's and is deleted. The shipped router has no
-  // table of its mutating arms, so the retained same-site arms are listed here by path; a new
-  // same-site arm must be added to this list to be ranged.
-  // RE-SPELLED 2026-10-03 (quick-261003-tsr, WR-07): was '6g — refuses EVERY retained same-site
-  // mutating arm, and reaches the mark arm same-origin'. Each arm is now driven with a body it
-  // would act on, its own seam is read around the refusal, and every arm has its accepts control.
+  // The shipped router has no table of mutating arms, so a new same-site arm must be added here.
   it('6g — refuses EVERY retained same-site mutating arm before its own side effect, and each arm acts for its own page', async () => {
     const door = await openDoor()
     const savedDataHome = process.env.XDG_DATA_HOME
@@ -789,10 +732,7 @@ describe('the fourth door outlives every malformed request a socket can carry', 
     }
   })
 
-  // RE-SPELLED 2026-10-01: the synchronous arm was the run-confirm router's media-type
-  // refusal, deleted with it. RE-AIMED 2026-10-14: the display unmask that carried
-  // the claim next is deleted, so the evidence read's dispatch carries it — the arm calls the host
-  // inside the router's own call stack, so only the server's one `try` can answer a throw there.
+  // The arm calls the host inside the router's stack, so only the server's `try` answers a throw.
   it('7d — a throwing SYNCHRONOUS arm is caught by the dispatch boundary', async () => {
     const door = await openDoor({ wrapHost: throwingInvokeOnce('432-14 dispatch fault') })
     const watch = watchForEscapes()
@@ -814,10 +754,7 @@ describe('the fourth door outlives every malformed request a socket can carry', 
     }
   })
 
-  // RE-SPELLED 2026-10-01: was the run-confirm answer handler's rejection. RE-AIMED
-  // the display unmask is deleted, so the fault is an answer the mark
-  // door's responder cannot serialize. It throws AFTER the body read, so it is a rejection of that
-  // handler's promise, and only the arm's own `.catch` can answer it.
+  // The responder throws after the body read, so only the arm's own `.catch` can answer it.
   it('7b-ii — a throwing responder is caught by the handler\'s own backstop', async () => {
     const door = await openDoor({ wrapHost: unserializableAnswerOnce('400-14 responder fault') })
     const watch = watchForEscapes()

@@ -1,22 +1,4 @@
-// The PARENT side of the post-run daemon proofs (Phase 388 plan 06, SC4).
-//
-// Deliberately the 385 kill-matrix / 386 socket-takeover protocol rather than a third one: a real
-// daemon generation, a real unix socket, a real writer lease, a real SIGKILL, and every fact the
-// leg depends on observed rather than assumed. Nothing here knows anything about post-processing;
-// it is about processes, markers and signals only, which is why it can be shared by both SC4
-// suites without either of them learning how the other drives the chain.
-//
-// Four facts a leg needs from this module, each a function rather than an inline assertion:
-//
-//   1. THE CHILD REACHED ITS POINT. `waitForMarker` polls for an atomically published marker and
-//      aborts THE MOMENT the child exits, with the child's captured output attached — otherwise
-//      "the daemon never claimed the job" spends ninety seconds pretending to be flake.
-//   2. THE CHILD WAS ALIVE WHEN THE SIGNAL WENT OUT. Killing a process that already finished is a
-//      call that does nothing and reports success.
-//   3. IT DIED BY THE SIGNAL. `{code: null, signal: 'SIGKILL'}` as an equality on the pair: a
-//      graceful exit is `{code: 0, signal: null}` and must not pass for a crash proof.
-//   4. THE PID IS GONE. `pidIsAlive` reads the kernel's answer, because the whole lease-vs-PID
-//      claim is that a dead pid does NOT make a fresh lease reclaimable.
+// A leg checks the child reached its marker, lived to the signal, died by SIGKILL, and left no pid.
 
 import { spawn, type ChildProcess } from 'node:child_process'
 import { once } from 'node:events'

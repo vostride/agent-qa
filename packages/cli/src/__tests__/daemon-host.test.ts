@@ -115,7 +115,7 @@ export async function resolve(specifier, context, nextResolve) {
 const temporaryRoots: string[] = []
 const HOST_INSTANCE_ID = '11111111-1111-4111-8111-111111111111'
 const SUCCESSOR_INSTANCE_ID = '22222222-2222-4222-8222-222222222222'
-/** A live embedder worker of the same project — the WR-06 rejecting case's real neighbour. */
+// A live embedder worker of the same project, the rejecting case's real neighbour.
 const EMBEDDER_INSTANCE_ID = '33333333-3333-4333-8333-333333333333'
 
 /**
@@ -723,25 +723,7 @@ describe('runDaemonHost — standing leaseholder tracer', () => {
   }, 60_000)
 })
 
-/**
- * D-09 (386-04 #2): the daemon's posture pin, tested against a DIFFERING ambient answer.
- *
- * The pre-existing assertion (`:510`) could not fail. `execution-context.ts` ships
- * `local-headless` as its module default, and the ambient resolver `safety-local` installs reads
- * `process.std{in,out}.isTTY`, which vitest leaves false — so the ambient answer already WAS the
- * pinned answer and deleting `host.ts`'s pin left the whole suite green. A gate whose fixture
- * cannot produce the value under test is a failed control, not a passing test.
- *
- * These cases install production's own `resolveExecutionContext` over the signal set a human at a
- * terminal produces (`isTty: true, ciMarkers: false` -> `local-interactive`) and assert the
- * ambient/pinned divergence BEFORE running the host. That control is the point: if the fixture
- * ever stops producing a differing value it reddens here rather than passing silently.
- *
- * `local-interactive` was also the ONE context in which `requiresFailClosed` was false, which is
- * what made the statement's second clause — "never sits on an interactive ask" — expressible.
- * the gate, its ask and `requiresFailClosed` are deleted, so the second
- * clause is now true by absence; the posture pin itself (the execution context) is retained.
- */
+// Installs a resolver answering `local-interactive`, so the daemon's `local-headless` pin can fail.
 describe('runDaemonHost — execution-posture pin', () => {
   /**
    * Run `body` with an ambient resolver that answers `local-interactive`.
@@ -789,11 +771,6 @@ describe('runDaemonHost — execution-posture pin', () => {
     })
   })
 
-  // RE-SPELLED 2026-10-01 from 'denies an ask-tier action by name under the pin
-  // instead of prompting a TTY'. That cell drove the gate's `evaluate` under the ambient and the
-  // pinned context to show the pin turned a prompt into a named fail-closed denial. The gate is
-  // deleted: there is no ask to prompt and no denial to name, so the daemon can never sit on an
-  // interactive ask. What survives is the pin, which the run, handoff and bus still record.
   it('pins local-headless while it runs, and there is no ask left to sit on', async () => {
     await withInteractiveAmbient(async () => {
       const paths = makePaths('posture-pin-ask')
@@ -1245,9 +1222,7 @@ describe('daemon registration instance ownership and readiness', () => {
       'utf8',
     )
     expect(registrationSource).not.toContain('function removeDaemonRegistration')
-    // W-03's other half: the removal routine restores by rename, never by hard link. `\b` is
-    // load-bearing — `unlinkSync` contains the substring `linkSync`, so a plain `not.toContain`
-    // would fail on code that is already correct.
+    // Restores by rename, never hard link; `\b` matters, as `unlinkSync` contains `linkSync`.
     expect(registrationSource).not.toMatch(/\blinkSync\(/)
     expect(registrationSource, 'the unlink and rename it does use must still be there')
       .toMatch(/\bunlinkSync\(/)
@@ -1379,16 +1354,7 @@ describe('daemon registration recovery at boot', () => {
   /** chmod is advisory for uid 0, so the unreadable-epoch input domain cannot be produced there. */
   const canMakeFilesUnreadable = process.platform !== 'win32' && process.getuid?.() !== 0
 
-  /**
-   * The decisive CR-01 consumer probe, inverted into a permanent pin.
-   *
-   * The verifier ran exactly this state through the production classifier — a live registration
-   * whose identity handshake fails, a lease heartbeated milliseconds ago, and an unreadable
-   * `.epoch` — and watched it answer `unreachable-lease-stale`, which `runDaemonHost` executes as
-   * registration deletion plus socket unlink against a daemon that is still running and still
-   * holds the lease. An epoch nobody can read must read as HELD, never as recoverable: the
-   * classifier's `unknown` arm is refusal-equivalent.
-   */
+  // An epoch nobody can read must read as held, never recoverable: the `unknown` arm refuses.
   it.runIf(canMakeFilesUnreadable)(
     'classifies an unreadable epoch over a fresh holder as lease-fresh',
     async () => {
@@ -1439,16 +1405,7 @@ describe('daemon registration recovery at boot', () => {
     },
   )
 
-  /**
-   * The sibling of the leg above, on the file round 5 found the same defect in.
-   *
-   * `readWriterLease` answered `malformed` for a `.lease` that merely could not be opened, and
-   * `classifyDaemonRegistration` short-circuited to `unreachable-lease-stale` above its own
-   * carefully-argued `unknown` arm — which `runDaemonHost` executes as `removeClassifiedRegistration`
-   * plus socket unlink against a daemon that is still running and still holds the lease. The pin
-   * runs the whole path through PRODUCTION operations and asserts the two artifacts that survive
-   * or do not: `daemon.json` and the socket file.
-   */
+  // An unreadable `.lease` must not read as stale, or a running daemon loses its registration.
   it.runIf(canMakeFilesUnreadable)(
     'classifies an unreadable lease over a fresh holder as lease-fresh and removes nothing',
     async () => {
@@ -1525,22 +1482,7 @@ describe('daemon registration recovery at boot', () => {
     },
   )
 
-  /**
-   * The fourth and last member of the authority input set: `daemon.json` itself.
-   *
-   * The two legs above make `.epoch` and `.lease` unreadable. This one makes the REGISTRATION file
-   * unreadable, which is the remaining same-class file this boot path reads, and it is the member
-   * with the largest blast radius if it resolved the wrong way: `runDaemonHost` executes the
-   * `unreachable-lease-stale` classification as `removeClassifiedRegistration` plus socket unlink,
-   * so a read failure that collapsed toward "stale" would de-register and un-address a live daemon.
-   *
-   * `readDaemonRegistrationFile` already answers `malformed` for a file that exists and cannot be
-   * opened (registration.ts:187), and `malformed` is a REFUSAL here rather than recovery input —
-   * `refuseRegistration` returns before anything is removed and before the lease is even reached.
-   * That is the property this leg pins. It is a pin, not a defect closure, so it has no RED: its
-   * evidence is the no-op mutation probe recorded in the summary, which makes the `chmod` a no-op
-   * and reddens this leg alone.
-   */
+  // An unreadable `daemon.json` reads as `malformed`, which refuses before anything is removed.
   it.runIf(canMakeFilesUnreadable)(
     'refuses an unreadable daemon.json without removing the registration or the socket',
     async () => {
@@ -1748,10 +1690,7 @@ describe('daemon registration recovery at boot', () => {
     const nowMs = Date.now()
     const leaseHolderPid = process.pid + 10_000
     mkdirSync(paths.knowledgeRoot, { recursive: true })
-    // The epoch file is published BEFORE the lease by every real acquisition, and after 386-36
-    // composite freshness reads it: a lease naming an epoch the disk does not agree with is
-    // recovery input, not a fresh holder. Writing only the lease described a root no acquisition
-    // can produce, which made this leg assert freshness it was not actually demonstrating.
+    // Acquisition publishes the epoch before the lease and freshness reads both; both are written.
     writeFileSync(join(paths.knowledgeRoot, EPOCH_FILE), '4\n')
     writeFileSync(join(paths.knowledgeRoot, LEASE_FILE), `${JSON.stringify({
       leaseId: 'd97c6375-c7b5-4581-aae8-bc0f20926bcf',
@@ -2071,8 +2010,7 @@ describe('daemon registration recovery at boot', () => {
     // is exactly the arbitrary-deletion input the guard now refuses.
     const recordedSocket = daemonSocketPath(paths.agentQaRoot, paths.root, HOST_INSTANCE_ID)
     const bystanderSocket = join(paths.root, 'b.sock')
-    // a BINDABLE filename, so the ownership gate admits it and the lstat guard is the
-    // only thing left standing between this path and an unlink.
+    // A bindable filename: the ownership gate admits it and only the lstat guard stops the unlink.
     const plainFile = join(paths.agentQaRoot, 'daemon.sock')
     mkdirSync(dirname(recordedSocket), { recursive: true })
     await abandonSocketFile(recordedSocket)
@@ -3076,14 +3014,7 @@ describe('daemon shutdown and reclaim post-mortem', () => {
   })
 })
 
-/**
- * a receipt-required session may start empty, and work may arrive before the loop looks.
- *
- * The barrier is scheduled through the inspection seam itself: the FIRST inspection returns the
- * empty root the session was started for and enqueues the candidate as it returns, so the arrival
- * lands after the initial inspection and before the loop's observation — the exact window the
- * review describes and the only one where the eager author assignment is observable.
- */
+// The first inspection enqueues the candidate, so work lands between it and the loop's observation.
 describe('drain session authorship at every arrival time', () => {
   it('authors a candidate that arrives between the initial inspection and the loop observation', async () => {
     const paths = makePaths('late-candidate')
@@ -3187,10 +3118,7 @@ describe('drain session authorship at every arrival time', () => {
   })
 })
 
-/**
- * the lifecycle ledger is D-04's fencing post-mortem and a `daemon status` source, so a
- * crash must not lose an acknowledged fact and a torn final append must not break its readers.
- */
+// The lifecycle ledger feeds fencing and `daemon status`; a torn final append must not break it.
 describe('daemon lifecycle event durability and torn-tail reading', () => {
   it('fsyncs every accepted event through an owned owner-only descriptor', () => {
     const paths = makePaths('event-durability')
@@ -3276,14 +3204,7 @@ describe('daemon lifecycle event durability and torn-tail reading', () => {
   })
 })
 
-// The run-outcome projection reconcile on the DAEMON host (393 round 6, CR-02-daemon).
-//
-// The tail's reconcile is reachable from the CLI host only: `runCurationTail`'s single production
-// caller returns before it whenever the drain hands off, which is exactly the posture a standing
-// daemon puts every run in. So on a daemon-hosted project the backfill never ran and
-// `suite_fingerprints` stayed empty forever — while `host.ts`'s own comment insists the two hosts
-// must not have two bodies. These cells pin the mechanism on the daemon side rather than a comment
-// qualifying the promise away.
+// The CLI tail returns before reconciling when the drain hands off, so the daemon reconciles too.
 describe('runDaemonHost — the run-outcome projection reconcile', () => {
   interface ReconcileCall {
     readonly options: {
@@ -3393,10 +3314,7 @@ describe('runDaemonHost — the run-outcome projection reconcile', () => {
     expect(reconcileErrors).toHaveLength(1)
     expect(reconcileErrors[0]).toContain('reconcile failed')
 
-    // Two-hosts-one-body (393 round 7, WARN-TEXT-CLASS): the daemon states the same two outcomes
-    // as the tail, hinged on whether the rebuild had begun, because the same two throw classes
-    // reach both catches — one before any DELETE (family intact under its previous stamp) and one
-    // after (unstamped, possibly partial).
+    // The daemon states the tail's outcomes, because the same throw classes reach both catches.
     expect(reconcileErrors[0]).toContain('the run-outcome projection reconcile did not complete')
     expect(reconcileErrors[0]).toContain(
       'If the rebuild write phase had already begun, the projection family is left unstamped and possibly'

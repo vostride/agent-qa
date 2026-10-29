@@ -1,5 +1,4 @@
-// every URL init writes names only the playground host,
-// except agent-qa's own recipe page (446-09, owner decision 2026-10-20)
+// Every URL init writes names only the playground host, except agent-qa's own recipe page.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { Command } from 'commander'
 

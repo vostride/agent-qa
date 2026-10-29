@@ -1,5 +1,4 @@
-// 431-10 (PXH-AGENT-01/02 · D-14..D-20): the generated knowledge guide and the root pointer,
-// driven through the real `init` command against real temporary directories.
+// The generated knowledge guide and root pointer, through the real `init` against temp directories.
 import {
   existsSync,
   linkSync,
@@ -80,8 +79,7 @@ function liveCommandPath(cli: string): string {
   const program = new Command()
     .addCommand(createRunsCommand())
     .addCommand(createKnowledgeCommand())
-    // `agent-qa proposals` is deleted, so the guide can name no verb
-    // under it and this tree no longer carries it.
+    // The tree carries no `proposals` command, so the guide can name no verb under it.
     .addCommand(createSkillsCommand())
     .addCommand(createInitCommand())
   const words = cli.split(' ').slice(1)

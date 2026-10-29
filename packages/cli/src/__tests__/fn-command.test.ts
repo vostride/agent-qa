@@ -1,8 +1,4 @@
-// End-to-end tracer for the 384 function layer (Plan 01, D-05/D-06/D-11).
-//
-// `agent-qa fn runs.list` must resolve through the WHOLE path — composition-built
-// registry → invokeFunction → evaluate() → injected run-dir reader → RunSummary[] —
-// against a real on-disk fixture. Nothing here stubs the gate or the registry.
+// `agent-qa fn runs.list` through the whole path against a real fixture; nothing is stubbed.
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -29,8 +25,7 @@ import { createFnCommand } from '../commands/fn.js'
 const FIXTURE_API_KEY = 'sk-live-DO-NOT-LEAK-4242'
 const FIXTURE_API_KEY_MARKER = '[secret:ACME_API_KEY]'
 
-// every other credential-shaped value below is undeclared, so
-// `config.get` shows it as written. They stay in the fixture as the undeclared corpus.
+// Every other credential-shaped value below is undeclared, so `config.get` shows it as written.
 const FIXTURE_HEADER_KEY = 'sk-live-HEADER-KEY-DO-NOT-LEAK-1111'
 const FIXTURE_HEADER_CRED = 'sk-live-HEADER-CRED-DO-NOT-LEAK-2222'
 const FIXTURE_HEADER_PWD = 'sk-live-HEADER-PWD-DO-NOT-LEAK-3333'
@@ -106,8 +101,7 @@ function fixtureWorkspace(roots: string[]): FixtureWorkspace {
     configPath,
     `${JSON.stringify({
       workspace: {
-        // A required field whose value carries the standard glob wildcard, and an ignore
-        // glob carrying a '#'. Round 5 masked both.
+        // A required field carrying the glob wildcard, and an ignore glob carrying a `#`.
         testMatch: [FIXTURE_GLOB_WILDCARD],
         testPathIgnore: [FIXTURE_IGNORE_GLOB],
         suiteMatch: ['suites/**/*.suite.yaml'],
@@ -115,7 +109,7 @@ function fixtureWorkspace(roots: string[]): FixtureWorkspace {
         envFile: '.env',
         secretsFile: '.env.secrets.local',
       },
-      // A CSS selector on the field that takes CSS selectors — the third CR-02 value.
+      // A CSS selector on the field that takes CSS selectors.
       services: {
         accessibility: { enabled: false, exclude: [FIXTURE_CSS_SELECTOR] },
       },
@@ -141,9 +135,7 @@ function fixtureWorkspace(roots: string[]): FixtureWorkspace {
               'x-acme-origin': 'https://acme.test',
             },
           },
-          // Two more schema-legal entries carrying baseURLs the URL parser will NOT resolve
-          // absolutely (round-4 CR-01). `anthropic-compatible` requires a baseURL and the
-          // schema puts no URL format on it, so these are shapes a real config file holds.
+          // Schema-legal baseURLs the URL parser does not resolve absolutely.
           {
             name: 'host-relative-judge',
             provider: 'anthropic-compatible',
@@ -159,8 +151,7 @@ function fixtureWorkspace(roots: string[]): FixtureWorkspace {
             baseURL: `ops:${FIXTURE_OPAQUE_SCHEME_SECRET}@llm.acme.test/v1`,
           },
           {
-            // A key written into the PATH of an absolute base — the component rounds 3 and 4
-            // both KEPT. Appended last so the round-4 indices above stay stable.
+            // A key in the path of an absolute base; last, so the indices above stay stable.
             name: 'key-in-path-judge',
             provider: 'anthropic-compatible',
             model: 'claude-fixture',
@@ -174,9 +165,7 @@ function fixtureWorkspace(roots: string[]): FixtureWorkspace {
             platform: 'web',
             url: `https://x.test/checkout?sso=${FIXTURE_TARGET_URL_SECRET}`,
           },
-          // A protocol-relative url carrying all three no-key parts at once, and a
-          // path-relative one carrying a query — neither resolves without a base, so round
-          // 3's rule never looked at either (round-4 CR-01).
+          // A protocol-relative url with every no-key part, and a relative one with a query.
           'protocol-relative': {
             platform: 'web',
             url: `//opsx:${FIXTURE_PROTOREL_USERINFO_SECRET}@x.test/checkout`
@@ -187,8 +176,7 @@ function fixtureWorkspace(roots: string[]): FixtureWorkspace {
             platform: 'web',
             url: `/checkout?lanyard=${FIXTURE_PATH_RELATIVE_SECRET}`,
           },
-          // A webhook token in the PATH of an absolute url, and the same in a
-          // protocol-relative one — the round-5 CR-03 pair.
+          // A webhook token in the path of an absolute url, and in a protocol-relative one.
           hook: {
             platform: 'web',
             url: `https://hooks.acme.test/services/T00/B00/${FIXTURE_PATH_BORNE_TARGET_SECRET}`,
@@ -309,11 +297,7 @@ function envelope(runId: string, seq: number, type: RunEventType): RunEventEnvel
   return { seq, ts: 1_700_000_000_000 + seq, runId, type, payload: {} }
 }
 
-/**
- * Write a real `events.jsonl` in the exact layout the v49 `FsEventLog` appends — one JSON
- * envelope per line, seq-ordered and gap-free at 1. The stream op reads it back through the
- * same concrete store the runner writes it with, so the CLI leg is a genuine replay.
- */
+// Writes `events.jsonl` in the layout `FsEventLog` appends, so the CLI leg is a genuine replay.
 function seedEvents(
   workspace: FixtureWorkspace,
   runId: string,
@@ -423,7 +407,7 @@ describe('agent-qa fn (generic function invoker)', () => {
       aggregateVerdict: string
       testCount: number
     }[]
-    // newest finished first; the fixture's run-beta ended after run-alpha.
+    // Newest finished first; the fixture's run-beta ended after run-alpha.
     expect(summaries.map((summary) => summary.runId)).toEqual(['run-beta', 'run-alpha'])
     expect(summaries[1]).toMatchObject({
       runId: 'run-alpha',
@@ -447,8 +431,6 @@ describe('agent-qa fn (generic function invoker)', () => {
     expect(first).toEqual(second)
   })
 
-  // RE-SPELLED 2026-10-01 from 'lists every registered function id with its scopes,
-  // result kind and binding'. Declarations carry no scopes, so the listing has no scope column.
   it('lists every registered function id with its result kind and binding, and no scope column', async () => {
     const workspace = fixtureWorkspace(roots)
 
@@ -462,81 +444,38 @@ describe('agent-qa fn (generic function invoker)', () => {
       resultKind: string
       bindingStatus: string
     }[]
-    // The registered capability set verbatim: the four D-06 seed reads, the D-08 stream op,
-    // 387-01's two `entities.` reads, and 387-06's three `knowledge.` review reads.
-    // `resultKind` and `bindingStatus` are part of the
-    // published contract, so the listing is asserted as an exact table rather than a shape
-    // check — a contains check would let an op join the catalogue unnoticed, which is the one
-    // drift direction this case exists to catch. Every phase that adds an op repins it here on
-    // purpose; 387-06 and 387-08 each add more and will each have to.
+    // An exact table, because a contains check would let an op join the catalogue unnoticed.
     expect(Object.fromEntries(declarations.map((declaration) => [declaration.id, {
       resultKind: declaration.resultKind,
       bindingStatus: declaration.bindingStatus,
     }]))).toEqual({
-      // the chat turn entry, BOUND on this host because `composeLocalAgent` assembles a
-      // turn engine in every local composition. Its presence in the CLI's own catalog is the L10
-      // claim made observable: `agent-qa ask` reaches the turn through the same registry listing
-      // this test reads, so the REPL holds no capability the catalogue does not declare.
+      // Bound because `composeLocalAgent` assembles a turn engine in every local composition.
       'agent.ask': { resultKind: 'unary', bindingStatus: 'bound' },
-      // the catalog explainer. BOUND on this host, and — like `runs.start` below — not
-      // because a literal was flipped: `composeCliLocalAgent` constructs the catalog port
-      // unconditionally, because a CLI always ships beside the committed capability catalog. It
-      // read `unbound` between 398-07's Task 1 and Task 2, which is the whole point of computing
-      // the column: the capability was registered before this host could run it, and the ledger
-      // said so for exactly that long.
+      // Bound because `composeCliLocalAgent` always constructs the catalog port.
       'agent.explain': { resultKind: 'unary', bindingStatus: 'bound' },
-      // THE analysis read — verdicts + sentences + clusters. BOUND since plan 06:
-      // the composition root binds the artifact reader over `agentQaRoot` in every local
-      // composition, so an artifact-less run answers the floor rather than a refusal.
+      // Bound: every local composition binds the artifact reader; no artifact answers the floor.
       'analysis.get': { resultKind: 'unary', bindingStatus: 'bound' },
-      // the keep-gate evaluator. BOUND on this host, and — like `runs.start` below — not
-      // because a literal was flipped: this composition supplies BOTH halves the binding needs, a
-      // run executor and the draft-authoring port over `parseTestFile`, and `bindingStatus` reports
-      // what THIS host can do. The same capability still lists `unbound` from a composition missing
-      // either, which is what agent's `parity-coverage.test.ts` and 393-07's e2e both assert.
-      //
-      // It declares BOTH `run` and `read` because the evaluation starts gate-runs and reads their
-      // records back through the sibling ops (D-02, op-calls-op), which also makes it non-read and
-      // therefore filtered out of safe mode with `runs.start`.
+      // Bound because this host supplies a run executor and the draft-authoring port.
       'authoring.draft.verify': {
         resultKind: 'unary',
         bindingStatus: 'bound',
       },
-      // the authoring loop's one public entry, BOUND on this host for the reason its
-      // sibling above is — the CLI supplies the draft-authoring port and a run executor, which is
-      // the same condition both halves of the loop bind under. It declares a THIRD scope,
-      // `test-write`, because it writes a file where its sibling only starts runs; 394-01 minted
-      // that scope for exactly this declaration, and it is what a listing shows a person who asks
-      // what authoring a test costs them.
+      // Bound for its sibling's reason: the draft-authoring port and a run executor.
       'authoring.draft.write': {
         resultKind: 'unary',
         bindingStatus: 'bound',
       },
-      // the user-facing edit. BOUND on this host for its siblings' reason —
-      // the CLI supplies the draft-authoring port and the draft evaluation, which are the two
-      // halves this op checks. It declares TWO scopes and NOT `run`: it edits a committed test and
-      // starts nothing, so a listing shows a person that letting the agent edit their tests does
-      // not also buy it the power to spend their machine on runs.
+      // Bound because the CLI supplies the draft-authoring port and the draft evaluation.
       'authoring.draft.edit': {
         resultKind: 'unary',
         bindingStatus: 'bound',
       },
-      // the honesty funnel read. BOUND on this host and — unlike its
-      // two authoring siblings above — bound UNCONDITIONALLY, because it is a read over records
-      // this composition owns by owning the agent-qa runtime root rather than a capability that
-      // needs a model and a run executor. It declares `read` ALONE, which is what a listing shows
-      // a person who asks what reading their own authoring history costs them; the exposure it
-      // implies is stated in the op's own header so a reviewer can object to the tier.
+      // Bound unconditionally: a read over records under the runtime root this composition owns.
       'authoring.funnel.get': {
         resultKind: 'unary',
         bindingStatus: 'bound',
       },
-      // 395-01 D-01/D-03 · CFGM-01/03: both BOUND on this composition — the CLI host binds the
-      // config-file, validation and apply ports unconditionally, because a CLI always has a config
-      // path and therefore a checkout root. Both declare `config-write` and NOT `read`, which is
-      // what a listing shows a person who asks what editing their configuration costs them: the
-      // propose op carries the write scope because the scope describes what the CAPABILITY is
-      // about, not what one call happens to reach.
+      // Bound because the CLI host binds the config-file, validation and apply ports always.
       'config.auth.set': {
         resultKind: 'unary',
         bindingStatus: 'bound',
@@ -550,19 +489,12 @@ describe('agent-qa fn (generic function invoker)', () => {
         bindingStatus: 'bound',
       },
       'config.get': { resultKind: 'unary', bindingStatus: 'bound' },
-      // BOUND, because `scaffoldContent` needs no filesystem and no repository — it is
-      // a pure render of the one producer `agent-qa init` writes from, so there is no CLI posture
-      // in which the scaffold is unavailable.
+      // Bound because `scaffoldContent` is a pure render needing no filesystem or repository.
       'config.project.scaffold': {
         resultKind: 'unary',
         bindingStatus: 'bound',
       },
-      // `config.proposal.apply`, `config.undo.propose`,
-      // `knowledge.proposal.apply` and the four `proposals.*` verbs are deleted, so they are not listed.
-      // the rest of the closed action class, BOUND on this composition for the reason
-      // above — the CLI host binds the config ports unconditionally. Both carry `config-write` and
-      // nothing else, which is what a listing shows a person who asks what letting the agent edit
-      // their configuration costs them.
+      // Bound because the CLI host binds the config ports unconditionally.
       'config.target.create': {
         resultKind: 'unary',
         bindingStatus: 'bound',
@@ -571,8 +503,7 @@ describe('agent-qa fn (generic function invoker)', () => {
         resultKind: 'unary',
         bindingStatus: 'bound',
       },
-      // BOUND because `entities` is a REQUIRED FunctionDeps port: this
-      // composition supplies an entity directory, so both read at the `read` tier.
+      // Bound because this composition supplies the required `entities` directory.
       'entities.get': { resultKind: 'unary', bindingStatus: 'bound' },
       'entities.resolve': {
         resultKind: 'unary',
@@ -582,15 +513,12 @@ describe('agent-qa fn (generic function invoker)', () => {
         resultKind: 'unary',
         bindingStatus: 'bound',
       },
-      // gate receipts are a read over the same bound knowledge reader.
+      // Gate receipts are a read over the same bound knowledge reader.
       'knowledge.gates.list': {
         resultKind: 'unary',
         bindingStatus: 'bound',
       },
-      // the read half of the review-verb family. BOUND for the same reason
-      // the entity pair is — they dispatch through the REQUIRED `knowledge` port, so no
-      // composition lists them and then refuses. 387-08's mutating verbs go through the
-      // OPTIONAL `knowledgeReview` dep and are the first rows here that can read `unbound`.
+      // Bound because they dispatch through the required `knowledge` port.
       'knowledge.brief.why': {
         resultKind: 'unary',
         bindingStatus: 'bound',
@@ -607,12 +535,7 @@ describe('agent-qa fn (generic function invoker)', () => {
         resultKind: 'unary',
         bindingStatus: 'bound',
       },
-      // the MUTATING half — `knowledge-write` tier, and BOUND here because
-      // the CLI composes a local host that owns the knowledge root it serves from. They are the
-      // first rows in this table whose binding is a statement about the HOST rather than about
-      // the required-port set: a read-only composition lists these same four `unbound`, which is
-      // asserted directly in agent-local's `review-verbs.test.ts`.
-      // the three changes apply in the call and lose `.propose`.
+      // Bound because this host owns the knowledge root; a read-only one lists `unbound`.
       'knowledge.accept': {
         resultKind: 'unary',
         bindingStatus: 'bound',
@@ -625,12 +548,7 @@ describe('agent-qa fn (generic function invoker)', () => {
         resultKind: 'unary',
         bindingStatus: 'bound',
       },
-      // the three quarantine verbs, FLIPPED to bound by plan 06 (plan 04
-      // registered the specs and left this row saying so). BOUND here for the same reason the
-      // knowledge-write rows above are — the CLI composes a local host that owns the committed
-      // knowledge root the ledger lives at — and the binding is a statement about THIS host: a
-      // composition supplying no quarantine port still lists all three `unbound` and refuses
-      // them by name, which is what agent's `parity-coverage.test.ts` asserts.
+      // Bound because this host owns the ledger's root; with no quarantine port, `unbound`.
       'quarantine.add': {
         resultKind: 'unary',
         bindingStatus: 'bound',
@@ -643,49 +561,35 @@ describe('agent-qa fn (generic function invoker)', () => {
         resultKind: 'unary',
         bindingStatus: 'bound',
       },
-      // BOUND on every local host. Read-tier, so it survives safe mode. (Its inbox dep
-      // was deleted in 432-17; the digest never read it after 432-09.)
-      // BOUND here: a run's evidence blobs live under the runtime root EVERY
-      // local host has.
+      // Bound: a run's evidence blobs live under the runtime root every local host has.
       'runs.artifact': { resultKind: 'unary', bindingStatus: 'bound' },
-      // bound — this host binds a reader over the configured or default runs database path whenever the config parses; a read before that file exists answers not recorded in it.
+      // Bound whenever the config parses; before the runs database exists it answers not recorded.
       'runs.detail': { resultKind: 'unary', bindingStatus: 'bound' },
       'runs.digest': { resultKind: 'unary', bindingStatus: 'bound' },
       'runs.events': { resultKind: 'stream', bindingStatus: 'bound' },
-      // bound — this host binds a reader over the configured or default runs database path whenever the config parses; a read before that file exists answers not recorded in it.
+      // Bound whenever the config parses; before the runs database exists it answers not recorded.
       'runs.evidence': { resultKind: 'unary', bindingStatus: 'bound' },
       'runs.get': { resultKind: 'unary', bindingStatus: 'bound' },
-      // `bound` rather than `unbound`, and that is the row worth reading. The op
-      // declares no optional-dep binding key — its substrate is the REQUIRED runs port — so unlike
-      // `runs.detail` beside it there is no composition that lists this verb and then refuses it.
+      // Bound: its substrate is the required runs port, so no composition lists it and refuses.
       'runs.knowledge': { resultKind: 'unary', bindingStatus: 'bound' },
       'runs.list': { resultKind: 'unary', bindingStatus: 'bound' },
       'runs.mark': { resultKind: 'unary', bindingStatus: 'bound' },
-      // the consequence preview binds through the same read host, read-tier beside the writer.
+      // The consequence preview binds through the same read host, read-tier beside the writer.
       'runs.mark.preview': { resultKind: 'unary', bindingStatus: 'bound' },
-      // bound through the CLI's dedicated read host, read-tier beside the writer.
+      // Bound through the CLI's dedicated read host, read-tier beside the writer.
       'runs.marks.history': { resultKind: 'unary', bindingStatus: 'bound' },
-      // bound — this host binds a reader over the configured or default runs database path whenever the config parses; a read before that file exists answers not recorded in it.
+      // Bound whenever the config parses; before the runs database exists it answers not recorded.
       'runs.overview': { resultKind: 'unary', bindingStatus: 'bound' },
-      // UNBOUND from this composition, and that is the honest answer rather than an
-      // oversight. `runs.liveurl` mints a viewing credential for a LIVE run, so it binds only where
-      // a live-view port exists — `agent-qa dashboard`'s `composeLiveView`. A CLI host with no
-      // server to serve the embed page from has nothing to mint a link TO, and says so.
+      // Unbound: `runs.liveurl` binds only where a live-view port exists, in `agent-qa dashboard`.
       'runs.liveurl': { resultKind: 'unary', bindingStatus: 'unbound' },
-      // UNBOUND here on runs.liveurl's reasoning. A live editor binds only where the
-      // dashboard serves one, so a plain CLI host has no editor session to mint a link for.
+      // Unbound: a live editor binds only where the dashboard serves one.
       'editor.liveurl': { resultKind: 'unary', bindingStatus: 'unbound' },
-      // BOUND on every local host, and NOT gated on whether this one drains the
-      // chain — the two are different questions, and a host that only ever reads is exactly
-      // the caller that most needs durable chip truth. Read-tier, so it survives safe mode.
+      // Bound on every local host, draining or not; a read-only host needs chip truth too.
       'runs.postprocessing': {
         resultKind: 'unary',
         bindingStatus: 'bound',
       },
-      // BOUND since 385 plan 10. Not because a literal was flipped — because this
-      // composition supplies a run executor, and `bindingStatus` reports what THIS host can
-      // do. The same capability still lists `unbound` from a composition without one, which
-      // is what compose-local-agent.test.ts and the agent-layer suites assert.
+      // Bound because this composition supplies a run executor; one without it lists `unbound`.
       'runs.start': { resultKind: 'unary', bindingStatus: 'bound' },
     })
     // Sorted lexicographically by id, so a catalog projection is deterministic.
@@ -930,9 +834,7 @@ describe('agent-qa fn (generic function invoker)', () => {
     expect(result.stderr).toBe('')
     expect(result.exitCode).toBeUndefined()
 
-    // The round-2 asymmetry: one of these was hidden and the other shown, because the word
-    // `auth` appeared in one path. Both are schema-constrained package names identifying
-    // code that runs with full Node access, and `config.get` exists to show them.
+    // Both are package names for code with full Node access, and `config.get` shows both.
     expect(result.stdout).toContain(FIXTURE_AUTH_PLUGIN_PACKAGE)
     expect(result.stdout).toContain(FIXTURE_PROVIDER_PLUGIN_PACKAGE)
 
@@ -1067,7 +969,7 @@ describe('agent-qa fn runs.events (the stream kind)', () => {
       '--json',
     ])
 
-    // An absent log is an ordinary empty replay, never an error (the v49 read contract).
+    // An absent log is an ordinary empty replay, never an error.
     expect(result.stderr).toBe('')
     expect(result.exitCode).toBeUndefined()
     expect(result.stdout).toBe('')

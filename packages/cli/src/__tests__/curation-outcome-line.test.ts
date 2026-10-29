@@ -1,5 +1,4 @@
-// in ci and cloud the curation outcome line says what CI does with what
-// it learns, a record kept as a candidate and never promoted, instead of "applied".
+// In `ci` and `cloud` the curation line says the record stays a candidate, never applied.
 
 import { describe, expect, it } from 'vitest'
 

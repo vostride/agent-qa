@@ -1,14 +1,4 @@
-// The ONE host-side authoring scope derivation.
-//
-// WHY THIS FILE IS IN `packages/cli`. The derivation reads the resolved config's targets and the
-// workspace's committed tests, which needs `resolveConfig` plus `resolveWorkspacePaths` /
-// `discoverWorkspaceFiles` / `parseTestFile` from `@vostride/agent-qa-core` — the FUNC-02 surface
-// firewall keeps that reach inside `local-agent-host.ts`, so this is the only package where the
-// derivation and a real workspace can be in the same process.
-//
-// D-19'S POSTURE IS THE SUBJECT. A unique candidate binds; ambiguity REFUSES and names every
-// candidate it saw. The refusal arm has its own cell rather than being implied by the derive arm,
-// because a deriver that guessed the first candidate would satisfy every positive cell here.
+// A unique candidate binds and ambiguity refuses; a deriver guessing the first would pass the rest.
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'

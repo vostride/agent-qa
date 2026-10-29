@@ -1,14 +1,4 @@
-// Chat's three-way inline confirm, and the one thing it could never do.
-//
-// 392 gave chat 391's two decision forms and nothing else: `y` accepted once, `a` accepted and
-// recorded a standing approval through the composition's own grants port, anything else refused.
-// Every decision was appended to the conversation's log as an `approval_decision` row.
-//
-// THE CHAT CONFIRM IS DELETED. Since 432-13 no door built it and no
-// gate asked; now `createChatConfirmPort`, `ChatConfirmBindings` (its grant mint and its decision
-// sink) and the composition's `chatConfirm` input are gone. The cells that drove the three forms
-// over injected streams are re-spelled as absence. The historical `approval_decision` rows stay
-// readable — `chat-approval-record-census.test.ts` measures that — and no writer of them remains.
+// The chat confirm is gone; older `approval_decision` rows stay readable and nothing writes them.
 
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -27,9 +17,6 @@ function code(...segments: string[]): string {
 }
 
 describe('the chat confirm is gone from the CLI host and its composition', () => {
-  // RE-SPELLED 2026-10-01: was 'binds NOTHING without a terminal', 'offers exactly the two
-  // forms', 'accepts once on y, minting nothing at all', 'accepts and mints on a' and 'accepts the
-  // long forms of both'. There is no wrapper to offer, accept or mint.
   it('the CLI host exports no chat confirm and the composition no bindings for one', () => {
     expect(Object.keys(cliHost)).not.toContain('createChatConfirmPort')
     expect(Object.keys(cliHost)).not.toContain('createTtyConfirmPort')
@@ -42,10 +29,6 @@ describe('the chat confirm is gone from the CLI host and its composition', () =>
     expect(host).not.toContain('[y/a/N]')
   })
 
-  // RE-SPELLED 2026-10-01: was 'refuses on N, on an empty line, on nonsense, on EOF',
-  // 'keeps the one-time accept when the standing half is refused', '… when the mint THROWS' and
-  // 'answers even when the decision sink throws'. Nothing asks, so nothing can refuse, and no grant
-  // is minted from chat.
   it('the composition hands chat no grant mint and no decision sink', () => {
     const composition = code('..', '..', 'agent-local', 'src', 'composition', 'compose-local-agent.ts')
     expect(composition).not.toContain('ChatConfirmBindings')
@@ -53,10 +36,6 @@ describe('the chat confirm is gone from the CLI host and its composition', () =>
     expect(composition).not.toMatch(/\bchatConfirm\b/)
   })
 
-  // RE-SPELLED 2026-10-01: was 'records nothing when the terminal is in no conversation,
-  // and still answers'. The session isolation it measured — a decision never lands in another
-  // conversation's log — now holds because no decision is written at all; the per-session log
-  // attribution itself is still measured by the chat session isolation suites.
   it('no CLI or composition source appends an approval_decision row', () => {
     for (const source of [
       code('composition', 'local-agent-host.ts'),
@@ -68,8 +47,6 @@ describe('the chat confirm is gone from the CLI host and its composition', () =>
     }
   })
 
-  // RE-SPELLED 2026-10-01: was 'leaves the shipped one-form port exactly as it was'. Both
-  // forms are gone.
   it('leaves no one-form port behind either', () => {
     const source = code('composition', 'local-agent-host.ts')
     expect(source).not.toContain('[y/N]')
@@ -77,9 +54,7 @@ describe('the chat confirm is gone from the CLI host and its composition', () =>
   })
 })
 
-// no door builds a chat confirm. The chat command and the CLI
-// host are read as source, comments stripped, so their own history notes may still name what the
-// code must not call.
+// The chat command and CLI host are read with comments stripped, so their prose may name the call.
 describe('no chat door constructs the chat confirm', () => {
   it('commands/chat.ts neither imports nor calls createChatConfirmPort', () => {
     const chat = code('commands', 'chat.ts')

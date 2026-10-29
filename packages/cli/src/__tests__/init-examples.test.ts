@@ -1,5 +1,4 @@
-// init writes the Komazon examples
-// the example secret goes only into a created secrets file
+// Init writes the Komazon examples; the example secret goes only into a created secrets file.
 import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest'
 import { Command } from 'commander'
 import { parse as parseYaml } from 'yaml'

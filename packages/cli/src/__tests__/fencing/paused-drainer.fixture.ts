@@ -185,19 +185,7 @@ export async function runPausedDrainerFixture(): Promise<void> {
         },
       }
     } else if (pauseAt === 'afterIntentWritten') {
-      /**
-       * I-03: the state the intent journal exists for — a durable commit intent on disk, authored
-       * INSIDE the held section, with the transaction still held and nothing published yet.
-       *
-       * 386-28 moved the SIGSTOP reclaim leg off this point because a stopped child freezing on
-       * `BEGIN IMMEDIATE` had no legitimate takeover exit. It has one now, so the pause is wired
-       * back for the escalated-reclaim schedule: the whole process stops, so no renewal sidecar is
-       * written, the lease ages out, and a real successor reclaims through the front door.
-       *
-       * The marker carries the intent's own epoch because that is what the successor's watermark
-       * partition is read against; the drainer never resumes on this path (the reclaim kills it),
-       * so no refusal report is produced or expected.
-       */
+      // The process stops holding a durable intent; the lease ages out and a successor takes it.
       deps.hooks = {
         ...originalHooks,
         afterIntentWritten: () => {

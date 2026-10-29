@@ -1,11 +1,4 @@
-// A LOCAL PAGE WITH A COMPOSITOR SWITCH (403-01 Task 4; reused by 403-02's change-driven cell).
-//
-// The `?animate=1` arm runs a CSS keyframe animation, so the compositor produces frames
-// continuously. WITHOUT it the page is static after load — which is the negative arm the
-// change-driven property needs: `Page.startScreencast` emits nothing while nothing changes, and a
-// screenshot-polling implementation would emit frames anyway. A remote URL could not be used for
-// this: a third-party page's animations, ads and lazy loads are exactly the variable the
-// experiment has to hold still.
+// `?animate=1` keeps the compositor busy; without it the page is static, the negative arm.
 
 import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'

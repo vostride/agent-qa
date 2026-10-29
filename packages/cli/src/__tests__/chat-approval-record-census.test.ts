@@ -1,23 +1,4 @@
-// THE COMPLETE SET OF `ChatApprovalDecisionRecord` DECLARATIONS IN THIS REPOSITORY (401-01, D-13's
-// companion invariant) — and since 432-16 there are none.
-//
-// WHY A CENSUS AND NOT A LINE PIN. The defect this file guarded was not a wrong line, it was a
-// SECOND SPELLING: until 401-01 this type was declared twice, once in the composition root and once
-// in the cli's confirm wrapper, and the two were free to drift. So the subject here is the SET.
-//
-// THE WRITER IS DELETED. The record was what the chat
-// confirm's decision sink appended to a conversation's log as an `approval_decision` row. The chat
-// confirm, its bindings and the record are gone, so the census's expected set is now EMPTY
-// no product source constructs an `approval_decision` event, and the
-// row stays readable: a session written before 432 still parses through the shipped guard.
-//
-// THE DISCOVERY PREDICATE IS THE PART MOST LIKELY TO BE VACUOUS, so it is asserted rather than
-// trusted: a floor on the files scanned, and a discrimination cell that runs the same matcher over
-// a synthetic source carrying a declaration and proves it is SEEN. An empty set from a walk that
-// read nothing would otherwise look exactly like the clean tree it claims.
-//
-// TESTS ARE EXCLUDED FROM THE SCAN because the discrimination cell below writes the defective shape
-// on purpose — as a string, so it is not even a file the walker could reach.
+// A floor and a planted declaration, so an empty set from a walk that read nothing fails.
 
 import { mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -135,8 +116,6 @@ describe('ChatApprovalDecisionRecord has exactly one declaration, in the composi
     ).toEqual(expect.arrayContaining(CROSSED_PACKAGES))
   })
 
-  // RE-SPELLED 2026-10-01: was 'declares the record in exactly one place, and that place
-  // is agent-local'. The one declaration went with the chat confirm that wrote it.
   it('declares the record nowhere — no approval writer contract survives', () => {
     const sites = scanned.flatMap((entry) =>
       declarationLines(entry.source).map((line) => `${entry.relPath}:${String(line)}`))
@@ -160,8 +139,7 @@ describe('ChatApprovalDecisionRecord has exactly one declaration, in the composi
   })
 
   it('a historical approval_decision row still parses through the shipped guard', () => {
-    // sessions written before 432 carry these rows, and the guard throws on an
-    // unknown kind, so the kind stays readable with no writer behind it.
+    // Older sessions carry these rows and the guard throws on unknown kinds, so the kind is kept.
     for (const row of [
       {
         kind: 'approval_decision', turnId: 'turn-1', at: '2026-09-01T10:00:00.000Z',
@@ -176,8 +154,7 @@ describe('ChatApprovalDecisionRecord has exactly one declaration, in the composi
     }
   })
 
-  // 432-16 task 2: the same rows, read back through the shipped JSONL session log rather than the
-  // bare guard — a pre-432 conversation re-opens whole, with no line refused.
+  // Read back through the shipped JSONL session log, so an older conversation re-opens whole.
   it('an older session holding approval_decision rows re-opens with no refused line', async () => {
     const root = mkdtempSync(join(tmpdir(), 'approval-history-'))
     try {

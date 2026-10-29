@@ -1,11 +1,4 @@
-// running a maintenance command is the intent.
-//
-// `knowledge rollback` and `knowledge purge <record-id>` execute from one invocation. There is no
-// y/N, no repeated record id, no `--yes` and no `--confirm`; the retired options are unknown to the
-// parser. What survives is the explicit target, the preview, the writer lease and the under-lease
-// changed-set recheck, so a target that drifts after its preview is refused before any deletion.
-//
-// Every fixture below uses a throwaway temp workspace, knowledge root and runtime root.
+// One invocation; the preview, lease and under-lease recheck still refuse a drifted target.
 
 import { randomUUID } from 'node:crypto'
 import {

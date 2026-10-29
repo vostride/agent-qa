@@ -29,7 +29,6 @@ const CHILD_FIXTURES: Record<FencingChildRole, string> = {
   'reclaiming-daemon': fileURLToPath(new URL('./reclaiming-daemon.fixture.ts', import.meta.url)),
 }
 
-/** Copied from the Phase 385 kill-matrix process harness. */
 export const LEG_TIMEOUT_MS = 180_000
 export const CHILD_TIMEOUT_MS = 120_000
 export const MARKER_TIMEOUT_MS = 90_000

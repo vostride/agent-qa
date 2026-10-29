@@ -1,6 +1,4 @@
-// The dashboard mark door through the real composition.
-// there was no asking frame left to preserve. 432-14: the frame, its scope field and
-// the host members that carried them are deleted, so the route is one request to one registered op.
+// The dashboard mark door through the real composition: one request to one registered op.
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -37,10 +35,7 @@ function fixture() {
   return { ...door, calls, invoke }
 }
 
-// RE-SPELLED 2026-09-30. The route used to park on the named run channel and
-// deny an absent or unwatched scope, even under config trustMode. The composed host asks nobody now:
-// the mark dispatches and no confirm frame is ever raised. The absent fixture run is what answers,
-// which proves the op was reached.
+// The composed host asks nobody: the mark dispatches, and the absent fixture run answers.
 describe('dashboard runs.mark confirmation through the composed host', () => {
   it('binds the actual op id and dispatches with an absent or unwatched scope, raising no frame', async () => {
     const f = fixture()
@@ -49,9 +44,7 @@ describe('dashboard runs.mark confirmation through the composed host', () => {
     expect(f.calls).toEqual([RUNS_MARK_FUNCTION_ID])
   })
 
-  // RE-SPELLED 2026-10-01: was 'dispatches on a WATCHED run channel too, and never parks
-  // on it'. There is no channel to watch; the claim that survives is that a second mark is a second
-  // dispatch and nothing is held between them.
+  // A second mark is a second dispatch; nothing is held between them.
   it('dispatches on a WATCHED run channel too, and never parks on it', async () => {
     const f = fixture()
     expect(await f.invoke()).toMatchObject({ kind: 'ok', body: { kind: 'run-not-found' } })

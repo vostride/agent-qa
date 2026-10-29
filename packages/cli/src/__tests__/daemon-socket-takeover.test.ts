@@ -57,8 +57,7 @@ describePosix('daemon socket takeover past a stopped predecessor', () => {
           pid: predecessor.child.pid,
         })
 
-        // Stop the WHOLE daemon, not a drainer it spawned: the listening socket is the process'
-        // own kernel object, so only a stopped listener reproduces the CR-06 schedule.
+        // Stops the whole daemon: only a stopped listener reproduces the stalled-socket schedule.
         expect(predecessor.child.kill('SIGSTOP')).toBe(true)
         await new Promise((resolve) => setTimeout(resolve, 250))
         expect(processStateFromOs(predecessor.child.pid!)).toContain('T')

@@ -1,14 +1,4 @@
-// The project a post-run daemon proof runs against, and the REAL run tail driven over it.
-//
-// Shared by both SC4 suites rather than copied, and shared as a module rather than imported from
-// a sibling `.test.ts` — importing a test file to reuse its harness runs its suite a second time
-// inside the importer, which is how two files start reporting each other's failures.
-//
-// The handoff is the real schema-versioned artifact the runner persists, at the path the runs-dir
-// derivation puts it; the `events.jsonl` beside it is a three-line stand-in for a finished run's
-// log, exactly as plan 04's chip proof writes one, because what the byte-stability claim needs is
-// only that a finished log EXISTS — standing a whole runner up would put the runner between the
-// proof and its subject.
+// A shared module, not an imported `.test.ts`, because importing a test file runs its suite again.
 
 import { mkdirSync, readdirSync, readFileSync, writeFileSync, type Dirent } from 'node:fs'
 import { join, relative, sep } from 'node:path'
@@ -37,11 +27,7 @@ import {
 } from '../../curation/post-run-tail.js'
 import { enqueueThroughTheStep } from '../post-run-step-harness.js'
 
-/**
- * The composition's REQUIRED quarantine identity mint. Passthrough here: this
- * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
- * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
- */
+// Passthrough: the fixture speaks canonical workspace-relative bytes, and core pins the recipe.
 const MINT_IDENTITY = (filePath: string): string => filePath
 
 export const EVENTS_FILE = 'events.jsonl'
@@ -49,10 +35,7 @@ export const AGENT_JOB_STORE_DB_FILE = 'agent-jobs.db'
 /** `job-checkpoint-store.ts`'s `JOB_CHECKPOINT_SUBDIR`; the store itself is off the barrel. */
 export const JOB_CHECKPOINT_SUBDIR = ['agent-jobs', 'checkpoints'] as const
 
-// 389-04's author swap put unknown-floor members on the model path, so a throwing stub
-// now aborts the chain under test. Unparseable text makes the author degrade per-test to
-// the byte-identical deterministic floor (plan 04's proven posture) — chain mechanics
-// keep their 388-era shape.
+// Unparseable text, not a throw: a throwing model aborts the chain; this degrades to the floor.
 const TEST_MODEL: JobModelCapability = {
   modelId: 'test:post-run-daemon',
   generate: async () => ({ text: 'not an author payload' }),
@@ -152,18 +135,7 @@ export interface TailOutcome {
   readonly warn: readonly string[]
 }
 
-/**
- * Drive the SHIPPED post-run leg at this project, from a process that is not the daemon.
- *
- * `acquireWriterLease` and `nudgeDaemon` are the REAL ones — that is the entire point. The lease
- * the daemon holds is what turns this into the `handed-off` posture, and the nudge really crosses
- * the daemon's unix socket. Only the two things a production run would have resolved from a config
- * file are supplied directly: where knowledge lives, and a host composed over this root.
- *
- * the hand-off is the post-verdict STEP's, so this drives
- * `enqueueAnalyzeRun` and then the tail's two legs — the same two calls the shell and
- * `commands/run.ts` make between them, in the same order.
- */
+// The real lease and nudge, so the leg hands off and the nudge crosses the daemon's socket.
 export async function runRealTail(input: {
   readonly agentQaRoot: string
   readonly knowledgeRoot: string

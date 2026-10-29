@@ -1,9 +1,4 @@
-// The dashboard door host's claims that outlive its chat door (430-03, D-01 step 1).
-//
-// Every cell here drives the shipped `composeDashboardDoor` and reads what it composed through its
-// own registry with `DASHBOARD_FUNCTION_CALLER`, so each claim is measured at the op boundary
-// without a chat turn. The base-URL overlay stays because the co-hosted MCP endpoint serves this
-// registry and reads cards through it (430 RESEARCH P5, Open Question 1).
+// Each cell drives `composeDashboardDoor` and reads its registry as `DASHBOARD_FUNCTION_CALLER`.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
@@ -53,7 +48,7 @@ function fixtureWorkspace(): string {
     })}\n`,
     'utf8',
   )
-  // config.get reads through the declared mask, which needs the file.
+  // `config.get` reads through the declared mask, which needs the file.
   writeFileSync(join(root, '.env.secrets.local'), '', 'utf8')
   return configPath
 }
@@ -68,8 +63,7 @@ interface HostFixture {
 async function openHost(): Promise<HostFixture> {
   const configPath = fixtureWorkspace()
   const configRoot = dirname(resolve(configPath))
-  // The bound origin, closed over and written after `listen` — the same mutable box the shipped
-  // command uses, so D-16's second supplier is exercised rather than argued.
+  // The bound origin is written after `listen` into the same mutable box the shipped command uses.
   let boundOrigin: string | undefined
   const { host } = composeDashboardDoor({
     agentQaRoot: join(configRoot, '.agent-qa'),
@@ -109,14 +103,7 @@ describe('the dashboard door host supplies the card url base it bound', () => {
   })
 
   it('overlays services.dashboard.baseUrl with the origin it actually bound', async () => {
-    // 387 D-10 made the entity card's `url` config-derived and absent by default, read through the
-    // masker at `services.dashboard.baseUrl`. D-16 adds the SECOND SUPPLIER: a dashboard that
-    // serves its own registry knows its own origin, so cards it produces carry working links with
-    // no user setup — one mechanism, two suppliers, and no change to the card producer.
-    //
-    // MEASURED AT THE OP BOUNDARY, which is the only place the claim is about the product. The
-    // producer reads `deps.config.getMasked()`, so invoking `config.get` on the door's registry
-    // reads the exact entry the producer would: same port, same composition, same masking oracle.
+    // A dashboard serving its own registry knows its origin, so its cards link with no setup.
     const payload = await invokeFunction(
       fixture.host.registry,
       'config.get',
@@ -158,9 +145,7 @@ describe('the dashboard door host supplies the card url base it bound', () => {
         }),
       },
       () => 'http://127.0.0.1:9999',
-      // No workspace supplied: this cell is about the baseUrl half's precedence, and the second
-      // half has its own control below. `undefined` overlays nothing for that key, which
-      // keeps the assertion below a statement about one supplier rather than two.
+      // No workspace: this cell is about the baseUrl half; the other half has its own control.
       undefined,
     )
     const masked = await overlaid.getMasked()
@@ -178,12 +163,9 @@ describe('the dashboard door host supplies the card url base it bound', () => {
 
 describe('the door is composed once, and mounted where the server serves it', () => {
   it('dispatches as a caller derived from the CLI chat door\'s own mint', async () => {
-    // Pitfall 9's check, in the only form that can catch it: the two mints are compared as SETS
-    // rather than each spelled here. A literal list in this cell would be a third copy, agreeing
-    // with both today and with neither the day a seventh scope lands.
+    // A literal list here would be a third copy of the caller fields, free to drift from both.
     const { CLI_FUNCTION_CALLER } = await import('../composition/local-agent-host.js')
-    // `grantedScopes` and `safeMode` are deleted from the caller, so
-    // the two mints are compared as KEY sets instead: they agree on every member but `surface`.
+    // The mints are compared as key sets: they agree on every member but `surface`.
     expect(Object.keys(DASHBOARD_FUNCTION_CALLER).sort())
       .toEqual(Object.keys(CLI_FUNCTION_CALLER).sort())
     expect(DASHBOARD_FUNCTION_CALLER.origin).toBe(CLI_FUNCTION_CALLER.origin)
@@ -193,11 +175,6 @@ describe('the door is composed once, and mounted where the server serves it', ()
     expect(DASHBOARD_FUNCTION_CALLER.surface).toBe('dashboard')
   })
 
-  // RE-SPELLED 2026-10-01: was a pin that `routes.ts` mounted the run-confirm router
-  // the security corpus stood up itself. That router is deleted and the corpus now drives the
-  // shipped `startServer`, so the claim that survives is the "no second door" half: the shipped
-  // router dispatches no run-confirm prefix and mounts no router of its own beside its routes, and
-  // the mark arm reaches the one mark route.
   it('mounts the SAME router the cells above drive (no second door)', () => {
     const routesPath = resolve(
       dirname(fileURLToPath(import.meta.url)),
@@ -215,16 +192,7 @@ describe('the door is composed once, and mounted where the server serves it', ()
   })
 })
 
-// ---------------------------------------------------------------------------------------------
-// Gap 1: the card's OWN `url`, read off the door's registry.
-//
-// The overlay cells above assert one entry in `config.get`'s masked listing, and the claim D-16
-// makes is about a CARD. The producer requires BOTH halves of the url base
-// (`services.dashboard.baseUrl` AND `services.dashboard.workspace`, `card-context.ts`), so this
-// block asserts the field a person sees.
-//
-// ORTHOGONAL TO ROUTED-KIND HONESTY, deliberately. MEM is unrouted and stays unrouted: `url`
-// present and `kind` routed are two claims and this file keeps them apart.
+// The producer needs both `baseUrl` and `workspace`, so this asserts the card's own `url`.
 
 /** The workspace directory name the segment must be derived FROM — known here, asserted below. */
 const CARD_URL_WORKSPACE_NAME = 'ws-cardurl'
@@ -352,9 +320,7 @@ describe('a card the co-hosted door\'s registry produces carries a url', () => {
 
   it('DRIVEN: entities.get returns a card whose own `url` names the bound origin and this workspace',
     async () => {
-      // `entities.get` NEVER MINTS (387 D-09: a get that could write would make every card render
-      // a mutation), so the address has to exist before it is asked for. `entities.resolve` is the
-      // sighting leg that mints it, invoked on the same registry as the same caller.
+      // `entities.get` never mints, so `entities.resolve` mints the address first.
       const resolution = await invokeFunction(
         fixture.host.registry,
         'entities.resolve',
@@ -365,8 +331,7 @@ describe('a card the co-hosted door\'s registry produces carries a url', () => {
       const uri = resolution.card?.uri
       expect(uri, 'the sighting minted no address, so there is nothing to `get`').toBeDefined()
 
-      // PARSED BY THE SCHEMA, never shape-checked (400-08's anti-duck-typing rule). A `url` on an
-      // object this cell merely believes is a card would be a claim about this cell.
+      // Parsed by the schema, never shape-checked, so the `url` is asserted on a real card.
       const card = EntityCardSchema.parse(await invokeFunction(
         fixture.host.registry,
         'entities.get',

@@ -1,15 +1,4 @@
-// THE RETAINED LIVE-LINK CELL (403 Task 3 · 432-21 D-12/D-13 · C432-RETAINED-LIVE-LINK).
-//
-// WHAT THIS EXISTS FOR. The run service is tokenless, and the signed live-view link it mints is the
-// one credential it still issues. That link keeps its own subject and expiry checks, independent of
-// who asked, including for concurrent tokenless mints. The cell drives the production
-// composition over real TCP: `composeLiveView`, `composeRunServicePorts`, `composeDashboardDoor` and
-// `createDashboardRunDoor`, exactly as `agent-qa dashboard` composes them.
-//
-// the door-masking cells that used to share this file are deleted with
-// their subject. The door holds no secrets of its own for masking, so a minted token is recorded as
-// written: `(1) BIND HALF`, `(3) a door with nothing bound still resolves maskingSecrets to
-// undefined` and `EDITOR-TOKEN-MASKED` are gone (`(2) CONSUME HALF` went with 441-58).
+// The signed live-view link is the one credential the tokenless run service mints, over real TCP.
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import type { Server } from 'node:http'
@@ -97,7 +86,7 @@ async function openFixture(): Promise<Fixture> {
   const sessions = createRunServiceSessionRegistry({ observeSessions: runDoor.observeSessions })
 
   const composedLiveView = composeLiveView({ sessions, origin: () => boundOrigin })
-  // the tokenless run service, composed as the command composes it.
+  // The tokenless run service, composed as the command composes it.
   const runService = composeRunServicePorts({ door: runDoor, sessions })
 
   const { agentHost, host } = composeDashboardDoor({
@@ -156,10 +145,7 @@ afterEach(async () => {
   while (openRoots.length > 0) rmSync(openRoots.pop() as string, { recursive: true, force: true })
 })
 
-// the live-view link is the one credential the run service still
-// mints, and its subject and expiry are checked by the validator independently of who asked — no
-// bearer, no caller field. Two tokenless mints for two concurrently started runs each bind their own
-// subject: neither token opens the other run, and neither outlives its expiry.
+// The validator checks subject and expiry, no bearer, so each concurrent mint opens its run.
 describe('a tokenless mint stays bound to its own subject and expiry', () => {
   it('concurrent tokenless mints bind independent subjects, and expiry is enforced', async () => {
     const fixture = await openFixture()

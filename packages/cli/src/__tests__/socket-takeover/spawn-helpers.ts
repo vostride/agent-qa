@@ -11,7 +11,6 @@ const PACKAGE_ROOT = fileURLToPath(new URL('../../../', import.meta.url))
 const JITI = join(PACKAGE_ROOT, 'node_modules', '.bin', 'jiti')
 const DAEMON_FIXTURE = fileURLToPath(new URL('./daemon.fixture.ts', import.meta.url))
 
-/** Copied from the Phase 385 kill-matrix process harness, as the fencing legs already do. */
 export const LEG_TIMEOUT_MS = 180_000
 export const CHILD_TIMEOUT_MS = 120_000
 export const MARKER_TIMEOUT_MS = 90_000

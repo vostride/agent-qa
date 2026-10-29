@@ -1,5 +1,4 @@
-// 2026-10-18 (444-20, D-48 extended): in `ci` and `cloud` every line that promises a resume states
-// the resume limit instead, chosen by the drainer of the work it names; other contexts read as before.
+// In `ci` and `cloud`, each line promising a resume states the drainer's resume limit instead.
 
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'

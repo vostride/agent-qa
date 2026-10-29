@@ -1,22 +1,4 @@
-// The on-demand digest verb, driven as a person drives it.
-//
-// `agent-qa digest` is a THIN WRAPPER: it resolves a project, builds the registry at the
-// composition root, calls `invokeFunction` with the CLI's own caller mint, and prints what comes
-// back. This file proves exactly that and nothing more generous — the whole path is real (no
-// stubbed gate, no stubbed registry), and the verb's output is asserted BYTE FOR BYTE against the
-// op result obtained through a second composition.
-//
-// The second composition is what makes the byte claim non-circular. If the printed lines were
-// built from anything the command held in memory, the value compared here — read out of a cold
-// registry over the same directories — would be free to disagree with it.
-//
-// `agent-qa proposals` — list, show, accept, reject and the
-// `grants` subcommands it hosted — is deleted with the inbox, so the cells that drove it are
-// deleted too. Their claims transfer: the verb's absence is C432-NO-PROPOSAL-CLI
-// (conformance/help-census.test.ts), the ops' absence is C432-NO-PROPOSAL-OPS, and a pre-432
-// proposal file on disk is never read (C432-PROPOSAL-FILES-UNREAD; the digest cell below keeps
-// planting one beside the run it digests). 432-18 deleted the grant ledger and `grants.list`; an old
-// `grants.jsonl` is never read (C432-GRANTS-UNREAD-WRITER-ABSENT, agent-local grant-ledger-damage).
+// The output is compared with a cold second composition, so the byte claim is not circular.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -120,7 +102,7 @@ function workspace(): Workspace {
     }, null, 2)}\n`,
     'utf8',
   )
-  // 2026-10-14 (441-16, E3): `runs.list` refuses without a readable secrets file.
+  // `runs.list` refuses without a readable secrets file.
   writeFileSync(join(root, '.env.secrets.local'), '', 'utf8')
   const agentQaRoot = join(root, '.agent-qa')
   mkdirSync(agentQaRoot, { recursive: true })
@@ -141,7 +123,7 @@ function storeConfig(ws: Workspace): BundleStoreConfig {
   }
 }
 
-/** A real record, then a pre-432 proposal file about it planted beside it, attributed to a run. */
+/** A real record, then an older proposal file about it planted beside it, attributed to a run. */
 async function plantPre432Proposal(ws: Workspace, runId: string, summary: string, ordinal: number): Promise<string> {
   const published = publishBundleForTest(storeConfig(ws), {
     draft: {
@@ -234,10 +216,7 @@ describe('agent-qa digest, the on-demand channel', () => {
     expect(invocation.exitCode).toBeUndefined()
     // The whole claim, as one comparison: the printed bytes ARE the op's lines.
     expect(invocation.stdout).toBe(digest.lines.join('\n'))
-    // Non-vacuity — the digest has real sections to have printed. 432-09: the
-    // proposal this fixture minted through the shipped seam is listed and counted nowhere; the
-    // marks section reads this run's own (empty) ledger. 432-17: the fixture is now planted bytes,
-    // since nothing can mint one, and it is still read nowhere.
+    // Non-vacuity: the digest has real sections; the planted proposal is read nowhere.
     expect(digest.lines.length).toBeGreaterThan(3)
     expect(invocation.stdout).toContain('marks — no changes applied')
     expect(invocation.stdout).not.toMatch(/proposal|minted/)
@@ -377,14 +356,11 @@ describe('the surfaces own no capability of their own', () => {
         fileURLToPath(new URL(`../commands/${file}`, import.meta.url)),
         'utf8',
       )
-      // The ONE dispatch path, and the ONE caller. A hand-rolled caller literal here would be
-      // a surface deciding its own origin, which is the fact the whole self-grant rule turns
-      // on — so `origin:` must not appear in it at all.
+      // One dispatch path and one caller; a hand-rolled caller lets a surface pick its own origin.
       expect(source).toContain('invokeFunction')
       expect(source).toContain('CLI_FUNCTION_CALLER')
       expect(source).not.toMatch(/origin:\s*'(human|agent)'/u)
-      // No gate, no registry construction, no store: a surface that could reach any of these
-      // would have a path around the pipeline.
+      // No gate, registry construction or store, or a surface has a path around the pipeline.
       expect(source).not.toContain('evaluate')
       expect(source).not.toContain('createRegistryFromSpecs')
       expect(source).not.toContain('agent-qa-knowledge-local')

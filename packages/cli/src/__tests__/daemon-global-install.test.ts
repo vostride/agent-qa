@@ -1,47 +1,4 @@
-// THE SHIPPED BINARY, REACHED THE WAY A GLOBAL INSTALL REACHES IT.
-//
-// WHAT THIS FILE MEASURES THAT NOTHING ELSE CAN. Every other daemon test in this package drives
-// `runDaemonHost` in-process, from a source tree with `node_modules` on every ancestor path. That is
-// the right fidelity for the host's behaviour and it leaves exactly one question unanswerable from
-// inside: whether the daemon starts for somebody who ran `npm i -g agent-qa` and typed `agent-qa
-// daemon`. On that install the bin entry is `/usr/local/bin/agent-qa`, a SYMLINK in a directory with
-// no `node_modules` on any ancestor. Node resolves the main symlink for module loading, so the
-// module's own location is still correct — only an anchor taken from the process argument vector
-// sees the bin directory. The 2026-08-18 rehearsal proved that at a terminal: `agent-qa daemon`
-// died with `Cannot find module '@vostride/agent-qa-agent-local'` / `Require stack: -
-// /usr/local/bin/agent-qa`, while `node /usr/local/lib/node_modules/agent-qa/dist/cli.js daemon` —
-// the identical bytes, differing only in `argv[1]` — printed `agent-qa daemon started (pid 698,
-// epoch 3)`. These cells are that terminal, made re-runnable.
-//
-// THE VARYING AXIS IS ONE THING AND IT IS NAMED. Same build, same command, same hermetic project
-// shape, same constructed environment. What differs between the REAL-PATH cell and the SYMLINK cell
-// is the path Node is handed, and therefore `process.argv[1]`.
-//
-// BOTH CELLS ASSERT A POSITIVE OUTCOME. Each must reach the daemon's started banner. A cell whose
-// only assertion was the ABSENCE of the module-resolution error would pass against a daemon that
-// died two lines earlier for an unrelated reason, and the two cells would then be trivially equal —
-// which is the failure mode that makes a differential decorative. The absence of the specific
-// regression is asserted too, as its own named cell, so the reported defect has a cell of its own.
-//
-// THE SECOND RESOLVER GETS ITS OWN PAIR. `agent-local`'s `resolveEmbedderWorkerEntryPath` carries
-// the identical defective shape and is NOT on the daemon's boot path — it fires when an embedder
-// worker is spawned. The daemon cells above therefore cannot see it, and a fix that repaired only
-// the boot-path site would leave it to fail the moment the first one succeeded. Its pair varies the
-// same axis: an in-process arm whose `argv[1]` is vitest's own entry (which has `node_modules` on an
-// ancestor, so it resolves even at the unfixed HEAD) against a spawned arm whose `argv[1]` is a
-// symlink in a temp directory that has none.
-//
-// THE FRESHNESS GUARD IS PART OF THE CONTRACT, NOT A PRECONDITION SOMEBODY SATISFIED ONCE. These
-// cells execute BUILT artifacts. A spawn against yesterday's `dist` passes, reads as proof of
-// today's source, and certifies the wrong artifact — strictly worse than no build at all. The guard
-// refuses on a MISSING artifact and on one OLDER than the newest non-test source of the package it
-// was built from, and names the offending file either way. Its two refusing branches are driven by a
-// control cell over a synthetic package tree, because a guard whose refusals can only be reached by
-// deleting a real `dist` is a guard nobody has watched refuse.
-//
-// NOTHING HERE CAN SKIP. A missing build, an unbuildable workspace, a child that never prints and a
-// child that prints the wrong thing are all failures with a named reason. A skip would turn every
-// one of those into a green run.
+// A global install runs a bin symlink with no `node_modules` above it, so these cells spawn one.
 
 import { type ChildProcess, spawn } from 'node:child_process'
 import {

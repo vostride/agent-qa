@@ -1,44 +1,4 @@
-// Every production composition that HOLDS the writer lease must hand that authority to the apply
-// path — asserted over the complete set of production compositions, not over the one member that
-// failed (387-10, CR-01 missing item 2).
-//
-// 387-08 built the seam and 387-09 did not pick it up, so the daemon shipped composing without it
-// and no accept/reject/forget could be committed on any project with a daemon running. A
-// regression case pinned to `daemon/host.ts` would close that instance. This closes the CLASS: it
-// walks the tree, discovers the compositions itself, and fails on any lease-holding one that
-// omits the authority — including one that does not exist yet.
-//
-// The scan's own defences, and why each is here rather than a nicety (all four measured against
-// the real tree on 2026-08-02):
-//
-//   comment-strip      `agent/src/functions/registry.ts`, `arch/src/lint/reader-carveout.ts` and
-//                      `knowledge-local/src/index.ts` name `composeLocalAgent` only in prose. Two
-//                      of the three write it WITH PARENS, so requiring an invocation shape does
-//                      not save a scan that reads comments.
-//   string-strip       `arch/src/lint/surface-firewall-ledger.ts` carries ten occurrences inside
-//                      single-quoted ledger reasons — `'…superseded by composeLocalAgent()'` —
-//                      which survive comment-stripping AND carry the parens verbatim. Neither of
-//                      the two obvious defences rejects this file on its own.
-//   import edge        the structural discriminator: a file that CALLS the function has an import
-//                      naming it. Prose, ledger strings and barrel re-exports do not. Measured:
-//                      the string-strip and the import edge each reject
-//                      `surface-firewall-ledger.ts` on their own, so they are independent rather
-//                      than layered — the import edge is kept because it is the one that
-//                      generalises to a shape nobody has written yet.
-//   invocation shape   `agent-local/src/index.ts` re-EXPORTS the name from the barrel. That is an
-//                      export edge, not an import edge, and it carries no parens — rejected twice
-//                      over.
-//
-// OBSERVED RED against the pre-fix tree, 2026-08-02: with the one `resolveWriterAuthority` entry
-// removed from `daemon/host.ts`, the scan fails naming it —
-//   "packages/cli/src/daemon/host.ts acquires the writer lease and composes without
-//    resolveWriterAuthority"
-// — so this is a check over the real tree that rejected the real defect, not a fixture exercise.
-//
-// A note on this file's own text: fixture sources are ASSEMBLED from keyword fragments rather
-// than written out. The workspace's dependency-pin lint scans line-leading module statements
-// wherever they appear, and a file whose subject is module statements is the one file most likely
-// to hand it a statement nobody wrote.
+// Fixture sources are assembled from fragments, because the pin lint scans line-leading statements.
 
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve, sep } from 'node:path'
@@ -353,8 +313,7 @@ describe('the classifier is shown to classify before it is trusted', () => {
 describe('every production composeLocalAgent call site', () => {
   it('is exactly the two known compositions, classified as their posture says', () => {
     const discovered = discoverCallSites()
-    // EXACT equality, never `contains`. A new composition — the very thing that could repeat the
-    // 387-09 omission — must be seen here and classified deliberately, not absorbed silently.
+    // Exact equality, so a new composition must be classified rather than absorbed.
     expect(
       discovered.map((site) => `${site.path} [${site.leaseHolding ? 'holder' : 'non-holder'}]`),
     ).toEqual([
@@ -375,9 +334,7 @@ describe('every production composeLocalAgent call site', () => {
 
   it('never has a delegating site also claim to hold the lease', () => {
     const discovered = discoverCallSites()
-    // the CLI host was the one site supplying `applyDelegate`, the
-    // daemon-forwarded proposal apply. That apply is deleted with the inbox, so no production site
-    // delegates any more; the both-at-once rule stays pinned by the synthetic `two-places` cell.
+    // No production site supplies a delegate; the synthetic `two-places` cell pins the rule.
     expect(discovered.filter((site) => site.suppliesDelegate).map((site) => site.path))
       .toEqual([])
     for (const site of discovered) {

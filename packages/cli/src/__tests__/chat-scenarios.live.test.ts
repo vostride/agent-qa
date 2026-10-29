@@ -1,29 +1,4 @@
-// THE LIVE LANE.
-//
-// A RELEASE GATE, NOT A PER-COMMIT ONE. `planner/` and `compound/` scenarios route through a real
-// model, so they cost tokens and take wall-clock, and D-13 puts them behind an env gate for exactly
-// that reason. The gate is `AGENT_QA_LIVE_CHAT_CONFIG` — the path of a project config whose
-// `registry.llms` and auth plugins this host can resolve.
-//
-// Without AGENT_QA_LIVE_CHAT_CONFIG the live describe is skipped, and vitest's summary reports the
-// skipped cells.
-//
-// THE FIRST CASE IS THE AUTH SMOKE (RESEARCH A5), and its position is the design. One trivial
-// `generateText` through the composed model, so an auth failure reds ONE named case instead of
-// shot-gunning nine scenario cells with nine different-looking errors that all mean "not logged in".
-//
-// THE MODEL COMES FROM THE HOST'S OWN RESOLUTION. `resolveCliChatCapabilities` is the same
-// function `agent-qa chat` calls — `createModel` behind the masking middleware and the profile
-// resolution, never a provider client built here. A source assertion at the bottom pins the absence
-// of any `@ai-sdk/*` import, by SPECIFIER rather than by vocabulary: this header talks about
-// provider clients repeatedly and must stay free to (392-08's lesson — a source pin over a file
-// that explains its own rule must match the mechanism, never the word).
-//
-// k = 1. Each live scenario runs ONCE per gate run. The aggregate honesty mechanism is the ceiling,
-// not repetition: a corpus of nine cells measured once already answers "did routing hold", and
-// k > 1 buys a variance estimate that nothing yet consumes. RETUNE PATH: if a cell is observed
-// flapping across gate runs, raise k for the whole lane rather than for that cell — a per-cell k is
-// a per-cell tolerance, and a tolerance attached to the flakiest cell is how a gate stops gating.
+// Skipped without `AGENT_QA_LIVE_CHAT_CONFIG`; the auth smoke runs first, so login fails once.
 
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -79,7 +54,7 @@ const HUMAN: FunctionCaller = {
 
 const LIVE_CORPUS = SCENARIO_CORPUS.filter((entry) => entry.lane === 'live')
 
-/** The ceiling's denominator: `should_execute` cells in the FROZEN manifest. */
+// The ceiling's denominator: `should_execute` cells in the frozen manifest.
 const LIVE_DENOMINATOR = LIVE_CORPUS.filter((entry) => entry.kind === 'should_execute').length
 
 function readScenario(entry: (typeof SCENARIO_CORPUS)[number]): ChatScenario {
@@ -174,8 +149,7 @@ describe.skipIf(LIVE_CONFIG === undefined)(
         agentQaRoot,
         configPath: String(LIVE_CONFIG),
         runExecution,
-        // the proposal apply delegate is deleted; the live gate still opens no
-        // socket to a daemon that may be running.
+        // The live gate opens no socket to a daemon that may be running.
         knowledgeChangeDelegate: () => Promise.reject(new Error('no change delegation in the live gate')),
         ...(capabilities === undefined
           ? {}
@@ -237,9 +211,7 @@ describe.skipIf(LIVE_CONFIG === undefined)(
         const { result } = cell
         const reading = cellReading(scenario, result)
         const executed = result.receipts.filter((receipt) => receipt.status === 'executed')
-        // `refused` is a fourth word for a clause that RAN AND RETURNED, so a roll-call
-        // spelled over `executed` alone acquired a hole exactly its width the day the member
-        // landed. See `clauseReachedCapability`'s own header for why `failed` is outside it.
+        // `refused` also means a clause ran and returned, so the roll-call counts it too.
         const reached = result.receipts.filter((receipt) => clauseReachedCapability(receipt.status))
 
         if (scenario.expect.kind === 'should_execute') {
@@ -252,8 +224,7 @@ describe.skipIf(LIVE_CONFIG === undefined)(
           )
           expect(executed, reading).toHaveLength(scenario.expect.executed)
         } else {
-          // D-10's atomicity, live: the clause that COULD have run did not — and "did not" means
-          // no capability was REACHED, not merely that none reported success.
+          // Atomic: the clause that could have run reached no capability, not merely no success.
           expect(result.status, reading).not.toBe('completed')
           expect(reached, reading).toHaveLength(0)
           expect(executed, reading).toHaveLength(0)
@@ -266,9 +237,7 @@ describe.skipIf(LIVE_CONFIG === undefined)(
             ...result.receipts.map((receipt) => receipt.clause),
           ]
           expect(namings.some((text) => text.includes(named)), reading).toBe(true)
-          // THE SIDE-EFFECT ROWS. `executed == 0` stayed true through both defects the
-          // gap round closed — a directive never crosses the function layer, and an erased clause
-          // leaves no receipt — so the arm reads the log a refused turn left instead.
+          // `executed == 0` misses a directive or an erased clause, so the arm reads the log.
           expect(
             cell.events.filter(
               (event) =>
@@ -287,8 +256,7 @@ describe.skipIf(LIVE_CONFIG === undefined)(
           ).toEqual([])
         }
 
-        // ONE RECEIPT PER PLANNED ACTION, where the cell says how many (D-11, W-01): the field was
-        // supplied by the cells that pin it and read by no runner until now.
+        // One receipt per planned action, where the scenario names a count.
         if (scenario.expect.planned !== undefined) {
           expect(result.receipts, reading).toHaveLength(scenario.expect.planned)
         }

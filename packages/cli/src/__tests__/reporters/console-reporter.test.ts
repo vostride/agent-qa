@@ -94,15 +94,7 @@ describe('createConsoleReporter', () => {
   })
 })
 
-// ---- 390 D-15: the disposition a human reads --------------------------------------------------
-//
-// "QUARANTINED — failed, not counted" is the line that keeps the un-quarantine evidence flowing: it
-// tells the reader the test ran, that it failed, and why the build is nonetheless green. The
-// summary segment is what makes the green build's arithmetic add up.
-//
-// The byte-unchanged claim is pinned as a DIFFERENTIAL over one envelope stream, because an
-// assertion that the zero case changed nothing is only load-bearing if the same code path WOULD
-// have changed under a snapshot.
+// A differential over one envelope stream, so the zero case is shown to leave the output unchanged.
 
 describe('createConsoleReporter — the quarantine disposition', () => {
   const ANNOTATION = ` ${QUARANTINE_TEST_ANNOTATION}`

@@ -123,10 +123,7 @@ async function flushMicrotasks(turns = 24): Promise<void> {
   for (let turn = 0; turn < turns; turn += 1) await Promise.resolve()
 }
 
-// every wait here is a positive condition (the daemon is ready, a
-// job was dispatched); the ceiling only bounds a hang, and every not-yet claim runs on the manual
-// scheduler. The old 1 s ceiling was reached by real composition and SQLite work under load:
-// 4 cells failed at about 1.1 s each at load 40-45 (432-41 #10; also 432-01 #2).
+// Each wait is a positive condition; the ceiling only bounds a hang, as load slows composition.
 async function waitUntil(
   predicate: () => boolean,
   message: string,
@@ -166,8 +163,7 @@ async function startHost(kinds: JobKindRegistry): Promise<RunningHost> {
       throw new Error(`unexpected daemon hard exit ${code}`)
     },
     composeLocalAgent: (input) => {
-      // the store stamps a retry's not-before time from this clock,
-      // so it reads the same manual time the dispatcher waits on, as the wall clock does live.
+      // The store stamps a retry's not-before time from this clock, the dispatcher's manual time.
       const host = composeLocalAgent({
         ...input,
         jobKinds: kinds,

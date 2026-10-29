@@ -1,19 +1,4 @@
-// `authoring.draft.edit` over the REAL applier.
-//
-// WHY THIS FILE IS IN `packages/cli`. The byte-confinement claim — an edit never reformats a line
-// it did not address — is a property of `applyPatchSetToTestDoc`, which needs the yaml CST from
-// `@vostride/agent-qa-core`. Neither `agent` nor `agent-local` may depend on that package, so the
-// applier is bound at the CLI host (`createDraftAuthoringPort`), and this is the only place where
-// the op and the real applier can be in the same process. The op's declared surface and its
-// refusals are measured where the op lives:
-// `packages/agent/src/functions/__tests__/authoring-draft-edit.test.ts`.
-//
-// THE SECOND-CONSUMER CLAIM IS WHAT THIS FILE ACTUALLY MEASURES. The repair loop was the applier's
-// only caller until this op registered, and a contract with one consumer is a contract shaped like
-// its one caller. The cells below drive the SAME verb the repair loop drives, over a real file with
-// a leading comment, a single-quoted scalar with a trailing comment, and a key order no
-// plain-object round trip would preserve — so "the second consumer inherits the guarantee" is a
-// measurement rather than an argument from reuse.
+// Here because the real applier needs core's yaml CST, which `agent` and `agent-local` lack.
 
 import { createHash } from 'node:crypto'
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
@@ -99,19 +84,12 @@ afterEach(() => {
   rmSync(root, { recursive: true, force: true })
 })
 
-/** Per-line sha256 over RAW bytes — 394-03's instrument, so the two files are compared identically. */
+// Per-line sha256 over raw bytes, so both files are compared identically.
 function lineDigests(text: string): string[] {
   return text.split('\n').map((line) => createHash('sha256').update(Buffer.from(line, 'utf8')).digest('hex'))
 }
 
-/**
- * The lines of `before` that do NOT survive into `after`, and the lines of `after` that are new,
- * over an LCS alignment of those digests.
- *
- * The LCS rather than a positional walk, for 394-03's stated reason: a positional comparison cannot
- * express a removal at all, because every following line shifts and a one-line delete reports the
- * whole tail as changed.
- */
+// LCS, not positional: a positional walk reports the whole tail as changed after a one-line delete.
 function changedLines(before: string, after: string): { removed: number[]; added: number[] } {
   const left = lineDigests(before)
   const right = lineDigests(after)
@@ -141,8 +119,7 @@ function changedLines(before: string, after: string): { removed: number[]; added
 function harness(emission: string, options: { readonly beforeAnswer?: () => void } = {}) {
   const authoring = createDraftAuthoringPort(configPath)
   let runStarts = 0
-  // the host's direct writer, reached through the port by name so a baseline without it
-  // is an assertion failure rather than a crash.
+  // Reached through the port by name, so a host without it fails an assertion rather than crashing.
   const publishDraft = (authoring as unknown as Record<string, unknown>)['publishDraft'] as
     | ((request: unknown) => Promise<unknown>)
     | undefined
@@ -231,9 +208,7 @@ describe('an edit changes only the lines its pointers address', () => {
     expect(afterLines[6]).toBe(beforeLines[6])
     expect(afterLines[7]).toContain('and the banner is shown')
 
-    // re-spelled in place. This used to assert the edited file UNTOUCHED
-    // because the edit only proposed. The edit now lands in the file it edited, so the same
-    // byte-confinement claim holds for the file on disk, and the answer points at that file.
+    // The edit lands in the file it edited, so byte confinement is asserted on the file on disk.
     expect(readFileSync(join(root, TEST_PATH), 'utf8')).toBe(after)
     expect(result.draftRef.filePath).toBe(TEST_PATH)
     expect(result.editedFrom.boundBy).toBe('exact-ref')
@@ -257,8 +232,6 @@ describe('an edit changes only the lines its pointers address', () => {
     expect(diff.removed).toEqual([])
     expect(diff.added).toEqual([9])
     expect(result.patches).toHaveLength(1)
-    // the run count rode the deleted test-draft arm; the edit answers
-    // the file it wrote and carries no proposal.
     expect(result).not.toHaveProperty('proposal')
   })
 

@@ -26,24 +26,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { startHeartbeatSupervisor } from '../daemon/heartbeat-supervisor.js';
 import { removeTempRoots } from './temp-roots.js';
 
-/**
- * what the deleted renewal sidecar used to claim, re-proven against the mechanism that
- * replaced it.
- *
- * 386-42 deleted the sidecar, made freshness three-valued and took the mutation lock out of the
- * beat. Every proof that heartbeat independence, stopped-holder reclaim and takeover fencing still
- * hold was therefore written against a mechanism that no longer exists. These legs restate them in
- * the only vocabulary that survived — the bytes of `.lease` and `.epoch`, and OS-observable process
- * outcomes — driving the SHIPPED worker thread and a REAL held authority transaction rather than
- * module internals.
- *
- * The escalation gate that replaced the sidecar is pinned here by its complete three-way set, never
- * by a pattern drawn from one of its own arms:
- *
- *   dead owner            -> reclaimed with an epoch bump and no escalation ceremony
- *   stopped owner past TTL -> escalated takeover: verified SIGKILL, CAS, epoch bump
- *   live beating owner    -> refused: no signal, no epoch movement, the holder keeps its lease
- */
+// Dead owners are reclaimed, stopped owners past the TTL escalated, live beating owners refused.
 
 const FIXTURE_ROLE = process.env.AGENT_QA_INDEPENDENCE_FIXTURE_ROLE;
 const FIXTURE_ROOT = process.env.AGENT_QA_INDEPENDENCE_FIXTURE_ROOT;
@@ -252,22 +235,7 @@ function spawnContender(
   });
 }
 
-/**
- * Wait for a subprocess-written marker to be PARSEABLE, and hand back the parsed value.
- *
- * The shape this replaces waited on `existsSync` and then parsed the path in a separate
- * statement. `writeFileSync` creates the file before it finishes writing it, so the existence
- * answer arrives while the document may still be empty or half-flushed: the parse that follows
- * reads a live writer's file and dies with `SyntaxError: Unexpected end of JSON input` under
- * whole-monorepo parallel load. Success here is a COMPLETED JSON document, never an inode.
- *
- * Returning the value is load-bearing. A caller that took only a signal and then re-read the
- * path would race the same writer a second time; there is exactly one read, and it is the one
- * that already succeeded.
- *
- * Bounds are the old wait's, unchanged: a 25ms tick, a 30s deadline, and an early abort when the
- * fixture child exits before the file ever becomes readable.
- */
+// Waits for a parseable document, because `writeFileSync` creates the file before writing it.
 async function waitForParseableJson<T>(
   path: string,
   child?: FixtureChild,
@@ -386,16 +354,7 @@ if (FIXTURE_ROLE === 'beating-holder') {
     const roots: string[] = [];
     afterAll(() => removeTempRoots(roots.splice(0)));
 
-    /**
-     * ROADMAP criterion 2, re-proven structurally: 386-29's over-TTL contender proof, restated
-     * against the lock-free beat.
-     *
-     * The old proof could be satisfied by a renewal sidecar staying fresh while `.lease` itself
-     * aged out — the divergence CR-02 later showed was real. There is now exactly one place
-     * freshness lives, so the claim is asserted where a contender actually reads it: the bytes of
-     * `.lease` advance while a real governed mutation holds the authority store for longer than
-     * the TTL, and both a mid-window contender and a post-release contender answer `held`.
-     */
+    // Freshness lives only in `.lease`, so contenders read `held` while a mutation holds the store.
     it(
       'advances the published lease across an over-TTL held mutation and holds off contenders',
       async () => {
@@ -445,8 +404,7 @@ if (FIXTURE_ROLE === 'beating-holder') {
           expect(existsSync(released)).toBe(false);
           expect(existsSync(join(root, MUTATION_RECORD_FILE))).toBe(false);
 
-          // 386-29's contender, arriving past the TTL with the most aggressive bound a caller can
-          // set. The authority store is busy, the mutation-lock row names a live attributed pid.
+          // The contender arrives past the TTL with the most aggressive bound a caller can set.
           const midWindow = await spawnContender(root, {
             takeoverMs: 0,
             deadlineMs: 10_000,
@@ -495,21 +453,7 @@ if (FIXTURE_ROLE === 'beating-holder') {
       LEASE_HEARTBEAT_TTL_MS + 150_000,
     );
 
-    /**
-     * The gate's third arm, and the one 386-42 deliberately changed (W-02 re-scope).
-     *
-     * `MUTATION_LOCK_TAKEOVER_MS` now governs reclaim from dead and whole-process-stopped owners
-     * only. A live holder whose worker thread is still beating is not auto-reclaimed at any
-     * takeover bound, including zero — the contender reports the holder instead. This is asserted
-     * as OS facts: no signal reached the holder, its lease id on disk is unchanged, and `.epoch`
-     * is byte-identical, so nothing about a takeover ceremony happened.
-     *
-     * The refusal is over-determined by design: `acquireWriterLease`'s pre-check answers `held`
-     * for a lease that is fresh at entry, and `leasePermitsEscalation` vetoes the `fresh` verdict
-     * behind it. Only the first of the two is reachable from a deterministic schedule (see
-     * 386-43-SUMMARY.md); the accepting control below is what keeps this leg from being satisfied
-     * by a contender that simply never reclaims anything.
-     */
+    // A live beating holder is never auto-reclaimed; the accepting control keeps this non-vacuous.
     describePosix('the escalation gate is pinned by its complete three-way set', () => {
       it(
         'escalates against a whole-process-stopped holder past the TTL and bumps the epoch',

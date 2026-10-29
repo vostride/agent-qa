@@ -555,7 +555,7 @@ describe('daemon curation serving tracer', () => {
         foldRunOutcomes: () => ({
           kind: 'applied',
           tests: 0,
-          // this stub asks for no detection, so the fold declares it skipped.
+          // This stub asks for no detection, so the fold declares it skipped.
           quarantine: { kind: 'not-evaluated', reason: 'not-requested' },
         }),
         drainQueue: async () => ({

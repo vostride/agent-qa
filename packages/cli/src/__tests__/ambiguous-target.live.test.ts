@@ -1,15 +1,4 @@
-// AUTO-15 with the real planner and a real model. The built CLI runs
-// one-step tests in a cold temporary workspace against an inline page with two identical 'Okay'
-// buttons, served by a loopback server that counts which button was clicked, so "no click" is
-// observed outside the browser.
-//   - "Click the okay button" does not single either out: the step must not pass, and no click.
-//   - "Click the second okay button" does: the step passes with exactly one click, the second.
-//
-// Skipped unless AGENT_QA_438_LIVE_MODEL=1. AGENT_QA_438_LIVE_AUTH_PLUGIN must then name the built
-// subscription-auth plugin's dist/index.js; AGENT_QA_438_LIVE_LLM overrides the model (default
-// gpt-6.1-sol through openai-subscription, whose registry name is the auth-store key). The cell
-// never reads the auth store; the CLI does. Runs are headless with the cache disabled.
-// A skip is never a pass.
+// Runs only with the live-model env set; an ambiguous step must fail without clicking a button.
 
 import { spawn } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'

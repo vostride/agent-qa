@@ -265,7 +265,7 @@ describe('projectCurationCandidates', () => {
       handoff([testOutcome({}, [step({}, [evidence])])]),
     )
 
-    // the projection no longer copies element values or interactions.
+    // The projection copies no element values or interactions.
     expect(JSON.stringify(candidate)).not.toContain('correct horse battery staple')
     expect(candidate?.artifactDescriptors).toEqual([
       {
@@ -402,7 +402,7 @@ describe('projectCurationCandidates', () => {
     expect(second).toEqual(first)
     expect(first).not.toHaveLength(0)
     expect(first.every((candidate) => candidate.executionContext === 'ci')).toBe(true)
-    // a cache-bypassed step no longer marks the candidate.
+    // A cache-bypassed step does not mark the candidate.
     expect(first.flatMap((candidate) => Object.keys(candidate))
       .filter((key) => key.endsWith('Flagged'))).toEqual([])
     for (const candidate of first) {

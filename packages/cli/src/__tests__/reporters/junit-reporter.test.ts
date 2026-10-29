@@ -42,7 +42,7 @@ describe('createJunitReporter', () => {
 
   it('stays MASKED — placeholders preserved, originals never written', async () => {
     const { xml, fixture } = await runJunit()
-    // the declared marker survives XML-escaping (441-33: `[secret:<name>]`, not the old `<SECRET_n>`)
+    // The declared `[secret:<name>]` marker survives XML-escaping.
     expect(xml).toMatch(/\[secret:\w+\]/)
     expect(xml).not.toContain(fixture.stepSecret)
     expect(xml).not.toContain(fixture.hookSecret)
@@ -133,16 +133,7 @@ describe('JUnit words for abort-skipped and cancelled members', () => {
   })
 })
 
-// ---- 390 D-15: the correct amount of red ------------------------------------------------------
-//
-// The whole point of FLAK-02 is that a quarantined test STILL RAN and STILL FAILED. A CI UI that
-// counts JUnit failures must therefore see the failure — the row is red — while the build itself is
-// green. The disposition is an ADDITIVE marker; it is never a `<skipped>`, never a rewritten
-// `outcome`, and never a decremented `failures=` count.
-//
-// Every pin below is a DIFFERENTIAL over one envelope stream with the snapshot as the only varied
-// input, because an assertion that nothing changed is only load-bearing if the same code path WOULD
-// have changed under the other input.
+// A quarantined failure stays a red row: an additive marker, never `<skipped>` or fewer failures.
 
 describe('createJunitReporter — the quarantine marker', () => {
   it('keeps the REAL <failure> and adds the marker — never a <skipped>, never an outcome rewrite', async () => {

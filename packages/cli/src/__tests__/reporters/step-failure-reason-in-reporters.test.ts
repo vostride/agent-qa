@@ -1,5 +1,4 @@
-// an unproven step's reason is the step's error, and it reaches
-// the JUnit failure message and the console reporter's failed-step line verbatim.
+// An unproven step's error reaches the JUnit failure message and the failed-step line verbatim.
 
 import { describe, expect, it } from 'vitest'
 

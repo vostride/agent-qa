@@ -124,8 +124,7 @@ vi.mock('node:readline', async (importOriginal) => {
           question,
         })
         output.write(question)
-        // maintenance never asks. A prompt that is still wired is declined, so it
-        // fails on outcome assertions rather than hanging the worker.
+        // Maintenance never asks; a wired prompt is declined, so it fails an assertion, not hangs.
         resolveAnswer('n')
       },
     })),
@@ -715,9 +714,7 @@ describe('knowledge maintenance commands', () => {
       'utf8',
     )
     expect(source).toContain('classifyDaemonRegistration')
-    // Plan 22's prohibition, and I-01's closure. This replaced a `unconditionalRemovals === 0`
-    // counter on a module mock: the counter could only ever say "not called on these schedules",
-    // while the surface itself no longer exists to be called on any schedule at all.
+    // Checked in source, because a call counter speaks only for the schedules a test drives.
     expect(source).not.toContain('removeDaemonRegistration')
     // Pinned non-vacuous: the compare-delete this command DOES use must still be here, so a
     // renamed or emptied file cannot satisfy the assertion above.
@@ -754,9 +751,7 @@ describe('knowledge maintenance commands', () => {
 
   it('unlinks the drain-recovered generation\'s own socket', async () => {
     const workspace = fixtureWorkspace(roots)
-    // The address the recorded instance is REQUIRED to bind. 386-38's nonce arm demands exactly
-    // this, so a fixture that records some other in-root path measures the refusal, not the
-    // reclaim — which is how 386-33's exactness fixture came to lock a hazard in.
+    // The instance must bind exactly this address, or the fixture measures the refusal instead.
     const owned = daemonSocketPath(
       workspace.runtimeRoot,
       workspace.root,
@@ -1006,7 +1001,7 @@ describe('knowledge maintenance commands', () => {
     }
 
     appendDrainSessionReceipt(workspace.runtimeRoot, receipt, { fsyncDirectory })
-    // the directory entry that first publishes the ledger must survive the crash window.
+    // The directory entry that first publishes the ledger must survive the crash window.
     expect(fsyncDirectory.mock.calls).toEqual([[workspace.runtimeRoot]])
 
     appendDrainSessionReceipt(
@@ -1231,8 +1226,6 @@ describe('knowledge maintenance commands', () => {
     ].join('\n'))
   })
 
-  // re-spelled from "fails closed without non-interactive
-  // confirmation". Running the command is the intent; the refusal it pinned no longer exists.
   it('applies rollback and purge non-interactively with no confirmation step', async () => {
     const workspace = fixtureWorkspace(roots)
     const bundle = seedBundle(workspace)
@@ -1252,8 +1245,6 @@ describe('knowledge maintenance commands', () => {
     expect(commandHarness.promptCalls).toEqual([])
   })
 
-  // re-spelled from "refuses piped stdin even when stdout is a TTY".
-  // Piped stdin is never read; each destructive mutator runs exactly once.
   it('never reads piped stdin when stdout is a TTY and invokes each mutator once', async () => {
     const workspace = fixtureWorkspace(roots)
     const bundle = seedBundle(workspace)
@@ -1272,8 +1263,6 @@ describe('knowledge maintenance commands', () => {
     expect(existsSync(bundle.dir)).toBe(false)
   })
 
-  // re-spelled from "…while prompting on stderr"; the preview keeps
-  // stderr, and no prompt is written anywhere.
   it('keeps interactive rollback JSON stdout parseable while previewing on stderr', async () => {
     const workspace = fixtureWorkspace(roots)
     seedBundle(workspace)
@@ -1471,8 +1460,6 @@ describe('knowledge maintenance commands', () => {
     )
   })
 
-  // re-spelled from "…while prompting on stderr"; the preview keeps
-  // stderr, and no prompt is written anywhere.
   it('keeps interactive purge JSON stdout parseable while previewing on stderr', async () => {
     const workspace = fixtureWorkspace(roots)
     const bundle = seedBundle(workspace)
@@ -1685,8 +1672,7 @@ describe('knowledge maintenance commands', () => {
 
     const result = await invoke(workspace, ['purge', primary.id, '--json'])
 
-    // the preview is rendered before the writer lease is taken, and the
-    // purge then completes; there is no answer to abort it with.
+    // The preview renders before the writer lease is taken, and the purge then completes.
     expect(result.exitCode).toBeUndefined()
     for (const path of expectedPaths) {
       expect(stderrAtLease).toContain(path)
@@ -1699,8 +1685,7 @@ describe('knowledge maintenance commands', () => {
     expect(existsSync(secondary.dir)).toBe(false)
   })
 
-  // re-spelled from "…after exact-id authorization"; the drift lands
-  // between the preview and the writer lease.
+  // The drift lands between the preview and the writer lease.
   it('refuses purge target drift after the preview and before mutation', async () => {
     const workspace = fixtureWorkspace(roots)
     const primary = seedBundle(workspace)
@@ -1726,9 +1711,7 @@ describe('knowledge maintenance commands', () => {
     expect(existsSync(drifted!.dir)).toBe(true)
   })
 
-  // re-spelled from "…when interactive answers refuse". No answer can
-  // refuse any more; the surviving refusals (an invalid selector, an unknown record) keep JSON
-  // stdout empty and return non-success.
+  // The remaining refusals, an invalid selector and an unknown record, keep JSON stdout empty.
   it('keeps JSON stdout empty and returns non-success when rollback or purge refuses', async () => {
     const rollbackWorkspace = fixtureWorkspace(roots)
     seedBundle(rollbackWorkspace)
@@ -1759,8 +1742,6 @@ describe('knowledge maintenance commands', () => {
     expect(commandHarness.promptCalls).toEqual([])
   })
 
-  // re-spelled from "requires the exact purge id, rejects --yes…".
-  // The repeated-id confirmation is gone: --confirm is now as unknown as --yes.
   it('rejects the retired --confirm and --yes options and emits the persisted receipt verbatim', async () => {
     const workspace = fixtureWorkspace(roots)
     const bundle = seedBundle(workspace)
@@ -1850,8 +1831,6 @@ describe('knowledge maintenance commands', () => {
     })
   })
 
-  // re-spelled from "…while rollback and purge await human
-  // authorization". Nothing awaits; the preview is still resolved before any lease is held.
   it('holds no writer lease while rollback and purge resolve their previews', async () => {
     const rollbackWorkspace = fixtureWorkspace(roots)
     seedBundle(rollbackWorkspace)
@@ -1874,8 +1853,6 @@ describe('knowledge maintenance commands', () => {
     expect(commandHarness.promptCalls).toEqual([])
   })
 
-  // re-spelled from "rejects an authorized rollback…"; nothing is
-  // authorized any more, and the fingerprint recheck under the lease is what survives.
   it('rejects a rollback when the under-lease target fingerprint changes', async () => {
     const driftProduct = 'preview-drift-product'
     const workspace = fixtureWorkspace(roots, {
@@ -1895,8 +1872,6 @@ describe('knowledge maintenance commands', () => {
     expect(commandHarness.rollbackCurationJobCalls).toBe(0)
   })
 
-  // re-spelled from "…while the rollback preview awaits authorization";
-  // the promotion now lands between the preview and the writer lease.
   it('rejects a promotion added between the rollback preview and the writer lease', async () => {
     const workspace = fixtureWorkspace(roots)
     const baseJob = 'promotion-preview-base-job'

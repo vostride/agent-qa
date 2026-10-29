@@ -1,4 +1,4 @@
-// real persisted history through the read-only function layer.
+// Real persisted history through the read-only function layer.
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -116,7 +116,7 @@ describe('agent-qa knowledge gates', () => {
     const { config, configPath, id, dir } = fixture()
     const rawSecret = 'AKIAIOSFODNN7EXAMPLE'
     const rawEmail = 'receipt-auditor@example.invalid'
-    // the producer masks both values as declared secrets.
+    // The producer masks both values as declared secrets.
     const redactor = new SecretRedactor(new SecretStore({ AWS_441: rawSecret, EMAIL_441: rawEmail }))
     const mask = (text: string): string => redactor.redactString(text)
     const maskedProducer = mask(`review ${rawSecret} by ${rawEmail}`)

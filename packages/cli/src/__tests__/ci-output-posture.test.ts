@@ -1,5 +1,4 @@
-// the CLI's CI posture — no colour without a terminal, and what
-// resuming pending work needs.
+// The CLI's CI posture: no colour without a terminal, and what resuming pending work needs.
 
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'

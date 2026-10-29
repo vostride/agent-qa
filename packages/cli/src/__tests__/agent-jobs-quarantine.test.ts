@@ -1,14 +1,4 @@
-// `agent-qa agent-jobs` over a queue holding a quarantined row.
-//
-// The store half of D-16 is proved in agent-local. What is under test here is the only part an
-// operator ever sees: the listing has to NAME the retired kind, the conclusion and the attempt the
-// row spent, and the requeue has to refuse the row through the refusal channel this command
-// already has — before anything resets the attempts, deletes the checkpoint rows or disowns the
-// run's chain-terminal notification.
-//
-// Every claim is paired, because each passes vacuously alone: the refusal is paired with a requeue
-// of an ordinary terminal row that must still succeed, and the "nothing was wedged" claim is
-// paired with a pump that must still drain a row enqueued after the refusal.
+// Each refusal is paired with a control that must still succeed; either alone passes vacuously.
 
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -28,7 +18,6 @@ import { createAgentJobsCommand } from '../commands/agent-jobs.js'
 import { listAgentJobs, pumpAgentJobs, requeueAgentJob } from '../composition/agent-jobs-ops.js'
 import type { AgentJobsOpsDeps } from '../composition/agent-jobs-ops.js'
 
-/** A kind no current vocabulary contains — the Phase 412 needle itself stays deleted. */
 const RETIRED_KIND = 'retired-kind-fixture'
 
 /**
@@ -228,18 +217,7 @@ describe('agent-qa agent-jobs requeue over a quarantined row', () => {
     expect(outcome.kind).toBe('refused')
     if (outcome.kind !== 'refused') return
     expect(outcome.reason).toBe('unreadable-kind')
-    // WR-07. THIS PIN IS INVERTED FROM WHAT IT USED TO SAY, deliberately. It required the
-    // message to name the row's own kind, "so the operator reading it knows why this row is
-    // different". But `QUARANTINED_UNREADABLE_KIND_REASON` -- the store's own reason column,
-    // twenty lines from the error that was interpolating this value -- states the opposite
-    // rule with a full rationale: the unreadable kind is a string an EARLIER build, or
-    // anything with write access to that database, put in a column, and a rendered-on-a-
-    // terminal field is the last place to paste the one value this build refuses to trust.
-    // Two rules for one value, and the considered one wins.
-    //
-    // Actionability does not depend on this: the cell above pins that `listAgentJobs` still
-    // discloses `kind: RETIRED_KIND` on the typed DTO, which is where a reader has to ASK for
-    // the value and knows what it is when they do.
+    // The unreadable kind came from a column this build distrusts, so the message never echoes it.
     expect(String(outcome.message)).not.toContain(RETIRED_KIND)
     expect(String(outcome.message)).toContain('a kind this build does not read')
     expect(String(outcome.message)).toContain('job_retired_head')

@@ -1,16 +1,4 @@
-// THE TRACER'S VERIFY (403-01 Task 4) — ONE REAL SCREENCAST FRAME, painted on the served embed
-// page, reached only through a `liveUrl` the function layer minted.
-//
-// WHAT IS PRODUCTION HERE, AND WHAT IS NOT. Production: `startServer` (the embed route, the frame
-// socket's upgrade arm, the mint route), `startRun` (the run shell, its bus and its live-stream
-// hub), `WebPlatformAdapter` (a real headless Chromium and a real `Page.startScreencast`),
-// `composeDashboardDoor` and `composeLiveView` (the signer, the mint port and the validator).
-// Scripted: the member EXECUTOR — which is the runner's own designed injection seam — and the
-// clock the composition already takes as a port, so the cold-expired arm can move time without
-// waiting five minutes. Nothing else is faked; in particular `validateLiveUrlToken` runs by
-// reference, so a cell that gets a frame got it past the real validator.
-//
-// This file is in `packages/cli` because only the CLI may import every package at once.
+// Only the member executor and the clock port are scripted; the frame passes the real validator.
 
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -106,9 +94,7 @@ let page: LiveStreamFixturePage | undefined
 
 /** How long the tracer will keep asking the mint route for a handle that has not registered yet. */
 const MINT_RETRY_BUDGET_MS = 60_000
-// every embed state here is pushed to the page over its socket (no
-// poll), so each wait is a condition with a hang ceiling. 10 s was outrun at load up to 132: (vi)'s
-// page had not yet shown `ended` after finishRun() (quick 261002-tmo forced gate 4).
+// Each embed state is pushed over the socket, so each wait is a condition with a hang ceiling.
 const EMBED_STATE_WAIT_MS = 60_000
 const MINT_RETRY_INTERVAL_MS = 250
 
@@ -123,18 +109,7 @@ async function mintOnce(handle: number): Promise<{ liveUrl: string; stream: { ki
   return RunsLiveUrlResultSchema.parse(JSON.parse(raw))
 }
 
-/**
- * The mint route, POLLED until the member's handle declares a stream.
- *
- * WHY THIS REPLACED A `beforeAll` DEFERRED. This file used to hold a `registered` promise that the
- * scripted executor resolved right after `ctx.registerLiveStream`, and `beforeAll` awaited it — so
- * no cell could ever observe the window between "the session exists" and "the member's browser has
- * registered its screencast". Its own comment named the symptom: "a flake that would look exactly
- * like the capability being absent". That window is the PRODUCT'S start-up ordering, not a harness
- * artifact, and closing it in the harness is how six plans of careful measurement coexisted with a
- * dead preview in the normal case (403-VERIFICATION gap 1). The wait is gone; the tracer now
- * exercises the real ordering and proves the mint EVENTUALLY declares a stream.
- */
+// Polled until the member's handle declares a stream, so cells see production's start-up order.
 async function mint(handle = 0): Promise<{ liveUrl: string; stream: { kind: string }; expiresAt: number }> {
   const deadline = Date.now() + MINT_RETRY_BUDGET_MS
   const answers: string[] = []
@@ -172,10 +147,7 @@ beforeAll(async () => {
   // on a deferred so the run stays live while the cells watch it.
   let finishRun: () => void = () => {}
   const finished = new Promise<void>((resolve_) => { finishRun = resolve_ })
-  // NOTHING WAITS FOR THE CAPABILITY ANY MORE (403-07 Task 2). The deferred that used to live here
-  // was resolved right after `ctx.registerLiveStream` and awaited in `beforeAll`, which engineered
-  // the product's own start-up race out of the harness. `mint()` above polls instead, so the cells
-  // read the ordering production actually has.
+  // `mint()` polls rather than awaiting the capability, so cells read production's start order.
   const adapter = new WebPlatformAdapter()
   let adapterUp = false
 
@@ -209,9 +181,7 @@ beforeAll(async () => {
   const sessions = createRunServiceSessionRegistry({
     observeSessions: (observer) => { observer(session); return () => undefined },
   })
-  // A SHIFTABLE CLOCK ON THE COMPOSITION'S OWN `now` PORT (the cold-expired arm, D-02). Not a fake
-  // validator: `composeLiveView` takes `now` because a host owns its clock, and the cell uses that
-  // seam rather than replacing anything.
+  // Shifts time through the composition's own `now` port, so the validator stays real.
   const clock = { now: Date.now() }
   const liveView = composeLiveView({
     sessions,

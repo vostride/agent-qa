@@ -287,10 +287,7 @@ describe('resolveConfig', () => {
     await expect(resolveConfig({ configPath })).rejects.toThrow('services.dashboard.enabled was removed')
   })
 
-  // Phase 408 plan 16, W-2 / CR-02. 408-10 refined `services.dashboard.baseUrl` to an absolute
-  // http(s) URL at the parse boundary, which makes two previously-legal values fail EVERY
-  // `agent-qa` command through the one `safeParse` that throws. These cells assert the migration
-  // path an operator reads, and the negative control asserts it attaches to nothing else.
+  // `services.dashboard.baseUrl` must be an absolute http(s) URL; these cells check the hint.
   it('adds a migration hint when services.dashboard.baseUrl is a schemeless host', async () => {
     const configPath = join(TMP_DIR, 'baseurl-schemeless.yaml')
     const { stringify } = await import('yaml')

@@ -1,26 +1,4 @@
-// One real daemon generation, serving the real post-run chain (Phase 388 plan 06, SC4).
-//
-// Nothing about the daemon is stubbed that the claim depends on: it classifies the predecessor
-// registration, acquires the REAL writer lease on the project's knowledge root, heartbeats it,
-// composes the REAL local agent over the project's `agent-jobs.db`, adopts the epoch that lease
-// minted, runs `recoverAbandonedClaims`, binds its real socket, and serves the real six-kind
-// registry through the shipped serialized dispatcher. That is the entire mechanism SC4 is about.
-//
-// TWO seams are injected, and both are shipped test opt-outs rather than new ones:
-//
-//   1. `drainQueue` — the real one, passed explicitly, exactly as the 386 socket-takeover fixture
-//      passes it. Supplying it is how `runDaemonHost` itself decides the embedder worker lifecycle
-//      is not this host's concern (`embedderLifecycleEnabled`, host.ts:503). The knowledge queue is
-//      empty in every leg here, so it is never reached; the AGENT-job dispatcher, which is what
-//      these legs measure, stays entirely real.
-//   2. `postRun.curateRun` — the daemon's own binding, WRAPPED. The production closure
-//      (host.ts, the single `postRun:` site) folds `curateCompletedRun` through an author factory
-//      and a guardrail policy, i.e. through real provider credentials; a spawned fixture cannot
-//      supply those, and plan 04's own in-process proof substitutes the same one callable for the
-//      same reason. The substitute also does the one thing this proof genuinely needs and the real
-//      fold cannot be asked to do: PARK, deterministically, inside `curate-memory`'s handler with
-//      `analyze-run` already committed — which is what puts the SIGKILL between the two stages
-//      rather than wherever a sleep happened to land it.
+// A real daemon; only the real `drainQueue` and a parking `curateRun` wrapper are injected.
 
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -45,12 +23,7 @@ const CONFIG: ConfigReaderPort = {
   }),
 }
 
-/**
- * 389-04's author swap means a daemon-claimed analyze-run legitimately reaches the model
- * for unknown-floor members. Unparseable text makes the author degrade per-test to the
- * byte-identical deterministic floor (plan 04's proven posture), so the chain mechanics
- * under test keep their 388-era shape without a provider behind them.
- */
+// Unparseable text makes the author degrade to the deterministic floor, so no provider is needed.
 const MODEL: JobModelCapability = {
   modelId: 'post-run-daemon:degrading-stub',
   generate: async () => ({ text: 'not an author payload' }),
@@ -114,9 +87,7 @@ export async function runPostRunDaemonFixture(): Promise<void> {
     composeLocalAgent: (input: ComposeLocalAgentInput): LocalAgentHost => composeLocalAgent({
       ...input,
       postRun: {
-        // True of this substitute: it writes a marker and parks on the gate file, never
-        // reaching candidate emission — the SC4 crash legs stay honest under this posture,
-        // and Task 3's source-scan pin states the divergence from production in place.
+        // True of this substitute: it parks on the gate file before candidate emission.
         candidateProse: 'masker-active',
         curateRun: async ({ runId }) => {
           curationEntries.push(runId)
@@ -171,10 +142,7 @@ export async function runPostRunDaemonFixture(): Promise<void> {
   }
 
   try {
-    // Readiness is the daemon's OWN registration, exactly as the 386 takeover fixture defines it:
-    // the socket is listening and the handlers are live by the time those bytes exist. A host that
-    // REFUSES (a fresh predecessor lease) resolves its exit code without ever registering, and that
-    // refusal is evidence rather than an accident — so it aborts the wait by name.
+    // Ready means registered; a refusing host never registers, so the wait aborts by name.
     await waitUntil(
       () => {
         const outcome = readDaemonRegistration(agentQaRoot)

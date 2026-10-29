@@ -14,9 +14,7 @@ import {
 
 import { buildDirectRunMembers } from '../commands/direct-run-members.js'
 
-// The parser hands bindings whose `filePath` is the ABSOLUTE resolved path (it reads the file), so
-// that is what the fixture supplies. What the descriptor must carry is the workspace-relative
-// IDENTITY — the bytes the committed ledger and the projection both key on.
+// The parser hands absolute `filePath`s; the descriptor must carry the workspace-relative identity.
 const CONFIG_DIR = '/workspace'
 const FILE_A = '/workspace/tests/account.yaml'
 const FILE_B = '/workspace/tests/checkout.yaml'
@@ -115,8 +113,7 @@ describe('buildDirectRunMembers', () => {
     }
   })
 
-  // Owner decision 2026-09-26 (2), G-428-2: the descriptor carries the texts member-runner will
-  // announce at stepStarted, derived through the runner's one helper, for plain and object steps.
+  // The descriptor carries the step texts member-runner announces at `stepStarted`.
   it('STEP-TEXTS-FROM-PARSED-STEPS', () => {
     const bindings = parseBindings(MIXED_STEPS_FILE, MIXED_STEPS_CONTENT)
     const { members } = buildDirectRunMembers(bindings, CONFIG_DIR)

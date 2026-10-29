@@ -188,15 +188,14 @@ export async function runDaemonLeg(): Promise<void> {
       foldRunOutcomes: () => ({
           kind: 'applied',
           tests: 0,
-          // this stub asks for no detection, so the fold declares it skipped.
+          // This stub asks for no detection, so the fold declares it skipped.
           quarantine: { kind: 'not-evaluated', reason: 'not-requested' },
         }),
       buildCuratorAuthor: () => author,
     },
   })
   progress('tail-returned')
-  // this contender must not rebuild under the standing daemon's lease. The daemon
-  // already reconciled at acquisition; the tail discloses its typed skip and hands off.
+  // The contender must not rebuild under the daemon's lease; the tail discloses its typed skip.
   expect(warnings).toEqual(['curation: run-outcome projection not reconciled (no writer authority)'])
   await nudgeDaemon(agentQaRoot)
   progress('explicit-nudge-returned')

@@ -129,8 +129,7 @@ describe('canary receipt contract', () => {
   })
 })
 
-// these fixtures' handoffs are `ci` runs, so an incomplete fold states
-// curation's resume limit instead of promising the next run.
+// These handoffs are `ci` runs, so an incomplete fold states curation's resume limit.
 const CI_CURATION_RESUME = /resumes only if this workspace's \.agent-qa\/ is kept and a later local run picks it up\.$/u
 
 function handoff(executionContext: CompletedRunHandoff['executionContext'] = 'ci') {
@@ -410,16 +409,13 @@ function successfulOperations(
     reconcileRunOutcomesProjection: vi.fn(() => ({ kind: 'current' as const })),
     acquireWriterLease: vi.fn(() => ({ kind: 'acquired' as const, leaseId: 'sweep-lease', epoch: 7 })),
     releaseLease: vi.fn(() => ({ kind: 'released' as const })),
-    // each sibling run's fixture context, as its own run-config record would give it.
+    // Each sibling run's fixture context, as its own run-config record would give it.
     resolveRunCurationContext: vi.fn(async () => ({ mask, knowledgeRoot })),
     ...overrides,
   }
 }
 
-/**
- * The 390 D-08 detection member every fold report now carries. Declared once so a stub cannot
- * accidentally describe a DIFFERENT detection outcome than the tail is being asked about.
- */
+// Declared once so a stub cannot describe a different detection outcome than the one asked about.
 const NO_DETECTION = {
   quarantine: { kind: 'not-evaluated' as const, reason: 'not-requested' as const },
 }
@@ -576,8 +572,7 @@ describe('runCurationTail post-verdict fold', () => {
         })
         expect(options).not.toHaveProperty('excluded')
         expect(options.extractAnchors).toBeTypeOf('function')
-        // the tail reads the drain's wall clock ONCE and hands it down as data — the
-        // fold and the ladder read no clock of their own.
+        // The tail reads the drain's clock once and hands it down; fold and ladder read no clock.
         expect(options.quarantine?.now).toMatch(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/)
         return { kind: 'applied', tests: 1, ...NO_DETECTION }
       },
@@ -1483,11 +1478,7 @@ describe('run-outcome projection under the extended tail receipt', () => {
     }
   })
 
-  // 393 CR-02. The reconcile is the half of the version bump that re-derives rows; the receipt
-  // above is the half that re-runs them. Both pins here are about POSITION and BLAST RADIUS,
-  // because those are the two ways this wiring could be present and still wrong: a reconcile
-  // inside the loop would clear rows the loop just folded, and a reconcile that can abort the
-  // sweep would let a stale projection stop curation outright.
+  // A reconcile inside the loop would clear folded rows, and one that aborts would stop curation.
   it('reconciles the projection version exactly once, before any per-run fold', async () => {
     const order: string[] = []
     const secondRunDir = join(agentQaRoot, RUNS_SUBDIR, slugBranch('run-sibling'))
@@ -1579,14 +1570,7 @@ describe('run-outcome projection under the extended tail receipt', () => {
 
     expect(operations.releaseLease).toHaveBeenCalledExactlyOnceWith({ knowledgeRoot, leaseId: 'sweep-lease' })
 
-    // The warn has to be true about what the throw LEFT, not just that it happened — and true of
-    // EVERY throw that can reach this catch (393 round 7, WARN-TEXT-CLASS). Two classes arrive
-    // here: one raised before any DELETE (`openIndexWriter`, `ensureRunOutcomeTables`,
-    // `readStoredProjectionVersion`), which leaves the family INTACT under its previous stamp and
-    // may not rebuild next sweep at all; and one raised after the DELETEs — including the
-    // projection/write throws that now propagate — which leaves it unstamped and possibly partial.
-    // An unconditional "failed partway / will rebuild again" was simply false of the first class,
-    // so the text states both outcomes hinged on whether the rebuild had begun.
+    // A throw before any delete leaves the family intact, one after leaves it unstamped.
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('the run-outcome projection reconcile did not complete'),
     )
@@ -1745,7 +1729,6 @@ describe('verdict-first CLI tail wiring', () => {
     expect(noopWarning).toBeDefined()
     // The cause renders inside the existing trailing parenthetical.
     expect(noopWarning).toContain('cand-a (delta-noop: fallback-malformed)')
-    // A causeless noop renders exactly the 381-40 form.
     expect(noopWarning).toContain('cand-b (evidence-token-consumed)')
   })
 
@@ -1775,8 +1758,7 @@ describe('verdict-first CLI tail wiring', () => {
       .map(([message]) => String(message))
       .find((message) => /noop/i.test(message))
     expect(noopWarning).toBeDefined()
-    // The same count-anchored pattern demo/init/scripts/ladder-evidence.mjs embeds in its
-    // --self-check rows; the harness ships unmodified for the 381-48 ladder re-run.
+    // The count-anchored pattern `demo/init/scripts/ladder-evidence.mjs` embeds in its self-check.
     const matches = [...String(noopWarning).matchAll(/drain produced (\d+) commit noop\(s\)[^\n]*/g)]
     expect(matches).toHaveLength(1)
     expect(Number(matches[0]![1])).toBe(1)
@@ -1818,15 +1800,7 @@ describe('verdict-first CLI tail wiring', () => {
     expect(source).toContain(
       ".option('--detach', 'skip the post-verdict knowledge curation tail')",
     )
-    // the shared tail the two sites invoke is now `runPostRunTail` — the v51 curation
-    // fold is reached THROUGH it (as `curate-memory`'s body and as the prior-run sweep), so
-    // `run.ts` names it no more. The claim this case makes is unchanged: BOTH verdict sites go
-    // through the one helper, and a site that grew its own tail again fails right here.
-    //
-    // the helper is `composeCliPostRunTail`, and `run.ts` no longer spells the tail's
-    // option literal at all. The composition moved because the `runs.start` door needs the SAME
-    // one — three spellings of "how this project's tail is composed" is how a field added to the
-    // tail reaches two of them.
+    // Both verdict sites use `composeCliPostRunTail`; a site growing its own tail fails here.
     expect(source.match(/composeCliPostRunTail\(/g)).toHaveLength(2)
     expect(source.match(/runPostRunTail\(/g)).toBeNull()
     expect(source.match(/runCurationTail\(/g)).toBeNull()
@@ -1903,9 +1877,7 @@ describe('per-run candidate summary line', () => {
   })
 
   it('renders the coalesced enqueue outcome visibly and never gates on it', async () => {
-    // 381-49 adjudication: the round-11 candidate died queue-silently — 'coalesced'
-    // is the one enqueue outcome no surface rendered. It must be named on the line
-    // while the complete predicate stays byte-unchanged (receipt written, no warning).
+    // `coalesced` must be named on the line while the complete predicate stays byte-unchanged.
     const warn = vi.fn()
     const info = vi.fn()
     const writeCurationTailReceipt = vi.fn()
@@ -1989,10 +1961,7 @@ describe('per-run candidate summary line', () => {
       'utf8',
     )
 
-    // the expression is pinned byte-identically at its new home. Extracting the
-    // per-run fold out of the sweep loop moved it two nesting levels out, so the CONTINUATION
-    // indentation is the only thing that changed — the operand list and its order are the
-    // thing this test exists to hold, and both are untouched.
+    // Pins the operand list and its order byte for byte.
     expect(source).toContain(
       `complete = candidates.refused === 0
         && candidates.capExceeded === 0
@@ -2124,11 +2093,7 @@ describe('the quarantine disposition line', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('Quarantine withheld for'))
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('app_bug'))
 
-    // THE PRODUCER REACHES THE LINE. The field was carried onto the sighting so
-    // an operator could tell an unauthorable class from an unauthored one, and it was never
-    // printed — the claim was true of the SHAPE and false of the OPERATOR. Asserted on the emitted
-    // text, not on the line's prefix: a rendering fix whose test matches only the prefix is the
-    // same defect again.
+    // Asserted on the emitted text, not the prefix, so a fix matching only the prefix still fails.
     const withheld = warn.mock.calls
       .map(([message]) => String(message))
       .filter((message) => message.startsWith('Quarantine withheld for'))
@@ -2137,24 +2102,11 @@ describe('the quarantine disposition line', () => {
     // And the ACTIONABLE half: this producer means a verdict was already authored, so the operator
     // learns that re-running analysis will not change the answer.
     expect(withheld[0]).toMatch(/will not change the answer/)
-    // THE DIFFERENTIAL: each arm's sentence is its own, two-sided. The
-    // next-applied-run remedy belongs to the UNAUTHORED arm alone — an authored verdict's class
-    // refusal is settled, and a later fold re-reads the same authored answer.
+    // The next-applied-run remedy belongs to the unauthored arm; an authored refusal is settled.
     expect(withheld[0]).not.toMatch(/next applied run/)
   })
 
-  // THE UNAUTHORED CORPUS IS BUILT FROM PRODUCIBLE SHAPES ONLY (390-30, produced-not-literal law).
-  // The leg this replaces spread `verdictClass: 'app_bug'` over `producer: 'deterministic-classifier'`
-  // — a pair NO deterministic producer can mint (`classifyRootCause` returns exactly
-  // `timeout | environment | flake | unknown`) and, worse, the class for which the sentence it pinned
-  // is FALSE. A corpus written as a literal of the type under test cannot fail; the compile-guard
-  // below is what keeps it that way. `cls` is typed `DeterministicRootCauseClass`, imported from the
-  // runner that declares it, so an `app_bug` fixture here stops COMPILING rather than passing
-  // vacuously. No `as` cast may bypass it — a cast reinstates exactly the defect.
-  //
-  // `flake` is producible by the type but unreachable on a FAILING member (a passing member carries
-  // no `failure` row, so no crossing can carry class `flake` AND the deterministic producer —
-  // detection.ts's own eligibility docstring), so the three legs below are the reachable arms.
+  // `cls` is a `DeterministicRootCauseClass`, so an unproducible `app_bug` fixture won't compile.
   function unauthoredSighting(cls: DeterministicRootCauseClass) {
     return {
       ...sighting,
@@ -2188,23 +2140,7 @@ describe('the quarantine disposition line', () => {
   }
 
   it('tells a FLOOR-ELIGIBLE unauthored class that the next applied run may admit it', async () => {
-    // `timeout` is floor-eligible (QUARANTINE_FLOOR_ELIGIBILITY) and auto-quarantinable
-    // (QUARANTINE_CLASS_DISPOSITIONS), so it was withheld only for want of the per-test same-build
-    // signature or because the per-run floor cap was spent — BOTH of which a later run can supply.
-    // For this class alone the next-applied-run remedy is TRUE, and it is true by execution:
-    // a capped identity IS admitted on a later evaluation, measured 2/2/2 across three consecutive
-    // folds (round-4 verification).
-    //
-    // THE REMEDY, PINNED BY POSITIVE CONTENT. This arm used to name
-    // an `analyze-run` invocation under the binary's name: a job kind enqueued programmatically at
-    // post-run-tail.ts:425, absent from the top-level `program.addCommand` registry in cli.ts under
-    // any subcommand — so the string it printed was not typeable by anyone. The
-    // advice was unreachable even had the verb existed — this line is emitted inside the fold that
-    // runs AFTER analysis had its turn, and `applyRunOutcomes` answers
-    // `{ kind: 'not-evaluated', reason: 'already-applied' }` (run-outcomes.ts:424, :792), so
-    // nothing re-decides THIS crossing. Pinned as POSITIVE CONTENT rather than as a blanket ban on
-    // command-shaped strings: a correct future fix naming a REAL verb must not red this leg, and
-    // replacing the remedy sentence with any other string must.
+    // `timeout` is floor-eligible and capped identities are admitted later, so its remedy is true.
     const line = await withheldLineFor('timeout')
     expect(line).toMatch(/next applied run/)
     // Cross-arm negative twins: the other two arms' sentences belong to their own classes.

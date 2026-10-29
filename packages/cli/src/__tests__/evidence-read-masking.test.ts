@@ -1,5 +1,4 @@
-// 423 Gap 1: runs.evidence over the production composition. No test installs a masking resolver;
-// every read below masks with the host's declared mask.
+// `runs.evidence` over the production composition; every read masks with the host's declared mask.
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
@@ -114,8 +113,7 @@ async function listen(server: ReturnType<typeof createServer>): Promise<string> 
   return `http://127.0.0.1:${address.port}`
 }
 
-// The local human door and the bearer machine door over the SAME composed host, as dashboard.ts
-// wires them. Neither restores anything a read masked.
+// The human and machine doors over the same composed host, as `dashboard.ts` wires them.
 async function startDoors(f: ReturnType<typeof productionFixture>) {
   const agentHost = composeDashboardAgentHost(f.host)
   const started = await startServer({ declaredSecretMask: (text) => text, db: f.db, port: 0, agentHost })
@@ -168,7 +166,7 @@ describe('production read posture', () => {
     expect(await f.read('network')).toEqual(network)
     expect(await f.read('variables')).toEqual(variables)
     expect(fixtureBytes(f.root)).toEqual(before)
-    // no op gate writes this file any more; if anything else does, it still holds no secret.
+    // Nothing is expected to write this file; if anything does, it holds no secret.
     const auditPath = join(f.agentQaRoot, 'execution_audit.jsonl')
     expect(existsSync(auditPath) ? readFileSync(auditPath, 'utf8') : '').not.toContain(SECRET)
   })
@@ -188,7 +186,7 @@ describe('production read posture', () => {
     ] } })
     expect(humanRaw).not.toContain(SECRET)
 
-    // the machine door is tokenless; what it refuses is a cross-site read.
+    // The machine door is tokenless; what it refuses is a cross-site read.
     expect((await fetch(doors.machine, { headers: { Origin: 'https://evil.example' } })).status).toBe(403)
     const machine = await fetch(doors.machine)
     expect(machine.status).toBe(200)

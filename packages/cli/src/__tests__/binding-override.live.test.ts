@@ -1,56 +1,4 @@
-// THE D-12 BINDING-OVERRIDE DIFFERENTIAL.
-//
-// D-12 IS TWO CLAIMS AND THIS FILE ISOLATES THE SECOND. Where the deterministic table resolved a
-// clause, the mapper's verdict beats the model's on the ACTION SET and on the BOUND ARGUMENTS — and
-// the second half is the dangerous one, because a reconciler that honoured the count and not the
-// binding runs the RIGHT capability against the WRONG entity, which looks exactly like success. The
-// mutation proof next door measures the action-set half (a clause vanishes). This file holds the
-// action set FIXED — one op, `runs.digest`, in both arms and on both clauses — so the only thing
-// that can differ between the two assemblies is which argument was bound.
-//
-// THE DIFFERENTIAL COMPARES ONE CLAUSE AGAINST ITSELF. The utterance is two clauses: `digest RUN-1`,
-// which the table binds to the run that exists, and a prose clause naming a run that does not. With
-// the override on, the receipt carrying the words `digest RUN-1` is EXECUTED — it was handed the
-// mapper's `RUN-1`. With the override off, THE SAME RECEIPT, carrying the same words and the same
-// function id, comes back FAILED with `RunNotFoundError`, because a strategy that never consults
-// the mapper fills the first clause with the first thing the model proposed. Same composition, same
-// utterance, same op, one variable — and what the person's own words addressed flips.
-//
-// WHY A MISSING RUN IS THE OBSERVABLE. `ClauseReceipt` carries no arguments and must not: D-18 keeps
-// the session log refs-and-one-liners because surfaces render it directly, and op input is exactly
-// the field that could carry a secret. 392-09 named that as a gap rather than papering over it. So
-// the argument is observed through the one thing a composed turn DOES publish about it — whether
-// the op it was handed to succeeded. Two run ids, one addressable and one not, make the bound
-// argument legible without widening a single production type.
-//
-// STEERING A MODEL ONTO A TABLE-BOUND CLAUSE IS HARD BY CONSTRUCTION, and that is a finding worth
-// recording rather than an inconvenience. Stage 2 is consulted ONLY for the clauses stage 1 could
-// not bind (`turn-engine.ts`), so a real model is never even ASKED about a table-resolved clause —
-// the override's first line of defence is structural, and no prompt can get around it. What is
-// live-observable, and what this file measures, is the second line: a model plan carrying a
-// different binding for the same capability cannot displace what the table bound for the clause the
-// table owns.
-//
-// TWO EARLIER STEERING ATTEMPTS WERE MEASURED AND DISCARDED, recorded because a differential's
-// discarded designs are part of its evidence. `and instead start a run for <file>` was refused by
-// the model as contradictory (3 of 3 attempts, `mark_unhandled`); `and also run <file>` was refused
-// on the ground that a run needs a scope, an execution context and a config path that nobody
-// supplied (3 of 3, again `mark_unhandled` — every one of those fields is optional in the schema,
-// so this is a real model posture rather than a contract). Neither refusal is a defect in what this
-// file measures, and neither was worked around by softening a prompt to make the differential
-// convenient.
-//
-// PREDICTIONS, WRITTEN BEFORE THE RUN (what was measured is in `392-10-SUMMARY.md`):
-//
-//   ARM A (override on)  — the receipt for `digest RUN-1` is `executed` under a `human` origin; the
-//     prose clause's receipt is the SAME function id under an `agent` origin and comes back
-//     `failed`, naming `RunNotFoundError`, because the run it addresses does not exist.
-//   ARM B (override off) — the receipt for `digest RUN-1` is `failed` with `RunNotFoundError` under
-//     an `agent` origin: the person's canonical words were handed the model's run id.
-//
-// A release gate on the override switch. It runs only when AGENT_QA_LIVE_CHAT_CONFIG names a
-// project config whose registry.llms and auth plugins resolve on this machine, and is skipped
-// otherwise.
+// Both arms run the same op, so only the bound argument differs; a missing run makes it observable.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -103,8 +51,7 @@ const UTTERANCE = `digest ${SEEDED_RUN_ID} and also show me the digest for ${DEC
 /** The clause the table binds — the one whose executed binding flips between the two arms. */
 const CANONICAL_CLAUSE = `digest ${SEEDED_RUN_ID}`
 
-// no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither.
+// No `grantedScopes` or `safeMode` on the caller; the registry reads neither.
 const HUMAN: FunctionCaller = {
   surface: 'test',
   origin: 'human',
@@ -125,8 +72,7 @@ const modelVerbatimStrategy: ReconcileStrategy = (input: ReconcileInput): Reconc
     args: call.input,
     source: 'planner',
   }))
-  // The OLD turn-level prose carry, re-derived (see the mutation proof's copy for why the
-  // instrument keeps the pre-392-14 behaviour rather than following the shipped strategy).
+  // The turn-level prose carry, re-derived; the instrument keeps it, not the shipped strategy.
   const firstAnswer = input.planned.toolCalls.find(
     (call) => call.toolName === ANSWER_ONLY_TOOL_NAME,
   )?.input
@@ -237,8 +183,7 @@ describe.skipIf(LIVE_CONFIG === undefined)(
         agentQaRoot,
         configPath: String(LIVE_CONFIG),
         runExecution,
-        // the proposal apply delegate is deleted; the live gate still opens no
-        // socket to a daemon that may be running.
+        // The live gate opens no socket to a daemon that may be running.
         knowledgeChangeDelegate: () => Promise.reject(new Error('no change delegation in the live gate')),
         ...(capabilities === undefined
           ? {}
@@ -317,8 +262,7 @@ describe.skipIf(LIVE_CONFIG === undefined)(
       // The person's own canonical words are still on the receipt — the clause was not dropped.
       expect(receipt, off.reading).toBeDefined()
       expect(receipt?.functionId, off.reading).toBe(RUNS_DIGEST_FUNCTION_ID)
-      // And it FAILED, naming the refusal of a run that does not exist: the argument it was handed
-      // is the model's, not the table's. This is D-12's dangerous half, executed.
+      // It fails naming a missing run: the argument it is handed is the model's, not the table's.
       expect(receipt?.status, off.reading).toBe('failed')
       expect(receipt?.outcome, off.reading).toContain('RunNotFound')
       // Minted as the MODEL acting, because the planner is what bound it.
@@ -335,13 +279,11 @@ describe.skipIf(LIVE_CONFIG === undefined)(
       const on = decisiveOn!
       const receipt = canonicalReceipt(on)
 
-      // Same clause text, same function id, opposite outcome. The action set did not move; the
-      // bound argument did — which is D-12's second claim isolated from its first.
+      // Same clause and function id, opposite outcome: only the bound argument differs.
       expect(receipt, on.reading).toBeDefined()
       expect(receipt?.functionId, on.reading).toBe(RUNS_DIGEST_FUNCTION_ID)
       expect(receipt?.status, on.reading).toBe('executed')
-      // The clause the table bound executed as a PERSON acting; a uniform mint would have handed a
-      // model-originated invocation the self-grant power 391 D-06 withholds.
+      // The table-bound clause executes as a person, never as a model-originated invocation.
       expect(receipt?.origin, on.reading).toBe('human')
       // The model's own proposal is not discarded — it answers the clause it was asked about, under
       // an agent origin, and fails on its own merits. The override narrows nothing but the clause

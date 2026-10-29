@@ -1,17 +1,4 @@
-// `agent-qa chat` — the REPL, over the real composition.
-//
-// THE STRUCTURAL CLAIM IS THE SAME ONE `ask` MAKES, and it is why they are two commands and one
-// engine: the REPL owns no turn capability. Every line a person types becomes one
-// `invokeFunction(agent.ask)`, so a conversation can do exactly what the function layer lets it do
-// and 397's parity suite reads the verb off the registry without the CLI being consulted.
-// The last case in this file pins that as source text, because the behavioural cases would all
-// still pass if a second turn path grew beside the op.
-//
-// NOTHING HERE IS STUBBED. The command builds the real registry through the real composition root
-// in every case; the session files it reads back are the ones the real JSONL adapter wrote. The
-// only injected seams are the streams, because a suite that needed a real terminal would be a
-// suite that never runs — and the arm that matters most (no terminal ⇒ no inline confirm) is
-// exactly the one a real terminal could not exercise.
+// The REPL owns no turn capability: each line is one `agent.ask`; only the streams are injected.
 
 import {
   mkdtempSync,
@@ -192,13 +179,7 @@ describe('agent-qa chat (the REPL over one turn engine)', () => {
     for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
   })
 
-  // ---- 398-10: the chat aggregates, over the REAL loop ------------------------------
-  //
-  // DRIVEN, NOT BUILT. The only substitution is the transport under the composed port — the
-  // composition root, the opt-out decision, the identity gate and the closed union are all the
-  // shipped ones, and every event counted below is one that actually crossed the port during a
-  // scripted conversation. A host that assembled these events and never captured them would pass
-  // any cell that called the builder itself, and reds this one.
+  // Only the transport is substituted, so every event counted actually crossed the composed port.
   it('emits one session aggregate and one turn aggregate per turn, carrying no text', async () => {
     const configPath = fixtureWorkspace(roots)
     const sent: { name: string; properties: Record<string, unknown> }[] = []
@@ -255,29 +236,13 @@ describe('agent-qa chat (the REPL over one turn engine)', () => {
     // turn and a chatbot: the surface reports a capability invocation, not prose.
     expect(result.stdout).toContain('runs.list')
     expect(result.stdout).toContain('executed')
-    // ONE session, opened by default. The id is printed once so a person can `--session` it.
+    // One session opens by default; its id is printed once so a person can pass it to `--session`.
     expect(sessionFiles(configPath)).toHaveLength(1)
     expect(result.stdout).toContain('chat-')
   })
 
   it('the rendered receipt line carries the receipt\'s own `outcome`', async () => {
-    // SC-5's REPORTING half (WINDOWS 124, WTST-08's remaining half), owner-ratified 2026-08-13:
-    // the RENDERED LINE governs, not the persisted artifact. `Runs consumed: N (previewed up to M)`
-    // is composed into `ClauseReceipt.outcome` at turn-engine.ts:176 and persisted verbatim — and a
-    // render that never reads `outcome` is a person told what an invocation MIGHT cost and never
-    // what it DID. The field is pinned here on the deterministic turn every other case drives, so
-    // the claim is about the render rather than about a fan-out fixture: for a non-authoring op the
-    // outcome is the op's own one-line map, and the shipped line renders the functionId and the
-    // clause as separate fields, so the contiguous string cannot appear unless `outcome` does.
-    //
-    // THE LINE MOVED AND THE CLAIM DID NOT. `proposals.list` declares a
-    // classifier now — `classify` is a REQUIRED member of `FunctionSpec` as of plan 04 — so the
-    // engine's `${functionId} completed` fallback is not what this op reports any more. The op's
-    // own one-line map is, and the string below is it for an EMPTY inbox, which is what this
-    // fixture workspace has. 2026-10-01: `proposals.list` is deleted; `runs.list` is the
-    // subject now, and the string is its own map for a workspace with no completed run. It is still a contiguous string the shipped line renders only by
-    // printing `outcome`: the functionId and the clause are separate fields, and neither of them
-    // is this sentence.
+    // The rendered line governs: the `outcome` string appears whole only if the render prints it.
     const configPath = fixtureWorkspace(roots)
     const result = await runChat(configPath, [], ['/fn runs.list', '/quit'])
 
@@ -286,8 +251,7 @@ describe('agent-qa chat (the REPL over one turn engine)', () => {
 
   it('prints the banner at most once, on open', async () => {
     const configPath = fixtureWorkspace(roots)
-    // A bare project has nothing pending, so D-23's answer is SILENCE — a REPL that greeted every
-    // open with a status line would train a person to skip the line that mattered.
+    // A bare project has nothing pending, so the REPL opens silently, with no status line.
     const result = await runChat(configPath, [], ['/quit'])
 
     expect(result.stdout).not.toContain('pending — type')
@@ -301,11 +265,7 @@ describe('agent-qa chat (the REPL over one turn engine)', () => {
   })
 
   it('opens with starter prompts RENDERED FROM the committed catalog', async () => {
-    // THE CELL THAT WATCHES WHAT IS SENT (398-07's M6 lesson, applied here before it could bite).
-    // `conformance/help-census.test.ts` proves the builders return catalog text; every one of those
-    // cells would still be green if this command never called them, because they call the builders
-    // themselves. This one drives the REAL command and reads its REAL output, so "built but never
-    // wired" is a state something can see.
+    // Drives the real command and reads its output, so a builder that is never called is seen.
     const configPath = fixtureWorkspace(roots)
     const result = await runChat(configPath, [], ['/quit'])
 
@@ -476,9 +436,7 @@ describe('agent-qa chat (the REPL over one turn engine)', () => {
   })
 
   it('drives turns ONLY through invokeFunction on agent.ask, and builds no model', () => {
-    // A SOURCE PIN, because every behavioural case above would still pass if the REPL grew a
-    // second turn path beside the op. `createTurnEngine` here would be the largest private power
-    // in the system: an orchestrator reachable through nothing the catalogue declares.
+    // Every behavioural case passes even with a second turn path in the REPL, so source is pinned.
     const source = readFileSync(join(__dirname, '..', 'commands', 'chat.ts'), 'utf8')
     expect(source).toContain('AGENT_ASK_FUNCTION_ID')
     expect(source).toContain('invokeFunction')
@@ -486,14 +444,12 @@ describe('agent-qa chat (the REPL over one turn engine)', () => {
       expect({ forbidden, present: source.includes(forbidden) })
         .toEqual({ forbidden, present: false })
     }
-    // CHAT-06's half, checked as a SPECIFIER rather than a token: `createModel` appears in this
-    // file's prose explaining that the model arrives already built, and a token scan would report
-    // the documentation of the rule as a violation of it (the rollcall's own negative control).
+    // Checked by import specifier, so prose naming `createModel` is not mistaken for a use.
     for (const specifier of ['@vostride/agent-qa-model', '@ai-sdk/']) {
       expect({ specifier, present: source.includes(`'${specifier}`) })
         .toEqual({ specifier, present: false })
     }
-    // printed text crosses the declared mask and nothing restores it.
+    // Printed text crosses the declared mask and nothing restores it.
     expect(source).toContain('declaredSecrets.mask')
     for (const restore of ['unmask', ['create', 'MaskingContext'].join('')]) {
       expect({ restore, present: source.includes(restore) }).toEqual({ restore, present: false })
@@ -501,10 +457,7 @@ describe('agent-qa chat (the REPL over one turn engine)', () => {
   })
 
   it('renders the fan-out cost verbatim off `outcome` — the sentence a person approved', () => {
-    // The exact sentence the live run of 394-35 composed, persisted, and never printed (WINDOWS
-    // 124). Driven against the exported render directly rather than through a turn, because no
-    // hermetic surface case can reach a real fan-out — and what SC-5's reporting half asks is
-    // whether the field carrying the cost survives the render, which is answerable here.
+    // Driven against the exported render, because no hermetic case reaches a real fan-out.
     const rendered = receiptLine({
       clause: 'write a test that signs in on the local account form',
       functionId: 'authoring.draft.write',
@@ -526,11 +479,7 @@ describe('agent-qa chat (the REPL over one turn engine)', () => {
   })
 
   it('both surfaces render ONE receipt line, and neither may re-grow a private copy', () => {
-    // A SOURCE PIN beside the one above, for the reason that one exists: the two behavioural cells
-    // would both stay green if `ask.ts` copied the render back into itself and the copies then
-    // drifted — which is exactly the history this module ends. Six times in this phase a contract
-    // has been hardened on one side only; the shared module plus this pin forecloses a seventh on
-    // the receipt line structurally rather than by convention (D-01: one turn, one wording).
+    // Pins the shared render; the behavioural cells pass even if `ask.ts` copies it and drifts.
     const commands = join(__dirname, '..', 'commands')
     for (const file of ['chat.ts', 'ask.ts']) {
       const source = readFileSync(join(commands, file), 'utf8')
@@ -546,10 +495,7 @@ describe('agent-qa chat (the REPL over one turn engine)', () => {
   })
 
   it('both surfaces render ONE payload block, from the one module, through their own masker', () => {
-    // THE SAME PIN FOR THE 399.1 RENDER. `result-render.ts` is the second module to be
-    // shared by these two surfaces, and it arrives with the pin rather than acquiring one later:
-    // the whole reason `receipt-line.ts` exists is that the two surfaces held byte-identical
-    // private copies and were free to drift.
+    // The same pin for `result-render.ts`, which `ask` and `chat` also share.
     const commands = join(__dirname, '..', 'commands')
     for (const file of ['chat.ts', 'ask.ts']) {
       const source = readFileSync(join(commands, file), 'utf8')
@@ -576,8 +522,7 @@ describe('agent-qa chat (the REPL over one turn engine)', () => {
     // print outside the surface's declared mask.
     expect(shared).not.toContain('console.')
     expect(shared).not.toContain('process.stdout')
-    // The non-vacuity guard on all of the above: the module renders the WHOLE payload rather than
-    // a hand-picked join of the fields somebody thought mattered (D-04's structural claim).
+    // The module renders the whole payload, not a hand-picked join of fields.
     expect(shared).toContain('JSON.stringify(payload, null, 2)')
   })
 })

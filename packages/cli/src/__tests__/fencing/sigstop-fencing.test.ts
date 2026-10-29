@@ -76,25 +76,11 @@ function storeDigest(knowledgeRoot: string): string {
 const JOURNAL_DIR = 'memory/queue/journal'
 /** The only names `listCommitIntents` returns — the live intents a reconciler will act on. */
 const LIVE_INTENT_FILE = /^([0-9a-f]{64})\.intent\.json$/
-/**
- * The uniquified quarantine name 386-37 settled on: `.stale-<epoch>-<candidateId>-<uuid>`.
- *
- * Asserted as a SHAPE, never as an exact string: the per-invocation `randomUUID()` discriminator
- * exists precisely so one candidate quarantined twice at the same epoch cannot silently overwrite
- * its own earlier evidence, which makes any exact-name expectation unsatisfiable.
- */
+// A shape, not a name: the per-call UUID keeps a twice-quarantined candidate's evidence apart.
 const QUARANTINED_INTENT_FILE =
   /^\.stale-(\d+)-([0-9a-f]{64})-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.intent\.json$/
 
-/**
- * Seam-small takeover plus a budget far below production's 60 s.
- *
- * The deadline is deliberately shortened rather than left at the pinned default: a leg that ran
- * under the 60 s budget would prove only that the schedule fits in 60 s. Under 20 s the assertion
- * that the whole escalated reclaim completes inside its budget is a real measurement, and 386-40's
- * rule — escalation waits are SPENT from the acquisition budget, not added beside it — is what
- * makes it hold.
- */
+// Shorter than production's 60 s, so finishing inside the budget is a measurement, not a given.
 const RECLAIM_SEAMS = { mutationLockTakeoverMs: 0, acquireDeadlineMs: 20_000 } as const
 
 function journalNames(knowledgeRoot: string): string[] {
@@ -130,15 +116,7 @@ function indexedBundleIds(knowledgeRoot: string): string[] {
   }
 }
 
-/**
- * The escalated reclaim, asserted as a PATH rather than as an outcome.
- *
- * A harness that simply killed the stopped writer itself would satisfy "the successor won" and
- * every state assertion downstream of it. What it could not produce is this: the successor's own
- * acquisition resolving the stopped pid's process incarnation (386-31's verified-match gate) and
- * only then the kernel reporting that pid dead by SIGKILL, inside the successor's acquisition
- * budget, with the reclaim named in the daemon's event log.
- */
+// Asserts the path, so a harness that killed the stopped writer itself cannot pass.
 async function assertEscalatedReclaim(input: {
   paths: FencingPaths
   drainer: ReturnType<typeof startChild>
@@ -610,18 +588,7 @@ describePosix('SIGSTOP writer-epoch fencing', () => {
       }
     }, LEG_TIMEOUT_MS)
 
-    /**
-     * I-03, direction one: a writer stopped WITH a durable intent and nothing published.
-     *
-     * 386-28 moved this pause point out of the SIGSTOP schedule because a child frozen on
-     * `BEGIN IMMEDIATE` could not be reclaimed at all; the process-level suite lost the only state
-     * the intent journal exists for. This restores it through the machinery that made it possible:
-     * the whole process is stopped, so no renewal sidecar is written and the lease ages out; the
-     * successor escalates past a seam-small takeover, verifies the stopped pid's incarnation, and
-     * kills exactly it; the inherited journal then names a bundle that was never published, so
-     * reconciliation requeues the candidate instead of projecting a publication that does not
-     * exist — and the successor commits it exactly once.
-     */
+    // Reconciliation requeues the candidate for the unpublished bundle; the successor commits once.
     test('reclaims a writer stopped holding a durable intent for an unpublished bundle', async () => {
       const paths = makeRoot('durable-intent-unpublished')
       const fixture = singleCandidateFixture()

@@ -52,11 +52,7 @@ import {
 import { removeTempRoots } from './temp-roots.js'
 import { MASKED_RESOLVED_CONFIG_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 
-/**
- * The composition's REQUIRED quarantine identity mint. Passthrough here: this
- * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
- * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
- */
+// Passthrough: the fixture speaks canonical workspace-relative bytes, and core pins the recipe.
 const MINT_IDENTITY = (filePath: string): string => filePath
 
 const roots: string[] = []
@@ -170,13 +166,7 @@ function semanticModules(): Promise<SemanticEndpointModules> {
   return semanticEndpointModules
 }
 
-/**
- * Endpoint conformance needs a high-tier op and deliberately interrupted stream declarations that
- * do not belong in the production catalog. The spec constructor stays absent from the public agent
- * barrel; this test-only dynamic load exercises the real registry and dispatch (no gate runs since
- * 432-19; re-spelled 2026-10-02, 432-42) without widening the surface firewall or admitting a
- * second production dispatch path.
- */
+// A test-only dynamic load of the spec constructor, outside the public barrel and catalog.
 async function registryFixture(
   specs: readonly Record<string, unknown>[],
 ): Promise<TestRegistryFixture> {
@@ -207,8 +197,7 @@ async function registryFixture(
       },
       config: TEST_CONFIG,
     },
-    // no `resolveExecutionContext` registry option and no `requiredScopes`
-    // on the synthetic specs; the registry reads neither.
+    // No `resolveExecutionContext` option and no `requiredScopes` on the specs; nothing reads them.
   })
   return { registry }
 }
@@ -547,8 +536,7 @@ describe('daemon /invoke endpoint tracer', () => {
       functionId: 'config.get',
       input: {},
     })).resolves.toEqual(MASKED_CONFIG)
-    // the op gate's row was this cell's witness that the route dispatched through
-    // `invokeFunction`; no row is written now, and the masked answer above is the dispatch's own.
+    // No execution-audit row is written; the masked answer above is the dispatch's own.
     expect(existsSync(join(agentQaRoot, 'execution_audit.jsonl'))).toBe(false)
   })
 
@@ -892,10 +880,7 @@ describe('daemon /invoke endpoint semantic parity', () => {
       issues: expect.stringContaining('value'),
     })
 
-    // the scope refusal is deleted, so the op that declares a scope no caller holds
-    // answers over the wire like any other; there is no scope class left to rehydrate.
-    // the fixture no longer spells the retired `requiredScopes`
-    // ('fixture-scope'); the registry never read it, so the op answers by construction.
+    // An op declaring an unheld scope answers over the wire like any other; no scope check runs.
     await expect(semantic.invokeViaDaemon({
       agentQaRoot,
       functionId: 'synthetic.scope',
@@ -923,11 +908,6 @@ describe('daemon /invoke endpoint semantic parity', () => {
     })
   })
 
-  // RE-SPELLED 2026-09-30. Was 'surfaces the real fail-closed ask
-  // denial with exactly the gate audit row': the daemon's `local-headless` posture failed an
-  // ask-tier op closed, identically in process and over the wire. No gate runs now, so the same
-  // ask-tier op DISPATCHES identically on both sides and neither writes a row. The wire half of the
-  // retired claim (the neutral reason crossing `wireError`) has no producer left to carry.
   it('dispatches an ask-tier op identically in process and over the wire, with no audit row', async () => {
     const semantic = await semanticModules()
     const { registry } = await registryFixture([

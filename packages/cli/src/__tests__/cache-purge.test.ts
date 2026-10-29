@@ -5,10 +5,7 @@ import { tmpdir } from 'node:os'
 import { Command } from 'commander'
 import { sha256hex16 } from '@vostride/agent-qa-schema'
 
-// Phase 356 cache layout: <cacheRoot>/<branch-slug>/<cacheKey>.json. The 16-hex cacheKey
-// is opaque + content-addressed over masked step text and a runtime screenIdentityHash, so
-// entries cannot be recomputed from a test file (no raw step text on disk, D-06). Purge
-// therefore operates over the on-disk branch namespaces directly.
+// The 16-hex cache key is opaque and content-addressed, so purge walks the branch namespaces.
 
 const TMP_DIR = join(tmpdir(), 'agent-qa-cache-purge-test-' + process.pid)
 
@@ -26,7 +23,6 @@ afterEach(async () => {
 })
 
 describe('purgeAll', () => {
-  // re-spelled from "…with force=true"; purgeAll has no force flag.
   it('deletes all cache-key entries across branch namespaces', async () => {
     const { purgeAll } = await import('../commands/cache.js')
     const cacheDir = join(TMP_DIR, 'cache')

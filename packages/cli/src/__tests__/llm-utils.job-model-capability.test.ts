@@ -1,10 +1,4 @@
-// The CLI's binding of the job queue's authorship capability (385 plan 09, over plan 05's D-10).
-//
-// The lazy-wrong implementation of "composeLocalAgent binds a real model" is a capability whose
-// `generate` throws or answers a constant — nothing in this phase pumps a job through the CLI, so a
-// stub would be invisible. These assertions are therefore about the CALL: that the profile really
-// reaches `createModel`, that the request the queue hands in becomes the provider request, and that
-// the answer comes back from the provider rather than from a literal here.
+// Asserts the call: the profile reaches `createModel` and the answer comes from the provider.
 
 import type { ModelProfile, ResolvedModelAuth } from '@vostride/agent-qa-model'
 import { describe, expect, it, vi } from 'vitest'

@@ -1,47 +1,4 @@
-// The App wrapper IN A REAL BROWSER — the D-11 states a person actually lands in
-//
-// WHAT IS PRODUCTION HERE AND WHAT IS SCRIPTED. Production: `renderAppWrapperPage` and every
-// sentence constant, driven through a real headless Chromium. Scripted: the two throwaway
-// `node:http` servers — one serving the wrapper document, one standing in for the dashboard origin
-// the wrapper iframes — and the mint records, which are plain values a read handler would have
-// composed. Nothing about the INNER embed page is re-tested here: its own states are 403's proven
-// ground, and this file's subject is what the OUTER document does with a frame it cannot see into.
-//
-// WHY A BROWSER IS NOT OPTIONAL FOR THESE CLAIMS. Plan 01 asserted the wrapper's BYTES; the
-// questions left are about behaviour no string can answer — does a dead origin end as a NAMED
-// state rather than a blank rectangle, does the picker swap without touching the network, does a
-// loaded frame actually reach `live`, once the document has expired does it STAY expired no matter
-// what a person does to it, and does a person still have a way out when NONE of the document's
-// script runs. Each is a property of the browser's event loop (or, for the last, of its absence),
-// and the expiry one is what `408-VERIFICATION.md` measured going the other way (plan 07, cell (6)).
-//
-// A MEASURED FACT THAT SHAPED THE WRAPPER, recorded here because it is the reason cell (3) is not
-// a one-liner: in Chromium an iframe pointing at a REFUSED connection still fires `load` (measured
-// a page whose only signal was `load` would have shown Chromium's own error page
-// under a `live` label, which is exactly the blank inner frame D-11 forbids). So the wrapper
-// proves reachability with an explicit no-cors probe of the frame's ORIGIN and treats `load` as
-// necessary-but-not-sufficient. Both halves are cells below.
-//
-// THE MUTATION LEGS THIS FILE IS THE BAR FOR:
-//   E1  the origin probe removed, `load` treated as proof     -> cell (3), MEASURED: deleting the
-//                                                                probe makes cell (3) time out at
-//                                                                25 s on Chromium's error page,
-//                                                                which the wrapper then calls live
-//   E2  the picker re-fetching or re-minting on change       -> cell (4)'s request counter
-//   E3  the live state losing its display rule               -> cell (5)
-//   E4  the `attach()` expired early-return removed          -> cell (6), MEASURED: the document
-//                                                               reads `live` again after the picker
-//                                                               change and the frame carries an
-//                                                               already-aged liveUrl
-//   E5  the permanent link's href/label moved BACK into the   -> cell (7): with scripting disabled
-//       script (the pre-2026-09-01 shape)                        the anchor renders empty, so the
-//                                                               href read answers null and there is
-//                                                               no way out of the document at all
-//   E6  the reachability memo caching the FAILURE again        -> cell (8): one refused probe pins
-//       (`.catch(function () { return false; })` without           the document to
-//       the `delete`)                                             `unreachable-origin` for its whole
-//                                                                 life, so the swap never reaches
-//                                                                 `live` and no second probe is sent
+// In Chromium a refused iframe still fires `load`, so the wrapper also probes the frame's origin.
 
 import { createServer } from 'node:http'
 import type { Server } from 'node:http'
@@ -196,19 +153,15 @@ describe('the wrapper in a real browser', () => {
         .locator('[data-app-state="unreachable-origin"]')
         .waitFor({ state: 'attached', timeout: APP_WRAPPER_LOAD_TIMEOUT_MS + 15_000 })
 
-      // The sentence a person reads, asserted against the SAME constant the page renders — never a
-      // literal restated here, which is the drift T-403-09's discipline exists to stop.
+      // Asserted against the constant the page renders, never a restated literal.
       expect(await page.locator('[data-app-message]').textContent()).toBe(
         APP_WRAPPER_UNREACHABLE_MESSAGE,
       )
-      // ...and the way out is still there. "Never a blank frame" is only half of D-11; the other
-      // half is that the named state carries the browser path.
+      // The named state still carries the browser path, so a person always has a way out.
       const link = page.locator('[data-app-permanent-link]')
       expect(await link.getAttribute('href')).toBe(permanentLink)
       expect(await link.textContent()).toBe(APP_WRAPPER_PERMANENT_LINK_LABEL)
-      // A COUNT, not the locator. `expect(locator).toBeTruthy()` passed for any object a Playwright
-      // API can return — including a locator matching nothing — so it could not go red no matter
-      // what the document held. One anchor is the claim: present, and exactly once.
+      // A locator matching nothing is truthy, so the anchor is counted instead.
       expect(await link.count(), 'the permanent link slot is in the document').toBe(1)
     } finally {
       await page.close()
@@ -227,8 +180,7 @@ describe('the wrapper in a real browser', () => {
       await page.locator('[data-app-state="live"]').waitFor({ state: 'attached', timeout: 30_000 })
       expect(await page.locator('[data-app-live-frame]').getAttribute('src')).toBe(mints[0]!.liveUrl)
 
-      // Count only requests the WRAPPER DOCUMENT issues. The inner frame navigating is the swap
-      // itself; a request from the main frame would be the re-mint D-10 forbids.
+      // Only the wrapper document's requests count; the inner frame navigating is the swap itself.
       const wrapperRequests: string[] = []
       page.on('request', (request) => {
         if (request.frame() === page.mainFrame()) wrapperRequests.push(request.url())
@@ -261,12 +213,7 @@ describe('the wrapper in a real browser', () => {
       await page.goto(url, { waitUntil: 'domcontentloaded' })
       await page.locator('[data-app-state="live"]').waitFor({ state: 'attached', timeout: 30_000 })
 
-      // The embed page's own display rule, mirrored: in `live` the frame is what a person sees and
-      // the banner gets out of the way. THE PAIRING IS THE CLAIM — the paragraph is PRESENT and not
-      // VISIBLE, which is what the display rule means — so the presence half has to be a count.
-      // The `toBeTruthy()` this replaces was true of a locator matching zero nodes, which made
-      // "hidden" and "absent" the same verdict and left D-11's blank-rectangle prohibition unmeasured
-      // on this arm.
+      // Present and hidden is the display rule; presence is a count, as a locator is always truthy.
       expect(
         await page.locator('[data-app-message]').count(),
         'the message paragraph exists and is HIDDEN in live, not absent',
@@ -280,22 +227,7 @@ describe('the wrapper in a real browser', () => {
     }
   }, 180_000)
 
-  // THE VERIFIER'S OWN PROBE, MADE PERMANENT (408-VERIFICATION.md gaps[0]/gaps[1], ROADMAP SC2
-  // clause 2, D-10). Before plan 07 the expiry timer was one-shot and `attach()` was reachable from
-  // the picker afterwards, so a person who left the App open past the TTL and then swapped handles
-  // got the word `live` painted over a pane whose token had aged out — a state the wrapper's own
-  // header calls worse than a blank frame, and one nothing later would correct.
-  //
-  // THE INNER ORIGIN IS REACHABLE HERE ON PURPOSE. A dead origin would reach `expired` for the
-  // wrong reason; the claim is about a pane that was GENUINELY live and then aged out, which is the
-  // only shape in which the defect was reachable.
-  //
-  // THE PICKER CHANGE IS FORCED past the actionability checks deliberately. The `disabled`
-  // attribute is asserted below as its own claim, but if the change were only PREVENTED by that
-  // attribute this cell would be measuring Playwright's refusal to drive a disabled control rather
-  // than the wrapper's terminal guard — and removing the `attach()` early return would leave it
-  // green. Forcing the change event fires the handler exactly as a host that ignores `disabled`
-  // would, so leg E4 reds on the guard itself.
+  // Forced past actionability, so the wrapper's guard is under test, not Playwright's refusal.
   it('(6) an expired document STAYS expired when the picker is changed, and keeps the link and hint', async () => {
     const inner = await serveStatic('<!doctype html><title>inner</title>ok', 'text/html')
     const permanentLink = `${inner}/runs/${RUN_ID}/live`
@@ -306,8 +238,7 @@ describe('the wrapper in a real browser', () => {
     const page = await held().newPage()
     try {
       await page.goto(url, { waitUntil: 'domcontentloaded' })
-      // It was live FIRST — otherwise this cell would pass against a document born expired, which
-      // is a state plan 02 already proved and not the transition under test.
+      // Live first, or a document born expired would pass; the transition is under test.
       await page.locator('[data-app-state="live"]').waitFor({ state: 'attached', timeout: 30_000 })
       await page
         .locator('[data-app-state="expired"]')
@@ -328,8 +259,7 @@ describe('the wrapper in a real browser', () => {
         'no aged liveUrl is ever re-assigned to the frame',
       ).toBeNull()
 
-      // D-10's other half, and the second gap the verification recorded: the expired state must go
-      // on CARRYING the way out for the whole life of the document, not only on the first render.
+      // The expired state keeps the way out for the life of the document, not just at first.
       expect(await page.locator('[data-app-message]').textContent()).toBe(APP_WRAPPER_EXPIRED_MESSAGE)
       expect(await page.locator('[data-app-hint]').textContent()).toBe(APP_WRAPPER_EXPIRED_HINT)
       const link = page.locator('[data-app-permanent-link]')
@@ -345,21 +275,7 @@ describe('the wrapper in a real browser', () => {
     }
   }, 180_000)
 
-  // (7) THE HOST THAT RUNS NONE OF THIS DOCUMENT'S SCRIPT (WR-10, RESEARCH assumption A1, T-408-19).
-  //
-  // THIS IS A PROXY MEASUREMENT AND THE PROXY IS NAMED. A Playwright context created with
-  // `javaScriptEnabled: false` is NOT a host applying `script-src 'none'`: the CSP path also blocks
-  // by directive, reports violations, and can differ per element, and a real host may block only
-  // SOME sources. What the two share is the only thing this cell claims — the document is painted
-  // and none of its inline script ever runs. The real-host measurement stays UAT item 2 in
-  // `408-VERIFICATION.md`, and 408-14 adds the derived-CSP harness leg; this cell converts the
-  // failure mode from an unmeasured assumption into a standing gate in the meantime.
-  //
-  // WHAT IT PROVES. Before this plan the anchor's href and label were assigned BY THE SCRIPT, so on
-  // such a host a person met an empty anchor, a hidden frame and an indefinite `connecting`
-  // sentence — a pane with no way out, which the wrapper's own header calls worse than a blank
-  // frame. The primary representation (D-08's permanent link) is now in the markup the server sends,
-  // and the connecting state carries a named second line saying what to do with it.
+  // `javaScriptEnabled: false` stands in for a `script-src 'none'` host: painted, no script run.
   it('(7) with the script never running, the document still names a state and offers the way out', async () => {
     const inner = await serveStatic('<!doctype html><title>inner</title>ok', 'text/html')
     const permanentLink = `${inner}/runs/${RUN_ID}/live`
@@ -395,19 +311,7 @@ describe('the wrapper in a real browser', () => {
     }
   }, 180_000)
 
-  // (8) ONE BAD MOMENT IS NOT A VERDICT ABOUT SOMEBODY ELSE'S ORIGIN.
-  //
-  // The reachability memo used to cache the REJECTED probe, and every mint on a render shares one
-  // origin, so a single refusal — a dashboard restarting, a refusal during the first paint —
-  // answered `false` for the life of the document. Every later handle swap then settled instantly
-  // in `unreachable-origin` with no network call and NO PATH BACK: the document was permanently
-  // wrong about a dashboard that was, by then, up. The memo is now success-only, which costs the
-  // zero-request property nothing (cell (4), immediately above, is that property's gate and probes
-  // an origin that answers first time).
-  //
-  // THE PROBE COUNTER IS THE CELL'S SECOND HALF. Reaching `live` after a refusal could in principle
-  // happen because an answer was reused; asserting the server saw MORE THAN ONE probe proves a
-  // second one was really issued.
+  // The reachability memo caches only success, so one refused probe cannot pin it unreachable.
   it('(8) a REFUSED probe is not remembered — a later handle swap probes again and reaches live', async () => {
     const refusing = refusingOrigin()
     const inner = await refusing.origin

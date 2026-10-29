@@ -1,17 +1,4 @@
-// `agent-qa entities` — the verb that replaced `ids`.
-//
-// This file replaces `ids.test.ts`, and the substitution is deliberate rather than
-// bookkeeping. What that suite actually covered was a CLI surface over id minting: parse a
-// type, call the generator, print, set an exit code. The generator itself is covered where it
-// lives (`packages/ids/src/__tests__/persistent-id.test.ts`) and did NOT move — the addressing
-// ledger maps FROM those ids — so nothing was lost by deleting the command's own suite. What
-// is covered here is the property that replaced it: this surface owns no capability at all,
-// and the card it prints came out of the function layer.
-//
-// Every case runs the real command against a real temp project: a bundle is genuinely
-// published to disk, the composition root is genuinely built, and the addressing ledger is a
-// real sqlite file. A stubbed registry would let a renderer that fabricated a plausible card
-// pass every assertion below.
+// Real command, real temp project and real sqlite, so a renderer fabricating a card cannot pass.
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -220,7 +207,7 @@ describe('agent-qa entities (the addressing debug verb)', () => {
     // fabricated could satisfy the object above and still not be a card.
     if (resolution.kind !== 'resolved') throw new Error('expected the resolved arm')
     expect(EntityCardSchema.safeParse(resolution.card).success).toBe(true)
-    // no dashboard base URL is configured, so no link is offered.
+    // No dashboard base URL is configured, so no link is offered.
     expect(Object.hasOwn(resolution.card, 'url')).toBe(false)
   })
 

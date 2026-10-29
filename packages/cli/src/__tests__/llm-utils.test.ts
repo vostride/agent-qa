@@ -1,7 +1,6 @@
 import { afterAll, describe, it, expect, vi, beforeEach } from 'vitest'
 
-// the declared-secret loader reads core's workspace paths and the real
-// config merge, so both mocks keep the original module beside the stubbed functions.
+// The secret loader reads core's workspace paths and config merge, so mocks keep the module.
 vi.mock('@vostride/agent-qa-core', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getCredential: vi.fn(),
@@ -286,8 +285,6 @@ describe('resolveLLMModels', () => {
   })
 })
 
-// ————— 389-06: the analysis token budget + the D-02 vision leg + the CR-02 mechanism pin —————
-
 const BUDGET_CAPABILITIES: ModelCapabilities = {
   text: true,
   vision: false,
@@ -392,8 +389,7 @@ describe('buildJobModelCapability vision', () => {
     await capability.generate({ prompt: 'explain', images: [IMAGE_A] })
     await capability.generate({ prompt: 'explain' })
 
-    // The gate is enforced at the host boundary (L9): a mis-gated caller's images strip
-    // to EXACTLY the call a plain text request produces — not a variant of it.
+    // Enforced at the host boundary: a mis-gated caller's images strip to the plain text call.
     expect(calls).toHaveLength(2)
     expect(calls[0]).toEqual(calls[1])
     expect(calls[0]).not.toHaveProperty('messages')

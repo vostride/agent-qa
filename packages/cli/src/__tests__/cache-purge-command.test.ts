@@ -1,7 +1,4 @@
-// `agent-qa cache purge --all` removes the selected cache the
-// moment it is asked to. There is no y/N and no `--force`; the retired option is unknown to the
-// parser. Cache selection, empty-cache success, the cache-root boundary and error reporting are
-// unchanged. Every fixture uses a throwaway temp directory, never a real `.agent-qa` cache.
+// Purges at once with no prompt and no `--force`; fixtures use throwaway temp directories.
 
 import { randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'

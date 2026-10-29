@@ -22,7 +22,7 @@ export const PERMITTED_RUN_RECEIPT_DIFF_FIELDS = [
   'drainKind',
   'handoffHolderPid',
 ] as const
-/** written only beside a validated snapshot, so they share its asymmetry. */
+// Written only beside a validated snapshot, so they share its asymmetry.
 export const SNAPSHOT_BOUND_RUN_RECEIPT_FIELDS = ['curated', 'deprecated'] as const
 
 export type FixtureVariant = 'mixed' | 'over-ttl' | 'empty'

@@ -1,21 +1,4 @@
-// The exemplar thin-client verb: `agent-qa knowledge bundles` (Phase 384, Plan 05 — D-05/D-07).
-//
-// Two claims are under test here, and they are different in kind.
-//
-// BEHAVIOUR: the verb renders `knowledge.bundles.list` end-to-end through the composition
-// root, `invokeFunction`, and the real gate — against genuinely committed bundles on disk.
-//
-// SOURCE SHAPE: the verb's code path takes its data from `invokeFunction` alone, and the
-// whole file has stopped importing the safety package directly (its display-boundary
-// helpers now arrive through the agent barrel). These are the properties plan 06's import
-// firewall will make build-enforced; pinning them here means the firewall lands on a file
-// that already satisfies it rather than on one that has to be repaired first.
-//
-// The source assertions parse IMPORT STATEMENTS over the file bytes. They never shell out
-// to a line matcher: a count that cannot distinguish "zero hits" from "the matcher printed
-// nothing" is not a gate, and a matcher that reads prose in a doc comment as a dependency
-// is a gate a comment can invalidate. The extractor below is proven non-vacuous by its own
-// positive-control case.
+// Import statements are parsed from the file bytes, so prose cannot count as a dependency.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -327,8 +310,6 @@ describe('agent-qa knowledge bundles (the exemplar thin client)', () => {
     expect(human).toContain(cautionId)
     expect(human).toContain('Checkout summary')
     expect(human).toContain('Payment timeout summary')
-    // Human prose is the sole unmasking surface (v48 D-11): whatever the boundary emits,
-    // it never leaves a placeholder standing in the operator's terminal.
     expect(human).not.toMatch(/SECRET_\d+/u)
   })
 
@@ -392,8 +373,7 @@ describe('knowledge-read.ts source shape', () => {
     // The extractor is live against THIS file, not just the synthetic control.
     expect(specifiers.length).toBeGreaterThan(4)
     expect(specifiers).toContain('@vostride/agent-qa-agent')
-    // The whole claim: the exemplar file has no direct safety dependency. 2026-10-14 (441-14,
-    // D-12): its only agent-barrel binding is `invokeFunction`; the declared mask is the CLI's own.
+    // The file has no direct safety dependency; the declared mask is the CLI's own.
     expect(specifiers.filter((specifier) => specifier.includes('agent-qa-safety'))).toEqual([])
     expect(importedBindings(source, (s) => s === '@vostride/agent-qa-agent'))
       .toEqual(['invokeFunction'])

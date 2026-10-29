@@ -1,91 +1,4 @@
-// THE APP-HOST HARNESS — D-12's gate: the whole MCPA-01 path, end to end, on shipped code
-// (Phase 408 plan 06 Task 2 · MCPA-01 · D-01/D-05/D-06/D-07/D-09/D-11/D-12 · criterion 1).
-//
-// WHAT THIS FILE EXISTS FOR. Every other cell in this phase asserts one link of the chain: plan 01
-// asserted the App document's BYTES, plan 02 asserted the negotiation gate and the wrapper's states
-// in a browser with a stubbed inner frame, plan 03 asserted that a served token validates in its own
-// composition. None of them ever ran the chain. D-12's ruling is that "the first real-host render
-// must not be the first render" — so this file negotiates a real MCP handshake, calls a real carrier
-// tool for a REAL run whose real Chromium is really painting, renders the returned wrapper in a REAL
-// sandboxed iframe under a CSP derived from the resource's own metadata, and asks whether frames
-// actually arrive through the frozen 403 transport — and stop when the watched page stops moving.
-//
-// WHAT IS PRODUCTION HERE, AND WHAT IS SCRIPTED.
-//
-// PRODUCTION — `startRun` (the run shell, its bus and its live-stream hub); `WebPlatformAdapter`
-// (a real headless Chromium and a real `Page.startScreencast`) driving the live-stream fixture page;
-// `FsEventLog` + `createRunsReader` (the run writes its own `runStarted` and the App reads the
-// roster back through the SAME store a shipped host reads); `createRunServiceSessionRegistry`;
-// `composeLiveView` (the signer, the mint port and the validator, joined once); `composeDashboardDoor`
-// and its function registry; `startServer` (the embed route, the frame socket's upgrade arm) — the
-// 403 transport this phase froze, consumed and not touched; `createMcpHttpRequestListener` over
-// `host.registry`, which is the co-hosted mount `commands/dashboard.ts` performs, composed the way it
-// composes it; `buildAgentQaMcpServer` behind it (the catalog, the projection, the App resource, the
-// carrier decoration); a real `@modelcontextprotocol/client@2.0.0` over a real loopback socket; and a
-// real Chromium rendering the served document.
-//
-// SCRIPTED — (a) the member EXECUTOR, which is the runner's own designed injection seam and the same
-// one `live-view-tracer.test.ts` uses; (b) the RECORDED handoff document, because a run that is still
-// live has no completed record and the digest carrier names a run this host has RECORDED (the same
-// fixture shape `mcp-cohost.test.ts` uses, written to disk here so the shipped reader really reads
-// it); (c) the session registry's RETENTION WINDOW, set short through the registry's own declared
-// `retentionMs` knob so leg 3 can observe the post-attach-window answer in seconds instead of five
-// minutes — the same class of seam as the tracer's shiftable clock, and it changes nothing about what
-// the answer IS; (d) the Apps HOST page — see the deviation note below.
-//
-// THE HOST PAGE IS HAND-ROLLED, AND THAT IS A RECORDED DEVIATION (RESEARCH A4). The plan's first
-// choice was `@modelcontextprotocol/ext-apps/app-bridge`. It does not drive cleanly here: `app-bridge`
-// is a BROWSER module that imports `@modelcontextprotocol/sdk/client/index.js` — the v1 monolith SDK
-// this repository does not ship — and getting it into a page would need a bundler step inside the
-// test run, to obtain a postMessage relay this file does not otherwise need. RESEARCH names the
-// hand-rolled sandboxed-iframe host as the documented escape hatch, so that is what is here. What is
-// NOT given up is the official vocabulary: the CSP this host applies is mapped from the served
-// `_meta.ui.csp` exactly as ext-apps' shipped `schema.json` documents the mapping, and the wrapper's
-// `ui/initialize` request is validated against the REQUIRED param list read out of that same schema.
-// The package is the authority for the contract even where its code is not the runner of it.
-//
-// WHY THE CLIENT MUST NEGOTIATE THE MODERN ERA (plan 02 decision D-G — the constraint that decides
-// whether this App can be obtained at all). The `ui://` read is gated on per-request client
-// capabilities, and `@modelcontextprotocol/client@2.0.0` carries those ONLY on the 2026-07-28 wire
-// era, which it reaches through `versionNegotiation: { mode: 'auto' }` and does NOT default to. A
-// harness that connected with the default would measure a correct fail-closed refusal and read it as
-// a defect in this endpoint. Cell (1) asserts the era it actually got, so that mistake cannot be made
-// silently by whoever edits this file next.
-//
-// AND NOT AGAINST A LISTING (plan 04's correction). `{ list: undefined }` means no CONCRETE
-// `ui://agent-qa/live-run/<runId>` is enumerable, but the TEMPLATE is advertised on
-// `resources/templates/list` by design — a host must be able to see that an App exists in order to
-// ask for it. So the App-less leg here is written against the REFUSAL (clause 3 of the ruling), never
-// against absence from a listing.
-//
-// THE MUTATION LEGS THIS FILE IS THE BAR FOR. Two were APPLIED to their subject and their red
-// observed on 2026-08-31, then the subject was restored; the other two are measured by the file's
-// own paired arms rather than by a separate mutation, and that is said plainly rather than implied:
-//   G1  connectDomains dropped from the served `_meta.ui.csp`  -> MEASURED, and it FOUND A DEFECT
-//       rather than confirming one. With only `frameDomains` declared (the state this plan
-//       inherited), the host serves the App under `connect-src 'none'`, Chromium blocks the
-//       wrapper's origin probe by name — "Refused to connect because it violates the document's
-//       Content Security Policy" — and cell (5) settles in `unreachable-origin` in 240 ms. A
-//       perfectly reachable live view, labelled unreachable, on every conformant host. That
-//       measurement is why `app-resource.ts` now emits the field.
-//   G4  the client connected on the DEFAULT (legacy) era       -> MEASURED: deleting
-//       `versionNegotiation: { mode: 'auto' }` reds cell (1) by name (`expected 'legacy' to be
-//       'modern'`) and takes four App-obtaining cells with it — D-G's constraint, visible rather
-//       than argued.
-//   G2  the target page stops moving                           -> measured by cell (6)'s OWN two
-//       arms, in one run, on one embed: 280 frames in a 3 s changing window and 0 in a 4 s static
-//       one. A separate mutation would say less than that pair already does.
-//   G3  the App re-read BEFORE the run settles                 -> measured by cell (5) against cell
-//       (7): the same address, the same client, `live` while running and `run-ended` after.
-//   G5  408-11's MARKUP anchor reverted into the script         -> MEASURED 2026-09-01:
-//       with the permanent link's href and label assigned by the wrapper's script instead of
-//       rendered into markup, cell (6-noscript) reds by name — `the href is in the MARKUP
-//       (408-11 task 1) — a host that runs no script still has it: expected null to be
-//       'http://127.0.0.1:<port>/runs/<runId>/live'`. Restored immediately. That cell is what makes
-//       408-11's change a measured property rather than a claim.
-//
-// This file is in `packages/cli` because only the CLI may import every package at once — the same
-// rule `live-view-tracer.test.ts` states for itself.
+// End to end on shipped code; the executor, recorded handoff, retention and host page are scripted.
 
 import { createServer } from 'node:http'
 import type { Server as NodeHttpServer } from 'node:http'
@@ -145,18 +58,7 @@ const BROWSER_INSTALL_INSTRUCTION =
 const TOKEN_ENV_VAR = 'AGENT_QA_408_06_HARNESS_TOKEN'
 const TOKEN_VALUE = 'harness-token-408-06-not-a-real-credential'
 
-/**
- * The static-page band, copied with its reasoning from the web adapter's STATIC-PAGE-KEEPALIVE cell
- * rather than re-derived.
- *
- * the 403-02 D-7 ceiling of ONE frame in four seconds is retired. A
- * static page now gets a fresh keepalive capture every 2 s (`LIVE_KEEPALIVE_QUIET_MS`) so the
- * viewer's freshness dot stays green, and this harness measured 2 painted frames in 4 s once it
- * shipped. Over a six-second window that is 2 or 3 frames; fewer is a producer gone silent on a
- * healthy page, and more than 4 is a producer emitting faster than the keepalive — i.e. polling,
- * which LIVE-01 forbids and this arm exists to catch (a 1 s poller paints about 6). Widening the
- * band requires a dated note saying what was measured and why.
- */
+// A static page gets a keepalive every 2 s; above the band means a poller, below a silent producer.
 const CHANGING_WINDOW_MS = 3_000
 const STATIC_SETTLE_MS = 3_000
 const STATIC_WINDOW_MS = 6_000
@@ -171,13 +73,7 @@ interface ExtAppsSchema {
   readonly $defs: Record<string, unknown>
 }
 
-/**
- * `@modelcontextprotocol/ext-apps@1.7.5`'s shipped schema, resolved through the mcp package.
- *
- * ext-apps is a devDependency of `packages/mcp` and NOT of `packages/cli` (Pitfall 3 keeps it off
- * the production side of the one package that could ship it). Resolving from the mcp package's own
- * directory is therefore how this file reaches the authority without adding a second install of it.
- */
+// ext-apps is a devDependency of `packages/mcp` only, so its schema resolves from there.
 const EXT_APPS_SCHEMA: ExtAppsSchema = (() => {
   const mcpRequire = createRequire(
     resolve(dirname(fileURLToPath(import.meta.url)), '../../../mcp/src/app-resource.ts'),
@@ -228,9 +124,7 @@ const CSP_FIELD_DIRECTIVES: Readonly<Record<string, readonly string[]>> = (() =>
     const directives = [...line.matchAll(/`([a-z-]+-src)`/g)].map((match) => match[1] as string)
     if (directives.length > 0) mapping[field] = directives
   }
-  // THE GATE ON THE DERIVATION ITSELF. If a future ext-apps reworded the `resourceDomains`
-  // description, this whole file would silently revert to the blindness WR-10 names — every
-  // directive un-derived and therefore never `'none'`, with no cell going red to say so.
+  // If ext-apps rewords `resourceDomains`, every directive goes underived; this gate fails loudly.
   const resource = mapping.resourceDomains ?? []
   for (const required of ['script-src', 'style-src']) {
     if (!resource.includes(required)) {
@@ -256,59 +150,13 @@ type HostAllowances = Readonly<Record<string, readonly string[]>>
 /** A host that grants nothing beyond the metadata — the schema's secure default, unembellished. */
 const NO_HOST_ALLOWANCE: HostAllowances = {}
 
-/**
- * The permissive host cells (5), (6) and (7) drive — AND THIS IS AN ASSUMPTION, recorded 2026-09-01.
- *
- * WHAT IS ASSUMED: that a real Apps host lets an App's OWN inline `<script>` and `<style>` run, i.e.
- * that it adds `'unsafe-inline'` (or a nonce/hash equivalent) to `script-src`/`style-src` on top of
- * the resource's `resourceDomains`. It is a reasonable belief — an MCP App IS an inline document, so
- * a host that refused inline would render no App at all — but ext-apps' schema does not say it, and
- * nobody here has measured a real host saying it either.
- *
- * WHY IT IS NAMED RATHER THAN HIDDEN: this is RESEARCH assumption A1, and it is settled only by
- * `408-VERIFICATION.md` Human Verification item 2 — pointing a real Apps host at a real co-hosted
- * endpoint and recording the CSP it actually applies. Until then this constant is the boundary
- * between what this file measured and what it took on faith, and it is one line so that the next
- * reader can see the whole of the faith in one place.
- */
+// Assumes a real Apps host runs an App's own inline script and style; ext-apps' schema is silent.
 const PERMISSIVE_HOST_ALLOWANCE: HostAllowances = {
   'script-src': ["'unsafe-inline'"],
   'style-src': ["'unsafe-inline'"],
 }
 
-/**
- * Build the CSP an Apps host applies to a served App document, from that document's own metadata.
- *
- * EVERY DIRECTIVE THE RESOURCE'S METADATA GOVERNS IS DERIVED — `frameDomains` -> `frame-src`,
- * `connectDomains` -> `connect-src`, and `resourceDomains` -> `img-src`/`script-src`/`style-src`/
- * `font-src`/`media-src` — each under the schema's own "empty or omitted -> no X (secure default)"
- * rule, with the field->directive mapping lifted from `CSP_FIELD_DIRECTIVES` above rather than
- * restated. `hostAllowances` names what THIS emulated host grants on top, and defaults to nothing.
- *
- * DATED MEASUREMENT NOTE (2026-09-01, plan 408-14 task 1).
- *   DERIVED: `frame-src`, `connect-src`, and now `script-src`, `style-src`, `img-src`, `font-src`,
- *     `media-src` — the last five previously HARDCODED here, three of them permissively
- *     (`script-src 'unsafe-inline'`, `style-src 'unsafe-inline'`, `img-src data: blob:`).
- *   STILL ASSUMED: that a real host grants inline script and style at all. That assumption now lives
- *     in `PERMISSIVE_HOST_ALLOWANCE` above, on exactly the three cells that need it, instead of
- *     being applied invisibly to every cell in the file.
- *   WHAT SETTLES IT: `408-VERIFICATION.md` Human Verification item 2 (RESEARCH assumption A1) — a
- *     real host, a real co-hosted endpoint, and the CSP it really applies, recorded.
- *   AND THIS IS THE SECOND TIME, WHICH MAKES IT A PATTERN AND NOT AN INCIDENT. The first was
- *     `connect-src`: mutation leg G1 (measured 2026-08-31, plan 408-06) found the served metadata
- *     declared only `frameDomains`, so a conformant host served the App under `connect-src 'none'`,
- *     Chromium refused the wrapper's origin probe by name, and a perfectly reachable live view
- *     settled in `unreachable-origin` in 240 ms. `app-resource.ts` emits `connectDomains` because of
- *     that measurement. The class is "a directive this harness supplied for itself, so the gate
- *     could not see the host that withholds it" — if you are about to hardcode a directive here,
- *     you are about to make it a third time.
- *
- * This is the whole point of leg 2: Pitfall 1 says a host's default is `frame-src 'none'`, so an App
- * that names no frame domain renders a blocked inner pane. A harness that skipped the CSP would
- * paint frames happily and prove nothing about what a real host does. Cell (6-noscript) is the same
- * argument carried to its end: a host whose `script-src` is `'none'` runs no line of this document,
- * and what a person gets there is a measurement, not a guess.
- */
+// Every directive the metadata governs is derived; a hardcoded one hides a host that withholds it.
 function hostCspFor(
   csp: ServedCsp | undefined,
   hostAllowances: HostAllowances = NO_HOST_ALLOWANCE,
@@ -371,14 +219,7 @@ function fixtureWorkspace(): string {
   return configPath
 }
 
-/**
- * The RECORDED run document (scripted — see the header).
- *
- * `agent_qa_get_run_digest` refuses a run this host has never recorded, by design: a digest NAMES a
- * run, and a page of zeros for an unknown id would be a confident wrong answer. A live run has no
- * completed record yet, so the fixture writes one — which is exactly D-07's subject: a viewer LATE
- * ATTACHES to a run this host knows about and which is, separately and really, still live.
- */
+// A digest refuses an unrecorded run, so the fixture records a handoff for a run still live.
 function recordedHandoff(runId: string): CompletedRunHandoff {
   return {
     schemaVersion: CURRENT_HANDOFF_SCHEMA_VERSION,
@@ -525,14 +366,7 @@ beforeAll(async () => {
   if (address === null || typeof address === 'string') throw new TypeError('the server bound no port')
   boundOrigin = `http://127.0.0.1:${String(address.port)}`
 
-  // ---- The CO-HOSTED MCP endpoint, composed the way `commands/dashboard.ts` composes it ---------
-  //
-  // Over `host.registry` — the registry `composeDashboardDoor` built OVER `liveView.liveView` — so a
-  // by-reference `runs.liveurl` mint on a `ui://` read is signed by the signer this process's frame
-  // proxy validates against. That is D-03's invariant held by composition, and it is why
-  // `registerAppResources`' third (bound) condition passes here at all.
-  // the co-hosted endpoint is tokenless; the client below still sends a legacy
-  // bearer, which the listener ignores.
+  // Over `host.registry`, so a `ui://` mint is signed by the signer the frame proxy checks against.
   const masking = composeMcpMasking({ configPath })
   const mcpServer = createServer(
     createMcpHttpRequestListener({
@@ -675,20 +509,7 @@ async function readServedApp(): Promise<ServedApp> {
 
 // ---- The Apps HOST page ------------------------------------------------------------------------
 
-/**
- * Stand up a host that renders `served` in a REAL sandboxed iframe under the CSP its own metadata
- * asks for, and answer the url a browser opens the host at.
- *
- * The App document is served over http rather than injected as `srcdoc`, for one reason: a
- * `Content-Security-Policy` RESPONSE HEADER is how a policy is really enforced on a document, and
- * enforcing it is the entire subject of leg 2. The iframe carries `sandbox="allow-scripts"` — the
- * same flags the shipped dashboard gives the embed page — so the App runs at an opaque origin, which
- * is what an Apps host gives it.
- *
- * `hostAllowances` IS REQUIRED AND HAS NO DEFAULT HERE, deliberately: every leg in this file must
- * say out loud which host it is emulating, because that choice is the difference between measuring
- * a host and measuring this file's beliefs about hosts.
- */
+// Served over http, not `srcdoc`, because a CSP response header is how a policy is enforced.
 async function appsHost(served: ServedApp, hostAllowances: HostAllowances): Promise<string> {
   const csp = hostCspFor(served.csp, hostAllowances)
   const hostPage = `<!DOCTYPE html>
@@ -761,7 +582,7 @@ async function embedFrame(page: Page, budgetMs = 40_000): Promise<Frame> {
   }
 }
 
-/** The embed page's own PAINTED-frame counter, read through the frame hierarchy (403's idiom). */
+/** The embed page's own painted-frame counter, read through the frame hierarchy. */
 async function paintedFrames(frame: Frame): Promise<number> {
   return await frame.evaluate(
     () => Number(document.querySelector('[data-embed-state]')?.getAttribute('data-embed-frames') ?? '0'),
@@ -800,13 +621,7 @@ async function openWrapper(page: Page, url: string): Promise<{
   return { frame, state: state ?? '(none)', console: consoleLines }
 }
 
-// ---- 0. Artifact freshness, FIRST (408-05 D-O / 408-03's scar) ---------------------------------
-//
-// THIS FILE READS THE BUILT `@vostride/agent-qa-mcp`: a cross-package import in this workspace
-// resolves to `dist`. A stale artifact makes every App claim below assert the PREVIOUS build,
-// silently and greenly — which has now bitten this phase four times, most expensively when a
-// mutation leg "did not red" against an artifact that predated the mutation. Scoped to the sources
-// that compose what this file measures.
+// A cross-package import resolves to `dist`, so a stale mcp build makes these claims test old code.
 
 const MCP_PACKAGE_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../../mcp')
 const MCP_ARTIFACT = resolve(MCP_PACKAGE_DIR, 'dist/index.js')
@@ -877,9 +692,7 @@ describe('leg 1 — a negotiating host reaches the App over the wire', () => {
       })
       expect(result.isError, JSON.stringify(result.content)).not.toBe(true)
 
-      // the line rides tool-result TEXT — the one channel SEP-1730 obliges every host to
-      // render — and it targets the TOKENLESS permanent page, so it outlives both the five-minute
-      // token and this process.
+      // Tool-result text, which SEP-1730 obliges hosts to render, carries the permanent link.
       const text = (result.content as readonly { type: string; text?: string }[])
         .filter((part) => part.type === 'text')
         .map((part) => part.text ?? '')
@@ -889,7 +702,6 @@ describe('leg 1 — a negotiating host reaches the App over the wire', () => {
       expect(expectedLink).not.toContain('#')
       expect(expectedLink).not.toContain('?')
 
-      // D-05/D-03 D-L: the RESULT carries the CONCRETE per-run address, not the template.
       const meta = result._meta as { ui?: { resourceUri?: string } } | undefined
       expect(meta?.ui?.resourceUri).toBe(appResourceUriFor(held().runId))
       expect(meta?.ui?.resourceUri).not.toBe(APP_RESOURCE_URI_TEMPLATE)
@@ -905,15 +717,10 @@ describe('leg 1 — a negotiating host reaches the App over the wire', () => {
     // official package — here it is asserted on the WIRE.
     expect(served.mimeType).toBe(APP_RESOURCE_MIME_TYPE)
 
-    // Pitfall 1 / T-408-05: the ONLY allowed frame origin is the minted link's own, which is this
-    // server's bound origin — never wider.
+    // The only allowed frame origin is the minted link's own, which is this server's bound origin.
     expect(served.csp?.frameDomains).toEqual([held().origin])
 
-    // AND THE SAME ONE ORIGIN FOR `connect-src`, which cell (5) measured the hard way: the wrapper's
-    // origin probe (408-02 D-H) is a `fetch`, so an App that declares only `frameDomains` is served
-    // under `connect-src 'none'` and settles in `unreachable-origin` for a reachable view. Asserted
-    // EQUAL to the frame allowance, so the connect allowance can never quietly become the wider of
-    // the two.
+    // The origin probe is a `fetch`, so with no `connectDomains` the App gets `connect-src 'none'`.
     expect(served.csp?.connectDomains).toEqual([held().origin])
     expect(served.csp?.connectDomains).toEqual(served.csp?.frameDomains)
 
@@ -923,9 +730,7 @@ describe('leg 1 — a negotiating host reaches the App over the wire', () => {
   it('(5-neg) a host that did NOT negotiate the extension cannot obtain the App at all (clause 3)', async () => {
     const client = await connectClient({ apps: false })
     try {
-      // AGAINST THE REFUSAL, NEVER AGAINST A LISTING (plan 04's correction). The template IS
-      // advertised on resources/templates/list by design, so "not enumerable" would be the wrong
-      // claim; what makes the App un-obtainable is that the READ refuses before it mints.
+      // The template is advertised; what blocks the App is the read refusing before it mints.
       const templates = await client.listResourceTemplates()
       expect(
         templates.resourceTemplates.map((entry) => entry.uriTemplate),
@@ -938,8 +743,6 @@ describe('leg 1 — a negotiating host reaches the App over the wire', () => {
     }
   }, 60_000)
 })
-
-// ---- LEG 2: the render, in a real sandboxed iframe, with real frames ---------------------
 
 describe('leg 2 — the App renders and the frames are CHANGE-DRIVEN', () => {
   it('(5) the wrapper reaches `live` in a real sandboxed iframe under its own CSP', async () => {
@@ -995,8 +798,7 @@ describe('leg 2 — the App renders and the frames are CHANGE-DRIVEN', () => {
         `the wrapper settled in "${opened.state}"; console: ${JSON.stringify(opened.console)}`,
       ).toBe('live')
 
-      // THE NESTED FRAME: host page -> sandboxed wrapper -> the frozen 403 embed page. Its state and
-      // its counter are read through the hierarchy, exactly as the 403 cells read them on their own.
+      // The embed page's state and counter are read through the nested frame hierarchy.
       const embed = await embedFrame(page)
       // SETTLED-STATE FIRST, then the assertion — same reason as cell (5)'s: `refused`, `no-stream`
       // and `expired` are all things the frozen embed page says out loud, and a bare
@@ -1032,10 +834,7 @@ describe('leg 2 — the App renders and the frames are CHANGE-DRIVEN', () => {
         + 'is the blank pane this whole phase exists to remove',
       ).toBeGreaterThan(0)
 
-      // THE NEGATIVE ARM, and it is the half that distinguishes a change-driven producer from a
-      // polling one: the SAME run's SAME browser is pointed at the static fixture page, and after it
-      // settles only the 2 s keepalive should arrive. A 1 s screenshot poller paints
-      // more than the band allows.
+      // The static page should get only the 2 s keepalive; a 1 s screenshot poller breaks the band.
       await held().navigateTarget(held().targetUrl)
       await page.waitForTimeout(STATIC_SETTLE_MS)
       const beforeStatic = await paintedFrames(embed)
@@ -1060,22 +859,7 @@ describe('leg 2 — the App renders and the frames are CHANGE-DRIVEN', () => {
   }, 300_000)
 })
 
-// ---- LEG 2b: the host that runs NONE of the App's script (WR-10, RESEARCH A1, T-408-19) --------
-//
-// THE HOST THIS PHASE NEVER MEASURED. ext-apps' schema documents `resourceDomains` as mapping to
-// `script-src` among others, with "empty or omitted -> no network resources (secure default)". This
-// server emits no `resourceDomains` — it has none to name, its App being wholly inline — so a host
-// that applies that rule literally serves the document under `script-src 'none'`. Not one line of
-// the wrapper's script runs there. Until this cell existed the harness supplied
-// `script-src 'unsafe-inline'` for itself, so the gate could not see that host at all.
-//
-// AND WHAT IT MEASURES IS NOT A DEFECT — it is D-04's designed floor, made observable. The
-// assumption-delta ruling for this round is `promote`: the permanent, tokenless dashboard link is the
-// PRIMARY representation of "watch this run" and the embedded pane is one enriched VARIANT. On a host
-// with no script allowance the variant is unavailable and the primary must still be there. That is
-// only true because 408-11 task 1 moved the anchor's href and label into MARKUP; before that change
-// the link was assigned by the very script this host refuses to run, and this cell would find an
-// empty `href`.
+// No `resourceDomains` is emitted, so a literal host serves `script-src 'none'`: markup only.
 
 describe("leg 2b — a host running none of the App's script still hands the person the way out", () => {
   it('(6-noscript) under `script-src \'none\'` the permanent link and a named sentence are still there', async () => {
@@ -1122,10 +906,7 @@ describe("leg 2b — a host running none of the App's script still hands the per
       expect(await wrapper.locator('[data-app-hint]').textContent())
         .toBe(APP_WRAPPER_CONNECTING_HINT)
 
-      // (c) AND IT DOES NOT REACH `live` — stated as the MEASURED, EXPECTED consequence rather than
-      // as a failure. The document's own load bound is the honest window to wait: if the script were
-      // running it would have resolved one way or the other inside it. This is D-04's floor ("that
-      // host falls to the link-out"), and (a) is the proof the floor holds.
+      // Waits out the document's own load bound: a running script would have settled inside it.
       await page.waitForTimeout(APP_WRAPPER_LOAD_TIMEOUT_MS + 2_000)
       expect(
         await wrapper.locator('[data-app-state]').getAttribute('data-app-state'),
@@ -1139,9 +920,7 @@ describe("leg 2b — a host running none of the App's script still hands the per
   }, 180_000)
 })
 
-// ---- LEG 3: end honesty -----------------------------------------------------------
-//
-// LAST, AND DESTRUCTIVE BY DESIGN: it finishes the run, which every cell above needs live.
+// Last, because finishing the run breaks every cell above that needs it live.
 
 describe('leg 3 — a late attach to a finished run gets the honest terminal answer', () => {
   it('(7) once the run has settled, the SAME address serves `run-ended` with the permanent link', async () => {
@@ -1153,8 +932,7 @@ describe('leg 3 — a late attach to a finished run gets the honest terminal ans
 
     const served = await readServedApp()
 
-    // ZERO MINTS IS WHAT MAKES IT NOT LIVE (408-01 D-C), and a document with no pane is also a
-    // document with no credential in it (408-02 D-J) — so this asserts both.
+    // No mint means not live, and a document with no pane holds no credential; both are asserted.
     expect(served.html).not.toContain(`${LIVE_EMBED_PATH_PREFIX}${held().runId}#`)
     expect(served.csp?.frameDomains, 'no inner frame, so no frame allowance is emitted').toBeUndefined()
 
@@ -1171,8 +949,7 @@ describe('leg 3 — a late attach to a finished run gets the honest terminal ans
       expect(await wrapper.locator('[data-app-message]').textContent())
         .toBe(APP_WRAPPER_RUN_ENDED_MESSAGE)
 
-      // the way out survives the run. The permanent link is tokenless and outlives both the
-      // credential and the process that minted it, which is the whole reason it is the fallback.
+      // The permanent link is tokenless, so it outlives the credential and the minting process.
       const link = wrapper.locator('[data-app-permanent-link]')
       expect(await link.getAttribute('href')).toBe(liveRunLinkOf(held().origin, held().runId))
     } finally {

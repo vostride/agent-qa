@@ -465,9 +465,7 @@ function startHarness(
     // stubbed, so "the surrogate is still alive" is a claim about the OS, not about a fake.
     delete operations.embedderWorkerProcessIsAlive
     delete operations.waitForEmbedderWorkerProcessExit
-    // Signal delivery stays production (`process.kill` with the ESRCH reading, verbatim), but the
-    // DECISION is still recorded: a `processSignals` assertion that only holds because the
-    // recorder was deleted measures the harness, not the daemon.
+    // Signal delivery stays real, but the decision is recorded, so the assertion reads the daemon.
     operations.signalEmbedderWorkerProcess = (pid: number, signal: NodeJS.Signals) => {
       processSignals.push({ pid, signal })
       order.push(`signal:${pid}:${signal}`)
@@ -1012,10 +1010,7 @@ describe('daemon embedder-worker lifecycle', () => {
   it.skipIf(process.platform === 'win32')(
     'withholds every shutdown signal from an adopted worker it cannot attribute',
     async () => {
-      // The other half of 386-32 prohibition #1. Replacement already refuses to signal a pid it
-      // cannot attribute; shutdown did not, and its own module's docstring says neither verdict
-      // may be signalled. The registered pid here belongs to an unrelated live process, exactly
-      // as it would after an adopted worker died and the kernel recycled its number.
+      // Shutdown must not signal a pid it cannot attribute; this one is an unrelated live process.
       const surrogate = spawnSurrogate()
       const orphan = orphanRegistration(ORPHAN_INSTANCE_ID, DEFAULT_EMBEDDING_PROFILE, {
         pid: surrogate.pid!,

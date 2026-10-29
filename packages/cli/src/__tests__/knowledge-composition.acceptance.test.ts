@@ -1,5 +1,3 @@
-// D-14/SC1 — 382's structural-functional proof; 383 keeps the human-gated live cold→warm E2E.
-
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'

@@ -1,5 +1,3 @@
-// Phase 372-04 — eval-session-composition behaviors (D-03 flag precedence, 441 D-06 declared
-// mask, D-03/D-10 judge preflight, D-08 typed errors).
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
@@ -69,9 +67,7 @@ async function writeFixture(options: {
 beforeEach(async () => {
   tmpRoot = await mkdtemp(join(tmpdir(), 'agent-qa-eval-session-'))
   savedXdgDataHome = process.env.XDG_DATA_HOME
-  // Point the auth store at an empty temp location so the real named-LLM chain resolves
-  // openai-compatible entries to `unauthenticated` deterministically (no host auth store reads).
-  // only off the public provider API, hence compat.example.
+  // An empty auth store makes openai-compatible entries resolve to `unauthenticated`.
   process.env.XDG_DATA_HOME = join(tmpRoot, 'xdg-data')
 })
 

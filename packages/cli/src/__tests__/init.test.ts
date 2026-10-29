@@ -1225,7 +1225,7 @@ describe('init command', () => {
       expect(findWriteCallEndingWith('agent-qa-knowledge/README.md')).toBeUndefined()
       expect(findWriteCallEndingWith('policies/global.md')).toBeUndefined()
       expect(findWriteCallEndingWith('agent-qa-knowledge/.gitignore')).toBeUndefined()
-      // the guide is agent-qa's generated file, so --force regenerates it.
+      // The guide is agent-qa's generated file, so `--force` regenerates it.
       expect(findWriteCallEndingWith('agent-qa-knowledge/AGENTS.md')).toBeDefined()
     })
 
@@ -1553,13 +1553,7 @@ skills/.staging/
     }
   }, 60_000)
 
-  // ---- 398-10: the init/scaffold member -----------------------------------------
-  //
-  // REAL FILESYSTEM, REAL COMMAND, REAL COMPOSED PORT — only the transport is substituted. The
-  // three arms below are the three answers this member can give, and each is produced by actually
-  // running `init` rather than by constructing an outcome list: a fresh directory (`created`), the
-  // same directory again (`unchanged`, because the scaffold preserves what it finds), and the
-  // `--agent` manifest read, which writes nothing and must therefore report nothing.
+  // Each arm runs the real `init`: a fresh directory, the same one again, and the `--agent` read.
   it('emits one init member per scaffold, and none for the --agent read', async () => {
     vi.resetModules()
     vi.doUnmock('node:fs')
@@ -1634,13 +1628,7 @@ skills/.staging/
     }
   }, 60_000)
 
-  // ---- 432-40: the scaffolded knowledge README and guide say the direct rule ------
-  //
-  // A REAL init into a fresh temporary directory, read back from disk: the README and the generated
-  // guide a person and a coding agent open first both say knowledge changes only through agent-qa,
-  // applies at once, and is corrected by new feedback or forget. The README no longer tells anyone
-  // to edit a fact or its evidence and no longer cites a design-doc path a user does not have. The
-  // init samples and the policy file are unchanged (M7 owns them, D-21).
+  // A real init read back from disk: the README and guide say knowledge changes via agent-qa.
   it('the scaffolded README and guide state the direct change rule, and the samples are unchanged', async () => {
     vi.resetModules()
     vi.doUnmock('node:fs')
@@ -1682,7 +1670,7 @@ skills/.staging/
       // People still write policies by hand, and the README still says where.
       expect(readme).toContain('policies/global.md')
 
-      // the samples and the policy template are still scaffolded (445-02 moved the samples).
+      // The samples and the policy template are scaffolded.
       for (const sample of [
         'tests/examples/komazon-checkout.yaml',
         'tests/examples/komazon-cart-total-bug.yaml',

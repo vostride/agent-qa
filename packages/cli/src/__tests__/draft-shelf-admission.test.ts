@@ -1,19 +1,4 @@
-// The draft shelf's two-sided admission property.
-//
-// BOTH DIRECTIONS OR NEITHER. A shelf that only satisfies (i) pollutes every suite run and gate
-// 3's corpus with unfinished drafts; a shelf that only satisfies (ii) is a place no run can ever
-// reach, which makes the whole verify-before-present stage unreachable. Only a location that
-// satisfies both at once is a shelf, so both are asserted here in one file rather than in two that
-// could drift apart:
-//
-//   (i)  a staged draft RESOLVES through `resolveWorkspaceFileTarget({kind:'test'})` as a literal
-//        path — the exact call `runs.start` makes on its `patterns`;
-//   (ii) `discoverWorkspaceFiles({kind:'test'})` does NOT enumerate it, while still returning the
-//        workspace's real tests.
-//
-// The location this pins — `tests/.agent-qa-drafts/` — is measured, not preferred: see the RED
-// differential recorded in 394-01-SUMMARY.md, where pointing the constants at `.agent-qa/drafts`
-// makes (i) fail with the workspace-patterns refusal.
+// A draft resolves as a literal path for `runs.start` yet stays out of discovery; both asserted.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'

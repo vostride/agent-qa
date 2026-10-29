@@ -1,28 +1,4 @@
-// The daemon posture of `knowledge.proposal.apply`, exercised through the REAL daemon entry
-//
-// `proposal-apply-delegate.test.ts` already proves the mechanism: hand a composition a
-// `resolveWriterAuthority` and its applies commit in process. What it cannot prove — and what the
-// 387 verifier reproduced as a MUST-CLOSE defect — is that any PRODUCTION composition actually
-// supplies one. It hand-assembles the holder via `host(where, { resolveWriterAuthority })`, so it
-// measures the seam and never the wiring.
-//
-// This case therefore builds nothing. It starts `runDaemonHost` over a temp project, leaves
-// `operations.composeLocalAgent` and `operations.startInvokeServer` PRODUCTION (only the
-// lifecycle-heavy operations the existing daemon-host harness already stubs for hermeticity are
-// stubbed: heartbeat supervisor, job recovery, curation drain, timers, signals), and drives the
-// verbs over the socket that daemon opened. The composition under test is the one the shipped
-// daemon composes, which is the only composition the defect lived in.
-//
-// OBSERVED RED against unmodified daemon/host.ts, 2026-08-02, before the one-entry fix:
-//
-//   ApplyDelegateUnavailableError: The writer lease for this knowledge root is held by pid 79828
-//   (lease 2e4b932b-2786-4992-8282-ed10b437c73c, epoch 1) and this host has no delegate
-//   transport, so prop_95bbfbde-d027-4613-a71c-d4b2bb2c529d cannot be applied here.
-//   Lease-stealing is structurally refused.
-//
-// The daemon asked ITSELF for its own lease, was told `held` by itself, and had no delegate to
-// hand the work to — so on any project with a daemon running, no accept, reject or forget could
-// be committed at all.
+// Starts the real daemon entry over a temp project, so the shipped daemon's composition is tested.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -196,14 +172,7 @@ async function startDaemon(paths: Paths): Promise<LiveDaemon> {
   }
 }
 
-/**
- * Plant the standing approval a pre-432 daemon needed for the apply.
- *
- * RE-SPELLED 2026-10-01: the ledger and its append API are deleted, so the line is
- * planted as the bytes a pre-432 build committed. Nothing reads it — no gate since 432-13, no reader
- * since 432-18 — and this case is about WRITER AUTHORITY: a workspace that still holds the old file
- * gets the same daemon answer as one that does not.
- */
+// Plants the old standing-approval bytes; nothing reads them, so the daemon answers the same.
 function grantApply(where: Paths): void {
   mkdirSync(where.knowledgeRoot, { recursive: true })
   writeFileSync(
@@ -248,9 +217,7 @@ describe('the daemon commits its own applies in process', () => {
       if (leaseBefore.kind !== 'parsed') throw new Error(`no daemon lease: ${leaseBefore.kind}`)
       expect(leaseBefore.lease.pid).toBe(process.pid)
 
-      // the forget is the direct change op, applied in the call by the
-      // daemon with the lease it holds. Before 387-10 the daemon's own apply threw
-      // ApplyDelegateUnavailableError (see the file header) — it asked itself for its own lease.
+      // The forget is the direct change op, applied in the call by the daemon under its own lease.
       const operationId = 'e1d2c3b4-a596-4877-8695-a4b3c2d1e0f9'
       const applied = await callDaemon(
         paths,
@@ -271,16 +238,7 @@ describe('the daemon commits its own applies in process', () => {
       const rows = await callDaemon(paths, 'knowledge.bundles.list', {}) as { status: string }[]
       expect(rows.map((row) => row.status)).toEqual(['deprecated'])
 
-      // The in-process holder branch performs no acquisition, no epoch bump and no release, so
-      // the lease it was handed is still the lease on disk. Measured honestly: in THIS posture
-      // `outcome === 'applied'` already implies that branch (a daemon-held lease makes the
-      // acquiring branch unreachable), so this assertion is a guard against a future refactor
-      // that releases around the commit rather than the discriminator for the wiring itself.
-      // What discriminates the wiring was measured by mutation, 2026-08-02: handing a fabricated
-      // `epoch` fails with `KnowledgeCommitError: abandoned-stale-epoch`, and handing a
-      // fabricated `leaseId` fails with `WriterAuthorityLostError (lease-id-mismatch)` — the
-      // store fences BOTH fields independently, so an authority that is not this daemon's own
-      // cannot buy a commit.
+      // The store fences epoch and lease id independently, so a foreign authority cannot commit.
       const leaseAfter = readWriterLease(paths.knowledgeRoot)
       if (leaseAfter.kind !== 'parsed') throw new Error(`lease vanished: ${leaseAfter.kind}`)
       expect(leaseAfter.lease.leaseId).toBe(leaseBefore.lease.leaseId)
@@ -291,9 +249,6 @@ describe('the daemon commits its own applies in process', () => {
     }
   }, 60_000)
 
-  // RE-SPELLED 2026-10-01 from 'still commits a pre-432 proposal already on disk
-  // through the daemon entry, in process': the apply op is deleted with the inbox, so the daemon
-  // refuses it like any unknown function, the record it named is untouched and so is the file.
   it('leaves an older proposal already on disk unapplied and unread through the daemon entry', async () => {
     const paths = makePaths('pre432')
     const recordId = await seedRecord(paths)

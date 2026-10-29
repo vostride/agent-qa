@@ -1,7 +1,4 @@
-// init's model connection flags and their defaults
-// a terminal init asks only defaulted questions whose flag is absent
-// current subscription defaults, same in CLI and registry
-// init prints its next steps in the route order
+// Init's model flags and defaults, the defaulted questions a terminal asks, its next steps.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { Command } from 'commander'
 import { parse as parseYaml } from 'yaml'
