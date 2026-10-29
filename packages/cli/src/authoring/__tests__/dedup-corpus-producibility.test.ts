@@ -1,4 +1,4 @@
-// The dedup corpus's SUITE side, driven through the SHIPPED parser (Phase 394 plan 38 · CR-01).
+// The dedup corpus's SUITE side, driven through the SHIPPED parser.
 //
 // THE LAW THIS CELL STANDS ON. The production producer of the stage-2 comparison universe is
 // `createDraftAuthoringPort.suiteTextCorpus` (`../../composition/local-agent-host.ts`), and its
@@ -15,7 +15,7 @@
 // weaker spelling of a rule the parser already owns; the only assertion that cannot be weaker than
 // the parser is the parser. (394-VERIFICATION round 5, CR-01.)
 //
-// WHY IT LIVES IN `cli`. The corpus lives in `packages/agent` beside the lane it screens (D-05),
+// WHY IT LIVES IN `cli`. The corpus lives in `packages/agent` beside the lane it screens,
 // but neither `packages/agent` nor `packages/agent-local` may name `@vostride/agent-qa-core` under
 // the FUNC-02 firewall — `agent-local` does not even carry it as a dependency, so the import would
 // not resolve there. `cli` owns both sides: it is the package that imports `parseTestFile` and the

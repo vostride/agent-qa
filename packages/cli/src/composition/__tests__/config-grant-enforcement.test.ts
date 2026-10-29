@@ -1,7 +1,7 @@
 // D-02's three-tier approval, enforced TWO-SIDED and measured on the production composition
 // (395-07 · CFGM-01 · spec/v2 §4.3, spec/v2/execution-safety.md §2.4).
 //
-// 2026-10-01, 432-16 (D-05/D-07/D-15): RE-SPELLED AS DIRECT CHANGES THAT COMMIT NOTHING. The two
+// RE-SPELLED AS DIRECT CHANGES THAT COMMIT NOTHING. The two
 // sides this file measured were two refusals on the road a pre-432 config proposal took into a
 // commit: the MINT side (`proposals.accept --always` on a flagged proposal records no grant) and the
 // READ side (a covering grant does not open `config.proposal.apply` for a flagged proposal). That
@@ -48,7 +48,7 @@ import * as cliHost from '../local-agent-host.js'
 import { CLI_FUNCTION_CALLER, composeCliLocalAgent } from '../local-agent-host.js'
 import { filePre432ConfigProposal } from './pre-432-config-proposal.js'
 
-/** The class a pre-432 grant covered, as the retired apply op carried it (391 D-04). */
+/** The class a pre-432 grant covered, as the retired apply op carried it. */
 const CONFIG_APPLY_CLASS = 'fn:config.proposal.apply'
 
 /**
@@ -103,7 +103,7 @@ function git(...args: string[]): { status: number | null; stdout: string } {
   const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' })
   if (result.error !== undefined) throw result.error
   if (result.status !== 0) {
-    // 395-24 · WR-12 — a `git` that ran and failed must not return quietly; see
+    // a `git` that ran and failed must not return quietly; see
     // validate-resolution-surface.test.ts for the full note.
     throw new Error(`git ${args.join(' ')} exited ${result.status}: ${result.stderr}`)
   }
@@ -127,7 +127,7 @@ function ledgerLines(): string[] {
 /**
  * One committed grant line, planted as the bytes a pre-432 build's mint wrote.
  *
- * RE-SPELLED 2026-10-01 (432-18, D-22): the mint is deleted with the ledger, so the line is a literal
+ * RE-SPELLED 2026-10-01: the mint is deleted with the ledger, so the line is a literal
  * of the shape it produced. Nothing in this build reads or rewrites it.
  */
 async function mintGrant(actionClass: string): Promise<void> {
@@ -212,7 +212,7 @@ afterEach(() => {
 })
 
 describe('a config change applies in the call and records no approval', () => {
-  // RE-SPELLED 2026-10-01 (432-16): was the headless denial of `proposals.accept` (before 432-13)
+  // RE-SPELLED 2026-10-01: was the headless denial of `proposals.accept` (before 432-13)
   // and then its mint-side refusal with no ask. The change is now made directly.
   it('CONTROL: headless, a flagged change applies with no ask and writes no grant', async () => {
     await mintGrant(UNRELATED_CLASS)
@@ -226,7 +226,7 @@ describe('a config change applies in the call and records no approval', () => {
     expect(commitCount()).toBe(1)
   })
 
-  // RE-SPELLED 2026-10-01 (432-16): was 'refuses the mint, applies anyway, and leaves the ledger
+  // RE-SPELLED 2026-10-01: was 'refuses the mint, applies anyway, and leaves the ledger
   // byte-identical'. There is no mint to refuse; the change carries its reasons as data.
   it('a flagged change lands, names its reasons, and leaves the ledger and history alone', async () => {
     await mintGrant(UNRELATED_CLASS)
@@ -244,7 +244,7 @@ describe('a config change applies in the call and records no approval', () => {
     expect(git('status', '--porcelain', '--', CONFIG_FILE).stdout.trim()).toBe(`M ${CONFIG_FILE}`)
   })
 
-  // RE-SPELLED 2026-10-01 (432-16): was 'an in-scope proposal accepted with --always DOES record
+  // RE-SPELLED 2026-10-01: was 'an in-scope proposal accepted with --always DOES record
   // one'. No change records an approval now, in scope or not.
   it('an in-scope change lands with no reasons and records nothing either', async () => {
     await mintGrant(UNRELATED_CLASS)
@@ -299,7 +299,7 @@ describe('the retired config apply and undo verbs are unbound on the CLI host', 
     }
   })
 
-  // RE-SPELLED 2026-10-01 (432-17, D-05/D-09): both verbs are deleted, so they are not listed at all
+  // RE-SPELLED 2026-10-01: both verbs are deleted, so they are not listed at all
   // and each is refused as an unknown function; the undo still reads no history and files nothing.
   it('both verbs are listed unbound, and the undo reads no history and files nothing', async () => {
     const host = composeCliLocalAgent({ agentQaRoot, configPath })
@@ -337,10 +337,10 @@ describe('the retired config apply and undo verbs are unbound on the CLI host', 
   })
 })
 
-// 2026-10-01 (432-17): "refused unbound" became "refused as an unknown function" with the apply's
+// "refused unbound" became "refused as an unknown function" with the apply's
 // deletion; the claims (nothing committed, the grant does not decide) are unchanged.
 describe('an old proposal record is refused unbound, grant or no grant', () => {
-  // RE-SPELLED 2026-10-01 (432-16): (R3) with no grant the flagged apply applied directly after
+  // RE-SPELLED 2026-10-01: (R3) with no grant the flagged apply applied directly after
   // 432-13; (R1) a covering grant did not match a flagged record; (R2) the same grant admitted an
   // in-scope one; (R4) a doctored flag with no reasons was still refused. With no config apply port
   // bound, every one of them is refused by name above every mutation, so the grant is no longer
@@ -373,7 +373,7 @@ describe('an old proposal record is refused unbound, grant or no grant', () => {
     expect(git('status', '--porcelain', '--', CONFIG_FILE).stdout.trim()).toBe('')
   })
 
-  // RE-SPELLED 2026-10-01 (432-18) from '(B) the grant read still folds the committed ledger until
+  // RE-SPELLED 2026-10-01 from '(B) the grant read still folds the committed ledger until
   // 432-18 deletes it': the read is deleted with the ledger.
   it('the grant read is an unknown function, and the old ledger is untouched', async () => {
     await mintGrant(CONFIG_APPLY_CLASS)

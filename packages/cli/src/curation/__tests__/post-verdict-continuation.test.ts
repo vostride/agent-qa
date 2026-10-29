@@ -27,12 +27,12 @@ import * as drive from '../../composition/in-process-run-execution.js'
 import * as tailComposition from '../post-run-tail-composition.js'
 import { closeTestRunRecords, freshUpdateCheckHome, testRunRecord } from '../../composition/__tests__/in-process-run-fixture.js'
 
-// 2026-10-18 (444-14, D-22): the run command resolves its context from the environment, so a CI
+// the run command resolves its context from the environment, so a CI
 // runner reads the CI sentence.
 const preparationLine = (pendingPath: string): string =>
   preparationPendingWarning('', pendingPath, resolveRunExecutionContext()).replace(/^Run : /u, '')
 
-// 2026-10-17 (443-08, D-22): every drive call carries a record; each cell closes the ones it opened.
+// every drive call carries a record; each cell closes the ones it opened.
 afterEach(() => { closeTestRunRecords() })
 
 const roots: string[] = []
@@ -742,7 +742,7 @@ it.each((['direct', 'suite'] as const).flatMap(mode =>
     const runId = String(request.runId)
     const runDir = join(f.input.agentQaRoot, 'runs', runId)
     mkdirSync(runDir, { recursive: true })
-    // 444 D-55: a skipped preparation is a gate run, so its handoff carries the marker the shell
+    // a skipped preparation is a gate run, so its handoff carries the marker the shell
     // copies from the same RunConfig, and the exit line reads the status read's skipped fact.
     writeFileSync(join(runDir, 'handoff.json'), JSON.stringify({
       ...JSON.parse(readFileSync(f.handoffPath, 'utf8')), runId,

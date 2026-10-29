@@ -1,4 +1,4 @@
-// The run service's attachable-session registry (Phase 402 plan 01, D-02/D-13 · INVK-03).
+// The run service's attachable-session registry.
 //
 // WHAT THIS HOLDS AND WHY IT IS BOUNDED. `GET /run/:runId/events` serves a run's envelopes off the
 // `RunSession` that run produced, so the door needs a run id → session lookup. Sessions arrive

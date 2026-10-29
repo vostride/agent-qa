@@ -107,7 +107,7 @@ function git(...args: string[]): { status: number | null; stdout: string; stderr
   const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' })
   if (result.error !== undefined) throw result.error
   if (result.status !== 0) {
-    // 395-24 · WR-12 — a `git` that ran and failed must not return quietly; see
+    // a `git` that ran and failed must not return quietly; see
     // validate-resolution-surface.test.ts for the full note.
     throw new Error(`git ${args.join(' ')} exited ${result.status}: ${result.stderr}`)
   }
@@ -131,7 +131,7 @@ function occurrences(haystack: string, needle: string): number {
  * A configuration the shipped schema accepts WHOLE — the non-firing control's input, and the body
  * the faulty fixture is built from.
  *
- * COMPLETE ON PURPOSE. `config.field.set` validates the whole candidate (CFGM-01), so a config
+ * COMPLETE ON PURPOSE. `config.field.set` validates the whole candidate, so a config
  * missing `workspace.envFile` blocks with `schema-fail` and the control cell would be measuring the
  * validator rather than the loader guard it is the control for.
  */
@@ -192,13 +192,13 @@ function seedConfig(text: string): void {
   git('commit', '--quiet', '-m', 'the project configures itself')
 }
 
-// 2026-10-15 (441-20): `config show` refuses at start without the declared secrets file.
+// `config show` refuses at start without the declared secrets file.
 function seedSecretsFile(): void {
   writeFileSync(join(root, '.env.secrets.local'), '')
 }
 
 /**
- * The OTHER members of the file set `enumerateConfigFileSet` pins (395-16 · CR-02 / WINDOWS 139).
+ * The OTHER members of the file set `enumerateConfigFileSet` pins.
  *
  * ONE VALUE PER MEMBER, ON PURPOSE. Three distinct planted strings, so a cell that reads the whole
  * rendered output can say WHICH member leaked rather than only that something did — cross-member
@@ -601,7 +601,7 @@ describe('every member of the config file set reports position-only', () => {
     expect(rendered, `the rendered validate output:\n${rendered}`)
       .toMatch(/not readable as YAML at line \d+, column \d+/)
 
-    // DE-VACUIZED (395-18 · WR-01). The clauses above are all satisfiable by ONE member: two
+    // DE-VACUIZED. The clauses above are all satisfiable by ONE member: two
     // zero-counts are trivially true of a member that produced no diagnostic at all, and the single
     // position regex is satisfied by whichever sibling did produce one. The verifier measured
     // exactly that — disabling the hooks member's diagnostic production entirely left this cell
@@ -717,7 +717,7 @@ describe('the plain-test member reports position-only on BOTH channels', () => {
 //
 // Task 2's mechanical sweep of every yaml-parse call site in `packages/*/src` turned up three more
 // members of the identical mechanism, two of them reproduced on the shipped binary before a line
-// was changed. 2026-10-19 (445-09, D-37): the third, the hook-reference migration audit, was
+// was changed. 2026-10-19: the third, the hook-reference migration audit, was
 // deleted with its cell. They are here rather than in a deferral row because they are `agent-qa`'s
 // own person-visible roads, which is the boundary the plan draws: dashboard surfaces defer (WINDOWS
 // 140), CLI and core surfaces get fixed in the pass that finds them.
@@ -880,7 +880,7 @@ describe('the controls: the guard fires on the FAULT, and on nothing else', () =
     // Named rather than swallowed: a catch that had started eating healthy loads would fail here
     // with the message it failed with.
     expect(error?.message ?? null).toBeNull()
-    // 432-11 D-05: a healthy load reaches the direct write, which lands in the call.
+    // a healthy load reaches the direct write, which lands in the call.
     expect((answer as { outcome?: string }).outcome).toBe('applied')
   })
 
@@ -888,7 +888,7 @@ describe('the controls: the guard fires on the FAULT, and on nothing else', () =
     // THE PRECONDITION-GUARDED CORPUS LAW. Every other road cell is drawn from inside the rule's
     // own assumption — a fault WITH a secret beside it. A fix keyed on detecting a secret rather
     // than on the fault would pass all of them and red here, and a fallback that hid the fault
-    // entirely (T-395-42) would red here too.
+    // entirely would red here too.
     seedConfig(faultyConfigText({ credential: false }))
 
     const { error } = await invokeComposed({
@@ -961,7 +961,7 @@ describe('the ENOENT arms are byte-identical', () => {
   })
 })
 
-// A HEALTHY CONFIG ON THE TWO SHIPPED CONFIG VERBS (395-20 · F-03). Since 441-20 (D-29) config
+// A HEALTHY CONFIG ON THE TWO SHIPPED CONFIG VERBS (395-20 · F-03). Since 441-20 config
 // output has no masks of its own: values render and write as the person wrote them, and only a
 // declared secret is masked (C441-CONFIG in `__tests__/config.test.ts`).
 
@@ -1020,7 +1020,7 @@ describe("a healthy config's values are shown and written as they are", () => {
   })
 })
 
-// THE FLAG THE PERSON TYPED, ON THE CONFIG VERBS (395-24 · WR-03).
+// THE FLAG THE PERSON TYPED, ON THE CONFIG VERBS.
 //
 // `setAction` hardcoded `const configPath = 'agent-qa.config.yaml'` and `showAction` hardcoded the
 // same string into its `loadConfigFile` call, while the ROOT program has carried a `--config <path>`
@@ -1080,7 +1080,7 @@ describe('the config verbs read and write the file --config names', () => {
   })
 })
 
-// BOTH SIDES OF THE CONFIG VERB PAIR REPORT THEIR FAULTS (395-27 · WR-01 / WR-02).
+// BOTH SIDES OF THE CONFIG VERB PAIR REPORT THEIR FAULTS.
 //
 // WHAT 395-24 MINTED AND THIS CLOSES. Once `--config <path>` reached these verbs the path became
 // PERSON-SUPPLIED, and neither verb was ready for a path that does not resolve:
@@ -1287,7 +1287,7 @@ describe('credentials nested in an array subtree', () => {
   })
 })
 
-// A YAML ALIAS CYCLE IS BOUNDED OUTPUT, NOT A CRASH (395-27 · WR-03).
+// A YAML ALIAS CYCLE IS BOUNDED OUTPUT, NOT A CRASH.
 //
 // WHAT THE REVIEWER MEASURED ON THE SHIPPED BINARY, with `cycle: &anchor\n  child: *anchor`:
 //

@@ -1,4 +1,4 @@
-// 2026-10-18 (444-14, D-22; 444-20, D-48): a CI workspace is usually thrown away, so in `ci` and
+// a CI workspace is usually thrown away, so in `ci` and
 // `cloud` a line about unfinished work states the one condition under which its drainer can still
 // reach it, instead of promising a resume. Every such line reads its clause from here.
 

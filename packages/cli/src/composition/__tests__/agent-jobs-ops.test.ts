@@ -543,7 +543,7 @@ describe('defaultAgentJobsOpsDeps — the composition the shipped pump runs', ()
   // `--only curate-memory` is a parser-accepted operator command, so the hole was reachable by
   // typing a valid flag value. With one exclusion the curator became claimable, the real handler
   // ran, `curateRun` = `PUMP_NEVER_CURATES` threw, and the engine's handler-throw path had already
-  // spent the attempt at claim (D-18): `retry-scheduled`, then `failed` at the bound — which is a
+  // spent the attempt at claim: `retry-scheduled`, then `failed` at the bound — which is a
   // chain terminal, minting a `failed` receipt for a curation nobody ever attempted.
   //
   // This cell asserts the union, not the refusal: the row a `--only curate-memory` pump names must
@@ -604,7 +604,7 @@ describe('defaultAgentJobsOpsDeps — the composition the shipped pump runs', ()
 
 })
 
-// ————— requeueAgentJob — the operator's explicit forget (413-14) —————
+// ————— requeueAgentJob — the operator's explicit forget —————
 //
 // The 413-08 campaign left 19 `analyze-run` rows `done` with nothing authored, and the store dedups
 // on `(kind, idempotencyKey)`, so a second enqueue for the same run is impossible — and would be

@@ -1,12 +1,12 @@
 // Scaffold from zero, through the REAL producer, on a real repository (395-08 · CFGM-05 · D-04/
 // D-13/D-14/D-15).
 //
-// 2026-09-30, 432-11 D-05/D-07/D-14: THE SCAFFOLD WRITES IN THE CALL through the real direct writer:
+// THE SCAFFOLD WRITES IN THE CALL through the real direct writer:
 // no proposal, no confirm, no commit. The cells below that pinned the proposal, the confirm and the
 // one-commit apply are re-spelled in place to the direct write — the goldens are the answer's own
 // `shownDiff`, the bytes are read off disk, and the commit count does not move.
 //
-// 2026-10-01, 432-16 D-07: no host binds a config apply port or an undo source any more, so the
+// no host binds a config apply port or an undo source any more, so the
 // `config.proposal.apply` from-zero arm (14)-(14b) refuses a pre-432 scaffold record by name and
 // writes and commits nothing, and the undo (11) answers unbound.
 //
@@ -61,14 +61,14 @@
 //                        person already wrote. That is the same wholesale overwrite
 //                        `already-configured` refuses for the config yaml, one file over.
 //
-// 432-05 (D-19, D-20 · PXH-SAFE-03) adds three named families over the same real ports:
+// 432-05 adds three named families over the same real ports:
 //
-//   C432-SCAFFOLD-LLMS          — #130: a scaffold that drops `registry.llms` or `use.llm`, on either
+//   #130: a scaffold that drops `registry.llms` or `use.llm`, on either
 //                                 the from-zero producer or the zero-target merge, or that "repairs"
 //                                 an inconsistent selection instead of letting validation refuse it.
-//   C432-LOCALHOST-ORIGIN       — #134: the local demo app's own address, scaffolded from zero, with
+//   #134: the local demo app's own address, scaffolded from zero, with
 //                                 its http scheme and port kept and the config valid.
-//   C432-TARGET-CREATE-ENVIRONMENT — a create whose class does not reach the committed file, or one
+//   a create whose class does not reach the committed file, or one
 //                                 that overwrites an existing target.
 
 import { spawnSync } from 'node:child_process'
@@ -119,7 +119,7 @@ const CONFIG_FILE = 'agent-qa.config.yaml'
 const SEEDED_GITIGNORE = '# the project\'s own rules\ndist/\n.agent-qa/\n'
 
 /**
- * A configuration that declares an LLM, carries comments, and declares NO TARGETS (395-12).
+ * A configuration that declares an LLM, carries comments, and declares NO TARGETS.
  *
  * THIS IS THE CLASS SC-5 HAS TO SERVE, and it is measured rather than imagined:
  * `resolveCliChatCapabilities` reads the chat model out of `registry.llms`, so a project that can
@@ -176,7 +176,7 @@ function git(...args: string[]): { status: number | null; stdout: string; stderr
   const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' })
   if (result.error !== undefined) throw result.error
   if (result.status !== 0) {
-    // 395-24 · WR-12 — a `git` that ran and failed must not return quietly; see
+    // a `git` that ran and failed must not return quietly; see
     // validate-resolution-surface.test.ts for the full note.
     throw new Error(`git ${args.join(' ')} exited ${result.status}: ${result.stderr}`)
   }
@@ -205,7 +205,7 @@ function golden(name: string, actual: string): void {
   expect(actual).toBe(readFileSync(path, 'utf8'))
 }
 
-// 2026-10-01 (432-17): the proposals store, its inbox and the config proposal filer are deleted, so
+// the proposals store, its inbox and the config proposal filer are deleted, so
 // this registry binds neither.
 function registryFor(options: { readonly confirm?: boolean } = {}) {
   const deps: FunctionDeps = {
@@ -235,17 +235,17 @@ function registryFor(options: { readonly confirm?: boolean } = {}) {
     },
     configFiles: createConfigFilesPort(configPath),
     configValidate: createConfigValidatePort(),
-    // 432-16 (D-07): no config apply port and no undo source — the production host binds neither.
+    // no config apply port and no undo source — the production host binds neither.
     // THE REAL PRODUCER. Not a double, and not a copy — the factory the CLI composition binds.
     scaffoldContent: createScaffoldContentPort(),
-    // 432-11: THE REAL DIRECT WRITER the scaffold publishes through.
+    // THE REAL DIRECT WRITER the scaffold publishes through.
     configWrite: createConfigWritePort(configPath, (text) => text),
   }
 
   return createFunctionRegistry({
     deps,
     // A SPY, so "the confirm was reached" is a measurement rather than an inference from the turn
-    // having completed (D-14). Omitted entirely for the fail-closed cell.
+    // having completed. Omitted entirely for the fail-closed cell.
     ...(options.confirm === undefined
       ? {}
       : {
@@ -283,7 +283,7 @@ function writtenConfig(): ParsedConfig {
 }
 
 /**
- * THE SECOND LAYOUT for the CREATE direction: configDir is not the repository root (395-11).
+ * THE SECOND LAYOUT for the CREATE direction: configDir is not the repository root.
  *
  * The undo's half of this axis is `config-apply-discipline.test.ts` cells 15-17; this is the same
  * blind spot on the other side of the same pipeline. Every fixture in this file used one temp
@@ -307,10 +307,10 @@ function relocateToSubdir(): string {
 }
 
 /**
- * Commit a configuration that declares an LLM and no targets (395-12), plus an optional hooks file.
+ * Commit a configuration that declares an LLM and no targets, plus an optional hooks file.
  *
  * COMMITTED, never merely written. `config.project.scaffold` re-reads the committed set at proposal
- * time (CFGM-04) and the apply's porcelain check is scoped to that same set, so a fixture that left
+ * time and the apply's porcelain check is scoped to that same set, so a fixture that left
  * the config dirty would be measuring D-05's two-commit human-first road instead of the merge.
  */
 function seedZeroTargetConfig(options: { readonly hooks?: string } = {}): void {
@@ -363,7 +363,7 @@ describe('the pinned config set answers for a project that has no config file', 
       .toEqual([...enumerateConfigFileSet({ configFile: CONFIG_FILE })])
     for (const path of answer.files) expect(existsSync(join(root, path)), path).toBe(true)
 
-    // NO COMMIT (D-07): the three files are plain edits git shows as changed and new.
+    // NO COMMIT: the three files are plain edits git shows as changed and new.
     expect(commitCount()).toBe(before)
     expect(git('status', '--porcelain').stdout.split('\n').filter(Boolean).sort())
       .toEqual([' M .gitignore', `?? ${CONFIG_FILE}`, '?? hooks.yaml'])
@@ -409,7 +409,7 @@ describe('the derivation is byte-pinned through the real producer', () => {
       expect(answer.summaryLine)
         .toBe(`configure this project for https://${row.domain} as target ${row.targetName}`)
 
-      // ALWAYS CROSS-BOUNDARY (D-14/D-02) — computed by the classifier, reported on the receipt.
+      // ALWAYS CROSS-BOUNDARY — computed by the classifier, reported on the receipt.
       expect(answer.crossBoundary).toBe(true)
       expect(answer.crossBoundaryReasons).toContain('new-origin')
     })
@@ -467,8 +467,8 @@ describe('the scaffold writes exactly the bytes it shows, in the call', () => {
 
 describe('undoing a scaffold', () => {
   it('(11) a direct scaffold leaves no agent commit, so the undo has nothing to take back', async () => {
-    // 432-11 D-07/D-09: the scaffold's files are plain edits a person reverts with git.
-    // RE-SPELLED 2026-10-01 (432-16): the undo used to find no agent commit and refuse
+    // the scaffold's files are plain edits a person reverts with git.
+    // RE-SPELLED 2026-10-01: the undo used to find no agent commit and refuse
     // `no-agent-commit`; its git-history source is no longer bound, so it refuses unbound by name
     // before reading any history, and files and commits nothing.
     const registry = registryFor({ confirm: true })
@@ -476,7 +476,7 @@ describe('undoing a scaffold', () => {
     const written = readFileSync(configPath, 'utf8')
 
     const before = commitCount()
-    // RE-SPELLED 2026-10-01 (432-17, D-09): the undo op is deleted, so it is an unknown function.
+    // RE-SPELLED 2026-10-01: the undo op is deleted, so it is an unknown function.
     await expect(invokeFunction(registry, 'config.undo.propose', {}, HUMAN))
       .rejects.toMatchObject({ name: 'UnknownFunctionError' })
 
@@ -489,7 +489,7 @@ describe('undoing a scaffold', () => {
 describe('a project that already has a configuration is refused, not overwritten', () => {
   it('(9) refuses `already-configured` for a config that DECLARES targets, and writes nothing',
     async () => {
-      // A DESIGNED FIXTURE BREAK (395-12). This fixture used to be `workspace:\n  hooksFile: …` —
+      // A DESIGNED FIXTURE BREAK. This fixture used to be `workspace:\n  hooksFile: …` —
       // a config file that declares NO targets — so it measured "a config file exists" and would
       // now propose a merge. The predicate it is here to pin is the narrowed one: a configuration
       // this scaffold would OVERWRITE, which is a declared target registry. The refusal must still
@@ -568,7 +568,7 @@ describe('a configuration with ZERO declared targets is MERGED, never replaced',
     // that has none; writing it over a file a person wrote would be the widest silent overwrite
     // this op could still make after the narrowing — one file over from the one it stopped making.
     expect([...answer.files].sort()).toEqual(['.gitignore', CONFIG_FILE])
-    // `addsHook` is STATED (D-02), so it must stop being stated when no hook is added.
+    // `addsHook` is STATED, so it must stop being stated when no hook is added.
     expect(answer.crossBoundaryReasons).not.toContain('hook-added')
     expect(readFileSync(join(root, 'hooks.yaml'), 'utf8')).toBe(SEEDED_HOOKS)
   })
@@ -626,7 +626,7 @@ async function invokeComposed(input: {
   readonly confirmCalls: number
 }> {
   const ask = vi.fn(() => input.confirmAnswer)
-  // 432-16 (D-14): the input declares no confirm; one smuggled past the type is never read.
+  // the input declares no confirm; one smuggled past the type is never read.
   const smuggledConfirm = { confirm: { surface: 'tty-prompt', ask } }
   const host = composeCliLocalAgent({
     agentQaRoot,
@@ -667,12 +667,12 @@ async function composedScaffoldId(): Promise<string> {
   })).proposalId
 }
 
-// RE-SPELLED 2026-10-01 (432-17, D-05): `config.proposal.apply` is deleted, so each cell below is now
+// RE-SPELLED 2026-10-01: `config.proposal.apply` is deleted, so each cell below is now
 // refused as an unknown function — still before any record or config is read, still never by the
 // pre-fix `Config file not found`, and still without consulting a confirm.
 describe('config.proposal.apply reaches its own answer from ZERO', () => {
-  // RE-SPELLED 2026-09-30 (432-13, D-14/D-15): was '... with the confirm OBSERVED asked'.
-  // RE-SPELLED 2026-10-01 (432-16, D-07): was '(14) applies a from-zero scaffold as ONE commit, with
+  // RE-SPELLED 2026-09-30: was '... with the confirm OBSERVED asked'.
+  // RE-SPELLED 2026-10-01: was '(14) applies a from-zero scaffold as ONE commit, with
   // no confirm asked'. The composed CLI host binds no config apply port, so the verb refuses by name
   // before it reads the record or the (absent) config — never the pre-fix `Config file not found`.
   it('(14) an old from-zero scaffold proposal record is refused unbound, and nothing is written or committed', async () => {
@@ -693,7 +693,7 @@ describe('config.proposal.apply reaches its own answer from ZERO', () => {
     expect(existsSync(join(root, 'hooks.yaml'))).toBe(false)
   })
 
-  // RE-SPELLED 2026-10-01 (432-16): was answering the verb's own not-found refusal. The unbound
+  // RE-SPELLED 2026-10-01: was answering the verb's own not-found refusal. The unbound
   // refusal comes first now, so an unknown id is refused the same way, still never by the config
   // throw.
   it('(14a) an unknown id is refused unbound too, from zero, never by the config throw', async () => {
@@ -709,8 +709,8 @@ describe('config.proposal.apply reaches its own answer from ZERO', () => {
     expect(existsSync(configPath)).toBe(false)
   })
 
-  // RE-SPELLED 2026-09-30 (432-13): was '(14b) refuses on a NO answer from zero'.
-  // RE-SPELLED 2026-10-01 (432-16): the scaffold no longer applies either way; a smuggled NO confirm
+  // RE-SPELLED 2026-09-30: was '(14b) refuses on a NO answer from zero'.
+  // RE-SPELLED 2026-10-01: the scaffold no longer applies either way; a smuggled NO confirm
   // is still never consulted.
   it('(14b) a NO-answering confirm is never consulted, and the record is refused unbound', async () => {
     const id = await composedScaffoldId()
@@ -968,7 +968,7 @@ describe('the scaffold keeps the model registry and its selection', () => {
       expect(config.use?.llm).toBe('judge')
       const parsed = AgentQaConfigSchema.safeParse(config)
       expect(parsed.success ? null : JSON.stringify(parsed.error?.issues)).toBeNull()
-      // The hooks file is the empty list (445-02, D-40), and the managed block is present.
+      // The hooks file is the empty list, and the managed block is present.
       expect(files.find((file) => file.path === 'hooks.yaml')?.text).toBe('hooks: []\n')
       expect(files.find((file) => file.path === '.gitignore')?.text).toContain('# agent-qa init:start')
 

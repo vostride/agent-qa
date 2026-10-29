@@ -297,11 +297,11 @@ function interiorNonReplayableSeed(): ProcedureTrajectorySeed {
 }
 
 /**
- * The LIVE binding shape (G-381-3): ordinal 1's email slot is an INTERPOLATED `{{env:PROBE_USER}}`
+ * The LIVE binding shape: ordinal 1's email slot is an INTERPOLATED `{{env:PROBE_USER}}`
  * value — post-interpolation it is an ordinary literal, named only by 381-41's provenance — and
  * ordinal 2's password slot carries the redacted `[secret:PROBE_TOKEN]` marker form. Both slots
  * therefore reach the builder with a sourceName, which is what must survive into the committed
- * parameter names for consult-time fillability (D-08) to match.
+ * parameter names for consult-time fillability to match.
  */
 function sourcedSeed(): ProcedureTrajectorySeed {
   const seed = trajectorySeed()
@@ -1428,7 +1428,7 @@ describe('procedure names and row words as written', () => {
   })
 })
 
-// C438-HEALED-BODY (438 D-08, D-11; CR-03): a passing two-step test whose first step was healed
+// a passing two-step test whose first step was healed
 // after the page shifted is projected and authored into a procedure body that names the elements
 // the healed input was sent to. The evidence comes from two real `executeStep` runs, not a
 // hand-built fixture, so the pair curation reads is the pair the loop recorded.

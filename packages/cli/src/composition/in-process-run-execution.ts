@@ -1,6 +1,6 @@
-// THE ONE IN-PROCESS `agent-qa run` EXECUTION (Phase 401 plan 11, D-01/D-02/D-07).
+// THE ONE IN-PROCESS `agent-qa run` EXECUTION.
 //
-// WHAT THIS FILE IS. `createRunInvocationCore` (401-03) made run assembly a PORT a door implements,
+// WHAT THIS FILE IS. `createRunInvocationCore` made run assembly a PORT a door implements,
 // which was right — members, the executor closure, reporters and the masking context are CLI
 // vocabulary `agent-local` may not name. The consequence nobody planned for is that **no
 // non-`run.ts` door could implement that port**: `assembleCliRun` requires `members` and `executor`,
@@ -15,7 +15,7 @@
 // and lets the core own the ORDER; the core starts every allowed request, whatever environment its
 // targets declare. No confirm port, session trust or approval reader exists on this seam.
 //
-// IT READS NO AMBIENT EXECUTION CONTEXT (D-07). There is no `resolveRunExecutionContext()` call
+// IT READS NO AMBIENT EXECUTION CONTEXT. There is no `resolveRunExecutionContext()` call
 // here, no `getActiveExecutionContext`, no TTY sniff: `executionContext` is a REQUIRED option with
 // no default, so a door that supplies nothing gets a type error rather than a guess. Naming those
 // two resolvers in this comment while never calling them is deliberate — it is the non-vacuity
@@ -35,7 +35,7 @@
 // THE DOOR KEEPS PROCESS LIFECYCLE. Signal handlers, the grace timer, `releaseAppium()`, closing the
 // dashboard db and the terminal exits stay in `run.ts`. This module computes, and returns or throws
 // — including for every input failure, which becomes a `CliRunInputError` rather than a dead host
-// (T-401-31). A library that can terminate its caller is a boundary of its own.
+// A library that can terminate its caller is a boundary of its own.
 //
 // A NON-ZERO EXIT CODE IS NOT AN ERROR. A failing suite exits non-zero and is a perfectly real run.
 // This module throws only the core's run-id refusals and `CliRunInputError`.
@@ -51,7 +51,7 @@ import type {
 // (FUNC-02, and the ledger only shrinks).
 //
 // `runSafetyScope` and `mapVerdictToExitCode` reach this file through the
-// composition root's `run-drive-vocabulary` module (401-11) — the drive RUNS the run, so it has to
+// composition root's `run-drive-vocabulary` module — the drive RUNS the run, so it has to
 // install the run's safety scope and map its verdict, and both of those live in packages this file
 // may not name directly.
 import {
@@ -124,10 +124,10 @@ export type RunMemberProducer = (
 export interface RunSubscriberAttachInput {
   readonly session: RunSession
   readonly quarantined: readonly QuarantineAppliedEntry[]
-  /** The run's mask: the producer's redactor over the secrets read at its start (441-58, D-06). */
+  /** The run's mask: the producer's redactor over the secrets read at its start. */
   readonly mask: MaskFn
   /**
-   * The producer's snapshot channel (433-29, G-433-5): a door's dashboard ingest registers here to
+   * The producer's snapshot channel: a door's dashboard ingest registers here to
    * stage each member's masked test and config onto the run's artifact. Absent when the producer
    * has none.
    */
@@ -145,7 +145,7 @@ export interface CliRunVerdictContext {
   readonly configDir: string
   readonly configFilePath: string
   /**
-   * This run's post-verdict handoff box (404 D-10) — the writer lease for the chain the shell's
+   * This run's post-verdict handoff box — the writer lease for the chain the shell's
    * step decided this process would pump.
    *
    * A DOOR'S TAIL MUST TAKE IT RATHER THAN CONSULT THE LEASE AGAIN. The step decided the posture
@@ -155,11 +155,11 @@ export interface CliRunVerdictContext {
    * `postRunTail.drain({ takeLease: () => postVerdict.takeAcquiredLease() })` — so acquire → pump
    * → release stays one lease.
    *
-   * 2026-08-26: TAKING IT IS WHAT ACQUIRES IT. The step's decision comes from a non-acquiring read,
+   * TAKING IT IS WHAT ACQUIRES IT. The step's decision comes from a non-acquiring read,
    * so a door with no tail — or a run that dies above one — mutates no lease file and has nothing
    * to release. See `post-verdict-step.ts`'s header for the measurement that moved it.
    *
-   * 2026-08-27 (CR-01): AND A THUNK IS WHY IT IS SAFE. Because taking acquires, the take may not
+   * AND A THUNK IS WHY IT IS SAFE. Because taking acquires, the take may not
    * happen where an exception can still skip the release — which is what evaluating it as the
    * argument did. `drain()` calls the thunk itself, after the knowledge root is resolved and
    * inside the try whose `finally` releases.
@@ -173,7 +173,7 @@ export interface CliRunOutcome {
   readonly verdict: string
   readonly exitCode: number
   /**
-   * The DETACHED post-processing leg, still in flight (404 D-06).
+   * The DETACHED post-processing leg, still in flight.
    *
    * Present only when the door supplied a `postRunTail`. It never rejects — the drive catches and
    * warns — so awaiting it is safe and not awaiting it is the point: `execute()` resolving before
@@ -195,7 +195,7 @@ export interface InProcessCliRunExecutionOptions {
   /**
    * The context this door's runs start in and record.
    *
-   * NO DEFAULT AND NO AMBIENT FALLBACK (D-07). A door that supplies nothing does not get a guess;
+   * NO DEFAULT AND NO AMBIENT FALLBACK. A door that supplies nothing does not get a guess;
    * it gets a type error. That is what keeps this seam RPC-shaped for 402's authed service, and it
    * is why an injected value BEATS a varied process-global — asserted in
    * `in-process-run-execution.test.ts`.
@@ -242,7 +242,7 @@ export interface InProcessCliRunExecutionOptions {
    */
   readonly afterVerdict?: (context: CliRunVerdictContext) => Promise<number> | number
   /**
-   * What this door wants the shell's POST-VERDICT step to do about post-processing (404 D-05/D-09).
+   * What this door wants the shell's POST-VERDICT step to do about post-processing.
    *
    * TWO INDEPENDENT FIELDS, NOT A MODE, because they are answers to two different questions and no
    * door supplies both:
@@ -271,13 +271,13 @@ export interface InProcessCliRunExecutionOptions {
    * when the `invokeRun` promise settles. A drain awaited inside `execute()` would hold all three
    * for up to `DRAIN_BUDGET_MS`, so the runs list would keep showing "running" for a minute after
    * the verdict and a leased device would stay leased. The run's lifecycle ends at `runFinished`;
-   * curation is post-processing (D-07), and this option is where that sentence becomes code.
+   * curation is post-processing, and this option is where that sentence becomes code.
    *
-   * The drive hands its close-out to this leg, which runs it once the leg settles (404 D-06).
+   * The drive hands its close-out to this leg, which runs it once the leg settles.
    *
    * IT RUNS AFTER `afterVerdict` HAS SETTLED, so a door supplying both gets them in that order and
    * never concurrently. A throw is caught and warned by name — post-processing may never cost the
-   * verdict (JOBQ-06) — and the untaken-lease backstop still runs behind it.
+   * verdict — and the untaken-lease backstop still runs behind it.
    *
    * THE IN-FLIGHT PROMISE IS RETURNED on the outcome as `settled`, so a caller that DOES want to
    * wait (a cell; a host that later decides `run-settled` should include curation) can, without the
@@ -307,7 +307,7 @@ export interface InProcessCliRunExecutionOptions {
    */
   readonly resolveAppiumUrl?: (runId: string) => string | undefined
   /**
-   * Per-run flags a door's own UI offers that `RunsStartInput` has no field for (401-07).
+   * Per-run flags a door's own UI offers that `RunsStartInput` has no field for.
    *
    * EXACTLY ONE MEMBER TODAY, AND DELIBERATELY NOT `RunOptions`. The dashboard has shipped a
    * "no cache" checkbox since v1; it reached a run as the `--disable-cache` OPERAND of a spawned
@@ -326,7 +326,7 @@ export interface InProcessCliRunExecutionOptions {
   readonly resolveRunFlags?: (runId: string) => { readonly disableCache?: boolean } | undefined
 }
 
-// 2026-10-18 (444-14, D-22): in `ci` and `cloud` the line states the resume limit, not a promise.
+// in `ci` and `cloud` the line states the resume limit, not a promise.
 export function preparationPendingWarning(
   runId: string,
   pendingPath: string | undefined,
@@ -352,7 +352,7 @@ export function preparationPendingWarning(
  *   6. inside the run's safety scope: execute, await `done`, finalise, flush, re-surface a member's
  *      framework error, map the verdict, and let the door's tail have the last word on the code.
  *
- * NO DEFENSIVE CATCH ANYWHERE (D-03). Crash-through is the accepted posture; the runner's
+ * NO DEFENSIVE CATCH ANYWHERE. Crash-through is the accepted posture; the runner's
  * budget/abort machinery is the orderly containment. The `finally` below closes the run out and
  * does nothing else.
  */
@@ -394,15 +394,15 @@ export async function runInProcessCliRun(
   const warnByName = options.warn ?? ((): void => { /* a door with no renderer drops the line */ })
   const mask: MaskFn = (text) => produced.secretRedactor.redactString(text)
 
-  // 2026-10-15 (441-30, D-12/D-15): no per-run hook registrar is built or bound; the run's loop
-  // gets no hook port. 441-31 (D-15): and no guardrail audit sink is built for it.
+  // no per-run hook registrar is built or bound; the run's loop
+  // gets no hook port. 441-31: and no guardrail audit sink is built for it.
 
   let quarantined: readonly QuarantineAppliedEntry[] = []
   let startedSession: RunSession | undefined
   let startedSubscribers: { flush(): Promise<void> } | undefined
   let startedRecord: { flush(): Promise<void> } | undefined
   /**
-   * This run's post-verdict handoff box (404 D-10), captured when the core builds the step.
+   * This run's post-verdict handoff box, captured when the core builds the step.
    *
    * ONE VARIABLE RATHER THAN A MAP KEYED BY RUN ID: this drive serves exactly one run — the id is
    * decided a few lines above and the core is constructed around it — so a keyed collection would
@@ -421,7 +421,7 @@ export async function runInProcessCliRun(
     agentQaRoot: options.agentQaRoot,
     executionContext: options.executionContext,
     mintRunId: mintCliRunId,
-    // 401-20 (CR-04): the shape predicate, from the package that owns the mint. REQUIRED on the
+    // the shape predicate, from the package that owns the mint. REQUIRED on the
     // core with no default, so this line is not a policy this door chose — its absence is a
     // compile error.
     isMintedRunId: isMintedCliRunId,
@@ -440,7 +440,7 @@ export async function runInProcessCliRun(
     assembleRun: async (assemblyContext) => {
       const assembly = await assembleCliRun({
         runId: assemblyContext.runId,
-        // 402-03 (D-12): THE ONE PLACE THE WORKER COUNT IS APPLIED, for every door.
+        // THE ONE PLACE THE WORKER COUNT IS APPLIED, for every door.
         //
         // The formula is `@vostride/agent-qa-schema`'s and is called exactly here, on the pair the
         // PRODUCER read out of the resolved config and the member count the producer assembled.
@@ -512,7 +512,7 @@ export async function runInProcessCliRun(
       session.subscribe(REPLAY_FROM_START, record.handler)
       startedRecord = record
     },
-    // 404 D-05/D-10: the post-verdict step, composed HERE and threaded by the core so no door can
+    // the post-verdict step, composed HERE and threaded by the core so no door can
     // forget it. It speaks writer-lease vocabulary `agent-local`'s runner seam may not name, which
     // is exactly why the core takes a factory rather than building one.
     //
@@ -525,7 +525,7 @@ export async function runInProcessCliRun(
         knowledgeRoot: produced.knowledgeRoot,
         // The PRODUCER's resolved config file, not the raw `configPath` this drive was handed: the
         // enqueue's host is composed against the project the run actually resolved, and the tail
-        // composes its own host from the same value one layer up (D-05).
+        // composes its own host from the same value one layer up.
         configPath: produced.configFilePath,
         // Conditionally spread on this file's house rule — an absent posture is an ABSENT field,
         // so the step's own defaults live in exactly one place.
@@ -560,17 +560,17 @@ export async function runInProcessCliRun(
    * on its TTL while every reader of the wire believes somebody is draining.
    *
    * IT IS THE OUTERMOST THING, NOT SOMETHING AROUND `afterVerdict`, and the difference is a
-   * measured one (404-01): a framework error re-thrown above `mapVerdictToExitCode` skips
+   * measured one: a framework error re-thrown above `mapVerdictToExitCode` skips
    * `afterVerdict` entirely, and a release scoped to that call left the lease held for its whole
    * TTL — the very posture this rule exists to prevent, on the ONE path most likely to produce it.
    *
-   * 2026-08-26: it ACQUIRES NOTHING to check. The step's acquisition is lazy, so that same
+   * it ACQUIRES NOTHING to check. The step's acquisition is lazy, so that same
    * framework-error path now arrives here with an empty box and this call is silent — the
    * `released untaken` line stopped being ordinary run output, which is what
    * `run-parity.e2e.test.ts` measures. The backstop stays because the box can still be filled by a
    * host that supplies its own authority (the daemon door).
    *
-   * 404 D-06: the drive's `finally` runs this only when no detached leg was started, and the leg's
+   * the drive's `finally` runs this only when no detached leg was started, and the leg's
    * own `finally` runs it otherwise; `detachedTail`'s presence decides which, once.
    */
   const closeOutRun = (): void => {
@@ -621,7 +621,7 @@ export async function runInProcessCliRun(
           postVerdictDeadlineMs, options.postVerdictSignal)
 
         // A throw out of a member closure is a framework/setup error rather than a test failure:
-        // the shell absorbs executor throws into failed members (D-13), so the producer captured
+        // the shell absorbs executor throws into failed members, so the producer captured
         // the first one and it is re-surfaced here to preserve the exit-2 contract.
         const frameworkError = produced.takeFrameworkError()
         if (frameworkError !== undefined) throw frameworkError
@@ -652,7 +652,7 @@ export async function runInProcessCliRun(
           postVerdictHandoff?.completion,
           options.postRunTail(verdictContext)
           .catch((error: unknown) => {
-            // 444 D-48: in `ci` and `cloud` the line states the resume limit, not a promise.
+            // in `ci` and `cloud` the line states the resume limit, not a promise.
             const resumeClause = ciResumeClause(options.executionContext, 'any-host')
             warnByName(
               `Run ${runId}: the post-run tail did not complete (`

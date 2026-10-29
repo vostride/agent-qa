@@ -26,7 +26,7 @@
 //
 // The lease bracket is `knowledge-maintain.ts`'s `withWriterLease` and the pump loop is
 // `post-run-tail.ts`'s, both deliberately: two drainers under one fence is the tampering threat
-// (T-413-46), and "never sleep on a backoff" is the tail's own rule (T-413-48).
+// and "never sleep on a backoff" is the tail's own rule.
 
 import { dirname, join, resolve } from 'node:path'
 
@@ -52,7 +52,7 @@ import { composeCliLocalAgent } from './local-agent-host.js'
  * Equal to `JOB_RECOVERY_MAX_RESUMED_JOBS` and chosen for the same reason: it is more iterations
  * than any campaign leg can legitimately queue for one kind, so reaching it is a bug — a chain
  * feeding itself, or a queue this process is not the only writer of — and not a long drain. A loop
- * that trusted the queue to empty would be an unbounded claim under a lease (T-413-48).
+ * that trusted the queue to empty would be an unbounded claim under a lease.
  */
 export const AGENT_JOBS_PUMP_BOUND = 64
 
@@ -60,7 +60,7 @@ export const AGENT_JOBS_PUMP_BOUND = 64
  * The heartbeat cadence the pump refreshes its lease on.
  *
  * Declared locally, exactly as `knowledge-maintain.ts` declares it: the constant lives in
- * `knowledge-local`, which a firewalled surface may not name (FUNC-02), and the value a CLI
+ * `knowledge-local`, which a firewalled surface may not name, and the value a CLI
  * command heartbeats at is the CLI's own decision anyway.
  */
 const WRITER_LEASE_HEARTBEAT_INTERVAL_MS = 5_000
@@ -74,7 +74,7 @@ export interface AgentJobRow {
   readonly claimed: boolean
   readonly cancelRequested: boolean
   /**
-   * What the store can say this row concluded, when it can say anything (422 D-16).
+   * What the store can say this row concluded, when it can say anything.
    *
    * Carried verbatim from the store's diagnostic projection rather than re-derived here. Today it
    * is `unreadable_kind` and nothing else: the row's `kind` above is then a kind this build does
@@ -101,7 +101,7 @@ export interface AgentJobOutcomeRow {
  *
  * `unexpected-kind` is unreachable by construction — the queue's own exclusion is the guard — and
  * is here so the loop RECORDS that rather than trusting it. A pump that silently ran a kind it was
- * not asked for is the elevation threat (T-413-45), and a value nobody can observe is not a guard.
+ * not asked for is the elevation threat, and a value nobody can observe is not a guard.
  */
 export type AgentJobsPumpStop = 'empty' | 'bound' | 'retry-scheduled' | 'unexpected-kind'
 
@@ -135,7 +135,7 @@ export type RequeueAgentJobOutcome =
   | AgentJobsRefusal
 
 /**
- * The refusal reason a quarantined row's requeue reports (422 D-16).
+ * The refusal reason a quarantined row's requeue reports.
  *
  * A REFUSAL and not a `not-terminal` outcome, which is the difference between "somebody else owns
  * this row, try later" and "this row can never be requeued by anyone". `not-terminal` exits 0
@@ -181,7 +181,7 @@ export interface AgentJobsOpsDeps {
  * The run a claimed job's payload names, if it names one as a string.
  *
  * The `job-dispatcher.ts` idiom verbatim, and the ONLY thing read out of a payload anywhere in
- * this module (T-413-47). The payload is `unknown` by construction and every kind spells its own,
+ * this module. The payload is `unknown` by construction and every kind spells its own,
  * so an id-shaped string under `runId` is the whole contract; anything else yields `undefined` and
  * the key is omitted rather than emitted empty.
  */
@@ -194,7 +194,7 @@ function runIdOf(payload: unknown): string | undefined {
 /**
  * The `curateRun` this host declares it will never run.
  *
- * REQUIRED by `postRun`'s type (388-10) — the posture is a review of the binding it describes, so
+ * REQUIRED by `postRun`'s type — the posture is a review of the binding it describes, so
  * there is no `postRun` without one — and UNREACHABLE by construction: `'no-masker'` makes
  * `curate-memory` unclaimable on the composed host, `pumpAgentJobs` UNIONS that set into the
  * `unclaimableKinds` of the queue it actually drains, and `--only` excludes it there a second time.
@@ -493,7 +493,7 @@ export async function cancelAgentJob(
  * reset and the checkpoint forget one fenced transaction for exactly that reason.
  *
  * Under the writer lease, and in the same bracket the pump uses, because this is a WRITE against
- * rows a drainer may be claiming (T-413-46). And it deliberately does NOT pump: the operator runs
+ * rows a drainer may be claiming. And it deliberately does NOT pump: the operator runs
  * `agent-jobs pump --only <kind>` next, so the forget and the re-run stay two visible steps that a
  * driver records separately rather than one verb whose failure mode is ambiguous.
  */

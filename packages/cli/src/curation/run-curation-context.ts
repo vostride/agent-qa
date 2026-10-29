@@ -49,7 +49,7 @@ export function runConfigRecordPath(agentQaRoot: string, runId: string): string 
   return join(completedRunDir(agentQaRoot, runId), RUN_CONFIG_RECORD_FILE)
 }
 
-// A record that is absent, a symlink, not a file or not this run's is treated as absent (441-64).
+// A record that is absent, a symlink, not a file or not this run's is treated as absent.
 export function readRunConfigRecord(
   agentQaRoot: string,
   runId: string,
@@ -107,7 +107,7 @@ export function writeRunConfigRecord(agentQaRoot: string, runId: string, configP
   }
 }
 
-// 2026-10-16 (442-10, D-13, D-17): another run is curated only under its own config, read as it
+// another run is curated only under its own config, read as it
 // stands now, and only into the drainer's root (the drainer holds no other root's writer lease).
 export async function resolveRunCurationContext(input: {
   readonly agentQaRoot: string

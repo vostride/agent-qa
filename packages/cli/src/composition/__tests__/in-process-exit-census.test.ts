@@ -1,4 +1,4 @@
-// THE HOST-TERMINATION CENSUS (Phase 401 plan 11, T-401-31).
+// THE HOST-TERMINATION CENSUS.
 //
 // THE CLAIM. No module on the in-process invocation path can terminate its host. Every input
 // failure is a typed `CliRunInputError` carrying its own exit code and its own rendered lines, and
@@ -46,7 +46,7 @@ import {
 } from './in-process-run-fixture.js'
 import { closeTestRunRecords, testRunRecord } from './in-process-run-fixture.js'
 
-// 2026-10-17 (443-08, D-22): every drive call carries a record; each cell closes the ones it opened.
+// every drive call carries a record; each cell closes the ones it opened.
 afterEach(() => { closeTestRunRecords() })
 afterAll(() => { removeInProcessFixtures() })
 
@@ -151,7 +151,7 @@ function inProcessModuleClosure(): string[] {
  * is what makes the carve-out a bounded allowance rather than a hole shaped like a whole file.
  */
 const PINNED_RUN_TS_IMPORTS = [
-  // 401-20 (CR-04): the mint's inverse. `isMintedRunId` is a REQUIRED core option with no default,
+  // the mint's inverse. `isMintedRunId` is a REQUIRED core option with no default,
   // and it travels the same relative route the mint does — a shape check invented in `agent-local`
   // would be a second spelling of a run's identity.
   'isMintedCliRunId',

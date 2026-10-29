@@ -1,15 +1,15 @@
 import type { CurationSnapshot } from '@vostride/agent-qa-schema'
-// The one post-run tail (Phase 388 plan 02, D-01 / D-03 / D-05 / D-07).
+// The one post-run tail.
 //
 // Every door's tail ends here. What the run process owes the post-run chain is two separable
 // things, and separating them is the whole design:
 //
 //   1. ENQUEUE — a durable record that this run has analysis waiting. Idempotent by `runId`,
-//      fence-free (385 D-02), and performed even under `--detach`, because detaching asks this
+//      fence-free, and performed even under `--detach`, because detaching asks this
 //      process not to SPEND itself on the work, never to forget the work exists (Pitfall 3).
 //   2. DRAIN OR HAND OFF — spending this process on the chain when nothing else can. If the
 //      writer lease is free, pump the chain here under the ONE budget; if a daemon holds it,
-//      nudge and return immediately. The run process never waits on the daemon (D-03).
+//      nudge and return immediately. The run process never waits on the daemon.
 //
 // ═══ 2026-08-26 — Phase 404 D-05: LEG 1 NO LONGER LIVES IN THIS FILE ═══
 //
@@ -28,11 +28,11 @@ import type { CurationSnapshot } from '@vostride/agent-qa-schema'
 // and the digest block.
 //
 // Everything below is warn-only. The exit code was frozen by `mapVerdictToExitCode` before this
-// file is reached, and `runVerdictFirstCurationTail` returns it whatever happens here (JOBQ-06).
+// file is reached, and `runVerdictFirstCurationTail` returns it whatever happens here.
 // A failure to enqueue costs this run its analysis and nothing else — no retry file, no second
-// durable medium for a fact the queue owns (D-07).
+// durable medium for a fact the queue owns.
 
-// Import discipline (FUNC-02): this file is CLI surface code written after the firewall was
+// Import discipline: this file is CLI surface code written after the firewall was
 // armed, so it may name only `agent`, `agent-local` and `schema` across package boundaries —
 // never `core`, `knowledge-local`, `runner-local` or `safety`. Everything it needs from those
 // arrives through the one composition edge (`LOCAL_DAEMON_CAPABILITIES`, `DRAIN_BUDGET_MS`) or
@@ -59,7 +59,7 @@ import type {
   RunNotificationView,
 } from '@vostride/agent-qa-schema'
 
-// 391-06: the clustered block layout moved to the ONE package that has two callers for it — the
+// the clustered block layout moved to the ONE package that has two callers for it — the
 // tail's print and `runs.digest`'s first section. Re-exported from where it used to live so the
 // CLI's own suite still names it here, and so nothing in this package composes a second layout.
 export { renderAnalysisClusterBlock }
@@ -112,13 +112,13 @@ export type PostRunDrainOutcome =
    * clock ran out. The queue is a global FIFO, so a backlog of detached runs can consume the
    * whole budget before this run's `analyze-run` is reachable — and a report that called that
    * `drained` would tell a user their analysis is `pending` with no indication that anything
-   * will ever pick it up (WR-01).
+   * will ever pick it up.
    */
   | 'backlog-exhausted'
   | 'retry-scheduled'
   | 'refused'
   /**
-   * The drain raised and was caught by the tail's own catch (WR-10).
+   * The drain raised and was caught by the tail's own catch.
    *
    * A member rather than leaving the optimistic `'drained'` in place: the pre-loop assignment
    * is what a throw escapes past, so the report used to say `{drain: 'drained', jobsRun: 0}` —
@@ -166,7 +166,7 @@ export interface PostRunTailOperations {
   resolveRunCurationContext: typeof resolveRunCurationContext
   createChipEmitter: typeof createPostRunChipEmitter
   /**
-   * Durable chip truth, through the ONE read op (D-14).
+   * Durable chip truth, through the ONE read op.
    *
    * Named on the table so a test can answer it without a store, and shaped as "ask this host's
    * registry" so production has no second way to answer it. The CLI never opens the queue
@@ -206,7 +206,7 @@ export interface PostRunTailHostInput {
   }) => Promise<{
     readonly curated: number
     readonly deprecated: number
-    /** The fold's own completeness, carried rather than dropped (WR-03). */
+    /** The fold's own completeness, carried rather than dropped. */
     readonly complete: boolean
     readonly snapshot?: CurationSnapshot
     readonly reason?: string
@@ -214,7 +214,7 @@ export interface PostRunTailHostInput {
 }
 
 /**
- * The queue's model, resolved for real since 389-06 — the author swap (389-04) made
+ * The queue's model, resolved for real since 389-06 — the author swap made
  * `analyze-run` author its unknown-verdict members through the QUEUE's model, so the 388-era
  * "never authors" stub would abort the very chain this tail drains.
  *
@@ -248,7 +248,7 @@ export function defaultPostRunTailOperations(): PostRunTailOperations {
       model: () => resolvePostRunJobModel(input.configPath),
       postRun: {
         curateRun: input.curateRun,
-        // Derived from presence, never hard-coded (388-10): the tail declares what it HAS. Both
+        // Derived from presence, never hard-coded: the tail declares what it HAS. Both
         // production sites in `run.ts` pass a mask, and a harness that composes the tail
         // without one gets the claim deferral rather than an unmasked emission.
         candidateProse: input.mask === undefined ? 'no-masker' : 'masker-active',
@@ -299,7 +299,7 @@ export interface RunPostRunTailOptions extends Pick<
   /** The resolved project config file; the composition resolves everything else from it. */
   configPath: string
   /**
-   * What the post-verdict step's enqueue answered (404 D-05).
+   * What the post-verdict step's enqueue answered.
    *
    * Threaded rather than performed, because this tail no longer enqueues: `report().enqueue` is
    * read by cells and by the daemon fixtures, and a report that always said `skipped` would be a
@@ -316,7 +316,7 @@ export interface RunPostRunTailOptions extends Pick<
   /** The host wait and this drain spend one deadline. */
   deadlineMs?: number
   /**
-   * The dashboard's second chip sink (404 D-16), accepted here and threaded to the emitter.
+   * The dashboard's second chip sink, accepted here and threaded to the emitter.
    *
    * A PASS-THROUGH, threaded to `createChipEmitter` at the ONE construction site below. It was
    * declared ahead of its consumer in 404-04 — the composition seam (`composeCliPostRunTail`) and
@@ -327,14 +327,14 @@ export interface RunPostRunTailOptions extends Pick<
   relay?: (envelope: RunEventEnvelope) => void
   /** Focused test seam. Production callers omit it. */
   operations?: Partial<PostRunTailOperations>
-  /** 2026-10-18 (444-14, D-22): in `ci` and `cloud` a pending line states the resume limit. */
+  /** in `ci` and `cloud` a pending line states the resume limit. */
   executionContext?: ExecutionContext
 }
 
 /**
  * The two legs of the tail, handed to the verdict-first wrapper separately.
  *
- * 2026-08-26 (404 D-05): THERE IS NO `enqueue()` MEMBER. There were three legs, and the first one
+ * THERE IS NO `enqueue()` MEMBER. There were three legs, and the first one
  * — the durable hand-off — is now `enqueueAnalyzeRun` inside `post-verdict-step.ts`, called by the
  * shell before `runFinished` on every door rather than by this file on one. The wrapper's
  * `--detach` gate therefore no longer straddles the enqueue at all: detach skips the DRAIN, and the
@@ -351,7 +351,7 @@ export interface PostRunTailHandle {
    * unclaimed and the chips frozen (RESEARCH Pitfall 3, the 387-08 D-18 shape
    * `CurationWriterAuthority` was minted for).
    *
-   * WHY A THUNK RATHER THAN THE AUTHORITY ITSELF (2026-08-27, CR-01). Taking the lease is what
+   * WHY A THUNK RATHER THAN THE AUTHORITY ITSELF. Taking the lease is what
    * ACQUIRES it, so a caller that evaluated `takeAcquiredLease()` as the ARGUMENT had already
    * minted the lease before this method was entered — and the setup below can throw. Resolving
    * the knowledge root or composing the host reads the shipped modules, and that early return
@@ -369,11 +369,11 @@ export interface PostRunTailHandle {
    * `input.withoutLease` is the ONE knob on that fallback, and it exists because the doors
    * genuinely differ. `'consult'` (the default) is `commands/run.ts`: the probe's answer was taken
    * at the verdict and the holder may have released since, so asking again can still become a real
-   * drain. `'skip'` is the `runs.start` door (404 D-06), which pumps only on the step's own
+   * drain. `'skip'` is the `runs.start` door, which pumps only on the step's own
    * authority — it used to say so with a caller-side `if` wrapped around this call, and saying it
    * here instead is what let the take move inside.
    *
-   * 2026-08-26 (404 D-05): IT RESOLVES ITS OWN KNOWLEDGE ROOT AND COMPOSES ITS OWN HOST. Those two
+   * IT RESOLVES ITS OWN KNOWLEDGE ROOT AND COMPOSES ITS OWN HOST. Those two
    * used to be side effects of the `enqueue()` leg, so a tail whose enqueue had not run reported
    * `not-attempted` and drained nothing. With the enqueue in the shell that would be every tail.
    * The root is resolved BEFORE the take and the host is composed AFTER it, so a root this tail
@@ -404,7 +404,7 @@ const CHAIN_PUMP_BOUND = 16
  * Every way the chain pump's loop can end NORMALLY. One spelling, one place to be read: the
  * loop variable ranges over it, and `PUMP_EXIT_STARVES_OWN_CHAIN` must classify every member.
  *
- * The qualifier is load-bearing and was missing (WR-10): a throw does not END this loop, it
+ * The qualifier is load-bearing and was missing: a throw does not END this loop, it
  * LEAVES it, skipping the starvation classification below and landing in the drain's catch.
  * That path is outside this domain by construction, and it is reported by the separate
  * `PostRunDrainOutcome` member `'threw'` — not by a fifth exit here, which would imply the
@@ -442,7 +442,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
       : { info: (message: string) => opts.log.info?.(mask(message)) }),
   }
   /**
-   * Resolved on first use, INSIDE a leg's own try (JOBQ-06).
+   * Resolved on first use, INSIDE a leg's own try.
    *
    * Constructing the table reads the shipped modules, and a build where one of those reads
    * throws — a partially-stubbed module graph is the real case that found this — would send
@@ -457,7 +457,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
   })
 
   /**
-   * What the post-verdict step's enqueue answered, threaded rather than performed (404 D-05).
+   * What the post-verdict step's enqueue answered, threaded rather than performed.
    *
    * `skipped` when no step ran in front of this tail — a harness, or a door composing the tail
    * directly. It is not a claim that nothing is queued; it is the honest "this process did not do
@@ -489,13 +489,13 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
   /**
    * The lease the pump holds, read by `curateRun` at CLAIM time rather than at composition
    * time. The host is composed before the lease is acquired — the enqueue must not wait on a
-   * lease it does not need (385 D-02) — so a value captured at composition would always be
+   * lease it does not need — so a value captured at composition would always be
    * `undefined` and every fold would try to acquire a lease this process already holds.
    */
   let heldAuthority: CurationWriterAuthority | undefined
-  /** The one budget's absolute stop point, fixed when the drain leg begins (D-03). */
+  /** The one budget's absolute stop point, fixed when the drain leg begins. */
   let drainDeadlineMs: number | undefined
-  // 2026-10-19 (444.1-14, D-01): aborts at `drainDeadlineMs`, or with the caller's own signal.
+  // aborts at `drainDeadlineMs`, or with the caller's own signal.
   let drainSignal: AbortSignal | undefined
 
   const curateRun: PostRunTailHostInput['curateRun'] = async (input) => {
@@ -532,7 +532,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
       ...(foldSignal === undefined ? {} : { signal: foldSignal }),
       log,
     })
-    // WR-03: the fold already told us whether it wrote a receipt. Dropping `complete` here is
+    // the fold already told us whether it wrote a receipt. Dropping `complete` here is
     // what let `incompleteWarning` print "curation incomplete; it will resume" while the
     // durable notification row recorded the same stage as `done`.
     return {
@@ -565,7 +565,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
       const budget = new AbortController()
       let budgetTimer: ReturnType<typeof setTimeout> | undefined
       try {
-        // 404 D-05: resolved HERE. The enqueue leg used to do it as a side effect, and the step
+        // resolved HERE. The enqueue leg used to do it as a side effect, and the step
         // that replaced it runs in the shell — a tail that waited for a leg that no longer exists
         // would report `not-attempted` for every run there is.
         //
@@ -573,7 +573,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
         // `knowledgeConfig`/`configDir` the producer resolved the run's root from, so this is a
         // re-derivation of a value rather than a second answer to where knowledge lives.
         //
-        // AND IT IS THE ONE THING THAT HAPPENS BEFORE THE TAKE (CR-01). A release is addressed to
+        // AND IT IS THE ONE THING THAT HAPPENS BEFORE THE TAKE. A release is addressed to
         // a knowledge root; a lease acquired while this call was still able to throw would be a
         // lease with no address to release it against, held to its TTL under a wire that already
         // said `drained`. Nothing above this line acquires anything, so a root that cannot be
@@ -601,7 +601,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
       } catch (error) {
         // Constructing the operations table reads the shipped modules, and a build where one of
         // those reads throws must not send the exception past `runVerdictFirstCurationTail` into
-        // the command's framework catch (JOBQ-06).
+        // the command's framework catch.
         clearTimeout(budgetTimer)
         drainOutcome = 'not-attempted'
         log.warn(drainFailureWarning(opts.runId, error, opts.executionContext))
@@ -614,7 +614,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
         : AbortSignal.any([opts.signal, budget.signal])
       drainSignal = signal
       try {
-        // THE TAKE, AND THE `finally` THAT ENDS IT, IN ONE TRY (CR-01). Calling the thunk is what
+        // THE TAKE, AND THE `finally` THAT ENDS IT, IN ONE TRY. Calling the thunk is what
         // acquires; the very next statement records what to release. Nothing can run between them.
         const handed = input.takeLease?.()
         acquiredLeaseId = handed?.leaseId
@@ -628,7 +628,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
         // Composed AFTER the take, so a composition that throws lands in the catch below with a
         // release already armed above it — the exact path that used to drop the lease.
         openedHost = openHost()
-        // 404 D-10: a handed authority goes straight to the acquired branch's own sequence — adopt
+        // a handed authority goes straight to the acquired branch's own sequence — adopt
         // the epoch the step minted, reclaim what a dead holder left, pump — and this consult is
         // SKIPPED entirely. That is the whole point (Pitfall 3): the `held` and `refused` arms
         // below are unreachable for a lease this process is already holding, and reaching them
@@ -640,7 +640,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
             // Pitfall 8: the SHIPPED envelope, verbatim. Its handler already calls both
             // `requestDrain` and `jobDispatcher.wake()`, so reusing it wakes the agent-job
             // pump with zero protocol change — and a nudge that never lands is invisible by
-            // design, because the daemon's 5s poll is the backstop (386 D-13).
+            // design, because the daemon's 5s poll is the backstop.
             void ops().nudgeDaemon(opts.agentQaRoot, { knowledgeRoot: root })
               .catch(() => undefined)
             drainOutcome = 'handed-off'
@@ -677,7 +677,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
           String(chainIds.curateMemory),
         ]
         /**
-         * The ONLY construction site (D-13).
+         * The ONLY construction site.
          *
          * Inside the acquired-lease branch, after the hand-off and refusal legs have already
          * returned, because this is the one branch that observes `runNextJob` outcomes at all.
@@ -690,9 +690,9 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
           runId: opts.runId,
           chainJobIds: ownChainJobIds,
           // The tail's mask, spread on the same conditional idiom the fold is threaded with: the
-          // chip's error text crosses the same disclosure boundary the fold's does (WR-08).
+          // chip's error text crosses the same disclosure boundary the fold's does.
           ...(opts.mask === undefined ? {} : { mask: opts.mask }),
-          // 404-05 (D-16): the dashboard's second sink, threaded on the same conditional idiom —
+          // the dashboard's second sink, threaded on the same conditional idiom —
           // an absent relay is an ABSENT field, never a present `undefined`, so the emitter's own
           // optional call is what decides, in one place.
           ...(opts.relay === undefined ? {} : { relay: opts.relay }),
@@ -755,7 +755,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
           jobsRun += 1
           if (outcome.disposition === 'retry-scheduled') {
             // Never sleep the run process on a backoff. The store keeps the row out of every
-            // claim until its not-before time (444.1 D-23), so the pump goes on to the next one.
+            // claim until its not-before time, so the pump goes on to the next one.
             continue
           }
           if (outcome.disposition === 'interrupted') {
@@ -769,7 +769,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
             break
           }
         }
-        // 2026-10-19 (444.1-21, D-31): a retry of another run's job never changes this run's outcome.
+        // a retry of another run's job never changes this run's outcome.
         if (drainOutcome === 'drained' && retryingOwnJobs.size > 0) drainOutcome = 'retry-scheduled'
         // WR-01 / T-388-18b: the pump ended without ever reaching this run's chain, on an exit
         // the table classifies as starvation. The user is owed the reason their work is still
@@ -797,7 +797,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
           deadlineMs: drainDeadlineMs,
         })
       } catch (error) {
-        // The report may not keep the optimistic `'drained'` set before the pump (WR-10).
+        // The report may not keep the optimistic `'drained'` set before the pump.
         // Assigned here rather than cleared in `finally`, because `finally` also runs on the
         // paths that legitimately drained.
         //
@@ -811,7 +811,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
         clearTimeout(budgetTimer)
         drainSignal = undefined
         heldAuthority = undefined
-        // THE ONE RELEASE, ON EVERY PATH OUT (CR-01). `acquiredLeaseId` is set in the same breath
+        // THE ONE RELEASE, ON EVERY PATH OUT. `acquiredLeaseId` is set in the same breath
         // as the take above and by the acquired arm below it, so there is no exit from this try —
         // return, throw or fall-through — that leaves a fence held by a process that stopped
         // pumping. `root` is known before either could have run, so the release always has an
@@ -851,7 +851,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
         return
       }
       if (opts.postVerdict !== undefined && actualEnqueue === 'failed') { discloseFailure(); return }
-      // 444 D-55: a skipped enqueue (a gate run, an outcome-excluded run) falls through to the one
+      // a skipped enqueue (a gate run, an outcome-excluded run) falls through to the one
       // exit line, which prints the status read's `skipped` fact. `drain()` returned before doing
       // anything, and nothing here pumps, so nothing was queued and nothing is drained.
       const skippedEnqueue = opts.postVerdict !== undefined && actualEnqueue === 'skipped'
@@ -862,7 +862,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
         drainOutcome = 'detached'
       }
       /**
-       * ONE digest read per tail, whichever arm consumes it (391 D-17).
+       * ONE digest read per tail, whichever arm consumes it.
        *
        * Read lazily and memoised, because exactly one of the two arms below needs it and both
        * need it at most once: the block prints its lines, the exit line points at it and
@@ -901,14 +901,14 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
         if (digest === undefined || digest.lines.length === 0) return
         log.info?.(digest.lines.join('\n'))
       }
-      // 404 D-05: the step's answer, not this file's. Nothing is queued and the step's own
+      // the step's answer, not this file's. Nothing is queued and the step's own
       // `post-run-enqueue-failed` warning has already said everything true about this run, so a
       // close-out line built from an empty chain would be the second, quieter version of it.
       if (actualEnqueue === 'failed') return
       let openedHost: LocalAgentHost
       try {
         // Composed HERE rather than inherited: the detach leg never calls `drain()`, and it is
-        // exactly the posture that most needs a line about work left queued (388-04 D-08).
+        // exactly the posture that most needs a line about work left queued.
         openedHost = openHost()
       } catch (error) {
         log.warn(summaryFailureWarning(opts.runId, error))
@@ -917,7 +917,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
       try {
         const status = await ops().readPostProcessingStatus(openedHost, opts.runId)
         if (status.notification !== undefined && drainOutcome === 'drained') {
-          // D-09: this process ran the chain to its terminal, so the human line is the honest
+          // this process ran the chain to its terminal, so the human line is the honest
           // close-out — it reports what HAPPENED, where the summary reports what is pending.
           // Diagnostics come from this run's validated durable receipt; without one the line
           // omits them. The line prints the served view's words.
@@ -927,7 +927,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
           await printDigestBlock(openedHost)
           return
         }
-        // D-08: work stays queued. The statuses are durable; the parenthetical is posture —
+        // work stays queued. The statuses are durable; the parenthetical is posture —
         // and so is the D-17 suffix: when THIS process did not complete analyze-run, the line
         // gains the pending-proposal count and the exact fetch command (the whole digest is
         // one copy-paste away); when it did, the digest prints one line down and a pointer
@@ -984,7 +984,7 @@ export type PostRunPendingPosture = 'handed-off' | 'backlog-exhausted' | 'none'
  * (`UNCLAIMABLE_BY_PROSE_POSTURE`), and the production daemon declares exactly that posture,
  * so no daemon will ever drain curation. The parenthetical used to be chosen by POSTURE
  * alone and pasted onto every pending stage, which is how a handed-off leg came to promise a
- * daemon drain for the one kind a daemon may not claim (WR-09).
+ * daemon drain for the one kind a daemon may not claim.
  */
 type StageDrainer = 'any-host' | 'masked-leg-only'
 
@@ -1019,7 +1019,7 @@ const PENDING_POSTURE_SUFFIX: Record<StageDrainer, Record<PostRunPendingPosture,
   },
 }
 
-// 2026-10-18 (444-14, D-22): a CI workspace is usually thrown away, so in `ci` and `cloud` a pending
+// a CI workspace is usually thrown away, so in `ci` and `cloud` a pending
 // stage names the one condition under which its drainer can still reach it, whatever the posture.
 const CI_PENDING_SUFFIX: Record<StageDrainer, string> = {
   'any-host': ` (${resumeLimitClause('any-host')})`,
@@ -1049,7 +1049,7 @@ function postureOf(outcome: PostRunDrainOutcome): PostRunPendingPosture {
 }
 
 /**
- * The D-08 exit summary — ONE line, in the ONE chip vocabulary (D-14).
+ * The D-08 exit summary — ONE line, in the ONE chip vocabulary.
  *
  * Two rules, and the second is the whole reason this takes two arguments:
  *
@@ -1068,11 +1068,11 @@ function postureOf(outcome: PostRunDrainOutcome): PostRunPendingPosture {
  * `pending` are the ones somebody will drain, and a stage that already finished must not be
  * annotated with a future.
  *
- * 425 D-08 / 444 D-39: a THIRD rule, and it outranks both. A run whose chain was never enqueued
+ * a THIRD rule, and it outranks both. A run whose chain was never enqueued
  * carries the op's `skipped` fact; both stages print `skipped (<reason word>)` from the one schema
  * map, as the digest and the dashboard do. Absent job rows never spell it.
  *
- * 444 D-22: in `ci` and `cloud` the execution context, never a status, picks a pending stage's
+ * in `ci` and `cloud` the execution context, never a status, picks a pending stage's
  * suffix: its drainer's resume limit (`CI_PENDING_SUFFIX`).
  */
 export function renderPostProcessingSummaryLine(
@@ -1100,16 +1100,16 @@ export function renderPostProcessingSummaryLine(
 /**
  * The D-09 human line, rendered from the chain-terminal row and nothing else.
  *
- * Fires on ANY terminal — complete or failed (D-12) — because a failure is exactly when the user
+ * Fires on ANY terminal — complete or failed — because a failure is exactly when the user
  * most needs to be told. Counts come from the row rather than from the drain that produced it:
  * the row is what 392's chat and M5's dashboard will render, and a CLI line built from a
  * live-process value would be a second, quieter answer to the same question.
  *
- * Absent curation counts print as no counts at all (D-11): a stage that never committed a
+ * Absent curation counts print as no counts at all: a stage that never committed a
  * bundle reports its status, and a `0 curated` would say it curated nothing, which is a
  * different claim from never having got that far.
  *
- * 423 D-15: the curation clause has TWO SENTENCES and never prints both. A row that recorded a
+ * the curation clause has TWO SENTENCES and never prints both. A row that recorded a
  * `curationSnapshot` renders its breakdown as the five fixed buckets (`added N, confirmed N,
  * superseded N, deprecated N, proposed N`), every one printed because a recorded snapshot measured
  * all five. A row without one — every notification written before 423, and any run whose snapshot
@@ -1142,7 +1142,7 @@ export function renderChainTerminalLine(
   const canary = report?.canary
   const nonSignalTotal = canary === undefined ? 0
     : NON_SIGNAL_CLASSES.reduce((sum, name) => sum + canary.nonSignal[name], 0)
-  // 418 D-10: the receipt's typed class counts remain visible on the chain line.
+  // the receipt's typed class counts remain visible on the chain line.
   const nonSignalClasses = canary === undefined || nonSignalTotal === 0 ? ''
     : ` (${NON_SIGNAL_CLASSES.map(name => `${name} ${canary.nonSignal[name]}`).join(', ')})`
   const canaryText = canary === undefined ? '' :
@@ -1160,7 +1160,7 @@ export function renderChainTerminalLine(
 }
 
 /**
- * The exact fetch command the extended exit line carries (391 D-17).
+ * The exact fetch command the extended exit line carries.
  *
  * The REAL `agent-qa digest` invocation, byte-for-byte — a positional runId is the shape
  * `commands/digest.ts` parses, and the id rides `JSON.stringify` so one needing quoting cannot
@@ -1181,7 +1181,7 @@ export function digestFetchCommand(runId: string): string {
 /**
  * The exit line's D-17 suffix: what this run's marks changed, and the one command that shows it.
  *
- * 2026-09-30, 432-09 (D-04/D-25): nothing waits on a human, so the suffix no longer counts pending
+ * nothing waits on a human, so the suffix no longer counts pending
  * proposals. It names the fixes this run's marks applied when the digest read its ledger and there
  * were any. The count is dropped when the digest could not be read or the ledger was not read, and
  * the pointer is not: printing the command regardless is honest, because it is exactly what a person
@@ -1214,7 +1214,7 @@ function digestReadFailureWarning(runId: string, error: unknown): string {
  *
  * Warned rather than swallowed, because a line that silently disappears is how a user learns
  * to distrust the ones that do print; and warned rather than thrown, because the exit code was
- * frozen long before this file ran (JOBQ-06).
+ * frozen long before this file ran.
  */
 function summaryFailureWarning(runId: string, error: unknown): string {
   const detail = error instanceof Error ? error.message : String(error)

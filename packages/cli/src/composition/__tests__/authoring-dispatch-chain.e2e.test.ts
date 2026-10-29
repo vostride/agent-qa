@@ -1,13 +1,13 @@
 // D-08's WHOLE CHAIN, DRIVEN FROM THE AUTHORING LOOP (Phase 401 — UAT item 9, review finding WR-03).
 //
-// RE-SPELLED 2026-09-30 (432-13, D-14/D-15). The chain below ended in the run core's `evaluate()`
+// RE-SPELLED 2026-09-30. The chain below ended in the run core's `evaluate()`
 // reading the dispatch grant; neither the op gate nor the run gate exists any more. What this file
 // still drives end to end is the same composed road — `authoring.draft.write` → the loop → its gate
 // runs → `runs.start` → the in-process drive — and it now pins that nobody is asked anywhere on it,
 // that the loop still spends its gate runs, that a run started from outside the dispatch starts the
 // same way, and that the overlay still mints nothing durable. The history below is kept as written.
 //
-// 2026-10-01 (432-18, D-15/D-22): the dispatch overlay is deleted with the grant ledger, so this file
+// the dispatch overlay is deleted with the grant ledger, so this file
 // composes no `dispatchGrants`; the loop's optional dispatch seam is unbound and it runs the
 // dispatch directly. The chain, the gate runs and the outsider's run are unchanged, and a workspace
 // that still holds an old `grants.jsonl` keeps it byte-identical.
@@ -210,7 +210,7 @@ describe('one human ask, N gated runs, driven from the authoring loop', () => {
         agentQaRoot: fixture.agentQaRoot,
         configPath: fixture.configPath,
         resolveExecutionContext: () => 'local-interactive',
-        // 432-16 (D-14): the input declares no confirm, so the recording port is smuggled past the
+        // the input declares no confirm, so the recording port is smuggled past the
         // type; nothing may read it.
         ...{
           confirm: {
@@ -275,7 +275,7 @@ describe('one human ask, N gated runs, driven from the authoring loop', () => {
       expect(outsider.ack?.runId).toMatch(/^r_/)
       expect(gateRows(fixture)).toEqual([])
 
-      // 432-18 (C432-GRANTS-UNREAD-WRITER-ABSENT): nothing writes `grants.jsonl` any more; the old
+      // nothing writes `grants.jsonl` any more; the old
       // one is left exactly as it was.
       expect(grantsLedgerBytes(fixture)).toEqual(ledgerBefore)
       expect(ledgerBefore).toBe(LEGACY_LEDGER_BYTES)

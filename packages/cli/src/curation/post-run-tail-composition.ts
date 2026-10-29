@@ -1,4 +1,4 @@
-// The ONE place the post-run tail's option literal is spelled (Phase 404 plan 04, D-06).
+// The ONE place the post-run tail's option literal is spelled.
 //
 // WHY IT EXISTS. `runPostRunTail` takes eleven fields, and until now the literal that fills them
 // was written twice — once at each of `commands/run.ts`'s two tail sites — with `agentQaRoot` and
@@ -17,7 +17,7 @@
 // `runVerdictFirstCurationTail`, and the `runs.start` door gates it on whether the post-verdict
 // step's lease was actually takeable.
 //
-// Import discipline (FUNC-02): a file written today may name only `agent`, `agent-local`,
+// Import discipline: a file written today may name only `agent`, `agent-local`,
 // `analytics` and `schema` across package boundaries, and the ledger only ever shrinks. This file
 // names `schema` for types and nothing else; the mask arrives through relative modules that are
 // already ledgered for it.
@@ -59,12 +59,12 @@ export interface ComposeCliPostRunTailInput {
   readonly modelDeps?: RunCurationTailOptions['modelDeps']
   readonly signal?: RunCurationTailOptions['signal']
   readonly log: RunCurationTailOptions['log']
-  /** What the shell's post-verdict step reported about the durable hand-off (404 D-05). */
+  /** What the shell's post-verdict step reported about the durable hand-off. */
   readonly enqueueOutcome?: PostRunEnqueueOutcome
   readonly postVerdict?: import('./post-verdict-step.js').PostVerdictHandoff
   readonly deadlineMs?: number
   /**
-   * The dashboard's SECOND chip sink (404 D-16), threaded through to the emitter in 404-05.
+   * The dashboard's SECOND chip sink, threaded through to the emitter in 404-05.
    *
    * Accepted here now rather than later so the emitter side is the only thing 404-05 has to fill:
    * a field added on the emitter alone would leave this composition — the one place every host's
@@ -73,7 +73,7 @@ export interface ComposeCliPostRunTailInput {
   readonly relay?: (envelope: RunEventEnvelope) => void
   /** Focused test seam. Production callers omit it. */
   readonly operations?: Partial<PostRunTailOperations>
-  /** 444 D-22: picks the CI wording for a pending stage. */
+  /** picks the CI wording for a pending stage. */
   readonly executionContext?: ExecutionContext
 }
 

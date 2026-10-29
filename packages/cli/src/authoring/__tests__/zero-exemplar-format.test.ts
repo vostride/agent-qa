@@ -1,4 +1,4 @@
-// The stable-tier format block, staged through the REAL parser (394-27, WINDOWS 111 · WTST-01).
+// The stable-tier format block, staged through the REAL parser.
 //
 // WHY THIS FILE IS IN `packages/cli`, and why the sibling cell in `agent-local` is not enough.
 // `authoring-loop.e2e.test.ts` reaches the composed op, the real registry and the real gates — but
@@ -12,7 +12,7 @@
 // PRODUCED, NEVER ASSERTED. Nothing below spells a document. The generator is handed the request
 // `compileDraft` actually built, lifts the canonical example out of the stable block by title, and
 // returns it — so an example that drifted from what `parseTestFile` accepts reds here rather than
-// teaching every model a schema the shelf refuses (T-394-99).
+// teaching every model a schema the shelf refuses.
 
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -52,7 +52,7 @@ const FORMAT_EXAMPLE_MARKER = 'A complete document looks exactly like this:'
 const TARGETS_BLOCK_TITLE = 'Configured targets'
 
 /**
- * The one sentence that makes a fifth key emittable (394-33, WR-06).
+ * The one sentence that makes a fifth key emittable.
  *
  * The generator emits `context` if and only if it reads this rule off the block. It is not a
  * literal this file decided to write: with the shipping block — which says four keys and that no
@@ -72,7 +72,7 @@ function promptBlockBody(text: string, title: string): string | undefined {
 }
 
 /**
- * The `target` a prompt-driven generator picks: one of the SERVED names, or nothing (394-33, WR-07).
+ * The `target` a prompt-driven generator picks: one of the SERVED names, or nothing.
  *
  * THE SCOPE KEY IS NOT AN ANSWER, and deleting the derivation that treated it as one is most of
  * this function. `deriveDefaultAuthoringScope` supplies a PRODUCT (`target.product ?? targetName`),
@@ -109,7 +109,7 @@ function formatBlockOrThrow(request: JobModelRequest): string {
 /**
  * The canonical example, lifted verbatim, with ONLY its `name` adapted to the Intent block.
  *
- * The `target` line stays as the block wrote it, and that omission is the point (394-37, WR-04):
+ * The `target` line stays as the block wrote it, and that omission is the point:
  * a generator that adapts `target` from the served list can only ever emit a member of it, so no
  * cell built on one can measure the product's refusal. This is the same block, read by title, with
  * one bullet skipped — which is a model behaviour, not a contrivance.
@@ -253,7 +253,7 @@ const ONE_TARGET = `registry:
 
 /**
  * The HARD branch, verbatim from `authoring-scope-derivation.test.ts`'s own fixture class
- * (394-33, WR-07): `storefront-web` declares `product: storefront`, so the scope
+ * `storefront-web` declares `product: storefront`, so the scope
  * `deriveDefaultAuthoringScope` supplies for it — `product:storefront` — is NOT a configured
  * target. `local-form` rides along as a distractor, so choosing from the served list is a real
  * choice rather than "there was only one".
@@ -326,7 +326,7 @@ describe('a zero-exemplar scope compiles a document the SHIPPED parser accepts',
     // ever populated it: the format block told stage 3 that four keys were all a document may
     // carry. This cell is that root's first end-to-end reachability proof, and it is a fact about
     // the SHIPPED parser — `agent-local`'s shelf is a fake that reads `name` and `steps` and would
-    // have answered `staged` for a document whose `context` it never looked at (WINDOWS 116).
+    // have answered `staged` for a document whose `context` it never looked at.
     const { failure, staged, verified, authoring } = await driveZeroExemplarLoop()
 
     expect(failure?.message).toBe(VERIFY_REACHED)

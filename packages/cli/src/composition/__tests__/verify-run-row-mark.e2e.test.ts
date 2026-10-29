@@ -1,4 +1,4 @@
-// 2026-10-17 (443-07, D-09/D-17): an authoring verify run keeps its gate-run flag and its learning
+// an authoring verify run keeps its gate-run flag and its learning
 // exclusion, and its runs.db row carries the verify-run mark; an ordinary run beside it does not.
 
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'

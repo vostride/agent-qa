@@ -16,7 +16,7 @@ import { describe, expect, it } from 'vitest'
  *
  * This suite is GREEN from day one and must stay green for the life of the corpus.
  *
- * The corpus lives in `packages/agent` beside the gates (D-05) but is proven here in
+ * The corpus lives in `packages/agent` beside the gates but is proven here in
  * `cli`, because `agent` cannot import `core` (Pitfall 2) and `cli` owns both. One
  * corpus, two consumers. Resolution is the house source-relative traversal rather
  * than a package resolve: `@vostride/agent-qa-agent` resolves to its BUILT dist, and
@@ -29,7 +29,7 @@ const CORPUS_DIR = join(
 )
 
 /**
- * The frozen membership (D-08). This list is the denominator: gap-closure rounds must
+ * The frozen membership. This list is the denominator: gap-closure rounds must
  * not mint new corpus members, so a draft appearing or disappearing is a test failure,
  * not a fixture update.
  */
@@ -112,7 +112,7 @@ describe('negative corpus parse invariant', () => {
       .map(([filename]) => filename)
     expect(acceptControls).toEqual(['accept-control.yaml'])
 
-    // The accept control is what makes the proof falsifiable (D-07): a constant-false
+    // The accept control is what makes the proof falsifiable: a constant-false
     // evaluator fails it. That only holds if all four of its booleans are true.
     expect(drafts['accept-control.yaml']?.expectedGates).toEqual({
       executesDefinitive: true,

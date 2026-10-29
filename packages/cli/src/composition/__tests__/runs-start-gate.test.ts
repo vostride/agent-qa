@@ -1,4 +1,4 @@
-// THE FN/CHAT/MCP DOOR'S `runs.start` GATE (Phase 401 plan 05 — D-01/D-05/D-06/D-07/D-16).
+// THE FN/CHAT/MCP DOOR'S `runs.start` GATE.
 //
 // There is no gate on this road: the op-level gate and the core's `evaluate()` are gone, and a
 // well-formed request with a free run id is never refused.
@@ -17,7 +17,6 @@ import { Readable, Writable } from 'node:stream'
 
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// 2026-10-19 (444.1-24, D-39): each drive and its detached tail are awaited before removal.
 const tails = vi.hoisted(() => [] as Array<Promise<void>>)
 
 vi.mock('../in-process-run-execution.js', async (importOriginal) => {
@@ -137,7 +136,7 @@ async function invokeRunsStartOutcome(
   }
 }
 
-// ---- ambient channels, varied against the door's own answer (D-07) ---------------------------
+// ---- ambient channels, varied against the door's own answer ---------------------------
 //
 // Two of them, because there are two and a cell that defeated one would pass under a door reading
 // the other: `getActiveExecutionContext` is the process-global the OP gate falls back to, and the
@@ -170,7 +169,7 @@ function pinAmbient(value: 'ci' | 'local-interactive' | 'local-headless', ciMark
   }
 }
 
-// 432-13 (D-01/D-14/D-15): the fn/chat/MCP door's runs.start asks nobody. An undeclared or shared
+// the fn/chat/MCP door's runs.start asks nobody. An undeclared or shared
 // target starts from a CI or headless context with the one call, and no decision row is written at
 // either gate because neither gate exists.
 describe('the host door starts a non-production run in one call', () => {
@@ -364,7 +363,7 @@ describe('the empty-input and suite edges of a bare runs.start', () => {
 })
 
 // ---------------------------------------------------------------------------------------------
-// THE TYPED DOOR'S IDENTITY REFUSALS, AND THE DOOR CENSUS (2026-08-23, plan 20 · CR-04).
+// THE TYPED DOOR'S IDENTITY REFUSALS, AND THE DOOR CENSUS.
 //
 // D-16's rule applied to a new refusal: reaching through the same seam is MEASURED per door, never
 // assumed. The environment door is measured on the process a person starts
@@ -405,7 +404,7 @@ describe('the typed door refuses a malformed or colliding run id', () => {
       expect(runDirs(fixture)).toEqual([])
       expect(existsSync(join(fixture.project, '.agent-qa', 'runs', 'escape'))).toBe(false)
       expect(target.hits).toEqual([])
-      // 432-13: the op-gate row that discriminated this cell from the next is gone with the gate;
+      // the op-gate row that discriminated this cell from the next is gone with the gate;
       // the next cell's typed `RunIdNotMintedError` is what tells the two refusals apart now.
       expect(opAuditRows(fixture)).toEqual([])
     } finally {

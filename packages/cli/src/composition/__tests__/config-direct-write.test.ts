@@ -1,4 +1,4 @@
-// 432-07 D-05/D-07: generated config changes publish directly, through the dashboard's config
+// generated config changes publish directly, through the dashboard's config
 // transaction, with no proposal and no git process. Every fixture lives in its own temp directory.
 //
 // C432-CONFIG-OUTSIDE-EDIT  a queued field change merges onto the bytes on disk at its turn.

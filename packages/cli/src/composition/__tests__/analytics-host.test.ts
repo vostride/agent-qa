@@ -1,11 +1,11 @@
-// The CLI's analytics binding (Phase 398 plan 10, D-17 / D-19 · ANLY-01).
+// The CLI's analytics binding.
 //
 // TWO CLAIMS ARE MEASURED HERE THAT NOTHING ELSE MEASURES.
 //
 //   1. THE ONE DECISION SITE SURVIVED THE REWIRE. `composeAnalytics` is called from exactly one
 //      shipped file in this package. The package's own cells prove the decision is made once
 //      INSIDE `compose.ts`; these prove that six hosts binding it did not quietly open a second
-//      door (T-398-07).
+//      door.
 //   2. OPTING OUT LEAVES NO TRACE ON DISK. `resolveAnalyticsIdentity` mints and writes
 //      `~/.agent-qa/analytics.json`. The port has no early return, so an opted-out host would
 //      resolve an identity — and persist one — on its way to a transport that sends nothing. The
@@ -61,7 +61,7 @@ function shippedSourceFiles(dir: string, out: string[] = []): string[] {
 
 const CLI_SRC = new URL('../../', import.meta.url).pathname
 
-// ---- 398-14 (D-19): THE COMPOSITION-ROOT CENSUS ---------------------------------------------
+// ---- 398-14: THE COMPOSITION-ROOT CENSUS ---------------------------------------------
 //
 // The behavioural cells in `__tests__/analytics-root-optout.test.ts` drive three roots. This
 // census covers the input set those cells cannot range — `mcp` and `run` today, and every root
@@ -267,7 +267,7 @@ describe('composeAnalyticsHost', () => {
         ...options,
         client: {
           capture: (input) => sent.push({ distinctId: input.distinctId, event: input.event }),
-          // 398-15 (CR-01): `flush` is a REQUIRED member of the client interface now — this cell
+          // `flush` is a REQUIRED member of the client interface now — this cell
           // measures masking, so both lifecycle calls are inert here.
           flush: () => {},
           shutdown: () => {},
@@ -367,7 +367,7 @@ describe('the composition-root census', () => {
     expect(sites.length).toBe(PINNED_COMPOSITION_ROOTS.length)
   })
 
-  // ---- 398-15 (WR-06): THE RUN COMMAND'S DRAIN ------------------------------------------------
+  // ---- 398-15: THE RUN COMMAND'S DRAIN ------------------------------------------------
   //
   // A SOURCE-SHAPE DETECTOR, AND IT SAYS SO. The behavioural version would have to drive a full
   // `agent-qa run` to a terminal `process.exit` inside a vitest worker and observe the composed

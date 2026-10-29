@@ -56,7 +56,7 @@
 // the emitters are a CLOSED SET OF TWO, nothing reads the prefix back, and NOTHING ARMS THE
 // CHANNEL. Re-minting the scrape needs a reader or an armer, and either one reds here.
 
-// ═══ MUTATION LEDGER (2026-08-23, 401-10) ════════════════════════════════════════════════════
+// ═══ MUTATION LEDGER ════════════════════════════════════════════════════
 //
 // Each applied to the real tree, run, and reverted with `git diff --quiet` verified. A census that
 // has never been shown to red is a census nobody has measured.
@@ -332,7 +332,7 @@ const PINNED_VOCABULARY_HOLDERS = [
   'dashboard-server/src/execution/appium-manager.ts',
   // THE DAEMON-OWNED EMBEDDER WORKER — design-of-record, the other child INVK-01 keeps.
   'cli/src/daemon/host.ts',
-  // 2026-10-01 (432-16, D-07): `cli/src/composition/local-agent-host.ts` LEFT this set. It held git
+  // `cli/src/composition/local-agent-host.ts` LEFT this set. It held git
   // plumbing (`spawnSync('git', …)` behind an injected exec seam) for the one-commit applies and the
   // undo source; agent-qa makes no git commits and reads no history now, so it holds no child
   // vocabulary at all. Its shape pin below says so.
@@ -554,7 +554,7 @@ describe('(4) ALLOWED IS NOT UNEXAMINED — a shape pin per survivor', () => {
     expect(source).not.toContain('process.argv')
   })
 
-  // RE-SPELLED 2026-10-01 (432-16): was 'THE EMPTIED HOST holds git plumbing only'. The git
+  // RE-SPELLED 2026-10-01: was 'THE EMPTIED HOST holds git plumbing only'. The git
   // plumbing went with the one-commit applies and the undo source; the host launches nothing.
   it('THE EMPTIED HOST launches nothing — no `child_process`, no git, no entry script, no argv', () => {
     // The tightest pin in this census, because this is the file `createCliRunExecution` lived in
@@ -607,7 +607,7 @@ describe('(5) THE SCRAPE CHANNEL — two emitters, no reader, and nothing arms i
   it('NOTHING ON THE RUN PATH ARMS THE CHANNEL — the thing that used to is deleted', () => {
     // `AGENT_QA_LIVE_EVENTS` was set in the dashboard child's environment. With no child there is
     // no environment to set it in, and no production module sets it any other way. This is what
-    // makes the two emitters dormant rather than a live untyped side channel (D-04), and it is the
+    // makes the two emitters dormant rather than a live untyped side channel, and it is the
     // assertion a re-mint cannot avoid tripping: a scrape needs its writer armed.
     const armers = CLOSURE.modules
       .filter((path) => armsScrapeChannel(readFileSync(path, 'utf8')))

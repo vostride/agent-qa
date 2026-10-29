@@ -9,7 +9,7 @@ export interface CliStepModelScopeOptions {
   planner: { profile: ModelInput[0]; auth: ModelInput[1]; model: ScopeInput['models']['planner']['model'] }
   verifier: { profile: ModelInput[0]; auth: ModelInput[1]; model: ScopeInput['models']['verifier']['model'] }
   mask: ScopeInput['mask']
-  /** 439 D-12: every step's consumers carry a verifier, so no scoped step trusts the planner. */
+  /** every step's consumers carry a verifier, so no scoped step trusts the planner. */
   createConsumers: (...models: Parameters<Consumers>) => ReturnType<Consumers> & {
     verifier: NonNullable<ReturnType<Consumers>['verifier']>
   }

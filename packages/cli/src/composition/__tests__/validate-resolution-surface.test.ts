@@ -55,7 +55,7 @@
 //       must REJECT. Measured before and after the fix: a genuine standalone project with no
 //       config is a refusal today and stays one, and this plan introduces no successful
 //       no-config validate state.
-//  (Z5) the interaction cell (395-18) — explicit-file `validate` of a poisoned PLAIN TEST yaml in
+//  (Z5) the interaction cell — explicit-file `validate` of a poisoned PLAIN TEST yaml in
 //       a project whose config does NOT resolve. That is the exact road the verifier drove and got
 //       a hooks credential verbatim, pre-395-18. The F-01 class must stay closed where the
 //       workspace-match gate is absent, and it must stay closed under this plan's own mutation
@@ -130,7 +130,7 @@ function git(...args: string[]): void {
   const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' })
   if (result.error !== undefined) throw result.error
   if (result.status !== 0) {
-    // A FAILED `git` MUST NOT RETURN QUIETLY (395-24 · WR-12). `result.error` is set only when the
+    // A FAILED `git` MUST NOT RETURN QUIETLY. `result.error` is set only when the
     // CHILD PROCESS COULD NOT BE SPAWNED; a `git commit` that ran and exited non-zero (nothing
     // staged, a hook refusing, a bad identity) came back through here indistinguishable from a
     // success, and every cell downstream then measured a fixture that was never built. In a suite
@@ -384,7 +384,7 @@ apiToken: ${PLANTED_HOOKS_CREDENTIAL}
       .toContain('z5-poisoned.yaml')
   }, 180_000)
 
-  // THE FLAG THE PERSON TYPED, HONORED (395-24 · WR-01).
+  // THE FLAG THE PERSON TYPED, HONORED.
   //
   // `validate` is declared with an ARGUMENT (`[files...]`), and commander hands an argument-bearing
   // action `(…args, options, command)` — three parameters here, not two. `validate.ts:9` destructured

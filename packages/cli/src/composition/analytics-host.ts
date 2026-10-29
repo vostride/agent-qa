@@ -120,7 +120,7 @@ export interface CliAnalyticsHost {
 export async function composeAnalyticsHost(
   input: ComposeAnalyticsHostInput,
 ): Promise<CliAnalyticsHost> {
-  // Assigned below only when resolution succeeds; until then every capture is dropped (D-05).
+  // Assigned below only when resolution succeeds; until then every capture is dropped.
   let identity: AnalyticsIdentity | undefined
   let masking: AnalyticsMaskingContext | undefined = input.maskingContext
 
@@ -149,7 +149,7 @@ export async function composeAnalyticsHost(
   if (composed.transportKind === 'posthog') {
     const resolve = input.resolveIdentity ?? resolveAnalyticsIdentity
     try {
-      // 447-05 (D-11): CI is the run detector's answer, reached through agent-local (the firewall).
+      // CI is the run detector's answer, reached through agent-local (the firewall).
       const { resolveRunExecutionContext } = await import('@vostride/agent-qa-agent-local')
       const ci = resolveRunExecutionContext() === 'ci'
       const resolved = await withTimeout(
@@ -163,7 +163,7 @@ export async function composeAnalyticsHost(
       properties.runtime_context = resolved.runtimeContext
       if (resolved.agentProduct !== undefined) properties.agent_product = resolved.agentProduct
     } catch {
-      // Telemetry stays off for this invocation; nothing falls back to a shared id (D-05).
+      // Telemetry stays off for this invocation; nothing falls back to a shared id.
     }
   }
 

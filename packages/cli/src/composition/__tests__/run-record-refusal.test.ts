@@ -1,4 +1,4 @@
-// 2026-10-17 (443-05, D-05/D-27): a run that cannot be recorded is refused before any effect, and a
+// a run that cannot be recorded is refused before any effect, and a
 // write that fails after the start leaves the verdict alone and says so once on stderr.
 
 import { spawn } from 'node:child_process'
@@ -362,7 +362,7 @@ describe('a failed write still closes the row with the verdict status', () => {
       runOwnership: composeRunOwnership(),
     })
     opened.push(() => real.close())
-    // 2026-10-17 (444-02, D-06): a member's write is its duration, never a status.
+    // a member's write is its duration, never a status.
     let memberWrites = 0
     const failing = failOn(real, 'updateRun', ([, updates]) => (
       (updates as { duration?: unknown } | undefined)?.duration !== undefined && ++memberWrites === 2

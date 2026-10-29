@@ -1,4 +1,4 @@
-// CFGM-03's non-triggering clause, measured (395-07 · D-06).
+// CFGM-03's non-triggering clause, measured.
 //
 // "AGENT COMMITS ARE NON-TRIGGERING" IS AN ABSENCE, and an absence is the easiest thing in this
 // repository to assert vacuously: "the apply enqueued no jobs" passes just as happily against a
@@ -27,7 +27,7 @@
 // honest: an empty delta across a change that refused or found nothing is not a fact about
 // cascading. The written bytes carry the change before any absence below is read.
 //
-// 2026-10-01, 432-16 D-07: (Z1)-(Z3) used to drive a pre-432 record through `proposals.accept`,
+// (Z1)-(Z3) used to drive a pre-432 record through `proposals.accept`,
 // which committed it. No host binds that apply now; the same absences are measured across the
 // direct `config.field.set`, which makes no commit (the count stays 1).
 //
@@ -93,7 +93,7 @@ function git(...args: string[]): { status: number | null; stdout: string } {
   const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' })
   if (result.error !== undefined) throw result.error
   if (result.status !== 0) {
-    // 395-24 · WR-12 — a `git` that ran and failed must not return quietly; see
+    // a `git` that ran and failed must not return quietly; see
     // validate-resolution-surface.test.ts for the full note.
     throw new Error(`git ${args.join(' ')} exited ${result.status}: ${result.stderr}`)
   }
@@ -145,7 +145,7 @@ describe('an accepted config apply cascades into nothing', () => {
         // the kind of change it is looking for.
         const jobs = await host.jobs()
 
-        // RE-SPELLED 2026-10-01 (432-16, D-07): the change is the direct one. The pre-432 accept
+        // RE-SPELLED 2026-10-01: the change is the direct one. The pre-432 accept
         // this cell drove made a commit through a config apply port no host binds any more.
         const before = await jobs.store.dumpState()
         const runsBefore = runDirectories()
@@ -200,7 +200,7 @@ describe('an accepted config apply cascades into nothing', () => {
     })
 })
 
-// 2026-09-30, 432-07 D-05/D-07: the same absence for the direct writer. A config change is a file
+// the same absence for the direct writer. A config change is a file
 // edit and nothing else: it starts no run and enqueues no job, and it makes no commit either.
 describe('a direct config write cascades into nothing', () => {
   it('the job store and the runs directory are unchanged across a direct write, and the probe still sees an enqueue',
@@ -232,7 +232,7 @@ describe('a direct config write cascades into nothing', () => {
         expect(after.jobs).toHaveLength(0)
         expect(runDirectories()).toEqual(runsBefore)
 
-        // 432-11: the op itself, through the composed host, cascades into nothing either.
+        // the op itself, through the composed host, cascades into nothing either.
         const answer = await invokeFunction(
           host.registry,
           'config.field.set',

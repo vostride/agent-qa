@@ -27,7 +27,7 @@ import { createFeedbackReadsPortForHost } from '../gates/feedback-read-host.js'
 // composition rather than each writing one.
 //
 // 391 PROP-01 bound the interactive confirmation here, because only a surface knows whether a
-// person is on the other end. 432-16 (D-14) deleted it with the gate it answered: nothing asks, so
+// person is on the other end. 432-16 deleted it with the gate it answered: nothing asks, so
 // this host and the daemon compose the same registry with no confirm at all.
 //
 // The run executor lives HERE rather than in a file of its own for the reason plan 09's model
@@ -97,7 +97,7 @@ import {
   HooksFileSchema,
   applyPatchSetToTestDoc,
   discoverWorkspaceFiles,
-  // 395-05: the canonical hook-id mint, through `core`'s re-export beside `generateRunId` rather
+  // the canonical hook-id mint, through `core`'s re-export beside `generateRunId` rather
   // than from the ids package directly — `packages/cli`'s ownership contract was deliberately
   // emptied of that dependency by 394-11 and this needs no reopening of it.
   generateHookId,
@@ -110,7 +110,7 @@ import {
   resolveKnowledgeRoot,
   resolveWorkspacePaths,
   workspaceRelativeIdentityPath,
-  // 395-14: the position-only yaml-fault sentence, LIFTED out of this file into core. It was a
+  // the position-only yaml-fault sentence, LIFTED out of this file into core. It was a
   // private copy here; the cli loader guard and core's own `validateConfig` arm need the same
   // sentence, and two spellings of one sentence are two things that can drift apart. The bytes this
   // file emits are unchanged — only the definition moved.
@@ -125,7 +125,7 @@ import type {
 import type {
   ConfigScaffoldContentPortLike,
 } from '@vostride/agent-qa-agent'
-// D-04: the ONE scaffold producer. `agent-qa init` renders these same functions and writes them
+// the ONE scaffold producer. `agent-qa init` renders these same functions and writes them
 // to disk; this host renders them into a proposal's file bytes. No second copy exists.
 import { buildScaffoldFileSet } from '../commands/scaffold-content.js'
 import { TARGET_GITIGNORE_ENTRIES } from '../commands/init-filesystem.js'
@@ -195,7 +195,7 @@ export const CLI_FUNCTION_CALLER: FunctionCaller = {
 }
 
 // The `config.get` binding: every value crosses into the function layer through the declared mask
-// (441-20, D-29). `loadAuthPlugins: false` keeps the read a read: resolving a capability must not
+// `loadAuthPlugins: false` keeps the read a read: resolving a capability must not
 // load and execute plugin code.
 export function createConfigReader(configPath: string, mask: MaskFn): ConfigReaderPort {
   return {
@@ -217,7 +217,7 @@ export function createConfigReader(configPath: string, mask: MaskFn): ConfigRead
   }
 }
 
-// 2026-10-17 (443-06, D-24): the door a request arrived on, scoped to that request, so one host
+// the door a request arrived on, scoped to that request, so one host
 // serving several doors (the dashboard) records each run's own trigger.
 const runDoorScope = new AsyncLocalStorage<RunAttributeTrigger>()
 
@@ -230,14 +230,14 @@ export function currentRunDoor(): RunAttributeTrigger | undefined {
 }
 
 /**
- * The chat / `fn` / MCP door's run execution: the ONE in-process drive (401-05).
+ * The chat / `fn` / MCP door's run execution: the ONE in-process drive.
  *
- * D-01 — THIS RETIRED THE SECOND SPAWN FAMILY, and 401-10 deleted what was left of it. The retired
+ * THIS RETIRED THE SECOND SPAWN FAMILY, and 401-10 deleted what was left of it. The retired
  * `createCliRunExecution` re-entered `agent-qa run` as a child process; every field a caller could
  * not express became a `--` operand and every refusal died in the child's stderr. This door hands
  * the caller the core's refusal with its reason intact, because the run starts in this process.
  *
- * D-07 — THE POSTURE TRAVELS EXPLICITLY, AND IT IS THIS DOOR'S OWN ANSWER. `executionContext` is
+ * THE POSTURE TRAVELS EXPLICITLY, AND IT IS THIS DOOR'S OWN ANSWER. `executionContext` is
  * `input.resolveExecutionContext` when the host supplied one and this process's real TTY/CI
  * detection otherwise, which is exactly what `agent-qa run` resolves. The run records it.
  *
@@ -265,7 +265,7 @@ export function currentRunDoor(): RunAttributeTrigger | undefined {
  * `runFinished` on every door (`curation/post-verdict-step.ts`), so this door needs no fold to
  * queue its work and the sentence above is once again about folding alone.
  *
- * The DRAIN leg is `postRunTail` below (D-06), and it is deliberately NOT `afterVerdict`. A drain
+ * The DRAIN leg is `postRunTail` below, and it is deliberately NOT `afterVerdict`. A drain
  * inside `afterVerdict` is inside `execute()`, and `dashboard-server` emits `'run-settled'` — db
  * finalize, Appium release, handle cleanup — when that promise settles, so the runs list would show
  * "running" for a minute after the verdict and a leased device would stay leased (Pitfall 2). The
@@ -275,7 +275,7 @@ export function currentRunDoor(): RunAttributeTrigger | undefined {
  * WHAT ARRIVES FROM THE HOST SINCE 401-07: `onSession`, `resolveAppiumUrl` and `resolveRunFlags`,
  * all through `runBridge` and all absent unless a host asks. A host that watches its runs needs the
  * first; one that leases devices needs the second. Every run is recorded in runs.db through one
- * record per execute (443-05, D-02); a host holding a runs.db handle lends it as `runBridge.record`.
+ * record per execute; a host holding a runs.db handle lends it as `runBridge.record`.
  *
  * IT IS ACQUIRED THROUGH A DEFERRED IMPORT, and that is load-bearing rather than stylistic.
  * `composition/in-process-run-execution.ts` imports `commands/run.js`'s producers statically — the
@@ -292,7 +292,7 @@ function createComposedRunExecution(input: {
   readonly analytics?: CliAnalyticsHost
 }): RunExecutionPort {
   const composed = {
-    // 432-13: the port's second argument (the retired run gate's standing-approval reader) is not
+    // the port's second argument (the retired run gate's standing-approval reader) is not
     // taken. Nothing asks, so there is no approval for a reader to satisfy.
     async execute(request: RunsStartInput): Promise<{ runId: RunId }> {
       const trigger = currentRunDoor() ?? input.runTrigger ?? 'cli'
@@ -321,7 +321,7 @@ function createComposedRunExecution(input: {
         warn,
       })
 
-      // 444 D-48: resolved once, so the run and its tail's exit line read the same context.
+      // resolved once, so the run and its tail's exit line read the same context.
       const executionContext =
         (input.resolveExecutionContext?.() ?? resolveRunExecutionContext()) as RunExecutionContext
       let startedRunId: string | undefined
@@ -332,7 +332,7 @@ function createComposedRunExecution(input: {
             agentQaRoot: input.agentQaRoot,
             executionContext,
             inputs,
-            // THE LOCAL CAPTURE FIRST, THEN THE HOST'S BRIDGE (401-07). The capture is what the
+            // THE LOCAL CAPTURE FIRST, THEN THE HOST'S BRIDGE. The capture is what the
             // `catch` below reads to tell a run that STARTED from one that never did, so it can
             // never be REPLACED by a host's hook — it is chained. A bridge that threw here would
             // fail the run, which is correct: a host that asked to watch its runs and cannot is a
@@ -342,7 +342,7 @@ function createComposedRunExecution(input: {
               input.runBridge?.onSession?.(session)
             },
             runRecord,
-            // 2026-10-21 (447-08, D-16): subscribed directly, because `attachRunSubscribers`'
+            // subscribed directly, because `attachRunSubscribers`'
             // wire reporter can print to stdout.
             ...(analytics === undefined || runSession === undefined ? {} : {
               subscribers: ({ session }) => {
@@ -378,7 +378,7 @@ function createComposedRunExecution(input: {
             // the posture that most needs a line about work left queued is the one where nothing
             // drained.
             //
-            // THE RULE MOVED INTO THE CALL (2026-08-27, CR-01). It used to be an `if` around
+            // THE RULE MOVED INTO THE CALL. It used to be an `if` around
             // `drain({ lease: takeAcquiredLease() })`, which meant the lease was acquired out here
             // — before `drain()` had resolved a root or composed a host, either of which can
             // throw, and neither of which could then release what this line had already minted.
@@ -427,7 +427,7 @@ function createComposedRunExecution(input: {
         // `createLocalRunInvocation` reads back, which no code here can fake.
         return { runId: outcome.runId as RunId }
       } catch (error) {
-        // ONE NARROW CATCH, AND IT CONVERTS EXACTLY ONE THING (D-03).
+        // ONE NARROW CATCH, AND IT CONVERTS EXACTLY ONE THING.
         //
         // Everything raised before a session exists — a refused field or run id, an input error,
         // a crash — re-throws untouched. What is converted is a run that STARTED and then surfaced a
@@ -464,7 +464,7 @@ export interface ComposeCliLocalAgentInput {
   /** The project's runtime root, i.e. `<configDir>/.agent-qa`. */
   agentQaRoot: string
   /**
-   * The context every policy decision in this host's registry is taken in (400-01, D-05).
+   * The context every policy decision in this host's registry is taken in.
    *
    * A PASSTHROUGH of the shared composition's own new input, and it is here rather than pinned on
    * the process for the reason that field states at length: `setActiveExecutionContextResolver` is
@@ -474,16 +474,15 @@ export interface ComposeCliLocalAgentInput {
    */
   resolveExecutionContext?: ComposeLocalAgentInput['resolveExecutionContext']
   /**
-   * Notified after one session event has been appended (400-01, D-03), passed through untouched.
+   * Notified after one session event has been appended, passed through untouched.
    *
    * `agent-qa chat` binds it to learn which session is active; an absent observer is the shipped
    * state for every other CLI invocation. See the shared composition's own field for why this is an
    * observer over the one log rather than a replaceable log.
    */
   observeSessionEvent?: ComposeLocalAgentInput['observeSessionEvent']
-  // 2026-10-01 (432-17, D-05): `mintingSurface` is deleted with the proposal records it stamped.
   /**
-   * How this host reads configuration, MASKED (400-01, D-16).
+   * How this host reads configuration, MASKED.
    *
    * A passthrough with a default rather than a required argument, because there is exactly one
    * right answer for a CLI — {@link createConfigReader} over this invocation's config path —
@@ -495,7 +494,7 @@ export interface ComposeCliLocalAgentInput {
    */
   config?: ComposeLocalAgentInput['config']
   /**
-   * Where a chat session PRINTS a mid-turn artifact a person reads (395-13, D-14), passed through
+   * Where a chat session PRINTS a mid-turn artifact a person reads, passed through
    * untouched.
    *
    * The same split as the line above: this host knows whether there is a stream to write on, and
@@ -504,7 +503,7 @@ export interface ComposeCliLocalAgentInput {
    */
   chatPresent?: ComposeLocalAgentInput['chatPresent']
   /**
-   * What a chat session plans with (392 plan 09, CHAT-06 / D-04), passed through untouched.
+   * What a chat session plans with, passed through untouched.
    *
    * RESOLVED BY THE CALLER, NOT HERE, and the reason is mechanical rather than stylistic: this
    * function is synchronous, and reaching a provider costs a configuration read and an auth
@@ -514,13 +513,13 @@ export interface ComposeCliLocalAgentInput {
    *
    * All three are conditionally spread, so a project with no usable LLM configuration composes a
    * HEADLESS host: canonical utterances still route deterministically and anything else fails the
-   * turn closed by name (D-08). Absence is a posture, not an unconfigured state.
+   * turn closed by name. Absence is a posture, not an unconfigured state.
    */
   chatModel?: ComposeLocalAgentInput['chatModel']
   chatModelFor?: ComposeLocalAgentInput['chatModelFor']
   chatAccounting?: ComposeLocalAgentInput['chatAccounting']
   /**
-   * The turn engine's reconciliation strategy (392 plan 10, D-16), passed through untouched.
+   * The turn engine's reconciliation strategy, passed through untouched.
    *
    * A PASSTHROUGH OF A COMPOSITION-ONLY SEAM, and both halves of that matter. `composeLocalAgent`
    * declares this option so the mutation proof can assemble the REAL engine twice — deterministic
@@ -539,10 +538,10 @@ export interface ComposeCliLocalAgentInput {
   chatReconcile?: ComposeLocalAgentInput['chatReconcile']
   /** The configuration file this invocation resolves against. */
   configPath: string
-  // 2026-10-14 (441-06, D-08): the command's one loader, shared with its emitters.
+  // the command's one loader, shared with its emitters.
   declaredSecrets?: DeclaredSecretMask
   /**
-   * The invocation's composed analytics, when this host has any (398-10, D-11/D-18).
+   * The invocation's composed analytics, when this host has any.
    *
    * PASSED IN, never composed here, for the reason every other capability on this interface is:
    * the opt-out decision belongs to the command's composition root and there is one per process.
@@ -551,13 +550,13 @@ export interface ComposeCliLocalAgentInput {
    */
   analytics?: CliAnalyticsHost
   /**
-   * How this invocation executes a run (D-16). Defaults to re-entering `agent-qa run`; a test
+   * How this invocation executes a run. Defaults to re-entering `agent-qa run`; a test
    * substitutes the child launcher so the whole path — gate, binding, evidence, acknowledgment
    * — is exercised without a browser and a provider behind it.
    */
   runExecution?: RunExecutionPort
   /**
-   * The D-09 RUN BRIDGE: what a host that watches its own runs needs from them (401-07, INVK-01).
+   * The D-09 RUN BRIDGE: what a host that watches its own runs needs from them.
    *
    * ONE OPTION, because its members are one story — a host that bridges a run's bus to a surface
    * also lends its runs.db handle and, if it leases devices, that run's device. A door that wants
@@ -573,14 +572,14 @@ export interface ComposeCliLocalAgentInput {
   runBridge?: {
     /** Fired with each started `RunSession` — the D-09 bridge hook. */
     readonly onSession?: (session: RunSession) => void
-    /** The host's runs.db handle and its queue's rows (443-05, D-06). */
+    /** The host's runs.db handle and its queue's rows. */
     readonly record?: RunRecordHostBinding
     /** The Appium this host leased for a named run, if it leases any. */
     readonly resolveAppiumUrl?: InProcessCliRunExecutionOptions['resolveAppiumUrl']
     /** Per-run flags this host's own UI offers that the request DTO has no field for. */
     readonly resolveRunFlags?: InProcessCliRunExecutionOptions['resolveRunFlags']
     /**
-     * This host's SECOND chip sink (404 D-16) — the dashboard's live push channel.
+     * This host's SECOND chip sink — the dashboard's live push channel.
      *
      * A PASS-THROUGH LIKE ITS SIBLINGS: this composition neither creates nor defaults it. It
      * is handed to `composeCliPostRunTail` as `relay`, which threads it to the chip emitter in
@@ -599,10 +598,10 @@ export interface ComposeCliLocalAgentInput {
      */
     readonly onPostRun?: InProcessCliRunExecutionOptions['onPostRun']
   }
-  /** The `agent-qa.trigger` this host's runs record outside any `withRunDoor` scope (443-06, D-10). */
+  /** The `agent-qa.trigger` this host's runs record outside any `withRunDoor` scope. */
   runTrigger?: RunAttributeTrigger
   /**
-   * 403 D-03: the live-view mint seam, FORWARDED UNTOUCHED to `composeLocalAgent`.
+   * the live-view mint seam, FORWARDED UNTOUCHED to `composeLocalAgent`.
    *
    * A pass-through like `runBridge` above: this host neither creates nor defaults it. The dashboard
    * command composes it (it is the only door with a served origin); every other caller passes
@@ -610,7 +609,7 @@ export interface ComposeCliLocalAgentInput {
    */
   liveView?: ComposeLocalAgentInput['liveView']
   /**
-   * 405 D-03: the durable run-detail projection read, FORWARDED UNTOUCHED to `composeLocalAgent`.
+   * the durable run-detail projection read, FORWARDED UNTOUCHED to `composeLocalAgent`.
    *
    * The dashboard passes the reader over the database it holds. When nothing is passed, this host
    * binds a reader over the configured or default runs database path whenever its config parses; a
@@ -619,27 +618,27 @@ export interface ComposeCliLocalAgentInput {
    */
   runDetail?: ComposeLocalAgentInput['runDetail']
   /**
-   * 432-12 (D-05): how a direct knowledge change reaches the writer-lease holder when one is alive
-   * (387-08 D-18). Defaults to the 386 `/invoke` transport, VERBATIM — no new protocol and no change
+   * how a direct knowledge change reaches the writer-lease holder when one is alive
+   * Defaults to the 386 `/invoke` transport, VERBATIM — no new protocol and no change
    * on the daemon side — invoking the change op on the daemon with the same operation identity. A
    * test substitutes it to exercise the routing without a socket.
    */
   knowledgeChangeDelegate?: ExplicitReviewDelegate
   /**
-   * 2026-10-02 (quick 261002-mrk): how a mark reaches a live writer-lease holder. Defaults to
+   * how a mark reaches a live writer-lease holder. Defaults to
    * {@link delegateMarkViaDaemon} (the 386 `/invoke` transport, the registered `runs.mark` op).
    */
   wholeMarkDelegate?: WholeMarkDelegate
   /**
    * The queue's model capability. Defaults to the project's configured job model.
    *
-   * Overridable because the post-run tail (388-02) opens the queue for work that authors
+   * Overridable because the post-run tail opens the queue for work that authors
    * through no provider at all, and eagerly resolving credentials it will never use would
    * make "no LLM configured" mean "no post-run chain".
    */
   model?: () => JobModelCapability | Promise<JobModelCapability>
   /**
-   * The analyze-run author's compaction budget factory (389-06). Defaults to the SAME
+   * The analyze-run author's compaction budget factory. Defaults to the SAME
    * named-config profile resolution the job model rides (`resolveCliAnalysisTokenBudget`
    * — one source of truth, 386 D-15), resolved once at queue open by the shared
    * composition. Overridable for the same reason `model` is: a harness substitutes it to
@@ -647,7 +646,7 @@ export interface ComposeCliLocalAgentInput {
    */
   analysisTokenBudget?: ComposeLocalAgentInput['analysisTokenBudget']
   /**
-   * What the post-run chain's real handlers may do (388 D-01).
+   * What the post-run chain's real handlers may do.
    *
    * A passthrough, deliberately: `curateRun` needs the writer lease, a knowledge root and the
    * run's curation author, and the only place in this process where all three already meet is
@@ -662,7 +661,7 @@ export interface ComposeCliLocalAgentInput {
     }) => Promise<{
       readonly curated: number
       readonly deprecated: number
-      /** The fold's own completeness, carried rather than dropped (WR-03). */
+      /** The fold's own completeness, carried rather than dropped. */
       readonly complete: boolean
       readonly snapshot?: CurationSnapshot
       readonly reason?: string
@@ -686,12 +685,12 @@ export interface ComposeCliLocalAgentInput {
  * reader, the knowledge listing, the registry, the queue, the store — is the shared function, so
  * the CLI and 386's daemon cannot drift.
  *
- * The fourth is what makes `runs.start` BOUND in this host (D-16). Withhold it and the very same
+ * The fourth is what makes `runs.start` BOUND in this host. Withhold it and the very same
  * composition lists the capability as `unbound` and refuses it by name, which is D-09's visible
  * state expressed as a fact about a host rather than as a literal on a spec.
  */
 /**
- * The quarantine ledger's identity mint, pre-bound to one workspace's config directory (390-12).
+ * The quarantine ledger's identity mint, pre-bound to one workspace's config directory.
  *
  * The committed `quarantine.jsonl` keys entries on a workspace-relative `filePath` and every reader
  * compares it with `===`, so the two human write verbs need the SAME recipe the run path mints with
@@ -720,7 +719,7 @@ export function createQuarantineIdentityMint(configPath: string): (filePath: str
  *
  * PRE-interpolation and never post: a resolved step can carry the value a `${VAR}` expanded to, and
  * both the receipt's step table and gate 3's text lane are read by humans and stored on disk
- * (D-19 / T-393-02). The parser's step is `string | { step, ... }`; the object form's own `step`
+ * The parser's step is `string | { step, ... }`; the object form's own `step`
  * field is the same sentence, so both narrow to one text.
  */
 function draftStepTexts(test: TestDefinition): string[] {
@@ -744,7 +743,7 @@ function singleDraftTest(tests: readonly TestDefinition[]): TestDefinition | str
 }
 
 /**
- * The host half of `authoring.draft.verify` (393 D-01), pre-bound to one workspace.
+ * The host half of `authoring.draft.verify`, pre-bound to one workspace.
  *
  * IT LIVES IN THIS FILE ON PURPOSE, for the reason the identity mint above and the run-id minting
  * before it already state: both verbs need `@vostride/agent-qa-core` — `parseTestFile`,
@@ -755,7 +754,7 @@ function singleDraftTest(tests: readonly TestDefinition[]): TestDefinition | str
  * reaches this factory through the same deferred import it already uses for the run executor and
  * the identity mint.
  *
- * THE BOUNDARY CHECK IS `workspaceRelativeIdentityPath` AND NOTHING ELSE (T-393-01). It resolves
+ * THE BOUNDARY CHECK IS `workspaceRelativeIdentityPath` AND NOTHING ELSE. It resolves
  * the caller's path against the checkout root and THROWS when the result escapes, so the refusal
  * and the identity are the same computation — a draft whose identity cannot be minted is exactly a
  * draft that is not in this workspace, and there is no second rule to keep in step. That the mint
@@ -763,7 +762,7 @@ function singleDraftTest(tests: readonly TestDefinition[]): TestDefinition | str
  * to find the draft's own member at all.
  */
 /**
- * A scope-less authoring call the host cannot answer unambiguously (394-26, WINDOWS 110 · D-19).
+ * A scope-less authoring call the host cannot answer unambiguously.
  *
  * IT NAMES EVERY CANDIDATE IT SAW, which is the whole difference between this and returning
  * `undefined`. A refusal that says only "ambiguous" leaves the author with no way to write the
@@ -786,7 +785,7 @@ export class AuthoringScopeUnresolvableError extends Error {
 }
 
 /**
- * WHICH PRODUCT THIS PROJECT AUTHORS FOR, when the caller named no scope (394-26, WINDOWS 110).
+ * WHICH PRODUCT THIS PROJECT AUTHORS FOR, when the caller named no scope.
  *
  * THE ONE DERIVATION, and both hosts reach exactly it: the CLI `fn` surface and the chat/daemon
  * host both build their authoring capability from `createDraftAuthoringPort` below, which
@@ -809,13 +808,13 @@ export class AuthoringScopeUnresolvableError extends Error {
  * authoring unreachable. The direction the omission moves the candidate set is the safe one — it
  * can only shrink it, and a shrunken set still has to survive the singleton check below.
  *
- * AMBIGUITY REFUSES AND NAMES ITS EVIDENCE (D-19). A unique candidate binds; zero or several
+ * AMBIGUITY REFUSES AND NAMES ITS EVIDENCE. A unique candidate binds; zero or several
  * throw {@link AuthoringScopeUnresolvableError}. Picking the first would author a test for
  * whichever product happened to sort first in a config file.
  */
 export async function deriveDefaultAuthoringScope(configPath: string): Promise<ScopeKey> {
   const config = await resolveConfig({ configPath, loadAuthPlugins: false })
-  // THROUGH THE SHIPPED ENUMERATION (394-37, IN-03). This read used to be an untyped cast of its
+  // THROUGH THE SHIPPED ENUMERATION. This read used to be an untyped cast of its
   // own, which made three spellings of `registry.targets` in one file — and `configuredTargetNames`
   // below already imports `listTargets` and argues, in its own doc block, that a second walk of the
   // config is a second answer to what a target may be called.
@@ -875,7 +874,7 @@ export function createDraftAuthoringPort(configPath: string): DraftAuthoringPort
       }
       if (!stats.isFile()) return Promise.resolve({ kind: 'not-a-file' })
 
-      // READ ONCE, AS BYTES (394-29, CR-02). The digest below is the ONE value the apply's own
+      // READ ONCE, AS BYTES. The digest below is the ONE value the apply's own
       // re-check is compared against, and that re-check hashes the target's raw bytes — so this
       // side reads bytes too and the decoding is derived FROM them for the parse alone. Reading the
       // file twice (once decoded, once raw) would be a second read of a file that can change
@@ -922,7 +921,6 @@ export function createDraftAuthoringPort(configPath: string): DraftAuthoringPort
 
     /**
      * Stage a compiled draft: PARSE first, WRITE second, and nothing at all when the parse fails
-     * (394 D-01 · T-394-06).
      *
      * The order is the whole verb. What arrives here is bytes an LLM produced from a free-text
      * intent — the one input on the authoring path no schema at the op boundary can vet — so it is
@@ -974,7 +972,7 @@ export function createDraftAuthoringPort(configPath: string): DraftAuthoringPort
     },
 
     /**
-     * Apply an RFC-6902 patch set to a staged draft and stage the result (394-06 D-09/D-20).
+     * Apply an RFC-6902 patch set to a staged draft and stage the result.
      *
      * THE ONE APPLIER, AND THE ONLY PLACE IT IS REACHED FROM THE AUTHORING PATH. `agent` declares
      * the capability as a shelf verb because it may not depend on `core`; this is where the
@@ -1021,9 +1019,9 @@ export function createDraftAuthoringPort(configPath: string): DraftAuthoringPort
       return await this.stageDraft(rendered)
     },
 
-    /** 432 D-06/D-07: the direct final-test writer — see {@link publishAuthoredTest}. */
+    /** the direct final-test writer — see {@link publishAuthoredTest}. */
     publishDraft(request): Promise<TestFileWrite> {
-      // 261002-mrk: inside a mark's edit scope the write is recorded ahead, so a retry of that mark
+      // inside a mark's edit scope the write is recorded ahead, so a retry of that mark
       // answers it instead of editing the file again. Outside one this records nothing.
       return Promise.resolve(
         publishAuthoredTest({ configPath, request, beforeWrite: recordMarkEditAhead }),
@@ -1032,7 +1030,7 @@ export function createDraftAuthoringPort(configPath: string): DraftAuthoringPort
 
     /**
      * The authored-test universe as text — gate 3's text-lane population before the derived index
-     * subtracts the identities it has evidence for (D-16).
+     * subtracts the identities it has evidence for.
      *
      * ADVISORY BY CONSTRUCTION, exactly as `discoverAuthoringKnownTests` is: an unreadable or
      * malformed file is omitted rather than raised, because one broken test file in a repository
@@ -1073,7 +1071,7 @@ export function createDraftAuthoringPort(configPath: string): DraftAuthoringPort
     },
 
     /**
-     * The `target` vocabulary stage 3 chooses from (394-33, WR-07).
+     * The `target` vocabulary stage 3 chooses from.
      *
      * `listTargets` AND NOT A SECOND ENUMERATION. It is the same read `agent-qa targets` prints
      * and the same `registry.targets` map `resolveTarget` resolves against, so the names a model
@@ -1100,7 +1098,6 @@ export function createDraftAuthoringPort(configPath: string): DraftAuthoringPort
 // WTST-01). `tests/.agent-qa-drafts/`, and deliberately NOT `.agent-qa/drafts/`. The location is
 // forced by a TWO-SIDED admission property that only a dot-directory inside the workspace's own
 // test patterns satisfies, and both sides were measured against the in-tree glob@13.0.6 on
-// 2026-08-11:
 //
 //   ADMITTED BY A RUN. `runs.start` hands its `patterns` to `resolveWorkspaceFileTarget`, which
 //   THROWS `Workspace test file is not matched by configured workspace patterns` for anything
@@ -1138,7 +1135,7 @@ const DRAFT_TEMP_SUFFIX = '.tmp'
 const SAFE_DRAFT_DIGEST = /^[A-Za-z0-9_-]{1,128}$/
 
 /**
- * The shelf's one named refusal (T-394-02).
+ * The shelf's one named refusal.
  *
  * ONE class for both rules because they are one rule seen twice: a digest that can name a path and
  * a path that escapes the workspace are the same failure — an address this workspace cannot own.
@@ -1224,10 +1221,10 @@ function fsyncDirectory(path: string): void {
  * being renamed could be half of another process's draft. Two concurrent `authoring.draft.write`
  * calls in one workspace therefore never collide and never expose a half-written draft to a run.
  *
- * ONE PRIMITIVE, TWO CALLERS (394-23). The draft shelf and the one-commit apply's target write are
+ * ONE PRIMITIVE, TWO CALLERS. The draft shelf and the one-commit apply's target write are
  * the same obligation — the bytes appear whole or they do not appear — and a second implementation
  * of it beside this one is the shape every other header in this file argues against. `string |
- * Buffer` because the apply is byte-true end to end (WR-04) while the shelf writes text; the
+ * Buffer` because the apply is byte-true end to end while the shelf writes text; the
  * encoding argument is gone, so a Buffer is written as itself and a string as UTF-8.
  *
  * THE TEMP IS REMOVED ON EVERY FAILURE PATH, and it matters more for the apply than for the shelf.
@@ -1267,12 +1264,12 @@ export interface PublishAuthoredTestInput {
   }
   /** Injected for tests; defaults to {@link writeFileAtomically}. */
   readonly writeTarget?: (absolutePath: string, bytes: Buffer) => void
-  /** Runs after the digest guard and before the write; a throw refuses the write (261002-mrk). */
+  /** Runs after the digest guard and before the write; a throw refuses the write. */
   readonly beforeWrite?: (write: PendingTestWrite) => void
 }
 
 /**
- * Write a final authored test straight to its target (432 D-06/D-07). No git, no commit, no stage.
+ * Write a final authored test straight to its target. No git, no commit, no stage.
  *
  * THE GUARDS ARE THE ONES THE RETIRED ONE-COMMIT APPLY CHECKED, minus the ones that were about git.
  * The target's boundary is `workspaceRelativeIdentityPath` plus the real path, so neither `..` nor a
@@ -1397,7 +1394,7 @@ function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
-// 395-04: the pinned config file SET's enumeration MOVED to `schema`
+// the pinned config file SET's enumeration MOVED to `schema`
 // (`config-mutation/file-set.ts`), and the move is the point rather than tidiness. Three packages
 // read that one answer — this port enumerates the files it reads bytes for, `agent`'s cross-boundary
 // classifier decides `out-of-set-path` against it, and 395-06's apply porcelain scoped its check to
@@ -1406,11 +1403,11 @@ function errorText(error: unknown): string {
 // beside the function.
 
 /**
- * This workspace's pinned config set, resolved per read (395-06).
+ * This workspace's pinned config set, resolved per read.
  *
  * `createConfigFilesPort` reads bytes for these members and hands their paths to the classifier as
  * `pinnedFileSet`. The one-commit apply that scoped its preserve commit to the same answer is
- * deleted (432-16, D-07), so this is its only caller.
+ * deleted, so this is its only caller.
  *
  * IT READS THE CONFIG BECAUSE THE SET DEPENDS ON THE CONFIG. `workspace.hooksFile` can name
  * anything, so the enumeration's second member is a fact only a parse can supply.
@@ -1436,7 +1433,7 @@ async function resolvePinnedConfigSet(configPath: string): Promise<{
 
   return {
     configIdentity,
-    // NAMED, NOT MATCHED (395-05). `config.hook.add` writes this member and the validator picks its
+    // NAMED, NOT MATCHED. `config.hook.add` writes this member and the validator picks its
     // schema by it. The default is read from the SAME enumeration, so a project that names no hooks
     // file and one that names `hooks.yaml` explicitly answer identically here.
     hooksFile: named === undefined || named === '' ? CONFIG_SET_DEFAULT_HOOKS_FILE : named,
@@ -1447,7 +1444,7 @@ async function resolvePinnedConfigSet(configPath: string): Promise<{
 /**
  * Read the committed config set as RAW BYTES, and perform the comment-preserving field edit.
  *
- * THE READ IS BYTES AND NEVER TEXT (D-17). A decode between the file and the digest taken over it
+ * THE READ IS BYTES AND NEVER TEXT. A decode between the file and the digest taken over it
  * is 394's CR-02 defect class in its original form.
  *
  * THE EDIT LIVES HERE rather than in the construction pipeline because the `yaml` Document API is
@@ -1485,7 +1482,7 @@ export function createConfigFilesPort(configPath: string): ConfigFilesPortLike {
     },
 
     /**
-     * The document's SHAPE at each path, from ONE parse (395-05).
+     * The document's SHAPE at each path, from ONE parse.
      *
      * SHAPE AND NEVER CONTENT. `keys` and `length` describe the container so a create can refuse a
      * collision, an edit can list the names that exist and an append can land past the end; the
@@ -1516,7 +1513,7 @@ export function createConfigFilesPort(configPath: string): ConfigFilesPortLike {
     },
 
     /**
-     * A fresh canonical hook id, from the ONE mint `isCanonicalHookId` accepts (395-05).
+     * A fresh canonical hook id, from the ONE mint `isCanonicalHookId` accepts.
      *
      * A HOST FACT because `@vostride/agent-qa-ids` is not among `packages/agent`'s internal
      * dependencies and because the mint draws randomness, which nothing in that package may read.
@@ -1532,7 +1529,7 @@ export function createConfigFilesPort(configPath: string): ConfigFilesPortLike {
         ? new YamlDocument({})
         : parseDocument(Buffer.from(bytes).toString('utf8'))
       const segments = path.split('.')
-      // READ BEFORE WRITE, THROUGH THE SAME DOCUMENT (395-04, D-02). The classifier compares the
+      // READ BEFORE WRITE, THROUGH THE SAME DOCUMENT. The classifier compares the
       // value this edit replaces against the one it writes — a base URL pointing at a NEW origin is
       // the case no per-op map can see — and the alternative to reading it here was a second parse
       // of the same bytes, free to disagree with the one that actually applied the edit.
@@ -1556,7 +1553,7 @@ export function createConfigFilesPort(configPath: string): ConfigFilesPortLike {
 }
 
 /**
- * Whole-config validation, run BEFORE a proposal surfaces (CFGM-01).
+ * Whole-config validation, run BEFORE a proposal surfaces.
  *
  * IT VALIDATES THE ENTIRE CANDIDATE, not the changed field, and that is D-03's other half: the
  * settable-field whitelist was refused because a rule that can only refuse what it can NAME cannot
@@ -1568,7 +1565,7 @@ export function createConfigFilesPort(configPath: string): ConfigFilesPortLike {
  * A PORT because the schema lives in `@vostride/agent-qa-core` and `packages/agent` does not depend
  * on it; `validate:arch` reds that edge with no legal repair. The `draftApply` idiom exactly.
  *
- * 395-05: THE CANDIDATE IS THE WHOLE FILE SET, NOT THE CONFIG YAML. `config.hook.add` changes only
+ * THE CANDIDATE IS THE WHOLE FILE SET, NOT THE CONFIG YAML. `config.hook.add` changes only
  * the hooks file, and a validator that only ever read the config yaml would have declared that
  * proposal valid without looking at the one artifact it wrote — the whole-input law satisfied on
  * paper and violated in fact. Each member is validated against the schema that OWNS it: the config
@@ -1631,7 +1628,7 @@ export function createConfigValidatePort(): ConfigValidatePortLike {
           if (!result.success) {
             // THE PATH IS THE FILE, the dotted config path stays inside the message. A schema issue
             // is about a key in a document, and the document is the config yaml member — which is
-            // the fact the blocked record's `paths` needs (WR-11). Putting the dotted path there
+            // the fact the blocked record's `paths` needs. Putting the dotted path there
             // instead would name something that is not a file and cannot be opened.
             issues.push(...result.error.issues.map((issue) => ({
               path: member.path,
@@ -1690,8 +1687,8 @@ async function dashboardConfigManager(path: string, mask: MaskFn) {
 }
 
 /**
- * The direct config writer (2026-09-30, 432-07 D-05/D-07): the only way a config change is written
- * since the one-commit apply it replaced was deleted (432-16).
+ * The direct config writer: the only way a config change is written
+ * since the one-commit apply it replaced was deleted.
  *
  * FIELD CHANGES go through the dashboard's `ConfigManager`, whose transaction rereads the file in
  * the config path's shared write turn: a co-hosted dashboard autosave and this writer take turns,
@@ -1798,7 +1795,7 @@ export function createConfigWritePort(configPath: string, mask: MaskFn): ConfigW
 }
 
 /**
- * The shared scaffold CONTENT, rendered for the propose path (395-08, D-04 · CFGM-05).
+ * The shared scaffold CONTENT, rendered for the propose path.
  *
  * ONE PRODUCER, TWO WRITE PATHS, AND THIS IS THE SECOND ONE. `agent-qa init` calls the very same
  * functions and then writes the bytes to disk through its own filesystem machinery; this port calls
@@ -1826,7 +1823,7 @@ export function createScaffoldContentPort(): ConfigScaffoldContentPortLike {
       const files = buildScaffoldFileSet({
         targetName,
         baseUrl,
-        // THE HOST DEFAULTS, READ HERE (FUNC-02). `scaffold-content.ts` may not name
+        // THE HOST DEFAULTS, READ HERE. `scaffold-content.ts` may not name
         // `@vostride/agent-qa-core`; this file is ledgered for it, so the two directory defaults
         // are resolved on this side and handed over — the same two values `init` passes.
         cacheDir: DEFAULT_AGENT_QA_CACHE_DIR || '.agent-qa/cache',
@@ -1835,7 +1832,7 @@ export function createScaffoldContentPort(): ConfigScaffoldContentPortLike {
         ...(existingGitignore === undefined
           ? {}
           : { existingGitignore: Buffer.from(existingGitignore).toString('utf8') }),
-        // 395-12: the MERGE mode's bytes, decoded here for the reason the gitignore's are — the
+        // the MERGE mode's bytes, decoded here for the reason the gitignore's are — the
         // port speaks bytes because the digests are taken over bytes, and the content module is
         // text. The paths cross unchanged: they are the pinned set's own spelling, and a producer
         // that re-derived them could name a file outside the set.
@@ -1859,7 +1856,7 @@ export function createScaffoldContentPort(): ConfigScaffoldContentPortLike {
 }
 
 /**
- * The target's RAW BYTES, or `undefined` for no such file (394-23, WR-04).
+ * The target's RAW BYTES, or `undefined` for no such file.
  *
  * NO ENCODING, and that is the whole content of this function beyond the ENOENT triage. The digest
  * taken over this value is compared against one the caller took over a file's bytes — a decode
@@ -1899,7 +1896,7 @@ export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAge
     const config = await resolveConfig({ configPath: input.configPath, loadAuthPlugins: false })
     return resolveKnowledgeRoot(config.knowledge, dirname(resolve(input.configPath)))
   }
-  // 432-13/432-16 (D-14): NO CONFIRM IS BUILT, and the input has no field to carry one. This host
+  // 432-13/432-16: NO CONFIRM IS BUILT, and the input has no field to carry one. This host
   // used to resolve a door confirm for the op gate and the run gate — a terminal prompt by default.
 
   // Bound whenever the config parses; a read before the runs database exists answers not recorded in it and opens or creates nothing.
@@ -1945,14 +1942,14 @@ export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAge
         resolveKnowledgeRoot: knowledgeRoot,
       }),
     }),
-    // 423 D-19: a dedicated read host, so history never reaches the writer's lock, lease or draft path.
-    // 423 D-16: its preview plans against this project's knowledge root with read capabilities only. The
+    // a dedicated read host, so history never reaches the writer's lock, lease or draft path.
+    // its preview plans against this project's knowledge root with read capabilities only. The
     // writer above binds the authoring draft edit, so the preview reports a test edit where runs.mark drafts one.
     feedbackReads: createFeedbackReadsPortForHost({ agentQaRoot: input.agentQaRoot, configPath: input.configPath,
       canDraftTestEdit: true }),
     agentQaRoot: input.agentQaRoot,
     mintQuarantineIdentityPath: createQuarantineIdentityMint(input.configPath),
-    // 401-05 (D-01/D-07): the default is the in-process policy-gated drive, and since 401-10 it is
+    // the default is the in-process policy-gated drive, and since 401-10 it is
     // the ONLY one — `createCliRunExecution`, the child spawn this host used to compose, is deleted
     // rather than merely unreferenced. `input.runExecution` stays the injectable override, which is
     // what cells substitute.
@@ -1964,16 +1961,16 @@ export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAge
       ...(input.runTrigger === undefined ? {} : { runTrigger: input.runTrigger }),
       ...(analytics === undefined ? {} : { analytics }),
     }),
-    // 403 D-03: the live-view mint seam, forwarded untouched on the same house rule.
+    // the live-view mint seam, forwarded untouched on the same house rule.
     ...(input.liveView === undefined ? {} : { liveView: input.liveView }),
-    // 405 D-03: the run-detail projection read, spread on the same house rule.
+    // the run-detail projection read, spread on the same house rule.
     ...(runDetail === undefined ? {} : { runDetail }),
-    // 393 D-01: the keep-gate evaluator's host half, bound UNCONDITIONALLY on this host — a CLI
+    // the keep-gate evaluator's host half, bound UNCONDITIONALLY on this host — a CLI
     // always has a config path, therefore a checkout root, therefore both verbs. Together with the
     // run executor one line up, this is what makes `authoring.draft.verify` read `bound` in this
     // composition's catalog; a host missing either would list it `unbound` BY NAME instead.
     draftAuthoring: createDraftAuthoringPort(input.configPath),
-    // 432-16 (D-07): NO APPLY, UNDO-SOURCE OR TEST-DRAFT COMMIT PORT IS BOUND. agent-qa makes no git
+    // NO APPLY, UNDO-SOURCE OR TEST-DRAFT COMMIT PORT IS BOUND. agent-qa makes no git
     // commits: `draftApply`, `configApply` and `configUndoSource` were the one-commit writes and the
     // git-history read behind the pre-432 accept, apply and undo verbs, which 432-17 deleted.
     // Changes are written by the direct writers bound here.
@@ -1983,16 +1980,16 @@ export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAge
     // whether a candidate config is valid at all.
     configFiles: createConfigFilesPort(input.configPath),
     configValidate: createConfigValidatePort(),
-    // 395-08 D-04 · CFGM-05: the shared scaffold content, bound unconditionally. It needs no
+    // the shared scaffold content, bound unconditionally. It needs no
     // filesystem and no repository — it is a pure render of the one producer `agent-qa init` writes
     // from — so there is no host posture in which a CLI has it unavailable.
     scaffoldContent: createScaffoldContentPort(),
-    // 432-07 D-05/D-07: the direct config writer every config change op writes through.
+    // the direct config writer every config change op writes through.
     configWrite: createConfigWritePort(input.configPath, declaredSecrets.mask),
-    // 398 D-09/D-11 · XPLN-02: the catalog port `agent.explain` binds through, constructed HERE
+    // the catalog port `agent.explain` binds through, constructed HERE
     // and bound unconditionally — a CLI always ships beside the committed capability catalog, so
     // there is no CLI posture in which the capability is genuinely unavailable. Binding it here is
-    // what puts `agent.explain` in every cli-hosted composition at once (385 D-15): the REPL, the
+    // what puts `agent.explain` in every cli-hosted composition at once: the REPL, the
     // conformance census caller and the daemon reach one implementation, so "what can you do" has
     // one answer rather than one per surface.
     //
@@ -2003,7 +2000,7 @@ export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAge
     // posture and not an unconfigured one: a project with no usable LLM configuration composes a
     // host whose explain cannot cite, so it abstains and SAYS SO, which is the honest answer.
     //
-    // 398-10 (D-11/D-18): the counter hooks, bound to the composed port when this host has one.
+    // the counter hooks, bound to the composed port when this host has one.
     //
     // COUNTS ONLY, AND THE PORT'S SHAPE IS WHAT MAKES THAT TRUE RATHER THAN THIS COMMENT.
     // `onAnswered` takes nothing at all — `recordAnswered()` has no parameters, so this host is
@@ -2029,7 +2026,7 @@ export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAge
     }),
     config: input.config ?? createConfigReader(input.configPath, declaredSecrets.mask),
     knowledgeRoot,
-    // 400-01 (D-05): forwarded untouched, conditionally spread on this file's own absent-field
+    // forwarded untouched, conditionally spread on this file's own absent-field
     // rule so that a host supplying nothing composes exactly as it did before the option existed.
     ...(input.resolveExecutionContext === undefined
       ? {}
@@ -2037,11 +2034,11 @@ export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAge
     ...(input.observeSessionEvent === undefined
       ? {}
       : { observeSessionEvent: input.observeSessionEvent }),
-    // 2026-10-01 (432-17, D-05/D-22): the proposal apply's delegate is deleted with the op. The
+    // the proposal apply's delegate is deleted with the op. The
     // DAEMON's own composition supplies no delegate: it holds the lease, so its changes take the
     // in-process branch, and delegation cannot recurse by construction rather than by a guard.
     //
-    // 432-12 (D-05): a direct knowledge change made while a live daemon holds the writer lease is
+    // a direct knowledge change made while a live daemon holds the writer lease is
     // handed to that daemon as the SAME change op with the SAME operation identity, over the same
     // socket, and its answer is read back. Nothing is filed or claimed on either side; the daemon
     // applies with the authority it holds, and a retried identity lands once there too.
@@ -2052,8 +2049,8 @@ export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAge
     // Deferred, and never called by a host that only invokes a function op: the queue is opened by
     // `jobs()` and nothing else resolves a provider handle.
     model: input.model ?? (() => resolveCliJobModel(input.configPath)),
-    // 389-06: the author's compaction budget, from the SAME profile resolution as the model
-    // binding one line up (386 D-15) — deferred identically, resolved once at queue open,
+    // the author's compaction budget, from the SAME profile resolution as the model
+    // binding one line up — deferred identically, resolved once at queue open,
     // and degrading to `undefined` (no ladder) when no LLM is configured.
     analysisTokenBudget:
       input.analysisTokenBudget ?? (() => resolveCliAnalysisTokenBudget(input.configPath)),
@@ -2066,13 +2063,13 @@ export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAge
           },
         }),
     ...(input.chatPresent === undefined ? {} : { chatPresent: input.chatPresent }),
-    // 392 plan 09, CHAT-06: the chat model arrives ALREADY BUILT, through `createModel` at the
+    // the chat model arrives ALREADY BUILT, through `createModel` at the
     // resolution one layer up. Conditionally spread, so a host without
     // one leaves the field ABSENT and the composition's own headless posture is what answers.
     ...(input.chatModel === undefined ? {} : { chatModel: input.chatModel }),
     ...(input.chatModelFor === undefined ? {} : { chatModelFor: input.chatModelFor }),
     ...(input.chatAccounting === undefined ? {} : { chatAccounting: input.chatAccounting }),
-    // 392 plan 10, D-16: the reconciliation strategy, conditionally spread on the exact idiom of
+    // the reconciliation strategy, conditionally spread on the exact idiom of
     // the three chat options above. ABSENT must stay absent, because the composition's own
     // `?? deterministicOverrideStrategy` is where the safe default lives and a present-undefined
     // field would be a second place it could be decided.
@@ -2091,14 +2088,14 @@ export function composeCliLocalAgent(input: ComposeCliLocalAgentInput): LocalAge
 }
 
 /**
- * 432-12 (D-05): the CLI's delegate for a direct knowledge change a live daemon's lease covers.
+ * the CLI's delegate for a direct knowledge change a live daemon's lease covers.
  *
  * It invokes the verb's own change op on the daemon over the 386 `/invoke` socket, with the same
  * operation identity, and reads the daemon's answer back as the writer's result. The daemon holds
  * the lease and applies with its own authority; nothing is filed or claimed on either side. A mark
  * never reaches here: it changes knowledge through `runs.mark`.
  *
- * 2026-10-02 (quick 261002-hyg): the holder is classified first, as `delegateMarkViaDaemon` does.
+ * the holder is classified first, as `delegateMarkViaDaemon` does.
  * A live daemon is invoked; a lease naming a registered daemon nobody answers for refuses with
  * `DaemonNotRunningError`; any other holder is another agent-qa process that is writing, and the
  * change refuses at once with `KnowledgeWriterLeaseBusyError`. It does not wait: knowledge-local
@@ -2200,7 +2197,7 @@ export function delegateMarkViaDaemon(input: {
 }
 
 /**
- * 2026-10-02 (quick 261002-mrk): the mark host the writer-lease holder (the daemon) composes. Its
+ * the mark host the writer-lease holder (the daemon) composes. Its
  * evidence and its fix commit with the held authority, and it binds no delegate.
  */
 export function createLeaseHolderFeedbackPort(input: {

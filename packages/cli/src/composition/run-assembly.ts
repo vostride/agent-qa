@@ -1,4 +1,4 @@
-// The CLI's run assembly — the `RunAssembler` the in-process invocation core calls (Phase 401, D-02).
+// The CLI's run assembly — the `RunAssembler` the in-process invocation core calls.
 //
 // WHAT MOVED HERE AND WHY IT MOVED. `run.ts`'s single-test path used to compute all of this inline,
 // immediately before its own `startRun`. Three of the steps have effects on the world outside this
@@ -68,7 +68,7 @@ export interface CliRunAssemblyInput {
   readonly knowledgeRoot: string
   /** The durable ports the core built under `<configDir>/.agent-qa` (Pitfall 5). */
   readonly ports: RunPersistencePorts
-  /** The redactor the producer read at the run's start; the shell masks every bus event with it (441-12). */
+  /** The redactor the producer read at the run's start; the shell masks every bus event with it. */
   readonly secretRedactor: NonNullable<RunConfig['secretRedactor']>
   readonly members: readonly RunMemberDescriptor[]
   readonly executor: MemberTestExecutor
@@ -79,7 +79,7 @@ export interface CliRunAssemblyInput {
   readonly buildTag?: string
   /**
    * ONE ENTRY PER MEMBER, index-aligned with `members`: the URL whose health reading belongs to
-   * that member (401-19, WR-04).
+   * that member.
    *
    * AN `undefined` ENTRY MEANS NO PROBE FOR THAT MEMBER, which is the mobile posture: a
    * device-session-create failure is the equivalent environment signal there, so there is nothing
@@ -89,7 +89,7 @@ export interface CliRunAssemblyInput {
   /** Where a quarantine-fold warning goes. The command owns its own rendering. */
   readonly warn: (message: string) => void
   /**
-   * 402-03 (D-12): how many members may execute concurrently, ALREADY RESOLVED by
+   * how many members may execute concurrently, ALREADY RESOLVED by
    * `resolveEffectiveWorkers` at the drive. Absent or 1 leaves the `RunConfig` byte-identical to
    * the pre-402 shape, which is why it is spread conditionally rather than always written: a run
    * that nobody configured for concurrency must not become distinguishable from one that ran
@@ -99,7 +99,7 @@ export interface CliRunAssemblyInput {
    * here could disagree with the drive's, and the formula has exactly one site.
    */
   readonly workers?: number
-  /** 436 D-06: the producer's resolved planner limits, carried onto the run's own record. */
+  /** the producer's resolved planner limits, carried onto the run's own record. */
   readonly plannerLimits?: PlannerLimitsRecord
   /** The masked source and target names the run stages as `artifact.json`. */
   readonly runArtifact?: RunArtifactStageInput
@@ -130,9 +130,9 @@ export interface CliRunAssembly {
  * for the root-cause classifier; a throw here would turn an unreachable target into a framework
  * error before the member could report it as the test failure it is. That is the shipped posture
  * (`run.ts` wrapped the same call in a swallowing try), preserved verbatim — the catch covers the
- * PROBE and nothing else, so it is not a defensive wrapper around the run (D-03).
+ * PROBE and nothing else, so it is not a defensive wrapper around the run.
  *
- * THE PROBE IS PER MEMBER AND DEDUPED BY URL (401-19, WR-04). Each DISTINCT member URL is fetched
+ * THE PROBE IS PER MEMBER AND DEDUPED BY URL. Each DISTINCT member URL is fetched
  * once and its result is carried onto the members that named it, so an N-member run over one target
  * still costs one GET while a run over two targets no longer diagnoses one of them with the other's
  * health. There is no run-level baseline any more: a run-level value beside a per-member one is two

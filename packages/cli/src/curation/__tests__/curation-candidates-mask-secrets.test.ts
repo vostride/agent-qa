@@ -157,7 +157,7 @@ function queuedPayloads(knowledgeRoot: string, report: EmitReport): CurationCand
   })
 }
 
-// memory/index is the gitignored derived index, not committed knowledge (D-06, D-27).
+// memory/index is the gitignored derived index, not committed knowledge.
 function committedFilesUnder(dir: string): string[] {
   return readdirSync(dir, { recursive: true, withFileTypes: true })
     .filter((entry) => entry.isFile())

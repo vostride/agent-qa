@@ -1,4 +1,4 @@
-// 2026-10-17 (443-06, D-10/D-24): every runs.start door's row records its door in the existing
+// every runs.start door's row records its door in the existing
 // agent-qa.trigger values; the dashboard tells POST /run from the co-hosted MCP by a request scope.
 
 import { mkdirSync, readFileSync } from 'node:fs'

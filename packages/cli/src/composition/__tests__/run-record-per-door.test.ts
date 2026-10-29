@@ -1,4 +1,4 @@
-// 2026-10-17 (443-05, D-02/D-06/D-08/D-22): every runs.start door records its run through one
+// every runs.start door records its run through one
 // builder; these cells read the rows each door leaves.
 
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'

@@ -897,8 +897,8 @@ describe('projectCanaryOutcomes planSource attribution', () => {
  * copy, digest-asserted below). The rows assert the DESIRED contract — positive
  * procedure-replay canaries adopt D-01's per-trajectory passing gate — so the
  * failed-test row is RED on the shipped build. Polarity pins P1-P5 pin what must NOT
- * change: per-step positives on passing tests (380 D-21), guard-earned negatives and
- * the root-cause classifier gate (D-11), the PROC-01 zero-replay empty projection, and
+ * change: per-step positives on passing tests, guard-earned negatives and
+ * the root-cause classifier gate, the PROC-01 zero-replay empty projection, and
  * Pin 1 (served-brief) attribution.
  */
 describe('verdict-gated positive procedure canaries', () => {
@@ -960,7 +960,7 @@ describe('verdict-gated positive procedure canaries', () => {
       return test?.outcome !== 'passed' && evidence?.planSource?.kind === 'procedure-replay'
     })
     expect(positivesFromUnpassedTests).toEqual([])
-    // Suppression, never inversion (D-11): the withheld positive must not surface as a
+    // Suppression, never inversion: the withheld positive must not surface as a
     // negative either — the failed run contributes NOTHING to the confirmation counter.
     expect(outcomes.filter(({ candidateId }) => candidateId === FIXTURE_PROCEDURE))
       .toEqual([])
@@ -1222,7 +1222,7 @@ describe('the cross-run supersession differential', () => {
     const collected: CanaryOutcome[] = []
     const report = await foldInto(collected, failingHandoffFor(RUN_A), runDir)
 
-    // unknown → flake: flake is non-attributable (D-11), so the fold that reads the
+    // unknown → flake: flake is non-attributable, so the fold that reads the
     // resolved verdict emits NOTHING for this test — the outcome log cannot contradict it.
     expect(collected).toEqual([])
     expect(report.emitted).toBe(0)

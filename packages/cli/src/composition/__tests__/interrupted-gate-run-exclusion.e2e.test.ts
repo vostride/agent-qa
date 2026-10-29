@@ -49,7 +49,6 @@ import type { DatabaseSync } from 'node:sqlite'
 
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
-// 2026-10-19 (444.1-24, D-39): each drive and its detached tail are awaited before removal.
 const tails = vi.hoisted(() => [] as Array<Promise<void>>)
 
 vi.mock('../in-process-run-execution.js', async (importOriginal) => {
@@ -107,7 +106,7 @@ afterAll(async () => {
 
 type Fixture = ReturnType<typeof createInProcessFixture>
 
-/** 418-12: the direct rebuild fixture must own the same real writer authority as a host. */
+/** the direct rebuild fixture must own the same real writer authority as a host. */
 function reconcileRunOutcomesProjection(
   opts: Parameters<typeof reconcileUnderAuthority>[0],
 ): ReturnType<typeof reconcileUnderAuthority> {
@@ -203,7 +202,7 @@ function loggedTypes(fixture: Fixture, runDirName: string): string[] {
  *
  * Not the directory name: an interrupted run hands back no acknowledgement, and taking the id from
  * the directory would make this cell's identity claims a restatement of the naming convention it
- * also asserts. The directory name is then checked AGAINST this, which pins the convention (401-20)
+ * also asserts. The directory name is then checked AGAINST this, which pins the convention
  * instead of assuming it.
  */
 function recordedRunId(fixture: Fixture, runDirName: string): string {
@@ -331,7 +330,7 @@ describe('an interrupted gate run leaves nothing a full rebuild can reconstruct'
         //
         // Without this, "the interrupted run contributed nothing" and "the interrupted run never
         // started" read identically, and this phase has produced that exact false green three
-        // times. RE-SPELLED 2026-09-30 (432-13): the reach witness was the run gate's `run:start`
+        // times. RE-SPELLED 2026-09-30: the reach witness was the run gate's `run:start`
         // row, which no start writes any more; it is now each run's own first event.
         expect(auditRows(fixture).filter((row) => row.action === 'run:start')).toEqual([])
         for (const dir of [dirA, dirB, runC]) {
@@ -349,8 +348,8 @@ describe('an interrupted gate run leaves nothing a full rebuild can reconstruct'
         for (const dir of [dirA, dirB]) {
           const runDir = join(fixture.agentQaRoot, 'runs', dir)
           expect(existsSync(join(runDir, HANDOFF_FILE))).toBe(false)
-          // 432-13: `execution_audit.jsonl` was the run gate's row; a start writes none now.
-          // 441-58 (D-14): nor does it write a `masking-digests.json` sidecar.
+          // `execution_audit.jsonl` was the run gate's row; a start writes none now.
+          // nor does it write a `masking-digests.json` sidecar.
           expect(readdirSync(runDir).sort())
             .toEqual(['artifact.json', 'events.jsonl'])
           expect(readFileSync(join(runDir, 'events.jsonl'), 'utf8').trim()).not.toBe('')
@@ -487,7 +486,7 @@ describe('an interrupted gate run leaves nothing a full rebuild can reconstruct'
           const runDir = join(fixture.agentQaRoot, 'runs', dir)
           expect(existsSync(join(runDir, HANDOFF_FILE))).toBe(false)
           expect(existsSync(join(runDir, ANALYSIS_FILE))).toBe(false)
-          // 441-58 (D-14): no `masking-digests.json` sidecar is written.
+          // no `masking-digests.json` sidecar is written.
           expect(readdirSync(runDir).sort())
             .toEqual(['artifact.json', 'events.jsonl'])
           expect(readFileSync(join(runDir, 'events.jsonl'), 'utf8')).toBe(residueBefore.get(dir))

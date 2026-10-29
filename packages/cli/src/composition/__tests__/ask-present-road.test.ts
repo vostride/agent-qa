@@ -1,7 +1,7 @@
 // `agent-qa ask` at a terminal: what a person is SHOWN before they are asked (395-22 · CFGM-05 ·
 // SC-5 · the owner's 2026-08-15 CR-04 ruling, completed on the UNBOUND-present arm).
 //
-// 2026-09-30, 432-11 D-05/D-14: THE SCAFFOLD WRITES IN ITS OWN CALL and nothing asks. There is no
+// THE SCAFFOLD WRITES IN ITS OWN CALL and nothing asks. There is no
 // apply to approve, so the render is a receipt of a change already on disk and a missing surface no
 // longer stops the turn. Both cells are re-spelled in place: (A2) a headless ask configures and
 // authors with no prompt, (A1) a bound surface is shown the change after it was written.
@@ -57,7 +57,7 @@ import { runSafetyScope } from '@vostride/agent-qa-safety-local'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { CLI_FUNCTION_CALLER, composeCliLocalAgent } from '../local-agent-host.js'
-// 2026-10-01 (432-19, D-14): safety publishes no confirm port; the shape an old host bound is spelled
+// safety publishes no confirm port; the shape an old host bound is spelled
 // locally so the spies below can still be smuggled in and shown never to be called.
 interface ConfirmPort {
   readonly surface: 'tty-prompt'
@@ -70,7 +70,7 @@ const CONFIG_FILE = 'agent-qa.config.yaml'
 const UTTERANCE = 'write a test for booking.com checkout'
 
 /**
- * A configuration that declares an LLM and NO TARGETS — SC-5's serving class (395-12).
+ * A configuration that declares an LLM and NO TARGETS — SC-5's serving class.
  *
  * A project able to hold a conversation at all is a project that HAS a config file, because
  * `resolveCliChatCapabilities` reads the chat model out of `registry.llms`. Zero targets is what
@@ -184,7 +184,7 @@ beforeEach(() => {
   writeFileSync(join(root, '.gitignore'), SEEDED_GITIGNORE)
   writeFileSync(join(root, 'README.md'), 'a project with a model and no targets\n')
   // COMMITTED, never merely written: the scaffold re-reads the committed set at proposal time
-  // (CFGM-04), so a dirty fixture would measure D-05's two-commit road instead of this one.
+  // so a dirty fixture would measure D-05's two-commit road instead of this one.
   writeFileSync(configPath, ZERO_TARGET_CONFIG)
   // 2026-10-14 (441-06, E3): ask refuses a project whose secrets file is missing.
   writeFileSync(join(root, '.env.secrets.local'), '')
@@ -209,7 +209,7 @@ describe('agent-qa ask, at a terminal, over a project with nothing to test again
       const host = composeCliLocalAgent({
         agentQaRoot,
         configPath,
-        // 432-16 (D-14): the input declares no confirm; the spy is smuggled past the type.
+        // the input declares no confirm; the spy is smuggled past the type.
         ...{ confirm } as object,
         chatModel: planner.model as never,
       })
@@ -230,7 +230,7 @@ describe('agent-qa ask, at a terminal, over a project with nothing to test again
       // whose confirm count is zero because nothing happened would prove nothing at all.
       expect(planner.calls()).toBeGreaterThanOrEqual(1)
 
-      // 432-11 D-14: NO PROMPT ABOUT THE CONFIGURATION. There is no apply verb to be asked about;
+      // NO PROMPT ABOUT THE CONFIGURATION. There is no apply verb to be asked about;
       // whatever the gate still asks until 432-13 removes it, none of it names a config op.
       const askedAbout = ask.mock.calls.map((call) => JSON.stringify(call))
       expect(askedAbout.filter((asked) => asked.includes('config.'))).toEqual([])
@@ -267,7 +267,7 @@ describe('agent-qa ask, at a terminal, over a project with nothing to test again
       const host = composeCliLocalAgent({
         agentQaRoot,
         configPath,
-        // 432-16 (D-14): the input declares no confirm; the spy is smuggled past the type.
+        // the input declares no confirm; the spy is smuggled past the type.
         ...{ confirm } as object,
         chatPresent: (text: string) => {
           events.push('present')
@@ -291,7 +291,7 @@ describe('agent-qa ask, at a terminal, over a project with nothing to test again
 
       // THE RENDER HAPPENED, EXACTLY ONCE, FIRST, AND AFTER THE WRITE: at the moment the receipt
       // reached the surface, the configuration it describes was already on disk. Nothing asked
-      // before it (432-11 D-14).
+      // before it.
       expect(rendered).toHaveLength(1)
       expect(events.indexOf('present')).toBe(0)
       expect(configuredAtRender).toEqual([true])

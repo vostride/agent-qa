@@ -51,14 +51,14 @@ export const CURATOR_RETRY_CAP = 2
 export const CURATOR_MAX_NEIGHBORS = 12
 
 export interface BuildCuratorAuthorDependencies {
-  /** The run's already-resolved registry profile. It is reused verbatim (D-03). */
+  /** The run's already-resolved registry profile. It is reused verbatim. */
   profile: ModelProfile
   auth: ResolvedModelAuth
   mask: MaskFn
   createModelImpl?: typeof createModel
   resolveCapabilitiesImpl?: typeof resolveCapabilities
   createTokenAccountingImpl?: typeof createTokenAccounting
-  // 2026-10-19 (444.1-14, D-01): an aborted request is rethrown, so the drain requeues it.
+  // an aborted request is rethrown, so the drain requeues it.
   signal?: AbortSignal
 }
 
@@ -607,10 +607,10 @@ function parseAuthorOutput(
   return { ok: true, outcome: { kind: 'authored', deltas: [delta], authorship: stamp } }
 }
 
-// --- Procedure extraction (PROC-01 D-02/D-03) -------------------------------------------------
+// --- Procedure extraction -------------------------------------------------
 // The LLM proposes segmentation + parameter names ONLY. Code deterministically builds each
 // candidate's parameterized step sequence and guard descriptors from the job's code-built
-// trajectory seed + finalized capture receipt — never from LLM text (T-381-05).
+// trajectory seed + finalized capture receipt — never from LLM text.
 
 const procedureParamTypeSchema = z.enum(['string', 'number', 'boolean', 'secret'])
 
@@ -648,7 +648,7 @@ const extractionProposalSchema = z
 type ExtractionCandidate = z.infer<typeof extractionCandidateSchema>
 
 /**
- * The ONE replayability authority shared by the presentation and the builder wall (G-381-1).
+ * The ONE replayability authority shared by the presentation and the builder wall.
  * `buildCandidatePayload` inlined these four conditions while the prompt knew nothing about
  * them, so every live whole-flow proposal — real flows end with a targetless assertAI verify
  * step — was rejected with feedback that never named the constraint. Prompt, render, and wall
@@ -664,7 +664,7 @@ function isReplayableTrajectoryStep(step: ProcedureTrajectoryStep): boolean {
 
 type TrajectoryTarget = NonNullable<ProcedureTrajectoryStep['action']>['targets'][string]
 
-/** A committed body target (438 D-11): role, exact name and stated row words, never a position. */
+/** A committed body target: role, exact name and stated row words, never a position. */
 function bodyTarget(target: TrajectoryTarget): ProcedureGuardTarget {
   return {
     role: target.role,
@@ -742,7 +742,7 @@ interface BuiltCandidate {
 
 /**
  * Typed build outcome. The former `undefined` return told the retry loop nothing, so the model
- * was asked three times to fix a constraint it was never shown (G-381-1). Reasons are
+ * was asked three times to fix a constraint it was never shown. Reasons are
  * module-internal strings surfaced only through the extraction retry feedback.
  */
 type CandidateBuild =
@@ -796,7 +796,7 @@ function reserveForcedParameterName(base: string, usedNames: Set<string>): strin
  * success assertion. Rejects with a typed reason on any evidence gap (unknown ordinal,
  * non-contiguous span, guardless or non-replayable step) — never a partially-guarded candidate.
  *
- * Producer-side normalization (G-381-1): the span's BOUNDARY ordinals are clamped inward while
+ * Producer-side normalization: the span's BOUNDARY ordinals are clamped inward while
  * they fail the shared replayability predicate, so the whole-flow proposal every real flow
  * invites — [0, last] where last is a targetless assertAI verify step — builds deterministically
  * instead of dying on the wall. The clamp runs BEFORE the walls and never relaxes one: an
@@ -851,13 +851,13 @@ function buildCandidatePayload(
     }
   }
 
-  // G-381-3: the source-binding index over the covered span. A slot's sourceName is the name of
+  // the source-binding index over the covered span. A slot's sourceName is the name of
   // the live binding that produced its value (an interpolated test variable matched by exact
   // equality, or a secret recovered from its masked recorded form). Consult-time fillability
-  // (D-08) matches required parameter names against the loop's binding NAMES, so a committed
+  // matches required parameter names against the loop's binding NAMES, so a committed
   // parameter that is not named after its binding is permanently unfillable — which is exactly
   // why every live procedure downranked to hint. Code, not the prompt, is the authority here
-  // (D-02): whatever the model proposed, the covering parameter takes the binding name.
+  // whatever the model proposed, the covering parameter takes the binding name.
   const slotSourceNames = new Map<string, string>()
   for (const step of covered) {
     if (step.action === undefined) continue
@@ -893,7 +893,7 @@ function buildCandidatePayload(
 
   // A rename may collapse two proposals onto one name. That is correct when both describe the
   // same binding, so merge them — but only when their declared contract already agrees; a
-  // disagreement means the model modeled one binding two incompatible ways (T-381-103).
+  // disagreement means the model modeled one binding two incompatible ways.
   const collapsed = new Map<string, ExtractionCandidate['parameters'][number]>()
   for (const parameter of candidate.parameters) {
     const committedName = renamedParameters.get(parameter.name)!
@@ -916,7 +916,7 @@ function buildCandidatePayload(
   const forcedParams: ProcedureParameterSpec[] = []
   const steps: ProcedureStepSpec[] = []
   for (const step of covered) {
-    // Same predicate the presentation renders (G-381-1) — one authority, zero drift. Reaching
+    // Same predicate the presentation renders — one authority, zero drift. Reaching
     // here means the ordinal is INTERIOR to the clamped span, so contiguity forbids trimming it.
     if (!isReplayableTrajectoryStep(step)) {
       return rejectCandidate(
@@ -939,7 +939,7 @@ function buildCandidatePayload(
       const composite = isCompositeObserved(observed)
       const secretSlot = slot.source === 'masked-secret'
       const claimed = appliesIndex.get(`${step.ordinal}\u0000${field}`)
-      // The committed name is the binding name whenever the evidence knows one (G-381-3);
+      // The committed name is the binding name whenever the evidence knows one;
       // a proposal's own name survives only for slots with no source binding.
       const proposed =
         claimed === undefined ? undefined : renamedParameters.get(claimed) ?? claimed
@@ -961,7 +961,7 @@ function buildCandidatePayload(
       // proposal missed still becomes a {param} ref, never a committed literal.
       if (secretSlot || slot.source === 'test-variable') {
         // A sourced slot forces a parameter named after its BINDING, not after its position
-        // (G-381-3) — a synthetic `step0_value` name is unfillable at consult by construction.
+        // a synthetic `step0_value` name is unfillable at consult by construction.
         // Two slots sharing one binding name share ONE parameter; secret type wins the merge.
         if (slot.sourceName !== undefined) {
           const shared = forcedBySourceName.get(slot.sourceName)
@@ -1003,7 +1003,7 @@ function buildCandidatePayload(
   }
 
   // Unreferenced proposed parameters are dropped (disposition would reject them); a proposed
-  // parameter covering a masked slot is escalated to the secret type (D-03).
+  // parameter covering a masked slot is escalated to the secret type.
   const parameters: ProcedureParameterSpec[] = [
     ...[...collapsed.values()]
       .map((parameter) => ({
@@ -1044,11 +1044,11 @@ function buildCandidatePayload(
 }
 
 /**
- * The flow anchor is code-built, never model text (T-381-98). `emit-candidates` pins the queue
+ * The flow anchor is code-built, never model text. `emit-candidates` pins the queue
  * candidate's primary anchor to flow:<testId> and seed.flowName IS that testId, so sourcing the
  * anchor here from the seed is what makes `checkAnchorConsistency` pass structurally — a
  * model-invented flowName otherwise downgrades the Add to MintUnknown whose synthetic body then
- * noops 'procedure-body-unparseable' at commit (G-381-1). The proposal's descriptive name
+ * noops 'procedure-body-unparseable' at commit. The proposal's descriptive name
  * survives only inside the human-readable summary.
  */
 function procedureDelta(
@@ -1131,7 +1131,7 @@ function parseExtractionOutput(
 }
 
 /**
- * Extraction-job retry feedback (G-381-1). The generic delta-authoring line below speaks of
+ * Extraction-job retry feedback. The generic delta-authoring line below speaks of
  * delta kinds and aliases, which an extraction proposal has neither of — three retries of it
  * never told the live model to trim its span, and the job died at fallback-required:malformed.
  * This restates the two contract rules alongside the per-candidate reject reasons.

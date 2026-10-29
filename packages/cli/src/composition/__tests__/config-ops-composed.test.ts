@@ -1,6 +1,6 @@
 // The four 395-05 actions over the REAL ports and a REAL file (395-05 · CFGM-01/02 · D-01/D-02/D-11).
 //
-// 2026-09-30, 432-11 D-05/D-07: the actions WRITE IN THE CALL through the real direct writer, so
+// the actions WRITE IN THE CALL through the real direct writer, so
 // the cells read the change back off the file on disk rather than out of a filed proposal.
 //
 // WHY THIS FILE EXISTS BESIDE `agent`'s `config-ops.test.ts`, AND WHY EITHER ALONE WOULD BE WEAKER.
@@ -127,7 +127,7 @@ function registry() {
     // THE TWO PRODUCTION PORTS THIS FILE IS ABOUT.
     configFiles: createConfigFilesPort(configPath),
     configValidate: createConfigValidatePort(),
-    // 432-11: THE REAL DIRECT WRITER, over the real workspace.
+    // THE REAL DIRECT WRITER, over the real workspace.
     configWrite: createConfigWritePort(configPath, (text) => text),
     // Nothing should reach the store any more; it is still bound so a filing would be seen.
     configProposals: {
@@ -176,7 +176,7 @@ describe('the target and hook actions over the real ports', () => {
 
     expect(answer.crossBoundaryReasons).toEqual(['new-origin'])
     expect(answer.files).toEqual(['agent-qa.config.yaml'])
-    // WRITTEN, IN THE CALL, AS ONE BLOCK — and nothing was filed (432-11 D-05).
+    // WRITTEN, IN THE CALL, AS ONE BLOCK — and nothing was filed.
     expect(writtenText()).toContain('    shop:\n      platform: web\n      url: https://shop.example.com')
     expect(filed).toHaveLength(0)
   })
@@ -236,7 +236,6 @@ describe('the target and hook actions over the real ports', () => {
 
   it('a credential in an auth reference is refused, and the file is never opened for writing',
     async () => {
-      // 2026-10-02 (quick 261002-ctr): carried in `pluginPackage` (was `authStateName`, deleted).
       const answer = await call('config.auth.set', {
         target: 'local-form',
         pluginPackage: 'AKIAQWERTYUIOPASDFGH',
@@ -517,7 +516,7 @@ function settle(ms = 50): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-// 2026-10-02 (quick 261002-ctr): `authStateName` wrote `use.authState`, and the committed
+// `authStateName` wrote `use.authState`, and the committed
 // configuration has no such key, so through real whole-config validation `config.auth.set`,
 // `config.target.create` and `config.target.edit` answered `blocked / schema-fail` on every call that
 // used it. The field is deleted from all three. These cells are the absence witness and the reason.
@@ -677,10 +676,10 @@ describe('a whole-file write that meets an outside edit says exactly what happen
     })
 })
 
-// RE-SPELLED 2026-10-01 (432-16, D-07): the undo's git-history source is no longer bound on the CLI
+// RE-SPELLED 2026-10-01: the undo's git-history source is no longer bound on the CLI
 // host, so it refuses unbound by name instead of answering the proposal union's `no-agent-commit`
 // refusal. The claim it guarded — nothing is written, committed or filed — is unchanged.
-// RE-SPELLED 2026-10-01 (432-17, D-09): the undo op is deleted, so it is refused as an unknown function.
+// RE-SPELLED 2026-10-01: the undo op is deleted, so it is refused as an unknown function.
 describe('config.undo.propose is refused as an unknown function', () => {
   it('the undo answers the proposal union and, with no agent commit, refuses by name and writes nothing', async () => {
     gitIn(root, 'init', '--quiet')

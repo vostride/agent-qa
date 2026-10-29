@@ -79,7 +79,7 @@ const SCOPE: ScopeKey = { tier: 'product', key: PRODUCT }
 const FULL_TIER_REPLAY_CONFIRMATIONS = 2
 const noAuth: ResolvedModelAuth = { kind: 'none' }
 
-/** Capable-family model id so llm-path authorship derives the FULL curator tier (D-06). */
+/** Capable-family model id so llm-path authorship derives the FULL curator tier. */
 function scriptedProfile(): ModelProfile {
   return {
     provider: 'openai-compatible',
@@ -127,7 +127,7 @@ function alwaysModel(output: string): CuratorModel {
   }
 }
 
-/** The LLM proposes segmentation + parameter names ONLY; code builds the body (D-02/D-03). */
+/** The LLM proposes segmentation + parameter names ONLY; code builds the body. */
 const wholeFlowProposal = JSON.stringify({
   candidates: [
     {
@@ -462,7 +462,7 @@ describe('procedure loop closure', () => {
     return reader.getProcedure(
       'sign in and buy at checkout',
       screenState([], '/login'),
-      // D-08: source-tagged binding names + per-type capability bits only — no value of any
+      // source-tagged binding names + per-type capability bits only — no value of any
       // binding ever reaches the matcher (the entry is computed loop-side by the shared
       // sanitizer over the run's actual raw value). Every required name of the served
       // parameterSchema is bound the way replay callers do; CR-03 keeps the password
@@ -607,7 +607,7 @@ describe('procedure loop closure', () => {
     expect(confirmations.creation.curationJobId).toBe(confirmations.creationJobId)
     expect(confirmations.organic).toEqual([])
     // The Add commit carries its authoring evidence for audit, but its effective replay count is
-    // zero, so the fresh procedure stays a hint until organic canary outcomes earn replay (D-05).
+    // zero, so the fresh procedure stays a hint until organic canary outcomes earn replay.
     expect(match?.replayRecommendation).toBe('hint')
     expect(match?.authoringModelTier).toBe('full')
     expect(match?.parameterSchema).toEqual([
@@ -648,7 +648,7 @@ describe('procedure loop closure', () => {
   })
 
   /**
-   * The guarded-replay fixture BOTH replay cells drive (407-12).
+   * The guarded-replay fixture BOTH replay cells drive.
    *
    * Extracted verbatim from the CR-03 cell so the 407-12 projection cell replays through the
    * SAME construction rather than a second hand-built approximation of it — a copy would let
@@ -721,7 +721,7 @@ describe('procedure loop closure', () => {
       },
     }
     const secretStore = new SecretStore({ step2_text: 'correct horse battery staple' })
-    // D-09 per-step law (F-381-51-1): body steps map 1:1 onto test steps, so CR-03's
+    // D-09 per-step law: body steps map 1:1 onto test steps, so CR-03's
     // "through every stored guard" is proven ACROSS three test steps — the member-scoped
     // carry cell threads the cursor, and every body step re-earns dispatch through the
     // full guard ladder on its own step's fresh observation.
@@ -887,8 +887,8 @@ describe('procedure loop closure', () => {
     } as unknown as FunctionDeps
     const registry = createFunctionRegistry({
       deps: { ...deps, secretMask: (text: string) => text },
-      // 2026-10-02 (432-37, D-12): no `resolveExecutionContext` registry option, and the caller
-      // carries no `grantedScopes`/`safeMode`; the registry reads neither (432-20).
+      // no `resolveExecutionContext` registry option, and the caller
+      // carries no `grantedScopes`/`safeMode`; the registry reads neither.
     })
     const caller: FunctionCaller = {
       surface: 'cli',
@@ -1007,7 +1007,7 @@ describe('procedure loop closure', () => {
 
     expect(result.status).toBe('passed')
     expect(result.evidence).toBeDefined()
-    // The rejection aborts replay one-shot (D-11): ONE live recovery turn completes the
+    // The rejection aborts replay one-shot: ONE live recovery turn completes the
     // step, and the stored fills (body steps 1-2) never dispatch anywhere — neither within
     // this step (no replay re-entry) nor after it (the carry cell was never re-armed, so
     // no later step can resume the body).
@@ -1079,7 +1079,7 @@ describe('procedure loop closure', () => {
     )
 
     expect(brief.procedures.map(({ id }) => id)).toContain(procedureId)
-    // The tail-folded run-outcome projection surfaces the source test by reference (D-15),
+    // The tail-folded run-outcome projection surfaces the source test by reference,
     // verified outcomes and all — never test file content.
     const exemplar = brief.exemplars.find(
       ({ filePath, testName }) => filePath === FILE_PATH && testName === FLOW,
@@ -1228,7 +1228,7 @@ describe('procedure loop closure', () => {
   })
 })
 
-// WHICH DRAFTS INDUCE — the recorded decision, made an invariant (394-11, D-07 · WTST-01).
+// WHICH DRAFTS INDUCE — the recorded decision, made an invariant.
 //
 // SC-1 stage 6 says a verified pass induces a gated parameterized `procedure` candidate. 394 does
 // not generalise the procedure representation and must not: the parameterized candidate is already

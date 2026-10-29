@@ -6,7 +6,7 @@ import { parseTestFile } from '@vostride/agent-qa-core'
 import { describe, expect, it } from 'vitest'
 
 /**
- * THE RED-FIRST RECEIPT (D-08).
+ * THE RED-FIRST RECEIPT.
  *
  * This suite is committed FAILING, on purpose, with no evaluator in existence, and it
  * stays red until the assertion-strength check lands. That ordering IS the phase's
@@ -19,7 +19,7 @@ import { describe, expect, it } from 'vitest'
  *
  * ── The contract this suite defines ──────────────────────────────────────────────
  * `@vostride/agent-qa-agent` must export `evaluateAssertionStrength`, a deterministic
- * pure function over a draft's parsed NL steps (D-09/D-11):
+ * pure function over a draft's parsed NL steps:
  *
  *   evaluateAssertionStrength(steps: string[]): {
  *     falsifiable: boolean            // the gate-4 boolean
@@ -118,7 +118,7 @@ describe('gate 4 — assertion strength over the frozen corpus', () => {
   )
 
   it('reports a per-step classification table for every draft, not just a boolean', async () => {
-    // D-11: the receipt carries the per-step table verbatim, so the gate cannot be a
+    // the receipt carries the per-step table verbatim, so the gate cannot be a
     // bare boolean that nobody can audit.
     const evaluateAssertionStrength = await loadAssertionStrengthCheck()
 
@@ -154,7 +154,7 @@ describe('gate 4 — assertion strength over the frozen corpus', () => {
   })
 
   it('flags the machine-generated expected value on the capture-signature draft', async () => {
-    // D-10: the capture signature must be NAMED in the table, not merely folded into
+    // the capture signature must be NAMED in the table, not merely folded into
     // the boolean — the receipt has to say why.
     const evaluateAssertionStrength = await loadAssertionStrengthCheck()
 
@@ -167,7 +167,7 @@ describe('gate 4 — assertion strength over the frozen corpus', () => {
   })
 
   it('accepts the known-good control', async () => {
-    // The positive half (D-07). Without this, a constant-false check would pass every
+    // The positive half. Without this, a constant-false check would pass every
     // other case in this file and the corpus would prove nothing.
     const evaluateAssertionStrength = await loadAssertionStrengthCheck()
 

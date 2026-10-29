@@ -436,8 +436,8 @@ function projectCaution(
   )
 }
 
-// 2026-10-09 (438-10): version 2 — targets carry the exact name and stated row words, never an
-// ordinal (D-11). A version-1 seed fails the literal and is never authored.
+// version 2 — targets carry the exact name and stated row words, never an
+// ordinal. A version-1 seed fails the literal and is never authored.
 export const PROCEDURE_TRAJECTORY_SEED_VERSION = 2
 
 const trajectoryGuardTargetSchema = z
@@ -458,7 +458,7 @@ const trajectoryCompositeValueSchema = z.union([
 
 const trajectoryValueSlotSchema = z
   .object({
-    // WR-04: boolean and numeric action fields are replay semantics, not decoration. Dropping
+    // boolean and numeric action fields are replay semantics, not decoration. Dropping
     // fill.submit, scroll.maxSwipes/retryOpposite, durations, or scale here would author a
     // procedure whose behavior differs from the verified trajectory.
     observed: z.union([
@@ -468,7 +468,7 @@ const trajectoryValueSlotSchema = z
       trajectoryCompositeValueSchema,
     ]),
     source: z.enum(['literal', 'test-variable', 'masked-secret']),
-    // G-381-3: the live binding name behind this slot, when the evidence names it —
+    // the live binding name behind this slot, when the evidence names it —
     // a test variable matched against Plan 381-41's interpolation provenance, or a secret
     // recovered from its recorded masked form. `curator-author` forces the covering
     // parameter to exactly this name so consult-time fillability (D-08, which matches on
@@ -495,7 +495,7 @@ const trajectoryStepSchema = z
 
 /**
  * The code-built trajectory a procedure candidate carries in its existing `bodySeed` string —
- * no new queue machinery (D-01/D-02). The extraction author decodes it to build the committed
+ * no new queue machinery. The extraction author decodes it to build the committed
  * step sequence deterministically; the LLM only ever proposes segmentation + parameter names.
  */
 export const procedureTrajectorySeedSchema = z
@@ -523,7 +523,7 @@ export function parseProcedureTrajectorySeed(
   return result.success ? result.data : undefined
 }
 
-// 2026-10-14 (441-10, D-12, D-20): a declared secret is recorded as `[secret:NAME]` (or an
+// a declared secret is recorded as `[secret:NAME]` (or an
 // unexpanded `{{secret:NAME}}`); an old numbered placeholder is literal text.
 const MASKED_VALUE_PATTERN = /\{\{\s*secret:|\[secret:\w+\]/
 const TEST_VARIABLE_PATTERN = /\{\{\s*env:/
@@ -560,7 +560,7 @@ function secretSourceName(observed: string): string | undefined {
  * Containment deliberately does NOT match. If `PROBE_USER=probe-user-7` and the observed
  * value is `prefix-probe-user-7-suffix`, parameterizing that superstring under PROBE_USER
  * would bind the wrong value at replay — replay substitutes the binding's value for the
- * WHOLE slot, not for the embedded region. Such slots stay literal-source (D-03).
+ * WHOLE slot, not for the embedded region. Such slots stay literal-source.
  *
  * The equality is shape-insensitive on purpose: email-valued and credential-named bindings
  * are the canonical login shapes, not edge cases. Provenance is recorded unmasked, so it is
@@ -661,7 +661,7 @@ function isCompositeJsonValue(
   return value === null || typeof value === 'object'
 }
 
-// 2026-10-14 (441-10, D-06): the caller's declared mask; absent only on a 'no-masker' host.
+// the caller's declared mask; absent only on a 'no-masker' host.
 function maskedProse(text: string, mask: MaskFn | undefined): string {
   return mask?.(text) ?? text
 }
@@ -679,7 +679,7 @@ function tidyName(name: string): string {
 }
 
 /**
- * The strict identity replay re-finds (438 D-11): role, the exact observed name and, on the lane
+ * The strict identity replay re-finds: role, the exact observed name and, on the lane
  * the planner stated, the stated row words recorded in the step's evidence (already redacted).
  * Both names and the row pass the caller's mask like the rest of the body. No position is written.
  */
@@ -725,7 +725,7 @@ function trajectoryValues(
   const action = actedPair(subAction).action as unknown as Record<string, unknown>
   for (const [key, raw] of Object.entries(action)) {
     if (key === 'type' || ACTION_REF_KEYS.includes(key)) continue
-    // CR-01/T-381-52: one lossy field invalidates the whole action. Silently dropping a value
+    // one lossy field invalidates the whole action. Silently dropping a value
     // would author replay behavior different from the verified trajectory.
     if (!jsonRepresentable(raw)) return undefined
     // 2026-10-15 (441-64, CR-A04; 441-67, GAP2-D1): the slot records the masked value. A value
@@ -733,7 +733,7 @@ function trajectoryValues(
     // reference; one that only contains it stays a masked literal.
     const value = mask === undefined ? raw : maskPayloadStrings(raw, mask)
     const composite = isCompositeJsonValue(value)
-    // T-381-50: D-03's parameter union is scalar-only, so masked/env material nested inside a
+    // D-03's parameter union is scalar-only, so masked/env material nested inside a
     // composite cannot be made safe by forced parameterization. Reject it before authoring.
     if (composite) {
       const serialized = JSON.stringify(value)
@@ -763,7 +763,7 @@ function trajectoryStep(step: StepEvidence, mask: MaskFn | undefined): Procedure
     completing === undefined
       ? undefined
       : trajectoryValues(completing, step.interpolatedVariables, mask)
-  // Replay evaluates the page guard before executing the action (D-10), so this route must
+  // Replay evaluates the page guard before executing the action, so this route must
   // describe the pre-action page. Recording a navigation destination made healthy steps miss
   // their guards and fed false staleness negatives into the D-05/D-11 confirmation ladder.
   const route = actedStateOf(completing)?.url
@@ -871,7 +871,7 @@ function projectProcedureTarget(
 }
 
 /**
- * D-01: EVERY verified-PASS multi-step trajectory becomes exactly one procedure-extraction
+ * EVERY verified-PASS multi-step trajectory becomes exactly one procedure-extraction
  * target on EVERY drain — no repetition threshold, no seen-before check, no user marking.
  * Content-addressing IS the dedup policy: a re-extracted duplicate address disposes as
  * Confirm downstream. Single-step, zero-step, failing, and skipped trajectories never target.
@@ -922,7 +922,7 @@ export type EmitCandidateOutcome =
 
 export interface EmitCandidateDetail {
   candidateId?: string
-  /** The projecting candidate's kind: per-kind outcome attribution from the report alone (381-50). */
+  /** The projecting candidate's kind: per-kind outcome attribution from the report alone. */
   kind: CurationCandidateProjection['kind']
   outcome: EmitCandidateOutcome
 }

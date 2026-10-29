@@ -1,4 +1,4 @@
-// D-10 end to end, through the REAL config path (Phase 387 plan 07, ENTY-02 / D-10).
+// D-10 end to end, through the REAL config path.
 //
 // The agent-side suite proves the producer's rules against `MaskedResolvedConfig` values it
 // constructs. That is necessary and not sufficient: a hand-built DTO can carry a shape the
@@ -10,7 +10,7 @@
 // What "real" means in this file, stated so it can be checked rather than trusted: an actual
 // YAML file on disk, resolved by `resolveConfig` through the shipped `AgentQaConfigSchema`
 // (which is `.strict()`, so an undeclared `services.dashboard` key would fail the read
-// outright), masked by `buildMaskedResolvedConfig` with the declared-secret mask (441-20, D-29),
+// outright), masked by `buildMaskedResolvedConfig` with the declared-secret mask,
 // and handed to the real `entities.get` op through `createFunctionRegistry` and
 // `invokeFunction`. The only stubs are the ports this claim is not about.
 
@@ -32,8 +32,8 @@ import { createConfigReader } from '../local-agent-host.js'
 const DECLARED_VALUE = 'Hunter-42-zz'
 const declaredRedactor = new SecretRedactor(SecretStore.fromEnvContent(`PW_441=${DECLARED_VALUE}\n`))
 
-// 2026-10-02 (432-36, D-12): no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither (432-20).
+// no `grantedScopes` or `safeMode` on the caller; the registry reads
+// neither.
 const CALLER: FunctionCaller = {
   surface: 'cli',
   origin: 'agent',
@@ -107,8 +107,8 @@ function depsFor(configPath: string): FunctionDeps {
 async function cardFor(dashboard: Record<string, unknown>): Promise<EntityCard> {
   const registry = createFunctionRegistry({
     deps: depsFor(writeConfig(dashboard)),
-    // 2026-10-02 (432-36, D-12): no `resolveExecutionContext` registry option; the registry reads
-    // no context (432-20).
+    // no `resolveExecutionContext` registry option; the registry reads
+    // no context.
   })
   const result = await invokeFunction(
     registry,

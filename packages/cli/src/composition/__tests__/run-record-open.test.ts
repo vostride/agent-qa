@@ -83,7 +83,6 @@ describe('opening a run record', () => {
     expect(hostDb.getRuns(), 'the host handle after the record closed').toEqual([])
   })
 
-  // 2026-10-17 (443-review, IN-07): SQLite removes the -wal file only when the file's last handle closes.
   it('two concurrent opens of one record share one handle', async () => {
     const configDir = tempRoot()
     const wal = join(configDir, '.agent-qa', 'runs.db-wal')

@@ -1,7 +1,7 @@
-// THE IN-PROCESS RUN EXECUTION'S OWN CELLS (Phase 401 plan 11).
+// THE IN-PROCESS RUN EXECUTION'S OWN CELLS.
 //
 // This file grows across the plan. Task 1 lands the typed-input-error register — the proof that no
-// input failure on this path can terminate its host (T-401-31). Task 2 adds the composability cell
+// input failure on this path can terminate its host. Task 2 adds the composability cell
 // and the ambient-crossing pair.
 //
 // THE RED BASELINE FOR THE TASK-1 CELLS IS NOT A FAILING ASSERTION, and saying so plainly is more
@@ -305,7 +305,7 @@ import { invokeFunction } from '@vostride/agent-qa-agent'
 import { CLI_FUNCTION_CALLER, composeCliLocalAgent } from '../local-agent-host.js'
 import { closeTestRunRecords, removeInProcessFixtures, testRunRecord } from './in-process-run-fixture.js'
 
-// 2026-10-17 (443-08, D-22): every drive call carries a record; each cell closes the ones it opened.
+// every drive call carries a record; each cell closes the ones it opened.
 afterEach(() => { closeTestRunRecords() })
 
 /** The process-global resolver is exactly that; a leaked pin poisons every sibling cell. */
@@ -362,7 +362,7 @@ describe('a door holding only a RunsStartInput gets a policy-gated run, in proce
           {
             runRecord: testRunRecord(),
             ...fixtureOptions(fixture),
-            // THE POSTURE TRAVELS EXPLICITLY (D-07). No CLI option is named anywhere in this call.
+            // THE POSTURE TRAVELS EXPLICITLY. No CLI option is named anywhere in this call.
             executionContext: 'local-headless',
             onSession: (started) => { session = started },
           },
@@ -386,7 +386,7 @@ describe('a door holding only a RunsStartInput gets a policy-gated run, in proce
       // The run started, so the baseline probe knocked.
       expect(target.hits).toEqual(['/in-process-thing'])
       expect(buildOrdinalsExist(fixture as never)).toBe(true)
-      // 432-13: the start is not asked about, so it leaves no approval row.
+      // the start is not asked about, so it leaves no approval row.
       expect(auditRows(fixture as never)).toEqual([])
     } finally {
       await target.close()
@@ -458,7 +458,7 @@ describe('a door holding only a RunsStartInput gets a policy-gated run, in proce
       expect(eventTypes(named as never)).toEqual([])
       expect(buildOrdinalsExist(composed as never)).toBe(true)
       expect(buildOrdinalsExist(named as never)).toBe(false)
-      // One run, one id — not two runs. RE-SPELLED 2026-09-30 (432-13): the named project's half
+      // One run, one id — not two runs. RE-SPELLED 2026-09-30: the named project's half
       // was the gate's audit row, written under ITS run dir; no row is written now, so the named
       // project holds no run dir at all and the whole run is the composed project's.
       expect(runDirs(named as never)).toEqual([])
@@ -542,7 +542,7 @@ describe('a door holding only a RunsStartInput gets a policy-gated run, in proce
   }, 120_000)
 })
 
-// RE-SPELLED 2026-09-30 (432-13). The D-07 pair used the run gate as its discriminator: an ambient
+// RE-SPELLED 2026-09-30. The D-07 pair used the run gate as its discriminator: an ambient
 // read would have prompted where the injected context failed closed, and the reverse. The run gate is
 // gone, so a non-production start no longer varies with the context at all — which is the claim the
 // pair now pins, both ways round. The injected context is still what the run carries
@@ -574,7 +574,7 @@ describe('a shared target starts whatever the injected or ambient context', () =
   }, 120_000)
 })
 
-// RE-SPELLED 2026-09-30 (432-13). This cell read the disclosure the confirm port was handed, and the
+// RE-SPELLED 2026-09-30. This cell read the disclosure the confirm port was handed, and the
 // port was its only consumer; no door asks about a run any more. What stays true on the door's own
 // road is the reach half: a two-target invocation drives BOTH declared targets. The disclosure text
 // itself keeps its unit cells beside `buildRunDisclosure` until 432-18/19 retire it.
@@ -721,7 +721,7 @@ describe('the run-start baseline is taken PER MEMBER and deduped by URL', () => 
 })
 
 // ---------------------------------------------------------------------------
-// 441-58 (D-14): the drive writes no masking-digests sidecar beside events.jsonl
+// the drive writes no masking-digests sidecar beside events.jsonl
 // ---------------------------------------------------------------------------
 
 describe('a dashboard-launched run leaves no masking-digests sidecar', () => {
@@ -756,7 +756,7 @@ describe('a dashboard-launched run leaves no masking-digests sidecar', () => {
     }
   }, 120_000)
 
-  // 441-48 (D-14): with the sidecar module deleted, the host root gains no masking key either.
+  // with the sidecar module deleted, the host root gains no masking key either.
   it('a finished run leaves no masking digest or host key', async () => {
     const target = new CountingTarget()
     await target.listen()
@@ -786,7 +786,7 @@ describe('a dashboard-launched run leaves no masking-digests sidecar', () => {
 })
 
 // ---------------------------------------------------------------------------
-// 441-12 (D-06, D-11): a run's records are masked by the redactor its producer read, and only by it
+// a run's records are masked by the redactor its producer read, and only by it
 // ---------------------------------------------------------------------------
 
 /** Every line of the one run's `events.jsonl`, as written. */
@@ -904,7 +904,7 @@ describe('declared secrets in in-process run records', () => {
   }, 120_000)
 })
 
-// 2026-10-17 (443-08, D-05): a runs.start that names a suite opens its record before the suite is
+// a runs.start that names a suite opens its record before the suite is
 // prepared, so an unopenable runs.db refuses it before any plugin loads.
 describe('a suite run opens its record before preparing the suite', () => {
   it('a runs.start whose pattern is a suite opens the record before preparing the suite', async () => {

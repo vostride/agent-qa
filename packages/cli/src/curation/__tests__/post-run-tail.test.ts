@@ -17,7 +17,7 @@
 //      (`agent-qa digest "<runId>"`, the real verb syntax) so the whole digest is one
 //      copy-paste away.
 //
-// The never-wait prohibition (388 D-03 / 386 D-15) and the C13 print-not-publish posture are
+// The never-wait prohibition and the C13 print-not-publish posture are
 // pinned as source and behavioral assertions at the bottom.
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -254,7 +254,7 @@ function digestOutput(analysis: AnalysisGetOutput = analysisOutput()): RunDigest
     runId,
     verdictClusters: analysis.clusters,
     chain: { analysis: 'complete', curation: 'pending' },
-    // 432-09: the fixes this run's marks applied, read from its own ledger; no proposal is counted.
+    // the fixes this run's marks applied, read from its own ledger; no proposal is counted.
     markChanges: [
       { markId: 'mark_000000000001', ordinal: 1, fix: 'fact',
         change: { kind: 'knowledge', changeId: 'prop_0123456789ab', recordIds: ['mem_1'] } },
@@ -724,7 +724,7 @@ describe('prohibitions: never-wait and print-not-publish', () => {
       'utf8',
     )
     // Never-wait, stated as a measurement (the acceptance criterion's source assertion).
-    // 444.1 D-01: the one timer aborts the budget signal at the deadline and waits on nothing.
+    // the one timer aborts the budget signal at the deadline and waits on nothing.
     expect(source).not.toMatch(/setInterval/u)
     expect(source.match(/setTimeout\(/gu)).toEqual(['setTimeout('])
     expect(source).toContain('setTimeout(() => { budget.abort() }, drainDeadlineMs - drainStartedMs)')
@@ -819,7 +819,7 @@ describe('the pure renderers (exported for exactly these pins)', () => {
 })
 
 // ══════════════════════════════════════════════════════════════════════════════════════════
-// CHAIN-LINE-SNAPSHOT-BRANCH (425 D-20) — WHICH BRANCH A REAL SNAPSHOT-BEARING CHAIN PRINTS.
+// CHAIN-LINE-SNAPSHOT-BRANCH — WHICH BRANCH A REAL SNAPSHOT-BEARING CHAIN PRINTS.
 //
 // `renderChainTerminalLine` has two curation sentences and never prints both: the five fixed
 // buckets when the terminal row carries `stages.curation.curationSnapshot`, and the legacy
@@ -1055,7 +1055,7 @@ describe('the chain-terminal line a real snapshot-bearing run prints', () => {
 })
 
 // ══════════════════════════════════════════════════════════════════════════════════════════
-// CR-01 — THE WRITER FENCE, MODELLED AS A FENCE.
+// THE WRITER FENCE, MODELLED AS A FENCE.
 //
 // These cells assert a STATE, not a call count and not a warning: after everything the run
 // process would do, is this project's writer lease still held? That is the only question the
@@ -1284,7 +1284,7 @@ describe('the fallback consult, and the one door that declines it', () => {
 
   it('a take that answers `undefined` falls back to this pump\'s OWN acquisition by default',
     async () => {
-      // The behaviour the step's header used to deny (WR-04). It is not a second acquisition:
+      // The behaviour the step's header used to deny. It is not a second acquisition:
       // the step acquired nothing at all on this path, so the pump's consult is the first one —
       // and it is worth making, because the holder may have released since the verdict.
       const fence = writerFence()

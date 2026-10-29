@@ -165,7 +165,7 @@ describe('cold read masking recovery', () => {
       .rejects.toThrow(/Secrets file (not found|is invalid|could not be read)/)
   })
 
-  // 2026-10-14 (441-16, D-06): declared values mask to distinct names, so the duplicate is a raw
+  // declared values mask to distinct names, so the duplicate is a raw
   // value beside a recorded copy of its own marker.
   it('COLD-COLLISION refuses genuinely masked duplicate events without deleting history', async () => {
     const p = project()

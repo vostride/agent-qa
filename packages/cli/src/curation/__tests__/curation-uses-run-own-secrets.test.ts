@@ -42,7 +42,7 @@ import type { PostRunTailHostInput, PostRunTailOperations } from '../post-run-ta
 import { createPostVerdictStep } from '../post-verdict-step.js'
 import { readRunConfigRecord } from '../run-curation-context.js'
 
-// 2026-10-16 (442-10, D-14): reconciliation 23 reads SC3's distinct secrets as distinct secretsFiles.
+// reconciliation 23 reads SC3's distinct secrets as distinct secretsFiles.
 const VALUE_A = 'alpha-tenant-7731'
 const VALUE_B = 'bravo-tenant-4410'
 const MARKER_A = '[secret:A_SECRET]'
@@ -228,7 +228,7 @@ function writeRecord(p: Project, runId: string, configPath: string): void {
   )
 }
 
-// memory/index is the gitignored derived index, not committed knowledge (441 D-06, D-27).
+// memory/index is the gitignored derived index, not committed knowledge.
 function committedFilesUnder(dir: string): string[] {
   return readdirSync(dir, { recursive: true, withFileTypes: true })
     .filter((entry) => entry.isFile())

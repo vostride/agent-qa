@@ -7,7 +7,7 @@
 // together deliberately — a mint whose validator was composed elsewhere is a token system with two
 // opinions about what a valid token is.
 //
-// 441-48 (D-01): it registers no minted token for masking. A door-minted credential is not a
+// it registers no minted token for masking. A door-minted credential is not a
 // declared secret; the token's guarantee is structural — a URL fragment, the frame socket's first
 // message, and an op `classify` that refuses to interpolate it.
 
@@ -38,7 +38,7 @@ export interface ComposeLiveViewInput {
   readonly signer?: LiveUrlSigner
   readonly now?: () => number
   /**
-   * The editor session lookup (428 D-07), taken STRUCTURALLY as a plain function so this module
+   * The editor session lookup, taken STRUCTURALLY as a plain function so this module
    * imports nothing from the dashboard server. Absent means the host serves no live editor, and
    * `editor.liveurl` refuses `LiveViewUnavailableError`.
    */
@@ -70,7 +70,7 @@ export function composeLiveView(input: ComposeLiveViewInput): ComposedLiveView {
 
   return {
     liveView,
-    // BY REFERENCE, not re-implemented. The dashboard-server holds no parse of its own (LIVE-02).
+    // BY REFERENCE, not re-implemented. The dashboard-server holds no parse of its own.
     validate: (token, expect) => validateLiveUrlToken(signer, token, expect),
   }
 }
@@ -86,7 +86,7 @@ export function composeLiveView(input: ComposeLiveViewInput): ComposedLiveView {
  * this is what makes that comparison a claim about one implementation rather than about two that
  * happen to agree.
  *
- * THE DISPATCHER, NOT THE PORT UNDERNEATH IT (D-04). Going straight to `liveView.signer` would skip
+ * THE DISPATCHER, NOT THE PORT UNDERNEATH IT. Going straight to `liveView.signer` would skip
  * the op-level gate and the receipt classification — the carve-out the no-private-powers law
  * refuses. `runs.liveurl` is the ONLY producer of these tokens and this
  * is the only way to reach it from a door.
@@ -104,7 +104,7 @@ export function mintLiveUrlThrough(
 }
 
 /**
- * Mint one editor `liveUrl` through the SHIPPED dispatcher (428 D-07), exactly as
+ * Mint one editor `liveUrl` through the SHIPPED dispatcher, exactly as
  * {@link mintLiveUrlThrough} mints a run's: the same dispatcher, the same caller, the editor
  * subject. Parsed with the `.strict()` result schema, never cast.
  */

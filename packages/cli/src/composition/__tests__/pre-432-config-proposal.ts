@@ -1,9 +1,9 @@
-// 2026-09-30, 432-11 D-05: a config proposal as the pre-432 pipeline filed it, written to disk.
+// a config proposal as the pre-432 pipeline filed it, written to disk.
 //
 // The six config operations now write in the call and file nothing. Proposal records written
 // before that still sit in `.agent-qa/proposals/`.
 //
-// RE-SPELLED 2026-10-01 (432-17, D-05/D-22): the store, the payload schema and every verb that read
+// RE-SPELLED 2026-10-01: the store, the payload schema and every verb that read
 // such a record are deleted, so nothing can produce one and nothing reads one. The suites that keep
 // a claim about a pre-432 record — that it is refused as an unknown function's input and left exactly
 // as it was — plant it here as the bytes the old pipeline wrote, in the temp workspace they own.

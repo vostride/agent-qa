@@ -1,4 +1,4 @@
-// The D-09 decision table and the ONE lease acquisition, pinned (Phase 404 plan 01, D-10/D-11).
+// The D-09 decision table and the ONE lease acquisition, pinned.
 //
 // TWO CLAIMS, AND THEY ARE DIFFERENT CLAIMS. `dispositionOf` is a pure mapping and is pinned TOTAL
 // over the lease probe's `kind` domain plus the two inputs that have no probe at all — because
@@ -8,7 +8,7 @@
 // acquisition per run and only when a pump asks for it, a nudge on `held`, and a take-ONCE handoff
 // box, which is the whole of RESEARCH Pitfall 3's mitigation.
 //
-// THE LAZINESS IS ITSELF A PINNED CLAIM (2026-08-26). `run()` used to call `acquireWriterLease`
+// THE LAZINESS IS ITSELF A PINNED CLAIM. `run()` used to call `acquireWriterLease`
 // eagerly, which minted an epoch and a lease file for every run — including the runs that end
 // above the tail, where the no-leak backstop then released it and printed `released untaken` on
 // stderr. `run-parity.e2e.test.ts` caught that as changed ordinary-run output; the cells below are
@@ -19,7 +19,7 @@
 // writes a lease file or wakes a daemon — the acquisition under test is the CALL, not the file
 // system underneath it, which `writer-lease`'s own suite owns.
 //
-// A THIRD CLAIM SINCE PLAN 04 (2026-08-26, D-05/D-08/D-09). The durable `analyze-run` enqueue moved
+// A THIRD CLAIM SINCE PLAN 04. The durable `analyze-run` enqueue moved
 // into this step from `post-run-tail.ts`, so its cells moved here with it — the payload's shape and
 // idempotency key, `deduped` as a success, and the D-07 warning wording. What is NEW is the ORDER
 // the step imposes around them, and every arm of it is pinned below: the enqueue happens BEFORE the
@@ -336,7 +336,7 @@ describe('enqueueAnalyzeRun — THE one durable hand-off', () => {
       handoffSchemaVersion: CURRENT_HANDOFF_SCHEMA_VERSION,
       executionContext: 'local-headless',
     })
-    // D-06: the digest pins the BYTES, so it must be a sha256 of the handoff and not a path.
+    // the digest pins the BYTES, so it must be a sha256 of the handoff and not a path.
     expect(payload.handoffDigest).toMatch(/^[0-9a-f]{64}$/u)
     expect(
       lastClose,
@@ -740,7 +740,7 @@ describe('createPostVerdictStep — the gate-run, exclusion and detach arms, in 
     })
 
     await composed.port.run({ runId: RUN_ID as never, verdict: 'passed' as never })
-    // The daemon door supplies no tail (388 D-13), so nothing ever takes the authority — and the
+    // The daemon door supplies no tail, so nothing ever takes the authority — and the
     // drive's outermost `finally` runs the backstop over the box on the way out.
     releaseUntakenPostVerdictLease({
       handoff: composed.handoff,

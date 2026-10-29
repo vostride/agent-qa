@@ -1,4 +1,4 @@
-// The `config.get` view (Phase 384; 2026-10-15, 441-20 D-29). Every leaf is rendered to a string
+// The `config.get` view. Every leaf is rendered to a string
 // and passed through the host's declared-secret mask, and nothing else decides what is shown: no
 // path map, no URL reduction, no placeholder. `masked` is true exactly when the mask changed the
 // value.

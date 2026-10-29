@@ -1,4 +1,4 @@
-// INVK-06, END TO END OVER THE SHIPPED CORE (Phase 401 plan 08 — D-15).
+// INVK-06, END TO END OVER THE SHIPPED CORE.
 //
 // WHERE THIS FILE LIVES, AND WHY IT IS NOT WHERE THE PLAN PUT IT. The plan names
 // `packages/knowledge-local/src/projection/__tests__/gate-run-exclusion.e2e.test.ts` for BOTH
@@ -19,7 +19,7 @@
 // and no reachable model. Until 433-35 its member settled `cancelled` with no steps, which
 // `countedOutcome` does not count, so both arms projected an empty member list and "the marked arm
 // counted nothing" was true of a projection that counts nothing at all (401-05's Truth 3, met
-// again). Since 433-35 (G-433-11) a browser that never launches FAILS its member with the cause, so
+// again). Since 433-35 a browser that never launches FAILS its member with the cause, so
 // the unmarked arm now counts that one failed member and half 1 asserts it. The member still has no
 // steps, so half 2 keeps the countable member list every consumer assertion needs.
 //
@@ -258,7 +258,7 @@ describe('a gate run reaches no counter and no candidacy input', () => {
       //
       // This plan filed that edge as a BACKSTOP truth. Until 433-35 half of it was measured here
       // for free, because a browser that never launched cancelled the run. Nobody cancelled it, so
-      // since 433-35 (G-433-11) the run's aggregate verdict is `failed` and the interrupted case is
+      // since 433-35 the run's aggregate verdict is `failed` and the interrupted case is
       // a backstop again. What is still asserted here is that the marker survives on a run that did
       // not pass, and that the run contributes nothing.
       //

@@ -1,4 +1,4 @@
-// The `liveUrl` SIGNER — the only file in the system that holds a live-view signing key (403 D-01).
+// The `liveUrl` SIGNER — the only file in the system that holds a live-view signing key.
 //
 // PER-PROCESS AND EPHEMERAL, BY DESIGN. There is no key file, no config field and no env var: the
 // key is 32 random bytes minted at composition and reachable only through this closure. A dashboard

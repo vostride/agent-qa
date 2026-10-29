@@ -72,10 +72,10 @@ const fixtureDir = join(
 )
 
 /**
- * The run's mask at tail time is the declared-secret mask (441 D-06). The recorded plannedAction
- * still carries the `<EMAIL_0>` an older build minted, which is literal text now (441 D-20), and
+ * The run's mask at tail time is the declared-secret mask. The recorded plannedAction
+ * still carries the `<EMAIL_0>` an older build minted, which is literal text now, and
  * PROBE_USER is not a declared value, so this mask declares none.
- * 2026-10-15 (441-33, D-12): was the deleted masking context, primed with the probe email.
+ * was the deleted masking context, primed with the probe email.
  */
 function liveMask(): (text: string) => string {
   const redactor = new SecretRedactor(SecretStore.empty())
@@ -191,7 +191,7 @@ function scriptedModel(outputs: string[]): CuratorModel {
 /**
  * The live sentinel-arm proposal shape (the diagnosis differential's PASSING arm):
  * whole-flow span, one invented parameter name. The builder pins the flow anchor to
- * seed.flowName and forces the covering parameter to the slot's sourceName (G-381-3),
+ * seed.flowName and forces the covering parameter to the slot's sourceName,
  * so the invented pieces cannot mask a naming defect.
  */
 const sentinelShapedProposal = JSON.stringify({
@@ -232,7 +232,7 @@ describe('the live-artifact staged reproduction', () => {
     const seed = parseProcedureTrajectorySeed(procedures[0]!.bodySeed)
     expect(seed).toBeDefined()
     expect(seed!.steps).toHaveLength(3)
-    // 2026-10-14 (441-10, D-20): the recorded placeholder is old data and reads as literal text.
+    // the recorded placeholder is old data and reads as literal text.
     expect(seed!.steps[0]!.action?.values['text']).toEqual({
       observed: '<EMAIL_0>',
       source: 'literal',

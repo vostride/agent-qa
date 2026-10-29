@@ -1,15 +1,15 @@
 // D-08's DISPATCH GRANT AT THE REAL RUN GATE (Phase 401 plan 08 — RESEARCH Pitfall 6).
 //
-// RE-SPELLED 2026-09-30 (432-13, D-14/D-15). The run gate this file measured is gone: the run core
+// RE-SPELLED 2026-09-30. The run gate this file measured is gone: the run core
 // evaluates nothing and the door forwards no reader, so a dispatch grant had nothing to satisfy.
 //
-// RE-SPELLED AGAIN 2026-10-01 (432-18, D-15/D-22). The overlay itself is deleted with the grant
+// RE-SPELLED AGAIN 2026-10-01. The overlay itself is deleted with the grant
 // ledger (`agent-local/src/composition/dispatch-grants.ts`), and `composeCliLocalAgent` takes no
 // `dispatchGrants` input. The four arms below kept their shapes and lost their overlay: a
 // shared-target run in the fail-closed `local-headless` context starts back to back, starts alone,
 // starts after an earlier run, and starts while a workspace still holds an old, damaged
 // `grants.jsonl` — with no `run:start` row and no `trustSource` in any of them, and the old ledger
-// left byte-identical (C432-GRANTS-UNREAD-WRITER-ABSENT). The history below is kept as written.
+// left byte-identical. The history below is kept as written.
 //
 // WHAT IS UNDER TEST is the whole shipped path: `composeCliLocalAgent` → the 384 registry →
 // `invokeFunction` → the op gate → the bound run invocation → the composition's per-run grant
@@ -121,7 +121,7 @@ function pinEmptyBrowsersRoot(fixture: Fixture): void {
 /**
  * Invoke `runs.start` through the SHIPPED dispatcher, on the shipped host.
  *
- * 432-18: nothing is supplied beyond what 401-05's cells supply — the host takes no overlay.
+ * nothing is supplied beyond what 401-05's cells supply — the host takes no overlay.
  */
 async function invokeRunsStart(
   fixture: Fixture,
@@ -180,7 +180,7 @@ describe('one human ask, N gated runs, every one of them gated', () => {
     expect((auditRows(fixture) as GateAuditRow[]).map((row) => row.trustSource).filter(Boolean)).toEqual([])
   }
 
-  // RE-SPELLED 2026-10-01 (432-18) from 'THE ORDERING EDGE — two shared runs inside an open dispatch
+  // RE-SPELLED 2026-10-01 from 'THE ORDERING EDGE — two shared runs inside an open dispatch
   // start, with no decision row': there is no dispatch to open; the two runs start back to back.
   it('THE ORDERING EDGE — two shared runs start back to back, with no decision row', async () => {
     const target = new CountingTarget()
@@ -221,9 +221,9 @@ describe('one human ask, N gated runs, every one of them gated', () => {
     }
   }, 300_000)
 
-  // RE-SPELLED 2026-10-01 (432-18) from 'THE GRANT DIES WITH THE DISPATCH — and the run after it
+  // RE-SPELLED 2026-10-01 from 'THE GRANT DIES WITH THE DISPATCH — and the run after it
   // starts all the same' and 'AN UNRELATED CALLER DURING AN OPEN DISPATCH — starts, and no row
-  // borrows the dispatch (CR-03)': with no overlay there is no grant to die or to borrow. The
+  // borrows the dispatch': with no overlay there is no grant to die or to borrow. The
   // surviving claim is that a run starts whatever an old ledger says, and leaves it as it was.
   it('a run beside an old, damaged grants.jsonl starts and leaves it byte-identical', async () => {
     const target = new CountingTarget()

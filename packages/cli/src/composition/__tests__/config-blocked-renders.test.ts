@@ -1,10 +1,10 @@
-// CFGM-01's blocked road, measured on RENDERS through the production composition (395-04 · D-10).
+// CFGM-01's blocked road, measured on RENDERS through the production composition.
 //
-// 2026-09-30, 432-11 D-05: a blocked change is ANSWERED and nothing is kept, so the surfaces a
+// a blocked change is ANSWERED and nothing is kept, so the surfaces a
 // person reads are the answer itself and the runtime root, which must hold nothing about the block.
-// 2026-10-01 (432-17): the `proposals` verb is deleted, so the runtime root is read directly.
+// the `proposals` verb is deleted, so the runtime root is read directly.
 //
-// 2026-10-14 (441-18, D-15/D-23): a config change is not scanned for secrets. The cells whose
+// a config change is not scanned for secrets. The cells whose
 // subject was the construction scan — its seeded half, the context-line and range blocks, the
 // environment-slice control and the guardrail no-write cell — are deleted with it. What remains is
 // the validation road: a yaml parse failure names WHERE and never WHAT, and nothing is kept.
@@ -141,7 +141,7 @@ hooks:
         new RegExp(`^${HOOKS_FILE}: not readable as YAML at line \\d+, column \\d+$`),
       )
 
-      // WR-11: the record points a person at the file the issue is ABOUT, unioned with the file the
+      // the record points a person at the file the issue is ABOUT, unioned with the file the
       // change diffed.
       expect(answer.paths).toContain(HOOKS_FILE)
       expect(answer.paths).toContain(CONFIG_FILE)

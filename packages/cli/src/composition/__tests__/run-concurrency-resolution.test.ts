@@ -1,4 +1,4 @@
-// THE CONFIG-SIDE HALF OF D-12 (402-03): a worker count is resolved from CONFIG, at one seam.
+// THE CONFIG-SIDE HALF OF D-12: a worker count is resolved from CONFIG, at one seam.
 //
 // The request-side half — that a CALLER cannot name either field — is pinned in the schema
 // package's `runs-start-input-posture.test.ts`, and the formula itself in `use-parallel.test.ts`.
@@ -40,7 +40,7 @@ import {
 import { closeTestRunRecords, testRunRecord } from './in-process-run-fixture.js'
 import { removeTempRoots } from '../../__tests__/temp-roots.js'
 
-// 2026-10-17 (443-08, D-22): every drive call carries a record; each cell closes the ones it opened.
+// every drive call carries a record; each cell closes the ones it opened.
 afterEach(() => { closeTestRunRecords() })
 const assemblyRoots: string[] = []
 afterAll(() => {

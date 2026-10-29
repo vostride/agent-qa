@@ -1,4 +1,4 @@
-// The post-run chip emitter (Phase 388 plan 04, D-13 / D-16).
+// The post-run chip emitter.
 //
 // The push half of ANLZ-05. When THIS process drains the chain, the transitions it observes are
 // appended to the run's own `events.jsonl`, continuing the seq order `runFinished` left off at,
@@ -10,10 +10,10 @@
 //      pump actually received — never from an intention, never from a status somebody expects
 //      the row to reach. A chip that announced a stage before the queue durably said so would
 //      be a claim `runs.postprocessing` could contradict a millisecond later, and a surface
-//      that can be told two different things about one row has no truth to render (T-388-14).
+//      that can be told two different things about one row has no truth to render.
 //   2. IN-PROCESS ONLY. The emitter is constructed on the acquired-lease drain leg and nowhere
 //      else. When the daemon drains instead, nothing is emitted and durable job state is the
-//      only truth — a second process never writes a finished run's log (386 D-16). That is
+//      only truth — a second process never writes a finished run's log. That is
 //      expressed as control flow rather than as a condition re-checked here: a leg that never
 //      builds an emitter cannot forget to guard one.
 //   3. RUN-SCOPED. The pump this emitter listens to is a GLOBAL FIFO: it claims the oldest
@@ -23,7 +23,7 @@
 //      membership set is the only scoping input: never the kind, never the payload, never a
 //      pattern over a field of the outcome being guarded. Kind alone cannot answer "whose chain
 //      was that", and an emitter that guesses would put another run's transitions into this
-//      run's log while durable state said otherwise (T-388-16).
+//      run's log while durable state said otherwise.
 //
 // It appends DIRECTLY, and never through the run bus or its subscribers. By the time a chip
 // exists the bus has published `runFinished`, every subscriber has been flushed and the exit
@@ -58,14 +58,14 @@ interface StageChipKinds {
 /**
  * Which job kind speaks through which chip.
  *
- * The table names what a job kind EMITS. As of 2026-08-26 (Phase 404 D-01/D-02) the chip set is
+ * The table names what a job kind EMITS. As of 2026-08-26 the chip set is
  * `{analysis, curation}` and the three `issues*` event names no longer exist, so a row describing
  * what a reserved kind "would" emit could only name events the enum does not carry. 2026-09-01
- * (Phase 409): the reserved sixth kind left with the Issue-slot cleanup.
+ * the reserved sixth kind left with the Issue-slot cleanup.
  * The emitter's run-scoped drop-guard consults this run's chain ids, so a
  * row observed by this pump that is not this run's is dropped by id rather than mis-attributed.
  *
- * 2026-09-12 (Phase 422 D-13, 422-17): a FULL `Record`, not a `Partial` one, and the change is
+ * a FULL `Record`, not a `Partial` one, and the change is
  * the point rather than a tidy-up. The chain grew a third stage that is deliberately chip-less,
  * and under a `Partial` its silence was produced by the same missing key that answers for `chat`
  * — a kind that is not a post-processing stage at all. A chain stage that gives no chip is a
@@ -74,7 +74,7 @@ interface StageChipKinds {
  * here until somebody chooses one. `postRunChipDecision` below is the single reader of this table.
  *
  * `notify` is absent for a different reason: it is not a job kind at all — the chain terminal is
- * a function-layer emission over a durable row (D-09), not a queue member, and it is not a chip.
+ * a function-layer emission over a durable row, not a queue member, and it is not a chip.
  */
 const NO_CHIP = 'no-chip' as const
 
@@ -179,7 +179,7 @@ export interface CreatePostRunChipEmitterOptions {
   /** The tail's one wall clock, so envelope stamps and budget arithmetic share a source. */
   readonly now?: () => number
   /**
-   * The dashboard's SECOND SINK for the same envelope (404 D-16).
+   * The dashboard's SECOND SINK for the same envelope.
    *
    * THE FILE STAYS THE RECORD AND THIS IS A CONVENIENCE. A run's post-processing chain runs after
    * `runFinished`, which is where the run event stream closes — so the chips a browser wants to
@@ -252,8 +252,8 @@ export function createPostRunChipEmitter(
    * could cut a secret in half and hand the masker a token it no longer recognises, which is the
    * quiet way a redaction stops firing. `handler-threw: ${error.message}` (engine.ts) is text
    * from anywhere inside the curation drain, the knowledge store or a provider client — the
-   * whole rest of a chip payload is counts and identifiers (D-11), and this joins that
-   * discipline rather than being the exception to it (T-388-17 / WR-08).
+   * whole rest of a chip payload is counts and identifiers, and this joins that
+   * discipline rather than being the exception to it.
    */
   const chipError = (reason: string): string =>
     (options.mask?.(reason) ?? reason).slice(0, CHIP_ERROR_MAX_LENGTH)
@@ -307,7 +307,7 @@ export function createPostRunChipEmitter(
       const chips = decision.chips
 
       // `handlerInvoked: false` means the attempt bound was already spent at claim time and the
-      // driver failed the job WITHOUT handing it to its handler (385 D-18). Emitting `started`
+      // driver failed the job WITHOUT handing it to its handler. Emitting `started`
       // there would announce a start that provably never happened — the one lie this emitter
       // is shaped to be unable to tell.
       if (outcome.handlerInvoked !== false) {

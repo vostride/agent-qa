@@ -1,4 +1,4 @@
-// The in-process run fixture (Phase 401 plan 11).
+// The in-process run fixture.
 //
 // NOT A TEST FILE: vitest's include here is `src/**/__tests__/**/*.test.ts`, so this module is
 // imported, never collected.
@@ -66,7 +66,7 @@ export interface InProcessFixture {
 
 export interface InProcessFixtureInput {
   readonly origin: string
-  /** `undefined` writes NO declaration at all — which is the undeclared case (D-06). */
+  /** `undefined` writes NO declaration at all — which is the undeclared case. */
   readonly environment?: 'local' | 'shared' | undefined
   /** Omit the env file, so the input preflight has a real refusal to make. */
   readonly omitEnvFile?: boolean
@@ -75,7 +75,7 @@ export interface InProcessFixtureInput {
   /** Omit the secrets file. */
   readonly omitSecretsFile?: boolean
   /**
-   * Declare ONE secret with this value in the secrets file (405-02, D-08).
+   * Declare ONE secret with this value in the secrets file.
    *
    * WHY A KNOB. Every other cell writes the secrets file EMPTY, so a run seeded from it registers
    * nothing and a masking-digest assertion would be vacuous — an empty sidecar and an absent one
@@ -87,21 +87,21 @@ export interface InProcessFixtureInput {
   readonly plantedSecret?: string
   /** The path the first target's URL carries after the origin. Defaults to `/in-process-thing`. */
   readonly targetPath?: string
-  /** The one step every test the fixture writes carries, in place of the default `Verify` step (441-12). */
+  /** The one step every test the fixture writes carries, in place of the default `Verify` step. */
   readonly stepText?: string
   /** Write a test file that parses to ZERO runnable tests (the RUNX-06 door). */
   readonly emptyTestFile?: boolean
   /**
    * Declare an auth plugin package that is NOT installed.
    *
-   * 401-10: this is what makes an ORDERING measurable. A door that refuses an unhonourable request
+   * this is what makes an ORDERING measurable. A door that refuses an unhonourable request
    * field only AFTER resolving the project's config loads third-party plugin code on behalf of a
    * request it was always going to refuse, and reports `PluginNotInstalledError` instead of the
    * refusal. With the plugin absent from the config the two orderings are indistinguishable.
    */
   readonly declareUninstalledAuthPlugin?: boolean
   /**
-   * Declare a SECOND target and a second standalone test naming it (401-14).
+   * Declare a SECOND target and a second standalone test naming it.
    *
    * WHY IT EXISTS. Every other cell in this phase drives one target, so a preview that named only
    * the first member's target would be indistinguishable from one that named them all. This knob
@@ -168,7 +168,7 @@ export interface InProcessFixtureInput {
    */
   readonly parallelRuns?: boolean
   /**
-   * Write `use.workers: <n>` beside `use.parallel` (402-03, D-12).
+   * Write `use.workers: <n>` beside `use.parallel`.
    *
    * SEPARATE FROM `parallelRuns` because the two answer different questions and a cell needs to
    * turn one without the other: `parallel` alone is the DEFAULT-CEILING arm, and this knob is the
@@ -187,7 +187,7 @@ export const UNINSTALLED_AUTH_PLUGIN_PACKAGE = '@acme/auth-plugin-401-10-NOT-INS
 /**
  * The ONE name the fixture's target is declared under, in the config AND in every test file.
  *
- * EXPORTED SO A CELL NEED NOT RETYPE IT (401-14). A disclosure assertion that spelled the name
+ * EXPORTED SO A CELL NEED NOT RETYPE IT. A disclosure assertion that spelled the name
  * itself would agree with the fixture right up until somebody renamed the target here — and would
  * then be asserting that the preview contains a string nothing produces. The config writer below
  * interpolates this constant, so the value a cell reads is provably the value the run resolves.
@@ -202,7 +202,7 @@ export const PLANTED_SECRET_NAME = 'AGENT_QA_PLANTED_SECRET'
 
 const createdProjects: string[] = []
 
-// 2026-10-19 (444.1-24, D-39): no hook here, because two users import this module inside cells.
+// no hook here, because two users import this module inside cells.
 export function removeInProcessFixtures(): void {
   removeTempRoots(createdProjects.splice(0))
 }
@@ -390,7 +390,7 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
 
 const openTestRunRecords: RunRecord[] = []
 
-/** A run record for a cell that calls the drive directly (443-08, D-22); `closeTestRunRecords` closes it. */
+/** A run record for a cell that calls the drive directly; `closeTestRunRecords` closes it. */
 export function testRunRecord(): RunRecord {
   const record = createRunRecord({ attributes: doorRunAttributes('cli'), warn: () => {} })
   openTestRunRecords.push(record)
