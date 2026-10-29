@@ -58,8 +58,8 @@ const TEST_TIMEOUT_MESSAGE = createTimeoutAbortReason('test', 30_000).message
 
 // ---- deterministicVerdict (D-02 field fidelity) ---------------------------
 
-describe('deterministicVerdict (D-02) — faithful VerdictBase constructor', () => {
-  it('environment: fills every VerdictBase field exactly (the D-02 pin)', () => {
+describe('deterministicVerdict — faithful VerdictBase constructor', () => {
+  it('environment: fills every VerdictBase field exactly', () => {
     const verdict = deterministicVerdict('environment', 'connect failure: ECONNREFUSED app:3000', [2], 0)
     expect(verdict).toEqual({
       class: 'environment',
@@ -159,7 +159,7 @@ describe('classifyRootCause — environment (branch 2)', () => {
   })
 
   it.each(SESSION_CREATE_ERROR_TOKENS.map((t) => [t] as const))(
-    'device-session-create token %s in a failing step error classifies environment (D-04 mobile signal)',
+    'device-session-create token %s in a failing step error classifies environment (mobile signal)',
     (token) => {
       const verdict = classifyRootCause(input({
         result: test({ status: 'failed', steps: [step({ status: 'failed', error: `${token}: device unavailable` })] }),
@@ -272,7 +272,7 @@ function limitStoppedStep(limit: LimitStopEvidence['limit'], configured: number)
   })
 }
 
-describe('classifyRootCause — limit stop (436 D-12)', () => {
+describe('classifyRootCause — limit stop', () => {
   it('a limit-stopped failed member is unknown with the limit reason as rationale', () => {
     const stopped = limitStoppedStep('actions', 30)
     const verdict = classifyRootCause(input({

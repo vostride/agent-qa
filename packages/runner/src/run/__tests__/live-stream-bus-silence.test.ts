@@ -152,7 +152,7 @@ function runWarningCodesIn(envelopes: readonly RunEventEnvelope[]): string[] {
     })
 }
 
-describe('LIVE-03: frames cross the session while the run bus publishes nothing about them', () => {
+describe('frames cross the session while the run bus publishes nothing about them', () => {
   it('the bus is BYTE-IDENTICAL whether or not 50 frames flowed through subscribeFrames', async () => {
     // (1) THE CONTROL: the same run, nobody watching. Its envelope stream is the baseline.
     const control = startInstrumentedRun(50)
@@ -219,7 +219,7 @@ describe('LIVE-03: frames cross the session while the run bus publishes nothing 
     ).toEqual([])
   })
 
-  it('WR-06: a viewer whose onFrame THROWS leaves the run bus byte-identical to a clean run', async () => {
+  it('a viewer whose onFrame THROWS leaves the run bus byte-identical to a clean run', async () => {
     // THE RUN'S DURABLE TRANSCRIPT MUST NOT DEPEND ON WHO WATCHED IT. A `ws.send` can throw when a
     // socket closes between the proxy's `readyState` check and the send, so before this cell a
     // person closing a tab at the wrong instant wrote a row into the run's permanent record — a row

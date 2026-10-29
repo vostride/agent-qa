@@ -185,7 +185,7 @@ describe('runMemberTest — inline-DSL pipeline order', () => {
     expect(rec.instructions).toHaveLength(1)
   })
 
-  it('passes each step its position in the member (P2, quick 261004-lsa)', async () => {
+  it('passes each step its position in the member', async () => {
     const rec = recordingExecuteStep([stepResult()])
     const result = await runMemberTest(
       member({ steps: ['Type the message', 'Send the message'] }),
@@ -210,7 +210,7 @@ describe('runMemberTest — inline-DSL pipeline order', () => {
 
 // ---- retry semantics ------------------------------------------------------
 
-describe('runMemberTest — retry loop (Pitfall 9)', () => {
+describe('runMemberTest — retry loop', () => {
   it('fails twice then passes: two testRetryScheduled, ONE final result, retryCount=2', async () => {
     const sink = makeSink()
     const rec = recordingExecuteStep((call) =>

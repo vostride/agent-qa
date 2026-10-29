@@ -76,7 +76,7 @@ test('DATA-URI-OMITTED: embedded image, script, style, font and binary bodies st
   }
 })
 
-describe('C441-NETWORK', () => {
+describe('network evidence masks declared values by name', () => {
   const declaredMask = (declared: Record<string, string>) => {
     const redactor = new SecretRedactor(new SecretStore(declared))
     return (text: string) => redactSecretValue(text, redactor)

@@ -167,7 +167,7 @@ function drain(session: RunSession): RunEventEnvelope[] {
 // -----------------------------------------------------------------------------
 // SESSION-01 — startRun(config) → RunSession: synchronously addressable id/status/context
 // -----------------------------------------------------------------------------
-describe('SESSION-01 — a run starts through startRun(config) → RunSession the CLI consumes', () => {
+describe('a run starts through startRun(config) → RunSession the CLI consumes', () => {
   it('returns a session SYNCHRONOUSLY carrying id, running status, and the live executionContext', () => {
     const session = startRun(baseConfig())
     // Addressable before any async member work resolves.
@@ -192,7 +192,7 @@ describe('SESSION-01 — a run starts through startRun(config) → RunSession th
 // -----------------------------------------------------------------------------
 // SESSION-02 — the typed event bus: bus schema v1 envelope, gap-free seq, ordering, replay
 // -----------------------------------------------------------------------------
-describe('SESSION-02 — the typed event bus implements bus schema v1 over a gap-free seq stream', () => {
+describe('the typed event bus implements bus schema v1 over a gap-free seq stream', () => {
   it('seq is gap-free from 1; runStarted (seq 1) declares busSchemaVersion = CURRENT_BUS_SCHEMA_VERSION', async () => {
     const session = startRun(baseConfig())
     const events = drain(session)
@@ -253,7 +253,7 @@ describe('SESSION-02 — the typed event bus implements bus schema v1 over a gap
     expect(calls).toEqual(['slow'])
   })
 
-  it('no chip-event type is emitted in a full run (defined-never-emitted in M1)', async () => {
+  it('no chip-event type is emitted in a full run (defined, never emitted)', async () => {
     const session = startRun(baseConfig())
     const events = drain(session)
     await session.done
@@ -266,7 +266,7 @@ describe('SESSION-02 — the typed event bus implements bus schema v1 over a gap
     for (const chip of chips) expect(RUN_EVENT_TYPES).toContain(chip as RunEventType)
   })
 
-  it('no control/arbiter-group name appears anywhere in RunEventType (the reserved M5 group)', () => {
+  it('no control/arbiter-group name appears anywhere in RunEventType (the reserved group)', () => {
     for (const type of RUN_EVENT_TYPES) {
       expect(type.toLowerCase()).not.toContain('control')
       expect(type.toLowerCase()).not.toContain('arbiter')
@@ -390,7 +390,7 @@ function assertBrowserSafe(value: unknown, path: string): void {
   }
 }
 
-describe('SESSION-03 — event payloads are browser-safe JSON projections (no live handles, states as hashes) — D-11', () => {
+describe('event payloads are browser-safe JSON projections (no live handles, states as hashes)', () => {
   it('the fixture map is Record<RunEventType, RunEvent> — one fixture per event type (compile-time exhaustive)', () => {
     // The type annotation on EVENT_FIXTURES is the real gate; this asserts runtime parity so a
     // stale fixture can never silently outlive a shrunk union either.
@@ -418,7 +418,7 @@ describe('SESSION-03 — event payloads are browser-safe JSON projections (no li
     expect(payload).not.toHaveProperty('screenshot')
   })
 
-  it('delegate source anchor — the schema payload types structurally EXCLUDE the raw bodies via `?: never` (D-11)', () => {
+  it('delegate source anchor — the schema payload types structurally EXCLUDE the raw bodies via `?: never`', () => {
     const busEvents = readFileSync(resolve(packagesRoot, 'schema', 'src', 'run', 'bus-events.ts'), 'utf8')
     // testFinished excludes the embedded steps; stepFinalized excludes the ServedBrief body;
     // subActionRecorded excludes the raw stateBefore + screenshot bytes.
@@ -438,7 +438,7 @@ function healedStep(): StepResult {
   return step({ status: 'healed', evidence: { selfHeal: {} } as unknown as StepEvidence })
 }
 
-describe('SESSION-04 — one RunSession over N members: the ratified aggregate rule + exit code at the verdict', () => {
+describe('one RunSession over N members: the ratified aggregate rule + exit code at the verdict', () => {
   it('a healed member (none failed) ⇒ aggregate healed ⇒ exit 0 (healed is a ratified pass)', async () => {
     const session = startRun(
       baseConfig({
@@ -473,7 +473,7 @@ describe('SESSION-04 — one RunSession over N members: the ratified aggregate r
     expect(mapVerdictToExitCode(verdict)).toBe(130)
   })
 
-  it('the ratified ordered rule + D-15 neutral-skipped clause hold directly on deriveAggregateVerdict', () => {
+  it('the ratified ordered rule + neutral-skipped clause hold directly on deriveAggregateVerdict', () => {
     const agg = (outcomes: MemberTestOutcome[], flags: { runCancelled?: boolean } = {}): RunStatus =>
       deriveAggregateVerdict({ runCancelled: flags.runCancelled ?? false, outcomes })
     expect(agg(['passed', 'failed'])).toBe('failed')
@@ -501,7 +501,7 @@ describe('SESSION-04 — one RunSession over N members: the ratified aggregate r
 // -----------------------------------------------------------------------------
 // SESSION-05 — exactly one CompletedRunHandoff per run, carrying the §A8 header + per-test steps
 // -----------------------------------------------------------------------------
-describe('SESSION-05 — exactly one CompletedRunHandoff per run, §A8 header fields copied from RunConfig', () => {
+describe('exactly one CompletedRunHandoff per run, §A8 header fields copied from RunConfig', () => {
   it('the handoff persists exactly once and is the SAME object done resolves (pass path)', async () => {
     const store = makeFakeHandoffStore()
     const session = startRun(baseConfig({ ports: { handoffStore: store, eventLog: makeFakeEventLog() } }))
@@ -534,7 +534,7 @@ describe('SESSION-05 — exactly one CompletedRunHandoff per run, §A8 header fi
     expect(handoff.tests[0].steps).toHaveLength(2)
   })
 
-  it('a handoff-store write failure still resolves done (verdict independence, D-07) — the run is never gated on persistence', async () => {
+  it('a handoff-store write failure still resolves done (verdict independence) — the run is never gated on persistence', async () => {
     const store = makeFakeHandoffStore({ fail: true })
     const session = startRun(baseConfig({ ports: { handoffStore: store, eventLog: makeFakeEventLog() } }))
     const events = drain(session)

@@ -48,7 +48,7 @@ const finished = (events: readonly RunEventEnvelope[]) => events
   .filter((event) => event.type === 'testFinished')
   .map((event) => event.payload as { testId: string; outcome: string; durationMs?: number })
 
-describe('C444-MEMBER-DURATION', () => {
+describe('member duration after a hold, an abort or a throw', () => {
   it('a member held and then aborted reports at least its hold, and a member the abort skipped reports 0', async () => {
     let calledAt = 0
     let arrived!: () => void

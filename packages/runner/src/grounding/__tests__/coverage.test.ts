@@ -58,8 +58,8 @@ function expectFailure(result: GateResult, code: string): GroundingError {
   return result.error
 }
 
-describe('GROUND roll-call — one green proof per phase acceptance criterion (357)', () => {
-  it('GROUND-01: a descriptor-bearing emission action grounds to an execution-shape action (ref set, target gone) with no second model', () => {
+describe('GROUND roll-call — one green proof per acceptance criterion', () => {
+  it('a descriptor-bearing emission action grounds to an execution-shape action (ref set, target gone) with no second model', () => {
     // A planner emits a natural-language descriptor instead of a raw ref. The default
     // single-model ref-first strategy resolves it against the persisted elements/refMap —
     // groundActionPlan is a pure synchronous function: no second model is consulted.
@@ -79,7 +79,7 @@ describe('GROUND roll-call — one green proof per phase acceptance criterion (3
     expect(result.attempts).toEqual([{ stage: 'tree-search', outcome: 'resolved', resolvedRef: 'e2' }])
   })
 
-  it('GROUND-02: the ladder is auditable ref → tree-search → visual:skipped and the visual rung is capability-gated', () => {
+  it('the ladder is auditable ref → tree-search → visual:skipped and the visual rung is capability-gated', () => {
     // Default assembly is [ref, tree-search] — no visual rung ships in M1 (D-01).
     const defaultLadder = assembleLadder()
     expect(defaultLadder.map((rung) => rung.stage)).toEqual(['ref', 'tree-search'])
@@ -104,7 +104,7 @@ describe('GROUND roll-call — one green proof per phase acceptance criterion (3
     ])
   })
 
-  it('GROUND-03: an ungroundable descriptor yields the §12.17 self-correcting error, and ref_not_in_snapshot / coords_out_of_bounds surface on the live gate path', () => {
+  it('an ungroundable descriptor yields the §12.17 self-correcting error, and ref_not_in_snapshot / coords_out_of_bounds surface on the live gate path', () => {
     const screenState = makeScreenState()
 
     // §12.17 self-correcting form: no silent best-guess — a structured re-observe/refine error.
@@ -135,7 +135,7 @@ describe('GROUND roll-call — one green proof per phase acceptance criterion (3
     expectFailure(oob, 'coords_out_of_bounds')
   })
 
-  it('LOOP-04: re-grounding uses nameNormalized + hierarchy — the prior ancestor chain disambiguates a name-collision', () => {
+  it('re-grounding uses nameNormalized + hierarchy — the prior ancestor chain disambiguates a name-collision', () => {
     // The exact machinery the D-10 self-heal runs: when a stored ref no longer resolves the
     // runner re-observes and re-grounds on nameNormalized + hierarchy before replanning. The
     // loop-leg integration (re-observe → re-ground → patched re-execute, no replan turn) is

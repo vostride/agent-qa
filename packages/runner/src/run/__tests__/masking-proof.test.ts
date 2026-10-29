@@ -207,7 +207,7 @@ async function runOnce(
   }
 }
 
-describe('D-09 synthetic masking proof', () => {
+describe('synthetic masking proof', () => {
   it('a synthetic redactor scrubs the secret from bus payloads, event-log lines, AND the handoff', async () => {
     const { envelopes, logLines, handoffJson } = await runOnce(SYNTHETIC)
 
@@ -227,7 +227,7 @@ describe('D-09 synthetic masking proof', () => {
     expect(handoffJson).toContain(MARKER)
   })
 
-  it('the identity context passes the secret through unchanged (361 does NOT seed the real context)', async () => {
+  it('the identity context passes the secret through unchanged (it is not the real masking context)', async () => {
     const { envelopes, logLines, handoffJson } = await runOnce(IDENTITY)
 
     expect(envelopes.some(envelope => JSON.stringify(envelope.payload).includes(SECRET))).toBe(true)
@@ -252,7 +252,7 @@ describe('D-09 synthetic masking proof', () => {
 // durable artifact. There is no second detector anywhere in this block: the only masker is the
 // run's own `config.secretRedactor`, the same mask `projectTestFinished` routes `failureSummary`
 // through in the same shell frame.
-describe('WINDOWS #305 — real step evidence is masked AT REST by the assembly', () => {
+describe('real step evidence is masked AT REST by the assembly', () => {
   it('masks the verifier reasoning, the sub-action plan and the captured error the handoff records', async () => {
     const { handoffJson, handoff } = await runOnce(SYNTHETIC, realEvidenceExecutor)
     const subAction = handoff.tests[0].steps[0].subActions[0]
@@ -275,7 +275,7 @@ describe('WINDOWS #305 — real step evidence is masked AT REST by the assembly'
     expect(handoffJson).toContain(SECRET)
   })
 
-  it('leaves stepText, plannedAction and interpolatedVariables byte-identical under a firing mask (G-381-3)', async () => {
+  it('leaves stepText, plannedAction and interpolatedVariables byte-identical under a firing mask', async () => {
     const { handoff } = await runOnce(SYNTHETIC, carveOutExecutor)
     const step = handoff.tests[0].steps[0]
 
@@ -330,7 +330,7 @@ async function runWithStepTexts(secretRedactor: SecretRedactorPort | undefined):
   }
 }
 
-describe('G-428-2 — testStarted.stepTexts is masked like stepStarted.stepText', () => {
+describe('testStarted.stepTexts is masked like stepStarted.stepText', () => {
   it('STEP-TEXTS-MASKED-LIKE-STEP-TEXT', async () => {
     const masked = await runWithStepTexts(SYNTHETIC)
     expect(masked.testStarted).toHaveLength(1)
@@ -390,7 +390,7 @@ function publishedStepTexts(envelopes: RunEventEnvelope[]): { started: unknown; 
   }
 }
 
-describe('C441-RUN-RECORDS', () => {
+describe('run events mask declared values by name', () => {
   it('run events mask a declared value by name and leave undeclared values', async () => {
     const envelopes = await runRecords({ secretRedactor: RECORDS_REDACTOR })
     const { started, announced } = publishedStepTexts(envelopes)

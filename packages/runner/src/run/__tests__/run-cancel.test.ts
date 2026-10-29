@@ -126,7 +126,7 @@ describe('run-level cancel on a member wedged on a truly-pending promise', () =>
     vi.useRealTimers()
   })
 
-  it('1. session.cancel() mid-wedged-member settles done to cancelled without waiting on the member (D-03)', async () => {
+  it('1. session.cancel() mid-wedged-member settles done to cancelled without waiting on the member', async () => {
     const calls: string[] = []
     const session = startRun(baseConfig({ executor: pendingWedgedExecutor(calls) }))
     drain(session)
@@ -139,7 +139,7 @@ describe('run-level cancel on a member wedged on a truly-pending promise', () =>
     expect(calls).toEqual(['a'])
   })
 
-  it('3. terminal invariants hold on the cancel path: verdict once < runFinished last/detached (SESSION-02 / D-07)', async () => {
+  it('3. terminal invariants hold on the cancel path: verdict once < runFinished last/detached', async () => {
     const session = startRun(baseConfig({ executor: pendingWedgedExecutor([]) }))
     const events = drain(session)
     cancel(session)
@@ -160,7 +160,7 @@ describe('run-level cancel on a member wedged on a truly-pending promise', () =>
     expect(finishPayload.finalSeq).toBe(finishes[0].seq)
   })
 
-  it('4. exactly one handoff on the cancel path; the wedged member is a cancelled entry (D-17)', async () => {
+  it('4. exactly one handoff on the cancel path; the wedged member is a cancelled entry', async () => {
     const store = makeFakeHandoffStore()
     const session = startRun(
       baseConfig({

@@ -247,7 +247,7 @@ describe('ToolRegistry', () => {
     })
   })
 
-  describe('keypress schema shape (phase 137)', () => {
+  describe('keypress schema shape', () => {
     it('accepts { keys: ["Enter"] } with default convertPlatformKeys=true', () => {
       registerAllActions(registry)
       const schema = registry.getSchema('common_keypress')
@@ -480,7 +480,7 @@ describe('surface + id integrity', () => {
     expect(registry.get('common_executeScript')).toBeUndefined()
   })
 
-  it('registers CAT-02 web-tier tool definitions on the web surface only', () => {
+  it('registers web-tier tool definitions on the web surface only', () => {
     const registry = new ToolRegistry()
     registerAllActions(registry)
 
@@ -505,7 +505,7 @@ describe('surface + id integrity', () => {
     expect(registry.get('web_uniqueValue')?.readOnly).toBe(true)
   })
 
-  it('validates CAT-02 web-tier schemas without escape-hatch shapes', () => {
+  it('validates web-tier schemas without escape-hatch shapes', () => {
     const registry = new ToolRegistry()
     registerAllActions(registry)
 
@@ -558,7 +558,7 @@ describe('surface + id integrity', () => {
     expect(focusSchema.shape).not.toHaveProperty('text')
   })
 
-  it('registers CAT-03 android-tier tool definitions on the android surface only', () => {
+  it('registers android-tier tool definitions on the android surface only', () => {
     const registry = new ToolRegistry()
     registerAllActions(registry)
 
@@ -574,7 +574,7 @@ describe('surface + id integrity', () => {
     expect(registry.get('android_keyevent')?.destructive).toBe(true)
   })
 
-  it('validates CAT-03 android schemas with typed intent extras', () => {
+  it('validates android schemas with typed intent extras', () => {
     const registry = new ToolRegistry()
     registerAllActions(registry)
 
@@ -609,7 +609,7 @@ describe('surface + id integrity', () => {
     expect(keyeventSchema.safeParse({}).success).toBe(false)
   })
 
-  it('registers CAT-04 ios-tier tool definitions on the ios surface only', () => {
+  it('registers ios-tier tool definitions on the ios surface only', () => {
     const registry = new ToolRegistry()
     registerAllActions(registry)
 
@@ -625,7 +625,7 @@ describe('surface + id integrity', () => {
     expect(registry.getForPlatform('ios').map(tool => tool.id)).toContain('mobile_nativeSelect')
   })
 
-  it('validates CAT-04 ios schemas with pickerSelect ref/value and ref/order variants', () => {
+  it('validates ios schemas with pickerSelect ref/value and ref/order variants', () => {
     const registry = new ToolRegistry()
     registerAllActions(registry)
 

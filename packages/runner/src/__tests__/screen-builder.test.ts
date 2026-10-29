@@ -57,7 +57,7 @@ describe('buildScreenState — ref minting & binding', () => {
   })
 })
 
-describe('buildScreenState — geometry rule (Pitfall #3)', () => {
+describe('buildScreenState — geometry rule', () => {
   it('derives center from bounds and adds a refMap entry; boundsless nodes get none', () => {
     const { state } = buildScreenState(
       makeInput([
@@ -101,7 +101,7 @@ describe('buildScreenState — geometry rule (Pitfall #3)', () => {
   })
 })
 
-describe('buildScreenState — hierarchy (Pitfall #7)', () => {
+describe('buildScreenState — hierarchy', () => {
   it('translates parentIndex to parentRef and inverts into childRefs', () => {
     const { state } = buildScreenState(
       makeInput([
@@ -123,7 +123,7 @@ describe('buildScreenState — hierarchy (Pitfall #7)', () => {
   })
 })
 
-describe('buildScreenState — state derivations (D-08)', () => {
+describe('buildScreenState — state derivations', () => {
   it('applies documented defaults and omits optional bits when no signal supplied', () => {
     const { state } = buildScreenState(makeInput([{ role: 'button', name: 'Save' }]))
     expect(state.elements[0].state).toEqual({ enabled: true, focused: false, visible: true })
@@ -155,7 +155,7 @@ describe('buildScreenState — metadata', () => {
   })
 })
 
-describe('renderScreenTree — pinned grammar (D-02)', () => {
+describe('renderScreenTree — pinned grammar', () => {
   it('renders the header, indented children, and all annotations exactly', () => {
     const { state } = buildScreenState(
       makeInput(
@@ -262,7 +262,7 @@ describe('renderScreenTree — pinned grammar (D-02)', () => {
   })
 })
 
-describe('C437-TREE-TOGGLE', () => {
+describe('renderScreenTree — toggle state markers', () => {
   function treeOf(nodes: InterimNode[]): string[] {
     const { state } = buildScreenState(makeInput(nodes, { viewport: { width: 200, height: 100 } }))
     return state.tree.split('\n').slice(1)
@@ -310,7 +310,7 @@ describe('C437-TREE-TOGGLE', () => {
   })
 })
 
-describe('stampCaptureMode — purity (D-11)', () => {
+describe('stampCaptureMode — purity', () => {
   it('returns a NEW full-mode state without mutating its input', () => {
     const { state } = buildScreenState(makeInput([{ role: 'button', name: 'Save' }]))
     const before = screenStateHash(state)
@@ -358,7 +358,7 @@ describe('buildScreenState — determinism (byte-equality oracle)', () => {
   })
 })
 
-describe('C438-ROW-TREE', () => {
+describe('renderScreenTree — row text', () => {
   function treeOf(nodes: InterimNode[]): string[] {
     const { state } = buildScreenState(makeInput(nodes, { viewport: { width: 200, height: 100 } }))
     return state.tree.split('\n').slice(1)
@@ -452,7 +452,7 @@ describe('C438-ROW-TREE', () => {
   })
 })
 
-describe('C438-BUILDER-NO-POSITION', () => {
+describe('buildScreenState — bindings and hashes carry no position', () => {
   const nodes: InterimNode[] = [
     { role: 'list', name: 'Cart', bounds: { x: 0, y: 0, width: 390, height: 200 } },
     {

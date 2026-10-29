@@ -10,7 +10,7 @@ import { findSecretTemplates } from '../../loop/secrets.js'
 
 import { classifyStep } from '../classify.js'
 
-describe('classifyStep — non-cacheable env/secret provenance (CACHE-02, D-07)', () => {
+describe('classifyStep — non-cacheable env/secret provenance', () => {
   it('a step that reads a live secret template classifies as NonCacheableStepInput', () => {
     const stepText = 'log in with password {{secret:API_KEY}}'
     // Provenance surface the classifier reuses (not a bespoke regex).
@@ -30,7 +30,7 @@ describe('classifyStep — non-cacheable env/secret provenance (CACHE-02, D-07)'
   })
 })
 
-describe('classifyStep — config-env-dependent step yields value-free env shapes (CACHE-02)', () => {
+describe('classifyStep — config-env-dependent step yields value-free env shapes', () => {
   it('returns RedactedEnvVar digest shapes with no value field', () => {
     const configEnv: RedactedEnvVar[] = [
       { name: 'BASE_URL', present: true, kind: 'string', lengthBucket: 2 },

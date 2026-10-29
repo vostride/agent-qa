@@ -118,7 +118,7 @@ function jpegHeader(width: number, height: number): Uint8Array {
 
 const BYTES = new Uint8Array([1, 2, 3, 4])
 
-describe('createSnapshotLiveStream (428 D-11/D-13)', () => {
+describe('createSnapshotLiveStream', () => {
   it('FIRST-CAPTURE-ON-START: start() captures once before any timer fires', async () => {
     const timer = makeFakeTimer()
     const held = makeHeldCapture()
@@ -288,7 +288,7 @@ describe('createSnapshotLiveStream (428 D-11/D-13)', () => {
   })
 })
 
-describe('imageSizeOf (428 Open Question 3)', () => {
+describe('imageSizeOf', () => {
   it('IMAGE-SIZE-PNG: reads the IHDR width and height, and a snapshot frame carries them', async () => {
     const header = pngHeader(800, 600)
     expect(imageSizeOf(header)).toEqual({ width: 800, height: 600 })
@@ -334,7 +334,7 @@ function makeScreenshotSpy(): { screenshot: () => Promise<Buffer | undefined>; c
   }
 }
 
-describe('liveStreamFor (428 D-11/D-12)', () => {
+describe('liveStreamFor', () => {
   it('LIVE-STREAM-FOR-SELECTION: a continuous stream with a screenshot() gets a snapshot fallback over it', async () => {
     const timer = makeFakeTimer()
     const screencast = makeScreencast('cdp-screencast')

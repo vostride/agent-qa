@@ -29,7 +29,7 @@ function element(ref: string, role: string, name: string, parentRef?: string, te
 // Structural conformance to the thin GroundingStrategy seam (Phase 357 absorbs it).
 const matcher: GroundingStrategy = deterministicDescriptorMatcher
 
-describe('deterministicDescriptorMatcher.reground (D-12 — one matcher, ambiguity never picks)', () => {
+describe('deterministicDescriptorMatcher.reground (one matcher, ambiguity never picks)', () => {
   it('returns the fresh ref when exactly one element matches role+nameNormalized', () => {
     const elements = [element('e1', 'button', 'Checkout'), element('e2', 'link', 'Help')]
     const locator: GroundedLocator = { role: 'button', name: 'Checkout' }
@@ -37,7 +37,7 @@ describe('deterministicDescriptorMatcher.reground (D-12 — one matcher, ambigui
     expect(matcher.reground(locator, elements)).toEqual({ kind: 'resolved', ref: elements[0].ref })
   })
 
-  it('returns null for a multi-candidate set with NO ordinal — ambiguity collapses to replan (Q4), never a first-pick', () => {
+  it('returns null for a multi-candidate set with NO ordinal — ambiguity collapses to replan, never a first-pick', () => {
     const elements = [element('e1', 'button', 'Add'), element('e2', 'button', 'Add')]
 
     expect(matcher.reground({ role: 'button', name: 'Add' }, elements)).toEqual({
@@ -69,7 +69,7 @@ describe('deterministicDescriptorMatcher.reground (D-12 — one matcher, ambigui
     })
   })
 
-  it('rescues benign name drift through the substring rung where the 356 exact-only matcher returned null (D-12a)', () => {
+  it('rescues benign name drift through the substring rung where an exact-only matcher returned null', () => {
     // 2026-10-09 (438-08): replay has no substring rung (D-10). A drifted name is absent, and so
     // is a different number under the same normalized name.
     const elements = [element('e1', 'button', 'Save changes'), element('e2', 'link', 'Invoice 946')]

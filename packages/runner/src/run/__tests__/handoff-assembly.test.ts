@@ -60,14 +60,14 @@ function resultWithoutEvidence(): TestResult {
 }
 
 describe('handoff assembly instrumentation parity', () => {
-  it.each(['passed', 'failed'] as const)('418 stamps member retry evidence on %s results', outcome => {
+  it.each(['passed', 'failed'] as const)('stamps member retry evidence on %s results', outcome => {
     const assembled = assemblePerTestOutcome(member,
       { ...resultWithoutEvidence(), status: outcome, retryCount: 2 }, outcome,
       { testIndex: 0, scope, buildOrdinal: 7, mask: text => text })
     expect(JSON.parse(JSON.stringify(assembled))).toMatchObject({ isRerun: true, rerunAttempt: 2 })
   })
 
-  it.each([0, undefined])('418 omits both retry keys for retryCount %s', retryCount => {
+  it.each([0, undefined])('omits both retry keys for retryCount %s', retryCount => {
     const assembled = assemblePerTestOutcome(member,
       { ...resultWithoutEvidence(), retryCount }, 'passed',
       { testIndex: 0, scope, buildOrdinal: 7, mask: text => text })
@@ -200,7 +200,7 @@ describe('handoff assembly instrumentation parity', () => {
   })
 })
 
-describe('§A9 rootCause attach (373-07, D-01 presence rule)', () => {
+describe('§A9 rootCause attach (presence rule)', () => {
   const environmentVerdict: Verdict = {
     class: 'environment',
     producer: 'deterministic-classifier',
@@ -239,7 +239,7 @@ describe('§A9 rootCause attach (373-07, D-01 presence rule)', () => {
     expect(JSON.stringify(outcome)).not.toContain('rootCause')
   })
 
-  it('keeps the handoff top-level shape unchanged — rootCause rides tests[] only (D-01)', () => {
+  it('keeps the handoff top-level shape unchanged — rootCause rides tests[] only', () => {
     const config = {
       runId: 'run-1' as RunId,
       scope,
@@ -274,7 +274,7 @@ describe('§A9 rootCause attach (373-07, D-01 presence rule)', () => {
   })
 })
 
-describe('stable test identity — filePath + human testName (ABRF-02, WR-02)', () => {
+describe('stable test identity — filePath + human testName', () => {
   it('populates filePath and human testName from the descriptor on assembled outcomes', () => {
     const outcome = assemblePerTestOutcome(member, resultWithoutEvidence(), 'passed', {
       testIndex: 0,
@@ -298,7 +298,7 @@ describe('stable test identity — filePath + human testName (ABRF-02, WR-02)', 
   })
 })
 
-describe('StepEvidence.planSource marker (D-12)', () => {
+describe('StepEvidence.planSource marker', () => {
   const procedureId = asRecordId('procedure-flow-login-0123456789abcdef')
 
   function evidenceWith(planSource: NonNullable<StepEvidence['planSource']>): StepEvidence {
@@ -375,7 +375,7 @@ describe('StepEvidence.planSource marker (D-12)', () => {
 // `projectTestFinished` — never a stand-in that could answer "is this a secret" differently.
 // 2026-10-15 (441-33, D-01/D-12): was the deleted masking context, which also minted `<EMAIL_n>`
 // for undeclared emails; the email is now a declared value, so each field is still masked.
-describe('WINDOWS #305 — real step evidence is masked at rest (DETL-04)', () => {
+describe('real step evidence is masked at rest', () => {
   const CREDENTIAL = 'zz-405-populated-secret-7f3a91c2'
   const EMAIL = 'qa-person@example.com'
   const STEP_TEXT = `Acknowledge the notice using ${CREDENTIAL}.`
@@ -509,7 +509,7 @@ describe('WINDOWS #305 — real step evidence is masked at rest (DETL-04)', () =
     expect(subAction.result.metadata).toEqual({ header: 'authorization [secret:OPERATOR_TOKEN]' })
   })
 
-  it('leaves stepText, plannedAction and interpolatedVariables BYTE-IDENTICAL (the G-381-3 carve-out)', () => {
+  it('leaves stepText, plannedAction and interpolatedVariables BYTE-IDENTICAL (the provenance carve-out)', () => {
     const step = assembleOnce(seededMask())
 
     expect(step.stepText).toBe(STEP_TEXT)

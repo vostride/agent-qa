@@ -740,7 +740,7 @@ test.each(['missing-mask', 'missing-store', 'bad-ref', 'missing-drain'] as const
   },
 )
 
-describe('C441-RUN-RECORDS', () => {
+describe('run records mask declared values in ARIA, console, accessibility and variable evidence', () => {
   const email = 'qa.user@example.com'
   const marker = '[secret:LIVE_423]'
 

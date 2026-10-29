@@ -89,7 +89,7 @@ describe('createRunEventBus — seq assignment (spec §2.2)', () => {
 
 // ---- Subscribe / replay-then-live / detach (D-08) ------------------------
 
-describe('subscribe — replay-then-live, per-subscriber order (D-08)', () => {
+describe('subscribe — replay-then-live, per-subscriber order', () => {
   it('replays retained events in seq order, then delivers live', () => {
     const bus = createRunEventBus({ runId: 'run-1' })
     bus.publish('runWarning', { code: 'a' })
@@ -146,7 +146,7 @@ describe('subscribe — replay-then-live, per-subscriber order (D-08)', () => {
 
 // ---- Event-log append + degrade-to-memory (D-06/D-07) --------------------
 
-describe('event-log append + degrade (D-06/D-07)', () => {
+describe('event-log append + degrade', () => {
   it('appends every publish to the injected EventLogPort', () => {
     const log = makeFakeEventLog()
     const bus = createRunEventBus({ runId: 'run-1', eventLog: log })

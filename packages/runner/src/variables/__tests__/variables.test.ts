@@ -348,7 +348,7 @@ describe('interpolateVariablesWithProvenance', () => {
     expect(result.substitutions).toEqual([])
   })
 
-  it('records the value VERBATIM — the pair is never masked or redacted (G-381-3)', () => {
+  it('records the value VERBATIM — the pair is never masked or redacted', () => {
     const store = new VariableStore()
     store.set('PROBE_USER', 'qa.user@example.com', 'env')
     store.set('PROBE_API_TOKEN', 'tok-live-9f3a2b', 'env')
@@ -429,7 +429,7 @@ describe('interpolateVariables with namespaces', () => {
     expect(interpolateVariables('Val: {{env:TOKEN}}', store)).toBe('Val: abc123')
   })
 
-  it('{{hook:TOKEN}} syntax does NOT resolve (namespace removed per D-07)', () => {
+  it('{{hook:TOKEN}} syntax does NOT resolve (the namespace was removed)', () => {
     const store = new VariableStore()
     store.set('TOKEN', 'abc123', 'env')
     expect(interpolateVariables('Val: {{hook:TOKEN}}', store)).toBe('Val: {{hook:TOKEN}}')

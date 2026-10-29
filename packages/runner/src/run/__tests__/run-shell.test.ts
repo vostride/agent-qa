@@ -171,7 +171,7 @@ function cancel(session: RunSession): void {
 
 // ---- Synchronous session identity (SESSION-01, D-01/D-04) ----------------
 
-describe('startRun — synchronous session identity (SESSION-01)', () => {
+describe('startRun — synchronous session identity', () => {
   it('returns a session synchronously carrying id, running status, executionContext', () => {
     const session = startRun(baseConfig())
     expect(session.id).toBe('run-1')
@@ -182,8 +182,8 @@ describe('startRun — synchronous session identity (SESSION-01)', () => {
 
 // ---- Run lifecycle + ordering (SESSION-04, spec §2.2) --------------------
 
-describe('run lifecycle emission (SESSION-04, spec §2.2)', () => {
-  it('the first event is runStarted at seq 1 with busSchemaVersion + D-04 header fields', async () => {
+describe('run lifecycle emission (spec §2.2)', () => {
+  it('the first event is runStarted at seq 1 with busSchemaVersion + header fields', async () => {
     const session = startRun(baseConfig())
     const events = drain(session)
     await done(session)
@@ -294,7 +294,7 @@ describe('run-level cancel', () => {
 
 // ---- Handoff (SESSION-05, D-13/D-17) -------------------------------------
 
-describe('handoff — exactly one per run (SESSION-05, D-13/D-17)', () => {
+describe('handoff — exactly one per run', () => {
   it('session.done resolves the same handoff that is persisted through the store port, exactly once', async () => {
     const store = makeFakeHandoffStore()
     const session = startRun(baseConfig({ ports: { handoffStore: store, eventLog: makeFakeEventLog() } }))
@@ -320,7 +320,7 @@ describe('handoff — exactly one per run (SESSION-05, D-13/D-17)', () => {
     expect(handoff.tests).toHaveLength(2)
   })
 
-  it('handoff step indices are re-derived from array position (never all-zero — RESEARCH Pitfall 4)', async () => {
+  it('handoff step indices are re-derived from array position (never all-zero)', async () => {
     const twoSteps = passResult('a', [
       defaultStep({ name: 's0', evidence: { stepIndex: 0 } as unknown as StepEvidence }),
       defaultStep({ name: 's1', evidence: { stepIndex: 0 } as unknown as StepEvidence }),
@@ -333,7 +333,7 @@ describe('handoff — exactly one per run (SESSION-05, D-13/D-17)', () => {
     expect(handoff.tests[0].steps.map(s => s.stepIndex)).toEqual([0, 1])
   })
 
-  it('a step WITHOUT evidence still yields a synthesized minimal StepEvidence (Open Q1: synthesize, do not drop)', async () => {
+  it('a step WITHOUT evidence still yields a synthesized minimal StepEvidence (synthesize, do not drop)', async () => {
     const noEvidence = passResult('a', [defaultStep({ name: 's0' })])
     const session = startRun(
       baseConfig({ members: [{ testId: 'a', name: 'test a', filePath: 'a.test.ts' }], executor: scriptedExecutor({ a: noEvidence }, []) }),
@@ -344,7 +344,7 @@ describe('handoff — exactly one per run (SESSION-05, D-13/D-17)', () => {
     expect(handoff.tests[0].steps[0]).toMatchObject({ stepIndex: 0 })
   })
 
-  it('handoff-store save failure publishes runWarning handoff-write-failed and done STILL resolves (verdict independence, D-07)', async () => {
+  it('handoff-store save failure publishes runWarning handoff-write-failed and done STILL resolves (verdict independence)', async () => {
     const store = makeFakeHandoffStore({ fail: true })
     const session = startRun(baseConfig({ ports: { handoffStore: store, eventLog: makeFakeEventLog() } }))
     const events = drain(session)
@@ -363,7 +363,7 @@ describe('handoff — exactly one per run (SESSION-05, D-13/D-17)', () => {
 // parity fields onto testStarted and the TestResult's durationMs/retryCount/failureSummary onto
 // testFinished, masking the failureSummary at the sink. Absent optionals leave no undefined-hole.
 
-describe('363 D-01 — enriched testStarted / testFinished payloads', () => {
+describe('enriched testStarted / testFinished payloads', () => {
   const SECRET = 'SECRET-42'
   const secretRedactor = new SecretRedactor(new SecretStore({ SECRET_42: SECRET }))
 
@@ -497,7 +497,7 @@ function makeFakeArtifactStore(options: { fail?: boolean } = {}): FakeArtifactSt
   }
 }
 
-describe('run-artifact store lifecycle (D-08, 363-06)', () => {
+describe('run-artifact store lifecycle', () => {
   it('stages the config+source snapshot synchronously after runStarted, before finalize', () => {
     const store = makeFakeArtifactStore()
     const runArtifact: RunArtifactStageInput = {
@@ -543,7 +543,7 @@ describe('run-artifact store lifecycle (D-08, 363-06)', () => {
     await expect(done(session)).resolves.toBeDefined()
   })
 
-  it('a throwing store degrades with runWarnings and never gates the verdict (D-07)', async () => {
+  it('a throwing store degrades with runWarnings and never gates the verdict', async () => {
     const store = makeFakeArtifactStore({ fail: true })
     const session = startRun(
       baseConfig({
@@ -574,7 +574,7 @@ function makeFakeEvidenceArtifactStore(): EvidenceArtifactStorePort {
   }
 }
 
-describe('CASS-02 — run-scoped evidence artifact store threading (Plan 13)', () => {
+describe('run-scoped evidence artifact store threading', () => {
   it('hands the exact config.ports.evidenceArtifacts to every member context (strict identity, multi-member)', async () => {
     const store = makeFakeEvidenceArtifactStore()
     const seen: Array<EvidenceArtifactStorePort | undefined> = []
@@ -620,7 +620,7 @@ describe('CASS-02 — run-scoped evidence artifact store threading (Plan 13)', (
   })
 })
 
-describe('§A9 root-cause classification at the assembly seam (373-07, D-05/RCC-02)', () => {
+describe('§A9 root-cause classification at the assembly seam', () => {
   it('persists a producer-stamped deterministic verdict for a failing member (round-trip)', async () => {
     const store = makeFakeHandoffStore()
     const session = startRun(
@@ -641,7 +641,7 @@ describe('§A9 root-cause classification at the assembly seam (373-07, D-05/RCC-
     expect(['timeout', 'environment', 'flake', 'unknown']).toContain(rootCause?.class)
   })
 
-  it('classifies a failed member environment from a 503 baseline probe carried ON THE MEMBER (D-04)', async () => {
+  it('classifies a failed member environment from a 503 baseline probe carried ON THE MEMBER', async () => {
     const store = makeFakeHandoffStore()
     const session = startRun(
       baseConfig({
@@ -664,7 +664,7 @@ describe('§A9 root-cause classification at the assembly seam (373-07, D-05/RCC-
     expect(store.saved[0].tests[0].rootCause?.evidence.rationale).toBe('health probe: 503 in 230ms')
   })
 
-  it('each member is classified against its OWN target’s baseline, never a sibling’s (401-19, WR-04)', async () => {
+  it('each member is classified against its OWN target’s baseline, never a sibling’s', async () => {
     // The two members name two different web targets. One target is sick, the other is healthy —
     // which is a state a run-level baseline cannot represent at all, and is why a run-level value
     // applied to everyone reports the healthy target's member as an environment failure.
@@ -754,7 +754,7 @@ function warningsOf(events: RunEventEnvelope[], code: string): RunEventEnvelope[
   )
 }
 
-describe('post-verdict step — the degrade-never-gate contract (404 D-10/D-11)', () => {
+describe('post-verdict step — the degrade-never-gate contract', () => {
   it('a port answering handedOff decides the wire, publishes no warning, and ran AFTER finalize and BEFORE runFinished', async () => {
     const orderLog: string[] = []
     let sawRunFinishedDuringStep = true
@@ -966,7 +966,7 @@ describe('post-verdict step — the degrade-never-gate contract (404 D-10/D-11)'
     expect(input.excludedFromOutcomes, 'only the literal true carries').toBe(true)
   })
 
-  it('done resolves only after runFinished AND bus.close() — the 403-03 D-3 invariant, restated over the new step', async () => {
+  it('done resolves only after runFinished AND bus.close(), with the post-verdict step in place', async () => {
     let events: RunEventEnvelope[] = []
     const port: FakePostVerdictPort = {
       run: vi.fn(async () => ({ disposition: 'drained' as const })),

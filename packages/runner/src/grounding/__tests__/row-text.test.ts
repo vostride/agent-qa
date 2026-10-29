@@ -37,7 +37,7 @@ const ADDRESSES: InterimNode[] = [
   { role: 'button', name: 'Edit label', parentIndex: 2 },
 ]
 
-describe('C438-ROW-TEXT', () => {
+describe('row text and row containment', () => {
   it('the nearest row container wins over an outer cell', () => {
     const elements = elementsOf([
       { role: 'cell', name: 'Outer cell' },

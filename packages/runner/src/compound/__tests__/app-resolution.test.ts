@@ -39,7 +39,7 @@ const registry = [
   { id: 'com.android.settings' },
 ]
 
-describe('resolveAppName — the exact rung (D-11)', () => {
+describe('resolveAppName — the exact rung', () => {
   it('(1) an exact id match resolves kind=exact', () => {
     const r = resolveAppName('com.android.settings', registry)
     expect(r.kind).toBe('exact')
@@ -58,7 +58,7 @@ describe('resolveAppName — the exact rung (D-11)', () => {
   })
 })
 
-describe('resolveAppName — the fuzzy ladder ordering (D-11)', () => {
+describe('resolveAppName — the fuzzy ladder ordering', () => {
   it('(4) a prefix candidate beats a substring candidate', () => {
     const ladder = [
       { id: 'a.prefix', label: 'Firefox' }, // 'firefox' starts with 'fire' (prefix)
@@ -78,7 +78,7 @@ describe('resolveAppName — the fuzzy ladder ordering (D-11)', () => {
   })
 })
 
-describe('resolveAppName — margin + candidate rules (D-12, T-359-04)', () => {
+describe('resolveAppName — margin + candidate rules', () => {
   it('(5) two near-equal candidates within the margin resolve ambiguous with NO launch winner', () => {
     const ambiguous = [
       { id: 'x.reddit', label: 'Reddit' },
@@ -99,7 +99,7 @@ describe('resolveAppName — margin + candidate rules (D-12, T-359-04)', () => {
     for (const candidate of r.candidates) expect(typeof candidate.id).toBe('string')
   })
 
-  it('(7) ScorerOptions injection overrides the defaults and changes an outcome (353 K=2)', () => {
+  it('(7) ScorerOptions injection overrides the defaults and changes an outcome', () => {
     const wide = resolveAppName('zzzz-nonexistent-app', registry)
     const narrow = resolveAppName('zzzz-nonexistent-app', registry, { candidateCount: 1 })
     expect(narrow.candidates.length).toBeLessThanOrEqual(1)

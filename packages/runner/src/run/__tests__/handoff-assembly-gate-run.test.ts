@@ -41,7 +41,7 @@ const baseConfig = {
   executor: async () => passingResult(),
 } satisfies RunConfig
 
-describe('gateRun threading run config -> handoff (D-10)', () => {
+describe('gateRun threading run config -> handoff', () => {
   it('copies the literal marker onto the assembled handoff when the run config opts in', () => {
     const config = {
       ...baseConfig,
@@ -62,7 +62,7 @@ describe('gateRun threading run config -> handoff (D-10)', () => {
     expect(JSON.stringify(handoff)).not.toContain('gateRun')
   })
 
-  it('keeps gateRun independent of the shipped excludedFromOutcomes marker (Pitfall 5)', () => {
+  it('keeps gateRun independent of the shipped excludedFromOutcomes marker', () => {
     const gateOnly = assembleHandoff(
       { ...baseConfig, runId: 'run-gate-only' as RunId, gateRun: true } satisfies RunConfig,
       [],

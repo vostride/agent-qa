@@ -33,7 +33,7 @@ function codeOf(run: () => void): string | undefined {
   }
 }
 
-describe('C438-TARGET-SCHEMA', () => {
+describe('targetSchema and the stated target in tool calls', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -130,7 +130,7 @@ describe('C438-TARGET-SCHEMA', () => {
   })
 })
 
-describe('C438-HINTS', () => {
+describe('grounding error hints', () => {
   it('an unresolved target names role, name and row words as the restatement', () => {
     const { hint } = groundingError.descriptorUnresolved('web_click', 'button "Save"')
 

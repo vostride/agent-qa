@@ -58,7 +58,7 @@ const STEP_TIMEOUT_MESSAGE = createTimeoutAbortReason('step', 5_000).message
 
 // ---- isTestTimeoutMessage (D-16) -----------------------------------------
 
-describe('isTestTimeoutMessage (D-16)', () => {
+describe('isTestTimeoutMessage', () => {
   it.each([
     [TEST_TIMEOUT_MESSAGE, true],
     [STEP_TIMEOUT_MESSAGE, false],
@@ -71,7 +71,7 @@ describe('isTestTimeoutMessage (D-16)', () => {
 
 // ---- deriveMemberOutcome (D-15/D-16) -------------------------------------
 
-describe('deriveMemberOutcome (D-15/D-16) — pure total function', () => {
+describe('deriveMemberOutcome — pure total function', () => {
   it('passed + a step carrying selfHeal evidence ⇒ healed (keyed on evidence, not step status)', () => {
     const result = test({ status: 'passed', steps: [step({ status: 'passed', evidence: healedEvidence() })] })
     expect(deriveMemberOutcome(result)).toBe('healed')
@@ -124,7 +124,7 @@ const AGGREGATE_CASES: AggregateCase[] = [
   { name: 'empty run ⇒ passed', runCancelled: false, outcomes: [], expected: 'passed' },
 ]
 
-describe('deriveAggregateVerdict (spec §2.1 ratified rule + D-15 neutral-skipped)', () => {
+describe('deriveAggregateVerdict (spec §2.1 ratified rule + neutral-skipped)', () => {
   it.each(AGGREGATE_CASES)('$name', ({ runCancelled, outcomes, expected }) => {
     expect(deriveAggregateVerdict({ runCancelled, outcomes })).toBe(expected)
   })
@@ -132,7 +132,7 @@ describe('deriveAggregateVerdict (spec §2.1 ratified rule + D-15 neutral-skippe
 
 // ---- mapVerdictToExitCode (D-14) -----------------------------------------
 
-describe('mapVerdictToExitCode (D-14)', () => {
+describe('mapVerdictToExitCode', () => {
   it.each<[RunStatus, number]>([
     ['passed', 0],
     ['healed', 0],

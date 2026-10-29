@@ -90,7 +90,7 @@ function frame(id: number): LiveFrame {
 /** Let the hub's internal `start()` promise settle before asserting on `calls`. */
 const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0))
 
-describe('createLiveStreamHub (403 D-05/D-07)', () => {
+describe('createLiveStreamHub', () => {
   it('(a) never starts the producer while nobody is watching', async () => {
     const timer = makeFakeTimer()
     const capability = makeFakeCapability()
@@ -353,7 +353,7 @@ function randomOps(next: () => number, viewerCount: number, length: number): Hub
   return ops
 }
 
-describe('the N-viewer invariant (403-02 · D-07/D-16 · LIVE-01)', () => {
+describe('the N-viewer invariant', () => {
   it('(i) 200 seeded interleavings over up to 6 viewers: one start and one stop per watched interval', async () => {
     // COVERAGE COUNTERS, asserted at the bottom. 200 green iterations prove nothing if every one of
     // them was a single viewer attaching once: a property cell whose generator never reaches the
@@ -793,7 +793,7 @@ describe('the N-viewer invariant (403-02 · D-07/D-16 · LIVE-01)', () => {
 // A frame's time is its CAPTURE time in integer epoch milliseconds. The producer stamps it; the hub
 // fills it from its own clock only when the producer did not, and never overwrites one it was given.
 
-describe('the hub stamps capture time and producer kind on a copy (428-01 · D-15)', () => {
+describe('the hub stamps capture time and producer kind on a copy', () => {
   it('(t) TS-STAMPED-WHEN-ABSENT: an unstamped frame reaches the subscriber at timer.now(), the producer object untouched', async () => {
     const timer = makeFakeTimer()
     const capability = makeFakeCapability()
@@ -846,7 +846,7 @@ describe('the hub stamps capture time and producer kind on a copy (428-01 · D-1
 // subject is over. A consumer that cannot tell the two apart either ends a whole view when one
 // member finishes, or holds a frozen frame when the run ends.
 
-describe('every end names its reason and close() evicts (428-04 · D-14 · #277)', () => {
+describe('every end names its reason and close() evicts', () => {
   it('CLOSE-EVICTS-AND-TELLS: close() ends every subscriber once with closed, stops once, refuses later subscribers', async () => {
     const timer = makeFakeTimer()
     const capability = makeFakeCapability()
@@ -928,7 +928,7 @@ function makeSnapshotCapability(): FakeCapability {
   return { ...makeFakeCapability(), kind: 'snapshot' }
 }
 
-describe('a failed primary start hands over to its snapshot fallback (428-04 · D-12)', () => {
+describe('a failed primary start hands over to its snapshot fallback', () => {
   it('START-FAILURE-FALLS-BACK: the failure is recorded, the fallback starts, and its frames arrive labelled snapshot', async () => {
     const timer = makeFakeTimer()
     const warnings: string[] = []
@@ -1048,7 +1048,7 @@ describe('a failed primary start hands over to its snapshot fallback (428-04 · 
 // its member finished: the shape WINDOWS calls "green that never ran". So this cell drives
 // `startRun` end to end.
 
-describe('shell.ts threads the end-of-stream notification onto the real RunSession seam (CR-03)', () => {
+describe('shell.ts threads the end-of-stream notification onto the real RunSession seam', () => {
   it('a member settling delivers onEnd to that handle\'s frame subscribers, run still going', async () => {
     let push: ((frame: LiveFrame) => void) | undefined
     const capability: LiveStreamCapability = {
@@ -1125,7 +1125,7 @@ describe('shell.ts threads the end-of-stream notification onto the real RunSessi
   })
 })
 
-describe('shell.ts forwards a SUBSCRIBER fault to the host port, off the run bus (403-13 · WR-06)', () => {
+describe('shell.ts forwards a SUBSCRIBER fault to the host port, off the run bus', () => {
   it('a subscriber that throws is reported on ports.onSubscriberFault, detached, and the runWarning count is unchanged', async () => {
     let push: ((frame: LiveFrame) => void) | undefined
     const capability: LiveStreamCapability = {

@@ -27,7 +27,7 @@ function element(overrides: Partial<ElementInfo> = {}): ElementInfo {
   }
 }
 
-describe('toGroundedLocator — descriptor-only projection (CACHE-03, D-12)', () => {
+describe('toGroundedLocator — descriptor-only projection', () => {
   it('projects an action + elements to a role+nameNormalized descriptor with no ref', () => {
     const elements = [element({ ref: asRef(SENTINEL_REF), role: 'button', name: 'Cart  (3) ', nameNormalized: 'cart' })]
     const action = { type: 'click', ref: SENTINEL_REF } as unknown as Action
@@ -41,7 +41,7 @@ describe('toGroundedLocator — descriptor-only projection (CACHE-03, D-12)', ()
   })
 })
 
-describe('buildCachedPlanValue — no ref/selector/coordinates/data in the value (D-12 overfit guard)', () => {
+describe('buildCachedPlanValue — no ref/selector/coordinates/data in the value (overfit guard)', () => {
   it('assembles a descriptor-only CachedPlanValue that omits the raw ref and step data', () => {
     const elements = [element({ ref: asRef(SENTINEL_REF), role: 'button', name: 'Checkout', nameNormalized: 'checkout' })]
     const action = { type: 'click', ref: SENTINEL_REF, data: SENTINEL_DATA } as unknown as Action
@@ -63,7 +63,7 @@ describe('buildCachedPlanValue — no ref/selector/coordinates/data in the value
   })
 })
 
-describe('toGroundedLocator — the stated row (438 D-11)', () => {
+describe('toGroundedLocator — the stated row', () => {
   const rows = [
     element({ ref: asRef('r1'), role: 'listitem', name: '', nameNormalized: '', text: 'Work 7 Elm Street, Springfield' }),
     element({ ref: asRef('e1'), role: 'button', name: 'Edit label', nameNormalized: 'edit label', hierarchy: { parentRef: asRef('r1') } }),

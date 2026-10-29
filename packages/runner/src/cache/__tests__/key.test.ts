@@ -43,7 +43,7 @@ function keyOf(overrides: Overrides = {}): string {
   )
 }
 
-describe('buildCacheableStepInput → computeCacheKey determinism (CACHE-01)', () => {
+describe('buildCacheableStepInput → computeCacheKey determinism', () => {
   it('the same 8-tuple yields a stable key', () => {
     expect(keyOf()).toBe(keyOf())
   })
@@ -60,7 +60,7 @@ describe('buildCacheableStepInput → computeCacheKey determinism (CACHE-01)', (
     expect(keyOf({ screenIdentityHash: 'screen-hash-2' })).not.toBe(base)
   })
 
-  it('branch is never a key component — the same tuple under two branches yields the same key (D-14)', () => {
+  it('branch is never a key component — the same tuple under two branches yields the same key', () => {
     expect(keyOf({ branch: 'main' })).toBe(keyOf({ branch: 'feature/x' }))
   })
 })

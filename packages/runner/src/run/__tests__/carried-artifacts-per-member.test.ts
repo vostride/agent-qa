@@ -23,7 +23,7 @@ const INVOICE: DownloadEvidence = {
   state: 'completed',
 }
 
-describe('C439-CARRY-MEMBER', () => {
+describe('carried artifacts per test member', () => {
   it('each test member has its own cell', async () => {
     let executed = 0
     const adapter: PlatformAdapter = {

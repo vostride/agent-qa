@@ -28,7 +28,7 @@ function sides(difference: string | undefined): string[] {
   return [...(difference ?? '').matchAll(/«([^»]*)»/g)].map((match) => match[1]!)
 }
 
-describe('C439-FILE-COMPARE', () => {
+describe('comparing a downloaded file\'s content and name', () => {
   it('an exact match passes and any other character differs', () => {
     expect(compare('order,total\nORD-1001,42.50\n', 'order,total\nORD-1001,42.50\n')).toEqual({
       name: 'match',

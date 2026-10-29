@@ -33,7 +33,7 @@ function reasons(stated: StatedTarget, observed: ElementInfo): TargetMismatchRea
   return judgement.verdict === 'contradicts' ? judgement.reasons : []
 }
 
-describe('C438-JUDGE', () => {
+describe('judgeStatedTarget', () => {
   it('button vs textbox is a role-kind contradiction', () => {
     expect(reasons({ role: 'button', name: 'Submit' }, element('textbox', ''))).toEqual([
       'role-kind',

@@ -87,7 +87,7 @@ function expectOmitWhenDescribe(fieldSchema: z.ZodType): void {
   expect(fieldSchema.description ?? '').toMatch(/omit when/i)
 }
 
-describe('target descriptor coverage (D-05 uniform scanner rule)', () => {
+describe('target descriptor coverage (uniform scanner rule)', () => {
   it('adds an optional target sibling and makes ref optional on every ref-bearing tool', () => {
     const registry = buildRegistry()
 
@@ -137,7 +137,7 @@ describe('target descriptor coverage (D-05 uniform scanner rule)', () => {
     }
   })
 
-  it('never exposes near on the target descriptor surface (D-06)', () => {
+  it('never exposes near on the target descriptor surface', () => {
     const registry = buildRegistry()
 
     for (const id of TARGET_COVERAGE_IDS) {

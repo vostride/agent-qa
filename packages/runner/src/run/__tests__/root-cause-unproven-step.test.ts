@@ -54,7 +54,7 @@ function failed(steps: StepResult[]): TestResult {
   return { name: 'settings', filePath: 'settings.test.ts', status: 'failed', steps, duration: 1 }
 }
 
-describe('C439-ROOT-CAUSE', () => {
+describe('root cause of an unproven step', () => {
   it('an unproven failed step is unknown with its reason as rationale', () => {
     const verdict = classifyRootCause({
       result: failed([passedStep(), judgedStep('unverified')]),

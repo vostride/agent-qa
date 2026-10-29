@@ -46,7 +46,7 @@ const ADDRESSES: ElementInfo[] = [
   element('e6', 'button', 'Edit label', { parentRef: 'e5' }),
 ]
 
-describe('C438-STRICT-MATCH', () => {
+describe('strictMatch', () => {
   it('zero candidates are absent', () => {
     expect(strictMatch({ role: 'button', name: 'Save' }, [])).toEqual<StrictMatchResult>({
       kind: 'absent',

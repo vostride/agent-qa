@@ -90,7 +90,7 @@ async function execute(options: {
   return { loaded, completion, events, results, planner, adapterExecute, secretRedactor }
 }
 
-describe('420 original retry handoff', () => {
+describe('original retry handoff', () => {
   it.each([
     ['timeout', 'Test timed out after 100ms', undefined],
     ['environment', 'unexplained', { status: 503, elapsedMs: 8 }],

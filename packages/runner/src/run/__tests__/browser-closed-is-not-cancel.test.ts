@@ -38,7 +38,7 @@ function memberConfig(overrides: Partial<MemberRunConfig>): MemberRunConfig {
 
 const member = { testId: 't_member', name: 'Member test', filePath: '/tests/member.yaml', steps: ['Click OK'] }
 
-describe('C444-NO-BROWSER-GUESS', () => {
+describe('a closed browser is not a cancel', () => {
   it('a browser that closes with no cancel fails the member and says the browser closed', async () => {
     const adapter = disconnectedAdapter()
     const closing = async (instruction: string): Promise<StepResult> => {

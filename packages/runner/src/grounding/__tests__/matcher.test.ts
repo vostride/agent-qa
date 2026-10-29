@@ -50,7 +50,7 @@ function withPosition(descriptor: DescriptorInput, ordinal: number): DescriptorI
   return { ...descriptor, ordinal } as DescriptorInput
 }
 
-describe('matchDescriptor — precedence ladder (D-12)', () => {
+describe('matchDescriptor — precedence ladder', () => {
   it('rung 1: role+nameNormalized exact wins over a nameNormalized-only match and a substring match', () => {
     const elements = [
       element('e1', 'link', 'save changes'), // nameNormalized-only (role differs)
@@ -86,7 +86,7 @@ describe('matchDescriptor — precedence ladder (D-12)', () => {
   })
 })
 
-describe('matchDescriptor — ordinal is a tiebreak only (D-12)', () => {
+describe('matchDescriptor — ordinal is a tiebreak only', () => {
   // 2026-10-09 (438-11): no position selects (D-12); a stray ordinal is never read.
   it('ordinal selects within the surviving result set', () => {
     const elements = [
@@ -120,7 +120,7 @@ describe('matchDescriptor — ordinal is a tiebreak only (D-12)', () => {
   })
 })
 
-describe('matchDescriptor — ambiguity never picks (D-12, security property T-357-01a)', () => {
+describe('matchDescriptor — ambiguity never picks (a security property)', () => {
   it('two survivors after the ladder and no ordinal ⇒ ambiguous with candidate refs, never a pick', () => {
     const elements = [
       element('e1', 'button', 'add'),
@@ -135,8 +135,8 @@ describe('matchDescriptor — ambiguity never picks (D-12, security property T-3
   })
 })
 
-describe('matchDescriptor — descriptor rejections (D-13, D-06)', () => {
-  it('a descriptor with no name is rejected with reason name-missing (D-13)', () => {
+describe('matchDescriptor — descriptor rejections', () => {
+  it('a descriptor with no name is rejected with reason name-missing', () => {
     const elements = [element('e1', 'button', 'save')]
 
     const result = match({ descriptor: { role: 'button' }, elements })
@@ -144,7 +144,7 @@ describe('matchDescriptor — descriptor rejections (D-13, D-06)', () => {
     expect(result).toEqual<MatchResult>({ kind: 'rejected', reason: 'name-missing' })
   })
 
-  it('a descriptor carrying `near` is rejected with reason near-unsupported (D-06 backstop)', () => {
+  it('a descriptor carrying `near` is rejected with reason near-unsupported (backstop)', () => {
     const elements = [element('e1', 'button', 'save')]
 
     const result = match({
@@ -156,7 +156,7 @@ describe('matchDescriptor — descriptor rejections (D-13, D-06)', () => {
   })
 })
 
-describe('matchDescriptor — normalize exactly once (Pitfall 6)', () => {
+describe('matchDescriptor — normalize exactly once', () => {
   it('normalizes a raw `name` once and passes a pre-normalized `nameNormalized` through untouched', () => {
     // Raw name normalizes (whitespace-collapse + casefold) to 'save'.
     const savers = [element('e1', 'button', 'save')]
@@ -174,7 +174,7 @@ describe('matchDescriptor — normalize exactly once (Pitfall 6)', () => {
   })
 })
 
-describe('matchDescriptor — prior-ElementInfo hierarchy disambiguation (Pattern 4)', () => {
+describe('matchDescriptor — prior-ElementInfo hierarchy disambiguation', () => {
   it('resolves an otherwise-ambiguous set by structural parent chain, not raw parentRef equality', () => {
     // Fresh observation: two identical 'submit' buttons under structurally-different forms.
     const freshParentCheckout = element('e20', 'form', 'checkout')
@@ -201,7 +201,7 @@ describe('matchDescriptor — prior-ElementInfo hierarchy disambiguation (Patter
   })
 })
 
-describe('C438-MATCHER-AMBIGUITY', () => {
+describe('matchDescriptor — repeated labels and stray positions', () => {
   function addScreen(): ElementInfo[] {
     return [
       element('e20', 'list', 'cart'),

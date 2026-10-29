@@ -142,7 +142,7 @@ function done(session: RunSession): Promise<{ verdict: string; handoff: Complete
 
 // ---- The end-to-end disposition path ------------------------------------
 
-describe('quarantine-aware run (D-14/D-16)', () => {
+describe('quarantine-aware run', () => {
   it('a quarantined failing member leaves the run passed at exit 0, outcome still failed', async () => {
     const session = startRun(baseConfig({ quarantined: [QUARANTINED_FLAKY] }))
     const { verdict, handoff } = await done(session)
@@ -185,7 +185,7 @@ describe('quarantine-aware run (D-14/D-16)', () => {
     )
   })
 
-  it('an absent quarantined set reproduces pre-390 behavior byte-identically', async () => {
+  it('an absent quarantined set reproduces the unquarantined behavior byte-identically', async () => {
     const session = startRun(baseConfig())
     const { verdict, handoff } = await done(session)
 
@@ -276,7 +276,7 @@ function probeShape(
   }
 }
 
-describe('fail-fast poisoning is disposition-aware (CR-01, D-14)', () => {
+describe('fail-fast poisoning is disposition-aware', () => {
   it('a quarantined failure does not skip its siblings — a failing sibling still reds the run at exit 1', async () => {
     const executed: string[] = []
     const session = startRun(
@@ -451,7 +451,7 @@ describe('deriveAggregateVerdict quarantine skip', () => {
     ).toBe('healed')
   })
 
-  it('an absent flags array is the pre-390 rule', () => {
+  it('an absent flags array applies the unquarantined rule', () => {
     expect(deriveAggregateVerdict({ ...base, outcomes: ['failed'] })).toBe('failed')
     expect(deriveAggregateVerdict({ ...base, outcomes: ['timeout'] })).toBe('failed')
     expect(deriveAggregateVerdict({ ...base, outcomes: ['passed'] })).toBe('passed')

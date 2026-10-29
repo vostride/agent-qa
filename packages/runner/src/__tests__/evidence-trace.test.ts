@@ -69,7 +69,7 @@ function cautionLine(id: string): CautionLine {
   return { id: asRecordId(id), anchors: [], summary: `${id} caution` }
 }
 
-describe('StepEvidence carries the serve-time trace beside servedBrief (D-13)', () => {
+describe('StepEvidence carries the serve-time trace beside servedBrief', () => {
   it('persists the exact attributions the reader returned', () => {
     const recorder = new EvidenceRecorder()
     const served = trace(
@@ -94,7 +94,7 @@ describe('StepEvidence carries the serve-time trace beside servedBrief (D-13)', 
     expect(ServedRetrievalTraceV1Schema.safeParse(evidence.retrievalTrace).success).toBe(true)
   })
 
-  it('leaves the trace ABSENT when no reader served the step (D-15 honest no-trace)', () => {
+  it('leaves the trace ABSENT when no reader served the step (an honest no-trace)', () => {
     const evidence = new EvidenceRecorder({ scope, asOfBuild: 7 })
       .finalize(passVerdict, 0, 'checkout')
 
@@ -319,7 +319,7 @@ describe('StepEvidence carries the serve-time trace beside servedBrief (D-13)', 
   })
 })
 
-describe('the assembled handoff carries a trace-bearing step at schemaVersion 5 (387-04)', () => {
+describe('the assembled handoff carries a trace-bearing step at schemaVersion 5', () => {
   const member: RunMemberDescriptor = {
     testId: 'checkout-guest-1',
     name: 'Guest checkout',
@@ -411,7 +411,7 @@ describe('the assembled handoff carries a trace-bearing step at schemaVersion 5 
   })
 })
 
-describe('the evidence writer copies serve-time values through unchanged (387-04)', () => {
+describe('the evidence writer copies serve-time values through unchanged', () => {
   const path = join(dirname(fileURLToPath(import.meta.url)), '..', 'loop', 'evidence.ts')
 
   function statementsOf(text: string): string {

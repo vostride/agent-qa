@@ -94,7 +94,7 @@ function expectFieldAbsentFromEveryShape(registry: ToolRegistry, id: string, fie
 }
 
 describe('elementDescription grounding companion', () => {
-  it('adds optional elementDescription to the D-03 interaction set', () => {
+  it('adds optional elementDescription to the interaction set', () => {
     const registry = buildRegistry()
 
     for (const id of ELEMENT_DESCRIPTION_IDS) {

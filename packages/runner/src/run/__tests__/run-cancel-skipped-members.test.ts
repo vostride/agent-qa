@@ -62,7 +62,7 @@ const finishedOf = (events: readonly RunEventEnvelope[]) => events
   .filter((event) => event.type === 'testFinished')
   .map((event) => event.payload as { testId: string; outcome: string })
 
-describe('C444-ABORT-SKIPPED', () => {
+describe('members a run-level cancel skips', () => {
   it('members a run-level cancel skips are published as skipped, in member order', async () => {
     const { calls, events, verdict } = await cancelledDuringMemberOne()
 
@@ -86,7 +86,7 @@ describe('C444-ABORT-SKIPPED', () => {
   })
 })
 
-describe('C444.1-REPORTER-WORDS', () => {
+describe('reporter words for a skipped member', () => {
   it('a member a run-level cancel skipped carries its test name and file', async () => {
     const { events } = await cancelledDuringMemberOne()
 

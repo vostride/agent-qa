@@ -11,7 +11,7 @@ function entry(url: string, status = 200): string {
   return JSON.stringify({ url, method: 'GET', status })
 }
 
-describe('C439-ASSERT-COMPARE', () => {
+describe('compareAssertValue on unread, null and network values', () => {
   it.each(ALL_OPS)('an unread value fails %s', (op) => {
     expect(compareAssertValue({ source: 'storage', op, expected: '1', actual: undefined }).passed).toBe(false)
   })

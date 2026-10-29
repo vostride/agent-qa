@@ -78,8 +78,8 @@ function scriptedObserve(states: ScreenState[]) {
   }
 }
 
-describe('CACHE roll-call — one green proof per phase acceptance criterion (356)', () => {
-  it('CACHE-01: mask() is applied before hashing — the masked key differs from the raw key and the filename carries no secret', () => {
+describe('CACHE roll-call — one green proof per acceptance criterion', () => {
+  it('mask() is applied before hashing — the masked key differs from the raw key and the filename carries no secret', () => {
     const redactor = new SecretRedactor(new SecretStore({ API_TOKEN: SECRET }))
     const stepText = `call API with ${SECRET}`
 
@@ -96,7 +96,7 @@ describe('CACHE roll-call — one green proof per phase acceptance criterion (35
     expect(masked.relevantEnvDigest).toBe(relevantEnvDigest(envVars(), 'salt'))
   })
 
-  it('CACHE-02: an env/secret read-or-set step classifies NonCacheable → no key/entry is built, maps to bypass', () => {
+  it('an env/secret read-or-set step classifies NonCacheable → no key/entry is built, maps to bypass', () => {
     // Reads a live secret template.
     const readResult = classifyStep({ stepText: 'log in with password {{secret:API_KEY}}' })
     expect(readResult.cacheable).toBe(false)
@@ -118,7 +118,7 @@ describe('CACHE roll-call — one green proof per phase acceptance criterion (35
     expect(cacheable.cacheable).toBe(true)
   })
 
-  it('CACHE-03: the cached value is descriptor-only (no ref/coords/data) and the deterministic matcher re-grounds it', () => {
+  it('the cached value is descriptor-only (no ref/coords/data) and the deterministic matcher re-grounds it', () => {
     const elements = [element(SENTINEL_REF, 'button', 'checkout', 'Checkout')]
     const action = { type: 'click', ref: SENTINEL_REF, data: SENTINEL_DATA } as unknown as Action
 
@@ -144,13 +144,13 @@ describe('CACHE roll-call — one green proof per phase acceptance criterion (35
     expect(deterministicDescriptorMatcher.reground({ role: 'button', name: 'Missing' }, fresh)).toEqual({ kind: 'absent' })
   })
 
-  it('CACHE-04: branch is never a key component — the same tuple under two branches yields the same key', () => {
+  it('branch is never a key component — the same tuple under two branches yields the same key', () => {
     expect(computeCacheKey(keyInput('click the log in button', undefined, 'main'))).toBe(
       computeCacheKey(keyInput('click the log in button', undefined, 'feature/x')),
     )
   })
 
-  it('CACHE-05: the settle gate proceeds on two consecutive matching hashes and returns that stable hash', async () => {
+  it('the settle gate proceeds on two consecutive matching hashes and returns that stable hash', async () => {
     const stable = screen('Cart')
     const observe = scriptedObserve([stable, stable, stable])
 

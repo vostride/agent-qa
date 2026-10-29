@@ -59,7 +59,7 @@ function expectError(result: GateResult, code: string): GroundingError {
   return result.error
 }
 
-describe('groundActionPlan — ref/target precedence (D-04)', () => {
+describe('groundActionPlan — ref/target precedence', () => {
   it('prefers the committed ref when an action carries BOTH ref and target (target dropped)', async () => {
     const result = await gate({
       toolName: 'web_click',
@@ -98,7 +98,7 @@ describe('groundActionPlan — ref/target precedence (D-04)', () => {
   })
 })
 
-describe('groundActionPlan — committed-ref validation (GROUND-03)', () => {
+describe('groundActionPlan — committed-ref validation', () => {
   it('raises ref_not_in_snapshot when the committed ref is absent from the fresh refMap', async () => {
     const result = await gate({
       toolName: 'web_click',
@@ -124,7 +124,7 @@ describe('groundActionPlan — committed-ref validation (GROUND-03)', () => {
   })
 })
 
-describe('groundActionPlan — coordSpace-aware bounds (GROUND-03, Pitfall 10)', () => {
+describe('groundActionPlan — coordSpace-aware bounds', () => {
   it('raises coords_out_of_bounds for viewport coords beyond metadata.viewportWidth/Height', async () => {
     const result = await gate({
       toolName: 'mobile_tapCoordinate',
@@ -162,7 +162,7 @@ describe('groundActionPlan — coordSpace-aware bounds (GROUND-03, Pitfall 10)',
   })
 })
 
-describe('groundActionPlan — target descriptor ladder (D-08, GROUND-02)', () => {
+describe('groundActionPlan — target descriptor ladder', () => {
   it('resolves a target through the ladder and returns a fully-grounded, target-free action', async () => {
     const result = await gate({
       toolName: 'web_click',
@@ -177,7 +177,7 @@ describe('groundActionPlan — target descriptor ladder (D-08, GROUND-02)', () =
     expect(result.attempts).toEqual([{ stage: 'tree-search', outcome: 'resolved', resolvedRef: 'e2' }])
   })
 
-  it('appends a visual:skipped attempt and raises descriptor_unresolved when ref+tree-search exhaust (D-02)', async () => {
+  it('appends a visual:skipped attempt and raises descriptor_unresolved when ref+tree-search exhaust', async () => {
     const result = await gate({
       toolName: 'web_click',
       action: { type: 'click', target: { role: 'button', name: 'nonexistent widget' } } as never,
@@ -220,7 +220,7 @@ describe('groundActionPlan — target descriptor ladder (D-08, GROUND-02)', () =
   })
 })
 
-describe('C438-MATCHER-AMBIGUITY', () => {
+describe('groundActionPlan — an ambiguous target never picks', () => {
   function el(ref: string, role: string, name: string, parentRef?: string): ElementInfo {
     return {
       ref: asRef(ref),

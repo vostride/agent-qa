@@ -131,7 +131,7 @@ describe('brief line rendering', () => {
   })
 })
 
-describe('shared observation rendering (FLOOR-06 / D-06)', () => {
+describe('shared observation rendering', () => {
   it('uses the same observation prefix as the full renderer', () => {
     expect(OBSERVATION_LINE_PREFIX).toBe('Observation: ')
     expect(renderBriefLine(entry()).line.startsWith(OBSERVATION_LINE_PREFIX)).toBe(true)
@@ -158,7 +158,7 @@ describe('shared observation rendering (FLOOR-06 / D-06)', () => {
   })
 })
 
-describe('shared brief tier assembly (FLOOR-06 / D-08)', () => {
+describe('shared brief tier assembly', () => {
   it.each(['policy', 'policy\n'])('appends user facts with one separator after %j', (policy) => {
     expect(assembleBriefTiers(policy, ['first fact', 'second fact'], []))
       .toEqual({ L0: 'policy\nfirst fact\nsecond fact', L1: '', L2: '' })

@@ -217,7 +217,7 @@ function findBareRefSchemaOffenders(sourceFiles: readonly SourceFile[]): string[
   return offenders
 }
 
-describe('LINT-02', () => {
+describe('tool ids match their declared surface and type', () => {
   it('requires every tool id to match its declared surface and type', () => {
     expect(findSurfaceIdOffenders(defs)).toEqual([])
   })
@@ -235,7 +235,7 @@ describe('LINT-02', () => {
   })
 })
 
-describe('LINT-03', () => {
+describe('tool types and VERB_SURFACE keys agree', () => {
   it('keeps registered tool types in bijection with VERB_SURFACE keys', () => {
     expect(findVerbSurfaceBijectionOffenders(defs, VERB_SURFACE)).toEqual([])
   })
@@ -282,7 +282,7 @@ describe('tool definition metadata', () => {
   })
 })
 
-describe('LINT-04', () => {
+describe('loose Zod types carry an escape-hatch marker', () => {
   it('requires z.any() and z.unknown() to carry an escape-hatch marker', () => {
     expect(findLooseZodOffenders(actionSourceFiles)).toEqual([])
   })
@@ -301,7 +301,7 @@ describe('LINT-04', () => {
   })
 })
 
-describe('LINT-05', () => {
+describe('optional action params explain when to omit them', () => {
   it('requires in-scope optional/default action params to explain when to omit them', () => {
     expect(findOptionalDescribeOffenders(actionSourceFiles)).toEqual([])
   })
@@ -363,7 +363,7 @@ describe('LINT-05', () => {
   })
 })
 
-describe('LINT-06', () => {
+describe('ref fields use refSchema', () => {
   it('requires ref/fromRef/toRef fields to use refSchema', () => {
     expect(findBareRefSchemaOffenders(actionSourceFiles)).toEqual([])
   })

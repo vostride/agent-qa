@@ -24,7 +24,7 @@ describe('readFillRefusalMeta', () => {
     }
   })
 
-  it('reads the 437 single-line refusal pair (owner 2026-10-08, refuse before typing)', () => {
+  it('reads the single-line refusal pair (refuse before typing)', () => {
     expect(
       readFillRefusalMeta(carrier({ fillRefusal: { verb: 'fill', cause: 'single-line-field', evidence: 'text-has-line-breaks' } })),
     ).toEqual({ verb: 'fill', cause: 'single-line-field', evidence: 'text-has-line-breaks' })
@@ -62,7 +62,7 @@ describe('readFillSubmitMeta', () => {
     expect(readFillSubmitMeta(carrier({ fillSubmit: { sent: false, reason: 3 } }))).toBeUndefined()
   })
 
-  it('reads the 437 outcome shapes (D-17)', () => {
+  it('reads the fillSubmit outcome shapes', () => {
     const cases: Record<string, unknown>[] = [
       { sent: true, outcome: 'sent' },
       { sent: false, outcome: 'not-sent', reason: 'mismatch' },
@@ -95,7 +95,7 @@ describe('readFillSubmitMeta', () => {
   })
 })
 
-describe('readShellActionMeta (D-18)', () => {
+describe('readShellActionMeta', () => {
   it('reads an unavailable keyevent and a failed openQuickSettings', () => {
     expect(
       readShellActionMeta(carrier({ shellAction: { verb: 'keyevent', outcome: 'unavailable', reason: 'adb-shell-disabled' } })),
@@ -117,7 +117,7 @@ describe('readShellActionMeta (D-18)', () => {
   })
 })
 
-describe('readFillVerdictMeta (C437-FILL-VERDICT)', () => {
+describe('readFillVerdictMeta', () => {
   it('reads every verdict for both verbs, with and without path and secure', () => {
     for (const verb of ['fill', 'clearText'] as const) {
       for (const verdict of ['exact', 'normalized', 'mismatch', 'unverified'] as const) {

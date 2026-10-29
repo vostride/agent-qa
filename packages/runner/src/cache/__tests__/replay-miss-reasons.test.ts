@@ -78,7 +78,7 @@ function plannerOf(plan: ActionPlan) {
   return { plan: vi.fn(async (): Promise<PlanResult> => ({ plan })) }
 }
 
-describe('C438-STRICT-REPLAY', () => {
+describe('strict replay records why a stored target misses', () => {
   it("'Cart (3)' stored against 'Cart (4)' is a recorded miss, strict-absent", async () => {
     const adapter = recordingAdapter(screenWith([el('e1', 'button', 'Cart (4)')]))
     const cache = cacheOf({

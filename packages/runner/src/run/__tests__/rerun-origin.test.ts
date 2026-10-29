@@ -47,7 +47,7 @@ type WithOrigin = TestResult & {
   firstFailedAttempt?: { attempt: number; result: TestResult }
 }
 
-describe('420 retry origin', () => {
+describe('retry origin', () => {
   it('retains the first failure through differing failures and a successful final attempt', async () => {
     const f = fixture(['failed', 'failed', 'passed'], 2)
     const result: WithOrigin = await f.run()
