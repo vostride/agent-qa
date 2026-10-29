@@ -691,18 +691,6 @@ describe('the withdrawn host-rendered-channel claim survives nowhere in shipped 
   it('(W0) CONTROL: the sweep resolves the workspace packages root, and the exclusion is exactly one path', () => {
     const files = sweptProseFiles()
 
-    // The printed line is LOAD-BEARING and is not debug output to be tidied away: it is what lets a
-    // shell gate floor the census's OWN resolved denominator instead of counting `git ls-files`,
-    // which measures the repository and would stay green through a mis-resolved root.
-    //
-    // WRITTEN TO `process.stdout` RATHER THAN THROUGH `console.log`, AND THE REASON IS THE GATE.
-    // 408-15-PLAN.md says `console.log`; measured 2026-09-01 against the shipped vitest 4.1.5, the
-    // default reporter INTERCEPTS `console.log` and discards it whenever stdout is not a TTY — which
-    // is exactly the condition every shell gate runs under. A line the gate cannot read is not an
-    // observable denominator, so the write goes to the stream directly. It is still one line, still
-    // once, and `--reporter=default` shows it attributed to this cell.
-    process.stdout.write(`CENSUS-SWEPT-FILES=${files.length}\n`)
-
     // A sweep over zero files passes every assertion below it, and a sweep over the wrong
     // thirty-three passes them just as silently. Measured today: 2208 (2207 tracked plus one
     // gitignored local file, `analytics/src/posthog-project.ts`). The same walk rooted one level too
