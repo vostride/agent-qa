@@ -1,12 +1,11 @@
 // THE STANDING TOKEN-ABSENCE SCAN — every model-readable channel of a full MCP flow
-// (Phase 408 plan 04 · MCPA-01 · D-01 / D-14 · T-408-17).
 //
 // WHY THIS FILE EXISTS. D-01 splits the phase's credential by CHANNEL: a minted `liveUrl` token
 // reaches a person only inside the HTML a host paints in its sandbox, and never inside anything a
 // MODEL reads — not tool-result text, not `structuredContent`, not a listing, not a refusal echo,
 // not a log line. That split is the whole security argument for minting over MCP at all, and it is
 // worth exactly as much as the cell that reds when somebody leaks. This is that cell. It is
-// RECORDED LAW rather than one-off proof (D-14): it drives the full flow, collects every byte
+// RECORDED LAW rather than one-off proof: it drives the full flow, collects every byte
 // stream a model can read, and asserts that no byte of any token the flow REALLY minted appears in
 // any of them.
 // CORRECTED 2026-09-01 (408-08, the gap round, road `demote`; the ruling is in `../app-resource.ts`'s
@@ -82,7 +81,7 @@
 //   reds. The difference is between "we ruled this one out, here is the ruling" and "we did not
 //   look here", and after T-408-01 this phase cannot afford the second.
 //
-// WHY `(A10)` EXISTS (408-12, WR-07 · T-408-24). This file's fixture clock used to be pinned to the
+// WHY `(A10)` EXISTS. This file's fixture clock used to be pinned to the
 // literal `1_800_000_000_000`, which IS 2027-01-15T08:00:00Z, while `renderAppWrapperPage` defaults
 // its `now` to the real wall clock. Past that instant the renderer settles `expired`, strips every
 // mint and serves a document with no token in it — and `(A1)` would have stayed GREEN over that
@@ -110,7 +109,7 @@
 // so every channel captured afterwards is captured in a world where live tokens for this run
 // already exist. An absence asserted before anything was minted is an absence of nothing.
 //
-// THE MUTATION LEGS, APPLIED AND THEIR REDS OBSERVED (2026-08-31). A leg nobody ran is a leg
+// THE MUTATION LEGS, APPLIED AND THEIR REDS OBSERVED. A leg nobody ran is a leg
 // nobody knows the strength of, so each was applied to its subject, the red read off the runner,
 // and the subject restored:
 //   L1  PRODUCTION LEAK. `app-resource.ts`'s served envelope gained a plausible debug member —
@@ -284,7 +283,7 @@ function handoff(runId: string): CompletedRunHandoff {
  */
 function fixtureRegistry(): { readonly registry: FunctionRegistry; readonly minted: string[] } {
   const minted: string[] = []
-  // WR-07, THIS FILE'S HALF (408-12). ANCHORED TO THE REAL CLOCK rather than pinned to a literal
+  // WR-07, THIS FILE'S HALF. ANCHORED TO THE REAL CLOCK rather than pinned to a literal
   // epoch: the `ui://` read renders without an explicit `now`, so `renderAppWrapperPage` falls back
   // to `Date.now()` — and a fixture clock pinned to a fixed epoch silently becomes an EXPIRED render
   // once real time passes it, which would leave `(A1)` green over a document that carries nothing.
@@ -339,7 +338,7 @@ function fixtureRegistry(): { readonly registry: FunctionRegistry; readonly mint
   return { registry: createFunctionRegistry({ deps }), minted }
 }
 
-// 2026-10-01 (432-21, D-12): the tokenless MCP caller every request is served as — no scope set,
+// the tokenless MCP caller every request is served as — no scope set,
 // safe-mode flag or credential.
 const caller: FunctionCaller = {
   surface: 'mcp',
@@ -366,13 +365,13 @@ afterEach(async () => {
 /**
  * A REAL loopback socket, for plan 02's measured reason rather than for realism's sake: the
  * per-request client-capabilities envelope the negotiation gate reads is lifted by the transport
- * and exists only on the modern (2026-07-28) wire era, so a flow driven through the SDK's
+ * and exists only on the modern wire era, so a flow driven through the SDK's
  * in-process driver could never obtain the App at all — and a scan that never minted is the one
  * failure mode this file's `(A0)` control exists to make impossible.
  */
 async function serve(listener: (req: never, res: never) => void): Promise<string> {
   const server = createServer(listener as never)
-  // 2026-10-10 (quick 261010-11a): the server never reaps an idle keep-alive socket mid-flow.
+  // the server never reaps an idle keep-alive socket mid-flow.
   // Client and server share one event loop, so after a stall longer than the 5 s default the
   // overdue reap ran before the loop read the request the client had already written on that
   // pooled socket, and the client saw `fetch failed` (read ECONNRESET). Witnessed with a 6 s stall.
@@ -561,7 +560,7 @@ async function driveFullFlow(options: { readonly leak?: boolean } = {}): Promise
       .readResource({ uri: appResourceUriFor(FIXTURE_RUN_ID) })
       .then(() => undefined, (error: unknown) => error)
     corpus.push(refusalChannel('refusal:non-negotiated-ui-read', refused))
-    // The carrier line reaches an App-less host too (D-09), so its channels are scanned as well.
+    // The carrier line reaches an App-less host too, so its channels are scanned as well.
     const strangerCarrier = (await stranger.callTool({
       name: 'agent_qa_get_run_digest',
       arguments: { runId: FIXTURE_RUN_ID },
@@ -579,7 +578,7 @@ async function driveFullFlow(options: { readonly leak?: boolean } = {}): Promise
 
 // ---- The channel census: every channel of this flow, and what each one is FOR --------------------
 //
-// ADDED 408-12 (T-408-21). Before this, `(A2)` named the channels it scanned and said nothing about
+// ADDED 408-12. Before this, `(A2)` named the channels it scanned and said nothing about
 // the one it did not — the `ui://` read's wrapper HTML — so the exclusion lived only in the header's
 // prose and in a corpus entry's label. A standing security gate whose corpus has an unstated
 // remainder cannot show the difference between a channel it ruled out and a channel nobody thought
@@ -707,7 +706,7 @@ describe('the minted liveUrl token reaches NO model-readable channel', () => {
     const flow = await driveFullFlow()
     const channels = flow.corpus.map((entry) => entry.channel)
 
-    // THE PARTITION FIRST (408-12, T-408-21). Every channel this flow produces is named in
+    // THE PARTITION FIRST. Every channel this flow produces is named in
     // `FLOW_CHANNELS` and classified exactly once — `scanned` or `carrying`. A channel named and
     // classified nowhere is the shape of defect T-408-01 turned out to be: an exclusion that lives
     // as silence rather than as a ruling a census can show.

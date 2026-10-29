@@ -1,4 +1,4 @@
-# MCP conformance baseline — the expected-failures ratchet for `agent-qa mcp` (MCPS-05, D-18/D-19).
+# MCP conformance baseline — the expected-failures ratchet for `agent-qa mcp`.
 #
 # ┌────────────────────────────────────────────────────────────────────────────────────────────┐
 # │ suite pin        @modelcontextprotocol/conformance@0.2.0-alpha.11                          │
@@ -22,10 +22,10 @@
 #     passes and is not listed   -> exit 0
 #
 # The score level gates NOTHING. There is no threshold in the script, in the workflow, or here.
-# "Know the number, don't hit one" (D-18).
+# "Know the number, don't hit one".
 #
 # NOTHING AUTO-EDITS THIS FILE. CI never commits. Every line below, and every deletion of one, is a
-# deliberate reviewed change — which is the only reason the number above can be trusted (D-19).
+# deliberate reviewed change — which is the only reason the number above can be trusted.
 # `bash scripts/mcp-conformance.sh --mint-baseline` prints a fresh body for a human to diff in.
 #
 # ENTRY FORMAT: `- <scenario>:<check-id>`, PER CHECK and with NO SPACE after the colon (a space
@@ -50,8 +50,8 @@
 #       `test_streaming_elicitation`, `test_input_required_result_*`; and read resources at
 #       `test://static-text`, `test://static-binary`, `test://template/123/data`.
 #       This server exposes none of them and must not. Every tool it registers is a pure projection
-#       of a registry op (D-01), and minting MCP-local capabilities with no op behind them is
-#       precisely the private power the milestone abolishes (D-15). Adding a `test_simple_text` tool
+#       of a registry op, and minting MCP-local capabilities with no op behind them is
+#       precisely the private power the milestone abolishes. Adding a `test_simple_text` tool
 #       to raise this score would be the worst thing this file could cause.
 #       NOTE ON THE 12 `input-required-result-*` ENTRIES: they are NOT "this server does not do
 #       SEP-2322". It does — `agent_qa_apply_proposal` returns a real `InputRequiredResult` and
@@ -99,7 +99,7 @@ server:
   - tools-call-with-progress:tools-call-with-progress
 
   # [A] the resource reads are addressed to the suite's own `test://` URIs. This server's templates
-  #     are the six `agentqa://<kind>/{id}` forms (D-13) and `resources-list` /
+  #     are the six `agentqa://<kind>/{id}` forms and `resources-list` /
   #     `sep-2164-resource-not-found` both PASS over them.
   - resources-read-text:resources-read-text
   - resources-read-binary:resources-read-binary

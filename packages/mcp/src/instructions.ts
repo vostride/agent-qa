@@ -1,5 +1,5 @@
-// The server's initialize instructions (433-33, G-433-9 · F-433-36): init's pointer, delivered by
-// the one channel every MCP host receives. agent-qa never writes CLAUDE.md (431 D-20). Static text
+// The server's initialize instructions: init's pointer, delivered by
+// the one channel every MCP host receives. agent-qa never writes CLAUDE.md. Static text
 // on purpose: nothing from the workspace or the caller is interpolated. Protocol grounding: on the
 // stateless revision there is no initialize handshake (SEP-2575), and the SDK answers the same
 // text in the discovery result, so a host reaches it on either revision.

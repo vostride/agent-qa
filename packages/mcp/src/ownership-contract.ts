@@ -3,7 +3,7 @@ import type { OwnershipContract } from '@vostride/agent-qa-arch'
 export const AGENT_QA_MCP_PACKAGE_NAME = '@vostride/agent-qa-mcp'
 export const AGENT_QA_MCP_PACKAGE_DIR = 'packages/mcp'
 export const AGENT_QA_MCP_PACKAGE_CLASSES = ['adapter', 'surface'] as const
-// 2026-08-15 (Phase 396 plan 01, D-01 / D-20): re-stated for the write surface. The old line said
+// re-stated for the write surface. The old line said
 // "MCP server exposing the typed function layer", which was true of the v1 server only in the sense
 // that it sat beside it — that server owned thirty-three handlers of its own and reached data
 // through the dashboard's REST API. What this package owns now is a PROJECTION: declared tool->op
@@ -36,7 +36,7 @@ export const AGENT_QA_MCP_EXTERNAL_DEPENDENCIES = [
   '@modelcontextprotocol/node',
   '@modelcontextprotocol/server',
 ] as const
-// 2026-08-15 (Phase 396 plan 01): `core` and `ids` are GONE, and not merely unused — they left with
+// `core` and `ids` are GONE, and not merely unused — they left with
 // the v1 server that named them, together with the five surface-firewall ledger rows that had
 // waived their presence here since 384. `schema` is NEW and is the contract vocabulary the mapping
 // table's op contracts come from; `agent` is the function layer this package projects.

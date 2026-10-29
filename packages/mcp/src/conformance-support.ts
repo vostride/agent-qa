@@ -1,4 +1,4 @@
-// The ONE lens two schema-comparison suites look through (2026-08-16, Phase 397 D-06 · MCPS-02).
+// The ONE lens two schema-comparison suites look through.
 //
 // WHAT THIS FILE IS. Four normalisations that make an advertised JSON-Schema document and the
 // function layer's own inert projection comparable, plus one fold check (`foldArmFindings`,
@@ -24,7 +24,7 @@
 // the `$schema` dialect marker it writes, and the `type: "object"` it adds to a composition root it
 // can prove is object-shaped. The function layer's projection speaks the same vocabulary and writes
 // neither. Nothing here normalises a difference the PRODUCT introduced — only two the transport's
-// converter did. The fourth (431-03) undoes the 2025-11-25 codec's `{ result }` wrap around a
+// converter did. The fourth undoes the 2025-11-25 codec's `{ result }` wrap around a
 // non-object output root, which is likewise the transport's and not the product's.
 //
 // READ THE DOCSTRINGS BEFORE WIDENING ANYTHING. Each normalisation is gated as narrowly as it is
@@ -91,7 +91,7 @@ export function armWithoutDiscriminant(arm: JsonDocument, discriminant: string):
 /**
  * What a fold's one listed object leaves out of, or adds to, one arm's own contract.
  *
- * 2026-10-20 (446-11, D-25): a fold lists one object instead of its union, so an arm is no longer
+ * a fold lists one object instead of its union, so an arm is no longer
  * a member to compare whole. It is covered when the `discriminant` enum names it, every field it
  * takes is listed with its own shape (the listing may add a description, never drop one), and the
  * listing requires nothing the arm does not. That a call is still validated arm by arm is the
@@ -144,7 +144,7 @@ export function foldArmFindings(
 
 /**
  * Undo the SEP-2106 legacy `{ result }` wrap the SDK's 2025-11-25 codec puts around a non-object
- * output root (2026-09-28, 431-03).
+ * output root.
  *
  * A transport artifact, like the two stamps above: the 2026-07-28 codec advertises a list's array
  * root as-is, while the 2025-11-25 codec projects it to `{ type: 'object', properties: { result },

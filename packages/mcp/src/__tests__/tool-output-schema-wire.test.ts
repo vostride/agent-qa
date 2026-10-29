@@ -35,8 +35,8 @@ type Json = Record<string, unknown>
 const TARGET = { target: 'draft-2020-12' } as const
 const caller: FunctionCaller = {
   surface: 'mcp', origin: 'agent',
-  // 432-21 (D-12): no credential; the mark tool's handler reads none.
-  // 2026-10-01 (432-34, D-12): no `grantedScopes` or `safeMode` either; nothing reads them (432-20).
+  // no credential; the mark tool's handler reads none.
+  // no `grantedScopes` or `safeMode` either; nothing reads them.
 }
 
 function handoff(runId: string, endedAt: number): CompletedRunHandoff {

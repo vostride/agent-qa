@@ -6,7 +6,7 @@
 // does nothing but validate and call `invokeFunction`. Every serving entry in the v2 SDK takes a
 // FACTORY and runs it once per serving unit — once per HTTP request, once per stdio connection.
 //
-// 2026-10-01 (432-20, D-12): THE SAME CATALOGUE FOR EVERY CALLER. The per-caller visibility law
+// THE SAME CATALOGUE FOR EVERY CALLER. The per-caller visibility law
 // (`visibleToCaller` over required and granted scopes) and the mark tool's credential hiding are
 // deleted, so a tool is absent only when this composition does not register its op — a fact about
 // the host, identical for a tokenless stdio caller and a tokenless HTTP one. Since 432-21 the mark
@@ -27,7 +27,7 @@
 //              first's resolved arm. Two calls and not one because that is what the resolve-then-get
 //              contract IS; a single call could not tell an ambiguous reference from a resolved one.
 //
-// NO PROMPTS ARE REGISTERED (D-14). The authoring brief reaches callers as data through the
+// NO PROMPTS ARE REGISTERED. The authoring brief reaches callers as data through the
 // authoring tools, and 398's build-time capability catalog owns discoverability. The SDK's prompt
 // registration verb is therefore named NOWHERE in this file — including in prose, since an
 // acceptance grep counts occurrences of that symbol and requires zero, and a guard a comment can
@@ -75,16 +75,16 @@ export const AGENT_QA_MCP_SERVER_VERSION = '2.0.0'
 
 /** What a host must supply to build a server for one caller. */
 export interface AgentQaMcpServerDeps {
-  /** The composed function registry. Built by the HOST, never by this package (D-09). */
+  /** The composed function registry. Built by the HOST, never by this package. */
   readonly registry: FunctionRegistry
   /**
    * WHO this server answers as. Minted by the composition root and passed through untouched to
-   * `invokeFunction`. Since 432-20 (D-12) nothing here reads it to decide what to list or serve;
+   * `invokeFunction`. Since 432-20 nothing here reads it to decide what to list or serve;
    * its `surface` and `origin` reach only the receipts that already consume them. Since 432-21 no
    * field of it is a credential this package reads.
    */
   readonly caller: FunctionCaller
-  // 2026-10-14 (441-07, D-06): `maskText` is the host's declared-secret mask.
+  // `maskText` is the host's declared-secret mask.
   /**
    * How text leaving this process is masked (threat T-396-01).
    *
@@ -135,7 +135,7 @@ function resolveSpecs(
 }
 
 /**
- * Read a fold call's arm, refusing anything the tool does not declare (T-396-10).
+ * Read a fold call's arm, refusing anything the tool does not declare.
  *
  * The SDK has already validated the arguments against the fold's discriminated union, so this
  * check is the SECOND reading of the same fact — kept for the reason every other double-check in
@@ -163,7 +163,7 @@ function selectFoldArm(
   return { opId: selected, input }
 }
 
-/** The one arm of an entity resolution that has something further to fetch (D-02). */
+/** The one arm of an entity resolution that has something further to fetch. */
 function resolvedCardId(resolution: unknown): string | undefined {
   if (typeof resolution !== 'object' || resolution === null) return undefined
   const record = resolution as { kind?: unknown; card?: unknown }
@@ -317,16 +317,16 @@ function createProjectionHandler(
   return async (args: unknown): Promise<CallToolResult> => {
     try {
       const { opId, output } = await runProjection(projection, args, invoke)
-      // BOTH channels from ONE masked serialization (396-06). `structuredContent` used to be the
+      // BOTH channels from ONE masked serialization. `structuredContent` used to be the
       // raw op output, and a declared credential reached the wire through it verbatim while the
       // text beside it read `<SECRET_0>` — RESEARCH Pitfall 9's own named channel, measured.
       const masked = maskedToolResult(output, maskText)
-      // 431-05 D-07: the image block is decided AFTER masking, from bytes the masked value still
+      // the image block is decided AFTER masking, from bytes the masked value still
       // carries unchanged. Deciding it from the raw output would put bytes beside a withheld result.
       const result = opId === RUNS_ARTIFACT_FUNCTION_ID
         ? decorateRunEvidenceImage({ result: masked, output, maskText })
         : masked
-      // 408 D-05/D-08/D-09: the watch affordance, on every carrier result, for every host class.
+      // the watch affordance, on every carrier result, for every host class.
       return decorateCarrierResult({
         result,
         projection,
@@ -350,7 +350,6 @@ function createProjectionHandler(
  * The listing is read through `registry.list(deps.caller)` — the registry's own view of itself for
  * this host — so `summary` and `risk` describe the composition in front of the caller rather than a
  * table in this package that could describe a different one. The view is the same for every caller
- * (432-20, D-12).
  */
 export function buildAgentQaMcpServer(deps: AgentQaMcpServerDeps): McpServer {
   const server = new McpServer(
@@ -359,7 +358,7 @@ export function buildAgentQaMcpServer(deps: AgentQaMcpServerDeps): McpServer {
       capabilities: {
         tools: {},
         resources: {},
-        // 408 D-04: the official MCP Apps extension, ADVERTISED rather than assumed. Extensions are
+        // the official MCP Apps extension, ADVERTISED rather than assumed. Extensions are
         // bilateral opt-in — a client declares support in the `io.modelcontextprotocol/
         // clientCapabilities` envelope it sends on every request, and reads the server's set back
         // from discovery — so a server that renders App HTML without naming the extension here is
@@ -367,7 +366,7 @@ export function buildAgentQaMcpServer(deps: AgentQaMcpServerDeps): McpServer {
         // carries no server-side options; what it says is that this endpoint speaks it at all.
         extensions: { [MCP_APPS_EXTENSION_ID]: {} },
       },
-      // 433-33 (G-433-9): init's pointer, on the one channel every MCP host receives.
+      // init's pointer, on the one channel every MCP host receives.
       instructions: AGENT_QA_MCP_INSTRUCTIONS,
     },
   )
@@ -422,9 +421,9 @@ export function buildAgentQaMcpServer(deps: AgentQaMcpServerDeps): McpServer {
     registered.add(projection.name)
     const config = toRegisterToolConfig(projection, specs, advertised, deps.maskText)
 
-    // 2026-10-01 (432-21, D-12): every tool, the mark door included, goes through the one generic
+    // every tool, the mark door included, goes through the one generic
     // handler. The mark door's credential refusal left with the MCP bearer credential, so a mark
-    // answers its receipt on the one call like every other change tool (432-12 D-05/D-14).
+    // answers its receipt on the one call like every other change tool.
     server.registerTool(
       projection.name,
       config,
@@ -432,7 +431,7 @@ export function buildAgentQaMcpServer(deps: AgentQaMcpServerDeps): McpServer {
     )
   }
 
-  // D-13: the six entity Resource Templates, resolving through the SAME wall. Registered here rather than by the host so a `resource_link` in any tool result
+  // the six entity Resource Templates, resolving through the SAME wall. Registered here rather than by the host so a `resource_link` in any tool result
   // above is dereferenceable on the instance that produced it.
   registerEntityResources(server, {
     registry: deps.registry,
@@ -440,7 +439,7 @@ export function buildAgentQaMcpServer(deps: AgentQaMcpServerDeps): McpServer {
     maskText: deps.maskText,
   })
 
-  // 408 D-01/D-02/D-04: the App template for a live run, registered HERE for the reason the entity
+  // the App template for a live run, registered HERE for the reason the entity
   // templates are — a `_meta.ui.resourceUri` on any carrier tool above is only a decoration unless
   // it is dereferenceable on the very instance that advertised it. It crosses the SAME wall and
   // registers NOTHING on a composition that cannot honestly mint (D-03's floor), so a host without
@@ -449,7 +448,7 @@ export function buildAgentQaMcpServer(deps: AgentQaMcpServerDeps): McpServer {
     registry: deps.registry,
     caller: deps.caller,
     maskText: deps.maskText,
-    // 408 plan 03 (D-08): the SAME supplier the carrier decoration reads, so the anchor inside the
+    // the SAME supplier the carrier decoration reads, so the anchor inside the
     // App document and the line beside a tool result name one page for one run.
     ...(deps.liveLink === undefined ? {} : { liveLink: deps.liveLink }),
   })

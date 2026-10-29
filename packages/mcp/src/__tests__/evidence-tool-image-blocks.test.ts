@@ -99,8 +99,8 @@ function registryOver(blobs: Blobs): FunctionRegistry {
   return createFunctionRegistry({ deps: { evidenceBlobs, runs } as unknown as FunctionDeps })
 }
 
-// 2026-10-02 (432-38, D-12): no `grantedScopes` or `safeMode` on the caller; the registry and the
-// MCP server read neither (432-20).
+// no `grantedScopes` or `safeMode` on the caller; the registry and the
+// MCP server read neither.
 const reader: FunctionCaller = { surface: 'mcp', origin: 'agent' }
 const identity = (text: string): string => text
 
@@ -303,7 +303,7 @@ describe('IMAGE-RANGE-REFUSAL', () => {
   })
 })
 
-// 2026-10-14 (441-14, D-12): mcp depends on no package that exports `SecretRedactor`, so this
+// mcp depends on no package that exports `SecretRedactor`, so this
 // stand-in makes its raw, exact replacement of one declared value.
 function standInMask(name: string, value: string): (text: string) => string {
   return (text) => text.split(value).join(`[secret:${name}]`)

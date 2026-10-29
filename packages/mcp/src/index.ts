@@ -1,4 +1,4 @@
-// The `@vostride/agent-qa-mcp` public surface (Phase 396 plan 01, D-15 / MCPS-02).
+// The `@vostride/agent-qa-mcp` public surface.
 //
 // WHY THIS FILE LOOKS LIKE THIS. Every v1 export — `startMcpServer`, `createAgentQaMcpServer`, the
 // `agent-qa://schema/*` reference tables, the hand-rolled loopback HTTP bridge — was deleted with
@@ -20,14 +20,14 @@
 export { buildAgentQaMcpServer, AGENT_QA_MCP_SERVER_VERSION } from './catalog.js'
 export type { AgentQaMcpServerDeps } from './catalog.js'
 
-// 433-33 (G-433-9): the server's initialize instructions, so the CLI's parity cell compares the
+// the server's initialize instructions, so the CLI's parity cell compares the
 // shipped stdio answer against this one source.
 export { AGENT_QA_MCP_INSTRUCTIONS } from './instructions.js'
 
 export { createAgentQaMcpNodeHandler } from './http.js'
 export type { AgentQaMcpDepsResolver } from './http.js'
 
-// 2026-08-16 (Phase 397 D-06): the schema-comparison lens, published for the SAME reason the two
+// the schema-comparison lens, published for the SAME reason the two
 // predicates above it are — so it can be driven directly rather than only observed through a
 // running server. Pure normalisations over plain objects; nothing here builds, converts or
 // reaches anything, so publishing them hands a consumer no capability. They are on the barrel
@@ -64,7 +64,7 @@ export type {
 // This surface's one render, published so the rendered-output matrix measures the shipped door.
 export { maskedToolResult } from './masked-result.js'
 
-// 2026-08-31 (Phase 408 plan 01, D-01/D-04 · MCPA-01): the MCP App surface, published on the same
+// the MCP App surface, published on the same
 // driven-directly reasoning as everything above it — the registration gate, the read handler and
 // the wrapper renderer each fail in a different direction, and a cell that could only observe them
 // through a running protocol server could measure at most one of the three. Publishing them hands a
@@ -118,14 +118,14 @@ export {
 } from './app-wrapper.js'
 export type { AppWrapperInput, AppWrapperMint, AppWrapperState } from './app-wrapper.js'
 
-// 2026-08-31 (Phase 408 plan 03, D-08/D-09 · MCPA-01): the permanent link-out. On the barrel
+// the permanent link-out. On the barrel
 // because two HOSTS compose the supplier that feeds it — the standalone `agent-qa mcp` command and
 // the co-hosted mount inside `agent-qa dashboard` — and plan 04's App-less scan cell asserts
 // against the SAME line helpers this surface prints rather than against a transcription of them.
 // Publishing them hands a consumer no capability: three pure functions over strings it already
 // holds, and one constant that is deliberately not an address.
 //
-// 2026-09-01 (plan 10, WR-03): `LIVE_LINK_NO_RUN_LINE` joins them for the SAME reason, and it is
+// `LIVE_LINK_NO_RUN_LINE` joins them for the SAME reason, and it is
 // the reason rather than a habit — the arm it names (a dashboard configured, no resolvable run id)
 // had no cell at all, and a cell that transcribed its bytes could pass while the shipped sentence
 // said something else. Two constants now, because there are two absences: no base, and no run.
@@ -141,7 +141,7 @@ export type { LiveLinkSupplier } from './live-link.js'
 export { McpProjectionError, toRegisterToolConfig } from './projection.js'
 export type { ProjectedOpSpec, RegisterToolConfig } from './projection.js'
 
-// 2026-10-01 (432-20, D-12): `visibleToCaller` is deleted with the per-caller visibility law; every
+// `visibleToCaller` is deleted with the per-caller visibility law; every
 // caller sees the same catalogue.
 
 // THE OWNERSHIP CONTRACT IS DELIBERATELY NOT RE-EXPORTED, and a running guard is why. Plan 01 first

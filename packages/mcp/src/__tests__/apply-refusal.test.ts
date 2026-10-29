@@ -1,7 +1,7 @@
-// The one-call change receipt, and the absence of the apply round (432-12, D-05/D-13/D-14).
+// The one-call change receipt, and the absence of the apply round.
 //
 // THIS FILE USED TO DRIVE `apply-refusal.ts`, the refuse-and-teach primitive in front of the two
-// MCP apply tools (396 plan 02, D-11 / MCPS-03): a first call answered a refusal carrying the
+// MCP apply tools: a first call answered a refusal carrying the
 // proposal summary and the exact re-call, `confirmed: true` applied, and a SEP-2322 elicitation
 // form rode on connections that could answer it. 432-12 deletes that round with the tools: the
 // change tools write in the call and answer what they changed. Its claims transfer as follows.
@@ -19,8 +19,8 @@
 //   dual-channel masking of the receipt                   -> kept: one masked serialization feeds
 //                                                            `structuredContent` and the text
 //
-// The sovereign mark door's credential refusal (419 D-20) is not a confirmation round. It moved to
-// `masked-result.ts` and keeps its cells below until the permission wave removes it (D-12).
+// The sovereign mark door's credential refusal is not a confirmation round. It moved to
+// `masked-result.ts` and keeps its cells below until the permission wave removes it.
 
 import { existsSync } from 'node:fs'
 
@@ -35,7 +35,7 @@ import { buildAgentQaMcpServer } from '../catalog.js'
 import { maskedToolError } from '../masked-result.js'
 import { FORGET_RECEIPT_SCHEMA_VERSION, MASKED_RESOLVED_CONFIG_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 
-// RE-SPELLED 2026-10-01 (432-21, D-12). The mark tool's handler-level credential refusal (419 D-20)
+// RE-SPELLED 2026-10-01. The mark tool's handler-level credential refusal
 // left with the MCP bearer credential, and `createMarkToolHandler` with it: the mark tool goes
 // through the generic projection handler. The surviving claims are measured through the real
 // catalogue over a real client: the input reaches the one invoke unchanged, and both result channels
@@ -78,7 +78,7 @@ describe('a mark through the MCP catalogue needs no credential', () => {
     expect(JSON.parse(text)).toEqual(outcome.result?.structuredContent)
     expect(session.frames.join('\n')).not.toContain(PLANTED)
   })
-  // RE-SPELLED 2026-10-01 (432-19, D-15) from 'renders typed gate denials with neutral prose and only
+  // RE-SPELLED 2026-10-01 from 'renders typed gate denials with neutral prose and only
   // actionable MCP affordances'. The gate's denial error and its remedy vocabulary are deleted, so the
   // MCP error result has no denial arm and no remedy projection: every refusal renders its own
   // message, masked, and nothing is appended to it.
@@ -90,9 +90,9 @@ describe('a mark through the MCP catalogue needs no credential', () => {
   })
 })
 
-// ---- 432-12 (D-05/D-13/D-14): a direct receipt through the real catalogue, and no confirm round --
+// ---- 432-12: a direct receipt through the real catalogue, and no confirm round --
 
-/** The MCP caller: since 432-21 (D-12) it carries no credential, scope set or safe-mode flag. */
+/** The MCP caller: since 432-21 it carries no credential, scope set or safe-mode flag. */
 const TOKENLESS: FunctionCaller = { surface: 'mcp', origin: 'agent' }
 
 const PLANTED = 'sk-live-432-planted-secret'
@@ -244,7 +244,7 @@ describe('a knowledge change answers its receipt on the first call', () => {
 
 describe('no confirmation input, no elicitation, no apply round', () => {
   it('a client that can answer a form is never asked, and the change lands on its one call', async () => {
-    // 2026-10-03 (quick 261003-cpv, IN-21): an applied forget carries its forget receipt by rule.
+    // an applied forget carries its forget receipt by rule.
     const port = directDeps((request) => ({
       outcome: 'applied', verb: request.verb, operationId: '5a4b3c2d-1e0f-4a9b-8c7d-6e5f4a3b2c1d',
       recordIds: ['rec-alpha'],

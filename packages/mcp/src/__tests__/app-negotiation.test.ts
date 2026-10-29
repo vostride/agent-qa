@@ -22,7 +22,7 @@
 //
 //   ctx.mcpReq.envelope['io.modelcontextprotocol/clientCapabilities'].extensions
 //
-//   ...but ONLY on the modern (2026-07-28) wire era. The shipped client defaults to
+//   ...but ONLY on the modern wire era. The shipped client defaults to
 //   `versionNegotiation: 'legacy'`, and a legacy `initialize` connection carries no per-request
 //   capabilities at all; a stateless per-request server instance never saw that handshake either,
 //   so the deprecated `getClientCapabilities()` accessor holds nothing there. The SDK states the
@@ -128,7 +128,7 @@ function fixtureRegistry(handles: readonly number[] = [0, 1]): {
   readonly minted: string[]
 } {
   const { signer, minted } = recordingSigner()
-  // WR-07, THIS FILE'S HALF (408-12). ANCHORED TO THE REAL CLOCK rather than pinned to a literal
+  // WR-07, THIS FILE'S HALF. ANCHORED TO THE REAL CLOCK rather than pinned to a literal
   // epoch: the read handler renders without an explicit `now`, so `renderAppWrapperPage` falls back
   // to `Date.now()` — and a fixture clock pinned to a fixed epoch silently becomes an EXPIRED render
   // once real time passes it, taking every liveUrl out of the served document and leaving the cells
@@ -157,10 +157,10 @@ function fixtureRegistry(handles: readonly number[] = [0, 1]): {
   }
 }
 
-// 2026-10-02 (432-37, D-12): no `safeMode`, and no `['read']` default scope set; the server reads
-// neither (432-20). A scope set a cell passes EXPLICITLY is kept, cast past the type, as a
+// no `safeMode`, and no `['read']` default scope set; the server reads
+// neither. A scope set a cell passes EXPLICITLY is kept, cast past the type, as a
 // deliberate smuggle: the cell whose caller's scopes omit `read` hands `['run']` to prove the set
-// changes nothing. 2026-10-02 (432-39): the field is deleted; the smuggle stays, typed as strings.
+// changes nothing. 2026-10-02: the field is deleted; the smuggle stays, typed as strings.
 const caller = (grantedScopes?: readonly string[]): FunctionCaller =>
   grantedScopes === undefined
     ? { surface: 'mcp', origin: 'agent' }
@@ -396,7 +396,7 @@ describe('the ui:// read over the shipped node handler', () => {
     const { signer } = recordingSigner()
     for (const [index, token] of liveUrls.entries()) {
       const verdict = validateLiveUrlToken(signer, token, {
-        // The SAME clock the fixture mints on (WR-07). A literal here would be the fixture clock's
+        // The SAME clock the fixture mints on. A literal here would be the fixture clock's
         // defect one line over: a validation instant pinned to a past epoch reports `expired` for a
         // token minted a millisecond ago.
         subject: { kind: 'run', id: FIXTURE_RUN_ID },
@@ -549,7 +549,7 @@ describe('who may obtain a live-view credential', () => {
   // scope, checked by `visibleToCaller`, plus `bindingStatus === 'bound'`. 408-12 measured the
   // scope half with a mutation control (removing both `visibleToCaller` conditions red this cell).
   //
-  // RE-SPELLED 2026-10-01 (432-20, D-12/D-13) from 'a DECLARING caller whose granted scopes omit
+  // RE-SPELLED 2026-10-01 from 'a DECLARING caller whose granted scopes omit
   // `read` obtains NO App at all — no template, an unreadable address, and zero mints'. The scope
   // half is deleted with every per-caller permission, so that mutation is now the shipped code: a
   // declaring caller with no `read` obtains exactly what any declaring caller obtains. What bounds

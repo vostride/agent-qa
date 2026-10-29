@@ -1,6 +1,6 @@
-// The two predicates the projection is built out of, driven directly (Phase 396 plan 01).
+// The two predicates the projection is built out of, driven directly.
 //
-// 2026-10-01 (432-20, D-12): ONE PREDICATE NOW. `visibleToCaller` — the per-caller visibility law —
+// ONE PREDICATE NOW. `visibleToCaller` — the per-caller visibility law —
 // is deleted with the scopes it compared, so its cells are re-spelled as C432-TOKENLESS-CATALOG
 // below: real servers built for tokenless stdio- and HTTP-shaped callers (and for records still
 // carrying retired grants) list the same tools and resource templates and dispatch identically,
@@ -23,7 +23,7 @@ import type { FunctionDeps, FunctionRegistry } from '@vostride/agent-qa-agent'
 import type { FunctionCaller } from '@vostride/agent-qa-schema'
 import { describe, expect, it } from 'vitest'
 
-// 2026-09-30 (432-12 D-05): the read fixture was `agent_qa_list_proposals` over `proposals.list`,
+// the read fixture was `agent_qa_list_proposals` over `proposals.list`,
 // which left the catalogue with the proposal round. Every claim below is carried unchanged over the
 // marks-history read, the 1:1 read tool whose contract converts cleanly in both modes.
 
@@ -55,7 +55,7 @@ function spec(overrides: Partial<ProjectedOpSpec> = {}): ProjectedOpSpec {
   }
 }
 
-// ---- C432-TOKENLESS-CATALOG (432-20, D-12) — re-spelled from 'visibleToCaller (D-05)' ----------
+// ---- C432-TOKENLESS-CATALOG — re-spelled from 'visibleToCaller' ----------
 
 /** A real registry over every built-in op, with a knowledge reader that answers an empty list. */
 function realRegistry(): FunctionRegistry {
@@ -74,7 +74,7 @@ function realRegistry(): FunctionRegistry {
 const DOOR_CALLERS: Readonly<Record<string, FunctionCaller>> = {
   'tokenless stdio': { surface: 'mcp', origin: 'agent' },
   'tokenless http': { surface: 'mcp', origin: 'agent' },
-  // 2026-10-02 (432-39, D-10/D-12): the retired fields are deleted from the type, so the two legacy
+  // the retired fields are deleted from the type, so the two legacy
   // records smuggle them past it with a cast — an old record still carries them, and nothing reads.
   'legacy every-scope': {
     surface: 'mcp',

@@ -1,4 +1,4 @@
-// The entity Resource Templates surface, driven directly (Phase 396 plan 03, D-13 · MCPS-02).
+// The entity Resource Templates surface, driven directly.
 //
 // WHY THIS FILE EXISTS. `resources.ts` makes the `resource_link`s embedded in tool results actually
 // dereferenceable, which means it turns an UNTRUSTED URI into an entity read. Two properties carry
@@ -16,14 +16,14 @@
 // Each cell names the mutation it is the bar for. A cell that no plausible wrong implementation
 // reds is decoration, and this project has measured that lesson more than once.
 //
-// MUTATION LEGS MEASURED AGAINST THIS FILE (2026-08-16) — each applied to `../resources.ts`, the
+// MUTATION LEGS MEASURED AGAINST THIS FILE — each applied to `../resources.ts`, the
 // suite re-run, and the subject restored byte-identically (sha-256 compared) afterwards. Verbatim
 // REDs are recorded in `396-03-SUMMARY.md`.
 //
 //   R1  the codec replaced by a local `agentqa://` regex that splits segment and id      RED (3)
 //   R2  a seventh template planted in the derived list                                   RED (4)
 //   R3  the D-05 visibility gate removed (register unconditionally)                      RED (2)
-//       2026-10-01 (432-20, D-12): R3 is now the SHIPPED behaviour — the gate is deleted and every
+//       R3 is now the SHIPPED behaviour — the gate is deleted and every
 //       caller of a composition carrying entities.get gets the five templates
 //       (C432-RESOURCES-ALL-CALLERS below).
 //   R4  `maskText` dropped from the contents text                                        RED (1)
@@ -94,7 +94,7 @@ function recordingServer(): {
   }
 }
 
-/** 432-39: a legacy scope set smuggled past the deleted caller field (cast); nothing reads it. */
+/** a legacy scope set smuggled past the deleted caller field (cast); nothing reads it. */
 function caller(grantedScopes: readonly string[]): FunctionCaller {
   return { surface: 'mcp', origin: 'agent', grantedScopes, safeMode: false } as FunctionCaller
 }
@@ -213,7 +213,7 @@ describe('the read handler resolves through entities.get', () => {
   // a required dep here for the same reason it is one there. Asserted on the text a caller reads
   // AND on what the masker was actually handed, so a masker called on the wrong string still reds.
   //
-  // WHAT THE MASKER IS HANDED IS THE ASSERTION THAT MOVED (CR-01, 2026-08-16). This cell used to
+  // WHAT THE MASKER IS HANDED IS THE ASSERTION THAT MOVED. This cell used to
   // require `seen` to be the whole SERIALISATION — and that requirement was the defect written down
   // as a bar: a literal-substring masker handed an escaped document cannot find a value containing
   // `"`, `\` or a control character, and four such shapes reached callers verbatim. The handler now
@@ -308,7 +308,7 @@ describe('the codec is the only parser', () => {
   })
 })
 
-// RE-SPELLED 2026-10-01 (432-20, D-12) from 'registration is gated by the visibility law (D-05)'.
+// RE-SPELLED 2026-10-01 from 'registration is gated by the visibility law'.
 // The scope gate is deleted: whether the templates exist is a fact about the composition (does it
 // register entities.get?) and never about the caller. The URI codec still refuses every bad address
 // for every caller (the block above).

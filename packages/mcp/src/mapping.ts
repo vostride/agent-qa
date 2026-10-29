@@ -7,51 +7,50 @@
 // module is where that data lives so a single artifact can be ranged over by 397's parity suite.
 // Anything that is not data belongs in `projection.ts` or `catalog.ts`.
 //
-// 2026-09-15, 423-21 D-04/D-18: sixteen tools over twenty-six registry ops; the other TWENTY-FIVE
+// sixteen tools over twenty-six registry ops; the other TWENTY-FIVE
 // ops are listed below in `UNPROJECTED_OPS` with a reason each. Twenty-six plus twenty-five is the
 // registry's own count, and `packages/cli/src/__tests__/conformance/parity.test.ts` checks that
 // partition against the registry's enumeration rather than against the arithmetic in this
 // sentence. The two new tools are the feedback reads (marks history and the mark consequence
 // preview); the typed evidence read lands unprojected on `runs.detail`'s completed-run footing.
 //
-// 2026-09-25 (428 D-07): the unprojected side grows to TWENTY-SIX when `editor.liveurl` is
+// the unprojected side grows to TWENTY-SIX when `editor.liveurl` is
 // registered; the projected side and the tool count do not move. The editor subject's mint is
 // reachable only through the dashboard door, by ruling.
 //
-// 2026-09-30 (432-12 D-05/D-02): TWENTY tools over THIRTY registry ops; the other TWENTY-THREE stay
+// TWENTY tools over THIRTY registry ops; the other TWENTY-THREE stay
 // in `UNPROJECTED_OPS`, and the registry is still fifty-three. The two change tools are renamed
 // `agent_qa_change_knowledge` and `agent_qa_change_config` and write in the call. The four proposal
 // apply/list/show tools and the config undo arm are gone with no alias, and their five ops are
 // dispositioned below until 432-17 deletes them from the registry.
 //
-// 2026-10-01 (432-17 D-05/D-02): TWENTY tools over THIRTY registry ops; the other SIXTEEN stay in
+// TWENTY tools over THIRTY registry ops; the other SIXTEEN stay in
 // `UNPROJECTED_OPS`, and the registry is forty-six. The seven proposal, apply and undo ops are
 // deleted from the registry, so their five '432' dispositions and the two 397 dispositions of
 // `proposals.accept` and `proposals.reject` leave the scoping note, and '432' leaves the adjudicator
 // vocabulary with no member left to rule on.
 //
-// 2026-10-01 (432-18 D-14/D-15), written 2026-10-03 (quick-261003-tsr IN-28): TWENTY tools over
+// 2026-10-01, written 2026-10-03 (quick-261003-tsr IN-28): TWENTY tools over
 // THIRTY registry ops; the other FOURTEEN stay in `UNPROJECTED_OPS`, and the registry is forty-four.
 // `grants.list` and `grants.revoke` are deleted with the grant ledger.
 //
-// 2026-08-17 (398 D-09): the unprojected side moved from nineteen to twenty when `agent.explain`
+// the unprojected side moved from nineteen to twenty when `agent.explain`
 // was registered. This sentence is prose and the parity suite's partition check is the mechanism —
 // but the prose is updated in the same change-set anyway, because a header that goes on stating a
 // partition the code stopped having is the class of untruth the ops' own docstrings were caught in
-// (397 D-18).
 //
-// 2026-08-29 (407-01 D-05): the unprojected side grows again, and the registry with it, when
+// the unprojected side grows again, and the registry with it, when
 // `runs.knowledge` is registered — so the partition holds with both sides one larger. Unprojected
 // DELIBERATELY and on `runs.detail`'s footing: a completed run's whole used-and-learned projection
 // is a large one-shot payload, not a mid-flight read. The partition check is the mechanism; this
 // sentence is updated in the same change-set for the reason the paragraph below states.
 //
-// 2026-08-25 (403-01 D-03): twenty to twenty-one, and the registry from forty-two to forty-three,
+// twenty to twenty-one, and the registry from forty-two to forty-three,
 // when `runs.liveurl` was registered. Unprojected DELIBERATELY: minting a live-view capability
 // token is handing out a credential, and whether an MCP caller may mint one is Phase 408's
 // question (the MCP App embed) rather than a side effect of this phase registering the op.
 //
-// 2026-08-31 (408 D-01): that question is ANSWERED and the partition does not move for it. The
+// that question is ANSWERED and the partition does not move for it. The
 // ruling is internal mint only — the App-rendering path invokes `runs.liveurl` by reference and
 // the token reaches a person only through host-rendered HTML — so the op stays on the
 // unprojected side, now by RULING rather than by deferral. Recorded here, at the entry, and at
@@ -156,20 +155,20 @@ export type ToolProjectionKind = 'read' | 'workflow' | 'apply'
  */
 export type ToolComposition = 'single' | 'union' | 'pipeline'
 
-/** The tool-listing `_meta` key a host reads as the largest result it should keep (ADX-03). */
+/** The tool-listing `_meta` key a host reads as the largest result it should keep. */
 export const MAX_RESULT_SIZE_META_KEY = 'anthropic/maxResultSizeChars'
 
-/** 431 D-05: the size hint the three whole-run reads carry. */
+/** the size hint the three whole-run reads carry. */
 export const RUN_READ_MAX_RESULT_SIZE_CHARS = 100000
 
 /** One declared tool. */
 export interface ToolProjection {
-  /** Curated `verb_noun` name per spec section 3.3 (D-04). */
+  /** Curated `verb_noun` name per spec section 3.3. */
   readonly name: string
   /** The registry op ids this tool projects. Length 1 = 1:1; length > 1 = a declared fold. */
   readonly ops: readonly string[]
   readonly kind: ToolProjectionKind
-  // 2026-10-01 (432-21, D-12): the `credential?: 'required'` marker (419 D-20) is deleted with the
+  // the `credential?: 'required'` marker is deleted with the
   // MCP bearer credential. No tool declares a credential and no handler reads one.
   /**
    * A union fold's discriminant key — absent on a 1:1 tool AND on the pipeline.
@@ -179,7 +178,7 @@ export interface ToolProjection {
    */
   readonly discriminant?: string
   /**
-   * This tool CARRIES the live-view MCP App (2026-08-31, Phase 408 plan 01 · D-05 / MCPA-01).
+   * This tool CARRIES the live-view MCP App.
    *
    * ITS PRESENCE IS THE SIGNAL, exactly as `discriminant`'s above is. A carrier is a tool whose
    * declaration references the `ui://` App resource, so a host that negotiated the Apps extension
@@ -197,7 +196,7 @@ export interface ToolProjection {
    * input or in the op's own result. `agent_qa_start_run` answers a `RunStartAcknowledgement`
    * carrying the id the run was given, so its reference is derivable only from the OUTPUT;
    * `agent_qa_get_run_digest` is asked about a run by id, so its reference is derivable from the
-   * INPUT, which is what makes it the late-attach door (D-07).
+   * INPUT, which is what makes it the late-attach door.
    *
    * Both carriers are plain tools that answer immediately, so the reference rides their result.
    */
@@ -206,7 +205,7 @@ export interface ToolProjection {
     readonly runIdFrom: 'input' | 'output'
   }
   /**
-   * 2026-09-28 (431 D-05): the result-size hint, advertised as `_meta[MAX_RESULT_SIZE_META_KEY]`.
+   * the result-size hint, advertised as `_meta[MAX_RESULT_SIZE_META_KEY]`.
    * Present only on reads whose one-shot answer can outgrow a host's default result budget.
    */
   readonly maxResultSizeChars?: number
@@ -223,7 +222,7 @@ export function compositionOf(projection: ToolProjection): ToolComposition {
  *
  * WHY THIS TABLE EXISTS AT ALL, since it looks like a second declaration of something the registry
  * already knows. It is not: `FunctionSpec` — the record holding the LIVE validators — deliberately
- * never leaves the function layer's own directory (T-384-01 / T-384-14), and what a surface can see
+ * never leaves the function layer's own directory, and what a surface can see
  * through `registry.list(caller)` is a `FunctionDeclaration` whose `input`/`output` are already
  * INERT JSON-Schema projections. D-16 mechanic (a) needs the live Standard-Schema objects, so the
  * projection names them here, imported from the ONE module the ops themselves import them from.
@@ -237,7 +236,7 @@ export function compositionOf(projection: ToolProjection): ToolComposition {
  *
  * The field type is the SDK's `StandardSchemaWithJSON` and NOT a zod type, which is the same
  * decision seen from the other side: this package's runtime dependency allow-list is exactly the
- * two protocol packages (D-20), so naming a validator library here — even in a type position, which
+ * two protocol packages, so naming a validator library here — even in a type position, which
  * the dependency lint reads no differently — would reopen the collapse the phase exists to make.
  * A zod 4.4 schema satisfies the interface, which is the whole of what either side needs to know.
  */
@@ -254,7 +253,7 @@ export interface ToolOpContracts {
  */
 export const AGENT_QA_OP_CONTRACTS: Readonly<Record<string, ToolOpContracts>> = Object.freeze({
   'runs.mark': Object.freeze({ input: RunsMarkInputSchema, output: RunsMarkOutcomeSchema }),
-  // 2026-09-15, 423-21 D-18: the feedback reads keep their ops' own strict contracts. The preview
+  // the feedback reads keep their ops' own strict contracts. The preview
   // takes runs.mark's exact input and answers the read-only plan result.
   'runs.marks.history': Object.freeze({
     input: RunsMarksHistoryInputSchema,
@@ -305,7 +304,7 @@ export const AGENT_QA_OP_CONTRACTS: Readonly<Record<string, ToolOpContracts>> = 
     input: ConfigProjectScaffoldInputSchema,
     output: ConfigChangeOutputSchema,
   }),
-  // 2026-09-30 (432-12 D-05): the three knowledge changes answer what they applied.
+  // the three knowledge changes answer what they applied.
   'knowledge.accept': Object.freeze({
     input: KnowledgeAcceptChangeInputSchema,
     output: KnowledgeChangeOutputSchema,
@@ -326,7 +325,7 @@ export const AGENT_QA_OP_CONTRACTS: Readonly<Record<string, ToolOpContracts>> = 
     input: EntitiesGetInputSchema,
     output: EntityCardSchema,
   }),
-  // 2026-09-28 (431-03, D-03/D-07): the canonical list contract — `RunsListOutputSchema` as the
+  // the canonical list contract — `RunsListOutputSchema` as the
   // validator, the same object `runs.list` enforces with, plus its explicit output document.
   'runs.list': Object.freeze({
     input: RunsListInputSchema,
@@ -336,7 +335,7 @@ export const AGENT_QA_OP_CONTRACTS: Readonly<Record<string, ToolOpContracts>> = 
     input: RunsDigestInputSchema,
     output: RunDigestSchema,
   }),
-  // 2026-09-28 (431-04 D-04/D-05/D-07): the eight reads keep their ops' own contracts. The
+  // the eight reads keep their ops' own contracts. The
   // evidence arms use the canonical output contracts, whose validators are the runtime schemas.
   'knowledge.bundles.list': Object.freeze({
     input: KnowledgeBundlesListInputSchema,
@@ -382,10 +381,10 @@ export const AGENT_QA_OP_CONTRACTS: Readonly<Record<string, ToolOpContracts>> = 
  * 2026-09-30, when 432-12 removed the four proposal tools.)
  *
  * The read side is D-02: one universal entity door plus the reads a workflow needs mid-flight and
- * the 431 discovery reads. The write side changes things IN THE CALL (432 D-05/D-14): every
+ * the 431 discovery reads. The write side changes things IN THE CALL: every
  * `workflow` entry writes what it names and answers what it changed, and nothing waits for a second
  * call. There is no apply tool, no `confirmed` input and no elicitation; the mark door is the one
- * `apply` entry, and since 432-21 (D-12) it checks no credential.
+ * `apply` entry, and since 432-21 it checks no credential.
  *
  * WHY THERE IS NO PROPOSAL TOOL AT ALL. The inbox's verbs declared a human-origin requirement, so a
  * tool over either decision verb would have listed for every caller and refused every call.
@@ -408,11 +407,11 @@ export const AGENT_QA_TOOL_PROJECTIONS: readonly ToolProjection[] = Object.freez
     name: 'agent_qa_start_run',
     ops: Object.freeze(['runs.start']),
     kind: 'workflow',
-    // 408 D-05: a run starts and is immediately watchable. The ack carries the runId, so the
+    // a run starts and is immediately watchable. The ack carries the runId, so the
     // per-call reference is derived from the OUTPUT.
     ui: Object.freeze({ resource: 'live-run', runIdFrom: 'output' } as const),
   }),
-  // 2026-09-30 (432-12 D-05): the config change tool writes in the call. The undo arm is gone.
+  // the config change tool writes in the call. The undo arm is gone.
   Object.freeze({
     name: 'agent_qa_change_config',
     ops: Object.freeze([
@@ -426,7 +425,7 @@ export const AGENT_QA_TOOL_PROJECTIONS: readonly ToolProjection[] = Object.freez
     kind: 'workflow',
     discriminant: TOOL_FOLD_DISCRIMINANT,
   }),
-  // 2026-09-30 (432-12 D-05/D-09): accept, reject and forget apply in the call. Forget is the
+  // accept, reject and forget apply in the call. Forget is the
   // explicit removal; a wrong record is otherwise corrected by new feedback.
   Object.freeze({
     name: 'agent_qa_change_knowledge',
@@ -443,7 +442,7 @@ export const AGENT_QA_TOOL_PROJECTIONS: readonly ToolProjection[] = Object.freez
     ops: Object.freeze(['runs.mark']),
     kind: 'apply',
   }),
-  // 2026-09-15, 423-21 D-18: marks history and the mark consequence preview beside the mark
+  // marks history and the mark consequence preview beside the mark
   // writer. Both are read projections with no apply envelope, so `agent_qa_mark_run` stays the
   // only door that lands a mark.
   Object.freeze({
@@ -461,7 +460,7 @@ export const AGENT_QA_TOOL_PROJECTIONS: readonly ToolProjection[] = Object.freez
     ops: Object.freeze(['knowledge.gates.list']),
     kind: 'read',
   }),
-  // 2026-09-28, 431 D-04: the knowledge reads, named one-to-one with their CLI verbs.
+  // the knowledge reads, named one-to-one with their CLI verbs.
   Object.freeze({
     name: 'agent_qa_list_knowledge_bundles',
     ops: Object.freeze(['knowledge.bundles.list']),
@@ -501,12 +500,12 @@ export const AGENT_QA_TOOL_PROJECTIONS: readonly ToolProjection[] = Object.freez
     name: 'agent_qa_get_run_digest',
     ops: Object.freeze(['runs.digest']),
     kind: 'read',
-    // 408 D-05/D-07: the watch/status read, and therefore the LATE-ATTACH door — a run started
+    // the watch/status read, and therefore the LATE-ATTACH door — a run started
     // from the CLI, from CI or from the dashboard is watchable through it exactly as an
     // MCP-started one is, because a viewer attaches and never owns. Its runId is on the INPUT.
     ui: Object.freeze({ resource: 'live-run', runIdFrom: 'input' } as const),
   }),
-  // 2026-09-28, 431 D-05/D-06/D-07: one completed run's whole reads. The overview is the map, run
+  // one completed run's whole reads. The overview is the map, run
   // knowledge the whole used-and-learned projection unchanged, and evidence one addressed document
   // or blob. All three carry the result-size hint.
   Object.freeze({
@@ -538,14 +537,14 @@ export const AGENT_QA_TOOL_PROJECTIONS: readonly ToolProjection[] = Object.freez
  *  1. A UNION FOLD validates with the discriminated union of its arms' own DTOs, composed in
  *     `@vostride/agent-qa-schema` (see `functions/tool-folds.ts` for why it is composed there and
  *     not here). Its output is the union of the arms' own outputs, collapsed when they are one.
- *     Its input is listed as one object by `projection.ts` (2026-10-20, 446-11).
+ *     Its input is listed as one object by `projection.ts`.
  *  2. THE PIPELINE advertises the FIRST op's contract on both sides: a caller hands `entities.resolve`
  *     the reference it has, and reads back the resolution union — a card, a small disambiguation
  *     set, or an honest miss. `entities.get` runs inside the resolved arm and contributes no shape
  *     of its own, which is why its contract is absent from the advertisement.
  *
- * 2026-10-01 (432-21, D-12): THE MARK DOOR'S ENTRY IS DELETED. It advertised the op's outcome OR the
- * credential refusal (419 D-20); the refusal left with the MCP bearer credential, so the door
+ * THE MARK DOOR'S ENTRY IS DELETED. It advertised the op's outcome OR the
+ * credential refusal; the refusal left with the MCP bearer credential, so the door
  * advertises exactly its op's own contracts and needs no entry. (The D-11 apply envelope it once
  * carried, `proposal_id` and `confirmed`, went with the apply tools in 432-12, D-05/D-14.)
  */
@@ -562,7 +561,7 @@ export const AGENT_QA_COMPOSED_CONTRACTS: Readonly<Record<string, ToolOpContract
     input: KnowledgeChangeFoldInputSchema,
     output: KnowledgeChangeFoldOutputSchema,
   }),
-  // 2026-09-28 (431-04 D-07): the evidence fold, composed in the schema package from both arms'
+  // the evidence fold, composed in the schema package from both arms'
   // canonical contracts and routed by full op id.
   agent_qa_get_run_evidence: Object.freeze({
     input: RunsEvidenceFoldInputSchema,
@@ -605,7 +604,7 @@ export function advertisedContracts(
  * failure throws, and a declared entry whose contract has since become convertible throws too. So
  * this list cannot silently grow and cannot silently rot.
  *
- * 2026-09-28 (431-03): the way off this list is a canonical `OutputContract` from
+ * the way off this list is a canonical `OutputContract` from
  * `@vostride/agent-qa-schema` — the op's own runtime schema as validator, with an explicit output
  * document — never a narrowed stand-in authored here. `agent_qa_start_run` keeps its row.
  */

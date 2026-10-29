@@ -1,4 +1,4 @@
-// 2026-10-20 (446-11, D-25 · F-446-11-8): Claude Code 2.1.304 silently dropped the four fold
+// Claude Code 2.1.304 silently dropped the four fold
 // tools, whose listed input was a top-level oneOf with no properties. These cells read tools/list
 // off the wire and hold every listed input to one plain object, while a fold call is still refused
 // exactly as its strict union refuses it.

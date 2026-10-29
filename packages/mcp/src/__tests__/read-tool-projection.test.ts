@@ -99,8 +99,8 @@ function registryWith(deps: Record<string, unknown> = {}): FunctionRegistry {
   })
 }
 
-// 2026-10-01 (432-34, D-12): the retired `grantedScopes` and `safeMode` caller fields are dropped;
-// nothing reads them (432-20).
+// the retired `grantedScopes` and `safeMode` caller fields are dropped;
+// nothing reads them.
 const READ_CALLER: FunctionCaller = {
   surface: 'mcp',
   origin: 'agent',
@@ -195,7 +195,7 @@ describe('the canonical contract table', () => {
     for (const opId of ops) {
       const declaration = declared.get(opId)
       expect(declaration, `${opId} is not registered`).toBeDefined()
-      // 432-20 (D-10/D-12): no scope or origin key on a declaration; the read claim is the risk's.
+      // no scope or origin key on a declaration; the read claim is the risk's.
       expect(Object.keys(declaration!), opId).not.toContain('requiredScopes')
       expect(declaration!.risk.readOnly, opId).toBe(true)
       expect(Object.keys(declaration!), opId).not.toContain('requiresHumanOrigin')
@@ -361,8 +361,8 @@ describe('MCP-TOOLS-ADVERTISED on a real tools/list', () => {
 
 // ---- dispatch: the op each call reached ---------------------------------------------------------
 //
-// 432-13 (C432-INVOKE-DIRECT): the witness was the op gate's audit row, which no call writes any
-// more. 2026-10-14 (441-16, D-12): the registry's read-scope seam that replaced it is deleted, so the
+// the witness was the op gate's audit row, which no call writes any
+// more. 2026-10-14: the registry's read-scope seam that replaced it is deleted, so the
 // witness is the first port each bound op reads — distinct per op, so it still names the op REACHED,
 // past every refusal.
 const FIRST_PORT: Record<string, readonly ['runs' | 'knowledge', string]> = {

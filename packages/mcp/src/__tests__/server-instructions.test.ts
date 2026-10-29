@@ -1,4 +1,4 @@
-// C433-MCP-INSTRUCTIONS (433-33, G-433-9 · F-433-36 · D-18/D-19, 431 D-20).
+// C433-MCP-INSTRUCTIONS.
 //
 // A fresh coding agent never saw init's pointer: Claude Code loads the user's CLAUDE.md, not the
 // AGENTS.md block init writes, and agent-qa never writes CLAUDE.md. The server's own initialize

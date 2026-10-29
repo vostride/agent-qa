@@ -113,8 +113,8 @@ function fixtureRegistry(): FunctionRegistry {
   return createFunctionRegistry({ deps })
 }
 
-// 2026-10-02 (432-38, D-12): no `grantedScopes` (the former `CALLER_SCOPES`) or `safeMode` on the
-// caller; the registry and the MCP server read neither (432-20), so `runs.start` and the link and
+// no `grantedScopes` (the former `CALLER_SCOPES`) or `safeMode` on the
+// caller; the registry and the MCP server read neither, so `runs.start` and the link and
 // App-address cells no longer depend on them.
 const caller: FunctionCaller = {
   surface: 'mcp',
@@ -199,7 +199,7 @@ describe('the permanent link is one composed string over the tokenless live page
   })
 })
 
-// ---- 2. The decoration, on the wire (D-05 / D-09) ----------------------------------------------
+// ---- 2. The decoration, on the wire ----------------------------------------------
 
 describe('every carrier result carries the link AND the concrete App address', () => {
   it('decorates a carrier result with the link line and _meta.ui.resourceUri', async () => {
@@ -259,7 +259,7 @@ describe('with no dashboard anywhere, the line is the NAMED ABSENCE and never a 
   })
 })
 
-// ---- 3b. TWO absences, two sentences (plan 10, WR-03 · T-408-22) -------------------------------
+// ---- 3b. TWO absences, two sentences -------------------------------
 
 // The arm that had NO CELL AT ALL until 2026-09-01: a host with `services.dashboard.baseUrl` set,
 // and a result the decoration could not read a run id off. `carrierRunIdOf` is defensive on both
@@ -314,7 +314,7 @@ describe('the two absences are two sentences, and the base is the arm tested fir
   })
 })
 
-// ---- 4. `runIdFrom` routing (D-05) -------------------------------------------------------------
+// ---- 4. `runIdFrom` routing -------------------------------------------------------------
 
 describe('the concrete runId comes from the source the projection DECLARES', () => {
   it("reads agent_qa_start_run's runId off the op OUTPUT", async () => {

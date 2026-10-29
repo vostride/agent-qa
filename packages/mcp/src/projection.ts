@@ -12,7 +12,7 @@
 // `toSchemaProjection` and hand the result to `fromJsonSchema`. Both work; having both is the
 // defect. The route taken is the one where the object advertised in `tools/list` and the object
 // `invokeFunction` validates against are the SAME object rather than two derivations of it.
-// 2026-10-20 (446-11, D-25): a union fold's listing is the one derived view (`flatFoldInput`);
+// a union fold's listing is the one derived view (`flatFoldInput`);
 // its calls are still validated against the composed contract itself.
 //
 // 2026-09-28 (431-03, D-03 · research A1): that object may now be a canonical `OutputContract`
@@ -64,7 +64,7 @@ const JSON_SCHEMA_CONVERSION_TARGET = 'draft-2020-12'
  * The two halves come from two places on purpose. `summary` and `risk` are read
  * off the registry's own declaration for this host, so they describe the composition a caller is
  * actually talking to; `input` and `output` are the live contracts named by the mapping table,
- * because the registry deliberately publishes only inert projections of those (T-384-14). Nothing
+ * because the registry deliberately publishes only inert projections of those. Nothing
  * in this record is authored by this package — it is two views of the op, joined by its id.
  */
 export interface ProjectedOpSpec {
@@ -89,7 +89,6 @@ export interface RegisterToolConfig {
   readonly annotations: ToolAnnotations
   /**
    * The SDK's own extension slot, carrying the live-view App reference for a CARRIER tool
-   * (2026-08-31, Phase 408 plan 01 · D-05/D-09 · MCPA-01).
    *
    * OPTIONAL, and its absence is a decision in the same sense `outputSchema`'s is: a tool that
    * declares no `ui` member gets no `_meta` KEY at all rather than a `_meta` whose `ui` is
@@ -110,7 +109,7 @@ export interface RegisterToolConfig {
  * A tool is read-only when every arm is: the risk descriptor's explicit `readOnly`, the op's own
  * word. A fold containing one write is not read-only.
  *
- * 2026-10-01 (432-20, D-12): the second signal — "the op asks for no scope beyond `read`" — left
+ * the second signal — "the op asks for no scope beyond `read`" — left
  * with the scopes, which declarations no longer carry. Every projected read op declares
  * `readOnly: true` and every projected write op does not, so the annotation set is unchanged.
  */
@@ -298,7 +297,7 @@ export function toRegisterToolConfig(
     inputSchema,
     ...(outputSchema === undefined ? {} : { outputSchema }),
     annotations: deriveAnnotations(specs),
-    // 408 D-05: the App reference, DERIVED from the projection's own carrier declaration by the
+    // the App reference, DERIVED from the projection's own carrier declaration by the
     // same pipeline that derives the annotations above — never a pair of tool names written here.
     // The conditional spread is the house absent-field rule: a non-carrier's config has no `_meta`
     // key at all.
@@ -309,7 +308,7 @@ export function toRegisterToolConfig(
     // it would point every host at an address the resource codec refuses, which is the tool-rename
     // failure with a URI scheme attached. Nothing interpolated into it comes from a caller, from
     // storage or from a resolved value; the run id never appears here, because this is the
-    // TEMPLATE and a per-call reference is composed downstream. The result-size hint (431 D-05) is
+    // TEMPLATE and a per-call reference is composed downstream. The result-size hint is
     // a declared constant too, and rides the same record (`listingMeta`).
     ...(meta === undefined ? {} : { _meta: meta }),
   }
@@ -318,7 +317,7 @@ export function toRegisterToolConfig(
 /**
  * The listing `_meta` a projection declares, or `undefined` when it declares none.
  *
- * 2026-09-28 (431 D-05): the App reference and the result-size hint are independent members of one
+ * the App reference and the result-size hint are independent members of one
  * record, so a tool declaring both advertises both; neither replaces the other.
  */
 function listingMeta(projection: ToolProjection): Record<string, unknown> | undefined {
@@ -333,7 +332,7 @@ function listingMeta(projection: ToolProjection): Record<string, unknown> | unde
 
 type JsonObject = Record<string, unknown>
 
-// 2026-10-20 (446-11, D-25 · F-446-11-8): Claude Code drops a tool whose listed input is a
+// Claude Code drops a tool whose listed input is a
 // top-level oneOf. A fold therefore lists one object (an `action` enum beside its arms' fields),
 // while the SDK still validates each call against the strict union.
 function flatFoldInput(

@@ -1,4 +1,4 @@
-// THE ESCAPE CLASSES THE ONE-MASKED-SERIALIZATION FIX COULD NOT SEE (CR-01, 2026-08-16).
+// THE ESCAPE CLASSES THE ONE-MASKED-SERIALIZATION FIX COULD NOT SEE.
 //
 // WHAT THIS FILE MEASURES, and why it did not exist before. `masked-result.ts` serialized the op
 // output with `JSON.stringify` and then handed the SERIALIZED DOCUMENT to `maskText`. The declared
@@ -19,8 +19,8 @@
 // verbatim on both channels, including a `*_CREDENTIALS`-style JSON blob. This file is the
 // standing corpus for that class.
 //
-// THE MASKER HERE IS A STAND-IN WITH THE SHIPPED REPLACEMENT. 2026-10-14 (441-14, D-12): mcp
-// depends on no package that exports `SecretRedactor`, which MCP receives injected (441-07), so
+// THE MASKER HERE IS A STAND-IN WITH THE SHIPPED REPLACEMENT. 2026-10-14: mcp
+// depends on no package that exports `SecretRedactor`, which MCP receives injected, so
 // `standInMask` replaces each declared plant raw and exactly, longest first, with
 // `[secret:<name>]` — `SecretRedactor`'s replacement. The declaration arm end to end belongs to
 // `packages/cli/src/__tests__/mcp-credential-surface.test.ts`.

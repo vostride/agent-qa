@@ -1,4 +1,4 @@
-// The advertised contract IS the enforced contract (Phase 396 plan 04, D-16 · MCPS-02).
+// The advertised contract IS the enforced contract.
 //
 // WHY THIS FILE READS OFF A SERVER AND NOT OFF THE MAPPING. `projection-layers.test.ts` drives the
 // derivation directly; that is the right shape for the derivation's edge cases and the wrong shape
@@ -47,7 +47,7 @@ import type { FunctionCaller } from '@vostride/agent-qa-schema'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { buildAgentQaMcpServer } from '../catalog.js'
-// 2026-08-16 (Phase 397 D-06): the three normalisations this file authored now live beside the
+// the three normalisations this file authored now live beside the
 // package's other source, because 397's conformance suite compares the same two sides from
 // `packages/cli` and may not reach into another package's tests. They are consumed here rather
 // than kept here so exactly ONE lens exists — the copy that drifts looser is the copy that passes
@@ -86,11 +86,10 @@ function builtInRegistry(): FunctionRegistry {
 }
 
 function callerWith(grantedScopes: readonly string[]): FunctionCaller {
-  // 432-21 (D-12): no credential rides the caller; the scope set is retired and unread (432-20).
   return { surface: 'mcp', grantedScopes, safeMode: false, origin: 'agent' } as FunctionCaller
 }
 
-// 2026-10-02 (432-39, D-10/D-12): the scope union is deleted, so the retired names are spelled by
+// the scope union is deleted, so the retired names are spelled by
 // hand here and handed to the caller as a smuggle, cast past the deleted field; nothing reads them.
 const EVERY_SCOPE: readonly string[] = [
   'read', 'run', 'config-write', 'knowledge-write', 'approval-write', 'test-write',
@@ -150,7 +149,7 @@ describe('the advertised catalogue is what the mapping declares', () => {
     )
   })
 
-  // RE-SPELLED 2026-10-01 (432-20, D-12) from 'advertises only the read tools to a caller granted
+  // RE-SPELLED 2026-10-01 from 'advertises only the read tools to a caller granted
   // only read'. The D-05 visibility law is deleted, so a read-only caller receives every declared
   // tool, in the declared order — the same listing a caller granted everything receives.
   it('advertises every declared tool to a caller granted only read, as to every caller', async () => {
@@ -174,9 +173,9 @@ describe('the advertised schema equals the function layer\'s own projection', ()
       const tool = advertised.get(projection.name)
       expect(tool, projection.name).toBeDefined()
 
-      // 432-12 (D-05/D-14): the D-11 apply doors are gone, so every tool's input is its op's own
-      // contract. 2026-10-01 (432-21, D-12): the mark door's `op outcome OR credential refusal`
-      // output (419 D-20) left with the bearer credential, so its output is its op's own too.
+      // the D-11 apply doors are gone, so every tool's input is its op's own
+      // contract. 2026-10-01: the mark door's `op outcome OR credential refusal`
+      // output left with the bearer credential, so its output is its op's own too.
       const composition = compositionOf(projection)
       const inputComparable = true
 
@@ -188,7 +187,7 @@ describe('the advertised schema equals the function layer\'s own projection', ()
         checked += 1
       }
 
-      // 2026-10-20 (446-11, D-25): a fold lists one object, so each arm is checked twice — the
+      // a fold lists one object, so each arm is checked twice — the
       // listing covers it, and the composed union the call is validated with carries it whole.
       if (inputComparable && composition === 'union') {
         const listed = withoutDialect(tool!.inputSchema)
@@ -241,12 +240,12 @@ describe('the advertised schema equals the function layer\'s own projection', ()
     // can tell a real change from a broken loop:
     //   inputs  — 11 single/pipeline/mark tools + 12 fold arms (2 + 7 + 3) = 23
     //   outputs — 16 tools less the 2 declared degradations               = 14
-    // 2026-09-15 (423-21 D-18): the two feedback read tools add one input and one output each.
-    // 2026-09-28 (431-03): `agent_qa_list_runs` leaves the degradation list and its output is
+    // the two feedback read tools add one input and one output each.
+    // `agent_qa_list_runs` leaves the degradation list and its output is
     // compared too, through the 2025-11-25 codec's `{ result }` wrap around its array root.
-    // 2026-09-28 (431-04 D-04/D-07): seven single reads add one input and one output each (14), and
+    // seven single reads add one input and one output each (14), and
     // the evidence fold adds two arm inputs and one output (3).
-    // 2026-09-30 (432-12 D-05): the two proposal reads leave (-2 inputs, -2 outputs), the two apply
+    // the two proposal reads leave (-2 inputs, -2 outputs), the two apply
     // doors leave (-2 outputs; their authored inputs were never compared), and the config fold loses
     // its undo arm (-1 input): 16 single/pipeline/mark inputs + 13 fold arms + 19 outputs = 48.
     expect(checked).toBe(48)
@@ -273,16 +272,16 @@ describe('the advertised schema equals the function layer\'s own projection', ()
       expect(advertised, projection.name).toBeDefined()
       const own = AGENT_QA_OP_CONTRACTS[projection.ops[0]!]!
 
-      // 2026-10-01 (432-21, D-12): the mark door no longer advertises a composed `anyOf` with a
+      // the mark door no longer advertises a composed `anyOf` with a
       // credential-refusal arm, so it is held to identity like every other single tool.
       expect(advertised!.input, `${projection.name} input identity`).toBe(own.input)
       expect(advertised!.output, `${projection.name} output identity`).toBe(own.output)
       checked += 2
     }
     // 10 non-union, non-apply tools contributing both sides (423-21 D-18 adds the two feedback reads).
-    // 2026-09-28 (431-04 D-04): the seven single discovery reads make it 17.
-    // 2026-09-30 (432-12 D-05): the two proposal reads leave, so 15.
-    // 2026-10-01 (432-21 D-12): the mark door joins, its composed refusal arm gone, so 16.
+    // the seven single discovery reads make it 17.
+    // the two proposal reads leave, so 15.
+    // the mark door joins, its composed refusal arm gone, so 16.
     expect(checked).toBe(32)
   })
 
@@ -292,14 +291,14 @@ describe('the advertised schema equals the function layer\'s own projection', ()
   // dropped without any shape changing.
   it('carries a field description from the zod contract all the way to the wire', async () => {
     const advertised = new Map((await advertise()).map((tool) => [tool.name, tool]))
-    // 2026-10-20 (446-11, D-25): the fold lists one object, so the prose rides its `action` field.
+    // the fold lists one object, so the prose rides its `action` field.
     const fold = withoutDialect(advertised.get('agent_qa_change_config')!.inputSchema)
     const discriminant = (fold.properties as JsonDocument).action as JsonDocument
 
     expect((discriminant.enum as readonly string[])[0]).toBe('config.field.set')
     expect(discriminant.description).toContain('Which registry operation this call is for')
 
-    // 2026-09-30 (432-12 D-05): the apply doors' authored envelope is gone with them, so the second
+    // the apply doors' authored envelope is gone with them, so the second
     // conversion route has no tool on it. The knowledge change fold carries the same prose.
     const knowledge = withoutDialect(advertised.get('agent_qa_change_knowledge')!.inputSchema)
     const knowledgeDiscriminant = (knowledge.properties as JsonDocument).action as JsonDocument
@@ -384,13 +383,13 @@ describe('the build is deterministic (idempotency)', () => {
     // A fold containing six writes is not read-only, and its idempotence follows.
     expect(advertised.get('agent_qa_change_config')!.annotations?.readOnlyHint).toBe(false)
     expect(advertised.get('agent_qa_change_config')!.annotations?.idempotentHint).toBe(false)
-    // 432-12: the knowledge changes write in the call, so the same derivation marks them.
+    // the knowledge changes write in the call, so the same derivation marks them.
     expect(advertised.get('agent_qa_change_knowledge')!.annotations?.readOnlyHint).toBe(false)
     expect(advertised.get('agent_qa_change_knowledge')!.annotations?.idempotentHint).toBe(false)
   })
 })
 
-// ---- THE APP CARRIER CENSUS (2026-08-31, Phase 408 plan 01 · D-05 / MCPA-01) --------------------
+// ---- THE APP CARRIER CENSUS --------------------
 //
 // WHY THESE CELLS JOINED THIS FILE AND NOT A NEW ONE. Which tools carry the App is exactly the same
 // KIND of claim as everything above: a property derived from `AGENT_QA_TOOL_PROJECTIONS` and
@@ -399,7 +398,7 @@ describe('the build is deterministic (idempotency)', () => {
 // pair — the derivation driven directly for the shape it produces, and the real `tools/list` read
 // off the wire for the shape a caller receives.
 //
-// THE 399.1 LESSON, RESTATED (D-05). The carrier set is ENUMERATED from the projection table, never
+// THE 399.1 LESSON, RESTATED. The carrier set is ENUMERATED from the projection table, never
 // spelled as a pair beside it. A cell that hard-coded two names would agree with a mapping that had
 // silently grown a third carrier — and a third tool quietly advertising a live-view App is a third
 // door onto a credential channel, which is the one thing this phase may not let happen quietly.

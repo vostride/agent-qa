@@ -1,5 +1,4 @@
 // THE APP-ATTACHMENT CENSUS, AND THE APP-LESS NEGOTIATION PATH
-// (Phase 408 plan 04 · MCPA-01 · D-05 / D-09 / D-14 · T-408-18).
 //
 // WHY THIS FILE EXISTS. Two standing laws D-14 requires RECORDED rather than proven once:
 //
@@ -12,7 +11,7 @@
 //      and the App attaches only where the extension was negotiated. Both halves are asserted in
 //      ONE flow here, because either alone is satisfiable by a surface that is wrong.
 //
-// THE 399.1 LESSON, AND WHY IT SHAPES EVERY LINE BELOW (D-05). The carrier set is DERIVED, twice,
+// THE 399.1 LESSON, AND WHY IT SHAPES EVERY LINE BELOW. The carrier set is DERIVED, twice,
 // from shipped data — once from `AGENT_QA_TOOL_PROJECTIONS`' declared `ui` member and once from a
 // driven `tools/list` document — and the two derivations are compared to each other. A cell that
 // spelled the pair as two literals would agree with a mapping that had silently grown a third
@@ -29,7 +28,7 @@
 // real socket, so the PRIMARY branch shipped: a non-negotiated `ui://` read is REFUSED by name,
 // before anything is minted. `(C3)` therefore asserts the refusal.
 //
-// AND MEASURING THE FALLBACK'S REACH WAS WORTH THE LINE IT COST (2026-08-31). `(C3)` also asks what
+// AND MEASURING THE FALLBACK'S REACH WAS WORTH THE LINE IT COST. `(C3)` also asks what
 // `{ list: undefined }` alone buys, and the answer is narrower than "the address is undiscoverable":
 // no CONCRETE `ui://agent-qa/live-run/<runId>` is enumerable — `resources/list` names none — but
 // the TEMPLATE is advertised on `resources/templates/list`, exactly as the six entity templates
@@ -44,7 +43,7 @@
 // because the capabilities envelope exists only on the 2026-07-28 wire era. Without it this file
 // would measure plan 02's correct fail-closed refusal and read it as a defect.
 //
-// THE MUTATION LEGS, APPLIED AND THEIR REDS OBSERVED (2026-08-31) — a leg nobody ran is a leg
+// THE MUTATION LEGS, APPLIED AND THEIR REDS OBSERVED — a leg nobody ran is a leg
 // nobody knows the strength of, so each was applied to its subject and the subject then restored:
 //   M1  A THIRD CARRIER ROW in `mapping.ts` (`agent_qa_list_runs` given a `ui` declaration).
 //       Declared with `runIdFrom: 'output'` on a read-only op -> `(C2)` red BY NAME
@@ -107,7 +106,7 @@ const SIGNING_KEY = 'zz-408-04-app-census-signing-key'
 const DASHBOARD_BASE = 'http://localhost:4108'
 const HANDLES: readonly number[] = [0]
 
-// 2026-10-02 (432-39, D-10/D-12): the scope union is deleted, so the retired names are spelled by
+// the scope union is deleted, so the retired names are spelled by
 // hand here and handed to the caller as a smuggle, cast past the deleted field; nothing reads them.
 const EVERY_SCOPE: readonly string[] = [
   'read', 'run', 'config-write', 'knowledge-write', 'approval-write', 'test-write',
@@ -227,7 +226,7 @@ describe('which tools carry the App is census-pinned DATA', () => {
       // OUTPUT. An op that merely READS about a run was told which one, so its source is the
       // validated INPUT. Plan 03's decoration trusts exactly this datum to find the concrete runId,
       // so a swapped source decorates a result with a reference to a run nobody asked about.
-      // 432-20 (D-12): "makes the run" was read off the `run` scope; declarations carry no scopes,
+      // "makes the run" was read off the `run` scope; declarations carry no scopes,
       // so it is read off the risk descriptor — a carrier that is not a declared read made the run.
       const makesTheRun = declaration!.risk.readOnly !== true
       expect(projection.ui?.runIdFrom, `${projection.name} reads its runId off the wrong source`)
@@ -315,7 +314,7 @@ function liveRegistry(): FunctionRegistry {
   // document that carries nothing at all — and every App-less cell above it would stop being a
   // statement about NEGOTIATION and become a statement about an empty render, which is the vacuity
   // this control exists to prevent. THE GATE ON THIS RELATIONSHIP IS `(A10)` IN
-  // `token-absence.test.ts` (408-12), which renders under a stubbed system clock past 2027-01-15;
+  // `token-absence.test.ts`, which renders under a stubbed system clock past 2027-01-15;
   // if you change this clock, that is where the alarm lives.
   let clock = Date.now()
   const liveView: LiveViewPort = {
@@ -410,7 +409,7 @@ describe('an App-LESS host gets the link and NOT the App, in one flow', () => {
       const stranger = await connect(url, { apps: false })
 
       // HALF ONE — the link rides EVERY carrier result, for a host that negotiated nothing. This
-      // is what makes "never a broken embed" structural rather than detected (D-09).
+      // is what makes "never a broken embed" structural rather than detected.
       const results = await callBothCarriers(stranger)
       expect(results).toHaveLength(2)
       for (const result of results) {
@@ -430,7 +429,7 @@ describe('an App-LESS host gets the link and NOT the App, in one flow', () => {
       expect(refusal, 'the App-less client obtained the App').toBeDefined()
       expect(String((refusal as Error).message)).toContain(MCP_APPS_EXTENSION_ID)
 
-      // WHAT `{ list: undefined }` ACTUALLY BUYS, MEASURED (2026-08-31) — and it is less than the
+      // WHAT `{ list: undefined }` ACTUALLY BUYS, MEASURED — and it is less than the
       // contingency branch would have needed. No CONCRETE `ui://agent-qa/live-run/<runId>` address
       // is enumerable: `resources/list` names none, so nothing can walk a listing to a readable
       // address for a particular run. The TEMPLATE, however, IS advertised on

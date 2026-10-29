@@ -1,4 +1,4 @@
-// The entity Resource Templates surface (Phase 396 plan 03, D-13 · MCPS-02).
+// The entity Resource Templates surface.
 //
 // WHY THIS FILE EXISTS. 387 gave every entity a published address — `agentqa://memory/MEM-001` —
 // and tool results carry those addresses as `resource_link`s. A link nothing can dereference is a
@@ -14,14 +14,14 @@
 // renames a segment — and the failure mode of that disagreement is a template advertising an
 // address the parser refuses, i.e. a door that 404s by construction.
 //
-// THE CODEC IS THE ONLY PARSER, AND THAT IS THE SECURITY PROPERTY (T-396-08). Everything reaching
+// THE CODEC IS THE ONLY PARSER, AND THAT IS THE SECURITY PROPERTY. Everything reaching
 // `resources/read` is caller-supplied. `parseEntityUri` refuses `agentqa://memory/TST-001` because
 // the segment and the id prefix disagree, refuses a trailing path because a sub-resource that
 // resolves to its parent is a lie, and canonicalises `MEM-1` to `MEM-001` so one address is one
 // address. A local regex in this file would be a second, weaker reading of the same string — this
 // module therefore contains no `agentqa://` pattern of its own, and an acceptance grep pins that.
 //
-// EVERY CALLER SEES THE SAME TEMPLATES (2026-10-01, 432-20, D-12). The scope-based visibility law
+// EVERY CALLER SEES THE SAME TEMPLATES. The scope-based visibility law
 // that once withheld these from a caller granted nothing is deleted: the templates are registered
 // whenever the composition registers `entities.get`, which is a fact about the host and never
 // about the caller. Subject validation is unchanged — the codec below still refuses every address
@@ -37,7 +37,7 @@
 // SUBSCRIPTIONS ARE NOT IMPLEMENTED, and the deferral is dated: SEP-2575 replaced
 // `resources/subscribe` + the HTTP GET stream with a single opted-in `subscriptions/listen` stream.
 // Shipping the OLD verb would be shipping a shape the 2026-07-28 protocol has already retired, and
-// shipping the new one is a transport concern this package does not own. Post-v2.0 (D-13).
+// shipping the new one is a transport concern this package does not own. Post-v2.0.
 //
 // Protocol grounding: SEP-2575 (stateless protocol; the subscription model above), SEP-2549 (list
 // results carry cache hints — nothing registered here varies per call, so a listing is cacheable),
@@ -165,7 +165,7 @@ export function createEntityResourceReadHandler(
       )
     }
 
-    // MASKED AS A VALUE, NEVER AS A SERIALIZATION (CR-01, 2026-08-16). This line used to read
+    // MASKED AS A VALUE, NEVER AS A SERIALIZATION. This line used to read
     // `deps.maskText(JSON.stringify(card))`, which handed a literal-substring masker an ESCAPED
     // document: a stored value containing `"`, `\` or a control character does not occur in it, so
     // the masker matched nothing and the card reached the caller verbatim. `maskJsonDocument` walks

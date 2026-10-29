@@ -8,7 +8,7 @@
 // — because a second registration idiom would be a second set of rules for the same three
 // questions (who may see it, what parses the address, what masks the answer).
 //
-// THE MINT CHANNEL IS THE WHOLE SECURITY ARGUMENT (D-01, T-408-01). `runs.liveurl` stays
+// THE MINT CHANNEL IS THE WHOLE SECURITY ARGUMENT. `runs.liveurl` stays
 // UNPROJECTED as a callable tool: a projected mint tool would put a live credential into
 // model-readable tool-result text, which is the exact shape of T-395-R5-10, and masking it would
 // make the tool useless. Instead the mint happens HERE, by reference, inside the App-rendering
@@ -34,7 +34,7 @@
 // Open Question 2 / Pitfall 2; D-01, D-09, D-14). This is the disposition D-14 requires RECORDED
 // rather than left silent, and all four clauses are load-bearing:
 //
-//   1. THE TOKEN CHANNEL IS HOST-RENDERED HTML (D-01). A minted `liveUrl` reaches a person only
+//   1. THE TOKEN CHANNEL IS HOST-RENDERED HTML. A minted `liveUrl` reaches a person only
 //      inside the document a host paints in its sandbox. It is never tool-result text, never a
 //      refusal echo, and never a listing.
 //      SUPERSEDED IN PART, 2026-09-01: the WRITE half stands and the REACH half does not. What
@@ -66,7 +66,7 @@
 //   4. THE CREDENTIAL STAYS SHORT-LIVED AND VIEW-SCOPED. 403's `LIVE_URL_TTL_MS` is five minutes
 //      and the token authorises watching pixels this caller can already read — so even the
 //      negotiated channel hands out the narrowest thing that can render a live view (re-spelled
-//      2026-10-02, 432-42: no caller holds a `read` scope since 432-20).
+//      no caller holds a `read` scope since 432-20).
 //   5. THE AUTHORIZATION BOUNDARY IS THE OPERATOR-GRANTED `read` SCOPE, CHECKED AT REGISTRATION
 //      (added 2026-09-01, 408 gap round; D-02). This clause names what THIS SERVER CAN VERIFY, as
 //      distinct from anything a caller says about itself. `registerAppResources` registers the
@@ -81,7 +81,7 @@
 //      App rides the existing `read` scope… no new scope in the token vocabulary" — and a
 //      composition failing any condition registers no template at all, so for such a caller this
 //      address does not exist. Clause 3's check is a filter ON TOP of this; it is not this.
-//      SUPERSEDED, 2026-10-01 (432-20, D-12/D-13): the scope half is deleted with every per-caller
+//      SUPERSEDED, 2026-10-01: the scope half is deleted with every per-caller
 //      permission — "every door can call every operation" — so the template registers for every
 //      caller of a composition whose mint is bound. What bounds the credential now is what D-13
 //      keeps: the loopback-only endpoint, its Host/Origin guards, the bound-mint floor, the
@@ -94,7 +94,7 @@
 // in this file's "measured, not assumed" idiom:
 //
 //   (a) THE CHECK IS A HOST-CAPABILITY SIGNAL, NOT AN AUTHORIZATION CONTROL. On the modern
-//       (2026-07-28) era the SDK's `_inputRequestCapabilityView` returns
+//       era the SDK's `_inputRequestCapabilityView` returns
 //       `ctx.mcpReq.envelope?.[CLIENT_CAPABILITIES_META_KEY]` VERBATIM, and the 2026 codec's
 //       `checkInboundEnvelope` validates that member's SHAPE and nothing else (the 2025 codec's
 //       is `(_material) => void 0`). Measured 2026-08-31 by the phase verifier against the same
@@ -139,7 +139,7 @@
 // `@modelcontextprotocol/client@2.0.0` over the shipped node handler — the living record is
 // `src/__tests__/app-negotiation.test.ts`, which drives the wire and would red if the SDK moved
 // it. The measurement also produced a fact worth stating plainly, because it decides who can see
-// this App at all: the per-request capabilities envelope exists ONLY on the modern (2026-07-28)
+// this App at all: the per-request capabilities envelope exists ONLY on the modern
 // wire era. A client that connects with the SDK's default legacy `initialize` handshake sends no
 // per-request capabilities, and a stateless per-request server instance never saw that handshake,
 // so `getClientCapabilities()` holds nothing there either (the SDK says so itself: "per-request
@@ -148,7 +148,7 @@
 // which is exactly what D-09 asks for: the App attaches only where the extension was negotiated,
 // and every other host is served by the link-out that rides every carrier result.
 //
-// ONE CODEC, NO SECOND PARSER (T-396-08 / T-408-02). `parseAppUri` is the only thing in this
+// ONE CODEC, NO SECOND PARSER. `parseAppUri` is the only thing in this
 // package that reads a `ui://` address, and it defers the run-id question to the MINT OP'S OWN
 // input contract rather than re-deriving path safety here. A local regex over the id would be a
 // second, weaker reading of a string that names a directory.
@@ -206,7 +206,7 @@ export const APP_RESOURCE_MIME_TYPE = 'text/html;profile=mcp-app'
 export const APP_RESOURCE_URI_TEMPLATE = 'ui://agent-qa/live-run/{runId}'
 
 /**
- * The template EXPANDED for one concrete run (408 plan 03, D-05).
+ * The template EXPANDED for one concrete run.
  *
  * WHY THIS IS A FUNCTION AND NOT A STRING EACH CALLER COMPOSES. `projection.ts` advertises the
  * TEMPLATE on a carrier tool's `_meta`, and a carrier RESULT advertises the concrete address of the
@@ -311,7 +311,7 @@ export interface AppReadContext {
  * so a `false` answer means "this caller did not SAY it can render an App" — a host-capability
  * fact — and never "this caller is not authorized to hold a live-view credential". What bounds
  * the credential is `bindingStatus === 'bound'` and the local network controls D-13 keeps; the
- * scope check that once sat beside it is deleted (432-20, D-12). See header clause 5.
+ * scope check that once sat beside it is deleted. See header clause 5.
  *
  * `RequestMetaEnvelope` is an intentionally EMPTY augmentable type in the shipped d.mts, so the
  * envelope is read through one narrow cast at this single seam rather than by widening the SDK's
@@ -357,7 +357,7 @@ export class AppResourceUriError extends Error {
 /**
  * A refusal from the App read that is NOT a run-liveness fact.
  *
- * Deliberately narrow: absence of a live session is rendered, never thrown (D-07), so anything that
+ * Deliberately narrow: absence of a live session is rendered, never thrown, so anything that
  * reaches this class is a genuine failure of the read — a missing scope, an unknown op, a broken
  * composition — and it carries its message masked for the same reason `resources.ts`'s does.
  */
@@ -430,7 +430,7 @@ export interface AppResourceReadDeps {
  * a host with no live-view port at all (`FunctionNotBoundError` from the binding check, or
  * `LiveViewUnavailableError` from the op when the port is bound but serves no origin), and a run
  * this host holds no session for (`UnknownRunError`). Each becomes the wrapper's honest not-live
- * document — never an error surface, and never a blank frame (D-07).
+ * document — never an error surface, and never a blank frame.
  */
 function isNotLiveRefusal(error: unknown): boolean {
   return (
@@ -443,7 +443,7 @@ function isNotLiveRefusal(error: unknown): boolean {
 /**
  * The handle roster this run ANNOUNCED, read off its own first envelope.
  *
- * `runStarted` is seq 1 and carries the roster as an additive payload field (402-04 D-10), so one
+ * `runStarted` is seq 1 and carries the roster as an additive payload field, so one
  * envelope answers the whole question and the iterator is disposed immediately — a resource read
  * that drained a run's entire event log to learn two integers would be a second, far more expensive
  * answer to a question the first element already answers.
@@ -451,7 +451,7 @@ function isNotLiveRefusal(error: unknown): boolean {
  * Answers `undefined` rather than a default, so the CALLER decides what an unannounced roster
  * means; the read handler reads it as handle 0, the single-member case every non-suite run is.
  *
- * IT ALSO ANSWERS `[]`, AND THAT IS THE SAME DECISION (WR-05, 2026-09-01). `handleRosterOf` answers
+ * IT ALSO ANSWERS `[]`, AND THAT IS THE SAME DECISION. `handleRosterOf` answers
  * `[]` for a `runStarted` that really announced `handles: []`, and `undefined` only when the field
  * is absent or malformed — two different bytes on the wire, one question for the caller. The read
  * handler collapses them at `rosterToMint` below: an announced-but-empty roster is a run that named
@@ -492,13 +492,13 @@ export function createAppResourceReadHandler(
     _variables: Variables,
     ctx: AppReadContext,
   ): Promise<ReadResourceResult> => {
-    // CLAUSE 3 OF THE HEADER'S RULING, AND IT IS THE FIRST LINE ON PURPOSE (D-09).
+    // CLAUSE 3 OF THE HEADER'S RULING, AND IT IS THE FIRST LINE ON PURPOSE.
     // A RENDERING-CAPABILITY FILTER, NOT THE AUTHORIZATION CHECK (corrected 2026-09-01, 408 gap
     // round, road `demote`; T-408-01 re-adjudicated to `accept` — the ruling is in the header).
     // What this line asks is whether the caller SAID it can render an MCP App. A caller that did
     // not say so is turned away before anything below runs, so this path has no token to withhold
     // rather than a token it remembered not to print — and that ordering is still worth keeping.
-    // It is not, however, an authorization check. Since 432-20 (D-12) no per-caller permission
+    // It is not, however, an authorization check. Since 432-20 no per-caller permission
     // exists: `registerAppResources` registered this template because the mint is `bound` in this
     // composition, and a composition without that never reaches this handler at all.
     if (!negotiatedAppsExtension(ctx)) throw new AppResourceNegotiationError()
@@ -524,7 +524,7 @@ export function createAppResourceReadHandler(
       notLive = true
     }
 
-    // WR-05 (2026-09-01, T-408-25): `undefined` AND `[]` resolve here, once, by name.
+    // `undefined` AND `[]` resolve here, once, by name.
     // `roster ?? [0]` did not fire for `[]` — `??` tests nullishness, not emptiness — so a run whose
     // `runStarted` announced `handles: []` ran the mint loop ZERO times, produced no mints, and was
     // rendered `run-ended` by the count below for a run this host IS holding a live session for.
@@ -541,7 +541,7 @@ export function createAppResourceReadHandler(
     const mints: AppWrapperMint[] = []
     if (!notLive) {
       for (const handle of rosterToMint) {
-        // THE ONE INVOCATION WALL, once per handle (D-06). Fresh on EVERY read, which is D-10's
+        // THE ONE INVOCATION WALL, once per handle. Fresh on EVERY read, which is D-10's
         // fresh-on-render for free: nothing is cached here, so there is no stale token to serve.
         let minted: RunsLiveUrlResult
         try {
@@ -578,7 +578,7 @@ export function createAppResourceReadHandler(
     const permanentLink
       = base === undefined || base.trim() === '' ? undefined : liveRunLinkOf(base.trim(), runId)
 
-    // IN-02 (2026-09-01, T-408-26). THE ALLOWANCE IS DERIVED FROM THE WHOLE DOCUMENT, and the
+    // IN-02. THE ALLOWANCE IS DERIVED FROM THE WHOLE DOCUMENT, and the
     // invariant it rests on is ASSERTED HERE rather than assumed to hold in another package. Every
     // mint's origin, distinct, in one set: a mint whose `liveUrl` this host cannot name as a URL
     // contributes nothing (the old `mints[0]`-only form behaved the same way, and that arm is
@@ -623,8 +623,8 @@ export function createAppResourceReadHandler(
           // The host's default is `frame-src 'none'`, so an App that names no frame domain paints
           // a BLOCKED inner frame — the blank pane criterion 2 forbids (Pitfall 1). The allowed
           // origin is the minted link's OWN origin rather than a separately configured one, so the
-          // allow can never be broader than the document needs (T-408-05). `frameDomain` is the ONE
-          // distinct origin `frameOrigins` above resolved over EVERY mint (IN-02) — not `mints[0]`'s,
+          // allow can never be broader than the document needs. `frameDomain` is the ONE
+          // distinct origin `frameOrigins` above resolved over EVERY mint — not `mints[0]`'s,
           // which was the same answer only by a fact held in another package.
           //
           // TWO ABSENCES, NOT ONE (corrected 2026-09-01, 408 gap round; `408-VERIFICATION.md` W-4 /
@@ -750,7 +750,7 @@ export interface AppResourceDeps {
  * none" and "registered one" are the two halves of the claim, and a caller that had to inspect a
  * server to tell them apart could only ever test one of them.
  *
- * TWO CONDITIONS, BOTH READ OFF THE REGISTRY'S OWN DECLARATIONS (D-02/D-03), AND NEITHER ABOUT THE
+ * TWO CONDITIONS, BOTH READ OFF THE REGISTRY'S OWN DECLARATIONS, AND NEITHER ABOUT THE
  * CALLER (432-20, D-12 deleted the third, a `visibleToCaller` scope check):
  *
  *  1. Both ops this surface reads through — the mint and the roster read — are declared here. A

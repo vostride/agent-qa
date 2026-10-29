@@ -1,4 +1,4 @@
-// The MCP App resource, driven end to end against a REAL registry (Phase 408 plan 01 · MCPA-01).
+// The MCP App resource, driven end to end against a REAL registry.
 //
 // WHAT IS PRODUCTION HERE AND WHAT IS SCRIPTED. Production: `registerAppResources`, the read
 // handler, `renderAppWrapperPage`, `createFunctionRegistry`, `invokeFunction`, the `runs.liveurl`
@@ -82,7 +82,7 @@ const signer: LiveUrlSigner = {
  * fixture clock pinned to a fixed epoch silently becomes an EXPIRED render once real time passes it
  * — every scan below would then be a scan over a document carrying nothing, which is vacuity rather
  * than proof. The parameter stays, so a cell that genuinely wants a fixed instant can still ask for
- * one. THE GATE ON THIS RELATIONSHIP IS `(A10)` IN `token-absence.test.ts` (408-12): it renders
+ * one. THE GATE ON THIS RELATIONSHIP IS `(A10)` IN `token-absence.test.ts`: it renders
  * under a stubbed system clock past 2027-01-15 and asserts a minted liveUrl is really in the served
  * document. If you change a clock here, that is where the alarm lives — a fourth copy of it in this
  * file would be a redundant cell, not a second guarantee.
@@ -112,7 +112,7 @@ interface FixtureOptions {
   /** The roster the run announces on its own `runStarted`. */
   readonly handles?: readonly number[]
   /**
-   * Announce NO `handles` FIELD AT ALL on `runStarted` (WR-05).
+   * Announce NO `handles` FIELD AT ALL on `runStarted`.
    *
    * Distinct from `handles: []`, and the distinction is the whole point of the two cells below:
    * `handleRosterOf` answers `undefined` for an absent field and `[]` for a field that really said
@@ -168,8 +168,8 @@ function fixtureRegistry(options: FixtureOptions = {}): {
   }
 }
 
-// 2026-10-02 (432-38, D-12): no `safeMode`, and no `['read']` default scope set; registration and
-// the read handler read neither (432-20). A scope set a cell passes EXPLICITLY is kept, cast past
+// no `safeMode`, and no `['read']` default scope set; registration and
+// the read handler read neither. A scope set a cell passes EXPLICITLY is kept, cast past
 // the type, as a deliberate smuggle: the cell for a caller granted nothing hands `[]` to prove the
 // set changes nothing. Goes with the field in 432-39.
 function caller(smuggledScopes?: readonly string[]): FunctionCaller {
@@ -250,8 +250,8 @@ const asNegotiated =
 /**
  * Register against the fixture and hand back the ONE read the registration captured.
  *
- * 2026-10-02 (432-38, D-12): no scope-set parameter; no cell passed one, and the caller it fed is
- * unread (432-20).
+ * no scope-set parameter; no cell passed one, and the caller it fed is
+ * unread.
  */
 function registerAndCapture(options: FixtureOptions = {}): {
   readonly registered: readonly string[]
@@ -284,7 +284,7 @@ function htmlOf(result: { contents: readonly { text?: string }[] }): string {
  * renderer was handed would assert nothing about the output.
  */
 function liveUrlsIn(html: string): readonly string[] {
-  // IN-03 (408-13): EVERY dot escaped, not the first. `String.prototype.replace` with a string
+  // EVERY dot escaped, not the first. `String.prototype.replace` with a string
   // pattern replaces one occurrence, so `127.0.0.1` left three dots standing as `.` wildcards —
   // harmless today, and exactly the kind of harmless that stops being harmless quietly. This is now
   // the same escape the sibling scanner in `app-negotiation.test.ts` uses; two scanners in one
@@ -306,7 +306,7 @@ function stateOf(html: string): string {
 }
 
 /**
- * A hand-built `invoke` that mints one pane per ORIGIN, for the multi-origin arm (IN-02).
+ * A hand-built `invoke` that mints one pane per ORIGIN, for the multi-origin arm.
  *
  * Driven through `createAppResourceReadHandler` directly rather than through the fixture registry,
  * because the composition this guards against is one no shipped registry can build today:
@@ -395,8 +395,8 @@ describe('registerAppResources — which registries get the App template', () =>
     expect(server.calls[0]!.listCallback).toBeUndefined()
   })
 
-  // RE-SPELLED 2026-10-01 (432-20, D-12) from 'registers NOTHING for a caller granted no read scope
-  // (D-02)'. The scope gate is deleted: a caller granted nothing gets the same one template, and the
+  // RE-SPELLED 2026-10-01 from 'registers NOTHING for a caller granted no read scope
+  // '. The scope gate is deleted: a caller granted nothing gets the same one template, and the
   // D-03 floor below (no mint op, or an unbound one) is what still registers nothing.
   it('registers the same template for a caller granted no read scope', () => {
     const { registry } = fixtureRegistry()
@@ -570,7 +570,7 @@ describe('the served allowance covers EVERY pane the document can show', () => {
 
   it('REFUSES a document whose panes would span two origins, by name', async () => {
     // The posture chosen in 408-13: refusal, not a widened allowance. A frame allowance is as
-    // narrow as the document needs (T-408-05), and a document needing two origins is one this
+    // narrow as the document needs, and a document needing two origins is one this
     // server does not know how to serve narrowly — so it says so instead of shipping an allowance
     // that would blank every pane but the first.
     const spanning = directRead(mintingInvoke([FIXTURE_ORIGIN, 'http://127.0.0.1:7778']))

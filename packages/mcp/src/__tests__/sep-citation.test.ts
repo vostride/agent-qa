@@ -1,4 +1,4 @@
-// The citation gate (Phase 396 plan 08 · MCPS-07).
+// The citation gate.
 //
 // MCPS-07 says requirements and code cite SEP numbers, not a spec tag. A sweep is the natural way to
 // enforce that and also the natural way to enforce NOTHING: this phase has already recorded three

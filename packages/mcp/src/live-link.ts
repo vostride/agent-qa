@@ -1,4 +1,4 @@
-// The PERMANENT link-out to the dashboard's live page (Phase 408 plan 03, D-08 / D-09 · MCPA-01).
+// The PERMANENT link-out to the dashboard's live page.
 //
 // WHY THIS FILE EXISTS. `app-resource.ts` is the App channel: it mints a short-lived credential and
 // hands it to a host that negotiated the Apps extension. This file is the OTHER half of the same
@@ -35,7 +35,7 @@
 // affordance and answers nothing. `LIVE_LINK_ABSENT_LINE` says what is missing and names the config
 // knob that supplies a base, and contains no address at all.
 //
-// AND THERE ARE TWO ABSENCES, NOT ONE (2026-09-01, plan 10, WR-03 · T-408-22). A missing base and a
+// AND THERE ARE TWO ABSENCES, NOT ONE. A missing base and a
 // missing run id are different facts with different remedies, so they carry different sentences —
 // `LIVE_LINK_ABSENT_LINE` and `LIVE_LINK_NO_RUN_LINE`. Collapsing them is how a host that HAD a
 // dashboard configured came to be told, on a model-readable channel, to configure it.
@@ -49,7 +49,7 @@
 // credential and no freshness claim, so it neither needs nor offers one.
 
 /**
- * The tokenless dashboard live page for one run: `<base>/runs/<runId>/live` (D-08).
+ * The tokenless dashboard live page for one run: `<base>/runs/<runId>/live`.
  *
  * TRAILING SLASHES ARE COLLAPSED rather than tolerated. An operator writing
  * `baseUrl: http://dash.internal/` is writing the same base as one who did not, and a `//` in the
@@ -92,7 +92,6 @@ export const LIVE_LINK_ABSENT_LINE = 'no dashboard configured — set services.d
 
 /**
  * What a carrier result says when a dashboard base EXISTS but this result names no run to link to
- * (2026-09-01, Phase 408 plan 10, WR-03 · T-408-22).
  *
  * A SECOND NAMED ABSENCE, BECAUSE THERE ARE TWO DISTINCT FACTS. `carrierRunIdOf`
  * (`catalog.ts`) is DEFENSIVE ON BOTH ARMS by design and can honestly answer `undefined` — the
@@ -139,7 +138,7 @@ export interface LiveLinkSupplier {
  * who has not pointed this host anywhere, and composing `"/runs/x/live"` from it would produce a
  * relative fragment that reads as a link in a transcript and resolves against nothing.
  *
- * THE GUARD ORDER IS THE FIX, NOT AN ACCIDENT (2026-09-01, plan 10, WR-03). The BASE is tested
+ * THE GUARD ORDER IS THE FIX, NOT AN ACCIDENT. The BASE is tested
  * first: with no base anywhere, "no dashboard configured" is the true and the more actionable
  * sentence whatever the run id is, so the both-absent case answers with the fact an operator can do
  * something about. Only with a base PRESENT does a missing run id become the fact worth naming, and

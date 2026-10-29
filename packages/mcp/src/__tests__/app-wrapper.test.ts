@@ -1,5 +1,4 @@
 // The App wrapper's RENDERED BYTES — the D-11 state machine as a pure function
-// (Phase 408 plan 02 · MCPA-01 · D-06/D-07/D-10/D-11).
 //
 // WHAT IS PRODUCTION HERE AND WHAT IS SCRIPTED. Production: `renderAppWrapperPage` and every
 // sentence constant it renders. Scripted: nothing at all — the renderer takes a record and returns
@@ -17,11 +16,11 @@
 //   C1  the expiry clock read at SCRIPT time instead of render time   -> the expired cell
 //   C2  a not-live document that still carries a minted url           -> the run-ended cell
 //   C3  a value reaching the script without the escape helper         -> the hostile-runId cell
-//   C4  the wrapper growing a step list / status line (D-11)          -> the prohibition cell
+//   C4  the wrapper growing a step list / status line          -> the prohibition cell
 //   C5  the link's href/label assigned by the SCRIPT again            -> the markup-anchor cell
 //   C6  a non-http(s) permanentLink reaching an href                 -> the scheme-drop cell
 //   C7  the attribute escape dropped from the href                   -> the attribute-escape cell
-//   C8  a sentence constant changed without a cell (IN-04)           -> the census cell, which
+//   C8  a sentence constant changed without a cell           -> the census cell, which
 //                                                                       ranges over APP_WRAPPER_STATES
 
 import { describe, expect, it } from 'vitest'
@@ -67,7 +66,7 @@ const stateOf = (html: string): string | undefined =>
   /<main data-app-state="([^"]+)"/.exec(html)?.[1]
 
 /**
- * The sentence each state shows, and the second line under it — the census's SUBJECT (IN-04).
+ * The sentence each state shows, and the second line under it — the census's SUBJECT.
  *
  * Typed `Record<AppWrapperState, string>` on purpose. The old census was a hand-written array of
  * five sentences that silently omitted `APP_WRAPPER_RUN_ENDED_MESSAGE` while calling itself "every
@@ -238,7 +237,7 @@ describe('the frame, the picker and the link', () => {
     expect(html.includes('<a data-app-permanent-link')).toBe(false)
   })
 
-  // THE PRIMARY REPRESENTATION IS SERVED, NOT ASSIGNED (D-08, WR-10). The href and the label are in
+  // THE PRIMARY REPRESENTATION IS SERVED, NOT ASSIGNED. The href and the label are in
   // the markup the server sends, so a host whose CSP never runs this document's script still hands a
   // person a working way to watch the run. Leg C5: move either back into the script and this reds.
   it('renders the anchor COMPLETE in markup — href and label, before any script runs', () => {

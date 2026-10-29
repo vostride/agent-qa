@@ -4,10 +4,10 @@
 // mints and serves. It is not a second embed document: the 403 embed page
 // (`dashboard-server/src/live-view/embed-page.ts`) stays byte-identical and this file re-implements
 // none of it — no socket, no canvas, no frame protocol, no token parse. One embed contract, two
-// consumers (D-04). Copying that file's IDIOMS is deliberate; copying its BYTES would be the
+// consumers. Copying that file's IDIOMS is deliberate; copying its BYTES would be the
 // second implementation this milestone exists to retire.
 //
-// IT RENDERS NO RUN STATE OF ITS OWN (D-11). No step list, no status line, no verdict. Those need
+// IT RENDERS NO RUN STATE OF ITS OWN. No step list, no status line, no verdict. Those need
 // an event-stream credential story inside a sandboxed iframe that this phase refuses to invent; the
 // full two-pane surface stays the dashboard's, one click away through the permanent link. What this
 // page owns is the closed state set below, the handle picker, and the link slot.
@@ -28,7 +28,7 @@
 // document). So reachability is established by an explicit `fetch(origin, { mode: 'no-cors' })`
 // probe — the one question a sandboxed page can honestly ask about somebody else's origin — and
 // `live` requires BOTH the probe answering and the frame loading. The probe is memoised per
-// ORIGIN, so the handle picker (D-06) swaps among panes on one origin with no network call at all.
+// ORIGIN, so the handle picker swaps among panes on one origin with no network call at all.
 //
 // AND THE MEMO IS ASYMMETRIC — SUCCESS ONLY (2026-09-01, WR-06, T-408-23; the cell is
 // `app-wrapper-dom.test.ts` cell (8)). A `true` is a durable fact about an origin that ANSWERED, so
@@ -45,7 +45,7 @@
 // both the probe and the frame pending forever. `APP_WRAPPER_LOAD_TIMEOUT_MS` is the bound past
 // which silence is itself the answer, named rather than left as a spinner.
 //
-// EXPIRY IS DECIDED AT RENDER TIME (D-10). The clock is read ONCE, by the renderer, and what enters
+// EXPIRY IS DECIDED AT RENDER TIME. The clock is read ONCE, by the renderer, and what enters
 // the script is a DELTA in milliseconds — never an absolute epoch the script would compare against
 // the HOST's clock. A wrapper rendered on a machine whose clock differs from the host's by a minute
 // would otherwise expire a minute early or a minute late for no reason a person could see. If every
@@ -71,7 +71,7 @@
 // identity of its own. `renderAppWrapperPage` is a pure function of its input (the clock included,
 // which is why `now` is a parameter and not a call), so a cell drives it directly.
 //
-// VALUES ENTER THE SCRIPT AS STRING LITERALS AND LAND AS `textContent` (T-403-09). The escape
+// VALUES ENTER THE SCRIPT AS STRING LITERALS AND LAND AS `textContent`. The escape
 // helper is `embed-page.ts`'s, copied because the guard must not be re-derived: `JSON.stringify`
 // plus a `<` escape closes the `</script` hole. The picker's options and the run id are BUILT in
 // the script rather than templated above it, so nothing caller-supplied has to be trusted to markup.
@@ -141,7 +141,7 @@ export const APP_WRAPPER_CONNECTING_HINT
 export const APP_WRAPPER_LIVE_MESSAGE = 'live'
 
 /**
- * What an elapsed live link says (D-10).
+ * What an elapsed live link says.
  *
  * The wrapper's own sentence rather than the embed page's `link expired`, because the two are about
  * different things: the embed says its socket was refused, and this says the link this App was
@@ -150,7 +150,7 @@ export const APP_WRAPPER_LIVE_MESSAGE = 'live'
 export const APP_WRAPPER_EXPIRED_MESSAGE = 'live link expired'
 
 /**
- * The second half of the expired state, and the WHOLE of D-10's refresh story (D-10).
+ * The second half of the expired state, and the WHOLE of D-10's refresh story.
  *
  * There is no re-mint inside this sandbox and there is never going to be one — a UI-initiated mint
  * door was rejected precisely because its model-context hygiene is per-host behaviour nobody here
@@ -161,7 +161,7 @@ export const APP_WRAPPER_EXPIRED_MESSAGE = 'live link expired'
 export const APP_WRAPPER_EXPIRED_HINT = 'ask to watch again — a fresh watch mints a new link'
 
 /**
- * The REQUIRED unreachable-origin sentence (D-11), spelled EXACTLY as CONTEXT ratified it.
+ * The REQUIRED unreachable-origin sentence, spelled EXACTLY as CONTEXT ratified it.
  *
  * A host running somewhere that cannot route to a loopback dashboard origin must say so and offer
  * the browser, never show a blank inner frame. This string is a contract: the DOM cells assert
@@ -171,7 +171,7 @@ export const APP_WRAPPER_UNREACHABLE_MESSAGE =
   "this host can't reach the live view — open it in your browser"
 
 /**
- * What a run with no live session on this host says (D-07).
+ * What a run with no live session on this host says.
  *
  * Not an error and not a blank frame — and it points at the way to see the run anyway, which is
  * the permanent link rendered directly beneath it. A run that has finished still HAPPENED, and the
@@ -179,11 +179,11 @@ export const APP_WRAPPER_UNREACHABLE_MESSAGE =
  */
 export const APP_WRAPPER_RUN_ENDED_MESSAGE = 'this run is not live — open it in your browser'
 
-/** The label on the permanent link-out slot, when one is composed (D-08). */
+/** The label on the permanent link-out slot, when one is composed. */
 export const APP_WRAPPER_PERMANENT_LINK_LABEL = 'open in your browser'
 
 /**
- * How long silence from the inner frame is allowed to last before it is named (D-11, T-408-08).
+ * How long silence from the inner frame is allowed to last before it is named.
  *
  * Exported because the DOM cell must wait on the page's OWN bound rather than on a number a test
  * file guessed. Ten seconds is chosen against the two shapes this arm exists for: a black-holed
@@ -217,7 +217,7 @@ export const APP_WRAPPER_APP_VERSION = '1.0.0'
 /**
  * ONE minted view onto ONE member handle of the run.
  *
- * `liveUrl` carries its token in the FRAGMENT (403 D-04), so this value is the only place a live
+ * `liveUrl` carries its token in the FRAGMENT, so this value is the only place a live
  * credential exists on this page — it is written into the frame's `src` and nowhere else: not into
  * the document text, not into the picker's labels, not into any attribute a host serialises back.
  */
@@ -232,12 +232,12 @@ export interface AppWrapperInput {
   readonly runId: string
   /** One mint per handle on the run's announced roster. Empty is the D-07 not-live case. */
   readonly mints: readonly AppWrapperMint[]
-  /** The tokenless dashboard page (D-08). `undefined` when no dashboard origin is composable. */
+  /** The tokenless dashboard page. `undefined` when no dashboard origin is composable. */
   readonly permanentLink: string | undefined
   /** Whether this host holds a live session for the run at all. `false` renders `run-ended`. */
   readonly runLive: boolean
   /**
-   * The instant this document is being built, in ms-epoch (D-10).
+   * The instant this document is being built, in ms-epoch.
    *
    * A PARAMETER rather than a `Date.now()` call, for the reason every clock in this repository is a
    * port: the expiry arm is the one thing this renderer decides about time, and a cell that cannot
@@ -282,7 +282,7 @@ const HINTS: Readonly<Record<AppWrapperState, string>> = {
 }
 
 /**
- * The `permanentLink` this renderer is willing to put in an `href`, or `undefined` (WR-04).
+ * The `permanentLink` this renderer is willing to put in an `href`, or `undefined`.
  *
  * A URL-shaped OPERATOR config value (`services.dashboard.baseUrl`) reaches this function, and the
  * document it lands in runs with `allow-scripts` at an opaque origin, so a base of

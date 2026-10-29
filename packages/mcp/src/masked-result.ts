@@ -81,8 +81,8 @@ import type { CallToolResult } from '@modelcontextprotocol/server'
 import { RunsArtifactResultSchema } from '@vostride/agent-qa-schema'
 import type { RunsArtifactResult } from '@vostride/agent-qa-schema'
 
-// 2026-10-01 (432-19, D-15): the MCP remedy renderer is deleted with the remedy vocabulary. The
-// mark credential refusal that carried its last sentence is deleted too (432-21, D-12).
+// the MCP remedy renderer is deleted with the remedy vocabulary. The
+// mark credential refusal that carried its last sentence is deleted too.
 
 /** The one prose a caller reads when a value could not be masked in place. Value-free by design. */
 const WITHHELD_TEXT =
@@ -126,7 +126,7 @@ function maskJsonLeaves(value: unknown, maskText: (text: string) => string): unk
         throw new UnmaskableValueError('two keys of one object mask to the same name')
       }
       // Defined, not assigned: `masked['__proto__'] = …` would set the prototype and drop the key,
-      // and a captured variable may legitimately be named `__proto__` (431-03, T-431-07).
+      // and a captured variable may legitimately be named `__proto__`.
       Object.defineProperty(masked, maskedKey, {
         value: maskJsonLeaves(entry, maskText),
         enumerable: true,
@@ -216,7 +216,7 @@ export function maskedToolResult(
  *
  * A refusal is a RESULT the caller can read, not a transport failure — and the message is masked
  * because an error string is the channel 395's credential disclosure actually travelled down
- * (T-395-R5-10). Kept beside `maskedToolResult` so the two halves of one handler's output posture
+ * Kept beside `maskedToolResult` so the two halves of one handler's output posture
  * are one thing to read and one thing to change.
  */
 export function maskedToolError(err: unknown, maskText: (text: string) => string): CallToolResult {
@@ -233,7 +233,7 @@ export function maskedToolError(err: unknown, maskText: (text: string) => string
 }
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
-// THE IMAGE ARM (431-05, D-07 · T-431-10). A complete PNG or JPEG screenshot also travels as an
+// THE IMAGE ARM. A complete PNG or JPEG screenshot also travels as an
 // MCP image block, added after masking from bytes the masked value still carries unchanged.
 // `structuredContent` is never changed. The text keeps every field except the bytes, which it
 // names as attached image content (owner decision 2026-09-29, review WR-06).
@@ -373,6 +373,6 @@ export function decorateRunEvidenceImage(input: {
   }
 }
 
-// 2026-10-01 (432-21, D-12): the mark door's credential refusal is deleted with the MCP bearer
+// the mark door's credential refusal is deleted with the MCP bearer
 // credential. `agent_qa_mark_run` dispatches through the generic projection handler like every other
 // change tool, advertises the op's own outcome, and answers its receipt on the one call.

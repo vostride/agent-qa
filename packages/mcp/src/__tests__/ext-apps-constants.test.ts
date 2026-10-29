@@ -225,7 +225,7 @@ describe('the other restated spec strings are in the official schema (A5)', () =
     // Scoped to the handshake block, not the whole file: a coincidental `appInfo` in a comment
     // elsewhere must not satisfy a claim about what the page POSTS.
     //
-    // BOUNDED BY THE DOCUMENT'S OWN STRUCTURE, NOT BY A CHARACTER COUNT (WR-11, 408-12). This was
+    // BOUNDED BY THE DOCUMENT'S OWN STRUCTURE, NOT BY A CHARACTER COUNT. This was
     // `wrapper.slice(start, start + 600)`, and a magic width guarding a schema-derived list is the
     // weakest link in an otherwise derived cell: it degrades SILENTLY as the block grows. A comment,
     // a reformat or a fourth member pushes a required param out of the window and the census reports
