@@ -1,17 +1,6 @@
 // @vitest-environment jsdom
 
-// THE USAGE CARD A PERSON ACTUALLY OPENS (425-05 · D-21..D-24, UI-SPEC S6/E5).
-//
-// WHY THESE CELLS MOUNT THE REAL RADIX PRIMITIVES. The card IS a `TooltipContent`, so a mock would
-// replace the one thing under test — that the content opens from the trigger, portals out of the
-// header and carries its contract attributes. The component deliberately carries no provider (the
-// page owns the single one), so every mount wraps it in `TooltipProvider delayDuration={0}`, and
-// the card is read off `document` rather than the container because it is portalled.
-//
-// EVERY LINE IS A FACT SOMEBODY REPORTED. The cells below are mostly ABSENCE claims — no cached
-// line without a provider report, no coverage line on a fully measured run, no model line on a
-// pre-423 run — because a card that states a line it has no fact for is the failure mode this
-// whole plan exists to prevent, and an assertion that only checks what IS rendered cannot see it.
+// The card is a `TooltipContent`, so cells mount real Radix and read it portalled off `document`.
 
 import { act } from "react"
 import { createRoot, type Root } from "react-dom/client"
@@ -143,8 +132,7 @@ describe("the card states a caveat only when there is one", () => {
     ])
   })
 
-  // RESEARCH reconciliation 4: a run whose steps were served from the EXECUTION cache reports no
-  // provider caching at all, and the card must say nothing rather than borrow the other fact.
+  // Execution cache hits are not provider caching, so the card says nothing about cached input.
   it("CACHED-ONLY-WHEN-REPORTED: execution cache hits with no provider report render no cached line", async () => {
     const card = await openCard(MEASURED, ONE_MODEL)
 
@@ -205,7 +193,7 @@ describe("who answered this run, for no, one or many models", () => {
   })
 })
 
-// a model id is a PRODUCER string, rendered as the stored text.
+// A model id is a producer string, rendered as the stored text.
 describe("producer ids render as the stored text", () => {
   it("USAGE-MODEL-LINES: a stored [secret:<name>] model id renders as text, with no chip", async () => {
     const card = await openCard(MEASURED, {

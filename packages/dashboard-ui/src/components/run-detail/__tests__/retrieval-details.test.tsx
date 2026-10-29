@@ -1,10 +1,7 @@
 import { RECORD_CHANGE_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 // @vitest-environment jsdom
 
-// 427 · D-19 — Retrieval details, the one place technical facts live. These cells pin what a reader
-// finds once the section is open: each step's recorded retrieval level when it was below the full
-// index, and a copy button on every record id whose result is announced, failure included.
-// Views are built through the real projectKnowledgeView over schema-parsed projections.
+// Once open: each step's retrieval level below the full index, and an announced copy on every id.
 
 import { act, type ReactElement } from "react"
 import { createRoot, type Root } from "react-dom/client"
@@ -187,7 +184,7 @@ describe("every record id copies, and the result is announced", () => {
     expect(button.getAttribute("data-copy-status")).toBe("copied")
     expect(statusOf(button)?.textContent).toBe(RECORD_ID_COPIED_TEXT)
     expect(RECORD_ID_COPIED_TEXT).toBe("Record id copied to the clipboard")
-    // RE-SPELLED 2026-10-03: both copy controls wear the success token.
+    // Both copy controls wear the success token.
     expect(button.querySelector("svg")?.getAttribute("class")).toContain("text-success")
   })
 

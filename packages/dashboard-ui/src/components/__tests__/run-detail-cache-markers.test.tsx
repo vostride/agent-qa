@@ -1,12 +1,5 @@
 // @vitest-environment jsdom
-//
-// THE CACHE MARKERS ON THE DURABLE TREE.
-//
-// The projection records `cacheStatus` on the step (`hit`, `miss`, `bypass` or `disabled`) and
-// nothing per sub-action. So the step's own status is what the marker reads, and a sub-action's
-// marker is the step's answer applied to it: when the step was served from cache, every action
-// under it was. A step that was not served from cache renders no marker at all; there is no
-// partial state to invent.
+// `cacheStatus` is per step, so a sub-action's marker is its step's answer; no partial state.
 
 import { act, type ReactElement, type ReactNode } from "react"
 import { createRoot, type Root } from "react-dom/client"

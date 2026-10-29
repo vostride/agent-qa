@@ -10,7 +10,7 @@ import TestEditorPage from '@/pages/test-editor'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
-// the walk's YAML, a repeated `name` key on line 3.
+// The walk's YAML, with a repeated `name` key on line 3.
 const WALK_INVALID_CONTENT = [
   'name: Invalid 433 probe',
   'target: example-web',

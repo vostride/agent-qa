@@ -1,8 +1,4 @@
-// THE ONE FIELD ROW (429-17 · UI-SPEC S2 "Field row (ConfigField)", S3, E3 · law 3).
-//
-// Every leaf renders here, so every leaf gets the same label, help, error, draft and
-// data-field-path treatment. Values are read from and written through the page's autosave hook
-// only; an unset leaf shows its default as a placeholder and writes nothing until it changes.
+// Every leaf renders here, so every leaf gets the same label, help, error and draft treatment.
 
 import type { KeyboardEvent } from "react"
 import { CircleAlert } from "lucide-react"

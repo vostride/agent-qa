@@ -1,9 +1,6 @@
 // @vitest-environment jsdom
 
-// THE SHARED MODEL SETTINGS (429-23 Task 3 · D-10 · UI-SPEC S4 "Shared settings", S3).
-//
-// Screenshot size (the one services.vision budget) and planner limits are ordinary ConfigField
-// sections: each leaf writes itself once it settles, with no Save button and no pop-up message.
+// Screenshot size and planner limits are ordinary fields that write once they settle.
 
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'

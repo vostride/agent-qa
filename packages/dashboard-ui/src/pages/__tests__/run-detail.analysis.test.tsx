@@ -1,31 +1,5 @@
 // @vitest-environment jsdom
-//
-// THE FAILURE VIEW ON THE PAGE.
-//
-// FOUR CLAIMS, ALL ABOUT WHAT A PERSON SEES AND WHEN:
-//
-//   1. the page reads `/analysis` once at mount and again on EVERY analysis-chip TRANSITION, and
-//      never on a frame whose word did not change;
-//   2. a failed member's group carries the op's sentence VERBATIM, with the provenance chip built
-//      from that verdict's own producer and confidence;
-//   3. a member with no verdict — a passed one — carries no block at all;
-//   4. a sentence containing markup renders as a TEXT NODE, never an element.
-//
-// AND FIVE MORE, ADDED IN 406-06, all about what the chip word and the op's evidence DO to the page:
-//
-//   5. the marker follows the chip through its whole lifecycle — provisional while the chain is
-//      running, gone when it is done, and the sentence is swapped IN PLACE;
-//   6. a permanently failed chain marks every failed member's block while the verdict itself is not
-//      re-graded — the producer stays the deterministic classifier;
-//   7. a cited step selects that step in the tree, through the page's existing `Selection` and the
-//      existing scroll effect — no new id spelling and no second scroller;
-//   8. a cluster sibling link narrows the member filter to that sibling's own group;
-//   9. EVERY member wears an outcome badge and only the failed one carries a block.
-//
-// THE MOCK BLOCK IS `run-detail.members.test.tsx`'S, with one addition: `watchPostProcessing`
-// CAPTURES its `onRead` so a cell can push frames. The real watcher constructs an `EventSource`
-// and a 3 s interval against a `fetch` these cells do not stub; its own behaviour is measured in
-// `run-detail.post-processing.test.tsx`.
+// The real watcher would open a socket and poll, so `watchPostProcessing` captures `onRead`.
 
 import { act, type ReactNode } from "react"
 import { createRoot, type Root } from "react-dom/client"
@@ -64,9 +38,7 @@ const {
   fetchExecutionLogsMock,
   pushPostProcessing,
 } = vi.hoisted(() => {
-  // The captured `onRead`, module-level so a cell can push a frame after mount (RESEARCH
-  // Pitfall 8). A watcher double that dropped its callback would make every transition cell
-  // vacuous — it would assert on a channel nothing can ever send down.
+  // The captured `onRead` lets a cell push a frame after mount; a dropped one makes cells vacuous.
   let onRead: ((read: unknown) => void) | undefined
   return {
     fetchRunMock: vi.fn(),
@@ -193,7 +165,7 @@ const CHIP_RUNNING = { kind: "read", status: { runId: RUN_ID, chips: { analysis:
 const CHIP_DONE = { kind: "read", status: { runId: RUN_ID, chips: { analysis: 'complete', curation: 'pending' } } }
 /** The SAME analysis word, a different curation word — a frame that must trigger nothing. */
 const CHIP_DONE_AGAIN = { kind: "read", status: { runId: RUN_ID, chips: { analysis: 'complete', curation: 'complete' } } }
-/** The chain fell over for good: the floor sentences are what exists (spec §1.2, D-11). */
+// The chain fell over for good: the floor sentences are what exists.
 const CHIP_FAILED = { kind: "read", status: { runId: RUN_ID, chips: { analysis: 'failed', curation: 'pending' } } }
 
 /** Member 0 failed with TWO steps — a cited step that is not the page's default selection. */
@@ -398,8 +370,7 @@ describe("the sentence's lifecycle is painted from the chip word", () => {
     expect(view.querySelector("[data-verdict-block]")?.getAttribute("data-verdict-producer"))
       .toBe("deterministic-classifier")
 
-    // The chain finishes and the op now answers an LLM verdict. D-03's re-read is the swap: the
-    // same block, a new sentence, and no marker — nothing here waits for a reload.
+    // The chain finishes and the op answers an LLM verdict: same block, new sentence, no marker.
     const upgraded = 'the Submit button never became enabled — the cart total never rendered'
     fetchRunAnalysisMock.mockResolvedValue(analysisOf({
       verdicts: [
@@ -583,8 +554,7 @@ describe("evidence the durable read found MISSING is said so, and changes nothin
   })
 
   it("says nothing about evidence when presence is UNKNOWN — an omission is not a deletion", async () => {
-    // 406-03's rule, on the page: a host that cannot cheaply stat its own blobs omits `present`,
-    // and `!present` would render that omission as a claimed deletion.
+    // A host that cannot stat its blobs omits `present`, which must not render as a deletion.
     fetchRunAnalysisMock.mockResolvedValue(analysisOf({
       verdicts: [
         {
@@ -605,21 +575,7 @@ describe("evidence the durable read found MISSING is said so, and changes nothin
   })
 })
 
-// ----------------------------------------------------------------------------------------------
-// ONE RUN'S VERDICTS NEVER PAINT UNDER ANOTHER RUN'S MEMBERS (CR-02, measured 2026-08-29, phase
-// 406 review).
-//
-// The route is `/runs/:id`, so React Router changes the param WITHOUT remounting this page. The
-// analysis read held its answer across that change and `projectAnalysisView` keys on
-// `perTest` / `testIndex` — an integer both runs have — so every member of run B whose index
-// matched a failed member of run A wore run A's sentence, provenance, confidence, cited steps and
-// cited artifact shas.
-//
-// It is not a one-round-trip window either: `request()` throws on any non-2xx and the read answers
-// 404 for a run with no handoff, so navigating from a run WITH an analysis to one WITHOUT left the
-// first run's sentences on the second run's page indefinitely — including, on the local human
-// door, its RESTORED secret values, attributed to the wrong test.
-// ----------------------------------------------------------------------------------------------
+// The route param changes without a remount, so a stale analysis must not paint the next run.
 
 const RUN_B = "run-406-b"
 

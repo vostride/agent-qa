@@ -1,19 +1,5 @@
 // @vitest-environment jsdom
-//
-// THE RUN BUTTON, WITH NO DIALOG (432-14, D-14; formerly the run trigger's dialog, Phase 401 plan 09).
-//
-// RE-SPELLED 2026-10-01. This file pinned what a person was offered when a run asked for approval:
-// three answers and no fourth, the action's own disclosure beside them, and a denial that read as a
-// denial. Phase 432 deletes the question, the dialog, the channel the page held open to be asked on,
-// and the mark approval the composer rendered from the same frames. What survives is the one claim
-// those cells existed to protect — a click does exactly what the person asked — now measured as the
-// absence of everything that stood between the click and the run.
-//
-// AN INTEGRATION CELL, ON PURPOSE. The shipped app shell is mounted with its real overlays, over the
-// real API client (`@/lib/api` is NOT mocked except for the app-metadata read), with `fetch` and
-// `EventSource` captured. A page whose Run button is wired to the client's own `triggerRun` stands
-// in for the nine run doors, which all funnel through that one function. So the assertions are
-// about what the browser would actually send and open, not about a component in isolation.
+// Mounts the app shell over the real API client, so cells assert what the browser sends and opens.
 
 import { readFileSync } from "node:fs"
 import { resolve as resolvePath } from "node:path"

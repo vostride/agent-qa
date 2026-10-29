@@ -90,10 +90,7 @@ function UndoLine({ undo }: { undo: ConfigSaveUndoLine }) {
   )
 }
 
-/**
- * The Config page's one quiet status. It renders deriveSaveStatus's answer and
- * never decides precedence itself. Nothing here moves focus.
- */
+// Renders `deriveSaveStatus`'s answer and decides no precedence; nothing here moves focus.
 export function SaveStatus({ status, onRetry, onUndo, onGoToDraft }: SaveStatusProps) {
   const state = status.state
   const previous = useRef(state)

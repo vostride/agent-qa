@@ -1,6 +1,4 @@
-// 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW fix 3, pillars 3-5): the badge reports a copy only
-// after the clipboard write resolved, names its action, announces the result in a status region, and
-// shares `RecordIdCopy`'s status hook, check token and icon size. The text stays on `text-xs`.
+// The badge reports a copy only once the clipboard write resolves, via `RecordIdCopy`'s hook.
 
 import { Check, Copy } from "lucide-react"
 

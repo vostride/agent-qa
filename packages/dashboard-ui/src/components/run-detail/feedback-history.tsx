@@ -56,11 +56,7 @@ function TextParts({ parts }: { parts: FeedbackTextParts }) {
   )
 }
 
-/**
- * What happened and what counts. The pinned target's marks newest first, the whole
- * ledger one disclosure away, latest-mark-wins explained once, and every absence of the read named
- * as itself — never as an empty list. Presentational: the page owns the read.
- */
+// Every absence of the read is named as itself, never as an empty list; the page owns the read.
 export function FeedbackHistory({ scope, address, read, detail, newMarkId, onRetry }: FeedbackHistoryProps) {
   const titleId = useId()
   const state = feedbackHistoryState(read)
@@ -71,8 +67,7 @@ export function FeedbackHistory({ scope, address, read, detail, newMarkId, onRet
   const targetState = state === 'history' && targetEntries.length === 0 ? 'empty' : state
   const timeOf = (markId: string | undefined) => formatMarkTime(entries.find((entry) => entry.markId === markId)?.markedAt)
   const replaced = entries.some((entry) => !entry.active)
-  // 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW pillar 6): how a change is corrected, with the first
-  // applied change rather than only after a replacement.
+  // The correction pointer shows with the first applied change, not only after a replacement.
   const appliedAny = entries.some((entry) => entry.disposition.kind === 'applied')
 
   return (
@@ -229,12 +224,7 @@ function HistoryEntry({
   )
 }
 
-/**
- * What an applied fix changed, as the tail of the entry's ONE line (432-09 · D-25; 2026-10-03, quick
- * one line, not a second one). The changed record content or the written test file;
- * record content and paths are producer text and render as text nodes. The text equals
- * `historyChangeText`.
- */
+// The tail of the entry's one line, equal to `historyChangeText`; producer text stays text.
 function AppliedTail({ applied, drafted }: { applied: NonNullable<ReturnType<typeof appliedChangeView>>; drafted: boolean }) {
   switch (applied.kind) {
     case 'knowledge':

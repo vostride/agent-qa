@@ -1,24 +1,6 @@
 import { RECORD_CHANGE_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 // @vitest-environment jsdom
-//
-// THE KNOWLEDGE TAB ON THE PAGE (407-06 · LERN-01, D-03 / D-05 / D-06, closing WINDOWS #310).
-//
-// WHY THIS FILE EXISTS. 407-02 shipped the tab and recorded an honest gap against itself: the
-// seven page doubles all resolve a FIXED `evidence-incomplete` projection, so nothing pinned the
-// READ CARDINALITY (one `runs.knowledge` per run id, none on re-render) and nothing drove a
-// REJECTED read all the way into `data-knowledge-state="error"`. Both claims were arguments about
-// an effect's dependency list rather than assertions. This file makes them measurements.
-//
-// IT RENDERS THE REAL `TabPanels` AND THE REAL `TabKnowledge`. A double for either would leave the
-// page→projection→tab path — the thing the gap is about — unexercised. Only the primitives that
-// need a layout engine or a socket are doubled: `ScrollArea` (Radix's uses `ResizeObserver`, which
-// jsdom does not have), the resizable panels, the member `Select`, the tooltip and the navbar.
-// `Tabs`, `Collapsible` and `Badge` are REAL, because which tab is mounted and whether a row is
-// open are exactly what these cells read.
-//
-// THE TAB IS SELECTED FROM THE URL, `?tab=knowledge`, which is the page's own initial-state
-// spelling. Driving it by keypress would measure the shortcut map (already pinned in
-// `run-detail.artifact-drawer.test.tsx`) rather than the read.
+// Renders the real `TabPanels` and `TabKnowledge`, doubling only layout or socket primitives.
 
 import { act, type ReactNode } from "react"
 import { createRoot, type Root } from "react-dom/client"
@@ -158,12 +140,7 @@ function detailProjection(id: string) {
   }
 }
 
-/**
- * A run that really served a brief — the populated fixture 407-02 said this plan would need.
- *
- * One canary line with a committed outcome, one answered trace with a cut candidate, and a replay
- * whose guard passed: enough that the ready panel has something to be wrong about.
- */
+// A run that served a brief: a canary line, an answered trace with a cut, and a passing replay.
 const POPULATED: RunKnowledgeProjection = {
   kind: "ready",
   runId: RUN_ID,
@@ -264,7 +241,7 @@ async function selectTab(view: HTMLElement, label: string): Promise<void> {
   await flushRender()
 }
 
-// the per-step ledger sits behind the collapsed Retrieval details section.
+// The per-step ledger sits behind the collapsed Retrieval details section.
 async function openRetrievalDetails(view: HTMLElement): Promise<void> {
   const trigger = view.querySelector('[data-knowledge-section="retrieval-details"] [data-slot="collapsible-trigger"]')
   if (trigger === null) throw new Error("no Retrieval details trigger")
@@ -438,14 +415,7 @@ describe("a record given in three steps reads as one content-led row in a four-p
   })
 })
 
-/**
- * THE ONE REAL `RecordChange` THIS FILE OWNS, hoisted to module scope.
- *
- * Two describes now need a projection that actually carries a committed change — the partial-read
- * block below and the failed-chain block that closes G-407-12 — and a second hand-typed copy of
- * the wire shape is a fixture that drifts the moment a member is added. One object, spread into
- * both, so a future `RecordChangeSchema` member either lands in both fixtures or in neither.
- */
+// One committed change shared by both describes, so a new wire member reaches both fixtures.
 const SERVED_CHANGE = {
   schemaVersion: RECORD_CHANGE_SCHEMA_VERSION as typeof RECORD_CHANGE_SCHEMA_VERSION,
   recordId: "fact-el-textbox-password-9a05ce",
@@ -478,7 +448,7 @@ describe("a partial store read paints the rows it was handed AND says the read w
 
     const rows = view.querySelectorAll('li[data-record-change="confirmed"]')
     expect(rows.length).toBe(1)
-    // the row carries its bucket, never its id; the id reads in Retrieval details.
+    // The row carries its bucket, never its id; the id reads in Retrieval details.
     expect(rows[0]?.hasAttribute("data-record-id")).toBe(false)
     await openRetrievalDetails(view)
     expect(view.querySelector('dl[data-ledger-changes] dd[data-ledger-row="record"]')?.textContent)
@@ -504,9 +474,7 @@ describe("a partial store read paints the rows it was handed AND says the read w
       .toBe("confirmed")
   })
 
-  // REVIEW WR-02 AT THE PAGE. The op ships `canaryAttributions: []` whenever the attribution scan
-  // failed, so a served canary line under a settled chain has no row to join — and the word it
-  // wears must be a question, not the positive claim that the store said no.
+  // A failed attribution scan ships no rows, so a served canary's word must be unknown, not a no.
   it("says the attribution is UNKNOWN for a served canary the partial read never answered", async () => {
     fetchRunKnowledgeMock.mockResolvedValue({
       ...PARTIAL,
@@ -527,22 +495,7 @@ describe("a partial store read paints the rows it was handed AND says the read w
 })
 
 describe("a served attribution row beats a FAILED curation chain, at the page", () => {
-  // TWO QUESTIONS, TWO ANSWERS, ONE PAGE. `curation.status` comes from a sibling op; the
-  // `canaryAttributions` rows come from the committed store walk. They are independent facts that
-  // meet only in the view fold, and the tab has a place for each: the chip reports what the
-  // curation chain did, the line reports what the store answered about THIS record. Until 407-22
-  // the line answered with the chain's fate — printing `not attributed`, a positive claim that the
-  // store was consulted and said no, beside a `confirmed` row held in the very same projection.
-  //
-  // Fixtures are SPREAD FROM THE READY ONE and override only `curation` and `learned`, so a future
-  // wire member cannot quietly make these cells stop resembling the page they claim to measure.
-  //
-  // WHAT THE LEARNED HALF DOES UNDER A FAILED CHAIN HAS SINCE BEEN RULED ON, and this block's
-  // first cell was rewritten to match (407-26/27 · REVIEW CR-01 / G-407-12 · owner ruling
-  // 2026-08-31). It is NOT that the half correctly lists nothing while the chip reads `failed`:
-  // the half lists whatever the store committed before the chain stopped, and states the chain's
-  // fate beneath the list. The cell below asserts that painted row; the describe after this one
-  // owns the note, the sentence it replaced, and the no-rows arm that did not move.
+  // Fixtures spread from the ready one and override only `curation` and `learned`.
 
   async function expandedLineOf(projection: RunKnowledgeProjection) {
     fetchRunKnowledgeMock.mockResolvedValue(projection)
@@ -553,12 +506,7 @@ describe("a served attribution row beats a FAILED curation chain, at the page", 
     return { view, line: view.querySelector('li[data-served-channel="1"]') }
   }
 
-  // THE FIXTURE CARRIES A COMMITTED CHANGE RECORD (407-27, repairing WINDOWS #315). It did not
-  // when 407-22 wrote this block: `POPULATED.learned.changes` is `[]`, so the closing assertion
-  // below — `li[data-record-change]` count — was zero whatever the failed arm did with rows, and
-  // pinned nothing about the arm it was written under. `SERVED_CHANGE` is the same wire object
-  // the partial-read block uses, so the count is now a reading of the LAW and would go red if the
-  // chain-status ladder ever swallowed a served record again.
+  // `SERVED_CHANGE` gives the fixture a committed record, so the row count reads the failed arm.
   const FAILED_WITH_ROW: RunKnowledgeProjection = {
     ...POPULATED,
     curation: { status: "failed" },
@@ -582,11 +530,7 @@ describe("a served attribution row beats a FAILED curation chain, at the page", 
     const learned = view.querySelector("[data-learned-state]")
     expect(learned?.getAttribute("data-learned-state")).toBe("failed")
 
-    // AND THE LEARNED LIST IS NOT EMPTIED BY THE CHAIN'S FATE EITHER (407-26/27 · owner ruling
-    // 2026-08-31). This assertion used to read `.length).toBe(0)` over a fixture with no change
-    // records at all — green for a reason that had nothing to do with the failed arm. The fixture
-    // now carries one, so the count is a reading: a chain that fell over after committing a
-    // record does not un-commit it, and the record is on screen beside the `failed` chip.
+    // The fixture carries a record, so the count shows the failed chain did not un-commit it.
     const changeRows = view.querySelectorAll("li[data-record-change]")
     expect(changeRows.length).toBe(1)
     expect(changeRows[0]?.hasAttribute("data-record-id")).toBe(false)
@@ -622,15 +566,7 @@ describe("a served attribution row beats a FAILED curation chain, at the page", 
 })
 
 describe("the Learned half paints what a failed chain committed, and states its fate beneath", () => {
-  // THE SAME LAW AS THE BLOCK ABOVE, ONE HALF OVER. 407-22 settled it for the canary line: a
-  // chain that fell over cannot un-answer a line the store already answered. This settles it for
-  // the record list — a chain that fell over cannot un-commit a record it already wrote — and the
-  // half now reports the failure BESIDE the list instead of printing a sentence over the top of
-  // it saying nothing was learned, which the very projection carrying those records disproves.
-  //
-  // CROSSED END TO END, deliberately: the real client double, the real `projectKnowledgeView`
-  // fold 407-26 hoisted, and the real `KnowledgeLearned` paragraph 407-27 added. A cell that
-  // rendered the component directly would stay green if either the fold or the renderer regressed.
+  // Crosses the real client double, fold and renderer, so a regression in either fails here.
   const FAILED_WITH_CHANGES: RunKnowledgeProjection = {
     ...POPULATED,
     curation: { status: "failed" },
@@ -659,8 +595,7 @@ describe("the Learned half paints what a failed chain committed, and states its 
     expect(view.querySelector("[data-learned-sentence]")).toBeNull()
     expect(view.textContent).not.toContain(CURATION_FAILED_TEXT)
 
-    // AND THE CHIP STILL REPORTS THE CHAIN. The two facts sit side by side, which is exactly the
-    // pair 407-22 established on the Used half — neither half speaks for the other.
+    // The chip still reports the chain beside the rows; neither half speaks for the other.
     expect(view.querySelector("[data-learned-state]")?.getAttribute("data-learned-state"))
       .toBe("failed")
   })
@@ -705,12 +640,7 @@ describe("the Learned half paints what a failed chain committed, and states its 
   })
 })
 
-/**
- * 427 D-03 · UI-SPEC S3: every step number in the Knowledge used rows is a control that selects its
- * step on the page (Open Question 4 follows onCitedStep: an address that exists anywhere in the run
- * is a control, and activation widens a hiding member filter; an address the run does not contain
- * is plain text).
- */
+// An address in the run is a control that widens a hiding filter; one the run lacks is plain text.
 describe("a step reference in Knowledge used takes the reader to that step", () => {
   function servedLine(id: string, summary: string) {
     return { id, kind: "fact", summary, trust: 0.9, status: "active", servedAsCanary: false, tier: "confirmed" }

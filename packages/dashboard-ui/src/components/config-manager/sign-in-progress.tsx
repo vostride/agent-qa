@@ -1,8 +1,4 @@
-// THE SIGN-IN'S OWN PIECES (429-26 · D-15, D-17 · UI-SPEC S4 "Sign in again", S5 steps 2-4, E5).
-//
-// The add row and a saved row show one sign-in the same way: the button that starts it, the waiting
-// line with Cancel sign-in (browser-poll), the Code from the sign-in page field (manual-code) and the
-// failed or timed-out line. The typed code lives in this component's state only and is sent once.
+// The typed code lives in this component's state only and is sent once.
 
 import { useId, useState } from "react"
 import { ExternalLink, LoaderCircle } from "lucide-react"

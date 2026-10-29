@@ -2,32 +2,7 @@ import { LiveStepRowView } from '@/components/live-step-row'
 import { liveRowShown } from '@/lib/live-step-row'
 import type { MemberRow, LiveStepRow } from '@/lib/run-stream-reducer'
 
-/**
- * HNST-01/HNST-02's step list: what a person may be told about a step WHILE it is running.
- *
- * IT IS STATUS-ONLY AND IT IS INERT ON PURPOSE. There is no click handler, no link, no expandable
- * node and no image, because everything a click could open is provisional until the step finalizes
- * — the model's half-finished intent, a candidate target it may not use, a result it has not
- * verified. The durable record has all of it, complete, one click away at run detail. This surface
- * refuses to show a guess as a fact.
- *
- * THE PROPS ARE THE WHOLE STORY. {@link LiveStepRow} carries no field a half-finished thought could
- * occupy, and this component accepts nothing else — no envelope, no payload, no `unknown`
- * escape hatch. A future edit that wanted to render reasoning here would have to widen the props
- * first, which is a visible change to a published contract rather than one more line in the JSX.
- *
- * WHAT A ROW SAYS. Every row renders through {@link LiveStepRowView}: a status
- * glyph and the label, with no clock, no bar and no count. The running glyph is still (owner review
- * 2026-09-26, G-428-5). Durations live in run detail.
- *
- * ONLY ROWS WITH TEXT ARE DRAWN (owner decision 2026-09-26 (2), G-428-2). A row the runner sent no
- * text for is not drawn, and the empty state counts drawn rows, so an old producer's text-less
- * pending rows still leave the pane saying `waiting for the first step`.
- *
- * ONE TITLE, SAID ONCE. A single-member run renders no member header, because the page
- * title already names it; a single member's `did not run` note is the pane's sentence instead. A
- * multi-member suite keeps a compact header per member: the name, then the outcome or the note.
- */
+// Status-only and inert: the props carry no field for reasoning, and only rows with text are drawn.
 
 /** The honest word for a live steps pane that has no row yet. */
 export const STEPS_EMPTY_TEXT = 'waiting for the first step'

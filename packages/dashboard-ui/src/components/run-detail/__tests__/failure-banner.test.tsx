@@ -1,15 +1,6 @@
 // @vitest-environment jsdom
 
-// THE FAILURE BANNER'S CELLS (405-14 Task 2 · DETL-02, T-405-41/42/43, WINDOWS #287; 441 D-28).
-//
-// The banner shows the stored summary as text: a declared value is the `[secret:<name>]` the run
-// wrote, and no chip is painted over it. The shipped-binary cells in
-// `cli/src/__tests__/conformance/run-detail-failure-dom.test.ts` make the same claim on the built
-// bundle.
-//
-// THE TWO STATES ARE TWO CLAIMS, so the toggle is CLICKED and the expanded state is asserted
-// separately. THE CLIPBOARD carries the sentence the reader just looked at — the preview while the
-// banner is collapsed, the whole summary once it is expanded — and nothing past it.
+// The banner shows the stored summary as text; the clipboard carries exactly the sentence shown.
 
 import { act, type ReactNode } from "react"
 import { createRoot, type Root } from "react-dom/client"
@@ -25,17 +16,7 @@ import {
 const INSIDE_MARKER = "[secret:CONTACT_ADDRESS]"
 const PAST_MARKER = "[secret:OPERATOR_TOKEN]"
 
-/**
- * The two ordinals this file's summary plants its markers at, and the length of that summary.
- *
- * DERIVED FROM THE PUBLISHED BUDGET, NEVER RE-TYPED. They straddle
- * `FAILURE_BANNER_PREVIEW_WORDS` — one marker two words inside it, the other six words past it —
- * which is what makes the truncated and expanded states observably different: the first is in the
- * preview and the second is not. Spelled as `18`/`26`/`30` against a budget of `20`, a change to
- * the budget left this fixture asserting the old one and both cells measuring nothing they claim.
- * The conformance fixture plants its own sentence against the same budget for the same reason, and
- * names it in prose because it cannot import across the package boundary.
- */
+// Derived from `FAILURE_BANNER_PREVIEW_WORDS`, so a budget change moves the markers with it.
 const INSIDE_ORDINAL = FAILURE_BANNER_PREVIEW_WORDS - 2
 const PAST_ORDINAL = FAILURE_BANNER_PREVIEW_WORDS + 6
 const SUMMARY_WORDS = FAILURE_BANNER_PREVIEW_WORDS + 10
@@ -171,8 +152,7 @@ describe("FailureBanner", () => {
   })
 
   it("old marker text renders as written", () => {
-    // An old run's stored text can still hold a numbered placeholder or a `␟`-fenced marker
-    // the banner shows those characters and converts neither.
+    // An old run's stored text can hold a numbered placeholder or a fenced marker; both show as is.
     const old = `Step 1/1 "probe" failed: token <SECRET_1> and ␟masked:secret␟ stay as stored`
     const view = mount(<FailureBanner summary={old} />)
 
@@ -283,8 +263,7 @@ describe("FailureBanner", () => {
     expect(announcementOf(view)).toContain("Could not copy")
   })
 
-  // The producer's text is a text node and nothing else. A cell that fed markup and
-  // found no element is the only assertion that keeps it that way.
+  // Feeding markup and finding no element is the only assertion that keeps the text a text node.
   it("renders a summary containing markup as text, never as an element", () => {
     const view = mount(<FailureBanner summary={'<img src=x onerror="alert(1)">'} />)
 

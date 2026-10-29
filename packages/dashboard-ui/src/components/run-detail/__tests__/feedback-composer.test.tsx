@@ -1,10 +1,5 @@
 // @vitest-environment jsdom
-// THE COMPOSER SAYS WHAT IT IS ABOUT AND OFFERS THE THREE CHOICES, PICKING NONE.
-//
-// The order under a step follows the STEP's own verdict, so a passing step inside a failed test opens
-// with "This should have failed". All three rows render in every composer state, none disabled, each
-// radio described by its meaning line, and nothing is checked until the person picks. The heading and
-// scope line paint producer names as text nodes, never markup.
+// Under a step the order follows the step's verdict, and nothing is checked until the person picks.
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -172,9 +167,7 @@ describe('feedback composer', () => {
   })
 })
 
-// MACHINERY IS ONE DISCLOSURE AWAY (426-08 · D-13, SC2). The internal mark words and every id live only
-// under a collapsed Technical details, each row present only when its fact exists; everything else in
-// the composer speaks in plain words.
+// Mark words and ids live only under a collapsed Technical details; the rest is plain words.
 const RUN_ID = generateRunId()
 const MARKS: readonly Mark[] = ['false-fail', 'false-pass', 'confirmed-bug']
 const INTERNAL_WORD = new RegExp(`(^|[^\\w-])(${MARKS.join('|')})(?![\\w-])`)
@@ -299,12 +292,7 @@ describe('Technical details', () => {
   })
 })
 
-// THE MARK'S APPROVAL, INLINE (426-10 · D-20, SC4). The question the policy gate asked before a mark
-// was recorded sat in the composer's footer as a labelled group — never a dialog, never modal.
-//
-// RE-SPELLED 2026-10-01: the question, the group and the state a mark waited in are
-// deleted. Each cell keeps its name and now pins the absence in the real composer, in every state it
-// can be in: no group, no answers, nothing that takes focus, and the submit row always present.
+// Each cell pins the absence of an approval surface in every composer state.
 const approvalSurface = () => container.querySelector('[data-feedback-approval], [data-confirm-answer], [data-confirm-outcome], [data-feedback-approval-waiting]')
 
 describe('the inline approval region', () => {

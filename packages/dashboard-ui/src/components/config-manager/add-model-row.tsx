@@ -1,15 +1,4 @@
-// THE ADD ROW (429-25, 429-26 · D-13..D-17, research A3, A8 · UI-SPEC S5, E5 · PXH-CONF-03).
-//
-// How you connect comes first, then only that choice's fields, then the name, then Connect. The
-// connect door tests the draft with the typed credential and writes it only on a pass, or on the
-// explicit Save without testing a failure offers; this row never writes the config itself. The
-// typed key and header values live in this component's state only; every other field persists in
-// the add-row draft store, so a reload restores the row with its secrets empty.
-//
-// A sign-in choice signs the draft name in straight away and then tests by itself. A name that
-// already holds this provider's credential on this machine only tests; a name holding another
-// provider's credential is refused before anything starts. A sign-in this draft created follows a
-// rename and goes with Discard; a credential that existed before the draft is never moved or removed.
+// This row never writes the config; secrets stay in state, so a reload restores it with them empty.
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react"
 import { CircleAlert, LoaderCircle, Plus } from "lucide-react"
@@ -85,7 +74,7 @@ import { cn } from "@/lib/utils"
 
 const NAME_RULE = /^[a-z0-9][a-z0-9.-]*$/
 
-/** the name rule, then a model already holding the name. */
+// The name rule, then a model already holding the name.
 export function validateModelName(name: string, existingNames: readonly string[]): string | undefined {
   if (!NAME_RULE.test(name)) return NAME_RULE_ERROR
   if (existingNames.includes(name)) return nameTakenError(name)
@@ -414,14 +403,14 @@ export function AddModelRow({
     return heldCredentials.find((credential) => credential.configName === candidate)
   }
 
-  /** the name already holds this choice's credential on this machine, so Connect only tests. */
+  // The name already holds this choice's credential on this machine, so Connect only tests.
   function holdsCredential(candidate: string): boolean {
     if (provider === undefined || candidate === "") return false
     if (signedIn?.name === candidate) return signedIn.provider === provider
     return heldUnder(candidate)?.provider === provider
   }
 
-  /** Claude's Discretion "Name collision": another provider's credential under the name is never overwritten. */
+  /** Another provider's credential under the name is never overwritten. */
   function credentialConflict(candidate: string, held: readonly AuthCredentialInfo[] = heldCredentials): string | undefined {
     if (provider === undefined || candidate === "") return undefined
     const holder =
@@ -599,7 +588,7 @@ export function AddModelRow({
     fieldRefs.current.get("name")?.focus()
   }
 
-  /** the sign-in finished for the draft name, so the test runs by itself, with no key. */
+  // The sign-in finished for the draft name, so the test runs by itself, with no key.
   function signInCompleted(completion: SignInCompletion) {
     const createdBefore = signedIn?.name === completion.name && signedIn.created
     setSignedIn({ name: completion.name, provider: completion.provider, created: completion.created || createdBefore })
@@ -638,8 +627,7 @@ export function AddModelRow({
 
   function discard() {
     flow.cancel()
-    // Claude's Discretion "Discarded draft": only a credential this draft created goes with it,
-    // and never one a saved model now uses.
+    // Only a credential this draft created goes with it, and never one a saved model uses.
     if (signedIn?.created === true && !existingNames.includes(signedIn.name)) {
       deleteAuthCredential(signedIn.name).catch(() => {
         // The draft is gone either way; the credential stays until signed out from a saved row.

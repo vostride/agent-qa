@@ -1,20 +1,5 @@
 // @vitest-environment jsdom
-//
-// THE MEMBER-GROUPED STEP TREE.
-//
-// The tree these cells drive reads the DURABLE projection and nothing else. Every fixture below is
-// a real `RunDetailMember` / `RunDetailStep` / `RunDetailSubAction` — no casts through `unknown`,
-// because a cast would throw away the one property that makes typing the UI on the op's contract
-// worth anything: a payload drift becomes a compile error here rather than an `undefined` in a
-// text node.
-//
-// COPY IS ASSERTED BY CONSTANT (405-06's law). `reranLabel`, `memberNote` and `DID_NOT_RUN_LABEL`
-// come from `lib/run-detail-view.ts`, so a sentence moves in one place and these cells move with
-// it. A string re-typed here would stay green while the page said something else.
-//
-// THE `data-*` ATTRIBUTES CARRY RAW WORDS, not labels — `data-member-outcome="failed"`,
-// `data-sub-action-result="success"` — because 405-12's Playwright cells address the built bundle
-// and a cell reading visible text would be asserting on presentation.
+// `data-*` attributes carry raw words, not labels, because DOM cells address the built bundle.
 
 import { act, type ReactElement, type ReactNode } from "react"
 import { createRoot, type Root } from "react-dom/client"
@@ -165,14 +150,7 @@ describe("the step tree groups by member", () => {
 })
 
 describe("every member wears its outcome, in the navbar's one palette", () => {
-  // WHAT THIS REPLACED. Until 406-06 this file asserted the OPPOSITE — no badge on a member that
-  // ran — because 405 D-16 was explicit that per-member outcomes beside the aggregate were 406's
-  // DETL-04 and were not to be pre-claimed. 406 D-07 is that decision arriving: the badge goes on
-  // every member that has an outcome, so "one aggregate + N members" reads as one vocabulary.
-  //
-  // AND IT IS ASSERTED THROUGH `statusBadgeLook`, never through colour strings typed here. The
-  // navbar and this header now share one definition; a cell that re-typed `emerald-500` would keep
-  // passing on the day the palette moved and the two surfaces diverged.
+  // Asserted through `statusBadgeLook`, so the navbar and member header share one palette.
   it("badges a member that PASSED, in the palette the run's own verdict badge uses", () => {
     const view = tree([group(member(0, { name: "Login", outcome: "passed" }), [step(0, 0)])], true)
 
@@ -278,8 +256,7 @@ describe("a member that never ran renders honestly, never as an empty tree", () 
     )
 
     expect(view.textContent).toContain(DID_NOT_RUN_LABEL)
-    // BOTH, and that is the D-07 point: the badge is now every member's, so the one place the
-    // outcome word already appeared must not lose its note to it.
+    // Both, because the badge must not take the note from the one place the outcome word appeared.
     expect(view.querySelector('[data-member-outcome="skipped"]')).toBeTruthy()
     expect(view.querySelector("[data-member-note]")?.textContent).toBe(DID_NOT_RUN_LABEL)
     expect(view.textContent).toContain("skipped by fail-fast")

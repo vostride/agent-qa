@@ -1,9 +1,4 @@
-// PASS-RATE SCOPE (429-21 · D-06, D-08, D-09 · UI-SPEC S2, S8).
-//
-// Each row shows its key and its value through SecretValue, as the server sent it (through the
-// declared mask only, 441-40 D-29), replaced explicitly. A new attribute is typed into component
-// state only and saved with an explicit button; removing one writes at once. Privacy is a switch
-// whose off state removes the key, because the schema allows it only as true.
+// Privacy is a switch whose off state removes the key, because the schema allows it only as true.
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react"
 import { Plus, Trash2 } from "lucide-react"

@@ -1,11 +1,6 @@
 // @vitest-environment jsdom
 
-// THE CONTINUOUS ADD FLOW (429-25 · D-13, D-14, D-15, D-17, research A8 · UI-SPEC S5, E5 · PXH-CONF-03).
-//
-// How you connect comes first, then only that choice's fields, then the name, then Connect. The
-// test runs on Connect and only a passing model is written, by the connect door alone: the page
-// never writes a draft to the config file. A failure keeps everything, the typed key included, and
-// only then offers Save without testing.
+// Connect runs the test and only a passing model is written; a failure keeps every field.
 
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -810,11 +805,7 @@ describe('The add row in the list', () => {
   })
 })
 
-// SIGN-IN DRAFTS, EXISTING CREDENTIALS, COLLISIONS, RENAMES AND DISCARD (429-26 · D-15, D-16, D-17,
-// research A3 · UI-SPEC S5, E5). A sign-in choice signs the draft name in with no save first, then
-// the test runs by itself; a name that already holds this provider's credential only tests; another
-// provider's credential is never touched; a draft's own sign-in follows its name, and Discard removes
-// only a credential this draft created.
+// A sign-in signs the draft name in with no save first; Discard removes only its own credential.
 
 const AUTHORIZE_URL = 'https://auth.example/authorize'
 const HOUR = 60 * 60 * 1000
@@ -1140,8 +1131,7 @@ describe('AddModelRow renames and discard after a sign-in', () => {
     expect(deleteAuthCredential).not.toHaveBeenCalled()
   })
 
-  // Connect saved claude on the server, but the answer was lost to a reload, so the stored
-  // draft still says this draft created the sign-in under claude.
+  // Connect saved `claude`, but a reload lost the answer, so the draft still claims the sign-in.
   const SAVED_CLAUDE = { name: 'claude', provider: 'anthropic-subscription', model: 'claude-sonnet-4.5' }
 
   function storeCreatedDraft(name: string) {
@@ -1196,10 +1186,7 @@ describe('AddModelRow renames and discard after a sign-in', () => {
   })
 })
 
-// THE MODEL MODAL'S CLAIMS ON THE ADD ROW. The modal is gone. Each claim its suite
-// made about adding a model is asserted here on the add row, or pinned as gone where the phase
-// reversed it (asterisk markers, the whole-list write, a vision switch before saving, and saving
-// before a sign-in).
+// Each claim about adding a model is asserted on the add row.
 
 const CATALOG: Record<string, ModelCatalogEntry[]> = {
   'openai-compatible': [

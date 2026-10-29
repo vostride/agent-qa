@@ -152,7 +152,7 @@ export interface FeedbackOutcomeInput {
 
 /** The target's own recorded result: a step reads its verifier verdict, a test its outcome. */
 export function feedbackOutcomeClass({ member, step, runStatus }: FeedbackOutcomeInput): FeedbackOutcomeClass {
-  // verifierVerdict is required by the schema, but fetchRunDetail does not parse (UI-SPEC U9).
+  // `verifierVerdict` is required by the schema, but `fetchRunDetail` does not parse.
   const verdict = step?.verifierVerdict
   if (verdict != null) return verdict.pass ? 'passed' : 'failed'
   return memberOutcomeClass(member?.outcome, runStatus)

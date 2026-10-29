@@ -7,26 +7,14 @@ import { MediaAnnotationOverlay } from "./media-annotation-overlay"
 import { MediaViewport } from './media-viewport'
 import { cn } from "@/lib/utils"
 
-// THE VIEWER TAKES A MINTED URL, NOT A PATH.
-//
-// It used to take a filesystem-ish path and build a serving URL out of it by splitting on slashes
-// and guessing which segment was the run. Refs are the only artifact addressing now, and the ONE
-// minter is the route map: the caller resolves a ref to a `src` and hands it down. So this
-// component builds no URL at all, which is the property 405-13 greps the source tree for.
+// Takes a minted `src`, never a path: the route map is the one minter, so this builds no URL.
 interface ScreenshotViewerProps {
   /** An already-minted, same-origin URL. Never a path, never anything this file assembles. */
   src: string
   annotation?: StepAnnotation | null
   refLabel?: string
   className?: string
-  /**
-   * Told when the image request FAILED.
-   *
-   * A blob that was garbage-collected or never written answers 404, and the owner of the pane needs
-   * to say "screenshot unavailable" in its own words rather than leave a broken image element on
-   * the page. The viewer still paints its own fallback when nobody is listening, so a caller that
-   * does not pass this cannot produce a broken `img` by omission.
-   */
+  // A missing blob answers 404 so the pane can say so; unheard, the viewer paints its own fallback.
   onUnavailable?: () => void
   embedded?: { magnifier: boolean; annotationsVisible: boolean; fullscreen: boolean; onAvailability?: (available: boolean) => void }
 }
@@ -50,9 +38,7 @@ export function ScreenshotViewer({
   const [fullscreen, setFullscreen] = useState(false)
   const [annotationsVisible, setAnnotationsVisible] = useState(true)
 
-  // A NEW `src` IS A NEW QUESTION. The load and error flags describe ONE request; carrying
-  // them across a swap would leave the previous image's failure painted over a blob that was never
-  // asked for, which reads as "this evidence is gone" about the wrong sub-action.
+  // A new `src` is a new request, so load and error flags reset instead of blaming the new image.
   useEffect(() => {
     setImageLoaded(false)
     setImageError(false)

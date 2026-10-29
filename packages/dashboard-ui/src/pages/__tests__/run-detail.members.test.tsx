@@ -1,17 +1,5 @@
 // @vitest-environment jsdom
-//
-// RUN DETAIL, READ AS ONE DURABLE PROJECTION.
-//
-// WHAT THIS FILE REPLACED. `run-detail.suite-mode.test.tsx` pinned the parent/child walk: a suite
-// parent whose `tests` array was walked with one `fetchRun` per child, a cumulative "step N of M"
-// across those children, and a `?run=<childRunId>` param disambiguating step ordinals between
-// them. 405-07 deleted the server side of that walk and 405-08 deletes the page side; the member
-// grouping below is its successor on 402 D-10's handles, and the two cells worth keeping (the
-// app-shell height contract and the page title) are carried over unchanged.
-//
-// THE PAGE MAKES EXACTLY TWO READS. `fetchRun` for the row — which is what the bounce keys on —
-// and `fetchRunDetail` for everything under it. A cell that let the second one resolve from the
-// first would be pinning a walk that no longer exists.
+// Two reads: `fetchRun` for the row the bounce keys on, `fetchRunDetail` for everything else.
 
 import { act, type ReactNode } from "react"
 import { createRoot, type Root } from "react-dom/client"
@@ -45,9 +33,7 @@ const {
 vi.mock("@/lib/api", () => ({
   fetchRun: fetchRunMock,
   fetchRunDetail: fetchRunDetailMock,
-  // the page's THIRD read — the failure view's. This whole-module
-  // mock replaces `@/lib/api`, so an omitted export is `undefined` at the call site and every
-  // cell here dies before it asserts. Its own behaviour is measured in `run-detail.analysis.test.tsx`.
+  // This mock replaces `@/lib/api`, so an omitted export would kill every cell before it asserts.
   fetchRunAnalysis: () => Promise.resolve({ runId: '', verdicts: [], sentences: [], clusters: [] }),
   fetchRunKnowledge: () => Promise.resolve({ kind: 'evidence-incomplete', runId: '' }),
   fetchRunArtifact: fetchRunArtifactMock,

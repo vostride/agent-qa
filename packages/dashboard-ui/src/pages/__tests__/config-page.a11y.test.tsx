@@ -1,8 +1,6 @@
 // @vitest-environment jsdom
 
-// Law 7 (accessibility is correctness), PXH-CONF-05 and D-24: on every Config tab, in its open
-// states, every control has an accessible name, every glyph is hidden from assistive tech, and
-// nothing is a dialog.
+// On every Config tab, every control has a name, every glyph is hidden, and nothing is a dialog.
 
 import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'

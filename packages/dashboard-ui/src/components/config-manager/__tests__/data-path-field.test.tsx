@@ -1,10 +1,6 @@
 // @vitest-environment jsdom
 
-// DATA PATHS CHANGE ONLY THROUGH APPLY (429-20 Task 1 · D-23, D-24 · UI-SPEC S6, E7).
-//
-// A path that points at existing data never autosaves. Typing keeps a draft and shows Apply,
-// Keep current path and one true sentence about what changes; Apply is one undoable write.
-// These cells mount the real autosave hook over a mocked write route.
+// A path pointing at existing data never autosaves; Apply is one undoable write.
 
 import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'

@@ -22,25 +22,7 @@ import { statusBadgeLook } from "@/lib/status"
 import { cn, formatDuration } from "@/lib/utils"
 import type { RecordedRetrievalRung, RunModelSummary, RunTokenTotals } from "@vostride/agent-qa-schema"
 
-/**
- * THE HEADER'S VERDICT BADGE, ADDRESSABLE.
- *
- * The badge's visible text is a LABEL — title-cased, and `Cancelled` for a row that says
- * `cancelled`. A DOM cell reading that text would be asserting on presentation, and a page that
- * painted the right word into the wrong element would still pass. The hook below carries the RAW
- * status string instead — the same bytes the dashboard subscriber wrote to the run row at the
- * `verdict` envelope — so "the viewer was moved to run detail AND the verdict is painted in its
- * header" is one selector against one fact.
- *
- * WHY THE SWITCH BECAME A LOOKUP. The attribute belongs on the badge ROOT, and seven `return`
- * arms meant seven places for it to drift out of. One render site is one place it can be wrong.
- * Nothing about what is painted changed.
- *
- * ENLARGED, NOT RE-PALETTED. Dominance comes from size
- * and fill in an unchanged row order: the size classes go through `cn` so tailwind-merge drops the
- * `Badge` base `text-xs px-2 py-0.5`, while `statusBadgeLook` keeps deciding the colour. A second
- * palette would be two answers to one question about one run.
- */
+// The badge root carries the raw status for DOM cells, as its visible text is a title-cased label.
 function StatusBadge({ status }: { status: string }) {
   const { label, ...look } = statusBadgeLook(status)
   return (
@@ -56,85 +38,25 @@ function StatusBadge({ status }: { status: string }) {
 
 interface RunNavbarProps {
   run: RunRow
-  /**
-   * The run's model spend, as the read op summed it.
-   *
-   * OPTIONAL BECAUSE THE READ MAY NOT HAVE LANDED — `undefined` here means "nobody has answered
-   * yet", which is a different fact from a projection that answered "nothing was measured". The
-   * first renders no line at all; the second renders the not-measured sentence, because a run
-   * that recorded no usage is a fact worth stating. The header previously summed three counters
-   * off v1 step rows and guarded the span on a positive total, which spelled "unmeasured" and
-   * "zero" identically — the exact collapse D-06 exists to prevent.
-   */
+  // `undefined` means no answer yet and renders nothing; an unmeasured run renders its sentence.
   tokens?: RunTokenTotals
-  /**
-   * Who answered this run, as `runs.detail` summarised it.
-   *
-   * UNDEFINED IS TWO FACTS THIS HEADER CANNOT TELL APART, and both render no model line: the read
-   * has not landed, or the run is a pre-423 one that recorded no model identity at all. Neither is
-   * a licence to fall back to the legacy model fields on the run row — those name what the host
-   * was configured with, not what answered THIS run, and substituting one for the other would make
-   * a claim about a run out of a fact about a machine. Those fields, and the icon item that
-   * announced them, left this file in 425-05 and a grep gate keeps them out.
-   */
+  // `undefined` renders no model line; the row's legacy model fields describe the host, not a run.
   models?: RunModelSummary
   shortcutsOpen: boolean
   onToggleShortcuts: () => void
-  /**
-   * The drawer tabs this header can ASK FOR. Narrowed to the two the artifact record feeds
-   * the v1 `memory` tab is deleted, and `m` reaches the Knowledge tab through
-   * the page's own shortcut map rather than through this prop.
-   */
+  // The drawer tabs this header can ask for; `m` reaches the Knowledge tab via page shortcuts.
   onOpenArtifacts?: (tab: "test" | "config") => void
-  /**
-   * The post-processing projection to paint beside the verdict badge.
-   *
-   * TWO PROPS AND NOT ONE, because "no read has landed yet" and "this header was never wired for
-   * chips" are different facts that a single optional prop would spell identically. The navbar is
-   * PRESENTATIONAL: it neither knows a run id nor asks anything, so it cannot tell those
-   * two apart on its own, and a chip area that appeared out of a `undefined` would put a permanent
-   * placeholder into every surface that renders this header without a client behind it.
-   */
+  // Paired with `hasPostProcessing`, so an unwired header and a read not yet landed differ.
   postProcessing?: PostProcessingView | undefined
   /** Whether a chip client is wired at all. See {@link RunNavbarProps.postProcessing}. */
   hasPostProcessing?: boolean
-  /**
-   * What pressing the `curation` chip should do.
-   *
-   * FORWARDED, NOT DECIDED. The navbar is presentational and owns no tab state; the page passes
-   * `() => setActiveTab('knowledge')`. Absent → the chip stays the shipped `<span>`, which is what
-   * every surface rendering this header without a run-detail page behind it should get.
-   */
+  // Forwarded, not decided; absent, the chip stays a `<span>`.
   onCurationClick?: () => void
-  /**
-   * What pressing the `analysis` chip should do.
-   *
-   * FORWARDED, NOT DECIDED — the same rule as {@link RunNavbarProps.onCurationClick} one door
-   * along. Curation always has a half of the Knowledge tab to open, so the page passes its handler
-   * unconditionally; analysis has somewhere to go only on a run that produced a verdict, and this
-   * header knows neither the run's outcome nor whether a block is mounted. Absent → the analysis
-   * indicator stays the focusable `<span>` it has always been, which is what every surface that
-   * renders this header without a run-detail page behind it should get.
-   */
+  // Forwarded, not decided; absent, the analysis indicator stays a focusable `<span>`.
   onOpenVerdict?: () => void
-  /**
-   * The rung that served THIS run, as the durable `runs.knowledge` read recorded it.
-   *
-   * UNDEFINED IS TWO FACTS THIS HEADER CANNOT TELL APART, and both render the same nothing: the
-   * read has not landed, or the run recorded no rung (a pre-407 run, or a project with no
-   * knowledge reader bound — D-16). That collapse is deliberate here, unlike `postProcessing`
-   * above: a chip area exists to say WHICH stage is pending, whereas the only honest thing to
-   * paint about a rung nobody has stated is no element at all.
-   *
-   * IT IS THE RECORDED VALUE AND NEVER A HOST PROBE. Fixing the machine tomorrow must not change
-   * what this header says about a run that already happened; the page reads it through
-   * `bannerRung`, which is where the "no store bound is not a rung" judgement lives.
-   */
+  // `undefined` renders nothing, pending or unrecorded; the value is recorded, never probed.
   retrievalRung?: RecordedRetrievalRung
-  /**
-   * The test-level feedback door beside the verdict. Absent means the element is absent,
-   * never disabled: the page passes it only when the target member can be marked at all.
-   */
+  // Absent means no element, never a disabled one; passed only when the member can be marked.
   feedbackEntry?: Omit<FeedbackEntryButtonProps, "scope">
 }
 
@@ -171,28 +93,7 @@ export function RunNavbar({
   }
 
   return (
-    // A MIN-HEIGHT BLOCK, NOT A FIXED ONE.
-    //
-    // The banner is a second full-width row inside this wrapper rather than a sibling of the
-    // page's panel group, so the header stays ONE block the layout can measure. What it measures
-    // is no longer a number anyone wrote down: 56px is the header row's MINIMUM, the page's panel
-    // group is already `min-h-0 flex-1` inside a flex column, and flex takes whatever the header
-    // turns out to be. That is what lets the header grow a second row instead of overlapping when
-    // the width runs out — the old fixed-height class and the "56, or 56 + 28" arithmetic that
-    // went with it could only clip.
-    //
-    // THE BREAKPOINT IS A CONTAINER QUERY, and deliberately not a viewport one. A 1280px viewport
-    // at 200% zoom is a 640px container and a ~400px viewport is a ~400px container: one rule
-    // sends both down the stacked path, and any narrower shell this header is ever dropped into
-    // inherits it without a second breakpoint being invented.
-    //
-    // THE STEP IS 64rem, NOT 48rem. One row needs about 890px once 426's entry sits
-    // beside the verdict, so beside the 192px sidebar a ~1000px page stayed one row at 48rem and the
-    // analysis chip painted over the badge and the entry. A 1280px page is a 1088px container and
-    // keeps its single row.
-    //
-    // It is NOT a third pane and NOT a toast: 403's two-pane rule holds on the live page and the
-    // same discipline holds here.
+    // A container query with a 64rem step and 56px minimum, so the header grows rather than clips.
     <div className="shrink-0 @container">
     <div className="flex flex-col gap-y-2 min-h-14 border-b px-4 py-2 min-w-0 @5xl:flex-row @5xl:items-center @5xl:justify-between @5xl:gap-y-0 @5xl:py-0">
       <div className="flex items-center gap-2 min-w-0">
@@ -203,12 +104,7 @@ export function RunNavbar({
           Runs
         </button>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-        {/*
-          THE ONE FLEXIBLE ITEM. Everything else on this row is `shrink-0`, so a long name
-          spends its own width and then truncates rather than pushing the verdict out of view. The
-          floor keeps it from truncating to nothing. The full name is still reachable — here in
-          `title`, and in the page title, which already carries it.
-        */}
+        {/* The one flexible item: it truncates first and keeps its full name in `title`. */}
         <span className="text-sm font-medium truncate min-w-[96px]" title={run.name}>
           {run.name}
         </span>
@@ -223,20 +119,16 @@ export function RunNavbar({
             <ArrowUpRight className="h-3.5 w-3.5" />
           </a>
         ) : null}
-        {/* The verdict, then the slot after it, filled by Phase 426's feedback entry. */}
+        {/* The verdict, then the feedback entry's slot after it. */}
         <StatusBadge status={run.status} />
         {feedbackEntry === undefined ? null : (
           <FeedbackEntryButton scope="test" {...feedbackEntry} />
         )}
       </div>
 
-      {/*
-        ROW 2 WHEN STACKED, THE RIGHT CLUSTER WHEN NOT. The meta wraps before the actions do, and
-        the actions sit in an `ml-auto` cluster that is always this row's last child — so at ~400px
-        nothing hides, nothing folds into an overflow menu and nothing overlaps.
-      */}
+      {/* Stacked, the meta wraps before the `ml-auto` actions, so nothing hides at ~400px. */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 shrink-0">
-        {/* the lifecycle story on one line — execution truth, then post-processing truth. */}
+        {/* The lifecycle on one line: execution truth, then post-processing truth. */}
         {hasPostProcessing ? (
           <PostProcessingChips
             view={postProcessing}
@@ -244,14 +136,7 @@ export function RunNavbar({
             onOpenVerdict={onOpenVerdict}
           />
         ) : null}
-        {/*
-          THE TOKEN LINE IS A GLANCE AND A DOOR (425-05 · D-21/D-22, UI-SPEC S6). It says the pair
-          and nothing else — the total, the provider's cached input, the coverage caveat and the
-          model identity are all one focus away, in the card. The root is a `span` with `tabIndex`
-          rather than a `button` because there is nowhere to go: the card IS the destination, and a
-          button would promise a page that does not exist. Rendered only when `tokens` is not
-          undefined, which is the shipped rule — no read yet, no element.
-        */}
+        {/* A focusable `span`, not a button: the card itself is the destination. */}
         {tokens === undefined ? null : (
           <Tooltip>
             <TooltipTrigger asChild>

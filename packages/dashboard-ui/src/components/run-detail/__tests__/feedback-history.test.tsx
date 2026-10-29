@@ -1,10 +1,5 @@
 // @vitest-environment jsdom
-// WHAT HAPPENED AND WHAT COUNTS.
-//
-// The pinned target's marks come first, newest first; the whole ledger is one collapsed disclosure
-// away with each entry naming its target. Latest-mark-wins replacement is explained once, an applied
-// fix states in one line what it changed, and every way the history read can fail
-// renders as itself — never as "no feedback". Fixtures are schema-parsed.
+// Every way the history read can fail renders as itself, never as no feedback.
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -180,8 +175,7 @@ describe('the target list and the run list', () => {
     expect(time.textContent).toBe(formatMarkTime(T(3)))
     expect(newer.textContent).toContain(ACTIVE_TEXT)
     expect(newer.textContent).toContain('“The coupon should have been refused”')
-    // RE-SPELLED 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW fix 2): the disposition and what the fix
-    // changed are one line.
+    // The disposition and what the fix changed are one line.
     expect(newer.querySelector('[data-history-disposition]')?.textContent)
       .toBe(historyChangeText({ disposition: applied(), changedRecords: changed() }))
     expect(newer.querySelector('[data-history-disposition]')?.textContent?.startsWith(dispositionText(applied()))).toBe(true)
@@ -231,8 +225,6 @@ describe('latest-mark-wins is explained once', () => {
   })
 })
 
-// RE-SPELLED 432-09 from '426-09 a drafted proposal names its state and its review command': a mark
-// applies its fix in the call, so the entry says what changed and offers nothing to review.
 describe('an applied fix says in one line what it changed', () => {
   it('the knowledge line carries the changed record content, the file line the written path, both as text', () => {
     const file = { kind: 'applied', fix: 'test-edit', change: { kind: 'test-file', filePath: 'tests/checkout.yaml', contentDigest: 'abc' } } as const
@@ -247,8 +239,7 @@ describe('an applied fix says in one line what it changed', () => {
     const line = (n: number) => entryOf(target, markId(n))!.querySelector('[data-history-applied]')
     const knowledge = line(1)!
     expect(knowledge.getAttribute('data-history-applied')).toBe('knowledge')
-    // RE-SPELLED 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW fix 2): the applied line IS the entry's
-    // one line, so it reads the disposition and then what the fix changed.
+    // The applied line is the entry's one line: the disposition, then what the fix changed.
     expect(knowledge.textContent).toBe(historyChangeText({ disposition: applied(['mem_caution_1', 'mem_gone']),
       changedRecords: [...changed(), { recordId: 'mem_gone', contentAbsence: { reason: 'not-found' } }] }))
     expect(knowledge.textContent).toContain(appliedChangeText(appliedChangeView({ disposition: applied(['mem_caution_1', 'mem_gone']),
@@ -258,7 +249,7 @@ describe('an applied fix says in one line what it changed', () => {
     expect(written.getAttribute('data-history-applied')).toBe('test-file')
     expect(written.textContent).toBe('Recorded — the test file was edited: tests/checkout.yaml')
     expect(written.querySelector('code')?.textContent).toBe('tests/checkout.yaml')
-    // A pre-432 drafted receipt never recorded its change: the line says so rather than inventing one.
+    // An older drafted receipt never recorded its change: the line says so, inventing none.
     expect(line(3)!.getAttribute('data-history-applied')).toBe('unavailable')
     expect(line(3)!.textContent).toBe('Recorded — a fix was drafted (older mark); what it changed was not recorded.')
     expect([1, 2, 3].map(n => entryOf(target, markId(n))!.querySelectorAll('[data-history-applied]').length)).toEqual([1, 1, 1])
@@ -380,9 +371,7 @@ describe('producer text stays text, and the internal words stay out', () => {
   })
 })
 
-// 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW priority fix 2 and the D-09 pointer; 432 review IN-32):
-// ONE line per entry says what the mark did, never a disposition line plus a second line that can
-// contradict it, and the correction pointer appears with the first applied change.
+// The correction pointer appears with the first applied change.
 describe('one entry, one line about what it changed', () => {
   const lineOf = (entry: HTMLElement) => [...entry.querySelectorAll('[data-history-disposition], [data-history-applied]')]
 

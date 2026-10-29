@@ -1,31 +1,4 @@
-// ONE SERVED BRIEF LINE, WITH THE REASON IT WAS SERVED.
-//
-// IT IS PRESENTATIONAL AND KNOWS NO RUN. It takes a line view and paints it. It computes no rank,
-// no score and no outcome word — every one of those is decided in `lib/knowledge-view.ts` from the
-// serve-time trace and the projection's own attribution join, and a component that could compute a
-// rank would be a component that could answer "why this line?" about the index as it stands NOW
-// rather than about the moment the brief was assembled. That is the exact dishonesty KREV-02
-// exists to prevent, and the reason `why` arrives as data rather than as a query.
-//
-// EVERY ABSENCE IS A VISIBLE STATE. `data-trace-state` is one of four words and never
-// missing: `answered` prints what the trace recorded; `artifact-missing` renders the SHIPPED
-// evidence-incomplete component rather than a fifth wording for "the bytes are gone";
-// `pre-trace-run` and `step-not-found` each print their own sentence. Nothing silently drops, and
-// nothing renders an expander that would open onto nothing.
-//
-// THE CANARY MARKER IS UNCONDITIONAL. A line served as a canary says so whatever curation
-// did or did not decide, and the attribution word beside it is one of seven — never blank. A blank
-// slot beside a canary marker reads as "this did not matter", which is a claim nobody made. The
-// seventh word, `unknown`, is the one a partial store read earns: `not attributed` asserts the
-// store was consulted and said no, and a scan that could not finish never made that claim.
-//
-// this line lives inside Retrieval details, which is already a disclosure, so the trace
-// reads inline, the marker and the store's word are plain 12px text, and the id carries a copy
-// button. The id stays the line's first `<p>`, which the shipped-binary harvest reads.
-//
-// ALL TEXT GOES THROUGH REACT TEXT NODES. No raw-HTML injection escape hatch appears anywhere in
-// this file — a grep for React's one is an acceptance criterion. The summary is a stored producer
-// string, shown as written.
+// Presentational: rank, score and outcome word arrive as data, so the line describes serve time.
 
 import { EvidenceIncomplete } from "./evidence-incomplete"
 import { RecordIdCopy } from "./record-id-copy"
@@ -54,13 +27,7 @@ const MONO_CLASS = "font-mono text-xs text-muted-foreground tabular-nums"
 /** Muted 12px text, the look of every non-sentence word in the ledger. */
 const LEDGER_WORD_CLASS = "text-xs text-muted-foreground"
 
-/**
- * The eight outcome words, as plain text.
- *
- * NO `default` ARM. The switch is exhaustive over `CanaryOutcomeWord` and its return type is not
- * optional, so a ninth word is a COMPILE ERROR here rather than a slot that silently renders
- * `undefined`. `unknown` and `not attributed` look the same; `data-canary-outcome` tells them apart.
- */
+// No `default` arm, so a new outcome word fails to compile; `data-canary-outcome` tells them apart.
 function outcomeText(word: CanaryOutcomeWord): string {
   switch (word) {
     case "confirmed":
@@ -117,18 +84,14 @@ export function KnowledgeBriefLine({ line }: { line: BriefLineView }) {
   )
 }
 
-/**
- * The why answer, or the named absence of one — inline, because Retrieval details is already the
- * disclosure a reader opened to see it.
- */
+// Inline, because Retrieval details is already the disclosure the reader opened.
 function LineWhyRow({ line }: { line: BriefLineView }) {
   if (line.why.kind === "answered") {
     return <p className={MONO_CLASS}>{traceLineText(line.why.leg, line.why.rank, line.why.score)}</p>
   }
 
   if (line.why.reason === "artifact-missing") {
-    // The one component and the one word for "the bytes are gone" — not a fifth
-    // wording invented here for a row.
+    // The shared component and word for missing bytes, not a new wording for this row.
     return <EvidenceIncomplete variant="inline" />
   }
 

@@ -1,11 +1,6 @@
 // @vitest-environment jsdom
 
-// TARGETS AND DEVICES AS IN-ROW RECORD LISTS (429-22 Task 1 · D-02, D-08, D-19, D-23, D-24 · UI-SPEC S2, S6, E6, E8).
-//
-// Every target and device edit happens in its row and autosaves; an add is an inline draft row
-// that writes nothing until the whole entry is valid; a delete acts at once with Undo and moves
-// focus to a neighbour, else the Add button. Device match values are secret-class: each key in
-// clear, each value a SecretValue, a new setting saved only through Save setting.
+// Device match values are secret-class: keys in clear, values saved only through Save setting.
 
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -359,7 +354,7 @@ describe('TargetsSection and DevicesSection', () => {
       [[{ op: 'set', path: ['registry', 'devices', 'iosLocal', 'match', 'bundleId'], value: 'device-secret' }]],
     ])
     expect(deviceRow('iosLocal')!.querySelectorAll('[data-secret-field]')).toHaveLength(2)
-    // the landed write is mirrored as written.
+    // The landed write is mirrored as written.
     expect(container!.textContent).toContain('device-secret')
   })
 
@@ -531,8 +526,7 @@ describe('TargetsSection and DevicesSection', () => {
   })
 })
 
-// 2026-10-03 (quick 261003-cpv, 432 review IN-33): the guard that decides whether a draft writes
-// `registry.targets.<name>.environment` admits the three classes and nothing a prototype carries.
+// The environment guard admits the target classes and nothing a prototype carries.
 describe('the target environment guard', () => {
   it('admits local, shared and production, and no inherited key', async () => {
     const { isTargetEnvironment } = await import('@/components/config-manager/targets-section')

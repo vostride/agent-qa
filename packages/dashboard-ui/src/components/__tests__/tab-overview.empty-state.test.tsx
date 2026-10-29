@@ -15,8 +15,7 @@ import { asRef } from "@vostride/agent-qa-schema"
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
-// The viewer is a faithful double, not a blank: it renders the `img` the real one renders and wires
-// the same failure callback, so the two D-15 cells below measure the seam rather than the mock.
+// The viewer double renders the real `img` and failure callback, so the cells measure the seam.
 vi.mock("@/components/screenshot-viewer", () => ({
   ScreenshotViewer: ({ src, onUnavailable }: { src: string; onUnavailable?: () => void }) => (
     <img data-testid="screenshot-viewer" src={src} onError={() => onUnavailable?.()} />
@@ -180,7 +179,6 @@ describe("TabOverview screenshot states", () => {
   })
 })
 
-// a tap that sent no input reads neither success nor failure.
 describe("a skipped tap that sent no input", () => {
   function resultOutcome(view: HTMLElement) {
     const words = ["success", "failure", "no input sent"]

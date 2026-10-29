@@ -1,58 +1,4 @@
-// ONE MEMBER'S VERDICT, AS A PERSON READS IT (406-01 · DETL-04, D-05 / D-10 / D-12;
-// grown in 406-06 · D-02 / D-08 / D-09 / D-11).
-//
-// PRESENTATIONAL, AND DELIBERATELY SO. This component takes a view the page already projected out
-// of `analysis.get` and paints it. It fetches nothing, holds no run id, derives no fact and
-// composes no prose: the sentence is the op's own bytes, copied through, and every other string it
-// shows — the provenance chip, the lifecycle marker, the sibling line, the cited-step label — comes
-// out of `lib/analysis-view.ts`, which is pure and separately pinned. THE ONLY BRANCHES HERE ARE
-// PRESENCE BRANCHES: is there a marker, are there cited steps, are there siblings. Anything that
-// had to be decided was decided in the projection.
-//
-// THE SENTENCE IS A PRODUCER STRING, rendered as the stored text. It quotes the failing
-// step's recorded error verbatim — Playwright's own text — inside `observed (step N): "…"`, so a
-// declared value in it shows as the `[secret:<name>]` the producer recorded.
-//
-// NO COPY AFFORDANCE AND NO TITLE WRITE. WINDOWS #302/#303 name the clipboard and the
-// document title as unenumerated egress sinks for RESTORED cleartext: the local door restores
-// declared secrets into this sentence for the person reading the page, and a copy button would
-// move that value into a bug report, while a title write would move it into a bfcache entry and
-// every window-title log. Neither is here; the sentence stays where the reader can see it.
-//
-// TEXT NODES AND ELEMENTS, NEVER MARKUP. Nothing in this file hands React raw HTML —
-// the acceptance gate greps this file for the escape hatch's name and requires zero occurrences,
-// which is why the name is not written anywhere in it. A jsdom cell feeds this component markup
-// and asserts no element was constructed.
-//
-// A CITED STEP IS A BUTTON AND A SIBLING IS A BUTTON, because both DO something: the
-// first selects that step in this member's tree through the page's existing `Selection`, the second
-// narrows the member filter to that sibling's group. Neither mints a route, an id spelling or a
-// scroller of its own — the page owns all three and this component hands it two handles.
-//
-// A CITED STEP THE VIEW DOES NOT NAME IS NOT RENDERED AS A DEAD CHIP. An index the
-// projection did not carry never becomes a button, and a button whose step the page cannot resolve
-// is a no-op there rather than a throw here.
-//
-// A CITED ARTIFACT OPENS IN THE DRAWER, AND ONLY THE PAGE KNOWS WHERE THAT IS (406-08 · D-02,
-// second half). The block hands up a sha and nothing else: no run id, no URL, no window. The page
-// turns that sha into the drawer's screenshot tab, whose `src` the one route minter mints. Rendering
-// the picture here instead was rejected — it duplicates the overview's rendering and grows the page
-// once per red member on a 40-red run.
-//
-// AND AN ARTIFACT WHOSE BYTES ARE GONE IS STILL THERE, AS A CHIP. The absent ref
-// keeps its place in the row wearing `EvidenceIncomplete inline` — never dropped (a reader would
-// count the links and conclude the verdict cited fewer things than it did) and never a button (an
-// affordance that opens nothing is the worse lie the one component's own header names). Its
-// siblings that ARE present stay clickable, and a count line under the row says how many of how
-// many are gone, so a reader scanning collapsed groups can see evidence is missing without opening
-// one. The sentence, the provenance, the marker and the member's outcome badge are all untouched:
-// ONE MISSING SCREENSHOT IS NOT AN UNTRUSTWORTHY VERDICT, and the whole-verdict badge that would
-// say otherwise was rejected. Bundle-level `evidence-incomplete` semantics belong to bundles.
-//
-// THE RECORDS ON THE FAILING PATH are the verdict's own declaration, listed when it made one and
-// absent otherwise.
-//
-// `data-*` DESCRIBES WHAT IS RENDERED, not what was passed (the banner's `showingFull` lesson).
+// No copy button or title write: restored secrets in the sentence must not reach either one.
 
 import { EvidenceIncomplete } from "@/components/run-detail/evidence-incomplete"
 import {
@@ -90,12 +36,7 @@ export function VerdictBlock({
   onCitedArtifact,
 }: VerdictBlockProps) {
   return (
-    // WHERE THE HEADER'S VERDICT DOOR LANDS (425-09 · D-11, UI-SPEC S4 / Color 2). `-1` is
-    // reachable programmatically and skipped by Tab, so a reader working through a failed run does
-    // not stop on every sentence on the way to the controls. The ring keys on `:focus` rather than
-    // `:focus-visible` because the door is activated by pointer as often as by keyboard, and a
-    // browser suppresses `:focus-visible` after a click — which would move a reader somewhere and
-    // then show them nothing about where they landed.
+    // `tabIndex` -1 is off the tab order; the ring is `:focus`, as a click hides `:focus-visible`.
     <div
       data-verdict-block
       data-verdict-producer={view.producer}
@@ -137,9 +78,6 @@ export function VerdictBlock({
       {view.citedArtifacts.length === 0 ? null : (
         <div className="mt-1.5 flex flex-wrap items-center gap-1">
           {view.citedArtifacts.map((ref) =>
-            // `ref.incomplete ?` IS SPELLED HERE, ONCE, AND NOT HOISTED — 406-11's mutation legs
-            // match this expression literally. One leg drops the absent ref from the row, the other
-            // renders it as an ordinary link; both edit this ternary and both must red a cell.
             ref.incomplete ? (
               <span
                 key={ref.id}

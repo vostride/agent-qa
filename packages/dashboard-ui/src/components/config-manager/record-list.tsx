@@ -1,9 +1,4 @@
-// RE-HOMED RECORD LISTS (429-22 · D-23, D-24 · UI-SPEC S2 "Record/list editors", S6, S9, E6, E8).
-//
-// Targets and devices share one row anatomy and one delete rule: the row header opens the row's
-// fields in place, the delete icon removes the row at once through one undoable write, focus moves
-// to the next row, else the previous one, else the section's Add button, and Undo returns focus to
-// the restored row.
+// Delete is one undoable write; focus moves to the next row, else the previous, else Add.
 
 import { useEffect, useId, useRef, useState, type FocusEvent, type ReactNode, type RefObject } from "react"
 import { ChevronRight, CircleAlert, Trash2 } from "lucide-react"

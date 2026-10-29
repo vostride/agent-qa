@@ -1,32 +1,4 @@
-// THE SHARED LIVE PREVIEW: one mint, one sandboxed embed, one status light.
-//
-// Both entry points render this component: a run (the active run page) and an editor session
-// (Test → Live and the suite editor, Plan 18). It mints for its subject, embeds the served embed
-// page in an iframe, listens to the closed-set facts that page posts, runs the pure machine in
-// lib/live-preview.ts and draws the status.
-//
-// THE DOT IS THE CONTAINER'S STATUS LIGHT (owner decision 2026-09-26 (4), G-428-4). It leads the
-// preview's chrome row, at the container's top-left, with the snapshot label, the words and the one
-// action beside it, ahead of any host toolbar. Nothing is drawn over the tested page's pixels: the
-// picture's box holds the iframe alone. This supersedes D-02's dot on the frame's top-right corner.
-//
-// THE TOKEN IS THE REASON FOR THE SANDBOX. The minted liveUrl carries a short-lived capability in
-// its fragment. It lives in this component's state and the iframe's src, and nowhere else: it is
-// never logged and never written to the page URL. The frame is sandboxed to scripts alone, with
-// the same-origin escape withheld, so the embedded document sits in an opaque origin and cannot
-// read this document or its storage.
-//
-// THE BRIDGE TRUSTS IDENTITY, NOT ORIGIN (Q-BRIDGE). The embed's origin is the string 'null' by
-// construction, so the only check that means anything is that the event's source is this
-// component's own iframe window. What passes is rebuilt by parseEmbedReport from closed sets, and
-// no posted string is ever rendered: the status speaks only in this package's copy constants.
-//
-// RENEW IN PLACE, RECONNECT BY REMOUNT (RESEARCH P8). The silent half-life re-mint changes only
-// the fragment of the same iframe, which the embed hears as a hashchange on a live socket. A dead
-// socket never hears a hashchange, so a reconnect is a fresh mint and a new iframe element.
-//
-// NOT YET IS NOT NO. A member whose browser is not up yet answers `none`; the preview
-// keeps asking every NO_STREAM_RETRY_MS, and the machine bounds that wait.
+// The token lives only in state and the iframe src; the sandbox keeps the embed opaque-origin.
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 
@@ -55,10 +27,7 @@ import type { LiveStreamDeclaration } from '@vostride/agent-qa-schema'
 export interface LivePreviewRunSubject {
   kind: 'run'
   runId: string
-  /**
-   * The handle to watch, decided by the host. The preview follows the running member, which
-   * the host derives from the run stream; a new handle starts the preview over with a mint for it.
-   */
+  // The host decides the handle; a new handle starts the preview over with a mint for it.
   handle: number
   /** The reducer's member rows by handle: whether the watched member's browser can be up yet. */
   membersByHandle: Readonly<Record<number, MemberRow>>
@@ -134,7 +103,7 @@ export function LivePreview({ subject, chrome }: LivePreviewProps) {
   const [now, setNow] = useState(() => Date.now())
   const [mint, setMint] = useState<Mint | undefined>(undefined)
   const [refusal, setRefusal] = useState<string | undefined>(undefined)
-  // A new key is a new iframe element, which is what a reconnect needs (P8).
+  // A new key is a new iframe element, which is what a reconnect needs.
   const [frameKey, setFrameKey] = useState(0)
   // Each expiry of the not-yet poll, so the poll effect re-arms even when the state word holds.
   const [pollTick, setPollTick] = useState(0)
@@ -212,9 +181,7 @@ export function LivePreview({ subject, chrome }: LivePreviewProps) {
           if (requestRef.current !== token) return
           inFlightRef.current = false
           if (purpose === 'renew') {
-            // A renew that fails while the embed's token still has time left (a network blip, a
-            // 500) keeps the picture and asks again; the link has expired only once it has run out
-            // The embed's own `refused: expired` says the same thing sooner.
+            // A failed renew with time left keeps the picture and retries until time runs out.
             const expiresAt = expiresAtRef.current
             if (expiresAt !== undefined && Date.now() < expiresAt) {
               setRenewRetry((count) => count + 1)
@@ -282,10 +249,7 @@ export function LivePreview({ subject, chrome }: LivePreviewProps) {
     }
   }, [framed])
 
-  // THE NOT-YET POLL (403-07, gap 1). It fires only from waiting: firing from no-stream would poll
-  // through a declared absence and turn the sentence into a flicker. An unanswered question is not
-  // asked again, because a new token would discard the answer on its way; the interval it spent
-  // still counts toward the bound, and at the bound the answer on its way is discarded.
+  // Polls only from waiting, never from no-stream, and an unanswered question is not asked again.
   useEffect(() => {
     if (!waiting) return
     const timer = setTimeout(() => {
@@ -377,9 +341,7 @@ export function LivePreview({ subject, chrome }: LivePreviewProps) {
     </button>
   )
 
-  // THE STATUS IS SAID ONCE. The dot floats alone at the container's top-right and never makes a row
-  // (owner decision 2026-09-26 (6)). With a dot or an iframe up, any words, label or action lead the
-  // chrome; otherwise the words are a dot-less sentence in the middle of the pane.
+  // The dot never makes a row; with a dot or iframe up, words lead the chrome, else they centre.
   const statusShown = (dot !== null || framed) && (view.words !== undefined || view.snapshot || action !== null)
   const status = statusShown ? (
     <div data-preview-corner className="flex min-w-0 flex-wrap items-center gap-2">
@@ -404,18 +366,10 @@ export function LivePreview({ subject, chrome }: LivePreviewProps) {
       data-preview-state={view.state}
       className="flex h-full min-h-0 flex-col"
     >
-      {/*
-        One preview, which follows the running member (owner review 2026-09-26), never a grid.
-        The handle selector this row used to hold is gone; the host decides the handle.
-        The status words lead the row at the container's top-left (owner decision 2026-09-26 (4)).
-      */}
+      {/* One preview that follows the running member; the host decides the handle. */}
       <PreviewChrome status={status}>{chrome}</PreviewChrome>
 
-      {/*
-        The dot's corner is reserved above the picture: the dot's box ends 28px below the area's top,
-        and pt-8 keeps 4px clear, so a short area cannot centre the picture under it (G-433-7: at
-        400x800 the narrow navigation row left the preview area 301px tall and the picture met the dot).
-      */}
+      {/* `pt-8` keeps the picture clear of the dot's corner even in a short preview area. */}
       <div
         className={`relative flex min-h-0 flex-1 items-center justify-center [container-type:size]${dot !== null ? ' pt-8' : ''}`}
       >
@@ -425,7 +379,7 @@ export function LivePreview({ subject, chrome }: LivePreviewProps) {
           </div>
         )}
         {framed && mint !== undefined ? (
-          // THE BOX TAKES THE PICTURE'S OWN ASPECT RATIO (P10), and it holds the picture alone.
+          // The box takes the picture's own aspect ratio and holds the picture alone.
           <div
             data-preview-frame
             className="max-h-full max-w-full"

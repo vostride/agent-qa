@@ -11,8 +11,7 @@ import { RunsTable, type SuiteRunRow, type VisibleRunRow } from "@/components/ru
 
 const LONG_RUN_NAME = "Open homepage with a deliberately long run name that should wrap inside a compact cell instead of truncating into a single overflowing line"
 
-// a cell can switch to the real Radix tooltip, whose trigger slot is the
-// one that overrode the badge's data-slot.
+// A cell can switch to the real Radix tooltip, whose trigger slot overrides `data-slot`.
 const tooltipMode = vi.hoisted(() => ({ real: false }))
 
 vi.mock("@/components/ui/tooltip", async (importOriginal) => {
@@ -450,8 +449,7 @@ describe("RunsTable", () => {
   })
 })
 
-// a verify run's row carries the gate-run mark; the list shows it beside
-// the name and adds no filter for it.
+// A verify run's row carries the gate-run mark beside the name, with no filter for it.
 describe("the Verify run mark on a gate run", () => {
   const GATE_RUN_KEY = "agent-qa.gate-run"
 
@@ -513,7 +511,7 @@ describe("the Verify run mark on a gate run", () => {
   })
 })
 
-// 2026-10-17 (443-18, GAP-D7): the badge alone displays the mark, explained and first-line aligned.
+// The badge alone displays the mark, explained and first-line aligned.
 describe("the Verify run badge", () => {
   const GATE_RUN_KEY = "agent-qa.gate-run"
   const EXPLANATION = "Started by authoring verify. Not used for learning."
@@ -588,8 +586,7 @@ describe("the Verify run badge", () => {
   })
 })
 
-// in-row controls take the row's roving tab stop and never open the run;
-// the badge keeps its own slot; Target and Attributes truncate behind a tooltip.
+// In-row controls take the row's roving tab stop and never open the run; long cells truncate.
 describe("the runs table's badge, tab stops and truncated cells", () => {
   const GATE_RUN_KEY = "agent-qa.gate-run"
   const LONG_TARGET = "checkout-service-staging-eu-west-with-a-very-long-registry-name"

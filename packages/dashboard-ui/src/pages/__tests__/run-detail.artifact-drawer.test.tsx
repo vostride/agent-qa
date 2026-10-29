@@ -45,16 +45,9 @@ const {
 
 vi.mock("@/lib/api", () => ({
   fetchRun: fetchRunMock,
-  // the page reads its steps and sub-actions from `runs.detail`, not from the run row.
-  // A whole-module mock that omitted this export would leave it `undefined` at the call site, and
-  // the page would render its could-not-load posture — these cells would then pass while pinning
-  // nothing about the drawer.
+  // The page reads steps from `runs.detail`; an omitted mock export renders could-not-load.
   fetchRunDetail: fetchRunDetailMock,
-  // the page's THIRD read — the failure view's. This whole-module
-  // mock replaces `@/lib/api`, so an omitted export is `undefined` at the call site and every
-  // cell here dies before it asserts. Its own behaviour is measured in `run-detail.analysis.test.tsx`.
-  // now a MOCK rather than a constant double, because one cell here drives a
-  // cited artifact off a real verdict and through the page's `onCitedArtifact` wiring.
+  // This mock replaces `@/lib/api`, so an omitted export would kill every cell before it asserts.
   fetchRunAnalysis: fetchRunAnalysisMock,
   fetchRunKnowledge: () => Promise.resolve({ kind: 'evidence-incomplete', runId: '' }),
   fetchRunArtifact: fetchRunArtifactMock,
@@ -62,12 +55,7 @@ vi.mock("@/lib/api", () => ({
   fetchExecutionLogs: fetchExecutionLogsMock,
   fetchRunEvidence: () => Promise.resolve({ kind: 'failed', error: 'Evidence read not configured in this fixture' }),
   triggerRun: vi.fn(),
-  // run detail now subscribes a post-processing chip client on mount. This
-  // whole-module mock REPLACES `@/lib/api`, so an omitted export is `undefined` at the call site
-  // and every cell in this file dies before it asserts. It is a no-op DOUBLE rather than the real
-  // function on purpose: the real one constructs an `EventSource` and a 3 s interval against a
-  // `fetch` these cells do not stub, which is a socket and a poll inside a test about something
-  // else. The client's own behaviour is measured in `run-detail.post-processing.test.tsx`.
+  // A no-op double: the real watcher opens an `EventSource` and polls an unstubbed `fetch`.
   watchPostProcessing: () => () => {},
 }))
 
@@ -169,9 +157,7 @@ vi.mock("@/components/run-detail/artifact-drawer", () => ({
 }))
 
 vi.mock("@/components/run-detail/step-tree", () => ({
-  // the tree takes the member-grouped projection now, not a flat step list. The double
-  // flattens it through the SAME helper the page uses, so the ids it renders are the ids the page
-  // selects by — a second flattening here would let this file pass on keys nobody can click.
+  // The double flattens through the page's helper, so its ids are the ids the page selects by.
   StepTree: ({
     groups,
     selection,
@@ -180,10 +166,7 @@ vi.mock("@/components/run-detail/step-tree", () => ({
   }: {
     groups: readonly RunDetailGroup[]
     selection: { type: string; stepId?: string; subIndex?: number } | null
-    // the double renders the cited-artifact affordance the real tree renders through
-    // `MemberGroup` → `VerdictBlock`, because the claim under test here is the PAGE's wiring
-    // (`onCitedArtifact` → the drawer on a sha-keyed screenshot tab). The block's own view→markup
-    // mapping is pinned in `components/run-detail/__tests__/verdict-block.test.tsx`.
+    // The double renders the cited-artifact affordance, because the page's wiring is under test.
     analysisView?: ReadonlyMap<number, { citedArtifacts: readonly { sha: string; incomplete: boolean }[] }>
     onCitedArtifact?: (sha: string) => void
   }) => {
@@ -217,8 +200,7 @@ vi.mock("@/components/run-detail/step-tree", () => ({
 }))
 
 vi.mock("@/components/run-detail/tab-panels", () => ({
-  // The double carries `activeTab` so a shortcut cell can read the tab the PAGE handed down,
-  // rather than inferring it from the URL the page also writes.
+  // The double carries `activeTab` so a cell reads the tab the page handed down, not the URL.
   TabPanels: ({ activeTab }: { activeTab: string }) => (
     <div data-testid="tab-panels" data-active-tab={activeTab} />
   ),
@@ -512,11 +494,7 @@ describe("RunDetailPage artifact drawer", () => {
     expect(searchParams(view).get("tab")).toBe("network")
   })
 
-  // M NO LONGER OPENS A DRAWER. The v1 memory drawer tab it used to open is dead
-  // debris 407-05 deletes grep-clean; the key is re-pointed at the Knowledge tab HERE so it is
-  // never dead for the length of a plan. The cell asserts BOTH halves of that: the tab the page
-  // hands down moved, and no drawer opened — a shortcut that quietly did both would be two
-  // surfaces answering one keypress.
+  // M opens the Knowledge tab and no drawer, so one keypress never answers on two surfaces.
   it("opens the Knowledge tab with M and keeps navigation state stable", async () => {
     const view = await renderAt("/runs/run-1?step=0:0&sub=0")
     const stepTree = view.querySelector('[data-testid="step-tree"]') as HTMLElement

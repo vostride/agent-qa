@@ -28,65 +28,11 @@ import { getRunStatusDescriptor, getStatusBadgeClassName } from '@/lib/status'
 
 import type { RunEventEnvelope } from '@vostride/agent-qa-schema'
 
-/**
- * THE HONEST RUN-TIME SURFACE (403 · HNST-01/HNST-02/HNST-03, LIVE-04, INVK-05, D-09..D-13).
- *
- * WHAT THIS PAGE STOPPED DOING. It used to render the whole run-detail apparatus live: a clickable
- * step tree, tab panels over reasoning and console and network, per-step screenshots — all of it
- * fed by the legacy execution-events feed and all of it PROVISIONAL, because a step that has not
- * finalized has no settled answer to give. A person watching it was reading a draft as though it
- * were a record. That apparatus still serves run detail, over durable state, where it is true; it
- * is gone from here.
- *
- * WHAT IT DOES INSTEAD. Two panes and nothing else: a status-only step list off the run event bus,
- * and one embedded live preview of the browser the run is actually driving. What is on screen is
- * either a fact the bus published or a picture of the real thing.
- *
- * THE THREE HONESTY CLAIMS ARE STRUCTURAL, NOT EDITORIAL.
- *  - HNST-01: nothing provisional is reachable because {@link StepList} accepts nothing that could
- *    carry it — the reducer dropped those fields at ingest and the props never name them.
- *  - HNST-02: a status, never a phase word, because the page has no way to know what happens
- *    between two sub-actions and will not guess. Since 428 D-19/D-20 a row carries no count and no
- *    clock either, and since the owner's 2026-09-26 review its running glyph is still;
- *    durations live in run detail.
- *  - HNST-03, AS 428 D-03 LEFT IT: the page makes no claim about the bus channel at all. There is
- *    no liveness pill and no pulsing icon; a dead bus shows as rows that stop advancing, and the
- *    facts the page does state (the gap marker, the terminal band, the run-over sentence) come
- *    from the stream's own envelopes and the door's classification of a close.
- *
- * AND AT THE END IT MOVES WITH THE RUN (2026-08-26, Phase 404 · LIFE-01, D-13/D-14 — this
- * paragraph replaces 403's D-12 "it does not navigate", which deferred the decision to the phase
- * that owns verdict-exactly-once against a run-detail page 405 had not yet rebuilt; both are now
- * true, so the deferral is spent).
- *
- * THE TRIGGER IS THE `verdict` ENVELOPE, NOT `runFinished`. The verdict is the moment the run's
- * answer exists; `runFinished` comes after the post-verdict step, which D-10 says never gates
- * anything a person sees. Navigating on the later one would tie a person's screen to a lease
- * consult and a durable enqueue. The reducer takes the FIRST verdict and drops any second
- * so the effect below keyed on that field fires exactly once per run.
- *
- * AND IT REPLACES HISTORY. Back returns to wherever the person came from — never to a live page
- * whose socket the door has already closed, which is a screen that would immediately move them
- * forward again. The arrival carries ONE field of navigation state, `arrivedOnVerdict`, which is
- * the only thing run detail cannot work out for itself: the run row's status is written by the
- * dashboard subscriber at the SAME envelope, so a `fetchRun` a millisecond later may still read
- * `running` and would otherwise bounce the viewer straight back here.
- *
- * THE TERMINAL BAND SURVIVES AS THE HONEST FALLBACK, rendered on exactly the paths where
- * navigation CANNOT happen — a `runFinished` observed with no verdict at all (a malformed
- * producer), and a close the door classifies past the end of its retention window, where the
- * replay delivers no verdict to move on. A page that deleted the band would show a run that ended
- * without a verdict nothing whatsoever. `state.verdict` is read FIRST in both arms: if a replay
- * delivered one, the navigation fires and the band is moot.
- */
+// Moves to run detail on the first `verdict` with `replace`; the band covers ends with no verdict.
 
 const SOURCE_CLOSED = 2
 
-/**
- * D-13's visible gap, in words. The bus never silently truncates and neither does this page: a
- * step that flips `pending` → `failed` with no visible reason is the failure the marker exists to
- * refuse, and the range is inclusive on both ends because both ends are envelopes nobody will see.
- */
+// The range is inclusive, because both ends are envelopes the viewer will not see.
 export function gapMarkerText(from: number, to: number): string {
   return `${String(to - from + 1)} events missed (seq ${String(from)}–${String(to)}) — see run detail`
 }
@@ -94,7 +40,7 @@ export function gapMarkerText(from: number, to: number): string {
 /** What the terminal band says beside the verdict. */
 export const RUN_ENDED_TEXT = 'run ended'
 
-/** D-15's word for a run this process can no longer stream. */
+// The word for a run this process cannot stream any further.
 export const RUN_OVER_TEXT = 'this run is over — view run detail'
 
 /**
@@ -119,19 +65,14 @@ export default function LiveRunPage() {
   const [runMetaFailed, setRunMetaFailed] = useState(false)
   const [isCancelling, setIsCancelling] = useState(false)
 
-  // The resume point for the NEXT attach. Read from the reducer's `lastSeq` (the HIGHEST seq seen)
-  // rather than tracked here off render order: a resume point that walked backward on an
-  // out-of-order delivery would re-open a gap this viewer had already been served.
+  // Resumes from the reducer's highest `lastSeq`, so an out-of-order delivery never walks it back.
   const resumeRef = useRef<number | undefined>(undefined)
   const stateRef = useRef(state)
   stateRef.current = state
-  // How many times this page has re-attached to a run the door does not know about YET. Bounded,
-  // so D-15's refusal to hammer a settled door survives the not-yet probe below.
+  // Bounded, so the not-yet probe never hammers a door that has settled.
   const notYetAttemptsRef = useRef(0)
 
-  // the page's own inline size decides docked or stacked. 0 until the observer reports,
-  // and an unmeasured page is docked. The observer only sets a width; the layout is a pure function
-  // of it, so it cannot feed back into the size it measures.
+  // The page's own width picks docked or stacked; the observer only sets a width, so no loop.
   const [pageRoot, setPageRoot] = useState<HTMLDivElement | null>(null)
   const [pageWidth, setPageWidth] = useState(0)
   useEffect(() => {
@@ -144,10 +85,7 @@ export default function LiveRunPage() {
     return () => { observer.disconnect() }
   }, [pageRoot])
 
-  // D-13. THE RUN ANSWERED, SO THE VIEWER MOVES TO THE RECORD OF IT — see the header block for
-  // why this keys on `verdict` and not on `runFinished`, and why the history entry is REPLACED.
-  // `state.verdict` is first-verdict-wins in the reducer, so this effect's dependency cannot
-  // change twice for one run and cannot fire twice.
+  // `state.verdict` is first-verdict-wins, so this effect fires once per run.
   useEffect(() => {
     if (id === undefined || state.verdict === undefined) return
     navigate(
@@ -187,8 +125,7 @@ export default function LiveRunPage() {
       // `=== undefined`, never truthiness: seq 0 is a real resume point ("from the very
       // beginning"), and a falsy guard here would silently turn it into "from wherever you like".
       lastEventId: resumeRef.current,
-      // D-12. At `runFinished` the door closes the stream on its own terms and the reducer
-      // freezes the rows; there is nothing left to attach to and nothing to classify.
+      // At `runFinished` the door closes the stream and the reducer freezes the rows.
       onEvent,
       onError: (_event, errored) => {
         if (disposed) return
@@ -198,8 +135,7 @@ export default function LiveRunPage() {
         // in a CLOSED source, which is classified below.
         if (errored.readyState !== SOURCE_CLOSED) return
 
-        // A CLOSED source is one wordless event standing for three different situations, so the
-        // page asks the door which one it was rather than guessing from `readyState`.
+        // A closed source looks alike whatever closed it, so the page asks the door which.
         if (stateRef.current.terminal) return
 
         const lastSeq = stateRef.current.lastSeq
@@ -221,21 +157,7 @@ export default function LiveRunPage() {
               return
             }
             case 'unknown_run': {
-              // D-15, AND THE NOT-YET RUN IT USED TO SWALLOW (403-07, gap 1 arm 2).
-              //
-              // `unknown_run` is one word for two situations, and the discriminator is whether
-              // this page has ever heard ANYTHING about the run. A page that has folded envelopes
-              // and is now told the run is unknown has watched its retention elapse — retrying
-              // would hammer a door that has already given its final answer, so D-15 stands and
-              // the durable record is the honest destination. A page that has heard NOTHING yet
-              // (`lastSeq === 0`) may simply have arrived before the session reached the registry,
-              // which is the ordinary flow: every trigger surface navigates here the instant the
-              // run id exists. Latching `this run is over` there is the same lie the preview pane
-              // used to tell, one channel across — and it is worse, because it takes the whole
-              // page down with it.
-              //
-              // THE PROBE IS BOUNDED, which is what keeps D-15's argument intact: a run that never
-              // appears costs a fixed, short handful of attaches and then reads `over` for good.
+              // `unknown_run` after envelopes is elapsed retention; before any, maybe unregistered.
               if (lastSeq > 0 || notYetAttemptsRef.current >= NOT_YET_ATTACH_LIMIT) {
                 setRunOver(true)
                 return
@@ -267,9 +189,7 @@ export default function LiveRunPage() {
 
   const members = useMemo(() => Object.values(state.members), [state.members])
 
-  // THE PREVIEW FOLLOWS THE RUNNING MEMBER (G-428-3, owner decision 2026-09-26 (3)). Nobody picks a
-  // handle: it is derived from the reduced stream, and the ref carries the last one watched so the
-  // rule can keep a running member and hold a finished one until the next member starts.
+  // The ref holds the last watched handle, so a finished member is held until the next one starts.
   const watchedRef = useRef<number | undefined>(undefined)
   const watchedHandle = watchedHandleOf({ handles: state.handles, members: state.members }, watchedRef.current)
   watchedRef.current = watchedHandle
@@ -285,13 +205,13 @@ export default function LiveRunPage() {
     const toastOptions = { id: `cancel-${id}` }
     cancelRun(id)
       .then((result) => {
-        // a stop request is not a cancel; the verdict sets the status.
+        // A stop request is not a cancel; the verdict sets the status.
         if (typeof result.message !== 'string') toast.error('Failed to cancel run', toastOptions)
         else if (result.outcome === 'cancelled') toast.success(result.message, toastOptions)
         else toast.info(result.message, toastOptions)
       })
       .catch((error: unknown) => {
-        // only the 409 refusals are worded for a person.
+        // Only the 409 refusals are worded for a person.
         const refused = error instanceof ApiError && error.status === 409
         toast.error(refused ? error.message : 'Failed to cancel run', toastOptions)
       })
@@ -305,36 +225,19 @@ export default function LiveRunPage() {
   const title = fallbackRun?.name ?? 'Live Run'
   const isOver = state.terminal || runOver
 
-  // D-14, AND THE WHOLE OF WHY THE BAND IS NOT DEAD CODE. The band is what this page has to say
-  // when it CANNOT move the viewer to the record: `runFinished` landed and no verdict ever did.
-  // With a verdict the effect above has already navigated, and painting "run ended, stay put" in
-  // the same tick would be the page contradicting itself. `runOver` — the door classified the
-  // close past the end of its retention window — renders its own sentence just below, on the same
-  // no-verdict reasoning.
+  // The band shows only when the run ended with no verdict; a verdict has already navigated.
   const bandsTerminal = state.terminal && state.verdict === undefined
 
-  // The rung the FIRST evidence-carrying frame reported, if one has arrived. Named
-  // here rather than read twice in the JSX below, so the strip's visibility condition and the
-  // element inside it can never come apart.
+  // Named once so the strip's condition and the element inside it cannot come apart.
   const rung = state.retrievalRung
 
-  // THE SENTENCE, NOT THE VALUE (407-16 · REVIEW WR-01). `rungBannerText` is the SAME function
-  // `RetrievalRungBanner` calls to decide whether it renders at all, so gating the container on
-  // its result makes container and child structurally incapable of disagreeing. Reading the
-  // banner's own predicate here is the point: any future silence the banner learns (a new top
-  // rung, a new absent case) closes the strip with it, with nothing to keep in sync by hand.
+  // Gated on `rungBannerText`, the banner's own predicate, so container and child cannot disagree.
   const rungSentence = rungBannerText(rung === undefined ? undefined : {
     rung: rung.rung,
     ...(rung.reason === undefined ? {} : { reason: rung.reason }),
   })
 
-  // THE TWO ARRANGEMENTS (428 D-06, 426-11's idiom). Below 768 px the preview goes on top at full
-  // width and the step list scrolls beneath it; otherwise the steps sit beside the preview as
-  // before. The switch changes the Group's orientation, the panels' ids and their order, and never
-  // the Group's key. The panels keep stable React keys, so React MOVES them rather than remounting
-  // them: the step list and the preview component survive the switch. A real browser does reload
-  // an iframe whose node moves; the embed reconnects by itself with its still-valid fragment token.
-  // Docked sizes are the ones this page always had; stacked sizes are percentages of the height.
+  // The switch keeps the Group and panel React keys, so the step list and preview are moved.
   const layout = liveRunLayoutOf(pageWidth)
   const panelIds = liveRunPanelIds(layout)
   const stacked = layout === 'stacked'
@@ -369,12 +272,7 @@ export default function LiveRunPage() {
   return (
     <div ref={setPageRoot} className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
       <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b px-3">
-        {/*
-          THE HEADER IS FOUR THINGS: the title and the file path here, Cancel while the
-          run is running and the link to run detail on the right. The product tour's live-run
-          anchor sits on this title group, so the tour step points at the name of the run being
-          watched. Nothing here pulses or speaks about the bus channel.
-        */}
+        {/* Title, path, Cancel while running and the run-detail link; nothing about the bus. */}
         <div data-tour-id="tour-live-run-status" className="flex min-w-0 items-center gap-2">
           <div className="min-w-0">
             <h2 className="truncate text-base font-semibold leading-tight">{title}</h2>
@@ -403,21 +301,7 @@ export default function LiveRunPage() {
         </div>
       </div>
 
-      {/*
-        THE HEADER'S SECOND LINE, AND THE RUNG JOINS IT RATHER THAN OPENING A PANE.
-        403's two-pane rule is not negotiable here: the strip already exists, it already wraps, and
-        a run whose retrieval was degraded has one more short sentence to say — not a third region.
-        The rung is in the visibility condition on its own, because it can be the ONLY thing the
-        strip has to say on an otherwise healthy, ungapped, still-running stream.
-
-        BUT AS A SENTENCE, NOT AS A VALUE (407-16 · REVIEW WR-01). `memidex` is a perfectly
-        defined rung with nothing to say — it is the TOP rung, so the banner renders null for it.
-        Gating on the value's presence therefore opened this bordered rule, empty, under the
-        header of every healthy live run the moment its first `stepFinalized` frame landed: a
-        visible line the page had no statement to put on. The condition reads the banner's own
-        predicate (`rungSentence`) instead, so the container opens exactly when some child will
-        speak. A strip with nothing to say is not rendered.
-      */}
+      {/* The rung joins the second line, gated on its sentence so `memidex` adds no empty rule. */}
       {(bandsTerminal || runMetaFailed || runOver || state.gap !== undefined
         || rungSentence !== undefined || state.notices.length > 0) && (
         <div data-run-meta-strip className="flex shrink-0 flex-wrap items-center gap-3 border-b px-3 py-2 text-xs">

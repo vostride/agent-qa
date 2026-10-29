@@ -1,7 +1,4 @@
-// MOBILE APP STATE (429-22 · D-19 · UI-SPEC S2, S3).
-//
-// The one mobile leaf is a select that saves the moment it changes. While it is unset its help line
-// says mobile runs need the choice.
+// The one mobile leaf is a select that saves the moment it changes.
 
 import { ConfigField } from "@/components/config-manager/config-field"
 import { useConfigAutosaveContext } from "@/hooks/use-config-autosave"

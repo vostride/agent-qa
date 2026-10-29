@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 
-// 427 · D-20..D-23 — the tab states how retrieval ran for this run, under the Knowledge used heading.
-// Views are built through the real projectKnowledgeView over schema-parsed projections.
+// Views come from the real `projectKnowledgeView` over schema-parsed projections.
 
 import { act, type ReactElement } from "react"
 import { createRoot, type Root } from "react-dom/client"

@@ -1,8 +1,6 @@
 // @vitest-environment jsdom
 
-// 427 · D-06, D-09, memory.md §7.5 — Show full record: the record as read now, its code-computed
-// track record, and only then the curator's unverified note. Driven through the used row that hosts
-// it, over schema-parsed projections.
+// Show full record: the record as read, its track record, then the curator's unverified note.
 
 import { act, type ReactElement } from "react"
 import { createRoot, type Root } from "react-dom/client"

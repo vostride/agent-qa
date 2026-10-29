@@ -55,11 +55,7 @@ export interface FeedbackPreviewProps {
 
 const SKELETON_WIDTHS = ['w-full', 'w-5/6', 'w-2/3', 'w-3/4'] as const
 
-/**
- * "What this will do". Presentational: every word comes from the preview read the
- * composer hands it, producer strings are text nodes, and ids stay out of view.
- * Not a live region; outcomes announce through the composer's footer status.
- */
+// Every word comes from the preview read; not a live region, as the composer's footer announces.
 export function FeedbackPreview({
   state,
   current,

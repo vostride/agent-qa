@@ -1,21 +1,4 @@
-// THE RUN-DETAIL STEP TREE, GROUPED BY MEMBER.
-//
-// WHAT THIS REPLACED. Until 405-08 the tree took a flat `DisplayStep[]` plus a second prop holding
-// the suite's child RUN ROWS — fetched by walking the parent's child list and re-reading each child
-// run — and grouped by `step.runId`. 405-07 deleted that walk and the v1 step table it read, and
-// 402 D-10 replaced child runs with per-member HANDLES on one run. So the tree now takes the
-// durable projection's own grouping: one group per member, in handle order, and no second read.
-//
-// ONE FLATTENING, TWO SURFACES. The page needs the same numbered `DisplayStep[]` this tree draws —
-// for selection, hotkeys, deep links and the panels — so both call `displayStepsForGroups`. Two
-// independent flattenings that agreed today would be two that can disagree tomorrow, and the
-// disagreement would show as a deep link selecting a row the tree is not highlighting.
-//
-// INLINE LOGS ARE ATTACHED ONLY WHEN THERE IS ONE MEMBER, and that is a refusal to guess rather
-// than a limitation. `ExecutionLogEntry` carries a `stepId` that is a step ORDINAL and a `runId`
-// that is now the one run — it carries no member handle. On a multi-member run an ordinal names one
-// step per member, so attaching by ordinal would show the same log under every member's step of
-// that index. A log shown in no place is an absence; a log shown in three wrong places is a lie.
+// Inline logs attach only with one member: a log's `stepId` is an ordinal with no member handle.
 
 import { useMemo } from "react"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -44,23 +27,9 @@ interface StepTreeProps {
   groups: readonly RunDetailGroup[]
   /** Whether the RUN has more than one member — not whether the filter left more than one. */
   showMemberChrome?: boolean
-  /**
-   * The failure view, keyed by member handle.
-   *
-   * PASSED THROUGH, NEVER READ HERE. This tree owns no analysis fact: the page projects the map
-   * from `analysis.get`'s bytes and this component hands each member its own entry, exactly as it
-   * hands each member its group. An empty map is the honest state of a green run and of a page
-   * whose first read has not landed.
-   */
+  // Passed through, never read here; an empty map is a green run or a first read not landed.
   analysisView?: ReadonlyMap<number, MemberVerdictView>
-  /**
-   * What a cited step, a cluster sibling and a cited artifact DO, handed straight down
-   *
-   * PASSED THROUGH, NEVER CALLED HERE, and optional for the same reason `analysisView` is: this
-   * tree owns no analysis fact and no page state. Resolving a step ordinal to a selected row and
-   * writing the member filter both belong to the page, which is the only thing that holds
-   * `displaySteps` and the search params.
-   */
+  // Passed through, never called here: the page owns selection and the member filter.
   onCitedStep?: (testIndex: number, stepIndex: number) => void
   onSelectMember?: (testIndex: number) => void
   onCitedArtifact?: (sha: string) => void

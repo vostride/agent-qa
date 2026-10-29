@@ -89,12 +89,7 @@ export function briefLinesFact(count: number): string {
   return `${String(count)} brief ${count === 1 ? 'line' : 'lines'}`
 }
 
-/**
- * The fact badge counting a row's canary lines.
- *
- * `canary` does not inflect: it is the MARKER's name being counted, not a plural noun phrase, and
- * the Copywriting Contract spells it `{k} canary` at every k.
- */
+// `canary` names the marker being counted, so it reads `{k} canary` at every k.
 export function canaryFact(count: number): string {
   return `${String(count)} canary`
 }
@@ -972,13 +967,7 @@ export function replayedText(checksPassed: number, total: number): string {
   return `replayed ${String(checksPassed)}/${String(total)}`
 }
 
-/**
- * The three ways a replay guard can break, in the words the Copywriting Contract spells.
- *
- * `executionFailure` reads `adapter failure` rather than its member name because the member names
- * the layer that failed and the sentence names what a person can act on — an adapter that could
- * not perform the recorded action.
- */
+// `executionFailure` reads `adapter failure`, naming what a person can act on, not the layer.
 export const BROKE_CAUSE_LABELS = {
   miss: 'miss',
   executionFailure: 'adapter failure',
@@ -1366,14 +1355,7 @@ export function planSourceView(planSource: RunKnowledgePlanSource): PlanSourceVi
   }
 }
 
-/**
- * The first {@link CHANNEL_PAGE_SIZE} lines of a channel, and the trigger for the rest.
- *
- * NO VIRTUALISATION, by design (UI-SPEC): step rows render collapsed, so the tab's DOM is bounded
- * by the number of steps rather than by the number of lines. This bounds the one case that is not
- * — a single step served hundreds of lines — without introducing a scroll owner inside a scroll
- * owner.
- */
+// No virtualisation: collapsed rows bound the DOM, and this bounds one step's long channel.
 export function channelPage<T>(lines: readonly T[]): ChannelPage<T> {
   if (lines.length <= CHANNEL_PAGE_SIZE) return { lines }
   return {

@@ -444,7 +444,7 @@ async function typeListAndBlur(textarea: HTMLTextAreaElement, value: string) {
   await flushRender()
 }
 
-/** The Step timeout ConfigField, which the 429-16 wiring cells drive. */
+// The Step timeout field, which the wiring cells drive.
 function stepInput() {
   return document.getElementById(configFieldControlId(STEP_KEY)) as HTMLInputElement | null
 }
@@ -2029,7 +2029,7 @@ describe('ConfigPage task tabs shell', () => {
     expect(panel.querySelector('input[type="password"]')).toBeNull()
     expect(panel.textContent).not.toContain('Save Credential')
 
-    // A not-connected sign-in row offers Sign in again; the modal's login button is gone.
+    // A not-connected sign-in row offers Sign in again.
     expect(buttonIn(panel, SIGN_IN_AGAIN_LABEL)).not.toBeNull()
     expect(document.body.textContent).not.toContain('Login with OpenAI subscription')
     expect(document.body.textContent).not.toContain('Save Credential')

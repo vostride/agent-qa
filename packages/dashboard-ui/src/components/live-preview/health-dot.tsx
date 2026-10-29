@@ -1,7 +1,4 @@
-// THE PREVIEW'S ONE HEALTH DOT, on BucketLabel's accessible-trigger idiom.
-//
-// It floats at the container's top-right (owner decision 2026-09-26 (6)), so its tooltip opens
-// leftward from the dot's right edge, into the pane rather than out of it.
+// It floats at the container's top-right, so its tooltip opens leftward into the pane.
 
 import { useId } from 'react'
 

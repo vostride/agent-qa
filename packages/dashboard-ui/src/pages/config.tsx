@@ -87,7 +87,7 @@ const SECTION_COMPONENTS: Partial<Record<ConfigSectionId, readonly ComponentType
   "config-file": [ConfigFileView],
 }
 
-// The Models heading shares its row with Add model (UI-SPEC S4); the list spans the row below.
+// The Models heading shares its row with Add model; the list spans the row below.
 const SECTION_LAYOUT: Partial<Record<ConfigSectionId, string>> = {
   models: "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4",
 }
@@ -188,8 +188,7 @@ export default function ConfigPage() {
     return () => clearTimeout(timer)
   }, [pendingFocus, tab])
 
-  // UI-SPEC S9: the Retry button unmounts once its write lands, so focus goes back to the field
-  // that had failed, else the active tab. A retry that fails again leaves focus on Retry.
+  // Retry unmounts once its write lands, so focus returns to the failed field, else the active tab.
   const retryFocus = useRef<{ target: ConfigDraftTarget | undefined; sent: boolean } | undefined>(undefined)
   const saveState = autosave.status.state
 

@@ -1,7 +1,4 @@
-// 427 · D-03, UI-SPEC S3 — a step number that takes the reader to its step, or honest plain text.
-//
-// The attribute names are data-step-ref-test / data-step-ref-step on purpose: the shipped ledger
-// harvest counts a different step attribute, and a reference must never be counted as a step row.
+// Named `data-step-ref-*` so the ledger harvest never counts a reference as a step row.
 
 import { Fragment, type ReactNode } from "react"
 

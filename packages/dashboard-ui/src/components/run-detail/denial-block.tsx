@@ -1,9 +1,4 @@
-// The dashboard renders a denial's plain reason only. 2026-10-01: there is no remedy
-// vocabulary to project, so the block has one line and no way to grow a suggested command.
-//
-// 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW pillars 2-3): a refusal is a hard stop, so it wears the
-// destructive token the hook dialogs' error boxes use, not a raw warning amber, and an icon marks it
-// as a refusal. The icon is aria-hidden and adds no text: the reason is the whole of what it says.
+// A refusal shows its plain reason only, in the destructive token, beside an aria-hidden icon.
 
 import { Ban } from "lucide-react"
 

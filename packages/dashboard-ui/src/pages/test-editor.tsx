@@ -734,7 +734,7 @@ export default function TestEditorPage() {
     }
   }, [])
 
-  // A session the server no longer holds stays on the pane, whose preview names it.
+  // A session the server dropped stays on the pane, whose preview names it.
   useEffect(() => {
     if (!liveSessionId) return
     if (liveConnectionState !== "disconnected") return

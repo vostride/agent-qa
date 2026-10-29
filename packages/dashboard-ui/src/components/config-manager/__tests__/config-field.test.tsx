@@ -1,11 +1,6 @@
 // @vitest-environment jsdom
 
-// THE ONE FIELD TREATMENT (429-17 Task 1 · UI-SPEC S2 "Field row", S3, E3 · 424 note 27).
-//
-// Every leaf renders through ConfigField and reads and writes only through the page's autosave
-// hook. These cells mount the real hook over a mocked write route, so what they pin is what a
-// person sees: placeholders for unset leaves, one write per settle, drafts that survive, and the
-// same label, help and error wiring on every field.
+// Cells mount the real autosave hook over a mocked write route, so they pin what a person sees.
 
 import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'

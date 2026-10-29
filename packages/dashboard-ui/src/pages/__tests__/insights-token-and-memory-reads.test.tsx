@@ -1,8 +1,6 @@
 // @vitest-environment jsdom
 
-// C433-INSIGHTS-TRUTHFUL. Insights never shows missing data as zero:
-// Token Usage counts what the runs recorded and names steps that recorded nothing, and Memory
-// reflects the curation the runs' own knowledge reads report, or says it could not read them.
+// Insights never shows missing data as zero.
 
 import { act } from "react"
 import { createRoot, type Root } from "react-dom/client"

@@ -1,9 +1,4 @@
-// 427 · D-19 / E8 — the copy button beside every record id in Retrieval details.
-//
-// The check shows only after a write resolved, and a missing clipboard or a rejected write is
-// announced as a failure that spells the id out, so it can still be selected by hand. Only the id
-// string the view holds is written. 2026-10-03: the status logic is the shared
-// `useClipboardCopy`, which `IdBadge` now uses too, and the check wears the success token.
+// The check shows only after the write resolves; a failure is announced and spells the id out.
 
 import { Check, Copy } from "lucide-react"
 

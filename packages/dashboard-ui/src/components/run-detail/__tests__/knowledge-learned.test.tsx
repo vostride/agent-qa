@@ -1,22 +1,7 @@
 import { RECORD_CHANGE_SCHEMA_VERSION, CURATION_SNAPSHOT_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 // @vitest-environment jsdom
 
-// THE LEARNED HALF A PERSON ACTUALLY SEES (407-09 · LERN-02, D-09..D-12, T-407-21/T-407-22).
-//
-// WHY THESE CELLS RENDER INTO `document.body` THROUGH `createRoot`. That is the call `main.tsx`
-// makes. A component mounted into a detached node can satisfy every query in a file like this one
-// while the real mount path is broken, and the cell would never know.
-//
-// THE DOM CONTRACT IS THE SUBJECT, not the styling. `data-learned-state`, `data-learned-count-line`,
-// and `data-record-change` (the bucket word since 427 D-15) are what the
-// Playwright cells address on the built bundle, so every one of them is pinned here in the cheap
-// medium first. Record ids no longer ride on a row: they read in Retrieval details'
-// `dl[data-ledger-changes]`, whose class assertions (`text-primary` on a routed reference,
-// `font-mono break-all` on the ids) pin the UI-SPEC's accent reservation and its wrap rule.
-//
-// THE ABSENCE CELLS ARE THE POINT. D-12's whole posture is that this half never renders blank and
-// never renders a `0` nobody measured, and both of those are claims about elements and text that
-// must NOT exist. An assertion that only ever checks what IS rendered cannot see either one.
+// Rendered into `document.body` through `createRoot`, as `main.tsx` does, so the mount is real.
 
 import { act, type ReactElement } from "react"
 import { createRoot, type Root } from "react-dom/client"
@@ -90,10 +75,7 @@ function mount(element: ReactElement): HTMLElement {
   container = document.createElement("div")
   document.body.append(container)
   root = createRoot(container)
-  // A `MemoryRouter` because a routed reference renders a `<Link>`, and a `Link` outside a router
-  // throws. The unrouted arm renders a span and would pass without one — which is exactly why both
-  // arms are mounted the same way here. The provider is the one `tab-panels.tsx` wraps the tab in,
-  // because every bucket label is a tooltip trigger.
+  // A routed reference renders a `<Link>`, which throws outside a router, so both arms use one.
   act(() => { root?.render(<MemoryRouter><TooltipProvider delayDuration={0}>{element}</TooltipProvider></MemoryRouter>) })
   return container
 }
@@ -108,8 +90,7 @@ function ledgerChange(recordId: string, change: LedgerChange["change"], atOrdina
   return { schemaVersion: RECORD_CHANGE_SCHEMA_VERSION as typeof RECORD_CHANGE_SCHEMA_VERSION, recordId, change, atOrdinal, ...extra }
 }
 
-// 427 D-19 part 2: the ledger a page actually paints — a schema-valid read folded by the real
-// `projectKnowledgeView`, mounted in Retrieval details and opened.
+// The ledger a page paints: a schema-valid read folded by the real `projectKnowledgeView`.
 function renderLedger(changes: LedgerChange[]): HTMLElement {
   const projection = RunKnowledgeProjectionSchema.parse({
     kind: "ready", runId: "run-427-08-ledger", buildOrdinal: 2, knowledgeStore: "bound", steps: [],
@@ -141,7 +122,7 @@ function rowsOf(host: HTMLElement): HTMLElement[] {
   return [...host.querySelectorAll<HTMLElement>("li[data-record-change]")]
 }
 
-// a row is a bucket and what it leads with; its key is the index the view assigns.
+// A row is a bucket and what it leads with; its key is the index the view assigns.
 function row(overrides: Partial<LearnedRowView> = {}): LearnedRowView {
   return {
     key: "0",
@@ -220,16 +201,7 @@ describe("a failed curation states the consequence, not just the failure", () =>
   })
 })
 
-// A FAILED CHAIN CANNOT UN-COMMIT WHAT IT ALREADY WROTE (owner ruling 2026-08-31 · REVIEW CR-01 /
-// G-407-12, the Learned-half twin of the "a served row wins" ruling 407-22 applied to the Used
-// half). 407-26 hoisted `learnedView`'s rows fold above the whole curation-status ladder and put
-// the chain's fate in its own slot; these cells are the half a person sees.
-//
-// TWO PRODUCERS, THEREFORE TWO SLOTS. `chainNote` reports the CHAIN — these records were committed
-// before it stopped — and `readNote` reports the READ — this is not all of the store. The op folds
-// `curation` and `learned` independently and the conformance file's `attributed-failed` world
-// carries both at once, so one paragraph could only ever speak for one of them while silently
-// standing in for the other. Both are pinned below, in document order, each by its own attribute.
+// `chainNote` reports the chain and `readNote` the read, each by its own attribute.
 describe("a failed chain paints the records it committed and notes its fate BESIDE them", () => {
   it("paints the row and the chain note, and prints NO sentence over the records", () => {
     const host = render({
@@ -345,14 +317,7 @@ describe("a settled curation that changed nothing says that, and lists nothing",
   })
 })
 
-/**
- * LEARNED-BREAKDOWN-LINE AND LEARNED-LEGACY-NOTE, AT THE MOUNT.
- *
- * The heading's line is now the curation card's own breakdown string, and the note beneath it is
- * what a pre-423 or withheld row says about the breakdown it never recorded. The note is a SECOND
- * element rather than a second clause on the count line: a reader scanning the counts should not
- * have to parse a sentence out of them, and a cell should be able to assert the absence.
- */
+// The note is a separate element from the count line, so a cell can assert its absence.
 describe("the heading spells one number one way, and labels a coarser one", () => {
   it("LEARNED-BREAKDOWN-LINE: renders the five-bucket line in the heading's own count slot", () => {
     const breakdown = { added: 1, confirmed: 1, superseded: 1, deprecated: 1, proposed: 1 }
@@ -386,14 +351,7 @@ describe("the heading spells one number one way, and labels a coarser one", () =
   })
 })
 
-/**
- * THE RECONCILIATION BLOCK, AT THE MOUNT.
- *
- * TWO LINES AND TWO ATTRIBUTES, because the gap and its cause are two different claims: the first
- * is arithmetic the reader can check, the second is an account of it the read had to justify. A
- * cell addressing one must be able to assert the other, and a run whose numbers agree must be able
- * to assert that neither element exists at all.
- */
+// The gap and its cause are separate elements, so a matching run can assert neither exists.
 describe("a mismatch is explained beneath the heading, and only when there is one", () => {
   const breakdown = { added: 3, confirmed: 0, superseded: 0, deprecated: 0, proposed: 0 }
 
@@ -422,9 +380,7 @@ describe("a mismatch is explained beneath the heading, and only when there is on
     expect(cause?.tagName).toBe("P")
     expect(cause?.textContent).toBe(RECONCILIATION_UNATTRIBUTED_TEXT)
     expect(cause?.className).toContain("text-muted-foreground")
-    // UI-SPEC S5 puts `tabular-nums` on BOTH paragraphs. The cause carries no digit today, and
-    // that is exactly why the class is pinned here: a cause sentence that later names a count
-    // must line up with the one above it rather than acquiring the rule after the fact.
+    // Both paragraphs carry `tabular-nums`, so a cause that later names a count lines up.
     expect(cause?.className).toContain("tabular-nums")
   })
 
@@ -493,7 +449,6 @@ describe("the record list is one row per affected record, in the curation bucket
     expect(line?.className).not.toContain("truncate")
   })
 
-  // RE-SPELLED 427-08 from 'renders the kind word in the row's badge as well as in its attribute'.
   it("BUCKET-LABEL-VOCABULARY: each row's label reads the curation breakdown word it is stamped with", () => {
     const snapshot = fiveBucketSnapshot()
     const host = render(learnedView(readyProjection("complete", {
@@ -515,8 +470,6 @@ describe("the record list is one row per affected record, in the curation bucket
     expect(Object.values(BUCKET_LABELS).map(word => word.toLowerCase())).toEqual(snapshot.rows.map(entry => entry.bucket))
   })
 
-  // RE-SPELLED 427-08 from 'renders the record id in a mono element on every row — the address is
-  // always readable': ids now read only in Retrieval details, one block per changed record.
   it("CHANGE-LEDGER-ENTRIES: one ledger block per changed record, with every id and raw event in mono", () => {
     const host = renderLedger([
       ledgerChange("fact-kept", "confirmed", 12),
@@ -540,11 +493,7 @@ describe("the record list is one row per affected record, in the curation bucket
     expect(ledgerRow(blocks[1], "bucket")?.textContent).toBe("superseded")
   })
 
-  /**
-   * A CONTENT-DERIVED BUNDLE ID IS ONE UNBROKEN TOKEN. In the ledger's grid the
-   * value column is `minmax(0,1fr)` and every value breaks anywhere, so a long id shrinks its own
-   * box rather than widening the section.
-   */
+  // Ledger values sit in a `minmax(0,1fr)` column and break anywhere, so a long id shrinks its box.
   it("lets a content-derived record id shrink its own box rather than widen the row", () => {
     const host = renderLedger([ledgerChange("fact-page-https-example-com-0f9a-and-a-much-longer-tail", "confirmed", 12)])
     const block = ledgerBlocks(host)[0]
@@ -565,7 +514,7 @@ describe("the record list is one row per affected record, in the curation bucket
       expect(anchor?.getAttribute("href")).toBe("/memory/MEM-002")
       expect(anchor?.textContent).toBe(ref)
       expect(anchor?.className).toContain("text-primary")
-      // UI-SPEC S7: ledger values break anywhere rather than truncate, so nothing is hidden.
+      // Ledger values break anywhere rather than truncate, so nothing is hidden.
       expect(link?.className).toContain("break-all")
     } finally {
       routedRefs.clear()
@@ -595,9 +544,6 @@ describe("the record list is one row per affected record, in the curation bucket
 })
 
 describe("a curated NEW fact is painted, not denied", () => {
-  // RE-SPELLED 427-08 from 'renders one li per kind for all FIVE Learned kinds, in the view's order'.
-  // RE-SPELLED 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW fix 1): was "PROPOSED-HELD-FOR-REVIEW: a
-  // proposed row says it is held for review". Nothing reviews it; it is recorded and not applied.
   it("PROPOSED-NOT-APPLIED: a proposed row says it is recorded and not applied, and an open question says so", () => {
     const host = render({
       state: "complete",
@@ -614,7 +560,6 @@ describe("a curated NEW fact is painted, not denied", () => {
     expect(rowsOf(host).map(el => el.getAttribute("data-record-change"))).toEqual(["proposed", "proposed"])
   })
 
-  // RE-SPELLED 427-08 from 'gives `added` the emerald a promotion wears — the SPEC allows no new colour for it'.
   it("NO-ID-ON-CHANGE-ROWS: no row carries a record id in any attribute or text, and none is tinted", () => {
     const snapshot = fiveBucketSnapshot()
     const ids = ["fact-added", "fact-confirmed", "fact-victim", "fact-replacement", "fact-deprecated", "fact-proposed"]
@@ -639,8 +584,6 @@ describe("a curated NEW fact is painted, not denied", () => {
     }
   })
 
-  // RE-SPELLED 427-09 from "paints the added record's row and no sentence at all": the rows are
-  // still the answer with no sentence over them, and every bucket word now explains itself.
   it("BUCKET-LABEL-MEANINGS: every bucket label is a button named by its word, whose tooltip and one description are its meaning", async () => {
     const buckets = ["added", "confirmed", "superseded", "deprecated", "proposed"] as const
     const host = render({
@@ -672,15 +615,11 @@ describe("a curated NEW fact is painted, not denied", () => {
       expect(label?.getAttribute("aria-describedby")).toBe(ids[0])
       await act(async () => { label?.blur() })
     }
-    // RE-SPELLED 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW fix 1): nothing reviews a proposed record.
+    // Nothing reviews a proposed record.
     expect(BUCKET_MEANINGS.proposed).toBe("Recorded, but not applied: agents are not given it.")
   })
 
-  /**
-   * WR-02 AT THE MOUNT. Two changes on one bundle share a `recordId`, so keying by it collided and
-   * React warned; a cell that only counted `li` would have passed on the first render and lost a
-   * row on the re-render that fires as curation settles. This one watches the console too.
-   */
+  // Two changes on one bundle share a `recordId`, so the cell also watches for a duplicate key.
   it("renders BOTH changes of one record as one row, both events in its ledger block, with no duplicate-key warning", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => undefined)
     try {
@@ -739,8 +678,7 @@ describe("an unreadable store is stamped on the root, never inferred from an emp
     const section = host.querySelector("[data-learned-state]")
     expect(section?.hasAttribute("data-learned-read")).toBe(false)
     expect(stateOf(host)).toBe("complete")
-    // AND NO NOTE AT ALL. An empty paragraph beneath a clean read would be a degradation
-    // stamp nobody earned; the element is absent, not blank.
+    // No note at all: the element is absent on a clean read, not blank.
     expect(host.querySelector("[data-learned-read-note]")).toBeNull()
   })
 })
@@ -782,12 +720,7 @@ describe("a partial read is painted beside the rows, and beneath an unsettled se
     expect(rowsOf(host).length).toBe(0)
   })
 
-  /**
-   * REVIEW WR-01 AT THE MOUNT. Two `confirmed` events on ONE bundle at ONE ordinal survive the
-   * outcome-event dedupe when their evidence tokens differ, so the 407-15 triple keyed them
-   * identically and React warned and dropped one. The key now differs only in the token segment,
-   * and the console is watched to prove the difference is enough.
-   */
+  // Two confirmations at one ordinal survive the dedupe when their tokens differ; keys must too.
   it("folds two confirmations that differ ONLY in the evidence token into one row, with no duplicate-key warning", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => undefined)
     try {
@@ -815,8 +748,6 @@ describe("a partial read is painted beside the rows, and beneath an unsettled se
   })
 })
 
-// RE-SPELLED 432-09 from 'the proposals line is a count and a door': the half
-// shows what changed; no pending-proposals line, review command or copy control is rendered, in any state.
 describe("no pending-proposals line or review command is rendered", () => {
   it.each([
     ["complete", { state: "complete", countLine: legacyCurationPairText(0, 0), sentence: NO_MEMORY_CHANGES_SENTENCE, rows: [] }],
@@ -852,10 +783,7 @@ describe("projection text reaches the DOM as TEXT, never as markup", () => {
   })
 })
 
-// 423 D-15 · WIN #313. The op now serves a fixed curation snapshot and a separately counted
-// since-then section beside `learned.changes`. These cells drive schema-valid projections through
-// the real `learnedView` into the real component, so the failed-chain fix is protected on the path
-// a page actually takes, and the snapshot's presence or absence is stated rather than inferred.
+// Schema-valid projections drive the real `learnedView` into the component, the path a page takes.
 const RUN_423 = "run-423-24-learned"
 type ReadyProjection = Extract<RunKnowledgeProjection, { kind: "ready" }>
 type LearnedChange = ReadyProjection["learned"]["changes"][number]
@@ -973,9 +901,7 @@ describe("a failed chain keeps its learned rows beside the snapshot sections", (
     const host = render(view)
     const section = sectionOf(host)
 
-    // RE-SPELLED 427-08. The rows are the snapshot's five affected records, not its six
-    // changes: the supersession is ONE row led by its replacement, so the counts and the rows agree
-    // and the "5 changes counted · 6 shown" block this cell used to pin cannot appear.
+    // The rows are the snapshot's affected records, one per supersession, so counts and rows agree.
     expect(view.curationSnapshot?.breakdown).toEqual(snapshot.breakdown)
     expect(view.curationSnapshot?.sinceThenCount).toBe(0)
     expect(view.curationSnapshot?.reconciliation).toBeUndefined()

@@ -3,8 +3,7 @@ import { useLocation } from "react-router"
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
 import { useIsMobile } from "@/hooks/use-mobile"
 
-// Below the mobile breakpoint the sidebar is an off-canvas sheet whose own toggle lives inside it,
-// so this bar is the only way in.
+// The mobile sidebar's toggle lives inside its own sheet, so this bar is the only way in.
 export function MobileNavigationTrigger() {
   const isMobile = useIsMobile()
   const { openMobile, setOpenMobile } = useSidebar()

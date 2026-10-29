@@ -113,8 +113,7 @@ vi.mock('@/components/page-skeleton', () => ({ DetailSkeleton: () => <div>Loadin
 vi.mock('@/components/empty-state', () => ({
   EmptyState: ({ title }: { title: string }) => <div>{title}</div>,
 }))
-// Module-level mount counters: a layout change that remounts the tree or the evidence resets what
-// the person was inspecting (426-11 NO-REMOUNT-ON-LAYOUT-CHANGE).
+// Module-level mount counters: a layout change that remounts the tree or evidence loses inspection.
 const mounts = vi.hoisted(() => ({ tabPanels: 0, stepTree: 0 }))
 // The tab double renders the evidence strip's active tab, the composer's last focus fallback.
 vi.mock('@/components/run-detail/tab-panels', async () => {
@@ -167,8 +166,7 @@ vi.mock('@/components/ui/select', async () => {
     },
   }
 })
-// Pitfall 7: the panel double renders the props the layout cells read, JSON-encoded so a numeric
-// size and a string size stay distinguishable.
+// The panel double JSON-encodes its props so a numeric and a string size stay distinguishable.
 vi.mock('@/components/ui/resizable', () => ({
   ResizablePanelGroup: ({ children, defaultLayout, orientation }: {
     children: ReactNode
@@ -213,8 +211,7 @@ vi.mock('@/components/ui/scroll-area', () => ({
 vi.mock('@/components/ui/badge', () => ({
   Badge: ({ children, ...rest }: { children: ReactNode }) => <span {...rest}>{children}</span>,
 }))
-// Pitfall 7: every prop but the variant styling passes through, so data-*, aria-* and onClick reach
-// the DOM the cells read.
+// Every prop but variant styling passes through, so data-*, aria-* and onClick reach the DOM.
 vi.mock('@/components/ui/button', () => ({
   Button: ({ children, variant: _variant, size: _size, asChild: _asChild, ...rest }: {
     children: ReactNode
@@ -284,7 +281,7 @@ const initial = projection({
   members: [member(0, { testId: TEST_ID, outcome: 'failed', marks: [] })],
   steps: [step(0, 0, 'Open cart')],
 })
-// a mark's receipt names the knowledge it changed; history joins that record.
+// A mark's receipt names the knowledge it changed; history joins that record.
 const receipt: RunDetailMemberMark = {
   markId: 'mark_0123456789ab',
   kind: 'false-fail',
@@ -460,7 +457,7 @@ describe('contextual feedback tracer', () => {
     expect(previewBody).toBeDefined()
     expect(markBody).toBeDefined()
     expect(previewBody!.runId).toBe(RUN_ID)
-    // the page holds no confirm scope, so the mark body carries none to remove.
+    // The page holds no confirm scope, so the mark body carries none.
     expect(markBody).not.toHaveProperty('confirm' + 'Scope')
     const { runId: _runId, ...previewRest } = previewBody!
     const { note: _note, ...markRest } = markBody!
@@ -630,9 +627,7 @@ describe('the composer names, switches and refuses its test', () => {
   })
 })
 
-// THE STEP DOOR AND THE PAGE'S DOOR COUNT (426-04 · SC1, D-04, D-06). The page auto-selects the first
-// step, so on load there is the header door and the selected row's door; clearing the selection or
-// selecting a hook leaves the header door alone. The pills are gone, so these are the only doors.
+// The page auto-selects the first step, so on load there are the header door and that row's door.
 const SETUP_HOOK = {
   id: 'hook-setup-1', runId: RUN_ID, stepId: null, type: 'hook', name: 'Seed catalog', hookId: 'seed',
   phase: 'setup', status: 'passed', duration: 120, stdout: null, stderr: null, returnData: null,
@@ -732,9 +727,7 @@ describe('the passive trace on a member header', () => {
   })
 })
 
-// THE COMPOSER IS A DOCKED COMPANION. The target is pinned to what the person
-// opened it for; the selection moves freely, and only an explicit act re-addresses the draft. Every
-// address keeps its own draft for the page session, in page state only.
+// The target stays pinned while the selection moves; each address keeps its draft in page state.
 const fourSteps = projection({
   members: [member(0, { testId: TEST_ID, outcome: 'failed', marks: [] })],
   steps: [step(0, 0, 'Open cart'), step(0, 1, 'Apply coupon'), step(0, 2, 'Pay'), step(0, 3, 'See receipt')],
@@ -858,9 +851,7 @@ describe('the pinned target and per-address drafts', () => {
   })
 })
 
-// FOCUS, KEYS AND THE RETAINED DRAFT. The composer takes focus when it
-// opens and gives it back when it closes; it never lets a key reach the page's shortcut map; and a
-// retained outcome keeps the draft with its status and denial on its own address only.
+// The composer takes focus on open, returns it on close, and lets no key reach the page shortcuts.
 const heading = () => {
   const composer = q('[data-feedback-composer]')
   return composer === null ? null : document.getElementById(composer.getAttribute('aria-labelledby')!)
@@ -1008,7 +999,7 @@ describe('focus in and out, and the page keys', () => {
   })
 })
 
-/** The page's own sentence for a mark that failed (2026-10-02, 432-42: no typed denial is left). */
+// The page's own sentence for a mark that failed.
 const MARK_FAILED_TEXT = 'Could not complete the mark or refresh its receipt.'
 
 describe('the retained draft, per address', () => {
@@ -1020,8 +1011,7 @@ describe('the retained draft, per address', () => {
     await click('[data-feedback-entry="test"]')
     await pickFirstChoiceAndLandPreview(Promise.resolve({ kind: 'read', result: CONSEQUENCES }))
     await typeNote('keep this note')
-    // no typed denial exists; a refused mark is a failed request, and the
-    // page answers it in its own words (MARK_FAILED_TEXT), so `reason` is only the error's message.
+    // A refused mark is a failed request the page words itself, so `reason` is just the message.
     markRunMock.mockRejectedValue(new Error(reason))
     await click('[data-feedback-submit]')
     await flushRender()
@@ -1060,11 +1050,7 @@ describe('the retained draft, per address', () => {
   })
 })
 
-// WHERE A TEST-LEVEL MARK LANDS, AND WHICH PREVIEW MAY AUTHORISE IT. The
-// resolved step is the read's own answer — its reason keys the sentence and nothing on the page scans
-// the steps. The preview on screen is exact: a note never re-fetches, an older answer never overwrites
-// a newer one, and Send feedback waits for the read computed for the form as it is now, while the last
-// read stays on screen, dimmed, instead of blanking.
+// Send feedback waits for the read computed for the current form; the last read stays, dimmed.
 function previewOf(over: Record<string, unknown>): RunsMarkPreviewResult {
   return RunsMarkPreviewResultSchema.parse({
     kind: 'consequences',
@@ -1251,10 +1237,7 @@ describe('the preview on screen is exact', () => {
   })
 })
 
-// NO BLIND SUBMIT. A quarantined mark still records; an identical repeat, a
-// refusal and a failed read leave Send feedback aria-disabled with its reason on the page, so the
-// button stays reachable and says why. Recording happens only on an explicit Send feedback — never
-// when a preview lands, on Enter in the note, or on Retry.
+// Only an explicit Send feedback records; a blocked button stays reachable and says why.
 const PAGE_REFUSALS: Record<(typeof MARK_PREVIEW_REFUSALS)[number], RunsMarkPreviewResult> = {
   'run-not-found': RUN_NOT_FOUND,
   'member-not-found': RunsMarkPreviewResultSchema.parse({ kind: 'member-not-found', runId: RUN_ID, testId: TEST_ID }),
@@ -1501,11 +1484,7 @@ describe('the note in the composer', () => {
   })
 })
 
-// AFTERWARDS. History is read when the composer opens, on every re-target and
-// after a matched receipt — never on mount — and an older read landing late is dropped. After a
-// matched receipt the composer stays open with the new mark first in the target's history. The
-// preview's replaced and already-said times come from that history, and nothing but the review
-// command ever reaches the clipboard.
+// History is read on open, re-target and matched receipt, never on mount; late older reads drop.
 const T_MARK = Date.UTC(2026, 8, 23, 10, 41)
 const historyMarkId = (n: number) => `mark_${n.toString(16).padStart(12, '0')}`
 
@@ -1678,8 +1657,6 @@ describe('the preview names its times from history', () => {
   })
 })
 
-// RE-SPELLED 432-09 from '426-09 only the review command reaches the clipboard': no review
-// command remains, so nothing on the page writes the clipboard, and history names what changed.
 describe('no review command, and nothing reaches the clipboard', () => {
   it('history names the applied change with no review control; typing a note or opening details writes nothing', async () => {
     const writeText = vi.fn(async () => undefined)
@@ -1699,8 +1676,7 @@ describe('no review command, and nothing reaches the clipboard', () => {
       await flushRender()
       expect(q('[data-feedback-history="target"] [data-history-review]')).toBeNull()
       expect(q('[data-review-command]')).toBeNull()
-      // RE-SPELLED 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW fix 2): one line names the fix and
-      // what it changed.
+      // One line names the fix and what it changed.
       expect(q('[data-feedback-history="target"] [data-history-applied="knowledge"]')?.textContent)
         .toBe('Recorded — a knowledge fact was added: mem_page_1 (content unavailable)')
       expect(writeText).not.toHaveBeenCalled()
@@ -1711,10 +1687,6 @@ describe('no review command, and nothing reaches the clipboard', () => {
   })
 })
 
-// THE MARK'S APPROVAL IS ANSWERED IN THE COMPOSER (426-10 · D-20, SC4). While a mark this page started
-// is in flight the page holds the confirm channel's claim, so the question lands in the composer's
-// footer instead of the app shell's floating card — and it is page state, so closing the composer or
-// looking at another address does not strand it.
 function settleable() {
   let resolve!: (value: unknown) => void
   let reject!: (reason: unknown) => void
@@ -1722,10 +1694,7 @@ function settleable() {
   return { promise, resolve, reject }
 }
 
-// RE-SPELLED 2026-10-01: the mark's approval — the question in the composer, the
-// claim on the page's confirm channel, the waiting link and the awaiting-approval state — is
-// deleted. Each cell keeps its subject (what the page shows while one mark is in flight, across a
-// close, across addresses, after a refusal and across a run change) and pins the one-request path.
+// Each cell pins the one-request path while a mark is in flight, across closes, addresses and runs.
 describe('the mark approval is answered in the composer', () => {
   beforeEach(() => {
     fetchRunDetailMock.mockResolvedValue(fourSteps)
@@ -1944,9 +1913,7 @@ describe('the open composer stacks under the evidence below 768px', () => {
   })
 })
 
-// NO PILL ANYWHERE (426-15 · SC1, SC2, D-05). The two doors are the only way to leave feedback, and the
-// internal mark names appear only under Technical details. The page tests' stand-in for collapsible
-// sections always renders Technical details, so that subtree is skipped rather than opened.
+// The collapsible stand-in always renders Technical details, so that subtree is skipped.
 describe('the always-visible pills are gone', () => {
   it('NO-PILL-ANYWHERE: a marked suite with the composer open and a preview landed renders no pill and no internal mark name', async () => {
     const stepMark: RunDetailMemberMark = { markId: 'mark_0123456789ac', kind: 'confirmed-bug', ordinal: 2, stepIndex: 0,

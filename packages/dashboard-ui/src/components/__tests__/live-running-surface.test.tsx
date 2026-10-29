@@ -100,7 +100,7 @@ describe("live running surface contract", () => {
   it("keeps the shared running class on live run and test editor surfaces", () => {
     const expected = "live-running-surface border-border/60 bg-primary/5"
 
-    // the run results panel renders the live page's one row, which has no beam.
+    // The run results panel renders the live page's one row, which has no beam.
     expect(source("src/components/run-results-panel.tsx")).not.toContain("live-running-surface")
     expect(source("src/components/step-card-editor.tsx")).toContain(expected)
     expect(source("src/components/editor/editable-step-wrapper.tsx")).toContain(expected)

@@ -1,12 +1,4 @@
-// ONE LIVE PREVIEW COMPONENT (428 SC1 · PXH-LIVE-01 · D-07).
-//
-// The active run page and Test → Live watch through the same component. This census reads every
-// source file under src/ (tests excluded) and fails if a second live embed appears, if anything
-// imports the deleted image-polling viewer, or if a component paints the live editor's base64
-// screenshot again.
-//
-// THE NEEDLES ARE CONCATENATED so this file cannot match itself, the idiom the retired-feed cells
-// use.
+// Fails on a second live embed or a base64 screenshot painter; needles are concatenated.
 
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'

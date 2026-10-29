@@ -1,7 +1,4 @@
-// THE TEST-RESULT LINE (429-23 · D-11, D-17, D-18 · UI-SPEC S4 "Test (existing models)").
-//
-// A failed test shows the server's classifier sentence as given, byte-identical with the CLI;
-// no failure sentence is spelled in the dashboard.
+// A failed test shows the server's classifier sentence as given; none is spelled here.
 
 import { CircleCheck, CircleX, LoaderCircle } from "lucide-react"
 

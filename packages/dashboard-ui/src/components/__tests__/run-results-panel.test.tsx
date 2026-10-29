@@ -1,22 +1,6 @@
 // @vitest-environment jsdom
 
-// THE EDITOR'S RUN PANEL ON THE RUN-STREAM WIRE.
-//
-// This panel was the last UI client of the legacy execution-event projection. These cells
-// bind it to the SAME wire `pages/live-run.tsx` reads: `openRunStream` frames folded through
-// `reduceRunStream`. `openRunStream` is MOCKED here (unlike the live-run suite, which stubs
-// `EventSource` to observe the door's URL) because what is under test is the panel's use of the
-// stream — one source per run id, closed on teardown — not the door's URL composition, which the
-// 403 `api.run-stream` suite already binds.
-//
-// THE ONE ROW. The panel renders its rows through the live page's
-// `LiveStepRowView`: a named glyph and the label as written, no clock. The
-// duration a finalized row used to show lives in run detail now, so the finalize cell asserts it
-// is absent (re-spelled in place; the title is unchanged).
-//
-// THE RETIREMENT CELL IS THE RETIREMENT'S OWN. A panel that fell back to constructing its own
-// `EventSource` against the retired feed would satisfy every other cell here, so the retirement is
-// asserted directly: zero constructions of a URL naming the legacy path.
+// `openRunStream` is mocked: the cells test one source per run id and teardown, not the door URL.
 
 import { act, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -32,8 +16,7 @@ import type { RunEventEnvelope, RunEventPayload, RunEventType } from '@vostride/
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const RUN_ID = 'run-1'
-// THE NEEDLE IS CONCATENATED so this file cannot satisfy the phase's grep-clean deletion
-// inventory by matching itself — the `v1-retry-machinery-deleted` idiom.
+// Concatenated so this file cannot match itself.
 const LEGACY_FEED_PATH = '/api/execution' + '/events'
 
 const { optionsRef, closeMock, openRunStreamMock } = vi.hoisted(() => ({
@@ -166,7 +149,7 @@ describe('RunResultsPanel on the run stream', () => {
 
     feed(stepFinalized({ status: 'passed', durationMs: 1200 }))
     expect(view.querySelectorAll('[data-step-status="passed"]')).toHaveLength(1)
-    // a row carries no duration; run detail has it.
+    // A row carries no duration; run detail has it.
     expect(view.textContent).not.toContain('1.2s')
   })
 
@@ -252,7 +235,6 @@ describe('RunResultsPanel renders the one live row', () => {
     expect(view.querySelector('[data-elapsed]')).toBeNull()
   })
 
-  // an old run's numbered placeholder is the characters it holds.
   it('PANEL-OLD-PLACEHOLDER-AS-TEXT: an old <SECRET_n> placeholder in step text renders as written, with no chip', async () => {
     const view = await renderPanel()
 

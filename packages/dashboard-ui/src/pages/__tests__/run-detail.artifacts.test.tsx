@@ -1,16 +1,6 @@
 // @vitest-environment jsdom
 
-// THE FIVE FACTS, THROUGH THE WHOLE PAGE (405-11 · DETL-01/02/03, D-06, D-10, D-14, D-15,
-// RESEARCH D2).
-//
-// Criterion 1 of this phase says reasoning, the sub-action timeline, screenshots, token usage and
-// screen context "render populated". These cells are the last unit-level statement of that before
-// 405-12 measures it in a real browser: they mount the PAGE, hand it one durable projection, and
-// assert each of the five facts arrives at the DOM from the read rather than from a default.
-//
-// EVERY COPY ASSERTION IS BY CONSTANT and every URL assertion CALLS the minter. A literal sentence
-// here would keep passing while the page said something else, and a literal URL would keep passing
-// while the page minted a different one.
+// Mounts the page with one durable projection; copy is asserted by constant, URLs via the minter.
 
 import { act, type ButtonHTMLAttributes, type ReactNode } from "react"
 import { createRoot, type Root } from "react-dom/client"
@@ -48,9 +38,7 @@ const {
 vi.mock("@/lib/api", () => ({
   fetchRun: fetchRunMock,
   fetchRunDetail: fetchRunDetailMock,
-  // the page's THIRD read — the failure view's. This whole-module
-  // mock replaces `@/lib/api`, so an omitted export is `undefined` at the call site and every
-  // cell here dies before it asserts. Its own behaviour is measured in `run-detail.analysis.test.tsx`.
+  // This mock replaces `@/lib/api`, so an omitted export would kill every cell before it asserts.
   fetchRunAnalysis: () => Promise.resolve({ runId: '', verdicts: [], sentences: [], clusters: [] }),
   fetchRunKnowledge: () => Promise.resolve({ kind: 'evidence-incomplete', runId: '' }),
   fetchRunArtifact: fetchRunArtifactMock,
@@ -269,12 +257,7 @@ describe("run detail renders the durable projection's five facts", () => {
     expect(view.querySelector("img")).toBeNull()
   })
 
-  // 406-05 · D-17 / D-18, T-406-16. THREE ABSENCES ON ONE PAGE, AND ONLY ONE OF THEM IS TRUE HERE.
-  // The read stat'd the store and found the bytes gone, so the page says so in the evidence
-  // vocabulary — and in NEITHER of the other two. A masked chip here would tell the reader a value
-  // was withheld on purpose and could be restored with a config change; the read-unavailable state
-  // would tell them to retry a read that in fact succeeded. Both are actions taken on a false
-  // belief, which is why the distinctness is a cell rather than a convention.
+  // Only missing bytes is true here, so the masked and read-unavailable words must be absent.
   it("says the bytes are gone in one vocabulary, and not in the other two", async () => {
     const base = makeProjection()
     fetchRunDetailMock.mockImplementation(async () => ({
@@ -297,7 +280,6 @@ describe("run detail renders the durable projection's five facts", () => {
     expect(view.querySelector("[data-run-detail-error]")).toBeNull()
   })
 
-  // the planner's stored sentence is shown as written, and nothing paints a chip over it.
   it("shows the planner's stored sentence as written, with no chip", async () => {
     const view = await renderAt()
 
@@ -305,7 +287,6 @@ describe("run detail renders the durable projection's five facts", () => {
     expect(view.querySelector("[data-masked]")).toBeNull()
   })
 
-  // Owner correction, 2026-09-21: Overview omits redundant hash/state rows.
   it("omits screen-state metadata for both changed and unchanged recorded states", async () => {
     for (const after of [HASH_BEFORE, HASH_AFTER]) {
       const base = makeProjection()
@@ -318,12 +299,7 @@ describe("run detail renders the durable projection's five facts", () => {
     }
   })
 
-  // D-06 accounting remains in the navbar. A measured run reports its spend; an unmeasured one
-  // says so rather than reporting a zero nobody measured.
-  //
-  // the header sentence is now the labelled PAIR, and coverage left it
-  // entirely — the undercount caveat lives in the usage card behind the line. The claim this cell
-  // makes is unchanged: the page's one token accounting is in the header, not in Overview.
+  // The token accounting lives in the header, not in Overview.
   it("keeps run accounting while omitting the redundant Overview token line", async () => {
     const view = await renderAt()
 

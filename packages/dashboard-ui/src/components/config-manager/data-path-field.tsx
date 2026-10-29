@@ -1,9 +1,4 @@
-// A PATH THAT POINTS AT EXISTING DATA (429-20 · D-23, D-24 · UI-SPEC S6 "Data paths get Apply", E7).
-//
-// Typing never saves: the typed path is held as a draft (so the tab dot and Not saved apply, and
-// it survives a reload) and only Apply writes it, once, as an undoable explicit action. While the
-// field differs from the file it shows Apply, Keep current path and one sentence saying what the
-// change does, taken from APPLY_CONSEQUENCES.
+// Typing never saves: the path is held as a draft and only Apply writes it, once, undoably.
 
 import { useEffect, useRef } from "react"
 import { CircleAlert } from "lucide-react"

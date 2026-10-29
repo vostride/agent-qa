@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 
-// 427 · D-05, D-06, D-10 — the Knowledge used rows a reader sees. Views are built through the real
-// projectKnowledgeView over schema-parsed projections, never by hand.
+// Views come from the real `projectKnowledgeView` over schema-parsed projections, never by hand.
 
 import { act, type ReactElement } from "react"
 import { createRoot, type Root } from "react-dom/client"

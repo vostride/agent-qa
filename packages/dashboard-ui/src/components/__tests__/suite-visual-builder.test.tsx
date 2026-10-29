@@ -140,7 +140,7 @@ describe('SuiteVisualBuilder', () => {
     expect(container.querySelector('[data-testid="metadata-form"]')).not.toBeNull()
     expect(container.querySelector('[data-testid="hook-list-setup"]')).not.toBeNull()
     expect(container.querySelector('[data-testid="hook-list-teardown"]')).not.toBeNull()
-    // Picker is now hidden behind a button (Gap 3)
+    // The picker hides behind a button.
     expect(container.querySelector('[data-testid="test-picker"]')).toBeNull()
     const addBtn = Array.from(container.querySelectorAll('button')).find(
       (b) => b.textContent?.includes('Add new test'),
@@ -183,7 +183,6 @@ describe('SuiteVisualBuilder', () => {
     expect(container.querySelector('[data-testid="hook-list-teardown"]')!.textContent).toBe('0')
   })
 
-  // Gap 3 regression tests — Phase 181-04
   it('hides SuiteTestPicker by default behind an Add new test button', async () => {
     mount(<SuiteVisualBuilder content={yamlWithTwoTests} onChange={vi.fn()} suggestions={[]} />)
     await act(async () => { await new Promise((r) => setTimeout(r, 0)) })

@@ -1,16 +1,4 @@
-// THE PHASE ACCORDION, STATIC ONLY.
-//
-// IT NO LONGER FETCHES. This component used to have a second mode that read a per-step reasoning
-// trace over its own HTTP call and rendered the phases out of it, falling back to the step row when
-// the read failed. That trace table and its route are gone with the v1 projection: the durable
-// projection carries the planner's own sentence, the planned action and the recorded result on the
-// sub-action itself, and the caller already holds them. So the component takes SECTIONS and paints
-// them — one input, no client, no fallback, and no way for the panel to disagree with the tree
-// about what a step did.
-//
-// The self-heal accordion went with the trace. `RunDetailStep` records `selfHealOccurred` — one
-// boolean, which the tree renders as a glyph — and records no per-attempt chain, so a "healing
-// chain" here would have had to invent its attempts.
+// Static only: the caller passes the sections, so the panel cannot disagree with the tree.
 
 import { useState, useCallback, useRef, forwardRef, useImperativeHandle } from "react"
 import { ChevronRight } from "lucide-react"

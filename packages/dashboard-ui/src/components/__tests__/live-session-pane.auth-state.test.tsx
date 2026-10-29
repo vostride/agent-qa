@@ -298,12 +298,7 @@ describe('LiveSessionPane auth-state capture control', () => {
   })
 })
 
-// THE EDITOR'S LIVE HEADER, JUST THE ESSENTIALS. Owner: "what if we drop everything.
-// I am a fan of minimal things. Just a dot maybe." The header keeps the target name, the draft
-// badge, Run All / Stop All and End Live Session. The connection badge, the session number, the
-// running label, the URL line under the title and the "Restart required" badge are gone; the
-// hooks-changed banner and the error text are each said once, only when they apply. Health is the
-// preview dot's alone, so the header carries no status dot of its own.
+// Health is the preview dot's alone, so the header carries no status dot or connection badge.
 const STATUS_WORDS = /^(Ready|Connecting|Connected|Executing|Disconnected|Error|Ended)$/i
 
 function statusWordElements(scope: Element): Element[] {
@@ -385,10 +380,7 @@ describe('LiveSessionPane live header', () => {
   )
 })
 
-// THE EDITOR WATCHES THROUGH THE ONE SHARED PREVIEW (428 PXH-LIVE-01, D-02, D-07). Test → Live
-// renders `LivePreview` with an editor subject where the image-polling viewer used to be, and the
-// editor's navigation and auth-state controls sit in the preview's chrome row, which renders only
-// when it has something to hold.
+// Test → Live renders `LivePreview` for an editor; its chrome row renders only when filled.
 describe('LiveSessionPane shared live preview', () => {
   it('EDITOR-RENDERS-SHARED-PREVIEW: a connected pane renders the editor subject\'s one embed and no live image', async () => {
     renderPane()
@@ -420,13 +412,6 @@ describe('LiveSessionPane shared live preview', () => {
     expect(container.querySelector('[data-live-preview]')).toBeNull()
   })
 
-  // RE-SPELLED 2026-09-26 (428-34, owner decision 2026-09-26 (4), G-428-4). Was "EDITOR-CHROME-ROW:
-  // a web session's navigation, address bar, auth-state capture and copy URL are the chrome row".
-  // The preview's status now leads that row at the container's top-left, so after a frame the dot
-  // comes first and the editor's toolbar follows it in the same row.
-  //
-  // RE-SPELLED 2026-09-26 (owner decision 2026-09-26 (6)): the dot left the row for the preview's
-  // top-right corner, so after a frame the toolbar still leads the row and the dot is not in it.
   it('EDITOR-CHROME-ROW: a web session\'s toolbar is the chrome row, and after a frame the dot sits outside it', async () => {
     renderPane()
     await flush()
@@ -453,13 +438,6 @@ describe('LiveSessionPane shared live preview', () => {
     expect(header().querySelector('[data-live-dot]')).toBeNull()
   })
 
-  // RE-SPELLED 2026-09-26 (428-34, owner decision 2026-09-26 (4), G-428-4). Was "EDITOR-CHROME-ROW:
-  // a mobile session without those controls renders no empty chrome row", read before any frame.
-  // A mobile session still passes no toolbar, so before its preview has anything to say there is no
-  // row, and once a frame arrives the row holds the dot and nothing of the web toolbar.
-  //
-  // RE-SPELLED 2026-09-26 (owner decision 2026-09-26 (6)): the dot never makes a row, so after a
-  // frame a mobile session still has none and the dot floats in the preview's top-right corner.
   it('EDITOR-CHROME-ROW: a mobile session has no row before or after its first frame, and the dot floats in its corner', async () => {
     const mobile = { platform: 'android', targetName: 'android-target', targetLabel: 'Android device' } as const
     fetchEditorLiveUrlMock.mockImplementationOnce(() => new Promise<never>(() => {}))

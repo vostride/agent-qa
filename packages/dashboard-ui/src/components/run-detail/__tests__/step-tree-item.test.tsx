@@ -18,8 +18,7 @@ const step = fromRunDetailStep({ testIndex: 7, stepIndex: 2, stepText: 'Check ca
   verifierVerdict: { pass: false, reasoning: 'Cart differs' }, selfHealOccurred: false, briefDigest: 'digest' }, [])
 afterEach(() => { act(() => root.unmount()); container.remove() })
 
-// THE STEP PILLS ARE GONE. The row keeps the selected-row door and the passive
-// glyph; choosing, noting, submitting and reviewing all happen in the composer.
+// The row keeps the selected-row door and the passive glyph; marking happens in the composer.
 const markAttributes = () => [...container.querySelectorAll('*')]
   .flatMap(element => element.getAttributeNames().filter(name => name.startsWith('data-mark')))
 
@@ -64,9 +63,7 @@ describe('step marking', () => {
   })
 })
 
-// THE STEP DOOR AND THE PASSIVE TRACE (426-04 · D-04, D-06, RESEARCH Pattern 6). The door renders on
-// the row that owns the selection only, inside a non-button span, so the row button stays the li's
-// one direct button child that 424's `:scope > button` and the playhead cells click.
+// The door sits in a non-button span, so the row button stays the li's one direct button child.
 const SHIPPED_ROW_CLASSES = ['flex', 'w-full', 'items-start', 'gap-2', 'py-2', 'px-3', 'text-left', 'hover:bg-muted/50']
 const stepMark = (kind: RunDetailMemberMark['kind']): RunDetailMemberMark =>
   ({ markId: 'mark_0123456789af', kind, ordinal: 5, stepIndex: 2, disposition: { kind: 'quarantined', class: 'flake' } })

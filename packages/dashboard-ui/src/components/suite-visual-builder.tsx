@@ -212,7 +212,7 @@ export function SuiteVisualBuilder({
       .catch(() => {})
   }, [])
 
-  // Close the picker on Escape while it's visible (Gap 3 UAT requirement)
+  // Close the picker on Escape while it is visible.
   useEffect(() => {
     if (!showTestPicker) return
     function handleKey(e: KeyboardEvent) {

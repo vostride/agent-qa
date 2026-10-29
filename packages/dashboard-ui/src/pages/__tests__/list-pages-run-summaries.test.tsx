@@ -12,9 +12,7 @@ import SuitesPage from "@/pages/suites"
 import TestViewerPage from "@/pages/test-viewer"
 import TestsPage from "@/pages/tests"
 
-// the Tests and Suites pages read every per-row figure from the
-// server's batch read. A 200-run page served beside it disagrees on purpose, so a page that
-// still folds it fails.
+// A disagreeing 200-run page is served beside the batch read, so a page that still folds it fails.
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 

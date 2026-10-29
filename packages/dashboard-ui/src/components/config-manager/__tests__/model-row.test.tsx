@@ -1,10 +1,6 @@
 // @vitest-environment jsdom
 
-// A SAVED MODEL'S ROW, COMPLETED (429-24 · D-12, D-17, D-23, D-24 · UI-SPEC S4, S6, E4, E6).
-//
-// Deleting a model, signing out and removing a key act at once and offer Undo: no dialog, no
-// question. The default model cannot be deleted from under the project, a delete writes only
-// that model's change, and a failure puts the row or its status word back.
+// Delete, sign out and remove key act at once with Undo; the default model cannot be deleted.
 
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -471,7 +467,7 @@ describe('ModelRow explicit actions', () => {
     expect(hook!.status.state).toBe('failed')
     expect(hook!.status.message).toBe('disk full')
 
-    // Retry re-sends drafts only (UI-SPEC E2): a refused delete is not sent again, and the file shows as it is.
+    // Retry re-sends drafts only: a refused delete is not sent again, and the file shows as it is.
     await act(async () => {
       hook!.retry()
     })
@@ -624,7 +620,7 @@ describe('ModelRow key and settings', () => {
 
     await click(buttonNamed(row('claude-proxy'), SAVE_HEADER_LABEL))
     expect(writes()[5]).toEqual([[{ op: 'set', path: [...headers, 'X-Trace'], value: 'trace-secret' }]])
-    // the landed write is mirrored as written; the editor has no path-class mask.
+    // The landed write is mirrored as written; the editor has no path-class mask.
     const traceValue = row('claude-proxy')!.querySelector('[data-model-header="X-Trace"] [data-secret-field] code')
     expect(traceValue?.textContent).toBe('trace-secret')
     expect(JSON.stringify(localStorage)).not.toContain('trace-secret')
@@ -749,9 +745,7 @@ describe('ModelRow Sign in again', () => {
   })
 })
 
-// THE MODEL MODAL'S CLAIMS ON A SAVED ROW. The modal is gone. Each claim its suite
-// made about a saved model is asserted here on the open row, or pinned as gone where the phase
-// reversed it (the Edit dialog, the Save Changes footer, and the milliseconds on a passed test).
+// Each claim about a saved model is asserted on the open row; the modal buttons are absent.
 
 const MODAL_BUTTONS = ['Save Changes', 'Save Credential', 'Keep Credential', 'Delete Credential', 'Delete Configuration', 'Add Configuration']
 
@@ -864,8 +858,7 @@ describe("The model modal's claims on a saved row", () => {
   })
 })
 
-// a header shown as its declared marker is left out of the connection test, so the
-// server sends the saved value (routes.llm-test-saved-headers MASK-HEADER-NEVER-SENT).
+// A header shown as its marker stays out of the connection test, so the server sends the saved one.
 describe('the model row and masked header values', () => {
   it('the model row does not resend a header shown as a marker', async () => {
     const proxy = { ...PROXY, providerHeaders: { 'X-Org': HEADER_MARKER, 'X-Trace': 't-1' } }

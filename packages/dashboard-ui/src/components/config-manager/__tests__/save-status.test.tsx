@@ -1,9 +1,6 @@
 // @vitest-environment jsdom
 
-// THE ONE QUIET STATUS (429 D-20/D-21/D-24 · UI-SPEC S3 and the save-status tone map).
-//
-// SaveStatus renders what deriveSaveStatus answers. These cells hold its six faces, its box, its
-// polite region and its reduced-motion spelling; the precedence itself is config-autosave.test.ts.
+// `SaveStatus` renders what `deriveSaveStatus` answers; precedence is tested in config-autosave.
 
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'

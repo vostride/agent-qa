@@ -1,8 +1,5 @@
 // @vitest-environment jsdom
-//
-// the run detail page reads a failed run through the one
-// classifier, so a `timeout` run shows its failure summary, error details and verdict link as a
-// `failed` run does, and a `passed` run shows none of them.
+// A `timeout` run shows failure sections as a `failed` run does, through the one classifier.
 
 import { act, type ReactNode } from "react"
 import { createRoot, type Root } from "react-dom/client"

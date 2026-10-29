@@ -1,26 +1,6 @@
 // @vitest-environment jsdom
 
-// THE EXPANDED STEP ROW A PERSON ACTUALLY SEES.
-//
-// WHAT THIS FILE IS FOR. `tab-knowledge.test.tsx` pins the COLLAPSED row and the five page states;
-// this file pins what is behind the chevron — the three channels, the per-line why-trace, the cut
-// ledger, the procedure outcome and the canary attribution. They are separate files because they
-// are separate subjects: the shell is about which state the tab is in, and this is about whether
-// a line that was served can be explained.
-//
-// THE DOM CONTRACT IS THE SUBJECT, not the styling. `data-served-channel`, `data-served-as-canary`,
-// `data-canary-outcome`, `data-trace-state`, `data-cut-candidates`, `data-plan-source-outcome` and
-// `data-channel-show-all` are what a later Playwright cell addresses on the built bundle, so each
-// is pinned here in the cheap medium first. Badge tints are NOT asserted — a cell pinning
-// `bg-emerald-500/15` would go red on a palette change that broke nothing a person relies on.
-//
-// EVERY NO-TRACE ARM GETS ITS OWN CELL, because D-04's whole claim is that nothing silently drops.
-// A step that served a line the trace cannot explain must SAY which of the three absences applies;
-// three arms collapsed into one silent branch is the failure these cells exist to catch.
-//
-// THE COPY IS ASSERTED BY ITS EXPORTED CONSTANT, never by literal prose — except
-// where a cell is deliberately pinning the SENTENCE OF RECORD from the Copywriting Contract, in
-// which case the literal IS the claim.
+// Every no-trace arm has its own cell, so no served line silently loses its explanation.
 
 import { act, type ReactElement } from "react"
 import { createRoot, type Root } from "react-dom/client"
@@ -88,10 +68,7 @@ function line(overrides: Partial<BriefLineView> = {}): BriefLineView {
   }
 }
 
-/**
- * The retired per-line disclosure's trigger copy. Spelled here as a literal because the
- * constant is deleted once no surface paints it; the cells below prove no element carries it.
- */
+// Spelled as a literal because no constant holds the copy; the cells prove no element carries it.
 const RETIRED_WHY_TRIGGER = "Why this line?"
 
 function detail(overrides: Partial<StepDetailView> = {}): StepDetailView {
@@ -207,18 +184,7 @@ describe("a served line carries the trace that explains it, inline", () => {
   })
 })
 
-/**
- * AN UNBROKEN TOKEN HAS TO BE ABLE TO SHRINK ITS OWN BOX.
- *
- * A brief summary is a producer string and is regularly ONE UNBROKEN TOKEN — a URL, a selector
- * literal, a content-derived record id. `break-words` (`overflow-wrap: break-word`) offers such a
- * token a break opportunity only once the box has ALREADY been sized, and a flex item sized from
- * its own content never gets that far: the UAT measured the summary span grown to 895px inside a
- * 639px parent with `break-word` already computed on it. `overflow-wrap: anywhere` is the one that
- * reduces min-content width, so the item can shrink and the break opportunity is actually reached.
- *
- * These cells therefore pin the PROPERTY THAT SIZES, not the property that merely permits a break.
- */
+// `overflow-wrap: anywhere` cuts min-content width; `break-word` alone lets a flex item overflow.
 describe("a content-derived brief line can shrink its own box, not merely overflow it", () => {
   const UNBROKEN_SUMMARY = "x".repeat(120)
   const UNBROKEN_ID = "fact-el-textbox-password-9a05ce7d3b1f4c28e6a09d5417bc32ea6f81d40c"
@@ -240,19 +206,7 @@ describe("a content-derived brief line can shrink its own box, not merely overfl
   })
 })
 
-/**
- * THE SAME LAW, EVERY CHANNEL OF THE EXPANDED ROW.
- *
- * The block above pins channel 1 by mounting `KnowledgeBriefLine` alone — which is structurally
- * incapable of reaching channels 2 and 3, and is exactly why the identical nodes there went
- * unfixed. These cells mount the WHOLE step detail and drive ONE table over every node in it that
- * paints a content-derived token, so the next such node added to any channel is caught by an
- * existing rule rather than by another review round.
- *
- * The four subject strings are deliberately DISTINCT from one another: `deepestWithText` addresses
- * by exact text, and two identical strings in sibling subtrees is an ambiguity the helper's own
- * cells (below) exist to remove.
- */
+// Mounts the whole step detail so every channel's content-derived token is held to the same rule.
 describe("every unbroken token in the expanded row can shrink its own box, whichever channel served it", () => {
   const CHANNEL2_ID = "fact-page-https-automationexercise-com-view-cart-376e539e6c7b4e75"
   const CHANNEL3_SUMMARY = "https://automationexercise.com/product_details/44?variant=very-long-unbroken-query-string"
@@ -311,7 +265,7 @@ describe("a canary line is marked ALWAYS, and its outcome is never blank", () =>
     return painted as HTMLElement
   }
 
-  // the marker reads "on trial (canary)" and the store's word reads as plain text.
+  // The marker reads `on trial (canary)` and the store's word reads as plain text.
   it("wears the on-trial marker and the attributed outcome once curation settled", () => {
     const view = mount(
       <KnowledgeBriefLine line={line({ servedAsCanary: true, canaryOutcome: "confirmed" })} />,
@@ -349,11 +303,7 @@ describe("a canary line is marked ALWAYS, and its outcome is never blank", () =>
     plainWord(view, NOT_ATTRIBUTED_TEXT)
   })
 
-  /**
-   * REVIEW WR-02 AT THE MOUNT. `not attributed` claims the store answered; on a partial read
-   * nobody asked it. The look is the SAME muted text — the degradation is explained by the
-   * Memory changes read note, not by a warning tint over here.
-   */
+  // A partial read leaves the store's answer unknown, so the line says so in the same muted text.
   it("says ATTRIBUTION UNKNOWN when the read that would have answered was partial", () => {
     const view = mount(
       <KnowledgeBriefLine line={line({ servedAsCanary: true, canaryOutcome: "unknown" })} />,

@@ -1,5 +1,4 @@
-// 427 · D-11..D-14, UI-SPEC S4 — Effect on this run: measured effects only, problems first, each a
-// plain sentence with its own glyph; trials post-run processing did not count are one quiet line.
+// Effect on this run: measured effects only, problems first, each a sentence with its own glyph.
 
 import { useId } from "react"
 import {

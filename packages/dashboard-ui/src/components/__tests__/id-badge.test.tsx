@@ -1,7 +1,5 @@
 // @vitest-environment jsdom
-// 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW priority fix 3 and pillars 3-5): the id badge reports
-// a copy only after the clipboard write resolved, names its action, announces the result, and shares
-// the record-id copy control's status pattern, check colour and type scale.
+// The id badge reports a copy only after the clipboard write resolves, and announces the result.
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'

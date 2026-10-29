@@ -1,30 +1,6 @@
 // @vitest-environment jsdom
 
-// THE HONEST RUN-TIME SURFACE, IN A DOM (403-05 · HNST-01/02/03, LIVE-04, D-08/D-12/D-13/D-15).
-//
-// WHY THESE CELLS ASSERT ON `outerHTML` AND NOT ON VISIBLE TEXT. The claim HNST-01 makes is that
-// nothing provisional is REACHABLE — not that nothing provisional is legible. A `title=`, an
-// `aria-label`, a `data-` attribute or a `hidden` node would each satisfy "no visible text" while
-// putting the model's half-finished intent one devtools click (or one screen reader) away. 403-04
-// measured the same shape one layer down and found that TypeScript does not help here: the spread
-// that would leak those five fields has the target type as its declared type, so excess-property
-// checking never fires. The sentinels below are the same constants the reducer suite feeds, so a
-// feed and an assertion cannot drift apart.
-//
-// WHY EVERY CLOCK IS FAKE. The preview re-mints at half its TTL, and NO-CLOCK-ON-ANY-ROW advances
-// time to prove the rows show none. Each is a cell whose verdict would otherwise depend
-// on real elapsed time — the flake shape 403-03 measured, which reads exactly like a real defect
-// when it fires.
-//
-// WHY THE NO-LIVENESS-PILL CELLS RUN k=5. The page used to carry a bus liveness pill
-// the owner removed it, and a dead bus now shows only as rows that stop moving. The
-// three traffic scenarios the pill was measured over are kept, each now asserting that nothing on
-// the page speaks about the channel. Fresh mount per iteration, so nothing carries across.
-//
-// `openRunStream` IS NOT MOCKED. It composes the door's URL and enumerates the bus's event names
-// from the schema; mocking it would replace the very contract these cells exist to bind. What is
-// stubbed is `EventSource` itself — the browser primitive — so the URL the page asks for is the
-// observable.
+// Cells assert on `outerHTML`, as an attribute or hidden node would still expose provisional text.
 
 import { act, useEffect, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -51,11 +27,7 @@ import type { RunEventEnvelope, RunEventPayload, RunEventType } from '@vostride/
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
-/**
- * THE SAME TWO STRINGS THE 403-04 REDUCER SUITE FEEDS. One constant per sentinel, used for both
- * the feed and the assertion, so no edit can quietly make the cell hunt for a string nothing
- * produces — a sentinel cell that looks for the wrong needle is green forever.
- */
+// One constant per sentinel for feed and assertion, so no cell hunts for a string nothing makes.
 const SENTINEL_REASONING = 'SENTINEL-REASONING-7f3a'
 const SENTINEL_ACTION = 'SENTINEL-ACTION-9c1e'
 
@@ -104,8 +76,7 @@ vi.mock('react-router', async () => {
 })
 vi.mock('@/hooks/use-page-title', () => ({ usePageTitle: () => {} }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), info: vi.fn(), error: vi.fn() } }))
-// The panel doubles render the props the layout cells read: the Group's orientation and
-// each panel's id and default size.
+// The panel doubles render the Group's orientation and each panel's id and default size.
 vi.mock('@/components/ui/resizable', () => ({
   ResizablePanelGroup: ({ children, orientation }: { children: ReactNode; orientation?: string }) => (
     <div data-resizable-group data-orientation={orientation}>{children}</div>
@@ -337,7 +308,7 @@ const stepsPane = (): Element => {
   if (pane === null) throw new Error('the steps pane does not exist')
   return pane
 }
-/** Everything the removed pill used to say, read the two ways it could come back: a node or words. */
+/** Every liveness claim, read the two ways it could appear: a node or words. */
 const livenessClaims = () => ({
   elements: qa('[data-liveness]').length,
   activityWords: /last activity|no activity yet/iu.test(document.body.textContent ?? ''),
@@ -374,8 +345,7 @@ afterEach(() => {
 
 describe('the live page is two panes and nothing else', () => {
   it('the sentinels are pinned to the exact strings the sibling suites hardcode', () => {
-    // 403-04's reducer suite and 403-06's Playwright suite each spell these literally. A rename
-    // here would leave three suites hunting for three different needles, and all three green.
+    // The reducer and Playwright suites spell these literally, so renaming here desyncs them.
     expect(SENTINEL_REASONING).toBe('SENTINEL-REASONING-7f3a')
     expect(SENTINEL_ACTION).toBe('SENTINEL-ACTION-9c1e')
   })
@@ -417,9 +387,6 @@ describe('the live page is two panes and nothing else', () => {
   })
 })
 
-// RE-SPELLED 2026-09-26 (428-32, owner decision 2026-09-26 (5), G-428-5). The running glyph is still,
-// so the page no longer marks a row "in motion". These cells count the running status instead, and
-// NO-ACTION-COUNT asserts that no motion marker is left anywhere in the document.
 describe('the running row advances without inventing a phase', () => {
   // Was "finalizing clears the motion and keeps the status word".
   it('finalizing ends the running status and keeps the status word', async () => {
@@ -456,12 +423,6 @@ describe('the running row advances without inventing a phase', () => {
     expect(q('[data-live-pane="steps"] li')?.getAttribute('data-step-status')).toBe('healed')
   })
 
-  // RE-SPELLED 2026-09-26. This cell asserted the row said `3 actions`. The owner
-  // removed the count: the breathing glyph's re-key is the one progress signal left, and it says
-  // "something happened" without a number.
-  // RE-SPELLED AGAIN 2026-09-26 (428-32, owner decision 2026-09-26 (5), G-428-5). Its title ended
-  // "and the motion re-keys on each one". The glyph no longer moves or re-keys, so the ticks reach
-  // the row only as data-step-ticks, and no motion marker is left in the document.
   it('NO-ACTION-COUNT: a running row after three sub-actions shows no count, and the ticks reach the row only as data-step-ticks', async () => {
     await mount()
     await open()
@@ -478,9 +439,6 @@ describe('the running row advances without inventing a phase', () => {
     expect(stepsPane().outerHTML.toLowerCase()).not.toMatch(/observing|planning|acting/)
   })
 
-  // RE-SPELLED 2026-09-26 (428-30, owner decision 2026-09-26 (2), G-428-2). The pending arm relied
-  // on a text-less pending row being drawn. A row with no text is no longer drawn, so this
-  // testStarted now carries stepTexts and the claim is unchanged.
   it('NO-CLOCK-ON-ANY-ROW: running, finished and pending rows show no time, however long the run goes', async () => {
     await mount()
     await open()
@@ -605,14 +563,6 @@ describe('a member header only where there is more than one member', () => {
 })
 
 describe('NO-LIVENESS-PILL: the page makes no claim about the bus channel', () => {
-  // RE-SPELLED 2026-09-26. These four cells were HNST-03's pill cells: `live` across
-  // heartbeats, `lost` over an open and silent socket, `reconnecting` while dialling, and the
-  // preview holding its state through each. D-03 removes the pill, so the same traffic now
-  // asserts that no liveness element and no activity age appear. The positive half of each cell
-  // proves the page DID fold the traffic, so the absence is about a page that heard the bus.
-  // RE-SPELLED 2026-09-26 (428-30, owner decision 2026-09-26 (2), G-428-2). Its positive half
-  // counted a text-less pending row as proof the page folded the stream. A row with no text is no
-  // longer drawn, so this testStarted now carries stepTexts and the claim is unchanged.
   it('NO-LIVENESS-PILL k=5: 11 s of heartbeat-only traffic renders no liveness element', async () => {
     for (let k = 0; k < 5; k += 1) {
       await mount()
@@ -643,9 +593,6 @@ describe('NO-LIVENESS-PILL: the page makes no claim about the bus channel', () =
     }
   })
 
-  // RE-SPELLED 2026-09-26 (428-30, owner decision 2026-09-26 (2), G-428-2). Its positive half
-  // counted a text-less pending row as proof the restored socket delivered. A row with no text is
-  // no longer drawn, so this testStarted now carries stepTexts and the claim is unchanged.
   it('NO-LIVENESS-PILL k=5: a socket dropped while dialling and then restored renders no liveness element', async () => {
     for (let k = 0; k < 5; k += 1) {
       await mount()
@@ -904,16 +851,7 @@ describe('a stream that carried no step is never a blank pane', () => {
 })
 
 describe('the page ends where the run ends, and MOVES the viewer with it', () => {
-  // WHAT REPLACED WHAT. 403 D-12 ended this page on the verdict and
-  // deliberately went nowhere: run detail had not been rebuilt, and a redirect would have taken
-  // the decision away from a person watching a failure land. 404 owns verdict-exactly-once and
-  // run detail is rebuilt, so the page now moves with the run — on the ENVELOPE, not on
-  // `runFinished`, because the post-verdict step sits between the two and D-10 says it never
-  // gates anything a person sees.
-  //
-  // `replace`, NOT `push`. Back must return to wherever the person came from. A pushed entry
-  // would put a DEAD live page — a socket the door has already closed — one Back press away, and
-  // the page they landed on would immediately navigate them forward again.
+  // Navigates on the verdict envelope with `replace`, so Back never lands on a dead live page.
   it('navigates to run detail on the FIRST verdict, replacing history and naming the verdict word', async () => {
     await mount()
     await open()
@@ -928,9 +866,7 @@ describe('the page ends where the run ends, and MOVES the viewer with it', () =>
       `/runs/${RUN_ID}`,
       { replace: true, state: { arrivedOnVerdict: 'passed' } },
     )
-    // THE BAND IS NOT ON SCREEN AT THE MOMENT OF NAVIGATION. D-14 keeps it for the paths where
-    // navigation CANNOT happen; painting it here would be a page saying "this run is over, stay
-    // put" in the same tick it moved the viewer somewhere else.
+    // The terminal band is absent at navigation, or the page would say stay put while moving away.
     expect(q('[data-terminal-state]')).toBeNull()
   })
 
@@ -941,8 +877,7 @@ describe('the page ends where the run ends, and MOVES the viewer with it', () =>
     await emit(verdict('passed'))
     expect(navigateMock).toHaveBeenCalledTimes(1)
 
-    // The reducer takes the FIRST verdict and drops the rest; this asserts the EFFECT
-    // inherits that, because an effect keyed on a field that never changes cannot fire twice.
+    // The reducer keeps the first verdict, so an effect keyed on it cannot fire twice.
     await emit(verdict('failed'), runFinished())
     await advance(30_000)
 
@@ -951,12 +886,7 @@ describe('the page ends where the run ends, and MOVES the viewer with it', () =>
     expect(classifyRunStreamCloseMock).not.toHaveBeenCalled()
   })
 
-  // RE-PINNED 2026-08-26. Before this phase this cell was "freezes with the
-  // verdict, ends the preview, links run detail, and neither reconnects nor navigates" and it
-  // published `verdict` + `runFinished` together. D-13 inverts that path: a verdict NAVIGATES. So
-  // the cell keeps its subject — the honest terminal band — and moves to the path where the band
-  // is still the only truthful thing to render: a producer that ended a run without ever declaring
-  // a verdict. The band is a FALLBACK now, and this is what it falls back from.
+  // The terminal band is the fallback for a run that ended without declaring a verdict.
   it('a `runFinished` with NO verdict renders the terminal band, links run detail, and goes nowhere', async () => {
     await mount()
     await open()
@@ -985,10 +915,7 @@ describe('the page ends where the run ends, and MOVES the viewer with it', () =>
     expect(classifyRunStreamCloseMock).not.toHaveBeenCalled()
   })
 
-  // THE SECOND D-14 PATH, and the one that is not a producer defect at all. A close the door
-  // classifies as `unknown_run` after this page has already folded envelopes is a retention window
-  // that elapsed — the replay would land past the end. No verdict ever reaches the reducer, so
-  // there is nothing to navigate on, and the honest thing is the band plus the durable link.
+  // An `unknown_run` close after envelopes is an elapsed retention window, so the band shows.
   it('a close classified past the end (`unknown_run` with envelopes already seen) bands rather than navigates', async () => {
     classifyRunStreamCloseMock.mockResolvedValue({ kind: 'unknown_run' })
     await mount()
@@ -1016,17 +943,10 @@ describe('the page ends where the run ends, and MOVES the viewer with it', () =>
 })
 
 describe('the preview is one embed or an honest sentence', () => {
-  // NO SENTENCE NAMES A POSITION FOR THE STEPS PANE. The live page renders the
-  // step list BESIDE the preview and the served embed owns no step list at all, so a direction
-  // word is false in every host; the pane names the steps pane by ROLE instead.
+  // The steps pane is named by role, because its position differs between hosts.
   const DIRECTION_WORDS = /\b(?:below|beneath|above|left|right)\b/u
 
-  // `none` IS TWO SITUATIONS WEARING ONE WORD (403-07, gap 1), and the pane's whole honesty rests
-  // on telling them apart. `startRun` publishes the session synchronously; the member's browser —
-  // and therefore its screencast capability — arrives later, so the FIRST mint of an ordinary run
-  // answers `none` while the run is perfectly healthy. Reading that as the D-08 declared absence
-  // printed `no live preview for this target` over a run that was about to stream. The
-  // discriminator is the watched member's own lifecycle, and both halves are cells.
+  // A first mint answers `none` before the member's browser is up, so its lifecycle decides.
   it('a member that FINISHES WITHOUT EVER STARTING A STEP gets the did-not-run sentence, not motion for the rest of the run', async () => {
     fetchLiveUrlMock.mockResolvedValue({
       liveUrl: 'http://x/live/r1#v2.a.b',
@@ -1036,10 +956,7 @@ describe('the preview is one embed or an honest sentence', () => {
     })
     await mount()
     await open()
-    // RE-SPELLED 2026-09-26 (428-33, owner decision 2026-09-26 (3), G-428-3). This cell used to emit
-    // testStarted(1) as well and relied on the preview's old default handle 0. The preview now follows
-    // the running member, so a running member 1 would take the watch; with no other member running,
-    // the watch holds on member 0, which is the member this cell is about. Every claim is unchanged.
+    // With no other member running, the watch holds on member 0, the member this cell is about.
     await emit(runStarted([0, 1]), testFinished(0, 'skipped'))
 
     const at0 = previewState()
@@ -1075,11 +992,7 @@ describe('the preview is one embed or an honest sentence', () => {
     })
     await mount()
     await open()
-    // RE-SPELLED 2026-09-26 (428-33, owner decision 2026-09-26 (3), G-428-3). The cell used to emit
-    // testStarted(1) up front and switch handle through the picker, which is gone. Under the follow
-    // rule a member with a row is running, so the roster comes alone first: handle 0 has no member
-    // row, the first-roster rule watches it, and it reaches the bound exactly as before. Member 1
-    // then starts without answering, and the preview switches to it with nobody touching anything.
+    // The roster comes first so the first-roster rule watches handle 0; member 1 then takes it.
     await emit(runStarted([0, 1]))
 
     const at0 = previewState()
@@ -1118,15 +1031,7 @@ describe('the preview is one embed or an honest sentence', () => {
     })
   })
 
-  // THE BOUND IS A BOUND. Three roads led back into `waiting` after the cap; each
-  // is one cell, and each reads the same triple so a sentence cannot lag the state by a render.
-  //
-  // RE-SPELLED 2026-09-26 (428-33, owner decision 2026-09-26 (3), G-428-3). (A)..(D) used to start
-  // member 1 while the preview sat on its old default handle 0. The preview now follows the running
-  // member, so that start would switch it to handle 1 after the mount's mint for handle 0, and every
-  // call count would be one higher. The running-but-unanswered member is now member 0, the one the
-  // preview watches from mount, so each cell counts the same calls on the same handle as before, and
-  // (C)'s late outcome is the watched member's own.
+  // Each road back into `waiting` after the cap is one cell, reading the same triple each render.
   const noneAnswer = () => ({
     liveUrl: 'http://x/live/r1#v2.a.b',
     expiresAt: Date.now() + TTL_MS,
@@ -1297,8 +1202,7 @@ describe('the preview is one embed or an honest sentence', () => {
     await open()
     await emit(runStarted([0]), testStarted(0, 'the member', 1), stepStarted())
 
-    // The member's browser IS up now — its steps are advancing — and the handle still declares
-    // nothing to stream. That is the D-08 absence, and it gets the sentence rather than motion.
+    // The browser is up and the handle declares nothing to stream: the absence gets its sentence.
     await advance(NO_STREAM_RETRY_MS)
 
     expect(previewState()).toBe('no-stream')
@@ -1310,8 +1214,7 @@ describe('the preview is one embed or an honest sentence', () => {
     expect(WAITING_GAVE_UP_TEXT).not.toMatch(DIRECTION_WORDS)
     expect(q('iframe')).toBeNull()
 
-    // AND THE SENTENCE IS TERMINAL. A retry that fired from `no-stream` would poll straight
-    // through a declared absence and turn D-08 into a flicker.
+    // The sentence is terminal: no retry fires from `no-stream`.
     const settled = fetchLiveUrlMock.mock.calls.length
     await advance(NO_STREAM_RETRY_MS * 3)
     expect(fetchLiveUrlMock.mock.calls.length).toBe(settled)
@@ -1334,9 +1237,6 @@ describe('the preview is one embed or an honest sentence', () => {
     expect(frame?.getAttribute('sandbox')).toBe('allow-scripts')
   })
 
-  // RE-SPELLED 2026-09-26 (428-33, owner decision 2026-09-26 (3), G-428-3). Was "a roster of more
-  // than one handle offers a picker that re-mints for the chosen handle". The owner removed the
-  // picker; the re-mint for the other handle is kept, and the member starting is what drives it.
   it('a roster of more than one handle offers no picker, and the preview re-mints for the member that starts', async () => {
     await mount()
     await open()
@@ -1387,9 +1287,6 @@ describe('the preview is one embed or an honest sentence', () => {
   })
 })
 
-// THE PREVIEW FOLLOWS THE RUNNING MEMBER (G-428-3, owner decision 2026-09-26 (3)). The owner saw a
-// suite's page sit on "This test finished while the run goes on" while its second member ran, with a
-// handle selector as the only way off it, and asked for the selector to go and the handle to follow.
 describe('the preview follows the running member, and nobody picks a handle', () => {
   it('FOLLOWS-RUNNING-MEMBER: when member 0 finishes and member 1 starts, the preview mints for handle 1', async () => {
     await mount()
@@ -1524,10 +1421,7 @@ describe('the live header says which rung served this run, from the evidence', (
   })
 
   it('paints NO strip at all on a healthy run — the top rung is not a sentence', async () => {
-    // WR-01. `memidex` is a DEFINED value with no sentence: the banner returns null for it. A
-    // container gated on the value rather than on the sentence therefore opened an empty bordered
-    // rule under the header of every healthy live run, once its first evidence-carrying frame
-    // landed. Container and child share one predicate, so they cannot disagree.
+    // `memidex` has no sentence, so container and banner share one predicate and never open empty.
     await mount()
     await open()
     await emit(
@@ -1583,15 +1477,13 @@ describe('the live header says which rung served this run, from the evidence', (
     expect(banner?.textContent).toBe(
       "This run's knowledge retrieval used the lightweight static-floor embeddings instead of the full model — native ONNX runtime unavailable. To check the store's health now, run agent-qa doctor. It reports current health and doesn't change what this run recorded.",
     )
-    // IN THE STRIP, NOT IN A THIRD PANE. 403's two-pane rule is what this cell is really guarding:
-    // the banner joins the header's existing second line beside `data-gap-marker` and the notices.
+    // The banner joins the header's existing second line, never a third pane.
     expect(banner?.parentElement?.className).toContain('flex-wrap')
     expect(qa('[data-live-pane]')).toHaveLength(2)
   })
 
   it('LIVE-STRIP-INFO-ABSENT: a run recorded on a fresh index opens no strip and paints no banner', async () => {
-    // A fresh store's bootstrap is information the tab states; the container and the
-    // banner share rungBannerText, so neither opens for an info class.
+    // A fresh store's bootstrap is information; the container and banner share `rungBannerText`.
     await mount()
     await open()
     await emit(

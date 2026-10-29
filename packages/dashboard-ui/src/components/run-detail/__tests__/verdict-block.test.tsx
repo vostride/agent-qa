@@ -1,20 +1,5 @@
 // @vitest-environment jsdom
-//
-// ONE MEMBER'S VERDICT BLOCK.
-//
-// THE BLOCK DERIVES NOTHING, so every cell here hands it a view and reads the DOM back. What is
-// pinned is the mapping from view to markup: which element exists, which attribute carries which
-// raw word, and which callback a click reaches. The projection that BUILDS the view is pinned
-// separately in `lib/__tests__/analysis-view.test.ts`, and neither file re-derives the other's job.
-//
-// THE COPY IS ASSERTED BY CONSTANT (405-06's law). `ANALYSIS_PROVISIONAL_TEXT`,
-// `ANALYSIS_FAILED_FALLBACK_TEXT`, `siblingLine` and `citedStepLabel` come from
-// `lib/analysis-view.ts`, so a sentence moves in one place and these cells move with it. A string
-// re-typed here would stay green while the page said something else.
-//
-// THE `data-*` ATTRIBUTES ARE THE CELL CONTRACT, never the visible text — 406-11's shipped-binary
-// cells address the built bundle by these same selectors, and a cell reading rendered prose would
-// be asserting on presentation.
+// The block derives nothing: cells hand it a view and read back elements, attributes and callbacks.
 
 import { act, type ReactElement } from "react"
 import { createRoot, type Root } from "react-dom/client"
@@ -96,9 +81,7 @@ function render(over: Partial<MemberVerdictView> = {}, handlers: {
 const SHA_PRESENT = "a".repeat(64)
 const SHA_GONE = "b".repeat(64)
 
-// THE MEMBER'S PILLS ARE GONE. Every cell below used to drive the block's own mark
-// form; the behaviour now lives in the composer and its history, and each title names the cell that
-// proves it there. What stays here is the negative: the block renders no mark control at all.
+// The block renders no mark control; marking lives in the composer and its history.
 describe('member mark control', () => {
   const mark: RunDetailMemberMark = { markId: 'mark_0123456789ab', kind: 'false-fail', ordinal: 2,
     disposition: { kind: 'drafted', fix: 'fact', proposalId: 'prop_0123456789ab', proposalKind: 'knowledge' } }
@@ -192,9 +175,7 @@ describe("the sentence's lifecycle is a marker, and the marker is the view's", (
   })
 
   it("renders NO marker element at all on a terminal chain — not an empty one", () => {
-    // AN EMPTY MARKER ELEMENT WOULD STILL MATCH `[data-verdict-marker]`, and 406-11's shipped-binary
-    // cells assert on exactly that selector. A block that always rendered the element and left it
-    // blank would read as "there is a marker here" to every reader of the DOM.
+    // An empty marker would still match `[data-verdict-marker]`, so none renders when unneeded.
     const block = render()
 
     expect(block.querySelector("[data-verdict-marker]")).toBeNull()
@@ -315,7 +296,7 @@ describe("a cited artifact is one click from the drawer", () => {
 })
 
 describe("evidence that is GONE is a chip where the link was, and a count beside it", () => {
-  /** One present ref and one whose bytes are gone — the shape D-19 is written about. */
+  // One present ref and one whose bytes are gone.
   const ONE_OF_TWO: Partial<MemberVerdictView> = {
     citedArtifacts: [
       { id: "art_0", sha: SHA_PRESENT, incomplete: false },
@@ -357,8 +338,7 @@ describe("evidence that is GONE is a chip where the link was, and a count beside
   it("says how many of how many are gone, in the exported line", () => {
     const block = render(ONE_OF_TWO)
 
-    // ADDRESSED THE WAY 406-10 ADDRESSES IT — by the attribute's VALUE, not by reading it back off
-    // a node found some other way. The count is the selector, so a wrong count is a missing node.
+    // Addressed by the attribute's value, so a wrong count is a missing node.
     const count = block.querySelector('[data-evidence-incomplete="1/2"]')
     expect(count, "one of two, and the attribute says which").not.toBeNull()
     expect(count?.textContent).toBe(missingEvidenceLine({ missing: 1, total: 2 }))
@@ -371,9 +351,7 @@ describe("evidence that is GONE is a chip where the link was, and a count beside
   })
 
   it("does NOT re-grade the verdict because a screenshot is gone", () => {
-    // ONE MISSING SCREENSHOT IS NOT AN UNTRUSTWORTHY VERDICT. The whole-verdict badge was
-    // rejected precisely because it conflates the two; these three readings are what a reader —
-    // and 406-10's shipped-binary cells — use to tell a re-graded verdict from an intact one.
+    // One missing screenshot is not an untrustworthy verdict: the block shows a count, not a badge.
     const intact = render({ citedArtifacts: [{ id: "art_0", sha: SHA_PRESENT, incomplete: false }] })
     const producer = intact.querySelector("[data-verdict-block]")?.getAttribute("data-verdict-producer")
     const confidence = intact.querySelector("[data-verdict-block]")?.getAttribute("data-verdict-confidence")
@@ -391,8 +369,7 @@ describe("evidence that is GONE is a chip where the link was, and a count beside
   })
 
   it("CITED-BYTES-GONE-UNAVAILABLE renders exactly ONE cited-artifact node when the only cited artifact is gone", () => {
-    // THE TWO MUTATIONS 406-11 LEGS, SHAPED AS ONE CELL. Dropping the absent ref would make this
-    // zero; rendering it as an ordinary link would make it a BUTTON. Either edit reds here.
+    // Dropping the absent ref makes this zero, and rendering it as a link makes it a button.
     const block = render({
       citedArtifacts: [{ id: "art_0", sha: SHA_GONE, incomplete: true }],
       missingEvidence: { missing: 1, total: 1 },
@@ -480,15 +457,7 @@ describe('the records on the failing path in the block', () => {
   })
 })
 
-// WHERE THE HEADER'S DOOR LANDS (425-09 · D-11, UI-SPEC S4 / Color 2).
-//
-// The block is the destination, so it has to be able to RECEIVE focus without joining the tab
-// order — a reader tabbing through a failed run should not stop on every verdict sentence on the
-// way to the controls. `-1` is exactly that: reachable programmatically, skipped by Tab.
-//
-// THE RING IS `:focus` AND NOT `:focus-visible` ON PURPOSE. The door is activated by pointer as
-// often as by keyboard, and a browser suppresses `:focus-visible` after a mouse click — which
-// would move a reader somewhere and then give them nothing to show where they landed.
+// `tabIndex` -1 is off the tab order; the ring is `:focus`, as a click hides `:focus-visible`.
 describe("the verdict block is the door's landing site", () => {
   it("VERDICT-BLOCK-FOCUSABLE: carries tabindex -1 and a focus ring, and takes focus on demand", () => {
     const host = render()
@@ -507,7 +476,7 @@ describe("the verdict block is the door's landing site", () => {
     const host = render({ citedSteps: [0] })
     const block = host.querySelector<HTMLElement>("[data-verdict-block]")!
 
-    // The three attributes 406-11's shipped-binary cells address are untouched by the new one.
+    // The attributes DOM cells address are untouched by the new one.
     expect(block.getAttribute("data-verdict-producer")).toBe("deterministic-classifier")
     expect(block.getAttribute("data-verdict-confidence")).toBe("0")
     expect(host.querySelector("[data-verdict-sentence]")).not.toBeNull()

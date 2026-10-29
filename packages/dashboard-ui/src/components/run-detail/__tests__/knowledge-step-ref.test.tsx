@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-// 427 · D-03, UI-SPEC S3 — a step reference's accessible name and its producer text.
+// A step reference's accessible name and its producer text.
 
 import { act, type ReactElement } from "react"
 import { createRoot, type Root } from "react-dom/client"

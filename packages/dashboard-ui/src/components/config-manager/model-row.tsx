@@ -1,13 +1,4 @@
-// ONE SAVED MODEL (429-23, 429-24, 429-26 · D-10, D-11, D-12, D-17, D-23, D-24 · UI-SPEC S4, S6, E6).
-//
-// The closed row is its disclosure button: the name, the Default badge, the model line and one
-// status word derived from the credential-status read. The open panel sits inside the same row
-// and holds the connection test, whose line lives only while the row stays open, Make default,
-// the credential actions, the row's settings and Delete model. Deleting, signing out and removing
-// a key act at once and offer Undo; none asks first. The default model offers no delete. Settings
-// autosave by leaf; a key and a header value are typed into this component only and save through
-// their own buttons, never as drafts. A sign-in model that is not connected or whose sign-in expired
-// offers Sign in again, the add row's sign-in flow for the saved name, and its test runs after.
+// A key or header value lives in this component and saves through its own button, never as a draft.
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type RefObject } from "react"
 import { ChevronRight, CircleAlert, CircleCheck, LoaderCircle, LogOut, Plus, Trash2, TriangleAlert } from "lucide-react"
@@ -516,7 +507,7 @@ function ModelHeaders({ model }: { model: SavedModel }) {
   )
 }
 
-/** The row's settings (UI-SPEC S4 item 2), each a leaf that autosaves; name and provider are fixed facts. */
+/** The row's settings, each a leaf that autosaves; name and provider are fixed facts. */
 function ModelSettings({ model, facts }: { model: SavedModel; facts: ProviderFacts }) {
   const target = (key: string): ConfigFieldTarget => ({
     segments: modelFieldSegments(model.name, key),

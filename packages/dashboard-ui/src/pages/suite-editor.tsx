@@ -144,11 +144,7 @@ export default function SuiteEditorPage() {
   const suiteId = displayFormState?.suiteId ?? ''
   const suiteName = displayFormState?.name || (isCreateMode ? 'New Suite' : filePath)
 
-  // Derive the tests feeding into useLiveEditor. Per D-12, the server re-reads
-  // each test's YAML fresh from disk on each execute-test message, so the client
-  // only needs to identify tests by path + testId. Empty arrays for steps/setup/
-  // teardown are intentional — the hook forwards the signature through to the
-  // server which authoritatively re-reads.
+  // The server re-reads each test's YAML per execute, so the client sends only path and test id.
   const liveTests = useMemo<LiveEditorExternalTest[]>(() => {
     if (!displayFormState) return []
     return displayFormState.tests.map((entry) => ({
@@ -182,8 +178,7 @@ export default function SuiteEditorPage() {
     : null
   const draftAuthStateName = useMemo(() => readDraftAuthStateName(content), [content])
 
-  // CRITICAL per D-13: stale check is ONLY over setup + teardown arrays.
-  // Test-list edits must flow through silently — no stale banner, no restart prompt.
+  // Only setup and teardown make hooks stale; test-list edits flow through with no banner.
   const setupHooksStale = hasLiveSession
     && displayFormState !== null
     && (
@@ -203,8 +198,8 @@ export default function SuiteEditorPage() {
     || isRunning
     || runId !== null
     || isCreateMode
-    || displayFormState === null                     // D-20 YAML invalid
-    || !displayFormState?.target.trim()              // D-18 target required
+    || displayFormState === null                     // YAML invalid
+    || !displayFormState?.target.trim()              // target required
     || isLoadingTargets
   )
 
@@ -540,8 +535,7 @@ export default function SuiteEditorPage() {
     closeLiveMode()
   }, [closeLiveMode])
 
-  // suite allows manual setup re-run during an active session (divergence
-  // from test-editor). Stale banner clears only on explicit Restart.
+  // The suite allows a manual setup re-run in a session; the stale banner clears on Restart.
   const handleRunLiveHook = useCallback((phase: 'setup' | 'teardown', hookId: string) => {
     if (!hasLiveSession) {
       toast.error('Start a live session first.')
@@ -572,8 +566,7 @@ export default function SuiteEditorPage() {
     }
   }, [])
 
-  // Terminal transition: reflect server-driven disconnect
-  // A session the server no longer holds stays on the pane, whose preview names it.
+  // A session the server dropped stays on the pane, whose preview names it.
   useEffect(() => {
     if (!liveSessionId) return
     if (liveConnectionState !== "disconnected") return

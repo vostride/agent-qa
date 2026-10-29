@@ -1,8 +1,4 @@
-// 427 · D-20..D-23 — how knowledge retrieval ran for THIS run, stated under the Knowledge used heading.
-//
-// Recorded history, not a live reading: the class comes from the rung the evidence recorded, and
-// nothing here probes the store. Info classes are one muted line; the two warning classes are an
-// amber block with the doctor pointer. role="note", never "status" — nothing here changes live.
+// The class comes from the recorded rung, so nothing probes; `role="note"`, as nothing is live.
 
 import {
   CircleQuestionMark,

@@ -1,8 +1,4 @@
-// SAVED LOGIN STATES (429-22 · UI-SPEC S2, E1 partial, E8 · SC4).
-//
-// The folder autosaves like any field. The list has its own read: until it lands the section says
-// so while the rest of the tab renders, and a failed read offers Reload login states, which re-runs
-// only this read. The list is read-only: target, name and when it was captured.
+// The login-state list has its own read; a failed read offers a reload of only that list.
 
 import { useEffect, useState } from "react"
 

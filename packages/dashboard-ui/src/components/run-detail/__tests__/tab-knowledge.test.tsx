@@ -1,24 +1,7 @@
 import { RECORD_CHANGE_SCHEMA_VERSION, CURATION_SNAPSHOT_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 // @vitest-environment jsdom
 
-// THE KNOWLEDGE TAB A PERSON ACTUALLY SEES.
-//
-// WHY THESE CELLS RENDER INTO `document.body` THROUGH `createRoot`. That is the call `main.tsx`
-// makes. A component mounted into a detached node can satisfy every query in a file like this one
-// while the real mount path is broken, and the cell would never know.
-//
-// THE DOM CONTRACT IS THE SUBJECT, not the styling. `data-knowledge-state`, `data-used-summary`,
-// `data-step-index`, `data-test-index`, `data-plan-source`, `data-brief-lines` and
-// `data-canary-lines` are what the later plans' Playwright cells address on the built bundle, so
-// every one of them is pinned here in the cheap medium first. Colours and badge variants are
-// deliberately NOT asserted — a cell that pinned `bg-muted/40` would go red on a design change
-// that broke nothing a person relies on. The two class assertions that DO appear (`break-words`
-// on the error body) pin a legibility rule the Copywriting Contract states, not a look.
-//
-// THE FIVE STATE CELLS ARE THE POINT. D-06 and D-16 exist because a tab that renders blank when
-// its read has not landed, or when the project has no store, is indistinguishable from a tab
-// whose op is broken. Each state is asserted BY ATTRIBUTE and by its own sentence, and the
-// loading cell additionally asserts the absence of any text at all.
+// Each tab state is asserted by attribute and by its sentence; loading asserts no text at all.
 
 import { act, type ReactElement } from "react"
 import { createRoot, type Root } from "react-dom/client"
@@ -114,7 +97,7 @@ function readyView(
   }
 }
 
-// the per-step ledger renders only once the collapsed Retrieval details is opened.
+// The per-step ledger renders only once the collapsed Retrieval details is opened.
 function openRetrievalDetails(view: HTMLElement): void {
   const trigger = view.querySelector('[data-knowledge-section="retrieval-details"] [data-slot="collapsible-trigger"]')
   if (trigger === null) throw new Error("no Retrieval details trigger")
@@ -307,8 +290,7 @@ describe("producer text reaches the DOM as TEXT, never as markup", () => {
   })
 })
 
-// THE FOUR SECTIONS, IN ORDER (427 · D-02, SC1). Knowledge used, then its effect, then what the
-// run wrote back, then the collapsed ledger — and each of the first three states itself when empty.
+// Knowledge used, its effect, what the run wrote back, then the collapsed ledger, in that order.
 describe("the ready arm paints four sections in KNOWLEDGE_SECTIONS order", () => {
   function allZeroView(): KnowledgeView {
     const projection = RunKnowledgeProjectionSchema.parse({
@@ -367,9 +349,7 @@ describe("the ready arm paints four sections in KNOWLEDGE_SECTIONS order", () =>
   })
 })
 
-// 423 D-15 · WIN #313, ON THE PAGE'S OWN PATH. The tab is fed exactly what `run-detail.tsx` feeds
-// it: a schema-valid `runs.knowledge` projection folded by `projectKnowledgeView`. A fix that held
-// only for hand-built views would pass the cells above while the page dropped the rows.
+// Fed what `run-detail.tsx` feeds it, so a fix that held only for hand-built views would fail here.
 const RUN_423 = "run-423-24-tab"
 type ReadyProjection = Extract<RunKnowledgeProjection, { kind: "ready" }>
 type LearnedChange = ReadyProjection["learned"]["changes"][number]
@@ -464,8 +444,7 @@ describe("the page path keeps failed-chain rows and states the snapshot sections
 
     expect(section?.getAttribute("data-learned-snapshot")).toBe("recorded")
     expect(section?.getAttribute("data-learned-since-then")).toBe("1")
-    // the curation rows are the snapshot's five records, and the later promotion
-    // reads Confirmed in its own open "Since this run" subsection.
+    // The snapshot's records are the curation rows; the later promotion reads Confirmed apart.
     expect(learnedRows(view).map(row => row.getAttribute("data-learned-section")))
       .toEqual([...recorded.rows.map(() => "curation"), "since-then"])
     expect(learnedRows(view).at(-1)?.getAttribute("data-record-change")).toBe("confirmed")

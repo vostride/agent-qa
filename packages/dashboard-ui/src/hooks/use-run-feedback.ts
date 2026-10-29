@@ -162,8 +162,7 @@ export function useRunFeedback({
   const busy = state === 'submitting'
   const setOutcome = (key: string, next: AddressOutcome) => setOutcomes((previous) => new Map(previous).set(key, next))
   const currentKey = target === null || draft.kind === undefined ? '' : previewRequestKey({ kind: draft.kind, ...target })
-  // Another address's read is never shown here; this address's last read stays on screen while its
-  // re-fetch is in flight, so the section never blanks (UI-SPEC S5).
+  // This address's last read stays on screen while its re-fetch runs, so the section never blanks.
   const shown = landed !== undefined && landed.address === address ? landed : undefined
   const landedOutcome = shown === undefined ? undefined : shown.read.kind === 'read' ? shown.read.result.kind : 'failed'
   const previewCurrent = shown !== undefined && currentKey !== '' && shown.key === currentKey

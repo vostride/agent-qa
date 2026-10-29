@@ -65,12 +65,7 @@ export const STAGE_INDICATOR_WORDS: Record<
 // One root for both stages, because an unreadable store says nothing about either one.
 export const POST_PROCESSING_UNAVAILABLE_WORD = 'Post-processing unavailable'
 
-/**
- * What the ellipsis before the first read says out loud (UI-SPEC S3).
- *
- * `…` is nothing at all to a screen reader, and "the read has not landed" is genuinely different
- * from `pending` — collapsing it into silence is the same lie as collapsing it into a chip word.
- */
+// Announced, because `…` is nothing to a screen reader and differs from `pending`.
 export const POST_PROCESSING_LOADING_LABEL = 'Post-processing status loading'
 
 // The em dash splits the state from its clause, as the accessible name does.
@@ -156,12 +151,7 @@ function outcomeClause(outcome: string): string | undefined {
   return at === -1 ? undefined : outcome.slice(at + 3)
 }
 
-/**
- * What a screen reader hears on an indicator: the state first, then what happened, then where
- * pressing it goes (UI-SPEC S3). A button root carries this as `aria-label`; a focusable span
- * carries it in a trailing `sr-only` child, because `aria-label` on a generic element is not
- * reliably announced.
- */
+// A span carries this in an `sr-only` child, as `aria-label` on a generic element is unreliable.
 export function stageIndicatorAccessibleName(
   stage: PostProcessingStage,
   state: StageIndicatorState,
@@ -245,11 +235,7 @@ export function legacyCurationPairText(curated: number, deprecated: number): str
   return `${String(curated)} curated · ${String(deprecated)} deprecated`
 }
 
-/**
- * Seconds included because stage durations are seconds (UI-SPEC S4). `undefined` locale so the
- * reader's own machine decides the wording, and `h23` so a 24-hour reader never sees `12:41:02 AM`
- * where the log says `00:41:02`.
- */
+// `h23`, so a 24-hour reader never sees `12:41:02 AM` where the log says `00:41:02`.
 const CLOCK_FORMAT = new Intl.DateTimeFormat(undefined, {
   hour: '2-digit',
   minute: '2-digit',
@@ -312,13 +298,7 @@ export function stageTimingLine(
   return clauses.length === 0 ? undefined : clauses.join(' · ')
 }
 
-/**
- * A closed class key, re-spelled for reading (UI-SPEC S4).
- *
- * A RE-SPELLING, NOT A SECOND CLOSED SET. A `Record<VerdictClass, string>` here would be a second
- * place a new class has to be registered, and the one that fails silently — the schema's list is
- * the vocabulary, and this is only how its underscores read out loud.
- */
+// A re-spelling of the schema's list, not a second closed set to register new classes in.
 export function verdictClassLabel(cls: VerdictClass): string {
   return cls.replace(/_/g, ' ')
 }

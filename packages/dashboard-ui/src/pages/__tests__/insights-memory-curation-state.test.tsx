@@ -1,9 +1,6 @@
 // @vitest-environment jsdom
 
-// C433-INSIGHTS-CURATION-UI. The Memory section claims "no
-// memory-curator activity" only when every settled run's curation finished and changed nothing.
-// Curation that failed or has not finished, and runs still in flight, are each named, and a window
-// change never leaves the previous window's counts on screen.
+// No curator activity is claimed only when every settled run's curation changed nothing.
 
 import { act } from "react"
 import { createRoot, type Root } from "react-dom/client"

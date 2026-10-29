@@ -1,20 +1,4 @@
-// THE USAGE CARD BEHIND THE HEADER'S TOKEN LINE (425-05 · PXH-RUN-05, D-21..D-24, UI-SPEC S6).
-//
-// PRESENTATIONAL, AND DELIBERATELY SO. It takes the projection's own `tokens` and
-// `models` and paints them. It reads nothing, fetches nothing and knows no run id — the page owns
-// the read and the header hands it down.
-//
-// IT COMPOSES NO SENTENCE. Every line here is a call into `run-detail-view.ts`, so the words a
-// person reads live beside the reasoning for them and cannot drift from the cells that pin them —
-// the `post-processing-view.ts` idiom, applied to usage.
-//
-// A LINE IS A FACT SOMEBODY REPORTED, OR IT IS NOT THERE. `cached` needs the provider's own
-// `cachedInputTokens`; `coverage` needs an unmeasured step; the model lines need the durable
-// summary. Each of those functions answers `undefined` when its fact is absent and this file
-// renders nothing for it — the card never fills a gap with a zero, an "n/a" or a row of dashes.
-//
-// Model and provider ids are producer strings rendered as the stored text;
-// there is no `dangerouslySetInnerHTML` in this file.
+// Composes no sentence: each line is a `run-detail-view.ts` call; an absent fact renders nothing.
 
 import { TooltipContent } from "@/components/ui/tooltip"
 import {
@@ -51,13 +35,7 @@ function usageCardLines(
   ]
 }
 
-/**
- * The card body — a `TooltipContent`, opened by the header line's trigger.
- *
- * `align="end"` because the token line sits at the right of the header's meta row and Radix
- * collision-avoids the viewport edge from there; `max-w-[320px]` with wrapping so a long model id
- * grows the card downward rather than off the screen (UI-SPEC E5 overflow / long-text).
- */
+// `align="end"` and a wrapping `max-w-[320px]`, so a long model id grows the card downward.
 export function RunUsageCard({
   tokens,
   models,

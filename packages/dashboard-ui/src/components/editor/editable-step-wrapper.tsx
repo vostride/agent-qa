@@ -25,16 +25,7 @@ interface EditableStepWrapperProps {
   runningStepId: string | null
 }
 
-// THE LIVE EDITOR'S OWN SUB-ACTION ROW.
-//
-// It used to borrow run detail's `SubActionTreeItem`. That item now takes the DURABLE
-// `RunDetailSubAction` — the projection's row, carrying the planner's own `plan` sentence, a
-// screen-state hash and a recorded result — and the editor holds `SubActionData`, the live shape,
-// which has none of those and does have an `in-progress` state the durable row cannot be in.
-//
-// SHARING ONE COMPONENT ACROSS BOTH WOULD MEAN FABRICATING THE DIFFERENCE: a `screenStateHash` the
-// editor never computed, or a `plan` reverse-engineered out of the action blob — which is exactly
-// the `JSON.parse`-and-guess the durable rewrite deleted. Two shapes, two rows, no invented facts.
+// Not shared with run detail's row: the live shape lacks the durable fields and has `in-progress`.
 export function EditorSubActionRow({ sub, index, stepId, isSelected, onSelect }: {
   sub: LiveSubAction
   index: number

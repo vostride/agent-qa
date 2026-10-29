@@ -17,10 +17,7 @@ export interface FeedbackTechnicalDetailsProps {
   basis?: MarkPreviewBasis
 }
 
-/**
- * the only component that renders a raw mark word or an id as text. Collapsed, at the foot
- * of the composer; a row whose fact is absent is not rendered.
- */
+// The only component that renders a raw mark word or an id as text; absent facts get no row.
 export function FeedbackTechnicalDetails({ kind, address, testId, recordIds = [], basis }: FeedbackTechnicalDetailsProps) {
   const rows: [TechnicalDetailsRow, ReactNode][] = []
   if (kind !== undefined) rows.push(['kind', kind])

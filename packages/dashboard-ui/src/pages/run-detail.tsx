@@ -63,18 +63,7 @@ function tabFromUrl(searchParams: URLSearchParams): string {
   return TAB_NAMES.find(name => name === tab) ?? 'overview'
 }
 
-/**
- * Which step a link is pointing at.
- *
- * `?step=` NOW CARRIES THE MEMBER-SCOPED KEY `<testIndex>:<stepIndex>`, the same string the tree
- * selects by. Until 405-08 it carried a bare step ordinal disambiguated by `?run=<childRunId>` —
- * the child run id came from the parent/child walk this plan deleted, and a bare ordinal on a
- * multi-member run names one row per member.
- *
- * A KEY THAT NAMES NO RENDERED STEP FALLS BACK TO THE FIRST ONE. The param is
- * hand-editable, and it can also point at a member the current `?member=` filter narrowed away —
- * both land the viewer at the top of the tree they can see, never on a blank panel.
- */
+// `?step=` is the `testIndex:stepIndex` key; one naming no rendered step falls back to the first.
 function getSelectionFromUrlOrFirst(
   displaySteps: DisplayStep[],
   searchParams: URLSearchParams,
@@ -139,9 +128,7 @@ export default function RunDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const location = useLocation()
-  // D-07. The one thing this page cannot work out from the run row: whether the viewer arrived
-  // here BECAUSE the live page just watched this run's verdict land. Written by `live-run.tsx`,
-  // read structurally, `undefined` for anything that is not the shape. See the loader below.
+  // Written by `live-run.tsx` and read structurally; `undefined` for anything else.
   const arrivedOnVerdict = arrivedOnVerdictFrom(location.state)
   const [searchParams, setSearchParams] = useSearchParams()
   const productTour = useOptionalProductTour()
@@ -151,11 +138,7 @@ export default function RunDetailPage() {
   const runTitle = run ? `Run - ${run.name}` : "Run"
   usePageTitle(runTitle)
   useRunStatusFavicon(getRunFaviconState(run?.status))
-  // THE PAGE'S ONE DURABLE READ. `undefined` = not asked yet; `null` = the read
-  // FAILED. Those are different facts and the tree renders them differently: an unasked page is
-  // still loading, a failed read is an error posture, and an empty projection is a run that
-  // genuinely recorded nothing. Collapsing any two of them would make a server fault look like a
-  // quiet test.
+  // `undefined` is not asked yet and `null` a failed read; both differ from an empty projection.
   const [detail, setDetail] = useState<RunDetailProjection | null | undefined>(undefined)
   const [markDenial, setMarkDenial] = useState<MarkDenial & { testIndex: number; stepIndex?: number }>()
   const [markPending, setMarkPending] = useState(false)
@@ -231,8 +214,7 @@ export default function RunDetailPage() {
     }
   }, [id, detail, reloadDetail])
 
-  // the page's own inline size decides docked or stacked. 0 until the observer reports, and an
-  // unmeasured page is docked.
+  // The page's own width picks docked or stacked; an unmeasured page is docked.
   const [pageRoot, setPageRoot] = useState<HTMLDivElement | null>(null)
   const [pageWidth, setPageWidth] = useState(0)
   useEffect(() => {
@@ -277,24 +259,13 @@ export default function RunDetailPage() {
   }, [])
   const [allExecutionLogs, setAllExecutionLogs] = useState<ExecutionLogEntry[]>([])
 
-  // THE CHIP CLIENT LIVES HERE, NOT IN THE HEADER. The navbar is
-  // presentational: it takes a view and paints it. A header that fetched for itself would open one
-  // client per mount of a component that remounts, and would be a second answer to "what does this
-  // page know about this chain". The raw READ is what is held — the projection is pure and total,
-  // so re-deriving it on render costs nothing and keeps exactly one copy of the mapping.
+  // The chip client lives here, not in the presentational header; the raw read is held.
   const [postProcessingRead, setPostProcessingRead] = useState<PostProcessingRead | undefined>(undefined)
 
-  // THE KNOWLEDGE TAB'S OWN READ. The page owns the client and the tab is
-  // presentational, on the chip read's footing above: a tab that fetched for itself would open one
-  // client per remount of a component the tab strip remounts. Held RAW because
-  // `projectKnowledgeView` is pure and total — re-deriving it costs nothing and keeps exactly one
-  // copy of the mapping. `undefined` is "the first read has not landed", which is the tab's
-  // `loading` state and is deliberately not a member of the projection's own union.
+  // The tab's read is held raw; `undefined` is the first read not landed, the tab's loading state.
   const [knowledgeRead, setKnowledgeRead] = useState<KnowledgeRead | undefined>(undefined)
 
-  // THE FAILURE VIEW'S OWN READ. Held raw, like the chip read above,
-  // because `projectAnalysisView` is pure and total — re-deriving it on render costs nothing and
-  // keeps exactly one copy of the join.
+  // Held raw, as `projectAnalysisView` is pure and total.
   const [analysis, setAnalysis] = useState<AnalysisGetOutput | undefined>(undefined)
 
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
@@ -327,32 +298,12 @@ export default function RunDetailPage() {
     return watchPostProcessing(id, { onRead: setPostProcessingRead })
   }, [id])
 
-  // THE CHIP WORD, AND NOTHING ELSE OFF THE FRAME (D-03, 404 D-17 applied a second time). A pushed
-  // `watchPostProcessing` frame is a TRIGGER: it says the durable answer may have moved. Nothing a
-  // frame carries is ever painted into a member's block — only `fetchRunAnalysis`'s result is.
+  // A pushed frame only triggers a re-read; nothing it carries is painted into a member's block.
   const analysisChip = postProcessingRead?.kind === 'read'
     ? postProcessingRead.status.chips.analysis
     : undefined
 
-  // RE-READ ON EVERY TRANSITION OF THAT WORD, AND ON NO OTHER FRAME. The dependency list IS the
-  // D-03 rule: `pending → running → done | failed` each move the value and re-run this effect,
-  // while a repeated frame carrying the same word does not. No new socket, no new timer.
-  //
-  // A REJECTED READ LEAVES THE PREVIOUS ANSWER IN PLACE. Clearing on failure would blank a
-  // sentence the reader is looking at because one poll hiccuped; the honest state of a failed
-  // re-read is the last answer the op actually gave.
-  //
-  // ...BUT ONLY FOR THE RUN IT WAS AN ANSWER ABOUT (CR-02, measured 2026-08-29). The route is
-  // `/runs/:id`, so a move from run A to run B changes the param WITHOUT remounting this page,
-  // and `projectAnalysisView` joins on `perTest` / `testIndex` — an integer both runs have. So a
-  // held answer does not go stale visibly; it JOINS, painting run A's sentence, provenance,
-  // confidence, cited steps and cited artifact shas under run B's members. And the rejection rule
-  // above made it permanent for the ordinary case, because the read answers 404 for a run with no
-  // handoff: navigating from a run WITH an analysis to one WITHOUT left A's sentences on B's page
-  // indefinitely, including this door's RESTORED secret values attributed to the wrong test.
-  //
-  // The sibling read above forgets the previous run on an id change for exactly this reason; the
-  // same rule applies here.
+  // Clear the analysis on an id change, or run A's verdicts would join run B's members by index.
   useEffect(() => { setAnalysis(undefined) }, [id])
 
   useEffect(() => {
@@ -386,17 +337,7 @@ export default function RunDetailPage() {
         const data = await fetchRun(id!)
         if (cancelled) return
 
-        // THE BOUNCE, RE-KEYED.
-        //
-        // WHAT THIS REPLACED. Until 404 the loader began by reading `/api/execution/active` and
-        // bounced to `/live` for any run in that set. D-07 retires that reading: an execution
-        // stays "active" until its POST-RUN TAIL finishes, and the tail runs after the verdict —
-        // so a viewer whom the live page had just moved here on the verdict was thrown
-        // straight back to `/live`, which navigated them here again. A ping-pong nobody can click
-        // their way out of, for as long as curation takes.
-        //
-        // THE PREDICATE IS NOW THE ROW'S OWN STATUS, which the dashboard subscriber writes at the
-        // `verdict` envelope. One producer, one fact.
+        // The row's own status decides the bounce, written by the subscriber at the verdict.
         const rowIsLive = shouldRouteRunToLive(data.run.status)
         if (rowIsLive && arrivedOnVerdict === undefined) {
           navigate(routes.runLive(id!), { replace: true })
@@ -405,27 +346,13 @@ export default function RunDetailPage() {
 
         setRun(data.run)
 
-        // AND THE RACE THE PREDICATE CANNOT SEE. `updateRun` at `verdict` and this `fetchRun`
-        // race by design — D-13 navigates on the ENVELOPE, the earliest honest moment, and the
-        // durable row follows within milliseconds. An arrival carrying `arrivedOnVerdict` never
-        // bounces on any attempt; it renders the row it got and re-asks on a bounded cadence
-        // until the row reads terminal, so the header badge follows the row rather than freezing
-        // on a stale `running`.
+        // An arrival with `arrivedOnVerdict` never bounces; it re-asks until the row is terminal.
         if (rowIsLive && catchUpAttempts < VERDICT_ROW_CATCH_UP_MAX) {
           catchUpAttempts += 1
           catchUpTimer = setTimeout(() => { if (!cancelled) void loadRun() }, VERDICT_ROW_CATCH_UP_MS)
         }
 
-        // ONE DURABLE READ, AND ONLY ONE. What stood here until 405-08 was a walk:
-        // read the parent, then read every child run in a loop for its steps, then read the last
-        // attempt again for ITS steps — N+2 requests to draw one page, each of them able to fail
-        // on its own and silently drop a member (the `catch { // skip }` that used to sit in that
-        // loop). `runs.detail` answers the whole run in one unpaged projection, so a member that
-        // did not run arrives as a row rather than as an absence nobody noticed.
-        //
-        // A FAILED READ IS ITS OWN STATE, not a bounce and not an empty tree. The run row already
-        // rendered above, so the header, the verdict and the failure banner stay; only the tree
-        // says it could not be loaded.
+        // One `runs.detail` read; a failed read is its own state, so the header and banner stay.
         try {
           const projection = await reloadDetail()
           if (cancelled) return
@@ -475,15 +402,7 @@ export default function RunDetailPage() {
     return () => { cancelled = true }
   }, [id, isLoading])
 
-  // ONE READ FOR THE WHOLE KNOWLEDGE TAB. Not a poll and not a subscription:
-  // a run's served brief is a durable fact about a run that already happened, so it is read once
-  // per id and never again. The Learned half moves with curation, which the chip read already
-  // watches; 407-09 spends that trigger rather than adding a second timer here.
-  //
-  // A REJECTED READ IS A STATE, NOT A SWALLOWED ERROR. `runs.knowledge` answers its own absences
-  // as RESULTS — a pruned handoff and a project with no store both arrive on the `read` arm — so
-  // the only thing reaching the catch is a door that refused or fell over, and the tab says so
-  // Clearing to `undefined` would show a skeleton forever for a read that already failed.
+  // Read once per id; a rejected read becomes an error state, never a skeleton forever.
   useEffect(() => {
     if (!id) return
     let cancelled = false
@@ -559,33 +478,7 @@ export default function RunDetailPage() {
     () => projectAnalysisView(analysis, analysisChip, detail),
     [analysis, analysisChip, detail],
   )
-  /**
-   * THE HEADER'S ANALYSIS INDICATOR, OPENED (425-09 · D-11, PXH-RUN-03, UI-SPEC S4).
-   *
-   * THE DOOR MOVES SCROLL AND FOCUS AND NOTHING ELSE. It switches no tab, does not touch the
-   * playhead and does not change the selection — those are the page's own state, and a header
-   * control that rewrote them would be reaching past what it was asked for (the declined option in
-   * D-11). That also makes it idempotent for free: opening it twice lands the same reader in the
-   * same place, because there is no state for a second call to advance.
-   *
-   * THE FIRST MOUNTED BLOCK IS THE FIRST FAILED MEMBER. A passed member mounts no block at all, so
-   * tree order already answers "which member" without this page re-deriving the projection the
-   * tree is rendering from. Member groups own their open state locally and default open.
-   *
-   * ...AND WHEN A READER HAS COLLAPSED THEM ALL, THE TOGGLE IS THE TARGET. Scrolling to nothing
-   * and focusing nothing would lose the reader entirely. The target is the toggle of the group that
-   * HOLDS a verdict (`data-member-has-verdict`, written only on a group handed a verdict), so the
-   * verdict is one keypress away rather than behind a passed member's group that happens to come
-   * first (425 review WR-01). The first toggle remains only for a tree that marks no group.
-   *
-   * THE TOGGLE IS NAMED BY CONTRACT, NOT BY ARIA STATE. `aria-expanded` is also
-   * emitted by the member-filter trigger and by the Error Details disclosure, and both render
-   * earlier in this same container on exactly the run the door is enabled for — a failed run with
-   * an error log. `[data-member-toggle]` is written only on the group's own disclosure.
-   *
-   * `preventScroll` on the focus call because the scroll above already placed the target — without
-   * it the browser scrolls a second time, to its own idea of where the element should sit.
-   */
+  // Moves scroll and focus only; `preventScroll` keeps focus from scrolling a second time.
   const openVerdict = useCallback(() => {
     const container: ParentNode = stepTreeScrollRef.current ?? document
     const target =
@@ -598,9 +491,7 @@ export default function RunDetailPage() {
     target.focus({ preventScroll: true })
   }, [])
 
-  // CHROME KEYS ON THE RUN, NOT ON THE FILTER. A viewer who narrowed a five-member suite to
-  // one member is still looking at a suite, and hiding the header and the picker would strand them
-  // there with no way back.
+  // Chrome keys on the run, not the filter, so a narrowed suite keeps its way back.
   const hasMemberChrome = detail ? showMemberChrome(detail) : false
   const displaySteps = useMemo(() => displayStepsForGroups(visibleGroups), [visibleGroups])
 
@@ -609,8 +500,7 @@ export default function RunDetailPage() {
     return displaySteps.find(s => s.id === selection.stepId) ?? null
   }, [selection, displaySteps])
 
-  // THE FEEDBACK COMPOSER'S STATE IS PAGE STATE, held by a hook so `onMark` above stays
-  // the one writer. The header entry's target follows the selection and the member filter.
+  // Page state held by a hook, so `onMark` stays the one writer.
   const feedback = useRunFeedback({
     runId: id,
     runStatus: run?.status,
@@ -625,15 +515,11 @@ export default function RunDetailPage() {
     reloadDetail,
     setSelection,
   })
-  // D-10 / RESEARCH Pattern 3: the orientation switch changes panel ids, never the Group's key, so the
-  // library keeps a layout per arrangement and the tree, the tabs and the player are never remounted.
-  // The open seed is in percent because numeric panel sizes are pixels in react-resizable-panels 4.
+  // The open seed is in percent, as numeric panel sizes are pixels in react-resizable-panels 4.
   const feedbackOpen = feedback.composer !== undefined
   const layout = feedbackLayout(pageWidth, feedbackOpen)
   const panelIds = feedbackPanelIds(layout)
-  // `defaultLayout` seeds only the Group's first open arrangement. Coming back to docked from stacked,
-  // the library restored the docked panes with the composer at its 50% cap and the tree squeezed to a
-  // sliver (426-17 LAYOUT-SWITCH-NO-REMOUNT), so every later switch re-seeds its own arrangement.
+  // `defaultLayout` seeds only the first arrangement, so every switch re-seeds its own.
   const panelGroup = useGroupRef()
   const seededLayout = useRef<FeedbackLayout | undefined>(undefined)
   useEffect(() => {
@@ -776,9 +662,7 @@ export default function RunDetailPage() {
       items.push({ type: 'hook', logId: hook.id })
     }
 
-    // ONE FLAT ORDER, AND IT IS ALREADY THE TREE'S. `displaySteps` comes out of the
-    // member-grouped projection in handle-then-ordinal order, so keyboard navigation walks the
-    // tree exactly as drawn without a second grouping pass to keep in step with the first.
+    // `displaySteps` is already in tree order, so keyboard navigation walks the tree as drawn.
     for (const step of displaySteps) {
       if (!step.subActions?.length) items.push({ type: 'step', stepId: step.id })
       {
@@ -895,10 +779,7 @@ export default function RunDetailPage() {
       '7': () => setActiveTab(TAB_NAMES[6]),
       i: () => openArtifactDrawer("test"),
       c: () => openArtifactDrawer("config"),
-      // `M` RE-POINTED, NOT RETIRED. The v1 memory drawer tab this key opened is dead
-      // debris that 407-05 deletes grep-clean; re-pointing it here rather than there means the
-      // shortcut is never dead for the length of a plan, and the muscle memory lands on the
-      // surface that actually holds this run's memory story.
+      // M opens the Knowledge tab, which holds this run's memory story.
       m: () => setActiveTab('knowledge'),
       r: () => {
         if (!run) return
@@ -926,13 +807,7 @@ export default function RunDetailPage() {
 
   useKeyboardShortcuts(shortcuts)
 
-  // Sync selection + tab to URL
-  //
-  // THE STEP PARAM IS THE SELECTION KEY ITSELF — `<testIndex>:<stepIndex>`, the
-  // same string the tree highlights by, so the round-trip is an identity rather than a
-  // translation. `?run=` is DELETED rather than left dormant: it named a child run id, and after
-  // 405-07 there are no child runs to name; a stale one in a bookmarked link must not survive into
-  // the rewritten query.
+  // The step param is the selection key itself; a stale `?run=` is deleted from the query.
   useEffect(() => {
     if (isLoading || detail === undefined || pendingCitationSha) return
     const step = hasStepId(selection)
@@ -1001,15 +876,7 @@ export default function RunDetailPage() {
     return () => cancelAnimationFrame(animationFrameId)
   }, [selection, displaySteps, searchParams])
 
-  /**
-   * Narrow the tree to one member, or widen it back.
-   *
-   * THE FILTER IS URL STATE AND NOTHING ELSE. There is no second copy in React state to fall out
-   * of step with the address bar, and no fetch: the projection for the whole run is already in
-   * hand, so narrowing is a `filter` over it. That is the difference from what stood here — the
-   * suite picker re-fetched a child run and its logs on every change, so a link into one member
-   * showed a different page than clicking to it.
-   */
+  // The filter is URL state only; narrowing filters the projection already in hand.
   const handleMemberFilterChange = useCallback((value: string) => {
     const next = new URLSearchParams(searchParams)
     if (value === MEMBER_FILTER_ALL) next.delete('member')
@@ -1019,24 +886,7 @@ export default function RunDetailPage() {
     setSearchParams(next, { replace: false })
   }, [searchParams, setSearchParams])
 
-  /**
-   * Jump to a step the verdict cited (406-06 · D-02, first half).
-   *
-   * IT MINTS NO ID AND NO SCROLLER. The step key is `runDetailStepKey`'s — the one spelling the
-   * tree renders as `data-step-id`, the panels resolve by, and the `?step=` deep link round-trips
-   * through — so this is a `setSelection` and nothing more; the page's existing scroll-into-view
-   * effect finds the row inside `stepTreeScrollRef`. A second flattening or a second id spelling
-   * here would be the exact drift `displayStepsForGroups` exists to prevent.
-   *
-   * A CITED INDEX WITH NO STEP IS A NO-OP. The ordinals come off the producer's own
-   * evidence, and a verdict citing a step this run never recorded must not select a row that is not
-   * there, nor throw. The existence check is against ALL groups rather than the visible ones, which
-   * is what distinguishes "the filter is hiding it" from "it does not exist".
-   *
-   * AND WHEN THE FILTER IS HIDING IT, THE FILTER WIDENS FIRST. Selecting a step outside the visible
-   * tree would be undone one effect later by the guard below, which pulls the selection back to the
-   * first visible row — so the reader would click a cited step and land somewhere else entirely.
-   */
+  // A cited step with no row is a no-op; one the filter hides widens the filter first.
   const onCitedStep = useCallback((testIndex: number, stepIndex: number) => {
     const stepId = runDetailStepKey(testIndex, stepIndex)
     const exists = groups.some(
@@ -1054,13 +904,7 @@ export default function RunDetailPage() {
     setSelection({ type: 'step', stepId })
   }, [groups, displaySteps, searchParams, setSearchParams])
 
-  // a Knowledge step reference is a cited step that also brings its tree row into view.
-  // The tab and the focus stay where the reader left them.
-  //
-  // A STEP THE MEMBER FILTER HIDES IS SELECTED ONLY ONCE THE WIDENED TREE HAS RENDERED. The router
-  // lands the URL in a transition, so a selection set in the same click renders first against the
-  // narrowed tree, where the visible-tree guard pulls it back and the URL sync rewrites the member
-  // param the click had just removed.
+  // A hidden step is selected only after the widened tree renders, or the guard pulls it back.
   const [pendingKnowledgeStep, setPendingKnowledgeStep] = useState<string | null>(null)
   const scrollTreeRowIntoView = useCallback((stepId: string) => {
     requestAnimationFrame(() => {
@@ -1108,13 +952,7 @@ export default function RunDetailPage() {
       : new Map(),
   }), [groups, onKnowledgeStep])
 
-  /**
-   * Narrow the tree to a cluster sibling's own group.
-   *
-   * THE FILTER'S OWN SPELLING, NOT A SECOND ONE. `?member=<testIndex>` is what the picker writes
-   * and what `parseMemberFilter` reads, so a sibling link and the picker are the same control
-   * reached two ways — and the link is shareable for free.
-   */
+  // Writes `?member=`, the picker's own spelling, so the link and picker are one control.
   const onSelectMember = useCallback((testIndex: number) => {
     const next = new URLSearchParams(searchParams)
     next.set('member', String(testIndex))
@@ -1149,11 +987,7 @@ export default function RunDetailPage() {
     <TooltipProvider>
       {lightboxSha && <PlayerLightbox runId={run.id} sha={lightboxSha} open onOpenChange={open => { if (!open) setLightboxSha(null) }} returnFocus={citationOpener.current} />}
       <div ref={setPageRoot} className="flex h-full min-h-0 flex-col overflow-hidden">
-        {/*
-          THE DURABLE RUNG RIDES THE READ THIS PAGE ALREADY MADE. `bannerRung` is a
-          pure read of `knowledgeRead` — no second fetch, no new effect, and no new dependency on
-          the one-read-per-id effect above, whose cardinality 407-06 pinned.
-        */}
+        {/* `bannerRung` reads `knowledgeRead`, so the rung costs no second fetch. */}
         <RunNavbar
           run={run}
           tokens={detail?.tokens}
@@ -1162,11 +996,7 @@ export default function RunDetailPage() {
           onToggleShortcuts={() => setShortcutsOpen(prev => !prev)}
           onOpenArtifacts={openArtifactDrawer}
           onCurationClick={() => setActiveTab('knowledge')}
-          // THE DOOR EXISTS ONLY WHERE THERE IS SOMEWHERE TO GO. A passed run has no
-          // verdict to open, and neither has a failed run the op answered nothing about — which
-          // is also the excluded run's reading, since a chain that was never enqueued produced no
-          // verdicts. The header stays a focusable span in every one of those cases rather than
-          // growing a control that would do nothing.
+          // Only a failed run with a verdict gets the verdict door; else the header stays a span.
           onOpenVerdict={runStatusClass(run.status) === 'fail' && analysisView.size > 0 ? openVerdict : undefined}
           retrievalRung={bannerRung(knowledgeRead)}
           feedbackEntry={feedback.headerEntry}
@@ -1186,14 +1016,7 @@ export default function RunDetailPage() {
         >
           <ResizablePanel key="tree" id={panelIds.tree} defaultSize={35} minSize={20}>
             <div ref={stepTreeScrollRef} className="flex h-full min-h-0 min-w-0 flex-col overflow-y-auto">
-              {/*
-                THE MEMBER FILTER. What stood here was a picker over CHILD RUNS that
-                re-fetched one on every change, and beside it an attempts tab strip that re-fetched
-                a whole earlier attempt. D-17 retires the attempts picker outright — the projection
-                keeps the FINAL attempt's steps per handle plus a count, and the attempt-by-attempt
-                story stays in the run's own event log. So one control remains, it fetches nothing,
-                and it is absent entirely on a single-member run.
-              */}
+              {/* One member filter that fetches nothing, absent on a single-member run. */}
               {hasMemberChrome ? (
                 <div className="border-b px-3 py-2 shrink-0">
                   <Select

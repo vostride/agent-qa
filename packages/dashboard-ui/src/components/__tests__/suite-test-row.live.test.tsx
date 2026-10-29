@@ -84,7 +84,6 @@ describe('SuiteTestRow live mode', () => {
     expect(drag?.getAttribute('aria-disabled')).toBe('true')
   })
 
-  // D-13 playground — test-list edits (including remove) flow through during live session
   it('SHOWS remove button when liveMode=true', () => {
     mount(<SuiteTestRow {...baseProps} liveMode />)
     const remove = container.querySelector('[aria-label^="Remove"]')
@@ -353,7 +352,6 @@ describe('SuiteTestRow live mode', () => {
     expect(container.textContent).toContain('teardown: cleanup')
   })
 
-  // UI-SPEC selection outline
   it('applies the quiet selected-state contract when selection.type=test and selection.testIndex matches', () => {
     mount(
       <SuiteTestRow
@@ -388,7 +386,7 @@ describe('SuiteTestRow live mode', () => {
     expect(selectedSurface?.className).toContain('bg-primary/10')
   })
 
-  // UI-SPEC running state keeps a thin neutral frame while the moving beam carries the accent.
+  // The running state keeps a thin neutral frame while the moving beam carries the accent.
   it('renders canonical running state classes and primary-tinted iconography when liveStatus=running', () => {
     mount(<SuiteTestRow {...baseProps} liveMode liveStatus="running" onRunTest={vi.fn()} />)
     const runningBorder = container.querySelector('.border-border\\/60')

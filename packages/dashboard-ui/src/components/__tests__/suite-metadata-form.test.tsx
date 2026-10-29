@@ -214,12 +214,10 @@ describe('SuiteMetadataForm', () => {
         onChange={onChange}
       />,
     )
-    // Contract: SuiteMetadataForm renders without crashing given a filtered list.
-    // Filter enforcement is covered in suite-visual-builder.hooks.test.tsx (Wave 3).
+    // Renders a filtered list; enforcement is tested in suite-visual-builder.hooks.test.tsx.
     expect(container).not.toBeNull()
   })
 
-  // Gap 5 regression — suite-id regenerate button positioned INSIDE the input's right edge
   it('positions the regenerate button inside the suite-id input with absolute positioning (Gap 5)', () => {
     const onChange = vi.fn()
     mount(

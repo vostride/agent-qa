@@ -120,12 +120,7 @@ const baseRun = {
   createdAt: "2026-04-18T00:00:00.000Z",
 }
 
-// THE HEADER BLOCK IS ADDRESSED BY POSITION, ON PURPOSE.
-//
-// What these two helpers pin is LAYOUT, and layout has no `data-*` of its own to hang off — the
-// header is "the component's root" and "the row container inside it", and a cell that invented an
-// attribute to name them would be pinning the attribute rather than the structure. Everything
-// INSIDE the rows is still addressed by its contract attribute, as the house rule requires.
+// The header is addressed by position because layout has no `data-*` of its own to hang off.
 function headerBlock(): HTMLElement {
   return container.firstElementChild as HTMLElement
 }
@@ -134,13 +129,7 @@ function headerRow(): HTMLElement {
   return headerBlock().firstElementChild as HTMLElement
 }
 
-/**
- * The header's present items, in DOM order, labelled by what each one IS.
- *
- * The order cell has to hold whichever optional items a run happens to carry, so it cannot be a
- * fixed list of selectors: it walks the header once and names what it meets. First matcher wins
- * per element, and each label is taken once.
- */
+// Walks the header once and labels what it meets; first matcher wins and each label is taken once.
 const HEADER_ITEM_MATCHERS: ReadonlyArray<readonly [string, (el: Element) => boolean]> = [
   ["breadcrumb", el => el.tagName === "BUTTON" && el.textContent === "Runs"],
   ["name", el => el.tagName === "SPAN" && el.hasAttribute("title")],
@@ -226,12 +215,7 @@ describe("RunNavbar", () => {
     expect(container.querySelector('a[aria-label="Open suite"]')).toBeNull()
   })
 
-  // THE LEGEND DOCUMENTS THE KEYS THAT EXIST, AND ONLY THOSE (405-11 - D-14).
-  //
-  // It used to advertise a Before/After screenshot pair. The bus records ONE decision screenshot
-  // per turn - the screen the planner looked at when it decided - so there is no second side to
-  // select and the two keys were removed with the segmented control they drove. A legend row for a
-  // key that does nothing is worse than no row: it sends a reader hunting for a feature.
+  // The bus records one decision screenshot per turn, so the legend offers no side selection.
   it("documents the keys that exist, and advertises no side-selection the page cannot honour", () => {
     mount(
       <RunNavbar
@@ -243,9 +227,7 @@ describe("RunNavbar", () => {
 
     expect(container.textContent).toContain("Details: Attributes")
     expect(container.textContent).toContain("Artifacts: Config")
-    // `M` no longer opens the dead v1 memory drawer tab — it opens the Knowledge
-    // tab, and the legend says so. The old row is asserted GONE for the same reason the two
-    // screenshot rows below are: a row for a key that does something else is a row that misleads.
+    // `M` opens the Knowledge tab, and the legend says so.
     expect(container.textContent).toContain("Knowledge tab")
     expect(container.textContent).not.toContain("Artifacts: Memory")
     expect(container.textContent).toContain("Shift+?")
@@ -253,12 +235,6 @@ describe("RunNavbar", () => {
     expect(container.textContent).not.toContain("After screenshot")
   })
 
-  // THE RECORDING ACTION IS GONE, AND THAT IS THE ASSERTION (405-11 - D-14).
-  //
-  // This cell used to pin the href the header built for a run recording out of a stored path. Refs
-  // are the only artifact addressing now and no producer writes a recording ref, so the header has
-  // no video surface at all - an honest absence, not a surviving path. If a recording producer
-  // lands later, this cell is what has to change, and it will change to assert a MINTED href.
   it("lists the source shortcut without restoring the retired recording link", () => {
     mount(
       <RunNavbar
@@ -273,10 +249,7 @@ describe("RunNavbar", () => {
     expect(container.textContent).toContain("Frames / Video")
   })
 
-  // D-06 CARRIED INTO THE HEADER. The old span summed three per-step counters and was guarded on a
-  // positive total, so a run nobody measured and a run that spent nothing rendered identically -
-  // as nothing. The projection's own sum answers both questions separately, and the header says
-  // which one it is.
+  // The projection's sum separates an unmeasured run from one that spent nothing.
   it("says tokens were not measured rather than rendering nothing for an unmeasured run", () => {
     mount(
       <RunNavbar
@@ -291,13 +264,7 @@ describe("RunNavbar", () => {
     expect(line?.textContent).toContain(TOKENS_NOT_MEASURED_LABEL)
   })
 
-  // COVERAGE LEAVES THE HEADER, AND THE CARD PICKS IT UP.
-  //
-  // "2 of 3 steps" is a CAVEAT about the number, and the header is a glance; the owner declined
-  // the warning-toned header note outright. The caveat is not lost — it is one focus away, in the
-  // card — so the cell asserts both halves: the header says the pair and nothing else, and the
-  // card says the undercount. The file's tooltip mock is a passthrough, so the card's lines render
-  // inline here and are queryable off the container.
+  // Coverage lives in the card; the tooltip mock passes through, so card lines render inline.
   it("NO-HEADER-COVERAGE: the header says in and out, never how much of the run was measured", () => {
     const tokens = {
       measuredSteps: 2,
@@ -326,12 +293,7 @@ describe("RunNavbar", () => {
     )
   })
 
-  // THE LINE IS A DOOR TO A CARD, NOT A DOOR TO A PAGE (425-05 · D-21, UI-SPEC assumption 5).
-  //
-  // A button promises somewhere to go, and there is nowhere: the card behind this line is the
-  // whole of what there is to see. So the root stays a `span`, gains `tabIndex` so a keyboard
-  // reader reaches the card at all, and carries its name in an `sr-only` node rather than as an
-  // `aria-label` on a generic element.
+  // The card is all there is to see, so the root is a focusable `span` with an `sr-only` name.
   it("TOKEN-USAGE-TRIGGER: the token line is a focusable span with an sr-only name, never a button", () => {
     const tokens = {
       measuredSteps: 3,
@@ -362,7 +324,6 @@ describe("RunNavbar", () => {
     expect(container.querySelector('[data-usage-line="coverage"]')).toBeNull()
   })
 
-  // THE MODEL SUMMARY REACHES THE CARD THROUGH THE PROP, AND ONLY THROUGH IT.
   it("TOKEN-USAGE-MODELS: the summary the page hands down is what names the model", () => {
     const models = { declared: [{ provider: "openai", modelId: "gpt-5.6-terra", stepCount: 3 }] }
     mount(
@@ -386,12 +347,7 @@ describe("RunNavbar", () => {
     )
   })
 
-  // THE LEGACY MODEL ITEM IS GONE, AND THAT IS THE ASSERTION.
-  //
-  // `run.modelName` / `run.llmProvider` are row fields: they name what the host was configured
-  // with, not what answered THIS run. Identity now comes from `runs.detail`'s `models` summary or
-  // from nowhere, so a run row carrying the legacy pair must paint neither of them — and the Brain
-  // icon that announced them leaves with them, which is what keeps the header's icon set closed.
+  // `run.modelName` and `run.llmProvider` describe the host's config, not who answered this run.
   it("NO-HEADER-MODEL-ITEM: the run row's legacy model fields reach nothing in the header", () => {
     mount(
       <RunNavbar
@@ -414,12 +370,7 @@ describe("RunNavbar", () => {
     expect(container.querySelector('[data-run-token-summary]')).toBeNull()
   })
 
-  // DOMINANCE IS SIZE AND FILL, NOT POSITION.
-  //
-  // The row order is unchanged — Runs › name ↗ verdict — so the only thing that can make the
-  // verdict the header's dominant element is its own treatment. The cell reads the class list
-  // rather than a computed style because jsdom has no Tailwind: what is asserted is that the
-  // enlarged classes SURVIVED tailwind-merge and the `Badge` base sizes did not.
+  // jsdom has no Tailwind, so the cell reads classes that survived tailwind-merge.
   it("BADGE-DOMINANT: the verdict badge is the header's one enlarged, filled element", () => {
     mount(
       <RunNavbar run={baseRun} shortcutsOpen={false} onToggleShortcuts={() => {}} />,
@@ -453,14 +404,7 @@ describe("RunNavbar", () => {
     expect(badge?.textContent).toBe("Timed out")
   })
 
-  // ONE RULE COVERS ~400px AND 1280px AT 200% ZOOM.
-  //
-  // The breakpoint is a CONTAINER query, not a viewport one: a 1280px viewport at 200% zoom is a
-  // 640px container and a ~400px viewport is a ~400px container, so both take the stacked path
-  // without a second rule, and any narrower future shell inherits it. The fixed `h-14` is gone —
-  // 56px is the header's minimum now, not its ceiling, which is what lets it grow a second row
-  // instead of overlapping. The page needs no height plumbing: its panel group is already
-  // `min-h-0 flex-1` inside a flex column, so flex measures whatever the header becomes.
+  // A container query, so ~400px and 1280px at 200% zoom both stack with one rule.
   it("HEADER-STACKS: the header is a container-query block that stacks into two rows and keeps every action", () => {
     mount(
       <RunNavbar
@@ -487,11 +431,7 @@ describe("RunNavbar", () => {
     expect(cluster?.querySelector('button[aria-label="Re-run"]')).not.toBeNull()
   })
 
-  // THE NAME YIELDS FIRST, AND NOTHING ELSE DOES.
-  //
-  // The run name is the header's only flexible item, so a 200-character name spends its own width
-  // and then truncates — the verdict stays in the DOM after it rather than being pushed out. The
-  // full name is not lost: it is in the element's `title`, and the page title already carries it.
+  // The name is the only flexible item, so it truncates first and keeps its full text in `title`.
   it("HEADER-NAME-TRUNCATES: the name is the one flexible item and keeps its full text in title", () => {
     const longName = "L".repeat(200)
     mount(
@@ -528,11 +468,7 @@ describe("RunNavbar", () => {
     expect(duration?.textContent).toContain(formatDuration(baseRun.duration))
   })
 
-  // WHICHEVER ITEMS ARE PRESENT, THEY ARE IN THIS ORDER.
-  //
-  // Stacking is a reflow, and a reflow that re-orders is a different header. The cell reads the
-  // order over two prop sets — everything optional present, then nothing optional present — so a
-  // future change that drops an item cannot silently permute the rest.
+  // Order is read over two prop sets, so dropping an item cannot silently permute the rest.
   it("HEADER-ORDER-FIXED: the DOM order of the present header items is fixed across prop sets", () => {
     mount(
       <RunNavbar
@@ -582,12 +518,7 @@ describe("RunNavbar", () => {
     ])
   })
 
-  // AN ABSENT FACT LEAVES NO GAP.
-  //
-  // A header that painted an empty span where the token line would have been would read as a
-  // layout bug at ~400px, where every pixel of row 2 is spoken for. The cell asserts the strongest
-  // form of "no gap": the only empty HTML leaf in the header is the deliberate rule between the
-  // meta and the actions. Icons are SVG and are excluded by namespace, not by name.
+  // The only empty HTML leaf allowed is the rule between meta and actions; SVG icons are excluded.
   it("HEADER-EMPTY-META: an unmeasured, unwired run renders no empty element", () => {
     mount(
       <RunNavbar run={baseRun} shortcutsOpen={false} onToggleShortcuts={() => {}} />,

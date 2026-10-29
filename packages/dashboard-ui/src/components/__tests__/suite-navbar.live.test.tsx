@@ -87,7 +87,7 @@ describe('SuiteNavbar live mode', () => {
       />
     )
     expect(container.textContent).toContain('Connect Live Session')
-    // PlayCircle should have h-3.5 w-3.5 class (UI-SPEC Interaction State Table)
+    // PlayCircle carries h-3.5 w-3.5.
     const connectBtn = Array.from(container.querySelectorAll('button')).find((b) =>
       b.textContent?.includes('Connect Live Session'),
     )
@@ -195,7 +195,7 @@ describe('SuiteNavbar live mode', () => {
     expect(container.textContent).not.toContain('Session #')
   })
 
-  // UI-SPEC Color §Accent NOT used for Session badge
+  // The Session badge uses no accent colour.
   it('Session badge uses neutral classes bg-muted/50 text-muted-foreground', () => {
     mount(
       <SuiteNavbar

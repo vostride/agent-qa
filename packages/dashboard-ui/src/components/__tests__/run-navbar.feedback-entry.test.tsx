@@ -1,11 +1,6 @@
 // @vitest-environment jsdom
 
-// THE HEADER'S TEST-LEVEL FEEDBACK DOOR (426-03 · D-02, D-06, UI-SPEC S1).
-//
-// A separate file from run-navbar.test.tsx on purpose: the 425 mutation gate counts that file's
-// cells as its 'ui-navbar' instrument (RESEARCH Pitfall 9). The harness is copied from it, except
-// the tooltip, which is the real Radix primitive here — the entry's explanation must open on
-// keyboard focus, and a passthrough mock would replace the one thing under test.
+// The tooltip is the real Radix primitive, because the entry's explanation must open on focus.
 
 import { act, type ReactElement } from "react"
 import { createRoot, type Root } from "react-dom/client"

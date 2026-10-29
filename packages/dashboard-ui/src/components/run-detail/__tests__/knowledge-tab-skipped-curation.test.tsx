@@ -1,13 +1,7 @@
 import { RECORD_CHANGE_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 // @vitest-environment jsdom
 
-// A GATE RUN'S KNOWLEDGE TAB READS ITS CURATION AS SKIPPED, NEVER PENDING.
-//
-// Origin `444 D-61`. A gate run and an outcome-excluded run never enqueue curation, so the chip
-// beside them is a defaulted `pending` no job will ever move. `runs.knowledge` carries the skipped
-// fact beside it, and these cells hold the tab to it on the page's own path: every world
-// is a schema-parsed projection, folded by `projectKnowledgeView`, mounted as `TabKnowledge`
-// through `createRoot` into `document.body`, as `main.tsx` does.
+// A gate run's curation chip is a defaulted `pending`, so the tab reads the skipped fact instead.
 
 import { act, type ReactElement } from "react"
 import { createRoot, type Root } from "react-dom/client"
@@ -147,7 +141,7 @@ function changesSection(tab: HTMLElement): HTMLElement {
   return section
 }
 
-// the per-step ledger renders only once the collapsed Retrieval details is opened.
+// The per-step ledger renders only once the collapsed Retrieval details is opened.
 function openRetrievalDetails(tab: HTMLElement): void {
   const trigger = tab.querySelector('[data-knowledge-section="retrieval-details"] [data-slot="collapsible-trigger"]')
   if (trigger === null) throw new Error("no Retrieval details trigger")

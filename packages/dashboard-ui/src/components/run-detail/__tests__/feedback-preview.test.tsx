@@ -1,10 +1,5 @@
 // @vitest-environment jsdom
-// "WHAT THIS WILL DO", PAINTED FROM THE READ (426-06 · D-16, D-17, UI-SPEC S5).
-//
-// Every fixture is parsed by RunsMarkPreviewResultSchema, so each one satisfies the read's own
-// superRefines: served records lead, only a false-pass overturns or reaches an unserved record, and the
-// evidence counts are the planned effects. The section says only what the read states — two labelled
-// lines, the records on demand, the replaced mark — and no id reaches a text node a person reads.
+// Fixtures parse through `RunsMarkPreviewResultSchema`, so each satisfies the read's refinements.
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -224,8 +219,6 @@ describe('the What this will do section', () => {
     expect(unreadable!.textContent).toBe(CONTENT_ABSENCE_TEXT['scan-incomplete'] + UNREADABLE_RECORD_TEXT)
   })
 
-  // RE-SPELLED 432-09 from 'PREVIEW-REPLACES-LINE: a superseding mark reads the replaced
-  // ordinal, the time when given, and the withdrawal': a later mark withdraws nothing it applied.
   it('PREVIEW-REPLACES-LINE: a superseding mark reads the replaced ordinal, the time when given, and that its change stays', () => {
     render({ state: 'consequences', current: true, read: falseFail(), replacesTime: '14:05' })
     const replaces = line('replaces')
@@ -286,9 +279,7 @@ describe('the What this will do section', () => {
   })
 })
 
-// THE OTHER ARMS, EACH IN ITS OWN PLAIN WORDS (426-07 · D-18, D-19, UI-SPEC S5). A quarantined mark and
-// an identical repeat are muted blocks; a refusal is runs.mark's own arm in a DenialBlock with nothing
-// to do; a failed read names why, offers a Retry that says what it retries, and the CLI escape hatch.
+// A quarantined mark and an identical repeat are muted blocks; a refusal sits in a `DenialBlock`.
 const QUARANTINED = RunsMarkPreviewResultSchema.parse({
   kind: 'quarantined', runId: RUN_ID, prospective: true, markKind: 'false-fail', member: { testIndex: 0, testId: TEST_ID },
   resolvedStep: { stepIndex: 2, reason: 'failing-step' }, latest: { kind: 'first' }, basis: { ledgerOrdinal: 0 }, class: 'timeout',

@@ -1,8 +1,4 @@
-// THE PREVIEW'S CHROME ROW: it renders only when it has something to hold.
-//
-// The preview's status leads it, at the container's top-left, before any host content such as the
-// editor's toolbar (owner decision 2026-09-26 (4), G-428-4). The row wraps rather than clips, so
-// words and an action still fit a ~400 px pane.
+// Renders only when it has something to hold, and wraps rather than clips in a ~400 px pane.
 
 import { Children, type ReactNode } from 'react'
 

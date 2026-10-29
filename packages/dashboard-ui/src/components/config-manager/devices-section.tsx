@@ -1,9 +1,4 @@
-// DEVICES (429-22 · D-02, D-08, D-19, D-23, D-24 · UI-SPEC S2 "Record/list editors", S6, S8, E8).
-//
-// Each device is a row opened in place: the platform autosaves, and each match setting
-// shows its key with its value through SecretValue, replaced explicitly. A new setting
-// saves only through Save setting. Add device opens an inline draft row; delete acts at once with
-// Undo.
+// Match values show through `SecretValue` and save only through Save setting; delete has Undo.
 
 import { useEffect, useId, useRef, useState, type FocusEvent, type KeyboardEvent } from "react"
 import { Plus, X } from "lucide-react"

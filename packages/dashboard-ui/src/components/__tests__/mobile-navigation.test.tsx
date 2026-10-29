@@ -1,8 +1,5 @@
 // @vitest-environment jsdom
-//
-// G-433-7 / F-433-29. The shipped app shell is mounted with the real SidebarProvider,
-// SidebarInset and AppSidebar, so the control under test opens the same off-canvas sheet a phone
-// user gets. Pages, the product tour, the palette and toasts are stand-ins; they are not under test.
+// The real sidebar shell is mounted, so the control opens the same off-canvas sheet a phone gets.
 
 import { act, type ReactNode } from "react"
 import { createRoot, type Root } from "react-dom/client"

@@ -1,23 +1,6 @@
 // @vitest-environment jsdom
 
-// THE ONE-LINE RUNG BANNER, IN A DOM (407-10 · TRST-01, D-13/D-14/D-15/D-16, D-19's tone).
-//
-// TWO HEADERS, ONE COMPONENT. Run-detail paints it from the durable `runs.knowledge` read and
-// live-run paints it from the first `stepFinalized` frame that carries the rung. Those are two
-// feeds and two placements, but ONE sentence — so the sentence is proven here, once, and the two
-// pages are proven only to have wired the right value into it.
-//
-// THE ABSENCE CELLS ARE THE LOAD-BEARING ONES. `memidex` is not a degradation and `undefined` is
-// "nobody has said yet"; both render NO element, because a banner that renders empty for the top
-// rung would put an amber strip on every healthy run, and one that renders "unknown" before the
-// first frame would claim a fact the page does not have. An assertion that only ever looks at what
-// IS painted cannot see either.
-//
-// THE TINT IS AMBER AND NEVER RED, and that is asserted as an ABSENCE of the red vocabulary rather
-// than as the presence of a class name. A degraded rung is a rung reached by design: the
-// static floor is the no-budget escape hatch and `lexical-only` means the floor was switched off
-// on purpose. `fail` is a doctor-only state for a subsystem that ERRORED, and the banner never
-// sees one — a run that got served got a rung.
+// Amber, never red: a degraded rung is reached by design, so red vocabulary is asserted absent.
 
 import { act, type ReactElement } from "react"
 import { createRoot, type Root } from "react-dom/client"
@@ -110,7 +93,7 @@ describe("only a warning class paints the strip, with its statement and the doct
     expect(el?.getAttribute("data-rung")).toBe("bundle-scan")
     expect(el?.getAttribute("data-rung-reason")).toBe("index-corrupt")
     expect(el?.getAttribute("data-retrieval-class")).toBe("index-problem")
-    // `status`, never `alert` — it is informational about a run, not an interruption (UI-SPEC).
+    // `status`, never `alert`: it informs about a run and does not interrupt.
     expect(el?.getAttribute("role")).toBe("status")
     expect(el?.getAttribute("class")).toContain("py-1.5")
     expect(el?.getAttribute("class")).toContain("bg-amber-500/5")

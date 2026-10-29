@@ -1,4 +1,4 @@
-// 427 · D-02, D-04..D-07, D-10 — the Knowledge used section: one content-led row per record, no ids.
+// The Knowledge used section: one content-led row per record, no ids.
 
 import { Fragment, useId } from "react"
 import { ChevronRight, FlaskConical, History } from "lucide-react"

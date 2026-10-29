@@ -1,11 +1,4 @@
-// The run's failure summary, as stored: a declared value reads as the
-// `[secret:<name>]` the run wrote, as plain text.
-//
-// The clipboard carries what was rendered and nothing else: the preview while the banner
-// is collapsed, the whole summary once it has been expanded.
-//
-// Text nodes, never markup: there is no `dangerouslySetInnerHTML` here, and a jsdom cell
-// feeds this component markup and asserts no element.
+// Text nodes, never markup; the clipboard carries exactly what is rendered.
 
 import { useState } from "react"
 import { AlertCircle, Check, ChevronRight, Copy } from "lucide-react"
@@ -13,27 +6,7 @@ import { AlertCircle, Check, ChevronRight, Copy } from "lucide-react"
 import { truncateText } from "@/lib/display-text"
 import { cn } from "@/lib/utils"
 
-/**
- * How much of the summary the collapsed banner shows.
- *
- * TWENTY, WHICH IS THE SHIPPED NUMBER — the page-local helper's own budget, moved rather than
- * re-chosen.
- *
- * IT IS EXPORTED BECAUSE TWO THINGS READ IT, AND THE LIST IS NAMED SO IT STAYS TRUE.
- * The justification that stood here — "the failing-run fixture's word arithmetic is written against
- * it" — described a PROSE reference and no import at all, so the budget could move here while every
- * fixture went on asserting the old number. Its consumers:
- *
- *   1. `__tests__/failure-banner.test.tsx`, which IMPORTS it and derives its fixture's word
- *      ordinals from it — the marker inside the budget, the marker past it, and the summary's last
- *      word are all `FAILURE_BANNER_PREVIEW_WORDS` plus an offset, so a change here moves the cells.
- *   2. `cli/src/__tests__/conformance/populated-run-fixture.ts`, which cannot import across the
- *      package boundary and names it in PROSE instead, beside the word-by-word arithmetic its
- *      failing-run sentences are written to.
- *
- * A drift that pushes the marker past the budget is fixed in the FIXTURE, never by widening this
- * number to make a cell go green.
- */
+// Fixtures derive their word ordinals from this; fix a drifting fixture, never widen the number.
 export const FAILURE_BANNER_PREVIEW_WORDS = 20
 
 /** What the last copy attempt did — `idle` until one is made, and back to `idle` after a moment. */

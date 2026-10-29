@@ -1,7 +1,4 @@
-// 427 · D-06, D-08, D-09 — where a record applies and Show full record, shared by used rows and
-// memory-change rows (one concept, one treatment). The code-computed counts always render and always
-// precede the curator's note (memory.md §7.5), so the note is never the only thing said. Numeric
-// trust, tier and evidence tokens stay in Retrieval details.
+// The code-computed counts always render before the curator's note, so the note never stands alone.
 
 import { Fragment } from "react"
 import { ChevronRight } from "lucide-react"

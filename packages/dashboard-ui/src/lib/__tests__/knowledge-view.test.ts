@@ -1283,15 +1283,7 @@ describe('the record list is the five LEARNED kinds and nothing else', () => {
 })
 
 describe('a curated NEW fact is what the run learned', () => {
-  /**
-   * THE VERIFIER'S REPRODUCTION, INVERTED.
-   *
-   * Gap 2 drove a real curation that added one fact and deprecated nothing — the commonest
-   * curation outcome there is — and the half printed the legacy pair beside
-   * `Change records for this run are not available yet.` The record WAS on the wire, stamped with
-   * this run's id by `diffSince`, and the view discarded it. This cell is that projection with the
-   * answer it should have had.
-   */
+  // Adding one fact is the commonest curation outcome, and its record must never be denied.
   it('lists the added record instead of denying it — one row, no sentence', () => {
     const view = learnedFrom({
       curation: { status: 'complete', counts: { curated: 1, deprecated: 0 } },

@@ -48,9 +48,7 @@ const {
 vi.mock("@/lib/api", () => ({
   fetchRun: fetchRunMock,
   fetchRunDetail: fetchRunDetailMock,
-  // the page's THIRD read — the failure view's. This whole-module
-  // mock replaces `@/lib/api`, so an omitted export is `undefined` at the call site and every
-  // cell here dies before it asserts. Its own behaviour is measured in `run-detail.analysis.test.tsx`.
+  // This mock replaces `@/lib/api`, so an omitted export would kill every cell before it asserts.
   fetchRunAnalysis: () => Promise.resolve({ runId: '', verdicts: [], sentences: [], clusters: [] }),
   fetchRunKnowledge: () => Promise.resolve({ kind: 'evidence-incomplete', runId: '' }),
   fetchRunArtifact: fetchRunArtifactMock,
@@ -58,12 +56,7 @@ vi.mock("@/lib/api", () => ({
   fetchExecutionLogs: fetchExecutionLogsMock,
   fetchRunEvidence: () => Promise.resolve({ kind: 'failed', error: 'Evidence read not configured in this fixture' }),
   triggerRun: vi.fn(),
-  // run detail now subscribes a post-processing chip client on mount. This
-  // whole-module mock REPLACES `@/lib/api`, so an omitted export is `undefined` at the call site
-  // and every cell in this file dies before it asserts. It is a no-op DOUBLE rather than the real
-  // function on purpose: the real one constructs an `EventSource` and a 3 s interval against a
-  // `fetch` these cells do not stub, which is a socket and a poll inside a test about something
-  // else. The client's own behaviour is measured in `run-detail.post-processing.test.tsx`.
+  // A no-op double: the real watcher opens an `EventSource` and polls an unstubbed `fetch`.
   watchPostProcessing: () => () => {},
 }))
 
@@ -94,9 +87,7 @@ vi.mock("@/components/run-detail/run-navbar", () => ({
 }))
 
 vi.mock("@/components/run-detail/step-tree", () => ({
-  // the tree takes the member-grouped projection now, not a flat step list. The double
-  // flattens it through the SAME helper the page uses, so the ids it renders are the ids the page
-  // selects by — a second flattening here would let this file pass on keys nobody can click.
+  // The double flattens through the page's helper, so its ids are the ids the page selects by.
   StepTree: ({
     groups,
     selection,
@@ -119,9 +110,7 @@ vi.mock("@/components/run-detail/step-tree", () => ({
   },
 }))
 
-// A FAITHFUL DOUBLE, NOT A BLANK. It renders the `img` the real viewer renders and wires the same
-// failure callback, so the cells below measure the minted `src` and the D-15 refusal rather than
-// the mock. The real component drives a `ResizeObserver` jsdom does not provide.
+// Renders the real `img` and failure callback; the real viewer needs a `ResizeObserver`.
 vi.mock("@/components/screenshot-viewer", () => ({
   ScreenshotViewer: ({ src, onUnavailable }: { src: string; onUnavailable?: () => void }) => (
     <img data-testid="screenshot-viewer" src={src} onError={() => onUnavailable?.()} />
@@ -350,23 +339,7 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-// THE SCREENSHOT PANE, THROUGH THE PAGE.
-//
-// WHAT THESE CELLS USED TO PIN, AND WHY THEY DO NOT ANY MORE. Until 405-07 there were four of them
-// asserting that `a` and `b` selected the After/Before side of a screenshot pair built from two
-// stored capture paths. 405-08 could not keep them — the paths' producer was deleted and the ref
-// side had not landed — so it consolidated them into two cells asserting the keys were INERT, and
-// handed the side-selection assertions here.
-//
-// THERE IS NO SIDE TO SELECT, AND SO THERE ARE NO KEYS. The bus records ONE decision screenshot per
-// sub-action: the screen the planner LOOKED AT when it decided. It records no post-action capture
-// on the same turn, so a "Before/After" control would have to derive its second side from
-// somewhere — the obvious candidate being the NEXT sub-action's shot, which is a join nobody
-// recorded. The screen may have moved for reasons this action did not cause, and a caption
-// claiming otherwise is a lie a reader cannot check. So the pair, its segmented control, its two
-// hotkeys and their legend rows are all retired together, and the coverage those cells were
-// carrying is restored HERE, against the thing that does exist: a ref-minted image, its D-15
-// refusal, and the absence of any key that pretends otherwise.
+// The bus records one decision screenshot per sub-action, so there is no side to select and no key.
 describe("RunDetailPage decision screenshot", () => {
   it("syncs the default selected step into the URL, by its member-scoped key, without repeated rewrites", async () => {
     const view = await renderAt("/runs/run-1")

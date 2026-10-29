@@ -1,6 +1,4 @@
-// 427 · D-19 — Retrieval details: the collapsed foot section holding the per-step ledger, moved
-// verbatim from tab-knowledge.tsx, then every changed record's ids, events and provenance. It is
-// the only section where storage vocabulary and record ids may appear.
+// The only section where storage vocabulary and record ids may appear.
 
 import { Fragment, useId, type ReactNode } from "react"
 import { ChevronRight } from "lucide-react"
@@ -56,20 +54,7 @@ export function RetrievalDetails({ ledger }: { ledger: LedgerView }) {
   )
 }
 
-/**
- * One collapsed step row.
- *
- * CLOSED BY DEFAULT, AND THAT IS THE OVERFLOW STRATEGY. A 200-step run is 200 one-line rows, so
- * the tab needs no virtualisation and the `ScrollArea` above stays the one scroll owner.
- *
- * THE ROW EXISTS EVEN WHEN IT SERVED NOTHING. `noBrief` renders a muted sentence instead of
- * badges rather than dropping the row: a run that looks shorter than it was is a worse answer
- * than a row that says nothing happened here.
- *
- * The expanded body holds ONE ANCHOR that 407-06 filled with `KnowledgeStepDetail` — the
- * three channels, the per-line why-trace, the cut ledger and the procedure outcome. The anchor
- * stayed the same element and the row kept its shape, which is what made that plan an addition.
- */
+// Closed by default, which bounds the DOM; a row that served nothing stays and says so.
 function StepRow({ row }: { row: StepRowView }) {
   return (
     <Collapsible asChild>
@@ -122,11 +107,7 @@ function idLines(values: readonly string[]): ReactNode {
   ))
 }
 
-/**
- * One changed record's technical facts (D-19 part 2), in the 424 Technical details `dl` idiom: a row
- * is pushed only when its fact exists. The one link takes its href from the view, which built it
- * with `entityRefRoute` over the schema codec — never from a projection string.
- */
+// A row is pushed only when its fact exists; the link's href comes from the view, never a string.
 function ChangeLedgerEntry({ entry }: { entry: ChangeLedgerView }) {
   const rows: [LedgerRow, ReactNode][] = [
     ["bucket", entry.bucket],

@@ -1,14 +1,6 @@
 // @vitest-environment jsdom
 
-// NO ACCESS TOKENS ON THE CONFIG PAGE, re-spelled from 429-27 Task 1.
-//
-// This file pinned the MCP and run-service token lists: rows by name with the env-var name in clear,
-// the scope and trust-scope add rows, and the undoable delete. 432 deletes `services.mcp.tokens`,
-// `services.mcp.stdio.grantConfigWrite` and `services.dashboard.runServiceTokens`, so the lists, the
-// stdio switch and their copy are gone. What survives is pinned here: the remaining MCP and dashboard
-// controls still save through the page's autosave transaction. The undoable unset-by-name claim of
-// TOKEN-DELETE-UNDO lives on in model-row's DELETE-MODEL-UNDO (`registry.llms`, the one named array
-// left).
+// The remaining MCP and dashboard controls still save through the page's autosave transaction.
 
 import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'

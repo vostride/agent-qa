@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 
-// 427 · D-11..D-14 — the Effect section a reader sees. Views come from the real effectSectionView
-// over schema-parsed projections; a view spanning curation states concatenates those entries.
+// Views come from the real `effectSectionView` over schema-parsed projections.
 
 import { act, type ReactElement } from "react"
 import { createRoot, type Root } from "react-dom/client"
@@ -230,7 +229,7 @@ describe("uncounted trials are one quiet, explained line", () => {
     const trigger = line?.querySelector<HTMLElement>('[data-slot="tooltip-trigger"]')
     expect(trigger?.tabIndex).toBe(0)
     expect(trigger?.firstChild?.textContent).toBe(uncountedTrialsLine(2))
-    // The meaning is announced without hover, as the other tooltip triggers' is (UI-SPEC keyboard note).
+    // The meaning is announced without hover, as the other tooltip triggers' is.
     expect(describedBy(trigger).targets[0]?.textContent).toBe(UNCOUNTED_TRIALS_TOOLTIP)
     expect(line?.querySelector("svg")).toBeNull()
     expect(line?.outerHTML).not.toMatch(/amber|destructive/)

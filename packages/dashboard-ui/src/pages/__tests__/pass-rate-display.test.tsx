@@ -380,8 +380,7 @@ describe('how the pages show a pass rate', () => {
     }
   })
 
-  // the page prints the server's pass ÷ (pass + fail) for this seeded
-  // history, which its cancelled, skipped and in-flight runs don't move.
+  // The server's pass ÷ (pass + fail); cancelled, skipped and in-flight runs do not move it.
   it("the Tests page rates a test over its pass and fail outcomes only", async () => {
     served.tests = [STEADY, PARKED, MIXED].map(testFile)
     const live = run("r_live", "running", "2026-10-17T13:00:00.000Z", [member(STEADY, null)])
@@ -406,8 +405,7 @@ describe('how the pages show a pass rate', () => {
     expect(passRateOf(MIXED.name), "passed and timed out").toBe("50%1/2")
   })
 
-  // the page prints the server's pass ÷ (pass + fail) for this seeded
-  // history, which its cancelled runs don't move.
+  // The server's pass ÷ (pass + fail); cancelled runs do not move it.
   it("the Suites page rates a suite over its passed and failed runs only", async () => {
     served.suites = [
       suiteFile("Rated suite", "suites/rated.yaml", "s_rated"),

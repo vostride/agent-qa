@@ -1,13 +1,4 @@
-// THE MODELS SECTION BODY (429-23 · D-10, D-11, D-17, WIN #133 · UI-SPEC S4, E1, E4).
-//
-// Every saved model is one row in file order. The list waits for the credential-status read, and
-// a failed read shows every row Not connected: a status the page has not read is never claimed.
-// Add model sits in the section's heading row; with no models the empty state holds the only one.
-// A row being deleted is hidden at once, focus moves to the next row, else the previous one, else
-// Add model, and an Undo focuses the row it brought back. The add row sits first
-// and there is at most one: Add model or ?add while it is open focuses it, ?add is removed once
-// applied, a stored add draft re-opens it after a reload, and a pass lands the saved row open
-// (429-25 · D-14, D-15 · UI-SPEC S5).
+// A failed credential-status read shows every row Not connected, never a status it has not read.
 
 import { useEffect, useRef, useState } from "react"
 import { useSearchParams } from "react-router"
@@ -257,7 +248,7 @@ export function ModelList(_props: ModelListProps) {
         <Plus className="size-3.5" aria-hidden="true" />
         {ADD_MODEL_LABEL}
       </Button>
-      {/* use.llm is edited here: each row's Default badge or Make default (UI-SPEC S2). */}
+      {/* use.llm is edited here: each row's Default badge or Make default. */}
       <div data-field-path="use.llm" className="col-span-full space-y-4">
         {hasDefault ? null : (
           <p data-no-default className="flex items-start gap-1 text-xs text-foreground">

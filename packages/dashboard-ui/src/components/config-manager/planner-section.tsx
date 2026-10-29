@@ -13,7 +13,6 @@ function plannerField(leaf: PlannerLeaf): ConfigFieldTarget {
   return { segments: ["use", "planner", leaf], tab: "models", pattern: `use.planner.${leaf}` }
 }
 
-// the two per-step limits replace the old refilling planner key's field.
 export function PlannerSection() {
   return (
     <>

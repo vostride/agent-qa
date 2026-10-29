@@ -1,13 +1,7 @@
 import { RECORD_CHANGE_SCHEMA_VERSION, CURATION_SNAPSHOT_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 // @vitest-environment jsdom
 
-// 427 · SC2 / SC4 / D-10 / D-19 — the default view carries no id and no retrieval machinery.
-//
-// One rich, schema-parsed projection is folded by the real projectKnowledgeView and mounted as the
-// whole Knowledge tab. The three default-view sections (Knowledge used, Effect on this run, Memory
-// changes) must hold none of its record ids, digests, trust numbers or storage words — not as text,
-// not in a title, not in a data-* attribute — and every id must be one disclosure away, inside
-// Retrieval details, which starts collapsed on every mount.
+// The default view holds no record id or retrieval machinery; every id is inside Retrieval details.
 
 import { act, type ReactElement } from "react"
 import { createRoot, type Root } from "react-dom/client"
@@ -70,7 +64,7 @@ const OPENED_DIGEST = "sha256:9e1f2a3b4c5d6e7f8091a2b3c4d5e6f7"
 const GONE_DIGEST = "sha256:0a1b2c3d4e5f60718293a4b5c6d7e8f9"
 const TRUST_NUMBERS = ["0.87", "0.64"]
 
-/** Every record id and digest the fixture carries — the SC2 list. */
+/** Every record id and digest the fixture carries. */
 const RECORD_IDS = [
   SERVED_CANARY, SERVED_PLAIN, OPENED, OPENED_GONE, CAUTION, REPLAYED, HINTED, CUT,
   ADDED, CONFIRMED, VICTIM, REPLACEMENT, DEPRECATED, PROPOSED,

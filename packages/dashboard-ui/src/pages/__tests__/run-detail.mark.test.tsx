@@ -60,15 +60,13 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   markRun: markRunMock,
   fetchRun: fetchRunMock,
   fetchRunDetail: fetchRunDetailMock,
-  // the page's THIRD read — the failure view's. This whole-module
-  // mock replaces `@/lib/api`, so an omitted export is `undefined` at the call site and every
-  // cell here dies before it asserts. Its own behaviour is measured in `run-detail.analysis.test.tsx`.
+  // This mock replaces `@/lib/api`, so an omitted export would kill every cell before it asserts.
   fetchRunAnalysis: fetchRunAnalysisMock,
   fetchRunKnowledge: () => Promise.resolve({ kind: 'evidence-incomplete', runId: '' }),
   fetchRunArtifact: fetchRunArtifactMock,
   fetchExecutionLogs: fetchExecutionLogsMock,
   fetchRunEvidence: () => Promise.resolve({ kind: 'failed', error: 'Evidence read not configured in this fixture' }),
-  // The composer's two reads (426 Pitfall 7): without them the real helpers would fetch.
+  // The composer's two reads; without them the real helpers would fetch.
   fetchMarkPreview: fetchMarkPreviewMock,
   fetchMarksHistory: fetchMarksHistoryMock,
   triggerRun: vi.fn(),
@@ -356,8 +354,7 @@ function deferred<T>() {
   return { promise, resolve, reject }
 }
 
-// the pill forms' scopes, re-addressed to the one composer. A target is the composer address
-// it opens and the explicit act that opens it there.
+// A target is the composer address it opens and the explicit act that opens it there.
 interface ComposerTarget {
   address: string
   open: () => Promise<void>
@@ -436,7 +433,7 @@ async function send(target: ComposerTarget, kind: Mark) {
 function refreshed(target: ComposerTarget, receipt = marked): RunDetailProjection {
   return { ...initial, members: [{ ...initial.members[0], marks: [{ ...receipt, ...(target === STEP_TARGET ? { stepIndex: 2 } : {}) }] }] }
 }
-/** runs.detail answers `before` until a mark has been sent, then `after` (426 re-reads it on every open). */
+/** runs.detail answers `before` until a mark is sent, then `after`, re-read on every open. */
 function detailAcrossMark(before: RunDetailProjection, after: () => RunDetailProjection | Promise<RunDetailProjection>) {
   fetchRunDetailMock.mockImplementation(async () => markRunMock.mock.calls.length > 0 ? after() : before)
 }
@@ -445,7 +442,7 @@ async function navigateTo(id: string) {
   await click('[data-navigate]')
 }
 
-/** The page's own sentence for a failed mark (2026-10-02, 432-42: no typed denial is left). */
+// The page's own sentence for a failed mark.
 const MARK_FAILED_TEXT = 'Could not complete the mark or refresh its receipt.'
 
 describe('scoped draft lifecycle', () => {
@@ -487,7 +484,7 @@ describe('scoped draft lifecycle', () => {
       const base = failure === 'wrong-member'
         ? { ...initial, members: [...initial.members, member(8, { testId: generateTestId(), marks: [] })] }
         : initial
-      // no typed denial is left; both legacy denial shapes are failed requests.
+      // Both legacy denial shapes are failed requests.
       if (failure === 'denied' || failure === 'no-channel') markRunMock.mockRejectedValue(new Error(failure))
       else if (failure === 'transport') markRunMock.mockRejectedValue(new Error('offline'))
       else if (failure === 'run-not-found') markRunMock.mockResolvedValue({ kind: failure })
@@ -542,8 +539,7 @@ describe('scoped draft lifecycle', () => {
   it('keeps a second member draft and denial isolated across subsequent submissions', async () => {
     const secondId = generateTestId()
     fetchRunDetailMock.mockResolvedValue({ ...initial, members: [...initial.members, member(8, { testId: secondId, marks: [] })], steps: [...initial.steps, step(8, 2, 'Other cart')] })
-    // no typed denial is left; each failed request is told apart by the
-    // address its denial renders at, not by a server-supplied reason.
+    // Each failed request is told apart by the address its denial renders at.
     markRunMock.mockRejectedValueOnce(new Error('First member denied'))
       .mockRejectedValueOnce(new Error('Second member denied'))
     await renderAt(`/runs/${RUN_ID}`)
@@ -727,8 +723,6 @@ describe('page mark post/refetch', () => {
     expect(statusText()).toBe(DRAFT_KEPT_STATUS)
     expect(container!.textContent).not.toContain(feedbackRecordedText(marked.disposition))
   })
-  // RE-TITLED 2026-10-02 from 'renders a typed denial as its reason only, without a
-  // refetch or invented mark': no typed denial is left, so a failed mark renders the page's sentence.
   it('renders a failed mark as the page\'s one sentence, without a refetch or invented mark', async () => {
     markRunMock.mockRejectedValue(new Error('The safety gate denied this mark.'))
     await renderAt(`/runs/${RUN_ID}`)

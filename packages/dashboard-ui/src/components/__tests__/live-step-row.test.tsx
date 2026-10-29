@@ -1,10 +1,6 @@
 // @vitest-environment jsdom
 
-// THE LIVE STEP ROW.
-//
-// A live step row is one status glyph and the step label, nothing else. Every status has its own
-// shape, tone and name, and nothing on the row moves: the running glyph is a still blue shape (owner
-// decision 2026-09-26 (5), G-428-5).
+// A live step row is one status glyph and the label; each status has its own shape, tone and name.
 
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -24,7 +20,7 @@ import { STEP_STATUSES, type LiveStepRow, type StepStatus } from '@/lib/run-stre
 const TICKS_LABEL_ATTR = 'data-step-ticks' + '-label'
 const CLOCK_PATTERN = /\d+:\d{2}/
 
-/** The owner's own example from the 2026-09-26 review, extended well past any pane. */
+// A label long enough to overflow any pane.
 const LONG_LABEL =
   'Select "Show" from the navbar, scroll to the end and click more, wait for the list to finish loading, '
   + `then check that ${'every '.repeat(12)}card keeps its whole title and supercalifragilisticexpialidocious caption`
@@ -156,11 +152,6 @@ describe('THE LIVE STEP ROW', () => {
     }
   })
 
-  // RE-SPELLED 2026-09-26 (428-32, owner decision 2026-09-26 (5), G-428-5). This cell was
-  // RUNNING-BREATHES-AND-REKEYS, "the running glyph breathes and restarts on every sub-action". The
-  // owner asked for a still glyph, so the breathing class and the per-tick re-key that restarted it
-  // are gone. Each guarantee stays as an absence: the glyph is blue, never green and never a dot; no
-  // status animates; and a sub-action still reaches the row, as data-step-ticks.
   it('RUNNING-GLYPH-STILL: the running glyph is a still blue shape, and a sub-action does not re-key it', () => {
     const first = render(row({ status: 'running', ticks: 3 }))
     const wrapperAt3 = first.children[0] as HTMLElement
@@ -195,10 +186,6 @@ describe('THE LIVE STEP ROW', () => {
     }
   })
 
-  // RE-SPELLED 2026-09-26 (428-30, owner decision 2026-09-26 (2), G-428-2). This cell was
-  // "a label with no placeholder renders as is, and an empty one as step N". The owner removed the
-  // step-N fallback: a row with no text is not drawn. The empty-label clause is not deleted; it
-  // moved to NO-STEP-PLACEHOLDER below, inverted.
   it('PLAIN-LABEL-UNCHANGED: a label with no placeholder renders as is', () => {
     expect(render(row({ text: 'click Save' })).textContent).toBe('click Save')
   })
@@ -218,7 +205,6 @@ describe('THE LIVE STEP ROW', () => {
     expect(drawn.filter((text) => /^step \d+$/iu.test(text))).toEqual([])
   })
 
-  // Owner decision 2026-09-26 (1), G-428-1: a live row shows the step's whole label and wraps.
   it('FULL-LABEL-WRAPS: in every status a long label wraps in full, and nothing in the row clips or ellipsises it', () => {
     for (const status of STEP_STATUSES) {
       const li = render(row({ status, text: LONG_LABEL }))
@@ -251,10 +237,6 @@ describe('THE LIVE STEP ROW', () => {
     }
   })
 
-  // RE-SPELLED 2026-09-26 (428-32, owner decision 2026-09-26 (5), G-428-5). This cell was "the
-  // breathing animation is named, and it is still under prefers-reduced-motion". The animation is
-  // gone, so its keyframes, its class and the reduced-motion rule that stilled it are asserted
-  // absent. The editor card's beam is a different surface and is not asserted on here.
   it('NO-ROW-ANIMATION-CSS: globals.css has no live row keyframes, no breathing class and no reduced-motion rule for a row', () => {
     const { css, rules, reduced } = stylesheetRules()
     const keyframes = [...css.matchAll(/@keyframes\s+([\w-]+)/gu)].map((match) => match[1] ?? '')
@@ -273,8 +255,7 @@ describe('THE LIVE STEP ROW', () => {
   })
 })
 
-// a live label is shown as written. An old run's numbered
-// placeholder is the characters it holds, and no chip is painted.
+// A live label is shown as written: an old numbered placeholder is its characters, with no chip.
 describe('SECRET PLACEHOLDERS ON A LIVE ROW', () => {
   it('SECRET-PLACEHOLDER-AS-TEXT: an old <SECRET_n> placeholder is shown as written, with no chip', () => {
     const li = render(row({ status: 'running', text: 'type <SECRET_1> into Password' }))

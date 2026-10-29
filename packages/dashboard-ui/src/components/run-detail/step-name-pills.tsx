@@ -1,6 +1,4 @@
-// THE TREE'S PRIMARY LABEL IS A PRODUCER STRING, rendered as the stored text. A durable
-// step has no `originalStepName`, so `parseRedactedSecretSegments(step.name)` turns each stored
-// `[secret:NAME]` into a variable pill whose visible text is that marker as written.
+// A durable step has no `originalStepName`, so each stored `[secret:NAME]` is a pill as written.
 
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
