@@ -9,8 +9,8 @@ import type { AddressInfo } from 'node:net'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { ActionPlan, PlannerConfig, PlatformConfig } from '@vostride/agent-qa-runner'
 import { WebPlatformAdapter } from '../adapter.js'
-import { act, giveUp, runScriptedStep, scriptedPlanner, scriptedVerifier } from './fixtures/436-scripted-loop.js'
-import type { ScriptedStepRun, ScriptedTurn } from './fixtures/436-scripted-loop.js'
+import { act, giveUp, runScriptedStep, scriptedPlanner, scriptedVerifier } from './fixtures/scripted-loop.js'
+import type { ScriptedStepRun, ScriptedTurn } from './fixtures/scripted-loop.js'
 
 const LIMITS: PlannerConfig = { maxActions: 30, maxPlanningTurns: 30, previousStepCount: 0 }
 const CART_PAGE = `<!doctype html><html><body><main>

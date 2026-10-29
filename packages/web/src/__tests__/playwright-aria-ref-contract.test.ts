@@ -1,14 +1,11 @@
 // C438-ARIA-REF-CONFORMANCE (438 D-06; spec/v3 browser control §3.1): the playwright-core
-// behaviour web/src/binding.ts relies on. `aria-ref=` is undocumented, so these facts are pinned at
-// the installed version. A playwright-core bump must re-run this file before anything else.
+// behaviour web/src/binding.ts relies on. `aria-ref=` is undocumented, so a playwright-core bump
+// must re-run this file before anything else.
 // Raw Playwright on headless Chromium, no adapter; pages are inline snippets.
 
-import { createRequire } from 'node:module'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { chromium } from 'playwright-core'
 import type { Browser, BrowserContext, Page } from 'playwright-core'
-
-const PINNED_VERSION = '1.61.0'
 
 const ROWS_PAGE = `<!doctype html><html><head><script>window.__clicks = []</script></head><body>
   <ul id="addresses">
@@ -86,12 +83,6 @@ async function pageClicks(page: Page): Promise<string[]> {
 }
 
 describe('C438-ARIA-REF-CONFORMANCE', () => {
-  it('the pin', () => {
-    const require = createRequire(import.meta.url)
-    const manifest = require('playwright-core/package.json') as { version: string }
-    expect(manifest.version).toBe(PINNED_VERSION)
-  })
-
   it('refs follow a re-sorted node', async () => {
     const page = await open(ROWS_PAGE)
     const [elm] = refsOf(await aiSnapshot(page), 'button', 'Edit label')

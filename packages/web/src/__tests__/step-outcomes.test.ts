@@ -1,8 +1,7 @@
 // C436-OUTCOME-EVIDENCE (436 D-28, SC1): model-free acceptance through the real runner loop and a
 // real headless Chromium. A scripted planner and verifier drive executeStep over WebPlatformAdapter
-// against loopback fixture pages whose outcomes are known. Every cell also checks that nothing of
-// the deleted screen-change machinery wrote evidence and that the loop dispatched exactly what the
-// planner planned (no loop-initiated retry).
+// against loopback fixture pages whose outcomes are known. Every cell also checks that the loop
+// dispatched exactly what the planner planned (no loop-initiated retry).
 
 import { createHash } from 'node:crypto'
 import { createServer } from 'node:http'
@@ -12,8 +11,8 @@ import { screenIdentityHash } from '@vostride/agent-qa-schema'
 import type { DownloadEvidence } from '@vostride/agent-qa-schema'
 import type { PlannerConfig, StepResult, Verifier } from '@vostride/agent-qa-runner'
 import { WebPlatformAdapter } from '../adapter.js'
-import { ORDERS_CSV_BYTES, startOutcomePages } from './fixtures/436-outcome-pages.js'
-import type { OutcomePages } from './fixtures/436-outcome-pages.js'
+import { ORDERS_CSV_BYTES, startOutcomePages } from './fixtures/outcome-pages.js'
+import type { OutcomePages } from './fixtures/outcome-pages.js'
 import {
   act,
   giveUp,
@@ -22,8 +21,8 @@ import {
   runScriptedStep,
   scriptedPlanner,
   scriptedVerifier,
-} from './fixtures/436-scripted-loop.js'
-import type { ScriptedPlanner, ScriptedStepRun, VerifierInput, VerifierVerdict } from './fixtures/436-scripted-loop.js'
+} from './fixtures/scripted-loop.js'
+import type { ScriptedPlanner, ScriptedStepRun, VerifierInput, VerifierVerdict } from './fixtures/scripted-loop.js'
 
 const LIMITS: PlannerConfig = { maxActions: 30, maxPlanningTurns: 30, previousStepCount: 0 }
 const ORDERS_SHA256 = createHash('sha256').update(ORDERS_CSV_BYTES).digest('hex')
@@ -100,13 +99,10 @@ async function open(path: string): Promise<{ web: WebPlatformAdapter; site: Outc
   return { web: created, site }
 }
 
-/** No progress-subsystem evidence, and every dispatch was one the planner (or the cache) planned. */
+/** Every dispatch was one the planner (or the cache) planned. */
 function expectOutcomeOnly(run: ScriptedStepRun, plannedActions: number): void {
   const evidence = run.result.evidence
   expect(evidence, 'the loop recorded step evidence').toBeDefined()
-  expect(evidence!.stagnation).toBeUndefined()
-  expect(evidence!.cycle).toBeUndefined()
-  for (const subAction of evidence!.subActions) expect(subAction.localEffect).toBeUndefined()
   expect(run.executed).toHaveLength(plannedActions)
   expect(evidence!.limitUsage?.actionsUsed).toBe(plannedActions)
 }

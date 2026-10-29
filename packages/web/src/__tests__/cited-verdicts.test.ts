@@ -12,8 +12,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import type { AiExtraction, PlannerConfig, StepContext } from '@vostride/agent-qa-runner'
 import type { ScreenState } from '@vostride/agent-qa-schema'
 import { WebPlatformAdapter } from '../adapter.js'
-import { act, giveUp, refFor, runScriptedStep, scriptedPlanner, scriptedVerifier } from './fixtures/436-scripted-loop.js'
-import type { ScriptedTurn, VerifierInput, VerifierVerdict } from './fixtures/436-scripted-loop.js'
+import { act, giveUp, refFor, runScriptedStep, scriptedPlanner, scriptedVerifier } from './fixtures/scripted-loop.js'
+import type { ScriptedTurn, VerifierInput, VerifierVerdict } from './fixtures/scripted-loop.js'
 
 const LIMITS: PlannerConfig = { maxActions: 30, maxPlanningTurns: 30, previousStepCount: 0 }
 

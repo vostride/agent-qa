@@ -13,8 +13,8 @@ import {
   runScriptedStep,
   scriptedPlanner,
   scriptedVerifier,
-} from './fixtures/436-scripted-loop.js'
-import type { ScriptedStepRun } from './fixtures/436-scripted-loop.js'
+} from './fixtures/scripted-loop.js'
+import type { ScriptedStepRun } from './fixtures/scripted-loop.js'
 
 const LIMITS: PlannerConfig = { maxActions: 30, maxPlanningTurns: 30, previousStepCount: 0 }
 

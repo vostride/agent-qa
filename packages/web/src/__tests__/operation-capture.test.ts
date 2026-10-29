@@ -36,7 +36,7 @@ import {
   OperationCapture,
 } from '../operation-capture.js'
 import type { CapturedClipboardWrite, CapturedOperations, OperationCaptureOptions } from '../operation-capture.js'
-import { act, refFor as screenRefFor, runScriptedStep, scriptedPlanner, scriptedVerifier } from './fixtures/436-scripted-loop.js'
+import { act, refFor as screenRefFor, runScriptedStep, scriptedPlanner, scriptedVerifier } from './fixtures/scripted-loop.js'
 
 const BLOB_BYTES = 'name,qty\nwidget,3\n'
 const DISPOSITION_BYTES = JSON.stringify({ order: 42, lines: ['a', 'b'] })

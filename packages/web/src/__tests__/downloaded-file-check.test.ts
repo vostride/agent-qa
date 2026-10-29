@@ -11,8 +11,8 @@ import type { CarriedArtifacts, ConditionJudgment, PlannerConfig, StepContext } 
 import { FILE_DIFFERENCE_WINDOW } from '@vostride/agent-qa-runner'
 import type { ConditionRecord } from '@vostride/agent-qa-schema'
 import { WebPlatformAdapter } from '../adapter.js'
-import { act, giveUp, refFor, runScriptedStep, scriptedPlanner, scriptedVerifier } from './fixtures/436-scripted-loop.js'
-import type { ScriptedStepRun, ScriptedVerifier } from './fixtures/436-scripted-loop.js'
+import { act, giveUp, refFor, runScriptedStep, scriptedPlanner, scriptedVerifier } from './fixtures/scripted-loop.js'
+import type { ScriptedStepRun, ScriptedVerifier } from './fixtures/scripted-loop.js'
 
 const LIMITS: PlannerConfig = { maxActions: 30, maxPlanningTurns: 30, previousStepCount: 0 }
 const DOWNLOAD_STEP = 'Download the invoice'

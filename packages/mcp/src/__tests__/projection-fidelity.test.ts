@@ -262,9 +262,9 @@ describe('the advertised schema equals the function layer\'s own projection (D-1
   //
   // Union folds are excluded and the exclusion is structural rather than a gap: a composed union is
   // a NEW object by construction, so identity cannot hold for one. What stands in for it there is
-  // the pair of produced checks that bracket it — `446-tool-schema.test.ts` reads the arm literals
-  // back out of the listed fold schema, and the drift cell above compares each advertised arm
-  // against that arm op's own projection.
+  // the pair of produced checks that bracket it — `tool-input-schema-shape.test.ts` reads the arm
+  // literals back out of the listed fold schema, and the drift cell above compares each advertised
+  // arm against that arm op's own projection.
   it('advertises the op\'s OWN contract object, not one that merely agrees with it', () => {
     let checked = 0
     for (const projection of AGENT_QA_TOOL_PROJECTIONS) {

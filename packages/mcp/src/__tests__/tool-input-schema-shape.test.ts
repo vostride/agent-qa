@@ -72,7 +72,7 @@ afterEach(async () => {
 
 async function connect(build: () => McpServer): Promise<Client> {
   const handler = createMcpHandler(build)
-  const client = new Client({ name: 'agent-qa-446-tool-schema', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa-tool-input-schema-shape', version: '0.0.0' })
   openClients.push(client)
   await client.connect(
     new StreamableHTTPClientTransport(new URL('http://tool-schema.local/mcp'), {

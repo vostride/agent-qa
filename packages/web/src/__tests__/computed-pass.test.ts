@@ -13,8 +13,8 @@ import type {
 } from '@vostride/agent-qa-runner'
 import type { CitationSource } from '@vostride/agent-qa-schema'
 import { WebPlatformAdapter } from '../adapter.js'
-import { act, giveUp, refFor, runScriptedStep, scriptedPlanner } from './fixtures/436-scripted-loop.js'
-import type { ScriptedTurn } from './fixtures/436-scripted-loop.js'
+import { act, giveUp, refFor, runScriptedStep, scriptedPlanner } from './fixtures/scripted-loop.js'
+import type { ScriptedTurn } from './fixtures/scripted-loop.js'
 
 const LIMITS: PlannerConfig = { maxActions: 30, maxPlanningTurns: 30, previousStepCount: 0 }
 const STEP = 'Click Send'
