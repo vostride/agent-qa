@@ -109,7 +109,7 @@ async function readEntityUse(
   }
 }
 
-/** 436 D-02/D-05: a layer sets a planner limit the CLI refuses, so the live editor refuses it too. */
+/** a layer sets a planner limit the CLI refuses, so the live editor refuses it too. */
 export class LivePlannerLimitsRefusedError extends Error {
   constructor(message: string) {
     super(message)
@@ -180,7 +180,7 @@ function refuseInvalidLimits(
 }
 
 /**
- * 436 D-03: the limits a live session runs under — the project config's `use` block, then each
+ * the limits a live session runs under — the project config's `use` block, then each
  * entity's `use` in order (a suite, then a test of it) when the door can load it. An entity it
  * cannot load contributes nothing.
  */
@@ -424,7 +424,7 @@ export class LiveSession {
   private planner: LLMPlanner | null = null
   private verifier: LLMVerifier | null = null
   private modelProfiles: { planner: DeclaredModelProfile; verifier: DeclaredModelProfile } | null = null
-  // D-14 (Phase 360): the run-scoped storage-state store, constructed lazily on first use and
+  // the run-scoped storage-state store, constructed lazily on first use and
   // rooted at the session's `.agent-qa` runtime dir (the FsStorageStateStore rooting idiom).
   private storageStateStore: StorageStatePort | null = null
   private model: LanguageModel | null = null
@@ -453,7 +453,7 @@ export class LiveSession {
   private mobileAppiumLease: MobileLiveAppiumLease | null = null
   private secretStore: SecretStore | undefined
   private secretRedactor: SecretRedactor | undefined
-  // 428 D-07: one hub per session, handle 0, created once the adapter exists. A session whose
+  // one hub per session, handle 0, created once the adapter exists. A session whose
   // setup hooks failed has no adapter and therefore no hub; its subject declares `none`.
   private liveHub: LiveStreamHub | null = null
   private attachment: LiveEditorAttachment | null = null
@@ -495,7 +495,7 @@ export class LiveSession {
 
   /**
    * Make a control socket the current one. `release` is how the session lets go of it later: the
-   * previous attachment's is called with `superseded` here (428 WR-01), so one socket drives the
+   * previous attachment's is called with `superseded` here, so one socket drives the
    * session at a time.
    */
   beginAttachment(release?: (reason: LiveAttachmentRelease) => void): number {
@@ -521,7 +521,7 @@ export class LiveSession {
   }
 
   /**
-   * A command's reply, for whichever control socket is attached now (428 CR-01). A command can
+   * A command's reply, for whichever control socket is attached now. A command can
    * outlive the socket that issued it, and its outcome belongs to the page, not to that socket:
    * with none attached it is held and flushed to the next one.
    */
@@ -889,7 +889,7 @@ export class LiveSession {
     )
     const { profile, auth } = toModelProfileAndAuth(modelIdentity, runtimeAuth)
     const capabilities = resolveCapabilities(profile)
-    // 439 D-19: the live editor resolves vision as the CLI does, from the model it uses.
+    // the live editor resolves vision as the CLI does, from the model it uses.
     this.visionGate = resolveVisionGate({ vision: visionFromConfig(modelVision, capabilities) })
     const plannerDeclared: DeclaredModelProfile = {
       provider: profile.provider,
@@ -906,7 +906,7 @@ export class LiveSession {
     this.modelProfiles = { planner: plannerDeclared, verifier: verifierDeclared }
     this.model = createModel(profile, auth, (text) => this.secretRedactor?.redactString(text) ?? text)
     // Both roles share this.model here, but hold separate accounting instances per role so
-    // each owns its own cache anchor (D-11); the D-04 lazy thunk re-reads `profile` per call.
+    // each owns its own cache anchor; the D-04 lazy thunk re-reads `profile` per call.
     const plannerAccounting = createTokenAccounting({ getCapabilities: () => resolveCapabilities(profile) })
     const verifierAccounting = createTokenAccounting({ getCapabilities: () => resolveCapabilities(profile) })
     this.planner = new LLMPlanner(this.model, config.platform, undefined, undefined, plannerAccounting, plannerDeclared)
@@ -1133,7 +1133,7 @@ export class LiveSession {
   // Inner step execution — no gating. Callers must own the executing/status
   // lifecycle (executeStepCommand for single steps, executeTestCommand for
   // the per-test loop that runs many steps under one outer gate).
-  // D-14 (Phase 360): lazily construct the run-scoped storage-state store, rooted at the session's
+  // lazily construct the run-scoped storage-state store, rooted at the session's
   // `.agent-qa` runtime dir. All fs writes live in runner-local (validate:arch storageNeutral);
   // the loop records only { name, fingerprint }. Absent configPath falls back to the cwd root.
   private async getStorageStateStore(): Promise<StorageStatePort> {
@@ -1304,7 +1304,7 @@ export class LiveSession {
     }
 
     try {
-      // 436 D-03: a test runs at its own effective limits (project, suite, then its own `use`),
+      // a test runs at its own effective limits (project, suite, then its own `use`),
       // resolved once before its first step, exactly as the CLI suite producer resolves a member.
       let testLimits: PlannerLimits
       try {
@@ -1326,7 +1326,7 @@ export class LiveSession {
         })
       }
 
-      // Per-test setup (D-09). Per-test setup failure short-circuits the
+      // Per-test setup. Per-test setup failure short-circuits the
       // test AND skips per-test teardown, matching suite/runner.ts:230 break
       // (Pitfall 2). Suite-level teardown still fires at session cleanup.
       const setupHookPayloads: LiveHookPayload[] = []
@@ -1360,7 +1360,7 @@ export class LiveSession {
         }
       }
 
-      // Shared browser context (D-01): each step reuses the same adapter
+      // Shared browser context: each step reuses the same adapter
       // instance. Per-step context carries the TEST's name/context, not
       // the suite's, so the LLMPlanner matches production runTest behaviour.
       const stepResults: LiveStepResultPayload[] = []
@@ -1414,7 +1414,7 @@ export class LiveSession {
         }
       }
 
-      // Per-test teardown always fires when steps began (D-09 + D-25).
+      // Per-test teardown always fires when steps began.
       const teardownHookPayloads: LiveHookPayload[] = []
       const teardownResult = await this.runLifecycleHooksCapturing(
         'teardown',
@@ -1466,7 +1466,7 @@ export class LiveSession {
   // Thin wrapper around runLifecycleHooks that also captures the dispatched
   // hook payloads (hook-complete) for inclusion in the LiveTestResultPayload.
   // The capture sits beside the message sink rather than wrapping it, so a
-  // control socket that reattaches mid-hook keeps its sink (428 CR-01).
+  // control socket that reattaches mid-hook keeps its sink.
   private async runLifecycleHooksCapturing(
     phase: 'setup' | 'teardown',
     hookIds: string[],
@@ -1638,7 +1638,7 @@ export class LiveSession {
 
   startIdleTimer(onExpire: () => void): void {
     this.clearIdleTimer()
-    // 428 WR-02: an ended session has nothing left to expire, and the window never holds the
+    // an ended session has nothing left to expire, and the window never holds the
     // process open on its own.
     if (this.cleanupRun !== null) return
     this.idleTimer = setTimeout(onExpire, IDLE_TIMEOUT_MS)
@@ -1662,13 +1662,13 @@ export class LiveSession {
   private async runCleanup(): Promise<void> {
     this.clearIdleTimer()
     this.readyForInteraction = false
-    // 428 WR-02: the attached control socket is told the session is gone, however it ended.
+    // the attached control socket is told the session is gone, however it ended.
     const release = this.releaseAttachment
     this.releaseAttachment = null
     release?.('ended')
     // The hub closes first, so subscribers hear 'closed' and the screencast stops before the
     // browser that produces it goes away. Its close waits on the screencast's CDP stop, which a
-    // wedged renderer never answers, so the wait is bounded and teardown always goes on (428 WR-03).
+    // wedged renderer never answers, so the wait is bounded and teardown always goes on.
     const hub = this.liveHub
     this.liveHub = null
     if (hub) {

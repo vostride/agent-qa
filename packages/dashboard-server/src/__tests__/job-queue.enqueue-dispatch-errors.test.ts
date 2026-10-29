@@ -1,4 +1,4 @@
-// 2026-10-18 (444-27, D-62 IN-06, D-50): the enqueued listener dispatches through
+// the enqueued listener dispatches through
 // dispatchReported, so a dispatch that throws after the pending row and its artifact are written is
 // reported and never escapes enqueue(); the caller is answered with the queued run.
 

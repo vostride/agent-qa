@@ -1,4 +1,4 @@
-// 2026-10-18 (444-27, D-62 IN-05, D-35): run_members.outcome has no CHECK, so a word outside the
+// run_members.outcome has no CHECK, so a word outside the
 // vocabulary can be stored. Every member-history reader skips it, as neither a pass nor a fail.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'

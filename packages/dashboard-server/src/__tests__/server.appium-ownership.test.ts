@@ -26,7 +26,7 @@ interface RunnerInstance {
   killAll: Mock
   getActiveExecutions: Mock
   closeRun: (runId: string, status: CloseStatus, output?: string[]) => void
-  /** 401-18: a run the gate or the host refused before it began — never a `closeRun` with a flag. */
+  /** a run the gate or the host refused before it began — never a `closeRun` with a flag. */
   refuseRun: (runId: string, details: { reason: string }) => void
 }
 
@@ -37,7 +37,7 @@ const mockState = vi.hoisted(() => ({
 }))
 
 /**
- * The execution backend, INJECTED rather than module-mocked (401-07).
+ * The execution backend, INJECTED rather than module-mocked.
  *
  * The class this used to `vi.mock` is gone; `startServer` takes the backend as an option now, so a
  * cell hands over a fake exactly the way `agent-qa dashboard` hands over the real one. That is a
@@ -60,7 +60,7 @@ class FakeExecutionBackend extends EventEmitter {
   }
 
   /**
-   * Drive a run the gate or the host REFUSED before it began (401-18, G-401-16).
+   * Drive a run the gate or the host REFUSED before it began.
    *
    * A separate driver, not a flag on `closeRun`, because the two are different EVENTS: `closeRun`
    * is a run that happened and stopped, this is a run that never started. Every existing cell keeps
@@ -384,7 +384,7 @@ describe('dashboard Appium ownership', () => {
 
     const runner = currentRunner()
     await waitFor(() => expect(runner.execute).toHaveBeenCalledTimes(1))
-    // 405-07 (D-02): the projected step is written through the v2 member-scoped write now. The
+    // the projected step is written through the v2 member-scoped write now. The
     // claim is unchanged and is the point of the cell: a run whose every PERSISTED step passed
     // still fails when the run itself timed out — the run's verdict is not a fold of its steps.
     currentDb!.insertRunStep({
@@ -435,7 +435,7 @@ describe('dashboard Appium ownership', () => {
     })
   })
 
-  // ---- 401-18 (G-401-16): A REFUSED RUN IS DESCRIBED AS A REFUSAL --------------------------------
+  // ---- 401-18: A REFUSED RUN IS DESCRIBED AS A REFUSAL --------------------------------
   //
   // The measured defect (UAT item 15): a run the gate refused before anything started was written
   // to the runs list as `Process exited before test completed`, and the only record of WHY offered

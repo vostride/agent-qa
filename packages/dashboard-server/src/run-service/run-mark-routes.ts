@@ -1,5 +1,5 @@
-// 2026-09-08, 419 D-13: the browser mark door dispatches the same op as the CLI.
-// 2026-10-01, 432-14 (D-14): one request, one dispatch. The confirm scope it used to carry, and the
+// the browser mark door dispatches the same op as the CLI.
+// one request, one dispatch. The confirm scope it used to carry, and the
 // frame it entered around the call, are deleted with the run-confirm pair.
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
@@ -12,7 +12,7 @@ import type { AgentHost } from '../chat/host.js'
 import { readJsonBody } from '../server/body-parser.js'
 import { refusalFor, respondJson, type RunDetailRefusal } from './run-detail-routes.js'
 
-// 2026-10-02 (432-42, D-15): no 403 refusal arm. It carried the `mark_denied` body the execution
+// no 403 refusal arm. It carried the `mark_denied` body the execution
 // gate's denial produced; nothing produces it since 432-19, and its DTO is deleted.
 export type RunMarkOutcome =
   | { readonly kind: 'ok'; readonly body: RunsMarkOutcome }
@@ -42,7 +42,7 @@ export async function markRun(
     )
     return { kind: 'ok', body: result as RunsMarkOutcome }
   } catch (error) {
-    // 2026-10-01 (432-19, D-15): no `mark_denied` arm. It classified the execution gate's denial
+    // no `mark_denied` arm. It classified the execution gate's denial
     // error, which nothing raises any more; every rejection takes `refusalFor`.
     return refusalFor(error)
   }

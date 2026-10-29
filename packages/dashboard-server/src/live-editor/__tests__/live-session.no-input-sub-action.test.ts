@@ -1,4 +1,4 @@
-// 2026-10-09 (437-17, D-05, CR-01): a skipped toggle tap reaches the live editor as its own
+// a skipped toggle tap reaches the live editor as its own
 // outcome. The live editor reads only `result`, so a binary value there paints a correct skip as
 // a red failure that invites the retry which flips the toggle.
 

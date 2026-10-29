@@ -29,7 +29,7 @@ type SuiteAnalyticsDatabase = DashboardDatabase & {
 
 let db: DashboardDatabase
 
-// 2026-10-17 (444-05, D-41): a suite's history reads member suite ids, so each suite run seeds its member.
+// a suite's history reads member suite ids, so each suite run seeds its member.
 function insertSampleRun(overrides: Record<string, unknown> = {}) {
   const run = {
     name: 'Alpha Suite',
@@ -70,7 +70,7 @@ function seedSuiteAnalyticsFixture() {
     endedAt: '2026-03-03T10:00:02Z',
   })
 
-  // 2026-08-27 (405-07, D-02): the suite CHILD row this fixture used to seed is gone. It existed
+  // the suite CHILD row this fixture used to seed is gone. It existed
   // to prove the three readers below filtered it out, and the filter was a predicate over the run
   // row's parent link — a column nothing has written since 402-09 put one row per run. A fixture
   // that has to insert an impossible row to exercise a filter is measuring the fixture. The

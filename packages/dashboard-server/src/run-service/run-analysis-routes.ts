@@ -1,13 +1,13 @@
-// The run-ANALYSIS read route (Phase 406 plan 01, D-04).
+// The run-ANALYSIS read route.
 //
 // `GET /api/runs/:id/analysis` locally, `GET /run/:runId/analysis` on the authed remote door, and
 // BOTH call the one function below. This module is the whole of the HTTP half: validate the id
 // with the OP'S OWN input schema, dispatch through the injected host, map the op's named refusals
 // onto status codes. IT FORMATS NOTHING. It composes no sentence, folds no cluster and opens no
 // database — `analysis.get` is THE single producer of a run's verdicts, sentences and clusters
-// (389 D-11), and a second producer on this door is the 405 D-01 anti-pattern restated.
+// and a second producer on this door is the 405 D-01 anti-pattern restated.
 //
-// BOTH DOORS, ONE ADAPTER (D-04). 405 D-12/D-13 established the shape and 405-05 proved why: two
+// BOTH DOORS, ONE ADAPTER. 405 D-12/D-13 established the shape and 405-05 proved why: two
 // doors resolving one read through two implementations means "the same analysis" depends on which
 // credential asked. The sibling detail adapter's own note says a second spelling agrees on the day
 // it is written and is a wire-contract fork thereafter.
@@ -69,7 +69,7 @@ export interface RunAnalysisReadDeps {
   readonly host: AgentHost
 }
 
-/** `GET /api/runs/:id/analysis` — the failure view's one read (D-04). */
+/** `GET /api/runs/:id/analysis` — the failure view's one read. */
 export function serveRunAnalysisRead(
   req: IncomingMessage,
   res: ServerResponse,

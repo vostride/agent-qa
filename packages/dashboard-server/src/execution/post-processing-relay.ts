@@ -1,4 +1,4 @@
-// The SECOND sink of the in-process chip emitter (Phase 404 plan 05, D-16).
+// The SECOND sink of the in-process chip emitter.
 //
 // WHAT THIS IS FOR. A run's post-processing chain runs AFTER `runFinished`, which is exactly where
 // the run event stream closes. So the chips a page wants to watch — analysis started, curation
@@ -7,14 +7,14 @@
 // hands it here, and whichever browser has the run's post-processing stream open learns that the
 // durable answer moved.
 //
-// IT IS A TRIGGER CHANNEL, NOT A SOURCE OF TRUTH (D-17). Nothing downstream of this object may
+// IT IS A TRIGGER CHANNEL, NOT A SOURCE OF TRUTH. Nothing downstream of this object may
 // derive a chip from an envelope: the answer is always `runs.postprocessing` over durable rows,
 // re-read. The envelope says "look again"; it never says what the answer is. That is why there is
 // no history here and no buffering — a relay that replayed what a late subscriber missed would be
 // a second, weaker copy of a record the page can simply re-read, and the two would be free to
 // disagree the first time a process restarted.
 //
-// KEYED BY THE ENVELOPE'S OWN `runId` (T-404-02). The pump this feeds is a global FIFO and can
+// KEYED BY THE ENVELOPE'S OWN `runId`. The pump this feeds is a global FIFO and can
 // legitimately observe another run's job; the emitter has its own drop-guard for that, and this is
 // the second wall. Routing on the publisher's idea of "the current run" would make the guard the
 // only thing between one run's failure text and another run's viewer.

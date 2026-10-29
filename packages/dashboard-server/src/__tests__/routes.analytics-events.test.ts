@@ -1,4 +1,4 @@
-// WHAT THESE CELLS ARE GUARDING (398-11, D-18).
+// WHAT THESE CELLS ARE GUARDING.
 //
 // This file used to drive the `POST /api/analytics/events` bridge: the dashboard UI beaconed one
 // of three v33 product events at it, and the route captured them through core's ambient analytics

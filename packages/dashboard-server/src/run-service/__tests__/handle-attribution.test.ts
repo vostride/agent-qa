@@ -1,5 +1,4 @@
 // The READ half of the attribution contract: concurrent per-handle readers on the SHIPPED server
-// (Phase 402 plan 04, D-10 / D-14 · INVK-04).
 //
 // THE FRAME, STATED, BECAUSE IT IS THE POINT OF THIS FILE. Both halves here are production:
 //
@@ -152,7 +151,7 @@ let db: DashboardDatabase | undefined
 
 function servicePorts(session: RunSession): RunServicePorts {
   return {
-    // 2026-10-01 (432-21, D-12): no `verifyBearer` — the door is tokenless.
+    // no `verifyBearer` — the door is tokenless.
     invokeRunStart: async () => ({
       runId: RUN_ID as RunStartAcknowledgement['runId'],
       scope: 'main' as unknown as RunStartAcknowledgement['scope'],
@@ -269,11 +268,11 @@ describe('three SIMULTANEOUS per-handle readers on the shipped server, one concu
     const memberSets = readers.map((reader) =>
       new Set(reader.seqs.filter((seq) => !runScoped.has(seq))))
 
-    // IDENTICAL run-scoped sets: every handle subscriber learns the run ended (D-14).
+    // IDENTICAL run-scoped sets: every handle subscriber learns the run ended.
     for (const reader of readers) {
       expect(reader.seqs.filter((seq) => runScoped.has(seq))).toEqual([...runScoped])
     }
-    // DISJOINT member sets: no reader sees another member's data (T-402-13).
+    // DISJOINT member sets: no reader sees another member's data.
     for (let i = 0; i < memberSets.length; i += 1) {
       expect(memberSets[i]!.size).toBeGreaterThan(0)
       for (let j = i + 1; j < memberSets.length; j += 1) {
@@ -308,7 +307,7 @@ describe('three SIMULTANEOUS per-handle readers on the shipped server, one concu
     }
   })
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12/D-13) from 'still requires the bearer on a per-handle
+  // RE-SPELLED 2026-10-01 from 'still requires the bearer on a per-handle
   // attach — the filter is below the verdict'. The bearer is deleted; the door's guard is the
   // same-site check, and the filter is still below it.
   it('still refuses a cross-site per-handle attach — the filter is below the same-site guard', async () => {

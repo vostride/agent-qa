@@ -35,10 +35,10 @@ import { runRowIdentity, type RunIdentityMember } from './run-row-identity.js'
  * until M5 (Pitfall 1's hard requirement). This module implements no Reporter
  * interface — pure envelope consumption.
  *
- * NOTE: Plan 06 (363-06) relocated the `RunArtifact*` payload family from core to
- * @vostride/agent-qa-schema (D-08); these imports now point at their canonical home.
+ * NOTE: Plan 06 relocated the `RunArtifact*` payload family from core to
+ * @vostride/agent-qa-schema; these imports now point at their canonical home.
  *
- * 2026-08-27 (Phase 405 plan 01, D-01/D-17/D-18): THE PROJECTION IS REBUILT ON THE BUS'S OWN
+ * THE PROJECTION IS REBUILT ON THE BUS'S OWN
  * SHAPE. Until this date every step landed in the v1 wide `steps` row through `insertStep`, which
  * kept five of `StepFinalizedPayload`'s fields and dropped the rest — because the local `*Like`
  * interfaces this module declared only named five. There was no `subActionRecorded` arm at all, so
@@ -52,7 +52,7 @@ import { runRowIdentity, type RunIdentityMember } from './run-row-identity.js'
  * stringified verbatim (no field is re-interpreted on the way in). The run row stores the verdict's
  * own word too.
  *
- * `testRetryScheduled` now drops only THAT HANDLE's rows (D-17). It used to call the v1
+ * `testRetryScheduled` now drops only THAT HANDLE's rows. It used to call the v1
  * whole-run step delete, which wiped every step of the RUN — so in a suite, one member's
  * abandoned attempt deleted the completed history of every member before it.
  *
@@ -60,7 +60,7 @@ import { runRowIdentity, type RunIdentityMember } from './run-row-identity.js'
  * load-bearing: a projection row that fails to write must never darken the `runs` row. A dropped
  * step is visible as an absent step; a darkened run is a wrong verdict.
  *
- * 2026-08-28 (Phase 405 plan 13, D-21): phase 405 removed tables, columns, routes and fields from
+ * phase 405 removed tables, columns, routes and fields from
  * around this module and deliberately kept others. Check the repository history before restoring
  * anything that looks missing here.
  */
@@ -75,7 +75,7 @@ type ConfigSnapshot = RunArtifactConfigSnapshot | ArtifactRecord
 
 /**
  * A run's loaded test/suite and config snapshot, handed over by the producer that resolved them
- * (433-29, G-433-5). It arrives out-of-band, like `finalize()`'s runtime: the bus carries no snapshots.
+ * It arrives out-of-band, like `finalize()`'s runtime: the bus carries no snapshots.
  */
 export interface DashboardRunIngestSnapshots {
   config?: ConfigSnapshot
@@ -89,7 +89,7 @@ export interface DashboardRunIngestDeps {
   configSnapshot?: ConfigSnapshot
   /** Resolved test/suite source snapshot — the bus never carries it. */
   sourceSnapshot?: SourceSnapshot
-  // 2026-10-17 (444-02, D-07, D-44): the run row's name and ids come from these, once, at the claim.
+  // the run row's name and ids come from these, once, at the claim.
   members?: readonly RunIdentityMember[]
   /** Trusted run attributes, written to the run row + artifact metadata. */
   attributes?: RunAttributes
@@ -110,17 +110,16 @@ export interface DashboardRunIngestFinalizeExtra {
 export interface DashboardRunIngest {
   handler(envelope: RunEventEnvelope): void
   /**
-   * Stage a loaded snapshot onto this run's own artifact (433-29, F-433-15). A section is written
+   * Stage a loaded snapshot onto this run's own artifact. A section is written
    * only where it is absent or still the queue's `loadStatus: 'queued'` placeholder, so the first
    * snapshot wins and a finalized artifact is never touched. A call before `runStarted` is held.
    * A run of several members outside one suite instead files each snapshot under its member
-   * (444-03, D-07).
    */
   stageSnapshots(input: DashboardRunIngestSnapshots): void
   finalize(extra?: DashboardRunIngestFinalizeExtra): Promise<void>
 }
 
-// 405-01 (D-01): the six `*Like` interfaces that stood here are GONE. They were the mechanism of
+// the six `*Like` interfaces that stood here are GONE. They were the mechanism of
 // the drop this plan closes — `StepFinalizedLike` named five of the payload's eleven fields, so the
 // other six could not be written even in principle, and nothing could tell you that by reading the
 // arm. The arms below take the SCHEMA'S OWN payload types, so a payload that grows a field is a
@@ -154,8 +153,8 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
 
   const runMembers = deps.members ?? []
   const identity = runRowIdentity(runMembers)
-  // 2026-10-17 (444-03, D-07, D-08): several members outside one suite own their sources; a
-  // single-test or one-suite run keeps the first-wins source (433-29).
+  // several members outside one suite own their sources; a
+  // single-test or one-suite run keeps the first-wins source.
   const membersMode = runMembers.length > 1 && identity.suiteId === undefined
   const platform = readString(configRuntime?.platform) ?? 'web'
 
@@ -186,7 +185,7 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
     db.insertRunArtifact({ runId: id, kind, payload: baseArtifactPayload() })
   }
 
-  // 2026-10-17 (443-04, D-07, D-12): the run's own row is claimed, never rewritten; a refused
+  // the run's own row is claimed, never rewritten; a refused
   // claim leaves `runId` unset, so nothing below writes under another process's row.
   function claimPrimary(): string | undefined {
     const startedAt = now()
@@ -203,15 +202,13 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
     return claimed ? deps.runId : undefined
   }
 
-  // 2026-08-24 (Phase 402 plan 09, D-11): `insertRetryChild` AND `insertSuiteChild` ARE DELETED.
-  //
   // ~40 lines stood here minting run rows carrying the parent-link column — one per retry attempt,
   // one per suite member. This module was the LIVE producer of new parent/child run records; the queue's
   // fan-out and the routes' parent-kind mints were only its accessories. D-11: a parallel suite is
   // ONE run row with member handles (402-04's per-member handle addressing), no child runs, no
   // parent kind.
   //
-  // The retry half was already unreachable once 401-07 (D-12) retired the queue re-spawn. The
+  // The retry half was already unreachable once 401-07 retired the queue re-spawn. The
   // suite half was live and is a deliberate cost — a dashboard suite run's per-member rows are
   // replaced by handle addressing when 405 rebuilds the run detail.
 
@@ -356,10 +353,10 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
     for (const held of heldSnapshots.splice(0)) applySnapshots(id, held)
   }
 
-  // 2026-10-17 (444-02, D-06): a member writes only its own member row; the run row's identity is
+  // a member writes only its own member row; the run row's identity is
   // the claim's.
   function handleTestStarted(payload: TestStartedPayload): void {
-    // 405 D-01: the member row, keyed by the handle. This is the per-member split 402-09
+    // the member row, keyed by the handle. This is the per-member split 402-09
     // deleted with the child run rows, restored from 402-04's handles rather than from a second
     // `runs` row — the identity half; `testFinished` supplies the outcome half.
     const id = targetForTest(payload)
@@ -381,7 +378,7 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
     }
   }
 
-  // 402-09 (D-11): every member's step/hook/status rows land on the ONE run row. The per-member
+  // every member's step/hook/status rows land on the ONE run row. The per-member
   // split they used to get came from the child rows this plan deleted; 405 restores it from
   // 402-04's handles rather than from a second run row.
   function targetForTest(_payload: { testIndex?: number }): string | undefined {
@@ -391,7 +388,7 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
   function handleTestFinished(payload: TestFinishedPayload): void {
     const id = targetForTest(payload)
     if (!id) return
-    // 405 D-18: THE MEMBER ROW IS WRITTEN FROM `testFinished` ALONE if that is all there was. A
+    // THE MEMBER ROW IS WRITTEN FROM `testFinished` ALONE if that is all there was. A
     // member whose stream begins with a terminal event — skipped by fail-fast, budget exhausted —
     // still has an outcome and a reason, and the page must show it with an explicit "did not run"
     // state rather than omitting it. The upsert coalesces, so this cannot blank the identity
@@ -411,7 +408,7 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
       // Non-darkening: a member row that will not write must not change the run row below.
     }
     memberDurations.set(payload.testIndex, payload.durationMs)
-    // 2026-10-17 (444-02, D-06): no status and no end time; the row reads `running` until the
+    // no status and no end time; the row reads `running` until the
     // verdict.
     db.updateRun(id, {
       duration: runDuration(),
@@ -437,7 +434,7 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
   }
 
   /**
-   * 405 D-01: the WHOLE `StepFinalizedPayload`, passed through verbatim.
+   * the WHOLE `StepFinalizedPayload`, passed through verbatim.
    *
    * `status` IS THE PAYLOAD'S OWN WORD. A step that healed is
    * `healed` on its row; collapsing it to `passed` here is precisely the re-interpretation D-01
@@ -464,7 +461,7 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
         ...(payload.status === undefined ? {} : { status: payload.status }),
         ...(payload.durationMs === undefined ? {} : { durationMs: payload.durationMs }),
         ...(payload.error === undefined ? {} : { error: payload.error }),
-        // 2026-08-27 (405 plan 04, D-05/D-06): the producer landed this plan, so the three token
+        // the producer landed this plan, so the three token
         // columns 405-01 declared stop being always-NULL. Spread-when-defined, like every other
         // optional above it — the DB layer writes NULL for all three when the key is absent, and
         // a NULL row is what makes `runs.detail` able to say "M of K steps unmeasured" instead of
@@ -481,7 +478,7 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
   }
 
   /**
-   * 405 D-01 / D-14: THE ARM THAT DID NOT EXIST. Every `subActionRecorded` envelope becomes a row
+   * THE ARM THAT DID NOT EXIST. Every `subActionRecorded` envelope becomes a row
    * keyed by `(run_id, test_index, step_index, sub_action_index)`, carrying the payload's nested
    * objects as JSON verbatim — including the `artifactRefs` the bus fold now populates from the
    * decision screenshot the runner already minted. This is the whole of "screenshots and the
@@ -523,7 +520,7 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
     const hookExecutionId = readString(payload.hookExecutionId) ?? `hook-${now()}-${String(idlessHookRows++)}`
     try {
       // The run is part of the key because `execution_logs.id` is unique across every run in the
-      // database, and producers mint the same hook id in every run (433-41, CR-01).
+      // database, and producers mint the same hook id in every run.
       db.insertExecutionLog({
         id: `${id}:${hookExecutionId}`,
         runId: id,
@@ -536,7 +533,7 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
         stdout: readString(payload.stdout) ?? null,
         stderr: readString(payload.stderr) ?? null,
         variables: payload.variables ?? null,
-        // 405 D-01: where in the run tree this hook ran. Absent stays NULL — a run-scoped hook
+        // where in the run tree this hook ran. Absent stays NULL — a run-scoped hook
         // is a real state, and inventing handle 0 for it would put a setup hook inside a test.
         ...(payload.testIndex === undefined ? {} : { testIndex: payload.testIndex }),
         ...(payload.stepIndex === undefined ? {} : { stepIndex: payload.stepIndex }),
@@ -547,7 +544,7 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
   }
 
   /**
-   * 405 D-17: drop only THIS HANDLE's abandoned-attempt rows, and raise its attempt ordinal.
+   * drop only THIS HANDLE's abandoned-attempt rows, and raise its attempt ordinal.
    *
    * The v1 arm called the store's whole-run step delete, which removed every step of the RUN.
    * Under the one-run-row model that is every member's history: a suite where test 3 retried lost the
@@ -573,7 +570,7 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
 
   function handleRunFinished(aggregateVerdict: RunStatus): void {
     // The aggregate verdict is authoritative at the run level, and the run's runtime is staged
-    // once here (444-02). The PRIMARY run_artifact is deliberately left open — finalize() lands
+    // once here. The PRIMARY run_artifact is deliberately left open — finalize() lands
     // any out-of-band runtime section and finalizes last (Pitfall 6 flush idiom).
     if (!runId) return
     const endedAt = now()
@@ -610,7 +607,7 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
           break
         case 'verdict':
           // Terminal aggregate; runFinished performs the finalize sweep.
-          // 402-09: the suite carve-out went with the suite mode. There is one run row, and the
+          // the suite carve-out went with the suite mode. There is one run row, and the
           // aggregate verdict is its status; `runFinished` re-states it and performs the sweep.
           if (runId) {
             db.updateRun(runId, {

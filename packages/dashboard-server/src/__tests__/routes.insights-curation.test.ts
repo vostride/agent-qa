@@ -1,4 +1,4 @@
-// C433-INSIGHTS-CURATION (433-42, G-433-13, CR-02, WR-04). A run counts as read only when its
+// C433-INSIGHTS-CURATION. A run counts as read only when its
 // curation finished, or when its post-processing was skipped by design. Curation that failed
 // or has not finished is counted on its own, and runs still queued or running are counted as in
 // flight. None of them is folded into "read, nothing changed".

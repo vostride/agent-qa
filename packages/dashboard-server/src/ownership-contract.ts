@@ -22,7 +22,7 @@ export const AGENT_QA_DASHBOARD_INTERNAL_DEPENDENCIES = [
   '@vostride/agent-qa-core',
   '@vostride/agent-qa-ids',
   '@vostride/agent-qa-ios',
-  // 2026-08-15 (Phase 396 plan 01, D-10): `@vostride/agent-qa-mcp` is GONE from this list and from
+  // `@vostride/agent-qa-mcp` is GONE from this list and from
   // this package's dependencies. The dashboard used to start its own MCP endpoint beside itself; the
   // v2 server is composed per-caller by `agent-qa mcp` over the function registry, and a second
   // composition root for one surface is the private power the milestone abolishes.

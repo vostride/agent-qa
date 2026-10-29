@@ -1,4 +1,4 @@
-// 429-10 (D-15/D-16/D-17): POST /api/llm/connect tests a draft model before anything is written,
+// POST /api/llm/connect tests a draft model before anything is written,
 // and only a pass (or an explicit skipTest) lands the credential and the definition.
 //
 // auth.json is an in-memory store behind core's readAuth/writeAuth/removeAuth, and the config is a

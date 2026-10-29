@@ -1,4 +1,4 @@
-// THE DASHBOARD RUN PATH HAS NO SPAWN AND NO SCRAPE (Phase 401 plan 07 — D-01/D-12, INVK-01).
+// THE DASHBOARD RUN PATH HAS NO SPAWN AND NO SCRAPE.
 //
 // WHAT A COMPLETE-SET CLAIM NEEDS, AND WHY THIS IS NOT A GREP. The claim is about a PATH, not a
 // file, so the scanner walks every non-test module under `src/` and reports what it finds; and it

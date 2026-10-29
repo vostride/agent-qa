@@ -1,4 +1,4 @@
-// THE PHASE 406 TRACER, SERVER HALF (plan 01, D-04 · DETL-04).
+// THE PHASE 406 TRACER, SERVER HALF.
 //
 // ONE CLAIM, MEASURED END TO END: the floor verdict sentence `analysis.get` composes for a failed
 // member reaches a browser through a fourth-door route, with no layer faked.
@@ -56,8 +56,8 @@ const RUN_ID = 'r_tracer-406-alpha-bravo-charlie-delta-echo-foxtrot-golf-hotel'
 /** The producer text the floor sentence quotes — the one string this file traces end to end. */
 const STEP_ERROR = 'Error: element "Submit" not found on the checkout screen'
 
-// 2026-10-01 (432-35, D-12): no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither (432-20).
+// no `grantedScopes` or `safeMode` on the caller; the registry reads
+// neither.
 const REGISTRY_CALLER: FunctionCaller = {
   surface: 'dashboard',
   origin: 'human',
@@ -190,8 +190,8 @@ function depsWith(options: { readonly withAnalysis: boolean }): FunctionDeps {
 function composeRegistry(options: { readonly withAnalysis: boolean }): FunctionRegistry {
   return createFunctionRegistry({
     deps: depsWith(options),
-    // 2026-10-01 (432-35, D-12): no `resolveExecutionContext` registry option; the registry reads
-    // no context (432-20).
+    // no `resolveExecutionContext` registry option; the registry reads
+    // no context.
   })
 }
 
@@ -204,11 +204,11 @@ function hostOver(registry: FunctionRegistry): AgentHost {
     runsEventsFunctionId: 'test:planted-events-op',
     runsDetailFunctionId: RUNS_DETAIL_FUNCTION_ID,
     runsArtifactFunctionId: RUNS_ARTIFACT_FUNCTION_ID,
-    // THE ID AS DATA (D-04). This package may not import the agent package outside a test, so a
+    // THE ID AS DATA. This package may not import the agent package outside a test, so a
     // route that spelled `'analysis.get'` itself would be a name nothing type-checks against the
     // spec that answers to it.
     analysisGetFunctionId: ANALYSIS_GET_FUNCTION_ID,
-    // 407-01 (D-05): the sixth dispatched id, widened here so every AgentHost literal in the
+    // the sixth dispatched id, widened here so every AgentHost literal in the
     // workspace still satisfies the interface.
     runsKnowledgeFunctionId: RUNS_KNOWLEDGE_FUNCTION_ID,
     invokeFunction: (

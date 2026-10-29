@@ -11,7 +11,7 @@ import { createRouter } from '../server/routes.js'
 import { SuiteFileManager } from '../tests/suite-file-manager.js'
 import { TestFileManager } from '../tests/test-file-manager.js'
 
-// G-433-2 / F-433-06 (433 D-03): the walk's Save wrote this file byte for byte and answered 201.
+// the walk's Save wrote this file byte for byte and answered 201.
 // It is the content of captures/fresh/p03-invalid-433.yaml.txt without its capture header.
 const WALK_INVALID_CONTENT = [
   'name: Invalid 433 probe',

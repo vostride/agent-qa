@@ -3,7 +3,7 @@
 //
 // TWO DOORS ONTO ONE ANSWER, AND THE ANSWER IS ALWAYS A RE-READ. `GET /api/runs/:id/post-processing`
 // is what a page polls; `…/post-processing/stream` opens with the SAME body as a `snapshot` frame
-// and then relays chip envelopes as they are appended. The envelopes are TRIGGERS (D-17): a
+// and then relays chip envelopes as they are appended. The envelopes are TRIGGERS: a
 // consumer that derived a chip from one would be a second projection of chip truth, free to
 // disagree with `runs.postprocessing` over the durable rows — which is the one thing 388 D-14 and
 // 404 D-16 rule out by name. Nothing in this file reads a job store, opens `agent-jobs.db` or
@@ -19,7 +19,7 @@
 // or one drained after this process last saw it — gets NO `failures` entry, because the record
 // declined to say and this route does not compose prose on the record's behalf.
 //
-// EVERY REFUSAL IS NAMED (D-23). The alternative that actually shipped in surfaces like this one is
+// EVERY REFUSAL IS NAMED. The alternative that actually shipped in surfaces like this one is
 // an all-pending body: a page that cannot tell "the chain has not started" from "the composition
 // bound no such op" renders two grey chips forever and calls it a state. So an unbound function, a
 // job store stamped by another build, an id the op refuses and a missing host each have their own
@@ -44,7 +44,7 @@ import type { PostProcessingRelay } from '../execution/post-processing-relay.js'
 /**
  * The comment-frame keepalive interval, matching every other SSE this package serves.
  *
- * EXPORTED so a cell can name the number rather than sleep past it, and so the client (404-07)
+ * EXPORTED so a cell can name the number rather than sleep past it, and so the client
  * can size its own liveness expectation off the server's constant instead of a second guess.
  */
 export const POST_PROCESSING_STREAM_HEARTBEAT_MS = 15_000
@@ -52,7 +52,7 @@ export const POST_PROCESSING_STREAM_HEARTBEAT_MS = 15_000
 /**
  * The SSE event name the joined read travels under.
  *
- * DELIBERATELY NOT A BUS EVENT TYPE (T-404-03). Every other frame on this stream is an envelope
+ * DELIBERATELY NOT A BUS EVENT TYPE. Every other frame on this stream is an envelope
  * whose `event:` is its own `type`, so the one frame that is NOT an envelope must be unmistakable:
  * a client switching on the frame name can never confuse the whole-state answer with a chip tick.
  */
@@ -206,7 +206,7 @@ export async function readPostProcessing(
   host: AgentHost,
   runId: string,
 ): Promise<PostProcessingReadOutcome> {
-  // THE ID IS VALIDATED BY THE OP'S OWN INPUT SCHEMA, HERE, BEFORE THE DOOR IS TOUCHED (T-404-07).
+  // THE ID IS VALIDATED BY THE OP'S OWN INPUT SCHEMA, HERE, BEFORE THE DOOR IS TOUCHED.
   // Not a second regex: `runIdSchema` refuses exactly the ids the path layer would have to REWRITE
   // before using them as a directory name, and the whole point of that codec is that there is one
   // of it. Refusing early also means an untrusted path segment never reaches a dispatch at all.
@@ -273,7 +273,7 @@ export interface PostProcessingReadDeps {
   readonly host: AgentHost
 }
 
-/** `GET /api/runs/:id/post-processing` — what the page polls (D-18). */
+/** `GET /api/runs/:id/post-processing` — what the page polls. */
 export function servePostProcessingRead(
   _req: IncomingMessage,
   res: ServerResponse,
@@ -304,7 +304,7 @@ export interface PostProcessingStreamDeps extends PostProcessingReadDeps {
 }
 
 /**
- * `GET /api/runs/:id/post-processing/stream` — the DEDICATED live channel (D-16).
+ * `GET /api/runs/:id/post-processing/stream` — the DEDICATED live channel.
  *
  * THE ORDER IS THE CONTRACT, on `serveRunEventStream`'s own law: every refusal happens before
  * `writeHead`, because a response that has already written `200 text/event-stream` cannot be told
@@ -333,7 +333,7 @@ export function servePostProcessingStream(
   deps: PostProcessingStreamDeps,
 ): void {
   /**
-   * The half-built stream's resource release, hoisted so the failure arm can unwind it (UF-01).
+   * The half-built stream's resource release, hoisted so the failure arm can unwind it.
    *
    * Assigned in the same breath the stream's state is declared and BEFORE the head goes out, so a
    * throw anywhere from `writeHead(200)` onwards is unwound rather than abandoned: without it a
@@ -355,7 +355,7 @@ export function servePostProcessingStream(
    *
    * IT ANSWERS THE SAME FAILURE SHAPE THE SIBLING DOOR ANSWERS WITH, for the same reason — anything
    * reaching here is this module failing, and `refusalFor`'s unclassified arm travels as a NAME and
-   * never a message (T-404-01), because an arbitrary throw's prose may quote a path or a row.
+   * never a message, because an arbitrary throw's prose may quote a path or a row.
    *
    * AND IT LEAVES NOTHING HALF-OPEN. A response already carrying `200 text/event-stream` cannot be
    * told it failed, so once headers are out the only honest close is `destroy()`; before they are
@@ -405,7 +405,7 @@ export function servePostProcessingStream(
     }
 
     // THE SAME GUARD THE 204 ARM ABOVE CARRIES, on the arm that OPENS a socket rather than closing
-    // one (UF-01). The asymmetry was the bug: both arms are reached after the same two awaited op
+    // one. The asymmetry was the bug: both arms are reached after the same two awaited op
     // calls, so both face the same already-answered response — and `writeHead` on one throws
     // `ERR_HTTP_HEADERS_SENT`, which is the throw that became the process-fatal rejection. Guarded
     // before any state is built, so this leg registers nothing it would then have to unwind.
@@ -452,7 +452,7 @@ export function servePostProcessingStream(
         `id: ${String(envelope.seq)}\nevent: ${envelope.type}\ndata: ${JSON.stringify(envelope)}\n\n`,
       )
       if (!STAGE_SETTLING_EVENTS.has(envelope.type)) return
-      // THE TRIGGER, ANSWERED BY A RE-READ (D-17). The envelope says a stage settled; whether the
+      // THE TRIGGER, ANSWERED BY A RE-READ. The envelope says a stage settled; whether the
       // CHAIN is over is a fact about durable rows, and this door asks the op rather than deriving
       // it from the tick it just wrote.
       void readPostProcessing(deps.host, deps.runId).then(

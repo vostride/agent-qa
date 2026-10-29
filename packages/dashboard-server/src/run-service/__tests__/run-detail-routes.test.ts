@@ -1,4 +1,4 @@
-// THE PHASE 405 TRACER (plan 01, D-01/D-02/D-03/D-14 · DETL-01/DETL-03).
+// THE PHASE 405 TRACER.
 //
 // ONE CLAIM, MEASURED END TO END: a decision-screenshot `ArtifactRef` the runner mints reaches a
 // browser as a sha, through every layer this phase touches and with no layer faked.
@@ -49,7 +49,7 @@ import {
   type FunctionDeps,
   type FunctionRegistry,
 } from '@vostride/agent-qa-agent'
-// 405-05: the SHIPPED evidence-blob binding and the SHIPPED store that wrote the blob. Both are
+// the SHIPPED evidence-blob binding and the SHIPPED store that wrote the blob. Both are
 // DEV-only edges here, on the `@vostride/agent-qa-agent` reasoning at the top of this file —
 // `validate:arch` walks `src` with `__tests__` excluded and reconciles only runtime
 // `dependencies`, so the production edges these packages forbid stay forbidden. The point of
@@ -88,7 +88,7 @@ import { createDashboardRunDetailReader } from '../run-detail-reader.js'
 
 /** A 64-hex sha, the shape `FsEvidenceArtifactStore` content-addresses a blob under. */
 const DECISION_SHA = 'a'.repeat(63) + '7'
-// 2026-10-01 (432-21, D-12): the run service is tokenless, so its fixture headers carry nothing, and
+// the run service is tokenless, so its fixture headers carry nothing, and
 // what it refuses before dispatch is a cross-site request.
 const TOKENLESS_HEADERS: Record<string, string> = {}
 const CROSS_SITE_HEADERS: Record<string, string> = { Origin: 'https://evil.example' }
@@ -140,7 +140,7 @@ function makeSubActionEvidence(): SubActionEvidence {
   }
 }
 
-// 2026-10-01 (432-21, D-12): the tokenless caller shape — no scope set or safe-mode flag.
+// the tokenless caller shape — no scope set or safe-mode flag.
 const REGISTRY_CALLER: FunctionCaller = {
   surface: 'dashboard',
   origin: 'human',
@@ -217,7 +217,7 @@ function hostOver(registry: FunctionRegistry): AgentHost {
     runsEvidenceFunctionId: RUNS_EVIDENCE_FUNCTION_ID,
     runsArtifactFunctionId: RUNS_ARTIFACT_FUNCTION_ID,
     analysisGetFunctionId: ANALYSIS_GET_FUNCTION_ID,
-    // 407-01 (D-05): the sixth dispatched id, widened here so every AgentHost literal in the
+    // the sixth dispatched id, widened here so every AgentHost literal in the
     // workspace still satisfies the interface.
     runsKnowledgeFunctionId: RUNS_KNOWLEDGE_FUNCTION_ID,
     runsMarkFunctionId: RUNS_MARK_FUNCTION_ID,
@@ -355,14 +355,14 @@ describe('GET /api/runs/:id/detail', () => {
     expect(body.subActions[0].screenStateHashAfter).toMatch(/^[0-9a-f]{64}$/)
     expect(body.subActions[0].screenStateHashAfter).not.toBe(body.subActions[0].screenStateHash)
 
-    // D-01/D-18: the member row exists, keyed by the handle, with its identity and its outcome.
+    // the member row exists, keyed by the handle, with its identity and its outcome.
     expect(body.members).toHaveLength(1)
     expect(body.members[0].testIndex).toBe(0)
     expect(body.members[0].name).toBe('Tracer Test')
     expect(body.members[0].outcome).toBe('passed')
     expect(body.members[0].attempts).toBe(1)
 
-    // D-06 — ABSENT IS NOT ZERO. Nothing on this bus carries `tokenUsage` yet (405-04 lands the
+    // ABSENT IS NOT ZERO. Nothing on this bus carries `tokenUsage` yet (405-04 lands the
     // producer), so the honest answer names how many steps went unmeasured and offers NO total.
     expect(body.tokens.measuredSteps).toBe(0)
     expect(body.tokens.unmeasuredSteps).toBe(1)
@@ -421,7 +421,7 @@ const PNG_BYTES = new Uint8Array([
 ])
 const JPEG_BYTES = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46])
 
-// 2026-10-14 (441-16, D-06): the production host binds its declared mask; without one runs.evidence
+// the production host binds its declared mask; without one runs.evidence
 // answers masking-unavailable, so the doors would never reach the recorded evidence.
 const declaredMask: NonNullable<FunctionDeps['secretMask']> = (text) => text
 
@@ -473,7 +473,7 @@ describe('typed evidence HTTP doors', () => {
     expect(f.seen).toEqual([RUNS_EVIDENCE_FUNCTION_ID])
     expect(response.headers.get('access-control-allow-origin')).toBeNull()
   })
-  // RE-SPELLED 2026-10-01 (432-21, D-12/D-13) from 'HTTP-EVIDENCE-MACHINE authenticates before
+  // RE-SPELLED 2026-10-01 from 'HTTP-EVIDENCE-MACHINE authenticates before
   // dispatch and never restores': the run service asks for no bearer, so the guard that answers
   // before dispatch is the same-site check; the never-restores claim is unchanged.
   it('HTTP-EVIDENCE-MACHINE guards before dispatch and never restores', async () => {
@@ -530,12 +530,12 @@ describe('typed evidence HTTP doors', () => {
     expect(Buffer.from(result.bytesBase64, 'base64').equals(bytes)).toBe(true)
   })
 })
-// ---- 423-21 (D-18): the two feedback reads on both HTTP doors ---------------------------------
+// ---- 423-21: the two feedback reads on both HTTP doors ---------------------------------
 //
 // The routes format nothing: the registry's own ops answer through a file-backed read port, so the
 // HTTP bodies are compared with a direct invocation of the same registry. The real ledger host
 // lives in the CLI, whose mark-preview-history suite drives these same routes over its real stores.
-// 2026-09-30, 432-09: the first mark applied a knowledge fix, and its changed record is joined.
+// the first mark applied a knowledge fix, and its changed record is joined.
 
 const FEEDBACK_NOTE_SECRET = 'synthetic-423-21-note-token'
 const FIRST_MARK = 'mark_0123456789ab'
@@ -708,7 +708,7 @@ describe('feedback reads on both HTTP doors', () => {
       expect((await answer.json() as { error: string }).error).toBe('agent_host_unavailable')
     }
 
-    // 441-15 (D-07): both doors answer a stored marker and an old placeholder as they are.
+    // both doors answer a stored marker and an old placeholder as they are.
     const history = RunsMarksHistoryResultSchema.parse(expected)
     if (history.kind !== 'history') throw new Error('expected a history result')
     const withNote = (note: string) => ({ ...history, entries: history.entries.map((entry, index) => index === 0 ? { ...entry, note } : entry) })
@@ -787,7 +787,7 @@ describe('feedback reads on both HTTP doors', () => {
       expect(await answer.json()).toMatchObject({ error: 'agent_host_unavailable' })
     }
 
-    // 441-15 (D-07): both doors answer a stored marker and an old placeholder as they are.
+    // both doors answer a stored marker and an old placeholder as they are.
     const consequences = feedbackPreview(RUN_ID) as Extract<RunsMarkPreviewResult, { kind: 'consequences' }>
     const stored = RunsMarkPreviewResultSchema.parse({ ...consequences, knowledge: { ...consequences.knowledge,
       records: [servedRecord('near [secret:PW_441] and <SECRET_1>')] } })
@@ -823,7 +823,7 @@ describe('feedback reads on both HTTP doors', () => {
   })
 })
 
-/** Bytes that WANT to be a document. The sniffer has no arm that can grant it (T-405-15). */
+/** Bytes that WANT to be a document. The sniffer has no arm that can grant it. */
 const SVG_BYTES = new TextEncoder().encode(
   '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
 )
@@ -865,7 +865,7 @@ async function serveOneArtifact(
   return { port: (started.server.address() as AddressInfo).port, sha: ref.sha, root }
 }
 
-// ---- 405-05 (D-12/D-13/D-15 · DETL-03): the ref RESOLVES — a sha becomes immutable bytes -------
+// ---- 405-05: the ref RESOLVES — a sha becomes immutable bytes -------
 //
 // THE SECOND HALF OF THE TRACER'S CLAIM. The cells above prove a minted `ArtifactRef` reaches a
 // browser as a sha; these prove that sha resolves to the exact bytes the runner wrote, with the
@@ -1091,7 +1091,7 @@ describe('serveRunDetailRead', () => {
   })
 })
 
-// ---- 441-15 (D-07): the dashboard shows what was stored and restores nothing ----------------------
+// ---- 441-15: the dashboard shows what was stored and restores nothing ----------------------
 
 async function serveBothDoors(body: unknown) {
   const db = new DashboardDatabase({ dbPath: ':memory:' })

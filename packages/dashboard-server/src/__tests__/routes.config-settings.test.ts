@@ -489,7 +489,7 @@ describe('GET /api/app-metadata', () => {
   })
 })
 
-// 429-32 D-19: the settings, model-list and default-model claims the per-section PUT routes proved,
+// the settings, model-list and default-model claims the per-section PUT routes proved,
 // each driven through the one field-merge write (PATCH /api/config) or the draft-model connect.
 const SETTINGS_WORKSPACE_LINES = [
   'workspace:',
@@ -711,7 +711,7 @@ describe('settings writes through PATCH /api/config', () => {
     const { configManager, configPath } = await useSettingsWorkspace()
     const before = await readFile(configPath)
 
-    // 429-44: the door refuses the retired leaf by path; inside a container value it still meets validation.
+    // the door refuses the retired leaf by path; inside a container value it still meets validation.
     const refused = await patchConfig([set(['use', 'device'], 'ios-sim')])
     expect(refused.status).toBe(422)
     expect(JSON.parse(refused.body)).toEqual({ error: 'path_not_writable' })
@@ -832,7 +832,7 @@ describe('settings writes through PATCH /api/config', () => {
   it('rejects services.dashboard.testsDir', async () => {
     const { configPath } = await useSettingsWorkspace()
     const before = await readFile(configPath)
-    // 429-44: the door refuses the retired leaf by path; inside a container value it still meets validation.
+    // the door refuses the retired leaf by path; inside a container value it still meets validation.
     const refused = await patchConfig([set(['services', 'dashboard', 'testsDir'], './tests')])
     expect(refused.status).toBe(422)
     expect(JSON.parse(refused.body)).toEqual({ error: 'path_not_writable' })
@@ -1241,7 +1241,7 @@ describe('dashboard LLM auth and test routes', () => {
     expect(mockWriteAuth).not.toHaveBeenCalled()
   })
 
-  // 429-09 D-15: re-targeted from "rejects credential save for unknown config names" — a name
+  // re-targeted from "rejects credential save for unknown config names" — a name
   // not yet in registry.llms is a draft, and its credential is accepted.
   it('accepts credential save for a draft name not yet in registry.llms', async () => {
     await useConfigWorkspace(credentialConfig)
@@ -1505,7 +1505,7 @@ describe('dashboard LLM auth and test routes', () => {
 
     const liveRes = await invokeRoute('/api/live-editor/sessions', {
       method: 'POST',
-      // 428 D-08: the live-editor doors run the same-site guard, which refuses an absent Host.
+      // the live-editor doors run the same-site guard, which refuses an absent Host.
       headers: { 'content-type': 'application/json', host: '127.0.0.1:3470' },
       body: JSON.stringify({
         platform: 'web',
@@ -1560,7 +1560,7 @@ describe('dashboard LLM auth and test routes', () => {
     })
     expect(mockWriteAuth).not.toHaveBeenCalled()
 
-    // 429-09 D-15: a name missing from registry.llms is a draft, and its sign-in starts.
+    // a name missing from registry.llms is a draft, and its sign-in starts.
     const missingRes = await invokeRoute('/api/auth/plugin/openai-subscription/start', {
       method: 'POST',
       headers: { 'content-type': 'application/json', host: LLM_TEST_HOST },
@@ -1657,7 +1657,7 @@ describe('dashboard LLM auth and test routes', () => {
     })
 
     expect(res.status).toBe(200)
-    // 429-11 D-24: the removal answers an Undo token and never the credential it removed.
+    // the removal answers an Undo token and never the credential it removed.
     expect(JSON.parse(res.body)).toEqual({
       deleted: true,
       undo: { token: expect.any(String), expiresAt: expect.any(Number) },

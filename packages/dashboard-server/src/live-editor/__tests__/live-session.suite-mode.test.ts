@@ -13,7 +13,7 @@ const mockAndroidCleanup = vi.fn().mockResolvedValue(undefined)
 const mockResolveMobileRunConfig = vi.fn()
 
 // One adapter instance is shared across all WebPlatformAdapter() calls,
-// which lets us assert "same adapter reused across steps" (D-01).
+// which lets us assert "same adapter reused across steps".
 const sharedAdapterRef: { current: unknown } = { current: null }
 
 vi.mock('@vostride/agent-qa-web', () => ({
@@ -63,7 +63,7 @@ const mockVariableStoreInstance = {
   snapshot: vi.fn().mockReturnValue({}),
 }
 
-// executeStep/LLMPlanner/LLMVerifier moved to the runner package (Phase 353-07);
+// executeStep/LLMPlanner/LLMVerifier moved to the runner package;
 // live-session now imports them from @vostride/agent-qa-runner, so intercept them there.
 vi.mock('@vostride/agent-qa-runner', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@vostride/agent-qa-runner')>()
@@ -458,7 +458,7 @@ describe('LiveSession.executeTestCommand (suite-mode orchestration)', () => {
     expect(result.teardownHookExecutions.length).toBe(1)
   })
 
-  // 363-11 (SEAM-03): the loop-driven `LoopPorts.onPhase` telemetry seam is retired — the runner
+  // the loop-driven `LoopPorts.onPhase` telemetry seam is retired — the runner
   // loop never invoked it (dead in production; only a mock exercised it). The former
   // "invokes onPhase callback at least once per step" test asserted that retired mock-only path and
   // was removed with the seam. Per-step phase data now rides the step result (subActionsData).
@@ -641,7 +641,7 @@ describe('LiveSession.executeTestCommand (suite-mode orchestration)', () => {
       teardown: [],
     })
 
-    // 363-11 (SEAM-03): the loop-driven `LoopPorts.onPhase` seam is retired, so the intra-step
+    // the loop-driven `LoopPorts.onPhase` seam is retired, so the intra-step
     // `test-step-phase` message no longer flows; the explicit start/complete lifecycle messages
     // (emitted around executeStep, independent of onPhase) still dispatch.
     const messages = sink.mock.calls.map(([message]) => message)

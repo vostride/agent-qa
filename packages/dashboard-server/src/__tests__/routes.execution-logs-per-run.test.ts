@@ -1,4 +1,4 @@
-// C433-HOOK-LOG-IDENTITY (433-41, G-433-12, CR-01, F-433-35). Every run of a hooked test keeps its
+// C433-HOOK-LOG-IDENTITY. Every run of a hooked test keeps its
 // own Setup/Teardown rows in one dashboard database, through the ids the real runHooks mints, and a
 // retried member keeps its final attempt's in-attempt hook rows.
 

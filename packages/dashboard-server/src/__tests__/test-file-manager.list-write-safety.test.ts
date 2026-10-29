@@ -34,10 +34,10 @@ import { startServer } from '../server/server.js'
 import { SuiteFileManager } from '../tests/suite-file-manager.js'
 import { TestFileManager } from '../tests/test-file-manager.js'
 
-// 2026-10-18 (444-33, D-65): reading the test or suite list never damages a file or a save racing it.
-// 2026-10-18 (444-35, D-66): a read after a save or delete sees it; empty, unnamed and long-named files list truthfully.
-// 2026-10-18 (444-36, D-67): an id write keeps a ---led file one document, and a key's value is read from its own line.
-// 2026-10-19 (444-37, D-68): a file that parses is read from its mapping, and an id write lands only if it parses to the old mapping plus the id.
+// reading the test or suite list never damages a file or a save racing it.
+// a read after a save or delete sees it; empty, unnamed and long-named files list truthfully.
+// an id write keeps a ---led file one document, and a key's value is read from its own line.
+// a file that parses is read from its mapping, and an id write lands only if it parses to the old mapping plus the id.
 
 type Hold = { suffix: string; content: string | null; reach: () => void; gate: Promise<void>; release: () => void }
 
@@ -430,7 +430,7 @@ function layoutCorpus(kind: Kind, namedId: string): LayoutRow[] {
   minted('crlf', '', '', '\r\n', crlf(base('crlf')))
   minted('crlf-marker', '---\r\n', '---\r\n', '\r\n', crlf(base('crlf-marker')))
   minted('plain', '', '', '\n')
-  // 2026-10-19 (444.1-11, D-20, D-22): a nested bare id key, the CRLF and byte-order-mark fills, and the unminted flow and indented mappings.
+  // a nested bare id key, the CRLF and byte-order-mark fills, and the unminted flow and indented mappings.
   const listKey = kind === 'test' ? 'steps: [Click a]' : 'tests: []'
   fixed('nested-flow-id', `{name: Layout nested-flow-id, target: web,\nuse: {\n${key}:\n},\n${listKey}}\n`, 'left', null, true, 'web')
   minted('crlf-comment-id', `${key}: # fill later\r\n`, '', '\r\n', crlf(base('crlf-comment-id')))
@@ -559,7 +559,7 @@ async function checkLayoutCorpus(kind: Kind): Promise<{ rows: number; findings: 
 
 type GuardLeg = { status: number; error: string | null; written: boolean | 'other bytes'; valid: boolean }
 
-// 2026-10-19 (444.1-11, D-19, D-20, D-21): each body is valid under parseTestFile, so a refusal is the guard's and not validate()'s.
+// each body is valid under parseTestFile, so a refusal is the guard's and not validate()'s.
 async function guardLegs(name: string, body: (firstId: string) => string): Promise<{ POST: GuardLeg; PUT: GuardLeg }> {
   const ws = await workspace(name)
   const savedId = generateTestId()
@@ -1747,7 +1747,7 @@ describe('test and suite list reads and id writes', () => {
     })
   })
 
-  // 2026-10-19 (444.1-11, D-18): a Latin-1 byte is not valid UTF-8; a decode that replaced it would rewrite it as EF BF BD.
+  // a Latin-1 byte is not valid UTF-8; a decode that replaced it would rewrite it as EF BF BD.
   it('an id-less test or suite file that is not valid UTF-8 is listed with no id and left byte-identical', async () => {
     const ws = await workspace('not-utf8')
     const findings: string[] = []

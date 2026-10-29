@@ -246,7 +246,7 @@ describe('GET /api/config through the declared mask', () => {
     expect(lineHolding(lines, 'x-org-route:').text).toBe('        x-org-route: [secret:ROUTE_KEY]')
   })
 
-  // 432-22 (D-12): re-spelled. The two env-var-name leaves were the MCP and run-service token
+  // re-spelled. The two env-var-name leaves were the MCP and run-service token
   // variables, deleted with their lists; the surviving claim is that a non-secret leaf reads in clear
   // in both the payload and the file view, and no line is tagged as an env-var name any more.
   it('ENV-VAR-NAME-IN-CLEAR: a plain MCP leaf reads in clear in the payload and the file view, and no line is an env-var name', async () => {

@@ -209,7 +209,7 @@ interface MockResponse {
 
 // A mock request that omits `Host` models no real client: HTTP/1.1 requires the header and every
 // browser, `curl`, `fetch` and the conformance harness sends it. The display-seam read arms
-// (405 CR-01) now refuse a request whose claimed Host is not a loopback name, so the default below
+// now refuse a request whose claimed Host is not a loopback name, so the default below
 // is what keeps these direct-invoke probes speaking the wire's own shape. An explicit `host` in
 // `options.headers` still wins, which is how the refusal itself is exercised.
 const LOOPBACK_HOST_HEADER = { host: '127.0.0.1:3470' } as const
@@ -453,7 +453,7 @@ describe('API Routes', () => {
       expect(durableSources).not.toMatch(/\blive_timeline\b/)
       expect(durableSources).not.toMatch(/\bliveEvents\b/)
       expect(durableSources).not.toMatch(/\bliveTimeline\b/)
-      // 2026-08-27 (405-07, D-19): this line asserted the live feed's route was PRESENT — the 225
+      // this line asserted the live feed's route was PRESENT — the 225
       // guardrail's way of saying "live state lives on the wire, not in the schema". The route is
       // retired, so the assertion is inverted: the wire it names must be absent from this file too.
       // Split needle, so this cell is not itself the grep-clean inventory's hit.
@@ -702,7 +702,7 @@ describe('API Routes', () => {
       })
       router = createRouter(actualDb)
 
-      // 2026-10-14 (441-05, D-13): no auth-state redactor; a stored value is served as written.
+      // no auth-state redactor; a stored value is served as written.
       const [runRes, artifactRes, logsRes] = await Promise.all([
         invokeRoute(`/api/runs/${runId}`),
         invokeRoute(`/api/runs/${runId}/artifact`),
@@ -1085,7 +1085,7 @@ describe('API Routes', () => {
   })
 
   describe('GET /api/runs/:id', () => {
-    // 405-07 (D-03): the body is `{ run }` and nothing else. It used to carry `steps` off a v1
+    // the body is `{ run }` and nothing else. It used to carry `steps` off a v1
     // projection with no producer and `attempts`/`tests` off a child-run walk over a deleted
     // column — three keys that were structurally empty on every run this build produces. The run's
     // members, steps and sub-actions are `GET /api/runs/:id/detail`'s, through `runs.detail`.
@@ -1108,14 +1108,14 @@ describe('API Routes', () => {
     })
   })
 
-  // 2026-08-27 (405-07, D-14): the video-serving describe is deleted with the route. Two cells
+  // the video-serving describe is deleted with the route. Two cells
   // stood here — one served a file under a run-id directory, one refused a flat file through a
   // run-id URL. There is no path-addressed artifact route left and no video surface at all, because
   // no producer mints a recording ref; `routes.traversal.test.ts` holds the containment cells for
   // the ref-addressed route that replaced them.
 
   describe('DELETE /api/runs/:id', () => {
-    // 2026-08-27 (405-07, D-14 · T-405-27): ROWS ONLY, AND THE FILESYSTEM CLAIM IS INVERTED.
+    // ROWS ONLY, AND THE FILESYSTEM CLAIM IS INVERTED.
     //
     // The cell that stood here seeded a parent/child run tree with screenshot and video
     // directories and asserted the delete REMOVED them. The parent link is gone, the path columns
@@ -1182,7 +1182,7 @@ describe('API Routes', () => {
     })
   })
 
-  // 2026-08-27 (405-07, D-03): the step-list describe is deleted with the arm. `runs.detail` is
+  // the step-list describe is deleted with the arm. `runs.detail` is
   // the one read for a run's members, steps and sub-actions, and it is proven end-to-end in
   // `run-service/__tests__/run-detail-routes.test.ts`. The absence of this arm — and of the three
   // others the census retired — is pinned in `suite-parent-debris-census.test.ts`, which drives
@@ -1472,7 +1472,7 @@ describe('API Routes', () => {
       expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({
         name: 'Queued suite',
         filePath: 'suites/sample-basic.suite.yaml',
-        // 402-09 (D-11): no parent kind is minted; `metadata.isSuite` still carries the identity.
+        // no parent kind is minted; `metadata.isSuite` still carries the identity.
         kind: 'test',
         metadata: expect.objectContaining({
           args: [join(workspaceDir, 'suites', 'sample-basic.suite.yaml')],
@@ -1936,7 +1936,7 @@ describe('API Routes', () => {
       expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({
         name: 'Workspace suite',
         filePath: 'suites/slow.suite.yaml',
-        // 402-09 (D-11): no parent kind is minted; `metadata.isSuite` still carries the identity.
+        // no parent kind is minted; `metadata.isSuite` still carries the identity.
         kind: 'test',
         metadata: expect.objectContaining({
           args: [join(workspaceDir, 'suites', 'slow.suite.yaml')],
@@ -2007,7 +2007,7 @@ describe('API Routes', () => {
       expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({
         name: 'Parallel suite',
         filePath: 'suites/parallel.suite.yaml',
-        // 402-09 (D-11): no parent kind is minted; `metadata.isSuite` still carries the identity.
+        // no parent kind is minted; `metadata.isSuite` still carries the identity.
         kind: 'test',
         parallel: true,
         metadata: expect.objectContaining({ isSuite: true }),

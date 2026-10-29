@@ -9,7 +9,7 @@
 // if something pins what the consumers receive, so both wires were driven over this sequence and
 // compared against a golden captured from the old one before it was deleted.
 //
-// 2026-08-27 (405-07, D-19): that comparison is gone with the consumer surface it compared. The
+// that comparison is gone with the consumer surface it compared. The
 // golden anchored a per-run replay buffer and a second event emission, both deleted with the route
 // they fed; two lines that only ever existed on the retired stdout wire went with them. The
 // SEQUENCE survives because it is still the best-shaped run in the suite — see below — and the

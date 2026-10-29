@@ -49,7 +49,7 @@ function testConfig() {
 }
 
 /**
- * A whole `StepFinalizedPayload` (405-01). The v1 cells passed five fields because the
+ * A whole `StepFinalizedPayload`. The v1 cells passed five fields because the
  * subscriber's own `*Like` interface named five; the arm now takes the schema type, so a fixture
  * that omitted `cacheStatus` would be describing an envelope the bus cannot emit.
  */
@@ -138,7 +138,7 @@ describe('createDashboardRunIngest', () => {
     expect(artifact).not.toBeNull()
     expect(artifact?.finalizedAt).toBeTruthy()
     // route shape: config + source sections present. NO `memory` section: the v1 member of
-    // `DashboardRunIngestFinalizeExtra` is deleted (407-05 · D-02), so a finalize can no longer
+    // `DashboardRunIngestFinalizeExtra` is deleted, so a finalize can no longer
     // stage one even if a caller tried — the drawer tab that read it is gone with it.
     expect((artifact?.payload.source as Record<string, unknown>).name).toBe('Login Test')
     expect((artifact?.payload.config as Record<string, unknown>).model).toBeDefined()
@@ -146,7 +146,7 @@ describe('createDashboardRunIngest', () => {
     expect(artifact?.payload.metadata?.attributes).toEqual(attributes)
     expect((artifact?.payload.runtime as Record<string, unknown>).status).toBe('passed')
 
-    // 405-01: step progress lands in the v2 projection, read the way the op reads it.
+    // step progress lands in the v2 projection, read the way the op reads it.
     expect(db.readRunDetailRows(runId)?.steps).toHaveLength(1)
   })
 
@@ -163,7 +163,7 @@ describe('createDashboardRunIngest', () => {
     ingest.handler(ev('run-bus', 'testStarted', { testIndex: 0 }))
     ingest.handler(ev('run-bus', 'stepFinalized', stepFinalized({ status: 'healed', durationMs: 90 })))
     ingest.handler(ev('run-bus', 'testFinished', { testId: 't-1', testIndex: 0, outcome: 'healed', durationMs: 1000 }))
-    // 2026-10-17 (444-02, D-06): the row takes the run's verdict, never the member's outcome.
+    // the row takes the run's verdict, never the member's outcome.
     expect(db.getRun(runId)?.status).toBe('running')
     ingest.handler(ev('run-bus', 'verdict', { verdict: 'healed' }))
 
@@ -191,7 +191,7 @@ describe('createDashboardRunIngest', () => {
     expect(db.getRun(runId)?.name).toBe('Adopted Test')
   })
 
-  // 2026-08-24 (402-09, D-11): the two cells that stood here asserted the parent/child model —
+  // the two cells that stood here asserted the parent/child model —
   // "retry mode inserts a child under the parent with attempt + maxRetries" and "suite mode adopts
   // the queued parent and inserts children keyed by testIndex". Both producers are deleted; the
   // cells below assert the ONE-RUN model that replaced them, which is the same claim with the
@@ -223,14 +223,14 @@ describe('createDashboardRunIngest', () => {
 
     // ONE row for the whole suite — no children, and none orphaned somewhere else either.
     //
-    // 2026-08-27 (405-07, D-02): the child read this used to call is gone with the column it read.
+    // the child read this used to call is gone with the column it read.
     // `getRuns()` is now the WHOLE runs table rather than its top-level slice, which makes this the
     // stronger claim: a child row minted anywhere would show up here, not merely fail to be
     // returned by a reader that filtered for it.
     expect(db.getRuns().map((r) => r.id)).toEqual([suiteRunId])
     expect(db.getRun(suiteRunId)?.status).toBe('failed')
 
-    // 405-01 D-01: the per-member split 402-09 deleted, restored from 402-04's handles rather
+    // the per-member split 402-09 deleted, restored from 402-04's handles rather
     // than from a second run row. TWO member rows on ONE run row.
     const members = db.readRunDetailRows(suiteRunId)?.members ?? []
     expect(members.map((member) => [member.testIndex, member.name, member.outcome]))
@@ -252,7 +252,7 @@ describe('createDashboardRunIngest', () => {
     ingest.handler(ev('run-bus', 'stepFinalized', stepFinalized({ stepIndex: 0, durationMs: 100 })))
     ingest.handler(ev('run-bus', 'stepFinalized', stepFinalized({ stepIndex: 1, durationMs: 50 })))
 
-    // 405-01: a step with no `stepStarted` has NO `stepText` at all. The v1 arm substituted
+    // a step with no `stepStarted` has NO `stepText` at all. The v1 arm substituted
     // `Step 2` — a label nobody wrote, wearing an instruction's clothes.
     const steps = db.readRunDetailRows(runId)?.steps ?? []
     expect(steps.map((step) => step.stepText)).toEqual(['Open Apple Maps', undefined])
@@ -292,7 +292,7 @@ describe('createDashboardRunIngest', () => {
     expect(logs[0].name).toBe('seed-db')
     expect(logs[0].stdout).toBe('seeded 3 rows')
     expect(logs[0].variables).toEqual({ USER_ID: 'u-1' })
-    // 405-01 D-01: the hook's place in the run tree. NULL would mean run-scoped.
+    // the hook's place in the run tree. NULL would mean run-scoped.
     expect(logs[0].testIndex).toBe(0)
   })
 
@@ -310,7 +310,7 @@ describe('createDashboardRunIngest', () => {
     ingest.handler(ev('run-bus', 'stepStarted', { testIndex: 0, stepIndex: 0, stepText: 'Login' }))
     ingest.handler(ev('run-bus', 'stepFinalized', stepFinalized({ status: 'failed', durationMs: 80 })))
     ingest.handler(ev('run-bus', 'subActionRecorded', subActionRecorded()))
-    // A SECOND MEMBER, whose completed history must SURVIVE the first member's retry (D-17). The
+    // A SECOND MEMBER, whose completed history must SURVIVE the first member's retry. The
     // v1 arm called `deleteStepsForRun`, which deleted this row too.
     ingest.handler(ev('run-bus', 'testStarted', { testId: 't-2', testIndex: 1, name: 'Other' }))
     ingest.handler(ev('run-bus', 'stepStarted', { testIndex: 1, stepIndex: 0, stepText: 'Other step' }))
@@ -330,7 +330,7 @@ describe('createDashboardRunIngest', () => {
     expect((rows?.subActions ?? []).filter((one) => one.testIndex === 0)).toHaveLength(0)
     // The OTHER member's history is untouched — the whole point of scoping the delete.
     expect((rows?.steps ?? []).filter((step) => step.testIndex === 1)).toHaveLength(1)
-    // D-17: the attempt ordinal the member header renders.
+    // the attempt ordinal the member header renders.
     expect(rows?.members.find((member) => member.testIndex === 0)?.attempts).toBe(2)
     expect(rows?.members.find((member) => member.testIndex === 1)?.attempts).toBe(1)
   })
@@ -402,7 +402,7 @@ describe('createDashboardRunIngest', () => {
     expect(step?.status).toBe('failed')
     expect(step?.error).toBe('assertion failed')
     expect(step?.stepText).toBe('Save it')
-    // D-05: this fixture measured nothing, so the row carries NO tokenUsage — not zeros.
+    // this fixture measured nothing, so the row carries NO tokenUsage — not zeros.
     expect(step?.tokenUsage).toBeUndefined()
   })
 

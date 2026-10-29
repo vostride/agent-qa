@@ -13,7 +13,7 @@ import type { PlannerLimits } from '@vostride/agent-qa-schema'
 
 export type LiveSessionLLMConfig = DashboardLLMConfig & {
   vision?: { screenshotSize?: number; effectiveResolution?: number }
-  /** The model entry's own `vision` flag, when the config sets it (439 D-19). */
+  /** The model entry's own `vision` flag, when the config sets it. */
   modelVision?: boolean
 }
 
@@ -198,9 +198,9 @@ export interface SessionState {
 export interface LiveSessionConfig {
   platform: 'web' | 'android' | 'ios'
   targetName?: string
-  /** 436 D-03: resolved at the create door from the project config and the edited entity. */
+  /** resolved at the create door from the project config and the edited entity. */
   plannerLimits?: PlannerLimits
-  /** 436 D-03: per executed test, project then suite then the test's own `use`. */
+  /** per executed test, project then suite then the test's own `use`. */
   plannerLimitsForTest?: (testId: string) => Promise<PlannerLimits>
   llmConfig: LiveSessionLLMConfig
   authFetch?: typeof globalThis.fetch
@@ -242,7 +242,7 @@ export interface LiveSessionConfig {
 export const LIVE_EDITOR_UNKNOWN_SESSION_CLOSE_CODE = 4404
 
 /**
- * The close code for a control socket a newer one has replaced (428 WR-01). The session is still
+ * The close code for a control socket a newer one has replaced. The session is still
  * held; this socket no longer drives it, so the page must not reconnect and take it back. The
  * dashboard UI spells the same number.
  */

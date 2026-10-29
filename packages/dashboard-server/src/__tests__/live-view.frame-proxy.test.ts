@@ -86,7 +86,7 @@ function tokenFor(input: {
   })
 }
 
-/** An editor subject's token (428 D-07): the same signer and scope, the editor kind. */
+/** An editor subject's token: the same signer and scope, the editor kind. */
 function editorTokenFor(input: { sessionId: string; exp?: number }): string {
   const now = Date.now()
   return mintLiveUrlToken(signer, {
@@ -357,7 +357,7 @@ interface DirectProxyViewer {
 
 /**
  * The subjects behind the direct proxy: one planted run session answering every run lookup, or
- * run sessions by id beside an editor-subject registry (428 D-07). The editor cells use this
+ * run sessions by id beside an editor-subject registry. The editor cells use this
  * fixture because the server wiring that hands the proxy its editor lookup lands in Plan 11.
  */
 type DirectProxySubjects =
@@ -555,7 +555,7 @@ describe('the frame proxy through the production startServer frame', () => {
   it('(3) refuses an OVERSIZED first message as malformed, measured in BYTES', async () => {
     // The cap is a BYTE cap. A JS string's `.length` counts UTF-16 code units, so a hello padded
     // with multi-byte characters is under the character cap and over the byte cap — which is the
-    // direction that matters, because the byte count is what the socket actually buffers (T-403-11).
+    // direction that matters, because the byte count is what the socket actually buffers.
     const planted = plantSession({ runId: 'r1' })
     const frame = await productionFrame({ r1: planted.session })
 
@@ -1190,7 +1190,7 @@ describe('the frame proxy through the production startServer frame', () => {
     expect(LIVE_EMBED_NO_STREAM_MESSAGE).not.toMatch(/\b(?:below|beneath|above|left|right)\b/u)
   })
 
-  // 428 D-10: the one deliberate change to the served page. Each cell reads the SERVED bytes, as
+  // the one deliberate change to the served page. Each cell reads the SERVED bytes, as
   // (20) and (25) do, so the constant and the document cannot drift apart.
   async function servedEmbed(): Promise<{ style: string; script: string }> {
     const planted = plantSession({ runId: 'r1' })

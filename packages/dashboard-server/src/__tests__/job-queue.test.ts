@@ -147,11 +147,11 @@ describe('JobQueue', () => {
     // The stop request a cancel sends to a running run is checked in
     // routes.run-cancel-request.test.ts.
 
-    // 2026-08-24 (402-09, D-11): the cell that stood here asserted the child-cancellation fan-out.
+    // the cell that stood here asserted the child-cancellation fan-out.
     // The fan-out is deleted with the model that minted its children; this is the same claim with
     // the opposite sign.
     //
-    // 2026-08-27 (405-07, D-02): and it no longer seeds LINKED rows, because the link is gone. The
+    // and it no longer seeds LINKED rows, because the link is gone. The
     // 402-09 version wrote two rows carrying the cancelled run's id in a parent column, to prove
     // the cancel reached neither. That column and its reader were deleted by this plan's census —
     // an operator's historical database is refused by version now, not carried — so the claim is
@@ -407,13 +407,13 @@ describe('JobQueue', () => {
   })
 })
 
-// ---- G-401-18-CR01 (401-23, T-401-G24): the belt at the one writer both doors go through -------
+// ---- G-401-18-CR01: the belt at the one writer both doors go through -------
 //
 // The PRIMARY control is the `/api/queue/enqueue` allowlist, which does not admit `confirmScope` as
 // a client-writable key at all. Until 432-14 the queue also refused a confirm scope this server did
 // not mint, because a scope named which browser a run's question was delivered to.
 //
-// RE-SPELLED 2026-10-01 (432-14, D-14): the question, the dialog and every reader of the scope are
+// RE-SPELLED 2026-10-01: the question, the dialog and every reader of the scope are
 // deleted, so the queue attaches no meaning to the key. The belt's surviving claims are carried
 // where the value could still leave or be planted: the enqueue route refuses every client-supplied
 // metadata key (`routes.test.ts`), and every run-reading response strips it off a row written

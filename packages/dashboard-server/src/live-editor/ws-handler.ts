@@ -57,9 +57,9 @@ export function createSessionHandler(
     }
 
     session.clearIdleTimer()
-    // 428 WR-01: a newer socket replaces this one. It is closed by name, its log poll stops, and
+    // a newer socket replaces this one. It is closed by name, its log poll stops, and
     // any command it still sends is ignored, so one page drives the session at a time.
-    // 428 WR-02: a session ended elsewhere (DELETE, idle expiry) closes this socket as gone, so the
+    // a session ended elsewhere (DELETE, idle expiry) closes this socket as gone, so the
     // page leaves "connected". A terminate-session from this socket closes it itself.
     const generation = session.beginAttachment((reason) => {
       if (detached || cleanedUp) return
@@ -82,7 +82,7 @@ export function createSessionHandler(
     })
     send(ws, { type: 'session-state', state })
 
-    // 428 CR-01: a command outlives the socket that issued it. While this socket is the attached
+    // a command outlives the socket that issued it. While this socket is the attached
     // one its replies go straight to it; once it has dropped or been superseded they go through the
     // session to the socket attached now, or wait for the next one.
     function reply(message: ServerMessage): void {
@@ -405,7 +405,7 @@ export function createSessionHandler(
       }
     })
 
-    // 428 D-09: an unexpected drop DETACHES the session for the idle window so the page can
+    // an unexpected drop DETACHES the session for the idle window so the page can
     // reconnect to the same browser, draft, page, hook state and lease. Explicit ends go through
     // terminate-session or DELETE and stay immediate. A superseded socket's late close is inert
     // (RESEARCH P4), and an in-flight step is cancelled so the reconnected page and the server

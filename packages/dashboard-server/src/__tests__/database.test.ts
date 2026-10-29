@@ -98,11 +98,11 @@ describe('DashboardDatabase', () => {
       expect(names).toContain('execution_logs')
       expect(names).toContain('token_events')
       expect(names).toContain('run_artifacts')
-      // 405-01 D-01: the v2 bus-shaped projection.
+      // the v2 bus-shaped projection.
       expect(names).toContain('run_members')
       expect(names).toContain('run_steps')
       expect(names).toContain('run_sub_actions')
-      // 405-07 D-02: the three v1 projection tables the census deleted. Each needle is built from
+      // the three v1 projection tables the census deleted. Each needle is built from
       // two halves so this assertion cannot be the hit that satisfies the D-21 grep-clean
       // inventory — a pin that matches ITSELF is a pin that proves nothing.
       expect(names).not.toContain('ste' + 'ps')
@@ -115,7 +115,7 @@ describe('DashboardDatabase', () => {
       expect(version).toBe(SCHEMA_VERSION)
     })
 
-    // 2026-08-27 (405-07, D-02): the v2 runs shape after the census. Five columns left with their
+    // the v2 runs shape after the census. Five columns left with their
     // readers — the recording path (no producer at all, D-14) and the four parent/attempt/retry
     // columns (nothing has written a child run row since 402-09 put one row per run).
     it('creates the current final runs columns directly at v2', () => {
@@ -172,7 +172,7 @@ describe('DashboardDatabase', () => {
         'variables',
         'created_at',
         'hook_id',
-        // 405-01 D-01: where in the run tree the hook ran; NULL means run-scoped.
+        // where in the run tree the hook ran; NULL means run-scoped.
         'test_index',
         'step_index',
       ])
@@ -242,7 +242,7 @@ describe('DashboardDatabase', () => {
   })
 
   describe('generic migration infrastructure', () => {
-    // 2026-08-27 (405-01, D-02): the two cells that stood here asserted a WALKABLE CHAIN —
+    // the two cells that stood here asserted a WALKABLE CHAIN —
     // "applies future migrations after the current user_version" and "skips migrations at or
     // below it". Both described a shape this build no longer has and, worse, the second one
     // described the exact behaviour RESEARCH Pitfall 4 names as a silent corruption: a database
@@ -441,7 +441,7 @@ describe('DashboardDatabase', () => {
       expect(finalizedAgain.payload.runtime).toMatchObject({ status: 'passed', duration: 25 })
     })
 
-    // 2026-08-27 (405-07, D-02): the bundle is ONE run's artifact. The cell that stood here seeded
+    // the bundle is ONE run's artifact. The cell that stood here seeded
     // a suite parent with a child run row and asserted the bundle carried the child's artifact
     // beside its own. Nothing has written a child run row since 402-09, so the walk it exercised
     // was already structurally empty on every real database — and `children` is gone with it.
@@ -589,7 +589,7 @@ describe('DashboardDatabase', () => {
       expect(stats.avgDuration).toBe(4000)
     })
 
-    // 2026-08-27 (405-07, D-02): the flake rate reads `run_steps.self_heal_occurred` now — the bus
+    // the flake rate reads `run_steps.self_heal_occurred` now — the bus
     // payload's own boolean, projected verbatim — rather than a status word on a v1 projection with
     // no producer left. Same arithmetic, a fact the runner actually reported.
     it('calculates flake rate from steps a self-heal occurred on', () => {
@@ -1028,7 +1028,7 @@ describe('DashboardDatabase', () => {
   })
 
   describe('flaky detection', () => {
-    // 2026-08-27 (405-07, D-02): four cells stood here over the parent/child run tree — an
+    // four cells stood here over the parent/child run tree — an
     // ordered child read, two "excludes child runs" filters and a retry-info writer. Nothing has
     // written a child run row since 402-09, so all four exercised a shape no producer could
     // create; the columns, the reader, the writer and the index went together. What replaces them

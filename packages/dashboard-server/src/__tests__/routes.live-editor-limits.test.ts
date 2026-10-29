@@ -61,7 +61,7 @@ function invoke(router: ReturnType<typeof createRouter>, body: Record<string, un
         resolve({ status, body: text })
       },
     } as unknown as ServerResponse
-    // 428 D-08: the live-editor doors run the same-site guard, which refuses an absent Host.
+    // the live-editor doors run the same-site guard, which refuses an absent Host.
     const req = createMockRequest(
       '/api/live-editor/sessions',
       { 'content-type': 'application/json', host: '127.0.0.1:3470' },
@@ -170,7 +170,7 @@ async function workspaceWith(
   return { router, createSession }
 }
 
-// 436-19 (D-03, WR-11): the create door refuses the limits the CLI refuses, before any session.
+// the create door refuses the limits the CLI refuses, before any session.
 describe('live door', () => {
   it('a saved test file with an invalid limit is refused with 400 and no session', async () => {
     const { router, createSession } = await workspaceWith('    maxActions: 0')

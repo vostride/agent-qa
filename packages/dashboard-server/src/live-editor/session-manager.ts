@@ -34,7 +34,7 @@ export class SessionManager {
     const session = new LiveSession(sessionId, this.deps)
     await session.initialize(config)
     this.sessions.set(sessionId, session)
-    // 428 D-07: the session is an editor subject for exactly its lifetime.
+    // the session is an editor subject for exactly its lifetime.
     this.deps.liveEditorSubjects?.register(sessionId, session.liveAttachment())
     // RESEARCH P1: the idle window runs until the first control socket attaches (the upgrade
     // clears it), so a session nobody ever opens cannot hold a browser or a lease forever.

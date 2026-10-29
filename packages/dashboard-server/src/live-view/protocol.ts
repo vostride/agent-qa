@@ -17,7 +17,7 @@ import type {
   LiveUrlRefusalReason,
 } from '@vostride/agent-qa-schema'
 
-/** The frame socket. A query carries the run id ONLY — never the token (D-04). */
+/** The frame socket. A query carries the run id ONLY — never the token. */
 export const LIVE_VIEW_WS_PATH = '/api/live-view/ws'
 
 /** The served embed page's prefix. Bare, so a host's `/api/` allowlist is not involved. */
@@ -40,7 +40,7 @@ export const LIVE_VIEW_REFUSAL_CLOSE_CODE = 4400
  *
  * The four token verdicts plus the three this layer alone can answer: a run this process never
  * started, a handle that run does not have, and an editor session this process does not hold
- * (428 D-07). Extending the token's list rather than restating it is what stops the two
+ * Extending the token's list rather than restating it is what stops the two
  * vocabularies from drifting.
  */
 export type LiveViewRefusalReason =
@@ -57,7 +57,7 @@ export const LIVE_VIEW_REFUSAL_REASONS = [
 ] as const satisfies readonly LiveViewRefusalReason[]
 
 /**
- * Every reason an `ended` message can carry, each naming a different fact (403 CR-03, 428 D-07/D-09).
+ * Every reason an `ended` message can carry, each naming a different fact.
  * `runFinished`: the run is over. `handleFinished`: this member's stream is over while its run
  * continues. `sessionEnded`: an editor session is over.
  */
@@ -85,12 +85,12 @@ export type LiveViewClientMessage =
 export type LiveViewServerMessage =
   | { type: 'ready'; runId: string; handle: number; stream: LiveStreamDeclaration; expiresAt: number }
   | { type: 'refused'; reason: LiveViewRefusalReason }
-  // 428 D-15: `ts` is the frame's capture time in epoch ms and `kind` the producing capability's
+  // `ts` is the frame's capture time in epoch ms and `kind` the producing capability's
   // kind. Both are ADDITIVE and optional: a frame that carries neither sends the pre-428 header.
   | { type: 'frame'; id: number; width: number; height: number; ts?: number; kind?: LiveStreamKind }
   | { type: 'renewed'; expiresAt: number }
-  // EVERY END BY ITS OWN NAME (403 CR-03). `handleFinished` says THIS member's stream is over
+  // EVERY END BY ITS OWN NAME. `handleFinished` says THIS member's stream is over
   // while the run continues; `runFinished` says the run is over; `sessionEnded` says an editor
-  // session is over (428 D-07/D-09). Each is additive to the published contract: a consumer that
+  // session is over. Each is additive to the published contract: a consumer that
   // knows only the older names still reads every message it used to.
   | { type: 'ended'; reason: LiveViewEndReason }

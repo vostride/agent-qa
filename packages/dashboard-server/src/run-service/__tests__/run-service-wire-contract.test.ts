@@ -1,4 +1,4 @@
-// THE SERVICE DOOR'S WIRE CONTRACT, BYTE FOR BYTE (Phase 402 plan 06, D-13 · INVK-03).
+// THE SERVICE DOOR'S WIRE CONTRACT, BYTE FOR BYTE.
 //
 // THE FRAME, STATED: the SHIPPED `startServer` with the 402-01 `runService` mount, driven over
 // TCP. Not `createServer(createRunServiceRoutes(...))` — 402-03 measured what that costs (a
@@ -76,7 +76,7 @@ function sessionOverFeed(): RunSession {
       for (const envelope of FEED) handler(envelope)
       return () => undefined
     },
-    // 403 D-05: a planted session with no browser declares no stream and hands out no frame
+    // a planted session with no browser declares no stream and hands out no frame
     // subscription — the honest absent declaration, not a stub a viewer would wait on forever.
     subscribeFrames() { return undefined },
     streamCapabilityOf() { return { kind: 'none' } },
@@ -96,7 +96,7 @@ const ACK: RunStartAcknowledgement = {
 
 function servicePorts(session: RunSession): RunServicePorts {
   return {
-    // 2026-10-01 (432-21, D-12): no `verifyBearer` — the door is tokenless.
+    // no `verifyBearer` — the door is tokenless.
     invokeRunStart: async () => ACK,
     attach: (runId) => runId === RUN_ID ? session : undefined,
     readiness: () => ({
@@ -243,7 +243,7 @@ describe('SSE framing is the frozen envelope, verbatim', () => {
   })
 })
 
-// 2026-10-01 (432-21, D-12/D-13): the door's first rung is the same-site guard, not the bearer
+// the door's first rung is the same-site guard, not the bearer
 // verdict. The two refusal cells below are re-spelled from 'a wrong token …' and 'a missing token
 // likewise …'; the claim they carry — refused as JSON before any stream header and before the run
 // is looked up — is unchanged.
@@ -355,7 +355,7 @@ describe('no cross-origin grant on any service route, success or refusal', () =>
     const port = await mountShippedHost(sessionOverFeed())
     const origin = `http://127.0.0.1:${String(port)}`
 
-    // 432-21: a SIMPLE cross-site POST (no custom header, text/plain body) — the shape a page can
+    // a SIMPLE cross-site POST (no custom header, text/plain body) — the shape a page can
     // send without a preflight now that no `Authorization` header is required.
     const refused = await fetch(`${origin}/run`, {
       method: 'POST', body: '{}', headers: { Origin: 'https://evil.example', 'Content-Type': 'text/plain' },

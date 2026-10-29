@@ -222,7 +222,7 @@ describe('a cancel on a run another process owns', () => {
       message: 'Run cancelled before execution',
     })
 
-    // 2026-10-17 (444-06, D-11): a running own row is asked to stop; its verdict is the run's.
+    // a running own row is asked to stop; its verdict is the run's.
     const ownByQueue = seedRunning(SELF, 'Own run, queue')
     expect(queue.cancel(ownByQueue)).toEqual({ kind: 'stop-requested' })
     expect(reader.getRun(ownByQueue)?.status).toBe('running')

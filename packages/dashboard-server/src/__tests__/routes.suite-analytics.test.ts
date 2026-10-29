@@ -28,7 +28,7 @@ let suiteFileManager: SuiteFileManager
 let testFileManager: TestFileManager
 let workspacePaths: ResolvedWorkspacePaths
 
-// 2026-10-17 (444-05, D-41): a suite's history reads member suite ids, so each suite run seeds its member.
+// a suite's history reads member suite ids, so each suite run seeds its member.
 function insertSuiteRun(overrides: Record<string, unknown> = {}) {
   const run = {
     name: 'Alpha Suite',
@@ -69,7 +69,7 @@ function seedSuiteAnalyticsRuns() {
     endedAt: '2026-03-03T10:00:03Z',
   })
 
-  // 2026-08-27 (405-07, D-02): the child row this fixture seeded is gone with the parent link it
+  // the child row this fixture seeded is gone with the parent link it
   // carried. It existed to prove the suite readers filtered it out; nothing has written such a row
   // since 402-09, so the filter it exercised had no input on any real database. The standalone-test
   // and other-suite rows below still make the real claim: these readers answer for ONE suite id.

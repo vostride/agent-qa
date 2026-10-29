@@ -15,7 +15,7 @@
 // same process — and handed in. The process is the one D-01 names, and this package still names no
 // agent package. That standing decision survives 430: the conversation door it was first built for
 // is gone, and the same host now serves run detail, analysis, knowledge, marks and post-processing.
-// 2026-10-01 (432-14, D-14): the run-confirm pair it also served is deleted, and with it the two
+// the run-confirm pair it also served is deleted, and with it the two
 // members only that pair read.
 //
 // WHAT CROSSES THIS SEAM, AND WHY IT IS SHAPED THIS WAY. Everything below is a function or a value
@@ -63,7 +63,7 @@ export interface AgentHost {
    */
   readonly caller: FunctionCaller
   /**
-   * The agent package's `runs.postprocessing` id (404 D-16/D-18).
+   * The agent package's `runs.postprocessing` id.
    *
    * SUPPLIED BY THE COMPOSITION, NEVER SPELLED HERE. The post-processing read route dispatches
    * chip truth through this door, and the op id is the agent package's constant: a string literal
@@ -73,7 +73,7 @@ export interface AgentHost {
    */
   readonly runsPostProcessingFunctionId: string
   /**
-   * The agent package's `runs.events` id, on the line above's footing (404 D-22).
+   * The agent package's `runs.events` id, on the line above's footing.
    *
    * A SECOND ID BECAUSE THE READ ROUTE JOINS TWO FACTS from two different records: the chain's
    * chips live in the durable job store, and the run's POSTURE — who was going to drain it — lives
@@ -99,7 +99,7 @@ export interface AgentHost {
   /** The evidence op identity supplied by the same composition as the detail reader. */
   readonly runsEvidenceFunctionId: string
   /**
-   * The agent package's `runs.artifact` id, on `runsDetailFunctionId`'s exact footing (405 D-13).
+   * The agent package's `runs.artifact` id, on `runsDetailFunctionId`'s exact footing.
    *
    * SUPPLIED BY THE COMPOSITION, NEVER SPELLED HERE, for the reason its four neighbours are — and
    * for one more that is specific to this route: the artifact arm serves BYTES, and the alternative
@@ -111,7 +111,7 @@ export interface AgentHost {
    */
   readonly runsArtifactFunctionId: string
   /**
-   * The agent package's `analysis.get` id, on `runsArtifactFunctionId`'s exact footing (406 D-04).
+   * The agent package's `analysis.get` id, on `runsArtifactFunctionId`'s exact footing.
    *
    * SUPPLIED BY THE COMPOSITION, NEVER SPELLED HERE, for the reason its five neighbours are: the
    * op id is the agent package's constant, a string literal in this package would be a second
@@ -121,13 +121,12 @@ export interface AgentHost {
    *
    * WHAT IT SERVES is the failure view: the resolved verdicts and rendered sentences a person
    * reads inside each failed member's group, on BOTH doors through one adapter. `analysis.get` is
-   * the single producer of those sentences (389 D-11), so routing the page's read through this id
+   * the single producer of those sentences, so routing the page's read through this id
    * is what keeps the browser, the CLI, chat and 408's embed reading one answer.
    */
   readonly analysisGetFunctionId: string
   /**
    * The agent package's `runs.knowledge` id, on `analysisGetFunctionId`'s exact footing
-   * (2026-08-29, 407-01 D-05).
    *
    * THE SIXTH ID THE RUN-SERVICE ROUTES DISPATCH, supplied by the composition and never spelled
    * here, for the reason its five neighbours are: the op id is the agent package's constant, a
@@ -139,21 +138,21 @@ export interface AgentHost {
    * WHAT IT SERVES is the Knowledge panel: what a run USED (the brief channels served per step,
    * the serve-time trace behind each, procedure replay and hint use, the recorded retrieval rung)
    * and what it LEARNED (curation counts, the record changes attributable to it, canary outcomes).
-   * `runs.knowledge` is the single producer of that whole view (407 D-05), so routing the page's
+   * `runs.knowledge` is the single producer of that whole view, so routing the page's
    * read through this id is what keeps the browser, the CLI, MCP and chat reading one answer
    * instead of a page composing it from N per-step calls that can disagree.
    */
   readonly runsKnowledgeFunctionId: string
-  /** 2026-09-08, 419 D-13: the eighth op id arrives as data, on the knowledge id's footing. */
+  /** the eighth op id arrives as data, on the knowledge id's footing. */
   readonly runsMarkFunctionId: string
-  /** 2026-09-15, 423-21 D-18: the marks-history read id, supplied as data like its neighbours. */
+  /** the marks-history read id, supplied as data like its neighbours. */
   readonly runsMarksHistoryFunctionId: string
-  /** 2026-09-15, 423-21 D-18: the read-tier mark consequence preview id. */
+  /** the read-tier mark consequence preview id. */
   readonly runsMarkPreviewFunctionId: string
   /**
    * `invokeFunction`, bound by the composer. THE one door call.
    *
-   * `input` IS `unknown` (404-05). Every op this seam carries has its own strict input schema.
+   * `input` IS `unknown`. Every op this seam carries has its own strict input schema.
    * Narrowing here would mean this package describing other packages' input contracts — and the
    * real `invokeFunction` has always taken `unknown`, because the op's own schema is what validates
    * it, once, inside the invocation.

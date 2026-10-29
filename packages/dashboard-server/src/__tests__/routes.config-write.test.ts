@@ -272,7 +272,7 @@ describe('PATCH /api/config', () => {
     })
   })
 
-  // 429-37 CR-01: the answer names the bytes the write merged onto, so a page can tell its write
+  // the answer names the bytes the write merged onto, so a page can tell its write
   // absorbed an outside edit it never read.
   it('BASE-REVISION-ANSWERED: the answer carries the sha256 of the bytes the write merged onto', async () => {
     const configPath = await useConfigWorkspace()
@@ -331,7 +331,7 @@ describe('PATCH /api/config concurrency, idempotency and file identity', () => {
     expect(Buffer.compare(await readFile(configPath), afterFirst)).toBe(0)
     const [one, two] = [first, second].map((response) => JSON.parse(response.body) as { revision: string; baseRevision: string })
     expect(two!.revision).toBe(one!.revision)
-    // 429-37: the second write merged onto exactly what the first one wrote.
+    // the second write merged onto exactly what the first one wrote.
     expect(two!.baseRevision).toBe(one!.revision)
   })
 
@@ -365,7 +365,7 @@ describe('PATCH /api/config concurrency, idempotency and file identity', () => {
   })
 })
 
-// 429-42 CR-01: completion and snapshot-computed writes are decided by the file at merge time.
+// completion and snapshot-computed writes are decided by the file at merge time.
 function withoutLines(text: string, lines: readonly string[]): string {
   return text.split('\n').filter((line) => !lines.includes(line)).join('\n')
 }
@@ -493,7 +493,7 @@ describe('PATCH /api/config set-if-absent and expect', () => {
     expect(mockRename).not.toHaveBeenCalled()
   })
 
-  // 441-21 (D-29): no path is classed secret, so an expect on a header is compared like any field.
+  // no path is classed secret, so an expect on a header is compared like any field.
   it('EXPECT-ON-HEADER-COMPARED: an expect on a header value refuses a wrong guess 409 like any field', async () => {
     const configPath = await useConfigWorkspace(matchConfig(['a/*.yaml', 'b/*.yaml']))
     const before = await readFile(configPath)
@@ -506,7 +506,7 @@ describe('PATCH /api/config set-if-absent and expect', () => {
   })
 })
 
-// 429-44 WR-01: the page's write door changes only what the page renders a field for.
+// the page's write door changes only what the page renders a field for.
 const policyConfig = baseConfig.replace('registry: {}', [
   'registry:',
   '  llms:',
@@ -522,7 +522,7 @@ const policyConfig = baseConfig.replace('registry: {}', [
 ].join('\n')
 
 describe('PATCH /api/config path policy', () => {
-  // 432-22 (D-18/D-22): `safety` left the schema and the denied roots; its paths are still refused,
+  // `safety` left the schema and the denied roots; its paths are still refused,
   // now as paths the published schema does not describe.
   it('WRITE-DOOR-REFUSES-DENIED-ROOTS: plugins and the retired safety root are refused 422 before anything is read or written', async () => {
     const configPath = await useConfigWorkspace(policyConfig)
@@ -811,9 +811,9 @@ describe('one write path to the config file', () => {
     expect((await patchConfig(setStep('45s'))).status).toBe(200)
   })
 
-  // 2026-09-30, 432-07 D-05: replaceDocument, the direct writer's whole-file publication over the
+  // replaceDocument, the direct writer's whole-file publication over the
   // digest it was built from, is a file method. It stays inside the class like the others. 441-49
-  // (D-29) deleted the reveal read, leaving five.
+  // deleted the reveal read, leaving five.
   it('ONE-WRITE-PATH: the manager exposes only its five file methods, and nothing outside the class touches the file', async () => {
     const source = await readFile(CONFIG_MANAGER_SOURCE, 'utf-8')
     const body = classBody(source)

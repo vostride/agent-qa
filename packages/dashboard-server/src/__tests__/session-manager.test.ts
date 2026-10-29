@@ -22,7 +22,7 @@ vi.mock('../live-editor/live-session.js', () => ({
       initialize: mockInitialize,
       cleanup: mockCleanup,
       getState: () => ({ ...mockGetState(), sessionId }),
-      // 428-10: the manager arms the idle window and registers the subject on create.
+      // the manager arms the idle window and registers the subject on create.
       startIdleTimer: vi.fn(),
       clearIdleTimer: vi.fn(),
       liveAttachment: vi.fn(),

@@ -54,15 +54,15 @@ import {
   resumePointOf,
   serveRunEventStream,
 } from '../run-service/run-service-routes.js'
-// 404-05 (D-16/D-18): the post-processing pair — the read a page polls and the dedicated live
+// the post-processing pair — the read a page polls and the dedicated live
 // channel. Two arms below, both above the `/api/runs/:id` catch-all, both formatting nothing.
 import {
   servePostProcessingRead,
   servePostProcessingStream,
 } from '../run-service/post-processing-routes.js'
-// 405-05 (D-12/D-13): the ref-resolving artifact read, on the arm below's own footing — the bytes
+// the ref-resolving artifact read, on the arm below's own footing — the bytes
 // cross the function layer and this file constructs no evidence store.
-// 405-01 (D-03): the durable run-detail read. One arm below, above the `/api/runs/:id` catch-all,
+// the durable run-detail read. One arm below, above the `/api/runs/:id` catch-all,
 // formatting nothing and opening no database.
 import {
   serveRunArtifact,
@@ -71,10 +71,10 @@ import {
   serveRunMarkPreviewRead,
   serveRunMarksHistoryRead,
 } from '../run-service/run-detail-routes.js'
-// 406-01 (D-04): the failure view's read. One arm below, beside the detail arm and above the
+// the failure view's read. One arm below, beside the detail arm and above the
 // `/api/runs/:id` catch-all, formatting nothing and opening no database.
 import { serveRunAnalysisRead } from '../run-service/run-analysis-routes.js'
-// 407-01 (D-05): the Knowledge panel's read — what a run used and learned. One arm below, beside
+// the Knowledge panel's read — what a run used and learned. One arm below, beside
 // the analysis arm and above the `/api/runs/:id` catch-all, formatting nothing and opening no
 // database.
 import { readRunKnowledge, serveRunKnowledgeRead } from '../run-service/run-knowledge-routes.js'
@@ -110,7 +110,7 @@ const REMOTE_LLM_CONNECTION_TEST_TIMEOUT_MS = 10_000
 const LOCAL_COMPATIBLE_LLM_CONNECTION_TEST_TIMEOUT_MS = 120_000
 const LOCAL_COMPATIBLE_LLM_PROVIDERS = new Set(['openai-compatible', 'anthropic-compatible'])
 const PLUGIN_OAUTH_SESSION_TTL_MS = 10 * 60 * 1000
-// 2026-08-17 (Phase 398 plan 11, D-18/D-20): the three v33 dashboard product events, the
+// the three v33 dashboard product events, the
 // `POST /api/analytics/events` ingest route that took them and the core-analytics bridge it
 // captured through are all GONE. `routes.analytics-events.test.ts` holds the drop: the path 404s
 // and this file is pinned against the capture vocabulary returning. The dashboard's own run-history
@@ -148,7 +148,7 @@ type CredentialNameCheck =
   | { ok: true; name: string }
   | { ok: false; status: number; error: string; message?: string }
 
-// 429-09 D-15/D-16: auth.json is machine-wide and keyed by name, so every name passes core's
+// auth.json is machine-wide and keyed by name, so every name passes core's
 // name rule before the store is read or written.
 function checkCredentialName(configName: unknown): CredentialNameCheck {
   const name = typeof configName === 'string' ? configName.trim() : ''
@@ -183,7 +183,7 @@ function trimmedString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-// 429-43: a saved model's header values are read from the file on the server, and only for the
+// a saved model's header values are read from the file on the server, and only for the
 // endpoint the saved model names; a read failure means no saved headers.
 async function savedHeadersFor(
   configManager: ConfigManager | undefined,
@@ -346,7 +346,7 @@ async function credentialConflictAt(name: string, provider: string): Promise<boo
 
 export type CredentialLock = <T>(work: () => Promise<T>) => Promise<T>
 
-// 429-09: one queue per router for every auth.json write and removal, so a save, a move, a delete
+// one queue per router for every auth.json write and removal, so a save, a move, a delete
 // and a sign-in completion never interleave their read-modify-write of the machine-wide store.
 export function createCredentialLock(): CredentialLock {
   let tail: Promise<unknown> = Promise.resolve()
@@ -645,7 +645,6 @@ async function isPostProcessingSkipped(host: AgentHost, runId: string): Promise<
 
 /**
  * Tally the window's knowledge changes by kind, one `runs.knowledge` read per settled run
- * (433-30, 433-42).
  *
  * A run is read only when its curation finished (`complete`), or when its curation reads `pending`
  * because the run's post-processing was skipped by design, so there was nothing to curate.
@@ -759,7 +758,7 @@ function buildAuthStateSaveErrorMessage(
   }
 }
 
-// 2026-08-27 (405-07, D-14): a containment predicate and a plain-filename predicate stood here.
+// a containment predicate and a plain-filename predicate stood here.
 // Both existed for the deleted path-serving routes and the deleted run-deletion sweep, which were
 // their only callers. The containment rule for artifact bytes is the evidence store's own now,
 // reached through the `runs.artifact` op — one rule, in the place that owns the layout.
@@ -872,7 +871,7 @@ function calculateFlakyMetrics(classes: ReadonlyArray<RunStatusClass | 'skipped'
   }
 }
 
-// 2026-10-18 (444-31, D-64): a list row's rate is its viewer's own fold; passed and decided are
+// a list row's rate is its viewer's own fold; passed and decided are
 // that fold's pass and pass-or-fail counts.
 function passRateOf(trends: {
   passRate: number | null
@@ -1175,7 +1174,7 @@ function enrichRunRow(
   }
 }
 
-// 2026-10-18 (444-31, D-64): a suite row's target and platform come from its own history, newest
+// a suite row's target and platform come from its own history, newest
 // first: the newest run with a target names both, else its last run does.
 function suiteTargetOf(
   runs: readonly RunRow[],
@@ -1250,7 +1249,7 @@ function sanitizeSecretsFileMetadata(value: unknown): unknown {
 function sanitizeArtifactPayloadForResponse(payload: RunArtifactRow['payload']): RunArtifactRow['payload'] {
   const sanitized = sanitizeSecretTemplates(payload)
   if (!isRecord(sanitized)) return payload
-  // G-401-18-CR01: the SEVENTH door. `JobQueue.enqueue` writes the caller's `metadata` object into
+  // the SEVENTH door. `JobQueue.enqueue` writes the caller's `metadata` object into
   // `run_artifacts.payload.metadata` as well as `runs.metadata`, and this response is what serves
   // it. The strip is the SAME allowlist the run rows go through — see `sanitizeRunMetadataForResponse`.
   const withSafeMetadata = sanitizeArtifactPayloadMetadata(sanitized)
@@ -1343,7 +1342,7 @@ async function normalizeDashboardSuitePath(
 }
 
 /**
- * The `metadata` keys a CLIENT may write through `POST /api/queue/enqueue` (401-23, G-401-18-CR01).
+ * The `metadata` keys a CLIENT may write through `POST /api/queue/enqueue`.
  *
  * IT IS EMPTY, AND THE EMPTINESS IS THE DERIVATION'S ANSWER, not a placeholder. Every key that ever
  * appears in a run's `metadata` is written by this server: `args`/`isSuite` by the enqueue routes,
@@ -1371,7 +1370,7 @@ export const CLIENT_WRITABLE_QUEUED_RUN_METADATA_KEYS: ReadonlySet<string> = new
 /**
  * The `metadata` keys this SERVER writes onto a run row — never a client.
  *
- * `confirmScope` stays on the list after 432-14 (D-14, D-22): nothing writes it now, but a row this
+ * `confirmScope` stays on the list after 432-14: nothing writes it now, but a row this
  * server wrote before then can still hold it, and it is still the server's key rather than one a
  * client may claim.
  */
@@ -1424,7 +1423,7 @@ function sanitizeQueuedRunMetadata(metadata: unknown): QueuedRunMetadataResult {
 export const MAX_QUEUED_EXECUTION_TIMEOUT_MS = 24 * 60 * 60 * 1000
 
 /**
- * Validate a persisted row's `metadata.timeout` at the seam that consumes it (401-23, T-401-G26).
+ * Validate a persisted row's `metadata.timeout` at the seam that consumes it.
  *
  * FALLS BACK, NEVER CLAMPS. An unusable value means "this row says nothing about the timeout", and
  * the honest answer to that is the backend's own default — not a number this function invented.
@@ -1435,7 +1434,7 @@ export function sanitizeQueuedExecutionTimeout(value: unknown): number | undefin
   return value
 }
 
-// ---- CR-02 (401-18): the confirm scope stops leaving on the READ path ---------------------------
+// ---- CR-02: the confirm scope stops leaving on the READ path ---------------------------
 
 /**
  * The `runs.metadata` keys a RESPONSE may carry.
@@ -1453,7 +1452,7 @@ export function sanitizeQueuedExecutionTimeout(value: unknown): number | undefin
  *   - `timeout`, `timeoutSource`, `timeoutBaseMs`, `timeoutBufferMs` — the resolved execution
  *     budget and where it came from, written by `toExecutionTimeoutMetadata`.
  *   - `suiteIndex` — which member of a suite this run's queued row belongs to. (2026-08-27,
- *     405-07: this line used to name the run-detail timeline module that read it, which 405-03
+ *     this line used to name the run-detail timeline module that read it, which 405-03
  *     deleted; that plan's scope boundary kept it out of server code, so the dangling reference
  *     was carried here as a deferred item and is scrubbed with the rest of the retired feed.)
  *
@@ -1475,7 +1474,7 @@ export const RESPONSE_SAFE_RUN_METADATA_KEYS: ReadonlySet<string> = new Set([
 ])
 
 /**
- * `sanitizeQueuedRunMetadata`'s READ-PATH counterpart (401-18, CR-02).
+ * `sanitizeQueuedRunMetadata`'s READ-PATH counterpart.
  *
  * Built in its shape and pointed the other way: that one refuses fields a CLIENT may WRITE, this
  * one refuses fields a RESPONSE may CARRY. `null` and absence round-trip unchanged, so a run with no
@@ -1493,7 +1492,7 @@ function sanitizeRunMetadataForResponse(
 }
 
 /**
- * The artifact payload's own copy of the caller's run metadata (G-401-18-CR01).
+ * The artifact payload's own copy of the caller's run metadata.
  *
  * ONE ALLOWLIST, APPLIED AT A SECOND SERIALIZATION SITE — not a second allowlist. `JobQueue.enqueue`
  * writes the SAME `opts.metadata` object into two places (`job-queue.ts:75-78`): the run row, and
@@ -1540,7 +1539,7 @@ export const RESPONSE_SAFE_RUN_READ_METHODS = [
 ] as const
 
 /**
- * Run-NAMED database members that hand the response layer no run metadata at all (401-23, WR-08).
+ * Run-NAMED database members that hand the response layer no run metadata at all.
  *
  * THE OTHER HALF OF A TOTAL FUNCTION. `withResponseSafeRunReads` asserts at CONSTRUCTION that every
  * `/run/i`-named method on the database it is given is accounted for — either wrapped above, or
@@ -1560,13 +1559,13 @@ export const RESPONSE_SAFE_RUN_READ_METHODS = [
  *     the database from the `attributes` column; they never touch `metadata`.
  */
 const RUN_READS_WITHOUT_ROWS: ReadonlySet<string> = new Set([
-  // 2026-08-27 (405-01, D-01/D-03): the v2 projection's six members.
+  // the v2 projection's six members.
   //
   // The five WRITES return nothing; they are here for the same reason `insertRun` is.
   //
   // `readRunDetailRows` IS A READ AND IS STILL HERE, and that is the judgement this set exists to
   // make explicit rather than to hide. It returns members, steps and sub-actions — the bus
-  // payloads as the subscriber MASKED them (T-363-05) — and NO `RunRow` and no
+  // payloads as the subscriber MASKED them — and NO `RunRow` and no
   // `RunArtifactRow`. It therefore carries none of the run metadata the 401-23 scrub law exists
   // to strip, so wrapping it would be wrapping a shape that has nothing to strip. This router
   // does not call it either: the detail arm dispatches through the injected host, which is the
@@ -1581,23 +1580,23 @@ const RUN_READS_WITHOUT_ROWS: ReadonlySet<string> = new Set([
   'finalizeRunArtifact',
   'getRunsBySuiteIdCount',
   'getRunsByTestCount',
-  // 433-30: run ids and a count, no row; each id is dispatched through the agent host.
+  // run ids and a count, no row; each id is dispatched through the agent host.
   'listInsightsWindowRunIds',
   'insertPendingRun',
   'insertRun',
   'insertRunArtifact',
   'listRunAttributeKeys',
   'listRunAttributeValues',
-  // 2026-10-16 (442-01, D-01): an owner (pid, incarnation, host), no run metadata.
+  // an owner (pid, incarnation, host), no run metadata.
   'readRunOwner',
-  // 2026-10-16 (442-01, D-04): ids and owners only, no run metadata.
+  // ids and owners only, no run metadata.
   'listRunningRunOwners',
-  // 2026-10-16 (442-01, D-04): compare-and-set writes that return a boolean.
+  // compare-and-set writes that return a boolean.
   'finalizeOrphanRun',
   'finalizeOwnRun',
   // 2026-10-17 (443-13, GAP-D1): a compare-and-set write that returns a boolean, no run metadata.
   'closeOwnRun',
-  // 2026-10-17 (443-02, D-07): a compare-and-set write that returns a boolean, no run metadata.
+  // a compare-and-set write that returns a boolean, no run metadata.
   'claimRunningRow',
   'stageRunArtifact',
   'updateRun',
@@ -1606,7 +1605,7 @@ const RUN_READS_WITHOUT_ROWS: ReadonlySet<string> = new Set([
 ])
 
 /**
- * Run-named members that are not on `DashboardDatabase`'s TYPE at all (401-23, WR-08).
+ * Run-named members that are not on `DashboardDatabase`'s TYPE at all.
  *
  * WHY THIS SET HAS TO EXIST. TypeScript's `private` is erased at emit, so every private helper is
  * a live own-property of the prototype and the runtime census below sees all of them. They are not
@@ -1666,7 +1665,7 @@ function assertRunReadsAccountedFor(db: DashboardDatabase, wrapped: ReadonlySet<
 }
 
 /**
- * The database as the RESPONSE LAYER may read it (401-18, CR-02).
+ * The database as the RESPONSE LAYER may read it.
  *
  * WHY A WRAPPER AT THE ROUTER AND NOT A STRIP AT EACH DOOR. The re-derived census found SIX
  * run-serializing responses, not the two the ruling named — the run list, the run detail, the
@@ -1681,11 +1680,11 @@ function assertRunReadsAccountedFor(db: DashboardDatabase, wrapped: ReadonlySet<
  * hold the RAW handle and are untouched — this projection exists only inside `createRouter`, which
  * is exactly the layer that serializes.
  *
- * THE PERSISTED VALUE IS NEVER TOUCHED. This is a read projection. 2026-10-01 (432-14, D-14/D-22):
+ * THE PERSISTED VALUE IS NEVER TOUCHED. This is a read projection. 2026-10-01:
  * the trigger no longer writes a confirm scope and the queue consumer no longer reads one; a row
  * written before then may still hold it, and this projection keeps it from leaving.
  *
- * AND IT FAILS LOUDLY RATHER THAN TRANSPARENTLY (401-23, WR-08). `Object.create(db, {…})` forwards
+ * AND IT FAILS LOUDLY RATHER THAN TRANSPARENTLY. `Object.create(db, {…})` forwards
  * everything it does not override, so before this an unlisted — or merely NEW — run-reading method
  * reached the response layer through the prototype and returned raw rows. That is the structural
  * root of G-401-18-CR01, not a footnote to it: the artifact payload leaked for exactly as long as
@@ -1729,7 +1728,7 @@ function withResponseSafeRunReads(db: DashboardDatabase): DashboardDatabase {
     // `sanitizeArtifactForResponse`; a caller reaching for the bare row has no such step, so the
     // projection is its only choke point. Same allowlist, so the two cannot drift.
     getRunArtifact: { value: (runId: string) => scrubArtifact(db.getRunArtifact(runId)) },
-    // 405-07 (D-02): the bundle is ONE artifact now. It used to carry the child runs of a suite
+    // the bundle is ONE artifact now. It used to carry the child runs of a suite
     // parent, whose `run` rows this override scrubbed; nothing has written a child row since
     // 402-09, and the shape went with the column. `getRunArtifact` above remains the choke point
     // for the payload itself, and this wrapper delegates to it.
@@ -1747,20 +1746,18 @@ function withResponseSafeRunReads(db: DashboardDatabase): DashboardDatabase {
   return Object.create(db, present) as DashboardDatabase
 }
 
-// 2026-08-27 (405-07, D-14) — THE PATH-BASED ARTIFACT MACHINERY IS DELETED.
-//
 // Four functions and a cleanup routine stood here: a containment resolver, a three-door serving
 // verdict over an encoded `:runId/:filename` pair, its fixed-shape refusal, and the filesystem
 // sweep a run deletion performed. All five existed to serve or remove artifacts ADDRESSED BY PATH.
 //
-// Refs are the only artifact addressing now (D-14). A sub-action carries `artifactRefs`, the page
+// Refs are the only artifact addressing now. A sub-action carries `artifactRefs`, the page
 // mints `\`/api/runs/<runId>/artifacts/<sha>\`` from one total route map, and the bytes are reached
 // through the `runs.artifact` op — whose containment rule is the evidence store's own, written
 // once, rather than a second path assembly in this file that is free to be the weaker one.
 //
 // AND THE DELETION SWEEP IS NOT REPLACED. `DELETE /api/runs/:id` removes rows and touches nothing
 // under the run directory: the event log and the content-addressed blobs there are the run's own
-// record, which this server projects and does not own (T-405-27).
+// record, which this server projects and does not own.
 
 async function readWorkspaceHooks(
   configManager: ConfigManager | undefined,
@@ -1931,12 +1928,12 @@ interface RouterDeps {
   db: DashboardDatabase
   workspacePaths?: ResolvedWorkspacePaths
   /**
-   * The injected run backend (401-07, D-09).
+   * The injected run backend.
    *
    * TYPED AGAINST THE INTERFACE, AND NOW ACTUALLY SEPARABLE. It always meant to be, and was not:
    * the retired live-event route reached past the interface for a per-run replay buffer only the
    * concrete class declared, so the seam had exactly one possible implementation. That route and
-   * that buffer are gone (405-07, D-19); what this router asks of a backend is the interface.
+   * that buffer are gone; what this router asks of a backend is the interface.
    */
   executionBackend?: ExecutionBackend
   jobQueue?: JobQueue
@@ -1952,7 +1949,7 @@ interface RouterDeps {
   authFetch?: typeof globalThis.fetch
   sessionManager?: import('../live-editor/session-manager.js').SessionManager
   /**
-   * The composed agent host (400-01, D-01). It serves run detail, marks, analysis, knowledge and
+   * The composed agent host. It serves run detail, marks, analysis, knowledge and
    * post-processing. (The run-confirm pair it also served is deleted, 432-14.)
    *
    * INJECTED, and optional because a router built the legacy two-argument way
@@ -1962,7 +1959,7 @@ interface RouterDeps {
    */
   agentHost?: AgentHost
   /**
-   * The run service's readiness predicate, served on the LOCAL door (402-05, D-15).
+   * The run service's readiness predicate, served on the LOCAL door.
    *
    * THE SAME FUNCTION THE RUN SERVICE'S `/ok` SERVES — one readiness spelling behind two doors,
    * which is the whole of D-15. It is passed in rather than computed here for the reason `agentHost`
@@ -1976,7 +1973,7 @@ interface RouterDeps {
    */
   runServiceReadiness?: () => RunServiceReadiness
   /**
-   * The started run's session, or nothing — the LOCAL door's attach port (402-08, D-01).
+   * The started run's session, or nothing — the LOCAL door's attach port.
    *
    * THE SAME PORT THE AUTHED DOOR USES, and `server.ts` supplies it by reading
    * `runService.attach` rather than by composing a second lookup: one session registry serves both
@@ -1991,7 +1988,7 @@ interface RouterDeps {
    */
   runServiceAttach?: (runId: string) => RunSession | undefined
   /**
-   * The `runs.liveurl` mint, DISPATCHED THROUGH THE REGISTRY by the composition root (403 D-03).
+   * The `runs.liveurl` mint, DISPATCHED THROUGH THE REGISTRY by the composition root.
    *
    * A FUNCTION, not a signer: this router holds no key and mints nothing. What it does is turn one
    * HTTP shape into one op call and the op's refusals into status codes — which is the whole of a
@@ -2002,13 +1999,13 @@ interface RouterDeps {
    */
   mintLiveUrl?: (runId: string, handle: number) => Promise<RunsLiveUrlResult>
   /**
-   * The `editor.liveurl` mint, dispatched through the registry by the composition root (428 D-07).
+   * The `editor.liveurl` mint, dispatched through the registry by the composition root.
    * The editor counterpart of `mintLiveUrl`: a function, never a signer. ABSENT MEANS THIS HOST
    * MINTS NO EDITOR VIEW, and the route answers 503 by name.
    */
   mintEditorLiveUrl?: (sessionId: string) => Promise<EditorLiveUrlResult>
   /**
-   * The in-process chip sink the post-processing stream relays from (404-05, D-16).
+   * The in-process chip sink the post-processing stream relays from.
    *
    * INJECTED ON `agentHost`'s OWN IDIOM. The publisher is the CLI's post-run chip emitter — a
    * package this one may not import — so `agent-qa dashboard` creates the relay, hands
@@ -2031,7 +2028,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     : { db: dbOrDeps as DashboardDatabase }
   const { executionBackend, jobQueue, testFileManager, suiteFileManager, configManager, workspacePaths, llmConfig, authFetch, sessionManager } = deps
   const declaredMask = deps.declaredSecretMask ?? configManager?.mask
-  // CR-02 (401-18): the response layer reads run rows through the projection, never raw. The host's
+  // the response layer reads run rows through the projection, never raw. The host's
   // own reconciliation and the queue keep `deps.db` — see `withResponseSafeRunReads`.
   const db = withResponseSafeRunReads(deps.db)
   const pluginOAuthSessions = new Map<string, PluginOAuthSession>()
@@ -2082,7 +2079,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // 429-06 D-22: the cheap revision read the page polls to notice an outside edit.
+    // the cheap revision read the page polls to notice an outside edit.
     if (path === '/api/config/revision' && req.method === 'GET') {
       if (!configManager) {
         json(res, { error: 'config_unavailable' }, 503)
@@ -2161,7 +2158,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             to,
             attributePredicates: attributePredicatesResult.predicates,
           })
-          // 405-07 (D-02): a suite row used to be enriched with its child runs as `tests`. Nothing
+          // a suite row used to be enriched with its child runs as `tests`. Nothing
           // has written a child run row since 402-09 — the members of a suite run are `run_members`
           // on the one row — so this branch could only ever attach an empty array.
           const enrichedRuns = allRuns.map(run => enrichRunRow(run, targetPlatforms))
@@ -2241,8 +2238,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // 2026-08-27 (405-07, D-03/D-19) — FOUR READ ARMS WERE DELETED FROM THIS BLOCK.
-    //
     // The accessibility summary, the per-step reasoning trace, the log page and the step list each
     // answered off a v1 projection table with no producer left. `runs.detail` supersedes them: it is ONE read,
     // through the function layer, over the bus-shaped projection the subscriber actually writes —
@@ -2265,7 +2260,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       const stepId = url.searchParams.get('stepId') ?? undefined
       const type = url.searchParams.get('type') ?? undefined
 
-      // 405-07 (D-02): a suite run's logs used to be gathered across its child run rows. There are
+      // a suite run's logs used to be gathered across its child run rows. There are
       // no child rows — one `runs` row per run since 402-09 — and a suite's hook logs are written
       // against that one id, carrying `test_index`/`step_index` to say where in the run they ran.
       const logs = db.getExecutionLogs({ runId: id, stepId, type })
@@ -2273,7 +2268,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // 419 D-13: register before the run catch-all; no private feedback implementation here.
+    // register before the run catch-all; no private feedback implementation here.
     if (path.startsWith('/api/runs/') && path.endsWith('/mark') && req.method === 'POST') {
       if (deps.agentHost === undefined) {
         json(res, { error: 'agent_host_unavailable' }, 503)
@@ -2290,7 +2285,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // 423-21 D-18: the read-tier consequence preview. POST carries runs.mark's exact input; the
+    // the read-tier consequence preview. POST carries runs.mark's exact input; the
     // adapter guards, parses and dispatches the registered op, and this arm owns no feedback logic.
     if (req.method === 'POST' && /^\/api\/runs\/[^/]+\/mark-preview$/.test(path)) {
       if (deps.agentHost === undefined) {
@@ -2321,7 +2316,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         json(res, { error: 'invalid_run_id' }, 400)
         return
       }
-      // 2026-10-17 (444-06, D-31): each answer in plain words; the route writes nothing.
+      // each answer in plain words; the route writes nothing.
       const outcome = jobQueue.cancel(runId)
       switch (outcome.kind) {
         case 'cancelled':
@@ -2384,7 +2379,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           return
         }
 
-        // 405-07 (D-14 · T-405-27): ROWS ONLY. A filesystem sweep ran here first, removing the
+        // ROWS ONLY. A filesystem sweep ran here first, removing the
         // run's screenshot and video directories and every path the step rows named. Both the
         // paths and the sweep are gone: what lives under the run directory is the event log and
         // the content-addressed blobs — the run's own record, which this server projects and does
@@ -2396,7 +2391,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // GET /api/runs/:runId/live-url — the LOCAL door onto the mint (403 D-03).
+    // GET /api/runs/:runId/live-url — the LOCAL door onto the mint.
     //
     // ABOVE THE `GET /api/runs/:id` ARM BELOW, and the order is the mechanism: that arm claims
     // every GET under the prefix and answers `Not found` for anything that is not exactly four
@@ -2441,7 +2436,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // GET /api/runs/:runId/artifacts/:sha — a minted ref, resolved to bytes (405-05, D-12/D-13).
+    // GET /api/runs/:runId/artifacts/:sha — a minted ref, resolved to bytes.
     //
     // ABOVE THE DETAIL ARM AND THEREFORE ABOVE THE `/api/runs/:id` CATCH-ALL, on the same
     // measured precedent (RESEARCH Pitfall 2): that arm claims EVERY GET under the prefix.
@@ -2501,7 +2496,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // 423-21 D-18: marks history, above the `/api/runs/:id` catch-all like its read siblings.
+    // marks history, above the `/api/runs/:id` catch-all like its read siblings.
     if (req.method === 'GET' && /^\/api\/runs\/[^/]+\/marks$/.test(path)) {
       if (!deps.agentHost) {
         json(res, { error: 'agent_host_unavailable' }, 503)
@@ -2518,7 +2513,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // GET /api/runs/:id/detail — the durable run-detail projection (405-01, D-03).
+    // GET /api/runs/:id/detail — the durable run-detail projection.
     //
     // ABOVE THE `GET /api/runs/:id` CATCH-ALL BELOW, on the live-url and post-processing arms'
     // measured precedent (RESEARCH Pitfall 2): that arm claims EVERY GET under the prefix and
@@ -2548,7 +2543,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // GET /api/runs/:id/analysis — one run's resolved verdicts, sentences and clusters (406-01, D-04).
+    // GET /api/runs/:id/analysis — one run's resolved verdicts, sentences and clusters.
     //
     // ABOVE THE `GET /api/runs/:id` CATCH-ALL BELOW, on the detail arm's measured precedent
     // (RESEARCH Pitfall 2): that arm claims EVERY GET under the prefix and answers `Not found` for
@@ -2556,7 +2551,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     // so registered after it this route would be looked up as a run id and refused.
     //
     // IT DISPATCHES AND FORMATS NOTHING. `analysis.get` is THE single producer of a run's verdicts
-    // and sentences (389 D-11); everything below the 503 is `serveRunAnalysisRead`'s.
+    // and sentences; everything below the 503 is `serveRunAnalysisRead`'s.
     if (req.method === 'GET' && /^\/api\/runs\/[^/]+\/analysis$/.test(path)) {
       if (!deps.agentHost) {
         json(res, { error: 'agent_host_unavailable' }, 503)
@@ -2575,7 +2570,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // GET /api/runs/:id/knowledge — what this run used and learned (407-01, D-05/D-06).
+    // GET /api/runs/:id/knowledge — what this run used and learned.
     //
     // ABOVE THE `GET /api/runs/:id` CATCH-ALL BELOW, on the detail and analysis arms' measured
     // precedent (RESEARCH Pitfall 2): that arm claims EVERY GET under the prefix and answers
@@ -2584,7 +2579,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     // refused.
     //
     // IT DISPATCHES AND FORMATS NOTHING. `runs.knowledge` is THE single producer of the Knowledge
-    // tab's whole view (407 D-05) — served brief channels, serve-time traces, procedure use, the
+    // tab's whole view — served brief channels, serve-time traces, procedure use, the
     // recorded rung, curator deltas — and everything below the 503 is `serveRunKnowledgeRead`'s.
     // A run whose handoff has been pruned comes back 200 with `kind: 'evidence-incomplete'`, not
     // a 404: D-06 makes that a state the page renders rather than a refusal it has to catch.
@@ -2609,7 +2604,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // GET /api/runs/:id/post-processing[/stream] — chip truth and its live channel (404-05).
+    // GET /api/runs/:id/post-processing[/stream] — chip truth and its live channel.
     //
     // ABOVE THE `GET /api/runs/:id` ARM BELOW, on the live-url arm's measured precedent: that arm
     // claims EVERY GET under the prefix and answers `Not found` for anything that is not exactly
@@ -2681,7 +2676,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         notFound(res, 'Run not found')
         return
       }
-      // 405-07 (D-03/D-02): `{ run }` AND NOTHING ELSE. This body carried three more keys —
+      // `{ run }` AND NOTHING ELSE. This body carried three more keys —
       // `steps` off a v1 projection with no producer, and `attempts`/`tests` off a child-run walk
       // over a column nothing writes. Every one of them was structurally empty on a run this build
       // produced, so a page rendering them rendered an empty tree that looked like a bug rather
@@ -2765,14 +2760,11 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // 2026-08-27 (405-07, D-14) — THE TWO PATH-SERVING ARMS ARE DELETED.
-    //
     // They served bytes addressed as `<runId>/<filename>` under a screenshots or a videos root.
     // Refs are the only artifact addressing now: `GET /api/runs/:runId/artifacts/:sha` above
     // resolves a content address through the `runs.artifact` op, and the store's own containment
     // rule is the one rule those bytes are reached through. There is no video surface at all,
     // because no producer mints a recording ref — an honest absence rather than a surviving path
-    // (T-405-28).
 
     // GET /api/run-readiness — the LOCAL half of D-15's one-predicate-two-doors.
     //
@@ -2791,17 +2783,17 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // GET /api/run-stream/:runId — the LOCAL door onto the run event stream (402-08, D-01/D-13).
+    // GET /api/run-stream/:runId — the LOCAL door onto the run event stream.
     //
     // ONE STREAM CORE BEHIND TWO DOORS. Everything below the 503 arm is `serveRunEventStream`'s:
     // the attach, the handle validation, the filter, the framing, the heartbeat and the close.
     // This handler formats no frame and reads no envelope, deliberately — a second spelling here
     // would agree with the authed door on the day it was written and drift the first time either
-    // moves, and the drift would be invisible until somebody diffed them (T-402-27). The parity is
+    // moves, and the drift would be invisible until somebody diffed them. The parity is
     // measured rather than asserted: `routes.run-stream.test.ts` drives one planted session
     // through BOTH doors over a corpus that includes every refusal class and compares the bytes.
     //
-    // NO TOKEN, ON `/api/run-readiness`'s EXACT ARGUMENT (402-05). This is the local dashboard API
+    // NO TOKEN, ON `/api/run-readiness`'s EXACT ARGUMENT. This is the local dashboard API
     // and what keeps it local is the bind guard, not a credential. The routes that assume a caller
     // from another machine live behind `ownsRunServicePath`, above this router entirely.
     //
@@ -2824,7 +2816,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       serveRunEventStream(req, res, {
         runId,
         handleParam: handleParamOf(req),
-        // 403-03 (D-13 · INVK-05): the resume point, read from the SAME pair the authed door reads
+        // the resume point, read from the SAME pair the authed door reads
         // it from. `url.searchParams.get('lastEventId')` would resolve a repeated parameter to its
         // first value — the one answer `lastEventIdParamOf` exists to refuse — and a second
         // header/query precedence rule here would be a second contract for where a client resumes.
@@ -2890,7 +2882,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           const runId = jobQueue.enqueue({
             name: body.name,
             filePath: normalizedFileTarget?.storagePath,
-            // 2026-08-24 (402-09, D-11): NO PARENT KIND IS MINTED. A suite run is ONE run row
+            // NO PARENT KIND IS MINTED. A suite run is ONE run row
             // with member handles, so a parent artifact kind would claim parenthood over rows
             // nothing creates. `isSuiteFile` still travels in `metadata.isSuite` below, and the run's
             // own `suite_id` plus the artifact's `source.kind` snapshot still say it is a suite.
@@ -2950,7 +2942,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             json(res, { error: 'tags are not supported for dashboard-triggered runs' }, 400)
             return
           }
-          // 2026-10-01 (432-14, D-14): the click is the whole request. The confirm scope this body
+          // the click is the whole request. The confirm scope this body
           // used to name, and the validation and persistence that went with it, are deleted with the
           // run-confirm pair; nothing on this road asks a browser anything.
           const triggerSource = parseDashboardRunTriggerSource(body.triggerSource)
@@ -3043,7 +3035,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           const runId = jobQueue.enqueue({
             name: testName,
             filePath: normalizedFileTarget?.storagePath ?? body.file,
-            // 2026-08-24 (402-09, D-11): no parent kind minted — see the enqueue route above.
+            // no parent kind minted — see the enqueue route above.
             kind: 'test',
             attributes: buildRunRequestAttributes({
               trigger: triggerSource.trigger,
@@ -3064,8 +3056,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // 2026-08-27 (405-07, D-19) — THE LEGACY LIVE-EVENT SSE ARM IS DELETED.
-    //
     // It streamed a re-minted frame shape out of the backend's per-run replay buffer, with a
     // `Last-Event-ID` replay and a heartbeat. 405-03 removed the browser half; this removes the
     // route, the buffer and the emission behind it. A live reader attaches to
@@ -3770,7 +3760,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         if (providerName === 'status' || providerName === 'credential' || providerName === 'oauth') {
           // Fall through to other handlers
         } else {
-          // 429-11 D-24: the removed entry is held server-side for Undo; the answer never carries it.
+          // the removed entry is held server-side for Undo; the answer never carries it.
           ;(async () => {
             try {
               const removed = await withCredentialLock(async () => {
@@ -4299,7 +4289,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
 
           try {
             const { profile, auth } = toModelProfileAndAuth(llmConfig, resolvedAuth)
-            // 2026-10-12 (441-04, D-06): fixed probe text, nothing to mask.
+            // fixed probe text, nothing to mask.
             const model = createModel(profile, auth, (text) => text)
             const connectionTimeoutMs = llmConnectionTestTimeoutMs(llmConfig)
 
@@ -4378,7 +4368,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     }
 
     // Agent Rules API removed: the workspace agent-rules config surface was retired in
-    // Phase 373 (KDIR-03); policy serving returns via Reader L0 policies in Phase 380.
+    // Phase 373; policy serving returns via Reader L0 policies in Phase 380.
 
     // Hooks API
     if (path === '/api/hooks' && req.method === 'GET') {
@@ -4869,7 +4859,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           const hookCatalog = await readWorkspaceHooks(configManager, deps.configPath)
           resolvedHooks = hookCatalog.resolvedHooks
           hookRegistryError = hookCatalog.hookRegistryError
-          // 436 D-03: the limits come from the project config and the edited entity's own `use`,
+          // the limits come from the project config and the edited entity's own `use`,
           // read through the workspace managers by canonical id; never from the request.
           const entityReaders = {
             ...(testFileManager === undefined ? {} : { findTest: (id: string) => testFileManager.findByTestId(id) }),
@@ -4998,7 +4988,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // 2026-08-27 (405-07, D-02): the captured-variable-name suggestion arm was deleted with its
+    // the captured-variable-name suggestion arm was deleted with its
     // reader. It scanned a `captured_variables` column on the v1 projection, which no producer has
     // filled since the subscriber was rebuilt on the bus payloads — so the endpoint answered an
     // empty list on every real workspace while looking like a working suggestion source. The hook

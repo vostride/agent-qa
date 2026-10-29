@@ -1,4 +1,4 @@
-// 2026-10-18 (444-12, D-14): the run-detail reader answers the row's stored status, and nothing else.
+// the run-detail reader answers the row's stored status, and nothing else.
 
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'

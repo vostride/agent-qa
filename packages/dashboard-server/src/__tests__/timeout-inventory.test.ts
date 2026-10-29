@@ -84,7 +84,7 @@ const timeoutInventory: TimeoutInventoryEntry[] = [
     rationale: 'Allows slow local prompt processing during connectivity checks without affecting real test execution.',
     allowed: true,
   },
-  // 2026-08-27 (405-07, D-19): the `15_000` SSE keepalive interval in `routes.ts` is gone with the
+  // the `15_000` SSE keepalive interval in `routes.ts` is gone with the
   // legacy live-event route it kept open. The surviving stream — `GET /api/run-stream/:runId` —
   // heartbeats from `run-service-routes.ts`, which carries its own inventoried literal; this row
   // named a file that no longer holds one, and an inventory entry with no site is a claim nothing
@@ -214,13 +214,13 @@ const timeoutInventory: TimeoutInventoryEntry[] = [
       + 'than arming it.',
     allowed: true,
   },
-  // Phase 401 plan 07 (D-01/D-12) — the four `test-runner.ts` entries that inventoried a CHILD
+  // the four `test-runner.ts` entries that inventoried a CHILD
   // PROCESS are gone with the child: the heartbeat poll cadence, the stale-silence threshold, the
   // one-millisecond buffer that kept the threshold above the cadence, and the SIGTERM-to-SIGKILL
   // grace. Liveness comes off the bus now and a cancel is `RunSession.cancel()`, so there is no
   // silence to detect and no signal to escalate. The two literals with successors — the disabled
   // sentinel and the buffer retention — are re-homed above.
-  // Phase 353-07 (D-02) — its step-deadline `: 0` disabled sentinel and the
+  // Phase 353-07 — its step-deadline `: 0` disabled sentinel and the
   // `timeout: 0` failure-artifact placeholder moved with the loop into
   // packages/runner/src/loop/index.ts. The runner package is outside this
   // dashboard-server scanner's curated core-execution scope, so those sentinels are

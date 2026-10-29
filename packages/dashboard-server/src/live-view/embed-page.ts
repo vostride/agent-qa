@@ -6,7 +6,7 @@
 //
 // SELF-CONTAINED, NONCE'D, AND `default-src 'none'`. One inline script, no imports, no fetches
 // except the socket. The run id is inserted through `textContent` in that script rather than
-// interpolated into markup, so a run id can never become markup (T-403-09).
+// interpolated into markup, so a run id can never become markup.
 //
 // EVERY ABSENCE IS NAMED. There is no state in which this page shows a blank rectangle: an expired
 // link says `link expired`, a target that cannot stream says so, an unknown stream kind says so.
@@ -46,17 +46,17 @@ export const LIVE_EMBED_STATES = [
   'no-stream',
   'expired',
   'refused',
-  // THIS MEMBER'S STREAM ENDED WHILE THE RUN CONTINUES (403 CR-03). Separate the whole run's end,
+  // THIS MEMBER'S STREAM ENDED WHILE THE RUN CONTINUES. Separate the whole run's end,
   // because a person watching one member of a suite needs to know which of the two happened — and
   // neither may be shown as `live` over whichever frame happened to be last.
   'stream-ended',
-  // AN EDITOR SESSION ENDED (428 D-07/D-09). An editor subject has no run to end.
+  // AN EDITOR SESSION ENDED. An editor subject has no run to end.
   'session-ended',
   'ended',
   'lost',
 ] as const satisfies readonly LiveEmbedState[]
 
-/** Every fact the page reports to its host (428 D-15). */
+/** Every fact the page reports to its host. */
 export type LiveEmbedReportEvent = 'ready' | 'frame' | 'ended' | 'refused' | 'lost'
 // prettier-ignore
 export const LIVE_EMBED_REPORT_EVENTS = [
@@ -77,7 +77,7 @@ export const LIVE_EMBED_HOST_PARAM = 'host'
 export const LIVE_EMBED_REPORT_INTERVAL_MS = 500
 
 /**
- * What an EXPIRED link says, exactly (D-02).
+ * What an EXPIRED link says, exactly.
  *
  * Exported so the tracer cell and 403-02's DOM cells assert the SAME string the page renders — a
  * literal spelled twice is a literal that can drift, and this one is the difference between a
@@ -86,7 +86,7 @@ export const LIVE_EMBED_REPORT_INTERVAL_MS = 500
 export const LIVE_EMBED_EXPIRED_MESSAGE = 'link expired'
 
 /**
- * What a target that declared NO live stream says, exactly (D-08).
+ * What a target that declared NO live stream says, exactly.
  *
  * This document owns no step list, and its host — the dashboard iframe today, the 408 MCP App
  * later — is invisible to it, so the sentence claims nothing about where or whether steps are

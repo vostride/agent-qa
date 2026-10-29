@@ -1,4 +1,4 @@
-// 2026-09-26, 429-11 D-24: the server half of Undo. A payload can hold a removed secret, so it
+// the server half of Undo. A payload can hold a removed secret, so it
 // stays in this process's memory, is handed out once, and is never serialized into a response.
 import { randomUUID } from 'node:crypto'
 

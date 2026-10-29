@@ -39,7 +39,7 @@ export type ApplyChangesOutcome =
 type FieldState = { present: false } | { present: true; value: unknown }
 
 /**
- * What one change found and left at the field it touched (429-11 D-24). The nodes are the file's
+ * What one change found and left at the field it touched. The nodes are the file's
  * own, so a restore brings back real secrets and comments rather than anything the page holds.
  */
 export type ConfigPrior =
@@ -48,7 +48,7 @@ export type ConfigPrior =
 
 export type ConfigPriors = readonly ConfigPrior[]
 
-/** A whole-document replacement, checked against the bytes the caller read (432-07 D-05). */
+/** A whole-document replacement, checked against the bytes the caller read. */
 export type ReplaceDocumentOutcome =
   | { kind: 'ok'; revision: string; baseRevision: string }
   | { kind: 'refused'; error: 'file_changed'; revision: string }
@@ -79,7 +79,7 @@ export type MaskedConfigOutcome =
   }
   | { kind: 'file_invalid'; message: string; revision: string }
 
-// 2026-09-30, 432-07 D-05 (EDGE-12): one write queue per resolved config path, shared by every
+// one write queue per resolved config path, shared by every
 // ConfigManager and direct writer in this process, so the dashboard and a co-hosted writer never
 // read the same bytes and drop each other's field. Kept on globalThis so a second copy of this
 // module still joins the same queue. It is not a cross-process lock.
@@ -161,7 +161,7 @@ export class ConfigManager {
     return { kind: 'ok', config: read.config, raw: read.raw, revision: read.revision }
   }
 
-  // 441-21 D-29: the payload and the file view pass through the declared mask and nothing else.
+  // the payload and the file view pass through the declared mask and nothing else.
   async readMasked(): Promise<MaskedConfigOutcome> {
     const read = await this.readParsed()
     if (read.kind === 'absent') {
@@ -214,7 +214,7 @@ export class ConfigManager {
     }
   }
 
-  // 429-01 D-19/D-22: one transaction per request, serialised so overlapping autosaves never
+  // one transaction per request, serialised so overlapping autosaves never
   // read the same bytes and drop each other's field.
   async applyChanges(
     changes: readonly ConfigChange[],
@@ -234,13 +234,13 @@ export class ConfigManager {
     return this.serialized(() => this.applyChangesOnce(changes, options.capturePriors === true))
   }
 
-  // 429-11 D-24: an Undo is one more transaction on the same mutex, newest change first. A field
+  // an Undo is one more transaction on the same mutex, newest change first. A field
   // that no longer holds what the change left there was written since, and is never overwritten.
   async restorePriors(priors: ConfigPriors): Promise<RestorePriorsOutcome> {
     return this.serialized(() => this.restorePriorsOnce(priors))
   }
 
-  // 432-07 D-05: a generated whole-file change (a scaffold, a hooks file) publishes only over the
+  // a generated whole-file change (a scaffold, a hooks file) publishes only over the
   // bytes it was built from, read again in this path's turn. Anything else is somebody's edit.
   async replaceDocument(expectedRevision: string, content: Uint8Array): Promise<ReplaceDocumentOutcome> {
     return this.serialized(async () => {
@@ -296,7 +296,7 @@ export class ConfigManager {
     capturePriors: boolean,
   ): Promise<ApplyChangesOutcome> {
     let doc: Document
-    // 429-37 CR-01: the revision of the bytes this write merges onto, so the page can tell when an
+    // the revision of the bytes this write merges onto, so the page can tell when an
     // outside edit it never read was absorbed.
     let baseRevision: string
     try {
@@ -312,7 +312,7 @@ export class ConfigManager {
     }
     // yaml recovers a partial tree from a broken file and refuses to stringify it: never rewrite one.
     if (doc.errors.length > 0) return { kind: 'refused', error: 'file_invalid' }
-    // 429-42 CR-01: every expect is checked against the file as read, before anything applies.
+    // every expect is checked against the file as read, before anything applies.
     const expects = changes.filter((change) => change.op === 'expect')
     for (const change of expects) {
       if (!expectHolds(doc, change.path, change.value ?? null, this.mask)) {
@@ -523,7 +523,7 @@ function unsetAndPrune(doc: Document, path: ResolvedPath): void {
   }
 }
 
-// 429-52: a rename re-keys the file's own node, which lands before from is pruned.
+// a rename re-keys the file's own node, which lands before from is pruned.
 function moveField(
   doc: Document,
   from: readonly ConfigPathSegment[],
@@ -536,7 +536,6 @@ function moveField(
   const node = nodeAt(doc, fromPath)
   if (node === undefined) return { kind: 'refused', error: 'path_not_found' }
   if (samePath(fromPath, toPath)) return { kind: 'ok', priors: [] }
-  // A field moved inside itself, or onto an ancestor, would be deleted with its old key.
   if (isPrefix(fromPath, toPath) || isPrefix(toPath, fromPath)) {
     return { kind: 'refused', error: 'path_not_writable' }
   }

@@ -1,5 +1,5 @@
 /**
- * THE SUITE-PARENT / CHILD-RUN DEBRIS CENSUS (402-09, D-11).
+ * THE SUITE-PARENT / CHILD-RUN DEBRIS CENSUS.
  *
  * D-11, owner verbatim: "remove everything that's not required. Better to cleanup now than
  * maintain tumors." What counts as REQUIRED is decided by this census, not by judgment — the only
@@ -7,7 +7,7 @@
  * 405, and anything the one-run model leaves producer-less goes too.
  *
  * TWO PREDICATES THAT FAIL FOR DIFFERENT REASONS. This phase has already defeated four instrument
- * shapes: a symbol grep satisfied by an import line (402-01, 402-03), a source assertion satisfied
+ * shapes: a symbol grep satisfied by an import line, a source assertion satisfied
  * by its own file (402-07 / WINDOWS #253, 402-08 / #257), a fold from a DECLARED binding rather
  * than from what answered (402-07 / #251), and a behavioural differential blind to a byte-identical
  * private copy (402-08 / #257). Two greps with different regexes would be a fifth. So:
@@ -99,7 +99,7 @@ const KEEP_RETAINED_UNION =
   + 'finds a disposition rather than a survival.'
 
 /**
- * 2026-08-27 (405-07, D-02): the disposition that flipped, and why it could only flip now.
+ * the disposition that flipped, and why it could only flip now.
  *
  * 402-09 kept every parent-link READ on one argument: the one-run model produced no new children,
  * but an OPERATOR's database still held rows written before it, and the run list and run detail had
@@ -525,7 +525,7 @@ function describeCounts(counts: Map<string, number>): string[] {
 // ---------------------------------------------------------------------------------------------
 // PREDICATE B — the structural surface walk
 //
-// 2026-08-27 (405-07, D-02): THE DIFFERENTIAL IS RETIRED BECAUSE ITS DISCRIMINATOR WAS DELETED, AND
+// THE DIFFERENTIAL IS RETIRED BECAUSE ITS DISCRIMINATOR WAS DELETED, AND
 // SAYING SO IS THE WHOLE POINT OF RECORDING IT HERE.
 //
 // The arm worked by seeding two byte-identical databases that differed in exactly one fact —
@@ -633,7 +633,7 @@ function buildRouter(db: DashboardDatabase): ReturnType<typeof createRouter> {
 
 // A mock request that omits `Host` models no real client: HTTP/1.1 requires the header and every
 // browser, `curl`, `fetch` and the conformance harness sends it. The display-seam read arms
-// (405 CR-01) now refuse a request whose claimed Host is not a loopback name, so the default below
+// now refuse a request whose claimed Host is not a loopback name, so the default below
 // is what keeps these direct-invoke probes speaking the wire's own shape. An explicit `host` in
 // `options.headers` still wins, which is how the refusal itself is exercised.
 const LOOPBACK_HOST_HEADER = { host: '127.0.0.1:3470' } as const
@@ -707,7 +707,7 @@ function envelope(runId: string, type: RunEventType, payload: Record<string, unk
  * PRODUCER when, driven against an empty database, it leaves behind a run artifact of a
  * parent/child kind.
  *
- * 2026-08-27 (405-07): the linked-row half of that predicate is gone with the column. It is not
+ * the linked-row half of that predicate is gone with the column. It is not
  * weakened — the store now REFUSES a parent/child kind outright, so a channel that tried to mint
  * one would fail its write rather than quietly produce a row this walk then has to notice.
  *
@@ -819,7 +819,7 @@ const SCHEMA_FILE = 'packages/dashboard-server/src/db/schema.ts'
 const CHECK_LINE = "kind TEXT NOT NULL CHECK(kind IN ('test', 'suite-parent', 'suite-child', 'unknown')),"
 
 /**
- * 2026-08-27 (405-07, D-02): EVERY SURFACE ON THIS TABLE IS NOW `delete`, AND THAT IS THE TERMINAL
+ * EVERY SURFACE ON THIS TABLE IS NOW `delete`, AND THAT IS THE TERMINAL
  * STATE OF THE CENSUS RATHER THAN A LOSS OF COVERAGE.
  *
  * 402-09 recorded fourteen KEEP surfaces here: two link READS the run list and run detail served
@@ -844,7 +844,7 @@ export const DEBRIS_SURFACES: readonly DebrisSurface[] = [
       // The router's accounting for the same read. Both exist ONLY because the read did, and both
       // must go in the same commit: `assertRunReadsAccountedFor` compares the allowlist to the
       // database's live run-named surface at construction, so a name left behind throws at router
-      // build and a name removed early throws the same way (401-23).
+      // build and a name removed early throws the same way.
       S(ROUTES, 'getRunsByParent', "'getRunsByParent',"),
       S(ROUTES, 'getRunsByParent', 'getRunsByParent: { value: (parentRunId: string) => scrubRows(db.getRunsByParent(parentRunId)) },'),
     ],
@@ -1202,7 +1202,7 @@ describe('predicate B — the structural surface walk (no source text is read)',
     const db = seedSuiteShapedDatabase()
     try {
       const router = buildRouter(db)
-      // 405-07 (D-03/D-14/D-19): each of these answered off a table or a path this census deleted.
+      // each of these answered off a table or a path this census deleted.
       // A route that no longer exists is what a client should discover, so each is the router's
       // generic 404 — never a 200 with an empty body, which reads as "nothing happened here".
       for (const url of [
@@ -1315,7 +1315,7 @@ describe('the historical-row argument is retired, by name', () => {
       raw.close()
     }
 
-    // 2026-10-16 (442-01, D-03): the refusal names the file and its version.
+    // the refusal names the file and its version.
     expect(() => new DashboardDatabase({ dbPath: file }))
       .toThrow(`${file} was written by an older agent-qa (runs database version 1)`)
   })
@@ -1346,7 +1346,7 @@ describe('the historical-row argument is retired, by name', () => {
 // ---------------------------------------------------------------------------------------------
 // THE MEASURED SETS — the census's expectations for the tree as it stands
 //
-// These are EQUALITIES against measured sets, never bare zeroes over unfiltered files (T-402-31):
+// These are EQUALITIES against measured sets, never bare zeroes over unfiltered files:
 // while keeps exist the cells cannot be vacuous, and any NEW reference or reintroduced producer
 // reds them. `CENSUS_PHASE` says which column of the register the lexical arm is measured against;
 // the D-11 deletion flips it, and every constant below, in one auditable diff.
@@ -1355,7 +1355,7 @@ describe('the historical-row argument is retired, by name', () => {
 /** `before` = the tree as 402-08 left it. `after` = the tree the deletion produces. */
 const CENSUS_PHASE: 'before' | 'after' = 'after'
 
-// 2026-08-27 (405-07, D-02): the two link-reader sets that stood here are gone with the
+// the two link-reader sets that stood here are gone with the
 // differential that discovered them. `QUEUE_LINK_READERS` was already empty; `ROUTE_LINK_READERS`
 // named the five routes whose response or database effect depended on the parent link, and every
 // one of those dependencies was deleted with the column. A set expected to be empty, computed by a
@@ -1367,7 +1367,7 @@ const PARENT_CHILD_PRODUCERS: readonly string[] = []
 
 /** Delete-dispositioned sites no behavioural surface can reach, each with its reason recorded. */
 const UNOBSERVABLE_DELETES: readonly string[] = [
-  // 2026-08-28 (405-11): the four `RunArtifactKind` union arms. A TYPE has no behavioural surface
+  // the four `RunArtifactKind` union arms. A TYPE has no behavioural surface
   // to observe — no request can make a union member appear — so their deletion is measured
   // lexically (predicate A) rather than by a probe. 405-07 deleted the STORE's admission of both
   // values, which is the behavioural half, and its own surface still records that.

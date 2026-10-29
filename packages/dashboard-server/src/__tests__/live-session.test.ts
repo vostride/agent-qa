@@ -12,7 +12,7 @@ const mockCleanup = vi.fn().mockResolvedValue(undefined)
 const mockExecute = vi.fn().mockResolvedValue({ success: true })
 const mockScreenshot = vi.fn().mockResolvedValue(Buffer.from('fake-screenshot'))
 const mockObserve = vi.fn().mockResolvedValue({ tree: '', elements: [], timestamp: 0, metadata: {} })
-// The web adapter's Chromium screencast, as the editor's hub sees it (428 D-07).
+// The web adapter's Chromium screencast, as the editor's hub sees it.
 let screencastEmit: ((frame: LiveFrame) => void) | undefined
 const mockScreencastStart = vi.fn(async (onFrame: (frame: LiveFrame) => void) => {
   screencastEmit = onFrame
@@ -109,7 +109,7 @@ const mockVariableStoreInstance = {
   snapshot: vi.fn(() => Object.fromEntries(variableStoreEntries)),
 }
 
-// executeStep/LLMPlanner/LLMVerifier moved to the runner package (Phase 353-07);
+// executeStep/LLMPlanner/LLMVerifier moved to the runner package;
 // live-session now imports them from @vostride/agent-qa-runner, so intercept them there.
 vi.mock('@vostride/agent-qa-runner', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@vostride/agent-qa-runner')>()
@@ -138,7 +138,7 @@ vi.mock('@vostride/agent-qa-runner-local', async (importOriginal) => ({
 }))
 
 vi.mock('@vostride/agent-qa-core', async () => {
-  // 436-19: the live door checks limit leaves with the real core schemas the CLI applies.
+  // the live door checks limit leaves with the real core schemas the CLI applies.
   const actual = await vi.importActual<typeof import('@vostride/agent-qa-core')>('@vostride/agent-qa-core')
   class LocalSecretStore {
     private secrets: Record<string, string>
@@ -912,7 +912,7 @@ describe('LiveSession', () => {
     expect(mockCleanup, 'the browser is closed once').toHaveBeenCalledTimes(1)
   })
 
-  // 428-19 (D-07): the session has no screenshot getter. The adapter's capture is reached only
+  // the session has no screenshot getter. The adapter's capture is reached only
   // through the hub's snapshot producer, lazily, so an initialized session with no viewer never
   // captures. The title is kept.
   it('getScreenshot delegates to adapter', async () => {
@@ -972,7 +972,7 @@ describe('LiveSession', () => {
   })
 })
 
-// 436-09 (D-03): the live editor is a door; its limits come from the project config and the entity.
+// the live editor is a door; its limits come from the project config and the entity.
 describe('live editor', () => {
   let session: LiveSession
 
@@ -1037,7 +1037,7 @@ describe('live editor', () => {
   })
 })
 
-// 436-19 (D-03, WR-12): a live suite session runs each child at its own effective limits.
+// a live suite session runs each child at its own effective limits.
 describe('live suite children', () => {
   let session: LiveSession
 
@@ -1123,7 +1123,7 @@ describe('live suite children', () => {
   })
 })
 
-// 436-19 (D-02, D-03, D-05, WR-11): the live door refuses, never ignores, a limit the CLI refuses.
+// the live door refuses, never ignores, a limit the CLI refuses.
 describe('live refusal', () => {
   function configManagerWith(config: Record<string, unknown>): ConfigManager {
     return { readWithRevision: async () => ({ kind: 'ok', config, raw: '', revision: 'r1' }) } as unknown as ConfigManager

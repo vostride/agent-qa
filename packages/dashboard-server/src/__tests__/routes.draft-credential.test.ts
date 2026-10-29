@@ -1,4 +1,4 @@
-// 429-09 (D-15/D-16): credentials and sign-ins for a model that is not on disk yet.
+// credentials and sign-ins for a model that is not on disk yet.
 //
 // auth.json is machine-wide, so every cell runs against an in-memory store behind core's
 // readAuth/writeAuth/removeAuth and asserts what the store holds afterwards, not only what the

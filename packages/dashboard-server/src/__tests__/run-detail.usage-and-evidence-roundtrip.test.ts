@@ -109,7 +109,7 @@ async function usageRun(options: { retry?: boolean; omitCache?: boolean; unscope
         : { role: 'assistant', content: JSON.stringify(extracting
             ? { value: 'captured', reasoning: 'Read from screen' }
             : judging ? { verdict: true, rationale: 'Visible' }
-            // A passing assertAI is confirmed by the step verifier (quick 261004-0hc), so only the
+            // A passing assertAI is confirmed by the step verifier, so only the
             // first verifier call, after the click, rejects.
             : verifierCalls === 1 ? { conditions: [{ quote: 'Click and verify Log in', verdict: 'not-met',
                 needs: 'none', controlRef: '', file: { name: '', match: 'none', text: '' }, citations: [],
@@ -377,7 +377,7 @@ function seedRefused(db: DashboardSqliteDatabase, stamp = 6): void {
     PRAGMA foreign_keys = ON;
   `)
 }
-// 2026-10-16 (442-01, D-03): no older file is upgraded, so historical rows are seeded into the current version.
+// no older file is upgraded, so historical rows are seeded into the current version.
 function seedHistoricalRowsIntoCurrent(dbPath: string, extraSql = ''): void {
   new DashboardDatabase({ dbPath }).close()
   const raw = createDashboardSqliteDatabase(dbPath)
@@ -416,8 +416,8 @@ async function detail(db: DashboardDatabase, runId: string) {
       runs: { get: forbidden }, config: { getMasked: forbidden },
     } as unknown as FunctionDeps,
   })
-  // 2026-10-01 (432-35, D-12): no `resolveExecutionContext` registry option and no `grantedScopes`
-  // or `safeMode` on the caller; the registry reads none of them (432-20).
+  // no `resolveExecutionContext` registry option and no `grantedScopes`
+  // or `safeMode` on the caller; the registry reads none of them.
   return RunDetailProjectionSchema.parse(await invokeFunction(
     registry, RUNS_DETAIL_FUNCTION_ID, { runId: asRunId(runId) },
     { surface: 'dashboard', origin: 'human' },

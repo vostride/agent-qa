@@ -16,7 +16,7 @@ import { readJsonBody } from './body-parser.js'
 
 /**
  * PATCH /api/config. The body is a change set; the answer is the revision now on disk, and for an
- * undoable change set a single-use Undo token (429-11 D-24).
+ * undoable change set a single-use Undo token.
  */
 export function registerConfigWriteRoute(
   req: IncomingMessage,
@@ -29,7 +29,7 @@ export function registerConfigWriteRoute(
       respondJson(res, 400, { error: 'invalid_write_input' })
       return
     }
-    // 429-44 WR-01: this door changes only what the page renders a field for.
+    // this door changes only what the page renders a field for.
     const refused = parsed.data.changes.some((change) =>
       !isPageWritableConfigPath(change.path)
       || (change.op === 'move' && !isPageWritableConfigPath(change.from)))
@@ -58,7 +58,7 @@ export function registerConfigWriteRoute(
       respondJson(res, 400, { error: outcome.error })
       return
     }
-    // 429-42: an expect found the field moved; the page recomputes from a fresh read.
+    // an expect found the field moved; the page recomputes from a fresh read.
     if (outcome.error === 'field_changed') {
       respondJson(res, 409, { error: outcome.error, path: outcome.path })
       return
@@ -84,7 +84,7 @@ export function registerConfigRevisionRoute(
 }
 
 /**
- * POST /api/config/undo (429-11 D-24). Redeems a token once and restores on the server, so the
+ * POST /api/config/undo. Redeems a token once and restores on the server, so the
  * page never writes back a copy it holds only masked. Same-site only; a newer write always wins.
  */
 export function registerConfigUndoRoute(

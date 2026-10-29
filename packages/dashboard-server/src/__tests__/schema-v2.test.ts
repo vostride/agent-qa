@@ -86,7 +86,7 @@ describe('a fresh dashboard database opens at the current version', () => {
       expect(executionLogColumns).toContain('test_index')
       expect(executionLogColumns).toContain('step_index')
 
-      // D-05/D-06: the token columns exist and are NULLABLE WITH NO DEFAULT. The v1 `steps`
+      // the token columns exist and are NULLABLE WITH NO DEFAULT. The v1 `steps`
       // table declares `prompt_tokens INTEGER DEFAULT 0`, and that zero is the lie the whole
       // "absent is not zero" rule exists to stop this schema from being able to tell.
       const stepColumns = raw.db
@@ -114,7 +114,7 @@ describe('an older or newer database is refused BY NAME, never migrated', () => 
     const dbPath = join(workDir, 'legacy-v1.db')
     writeV1Database(dbPath)
 
-    // 2026-10-16 (442-01, D-03): the refusal names the file, its version and the remedy.
+    // the refusal names the file, its version and the remedy.
     expect(() => new DashboardDatabase({ dbPath })).toThrow(RunsDatabaseVersionRefusedError)
     expect(() => new DashboardDatabase({ dbPath })).toThrow(dbPath)
     expect(() => new DashboardDatabase({ dbPath })).toThrow(/runs database version 1\)/)

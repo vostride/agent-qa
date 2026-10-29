@@ -70,7 +70,7 @@ function createMockDatabase() {
       attributePredicates,
     } = filters
 
-    // 405-07 (D-02): the real `getRuns` no longer filters on a parent link, because there is no
+    // the real `getRuns` no longer filters on a parent link, because there is no
     // parent link. Every row is top-level, so the mock starts from all of them.
     let filtered = [...runs]
 
@@ -210,11 +210,11 @@ function createMockDatabase() {
       return artifact
     },
     getRunArtifactBundle(runId: string) {
-      // 405-07 (D-02): one run's artifact. The `children` walk over the parent link went with the
+      // one run's artifact. The `children` walk over the parent link went with the
       // column, so the mock's shape follows the real member's.
       return { artifact: artifacts.get(runId) ?? null }
     },
-    // 405-10: the execution-logs arm is one of the four local human reads that crosses the display
+    // the execution-logs arm is one of the four local human reads that crosses the display
     // seam, so the mock has to be able to answer it. `logs` is planted through `__plantLog`.
     getExecutionLogs(filters: { runId: string }) {
       return executionLogs.filter((entry) => entry.runId === filters.runId)
@@ -234,7 +234,7 @@ interface MockResponse {
 
 // A mock request that omits `Host` models no real client: HTTP/1.1 requires the header and every
 // browser, `curl`, `fetch` and the conformance harness sends it. The display-seam read arms
-// (405 CR-01) now refuse a request whose claimed Host is not a loopback name, so the default below
+// now refuse a request whose claimed Host is not a loopback name, so the default below
 // is what keeps these direct-invoke probes speaking the wire's own shape. An explicit `host` in
 // `options.headers` still wins, which is how the refusal itself is exercised.
 const LOOPBACK_HOST_HEADER = { host: '127.0.0.1:3470' } as const
@@ -404,7 +404,7 @@ describe('POST run enqueue trigger attributes', () => {
 })
 
 // 2026-10-01 (432-21, owner decision recorded in 432-14 #4): the run trigger and the queue enqueue
-// are same-site only. With run approval gone (432-13/14), a simple cross-site POST to either legacy
+// are same-site only. With run approval gone, a simple cross-site POST to either legacy
 // route could start any non-production run; the same predicate the mark, config-write, live-editor
 // and credential doors use now refuses it before the queue is consulted or the body is read. The
 // non-browser callers of these two routes — the conformance harnesses, the appium-ownership suite,
@@ -654,7 +654,7 @@ describe('GET /api/runs route contract', () => {
     expect(JSON.parse(valuesRes.body).values).toEqual([{ value: 'phase223-main', count: 2 }])
   })
 
-  // 2026-08-27 (405-07, D-02): a suite row is ONE row. This cell used to seed a parent and two
+  // a suite row is ONE row. This cell used to seed a parent and two
   // linked children and assert the list attached them as `tests`, each enriched with the same
   // target contract. Nothing has written a child row since 402-09; the link, the walk and the
   // response key are gone, and a suite run's members are `run_members` on the one row. What the
@@ -693,7 +693,7 @@ describe('GET /api/runs route contract', () => {
     expect(plainRow).not.toHaveProperty('tests')
   })
 
-  // 405-07 (D-02): "top-level only" is no longer a filter, because every row is top-level. The
+  // "top-level only" is no longer a filter, because every row is top-level. The
   // paging claim it rode on is unchanged and is what this cell keeps: the page is 50 and the total
   // counts every matching row rather than the page.
   it('pages at 50 and reports the whole matching count as the total', async () => {
@@ -866,7 +866,7 @@ describe('GET /api/runs route contract', () => {
     expect(data.artifact.payload.source.rawYaml).toBe('name: preserved')
   })
 
-  // 2026-08-27 (405-07, D-02): the artifact body is one run's artifact. The `children` array it
+  // the artifact body is one run's artifact. The `children` array it
   // used to carry walked the deleted parent link, so it was structurally empty on every run this
   // build produces. `missingSections` — the half of this cell that was never about children — is
   // what it now measures on its own.
@@ -903,7 +903,7 @@ describe('GET /api/runs route contract', () => {
   })
 })
 
-// ---- CR-02: the confirm scope stops leaving on the read path (401-18) ---------------------------
+// ---- CR-02: the confirm scope stops leaving on the read path ---------------------------
 //
 // `POST /api/runs/trigger` persists the triggering browser's confirm scope into `runs.metadata` so
 // the QUEUE can address that browser when the run finally starts. Every run-reading endpoint then
@@ -952,7 +952,7 @@ describe('no run-reading response hands out the confirm scope', () => {
     expect((JSON.parse(res.body) as { runs: unknown[] }).runs).toHaveLength(1)
   })
 
-  // 2026-08-27 (405-07, D-02): the nested `tests` door is CLOSED rather than clean. The list used
+  // the nested `tests` door is CLOSED rather than clean. The list used
   // to attach a suite row's child runs, each a full run row that needed its own strip; the array
   // and the column it walked are gone. The strongest thing this cell can say now is that the door
   // is not there — a nested run row would be a NEW serialization site, and the 401-23 construction
@@ -974,7 +974,7 @@ describe('no run-reading response hands out the confirm scope', () => {
     expect(res.body).not.toContain(LEAKED_SCOPE)
   })
 
-  // 405-07 (D-03/D-02): the detail body is `{ run }`. `attempts` and `tests` were two more run-row
+  // the detail body is `{ run }`. `attempts` and `tests` were two more run-row
   // serialization sites, both walked off the deleted parent link; the door narrows to one row and
   // the strip on it is what remains to prove.
   it('DOOR 2 — GET /api/runs/:id (the detail) carries none, and serves one run row only', async () => {
@@ -994,7 +994,7 @@ describe('no run-reading response hands out the confirm scope', () => {
   })
 
   it('DOOR 3 — GET /api/runs/:id/artifact carries none, in `run` AND in the artifact PAYLOAD', async () => {
-    // THE SEVENTH DOOR (G-401-18-CR01). The 401-18 version of this cell seeded
+    // THE SEVENTH DOOR. The 401-18 version of this cell seeded
     // `db.insertRunArtifact({ runId, kind: 'test' })` — an artifact with NO PAYLOAD — so its
     // `not.toContain(LEAKED_SCOPE)` was structurally incapable of failing on the very field its
     // name claims. The payload below is shaped the way the PRODUCTION WRITER shapes it
@@ -1019,7 +1019,7 @@ describe('no run-reading response hands out the confirm scope', () => {
       artifact: { payload: Record<string, unknown> } | null
     }
     expect(data.run.metadata).not.toHaveProperty('confirmScope')
-    // 405-07 (D-02): the child artifact this cell also drove is gone with the `children` key.
+    // the child artifact this cell also drove is gone with the `children` key.
     expect(data).not.toHaveProperty('children')
 
     // THE PAYLOAD REALLY WAS SERVED before anything is claimed about what it does not contain.
@@ -1168,7 +1168,7 @@ describe('the read-path census cannot rot', () => {
   })
 
   /**
-   * PREDICATE B — THE WRAPPER'S OWN LIVE METHOD SURFACE (401-23, WR-08).
+   * PREDICATE B — THE WRAPPER'S OWN LIVE METHOD SURFACE.
    *
    * A DIFFERENT AXIS, NOT A SECOND SPELLING OF PREDICATE A. Predicate A reads a SOURCE FILE and
    * believes what an annotation says; this one ranges the OBJECT the router will actually be handed
@@ -1308,10 +1308,10 @@ describe("a persisted row's execution timeout is validated where it is consumed"
   })
 })
 
-// ---- 441-15 (D-07): the LOCAL door's four other human reads serve stored text unchanged ----------
+// ---- 441-15: the LOCAL door's four other human reads serve stored text unchanged ----------
 //
 // The run list, `GET /api/runs/:id`, `/execution-logs` and `/artifact` answer what was written,
-// masked at write. A declared value's named marker and an old run's numbered placeholder (D-20)
+// masked at write. A declared value's named marker and an old run's numbered placeholder
 // both reach the browser as the text they are, with or without an agent host bound.
 
 const STORED_MARKER = '[secret:PW_441]'

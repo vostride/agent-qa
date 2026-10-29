@@ -1,4 +1,4 @@
-// `GET /api/runs/:id/knowledge` — the Knowledge panel's door (Phase 407 plan 01, D-05/D-06).
+// `GET /api/runs/:id/knowledge` — the Knowledge panel's door.
 //
 // WHY A REAL REGISTRY AND NOT A PLANTED HOST for the first four cells. `runs.knowledge` is where
 // the `evidence-incomplete` arm is decided, where the input schema refuses an id and where the
@@ -18,7 +18,7 @@
 //
 // THE CENTRAL CLAIM, AND IT IS THE ONE A CARELESS COPY OF `run-detail-routes.ts` WOULD BREAK: an
 // unknown run answers 200 `evidence-incomplete`, NOT 404 `unknown_run`. `runs.detail` throws
-// `RunNotFoundError` for a run it cannot load; `runs.knowledge` returns (D-06), because a page
+// `RunNotFoundError` for a run it cannot load; `runs.knowledge` returns, because a page
 // whose evidence has been garbage-collected has a legible state to render and a refusal would make
 // that state indistinguishable from a broken read.
 
@@ -66,7 +66,7 @@ afterEach(async () => {
 const RUN_ID = 'r_knowledge-alpha-bravo-charlie-delta-echo-foxtrot-golf-hotel'
 const SCOPE: ScopeKey = { tier: 'product', key: 'shop' }
 
-// 2026-10-01 (432-21, D-12): the tokenless caller shape — no scope set or safe-mode flag.
+// the tokenless caller shape — no scope set or safe-mode flag.
 const REGISTRY_CALLER: FunctionCaller = {
   surface: 'dashboard',
   origin: 'human',
@@ -262,7 +262,7 @@ describe('GET /api/runs/:id/knowledge — the read', () => {
     // absence is the design rather than a hole in this suite. `runs.detail` and `analysis.get`
     // reach that leg because they declare an optional binding dep and refuse `FunctionNotBoundError`
     // where it is missing; `runs.knowledge` declares none — its substrate is the REQUIRED runs port
-    // — so there is no composition that lists it and then cannot run it (407 D-05). What remains
+    // — so there is no composition that lists it and then cannot run it. What remains
     // reachable is a composition that passed the WRONG id, and the honest answer to that is an
     // unclassified throw travelling as a NAME rather than as a message that might quote a path.
     //

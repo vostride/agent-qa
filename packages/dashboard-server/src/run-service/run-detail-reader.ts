@@ -1,4 +1,4 @@
-// The dashboard's run-detail READ ADAPTER (Phase 405 plan 01, D-03).
+// The dashboard's run-detail READ ADAPTER.
 //
 // Reads over `DashboardDatabase.readRunDetailRows` and `getRun`, handed to the CLI composition so
 // the function layer's ops can answer without this package ever seeing a registry.
@@ -30,7 +30,7 @@ import type { DashboardDatabase } from '../db/database.js'
  */
 export interface DashboardRunDetailReader {
   read(runId: RunId): Promise<RunDetailRows | undefined>
-  // 2026-10-18 (444-12, D-14): the row's stored status only, read through the response-safe getRun.
+  // the row's stored status only, read through the response-safe getRun.
   readRecord(runId: RunId): Promise<{ status: string } | undefined>
 }
 

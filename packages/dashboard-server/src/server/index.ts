@@ -11,6 +11,6 @@ export {
 } from './request-url.js'
 
 // The injected-host seam, published because the CLI command that starts this server composes the
-// host. 2026-10-01 (432-14, D-14): the run-confirm router, its route table and the confirm registry
+// host. 2026-10-01: the run-confirm router, its route table and the confirm registry
 // that were published beside it are deleted.
 export type { AgentHost, AgentRegistryHandle } from '../chat/host.js'

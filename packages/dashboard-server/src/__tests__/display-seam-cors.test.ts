@@ -22,9 +22,9 @@ const RUN_TEXT_READ_PATHS: readonly string[] = [
   `/api/runs/${RUN_ID}/artifact`,
   `/api/runs/${RUN_ID}/execution-logs`,
   `/api/runs/${RUN_ID}/detail`,
-  // 406-01 (D-04): the failure view's read; the verdict sentence quotes the failing step's error.
+  // the failure view's read; the verdict sentence quotes the failing step's error.
   `/api/runs/${RUN_ID}/analysis`,
-  // 407-01 (D-05): the Knowledge panel's read, over every step's text and served brief line.
+  // the Knowledge panel's read, over every step's text and served brief line.
   `/api/runs/${RUN_ID}/knowledge`,
 ]
 
@@ -65,7 +65,7 @@ function runTextHost(): AgentHost {
     runsDetailFunctionId: 'test:runs-detail',
     runsArtifactFunctionId: 'test:runs-artifact',
     analysisGetFunctionId: 'test:analysis-get',
-    // 407-01 (D-05): the sixth dispatched id, widened here so every AgentHost literal in the
+    // the sixth dispatched id, widened here so every AgentHost literal in the
     // workspace still satisfies the interface.
     runsKnowledgeFunctionId: 'test:run-knowledge',
     invokeFunction: () => Promise.resolve({

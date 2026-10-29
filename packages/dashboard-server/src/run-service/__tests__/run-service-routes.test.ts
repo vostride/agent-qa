@@ -1,4 +1,4 @@
-// The run service router's FRAMING and REFUSAL mechanics (Phase 402 plan 01, D-06/D-13 · INVK-03).
+// The run service router's FRAMING and REFUSAL mechanics.
 //
 // THE FRAME, STATED, AND ITS LIMIT. These cells mount `createRunServiceRoutes` on a bare
 // `createServer` with FAKE ports. That is deliberately NOT the production composition — the
@@ -48,7 +48,7 @@ import {
   type RunServicePorts,
 } from '../run-service-routes.js'
 
-// 2026-10-01 (432-21, D-12): no declared token — the door is tokenless. What it refuses at the
+// no declared token — the door is tokenless. What it refuses at the
 // door is a cross-site request, spelled by these two header sets (each trips one rung of the shared
 // same-site guard: a foreign `Origin`, and a cross-site fetch-metadata header).
 const CROSS_SITE = { Origin: 'https://evil.example' } as const
@@ -79,7 +79,7 @@ function plantedSession(options: { readonly throwOnSubscribe?: boolean } = {}): 
       for (const envelope of PLANTED_ENVELOPES) handler(envelope)
       return () => undefined
     },
-    // 403 D-05: a planted session with no browser declares no stream and hands out no frame
+    // a planted session with no browser declares no stream and hands out no frame
     // subscription — the honest absent declaration, not a stub a viewer would wait on forever.
     subscribeFrames() { return undefined },
     streamCapabilityOf() { return { kind: 'none' } },
@@ -217,7 +217,7 @@ describe('the stream head is never written before the answer is settled', () => 
   })
 })
 
-// RE-SPELLED 2026-10-01 (432-21, D-12/D-13): the rung above the route table is the same-site guard,
+// RE-SPELLED 2026-10-01: the rung above the route table is the same-site guard,
 // not the bearer verdict. The claims — identical refusal on every route, declared or not, and the run
 // starter never consulted — are unchanged; the refusal is `cross_site_refused` at 403.
 describe('the verdict stands above the route table', () => {
@@ -251,9 +251,9 @@ describe('the verdict stands above the route table', () => {
   })
 })
 
-// ---- Task 2: `/ok` — authed, shallow-but-honest readiness (D-15) -----------------------------
+// ---- Task 2: `/ok` — authed, shallow-but-honest readiness -----------------------------
 
-// RE-SPELLED 2026-10-01 (432-21, D-12/D-13) from 'refuses a request with no token' and 'refuses a
+// RE-SPELLED 2026-10-01 from 'refuses a request with no token' and 'refuses a
 // wrong token with a body shape-identical to the missing-token refusal': `/ok` is still behind the
 // door's one guard, which is now the same-site check; both of its rungs answer one body shape.
 describe('GET /ok is a service route like every other one', () => {
@@ -282,7 +282,7 @@ describe('GET /ok is a service route like every other one', () => {
     expect(response.status).toBe(200)
     expect(response.headers.get('content-type')).toContain('application/json')
     const body = RunServiceReadinessSchema.parse(await response.json())
-    // 432-21 (D-12): a local caller with no token is served; 432-22 removed `authConfigured`.
+    // a local caller with no token is served; 432-22 removed `authConfigured`.
     expect(body).toEqual({
       service: 'up',
       hostComposed: true,
@@ -317,7 +317,7 @@ describe('the refusal-shape census walks the module\'s OWN route table', () => {
    * added tomorrow is covered the day it lands and cannot escape this cell by nobody noticing it.
    * A hardcoded list of three paths would be a claim about three paths.
    */
-  // 405-05: `:sha` joins `:runId` as a template parameter. Substituted rather than left literal
+  // `:sha` joins `:runId` as a template parameter. Substituted rather than left literal
   // so the probe drives the row's real shape — a path still carrying `:sha` would match the
   // pattern by accident and the census would be testing a coincidence.
   const probePathFor = (row: { readonly path: string }): string =>
@@ -325,19 +325,19 @@ describe('the refusal-shape census walks the module\'s OWN route table', () => {
 
   it('covers every declared route, and the table is not empty', async () => {
     // Non-vacuity first: a census over an empty table passes by finding nothing to drive.
-    // 405-05 (D-12 / 402 D-16): six. The two READ rows joined the table, which is exactly what
+    // six. The two READ rows joined the table, which is exactly what
     // "mounts behind the same authed door" has to mean mechanically — a row outside this array is
     // unreachable, and a row inside it is driven unauthenticated by the two cells below.
-    // 406-01 (D-04): seven. The analysis row joined the table, and joining it here is what makes
+    // seven. The analysis row joined the table, and joining it here is what makes
     // "the failure view is served on both doors" mechanical rather than a claim — the census cells
     // below drive it unauthenticated the day it lands.
     expect(RUN_SERVICE_ROUTE_TABLE.length).toBeGreaterThanOrEqual(7)
     const handlers = RUN_SERVICE_ROUTE_TABLE.map((row) => row.handler).sort()
-    // 423-21 (D-18): the two feedback reads joined the table, so the census drives them unauthenticated too.
+    // the two feedback reads joined the table, so the census drives them unauthenticated too.
     expect(handlers).toEqual(['analysis', 'artifact', 'detail', 'events', 'evidence', 'liveUrl', 'markPreview', 'marks', 'ok', 'start'])
   })
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12/D-13) from 'refuses a MISSING token on every row with one
+  // RE-SPELLED 2026-10-01 from 'refuses a MISSING token on every row with one
   // body shape' and 'refuses an INVALID token on every row with the same body shape'. The census
   // still walks the module's own table; what every row refuses is a cross-site request, on either
   // rung of the same-site guard, with one body shape.
@@ -369,7 +369,7 @@ describe('the refusal-shape census walks the module\'s OWN route table', () => {
   })
 })
 
-// ---- 405-05 (D-12 / 402 D-16): the two READ rows reach the adapters, behind the verdict --------
+// ---- 405-05: the two READ rows reach the adapters, behind the verdict --------
 //
 // WHAT THESE CELLS CLAIM AND WHAT THEY LEAVE TO OTHERS. The projection's shape, the header set and
 // every refusal word are measured over a REAL registry and a REAL store in
@@ -391,10 +391,10 @@ describe('the READ rows dispatch through the injected host', () => {
       runsEventsFunctionId: 'test:planted-events-op',
       runsDetailFunctionId: 'test:planted-run-detail-op',
       runsArtifactFunctionId: 'test:planted-run-artifact-op',
-      // 406-01 (D-04): a sixth. This fixture DOES reach it — the analysis row's cell below asserts
+      // a sixth. This fixture DOES reach it — the analysis row's cell below asserts
       // the id the dispatch handed `invokeFunction`.
       analysisGetFunctionId: 'test:planted-analysis-get-op',
-      // 407-01 (D-05): the sixth dispatched id, widened here so every AgentHost literal in the
+      // the sixth dispatched id, widened here so every AgentHost literal in the
       // workspace still satisfies the interface.
       runsKnowledgeFunctionId: 'test:planted-run-knowledge-op',
       invokeFunction: (_registry: unknown, functionId: string) => {
@@ -451,7 +451,7 @@ describe('the READ rows dispatch through the injected host', () => {
     }
   })
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12/D-13) from 'refuses BOTH rows unauthenticated, before any
+  // RE-SPELLED 2026-10-01 from 'refuses BOTH rows unauthenticated, before any
   // host is consulted'. No row asks for a credential; a cross-site read is what is refused, and still
   // before any host is consulted.
   it('refuses BOTH rows cross-site, before any host is consulted', async () => {
@@ -486,7 +486,7 @@ describe('the readiness predicate has ONE declaration site, and it is not here',
   })
 })
 
-// ---- 403-03 (D-13 / D-15 · INVK-05): the resume point, the typed floor, the roster on resume ----
+// ---- 403-03: the resume point, the typed floor, the roster on resume ----
 //
 // WHAT A DOOR-LEVEL CELL CAN SAY THAT A PARSER CELL CANNOT. `resumePointOf` is a pure function and
 // its table is below, but the claim INVK-05 makes is about what crosses the socket: that a caller
@@ -807,7 +807,7 @@ async function refusalAt(
   return { status: response.status, body: await response.json() as Record<string, unknown> }
 }
 
-// 2026-10-01 (432-21, D-12): a local caller sends no credential, so the admitted header set is empty.
+// a local caller sends no credential, so the admitted header set is empty.
 // The three bearer codes left the closed set with the bearer, and `cross_site_refused` joined it.
 const authed: Record<string, string> = {}
 
@@ -989,7 +989,7 @@ describe('the authed door mints a liveUrl', () => {
     expect(await response.json()).toEqual(MINTED)
   })
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12) from 'carries the BEARER'S trust scope to the port — never
+  // RE-SPELLED 2026-10-01 from 'carries the BEARER'S trust scope to the port — never
   // a scope of the door's own'. No bearer and no trust scope exist; the port is handed the subject
   // the caller named and nothing about who the caller is, and the composition supplies the one
   // caller the mint runs under.
@@ -1050,7 +1050,7 @@ describe('the authed door mints a liveUrl', () => {
     },
   )
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12/D-13) from '… — no credential, no mint': the guard every route
+  // RE-SPELLED 2026-10-01 from '… — no credential, no mint': the guard every route
   // is under is the same-site check, and a refused mint still never reaches the port.
   it('is under the SAME verdict as every other route — cross-site, no mint', async () => {
     const { ports, seen } = recordingMintPorts()

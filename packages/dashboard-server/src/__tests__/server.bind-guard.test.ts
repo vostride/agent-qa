@@ -11,7 +11,7 @@ import { RUN_SERVICE_CONTRACT_VERSION } from '@vostride/agent-qa-schema'
 import { DashboardRemoteBindRefusedError, startServer } from '../server/server.js'
 
 /**
- * THE BIND CONTRACT (402-05, D-07 — INVK-03).
+ * THE BIND CONTRACT.
  *
  * The measured fact this file exists for: before 402-05 `startServer` called `server.listen(port)`
  * with no host, which binds every interface — so the dashboard's UNAUTHENTICATED run trigger was
@@ -44,7 +44,7 @@ function configPathFor(legacyTokens = false): string {
   const tempDir = mkdtempSync(join(tmpdir(), 'agent-qa-bind-guard-'))
   roots.push(tempDir)
   const configPath = join(tempDir, 'agent-qa.config.yaml')
-  // 432-21 (D-12/D-22): the legacy run-service token block, as a pre-432 project would still carry
+  // the legacy run-service token block, as a pre-432 project would still carry
   // it on disk. Nothing reads it; it is here so the bind refusal is measured with it present.
   writeFileSync(configPath, legacyTokens
     ? [
@@ -72,7 +72,7 @@ type Readiness = NonNullable<Parameters<typeof startServer>[0]['runServiceReadin
  * not merely "two functions that agree today".
  */
 function stubRunServicePorts(readiness: Readiness): ServicePorts {
-  // 2026-10-01 (432-21, D-12): no `verifyBearer` — the run service is tokenless.
+  // no `verifyBearer` — the run service is tokenless.
   return {
     invokeRunStart: () => { throw new Error('the bind cells never start a run') },
     attach: () => undefined,
@@ -226,7 +226,7 @@ describe('the dashboard bind contract', () => {
     }
   })
 
-  // 2026-10-01 (432-21, D-12/D-13): the run-service tokens are deleted, and the loopback bind is
+  // the run-service tokens are deleted, and the loopback bind is
   // what D-13 keeps. The refusal is unconditional with the tokenless run service mounted, with and
   // without a legacy token declaration on disk, and an ordinary local start still binds and serves.
   it('refuses a non-loopback bind with and without a legacy token block, and an ordinary local start serves', async () => {
@@ -249,7 +249,7 @@ describe('the dashboard bind contract', () => {
 })
 
 /**
- * THE LOCAL READINESS DOOR — ONE PREDICATE, TWO DOORS (402-05, D-15).
+ * THE LOCAL READINESS DOOR — ONE PREDICATE, TWO DOORS.
  *
  * The cells hand ONE function object to both `runService.readiness` (which the authed `/ok`
  * serves) and `runServiceReadiness` (which the local `/api/run-readiness` serves), then drive both
@@ -308,7 +308,7 @@ describe('the local readiness door', () => {
     expect(after[0].body).toMatchObject({ hostComposed: true })
   })
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12/D-13) from 'answers the LOCAL door with no token at all —
+  // RE-SPELLED 2026-10-01 from 'answers the LOCAL door with no token at all —
   // the bind guard is what keeps it local'. Neither door asks for a token now; the bind guard still
   // keeps both local, and the run service's same-site guard refuses a cross-site readiness probe.
   it('answers BOTH doors with no token at all — the bind guard is what keeps them local', async () => {

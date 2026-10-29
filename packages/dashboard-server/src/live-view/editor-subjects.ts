@@ -1,4 +1,4 @@
-// THE LIVE EDITOR SUBJECTS (428 D-07) — the frame socket's lookup for editor sessions.
+// THE LIVE EDITOR SUBJECTS — the frame socket's lookup for editor sessions.
 //
 // An editor session is the second subject a live view can show. It shares everything else with a
 // run: the view scope, the signer, the fragment carriage, the TTL, the embed page and this frame

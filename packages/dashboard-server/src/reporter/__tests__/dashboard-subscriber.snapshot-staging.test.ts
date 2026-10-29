@@ -6,7 +6,7 @@ import { DashboardDatabase } from '../../db/database.js'
 import { createRouter } from '../../server/routes.js'
 import { createDashboardRunIngest } from '../dashboard-subscriber.js'
 
-// G-433-5 / F-433-15 (433-29). No run on any door stored its test as written or its effective
+// G-433-5 / F-433-15. No run on any door stored its test as written or its effective
 // config: the dashboard door kept the queue's `loadStatus: 'queued'` source and never got a config,
 // and the CLI door's ingest was built without either. The ingest now stages the producer's loaded
 // snapshot onto its run's own artifact — once, never over a loaded section, never after finalize.

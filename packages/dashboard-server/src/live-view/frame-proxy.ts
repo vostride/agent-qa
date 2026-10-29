@@ -1,4 +1,4 @@
-// The FRAME PROXY (403 D-04/D-06/D-16) — the server end of one viewer's socket.
+// The FRAME PROXY — the server end of one viewer's socket.
 //
 // WHAT IT HOLDS AND WHAT IT DOES NOT. It holds a validator it was HANDED, a run lookup it was
 // HANDED and, when it serves editor sessions, an editor lookup it was HANDED. It parses no token,
@@ -6,20 +6,20 @@
 // `deps.validate` is the function layer's own `validateLiveUrlToken` bound to the same signer that
 // minted (LIVE-02's third prohibition made structural).
 //
-// TWO SUBJECTS, ONE SOCKET (428 D-07). The path id names a run or an editor session, and the
+// TWO SUBJECTS, ONE SOCKET. The path id names a run or an editor session, and the
 // token's SIGNED subject kind decides which lookup is asked. A run token only ever reaches the run
 // lookup and an editor token only ever reaches the editor lookup, even when both hold the same id.
 // Validation always comes before either lookup, so `unknown_run` and `unknown_session` are only
 // reachable with a valid token for that exact id.
 //
-// D-16: a detach NEVER touches the run. Closing a viewer's socket unsubscribes it from the frame
+// a detach NEVER touches the run. Closing a viewer's socket unsubscribes it from the frame
 // hub and clears this socket's timers, and that is the whole of it — nothing that ends a run,
 // nothing that tears one down, no effect a person would not expect from closing a window.
 //
 // THAT CLAIM IS PINNED BY A SOURCE SCAN, which is why the run-ending verb does not appear anywhere
 // in this file, not even in prose: `live-view.frame-proxy.test.ts` cell (21) asserts the token is
 // absent from these bytes, so an implementation that grew the call — or a comment that talked
-// itself into one — is a named RED rather than a review someone has to notice (T-403-07).
+// itself into one — is a named RED rather than a review someone has to notice.
 
 import type WebSocket from 'ws'
 
@@ -45,7 +45,7 @@ import type { LiveEditorAttachment } from './editor-subjects.js'
 export interface FrameProxyDeps {
   validate(token: string, expect: { subject: LiveViewSubjectRef; now: number }): LiveUrlVerdict
   attach(runId: string): RunSession | undefined
-  /** 428 D-07: the editor-subject lookup. Absent means no editor subject is served on this socket. */
+  /** the editor-subject lookup. Absent means no editor subject is served on this socket. */
   attachEditor?(sessionId: string): LiveEditorAttachment | undefined
   now?: () => number
 }
@@ -66,7 +66,7 @@ export function createFrameProxy(deps: FrameProxyDeps): (ws: WebSocket, runId: s
     let subscription: LiveFrameSubscription | undefined
     /** The subject kind the greet resolved. A renew is validated against this kind only. */
     let subjectKind: LiveViewSubjectKind | undefined
-    /** The handle the greet opened, and the expiry the deadline is armed for (428 WR-07). */
+    /** The handle the greet opened, and the expiry the deadline is armed for. */
     let greetedHandle: number | undefined
     let deadlineAt: number | undefined
     let deadline: ReturnType<typeof setTimeout> | undefined
@@ -106,7 +106,7 @@ export function createFrameProxy(deps: FrameProxyDeps): (ws: WebSocket, runId: s
         subscription?.ack(frame.id)
         return
       }
-      // 428 D-15: the capture time and kind the frame CARRIES, forwarded when present. The proxy
+      // the capture time and kind the frame CARRIES, forwarded when present. The proxy
       // keeps no clock of its own for this: a time taken here measures socket delivery, not capture.
       send(ws, {
         type: 'frame',
@@ -116,7 +116,7 @@ export function createFrameProxy(deps: FrameProxyDeps): (ws: WebSocket, runId: s
         ...(frame.metadata.timestamp !== undefined ? { ts: frame.metadata.timestamp } : {}),
         ...(frame.kind !== undefined ? { kind: frame.kind } : {}),
       })
-      // THE BINARY HALF IS GUARDED TOO (403 WR-06). The check at the top of this callback is not
+      // THE BINARY HALF IS GUARDED TOO. The check at the top of this callback is not
       // enough: a socket can close between it and here, and `ws.send` then THROWS — straight up
       // into the hub's delivery walk, which detaches the viewer and reports the fault. The header
       // above already goes through the guarded writer; this one used to be bare.
@@ -158,7 +158,7 @@ export function createFrameProxy(deps: FrameProxyDeps): (ws: WebSocket, runId: s
       deps.validate(token, { subject: { kind, id: runId }, now: now() })
 
     /**
-     * RESOLVE THE SUBJECT BY THE TOKEN'S SIGNED KIND (428 D-07). A run first; only a
+     * RESOLVE THE SUBJECT BY THE TOKEN'S SIGNED KIND. A run first; only a
      * `scope_mismatch` there, on a socket that serves editor sessions, is worth asking again as an
      * editor. Every other refusal is the answer as it stands.
      */
@@ -192,7 +192,7 @@ export function createFrameProxy(deps: FrameProxyDeps): (ws: WebSocket, runId: s
           return
         }
       }
-      // D-10: an editor subject reuses the published fields as they are. `runId` is the path id
+      // an editor subject reuses the published fields as they are. `runId` is the path id
       // and `handle` is 0; no subject field is added.
       send(ws, { type: 'ready', runId, handle, stream, expiresAt })
       armDeadline(expiresAt)
@@ -293,7 +293,7 @@ export function createFrameProxy(deps: FrameProxyDeps): (ws: WebSocket, runId: s
           refuse(verdict.reason)
           return
         }
-        // 428 WR-07: a token is view-scoped to one handle, so a renew must name the handle this
+        // a token is view-scoped to one handle, so a renew must name the handle this
         // socket greeted with; and an older token, replayed or reordered, never shortens the
         // deadline a newer one set.
         const renewed = verdict.claims.subject

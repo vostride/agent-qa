@@ -50,13 +50,13 @@ import {
   type RunServicePorts,
 } from '../run-service/run-service-routes.js'
 import type { RunServiceReadiness } from '@vostride/agent-qa-schema'
-// 396-01 D-10: the `@vostride/agent-qa-mcp` import is GONE, together with the MCP endpoint this
+// the `@vostride/agent-qa-mcp` import is GONE, together with the MCP endpoint this
 // server used to start beside the dashboard. The v2 server is composed per-caller by the CLI's own
 // host (`agent-qa mcp`) over the function registry, so a dashboard that mounted its own copy would
 // be a second composition root for the same surface — the private power the milestone abolishes.
 // M5's dashboard rebuild decides whether it wants a mount back, via `/hono` and its own decision.
 //
-// 2026-08-24 — THE HONO RESERVATION IS RETIRED (Phase 402 D-03). The question this file reserved
+// THE HONO RESERVATION IS RETIRED. The question this file reserved
 // ("would a framework earn its place here?") is answered: no. The run service mounted below is
 // hand-rolled `node:http`, like the daemon server and the MCP listener — zero new dependencies at a
 // network boundary, one routing idiom per process. A framework added later would
@@ -100,7 +100,7 @@ export class DashboardRemoteBindRefusedError extends Error {
   }
 }
 
-/** Where this server binds when nothing says otherwise (402-05, D-07). BREAKING since v2. */
+/** Where this server binds when nothing says otherwise. BREAKING since v2. */
 export const DEFAULT_DASHBOARD_HOST = '127.0.0.1'
 
 interface StartServerOptions {
@@ -112,7 +112,7 @@ interface StartServerOptions {
   /**
    * Where this workspace writes run artifacts (`services.dashboard.artifactsDir`).
    *
-   * ACCEPTED AND NOT READ BY THIS SERVER SINCE 405-07 (D-14). It used to be resolved into a
+   * ACCEPTED AND NOT READ BY THIS SERVER SINCE 405-07. It used to be resolved into a
    * screenshots and a videos root that two path-serving routes and the run-deletion sweep read.
    * Refs are the only artifact addressing now, and the bytes are reached through the
    * `runs.artifact` op over the evidence store's own layout. The option stays declared because it
@@ -122,23 +122,23 @@ interface StartServerOptions {
   artifactsDir?: string
   workspacePaths?: ResolvedWorkspacePaths
   configPath?: string
-  // 441-21 (D-29): every config read this server serves passes through the declared mask.
+  // every config read this server serves passes through the declared mask.
   declaredSecretMask: MaskFn
   llmConfig?: DashboardLLMConfig & {
     vision?: { screenshotSize?: number; effectiveResolution?: number }
   }
   authFetch?: typeof globalThis.fetch
   /**
-   * The composed agent host the chat door dispatches through (400-01, D-01).
+   * The composed agent host the chat door dispatches through.
    *
    * INJECTED by whoever starts this server — in production `agent-qa dashboard`, which composes the
    * SAME port set `agent-qa chat` does and hands it over, so the two interactive doors have one
-   * answer to "what can a conversation do" (D-08). Absent leaves the chat routes answering 501 by
+   * answer to "what can a conversation do". Absent leaves the chat routes answering 501 by
    * name: the door exists, this process was started without a host. See `chat/host.ts`.
    */
   agentHost?: AgentHost
   /**
-   * The backend every dashboard run executes through (401-07, D-01/D-09/D-10 — INVK-01).
+   * The backend every dashboard run executes through.
    *
    * INJECTED, ON `agentHost`'s OWN IDIOM AND FOR ITS OWN REASON. The implementation that starts a
    * run names `runs.start`, `invokeFunction` and the composed local host — all of it
@@ -153,7 +153,7 @@ interface StartServerOptions {
    */
   executionBackend?: ExecutionBackend
   /**
-   * The run service's ports (402-01, D-02/D-06 — INVK-03).
+   * The run service's ports.
    *
    * INJECTED, ON `agentHost`'s AND `executionBackend`'s OWN IDIOM AND FOR THEIR OWN REASON. The
    * implementations name `runs.start`, `invokeFunction` and the composed local host — all of it
@@ -162,7 +162,7 @@ interface StartServerOptions {
    * a mountable module rather than a fourth process.
    *
    * ABSENT MEANS THE SERVICE IS NOT MOUNTED, and `/run` and its neighbours reach whatever the
-   * static/SPA handling below does with an unknown path. 2026-10-01 (432-21, D-12): `agent-qa
+   * static/SPA handling below does with an unknown path. 2026-10-01: `agent-qa
    * dashboard` supplies it unconditionally now. It used to mount only when a run-service credential
    * was declared, and those credentials are deleted; the door is guarded by the same-site check
    * and the loopback bind like every other door here. Absent is a bare in-process mount's posture.
@@ -179,7 +179,7 @@ interface StartServerOptions {
    */
   runServiceReadiness?: () => RunServiceReadiness
   /**
-   * The run id → live `RunSession` lookup, as a FIRST-CLASS option (403 D-14 — WINDOWS #264).
+   * The run id → live `RunSession` lookup, as a FIRST-CLASS option.
    *
    * SEPARATE FROM `runService` AND NOT DERIVED FROM IT, on `runServiceReadiness`'s exact argument
    * one field up. The derivation `runService?.attach` is what made the local run-stream door
@@ -193,7 +193,7 @@ interface StartServerOptions {
    */
   runServiceAttach?: (runId: string) => RunSession | undefined
   /**
-   * The live-view seam (403 D-03/D-06): the function layer's validator, by reference, and the
+   * The live-view seam: the function layer's validator, by reference, and the
    * mint dispatched through the registry.
    *
    * ABSENT MEANS NO LIVE VIEW IS SERVED — the embed route is not registered, the frame socket
@@ -204,13 +204,13 @@ interface StartServerOptions {
     validate(token: string, expect: { subject: LiveViewSubjectRef; now: number }): LiveUrlVerdict
     mintLiveUrl(runId: string, handle: number): Promise<RunsLiveUrlResult>
     /**
-     * The `editor.liveurl` mint, dispatched through the registry (428 D-07). ABSENT MEANS NO
+     * The `editor.liveurl` mint, dispatched through the registry. ABSENT MEANS NO
      * EDITOR VIEW IS MINTED, and `GET /api/live-editor/sessions/:id/live-url` answers 503 by name.
      */
     mintEditorLiveUrl?(sessionId: string): Promise<EditorLiveUrlResult>
   }
   /**
-   * The editor-subject registry (428 D-07): the session manager registers each live editor session
+   * The editor-subject registry: the session manager registers each live editor session
    * here and the frame socket attaches editor subjects through it.
    *
    * ABSENT MEANS NO EDITOR SUBJECT IS SERVED ON THE FRAME SOCKET. `agent-qa dashboard` creates one
@@ -218,7 +218,7 @@ interface StartServerOptions {
    */
   liveEditorSubjects?: LiveEditorSubjects
   /**
-   * The in-process post-processing chip relay (404-05, D-16).
+   * The in-process post-processing chip relay.
    *
    * INJECTED, ON `agentHost`'s OWN IDIOM AND FOR ITS OWN REASON. The PUBLISHER is the CLI's
    * post-run chip emitter, in this same process, and this package may not import it — so
@@ -240,7 +240,7 @@ export async function startServer(opts: StartServerOptions): Promise<{
   close: () => void
 }> {
   const { db, port = 3470, uiDir, workspacePaths, configPath, llmConfig, authFetch, agentHost, executionBackend, runService, runServiceReadiness, liveView, liveEditorSubjects, postProcessingRelay } = opts
-  // 403 D-14: the explicit port wins; the pre-403 derivation is the fallback for legacy callers.
+  // the explicit port wins; the pre-403 derivation is the fallback for legacy callers.
   const runServiceAttach = opts.runServiceAttach ?? runService?.attach
   const host = opts.host?.trim() || DEFAULT_DASHBOARD_HOST
 
@@ -276,7 +276,7 @@ export async function startServer(opts: StartServerOptions): Promise<{
     } catch { /* best-effort cleanup */ }
   }
 
-  // THE RUN'S TERMINAL STATE, RECONCILED WHERE THE CHILD'S EXIT USED TO BE (401-07, D-04/D-09).
+  // THE RUN'S TERMINAL STATE, RECONCILED WHERE THE CHILD'S EXIT USED TO BE.
   //
   // This body is the `onProcessClose` reconciliation, unchanged in what it writes. What changed is
   // where the facts come from: the status is the bus's own ground truth rather than an exit code
@@ -290,7 +290,7 @@ export async function startServer(opts: StartServerOptions): Promise<{
     details: RunSettledDetails,
   ) => {
     // The run settled but the DB row is still 'running' — update it so the dashboard does not
-    // show a stuck run. 2026-10-17 (444-06, D-31): a row the run already finished is never rewritten.
+    // show a stuck run. 2026-10-17: a row the run already finished is never rewritten.
     try {
       const run = db.getRun(runId)
       const output = details.output
@@ -302,7 +302,7 @@ export async function startServer(opts: StartServerOptions): Promise<{
         let dbStatus: string
         let failureSummary: string | undefined
         let errorLog: string | undefined
-        // 401-18 (G-401-16): the neutral prose a REFUSAL is carrying, held aside so the errorLog
+        // the neutral prose a REFUSAL is carrying, held aside so the errorLog
         // composition below can prefer it over the diagnostic lines. Undefined on every other arm,
         // which is what keeps those arms byte-identical.
         let refusalProse: string | undefined
@@ -313,7 +313,7 @@ export async function startServer(opts: StartServerOptions): Promise<{
           dbStatus = 'failed'
           failureSummary = 'Test timed out -- process was killed'
         } else if (details.refusedBeforeStart) {
-          // A REFUSAL IS NOT A PROCESS EXIT (401-18, G-401-16).
+          // A REFUSAL IS NOT A PROCESS EXIT.
           //
           // Branched on the FACT the settle carries, above the `completed` arm and above the regex
           // fallback, because both of those describe a run that ran. A run the gate refused before
@@ -352,13 +352,13 @@ export async function startServer(opts: StartServerOptions): Promise<{
             .slice(-10000) || undefined
         }
 
-        // 2026-08-24 (Phase 402 plan 09, D-11): THE SUITE-PARENT STATUS FOLD IS RETIRED WITH THE
+        // THE SUITE-PARENT STATUS FOLD IS RETIRED WITH THE
         // CHILDREN IT FOLDED — the same retirement, at the same site, as the retry-child block
         // below, for the same reason.
         //
         // ~75 lines stood here: force every `running`/`pending` child terminal, re-read them, and
         // derive the parent's status as the worst child status. A suite is now ONE run row with
-        // member handles (D-11, 402-04); nothing writes the run row's parent-link column, so the
+        // member handles; nothing writes the run row's parent-link column, so the
         // fold's own `updatedChildren.length === 0` branch was the only branch it could still take,
         // and that is what the common path below does. What a suite run GAINS by falling through
         // is the diagnostic `failureSummary` and the captured `errorLog` the fold discarded in
@@ -388,7 +388,7 @@ export async function startServer(opts: StartServerOptions): Promise<{
     jobQueue.onSlotFreed(runId)
   })
 
-  // 2026-10-16 (442-04, D-05/D-04): only runs whose owning process is provably gone are finalized.
+  // only runs whose owning process is provably gone are finalized.
   let finalized = 0
   for (const { id, owner } of db.listRunningRunOwners()) {
     if (classifyRunOwner(owner, db.runOwnership) === 'gone' && db.finalizeOrphanRun(id, owner)) {
@@ -433,7 +433,7 @@ export async function startServer(opts: StartServerOptions): Promise<{
   console.log(`Run queue started with ${concurrency} concurrency slot(s)`)
   console.log('Appium lifecycle manager initialized (auto-start on first mobile test)')
 
-  // Wire the run queue's 'execute' event to the injected execution backend (401-07, D-09/D-10).
+  // Wire the run queue's 'execute' event to the injected execution backend.
   //
   // THE QUEUE ITSELF IS UNTOUCHED — its slots, its polling, its ordering and its cancel signal are
   // the same object they were, which is D-09's build-order pin in one line: what changed underneath
@@ -476,10 +476,10 @@ export async function startServer(opts: StartServerOptions): Promise<{
       runId: run.id,
       args,
       source: meta.isSuite ? 'suite' : 'dashboard',
-      // 2026-10-01 (432-14, D-14): no confirm scope is read off the row any more. The browser that
+      // no confirm scope is read off the row any more. The browser that
       // triggered a run is not asked anything, so nothing about it has to survive the wait.
       attributes: run.attributes,
-      // T-401-G26 (401-23): a persisted row's timeout is VALIDATED at the seam that consumes it.
+      // a persisted row's timeout is VALIDATED at the seam that consumes it.
       // `in-process-backend.ts:211` reads `opts.timeout ?? defaultTimeout` and validates AFTER, so
       // any non-nullish nonsense here skips the default and leaves the run with no reclamation
       // timer at all. An unusable value falls back to the backend's default rather than a number
@@ -505,11 +505,11 @@ export async function startServer(opts: StartServerOptions): Promise<{
     appiumManager,
     configManager,
     configPath: resolvedConfigPath,
-    // 428 D-07: each created session registers here, which is what the frame socket attaches.
+    // each created session registers here, which is what the frame socket attaches.
     ...(liveEditorSubjects === undefined ? {} : { liveEditorSubjects }),
   })
 
-  // 428 D-07: the embed route and the frame socket serve a live view when the seam is bound and at
+  // the embed route and the frame socket serve a live view when the seam is bound and at
   // least one subject registry is present. The proxy dispatches on the token's signed kind, so a
   // missing registry is only a lookup that answers nothing.
   const servesLiveView = liveView !== undefined
@@ -518,7 +518,7 @@ export async function startServer(opts: StartServerOptions): Promise<{
   const apiRouter = createRouter({
     db,
     workspacePaths,
-    // 401-07: conditionally spread on the same house rule `agentHost` follows — an absent
+    // conditionally spread on the same house rule `agentHost` follows — an absent
     // dependency is an ABSENT field, never a present `undefined`, so the router's own 503 arm is
     // what decides, in one place.
     ...(executionBackend === undefined ? {} : { executionBackend }),
@@ -531,33 +531,33 @@ export async function startServer(opts: StartServerOptions): Promise<{
     llmConfig,
     authFetch,
     sessionManager,
-    // 400-01: conditionally spread on the house rule an absent dependency is an ABSENT field and
+    // conditionally spread on the house rule an absent dependency is an ABSENT field and
     // never a present `undefined` — the router's own 501 arm is what decides, in one place.
     ...(agentHost === undefined ? {} : { agentHost }),
-    // 402-05 (D-15): the same conditional-spread house rule. Absent means a legacy mount rather
+    // the same conditional-spread house rule. Absent means a legacy mount rather
     // than an unconfigured service, and the router's own 503 arm is what decides, in one place.
     ...(runServiceReadiness === undefined ? {} : { runServiceReadiness }),
-    // 402-08 (D-01): the LOCAL run-stream door's attach port, READ OFF `runService` rather than
+    // the LOCAL run-stream door's attach port, READ OFF `runService` rather than
     // composed again. That derivation is the "one session registry serves both doors" claim in its
     // structural form — there is no second wiring a composition root could forget or point
     // somewhere else, and the two doors cannot end up attached to different registries. Absent
     // `runService` means no registry exists at all, so the same conditional-spread house rule
     // applies and the router's own 503 arm decides.
     ...(runServiceAttach === undefined ? {} : { runServiceAttach }),
-    // 403 D-03: the mint route's port, on the same conditional-spread house rule — absent means
+    // the mint route's port, on the same conditional-spread house rule — absent means
     // this host serves no live view and the route's own 503 arm decides, in one place.
     ...(liveView === undefined ? {} : { mintLiveUrl: liveView.mintLiveUrl }),
-    // 428 D-07: the editor mint, on the same house rule — absent means the editor mint route's own
+    // the editor mint, on the same house rule — absent means the editor mint route's own
     // 503 decides.
     ...(liveView?.mintEditorLiveUrl === undefined
       ? {}
       : { mintEditorLiveUrl: liveView.mintEditorLiveUrl }),
-    // 404-05 (D-16): the same conditional-spread house rule — absent means this host serves no
+    // the same conditional-spread house rule — absent means this host serves no
     // post-processing push channel and the stream arm's own 503 decides, in one place.
     ...(postProcessingRelay === undefined ? {} : { postProcessingRelay }),
   })
 
-  // 402-01: composed once, at start, on `apiRouter`'s own idiom. Absent ports mean no router and
+  // composed once, at start, on `apiRouter`'s own idiom. Absent ports mean no router and
   // therefore no mount — the path check below is skipped entirely and this server behaves as today.
   const runServiceRouter = runService === undefined ? undefined : createRunServiceRoutes(runService)
 
@@ -603,7 +603,7 @@ export async function startServer(opts: StartServerOptions): Promise<{
         return
       }
 
-      // GET /live/:runId — THE SERVED EMBED PAGE (403 D-06).
+      // GET /live/:runId — THE SERVED EMBED PAGE.
       //
       // REGISTERED ABOVE THE STATIC/SPA ARM, and the ORDER IS THE MECHANISM (RESEARCH Pitfall 10).
       // The SPA fallback below answers `index.html` for ANY unknown path, so a `/live/` arm placed
@@ -614,7 +614,6 @@ export async function startServer(opts: StartServerOptions): Promise<{
       // NO `X-Frame-Options` — the whole point of this page is that a host embeds it. What replaces
       // it is a CSP that permits exactly one nonce'd inline script and nothing else, plus
       // `Referrer-Policy: no-referrer` so the fragment-carried token cannot ride a `Referer` out
-      // (T-403-12).
       if (req.method === 'GET' && path.startsWith(LIVE_EMBED_PATH_PREFIX)) {
         if (!servesLiveView) {
           res.writeHead(503, { 'Content-Type': 'application/json' })
@@ -715,7 +714,7 @@ export async function startServer(opts: StartServerOptions): Promise<{
       socket.destroy()
       return
     }
-    // 403 D-06: the frame socket. The run id is the ONLY query parameter — the token arrives in
+    // the frame socket. The run id is the ONLY query parameter — the token arrives in
     // the first text message and nowhere else, so a refused upgrade has never seen a credential.
     if (url.pathname === LIVE_VIEW_WS_PATH) {
       const hostRefusal = refuseNonLoopbackHost(request)
@@ -769,7 +768,7 @@ export async function startServer(opts: StartServerOptions): Promise<{
       return
     }
     if (url.pathname === '/api/live-editor/ws') {
-      // THE SAME-SITE GUARD, FIRST (428 D-08 — WINDOWS #275). This socket drives a browser, and a
+      // THE SAME-SITE GUARD, FIRST. This socket drives a browser, and a
       // WebSocket upgrade is exempt from CORS, so a page on another origin could otherwise open it.
       // Unlike the frame socket there is no sandboxed embed to admit, so the literal `null` is
       // refused with every other foreign origin. A refusal is a bare destroy: nothing is written

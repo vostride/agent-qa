@@ -40,7 +40,7 @@ function insertRun(overrides: Record<string, unknown> = {}) {
   })
 }
 
-// 2026-08-27 (405-07, D-02): a healed run is one with a projected step the runner reported a
+// a healed run is one with a projected step the runner reported a
 // self-heal on. The v1 wide step table this used to write — and the `'healed'` status word it
 // wrote there — had no producer left and went with the census; `selfHealOccurred` is the bus
 // payload's own boolean and is what the flake rate reads now.

@@ -2,7 +2,7 @@
 //
 // Every `user_version` other than `SCHEMA_VERSION` is refused on open, never upgraded.
 //
-// 2026-08-27 (405-07, D-02) — THE CENSUS RAN AND THE V1 DEBRIS IS GONE. Plan 01 left the dormant
+// THE CENSUS RAN AND THE V1 DEBRIS IS GONE. Plan 01 left the dormant
 // v1 projection tables and the unfed `runs` columns spelled here on purpose, so that the deletion
 // could be a MEASUREMENT rather than a guess taken in the same commit that added their successors.
 // The two-predicate census (402 D-11's idiom: "required" = a producer on the shipped in-process
@@ -102,7 +102,7 @@ export const MIGRATIONS: DashboardMigration[] = [
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
       )`,
-      // ---- The v2 bus-shaped projection (405 D-01) ----------------------------------------
+      // ---- The v2 bus-shaped projection ----------------------------------------
       //
       // THE COLUMNS ARE THE PAYLOAD'S OWN NAMES, snake_cased and nothing else. No field is
       // re-derived, renamed or re-interpreted on the way in — that is D-01's whole claim, and
@@ -132,7 +132,7 @@ export const MIGRATIONS: DashboardMigration[] = [
         recording_json TEXT,
         PRIMARY KEY (run_id, test_index)
       )`,
-      // The token columns are NULLABLE AND NEVER DEFAULT 0 (D-05/D-06). The retired v1 projection
+      // The token columns are NULLABLE AND NEVER DEFAULT 0. The retired v1 projection
       // declared these `INTEGER DEFAULT 0`, and that zero was a measurement nobody made — the exact
       // lie this shape refuses to be able to tell. 405-04 landed the producer, so a step the runner
       // measured carries real counts and a step it did not carries NULL, which stays honest.

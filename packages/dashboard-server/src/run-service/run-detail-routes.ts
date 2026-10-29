@@ -1,4 +1,4 @@
-// The run-detail READ route (Phase 405 plan 01, D-03).
+// The run-detail READ route.
 //
 // `GET /api/runs/:id/detail` is what the rebuilt run-detail page reads, and this module is the
 // whole of the HTTP half: validate the id with the OP'S OWN input schema, dispatch through the
@@ -67,7 +67,7 @@ function errorMessageOf(error: unknown): string {
  * message may name a path or quote a row; that one travels as a NAME, which is a classification
  * rather than a disclosure.
  *
- * EXPORTED SINCE 406-01 (D-04). `run-analysis-routes.ts` dispatches `analysisGetFunctionId` through
+ * EXPORTED SINCE 406-01. `run-analysis-routes.ts` dispatches `analysisGetFunctionId` through
  * the same host and meets the same three refusals; a second spelling of `unknown_run` /
  * `agent_host_unavailable` / `read_failed` there would be a second vocabulary for one door, free to
  * drift the first time either side gains a class.
@@ -97,7 +97,7 @@ export async function readRunDetail(
   runId: string,
 ): Promise<RunDetailReadOutcome> {
   // THE ID IS VALIDATED BY THE OP'S OWN INPUT SCHEMA, HERE, BEFORE THE DOOR IS TOUCHED
-  // (T-405-01). Not a second regex: `runIdSchema` refuses exactly the ids the path layer would
+  // Not a second regex: `runIdSchema` refuses exactly the ids the path layer would
   // have to REWRITE before using them, and the whole point of that codec is that there is one of
   // it. Refusing early also means an untrusted path segment never reaches a dispatch at all.
   const parsed = RunsDetailInputSchema.safeParse({ runId })
@@ -199,7 +199,7 @@ function respondFeedbackRead(
   })
 }
 
-/** 2026-09-15, 423-21 D-18: `GET …/:runId/marks` — runs.marks.history on either door. */
+/** `GET …/:runId/marks` — runs.marks.history on either door. */
 export function serveRunMarksHistoryRead(
   req: IncomingMessage,
   res: ServerResponse,
@@ -220,7 +220,7 @@ export function serveRunMarksHistoryRead(
 }
 
 /**
- * 2026-09-15, 423-21 D-18: `POST …/:runId/mark-preview` — runs.mark.preview on either door.
+ * `POST …/:runId/mark-preview` — runs.mark.preview on either door.
  *
  * POST carries the exact runs.mark input, but the op is read-tier: it plans and writes nothing, so
  * no confirm scope is accepted. The body's runId must name the URL's run, so a page cannot preview
@@ -246,7 +246,7 @@ export function serveRunMarkPreviewRead(
   }, () => { respondJson(res, 400, { error: 'invalid_mark_preview_input' }) })
 }
 
-/** `GET /api/runs/:id/detail` — what the rebuilt run-detail page reads (D-03). */
+/** `GET /api/runs/:id/detail` — what the rebuilt run-detail page reads. */
 export function serveRunDetailRead(
   req: IncomingMessage,
   res: ServerResponse,
@@ -266,14 +266,14 @@ export function serveRunDetailRead(
   )
 }
 
-// ---- 405-05 (D-12/D-13/D-15 · DETL-03): the ref-RESOLVING arm, on both doors ---------------------
+// ---- 405-05: the ref-RESOLVING arm, on both doors ---------------------
 //
 // `GET /api/runs/:runId/artifacts/:sha` locally, `GET /run/:runId/artifacts/:sha` on the authed
 // remote door, and BOTH call the one function below. The run-detail read hands a page a `sha`; this
 // is where that sha becomes an image, and if the two doors resolved it through two implementations
 // then "the same artifact" would mean two things depending on which credential asked.
 //
-// THE BYTES CROSS THE FUNCTION LAYER (D-13). This module constructs no store, joins no path and
+// THE BYTES CROSS THE FUNCTION LAYER. This module constructs no store, joins no path and
 // imports nothing that can read a file. Containment is `FsEvidenceArtifactStore`'s own rule —
 // `slugBranch` over the runId, a 64-lowercase-hex check over the sha — reached through the op, so
 // there is exactly one place in the product where a caller-supplied string becomes a path segment.
@@ -284,9 +284,9 @@ export function serveRunDetailRead(
 //
 // NOTHING ECHOES THE REQUEST. Every refusal body is a fixed shape carrying a closed word; a body
 // that quoted the sha would reflect attacker-chosen bytes back through a door that has no reason
-// to offer one (T-405-18).
+// to offer one.
 
-/** The immutable-caching header set a CONTENT ADDRESS earns (D-12). */
+/** The immutable-caching header set a CONTENT ADDRESS earns. */
 const ARTIFACT_CACHE_CONTROL = 'public, max-age=31536000, immutable'
 
 export function parseSingleByteRange(header: string | undefined): RunsArtifactInput['range'] {
@@ -315,7 +315,7 @@ export type RunArtifactReadOutcome =
  * The op's refusals, classified into this door's vocabulary.
  *
  * `EvidenceBlobAbsentError` AND `RunNotFoundError` ARE BOTH 404 AND THEY ARE NOT THE SAME 404
- * (D-15). One says the link names a run nothing recorded; the other says the run is right there and
+ * One says the link names a run nothing recorded; the other says the run is right there and
  * holds no blob under that address — a screenshot the evidence diet collected, a ref that declared
  * itself incomplete, or an artifact never written. The page renders the second as a visible
  * "unavailable" state and the first as a broken link, and it can only do that because the words
@@ -401,7 +401,7 @@ export interface RunArtifactReadDeps {
 }
 
 /**
- * `GET /api/runs/:runId/artifacts/:sha` — a ref, resolved (D-12).
+ * `GET /api/runs/:runId/artifacts/:sha` — a ref, resolved.
  *
  * THE HEADERS ARE THE FEATURE AS MUCH AS THE BYTES.
  * - `ETag: "<sha>"` — the content address IS the validator; there is nothing else it could be, and

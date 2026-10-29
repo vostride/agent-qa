@@ -1,4 +1,4 @@
-// 2026-09-26, 429-10 D-15/D-17: POST /api/llm/connect. A draft model is tested with its typed
+// POST /api/llm/connect. A draft model is tested with its typed
 // secret inline and nothing is persisted first; only a pass, or the explicit skipTest behind
 // "Save without testing", writes the credential and then the definition (plus the default when the
 // project had none) in one config write. Same-site only; the secret is never logged or echoed.
@@ -37,7 +37,7 @@ import { readJsonBody } from './body-parser.js'
 
 export interface LlmConnectDeps {
   readonly configManager: ConfigManager
-  /** The router's one queue for every auth.json write and removal (429-09). */
+  /** The router's one queue for every auth.json write and removal. */
   readonly withCredentialLock: <T>(work: () => Promise<T>) => Promise<T>
   /** The product provider an auth.json entry belongs to, mapped as GET /api/auth/status maps it. */
   readonly credentialProvider: (name: string, credential: AuthCredential) => string
@@ -120,7 +120,7 @@ type ResolvedTestAuth =
   | { kind: 'ok'; auth: ResolvedModelAuth; usedCredential: boolean }
   | { kind: 'missing' }
 
-// D-16: a typed secret is used inline; otherwise the saved credential under the name, or the
+// a typed secret is used inline; otherwise the saved credential under the name, or the
 // draft's completed sign-in, composed exactly as the live session composes it.
 async function resolveTestAuth(
   name: string,
@@ -161,7 +161,7 @@ async function probe(
   timeoutMs: number,
 ): Promise<void> {
   const { profile, auth: modelAuth } = toModelProfileAndAuth(llmConfig, auth)
-  // 2026-10-12 (441-04, D-06): fixed probe text, nothing to mask.
+  // fixed probe text, nothing to mask.
   const model = createModel(profile, modelAuth, (text) => text)
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), timeoutMs)

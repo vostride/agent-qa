@@ -1,14 +1,13 @@
 // The DEDICATED post-processing channel: the relay and `GET /api/runs/:id/post-processing/stream`
-// (Phase 404 plan 05, D-16/D-17 · LIFE-04).
 //
 // WHY A SECOND SSE AND NOT A WIDENED RUN STREAM. D-16: the run stream's contract is "closes at
 // `runFinished`", and every chip envelope this channel carries is appended AFTER that line. A door
 // that held the run stream open for them would change what `runFinished` means for every consumer
 // already reading it — including the live-view page and the conformance corpus that compares two
 // doors byte for byte. So the chips get their own door, and `routes.run-stream.test.ts` staying
-// green is the structural proof that the old one was not touched (T-404-03).
+// green is the structural proof that the old one was not touched.
 //
-// EVERY PUSH IS A TRIGGER, NEVER A PAINT (D-17). The relayed envelope is a hint that the DURABLE
+// EVERY PUSH IS A TRIGGER, NEVER A PAINT. The relayed envelope is a hint that the DURABLE
 // answer moved; the answer itself is the `snapshot` frame, which is the read route's body. That is
 // why the terminal arm below RE-READS rather than deriving a terminal state from the envelope it
 // just wrote: a chip derived from an envelope would be a second projection of chip truth, free to
@@ -163,15 +162,15 @@ function plantedHost(read: {
     caller: CALLER,
     runsPostProcessingFunctionId: PP_ID,
     runsEventsFunctionId: EVENTS_ID,
-    // 405-01: the seam carries a fourth op id. This fixture dispatches only the two above, so
+    // the seam carries a fourth op id. This fixture dispatches only the two above, so
     // this one is NAMED and never reached — the SHAPE is what has to be complete.
     runsDetailFunctionId: 'test:planted-run-detail-op',
     runsEvidenceFunctionId: 'test:planted-run-evidence-op',
-    // 405-05: a fifth. Same posture — named so the SHAPE is complete, never reached from here.
+    // a fifth. Same posture — named so the SHAPE is complete, never reached from here.
     runsArtifactFunctionId: 'test:planted-run-artifact-op',
-    // 406-01: a sixth. Same posture — named so the SHAPE is complete, never reached from here.
+    // a sixth. Same posture — named so the SHAPE is complete, never reached from here.
     analysisGetFunctionId: 'test:planted-analysis-get-op',
-    // 407-01 (D-05): the sixth dispatched id, widened here so every AgentHost literal in the
+    // the sixth dispatched id, widened here so every AgentHost literal in the
     // workspace still satisfies the interface.
     runsKnowledgeFunctionId: 'test:planted-run-knowledge-op',
     runsMarkFunctionId: 'test:planted-run-mark-op',
@@ -431,7 +430,7 @@ describe('the stream refuses BEFORE the head, by name', () => {
 })
 
 // ══════════════════════════════════════════════════════════════════════════════════════════════
-// UF-01 — A DOOR THAT ANSWERS ITS OWN THROW, INSTEAD OF TAKING THE PROCESS DOWN.
+// A DOOR THAT ANSWERS ITS OWN THROW, INSTEAD OF TAKING THE PROCESS DOWN.
 //
 // `void readPostProcessing(…).then(onOk)` with no failure arm made every throw inside `onOk` an
 // UNHANDLED REJECTION, which Node ≥ 15 turns into a process exit by default: one viewer closing a

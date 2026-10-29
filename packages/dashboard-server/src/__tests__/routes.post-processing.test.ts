@@ -1,5 +1,4 @@
 // `GET /api/runs/:id/post-processing` — chip truth and posture, read through the injected host
-// (Phase 404 plan 05, D-16/D-17/D-18/D-22/D-23 · LIFE-03).
 //
 // WHY EVERY CELL DRIVES `startServer` AND NOT THE ROUTE FUNCTION. The claim this route makes is
 // not "a function returns a body" — it is "the browser can reach chip truth, and only ever as the
@@ -79,15 +78,15 @@ function plantHost(options: PlantOptions): PlantedHost {
     caller: CALLER,
     runsPostProcessingFunctionId: PP_ID,
     runsEventsFunctionId: EVENTS_ID,
-    // 405-01: the seam carries a fourth op id. This fixture dispatches only the two above, so
+    // the seam carries a fourth op id. This fixture dispatches only the two above, so
     // this one is NAMED and never reached — the SHAPE is what has to be complete.
     runsDetailFunctionId: 'test:planted-run-detail-op',
     runsEvidenceFunctionId: 'test:planted-run-evidence-op',
-    // 405-05: a fifth. Same posture — named so the SHAPE is complete, never reached from here.
+    // a fifth. Same posture — named so the SHAPE is complete, never reached from here.
     runsArtifactFunctionId: 'test:planted-run-artifact-op',
-    // 406-01: a sixth. Same posture — named so the SHAPE is complete, never reached from here.
+    // a sixth. Same posture — named so the SHAPE is complete, never reached from here.
     analysisGetFunctionId: 'test:planted-analysis-get-op',
-    // 407-01 (D-05): the sixth dispatched id, widened here so every AgentHost literal in the
+    // the sixth dispatched id, widened here so every AgentHost literal in the
     // workspace still satisfies the interface.
     runsKnowledgeFunctionId: 'test:planted-run-knowledge-op',
     runsMarkFunctionId: 'test:planted-run-mark-op',
@@ -205,7 +204,7 @@ describe('the read route joins the op result with the run record', () => {
       failures: { analysis: { error: 'the last word', willRetry: false } },
     })
 
-    // D-17: every fact above arrived through the injected door, under the host's own caller.
+    // every fact above arrived through the injected door, under the host's own caller.
     expect(calls.map((call) => call.functionId), 'both ops, by the SUPPLIED ids').toEqual([PP_ID, EVENTS_ID])
     expect(calls[0]?.input, 'the post-processing input is the strict one-field shape').toEqual({ runId: RUN_ID })
     expect(calls[1]?.input, 'the events input names the run and nothing else').toEqual({ runId: RUN_ID })

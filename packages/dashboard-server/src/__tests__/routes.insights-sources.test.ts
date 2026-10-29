@@ -1,4 +1,4 @@
-// C433-INSIGHTS-SOURCES (433-30, G-433-6, F-433-26). Insights counts what the run store holds:
+// C433-INSIGHTS-SOURCES. Insights counts what the run store holds:
 // the window's run-step tokens beside the live editor's token events, and the knowledge changes
 // each run's own Knowledge read reports. A source that could not be read is named, never zeroed.
 

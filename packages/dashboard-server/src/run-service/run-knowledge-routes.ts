@@ -1,13 +1,13 @@
-// The run-KNOWLEDGE read route (Phase 407 plan 01, LERN-01 / LERN-02 · D-05).
+// The run-KNOWLEDGE read route.
 //
 // `GET /api/runs/:id/knowledge` is what the Knowledge tab reads, and this module is the whole of
 // the HTTP half: validate the id with the OP'S OWN input schema, dispatch through the injected
 // host, map the op's named refusals onto status codes. IT FORMATS NOTHING. It composes no summary
 // line, folds no channel and opens no database — `runs.knowledge` is THE single producer of what
-// a run used and learned (407 D-05), and a second producer on this door is the 405 D-01
+// a run used and learned, and a second producer on this door is the 405 D-01
 // anti-pattern restated one surface later.
 //
-// ONE ADAPTER, ON THE ANALYSIS ARM'S FOOTING (406 D-04). The local door is the only door that
+// ONE ADAPTER, ON THE ANALYSIS ARM'S FOOTING. The local door is the only door that
 // serves this today, and the function is still written as an adapter both doors could call
 // because that is what stopped `runs.detail` and `analysis.get` from forking: two doors resolving
 // one read through two implementations means "the same run's knowledge" depends on which
@@ -46,7 +46,7 @@ export async function readRunKnowledge(
   runId: string,
 ): Promise<RunKnowledgeReadOutcome> {
   // THE ID IS VALIDATED BY THE OP'S OWN INPUT SCHEMA, HERE, BEFORE THE DOOR IS TOUCHED
-  // (T-407-01). Not a second regex: `runIdSchema` refuses exactly the ids the path layer would
+  // Not a second regex: `runIdSchema` refuses exactly the ids the path layer would
   // have to REWRITE before using them, and the whole point of that codec is that there is one of
   // it. Refusing early also means an untrusted path segment never reaches a dispatch at all.
   const parsed = RunsKnowledgeInputSchema.safeParse({ runId })
@@ -74,7 +74,7 @@ export interface RunKnowledgeReadDeps {
   readonly host: AgentHost
 }
 
-/** `GET /api/runs/:id/knowledge` — the Knowledge tab's one read (D-05). */
+/** `GET /api/runs/:id/knowledge` — the Knowledge tab's one read. */
 export function serveRunKnowledgeRead(
   req: IncomingMessage,
   res: ServerResponse,

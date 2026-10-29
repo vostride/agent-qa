@@ -1,4 +1,4 @@
-// 429-11 (D-23/D-24): an explicit action acts at once and hands back a single-use Undo token. The
+// an explicit action acts at once and hands back a single-use Undo token. The
 // restore happens on the server, so the browser never holds or writes back a secret.
 
 import { createHash } from 'node:crypto'

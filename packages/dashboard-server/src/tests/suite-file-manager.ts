@@ -32,7 +32,7 @@ export class SuiteFileManager {
     this.testFileManager = testFileManager
   }
 
-  // 2026-10-18 (444-33, D-65; 444-35, D-66): each list call reads the workspace itself; each file is written whole and one writer at a time.
+  // each list call reads the workspace itself; each file is written whole and one writer at a time.
   private readonly underLock = createPathLock()
 
   async list(): Promise<SuiteFileInfo[]> {
@@ -49,7 +49,7 @@ export class SuiteFileManager {
           let suiteId: string | null = null
           const take = (content: string): string | null => {
             const parsed = parseYaml(content)
-            // 2026-10-19 (444-37, D-68): name, platform and id come from the parsed mapping, and a blank value is no value.
+            // name, platform and id come from the parsed mapping, and a blank value is no value.
             suiteName = presentText(parsed?.name) ?? basename(record.workspaceRelativePath)
             testCount = Array.isArray(parsed?.tests) ? parsed.tests.length : 0
             platform = presentText(parsed?.config?.platform)
@@ -63,7 +63,7 @@ export class SuiteFileManager {
                 if (content === undefined) return null
                 const current = take(content)
                 if (current !== null) return current
-                // 2026-10-18 (444-35, IN-20): an empty file may be an outside save mid-write; it is never minted.
+                // an empty file may be an outside save mid-write; it is never minted.
                 if (content.trim() === '') return current
                 const minted = generateSuiteId()
                 const next = idWriteText(content, 'suite-id', minted)
@@ -144,7 +144,7 @@ export class SuiteFileManager {
         }
       }
 
-      // Save-time fail-fast: verify every referenced test path resolves (Phase 181 D-32/D-33)
+      // Save-time fail-fast: verify every referenced test path resolves
       if (this.testFileManager) {
         const suite = result.data as SuiteDefinition
         const available = await this.testFileManager.list()

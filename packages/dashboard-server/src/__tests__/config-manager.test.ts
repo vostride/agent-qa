@@ -339,7 +339,7 @@ describe('ConfigManager', () => {
           .toEqual({ enabled: true, ...recording })
       }
       const beforeInvalid = await readFile(configPath, 'utf8')
-      // 429-44: the door refuses a path the schema does not describe; inside a container value
+      // the door refuses a path the schema does not describe; inside a container value
       // the same key still meets whole-config validation.
       const invalid = await patchConfig([{ op: 'set', path: ['services', 'recording', 'videoDir'], value: 'videos' }])
       expect(invalid.status).toBe(422)
@@ -554,7 +554,7 @@ describe('ConfigManager.applyChanges ops and selectors', () => {
   it('APPEND-CREATES-SEQ: an append to an absent sequence creates it with one entry', async () => {
     await writeFile(configPath, writeConfig(WRITE_BASE_LINES, WRITE_MOBILE_LINES))
 
-    // 432-22: re-spelled from the deleted `services.mcp.tokens` list onto a retained absent sequence.
+    // re-spelled from the deleted `services.mcp.tokens` list onto a retained absent sequence.
     const outcome = await manager.applyChanges([
       { op: 'append', path: ['workspace', 'testPathIgnore'], value: 'tests/skip/**' },
     ])
@@ -1037,7 +1037,7 @@ describe('declared secrets in the config editor', () => {
   })
 })
 
-// 2026-09-30, 432-07 D-05/D-07 (EDGE-12): the transaction queue belongs to the resolved config path,
+// the transaction queue belongs to the resolved config path,
 // so every ConfigManager in this process (the dashboard's and a co-hosted direct writer's) takes
 // turns. It is not a cross-process lock.
 describe('co-hosted writers of one config path share one queue', () => {
@@ -1176,7 +1176,7 @@ describe('co-hosted writers of one config path share one queue', () => {
 
   it('a write that fails inside its turn rejects, writes nothing, and the next writer still gets the path', async () => {
     // The temp file is written and only its rename fails, so the cleanup that keeps "writes
-    // nothing" true is on the measured road (WR-12).
+    // nothing" true is on the measured road.
     fsFault.failRename = true
     try {
       const failed = new ConfigManager(configPath, (text) => text).applyChanges([targetChange(6)])

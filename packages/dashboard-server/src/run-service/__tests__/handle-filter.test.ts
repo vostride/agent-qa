@@ -1,4 +1,4 @@
-// The server-side `?handle=` filter on the run stream (Phase 402 plan 04, D-10/D-14 · INVK-04).
+// The server-side `?handle=` filter on the run stream.
 //
 // THE FRAME, AND ITS LIMIT. These cells mount `createRunServiceRoutes` on a bare `createServer`
 // with FAKE ports over a PLANTED feed. That is deliberate and it is the only frame that can make
@@ -90,7 +90,7 @@ function sessionOver(id: string, feed: readonly RunEventEnvelope[]): RunSession 
       for (const envelope of feed) handler(envelope)
       return () => undefined
     },
-    // 403 D-05: a planted session with no browser declares no stream and hands out no frame
+    // a planted session with no browser declares no stream and hands out no frame
     // subscription — the honest absent declaration, not a stub a viewer would wait on forever.
     subscribeFrames() { return undefined },
     streamCapabilityOf() { return { kind: 'none' } },
@@ -110,7 +110,7 @@ const ACK: RunStartAcknowledgement = {
 
 function fakePorts(): RunServicePorts {
   return {
-    // 2026-10-01 (432-21, D-12): no `verifyBearer` — the door is tokenless.
+    // no `verifyBearer` — the door is tokenless.
     invokeRunStart: async () => ACK,
     attach: (runId) => {
       if (runId === 'r_feed') return sessionOver('r_feed', FEED)
@@ -330,7 +330,7 @@ describe('an invalid or unknown handle is refused BEFORE any stream header', () 
     expect(await response.json()).toEqual({ error: 'unknown_run' })
   })
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12/D-13) from 'refuses an unauthenticated handle request with
+  // RE-SPELLED 2026-10-01 from 'refuses an unauthenticated handle request with
   // 401, never a handle code'. The door asks for no credential; what refuses at the door now is the
   // same-site guard, and it still answers before any handle code.
   it('refuses a cross-site handle request with 403, never a handle code', async () => {

@@ -1,4 +1,4 @@
-// THE IN-PROCESS EXECUTION BACKEND (Phase 401 plan 07 — D-01/D-04/D-09/D-12, INVK-01).
+// THE IN-PROCESS EXECUTION BACKEND.
 //
 // WHAT THIS REPLACES. `TestRunner` started a dashboard run by SPAWNING `agent-qa run` and learned
 // what happened by scraping `AGENT_QA_EVENT:<json>` lines off the child's stdout. Everything a
@@ -8,7 +8,7 @@
 // started run's `RunSession` bus. There is no child, so there is nothing to scrape, nothing to
 // SIGKILL and no process group to walk.
 //
-// 2026-08-27 (405-07, D-19) — THE LEGACY CONSUMER SURFACE IS GONE. This backend used to keep a
+// THE LEGACY CONSUMER SURFACE IS GONE. This backend used to keep a
 // per-run replay buffer with a monotonic `id`, synthesise `run-start` / `run-complete` bookends
 // around the real envelopes, and re-emit every frame on a second event for one SSE route. That
 // shape existed to be byte-for-byte what the retired stdout scrape produced, so the retirement
@@ -17,7 +17,7 @@
 // is deleted. What survives is `'run-settled'`, which the HOST reconciles the db row from, and the
 // bus subscription itself, which now records exactly one derived fact on the handle: `testName`.
 //
-// ENVELOPES ARE CARRIED, NEVER RE-MINTED (T-401-20). The bus already publishes the frozen §2.2
+// ENVELOPES ARE CARRIED, NEVER RE-MINTED. The bus already publishes the frozen §2.2
 // shape `{seq, ts, runId, type, payload}`. This module adds the buffer's `id` and copies; it parses
 // nothing, reshapes nothing and invents no field.
 //
@@ -30,7 +30,7 @@
 // AND THE FIRST SEQ IS 1, NOT 0 (401-07, Rule 1 — measured on the live bus). `RunEventBus.subscribe`
 // resolves `fromSeq ?? 1` and then REFUSES to serve a gap: a request from below the earliest
 // retained seq is answered by reading the event log for the missing prefix, and a prefix it cannot
-// supply raises `ReplayIncompleteError` rather than silently starting late (D-07). Seq numbering
+// supply raises `ReplayIncompleteError` rather than silently starting late. Seq numbering
 // starts at 1, so seq 0 is a prefix that can never exist, and `subscribe(0, …)` therefore throws on
 // EVERY run — empty window or not:
 //
@@ -92,7 +92,7 @@ function mapOutcomeToRunStatus(outcome: unknown): TerminalProcessStatus | undefi
   }
 }
 
-// 2026-10-17 (444-02, D-43): the run-level outcome only (`verdict`, `runFinished`); a member's
+// the run-level outcome only (`verdict`, `runFinished`); a member's
 // finish leaves the handle running, so the active list and `kill` hold for the whole run.
 export function runStatusFromEnvelope(envelope: RunEventEnvelope): TerminalProcessStatus | undefined {
   const payload = envelope.payload as Record<string, unknown> | undefined
@@ -142,7 +142,7 @@ export interface InProcessExecutionBackendOptions {
    * call site is inside the invocation core, one line below the one `evaluate()`. A second thing
    * called `startRun`, in the CLI file that composes this option, REDS that census; and the census
    * is right to red, because a second spelling of somebody else's symbol is exactly what it exists
-   * to refuse. `invokeRun` also says what this one does: it invokes the `runs.start` OP (D-10).
+   * to refuse. `invokeRun` also says what this one does: it invokes the `runs.start` OP.
    */
   readonly invokeRun: InProcessRunStarter
   /** Applied when an `ExecuteOptions` carries no `timeout` of its own. */
@@ -204,7 +204,7 @@ export class InProcessExecutionBackend extends EventEmitter implements Execution
     }
     this.handles.set(opts.runId, handle)
 
-    // D-12: a per-run timeout aborts the SESSION. There is no process to signal and no grace period
+    // a per-run timeout aborts the SESSION. There is no process to signal and no grace period
     // to wait out — `cancel()` is the run's own orderly stop, and the run's terminal verdict then
     // arrives on the bus like any other.
     const timeoutMs = opts.timeout ?? this.options.defaultTimeout
@@ -230,7 +230,7 @@ export class InProcessExecutionBackend extends EventEmitter implements Execution
           // when the door names the session.
           session.subscribe(REPLAY_FROM_START, (envelope) => {
             const mapped = runStatusFromEnvelope(envelope)
-            // 2026-10-17 (444-06, D-11, D-43): a cancel leaves the status to the run's own verdict.
+            // a cancel leaves the status to the run's own verdict.
             if (mapped !== undefined && handle.status !== 'timeout') handle.status = mapped
             // 405-07 (D-19 · RESEARCH D7): the ONE fact this subscription still derives. The
             // envelope type is `testStarted` and its `payload.name` is the member's name — read
@@ -283,7 +283,7 @@ export class InProcessExecutionBackend extends EventEmitter implements Execution
     }[] = []
     for (const handle of this.handles.values()) {
       if (handle.status !== 'running') continue
-      // 405-07 (D-19): read straight off the handle the subscription writes. This used to scan a
+      // read straight off the handle the subscription writes. This used to scan a
       // per-run buffer for the `testStarted` frame — and before 401-07 it scanned for `test-start`,
       // a v1 reporter name the frozen §2.2 vocabulary never emits, so the field was `undefined` on
       // every run for as long as the derivation lived away from the producer.
@@ -300,7 +300,7 @@ export class InProcessExecutionBackend extends EventEmitter implements Execution
 
   private settle(handle: RunHandle, error?: unknown): void {
     if (handle.timeoutTimer) clearTimeout(handle.timeoutTimer)
-    // 401-18 (G-401-16): the two facts the host used to have to guess at. 2026-09-30, 432-09 (D-15):
+    // the two facts the host used to have to guess at. 2026-09-30, 432-09:
     // a refusal settles as these plain facts; no remedy list is projected or carried.
     let refusedBeforeStart = false
     if (error !== undefined) {
@@ -309,7 +309,7 @@ export class InProcessExecutionBackend extends EventEmitter implements Execution
       // A rejection reaching here without a started session is a refusal or an input error —
       // the run never began. With one, it is a post-start framework error on a run that did.
       //
-      // 401-18: THAT DISTINCTION NOW LEAVES THIS FUNCTION. It was computed here and spent on a
+      // THAT DISTINCTION NOW LEAVES THIS FUNCTION. It was computed here and spent on a
       // prefix, so the host had to re-derive it from prose and got it wrong. Same test, carried.
       refusedBeforeStart = handle.session === undefined
       handle.completionReason = refusedBeforeStart
@@ -322,7 +322,7 @@ export class InProcessExecutionBackend extends EventEmitter implements Execution
       handle.completionReason = handle.completionReason ?? 'Run ended before a verdict was reached'
     }
 
-    // 405-07 (D-19): a synthetic `run-complete` frame was pushed here, carrying the same status,
+    // a synthetic `run-complete` frame was pushed here, carrying the same status,
     // duration and reason the settle details below carry. It existed because the retired
     // feed and the host's reconciliation were two different readers of the same fact. There is one
     // reader now, so the fact is stated once.

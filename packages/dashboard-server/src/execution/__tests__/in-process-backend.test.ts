@@ -1,4 +1,4 @@
-// THE IN-PROCESS BACKEND'S BRIDGE (Phase 401 plan 07 — D-04/D-09/D-12, INVK-01).
+// THE IN-PROCESS BACKEND'S BRIDGE.
 //
 // WHAT IS UNDER TEST is the half of INVK-01 that lives in `packages/dashboard-server`: the bridge
 // from a started run's `RunSession` bus to the two things the host actually consumes — the settle
@@ -6,7 +6,7 @@
 // (it is the CLI's, and this package may not name it), so what these cells range is the bridge, the
 // lifecycle mapping and the completion vocabulary.
 //
-// 2026-08-27 (405-07, D-19) — THE PARITY ANCHOR AND ITS CELLS ARE GONE, AND THAT IS THE RIGHT
+// THE PARITY ANCHOR AND ITS CELLS ARE GONE, AND THAT IS THE RIGHT
 // OUTCOME RATHER THAN A LOSS. The anchor was a golden captured from the SHIPPED spawn-and-scrape
 // wire before that class was deleted, and five cells compared this bridge's per-run replay buffer
 // against it. Its whole job was to make one producer swap measurable while the consumer surface
@@ -72,7 +72,7 @@ class FakeRunSession implements RunSession {
     for (const handler of [...this.live]) handler(envelope)
   }
 
-  // 403 D-05: no browser behind this fake, so no stream and no frame subscription — the honest
+  // no browser behind this fake, so no stream and no frame subscription — the honest
   // absent declaration rather than a stub that would make a viewer wait for frames forever.
   subscribeFrames(): undefined { return undefined }
 
@@ -115,7 +115,7 @@ interface Drive {
   session?: FakeRunSession
 }
 
-// 2026-10-17 (444-06, D-11, D-43): a cancelled run's status is its own verdict, so a cancelled fake
+// a cancelled run's status is its own verdict, so a cancelled fake
 // session publishes one.
 const cancelledVerdict = (runId: string, seq = 1): RunEventEnvelope => ({
   seq,
@@ -283,7 +283,7 @@ describe('the bus subscription answers the active list', () => {
 
   it('THE RUN-LEVEL STATUS IS LAST-WRITER-WINS OVER THE WHOLE SUBSCRIPTION', async () => {
     // The fixture says `testFinished: failed` at seq 6 and `verdict: passed` at seq 7: a member's
-    // finish does not move the handle (444-02, D-43), the run-level outcome does. Six of the eight
+    // finish does not move the handle, the run-level outcome does. Six of the eight
     // are published before the attach, so this ranges the replay too.
     const drive = await driveOneRun({ preAttach: 6 })
     expect(drive.settled[0]!.status).toBe('completed')
@@ -381,7 +381,7 @@ describe('a refusal is not silence — the completion vocabulary', () => {
     expect(drive.settled[0]!.details.reason).toContain('Unrecognised run request field')
     expect(drive.settled[0]!.details.output.join('\n')).toContain('scope')
     // NO RUN HAPPENED, and the settle says so by name rather than by the absence of frames between
-    // two synthetic bookends — which is what this used to read (405-07, D-19).
+    // two synthetic bookends — which is what this used to read.
     expect(drive.settled[0]!.details.refusedBeforeStart).toBe(true)
     expect(drive.session).toBeUndefined()
   })
@@ -396,7 +396,7 @@ describe('a refusal is not silence — the completion vocabulary', () => {
     expect(drive.session).toBeDefined()
   })
 
-  // ---- 401-18 (G-401-16): A REFUSAL TRAVELS AS A FACT, NOT AS PROSE THE READER RE-DERIVES ------
+  // ---- 401-18: A REFUSAL TRAVELS AS A FACT, NOT AS PROSE THE READER RE-DERIVES ------
   //
   // `settle` already KNOWS the difference — `handle.session === undefined` is the run that never
   // began — and threw the knowledge away, leaving the host's reconciliation to guess from a regex
@@ -473,7 +473,7 @@ describe('two concurrent runs are isolated at the consumer surface', () => {
       sessions.get('run-B')!.publish({ ...envelope, runId: 'run-B' } as RunEventEnvelope)
     }
 
-    // 405-07 (D-19): the per-run buffers this cell used to compare are gone. What remains per-run
+    // the per-run buffers this cell used to compare are gone. What remains per-run
     // is the HANDLE, and the isolation claim is made over the one derived fact it carries. The
     // interleaved publishing above is what makes it a claim: a bridge with one shared handle map
     // keyed on anything but the run id would cross the two names here.
@@ -556,7 +556,7 @@ describe('the spawn vocabulary is gone from this module', () => {
     expect(code).not.toContain('SIGKILL')
   })
 
-  // 2026-08-27 (405-07, D-19/D-21): the retired live-feed machinery, pinned absent in the module
+  // the retired live-feed machinery, pinned absent in the module
   // that used to hold it. Each needle is two halves so this assertion cannot be the hit that
   // satisfies the phase's grep-clean inventory — a pin that matches itself proves nothing.
   it('NO PER-RUN EVENT BUFFER, NO COUNTER, NO SECOND EMISSION', () => {

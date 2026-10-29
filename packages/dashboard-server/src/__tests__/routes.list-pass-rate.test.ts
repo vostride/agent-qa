@@ -12,7 +12,7 @@ import type { ExecutionBackend } from '../execution/execution-backend.js'
 import { extractTestFileMetadata } from '../tests/test-file-manager.js'
 import { startServer } from '../server/server.js'
 
-// 2026-10-18 (444-31, D-64): the list pages read each row's rate and last run from the server's
+// the list pages read each row's rate and last run from the server's
 // batch read, which must agree with the row's viewer at exactly 200 runs and past 200.
 
 class IdleBackend extends EventEmitter {
@@ -320,7 +320,7 @@ function lastRunFields(run: any, withOutcome: boolean): Record<string, unknown> 
   }
 }
 
-// 2026-10-18 (444-33, IN-12): the batch reads count each class of member and run as their viewers do.
+// the batch reads count each class of member and run as their viewers do.
 const COUNTING_RUNS = [
   { name: 'healed', status: 'healed', outcome: 'healed' },
   { name: 'timeout', status: 'timeout', outcome: 'timeout' },
@@ -330,7 +330,7 @@ const COUNTING_RUNS = [
 ] as const
 const COUNTING_CLASSES = [...COUNTING_RUNS.map((run) => run.name), 'mixed'] as const
 type CountingClass = (typeof COUNTING_CLASSES)[number]
-// 2026-10-18 (444-35, IN-14): an outcome-less member under a run that counts, with no suite and no mixed member.
+// an outcome-less member under a run that counts, with no suite and no mixed member.
 const UNRECORDED_RUNS = [
   { name: 'unrecorded-pass', status: 'passed' },
   { name: 'unrecorded-fail', status: 'failed' },

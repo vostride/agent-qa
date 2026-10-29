@@ -1,4 +1,4 @@
-// The LOCAL door onto the run event stream (Phase 402 plan 08, D-01/D-13/D-14 · INVK-03/INVK-04).
+// The LOCAL door onto the run event stream.
 //
 // WHAT "THIN CLIENT" HAS TO MEAN HERE, AND WHY A HAPPY-PATH CELL CANNOT SAY IT. D-01 keeps the
 // dashboard on the IN-PROCESS door, so a cell that opens `/api/run-stream/:runId` and gets events
@@ -16,7 +16,7 @@
 // pattern must match. A predicate that cannot see frame formatting where it lives proves nothing
 // about not seeing it here.
 //
-// 2026-08-28 (405-07): THAT CONTROL IS THE RUN-SERVICE MODULE, NOT A SECOND HANDLER IN THIS FILE.
+// THAT CONTROL IS THE RUN-SERVICE MODULE, NOT A SECOND HANDLER IN THIS FILE.
 // It used to be the retired live-event route — a second SSE spelling that happened to sit beside
 // the one under test — and this header went on describing it after 405-07 deleted the route,
 // which is the stale-claim failure WINDOWS #253 exists to prevent, one layer up. The control is
@@ -119,7 +119,7 @@ function sessionOverFeed(id: string): RunSession {
     id: id as RunSession['id'],
     status: 'running',
     executionContext: 'local-headless' as RunSession['executionContext'],
-    // 403-03: `fromSeq` is HONOURED, which is what a real bus does and what the resume rows below
+    // `fromSeq` is HONOURED, which is what a real bus does and what the resume rows below
     // are about. A planted session that ignored it would make every `?lastEventId=` row in the
     // corpus agree on both doors while measuring nothing about the resume point — two doors both
     // replaying from 1 are byte-identical too.
@@ -129,7 +129,7 @@ function sessionOverFeed(id: string): RunSession {
       }
       return () => undefined
     },
-    // 403 D-05: this feed carries EVENTS, not frames. The planted session declares no stream and
+    // this feed carries EVENTS, not frames. The planted session declares no stream and
     // hands out no frame subscription, which is the honest answer for a fixture with no browser.
     subscribeFrames() { return undefined },
     streamCapabilityOf() { return { kind: 'none' } },
@@ -231,7 +231,7 @@ const ACK: RunStartAcknowledgement = {
 function servicePorts(options: { readonly mint?: boolean } = {}): RunServicePorts {
   const mint = options.mint === true ? freshMint('authed-') : undefined
   return {
-    // 2026-10-01 (432-21, D-12): no `verifyBearer` — the run service is tokenless.
+    // no `verifyBearer` — the run service is tokenless.
     invokeRunStart: async () => ACK,
     attach: attachPort,
     readiness: () => READINESS,
@@ -333,7 +333,7 @@ const CORPUS: readonly CorpusRow[] = Object.freeze([
   ['a well-formed handle no member answers to', 'r_local', '?handle=4'],
   ['an unknown run', 'r_nope', ''],
   ['an unknown run WITH a handle', 'r_nope', '?handle=3'],
-  // ---- 403-03 (D-13 / D-15 · INVK-05): the resume point, on both doors -----------------------
+  // ---- 403-03: the resume point, on both doors -----------------------
   ['resume after 8', 'r_local', '?lastEventId=8'],
   ['resume after 8 on handle 7', 'r_local', '?handle=7&lastEventId=8'],
   ['resume via the HEADER', 'r_local', '', { 'Last-Event-ID': '8' }],
@@ -515,7 +515,7 @@ describe('both doors mint the SAME liveUrl — shape-identically, and refuse ide
     }
   })
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12/D-13) from 'the local door needs NO credential and the
+  // RE-SPELLED 2026-10-01 from 'the local door needs NO credential and the
   // authed door needs one — the only difference'. Neither door needs a credential now; both refuse a
   // cross-site mint with the same same-site guard, and both mint for a local caller.
   it('neither door needs a credential, and both refuse a cross-site mint the same way', async () => {
@@ -824,9 +824,9 @@ describe('the PRODUCTION frame threads the attach port (server.ts, not the route
  * predicate then asks whether SSE frame formatting appears inside that block. Run over the local
  * run-stream handler the answer must be NO — and the SAME predicate is run over a body where the
  * answer must be YES, because an extractor that returned nothing (or a predicate that could not
- * see frame formatting) would satisfy the first assertion for free (WINDOWS #253).
+ * see frame formatting) would satisfy the first assertion for free.
  *
- * 2026-08-27 (405-07, D-19): THE CONTROL MOVED, AND MOVED TOWARDS THE THING IT IS ABOUT. It used
+ * THE CONTROL MOVED, AND MOVED TOWARDS THE THING IT IS ABOUT. It used
  * to be the RETIRED live-event handler in this same file — a second SSE spelling that happened to
  * contain the framing. (Its route name is deliberately not spelled anywhere in this file: the D-21
  * grep-clean inventory scans every package's `src` tree and counts a comment as a hit, so prose

@@ -14,9 +14,9 @@ import { startServer } from '../server/server.js'
  *
  * ---- WHAT THIS FILE MEASURES NOW -------------------------------------------------------------
  *
- * 2026-08-27 (405-07): the two PATH-addressed artifact routes these cells were written against are
+ * the two PATH-addressed artifact routes these cells were written against are
  * deleted, with the containment resolver, the three-door serving verdict and the run-deletion
- * filesystem sweep that shared it. Refs are the only artifact addressing (D-14): a run's evidence
+ * filesystem sweep that shared it. Refs are the only artifact addressing: a run's evidence
  * is reached as `GET /api/runs/:runId/artifacts/:sha`, and the containment rule for those bytes is
  * the evidence store's own, reached through the `runs.artifact` op rather than reassembled here.
  *

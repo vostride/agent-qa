@@ -269,7 +269,7 @@ describe('ws-handler', () => {
     await vi.waitFor(() => expect(onTerminate).toHaveBeenCalled())
   })
 
-  // 428-19 (D-07): the control socket no longer carries screenshots. Both cells keep their titles
+  // the control socket no longer carries screenshots. Both cells keep their titles
   // and assert the retirement: the mock session could still capture, and the handler never asks.
   it('get-screenshot sends base64 screenshot', async () => {
     const handler = createSessionHandler(session as unknown as LiveSession, onTerminate)
