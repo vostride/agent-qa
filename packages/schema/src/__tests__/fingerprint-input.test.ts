@@ -1,16 +1,4 @@
-// The hoisted fingerprint-input derivation.
-//
-// `failingStepOf`/`errorTextOf` moved here from agent's private `cluster.ts` so knowledge-local
-// can compute fingerprint inputs without importing agent. The move must change ZERO observable
-// behavior: a drifted hoist silently re-keys every accumulated fingerprint window, so
-// the identity is PROVEN here rather than assumed.
-//
-// Two independent oracles, because either alone is weak:
-//   1. Golden fingerprint BYTES — anchored outside the code's own vocabulary (the 383 lesson:
-//      closures phrased as relations among a module's own fields do not hold).
-//   2. A frozen verbatim snapshot of the pre-hoist cluster.ts bodies (`preHoist*` below), used
-//      as a differential oracle over a fixture corpus. It is a TEST-ONLY frozen witness, never
-//      a live spelling — production has exactly one spelling, the export under test (388 C13).
+// A drifted hoist re-keys every fingerprint window; golden bytes and a frozen copy both check it.
 
 import { describe, expect, it } from 'vitest'
 
@@ -24,10 +12,7 @@ import { errorTextOf, failingStepOf } from '../verdict/fingerprint-input'
 import { failureFingerprint } from '../verdict/failure-fingerprint'
 import type { Verdict } from '../verdict/verdict'
 
-// ---------------------------------------------------------------------------------------
-// Frozen pre-hoist witness: cluster.ts:45-64 verbatim as of 390-01 (commit 4c0d445f).
-// Kept ONLY as the hoist-fidelity oracle for the differential below.
-// ---------------------------------------------------------------------------------------
+// Frozen copy of the pre-hoist bodies, kept only as the differential oracle below.
 
 function preHoistFailingStepOf(test: PerTestOutcome): StepEvidence | undefined {
   if (test.steps.length === 0) return undefined
@@ -195,9 +180,7 @@ describe('errorTextOf (hoisted from cluster.ts)', () => {
   })
 })
 
-// ---------------------------------------------------------------------------------------
-// Group 3 — composition with the FROZEN fingerprint recipe
-// ---------------------------------------------------------------------------------------
+// Group 3 — composition with the frozen fingerprint recipe
 
 /** The cluster path, expressed over the hoisted export — the one live spelling. */
 function fingerprintOf(outcome: PerTestOutcome, verdictClass: Verdict['class']): string {

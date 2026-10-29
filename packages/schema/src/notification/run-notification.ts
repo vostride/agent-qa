@@ -1,21 +1,4 @@
-// The chain-terminal notification DTO.
-//
-// One record per run, written inside the transaction that lands the LAST job the post-run
-// chain enqueued. It is the thing 392's chat and M5's dashboard read, which is why it is
-// minted here rather than beside either of them: a payload shape that lived with one
-// consumer would be re-derived by the second, and the two spellings would drift on the first
-// field either of them wanted.
-//
-// What it deliberately does NOT carry: no record content, no rationale
-// prose, no artifact bytes, no `agentqa://` refs. Counts, verdict classes and identifiers
-// only. The curation stage carries fixed curation event identities, which may contain
-// unconstrained strings. Public reads mask that snapshot through the same strict projection
-// as the early checkpoint snapshot; durable bytes remain the exact committed facts.
-//
-// `outcome` is a fact about the CHAIN, not about the run: a failed run whose analysis and
-// curation both succeeded notifies `done`. The run's own verdict is the exit code, frozen
-// long before anything here exists, and conflating the two would make this record
-// a second, later, quieter answer to a question already answered.
+// `outcome` is about the chain, not the run: a failed run whose stages succeeded notifies `done`.
 
 import type { Verdict } from '../verdict/verdict'
 import { CurationSnapshotSchema } from './curation-snapshot'
@@ -103,7 +86,7 @@ export interface RunNotification {
   stages: RunNotificationStages
 }
 
-// agent-jobs.db keeps the stored words; every read serves this view.
+// `agent-jobs.db` keeps the stored words; every read serves this view.
 export type RunNotificationViewStatus = 'complete' | 'failed'
 
 export const RUN_NOTIFICATION_VIEW_STATUSES = [
@@ -173,13 +156,7 @@ function isCount(value: unknown): boolean {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0
 }
 
-/**
- * Membership against a declared closed list.
- *
- * The guard asks the CONSTANT rather than re-spelling its members in an `||` chain, so a word this
- * build reads and a word it admits cannot drift apart. An inline pair was fine while the words
- * were spelled once; they are now spelled beside their type, and two spellings is one too many.
- */
+// Asks the constant, so the words this build reads and the words it admits cannot drift apart.
 function isMember<T extends string>(members: readonly T[], value: unknown): value is T {
   return typeof value === 'string' && (members as readonly string[]).includes(value)
 }

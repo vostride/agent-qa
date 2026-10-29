@@ -1,14 +1,3 @@
-// Wave-0 RED scaffold (361-01, Task 1). Pins the Plan 03 masked-payload-projection
-// contract BEFORE any implementation exists — RED strictly on the unresolved import
-// of the not-yet-existing `../run/bus-projections` module (right-reason RED).
-//
-// Contract source: 361-CONTEXT.md D-09 (every projection routes through the masking
-// port; 362 activates it with zero further wiring — proven here with a synthetic mask)
-// and D-10 (one pure schema-in/schema-out projection module: StepEvidence→stepFinalized,
-// SubActionEvidence→subActionRecorded with states collapsed to screenStateHash identity,
-// PerTestOutcome→testFinished never embedding steps). spec/v2/runner.md §2.2 payload discipline.
-//
-// Schema module-discipline law: extension-less relative import specifiers, no node builtins.
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -32,7 +21,6 @@ import type { SubActionEvidence } from '../handoff/sub-action-evidence'
 import type { PerTestOutcome } from '../handoff/per-test-outcome'
 
 const SECRET = 'SECRET-42'
-// The synthetic mask the 362 masking-context will replace (identity pre-362, D-09).
 const mask: MaskFn = (value: string) => value.replaceAll(SECRET, '[masked]')
 
 const scope: ScopeKey = { tier: 'test', key: 'checkout::happy-path' }
@@ -186,14 +174,6 @@ describe('projectSubActionRecorded (spec §2.2 sub-action tick)', () => {
     expect(JSON.parse(JSON.stringify(payload))).toEqual(payload)
   })
 
-  // ---- 405-01 (D-14 · RESEARCH D1): the ref fold, pinned so the drop cannot silently return ----
-  //
-  // Until 2026-08-27 this projection destructured `decisionScreenshotRef` and VOIDED it. The
-  // consequence had no symptom anywhere in this file — `artifactRefs` was declared on the payload
-  // and simply never populated, so the dashboard's projection had nothing to persist and the
-  // run-detail page had no screenshot to render. Three cells below, because the fold has three
-  // states and only one of them was ever exercised.
-
   it('folds a decision screenshot ref into artifactRefs when the evidence carries no others', () => {
     const ref = { id: `decision-screenshot:${'a'.repeat(64)}`, sha: 'a'.repeat(64) }
     const payload = projectSubActionRecorded(
@@ -248,10 +228,6 @@ describe('projectTestFinished (spec §2.2 member-test lifecycle)', () => {
   })
 })
 
-// Phase 363 D-01/Q-3 parity-append projections: hook lifecycle + retry visibility, plus
-// the widened optional fields on stepFinalized/testFinished. Every string routes through
-// the synthetic MaskFn (T-363-01 information-disclosure mitigation), proving the SECRET-42
-// roll-call holds for the new payloads before 362 activates the real redactor.
 describe('projectHookStarted (spec §2.2 hook lifecycle)', () => {
   it('carries hook identity + phase/scope and masks string fields', () => {
     const payload = projectHookStarted(

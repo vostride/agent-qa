@@ -1,6 +1,4 @@
-// the one provider-error classifier the CLI and the dashboard share.
-// Moved from `agent-qa auth test`: its regexes, their order and its six sentences are the
-// contract `auth-test.test.ts` pins, so the CLI's printed lines stay byte-identical.
+// `auth-test.test.ts` pins the regexes, their order and the sentences the CLI prints.
 
 /** The class of a failed provider call, in the order the classifier tests them. */
 export type ProviderErrorClass =

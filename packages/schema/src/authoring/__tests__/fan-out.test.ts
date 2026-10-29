@@ -219,10 +219,7 @@ describe('FanOutReport: what was previewed, beside what was actually consumed', 
       ],
     })
 
-    // NOT CLAMPED and NOT THROWN. A clamp turns a consent defect into a silent correctness bug —
-    // the artifact would report the number the preview promised rather than the number that was
-    // spent — and a throw would destroy the very receipt that carries the evidence. The excess is
-    // reported as a FLAG, and every path this phase exercises asserts the flag is false.
+    // Not clamped and not thrown: a throw would destroy the receipt that carries the evidence.
     expect(report.consumedTotal).toBe(2)
     expect(report.previewed.total).toBe(1)
     expect(report.exceedsPreview).toBe(true)

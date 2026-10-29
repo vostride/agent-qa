@@ -8,11 +8,7 @@ export interface TargetIdentity {
 
 export type TargetMismatchReason = 'role-kind' | 'name-no-shared-word' | 'name-number' | 'row'
 
-/**
- * A refused element action's block, keyed `targetRefusal`: the stated and observed
- * identities disagree, nothing was sent and nothing was substituted. Both identities are redacted
- * before record. A refusal is a planning decision, never an application failure.
- */
+// Identities are redacted before record; a refusal is a planning decision, not an app failure.
 export interface TargetRefusalMeta {
   kind: 'target-mismatch'
   lane: 'ref' | 'fromRef' | 'toRef'

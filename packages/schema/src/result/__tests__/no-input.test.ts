@@ -1,5 +1,3 @@
-// the one reader of a skipped tap's no-input block, shared by the
-// runner and the dashboard.
 import { describe, expect, it } from 'vitest'
 
 import { actionDidNotFail, readIdempotentNoopMeta } from '../../index'

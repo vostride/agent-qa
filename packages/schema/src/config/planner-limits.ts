@@ -1,5 +1,3 @@
-// The per-step planner limits (436 D-01..D-03): one default pair and one resolver every door calls.
-
 /** The two per-step limits, each a positive integer consumed monotonically by the runner. */
 export interface PlannerLimits {
   maxActions: number

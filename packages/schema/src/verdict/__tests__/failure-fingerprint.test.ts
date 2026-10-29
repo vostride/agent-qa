@@ -1,10 +1,4 @@
-// The D-13 failure fingerprint: one exported vocabulary, byte-stable goldens.
-//
-// 390's FLAK-01 windows recurrence over THESE bytes, and the cluster function groups over
-// them — so the recipe is pinned as golden VALUES, not just as relations among the code's
-// own outputs (the 383 lesson: closures phrased as relations among a module's own fields
-// do not hold; closures anchored outside its vocabulary do). Changing the recipe later
-// re-keys every accumulated fingerprint history; that cost is the reason for the pins.
+// Golden values: changing the recipe re-keys every accumulated fingerprint history.
 
 import { describe, expect, it } from 'vitest'
 
@@ -52,7 +46,7 @@ describe('failureFingerprint', () => {
       { anchors: [], errorText: 'timeout after 12ms' },
       'unknown',
     )
-    // The D-13 golden: two timeouts differing only in their digits share one key.
+    // Two timeouts differing only in their digits share one key.
     expect(slow).toBe('{"message":"timeout after #ms","t":"error"}::unknown')
     expect(fast).toBe(slow)
   })

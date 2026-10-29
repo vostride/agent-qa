@@ -11,12 +11,7 @@ export interface VerdictEvidence {
 }
 
 interface VerdictBase {
-  /**
-   * Which pipeline minted this verdict. M2 mints only
-   * 'deterministic-classifier'; M4's analyze-run supersedes it via ordinary
-   * supersession. Failure-side trust-keying switches on this field — it is a
-   * different axis from VerdictSource (verb-evidence.ts), never reuse that union.
-   */
+  // A different axis from `VerdictSource` in `verb-evidence.ts`; failure-side trust keys on it.
   producer: 'deterministic-classifier' | 'analyze-run'
   confidence: number
   evidence: VerdictEvidence
@@ -34,16 +29,7 @@ interface VerdictBase {
   perTest: number
 }
 
-/**
- * The closed verdict-class vocabulary, spelled once as data (388 C13). Minted here beside the
- * union it enumerates so consumers that must validate a stored class — the 390 quarantine ledger
- * guard keys entries on one — check membership against the same list the type declares, rather
- * than a fourth private copy. The three copies that predated it — the handoff guard, the
- * analysis-artifact guard and the analysis validator — were rewired to this export in 390 plan
- * 02, so the closed set is spelled exactly once (388 C13).
- *
- * Type agreement with `Verdict['class']` is pinned in `__tests__/quarantine-ledger.test.ts`.
- */
+// One list as data, so stored-class validators check the same set the type declares.
 export const VERDICT_CLASSES = [
   'test_bug',
   'app_bug',

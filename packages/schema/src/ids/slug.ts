@@ -1,6 +1,4 @@
-// The ONE security-reviewed pure path-segment sanitizer.
-// It lives in schema so provider/storage-neutral eval core can derive safe cassette ids
-// without depending on runner-local or duplicating traversal-sensitive string handling.
+// Lives in schema so neutral eval core derives safe cassette ids without runner-local.
 
 // eslint-disable-next-line no-control-regex
 const CONTROL_CHARS_RE = /[\u0000-\u001f\u007f]/g

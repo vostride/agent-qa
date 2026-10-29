@@ -18,15 +18,7 @@ export const FanOutBoundInputSchema = z.object(fanOutBoundTerms).strict().readon
 
 export type FanOutBoundInput = z.infer<typeof FanOutBoundInputSchema>
 
-/**
- * The three terms and their total, all four separately readable.
- *
- * `total` IS NOT RE-DERIVED BY A REFINEMENT HERE, and the omission is deliberate. A
- * `.refine(b => b.total === b.initialN + b.probeK + b.finalN)` would be a SECOND assembly of the
- * three terms living one file away from `computeFanOutBound`, which is precisely the second
- * arithmetic this file's header forbids and mutation I of the phase's mutation driver (since
- * removed) existed to catch. The schema's job is the shape; the sum has exactly one site.
- */
+// No refinement re-derives `total`: `computeFanOutBound` is the sum's one site.
 export const FanOutBoundSchema = z.object({
   ...fanOutBoundTerms,
   total: z.number().int().min(0),
@@ -104,19 +96,7 @@ export const FanOutReportSchema = z.object({
   /** Distinct runs, in the order they finished, ties broken by run id. */
   consumed: z.array(ConsumedRunSchema).readonly(),
   consumedTotal: z.number().int().min(0),
-  /**
-   * The actual figure exceeded the previewed bound.
-   *
-   * REPORTED, NEVER CLAMPED AND NEVER THROWN. A clamp would turn a consent defect into a silent
-   * correctness bug — the artifact would carry the number the preview promised rather than the
-   * number that was spent — and a throw would destroy the receipt that holds the evidence for it.
-   * The flag is a disclosure of the same kind the report itself is, and every path this phase
-   * exercises asserts it is false.
-   *
-   * IT IS NOT RE-DERIVED HERE EITHER. `consumedTotal > previewed.total` spelled as a refinement
-   * would be a second answer to the question `buildFanOutReport` already answered, and the two
-   * could disagree only in the direction that hides an excess.
-   */
+  // Reported, never clamped or thrown: a throw would destroy the receipt holding the evidence.
   exceedsPreview: z.boolean(),
 }).strict().readonly()
 

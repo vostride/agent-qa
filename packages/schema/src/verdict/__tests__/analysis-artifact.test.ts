@@ -1,18 +1,4 @@
-// The artifact guard's direct corpus (Phase 389 gap G-389-3B, review WR-02).
-//
-// `guardRunAnalysisArtifact` is the ONE gate every stored/foreign artifact crosses — both
-// byte-readers route through it (compose-local-agent's reader, emit-canary's loader). Its
-// coverage previously rode consumers, whose fixtures all carry unique `perTest` values, so
-// the guard's input domain never contained a duplicate-join-key artifact: two verdicts for
-// the same test both passed, `sentenceByPerTest` kept the last, and `clusterVerdicts`
-// counted one member twice. Per the precondition-guarded-rule-corpus-law this corpus holds
-// both directions: the duplicate REJECT cases the domain lacked, and the distinct-perTest
-// CONTROL the guard must still admit.
-//
-// The refusal pinned here is the exact typed failure `createVersionGuard` produces for a
-// `shape: false` — a `TypeError` with message `'RunAnalysisArtifact failed structural
-// validation'` — never a bare toThrow, and never `AnalysisVersionError` (that name is the
-// version discipline's, not the shape check's).
+// Duplicate `perTest` keys are refused, or the join keeps one verdict and a cluster counts twice.
 
 import { describe, expect, it } from 'vitest'
 
@@ -140,13 +126,7 @@ describe('guardRunAnalysisArtifact: a declared memoryOnPath', () => {
   })
 })
 
-// ---------------------------------------------------------------------------------------
-// the read half of the two-sided run-identity contract. The write half derives
-// the artifact's path FROM artifact.runId (persistAnalysis); this helper is the ONE place
-// the recorded id is compared against the run being resolved, consumed at both byte
-// boundaries (compose-local-agent's reader, emit-canary's loader). A mismatch is a typed
-// refusal the consumers fold to the deterministic floor — never adoption, never hard-fail.
-// ---------------------------------------------------------------------------------------
+// A runId mismatch is a typed refusal the consumers fold to the deterministic floor.
 
 describe('admitAnalysisArtifactForRun: recorded runId vs the run being resolved', () => {
   it('admits a matching runId carrying the SAME artifact reference — identity, not a copy', () => {

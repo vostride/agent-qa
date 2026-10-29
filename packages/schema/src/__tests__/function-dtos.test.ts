@@ -1,15 +1,4 @@
-// the seed function-layer DTOs plans 03/04 bind their ops to.
-//
-// Three properties are pinned here, one per plan behavior:
-//  1. every exported function DTO schema is `.strict()` — an unknown key is a rejection,
-//     never a silently-carried field crossing a surface boundary;
-//  2. RunsStartInputSchema surfaces the D-10 `gateRun` carrier as an optional literal;
-//  3. every exported function DTO schema projects to JSON Schema — the guarantee
-//     396's MCP tool catalog and 397's golden snapshot are both derived from.
-//
-// Imports come through the package barrel chain (`../index`) rather than the package name:
-// it is the same module the name resolves to, and it exercises the SOURCE barrel instead of
-// a possibly-stale `dist`.
+// Imports go through `../index`, the source barrel, rather than a possibly stale `dist`.
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
@@ -128,7 +117,6 @@ describe('function DTO schemas are strict', () => {
     expect(RunDetailSchema.safeParse({ ...makeRunDetail(), gateRun: false }).success).toBe(false)
   })
 
-  // a masked entry's value is its declared marker; the config placeholder is deleted.
   it('keeps every masked config entry declaring whether the declared mask changed its value', () => {
     const parsed = MaskedResolvedConfigSchema.parse(makeMaskedConfig())
     const secret = parsed.entries.find((entry) => entry.key === 'llm.apiKey')

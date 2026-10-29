@@ -44,11 +44,7 @@ export interface LiveFrame {
   kind?: LiveStreamKind
 }
 
-/**
- * Why a handle's frame stream ended under its subscribers (428; the hub speaks them from Plan 04).
- * `withdrawn`: the member's capability was withdrawn or replaced while its run continues.
- * `closed`: the hub itself closed, because the run or the editor session is over.
- */
+// `withdrawn`: the capability went while the run continues; `closed`: the hub itself closed.
 export type LiveFrameEndReason = 'withdrawn' | 'closed'
 // prettier-ignore
 export const LIVE_FRAME_END_REASONS = [

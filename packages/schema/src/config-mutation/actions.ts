@@ -1,48 +1,15 @@
-// The closed action class, as input DTOs.
-//
-// ONE DTO PER OP, NAMED FOR ITS OP ID, MINTED HERE. The registry op that carries each of
-// these lives in `packages/agent`, the MCP projection that will publish them lives in 396, and the
-// parity walk that enumerates them lives in 397 — three consumers, so the shapes live in `schema`
-// where none of them owns the vocabulary. A per-op sibling shape would be three spellings whose
-// disagreement is only visible at runtime.
-//
-// EVERY SCHEMA IS `.strict()`, AND THAT IS THE SECURITY PROPERTY RATHER THAN A STYLE. These inputs
-// are filled by a language model, so an unrecognised key is not a typo to forgive: it is either a
-// hallucinated field the op would silently ignore, or an attempt to smuggle a value past the shape
-// the guard reasons about. `.strict()` makes both a refusal at the boundary.
-//
-// `ConfigAuthSetInputSchema` IS THE ONE TO READ TWICE. D-11 ratified set_auth as REFS-ONLY as law:
-// it writes the NAME of an auth state, the NAME of a plugin package, the NAME of an environment
-// variable — never a credential. That is enforced here by the absence of any field a credential
-// could be assigned to, which is a property of the shape rather than a rule somebody remembers, and
-// `__tests__/proposal.test.ts` enumerates the keyset so adding one would be a visible edit. The
-// behavioural half — a value in one of the REFERENCE fields that is not shaped like a reference is
-// refused `refs-only` at construction — is defence in depth on top of this, not instead of it.
+// `.strict()` is the security property: a model fills these inputs, so an unknown key is refused.
 
 import { z } from 'zod'
 
 import { CROSS_BOUNDARY_REASONS } from './constants'
 
-/**
- * The runtimes a hook may declare.
- *
- * SPELLED HERE rather than imported because the hooks file schema lives in `@vostride/agent-qa-core`
- * and this package may not import a first-party package (its package-class boundary). The words are
- * identical to `core`'s `HookDefinitionSchema.runtime` on purpose: a reader comparing them is
- * comparing one vocabulary seen from two layers, and a proposal that offered a fifth runtime would
- * be refused by the whole-file validation this phase runs before anything surfaces.
- */
+// Copied from `core`'s `HookDefinitionSchema.runtime`, which this package may not import.
 export const CONFIG_HOOK_RUNTIMES = ['node', 'bun', 'python', 'bash'] as const
 
 export type ConfigHookRuntime = (typeof CONFIG_HOOK_RUNTIMES)[number]
 
-/**
- * The classes a target may declare at creation.
- *
- * Spelled here for the reason {@link CONFIG_HOOK_RUNTIMES} is: the words match `core`'s
- * `TargetSchema.environment`, and whole-config validation refuses any drift before the change is
- * written. Absent means undeclared, which is non-production.
- */
+// Matches `core`'s `TargetSchema.environment`; absent means undeclared, which is non-production.
 export const CONFIG_TARGET_ENVIRONMENTS = ['local', 'shared', 'production'] as const
 
 export type ConfigTargetEnvironment = (typeof CONFIG_TARGET_ENVIRONMENTS)[number]
@@ -59,9 +26,8 @@ export const ConfigTargetCreateInputSchema = z.object({
   /** The registry key. Also what a test's `target:` names. */
   name: z.string().min(1),
   platform: z.literal('web'),
-  /** The base URL, absolute. D-15's hostname gate runs before this op is reached. */
+  // The hostname gate runs before this op is reached.
   url: z.string().min(1),
-  // no `authStateName`. See `ConfigAuthSetInputSchema`.
   /** A label for the target's environment. Omitted means undeclared. */
   environment: z.enum(CONFIG_TARGET_ENVIRONMENTS).optional(),
 }).strict()
@@ -85,20 +51,7 @@ export const ConfigTargetEditInputSchema = z.object({
 
 export type ConfigTargetEditInput = z.infer<typeof ConfigTargetEditInputSchema>
 
-/**
- * `config.auth.set` — declare an auth plugin for a target, or ask where an environment variable goes.
- *
- * REFS ONLY, AND THERE IS NO FIELD TO PUT A SECRET IN (D-11, ratified as law). Every field below
- * names WHERE a value lives; none of them holds one. The committed configuration therefore stays
- * secret-free by construction, which is what makes masking-at-resolution sound — a masker can only
- * mask values it can see, and the reason it can see all of them is that they never enter this file.
- *
- * NO `authStateName`, here or on `config.target.create` /
- * `config.target.edit`. The three ops wrote it to `use.authState`, and the committed configuration
- * has no such key: `core`'s `UseSchema` and `TargetSchema` are both `.strict()` without one, so
- * whole-config validation answered every such call `blocked / schema-fail`. An auth state is bound
- * where the schema accepts it, in a test's or a suite's own `use.authState`.
- */
+// Refs only: every field names where a value lives, so no field can hold a secret.
 export const ConfigAuthSetInputSchema = z.object({
   /** Which target this auth applies to, by registry name. */
   target: z.string().min(1),
@@ -131,18 +84,7 @@ export const ConfigHookAddInputSchema = z.object({
 
 export type ConfigHookAddInput = z.infer<typeof ConfigHookAddInputSchema>
 
-/**
- * `config.field.set` — set any schema-addressable path.
- *
- * ANY PATH, and the absence of a settable-field whitelist is the decision rather than an omission —
- * a whitelist is the door-enumeration failure this project has measured twice: a rule that can only
- * refuse what it can NAME cannot be driven to zero by naming more things. The guards here are
- * whole-input by construction instead: post-mutation validation of the ENTIRE config for
- * correctness, and D-02's per-value classifier for safety.
- *
- * Relocated from `proposal.ts` by 395-02 so the seven action inputs are one file a reader can read
- * as the closed class it is. The shape is byte-unchanged.
- */
+// Any path, with no whitelist: validation of the whole config guards it, not a list of names.
 export const ConfigFieldSetInputSchema = z.object({
   /** A dotted config path, e.g. `use.timeout` — split on `.` by the yaml Document mutation. */
   path: z.string().min(1),
@@ -151,24 +93,13 @@ export const ConfigFieldSetInputSchema = z.object({
 
 export type ConfigFieldSetInput = z.infer<typeof ConfigFieldSetInputSchema>
 
-/**
- * `config.project.scaffold` — configure a project from zero.
- *
- * ONE FIELD, AND THE MODEL FILLS ONLY THAT ONE. D-13 is explicit: the LLM picks the DOMAIN token
- * from the utterance and deterministic host code derives everything else — the scheme, the target
- * name, the file set. Every field this shape does not have is a field a model could otherwise
- * invent, and `booking.com` versus `booking.de` is a coin flip review should not have to catch.
- */
+// One field: a model picks only the domain, and host code derives the scheme, name and files.
 export const ConfigProjectScaffoldInputSchema = z.object({
-  /** The bare domain from the utterance, e.g. `booking.com`. D-15's hostname gate ran already. */
+  // The bare domain from the utterance, e.g. `booking.com`; the hostname gate already ran.
   domain: z.string().min(1),
 }).strict()
 
 export type ConfigProjectScaffoldInput = z.infer<typeof ConfigProjectScaffoldInputSchema>
-
-// `config.undo.propose` and `config.proposal.apply` are deleted
-// with the proposal inbox, and so are their inputs and the git-commit apply receipts. A change is
-// written in its own call and reverted with git; there is no undo op.
 
 /** How one file of a config change is written: added, replaced, or removed. */
 export const CONFIG_FILE_CHANGE_KINDS = ['add', 'modify', 'delete'] as const
@@ -190,17 +121,9 @@ export const ConfigChangeFileSchema = z.object({
 
 export type ConfigChangeFile = z.infer<typeof ConfigChangeFileSchema>
 
-// ---- 2026-09-30, 432-11 D-05/D-07: what a config change did, answered in the call ------------------
-//
-// The six config operations write their change before they answer. There is no proposal, no
-// inbox record and no second call to apply it: the answer is either what was written, a refusal
-// that wrote nothing, or an interruption that names exactly the files already written.
+// Config operations write their change before they answer, in one call.
 
-/**
- * Why a change was blocked: the resulting configuration would not validate. The report names the
- * issues and never the value. Nothing is written or kept. A config change is not scanned for
- * secrets.
- */
+// The report names the issues and never the value; nothing is written or kept.
 export const CONFIG_BLOCKED_REASONS = ['schema-fail'] as const
 
 export type ConfigBlockedReason = (typeof CONFIG_BLOCKED_REASONS)[number]
@@ -244,21 +167,7 @@ export const CONFIG_CHANGE_REFUSAL_REASONS = [
 
 export type ConfigChangeRefusalReason = (typeof CONFIG_CHANGE_REFUSAL_REASONS)[number]
 
-/**
- * What one config operation did, answered after it wrote.
- *
- *   applied     — the change is on disk. `files` are the workspace-relative files written, in write
- *                 order; `fields` are the config fields the change set; `shownDiff` is the diff of
- *                 the change against the files as this call read them. An outside edit to another
- *                 field, merged in the write's own turn, is kept and is not part of this diff.
- *   blocked     — the change would not validate. It carries the report and never the change;
- *                 nothing was written and nothing was kept.
- *   no-change   — the configuration already holds the value.
- *   refused     — the request or the files at write time refused the change; nothing was written.
- *   interrupted — a multi-file change stopped part way. `written` hold their new bytes, `failed`
- *                 did not, `unwritten` were never reached. Nothing is rolled back: the files are
- *                 plain edits a person reverts with git.
- */
+// `interrupted` rolls nothing back: written files are plain edits a person reverts with git.
 export const ConfigChangeOutputSchema = z.discriminatedUnion('outcome', [
   z.object({
     outcome: z.literal('applied'),

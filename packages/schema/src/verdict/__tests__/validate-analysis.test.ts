@@ -1,12 +1,4 @@
-// The cross-document analysis boundary (Phase 389, plan 04 — D-05/D-07, spec §A9).
-//
-// `validateAnalysisAgainstHandoff` is what makes "a sentence a QA engineer believes"
-// CHECKABLE: an authored artifact validates against the run's own handoff — every cited
-// step must exist, every grounding quote must be verbatim-present in that step's captured
-// evidence, every class must be a member of the closed union, every link must parse, and a
-// no-trust-change class must have honestly ruled memory misdirection out when candidate or
-// low-trust memory was on the failing path. Rejects are PER TEST so one confused answer
-// never fails its siblings, and the reason strings feed the D-03 repair message verbatim.
+// Rejects are per test, so one confused answer never fails its siblings.
 
 import { describe, expect, it } from 'vitest'
 

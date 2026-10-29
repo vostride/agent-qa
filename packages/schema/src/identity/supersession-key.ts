@@ -1,8 +1,4 @@
-/**
- * Phase 377 read-side mirror of memory.md §7.3.2 supersession grouping.
- * Phase 378's write-side disposition must share this helper so Curator and retrieval collapse use
- * the same normalized, order-independent anchor identity (377 Pitfall 7).
- */
+// Curator writes and retrieval collapse share this helper, so both use one anchor identity.
 import { canonicalJson } from '../determinism/canonical-json'
 import { sha256hex } from '../determinism/sha256'
 import type { Anchor } from './anchor'

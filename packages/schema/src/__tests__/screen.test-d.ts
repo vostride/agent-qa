@@ -49,16 +49,10 @@ expectTypeOf<ElementInfo['ref']>().toEqualTypeOf<Ref>()
 expectTypeOf<ElementInfo['nameNormalized']>().toEqualTypeOf<string>()
 expectTypeOf<ElementInfo['role']>().toEqualTypeOf<string>()
 
-// the same-screen ordinal is derived from elements[] order at match
-// time, never stored on ElementInfo and never a cross-run key. Phase 311 proves
-// that structurally; positive ordinal disambiguation lands in Phase 313.
+// The same-screen ordinal derives from `elements[]` order at match time and is never stored.
 expectTypeOf<ElementBounds['bounds']>().toEqualTypeOf<BoundingBox>()
 expectTypeOf<ElementBounds['center']>().toEqualTypeOf<{ x: number; y: number }>()
 expectTypeOf<ElementInfo['bounds']>().toEqualTypeOf<BoundingBox | undefined>()
-
-// vision false corresponds to the textOnly metadata arm, whose
-// discriminated union structurally carries no image dimensions; the bad literal
-// above proves the impossible textOnly + imageWidth state stays rejected.
 
 void full
 void bad

@@ -1,13 +1,4 @@
-// The run-directory analysis artifact.
-//
-// `analysis.json` is the analysis job's own receipt and the durable truth home for a run's
-// authored verdicts and sentence parts — the document M5's run page, 392's chat and eval will
-// consume. It is a NEW file beside `handoff.json` and `events.jsonl`, never a mutation of
-// either (386 D-16's two-receipt law): the handoff records what the run observed, this file
-// records what the analysis authored, and each job writes only its own receipt.
-//
-// The guard is pure — no fs in schema. The host adapter that puts these bytes on disk lives
-// in `agent-local` (`writeAnalysisArtifact`), behind the `persistAnalysis` capability.
+// A new file beside `handoff.json`, never a mutation: each job writes only its own receipt.
 
 import {
   createVersionGuard,
@@ -25,14 +16,7 @@ export const CURRENT_ANALYSIS_SCHEMA_VERSION = 2
 /** The artifact's file name inside a run directory: `runs/<slug(runId)>/analysis.json`. */
 export const ANALYSIS_FILE = 'analysis.json'
 
-/**
- * What one analysis run durably authored.
- *
- * `verdicts` is the complete authored array — floor members and upgraded members alike —
- * and `parts` carries one sentence-parts record per verdict, joined by `perTest`.
- * The `verdicts-authored` checkpoint value stays byte-shape `{runId, verdicts}` exactly as
- * 388 froze it; parts live HERE and nowhere else.
- */
+// Parts live here only; the `verdicts-authored` checkpoint keeps its `{runId, verdicts}` shape.
 export interface RunAnalysisArtifact {
   schemaVersion: number
   runId: string
@@ -40,11 +24,7 @@ export interface RunAnalysisArtifact {
   parts: VerdictSentenceParts[]
 }
 
-/**
- * Thrown when a stored artifact declares a `schemaVersion` this build cannot consume:
- * newer than {@link CURRENT_ANALYSIS_SCHEMA_VERSION}, or older with no registered
- * migration (the D-19 / §A8 version discipline the handoff guard set).
- */
+// Newer than the current version, or older with no registered migration.
 export class AnalysisVersionError extends VersionGuardError {
   constructor(found: number, supported: number) {
     super('RunAnalysisArtifact', found, supported)
@@ -87,17 +67,7 @@ function hasVerdictShape(value: unknown): boolean {
   return true
 }
 
-/**
- * The artifact's fail-closed shape: root fields, every verdict structurally complete, and
- * every parts record parsed through the ONE zod contract — which is what routes each
- * `links` member through `EntityUriSchema` rather than a bare string check.
- *
- * `perTest` is the phase's one join key, and its uniqueness over BOTH arrays is a
- * one-document structural property enforced HERE for every stored/foreign artifact — this
- * guard is the one gate those bytes cross. The author path needs no
- * second gate: `evaluateAttempt` is first-entry-wins per testIndex (measured in plan 04),
- * so the shipped author cannot produce duplicates; the threat is foreign/stored bytes only.
- */
+// `perTest` must be unique in both arrays; this guard is the one gate stored bytes cross.
 function hasCompleteArtifactShape(value: unknown): boolean {
   if (!isNonArrayObject(value)) return false
   return (
@@ -137,21 +107,7 @@ export type AnalysisArtifactAdmission =
   | { kind: 'admitted'; artifact: RunAnalysisArtifact }
   | { kind: 'run-mismatch'; recordedRunId: string; resolvingRunId: string }
 
-/**
- * The read half of the two-sided run-identity contract (G-389-3A, the 388 class).
- *
- * The write half derives the artifact's path FROM `artifact.runId` (the `persistAnalysis`
- * binding), so on an intact directory the recorded id and the resolved run agree by
- * construction. A copied, restored or foreign-written run directory breaks that agreement,
- * and this is the ONE place the comparison is spelled: both byte boundaries (the
- * agent-local artifact reader serving `analysis.get`/`runs.get`, and the canary fold's
- * loader) call it immediately after {@link guardRunAnalysisArtifact}.
- *
- * Consumers fold `run-mismatch` to `undefined` — the run's own deterministic floor. Never
- * adoption (the refusal exists so another run's verdicts and parts stay invisible whole),
- * and never a hard failure (the run's deterministic answer is intact; a mismatch is not
- * the version guard's corruption posture).
- */
+// Consumers fold `run-mismatch` to the deterministic floor: never adopted, never a hard failure.
 export function admitAnalysisArtifactForRun(
   artifact: RunAnalysisArtifact,
   resolvingRunId: string,

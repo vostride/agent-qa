@@ -1,16 +1,11 @@
-// D-13/D-16/ABRF-01 authoring-brief assembly-output contracts. Mirrors the BriefBlock /
-// CautionBlock idiom: an assembled, budgeted block carrying its exact admission material.
+// An assembled, budgeted block carrying its exact admission material, like `BriefBlock`.
 
 import type { BriefLine, CautionLine } from '../brief/served-brief'
 import type { Anchor } from '../identity/anchor'
 import type { ProcedureMatch } from './reader-types'
 import type { ServingRecordMetadata } from './serving-admission'
 
-/**
- * One exemplar test reference: refs + outcome metadata + a short budget-aware excerpt
- * (title + step outline) — NEVER full inline test text. The consumer reads the file on demand;
- * tests are its repo's files.
- */
+// Never full inline test text: the consumer reads the file on demand.
 export interface ExemplarTest {
   filePath: string
   testName: string
@@ -28,17 +23,13 @@ export interface ExemplarTest {
  */
 export type CoverageMap = Record<string, never>
 
-/**
- * The assembled authoring brief. Locked tight-budget precedence when the budget
- * cannot fit everything: caution > procedure > exemplar > fact — the 381-08 assembly and every
- * future consumer read the ordering from THIS contract, not a call site.
- */
+// Tight-budget precedence: caution, then procedure, then exemplar, then fact.
 export interface AuthoringBrief {
   exemplars: ExemplarTest[]
   procedures: ProcedureMatch[]
   facts: BriefLine[]
   cautions: CautionLine[]
-  /** NON-optional: typed-empty until M4 populates it. */
+  // Required even when empty.
   coverage: CoverageMap
   truncation: string
   /** Exact admission material for every served record, the ServingRecordMetadata way. */

@@ -28,7 +28,6 @@ import type {
 } from '../index'
 
 // Independent literal unions: no expected vocabulary is derived from production.
-// Plan 423-23 owns the mutation script; C423-FEEDBACK-RESULTS-EXACT is its required RED cell.
 type HistoryOutcome = 'history' | 'run-not-found' | 'ledger-corrupt' | 'ledger-unavailable'
 type AppliedChangeKind = 'knowledge' | 'test-file'
 // `not-applied` closes a mark whose planned fix was refused.

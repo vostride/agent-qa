@@ -1,17 +1,4 @@
-// What a job handler reports when it returns.
-//
-// Three arms, discriminated. Without the discriminant, "the work finished and chains
-// nothing" and "the work failed" are the same shape, and the engine would have to infer
-// failure from an absence — which is how a handler that threw halfway lands as a clean
-// completion. The split between `retryable` and `permanent` is D-18's: the handler knows
-// whether the thing that went wrong could go right next time; only the engine knows whether
-// any attempts remain. So this type is the handler's REPORT, and the disposition the store
-// records is the engine's DECISION over it — a retryable report on the last permitted
-// attempt still becomes a permanent disposition. Collapsing the two would delete that
-// distinction and with it the bound on retries.
-//
-// Successors ride on the completion arm alone. A failed attempt that could still enqueue
-// follow-on work would leave the chain half-built with no record of which half.
+// A retryable report on the last permitted attempt still becomes a permanent disposition.
 
 import { z } from 'zod'
 

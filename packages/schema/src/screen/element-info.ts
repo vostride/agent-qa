@@ -32,15 +32,9 @@ export interface ElementInfo {
    */
   ref: Ref
   role: string
-  /**
-   * App-observed DATA. origin: app-observed stamping and injection defenses are
-   * deferred to the M2 knowledge-store layer.
-   */
+  // App-observed data.
   name: string
-  /**
-   * App-observed DATA normalized from name. origin: app-observed stamping and
-   * injection defenses are deferred to the M2 knowledge-store layer.
-   */
+  // App-observed data, normalized from `name`.
   nameNormalized: string
   value?: string
   bounds?: BoundingBox
@@ -49,9 +43,6 @@ export interface ElementInfo {
   labels: ElementLabels
   hierarchy?: ElementHierarchy
   attributes: Record<string, string>
-  /**
-   * App-observed DATA: static text folded into this element from children that are not elements
-   * (438 D-02, the row text a planner states). Never part of identity hashing or serialization.
-   */
+  // App-observed data from non-element children; never part of identity hashing or serialization.
   text?: string
 }

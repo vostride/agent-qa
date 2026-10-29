@@ -18,8 +18,6 @@ export type {
   ServedRetrievalTraceV1,
   TraceLine,
 } from './retrieval-trace'
-// the closed rung vocabulary and its recorded form, beside the trace
-// they are persisted next to.
 export {
   RETRIEVAL_RUNGS,
   RETRIEVAL_RUNG_REASONS,
@@ -30,8 +28,7 @@ export type {
   RetrievalRung,
   RetrievalRungReason,
 } from './retrieval-rung'
-// the durable "no knowledge reader was bound" marker, owned here and imported by the
-// runner that writes it and by every reader that derives an unbound store from it.
+// Owned here so the runner that writes it and every reader import one marker.
 export { NO_KNOWLEDGE_READER_TRUNCATION } from './served-brief'
 export type {
   BriefLine,

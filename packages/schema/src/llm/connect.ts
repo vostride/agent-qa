@@ -1,6 +1,4 @@
-// the draft model flow's DTOs. A draft is tested with the typed
-// credential inline and lands in the file only on a pass or an explicit skipTest, so nothing is
-// persisted before the person chooses to keep it.
+// A draft lands in the file only on a pass or an explicit `skipTest`; nothing persists before.
 import { z } from 'zod'
 import type { ProviderErrorClass } from './provider-error'
 

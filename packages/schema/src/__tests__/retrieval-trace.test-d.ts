@@ -1,15 +1,4 @@
-// Type-level proof for the serve-time retrieval trace.
-//
-// The runtime suite in `retrieval-trace.test.ts` proves what the zod schema accepts and
-// refuses. It cannot prove the two claims below, and a mutation probe confirmed that:
-// deleting `retrievalTrace` from `StepEvidence` entirely left the whole runtime suite green,
-// because those tests build handoff documents as untyped records and vitest's typecheck pass
-// covers only `*.test-d.ts`. These assertions are that missing control.
-//
-//   1. `StepEvidence` declares `retrievalTrace` as an OPTIONAL, TYPED beside-field.
-//   2. `ServedBrief` carries no trace member — the beside-never-widening law stated
-//      as a compile-time fact about the contract rather than as an assertion that a
-//      particular commit did not edit a particular file.
+// The runtime suite builds untyped records, so only these type assertions catch a lost field.
 import { expectTypeOf } from 'vitest'
 
 import type { ServedBrief } from '../brief/served-brief'
@@ -26,8 +15,6 @@ expectTypeOf<StepEvidence['retrievalTrace']>().toEqualTypeOf<
   ServedRetrievalTraceV1 | undefined
 >()
 
-// Optional in the constructive direction too: a step that captured no trace is a legal
-// StepEvidence, which is the substrate D-15's typed no-trace answer stands on.
 const withoutTrace: Pick<
   StepEvidence,
   'stepIndex' | 'stepText' | 'cacheStatus' | 'retrievalTrace'

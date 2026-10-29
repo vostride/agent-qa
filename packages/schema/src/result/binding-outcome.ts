@@ -5,11 +5,7 @@ export type BindingOutcome =
   | 'binding-lost'
   | 'binding-changed'
 
-/**
- * A refused dispatch's block, keyed `binding`: the element observed under `ref` is
- * no longer the one on the page, so nothing was sent. `heal` records why a re-find found no single
- * replacement.
- */
+// The element observed under `ref` differs from the one on the page, so nothing was sent.
 export interface BindingOutcomeMeta {
   outcome: BindingOutcome
   ref: string

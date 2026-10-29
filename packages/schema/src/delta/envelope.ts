@@ -12,20 +12,14 @@ export type FactSubtype =
   | 'measurement'
   | 'content'
 
-/** Phase 378 closes the producer vocabulary around the one-shot Curator drainer. */
+// The one-shot Curator drainer is the only producer.
 export type OriginStage = 'run-curation'
 
 export type CurationAuthorshipPath = 'llm' | 'llm-repaired' | 'deterministic-fallback'
 
-/**
- * WHY the author fell back, threaded from AuthorOutcome's fallback arm so a
- * delta-noop drain report can name its cause (F-381-45-1 diagnosability).
- */
+// Why the author fell back, so a delta-noop drain report can name its cause.
 export type CurationFallbackReason = 'malformed' | 'no-model' | 'token-budget' | 'model-error'
 
-/**
- * D-04 raw Curator authorship facts with the SAFE-01 write-posture context that produced them.
- */
 export interface CurationAuthorship {
   path: CurationAuthorshipPath
   model?: {
@@ -34,10 +28,7 @@ export interface CurationAuthorship {
     fingerprint?: string
   }
   executionContext: ExecutionContext
-  /**
-   * Stamped only on the deterministic-fallback path and consumed only for drain-noop
-   * cause derivation — never a trust or tier input (D-06 folds `path` alone).
-   */
+  // Read only to derive a drain-noop cause, never as a trust or tier input.
   fallbackReason?: CurationFallbackReason
 }
 
@@ -47,16 +38,7 @@ export interface CompareAndSet {
   observedOrdinal: number
 }
 
-/**
- * The delta-origin vocabulary as a RUNTIME value, projected from the envelope
- * declaration below by the same discipline `DELTA_KINDS` carries: `satisfies` makes an entry
- * naming no origin a compile error, and the reverse direction is pinned in the type-level
- * proof beside the review-DTO suite.
- *
- * It exists because the proposal boundary validates deltas at ENVELOPE depth — the fields
- * every arm carries — and `origin` is the one that decides whether a committed change is
- * attributable to a person or to the agent.
- */
+// `origin` decides whether a committed change is attributed to a person or to the agent.
 export const DELTA_ORIGINS = ['agent', 'user', 'import', 'system'] as const
 
 export type DeltaOrigin = (typeof DELTA_ORIGINS)[number]

@@ -20,7 +20,7 @@ export interface SearchOptions {
 
 export interface ReadOptions {
   detailLevel?: string
-  /** the tool wrapper passes its remaining read-body budget for reader-side truncation. */
+  // The tool wrapper passes its remaining read-body budget for reader-side truncation.
   budget?: number
   /** Wrapper-fixed scope; never accepted from the planner-facing memory.read schema. */
   scope?: ScopeKey
@@ -34,22 +34,22 @@ export interface CanaryOutcome {
   benefit: Benefit
   /** Pin 3: the exact candidate whose served hypothesis was exercised. */
   candidateId: RecordId
-  /** only attributed step verdicts move trust; ambiguous outcomes are never emitted. */
+  // Only attributed step verdicts move trust; ambiguous outcomes are never emitted.
   runOutcome: 'positive' | 'negative'
   /** Pin 3: run identity participates in the replay-safe evidence token. */
   runId: string
-  /** containing test identity disambiguates step-local indices within one run. */
+  // The containing test disambiguates step-local indices within one run.
   testId: string
-  /** stable test ordinal participates in replay identity and reporting. */
+  // A stable test ordinal used in replay identity and reporting.
   testIndex: number
-  /** deterministic build ordinal only; wall-clock time is never attribution authority. */
+  // A deterministic build ordinal; wall-clock time never decides attribution.
   buildOrdinal: number
-  /** per-step granularity prevents run-level noise from moving trust. */
+  // Per-step granularity keeps run-level noise from moving trust.
   stepIndex: number
-  /** D-01/Pin 3: binds attribution to the frozen ServedBrief used by the step. */
+  // Binds attribution to the frozen `ServedBrief` the step used.
   briefDigest: string
   /** Human-readable attribution rationale; deliberately non-load-bearing. */
   attribution: string
-  /** the normalized candidate anchor actually exercised by the attributed step. */
+  // The normalized candidate anchor the attributed step exercised.
   exercisedAnchor: Anchor
 }

@@ -20,12 +20,7 @@ export interface ChatSessionHeader {
   surface?: string
 }
 
-/**
- * Every kind of thing that can happen to a session, spelled ONCE (388 C13).
- *
- * Ordered by the turn they belong to rather than alphabetically, because the order is the shape
- * of a turn and a reader of this list should be able to see one.
- */
+// Ordered by the turn they belong to, so the list reads as the shape of a turn.
 export const CHAT_SESSION_EVENT_KINDS = [
   'user_message',
   'stage_outcome',
@@ -112,19 +107,7 @@ export interface ChatApprovalDecisionEvent extends ChatSessionEventBase<'approva
   /** The `fn:`-prefixed risk name the gate classified, not the bare op id. */
   actionClass: string
   decision: 'accept' | 'accept-always' | 'deny'
-  /**
-   * WHICH DECISION THIS WAS, on `model_change.source`'s precedent and for its reason (plan 08).
-   *
-   * `gate` — a person answered the inline confirm when an ask-tier capability reached the gate.
-   * `verb` — a person typed `/pin <class>`, pre-denying the class for the rest of the session.
-   *
-   * Both are a human decision about one action class, and collapsing them would leave a reviewer
-   * unable to tell a refusal of a specific request from a standing rule the person set in advance.
-   * The field is REQUIRED rather than defaulted: nothing had ever emitted an `approval_decision`
-   * before this plan, so no session file on disk carries one, and an optional field would have
-   * bought back-compatibility with a population of exactly zero lines at the cost of a defaulting
-   * rule that then has to be right forever.
-   */
+  // `gate` is an answered inline confirm; `verb` is a `/pin` that pre-denies the class.
   source: 'gate' | 'verb'
 }
 

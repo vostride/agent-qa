@@ -1,11 +1,4 @@
-// The exercised-anchors walk, promoted from the CLI's curation tail.
-//
-// Pure over schema types — StepEvidence in, Anchor[] out — and promoted HERE because three
-// consumers now need one spelling of it: the CLI's candidate/canary emission (which
-// re-exports from this module so every existing call site compiles unchanged), plan 05's
-// agent-side cluster function, and 390's recurrence window. knowledge-local already treats
-// the extraction as an injected pure seam (`ExtractStepAnchors`); this is that seam's one
-// implementation, living where both sides of the package graph can reach it.
+// One spelling for the CLI's curation tail, the agent's cluster function and the recurrence window.
 
 import type { StepEvidence } from '../handoff/step-evidence'
 import { isRedispatchedHeal, type SubActionEvidence } from '../handoff/sub-action-evidence'
@@ -65,7 +58,7 @@ export function actionRefs(subAction: SubActionEvidence): string[] {
 }
 
 function resolvedActionRefs(subAction: SubActionEvidence): string[] {
-  // a heal's grounding refs index the dispatch tree, not stateBefore.
+  // A heal's grounding refs index the dispatch tree, not `stateBefore`.
   if (isRedispatchedHeal(subAction)) return actionRefs(subAction)
   const grounded = (subAction.grounding?.attempts ?? []).flatMap((attempt) =>
     attempt.outcome === 'resolved' && attempt.resolvedRef !== undefined

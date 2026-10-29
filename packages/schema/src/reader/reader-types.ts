@@ -15,18 +15,15 @@ export interface IndexEntry {
   anchors: Anchor[]
   status: string
   servedAsCanary: boolean
-  /** D-14 temporal serving role; distinct from whether this entry was served to a canary. */
+  // Temporal serving role, distinct from whether the entry was served to a canary.
   servedAs?: 'current' | 'prior-build-hypothesis'
-  /**
-   * 379 D-05 read-side staleness annotation; present once the confirmation gap exceeds the
-   * volatility-tier threshold so Phase 380 can frame "unconfirmed since build N" as a hypothesis.
-   */
+  // Present once the confirmation gap exceeds the volatility-tier threshold.
   unconfirmedSinceOrdinal?: number
-  /** 379 D-20 vetted candidate served at discounted trust through the always-on sub-cap. */
+  // A vetted candidate served at discounted trust through the always-on sub-cap.
   unverified?: boolean
-  /** D-16 active-conflict annotation linking the surviving peer and minted unknown record. */
+  // Links the surviving peer and the minted unknown record of an active conflict.
   conflict?: { peerRecordId: RecordId; unknownRecordId: RecordId }
-  /** D-15 audit-read state; absent from ordinary serving-path reads. */
+  // Audit-read state; absent from ordinary serving-path reads.
   audit?: { status: string; openedAtOrdinal: number; closedAtOrdinal: number | null }
   scope: ScopeKey
   validity: string
@@ -61,7 +58,7 @@ export interface ProcedureMatch {
   id: RecordId
   flowAnchor: Anchor
   confidence: number
-  /** D-06 closed capability tier — never a widened string. */
+  // A closed capability tier, never a widened string.
   authoringModelTier: CuratorTier
   parameterSchema: { name: string; type: ProcedureParamType; required: boolean }[]
   replayRecommendation: 'replay' | 'hint'

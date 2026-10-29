@@ -1,17 +1,4 @@
-// What this file measures (Phase 391 plan 11, closing G-391-1; re-spelled by 432-18, 432-22 and
-// 432-42).
-//
-// It was a two-leg differential between the scope key set `TRUST_SCOPE_KEYS` and the strict wire
-// projection `TrustScopeSchema`. 432-18 deleted the ledger guard leg. 2026-10-01:
-// the run-service token DTO, the projection's last consumer, is deleted with
-// `services.dashboard.runServiceTokens`, so the wire leg and its module (`grant-ops.ts`) are deleted
-// too and their absence is pinned below.
-//
-// the key set is deleted with `trust-credential.ts`, its last module.
-// The caller types it ranged left in 432-39 and nothing in production read it. The two cells that
-// pinned it published are re-spelled under their titles to pin its absence.
-//
-// Every leg is imported RELATIVELY from source, so no case can pass or fail on a stale built dist.
+// Every leg is imported relatively from source, so no case passes or fails on a stale dist.
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -26,9 +13,6 @@ const SAFETY_DIR = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SRC = join(SAFETY_DIR, '..')
 
 describe('the ONE scope key set', () => {
-  // RE-SPELLED 2026-10-02: the key set's module is deleted and no source declares the
-  // hand-spelled pair as a published constant again. RE-TITLED 2026-10-03 (quick-261003-tsr, IN-22):
-  // was 'CONTROL B (fixed, fixture validity): the key set is exactly the hand-spelled {project, org}'.
   it('CONTROL B: the key set\'s module is deleted and no schema source declares the key set again', () => {
     expect(existsSync(join(SAFETY_DIR, 'trust-credential.ts')), 'trust-credential.ts is back').toBe(false)
     const offenders: string[] = []
@@ -46,9 +30,6 @@ describe('the ONE scope key set', () => {
     expect(offenders, 'a schema source declares the scope key set again').toEqual([])
   })
 
-  // RE-SPELLED 2026-10-02: neither barrel publishes the key set. RE-TITLED 2026-10-03
-  // (quick-261003-tsr, IN-22): was 'the safety barrel publishes the key set and nothing that parses a
-  // scope'.
   it('neither barrel publishes the key set, and the safety barrel exports nothing that parses a scope', () => {
     expect(Object.keys(safety)).not.toContain('TRUST_SCOPE_KEYS')
     expect(Object.keys(root)).not.toContain('TRUST_SCOPE_KEYS')

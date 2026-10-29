@@ -1,8 +1,4 @@
-// The pinned entity route and its slug.
-//
-// Two claims live here that no consumer can make on its own: the route TEMPLATE is the value
-// M5 will build its router from, and the slug segment is produced by the repo's ONE
-// security-reviewed path-segment sanitizer rather than by a second one written for links.
+// The slug comes from the repo's one security-reviewed path-segment sanitizer, not a second one.
 
 import { describe, expect, it } from 'vitest'
 

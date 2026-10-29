@@ -14,8 +14,6 @@ const OPERATION = '8e7d6c5b-4a39-4281-9706-f5e4d3c2b1a0'
 describe('the direct change contracts live in knowledge/change.ts', () => {
   it('a change answers applied, target-not-found or refused, and nothing else', () => {
     const output = schema.KnowledgeChangeOutputSchema
-    // RE-SPELLED 2026-10-03: a forget now carries its receipt by rule, so
-    // the bare applied answer is a reject's.
     expect(output.safeParse({ outcome: 'applied', verb: 'reject', operationId: OPERATION, recordIds: ['rec-1'] }).success)
       .toBe(true)
     expect(output.safeParse({ outcome: 'target-not-found', verb: 'accept', operationId: OPERATION, target: record }).success)

@@ -1,5 +1,4 @@
-// a run whose step recorded an open dialog as the
-// state the step asked for still loads, and the loader still refuses an account it has no reading for.
+// A run whose step asked for an open dialog still loads; an account with no reading is refused.
 import { readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'

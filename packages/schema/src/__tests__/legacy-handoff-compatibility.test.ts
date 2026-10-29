@@ -1,5 +1,4 @@
-// a handoff written by the unchanged producer at agent-qa
-// 5e3e932a2d586f89c805a385483da1800b941fff still reads, and its digests still recompute.
+// A handoff written by the producer at agent-qa `5e3e932a2` still reads, and its digests recompute.
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'

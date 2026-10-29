@@ -1,9 +1,4 @@
-// The analyze-run payload mirror (393 D-20, WTST-06's schema-validated half).
-//
-// The back-compat case is the load-bearing one: the enqueue site ships a four-field payload
-// today, and a schema that only accepts the new six-field shape would refuse every job the
-// running system produces. Both halves are pinned here so a later edit cannot quietly make the
-// flags mandatory.
+// Older four-field payloads must still parse, so the two new flags stay optional.
 
 import { describe, expect, it } from 'vitest'
 
@@ -28,8 +23,7 @@ describe('AnalyzeRunPayloadSchema', () => {
   })
 
   it('accepts each flag independently — they are DISTINCT axes', () => {
-    // C8: a gate run still feeds curation, so `gateRun` without `excludedFromOutcomes` is a
-    // real combination and must not be schema-coupled to its sibling.
+    // A gate run still feeds curation, so `gateRun` without `excludedFromOutcomes` is real.
     expect(
       AnalyzeRunPayloadSchema.parse({ ...CURRENT_PAYLOAD, gateRun: true }),
     ).toMatchObject({ gateRun: true })

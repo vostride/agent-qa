@@ -11,18 +11,13 @@ import { JOB_CHECKPOINT_SCHEMA_VERSION, jobCheckpointEnvelopeSchema } from '../j
 import type { JobHandlerOutcome } from '../job-outcome'
 import { jobHandlerOutcomeSchema } from '../job-outcome'
 
-// The lockstep detectors, in the shape plan 01 established for the job contract: exact
-// equality between what the runtime schema produces and what the interface promises. A
-// `toMatchTypeOf` here would pass while the two drifted, which is the only drift these
-// files can have. Do not weaken them.
+// Exact equality: `toMatchTypeOf` would pass while the schema and the interface drift.
 expectTypeOf<z.infer<typeof jobEnqueueRequestSchema>>().toEqualTypeOf<JobEnqueueRequest>()
 expectTypeOf<z.infer<typeof chainedJobRequestSchema>>().toEqualTypeOf<ChainedJobRequest>()
 expectTypeOf<z.infer<typeof jobCheckpointEnvelopeSchema>>().toEqualTypeOf<JobCheckpointEnvelope>()
 expectTypeOf<z.infer<typeof jobHandlerOutcomeSchema>>().toEqualTypeOf<JobHandlerOutcome>()
 
-// D-08 at the TYPE level, complementing the runtime rejection cases. The key is a required
-// `string`: an `.optional()` on either side of the lockstep, or a widening to
-// `string | undefined`, reddens this line before any parse is ever attempted.
+// The key is a required `string`: `.optional()` or `string | undefined` on either side fails here.
 expectTypeOf<JobEnqueueRequest['idempotencyKey']>().toEqualTypeOf<string>()
 expectTypeOf<JobEnqueueRequest['kind']>().toEqualTypeOf<JobKind>()
 expectTypeOf<JobEnqueueRequest['payload']>().toEqualTypeOf<unknown>()
@@ -31,8 +26,7 @@ expectTypeOf<JobEnqueueRequest['payload']>().toEqualTypeOf<unknown>()
 // @ts-expect-error every enqueue carries an idempotency key; there is no keyless shape.
 const keyless: JobEnqueueRequest = { kind: 'analyze-run', payload: null }
 
-// the stamp is the literal, not `number`. A widening here is how a build would start
-// accepting a checkpoint file some other build wrote.
+// The stamp is the literal, not `number`, or a build would accept another build's checkpoint.
 expectTypeOf<JobCheckpointEnvelope['schemaVersion']>().toEqualTypeOf<
   typeof JOB_CHECKPOINT_SCHEMA_VERSION
 >()
@@ -46,8 +40,6 @@ const misstamped: JobCheckpointEnvelope = {
   payload: null,
 }
 
-// The three arms, pinned by exact equality on the discriminant. D-18's retryable/permanent
-// split lives here; a fourth arm or a lost one is a contract change plans 03/04 build on.
 expectTypeOf<JobHandlerOutcome['status']>().toEqualTypeOf<'complete' | 'retryable' | 'permanent'>()
 
 const completion: JobHandlerOutcome = {

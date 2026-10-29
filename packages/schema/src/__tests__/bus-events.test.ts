@@ -1,13 +1,3 @@
-// Wave-0 RED scaffold (361-01, Task 1). Pins the Plan 02 bus-schema-v1 contract
-// BEFORE any implementation exists — RED strictly on the unresolved import of the
-// not-yet-existing `../run/bus-events` module (right-reason RED). Turns green in
-// Plan 02 without weakening a single assertion here.
-//
-// Contract source: spec/v2/runner.md §2.2 (frozen envelope, append-only event enum,
-// busSchemaVersion, runFinished.disposition fixed 'detached' in M1) + 361-CONTEXT.md
-// D-05 (envelope home), D-15 (MemberTestOutcome splits off RunStatus, gains 'skipped').
-//
-// Schema module-discipline law: extension-less relative import specifiers, no node builtins.
 import { describe, expect, expectTypeOf, it } from 'vitest'
 
 import {
@@ -31,11 +21,6 @@ import type { PerTestOutcome } from '../handoff/per-test-outcome'
 import type { ScopeKey } from '../identity/scope-key'
 import type { ExecutionContext, RunStatus } from '../run/run-status'
 
-// The complete §2.2 event vocabulary M1 ships: every group EXCEPT the reserved
-// control/arbiter group (M5). The eleven lifecycle/diagnostic events, the three parity appends
-// and the six chip events — camelCase, names verbatim per spec §2.2 (Ratified 2026-07-05). SIX
-// chips since 404 D-02: the three names for the third chain member were never
-// emitted by any producer and left the vocabulary with it.
 const EXPECTED_EVENT_TYPES: readonly string[] = [
   // Run lifecycle
   'runStarted',
@@ -55,14 +40,13 @@ const EXPECTED_EVENT_TYPES: readonly string[] = [
   'runError',
   // Liveness
   'heartbeat',
-  // Post-processing / status chips — DEFINED in v1, emitted by no M1 producer
+  // Post-processing chips
   'analysisStarted',
   'analysisCompleted',
   'analysisFailed',
   'curationStarted',
   'curationCompleted',
   'curationFailed',
-  // Phase 363 D-01/Q-3 parity appends — hook lifecycle + retry visibility
   'hookStarted',
   'hookFinished',
   'testRetryScheduled',
@@ -80,10 +64,6 @@ describe('bus schema — envelope + event vocabulary (spec §2.2)', () => {
     expect([...RUN_EVENT_TYPES].sort()).toEqual([...EXPECTED_EVENT_TYPES].sort())
   })
 
-  // the chip group is SIX. The reserved `issues*` triple was
-  // defined in bus schema 1 and emitted by no producer, ever, and left the enum when the
-  // 2026-08-25 spec amendment retired the third chip. Asserted set-equal, not just
-  // membership, so a re-added name reds this cell.
   it('defines exactly the six chip events verbatim (spec §2.2)', () => {
     const chips = [
       'analysisStarted',
@@ -154,7 +134,6 @@ describe('run-lifecycle payload headers (spec §2.2)', () => {
       disposition: 'detached',
       finalSeq: 42,
     }
-    // M1 fixes disposition to 'detached' — no post-processing producer exists (Ratified 2026-07-05).
     expect(runFinished.disposition).toBe('detached')
     expect(runFinished.finalSeq).toBe(42)
     expect(JSON.parse(JSON.stringify(runFinished))).toEqual(runFinished)
@@ -184,10 +163,6 @@ describe('MemberTestOutcome — the per-test union split', () => {
   })
 })
 
-// Phase 363 D-01/Q-3 parity appends: the bus must carry hook lifecycle and retry
-// visibility as first-class typed events so the v1 Reporter interface can be deleted.
-// Envelope is untouched; the enum is extended append-only (spec §2.2). Payload shapes
-// mirror core/src/reporter/types.ts HookEvent/HookResultEvent (lines 25-52).
 describe('bus schema v1 — parity event vocabulary (spec §2.2)', () => {
   it('appends hookStarted, hookFinished, testRetryScheduled at the end of the enum', () => {
     for (const type of ['hookStarted', 'hookFinished', 'testRetryScheduled']) {

@@ -28,11 +28,7 @@ describe('jobSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  // 385 C6. The three fields below are REQUIRED, and requiredness is the half of
-  // the break a "does the valid shape still parse" test cannot see: declaring them
-  // `.optional()` keeps every accepting case above green while leaving exactly the rows the
-  // break exists to forbid — an attempt-less, timestamp-less job row — parseable. So each
-  // omission gets its own rejection case.
+  // Each required field gets its own rejection case; an optional one passes every accepting case.
   it.each(['attempts', 'createdAt', 'updatedAt'])('rejects a job missing %s', (field) => {
     const withoutField = { ...VALID_JOB }
     delete withoutField[field]

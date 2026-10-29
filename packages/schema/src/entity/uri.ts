@@ -1,14 +1,4 @@
-// The canonical `agentqa://<segment>/<short-id>` entity URI codec.
-//
-// The URI is the machine-facing half of an address: a card's `keyFacts[]` link entities with
-// it, 389 will put it in verdict sentences, and 396 projects it as an MCP resource link. So
-// it is parsed with an anchored pattern and a closed segment vocabulary rather than with the
-// platform URL parser — `new URL()` accepts an unknown scheme, normalises case, and would
-// happily hand back `agentqa://MEMORY/mem-001` as a successful parse of something this
-// system has no address for.
-//
-// Round-tripping is the contract: `parseEntityUri(formatEntityUri(x)) === x` for every legal
-// address, and anything else parses to `undefined` rather than to a best guess.
+// Parsed with an anchored pattern, not `new URL()`, which accepts unknown schemes and folds case.
 
 import { z } from 'zod'
 

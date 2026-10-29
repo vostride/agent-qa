@@ -1,17 +1,4 @@
-// Type-level proof for the knowledge review-verb DTO family.
-//
-// Three claims live here because no runtime assertion can carry them:
-//
-//   1. `DELTA_KINDS` and `DELTA_ORIGINS` are PROJECTIONS of the §7.3 type unions, not second
-//      declarations of them. The `satisfies` clause at each declaration site catches an entry
-//      naming no arm; the reverse direction — an arm no entry names, which is what happens
-//      when someone adds a delta kind — is caught only here.
-//   2. `BRIEF_WHY_RESULT_KINDS` is the complete arm set of the union, so the "there is no
-//      re-run arm" claim is checked against the union rather than against a list someone
-//      remembered to update.
-//   3. A change's `deltas` are typed as `Delta`, so the boundary's envelope-depth runtime
-//      check has not silently widened the static type to `unknown`. (RE-SPELLED 2026-10-01,
-//      the proposal payload is deleted; the mark plan carries the deltas a change writes.)
+// `satisfies` catches an entry naming no arm; only these checks catch an arm no entry names.
 import { expectTypeOf } from 'vitest'
 
 import { DELTA_KINDS } from '../delta/delta'
@@ -47,8 +34,7 @@ expectTypeOf<Exclude<BriefWhyResult['kind'], (typeof BRIEF_WHY_RESULT_KINDS)[num
 expectTypeOf<Exclude<(typeof BRIEF_WHY_RESULT_KINDS)[number], BriefWhyResult['kind']>>()
   .toEqualTypeOf<never>()
 
-// The trace lives ONLY on the answered arm. If it appeared on the absence arm, a re-run
-// result would be expressible without adding an arm at all — the drift D-15 actually risks.
+// The trace lives only on the answered arm, or a re-run result would need no new arm.
 expectTypeOf<Extract<BriefWhyResult, { kind: 'answered' }>['trace']>()
   .toEqualTypeOf<ServedRetrievalTraceV1>()
 expectTypeOf<
@@ -63,8 +49,6 @@ expectTypeOf<ForgetTargetRef>().toEqualTypeOf<KnowledgeTargetRef>()
 expectTypeOf<Extract<KnowledgeChangeOutput, { outcome: 'target-not-found' }>['target']>()
   .toEqualTypeOf<KnowledgeTargetRef>()
 
-// The receipt's resulting status is the MEM card's vocabulary — the fact that makes
-// "designed once for both uses" true rather than aspirational.
 expectTypeOf<ForgetReceiptV1['resultingBundleStatus']>()
   .toEqualTypeOf<'active' | 'tombstoned' | 'forgotten'>()
 

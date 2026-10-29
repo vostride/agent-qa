@@ -3,7 +3,6 @@ import { asRecordId } from '../ids/record-id'
 import type { PerTestOutcome } from '../handoff/per-test-outcome'
 import type { Verdict, VerdictEvidence } from '../verdict/verdict'
 
-// the closed eight-class union — unknown/timeout ratified (§A9).
 type AllClasses =
   | 'app_bug'
   | 'test_bug'
@@ -29,7 +28,6 @@ const evidence: VerdictEvidence = {
 
 expectTypeOf<Verdict['class']>().toEqualTypeOf<AllClasses>()
 
-// producer is the minting-pipeline axis, closed to exactly two literals.
 expectTypeOf<Verdict['producer']>().toEqualTypeOf<
   'deterministic-classifier' | 'analyze-run'
 >()
@@ -77,7 +75,6 @@ const flake: FlakeVerdict = {
 // @ts-expect-error non-test_bug verdict arms carry no subtype.
 flake.subtype
 
-// The two RCC-01 extension arms are assignable members of the closed union (§A9).
 const unknownVerdict: Verdict = {
   class: 'unknown',
   producer: 'deterministic-classifier',
@@ -144,7 +141,6 @@ const bareStringEvidence: Verdict = {
   perTest: 0,
 }
 
-// PerTestOutcome carries the optional per-test rootCause classification…
 const classifiedOutcome: PerTestOutcome = {
   testId: 'test-one',
   testName: 'Test one',

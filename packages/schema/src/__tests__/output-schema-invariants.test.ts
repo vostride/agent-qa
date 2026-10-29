@@ -1,8 +1,4 @@
-// Three output invariants the doc comments stated and nothing enforced (432 review IN-21, quick
-// 261003-cpv). Each schema below is parsed by its producer only (the op's output validation, the
-// daemon answer the host re-parses, the MCP projection), and none is read back from a stored
-// record, so each invariant is a refinement rather than softened wording. What reds each cell: the
-// schema without its refinement admits the incoherent value.
+// Each schema is parsed by its producer only and never read back, so a refinement is safe.
 
 import { describe, expect, it } from 'vitest'
 

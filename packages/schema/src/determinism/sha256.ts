@@ -19,15 +19,7 @@ function hexWord(value: number): string {
   return (value >>> 0).toString(16).padStart(8, '0')
 }
 
-/**
- * sha256 of RAW BYTES, hex — the one place this package's digest is computed.
- *
- * Split out of {@link sha256hex} rather than copied beside it, and the split is the whole point.
- * 395's config apply digests a file as it stands on disk while the proposal digested the same file
- * as it stood at proposal time, and the two halves must be one recipe over one representation: a
- * second implementation taking bytes is precisely 394's CR-02 defect class, where two halves of one
- * digest contract hashed different representations and agreed on every input anyone had tried.
- */
+// The one bytes digest: proposal and apply must hash one representation with one recipe.
 export function sha256hexBytes(input: Uint8Array): string {
   return digestBytes(Array.from(input))
 }

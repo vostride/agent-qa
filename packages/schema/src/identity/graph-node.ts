@@ -1,8 +1,4 @@
-/**
- * Phase 375 D-01 graph identity contract (memory.md §6.1). Following Phase 374's D-06/D-07
- * early-identity precedent, node ids are stable before the first projection row exists: Phase 377
- * may extend ontology members, but it must never re-key this identity.
- */
+// Node ids stay stable: ontology members may be added, but this identity is never re-keyed.
 import type { Platform } from '../action/index'
 import { canonicalJson } from '../determinism/canonical-json'
 import { sha256hex } from '../determinism/sha256'
@@ -79,7 +75,6 @@ function pageType(platform?: Platform): GraphNodeType {
   return 'mobile-screen'
 }
 
-/** D-01 normalize-before-key projection from a bundle anchor into the closed graph ontology. */
 export function anchorGraphNode(anchor: Anchor, platform?: Platform): GraphNode | null {
   const normalized = normalizeAnchor(anchor)
 

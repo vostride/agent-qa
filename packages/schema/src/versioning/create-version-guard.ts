@@ -31,9 +31,7 @@ export class VersionGuardError extends Error {
   }
 }
 
-/**
- * Builds the ONE parse → reject-newer → migration-walk → cast version guard flow.
- */
+// Parse, reject newer, walk migrations, then cast.
 export function createVersionGuard<T>(config: VersionGuardConfig<T>): (value: unknown) => T {
   const versionError = (found: number): Error =>
     config.error === undefined

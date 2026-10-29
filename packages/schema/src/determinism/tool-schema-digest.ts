@@ -1,11 +1,7 @@
 import { canonicalJson } from './canonical-json'
 import { sha256hex } from './sha256'
 
-/**
- * One model-visible tool definition with parameters already converted to plain JSON Schema.
- * The runner-side `describeBoundSurface` producer converts with `z.toJSONSchema`; Zod never
- * enters this browser-safe schema package.
- */
+// Parameters arrive already converted to plain JSON Schema by the runner's `describeBoundSurface`.
 export interface ToolSurfaceEntry {
   name: string
   description: string
@@ -33,10 +29,7 @@ function toolRecord(input: ToolSurfaceEntry): string {
   )
 }
 
-/**
- * Hash the complete model-visible tool surface using deterministic canonical JSON.
- * Object keys and tool names are sorted; array order remains semantic and is preserved.
- */
+// Object keys and tool names are sorted; array order is semantic and kept.
 export function computeToolSchemaDigest(tools: readonly ToolSurfaceEntry[]): string {
   const body = [...tools].sort(compareTool).map(toolRecord).join('')
   return sha256hex(`${text('tool-schema-digest')}${body}`)

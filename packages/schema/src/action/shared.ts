@@ -4,12 +4,7 @@ export interface RefTargeted {
   ref: Ref
 }
 
-/**
- * The optional post-condition a `click`/`tap` intends to leave a toggleable control in
- * (Phase 359 D-13; Phase 360 research Open Question 1). Schema now owns this planner-reachable
- * field so `ActionsFor<P>` is the single truth — the adapters read it, there is NO default
- * (359 D-13 law). Enum replicated byte-for-byte from the 359 runner-side field.
- */
+// The adapters read it and there is no default.
 export type DesiredState = 'checked' | 'unchecked' | 'selected' | 'unselected'
 
 export interface NoPlatform {

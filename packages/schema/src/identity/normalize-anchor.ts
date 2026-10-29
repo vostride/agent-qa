@@ -16,13 +16,7 @@ function normalizeRoute(route: string): string {
   return `${pathWithoutTrailingSlash}${query}`
 }
 
-/**
- * D-07's provisional-shape-locked anchor normalization contract. Phase 377 may extend the
- * normalization values but must reuse this function: page routes casefold and lose hashes and
- * trailing slashes; flow and element names reuse normalizeAccessibleName; element roles trim and
- * casefold while ordinals survive; platform anchors are unchanged; selectors trim only; error
- * messages casefold, collapse whitespace, and replace digit runs with '#'.
- */
+// Page routes casefold and drop hashes and trailing slashes; error digit runs become `#`.
 export function normalizeAnchor(anchor: Anchor): Anchor {
   switch (anchor.t) {
     case 'page':

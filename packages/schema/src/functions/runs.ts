@@ -90,8 +90,7 @@ const runStatusValues = [
   'cancelled',
 ] as const satisfies readonly RunStatus[]
 
-// 393: hoisted to `run/run-status.ts` beside the type, so the analyze-run payload mirror
-// enumerates the same closed set rather than keeping a second copy of it.
+// Shared with the analyze-run payload mirror so both enumerate one closed set.
 const executionContextValues = EXECUTION_CONTEXT_VALUES
 
 const scopeKeySchema = z.object({

@@ -1,16 +1,8 @@
-// the field-merge write DTO behind PATCH /api/config. A change
-// names one field by segments, never a dotted string, so a key holding a dot stays addressable
-// and an outside edit to a sibling field is never rewritten.
+// A field is named by segments, not a dotted string, so a key holding a dot stays addressable.
 import { z } from 'zod'
 import { isConfigSchemaPath } from './leaves'
 
-/**
- * What one change does to the field its path names.
- * - `set-if-absent`: writes only when the field is absent from the file at merge time
- *   (required-sibling completion, 429-42).
- * - `move`: re-keys a field inside the server, so its value never travels (a header rename).
- * - `expect`: a precondition checked against the file as read; its value is null for an absent field.
- */
+// `move` re-keys a field inside the server, so its value never travels.
 export type ConfigWriteOp =
   | 'set'
   | 'unset'
@@ -28,19 +20,7 @@ export const CONFIG_WRITE_OPS = [
   'expect',
 ] as const satisfies readonly ConfigWriteOp[]
 
-/**
- * Why a write was refused, as the route answers it.
- * - `invalid_write_input`: the body is not a well-formed change set.
- * - `file_invalid`: the file does not parse as YAML.
- * - `path_not_found`: a `{ name }` selector names no entry.
- * - `validation_failed`: the merged config fails whole-config validation.
- * - `write_failed`: the atomic write itself failed.
- * - `field_changed`: an `expect` found the field changed since the page read it.
- * - `path_not_writable`: the path is not one this door may write or test.
- * - `marker_written_back`: a value or path of the change holds a `[secret:<name>]` marker, which
- *   is how a read shows a declared secret, so writing it would replace the real value (441 GAP-D7).
- *   Only ops that write are checked; an `expect` is not.
- */
+// `marker_written_back`: writing a `[secret:<name>]` marker back would replace the real secret.
 export type ConfigWriteRefusal =
   | 'invalid_write_input'
   | 'file_invalid'
@@ -62,7 +42,7 @@ export const CONFIG_WRITE_REFUSALS = [
   'marker_written_back',
 ] as const satisfies readonly ConfigWriteRefusal[]
 
-// 441 GAP2-D4: the one sentence every write door answers `marker_written_back` with.
+// The one sentence every write door answers `marker_written_back` with.
 export const MARKER_WRITTEN_BACK_SENTENCE =
   "This holds [secret:<name>], the way a declared secret is shown, so it can't be saved here. "
   + "Edit your config or test file directly instead, and don't copy [secret:<name>] into it; "
@@ -89,16 +69,7 @@ export const ConfigPathSegmentSchema = z.union([
 
 const ConfigPathSchema = z.array(ConfigPathSegmentSchema).min(1)
 
-// the page's write door writes exactly what the page renders a field
-// for, which is every schema leaf outside these roots.
-
-/**
- * Roots the page's write door never writes.
- * - `plugins`: names code the CLI loads, so it stays a file edit.
- *
- * There is no `safety` root: a path under it is not a schema path, so the door refuses it like any
- * unknown path.
- */
+// `plugins` names code the CLI loads, so it stays a file edit.
 export type ConfigWriteDeniedRoot = 'plugins'
 // prettier-ignore
 export const CONFIG_WRITE_DENIED_ROOTS = [
@@ -147,8 +118,6 @@ export type ConfigWriteResult = {
 
 /** The revision a config file that does not exist yet reports. */
 export const CONFIG_REVISION_ABSENT = 'absent'
-
-// the server-side Undo.
 
 export const ConfigUndoRequestSchema = z.object({
   token: z.string().min(1),

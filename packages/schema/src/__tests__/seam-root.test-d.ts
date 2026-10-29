@@ -51,7 +51,7 @@ expectTypeOf<CompletedRunHandoff['runId']>().toEqualTypeOf<RunId>()
 expectTypeOf<CompletedRunHandoff['executionContext']>().toEqualTypeOf<ExecutionContext>()
 expectTypeOf<CompletedRunHandoff['aggregateVerdict']>().toEqualTypeOf<RunStatus>()
 expectTypeOf<CompletedRunHandoff['tests']>().toEqualTypeOf<PerTestOutcome[]>()
-expectTypeOf<PerTestOutcome['outcome']>().toEqualTypeOf<MemberTestOutcome>() // D-15 member-level split
+expectTypeOf<PerTestOutcome['outcome']>().toEqualTypeOf<MemberTestOutcome>()
 expectTypeOf<PerTestOutcome['steps']>().toEqualTypeOf<StepEvidence[]>()
 expectTypeOf<StepEvidence['servedBrief']>().toEqualTypeOf<ServedBrief>()
 expectTypeOf<StepEvidence['subActions']>().toEqualTypeOf<SubActionEvidence[]>()

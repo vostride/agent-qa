@@ -18,7 +18,6 @@ test('lists the config write refusals in order', () => {
   ])
 })
 
-// the two token lists left with their keys; the model list remains.
 test('lists registry.llms as the only named array', () => {
   expect(api.CONFIG_NAMED_ARRAYS).toEqual(['registry.llms'])
 })
@@ -78,7 +77,6 @@ test('the config write request accepts well-formed changes and refuses malformed
   }
 })
 
-// `safety` left the schema, so it left the denied roots too.
 test('lists plugins as the only denied write root', () => {
   expect(api.CONFIG_WRITE_DENIED_ROOTS).toEqual(['plugins'])
 })
@@ -163,7 +161,7 @@ test('PAGE-WRITABLE-EVERY-RENDERED-LEAF', () => {
     ['use', 'bogus'],
     ['plugins'],
     ['plugins', 'auth', 0, 'path'],
-    // a retired root is refused as an unknown path, not as a denied root.
+    // A retired root is refused as an unknown path, not as a denied root.
     ['safety', 'trustMode'],
     ['registry', 'llms', { name: 'k' }, 'nope'],
     ['registry', 'llms', '[]', 'model'],
@@ -180,8 +178,6 @@ test('PAGE-WRITABLE-EVERY-RENDERED-LEAF', () => {
   expect(api.isConfigSchemaPath(['use', 'bogus'])).toBe(false)
 })
 
-// the masking classes, the classifier and their cells are deleted with the map;
-// the leaf list, its schema-path test and its owner rule remain.
 test('LEAF-OWNER', () => {
   expect(api.configLeafOwner('registry.targets.*.url')).toBe('registry.targets')
   expect(api.configLeafOwner('workspace.testMatch[]')).toBe('workspace.testMatch')
@@ -320,7 +316,6 @@ test('CONNECT-REQUEST-STRICT', () => {
   }
 })
 
-// the reveal request schema and its cases are deleted; Undo and Move remain.
 test('UNDO-MOVE-STRICT', () => {
   const cases = [
     {

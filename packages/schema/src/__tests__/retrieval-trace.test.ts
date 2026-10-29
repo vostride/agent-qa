@@ -1,18 +1,4 @@
-// The serve-time retrieval trace.
-//
-// Three claims are pinned here, and each one is pinned by a case the assertion could
-// actually REJECT rather than by a happy-path sample:
-//
-//   1. The trace contract is CLOSED — a fourth retrieval leg, a second schemaVersion, a
-//      zero rank and an unknown key are each refused, so a producer cannot widen the shape
-//      by writing to it.
-//   2. The truncation ledger is BOUNDED at both edges of `TRACE_TRUNCATION_TOP_K` — exactly
-//      K is admitted, K + 1 is refused. A test that only fed a "large" array would pass
-//      against any bound at all, including none.
-//   3. `retrievalTrace` is a beside-field on `StepEvidence` that a v5 handoff may carry, may
-//      OMIT (historical absence — D-15's substrate), and may not carry malformed.
-//
-// Schema module-discipline law: extension-less relative import specifiers, no node builtins.
+// Each claim is pinned by a case the assertion could reject; exactly K passes and K + 1 is refused.
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -264,9 +250,7 @@ describe('CompletedRunHandoff v5 retrievalTrace beside-field', () => {
   })
 
   it('refuses a step whose PRESENT retrievalTrace is malformed (fail-closed)', () => {
-    // The why-verb dereferences every line's recordId/leg/rank/score to answer
-    // with, so the load boundary admits the block only in consumer-traversable form — the
-    // same present-implies-valid discipline `planSource` and `interpolatedVariables` carry.
+    // The why-verb dereferences each line's fields, so the boundary admits only traversable blocks.
     const cases: unknown[] = [
       'not-an-object',
       { schemaVersion: RETRIEVAL_TRACE_SCHEMA_VERSION, servedLines: [], truncated: [] , extra: true },

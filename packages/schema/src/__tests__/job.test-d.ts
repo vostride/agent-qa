@@ -3,8 +3,7 @@ import type { z } from 'zod'
 import type { Job } from '../job/job'
 import { jobSchema } from '../job/job'
 
-// The lockstep detector for the C6 break: it reddens if the interface is extended without
-// the zod schema, or the schema without the interface. Do not weaken it to `toMatchTypeOf`.
+// Exact equality: `toMatchTypeOf` would pass while the interface and the zod schema drift.
 expectTypeOf<z.infer<typeof jobSchema>>().toEqualTypeOf<Job>()
 
 expectTypeOf<Job['attempts']>().toEqualTypeOf<number>()

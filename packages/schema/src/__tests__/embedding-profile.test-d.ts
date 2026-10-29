@@ -54,7 +54,6 @@ const missingRevision: EmbeddingProfile = (({ revision, ...rest }) => rest)(base
 // @ts-expect-error session_options is required — the runtime hands it to ORT verbatim.
 const missingSessionOptions: EmbeddingProfile = (({ session_options, ...rest }) => rest)(base)
 
-// The no-shim pin: a v46-shaped profile (removed worker-count field, removed wasm backend) is not assignable.
 // @ts-expect-error a `threads` worker-count field is not part of the profile.
 const v46Shaped: EmbeddingProfile = { ...base, threads: 1 }
 

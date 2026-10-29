@@ -971,9 +971,7 @@ describe('guardCompletedRunHandoff factory instance compatibility', () => {
         evidence.citedArtifacts = [{ id: 7, sha: COMPLETE_ARTIFACT_SHA }]
       }),
     ],
-    // interpolatedVariables is consumer-dereferenced by the
-    // procedure-extraction emit fold — it applies string equality to `value` and copies
-    // `name` verbatim, so both must be strings on every admitted member.
+    // The extraction fold compares `value` and copies `name` verbatim, so both must be strings.
     [
       'step interpolatedVariables is a number',
       withInterpolatedVariables(42),

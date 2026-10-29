@@ -1,10 +1,10 @@
-/** A skipped tap's block, keyed `idempotentNoop`. `inputSent: false` marks the 437 shape. */
+// A skipped tap's block, keyed `idempotentNoop`; `inputSent: false` marks the current shape.
 export interface IdempotentNoopMeta {
   currentState: string
   inputSent?: false
 }
 
-// Reads the pre-437 `{ currentState }` block too.
+// Also reads the older `{ currentState }` block.
 export function readIdempotentNoopMeta(
   result?: { metadata?: Record<string, unknown> },
 ): IdempotentNoopMeta | undefined {

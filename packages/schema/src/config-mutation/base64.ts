@@ -1,12 +1,4 @@
-// The vendored base64 codec.
-//
-// A CONFIG PROPOSAL PERSISTS BYTES, and a proposal record is JSON. The platform's own base64 pair
-// and `Buffer` are host APIs this package may not name, so the byte<->text transport is vendored
-// here for the same reason `utf8.ts` beside it is.
-//
-// IT IS TRANSPORT, NOT REPRESENTATION. The digest a freshness check compares is taken over the raw
-// bytes BEFORE they are encoded and AFTER they are decoded, never over this text — base64 is how
-// the bytes survive a JSON file, not what they are.
+// Vendored: `Buffer` and the platform base64 pair are host APIs this package may not name.
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 

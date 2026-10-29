@@ -1,23 +1,11 @@
-// The one verdict read path.
-//
-// Two producers now exist for one `(runId, testId)` verdict — the runner's deterministic
-// classifier persisted on the handoff, and analyze-run's authored artifact. THE resolved
-// verdict is served by this accessor and nowhere else: artifact verdicts when the artifact
-// is present, the handoff's deterministic floor when it is absent. The supersession-as-
-// upgrade law lives HERE — a consumer that read `rootCause` off the handoff directly would
-// be re-deriving the supersession rule, and the SC2 "second independent observation" defect
-// class returns the day two consumers derive it differently.
+// Consumers read verdicts only here, or two of them could resolve supersession differently.
 
 import type { CompletedRunHandoff } from '../handoff/completed-run-handoff'
 import type { PerTestOutcome } from '../handoff/per-test-outcome'
 import type { RunAnalysisArtifact } from './analysis-artifact'
 import type { Verdict } from './verdict'
 
-/**
- * Members whose outcome is worth a root-cause verdict — the complement of the runner's own
- * presence rule: clean passes, skipped and cancelled members are not failures to
- * explain. Mirrors the agent handler's floor projection member-for-member.
- */
+// Mirrors the agent handler's floor projection member for member.
 function needsVerdict(test: PerTestOutcome): boolean {
   return test.outcome !== 'passed' && test.outcome !== 'skipped' && test.outcome !== 'cancelled'
 }
@@ -44,20 +32,7 @@ function mintedUnknown(perTest: number): Verdict {
   }
 }
 
-/**
- * THE only way any consumer obtains a run's verdicts.
- *
- * Artifact present → the authored verdicts, whole. Artifact absent → the deterministic
- * floor: each member needing a verdict answers its persisted `rootCause`, and a failed
- * member that carries none resolves to the minted `unknown` — the same fill the
- * classifier itself would have minted, so the array covers every failure either way.
- *
- * Pure over its two arguments. Whoever loads the artifact loads it through
- * `guardRunAnalysisArtifact`; this function never touches a byte of storage.
- *
- * Both paths hand back the verdict OBJECT they found, so `memoryOnPath` and an attribution
- * block survive resolution byte-for-byte.
- */
+// A failed member with no persisted `rootCause` resolves to the minted `unknown`.
 export function resolveRunVerdicts(
   artifact: RunAnalysisArtifact | undefined,
   handoff: CompletedRunHandoff,

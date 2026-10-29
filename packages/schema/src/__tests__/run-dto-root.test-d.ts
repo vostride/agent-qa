@@ -25,7 +25,7 @@ expectTypeOf(asPatchId).returns.toEqualTypeOf<PatchId>()
 expectTypeOf<z.infer<typeof jobSchema>>().toEqualTypeOf<Job>()
 expectTypeOf<z.infer<typeof patchSchema>>().toEqualTypeOf<Patch>()
 
-expectTypeOf<RunSession['status']>().toEqualTypeOf<'running' | RunStatus>() // D-13 M1-lite: running -> terminal
+expectTypeOf<RunSession['status']>().toEqualTypeOf<'running' | RunStatus>()
 expectTypeOf<RunSession['executionContext']>().toEqualTypeOf<ExecutionContext>()
 expectTypeOf<RunSession['id']>().toEqualTypeOf<RunId>()
 

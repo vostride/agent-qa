@@ -1,18 +1,4 @@
-// RED-first pins for the three quarantine verbs' wire contract.
-//
-// The DTOs are minted in schema so `agent`'s op specs and knowledge-local's port
-// implementation consume ONE contract rather than two agreeing spellings. Two claims carry
-// most of the weight here:
-//
-//  1. THE STATE AND CLASS VOCABULARIES ARE IMPORTED, NEVER RESPELLED (388 C13). The entry
-//     DTO's `state` enum is built out of the ledger's own const, and its `verdictClass` enum
-//     out of the canonical verdict const — so a fourth ledger state could not arrive with the
-//     wire contract still admitting only three. The cases below assert that identity, not a
-//     hand-written copy of the members.
-//  2. RE-ADD AND MISSING-ENTRY ARE RESULT ARMS, NEVER THROWS. `release` on a test that
-//     is not quarantined answers `no-entry`; `add` on one that already is answers `renewed`.
-//     A caller learns which happened by reading the discriminant, which a rejected promise
-//     could not carry.
+// The state and class enums import their consts, so the wire cannot lag a new ledger state.
 
 import { describe, expect, it } from 'vitest'
 

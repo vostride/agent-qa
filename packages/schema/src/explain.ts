@@ -1,24 +1,4 @@
-// The `explain` contract.
-//
-// THE UNION IS BINARY AND THERE IS NO CONFIDENCE MEMBER, and the absence is load-bearing. This is
-// the chat resolver table's own law, restated for the surface where it matters second-most:
-// `resolver-table.ts` says "RESOLUTION IS BINARY … NO CONFIDENCE MEMBER … A confidence number
-// would be the first half of a threshold". Here the reasoning is the same with a different
-// consequence: `explain` answers a person asking what the tool can do, and a 0.6-confidence answer
-// is an answer they will act on. There is exactly one honest split — the catalog grounds this, or
-// it does not — so the union has two arms and no number to tune between them.
-//
-// NO-INVENTION IS STRUCTURAL, NOT PROMPTED. `ExplainCitationSchema` is the LLM's whole
-// output contract, and it is `.strict()` with no field that can carry a command string: the model
-// selects catalog ROW IDS and nothing else. Every command a person reads is quoted out of a
-// catalog row by the deterministic renderer in `packages/agent/src/explain/renderer.ts`. A cited
-// id that no row answers to is therefore not a bad answer to sanitise — it is structurally an
-// abstention, because there is nothing for the renderer to quote.
-//
-// `query` IS THE ONE DELIBERATELY FREE-TEXT FIELD IN THIS FEATURE, and it never leaves the machine.
-// It flows to the local coverage log under `.agent-qa/` and nowhere else; analytics may
-// carry at most a counter (D-14's no-free-text law). Nothing downstream of this file may put it in
-// an event payload.
+// `query` is free text: it goes only to the local coverage log, never into an event payload.
 
 import { z } from 'zod'
 
@@ -40,15 +20,7 @@ export const ExplainProseSegmentSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('citation'), citationIndex: z.number().int().nonnegative() }).strict(),
 ])
 
-/**
- * THE LLM'S ENTIRE OUTPUT CONTRACT.
- *
- * `segments` is admitted so the model is not forced to answer in a shape it cannot hold, and the
- * renderer treats it as INERT: the rendered output is a total function of the resolved rows and
- * the cited order, proven by the `renderer.test.ts` inertness cell. That cell is the guard on this
- * field — an author who later starts rendering model prose reds it, rather than discovering by
- * report that a made-up command reached a person.
- */
+// `segments` is admitted but inert: the renderer's output depends only on the rows and cited order.
 export const ExplainCitationSchema = z.object({
   /** Canonical catalog row ids — `op:<id>` / `alias:<alias>` / `skill:<name>`, in the model's order. */
   citedRowIds: z.array(z.string().min(1)),
@@ -83,16 +55,7 @@ export const ExplainAnswerSchema = z.object({
   renderedLines: z.array(z.string().min(1)).min(1),
 }).strict()
 
-/**
- * Not grounded — stated plainly, with the nearest thing the catalog does carry.
- *
- * `closestRowIds` may be empty, and that is the honest arm rather than a hole: a query with no
- * lexical overlap with any row has no closest capability, and naming one anyway would be the
- * invention this whole contract exists to make impossible.
- *
- * `docsGap.logged` is the renderer's report of whether the host actually appended the coverage
- * record, not a request that it should — the renderer is storage-neutral and writes nothing.
- */
+// `closestRowIds` may be empty: naming a closest row with no lexical overlap would be invention.
 export const ExplainAbstentionSchema = z.object({
   kind: z.literal('abstention'),
   is_uncertain: z.literal(true),

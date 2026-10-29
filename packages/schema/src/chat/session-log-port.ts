@@ -40,20 +40,7 @@ export interface ChatSessionHandle extends OpenedChatSession {
   close(): Promise<void>
 }
 
-/**
- * The session log, as everything that is not one session.
- *
- * ONE ADAPTER SERVES ANY NUMBER OF SESSIONS CONCURRENTLY, each through its own handle, and the
- * adapter holds no notion of a "current" one. AT MOST ONE LIVE HANDLE PER SESSION ID: a second open
- * of a session somebody is already holding is a typed refusal, because two handles on one file
- * would interleave two turns inside a single conversation — the same damage as the cross-session
- * case, one level down, and the one a double-submit on the daemon delivers.
- *
- * THIS SENTENCE IS THE CONTRACT, STATED ONCE. Both shipped adapters implement it — the JSONL disk
- * adapter and its in-memory twin — and a twin that kept a looser shape would let hermetic tests
- * pass against a contract production does not sign (390's one-sided-hardening lesson, which this
- * port exists on the far side of).
- */
+// At most one live handle per session id, or two handles would interleave turns in one file.
 export interface SessionLogPort {
   // A supplied id must exist: an unknown id is refused, never silently created.
   open(sessionId?: string): Promise<ChatSessionHandle>

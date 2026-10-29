@@ -1,22 +1,4 @@
-// The card ↔ dashboard-route contract.
-//
-// WHY THIS IS IN `schema` AND NOT IN THE DASHBOARD. Verbatim `url.ts`'s reasoning for
-// `ENTITY_URL_ROUTE`: "the M5 route table imports this constant, so 'the dashboard's routes and the
-// cards' links agree' is ONE declaration rather than two that were written from the same sentence."
-// The same sentence has three readers now — the dashboard's renderer, which mints hrefs from it;
-// the conformance scenario table, whose entity-card cases are built OVER it; and the parity cells
-// on both doors, which join against it. Three copies of a route table is three places a kind can
-// quietly acquire or lose a page, with nothing comparing them.
-//
-// AND IT IS A CONTRACT, NOT A FIXTURE. What a kind's card links to is a published fact about this
-// product's surfaces — the same class of fact as `ENTITY_URL_ROUTE` and `ENTITY_URI_SEGMENTS`, both
-// of which already live here. A test-only table would have made the parity suite's idea of the
-// routes the subject and left the shipped ones unmeasured.
-//
-// THE `null` ARM IS THE HONEST ONE. A kind with no page here says so, and every reader is
-// obliged to render nothing rather than a link — not a disabled anchor, not a `#`, not the card's
-// own `url`, which addresses `ENTITY_URL_ROUTE`'s M5 shape that no build serves yet. "A card that
-// carried a link to a route nothing serves would be a dead link shown with confidence."
+// A kind with a `null` route renders no link: its card's `url` addresses a route no build serves.
 
 import type { EntityKind } from './kinds'
 
@@ -50,19 +32,7 @@ export interface EntityDashboardRoute {
   readonly keyedBy: EntityDashboardRouteGrain
 }
 
-/**
- * THE per-kind table, total over `EntityKind`.
- *
- * `as const satisfies Record<EntityKind, …>` is the completeness guarantee every other per-kind
- * table in this directory carries: a sixth kind is a compile error here rather than a kind whose
- * card silently renders whichever arm a lookup happened to miss. There is deliberately no fallback.
- *
- * The three routed paths are the ones `dashboard-ui/src/app.tsx` registers today. The two `null`
- * arms are not placeholders: `MEM`/`POL` have no page in this build. They are also the arms that
- * matter most to measure —
- * a `MEM` card in dashboard chat DOES carry a `url` (400-01's D-16 overlays a base for any
- * conversation the dashboard serves) and must still offer nothing to click.
- */
+// `MEM` and `POL` have no page, so even a `MEM` card that carries a `url` offers nothing to click.
 export const ENTITY_DASHBOARD_ROUTES = {
   TST: { route: '/test/:t_id', keyedBy: 'machine-id' },
   RUN: { route: '/runs/:id', keyedBy: 'machine-id' },

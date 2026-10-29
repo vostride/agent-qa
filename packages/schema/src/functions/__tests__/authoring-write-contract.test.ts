@@ -39,9 +39,7 @@ describe('AuthoringDraftWriteInputSchema: scope is host-derivable', () => {
   })
 
   it('matches the runs.start precedent this law is borrowed from, field for field', () => {
-    // THE TWO-SIDED READ. `runs.start` has shipped "absent resolves from the config" since 384;
-    // this cell reads BOTH declarations rather than restating the claim, so a later tightening of
-    // either one reds here instead of leaving two ops with two answers to one question.
+    // Reads both declarations, so tightening either one fails here.
     const bothOmit = [
       RunsStartInputSchema.safeParse({}).success,
       AuthoringDraftWriteInputSchema.safeParse({ intent: 'x' }).success,

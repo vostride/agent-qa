@@ -1,47 +1,6 @@
-// What a REFERENCE looks like, stated positively.
-//
-// D-11 RATIFIED `set_auth` AS REFS-ONLY AS LAW: the committed configuration names WHERE a value
-// lives — an auth state, a plugin package, an environment variable — and never holds one. 395-02
-// enforced half of that with the SHAPE of the input DTO: `ConfigAuthSetInputSchema` has no field a
-// credential could be assigned to. This file is the other half, and it exists because the first half
-// is not enough: a model that wants to be helpful will put a bearer token in `pluginPackage`, and
-// the field it arrived in says nothing about what it holds.
-//
-// THE RULE IS PHRASED OVER WHAT IT ADMITS, NEVER OVER WHAT IT REFUSES, and that is the whole design.
-// The tempting implementation is a credential lexicon — "refuse anything that looks like an AWS key,
-// a bearer token, a PEM block" — and this project has measured that shape failing twice under its
-// own name: A RULE THAT CAN ONLY REFUSE WHAT IT CAN NAME CANNOT BE DRIVEN TO ZERO BY NAMING MORE
-// THINGS. Every credential family nobody thought of walks through it. The rule below names nothing
-// it refuses. It names what an auth-state name IS, what a package name IS, what an environment
-// variable name IS — three small closed shapes the configuration schema already imposes — and
-// refuses the complement. A credential family invented tomorrow is refused on the day it is invented
-// unless it happens to be spelled like a reference, and THAT residue is a bound this phase records
-// rather than a hole it pretends to have closed (see the KNOWN BOUND cell in `config-ops.test.ts`).
-//
-// THIS IS AN ADMISSION GATE, NOT THE ONLY GATE. Values that pass here still travel D-09's detector
-// scan and the seeded known-secret half, and the artifact they end up in is scanned again before
-// anything surfaces. The three do not overlap by accident: the shape rule refuses what a reference
-// cannot be, the detector half refuses named credential families, and the seeded half refuses values
-// the masker already knows — which is the only one of the three that catches a family nobody named.
-//
-// THE PATTERNS ARE RESTATED HERE ON `CONFIG_HOOK_RUNTIMES`' PRECEDENT, one file over: the config
-// schema lives in `@vostride/agent-qa-core` and this package may not import a first-party package.
-// `AUTH_STATE_SLUG_PATTERN` in `core/src/auth-state/schema.ts` is the same expression, deliberately.
-// The layering makes the direction of any drift safe rather than merely unlikely: whole-config
-// validation runs on every proposal, so a name this gate admits and `core` refuses becomes a
-// schema-fail blocked record — a worse message, never a worse outcome.
+// Admits only reference shapes and refuses the rest; a credential lexicon misses unnamed families.
 
-/**
- * The reference kinds the config editor can be asked to write.
- *
- * a kind is added here when an op learns to write a new class of reference, together with
- * the shape the configuration schema already imposes on it. It is NOT a place to add a shape because
- * a value was refused: the question a new member answers is "what does this reference look like",
- * and if the answer is "anything", the field is not a reference and D-11 does not cover it.
- */
-// no op writes an `auth-state-name` today — the three that did lost
-// the field, because the committed configuration has no key for it. The kind and its shape stay: a
-// member of a closed public set, matching `core`'s auth-state slug, for the op that next binds one.
+// No op writes an `auth-state-name`; the kind stays as a member of a closed public set.
 export const CONFIG_REFERENCE_KINDS = [
   'auth-state-name',
   'plugin-package',

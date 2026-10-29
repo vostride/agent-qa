@@ -1,20 +1,4 @@
-// The serve-time retrieval trace.
-//
-// What a brief SAID is already durable; what this contract makes durable is WHY it said it.
-// The serving path knows leg, rank, score and what the token budget cut at the moment it
-// assembles a brief, and every one of those facts is gone a millisecond later — a later
-// question answered by re-querying the index answers about *now*, which is precisely the
-// dishonesty KREV-02 exists to prevent. So the trace is captured at the seam and persisted
-// beside the evidence, and the why-verb reads only what was written down.
-//
-// TWO ledgers, not one. `servedLines` answers "why did it say this". `truncated` answers
-// "why didn't it mention X" — the question a QA engineer debugging a missed hint actually
-// asks, and the one that is unanswerable from the served brief alone because the cut
-// candidates leave no trace in it at all.
-//
-// This module deliberately does NOT touch the `ServedBrief` contract. That value feeds
-// `computeBriefDigest`, and every cassette and acceptance digest in the tree is keyed on its
-// exact bytes; a trace channel added there would have rewritten all of them.
+// Kept out of `ServedBrief`, whose exact bytes key `computeBriefDigest` and every cassette digest.
 
 import { z } from 'zod'
 

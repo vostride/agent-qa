@@ -1,26 +1,4 @@
-// The ONE entity card shape.
-//
-// `{ kind, id, uri, title, status, url?, keyFacts[], actions[] }`, verbatim per ENTY-02 — the
-// chat card, the MCP `structuredContent` and the M5 UI are all projections of this and never
-// of a per-surface variant. There is exactly one producer, and it lives in the function
-// layer; this file is the contract it renders INTO.
-//
-// `status` is a kind-DISCRIMINATED closed union. One flat status enum would have been
-// smaller and would have accepted `{ kind: 'MEM', status: 'passed' }` — a memory record that
-// claims a run verdict — which is precisely the class of nonsense a card must not be able to
-// carry into a verdict sentence. The per-kind vocabularies live in one exported table so a
-// test can walk the complete five-kind set rather than the three arms someone remembered.
-//
-// `url` is ABSENT by default. v52 configures no dashboard base URL, and a card that
-// carried a link to a route nothing serves would be a dead link shown with confidence. M5
-// turns it on by setting config — no schema change, no producer change.
-//
-// `actions[]` are registry op refs. A card can only advertise capabilities the
-// function registry already contains, so an advertised action is invokable identically over
-// chat, CLI and MCP, safe-mode listing filters apply to it automatically, and 397's parity
-// suite can assert every action a card offers actually resolves. A freeform action string
-// would have been a second capability vocabulary, which is the private-power drift L10
-// exists to prevent.
+// `status` is discriminated by kind, so a `MEM` card cannot carry a run verdict like `passed`.
 
 import { z } from 'zod'
 
@@ -53,27 +31,7 @@ export const ENTITY_CARD_MAX_KEY_FACTS = 12
 /** Same reasoning for the action row: a card offers a few next moves, not a menu. */
 export const ENTITY_CARD_MAX_ACTIONS = 6
 
-/**
- * What each kind CALLS the machine id its address maps FROM — the label its FIRST key fact rides
- * under, on every card the one producer emits.
- *
- * IT LIVES IN THE CONTRACT RATHER THAN IN THE PRODUCER (moved here 400-08) because it is the only
- * thing that makes the machine id READABLE OFF A CARD. A card carries `{kind, id, uri, …}` and
- * deliberately no `machineId` field — the short-ID is the published address — but the identity fact
- * carries it, and a surface that has to route to a page keyed by machine id (the dashboard's
- * `/test/:t_id` and `/runs/:id`) needs to name that fact without guessing. With the table in the
- * producer's package a renderer had two ways to get there and both were wrong: read the label as a
- * literal (a second copy, free to drift the day a noun is retuned) or fish the id out of an
- * `actions[]` seed (addressing by coincidence, which `actions.ts`'s own header names as the thing
- * its seeds must never be). One declaration, imported by the producer that WRITES the fact and by
- * every surface that READS it, is what makes "the identity fact carries the machine id" a contract
- * instead of a convention.
- *
- * The label is per-kind and not cosmetic: `bundle id` and `run id` send a reader to different
- * places to correlate, and a card that said `machine id` for both would make the reader guess which
- * store to look in. A table rather than five literals so a kind cannot be added without answering
- * the question.
- */
+// Lives in the contract so a surface reads the machine id off the identity fact without guessing.
 export const ENTITY_IDENTITY_FACT_LABELS = {
   TST: 'test id',
   RUN: 'run id',
@@ -82,12 +40,7 @@ export const ENTITY_IDENTITY_FACT_LABELS = {
   TGT: 'target name',
 } as const satisfies Record<EntityKind, string>
 
-/**
- * One deterministic fact about the entity, computed by the producer from store data — never
- * LLM-authored. `ref` is an `agentqa://` URI so a fact can LINK another entity, which
- * is what lets a failing run's card point at the test it ran without inventing a second
- * cross-reference format.
- */
+// Never model-authored; `ref` is an `agentqa://` URI so a fact can link another entity.
 export const KeyFactSchema = z.object({
   label: z.string().min(1),
   value: z.string(),

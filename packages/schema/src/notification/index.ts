@@ -26,8 +26,6 @@ export {
   PostProcessingStageDetailSchema,
   isPostProcessingChipStatus,
 } from './post-processing-status'
-// the per-run digest's read-time contract. A projection, never a record — see
-// the module head for why it sits beside the frozen notification row instead of inside it.
 export {
   RunDigestCandidateReportSchema,
   RunDigestChainOutcomesSchema,

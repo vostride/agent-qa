@@ -1,39 +1,4 @@
-// THE ONE diff/digest primitive both halves of a config proposal call.
-//
-// RAW BYTES IN, RENDERED BYTES OUT. Construction (in `agent`) renders the diff a person reads and
-// records the digests a later apply will re-check; the apply (in `cli`) recomputes both from the
-// file as it stands and byte-compares. Those are two halves of ONE contract, and the whole reason
-// this is a single exported function rather than a shared convention is the history written into
-// `local-agent-host.ts:1650-1657`:
-//
-//   BYTES, NOT TEXT — ON BOTH SIDES (394-23 WR-04, completed by 394-29 CR-02). … at the base BOTH
-//   halves hashed the UTF-8 decoding and therefore AGREED … what the round-trip genuinely destroyed
-//   was the rollback, which wrote U+FFFD back over every sequence the decoder could not read.
-//
-// WHERE THE DECODE IS, AND WHERE IT IS NOT. Every digest here is taken over the `Uint8Array` the
-// caller handed in, untouched. The decode happens ONLY on the rendering path, because a unified
-// diff is text by definition and there is nothing else it could be — a person cannot review bytes.
-// So a file whose bytes are not valid UTF-8 renders with replacement characters and still digests,
-// compares and applies as itself. The two claims stay separate, which is what CR-02 cost.
-//
-// SORTED BY PATH, ALWAYS, AND BY THE PATH'S UTF-8 BYTES. The rendered bytes are compared for
-// equality across two processes and two moments, so their order may not depend on the order a
-// caller happened to enumerate a file set in. The comparison is over the UTF-8 encoding rather than
-// over JavaScript's own string ordering because those two disagree: `<` compares UTF-16 code units,
-// which sorts every astral character BELOW U+E000–U+FFFF (its surrogates start at 0xD800) while its
-// UTF-8 encoding sorts ABOVE them (four-byte sequences start at 0xF0). One of those orders is a
-// property of a path; the other is a property of a language's string representation, and the thing
-// being compared here is a path.
-//
-// NOTHING CHANGED IS AN ANSWER, NOT AN EMPTY ONE (CFGM-01's empty edge). The result is discriminated
-// on `outcome`, and the `unchanged` arm structurally has no `diffBytes` — a caller cannot mistake
-// "there is nothing to propose" for "here is a diff that happens to be zero bytes long", because
-// there is no zero-length array to interpret. `unchanged` is decided from the BYTES, never from the
-// rendered line count, for the reason the refusal below exists.
-//
-// THE HUNK VOCABULARY IS `schema/src/patch/`'s (394 D-06 reserved it for this phase). The renderer
-// emits `FileChange`/`Hunk` values and then serializes THOSE, so the structure a surface can read
-// and the bytes a person reads are one artifact rather than two renderings of one change.
+// Digests take the caller's raw bytes; only rendering decodes, and paths sort by UTF-8 bytes.
 
 import { sha256hexBytes } from '../determinism/sha256'
 import type { FileChange, Hunk } from '../patch/patch'
@@ -104,21 +69,7 @@ export class EmptyConfigDiffFileError extends TypeError {
   }
 }
 
-/**
- * The bytes differ, but the diff renders as nothing. Refuse rather than show a person an empty page.
- *
- * THE HAZARD IS THE DECODE, AND IT IS THE ONE PLACE THE TWO CLAIMS THIS FILE KEEPS SEPARATE CAN
- * COLLIDE. A unified diff is text, so rendering decodes; a decode maps every byte sequence it
- * cannot read onto U+FFFD, and that map is many-to-one. Two files differing only in bytes no
- * decoding round-trips — `0x80` against `0xFF` — therefore decode to the SAME text and produce zero
- * hunks, while their digests differ and their content differs.
- *
- * Left alone, that is a proposal a person is shown as an empty diff and approves, which writes
- * bytes they never saw; and D-19's shown==applied comparison would agree with itself the whole way,
- * because both halves render the same nothing. So this is not a rendering nicety — it is the one
- * gap through which the byte-level guarantee could be satisfied while the human-level one was not.
- * The change is refused at construction, before any record of it can exist.
- */
+// Undecodable bytes render as U+FFFD, so a real change can show as an empty diff; refuse it.
 export class UnrenderableConfigDiffError extends TypeError {
   constructor(readonly paths: readonly string[]) {
     super(

@@ -18,8 +18,7 @@ expectTypeOf<Platform>().toEqualTypeOf<'web' | 'android' | 'ios'>()
 
 expectTypeOf<IosAction>().not.toEqualTypeOf<never>()
 
-// Populated legs are mutually exclusive except `fill`, the sole documented shared verb;
-// Phase 318 registry IDs and the Phase 322 lint enforce tool-level exclusivity.
+// Web and mobile action legs are mutually exclusive except `fill`.
 type SharedWebMobileVerb = 'fill'
 expectTypeOf<Extract<WebAction['type'], MobileAction['type']>>().toEqualTypeOf<SharedWebMobileVerb>()
 expectTypeOf<
@@ -154,8 +153,6 @@ expectTypeOf<Extract<CommonAction, { type: 'executeScript' }>>().not.toEqualType
 expectTypeOf<Extract<MobileAction, { type: 'launchApp' }>>().toEqualTypeOf<never>()
 expectTypeOf<Extract<MobileAction, { type: 'stopApp' }>>().not.toEqualTypeOf<never>()
 
-// Phase 360 (Open Question 1): schema click/tap own the optional `desiredState` post-condition
-// so `ActionsFor<P>` is the single planner-reachable truth — enum replicated from the 359 field.
 expectTypeOf<Extract<WebAction, { type: 'click' }>>().toMatchTypeOf<{
   type: 'click'
   desiredState?: 'checked' | 'unchecked' | 'selected' | 'unselected'
@@ -164,8 +161,6 @@ expectTypeOf<Extract<MobileAction, { type: 'tap' }>>().toMatchTypeOf<{
   type: 'tap'
   desiredState?: 'checked' | 'unchecked' | 'selected' | 'unselected'
 }>()
-// Phase 360 (Pitfall 4): tapCoordinate execution shape is { x, y, coordSpace } — the { point }
-// form is deleted (breaking sanctioned; no parallel shape).
 expectTypeOf<Extract<MobileAction, { type: 'tapCoordinate' }>>().toMatchTypeOf<{
   type: 'tapCoordinate'
   x: number

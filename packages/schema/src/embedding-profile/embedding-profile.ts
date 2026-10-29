@@ -3,14 +3,7 @@ import type { JsonObject } from '../run/run-artifact'
 export interface EmbeddingProfile {
   /** Embedding model id selected by the memidex profile. */
   model_id: string
-  /**
-   * Model revision pinned for index identity.
-   *
-   * Phase 376's embed cache is keyed (model_id, dtype, revision,
-   * sha256(rendering)) and the per-model vec0 table identity includes it.
-   * Locked production profiles use the exact commit hash exercised by the
-   * embedding bench so upstream re-uploads cannot change index identity.
-   */
+  // Pinned to the benchmarked commit so an upstream re-upload cannot change index identity.
   revision: string
   /** Output vector dimensionality for the selected model. */
   dim: number
@@ -37,14 +30,7 @@ export interface EmbeddingProfile {
    * query-side instruction.
    */
   doc_prefix: string
-  /**
-   * Execution backend.
-   *
-   * 'node' is the onnxruntime-node native CPU path (transformers.js v4's
-   * default device in Node). 'static' is the bundled potion-retrieval-32M
-   * pure-TS floor profile; only the vocabulary ships now — its runtime
-   * arrives with Phase 376.
-   */
+  // `static` is the bundled pure-TypeScript floor profile; `node` is the onnxruntime-node CPU path.
   backend: 'node' | 'static'
   /**
    * ORT session tuning passed through verbatim by the embedding runtime.
@@ -65,11 +51,7 @@ export interface EmbeddingProfile {
 
 export const DEFAULT_EMBEDDING_PROFILE = {
   model_id: 'Xenova/bge-small-en-v1.5',
-  /**
-   * Locked 2026-07-14 from the embedding benchmark.
-   * This pin changes vec-table identity; old revision-keyed tables are
-   * disposable rebuildable projections and are rebuilt, never migrated.
-   */
+  // Changing this pin changes vec-table identity; old tables are rebuilt, never migrated.
   revision: 'ea104dacec62c0de699686887e3f920caeb4f3e3',
   dim: 384,
   dtype: 'q8',
@@ -85,19 +67,11 @@ export const DEFAULT_EMBEDDING_PROFILE = {
       optimization: { enable_gelu_approximation: '1' },
     },
   },
-  /**
-   * Locked 2026-07-14 from the embedding benchmark's recorded gold-pair p05 0.385200;
-   * rounded down to two decimals.
-   */
+  // The benchmark's gold-pair p05 `0.385200`, rounded down to two decimals.
   tau_dense: 0.38,
 } as const satisfies EmbeddingProfile
 
-/**
- * Bundled pure-TypeScript degradation floor.
- *
- * A floor that must be fetched isn't a floor — the hosts that need it are
- * exactly the hosts that can't download it.
- */
+// A floor that must be fetched is no floor: the hosts that need it cannot download it.
 export const STATIC_FLOOR_EMBEDDING_PROFILE = {
   model_id: 'minishlab/potion-retrieval-32M',
   revision: '6fc8051fab2a1e0ee76689cf08c853792ac285e7',
@@ -110,9 +84,6 @@ export const STATIC_FLOOR_EMBEDDING_PROFILE = {
   backend: 'static',
   /** ORT session options are inert for the static backend. */
   session_options: {},
-  /**
-   * Locked 2026-07-14 from the embedding benchmark's recorded gold-pair p05 -0.012736;
-   * rounded down to two decimals.
-   */
+  // The benchmark's gold-pair p05 `-0.012736`, rounded down to two decimals.
   tau_dense: -0.02,
 } as const satisfies EmbeddingProfile

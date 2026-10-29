@@ -1,9 +1,4 @@
-// The explain contract's shape laws.
-//
-// Every truth in the plan's behaviour list gets a cell here, because a contract law stated only in
-// a header comment is a law nothing enforces. The load-bearing one is the ABSENCE of a confidence
-// member: `.strict()` is what turns that absence into a parse refusal instead of a silently
-// ignored key.
+// `.strict()` turns an added confidence member into a parse refusal, not an ignored key.
 
 import { describe, expect, it } from 'vitest'
 

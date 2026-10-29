@@ -72,7 +72,6 @@ export type {
   DeviceConfig,
   EffectiveWorkersInput,
   PlatformBase,
-  // 2026-10-07 (436-04, D-01..D-03)
   PlannerLimits,
   PlannerLimitsPerTest,
   PlannerLimitsRecord,
@@ -85,7 +84,6 @@ export {
   CONFIG_NAMED_ARRAYS,
   CONFIG_REVISION_ABSENT,
   CONFIG_SCHEMA_LEAVES,
-  // the page write door's denied roots and path policy.
   CONFIG_WRITE_DENIED_ROOTS,
   CONFIG_WRITE_OPS,
   CONFIG_WRITE_REFUSALS,
@@ -96,12 +94,10 @@ export {
   ConfigWriteRequestSchema,
   DEFAULT_NAVIGATION_TIMEOUT_MS,
   DEFAULT_PARALLEL_WORKERS,
-  // 2026-10-07 (436-04, D-01..D-03): the one default pair and resolver every door calls.
   DEFAULT_PLANNER_LIMITS,
   deviceConfigSchema,
   isConfigSchemaPath,
   isPageWritableConfigPath,
-  // 441 GAP2-D4: the marker_written_back refusal's one sentence.
   MARKER_WRITTEN_BACK_SENTENCE,
   platformBase,
   PLANNER_LIMIT_KEYS,
@@ -133,8 +129,6 @@ export {
   anchorGraphNode,
   recordGraphNode,
 } from './identity/index'
-// the exercised-anchors walk, promoted from the CLI curation tail so the agent
-// cluster function, 390's recurrence window and the tail all consume ONE spelling.
 export {
   actionRefs,
   classifySubActionRoute,
@@ -163,20 +157,17 @@ export type {
   ToolSurfaceEntry,
 } from './determinism/index'
 
-// one shared version-guard rule for every versioned document contract.
 export { createVersionGuard, VersionGuardError } from './versioning/create-version-guard'
 export type {
   MigrationRegistry,
   VersionGuardConfig,
 } from './versioning/create-version-guard'
 
-// 314 async-seam
 export { asRunId } from './run/index'
 export { MODEL_USAGE_ROLES, ModelUsageRoleSchema, ModelUsageIdentitySchema, ModelUsageSchema } from './run/model-usage'
 export type { ModelUsageRole, ModelUsage, ModelTokenUsage, ModelUsageObservations } from './run/model-usage'
 export { RunModelSummarySchema } from './functions/runs'
 export type { RunModelSummary } from './functions/runs'
-// the runs.overview read's contracts.
 export {
   RUN_OVERVIEW_TEXT_MAX_CODE_POINTS,
   RUN_OVERVIEW_TRUNCATION_INDICATOR,
@@ -279,7 +270,6 @@ export {
   computeBriefDigest,
   guardLosslessServedBrief,
 } from './brief/index'
-// the serve-time retrieval trace, persisted beside ServedBrief.
 export {
   RETRIEVAL_TRACE_LEGS,
   RETRIEVAL_TRACE_SCHEMA_VERSION,
@@ -287,9 +277,6 @@ export {
   TRACE_TRUNCATION_TOP_K,
   TraceLineSchema,
 } from './brief/index'
-// the closed retrieval-rung vocabulary and its recorded form, plus the
-// durable D-16 marker that says no knowledge reader was bound at all. One spelling for the
-// runner that records, the banner that prints and the doctor row that grades.
 export {
   NO_KNOWLEDGE_READER_TRUNCATION,
   RETRIEVAL_RUNGS,
@@ -297,15 +284,7 @@ export {
   RecordedRetrievalRungSchema,
 } from './brief/index'
 export { CURRENT_HANDOFF_SCHEMA_VERSION } from './handoff/index'
-// the one handoff version guard (SESSION-05 read-side discipline).
 export { guardCompletedRunHandoff, HandoffVersionError, HANDOFF_MIGRATIONS } from './handoff/index'
-// the chain-terminal notification record and THE one chip-status
-// vocabulary. Both are minted here rather than beside a consumer because each has several —
-// the notification row is read by chat and by the dashboard, and the chip words are spoken by
-// the bus, the read op and the CLI's summary line.
-// the per-run digest's read-time contract, minted beside the frozen row it
-// deliberately does not widen. Nothing persists a digest — it is composed live, keyed by runId,
-// which is what makes "exactly one digest per run" structural rather than throttled.
 export {
   CURATION_SNAPSHOT_WITHHELD_REASONS,
   CURRENT_RUN_NOTIFICATION_SCHEMA_VERSION,
@@ -379,9 +358,6 @@ export type {
 } from './ids/index'
 export type { Verdict, VerdictClass, VerdictEvidence } from './verdict/index'
 export { VERDICT_CLASSES, isVerdictClass } from './verdict/index'
-// the committed quarantine ledger's event contract and the state
-// vocabulary every quarantine surface speaks — the fold, the list verb, the entity card and the
-// recurrence clause's ladder arms. `'expired'` is a COMPUTED state, never an event.
 export {
   CURRENT_QUARANTINE_LEDGER_SCHEMA_VERSION,
   QUARANTINE_ENTRY_STATE_NAMES,
@@ -407,11 +383,6 @@ export type {
   QuarantineRenewedEvent,
   QuarantineSnapshotMatch,
 } from './quarantine/index'
-// the three verbs' wire contract and the port they dispatch through. Minted
-// here rather than beside the op specs because two packages consume it and neither may import
-// the other — `agent` declares the specs against these validators, knowledge-local implements
-// the port over the committed ledger. `release`'s no-entry and `add`'s renewed are result
-// ARMS, never throws.
 export {
   QuarantineAddInputSchema,
   QuarantineAddOutputSchema,
@@ -430,11 +401,6 @@ export type {
   QuarantineReleaseInput,
   QuarantineReleaseOutput,
 } from './quarantine/index'
-// the verdict truth vocabulary — sentence parts joined to Verdict
-// by perTest (beside, never inside the frozen §A9 union), the version-guarded run analysis
-// artifact, and the ONE resolved-verdict accessor every consumer routes through. 390 FLAK-01
-// adds the fingerprint's INPUT stage (`failingStepOf`/`errorTextOf`) beside the frozen recipe,
-// hoisted out of agent so knowledge-local's recurrence windows can key the same way.
 export {
   admitAnalysisArtifactForRun,
   ANALYSIS_FILE,
@@ -452,9 +418,6 @@ export {
   searchedTestOutcomeTexts,
   validateAnalysisAgainstHandoff,
   VerdictSentencePartsSchema,
-  // the sibling anchor-coverage recipe (gate 3), beside the frozen failure recipe.
-  // `testFingerprintElements` is the ONE walk both sides of gate 3's comparison go through —
-  // knowledge-local's suite fold and the agent's draft side alike.
   ACTION_ANCHOR_FINGERPRINT_VERSION,
   ASSERT_ACTION_TYPES,
   actionAnchorElement,
@@ -491,8 +454,6 @@ export type {
   DeltaKind,
   DeltaOrigin,
 } from './delta/index'
-// runtime projections of the §7.3 discriminant and origin vocabularies, so a
-// proposal boundary can name what a delta is without re-declaring the union.
 export { DELTA_KINDS, DELTA_ORIGINS } from './delta/index'
 export type {
   BriefLine,
@@ -531,7 +492,6 @@ export type {
   ToolExchangeEvidence,
 } from './handoff/index'
 export { actedPair } from './handoff/index'
-// 360 termination-verb & AI-assertion evidence vocabulary
 export type {
   AiJudgmentEvidence,
   AssertValueEvidence,
@@ -540,7 +500,6 @@ export type {
   TerminationEvidence,
   VerdictSource,
 } from './handoff/index'
-// 2026-10-07 (436-04, D-11..D-13): the per-step limit stop and usage.
 export type { CompoundInputCount, LimitStopEvidence, StepLimitUsage } from './handoff/index'
 export { formatLimitStopReason, LIMIT_STOP_EVIDENCE_KEYS, STEP_LIMIT_USAGE_KEYS } from './handoff/index'
 export type {
@@ -565,7 +524,6 @@ export {
   CONDITION_VERDICTS_EVIDENCE_KEYS,
   stepOutcomeUnproven,
 } from './handoff/index'
-// 2026-10-07 (436-10, D-19..D-23): operation-specific evidence on the triggering action.
 export type {
   ClipboardEvidence,
   DownloadEvidence,
@@ -577,7 +535,6 @@ export {
   DOWNLOAD_EVIDENCE_KEYS,
   OPERATION_CAPTURE_AVAILABILITY_KEYS,
 } from './handoff/index'
-// what an action's input delivered, on the same evidence.
 export type {
   FillVerdict,
   InputEvidence,
@@ -587,15 +544,11 @@ export type {
 } from './handoff/index'
 export { INPUT_EVIDENCE_KEYS } from './handoff/index'
 
-// 358 working-memory vocabulary
 export type { WorkingMemoryEntry } from './memory/index'
 export { workingMemoryEntrySchema } from './memory/index'
 
-// 315 run+agent DTOs
 export type { RunSession } from './run/index'
-// live-view frame vocabulary — frames as data, capability declared per handle.
 export { LIVE_FRAME_END_REASONS, LIVE_STREAM_KINDS, LiveStreamDeclarationSchema } from './run/index'
-// 403 D-01..D-04: the liveUrl capability-token vocabulary (types + refusal names only).
 export { LIVE_URL_REFUSAL_REASONS, LIVE_URL_SCOPE, LIVE_VIEW_SUBJECT_KINDS } from './run/index'
 export type {
   LiveUrlClaims,
@@ -614,7 +567,6 @@ export type {
   LiveStreamDeclaration,
   LiveStreamKind,
 } from './run/index'
-// run-artifact payload type family (relocated from core/src/artifacts).
 export { RUN_ARTIFACT_SCHEMA_VERSION } from './run/index'
 export type {
   ArtifactRecord,
@@ -638,21 +590,17 @@ export type {
 } from './run/index'
 // The bus schema version and the session vocabulary
 export { CURRENT_BUS_SCHEMA_VERSION, RUN_EVENT_TYPES } from './run/index'
-// pure masked payload projections (SESSION-03 projection layer).
 export {
   maskPayloadStrings,
   maskPayloadTree,
   projectStepFinalized,
   projectSubActionRecorded,
   projectTestFinished,
-  // 363 D-01 parity appends: hook lifecycle + retry projections (masked at the sink).
   projectHookStarted,
   projectHookFinished,
   projectTestRetryScheduled,
 } from './run/index'
 export type { MaskFn } from './run/index'
-// handle identity — the TOTAL event-scope classification, the one filter
-// predicate, the composite id spelling and the additive runStarted roster reader.
 export {
   HANDLE_ID_SEPARATOR,
   RUN_EVENT_SCOPE,
@@ -674,7 +622,6 @@ export type {
   RunEventType,
   RunStartedPayload,
   RunFinishedPayload,
-  // the ratified post-processing posture union `runFinished.disposition` carries.
   PostProcessingDisposition,
   VerdictPayload,
   RunWarningPayload,
@@ -686,14 +633,12 @@ export type {
   StepFinalizedPayload,
   SubActionRecordedPayload,
   ChipEventPayload,
-  // 363 D-01 parity appends: hook lifecycle + retry payloads.
   HookStartedPayload,
   HookFinishedPayload,
   TestRetryScheduledPayload,
 } from './run/index'
 export type { Job, JobKind, JobStatus, JobConclusionKind, JobId } from './job/index'
 export { asJobId, isJobKind, jobSchema } from './job/index'
-// the agent job queue's DTO vocabulary.
 export type {
   ChainedJobRequest,
   JobCheckpointEnvelope,
@@ -706,17 +651,11 @@ export {
   jobCheckpointEnvelopeSchema,
   jobEnqueueRequestSchema,
   jobHandlerOutcomeSchema,
-  // the analyze-run payload mirror, validated producer-side at enqueue.
   AnalyzeRunPayloadSchema,
 } from './job/index'
 export type { AnalyzeRunPayload } from './job/index'
 export type { Patch, FileChange, Hunk, PatchStatus, PatchId } from './patch/index'
 export { asPatchId, patchSchema } from './patch/index'
-// 395 D-01/D-17 · CFGM-01/03/04: the config editor's DTOs, and THE diff/digest primitive both
-// halves of a config change call — construction in `agent`, the write in `cli`. The primitive is
-// exported from here and from nowhere else for the reason its own header states: two recipes for
-// one digest contract is 394's CR-02 defect class, and this phase's whole freshness guarantee is
-// the two halves agreeing byte for byte.
 export {
   CONFIG_BLOCKED_REASONS,
   CONFIG_DIFF_OUTCOMES,
@@ -772,7 +711,6 @@ export type {
   SecretAdjacentConfigField,
 } from './config-mutation/index'
 
-// 316 seam helpers
 export type { RecordedActionResult } from './result/index'
 export type { VerifierVerdict, Decision } from './handoff/index'
 export type { BundleKind, FactSubtype, OriginStage } from './delta/index'
@@ -787,9 +725,7 @@ export type { BindingOutcome, BindingOutcomeMeta } from './result/index'
 export { BINDING_OUTCOME_KEYS, readBindingOutcomeMeta } from './result/index'
 export { computeEvidenceToken } from './ids/index'
 
-// 338 reader DTOs
 export type { IndexEntry, RecordBody, BriefBlock, CautionBlock, ProcedureMatch } from './reader/index'
-// 381 authoring-brief contracts
 export type { AuthoringBrief, CoverageMap, ExemplarTest } from './reader/index'
 export type { SearchOptions, ReadOptions, BuildRange, CanaryOutcome } from './reader/index'
 export {
@@ -807,7 +743,6 @@ export type {
   ServingRecordMetadata,
 } from './reader/index'
 
-// pure event vocabulary and derivations stay storage-neutral.
 export {
   BundleOutcomeEventSchema,
   dedupeEvents,
@@ -917,9 +852,6 @@ export {
 } from './knowledge/index'
 export type { RecordFrontmatter } from './knowledge/index'
 
-// the review-verb read contracts every 387-06/387-08 op imports rather than
-// re-minting. 2026-10-01: with the direct knowledge change contracts that replaced the
-// propose+apply seam (`knowledge/change.ts`); the proposal payload and its apply contracts are gone.
 export {
   BRIEF_WHY_NO_TRACE_REASONS,
   BRIEF_WHY_RESULT_KINDS,
@@ -982,7 +914,6 @@ export type {
   MarkChangeStamp,
 } from './knowledge/index'
 
-// 381 procedure & guarded-replay contracts (D-03/D-04/D-06, Pitfall 6)
 export { curatorTier } from './knowledge/curator-tier'
 export type { CuratorTier, ProcedureParamType } from './knowledge/curator-tier'
 export { plannerCapabilityTier } from './knowledge/planner-tier'
@@ -1019,9 +950,6 @@ export {
   isReplayableActionShape,
 } from './action/replayability'
 
-// 384 function-layer contract vocabulary: the caller record and the seed op DTOs
-// surfaces type against under the import firewall. 2026-10-02: the
-// capability-scope union is deleted.
 export {
   FUNCTION_CALLER_ORIGINS,
   RUN_SUMMARY_SCHEMA_VERSION,
@@ -1033,17 +961,13 @@ export {
   RunsGetInputSchema,
   RunsStartInputSchema,
   RunsEventsInputSchema,
-  // the runs.liveurl mint op's two contracts.
   RunsLiveUrlInputSchema,
   RunsLiveUrlResultSchema,
-  // the editor subject's mint op contracts.
   EditorLiveUrlInputSchema,
   EditorLiveUrlResultSchema,
-  // the chip-truth read op's two contracts, and the notification's wire shape.
   RunsPostProcessingInputSchema,
   RunNotificationViewSchema,
   PostProcessingStatusSchema,
-  // the run-detail read op's contracts.
   RunsDetailInputSchema,
   RunDetailMemberSchema,
   RunStepTokenUsageSchema,
@@ -1051,12 +975,10 @@ export {
   RunDetailSubActionSchema,
   RunTokenTotalsSchema,
   RunDetailProjectionSchema,
-  // the artifact read op's two contracts.
   RunsArtifactInputSchema,
   RunsArtifactResultSchema,
   RunsEvidenceInputSchema,
   RunsEvidenceResultSchema,
-  // the `runs.knowledge` panel read's contracts.
   RunsKnowledgeInputSchema,
   RunKnowledgeBriefLineSchema,
   RunKnowledgeReadTraceSchema,
@@ -1071,7 +993,6 @@ export {
   PlannerLimitsRecordSchema,
   RUN_EVENT_ENVELOPE_SCHEMA_VERSION,
   RunEventEnvelopeSchema,
-  // the analysis.get op's contracts.
   AnalysisGetInputSchema,
   AnalysisGetOutputSchema,
   AnalysisCitedArtifactSchema,
@@ -1088,33 +1009,24 @@ export {
   MaskedConfigEntrySchema,
   MaskedResolvedConfigSchema,
   ConfigGetInputSchema,
-  // the authoring.draft.verify op contracts (D-01 sketches the verb as
-  // `verify_draft`; that spelling is unrepresentable — see functions/authoring.ts).
   AuthoringVerifyDraftInputSchema,
   AuthoringVerifyDraftOutputSchema,
-  // the authoring.draft.write op contracts and the closed loop-outcome vocabulary.
   AUTHORING_LOOP_OUTCOMES,
   AuthoringDraftWriteInputSchema,
   AuthoringDraftWriteOutputSchema,
-  // the stage-2 dedup refusal's payload and its two named continuations.
   AUTHORING_DEDUP_CONTINUATIONS,
   AuthoringDedupRefusalSchema,
-  // the stated-value refusal's payload and its two stages.
   AUTHORING_STATED_VALUE_STAGES,
   AuthoringStatedValueRefusalSchema,
-  // 411 D-05..D-08: the stop payload a `stopped` invocation reports its verdict on.
   AUTHORING_REPAIR_ABANDONMENTS,
   AUTHORING_STOP_SIGNAL_CLASSES,
   AuthoringStopFailurePointSchema,
   AuthoringStopSchema,
-  // the authoring.draft.edit op contracts — the patch contract's second consumer.
   AuthoringDraftEditInputSchema,
   AuthoringDraftEditOutputSchema,
-  // the authoring.funnel.get op contracts and the closed window scope.
   AuthoringFunnelGetInputSchema,
   AuthoringFunnelGetOutputSchema,
   AuthoringFunnelWindowSchema,
-  // the authed run service's wire vocabulary.
   RUN_SERVICE_CONTRACT_VERSION,
   RUN_SERVICE_ERROR_CODES,
   RUN_SERVICE_REFUSED_REQUEST_FIELDS,
@@ -1139,7 +1051,6 @@ export type {
   EditorLiveUrlResult,
   RunsPostProcessingInput,
   RunStartAcknowledgement,
-  // the run-detail shapes — the port's rows and the op's projection over them.
   RunsDetailInput,
   RunDetailMember,
   RunStepTokenUsage,
@@ -1148,12 +1059,10 @@ export type {
   RunTokenTotals,
   RunDetailRows,
   RunDetailProjection,
-  // the artifact read's shapes and the port's three-arm lookup answer.
   RunsArtifactInput,
   RunsArtifactResult,
   RunsEvidenceInput,
   RunsEvidenceResult,
-  // the panel projection's inferred shapes.
   RunsKnowledgeInput,
   RunKnowledgeProjection,
   RunKnowledgeStep,
@@ -1203,8 +1112,6 @@ export type {
   RunServiceStartRequest,
 } from './functions/index'
 
-// 393: the keep-gate authoring vocabulary. `computeDraftDisposition` is
-// the ONE derivation of a draft's disposition — 394 consumes it and must not re-derive its own.
 export {
   computeDraftDisposition,
   DRAFT_DISPOSITIONS,
@@ -1231,8 +1138,6 @@ export type {
   StepClassificationRow,
 } from './authoring/index'
 
-// the direct write of a final authored test. Which dispositions are written, what
-// the writer reports for one file, and the written-test receipt with the four gate booleans.
 export {
   DRAFT_WRITTEN_DISPOSITIONS,
   DraftGateBooleansSchema,
@@ -1249,8 +1154,6 @@ export type {
   WrittenTestReceipt,
 } from './authoring/index'
 
-// 394: the RFC-6902 `{thoughts, patches}` edit vocabulary and the pinned
-// editable-region fence. The CST applier in `core` is its only mutating consumer.
 export {
   EDITABLE_POINTER_ROOTS,
   PATCH_OP_KINDS,
@@ -1267,9 +1170,6 @@ export type {
   TestEditPatchSet,
 } from './authoring/index'
 
-// the ONE envelope payload arm — a verified draft awaiting a human
-// decision — plus the ONE run-evidence coordinate vocabulary the router builds and the stop arm
-// carries.
 export {
   AUTHORED_SUITE_SLUG_MAX_LENGTH,
   RUN_EVIDENCE_CHANNELS,
@@ -1281,11 +1181,6 @@ export type {
   RunEvidenceRef,
 } from './authoring/index'
 
-// the honesty funnel. `computeAuthoringFunnel` is the ONE
-// derivation of the four frozen stages, the keep rate and the acceptance-failure flag —
-// every caller renders what it returns and derives nothing. Today that is `authoring.funnel.get`.
-// `successFramingViolations` is the prohibition made mechanical: it is exported so a surface
-// composing a BLOCK around the funnel's line screens its own wording through the same words.
 export {
   AUTHORING_FUNNEL_STAGES,
   AuthoringFunnelSchema,
@@ -1306,8 +1201,6 @@ export type {
   FunnelSideCounters,
 } from './authoring/index'
 
-// the mixed-verdict suite-stability read. PURE and it starts zero runs —
-// D-14 is read-side precisely so WTST-08's fan-out preview stays a number somebody can honour.
 export {
   NEIGHBOUR_INSTABILITY_REASONS,
   SUITE_STABILITY_POSTURES,
@@ -1323,10 +1216,6 @@ export type {
   SuiteStabilityPosture,
 } from './authoring/index'
 
-// the ONE fan-out arithmetic. `computeFanOutBound` is the only place
-// `initial N + K probes + final N` is added up — the dispatch confirm renders it and the finished
-// proposal reports against it, so a preview that understated what the loop would spend cannot be
-// produced by one surface disagreeing with the other.
 export {
   ConsumedRunSchema,
   FAN_OUT_PHRASES,
@@ -1349,14 +1238,8 @@ export type {
   FanOutRunPurpose,
 } from './authoring/index'
 
-// procedure-by-reference. A served procedure reaches a compiled draft as
-// an ordinary NL step written in the procedure's own anchor vocabulary, matched and replayed at run
-// time against the LIVE record — so a later procedure fix propagates and the committed test carries
-// no learned-shelf record id that supersession or collection could rot.
 export { procedureStepVocabulary } from './authoring/index'
 
-// entity addressing: short-IDs, the agentqa:// URI scheme, the one
-// card shape and the two resolution unions.
 export {
   ENTITY_CARD_MAX_ACTIONS,
   ENTITY_CARD_MAX_KEY_FACTS,
@@ -1422,33 +1305,13 @@ export type {
   ParsedShortId,
 } from './entity/index'
 
-// 342 safety contracts
-// the guardrail policy schema, the masking context, the scan, the
-// content origin and the hook results are deleted; the risk tier and the disclosure scrub remain.
-// the standing-grant ledger's event vocabulary and guards are
-// deleted with the ledger. `STANDING_APPROVAL_SCOPE` moved to `trust-credential.ts` and was
-// deleted with the MCP bearer credential that carried it.
-// the scope key set is deleted with its module; no caller,
-// credential or projection ranges it any more.
-// The disclosure fragment scrub: one untrusted fragment made safe to read on a single line.
 export {
   DISCLOSURE_FRAGMENT_MAX_LENGTH,
   DISCLOSURE_REPLACEMENT_CHARACTER,
   DISCLOSURE_TRUNCATION_MARK,
   scrubDisclosureFragment,
 } from './safety/index'
-// the remedy vocabulary, the execution-policy verdict and result, and the
-// standing-approval contract are deleted with the gate. A refusal is a plain reason.
-// the grant verbs' contracts, the protected-class set and the standing-grants
-// port are deleted. 2026-10-01: the trust-scope wire projection leaves with its last
-// consumer, the run-service token DTO. 2026-10-02: the `TrustScope` and
-// `TrustCredential` caller types are deleted with the caller's `credential` member.
 export type { RiskActionDescriptor } from './safety/index'
-// the conversational surface's whole vocabulary — the session
-// log's event grammar and header, the per-clause turn receipts, the `agent.ask` contracts, and the
-// session-log port. Minted here rather than beside the turn engine because every one of them has
-// several consumers that may not import each other: `agent` emits, `agent-local` persists, `cli`
-// renders, and 396's MCP projection plus M5's dashboard read the same bytes (388 C13).
 export {
   AgentAskInputSchema,
   AgentAskResultSchema,
@@ -1504,10 +1367,6 @@ export type {
   SessionLogPort,
 } from './chat/index'
 
-// `runs.list`'s named output contract and the three declared fold
-// contracts the MCP catalogue advertises. Published on the barrel because `packages/mcp` is their
-// consumer and it reaches this package only through here. 431-03 adds the canonical output
-// contracts beside them.
 export {
   RunsListOutputSchema,
   RunsListOutputContract,
@@ -1540,9 +1399,6 @@ export type {
   RunsEvidenceFoldInput,
 } from './functions/index'
 
-// the capability-catalog row DTOs. Minted here per 384 D-16 —
-// the artifact is produced in `packages/cli` and read back by the CLI's runtime loader, so the
-// contract between the producer and every consumer belongs in the package neither of them owns.
 export {
   AgentManifestPostureSchema,
   AgentManifestSchema,
@@ -1567,10 +1423,6 @@ export type {
   CatalogSurface,
 } from './capability-catalog'
 
-// the `explain` contract — the binary answer|abstention union with
-// no confidence member, and the closed citation shape that is the whole of the model's output
-// contract. Minted here per 384 D-16: the deterministic renderer lives in `packages/agent` and the
-// op's host binding in `packages/agent-local`, so the shape they agree on belongs to neither.
 export {
   ExplainAbstentionSchema,
   ExplainAnswerSchema,
@@ -1591,7 +1443,6 @@ export type {
   ExplainOutput,
   ExplainProseSegment,
 } from './explain'
-// 416 receipt vocabulary and the promotion result seam.
 export { GATE_RECEIPT_SCHEMA_VERSION, GATE_NUMBERS, GATE_VERDICTS, GateReceiptSchema,
   PromotionReceiptSchema, GateLineSchema, receiptDigestOf, stampReceiptDigest,
   isPromotionReceipt, standingReceiptsByGate, strongestPromotionPath } from './knowledge/gate-receipt'
@@ -1609,20 +1460,15 @@ export { RecordAnchorsSchema, RecordScopeSchema } from './knowledge/record-front
 export { BundleKindSchema, BundleStatusSchema } from './functions/knowledge'
 export { BriefLineSchema } from './brief/guard-lossless-served-brief'
 
-// the Gate-3 feedback contracts
 export {
   MARK_QUARANTINE_CLASSES, MARK_FIX_KINDS, MARK_DISPOSITIONS, MARK_FIX_REFUSALS,
-  // the applied fix and the historical drafted receipt (the plain mark refusal,
-  // MarkRefusalSchema, was deleted by 432-42)
   MARK_HISTORICAL_DISPOSITIONS, MARK_APPLIED_CHANGE_KINDS, MarkAppliedChangeSchema,
   MARK_RECEIPT_SCHEMA_VERSION, IMPROVEMENT_PLAN_SCHEMA_VERSION, COMMIT_RECEIPT_SCHEMA_VERSION,
   NoDraftableFixCheckedSchema, MarkDispositionSchema, MarkAddressSchema, MarkReceiptSchema,
   RunsMarkInputSchema, RunsMarkOutcomeSchema, ImprovementPlanKnowledgeSchema,
   ImprovementPlanSchema, CommitReceiptSchema, RunDetailMemberMarkSchema, deriveMarkStepId,
-  // marks history
   markAddressKey, MARKS_HISTORY_OUTCOMES, MarkHistoryChangedRecordSchema,
   RunsMarksHistoryInputSchema, MarkHistoryEntrySchema, RunsMarksHistoryResultSchema,
-  // mark consequence preview
   MARK_PREVIEW_REFUSALS, MARK_PREVIEW_OUTCOMES, MARK_TARGET_REASONS,
   MARK_PREVIEW_LATEST_KINDS, MARK_PREVIEW_DRAFT_KINDS, MarkPreviewBasisSchema, MarkPreviewLatestSchema,
   MarkPreviewKnowledgeSchema, MarkPreviewDraftSchema,
@@ -1640,14 +1486,11 @@ export type {
   MarkPreviewDraft, RunsMarkPreviewResult, MarkPreviewEvidenceEffect,
   MarkPreviewKnowledgeRecord,
 } from './functions/feedback'
-// the one read-time record join, shared by runs.knowledge and runs.mark.preview
 export { projectRecordContent, maskRecordContent } from './functions/record-join'
 export type { RunKnowledgeRecordContent, RunKnowledgeContentAbsence } from './functions/record-join'
 export { KnowledgeMarkInputSchema } from './knowledge/review-verbs'
 export type { KnowledgeMarkInput } from './knowledge/review-verbs'
 export { OVERTURNED_EVENT_TYPE } from './knowledge/outcome-event'
-// the one provider-error classifier the CLI, the dashboard server and
-// the UI share, with the CLI's order and sentences.
 export {
   classifyProviderError,
   extractProviderError,
@@ -1655,7 +1498,6 @@ export {
   providerErrorSentence,
 } from './llm/provider-error'
 export type { ProviderErrorClass } from './llm/provider-error'
-// the draft connect, credential save and move DTOs.
 export {
   LLM_SETUP_REFUSALS,
   LlmConnectRequestSchema,

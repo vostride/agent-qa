@@ -1,7 +1,4 @@
-/**
- * Phase 374 hoist of the ONE canonical JSON serializer shared by schema and eval.
- * Object keys sort recursively, array order stays semantic, and scalar values pass through.
- */
+// The one canonical JSON serializer schema and eval share; array order stays semantic.
 export function canonicalValue(input: unknown): unknown {
   if (Array.isArray(input)) return input.map(canonicalValue)
   if (input === null || typeof input !== 'object') return input

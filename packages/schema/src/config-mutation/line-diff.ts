@@ -1,37 +1,9 @@
-// The vendored line differ.
-//
-// VENDORED RATHER THAN DEPENDED ON, and the reason is a running test rather than a preference.
-// `__tests__/package-class.test.ts` allow-lists this package's runtime dependencies at exactly
-// `{zod}`, and `__tests__/module-discipline.test.ts` refuses host APIs — the same law that made
-// `determinism/sha256.ts` a vendored implementation instead of a Web Crypto call. Adding `diff`
-// (jsdiff) here was the plan's written route and it reds `package-class.test.ts`; widening that
-// allow-list to admit the dependency would have resolved the refusal by opening the boundary the
-// refusal is about. 395-RESEARCH named this alternative as the house pattern: more work here, zero
-// new supply-chain surface, and T-395-SC ceases to exist.
-//
-// WHAT IT MUST NOT DO, because a hand-rolled diff's failure mode is silent: render a diff that
-// disagrees with the change it describes. So the OBLIGATION is checkable rather than claimed —
-// {@link reconstructSides} rebuilds both sides from the emitted lines, and the corpus asserts the
-// rebuild equals the inputs. A dropped line, a wrong hunk header or an off-by-one start reds there
-// rather than reaching a person as a diff that reads correctly and is not what would be committed.
-//
-// COMMON PREFIX/SUFFIX FIRST, THEN LCS ON WHAT IS LEFT. A config edit changes one or two lines in a
-// file of a hundred, so the trimmed middle is nearly always tiny and the table below is nearly
-// always trivial. The cap exists for the case that is not.
+// Vendored: `package-class.test.ts` allows only `zod` as a runtime dependency.
 
 /** How many unchanged lines surround each hunk. Unified diff's own default. */
 export const DIFF_CONTEXT_LINES = 3
 
-/**
- * The largest LCS table this differ will build, in cells.
- *
- * raise it if a real config file set is being rendered as one whole-file replacement when a
- * line-level diff would have been reviewable. It exists because the table is O(old × new) and the
- * inputs are caller-supplied bytes: 4,000,000 cells is roughly a 2,000-line change against a
- * 2,000-line file, which is far outside anything the pinned config SET can be, and beyond it a
- * reviewer is not reading a line diff anyway. The fallback is honest rather than degraded — every
- * old line removed and every new line added, which is exactly what the change is.
- */
+// The LCS table is O(old × new) over caller bytes; past the cap the diff replaces the whole file.
 export const MAX_DIFF_TABLE_CELLS = 4_000_000
 
 export type LineOp = 'equal' | 'delete' | 'insert'

@@ -1,12 +1,4 @@
-// The knowledge review-verb DTO family.
-//
-// These contracts are minted BEFORE the verbs that use them (384 D-16: DTOs live in schema),
-// so the only thing that can hold them honest is a rejection corpus. Every closed vocabulary
-// below is therefore probed with the arm a future author would plausibly reach for — `purge`
-// beside accept/reject/forget, `re-run` beside answered/no-trace, `exemplar-rank` beside the
-// §7.7 scrub set — rather than with a nonsense string that any check at all would refuse.
-//
-// Schema module-discipline law: extension-less relative import specifiers, no node builtins.
+// Each closed vocabulary is probed with the arm an author would plausibly add, not a nonsense word.
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
@@ -138,7 +130,6 @@ describe('the review vocabulary and the change id', () => {
   })
 
   it('admits every change verb and refuses one outside the union', () => {
-    // RE-SPELLED 2026-10-03: a forget carries its forget receipt by rule.
     const forgetReceipt = {
       schemaVersion: FORGET_RECEIPT_SCHEMA_VERSION, proposalId: 'prop_alpha-bravo', tombstonedRecords: [], projectionsScrubbed: ['fts'],
       resultingBundleStatus: 'forgotten', forgottenAt: 1,
@@ -235,8 +226,6 @@ describe('ForgetReceiptV1', () => {
   })
 
   it('admits an empty scrub set on a non-empty tombstone set', () => {
-    // Whether that combination is SEMANTICALLY right is 387-08's job; the shape is closed
-    // here and must not pre-judge it.
     const parsed = ForgetReceiptV1Schema.parse(receipt({ projectionsScrubbed: [] }))
 
     expect(parsed.projectionsScrubbed).toEqual([])
@@ -258,8 +247,7 @@ describe('ForgetReceiptV1', () => {
           .resultingBundleStatus,
       ).toBe(status)
     }
-    // `deprecated` is a real BUNDLE status — and it is not a status a MEM card can render,
-    // which is exactly what "designed once for both uses" has to mean.
+    // `deprecated` is a bundle status a MEM card cannot render.
     expect(() =>
       ForgetReceiptV1Schema.parse(receipt({ resultingBundleStatus: 'deprecated' })),
     ).toThrow()
@@ -441,7 +429,6 @@ describe('review-verb input and output DTOs (wiring contracts)', () => {
   })
 
   it('forget addresses either grain', () => {
-    // RE-SPELLED 2026-10-01: the proposal apply input is deleted; a change applies in the call.
     expect(
       KnowledgeForgetInputSchema.parse({ target: { grain: 'bundle', shortId: 'MEM-001' } })
         .target.grain,

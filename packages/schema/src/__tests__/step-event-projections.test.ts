@@ -35,7 +35,6 @@ const evidence: StepEvidenceEntries = {
   a11y: { kind: 'a11y', state: 'absent', reason: 'not-captured' },
   variables: { kind: 'variables', state: 'present', counts: { count: 1 } },
 }
-// The extra object is assignable to the pre-423 signature; RED is an output assertion.
 const stepExtra = {
   status: 'passed' as const, tokenUsage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
   evidence, variableSnapshot: { SYNTHETIC_name: { value: 'SYNTHETIC value', source: 'env' as const } },

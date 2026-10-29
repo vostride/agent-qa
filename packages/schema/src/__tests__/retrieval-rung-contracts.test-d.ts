@@ -6,7 +6,6 @@ import type { RecordedRetrievalRung, RetrievalRungReason } from '../index'
 import type * as Brief from '../brief/index'
 
 // Independent literal unions: neither expected vocabulary is derived from production.
-// Plan 423-23 owns the mutation script; C423-RUNG-REASONS-EXACT is its required RED cell.
 type SharedReason =
   | 'native-runtime-unavailable'
   | 'profile-unresolved'

@@ -4,7 +4,6 @@ import { z } from 'zod'
 
 import { CHAT_SESSION_EVENT_KINDS } from './session-events'
 
-/** What a scenario asserts about its turn. Closed, spelled once (388 C13). */
 export const SCENARIO_EXPECTATIONS = ['should_execute', 'fail_closed'] as const
 
 export type ScenarioExpectationKind = (typeof SCENARIO_EXPECTATIONS)[number]
@@ -29,14 +28,7 @@ export const ScenarioExpectationSchema = z.object({
   namesClause: z.string().optional(),
   // A directive invokes nothing, so the event it leaves is the only proof it ran.
   emitsSessionEvent: z.enum(CHAT_SESSION_EVENT_KINDS).optional(),
-  /**
-   * A fragment the turn's answer must contain (392 plan 08).
-   *
-   * The chrome directives' proof. `/help` and `/quit` produce prose and no event, so a scenario
-   * for either has nothing else to assert — and a scenario that could only check the STATUS would
-   * pass against a `/help` that printed an empty string. A fragment rather than the whole text,
-   * because pinning the full help output would make every added alias a corpus edit.
-   */
+  // `/help` and `/quit` leave no event, so a fragment of the answer is their only proof.
   answerContains: z.string().optional(),
 })
 

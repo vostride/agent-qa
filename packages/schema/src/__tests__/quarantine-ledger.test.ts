@@ -1,13 +1,4 @@
-// RED-first pins for the Phase 390 quarantine ledger event contract.
-//
-// The ledger is COMMITTED truth at the knowledge root, so its read side follows the
-// analysis-artifact posture: a NEWER schemaVersion is a typed hard failure, and a structurally
-// broken event is refused — never healed to absence (healing a quarantine entry silently
-// un-quarantines, the exact silent flip this phase exists to prevent).
-//
-// Boundary pinned around the CURRENT version: the current version admits by identity, one above
-// throws typed, and version 1 — whose identity leg was a machine-local absolute path — throws typed
-// too, because no honest migration to a checkout-independent identity exists.
+// A broken ledger event is refused, never healed to absence: healing would silently un-quarantine.
 
 import { describe, expect, it } from 'vitest'
 
@@ -52,22 +43,18 @@ function enteredEvent(overrides: Record<string, unknown> = {}): Record<string, u
   }
 }
 
-// ---- The closed event vocabulary (388 C13 — spelled once) ----------------
+// ---- The closed event vocabulary ----------------
 
 describe('quarantine ledger event vocabulary', () => {
   it('pins the version at 2 with a DELIBERATELY empty migration seam', () => {
-    // version 1 stamped a machine-local ABSOLUTE path as the filePath identity
-    // leg, which no other checkout can interpret. There is no honest v1 -> v2 migration (the
-    // function would have to guess a checkout root it was never told), so the seam stays empty and
-    // a v1 line hard-fails through QuarantineLedgerVersionError. Refusal is the correct arm.
+    // A version 1 line holds a machine-local absolute path no checkout can map, so it fails typed.
     expect(CURRENT_QUARANTINE_LEDGER_SCHEMA_VERSION).toBe(2)
     expect(QUARANTINE_LEDGER_MIGRATIONS).toEqual({})
     expect(QUARANTINE_LEDGER_MIGRATIONS[1]).toBeUndefined()
   })
 
   it('closes the event-kind union over the four lifecycle actions', () => {
-    // 'expired' is a COMPUTED state, never an event — the event list is
-    // append-only lifecycle ACTIONS only.
+    // `expired` is computed, never an event: the list holds append-only lifecycle actions.
     expect([...QUARANTINE_EVENT_KINDS]).toEqual([
       'entered',
       'renewed',
@@ -87,7 +74,7 @@ describe('quarantine ledger event vocabulary', () => {
     const released: QuarantineEntryState['state'] = 'released'
     expect([quarantined, expired, released]).toEqual(['quarantined', 'expired', 'released'])
 
-    // 'flagged' is detection-layer visibility only — it never appears in the ledger.
+    // `flagged` is detection-layer visibility only and never appears in the ledger.
     const ladder: QuarantineLadderState[] = ['flagged', 'quarantined', 'expired']
     expect(ladder).toHaveLength(3)
   })
@@ -204,10 +191,6 @@ describe('guardQuarantineLedgerEvent', () => {
   })
 
   it('hard-fails a stored VERSION-1 line — the unmigratable-older arm', () => {
-    // A v1 line's filePath is a machine-local absolute path. Admitting it would seed the fold with
-    // an identity no other checkout can produce, and "healing" it to a relative path would require
-    // guessing a checkout root. The typed refusal is the honest answer, and it is FREE today
-    // because zero quarantine.jsonl files exist in the wild (verified 2026-08-05).
     let thrown: unknown
     try {
       guardQuarantineLedgerEvent(enteredEvent({
@@ -288,12 +271,7 @@ describe('quarantine identity leg portability', () => {
     }
   })
 
-  // 390-11 / round-1 WR-01. "Not absolute" is a WEAKER claim than "is what the mint produces", and
-  // the gap between the two is where the verifier measured the SILENT half of the round-2 defect:
-  // `./x`, `x\y` and `../x` all pass a negative-only guard, fold, and list as `quarantined` while
-  // `quarantineAppliesToTest`'s `===` compares them against the mint's `./`-trimmed forward-slashed
-  // output and never matches. The operator reads a green quarantined row while the test keeps
-  // failing every build. These pins range the POSITIVE domain so that class is unrepresentable.
+  // `./x`, `x\y` and `../x` pass a not-absolute guard yet never match the mint's form.
 
   const REJECTED_SIBLINGS: readonly (readonly [string, string])[] = [
     ['./tests/a.yaml', 'a leading current-dir prefix the mint trims'],

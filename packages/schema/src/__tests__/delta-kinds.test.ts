@@ -1,18 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DELTA_KINDS } from '../delta/delta'
 
-/**
- * The runtime wall on the SURVIVING §7.3 delta vocabulary (409 D-04, "two walls, both read").
- * It pins `DELTA_KINDS` — the authored projection of `Delta` — against a literal list. The
- * companion type-level bar `Extract<Delta, { kind: 'FileIssue' }>` is `never` lives in
- * `delta.test-d.ts` and `seam-root.test-d.ts`; a member widened into this projection through a
- * cast satisfies the compiler, walks past that bar and REDs only here, by name. Both halves are
- * measured by hand-mutation: 409-MUTATION-LEDGER.md Rows 4 and 5.
- *
- * the second delta vocabulary left with the Issue-slot cleanup.
- *
- * the three per-phase census cells merged into one.
- */
+// A member cast into this list passes the type bar in `delta.test-d.ts` and fails only here.
 
 const SIX_SHIPPED_KINDS = ['Add', 'Confirm', 'Supersede', 'Deprecate', 'MintUnknown', 'Noop']
 

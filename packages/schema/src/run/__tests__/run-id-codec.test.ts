@@ -44,14 +44,7 @@ const BRANDING_DECLARATION_RE = /\.(?:transform|pipe)\s*\(\s*asRunId\s*\)|as\s+R
 /** A run-identifying field declared with a zod value. */
 const RUN_ID_FIELD_RE = /\brun(?:Id|Ref|Ids|Refs)\s*:\s*(runIdSchema|z\.[A-Za-z0-9_.()' ,-]*)/g
 
-/**
- * Files that MUST be in the scanned set, named here rather than read off the scan.
- *
- * The 399/400 scar: a discovery predicate pinned to its own output is green at rest, and a walker
- * rooted at a wrong-but-EXISTING directory returns a plausible set and reports every file clean.
- * These are the files the claim is ABOUT — the four that declared a bare codec before this plan,
- * the file the shared one now lives in, and the sanitizer it derives its rule from.
- */
+// Named by hand: a walker rooted at a wrong but existing directory would report every file clean.
 const REQUIRED_CENSUS_MEMBERS = [
   join('run', 'run-id.ts'),
   join('functions', 'runs.ts'),

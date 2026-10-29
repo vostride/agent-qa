@@ -1,14 +1,3 @@
-// Wave-0 RED scaffold (361-01, Task 1). Pins the schema-side handoff version guard
-// BEFORE any implementation exists — RED strictly on the unresolved import of the
-// not-yet-existing `../handoff/load-completed-run-handoff` module (right-reason RED).
-//
-// Contract source: 361-CONTEXT.md D-19 (361 ships the READ side of the version
-// discipline: parse → version check → reject newer-than-known with a typed error →
-// migrate older; empty migration table at v1, but the seam exists so every future
-// consumer imports the one guard instead of re-implementing the rule) +
-// eval-and-core-types.md §A8 schema-version discipline (reject newer / migrate older).
-//
-// Schema module-discipline law: extension-less relative import specifiers, no node builtins.
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -122,11 +111,7 @@ describe('guardCompletedRunHandoff (§A8 version discipline)', () => {
   })
 })
 
-// --- 407-03: the additive `StepEvidence.retrievalRung` -----------------------
-//
-// The rung is recorded BESIDE the served brief, never inside it, so a v6 handoff stays
-// loadable and a v7 handoff that carries one is admitted only in the shape the schema
-// declares. Present-implies-valid, exactly as `retrievalTrace` next door.
+// The rung sits beside the served brief, never inside it, so an older handoff stays loadable.
 
 function makeStepWithRung(rung?: unknown): unknown {
   return {
@@ -250,15 +235,7 @@ describe('StepEvidence.retrievalRung at the load boundary', () => {
   })
 })
 
-// --- 407-20 (REVIEW WR-04): a replay plan source is admitted only in the wire's own domain ---
-//
-// `hasCompletePlanSourceShape` used to admit `flow.cursor`/`flow.length` as merely FINITE numbers
-// and `guard.checksPassed`/`guard.total`/`*.procedureStepIndex` as a bare `typeof === 'number'`,
-// while `RunKnowledgePlanSourceSchema` (`../functions/runs`) declares every one of them
-// `z.number().int().nonnegative()`. `planSourceOf` picks an admitted value straight onto that
-// strict wire, so a `-1` cursor loaded here and then threw at `spec.output.parse` — the Knowledge
-// tab rendering `read_failed` for that run. A handoff carrying a negative cursor is malformed, so
-// it is refused where it is LOADED, through the same arm an unknown `miss.reason` takes today.
+// Plan-source counters load only as non-negative integers, the domain the strict wire declares.
 
 function makeReplayStep(planSource: unknown): unknown {
   return {
@@ -377,14 +354,7 @@ describe("a replay plan source is admitted only in the wire's own domain", () =>
   })
 })
 
-// --- 407-20 (REVIEW WR-04, structural half): the loader and the wire, measured as one rule ---
-//
-// The CR-01 class is TWO PREDICATES OVER ONE SHAPE drifting apart — a member the loader admits
-// and `RunKnowledgePlanSourceSchema` refuses is not a caught error, it is a `read_failed` page
-// for a run that really replayed a procedure. `planSourceOf` (agent `ops/runs-knowledge.ts`)
-// picks exactly the members the loader admitted onto that schema, member for member, so this
-// corpus turns any future drift — a slot tightened on the wire, a slot loosened at the loader,
-// a new numeric member added to one file and not the other — into a red here.
+// `planSourceOf` copies what the loader admits onto the wire schema, so the two must agree.
 
 const ORDINAL_SLOTS = [
   'flow.cursor',
@@ -477,8 +447,7 @@ describe('the loader and the wire admit the same replay shapes — member for me
   })
 })
 
-// the run's planner limits are copied from this record onto the strict
-// acknowledgement, so the loader admits exactly the records the wire accepts.
+// Limits are copied onto the strict acknowledgement, so the loader admits only what it accepts.
 describe('the loader and the acknowledgement agree on plannerLimits', () => {
   const entry = { testName: 'Bulk archive', filePath: 'tests/bulk.yaml', maxActions: 60, maxPlanningTurns: 30 }
   const corpus: readonly (readonly [string, unknown])[] = [
@@ -519,7 +488,6 @@ describe('the loader and the acknowledgement agree on plannerLimits', () => {
   })
 })
 
-// a healed sub-action's dispatch pair is checked where it is loaded.
 describe('a healed sub-action dispatch pair at the load boundary', () => {
   const saveElement = {
     ref: 'e3',

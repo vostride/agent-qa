@@ -172,7 +172,6 @@ export type {
   KnowledgeRecordsInspectInput,
   KnowledgeRecordsInspectOutput,
 } from './review-verbs'
-// 416 receipt vocabulary and the promotion result seam.
 export { GATE_RECEIPT_SCHEMA_VERSION, GATE_NUMBERS, GATE_VERDICTS, GateReceiptSchema,
   PromotionReceiptSchema, GateLineSchema, receiptDigestOf, stampReceiptDigest,
   isPromotionReceipt, standingReceiptsByGate, strongestPromotionPath } from './gate-receipt'

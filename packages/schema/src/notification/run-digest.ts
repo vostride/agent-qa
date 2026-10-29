@@ -1,28 +1,4 @@
-// The per-run digest — a READ-TIME projection, never a record.
-//
-// Minted here, beside `run-notification.ts`, and deliberately NOT inside it. The notification
-// row is the chain's one DURABLE artifact: counts-only, exact-key-guarded, read by chat and by
-// the dashboard, and frozen. The digest is what a HUMAN is shown once per run — the
-// sentences, the chain, the decisions waiting on them — composed live from four already-shipped
-// read paths every time somebody asks. Widening the row to carry any of that would have made
-// one payload answer two questions, and `guardRunNotification`'s sorted-key comparison would
-// hard-fail every reader on the first field. So the two shapes sit side by side in one
-// directory, and this one has no `schemaVersion`: nothing persists a digest, so there is no
-// build boundary for a version stamp to describe. A stamp here would be an invitation to store
-// one, which is precisely the second representation D-16 refuses.
-//
-// EXACTLY ONE DIGEST PER RUN IS STRUCTURAL, not a rule anyone enforces. The projection is keyed
-// by `runId`; a projection keyed by a run cannot fire per event, which is PROP-04's whole
-// complaint ("an approval UX that fires 40 times per nightly run is a worse product than one
-// that fires once") answered by a shape rather than by a throttle.
-//
-// REFS AND COUNTS ONLY. Nothing on this DTO carries evidence bytes, receipt
-// bytes, rationale prose or masked content: a mark change is its mark id, its fix and the ids or
-// workspace path it changed; candidates and quarantine are counts plus identity refs. 2026-09-30,
-// the digest reads applied mark changes from this run's own ledger and never
-// reads a proposal store. That is a privacy boundary rather than a size budget — this
-// value is rendered directly by a terminal, a chat and a dashboard, and a payload that COULD
-// carry a secret would need a masking boundary at each of them.
+// Refs and counts only: surfaces render it directly, so it may carry no secret.
 
 import { z } from 'zod'
 
@@ -43,13 +19,7 @@ export const RunsDigestInputSchema = z.object({
 
 export type RunsDigestInput = z.infer<typeof RunsDigestInputSchema>
 
-/**
- * One fix a mark on this run applied, read from the run's own mark ledger.
- *
- * The receipt's applied change VERBATIM: record ids for a knowledge fix, the written workspace path
- * and its byte digest for a test edit. In ledger order; a later mark on the same address does not
- * remove an earlier change, because the earlier fix was never retracted.
- */
+// In ledger order; a later mark on the same address does not remove an earlier change.
 export interface RunDigestMarkChange {
   markId: string
   ordinal: number
@@ -57,82 +27,29 @@ export interface RunDigestMarkChange {
   change: MarkAppliedChange
 }
 
-/**
- * The chain's per-stage outcomes, in the ONE chip vocabulary (388 D-14/C13; narrowed to two —
- * Phase 404, D-01, 2026-08-26).
- *
- * The two chips are the `runs.postprocessing` values verbatim — not a synonym, not a
- * control-flow word — because two spellings of four words is the state in which the CLI and
- * the dashboard disagree about a row neither of them got wrong.
- *
- * `outcome` is present exactly once the chain wrote its terminal row, and it is a fact about
- * the CHAIN rather than about the run (the row's own note): a failed run whose analysis and
- * curation both succeeded reads `complete` (444 D-36: the served view's word, not the stored one).
- */
+// `outcome` is a fact about the chain, not the run: a failed run's clean chain reads `complete`.
 export interface RunDigestChainOutcomes {
   analysis: PostProcessingChipStatus
   curation: PostProcessingChipStatus
   outcome?: RunNotificationViewStatus
-  /**
-   * The `runs.postprocessing` skipped fact verbatim, so a machine reader of the
-   * digest never re-derives from `pending` chips what the read op already knows. A sibling of
-   * the two chip arms rather than a fifth word on either of them.
-   */
+  // So a machine reader never re-derives the skipped fact from `pending` chips.
   skipped?: { reason: PostProcessingSkipReason }
 }
 
-/**
- * Curator candidates staged this run, as COUNTS.
- *
- * The digest REPORTS; the KREV verbs review. Candidates stay candidate-status truth inside
- * bundles and are never listed as proposals, so nothing here addresses one for a decision.
- *
- * NO REFS, and the absence is measured rather than an omission: the only run-scoped, durable
- * record of what a run curated is the chain-terminal notification row, which is counts-only BY
- * CONSTRUCTION and may not be widened. A ref list would therefore
- * have had to come from somewhere else — a new port over the run directory's curation receipt —
- * and inventing one so a field could be populated is a larger change than the field is worth.
- * Stated here so a later reader does not read the gap as a bug.
- */
+// Counts only: the notification row is counts-only, and no other durable source lists candidates.
 export interface RunDigestCandidateReport {
   curated: number
   deprecated: number
 }
 
-/**
- * Quarantine as counts + identity refs.
- *
- * STATE, NOT TRANSITIONS, and the difference is a fact about the ledger rather than a shortcut.
- * A quarantine entry records the test's three identity legs, its window and its history; it
- * carries NO run attribution, because auto-quarantine is code-authored operational state keyed
- * by a failure fingerprint and not by whoever happened to be running (390 C15). So there is no
- * honest way to compute "transitions caused by this run" from what is committed, and a number
- * presented as one would be a fabrication. What the digest can say truthfully is what the
- * ledger holds when the digest is read, which is also what a person acts on.
- *
- * `refs` are `product/filePath::testName` — the durable identity legs, never `testId`, which is
- * per-run and would address nothing tomorrow.
- */
+// State, not transitions: entries carry no run attribution, so per-run changes cannot be counted.
 export interface RunDigestQuarantineReport {
   quarantined: number
   expired: number
   refs: string[]
 }
 
-/**
- * The whole digest: structured sections, plus the bytes a surface prints.
- *
- * `lines` exists so that no surface composes a sentence. The tail, the CLI verb, 392's chat and
- * M5 all print these strings; the structured sections are for a surface that wants to lay the
- * same facts out differently (a dashboard card, a chat block) without re-deriving any of them.
- * Carrying both is what keeps "one renderer" true for the terminal without making every other
- * surface parse strings.
- *
- * `verdictClusters` are the `analysis.get` cluster views VERBATIM — the same value, the same
- * type, the same already-composed representative sentence. The digest re-renders nothing: 389
- * D-05/D-10 put one renderer and one accessor behind that op, and a second composition here
- * would be exactly the drift those decisions exist to prevent.
- */
+// `lines` are the printed bytes so no surface composes a sentence.
 export interface RunDigest {
   runId: string
   verdictClusters: AnalysisClusterView[]
@@ -154,9 +71,7 @@ export const RunDigestMarkChangeSchema = z.object({
   fix: z.enum(MARK_FIX_KINDS),
   change: MarkAppliedChangeSchema,
 }).strict().superRefine((value, ctx) => {
-  // 2026-10-03 (quick 261003-cpv, 432 review IN-21): the same pairing `MarkDispositionSchema`'s
-  // applied arm enforces on the ledger these rows are projected from. The digest is computed per
-  // call and not stored, so no stored row is read through this.
+  // The same fix-to-change pairing `MarkDispositionSchema`'s applied arm enforces on the ledger.
   if ((value.fix === 'test-edit') !== (value.change.kind === 'test-file')) {
     ctx.addIssue({
       code: 'custom',
@@ -166,10 +81,7 @@ export const RunDigestMarkChangeSchema = z.object({
   }
 }) satisfies z.ZodType<RunDigestMarkChange>
 
-/**
- * The chip enums are CONSTRUCTED from the exported vocabulary rather than respelled (C13), so a
- * fifth chip status cannot arrive with this contract still admitting four.
- */
+// Built from the exported vocabulary, so a new chip status cannot arrive unadmitted.
 export const RunDigestChainOutcomesSchema = z.object({
   analysis: z.enum(POST_PROCESSING_CHIP_STATUSES),
   curation: z.enum(POST_PROCESSING_CHIP_STATUSES),

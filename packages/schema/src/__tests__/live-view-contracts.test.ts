@@ -10,8 +10,6 @@ test('a live stream declaration parses each stream kind or none and refuses othe
   expect(api.LiveStreamDeclarationSchema.safeParse({ kind: 'snapshot', extra: 1 }).success).toBe(false)
 })
 
-// G-428-2 (owner decision 2026-09-26 (2)): stepTexts is additive. A testStarted with it and one
-// without both parse as the frozen envelope and survive a JSON round trip unchanged.
 test('a testStarted envelope parses and round-trips with or without stepTexts', () => {
   const bare: api.TestStartedPayload = { testId: 't1', testIndex: 0, name: 'a test', totalSteps: 2 }
   const withTexts: api.TestStartedPayload = { ...bare, stepTexts: ['Open the page', 'Type <SECRET_1> into Password'] }

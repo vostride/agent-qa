@@ -33,9 +33,7 @@ describe('resolveEffectiveWorkers — the one formula', () => {
   })
 
   it('resolves the default ceiling for a value the schema would have refused', () => {
-    // Defence in depth, not a second policy: the schema refuses 0/negative/non-integer/non-finite,
-    // so these inputs can only arrive from a door that skipped it. They resolve to the SAME
-    // conservative answer an absent count does rather than to unbounded concurrency.
+    // Defence in depth: inputs the schema refuses resolve to the default worker count.
     expect(resolveEffectiveWorkers({ parallel: true, workers: 0, memberCount: 8 })).toBe(DEFAULT_PARALLEL_WORKERS)
     expect(resolveEffectiveWorkers({ parallel: true, workers: -4, memberCount: 8 })).toBe(DEFAULT_PARALLEL_WORKERS)
     expect(resolveEffectiveWorkers({ parallel: true, workers: Number.NaN, memberCount: 8 })).toBe(DEFAULT_PARALLEL_WORKERS)

@@ -1,9 +1,4 @@
-// OUTPUT-CONTRACT-FIDELITY (431-03 task 1 · D-03/D-07 · research A1).
-//
-// The advertised output document is checked here by a small JSON Schema walker rather than by zod,
-// because zod's own record parser skips an own `__proto__` key: a zod-built validator would pass a
-// captured variable whose value is wrong. The walker refuses any keyword it does not implement, so
-// a representation that grows a construct nothing here understands fails instead of passing blind.
+// A JSON Schema walker, not zod: zod's record parser skips an own `__proto__` key.
 
 import { describe, expect, test } from 'vitest'
 import { z } from 'zod'

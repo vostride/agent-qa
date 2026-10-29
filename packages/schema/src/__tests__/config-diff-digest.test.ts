@@ -1,27 +1,6 @@
-// The vendored differ's acceptance bar, and the raw-bytes digest law.
-//
-// WHAT MAKES EACH CELL RED, stated per cell rather than claimed for the file:
-//
-//   the round-trip cells      — a dropped line, a prefix on the wrong side, an off-by-one hunk
-//                               start, a context group that ran off an end. Each of those renders a
-//                               diff that reads correctly and describes a different change, which
-//                               is the ONE failure mode a hand-rolled differ has and the reason the
-//                               obligation is checked rather than asserted.
-//   the digest-basis cell     — any decode/re-encode inserted between the caller's bytes and the
-//                               digest (394's CR-02 class). It drives a byte sequence NO decoding
-//                               round-trips, so a primitive that hashed `utf8Encode(utf8Decode(b))`
-//                               answers a different hex string.
-//   the shown-bytes cell      — a renderer whose output depends on the caller's enumeration order,
-//                               which would make the D-19 byte comparison fail across two processes
-//                               that read the same file set in different orders.
-//   the empty-input refusal   — a primitive that silently rendered a file with no bytes on either
-//                               side as an empty section, which is a proposal about nothing.
+// Each round-trip cell catches a diff that reads correctly but describes a different change.
 
-// 395-02 SPLIT THE FILE'S SUBJECT, and the split is worth stating so nobody adds a second copy of
-// either half. THIS file is the vendored differ's round-trip corpus plus the primitive's basic
-// contract. `config-mutation/__tests__/diff-digest.test.ts` is the EDGES 395-02 pinned — ordering
-// under a byte-wise total order, the typed unchanged answer, the CRLF / non-NFC representation
-// corpus and the unrenderable-difference refusal. Neither restates the other.
+// The differ's edge cases live in `config-mutation/__tests__/diff-digest.test.ts`.
 
 import { describe, expect, it } from 'vitest'
 

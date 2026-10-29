@@ -13,8 +13,6 @@ import {
 import type { StepEvidence } from '../index'
 
 // Independent vocabularies, spelled by hand so neither list is derived from production.
-// Plan 423-23 owns the mutation script; C423-RUNG-REASONS-EXACT and LEGACY-HISTORICAL are its
-// required named RED cells.
 const SHARED_REASONS = [
   'native-runtime-unavailable',
   'profile-unresolved',

@@ -1,9 +1,4 @@
-// The leaves of the published config schema, pinned against the real schema by
-// core's config-schema-leaves test. 2026-10-15: the list no longer classes a leaf
-// for masking; the config output's only mask is the declared one.
-//
-// Pattern format: dot-joined tokens, where '*' is an operator-named record key and a key
-// suffixed '[]' is an array item (`registry.llms[].name`, `registry.targets.*.url`).
+// `*` is an operator-named record key and a `[]` suffix an array item.
 
 // prettier-ignore
 export const CONFIG_SCHEMA_LEAVES = Object.freeze([

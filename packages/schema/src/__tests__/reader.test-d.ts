@@ -97,7 +97,6 @@ expectTypeOf<ProcedureMatch>().toEqualTypeOf<{
 }>()
 
 expectTypeOf<ProcedureMatch['replayRecommendation']>().toEqualTypeOf<'replay' | 'hint'>()
-// D-06 narrowing proof: an arbitrary string no longer inhabits the tier field.
 expectTypeOf<ProcedureMatch['authoringModelTier']>().toEqualTypeOf<'full' | 'degraded' | 'floor'>()
 expectTypeOf<IndexEntry['anchors']>().toEqualTypeOf<Anchor[]>()
 

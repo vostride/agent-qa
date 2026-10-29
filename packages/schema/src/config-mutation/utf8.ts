@@ -1,21 +1,4 @@
-// The vendored UTF-8 codec.
-//
-// THE SCHEMA PACKAGE HAS NO HOST APIs. The platform's own text encoder, `Buffer` and the global
-// object are all refused by `__tests__/module-discipline.test.ts` — which scans SOURCE TEXT, so
-// naming them here would red it too. The one string<->bytes edge this package needs is therefore
-// vendored, beside the vendored sha256, the same posture `determinism/sha256.ts` already takes
-// about hashing rather than reaching for a platform digest API.
-//
-// THIS IS THE ONLY ENCODER IN THE PACKAGE. `sha256hex` reaches it too, so a string hashed and a
-// string diffed are turned into bytes by one recipe. A second encoder beside this one is exactly
-// the two-representations arrangement 394's CR-02 defect class is made of: two halves of one
-// contract, each converting the same value its own way, agreeing until the first input that is not
-// plain ASCII.
-//
-// THE DIGEST BASIS NEVER PASSES THROUGH HERE. Content digests are taken over the RAW bytes a file
-// holds; this codec exists for the diff renderer's text edge and for the bytes a mutation
-// produced as a string. Decoding a file in order to digest it would re-open CR-02 from the other
-// side.
+// The package's only encoder: a second one would let two halves of one digest contract disagree.
 
 /** UTF-8 bytes for one string. Lone surrogates encode as U+FFFD, as every conformant encoder does. */
 export function utf8Encode(text: string): Uint8Array {
@@ -51,14 +34,7 @@ export function utf8Encode(text: string): Uint8Array {
   return Uint8Array.from(bytes)
 }
 
-/**
- * One string from UTF-8 bytes. Every malformed sequence becomes U+FFFD rather than throwing.
- *
- * REPLACEMENT IS NOT LOSSLESS AND IS NEVER TREATED AS IF IT WERE. This decode feeds the RENDERED
- * diff a person reads; it is not on the path any digest or any written byte takes. 394-23's
- * rollback is the recorded cost of confusing those two — it wrote U+FFFD back over every sequence
- * the decoder could not read, and called the result "restored".
- */
+// Lossy: this decode feeds only the rendered diff, never a digest or a written byte.
 export function utf8Decode(bytes: Uint8Array): string {
   let out = ''
   let index = 0

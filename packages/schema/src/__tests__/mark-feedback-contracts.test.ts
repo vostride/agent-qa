@@ -28,9 +28,7 @@ import {
 } from '../index'
 
 // Independent vocabularies, spelled by hand so no expected list is derived from production.
-// Plan 423-23 owns the mutation script; C423-FEEDBACK-RESULTS-EXACT is its required RED cell.
 const HISTORY_OUTCOMES = ['history', 'run-not-found', 'ledger-corrupt', 'ledger-unavailable'] as const
-// an applied fix names a knowledge change or a written test file.
 const APPLIED_CHANGE_KINDS = ['knowledge', 'test-file'] as const
 const REFUSALS = ['run-not-found', 'member-not-found', 'step-not-found', 'ambiguous-address'] as const
 const PREVIEW_OUTCOMES = ['consequences', 'quarantined', 'already-marked', ...REFUSALS] as const
@@ -41,9 +39,7 @@ const LATEST_KINDS = ['first', 'supersedes'] as const
 const DRAFT_KINDS = ['confirmed-bug', 'knowledge', 'test-edit', 'no-draftable-fix'] as const
 const EVIDENCE_DIRECTIONS = ['confirm', 'overturn'] as const
 const RECORD_EVIDENCE_KINDS = ['effects', 'unreadable'] as const
-// the inherited 419 vocabularies the quarantined and already-marked arms carry.
 const QUARANTINE_CLASSES = ['flake', 'environment', 'timeout'] as const
-// the writer's vocabulary is `applied`; `drafted` is a readable pre-432 receipt.
 // `not-applied` closes a mark whose planned fix was refused.
 const DISPOSITIONS = ['quarantined', 'applied', 'no-draftable-fix', 'confirmed-bug', 'not-applied'] as const
 const HISTORICAL_DISPOSITIONS = ['drafted'] as const
@@ -96,8 +92,6 @@ describe('mark result vocabularies', () => {
     }
   })
 
-  // RE-SPELLED 432-09 from 'pins the current proposal states: runtime list, schema arms and parser':
-  // history joins what an applied fix changed; no proposal state is read or carried.
   test('pins the applied change kinds and the changed-record join: runtime list, schema arms and parser', () => {
     expect([...MARK_APPLIED_CHANGE_KINDS]).toEqual([...APPLIED_CHANGE_KINDS])
     expect(armsOf(MarkAppliedChangeSchema, 'kind')).toEqual([...APPLIED_CHANGE_KINDS])
@@ -146,7 +140,6 @@ describe('mark result vocabularies', () => {
     expect(RunsMarkPreviewResultSchema.safeParse({ ...base, resolvedStep: { stepIndex: 0, reason: 'last-step' } }).success).toBe(false)
     expect(RunsMarkPreviewResultSchema.safeParse({ ...base, latest: { kind: 'replaces', markId: 'mark_000000000001', ordinal: 1 } }).success).toBe(false)
     expect(MarkPreviewDraftSchema.safeParse({ kind: 'wording', text: 'x' }).success).toBe(false)
-    // the reached-record evidence vocabularies.
     expect([...MARK_PREVIEW_EVIDENCE_DIRECTIONS]).toEqual([...EVIDENCE_DIRECTIONS])
     expect(armsOf(MarkPreviewEvidenceEffectSchema, 'direction')).toEqual([...EVIDENCE_DIRECTIONS])
     expect([...MARK_PREVIEW_RECORD_EVIDENCE_KINDS]).toEqual([...RECORD_EVIDENCE_KINDS])

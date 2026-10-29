@@ -1,55 +1,4 @@
-// The primitive's EDGES: ordering, emptiness, representation (Phase 395-02, D-17 · CFGM-01/03/04).
-//
-// THIS FILE IS NOT A SECOND COPY OF `src/__tests__/config-diff-digest.test.ts`. That one is the
-// vendored differ's round-trip corpus — sixteen cases proving the emitted hunks describe the change
-// they were rendered from — plus the primitive's basic contract. This one is the three edges 395-02
-// was planned to close, and each cell below states the implementation it must go red on.
-//
-// THE RED WAS OBSERVED, NOT ASSERTED (D-17's RED-first clause, taken literally). The representation
-// cells below were run against a deliberately broken basis before they were trusted to pass: the two
-// digest lines in `renderConfigDiff` were routed through
-//
-//     utf8Encode(utf8Decode(bytes).replace(/\r\n/g, '\n').normalize('NFC'))
-//
-// — the exact "helpful" normalisation a well-meaning reimplementation adds, and the CR-02 defect
-// class in its most plausible form. On top of agent-qa `c1048320` that mutation turned 8 of this
-// file's 23 cells red. Quoted from the run:
-//
-//     × the CRLF corpus member digests the bytes it was handed, carriage returns and all
-//         Expected: "964818db73295040edb4f77c01f68582bd2363a1532bfa2237f704dbf744b046"
-//         Received: "07b6c40ed2fe41896a0938ae5ae3afcf40b633ca7eab6088d80a826a6214dd15"
-//     × the CRLF and LF spellings of one text are two different files
-//         expected '07b6c40e…dd15' not to be '07b6c40e…dd15'   ← the two collapsed into one file
-//     × the non-NFC corpus member digests the bytes it was handed, decomposition and all
-//         Expected: "f48d84d27991eda765c8f4cc6e93dbc59408781fa73632acabaae5b8b0d1f872"
-//         Received: "a62d7561732fd007f27e99cedab9d6eee3b750a8b816bdfad3de8e33fa18f9b9"
-//     × the two canonically-equivalent unicode forms are two different files   (same pair of hexes)
-//     × an invalid-UTF-8 sequence digests as itself and does not throw
-//         Expected: "ead0215fe443756c2739e50b368ff79c283d540214d4ef503350fa25103198be"
-//         Received: "c2417d356bdc569f28d3faea78bba17304a676459d9bb34d79d17179b5eef671"
-//     × construction and apply agree byte for byte: CRLF / non-NFC unicode / invalid UTF-8
-//
-// The mutation was applied and reverted from a `cp` snapshot verified byte-identical by `diff`
-// (sha256 `c30c6392aa3a0b81d5f259273b522b1d2cdb70733c471bb7523a6fc257ef048c` before and after); it
-// was never committed. That is 394's CR-02 lesson codified rather than remembered: both halves of
-// one digest contract must hash the same representation, and the representation is RAW BYTES.
-//
-// WHAT MAKES EACH CELL RED, stated per cell:
-//
-//   ordering            — a comparator over JavaScript string order rather than over the path's
-//                         UTF-8 bytes. The astral case below is the pair where those two disagree.
-//   determinism         — any dependence on caller enumeration order, or on anything that is not
-//                         the inputs.
-//   the unchanged arm   — a primitive that answered a zero-length `diffBytes` for "nothing changed",
-//                         leaving every caller to interpret an empty array.
-//   the unrenderable    — a primitive that returned an EMPTY diff for a change whose bytes differ.
-//     refusal             Left alone, a person is shown a blank page and approves bytes they never
-//                         saw, and D-19's shown==applied comparison agrees with itself the whole way.
-//   the representation   — any decode, re-encode, line-ending fold or unicode normalisation between
-//     corpus              the caller's bytes and the digest, on EITHER call site.
-//   the two call sites   — a construction that digested one representation and an apply that
-//                         digested another; the two shapes here reach the one export by different
-//                         roads, through the real base64 transport, and are compared byte for byte.
+// Both call sites hash raw bytes; a decode, line-ending fold or NFC step fails the cells below.
 
 import { describe, expect, it } from 'vitest'
 
@@ -104,12 +53,7 @@ const INVALID_UTF8_SHA = 'ead0215fe443756c2739e50b368ff79c283d540214d4ef503350fa
 
 const A_ONLY = Uint8Array.from([97, 10])
 
-// ────────────────────────────────────────────────────────────────────────────────────────────────
-// The two call sites. Same export, two roads: construction holds the mutated bytes in memory; the
-// apply re-reads the file from "disk" and decodes the stored payload through the real base64
-// transport. A digest contract whose two halves hashed different representations would disagree
-// here — which is the whole shape of 394's CR-02 defect.
-// ────────────────────────────────────────────────────────────────────────────────────────────────
+// The two call sites: construction holds the bytes in memory, the apply decodes them from base64.
 
 interface StoredProposal {
   readonly path: string
@@ -319,8 +263,7 @@ describe('the representation corpus — raw bytes, both call sites', () => {
       { path: CONFIG_PATH, oldBytes: A_ONLY, newBytes: INVALID_UTF8 },
     ]))
     expect(rendered.perFileDigests[0]?.newDigest).toBe(INVALID_UTF8_SHA)
-    // The RENDER is lossy for such a file and that is allowed — the digest and the stored bytes are
-    // not. The two claims stay separate, which is what CR-02 cost.
+    // The render may be lossy for such a file; the digest and the stored bytes may not.
     expect(utf8Decode(rendered.diffBytes)).toContain('�')
   })
 
@@ -350,7 +293,7 @@ describe('the representation corpus — raw bytes, both call sites', () => {
   it('is not vacuous: a doctored stored payload makes the two halves disagree', () => {
     const disk = new Map([[CONFIG_PATH, LF_OLD]])
     const { stored } = constructionShapedCall(disk, CONFIG_PATH, CRLF_NEW)
-    // Widen the payload by one byte — the shape of the D-19 tampering the comparison exists for.
+    // Widen the payload by one byte, the tampering the comparison exists for.
     const doctored = {
       ...stored,
       newContentBase64: base64Encode(utf8Encode(`${utf8Decode(CRLF_NEW)}# added\r\n`)),

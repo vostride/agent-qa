@@ -1,10 +1,4 @@
-// the `gateRun` carrier, minted on CompletedRunHandoff v4.
-//
-// Pins the load-boundary facts the carrier introduces: the current version, and the
-// present-implies-valid shape clause that admits only the literal marker. `gateRun` is a SECOND,
-// distinct axis beside `excludedFromOutcomes` — neither implies the other.
-//
-// Schema module-discipline law: extension-less relative import specifiers, no node builtins.
+// `gateRun` is a separate axis from `excludedFromOutcomes`; neither implies the other.
 import { describe, expect, it } from 'vitest'
 
 import { guardCompletedRunHandoff, HANDOFF_MIGRATIONS } from '../handoff/load-completed-run-handoff'

@@ -1,8 +1,4 @@
-/**
- * D-05/D-06/D-07 bundle identity: one immutable content address over normalized,
- * deterministic fields. Mutable bundle state belongs to the separate manifest hash; the two
- * hashes have two jobs and must never share inputs.
- */
+// Mutable bundle state hashes separately; the two hashes must never share inputs.
 import type { BundleKind, FactSubtype } from '../delta/envelope'
 import { canonicalJson } from '../determinism/canonical-json'
 import { sha256hex } from '../determinism/sha256'
@@ -32,10 +28,7 @@ export type BundleDiscriminant =
   | { kind: 'unknown'; conflictRecordIds: readonly string[] }
   | { kind: 'policy'; ruleKey: string; validityWindowEvidenceToken?: string }
 
-/**
- * Immutable bundle identity core. `primaryAnchor` is stored normalized. LLM-authored prose
- * (including title, summary, and body) must never enter this type or the BNDL-02 identity hash.
- */
+// Model-authored prose, including title, summary and body, never enters the identity hash.
 export interface BundleIdentityCore {
   kind: BundleKind
   subtype: FactSubtype | null
@@ -65,7 +58,7 @@ function normalizedErrorKey(input: string): string {
   return normalized.t === 'error' ? normalized.message : input
 }
 
-/** D-06 deterministic per-kind discriminant, independent of all authored prose. */
+// Independent of all authored prose.
 export function deriveDiscriminantKey(discriminant: BundleDiscriminant): string {
   switch (discriminant.kind) {
     case 'fact':
@@ -119,7 +112,7 @@ export function computeStepSequenceSignature(orderedStepKeys: readonly string[])
   return sha256hex(orderedStepKeys.map(text).join(''))
 }
 
-/** D-07 normalize-then-hash by construction; callers may safely pass a raw anchor. */
+// Normalizes before hashing, so callers may pass a raw anchor.
 export function computeBundleIdentityHash(core: BundleIdentityInput): string {
   const identityCore: BundleIdentityCore = {
     kind: core.kind,
@@ -159,10 +152,7 @@ export function bundleSlug(kind: BundleKind, primaryAnchor: Anchor): string {
   return slugBranch(bounded)
 }
 
-/**
- * D-05 bundle id. The hash suffix alone is authoritative identity; the slug exists solely for
- * human PR review ergonomics.
- */
+// The hash suffix alone is the identity; the slug only eases human review.
 export function mintBundleId(core: BundleIdentityInput): RecordId {
   const identityHash = computeBundleIdentityHash(core)
   return asRecordId(

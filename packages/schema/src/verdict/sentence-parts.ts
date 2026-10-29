@@ -1,11 +1,4 @@
-// The authored sentence parts a run analysis carries BESIDE its verdicts.
-//
-// Parts live BESIDE `Verdict`, joined by `perTest`, and never inside it — the §A9 union is
-// frozen and the 387 beside-never-widening law applies here exactly as it did to the entity
-// vocabulary: widening `Verdict` would ripple through every guard, every persisted handoff and
-// every consumer that pattern-matches the union, for a field only the analysis surface reads.
-// `Verdict.evidence.rationale` stays what it always was — the classifier's advisory self-trace —
-// and is never the product sentence; the sentence a human reads is assembled from THESE parts.
+// Beside `Verdict`, never inside: widening the union would ripple through every guard and handoff.
 
 import { z } from 'zod'
 
@@ -24,13 +17,7 @@ export type VerdictGroundingQuote =
   | { stepIndex: number; quote: string }
   | { source: 'test-outcome'; quote: string }
 
-/**
- * One verdict's authored sentence parts.
- *
- * `perTest` is the join key to `Verdict.perTest` — one parts record per authored
- * verdict, matched by number, never by array position. `links` carry `agentqa://` entity
- * URIs only, validated through the one URI codec rather than a bare string check.
- */
+// Matched to `Verdict.perTest` by number, never by array position.
 export interface VerdictSentenceParts {
   perTest: number
   /** A verbatim quote of captured evidence — never paraphrase, never fabrication. */

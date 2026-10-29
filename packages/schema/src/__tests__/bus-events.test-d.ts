@@ -1,7 +1,4 @@
-// Type-level payload-discipline proofs: the projection payload types structurally
-// cannot carry live handles / raw bytes / embedded evidence — a compile error, not a
-// runtime strip (the 356 `NonCacheableStepInput` `?: never` idiom). Plus the M1-lite
-// RunSession contract pins. Copies the cache-key.test-d idiom.
+// Payload types cannot carry live handles, raw bytes or evidence: a compile error, not a strip.
 import { expectTypeOf } from 'vitest'
 import type {
   RunEvent,
@@ -30,17 +27,9 @@ expectTypeOf<RunEventEnvelope['type']>().toEqualTypeOf<RunEventType>()
 expectTypeOf<RunEventEnvelope['payload']>().toEqualTypeOf<RunEventPayload>()
 expectTypeOf<RunEventType>().toEqualTypeOf<(typeof RUN_EVENT_TYPES)[number]>()
 
-// The discriminated union narrows payload on `type`.
-//
-// the pin is the RATIFIED THREE-VALUE UNION, not the M1 literal it
-// replaced. Written as the union spelled out rather than as `PostProcessingDisposition` so a
-// fourth arm quietly added to that alias reds HERE — the union is a published bus-contract shape
-// that 408's embed and every thin client parse, and D-11's whole argument is that undecidable
-// cases degrade to `detached` with a warning rather than widening it.
+// Spelled out, not as `PostProcessingDisposition`, so a fourth arm added to that alias fails here.
 expectTypeOf<Extract<RunEvent, { type: 'runFinished' }>['payload']['disposition']>()
   .toEqualTypeOf<'drained' | 'handedOff' | 'detached'>()
-
-// --- RunSession M1-lite contract pins ---------------------
 
 expectTypeOf<RunSession['done']>().toEqualTypeOf<Promise<RunCompletion>>()
 expectTypeOf<RunSession['cancel']>().toEqualTypeOf<() => void>()
@@ -60,7 +49,7 @@ const validSubAction = {
   screenStateHash: 'hash-before',
 }
 
-// states collapse to hash identity — a raw ScreenState cannot ride as `stateBefore`.
+// States collapse to hash identity, so a raw `ScreenState` cannot ride as `stateBefore`.
 const rejectsStateBefore: SubActionRecordedPayload = {
   ...validSubAction,
   // @ts-expect-error stateBefore is structurally excluded (?: never)
@@ -86,8 +75,7 @@ const rejectsServedBrief: StepFinalizedPayload = {
   servedBrief: {} as ServedBrief,
 }
 
-// tokenUsage is additive-OPTIONAL — a payload without it typechecks, and the triple
-// is the only shape admitted (a bare number is a compile error). Absent is not zero.
+// `tokenUsage` is optional and only the triple is admitted; absent is not zero.
 const acceptsAbsentTokenUsage: StepFinalizedPayload = {
   testIndex: 0,
   stepIndex: 0,
@@ -108,7 +96,6 @@ const rejectsScalarTokenUsage: StepFinalizedPayload = {
   tokenUsage: 15,
 }
 
-// testFinished never embeds the steps array.
 const rejectsSteps: TestFinishedPayload = {
   testId: 't1',
   testIndex: 0,

@@ -15,10 +15,7 @@ export interface ServingRecordMetadata {
   readonly renderedCost: number
 }
 
-/**
- * PROVISIONAL Phase-380 Pin 2 identity. M3 may retune this grouping from field evidence, but
- * every serving channel must use this precise-first definition until then.
- */
+// Every serving channel clusters by this one precise-first key.
 export function servingClusterKey(anchors: readonly Anchor[]): string {
   const element = anchors.find((anchor) => anchor.t === 'el')
   if (element !== undefined) {

@@ -204,7 +204,7 @@ export const RunDetailMemberMarkSchema = z.object({
 }).strict()
 export type RunDetailMemberMark = z.infer<typeof RunDetailMemberMarkSchema>
 
-/** OQ5: gate3ArmSchema.stepId uses the same test:step spelling as DisplayStep addressing. */
+// `gate3ArmSchema.stepId` uses the same test:step spelling as DisplayStep addressing.
 export function deriveMarkStepId(testIndex: number, stepIndex: number): string {
   return `${testIndex}:${stepIndex}`
 }

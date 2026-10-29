@@ -1,14 +1,6 @@
-// Pitfall 6: the ONE shared non-replayable action-class list. The runner's cache write guard,
-// the extraction disposition, and procedure replay all consume THIS list —
-// it must never fork. Mirrors the runner's current exclusion lists member-for-member
-// (loop/index.ts COORDINATE_KEYS / COORDINATE_ACTION_TYPES + the setVariable/assertAI/extractAI
-// cache no-op guards); consumers swap their local copies for these in later plans.
+// One shared list: the cache write guard, extraction and procedure replay all read it.
 
-/**
- * Action types that are never replayable: `setVariable` (env provenance), `assertAI`/`extractAI`
- * (AI-judgment plans are never persisted, D-08), and `tapCoordinate` (inherently
- * coordinate-driven even after raw coordinates are sanitized out).
- */
+// `setVariable` reads env, AI judgments are never persisted, `tapCoordinate` is coordinate-driven.
 export const NON_REPLAYABLE_ACTION_TYPES: readonly string[] = [
   'setVariable',
   'assertAI',
@@ -16,10 +8,7 @@ export const NON_REPLAYABLE_ACTION_TYPES: readonly string[] = [
   'tapCoordinate',
 ]
 
-/**
- * Raw-coordinate keys whose presence makes an action shape non-replayable (Pitfall 5b): a
- * coordinate binding cannot be re-grounded against a fresh observation.
- */
+// A raw-coordinate binding cannot be re-grounded against a fresh observation.
 export const COORDINATE_ACTION_KEYS: readonly string[] = [
   'x',
   'y',

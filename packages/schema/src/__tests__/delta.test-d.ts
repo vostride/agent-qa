@@ -84,7 +84,6 @@ acceptBundleKind('observed-flow')
 
 expectTypeOf<BundleDraft['subtype']>().toEqualTypeOf<FactSubtype | undefined>()
 
-// This proof file intentionally covers only proposal types; ServedBrief read-back fields stay in 314-05.
 type ProposalKeys = keyof BundleDraft | keyof Delta
 expectTypeOf<Extract<ProposalKeys, 'trust' | 'status'>>().toEqualTypeOf<never>()
 
