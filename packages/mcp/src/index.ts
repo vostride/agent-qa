@@ -43,14 +43,6 @@ export {
 } from './conformance-support.js'
 export type { JsonDocument } from './conformance-support.js'
 
-// 2026-08-20 (Phase 399.1 plan 06, D-08). `maskedToolResult` joins the barrel on the paragraph
-// above's reasoning, extended one door further: it IS this surface's render — the single masking
-// from which both `structuredContent` and the text a person reads are answered — and 399.1's
-// rendered-output matrix compares it against the chat and `fn` renders for every capability. The
-// alternative to publishing it is a second serialization recipe inside the suite, which would make
-// the suite's idea of this door the subject and leave the shipped one unmeasured. It hands a
-// consumer no capability: it is a pure function of a value the consumer already holds.
-
 export {
   advertisedContracts,
   AGENT_QA_COMPOSED_CONTRACTS,
@@ -69,6 +61,7 @@ export type {
   UnprojectedOp,
 } from './mapping.js'
 
+// This surface's one render, published so the rendered-output matrix measures the shipped door.
 export { maskedToolResult } from './masked-result.js'
 
 // 2026-08-31 (Phase 408 plan 01, D-01/D-04 · MCPA-01): the MCP App surface, published on the same

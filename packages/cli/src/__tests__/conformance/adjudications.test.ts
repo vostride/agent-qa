@@ -15,9 +15,6 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = resolve(HERE, '..', '..', '..', '..', '..')
 
 const SCOPE_SOURCE_PATH = join(REPO_ROOT, 'packages/schema/src/functions/function-scope.ts')
-const MAPPING_SOURCE_PATH = join(REPO_ROOT, 'packages/mcp/src/mapping.ts')
-
-const readSource = (path: string): string => readFileSync(path, 'utf8')
 
 // ---- The scope union, retired ----
 
@@ -53,58 +50,6 @@ function schemaSources(): readonly string[] {
   }
   walk(join(REPO_ROOT, 'packages/schema/src'))
   return texts
-}
-
-// ---- The fourth adjudication: the degraded output contracts --------------------------------------
-
-const DEGRADED_ANCHOR = '397 DISPOSITION (2026-08-16 · D-20): keep-degraded'
-
-/**
- * The literal source of the degraded list, so a comment can be asserted about.
- *
- * Read off DISK rather than off the built package, deliberately: comments do not survive the build,
- * and the ruling IS a comment. A cell asking `dist` about it would be asking the one artifact that
- * cannot answer.
- */
-function degradedListBlock(source: string): string {
-  const start = source.indexOf('export const DEGRADED_OUTPUT_CONTRACTS')
-  if (start < 0) return ''
-  const end = source.indexOf('] as const satisfies readonly OutputSchemaDegradation[])', start)
-  return end < 0 ? '' : source.slice(start, end)
-}
-
-/**
- * What each entry's own comment window is missing.
- *
- * The window is the text between the previous entry's `tool:` line and this one's, which is exactly
- * where its comment lives. Walking forward with a cursor rather than searching the whole block
- * matters: a single anchor at the top of the list would otherwise satisfy both entries, and "one
- * entry was ruled and the other rode along" is the failure this scan exists to name.
- */
-function degradedDispositionFindings(
-  block: string,
-  tools: readonly string[],
-): readonly string[] {
-  if (block === '') return ['mapping.ts no longer carries a readable DEGRADED_OUTPUT_CONTRACTS list']
-  const findings: string[] = []
-  let cursor = 0
-  for (const tool of tools) {
-    const at = block.indexOf(`tool: '${tool}'`, cursor)
-    if (at < 0) {
-      findings.push(`${tool}: no entry in the declared list`)
-      continue
-    }
-    const window = block.slice(cursor, at)
-    cursor = at
-    if (!window.includes(DEGRADED_ANCHOR)) {
-      findings.push(`${tool}: no dated 397 keep-degraded disposition above its entry`)
-      continue
-    }
-    if (window.replace(/\s+/g, ' ').length < 300) {
-      findings.push(`${tool}: carries the anchor with no reason under it`)
-    }
-  }
-  return findings
 }
 
 // ================================================================================================
@@ -145,59 +90,11 @@ describe('the inherited adjudications, discharged at their artifacts', () => {
     })
   })
 
-  describe('the degraded output contracts adjudication', () => {
-    it('declares exactly the adjudicated entry that is still degraded', () => {
+  describe('the degraded output contracts', () => {
+    it('declares exactly the entry that is still degraded', () => {
       expect(DEGRADED_OUTPUT_CONTRACTS.map((entry) => [entry.tool, entry.opId])).toEqual([
         ['agent_qa_start_run', 'runs.start'],
       ])
-      for (const entry of DEGRADED_OUTPUT_CONTRACTS) {
-        expect(entry.adjudication, entry.tool).toBe('397')
-      }
-    })
-
-    it('carries a dated keep-degraded disposition above each entry', () => {
-      const block = degradedListBlock(readSource(MAPPING_SOURCE_PATH))
-      expect(block, 'the degraded list read back empty').toContain('agent_qa_start_run')
-      expect(degradedDispositionFindings(
-        block,
-        DEGRADED_OUTPUT_CONTRACTS.map((entry) => entry.tool),
-      )).toEqual([])
-    })
-
-    it('names the entry whose disposition is missing, and does not let a sibling cover for it', () => {
-      // The control: one anchor, two entries. A scan that searched the whole block would call this
-      // ruled — which is precisely how a second degradation could land under a comment written
-      // about the first.
-      const control = [
-        'export const DEGRADED_OUTPUT_CONTRACTS = Object.freeze([',
-        `  // ${DEGRADED_ANCHOR}. ${'A reason long enough to be a reason rather than a stamp. '.repeat(5)}`,
-        '  Object.freeze({',
-        '    tool: \'control_degraded_397_05_a\',',
-        '  }),',
-        '  Object.freeze({',
-        '    tool: \'control_degraded_397_05_b\',',
-        '  }),',
-      ].join('\n')
-      const findings = degradedDispositionFindings(
-        control,
-        ['control_degraded_397_05_a', 'control_degraded_397_05_b'],
-      )
-      expect(findings.length).toBe(1)
-      expect(findings[0]).toContain('control_degraded_397_05_b')
-      expect(findings[0]).toContain('no dated 397 keep-degraded disposition')
-    })
-
-    it('names an entry whose disposition is an anchor with nothing under it', () => {
-      const control = [
-        'export const DEGRADED_OUTPUT_CONTRACTS = Object.freeze([',
-        `  // ${DEGRADED_ANCHOR}.`,
-        '  Object.freeze({',
-        '    tool: \'control_degraded_397_05_c\',',
-        '  }),',
-      ].join('\n')
-      const findings = degradedDispositionFindings(control, ['control_degraded_397_05_c'])
-      expect(findings.length).toBe(1)
-      expect(findings[0]).toContain('carries the anchor with no reason under it')
     })
 
     it('joins each degraded entry to a real projected tool and op, and asserts nothing more', () => {

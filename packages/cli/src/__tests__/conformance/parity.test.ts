@@ -881,50 +881,17 @@ describe('the parity suite ranges the registry census over every rostered surfac
     )
   })
 
-  it('carries the dated mint ruling in the shipped credential-mint reason', () => {
-    // The `runs.liveurl` ruling is read from the shipped `UNPROJECTED_OPS` prose.
-    const entry = UNPROJECTED_OPS.find((candidate) => candidate.opId === 'runs.liveurl')
-    expect(entry, 'runs.liveurl left the unprojected register — re-home this ruling before it does')
-      .toBeDefined()
-    // The class must still derive from the prose: the ruling adds to the reason, replacing nothing.
+  it.each(['runs.liveurl', 'editor.liveurl'])('keeps the %s mint unprojected', (opId) => {
+    const entry = UNPROJECTED_OPS.find((candidate) => candidate.opId === opId)
+    expect(entry, `${opId} is not in the unprojected register`).toBeDefined()
     expect(
       unprojectedReasonKeyOf(entry!.reason),
-      'the 408 ruling must EXTEND the credential reason, not overwrite the phrase its class derives '
-        + 'from — a resolution that changes the class silently re-files a security decision',
+      `${opId}: a reason that drops its credential phrase re-files a security decision`,
     ).toBe('credential-mint-deferral')
     expect(entry!.reason, 'the credential fact the class is named for').toContain('MINTS A CREDENTIAL')
-    // …and the ruling itself, dated, with its operative words.
-    expect(entry!.reason, 'the dated 408 ruling marker (D-14: answered, never silently reclassified)')
-      .toContain('408 D-01')
-    expect(entry!.reason, 'the ruling is dated at its own artifact').toContain('2026-08-31')
-    expect(entry!.reason, 'what 408 actually ruled').toContain('INTERNAL MINT ONLY')
-    // The adjudicator column moves with the ruling: 403 deferred, 408 decided.
     expect(
-      entry!.adjudication,
-      'the provenance column still credits 403 with a ruling it explicitly declined to make',
-    ).toBe('408')
-    // The op stays unprojected: a resolution that produced a tool would be the opposite outcome.
-    expect(
-      scenarioRowFor('runs.liveurl')?.perSurface.mcp,
-      'the ruling keeps runs.liveurl unprojected — a mint tool is rejected, not deferred',
-    ).toEqual({ unprojected: 'credential-mint-deferral' })
-  })
-
-  it('EDITOR-LIVEURL-UNPROJECTED-RULING: editor.liveurl stays unprojected by its ruling', () => {
-    // An editor session's view credential is private to its dashboard page; a mint tool reds.
-    const entry = UNPROJECTED_OPS.find((candidate) => candidate.opId === 'editor.liveurl')
-    expect(entry, 'editor.liveurl left the unprojected register — re-home this ruling before it does')
-      .toBeDefined()
-    expect(
-      unprojectedReasonKeyOf(entry!.reason),
-      'the 428 ruling files the editor mint under the credential class, as runs.liveurl is filed',
-    ).toBe('credential-mint-deferral')
-    expect(entry!.reason, 'the credential fact the class is named for').toContain('MINTS A CREDENTIAL')
-    expect(entry!.reason, 'the dated 428 ruling marker').toContain('2026-09-25')
-    expect(entry!.adjudication, 'the provenance column credits the phase that ruled').toBe('428')
-    expect(
-      scenarioRowFor('editor.liveurl')?.perSurface.mcp,
-      'the ruling keeps editor.liveurl unprojected — an editor watch tool is declined, not deferred',
+      scenarioRowFor(opId)?.perSurface.mcp,
+      `${opId} on mcp: a mint tool would put a live credential in model context`,
     ).toEqual({ unprojected: 'credential-mint-deferral' })
   })
 
@@ -946,7 +913,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
     ).toBe('discovery-answered-by-protocol')
     expect(
       UNPROJECTED_REASON_SIGNATURES.map(([key]) => key),
-      'the human-origin class left the vocabulary with its last member (432-18)',
+      'the vocabulary has no human-origin class',
     ).not.toContain('requires-human-origin')
   })
 

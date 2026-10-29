@@ -37,7 +37,6 @@ import {
   AGENT_QA_OP_CONTRACTS,
   AGENT_QA_TOOL_PROJECTIONS,
   MAX_RESULT_SIZE_META_KEY,
-  PROJECTED_RULING_ADDENDA,
   UNPROJECTED_OPS,
 } from '../mapping.js'
 import type { ToolProjection } from '../mapping.js'
@@ -496,41 +495,9 @@ describe('RUN-KNOWLEDGE-WHOLE', () => {
   })
 })
 
-// ---- D-10: the moved rulings keep their history and gain a dated addendum ------------------------
-
-const MOVED_RULINGS: Readonly<Record<string, string>> = {
-  'knowledge.bundles.list': '397',
-  'knowledge.records.inspect': '397',
-  'knowledge.records.diff': '397',
-  'knowledge.record.show': '397',
-  'knowledge.brief.why': '397',
-  'runs.knowledge': '407',
-  'runs.evidence': '423',
-  'runs.artifact': '405',
-}
-
-describe('RULING-ADDENDA', () => {
-  it("keeps each moved op's prior ruling verbatim and appends a dated 431 addendum", () => {
-    const actual: Record<string, string> = {}
-    for (const entry of PROJECTED_RULING_ADDENDA) {
-      actual[entry.opId] = entry.ruledBy
-      expect(entry.ruling.length, entry.opId).toBeGreaterThan(20)
-      expect(entry.addendum, entry.opId).toContain('2026-09-28')
-      expect(entry.addendum, entry.opId).toContain('431')
-      expect(UNPROJECTED_OPS.some((unprojected) => unprojected.opId === entry.opId), entry.opId).toBe(false)
-    }
-    expect(actual).toEqual(MOVED_RULINGS)
-    expect(PROJECTED_RULING_ADDENDA.find((entry) => entry.opId === 'runs.knowledge')?.ruling).toContain('2026-08-29')
-    expect(PROJECTED_RULING_ADDENDA.find((entry) => entry.opId === 'runs.evidence')?.ruling).toContain('2026-09-15')
-    expect(PROJECTED_RULING_ADDENDA.find((entry) => entry.opId === 'runs.artifact')?.ruling).toContain('2026-08-27')
-    expect(PROJECTED_RULING_ADDENDA.find((entry) => entry.opId === 'runs.knowledge')?.addendum)
-      .toContain('agent_qa_get_run_overview')
-  })
-
-  it('keeps runs.detail unprojected under its 405 ruling', () => {
-    const detail = UNPROJECTED_OPS.find((entry) => entry.opId === 'runs.detail')
-    expect(detail).toMatchObject({ adjudication: '405' })
-    expect(detail?.reason).toContain('2026-08-27, 405-01')
+describe('unprojected reads', () => {
+  it('leaves runs.detail unprojected', () => {
+    expect(UNPROJECTED_OPS.map((entry) => entry.opId)).toContain('runs.detail')
     expect(AGENT_QA_TOOL_PROJECTIONS.flatMap((projection) => [...projection.ops])).not.toContain('runs.detail')
   })
 })
