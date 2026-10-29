@@ -481,9 +481,10 @@ describe('an editor token obeys every credential rule a run token does', () => {
     const editor = plantEditorSubject(harness, { sessionId: 'ed-log', kind: 'cdp-screencast' })
     try {
       const { result, log } = await captureProcessLog(async () => {
-        // THE CAPTURE'S OWN POSITIVE CONTROL: both channels are hooked, so an absence below is a
-        // reading and not a deaf scanner.
+        // THE CAPTURE'S OWN POSITIVE CONTROL: console.log, stdout and stderr are hooked, so an
+        // absence on them below is a reading and not a deaf scanner.
         console.log('capture control: console')
+        process.stdout.write('capture control: stdout\n')
         process.stderr.write('capture control: stderr\n')
 
         const mintResponse = await fetch(`${harness.origin}/api/live-editor/sessions/ed-log/live-url`)
@@ -510,6 +511,7 @@ describe('an editor token obeys every credential rule a run token does', () => {
       })
 
       expect(log, 'the capture saw the console').toContain('capture control: console')
+      expect(log, 'the capture saw stdout').toContain('capture control: stdout')
       expect(log, 'the capture saw stderr').toContain('capture control: stderr')
       // THE NEEDLES' POSITIVE CONTROL: the mint's own body carries the token and its needle.
       expect(result.mintBody, 'the mint body is the one place the token is handed out').toContain(result.token)
