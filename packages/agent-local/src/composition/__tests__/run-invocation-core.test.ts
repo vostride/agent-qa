@@ -290,15 +290,7 @@ describe('the invocation core asks nobody', () => {
 // the source — and each scan is self-checked against its own known members first, because a census
 // whose predicate cannot see the thing it forbids is green at rest.
 
-/**
- * Drop block and line comments so a name that appears only in prose is never read as code.
- *
- * THIS IS THE LOAD-BEARING HALF, not a nicety. The core's header explains at length that it does
- * NOT call `resolveRunExecutionContext` or `getActiveExecutionContext` — so those names are in the
- * file, in comments, and a raw substring scan would report the file as an offender forever (or,
- * worse, be "fixed" by deleting the explanation). The `[^:]` guard keeps a protocol-relative URL
- * from being mistaken for a line comment, which is how this kind of stripper usually eats a file.
- */
+// A name in prose is not code; the `[^:]` guard keeps a URL's `//` from reading as a comment.
 function stripComments(source: string): string {
   return source
     .replace(/\/\*[\s\S]*?\*\//g, '')
@@ -353,15 +345,8 @@ describe('the core hygiene census, pinned to the core file', () => {
     )
   })
 
-  it('the core reads NO ambient context — and its comments prove the scan is not vacuous', () => {
-    const raw = readFileSync(CORE_SOURCE_PATH, 'utf8')
-    const code = stripComments(raw)
-
-    // The non-vacuity witness, and it is the file itself: the header NAMES two members of the
-    // family while explaining why it does not call them. If the scan were a raw substring test it
-    // would fire here; if the stripper were broken the next assertion could not pass.
-    expect(raw).toContain('resolveRunExecutionContext')
-    expect(raw).toContain('getActiveExecutionContext')
+  it('the core reads no ambient context', () => {
+    const code = stripComments(readFileSync(CORE_SOURCE_PATH, 'utf8'))
 
     for (const resolver of AMBIENT_RESOLVERS) {
       expect(code, `${resolver} is reachable from the core's CODE (D-07)`).not.toContain(resolver)

@@ -1,27 +1,4 @@
-// The one in-process run invocation core (Phase 401, D-02; approval removed 432-13).
-//
-// WHAT THIS FILE IS. Every local run trigger — `agent-qa run`, the chat/MCP `runs.start` op, the
-// daemon drainer, the dashboard's run button — resolves to ONE function here. It owns the ORDER a
-// run is started in:
-//
-//   resolve the run id (refuse an unminted or colliding one)
-//     → afterRefusal (the door's own code: its run record, then its plugins)
-//     → persistence ports → assemble → startRun → onSession → await the run
-//
-// NOTHING ASKS. There is no approval ladder, no confirm port and no session trust here: a run
-// starts in every execution context, whatever environment its targets declare. The only refusals
-// are of the request's run id, and they land BEFORE assembly — assembly is where the run-start
-// baseline probe fetches the target and where the build-ordinal counter is advanced — so a refused
-// run leaves no probe, no ordinal bump, no run directory and no browser. `assembleRun` is a port
-// this file calls once, below every refusal.
-//
-// THE ONE `startRun` OWNER. `packages/arch/src/lint/startrun-pin.ts` pins this file as the only
-// production file that starts a run in-process.
-//
-// IT NEVER READS AMBIENT CONTEXT (D-07). There is no `resolveRunExecutionContext()` call here, no
-// `getActiveExecutionContext`, no ALS read, no `process.env` sniff for who is asking. The door
-// that knows supplies `executionContext`, and the run records it: a daemon serving a browser and a
-// terminal on the same machine carries two different answers.
+// Every local run trigger starts here, and id refusals precede assembly, which probes the target.
 
 import { existsSync } from 'node:fs'
 import { dirname } from 'node:path'
