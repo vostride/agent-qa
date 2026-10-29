@@ -1,86 +1,4 @@
-// THE POPULATED-RUN PRODUCER (Phase 405 plan 09 · DETL-01 / DETL-02, CONTEXT D-04 and D-11).
-//
-// WHAT THIS FILE IS FOR. Every 405 cell that measures the run-detail PAGE needs a run whose wire
-// actually carries the three things the page renders: a decision-screenshot `artifactRefs[0].sha`,
-// a `stepFinalized.tokenUsage`, and masked placeholders in a sub-action's `plan` text. The
-// fixtures this repository already had cannot produce any of them. `drainableSuiteFixtureProject`
-// says so in its own words — "THE RUN IS EXPECTED TO FAIL, and that is fine" — because its whole
-// subject is wire SHAPE; its member never opens a page, never takes a screenshot and never calls a
-// model, so nothing downstream of "the run reached a verdict" exists to look at. RESEARCH Pitfall 6
-// names exactly this gap and 405-01's coverage item D6 records the consequence: every leg of the
-// shipped binding is proven separately and NO cell drives the shipped `agent-qa dashboard` binary
-// against a populated run. This module is that producer.
-//
-// WHY A WIRE STUB AND NOT A CASSETTE. RESEARCH A2 offered the eval package's replay as a
-// model-free producer. Measured this session, the replay emits no bus events at all — it
-// reconstitutes a recorded run's artifacts without ever starting a `RunSession` — so a cell built
-// on it would be asserting against a shape the shipped subscriber never sees. The honest
-// model-free producer is therefore one level lower: a local HTTP server that speaks the
-// OpenAI chat-completions wire the `openai-compatible` provider consumes, so the request leaves
-// the shipped runner, crosses a real socket and comes back as a real provider response. Everything
-// between the planner call and the bus is the product's own code.
-//
-// NO CREDENTIAL, NO NETWORK, NO PROVIDER. The declared model is `openai-compatible` pointed at
-// this fixture's own loopback server; that provider is credential-optional, so auth resolves
-// `unauthenticated` and the run proceeds with `{ kind: 'none' }`. The target is this fixture's own
-// loopback page. A machine with no keys and no internet runs this exactly as CI does.
-//
-// RED, NEVER SKIP. This module asserts nothing and skips nothing — the instrument law
-// `spawned-chat.ts` states for itself, unchanged. It returns data; the cell that imports it
-// decides what a missing browser, a stale build or an unfinished run means, in its own words.
-//
-// THE STOP RULE, STATED HERE SO NOBODY QUIETLY WEAKENS IT. If the shipped planner cannot be
-// satisfied by the canned responses below — a refused request shape, an ungroundable action, a
-// turn that never terminates — the honest move is to STOP and report the exact request shape that
-// was refused. It is NOT to downgrade the cell to "provider-gated, skipped in CI". That downgrade
-// is RESEARCH A2's fallback and it is a decision for a human, because it costs CI the only
-// end-to-end proof of the run-detail page that exists.
-//
-// WHY TWO SECRET CHANNELS, AND WHY THAT IS NOT BELT-AND-BRACES. The two are different mechanisms
-// producing different observable outcomes, and the fixture needs BOTH:
-//
-//   (1) A DECLARED secret in the project's secrets file, referenced from the step text with the
-//       runner's own `{{secret:NAME}}` syntax. The runner builds a `SecretRedactor` from that
-//       store and rewrites the value to its named `[secret:NAME]` marker BEFORE anything is
-//       recorded. So a declared secret proves the at-rest claim (it is never in clear) and can
-//       never produce a `<SECRET_n>` placeholder — the redactor consumes it first. Measured, not
-//       assumed: the redaction happens in the loop, the masking happens at bus projection, and
-//       the loop runs first.
-//
-//   (2) An ambient CREDENTIAL-SHAPED environment variable handed to the spawned dashboard. Its
-//       name ends in `_SECRET`, but it is not declared in the fixture's secrets file, and only a
-//       value declared there is masked. It survives into the planner's reasoning
-//       text and is recorded and shown as written.
-//
-// The email is undeclared too, so an address in the planner's reasoning is recorded and shown as
-// written.
-//
-// AND ONE RUN THAT FAILS, ADDED BY 405-14. The run-detail page has a render site
-// that only exists on a FAILED run — the failure banner — and it was the last site on the rebuilt
-// page painting a producer string raw. Nothing could measure it, because the run above PASSES. So
-// this module gained ONE additive knob, `startStubModelServer({ plannerOutcome: 'stepFailed' })`,
-// which sets the shipped `stepFailed` plan field on the planner's tool call. The runner is
-// untouched: that field is the product's own path to a step the planner declares impossible, and
-// the run reaches `runFinished` with a member `testFinished.outcome === 'failed'` carrying a
-// `failureSummary` that has masked placeholders in it.
-//
-// AND A MODEL THAT CAN AUTHOR, ADDED BY 406-07. The stub's fourth arm answers the
-// analyze-run AUTHOR — the plain-text `generate` the post-run tail makes, carrying neither `tools`
-// nor `response_format`. Its default (`analysisOutcome: 'floor'`) is the prose sentence every 405
-// caller already gets, which `parseJsonWithRepair` rejects, so the author degrades to the
-// deterministic floor and no verdict on the page ever says `analyze-run`.
-// `startStubModelServer({ analysisOutcome: 'authored' })` answers that ONE request shape with a
-// valid `OUTPUT_CONTRACT` object instead, recognised by the author's own `agent_context` line and
-// grounded in a verbatim substring of `POPULATED_FAILURE_STEP_TEXT`; `citeEvidenceFrom` points it
-// at the project root so the answer cites the run's REAL decision-screenshot sha. The arm sits
-// between the structured arm and the text fallback, so every other request shape is answered
-// exactly as before.
-//
-// THE FAILING RUN'S TWO SENTENCES ARE FIXTURE-OWNED — `plannerFailureReasoning()` and
-// `POPULATED_FAILURE_STEP_TEXT` — and both are written to a WORD BUDGET the banner publishes
-// (`FAILURE_BANNER_PREVIEW_WORDS`). `POPULATED_FAILURE_STEP_TEXT` carries the arithmetic in full.
-// The rule that goes with it: a drift that moves the email marker past the preview budget is fixed
-// in these two sentences, never by widening the banner.
+// A wire stub on loopback speaks the OpenAI chat wire, so a planner call crosses a real socket.
 
 import { createServer } from 'node:http'
 import type { IncomingMessage, Server, ServerResponse } from 'node:http'
@@ -167,75 +85,14 @@ export const POPULATED_SUITE_PATH = 'suites/populated.suite.yaml'
 /** The test file the suite addresses, relative to the project root. */
 export const POPULATED_TEST_PATH = 'tests/populated.test.yaml'
 
-/**
- * The single step a FAILING populated run declares.
- *
- * THIS SENTENCE IS FIVE WORDS, AND THE COUNT IS LOAD-BEARING.
- * `generateFailureSummary` prints the step NAME first — `Step 1/1 "<name>" failed: ...` — and the
- * banner's collapsed state shows `FAILURE_BANNER_PREVIEW_WORDS` (20) words. The step text the
- * PASSING recipe ships (`populatedRunFixtureProject`'s default) is SIXTEEN words, which would spend
- * the budget before the planner's sentence began and leave the truncated banner with no marker to
- * paint. Five leaves room for the failure sentence's email marker to land inside the preview.
- *
- * THE ARITHMETIC, WRITTEN OUT SO THE DOM CELL'S CLAIM IS AUDITABLE BY READING. Measured rather than
- * counted by eye: `generateFailureSummary`'s format was executed over this module's own strings
- * with the two masking placeholders in the positions the seam puts them, and the result split the
- * way `truncateText` spends its budget (one word per whitespace-free token).
- * Three numbers in the block that stood here were wrong — the shipped step text's length, the
- * credential's distance from the marker, and a five-word claim positioned as if it justified the
- * first.
- *
- * On a `stepFailed` turn the loop returns `Step failed: <reasoning>` as the step error and records
- * `Planner signaled step failure: <reasoning>` on the sub-action, so the summary reads:
- *
- *   `Step`(1) `1/1`(2) `"Acknowledge`(3) `the`(4) `notice`(5) `using`(6) `{{secret:…}}."`(7)
- *   `failed:`(8) `Step`(9) `failed:`(10) `Cannot`(11) `acknowledge:`(12) `the`(13) `notice`(14)
- *   `names`(15) `<EMAIL_n>`(16) `as`(17) `contact,`(18) `the`(19) `operator`(20) `credential`(21)
- *   `is`(22) `<SECRET_n>,`(23)
- *
- * — the email marker at word 16, inside the budget; the masking-seeded credential at word 23, SEVEN
- * words past the marker and THREE past the preview budget, so it is visible only once a person
- * expands the banner. THOSE THREE WORDS OF MARGIN ARE THE WHOLE OF WHAT PROTECTS CELL (3e)'s
- * NEGATIVE ASSERTION — that the credential is NOT in the truncated banner — so an edit to
- * `generateFailureSummary`'s header format that spends three more words moves the credential into
- * the preview and reds it. A DRIFT THAT MOVES EITHER MARKER ACROSS WORD 20 IS FIXED HERE, in the
- * fixture's own sentences, and NEVER by widening the banner's budget: the budget is what a person
- * was shown, and editing it to make a cell green would be the cell changing the product to fit
- * itself.
- */
+// Short enough that the email marker lands inside the banner's preview and the credential past it.
 export const POPULATED_FAILURE_STEP_TEXT =
   `Acknowledge the notice using {{secret:${POPULATED_SECRET_NAME}}}.`
 
-/**
- * The part of {@link POPULATED_FAILURE_STEP_TEXT} that survives SECRET REDACTION.
- *
- * WHY A PREFIX AND NOT THE WHOLE SENTENCE. The runner resolves `{{secret:NAME}}` and its
- * `SecretRedactor` rewrites the resolved value before anything is recorded or prompted, so the step
- * a planner is shown reads `Acknowledge the notice using [secret:POPULATED_STEP_SECRET].` — a
- * different string from the one this module declares. A stub arm keyed on the declared sentence
- * would never match. This prefix is the largest leading run that both spellings share.
- *
- * IT IS ALSO THE ONE THING THE FIXTURE'S TWO STEPS DO NOT SHARE. The passing recipe's default step
- * opens `Click the ${POPULATED_BUTTON_LABEL} button on the notice page.`; nothing in it contains
- * these four words, which is what lets one stub answer a two-member run with one failing member and
- * one passing one. See {@link StubModelServerOptions.failOnlyStepText}.
- */
+// The largest prefix shared before and after secret redaction, and absent from the passing step.
 export const POPULATED_FAILURE_STEP_MARKER = 'Acknowledge the notice using'
 
-/**
- * The second, PASSING step a two-member populated run declares.
- *
- * A SECOND MEMBER EXISTS FOR ONE REASON, AND IT IS A RENDER SITE. `showMemberChrome` is
- * `members.length > 1`, so a single-member run paints NO `data-member` wrapper and NO
- * `data-member-outcome` badge at all — the per-member outcome the milestone's second success
- * criterion is about is simply not on the page. A cell that asserted "every member wears its
- * outcome" against one member would be asserting over an empty set and passing for nothing.
- *
- * IT DELIBERATELY DOES NOT CARRY {@link POPULATED_FAILURE_STEP_MARKER}, so the stub's
- * `failOnlyStepText` arm answers this turn `stepComplete` while the failing member's turn is
- * declared impossible. One run, two outcomes, one stub — which is also the contrast the failure
- * view is for: a red member with a sentence beside a green member with nothing to explain.
- */
+// A second member, because a one-member run paints no `data-member` chrome to read outcomes from.
 export const POPULATED_PASSING_STEP_TEXT =
   `Click the ${POPULATED_BUTTON_LABEL} button and confirm the notice state changed.`
 
@@ -426,7 +283,7 @@ export interface RecordedStubRequest {
    * a failure message is megabytes of noise around the sentence that matters.
    */
   readonly body: string
-  // the whole body, recorded only under `fullBodies`.
+  // The whole body, recorded only under `fullBodies`.
   readonly fullBody?: string
 }
 
@@ -449,7 +306,7 @@ export interface StubModelServer extends FixtureServer {
    * which is the honest empty `citedArtifacts` the validator also accepts.
    */
   citeEvidenceFrom(agentQaRoot: string): void
-  // the planning turns `holdOnlyStepText` parked.
+  // The planning turns `holdOnlyStepText` parked.
   readonly held: StubHeldTurns
 }
 
@@ -458,8 +315,7 @@ export interface StubHeldTurns {
   count(): number
   aborted(): number
   release(): void
-  // answer every turn still parked with a 400 and keep the hold armed;
-  // returns how many turns it refused.
+  // Answer every parked turn with a 400 and keep the hold armed; returns how many it refused.
   refuse(): number
 }
 
@@ -550,61 +406,16 @@ function plannerReasoning(): string {
   )
 }
 
-/**
- * The measured ANLZ-01 leaf — a MEMORY-RETRIEVAL RELEVANCE SCORE, carried into this fixture's
- * analyze-run prompt on purpose.
- *
- * WHY A FIXTURE CARRIES A FLOAT AT ALL. The 399 defect was not "the analyze-run job throws"; it was
- * "the egress guardrail reads a printed float as a credit card". 406-07 measured the three literals
- * that blocked three permanently-failed `analyze-run` jobs — `1.1428571428571428` (8/7),
- * `1.4869565217391303` and this one — every one of them a `retrievalTrace.servedLines[].score` in
- * the failing step's memory channel, whose Luhn-valid 16-digit fraction is all
- * `CREDIT_CARD_CANDIDATE_RE` can see across the dot. Without such a literal in the prompt, a
- * shipped-binary cell that watches the job row complete measures the AUTHORING PATH and not the
- * guardrail: 406-11 reverted 406-07's fix, rebuilt, and the whole ten-cell suite stayed GREEN.
- * That is the measurement this constant answers.
- *
- * WHY IT RIDES THE PLANNER'S RECORDED REASONING RATHER THAN A RETRIEVAL TRACE. This fixture mints
- * an EMPTY `agent-qa-knowledge` directory, so no memory is served and `pack.memory` carries no
- * trace to plant a score in. The nearest carrier that reaches the same place is the planner's own
- * recorded reasoning: `subActions[].plan` is quoted verbatim into every evidence pack
- * (`evidence-diet.ts` `quoteStep`) and the packs ARE the author's volatile tier
- * (`analyze-run-author.ts` `volatileTier`). It is the failing arm's sentence, so only the RED
- * drive's prompt carries it and the green control's planning turns are byte-identical to what they
- * have always been.
- *
- * IT MUST STAY DELIMITED ON BOTH SIDES, and a trailing full stop would break that. `isFractionalTail`
- * requires the fraction's right-hand neighbour to be a delimiter and treats `.` as NOT one (a dotted
- * chain is a version string, not a float), so `relevance 1.0285714285714285.` BLOCKS AT HEAD and
- * would red this fixture's own preflight. The sentence below therefore continues after the number.
- * Measured through the real `scan()` under the default policy: `pass` at HEAD, `block` /
- * `creditCard` with 406-07's fix reverted.
- */
+// A Luhn-valid float the egress guard must pass; a word follows it, because a trailing `.` blocks.
 export const POPULATED_RETRIEVAL_SCORE = '1.0285714285714285'
 
-/**
- * The planner's reasoning on the arm that DECLARES THE STEP IMPOSSIBLE.
- *
- * THE SAME THREE PLANTED VALUES, RE-ORDERED — and the order is the only difference that matters.
- * `plannerReasoning` opens with the button sentence and reaches the email TWENTY-ONE words in,
- * which on a failure summary — whose first eight words are the step header and whose next two are
- * the loop's own `Step failed:` — would put the marker at word 31, well outside the banner's
- * 20-word preview (measured the same way as the block in {@link POPULATED_FAILURE_STEP_TEXT}). This sentence leads with the email so the TRUNCATED banner has a chip
- * to paint, and leaves the masking-seeded credential far enough back that it is visible only in the
- * expanded state — which is what makes cells (3c) and (3e) two different claims rather than one.
- *
- * See {@link POPULATED_FAILURE_STEP_TEXT} for the word-by-word arithmetic this ordering satisfies.
- */
+// Leads with the email so the truncated banner paints a chip; the credential shows only expanded.
 function plannerFailureReasoning(): string {
   return (
     `Cannot acknowledge: the notice names ${POPULATED_EMAIL} as contact, the operator `
     + `credential is ${POPULATED_SECRET_VALUE}, and the declared step credential resolves to `
     + `${POPULATED_DECLARED_SECRET_VALUE}. None of the three may ever be recorded in clear. `
-    // APPENDED, NEVER INTERLEAVED. Every word position the block above measures — the
-    // email at 21, the masking-seeded credential at 23, both relative to the banner's published
-    // preview budget — is a position from the FRONT, so the leaf rides at the back where it moves
-    // none of them. See {@link POPULATED_RETRIEVAL_SCORE} for why the sentence continues after the
-    // number rather than ending on it.
+    // Appended, so every word position counted from the front stays where it is.
     + `Memory retrieval served this step with relevance ${POPULATED_RETRIEVAL_SCORE} for the `
     + `notice brief.`
   )
@@ -622,8 +433,7 @@ function plannerFailureReasoning(): string {
  */
 export const ANALYSIS_PROMPT_MARKER = 'analyze-run: authoring root-cause verdicts'
 
-// the curator author's own first instruction line
-// (`cli/src/curation/curator-author.ts`, `authoringInstructions`).
+// The curator author's first instruction line (`curator-author.ts`, `authoringInstructions`).
 export const CURATOR_PROMPT_MARKER = 'You are the agent-qa Curator.'
 
 // The first neighbor a curator prompt presents, read from `renderNeighbor`'s lines.
@@ -738,10 +548,7 @@ function chatCompletion(
     created: Math.floor(Date.now() / 1000),
     model,
     choices: [{ index: 0, message, finish_reason: finishReason, logprobs: null }],
-    // NON-ZERO INTEGERS ON EVERY ARM. `tokenUsage` on `stepFinalized` is summed from the usage the
-    // provider reports, and a zero triple is indistinguishable from an unmeasured step under the
-    // absent-is-not-zero rule 405-01 established — so a stub that reported zeros would make the
-    // token cell vacuous while looking like it passed.
+    // Non-zero usage on every arm: a zero triple reads as an unmeasured step.
     usage: {
       prompt_tokens: usage.prompt,
       completion_tokens: usage.completion,
@@ -776,15 +583,7 @@ async function readBody(req: IncomingMessage): Promise<string> {
  * understand is a fact the cell must be able to read, and a fabricated success would be the stub
  * inventing product behaviour.
  */
-/**
- * What the stub is asked to be, on the ONE axis a caller may move.
- *
- * ADDITIVE, WITH THE PASSING BEHAVIOUR AS THE DEFAULT. Every 405-09 and 405-12 caller passes
- * nothing and gets byte-for-byte the run it had: the same canned responses, the same usage triples,
- * the same grounding. The knob exists because the run-detail page has a render site — the failure
- * banner — that only exists on a FAILED run, and a second whole fixture would be a second answer to
- * "what did the door open" for a difference of one boolean in one tool-call argument.
- */
+// Additive: a caller passing nothing gets the passing run's canned responses and usage.
 export interface StubModelServerOptions {
   /**
    * Which plan field the planner arm sets: finish the step, or declare it impossible.
@@ -799,41 +598,17 @@ export interface StubModelServerOptions {
    * ordinary failure is the one every failing run in the field produces.
    */
   readonly plannerOutcome?: 'stepComplete' | 'stepFailed'
-  /**
-   * Narrow `plannerOutcome: 'stepFailed'` to the planning turns of ONE step.
-   *
-   * ADDITIVE, WITH TODAY'S BEHAVIOUR AS THE DEFAULT. Unset — every 405-14 caller — the failing arm
-   * answers every planning turn exactly as it did, so a one-member failing run is byte-identical.
-   * Set, a turn whose collected prompt does NOT carry this text is answered `stepComplete`, which
-   * is how a TWO-member run gets one failed member and one passed one out of a single stub.
-   *
-   * THE DISPATCH IS STILL ON THE REQUEST BODY, never on a call counter — this module's own law. The
-   * text a caller passes must be one that survives the runner's secret redaction, which is what
-   * {@link POPULATED_FAILURE_STEP_MARKER} is for.
-   */
+  // A turn whose prompt lacks this text answers `stepComplete`, so one of two members fails.
   readonly failOnlyStepText?: string
-  /**
-   * What the analyze-run AUTHOR is answered with.
-   *
-   * ADDITIVE, WITH TODAY'S BEHAVIOUR AS THE DEFAULT. `'floor'` — the default, and what every
-   * 405-09 / 405-12 / 405-14 caller that passes nothing gets — answers the author's plain-text
-   * `generate` with the same canned prose as before, which the author cannot parse, so its member
-   * keeps the deterministic floor. `'authored'` answers that ONE request shape with a valid
-   * `OUTPUT_CONTRACT` object instead, so the persisted verdict carries `producer: 'analyze-run'`
-   * and the failure view has an authored sentence to render.
-   */
-  // `'error'` refuses that one request shape with a 400.
+  // `floor` answers unparseable prose, `authored` a valid `OUTPUT_CONTRACT`, `'error'` a 400.
   readonly analysisOutcome?: 'floor' | 'authored' | 'error'
-  // record each request's whole body beside the bounded one.
+  // Record each request's whole body beside the bounded one.
   readonly fullBodies?: boolean
-  // a planning turn whose prompt carries this text is not answered until
-  // `held.release()`; like `failOnlyStepText`, it must survive the runner's secret redaction.
+  // A planning turn carrying this text waits for `held.release()`; it must survive redaction.
   readonly holdOnlyStepText?: string
-  // the analyze-run author's request (the `ANALYSIS_PROMPT_MARKER` arm)
-  // is parked with the held turns; `held.release()` answers it through the analysis arms below.
+  // The analyze-run author's request is parked with the held turns until `held.release()`.
   readonly holdAnalysis?: boolean
-  // a curator request (the `CURATOR_PROMPT_MARKER` arm) that presents a
-  // neighbor is answered with a Supersede of the first one; one presenting none gets the prose.
+  // A curator request with a neighbor gets a Supersede of the first; one with none, prose.
   readonly curatorOutcome?: 'supersede-first'
 }
 
@@ -962,8 +737,7 @@ export async function startStubModelServer(
           markArrived()
           return
         }
-        // The step-scoped narrowing, spelled where the outcome is decided rather than at
-        // the option, so a turn the caller did not name is answered by the ORDINARY arm.
+        // Narrowed where the outcome is decided, so an unnamed turn gets the ordinary arm.
         answerPlanner(plannerOutcome === 'stepFailed'
           && (failOnlyStepText === undefined || prompt.includes(failOnlyStepText)))
         return
@@ -976,16 +750,14 @@ export async function startStubModelServer(
           {
             role: 'assistant',
             content: JSON.stringify({
-              // the verification lane answers per condition.
-              // the quote is the whole step, so every step word is covered.
+              // The verification lane answers per condition, quoting the whole step.
               conditions: [{
                 quote: /^Step goal: "(.*)"$/m.exec(prompt)?.[1] ?? POPULATED_BUTTON_LABEL,
                 verdict: 'met',
                 needs: 'none',
                 controlRef: '',
                 file: { name: '', match: 'none', text: '' },
-                // a line of the final screen, which every verification turn
-                // carries; a give-up the verifier now judges records no action to cite.
+                // A line of the final screen, which every verification turn carries.
                 citations: [finalScreenCitation(prompt)],
                 reasoning: 'The notice state changed.',
               }],
@@ -1006,9 +778,7 @@ export async function startStubModelServer(
       }
 
       const answerText = (): void => {
-        // The FOURTH arm, between `structured` and the prose fallback. It is
-        // reached only when the caller asked for it AND the prompt carries the author's own
-        // `agent_context` line, so every other plain-text call still lands on the fallback below.
+        // Reached only when asked for and the prompt carries the author's `agent_context` line.
         if (analysisOutcome === 'authored' && prompt.includes(ANALYSIS_PROMPT_MARKER)) {
           record('analysis', 200)
           respond(chatCompletion(
@@ -1145,50 +915,14 @@ export interface PopulatedRunProject {
 /** The second test file a two-member populated run declares, relative to the project root. */
 export const POPULATED_SECOND_TEST_PATH = 'tests/populated-second.test.yaml'
 
-/**
- * A project whose dashboard-triggered SUITE run executes one live planning turn against a page.
- *
- * A FIFTH RECIPE RATHER THAN A FLAG ON THE FOURTH, on `drainableSuiteFixtureProject`'s own
- * argument for being a fourth. Both of that recipe's fixed points are wrong here: its target is
- * `https://conformance.invalid` and its model base URL is a port nothing serves, and BOTH of this
- * fixture's addresses are ephemeral ports learned at runtime. A recipe whose two defining values
- * are arguments is not the same recipe with an option; it is a different answer to "what did the
- * door open", and this module's law is that each such answer is written once.
- *
- * `environment: 'local'` ON THE TARGET IS LOAD-BEARING for the reason `runServiceFixtureProject`
- * records in full: the run gate folds the most restrictive declared target class, and only an
- * all-local invocation is decided `mutating-local` — the tier allowed in this door's fail-closed
- * `local-headless` context. An undeclared target classifies the run `mutating-shared`, which is a
- * DENIAL, and a denied run never starts.
- *
- * `hooks: []` AND NOT `hooks: {}`, measured by 404-08 rather than copied: a run VALIDATES the
- * hooks document and the mapping form fails that validation, which this door flattens into a
- * `500 run_start_failed` carrying no diagnosis at all.
- */
+// `hooks: []`, not `hooks: {}`: the mapping form fails validation as an undiagnosed 500.
 export function populatedRunFixtureProject(
   label: string,
   addresses: { readonly modelBaseUrl: string; readonly targetUrl: string },
-  /**
-   * The single step line the test file declares.
-   *
-   * A THIRD PARAMETER RATHER THAN A SIXTH RECIPE, on this module's own law read the other way: the
-   * recipe's defining values are its two ADDRESSES, and both callers pass the same kind of address.
-   * The step sentence is a payload, not a fixed point, and a caller who needs a shorter one is
-   * asking the same door to open on a different word — not a different door.
-   */
+  // A parameter, not a new recipe: the step sentence is a payload; the addresses define it.
   options: {
     readonly stepText?: string
-    /**
-     * A SECOND test's step line, which makes this run a two-member one.
-     *
-     * ADDITIVE AND ABSENT BY DEFAULT, so every 405 caller gets the one-member suite it had. It is
-     * here rather than in a sixth recipe on this function's own law — the recipe's defining values
-     * are its two ADDRESSES, and a second step sentence is a payload, not a fixed point.
-     *
-     * WHAT IT BUYS, AND IT IS NOT SYMMETRY. `showMemberChrome` is `members.length > 1`: below that
-     * threshold the page paints no `data-member` wrapper and no `data-member-outcome` badge, so the
-     * per-member outcome is not on the page to measure. See {@link POPULATED_PASSING_STEP_TEXT}.
-     */
+    // A second test's step line, making a two-member run, because member chrome paints only then.
     readonly secondStepText?: string
   } = {},
 ): PopulatedRunProject {
@@ -1268,9 +1002,7 @@ export function populatedRunFixtureProject(
     'utf8',
   )
 
-  // THE SECOND MEMBER, WHEN ONE WAS ASKED FOR. It is a second FILE rather than a second
-  // step on the first test: members are tests, and two steps under one test would still be one
-  // member — which is the exact thing this option exists to stop being true.
+  // A second file, not a second step: members are tests, so two steps in one test stay one member.
   const secondTestId = options.secondStepText === undefined ? undefined : generateTestId()
   if (options.secondStepText !== undefined && secondTestId !== undefined) {
     writeFileSync(
@@ -1444,14 +1176,7 @@ export async function drivePopulatedRun(
   }
 }
 
-// ---- The discovery run -----------------------------------------------------
-//
-// A COMPLETED RUN LEFT BEHIND BY THE SHIPPED WRITERS, NOT DRIVEN. The discovery reads read recorded
-// state, so this writes exactly what a finished run leaves: the handoff, content-addressed blobs
-// through `FsEvidenceArtifactStore`, and run-detail rows through `DashboardDatabase` at the path the
-// CLI composition binds (`.agent-qa/runs.db`). Two members, a served record, a sub-action with a
-// screenshot and ARIA, console and network documents and one recording. No address or secret-shaped
-// text appears, so every door's mask is the identity over it.
+// A completed run left by the shipped writers, not driven; no address or secret-shaped text in it.
 
 const DISCOVERY_PNG_BASE64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='

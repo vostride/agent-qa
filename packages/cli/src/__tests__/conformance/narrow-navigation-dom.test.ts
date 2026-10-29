@@ -7,10 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { recordingFixture, zoomFixtureTab, type RecordingFixture } from './recording-dom-fixture.js'
 import { cleanupTempRoots, trackTempRoot } from './spawned-chat.js'
 
-// G-433-7 / F-433-29 (433 D-03, D-06, law 7). Below 768 CSS px the sidebar is an off-canvas sheet,
-// and the walk (433-14 Pass 11) found no visible way to open it: 0 of 6 top-level routes reachable
-// at 400, 390 and a real 200% zoom of a 1280 window. Measured here on the shipped bundle, served
-// by the shipped command over a recorded run, in real Chromium. Nothing is mocked or skipped.
+// Below 768 CSS px the sidebar is an off-canvas sheet that must still open, in real Chromium.
 
 type Box = { x: number; y: number; right: number; bottom: number; width: number; height: number }
 type Placement = { box: Box | null; inViewport: boolean; hit: boolean; top?: string }
@@ -232,8 +229,7 @@ describe('a visible navigation control below 768 CSS px on the shipped bundle', 
         await context.close()
       }
 
-      // Real browser zoom, as 425-10 measures it: an isolated MV3 extension calls Chrome's own
-      // tabs.setZoom on a 1280x800 tab, so the page lays out at 640 CSS px.
+      // Real browser zoom: an MV3 extension calls `tabs.setZoom` on a 1280x800 tab, so 640 CSS px.
       const zoomRoot = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-433-nav-zoom-')))
       const extension = join(zoomRoot, 'extension')
       mkdirSync(extension)

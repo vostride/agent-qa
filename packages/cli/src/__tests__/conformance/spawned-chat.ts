@@ -1,40 +1,4 @@
-// The spawned-binary instrument: ONE copy, shared by every cell that drives what a person installs
-// (extracted 2026-08-20, Phase 399.1 plan 01).
-//
-// WHY THIS FILE EXISTS RATHER THAN A SECOND COPY. `parity-anchors.test.ts` states the law this
-// extraction obeys, in its own words about the chat driver: "A second spawn helper would be a
-// second answer to 'what did the child inherit', which is the one property every cell here depends
-// on." Phase 399.1's render differential needs the same instrument — the same hermetic environment,
-// the same freshness guard, the same fixture project — and copying it into a sibling test file
-// would have created exactly the second answer that law forbids. So the instrument moved HERE and
-// both files import it; neither owns a private copy of any of it.
-//
-// NOTHING IN THIS MODULE ASSERTS. Every function returns data — a freshness READING, a spawn
-// OUTCOME, a fixture's paths — so each cell asserts with its own message and a refusal names the
-// question that cell was asking. A helper that threw would report every caller's failure in one
-// voice.
-//
-// THE FRESHNESS GUARD IS PART OF EACH CELL'S CONTRACT, NOT A PRECONDITION SOMEBODY SATISFIED ONCE.
-// A stale `dist` is worse than an absent one: an anchor spawned against yesterday's build passes,
-// reads as proof of today's source, and certifies the wrong artifact. So the guard refuses on two
-// separate conditions — a MISSING built artifact and a built artifact OLDER than the newest
-// non-test source file of the package it was built from — and names the offending file in both
-// cases. It is an mtime comparison, which catches the failure it exists for (a person, or an agent,
-// forgetting to rebuild before measuring) and does not pretend to survive somebody deliberately
-// touching a build output.
-//
-// TEST SOURCES ARE EXCLUDED FROM THE FRESHNESS SCAN ON PURPOSE. tsup's entries are `src/index.ts`,
-// `src/cli.ts` and `src/cli-main.ts`; nothing under `__tests__` is bundled into anything. Counting a test file's
-// mtime would make every edit to a test look like an unbuilt change to the product, which is the
-// kind of false alarm that gets a guard deleted. THIS FILE lives under `__tests__` for that exact
-// reason: it is instrument, not product, and it must not make the guard cry wolf on itself.
-//
-// HERMETIC, AND WITHOUT A CREDENTIAL ANYWHERE. Each spawned cell gets its own
-// `mkdtemp` project whose configuration is planted throwaway workspace globs and nothing else — no
-// token entry, no key, no LLM block — and the child is handed a constructed environment rather than
-// the test process's, so no ambient provider credential can reach it and no provider can be spent
-// against. The chat session a cell drives is therefore model-unbound by construction and takes the
-// deterministic resolver route, which is the route that never touches a model at all.
+// The one spawned-binary instrument; its freshness guard refuses a missing or stale `dist` by name.
 
 import { spawn } from 'node:child_process'
 import {
@@ -86,7 +50,7 @@ export const ANCHORED_BUILDS: readonly { readonly pkg: string; readonly artifact
     Object.freeze({ pkg: 'agent-local', artifact: join('dist', 'index.js') }),
     Object.freeze({ pkg: 'mcp', artifact: join('dist', 'index.js') }),
     Object.freeze({ pkg: 'cli', artifact: join('dist', 'cli.js') }),
-    // the bin entry only loads this bundle, which holds the CLI.
+    // The bin entry only loads this bundle, which holds the CLI.
     Object.freeze({ pkg: 'cli', artifact: join('dist', 'cli-main.js') }),
   ])
 
@@ -190,28 +154,10 @@ export function cleanupTempRoots(): void {
   removeTempRoots(roots.splice(0))
 }
 
-/**
- * A real project on disk, produced rather than a literal path handed to a child.
- *
- * no `stdio.grantConfigWrite`. It was the one non-default setting, and
- * it made the MCP anchor like-for-like while stdio hid the configuration tools from callers without
- * the opt-in; since 432-21 every caller lists every tool, and 432-22 deletes the key. The fixture
- * declares an empty `services.mcp` block, which is what it declared besides the switch.
- *
- * NOTHING SECRET IS PLANTED HERE. There is no token entry, no key and no LLM block: the fixture
- * declares workspace globs. That is stronger than planting a throwaway credential, because a value
- * that does not exist cannot be printed by a diagnostic nobody anticipated.
- */
+// No token, key or LLM block is planted: a value that does not exist cannot be printed.
 export function fixtureProject(
   label: string,
-  /**
-   * A LEGACY `services.mcp.tokens` block — names, never values (398-08; retired by 432-22).
-   *
-   * Empty for every 397 anchor. The 398-08 refs-only cell passes entries to plant a pre-432 file:
-   * since 432-22 the key is deleted, so such a file fails strict validation with the normal
-   * unrecognized-key error and the value it names still travels only in a constructed child
-   * environment.
-   */
+  // A legacy `services.mcp.tokens` block, which fails strict validation; values stay in env.
   tokens: readonly { name: string; tokenEnvVar: string; scopes: readonly string[] }[] = [],
 ): { root: string; configPath: string } {
   const root = trackTempRoot(mkdtempSync(join(tmpdir(), `agent-qa-397-07-${label}-`)))
@@ -241,7 +187,7 @@ export function fixtureProject(
     'utf8',
   )
   mkdirSync(join(root, '.agent-qa'), { recursive: true })
-  // 2026-10-14 (441-06, E3): ask and chat refuse a project whose secrets file is missing.
+  // Ask and chat refuse a project whose secrets file is missing.
   writeFileSync(join(root, '.env.secrets.local'), '', 'utf8')
   return { root, configPath }
 }
@@ -273,13 +219,7 @@ export interface SpawnOutcome {
   readonly stderr: string
 }
 
-/**
- * Run a program to completion with a CONSTRUCTED environment, collecting both streams.
- *
- * Factored out of the chat driver rather than written twice: the 398-08 anchors need the same
- * hermetic spawn with an extra declared variable, and a second copy of this plumbing would be a
- * second answer to "what did the child inherit" — which is the one property these cells depend on.
- */
+// One spawn helper, so there is one answer to what the child inherited.
 export async function spawnCollecting(
   root: string,
   args: readonly string[],
@@ -304,11 +244,7 @@ export async function spawnCollecting(
   })
 }
 
-/**
- * The utterance both halves type: the deterministic resolver route, which reaches no model.
- * the bare `proposals` alias is gone. 432-17 deleted `proposals.list`
- * itself, so the passthrough now reaches `quarantine.list`, another read-only empty-input listing.
- */
+// The deterministic resolver route, which reaches no model.
 export const CHAT_ANCHOR_UTTERANCE = '/fn quarantine.list'
 
 /**
@@ -345,39 +281,9 @@ export async function driveChatSpawned(
   })
 }
 
-// ---- Driving the shipped DASHBOARD ----------------------------------------------------
-//
-// WHY THE DASHBOARD SPAWN LIVES HERE AND NOT IN THE TWO FILES THAT USE IT. `dashboard-anchors` and
-// `dashboard-dom` both drive the same child — the built `agent-qa dashboard` command, in the same
-// hermetic environment, against the same freshness reading. This module's own law ("a second spawn
-// helper would be a second answer to 'what did the child inherit'") applies to that child exactly
-// as it applies to the chat one, so there is one recipe and both files import it.
+// ---- Driving the shipped dashboard: one spawn recipe for every file that uses it ----
 
-/**
- * The built artifacts a spawned DASHBOARD executes.
- *
- * The chat list plus the two the fourth door adds. `dashboard-server` is the process that serves
- * the routes and `dashboard-ui` is the bundle a browser is handed — and BOTH belong in the guard
- * for the reason the header gives about `cli`: a DOM cell run against yesterday's `dashboard-ui`
- * bundle passes, reads as proof of today's `.tsx`, and certifies the wrong artifact. `dashboard-ui`
- * is anchored on `dist/index.html` rather than a hashed asset name, because the asset names change
- * every build and a guard that had to know them would be a second copy of the manifest.
- *
- * `dashboard-server` IS LOAD-BEARING AND NOT DECORATIVE, said here so nobody narrows this list back
- * to the chat five. `dashboard-process-survival.test.ts` asks whether one unauthenticated
- * request ends the SHIPPED process, and its whole subject is `server.ts`'s request listener —
- * which the spawned `agent-qa dashboard` resolves through THIS artifact, because tsup leaves the
- * workspace dependency external. A survival cell run against a stale `dashboard-server/dist` would
- * spawn the pre-fix listener, die exactly as it used to, and report a fix that was never loaded.
- * The refusal that prevents that names the file: `dashboard-server/src/server/server.ts is newer
- * than dashboard-server/dist/index.js`.
- *
- * WHAT THIS LIST STILL DOES NOT COVER, so the next reader does not over-trust it: the workspace
- * packages `dashboard-server` itself imports externally (`core`, `runner`, `schema`'s siblings, …)
- * are not all enumerated, so a stale dist of one of THOSE is invisible here. Every cell that has
- * needed this guard so far is asking about `cli`, `dashboard-server` or `dashboard-ui` source, and
- * widening it further is a change that should arrive with a cell that needs it.
- */
+// `dashboard-server` and `dashboard-ui` are guarded too: a stale bundle certifies the wrong one.
 export const DASHBOARD_ANCHORED_BUILDS: readonly {
   readonly pkg: string
   readonly artifact: string
@@ -387,14 +293,7 @@ export const DASHBOARD_ANCHORED_BUILDS: readonly {
   Object.freeze({ pkg: 'dashboard-ui', artifact: join('dist', 'index.html') }),
 ])
 
-/**
- * The built dashboard UI a served `uiDir` points at — the bundle a browser is handed.
- *
- * IT LIVES BESIDE THE FRESHNESS LIST, deliberately: the guard one line up anchors
- * `dashboard-ui/dist/index.html`, and the directory that guard is about is the directory
- * `startServer({ uiDir })` serves. Two spellings of it would be two answers to "which bundle did
- * this cell certify", and the whole point of the guard is that there is one.
- */
+// Beside the freshness list, so the guarded and the served bundle directory are one spelling.
 export function dashboardUiDist(): string {
   return join(PACKAGES_ROOT, 'dashboard-ui', 'dist')
 }
@@ -517,17 +416,7 @@ export async function spawnDashboard(
   configPath: string,
   port: number,
   budgetMs = 60_000,
-  /**
-   * Variables added to the CONSTRUCTED environment, never inherited from this process.
-   *
-   * A PARAMETER RATHER THAN A SECOND SPAWN HELPER, on this module's own law: the run-service
-   * anchors need a declared credential in the child, and a copy of this function that also set an
-   * environment would be a second answer to "what did the child inherit", which is the one
-   * property every cell here depends on. `spawnCollecting` already carries the identical parameter
-   * for the identical reason.
-   *
-   * Empty by default, so every pre-402 caller's child is hermetic byte for byte.
-   */
+  // A parameter, not a second spawn helper; empty by default, so a caller's child stays hermetic.
   extraEnv: Readonly<Record<string, string>> = {},
 ): Promise<SpawnedDashboard & { readonly ready: boolean }> {
   const child = spawn(
@@ -576,38 +465,9 @@ export async function spawnDashboard(
   }
 }
 
-// ---- The RUN SERVICE fixture and its build list ---------------------------------------
-//
-// WHY THIS RECIPE LIVES HERE AND NOT IN EITHER FILE THAT USES IT. Two cells drive the authed run
-// service and they drive it through DIFFERENT frames on purpose: the conformance adapter composes
-// it in this process (`startServer`, real TCP, ephemeral port) and the wire anchors spawn the built
-// `agent-qa dashboard` and reach it over a socket. What both need is the same PROJECT on disk — the
-// same declared credential entry, the same locally-classified target, the same planted test — and
-// this module's own law is that a second recipe would be a second answer to "what did the door
-// open". So the project is written once and the two frames differ only in how they mount it, which
-// is the only axis those cells mean to compare.
-//
-// NO VALUE IS EVER WRITTEN INTO THE PROJECT. `RunServiceTokenEntrySchema` has no member a value
-// could occupy: the config declares a variable NAME, and the value travels only in a constructed
-// child environment or an explicit `env` map. `fixtureProject`'s own argument applies unchanged —
-// what a file does not contain cannot be printed by a diagnostic nobody anticipated.
+// ---- The run service fixture: one project on disk, mounted in process or spawned ----
 
-// `RUN_SERVICE_FIXTURE_TOKEN_VAR`, `RUN_SERVICE_FIXTURE_TOKEN` and
-// `RUN_SERVICE_FIXTURE_ENTRY_NAME` are deleted with the run-service tokens. The run service is
-// tokenless and always mounted, so the fixture declares no credential and the frames present none.
-
-/**
- * The built artifacts a RUN SERVICE cell executes — the dashboard list plus the run path's two.
- *
- * WIDENED DELIBERATELY, and the header of {@link DASHBOARD_ANCHORED_BUILDS} asks for exactly this:
- * "widening it further is a change that should arrive with a cell that needs it." These cells need
- * it. A run started through this door executes in-process through `@vostride/agent-qa-runner`, and
- * the run gate, the scope resolution and the config schema it consults live in
- * `@vostride/agent-qa-core` — both of which the spawned `agent-qa dashboard` resolves through their
- * BUILT dists, because tsup leaves workspace dependencies external. A wire anchor run
- * against a stale `runner/dist` would drive the previous revision of the very execution path whose
- * RPC shape it certifies, and would read as proof of this one.
- */
+// Adds `runner` and `core`, which the spawned dashboard resolves through their built dists.
 export const RUN_SERVICE_ANCHORED_BUILDS: readonly {
   readonly pkg: string
   readonly artifact: string
@@ -617,22 +477,7 @@ export const RUN_SERVICE_ANCHORED_BUILDS: readonly {
   Object.freeze({ pkg: 'runner', artifact: join('dist', 'index.js') }),
 ])
 
-/**
- * A project whose dashboard mounts the authed run service, with one test a run can address.
- *
- * `environment: 'local'` ON THE TARGET IS LOAD-BEARING, and 402-01's e2e states why in full: the
- * run gate folds the most restrictive declared target class, and only an invocation whose every
- * target is declared local is decided `mutating-local` — the tier ratified as allowed in every
- * execution context. An undeclared or shared target classifies the run `mutating-shared`, which in
- * this door's fail-closed `local-headless` context is a DENIAL; a denied run never starts, never
- * acks and never streams, so a cell about DELIVERY would observe a refusal instead. That denial is
- * a real and correct behaviour of the product and 402-06 owns its cells.
- *
- * THE RUN IS EXPECTED TO FAIL, and that is fine. The planted test names steps no browser will ever
- * be launched for, so the run fails fast. Every claim these two frames make is about WIRE SHAPE —
- * an ack off the durable record, envelopes in the frozen frame, bytes that are pure JSON — and a
- * cell that needed a passing run would need a browser and would be measuring Playwright.
- */
+// The run is expected to fail: every claim here is about wire shape, not a passing run.
 export function runServiceFixtureProject(label: string): {
   root: string
   configPath: string
@@ -661,10 +506,6 @@ export function runServiceFixtureProject(label: string): {
             },
           },
         },
-        // no `services.dashboard.runServiceTokens` declaration. Until
-        // then this fixture had a token-declaring arm and a zero-token arm, and the zero-token arm
-        // (the default posture) was the one a composition could silently drop; with the tokens
-        // deleted there is one posture, and every frame spawns it.
       },
       null,
       2,
@@ -700,37 +541,7 @@ export function runServiceFixtureProject(label: string): {
   return { root, configPath }
 }
 
-// ---- The DRAINABLE fixture: a project whose dashboard-started run reaches a real verdict
-//
-// WHY A FOURTH RECIPE RATHER THAN A FLAG ON THE THIRD. `runServiceFixtureProject` above states, in
-// its own words, that "THE RUN IS EXPECTED TO FAIL, and that is fine" — every claim its two frames
-// make is about WIRE SHAPE, and a run that reaches no verdict is adequate for all of them. This
-// recipe's whole purpose is the opposite property, so it is built ON that one rather than beside
-// it: same workspace, same locally-classified target, same empty secret files, same minted test.
-// What it adds is exactly the two facts that turn "the run refuses" into "the run is drained".
-//
-// FACT 1 — THE MEMBER IS ADDRESSED THROUGH A SUITE. The direct-test producer wraps its member
-// executor in a catch that records a FRAMEWORK error and cancels the session, and
-// `in-process-run-execution.ts` re-throws that error four statements ABOVE the line that starts
-// the detached post-run tail. So on a machine with no Playwright browser a DIRECT run can never
-// reach its own tail — the structural fact 404-04 D-6 and 404-05 D-6 each recorded one door apart,
-// and the reason `post-processing-anchors.test.ts` gave up its terminal arm. The SUITE producer
-// carries no such wrapper (its `takeFrameworkError` answers undefined by construction), so the
-// member's throw arrives at the shell as a member ERROR: a `runWarning`, a failed member, a real
-// `verdict`, a real `runFinished` — and the tail runs. The browser is still absent; what changed
-// is that its absence is now a test failure instead of a framework error.
-//
-// FACT 2 — A MODEL IS DECLARED AND NOTHING IS AUTHENTICATED. The suite path resolves the LLM auth
-// before it prepares anything, and the default provider has an auth plugin, so a project that
-// declares no model at all is REFUSED before the run starts ("requires an auth plugin") — measured,
-// and it is why this recipe exists rather than a one-line suite file. A compatible provider with no
-// saved credential resolves `unauthenticated` and OPTIONAL instead, which is the shipped
-// zero-token posture: the run proceeds, the analysis floor is projected deterministically, and no
-// token is stored anywhere. The base URL points at a port nothing serves, so a composition that
-// silently reached for a model would fail loudly rather than quietly succeed.
-//
-// NOTHING SECRET IS PLANTED, on `fixtureProject`'s argument, unchanged: the config declares a
-// provider name and a dead address, and no credential exists for either.
+// Run through a suite with an unauthenticated model declared, so the run reaches its tail.
 
 /** The name the declared model entry carries. One spelling, referenced by the config it writes. */
 export const DRAINABLE_MODEL_NAME = 'conformance-model'

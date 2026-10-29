@@ -1,4 +1,4 @@
-// a crash or interrupt finalizes only its own run's row.
+// A crash or interrupt finalizes only its own run's row.
 
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'

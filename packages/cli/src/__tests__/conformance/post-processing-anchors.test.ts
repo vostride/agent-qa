@@ -1,53 +1,4 @@
-// LIFE-02's FOURTH POSTURE, ON THE SHIPPED BINARY: a run the DASHBOARD started (Phase 404 plan 05,
-// D-06/D-07/D-12 · LIFE-02).
-//
-// WHY THIS CELL EXISTS AT ALL. `post-run-disposition.test.ts` measures three postures through the
-// spawned `agent-qa run` binary, and D-12's argument for spawning it is that a unit-level mapping
-// test is blind to a DOOR THAT NEVER CALLS THE POST-VERDICT STEP. The dashboard is a fourth door
-// and it is the one that had no cell: it reaches `runs.start` through the injected backend, in a
-// long-lived server process, with a queue between the click and the run. Everything the other three
-// cells prove about the shell says nothing about whether THIS door's leg runs — which is exactly
-// the class of defect the whole plan is built around.
-//
-// THREE FACTS, THREE DIFFERENT WITNESSES, DELIBERATELY:
-//
-//   1. The LOCAL RUN-STREAM DOOR's `runFinished` frame says `disposition: 'drained'`. That is the
-//      WIRE — what a browser watching the run was told at the moment the run ended.
-//   2. The run's own `events.jsonl` under the fixture's `.agent-qa/runs/` says the same. That is the
-//      RECORD, written by the shell, and it is the one a later process reads.
-//   3. `GET /api/runs/:id/post-processing` reaches two TERMINAL chips. That is the WORK — whether
-//      the chain the disposition promised actually got pumped.
-//
-// A cell that read only the wire could not tell a decision from a report of one; a cell that read
-// only the record could not tell whether a browser was ever told; and neither could tell whether
-// anything was drained. D-07 is the fourth: the run leaves `/api/execution/active` at `runFinished`
-// and does NOT sit there for the length of its post-processing tail, which is what "the tail is
-// detached" means from the outside.
-//
-// WHAT THIS FILE DOES NOT ASSERT, AND WHY SAYING SO IS BETTER THAN A VACUOUS ASSERTION.
-//
-// It does NOT reach a TERMINAL chain, and it cannot. `hermeticEnv` points `HOME` into the temp
-// project, so the spawned child resolves no Playwright browser and the single member raises
-// `agent-qa browser support is not installed for Chromium` — a FRAMEWORK error, which
-// `in-process-run-execution.ts` re-throws at `takeFrameworkError()`, four statements ABOVE the
-// line that starts the detached `postRunTail`. So on this harness the tail never runs, for the
-// dashboard door exactly as `post-run-disposition.test.ts`'s header records it for the CLI's
-// The plan for this cell assumed a chain that pumps; the harness cannot produce one
-// without installing a browser into the child, which would make every claim below contingent on
-// Chromium being present — the measurement `live-view-anchors.test.ts` refuses by name.
-//
-// The three claims that fall out of that are covered where they CAN be measured honestly:
-//
-//   - the read route on a TERMINAL chain, and its 204 —  `routes.post-processing.test.ts` and
-//     `routes.post-processing-stream.test.ts`, at the production `startServer` frame;
-//   - the chip trail an in-process drain leaves — `post-run-chip-events.test.ts`, against a real
-//     store, a real handoff and the real handler bodies;
-//   - the dashboard door's drain leg emitting that trail — `dashboard-cancel-isolation.e2e.test.ts`
-//     in-process, over a run that reaches a real verdict.
-//
-// What is left HERE is everything only the shipped binary can say: the posture on both doors, the
-// active-set timing, the read route answering by name through the composed host, the live channel
-// opening through a relay this command threaded in two places, and the queue database on disk.
+// The dashboard door's run: wire, record and chips agree, and it leaves active fast.
 
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -71,7 +22,7 @@ const REBUILD_INSTRUCTION =
 
 /** How long the run has to reach `runFinished` on the local door. */
 const RUN_BUDGET_MS = 90_000
-/** D-07's bound: the run must leave the active set within this of its `runFinished` frame. */
+// The run must leave the active set within this of its `runFinished` frame.
 const ACTIVE_SET_BUDGET_MS = 5_000
 
 type ReadySpawnedDashboard = SpawnedDashboard & { readonly ready: boolean }
@@ -252,13 +203,10 @@ beforeAll(async () => {
     + `body: ${JSON.stringify(reading.body.slice(-800))}. ${childContext(dashboard)}`,
   ).toBeDefined()
 
-  // READ THE INSTANT THE RUN ENDED, before the active-set poll below can let time pass. This is
-  // what makes D-07's cell a real measurement rather than a vacuous one: it records whether the
-  // chain was STILL IN FLIGHT at the moment the run stopped being called active.
+  // Read at the run's end, before the active-set poll lets time pass.
   const chainAtRunFinished = (await readPostProcessing(dashboard.origin, runId as string)).body
 
-  // D-07, TIMED FROM THE FRAME. The clock starts the instant the wire said the run ended, so the
-  // number this records is exactly "how long after the run ended was it still called active".
+  // Timed from the frame: how long after the run ends it is still called active.
   const secondsToLeaveActiveSet = await waitUntil(
     async () => {
       const response = await fetch(`${dashboard.origin}/api/execution/active`)
@@ -320,10 +268,7 @@ describePosix('a run the DASHBOARD started is drained BY the dashboard', () => {
       `the run was still listed as active ${String(f.secondsToLeaveActiveSet)}s after runFinished. `
       + `${childContext(f.dashboard)}`,
     ).toBeLessThan(ACTIVE_SET_BUDGET_MS / 1000)
-    // AND THE CHAIN WAS STILL OWED AT THAT INSTANT, which is what makes the reading above
-    // non-vacuous. "Left the active set quickly" alone is satisfied by a door that never listed the
-    // run at all; "left it while its post-processing chain was unfinished" is the actual D-07
-    // claim, and it is the one a drive that AWAITED the tail would fail.
+    // The chain is still owed then, so a door that never listed the run cannot pass.
     expect(
       f.chainAtRunFinished?.status.chips,
       `the chain had already settled by the time the run left the active set, so this reading says `
@@ -349,10 +294,7 @@ describePosix('a run the DASHBOARD started is drained BY the dashboard', () => {
   it('serves the QUEUED chain honestly while the tail is still owed', async () => {
     const f = held()
 
-    // THE DURABLE ROW EXISTS. This is D-05's half and it is the whole reason the enqueue moved into
-    // the post-verdict step: the tail never ran for this run (see the header), and before the
-    // relocation that meant the chain was lost with the process. The queue database being on disk
-    // is the structural proof that the work was handed off between `verdict` and `runFinished`.
+    // The queue database on disk proves the work is handed off before `runFinished`.
     expect(
       readdirSync(join(f.root, '.agent-qa')),
       `no agent-jobs.db under the fixture root — the post-verdict step queued nothing. `
@@ -389,11 +331,7 @@ describePosix('a run the DASHBOARD started is drained BY the dashboard', () => {
 
   it('opens the live channel with a snapshot for a chain still in flight', async () => {
     const f = held()
-    // THE COMPOSITION IS WHAT THIS MEASURES. The relay is created in `agent-qa dashboard`, handed
-    // to the run door's bridge as the emitter's second sink AND to `startServer` as the stream
-    // door's registry — two threadings of one object, in a file no unit cell mounts. A stream that
-    // answered 503 `post_processing_relay_unavailable` here would mean the shipped command wired
-    // one half and not the other, which is exactly the shape of WINDOWS #264 one seam over.
+    // The relay is threaded twice in `agent-qa dashboard`; a 503 here means one half is unwired.
     const abort = new AbortController()
     const timer = setTimeout(() => { abort.abort() }, 20_000)
     try {

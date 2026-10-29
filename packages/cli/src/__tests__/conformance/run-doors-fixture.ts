@@ -1,13 +1,4 @@
-// THE GAP-ROUND DOOR FIXTURE (Phase 433 plan 28 onward).
-//
-// A recorded run over the stub model, started through the SHIPPED `agent-qa run` binary with the
-// dashboard reporter on, so a cell can read what that one run left in each of its homes: the run
-// store (`.agent-qa/runs/<id>/events.jsonl`), the project's dashboard database, the CLI's own
-// output, and a dashboard composed the way `agent-qa dashboard` composes it. Nothing between the
-// door and the run core is mocked; only the model is scripted.
-//
-// It returns data and never asserts. A missing browser, ffmpeg or runs database is a refusal
-// (a thrown error), never a skip.
+// A recorded run through the shipped `agent-qa run` and dashboard reporter; the model is scripted.
 
 import { spawn } from 'node:child_process'
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
@@ -38,7 +29,7 @@ import { CLI_ENTRY, buildFreshness, hermeticEnv } from './spawned-chat.js'
 export interface RecordedDoorOptions {
   /** Give the test one bash setup hook that exits 0. */
   readonly setupHook?: boolean
-  // forwarded to the stub model as `fullBodies`.
+  // Forwarded to the stub model as `fullBodies`.
   readonly fullBodies?: boolean
 }
 

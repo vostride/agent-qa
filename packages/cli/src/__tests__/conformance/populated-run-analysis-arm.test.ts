@@ -1,17 +1,4 @@
-// The stub model server's ANALYSIS arm, measured offline.
-//
-// FAST AND HERMETIC: this file starts the stub and nothing else. No browser, no dashboard, no
-// spawned binary — it posts the two request shapes the arm dispatches on straight at the loopback
-// server and reads the answers back. 406-10 drives the same arm through the shipped binary; this
-// file exists so a scripting mistake in the answer is caught in milliseconds rather than after a
-// two-minute run.
-//
-// THE ONE CLAIM THAT MATTERS IS THE LAST ONE. An answer the author's own validator rejects
-// degrades that member to the deterministic floor, which looks exactly like the arm never having
-// been added: `producer` stays `deterministic-classifier` and the failure view can never paint an
-// authored sentence. So the arm's answer is run through the SHIPPED
-// `validateAnalysisAgainstHandoff` against a handoff whose failing step carries the fixture's own
-// `stepText` — the same cross-document check the author makes at `evaluateAttempt`.
+// Run through the shipped `validateAnalysisAgainstHandoff`: a rejected answer looks armless.
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'

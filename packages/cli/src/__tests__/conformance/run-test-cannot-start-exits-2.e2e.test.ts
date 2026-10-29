@@ -1,9 +1,4 @@
-// the one named exception to "the exit code equals the verdict".
-// One real `agent-qa run` of two tests with `PLAYWRIGHT_BROWSERS_PATH` pointing at an empty
-// directory, so the first member's browser cannot launch: the run records `failed`, the member
-// after it reads `Not run: "<first>" could not start. …`, the CLI exits 2 from the
-// drive's framework-error re-throw (not from a bootstrap load failure, D-47), and the run's
-// runs.db row reads `failed` with no `running` row left behind.
+// The one exception to exit equals verdict: a member that cannot start makes the CLI exit 2.
 
 import { spawn } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -188,8 +183,7 @@ describe('a test that cannot start', () => {
   it('a test that cannot start exits 2', () => {
     expect(scene.error, seen()).toBeUndefined()
     expect(scene.exit, seen()).toEqual({ code: 2, signal: null })
-    // the bootstrap also exits 2 when the CLI cannot load; that path starts no run, records no
-    // verdict and prints no run id. This exit 2 comes from a run that recorded its verdict.
+    // The bootstrap's exit 2 starts no run; this exit 2 comes from a run that recorded its verdict.
     expect(scene.events, `the run started and reached its verdict\n${seen()}`)
       .toEqual(expect.arrayContaining(['runStarted', 'verdict', 'runFinished']))
     expect(scene.verdict, seen()).toEqual({ verdict: 'failed' })

@@ -205,10 +205,7 @@ async function lensProof(page: Page, point: { x: number; y: number }, name: stri
   // settled media pixels, not the transient pre-observer rectangle.
   await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
   const media = page.locator('[data-media-transform] > video, [data-media-transform] > img')
-  // wait, bounded, until the media reports its natural size and a
-  // laid-out box. Read too early (a video whose metadata had not landed after the mode change),
-  // the origin divided by a zero natural width and `mouse.move` got a non-finite point: `Protocol
-  // error (Input.dispatchMouseEvent): Invalid parameters` (432-12 forced run 1, load ~16).
+  // Wait until the media has a natural size and a box, or `mouse.move` gets a non-finite point.
   await page.waitForFunction(() => {
     const element = document.querySelector<HTMLVideoElement | HTMLImageElement>('[data-media-transform] > video, [data-media-transform] > img')
     if (element === null) return false
@@ -506,10 +503,7 @@ it('SUITE-BROWSER-MEDIA: real progress, marker details, local seeks and continue
     observations.continuousDrag = drag
     const target = drag.find(row => row.member === 1)!.fraction * durations.reduce((sum, value) => sum + value, 0)
     const expectedLocal = target - durations[0]!
-    // on member 1's new source the player first seeks to the
-    // selected marker's offset and applies the click's own seek from that seek's `seeked`. A
-    // read at an arbitrary moment could land between the two (0.33-0.43 s drift under load), so
-    // the position is read at the click's settled seek.
+    // The player seeks to the marker, then to the click's seek; read once that settles.
     await armSettledSeek(page, memberSha(1))
     await page.mouse.click(bounds.x + bounds.width * target / durations.reduce((sum, value) => sum + value, 0), bounds.y + 2)
     await mediaReady(page)
@@ -677,10 +671,7 @@ it('SUITE-BROWSER-MEDIA: real progress, marker details, local seeks and continue
       }
       const rail = (await page.locator('[data-timeline-track]').boundingBox())!
       const freeMember = freeMemberAt(await memberSpans(page), 0.5)
-      // 2026-10-10 (438 record gate, load 71): this click has the same transient. The marker-offset
-      // seek paints the playhead as that marker's circle until the click's own seek lands, so two
-      // reads that straddled the commit saw a free attribute, then a transparent pill. Read the
-      // playhead once, whole, after the click's settled seek.
+      // Read the playhead once, whole, after the click's settled seek.
       await armSettledSeek(page, memberSha(freeMember))
       await page.mouse.click(rail.x + rail.width * 0.5, rail.y + 2)
       await settledSeek(page)

@@ -1,5 +1,4 @@
-// the browser witness. A run's Chromium is every process whose ancestry
-// reaches the run's process and whose command line names a Chromium binary.
+// A run's Chromium is every process descending from the run whose command line names Chromium.
 
 import { spawnSync } from 'node:child_process'
 
@@ -66,9 +65,7 @@ export async function livePidsAfter(pids: readonly number[], budgetMs: number): 
   }
 }
 
-// a cell kills a process only by the identity it recorded. A pid
-// is signalled only while its current entry runs the exact command line recorded at capture, so a
-// pid the system has reused for another process is never killed.
+// A pid is signalled only while it runs the exact command line recorded, so a reused pid is spared.
 export interface RecordedProcess {
   readonly pid: number
   readonly command: string

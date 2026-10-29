@@ -1,10 +1,4 @@
-// C443-DOOR-MATRIX.
-//
-// One single-test run through each door, against one project and one runs.db, with real headless
-// Chromium and the stub model. The project's target is declared `environment: production`, so every
-// door is shown starting a production-declared run like any other. Every door is driven once in
-// `beforeAll`, an in-process door with `process.stdin` refusing every read; each cell asserts on
-// what was recorded, so a door whose run is missing fails its cells and never skips.
+// One single-test run through each door against one runs.db; a production target starts like any.
 
 import { spawn } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
@@ -159,7 +153,7 @@ function message(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
-// post-run digests also name runs earlier doors started.
+// Post-run digests also name runs that earlier doors started.
 function onlyRunId(text: string): string {
   const earlier = new Set(records.map((record) => record.runId))
   const ids = printedRunIds(text).filter((runId) => !earlier.has(runId))
@@ -244,9 +238,7 @@ function stdioTransport(extraEnv: NodeJS.ProcessEnv = {}): StdioClientTransport 
   })
 }
 
-// the MCP client drops stdout lines that are not JSON, so its error
-// handler never sees a stray line. A preload in the CLI child (not its children) records every
-// byte the server writes to stdout.
+// The MCP client drops non-JSON stdout lines, so a preload in the CLI child records every byte.
 function stdoutTeeEnv(): NodeJS.ProcessEnv {
   stdioStdoutLog = join(project.root, 'mcp-stdio-stdout.log')
   const preload = join(project.root, 'mcp-stdio-stdout-tee.cjs')
@@ -546,7 +538,7 @@ const DRIVERS: Readonly<Record<string, Driver>> = {
   },
 }
 
-// the post-run tail appends curation events after runFinished.
+// The post-run tail appends curation events after `runFinished`.
 function holdsRunFinished(runId: string): boolean {
   try {
     return runStoreEvents(project, runId).some((event) => event.type === 'runFinished')
@@ -733,8 +725,7 @@ describe('a run through every door', () => {
     expect(project.secondTestId, 'the project has a failing test').toBeDefined()
 
     for (const row of ROWS) records.push({ row })
-    // fn, ask and chat leave their hosts' knowledge writer lease held in
-    // this process (a CLI process exits with it), which the daemon refuses, so the daemon goes first.
+    // fn, ask and chat keep their knowledge writer lease in this process, so the daemon goes first.
     const daemonFirst = [...ROWS].sort((a, b) => Number(b.label === 'the daemon') - Number(a.label === 'the daemon'))
     for (const row of daemonFirst) {
       const record = recordOf(row.label)

@@ -1,32 +1,4 @@
-// The two D-02 anchors: the SHIPPED binary's enumeration, compared with the in-process one.
-//
-// WHY THE REST OF THIS DIRECTORY NEEDS THIS FILE. Every other leg of the parity suite reads an
-// enumeration composed inside the test process — a real `McpServer` built by the shipped factory, a
-// real registry, the shipped planner projection and resolver table. That is the right fidelity for a
-// matrix that runs on every PR, and it leaves exactly one question unanswerable from inside: whether
-// the thing a person actually installs enumerates the same capabilities. A suite that only ever asks
-// its own process is a suite whose subject is its own composition. These two cells spawn
-// `dist/cli.js` and ask it.
-//
-// WHAT IS INDEPENDENT ABOUT THE TWO SIDES, STATED HONESTLY (397-02's lens warning). The workspace
-// packages resolve through their BUILT dists in both halves, so `agent`, `agent-local`, `mcp` and
-// `schema` are the same artifact on both sides of every comparison here. The axis that genuinely
-// differs is THIS package's own bundle: the in-process half runs `packages/cli/src`, and the spawned
-// half runs `packages/cli/dist/cli.js`, which is that source after tsup has bundled it and after the
-// shipped command path — argument parsing, configuration resolution, credential resolution,
-// composition root wiring, process lifecycle — has had its say. A divergence in the shipped command
-// path is what these cells can see and no other cell in this directory can. What they cannot see is
-// a divergence inside a dependency's dist, because both halves read the same file; the freshness
-// guard below is what keeps that shared artifact from being a PREVIOUS revision of the source the
-// rest of the suite is reasoning about.
-//
-// THE INSTRUMENT ITSELF LIVES IN `spawned-chat.ts`, AND ONLY THERE. The stale-dist
-// freshness guard, the hermetic child environment, the fixture project and the chat driver were all
-// defined in this file until phase 399.1 needed the same instrument for its render differential.
-// This file's own law about the driver — "a second spawn helper would be a second answer to 'what
-// did the child inherit'" — is the reason they were EXTRACTED rather than copied: the sibling file
-// imports the same functions this one does, so there is still exactly one answer to that question,
-// one freshness reading and one fixture recipe. What stays here is what these two anchors ASSERT.
+// The spawned `dist/cli.js` against the in-process enumeration sees the shipped command path.
 
 import {
   existsSync,
@@ -154,14 +126,7 @@ function readChatAnchor(root: string): ChatAnchorReading {
   }
 }
 
-/**
- * The 398-13 answer-channel utterance: the `/fn` passthrough, so stage 1 resolves it.
- *
- * NOTHING ABOUT THIS STRING IS ASSERTED. It is the deterministic route and only that — a braced
- * JSON body the clause splitter keeps as one clause, naming the explain op and a question whose
- * words overlap real catalog rows. No model and no credential are involved, which is what lets a
- * hermetic child answer at all.
- */
+// The `/fn` passthrough resolves at stage 1 without a model; the string itself is not asserted.
 const CHAT_EXPLAIN_UTTERANCE = `/fn ${EXPLAIN_FUNCTION_ID} {"query": "how do I start a run"}`
 
 /**
@@ -268,11 +233,7 @@ describe('the built-binary anchors', () => {
       const listed = await client.listTools()
       const spawnedToolNames = listed.tools.map((tool) => tool.name)
 
-      // THE SHAPE OF THE ANSWER, BEFORE ANY COMPARISON OF IT (397-04's lesson). A transport that
-      // died, a command that refused to start or a listing that came back empty would otherwise
-      // fold to an empty op-id set — and an empty set compared against an empty set is a green
-      // cell that measured a dead process. The startup line is asserted on the captured stderr,
-      // which is also the evidence that this process really did start serving.
+      // The startup line first, so a dead process cannot pass as one empty set equal to another.
       expect(
         { tools: spawnedToolNames.length > 0, stderr: captured.trim().slice(0, 400) },
         'the spawned MCP binary listed no tools at all; its stderr is quoted beside this',
@@ -282,16 +243,12 @@ describe('the built-binary anchors', () => {
       )
 
       const spawned = expandMcpListedTools(spawnedToolNames, AGENT_QA_TOOL_PROJECTIONS)
-      // stdio has no request bearer. Compare the SAME caller posture.
-      // no tool is hidden from a bearer-less caller any more, so the binary lists
-      // every projected tool, the credential-required mark door included. 2026-10-02: the
-      // in-process side lists under the shipped `MCP_FUNCTION_CALLER` too — the binary's own caller.
+      // Stdio carries no bearer, so both sides list under the shipped `MCP_FUNCTION_CALLER`.
       const inProcess = await enumerateMcpOpIds()
       expect([...spawnedToolNames].sort()).toEqual(AGENT_QA_TOOL_PROJECTIONS
         .map(projection => projection.name).sort())
 
-      // D-01's uncatalogued-capability shape, asked of the BINARY. `parity.test.ts` asks it of the
-      // in-process server; a tool that only the shipped artifact serves would be invisible there.
+      // The uncatalogued-capability check on the binary: a tool only the artifact serves shows.
       expect(
         spawned.strayTools,
         'the shipped MCP binary listed tools the declared mapping does not catalogue',
@@ -381,28 +338,7 @@ describe('the built-binary anchors', () => {
 
   it('the shipped chat binary PRINTS a capability line quoted out of the committed catalog',
     async () => {
-      // THE CELL THAT WOULD HAVE CAUGHT THE GAP. 398-12 measured the whole of what a grounded
-      // explain turn showed a person: the receipt line `agent.explain completed`, and nothing else.
-      // Every cell in the phase asserted on the op's RETURN VALUE, which was correct and complete,
-      // and none of them asked whether any byte of it reached a terminal. This one spawns the
-      // shipped binary, types one turn, and reads the child's stdout.
-      //
-      // THE VACUITY TRAP, NAMED RATHER THAN AVOIDED BY LUCK. `chat.ts` prints three STARTER PROMPTS
-      // at open and each starter is a catalog row's own description — so committed row text is
-      // already in this child's stdout before any turn runs. A cell that asked "does some row
-      // description appear in stdout" would pass on the unwired build and prove nothing. The search
-      // therefore runs over the stdout slice AFTER a marker, and the marker's uniqueness is
-      // asserted so the slice cannot be silently widened by a second occurrence.
-      //
-      // THE MARKER IS THE ECHOED CLAUSE, NOT `<op> completed` (moved 2026-08-20, 399.1-04). It was
-      // the receipt line, which the engine printed only while `agent.explain` declared no
-      // classifier — plan 04 makes `classify` a REQUIRED member of `FunctionSpec`, the op now
-      // reports its own one-line verdict, and that string no longer exists to mark on. This is the
-      // idiom `render-anchors.test.ts` already uses for exactly this reason, and it costs the cell
-      // nothing it was relying on: the starter prompts are printed at OPEN, before the clause is
-      // typed and echoed, so everything after the echo is still the one turn this cell means. The
-      // slice is WIDER by one receipt line, and that line is a map — an op id and a verdict, never
-      // a catalog row's description — so it cannot be what the search below finds.
+      // Starter prompts print row text at open, so the search runs only after the echoed clause.
       expect(buildFreshness(), REBUILD_INSTRUCTION).toEqual({ missing: [], stale: [] })
       expect(
         existsSync(CLI_ENTRY),
@@ -491,9 +427,7 @@ describe('the built-binary anchors', () => {
         'the spawned `init --agent` did not exit cleanly',
       ).toMatchObject({ code: 0, signal: null })
 
-      // THE WHOLE OF STDOUT IS THE DOCUMENT. Not "contains JSON" — parsed outright, because the
-      // claim D-16 makes is that this is a machine entry point, and a machine entry point that
-      // needs a filter in front of it to parse is a claim with a caveat.
+      // The whole of stdout is parsed as the document; a machine entry point needs no filter.
       const parsed = AgentManifestSchema.safeParse(JSON.parse(outcome.stdout) as unknown)
       expect(
         parsed.success ? [] : parsed.error.issues.map((issue) => issue.path.join('.')),
@@ -512,13 +446,7 @@ describe('the built-binary anchors', () => {
       // asserted on its own line.
       expect(manifest.rows.length, 'the shipped manifest carried no rows').toBeGreaterThan(0)
 
-      // THE POSTURE IS SHAPE-ASSERTED, NOT BYTE-PINNED, and that is the honest bar: it is a fact
-      // about the workspace the binary ran in — a temporary directory here — so pinning its bytes
-      // would pin the fixture. What must hold is that the section is WHOLE and reports the shipped
-      // default grant rather than a list this cell wrote down. 2026-10-01: that grant
-      // is the whole closed scope union — no caller is withheld anything. 2026-10-02:
-      // the posture's grant and safe-mode members are deleted, so WHOLE now means exactly the one
-      // member that is left, and no retired member rides along.
+      // Shape-asserted, not byte-pinned: the posture describes the temp workspace, one member.
       expect(Object.keys(manifest.posture), 'the shipped posture still reports a scope grant')
         .not.toContain('defaultScopes')
       expect(manifest.posture.configuration, 'the fixture project\'s config did not resolve')
@@ -527,8 +455,6 @@ describe('the built-binary anchors', () => {
         .toEqual(['configuration'])
     }, 120_000)
 
-  // RE-SPELLED 2026-10-01: the NAME half is retired (no token declaration is read);
-  // the never-its-value half is measured unchanged.
   it('the shipped init --agent prints a declared credential\'s NAME and never its value',
     async () => {
       // THE REFS-ONLY LAW, ON THE SURFACE A PERSON ACTUALLY SEES. `manifest.test.ts` proves the
@@ -561,14 +487,10 @@ describe('the built-binary anchors', () => {
 
       const manifest = AgentManifestSchema.parse(JSON.parse(outcome.stdout) as unknown)
 
-      // the legacy token block is a deleted key, so the project's config
-      // does not resolve (the ordinary strict error) and the manifest still answers, whole.
+      // The legacy token block is a deleted key, so the config does not resolve; the rest is whole.
       expect(manifest.posture.configuration, 'a legacy token block must fail strict validation')
         .toBe('unresolved')
-      // NO REF IS REPORTED — the legacy token block is read by nothing.
-      // The non-vacuity control is the whole document and the echo cell below: the binary ran, the
-      // value was readable in its environment, and it printed it nowhere.
-      // the posture has no ref member at all now.
+      // No ref is reported; the whole document and the echo cell are the non-vacuity controls.
       expect(manifest.posture, 'the shipped manifest reported a legacy token declaration')
         .not.toHaveProperty('tokenEnvRefs')
       expect(manifest.rows.length, 'the shipped manifest carried no rows').toBeGreaterThan(0)
@@ -597,10 +519,7 @@ describe('the built-binary anchors', () => {
     }, 120_000)
 
   it('the anchor comparator names a divergence in both directions', () => {
-    // A DETECTOR NOBODY HAS SEEN FIRE IS A COMMENT. Both cells above pass today, which says nothing
-    // about whether they COULD fail; this drives the comparator's disagreeing branches with
-    // synthetic sets. The stray id carries this plan's number so 397-09's mutation script can tell
-    // a deliberate control fixture from a planted one.
+    // Drives the comparator's disagreeing branches with synthetic sets, so it is seen to fire.
     const shared = new Set(['runs.list', 'quarantine.list'])
     const binaryOnly = new Set([...shared, 'control.stray.397.07'])
     const inProcessOnly = new Set([...shared, 'control.absent.397.07'])

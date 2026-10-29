@@ -1,41 +1,4 @@
-// The three surface DRIVERS the verdict legs observe through (Phase 397 plan 04, D-11 / D-14;
-// the dashboard door added 2026-08-21, Phase 400 plan 01).
-//
-// WHAT A DRIVER IS FOR, AND WHY IT IS NOT A CONVENIENCE. `adapters.ts` answers what a surface can
-// REACH; this file answers what a surface DOES when something is asked of it. Those are different
-// questions and only the second one can see the defect this phase exists to name. An enumeration
-// leg reads a listing, and a capability rerouted around `invokeFunction` still appears in every
-// listing it ever appeared in — the catalogue is intact, the gate is gone. Only a cell that drives
-// the surface's OWN dispatch and observes the refusal arrive can tell those two worlds apart.
-//
-// THE CHAT DRIVER RUNS THE SHIPPED REPL, NOT A LOOKALIKE. It builds the real `agent-qa chat`
-// command over a real fixture workspace and types at it. Every stage the product has is therefore
-// in the path: readline, the one `invokeFunction(agent.ask)` call the surface owns, the clause
-// splitter, the deterministic resolver table's `/fn` branch, the per-stage caller mint, the
-// composed `ChatInvokeBinding` — which is a closure over `invokeFunction` supplied by
-// `composeLocalAgent` — the gate, and the receipt the person reads back. NOTHING in this file
-// imports `invokeFunction`, and that absence is asserted as source in `parity.test.ts`: a driver
-// that called the gate directly would be measuring the gate while claiming to measure the surface,
-// and would stay green through exactly the mutation (D-14's ungated op) it exists to catch.
-//
-// MODEL-FREE AND ZERO PROVIDER SPEND, BY CONSTRUCTION RATHER THAN BY LUCK. `chatCapabilities` is
-// pinned to `undefined`, which is the shipped HEADLESS posture (`compose-local-agent.ts`:
-// "Absence is a posture, not an unconfigured state") — the deterministic route still routes and
-// anything else fails the turn closed. The default resolution would read this machine's
-// configuration and credentials, so a suite that took it would answer differently on a laptop with
-// a key in the environment than on a runner without one, which is Pitfall 3 arriving by a second
-// road.
-//
-// THE EXECUTION CONTEXT IS INJECTED (Pitfall 3). `requiresFailClosed` is true for every context but
-// `local-interactive`, so the ask arm is reachable in one context and pre-empted in every other —
-// and the shipped resolver is a process-global that answers from TTY and CI markers. A verdict
-// computed against it would be one answer on a laptop and another on a PR, in a suite whose entire
-// job is to state what the verdict IS. Every drive therefore sets the resolver to a constant for
-// its own duration and restores what it found.
-//
-// PURE REQUEST-RESPONSE. Each drive builds its own temp workspace and removes it, so no cell can
-// observe a state another cell left behind and no cell's answer depends on the order the file ran
-// in.
+// Drivers type at the shipped surfaces and never import `invokeFunction`, so a bypass shows.
 
 import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -47,9 +10,7 @@ import {
   getActiveExecutionContext,
   setActiveExecutionContextResolver,
 } from '@vostride/agent-qa-safety'
-// safety no longer publishes the execution-audit row, and nothing writes
-// `execution_audit.jsonl`. The harness still reads that path so the cells that assert "no decision
-// row" see a returning writer; the row is typed by the two fields they filter on.
+// Nothing writes `execution_audit.jsonl`; the harness reads it so a returning writer is seen.
 interface LegacyExecutionAuditRow {
   readonly action?: unknown
   readonly verdict?: unknown
@@ -79,12 +40,7 @@ export interface DriveChatDispatchInput {
   readonly opId: string
   /** The op's own typed invocation fixture; the scenario row's `input`. */
   readonly input: unknown
-  /**
-   * Action classes to type as `/pin <class>` before the op is asked for, each `fn:<opId>`.
-   *
-   * Until 432-13 this was the refuse-direction wall's mechanism. `/pin` is no longer a directive,
-   * so these lines reach the resolver as unknown clauses; `parity.test.ts` drives them to pin that.
-   */
+  // Action classes typed as `/pin <class>`, which reach the resolver as unknown clauses.
   readonly pinBefore?: readonly string[]
   /** The context every policy decision in this drive is taken in. Injected, never ambient. */
   readonly executionContext?: ExecutionContext
@@ -94,29 +50,9 @@ export interface DriveChatDispatchInput {
 export interface ChatDriveObservation {
   /** Every clause receipt of the drive, for a cell that needs to see what else happened. */
   readonly receipts: readonly ClauseReceipt[]
-  /**
-   * Every op RESULT the drive produced, in clause execution order.
-   *
-   * WHY THIS MEMBER EXISTS, AND WHY IT IS NOT A CONVENIENCE. Until 399.1 the two drivers in this
-   * file answered in incommensurable vocabularies: chat reported a `ClauseReceipt` — a one-line map
-   * of clause to outcome, by charter carrying no territory — while MCP reported
-   * `McpCallAnswered.structured`, the op's whole typed result. A cell wanting to ask "do these two
-   * doors show a person the same thing" had nothing on the chat side to compare, so no cell asked,
-   * and the answer was NO for forty of forty-two capabilities for two phases. `results[]`
-   * is 399.1 D-05's channel and this is the driver's read of it.
-   *
-   * READ OFF THE SESSION LOG'S `clause_result` EVENTS, on `receipt`'s own reasoning: the printed
-   * payload block is a render of these records, so the two cannot disagree, and the record arrives
-   * with its fields already parted. The persisted payload is MASKED (399.1 plan 05), which is what
-   * makes this member safe to hold and to print in a failure message.
-   */
+  // Every op result the drive produced, in order, from the session log's masked `clause_result`.
   readonly results: readonly ClauseResult[]
-  /**
-   * The execution-audit rows this drive landed, in order — always none since 432-13.
-   *
-   * The gate that authored them is deleted, so this is the absence witness: a
-   * capability that started writing a decision row again would show up here.
-   */
+  // Execution-audit rows this drive landed, always none; a returning decision row shows here.
   readonly auditRows: readonly LegacyExecutionAuditRow[]
   /** Clauses the turn engine could not route at all — a resolution failure, not a verdict. */
   readonly unhandled: readonly string[]
@@ -141,7 +77,7 @@ export function pinClassFor(opId: string): string {
   return `fn:${opId}`
 }
 
-/** The one clause form that reaches ANY capability without a model: the D-06 generic passthrough. */
+// The one clause form that reaches any capability without a model: the generic passthrough.
 export function genericFnClause(opId: string, input: unknown): string {
   return `/fn ${opId} ${JSON.stringify(input)}`
 }
@@ -210,37 +146,7 @@ function readJsonLines(path: string): readonly Record<string, unknown>[] {
     .map((line) => JSON.parse(line) as Record<string, unknown>)
 }
 
-/**
- * Drive ONE capability through the chat surface's own composed dispatch, model-free.
- *
- * WHAT PRODUCES THE ANSWER: the shipped `agent-qa chat` command, over a real composition, reached
- * by typing. What this function contributes is the workspace, the typed lines and the reading of
- * what the surface wrote down. It decides nothing about verdicts.
- *
- * SINCE 432-13 `/pin` is gone and nothing on this road refuses a capability; the
- * paragraphs below record why `pinBefore` WAS the refuse-direction mechanism until then.
- *
- * WHY `pinBefore` WAS THE REFUSE-DIRECTION MECHANISM, and this is worth reading once because it is a
- * measured fact about the product rather than a choice made here. The MCP surface can be handed a
- * caller that lacks a scope, so its refuse wall is a scope refusal. The chat surface cannot:
- * `CHAT_STAGE_SCOPES` is the WHOLE closed scope union, both stage callers hold every member, and
- * the mint is composition-internal — so "a chat caller missing a required scope" is not a state
- * this product can be in, and a cell that pretended otherwise would be asserting about a caller no
- * composition mints. `parity.test.ts` pins that equality in a named cell, so the day chat narrows
- * its grants the reason recorded here reds rather than quietly going stale.
- *
- * What the chat surface CAN be made to refuse, for every one of the 41 capabilities and by a route
- * a person drives, is `/pin` — and the refusal it produces is the strongest one available for this
- * purpose: `evaluate()` consults the session deny overlay AFTER classification and BEFORE
- * `resolveAsk`, so the refusal lands a real execution-audit row (`outcome: session-pin-denied`),
- * it is independent of the execution context, and it is produced INSIDE the one gate call site.
- * A capability rerouted around `invokeFunction` cannot be pinned — it would execute — so this wall
- * reds on exactly the mutation D-14 names.
- *
- * ZERO MUTATION ON THE REFUSE PATH IS STRUCTURAL, not asserted after the fact: `invokeFunction`
- * evaluates the gate at step 5 and dispatches at step 7, so a denied invocation never reaches an
- * implementation.
- */
+// Drive one capability through the shipped `agent-qa chat` by typing; this decides no verdict.
 export async function driveChatDispatch(
   input: DriveChatDispatchInput,
 ): Promise<ChatDispatchOutcome> {
@@ -274,7 +180,7 @@ export async function driveChatDispatch(
 export async function driveChatLines(
   typedLines: readonly string[],
   executionContext?: ExecutionContext,
-  // a populated project the caller owns and removes; the default is this file's empty one.
+  // A populated project the caller owns and removes; the default is this file's empty one.
   workspace?: { readonly configPath: string },
 ): Promise<ChatDriveObservation> {
   const configPath = workspace?.configPath ?? fixtureWorkspace()
@@ -340,25 +246,7 @@ export async function driveChatLines(
   return { ...observed, stdout: stdout.join('\n') }
 }
 
-/**
- * What a drive wrote down, read off the runtime root the surface wrote it to.
- *
- * SHARED BY EVERY DRIVER IN THIS FILE, and that is the point rather than a convenience. The chat
- * door and the dashboard door are different transports over ONE session substrate, so a
- * second reader here would be a second answer to what a turn recorded — and the cells that compare
- * the two doors would then be comparing two readings rather than two doors.
- *
- * NEVER SCRAPED FROM A RENDER. The printed line and the served JSON are both renders of these
- * records, so a reader that parsed either could disagree with what the product wrote down.
- */
-/**
- * EXPORTED for the spawned-wire anchors, which must read the CHILD's runtime root.
- *
- * The anchors compare an in-process drive with a drive against the shipped `agent-qa dashboard`
- * binary, and the comparand on both sides has to be produced by the SAME reader — otherwise the
- * anchor's subject is the difference between two reading recipes rather than the difference between
- * two doors. A private copy in the anchor file would be exactly that second recipe.
- */
+// One reader for every driver and the spawned anchors, never a render, so doors are compared.
 export function readRuntimeObservations(agentQaRoot: string): Omit<ChatDriveObservation, 'stdout'> {
   const receipts: ClauseReceipt[] = []
   const results: ClauseResult[] = []
@@ -417,31 +305,12 @@ export interface McpCallRefused {
 
 export type McpCallOutcome = McpCallAnswered | McpCallRefused
 
-/**
- * Call ONE tool on a real server built for ONE caller, and report what came back.
- *
- * The server is the shipped factory's, driven over the SDK's own in-process handler through
- * `withMcpClient` — the same wiring every enumeration leg reads `tools/list` through, so an
- * enumeration and a call in this suite cannot be talking to two different servers.
- *
- * THE TWO ANSWER SHAPES ARE KEPT APART rather than flattened into a boolean. An unknown tool is a
- * PROTOCOL refusal (the SDK throws; there is no door), while a validation failure or a capability's
- * own refusal is an IN-BAND answer (`isError: true`, the door exists and said no). Collapsing them
- * would make the D-12 absence probe unable to tell a missing capability from a present one that
- * declined, which is the entire distinction the refuse-direction wall is about.
- */
+// An unknown tool is a protocol refusal and a declined call is in band, and they are kept apart.
 export async function driveMcpCall(input: {
   readonly toolName: string
   readonly args: Record<string, unknown>
-  /**
-   * the server's caller. Absent, the shipped tokenless
-   * `MCP_FUNCTION_CALLER`. Replaces the retired `grantedScopes` member, which only ever
-   * handed a scope set through as a smuggle: a cell proving a retired field is unread now builds its
-   * own smuggled caller and passes it here.
-   */
+  // The server's caller; absent, the shipped tokenless `MCP_FUNCTION_CALLER`.
   readonly caller?: FunctionCaller
-  // no `executionContext` input. It fed only the registry's retired
-  // `resolveExecutionContext` option, which reads no context since 432-20, and no cell passed it.
 }): Promise<McpCallOutcome> {
   return withMcpClient(async (client: Client): Promise<McpCallOutcome> => {
     try {

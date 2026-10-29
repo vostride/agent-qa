@@ -3,75 +3,7 @@
 // callbacks are compiled as TypeScript and EXECUTED in a browser — `dashboard-dom.test.ts`'s
 // reasoning, unchanged.
 
-// THE POST-PROCESSING CHIPS, IN THE MEDIUM A PERSON LOOKS AT (Phase 404 plan 08 · LIFE-03/LIFE-04,
-// D-13 / D-17 / D-18 / D-19 / D-21 / D-22).
-//
-// WHAT THIS FILE IS FOR. Every other 404 cell proves a contract: the emitter appends, the route
-// joins, the projection maps, the client opens at most one channel. None of them is a claim about
-// PIXELS or about NETWORK REQUESTS A BROWSER ACTUALLY MADE, and D-19's acceptance for LIFE-03 and
-// LIFE-04 is exactly those two things. So the four postures below are driven on the BUILT
-// `dashboard-ui` bundle, served by the SHIPPED `agent-qa dashboard` binary over a real socket, in a
-// real headless Chromium, against a run that reaches a real verdict and a real post-run tail.
-//
-// A BROWSER THAT CANNOT LAUNCH IS A RED, NEVER A SKIP — `live-view-dom.test.ts`'s law, and this
-// file contains no conditional skip for the same reason: a skipped visual suite exits 0 having
-// measured nothing.
-//
-// WHAT CHANGED SINCE 404-05, AND WHY IT MATTERS FOR TWO OPEN WINDOWS. `post-processing-anchors.
-// test.ts` gave up its terminal arm and `live-view-anchors.test.ts` cell (10) gave
-// up its detached-tail window for ONE shared structural reason: on a machine with no
-// Playwright browser, the DIRECT-test producer records the member's throw as a FRAMEWORK error, and
-// `in-process-run-execution.ts` re-throws it four statements ABOVE the line that starts the
-// detached tail. No chain could pump on that harness, so nothing downstream of a verdict was
-// measurable through the shipped binary at all.
-//
-// `drainableSuiteFixtureProject` is the fixture both windows said was missing, and its header
-// states the two facts that make it work: the member is addressed through a SUITE (whose producer
-// records no framework error, so the throw becomes a failed member and a real verdict) and a
-// compatible model provider is DECLARED with no credential (so the suite path resolves
-// `unauthenticated`-and-optional instead of refusing before the run starts). The browser is still
-// absent. What changed is that its absence is now a test failure rather than a framework error —
-// so the run reaches `verdict`, `runFinished`, a detached tail, chip envelopes and a terminal
-// chain, all on the artifact a person installs.
-//
-// THE RED RUN IS PRODUCED BY OCCUPYING THE ANALYSIS ARTIFACT'S PATH, and that is a real failure
-// rather than a stub: `persistAnalysis` writes `runs/<slug>/analysis.json` through a temp file and
-// a rename, so a DIRECTORY at that path makes the rename fail with EISDIR inside the job handler.
-// The engine spends an attempt and schedules a retry, the emitter appends a real `analysisFailed`
-// envelope carrying the producer's own masked, bounded text, and the chain is left mid-flight —
-// because the in-process pump never sleeps a run process on a backoff (it breaks with a
-// `retry-scheduled` exit by design). Whoever holds the writer lease NEXT finishes it, which here is
-// the real `agent-qa daemon` cell (3) starts anyway. Nothing is faked and no envelope is written by
-// this file.
-//
-// WHAT THIS FILE DOES NOT MEASURE, STATED RATHER THAN IMPLIED. The push-vs-poll
-// differential — cell (1b) — is measured at the shipped dashboard's own two routes with a `fetch`
-// subscriber and a poller running at the client's own period, NOT through the browser's own
-// `EventSource`. The reason is a wall clock: this fixture's entire post-verdict chain settles about
-// 350 ms after the verdict, run detail costs about 310 ms to mount, and a page may not arrive any
-// earlier than the verdict because a cold `/runs/:id` on a live row bounces to `/live` by design
-// So a browser gets perhaps forty
-// milliseconds inside the window, and it lost the race on every arm measured. Rather than assert a
-// coin flip, cell (1) states what it CAN state unconditionally (at most one stream, ever; the same
-// terminal words; the chain painted from durable state) and adds the push assertion as an
-// IMPLICATION over any arm that did get inside — so the day a slower chain or a faster mount opens
-// the window, a client that stopped subscribing reds here. The client-side half of the contract —
-// a frame triggers a re-read and never a paint, at most one source per watcher — is pinned in
-// jsdom by 404-07's `lib/__tests__/api.post-processing.test.ts`.
-//
-// THE TIMING CELLS RUN IN REAL TIME. There is no fake clock behind a browser, and the whole
-// question cell (1b) asks — "did that chip move sooner than a poll could have moved it" — is a
-// question about wall time. k=3 for both timing-shaped cells, each arm's reading named in its own
-// failure message.
-//
-// THE DRIVING HAPPENS ONCE, IN `beforeAll`, AND THE CELLS ASSERT ON WHAT IT RECORDED —
-// `post-processing-anchors.test.ts`'s idiom. Two reasons, and the second is the load-bearing one:
-// the postures are sequential by nature (a daemon must not hold the lease while the in-process
-// cells run, and must hold it while the hand-off cell does), and the phase's mutation driver (since
-// removed) needed the PUSH claim to be the only red under its mutation. A cell that drove its
-// own run would take the whole file down with it and a mutation run would be measuring blast
-// radius instead of a property. So the drive RECORDS and never asserts, exactly as the instrument
-// module does.
+// A red run is produced by occupying the analysis artifact's path, so its rename fails with EISDIR.
 
 import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -200,16 +132,7 @@ const REASON_ABSENT_SENTENCES = ['handedOff', 'detached', 'drained', 'unknown'].
  */
 const ANALYSIS_FAILED_PREFIX = 'Analysis failed — '
 
-/**
- * The three card-line addresses this file reads, spelled the way the component publishes them.
- *
- * `post-processing-chips.tsx` exports `STAGE_CARD_LINE_SELECTORS`, the closed record of all eight
- * addresses, and importing it is what this file would do if the cli package could reach
- * dashboard-ui. It cannot, so the three are re-spelled as LITERALS rather than built from a
- * `${kind}` template — a selector nobody can grep for is a contract with no declaration site here
- * either — and then checked against the published record below, so a re-spelling upstream reds this
- * file loudly instead of quietly harvesting nothing.
- */
+// Literals, checked against `STAGE_CARD_LINE_SELECTORS`, because cli cannot import it.
 const STAGE_CARD_LINES = {
   outcome: '[data-stage-card-line="outcome"]',
   timing: '[data-stage-card-line="timing"]',
@@ -233,12 +156,7 @@ for (const [kind, selector] of Object.entries(STAGE_CARD_LINES)) {
 /** How long a focused indicator is given to open its card before the absence is taken as real. */
 const CARD_OPEN_BUDGET_MS = 5_000
 
-/**
- * A harvested timing line, split on the separator `stageTimingLine` composes with.
- *
- * The view joins its clauses with space, middle dot, space; splitting on anything looser would
- * read a clause that happened to contain a dot as two, and the assertions below name clauses.
- */
+// Split on space, middle dot, space; a looser split reads a dotted clause as two.
 function timingClauses(line: string): string[] {
   return line.split(' · ').map((clause) => clause.trim())
 }
@@ -279,20 +197,13 @@ interface PageObservation {
   readonly html: string
   /** `data-chip` → `data-chip-status`, as painted at the end. */
   readonly painted: Record<string, string>
-  /**
-   * The analysis card's `outcome` line, read with the card open.
-   *
-   * THE WORDS DID NOT GO AWAY, THEY MOVED. The failure reason, the absent-reason sentence and the
-   * drain posture each used to be their own node beside the chip; they now arrive on this one line
-   * — `Analysis failed — {reason}`, `Analysis queued — {posture}`, or the settled sentence. A stage
-   * with nothing to say paints no card at all, so an absence here is a real absence.
-   */
+  // A stage with nothing to say paints no card, so an absence here is a real absence.
   readonly analysisOutcome?: string
   /** The analysis card's `timing` line, if the read carried a job row to time. */
   readonly analysisTiming?: string
   /** The analysis card's `retry` line — painted only when the envelope carried a retry intent. */
   readonly analysisRetry?: string
-  /** Whether the FIRST read of the route carried a `disposition` — the D-13 window's marker. */
+  // Whether the first read of the route carried a `disposition`.
   readonly firstReadHadDisposition: boolean
   /** Whether the chain was already terminal on the first read. */
   readonly firstReadTerminal: boolean
@@ -304,19 +215,7 @@ interface PageObservation {
   readonly durableChips?: Record<string, string>
 }
 
-/**
- * One arm of the push-vs-poll differential, measured at the SHIPPED dashboard's own two doors.
- *
- * WHAT THIS ARM IS AND WHY IT IS NOT A BROWSER. Cell (1) proves what the PAGE does; this proves
- * that the push channel is materially faster than the poll floor, which is a claim about two
- * channels rather than about a renderer. It is measured here because a browser cannot reliably be
- * inside the window: this fixture's whole chain settles roughly 350 ms after the verdict, run
- * detail costs roughly 310 ms to mount, and a page may not arrive any earlier than the verdict
- * (the D-07 bounce). Cell (1) records how many arms DID arrive in flight. A subscriber attached
- * with `fetch` needs about five milliseconds, so the differential is measured where it can be
- * measured honestly — on the same binary, through the same two routes, with the client's own poll
- * period as the control.
- */
+// Measured with `fetch` at the binary's push and poll routes: a browser mounts too late.
 interface PushPollArm {
   readonly runId: string
   /** Chip frame types the dedicated stream delivered, with this process's stamp. */
@@ -524,26 +423,7 @@ async function drivePushPollArm(fx: DrainFixture): Promise<PushPollArm> {
   }
 }
 
-/**
- * Leave N foreign chains queued and unclaimed, so the arm that follows has work AHEAD of its own.
- *
- * WHY AN ARM NEEDS A BUSY QUEUE, MEASURED RATHER THAN ASSUMED. This fixture's chain settles about
- * 390 ms after the verdict, and a browser needs about 310 ms to mount run detail and issue its
- * first read — so a page that arrives at the D-13 moment reaches a chain with roughly eighty
- * milliseconds of life left, and three arms out of three opened onto a finished one. Nothing about
- * the product is wrong there; the fixture is simply the smallest possible unit of post-processing
- * work.
- *
- * SO THE QUEUE IS GIVEN A BACKLOG, WHICH IS A REAL STATE AND NOT A DELAY. Runs whose post-verdict
- * step found the writer lease held are `handedOff`: their chains sit in the store, unclaimed, until
- * somebody with the lease pumps them. The next in-process drain does exactly that — oldest rows
- * first, up to its own bound — so the arm's own chips move only after the backlog does, and the
- * page is watching for all of it. Every job pumped is a real job through the real handlers.
- *
- * THE LEASE IS HELD BY THIS PROCESS, briefly, through the production API. A daemon would do as
- * well and cost seconds per arm; what matters is that something else holds it while the filler
- * runs reach their post-verdict step, and that it is released before the arm's own run does.
- */
+// Unclaimed foreign chains ahead of the arm's own, so the page watches a chain still in flight.
 async function seedForeignBacklog(fx: DrainFixture, chains: number): Promise<string[]> {
   const knowledgeRoot = join(fx.root, 'agent-qa-knowledge')
   const lease = acquireWriterLease(knowledgeRoot)
@@ -638,13 +518,7 @@ async function armChipObserver(page: Page): Promise<void> {
   })
 }
 
-/**
- * Measure D-13 from the viewer's own envelope to its route change on one browser clock.
- * A separate Node SSE client can receive a verdict before this page has even loaded; charging
- * that interval to the page's reaction measures loading and runner scheduling instead of D-13.
- * Both native APIs still receive the original arguments, and the verdict listener is installed
- * before the bundle can register its handler. No frame, application callback, or clock is mocked.
- */
+// Timed from the viewer's own envelope on the browser clock, so page load is not counted.
 async function armVerdictNavigationObserver(page: Page, runId: string): Promise<void> {
   await page.addInitScript((id) => {
     const timing: { verdictAt?: number; navigatedAt?: number } = {}
@@ -740,18 +614,7 @@ async function harvest(
       ]),
     ),
   )
-  // THE CARD IS WHERE THE WORDS LIVE NOW, SO THE HARVEST OPENS IT.
-  //
-  // FOCUS, NOT HOVER. The page mounts one `TooltipProvider` with `delayDuration = 0` and Radix
-  // opens on focus with no delay at all; focus also works identically on the `<span>` root and on
-  // the `<button>` a failed run WITH verdicts gets, so no arm needs to know which it has.
-  //
-  // THE CARD IS PORTALLED, so it is located on the document rather than under the chip. Radix paints
-  // the content's children a SECOND time inside a visually-hidden `role="tooltip"` node for screen
-  // readers; `.first()` is the visible copy, which is the one a person reads.
-  //
-  // This runs after `html` and `painted` are captured above, so opening a card cannot disturb what
-  // the arm already recorded about the header.
+  // Opened by focus, not hover; the card is portalled, and `.first()` skips Radix's hidden copy.
   const analysisChip = page.locator('[data-chip="analysis"]').first()
   const analysisCard = page.locator('[data-stage-card="analysis"]').first()
   const cardLine = async (selector: string): Promise<string | undefined> => {
@@ -792,14 +655,7 @@ async function harvest(
   }
 }
 
-/**
- * Warm the run-detail route so the first MEASURED open is not paying for a cold module graph.
- *
- * The bundle code-splits, and run detail is a lazily-loaded chunk: an unwarmed first navigation
- * spends a few hundred milliseconds fetching and parsing it, which is time inside the D-13 window
- * this file exists to open a page in. Warming with an id nothing ever ran costs one honest 200 with
- * two pending chips and leaves the chunk in the browser's cache.
- */
+// Warm the lazily loaded run-detail chunk, so the first measured open pays no cold module graph.
 async function warmRunDetailChunk(origin: string, context: BrowserContext): Promise<void> {
   const page = await context.newPage()
   try {
@@ -862,26 +718,14 @@ async function driveInProcessArm(
     await armVerdictNavigationObserver(page, runId)
     const traffic = trackPostProcessingTraffic(page, runId)
 
-    // THE VIEWER ARRIVES THE WAY D-13 SENDS THEM, and this is not stylistic. `/runs/:id` opened
-    // COLD on a row that still reads live BOUNCES to `/live` by design —
-    // only an in-app arrival carrying `arrivedOnVerdict` is exempt — so a direct navigation cannot
-    // land before the verdict at all, and one fired the instant the `verdict` frame arrives spends
-    // its whole budget loading, by which time this fixture's chain is routinely already over
-    // (measured: three of three arms opened onto a finished chain, and cell (1) would have gone
-    // green having watched nothing). Riding the SHIPPED navigation removes the race instead of
-    // loosening the assertion: the live page loads WHILE the run executes, the move to run detail
-    // is client-side and immediate, and the chips' watcher therefore subscribes within
-    // milliseconds of the `verdict` ENVELOPE — the exact moment D-19 names.
+    // Arrive through the live page: a cold `/runs/:id` on a live row bounces to `/live`.
     await page.goto(`${fx.dashboard.origin}/runs/${encodeURIComponent(runId)}/live`)
     await page.waitForURL(/\/runs\/[^/]+$/u, { timeout: RUN_BUDGET_MS })
     const browserTiming = await page.evaluate(() =>
       (window as unknown as { __verdictNavigation: { verdictAt?: number; navigatedAt?: number } }).__verdictNavigation,
     )
 
-    // What the FIRST read of the route said, read from this process at the moment the page's own
-    // first response landed. It is the D-13 marker: a first read with no `disposition` is a page
-    // that arrived before `runFinished` was durable, which is precisely when the client opens the
-    // dedicated stream.
+    // The first read is the marker: no `disposition` means the page beat a durable `runFinished`.
     await waitUntil(
       () => traffic.responses.some(isRead),
       'the page to complete its first post-processing read',
@@ -1023,9 +867,7 @@ beforeAll(async () => {
       50,
     )
 
-    // ---- The real daemon, over the SAME project root the dashboard serves. The gate is opened
-    // first so the substituted curation fold returns immediately rather than parking (388-06's
-    // fixture parks by design; this file wants the chain finished, not held).
+    // The real daemon over the dashboard's root; the gate opens first, so curation returns.
     const paths = daemonPathsOver(project.root)
     const { writeFileSync } = await import('node:fs')
     writeFileSync(paths.gate, 'open\n', 'utf8')
@@ -1235,11 +1077,7 @@ describePosix('the post-processing chain on the built bundle behind the shipped 
         + `EventSource is impossible by construction — this is the cell that would notice. requests: `
         + `${JSON.stringify(arm.requests.map((request) => request.url.split('/').slice(-2).join('/')))}`,
       ).toBeLessThanOrEqual(1)
-      // REDS THE DAY THE WINDOW OPENS. An arm that DID arrive with the chain still in flight is an
-      // arm whose client had a reason to subscribe, and it must have. This is conditional on a
-      // race the fixture cannot win on demand — see the file header and WINDOWS #283 — so it is
-      // stated as an implication rather than dropped: a build that stopped subscribing mid-chain
-      // reds here the first time an arm gets inside the window.
+      // An arm that arrived mid-chain must have subscribed; an implication, as the race varies.
       if (!arm.firstReadTerminal) {
         expect(
           streams,
@@ -1312,12 +1150,7 @@ describePosix('the post-processing chain on the built bundle behind the shipped 
         `arm ${String(index)} (${arm.runId}) received a response on the aborted stream, so the abort did not take `
         + 'and this arm is measuring the push channel it exists to remove',
       ).toBe(0)
-      // D-19 (2) ENTIRE, and it is stated against THIS run's own durable answer rather than against
-      // another run's painted words. The claim is that a client which can never reach the push
-      // channel still converges on what the store says — comparing two different runs' chips would
-      // additionally assert that two runs settle identically, which is a fact about the fixture and
-      // not about the client, and which a red analysis on either side would break for the wrong
-      // reason.
+      // Against this run's own durable answer, so two runs settling differently cannot red it.
       expect(
         arm.painted,
         `arm ${String(index)} (${arm.runId}) painted ${JSON.stringify(arm.painted)} while the durable read said `
@@ -1371,9 +1204,7 @@ describePosix('the post-processing chain on the built bundle behind the shipped 
     driveOk()
     const handed = recorded.handedOff
     expect(handed, `the hand-off posture was never measured. ${childContext()}`).toBeDefined()
-    // THE DAEMON EMITS NO CHIP ENVELOPE — 388 D-13 — so the run's own record holds no failure line
-    // and there is no masked reason ANYWHERE. Measured on the record rather than assumed, because
-    // the sentence below is only honest if the absence is real.
+    // The daemon emits no chip envelope, so the record holds no failure line.
     for (const chip of ['analysisStarted', 'analysisFailed', 'curationStarted', 'curationCompleted']) {
       expect(
         recorded.handedOffEventTypes,
@@ -1381,10 +1212,7 @@ describePosix('the post-processing chain on the built bundle behind the shipped 
         + 'chips, this cell and FAILED_REASON_ABSENT_TEXT are both out of date',
       ).not.toContain(chip)
     }
-    // THE CLAIM IS UNCHANGED AND THE ADDRESS IS NOT (425 D-09 · RESEARCH pitfall 4). The
-    // absent-reason sentence moved from its own node beside the chip onto the card's outcome line,
-    // so the cell reads the card — and asserts the WHOLE line, which is what keeps "shows no error
-    // text" a claim now that the producer's reason would be painted in the very same place.
+    // The absent-reason sentence is on the card's outcome line, so the whole line is asserted.
     expect(
       handed!.analysisOutcome,
       'a failed stage with no recorded reason renders the absence, qualified by the posture that '
@@ -1401,13 +1229,7 @@ describePosix('the post-processing chain on the built bundle behind the shipped 
       handed!.html.includes('pending'),
       'and the settled chip never reads `pending` — the other lie the absent-reason line replaces',
     ).toBe(false)
-    // THE TIMING LINE IS A CLAIM, NOT A LOG LINE (425-13 · SC3). This run was drained by a real
-    // daemon to a failed analysis stage, so its row is terminal: the lease released, `started_at`
-    // kept. It is the only place in the repository where that production settled shape reaches a
-    // cell, and it used to be printed here and asserted nowhere — which is how a card that could
-    // never say how long a stage took passed a full sweep. Clause VALUES are not asserted: the
-    // drain's real durations and the host's local zone both vary. A trailing attempts clause is
-    // neither required nor refused, because a stage that retried legitimately appends one.
+    // Clause values vary with durations and zone, so only the timing line's clauses count.
     expect(
       handed!.analysisTiming,
       'a settled stage card that renders no timing line at all is the SC3 gap returning: the reader '
@@ -1472,10 +1294,7 @@ describePosix('the post-processing chain on the built bundle behind the shipped 
       + `reason to paint. recorded: ${JSON.stringify(recorded.redRunEventTypes)}`,
     ).toContain('analysisFailed')
     expect(red!.painted.analysis, `the analysis chip did not paint failed. html: ${red!.html.slice(0, 400)}`).toBe('failed')
-    // THE REASON MOVED ONTO THE CARD'S OUTCOME LINE, where it now shares an address
-    // with the absence sentence that stands in for it when nobody wrote one down. The claim is the
-    // same one 404-08 made — the PRODUCER's masked, bounded string reaches the browser — so the
-    // prefix is stripped and what is left is checked against the published absences.
+    // The prefix is stripped and the masked reason is checked against the published absences.
     expect(
       red!.analysisOutcome,
       'a failed stage WITH a recorded reason paints the reason — never a blank, never `pending`',

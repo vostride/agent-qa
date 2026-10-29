@@ -2,49 +2,7 @@
 // The DOM lib is referenced HERE because this file's `page.evaluate` callbacks are compiled as
 // TypeScript and EXECUTED in a browser — `run-detail-dom.test.ts`'s reasoning, unchanged.
 
-// A FAILED RUN'S SUMMARY, IN THE MEDIUM A PERSON LOOKS AT.
-//
-// WHAT THIS FILE MEASURES THAT ITS SIBLING CANNOT. `run-detail-dom.test.ts` drives 405-09's
-// populated run, and that run PASSES — so `run.status === 'failed' && run.failureSummary` is false
-// and the failure banner never mounts. The banner was therefore the one render site on the rebuilt
-// page still painting a producer string RAW, invisible to every cell in the repository: 405-11 put
-// the overview's strings through the chip seam, 405-12 read a marker delimiter out of a sub-action
-// row and fixed it one row away, and neither could see this one. The verifier found it by reading
-// (VERIFICATION.md criterion 2, missing item 3) and WINDOWS #287 recorded the three things a fix
-// needs — a failing-run producer, parse-before-truncate, and a cell that measures it on the shipped
-// artifact. This file is the third.
-//
-// THE PRODUCER IS THE SAME ONE, WITH ONE BOOLEAN MOVED. Same stub model server, same target page,
-// same project recipe, same credential-free posture — `startStubModelServer({ plannerOutcome:
-// 'stepFailed' })` sets the shipped `stepFailed` plan field on the planner's tool call, which is
-// the product's own path to a step the planner declares impossible. Nothing in the runner changes
-// to make this run fail, which is what keeps the run a RUN rather than an arrangement.
-//
-// A BROWSER THAT CANNOT LAUNCH IS A RED, NEVER A SKIP — 404-08's law, restated by
-// `run-detail-dom.test.ts`'s own header and carried here without softening. There is no conditional
-// skip in this file. A suite that exits 0 having measured nothing is indistinguishable from one
-// that measured everything, and what this file measures is a leak.
-//
-// THE DRIVING HAPPENS ONCE, IN `beforeAll`, AND THE CELLS ASSERT ON WHAT IT RECORDED. The drive
-// records and never asserts, so each named claim can be the only red under its own mutation.
-//
-// NO RESTART LEG. Since 441-15 the dashboard serves the text a run stored and restores
-// nothing, so a second process would read exactly what the first one does. Cell (3e) reads the
-// banner's text on the FIRST process, which is the fact this file needs.
-//
-// THE CLIPBOARD IS MEASURED HERE TOO, AND ON THE SHIPPED BUNDLE (3g · T-405-43). With the banner
-// COLLAPSED it once carried 47 words against 21 on the page, including a value the reader was never
-// shown. The cell reads the clipboard back through `navigator.clipboard.readText()` after clicking
-// copy in the TRUNCATED state, which is why this file's browser context is granted
-// `clipboard-read`/`clipboard-write`.
-//
-// THE DECLARED MARKER IS TEXT. The run stores a declared value as `[secret:<name>]`, and
-// the banner and the artifact drawer show that string as written, with no chip.
-//
-// WHAT A RED ON (3f) MEANS, STATED BEFORE ANYONE IS TEMPTED. `runs.failure_summary` is an at-rest
-// sink no PASSING run ever writes, so this file's scan covers ground 405-12's cannot. If a planted
-// value turns up there, in `events.jsonl` or in an SSE frame, that is a NEW DETL-02 at-rest
-// finding: stop and report the sink and the value. It is not an occasion to narrow the scan.
+// A failing run mounts the failure banner a passing run never shows; its sinks are scanned at rest.
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -143,23 +101,7 @@ function unescapeStringBody(body: string): string {
   return out
 }
 
-/**
- * A published constant, read out of the module that publishes it.
- *
- * `run-detail-dom.test.ts`'s helper, for its reason: importing a `dashboard-ui` module into a Node
- * test would drag a renderer in, and a hardcoded copy would go on passing against a page that says
- * something else.
- *
- * EITHER QUOTE STYLE, AND THE STYLE IS NOT THE CONSTANT'S BUSINESS. This read used
- * to accept single quotes only, so a DOUBLE-quoted constant (one whose text carries an apostrophe)
- * could not be read at all, and a Prettier or ESLint quote-style change turned a working read into
- * a `beforeAll` throw that red every cell at once, for a formatting reason. The body is matched to
- * the MATCHING quote across escaped pairs, so a `\'` inside a single-quoted constant does not end
- * it early.
- *
- * A TEMPLATE LITERAL IS STILL REFUSED, deliberately: its body can interpolate, and a helper that
- * returned the source text of `${...}` would be publishing a string nothing renders.
- */
+// Either quote style, matched to the closing quote across escapes; a template literal is refused.
 function publishedConstant(relativePath: string, name: string): string {
   const source = readFileSync(join(PACKAGES_ROOT, 'dashboard-ui', 'src', relativePath), 'utf8')
   const entry = new RegExp(
@@ -174,10 +116,7 @@ function publishedConstant(relativePath: string, name: string): string {
   return unescapeStringBody(entry[2] as string)
 }
 
-// ── THE HELPER'S OWN CELL. It is outside the drive's `describe` deliberately: it
-// reads one source file and nothing else, so it must not pull a spawned binary, a browser and a
-// real run in behind it. A helper whose failure mode is "throws in `beforeAll` and reds every cell
-// in the file at once" is worth three cells of its own.
+// Outside the drive's `describe`, so the helper's cell needs no binary, browser or run.
 describe('publishedConstant reads a constant whatever quotes it carries', () => {
   it('publishedConstant reads a DOUBLE-quoted constant with its apostrophe intact', () => {
     const title = publishedConstant('lib/config-copy.ts', 'CONFIG_LOAD_FAILED_TITLE')
@@ -237,14 +176,7 @@ interface PageObservation {
   readonly finalUrl: string
   /** Why the banner never attached, when it never did. Recorded, so the cells red on the FACT. */
   readonly waitFailure?: string
-  /**
-   * Whether a `[data-failure-banner-toggle]` was present AND its click RESOLVED.
-   *
-   * BOTH HALVES, BECAUSE THE FLAG IS A CELL'S DIAGNOSIS. It was set unconditionally
-   * on the line after a click whose rejection was swallowed, so an element that existed and could
-   * not be clicked — detached, obscured, timed out — reported `true`, and cell (3d) then red one
-   * assertion later with a message naming the wrong cause on the slowest suite in the repository.
-   */
+  // Whether the toggle was present and its click resolved, so a failed click names the right cause.
   readonly toggled: boolean
   /** Why the toggle click did not resolve, when it did not. Recorded, never thrown. */
   readonly toggleFailure?: string
@@ -545,9 +477,7 @@ async function observeFailureBanner(
       }
     }
 
-    // THE FLAG RECORDS THE CLICK'S OUTCOME, NOT ITS ATTEMPT. `toggled = true` used
-    // to sit unconditionally after a `.catch(() => undefined)`, so a click that threw still
-    // reported success and (3d) blamed a missing element for a click that failed on a present one.
+    // The flag records the click's outcome, not its attempt.
     const toggle = page.locator('[data-failure-banner-toggle]')
     if ((await toggle.count()) > 0) {
       toggleFailure = await toggle.first().click().then(
@@ -610,12 +540,7 @@ async function observeFailureBanner(
   }
 }
 
-/**
- * Open the artifact drawer with its `i` shortcut, expand the suite member's raw YAML and read it.
- *
- * The run's test source is captured through the run's mask, so the member's step reads with the
- * stored `[secret:<name>]` the drawer shows as written.
- */
+// The test source is captured through the run's mask, so the drawer shows the marker.
 async function observeArtifactDrawer(page: Page): Promise<DrawerObservation> {
   let waitFailure: string | undefined
   const record = (error: unknown) => {
@@ -826,13 +751,7 @@ describe('the shipped dashboard paints a FAILED run\'s summary as stored text', 
       + `— and the truncated-state claims below would be measuring the full text.${context()}`,
     ).toBe('truncated')
 
-    // AND THE ATTRIBUTE IS CHECKED AGAINST THE TEXT, because an attribute is only worth reading if
-    // it can disagree with what is on the page. `data-failure-banner-state` was once derived from
-    // the toggle's `useState(false)` alone, which made `truncated` a compile-time constant on
-    // mount: this cell would have gone on passing with the truncation deleted outright. The two
-    // assertions below are the fact the sentence above claims — the preview really is SHORTER than
-    // the full text, and it really was cut — and mutation leg M6 (`truncateText` returns its input
-    // unchanged) is the measurement that this cell can lose them.
+    // The attribute is checked against the text: the preview must be shorter than the full text.
     expect(
       observed.truncated.bannerText.length,
       'the truncated banner is not shorter than the expanded one, so no truncation happened. The '
@@ -918,9 +837,7 @@ describe('the shipped dashboard paints a FAILED run\'s summary as stored text', 
       `no runtime database file was found to scan — a clean scan of nothing is not a claim.${context()}`,
     ).toBeGreaterThan(0)
 
-    // `runs.failure_summary` IS A SINK NO PASSING RUN EVER WROTE, so this scan covers ground the
-    // passing-run differential cannot. A red here is a NEW DETL-02 at-rest finding: report the sink
-    // and the value. It is not an occasion to narrow the scan.
+    // Only a failing run writes `runs.failure_summary`, so this scan covers new ground.
     expect(
       (recorded.sseFrames ?? '').includes(POPULATED_DECLARED_SECRET_VALUE),
       `the declared step secret appears IN CLEAR in the run-stream frames of a FAILING run.${context()}`,

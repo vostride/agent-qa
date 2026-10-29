@@ -1,4 +1,4 @@
-// 2026-10-16 (442-12, GAP-D1): a live run is gone only on proof, whatever environment stamped it.
+// A live run is gone only on proof, whatever environment stamped it.
 
 import { spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'

@@ -1,9 +1,4 @@
-// C433-ARTIFACT-CAPTURED.
-//
-// A run started with `agent-qa run` or from the dashboard's Run stores its test as written, its
-// resolved definition and the effective config on its run artifact, so the drawer has Test and
-// Config to show. Every stored string crosses the run's own mask: a declared secret planted in the
-// project's env file is a placeholder in the raw `run_artifacts` column, never its value.
+// A run stores its test, resolved definition and effective config, each through its mask.
 
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -100,7 +95,7 @@ function expectTestCaptured(
   expect(route.status, `GET artifact: ${route.text}`).toBe(200)
   expect(route.body.missingSections, `missingSections ${context}\n${route.text.slice(0, 2_000)}`).toEqual([])
   expect(stored.source?.loadStatus, `stored source.loadStatus ${context}`).toBe('loaded')
-  // the run's redactor records a `{{secret:x}}` reference as `[secret:x]`.
+  // The run's redactor records a `{{secret:x}}` reference as `[secret:x]`.
   const recordedTestFile = testFile.replace(/\{\{secret:(\w+)\}\}/gu, '[secret:$1]')
   expect(stored.source?.rawYaml, `stored source.rawYaml is the test file's bytes ${context}`).toBe(recordedTestFile)
   expect(stored.source?.resolvedDefinition?.name, `resolved definition ${context}`).toBe(testName)
@@ -121,7 +116,7 @@ function expectPlantedLineMasked(raw: string, label: string): void {
   expect(envContent, `the stored config carries the env file as written (${label})`).toBeTypeOf('string')
   expect(envContent, `the planted declared value is its marker (${label})`)
     .toContain(`DOOR_PLANTED_DECLARED=[secret:${POPULATED_SECRET_NAME}]`)
-  // an environment credential is not a declared secret, so it is recorded as written.
+  // An environment credential is not a declared secret, so it is recorded as written.
   expect(envContent, `the planted ambient value is recorded as written (${label})`)
     .toContain(`DOOR_PLANTED_AMBIENT=${POPULATED_SECRET_VALUE}`)
 }

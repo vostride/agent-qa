@@ -1,4 +1,4 @@
-// agent-qa mcp --http alone owns port 3471
+// `agent-qa mcp --http` alone owns port 3471.
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs'

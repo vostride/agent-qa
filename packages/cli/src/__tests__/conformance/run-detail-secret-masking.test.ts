@@ -50,7 +50,7 @@ async function startFixture(
   const root = mkdtempSync(join(tmpdir(), 'agent-qa-423-sinks-'))
   const db = new DashboardDatabase({ dbPath: join(root, 'dashboard.db') })
   const runId = generateRunId()
-  // records hold the declared marker the run wrote; reads mask with the same store.
+  // Records hold the declared marker the run wrote; reads mask with the same store.
   const redactor = new SecretRedactor(new SecretStore({ AUTH_STATE, ALLOWED }))
   const mask = (text: string) => redactor.redactString(text)
   const authPlaceholder = mask(AUTH_STATE)
@@ -90,8 +90,6 @@ async function startFixture(
       secretMask: mask,
       ...extraDeps?.(runId),
     } as FunctionDeps,
-    // no `resolveExecutionContext` registry option; the registry reads
-    // no context.
   })
   const agentHost = composeDashboardAgentHost({ registry } as LocalAgentHost)
   const started = await startServer({
@@ -146,7 +144,7 @@ describe('guarded human read', () => {
   })
 
   it('HTTP-EVIDENCE-MACHINE real authenticated router retains placeholders and durable masked bytes', async () => {
-    // the machine door is tokenless; what it refuses is a cross-site read.
+    // The machine door is tokenless; what it refuses is a cross-site read.
     expect((await fetch(fixture.remoteUrl, { headers: { Origin: 'https://evil.example' } })).status).toBe(403)
     const response = await fetch(fixture.remoteUrl)
     expect(response.status).toBe(200)
@@ -212,7 +210,7 @@ describe('guarded human read', () => {
   })
 })
 
-// the drawer shows and copies stored text as written.
+// The drawer shows and copies stored text as written.
 const KEY = 'key [secret:API_KEY] <EMAIL_81>'
 const VALUE = 'normal [secret:PASSWORD] <SECRET_82> [secret]'
 const NESTED = JSON.stringify({ [KEY]: [VALUE, { note: '[secret:API_KEY]' }] })
@@ -286,14 +284,7 @@ describe('rendered run-detail sinks', () => {
   })
 })
 
-// 423 D-19 · SC5: run detail's review controls re-homed off `routes.chat`. The three places that
-// used to navigate to Chat (member mark, step mark, Knowledge proposals CTA) are driven on the
-// built bundle over real registry reads, by keyboard. Since 426 D-22 the two mark pointers live in
-// the composer history, opened from the header entry and the step trigger; since 432-09 all
-// three show what changed and offer no review command. Scoped to the routed page's own `<main>` (inside the sidebar
-// inset): the global sidebar's
-// Chat entry is 430's removal, not this plan's.
-// each mark applied a knowledge fix, and history joins the changed record.
+// Driven by keyboard on the built bundle, scoped to the routed page's own `<main>`.
 const MEMBER_RECORD = 'mem_member-423-24'
 const STEP_RECORD = 'mem_step-423-24'
 
@@ -327,8 +318,6 @@ function reviewDeps(runId: string): Partial<FunctionDeps> {
         : undefined,
     },
     knowledge: { diffSince: async () => [] },
-    // a bound inbox with a pending proposal must not surface anywhere on the page.
-    // the deleted inbox dep is no longer smuggled in; nothing reads it.
   } as unknown as Partial<FunctionDeps>
 }
 
@@ -370,9 +359,6 @@ describe('run-detail review pointers', () => {
     await fixture?.close()
   })
 
-  // RE-SPELLED 432-09 from 'NO-CHAT-TARGET: no run-detail target is routes.chat, and all three
-  // controls copy a runnable review command by keyboard': the three places that offered a review
-  // command now show what changed and offer none, reached the same way by keyboard.
   it('NO-CHAT-TARGET: no run-detail target is routes.chat, and the three former review places show applied changes with no review command', async () => {
     const chatPath = '/chat'
     const pathOf = (target: string) => new URL(target, fixture.origin).pathname
@@ -380,7 +366,7 @@ describe('run-detail review pointers', () => {
     const navigatedBefore = navigations.length
     expect((await regionTargets(page)).map(pathOf)).not.toContain(chatPath)
 
-    // The two mark histories, opened from the header entry and the step trigger.
+    // The mark histories, opened from the header entry and the step trigger.
     const opens = [
       { selector: '[data-feedback-entry="test"]', address: '0:run', record: MEMBER_RECORD },
       { selector: '[data-step-id="0:0"] [data-feedback-entry="step"]', address: '0:0', record: STEP_RECORD },
@@ -390,8 +376,7 @@ describe('run-detail review pointers', () => {
       await page.keyboard.press('Enter')
       const applied = `[data-feedback-composer][data-feedback-target="${open.address}"] [data-feedback-history="target"] [data-history-applied="knowledge"]`
       await page.waitForSelector(applied)
-      // RE-SPELLED 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW fix 2): one line names the fix and
-      // what it changed.
+      // One line names the fix and what it changed.
       expect(await page.locator(applied).textContent())
         .toBe(`Recorded — a knowledge fact was added: ${open.record} (content unavailable)`)
       expect(await page.locator('[data-history-review], [data-review-command]').count()).toBe(0)

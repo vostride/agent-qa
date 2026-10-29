@@ -1,9 +1,4 @@
-// C433-RUN-ONE-ID.
-//
-// A run started with `agent-qa run` and no `AGENT_QA_RUN_ID` is one run with one id: the run
-// store's event log, the project's dashboard database row and every run id the CLI prints agree,
-// the CLI's own overview reads the recording the store holds, and the dashboard answers the
-// printed id. The built binary is the door; only the model is scripted.
+// A run without `AGENT_QA_RUN_ID` has one id in the run store, the runs.db row and CLI output.
 
 import { generateRunId } from '@vostride/agent-qa-ids'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'

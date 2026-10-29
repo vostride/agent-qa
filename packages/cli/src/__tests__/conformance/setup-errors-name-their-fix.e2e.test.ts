@@ -1,4 +1,4 @@
-// each missing setup prerequisite names its fix
+// Each missing setup prerequisite names its fix.
 
 import { spawn } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'

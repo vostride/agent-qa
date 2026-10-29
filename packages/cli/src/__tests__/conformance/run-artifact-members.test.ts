@@ -1,7 +1,4 @@
-// C444-ARTIFACT-MEMBERS.
-//
-// One real two-test `agent-qa run` over the stub model and Chromium: the artifact its runs.db row
-// carries lists both members, each with its own file's YAML, rather than the first member's.
+// A two-test run's artifact lists both members, each with its own file's YAML.
 
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'

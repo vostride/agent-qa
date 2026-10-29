@@ -1,47 +1,4 @@
-// The rendered-output matrix: what a person READS, for every capability, on every door
-// (Phase 399.1 plan 06, D-08 / D-09 · success criterion 6).
-//
-// WHAT THIS LEG IS FOR, AND WHY THE SUITE DID NOT HAVE IT. 397's conformance suite was measured
-// green AND blind at HEAD 50513a31 — 148 cells, seven legs, and not one of them asked what reached a
-// terminal. Its legs range enumeration (what a surface can REACH), dispatch (what a surface DOES),
-// and policy (what the gate ANSWERS); a capability whose result was computed correctly, masked
-// correctly, persisted correctly and then printed as `<op> completed` satisfies every one of them.
-// That is G-399-2, it held for forty of forty-two capabilities across two phases, and RC-3 is the
-// name for the fact that the suite could not see it. This file is leg 8.
-//
-// THE LOOP RANGES THE CENSUS, AND THAT IS THE WHOLE DESIGN (success criterion 6's own words: "a fix
-// that adds a second hardcoded op reproduces the failure rather than closing it"). There is no op id
-// spelled anywhere below. Every cell's op comes from `SCENARIO_TABLE`, which `parity.test.ts` holds
-// set-equal to `registry.ids()` in BOTH directions, so a capability that lands without a render
-// expectation is the same named RED as one that lands without a scenario (D-09, one denominator).
-// The alternative — an opt-in list of ops this leg happens to cover — is the door-enumeration
-// failure mode: a rule that can only check what it can NAME cannot be driven to zero by naming more
-// things, and a capability absent from such a list is silently absent rather than red.
-//
-// THE RESULT DOCUMENTS ARE PRODUCED FROM THE OPS' OWN CONTRACTS (390-03's produced-not-literal law).
-// Nothing here carries a hand-written result. Each op's document is instantiated from the inert
-// JSON-Schema projection the SHIPPED registry publishes on its declaration — the projection of the
-// very `z.ZodType` `invokeFunction` validates that op's output with — so a document rendered here is
-// a shape that op's contract can actually produce. A cell fed a literal somebody typed can pass
-// against a render that would drop every field of the real thing.
-//
-// AND EVERY CELL CARRIES ITS OWN MUTATION BAR. A detector's bar is the implementation it must RED
-// on, never the suite it passes. So each cell renders the SAME produced document through the
-// pre-399.1 drop site — the literal `<op> completed` line that was the whole of what a person saw —
-// and refuses any marker that survives it. A marker a completion phrase already contains would be
-// vacuously present on the exact build this phase exists to red, and the cell that carried it would
-// certify nothing while reading green.
-//
-// WHY IN-PROCESS AND NOT SPAWNED (D-08, and it is a budget decision made once rather than per cell).
-// A matrix of 42 capabilities across three doors is 107 cells; spawning a built binary for each
-// would be a wall-clock cliff, and a suite too slow to run on every PR degrades into a script
-// somebody runs occasionally, which is a suite that certifies nothing between the times it is run.
-// The renders driven below are the SHIPPED ones — `renderClauseResults` is the module `chat.ts` and
-// `ask.ts` both print through, `renderFnResult` is the expression `agent-qa fn` prints, and
-// `maskedToolResult` is the single masking the MCP server answers both its channels from. What
-// in-process cannot prove is that the ARTIFACT a person installs behaves like the source they were
-// built from; that is `render-anchors.test.ts`'s spawned anchors, one per door, and they assert the
-// same markers these cells assert.
+// Ranges the census and renders documents produced from each op's own contract, in process.
 
 import { stripVTControlCharacters } from 'node:util'
 
@@ -159,17 +116,7 @@ function serialized(value: unknown): string {
   return JSON.stringify(value, null, 2) ?? ''
 }
 
-/**
- * A marker's own JSON spelling — the bytes a FIELD occupies, not the bytes its name does.
- *
- * MEASURED INTO EXISTENCE ON 2026-08-20, by this leg's own mutation bar on its first run. A bare
- * substring search made `ts` — `runs.events`'s timestamp field — vacuously present in the drop-site
- * line `runs.events completed`, because "even**ts**" contains it. Thirteen of 107 cells were in that
- * state, all of them short generic field names (`ts`, `id`, `kind`, `dir`, `line`), and every one
- * would have read green on the exact build G-399-2 was measured on. The token below is what the
- * claim was always about: a marker names a FIELD, and a field is present when its key is, in the
- * quoted-and-colonned form every JSON render — pretty-printed or compact — writes it in.
- */
+// A field is present when its quoted key and colon are: a bare `ts` matches inside `runs.events`.
 function fieldToken(marker: string): string {
   return `${JSON.stringify(marker)}:`
 }
@@ -222,11 +169,7 @@ const RENDER_DOORS: readonly RenderDoor[] = Object.freeze([
   Object.freeze({
     id: 'chat',
     covers: () => true,
-    // The module `chat.ts:151` and `ask.ts:87` both print through. One result, because a turn's
-    // payload block per clause is what a person reads; the compound case is the ordering cell below.
-    // The receipt count is `1` for the same reason the matrix drives one op: each cell is a
-    // single-clause turn, so this is the unlabelled shape and every cell's bytes are unchanged by
-    // 399.1-10's receipt-count keying. The labelled shapes are the two turn-shape cells below.
+    // What `chat.ts` and `ask.ts` print through; a single-clause result is the unlabelled shape.
     render: (opId: string, payload: unknown) =>
       renderClauseResults([{ functionId: opId, payload }], 1).join('\n'),
   }),
@@ -251,7 +194,7 @@ const RENDER_DOORS: readonly RenderDoor[] = Object.freeze([
   Object.freeze({
     id: 'fn',
     covers: () => true,
-    // The door the UAT called honest, and the baseline D-04's default was derived from.
+    // The door taken as the honest baseline for the default render.
     render: (_opId: string, payload: unknown) => renderFnResult(payload),
   }),
 ] as const satisfies readonly RenderDoor[])
@@ -274,9 +217,7 @@ const MATRIX: readonly { readonly row: ScenarioRow; readonly door: RenderDoor }[
 
 describe('the rendered-output matrix: leg 8', () => {
   it('produces a result document for every registered capability, from its own contract', () => {
-    // THE DENOMINATOR CELL. Two named REDs: a capability the registry declares that this leg
-    // renders nothing for, and a document this leg renders for a capability the registry does not
-    // declare. Both sides are read off live enumerations, so the leg cannot quietly stop ranging.
+    // Both directions, read off live enumerations, so the leg cannot quietly stop ranging.
     const rendered = [...new Set(MATRIX.map((cell) => cell.row.opId))]
     const diff = censusDiff(registryOpIds(), rendered)
     expect(
@@ -303,10 +244,7 @@ describe('the rendered-output matrix: leg 8', () => {
   })
 
   it('derives its cell names from the table\'s committed sorted order', () => {
-    // THE FUNC-05/ordering EDGE, closed explicitly. Cell names are what a person greps for after a
-    // red, so a leg whose names varied between runs would be a leg nobody could look anything up in.
-    // The op order is the table's; the table's order is a committed convention; this asserts the
-    // convention rather than trusting it, because the ordering guarantee is inherited from it.
+    // Cell names follow the table's committed order, which is asserted, so a red can be looked up.
     const ids = scenarioTableOpIds()
     expect([...ids], 'the scenario table is no longer sorted by op id, so this leg\'s cell names '
       + 'depend on the order rows happened to be appended in').toEqual([...ids].sort())
@@ -320,9 +258,7 @@ describe('the rendered-output matrix: leg 8', () => {
   for (const { row, door } of MATRIX) {
     it(`${row.opId} on ${door.id}: every declared field of its result reaches a person`, () => {
       const markers = row.renderExpect.markers
-      // THE FUNC-05/empty EDGE, closed at runtime as well as in the type. `readonly [string,
-      // ...string[]]` is defeatable by a cast and by a table assembled from another type; a row with
-      // nothing to look for is a cell that passes on every build, including the blind one.
+      // A cast defeats the non-empty tuple type, and an empty row passes every build.
       expect(
         markers.length,
         `${row.opId}: the row carries an EMPTY render expectation, so this cell asserts nothing — `
@@ -342,8 +278,7 @@ describe('the rendered-output matrix: leg 8', () => {
           + `${JSON.stringify(document.slice(0, 400))}`,
       ).toEqual([])
 
-      // NON-VACUITY, SECOND DIRECTION — the mutation bar. A marker the pre-399.1 drop site already
-      // contained is one the blind build would have passed.
+      // The mutation bar: a marker the `<op> completed` drop site already contains proves nothing.
       const alreadyThere = markers.filter((marker) =>
         droppedRender(row.opId).includes(fieldToken(marker)),
       )
@@ -394,12 +329,7 @@ describe('the rendered-output matrix: leg 8', () => {
 
 describe('the turn shape a person reads, at its empty and ordering edges', () => {
   it('prints no payload block, and no `undefined`, for a turn that executed nothing', async () => {
-    // THE E2E-02/empty EDGE. The failure this forecloses is specific and was reachable: `results[]`
-    // is REQUIRED on the turn contract (399.1 plan 01), the default render is
-    // `JSON.stringify(payload, null, 2)`, and `JSON.stringify` answers the string `undefined` for an
-    // undefined value. A render that walked an empty channel carelessly would put `undefined`, or a
-    // bare `[]`, on the terminal of every turn a person's question was simply not a capability for —
-    // which is the majority of turns in a real conversation.
+    // An unroutable turn renders no `undefined` or bare `[]` for its empty results.
     const observed = await driveChatLines(['this fixture can route absolutely nothing at all'])
 
     // NON-VACUITY FIRST: the turn happened and was refused for the right reason. Without this, a
@@ -415,9 +345,7 @@ describe('the turn shape a person reads, at its empty and ordering edges', () =>
         + 'ran" and "this build does not report results" must not be the same bytes',
     ).toEqual([])
 
-    // What a person SAW. Sliced after the session banner, because the starter prompts chat prints at
-    // open are committed catalogue text that arrives before any turn runs (the 398-13 vacuity trap).
-    // picocolors colors whenever `CI` is set, and a CSI escape is not a `[` a person reads.
+    // Sliced after the banner, past the starter prompts; picocolors colours whenever `CI` is set.
     const read = stripVTControlCharacters(observed.stdout)
     const marker = 'session chat-'
     const at = read.indexOf(marker)
@@ -488,22 +416,10 @@ describe('the turn shape a person reads, at its empty and ordering edges', () =>
     ).toBe(false)
   }, 180_000)
 
-  // ---- The MIXED-outcome turn: receipts outnumber results, and the survivor must name itself ----
-  //
-  // THE THIRD SIDE OF ONE GUARD, and the two cells below are deliberately committed together.
-  // `renderClauseResults` labels a payload with its op name or does not, and there are three shapes
-  // a turn can present it with: receipts == results == 1 (M2, no label), receipts == results > 1
-  // (the ordering cell directly above — labels, already pinned there), and receipts > results (M1,
-  // the shape gap 2 was measured in). A rule with a precondition needs a case its precondition
-  // REJECTS or the cells are all drawn from inside the rule's own assumption (384-04's law).
+  // Receipts outnumber results here, so the survivor must label its payload with its own op.
 
   it('a mixed-outcome compound turn labels the surviving payload with its own op', async () => {
-    // GAP 2, as the verifier measured it on the shipped binary: two ordinary clauses, no credential,
-    // one executes and one fails. Both surfaces print ALL receipts and THEN all payloads, so the
-    // receipt line standing nearest above the payload block belongs to the SECOND clause — the one
-    // that failed — while the payload beneath it belongs to the FIRST. A person reads
-    // `{ "entries": [] }` as `runs.digest`'s answer when it is `quarantine.list`'s (`proposals.list` until 432-17). One op's output
-    // read as another op's is the legibility class this phase exists to close (D-04, phase goal).
+    // Receipts print before payloads, so the nearest receipt can belong to another clause.
     const observed = await driveChatLines([
       '/fn quarantine.list {} then /fn runs.digest {"runId":"r_nope"}',
     ])
@@ -565,16 +481,7 @@ describe('the turn shape a person reads, at its empty and ordering edges', () =>
   }, 180_000)
 
   it("a single-clause turn stays unlabelled (the guard's reject side)", async () => {
-    // THE CONTROL, and the reason it is committed beside M1 rather than assumed: the guard M1 moves
-    // has a precondition, and a suite drawn only from cases the precondition ACCEPTS cannot tell a
-    // receipt-count guard from an unconditional label. This cell is the reject side — one receipt,
-    // one result, no label — and what keeps a future drift to "always label" an explicit decision
-    // somebody makes rather than an accident nothing notices.
-    //
-    // Its rationale is the render module's own (result-render.ts): the receipt line directly above
-    // already names the op, so a label here would put the same word twice on two consecutive lines.
-    // The third shape — receipts == results > 1 — is pinned by the ordering cell above, whose
-    // comparand is the labelled compound render.
+    // The reject side: one receipt, one result, no label, because the receipt line names the op.
     const observed = await driveChatLines(['/fn quarantine.list {}'])
 
     // NON-VACUITY FIRST: a drive that never reached the capability would satisfy "no label" trivially.

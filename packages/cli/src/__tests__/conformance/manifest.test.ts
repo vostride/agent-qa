@@ -1,22 +1,4 @@
-// The manifest legs: the derived example calls and `init --agent`.
-//
-// WHAT THIS FILE IS FOR. The catalog is one committed artifact: the rows, an example call derived
-// per op, and one non-interactive read — `agent-qa init --agent` — that hands an external agent all
-// of it plus this workspace's posture. The cells below measure that those are the same bytes.
-//
-// WHERE EACH CELL POINTS, AND WHY IT MATTERS. The census cells here read the LIVE mint, exactly as
-// plan 01's six censuses do, and that is a deliberate division of labour rather than a convenience:
-// ONE cell in this directory owns "committed versus live" (the freshness leg in `catalog.test.ts`,
-// which byte-compares the whole document), and every other cell asserts a property of what the
-// producer produces. Two cells owning the same comparison would mean a stale artifact reds twice
-// and says two different things, and — the reason that matters here — the regen script's
-// refuse-while-red gate allows exactly ONE red by name. A census cell that read
-// the committed file would make the artifact unregenerable the moment the producer legitimately
-// changed, which is the one state the script exists to let a person out of.
-//
-// THE MANIFEST CELLS ARE THE EXCEPTION, and they are the exception on purpose: `buildAgentManifest`
-// LOADS the committed artifact, so a manifest cell that read a live mint would be measuring a
-// second recipe rather than the shipped read path.
+// The census cells read the live mint; only `catalog.test.ts` compares committed and live bytes.
 
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -41,7 +23,7 @@ import {
   capabilityCatalogFromRoot,
 } from './catalog.js'
 
-// ---- The derived example calls (spec §3.3, D-08) -----------------------------------------------
+// ---- The derived example calls ----
 
 describe('the catalog\'s example calls', () => {
   let live: CapabilityCatalog
@@ -54,9 +36,7 @@ describe('the catalog\'s example calls', () => {
     live.rows.filter((row): row is CatalogOpRow => row.kind === 'op')
 
   it('re-derives byte-identically from each row\'s OWN params — produced, never authored', () => {
-    // The whole of D-08 for this column, as one comparison: every example in the artifact is what
-    // the pure derivation answers when handed that row's params and nothing else. A hand-written
-    // example — however good — cannot survive this cell, which is the point.
+    // Each example is what the derivation answers for that row's params; a hand-written one reds.
     const drifted: string[] = []
     for (const row of opRows()) {
       const derived = catalogExampleCallOf(row.params, row.id)
@@ -79,14 +59,7 @@ describe('the catalog\'s example calls', () => {
   })
 
   it('states an example or a reason there is none — never a silent blank', () => {
-    // The presence rule for the third state, asserted rather than refined (the discriminated-union
-    // constraint plan 01 documented). An absent example WITHOUT a reason is the silent blank D-07
-    // refused for doc paths, one column over.
-    // THE DENOMINATOR FIRST. Both filters below select on `exampleCall === null`, and a row that
-    // carries no such KEY at all satisfies neither — so without this line a catalog that had
-    // simply never grown the column would pass every assertion in this cell. The cast is what
-    // lets the question be ASKED: the DTO makes the column required, so the compiler narrows the
-    // check away, and the fact being guarded here is a runtime one about produced rows.
+    // The cast asks a runtime question: a catalog without the column would pass both filters.
     const columnless = opRows()
       .filter((row) => !('exampleCall' in (row as unknown as Record<string, unknown>)))
       .map((row) => row.id)
@@ -134,13 +107,7 @@ describe('the catalog\'s example calls', () => {
       + 'params carry a construct the derivation will not guess at (today: a regular-expression '
       + '`pattern`). A new member is a deliberate decision, not a default.',
     ).toEqual([
-      // `knowledge.proposal.apply` and `proposals.accept`/`reject`/`show` left
-      // with the inbox, so the set is down to its one 405-05 member.
-      // a FIFTH member, in sort position, and a deliberate one.
-      // `runs.artifact` requires a `sha` constrained to 64 lowercase hex, and the derivation will
-      // not guess at a regular-expression `pattern` — which is right: an invented sha would be a
-      // documented example call that resolves to nothing, teaching a reader a request the store
-      // can only answer `blob_absent` for. The honest catalog entry is the explicit absence.
+      // `runs.artifact` needs a hex `sha` and the derivation guesses no `pattern`, so it is absent.
       'runs.artifact',
     ])
     // The vacuity floor on the other side: most ops DO get an example, and a derivation that
@@ -327,10 +294,7 @@ describe('the agent manifest', () => {
   }
 
   it('IS the committed catalog: rows, through the ONE loader', async () => {
-    // SC-1's "the same manifest" clause, as a comparison rather than a sentence. Both sides read
-    // the committed artifact through `loadCapabilityCatalog`, which is exactly the claim — the
-    // manifest is a LOAD, so a consumer that got its rows from the manifest and a consumer that got
-    // them from the catalog cannot be looking at two different capability sets.
+    // Both sides read the committed artifact via `loadCapabilityCatalog`: the manifest is a load.
     const manifest = await buildAgentManifest({
       configPath: join(fixtureProject('identity'), 'agent-qa.config.yaml'),
     })
@@ -343,17 +307,11 @@ describe('the agent manifest', () => {
   })
 
   it('emits EVERY row, unfiltered — it documents, it does not grant', async () => {
-    // THE PROHIBITION, MEASURED. The failure this refuses is a manifest that quietly applied the
-    // visibility law a second time: rows would vanish for reasons no cell states, and the two
-    // places the law lived would agree until one of them was improved. `config-write` ops are the
-    // sharpest case — they are exactly what the D-07 default grant WITHHOLDS, so a manifest that
-    // filtered by the default scope set would drop them.
+    // The manifest must not filter: a second application of the visibility law drops rows silently.
     const manifest = await buildAgentManifest({
       configPath: join(fixtureProject('unfiltered'), 'agent-qa.config.yaml'),
     })
-    // rows carry no scope column any more, so "outside the default grant" is no
-    // longer a property a row has. The claim survives as completeness: every registered op is a row,
-    // including every config write the old default grant withheld.
+    // Rows carry no scope column, so the claim is completeness: every registered op is a row.
     const opRows = manifest.rows.filter((row): row is CatalogOpRow => row.kind === 'op')
     expect(
       opRows.map((row) => row.id).sort(),
@@ -361,17 +319,12 @@ describe('the agent manifest', () => {
     ).toEqual([...registryOpIds()].sort())
     expect(opRows.filter((row) => row.id.startsWith('config.') && row.id !== 'config.get').length)
       .toBeGreaterThan(0)
-    // …and the note a reader gets says so, in the document rather than in a source file.
-    // RE-SPELLED 2026-10-02 from `NOT A GRANT LIST`: there is no grant to contrast
-    // with, so the note says the manifest is unfiltered and that nothing is permissioned.
+    // The note says the manifest is unfiltered and nothing is permissioned, in the document itself.
     expect(manifest.$note.join(' ')).toContain('THIS MANIFEST IS UNFILTERED')
     expect(manifest.$note.join(' ')).toContain('there are no permissions')
     expect(manifest.$note.join(' ')).not.toMatch(/grant list/iu)
   })
 
-  // RE-SPELLED 2026-10-01 from '… by env-ref NAME …'. The manifest reads no MCP token
-  // declaration any more, so a legacy block yields no ref at all; the never-by-value half is the claim
-  // that survives, and it is still measured against a value that is SET while the manifest builds.
   it('reports a declared credential by env-ref NAME and never by value',
     async () => {
     // THE REFS-ONLY LAW, DRIVEN OVER A REAL SECRET. A cell that only asserted the shape of the
@@ -387,21 +340,15 @@ describe('the agent manifest', () => {
     try {
       const manifest = await buildAgentManifest({ configPath })
 
-      // THE CONTROL ON THE CONTROL, FIRST. The sentinel must still be readable at the moment the
-      // manifest was built, or its absence below is a property of an unset variable rather than of
-      // this product. (Measured 2026-08-17: written first as a `.then()` with a synchronous
-      // `finally`, this line caught the restore firing BEFORE the build — the absence assertion
-      // was vacuous and said nothing about it.)
+      // The sentinel must be set while the manifest builds, or its absence below proves nothing.
       expect(process.env[tokenEnvVar], 'the sentinel was not set during the build').toBe(sentinel)
 
       const serialized = JSON.stringify(manifest, null, 2)
 
-      // the legacy block is a deleted key, so the config does not resolve.
+      // The legacy block is a deleted key, so the config does not resolve.
       expect(manifest.posture.configuration, 'a legacy token block must fail strict validation')
         .toBe('unresolved')
-      // no ref is reported — the legacy block is read by nothing. The non-vacuity
-      // control is the rows: the manifest is whole, so the absence below is about a real document.
-      // the posture has no ref member at all now.
+      // No ref is reported; the whole set of rows is the non-vacuity control.
       expect(manifest.posture, 'the manifest reported a legacy token declaration')
         .not.toHaveProperty('tokenEnvRefs')
       expect(manifest.rows.length, 'the manifest carried no rows').toBeGreaterThan(0)
@@ -419,10 +366,7 @@ describe('the agent manifest', () => {
     }
   })
 
-  // RE-SPELLED 2026-10-02: `AgentManifestTokenRefSchema` is deleted with the posture's
-  // `tokenEnvRefs`. The structural half survives one level up: the posture is `.strict()`, so a
-  // token ref — with a value or without — cannot be added by accident; it stops parsing.
-  // RE-TITLED 2026-10-02 (432-42, 432-39 #5) from 'refuses a token ref carrying a value, rather than passing one through': the body asserts the absence, so the title does.
+  // The posture is `.strict()`, so a token ref, with a value or without, stops parsing.
   it('refuses a token ref on the strict posture, with a value or without one', () => {
     const refused = AgentManifestPostureSchema.safeParse({
       configuration: 'resolved',
@@ -445,12 +389,6 @@ describe('the agent manifest', () => {
     expect(AgentManifestPostureSchema.safeParse({ configuration: 'resolved' }).success).toBe(true)
   })
 
-  // RE-SPELLED 2026-10-01: the MCP default grant (every scope but `config-write`)
-  // is deleted with the token resolver. Every caller reaches every op, so the posture reports the
-  // WHOLE closed scope union, read off the union rather than restated, and safe mode is off.
-  // RE-SPELLED 2026-10-02: the union, the grant and the safe-mode member are deleted,
-  // so there is nothing left to restate: the posture carries neither member, and the CLI mint no flag.
-  // RE-TITLED 2026-10-02 (432-42, 432-39 #5) from 'reads the shipped default grant and safe-mode state rather than restating them': the body asserts the absence, so the title does.
   it('reports a posture of exactly { configuration }, with no default grant or safe-mode member', async () => {
     const manifest = await buildAgentManifest({
       configPath: join(fixtureProject('posture'), 'agent-qa.config.yaml'),

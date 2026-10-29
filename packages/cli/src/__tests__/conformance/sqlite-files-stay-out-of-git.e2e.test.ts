@@ -1,4 +1,4 @@
-// a fresh workspace keeps the writer-authority SQLite files out of git
+// A fresh workspace keeps the writer-authority SQLite files out of git.
 
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'

@@ -1,5 +1,4 @@
-// the built bin and the stdio MCP server answer a run that ended without
-// a verdict with a plain sentence, and their lists keep listing completed runs only.
+// A run that ended without a verdict gets a plain sentence; the lists keep only completed runs.
 
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'

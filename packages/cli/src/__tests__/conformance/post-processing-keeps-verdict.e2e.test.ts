@@ -1,9 +1,4 @@
-// real `agent-qa run`s whose post-processing ends
-// failed, skipped (gate run) or pending keep their verdict and exit code on the CLI, MCP and the
-// dashboard, and every surface prints D-13's stage words. The failed leg is a failed run whose
-// analyze-run author is refused: its own tail leaves the job retrying (`pending`), and two shipped
-// `agent-qa agent-jobs pump --only analyze-run` drains, each started once the row's backoff has
-// passed, spend attempts 2 and 3. A passed run's analysis asks no model, so it has no failed leg.
+// Runs whose post-processing ends failed, skipped or pending keep verdict and exit.
 
 import { spawn } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
@@ -43,8 +38,7 @@ const BACKOFF_BOUND_MS = 30_000
 const FORWARDED_CI = process.env.CI
 const CHILD_CONTEXT = isTruthy(FORWARDED_CI) ? 'ci' : 'local-headless'
 
-// D-22, `post-run-tail.ts`'s `CI_PENDING_SUFFIX`, per stage drainer. Outside `ci` the suffix
-// comes from the drain's posture, and `detached` and `retry-scheduled` both map to `none` there.
+// `post-run-tail.ts`'s `CI_PENDING_SUFFIX` per drainer; outside `ci` the posture decides.
 const CI_PENDING_SUFFIX = {
   analysis: " (resumes only if this workspace's .agent-qa/ is kept and a later run or the daemon picks it up)",
   curation: " (resumes only if this workspace's .agent-qa/ is kept and a later local run picks it up)",
@@ -87,8 +81,7 @@ interface Reads {
   errors: string[]
 }
 
-// `runs.overview` carries the verdict and, in its Learned half, the curation chip and, for a chain
-// that was never enqueued, the skipped fact beside it.
+// `runs.overview` carries the verdict and, in its Learned half, the curation chip and skipped fact.
 interface OverviewDocument {
   readonly aggregateVerdict?: string
   readonly learned?: {
@@ -190,8 +183,7 @@ function verdictOf(project: PopulatedRunProject, runId: string): unknown {
   return undefined
 }
 
-// Read-only, waiting out a drainer's write lock. A read that still fails is thrown, and
-// the caller records it as an unreadable sample the cells reject.
+// Read-only, waiting out a drainer's write lock; a read that still fails is a rejected sample.
 function analyzeRunRow(project: PopulatedRunProject, runId: string): JobRow {
   const db = new DatabaseSync(join(project.agentQaRoot, 'agent-jobs.db'), { readOnly: true, timeout: 5_000 })
   try {
@@ -577,8 +569,7 @@ describe('post-processing never changes the verdict', () => {
     expect(drains[0]?.after, seen()).toMatchObject({ status: 'queued', attempts: 2, lastFailureKind: 'retry' })
     expect(drains[1]?.after, seen()).toMatchObject({ status: 'failed', attempts: 3, lastFailureKind: 'permanent' })
 
-    // analyze-run's permanent failure proceeds into curate-memory, which only a local run's tail
-    // drains (D-20's masked-leg rule), so curation truthfully reads `pending`.
+    // Only a local run's tail drains curate-memory, so curation truthfully reads `pending`.
     expectLeg('failed-analysis', {
       exitLine: { analysis: pendingWord('analysis'), curation: pendingWord('curation') },
       chain: { analysis: 'failed', curation: 'pending' },

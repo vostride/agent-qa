@@ -1,6 +1,4 @@
-// crash, pending-at-exit and
-// retained-state resume on real `agent-qa` processes in one project, so every resume runs in the
-// workspace its run left behind.
+// Crash, pending-at-exit and retained-state resume on real `agent-qa` processes in one project.
 
 import { spawn, spawnSync } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'
@@ -52,13 +50,12 @@ const HOLD_BUDGET_MS = 120_000
 const BROWSER_SELF_EXIT_MS = 10_000
 const POLL_MS = 50
 const PENDING_BUDGET_MS = 600_000
-// where the stalled leg stops waiting for its run to exit on its own; never asserted.
+// Where the stalled leg stops waiting for its run to exit; never asserted.
 const STALL_EXIT_CEILING_MS = DRAIN_BUDGET_MS + 120_000
 const RESUME_BUDGET_MS = 600_000
 const DAEMON_BOUND_MS = 120_000
 const DAEMON_STOP_BOUND_MS = 30_000
-// the hermetic TMPDIR is too deep for the daemon's socket path, so the daemon gets its own
-// short root under /tmp, removed once it has stopped.
+// The hermetic TMPDIR is too deep for the daemon's socket path, so it gets a short root under /tmp.
 const DAEMON_TMP_PREFIX = '/tmp/aq444-'
 
 // The child's execution context is resolved from the environment this file builds for it (stdio
@@ -71,8 +68,7 @@ const CRASH_HOLD_MARKER = 'once the operator lifts the crash hold'
 const BROWSER_CLOSED_SENTENCE = 'The browser closed before this test finished.'
 const PENDING_FILE = 'post-verdict-pending.json'
 
-// D-22, `post-run-tail.ts`'s `CI_PENDING_SUFFIX` and `STAGE_DRAINER`. Outside `ci` the suffix comes
-// from the drain's posture, and `detached`, `retry-scheduled` and `budget-exhausted` all map to `none`.
+// `post-run-tail.ts`'s `CI_PENDING_SUFFIX` and `STAGE_DRAINER`; outside `ci` posture decides.
 const CI_PENDING_SUFFIX = {
   'any-host': " (resumes only if this workspace's .agent-qa/ is kept and a later run or the daemon picks it up)",
   'masked-leg-only': " (resumes only if this workspace's .agent-qa/ is kept and a later local run picks it up)",
@@ -377,8 +373,7 @@ function loggedEvents(project: PopulatedRunProject, runId: string): Envelope[] {
     })
 }
 
-// A run may still be writing runs.db from another process; the read waits out its write lock, and
-// one that still fails is recorded as unreadable, which no cell accepts as a row.
+// The read waits out another process's write lock; one that still fails is recorded as unreadable.
 function readRow(project: PopulatedRunProject, runId: string): RowView | string {
   const dbPath = resolveDashboardDbPath({ configDir: project.root })
   if (!existsSync(dbPath)) return 'absent: no runs.db'
@@ -439,8 +434,7 @@ function eventsThroughRunFinished(dir: string): RunSnapshot['eventsThroughRunFin
   return { lines: index + 1, sha256: sha256(`${lines.slice(0, index + 1).join('\n')}\n`) }
 }
 
-// Every file under the run's directory with its sha256, the log through `runFinished` and the
-// row; whether preparation was still pending is read beside them (D-37's precondition).
+// Every file under the run with its sha256, the log through `runFinished`, row and pending.
 function snapshotRun(project: PopulatedRunProject, runId: string, label: string): RunSnapshot {
   const dir = runDirOf(project, runId)
   if (dir === undefined) return { label, files: [], pendingPreparation: false, row: readRow(project, runId) }
@@ -522,9 +516,7 @@ async function untilHeld(model: StubModelServer, already: number, ended: () => b
   }
 }
 
-// A SIGKILLed CLI cannot close its browser. Whether Chromium leaves on its own (its pipe closed) is
-// measured within a bound and recorded; whatever is left is killed here, so none outlives the cell.
-// only by the identity recorded at the kill, never by pid alone.
+// A SIGKILLed CLI cannot close its browser; what remains is killed by recorded identity.
 async function measureChromiumAfterKill(facts: CrashFacts): Promise<void> {
   const pids = facts.chromiumAtKill ?? []
   const killedAt = Date.now()
@@ -573,7 +565,7 @@ async function driveCrash(): Promise<void> {
   crash.overviewBeforeCleanup = await overview(project, runId)
   crash.overviewUnknownId = await overview(project, generateRunId())
 
-  // Starting the dashboard runs 442's orphan cleanup over the project's runs.db.
+  // Starting the dashboard runs its orphan cleanup over the project's runs.db.
   const scene = await openDashboardScene(project)
   scenes.push(scene)
   try {
@@ -618,9 +610,7 @@ function readExit(project: PopulatedRunProject, leg: PendingLeg, ended: Spawned)
   leg.output = output.slice(-3_000)
 }
 
-// a failed run whose analyze-run author is held and never answered. The tail's budget
-// aborts the request and the run exits by itself; only a run still alive at the ceiling has its
-// author refused, so that it can end.
+// The tail's budget aborts the held author request; a run alive at the ceiling is refused.
 async function driveStalled(): Promise<void> {
   const { project, model } = await sharedProject()
   const leg = pendingLeg('stalled', project.testPath, [])
@@ -687,8 +677,7 @@ async function localRun(testPath: string): Promise<LocalRun> {
   return run
 }
 
-// the stub's hold is lifted, and one later local run's tail drains every queued chain,
-// oldest first, so the stalled run's analysis and curation finish there.
+// With the hold lifted, a later local run's tail drains every queued chain, oldest first.
 async function driveResumeByRun(): Promise<void> {
   const { project, model } = await sharedProject()
   const stalled = pending.stalled
@@ -729,8 +718,7 @@ function analyzeRunStatus(rows: JobRow[] | string): string | undefined {
   return Array.isArray(rows) ? rows.find((row) => row.kind === 'analyze-run')?.status : undefined
 }
 
-// `agent-qa daemon` in the same workspace, with a short TMPDIR. It is stopped once the
-// detached run's analysis reads complete, and the cell confirms it and its children are gone.
+// `agent-qa daemon` with a short TMPDIR, stopped once the detached run's analysis completes.
 async function driveDaemon(): Promise<void> {
   const { project } = await sharedProject()
   const detached = pending.detached
@@ -803,8 +791,7 @@ async function durableReads(project: PopulatedRunProject, runIds: readonly strin
   return reads
 }
 
-// D-20's masked-leg rule: only a local run's tail claims curation, so a last local run finishes
-// the detached run's chain.
+// Only a local run's tail claims curation, so a last local run finishes the detached run's chain.
 async function driveCurationRun(): Promise<void> {
   const { project } = await sharedProject()
   const stalled = pending.stalled!
@@ -817,8 +804,7 @@ async function driveCurationRun(): Promise<void> {
   ;[resume.stalledFinalRead, resume.detachedFinalRead] = await durableReads(project, [stalled.runId, detached.runId])
 }
 
-// D-37's byte-identical set: the handoff, the artifact snapshot, every blob, the log through
-// `runFinished`, and the row's status, end time and duration.
+// The byte-identical set: handoff, artifact snapshot, blobs, log to `runFinished`, row.
 function d37View(snapshot: RunSnapshot | undefined): unknown {
   const row = snapshot?.row
   return {
@@ -969,8 +955,7 @@ describe('a run whose process is killed', () => {
     const at = expectCrashDrove()
     expect(crash.postProcessing?.status, at).toBe(200)
     const status = (crash.postProcessing?.body as { status?: { skipped?: { reason?: string } } }).status
-    // The fact is derived only from a bound `readRecord` that found the closed row; an
-    // unknown id on the same dashboard derives none, so the reader answered for this row.
+    // Only a bound `readRecord` that found the closed row derives the fact; unknown ids none.
     expect(status?.skipped, at).toEqual({ reason: 'no-verdict' })
     expect(`skipped (${POST_PROCESSING_SKIP_REASON_WORDS[status!.skipped!.reason as 'no-verdict']})`, at)
       .toBe('skipped (no verdict)')
@@ -1004,8 +989,7 @@ describe('post-processing still pending when a run exits', () => {
     refuseWithoutRecordingTools()
     if (process.platform === 'win32') throw new Error('POSIX run lifecycle required; never skip')
     try {
-      // D-56's leg order: the queue claims oldest first, so the detached run is made only after the
-      // resume run has drained the stalled run's chain.
+      // The queue claims oldest first, so the detached run is made after the stalled chain drains.
       await driveStalled()
       try {
         await driveResumeByRun()
@@ -1022,8 +1006,7 @@ describe('post-processing still pending when a run exits', () => {
     const at = seen(pending)
     const run = expectPendingAtExit(pending.stalled, 'failed', at)
     expect(run.reached, `the analyze-run author was held\n${at}`).toBe('held')
-    // the run exited by itself with its author still held, and the tail's budget
-    // aborted the request rather than anything answering it.
+    // The run exited with its author held; the tail's budget aborted the request.
     expect(run.exitedWhileHeld, `the run exited with no refusal or release\n${at}`).toBe(true)
     expect(run.aliveAtCeiling, at).toBeUndefined()
     expect(run.refused, at).toBeUndefined()
@@ -1092,9 +1075,7 @@ describe('resuming pending post-processing', () => {
     expect(run?.recordedVerdict, at).toEqual({ verdict: 'passed' })
     expect(run?.exit, at).toEqual({ code: 0, signal: null })
     expect(run?.printed, at).toBe(true)
-    // The stalled run's analysis was answered inside the resume run's tail by the stub's default
-    // prose arm, and nothing was held after the release. 444.1 D-01: its interrupted attempt was
-    // refunded, so this is its one counted attempt.
+    // The resume run's tail answered the stalled analysis; its interrupted attempt is refunded.
     expect((run?.analysisRequests ?? []).length, at).toBeGreaterThan(0)
     for (const request of run?.analysisRequests ?? []) expect(request, at).toEqual({ kind: 'text', status: 200 })
     const jobs = resume.stalledJobsAfterResumeRun

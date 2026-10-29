@@ -1,15 +1,4 @@
-// on `agent-qa run` a signal is answered by the run's own
-// shutdown path, not by Playwright's. Each cell holds a real run inside its step (the stub model
-// parks the planning turn), sends one signal to the built bin and reads what the run left: the
-// exit, `runFinished`, the printed run id, the verdict, the runs.db row and the Chromium it had.
-// The grace timer is set to 120 s and the run must end within 30 s, so only the run's own path
-// can pass (research Pitfall 4). Every other door keeps Playwright's handling: a dashboard run in
-// this process gains Playwright's listeners while its browser is open, and only `agent-qa run`'s
-// two producer calls name the option.
-// a hang-up is a cancel on this door too, so one SIGHUP to a held direct
-// run must end through the same path; the dashboard door still keeps Playwright's default.
-// a terminal close under zsh delivers SIGHUP twice about 1 ms apart, so
-// two SIGHUPs that far apart must end a held direct run once, through the same path.
+// On `agent-qa run` a signal, a doubled SIGHUP too, ends the run through its own shutdown.
 
 import { spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'

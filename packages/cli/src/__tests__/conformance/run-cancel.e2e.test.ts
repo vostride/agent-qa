@@ -1,11 +1,4 @@
-// a cancel is proven against a run that is really
-// running. Each leg parks a run inside step 1 on a real page in real headless Chromium (the stub
-// model holds the planning turn and never answers it), cancels it through one door and reads what
-// the run left: no later step, the held request aborted, the run's Chromium gone, a `cancelled`
-// verdict and handoff, and a runs.db row that reads `running` at every poll until the verdict
-// envelope exists. The held turn is answered only by a release this file issues at cleanup, and the
-// model client's own request timeout is far beyond the settle wait, so a cancel that does nothing
-// fails the leg.
+// A cancel is proven against a run parked inside step 1 on a real page, through each door.
 
 import { spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'
@@ -314,9 +307,7 @@ function seen(facts: LegFacts): string {
   }, null, 2)
 }
 
-// The per-leg set: the run was parked in its step with a live browser, nothing ran after the
-// cancel, the held request was aborted, the browser closed, the verdict and the handoff read
-// `cancelled`, and the row read `running` at every poll until the verdict envelope existed.
+// Per leg: parked live, nothing after the cancel, request aborted, browser gone, `cancelled`.
 function expectCancelledInPlace(facts: LegFacts): void {
   const at = seen(facts)
   expect(facts.error, at).toBeUndefined()
@@ -327,8 +318,7 @@ function expectCancelledInPlace(facts: LegFacts): void {
   expect(facts.settled, `the run settled within ${String(SETTLE_BUDGET_MS)} ms of the cancel\n${at}`).toBe(true)
   expect(facts.stepsStartedAfterCancel, `no step started after the cancel\n${at}`).toBe(0)
   expect(facts.events?.filter((type) => type === 'stepStarted'), at).toEqual(['stepStarted'])
-  // the ratified one-terminal-record contract publishes exactly one record for the held
-  // step, and it names no cause.
+  // One terminal record for the held step, naming no cause.
   expect(stepRecords(facts), `the held step has exactly one cancelled record\n${at}`).toEqual([
     { testIndex: 0, stepIndex: 0, status: 'cancelled', error: HELD_STEP_RECORD },
   ])
@@ -477,7 +467,7 @@ async function driveCliLeg(
         ...populatedRunSpawnEnv(),
         CI: 'true',
         NO_COLOR: '1',
-        // Research Pitfall 4: the grace backstop's exit 130 can never stand in for the run's own.
+        // The grace backstop's exit 130 can never stand in for the run's own.
         AGENT_QA_CANCEL_GRACE_MS: '120000',
         AGENT_QA_RUN_ID: runId,
       },
@@ -519,8 +509,7 @@ async function driveCliLeg(
   }
 }
 
-// The CLI legs add the exit beside the verdict, never alone, and D-30: one signal stopped the run
-// and the row's `cancelled` is the verdict's, not the forced-exit close's.
+// The CLI legs add the exit beside the verdict; the row's `cancelled` is the verdict's.
 function expectCliCancelled(facts: CliFacts): void {
   expectCancelledInPlace(facts)
   const at = seen(facts)

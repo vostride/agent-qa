@@ -1,49 +1,4 @@
-// The render anchors: what the SHIPPED chat binary prints when an op answers.
-//
-// THE DEFECT THESE CELLS EXIST FOR (G-399-2, measured 2026-08-20 at HEAD 50513a31). A credential
-// refusal, a validation refusal and a genuine success all rendered byte-identically on chat's
-// stdout as `config.field.set completed`, with `executed` in green. The guardrail HELD — nothing
-// was written — and the person was told the mutation completed. The corrective information the
-// product had already computed and persisted (`blockedReason` distinguishing "you tried to write a
-// secret" from "your config is invalid"; the scan findings naming the detector and the file) never
-// reached the one person it was written for. 2026-10-14: a config change is no
-// longer scanned, so the only blocked reason left is `schema-fail`.
-//
-// THE ASSERTION SURFACE IS CHILD STDOUT, AND THAT IS THE POINT (criterion 1's own words; 395's
-// corpus-blind-by-assertion-surface lesson). Every cell in phase 399 asserted on the op's RETURN
-// VALUE, which was correct, complete and safely redacted the whole time — and none of them asked
-// whether any byte of it reached a terminal. So these cells spawn `dist/cli.js`, type one turn into
-// a real pipe, and read what came back. An in-process `renderTurn` assertion is not stdout either.
-//
-// THE VACUITY TRAP, NAMED RATHER THAN AVOIDED BY LUCK (the 398-13 cell's law). `chat.ts` prints
-// three starter prompts at open, and each starter is a catalog row's own description — committed
-// text is in this child's stdout before any turn runs. Worse for these cells specifically: the
-// utterance is echoed on the receipt line, so a whole-stdout search for a value THE UTTERANCE
-// CARRIES would pass on a build that renders nothing at all. Every search below therefore runs over
-// the slice AFTER a marker, the marker is the echoed clause itself, and its uniqueness is asserted
-// so the slice cannot be silently widened by a second occurrence.
-//
-// THE MARKER IS THE CLAUSE, NOT `<op> completed`. The 398-13 cell marks on the outcome line, which
-// is exactly the string this phase changes: a refused clause stops saying `completed` the moment
-// the fix lands, and a marker that vanished under the fix would red these cells for the wrong
-// reason at GREEN time. The echoed clause is stable across both revisions and unique per cell.
-//
-// EXPECTATIONS ARE READ OFF THE ANSWER THE RUN ITSELF GAVE (produced-not-literal; 390-03's law).
-// Not one blocked reason, detector name, validation issue or diff line is spelled in this file.
-// Each cell drives the binary, reads the op's own answer off the session log the child wrote,
-// parses it with the SHIPPED contract, and asks whether those bytes reached the terminal. 2026-09-30,
-// the answer used to be read off the proposal record the drive filed; the config op now
-// writes in the call and files nothing, so the child's own clause_result is the record.
-//
-// NO CREDENTIAL, REAL OR OTHERWISE. 2026-10-14: config changes are not scanned, so
-// the guardrail arm these cells once drove is gone. The refusal arm they drive instead is the
-// reference field's refs-only refusal, over a SYNTHETIC value that is not shaped like a variable
-// name. The child's environment is constructed rather than inherited so no ambient provider
-// credential can reach it.
-//
-// THE INSTRUMENT IS IMPORTED, NEVER RE-ROLLED. `spawned-chat.ts` owns the driver, the hermetic
-// environment, the fixture recipe and the freshness guard — see its header for why a second copy of
-// any of them would be a second answer to "what did the child inherit".
+// Searches run after the echoed clause, because starter prompts and the echo put row text earlier.
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join, relative } from 'node:path'
@@ -139,14 +94,7 @@ interface RenderReading {
   readonly stderr: string
 }
 
-/**
- * The ONE `config.field.set` answer the child logged after a drive, parsed rather than read as JSON.
- *
- * PARSED WITH THE SHIPPED SCHEMA so a cell cannot build its expectation out of a shape the product
- * does not actually produce, and so an answer that stopped conforming is a red here rather than an
- * `undefined` quietly reaching a `toContain`. Nothing is filed any more, and the drive's
- * runtime root is asserted to hold no proposal record.
- */
+// Parsed with the shipped schema, so a nonconforming answer reds rather than `undefined`.
 function changeAnswer(root: string, opId: string = CONFIG_FIELD_SET_FUNCTION_ID): ConfigChangeOutput {
   expect(existsSync(join(root, '.agent-qa', 'proposals')), 'the drive filed a proposal record')
     .toBe(false)
@@ -235,9 +183,6 @@ function withheld(label: string, reading: RenderReading): string {
 // ---- The anchors --------------------------------------------------------------------------------
 
 describe('the chat render anchors', () => {
-  // 'prints the guardrail refusal and its findings when a mutation would
-  // write a secret' is deleted with the construction scan it measured.
-
   it('prints the validation refusal and the validator\'s own words when the result is invalid',
     async () => {
       const reading = await driveFieldSet('schema-fail', UNSETTABLE_PATH, BENIGN_VALUE)
@@ -260,7 +205,7 @@ describe('the chat render anchors', () => {
     }, 180_000)
 
   it('prints the reviewable diff when the mutation is genuinely proposed', async () => {
-    // "genuinely proposed" now means genuinely WRITTEN — the success arm is `applied`.
+    // The success arm is `applied`: the change is written in the call.
     const reading = await driveFieldSet('success', SETTABLE_PATH, BENIGN_VALUE)
 
     expect(reading.answer.outcome, 'the success cell did not reach the applied arm')
@@ -273,24 +218,14 @@ describe('the chat render anchors', () => {
       expect(reading.slice, withheld('success', reading)).toContain(asRendered(path))
     }
 
-    // THE WHOLE DIFF, not a line of it. The default render is `JSON.stringify(payload, null,
-    // 2)` precisely so it is structurally incapable of withholding a field, and a cell that settled
-    // for one recognisable line would pass against a hand-picked field join — which is the RC-2
-    // drop-site shape this phase's prohibition exists to forbid.
+    // The whole diff: the render is `JSON.stringify(payload, null, 2)`, which withholds nothing.
     const shownDiff = reading.answer.shownDiff
     expect(shownDiff.length, 'the answer carried an empty diff to look for').toBeGreaterThan(0)
     expect(reading.slice, withheld('success', reading)).toContain(asRendered(shownDiff))
   }, 180_000)
 
   it('renders a SECOND op\'s payload too, on the read door chat advertises itself', async () => {
-    // THE PER-DOOR RENDER CELL (RESEARCH Pitfall 4). A render that worked for exactly one op id
-    // would be the hardcoded shape this phase demotes (criterion 6); this cell reds if the
-    // mechanism is `config.field.set` special-casing wearing a general name.
-    //
-    // the second op was `proposals.list`, reading the proposal the first turn filed.
-    // The first turn now WRITES the config in the call, so the second op is the configuration read
-    // door, `config.get`, and the payload searched for is the value the first turn wrote — so this
-    // cell cannot pass on a read that rendered an unchanged config honestly.
+    // A second op on the same render path, so the mechanism is not one op special-cased.
     expect(buildFreshness(), REBUILD_INSTRUCTION).toEqual({ missing: [], stale: [] })
     const fixture = fixtureProject('399-1-render-inbox')
     const readClause = '/fn config.get {}'
@@ -331,19 +266,7 @@ describe('the chat render anchors', () => {
 
   it('reports each arm\'s own VERDICT WORD on the receipt line, refusals and success alike',
     async () => {
-      // WHY THIS CELL EXISTS, AND IT IS A MEASUREMENT RATHER THAN AN ARGUMENT. Every content
-      // assertion in this file reads the POST-MARKER slice — the payload block. 399.1-07's VERDICT
-      // leg folded `blocked` to `executed` in `config-propose-verdict.ts` (the exact implementation
-      // D-01 forbids, and the literal G-399-2 defect: a guardrail declined and chat said the change
-      // was carried out), rebuilt, and ran the whole conformance directory: 271/271 GREEN. A
-      // guardrail's own words printed underneath the word `executed` is not the repair this phase
-      // claims — it is the defect with better prose. So the verdict word is pinned here, on the
-      // line a person reads it on, and the leg that found this file blind now reds exactly here.
-      //
-      // WHY IT WAS MISSED, structurally rather than by oversight: `receipt-line.ts` renders
-      // `  <status>  <op>  <clause>`, so the status word PRECEDES the clause the marker is and a
-      // strict post-marker slice CANNOT carry it. `receiptLine` above reads the marker's own line.
-      // the guardrail arm is replaced by the refs-only refusal.
+      // The status word precedes the clause marker, so it is read from the marker's own line.
       const refused = await driveChange(
         'verdict-refs-only', REFS_ONLY_DRIVE.opId, REFS_ONLY_DRIVE.utterance)
       const schemaFail = await driveFieldSet('verdict-schema-fail', UNSETTABLE_PATH, BENIGN_VALUE)
@@ -358,11 +281,7 @@ describe('the chat render anchors', () => {
         + 'words below would be pinning whatever this fixture happened to produce',
       ).toEqual(['refused', 'blocked', 'applied'])
 
-      // D-01's decision, arm by arm. `blocked` is `refused` because the CONTROL WORKED and nothing
-      // happened; `applyable` is `executed` because a proposal really was filed. The success arm is
-      // pinned in the SAME cell deliberately: a cell asserting only the two refusals would pass
-      // against a build that answered `refused` for everything — which would destroy every real
-      // verdict in the product — so both directions are one cell's business.
+      // Both refusals and success in one cell, so a build answering `refused` for everything reds.
       expect(
         verdictWord(refused),
         'a reference field refused a value that is not a reference and the receipt does not read '
@@ -382,20 +301,10 @@ describe('the chat render anchors', () => {
 
   it('the nested composition: a refusal is never a success one composition layer up',
     async () => {
-      // GAP 1's THIRD MEASURED CONSEQUENCE (P2, 399.1-VERIFICATION), on the surface it was measured
-      // on. The cells above pin ONE composition layer: the op refuses, the receipt says `refused`.
-      // Wrap that same turn in `/fn agent.ask` and the outer clause is a turn whose own receipts
-      // carry the refusal — and `agent.ask`'s classify folded only the turn STATUS, which the engine
-      // derived from throw-versus-return. Nothing threw, so the inner aggregate read `completed` and
-      // the outer receipt read the success word over a blocked credential write. A person reading
-      // the outer line was told the mutation was carried out; the file was byte-unchanged.
-      //
-      // THE UTTERANCE IS COMPOSED, NEVER HAND-ESCAPED. The inner clause is itself JSON-bearing, so
-      // spelling the nesting by hand is how a fixture silently drives a DIFFERENT utterance from the
-      // one its name claims — and a drive that reached the wrong op would red for the wrong reason.
+      // Wrapped in `/fn agent.ask`, the outer receipt must still carry the inner refusal's word.
       expect(buildFreshness(), REBUILD_INSTRUCTION).toEqual({ missing: [], stale: [] })
       const fixture = fixtureProject('399-1-09-nested')
-      // the inner refusal is the refs-only one, the guardrail being gone.
+      // The inner refusal is the refs-only one.
       const inner = REFS_ONLY_DRIVE.utterance
       const outer = `/fn ${AGENT_ASK_FUNCTION_ID} ${JSON.stringify({ message: inner })}`
       const outcome = await driveChatSpawned(fixture.root, fixture.configPath, outer)
@@ -447,8 +356,7 @@ describe('the chat render anchors', () => {
       ).toContain('"status": "refused"')
       expect(slice, 'the inner refusal did not name its reason').toContain('refs-only')
 
-      // THE CLAIM. One layer up, the word a person reads must still be the one its own receipts
-      // support — success is the one claim a fold may never default to (D-03's asymmetry, D-12).
+      // Success is the one claim a fold may never default to.
       expect(
         receiptLine.trim().split(/\s+/u)[0] ?? '',
         'an inner turn whose only clause was REFUSED is reported as a '
@@ -465,15 +373,7 @@ describe('the chat render anchors', () => {
     }, 180_000)
 
   it('renders three DIFFERENT filed payloads as three different terminal readings', async () => {
-    // THE MEASUREMENT THAT SET THIS PHASE'S SEVERITY, as a standing cell. Content assertions above
-    // can each be satisfied by a render that says a great deal; only this one asks the question the
-    // owner actually rejected at UAT — whether a person can TELL THE THREE APART. All three slices
-    // were byte-identical at HEAD 50513a31, and each of the three cells above passed no part of it.
-    //
-    // ITS OWN NON-VACUITY, both ways: the three drives are asserted to have reached three different
-    // filed outcomes first, so "the payloads differ" is a fact about this run rather than an
-    // assumption, and three identical renderings of three identical payloads could not pass here.
-    // the guardrail arm is replaced by the refs-only refusal.
+    // The drives reach different outcomes first, so differing renders are a fact of this run.
     const refused = await driveChange(
       'distinct-refs-only', REFS_ONLY_DRIVE.opId, REFS_ONLY_DRIVE.utterance)
     const schemaFail = await driveFieldSet('distinct-schema-fail', UNSETTABLE_PATH, BENIGN_VALUE)
@@ -509,50 +409,9 @@ describe('the chat render anchors', () => {
   }, 300_000)
 })
 
-// ---- The per-surface render anchors: in-process ≡ shipped, one cell per door -------------
-//
-// WHAT THESE THREE ADD THAT THE MATRIX CANNOT. `render-parity.test.ts` drives the shipped render
-// FUNCTIONS for all 42 capabilities on all three doors, in this process, against documents produced
-// from the ops' own contracts. That is the coverage half, and it is blind to exactly one thing: the
-// artifact a person installs is a bundle, and a bundle can differ from the source it was built from
-// — a tree-shaken branch, an unbundled dependency resolved to a stale `dist`, a masker wired
-// differently at the composition root a `dist` entry point reaches. Each cell below spawns the built
-// binary for ONE door and asserts that the bytes it printed are the bytes the in-process render
-// produces for THE CHILD'S OWN RESULT. Spawned cells stay few, on D-08's wall-clock argument.
-//
-// THE COMPARAND IS THE CHILD'S OWN OUTPUT, NEVER A LITERAL (390-03, and `filedProposal` above is the
-// same move). Each anchor obtains the result the child actually computed — out of the session log
-// the chat child wrote, out of the `--json` channel the `fn` child publishes, off the wire the MCP
-// child answered on — and renders THAT in this process. A cell carrying its own copy of an expected
-// document keeps passing after the thing it claims to be about has changed.
+// Each door's built binary output is compared with the in-process render of the child's own result.
 
-/**
- * The row all three anchors drive, DERIVED from the table by a stated rule rather than picked.
- *
- * THE RULE, and each clause of it is a requirement of the measurement rather than a taste: the first
- * row in the table's committed sorted order that (1) is reachable on every rostered door, so one op
- * makes three comparable readings instead of three incomparable ones; (2) takes the EMPTY input, so
- * the same fixture invocation can be typed at a chat prompt, passed to `fn --input` and sent as MCP
- * tool arguments without three different spellings; and (3) whose output contract's root is an
- * OBJECT, because an op answering a bare array answers `[]` in an empty fixture and a render of `[]`
- * has no declared field to withhold — a cell driven there would pass on a door that prints nothing
- * but brackets.
- *
- * DERIVED RATHER THAN NAMED because a hardcoded op id here is the shape success criterion 6 forbids
- * one file away: the day this op is retired, a literal would leave three anchors asserting about a
- * capability that no longer exists, while the rule re-lands on whatever the table's next qualifying
- * row is and says so.
- *
- * THAT DAY CAME, and the rule is re-stated rather than bent. The row it
- * landed on, `proposals.list`, left the MCP door with the proposal round, and the next row with an
- * empty input and an object root is `runs.start` — which STARTS A RUN, so an empty fixture refuses
- * it and the anchors would measure a failure. Clause (2) is therefore widened from "the empty
- * input" to "an EMPTY QUERY": every field of the row's input is an empty object or a zero baseline,
- * so it addresses nothing and the fixture's honest answer is a whole result rather than an absence.
- * The three doors still spell it identically (each sends the row's own JSON). A fourth clause is
- * added: (4) the op declares itself read-only, because an anchor drives the shipped binary against
- * a fixture and must change nothing. The rule now lands on `knowledge.records.diff`.
- */
+// The first sorted row reachable on every door, read-only, with an empty query and an object root.
 function isEmptyQuery(input: unknown): boolean {
   if (typeof input !== 'object' || input === null || Array.isArray(input)) return false
   return Object.values(input).every((value) =>

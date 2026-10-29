@@ -1,4 +1,4 @@
-// every skill asset resolves from the staged CLI tarball
+// Every skill asset resolves from the staged CLI tarball.
 
 import { execFileSync } from 'node:child_process'
 import {

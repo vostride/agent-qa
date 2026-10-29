@@ -8,9 +8,7 @@ import { recordingFixture, zoomFixtureTab, type RecordingFixture } from './recor
 import { populatedRunSpawnEnv, POPULATED_SECRET_ENV_VAR } from './populated-run-fixture.js'
 import { cleanupTempRoots, reserveEphemeralPort, spawnDashboard, trackTempRoot } from './spawned-chat.js'
 
-// Real producer + shipped bundle: the run is driven by the shipped runner and the header measured
-// here is the one the built dashboard serves. Nothing is mocked, stubbed or skipped, and the
-// captures are written only where AGENT_QA_425_CAPTURE_DIR points — never into 424's directory.
+// Real producer and shipped bundle, nothing mocked or skipped; captures go only to the capture dir.
 type Box = { x: number; y: number; right: number; bottom: number; width: number; height: number }
 const overlaps = (a: Box, b: Box) => a.x < b.right - 0.5 && b.x < a.right - 0.5 && a.y < b.bottom - 0.5 && b.y < a.bottom - 0.5
 const inside = (a: Box, b: Box) => a.x >= b.x - 0.5 && a.right <= b.right + 0.5 && a.y >= b.y - 0.5 && a.bottom <= b.bottom + 0.5
@@ -40,8 +38,7 @@ let zoom: { factor: number; beforeWidth: number; afterWidth: number; beforeDpr: 
 let settled = false
 
 const at = (label: string) => geometries.find(geometry => geometry.label === label)
-// WINDOWS #480's band: beside the 192px sidebar these pages leave the header 808px and 888px, past
-// the old 768px step but too narrow for one row, and the analysis chip painted over the verdict.
+// Beside the 192px sidebar these widths leave an 808px and an 888px header, too narrow for one row.
 const MID_WIDTHS = [1000, 1080]
 const MID = MID_WIDTHS.map(width => `${width}x800`)
 const LABELS = ['400x800', '1280x800', ...MID, 'zoom2-from-1280x800']
@@ -61,8 +58,7 @@ async function headerClip(page: Page) {
   })
 }
 
-// The 425 capture directory is this plan's own. `capture` in recording-dom-fixture.ts is fixed to
-// AGENT_QA_424_CAPTURE_DIR, and writing 425 evidence there would overwrite Phase 424's record.
+// This file's own capture directory, so it never overwrites another file's captures.
 async function captureHeader(page: Page, name: string) {
   const directory = process.env.AGENT_QA_425_CAPTURE_DIR
   if (!directory) return
@@ -107,8 +103,7 @@ async function measure(page: Page, label: string) {
       }
       return box(header!)
     }
-    // querySelectorAll already returns each node once, so the union selector cannot double-count the
-    // analysis indicator on the run where 425-09's door turns its root into a <button>.
+    // `querySelectorAll` returns each node once, so the union selector cannot double-count.
     const collected = [...header.querySelectorAll('[data-verdict-badge], [data-chip], [data-chips-state="unavailable"], [data-run-token-summary], [data-run-duration], button, a')]
       .filter(element => { const r = element.getBoundingClientRect(); return r.width > 0 && r.height > 0 })
     const items = collected.map(element => ({
@@ -173,8 +168,7 @@ describe('run header layout on the shipped bundle', () => {
       await page.goto(url)
       await measure(page, '400x800')
       await captureHeader(page, 'header-400')
-      // SC2's visual half: the indicator states must read without colour. The measured half is
-      // Plan 01's STAGE-INDICATOR-COLOUR-FREE cell; this is the picture beside it.
+      // The visual half: indicator states must read without colour.
       const grayscale = await page.addStyleTag({ content: 'html { filter: grayscale(1) }' })
       await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
       await captureHeader(page, 'header-grayscale-400')
@@ -227,7 +221,7 @@ describe('run header layout on the shipped bundle', () => {
 
   afterAll(async () => { await zoomContext?.close(); await reader?.stop(); await fixture?.close(); cleanupTempRoots() })
 
-  // the precondition the poll above computes, asserted before any geometry reads it.
+  // The precondition the poll computes, asserted before any geometry reads it.
   it('HEADER-FIXTURE-SETTLED', () => {
     expect(settled,
       'the post-run chain never reached a terminal answer inside the 30s budget, so the 400px geometry, '
@@ -269,7 +263,7 @@ describe('run header layout on the shipped bundle', () => {
           expect(text.fontSize, `${where}: ${text.kind} ${text.key} font-size`).toBe(12)
         }
       }
-      // D-02's subordination is only a claim if the subordinate set is actually on the page.
+      // Subordination is only a claim if the subordinate set is on the page.
       for (const kind of ['indicator', 'token', 'duration'] as const) {
         expect(geometry.texts.some(text => text.kind === kind), `${where}: no ${kind} text measured`).toBe(true)
       }

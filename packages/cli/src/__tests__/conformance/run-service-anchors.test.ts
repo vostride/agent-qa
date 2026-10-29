@@ -1,45 +1,4 @@
-// The WIRE anchors for the authed run service — criterion 4's instrument.
-//
-// THE CLAIM THIS FILE OWNS, STATED FIRST. Phase 402's milestone acceptance criterion 4 is that
-// `RunSession` stays RPC-shaped: no in-process-only handle and no live object leaks across the
-// invocation surface. That is a claim about the WIRE. Reaching the seam in-process and reaching it
-// over a socket are different questions, and 395 is the phase that made the difference expensive —
-// ten cells passed while two shipped commands leaked a planted credential, because the corpus
-// asserted on a value the shipped channel never carried. So every cell below drives the SHIPPED
-// BINARY: `packages/cli/dist/cli.js`, spawned as `agent-qa dashboard`, reached over TCP, with every
-// assertion made against bytes that came off a socket.
-//
-// WHY AN IN-PROCESS CELL COULD NOT HAVE ASKED THIS. `RunSession` carries `subscribe`, `cancel` and
-// `done` — a closure, a closure and a promise. An assertion that imports the type and checks its
-// shape is asserting about the type this test file compiled against. An assertion that composes the
-// door in this process and reads the object handed to the router is asserting about an object that
-// never crossed a process boundary. Only a child process can be asked "what did you actually put on
-// the wire", and only bytes can answer.
-//
-// WHAT IS DIFFERENT ABOUT THIS FILE AND `adapters.ts`'s FIFTH ROW, so neither is mistaken for the
-// other. The conformance adapter one file over composes the same door IN THIS PROCESS on an
-// ephemeral port and asks WHAT IT REACHES — an enumeration question, correctly answered by the
-// production composition. This file asks WHAT IT SERVES, from outside the process entirely, which
-// is the only frame in which "no live handle survives" is a measurement rather than a type check.
-// D-04's roster row and these anchors land together for exactly that reason: one instrument cannot
-// stand in for the other.
-//
-// THE FRESHNESS GUARD IS PART OF EVERY CELL'S CONTRACT, verbatim from the parity-anchors idiom and
-// widened by two packages. A spawned `agent-qa dashboard` resolves `@vostride/agent-qa-runner` and
-// `@vostride/agent-qa-core` through their BUILT dists (tsup leaves workspace dependencies external),
-// so an anchor run against a stale `runner/dist` drives the previous revision of the very execution
-// path whose wire shape it certifies — and reads as proof of this one. `RUN_SERVICE_ANCHORED_BUILDS`
-// is what refuses that, naming the offending file.
-//
-// NO CREDENTIAL VALUE IS EVER ASSERTED OR PRINTED. The fixture declares a variable NAME; the value
-// travels only in the child's constructed environment, and no cell below puts it in an expectation
-// message.
-//
-// THE RUN FAILS, AND THAT IS FINE — 402-01's e2e states the same thing about its own probe. The
-// planted test names steps no browser is launched for, so the run fails fast. What is asserted here
-// is DELIVERY AND SHAPE: an ack under the ack contract, envelopes in the frozen frame, and bytes
-// that are pure JSON. A cell that needed a passing run would need a browser and would be measuring
-// Playwright.
+// Every cell drives the spawned binary over TCP: only bytes off a socket show no live handle leaks.
 
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -99,11 +58,7 @@ const RUN_SESSION_HANDLE_MEMBERS = [
   'subscribe',
   'cancel',
   'done',
-  // both are closures over THIS process's per-run live-stream hub. `subscribeFrames`
-  // returns an object holding a `Set` of local callbacks; `streamCapabilityOf` reads a `Map` the
-  // member executors filled with adapter objects. Neither has a serialization, and neither means
-  // anything to a caller on another machine — the token that lets a remote viewer reach the frames
-  // is minted at the function layer, not carried on the session.
+  // Closures over this process's live-stream hub, with no serialization; neither may leak.
   'subscribeFrames', 'streamCapabilityOf',
 ] as const
 const RUN_SESSION_DATA_MEMBERS = ['id', 'status', 'executionContext'] as const
@@ -205,19 +160,7 @@ const RPC_SHAPE_CLEAN: RpcShapeReading = {
   byteUnstable: false,
 }
 
-// ---- The complete-set census over EVERY observed wire document ---------------------------------
-//
-// THE COMPLETE-SET CLAIM, MADE AUDITABLE. Ring 3 only certifies the documents it was pointed at, so
-// the set of documents it is pointed at is itself part of the claim — and a set that lives only in
-// the reader's head goes quiet the day a route is added. Every document this file sweeps is
-// RECORDED here under a declared class name, and `WIRE_DOCUMENT_CLASSES` is the complete set. The
-// census cell asserts the two agree in BOTH directions: a class nobody sweeps is a hole, and a
-// sweep of a class nobody declared is a document that entered the corpus unnamed.
-//
-// 403-02 adds `liveUrl`. `GET /api/runs/:runId/live-url` is a door the phase opened, its body is
-// minted by `runs.liveurl`, and it is the one document whose producer can see a `RunSession` and a
-// live-stream capability at the same moment — precisely where `subscribeFrames` or
-// `streamCapabilityOf` would leak if a shaping step ever grew one.
+// Every swept document is recorded under a declared class, and the census checks both directions.
 const WIRE_DOCUMENT_CLASSES = [
   'ack',
   'errorBody',
@@ -325,7 +268,7 @@ async function readStream(
 let door: SpawnedDashboard | undefined
 let doorReady = false
 let doorDiagnostics = ''
-// the run service is tokenless — a request carries no credential.
+// The run service is tokenless; a request carries no credential.
 const bearer: Record<string, string> = {}
 const authedJson = { ...bearer, 'Content-Type': 'application/json' }
 
@@ -339,7 +282,7 @@ beforeAll(async () => {
 
   const fixture = runServiceFixtureProject('anchors')
   const port = await reserveEphemeralPort()
-  // no credential reaches the child — none is declared and none is read.
+  // No credential reaches the child; none is declared and none is read.
   const spawned = await spawnDashboard(
     fixture.root,
     fixture.configPath,
@@ -443,9 +386,6 @@ describe('the run-service wire anchors', () => {
     ).toEqual([...RUN_SESSION_DATA_MEMBERS, ...RUN_SESSION_HANDLE_MEMBERS].sort())
   })
 
-  // RE-SPELLED 2026-10-01 from 'refuses POST /run with no credential — 401 from
-  // the spawned binary, not a fixture'. No credential is asked for; the spawned binary's refusal is
-  // a cross-site POST, answered before the body is read and before any run is queued.
   it('refuses a cross-site POST /run — 403 from the spawned binary, not a fixture', async () => {
     expect(buildFreshness(RUN_SERVICE_ANCHORED_BUILDS), REBUILD_INSTRUCTION)
       .toEqual({ missing: [], stale: [] })
@@ -465,25 +405,11 @@ describe('the run-service wire anchors', () => {
     sweepWireDocument('errorBody', raw, 'the refusal body must be pure JSON')
   }, WIRE_BUDGET_MS)
 
-  // THE LOCAL READINESS DOOR, PINNED AT THE COMPOSITION THAT SHIPS IT.
-  //
-  // Criterion 2's preflight rests on ONE line in `commands/dashboard.ts` — the
-  // `runServiceReadiness:` option handed to `startServer`. Phase-402 verification deleted that line
-  // and measured 390/390 cells green across `dashboard.test.ts`, `run-service-door.e2e.test.ts`,
-  // `run-service-auth-hardening.test.ts` and the whole conformance suite, after a forced rebuild.
-  // The gate went live-dead in exactly that state: `/api/run-readiness` answers 503, 503 is a member
-  // of the UI's NO_READINESS_DOOR set, so `assertRunReadiness` RETURNS and the preflight stops
-  // gating with no test signal anywhere.
-  //
-  // Every other cell that touches readiness supplies the option ITSELF — the e2e composes
-  // `runServiceReadiness: runService.readiness` in its own fixture — which is precisely why none of
-  // them can see the composition root forgetting to. This one asks the SPAWNED `agent-qa dashboard`
-  // and reads the answer off its socket, so the only thing that can satisfy it is the shipped
-  // composition still threading the predicate.
+  // Asks the spawned dashboard, so only a composition threading `runServiceReadiness` passes.
   it('serves the LOCAL readiness door from the shipped composition, not a fixture', async () => {
     expect(buildFreshness(RUN_SERVICE_ANCHORED_BUILDS), REBUILD_INSTRUCTION)
       .toEqual({ missing: [], stale: [] })
-    // No credential: the local door is loopback-guarded, not token-guarded (D-15's local half).
+    // The local door is loopback-guarded, not token-guarded.
     const response = await fetch(`${origin()}/api/run-readiness`)
     expect(
       response.status,
@@ -494,11 +420,7 @@ describe('the run-service wire anchors', () => {
     expect(readiness.hostComposed).toBe(true)
   }, WIRE_BUDGET_MS)
 
-  // THE ZERO-TOKEN ARM — history: `runServiceReadiness` used to be composed from TWO arms (a
-  // credential-declaring one and a zero-token fallback), and a mutation that dropped the fallback
-  // left 374/374 green while a token-less `agent-qa dashboard` answered `/api/run-readiness` 503.
-  // there is one arm — the tokenless run service is always composed —
-  // and this cell still spawns its OWN dashboard so a second child pins the same answer.
+  // Its own dashboard, so a second child pins the same readiness answer.
   it('serves the LOCAL readiness door with NO credential declared — the default posture', async () => {
     expect(buildFreshness(RUN_SERVICE_ANCHORED_BUILDS), REBUILD_INSTRUCTION)
       .toEqual({ missing: [], stale: [] })
@@ -515,7 +437,7 @@ describe('the run-service wire anchors', () => {
       ).toBe(200)
       const readiness = RunServiceReadinessSchema.parse(JSON.parse(await response.text()))
       expect(readiness.hostComposed).toBe(true)
-      // Honest about what it is: composed, and no credential fact at all.
+      // Composed, with no credential fact at all.
       expect(Object.keys(readiness).sort()).toEqual(['contractVersion', 'hostComposed', 'service'])
     } finally {
       await child.stop()
@@ -525,10 +447,7 @@ describe('the run-service wire anchors', () => {
   it('refuses a caller-supplied runId over the wire, in the current vocabulary', async () => {
     expect(buildFreshness(RUN_SERVICE_ANCHORED_BUILDS), REBUILD_INSTRUCTION)
       .toEqual({ missing: [], stale: [] })
-    // THE CURRENT REFUSAL VOCABULARY, not this plan's snapshot of it. 402-06 added a SECOND `runId`
-    // refusal after 402-01 shipped the first; asserted here against the spawned binary because a
-    // request field the door forgot to refuse is a field a remote caller can use to address a run
-    // it did not start, and no in-process cell can say what the shipped bundle refuses.
+    // On the spawned binary: an unrefused field could address another caller's run.
     const response = await fetch(`${origin()}/run`, {
       method: 'POST',
       headers: authedJson,
@@ -562,15 +481,7 @@ describe('the run-service wire anchors', () => {
       expect(ack.testCount).toBeGreaterThan(0)
       sweepWireDocument('ack', ackBytes, 'the ack must be pure JSON with no handle residue')
 
-      // (1b) THE MINT BODY. `GET /api/runs/:runId/live-url` is the ONE document
-      // whose producer holds a live `RunSession` and a live-stream capability at the same instant:
-      // `runs.liveurl` looks the session up in the registry and reads `streamCapabilityOf(handle)`
-      // to declare the stream kind. If a shaping step ever carried the session or the capability
-      // through instead of the declaration, the residue would land HERE and nowhere else — which is
-      // why this door has to be inside the ring-3 sweep and not merely inside a schema parse.
-      //
-      // No credential: the mint is on the LOCAL door, which the loopback bind guards. Polled
-      // because the queue starts the run asynchronously, and bounded because every wait here is.
+      // The mint body is the one document whose producer holds a live session, so it is swept too.
       const mintDeadline = Date.now() + 30_000
       let liveUrlBytes: string | undefined
       while (Date.now() < mintDeadline) {
@@ -610,7 +521,7 @@ describe('the run-service wire anchors', () => {
       const okBytes = await ok.text()
       const readiness = RunServiceReadinessSchema.parse(JSON.parse(okBytes))
       expect(readiness.hostComposed).toBe(true)
-      // 432-21/432-22: no credential can be configured, and the answer carries no such fact.
+      // No credential can be configured, and the answer carries no such fact.
       expect(Object.keys(readiness).sort()).toEqual(['contractVersion', 'hostComposed', 'service'])
       sweepWireDocument('readiness', okBytes, 'the readiness body must be pure JSON')
 
@@ -648,18 +559,7 @@ describe('the run-service wire anchors', () => {
       expect(observed).toContain('runStarted')
       expect(observed).toContain('runFinished')
 
-      // (4) D-15, THE RETAINED-RUN REPLAY, on the shipped binary.
-      //
-      // The run above is OVER. Its session stays attachable for the registry's retention window,
-      // and what D-15 promises for a reconnect inside that window is: everything after the resume
-      // point, up to `runFinished`, and then a clean close. Resuming one seq short of the end is
-      // the sharpest form of that promise — the answer must be EXACTLY the terminal envelope and
-      // then the socket must end, which is a fact about the whole production chain (the header
-      // reaching the core, the `+ 1`, the bus's own replay of a closed run, and the teardown).
-      //
-      // Driven on the LOCAL door with no credential, read to completion rather than to the
-      // first `runFinished`, and bounded: a stream that held the socket open would hang this cell
-      // otherwise, and the aborted read is the failure we want to see instead.
+      // Resuming one seq short of the end yields exactly the terminal envelope, then a close.
       const finalSeq = Number(stream.frames.at(-1)?.id)
       expect(finalSeq, 'the terminal frame carried no id to resume from').toBeGreaterThan(0)
 
@@ -687,8 +587,7 @@ describe('the run-service wire anchors', () => {
       for (const frame of replayedFrames) {
         expect(frame.foreignFields, 'a replayed frame carried an undeclared field').toEqual([])
       }
-      // 403-02's carry-forward: any document this file puts on the wire goes through the sweep and
-      // declares its class, or the complete-set census reds.
+      // Every document put on the wire goes through the sweep and declares its class.
       sweepWireDocument('sseEnvelope', replayedData[0] as string, 'the replayed terminal envelope')
 
       // And a run this process never started is 404 on the same door, not an empty stream.
@@ -721,10 +620,7 @@ describe('the run-service wire anchors', () => {
   })
 
   it('is a sweep that can fail — both discriminating rings, driven with synthetic bytes', () => {
-    // THE CONTROL. A sweep whose failing branches are only reachable by breaking the product is a
-    // sweep nobody has watched fail, and 393's terminating lesson is that a detector's bar is the
-    // implementation it must RED on rather than the suite it passes. Each branch is driven here
-    // with bytes shaped exactly like the defect it exists for.
+    // Each failing branch is driven with bytes shaped like the defect it exists for.
     expect(rpcShapeOf('{"runId":"r_1","status":"failed"}')).toEqual(RPC_SHAPE_CLEAN)
 
     // Ring 3: a leaked `RunSession` handle, flattened by `JSON.stringify` — the value is gone and

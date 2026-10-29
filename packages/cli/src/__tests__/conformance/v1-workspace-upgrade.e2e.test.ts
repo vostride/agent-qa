@@ -1,4 +1,4 @@
-// a v1-shaped workspace survives the documented hard cut
+// A v1-shaped workspace survives the documented hard cut.
 
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'

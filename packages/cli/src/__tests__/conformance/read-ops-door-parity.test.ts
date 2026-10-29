@@ -1,20 +1,4 @@
-// every 423 read contract, composed on every door, and the reviewed
-// artifact rows that record them.
-//
-// ONE CANONICAL FIXTURE PER SCENE, READ THROUGH EVERY DOOR. A scenario is one op and one input over
-// real durable state: dashboard rows and content-addressed evidence blobs for the run-detail family,
-// a real mark ledger and knowledge store for the feedback reads. The same answer is then read through
-// the `fn` dispatch (the registry under the CLI's own caller, which is what `agent-qa fn` invokes),
-// the MCP protocol door built by the shipped factory over the same registry, the authed remote HTTP
-// door and the local human HTTP door. Every door must agree byte for byte: since 441-15 the
-// human door restores nothing.
-//
-// THE MCP HALF IS THE MAPPING'S OWN WORD. A projected read answers `tools/call` with the registry
-// result; an unprojected read has no door at all and its recorded `UNPROJECTED_OPS` reason classifies
-// to the scenario row's class. Nothing here restates a tool name or a reason.
-//
-// GOLDEN-CATALOG-COMPLETE compares COMMITTED artifacts with the live tree for exactly these ops, so
-// it is an artifact-agreement cell on the regen scripts' written eligibility rule. It never writes.
+// One fixture per scene, read through every door; every door must agree byte for byte.
 
 import { createHash } from 'node:crypto'
 import { cpSync, existsSync, lstatSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -97,9 +81,7 @@ function tree(root: string): [string, string][] {
   return walk(root)
 }
 
-// the MCP door runs under the caller the socket path mints, the one
-// tokenless `MCP_FUNCTION_CALLER`. The unread read-only `grantedScopes` it once carried is gone; the
-// cells' read-only claims rest on the reads themselves.
+// The MCP door runs under the one tokenless `MCP_FUNCTION_CALLER` the socket path mints.
 
 // ---- Doors over one registry ----------------------------------------------------------------------
 
@@ -171,7 +153,7 @@ async function openDoors(input: {
       }
     }),
     human: (method, path, body) => call(`${humanOrigin}/api/runs${path}`, method, {}, body),
-    // the run service is tokenless; the machine door sends no credential.
+    // The run service is tokenless; the machine door sends no credential.
     machine: (method, path, body) => call(`${machineOrigin}/run${path}`, method, {}, body),
     async close() {
       await started.close()
@@ -234,7 +216,7 @@ function knowledgeHandoff(runId: RunId, allowedPlaceholder: string): CompletedRu
 async function openDurableScene() {
   const root = mkdtempSync(join(tmpdir(), 'agent-qa-423-38-durable-'))
   const db = new DashboardDatabase({ dbPath: join(root, 'dashboard.db') })
-  // records hold the declared marker the run wrote; reads mask with the same store.
+  // Records hold the declared marker the run wrote; reads mask with the same store.
   const redactor = new SecretRedactor(new SecretStore({ AUTH_STATE, ALLOWED }))
   const mask = (text: string) => redactor.redactString(text)
   const authPlaceholder = mask(AUTH_STATE)
@@ -242,9 +224,7 @@ async function openDurableScene() {
 
   const runId = db.insertRun({ name: 'Read contract fixture', status: 'failed', duration: 1,
     startedAt: new Date(0).toISOString(), endedAt: new Date(1).toISOString() })
-  // a SECOND run on the same scene — outcome-excluded, and with no job rows at all, so
-  // the skipped fact is read over the same four doors as the ordinary chain above. Its chip
-  // words stay `pending`; the fact rides beside them rather than replacing either of them.
+  // An outcome-excluded run with no job rows, so the skipped fact is read over the same doors.
   const excludedRunId = db.insertRun({ name: 'Excluded run fixture', status: 'passed', duration: 1,
     startedAt: new Date(0).toISOString(), endedAt: new Date(1).toISOString() })
   const blobs = new FsEvidenceArtifactStore({ root, runId })
@@ -437,7 +417,7 @@ const READ_SCENARIOS: readonly ReadScenario[] = [
     name: 'runs.postprocessing early curation snapshot with all five buckets',
     opId: 'runs.postprocessing', scene: 'durable',
     input: scene => ({ runId: durable(scene).runId }),
-    // the local read answers `{ status, failures }`; with no chip events relayed, failures is empty.
+    // The local read answers `{ status, failures }`; with no chip events, failures is empty.
     http: { method: 'GET', path: input => `${run(input)}/post-processing`, machine: false,
       envelope: result => ({ status: result, failures: {} }) },
     expectPositive(result, scene) {
@@ -446,8 +426,7 @@ const READ_SCENARIOS: readonly ReadScenario[] = [
       expect(parsed).toMatchObject({ stageDetails: { analysis: { attempts: 1 }, curation: { attempts: 2 } } })
       expect(parsed).toHaveProperty('curationSnapshot', durable(scene).snapshot)
       expect(parsed).not.toHaveProperty('notification')
-      // an ordinary run answers NO skipped key. The fact is minted from the durable
-      // handoff markers alone, so a run that carries neither carries no key to render.
+      // An ordinary run carries no handoff marker, so it answers no `skipped` key.
       expect(parsed).not.toHaveProperty('skipped')
     },
   },

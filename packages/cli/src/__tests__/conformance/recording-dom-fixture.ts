@@ -161,18 +161,7 @@ export async function capture(page: Page, name: string) {
 /** How long the isolated zoom extension may take to see the tab the cell just navigated. */
 export const FIXTURE_TAB_WAIT_MS = 30_000
 
-/**
- * Zoom the fixture tab to `factor` through the isolated MV3 extension's own `chrome.tabs` API and
- * answer Chrome's reported zoom.
- *
- * `chrome.tabs.query({ url })` matches the exact url, and the run
- * page rewrites its own address after load (`?step=0%3A0&sub=1`, measured in the tabs this probe
- * listed). A query that ran after the rewrite found nothing: `The isolated extension found no
- * fixture tab` (432-08 #5, 432-21 #7, 432-46 #1: up to six layout cells per forced gate at load
- * 16-255). The tab is now the one whose origin and path are the fixture url's, whatever query or
- * fragment the page has added, found by a bounded condition wait; on expiry the error keeps that
- * sentence and names the url and every tab the extension saw.
- */
+// Find the tab by origin and path, because the run page rewrites its query after load.
 export async function zoomFixtureTab(worker: Worker, url: string, factor: number): Promise<number> {
   return await worker.evaluate(async ({ url, factor, waitMs }) => {
     const tabs = (globalThis as unknown as { chrome: { tabs: {

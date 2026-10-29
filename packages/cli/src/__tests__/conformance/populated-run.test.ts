@@ -1,38 +1,4 @@
-// THE POPULATED RUN, ON THE ARTIFACT A PERSON INSTALLS.
-//
-// WHAT THIS FILE PROVES. `populated-run-fixture.ts` is a PRODUCER, and a producer nobody has
-// watched produce is a fixture that will be discovered broken by whichever cell depends on it
-// first. These six cells are the producer's own acceptance: one dashboard-launched run on the
-// SHIPPED `agent-qa dashboard` binary, driving a real Chromium against a real page through a real
-// planning turn, and then the four facts 405-12 will measure on the page — a decision-screenshot
-// ref whose blob exists, a measured token triple, both masking categories on the wire, and neither
-// planted value in clear at rest.
-//
-// WHY THE PRODUCER NEEDED ITS OWN CELL RATHER THAN BEING PROVEN BY ITS CONSUMER. 405-01 recorded
-// coverage item D6 as `human_judgment: true` in as many words: every leg of "the shipped dashboard
-// binds `runs.detail`" is proven separately and NO cell starts the shipped binary and reads the
-// binding from it. 405-12 is the cell that will. If its acceptance and this producer's acceptance
-// were the same cell, a red would not say which of the two was wrong — and the producer is the
-// half that has never existed before, so it is the half most likely to be wrong.
-//
-// A BROWSER THAT CANNOT LAUNCH IS A RED, NEVER A SKIP — `live-view-dom.test.ts`'s law. There is no
-// conditional skip in this file. On a machine with no Playwright browser the run reaches a verdict
-// with a FAILED member and no sub-action, and cells (1) and (2) red carrying
-// `BROWSER_INSTALL_INSTRUCTION`. That is the correct outcome: a skipped populated-run suite exits
-// 0 having measured nothing, and the thing it measured nothing about is the only end-to-end proof
-// of the run-detail page this repository has.
-//
-// THE DRIVING HAPPENS ONCE, IN `beforeAll`, AND THE CELLS ASSERT ON WHAT IT RECORDED —
-// `post-processing-dom.test.ts`'s idiom, for its reason: a cell that drove its own run would take
-// the whole file down with it, and a mutation script pointed at any one claim would be measuring
-// blast radius instead of a property. The drive RECORDS and never asserts.
-//
-// THE DASHBOARD IS STOPPED BEFORE THE AT-REST SCAN, and that is a measurement decision rather than
-// tidiness. SQLite writes through a write-ahead log, so a database read while its writer still
-// holds it can be scanned clean while the bytes in question sit in a `-wal` sidecar nobody looked
-// at. Cell (5) scans the database file AND every sidecar beside it, after the process that owns
-// them has exited — which is also the posture a person is in when they open a finished run
-// tomorrow.
+// The producer's acceptance on the shipped binary; the at-rest scan runs after the dashboard exits.
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
