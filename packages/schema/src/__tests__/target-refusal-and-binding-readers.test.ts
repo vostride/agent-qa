@@ -4,13 +4,23 @@ import { readFileSync } from 'node:fs'
 
 import { describe, expect, expectTypeOf, it } from 'vitest'
 
-import { guardCompletedRunHandoff, readBindingOutcomeMeta, readTargetRefusalMeta } from '../index'
+import {
+  BINDING_OUTCOME_KEYS,
+  guardCompletedRunHandoff,
+  readBindingOutcomeMeta,
+  readTargetRefusalMeta,
+  TARGET_IDENTITY_KEYS,
+  TARGET_REFUSAL_KEYS,
+} from '../index'
 import type {
+  BindingOutcomeMeta,
   CacheMissReason,
   CompletedRunHandoff,
   GroundingEvidence,
   StepEvidence,
   TargetDescriptor,
+  TargetIdentity,
+  TargetRefusalMeta,
 } from '../index'
 
 const preChangeHandoff = new URL(
@@ -36,6 +46,14 @@ const withBlock = (block: unknown) => ({ success: false, metadata: { targetRefus
 const withBinding = (block: unknown) => ({ success: false, metadata: { binding: block } })
 
 describe('target refusal and binding readers', () => {
+  it('the target refusal block type has exactly the keys TARGET_REFUSAL_KEYS lists', () => {
+    expectTypeOf<keyof TargetRefusalMeta>().toEqualTypeOf<(typeof TARGET_REFUSAL_KEYS)[number]>()
+  })
+
+  it('a target identity type has exactly the keys TARGET_IDENTITY_KEYS lists', () => {
+    expectTypeOf<keyof TargetIdentity>().toEqualTypeOf<(typeof TARGET_IDENTITY_KEYS)[number]>()
+  })
+
   it('reads a well-formed refusal block back', () => {
     expect(readTargetRefusalMeta(withBlock(wellFormed()))).toEqual(wellFormed())
   })
@@ -105,6 +123,10 @@ describe('target refusal and binding readers', () => {
     subAction.grounding = grounding
     const loaded = guardCompletedRunHandoff(JSON.parse(JSON.stringify(handoff)))
     expect(loaded.tests[0].steps[0].subActions[0].grounding).toEqual(grounding)
+  })
+
+  it('the binding block type has exactly the keys BINDING_OUTCOME_KEYS lists', () => {
+    expectTypeOf<keyof BindingOutcomeMeta>().toEqualTypeOf<(typeof BINDING_OUTCOME_KEYS)[number]>()
   })
 
   it('reads a binding block back, with and without heal', () => {

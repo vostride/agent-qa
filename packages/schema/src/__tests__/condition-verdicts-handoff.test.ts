@@ -1,11 +1,20 @@
-// The handoff loader's per-condition verdict block: a well-formed block loads, a malformed one is
-// refused, and a handoff without it loads unchanged.
+// The handoff loader's per-condition verdict block: its types' exact keys and verdicts, a
+// well-formed block loads, a malformed one is refused, and a handoff without it loads unchanged.
 import { readFileSync } from 'node:fs'
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, expectTypeOf, it } from 'vitest'
 
-import { guardCompletedRunHandoff } from '../index'
-import type { CompletedRunHandoff, ConditionVerdictsEvidence } from '../index'
+import {
+  CONDITION_RECORD_KEYS,
+  CONDITION_VERDICTS_EVIDENCE_KEYS,
+  guardCompletedRunHandoff,
+} from '../index'
+import type {
+  CompletedRunHandoff,
+  ConditionRecord,
+  ConditionVerdict,
+  ConditionVerdictsEvidence,
+} from '../index'
 
 const preChangeHandoff = new URL(
   '../../../../test-fixtures/legacy-handoff/handoff.json',
@@ -43,6 +52,22 @@ function handoffWith(block: unknown): unknown {
 }
 
 describe('the condition verdicts block at the handoff loader', () => {
+  it('a condition record type has exactly the keys CONDITION_RECORD_KEYS lists', () => {
+    expectTypeOf<keyof ConditionRecord>().toEqualTypeOf<(typeof CONDITION_RECORD_KEYS)[number]>()
+  })
+
+  it('the block type has exactly the keys CONDITION_VERDICTS_EVIDENCE_KEYS lists', () => {
+    expectTypeOf<keyof ConditionVerdictsEvidence>().toEqualTypeOf<
+      (typeof CONDITION_VERDICTS_EVIDENCE_KEYS)[number]
+    >()
+  })
+
+  it('a condition verdict is exactly met, not-met, unverified or inconclusive', () => {
+    expectTypeOf<ConditionVerdict>().toEqualTypeOf<
+      'met' | 'not-met' | 'unverified' | 'inconclusive'
+    >()
+  })
+
   it('a handoff whose step carries a well-formed block loads', () => {
     const loaded = guardCompletedRunHandoff(handoffWith(wellFormed()))
     expect(loaded.tests[0].steps[0].conditionVerdicts).toEqual(wellFormed())
