@@ -132,7 +132,7 @@ function stepArtifactDescriptors(step: StepEvidence): CurationArtifactDescriptor
   })
 }
 
-// 2026-10-15 (441-64, GAP-D4): only an anchor's text member is masked; `flow.name` is a test id.
+// Only an anchor's text member is masked; `flow.name` is a test id.
 function maskedAnchor(anchor: Anchor, mask: MaskFn | undefined): Anchor {
   switch (anchor.t) {
     case 'page':
@@ -436,8 +436,7 @@ function projectCaution(
   )
 }
 
-// version 2 — targets carry the exact name and stated row words, never an
-// ordinal. A version-1 seed fails the literal and is never authored.
+// Targets carry exact names and row words, never ordinals; an older seed version is never authored.
 export const PROCEDURE_TRAJECTORY_SEED_VERSION = 2
 
 const trajectoryGuardTargetSchema = z
@@ -458,9 +457,7 @@ const trajectoryCompositeValueSchema = z.union([
 
 const trajectoryValueSlotSchema = z
   .object({
-    // boolean and numeric action fields are replay semantics, not decoration. Dropping
-    // fill.submit, scroll.maxSwipes/retryOpposite, durations, or scale here would author a
-    // procedure whose behavior differs from the verified trajectory.
+    // Boolean and numeric action fields are replay semantics; dropping one changes the replay.
     observed: z.union([
       z.string(),
       z.number(),
@@ -468,11 +465,7 @@ const trajectoryValueSlotSchema = z
       trajectoryCompositeValueSchema,
     ]),
     source: z.enum(['literal', 'test-variable', 'masked-secret']),
-    // the live binding name behind this slot, when the evidence names it —
-    // a test variable matched against Plan 381-41's interpolation provenance, or a secret
-    // recovered from its recorded masked form. `curator-author` forces the covering
-    // parameter to exactly this name so consult-time fillability (D-08, which matches on
-    // binding NAMES) succeeds. Absent when the source is an anonymous literal.
+    // The binding name behind this slot; `curator-author` names the covering parameter after it.
     sourceName: z.string().min(1).optional(),
   })
   .strict()
@@ -493,11 +486,7 @@ const trajectoryStepSchema = z
   })
   .strict()
 
-/**
- * The code-built trajectory a procedure candidate carries in its existing `bodySeed` string —
- * no new queue machinery. The extraction author decodes it to build the committed
- * step sequence deterministically; the LLM only ever proposes segmentation + parameter names.
- */
+// Carried in the existing `bodySeed` string; the LLM only proposes segmentation and names.
 export const procedureTrajectorySeedSchema = z
   .object({
     version: z.literal(PROCEDURE_TRAJECTORY_SEED_VERSION),
@@ -523,18 +512,11 @@ export function parseProcedureTrajectorySeed(
   return result.success ? result.data : undefined
 }
 
-// a declared secret is recorded as `[secret:NAME]` (or an
-// unexpanded `{{secret:NAME}}`); an old numbered placeholder is literal text.
+// Secrets record as `[secret:NAME]` or `{{secret:NAME}}`; an old numbered placeholder is literal.
 const MASKED_VALUE_PATTERN = /\{\{\s*secret:|\[secret:\w+\]/
 const TEST_VARIABLE_PATTERN = /\{\{\s*env:/
 
-/**
- * The two recorded secret forms, mirroring `runner/src/loop/secrets.ts:35-36`
- * (SECRET_TEMPLATE_RE / REDACTED_SECRET_MARKER_RE — the authority). Mirrored rather than
- * imported: the CLI curation fold must not depend on the runner's loop internals.
- * Both carry the secret NAME only; no secret VALUE is ever read here (D-08 names-not-values).
- * 2026-10-15 (441-67, GAP2-D1): anchored, so only a whole-value form names a secret.
- */
+// Mirrors the runner's secret patterns, because the curation fold may not import loop internals.
 const SECRET_TEMPLATE_NAME_PATTERN = /^\{\{\s*secret:(\w+)\s*\}\}$/
 const SECRET_MARKER_NAME_PATTERN = /^\[secret:(\w+)\]$/
 
@@ -552,20 +534,7 @@ function secretSourceName(observed: string): string | undefined {
   return name
 }
 
-/**
- * Names the live binding behind a RAW observed value by EXACT string equality against the
- * step's interpolation provenance (Plan 381-41). Ties break to the lexicographically
- * smallest name so the authored parameter name is deterministic across runs.
- *
- * Containment deliberately does NOT match. If `PROBE_USER=probe-user-7` and the observed
- * value is `prefix-probe-user-7-suffix`, parameterizing that superstring under PROBE_USER
- * would bind the wrong value at replay — replay substitutes the binding's value for the
- * WHOLE slot, not for the embedded region. Such slots stay literal-source.
- *
- * The equality is shape-insensitive on purpose: email-valued and credential-named bindings
- * are the canonical login shapes, not edge cases. Provenance is recorded unmasked, so it is
- * compared with the unmasked value (441-67, GAP2-D1).
- */
+// Exact equality only: replay substitutes the whole slot, so a containing value must stay literal.
 function testVariableSourceName(
   raw: string,
   interpolated: readonly { name: string; value: string }[] | undefined,
@@ -579,9 +548,7 @@ function testVariableSourceName(
   return best
 }
 
-// 2026-10-15 (441-67, GAP2-D1): provenance is decided on the raw value; a secret binding needs
-// the whole masked value to be one marker or template. Any other secret form keeps the slot a
-// literal, which the disposition's masked-literal check then refuses.
+// A secret binding needs the whole masked value to be one marker; other forms stay literal.
 function trajectoryValueClassification(
   raw: string,
   masked: string,
@@ -661,7 +628,7 @@ function isCompositeJsonValue(
   return value === null || typeof value === 'object'
 }
 
-// the caller's declared mask; absent only on a 'no-masker' host.
+// The caller's declared mask; absent only on a `no-masker` host.
 function maskedProse(text: string, mask: MaskFn | undefined): string {
   return mask?.(text) ?? text
 }
@@ -678,11 +645,7 @@ function tidyName(name: string): string {
   return name.replace(/\s+/g, ' ').trim()
 }
 
-/**
- * The strict identity replay re-finds: role, the exact observed name and, on the lane
- * the planner stated, the stated row words recorded in the step's evidence (already redacted).
- * Both names and the row pass the caller's mask like the rest of the body. No position is written.
- */
+// Replay re-finds by role, exact name and stated row words, all masked; no position is written.
 function trajectoryTargets(
   subAction: SubActionEvidence,
   mask: MaskFn | undefined,
@@ -725,16 +688,12 @@ function trajectoryValues(
   const action = actedPair(subAction).action as unknown as Record<string, unknown>
   for (const [key, raw] of Object.entries(action)) {
     if (key === 'type' || ACTION_REF_KEYS.includes(key)) continue
-    // one lossy field invalidates the whole action. Silently dropping a value
-    // would author replay behavior different from the verified trajectory.
+    // One lossy field invalidates the whole action; dropping a value would change replay.
     if (!jsonRepresentable(raw)) return undefined
-    // 2026-10-15 (441-64, CR-A04; 441-67, GAP2-D1): the slot records the masked value. A value
-    // that is exactly a declared value becomes its marker and is forced into a {param}
-    // reference; one that only contains it stays a masked literal.
+    // A value equal to a declared value becomes a `{param}` ref; one containing it stays masked.
     const value = mask === undefined ? raw : maskPayloadStrings(raw, mask)
     const composite = isCompositeJsonValue(value)
-    // D-03's parameter union is scalar-only, so masked/env material nested inside a
-    // composite cannot be made safe by forced parameterization. Reject it before authoring.
+    // The parameter union is scalar, so a composite holding masked material is rejected.
     if (composite) {
       const serialized = JSON.stringify(value)
       if (
@@ -763,9 +722,7 @@ function trajectoryStep(step: StepEvidence, mask: MaskFn | undefined): Procedure
     completing === undefined
       ? undefined
       : trajectoryValues(completing, step.interpolatedVariables, mask)
-  // Replay evaluates the page guard before executing the action, so this route must
-  // describe the pre-action page. Recording a navigation destination made healthy steps miss
-  // their guards and fed false staleness negatives into the D-05/D-11 confirmation ladder.
+  // Replay checks the page guard before acting, so the route must describe the pre-action page.
   const route = actedStateOf(completing)?.url
   return {
     ordinal: step.stepIndex,
@@ -870,12 +827,7 @@ function projectProcedureTarget(
   )
 }
 
-/**
- * EVERY verified-PASS multi-step trajectory becomes exactly one procedure-extraction
- * target on EVERY drain — no repetition threshold, no seen-before check, no user marking.
- * Content-addressing IS the dedup policy: a re-extracted duplicate address disposes as
- * Confirm downstream. Single-step, zero-step, failing, and skipped trajectories never target.
- */
+// Content addressing is the dedup policy: every verified multi-step pass targets on every drain.
 export function projectProcedureTargets(
   handoff: CompletedRunHandoff,
   mask?: MaskFn,

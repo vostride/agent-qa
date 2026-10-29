@@ -1,24 +1,4 @@
-// The DIGEST surface on the post-run tail (Phase 391 plan 06, D-17 — over 389's D-12 legs).
-//
-// 391-06 replaced the clustered sentence block with the per-run DIGEST, whose first section IS
-// that block — same relocated renderer, same op-result bytes — plus the chain, the decisions
-// waiting on a human and the counts. Printing both would have told one run's story twice, which
-// is the "nothing printed twice" half of D-17.
-//
-// Two legs, decided from THIS process's knowledge of the drain — never from chip status:
-//
-//   1. The in-process drain completed `analyze-run` under the one budget → the tail prints the
-//      digest block after the exit line. The BYTES are `RunDigest.lines` verbatim (the SC3
-//      one-renderer law, one layer up) — the byte-equality legs below compose the expected
-//      lines through the REAL agent-barrel renderer and assert the printed bytes are
-//      identical, so a local re-composition is a RED here.
-//   2. Anything else — handed off, `--detach`, budget spent — → NO block, NO wait; the exit
-//      summary line is extended with the PENDING-PROPOSAL COUNT and the exact fetch command
-//      (`agent-qa digest "<runId>"`, the real verb syntax) so the whole digest is one
-//      copy-paste away.
-//
-// The never-wait prohibition and the C13 print-not-publish posture are
-// pinned as source and behavioral assertions at the bottom.
+// A completed in-process drain prints the digest; any other leg prints the count and fetch command.
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
@@ -89,11 +69,7 @@ const handoff = {
   executionContext: 'local-headless',
 } as unknown as ReturnType<PostRunTailOperations['loadCompletedRunHandoff']>
 
-// ------------------------------------------------------------------------------------------
-// The 425 D-20 chain fixture: a REAL run directory, a real queue and the real handler bodies.
-// Separate from the mocked harness above on purpose — everything this observation is about
-// lives in the seams that harness stubs out.
-// ------------------------------------------------------------------------------------------
+// A real run directory, queue and handler bodies, the seams the mocked harness above stubs out.
 
 const CHAIN_RUN_ID = 'run-425-07-snapshot-branch'
 const chainRoots: string[] = []
@@ -240,21 +216,14 @@ function analysisOutput(): AnalysisGetOutput {
   }
 }
 
-/**
- * The digest the op WOULD serve for this run, composed exactly as the op composes it: the
- * analysis section through the REAL relocated block renderer over the REAL renderer's
- * sentences, then the sections D-18 names. Built here rather than hand-written so the
- * byte-equality legs below compare the tail's print against a renderer's own output, not
- * against a string this file re-spelled — a check that restates a constant inside its own
- * package binds nothing to reality.
- */
+// Composed through the real renderer, so the byte-equality legs compare against its own output.
 function digestOutput(analysis: AnalysisGetOutput = analysisOutput()): RunDigest {
   const block = renderAnalysisClusterBlock(analysis)
   return {
     runId,
     verdictClusters: analysis.clusters,
     chain: { analysis: 'complete', curation: 'pending' },
-    // the fixes this run's marks applied, read from its own ledger; no proposal is counted.
+    // The fixes this run's marks applied, read from its own ledger; no proposal is counted.
     markChanges: [
       { markId: 'mark_000000000001', ordinal: 1, fix: 'fact',
         change: { kind: 'knowledge', changeId: 'prop_0123456789ab', recordIds: ['mem_1'] } },
@@ -433,8 +402,7 @@ describe('the digest block — in-process analyze-run completed', () => {
 
     const lines = h.info.mock.calls.map(([message]) => String(message))
     expect(lines).toHaveLength(2)
-    // The exit line first — untouched vocabulary, and NO pointer on this leg: the digest
-    // itself is one line down, so a fetch command would be noise (the D-17 either/or).
+    // The exit line first, with no fetch command on this leg: the digest itself is one line down.
     expect(lines[0]).toBe('post-processing — analysis: complete · curation: pending')
     expect(lines[0]).not.toContain('agent-qa digest')
     expect(lines[0]).not.toContain('changes applied')
@@ -443,9 +411,7 @@ describe('the digest block — in-process analyze-run completed', () => {
     // reordered, nothing annotated.
     const block = lines[1] as string
     expect(block).toBe(digestOutput().lines.join('\n'))
-    // …and inside it, the analysis section still reads exactly as 389 D-15 pinned it: one
-    // representative sentence per cluster, the multi-member cluster carrying its occurrence
-    // count and member refs, the singleton reading as one sentence.
+    // One sentence per cluster, with counts and refs on multi-member clusters.
     expect(block).toContain(
       'analysis — 2 distinct problems:\n'
       + `×2: TST-101, TST-102\n${CLUSTER_SENTENCE}\n`
@@ -473,7 +439,7 @@ describe('the digest block — in-process analyze-run completed', () => {
 
     const lines = h.info.mock.calls.map(([message]) => String(message))
     expect(lines).toHaveLength(2)
-    // The D-09 line is rendered from the row and NOTHING else — no fetch command grafted on.
+    // This line is rendered from the row and nothing else; no fetch command is grafted on.
     expect(lines[0]).toContain(`post-processing complete for ${runId}`)
     expect(lines[0]).not.toContain('agent-qa digest')
     expect(lines[1]).toContain(CLUSTER_SENTENCE)
@@ -508,9 +474,7 @@ describe('the digest block — in-process analyze-run completed', () => {
 
   it('still prints the block when the budget ran out AFTER analyze-run completed in-process',
     async () => {
-      // D-12's own wording: the block prints whenever the drain completed analyze-run UNDER
-      // the budget — the drain outcome is not the trigger, this process's knowledge of the
-      // analyze-run completion is (the 700–716 house rule).
+      // Triggered by this process seeing analyze-run complete in budget, not by the drain outcome.
       const h = harness({
         runNextJob: vi.fn(async () => ANALYZE_COMPLETED),
         status: completeStatus(),
@@ -528,12 +492,7 @@ describe('the digest block — in-process analyze-run completed', () => {
     })
 
   it('drops the ANALYSIS SECTION for a zero-failure run, and still prints the digest', async () => {
-    // The behaviour 391-06 changed on purpose, pinned so it is a decision rather than a
-    // regression. 389's block printed nothing at all here, because a run with no failures has
-    // no problems to enumerate. A DIGEST still has something to say — what is waiting on a
-    // human, and what became of the chain — so the block prints and its analysis section is
-    // what disappears. `renderAnalysisClusterBlock`'s empty-string contract is unchanged; it
-    // is now consumed one layer up.
+    // A run with no failures still prints the digest; only its analysis section is empty.
     const h = harness({
       runNextJob: pump([ANALYZE_COMPLETED]),
       status: completeStatus(),
@@ -652,9 +611,7 @@ describe('the extended exit line — everything else gets count + command', () =
     })
 
   it('keeps the POINTER and drops the COUNT when the digest could not be read', async () => {
-    // A fabricated count would be a claim about a ledger nobody read; the command is printed
-    // regardless, because it is exactly what a person should run to find out. The failure itself
-    // is warned one line up. (432-09: the count is applied mark changes, never pending proposals.)
+    // No count is fabricated when the ledger read fails; the fetch command still prints.
     const h = harness({
       lease: { kind: 'held', holder: { pid: 4242 } } as never,
       readRunDigest: vi.fn(async () => {
@@ -723,8 +680,7 @@ describe('prohibitions: never-wait and print-not-publish', () => {
       fileURLToPath(new URL('../post-run-tail.ts', import.meta.url)),
       'utf8',
     )
-    // Never-wait, stated as a measurement (the acceptance criterion's source assertion).
-    // the one timer aborts the budget signal at the deadline and waits on nothing.
+    // Never-wait as a measurement: the one timer aborts the budget signal at the deadline.
     expect(source).not.toMatch(/setInterval/u)
     expect(source.match(/setTimeout\(/gu)).toEqual(['setTimeout('])
     expect(source).toContain('setTimeout(() => { budget.abort() }, drainDeadlineMs - drainStartedMs)')
@@ -818,29 +774,7 @@ describe('the pure renderers (exported for exactly these pins)', () => {
   })
 })
 
-// ══════════════════════════════════════════════════════════════════════════════════════════
-// CHAIN-LINE-SNAPSHOT-BRANCH — WHICH BRANCH A REAL SNAPSHOT-BEARING CHAIN PRINTS.
-//
-// `renderChainTerminalLine` has two curation sentences and never prints both: the five fixed
-// buckets when the terminal row carries `stages.curation.curationSnapshot`, and the legacy
-// `N curated, M deprecated` pair when it does not. REQUIREMENTS reconciliation 13 records the
-// legacy pair as what still prints. Which sentence a REAL run reaches is not a renderer
-// question at all — it is a question about what the chain WROTE and what the read op is able
-// to SERVE, and nothing on this tree had ever observed it end to end.
-//
-// So this cell observes rather than restates. It drives the shipped tail against a real sqlite
-// queue, the real handoff reader, the real handler bodies and the real `runs.postprocessing`
-// op, with a curation whose fold committed records and therefore returned a snapshot — and it
-// reads the branch off the line the tail actually logged. The renderer is not touched.
-//
-// THE SAFETY SCOPE IS PART OF THE SUBJECT, not test scaffolding. `runs.postprocessing` serves
-// the nested snapshot only through an ACTIVE masking context (423 D-15, Gap 2: with no masker
-// every identity would collapse to one marker, so projection is not attempted and both copies
-// are withheld). Production reaches the tail from inside `runSafetyScope` — the invocation
-// core calls `options.postRunTail(verdictContext)` within its own scope — so a cell that drove
-// the tail outside one would be observing a scope this file forgot to open rather than a fact
-// about the product.
-// ══════════════════════════════════════════════════════════════════════════════════════════
+// Observes which chain line a real snapshot-bearing run prints, through the shipped tail and op.
 
 /** A committed fold's snapshot: one record in each bucket, so no bucket's count is a default. */
 const COMMITTED_SNAPSHOT = CurationSnapshotSchema.parse({
@@ -886,9 +820,7 @@ describe('the chain-terminal line a real snapshot-bearing run prints', () => {
       model: () => CHAIN_MODEL,
       idSource: DIGEST_JOB_ID_SOURCE,
       postRun: {
-        // What the REAL tail adapter hands back once the drain committed bundles — 423's own
-        // `CURATE-CAPABILITY-SNAPSHOT terminal` cell pins that `curateRun`'s return carries the
-        // receipt's snapshot verbatim, so this is the shipped shape and not an invented one.
+        // The shipped shape: `curateRun`'s return carries the receipt's snapshot verbatim.
         curateRun: async () => ({
           curated: 1,
           deprecated: 0,
@@ -943,9 +875,7 @@ describe('the chain-terminal line a real snapshot-bearing run prints', () => {
     const terminal = lines.find((message) => message.startsWith('post-processing complete for'))
     expect(terminal, `no chain-terminal line in:\n${lines.join('\n')}`).toBeDefined()
 
-    // THE BRANCH. The five buckets in CURATION_BREAKDOWN_BUCKETS order, every one printed —
-    // a recorded snapshot measured all five, so a zero here is a measurement and not an
-    // absence, and the CLI line keeps it (D-20: a log line is a record, not a glance).
+    // A recorded snapshot measured every bucket, so each zero prints as a measurement.
     expect(terminal).toContain(
       'curation: complete (added 1, confirmed 0, superseded 0, deprecated 0, proposed 0')
     // …and neither spelling of the legacy sentence survives beside it.
@@ -953,10 +883,7 @@ describe('the chain-terminal line a real snapshot-bearing run prints', () => {
     expect(terminal).not.toContain(' deprecated)')
   })
 
-  // 427 D-24. The same scene for a run whose fold committed nothing, with ONE seam changed: the
-  // host binds the tail's own `curateRun`, so the fold is the shipped curateCompletedRun over the
-  // real drain and no snapshot is handed in. The recorded all-zero measurement prints as five zero
-  // buckets (note 38: a log line is a record), never the legacy pair.
+  // A fold that committed nothing prints zero buckets, never the legacy pair.
   it('CHAIN-LINE-ZERO-EFFECT prints five zero buckets for a run whose curation changed nothing', async () => {
     const zeroRun = 'run-427-04-chain-zero-effect'
     const root = mkdtempSync(join(tmpdir(), 'agent-qa-427-04-'))
@@ -1054,26 +981,7 @@ describe('the chain-terminal line a real snapshot-bearing run prints', () => {
   })
 })
 
-// ══════════════════════════════════════════════════════════════════════════════════════════
-// THE WRITER FENCE, MODELLED AS A FENCE.
-//
-// These cells assert a STATE, not a call count and not a warning: after everything the run
-// process would do, is this project's writer lease still held? That is the only question the
-// defect was about. A lease acquired by the post-verdict step's `takeAcquiredLease()` used to be
-// dropped, unreleased and unrecoverable, whenever the tail's own setup threw — because the take
-// was evaluated as the ARGUMENT to `drain()`, which meant the acquisition happened before the
-// method that owns the release was entered, and the take-once flag was already spent by the time
-// the step's no-leak backstop looked in the box. The fence was then held with NO heartbeat for
-// the whole lease TTL, while the wire had already published the `drained` posture — a promise
-// that this process would pump, made by a process that had stopped.
-//
-// The throw is not hypothetical. `ops()`'s own doc records it as measured — a partially-stubbed
-// module graph is what found it — and `composeHost` runs the far larger construction.
-//
-// The counting assertions (`acquireWriterLease` once, `releaseLease` once) ride ALONG with the
-// fence assertion rather than standing in for it: a ledger that balanced while the fence stayed
-// held would be a fixture agreeing with itself.
-// ══════════════════════════════════════════════════════════════════════════════════════════
+// These cells assert the fence state: is the writer lease still held after everything the run does?
 
 /**
  * A writer lease with a HOLDER, so "is it released" is a readable fact rather than a spy call.
@@ -1211,8 +1119,7 @@ describe('an acquired writer lease is released on EVERY path out of drain()', ()
       expect(fence.acquireWriterLease).toHaveBeenCalledTimes(1)
       expect(fence.releaseLease).toHaveBeenCalledTimes(1)
       expect(fence.releaseLease).toHaveBeenCalledWith({ knowledgeRoot, leaseId: 'lease-1' })
-      // JOBQ-06 unchanged: a composition that never came up ATTEMPTED nothing, and the exit code
-      // froze long before this line.
+      // A composition that never came up attempted nothing, and the exit code is already frozen.
       expect(tail.report().drain).toBe('not-attempted')
       expect(h.warn).toHaveBeenCalledTimes(1)
     })
@@ -1263,8 +1170,7 @@ describe('an acquired writer lease is released on EVERY path out of drain()', ()
       expect(fence.holder()).toBeUndefined()
       expect(fence.acquireWriterLease).toHaveBeenCalledTimes(1)
       expect(fence.releaseLease).toHaveBeenCalledTimes(1)
-      // The host CAME UP here, so the posture is the pump's failure and not JOBQ-06's
-      // never-attempted composition. Two different facts, two different words.
+      // The host came up here, so this is the pump's failure, not a never-attempted composition.
       expect(tail.report().drain).toBe('threw')
     })
 })
@@ -1284,9 +1190,7 @@ describe('the fallback consult, and the one door that declines it', () => {
 
   it('a take that answers `undefined` falls back to this pump\'s OWN acquisition by default',
     async () => {
-      // The behaviour the step's header used to deny. It is not a second acquisition:
-      // the step acquired nothing at all on this path, so the pump's consult is the first one —
-      // and it is worth making, because the holder may have released since the verdict.
+      // The step acquired nothing, so the pump consults first; the holder may have released.
       const fence = writerFence()
       const step = await stepWithAHolder(fence)
       expect(step.handoff.takeAcquiredLease()).toBeUndefined()

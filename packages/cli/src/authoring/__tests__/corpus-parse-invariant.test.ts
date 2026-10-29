@@ -6,33 +6,13 @@ import { parseTestFile } from '@vostride/agent-qa-core'
 import { isCanonicalTestId } from '@vostride/agent-qa-ids'
 import { describe, expect, it } from 'vitest'
 
-/**
- * The corpus invariant, NOT a gate (393 Research Pitfall 1).
- *
- * A hand-authored "known-bad" draft that fails `parseTestFile` never reaches the
- * gates at all: the corpus member proves nothing, and worse, the RED-first proving
- * suite next door reds for the wrong reason and looks like a real receipt. Known-bad
- * here means SEMANTICALLY bad — every member must be syntactically impeccable.
- *
- * This suite is GREEN from day one and must stay green for the life of the corpus.
- *
- * The corpus lives in `packages/agent` beside the gates but is proven here in
- * `cli`, because `agent` cannot import `core` (Pitfall 2) and `cli` owns both. One
- * corpus, two consumers. Resolution is the house source-relative traversal rather
- * than a package resolve: `@vostride/agent-qa-agent` resolves to its BUILT dist, and
- * the fixtures live in src, so resolving the package would mean walking dist/../src —
- * a stale-dist trap for a read that has nothing to do with the build.
- */
+// Every corpus member must parse, or the gate suite fails for the wrong reason.
 const CORPUS_DIR = join(
   dirname(fileURLToPath(import.meta.url)),
   '../../../../agent/src/authoring/__tests__/fixtures/corpus',
 )
 
-/**
- * The frozen membership. This list is the denominator: gap-closure rounds must
- * not mint new corpus members, so a draft appearing or disappearing is a test failure,
- * not a fixture update.
- */
+// The frozen membership: a draft appearing or disappearing is a failure, not a fixture update.
 const EXPECTED_DRAFTS = [
   'accept-control.yaml',
   'assertion-free.yaml',
@@ -112,8 +92,7 @@ describe('negative corpus parse invariant', () => {
       .map(([filename]) => filename)
     expect(acceptControls).toEqual(['accept-control.yaml'])
 
-    // The accept control is what makes the proof falsifiable: a constant-false
-    // evaluator fails it. That only holds if all four of its booleans are true.
+    // The accept control makes the proof falsifiable only while every one of its booleans is true.
     expect(drafts['accept-control.yaml']?.expectedGates).toEqual({
       executesDefinitive: true,
       stableVerdict: true,

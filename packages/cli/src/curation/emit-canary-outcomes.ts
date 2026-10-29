@@ -22,7 +22,7 @@ import {
 import { exercisedAnchors } from './handoff-anchors.js'
 import { creditCanaryAttributions, type CanaryCreditCounters } from './canary-credit.js'
 
-// runtime and never-bar pin this closed vocabulary.
+// The runtime and never-bar checks pin this closed vocabulary.
 export type NonSignalClass = 'environment' | 'timeout' | 'flake'
 // prettier-ignore
 export const NON_SIGNAL_CLASSES = ['environment', 'timeout', 'flake'] as const satisfies readonly NonSignalClass[]
@@ -31,22 +31,7 @@ export function isNonSignalClass(value: string): value is NonSignalClass {
   return NON_ATTRIBUTABLE_FAILURES.has(value)
 }
 
-/**
- * The RESOLVED class per member test, computed ONCE per fold.
- *
- * Two layers, in overwrite order:
- *
- * 1. Members OUTSIDE the accessor's domain first — clean passes keep their persisted
- *    classification (the runner's one pass-mintable class is `flake`, `classifyRootCause`'s
- *    retry rule). The supersession law governs failure-worthy members only, so this read can
- *    never contradict a resolved verdict: the accessor never serves one for these members,
- *    and the analysis boundary discards author entries that re-class them.
- * 2. THE one supersedable-verdict read — `resolveRunVerdicts`: artifact verdicts when
- *    the artifact is present, the deterministic floor when it is absent. It OVERWRITES layer
- *    1 for every member it governs, which is exactly how an unknown→flake upgrade flips
- *    attribution here (flake is non-attributable) instead of the outcome log contradicting
- *    the resolved verdict (SC2's "second independent observation" in disguise).
- */
+// Clean passes keep their persisted class; `resolveRunVerdicts` then overwrites what it governs.
 type ResolvedClasses = ReadonlyMap<number, Verdict['class']>
 
 function resolveAttributionClasses(
@@ -63,14 +48,7 @@ function resolveAttributionClasses(
   return classes
 }
 
-/**
- * One run's persisted analysis artifact, loaded from the fold's OWN `runDir` through the one
- * schema guard (RESEARCH A4 — `runDir` is already on the fold's options, no new port). An
- * absent file is `undefined` — the floor; a newer schemaVersion is the guard's typed hard
- * failure, never swallowed into a silent floor. A PRESENT file recording ANOTHER run's id
- * is refused by identity (`admitAnalysisArtifactForRun`, G-389-3A) and folds to the floor:
- * attribution never flips off another run's verdicts, the 388 cross-instance class.
- */
+// An artifact recording another run's id folds to the floor; a newer schema fails hard.
 function loadRunAnalysisArtifact(
   runDir: string,
   runId: string,
@@ -89,11 +67,7 @@ function loadRunAnalysisArtifact(
   return admission.kind === 'admitted' ? admission.artifact : undefined
 }
 
-/**
- * only guard misses that evidence procedure STALENESS attribute negatives. `gate-refused`
- * and `non-replayable-action` are policy walls — they say the runner refused to replay, not that
- * the procedure's descriptors or page anchors drifted — so they never damn the procedure.
- */
+// Only guard misses that show staleness attribute negatives; policy walls never damn the procedure.
 const STALENESS_MISS_REASONS = new Set([
   'descriptor-ambiguous',
   'descriptor-missing',
@@ -102,11 +76,7 @@ const STALENESS_MISS_REASONS = new Set([
 
 export interface ProjectCanaryOutcomesInput {
   handoff: CompletedRunHandoff
-  /**
-   * The run's persisted analysis artifact when one exists. Data, not a port:
-   * `emitCanaryOutcomes` loads it from the fold's own `runDir`; the pure projection takes it
-   * as an argument so identical (handoff, artifact) bytes keep yielding identical outcomes.
-   */
+  // Taken as an argument, so identical handoff and artifact bytes yield identical outcomes.
   artifact?: RunAnalysisArtifact
   resolveCandidateAnchors: (id: RecordId) => CandidateAnchorResolution
 }
@@ -146,7 +116,7 @@ export interface EmitCanaryOutcomeReport {
   emitted: number
   refused: number
   unresolved: number
-  /** per-source split of the planSource attribution stream; totals cover BOTH sources. */
+  // Per-source split of the `planSource` attribution stream; totals cover both sources.
   procedure: {
     emitted: number
     refused: number
@@ -168,7 +138,7 @@ function normalizedKey(anchor: Anchor): string {
   return canonicalJson(normalizeAnchor(anchor))
 }
 
-/** The class switch consumes the RESOLVED class — never the handoff field. */
+// The class switch consumes the resolved class, never the handoff field.
 function nonAttributableFailure(test: PerTestOutcome, resolved: ResolvedClasses): boolean {
   const resolvedClass = resolved.get(test.testIndex)
   return resolvedClass !== undefined && NON_ATTRIBUTABLE_FAILURES.has(resolvedClass)
@@ -184,22 +154,7 @@ function attributedOutcome(
   return 'negative'
 }
 
-/**
- * D-12's second attribution source: the typed `planSource` marker. A clean full replay flows
- * through the SAME classifier gate as Pin 1 (`attributedOutcome`). An adapter execution failure
- * after a passed guard can never certify the procedure positive, even when live planning later
- * recovers the step; a verifier rejection is likewise attributable negative evidence. A clean
- * fold can earn positive attribution only after every stored action completed and the verifier
- * accepted the result — incomplete replay can never borrow a later live-planned PASS.
- * A staleness guard miss attributes a negative regardless of the eventual verdict. All negative
- * lanes remain gated by the root-cause classifier, because environment/timeout/flake failures
- * never damn the procedure. `procedure-hint` exposure is recorded, never judged.
- *
- * Positive replay confirmations adopt D-01's per-trajectory passing gate (extraction and
- * confirmation feed the same trust ladder, D-05), so a run that fails cannot raise the
- * confidence of the procedure that failed it; suppression is never inversion — a
- * verified-PASS replayed step inside a non-passed test projects nothing at all.
- */
+// A positive needs complete replay in a passing test; negatives stay root-cause gated.
 function procedureReplayOutcome(
   test: PerTestOutcome,
   step: StepEvidence,
@@ -302,12 +257,12 @@ function projectCanaryAttributions(
     return resolutionByCandidate.get(id)!
   }
 
-  // Resolved ONCE per fold, consumed by every class-switched site below.
+  // Resolved once per fold, consumed by every class-switched site below.
   const resolved = resolveAttributionClasses(input.artifact, input.handoff)
 
   const projected: ProjectedCanaryAttribution[] = []
   for (const test of input.handoff.tests) {
-    // one diagnostic per member, before either attribution source or lookup.
+    // One diagnostic per member, before either attribution source or lookup.
     if (test.isRerun === true) {
       projected.push({ kind: 'rerun-excluded', testId: test.testId, testIndex: test.testIndex })
       continue
@@ -384,13 +339,7 @@ function projectBriefAttributions(
   }
 }
 
-/**
- * The planSource attribution source. Unlike Pin 1, replay is DIRECT exercise: the guard
- * fold proves the procedure drove (or failed to drive) the step, so no anchor-contact match
- * against the step's exercised anchors is required — a guard-miss step's exercised anchors come
- * from the planning fallback and would wrongly drop the staleness negative. The outcome carries
- * the procedure's first canonical anchor as its exercised anchor.
- */
+// Replay is direct exercise, so no anchor-contact match is required for this source.
 function projectProcedureAttribution(
   input: ProjectCanaryOutcomesInput,
   test: PerTestOutcome,
@@ -480,9 +429,7 @@ export async function emitCanaryOutcomes(opts: EmitCanaryOutcomesOptions): Promi
   if (!isAbsolute(opts.knowledgeRoot)) throw new TypeError('knowledgeRoot must be absolute')
   if (!isAbsolute(opts.runDir)) throw new TypeError('runDir must be absolute')
 
-  // The D-10 rewire: the artifact is loaded from the fold's OWN runDir, once per
-  // fold, and every class switch downstream consumes the resolved verdict — an upgraded run
-  // re-folds with flipped attribution rather than a second independent observation (SC2).
+  // Loaded once per fold, so an upgraded run re-folds with flipped attribution.
   const artifact = loadRunAnalysisArtifact(opts.runDir, String(opts.handoff.runId))
   const projected = projectCanaryAttributions({
     handoff: opts.handoff,

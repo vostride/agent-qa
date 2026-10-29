@@ -107,8 +107,7 @@ export function writeRunConfigRecord(agentQaRoot: string, runId: string, configP
   }
 }
 
-// another run is curated only under its own config, read as it
-// stands now, and only into the drainer's root (the drainer holds no other root's writer lease).
+// Another run is curated only under its own config, into the drainer's root.
 export async function resolveRunCurationContext(input: {
   readonly agentQaRoot: string
   readonly runId: string

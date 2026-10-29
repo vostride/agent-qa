@@ -1,6 +1,4 @@
-// a CI workspace is usually thrown away, so in `ci` and
-// `cloud` a line about unfinished work states the one condition under which its drainer can still
-// reach it, instead of promising a resume. Every such line reads its clause from here.
+// A CI workspace is usually discarded, so lines about unfinished work state the resume limit here.
 
 /** Who can pick the work up: any host (a later run or the daemon), or only a later local run. */
 export type ResumeDrainer = 'any-host' | 'masked-leg-only'

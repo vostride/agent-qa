@@ -260,11 +260,7 @@ function compositeTrajectorySeed(): ProcedureTrajectorySeed {
   return seed
 }
 
-/**
- * LIVE shape (the 18-run UAT's finding, G-381-1): every real flow's FINAL step is a verify step
- * planned as assertAI — no element targets, non-replayable — so a whole-flow [0, last] proposal
- * hits buildCandidatePayload's per-step wall. Task 1 renders it; Task 2 clamps it.
- */
+// A real flow ends in a target-less verify step, so a whole-flow span hits the per-step wall.
 function liveShapedSeed(): ProcedureTrajectorySeed {
   const seed = trajectorySeed()
   seed.steps.push({
@@ -296,13 +292,7 @@ function interiorNonReplayableSeed(): ProcedureTrajectorySeed {
   return seed
 }
 
-/**
- * The LIVE binding shape: ordinal 1's email slot is an INTERPOLATED `{{env:PROBE_USER}}`
- * value — post-interpolation it is an ordinary literal, named only by 381-41's provenance — and
- * ordinal 2's password slot carries the redacted `[secret:PROBE_TOKEN]` marker form. Both slots
- * therefore reach the builder with a sourceName, which is what must survive into the committed
- * parameter names for consult-time fillability to match.
- */
+// Both slots reach the builder with a `sourceName`, which must survive into the parameter names.
 function sourcedSeed(): ProcedureTrajectorySeed {
   const seed = trajectorySeed()
   seed.steps[1]!.action!.values['text'] = {
@@ -1428,10 +1418,7 @@ describe('procedure names and row words as written', () => {
   })
 })
 
-// a passing two-step test whose first step was healed
-// after the page shifted is projected and authored into a procedure body that names the elements
-// the healed input was sent to. The evidence comes from two real `executeStep` runs, not a
-// hand-built fixture, so the pair curation reads is the pair the loop recorded.
+// The evidence comes from real `executeStep` runs, so curation reads what the loop recorded.
 describe("a healed action's procedure body", () => {
   const HEALED_PAGE = 'https://shop.example/editor'
 

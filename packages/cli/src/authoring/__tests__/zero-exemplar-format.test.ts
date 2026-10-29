@@ -1,18 +1,4 @@
-// The stable-tier format block, staged through the REAL parser.
-//
-// WHY THIS FILE IS IN `packages/cli`, and why the sibling cell in `agent-local` is not enough.
-// `authoring-loop.e2e.test.ts` reaches the composed op, the real registry and the real gates — but
-// its `DraftAuthoringPort` is a FAKE that accepts any document carrying `name` and `steps`, because
-// `parseTestFile` lives in `@vostride/agent-qa-core` and the FUNC-02 firewall forbids `agent` and
-// `agent-local` from naming it. WINDOWS 111 is a defect about `test-id` and `target` — the two keys
-// that fake does not look at — so a parsability claim made there is a claim about the fake.
-// `createDraftAuthoringPort` is the shipped shelf and it parses through `parseTestFile`; this is the
-// only process where the loop and that parser can be in the same room.
-//
-// PRODUCED, NEVER ASSERTED. Nothing below spells a document. The generator is handed the request
-// `compileDraft` actually built, lifts the canonical example out of the stable block by title, and
-// returns it — so an example that drifted from what `parseTestFile` accepts reds here rather than
-// teaching every model a schema the shelf refuses.
+// Lives in cli so the loop and the real `parseTestFile` meet; the agent-local shelf is a fake.
 
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -51,15 +37,7 @@ const FORMAT_BLOCK_TITLE = 'Test document format'
 const FORMAT_EXAMPLE_MARKER = 'A complete document looks exactly like this:'
 const TARGETS_BLOCK_TITLE = 'Configured targets'
 
-/**
- * The one sentence that makes a fifth key emittable.
- *
- * The generator emits `context` if and only if it reads this rule off the block. It is not a
- * literal this file decided to write: with the shipping block — which says four keys and that no
- * other key is accepted — nothing below emits one, and the reachability cell reds. That is the
- * whole instrument, and it is why the rule is matched rather than the key name: a block merely
- * MENTIONING `context` (in a rejection sentence, say) must not be read as permission.
- */
+// Matched as a rule, not the key name, so a block merely mentioning `context` grants nothing.
 const CONTEXT_OPTIONAL_RULE = /^`context` is optional:/m
 
 /** One `## `-titled block's body, off the rendered markdown a model is handed. */
@@ -71,21 +49,7 @@ function promptBlockBody(text: string, title: string): string | undefined {
   return undefined
 }
 
-/**
- * The `target` a prompt-driven generator picks: one of the SERVED names, or nothing.
- *
- * THE SCOPE KEY IS NOT AN ANSWER, and deleting the derivation that treated it as one is most of
- * this function. `deriveDefaultAuthoringScope` supplies a PRODUCT (`target.product ?? targetName`),
- * so slicing the scope key out of the Scope block yielded a configured target only on the projects
- * where the two happen to coincide — which was every fixture this file had, which is why nothing
- * could red on the branch where they do not. It survives here as a HINT for choosing among served
- * names and never as a source of the value.
- *
- * THE PREFERENCE IS A MODEL'S, NOT A LOOKUP'S. Among the served names it prefers one that shares
- * text with the scope key and otherwise takes the first, because that is what a reader of the
- * prompt can do — it has no config, no product map, and no way to acquire one. What the cells
- * assert is membership in the served list, never this heuristic's particular pick.
- */
+// The scope key is a product, not a target, so it only hints among served names.
 function targetFromVocabulary(request: JobModelRequest, scopeKey: string): string {
   const served = promptBlockBody(request.prompt, TARGETS_BLOCK_TITLE)
   const names = (served ?? '').split('\n').map((line) => line.trim()).filter((line) => line !== '')
@@ -106,14 +70,7 @@ function formatBlockOrThrow(request: JobModelRequest): string {
   return format
 }
 
-/**
- * The canonical example, lifted verbatim, with ONLY its `name` adapted to the Intent block.
- *
- * The `target` line stays as the block wrote it, and that omission is the point:
- * a generator that adapts `target` from the served list can only ever emit a member of it, so no
- * cell built on one can measure the product's refusal. This is the same block, read by title, with
- * one bullet skipped — which is a model behaviour, not a contrivance.
- */
+// The `target` line stays as the block wrote it, so a cell can measure the product's refusal.
 function exampleWithIntentName(request: JobModelRequest): string {
   const format = formatBlockOrThrow(request)
   const marker = format.indexOf(FORMAT_EXAMPLE_MARKER)
@@ -154,7 +111,7 @@ const VERIFY_REACHED = 'the draft reached stage 4'
  */
 async function driveZeroExemplarLoop(
   scope: ScopeKey = SCOPE,
-  /** The generator under test. Parameterised for WR-04's off-vocabulary emission, nothing else. */
+  // Parameterised only for the off-vocabulary emission cell.
   generate: (request: JobModelRequest) => string = documentFromPrompt,
 ): Promise<{
   readonly authoring: ReturnType<typeof createDraftAuthoringPort>
@@ -251,13 +208,7 @@ const ONE_TARGET = `registry:
       url: http://127.0.0.1:8931
 `
 
-/**
- * The HARD branch, verbatim from `authoring-scope-derivation.test.ts`'s own fixture class
- * `storefront-web` declares `product: storefront`, so the scope
- * `deriveDefaultAuthoringScope` supplies for it — `product:storefront` — is NOT a configured
- * target. `local-form` rides along as a distractor, so choosing from the served list is a real
- * choice rather than "there was only one".
- */
+// `storefront-web` declares `product: storefront`, so the derived scope is not a configured target.
 const TWO_TARGETS = `registry:
   targets:
     local-form:
@@ -321,12 +272,7 @@ describe('a zero-exemplar scope compiles a document the SHIPPED parser accepts',
   })
 
   it('reaches ParsedDraftLike.context from stage 3 — the root the gate scans', async () => {
-    // THE CLAIM, AND WHY IT IS MADE HERE. `ParsedDraftLike.context` was widened into the shape in
-    // 394-15 so the draft check could read it, and nothing on the compile path had
-    // ever populated it: the format block told stage 3 that four keys were all a document may
-    // carry. This cell is that root's first end-to-end reachability proof, and it is a fact about
-    // the SHIPPED parser — `agent-local`'s shelf is a fake that reads `name` and `steps` and would
-    // have answered `staged` for a document whose `context` it never looked at.
+    // Proves `context` reaches the shipped parser end to end; the agent-local shelf ignores it.
     const { failure, staged, verified, authoring } = await driveZeroExemplarLoop()
 
     expect(failure?.message).toBe(VERIFY_REACHED)
@@ -368,16 +314,7 @@ describe('a zero-exemplar scope compiles a document the SHIPPED parser accepts',
     expect(staging?.kind).toBe('staged')
     if (staging === undefined || staging.kind !== 'staged') return
 
-    // THE CLAIM, STATED FOR WHAT IT IS (corrected 394-37, WR-04). The staged target is a MEMBER of
-    // the served vocabulary — which measures that THIS GENERATOR obeyed the block, and nothing
-    // about what the product does when a generator does not. It cannot be otherwise here:
-    // `targetFromVocabulary` draws its answer out of the served list on every path it can take, so
-    // membership holds by construction. The PRODUCT's refusal of a non-member is a different claim
-    // with its own cell — `refuses an off-vocabulary target` below, whose generator copies the
-    // example's target instead of choosing one.
-    //
-    // Not "equals storefront-web" either: that would pin this generator's preference heuristic
-    // rather than the property, which is that stage 3 chose rather than guessed.
+    // Membership holds by construction; the product's refusal of a non-member has its own cell.
     const parsedTarget = /^target: (.+)$/m.exec(
       readFileSync(join(root, staging.draft.filePath), 'utf8'),
     )?.[1]

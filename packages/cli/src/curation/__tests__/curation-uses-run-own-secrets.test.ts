@@ -42,7 +42,7 @@ import type { PostRunTailHostInput, PostRunTailOperations } from '../post-run-ta
 import { createPostVerdictStep } from '../post-verdict-step.js'
 import { readRunConfigRecord } from '../run-curation-context.js'
 
-// reconciliation 23 reads SC3's distinct secrets as distinct secretsFiles.
+// Distinct secrets live in distinct `secretsFile`s.
 const VALUE_A = 'alpha-tenant-7731'
 const VALUE_B = 'bravo-tenant-4410'
 const MARKER_A = '[secret:A_SECRET]'

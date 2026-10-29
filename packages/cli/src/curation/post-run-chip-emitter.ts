@@ -1,35 +1,4 @@
-// The post-run chip emitter.
-//
-// The push half of ANLZ-05. When THIS process drains the chain, the transitions it observes are
-// appended to the run's own `events.jsonl`, continuing the seq order `runFinished` left off at,
-// so a live view attached to that log sees analysis and curation move without polling.
-//
-// Two rules make the trail honest, and neither is a matter of taste:
-//
-//   1. OBSERVED OUTCOMES ONLY. Every envelope here is built from a `runNextJob` outcome the
-//      pump actually received — never from an intention, never from a status somebody expects
-//      the row to reach. A chip that announced a stage before the queue durably said so would
-//      be a claim `runs.postprocessing` could contradict a millisecond later, and a surface
-//      that can be told two different things about one row has no truth to render.
-//   2. IN-PROCESS ONLY. The emitter is constructed on the acquired-lease drain leg and nowhere
-//      else. When the daemon drains instead, nothing is emitted and durable job state is the
-//      only truth — a second process never writes a finished run's log. That is
-//      expressed as control flow rather than as a condition re-checked here: a leg that never
-//      builds an emitter cannot forget to guard one.
-//   3. RUN-SCOPED. The pump this emitter listens to is a GLOBAL FIFO: it claims the oldest
-//      queued job in the store, which is routinely another run's. A claimed job whose id is not
-//      in `chainJobIds` — the two ids THIS run's chain addresses, derived by the tail through
-//      the one shared derivation the read op also uses — yields ZERO envelopes here. The
-//      membership set is the only scoping input: never the kind, never the payload, never a
-//      pattern over a field of the outcome being guarded. Kind alone cannot answer "whose chain
-//      was that", and an emitter that guesses would put another run's transitions into this
-//      run's log while durable state said otherwise.
-//
-// It appends DIRECTLY, and never through the run bus or its subscribers. By the time a chip
-// exists the bus has published `runFinished`, every subscriber has been flushed and the exit
-// code is frozen (D-16, Pitfall 6/8) — so the bus is not a slower path to the same file, it is
-// a closed producer. The append discipline is `FsEventLog`'s verbatim: synchronous, fsync-free,
-// exactly one JSON line per envelope, crash-safe up to the last completed append.
+// Appends observed outcomes of this run's own chain straight to `events.jsonl`, in process only.
 
 import { appendFileSync, readFileSync } from 'node:fs'
 
@@ -55,27 +24,7 @@ interface StageChipKinds {
   readonly failed: RunEventType
 }
 
-/**
- * Which job kind speaks through which chip.
- *
- * The table names what a job kind EMITS. As of 2026-08-26 the chip set is
- * `{analysis, curation}` and the three `issues*` event names no longer exist, so a row describing
- * what a reserved kind "would" emit could only name events the enum does not carry. 2026-09-01
- * the reserved sixth kind left with the Issue-slot cleanup.
- * The emitter's run-scoped drop-guard consults this run's chain ids, so a
- * row observed by this pump that is not this run's is dropped by id rather than mis-attributed.
- *
- * a FULL `Record`, not a `Partial` one, and the change is
- * the point rather than a tidy-up. The chain grew a third stage that is deliberately chip-less,
- * and under a `Partial` its silence was produced by the same missing key that answers for `chat`
- * — a kind that is not a post-processing stage at all. A chain stage that gives no chip is a
- * DECISION and must be written down; an absent key is an omission, and the two are
- * indistinguishable to every reader. Every kind now names its answer, so a sixth fails to compile
- * here until somebody chooses one. `postRunChipDecision` below is the single reader of this table.
- *
- * `notify` is absent for a different reason: it is not a job kind at all — the chain terminal is
- * a function-layer emission over a durable row, not a queue member, and it is not a chip.
- */
+// A full `Record`, so every job kind states its chip and a new kind fails to compile until it does.
 const NO_CHIP = 'no-chip' as const
 
 const STAGE_CHIPS: Record<JobKind, StageChipKinds | typeof NO_CHIP> = {
@@ -178,36 +127,11 @@ export interface CreatePostRunChipEmitterOptions {
   readonly mask?: MaskFn
   /** The tail's one wall clock, so envelope stamps and budget arithmetic share a source. */
   readonly now?: () => number
-  /**
-   * The dashboard's SECOND SINK for the same envelope.
-   *
-   * THE FILE STAYS THE RECORD AND THIS IS A CONVENIENCE. A run's post-processing chain runs after
-   * `runFinished`, which is where the run event stream closes — so the chips a browser wants to
-   * watch are appended by a leg no open SSE is listening to. When `agent-qa dashboard` is the host,
-   * it threads its in-process relay here and the page learns that the durable answer moved. Every
-   * other host threads nothing and the emitter behaves exactly as it did before this field existed.
-   *
-   * CALLED AFTER THE APPEND, WITH THE SAME OBJECT. After, because the trail is the thing that must
-   * survive; the same object, because the envelope a viewer is told about and the envelope the file
-   * holds may not be two values that merely agree today.
-   *
-   * A LISTENER FAULT IS SWALLOWED HERE, on the run bus's own subscriber-fault discipline: this
-   * emitter's job is the trail, it is called synchronously from inside the pump's loop, and a
-   * viewer's exception thrown out of `observe()` would abort a DRAIN over a browser bug.
-   */
+  // After the append, same object; a listener fault is swallowed so a viewer cannot abort a drain.
   readonly relay?: (envelope: RunEventEnvelope) => void
 }
 
-/**
- * How much of a failure reason a chip may carry.
- *
- * The chip's `error` is a diagnostic POINTER, not a transcript: it exists so a surface can say
- * which stage failed and roughly why, and the full text is already in the tail's warn log where
- * a human is looking when they care. A constant with a stated reason rather than a knob (386
- * D-15): the number that matters is "short enough that a runaway exception cannot flood a log
- * every attached surface streams", and no project's answer to that differs. Retune here if a
- * real diagnosis is ever found truncated — 500 is roughly five lines of message.
- */
+// A diagnostic pointer, short enough that a runaway exception cannot flood a streamed log.
 const CHIP_ERROR_MAX_LENGTH = 500
 
 /**
@@ -232,8 +156,7 @@ function lastRecordedSeq(eventsPath: string): number {
       const parsed = JSON.parse(lines[index]!) as { seq?: unknown }
       if (typeof parsed.seq === 'number' && Number.isFinite(parsed.seq)) return parsed.seq
     } catch {
-      // The reader never throws on garbage (runner-local D-07): a torn final line is skipped
-      // and the seq is taken from the last line that parses.
+      // The reader never throws on garbage: a torn final line is skipped.
       continue
     }
   }
@@ -245,16 +168,7 @@ export function createPostRunChipEmitter(
 ): PostRunChipEmitter {
   const eventsPath = completedRunEventsPath(options.agentQaRoot, options.runId)
   const now = options.now ?? Date.now
-  /**
-   * The one free-form-text field this file writes to disk, masked THEN bounded.
-   *
-   * Masked first and bounded second, in that order and not the other: a slice applied first
-   * could cut a secret in half and hand the masker a token it no longer recognises, which is the
-   * quiet way a redaction stops firing. `handler-threw: ${error.message}` (engine.ts) is text
-   * from anywhere inside the curation drain, the knowledge store or a provider client — the
-   * whole rest of a chip payload is counts and identifiers, and this joins that
-   * discipline rather than being the exception to it.
-   */
+  // Masked before it is bounded, because a slice could cut a secret and the masker would miss it.
   const chipError = (reason: string): string =>
     (options.mask?.(reason) ?? reason).slice(0, CHIP_ERROR_MAX_LENGTH)
   // Read ONCE, at construction: the emitter is the only writer of this file from here on, so
@@ -275,10 +189,7 @@ export function createPostRunChipEmitter(
     nextSeq += 1
     emitted += 1
     appendFileSync(eventsPath, `${JSON.stringify(envelope)}\n`)
-    // D-16's second sink, and its position is the whole contract: below the append, so the record
-    // exists before anybody is told about it, and inside the drop-guard's shadow — `observe()`
-    // returns above this function for an outcome that belongs to another run's chain, so the guard
-    // that keeps a foreign chip out of this file is the same one that keeps it off this wire.
+    // After the append and inside the drop-guard: a foreign chip reaches neither file nor wire.
     try {
       options.relay?.(envelope)
     } catch {
@@ -306,10 +217,7 @@ export function createPostRunChipEmitter(
       if (decision.kind !== 'chips') return
       const chips = decision.chips
 
-      // `handlerInvoked: false` means the attempt bound was already spent at claim time and the
-      // driver failed the job WITHOUT handing it to its handler. Emitting `started`
-      // there would announce a start that provably never happened — the one lie this emitter
-      // is shaped to be unable to tell.
+      // `handlerInvoked: false` means the handler never ran, so a `started` chip would be false.
       if (outcome.handlerInvoked !== false) {
         append(chips.started, { runId: options.runId })
       }

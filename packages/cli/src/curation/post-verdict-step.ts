@@ -1,114 +1,4 @@
-// The post-verdict step the runner shell awaits (Phase 404 plan 01, D-09 / D-10 / D-11;
-// plan 04, D-05 / D-08 / D-09).
-//
-// WHAT THIS FILE OWNS. Four things and no fifth:
-//
-//   1. `dispositionOf` — the D-09 DECISION FUNCTION. One total mapping from "what did the durable
-//      enqueue and the writer lease say" to the posture `runFinished.disposition` publishes. It is
-//      pure, it is the only place the three wire values are chosen, and it is total over the
-//      probe's `kind` domain so a new arm cannot silently fall through to a value nobody picked.
-//   2. THE ONE DURABLE `analyze-run` ENQUEUE IN THE REPOSITORY. It used to live
-//      in `commands/run.ts`'s tail, which meant it happened for the CLI door and for NO OTHER: a
-//      dashboard, MCP, chat or daemon run reached a verdict and queued nothing, so LIFE-03's
-//      posture clause was vacuous for every non-CLI run and a dashboard-only user read `pending`
-//      forever. The shell awaits this step on EVERY door, so putting the enqueue here is what makes
-//      runner.md §2.1 — "the session's lifecycle ends when the verdict is reached AND its curation
-//      candidates are durably enqueued" — structurally true rather than true of one command.
-//   3. THE ONE LEASE ACQUISITION BY THIS BOX. `acquireWriterLease` is called AT MOST ONCE here,
-//      on the run's own knowledge root, and this file never calls it a second time for a run.
-//
-//      THAT IS NOT THE SAME CLAIM AS "at most once per process", and this header asserted the
-//      stronger one until 2026-08-27. When the probe answers `held` or `refused` the plan
-//      stays `none` and `takeAcquiredLease()` hands back `undefined` — at which point the PUMP
-//      decides. `post-run-tail.ts`'s `drain()` runs its own `acquireWriterLease` on the
-//      `handed === undefined` arm, unless the door asked it not to with `withoutLease: 'skip'`
-//      (the `runs.start` door, 404 D-06). Laziness makes that arm MORE common rather than less:
-//      every `handedOff`/`refused` run now reaches it, plus every run whose deferred acquire
-//      loses the probe→acquire race this header documents below.
-//
-//      No two-holders defect follows, and the reason is structural rather than lucky: the arm
-//      runs PRECISELY when this box acquired nothing, so the pump's consult is a first
-//      acquisition and not a second. What is guaranteed is the thing Pitfall 3 is about — no
-//      process ever holds two authorities for one run — not a call count.
-//   4. THE HANDOFF BOX. What that acquisition produced leaves through `takeAcquiredLease()`, ONCE,
-//      to whoever will actually pump the chain.
-//
-// THE ACQUISITION IS LAZY, AND THAT IS THE POINT.
-//
-// `run()` DECIDES the disposition; it does not mutate the lease. The decision is taken from a
-// NON-ACQUIRING read — `readWriterLease` + `deriveWriterLeaseFreshness`, the same pair
-// `classifyDaemonRegistration` classifies a holder from — and the actual `acquireWriterLease` is
-// deferred to `takeAcquiredLease()`, i.e. to the moment a pump asks for the authority.
-//
-// It was eager first, and eager was measurably wrong. The shell awaits this step on EVERY run,
-// including the runs that end above the tail: `in-process-run-execution.ts` re-throws
-// `produced.takeFrameworkError()` before `options.afterVerdict`, so a run that dies on "browser
-// support is not installed" never reaches `postRunTail.drain({ takeLease: … })`. Acquiring at the
-// verdict therefore minted an epoch and a lease file for a chain nobody was going to pump, and the
-// no-leak backstop below then released it and printed `post-run lease released untaken` on stderr
-// — on ORDINARY runs, which is how `run-parity.e2e.test.ts` caught it. Acquiring nothing costs
-// nothing to release and has nothing to warn about: the step that has no pump now leaves the
-// lease file exactly as it found it.
-//
-// WHAT IT DOES NOT OWN. It publishes nothing on the bus — the shell is the single owner of the
-// terminal sequence (RESEARCH Pitfall 7), so this file returns a VALUE and the shell decides what
-// to say about it. It pumps nothing: the chain drain, its budget and its chip emitter stay with
-// `post-run-tail.ts`. It resolves no knowledge root of its own — the producer already resolved the
-// root this run used, and a second `resolveKnowledgeRoot` here would be a second answer to "where
-// does this run's knowledge live" (the exact class of defect `chainJobIdsForRun` is centralised
-// against).
-//
-// THE FIVE ARMS OF `run()`, IN ORDER, AND WHY THE ORDER IS THE DESIGN:
-//
-//   (a) D-08 — a run carrying `gateRun: true` or `excludedFromOutcomes: true` enqueues NOTHING and
-//       consults no lease. A `write_test` keep-filter probe would otherwise cost a strong-model
-//       analysis per gate iteration, push draft evidence into curation, and produce chips about a
-//       run nobody will ever open. `detached` with no warning: nothing went wrong.
-//   (b) THE ENQUEUE, before the lease. The two are ordered rather than parallel because the lease
-//       decision is a promise about draining work that must already EXIST — a `drained` posture
-//       over an empty queue is a promise about nothing.
-//   (c) An enqueue that FAILED ⇒ `detached` + `post-run-enqueue-failed`, and no lease consult at
-//       all. Taking a lease to pump a chain that was never queued is the same empty promise from
-//       the other side, and it would leave a lease held for a run with nothing to do.
-//   (d) A host that SUPPLIED its own writer authority (the daemon door — Open Q2, Pitfall 8) reads
-//       `drained` WITHOUT a second acquisition. A holder that calls `acquireWriterLease` is
-//       answered `held` by ITSELF and would hand its own work off to nobody.
-//   (e) `--detach` (D-09/Pitfall 8) skips the LEASE only — the enqueue above already ran. Detaching
-//       asks this process not to SPEND itself on the work, never to forget the work exists.
-//
-// Anything else falls through to the 404-01 non-acquiring consult below.
-//
-// RESEARCH PITFALL 3 BY NAME — TWO LEASE HOLDERS IN ONE PROCESS. A process that holds the writer
-// lease and calls `acquireWriterLease` again is answered `held` — by ITSELF — and would hand its
-// own work off to nobody: chips never move and the claimed row is left claimed. That is why the
-// acquisition happens here at most once and travels to the pump through ONE take, rather than
-// each leg consulting the lease for itself. `takeAcquiredLease()` is take-ONCE for the same reason
-// in the other direction: two callers each believing they hold the lease is the same defect
-// wearing a different hat, and the second caller gets `undefined` instead of a duplicate
-// authority.
-//
-// WHERE THE TAKE IS CALLED IS PART OF THE MITIGATION. Because taking is what
-// acquires, a caller that evaluates `takeAcquiredLease()` as an ARGUMENT has minted the lease
-// before the callee's first line — outside any `finally` the callee owns, and past the take-once
-// flag the backstop below reads. The pump therefore takes it ITSELF, inside the try that releases;
-// `post-run-tail.ts`'s `drain()` accepts a thunk for exactly this reason.
-//
-// WHAT LAZINESS COSTS, STATED. `drained` is the posture "nobody held this run's lease at the
-// verdict, so this process will take it and pump", and between the verdict and the pump's
-// request a daemon may take it first. The pump then receives `undefined`, `drain()` falls back to
-// its own consult, is answered `held`, and reports `handed-off` — the work still gets done by the
-// holder, and the wire's `drained` is the posture that was true when it was published. D-09 already
-// says the field is a posture and never a claim about what became of the chain; that is chip truth
-// (`runs.postprocessing`). The reverse corner is the same size: an authority state that only the
-// ACQUISITION can see refused (a mutation lock no contender can reclaim, or corrupt epoch bytes
-// behind an absent lease file) reads `drained` on the wire and drains nothing. Both were already
-// possible with the eager acquisition — a lease acquired at the verdict is no guarantee the pump
-// runs — and neither is worth a stderr line on every ordinary run.
-//
-// Import discipline: a CLI file may name only `agent`, `agent-local` and `schema` across
-// package boundaries. The runner's port vocabulary therefore arrives through `agent-local`'s
-// barrel, which re-exports it for exactly this hop, and the lease/daemon capabilities arrive
-// through `LOCAL_DAEMON_CAPABILITIES` — the one composition edge that already publishes them.
+// The disposition comes from a non-acquiring read; a lease is acquired only when a pump takes it.
 
 import { LOCAL_DAEMON_CAPABILITIES } from '@vostride/agent-qa-agent-local'
 import type {
@@ -150,20 +40,10 @@ export interface PostVerdictStepOperations {
   acquireWriterLease: typeof LOCAL_DAEMON_CAPABILITIES.acquireWriterLease
   releaseLease: typeof LOCAL_DAEMON_CAPABILITIES.releaseLease
   readWriterLease: typeof LOCAL_DAEMON_CAPABILITIES.readWriterLease
-  /**
-   * the ONE three-valued freshness verdict. A surface that classified a holder from
-   * the lease file alone would read "nobody holds it" out of an epoch it could not read, which is
-   * the defect this derivation exists to make unreachable — so `unknown` is named below rather
-   * than inherited.
-   */
+  // The freshness verdict names `unknown`, so an unreadable epoch never reads as no holder.
   deriveWriterLeaseFreshness: typeof LOCAL_DAEMON_CAPABILITIES.deriveWriterLeaseFreshness
   nudgeDaemon: typeof nudgeDaemon
-  /**
-   * The durable record the enqueue's payload is minted FROM (D-05, relocated from the tail).
-   *
-   * The shell saved it a few lines before it awaited this step, so it exists by construction on
-   * every path that reaches here.
-   */
+  // The shell saves this handoff before awaiting the step, so it exists on every path here.
   loadCompletedRunHandoff: CurationTailOperations['loadCompletedRunHandoff']
   /**
    * A host composed over this run's project, opened for the ENQUEUE and closed again.
@@ -209,33 +89,14 @@ export interface PostVerdictStepOptions {
    * one root, and two derivations are free to disagree.
    */
   readonly knowledgeRoot: string
-  /**
-   * The resolved project config file the enqueue's host is composed from.
-   *
-   * REQUIRED rather than optional: a door that forgot it would compose a host against a project it
-   * did not resolve, and the enqueue is the one thing every door owes its run.
-   */
+  // Required: a door that omitted it would compose a host against a project it did not resolve.
   readonly configPath: string
-  /**
-   * `--detach`: enqueue, then skip the LEASE (D-09, RESEARCH Pitfall 8).
-   *
-   * Only the literal `true`, on the house rule the markers ride: an absent field is an ABSENT
-   * field, never an `undefined` a reader must re-check.
-   */
+  // Only the literal `true`: an absent field stays absent, never an `undefined` to re-check.
   readonly detach?: true
-  /**
-   * A writer lease this HOST already holds, handed to the step instead of a second acquisition
-   * (Open Q2, RESOLVED → the daemon door).
-   *
-   * The daemon holds the writer lease for its whole lifetime and dispatches runs into its own
-   * process. Its runs read `drained` (D-09: a daemon-launched run drained by the daemon's own pump
-   * is drained) — but the step may NOT call `acquireWriterLease` to find that out, because a holder
-   * that asks is answered `held` by itself and would hand its own work off to nobody (Pitfall 3).
-   * So the door that minted the lease says so.
-   */
+  // The daemon door hands over its held lease, because acquiring again answers `held` to itself.
   readonly writerAuthority?: CurationWriterAuthority
   readonly log: { warn(message: string): void }
-  /** the run's context, so a line about unfinished work never promises a CI resume. */
+  // The run's context, so a line about unfinished work never promises a CI resume.
   readonly executionContext?: ExecutionContext
   /** Focused test seam. Production callers omit it. */
   readonly operations?: Partial<PostVerdictStepOperations>
@@ -253,34 +114,9 @@ export interface PostVerdictHandoff {
   readonly enqueueState?: PostVerdictEnqueueState
   readonly failureDetail?: string
   readonly pendingPath?: string
-  /**
-   * ACQUIRE (once) and hand over. This is the call a pump makes, and it is the only thing in this
-   * file that mutates the lease file: a step whose run never reaches a pump acquires nothing at
-   * all. A second call answers `undefined`, whether or not the first caller did anything with it —
-   * see the Pitfall 3 note in this file's header. `undefined` also comes back when the acquisition
-   * itself found a holder or refused, in which case the caller's own fallback consult decides.
-   *
-   * CALL IT WHERE YOU CAN RELEASE IT. This is a mutating call wearing the
-   * grammar of a getter, so a caller must invoke it from inside the scope whose `finally` releases
-   * — never as an argument to the thing that owns that scope. `post-run-tail.ts`'s `drain()` takes
-   * a `takeLease` thunk instead of an authority so that its callers cannot get this wrong.
-   */
+  // A mutating call shaped like a getter: invoke it inside the scope whose `finally` releases.
   takeAcquiredLease(): CurationWriterAuthority | undefined
-  /**
-   * Take an authority THIS STEP ACQUIRED and nobody claimed, acquiring nothing.
-   *
-   * The no-leak backstop's accessor, and it is a different verb on purpose: a release path that
-   * called `takeAcquiredLease()` would acquire a lease for the sole purpose of releasing it —
-   * mint an epoch, rewrite the lease file, release it, and warn about it — which is the ordinary
-   * run this step was making noisy in the first place.
-   *
-   * 2026-08-26 (plan 04): IT NEVER HANDS BACK A SUPPLIED AUTHORITY. When the daemon door passes
-   * `writerAuthority` it is passing the lease it is CURRENTLY HOLDING and heartbeating for its own
-   * lifetime. Releasing that because no tail claimed it would revoke a live daemon's authority
-   * mid-run — every other process would then read the lease as free, take it, and pump under a
-   * fence the daemon still believes it owns. A supplied lease belongs to the supplier's lifecycle
-   * and leaves through the supplier's own release, never through this backstop.
-   */
+  // Never hands back a supplied authority: releasing a live daemon's lease would revoke it mid-run.
   takeUnclaimedLease(): CurationWriterAuthority | undefined
 }
 
@@ -327,28 +163,7 @@ export class PostProcessingUnboundError extends Error {
   }
 }
 
-/**
- * THE ONE durable `analyze-run` enqueue in this repository.
- *
- * Relocated from `post-run-tail.ts`'s `enqueue()` leg with its body intact — the same handoff read,
- * the same minted-once digest, the same `AnalyzeRunPayloadSchema.parse`, the same idempotency key
- * (`opts.runId`), the same fence-free write. What changed is WHO calls it: the tail was
- * reachable only from `commands/run.ts`, and this is reachable from every door, because the shell
- * awaits the step that calls it.
- *
- * IT THROWS RATHER THAN REPORTING. The caller maps the throw onto a named `runWarning` code, and
- * that split is deliberate: this function's whole job is "write the row or say why not", and a
- * function that swallowed its own failure into a return value would make the D-11 warning code a
- * decision taken in two places.
- *
- * `deduped` IS A SUCCESS, not a lesser one. A second step run for one run id is exactly what the
- * store's `(kind, idempotency_key)` unique index exists to absorb, and reporting it as a
- * failure would make the store's own guarantee look like an error to every reader.
- *
- * THE HOST IS CLOSED HERE. The tail composes its own for the drain (with the run's declared mask
- * threaded, which this one has no use for), so leaving this handle open would leave an sqlite
- * connection behind on every run that ends above the tail.
- */
+// Throws rather than reporting, treats `deduped` as success, and closes its own host.
 export async function enqueueAnalyzeRun(input: {
   readonly runId: string
   readonly agentQaRoot: string
@@ -369,28 +184,10 @@ export async function enqueueAnalyzeRun(input: {
       )
     }
     const jobs = await host.jobs()
-    // WTST-06 / 393 D-20, verbatim from the tail: the payload is MINTED here, schema-validated,
-    // and the two run markers are COPIED onto it from the loaded handoff.
-    //
-    // Copied, never re-derived and never re-digested. `gateRun` and `excludedFromOutcomes` already
-    // live inside the handoff whose bytes `handoffDigest` pins, so these fields add no integrity
-    // guarantee — what they add is the ability to see what a QUEUED job is without loading the
-    // handoff it points at. Anyone who needs the authoritative answer reads the handoff.
-    //
-    // The conditional spread is the `runs-start.ts:67` idiom and is load-bearing twice over: the
-    // carriers are `?: true`, so an unconditional copy would write `undefined` into the payload for
-    // every ordinary run, and `AnalyzeRunPayloadSchema` refuses a literal `false`.
-    //
-    // under D-08 the STEP no longer reaches this line for a run carrying either marker,
-    // so in this build the two spreads copy from a handoff that a marker-carrying run never gets to
-    // — a run marked in the durable record but not on the step input, which is what a re-enqueue
-    // from disk would look like. They are kept because the payload's contract is WTST-06's and this
-    // is its only producer; a mint that dropped them would make that contract unimplementable the
-    // day a second producer appears.
+    // Markers are copied from the handoff by conditional spread; the schema refuses `false`.
     const payload = AnalyzeRunPayloadSchema.parse({
       runId: input.runId,
-      // the digest is minted ONCE per run and shared with the receipt. A second mint
-      // here would be a second answer to "which bytes were analysed".
+      // The digest is minted once per run and shared with the receipt.
       handoffDigest: curationTailHandoffDigest(handoff),
       handoffSchemaVersion: handoff.schemaVersion,
       executionContext: handoff.executionContext,
@@ -405,8 +202,7 @@ export async function enqueueAnalyzeRun(input: {
     try {
       await host.close?.()
     } catch {
-      // A store handle that will not close is this process's problem, and post-processing may
-      // never cost the verdict. The next composition opens its own.
+      // A store handle that will not close must never cost the verdict.
     }
   }
 }
@@ -435,23 +231,14 @@ async function matchingAnalysisAlreadyQueued(options: PostVerdictStepOptions, op
   } finally { await host.close() }
 }
 
-/**
- * The D-07 warning wording, verbatim from the tail it moved out of. Every clause is load-bearing.
- *
- * It names the RUN so the loss is attributable; it says the verdict and exit code are unaffected so
- * nobody reads a post-processing warning as a test result (JOBQ-06 in the one place a user actually
- * meets it); and it names the handoff's PATH, because "the handoff remains on disk" is only
- * actionable if the reader is told where on disk. The handoff is the whole input the analysis
- * needs, so that path IS the manual re-queue path — there is no retry file and no reconciliation
- * sweep in this build, by decision.
- */
+// Names the run, says the verdict is unaffected, and gives the handoff path for a manual re-queue.
 function enqueueFailureWarning(
   runId: string,
   handoffPath: string,
   detail: string,
   executionContext: ExecutionContext | undefined,
 ): string {
-  // in `ci` and `cloud` the drive's hand-off sentence states the resume limit.
+  // In `ci` and `cloud` the drive's hand-off sentence states the resume limit.
   const resumeClause = ciResumeClause(executionContext, 'any-host')
   return `Run ${runId}: analysis enqueue failed or was refused (${detail}); post-run analysis was not queued. The verdict and exit code are unaffected. `
     + `Handoff: ${handoffPath}. Durable intent, if publication succeeded: ${join(dirname(handoffPath), 'post-verdict-pending.json')}. `
@@ -511,12 +298,7 @@ export function probeWriterLease(input: {
   }
 }
 
-/**
- * What became of the durable enqueue, as `dispositionOf` reads it.
- *
- * `skipped` is D-08's gate-run arm — the enqueue did not fail, it never ran, and those are
- * different facts: one is worth a warning and the other is a decision somebody took.
- */
+// `skipped` means the enqueue never ran, which is a decision, not a failure.
 export type PostVerdictEnqueueState = PostVerdictEnqueueOutcome | 'failed' | 'unbound' | 'skipped'
 
 function safeEnqueueFailure(error: unknown): string {
@@ -525,31 +307,7 @@ function safeEnqueueFailure(error: unknown): string {
   return 'enqueue-error'
 }
 
-/**
- * The D-09 decision: what the enqueue and the lease said at the verdict → the posture the wire
- * publishes.
- *
- * TOTAL OVER `kind`, deliberately as a `switch` with no `default`. `WriterLeaseProbe` grows arms
- * over time; a `default` would absorb a new one into whatever value happened to be adjacent, and
- * this is the field 408's embed and every thin client parse.
- *
- * THE ARMS ARE ORDERED, AND THE ORDER IS THE CLAIM:
- *   - `enqueue: 'failed'` — nothing is queued, so no posture about draining it can be honest.
- *     `post-run-enqueue-failed` carries the cause; the lease is never consulted.
- *   - `enqueue: 'unbound'` — this host binds no queue at all. `post-processing-unbound`, the same
- *     code the absent-lease arm uses, because it is the same sentence: nothing will be drained
- *     from here.
- *   - `writerAuthority` — the host HOLDS the lease and said so (the daemon door). `drained`, with
- *     no probe and no acquisition: asking would be answered `held` by this very process.
- *   - `leaseSkipped` — a deliberate skip: D-08's gate-run (which also skipped the enqueue) or
- *     `--detach` (which did not). `detached` with NO warning; nothing went wrong, so nothing is
- *     worth waking anyone for.
- *   - `probe === undefined` and not skipped — no lease capability composed on this host at all.
- *     `post-processing-unbound`: the honest "nothing will be drained from here, and here is why".
- *   - `kind: 'refused'` — an authority state that exists and could not be evaluated.
- *     `writer-lease-refused` carrying the probe's own `reason`, which is the vocabulary every
- *     other lease consumer already renders.
- */
+// A `switch` without `default`, so a new probe arm cannot take an adjacent value; order matters.
 export function dispositionOf(input: {
   readonly enqueue?: PostVerdictEnqueueState
   /** The enqueue failure's own message, carried to the reader rather than flattened. */
@@ -581,8 +339,7 @@ export function dispositionOf(input: {
       },
     }
   }
-  // The host holds the lease already and told us so. No probe, no acquisition: a holder that asks
-  // is answered `held` by itself (RESEARCH Pitfall 3), and its own pump is what drains this chain.
+  // The host already holds the lease; asking would answer `held` to itself, so there is no probe.
   if (input.writerAuthority !== undefined) return { disposition: 'drained' }
   if (input.leaseSkipped) return { disposition: 'detached' }
   const probe = input.probe
@@ -603,8 +360,7 @@ export function dispositionOf(input: {
   }
   switch (probe.kind) {
     case 'held':
-      // Somebody else holds a CURRENT-epoch lease and will pump. `handedOff` is a promise about
-      // who owns the work, never a claim that the work succeeded.
+      // Another holder has a current-epoch lease and will pump; `handedOff` claims no success.
       return { disposition: 'handedOff' }
     case 'free':
       // Nobody holds it, so this process is the one that will take it — when its pump asks.
@@ -656,8 +412,7 @@ export function createPostVerdictStep(options: PostVerdictStepOptions): {
 
   const execute = async (input: PostVerdictStepInput): Promise<PostVerdictOutcome> => {
       const root = options.knowledgeRoot
-      // every run, gate runs included, records the config another
-      // run's tail must curate it under; without the record every other tail hands it back.
+      // Every run records its config, or another run's tail cannot curate it.
       try {
         writeRunConfigRecord(options.agentQaRoot, options.runId, resolve(options.configPath))
       } catch (error) {
@@ -669,10 +424,7 @@ export function createPostVerdictStep(options: PostVerdictStepOptions): {
         return outcome
       }
 
-      // (a) D-08 — the gate-run / outcomes-excluded skip. No enqueue, no lease, no warning. The
-      // markers arrive on the STEP INPUT (the shell copies them off `RunConfig`), not off the
-      // handoff: the handoff is loaded by the enqueue, and this arm exists precisely so the
-      // enqueue never runs.
+      // The markers come from the step input: this arm exists so the handoff is never loaded.
       if (input.gateRun === true || input.excludedFromOutcomes === true) {
         enqueue = 'skipped'
         return settle(dispositionOf({ enqueue: 'skipped', leaseSkipped: true }))
@@ -706,8 +458,7 @@ export function createPostVerdictStep(options: PostVerdictStepOptions): {
         }))
       }
 
-      // (d) The host supplied its own authority (Open Q2 — the daemon door). Stash it for a pump
-      // that asks; acquire nothing.
+      // (d) The daemon door supplied its own authority: stash it for a pump and acquire nothing.
       const authority = options.writerAuthority
       if (authority !== undefined) {
         supplied = authority
@@ -715,13 +466,12 @@ export function createPostVerdictStep(options: PostVerdictStepOptions): {
         return settle(dispositionOf({ enqueue, writerAuthority: authority, leaseSkipped: false }))
       }
 
-      // (e) `--detach` — the enqueue above ran; the LEASE is what detaching skips (Pitfall 8).
+      // (e) `--detach`: the enqueue above ran, and detaching skips only the lease.
       if (options.detach === true) {
         return settle(dispositionOf({ enqueue, leaseSkipped: true }))
       }
 
-      // The 404-01 consult. The DECISION read is non-mutating by construction — see this file's
-      // header for why the acquisition is not here.
+      // The decision read is non-mutating; the acquisition waits for a pump.
       const probe = probeWriterLease({ knowledgeRoot: root, operations: ops() })
       if (probe.kind === 'held') {
         // The SHIPPED nudge envelope, verbatim from the tail's own hand-off leg: its handler
@@ -789,26 +539,7 @@ export function createPostVerdictStep(options: PostVerdictStepOptions): {
   }
 }
 
-/**
- * Release a lease nobody took, and say so.
- *
- * The structural no-leak rule for a door whose tail never ran: if an authority is sitting in the
- * box unclaimed it must not be left to expire on its TTL while every other process reads the run
- * as handed off to a holder that is not pumping. Warn-only — the exit code froze long before this
- * line, and a lease this process cannot release expires on its own.
- *
- * IT ACQUIRES NOTHING. Under the lazy step above, an ordinary run that never reaches a pump has an
- * empty box here, so this is a silent no-op rather than the `released untaken` line it used to
- * print on every framework-error exit.
- *
- * IT ALSO RELEASES NOTHING THE HOST SUPPLIED. The daemon door hands the step
- * the lease it is currently holding and heartbeating; `takeUnclaimedLease()` deliberately refuses
- * to hand that back, because releasing a live daemon's authority because no tail claimed it would
- * let every other process take the lease while the daemon still believed it owned the fence. What
- * this backstop exists for is the OTHER filler: a producer that puts a lease THIS STEP ACQUIRED
- * into the box ahead of a pump that never comes — a leaked writer lease being exactly the failure
- * nobody notices until the next run is told the chain is handed off to a process that has exited.
- */
+// Releases only a lease this step acquired; a supplied daemon lease is never released here.
 export function releaseUntakenPostVerdictLease(input: {
   readonly handoff: PostVerdictHandoff
   readonly knowledgeRoot: string

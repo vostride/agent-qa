@@ -44,10 +44,10 @@ import {
   type ProcedureTrajectoryStep,
 } from './emit-candidates.js'
 
-/** Provisional M2 malformed-output retry cap; intentionally not a user-facing config key. */
+/** Malformed-output retry cap; deliberately not a user-facing config key. */
 export const CURATOR_RETRY_CAP = 2
 
-/** Provisional M2 neighbor presentation cap; intentionally not a user-facing config key. */
+/** Neighbor presentation cap; deliberately not a user-facing config key. */
 export const CURATOR_MAX_NEIGHBORS = 12
 
 export interface BuildCuratorAuthorDependencies {
@@ -58,7 +58,7 @@ export interface BuildCuratorAuthorDependencies {
   createModelImpl?: typeof createModel
   resolveCapabilitiesImpl?: typeof resolveCapabilities
   createTokenAccountingImpl?: typeof createTokenAccounting
-  // an aborted request is rethrown, so the drain requeues it.
+  // An aborted request is rethrown, so the drain requeues it.
   signal?: AbortSignal
 }
 
@@ -607,10 +607,7 @@ function parseAuthorOutput(
   return { ok: true, outcome: { kind: 'authored', deltas: [delta], authorship: stamp } }
 }
 
-// --- Procedure extraction -------------------------------------------------
-// The LLM proposes segmentation + parameter names ONLY. Code deterministically builds each
-// candidate's parameterized step sequence and guard descriptors from the job's code-built
-// trajectory seed + finalized capture receipt — never from LLM text.
+// The LLM proposes segmentation and parameter names only; code builds each step and guard.
 
 const procedureParamTypeSchema = z.enum(['string', 'number', 'boolean', 'secret'])
 
@@ -647,13 +644,7 @@ const extractionProposalSchema = z
 
 type ExtractionCandidate = z.infer<typeof extractionCandidateSchema>
 
-/**
- * The ONE replayability authority shared by the presentation and the builder wall.
- * `buildCandidatePayload` inlined these four conditions while the prompt knew nothing about
- * them, so every live whole-flow proposal — real flows end with a targetless assertAI verify
- * step — was rejected with feedback that never named the constraint. Prompt, render, and wall
- * now read the same predicate; they can no longer disagree.
- */
+// One replayability predicate for the prompt, the render and the builder wall, so they agree.
 function isReplayableTrajectoryStep(step: ProcedureTrajectoryStep): boolean {
   if (step.action === undefined || step.pageRoute === undefined) return false
   const laneKeys = Object.keys(step.action.targets)
@@ -740,11 +731,7 @@ interface BuiltCandidate {
   pageRoutes: string[]
 }
 
-/**
- * Typed build outcome. The former `undefined` return told the retry loop nothing, so the model
- * was asked three times to fix a constraint it was never shown. Reasons are
- * module-internal strings surfaced only through the extraction retry feedback.
- */
+// Typed reasons reach the extraction retry feedback, so the model sees the constraint it broke.
 type CandidateBuild =
   | { ok: true; built: BuiltCandidate }
   | { ok: false; reason: string }
@@ -759,11 +746,7 @@ function isCompositeObserved(
   return value === null || typeof value === 'object'
 }
 
-/**
- * WR-02 early proposal wall. The committed procedure codec remains the fail-closed authority for
- * unique parameter declarations; rejecting ambiguity here keeps one malformed candidate from
- * reaching body construction while valid sibling candidates can still build deterministically.
- */
+// Rejects an ambiguous candidate early, so valid sibling candidates still build.
 function hasAmbiguousParameterProposal(candidate: ExtractionCandidate): boolean {
   const names = new Set<string>()
   const ownedSlots = new Set<string>()
@@ -790,18 +773,7 @@ function reserveForcedParameterName(base: string, usedNames: Set<string>): strin
   return name
 }
 
-/**
- * Deterministic body builder. Guard descriptors and step content derive from the trajectory
- * seed and capture receipt; the proposal contributes only span, parameter names, and the
- * success assertion. Rejects with a typed reason on any evidence gap (unknown ordinal,
- * non-contiguous span, guardless or non-replayable step) — never a partially-guarded candidate.
- *
- * Producer-side normalization: the span's BOUNDARY ordinals are clamped inward while
- * they fail the shared replayability predicate, so the whole-flow proposal every real flow
- * invites — [0, last] where last is a targetless assertAI verify step — builds deterministically
- * instead of dying on the wall. The clamp runs BEFORE the walls and never relaxes one: an
- * INTERIOR non-replayable step still rejects the candidate (contiguity, D-02).
- */
+// Boundary ordinals clamp inward past non-replayable steps; an interior one still rejects.
 function buildCandidatePayload(
   seed: ProcedureTrajectorySeed,
   candidate: ExtractionCandidate,
@@ -851,13 +823,7 @@ function buildCandidatePayload(
     }
   }
 
-  // the source-binding index over the covered span. A slot's sourceName is the name of
-  // the live binding that produced its value (an interpolated test variable matched by exact
-  // equality, or a secret recovered from its masked recorded form). Consult-time fillability
-  // matches required parameter names against the loop's binding NAMES, so a committed
-  // parameter that is not named after its binding is permanently unfillable — which is exactly
-  // why every live procedure downranked to hint. Code, not the prompt, is the authority here
-  // whatever the model proposed, the covering parameter takes the binding name.
+  // Parameters carry their binding's name, because consult-time fillability matches binding names.
   const slotSourceNames = new Map<string, string>()
   for (const step of covered) {
     if (step.action === undefined) continue
@@ -891,9 +857,7 @@ function buildCandidatePayload(
     renamedParameters.set(parameter.name, sourceName ?? parameter.name)
   }
 
-  // A rename may collapse two proposals onto one name. That is correct when both describe the
-  // same binding, so merge them — but only when their declared contract already agrees; a
-  // disagreement means the model modeled one binding two incompatible ways.
+  // A rename can collapse proposals onto one name; merge only when their contracts agree.
   const collapsed = new Map<string, ExtractionCandidate['parameters'][number]>()
   for (const parameter of candidate.parameters) {
     const committedName = renamedParameters.get(parameter.name)!
@@ -916,8 +880,7 @@ function buildCandidatePayload(
   const forcedParams: ProcedureParameterSpec[] = []
   const steps: ProcedureStepSpec[] = []
   for (const step of covered) {
-    // Same predicate the presentation renders — one authority, zero drift. Reaching
-    // here means the ordinal is INTERIOR to the clamped span, so contiguity forbids trimming it.
+    // Here the ordinal is interior to the clamped span, so contiguity forbids a trim.
     if (!isReplayableTrajectoryStep(step)) {
       return rejectCandidate(
         `step ordinal ${step.ordinal} is presented "replayable": false and sits inside stepSpan [${start}, ${end}]; a span must cover only replayable steps`,
@@ -939,14 +902,11 @@ function buildCandidatePayload(
       const composite = isCompositeObserved(observed)
       const secretSlot = slot.source === 'masked-secret'
       const claimed = appliesIndex.get(`${step.ordinal}\u0000${field}`)
-      // The committed name is the binding name whenever the evidence knows one;
-      // a proposal's own name survives only for slots with no source binding.
+      // The committed name is the binding name whenever the evidence knows one.
       const proposed =
         claimed === undefined ? undefined : renamedParameters.get(claimed) ?? claimed
       if (proposed !== undefined) {
-        // D-03's declared parameter types are deliberately scalar. Letting a proposal claim a
-        // composite would either corrupt its shape or create a parameter the replay binder cannot
-        // validate, so reject this candidate while leaving valid siblings buildable.
+        // Types are scalar, so a composite rejects this candidate and leaves siblings buildable.
         if (composite) {
           return rejectCandidate(
             `parameter ${proposed} claims composite value slot (step ${step.ordinal} field ${field}); parameters are scalar only`,
@@ -957,12 +917,9 @@ function buildCandidatePayload(
         values[field] = { param: proposed }
         continue
       }
-      // D-03 forced parameterization: every masked-secret/test-variable-sourced value the
-      // proposal missed still becomes a {param} ref, never a committed literal.
+      // Every masked-secret or test-variable value becomes a `{param}` ref, never a literal.
       if (secretSlot || slot.source === 'test-variable') {
-        // A sourced slot forces a parameter named after its BINDING, not after its position
-        // a synthetic `step0_value` name is unfillable at consult by construction.
-        // Two slots sharing one binding name share ONE parameter; secret type wins the merge.
+        // A sourced slot forces a parameter named after its binding; a shared binding shares one.
         if (slot.sourceName !== undefined) {
           const shared = forcedBySourceName.get(slot.sourceName)
           if (shared === undefined) {
@@ -1002,8 +959,7 @@ function buildCandidatePayload(
     })
   }
 
-  // Unreferenced proposed parameters are dropped (disposition would reject them); a proposed
-  // parameter covering a masked slot is escalated to the secret type.
+  // Unreferenced proposed parameters are dropped; one covering a masked slot becomes a secret.
   const parameters: ProcedureParameterSpec[] = [
     ...[...collapsed.values()]
       .map((parameter) => ({
@@ -1043,14 +999,7 @@ function buildCandidatePayload(
   }
 }
 
-/**
- * The flow anchor is code-built, never model text. `emit-candidates` pins the queue
- * candidate's primary anchor to flow:<testId> and seed.flowName IS that testId, so sourcing the
- * anchor here from the seed is what makes `checkAnchorConsistency` pass structurally — a
- * model-invented flowName otherwise downgrades the Add to MintUnknown whose synthetic body then
- * noops 'procedure-body-unparseable' at commit. The proposal's descriptive name
- * survives only inside the human-readable summary.
- */
+// The flow anchor comes from the seed, never model text, so `checkAnchorConsistency` passes.
 function procedureDelta(
   job: CurationJobView,
   seed: ProcedureTrajectorySeed,
@@ -1130,12 +1079,7 @@ function parseExtractionOutput(
   return { ok: true, outcome: { kind: 'authored', deltas, authorship: stamp } }
 }
 
-/**
- * Extraction-job retry feedback. The generic delta-authoring line below speaks of
- * delta kinds and aliases, which an extraction proposal has neither of — three retries of it
- * never told the live model to trim its span, and the job died at fallback-required:malformed.
- * This restates the two contract rules alongside the per-candidate reject reasons.
- */
+// Restates the extraction contract with each candidate's reject reasons, unlike the generic line.
 function withExtractionRetryFeedback(
   messages: readonly ModelMessage[],
   error: string,

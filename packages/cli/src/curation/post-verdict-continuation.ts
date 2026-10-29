@@ -248,7 +248,7 @@ export interface RecoverPendingPostVerdictOptions {
   readonly signal?: AbortSignal
   readonly log: { warn(message: string): void }
   readonly onEnqueued?: () => void
-  /** the recovering process's context, so a retry line never promises a CI resume. */
+  // The recovering process's context, so a retry line never promises a CI resume.
   readonly executionContext?: PostVerdictStepOptions['executionContext']
 }
 

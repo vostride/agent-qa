@@ -1,32 +1,4 @@
-// The D-09 decision table and the ONE lease acquisition, pinned.
-//
-// TWO CLAIMS, AND THEY ARE DIFFERENT CLAIMS. `dispositionOf` is a pure mapping and is pinned TOTAL
-// over the lease probe's `kind` domain plus the two inputs that have no probe at all — because
-// what it returns is written into a frozen bus field that 408's embed and every thin client parse,
-// and a case nobody chose is a value nobody chose. `createPostVerdictStep` is pinned on the
-// behaviour AROUND that mapping: a decision taken WITHOUT mutating the lease, at most one
-// acquisition per run and only when a pump asks for it, a nudge on `held`, and a take-ONCE handoff
-// box, which is the whole of RESEARCH Pitfall 3's mitigation.
-//
-// THE LAZINESS IS ITSELF A PINNED CLAIM. `run()` used to call `acquireWriterLease`
-// eagerly, which minted an epoch and a lease file for every run — including the runs that end
-// above the tail, where the no-leak backstop then released it and printed `released untaken` on
-// stderr. `run-parity.e2e.test.ts` caught that as changed ordinary-run output; the cells below are
-// where it is caught at unit range: after a `drained` decision with no pump, `acquireWriterLease`
-// has not been called, the release is a no-op, and nothing is warned.
-//
-// NO REAL KNOWLEDGE ROOT IS TOUCHED. Every cell stubs `operations`, so nothing here mints an epoch,
-// writes a lease file or wakes a daemon — the acquisition under test is the CALL, not the file
-// system underneath it, which `writer-lease`'s own suite owns.
-//
-// A THIRD CLAIM SINCE PLAN 04. The durable `analyze-run` enqueue moved
-// into this step from `post-run-tail.ts`, so its cells moved here with it — the payload's shape and
-// idempotency key, `deduped` as a success, and the D-07 warning wording. What is NEW is the ORDER
-// the step imposes around them, and every arm of it is pinned below: the enqueue happens BEFORE the
-// lease is even read; a run carrying either INVK-06 marker enqueues nothing and reads nothing; a
-// failed enqueue reaches no lease at all; a supplied writer authority reads `drained` without an
-// acquisition; and `--detach` enqueues and then skips only the lease. The order is the design —
-// see `post-verdict-step.ts`'s header for why each arm sits where it does.
+// The decision is taken without mutating the lease; acquisition is lazy, once, and only for a pump.
 
 import { describe, expect, it, vi } from 'vitest'
 import { CURRENT_HANDOFF_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
@@ -336,7 +308,7 @@ describe('enqueueAnalyzeRun — THE one durable hand-off', () => {
       handoffSchemaVersion: CURRENT_HANDOFF_SCHEMA_VERSION,
       executionContext: 'local-headless',
     })
-    // the digest pins the BYTES, so it must be a sha256 of the handoff and not a path.
+    // The digest pins the bytes, so it is a sha256 of the handoff, not a path.
     expect(payload.handoffDigest).toMatch(/^[0-9a-f]{64}$/u)
     expect(
       lastClose,
@@ -633,8 +605,7 @@ describe('createPostVerdictStep — the gate-run, exclusion and detach arms, in 
     const message = String(outcome.warning?.message)
     expect(message).toContain(RUN_ID)
     expect(message).toContain('SQLITE_BUSY')
-    // The whole point of the D-07 wording is that it says what was NOT affected, and where the
-    // handoff still is — that path IS the manual re-queue path.
+    // The warning says what is unaffected and where the handoff is, the manual re-queue path.
     expect(message).toContain('verdict and exit code are unaffected')
     expect(message).toContain(AGENT_QA_ROOT)
     expect(
@@ -740,8 +711,7 @@ describe('createPostVerdictStep — the gate-run, exclusion and detach arms, in 
     })
 
     await composed.port.run({ runId: RUN_ID as never, verdict: 'passed' as never })
-    // The daemon door supplies no tail, so nothing ever takes the authority — and the
-    // drive's outermost `finally` runs the backstop over the box on the way out.
+    // The daemon door supplies no tail, so the drive's outermost `finally` runs the backstop.
     releaseUntakenPostVerdictLease({
       handoff: composed.handoff,
       knowledgeRoot: KNOWLEDGE_ROOT,

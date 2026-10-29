@@ -889,18 +889,7 @@ describe('projectCanaryOutcomes planSource attribution', () => {
   })
 })
 
-/**
- * F-381-51-1 observation 3 (Plan 381-53, G-381-2 round 13): the FAILED round-12 rung-D
- * run r_meng-mater-con-seit-acle-lade-gor-craft-abies-extern still recorded a POSITIVE
- * `confirmed` canary event (buildOrdinal 31) because step 0's verifier passed before the
- * test died at step 1. The fixture is the VERBATIM handoff of that run (byte-identical
- * copy, digest-asserted below). The rows assert the DESIRED contract — positive
- * procedure-replay canaries adopt D-01's per-trajectory passing gate — so the
- * failed-test row is RED on the shipped build. Polarity pins P1-P5 pin what must NOT
- * change: per-step positives on passing tests, guard-earned negatives and
- * the root-cause classifier gate, the PROC-01 zero-replay empty projection, and
- * Pin 1 (served-brief) attribution.
- */
+// A failed test's positive canaries are withheld; per-step positives on passing tests stay.
 describe('verdict-gated positive procedure canaries', () => {
   const FIXTURE_PROCEDURE = asRecordId(
     'procedure-flow-t-posing-clock-inject-pill-adds-i-29ff61a3638ac355',
@@ -960,8 +949,7 @@ describe('verdict-gated positive procedure canaries', () => {
       return test?.outcome !== 'passed' && evidence?.planSource?.kind === 'procedure-replay'
     })
     expect(positivesFromUnpassedTests).toEqual([])
-    // Suppression, never inversion: the withheld positive must not surface as a
-    // negative either — the failed run contributes NOTHING to the confirmation counter.
+    // Suppression, never inversion: the failed run adds nothing to the confirmation counter.
     expect(outcomes.filter(({ candidateId }) => candidateId === FIXTURE_PROCEDURE))
       .toEqual([])
   })
@@ -1118,8 +1106,6 @@ describe('emitCanaryOutcomes procedure counters', () => {
   })
 })
 
-// ————— 389-06: the D-10 attribution rewire + the SC2 cross-run supersession differential —————
-
 describe('the cross-run supersession differential', () => {
   const RUN_A = 'run-supersession-aaa'
   const RUN_B = 'run-supersession-bbb'
@@ -1144,18 +1130,13 @@ describe('the cross-run supersession differential', () => {
     return dir
   }
 
-  /**
-   * One failing test (verifier-failed step 0, canary served, anchors matched), NO rootCause
-   * — the deterministic floor resolves it to the minted `unknown`, which IS attributable.
-   * Both halves of the differential are pinned BY ID (the 388 two-sided-contract law):
-   * single-run fixtures cannot see a cross-instance attribution defect.
-   */
+  // Both halves are pinned by id, because single-run fixtures cannot see a cross-instance defect.
   function failingHandoffFor(runId: string): CompletedRunHandoff {
     const base = handoff([step({ stepIndex: 0, pass: false })])
     return { ...base, runId: asRunId(runId) }
   }
 
-  /** The 389 supersession: the author upgraded the floor's unknown to flake (non-attributable). */
+  /** The supersession: the author upgrades the floor's unknown to flake (non-attributable). */
   function flakeArtifact(runId: string): RunAnalysisArtifact {
     return {
       schemaVersion: CURRENT_ANALYSIS_SCHEMA_VERSION,
@@ -1222,8 +1203,7 @@ describe('the cross-run supersession differential', () => {
     const collected: CanaryOutcome[] = []
     const report = await foldInto(collected, failingHandoffFor(RUN_A), runDir)
 
-    // unknown → flake: flake is non-attributable, so the fold that reads the
-    // resolved verdict emits NOTHING for this test — the outcome log cannot contradict it.
+    // Unknown resolves to flake, which is non-attributable, so the fold emits nothing for it.
     expect(collected).toEqual([])
     expect(report.emitted).toBe(0)
     expect(report.refused).toBe(0)

@@ -79,7 +79,7 @@ const SCOPE: ScopeKey = { tier: 'product', key: PRODUCT }
 const FULL_TIER_REPLAY_CONFIRMATIONS = 2
 const noAuth: ResolvedModelAuth = { kind: 'none' }
 
-/** Capable-family model id so llm-path authorship derives the FULL curator tier. */
+// A capable-family model id, so llm-path authorship derives the full curator tier.
 function scriptedProfile(): ModelProfile {
   return {
     provider: 'openai-compatible',
@@ -127,7 +127,7 @@ function alwaysModel(output: string): CuratorModel {
   }
 }
 
-/** The LLM proposes segmentation + parameter names ONLY; code builds the body. */
+// The LLM proposes segmentation and parameter names only; code builds the body.
 const wholeFlowProposal = JSON.stringify({
   candidates: [
     {
@@ -234,11 +234,7 @@ function step(
   }
 }
 
-/**
- * A verified-PASS 3-step trajectory with source-tagged values: the email arrives as a test
- * variable and the password as a masked secret on a cache-bypass step, so D-03's forced
- * parameterization has real evidence to key on without inventing a second credential.
- */
+// Source-tagged values give forced parameterization real evidence without a second credential.
 function handoffFor(runId: string, buildOrdinal: number): CompletedRunHandoff {
   return {
     schemaVersion: CURRENT_HANDOFF_SCHEMA_VERSION,
@@ -334,8 +330,7 @@ describe('procedure loop closure', () => {
     knowledgeRoot = join(root, 'agent-qa-knowledge')
     mkdirSync(knowledgeRoot, { recursive: true })
 
-    // The 381-02 fixture-author seam: procedure jobs traverse the REAL extraction author over
-    // a scripted model; fact jobs take the deterministic no-model fallback. No live LLM.
+    // Procedure jobs use the real extraction author on a scripted model; fact jobs use no model.
     const extractionAuthor = buildCuratorAuthor({
       profile: scriptedProfile(),
       auth: noAuth,
@@ -462,11 +457,7 @@ describe('procedure loop closure', () => {
     return reader.getProcedure(
       'sign in and buy at checkout',
       screenState([], '/login'),
-      // source-tagged binding names + per-type capability bits only — no value of any
-      // binding ever reaches the matcher (the entry is computed loop-side by the shared
-      // sanitizer over the run's actual raw value). Every required name of the served
-      // parameterSchema is bound the way replay callers do; CR-03 keeps the password
-      // behavior options literal.
+      // Only binding names and capability bits reach the matcher, never a binding's value.
       {
         variables: [procedureSourceBinding('accountEmail', 'buyer@example.test')!],
         memory: [],
@@ -581,8 +572,7 @@ describe('procedure loop closure', () => {
         pageAnchor: { t: 'page', route: '/login' },
       },
     ])
-    // Parameterized values: the proposed email test variable plus exactly one forced secret
-    // parameter for the masked password value. CR-03 keeps behavior as literal semantics.
+    // The email variable plus one forced secret parameter for the masked password.
     expect(payload!.steps[1]!.action.values['text']).toEqual({ param: 'accountEmail' })
     expect(payload!.steps[2]!.action.values['text']).toEqual({ param: 'step2_text' })
     expect(payload!.steps[2]!.action.values['clearMode']).toBe('replace')
@@ -606,8 +596,7 @@ describe('procedure loop closure', () => {
     const confirmations = confirmationEvents()
     expect(confirmations.creation.curationJobId).toBe(confirmations.creationJobId)
     expect(confirmations.organic).toEqual([])
-    // The Add commit carries its authoring evidence for audit, but its effective replay count is
-    // zero, so the fresh procedure stays a hint until organic canary outcomes earn replay.
+    // Zero effective replays, so the fresh procedure stays a hint until canaries earn replay.
     expect(match?.replayRecommendation).toBe('hint')
     expect(match?.authoringModelTier).toBe('full')
     expect(match?.parameterSchema).toEqual([
@@ -647,15 +636,7 @@ describe('procedure loop closure', () => {
     )).toBe(true)
   })
 
-  /**
-   * The guarded-replay fixture BOTH replay cells drive.
-   *
-   * Extracted verbatim from the CR-03 cell so the 407-12 projection cell replays through the
-   * SAME construction rather than a second hand-built approximation of it — a copy would let
-   * the two drift, and the whole point of the projection cell is that the evidence it feeds
-   * `runs.knowledge` is what the real loop really recorded. `counters` holds the two mutable
-   * tallies the cells read (`consults`, `planningCalls`); everything else is returned by name.
-   */
+  // One construction drives both replay cells, so the projection replays what the loop recorded.
   function replayHarness(): {
     executed: Action[]
     counters: { consults: number; planningCalls: number }
@@ -721,10 +702,7 @@ describe('procedure loop closure', () => {
       },
     }
     const secretStore = new SecretStore({ step2_text: 'correct horse battery staple' })
-    // D-09 per-step law: body steps map 1:1 onto test steps, so CR-03's
-    // "through every stored guard" is proven ACROSS three test steps — the member-scoped
-    // carry cell threads the cursor, and every body step re-earns dispatch through the
-    // full guard ladder on its own step's fresh observation.
+    // Each body step maps to one test step and re-earns dispatch through the full guard ladder.
     const flowCell: NonNullable<LoopPorts['procedureFlow']> = {}
     const stepPorts = (): LoopPorts => ({
       adapter,
@@ -741,9 +719,7 @@ describe('procedure loop closure', () => {
 
     const { executed, counters, contextFor, flowCell, stepPorts } = replayHarness()
 
-    // Replay-recommended is a claim; adapter-observed execution is the CR-03 evidence.
-    // Test step 0: the fresh consult earns replay and consumes body step 0 — exactly ONE
-    // stored click, a per-step-complete guard fold, and the flow cursor at 0.
+    // Replay-recommended is a claim; adapter-observed execution is the evidence.
     const step0 = await executeStep(
       'sign in and buy at checkout',
       stepPorts(),
@@ -783,9 +759,7 @@ describe('procedure loop closure', () => {
     })
     expect(flowCell.carry?.nextIndex).toBe(2)
 
-    // Test step 2: the carried final body step submits the credential. CR-03 keeps the
-    // stored clearMode/submit behavior literal and the secret resolves only at the execute
-    // boundary; body exhaustion leaves no carry.
+    // The last body step submits the credential, resolved only at execution; no carry remains.
     const step2 = await executeStep(
       'Submit the account password',
       stepPorts(),
@@ -811,14 +785,7 @@ describe('procedure loop closure', () => {
   })
 
   it('a real guarded replay run survives runs.knowledge\'s own output contract', { timeout: 60_000 }, async () => {
-    // THE SEAM CR-01 BROKE AT, CROSSED BY A REAL PRODUCER. The three `StepEvidence` objects fed
-    // in below are the ones the CR-03 cell's real `executeStep` loop just recorded against a
-    // really-committed procedure — not a hand-mirrored fixture — and they go through the SHIPPED
-    // dispatch (`createFunctionRegistry` + `invokeFunction`), which is where `spec.output.parse`
-    // lives. Before 407-12 this threw `unrecognized_keys: ["flow"]` out of `invokeFunction` for
-    // every replay run there has ever been, and the Knowledge tab rendered a read failure for
-    // exactly the runs D-07's "replayed 5/5" sentence exists to explain. A fixture cell alone
-    // could not have caught it, because the fixture is the thing that was wrong.
+    // This evidence comes from a real `executeStep` loop and passes the shipped dispatch.
     await ensureCommittedProcedure()
 
     const { contextFor, stepPorts } = replayHarness()
@@ -887,16 +854,13 @@ describe('procedure loop closure', () => {
     } as unknown as FunctionDeps
     const registry = createFunctionRegistry({
       deps: { ...deps, secretMask: (text: string) => text },
-      // no `resolveExecutionContext` registry option, and the caller
-      // carries no `grantedScopes`/`safeMode`; the registry reads neither.
     })
     const caller: FunctionCaller = {
       surface: 'cli',
       origin: 'human',
     }
 
-    // No try/catch and no `.rejects`: the assertion IS that this resolves. CR-01's failure was a
-    // `ZodError` escaping here, mapped to READ_FAILED_HEADING one layer up.
+    // No try/catch and no `.rejects`: the assertion is that this resolves.
     const result = await invokeFunction(registry, RUNS_KNOWLEDGE_FUNCTION_ID, { runId }, caller)
     const parsed = RunKnowledgeProjectionSchema.safeParse(result)
 
@@ -989,9 +953,7 @@ describe('procedure loop closure', () => {
     }
     const flowCell: NonNullable<LoopPorts['procedureFlow']> = {}
 
-    // Under the D-09 per-step law each replayed body step completes its own test step, so
-    // the FIRST verify call verifies body step 0 — the stored sign-in click — and the
-    // scripted first rejection lands at its proper per-step site, procedure step 0.
+    // Each replayed body step completes its own test step, so the first verify checks body step 0.
     const result = await executeStep(
       context.stepInstruction,
       {
@@ -1007,10 +969,7 @@ describe('procedure loop closure', () => {
 
     expect(result.status).toBe('passed')
     expect(result.evidence).toBeDefined()
-    // The rejection aborts replay one-shot: ONE live recovery turn completes the
-    // step, and the stored fills (body steps 1-2) never dispatch anywhere — neither within
-    // this step (no replay re-entry) nor after it (the carry cell was never re-armed, so
-    // no later step can resume the body).
+    // The rejection aborts replay: one live turn completes the step and the stored fills never run.
     expect(planningCalls).toBe(1)
     expect(verificationCalls).toBe(2)
     expect(executed.map(({ type }) => type)).toEqual(['click', 'click'])
@@ -1079,8 +1038,7 @@ describe('procedure loop closure', () => {
     )
 
     expect(brief.procedures.map(({ id }) => id)).toContain(procedureId)
-    // The tail-folded run-outcome projection surfaces the source test by reference,
-    // verified outcomes and all — never test file content.
+    // The run-outcome projection surfaces the source test by reference, never its file content.
     const exemplar = brief.exemplars.find(
       ({ filePath, testName }) => filePath === FILE_PATH && testName === FLOW,
     )
@@ -1139,8 +1097,7 @@ describe('procedure loop closure', () => {
       }),
     })
 
-    // Integration proof for Plans 381-15 + 381-17: repeated text is resolved by ordinal window,
-    // never disposed as the former globally-ambiguous procedure-step-coverage Noop.
+    // Repeated text resolves by ordinal window, never disposed as globally ambiguous.
     expect(fixture.warnings).toEqual([])
     expect(fixture.commitOutcomes).not.toContainEqual({
       kind: 'noop',
@@ -1158,8 +1115,7 @@ describe('procedure loop closure', () => {
       proposal: wholeFlowProposal,
     })
 
-    // Integration proof for Plans 381-14 + 381-17: the scalar keeps its JSON type through
-    // emit -> author -> disposition -> commit -> record.md -> parseProcedureBody.
+    // The scalar keeps its JSON type from emit through `parseProcedureBody`.
     expect(fixture.warnings).toEqual([])
     expect(fixture.bundles).toHaveLength(1)
     const payload = parseProcedureBody(fixture.bundles[0]!.body)
@@ -1210,8 +1166,7 @@ describe('procedure loop closure', () => {
       }),
     })
 
-    // CR-01 integration proof: Tasks 1-2 pin the codec and write-side unit halves; this
-    // traverses the real emit -> author -> disposition -> commit -> record.md pipe.
+    // Traverses the real emit, author, disposition, commit and `record.md` pipe.
     expect(fixture.warnings).toEqual([])
     expect(fixture.commitOutcomes).not.toContainEqual({
       kind: 'noop',
@@ -1228,31 +1183,7 @@ describe('procedure loop closure', () => {
   })
 })
 
-// WHICH DRAFTS INDUCE — the recorded decision, made an invariant.
-//
-// SC-1 stage 6 says a verified pass induces a gated parameterized `procedure` candidate. 394 does
-// not generalise the procedure representation and must not: the parameterized candidate is already
-// produced by the shipped AWM induction path behind `projectProcedureTargets`, which fires on every
-// drain, and gate-runs reach it because `runs.start` spawns a full child run. So the whole of this
-// phase's obligation at stage 6 is to make WHICH drafts induce visible — because the answer is a
-// decision somebody could reasonably have made the other way, and until now it was only implied by
-// the absence of a filter.
-//
-// THE DECISION. A draft that EXECUTED and PASSED induces, even when the keep-filter then rejected
-// it on gate 3 (it added no uncovered value) or gate 4 (its assertion was not falsifiable). The
-// trajectory really did pass, so the procedure it encodes is real knowledge about the application,
-// and gate 3 and gate 4 are judgements about whether a TEST is worth keeping rather than about
-// whether a FLOW happened. The C8 ratification says the same thing one layer down, in the carrier's
-// own doc block: gate runs DO feed curation.
-//
-// THE ALTERNATIVE, and why it was refused. Inducting only from drafts that survived the keep-filter
-// would need the draft's disposition at the projection — and the projection's whole input is a
-// completed-run handoff, which carries no such channel. Supplying one means threading disposition
-// through the CLI curation fold across a package boundary D-07 deliberately avoids, or minting a
-// second Curator write path, which D-07's own bound forbids.
-//
-// WHAT REDS. A future phase that narrows at the projection, or adds a second induction path, goes
-// red HERE rather than silently changing what "induction only from verified passes" means.
+// A draft that executed and passed induces even when the keep-filter rejects it.
 describe('which drafts induce is a recorded decision, not an accident', () => {
   const base = handoffFor('run-induction-doc', 7)
   const onlyTest = base.tests[0]!
@@ -1279,9 +1210,7 @@ describe('which drafts induce is a recorded decision, not an accident', () => {
   })
 
   it('discriminates on the axes it does have, so the cell above is not a function that never says no', () => {
-    // NON-VACUITY. "The marker changes nothing" is only a claim about `gateRun` if the projection
-    // refuses SOMETHING — D-01's own sentence names the three it refuses, and two are checkable
-    // here without inventing a channel.
+    // The projection must refuse something, or the marker changing nothing proves nothing.
     const failed: CompletedRunHandoff = {
       ...base,
       tests: [{ ...onlyTest, outcome: 'failed' }],
@@ -1295,10 +1224,7 @@ describe('which drafts induce is a recorded decision, not an accident', () => {
   })
 
   it('has ONE producer: every procedure candidate in the whole projection comes through it', () => {
-    // D-07's bound, asserted rather than trusted. The count is observed at
-    // `projectProcedureTargets` and compared against every procedure-kind candidate the whole
-    // post-run projection yields — so a second induction path anywhere in the fold shows up as a
-    // candidate this function did not produce.
+    // Every procedure candidate must come from `projectProcedureTargets`, so a second path shows.
     const whole = projectCurationCandidates(base)
       .filter((candidate) => candidate.kind === 'procedure')
     const induced = projectProcedureTargets(base)

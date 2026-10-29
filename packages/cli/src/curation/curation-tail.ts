@@ -66,14 +66,7 @@ export interface CurationTailReceipt {
   schemaVersion: typeof CURATION_TAIL_RECEIPT_SCHEMA_VERSION
   runId: string
   handoffDigest: string
-  /**
-   * Run-outcome projection component: a version bump refolds already-receipted runs.
-   *
-   * This field alone only re-RUNS them. The per-run fold behind it short-circuits on
-   * the durable applied-runs marker, so what actually re-derives the rows at a new version is the
-   * once-per-sweep `reconcileRunOutcomesProjection` below; the receipts then rewrite here at the
-   * new version through this same sweep.
-   */
+  // This only re-runs receipted runs; `reconcileRunOutcomesProjection` re-derives their rows.
   projectionVersion: number
   drainKind: 'drained' | 'handed-off'
   /** The standing writer that accepted the handoff; null when this run drained inline. */
@@ -89,7 +82,7 @@ export type CurationTailModelDeps = Pick<
 
 export interface CurationTailLogger {
   warn(message: string): void
-  /** carries the per-run candidate summary line — diagnosis, never control flow. */
+  // Carries the per-run candidate summary line: diagnosis, never control flow.
   info?(message: string): void
 }
 
@@ -113,13 +106,7 @@ export interface CurationTailOperations {
   resolveRunCurationContext: typeof resolveRunCurationContext
 }
 
-/**
- * Writer authority the CALLER already holds (388-02, Pitfall 7).
- *
- * The fold acquires no lease of its own when this is present. That is not an optimisation: a
- * process holding the writer lease that calls `acquireWriterLease` again is told `held` — by
- * itself — and would hand its own work off to nobody (the 387-08 D-18 shape).
- */
+// With this, the fold acquires no lease: a holder acquiring again is answered `held` by itself.
 export interface CurationWriterAuthority {
   leaseId: string
   epoch: number
@@ -136,9 +123,9 @@ export interface RunCurationTailOptions {
   modelDeps?: CurationTailModelDeps
   signal?: AbortSignal
   log: CurationTailLogger
-  /** the sweep runs under the post-run tail's held lease when there is one. */
+  // The sweep runs under the post-run tail's held lease when there is one.
   authority?: CurationWriterAuthority
-  /** absolute wall-clock stop point shared with the one post-run budget. */
+  // An absolute wall-clock stop point shared with the one post-run budget.
   deadlineMs?: number
   /** Focused test seam. Production callers omit it. */
   operations?: Partial<CurationTailOperations>
@@ -166,26 +153,12 @@ function defaultOperations(): CurationTailOperations {
   }
 }
 
-/**
- * The shipped operation table, for callers that drive the PER-RUN fold directly.
- *
- * `curate-memory`'s handler reaches this fold through a capability bound at a composition
- * root, and a composition root has no test seam to thread — so the defaults have to be
- * nameable from outside this module rather than only reachable through `runCurationTail`.
- */
+// Exported because a composition root has no test seam, so the defaults must be nameable outside.
 export function defaultCurationTailOperations(): CurationTailOperations {
   return defaultOperations()
 }
 
-/**
- * The one runs-dir derivation, published.
- *
- * `slugBranch` is what makes a runId of `../../etc` address nothing outside the runs directory
- * and a second site spelling this join would be a second thing to keep traversal-safe.
- * Published from HERE rather than re-imported at each caller because the FUNC-02 surface firewall
- * forbids new CLI files from naming `@vostride/agent-qa-runner-local` at all — so one derivation
- * is not merely tidier, it is the only shape the boundary permits.
- */
+// `slugBranch` keeps a runId like `../../etc` inside the runs directory; keep this the one join.
 export function completedRunDir(agentQaRoot: string, runId: string): string {
   return join(agentQaRoot, RUNS_SUBDIR, slugBranch(runId))
 }
@@ -194,24 +167,12 @@ export function completedRunHandoffPath(agentQaRoot: string, runId: string): str
   return join(completedRunDir(agentQaRoot, runId), HANDOFF_FILE)
 }
 
-/**
- * The runs SCAN root — the same derivation minus the per-run leaf, published on exactly the terms
- * above (393 round 6, CR-02-daemon). The daemon host needs it to reconcile the run-outcome
- * projection once per acquired lease, and the surface firewall forbids that file from naming
- * `@vostride/agent-qa-runner-local` at all; publishing here is what keeps `RUNS_SUBDIR` the single
- * spelling of 'runs' instead of a literal copied into a second host.
- */
+// Published here because the surface firewall bars the daemon host from naming runner-local.
 export function completedRunsRoot(agentQaRoot: string): string {
   return join(agentQaRoot, RUNS_SUBDIR)
 }
 
-/**
- * The run's own event log, published for the same reason and on the same terms.
- *
- * `EVENTS_FILE` is the runner-local constant the writer that CREATED this file used, so the
- * post-run chip emitter appends to the file the run wrote rather than to a name that merely
- * matches it today.
- */
+// `EVENTS_FILE` is the constant the run's writer used, so the chip emitter appends to that file.
 export function completedRunEventsPath(agentQaRoot: string, runId: string): string {
   return join(completedRunDir(agentQaRoot, runId), EVENTS_FILE)
 }
@@ -351,13 +312,7 @@ function sortedCandidateIds(report: EmitReport): string[] {
 const CANDIDATE_LINE_KINDS = ['fact', 'measurement', 'caution', 'procedure'] as const
 const CANDIDATE_LINE_OUTCOMES = ['enqueued', 'coalesced', 'cap-exceeded', 'refused'] as const
 
-/**
- * one additive, value-free line per swept run naming every kind's
- * projected count and outcome split — kinds, counts, and candidate content-address ids
- * only, never seed/observation/provenance content. The procedure kind always renders,
- * even at zero projected, so "nothing projected" reads from the line alone. Ids are
- * listed only for non-enqueued (queue-silent) outcomes to keep the line bounded.
- */
+// Value-free: kinds, counts and ids of non-enqueued outcomes; the procedure kind always renders.
 function candidateSummaryLine(runId: string, report: EmitReport): string {
   const segments = CANDIDATE_LINE_KINDS.flatMap((kind) => {
     const details = report.details.filter((detail) => detail.kind === kind)
@@ -375,16 +330,7 @@ function candidateSummaryLine(runId: string, report: EmitReport): string {
   return `Knowledge curation candidates for ${runId}: ${segments.join('; ')}.`
 }
 
-/**
- * Where this fold's learned changes went, in one line.
- *
- * A local run applies what curation learned to the knowledge root in the fold. A `ci` or `cloud`
- * run records it as candidates it never promotes, and keeps a supersession proposed. A
- * change that delta validation refused is downgraded anywhere. `committed` counts both, so the
- * recorded share is `committed - downgraded`. The caller passes only the changes the breakdown
- * buckets count, never canary evidence events. Silent when there are none, and it
- * never points at a review step: there is none.
- */
+// `committed` includes downgraded changes, so the recorded share is `committed - downgraded`.
 export function curationOutcomeLine(input: {
   readonly executionContext: ExecutionContext | undefined
   readonly committed: number
@@ -405,8 +351,7 @@ export function curationOutcomeLine(input: {
 const SNAPSHOT_NOT_RECORDED_WARNING =
   'curation snapshot could not be validated and was not recorded; committed bundles are unaffected'
 
-// the context is the run's persisted one; in `ci` and `cloud` the line states
-// curation's resume limit instead of promising the next run.
+// The context is the run's persisted one; in `ci` and `cloud` the line states the resume limit.
 function incompleteWarning(
   runId: string,
   executionContext: ExecutionContext | undefined,
@@ -418,7 +363,7 @@ function incompleteWarning(
     + (resumeClause !== undefined ? `it ${resumeClause}.` : 'it will resume on the next run.')
 }
 
-/** the run command's own line when its curation tail throws unexpectedly. */
+// The run command's own line when its curation tail throws unexpectedly.
 export function unexpectedCurationTailWarning(executionContext: ExecutionContext | undefined): string {
   const resumeClause = ciResumeClause(executionContext, 'masked-leg-only')
   return resumeClause !== undefined
@@ -451,7 +396,7 @@ export interface CurateCompletedRunInput {
 export interface CurateCompletedRunReport {
   /** Only complete folds carry the fixed five-bucket authority. */
   snapshot?: CurationSnapshot
-  /** Bundles this fold committed — the `curated` half of the D-11 notification counts. */
+  // Bundles this fold committed, the `curated` count of the notification.
   curated: number
   /** Committed `Deprecate` deltas — the `deprecated` half. */
   deprecated: number
@@ -494,26 +439,10 @@ function remedyFor(crossing: {
     + 're-evaluates this crossing and may admit it then.'
 }
 
-/**
- * Render the fold's quarantine disposition (390 D-08, Pitfall 4).
- *
- * Silent unless there is something a human must know. Loud in three cases, each of which is a
- * fact that would otherwise be invisible:
- *
- *  - lifecycle events landed (a test entered or left quarantine),
- *  - an escalation was class-gated AWAY from auto-quarantine — the D-05 anti-silencing surfacing,
- *    which is exactly the case that appends nothing and would otherwise pass unremarked,
- *  - the ledger read was REFUSED, whole or by line. A ledger that loses an `entered` event in
- *    silence is the defect class this warning exists for; it is never swallowed by a bare catch.
- *
- * Flags alone stay quiet: a suspected-flaky rung fires every second failure and its home is the
- * recurrence sentence, not the drain log.
- */
+// Silent unless lifecycle events land, an escalation is class-gated or the ledger read is refused.
 function logQuarantineDisposition(
   runId: string,
-  // Reached THROUGH the capability the CLI already owns: 387 D-20 removed knowledge-local from
-  // this package's dependency contract, and the surface firewall ledger only ever shrinks. The
-  // report type is the fold capability's own return, so naming it costs no new import.
+  // Typed through the fold capability, because this package does not depend on knowledge-local.
   outcome: ReturnType<LocalCurationCapabilities['foldRunOutcomes']>['quarantine'],
   log: CurationTailLogger,
 ): void {
@@ -533,64 +462,7 @@ function logQuarantineDisposition(
     )
   }
   for (const sighting of outcome.escalatedNotQuarantined) {
-    // THE PRODUCER REACHES THE LINE. It was carried onto the sighting in 390-16
-    // so an operator could tell two refusal causes apart HERE, and it was never printed — the
-    // field's claim was true of the shape and false of the operator, which is the defect class
-    // 390-22 closed.
-    //
-    // WHAT THE `producer` FIELD TELLS THE OPERATOR. 390-19 enumerated the causes on
-    // `QuarantineDetectionSighting.producer`, and this render is reduced to that enumeration
-    // rather than paraphrasing it:
-    //   `analyze-run`               — a verdict WAS authored and the class is still not
-    //                                 auto-quarantinable. Re-running analysis will not change it.
-    //   `deterministic-classifier`  — the crossing was withheld for one of FOUR causes, below.
-    //
-    // THE UNAUTHORED SIDE HAS FOUR CAUSES, NOT THREE, AND THEY DO NOT SHARE ONE REMEDY (390-30,
-    // round-5 gap 2). The earlier enumeration here named three and concluded that all of them
-    // converge on the next-applied-run remedy. The cause it omitted is the one that breaks the
-    // convergence: the gate can refuse the CLASS OUTRIGHT, and no run supplies a class. Read the
-    // four against `autoQuarantines`' own conjunct order (`detection.ts`):
-    //   (1) DISPOSITION REFUSAL — QUARANTINE_CLASS_DISPOSITIONS says `escalate-only`. Refused at the
-    //       FIRST conjunct, before eligibility is consulted. NO later run and no authored verdict
-    //       admits it; the class itself is the refusal. `unknown` — `classifyRootCause`'s terminal
-    //       arm, and so the dominant shape on a project with no analysis budget — lives here.
-    //   (2) ELIGIBILITY REFUSAL — the class may auto-quarantine, but QUARANTINE_FLOOR_ELIGIBILITY
-    //       says `authored-required`: its evidence is run-scoped (a health probe), so a same-build
-    //       signature never makes it per-test and the floor arm refuses it FOREVER. It needs an
-    //       ANALYST, not another run. `environment` lives here.
-    //   (3) MISSING SIGNATURE — floor-eligible class, but this crossing carries no per-test
-    //       same-build pass∧fail.
-    //   (4) SPENT CAP — floor-eligible class WITH the signature, but the run's per-run floor cap was
-    //       already spent (390-19's third cause).
-    // ONLY (3) AND (4) SHARE THE NEXT-APPLIED-RUN REMEDY: the NEXT applied run's fold re-evaluates
-    // this crossing and may admit it THEN. That is the per-run floor cap's own vocabulary in
-    // `detection.ts` — "It crosses again on the next applied run and may be admitted THEN" — and it
-    // is true by execution: a capped/withheld identity IS admitted on a later evaluation, measured
-    // 2/2/2 across three consecutive folds (round-4 verification). The sighting still cannot tell (3)
-    // from (4), and no field was added to carry the distinction — 390-19's residual, unchanged,
-    // D-05 posture. It does not have to: they have the SAME remedy, which is why the line collapses
-    // exactly those two and no others.
-    //
-    // The remedy is therefore branched on ADMISSIBILITY, read from the same two total tables the
-    // gate refuses on rather than from the producer alone. Reading the line's promise and the gate's
-    // refusal out of ONE vocabulary is what stops them drifting apart per class — a promise of
-    // admission a fold will never grant sends a human to wait for relief that cannot come.
-    //
-    // AND THIS RUN IS SETTLED — which is why no re-run of anything is named here. The arm used to
-    // tell the operator to run a command, and that was false three separately checkable ways:
-    //   (1) REGISTRY — the top-level `program.addCommand` block in `cli.ts` exposes no such verb,
-    //       under any subcommand. `analyze-run` is a JOB KIND enqueued programmatically at
-    //       `post-run-tail.ts:425`, not something an operator can type.
-    //   (2) CHAIN POSITION — this line is emitted inside the fold that runs AFTER analysis has had
-    //       its turn in the chain, so any THIS-run remedy is false by position alone.
-    //   (3) IDEMPOTENCY — `applyRunOutcomes` answers
-    //       `{ kind: 'not-evaluated', reason: 'already-applied' }` (run-outcomes.ts:424, :792), so
-    //       a refold of an applied run re-decides no crossing, whatever ran in between.
-    // Those three falsifications are why no CLI invocation appears on ANY arm below, and they hold
-    // for all four: none of the sentences names a command, because none of the remedies is one. Note
-    // what 390-30 changes and what it does not — the remedy is still TEMPORAL rather than imperative
-    // on causes (3) and (4), and on causes (1) and (2) it is not temporal EITHER, which is precisely
-    // the correction: for those two, relief does not begin at a later run at all.
+    // Only a missing signature and a spent cap await the next applied run; no arm names a command.
     const authored = sighting.producer === 'analyze-run'
     const disposition = QUARANTINE_CLASS_DISPOSITIONS[sighting.verdictClass]
     const floorEligibility = QUARANTINE_FLOOR_ELIGIBILITY[sighting.verdictClass]
@@ -612,20 +484,7 @@ function logQuarantineDisposition(
   }
 }
 
-/**
- * Fold ONE completed run.
- *
- * Extracted verbatim from the sweep's inner body so `curate-memory`'s handler and the tail's
- * prior-run janitor drive the same code rather than two spellings of it. The split is
- * per-run/multi-run and nothing else (Pitfall 11): everything about a single run — the safety
- * scope, candidates, canaries, the outcome fold, the drain and the receipt — is here; the
- * enumeration of which runs still need it stays in `runCurationTail`.
- *
- * `authority` is what makes the extraction correct rather than merely tidy. The post-run tail
- * holds the writer lease while it pumps the chain, so the fold running INSIDE a claimed job
- * must borrow that authority; a fold that acquired its own would be told `held` by the very
- * process asking.
- */
+// `authority` lets a fold inside a claimed job borrow the held lease instead of being told `held`.
 export async function curateCompletedRun(
   input: CurateCompletedRunInput,
 ): Promise<CurateCompletedRunReport> {
@@ -647,14 +506,13 @@ export async function curateCompletedRun(
   let incompleteDetails: string | undefined
   let projectionFailed = false
   const tailStartedAtMs = Date.now()
-  // one budget for the whole post-run tail. A caller that already spent part of it hands
-  // in its absolute deadline and the drain gets what is LEFT — never a second knob's worth.
+  // One budget for the whole tail: a caller hands in its deadline and the drain gets what is left.
   const budgetMs = input.deadlineMs === undefined
     ? undefined
     : Math.max(0, input.deadlineMs - tailStartedAtMs)
   await operations.runSafetyScope(
     {
-      // posture is persisted run truth, never an ambient re-detection.
+      // Posture is persisted run truth, never an ambient re-detection.
       executionContext: input.handoff.executionContext,
     },
     async () => {
@@ -664,10 +522,9 @@ export async function curateCompletedRun(
         knowledgeRoot: input.knowledgeRoot,
         ...(input.mask === undefined ? {} : { mask: input.mask }),
       })
-      // visibility never gates — the summary line is additive diagnosis
-      // beside (never inside) the noop warn and the complete predicate below.
+      // Visibility never gates: the summary line sits beside the noop warn and the complete check.
       input.log.info?.(candidateSummaryLine(receiptIdentity.runId, candidates))
-      // candidate and canary drops share this scope and crash boundary.
+      // Candidate and canary drops share this scope and crash boundary.
       const reader = operations.openKnowledgeReader({ knowledgeRoot: input.knowledgeRoot })
       const canaries = await operations.emitCanaryOutcomes({
         handoff: input.handoff,
@@ -675,17 +532,7 @@ export async function curateCompletedRun(
         runDir: input.runDir,
         emit: reader.emitCanaryOutcome.bind(reader),
       })
-      // the run-outcome fold shares this crash boundary and the SAME extended
-      // receipt as candidate/canary emit — never a second marker file. The durable
-      // handoff marker is the sole exclusion authority for current and sibling runs.
-      // A fold failure is isolated (counted below) and never blocks the drain; the
-      // withheld receipt refolds it on the next run, safe because the fold is idempotent.
-      // `runDir` lets the fold read this run's `analysis.json`, so the counters and
-      // fingerprint windows key off RESOLVED verdicts rather than the deterministic floor. It is
-      // the same dir the canary fold above already reads — no new input crosses this boundary.
-      // detection runs INSIDE this fold, under the writer lease the tail already holds
-      // (positional serialization — the ledger module takes no lock of its own). `now` is read
-      // once, here, and threaded down as data so the fold and the ladder stay clock-free.
+      // Detection runs here under the tail's lease, because the ledger module takes no lock.
       try {
         const fold = operations.foldRunOutcomes({
           knowledgeRoot: input.knowledgeRoot,
@@ -706,8 +553,7 @@ export async function curateCompletedRun(
               kind: 'fallback-required' as const,
               reason: 'no-model' as const,
             })
-          // 2026-10-14 (441-10, decision 10): a tail with no mask runs only on a 'no-masker' host,
-          // which may not claim the kind that folds.
+          // A maskless tail runs only on a `no-masker` host, which cannot claim the folding kind.
           : operations.buildCuratorAuthor({
               ...input.modelDeps,
               mask: input.mask ?? ((text) => text),
@@ -744,12 +590,9 @@ export async function curateCompletedRun(
         downgraded: drain.downgraded,
       })
       if (outcomeLine !== undefined) input.log.info?.(outcomeLine)
-      // A commit noop is visible but never fatal: legitimate reasons such as
-      // evidence-token dedup would otherwise wedge a healthy tail into the retry loop.
-      // The complete predicate below is deliberately unchanged.
+      // A commit noop is visible but never fatal, or evidence-token dedup would wedge the tail.
       if (drain.noops > 0) {
-        // the empty-delta cause renders inside the existing parenthetical;
-        // the count-anchored prefix stays byte-identical for the ladder extractor.
+        // The count-anchored prefix stays byte-identical for the ladder extractor.
         input.log.warn(
           `Knowledge curation drain produced ${drain.noops} commit noop(s) for ${receiptIdentity.runId}: ${drain.noopDetails
             .map((noop) =>
@@ -784,8 +627,7 @@ export async function curateCompletedRun(
           drainKind: drain.kind,
           handoffHolderPid: drain.kind === 'handed-off' ? drain.holder.pid : null,
           candidateIds: sortedCandidateIds(candidates),
-          // the counts travel beside the snapshot, which is exactly when the rerun short-circuit
-          // answers from this receipt; a handed-off receipt has no counts of its own to record.
+          // Counts travel with the snapshot, when the rerun short-circuit answers from the receipt.
           ...(validated?.success === true ? { snapshot: validated.data, curated, deprecated } : {}),
         }
       }
@@ -861,8 +703,7 @@ export async function runCurationTail(opts: RunCurationTailOptions): Promise<voi
   let knowledgeRoot: string
   let runDirs: string[]
   try {
-    // Phase 374 deliberately left this composition seam unwired. The Curator tail is its first
-    // runtime caller and resolves the validated repo-relative root exactly once at the boundary.
+    // The tail resolves the validated repo-relative knowledge root once, at this boundary.
     knowledgeRoot = operations.resolveKnowledgeRoot(
       opts.knowledgeConfig,
       opts.configDir,
@@ -876,19 +717,10 @@ export async function runCurationTail(opts: RunCurationTailOptions): Promise<voi
     return
   }
 
-  // ONCE per sweep, before any per-run fold. The projection version is a fact about the
-  // whole derived family, not about one run, and the rebuild it can trigger clears that family —
-  // so running it inside the loop would re-clear rows the loop had just folded.
-  //
-  // ISOLATED on the fold-failure posture two hundred lines down: a reconcile that throws warns and
-  // the sweep continues. The per-run folds behind it are marker-safe with or without it, and a
-  // backfill that cannot run is a projection that stays stale, never a curation that stops. The
-  // 'rebuilt' arm logs its counts because a silent rebuild of the derived index is exactly the
-  // kind of work an operator should be able to see happen.
+  // Once per sweep, before any per-run fold, because its rebuild clears rows the loop would fold.
   let acquiredReconcileLease: CurationWriterAuthority | undefined
   try {
-    // The post-run host lends its lease. A direct sweep acquires only for this synchronous
-    // reconcile, never re-acquiring an authority it already holds.
+    // The post-run host lends its lease; a direct sweep acquires only for this reconcile.
     let authority = opts.authority
     if (authority === undefined) {
       const acquired = operations.acquireWriterLease(knowledgeRoot)
@@ -914,16 +746,7 @@ export async function runCurationTail(opts: RunCurationTailOptions): Promise<voi
       )
     }
   } catch (error) {
-    // What a thrown reconcile actually leaves behind — for EVERY throw that can reach here, which
-    // is the part the round-6 wording got wrong (393 round 7, WARN-TEXT-CLASS). TWO classes arrive:
-    // one raised BEFORE any DELETE (`openIndexWriter`, `ensureRunOutcomeTables`,
-    // `readStoredProjectionVersion` all run ahead of `rebuildRunOutcomes`), which leaves the family
-    // intact under whatever stamp it already had — and if that stamp is current, the next reconcile
-    // answers 'current' and does not rebuild at all; and one raised AFTER them, including the
-    // projection/write throws that now propagate, which leaves the family unstamped and possibly
-    // partial. "Failed partway, will rebuild again" was flatly false of the first class, so the
-    // text below states both outcomes as alternatives and promises neither unconditionally. The
-    // same body is printed by the daemon arm, because the same two classes reach both catches.
+    // A reconcile can throw before or after its deletes, so the warning promises neither outcome.
     opts.log.warn(
       'Post-verdict knowledge curation: the run-outcome projection reconcile did not complete. '
       + 'If the rebuild write phase had already begun, the projection family is left unstamped and possibly'
@@ -1005,24 +828,10 @@ export interface RunVerdictFirstCurationTailOptions {
   /** The complete verdict-derived process code, fixed before the tail begins. */
   exitCode: number
   detach: boolean
-  /**
-   * The durable hand-off, run BEFORE the detach short-circuit (388-02, D-03 / Pitfall 3).
-   *
-   * `--detach` means "do not spend this process on the work", not "do not record that the
-   * work exists". The enqueue is the record; the drain is the spending. Putting it inside
-   * `runTail` would have made a detached run the one posture that silently loses its
-   * analysis, which is the opposite of what detaching asks for.
-   */
+  // Runs before the detach short-circuit: detaching skips the drain, never the durable enqueue.
   enqueue?(): Promise<void>
   runTail(): Promise<void>
-  /**
-   * The user-facing close-out, run on BOTH paths.
-   *
-   * The detach short-circuit below returns before `runTail`, and the one posture that most
-   * needs a line about work left queued is exactly that one — so this cannot live inside the
-   * tail. It is told which gate was applied rather than inferring it, because the gate is
-   * this function's own knowledge and nothing downstream can see it.
-   */
+  // Runs on both paths, because the detached path returns before `runTail` and needs the line most.
   finish?(input: { detached: boolean }): Promise<void>
   /** Defensive call-site boundary; runCurationTail itself already never rejects. */
   onUnexpectedError?(error: unknown): void

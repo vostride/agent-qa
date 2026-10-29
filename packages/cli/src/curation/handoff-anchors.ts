@@ -1,11 +1,4 @@
-// The anchor-extraction walk moved to schema — this module re-exports it.
-//
-// `exercisedAnchors` and its helpers are pure over schema types and now have consumers on
-// both sides of the package graph (the agent-side cluster function, 390's recurrence window,
-// and this tail), so the ONE implementation lives in
-// `@vostride/agent-qa-schema`'s identity module and every existing CLI call site keeps
-// compiling unchanged through these re-exports. Only `elementNaturalKey` (this tail's own
-// display key) and the dispatch-pair projection below stay local, consumed nowhere else.
+// The anchor walk lives in schema; this module re-exports it and keeps only its own display key.
 
 import {
   actedPair,
@@ -28,7 +21,7 @@ export function elementNaturalKey(evidence: ResolvedElementEvidence): string {
   return `${evidence.element.role}:${evidence.element.nameNormalized}:${evidence.ordinal}`
 }
 
-// curation reads the pair a healed sub-action dispatched.
+// Curation reads the pair a healed sub-action dispatched.
 export function actedSubAction(subAction: SubActionEvidence): SubActionEvidence {
   const { action, stateBefore } = actedPair(subAction)
   return { ...subAction, plannedAction: action, stateBefore }

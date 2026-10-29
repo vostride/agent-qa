@@ -33,29 +33,7 @@ import {
 } from '../emit-candidates.js'
 import { removeTempRoots } from '../../__tests__/temp-roots.js'
 
-/**
- * F-381-48-1 staged reproduction (Plan 381-49, G-381-2 round 12).
- *
- * Every row here consumes the VERBATIM artifacts of the failed live run
- * r_corner-river-elle-deep-prompt-reduce-masked-ilia-bob-cone (rung A of the round-11
- * unrelaxed ladder re-run on shipped HEAD b01e9393): mandated mask-transforming binding
- * PROBE_USER=qa.user+381@example.com, test PASSED 3/3, both fact bundles committed,
- * curation-tail receipt written, complete predicate true — and ZERO procedure bundles
- * with ZERO visible procedure-job outcome (no delta-noop, no failure, no warning).
- *
- * The rows assert the DESIRED contract; on the shipped build the faithful reproduction
- * leaves the end-to-end row RED and pins the FIRST stage where the email-arm procedure
- * candidate vanishes. The stages:
- *   P          — pure projection over the REAL handoff (an old `<EMAIL_0>` slot is literal, 441 D-20)
- *   E          — enqueue outcome + on-disk queued dir on a cold knowledge root
- *   D-nomodel  — site discriminator: modelDeps undefined, REAL defaultOperations; §7.9's
- *                restricted fallback authors a one-element Noop for procedure jobs, so IF the
- *                candidate reaches the drain, exactly one delta-noop(fallback-no-model) must
- *                be visible (the 381-47 typed chain)
- *   D-scripted — desired end-to-end: author scripted with the live sentinel-arm proposal
- *                shape; a procedure bundle must commit with the proposal's parameter and every
- *                drain outcome must be visible (never zero-trace)
- */
+// Consumes a recorded run's verbatim artifacts; each row pins one stage of the procedure candidate.
 
 const RUN_ID = 'r_corner-river-elle-deep-prompt-reduce-masked-ilia-bob-cone'
 const SCOPE_KEY = 'local-form'
@@ -71,12 +49,7 @@ const fixtureDir = join(
   'f-381-48-1-run',
 )
 
-/**
- * The run's mask at tail time is the declared-secret mask. The recorded plannedAction
- * still carries the `<EMAIL_0>` an older build minted, which is literal text now, and
- * PROBE_USER is not a declared value, so this mask declares none.
- * was the deleted masking context, primed with the probe email.
- */
+// The recorded `<EMAIL_0>` is literal and `PROBE_USER` undeclared, so this mask declares nothing.
 function liveMask(): (text: string) => string {
   const redactor = new SecretRedactor(SecretStore.empty())
   return (text) => redactor.redactString(text)
@@ -188,12 +161,7 @@ function scriptedModel(outputs: string[]): CuratorModel {
   } as unknown as CuratorModel
 }
 
-/**
- * The live sentinel-arm proposal shape (the diagnosis differential's PASSING arm):
- * whole-flow span, one invented parameter name. The builder pins the flow anchor to
- * seed.flowName and forces the covering parameter to the slot's sourceName,
- * so the invented pieces cannot mask a naming defect.
- */
+// The builder pins the flow anchor and parameter, so invented pieces cannot mask a naming defect.
 const sentinelShapedProposal = JSON.stringify({
   candidates: [
     {
@@ -232,7 +200,7 @@ describe('the live-artifact staged reproduction', () => {
     const seed = parseProcedureTrajectorySeed(procedures[0]!.bodySeed)
     expect(seed).toBeDefined()
     expect(seed!.steps).toHaveLength(3)
-    // the recorded placeholder is old data and reads as literal text.
+    // The recorded placeholder is old data and reads as literal text.
     expect(seed!.steps[0]!.action?.values['text']).toEqual({
       observed: '<EMAIL_0>',
       source: 'literal',
@@ -291,13 +259,7 @@ describe('the live-artifact staged reproduction', () => {
       expect(factBundleIds(roots.knowledgeRoot)).toHaveLength(2)
       expect(procedureBundleIds(roots.knowledgeRoot)).toHaveLength(0)
 
-      // The discriminator: modelDeps === undefined makes the tail's author
-      // fallback-required(no-model); §7.9's restricted fallback authors a one-element
-      // Noop for procedure jobs. IF the candidate reaches the drain at all, EXACTLY one
-      // procedure-job outcome must be visible: a delta-noop with the 381-47 typed cause.
-      // Zero noop lines here proves the death is upstream of the drain with no LLM in
-      // the loop; the line's presence proves the candidate survives to the drain and the
-      // death is author/disposition/commit-side.
+      // With no model, a drained candidate leaves one noop line, so zero means it died upstream.
       const noopLines = warns.filter((line) => line.includes('commit noop'))
       expect(noopLines).toHaveLength(1)
       expect(noopLines[0]).toContain('produced 1 commit noop(s)')
@@ -385,9 +347,7 @@ describe('the live-artifact staged reproduction', () => {
         },
       })
 
-      // The committed bundle is a real procedure: record.md parses as a procedure body, and the
-      // literal slot is covered by the proposal's own parameter (441-10, D-20: no binding name
-      // is read from an old placeholder), which the fill slot references by name.
+      // The literal slot is covered by the proposal's own parameter, not a placeholder's name.
       const procedureId = procedureBundleIds(roots.knowledgeRoot)[0]!
       const recordMd = readFileSync(
         join(roots.knowledgeRoot, 'memory', SCOPE_KEY, 'bundles', procedureId, 'record.md'),
