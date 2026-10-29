@@ -153,8 +153,8 @@ export const BrowserConfigSchema = z.object({
   }).strict().optional(),
 }).strict()
 
-// 436 D-02: the per-step limits are positive integers with no unlimited value; resolvePlannerLimits
-// supplies the default. The old refilling planner key is refused by retired-keys.ts (436-08).
+// the per-step limits are positive integers with no unlimited value; resolvePlannerLimits
+// supplies the default. The old refilling planner key is refused by retired-keys.ts.
 export const PlannerConfigSchema = z.object({
   maxActions: z.number().int().positive().optional(),
   maxPlanningTurns: z.number().int().positive().optional(),

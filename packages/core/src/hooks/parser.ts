@@ -18,7 +18,7 @@ export async function parseHooksFile(filePath: string): Promise<{ hooks: HookDef
     parsed = parseYaml(raw)
   } catch (err) {
     // WHERE, NEVER WHAT — the SIBLING MEMBER of the set the config arm was hardened on
-    // (395-16 · CR-02). `hooks.yaml` is a member of the same file set `enumerateConfigFileSet`
+    // `hooks.yaml` is a member of the same file set `enumerateConfigFileSet`
     // pins, and this line used to interpolate the caught error's own text: `yaml` pretty-prints a
     // parse error with a verbatim excerpt of the source around the point it gave up, measured
     // carrying a planted credential out of `agent-qa validate`'s rendered output. One member
@@ -34,7 +34,7 @@ export async function parseHooksFile(filePath: string): Promise<{ hooks: HookDef
     // `hook-registry-manager.ts:307` returns on `registry.errors` — the registry's OWN parse copy at
     // `:753` — above the `parseHooksFile` call at `:315`, so on a malformed `hooks.yaml` the
     // dashboard road never reaches this arm at all. Those copies are a separate channel on a
-    // separate surface and carry their own disposition (WINDOWS 140). A comment that names a
+    // separate surface and carry their own disposition. A comment that names a
     // consumer the code cannot reach is a claim a later round will act on.
     return { hooks: [], errors: [`${filePath}: ${yamlParseFailureMessage(err)}`] }
   }

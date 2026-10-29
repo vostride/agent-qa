@@ -41,9 +41,9 @@ const MIDDLEWARE: LanguageModelMiddleware[] = [
   toolSchemaMiddleware,
   deriveExamplesMiddleware(),
   addToolInputExamplesMiddleware(),
-  // RUNX-04: flag-gated debug logging (AGENT_QA_DEBUG_LLM); catches the raw APICallError first.
+  // flag-gated debug logging (AGENT_QA_DEBUG_LLM); catches the raw APICallError first.
   debugLoggingMiddleware(),
-  // RUNX-01: strip empty-content messages just before the wire.
+  // strip empty-content messages just before the wire.
   dropEmptyMessagesMiddleware(),
 ]
 

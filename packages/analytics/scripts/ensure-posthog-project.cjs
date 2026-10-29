@@ -1,5 +1,5 @@
 // Carried over from `packages/core/scripts/ensure-posthog-project.cjs` unchanged in contract
-// (2026-08-17, Phase 398 plan 03, D-17/D-20): the key file is generated, never committed, and the
+// the key file is generated, never committed, and the
 // release pipeline overwrites it with the real project key. Only the TARGET PATH moves with the
 // package. Core keeps its own copy until plan 11 deletes `core/src/analytics` outright, and plan 11
 // is also what re-points the release scripts at this path.

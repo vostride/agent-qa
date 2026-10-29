@@ -1,4 +1,4 @@
-// Filesystem score store (Phase 369, D-13).
+// Filesystem score store.
 //
 // Persists one cassette's matcher verdict — the CassetteScore plus its per-decision D-16 diffs —
 // as `score.json` BESIDE the replay record, in the exact same slugged cassette dir

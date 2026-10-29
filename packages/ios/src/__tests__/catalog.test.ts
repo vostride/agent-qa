@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // ---------------------------------------------------------------------------
-// Wave-0 RED catalog suite — Phase 360 Plan 02, Task 3 (EXEC-06).
+// Wave-0 RED catalog suite — Phase 360 Plan 02, Task 3.
 //
 // Pins the driver-call contract for every iOS verb gaining or changing execution this
 // phase against a call-logging mocked webdriverio driver — no live Appium, no simctl.

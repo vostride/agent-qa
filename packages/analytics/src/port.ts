@@ -1,4 +1,4 @@
-// The analytics port (Phase 398 plan 03, D-17 / D-19 · ANLY-01).
+// The analytics port.
 //
 // WHAT SURVIVED THE RE-DERIVATION, and what did not. The v1 module's transport split — a small
 // `capture`/`flush` interface with an injectable factory, every call wrapped best-effort — was the
@@ -14,7 +14,7 @@
 // acquires the power to slow down or fail the thing it is measuring. The port takes the event,
 // returns immediately, and keeps the resulting work internally so `flush()` has something to wait
 // for. Nothing here throws: the port is the best-effort boundary, and the host side of it observes
-// no exception even when every transport call rejects (T-398-08).
+// no exception even when every transport call rejects.
 
 /**
  * The shape every member of the closed event union satisfies.
@@ -71,11 +71,11 @@ export interface AnalyticsPort<TEvent extends AnalyticsEventEnvelope = Analytics
 }
 
 export interface AnalyticsPortOptions {
-  /** Absent when opted out or keyless: the port then drops every capture (447-04, D-08). */
+  /** Absent when opted out or keyless: the port then drops every capture. */
   readonly transport?: AnalyticsTransport
   readonly identity: AnalyticsIdentityResolver
   /**
-   * How long `shutdown` will wait for the transport before releasing its caller (T-398-35 / WR-02).
+   * How long `shutdown` will wait for the transport before releasing its caller.
    *
    * A host calls `shutdown` on its way OUT — at a terminal exit, in a `finally`, on the error path.
    * Whatever it waits for is time a person spends looking at a terminal that has already finished
@@ -151,7 +151,7 @@ class BestEffortAnalyticsPort<TEvent extends AnalyticsEventEnvelope> implements 
    * wire once per invocation whether or not anything happened. Zero captures in, zero calls out,
    * and the promise still resolves.
    *
-   * 2026-10-21 (447-07, D-20): flush awaits the local captures and STARTS the send without awaiting
+   * flush awaits the local captures and STARTS the send without awaiting
    * it, so a stalled network never holds a run's verdict or a command's return; `shutdown` waits
    * for the started sends inside its bound.
    */

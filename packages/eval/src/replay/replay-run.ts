@@ -1,13 +1,13 @@
-// The pure replay engine (D-04). `replayCassette` is the single entry point behind the one
-// replay surface (D-05): it filters incomplete cassettes to a typed refusal, invokes the real
+// The pure replay engine. `replayCassette` is the single entry point behind the one
+// replay surface: it filters incomplete cassettes to a typed refusal, invokes the real
 // planner through the injected factory port once PER SAMPLE (RESEARCH Pitfall 6), classifies
-// every outcome faithful-or-loud (D-08/D-09), runs the k-sample escalation seam with agreement
-// aggregation (D-10/D-11), stamps drift + model ids + unconsumed exchanges (D-02/D-03/D-07), and
-// teacher-forces procedure cassettes per step (D-13).
+// every outcome faithful-or-loud, runs the k-sample escalation seam with agreement
+// aggregation, stamps drift + model ids + unconsumed exchanges, and
+// teacher-forces procedure cassettes per step.
 //
 // Purity: the ONLY time source is the injected `clock` port — no host time API, no host IO, no
 // randomness. Outcome classification is by `instanceof` on the typed error classes, NEVER by
-// matching an error message string (D-09). A cassette-shaped problem resolves to a typed
+// matching an error message string. A cassette-shaped problem resolves to a typed
 // ReplayRefusal — replayCassette never throws for it; only a genuine engine bug may propagate.
 
 import type { Action } from '@vostride/agent-qa-schema'
@@ -158,7 +158,7 @@ async function replayProcedure(
 
   for (const step of cassette.steps) {
     if (step.kind === 'decision') {
-      // Teacher-forced (D-13): each decision step replays independently against its OWN recorded
+      // Teacher-forced: each decision step replays independently against its OWN recorded
       // stateBefore. No cross-step state is synthesized (CASS-03 forbids free-running).
       const decision = await replayDecision({
         cassetteId: cassette.id,
@@ -194,7 +194,7 @@ async function replayProcedure(
   }
 
   const totalDurationMs = input.clock.now() - start
-  // The recorded endState is carried through UNTOUCHED for Phase 369 to score (D-13).
+  // The recorded endState is carried through UNTOUCHED for Phase 369 to score.
   return {
     granularity: 'procedure',
     cassetteId: cassette.id,
@@ -301,7 +301,7 @@ async function runSample(context: DecisionReplayContext, sampleIndex: number): P
     throw error
   }
 
-  // (4) Invoke the real planner and classify faithful-or-loud (D-08/D-09).
+  // (4) Invoke the real planner and classify faithful-or-loud.
   const started = clock.now()
   const outcome = await classifyPlan(context, handle, reconstructed)
   const durationMs = clock.now() - started
@@ -358,7 +358,7 @@ async function classifyPlan(
         : {}),
     }
   } catch (error) {
-    // Classification by instanceof identity ONLY — never by message string (D-09).
+    // Classification by instanceof identity ONLY — never by message string.
     if (error instanceof PlanningTurnError) {
       return {
         outcome: { kind: 'planner-failure', reason: error.reason, message: error.message },
@@ -382,7 +382,7 @@ async function classifyPlan(
 }
 
 /**
- * Recorded model identity from the receipt (D-03). Prefer the declared identity; when the
+ * Recorded model identity from the receipt. Prefer the declared identity; when the
  * provider resolved a more specific model id, stamp that as the modelId. Absent when the receipt
  * declares no model — typed-absent, never fabricated (a bare resolvedModelId has no provider).
  */
@@ -401,7 +401,7 @@ interface AggregationClass {
 }
 
 /**
- * k-sample agreement (D-11). Non-harness samples group by class key: `decision` samples by
+ * k-sample agreement. Non-harness samples group by class key: `decision` samples by
  * decisionIdentityKey, `planner-failure` by reason (failures ARE candidate decisions, D-09),
  * `unservable-divergence` by tool. `harness-error` samples are EXCLUDED from grouping and tallied
  * in harnessErrorCount — they can never join a modal class, which visibly depresses agreement.

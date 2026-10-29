@@ -22,7 +22,7 @@ export const KNOWLEDGE_WRITER_ALLOWLIST = [
 ] as const
 
 /**
- * The packages whose sources this carve-out is scanned over. 2026-07-29 (Phase 385 plan 08, D-13):
+ * The packages whose sources this carve-out is scanned over. 2026-07-29:
  * the local agent package joins the CLI, because the reader binding moved there with the run
  * composition. A path-keyed rule that is only ever handed one package's files silently stops
  * covering a file the moment that file moves — the rule would still pass, and would still read
@@ -34,9 +34,9 @@ export const READER_CARVEOUT_SCANNED_DIRS = [
 ] as const
 
 export const KNOWLEDGE_READER_FILES = [
-  // 2026-07-29 (Phase 385 plan 08, D-13): relocated out of the CLI with the run composition.
+  // relocated out of the CLI with the run composition.
   'packages/agent-local/src/composition/knowledge-reader.ts',
-  // 2026-08-02 (Phase 387 plan 06, KREV-01): the function layer's knowledge READ port. It sits
+  // the function layer's knowledge READ port. It sits
   // inside the writer allow-list's directory prefix, so without this row the subtree's own
   // allowance would have let the five read verbs name the writer entry and every gate would
   // have stayed green. Listing it here inverts that: the file is held to /reader, and the

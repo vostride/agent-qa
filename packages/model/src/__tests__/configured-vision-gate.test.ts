@@ -1,4 +1,4 @@
-// C439-CONFIGURED-VISION (439 D-19): the vision gate reads the configured `vision` when set and
+// the vision gate reads the configured `vision` when set and
 // otherwise the model capability table, so a model the table does not know is text-only unless
 // the config says otherwise.
 

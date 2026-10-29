@@ -91,7 +91,7 @@ interface MemberStepTally {
   failed_step_count: number
   skipped_step_count: number
   /**
-   * 2026-08-27 (Phase 405 plan 04, D-07): the member's measured model-call usage, accumulated ONLY
+   * the member's measured model-call usage, accumulated ONLY
    * from steps whose `stepFinalized` carried a `tokenUsage`. Absent while no step has been
    * measured — which is why it is optional rather than a zeroed triple: `captureTestRun` spreads
    * the three analytics fields in only when this member exists, so a run nobody measured reports
@@ -246,7 +246,7 @@ export function createAnalyticsRunSubscriber(
       default:
         break
     }
-    // 405 D-07: the fields `analytics/src/events.ts` has declared since v33 with no producer get
+    // the fields `analytics/src/events.ts` has declared since v33 with no producer get
     // one here. A step with no `tokenUsage` is a step nobody measured (a cache hit, a bypass, a
     // provider that reports none) and contributes NOTHING — not a zero.
     const usage = payload.tokenUsage
@@ -360,7 +360,7 @@ export function createAnalyticsRunSubscriber(
             break
         }
       } catch {
-        // A malformed envelope must never break a run — analytics is best-effort (RUNX-03).
+        // A malformed envelope must never break a run — analytics is best-effort.
       }
     },
 

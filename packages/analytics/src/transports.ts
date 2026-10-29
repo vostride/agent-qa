@@ -1,6 +1,6 @@
-// The PostHog transport (Phase 398 plan 03, D-17 / D-19 · ANLY-01). It reads no environment and
+// The PostHog transport. It reads no environment and
 // decides nothing: the opt-out was answered in `compose.ts`, and the answer is whether a transport
-// exists at all (447-04, D-08). There is no module-level state in this file.
+// exists at all. There is no module-level state in this file.
 
 import { PostHog } from 'posthog-node'
 import type { PostHogOptions } from 'posthog-node'
@@ -11,7 +11,7 @@ import type { AnalyticsCapturePayload, AnalyticsTransport } from './port.js'
 /**
  * The subset of the PostHog client this transport uses.
  *
- * `flush` is REQUIRED, not optional, and that is the whole content of the fix (398-15, CR-01): the
+ * `flush` is REQUIRED, not optional, and that is the whole content of the fix: the
  * interface previously declared only `capture`/`shutdown`, so the type system could not express the
  * correct per-boundary call and the transport reached for `shutdown` instead. An optional member
  * with a shutdown fallback would reinstate the same defect behind a spelling. posthog-node 5.33.2
@@ -34,7 +34,7 @@ export interface PosthogTransportOptions {
   /**
    * posthog-node's own `fetch` option, passed straight through.
    *
-   * 2026-08-17 (Phase 398 plan 03): this exists for plan 06's sandboxed-sink arm of the zero-network
+   * this exists for plan 06's sandboxed-sink arm of the zero-network
    * differential. posthog-node 5.33.2 sends through `this.options.fetch ?? fetch`, so injecting here
    * observes the SHIPPED send path rather than a parallel one built for the test — which is the
    * difference between measuring the product and measuring the fixture.
@@ -66,14 +66,13 @@ class PosthogTransport implements AnalyticsTransport {
    * `flush`/`shutdown` are not second seams: everything they drain arrived through this method, so
    * masking here ranges the whole queue. `is_internal` is added AFTER the mask because it is a
    * boolean this file writes — there is no caller string in it to mask. It is an event property,
-   * sent only when true (447-07, D-13).
+   * sent only when true.
    */
   capture(payload: AnalyticsCapturePayload): void {
     let masked: AnalyticsCapturePayload
     try {
       masked = maskEventForSend(payload, this.maskingContext)
     } catch {
-      // 2026-10-14 (441-08, E3): a mask that cannot run drops the event; it is never sent unmasked.
       return
     }
     const properties: Record<string, unknown> = { ...masked.event.properties }

@@ -1,4 +1,4 @@
-// C436-ANDROID-LIVE (436 D-30): the Android path run live on an emulator's Settings app
+// the Android path run live on an emulator's Settings app
 // (com.android.settings), through the real runner loop with a scripted planner and verifier. No
 // model is called. Skipped unless AGENT_QA_436_ANDROID_LIVE=1, with a booted emulator and Appium
 // (3.7.0 / UiAutomator2 7.0.0 when recorded) reachable at AGENT_QA_APPIUM_URL or

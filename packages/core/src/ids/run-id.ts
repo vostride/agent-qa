@@ -5,7 +5,7 @@ export function generateRunId(): string {
 }
 
 /**
- * Is this an id the run mint above would have produced? (2026-08-23, 401-20 · CR-04)
+ * Is this an id the run mint above would have produced?
  *
  * THE MINT'S OWN INVERSE, re-exported one line under it and from the same package, so the two can
  * never answer about different id shapes. The invocation core takes this as a REQUIRED option

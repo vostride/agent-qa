@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { buildScreenState, screenConformanceCases, type ConformanceInput } from '@vostride/agent-qa-runner'
 import { parseMobileSource, deriveMobileScroll } from '@vostride/agent-qa-core'
 
-// The shared adapter conformance suite (D-09) run against the ANDROID native walk: real
+// The shared adapter conformance suite run against the ANDROID native walk: real
 // UiAutomator2 page-source XML is fed through parseMobileSource into the interim nodes the
 // builder consumes, then every case in screenConformanceCases asserts the pinned
 // builder-contract invariants over those nodes. Beyond the shared cases, android-specific

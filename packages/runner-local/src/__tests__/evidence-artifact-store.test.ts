@@ -1,4 +1,4 @@
-// FsEvidenceArtifactStore (Phase 367, CASS-02). Pins the content-addressed decision-screenshot
+// FsEvidenceArtifactStore. Pins the content-addressed decision-screenshot
 // contract: bytes hash to the returned sha and read back byte-for-byte, files live only under the
 // slugged run dir's blobs/ family, repeat writes are idempotent, malformed shas are rejected before
 // any path use, and a traversal-shaped runId is neutralized by slugBranch so blobs stay under root.
@@ -102,7 +102,7 @@ describe('FsEvidenceArtifactStore', () => {
   })
 })
 
-// `hasBlob` — presence as a STAT, never a read (406-03, D-17). The op layer asks "are the bytes
+// `hasBlob` — presence as a STAT, never a read. The op layer asks "are the bytes
 // still there" for every artifact ref on a run-detail page; answering it through `getBlob` would
 // read every screenshot in the run to decide whether to draw a link.
 describe('FsEvidenceArtifactStore.hasBlob — presence without a read', () => {

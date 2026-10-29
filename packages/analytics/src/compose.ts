@@ -1,6 +1,6 @@
 // The one opt-out decision site. It is made once, before any transport exists, and its answer is
-// the transport: opted out or keyless builds none at all (447-04, D-08).
-// `analytics.privacy: true` is the only input (447-03, D-06).
+// the transport: opted out or keyless builds none at all.
+// `analytics.privacy: true` is the only input.
 
 import { createAnalyticsPort } from './port.js'
 import { createPosthogTransport } from './transports.js'
@@ -30,7 +30,7 @@ export interface ComposeAnalyticsOptions {
   readonly projectKey?: string
   readonly projectHost?: string
   /**
-   * The host's declared-secret mask, which the send seam applies (D-19, plan 06). It reaches only
+   * The host's declared-secret mask, which the send seam applies. It reaches only
    * the opted-IN arm: the deny arm has no transport, so there is no payload to mask.
    */
   readonly maskingContext?: AnalyticsMaskingContext
@@ -71,7 +71,7 @@ export function composeAnalytics<TEvent extends AnalyticsEventEnvelope = Analyti
   }
 }
 
-// No shared default id: a port composed without a resolver sends nothing (447-05, D-05).
+// No shared default id: a port composed without a resolver sends nothing.
 const noIdentity: AnalyticsIdentityResolver = () =>
   Promise.reject(new Error('no analytics identity was supplied'))
 

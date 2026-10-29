@@ -3,9 +3,9 @@
 // optional recorded element names/roles). No screenshots, no full accessibility tree: what
 // buildJudgePrompt renders is everything the judge is ever shown.
 //
-// D-08: the A/B order swap is PHYSICAL — each order is its own independently assembled payload
+// the A/B order swap is PHYSICAL — each order is its own independently assembled payload
 // with the item contents actually transposed, never both orders in one prompt. Swap agreement
-// is adjudicate's job (370-05); this module only guarantees the transposition is real.
+// is adjudicate's job; this module only guarantees the transposition is real.
 //
 // Every template/framing string comes from JUDGE_CONFIG.promptTemplate so the judgeVersion
 // bump-guard hash covers the injection defense; this module contributes assembly logic only.
@@ -16,7 +16,7 @@
 import { JUDGE_CONFIG } from './config'
 import type { JudgeOrder } from './port'
 
-/** Element identity evidence — mirrors the recorded GoldAnchorDescriptor minus ref (D-03/D-07). */
+/** Element identity evidence — mirrors the recorded GoldAnchorDescriptor minus ref. */
 export interface JudgeElementEvidence {
   role: string
   nameNormalized: string

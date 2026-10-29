@@ -11,7 +11,7 @@ export type LoopVerdict =
   | { kind: 'none' }
   | { kind: 'flagged'; priorStepIndex: number }
 
-/** One recorded procedure decision available to later steps as loop history (D-07). */
+/** One recorded procedure decision available to later steps as loop history. */
 export interface ProcedurePriorIdentity {
   /** Canonical key of the recorded gold decision identity. */
   identityKey: string

@@ -18,8 +18,8 @@ export type JudgeFamily =
 
 /**
  * Conservative model-id-token seeds per family. Unsure tokens are omitted on purpose:
- * unknown ⇒ undefined ⇒ forbidden is the safe default (D-13). The map is embedded in
- * JUDGE_CONFIG so any edit here is covered by the pinned-hash bump guard (D-15).
+ * unknown ⇒ undefined ⇒ forbidden is the safe default. The map is embedded in
+ * JUDGE_CONFIG so any edit here is covered by the pinned-hash bump guard.
  */
 export const JUDGE_FAMILY_MAP: Readonly<Record<JudgeFamily, readonly string[]>> = Object.freeze({
   claude: Object.freeze(['claude']),

@@ -93,7 +93,7 @@ function extractValue(attrs: Record<string, any>, platform: 'android' | 'ios'): 
  * platform's editability signal. It is a candidate: the adapter confirms it by keyboard
  * focus at execution, which is how a static UITextView is told apart.
  *
- * iOS `checked` (437 D-03): XCUITest reports a switch, toggle or checkbox's state only as its
+ * iOS `checked`: XCUITest reports a switch, toggle or checkbox's state only as its
  * `value`, so for a classifier toggle of role `switch` or `checkbox` the value '1' lifts to
  * checked true and '0' to checked false. Any other value, or none, leaves `checked` absent.
  * `selected` keeps no toggle meaning on either platform.
@@ -379,9 +379,9 @@ export function parseMobileSource(
 
 /**
  * Reconstruct the execute-time `lastRefs` record from the interim nodes plus the shared
- * builder's ref->node binding (D-01/D-03). The mobile adapters store this privately so
+ * builder's ref->node binding. The mobile adapters store this privately so
  * planner-ref -> live-node resolution survives the builder taking over ref minting. No
- * position lives anywhere: not here, not on the binding, not on ElementInfo (438 D-13).
+ * position lives anywhere: not here, not on the binding, not on ElementInfo.
  */
 export function buildRefEntries(
   nodes: InterimNode[],
@@ -408,7 +408,7 @@ export function buildRefEntries(
 }
 
 /**
- * Best-effort mobile scroll metadata (D-10). Unlike web — which reads the exact window
+ * Best-effort mobile scroll metadata. Unlike web — which reads the exact window
  * scroll offset and document content size — mobile page source exposes no true scroll
  * position, so this is a documented approximation, explicit and never silently precise:
  * contentWidth/contentHeight are the maximum element extent across all node bounds

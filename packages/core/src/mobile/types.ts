@@ -14,7 +14,7 @@ export interface MobileNode {
  * Execute-time resolution record for a single builder-minted ref. Reconstructed by
  * `buildRefEntries` from the interim nodes + the builder's ref->node binding, this is
  * how the mobile adapters keep the v1 `lastRefs` locator pattern alive after the
- * shared builder took over ref minting (D-01/D-03). Every field here is one that
+ * shared builder took over ref minting. Every field here is one that
  * `element-resolver.ts`/`gestures.ts` actually read at execute time.
  */
 export interface RefEntry {
@@ -24,7 +24,7 @@ export interface RefEntry {
   nativeType?: string
   value?: string
   editable?: boolean
-  /** Android's raw `input-type` bitmask from the observed node (437 D-15). */
+  /** Android's raw `input-type` bitmask from the observed node. */
   inputType?: number
 }
 

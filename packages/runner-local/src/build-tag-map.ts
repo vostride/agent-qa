@@ -1,4 +1,4 @@
-// Durable per-product build-tag resolution (Phase 375, D-14/D-16/D-17).
+// Durable per-product build-tag resolution.
 //
 // The mapping lives beside build-ordinals.json at <root>/build-tags.json and records the
 // first buildOrdinal observed for each product/tag pair (spec/v2/eval-and-core-types.md §A8).

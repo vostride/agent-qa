@@ -1,4 +1,4 @@
-// THE SEND SEAM (Phase 398 plan 06, D-17 / D-19 · ANLY-01 · T-398-06).
+// THE SEND SEAM.
 //
 // THERE IS ONE CHOKE POINT AND IT IS THE TRANSPORT'S `capture`. Not per-event-site masking, not a
 // helper each emitter is expected to remember: every outgoing payload passes through
@@ -23,7 +23,7 @@
 //     than riding along; the key space is closed for the same reason the name is. Masking keys
 //     would put `run_id` one collision away from being renamed to a placeholder.
 //
-// 2026-10-14 (441-08, D-12): the host supplies the declared-secret mask; nothing here decides
+// the host supplies the declared-secret mask; nothing here decides
 // what is a secret.
 
 import type { AnalyticsCapturePayload } from './port.js'

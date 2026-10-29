@@ -3,7 +3,7 @@ import type { OwnershipContract } from '@vostride/agent-qa-arch'
 export const AGENT_QA_SAFETY_LOCAL_PACKAGE_NAME = '@vostride/agent-qa-safety-local'
 export const AGENT_QA_SAFETY_LOCAL_PACKAGE_DIR = 'packages/safety-local'
 export const AGENT_QA_SAFETY_LOCAL_PACKAGE_CLASSES = ['storageImplementation'] as const
-// 2026-10-15 (441-45, D-12/D-15): the responsibilities are the ones that remain after 441-33 and
+// the responsibilities are the ones that remain after 441-33 and
 // 441-44.
 export const AGENT_QA_SAFETY_LOCAL_ALLOWED_RESPONSIBILITIES = [
   'local AsyncLocalStorage run-safety scope binding behind the safety execution-context resolver seam',

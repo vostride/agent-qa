@@ -23,7 +23,7 @@ export interface ReplayPlannerHandle {
 /**
  * The planner-factory port. `create` is called once PER SAMPLE so consume-once exchange budgets
  * and token accounting stay per-sample (RESEARCH Pitfall 6). The eval-local composition helper
- * implements it (plan 368-06).
+ * implements it.
  */
 export interface ReplayPlannerFactory {
   create(input: {
@@ -47,7 +47,7 @@ export interface ReplayEscalationContext {
 }
 
 /**
- * The ONE escalation seam (D-10): score the first sample against its positional decision
+ * The ONE escalation seam: score the first sample against its positional decision
  * context, then decide whether to run more samples. Phase 369 binds tiers-settle and Phase 370
  * binds judge escalation onto this same breaking-signature seam; the legacy signature is removed.
  */

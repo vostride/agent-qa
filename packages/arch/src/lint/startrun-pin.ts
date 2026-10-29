@@ -1,6 +1,6 @@
 // The startRun() named-set pin (2026-08-23, Phase 401 plan 20 · W-2 · INVK-02 criterion 2).
 //
-// 2026-10-01 (432-19, D-03/D-15): THIS IS NOW THE ONE ARCHITECTURE PIN ON A RUN. The evaluate()
+// THIS IS NOW THE ONE ARCHITECTURE PIN ON A RUN. The evaluate()
 // gate pin it was written beside is deleted with the gate; its scanner helpers stay in
 // `evaluate-pin.ts`, which this file imports. What a run must pass on its way in is the core's
 // request and run-id refusals, and a second file acquiring the starter would walk past them
@@ -76,7 +76,7 @@ export const STARTRUN_SYMBOL = 'startRun'
  *
  * TWO ENTRIES, and the DEFINITION SITE is not one of them — `packages/runner/src/run/shell.ts`
  * declares the function and acquires nothing, exactly as `policy/gate.ts` was absent from the
- * deleted evaluate() pin (432-19). Test files are out of scope by construction: the scan is fed through `sourceFilesFor`,
+ * deleted evaluate() pin. Test files are out of scope by construction: the scan is fed through `sourceFilesFor`,
  * which drops `__tests__`.
  */
 export const STARTRUN_PIN: Readonly<Record<string, string>> = {

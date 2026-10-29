@@ -1,5 +1,5 @@
 /**
- * C-CI-MATRIX (quick 261024-3w1 WR-05): CI tests each package on its own leg, so coverage rests on
+ * C-CI-MATRIX: CI tests each package on its own leg, so coverage rests on
  * the matrix itself: a dropped leg or shard, or a `rest` exclusion with no leg of its own, would
  * leave tests unrun while CI stays green. This package runs in the ubuntu `rest` leg, so these cells
  * hold the matrix in CI. The check lives in scripts/check-ci-matrix.mjs.

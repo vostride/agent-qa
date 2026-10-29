@@ -1,4 +1,4 @@
-// Concrete per-product buildOrdinal counter (Phase 361, D-18 / SESSION-05).
+// Concrete per-product buildOrdinal counter.
 //
 // A storageImplementation home for node:fs + node:path (the FsActionCache / FsStorageStateStore
 // boundary) — this project-local counter fs write lives here, never in the runner. On-disk layout:

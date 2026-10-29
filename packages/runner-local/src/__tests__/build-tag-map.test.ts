@@ -1,4 +1,4 @@
-// Phase 375 RED contract (D-14/D-16/D-17): durable per-product build-tag resolution
+// Phase 375 RED contract: durable per-product build-tag resolution
 // lives beside build-ordinals.json and preserves the first ordinal seen for each tag.
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'

@@ -9,7 +9,7 @@ type ResolvedAnchor = {
 
 /**
  * Compare one resolved candidate target with recorded gold identity evidence. The optional
- * recorded ref is evidence only and never participates in cross-run identity (D-02).
+ * recorded ref is evidence only and never participates in cross-run identity.
  */
 export function anchorsEqual(a: ResolvedAnchor, b: GoldAnchorDescriptor): boolean {
   return (

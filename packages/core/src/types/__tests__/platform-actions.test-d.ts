@@ -7,7 +7,7 @@ import type {
 } from '@vostride/agent-qa-schema'
 import type { Action, ActionsFor, PlatformAdapter } from '@vostride/agent-qa-runner'
 
-// D-15 (Phase 360): the runner's action world IS the schema projection. The legacy runner union
+// the runner's action world IS the schema projection. The legacy runner union
 // (LegacyFoldedWebVerbs / RuntimeOnlyCommonVerbs / RuntimeOnlyMobileVerbs and the local shape
 // declarations) was demolished — runner `Action` = schema `Action`, and runner `ActionsFor<P>` =
 // schema `ActionsFor<P>`. This pin now proves that equality cross-package (core → runner → schema)

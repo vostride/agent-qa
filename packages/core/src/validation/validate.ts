@@ -117,7 +117,7 @@ export function validateSuiteFile(filePath: string, content: string, basedir: st
   try {
     parsed = parseYaml(content, { lineCounter })
   } catch (err) {
-    // WHERE, NEVER WHAT — the THIRD MEMBER (395-16 · WINDOWS 139). Measured, not inferred: this
+    // WHERE, NEVER WHAT — the THIRD MEMBER. Measured, not inferred: this
     // arm answered `YAML syntax error: Map keys must be unique at line 7, column 1:` followed by
     // the person's own line, rendered by `agent-qa validate`. The diagnostic's `file` field already
     // names the file, so the message is the position and nothing else — the same composition as the

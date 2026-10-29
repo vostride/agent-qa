@@ -1,4 +1,4 @@
-// Filesystem cassette bundle store (Phase 367, D-05/D-06/D-07).
+// Filesystem cassette bundle store.
 //
 // Owns the storageImplementation write leg behind eval's in-memory ExtractedCassette contract.
 // Each deterministic bundle is recreated in full before publication:

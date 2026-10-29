@@ -1,4 +1,4 @@
-// D-12/D-14 eligibility assessment + the pure async adjudication orchestrator (370-05).
+// D-12/D-14 eligibility assessment + the pure async adjudication orchestrator.
 // ALL judgment law lives here, pure-side: per-tie dispatch on TieCause, the D-08 two
 // order-swapped port calls with the swap-agreement rule, the D-09 minimum-category
 // threshold, D-03 bounded pairwise no-consensus, and the typed stamping of every outcome.
@@ -16,7 +16,7 @@
 // ('openai-compatible' serves Llama, Qwen, and DeepSeek alike) and can never establish
 // family; unknown resolves undefined and is treated as same-family, therefore forbidden —
 // never a guess.
-// Owner override of D-10 (2026-07-12): an EXPLICIT allowSameFamily opt-in lifts ONLY the
+// Owner override of D-10: an EXPLICIT allowSameFamily opt-in lifts ONLY the
 // known-equal-family refusal arms (judge===replayed; recorded===judge) and stamps the
 // eligible result — and thence the D-16 identity block — with familyOverride:
 // 'same-family-allowed' so the self-preference bias condition is disclosed on every scored
@@ -285,9 +285,9 @@ async function callJudge(
 }
 
 /**
- * One pairwise judgment: two physically order-swapped independent calls (D-08), then the
+ * One pairwise judgment: two physically order-swapped independent calls, then the
  * pure classification — infra error, explicit unsure, swap disagreement, minimum-category
- * threshold on the LOWER of the two confidences (D-09), else the swap-surviving verdict.
+ * threshold on the LOWER of the two confidences, else the swap-surviving verdict.
  */
 export async function judgePairwise(
   port: JudgePort,
@@ -542,7 +542,7 @@ async function adjudicateNoConsensus(
   )
   if (firstNonDifferent === undefined) {
     // Every distinct candidate is confidently different from gold: a judged miss minted
-    // on the first candidate's own deterministic breakdown (D-03).
+    // on the first candidate's own deterministic breakdown.
     const settledDifferent = nonSurviving.find(
       (pairwise): pairwise is Extract<PairwiseOutcome, { kind: 'settled' }> =>
         pairwise.kind === 'settled',
@@ -806,7 +806,7 @@ async function adjudicateProcedure(
 /**
  * The tier-4 adjudication orchestrator. Refusal and shape-mismatch scores pass through
  * unchanged. When no eligible judge or no port exists, every unresolved tie is stamped
- * not-invoked UNCONDITIONALLY so the report's dispositions are uniform (D-06/D-10/D-12).
+ * not-invoked UNCONDITIONALLY so the report's dispositions are uniform.
  * On the eligible path, every tie exits with a typed disposition — settled, abstained, or
  * judge-error — never silent, and the D-16 identity block rides the result.
  */
@@ -841,7 +841,7 @@ export async function adjudicateCassetteScore(input: {
       ...(eligibility.panelSize === undefined ? {} : { panelSize: eligibility.panelSize, members: eligibility.members }),
       judgeVersion: JUDGE_CONFIG.judgeVersion,
       confidenceThreshold: JUDGE_CONFIG.confidenceThreshold,
-      // Owner override of D-10 (2026-07-12): the disclosure rides every scored entry.
+      // Owner override of D-10: the disclosure rides every scored entry.
       ...(eligibility.familyOverride === undefined
         ? {}
         : { familyOverride: eligibility.familyOverride }),

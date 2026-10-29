@@ -8,19 +8,19 @@ import type {
   WorkingMemoryEntry,
 } from '@vostride/agent-qa-schema'
 
-/** The complete recorded planner input for one live decision (D-03). */
+/** The complete recorded planner input for one live decision. */
 export interface CassetteInputLeg {
-  /** Stable authored test identity copied from the recorded test outcome (D-03). */
+  /** Stable authored test identity copied from the recorded test outcome. */
   testId: string
-  /** Recorded zero-based test position within the run handoff (D-03). */
+  /** Recorded zero-based test position within the run handoff. */
   testIndex: number
-  /** Recorded zero-based step position within the test (D-03). */
+  /** Recorded zero-based step position within the test. */
   stepIndex: number
-  /** Recorded zero-based live-decision position within the step (D-03). */
+  /** Recorded zero-based live-decision position within the step. */
   decisionOrdinal: number
-  /** Resolved instruction text presented for the recorded step (D-03). */
+  /** Resolved instruction text presented for the recorded step. */
   stepText: string
-  /** Persisted observation the planner received before choosing the action (D-03). */
+  /** Persisted observation the planner received before choosing the action. */
   stateBefore: ScreenState
   /** Exact three-channel knowledge brief served for this step (D-03/A11). */
   servedBrief: ServedBrief
@@ -34,14 +34,14 @@ export interface CassetteInputLeg {
    */
   retrievalRung?: RecordedRetrievalRung
   /**
-   * Ordered non-action exchanges from the live turn (D-03/T-367-03). They are opaque
+   * Ordered non-action exchanges from the live turn. They are opaque
    * evidence data; consumers must never execute their model-authored arguments or results.
    */
   exchanges: ToolExchangeEvidence[]
-  /** Declared model and sampling intent; unavailable values remain absent (D-03). */
+  /** Declared model and sampling intent; unavailable values remain absent. */
   modelProfile?: DeclaredModelProfile
-  /** Typed planner-screenshot identity; absent until later phases mint it (D-14/T-367-23). */
+  /** Typed planner-screenshot identity; absent until later phases mint it. */
   decisionScreenshotRef?: ArtifactRef
-  /** Ordered non-screenshot evidence refs kept distinct from the screenshot role (D-14). */
+  /** Ordered non-screenshot evidence refs kept distinct from the screenshot role. */
   auxiliaryArtifactRefs?: readonly ArtifactRef[]
 }

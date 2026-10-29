@@ -1,4 +1,4 @@
-// FsStorageStateStore unit pins (Phase 360-09, D-14 / T-360-03).
+// FsStorageStateStore unit pins.
 //   - raw save/load round-trips byte-identical (auth material persists verbatim);
 //   - a traversal-shaped name slugs to a filename that stays INSIDE storage-states/
 //     (resolved-path-prefix assertion — the security pin);

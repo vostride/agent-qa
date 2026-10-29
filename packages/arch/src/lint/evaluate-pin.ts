@@ -1,6 +1,6 @@
 // The shared module-statement scanner (Phase 384, FUNC-02; kept 2026-10-01, 432-19).
 //
-// 2026-10-01 (432-19, D-03/D-15): THE evaluate() PIN IS DELETED. Its last two acquisitions — safety's
+// THE evaluate() PIN IS DELETED. Its last two acquisitions — safety's
 // in-run gate hook and the safety barrel's re-export — left with the gate itself, so the permitted
 // set reached zero entries and there is no gate module, symbol or export left to acquire.
 // `EVALUATE_PIN`, its acquisition finder and its offender check left in the same change.
@@ -34,7 +34,7 @@ const MAX_CLAUSE_LINES = 24
  * Drop block and line comments so a commented-out statement is never read as real code.
  *
  * ONE PASS, WITH AN ALTERNATION, and the reason is a measured defect rather than style
- * (2026-08-23, Phase 401 plan 20). This function used to remove block comments first and
+ * This function used to remove block comments first and
  * line comments second. A LINE comment containing `/*` — this repo has several, e.g.
  * `daemon/host.ts:642`'s "could not touch `daemon/**` that wave" — then opened a phantom
  * block on the first pass, and everything up to the next `*` + `/` disappeared before the

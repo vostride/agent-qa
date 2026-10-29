@@ -57,9 +57,9 @@ describe('the closed event union and its membership', () => {
     expect([...ANALYTICS_MCP_TOOL_NAMES].sort()).toEqual(
       AGENT_QA_TOOL_PROJECTIONS.map((projection) => projection.name).sort(),
     )
-    // 2026-09-15, 423-21 D-18: the two feedback read tools joined the mapping.
-    // 2026-09-29, 431-04 D-01: the eight discovery read tools joined it (MX_MAX_TOOLS = 24).
-    // 2026-09-30, 432-12 D-05: the four proposal apply/list/show tools left it and the two change
+    // the two feedback read tools joined the mapping.
+    // the eight discovery read tools joined it (MX_MAX_TOOLS = 24).
+    // the four proposal apply/list/show tools left it and the two change
     // tools were renamed (MX_MAX_TOOLS = 20); no retired name survives in the vocabulary.
     expect(ANALYTICS_MCP_TOOL_NAMES.length).toBe(20)
     expect(ANALYTICS_MCP_TOOL_NAMES).toContain('agent_qa_change_knowledge')
@@ -244,7 +244,7 @@ describe('every member REFUSES an unknown key (.strict, never .strip)', () => {
 })
 
 // ---------------------------------------------------------------------------------------------
-// 405-13 (D-21 / DETL-06) — the completion shape as a CLOSED SET, not a containment check
+// the completion shape as a CLOSED SET, not a containment check
 // ---------------------------------------------------------------------------------------------
 //
 // WHY THE CELL ABOVE IS NOT ENOUGH. It proves a returning field is REFUSED AT PARSE, which is the
@@ -269,7 +269,7 @@ function propertyKeysOf(name: AnalyticsEventName): string[] {
   return Object.keys(schema.shape.properties.shape)
 }
 
-/** The shared base every member carries (D-18) — spelled once so the two pins below differ only. */
+/** The shared base every member carries — spelled once so the two pins below differ only. */
 const BASE_KEYS = [
   'agent_qa_version',
   'surface',

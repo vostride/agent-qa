@@ -119,7 +119,7 @@ describe('an unreadable package manifest reports its POSITION, never its content
     )
     // THE CONTENT: zero bytes of it, on the message AND on the serialization a person actually
     // sees. `.stack` and `util.inspect` are the channels this phase has already been burned by
-    // (395-16), so the negative grep runs on all three rather than on `.message` alone.
+    // so the negative grep runs on all three rather than on `.message` alone.
     expect(
       occurrences(message, MANIFEST_SENTINEL),
       `the fault republished the manifest's own bytes:\n${message}`,
@@ -168,7 +168,7 @@ describe('an installed package that fails to load is not called missing', () => 
       .not.toContain('is not installed')
     expect(message, `the failure told them to install what they already have:\n${message}`)
       .not.toContain('npm install')
-    // AND NONE OF THE PERSON'S FILESYSTEM TRAVELS WITH IT (395-28 · CR-03).
+    // AND NONE OF THE PERSON'S FILESYSTEM TRAVELS WITH IT.
     //
     // WHAT THIS ASSERTION REPLACED, AND WHY. Until 395-28 this cell asserted only the absence of a
     // CJS-only require-stack marker. `importDeclaredPluginModule` uses `await import(...)` — the ESM

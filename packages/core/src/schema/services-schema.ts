@@ -27,7 +27,7 @@ export const DashboardConfigSchema = z.object({
   port: z.number().optional(),
   dbPath: z.string().optional(),
   artifactsDir: z.string().optional(),
-  // Phase 387, D-10: where an entity card's `url` points. BOTH optional, so the v52 default
+  // where an entity card's `url` points. BOTH optional, so the v52 default
   // is a card with no `url` at all rather than a link to a route nothing serves. The card
   // producer reads these through the masked config reader and renders
   // `ENTITY_URL_ROUTE` (@vostride/agent-qa-schema) against them.
@@ -36,7 +36,7 @@ export const DashboardConfigSchema = z.object({
   // `dashboard` key: this project already has one dashboard configuration home, and a second
   // one would be two places an operator could reasonably write the same fact.
   //
-  // 2026-09-01 (Phase 408 plan 10, WR-04 — T-408-16): REFINED TO AN ABSOLUTE http(s) URL, because
+  // REFINED TO AN ABSOLUTE http(s) URL, because
   // this value stops being a display string in M5. It composes the tokenless live link
   // (`live-link.ts`'s `liveRunLinkOf`, which only strips trailing slashes), and that link is
   // assigned to an `href` INSIDE the served App document — which runs with `allow-scripts` at an

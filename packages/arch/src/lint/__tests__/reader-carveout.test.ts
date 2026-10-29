@@ -38,7 +38,7 @@ function fixtureContract(packageDir: string): OwnershipContract {
 
 describe('reader carve-out', () => {
   it('rejects the write-capable main entry outside the pinned writer allowlist', () => {
-    // 2026-07-29 (Phase 385 plan 09, D-14): one entry, and it is the composition subtree. The two
+    // one entry, and it is the composition subtree. The two
     // CLI entries are gone because every writer power the curation surfaces used now arrives on
     // the local host's capabilities.
     expect(KNOWLEDGE_WRITER_ALLOWLIST).toEqual(['packages/agent-local/src/composition/'])
@@ -50,7 +50,7 @@ describe('reader carve-out', () => {
   })
 
   it('rejects non-reader knowledge-local imports from either pinned reader file', () => {
-    // 2026-07-29 (Phase 385 plan 08, D-13): the first pinned reader file relocated with the run
+    // the first pinned reader file relocated with the run
     // composition. The path is spelled through the shipped pin rather than repeated here, so the
     // next relocation updates one place and this case cannot quietly start asserting about a file
     // the rule no longer knows.

@@ -415,7 +415,7 @@ describe('IOSPlatformAdapter', () => {
     })
   })
 
-  // C437-IOS-TAP-HOLD (437-09): a zero-duration touch flipped an iOS 27 Settings switch knob 2 of
+  // a zero-duration touch flipped an iOS 27 Settings switch knob 2 of
   // 11 times live; the same touch held 100 ms between down and up flipped it every time.
   describe('single taps hold the touch between down and up', () => {
     function chainSteps(): string[] {

@@ -6,7 +6,7 @@ import { guardJsonText, printRunText, type RunTextEnv } from './run-text-output.
 import { redactSecretValue, type SecretRedactor } from '@vostride/agent-qa-runner'
 
 /**
- * One member's run-id binding, held in async context rather than on the manager (WINDOWS #233).
+ * One member's run-id binding, held in async context rather than on the manager.
  *
  * `pending` is that member's own not-yet-attributed entries — the lines it wrote before it minted
  * its run id. Only these are backfilled by its `setRunId`, so a sibling can never adopt them.

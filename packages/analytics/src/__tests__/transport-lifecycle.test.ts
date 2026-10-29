@@ -1,4 +1,4 @@
-// The transport's flush/shutdown split, measured on ONE composition (Phase 398 plan 15 · CR-01).
+// The transport's flush/shutdown split, measured on ONE composition.
 //
 // WHY THIS FILE EXISTS, AND WHY NOTHING ELSE COULD SEE THE DEFECT. Every other cell that builds a
 // PostHog transport constructs a fresh one per send (`masking-seam.test.ts`, `network-differential

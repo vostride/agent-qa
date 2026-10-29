@@ -368,7 +368,7 @@ describe('runCassetteReplay — sanctioned composition', () => {
   })
 })
 
-// ─── Task 2: end-to-end composition proof over the production round trip (D-05/D-12) ───
+// ─── Task 2: end-to-end composition proof over the production round trip ───
 
 const RECORDED_LOOKUP_MARKER = 'RECORDED-LOOKUP-RESULT-XYZ'
 
@@ -475,7 +475,7 @@ describe('runCassetteReplay — production round-trip spine', () => {
     expect(outcome.reason).toBe('completeness')
     expect(doGenerateCalls).toBe(0)
 
-    // The refusal is persisted too — refusals are never silent (D-08/D-12).
+    // The refusal is persisted too — refusals are never silent.
     const records = findReplayRecords(join(storeRoot, 'eval', 'replays'))
     expect(records).toHaveLength(1)
     expect(JSON.parse(readFileSync(records[0]!, 'utf8'))).toEqual(JSON.parse(JSON.stringify(outcome)))
@@ -524,7 +524,7 @@ describe('runCassetteReplay — production round-trip spine', () => {
   })
 })
 
-// ─── Task 3 (369-08): optional score persistence through the sanctioned composition ───
+// ─── Task 3: optional score persistence through the sanctioned composition ───
 
 describe('runCassetteReplay — optional score persistence', () => {
   const tempRoots: string[] = []
@@ -608,7 +608,7 @@ describe('runCassetteReplay — optional score persistence', () => {
   })
 })
 
-// ─── Task 3 (370-07): the tier-4 judge leg through the sanctioned composition (JUDGE-01/03/04) ───
+// ─── Task 3: the tier-4 judge leg through the sanctioned composition (JUDGE-01/03/04) ───
 
 // Family-resolvable model ids (RESEARCH Pitfall 6): the default stub ids resolve to NO judge
 // family, which would forbid every judge under D-12 — the judge leg needs explicit families.
@@ -824,14 +824,14 @@ describe('runCassetteReplay — tier-4 judge leg', () => {
       confidence: 'high',
       usage: { calls: 2, inputTokens: 20, outputTokens: 4 },
     })
-    // The persisted reproducibility receipt of the scored decision (D-16).
+    // The persisted reproducibility receipt of the scored decision.
     expect(persisted.judge).toEqual({
       judgeModelId: JUDGE_MODEL_ID,
       judgeFamily: 'claude',
       judgeVersion: JUDGE_CONFIG.judgeVersion,
       confidenceThreshold: 'high',
     })
-    // Exactly the two physically order-swapped calls (D-08), each pinned to temperature 0.
+    // Exactly the two physically order-swapped calls, each pinned to temperature 0.
     expect(judgeStub.captured).toHaveLength(2)
     for (const captured of judgeStub.captured) {
       expect(captured.temperature).toBe(0)

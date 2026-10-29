@@ -1,4 +1,4 @@
-// Engine test fixtures for the replay engine (plan 368-04): leaf / procedure cassette
+// Engine test fixtures for the replay engine: leaf / procedure cassette
 // builders plus scripted ReplayPlannerFactory fakes and a fixed-increment fake clock.
 // Test-only module — exempt from the src module-discipline scan.
 

@@ -43,7 +43,7 @@ export interface ResolveAnalyticsIdentityOptions {
   homeDir?: string
 }
 
-// A stored id is adopted only in this shape; anything else is replaced (D-01).
+// A stored id is adopted only in this shape; anything else is replaced.
 const LOCAL_ANALYTICS_ID_PATTERN = /^u_([a-z]+-){9}[a-z]+$/
 
 export function getAnalyticsIdentityPath(
@@ -130,8 +130,8 @@ export function resolveAnalyticsAgentProduct(
   return undefined
 }
 
-// The one entry point a composition root calls. The host decides `ci` (D-11); a CI resolution is a
-// fresh in-memory id and touches no file (D-04).
+// The one entry point a composition root calls. The host decides `ci`; a CI resolution is a
+// fresh in-memory id and touches no file.
 export async function resolveAnalyticsIdentity(
   options: ResolveAnalyticsIdentityOptions = {},
 ): Promise<ResolvedAnalyticsIdentity> {

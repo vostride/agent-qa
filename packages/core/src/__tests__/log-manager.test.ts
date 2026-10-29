@@ -296,7 +296,7 @@ describe('declared values in log output', () => {
   })
 })
 
-// ONE LOG MANAGER, N CONCURRENT MEMBERS (WINDOWS #233).
+// ONE LOG MANAGER, N CONCURRENT MEMBERS.
 //
 // 402-02 made the DIRECT run path poolable and 402-03 made `workers > 1` reachable from config, so
 // `commands/run.ts` now calls `logger.setRunId(memberRunId)` from several members interleaved on

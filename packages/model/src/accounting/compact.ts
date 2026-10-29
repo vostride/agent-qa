@@ -1,9 +1,9 @@
-// Deterministic pre-prompt compaction (CTXB-06). Two lanes, both pure (D-14):
+// Deterministic pre-prompt compaction. Two lanes, both pure:
 //   compactLogs — log-shaped bursts: normalize variable tokens → group by
-//     source::level::normalized_message → count + first-5 samples (D-13/D-15).
+//     source::level::normalized_message → count + first-5 samples.
 //   guardBlob   — one-shot structured values: safe-stringify + a generous honest
-//     size bound with the visible truncation marker; NEVER token-normalized (D-14).
-// Determinism is load-bearing (T-354-07): no clock, no randomness, sorted keys
+//     size bound with the visible truncation marker; NEVER token-normalized.
+// Determinism is load-bearing: no clock, no randomness, sorted keys
 // before render so compacted output cannot smuggle run-to-run variance downstream.
 
 export type LogEntry = { source: string; level?: string; message: string }
@@ -15,7 +15,7 @@ const TRUNCATION_MARKER = '…[truncated to fit context budget]'
 
 // A single structured value is one thing, not a burst — so it earns a much more
 // generous bound than the v1 2000-char guillotine: 8000 chars (~2000 tokens, 4×)
-// keeps real signal while still capping an adversarial huge/repeating blob (T-354-05).
+// keeps real signal while still capping an adversarial huge/repeating blob.
 const BLOB_CEILING = 8000
 
 // Variable-token normalization, applied in this fixed precedence so a broader
@@ -41,7 +41,7 @@ function normalize(message: string): string {
 type LogClass = { source: string; level: string; normalized: string; count: number; samples: string[] }
 
 /**
- * Compact a log-shaped burst into a deterministic, bounded string (D-13/D-15).
+ * Compact a log-shaped burst into a deterministic, bounded string.
  * Groups typed `{source, level, message}` entries by `source::level::normalized`,
  * counts each class, and renders it with the first ≤5 raw samples seen (monotonic:
  * once a class has 5 samples, growing the burst never changes which 5 are shown;
@@ -76,7 +76,7 @@ export function compactLogs(entries: LogEntry[]): string {
 }
 
 /**
- * Bound a single structured value for prompt inclusion (D-14). Safe-stringifies the
+ * Bound a single structured value for prompt inclusion. Safe-stringifies the
  * value verbatim (variable tokens preserved — the planner may need them exactly) and,
  * only if it exceeds `BLOB_CEILING`, slices and appends the visible truncation marker.
  * `undefined` in ⇒ `undefined` out. Never throws on cyclic input (V5).
@@ -114,7 +114,7 @@ function asLogEntry(value: unknown): LogEntry | undefined {
 }
 
 /**
- * The composed pre-prompt guard for one tool-output value (CTXB-06): a burst of
+ * The composed pre-prompt guard for one tool-output value: a burst of
  * log-shaped entries (console `{level, text}` / network `{url, method, status}` /
  * generic `{source?, level?, message}`) routes through {@link compactLogs};
  * anything else through {@link guardBlob}. Compacted output is still bounded by

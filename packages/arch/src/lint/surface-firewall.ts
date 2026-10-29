@@ -5,7 +5,7 @@ import { surfaceLedgerKey } from './surface-firewall-ledger.js'
 import type { SurfaceLedgerEntry } from './surface-firewall-ledger.js'
 
 /**
- * FUNC-02 (D-01, 2026-07-28): the surface packages whose internal imports the build
+ * the surface packages whose internal imports the build
  * enforces in Phase 384. Deliberately NARROWER than the surface class itself: the two
  * dashboards also declare `surface`, but their rewiring is M5 work, so admitting them
  * here today would mean hundreds of un-ledgered entries for a migration nobody has
@@ -13,7 +13,7 @@ import type { SurfaceLedgerEntry } from './surface-firewall-ledger.js'
  *
  * Membership here — not the declared class — is what arms the firewall, so a package
  * cannot disarm its own enforcement by quietly dropping `surface`. That drift direction
- * is caught separately by findSurfaceClassGoldenSetOffenders (D-02).
+ * is caught separately by findSurfaceClassGoldenSetOffenders.
  */
 export const FIREWALLED_SURFACE_DIRS = ['packages/cli', 'packages/mcp'] as const
 
@@ -23,7 +23,7 @@ export const FIREWALLED_SURFACE_DIRS = ['packages/cli', 'packages/mcp'] as const
  * vocabulary its DTOs are typed against, and the local composition root it obtains a
  * composed host from. Everything else is a private power (SC2).
  *
- * 2026-07-29 (Phase 385, D-13/D-15): the third entry is new and is NOT a relaxation.
+ * the third entry is new and is NOT a relaxation.
  * Before it, a surface that wanted a run session had to build one, which is why the
  * ledger below carries a whole file's worth of waivers for exactly that. The
  * composition root is the sanctioned way a host acquires powers rather than a way
@@ -35,7 +35,7 @@ export const FIREWALLED_SURFACE_DIRS = ['packages/cli', 'packages/mcp'] as const
 export const SURFACE_ALLOWED_INTERNAL_PACKAGES = [
   '@vostride/agent-qa-agent',
   '@vostride/agent-qa-agent-local',
-  // 2026-08-17 (Phase 398 plan 10, D-17): the bounded analytics package, admitted on the SAME
+  // the bounded analytics package, admitted on the SAME
   // reasoning as the composition root above and for the same reason it is not a ledger entry —
   // a ledger entry means debt to be cleared, and this edge is the end state.
   //
@@ -120,7 +120,7 @@ function surfaceDirForFile(file: string): string {
 }
 
 /**
- * The FUNC-02 firewall (D-01, D-03, D-04).
+ * The FUNC-02 firewall.
  *
  * Two directions, copied verbatim in spirit from the shipped transitional-core ledger:
  *   1. a forbidden internal specifier with no exact (file, specifier) ledger entry is an offender;
@@ -134,7 +134,7 @@ function surfaceDirForFile(file: string): string {
  * fails, which is the deepening-violation catch D-03 exists for.
  *
  * `import type` needs no special handling: the shared specifier extractor makes no
- * type-only exemption, so a type-only leak is a leak (D-04).
+ * type-only exemption, so a type-only leak is a leak.
  */
 export function findSurfaceFirewallOffenders(
   hitsByPackage: readonly SurfaceFirewallScan[],
@@ -181,7 +181,7 @@ export function findSurfaceFirewallOffenders(
 }
 
 /**
- * D-02: the surface class's member set is pinned, and both drift directions fail.
+ * the surface class's member set is pinned, and both drift directions fail.
  * Unpinned arrival and silent departure are separate offenders with distinct wording,
  * so the failure message says which mistake was made.
  */

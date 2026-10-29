@@ -2,7 +2,7 @@ import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   test: {
-    // 2026-08-17 (Phase 398 plan 03). The `node` environment is not incidental: the DNT
+    // 2026-08-17. The `node` environment is not incidental: the DNT
     // zero-network differential plan 06 lands here intercepts Node's global fetch through
     // undici's global dispatcher, and RESEARCH A2 records that `happy-dom` breaks that
     // interception outright — a cell that observes zero connection attempts because nothing

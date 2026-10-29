@@ -6,7 +6,7 @@ import {
 import { CASSETTE_SCHEMA_VERSION, type Cassette } from './cassette'
 import { cassetteSchema } from './schema'
 
-/** Typed cassette-specific rejection for unsupported schema versions (D-14). */
+/** Typed cassette-specific rejection for unsupported schema versions. */
 export class CassetteVersionError extends VersionGuardError {
   constructor(found: number, supported: number) {
     super('Cassette', found, supported)

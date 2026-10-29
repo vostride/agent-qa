@@ -306,7 +306,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
   private consoleDrainIndex = 0
   private captureConsole = true
   private bundleId: string | null = null
-  // EXEC-03 session-cached app registry (D-10/D-12): enumerated once per session. null = not yet
+  // EXEC-03 session-cached app registry: enumerated once per session. null = not yet
   // enumerated OR enumeration unavailable (iOS simulator — mobile: listApps throws). Reset in cleanup().
   private appRegistry: AppRegistryEntry[] | null = null
   private sessionSnapshotDepth = IOS_SNAPSHOT_MAX_DEPTH
@@ -369,7 +369,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
   }
 
   /**
-   * 428 D-11: the labelled 1s snapshot preview, over `captureScreenshot()` — `takeScreenshot()`
+   * the labelled 1s snapshot preview, over `captureScreenshot()` — `takeScreenshot()`
    * and nothing else. Never `screenshot()`: that one switches the Appium context, and a tick
    * landing between a step's context switch and its command would run the command in the wrong
    * context. Declared before the driver exists (a capture then answers `undefined`), so the
@@ -393,7 +393,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
       this.driver.getWindowSize(),
     ])
 
-    // Shared builder pipeline (D-01/D-08/D-10): the parser lifts XCUITest attributes
+    // Shared builder pipeline: the parser lifts XCUITest attributes
     // into platform-neutral interim nodes (value/selected/enabled, XML nesting →
     // hierarchy, missing signals typed-absent — no fabrication in this adapter), the
     // one runner-owned builder mints refs and assembles the schema v2 ScreenState, and
@@ -455,7 +455,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
     const raw = await this.captureScreenshot()
     if (!raw || !this.driver) return raw
 
-    // Stage 2 (D-02, D-05): resize physical pixels → logical points.
+    // Stage 2: resize physical pixels → logical points.
     // iOS takeScreenshot returns physical pixels (e.g., 1179×2556 on iPhone 15 Pro)
     // while getWindowSize, XML bounds, and W3C pointer actions use logical points (393×852).
     // Re-read getWindowSize every call per Pitfall 8 (handles rotation — no caching).
@@ -790,9 +790,9 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
    * the prior value FIRST via getAttribute('value') then addValue, or (replace) setValue; RE-READ
    * via getAttribute('value') on that same handle; verdict via compareFillReread. Secure fields
    * (nativeType XCUIElementTypeSecureTextField) take the non-empty-only lane — the comparator yields
-   * length sentinels so no raw value enters the result (T-359-02); bullet masking is tolerated
+   * length sentinels so no raw value enters the result; bullet masking is tolerated
    * (A3/Pitfall 7 — never a length compare). On a passing re-read AND submit, a return/newline is
-   * delivered AFTER the re-read (D-07). Single typing attempt; a mismatch is success:false + §7.1.
+   * delivered AFTER the re-read. Single typing attempt; a mismatch is success:false + §7.1.
    *
    * Append (437 FA-1, owner 2026-10-08): the XCUITest `value` attribute often lags after addValue,
    * so a re-read equal to the prior cannot show the appended text. That fill is recorded unverified:
@@ -804,7 +804,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
    *
    * An unreadable re-read is unverified and does not stop a requested Return, as on Android (D-09,
    * D-10; owner 2026-10-09), but focus is confirmed once first and a Return is held as focus-lost
-   * when the field no longer has it (444.1 D-10).
+   * when the field no longer has it.
    */
   private async fillIOSCompound(
     el: {
@@ -843,7 +843,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
     const unsent: FillSubmitMeta = multiline ? { sent: false, reason: 'multi-line-field' } : { sent: false }
     const notice = action.submit && multiline ? { data: MULTI_LINE_SUBMIT_NOTICE } : {}
 
-    // Return/newline AFTER the re-read, only when the fill is not a failure, in a single-line field (D-07).
+    // Return/newline AFTER the re-read, only when the fill is not a failure, in a single-line field.
     let fillSubmit: FillSubmitMeta = unsent
     if (verdict.ok && action.submit && !multiline) {
       if (raw === undefined && (await this.confirmIOSKeyboardFocus(target)) !== 'focused') {
@@ -864,7 +864,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
   }
 
   /**
-   * EXEC-02 platform primitives injected into the shared runner scroll loops (D-02/D-03). The swipe
+   * EXEC-02 platform primitives injected into the shared runner scroll loops. The swipe
    * is a page-sized directional gesture (inverted to the finger direction) that reports unknown
    * movement; nativeSearchScroll drives
    * the XCUITest `mobile: scroll` predicateString rung over an injection-escaped target; readInterimTree
@@ -925,7 +925,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
    * `mobile: listApps` enumerates the registry; on simulators it throws, leaving the registry
    * unavailable — the appName lane then mints a structured §7.1 error directing to an explicit
    * bundleId, and the bundleId lane validates without the registry (isAppInstalled / activateApp
-   * error conversion, A2). Never a best-guess launch (T-359-04); an invalid bundle never succeeds.
+   * error conversion, A2). Never a best-guess launch; an invalid bundle never succeeds.
    */
   private async openApp(action: { appName: string } | { bundleId: string }): Promise<ActionResult> {
     const driver = this.driver!
@@ -948,7 +948,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
     let reg = registry
     let resolution = resolveAppName(action.appName, reg)
     if (resolution.kind === 'unknown' || resolution.kind === 'ambiguous') {
-      // Re-enumerate exactly once on a MISS before erroring (D-12).
+      // Re-enumerate exactly once on a MISS before erroring.
       const fresh = await this.enumerateApps()
       if (fresh !== null) {
         this.appRegistry = fresh
@@ -1179,11 +1179,11 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
       }
 
       case 'scroll': {
-        // EXEC-02 scroll (D-02/D-03; 436-02 D-24/D-25): ONE ActionResult carrying scrollUntilVisible
+        // EXEC-02 scroll: ONE ActionResult carrying scrollUntilVisible
         // metadata. untilVisible prefers the native `mobile: scroll` predicateString rung
         // (injection-escaped), then bounded swipes with light page-source probes for target
         // visibility; direction mode is one gesture. iOS swipes report unknown movement, so only
-        // the target becoming visible ends a search early; lastRefs is untouched (D-03).
+        // the target becoming visible ends a search early; lastRefs is untouched.
         if (action.mode === 'untilVisible') {
           // Reject a hostile/control-char target up front — never interpolate it (Pitfall 9).
           try {
@@ -1414,7 +1414,6 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
       }
 
       case 'openUniversalLink': {
-        // Re-key of the proven openLink body (D-19). The openLink verb is retired.
         const explicit = firstNonEmpty(action.bundleId)
         const configured = firstNonEmpty(this.bundleId)
         const openInApp = async (appId: string): Promise<void> => {
@@ -1490,7 +1489,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
       }
 
       case 'assertValue': {
-        // D-10: the adapter RESOLVES the requested source to a raw value on ActionResult.data; the
+        // the adapter RESOLVES the requested source to a raw value on ActionResult.data; the
         // runner-side comparator applies the op and judges. The adapter never compares. url/storage/
         // expr require a live WebView context; sources with no native lane return a §7.1 error
         // naming the platform limitation.
@@ -1569,7 +1568,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
       }
 
       case 'openApp':
-        // EXEC-03 (D-10/D-12): resolve a human app name (or validate an explicit bundleId) over a
+        // resolve a human app name (or validate an explicit bundleId) over a
         // session-cached registry, with the simulator degradation lane (Pitfall 5). Never a
         // best-guess launch; an invalid bundle never returns success.
         return await this.openApp(action)
@@ -1685,7 +1684,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
         return { success: true, startCoordinates: start, endCoordinates: end }
       }
 
-      // Runner-minted / author-channel verbs (D-01/D-15): reportValue, assertAI, extractAI, and
+      // Runner-minted / author-channel verbs: reportValue, assertAI, extractAI, and
       // setVariable are intercepted at the runner dispatch seam and never reach the adapter. A
       // grouped §7.1 defensive case surfaces a dispatch-routing error if one arrives here;
       // assertNever remains the backstop for a genuinely unknown schema verb. (uniqueValue is

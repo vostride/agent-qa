@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
-// 2026-08-17 (Phase 398 plan 11, D-20): the generated key file moved out of
+// the generated key file moved out of
 // core's deleted analytics module and into `packages/analytics/`, together with the transport that
 // reads it. Every path below moved in the same change — a release that writes the key into a file
 // nothing imports leaves the shipped binary silently keyless, and no build step would say so.
@@ -63,7 +63,7 @@ export function validatePosthogReleaseArtifacts(options = {}) {
   if ((options.logText ?? '').includes(projectKey)) throw new Error('raw POSTHOG_PROJECT_KEY leaked in logs')
 
   // The opt-out arm and the build-time-only key, asserted on the composition root that owns both:
-  // `compose.ts` reads the baked key and its deny arm builds no transport (447-04, D-08).
+  // `compose.ts` reads the baked key and its deny arm builds no transport.
   const composePath = join(rootDir, 'packages/analytics/src/compose.ts')
   if (!existsSync(composePath)) throw new Error('analytics composition source is missing')
   const composeText = readFileSync(composePath, 'utf8')

@@ -15,7 +15,7 @@
  * message when the position is missing — would reopen the whole channel for exactly the inputs
  * nobody anticipated.
  *
- * IT LIVES IN CORE AND HAS THREE CALLERS (395-14). It was a private copy in the cli composition
+ * IT LIVES IN CORE AND HAS THREE CALLERS. It was a private copy in the cli composition
  * root; the loader guard and core's own `validateConfig` arm need the SAME sentence, and two
  * spellings of one sentence are two things that can drift apart. One primitive, three callers:
  * `cli/src/config.ts`, `core/src/validation/validate.ts`, and the cli validate port.

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// 431-06 (D-09 · T-431-13): no embedding runtime on the MCP discovery request path, read from the
+// no embedding runtime on the MCP discovery request path, read from the
 // TypeScript AST rather than from grep.
 //
 // WHAT IS AN EDGE. Executable module edges only: `import` declarations (including a type-only

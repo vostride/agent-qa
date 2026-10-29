@@ -1,4 +1,4 @@
-// C437-ANDROID-LIVE (437 D-20): the toggle fix run live on an emulator's Settings app
+// the toggle fix run live on an emulator's Settings app
 // (com.android.settings), through the real runner loop with a scripted planner and verifier. No
 // model is called. It proves on a device that an ordinary node exposing `selected` is never
 // skipped as already satisfied: a row tapped under desiredState unselected is sent, by ref and by
@@ -6,7 +6,7 @@
 // switch already in the requested state is not tapped and is recorded as no input sent, and out of
 // state it is tapped once. The switch's original state is restored after each cell.
 //
-// C437-ANDROID-SECURE-LIVE (437 D-18): on an Appium started without relaxed security or any
+// on an Appium started without relaxed security or any
 // insecure feature, a shell key event (`keyevent`, `openQuickSettings`) is refused by the server
 // and recorded as unavailable with reason adb-shell-disabled; nothing throws and the step does not
 // pass, even with a verifier that would accept any screen.

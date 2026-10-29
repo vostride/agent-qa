@@ -69,7 +69,7 @@ interface JudgeCost {
 
 /**
  * D-04/D-12 judge honesty counters: every judge disposition is a visible count per TieCause,
- * errors stay distinct from calibrated abstentions (D-11), and not-invoked is counted per
+ * errors stay distinct from calibrated abstentions, and not-invoked is counted per
  * reason so the no-eligible-judge capability gap headlines loudly.
  */
 interface JudgeHonesty {
@@ -81,7 +81,7 @@ interface JudgeHonesty {
   cost: JudgeCost
 }
 
-/** One replay outcome plus its optional matcher and label projections (D-14/D-15). */
+/** One replay outcome plus its optional matcher and label projections. */
 export interface ScoredBatchEntry {
   cassetteId: string
   product?: string
@@ -121,7 +121,7 @@ export interface EvalBatchReport {
   seedHonored?: boolean
   /**
    * Sorted distinct provider-reported fingerprints across every sample of every decision.
-   * Absent when none were reported. Disclosure only (D-11); never keys a profile.
+   * Absent when none were reported. Disclosure only; never keys a profile.
    */
   providerFingerprints?: readonly string[]
   kEscalation: {
@@ -167,7 +167,7 @@ export interface EvalBatchReport {
    * persisted score records carried canonically DIFFERING judge identity blocks. Present ONLY
    * then; every non-mixed report carries neither this nor `mixedJudgeModelIds`, so already
    * committed report bytes are unchanged. A mixed batch has no single identity to receipt, and
-   * one is never synthesized (T-372-20) — so `judge` is absent whenever this is present.
+   * one is never synthesized — so `judge` is absent whenever this is present.
    */
   judgeIdentity?: 'mixed'
   /**
@@ -344,7 +344,7 @@ function recoveryMetrics(entries: readonly ScoredBatchEntry[]): EvalBatchReport[
   }
 }
 
-/** sha256hex over the canonical sorted cassette-id list (D-13). */
+/** sha256hex over the canonical sorted cassette-id list. */
 export function computeBatchKey(cassetteIds: readonly string[]): string {
   return sha256hex(canonicalJson([...cassetteIds].sort()))
 }
@@ -352,7 +352,7 @@ export function computeBatchKey(cassetteIds: readonly string[]): string {
 /**
  * Aggregate a scored replay batch without recomputing score, drift, or agreement signals.
  *
- * `identity` (413-15) states that the batch mixed judge identities. A caller may not supply both
+ * `identity` states that the batch mixed judge identities. A caller may not supply both
  * `judge` and `identity` — a mixed batch by definition has no single block — and if both arrive
  * the identity wins and `judge` is dropped, so the report can never claim one identity while
  * disclosing several.

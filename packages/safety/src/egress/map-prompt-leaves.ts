@@ -16,7 +16,7 @@ type ToolResultOutput = Extract<AssistantContentPart, { type: 'tool-result' }>['
 type ToolResultContentPart = Extract<ToolResultOutput, { type: 'content' }>['value'][number]
 
 // The AI-SDK V3 prompt walker the masking middleware delegates to; binary file and image data
-// never reach `fn` (441 D-21).
+// never reach `fn`.
 export function mapPromptLeaves(params: ProviderRequestParams, fn: LeafFn): ProviderRequestParams {
   // Only params.prompt is run content. Top-level headers carry provider auth, while
   // stopSequences, tools, responseFormat, and providerOptions are caller/transport config
@@ -138,7 +138,7 @@ function mapJsonLike<T>(value: T, fn: LeafFn): T {
 }
 
 // Walks the JSON a provider receives: keys are masked like values, toJSON runs once, any other
-// object is its own enumerable entries, and binary data is returned untouched (441 D-21).
+// object is its own enumerable entries, and binary data is returned untouched.
 function mapJsonValue(value: unknown, fn: LeafFn, callToJson: boolean): unknown {
   if (typeof value === 'string') return fn(value)
   if (typeof value !== 'object' || value === null) return value

@@ -70,7 +70,7 @@ const REGISTRY_IDS = createFunctionRegistry({
   // in order to enumerate itself.
   deps: {} as FunctionDeps,
 })
-  // 432-20 (D-12): the tokenless caller shape. The listing is the same for every caller, so the
+  // the tokenless caller shape. The listing is the same for every caller, so the
   // retired grant fields and the registry's retired context option are not supplied here.
   .list({
     surface: 'arch-conformance',

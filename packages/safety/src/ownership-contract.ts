@@ -3,7 +3,7 @@ import type { OwnershipContract } from '@vostride/agent-qa-arch'
 export const AGENT_QA_SAFETY_PACKAGE_NAME = '@vostride/agent-qa-safety'
 export const AGENT_QA_SAFETY_PACKAGE_DIR = 'packages/safety'
 export const AGENT_QA_SAFETY_PACKAGE_CLASSES = ['providerNeutral', 'storageNeutral'] as const
-// 2026-10-15 (441-45, D-12/D-15): the responsibilities are the ones that remain after 441-33.
+// the responsibilities are the ones that remain after 441-33.
 export const AGENT_QA_SAFETY_ALLOWED_RESPONSIBILITIES = [
   'provider-request prompt walker and declared-secret masking middleware factory',
   'neutral execution-context resolver seam',

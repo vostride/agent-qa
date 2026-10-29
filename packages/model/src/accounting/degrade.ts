@@ -1,7 +1,7 @@
-// The deterministic degrade pipeline over AI SDK `ModelMessage[]` (CTXB-05).
-// Hygiene always, damage on demand (D-08): the hygiene pass runs unconditionally every call
+// The deterministic degrade pipeline over AI SDK `ModelMessage[]`.
+// Hygiene always, damage on demand: the hygiene pass runs unconditionally every call
 // and is near-lossless; eviction/truncation (Task 3) run only while estimate > budget.
-// Determinism is load-bearing (D-08/T-354-03): no clock, no randomness, sorted keys before
+// Determinism is load-bearing: no clock, no randomness, sorted keys before
 // iteration so nothing leaks nondeterminism into the downstream settle-hash signal.
 
 import { pruneMessages, type ModelMessage, type ToolContent, type ToolResultPart } from 'ai'
@@ -16,7 +16,7 @@ const DUPLICATE_ELIDED = '…[duplicate tool result elided]'
 const TRUNCATION_MARKER = '…[truncated to fit context budget]'
 
 /**
- * The deterministic degrade pipeline (D-08/D-09/D-10): always-on hygiene, then — only while
+ * The deterministic degrade pipeline: always-on hygiene, then — only while
  * the prompt exceeds `options.budget` — exchange-atomic eviction of the oldest unpinned tool
  * exchange followed by proportional truncation of the largest remaining unpinned message.
  * system messages, the final message, and any `options.pin`-matched message are never evicted
@@ -32,7 +32,7 @@ export function degrade(messages: ModelMessage[], options: DegradeOptions): Degr
     return { ok: false, reason: 'pinned-content-exceeds-budget', messages: working }
   }
 
-  // Damage — eviction (D-10): remove the oldest unpinned tool exchange, re-estimate, repeat.
+  // Damage — eviction: remove the oldest unpinned tool exchange, re-estimate, repeat.
   while (estimate(working) > options.budget) {
     const evicted = evictOldestExchange(working, options)
     if (!evicted) break
@@ -77,7 +77,7 @@ function defaultEstimate(messages: ModelMessage[]): number {
   return Math.ceil(chars / 4)
 }
 
-/** system + final message + caller-pinned are the inviolable protected set (D-09). */
+/** system + final message + caller-pinned are the inviolable protected set. */
 function makeIsProtected(messages: ModelMessage[], options: DegradeOptions): (index: number) => boolean {
   const lastIndex = messages.length - 1
   return (index: number): boolean => {
@@ -111,7 +111,7 @@ function resultIdsOf(message: ModelMessage): string[] {
 }
 
 /**
- * Evict the oldest unpinned tool EXCHANGE atomically (D-10): the assistant tool-call message
+ * Evict the oldest unpinned tool EXCHANGE atomically: the assistant tool-call message
  * plus every message that carries a `tool-result` for any of its `toolCallId`s (a following
  * `role:'tool'` message, or an assistant-embedded provider-executed result). An exchange
  * touching any protected message is skipped so no pin is ever violated and no reply orphaned.

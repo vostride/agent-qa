@@ -1,9 +1,9 @@
-// CHAT-06: createModel-or-nothing, as a failing build rather than a convention (Phase 392 plan 04).
+// createModel-or-nothing, as a failing build rather than a convention.
 //
 // THE REQUIREMENT. Every chat model call goes through `createModel`. That is where the masking
 // middleware lives, where the profile and transport are resolved, and where auth is applied — so a
 // chat surface that built its own client would be a model egress with no masking on it, carrying
-// whatever the conversation happened to contain (T-392-14). The requirement is easy to state and
+// whatever the conversation happened to contain. The requirement is easy to state and
 // exactly as easy to forget, which is why it is scanned.
 //
 // THE CLAIM IS TWO-SIDED, and neither side alone is CHAT-06:
@@ -15,7 +15,7 @@
 //   (b) NO `createModel` EITHER. The model must ARRIVE at chat as a composition argument. A chat
 //       module that imported the constructor would be a second composition root — legal by rule
 //       (a), masked correctly, and still wrong: the profile in force for a session would then be
-//       decided in two places, and `/model` overrides (D-04) would apply to one of them.
+//       decided in two places, and `/model` overrides would apply to one of them.
 //
 // THE SCANNED SET IS PINNED, NOT GLOBBED, on the CLI side. `packages/cli/src/commands/` also holds
 // `run.ts`, `doctor.ts` and `auth.ts`, which construct models entirely legitimately — they are the

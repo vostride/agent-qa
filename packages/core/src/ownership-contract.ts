@@ -8,7 +8,7 @@ export const AGENT_QA_CORE_ALLOWED_RESPONSIBILITIES = [
   // v1 Reporter, inline-DSL parsers, hook orchestration/sandbox, screenshot pipeline,
   // and the suite run-path half all left core. What remains are the non-run-path
   // subsystems, each with its own milestone home. Every top-level dir under core/src
-  // is accounted for below (D-05).
+  // is accounted for below.
   'suite/test parsing + discovery: yaml/suite/test/config parsing, hooks-file parser + schema, and workspace file discovery — feeding the resolved RunConfig at the CLI composition root (parser, suite, schema, types, hooks, workspace, validation)',
   'analytics subsystem: PostHog identity + core-owned bus-subscriber run feed per D-16 (analytics)',
   'LLM provider auth + captured browser auth-state reuse: OAuth/PKCE plugin auth and auth-state redaction/resolution (auth, auth-state)',

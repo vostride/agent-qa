@@ -9,114 +9,114 @@ import type { CassetteLabelLeg } from './label-leg'
 import type { CassetteReceipt } from './receipt-leg'
 import type { CassetteSidecarLeg } from './sidecar-leg'
 
-/** The single schema version shared by the envelope and all four legs (D-14). */
+/** The single schema version shared by the envelope and all four legs. */
 export const CASSETTE_SCHEMA_VERSION = 2
 
-/** One complete live planner decision assembled from the four cassette legs (D-03). */
+/** One complete live planner decision assembled from the four cassette legs. */
 export interface DecisionRecord {
-  /** Reconstructable planner input (D-03). */
+  /** Reconstructable planner input. */
   input: CassetteInputLeg
-  /** Matcher-owned gold action and target context (D-03). */
+  /** Matcher-owned gold action and target context. */
   sidecar: CassetteSidecarLeg
-  /** Recorded outcome plus label provenance (D-16). */
+  /** Recorded outcome plus label provenance. */
   label: CassetteLabelLeg
-  /** Reproducibility pins for attribution (D-19). */
+  /** Reproducibility pins for attribution. */
   receipt: CassetteReceipt
 }
 
-/** A procedure entry backed by a live planner decision (D-08). */
+/** A procedure entry backed by a live planner decision. */
 export interface ProcedureDecisionStepRecord {
-  /** Discriminator for a fully replayable decision entry (D-08). */
+  /** Discriminator for a fully replayable decision entry. */
   kind: 'decision'
-  /** Recorded step position (D-08). */
+  /** Recorded step position. */
   stepIndex: number
-  /** Recorded decision position within the step (D-08). */
+  /** Recorded decision position within the step. */
   decisionOrdinal: number
-  /** Fully self-contained four-leg decision record (D-08). */
+  /** Fully self-contained four-leg decision record. */
   record: DecisionRecord
 }
 
-/** A truthful procedure entry for an action served from cache (D-08). */
+/** A truthful procedure entry for an action served from cache. */
 export interface ProcedureCacheServedStepRecord {
-  /** Discriminator for a non-replayable cache-served entry (D-08). */
+  /** Discriminator for a non-replayable cache-served entry. */
   kind: 'cache-served'
-  /** Recorded step position (D-08). */
+  /** Recorded step position. */
   stepIndex: number
-  /** Recorded cached-action position within the step (D-08). */
+  /** Recorded cached-action position within the step. */
   decisionOrdinal: number
 }
 
-/** A truthful procedure entry for a step whose outcome was synthesized (D-08). */
+/** A truthful procedure entry for a step whose outcome was synthesized. */
 export interface ProcedureSynthesizedStepRecord {
-  /** Discriminator for a step with no recorded action decision (D-08). */
+  /** Discriminator for a step with no recorded action decision. */
   kind: 'synthesized'
-  /** Recorded step position (D-08). */
+  /** Recorded step position. */
   stepIndex: number
 }
 
-/** Ordering-faithful union of procedure entries (D-08). */
+/** Ordering-faithful union of procedure entries. */
 export type ProcedureStepRecord =
   | ProcedureDecisionStepRecord
   | ProcedureCacheServedStepRecord
   | ProcedureSynthesizedStepRecord
 
-/** Purely recorded terminal state for one procedure cassette (D-18). */
+/** Purely recorded terminal state for one procedure cassette. */
 export interface ProcedureEndState {
-  /** Recorded member-test outcome (D-18). */
+  /** Recorded member-test outcome. */
   outcome: MemberTestOutcome
-  /** Final recorded verifier outcome, when one exists (D-18). */
+  /** Final recorded verifier outcome, when one exists. */
   finalVerdict?: VerifierVerdict
-  /** Final recorded deterministic assertion outcome, when the last decision was one (D-18). */
+  /** Final recorded deterministic assertion outcome, when the last decision was one. */
   finalAssert?: AssertValueEvidence
 }
 
 interface CassetteEnvelopeBase {
-  /** Single version gate for the complete cassette document (D-14). */
+  /** Single version gate for the complete cassette document. */
   schemaVersion: number
-  /** Deterministic run-derived cassette identity (D-07). */
+  /** Deterministic run-derived cassette identity. */
   id: string
-  /** Source run identity copied as a plain wire string (D-03). */
+  /** Source run identity copied as a plain wire string. */
   runId: string
-  /** Source test identity (D-03). */
+  /** Source test identity. */
   testId: string
-  /** Recorded test position within the source run (D-03). */
+  /** Recorded test position within the source run. */
   testIndex: number
-  /** Complete ordered closure of required content digests (D-08). */
+  /** Complete ordered closure of required content digests. */
   blobs: readonly string[]
-  /** Unified status and structured missing-evidence details (D-11). */
+  /** Unified status and structured missing-evidence details. */
   completeness: CassetteCompleteness
 }
 
-/** Self-contained single-decision cassette (D-08). */
+/** Self-contained single-decision cassette. */
 export interface LeafCassette extends CassetteEnvelopeBase {
-  /** Leaf-granularity discriminator (D-08). */
+  /** Leaf-granularity discriminator. */
   granularity: 'leaf'
-  /** Recorded step position for this decision (D-08). */
+  /** Recorded step position for this decision. */
   stepIndex: number
-  /** Recorded decision position within the step (D-08). */
+  /** Recorded decision position within the step. */
   decisionOrdinal: number
-  /** Reconstructable planner input leg (D-03). */
+  /** Reconstructable planner input leg. */
   input: CassetteInputLeg
-  /** Gold action and target sidecar leg (D-03). */
+  /** Gold action and target sidecar leg. */
   sidecar: CassetteSidecarLeg
-  /** Recorded outcome label leg (D-16). */
+  /** Recorded outcome label leg. */
   label: CassetteLabelLeg
-  /** Reproducibility receipt leg (D-19). */
+  /** Reproducibility receipt leg. */
   receipt: CassetteReceipt
 }
 
-/** Self-contained procedure cassette scored as independent recorded decisions (D-08). */
+/** Self-contained procedure cassette scored as independent recorded decisions. */
 export interface ProcedureCassette extends CassetteEnvelopeBase {
-  /** Procedure-granularity discriminator (D-08). */
+  /** Procedure-granularity discriminator. */
   granularity: 'procedure'
-  /** Ordered decision, cache-served, and synthesized entries (D-08). */
+  /** Ordered decision, cache-served, and synthesized entries. */
   steps: readonly ProcedureStepRecord[]
-  /** Purely recorded procedure outcome and terminal assertions (D-18). */
+  /** Purely recorded procedure outcome and terminal assertions. */
   endState: ProcedureEndState
 }
 
 /** Supported cassette granularities. */
 export type CassetteGranularity = 'leaf' | 'procedure'
 
-/** Complete versioned cassette wire contract (CASS-01). */
+/** Complete versioned cassette wire contract. */
 export type Cassette = LeafCassette | ProcedureCassette

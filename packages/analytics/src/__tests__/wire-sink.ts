@@ -1,5 +1,4 @@
 // A REAL listening HTTP server, used as the wire surface for this package's network cells
-// (Phase 398 plan 06).
 //
 // WHY A REAL SERVER AND NOT A STUB. Two of this package's claims are claims about BYTES:
 // "opted out dials nothing" and "a seeded secret does not appear on the wire". Both are only

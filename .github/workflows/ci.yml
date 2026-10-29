@@ -198,7 +198,7 @@ jobs:
     #
     # WHAT GETS PUBLISHED: the script writes the raw passed/total counts into
     # `$GITHUB_STEP_SUMMARY` on every run, so the number is visible on a green
-    # build and not only on a red one (D-19). Nothing here commits: the baseline
+    # build and not only on a red one. Nothing here commits: the baseline
     # is edited by a human in a reviewed change, never by CI.
     #
     # THE PIN IS EXACT (`@modelcontextprotocol/conformance@0.2.0-alpha.11`,

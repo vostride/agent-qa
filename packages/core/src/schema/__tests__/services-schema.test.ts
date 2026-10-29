@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { DashboardConfigSchema, ServicesSchema } from '../services-schema.js'
 
 // `services.dashboard.baseUrl` is refused at the PARSE boundary unless it is an absolute http(s)
-// URL (Phase 408 plan 10, WR-04 — T-408-16).
+// URL.
 //
 // WHY THIS VALUE AND NOT EVERY STRING IN THE FILE. In M5 this one stops being a display string. It
 // composes the tokenless live link (`liveRunLinkOf` only strips trailing slashes), and that link is

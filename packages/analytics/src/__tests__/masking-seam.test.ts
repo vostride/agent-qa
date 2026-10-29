@@ -34,7 +34,7 @@ const PLANTED_SECRET = 'sk-live-"tok\nen"-9f3a-DEADBEEF'
 const ESCAPED_SECRET = JSON.stringify(PLANTED_SECRET).slice(1, -1)
 const MASK_TOKEN = '[secret:PLANTED_API_KEY]'
 
-// 2026-10-14 (441-08, D-12): a literal stand-in for SecretRedactor's raw, exact replacement; this
+// a literal stand-in for SecretRedactor's raw, exact replacement; this
 // package depends on nothing that exports it.
 function declaredContext(
   declared: Readonly<Record<string, string>> = { PLANTED_API_KEY: PLANTED_SECRET },
@@ -96,7 +96,7 @@ async function sendPayloadThroughTransport(
   })
   transport.capture(payload)
   await transport.flush()
-  // THE DRAIN, and why it is `shutdown` rather than another flush (398-15, CR-01). Measured against
+  // THE DRAIN, and why it is `shutdown` rather than another flush. Measured against
   // posthog-node 5.33.2: `PostHog.capture()` is asynchronous — it registers
   // `prepareEventMessage(...).then(captureStateless)` on the client's PENDING promise queue — and
   // `flush()` sends only what is ALREADY enqueued, without joining that queue. `shutdown()` joins it
@@ -105,7 +105,7 @@ async function sendPayloadThroughTransport(
   // capture-then-flush. Nothing is lost in the product — a later boundary flush, the 10s flush timer
   // or the exit shutdown carries it — but a cell that reads the wire in the same tick has to drain
   // the way a host's exit does. The sibling helper above drains the same way, through the port's
-  // shutdown, because the port's flush starts the send without awaiting it (447-07, D-20).
+  // shutdown, because the port's flush starts the send without awaiting it.
   await transport.shutdown()
   return sink.requests.at(-1)?.text ?? ''
 }

@@ -1,4 +1,4 @@
-// Branch write-skip policy for the local action-plan cache store (D-14/D-15).
+// Branch write-skip policy for the local action-plan cache store.
 //
 // Branch is a storage namespace, never a cache-key component. The policy is
 // resolved in the CLI / runner-local composition root (branch + CI + flags) and
@@ -24,7 +24,7 @@ export interface CachePolicy {
 /**
  * Writes are skipped when the current branch is protected (default ∪ configured)
  * unless `--save-cache` or CI; `--disable-cache` forbids all writes. Reads are not
- * governed here (D-14).
+ * governed here.
  */
 export function shouldWrite(policy: CachePolicy): boolean {
   if (policy.disableCache) return false

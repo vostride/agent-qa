@@ -36,7 +36,7 @@ describe('PlannerConfigSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  // 436-07 (D-02): the limits are optional (resolvePlannerLimits supplies 30) and never non-positive.
+  // the limits are optional (resolvePlannerLimits supplies 30) and never non-positive.
   it('accepts missing maxActions and refuses a non-positive one', () => {
     const { maxActions, ...withoutMaxActions } = fullConfig
     expect(PlannerConfigSchema.safeParse(withoutMaxActions).success).toBe(true)

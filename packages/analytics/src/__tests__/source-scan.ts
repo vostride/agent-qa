@@ -1,4 +1,4 @@
-// A source scanner for the two source-anchored cells in this package (Phase 398 plan 03).
+// A source scanner for the two source-anchored cells in this package.
 //
 // WHY COMMENTS ARE STRIPPED, and why finding out cost a red. The `.strip()` cell was first written
 // as a raw substring search and immediately reported `events.ts` and `ownership-contract.ts` as

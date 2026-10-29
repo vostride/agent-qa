@@ -1,10 +1,10 @@
-// The ONE sanctioned replay-composition helper (Phase 368, D-04/D-05/D-06). This is the single
+// The ONE sanctioned replay-composition helper. This is the single
 // host binding that wires the pure eval-core replay engine to the production runner/model/safety
 // stack — eval-local deliberately becomes the SECOND package (after cli) importing both `model`
 // and `runner`, a contract-visible arch change recorded in ownership-contract.ts. Phase 372's
 // CLI wraps exactly this function.
 //
-// Composition law (RPLY-02):
+// Composition law:
 //   - `createModel` is the ONLY egress path and the ONLY call site here — every replayed prompt
 //     rides its pinned-last mask/guardrail middleware (safety package tests enforce it). A FRESH
 //     ModelProfile copy is built before the call because createModel mutates `profile.capabilities`
@@ -13,9 +13,9 @@
 //     (DeclaredModelProfile.sampling), with a FRESH createTokenAccounting + LLMPlanner per sample
 //     (RESEARCH Pitfall 6) — the 368-01 `nonActionTools` ctor seam threads the recorded-exchange
 //     server through unmodified production planner code.
-//   - Model selection derives ONLY from the caller-supplied profile, never the recorded id (D-03):
+//   - Model selection derives ONLY from the caller-supplied profile, never the recorded id:
 //     recorded vs replayed ids are both stamped on the result, neither is enforced.
-//   - Every model request is masked with the caller's declared mask (441 D-06).
+//   - Every model request is masked with the caller's declared mask.
 
 import {
   adjudicateCassetteScore,
@@ -68,7 +68,7 @@ export interface RunCassetteReplayInput {
   cassette: Cassette
   /** Blob source for full-capture screenshot reconstruction (normally a DirArtifactSource). */
   artifacts: ArtifactSource
-  /** The currently-configured model profile — the SOLE source of model selection (D-03). */
+  /** The currently-configured model profile — the SOLE source of model selection. */
   profile: ModelProfile
   /** Resolved provider auth for the configured model. */
   auth: ResolvedModelAuth
@@ -78,13 +78,13 @@ export interface RunCassetteReplayInput {
   modelCallObservation?: ModelCallObservation
   /** Optional deterministic timing port for repeatable measurement fixtures. */
   clock?: ReplayClock
-  /** Sample budget (D-10). Defaults to the engine's k=1. */
+  /** Sample budget. Defaults to the engine's k=1. */
   k?: number
   /** Optional replay seed applied through the 366 sampling seam when the provider supports it. */
   seed?: number
-  /** k-sample escalation seam (D-10). Defaults to the imported neverEscalate — never re-minted. */
+  /** k-sample escalation seam. Defaults to the imported neverEscalate — never re-minted. */
   escalationPredicate?: ReplayEscalationPredicate
-  /** Optional persistence: when supplied, the outcome is saved after the replay returns (D-12). */
+  /** Optional persistence: when supplied, the outcome is saved after the replay returns. */
   recordStore?: FsReplayRecordStore
   /**
    * Optional D-13 score persistence: when supplied and the outcome is a ReplayResult (refusals are
@@ -96,7 +96,7 @@ export interface RunCassetteReplayInput {
    * Optional D-06 tier-4 judge bag: an EXPLICIT second ModelProfile plus its auth and stub seam
    * (372's CLI surfaces it as config). No auto-pick from configured models, no fallback scanning —
    * absence is a first-class configuration, in which case every unresolved tie is stamped
-   * not-invoked{no-judge-configured} whenever the score leg runs (D-05/D-10).
+   * not-invoked{no-judge-configured} whenever the score leg runs.
    * allowSameFamily (owner override of D-10, 2026-07-12): explicit default-off opt-in threaded
    * verbatim into assessJudgeEligibility — it lifts ONLY known-same-family refusal and stamps
    * the D-16 identity block with familyOverride; unknown families stay forbidden.
@@ -233,7 +233,7 @@ function decisionDiffs(
 /**
  * Run one loaded cassette through the pure replay engine bound to the production planner/model/
  * safety stack, optionally persisting the typed outcome. The one sanctioned model+runner
- * composition in eval-local (D-04).
+ * composition in eval-local.
  */
 export async function runCassetteReplay(
   input: RunCassetteReplayInput,
@@ -249,7 +249,7 @@ export async function runCassetteReplay(
   const capabilities = resolveCapabilities(profileCopy)
 
   // Temp-0 declared profile via the 366 sampling seam — model identity comes ONLY from the caller
-  // profile (D-03), sampling pins temperature 0 with an optional caller-supplied seed.
+  // profile, sampling pins temperature 0 with an optional caller-supplied seed.
   const replayProfile: DeclaredModelProfile = {
     provider: input.profile.provider,
     modelId: input.profile.model,
@@ -360,7 +360,7 @@ export async function runCassetteReplay(
       : bindJudgePort(observedBinding(single))
 
     // Adjudication runs UNCONDITIONALLY so every tie is stamped with its disposition even when
-    // no port exists (D-06/D-10/D-12); the pure scoreCassetteReplay output itself stays untouched.
+    // no port exists; the pure scoreCassetteReplay output itself stays untouched.
     const adjudicated = await adjudicateCassetteScore({
       cassette: input.cassette,
       outcome,

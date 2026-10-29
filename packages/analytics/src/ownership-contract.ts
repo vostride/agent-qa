@@ -2,13 +2,13 @@ import type { OwnershipContract } from '@vostride/agent-qa-arch'
 
 export const AGENT_QA_ANALYTICS_PACKAGE_NAME = '@vostride/agent-qa-analytics'
 export const AGENT_QA_ANALYTICS_PACKAGE_DIR = 'packages/analytics'
-// 2026-08-17 (Phase 398 plan 03, D-17). `adapter` and nothing else. It is not `surface`: a surface
+// 2026-08-17. `adapter` and nothing else. It is not `surface`: a surface
 // is an invocation door with dispatch, policy and gate verdicts, and this package answers no
 // request — hosts call INTO it. It is not `browserSafe`/`storageNeutral`/`providerNeutral` either,
 // because the whole point of the boundary is that the one place holding a live network client to a
 // third party sits inside a named wall rather than scattered through a host.
 export const AGENT_QA_ANALYTICS_PACKAGE_CLASSES = ['adapter'] as const
-// 2026-08-17 (Phase 398 plan 03, D-17 / ANLY-01). The v1 module this replaces had no stated
+// 2026-08-17. The v1 module this replaces had no stated
 // responsibilities at all — it was a folder inside `core`, which is exactly how it acquired a
 // module-level singleton, a privacy decision made inside `capture()`, and `.strip()` schemas that
 // admitted free text. Each line below is one of those defects restated as something this package
@@ -47,7 +47,7 @@ export const AGENT_QA_ANALYTICS_FORBIDDEN_RESPONSIBILITIES = [
   'a second opt-out decision site: any environment read outside `compose.ts`, or any transport '
     + 'constructed before the decision, re-opens the bypass D-19 closes structurally',
 ] as const
-// 2026-08-17 (Phase 398 plan 03). `posthog-node` is PINNED at 5.33.2 and moves here from
+// 2026-08-17. `posthog-node` is PINNED at 5.33.2 and moves here from
 // `packages/core` with no version change — the dependency is the same bytes already in the
 // lockfile, relocated between workspace members. A bump is a separate reviewed diff, not a
 // side effect of a re-derivation. It leaves core's host baseline in plan 11, with the deletion,
@@ -78,7 +78,7 @@ export const AGENT_QA_ANALYTICS_EXTERNAL_DEPENDENCIES = [
 // This list is checked against the package's REAL imports, so an entry added in anticipation of a
 // later plan is an offender rather than a placeholder.
 //
-// 2026-10-14 (441-08, D-12): `safety` leaves; the send seam applies the mask its host hands it.
+// `safety` leaves; the send seam applies the mask its host hands it.
 //
 // 2026-08-17 (Phase 398 plan 06 task 3, D-17). `schema` arrives with the run subscriber, and it is
 // a TYPE-ONLY read of the frozen bus envelope (§2.2) — the subscriber consumes a projection the

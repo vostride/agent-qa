@@ -1,7 +1,7 @@
 // D-06 lockstep pins: the cassette zod mirror must track the schema Verdict
 // union in the same commit window as any schema change. Phase 373 Plan 01
 // extends the union to the closed eight classes (unknown/timeout, §A9) and
-// mints the required producer discriminator (D-03). CASSETTE_SCHEMA_VERSION
+// mints the required producer discriminator. CASSETTE_SCHEMA_VERSION
 // stays 2 — additive literals plus a required field inside the never-yet-written
 // optional label.rootCause object (RESEARCH Pitfall 6): every committed cassette
 // under demo/init/agent-qa-eval/ is rootCause-free and still parses.

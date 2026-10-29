@@ -70,7 +70,7 @@ function emittedSummary(cassette: Cassette): EmittedCassetteSummary {
   }
 }
 
-/** Project every live decision and per-test procedure in one deterministic pass (D-12). */
+/** Project every live decision and per-test procedure in one deterministic pass. */
 export function extractRunCassettes({
   handoff,
   artifacts,
@@ -103,7 +103,7 @@ export function extractRunCassettes({
           label: projectLabelLeg({
             step,
             subAction: selection.subAction,
-            // 422-12: the root cause is recorded on the MEMBER, not the step, so the extractor
+            // the root cause is recorded on the MEMBER, not the step, so the extractor
             // is the one caller that can supply it. Absent members stay absent — extraction
             // never mints a verdict the run did not record.
             rootCause: handoffTest.rootCause,

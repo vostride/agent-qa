@@ -19,7 +19,7 @@ export interface ReplayDrift {
 /**
  * Recompute the canonical input-leg hash and compare it against the recorded receipt hash.
  * Returns both hashes stamped alongside the boolean so the divergence is always reportable;
- * the caller never gates replay on the result (D-02).
+ * the caller never gates replay on the result.
  */
 export function computeReplayDrift(
   leg: CassetteInputLeg,

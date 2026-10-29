@@ -1,11 +1,11 @@
-// Phase 370 judge-port provider-boundary proofs (JUDGE-03). Every test drives bindJudgePort over
+// Phase 370 judge-port provider-boundary proofs. Every test drives bindJudgePort over
 // the capturingStub seam injected through createModel's `overrides.languageModels`: doGenerate
 // params are captured POST the pinned-last mask/guardrail middleware — the exact provider
 // boundary. Offline by construction: the caller profile points at an unreachable baseURL, so any
 // accidental live call fails fast; no network configuration exists anywhere in this file.
 //
 // Scope note: safety-scope AUDIT coverage of judge calls (guardrail/execution rows under the
-// replay output dir) is asserted in the composition test (370-07) — this file proves the
+// replay output dir) is asserted in the composition test — this file proves the
 // provider boundary only: temperature 0, framed prompt transport, structured text-JSON verdicts,
 // typed error degradation, and per-call independence.
 

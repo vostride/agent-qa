@@ -38,7 +38,7 @@ import {
   throwingStub,
 } from './fixtures/replay-fixtures.js'
 
-// An undeclared email reaches the boundary as written (441 D-23). Never a live secret (T-368-15).
+// An undeclared email reaches the boundary as written. Never a live secret.
 const EMAIL_SENTINEL = 'replay-sentinel-user@masked.example'
 const DECLARED_SENTINEL = 'replay-sentinel-declared-7q4z'
 
@@ -173,7 +173,7 @@ describe('runCassetteReplay at the provider boundary', () => {
     expect(outcome.reason).toBe('completeness')
     expect(stub.calls()).toBe(0)
 
-    // Refusals are never silent — the record is persisted (D-08/D-12).
+    // Refusals are never silent — the record is persisted.
     const records = findReplayRecords(join(storeRoot, 'eval', 'replays'))
     expect(records).toHaveLength(1)
     expect(JSON.parse(readFileSync(records[0]!, 'utf8'))).toEqual(JSON.parse(JSON.stringify(outcome)))

@@ -67,7 +67,7 @@ export const RESUME_PATH_SELF_PACKAGE_NAME = '@vostride/agent-qa-agent-local'
  * stop covering — whatever else moved into the same directory.
  */
 export const RESUME_PATH_ENTRY_FILES = [
-  // 2026-07-29 (Phase 385 plan 06): the model-free recovery entry every resuming host composes.
+  // the model-free recovery entry every resuming host composes.
   'packages/agent-local/src/composition/compose-job-recovery.ts',
 ] as const
 
@@ -279,7 +279,7 @@ export function findResumePathModelFreeOffenders(
   }
 
   // THE RULE ITSELF. Type-only imports count: the specifier extractor is deliberately type-blind
-  // (384 D-04), and a package named as a type is still a declared dependency of this file.
+  // and a package named as a type is still a declared dependency of this file.
   for (const file of closure.files) {
     for (const hit of byFile.get(file)!.specifiers) {
       const rationale = resumePathForbiddenRationale(hit.specifier)

@@ -42,7 +42,7 @@ export function formatParseError(
   let output = ''
   output += `${severity}: ${error.message}\n`
   output += `  ${boldBlue('-->')} ${error.file}:${error.line}:${error.column}\n`
-  // THE SAME EMPTINESS GUARD `run.ts:605` ALREADY HAS (395-18). `formatYamlError` now returns an
+  // THE SAME EMPTINESS GUARD `run.ts:605` ALREADY HAS. `formatYamlError` now returns an
   // empty `source`, and an excerpt block with no excerpt in it is a blank line and a caret pointing
   // at nothing. This is a rendering guard, not a second disclosure guard: the value is already empty
   // at the producer.

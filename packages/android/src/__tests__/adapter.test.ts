@@ -515,7 +515,7 @@ describe('AndroidPlatformAdapter', () => {
       expect(usernameEl).toBeDefined()
 
       // Mock the focused element finder — the compound re-reads via getText() and probes
-      // getAttribute('password') for the secure lane. The showing-hint probe (437-05) matches nothing.
+      // getAttribute('password') for the secure lane. The showing-hint probe matches nothing.
       const mockElement = {
         isExisting: vi.fn().mockResolvedValue(true),
         setValue: vi.fn().mockResolvedValue(undefined),
@@ -608,7 +608,7 @@ describe('AndroidPlatformAdapter', () => {
   })
 
   describe('execute — scroll', () => {
-    // 2026-10-07 (436-02): a native scroll is the driver's scrollGesture, not a raw touch swipe.
+    // a native scroll is the driver's scrollGesture, not a raw touch swipe.
     it('performs one scrollGesture over the screen area in the specified direction', async () => {
       await adapter.setup({ platform: 'android' })
       await adapter.observe()
@@ -652,7 +652,7 @@ describe('AndroidPlatformAdapter', () => {
     })
   })
 
-  // openLink retired (D-19) — the deep-link-open behavior re-keys onto the typed `intent` verb
+  // openLink retired — the deep-link-open behavior re-keys onto the typed `intent` verb
   // (mobile: startActivity). Exhaustive hostile-input pins live in catalog.test.ts.
   describe('execute — intent', () => {
     it('maps action + data + package to typed mobile: startActivity args (uri, never a shell string)', async () => {
@@ -778,7 +778,7 @@ describe('AndroidPlatformAdapter', () => {
     })
   })
 
-  // assert retired (D-19) — deterministic checks now route through the runner-side assertValue
+  // assert retired — deterministic checks now route through the runner-side assertValue
   // comparator and claim-shaped checks through assertAI; there is no adapter assert case.
 
   describe('screenshot', () => {

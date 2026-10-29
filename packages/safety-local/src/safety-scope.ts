@@ -9,7 +9,7 @@ export interface SafetyScopeBundle {
   executionContext?: ExecutionContext
 }
 
-// D-02: exactly ONE AsyncLocalStorage store carries the run-safety bundle, feeding the active
+// exactly ONE AsyncLocalStorage store carries the run-safety bundle, feeding the active
 // execution-context resolver with one nesting-safe, concurrency-safe scope.
 const als = new AsyncLocalStorage<SafetyScopeBundle>()
 

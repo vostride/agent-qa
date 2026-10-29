@@ -75,7 +75,7 @@ function assertInsideWorkspace(configDir: string, absolutePath: string, filePath
 }
 
 /**
- * The ONE spelling of the durable workspace-relative IDENTITY recipe (390-08 / CR-02, D-01).
+ * The ONE spelling of the durable workspace-relative IDENTITY recipe.
  *
  * `configDir`-rooted, forward-slashed, `./`-trimmed, and escape-refusing — literally
  * {@link assertInsideWorkspace} with {@link resolveWorkspaceFileTarget}'s resolution step in front,

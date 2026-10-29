@@ -1,4 +1,4 @@
-// THE CLOSED EVENT UNION (Phase 398 plan 03, D-18 · ANLY-01).
+// THE CLOSED EVENT UNION.
 //
 // WHAT THIS FILE IS FOR. The process this package runs in holds customer credentials, and the only
 // thing standing between them and a third-party endpoint is what an event is ALLOWED to carry. The
@@ -67,7 +67,7 @@ const AgentQaVersionSchema = z
   .meta({ [ANALYTICS_VOCABULARY_META_KEY]: ANALYTICS_KNOWN_ID_MARKER, analyticsCodec: 'semver' })
 
 /**
- * The known-id fields' guards, as FUNCTIONS a host can call (398-10).
+ * The known-id fields' guards, as FUNCTIONS a host can call.
  *
  * Published beside the schemas because an emitter has to make the same decision the schema makes
  * and has to make it BEFORE capture: nothing parses an event on the way to the transport, so a
@@ -110,7 +110,7 @@ const NonNegativeNumber = z.number().min(0)
  */
 export const ANALYTICS_EMITTING_HOSTS = ['cli', 'chat', 'mcp', 'daemon'] as const
 
-// 2026-10-21 (447-02, D-12): a coding agent is a user; its product rides as `agent_product`.
+// a coding agent is a user; its product rides as `agent_product`.
 export const ANALYTICS_RUNTIME_CONTEXTS = ['user', 'ci'] as const
 
 // Carried from the v1 module unchanged. Retune when a new coding agent shows up in the wild; the
@@ -216,7 +216,7 @@ function member<TName extends string, TShape extends z.ZodRawShape>(name: TName,
 }
 
 // ---------------------------------------------------------------------------------------------
-// The members (D-18)
+// The members
 // ---------------------------------------------------------------------------------------------
 
 const RunCompletionShape = {
@@ -227,7 +227,7 @@ const RunCompletionShape = {
   failure_category: z.enum(ANALYTICS_FAILURE_CATEGORIES).optional(),
   duration_ms: NonNegativeNumber.optional(),
   run_id: RunIdSchema.optional(),
-  // 2026-08-28 (405-13, D-21/DETL-06). The parent-link property was deleted here. It was declared
+  // 2026-08-28. The parent-link property was deleted here. It was declared
   // with no producer anywhere in this package — 402-09 put one run row per run and moved member
   // identity onto handles, and 405-07 then deleted the column it named — so it could only ever
   // have travelled as `undefined`. Same disposition and same reason as the healing counter below.
@@ -362,7 +362,7 @@ export type AnalyticsEventName = (typeof ANALYTICS_EVENT_NAMES)[number]
  *   what it needs against this port, which is the right moment to decide what a rebuilt dashboard
  *   is actually worth measuring — carrying the v1 answers forward would have pre-decided it.
  *
- * RETUNE: a name re-added here must be REMOVED from this list in the same change. The disjointness
+ * a name re-added here must be REMOVED from this list in the same change. The disjointness
  * cell fires if it appears in both, so the two lists cannot quietly disagree.
  */
 export const RETIRED_V33_EVENT_NAMES = [

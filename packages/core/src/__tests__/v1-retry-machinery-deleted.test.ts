@@ -3,10 +3,10 @@ import { readdirSync, readFileSync, type Dirent } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
 
-// LOOP-02 deletion proof (Phase 353). The v1 blanket-retry / self-heal machinery
+// LOOP-02 deletion proof. The v1 blanket-retry / self-heal machinery
 // was deleted grep-provably across the phase: the memory-ablation re-run and the
-// circuit-breaker class (353-06), the healing attempt-limit counter in the v1 loop,
-// and the healing-config type surface (353-07, D-10). This test walks every workspace
+// circuit-breaker class, the healing attempt-limit counter in the v1 loop,
+// and the healing-config type surface. This test walks every workspace
 // source tree and fails if ANY of the five deleted v1 symbols reappears — turning
 // "grep-provable" into a permanent, self-enforcing CI gate (T-353-18 mitigation).
 //

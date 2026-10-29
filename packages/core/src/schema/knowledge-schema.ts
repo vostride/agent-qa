@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-// D-10: pure string predicate only — no node:path import. Path resolution happens at
+// pure string predicate only — no node:path import. Path resolution happens at
 // composition roots through the host-aware resolver in ./resolve-knowledge-root.ts.
 const isRepoRelative = (dir: string): boolean =>
   !/^[/\\]|^[A-Za-z]:[\\/]/.test(dir) && !/^\.\.(?:[/\\]|$)/.test(dir)

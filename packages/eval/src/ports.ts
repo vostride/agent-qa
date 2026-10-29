@@ -1,4 +1,4 @@
-// Eval-owned read ports (D-02). CRITICAL: provider-neutral and storage-neutral.
+// Eval-owned read ports. CRITICAL: provider-neutral and storage-neutral.
 // Implementations live in eval-local; this package only consumes in-memory values.
 
 /**

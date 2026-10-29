@@ -1,4 +1,4 @@
-// Fixture builders for the Phase 368 requirement-proof suites (RPLY-02 / RPLY-04).
+// Fixture builders for the Phase 368 requirement-proof suites.
 //
 // Every builder produces a production-shaped CompletedRunHandoff whose live decision extracts into a
 // leaf cassette through the REAL extract path (extractRunCassettes → FsCassetteStore → loadCassetteBundle),
@@ -293,7 +293,7 @@ export function stubProfile(baseURL = 'http://localhost:1/v1'): ModelProfile {
 }
 
 /**
- * A stub profile whose model id is CALLER-SUPPLIED and family-resolvable (Phase 370): the default
+ * A stub profile whose model id is CALLER-SUPPLIED and family-resolvable: the default
  * STUB_MODEL_ID resolves to NO judge family, which would make every judge ineligible under the
  * D-12 two-sided disjointness check (RESEARCH Pitfall 6). Pair it with the same id as the
  * languageModels override key on capturingStub/throwingStub so createModel serves the stub.
@@ -338,7 +338,7 @@ export function actionGenerateResult(
 }
 
 /**
- * A structured tier-4 judge verdict as TEXT-JSON (Phase 370). Output.object consumes text
+ * A structured tier-4 judge verdict as TEXT-JSON. Output.object consumes text
  * content parts, NOT tool-call parts — a tool-call-shaped stub (actionGenerateResult) would
  * silently exercise only the unparseable-output path. Reuses the actionGenerateResult
  * usage/finishReason/warnings skeleton (input total 10 / output total 2) so usage mapping

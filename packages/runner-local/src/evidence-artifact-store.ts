@@ -1,4 +1,4 @@
-// Concrete filesystem content-addressed evidence artifact store (Phase 367, CASS-02).
+// Concrete filesystem content-addressed evidence artifact store.
 //
 // Implements the storage-neutral `EvidenceArtifactStorePort` from @vostride/agent-qa-runner. This
 // is a storageImplementation home for node:crypto + node:fs + node:path (the FsHandoffStore /
@@ -13,9 +13,9 @@
 // is never re-minted here. Filenames ARE the lowercase SHA-256 of their exact bytes, so a repeat
 // write of identical bytes overwrites the same file and stays idempotent. `getBlob` validates the
 // lowercase 64-hex shape before any path use so a malformed/traversal-shaped sha can never address
-// an arbitrary file (T-367-16); ENOENT is honest absence, other host failures surface.
+// an arbitrary file; ENOENT is honest absence, other host failures surface.
 //
-// PRESENCE IS A STAT, NOT A READ (Phase 406, D-17). `hasBlob` answers whether a run still holds
+// PRESENCE IS A STAT, NOT A READ. `hasBlob` answers whether a run still holds
 // the bytes behind an artifact ref so a durable read can annotate a whole run's refs without
 // loading a single screenshot; it runs the SAME regex guard first, for the same reason, and
 // touches the filesystem only after the shape is known good.

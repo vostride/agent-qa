@@ -17,7 +17,7 @@ export interface ProviderDescriptor {
   defaultModel?: string
   // SDK-level `LanguageModelV3CallOptions` param names this provider's backend rejects.
   // The model layer strips exactly these at egress (stripUnsupportedParamsMiddleware)
-  // before the wire — e.g. openai-subscription rejects `maxOutputTokens` (RUNX-01).
+  // before the wire — e.g. openai-subscription rejects `maxOutputTokens`.
   unsupportedParams?: readonly string[]
 }
 

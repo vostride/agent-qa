@@ -1,4 +1,4 @@
-// 2026-10-07, 436-07 (D-02, D-03): the per-step planner limits in the project config and in test
+// the per-step planner limits in the project config and in test
 // and suite `use` overrides, and the resolution order every door uses.
 import { generateSuiteId, generateTestId } from '@vostride/agent-qa-ids'
 import { resolvePlannerLimits } from '@vostride/agent-qa-schema'

@@ -140,7 +140,7 @@ export async function resolveLLMAuth(
   const plugin = getLLMAuthProviderPlugin(llmConfig.provider)
 
   if (!credential) {
-    // 2026-10-20 (445-16, D-41): a keyless config on the public provider API cannot run.
+    // a keyless config on the public provider API cannot run.
     if (isCompatibleProvider(llmConfig.provider) && !onPublicProviderApi(llmConfig.baseURL)) {
       return unauthenticated(configName, llmConfig.provider)
     }

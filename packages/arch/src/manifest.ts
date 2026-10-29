@@ -41,7 +41,7 @@ export const ARCH_MANIFEST = {
     AGENT_QA_ANDROID_OWNERSHIP_CONTRACT,
     AGENT_QA_IOS_OWNERSHIP_CONTRACT,
     AGENT_QA_MCP_OWNERSHIP_CONTRACT,
-    // 2026-08-17 (Phase 398 plan 03, D-17 · ANLY-01): the bounded analytics home. Registered here
+    // the bounded analytics home. Registered here
     // rather than merely existing, because an unregistered contract is a contract nothing checks —
     // `validate:arch` ranges THIS array, so a package absent from it has its dep set, its class
     // rules and its cycle position taken on trust.

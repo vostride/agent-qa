@@ -16,7 +16,7 @@ export interface UnconsumedExchange {
 }
 
 /**
- * The four typed per-sample outcomes (D-08/D-09). Every outcome is reported; nothing is silent
+ * The four typed per-sample outcomes. Every outcome is reported; nothing is silent
  * and no single sample aborts the batch.
  *  - `decision`: a grounded wire-shape action plus its normalized DecisionIdentity.
  *  - `planner-failure`: a scoreable structured planner failure (reason produced via
@@ -85,13 +85,13 @@ export interface LeafReplayResult extends DecisionReplayResult {
 
 /**
  * One procedure step's replay: a full decision result, or a typed skipped entry for the
- * cache-served / synthesized steps that carry no live planner decision (D-13).
+ * cache-served / synthesized steps that carry no live planner decision.
  */
 export type ProcedureStepReplay =
   | { kind: 'decision'; stepIndex: number; decisionOrdinal: number; result: DecisionReplayResult }
   | { kind: 'skipped'; stepIndex: number; reason: 'cache-served' | 'synthesized'; decisionOrdinal?: number }
 
-/** A procedure-granularity replay result; the recorded endState is carried through untouched for 369 (D-13). */
+/** A procedure-granularity replay result; the recorded endState is carried through untouched for 369. */
 export interface ProcedureReplayResult {
   granularity: 'procedure'
   cassetteId: string
@@ -105,7 +105,7 @@ export type ReplayResult = LeafReplayResult | ProcedureReplayResult
 
 /**
  * A typed integrity refusal: the cassette could not be replayed at all. Every refusal is
- * reported (D-08) — a refusal never aborts the surrounding batch.
+ * reported — a refusal never aborts the surrounding batch.
  */
 export interface ReplayRefusal {
   kind: 'integrity-refusal'

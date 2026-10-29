@@ -239,7 +239,7 @@ describe('arch lint class rules and dep contracts', () => {
     offenders.push(...findKnowledgeWriterSingletonOffenders(readerScannedHits))
     offenders.push(...findSurfaceFirewallOffenders(surfaceScans, SURFACE_FIREWALL_LEDGER))
     offenders.push(...findSurfaceClassGoldenSetOffenders(contracts))
-    // 2026-10-01 (432-19, D-03/D-15): the evaluate() pin is deleted with the gate it policed. The
+    // the evaluate() pin is deleted with the gate it policed. The
     // startRun() pin is the one run pin left, over the same `__tests__`-free sources.
     offenders.push(...findStartRunPinOffenders(pinSources))
     offenders.push(...findAgentBarrelOffenders(readRepoFile(AGENT_BARREL_FILE)))
@@ -252,7 +252,7 @@ describe('arch lint class rules and dep contracts', () => {
         contractBearingDirs(repoRoot),
       ),
     )
-    // 2026-08-17 (Phase 398 plan 03). The aggregate above ranges ARCH_MANIFEST, so a package whose
+    // 2026-08-17. The aggregate above ranges ARCH_MANIFEST, so a package whose
     // contract exists but is NOT registered has its class rules, dep reconciliation and cycle
     // position taken on trust — and the contract-less rule cannot see it, because that rule reads
     // the FILESYSTEM and the file is right there. Found by mutation: deleting the analytics entry
@@ -288,7 +288,7 @@ describe('arch lint held-out fixtures', () => {
     ])
   })
 
-  // 2026-08-17 (Phase 398 plan 03). The mutation that motivated the CALL: deleting
+  // 2026-08-17. The mutation that motivated the CALL: deleting
   // `AGENT_QA_ANALYTICS_OWNERSHIP_CONTRACT` from ARCH_MANIFEST left this file green at 41/41,
   // because the contract-less check reads the filesystem and the file was still there. An unranged
   // package is one whose dep set and class rules are taken on trust, so the omission has to red
@@ -808,14 +808,14 @@ describe('arch lint composition carve-out registration and scope', () => {
     }
   })
 
-  // D-13/D-15 widened the firewall allow-list by exactly one entry; 398-10 (D-17) by exactly one
+  // D-13/D-15 widened the firewall allow-list by exactly one entry; 398-10 by exactly one
   // more. Pinned by equality so a private power cannot join by looking like it belongs — every
   // arrival is a line in this file with a phase attached to it.
   it('the surface allow-list is exactly the function layer, the vocabulary, the composition root and analytics', () => {
     expect([...SURFACE_ALLOWED_INTERNAL_PACKAGES]).toEqual([
       '@vostride/agent-qa-agent',
       '@vostride/agent-qa-agent-local',
-      // 2026-08-17 (Phase 398 plan 10, D-17): telemetry is a HOST concern a host composes at its
+      // telemetry is a HOST concern a host composes at its
       // root and holds a port for. What this edge replaces is the ambient
       // `captureAnalytics`/`flushAnalytics` pair reachable from any file in the process, so the
       // widening narrows what can emit rather than widening it.
@@ -831,12 +831,12 @@ describe('arch lint composition carve-out registration and scope', () => {
   })
 })
 
-// 2026-10-01 (432-19, D-03/D-15): the evaluate() pin's held-out fixtures are re-spelled. Its last two
+// the evaluate() pin's held-out fixtures are re-spelled. Its last two
 // acquisitions (safety's in-run gate hook and the safety barrel's re-export) left with the gate, so
 // the pin is deleted rather than kept at zero entries. What its fixtures measured survives in two
 // places: the ABSENCE of every gate acquisition (C432-NO-EVALUATE, an independent statement census
 // over the real tree) and the SHARED SCANNER's forms and stale-entry direction, now measured on the
-// one run pin that remains (C432-ARCH-RETAINED-PINS).
+// one run pin that remains.
 const RETIRED_GATE_MODULES = [
   'packages/safety/src/policy/gate.ts',
   'packages/safety/src/policy/gate-hook.ts',
@@ -1041,7 +1041,7 @@ describe('arch lint agent barrel export set held-out fixtures', () => {
       expect(EXPECTED_AGENT_BARREL_EXPORTS).not.toContain(forbidden)
     }
     // No `*Spec` value of any name: a spec carries its own implementation, so exporting
-    // one hands a surface a dispatch path that never reaches the gate (T-384-20).
+    // one hands a surface a dispatch path that never reaches the gate.
     expect(EXPECTED_AGENT_BARREL_EXPORTS.filter(name => name.endsWith('Spec'))).toEqual([])
   })
 

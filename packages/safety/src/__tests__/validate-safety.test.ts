@@ -3,11 +3,11 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
-// SAFE-03 release gate (D-04). This is the closing enforcement conformance gate. It
+// SAFE-03 release gate. This is the closing enforcement conformance gate. It
 // carries one detection:
 //   (a) STRUCTURAL — createModel's per-call middleware array ends with ...MIDDLEWARE and
 //       then createMaskingMiddleware(mask), with createModel's own MaskFn (441 D-06, E7).
-// 2026-10-15 (441-33, D-15): (b), the registrar's fail-closed guardrail policy load, and (c), the
+// (b), the registrar's fail-closed guardrail policy load, and (c), the
 // audit-into-context import firewall, are deleted with the registrar and the audit port.
 //
 // House style mirrors the tools and arch validator tests: self-contained

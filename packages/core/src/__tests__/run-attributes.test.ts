@@ -71,7 +71,7 @@ describe('run attributes', () => {
   })
 })
 
-// 2026-10-17 (443-07, D-09): a verify run's row carries one internal mark.
+// a verify run's row carries one internal mark.
 describe('the gate-run mark', () => {
   it('the gate-run mark is an internal attribute a user cannot set', () => {
     expect(ATTR_GATE_RUN, 'the mark key').toBe('agent-qa.gate-run')

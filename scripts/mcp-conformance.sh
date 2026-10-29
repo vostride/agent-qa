@@ -2,7 +2,7 @@
 #
 # mcp-conformance.sh — the external MCP conformance suite, pinned, frozen, ratcheted.
 #
-# WHAT THIS IS FOR, IN ONE LINE: "know the number, don't hit one" (D-18). This script publishes a
+# WHAT THIS IS FOR, IN ONE LINE: "know the number, don't hit one". This script publishes a
 # raw-count conformance score for the shipped MCP server and reds only on a NEW failure. It is
 # complementary to — never a substitute for — 397's parity suite.
 #
@@ -243,7 +243,7 @@ REQUIRED_COUNT="$(grep -c '' "$SANDBOX/required.txt" || true)"
   || fatal "G1: requirements $REQUIREMENTS_REVISION lists $REQUIRED_COUNT server scenarios, the frozen denominator is $FROZEN_REQUIRED_SERVER_SCENARIOS. A pin bump changed the set — re-mint the baseline and update the frozen counts in a deliberate commit."
 
 # ── Step 3: the hermetic fixture. D-17's "config planted", in a mktemp sandbox that is never the
-# developer's own project. 2026-10-02 (432-45, D-12): no token is planted — the listener reads no
+# developer's own project. 2026-10-02: no token is planted — the listener reads no
 # credential, so every request the suite makes is the one caller and sees all twenty tools.
 FIXTURE="$SANDBOX/fixture"
 mkdir -p "$FIXTURE/.agent-qa"
@@ -260,7 +260,7 @@ use:
   mobile:
     appState: preserve
 FIXTURE_YAML
-# 2026-10-15 (441-35, D-01): MCP masks with the declared secrets and needs a readable file; this one declares none.
+# MCP masks with the declared secrets and needs a readable file; this one declares none.
 : > "$FIXTURE/.env.secrets.local"
 
 start_fixture_server() {
@@ -271,7 +271,7 @@ start_fixture_server() {
   SERVER_PID=$!
   URL="http://127.0.0.1:$PORT/mcp"
   # Bounded readiness wait. 60 x 0.5s = 30s: generous enough for a cold CI runner, bounded so a
-  # server that never comes up cannot wedge the job (T-396-23).
+  # server that never comes up cannot wedge the job.
   local attempt=0
   while [ "$attempt" -lt 60 ]; do
     if kill -0 "$SERVER_PID" 2>/dev/null && curl -sf -o /dev/null \

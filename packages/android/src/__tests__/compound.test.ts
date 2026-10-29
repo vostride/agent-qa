@@ -97,7 +97,7 @@ function createMockDriver() {
     getContexts: vi.fn().mockResolvedValue(['NATIVE_APP']),
     switchContext: vi.fn().mockResolvedValue(undefined),
     url: vi.fn().mockRejectedValue(new Error('not supported')),
-    // 437-05: only the focused-node lookup finds the field; the showing-hint and multiline probes
+    // only the focused-node lookup finds the field; the showing-hint and multiline probes
     // match nothing, so the field reads as a non-empty single value.
     $: vi.fn().mockImplementation((selector: string) =>
       Promise.resolve(selector === '//*[@focused="true"]' ? mockElement : { isExisting: () => Promise.resolve(false) })),
@@ -406,7 +406,7 @@ describe('AndroidPlatformAdapter compound behaviors (RED — Wave-0)', () => {
   describe('a WebView touch swipe is judged over every WebView scroller', () => {
     type Primitives = { swipeOnce(direction: string, ref?: string): Promise<string> }
     type Member = { id: string; x: number; y: number; maxX: number; maxY: number }
-    // 2026-10-08 (436-23): members carry an identity; the document scroller is always `document`.
+    // members carry an identity; the document scroller is always `document`.
     const doc = (y: number, maxY: number, x = 0, maxX = 0): Member => ({ id: 'document', x, y, maxX, maxY })
     const el = (id: string, y: number, maxY: number, x = 0, maxX = 0): Member => ({ id, x, y, maxX, maxY })
     const LIST = '0/1/0|div#list.feed'
@@ -475,7 +475,7 @@ describe('AndroidPlatformAdapter compound behaviors (RED — Wave-0)', () => {
     })
 
     it('a WebView with a frame on screen reads unknown', async () => {
-      // The shared script answers null when a frame intersects the viewport (436-23 · WR-20).
+      // The shared script answers null when a frame intersects the viewport.
       const p = await webView([null, null])
       expect(await p.swipeOnce('down')).toBe('unknown')
       expect(mockDriver._pointerAction.perform).toHaveBeenCalledTimes(1)

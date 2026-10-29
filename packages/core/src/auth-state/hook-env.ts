@@ -1,4 +1,4 @@
-// Auth-state hook env plumbing moved to @vostride/agent-qa-runner (Phase 363 D-06) so the
+// Auth-state hook env plumbing moved to @vostride/agent-qa-runner so the
 // hook orchestration (runner) and DockerHookExecutor (runner-local) share it without importing
 // core. Re-exported here so core's other auth-state consumers keep resolving through the core
 // barrel until they re-point.

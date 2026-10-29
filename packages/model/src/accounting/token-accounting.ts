@@ -1,4 +1,4 @@
-// The conversation-scoped token-accounting instance (CTXB-03, D-01/D-02/D-04/D-07/D-12).
+// The conversation-scoped token-accounting instance.
 // Closure-state factory: options in, closure-captured anchor
 // state, an object of methods out. Provider-neutral: operates only on AI SDK `ModelMessage[]`.
 
@@ -9,7 +9,7 @@ import type { DegradeOptions, DegradeOutcome, TokenAccounting, TokenAccountingOp
 
 // Anthropic's large-image ceiling ≈ (1568×1568)/750 ≈ 1,533 tokens at v2 downscaled capture
 // sizes; 1,600 is the safe conservative over-estimate (RESEARCH Q8/D-12). Injectable, never
-// user-facing config. Over-charging degrades slightly early — the safe direction (T-354-10).
+// user-facing config. Over-charging degrades slightly early — the safe direction.
 const DEFAULT_PER_IMAGE_TOKENS = 1600
 
 interface Anchor {

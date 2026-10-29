@@ -311,7 +311,7 @@ describe('iOS snapshot depth (P3)', () => {
       expect(driver.pause).not.toHaveBeenCalled()
     })
 
-    // 2026-10-07 (436-02): toEnd no longer reads the interim tree; untilVisible's visibility probe does.
+    // toEnd no longer reads the interim tree; untilVisible's visibility probe does.
     it('an untilVisible scroll finds the target when one interim-tree read hits the snapshot error', async () => {
       driver.getPageSource.mockRejectedValueOnce(snapshotError())
       await adapter.setup({ platform: 'ios' })

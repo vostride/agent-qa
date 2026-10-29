@@ -1,7 +1,7 @@
 // D-05 judge port. CRITICAL: eval core stays pure — this module only declares the async seam
 // the tier-4 judge rides; the concrete binding lives in eval-local through createModel (Phase
 // 370 D-05 hexagonal split). The port answers exactly one order-tagged call per request — the
-// order-swap agreement rule lives in adjudicate, never in the port (D-08). No runtime logic
+// order-swap agreement rule lives in adjudicate, never in the port. No runtime logic
 // exists in this file.
 
 import type {
@@ -26,7 +26,7 @@ export interface JudgeCallRequest {
   order: JudgeOrder
 }
 
-/** The port NEVER throws — infra failure is a typed result, never an exception (D-11). */
+/** The port NEVER throws — infra failure is a typed result, never an exception. */
 export type JudgeCallResult =
   | {
       kind: 'verdict'

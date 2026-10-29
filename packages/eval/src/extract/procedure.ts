@@ -150,7 +150,7 @@ function procedureEndState(handoffTest: PerTestOutcome): ProcedureEndState {
   }
 }
 
-/** Assemble one ordering-faithful, self-contained procedure cassette per test (D-08/D-18). */
+/** Assemble one ordering-faithful, self-contained procedure cassette per test. */
 export function buildProcedureCassette({
   handoff,
   handoffTest,

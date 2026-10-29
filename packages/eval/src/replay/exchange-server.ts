@@ -1,4 +1,4 @@
-// The keyed consume-once recorded-exchange server (D-07/D-08). It plugs into the
+// The keyed consume-once recorded-exchange server. It plugs into the
 // plan-368-01 runner planning-turn seam as a NonActionToolMap: each recorded non-action
 // exchange is served back to the model verbatim when a call's name + canonicalized args
 // match, exactly once, FIFO across duplicates. A miss is a typed hard error naming the

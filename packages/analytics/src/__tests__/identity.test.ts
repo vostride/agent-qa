@@ -52,7 +52,7 @@ async function tempDataHome(): Promise<string> {
 
 describe('the re-homed distinct-id scheme', () => {
   it('mints the id shape the deleted core module minted — prefix and word count, frozen', () => {
-    // WHERE 'u' AND 10 COME FROM, AND WHY THEY ARE WRITTEN OUT HERE (398-11).
+    // WHERE 'u' AND 10 COME FROM, AND WHY THEY ARE WRITTEN OUT HERE.
     //
     // Plan 06 anchored this claim TWICE: on a produced id, and on the literal
     // `idAgent({ prefix: 'u', words: 10 })` still spelled in `packages/core/src/analytics/

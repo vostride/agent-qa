@@ -1,4 +1,4 @@
-// DockerHookExecutor (Phase 363 D-06) — the runner-local storageImplementation of
+// DockerHookExecutor — the runner-local storageImplementation of
 // the runner `HookExecutorPort`. The sandbox-runner body moved VERBATIM from
 // core/src/hooks/sandbox-runner.ts: image pull policy, tmpdir workdir copy of
 // file + deps + packageFile, authState mount, env + secret injection, container

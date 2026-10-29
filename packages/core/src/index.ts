@@ -13,9 +13,9 @@ export * from './suite/index.js'
 export * from './validation/index.js'
 export * from './hooks/index.js'
 export * from './ids/index.js'
-// 363 D-08: the run-artifact type family relocated to @vostride/agent-qa-schema (was ./artifacts).
+// the run-artifact type family relocated to @vostride/agent-qa-schema (was ./artifacts).
 export * from './workspace/index.js'
-// 2026-08-17 (Phase 398 plan 11, D-20): `./analytics/index.js` is GONE. Product telemetry is a host
+// `./analytics/index.js` is GONE. Product telemetry is a host
 // concern composed at each host's own root out of `@vostride/agent-qa-analytics`, behind a port with
 // a closed event union — not an ambient capture/flush pair re-exported from every consumer of core.
 export * from './run-attributes.js'

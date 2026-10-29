@@ -1,4 +1,4 @@
-// Concrete filesystem run-artifact store (Phase 363, D-08).
+// Concrete filesystem run-artifact store.
 //
 // Implements the storage-neutral `RunArtifactStorePort` from @vostride/agent-qa-runner. This is a
 // storageImplementation home for node:fs + node:path (the FsEventLog / FsHandoffStore boundary) —
@@ -10,7 +10,7 @@
 //
 // The runId directory component is slugged traversal-safe (the T-360-03 `slugBranch` idiom, shared
 // with FsEventLog via `RUNS_SUBDIR`) so a planner-supplied `../..`-shaped runId can never escape
-// the runs root (T-363-12) — the path is NEVER re-minted here.
+// the runs root — the path is NEVER re-minted here.
 //
 // Per the RESEARCH Q5 keep/drop table the FILE artifact keeps ONLY the config snapshot, the
 // test/suite source snapshot, terminal errors, and metadata. The top-level `runtime` section is
@@ -51,7 +51,7 @@ export class FsRunArtifactStore implements RunArtifactStorePort {
   private readonly file: string
 
   constructor(config: FsRunArtifactStoreConfig) {
-    // Same slugged run dir as FsEventLog so artifact.json lands beside events.jsonl (D-08).
+    // Same slugged run dir as FsEventLog so artifact.json lands beside events.jsonl.
     this.dir = join(config.root, RUNS_SUBDIR, slugBranch(config.runId))
     this.file = join(this.dir, ARTIFACT_FILE)
   }

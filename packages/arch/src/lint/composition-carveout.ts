@@ -1,4 +1,4 @@
-// The composition-subtree dependency carve-out (Phase 385 plan 08, D-13).
+// The composition-subtree dependency carve-out.
 //
 // D-13 moved the host-neutral run composition into the local agent package so every host builds
 // the same RunConfig. That is the right home and it has a cost: a package whose declared job is a

@@ -211,7 +211,7 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: 'the declared-secrets loader builds the one masking function (SecretRedactor) the run uses; joins the typed config action class with local-agent-host.ts',
   },
   {
-    // 2026-07-29 (Phase 385 plan 09, D-15): four of this file's five entries are GONE, not moved.
+    // four of this file's five entries are GONE, not moved.
     // The reader, runner, runner-local and safety-local leaks left with the registry assembly that
     // caused them, which now lives in composeLocalAgent(). What survives is config resolution — a
     // different debt from the one 386 clears, so the clearing phase is restated as the typed config
@@ -222,7 +222,7 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: 'the CLI half of the local host resolves and masks configuration directly; joins the typed config action class',
   },
   {
-    // 2026-09-30 (Phase 432 plan 07, D-05/D-07): the direct config writer reaches the dashboard's
+    // the direct config writer reaches the dashboard's
     // config file transaction so the dashboard and a co-hosted writer take turns on one path. Lazily
     // imported at write time; no second copy of the transaction exists in this package.
     file: 'packages/cli/src/composition/local-agent-host.ts',

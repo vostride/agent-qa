@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { TargetSchema } from '../registry-schema.js'
 
-// D-06 (phase 401): a target declares which environment it lives in, and an UNDECLARED target is
+// a target declares which environment it lives in, and an UNDECLARED target is
 // left visibly undeclared here so the run gate's descriptor builder — not this schema — is the one
 // place that decides undeclared means shared. A `.default('shared')` in this file would move that
 // decision into config loading and make an honest declaration indistinguishable from a silence.

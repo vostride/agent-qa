@@ -1,7 +1,7 @@
-// C437-IOS-LIVE (437 D-20): the toggle fix run live on a booted simulator's Settings app
+// the toggle fix run live on a booted simulator's Settings app
 // (com.apple.Preferences), through the real runner loop with a scripted planner and verifier. No
 // model is called. It proves through the shared parser and comparator that an iOS switch's value
-// is read as its checked state (D-03) and that a real switch keeps desired-state idempotency: the
+// is read as its checked state and that a real switch keeps desired-state idempotency: the
 // Prefer Non-Blinking Cursor switch already in the requested state is not tapped and is recorded
 // as no input sent, and out of state it is tapped once. The switch's original value is restored
 // after each cell. The ordinary General row is not a toggle, so a tap planned under desiredState

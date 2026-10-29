@@ -71,7 +71,6 @@ describe('stripUnsupportedParamsMiddleware', () => {
 
     expect(result).toBe(params)
     expect(result).toHaveProperty('maxOutputTokens', 4096)
-    // No unrelated key was deleted.
     expect(Object.keys(result)).toEqual(['prompt', 'tools', 'toolChoice', 'temperature', 'maxOutputTokens'])
   })
 
@@ -174,7 +173,7 @@ async function captureTemperature(provider: ModelProviderId): Promise<Temperatur
   }
 }
 
-// C446-SUBSCRIPTION-TEMPERATURE (446-11, D-18): the Codex subscription backend answers HTTP 400
+// the Codex subscription backend answers HTTP 400
 // "Unsupported parameter: temperature", and agent-qa's job-model calls ask for temperature 0
 describe('temperature on subscription transports', () => {
   beforeEach(() => {

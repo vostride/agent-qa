@@ -13,7 +13,7 @@
 // produced an unrunnable document becomes a refusal instead of a written file.
 //
 // THE FENCE AND THE PREFIX FENCE ARE DIFFERENT CONTROLS. `EDITABLE_POINTER_ROOTS` bounds WHICH
-// PART OF A DOCUMENT any patch may address at all (T-394-10); plan 06's passing-prefix fence
+// PART OF A DOCUMENT any patch may address at all; plan 06's passing-prefix fence
 // bounds WHICH STEP a repair may touch. Neither substitutes for the other, and a document whose
 // `target` is reachable is a document whose test can be silently pointed at a different app.
 
@@ -61,7 +61,7 @@ export interface ParsedTestDocument {
 // be applied to that kind of node" (worth re-planning the edit). One class with a discriminator
 // would make every one of those `catch` blocks read a string.
 
-/** A pointer addressed a document root outside `EDITABLE_POINTER_ROOTS` (T-394-10). */
+/** A pointer addressed a document root outside `EDITABLE_POINTER_ROOTS`. */
 export class PatchPointerOutsideEditableRegionError extends Error {
   constructor(readonly pointer: string) {
     super(

@@ -34,18 +34,18 @@ interface FieldModel {
   setValueThrows: boolean
   focusThrows: boolean
   pressKeyError?: string
-  // 437-07: the keyboard path. A hidden handle makes `//*[@focused="true"]` absent; revealOnType
+  // the keyboard path. A hidden handle makes `//*[@focused="true"]` absent; revealOnType
   // shows it once `mobile: type` has run. Ctrl+A then DEL clears the model.
   focusHidden?: boolean
   revealOnType?: boolean
   typeThrows?: boolean
   clearThrows?: boolean
-  // 437-20 (WR-02): the focused node's `bounds` attribute; unset answers as UiAutomator2 does for
+  // the focused node's `bounds` attribute; unset answers as UiAutomator2 does for
   // an unknown attribute name.
   bounds?: string
 }
 
-// 437-06: a WebView field. The focus probe answers editable/matches/multiline/secure/value from it,
+// a WebView field. The focus probe answers editable/matches/multiline/secure/value from it,
 // W3C keys and `mobile: type` act on its value, and the read-back answers `readBack` when set.
 interface WebFieldModel {
   editable: boolean
@@ -57,7 +57,7 @@ interface WebFieldModel {
   readBack?: () => unknown
   typeThrows?: boolean
   keysThrow?: boolean
-  // 437-19 (WR-01): answers for the first probes, in order; later probes answer from the model.
+  // answers for the first probes, in order; later probes answer from the model.
   probes?: Array<{ editable: boolean; matches: boolean }>
   probeThrows?: boolean
 }
@@ -78,7 +78,7 @@ let taps: Array<{ ctx: string; move: unknown }> = []
 let selectedAll = false
 let pageXml = ANDROID_XML
 
-// 437-07 (D-15): the observed Username EditText with a raw input-type attribute.
+// the observed Username EditText with a raw input-type attribute.
 function usernameInputType(value: string): void {
   pageXml = ANDROID_XML.replace('content-desc="Username"', `content-desc="Username" input-type="${value}"`)
 }
@@ -518,7 +518,7 @@ describe('fill on the native setValue path', () => {
     expect(result.metadata?.fillSubmit).toEqual({ sent: false, outcome: 'not-sent', reason: 'mismatch' })
   })
 
-  // 437-20 (WR-02): the tap must leave the referenced field focused; only bounds that are read and
+  // the tap must leave the referenced field focused; only bounds that are read and
   // lie outside the ref's refuse.
   const PASSWORD_BOUNDS = '[100,400][980,500]'
   const FOCUS_ELSEWHERE_ERROR =
@@ -715,7 +715,7 @@ describe('fill on the native setValue path', () => {
   })
 })
 
-// 437-07 (D-14): the keyboard path runs when the tap leaves no focused handle. Replace clears with
+// the keyboard path runs when the tap leaves no focused handle. Replace clears with
 // Ctrl+A then DEL through `mobile: pressKey`, the text goes through one `mobile: type`, the value is
 // read back from a re-found handle when there is one, and a requested Enter is sent once.
 const CTRL_A = 'execute:mobile: pressKey:{"keycode":29,"metastate":4096}'
@@ -876,7 +876,7 @@ describe('fill on the keyboard (mobile: type) path', () => {
   })
 })
 
-// 437-07 (D-16): clearText on the native and keyboard paths is checked like a fill. Empty is
+// clearText on the native and keyboard paths is checked like a fill. Empty is
 // exact, leftover text is a mismatch, and an unreadable field is unverified.
 describe('clearText is read back like a fill', () => {
   it('a native clear reads back empty and is exact', async () => {
@@ -1046,7 +1046,7 @@ describe('clearText is read back like a fill', () => {
     })
   })
 
-  // 437-20 (WR-02): the same focus-target check as the fill.
+  // the same focus-target check as the fill.
   it('a clear whose tap left another field focused clears nothing', async () => {
     field.value = 'pw-kept'
     field.bounds = '[100,400][980,500]'
@@ -1124,7 +1124,7 @@ describe('clearText is read back like a fill', () => {
   })
 })
 
-// The assumption-delta invariant (437 D-12): every fill delivers its text through exactly one path
+// The assumption-delta invariant: every fill delivers its text through exactly one path
 // and presses Enter at most once. 437-06 adds the WebView cells and 437-07 the keyboard cells.
 describe('every fill delivers its text through one path and presses Enter at most once', () => {
   it('a native setValue that throws is never typed again', async () => {
@@ -1280,7 +1280,7 @@ describe('every fill delivers its text through one path and presses Enter at mos
   })
 })
 
-// 437-06 (D-11): the WebView fill acts like a user through the driver. A W3C touch tap in the
+// the WebView fill acts like a user through the driver. A W3C touch tap in the
 // WebView context focuses the ref, a read-only probe checks the focus, W3C keys clear,
 // `mobile: type` from NATIVE_APP types, a read-only script reads the value back, and one
 // `mobile: pressKey 66` from NATIVE_APP submits. No script writes the field or builds a key event.

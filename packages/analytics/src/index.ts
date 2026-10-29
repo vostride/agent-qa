@@ -1,7 +1,7 @@
 import type { AgentQaAnalyticsEvent } from './events.js'
 import type { AnalyticsPort } from './port.js'
 
-// The `@vostride/agent-qa-analytics` public surface (Phase 398 plan 03, D-17 · ANLY-01).
+// The `@vostride/agent-qa-analytics` public surface.
 //
 // WHAT IS DELIBERATELY ABSENT. There is no `getAnalytics()`, no `captureAnalytics()`, no
 // `flushAnalytics()` — no way to reach telemetry without having been handed a port. The v1 module
@@ -77,7 +77,7 @@ export type { AgentQaAnalyticsEvent, AnalyticsEventName } from './events.js'
 export { maskEventForSend } from './masking-seam.js'
 export type { AnalyticsMaskingContext } from './masking-seam.js'
 
-// The anonymous identity store, re-homed from `core` (plan 06, D-17).
+// The anonymous identity store, re-homed from `core`.
 // The store functions are published rather than hidden behind `resolveAnalyticsIdentity` because a
 // host that wants to REPORT the identity (a doctor command, a `--verbose` line) should read the
 // same record the resolver reads instead of re-deriving the path its own way.

@@ -1,4 +1,4 @@
-// Filesystem replay-record store (Phase 368, D-12).
+// Filesystem replay-record store.
 //
 // Persists each per-cassette replay outcome — a ReplayResult or a typed ReplayRefusal (refusals are
 // records too, never silent; the report verb counts them) — under an uncommitted runtime staging

@@ -1,11 +1,11 @@
-// The eval-local JudgePort binding (Phase 370 D-05/D-06, JUDGE-03). The pure eval-core judge
+// The eval-local JudgePort binding. The pure eval-core judge
 // module builds every prompt; this binding ONLY transports: one createModel handle (the pinned-last
 // mask/guardrail middleware stack — the sole egress path, exactly like runCassetteReplay's planner
 // leg) executes one generateText + Output.object structured verdict per order-tagged request at
 // temperature 0 with maxRetries 0. Structured-output repair is the model package's middleware job
 // (repair + extract-json in createModel's stack) — no second application-level retry loop exists
-// here (D-08/D-11). The port NEVER throws: unparseable output and provider failure each mint a
-// typed call-error (D-09/D-11). Invoked only from runCassetteReplay's flow (the ownership
+// here. The port NEVER throws: unparseable output and provider failure each mint a
+// typed call-error. Invoked only from runCassetteReplay's flow (the ownership
 // contract's forbidden provider-invocation clause); 370-07 composes it inside the safety scope.
 
 import { NoObjectGeneratedError, NoOutputGeneratedError, Output, generateText } from 'ai'
@@ -72,7 +72,7 @@ export function bindJudgePort(input: JudgeBindingInput): JudgePort {
       ? { capabilities: { ...input.profile.capabilities } }
       : {}),
   }
-  // The ONLY createModel call site for the judge leg and its ONLY egress path (JUDGE-03).
+  // The ONLY createModel call site for the judge leg and its ONLY egress path.
   const model = createModel(profileCopy, input.auth, input.mask, input.modelOverrides ?? {}, input.modelCallObservation)
 
   return {

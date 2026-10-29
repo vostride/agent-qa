@@ -11,7 +11,7 @@
 // it can be restored, under the gitignored `.agent-qa` runtime dir. It is never masked and never
 // enters evidence — `save` returns only a `{ name, fingerprint }` reference. The name is slugged
 // traversal-safe (the 356 `slugBranch` idiom) so a planner-supplied `../..`-shaped name can never
-// escape the storage-states root (T-360-03). Durability is independent of the action-cache schema
+// escape the storage-states root. Durability is independent of the action-cache schema
 // version — storage states persist across runs per the spec's auth-reuse intent.
 
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
@@ -52,7 +52,7 @@ export class FsStorageStateStore implements StorageStatePort {
     try {
       raw = await readFile(this.entryPath(name), 'utf-8')
     } catch (err) {
-      // A missing slot is never an error (D-14) — undefined, no throw.
+      // A missing slot is never an error — undefined, no throw.
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') return undefined
       throw err
     }
@@ -70,7 +70,7 @@ export class FsStorageStateStore implements StorageStatePort {
 
   private entryPath(name: string): string {
     // slugBranch neutralizes `..`, path separators, and leading/trailing dots so the slug is a
-    // single safe path segment that can never traverse out of storage-states/ (T-360-03).
+    // single safe path segment that can never traverse out of storage-states/.
     return join(this.storageStatesDir(), `${slugBranch(name)}.json`)
   }
 }

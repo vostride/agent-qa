@@ -9,7 +9,7 @@ export type PluginDeclarationLike = {
 }
 
 /**
- * One filesystem path, rendered as the string a PERSON reads (395-28 · CR-03).
+ * One filesystem path, rendered as the string a PERSON reads.
  *
  * `declarationLabel` below makes this disposition for a path the loader COMPOSED from the person's
  * own config. This is the same disposition for a path the loader merely FOUND — a manifest location,
@@ -33,7 +33,7 @@ function personFacingPath(candidate: string, baseDir: string): string {
 }
 
 /**
- * An absolute path INSIDE prose, anchored so a slash in a word is not one (395-28 · CR-03).
+ * An absolute path INSIDE prose, anchored so a slash in a word is not one.
  *
  * WHY ANCHORED. The obvious shape — "any run of non-space characters containing a separator" —
  * strips `and/or` and the person's own declared `plugins/local-auth.js` right along with the paths,
@@ -86,7 +86,7 @@ export function exportTargetFromPackageJson(pkg: Record<string, unknown>): strin
 }
 
 /**
- * A third party's `package.json` this resolver could not read as JSON (395-24 · WR-11).
+ * A third party's `package.json` this resolver could not read as JSON.
  *
  * POSITION, NEVER CONTENT — the F-01 discipline, on a JSON channel. The unguarded
  * `JSON.parse(readFileSync(...))` below threw Node's own `SyntaxError`, and that error's text quotes
@@ -153,7 +153,7 @@ export function pathDeclarationValue(declaration: PluginDeclarationLike): string
  * The absolute path and the `package:`/`path:` discriminator prefix are both correct HERE: two
  * declarations naming the same file by different relative routes must collide in
  * `loadedDeclarations`, and a package named `foo` must not collide with a file named `foo`. Use
- * `declarationLabel` for anything that reaches a message (395-24 · WR-07).
+ * `declarationLabel` for anything that reaches a message.
  */
 export function declarationKey(declaration: PluginDeclarationLike, baseDir: string): string {
   const packageName = packageDeclarationValue(declaration)
@@ -162,7 +162,7 @@ export function declarationKey(declaration: PluginDeclarationLike, baseDir: stri
 }
 
 /**
- * The PERSON-FACING name of a declaration (395-24 · WR-07).
+ * The PERSON-FACING name of a declaration.
  *
  * `declarationKey`'s value was being interpolated straight into the loaders' own error sentences —
  * `Auth plugin "path:/Users/someone/work/app/plugins/thing.js" must export …` — which hands a person
@@ -209,7 +209,7 @@ export type PluginDeclarationKind = 'auth' | 'provider'
  * `importDeclaredPluginModule` below.
  */
 /**
- * The npm package-name charset, anchored (395-24 · WR-06).
+ * The npm package-name charset, anchored.
  *
  * WHY A GATE AT ALL. The sentence below composes the declaration's `package` string into
  * `npm install <that string>` — a COMMAND LINE THE CLI TELLS A PERSON TO RUN — and the schema behind
@@ -265,7 +265,7 @@ function isModuleResolutionFailure(err: unknown): boolean {
 }
 
 /**
- * A plugin package that IS installed and could not be loaded (395-24 · WR-05).
+ * A plugin package that IS installed and could not be loaded.
  *
  * THE MISNAMING THIS TYPE ENDS. `isModuleResolutionFailure` answers `MODULE_NOT_FOUND` /
  * `ERR_MODULE_NOT_FOUND`, and Node raises those codes for a resolution failure ANYWHERE in the
@@ -308,7 +308,7 @@ export class PluginLoadFailedError extends Error {
  * which is what a person needs to know which dependency their plugin is missing. Both of those
  * remain true. What was false was the implied converse — that the first line is therefore CLEAN.
  *
- * THE DIALECT THIS FILE ACTUALLY USES SAYS OTHERWISE (395-28 · CR-03). `importDeclaredPluginModule`
+ * THE DIALECT THIS FILE ACTUALLY USES SAYS OTHERWISE. `importDeclaredPluginModule`
  * calls `await import(...)`, so the ESM loader is the only loader it reaches, and ESM writes its
  * paths INTO the first line rather than under it. Measured on Node v24.10.0:
  *
@@ -321,7 +321,7 @@ export class PluginLoadFailedError extends Error {
  * ESM form this file takes every time. `resolutionFailureFor` already holds `baseDir`; nothing new
  * is plumbed to reach it.
  *
- * `instanceof Error` rather than a cast, for validate.ts's reason (WR-04): a thrown non-Error must
+ * `instanceof Error` rather than a cast, for validate.ts's reason: a thrown non-Error must
  * still produce a string.
  */
 function messageOf(err: unknown, baseDir: string): string {

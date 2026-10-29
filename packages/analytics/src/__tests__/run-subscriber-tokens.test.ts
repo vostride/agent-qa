@@ -1,4 +1,4 @@
-// Phase 405 plan 04 (D-07). The analytics half of the token-accounting fold.
+// Phase 405 plan 04. The analytics half of the token-accounting fold.
 //
 // WHAT THIS FILE IS GUARDING. `input_tokens`/`output_tokens`/`total_tokens` have been declared on
 // `RunCompletionShape` since v33 with NO PRODUCER ANYWHERE — the hole

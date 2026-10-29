@@ -39,8 +39,8 @@ export interface CompressResult {
 
 /**
  * Resize + optional JPEG-quality compression of a screenshot buffer (v1 pipeline, verbatim).
- * D-01/D-02: fit:'inside' constrains both dimensions preserving AR (longer edge becomes eR);
- * D-04: withoutEnlargement avoids upscaling small images. The JPEG pass only runs when a byte
+ * fit:'inside' constrains both dimensions preserving AR (longer edge becomes eR);
+ * withoutEnlargement avoids upscaling small images. The JPEG pass only runs when a byte
  * budget is set, iterating quality down to a graceful minimum-quality fallback (Pitfall 4 — never
  * re-resize inside the loop).
  */
@@ -69,7 +69,7 @@ async function compressScreenshot(
   const resizedWidth = afterResize.info.width
   const resizedHeight = afterResize.info.height
 
-  // Skip JPEG pass if no byte budget set (D-21).
+  // Skip JPEG pass if no byte budget set.
   if (!opts.maxBytes) {
     return { buffer: afterResize.data, imageWidth: resizedWidth, imageHeight: resizedHeight }
   }
@@ -150,7 +150,7 @@ export interface ImageDimensions {
 }
 
 /** Read image buffer width/height without decoding pixels. Used by mobile adapters for
- *  action-space drift assertions (D-06/D-07). */
+ *  action-space drift assertions. */
 export async function getImageDimensions(buffer: Buffer): Promise<ImageDimensions | undefined> {
   const meta = await sharp(buffer).metadata()
   if (!meta.width || !meta.height) return undefined

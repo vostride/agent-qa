@@ -1,4 +1,4 @@
-// 431-06 (D-09 · T-431-13 / T-431-14): a pre-import trap that fails any embedding runtime load.
+// a pre-import trap that fails any embedding runtime load.
 //
 // USE: `node --import <this file> <entry>` with AGENT_QA_431_TRAP_REPORT naming a report file. The
 // same `--import` in NODE_OPTIONS carries it into every descendant Node process.

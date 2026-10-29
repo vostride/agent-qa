@@ -55,7 +55,7 @@ CATALOG="$ROOT/$CATALOG_REL"
 # a pattern is a hole that widens on its own, and this list is the whole of what "refuses while red"
 # means.
 #
-# WHAT MAKES A CELL ELIGIBLE, STATED SO THE LIST CANNOT GROW BY HABIT (2026-08-17, 398-08). Every
+# WHAT MAKES A CELL ELIGIBLE, STATED SO THE LIST CANNOT GROW BY HABIT. Every
 # member is a cell whose SUBJECT IS THE COMMITTED ARTIFACT AGREEING WITH THE LIVE TREE. Those are
 # exactly the cells a stale artifact reds, and exactly the state this script exists to let a person
 # out of — leaving them out would make the one writer unusable the moment a producer change reddened
@@ -106,35 +106,35 @@ the chat host's discovery UX is a projection of the catalog offers every alias r
 the committed catalogue describes only the live tree op rows are the live registry, tools are the twenty projected tools, and no row names a retired capability or a permission"
 # Vacuity floor. A gate that passed because the suite collected nothing is the CI-shaped version of
 # the failure this artifact exists to prevent. Measured 2026-08-16: 88 tests in the directory;
-# 2026-08-17 (398-08): 115, after the manifest legs, the `init --agent` cells and the two shipped-
-# binary anchors joined. 2026-08-17 (398-07): 133, after the eighteen explain differentials joined.
+# 115, after the manifest legs, the `init --agent` cells and the two shipped-
+# binary anchors joined. 2026-08-17: 133, after the eighteen explain differentials joined.
 # Raised in the same diff that added them, which is the rule the knob is for; the margin is the
 # original's, about nine per cent under the measurement.
-# 2026-08-17 (398-09): 140, after the seven help-census / second-list / skills-vocabulary cells
+# 140, after the seven help-census / second-list / skills-vocabulary cells
 # joined. Raised in the same diff that added them; the margin stays the original's.
 FROZEN_MIN_TESTS=129
 # The artifact's own floor, so a mint that produced a truncated or empty file cannot be written.
 # Measured 2026-08-16: 41 registry ops + 5 chat op-aliases + 3 shipped skills = 49 rows.
-# Raised 2026-08-17 (398-07, D-09): `agent.explain` is the 42nd registry op, so 50. This is the knob
+# Raised 2026-08-17: `agent.explain` is the 42nd registry op, so 50. This is the knob
 # working as designed — a plan that adds a row raises the floor in the SAME diff, and a plan that
 # lowers one is doing something that needs an argument.
-# Raised 2026-09-29 (431-08, D-03/D-06): the floor had stood at 50 through ten more registry ops.
+# Raised 2026-09-29: the floor had stood at 50 through ten more registry ops.
 # Measured at this regeneration: 53 registry ops + 5 chat op-aliases + 3 shipped skills = 61 rows,
 # `runs.overview` being the newest. The floor is the exact observed baseline.
-# Raised 2026-09-29 (431-12, D-23): 61 -> 62. The fourth shipped skill, `agent-qa-knowledge`, adds
+# Raised 2026-09-29: 61 -> 62. The fourth shipped skill, `agent-qa-knowledge`, adds
 # one skill row once copy:skills mirrors it: 53 registry ops + 5 chat op-aliases + 4 shipped skills.
-# Lowered 2026-09-30 (432-13, C432-CHAT-DIRECT): 62 -> 61. The `proposals` chat op-alias left the
+# Lowered 2026-09-30: 62 -> 61. The `proposals` chat op-alias left the
 # resolver table with the inbox route (its op stays reachable through `/fn proposals.list`), so the
 # measured mint is 53 registry ops + 4 chat op-aliases + 4 shipped skills. The floor is the exact
 # observed baseline; the argument for lowering it is the removed alias, not a truncated mint.
-# Lowered 2026-10-01 (432-17, D-05): 61 -> 54. The inbox is deleted with its seven ops —
+# Lowered 2026-10-01: 61 -> 54. The inbox is deleted with its seven ops —
 # `proposals.list/show/accept/reject`, `knowledge.proposal.apply`, `config.proposal.apply` and
 # `config.undo.propose` — so the measured mint is 46 registry ops + 4 chat op-aliases + 4 shipped
 # skills. The floor is the exact observed baseline; the argument is the seven deleted ops.
-# Lowered 2026-10-01 (432-18, D-14/D-15): 54 -> 52. `grants.list` and `grants.revoke` are deleted
+# Lowered 2026-10-01: 54 -> 52. `grants.list` and `grants.revoke` are deleted
 # with the grant ledger, so the measured mint is 44 registry ops + 4 chat op-aliases + 4 shipped
 # skills. The floor is the exact observed baseline; the argument is the two deleted ops.
-# Confirmed 2026-10-02 (432-40): 52, measured again at the guidance cutover — 44 registry ops + 4
+# Confirmed 2026-10-02: 52, measured again at the guidance cutover — 44 registry ops + 4
 # chat op-aliases + 4 shipped skills. No row moved.
 FROZEN_MIN_ROWS=52
 
@@ -320,7 +320,7 @@ mint_catalog() {
   local out="$SANDBOX/minted.json"
   note "mint: emitting a fresh catalog from the composition root"
   # `--disable-console-intercept` so the sentinels reach this shell rather than the runner's buffer.
-  # 2026-09-30 (432-12): the mint runs the ONE file that emits, not the whole directory. With the
+  # the mint runs the ONE file that emits, not the whole directory. With the
   # directory, output from parallel workers' red cells landed between the sentinels and corrupted
   # the JSON (logged in 432-02, then measured twice in a row in 432-12). The gate above still runs
   # the whole suite; the mint only needs the emitting file, and the emitted text is unchanged.

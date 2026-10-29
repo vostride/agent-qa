@@ -6,7 +6,7 @@
  * while the schema build had cleared its `dist`. This pins the task graph that prevents it: the
  * arch test waits for every package build under `packages/`, named or reached through `^build`.
  * The arch typecheck compiles the same source, so a fresh clone (no `dist` yet) needs the same
- * order for it (434-13).
+ * order for it.
  */
 import { readdirSync, readFileSync, existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'

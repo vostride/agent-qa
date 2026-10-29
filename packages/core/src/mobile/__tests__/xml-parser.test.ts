@@ -604,7 +604,7 @@ describe('buildRefEntries (execute-time lastRefs reconstruction)', () => {
     const emailEntry = entries[emailEl.ref]
     expect(emailEntry.role).toBe('textbox')
     expect(emailEntry.name).toBe('Email')
-    // 2026-10-09 (438-11): no position lives on a ref entry (D-13).
+    // no position lives on a ref entry.
     expect(emailEntry).not.toHaveProperty('nth')
     expect(emailEntry).not.toHaveProperty('ordinal')
     expect(emailEntry.bounds).toEqual({ x: 100, y: 300, width: 880, height: 80 })
@@ -625,7 +625,7 @@ describe('buildRefEntries (execute-time lastRefs reconstruction)', () => {
     const entries = buildRefEntries(nodes, binding)
     const submitRefs = state.elements.filter(e => e.name === 'Submit').map(e => e.ref)
     expect(submitRefs).toHaveLength(2)
-    // 2026-10-09 (438-11): duplicates differ by their node, never by a position (D-13).
+    // duplicates differ by their node, never by a position.
     for (const ref of submitRefs) {
       expect(entries[ref]).toMatchObject({ role: 'button', name: 'Submit' })
       expect(entries[ref]).not.toHaveProperty('nth')
@@ -935,7 +935,7 @@ describe('normalizeRole', () => {
   })
 })
 
-// 437 D-15: the keyboard path learns a field's kind from the observed node's raw input-type.
+// the keyboard path learns a field's kind from the observed node's raw input-type.
 describe('the Android input type', () => {
   function entryFor(attr: string) {
     const xml = androidPage(
