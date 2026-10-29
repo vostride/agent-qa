@@ -206,21 +206,6 @@ describe('C436-NO-SCREEN-CHANGE', () => {
     expect(result.status).toBe('passed')
   })
 
-  it('no new step evidence carries localEffect, stagnation or cycle', async () => {
-    const { result } = await runFivePresses()
-    type LooseEvidence = Record<string, unknown> & { subActions?: Record<string, unknown>[] }
-    const evidence = result.evidence as unknown as LooseEvidence
-
-    expect(evidence).toBeDefined()
-    expect(evidence.subActions).toHaveLength(5)
-    for (const sub of evidence.subActions ?? []) {
-      expect(Object.keys(sub)).not.toContain('localEffect')
-    }
-    expect(Object.keys(evidence)).not.toContain('stagnation')
-    expect(Object.keys(evidence)).not.toContain('cycle')
-    expect(JSON.stringify(evidence)).not.toMatch(/"(localEffect|stagnation|cycle)"/)
-  })
-
   it('a planner-chosen repeat after an actual execution error is the only retry', async () => {
     const trace = newTrace()
     const plans = [

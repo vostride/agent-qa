@@ -1,6 +1,6 @@
 // G-381-5 (Phase 381, Plan 44): the planner is taught the secret-fill contract. 2026-10-14
 // (441-01, D-10, D-16): the contract is one line; the mechanism half is pinned in secrets.test.ts
-// and 441-literal-marker.test.ts.
+// and secret-placeholder-dispatch.test.ts.
 import { describe, it, expect } from 'vitest'
 import { buildSystemPrompt, buildVerifierStableTier } from '../prompts.js'
 import { tokenize } from '../requested-conditions.js'

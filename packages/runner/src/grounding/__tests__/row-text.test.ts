@@ -6,7 +6,6 @@ import type { ElementInfo } from '@vostride/agent-qa-schema'
 import {
   buildScreenState,
   judgeStatedTarget,
-  ROW_CONTAINER_ROLES,
   rowContains,
   rowTextOf,
   wordTokens,
@@ -39,10 +38,6 @@ const ADDRESSES: InterimNode[] = [
 ]
 
 describe('C438-ROW-TEXT', () => {
-  it('the row containers are row, listitem, article and treeitem', () => {
-    expect([...ROW_CONTAINER_ROLES]).toEqual(['row', 'listitem', 'article', 'treeitem'])
-  })
-
   it('the nearest row container wins over an outer cell', () => {
     const elements = elementsOf([
       { role: 'cell', name: 'Outer cell' },

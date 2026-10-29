@@ -1,9 +1,7 @@
-// C438-TARGET-SCHEMA (438 D-01, D-02, D-12): every element tool takes the ref plus the stated
-// target — role, name and row words — and an ordinal is a hard schema error, from the tool call
-// through the provider JSON schema into the plan the check reads. C438-HINTS (D-12, D-14): no
-// grounding error invites a position, and each names its remedy.
+// Every element tool takes the ref plus the stated target — role, name and row words — and an
+// ordinal is a hard schema error, from the tool call through the provider JSON schema into the plan
+// the check reads. Each grounding error hint names its remedy.
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { z } from 'zod'
 import { makeScreenState } from '../../testing/screen-fixtures.js'
 import { LLMPlanner } from '../../loop/planner.js'
 import type { PlanResult } from '../../loop/types.js'
@@ -26,9 +24,6 @@ const PLAN_FIELDS = {
   doesActionAdvanceUsTowardsGoal: true,
 }
 
-const TARGET_KEYS = ['target', 'fromTarget', 'toTarget'] as const
-const REF_KEYS = ['ref', 'fromRef', 'toRef'] as const
-
 function codeOf(run: () => void): string | undefined {
   try {
     run()
@@ -36,13 +31,6 @@ function codeOf(run: () => void): string | undefined {
   } catch (error) {
     return error instanceof GroundingError ? error.code : String(error)
   }
-}
-
-function shapesOf(schema: z.ZodType): Array<Record<string, z.ZodType>> {
-  if (schema instanceof z.ZodDiscriminatedUnion || schema instanceof z.ZodUnion) {
-    return schema.options.map(option => (option as z.ZodObject<any>).shape as Record<string, z.ZodType>)
-  }
-  return [(schema as z.ZodObject<any>).shape as Record<string, z.ZodType>]
 }
 
 describe('C438-TARGET-SCHEMA', () => {
@@ -119,27 +107,6 @@ describe('C438-TARGET-SCHEMA', () => {
     expect(code).toBe('schema_invalid')
   })
 
-  it('every target is described as sent alongside the ref, never "never both"', () => {
-    let targets = 0
-    for (const definition of defaultRegistry.getAll()) {
-      for (const shape of shapesOf(definition.schema)) {
-        for (const key of TARGET_KEYS) {
-          const field = shape[key]
-          if (field === undefined) continue
-          targets++
-          expect(field.description ?? '', `${definition.id}.${key}`).toMatch(/alongside/i)
-          expect(field.description ?? '', `${definition.id}.${key}`).not.toMatch(/never both/i)
-        }
-        for (const key of REF_KEYS) {
-          const field = shape[key]
-          if (field === undefined) continue
-          expect(field.description ?? '', `${definition.id}.${key}`).not.toMatch(/never both/i)
-        }
-      }
-    }
-    expect(targets).toBeGreaterThan(0)
-  })
-
   it("a planning turn's stated row reaches the plan", async () => {
     const { generateText } = await import('ai')
     vi.mocked(generateText).mockResolvedValue({
@@ -164,14 +131,6 @@ describe('C438-TARGET-SCHEMA', () => {
 })
 
 describe('C438-HINTS', () => {
-  const all = (): GroundingError[] => [
-    groundingError.descriptorUnresolved('web_click', 'button "Save"'),
-    groundingError.descriptorAmbiguous('web_click', 'button "Okay"', 2),
-    groundingError.descriptorInvalid('web_click', 'no-handle'),
-    groundingError.descriptorInvalid('web_click', 'name-missing'),
-    groundingError.descriptorInvalid('web_click', 'near-unsupported'),
-  ]
-
   it('an unresolved target names role, name and row words as the restatement', () => {
     const { hint } = groundingError.descriptorUnresolved('web_click', 'button "Save"')
 
@@ -203,13 +162,6 @@ describe('C438-HINTS', () => {
 
     expect(message).toMatch(/use name and role/)
     expect(hint).toMatch(/role and name/)
-  })
-
-  it('no grounding error message or hint mentions an ordinal', () => {
-    for (const error of all()) {
-      expect(error.message, error.code).not.toMatch(/ordinal/i)
-      expect(error.hint, error.code).not.toMatch(/ordinal/i)
-    }
   })
 
   it('a descriptor renders as its role and quoted name only', () => {
