@@ -48,8 +48,9 @@
 //   ARM B (override off) — the receipt for `digest RUN-1` is `failed` with `RunNotFoundError` under
 //     an `agent` origin: the person's canonical words were handed the model's run id.
 //
-// A RELEASE GATE ON PLAN 09's SWITCH (D-13), with a never-skipping announce and a visible skip as
-// the default state.
+// A release gate on the override switch. It runs only when AGENT_QA_LIVE_CHAT_CONFIG names a
+// project config whose registry.llms and auth plugins resolve on this machine, and is skipped
+// otherwise.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -90,13 +91,6 @@ import { resolveCliChatCapabilities } from '../llm-utils.js'
 import type { CliChatCapabilities } from '../llm-utils.js'
 
 const LIVE_CONFIG = process.env.AGENT_QA_LIVE_CHAT_CONFIG
-
-const SKIP_REASON =
-  LIVE_CONFIG === undefined
-    ? 'AGENT_QA_LIVE_CHAT_CONFIG is unset — no live-model auth was offered, so the D-12 binding '
-      + 'differential did not run. Set it to a project config path whose registry.llms and auth '
-      + 'plugins resolve on this machine.'
-    : undefined
 
 /** The run this project actually has. The mapper binds it; it is addressable. */
 const SEEDED_RUN_ID = 'RUN-1'
@@ -179,6 +173,7 @@ interface Arm {
   readonly result: AgentAskResult
   /** A tripwire: nothing in this differential should ever start a run. */
   readonly startedRuns: readonly RunsStartInput[]
+  readonly reading: string
 }
 
 /** The receipt carrying the person's own canonical words — the same row in both arms. */
@@ -186,11 +181,18 @@ function canonicalReceipt(arm: Arm): ClauseReceipt | undefined {
   return arm.result.receipts.find((receipt) => receipt.clause === CANONICAL_CLAUSE)
 }
 
-describe('the binding differential announces which lane actually ran', () => {
-  it('names the gate condition, so a skip can never be mistaken for a pass', () => {
-    process.stderr.write(
-      `\n[D-12 binding differential] ${SKIP_REASON ?? `running against ${String(LIVE_CONFIG)}`}\n`,
-    )
+function armReading(overrideOn: boolean, result: AgentAskResult): string {
+  const ops = result.receipts
+    .map((r) => `${r.clause} | ${r.functionId}:${r.status}:${r.origin}:${r.outcome}`)
+    .join(' ;; ')
+  return (
+    `${overrideOn ? 'override on' : 'override off'} -> ${result.status}`
+    + ` ops=[${ops}] unhandled=${result.unhandled?.clause ?? '-'}`
+  )
+}
+
+describe("the binding differential's utterance", () => {
+  it('names two different runs and opens with the clause the table binds', () => {
     // The two run ids must be genuinely different runs, or the differential compares one thing
     // with itself and passes forever.
     expect(DECOY_RUN_ID).not.toBe(SEEDED_RUN_ID)
@@ -199,7 +201,7 @@ describe('the binding differential announces which lane actually ran', () => {
   })
 })
 
-describe.skipIf(SKIP_REASON !== undefined)(
+describe.skipIf(LIVE_CONFIG === undefined)(
   'the mapper binds the argument, and the model cannot re-address the clause',
   () => {
     let root: string
@@ -255,13 +257,7 @@ describe.skipIf(SKIP_REASON !== undefined)(
         { message: UTTERANCE },
         HUMAN,
       )) as AgentAskResult
-      process.stderr.write(
-        `\n[D-12 binding differential] ${reconcile === undefined ? 'ARM A (override on) ' : 'ARM B (override off)'}`
-          + ` -> ${result.status}`
-          + ` ops=[${result.receipts.map((r) => `${r.clause} | ${r.functionId}:${r.status}:${r.origin}:${r.outcome}`).join(' ;; ')}]`
-          + ` unhandled=${result.unhandled?.clause ?? '-'}\n`,
-      )
-      return { result, startedRuns }
+      return { result, startedRuns, reading: armReading(reconcile === undefined, result) }
     }
 
     /**
@@ -277,6 +273,7 @@ describe.skipIf(SKIP_REASON !== undefined)(
     let decisiveOn: Arm | undefined
     let decisiveOff: Arm | undefined
     let attemptsTaken = 0
+    const attemptLines: string[] = []
 
     beforeAll(async () => {
       if (capabilities === undefined) return
@@ -287,9 +284,10 @@ describe.skipIf(SKIP_REASON !== undefined)(
         const planned = off.result.receipts.some(
           (receipt) => receipt.functionId === RUNS_DIGEST_FUNCTION_ID,
         )
-        process.stderr.write(
-          `\n[D-12 binding differential] attempt ${attempt}/${MAX_ATTEMPTS} `
-            + `${planned ? 'DECISIVE (the model planned the digest op)' : 'inconclusive (the model planned no digest)'}\n`,
+        attemptLines.push(
+          `attempt ${attempt}/${MAX_ATTEMPTS} `
+            + `${planned ? 'decisive (the model planned the digest op)' : 'inconclusive (the model planned no digest)'}`
+            + `\n  ${on.reading}\n  ${off.reading}`,
         )
         if (planned) {
           decisiveOn = on
@@ -311,44 +309,49 @@ describe.skipIf(SKIP_REASON !== undefined)(
       expect(
         decisiveOff,
         `no attempt in ${attemptsTaken} produced a model plan naming the digest op, so nothing `
-          + 'here can say the override corrected anything. Read the per-arm lines above.',
+          + `here can say the override corrected anything.\n${attemptLines.join('\n')}`,
       ).toBeDefined()
-      const receipt = canonicalReceipt(decisiveOff!)
+      const off = decisiveOff!
+      const receipt = canonicalReceipt(off)
 
       // The person's own canonical words are still on the receipt — the clause was not dropped.
-      expect(receipt).toBeDefined()
-      expect(receipt?.functionId).toBe(RUNS_DIGEST_FUNCTION_ID)
+      expect(receipt, off.reading).toBeDefined()
+      expect(receipt?.functionId, off.reading).toBe(RUNS_DIGEST_FUNCTION_ID)
       // And it FAILED, naming the refusal of a run that does not exist: the argument it was handed
       // is the model's, not the table's. This is D-12's dangerous half, executed.
-      expect(receipt?.status).toBe('failed')
-      expect(receipt?.outcome).toContain('RunNotFound')
+      expect(receipt?.status, off.reading).toBe('failed')
+      expect(receipt?.outcome, off.reading).toContain('RunNotFound')
       // Minted as the MODEL acting, because the planner is what bound it.
-      expect(receipt?.origin).toBe('agent')
-      expect(decisiveOff!.startedRuns).toEqual([])
+      expect(receipt?.origin, off.reading).toBe('agent')
+      expect(off.startedRuns, off.reading).toEqual([])
     })
 
     it('THE CLAIM — override on: the SAME clause addresses the run the table bound', () => {
-      expect(decisiveOn).toBeDefined()
+      expect(
+        decisiveOn,
+        `no attempt in ${attemptsTaken} produced a model plan naming the digest op.\n`
+          + attemptLines.join('\n'),
+      ).toBeDefined()
       const on = decisiveOn!
       const receipt = canonicalReceipt(on)
 
       // Same clause text, same function id, opposite outcome. The action set did not move; the
       // bound argument did — which is D-12's second claim isolated from its first.
-      expect(receipt).toBeDefined()
-      expect(receipt?.functionId).toBe(RUNS_DIGEST_FUNCTION_ID)
-      expect(receipt?.status).toBe('executed')
+      expect(receipt, on.reading).toBeDefined()
+      expect(receipt?.functionId, on.reading).toBe(RUNS_DIGEST_FUNCTION_ID)
+      expect(receipt?.status, on.reading).toBe('executed')
       // The clause the table bound executed as a PERSON acting; a uniform mint would have handed a
       // model-originated invocation the self-grant power 391 D-06 withholds.
-      expect(receipt?.origin).toBe('human')
+      expect(receipt?.origin, on.reading).toBe('human')
       // The model's own proposal is not discarded — it answers the clause it was asked about, under
       // an agent origin, and fails on its own merits. The override narrows nothing but the clause
       // the table owns.
       const plannerReceipt = on.result.receipts.find(
         (candidate) => candidate.clause !== CANONICAL_CLAUSE,
       )
-      expect(plannerReceipt?.functionId).toBe(RUNS_DIGEST_FUNCTION_ID)
-      expect(plannerReceipt?.origin).toBe('agent')
-      expect(on.startedRuns).toEqual([])
+      expect(plannerReceipt?.functionId, on.reading).toBe(RUNS_DIGEST_FUNCTION_ID)
+      expect(plannerReceipt?.origin, on.reading).toBe('agent')
+      expect(on.startedRuns, on.reading).toEqual([])
     })
   },
 )
