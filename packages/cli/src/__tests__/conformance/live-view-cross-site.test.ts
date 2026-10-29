@@ -622,8 +622,6 @@ describe('the live-url mint door refuses a cross-site browser request (SC-2, LIV
       }
     }
 
-    console.log(`(2) second-origin chain k=5: ${JSON.stringify(arms)}`)
-
     for (const reading of arms) {
       const context = `arm ${String(reading.arm)} of 5, attacker origin `
         + `http://127.0.0.1:${String(attackerPort)} → dashboard ${dash}: ${JSON.stringify(reading)}. `
@@ -710,7 +708,6 @@ describe('the live-url mint door refuses a cross-site browser request (SC-2, LIV
       types: reading.messages.map((message) => message.type),
       note: reading.note ?? null,
     }]))
-    console.log(`(5) frame-socket Origin rungs: ${JSON.stringify(summary)}`)
     const context = `${JSON.stringify(summary)}. ${childContext(f.dashboard)}`
 
     // THE THREE ALLOWED SHAPES FIRST — they are what makes the refusal below a reading about the
@@ -823,7 +820,6 @@ describe('the live-url mint door refuses a cross-site browser request (SC-2, LIV
       allowedUpgradeStatus: allowedSocket.upgradeStatus,
       allowedTypes: allowedSocket.messages.map((message) => message.type),
     }
-    console.log(`(6) claimed-Host rung: ${JSON.stringify(reading)}`)
     const context = `${JSON.stringify(reading)}. ${childContext(f.dashboard)}`
 
     expect(reading.allowedStatus, `${context} — the same-origin loopback mint stays admitted`).toBe(200)
@@ -891,7 +887,6 @@ describe('the live-url mint door refuses a cross-site browser request (SC-2, LIV
       hostAbsentLiveUrl: liveUrlIn(hostAbsent) === undefined ? null : 'PRESENT',
       hostAbsentBody: hostAbsent.body.slice(0, 200),
     }
-    console.log(`(7) claimed-Host admit side: ${JSON.stringify(reading)}`)
     const context = `${JSON.stringify(reading)}. ${childContext(f.dashboard)}`
 
     for (const [name, status, liveUrl] of [
@@ -1107,7 +1102,6 @@ describe('the live-editor surface refuses a cross-site caller (428 D-08, WINDOWS
       opaque: await upgradeControlSocketRaw({ port, sessionId: UNHELD_SESSION_ID, origin: 'null' }),
       hostile: await upgradeControlSocketRaw({ port, sessionId: UNHELD_SESSION_ID, origin: HOSTILE_ORIGIN }),
     }
-    console.log(`(8) control-socket Origin rungs: ${JSON.stringify(arms)}`)
     const context = `${JSON.stringify(arms)}. ${childContext(f.dashboard)}`
 
     for (const name of ['absent', 'sameHost'] as const) {
@@ -1179,7 +1173,6 @@ describe('the live-editor surface refuses a cross-site caller (428 D-08, WINDOWS
         twinBody: liveUrlIn(twin) === undefined ? twin.body.slice(0, 120) : '<a liveUrl, withheld>',
       })
     }
-    console.log(`(9) live-editor doors: ${JSON.stringify(readings)}`)
     const context = `${JSON.stringify(readings)}. ${childContext(f.dashboard)}`
 
     for (const reading of readings) {
@@ -1286,7 +1279,6 @@ describe('the live-editor surface refuses a cross-site caller (428 D-08, WINDOWS
     } finally {
       await new Promise<void>((closed) => attacker.close(() => closed()))
     }
-    console.log(`(10) second-origin editor mint k=5: ${JSON.stringify(arms)}`)
 
     for (const reading of arms) {
       const context = `arm ${String(reading.arm)} of 5: ${JSON.stringify(reading)}. ${childContext(f.dashboard)}`

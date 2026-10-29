@@ -570,10 +570,6 @@ describe('INVK-05 on real sockets: two surfaces, a mid-run resume, and a detach 
       .toBe(finalSeq - 2)
     expect(contested.ids(), 'so the query\'s own resume point is NOT what was served')
       .not.toContain(2)
-
-    // LOGGED, so the plan's SUMMARY quotes measured numbers rather than the ones this cell hoped
-    // for. Run with `--reporter=verbose` to read them off a green run.
-    console.log(`(7) B last-seen id ${String(lastSeenByB)}, first resumed id ${String(b2.ids()[0] ?? -1)}, final seq ${String(finalSeq)}, contested-resume first id ${String(contested.ids()[0] ?? -1)}`)
   }, 120_000)
 
   it('(8) D-16: a detach owns nothing — the run keeps going and a later viewer sees all of it', async () => {
@@ -708,7 +704,6 @@ describe('INVK-05 on real sockets: two surfaces, a mid-run resume, and a detach 
     page.on('framenavigated', (frame) => {
       if (frame === page.mainFrame()) navigations.push(frame.url())
     })
-    const startedAt = Date.now()
     try {
       // THE WHOLE PRODUCTION CHAIN, and nothing planted anywhere in it: the built `agent-qa
       // dashboard` binary, its own queue, its own run, its own bus, its own `uiDir`, driven by a
@@ -723,7 +718,6 @@ describe('INVK-05 on real sockets: two surfaces, a mid-run resume, and a detach 
       // like any other — this is that assumption, on the shipped binary. A viewer attached BEFORE
       // it is `live-view-dom.test.ts` cell (9).
       await page.waitForURL(/\/runs\/[^/]+$/u, { timeout: 60_000 })
-      const arrivedAt = Date.now()
       expect(
         page.url().endsWith(`/runs/${f.runId}`),
         `landed on ${page.url()}; navigations ${JSON.stringify(navigations)}. ${childContext(f.dashboard)}`,
@@ -815,12 +809,6 @@ describe('INVK-05 on real sockets: two surfaces, a mid-run resume, and a detach 
       const settled = attaches.length
       await page.waitForTimeout(5_000)
       expect(attaches.length, `attaches: ${JSON.stringify(attaches)}`).toBe(settled)
-
-      console.log(
-        `(10) shipped binary: verdict ${String(verdictWord)}, arrived in ${String(arrivedAt - startedAt)}ms, `
-        + `navigations ${JSON.stringify(navigations)}, attaches ${String(attaches.length)}, `
-        + `post-runFinished envelopes ${JSON.stringify(afterFinished)}`,
-      )
     } finally {
       await page.close()
     }

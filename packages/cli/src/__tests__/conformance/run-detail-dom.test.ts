@@ -828,10 +828,6 @@ describe('the shipped dashboard renders run detail populated and unmasked (405-1
       + 'about the number rather than the number, and the header is a glance; it belongs in the '
       + `usage card, where a reader who wants it is already looking.${context()}`,
     ).not.toMatch(/of \d+ steps/u)
-    console.log(
-      `[425-11] (1f) header token pair ${JSON.stringify(observed.runTokenSummary)} `
-      + `from ${JSON.stringify(tokens)}`,
-    )
   })
 
   /**
@@ -891,9 +887,6 @@ describe('the shipped dashboard renders run detail populated and unmasked (405-1
         + `lines: ${JSON.stringify(lines)}${context()}`,
       ).toEqual([])
     }
-    console.log(
-      `[425-15] (1g) usage card lines ${JSON.stringify(lines)} from ${JSON.stringify(tokens)}`,
-    )
   })
 
   it('(1e) screen context: recorded hash survives removal of the redundant Overview chip', () => {

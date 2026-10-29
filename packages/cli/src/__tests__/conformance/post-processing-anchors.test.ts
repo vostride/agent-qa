@@ -329,10 +329,6 @@ describePosix('LIFE-02: a run the DASHBOARD started is drained BY the dashboard 
       `the chain had already settled by the time the run left the active set, so this reading says `
       + `nothing about the tail: ${JSON.stringify(f.chainAtRunFinished)}`,
     ).toEqual({ analysis: 'pending', curation: 'pending' })
-    console.log(
-      `[404-05] left the active set ${f.secondsToLeaveActiveSet.toFixed(2)}s after runFinished; `
-      + `chain at that instant: ${JSON.stringify(f.chainAtRunFinished)}`,
-    )
   })
 
   it('serves chip truth by name on the new read route, with the run posture beside it', async () => {

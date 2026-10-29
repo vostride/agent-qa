@@ -47,10 +47,10 @@
 // WHAT THIS FILE DOES NOT MEASURE, STATED RATHER THAN IMPLIED (WINDOWS #283). The push-vs-poll
 // differential — cell (1b) — is measured at the shipped dashboard's own two routes with a `fetch`
 // subscriber and a poller running at the client's own period, NOT through the browser's own
-// `EventSource`. The reason is a wall clock and it is printed by cell (1) on every run: this
-// fixture's entire post-verdict chain settles about 350 ms after the verdict, run detail costs
-// about 310 ms to mount, and a page may not arrive any earlier than the verdict because a cold
-// `/runs/:id` on a live row bounces to `/live` by design (D-07). So a browser gets perhaps forty
+// `EventSource`. The reason is a wall clock: this fixture's entire post-verdict chain settles about
+// 350 ms after the verdict, run detail costs about 310 ms to mount, and a page may not arrive any
+// earlier than the verdict because a cold `/runs/:id` on a live row bounces to `/live` by design
+// (D-07). So a browser gets perhaps forty
 // milliseconds inside the window, and it lost the race on every arm measured. Rather than assert a
 // coin flip, cell (1) states what it CAN state unconditionally (at most one stream, ever; the same
 // terminal words; the chain painted from durable state) and adds the push assertion as an
@@ -59,10 +59,10 @@
 // a frame triggers a re-read and never a paint, at most one source per watcher — is pinned in
 // jsdom by 404-07's `lib/__tests__/api.post-processing.test.ts`.
 //
-// THE TIMING CELLS RUN IN REAL TIME AND EVERY READING IS PRINTED. There is no fake clock behind a
-// browser, and the whole question cell (1b) asks — "did that chip move sooner than a poll could
-// have moved it" — is a question about wall time. k=3 for both timing-shaped cells, each arm's
-// reading reported.
+// THE TIMING CELLS RUN IN REAL TIME. There is no fake clock behind a browser, and the whole
+// question cell (1b) asks — "did that chip move sooner than a poll could have moved it" — is a
+// question about wall time. k=3 for both timing-shaped cells, each arm's reading named in its own
+// failure message.
 //
 // THE DRIVING HAPPENS ONCE, IN `beforeAll`, AND THE CELLS ASSERT ON WHAT IT RECORDED —
 // `post-processing-anchors.test.ts`'s idiom. Two reasons, and the second is the load-bearing one:
@@ -296,16 +296,10 @@ interface PageObservation {
   readonly firstReadHadDisposition: boolean
   /** Whether the chain was already terminal on the first read. */
   readonly firstReadTerminal: boolean
-  /** When the separate Node subscriber received this run's `verdict`, for server-side diagnostics. */
-  readonly verdictAt?: number
   /** When this browser received its own `verdict`, on the browser's monotonic clock. */
   readonly browserVerdictAt?: number
   /** When this page changed its route, on the same browser clock as `browserVerdictAt`. */
   readonly navigatedAt?: number
-  /** When the durable rows first read terminal. */
-  readonly terminalAt?: number
-  /** When the page issued its FIRST read of this run's chain. */
-  readonly firstReadAt?: number
   /** What the DURABLE read said for this run at the end of the observation. */
   readonly durableChips?: Record<string, string>
 }
@@ -318,10 +312,10 @@ interface PageObservation {
  * channels rather than about a renderer. It is measured here because a browser cannot reliably be
  * inside the window: this fixture's whole chain settles roughly 350 ms after the verdict, run
  * detail costs roughly 310 ms to mount, and a page may not arrive any earlier than the verdict
- * (the D-07 bounce). Both numbers are printed by cell (1), which also records how many arms DID
- * arrive in flight. A subscriber attached with `fetch` needs about five milliseconds, so the
- * differential is measured where it can be measured honestly — on the same binary, through the
- * same two routes, with the client's own poll period as the control.
+ * (the D-07 bounce). Cell (1) records how many arms DID arrive in flight. A subscriber attached
+ * with `fetch` needs about five milliseconds, so the differential is measured where it can be
+ * measured honestly — on the same binary, through the same two routes, with the client's own poll
+ * period as the control.
  */
 interface PushPollArm {
   readonly runId: string
@@ -536,9 +530,9 @@ async function drivePushPollArm(fx: DrainFixture): Promise<PushPollArm> {
  * WHY AN ARM NEEDS A BUSY QUEUE, MEASURED RATHER THAN ASSUMED. This fixture's chain settles about
  * 390 ms after the verdict, and a browser needs about 310 ms to mount run detail and issue its
  * first read — so a page that arrives at the D-13 moment reaches a chain with roughly eighty
- * milliseconds of life left, and three arms out of three opened onto a finished one. Both numbers
- * are printed by cell (1). Nothing about the product is wrong there; the fixture is simply the
- * smallest possible unit of post-processing work.
+ * milliseconds of life left, and three arms out of three opened onto a finished one. Nothing about
+ * the product is wrong there; the fixture is simply the smallest possible unit of post-processing
+ * work.
  *
  * SO THE QUEUE IS GIVEN A BACKLOG, WHICH IS A REAL STATE AND NOT A DELAY. Runs whose post-verdict
  * step found the writer lease held are `handedOff`: their chains sit in the store, unclaimed, until
@@ -728,11 +722,8 @@ async function harvest(
   firstRead: {
     hadDisposition: boolean
     terminal: boolean
-    verdictAt?: number
     browserVerdictAt?: number
     navigatedAt?: number
-    terminalAt?: number
-    firstReadAt?: number
     durableChips?: Record<string, string>
   },
 ): Promise<PageObservation> {
@@ -795,51 +786,9 @@ async function harvest(
     ...(analysisRetry === undefined ? {} : { analysisRetry }),
     firstReadHadDisposition: firstRead.hadDisposition,
     firstReadTerminal: firstRead.terminal,
-    ...(firstRead.verdictAt === undefined ? {} : { verdictAt: firstRead.verdictAt }),
     ...(firstRead.browserVerdictAt === undefined ? {} : { browserVerdictAt: firstRead.browserVerdictAt }),
     ...(firstRead.navigatedAt === undefined ? {} : { navigatedAt: firstRead.navigatedAt }),
-    ...(firstRead.terminalAt === undefined ? {} : { terminalAt: firstRead.terminalAt }),
-    ...(firstRead.firstReadAt === undefined ? {} : { firstReadAt: firstRead.firstReadAt }),
     ...(firstRead.durableChips === undefined ? {} : { durableChips: firstRead.durableChips }),
-  }
-}
-
-/**
- * Read the local run-stream door until a named frame arrives, and say when it did.
- *
- * NEVER A SLEEP: the frame is the event a posture is timed from, so it is READ. The re-attach loop
- * is `post-processing-anchors.test.ts`'s, for its reason — `POST /api/runs/trigger` acks before the
- * session is registered, and the registry keeps a finished run attachable for its retention window,
- * so a replay that opens late still carries the whole log.
- */
-async function readUntilFrame(origin: string, runId: string, frame: string, budgetMs: number): Promise<void> {
-  const url = `${origin}/api/run-stream/${encodeURIComponent(runId)}`
-  const deadline = Date.now() + budgetMs
-  for (;;) {
-    const controller = new AbortController()
-    const timer = setTimeout(() => { controller.abort() }, Math.max(1_000, deadline - Date.now()))
-    let saw = false
-    try {
-      const response = await fetch(url, { signal: controller.signal })
-      if (response.body !== null && (response.headers.get('content-type') ?? '').includes('text/event-stream')) {
-        const reader = response.body.getReader()
-        const decoder = new TextDecoder()
-        let body = ''
-        for (;;) {
-          const chunk = await reader.read()
-          if (chunk.done) break
-          body += decoder.decode(chunk.value, { stream: true })
-          if (body.includes(`event: ${frame}`)) { saw = true; break }
-        }
-        await reader.cancel().catch(() => undefined)
-      }
-    } catch { /* an aborted or refused attach is retried below, within the same budget */ }
-    finally { clearTimeout(timer) }
-    if (saw) return
-    if (Date.now() >= deadline) {
-      throw new Error(`the local door never served an \`event: ${frame}\` frame for ${runId}`)
-    }
-    await new Promise<void>((tick) => { setTimeout(tick, 100) })
   }
 }
 
@@ -911,10 +860,6 @@ async function driveInProcessArm(
 
     const runId = await triggerDrainableRun(fx.dashboard.origin)
     await armVerdictNavigationObserver(page, runId)
-    let verdictFrameAt = 0
-    const verdictWatch = readUntilFrame(fx.dashboard.origin, runId, 'verdict', RUN_BUDGET_MS)
-      .then(() => { verdictFrameAt = Date.now() })
-      .catch(() => { /* recorded as 0; the printed gaps say so */ })
     const traffic = trackPostProcessingTraffic(page, runId)
 
     // THE VIEWER ARRIVES THE WAY D-13 SENDS THEM, and this is not stylistic. `/runs/:id` opened
@@ -932,8 +877,6 @@ async function driveInProcessArm(
     const browserTiming = await page.evaluate(() =>
       (window as unknown as { __verdictNavigation: { verdictAt?: number; navigatedAt?: number } }).__verdictNavigation,
     )
-    await verdictWatch
-    const verdictAt = verdictFrameAt
 
     // What the FIRST read of the route said, read from this process at the moment the page's own
     // first response landed. It is the D-13 marker: a first read with no `disposition` is a page
@@ -945,7 +888,6 @@ async function driveInProcessArm(
       RUN_BUDGET_MS,
       10,
     )
-    const firstReadAt = traffic.requests.filter(isRead)[0]?.at
     const atFirstRead = await readChain(fx.dashboard.origin, runId)
 
     await waitUntil(
@@ -954,7 +896,6 @@ async function driveInProcessArm(
       CHAIN_BUDGET_MS,
       100,
     )
-    const terminalAt = Date.now()
     // The page is given room past the durable terminal to paint it: the last transition is a
     // render, not a row.
     await waitUntil(
@@ -972,11 +913,8 @@ async function driveInProcessArm(
     return await harvest(page, runId, traffic, {
       hadDisposition: atFirstRead.disposition !== undefined,
       terminal: chainTerminal(atFirstRead),
-      verdictAt,
       ...(browserTiming.verdictAt === undefined ? {} : { browserVerdictAt: browserTiming.verdictAt }),
       ...(browserTiming.navigatedAt === undefined ? {} : { navigatedAt: browserTiming.navigatedAt }),
-      terminalAt,
-      ...(firstReadAt === undefined ? {} : { firstReadAt }),
       durableChips: (await readChain(fx.dashboard.origin, runId)).status.chips,
     })
   } finally {
@@ -1281,19 +1219,6 @@ describePosix('D-19 on the built bundle behind the shipped dashboard (LIFE-03 / 
   it('(1) the D-13 arrival opens AT MOST one stream and paints the chain from durable state', () => {
     driveOk()
     expect(recorded.inProcess.length, 'k arms were measured').toBe(K)
-    console.log(
-      `[404-08] (1) k=${String(K)} arms — streams opened per arm: `
-      + `${JSON.stringify(recorded.inProcess.map((arm) => arm.requests.filter(isStream).length))}; `
-      + `reads per arm: ${JSON.stringify(recorded.inProcess.map((arm) => arm.requests.filter(isRead).length))}; `
-      + 'browser verdict receipt → D-13 navigation (ms): '
-      + `${JSON.stringify(recorded.inProcess.map((arm) => (arm.navigatedAt ?? 0) - (arm.browserVerdictAt ?? 0)))}; `
-      + 'Node verdict receipt → the page first read (ms): '
-      + `${JSON.stringify(recorded.inProcess.map((arm) => (arm.firstReadAt ?? 0) - (arm.verdictAt ?? 0)))}; `
-      + 'Node verdict receipt → durable terminal (ms): '
-      + `${JSON.stringify(recorded.inProcess.map((arm) => (arm.terminalAt ?? 0) - (arm.verdictAt ?? 0)))}; `
-      + `arrived with the chain still in flight: ${JSON.stringify(recorded.inProcess.map((arm) => !arm.firstReadTerminal))}; `
-      + `terminal words: ${JSON.stringify(recorded.inProcess.map((arm) => arm.painted))}`,
-    )
     for (const [index, arm] of recorded.inProcess.entries()) {
       const streams = arm.requests.filter(isStream).length
       expect(
@@ -1340,7 +1265,6 @@ describePosix('D-19 on the built bundle behind the shipped dashboard (LIFE-03 / 
   it('(1b) PUSH beats POLL on the shipped dashboard: the stream carries the settle first', () => {
     driveOk()
     expect(recorded.differential.length, 'k arms were measured').toBe(K)
-    const gaps: number[] = []
     for (const [index, arm] of recorded.differential.entries()) {
       expect(
         arm.streamStatus,
@@ -1361,7 +1285,6 @@ describePosix('D-19 on the built bundle behind the shipped dashboard (LIFE-03 / 
       ).toBeDefined()
       expect(arm.pollSettledAt, `arm ${String(index)} (${arm.runId}) never saw analysis settle by poll`).toBeDefined()
       const gap = (arm.pollSettledAt as number) - (arm.streamSettledAt as number)
-      gaps.push(gap)
       expect(
         gap,
         `arm ${String(index)} (${arm.runId}): the poller — running at the client's own `
@@ -1371,35 +1294,19 @@ describePosix('D-19 on the built bundle behind the shipped dashboard (LIFE-03 / 
         + 'which is what a silenced relay produces',
       ).toBeGreaterThan(0)
     }
-    console.log(
-      `[404-08] (1b) k=${String(K)} arms — poll-behind-push gap (ms): ${JSON.stringify(gaps)}; `
-      + `poll reads before the settle: ${JSON.stringify(recorded.differential.map((arm) => arm.pollReads))}; `
-      + `frames per arm: ${JSON.stringify(recorded.differential.map((arm) => arm.frames.map((frame) => frame.type)))}`,
-    )
   }, 120_000)
 
   it('(2) no socket: the SAME terminal words arrive by the durable read, with zero stream responses', () => {
     driveOk()
     expect(recorded.noSocket.length).toBe(K)
-    const ceilings: number[] = []
-    console.log(
-      `[404-08] (2) k=${String(K)} arms with the stream ABORTED in the browser — `
-      + `stream requests attempted per arm: ${JSON.stringify(recorded.noSocket.map((arm) => arm.requests.filter(isStream).length))}; `
-      + `stream responses received: ${JSON.stringify(recorded.noSocket.map((arm) => arm.responses.filter(isStream).length))}; `
-      + `reads per arm: ${JSON.stringify(recorded.noSocket.map((arm) => arm.requests.filter(isRead).length))}; `
-      + `arrived with the chain still in flight: ${JSON.stringify(recorded.noSocket.map((arm) => !arm.firstReadTerminal))}; `
-      + `terminal words painted: ${JSON.stringify(recorded.noSocket.map((arm) => arm.painted))}; `
-      + `durable words: ${JSON.stringify(recorded.noSocket.map((arm) => arm.durableChips))}; `
-      + `the push arms painted: ${JSON.stringify(recorded.inProcess.map((arm) => arm.painted))}`,
-    )
     for (const [index, arm] of recorded.noSocket.entries()) {
       // THE ROUTE IS INSTALLED BEFORE THE FIRST NAVIGATION AND STAYS FOR THE PAGE'S WHOLE LIFE, so
       // the push channel is unreachable for every millisecond this arm exists. Whether the client
-      // ATTEMPTS one is its own decision and is printed above: on a chain that is already terminal
-      // at the first read it correctly attempts nothing, which makes this particular assertion a
-      // guard rather than a measurement. The non-vacuous "settles with no socket" proof is cell (3)
-      // — a real daemon draining for seconds while the page opens ZERO streams and moves its chips
-      // on its own interval — and cell (4) for the return visit.
+      // ATTEMPTS one is its own decision: on a chain that is already terminal at the first read it
+      // correctly attempts nothing, which makes this particular assertion a guard rather than a
+      // measurement. The non-vacuous "settles with no socket" proof is cell (3) — a real daemon
+      // draining for seconds while the page opens ZERO streams and moves its chips on its own
+      // interval — and cell (4) for the return visit.
       expect(
         arm.responses.filter(isStream).length,
         `arm ${String(index)} (${arm.runId}) received a response on the aborted stream, so the abort did not take `
@@ -1410,7 +1317,7 @@ describePosix('D-19 on the built bundle behind the shipped dashboard (LIFE-03 / 
       // channel still converges on what the store says — comparing two different runs' chips would
       // additionally assert that two runs settle identically, which is a fact about the fixture and
       // not about the client, and which a red analysis on either side would break for the wrong
-      // reason. Both arms' words are printed above so a divergence is still visible.
+      // reason.
       expect(
         arm.painted,
         `arm ${String(index)} (${arm.runId}) painted ${JSON.stringify(arm.painted)} while the durable read said `
@@ -1426,7 +1333,6 @@ describePosix('D-19 on the built bundle behind the shipped dashboard (LIFE-03 / 
         .filter((lag): lag is number => lag !== undefined)
       expect(lags.length, `arm ${String(index)} recorded no timed transition`).toBeGreaterThan(0)
       const worst = Math.max(...lags)
-      ceilings.push(worst)
       // EVERY PAINT FOLLOWS A READ IT COULD HAVE COME FROM. The poll FLOOR itself — a chain whose
       // chips move over several periods with no socket at all — is measured by cell (3), where a
       // real daemon drains for seconds and the page's only channel is its own interval.
@@ -1437,7 +1343,6 @@ describePosix('D-19 on the built bundle behind the shipped dashboard (LIFE-03 / 
         + `${String(POLL_MS + 1_000)}ms means the page was not repainting off its own poll. lags: ${JSON.stringify(lags)}`,
       ).toBeLessThanOrEqual(POLL_MS + 1_000)
     }
-    console.log(`[404-08] (2) worst transition-to-read lag per arm (ms): ${JSON.stringify(ceilings)}`)
   }, 60_000)
 
   it('(3) handedOff: a real daemon drains it, the page opens NO stream, and the chips settle by poll', () => {
@@ -1460,11 +1365,6 @@ describePosix('D-19 on the built bundle behind the shipped dashboard (LIFE-03 / 
       handed!.painted,
       `the daemon-drained chain did not settle on the page. html: ${handed!.html.slice(0, 400)}`,
     ).toEqual({ analysis: 'failed', curation: 'complete' })
-    console.log(
-      `[404-08] (3) handedOff ${handed!.runId} — reads ${String(handed!.requests.filter(isRead).length)}, `
-      + `streams ${String(handed!.requests.filter(isStream).length)}, `
-      + `transitions ${JSON.stringify(movingTransitions(handed!).map((t) => t.state))}`,
-    )
   }, 120_000)
 
   it('(3b) D-21 as narrowed: the daemon-drained failure says who held the pen, and shows no error text', () => {
@@ -1537,10 +1437,6 @@ describePosix('D-19 on the built bundle behind the shipped dashboard (LIFE-03 / 
       'the line printed a broken number or an unset field as if it were a measurement; an '
       + `unparseable instant must drop its clause, never render it. line: ${JSON.stringify(timing)}`,
     ).not.toMatch(/NaN|Invalid|undefined/u)
-    console.log(
-      `[404-08] (3b) absent-reason outcome line: ${JSON.stringify(handed!.analysisOutcome)}, `
-      + `timing ${JSON.stringify(handed!.analysisTiming)}, retry ${JSON.stringify(handed!.analysisRetry)}`,
-    )
   }, 60_000)
 
   it('(4) return visit: exactly ONE read, no socket, painted terminal', () => {
@@ -1561,11 +1457,6 @@ describePosix('D-19 on the built bundle behind the shipped dashboard (LIFE-03 / 
       analysis: expect.stringMatching(/^(?:complete|failed)$/u),
       curation: expect.stringMatching(/^(?:complete|failed)$/u),
     })
-    console.log(
-      `[404-08] (4) return visit ${visit!.runId} — reads ${String(visit!.requests.filter(isRead).length)}, `
-      + `streams ${String(visit!.requests.filter(isStream).length)}, painted ${JSON.stringify(visit!.painted)} `
-      + `(held ${String(POLL_MS * 2)}ms past paint)`,
-    )
   }, 60_000)
 
   it("the RED run paints `analysis failed` with the producer's own masked reason (D-21, folded 399)", () => {
@@ -1616,12 +1507,6 @@ describePosix('D-19 on the built bundle behind the shipped dashboard (LIFE-03 / 
       red!.painted.analysis,
       'never `pending` once the stage is terminal — the folded 399 todo\'s whole complaint',
     ).not.toBe('pending')
-    console.log(
-      `[404-08] red run ${red!.runId} — analysis ${red!.painted.analysis}, `
-      + `reason ${String(redReason.length)} chars, retry ${JSON.stringify(red!.analysisRetry)} `
-      + `(read said willRetry ${String(recorded.redRunWillRetry)}), `
-      + `curation ${red!.painted.curation}; trail ${JSON.stringify(recorded.redRunEventTypes)}`,
-    )
   }, 60_000)
 
   it('CONTROL: a COLD process with no dashboard running answers what the page painted', () => {
@@ -1640,9 +1525,5 @@ describePosix('D-19 on the built bundle behind the shipped dashboard (LIFE-03 / 
       + 'process, no server, no relay, no warm cache — must answer the same words. '
       + `cold: ${JSON.stringify(cold!.chips)}; painted: ${JSON.stringify(painted)}`,
     ).toEqual(painted)
-    console.log(
-      `[404-08] cold control ${cold!.runId} — exit ${String(cold!.exit)}, chips ${JSON.stringify(cold!.chips)} `
-      + `(the dashboard was already stopped)`,
-    )
   }, 60_000)
 })

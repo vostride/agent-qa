@@ -442,7 +442,6 @@ describe('the live step rows on the shipped bundle (428-24 Task 1)', () => {
     for (const viewport of [DESKTOP, NARROW]) {
       await onLivePage(LONG_RUN, async (page) => {
         const reading = await readLongLabel(page)
-        console.log(`LONG-LABEL-FULLY-VISIBLE-SHIPPED ${String(viewport.width)}: ${JSON.stringify(reading)}`)
         expectLongLabelFullyVisible(reading, viewport)
         await captureElement(page, '[data-live-pane="steps"]', `428-live-steps-long-${String(viewport.width)}`)
       }, viewport)
@@ -566,7 +565,6 @@ describe('the live page layout on the shipped bundle (428-24 Task 2)', () => {
       await waitForGreen(page)
       const layout = await readLayout(page)
       const context = JSON.stringify(layout)
-      console.log(`STACKED-AT-400: ${context}`)
       expect(layout.viewport, context).toBe(NARROW.width)
       expect(layout.panes, context).toBe(2)
       expect(previewAboveSteps(layout), `${context} — the preview is above the steps`).toBe(true)
@@ -594,7 +592,6 @@ describe('the live page layout on the shipped bundle (428-24 Task 2)', () => {
       await waitForGreen(page)
       const layout = await readLayout(page)
       const context = JSON.stringify(layout)
-      console.log(`DOCKED-AT-1280: ${context}`)
       expect(layout.viewport, context).toBe(DESKTOP.width)
       expect(layout.panes, context).toBe(2)
       const { preview, steps } = layout
@@ -620,13 +617,11 @@ describe('the live page layout on the shipped bundle (428-24 Task 2)', () => {
       expect(previewAboveSteps(await readLayout(page)), 'the control: the page starts docked').toBe(false)
 
       const down = await flipAndWatch(page, NARROW, watch)
-      console.log(`FLIP-RECOVERS 1280->400: ${JSON.stringify(down)}`)
       expectRecovered(down, true)
 
       // The way back moves the preview panel's node (React keeps the steps panel in place and moves
       // the others), which is where a real browser reloads the iframe (428-16's note).
       const up = await flipAndWatch(page, DESKTOP, watch)
-      console.log(`FLIP-RECOVERS 400->1280: ${JSON.stringify(up)}`)
       expectRecovered(up, false)
     })
   }, 120_000)
@@ -779,7 +774,6 @@ describe('a suite\'s shipped page follows its running member (428-33, G-428-3)',
       }
       const secondAfterMs = second === undefined ? undefined : second.at - startedAt
       const trace = { before, states, mints: mints.map(redactedMint), secondAfterMs }
-      console.log(`FOLLOWS-RUNNING-MEMBER-SHIPPED: ${JSON.stringify(trace)}`)
       expect(second, `${JSON.stringify(trace)} — a mint for handle 1 within 15 s`).toBeDefined()
       expect(states, `${JSON.stringify(trace)} — never the member-finished sentence while member 1 runs`)
         .not.toContain('member-ended')

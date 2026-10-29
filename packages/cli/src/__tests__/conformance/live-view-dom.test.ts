@@ -534,7 +534,6 @@ describe('the built live surface, in a real browser (403-06 Task 1)', () => {
       expect(arm.attaches, `${context} — one continuous socket, not a reconnect loop`).toBe(1)
     }
     expect(f.dom.cancelCalls(), 'watching a run never cancels it').toBe(0)
-    console.log(`(5a) k=5 heartbeat arms: ${JSON.stringify(arms)}`)
   }, 180_000)
 
   it('(5b) D-03: k=2 — an OPEN socket that has heard nothing for 21 s renders no liveness element', async () => {
@@ -594,7 +593,6 @@ describe('the built live surface, in a real browser (403-06 Task 1)', () => {
       expect(arm.rowsAfterPublish, `${context} — and the next envelope reaches the rows`).toBe(1)
       expect(arm.livenessAfterPublish, context).toBe(0)
     }
-    console.log(`(5b) k=2 open-and-silent arms: ${JSON.stringify(arms)}`)
   }, 180_000)
 
   it('(5c) D-03: a dropped socket that comes back renders no liveness element either side of the drop', async () => {
@@ -782,7 +780,6 @@ describe('the built live surface, in a real browser (403-06 Task 1)', () => {
       arms.push({ arm: k + 1, ...reading })
     }
 
-    console.log(`(8) arm 1 (none-at-attach) k=5: ${JSON.stringify(arms)}`)
     for (const arm of arms) {
       const context = `arm ${String(arm.arm)} of 5: ${JSON.stringify(arm)}`
       expect(arm.control, `${context} — the NON-VACUITY CONTROL: the door really did answer `
@@ -845,7 +842,6 @@ describe('the built live surface, in a real browser (403-06 Task 1)', () => {
       arms.push({ arm: k + 1, ...reading })
     }
 
-    console.log(`(8b) arm 2 (unknown_run-at-attach) k=5: ${JSON.stringify(arms)}`)
     for (const arm of arms) {
       const context = `arm ${String(arm.arm)} of 5: ${JSON.stringify(arm)}`
       expect(arm.controlBefore, `${context} — the control: the mint door really did refuse by name`)
@@ -919,9 +915,9 @@ describe('the built live surface, in a real browser (403-06 Task 1)', () => {
       ).toBe(true)
       expect(
         navigations.some((url) => url.includes('/live')),
-        'the control: this page really was on a live surface at some point',
+        'the control: this page really was on a live surface at some point; navigations '
+          + JSON.stringify(navigations),
       ).toBe(true)
-      console.log(`(9) navigations: ${JSON.stringify(navigations)}`)
     } finally {
       await page.close()
     }

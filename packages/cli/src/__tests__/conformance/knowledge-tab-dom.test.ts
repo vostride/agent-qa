@@ -2298,7 +2298,6 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     const recorded = a4 ? scan : quiet
     const seen = `\n(a9) assumption A4 ${a4 ? 'holds' : 'is false'}; fixture A's snapshot: `
       + `${JSON.stringify(scanSnapshot)}; asserted on: ${label}${context(label, recorded)}`
-    console.info('(a9)', JSON.stringify({ a4, scanSnapshot, world: label }))
 
     const observed = visitOf(label, recorded)
     const ready = readyProjection(label, recorded)
@@ -2728,13 +2727,11 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     //       `canaryOutcomeWord`'s own three-arm order — unsettled chain, then a served row, then
     //       the read — and no attribute at all on a line that was not served as a canary?
     //
-    // THE CENSUS IS THE MEASUREMENT OF REACHABILITY BOUND (a). One row per world, printed once
-    // verbatim, recording `(scanIncomplete, changes.length, canary lines painted)`. The claim "no
-    // built-bundle world yields `{ scanIncomplete: true, changes: [non-empty] }`" is READ OFF that
-    // table rather than argued, and any future world that does produce the shape appears in the
-    // same table instead of going unnoticed. The cell does NOT assert the bound — it is a
-    // cardinality of the worlds that exist, not a law, and asserting it would red the day someone
-    // builds the world the op already sanctions.
+    // THE CENSUS IS THE MEASUREMENT OF REACHABILITY BOUND (a). One row per world, recording
+    // `(scanIncomplete, changes.length, canary lines painted)`, carried verbatim in every failure
+    // message below. The cell does NOT assert the bound — it is a cardinality of the worlds that
+    // exist, not a law, and asserting it would red the day someone builds the world the op already
+    // sanctions.
 
     const worlds = [
       { world: 'scan', label: 'scan' as const, recorded: scan, projection: scan.projection, visit: scan.visit },
@@ -2775,9 +2772,9 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
       },
     ]
 
-    // FOLDED WITHOUT ASSERTING, so the census exists — and prints — even for the run that is about
-    // to red. `changes: -1` is the sentinel for a world whose read never answered `ready`; the
-    // assertion below names it, and no passing run can carry it.
+    // FOLDED WITHOUT ASSERTING, so the census exists even for the run that is about to red.
+    // `changes: -1` is the sentinel for a world whose read never answered `ready`; the assertion
+    // below names it, and no passing run can carry it.
     const census = worlds.map((entry) => ({
       world: entry.world,
       scanIncomplete: (entry.projection?.kind === 'ready' ? entry.projection : undefined)
@@ -2801,17 +2798,6 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
       // an all-channel-2 step is a visible column change rather than a silently emptied agreement.
       channel1Branch: channel1BranchOf(entry.projection),
     }))
-
-    // PRINTED ONCE, AFTER THE FOLD AND BEFORE THE ASSERTIONS, so the vitest output carries the
-    // table verbatim whether the cell passes or fails.
-    //
-    // TO SEE IT ON A GREEN RUN, PASS `--silent=false`: this vitest defaults to `passed-only`, so a
-    // passing cell's stdout is dropped by the reporter while a failing one's is kept. The flag has
-    // to reach vitest directly — `pnpm exec` swallows it — e.g.
-    //   node ../../node_modules/vitest/vitest.mjs run --silent=false --reporter=verbose \
-    //     src/__tests__/conformance/knowledge-tab-dom.test.ts
-    // The census is embedded in every failure message below regardless, so a RED always carries it.
-    console.info('(c4) census', JSON.stringify(census))
 
     const censusOf = (world: string): string =>
       `\n(c4) world: ${world}; entry: ${JSON.stringify(census.find((row) => row.world === world))}`
@@ -3268,14 +3254,6 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     expect(withoutUtility, `(c6) recorded no WITHOUT-utility geometry.${seen}`).toBeDefined()
     const held = withUtility as WrapGeometry
     const bare = withoutUtility as WrapGeometry
-
-    // PRINTED ONCE on a green run, the way the census is (`--silent=false` to see it), and carried
-    // verbatim in every failure message below.
-    console.info('(c6) unbroken-token geometry', JSON.stringify({
-      addressedBy: probe?.addressedBy,
-      withUtility: held,
-      withoutUtility: bare,
-    }))
 
     // ── THE NODE REALLY CARRIED THE UTILITY. Removing a class that was not there would produce a
     // "differential" of two identical readings, and the second assertion below would then be

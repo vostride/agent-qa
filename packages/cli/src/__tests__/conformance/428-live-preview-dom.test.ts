@@ -361,7 +361,6 @@ describe('the live preview corner on the shipped bundle (428-23 Task 1)', () => 
         }
       }, REMOVED_ANIMATIONS)
       const context = JSON.stringify({ ...census, painted })
-      console.log(`NO-ANIMATION-ON-LIVE-PAGE: ${context}`)
 
       expect(census.panes, context).toEqual(['preview', 'steps'])
       expect(census.dots, context).toEqual(['green'])
@@ -418,14 +417,12 @@ describe('the live preview corner on the shipped bundle (428-23 Task 1)', () => 
     await onLivePage(DOT_RUN, async (page) => {
       await waitForGreen(page)
       const geometry = await statusGeometry(page)
-      console.log(`DOT-TOP-RIGHT-OF-CONTAINER 1280: ${JSON.stringify(geometry)}`)
       expectDotTopRightOfContainer(geometry, '1280')
       await capture(page, '428-corner-healthy-1280')
     })
     await onLivePage(DOT_RUN, async (page) => {
       await waitForGreen(page)
       const geometry = await statusGeometry(page)
-      console.log(`DOT-TOP-RIGHT-OF-CONTAINER 400: ${JSON.stringify(geometry)}`)
       expectDotTopRightOfContainer(geometry, '400')
       await capture(page, '428-corner-healthy-400')
     }, NARROW)
@@ -455,7 +452,6 @@ describe('the live preview corner on the shipped bundle (428-23 Task 1)', () => 
       const beatsDuring = run.heartbeatsSeen() - beatsBefore
       const framesDuring = run.deliveredFrameIds().length - framesBefore
       const context = JSON.stringify({ amber, amberAfterMs, beatsDuring, framesDuring })
-      console.log(`STALL-TURNS-AMBER: ${context}`)
 
       expect(amber.dot, context).toBe('amber')
       expect(amber.state, context).toBe('delayed')
@@ -474,9 +470,9 @@ describe('the live preview corner on the shipped bundle (428-23 Task 1)', () => 
         await page.waitForTimeout(100)
       }
       const greenAfterMs = Date.now() - resumedAt
-      console.log(`STALL-TURNS-AMBER resume: ${JSON.stringify({ green, greenAfterMs })}`)
-      expect(green.dot, JSON.stringify({ green, greenAfterMs })).toBe('green')
-      expect(green.state).toBe('live')
+      const resumed = JSON.stringify({ green, greenAfterMs })
+      expect(green.dot, resumed).toBe('green')
+      expect(green.state, resumed).toBe('live')
     })
   }, 120_000)
 
