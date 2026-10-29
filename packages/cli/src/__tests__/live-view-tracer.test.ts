@@ -422,7 +422,8 @@ describe('the tracer: one real CDP frame behind a function-layer-minted liveUrl'
 // socket. The server runs in THIS process, so its log is this process's console and standard
 // streams, captured for the whole exchange.
 
-/** Records every console and standard-stream line written while `run` runs, and passes none on. */
+// Records console.log/info/warn/error/debug calls and standard-stream chunks made while `run`
+// runs, passes none of them on, and carries the log into the error when `run` throws.
 async function captureProcessLog<T>(run: () => Promise<T>): Promise<{ result: T; log: string }> {
   const lines: string[] = []
   const record = (...parts: unknown[]): void => {
