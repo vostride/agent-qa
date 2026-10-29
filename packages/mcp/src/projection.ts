@@ -1,44 +1,4 @@
-// Op contract -> `registerTool` config (Phase 396 plans 01 + 04, D-16 / MCPS-02).
-//
-// WHY THIS FILE EXISTS. Everything a caller learns about a tool — its title, its description, the
-// JSON Schema of its input, the JSON Schema of its result, and the hints a host uses to decide
-// whether to confirm before calling it — is DERIVED here from what the op already declares, and is
-// authored nowhere. That is D-16's "drift impossible by construction" made into a module: there is
-// no second place to update when an op's contract changes, because there is no first place.
-//
-// ONE CONVERSION ROUTE, CHOSEN AND STATED. The op's live Standard-Schema contract is handed to
-// `registerTool` untouched and the SDK converts it (zod 4.6.7 is above the 4.2 floor the
-// self-conversion needs). The rejected alternative was to run the function layer's own
-// `toSchemaProjection` and hand the result to `fromJsonSchema`. Both work; having both is the
-// defect. The route taken is the one where the object advertised in `tools/list` and the object
-// `invokeFunction` validates against are the SAME object rather than two derivations of it.
-// a union fold's listing is the one derived view (`flatFoldInput`);
-// its calls are still validated against the composed contract itself.
-//
-// 2026-09-28 (431-03, D-03 · research A1): that object may now be a canonical `OutputContract`
-// from `@vostride/agent-qa-schema`. Its `validate` IS the op's runtime schema (the same object
-// `invokeFunction` enforces with) and its output conversion is an explicit document derived from
-// that schema, so a branded run id or an own `__proto__` variable no longer forces a degradation.
-// Nothing here special-cases it: the probe below still asks the SDK's own question in output mode,
-// and still refuses both an undeclared failure and a stale degradation row.
-//
-// ANNOTATIONS ARE DERIVED, AND THEY NEVER ENFORCE. `readOnlyHint` and friends steer a host's UX —
-// whether to auto-approve, whether to warn. They are not a permission system and this file is not a
-// gate: enforcement is `invokeFunction`'s scope check and the policy gate underneath it. Because
-// they only steer, the honest thing is to derive them mechanically from what the op declares about
-// itself rather than to hand-write a hint per tool that can quietly become a lie.
-//
-// DEGRADATION IS LOUD (plan 04). One conversion route means one place a construct can be
-// unrepresentable, and this is it: the output-mode conversion is PROBED for every tool before the
-// contract is advertised. An unrepresentable output that the mapping has not declared throws by
-// name; a declared one ships with no `outputSchema` and a sentence in the description saying so.
-// What never happens is a silently narrowed document — a listing that looks complete and describes
-// a shape nothing produces.
-//
-// Protocol grounding: SEP-2106 loosened `inputSchema`/`outputSchema` to full JSON Schema 2020-12,
-// which is what makes handing the SDK a real contract — refinements, unions, descriptions and all —
-// viable at all; SEP-2549 makes the resulting listing cacheable, which is why nothing here varies
-// per call.
+// Tool config derived from the op's live contract; the SDK converts it (SEP-2106).
 
 import type { StandardSchemaWithJSON, ToolAnnotations } from '@modelcontextprotocol/server'
 import type { RiskActionDescriptor } from '@vostride/agent-qa-schema'
@@ -58,15 +18,7 @@ import type { ToolOpContracts, ToolProjection } from './mapping.js'
  */
 const JSON_SCHEMA_CONVERSION_TARGET = 'draft-2020-12'
 
-/**
- * Everything the derivation reads about ONE op, assembled by `catalog.ts`.
- *
- * The two halves come from two places on purpose. `summary` and `risk` are read
- * off the registry's own declaration for this host, so they describe the composition a caller is
- * actually talking to; `input` and `output` are the live contracts named by the mapping table,
- * because the registry deliberately publishes only inert projections of those. Nothing
- * in this record is authored by this package — it is two views of the op, joined by its id.
- */
+// `summary` and `risk` come from the registry's declaration; `input` and `output` from the mapping.
 export interface ProjectedOpSpec {
   readonly id: string
   readonly summary: string
@@ -87,32 +39,11 @@ export interface RegisterToolConfig {
   readonly inputSchema: StandardSchemaWithJSON
   readonly outputSchema?: StandardSchemaWithJSON
   readonly annotations: ToolAnnotations
-  /**
-   * The SDK's own extension slot, carrying the live-view App reference for a CARRIER tool
-   *
-   * OPTIONAL, and its absence is a decision in the same sense `outputSchema`'s is: a tool that
-   * declares no `ui` member gets no `_meta` KEY at all rather than a `_meta` whose `ui` is
-   * `undefined`, because the two are different documents on the wire and only the first is honest
-   * about a tool that references no App.
-   *
-   * WHAT IT IS ON THE LISTING CHANNEL: inert metadata. Extensions are bilateral opt-in, so a host
-   * that never negotiated `io.modelcontextprotocol/ui` ignores this field by definition — it acts
-   * on nothing here, which is what makes "the App attaches only when the host negotiated" true of
-   * every channel that ACTS without needing a listing that varies per connection (SEP-2567 removed
-   * that, and the per-request factory context carries no client capabilities to key one on). The
-   * channels that act are gated where the capabilities actually arrive: in request handling.
-   */
+  // A non-carrier gets no `_meta` key at all; a host that never negotiated the App ignores it.
   readonly _meta?: Record<string, unknown>
 }
 
-/**
- * A tool is read-only when every arm is: the risk descriptor's explicit `readOnly`, the op's own
- * word. A fold containing one write is not read-only.
- *
- * the second signal — "the op asks for no scope beyond `read`" — left
- * with the scopes, which declarations no longer carry. Every projected read op declares
- * `readOnly: true` and every projected write op does not, so the annotation set is unchanged.
- */
+// Read-only only when every arm's risk descriptor says `readOnly`; one write arm makes it a write.
 function isReadOnly(specs: readonly ProjectedOpSpec[]): boolean {
   return specs.every((spec) => spec.risk.readOnly === true)
 }
@@ -163,13 +94,7 @@ function describe(projection: ToolProjection, specs: readonly ProjectedOpSpec[])
   return `${arms}\nSelect one with "${projection.discriminant!}", whose value is the op id above.`
 }
 
-/**
- * The sentence appended when a tool ships without an `outputSchema`.
- *
- * A caller reads descriptions; a caller does not read this repository. An omission nobody is TOLD
- * about is exactly the silent narrowing D-16 forbids, so the omission travels in the one channel
- * that reaches the other end.
- */
+// An omitted output schema is told to the caller in the description, where it reads.
 function degradationSentence(degradation: { readonly schema: string }): string {
   return (
     `\nThis tool advertises no outputSchema: its result contract (${degradation.schema}) contains a `
@@ -232,28 +157,7 @@ function probeOutputSchema(
   return undefined
 }
 
-/**
- * Derive one tool's `registerTool` config.
- *
- * `advertised` is passed IN rather than looked up here so this module stays a derivation over
- * values: `catalog.ts` owns the join between the mapping's data and this host's registry, and a
- * second lookup inside the derivation would be a second chance for the two to disagree.
- *
- * `maskText` is a REQUIRED parameter and covers the DERIVED prose. The reason is the fresh wound
- * this phase inherits: 395 closed a high-severity defect where a credential reached an MCP caller
- * through a serialization nobody had thought of as an output channel. A description is composed
- * from op summaries, and a summary is prose somebody may one day interpolate a resolved value into;
- * routing it through the masker costs nothing on the ordinary path and closes the channel
- * structurally rather than by remembering. Optionality is the failure mode here — an optional
- * masker is a masker that is absent exactly where nobody looked — so the parameter has no default
- * and the type refuses a call that omits it.
- *
- * TWO THINGS ARE DELIBERATELY NOT MASKED, and both would be damage rather than safety. The `title`
- * is the curated tool NAME from the mapping table: a declared constant in this repository's own
- * source, never data, and a masker that rewrote it would rename the tool a caller must call. The
- * SCHEMAS are contracts rather than text — masking one would corrupt the very object
- * `invokeFunction` validates against, and they carry field names and types, not values.
- */
+// Derived prose is masked; the `title` and the schemas are not, as masking them breaks the tool.
 export function toRegisterToolConfig(
   projection: ToolProjection,
   specs: readonly ProjectedOpSpec[],
@@ -297,29 +201,12 @@ export function toRegisterToolConfig(
     inputSchema,
     ...(outputSchema === undefined ? {} : { outputSchema }),
     annotations: deriveAnnotations(specs),
-    // the App reference, DERIVED from the projection's own carrier declaration by the
-    // same pipeline that derives the annotations above — never a pair of tool names written here.
-    // The conditional spread is the house absent-field rule: a non-carrier's config has no `_meta`
-    // key at all.
-    //
-    // NOT MASKED, and it joins the two exemptions the header names for their reason rather than by
-    // analogy. `resourceUri` is the address constant this package publishes — a declared literal in
-    // this repository's own source, exactly like the `title` above it — and a masker that rewrote
-    // it would point every host at an address the resource codec refuses, which is the tool-rename
-    // failure with a URI scheme attached. Nothing interpolated into it comes from a caller, from
-    // storage or from a resolved value; the run id never appears here, because this is the
-    // TEMPLATE and a per-call reference is composed downstream. The result-size hint is
-    // a declared constant too, and rides the same record (`listingMeta`).
+    // Not masked: `resourceUri` is a declared constant, and masking it would break the address.
     ...(meta === undefined ? {} : { _meta: meta }),
   }
 }
 
-/**
- * The listing `_meta` a projection declares, or `undefined` when it declares none.
- *
- * the App reference and the result-size hint are independent members of one
- * record, so a tool declaring both advertises both; neither replaces the other.
- */
+// The App reference and the result-size hint are independent members; neither replaces the other.
 function listingMeta(projection: ToolProjection): Record<string, unknown> | undefined {
   const meta: Record<string, unknown> = {
     ...(projection.ui === undefined ? {} : { ui: { resourceUri: APP_RESOURCE_URI_TEMPLATE } }),
@@ -332,9 +219,7 @@ function listingMeta(projection: ToolProjection): Record<string, unknown> | unde
 
 type JsonObject = Record<string, unknown>
 
-// Claude Code drops a tool whose listed input is a
-// top-level oneOf. A fold therefore lists one object (an `action` enum beside its arms' fields),
-// while the SDK still validates each call against the strict union.
+// Claude Code drops a tool whose input is a top-level `oneOf`, so a fold lists one object.
 function flatFoldInput(
   projection: ToolProjection,
   input: StandardSchemaWithJSON,

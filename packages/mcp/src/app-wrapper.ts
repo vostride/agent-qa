@@ -1,115 +1,6 @@
-// The MCP App WRAPPER page (408 D-04/D-06/D-07/D-10/D-11, ratified 2026-08-31; finished in plan 02).
-//
-// WHAT THIS DOCUMENT IS. A thin host-rendered page that IFRAMES the `liveUrl` Phase 403 already
-// mints and serves. It is not a second embed document: the 403 embed page
-// (`dashboard-server/src/live-view/embed-page.ts`) stays byte-identical and this file re-implements
-// none of it — no socket, no canvas, no frame protocol, no token parse. One embed contract, two
-// consumers. Copying that file's IDIOMS is deliberate; copying its BYTES would be the
-// second implementation this milestone exists to retire.
-//
-// IT RENDERS NO RUN STATE OF ITS OWN. No step list, no status line, no verdict. Those need
-// an event-stream credential story inside a sandboxed iframe that this phase refuses to invent; the
-// full two-pane surface stays the dashboard's, one click away through the permanent link. What this
-// page owns is the closed state set below, the handle picker, and the link slot.
-//
-// EVERY ABSENCE IS NAMED, inherited verbatim from the embed page's own header. There is no state in
-// which this page shows a blank rectangle: a run with no live session says so by name
-// (`run-ended`), a host that cannot reach the dashboard origin says so (`unreachable-origin`), and
-// an elapsed token says so (`expired`) rather than leaving a dead frame under a spinner.
-//
-// A MEASURED FACT THAT SHAPES THE `live` ARM, and the reason this page probes rather than trusting
-// an event (measured 2026-08-31, Chromium; the cell is `cli/src/__tests__/app-wrapper-dom.test.ts`):
-// AN IFRAME POINTED AT A REFUSED CONNECTION STILL FIRES `load`. The browser navigates the frame to
-// its own error page and that navigation completes, so `load` says "a document settled in there",
-// never "the origin answered". A wrapper whose only signal was `load` would therefore label
-// Chromium's error page `live` — the blank inner frame D-11 forbids, wearing the one label that
-// stops a person from looking further. Cross-origin, this page cannot look inside the frame to
-// tell the difference, and it must not ask the INNER page to tell it (criterion 3 freezes that
-// document). So reachability is established by an explicit `fetch(origin, { mode: 'no-cors' })`
-// probe — the one question a sandboxed page can honestly ask about somebody else's origin — and
-// `live` requires BOTH the probe answering and the frame loading. The probe is memoised per
-// ORIGIN, so the handle picker swaps among panes on one origin with no network call at all.
-//
-// AND THE MEMO IS ASYMMETRIC — SUCCESS ONLY (2026-09-01, WR-06, T-408-23; the cell is
-// `app-wrapper-dom.test.ts` cell (8)). A `true` is a durable fact about an origin that ANSWERED, so
-// it is cached and the zero-request property above depends on it and on nothing else. A `false` is
-// a fact about ONE MOMENT — a dashboard restarting, a refusal during the first paint — and it is
-// discarded, so the next call probes again. Caching it bought nothing the `true` was not already
-// buying, and cost everything: all of a render's mints share one origin, so a single transient
-// failure answered `false` for the LIFE of the document, pinning every later handle swap to
-// `unreachable-origin` instantly, with no network call and no path back. A momentary observation
-// about somebody else's origin does not get to outlive the moment.
-//
-// THE TIMEOUT ARM IS STILL REQUIRED, because the other unreachable shape does not fail fast: an
-// origin that black-holes packets (the cloud-host-versus-loopback case D-11 was written for) leaves
-// both the probe and the frame pending forever. `APP_WRAPPER_LOAD_TIMEOUT_MS` is the bound past
-// which silence is itself the answer, named rather than left as a spinner.
-//
-// EXPIRY IS DECIDED AT RENDER TIME. The clock is read ONCE, by the renderer, and what enters
-// the script is a DELTA in milliseconds — never an absolute epoch the script would compare against
-// the HOST's clock. A wrapper rendered on a machine whose clock differs from the host's by a minute
-// would otherwise expire a minute early or a minute late for no reason a person could see. If every
-// mint has already aged out by the time the document is built, the document is BORN `expired`: it
-// never assigns a src, so there is no dead frame to flash before the sentence appears.
-//
-// AND `expired` IS ABSORBING (2026-09-01; the cell is `cli/src/__tests__/app-wrapper-dom.test.ts`
-// cell (6), and 408-VERIFICATION.md is where the defect was measured). The expiry timer is
-// ONE-SHOT, so for as long as anything could re-enter `attach()` the document could be walked back
-// OUT of its terminal state: a handle-picker change re-pointed the frame at an already-aged
-// `liveUrl` and painted the word `live` over a dead pane, permanently — the outcome this header
-// already calls worse than a blank frame. `attach()` therefore returns immediately when the
-// document already reads `expired`, and the expiry callback DISABLES the picker, because an
-// affordance that outlives the thing it operates on is a second lie. Read against D-08: the
-// permanent link is the PRIMARY way to watch a run and the embedded pane is one credential-bounded,
-// time-bounded variant of it, so `expired` is not an interruption of the resting state — it is the
-// RETURN to it, and returns are one-way. Cell (6) renders with a short TTL, waits for `expired`,
-// changes the picker, and asserts the document is still `expired` with no frame src and still
-// carrying the link and the hint D-10 requires it to carry.
-//
-// SELF-CONTAINED AND PURE. No imports, no external stylesheet, no build step: the whole document is
-// the string this function returns, because a host renders it inside a sandbox with no network
-// identity of its own. `renderAppWrapperPage` is a pure function of its input (the clock included,
-// which is why `now` is a parameter and not a call), so a cell drives it directly.
-//
-// VALUES ENTER THE SCRIPT AS STRING LITERALS AND LAND AS `textContent`. The escape
-// helper is `embed-page.ts`'s, copied because the guard must not be re-derived: `JSON.stringify`
-// plus a `<` escape closes the `</script` hole. The picker's options and the run id are BUILT in
-// the script rather than templated above it, so nothing caller-supplied has to be trusted to markup.
-//
-// WITH ONE AMENDED EXCEPTION, AMENDED HERE RATHER THAN REVERSED IN SILENCE (2026-09-01; the cells
-// are `app-wrapper.test.ts`'s markup-anchor, scheme-drop and attribute-escape cells, and
-// `app-wrapper-dom.test.ts` cell (7)). THE PERMANENT LINK'S `href` AND LABEL ARE NOW RENDERED INTO
-// MARKUP. The rule above was sound and its conclusion was wrong for exactly this one value. Under
-// D-08 the permanent link is the PRIMARY way to watch a run, and a primary representation produced
-// by the script is unavailable on precisely the host it exists to cover: a host serving this
-// document under `script-src 'none'` (WR-10, RESEARCH assumption A1) runs NONE of this script, so
-// the anchor stayed empty, the frame stayed hidden and the document sat forever under the
-// connecting sentence — the pane with no way out that this header already calls worse than a blank
-// frame. Two guards PAY for the exception rather than relaxing the rule:
-//   (a) a SECOND, separately named escape helper for HTML ATTRIBUTE context (`attributeText`),
-//       used for this one value and nothing else, never for a value entering the script; and
-//   (b) a SCHEME CHECK that DROPS a `permanentLink` which is not `http:` or `https:`, so a hostile
-//       base composes no anchor at all rather than a new kind of one (WR-04's anchor hop — the
-//       parse-time hop is the dashboard config schema's, and this renderer is exported and drivable
-//       directly, so it guards its own input rather than trusting a boundary it cannot see).
-// The connecting state carries a NAMED HINT for the same reason: a server-rendered document that
-// says only "connecting" is making a claim its own script has to keep, and on that host it cannot.
-//
-// Protocol grounding. This module speaks no protocol at all — it returns a string — and the two
-// SEPs that nonetheless shape it are the reason it can. SEP-1730 places extensions outside every
-// conformance tier, so this page is rendered only by a host that OPTED IN to the Apps extension and
-// a host that did not owes it nothing: there is no degraded rendering to design for, only the
-// link-out that rides every carrier result. SEP-2575's stateless protocol is why the page holds no
-// session and mints nothing: it is handed everything it will ever have at render time, which is
-// what makes D-10's answer to an aged token another READ rather than a credential machine inside
-// somebody else's sandbox.
+// A pure page string, stateless per SEP-2575: it holds no session and mints nothing.
 
-/**
- * Every value `[data-app-state]` can take (D-11's closed set).
- *
- * Exported for the reason `LIVE_EMBED_STATES` is: the DOM cells range over this list, so a state
- * added to the page without a cell is a visible diff rather than an unobserved arm.
- */
+// The DOM cells range over this list, so a state added without a cell shows up as a diff.
 export const APP_WRAPPER_STATES = [
   'connecting',
   'live',
@@ -123,84 +14,30 @@ export type AppWrapperState = (typeof APP_WRAPPER_STATES)[number]
 /** What the page says while the inner frame has not painted yet. */
 export const APP_WRAPPER_CONNECTING_MESSAGE = 'connecting to the live view…'
 
-/**
- * The second line under `connecting`, and the WHOLE of what an initial render says on a host that
- * never runs this document's script (WR-10, RESEARCH assumption A1; the cell is
- * `app-wrapper-dom.test.ts` cell (7)).
- *
- * Named for the same reason every other absence here is named: a document that says only that it is
- * connecting has made a promise its own script has to keep, and under a host CSP of
- * `script-src 'none'` there is no script to keep it. The sentence therefore points at the ONE
- * useful action available with no script at all — the permanent link rendered directly beneath it,
- * which is now markup rather than something the script assigns. One useful action, no apology.
- */
+// Under `script-src 'none'` this hint is all the page says, so it points at the link in markup.
 export const APP_WRAPPER_CONNECTING_HINT
   = 'if the pane does not appear, open it in your browser'
 
 /** What the page says once the inner frame has loaded on an origin this host can reach. */
 export const APP_WRAPPER_LIVE_MESSAGE = 'live'
 
-/**
- * What an elapsed live link says.
- *
- * The wrapper's own sentence rather than the embed page's `link expired`, because the two are about
- * different things: the embed says its socket was refused, and this says the link this App was
- * rendered with has aged out.
- */
+// The embed's `link expired` means a refused socket; this one means the App's link aged out.
 export const APP_WRAPPER_EXPIRED_MESSAGE = 'live link expired'
 
-/**
- * The second half of the expired state, and the WHOLE of D-10's refresh story.
- *
- * There is no re-mint inside this sandbox and there is never going to be one — a UI-initiated mint
- * door was rejected precisely because its model-context hygiene is per-host behaviour nobody here
- * controls. What replaces it is this sentence: the way to a fresh token is another watch call, one
- * the person can simply ask for, and saying so is the difference between a dead end and a next
- * move. Separate from the message above so the DOM can show both and a cell can assert each.
- */
+// No re-mint happens inside the sandbox; a fresh token comes from another watch call.
 export const APP_WRAPPER_EXPIRED_HINT = 'ask to watch again — a fresh watch mints a new link'
 
-/**
- * The REQUIRED unreachable-origin sentence, spelled EXACTLY as CONTEXT ratified it.
- *
- * A host running somewhere that cannot route to a loopback dashboard origin must say so and offer
- * the browser, never show a blank inner frame. This string is a contract: the DOM cells assert
- * against this constant, so the sentence and the assertion can never drift apart.
- */
 export const APP_WRAPPER_UNREACHABLE_MESSAGE =
   "this host can't reach the live view — open it in your browser"
 
-/**
- * What a run with no live session on this host says.
- *
- * Not an error and not a blank frame — and it points at the way to see the run anyway, which is
- * the permanent link rendered directly beneath it. A run that has finished still HAPPENED, and the
- * dashboard's own page is where its history lives.
- */
 export const APP_WRAPPER_RUN_ENDED_MESSAGE = 'this run is not live — open it in your browser'
 
-/** The label on the permanent link-out slot, when one is composed. */
 export const APP_WRAPPER_PERMANENT_LINK_LABEL = 'open in your browser'
 
-/**
- * How long silence from the inner frame is allowed to last before it is named.
- *
- * Exported because the DOM cell must wait on the page's OWN bound rather than on a number a test
- * file guessed. Ten seconds is chosen against the two shapes this arm exists for: a black-holed
- * origin never answers at all, and a slow-but-reachable dashboard on loopback answers in
- * milliseconds — there is no realistic case in between, so a longer bound would only make a person
- * stare at a spinner for longer before reading the same sentence.
- */
+// A black-holed origin never answers and a loopback dashboard answers in ms; nothing sits between.
 export const APP_WRAPPER_LOAD_TIMEOUT_MS = 10_000
 
-/**
- * The MCP Apps protocol version this wrapper announces in its `ui/initialize` request.
- *
- * MEASURED, not guessed (408-06 Task 1): `@modelcontextprotocol/ext-apps@1.7.5` carries exactly
- * two protocol versions — `2025-11-21` and `2026-01-26` — and `2026-01-26` is the one its
- * `AppBridge` treats as latest. `ext-apps-constants.test.ts` pins the spelling against the
- * package's own shipped schema, so this literal cannot drift from the vocabulary in silence.
- */
+// ext-apps carries `2025-11-21` and `2026-01-26`; its `AppBridge` treats `2026-01-26` as latest.
 export const APP_WRAPPER_UI_PROTOCOL_VERSION = '2026-01-26'
 
 /**
@@ -214,13 +51,7 @@ export const APP_WRAPPER_APP_NAME = 'agent-qa-live-view'
 /** The wrapper's own version, bumped only when the handshake it performs changes. */
 export const APP_WRAPPER_APP_VERSION = '1.0.0'
 
-/**
- * ONE minted view onto ONE member handle of the run.
- *
- * `liveUrl` carries its token in the FRAGMENT, so this value is the only place a live
- * credential exists on this page — it is written into the frame's `src` and nowhere else: not into
- * the document text, not into the picker's labels, not into any attribute a host serialises back.
- */
+// `liveUrl` holds the token in its fragment; it goes into the frame's `src` and nowhere else.
 export interface AppWrapperMint {
   readonly handle: number
   readonly liveUrl: string
@@ -230,20 +61,13 @@ export interface AppWrapperMint {
 
 export interface AppWrapperInput {
   readonly runId: string
-  /** One mint per handle on the run's announced roster. Empty is the D-07 not-live case. */
+  // One mint per handle on the announced roster; empty means not live.
   readonly mints: readonly AppWrapperMint[]
   /** The tokenless dashboard page. `undefined` when no dashboard origin is composable. */
   readonly permanentLink: string | undefined
   /** Whether this host holds a live session for the run at all. `false` renders `run-ended`. */
   readonly runLive: boolean
-  /**
-   * The instant this document is being built, in ms-epoch.
-   *
-   * A PARAMETER rather than a `Date.now()` call, for the reason every clock in this repository is a
-   * port: the expiry arm is the one thing this renderer decides about time, and a cell that cannot
-   * choose "now" could only ever assert the arm it happened to land in. Defaults to the wall clock,
-   * so the read handler passes nothing and gets the honest answer.
-   */
+  // A parameter so a cell can choose the instant; defaults to the wall clock.
   readonly now?: number
 }
 
@@ -281,21 +105,7 @@ const HINTS: Readonly<Record<AppWrapperState, string>> = {
   'run-ended': '',
 }
 
-/**
- * The `permanentLink` this renderer is willing to put in an `href`, or `undefined`.
- *
- * A URL-shaped OPERATOR config value (`services.dashboard.baseUrl`) reaches this function, and the
- * document it lands in runs with `allow-scripts` at an opaque origin, so a base of
- * `javascript:alert(1)` would compose a script-executing anchor. Anything that is not an absolute
- * `http:`/`https:` URL is therefore treated EXACTLY as an absent link: no anchor at all. That is
- * deliberate reuse rather than a new arm — absence is already the tested, honest posture for `no
- * dashboard origin is composable`, so a hostile base collapses into a state this document already
- * knows how to be in, instead of inventing one nobody has looked at.
- *
- * Defensive, not redundant: the config schema refuses the same shape at PARSE time, but
- * `renderAppWrapperPage` is exported and drivable directly, and it receives its link from a
- * supplier rather than from a freshly parsed config.
- */
+// Only absolute `http:` or `https:` survives: a `javascript:` base would run in the sandbox.
 function httpPermanentLink(value: string | undefined): string | undefined {
   if (typeof value !== 'string') return undefined
   let parsed: URL
@@ -307,13 +117,7 @@ function httpPermanentLink(value: string | undefined): string | undefined {
   return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? value : undefined
 }
 
-/**
- * Render the App wrapper for one run.
- *
- * The whole document, every time — there is no partial render and no update path, because D-10's
- * answer to a stale App is a FRESH read that mints again rather than a credential machine inside
- * the sandbox.
- */
+// The whole document every time; a stale App is answered by a fresh read that mints again.
 export function renderAppWrapperPage(input: AppWrapperInput): string {
   // The embed page's escape, copied verbatim (embed-page.ts:72) rather than re-derived: the value
   // lands inside a script as a STRING LITERAL and the `<` guard closes the one hole that leaves.
@@ -342,11 +146,7 @@ export function renderAppWrapperPage(input: AppWrapperInput): string {
 
   const now = input.now ?? Date.now()
 
-  // THE RENDERER IS AUTHORITATIVE ABOUT WHETHER A PANE EXISTS, rather than trusting the record it
-  // was handed. `runLive: false` means the document must not be ABLE to show a pane, so the urls
-  // never reach the script at all — a not-live document that still carried a minted token would be
-  // a credential shipped for no reason, which is the one thing D-01's channel argument cannot
-  // tolerate. The same line makes "zero surviving mints ⇒ not live" (408-01 D-C) structural here.
+  // With `runLive` false the urls never reach the script, so a not-live page carries no token.
   const live = input.runLive && input.mints.length > 0
   const mints = live ? input.mints : []
 

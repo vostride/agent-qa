@@ -1,88 +1,8 @@
-// ONE MASKED SERIALIZATION, TWO CHANNELS (Phase 396 plan 06 · T-396-01 / RESEARCH Pitfall 9).
-//
-// WHY THIS MODULE EXISTS, measured rather than reasoned. Every tool result this package returns has
-// TWO output channels: `content`, the prose a person might read, and `structuredContent`, the object
-// a model reads and a host logs. Until 396-06 drove the wire, only the first was masked:
-//
-//     content:           [{ type: 'text', text: maskText(JSON.stringify(output)) }]
-//     structuredContent: output          <-- the raw op output, unmasked
-//
-// A credential this host had DECLARED — its own bearer token — reached the wire verbatim through
-// that second field while the text beside it read `<SECRET_0>`. Observed 2026-08-16 in
-// `packages/cli/src/__tests__/mcp-credential-surface.test.ts` (B1b):
-//
-//     AssertionError: structuredContent carried the plant — the machine channel a person never
-//     reads: expected 'prop_qxr' to be undefined
-//
-// That is RESEARCH Pitfall 9's own sentence, which named `structuredContent` as the channel and was
-// filed before anyone had driven it: *"the new projection returns op outputs as `structuredContent`
-// — an unmasked serialization can carry planted values to a machine surface a person never sees."*
-//
-// THE FIX IS ONE MASKING, NOT TWO. Masking the object and the text separately would be a second
-// implementation of the same rule, free to disagree with the first — and the disagreement would be
-// invisible, because nobody diffs the two channels of a result. So the output is masked ONCE, as a
-// value, and both channels are answered from that one masked value: `structuredContent` IS it, and
-// `content` is its serialization. A value hidden from one cannot survive in the other.
-//
-// ─────────────────────────────────────────────────────────────────────────────────────────────
-// WHAT THE FIRST VERSION OF THIS MODULE GOT WRONG (CR-01, measured 2026-08-16, fixed the same
-// day). "One masked serialization" was originally implemented as: serialize, mask the SERIALIZED
-// DOCUMENT, parse the masked document back. That is escape-blind, and it leaked:
-//
-//     const serialized = JSON.stringify(output) ?? 'null'   // escapes " as \" , \ as \\ , \n , \t
-//     const text = maskText(serialized)                     // literal substring replacement
-//
-// `maskText` is the host's declared-secret mask (`SecretRedactor` in the runner package), a
-// LITERAL replacement of the declared raw values. `JSON.stringify` escapes `"`, `\` and every C0
-// control character, so for a registered credential containing one of those bytes the raw value
-// DOES NOT OCCUR in the document the masker scans. The masker matched nothing and the credential
-// reached the caller verbatim — and, because this module answers both channels from the same
-// bytes, it reached BOTH of them. Measured:
-//
-//     raw:        sk-live"abc\def
-//     serialized: {"token":"sk-live\"abc\\def"}
-//     raw value present in the scanned document? false
-//
-// The phase verifier drove the then-shipped environment masker over six inputs and recorded
-// four of five shapes leaking verbatim on both channels, including a `*_CREDENTIALS`-style JSON
-// blob — an entirely ordinary environment value (a password with a quote in it, a service-account
-// blob). The corpus in place at the time could not see it: every credential plant was alphanumeric,
-// so no cell could tell masking of raw values apart from masking of the serialized form. (Phrased
-// without quoted-string-after-`from`: the arch dep lint reads that shape as an import specifier.)
-//
-// SO THE MASKER IS NEVER HANDED A SERIALIZATION. `maskJsonDocument` below walks the JSON value and
-// masks every STRING LEAF and every OBJECT KEY — the raw bytes an operator declared — and only
-// then serializes. The standing corpus for the class is
-// `__tests__/masked-serialization.test.ts`, which drives the shipped masker over a value containing
-// a quote, one containing a backslash, one containing a control character, and a JSON blob.
-// ─────────────────────────────────────────────────────────────────────────────────────────────
-//
-// IT STILL FAILS CLOSED, and the conditions are now named rather than incidental. A masked value
-// that cannot be REPRESENTED — a number or a boolean whose JSON spelling is itself a registered
-// credential, so hiding it in place would change the value's type; two keys of one object that mask
-// to the same name, so the masked object would silently drop a member; anything unserializable —
-// yields a tool error naming the condition instead of a result. The alternative is returning the
-// unmasked object, which is the defect this module exists to close. (The previous version withheld
-// on "the masked document no longer parses", which is the same posture reached by accident: a
-// placeholder substituted for a bare number produced invalid JSON. That case is now refused by
-// name, and the numeric cell in the corpus pins it across the change.)
-//
-// THE COST, STATED — and the reason it is a REAL cost rather than a theoretical one: SEP-2106
-// loosened `inputSchema`/`outputSchema` to full JSON Schema 2020-12, so an advertised output
-// contract can now say things precise enough for a masked value to violate them (a `format`, a
-// `pattern`, a `minLength`). A masked value can therefore violate the tool's advertised
-// `outputSchema`, and the SDK
-// then refuses the result. That is the correct direction. An op output that contains a declared
-// credential is a leak; turning a leak into a refusal a caller can see is a better answer than
-// serving it, and it happens only when a legitimate value is byte-equal to a credential this host
-// was told about.
+// Masked once, leaf by leaf, before serializing; a masked value may then fail its SEP-2106 schema.
 
 import type { CallToolResult } from '@modelcontextprotocol/server'
 import { RunsArtifactResultSchema } from '@vostride/agent-qa-schema'
 import type { RunsArtifactResult } from '@vostride/agent-qa-schema'
-
-// the MCP remedy renderer is deleted with the remedy vocabulary. The
-// mark credential refusal that carried its last sentence is deleted too.
 
 /** The one prose a caller reads when a value could not be masked in place. Value-free by design. */
 const WITHHELD_TEXT =
@@ -125,8 +45,7 @@ function maskJsonLeaves(value: unknown, maskText: (text: string) => string): unk
       if (Object.hasOwn(masked, maskedKey)) {
         throw new UnmaskableValueError('two keys of one object mask to the same name')
       }
-      // Defined, not assigned: `masked['__proto__'] = …` would set the prototype and drop the key,
-      // and a captured variable may legitimately be named `__proto__`.
+      // Defined, not assigned: assigning `__proto__` sets the prototype and drops the key.
       Object.defineProperty(masked, maskedKey, {
         value: maskJsonLeaves(entry, maskText),
         enumerable: true,
@@ -211,14 +130,7 @@ export function maskedToolResult(
   }
 }
 
-/**
- * The masked error result every handler in this package answers a refusal with.
- *
- * A refusal is a RESULT the caller can read, not a transport failure — and the message is masked
- * because an error string is the channel 395's credential disclosure actually travelled down
- * Kept beside `maskedToolResult` so the two halves of one handler's output posture
- * are one thing to read and one thing to change.
- */
+// A refusal is a readable result, masked because an error string can carry a credential.
 export function maskedToolError(err: unknown, maskText: (text: string) => string): CallToolResult {
   const message = err instanceof Error ? err.message : String(err)
   return {
@@ -232,13 +144,7 @@ export function maskedToolError(err: unknown, maskText: (text: string) => string
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────────────────────
-// THE IMAGE ARM. A complete PNG or JPEG screenshot also travels as an
-// MCP image block, added after masking from bytes the masked value still carries unchanged.
-// `structuredContent` is never changed. The text keeps every field except the bytes, which it
-// names as attached image content (owner decision 2026-09-29, review WR-06).
-// Masking hides strings, never pixels: a screenshot shows what the page showed.
-// ─────────────────────────────────────────────────────────────────────────────────────────────
+// An image block is added after masking; masking hides strings, never pixels.
 
 /** Why an artifact did not travel as an image. Each is a tool error, never a success. */
 export type RunEvidenceImageRefusal =
@@ -373,6 +279,3 @@ export function decorateRunEvidenceImage(input: {
   }
 }
 
-// the mark door's credential refusal is deleted with the MCP bearer
-// credential. `agent_qa_mark_run` dispatches through the generic projection handler like every other
-// change tool, advertises the op's own outcome, and answers its receipt on the one call.

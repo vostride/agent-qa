@@ -1,36 +1,4 @@
-// The ONE lens two schema-comparison suites look through.
-//
-// WHAT THIS FILE IS. Four normalisations that make an advertised JSON-Schema document and the
-// function layer's own inert projection comparable, plus one fold check (`foldArmFindings`,
-// 2026-10-20, 446-11), and NOTHING ELSE. It converts nothing, builds
-// nothing, reaches nothing: the functions below are pure, take plain objects, return plain objects,
-// and name no package. That is why the file adds no entry to this package's dependency census —
-// there is no specifier in it to add.
-//
-// WHY IT MOVED HERE OUT OF A TEST. It was authored inside `projection-fidelity.test.ts`, where it
-// had exactly one consumer. Phase 397's conformance suite lives in `packages/cli` and needs the
-// same lens for its structural-schema-equality leg, and no package may reach another package's
-// `__tests__` directory. The two ways out were to publish the lens or to re-derive it, and D-06
-// rules out the second by name: a second conversion recipe for one comparison is the
-// redundant-mechanism trap, and the way it fails is silent — the copy that drifts looser is the
-// one that passes over real drift, and nothing compares the two copies to each other.
-//
-// SO THE TWO CONSUMERS SHARE ONE OBJECT: this package's own fidelity suite, and 397's parity suite
-// over in the cli package. A third would be a third consumer of the same object, not a third lens.
-//
-// WHY THE NORMALISATIONS EXIST AT ALL (MCPS-07's citation, and the honest one). Both stamps
-// they remove are artifacts of the SDK's own conversion under SEP-2106's full JSON Schema 2020-12
-// posture for tool input/output schemas, produced by the converter SEP-1613 pins on the SDK side:
-// the `$schema` dialect marker it writes, and the `type: "object"` it adds to a composition root it
-// can prove is object-shaped. The function layer's projection speaks the same vocabulary and writes
-// neither. Nothing here normalises a difference the PRODUCT introduced — only two the transport's
-// converter did. The fourth undoes the 2025-11-25 codec's `{ result }` wrap around a
-// non-object output root, which is likewise the transport's and not the product's.
-//
-// READ THE DOCSTRINGS BEFORE WIDENING ANYTHING. Each normalisation is gated as narrowly as it is
-// for a MEASURED reason, recorded in its own comment. A strip that dropped content rather than a
-// dialect marker or an SDK stamp would be the way to make a drift cell pass over a contract that
-// genuinely moved — which is the one failure the suites consuming this file exist to catch.
+// Pure normalisations two schema suites share; each strips only an SDK artifact (SEP-2106).
 
 /** A JSON-Schema document as it travels: an ordinary object, with nothing runnable on it. */
 export type JsonDocument = Record<string, unknown>
@@ -88,15 +56,7 @@ export function armWithoutDiscriminant(arm: JsonDocument, discriminant: string):
   return rebuilt
 }
 
-/**
- * What a fold's one listed object leaves out of, or adds to, one arm's own contract.
- *
- * a fold lists one object instead of its union, so an arm is no longer
- * a member to compare whole. It is covered when the `discriminant` enum names it, every field it
- * takes is listed with its own shape (the listing may add a description, never drop one), and the
- * listing requires nothing the arm does not. That a call is still validated arm by arm is the
- * C446-TOOL-SCHEMA counter-cell's claim, not this lens's.
- */
+// Covered: the enum names the arm, its fields keep their shapes, and nothing extra is required.
 export function foldArmFindings(
   listed: JsonDocument,
   discriminant: string,
@@ -142,17 +102,7 @@ export function foldArmFindings(
   return findings
 }
 
-/**
- * Undo the SEP-2106 legacy `{ result }` wrap the SDK's 2025-11-25 codec puts around a non-object
- * output root.
- *
- * A transport artifact, like the two stamps above: the 2026-07-28 codec advertises a list's array
- * root as-is, while the 2025-11-25 codec projects it to `{ type: 'object', properties: { result },
- * required: ['result'] }` and wraps `structuredContent` to match. Gated to exactly that document —
- * nothing but those three keys (and a dialect marker), one property named `result`, and a wrapped
- * root that is not itself an object — so an op whose real output is an object with a `result`
- * field is left alone. Apply it BEFORE `withoutDialect`: the wrapped root keeps its own `$schema`.
- */
+// Undoes the `2025-11-25` codec's `{ result }` wrap; run it before `withoutDialect` (SEP-2106).
 export function withoutLegacyResultWrap(document: unknown): JsonDocument {
   const wrapper = (document ?? {}) as JsonDocument
   const keys = Object.keys(wrapper).filter((key) => key !== '$schema').sort()

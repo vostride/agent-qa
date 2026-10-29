@@ -1,47 +1,4 @@
-// The entity Resource Templates surface.
-//
-// WHY THIS FILE EXISTS. 387 gave every entity a published address — `agentqa://memory/MEM-001` —
-// and tool results carry those addresses as `resource_link`s. A link nothing can dereference is a
-// decoration, so this module registers the five templates that make them resolvable, and resolves
-// them the only way this package is allowed to resolve anything: `invokeFunction` on `entities.get`.
-// There is no second data path here, no store, no cache and no card rendering — `entities.get`
-// already answers "render the thing at this address" for every surface, and a resources handler
-// that rendered its own card would be the v1 server's mistake with a new URI scheme.
-//
-// THE TEMPLATES ARE DERIVED, NEVER RESTATED. They are built by iterating the kind vocabulary and
-// reading `ENTITY_URI_SEGMENTS`, which is the same table the codec parses with. A hand-written list
-// of five strings here would be a second vocabulary that agrees with the first until somebody
-// renames a segment — and the failure mode of that disagreement is a template advertising an
-// address the parser refuses, i.e. a door that 404s by construction.
-//
-// THE CODEC IS THE ONLY PARSER, AND THAT IS THE SECURITY PROPERTY. Everything reaching
-// `resources/read` is caller-supplied. `parseEntityUri` refuses `agentqa://memory/TST-001` because
-// the segment and the id prefix disagree, refuses a trailing path because a sub-resource that
-// resolves to its parent is a lie, and canonicalises `MEM-1` to `MEM-001` so one address is one
-// address. A local regex in this file would be a second, weaker reading of the same string — this
-// module therefore contains no `agentqa://` pattern of its own, and an acceptance grep pins that.
-//
-// EVERY CALLER SEES THE SAME TEMPLATES. The scope-based visibility law
-// that once withheld these from a caller granted nothing is deleted: the templates are registered
-// whenever the composition registers `entities.get`, which is a fact about the host and never
-// about the caller. Subject validation is unchanged — the codec below still refuses every address
-// it cannot parse, for every caller.
-//
-// MASKING IS REQUIRED, NOT OPTIONAL, AND FOR A MEASURED REASON. Resource contents are composed from
-// STORED DATA, and this handler is registered directly rather than through `catalog.ts`'s one
-// generic handler — so nothing masks it unless this module does. That is exactly the shape of the
-// defect this phase inherits (T-395-R5-10: a credential reaching an MCP caller verbatim through a
-// serialisation nobody had counted as an output channel), and the refusal path is masked for the
-// same reason as the success path.
-//
-// SUBSCRIPTIONS ARE NOT IMPLEMENTED, and the deferral is dated: SEP-2575 replaced
-// `resources/subscribe` + the HTTP GET stream with a single opted-in `subscriptions/listen` stream.
-// Shipping the OLD verb would be shipping a shape the 2026-07-28 protocol has already retired, and
-// shipping the new one is a transport concern this package does not own. Post-v2.0.
-//
-// Protocol grounding: SEP-2575 (stateless protocol; the subscription model above), SEP-2549 (list
-// results carry cache hints — nothing registered here varies per call, so a listing is cacheable),
-// SEP-2106 (full JSON Schema 2020-12 for advertised contracts; resources advertise none).
+// Registered outside the generic handler, so contents and refusals are masked here (SEP-2549).
 
 import { ResourceTemplate } from '@modelcontextprotocol/server'
 import type { ReadResourceResult, ResourceMetadata } from '@modelcontextprotocol/server'
@@ -111,7 +68,7 @@ export type EntityResourceInvoke = (opId: string, input: unknown) => Promise<unk
 
 export interface EntityResourceReadDeps {
   readonly invoke: EntityResourceInvoke
-  /** How text leaving this handler is masked (threat T-396-07). Required — see the header. */
+  // Required: resource contents come from stored data that nothing else masks.
   readonly maskText: (text: string) => string
 }
 
@@ -131,15 +88,7 @@ export class EntityResourceReadError extends Error {
   }
 }
 
-/**
- * Build the read handler every template shares.
- *
- * ONE handler for all five, because the kind is already in the URI and the codec already read it:
- * a per-kind handler would be five copies of one function differing in a value it does not use.
- *
- * Exported so a cell can drive it without a server, and so the parse/refuse behaviour is observable
- * independently of registration — the two halves of D-13 fail in different directions.
- */
+// One handler for every kind, because the codec already read the kind from the URI.
 export function createEntityResourceReadHandler(
   deps: EntityResourceReadDeps,
 ): (uri: URL) => Promise<ReadResourceResult> {
@@ -165,13 +114,7 @@ export function createEntityResourceReadHandler(
       )
     }
 
-    // MASKED AS A VALUE, NEVER AS A SERIALIZATION. This line used to read
-    // `deps.maskText(JSON.stringify(card))`, which handed a literal-substring masker an ESCAPED
-    // document: a stored value containing `"`, `\` or a control character does not occur in it, so
-    // the masker matched nothing and the card reached the caller verbatim. `maskJsonDocument` walks
-    // the card and masks its string leaves and keys instead — the same one masking `masked-result.
-    // ts` performs for tool results, shared rather than restated, because two answers to "how is a
-    // JSON payload masked" is exactly how one channel drifts open while the other looks closed.
+    // Masked as a value: escaping in a serialized document hides raw secrets from the masker.
     const masked = maskJsonDocument(card, deps.maskText)
     if (masked === undefined) {
       // FAILS CLOSED, like the tool channel: a card whose masked form would not be the same kind of
@@ -224,17 +167,7 @@ export interface EntityResourceDeps {
   readonly maskText: (text: string) => string
 }
 
-/**
- * Register the entity resource templates this caller may use, and answer which those were.
- *
- * Returns the registered templates rather than nothing, so the gate below is observable from the
- * outside: "registered none" and "registered five" are the two halves of D-05's claim, and a caller
- * that had to inspect a server to tell them apart could only ever test one of them.
- *
- * A composition that never registered `entities.get` gets NO templates and no error, which is the
- * same answer `catalog.ts` gives a tool whose op is missing: refusing to build would take a whole
- * MCP connection down because one capability was unavailable.
- */
+// A composition without `entities.get` gets no templates and no error, so the connection stays up.
 export function registerEntityResources(
   server: EntityResourceRegistrar,
   deps: EntityResourceDeps,
