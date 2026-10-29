@@ -153,7 +153,6 @@ describe('SuiteEditorPage', () => {
     }
   })
 
-  // Gap 4 regression — ApiError.missingTests surfaces rich toast, not generic "API error 400"
   it('shows rich missing-tests toast when save throws ApiError with missingTests (Gap 4)', async () => {
     const api = await import('@/lib/api')
     const { toast } = await import('sonner')
