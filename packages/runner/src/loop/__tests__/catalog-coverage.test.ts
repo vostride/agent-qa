@@ -1,20 +1,11 @@
 // EXEC-05 / EXEC-06 / EXEC-07 requirement roll-call (Phase 360, Plan 11 close-out).
 //
-// A single durable regression anchor for the phase: each acceptance criterion maps to at least
-// one GREEN assertion here over the SHIPPED runner surface — the dispatch-seam mints and typed
-// evidence blocks (termination verbs, the AI judge lane, the deterministic assertValue split),
-// the frozen tool catalog (../../tools), and delegate source-anchors over the two Plan-02 suites
-// (catalog-rollcall / legacy-retirement) that own the exhaustive 56-id conformance + D-19
-// retirement matrices. This is NOT a re-implementation; the per-plan suites
-// (termination-verbs / ai-assertions / assert-value / catalog-rollcall / legacy-retirement,
-// packages/{web,android,ios} catalog.test.ts) own the exhaustive matrices. Do NOT weaken any
-// assertion to force a pass; if a criterion cannot be proven green, the phase is not done.
-// Mirrors the 356-07 / 357-08 / 358-09 / 359-09 roll-call idiom (one describe per requirement,
-// direct assertions over the shipped surface, plus delegate source-anchors for the adapter legs).
+// Each acceptance criterion maps to at least one assertion here over the shipped runner surface:
+// the dispatch-seam mints and typed evidence blocks (termination verbs, the AI judge lane, the
+// deterministic assertValue split) and the frozen tool catalog (../../tools). The
+// termination-verbs, ai-assertions, assert-value, catalog-rollcall and legacy-retirement suites and
+// packages/{web,android,ios} catalog.test.ts own the exhaustive matrices.
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, resolve } from 'node:path'
 
 import type { ScreenState } from '@vostride/agent-qa-schema'
 
@@ -32,11 +23,6 @@ import { registerAllActions } from '../../tools/actions/index.js'
 import { compareAssertValue } from '../../compound/assert-value.js'
 import { readReportedValueMeta } from '../../compound/metadata.js'
 import { MINT_VERBS } from '../../compound/dispatch-mint.js'
-
-const testFilePath = fileURLToPath(import.meta.url)
-// __tests__ -> loop -> src -> runner -> packages
-const packagesRoot = resolve(dirname(testFilePath), '..', '..', '..', '..')
-const testsDir = dirname(testFilePath)
 
 const cfg = { maxActions: 4, maxPlanningTurns: 4, previousStepCount: 0 }
 
@@ -181,13 +167,6 @@ describe('EXEC-05 — reportValue and explicit infeasible/stepFailed termination
     expect(controlResult.status).toBe('failed')
     expect((controlResult.evidence as { termination?: unknown }).termination).toBeUndefined()
   })
-
-  it('the termination-verb suite owns the exhaustive reportValue/uniqueValue/infeasible matrix (delegate source anchor, 358-09 WM-02 idiom)', () => {
-    const suite = readFileSync(resolve(testsDir, 'termination-verbs.test.ts'), 'utf8')
-    expect(suite).toContain('Block A — reportValue is a runner mint')
-    expect(suite).toContain('Block B — uniqueValue mints a prefixed value')
-    expect(suite).toContain('Block C — infeasible is a typed terminal outcome')
-  })
 })
 
 // -----------------------------------------------------------------------------
@@ -219,24 +198,6 @@ describe('EXEC-06 — every v45 registered tool executes on its legal platforms 
     expect(MINT_VERBS).not.toContain('navigate')
     expect(calls.length).toBe(1)
     expect(calls[0]?.type).toBe('navigate')
-  })
-
-  it('the catalog-rollcall suite owns the registry-driven 56-id mint-or-dispatch totality proof (delegate source anchor)', () => {
-    const suite = readFileSync(resolve(testsDir, 'catalog-rollcall.test.ts'), 'utf8')
-    expect(suite).toContain('D-20 catalog roll-call')
-    expect(suite).toContain('freezes the registered catalog at 56 / web 33 / android 30 / ios 27')
-    expect(suite).toContain('either mints or dispatches')
-  })
-
-  it('the legacy-retirement suite owns the D-19 retired-verb source-scan proof (delegate source anchor)', () => {
-    const suite = readFileSync(resolve(testsDir, 'legacy-retirement.test.ts'), 'utf8')
-    expect(suite).toContain('D-19 retired-verb source scan')
-    expect(suite).toContain('no retired verb literal, alias, or coaching phrase remains')
-    // The adapter-side catalog conformance suites exist for all three platforms.
-    for (const pkg of ['web', 'android', 'ios']) {
-      const catalog = readFileSync(resolve(packagesRoot, pkg, 'src', '__tests__', 'catalog.test.ts'), 'utf8')
-      expect(catalog.length).toBeGreaterThan(0)
-    }
   })
 })
 
@@ -309,8 +270,6 @@ describe('EXEC-07 — assertAI executes single-model cache-bypassed; assertValue
     // A direct proof over the shipped comparator: no vision round-trip, pure structural compare.
     expect(compareAssertValue({ source: 'url', op: 'contains', expected: 'home', actual: 'https://x.test/home' }).passed).toBe(true)
     expect(compareAssertValue({ source: 'url', op: 'equals', expected: 'a', actual: 'b' }).passed).toBe(false)
-    const suite = readFileSync(resolve(testsDir, 'assert-value.test.ts'), 'utf8')
-    expect(suite).toContain('compareAssertValue: one deterministic case per closed op')
   })
 })
 

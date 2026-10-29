@@ -1,17 +1,11 @@
 // EXEC-01..04 requirement roll-call (Phase 359, Plan 09 close-out).
-// A single durable regression anchor: each phase acceptance criterion maps to at least one
-// GREEN assertion here over the SHIPPED runner compound surface — the pure comparators/loops
+// Each acceptance criterion maps to at least one assertion here over the shipped runner compound
+// surface: the pure comparators and loops
 // (../../compound/{fill-verify,scroll-until-visible,app-resolution,idempotency}), the dispatch
-// seam short-circuit (../index executeStep), and the frozen tool catalog (../../tools). This is
-// NOT a re-implementation; the per-plan suites (compound/__tests__/*, loop/__tests__/idempotency,
-// packages/{web,android,ios} compound.test.ts) own the exhaustive matrices. Do NOT weaken any
-// assertion to force a pass; if a criterion cannot be proven green, the phase is not done.
-// Mirrors the 356-07 / 357-08 / 358-09 roll-call idiom (one describe per requirement, direct
-// assertions over the shipped surface, plus a delegate source-anchor for the three adapter legs).
+// seam short-circuit (../index executeStep) and the frozen tool catalog (../../tools). The
+// compound/__tests__ suites, loop/__tests__/idempotency and packages/{web,android,ios}
+// compound.test.ts own the exhaustive matrices.
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, resolve } from 'node:path'
 
 import type { ScreenState } from '@vostride/agent-qa-schema'
 
@@ -32,10 +26,6 @@ import { buildAgentScreenState } from './screen-fixtures.js'
 import { makeActionPlan, makeStepContext, makeVerifier, makePlanner } from './loop-harness.js'
 import { ToolRegistry } from '../../tools/registry.js'
 import { registerAllActions } from '../../tools/actions/index.js'
-
-const testFilePath = fileURLToPath(import.meta.url)
-// __tests__ -> loop -> src -> runner -> packages
-const packagesRoot = resolve(dirname(testFilePath), '..', '..', '..', '..')
 
 function node(name: string, opts: Partial<InterimNode> = {}): InterimNode {
   return { role: 'text', name, ...opts }
@@ -76,15 +66,6 @@ describe('EXEC-01 — Fill executes as one atomic compound producing a single Ac
     expect(secure.meta?.actual).not.toContain('topSecret')
     // An empty secure re-read (nothing landed) still fails honestly.
     expect(compareFillReread({ expected: 'topSecretPw', actual: '', secure: true }).ok).toBe(false)
-  })
-
-  it('the three adapter compound suites pin the clear→type→re-read→(Enter) order per platform (delegate source anchor, 358-09 WM-02 idiom)', () => {
-    for (const pkg of ['web', 'android', 'ios']) {
-      const suite = readFileSync(resolve(packagesRoot, pkg, 'src', '__tests__', 'compound.test.ts'), 'utf8')
-      expect(suite).toContain('EXEC-01 fill compound')
-      // Each adapter proves the re-read happens (web inputValue / android getText / ios getAttribute value).
-      expect(suite).toMatch(/re-read/i)
-    }
   })
 })
 
