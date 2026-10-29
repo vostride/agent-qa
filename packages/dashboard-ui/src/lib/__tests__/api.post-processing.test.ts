@@ -376,7 +376,7 @@ describe('watchPostProcessing reads once and decides both channels from that rea
     dispose()
   })
 
-  it('an `unavailable` read retries at the poll cadence and opens no stream (D-23)', async () => {
+  it('an `unavailable` read retries at the poll cadence and opens no stream', async () => {
     answers = [{ status: 503, body: { error: 'agent_host_unavailable' } }]
     const reads: PostProcessingRead[] = []
     const dispose = watchPostProcessing(RUN_ID, { onRead: (read) => reads.push(read) })

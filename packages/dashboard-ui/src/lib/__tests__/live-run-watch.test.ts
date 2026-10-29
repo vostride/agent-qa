@@ -43,7 +43,7 @@ function reduced(...envelopes: readonly RunEventEnvelope[]): RunStreamState {
   return envelopes.reduce((state, one) => reduceRunStream(state, one, 0), createInitialRunStreamState())
 }
 
-describe('the live preview watches the running member (G-428-3)', () => {
+describe('the live preview watches the running member', () => {
   it('WATCH-FIRST-HANDLE-BEFORE-ANY-START: with no member rows, the first roster handle, else 0', () => {
     expect({
       roster01: watchedHandleOf({ handles: [0, 1], members: {} }, undefined),

@@ -6,7 +6,7 @@ import {
   type EvidenceState, type EvidenceTone, type EvidenceFailure, type EvidenceKindLabel,
 } from '../evidence-state-view'
 
-test('C424-STATES-EXACT', () => {
+test('evidence states are an exact union, and every absence reason maps to one', () => {
   type Expected = 'empty' | 'not-captured' | 'unsupported' | 'unavailable' | 'failed' | 'no-selection'
   expectTypeOf<EvidenceState>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof EVIDENCE_STATES)[number]>().toEqualTypeOf<Expected>()
@@ -16,7 +16,7 @@ test('C424-STATES-EXACT', () => {
   expectTypeOf<Extract<(typeof EVIDENCE_STATE_OF_REASON)[EvidenceAbsenceReason], 'no-selection'>>().toEqualTypeOf<never>()
 })
 
-test('C424-TONES-EXACT', () => {
+test('evidence tones are an exact union', () => {
   type Expected = 'positive' | 'neutral' | 'alert'
   expectTypeOf<EvidenceTone>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof EVIDENCE_TONES)[number]>().toEqualTypeOf<Expected>()
@@ -24,7 +24,7 @@ test('C424-TONES-EXACT', () => {
   expectTypeOf<Exclude<(typeof EVIDENCE_TONES)[number], EvidenceTone>>().toEqualTypeOf<never>()
 })
 
-test('C424-FAILURES-EXACT', () => {
+test('evidence failures are an exact union', () => {
   type Expected = 'capture' | 'load'
   expectTypeOf<EvidenceFailure>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof EVIDENCE_FAILURES)[number]>().toEqualTypeOf<Expected>()
@@ -32,7 +32,7 @@ test('C424-FAILURES-EXACT', () => {
   expectTypeOf<Exclude<(typeof EVIDENCE_FAILURES)[number], EvidenceFailure>>().toEqualTypeOf<never>()
 })
 
-test('C424-EVIDENCE-KINDS-EXACT', () => {
+test('evidence kind labels are an exact union', () => {
   type Expected = 'variables' | 'network' | 'console' | 'aria' | 'a11y' | 'video' | 'frame'
   expectTypeOf<EvidenceKindLabel>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof EVIDENCE_KIND_LABELS)[number]>().toEqualTypeOf<Expected>()

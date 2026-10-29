@@ -285,7 +285,7 @@ describe('useLiveEditor suite mode', () => {
   })
 
   // D-07 fail-fast
-  it('runAllTests breaks on first failed test (D-07 fail-fast)', async () => {
+  it('runAllTests stops at the first failed test (fail-fast)', async () => {
     const holder: HarnessRefHolder = { current: null }
     await render({
       refHolder: holder,
@@ -473,7 +473,7 @@ describe('useLiveEditor suite mode', () => {
   })
 
   // D-13 — playground model
-  it('test-list changes do NOT invalidate in-flight session (D-13 playground model)', async () => {
+  it('test-list changes do NOT invalidate the in-flight session', async () => {
     const holder: HarnessRefHolder = { current: null }
     await render({
       refHolder: holder,

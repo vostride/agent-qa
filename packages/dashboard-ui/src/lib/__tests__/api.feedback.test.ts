@@ -52,7 +52,7 @@ function respond(status: number, body: unknown) {
   return vi.fn(async () => new Response(JSON.stringify(body), { status }))
 }
 
-describe('426-01 feedback read clients', () => {
+describe('feedback read clients', () => {
   // 432-14: the page holds no confirm scope to leak; the body is still exactly the preview input.
   it('PREVIEW-CLIENT-BODY posts runId and never the confirm scope, and returns the parsed read', async () => {
     const fetchMock = respond(200, CONSEQUENCES)

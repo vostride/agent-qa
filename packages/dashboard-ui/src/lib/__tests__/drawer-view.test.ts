@@ -27,7 +27,7 @@ describe('drawer view', () => {
     expect(drawer().RUN_ARTIFACT_KIND_LABELS).toEqual({ test: 'Test', unknown: 'Not recorded' })
   })
 
-  it('C424-CAPTURE-STATES-EXACT', () => {
+  it('an artifact is sealed only once it has a finalizedAt', () => {
     const view = drawer()
     expect(view.CAPTURE_STATES).toEqual(['sealed', 'unsealed'])
     const stateOf = view.captureStateOf as (artifact: { finalizedAt?: string | null }) => string

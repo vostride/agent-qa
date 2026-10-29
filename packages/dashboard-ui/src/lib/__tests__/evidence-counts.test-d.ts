@@ -2,7 +2,7 @@ import { expectTypeOf, test } from 'vitest'
 import { STEP_SIGNALS, type StepSignal } from '../evidence-counts'
 import { EVIDENCE_SCOPES, type EvidenceScope } from '../../components/run-detail/evidence-scope-line'
 
-test('C424-STEP-SIGNALS-EXACT', () => {
+test('step signals are an exact union', () => {
   type Expected = 'console' | 'network' | 'a11y'
   expectTypeOf<StepSignal>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof STEP_SIGNALS)[number]>().toEqualTypeOf<Expected>()
@@ -10,7 +10,7 @@ test('C424-STEP-SIGNALS-EXACT', () => {
   expectTypeOf<Exclude<(typeof STEP_SIGNALS)[number], StepSignal>>().toEqualTypeOf<never>()
 })
 
-test('C424-EVIDENCE-SCOPES-EXACT', () => {
+test('evidence scopes are an exact union', () => {
   type Expected = 'step' | 'sub-action'
   expectTypeOf<EvidenceScope>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof EVIDENCE_SCOPES)[number]>().toEqualTypeOf<Expected>()

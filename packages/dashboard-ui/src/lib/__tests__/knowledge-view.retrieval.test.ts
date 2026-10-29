@@ -119,7 +119,7 @@ function usedRetrieval(read: KnowledgeRead) {
   return view.used.retrieval
 }
 
-describe('every recorded reason maps to exactly one retrieval class (D-21)', () => {
+describe('every recorded reason maps to exactly one retrieval class', () => {
   it('covers the whole recorded vocabulary with one expected row each', () => {
     expect(Object.keys(EXPECTED).sort()).toEqual([...RETRIEVAL_RUNG_REASONS].sort())
   })
@@ -137,7 +137,7 @@ describe('every recorded reason maps to exactly one retrieval class (D-21)', () 
     expect(retrievalClassFor({ rung: 'memidex' })).toBeUndefined()
   })
 
-  it('CLOSED-SETS-427: the retrieval classes and their tones', () => {
+  it('the retrieval classes and their tones', () => {
     expect(RETRIEVAL_CLASSES).toEqual([
       'fresh-index',
       'cause-not-recorded',
@@ -155,7 +155,7 @@ describe('every recorded reason maps to exactly one retrieval class (D-21)', () 
   })
 })
 
-describe('each class states this run\'s retrieval level in its own words (D-20, D-22)', () => {
+describe('each class states this run\'s retrieval level in its own words', () => {
   it.each(SENTENCES)('the %s / %s statement (%s) is pinned', (rung, reason, cls, sentence) => {
     expect(retrievalStatement).toBeTypeOf('function')
     expect(retrievalClassFor({ rung, ...(reason === undefined ? {} : { reason }) })).toBe(cls)
@@ -176,13 +176,13 @@ describe('each class states this run\'s retrieval level in its own words (D-20, 
     }
   })
 
-  it('the bootstrap sentence promises only what happens next, never a completed rebuild (D-22)', () => {
+  it('the bootstrap sentence promises only what happens next, never a completed rebuild', () => {
     expect(retrievalStatement).toBeTypeOf('function')
     expect(retrievalStatement('bundle-scan', 'index-not-built')).toBe(BOOTSTRAP)
     expect(retrievalStatement('bundle-scan', 'index-not-built')).not.toMatch(/rebuilt|was built|has been built/u)
   })
 
-  it('warning statements embed the recorded cause label verbatim (D-21, D-23)', () => {
+  it('warning statements embed the recorded cause label verbatim', () => {
     expect(retrievalStatement).toBeTypeOf('function')
     expect(RETRIEVAL_CLASS_TONES).toBeTypeOf('object')
     for (const reason of RETRIEVAL_RUNG_REASONS) {
@@ -192,7 +192,7 @@ describe('each class states this run\'s retrieval level in its own words (D-20, 
     }
   })
 
-  it('the doctor pointer says doctor reads current health and changes nothing this run recorded (D-23)', () => {
+  it('the doctor pointer says doctor reads current health and changes nothing this run recorded', () => {
     expect(DOCTOR_POINTER_TEXT).toBe(POINTER)
     expect(DOCTOR_POINTER_TEXT).not.toContain('`')
     expect(DOCTOR_POINTER_TEXT).not.toMatch(/\b(repair|fix|rewrite|rebuild)/iu)
@@ -209,7 +209,7 @@ describe('each class states this run\'s retrieval level in its own words (D-20, 
   })
 })
 
-describe('the ready view carries the statement under used, and only below memidex (D-20)', () => {
+describe('the ready view carries the statement under used, and only below memidex', () => {
   it('a warning class carries its sentence and the doctor pointer', () => {
     expect(retrievalStatement).toBeTypeOf('function')
     expect(usedRetrieval(ready({ schemaVersion: 2, rung: 'bundle-scan', reason: 'index-locked' }))).toEqual({

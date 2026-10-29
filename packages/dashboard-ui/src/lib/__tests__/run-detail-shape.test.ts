@@ -63,7 +63,7 @@ const SUB_ACTION_KEYS = [
   'recordingOffsetMs',
 ] as const
 
-describe('RunDetailSubAction is exactly the sub-action payload (405-11, D-14)', () => {
+describe('RunDetailSubAction is exactly the sub-action payload', () => {
   // THE SHIPPED SHAPE, not a retyped copy. Reached through the published schema the UI itself
   // parses with, so a key added to the projection is a key this cell sees.
   it('declares exactly the payload key set, in the producer order', () => {
@@ -161,7 +161,7 @@ const DISPLAY_STEP_SOURCE = readFileSync(join(SRC_DIR, 'lib', 'display-step.ts')
 /** A member whose NAME claims a recording path, a healing capture or a video. */
 const PATH_NAMED = /screenshot|healing|video|Path$/i
 
-describe('DisplayStep carries no path-named member (405-11, D-14)', () => {
+describe('DisplayStep carries no path-named member', () => {
   it('has a non-trivial member list — the control for the extractor', () => {
     const members = interfaceMemberNames(DISPLAY_STEP_SOURCE, 'DisplayStep')
     expect(members.length).toBeGreaterThan(15)
@@ -275,7 +275,7 @@ function componentFiles(dir: string): string[] {
 const RUN_DETAIL_DIR = join(SRC_DIR, 'components', 'run-detail')
 const MARKUP_SINK = 'dangerously' + 'SetInnerHTML'
 
-describe('no run-detail component injects markup (T-405-45, D-10)', () => {
+describe('no run-detail component injects markup', () => {
   it('scans the whole run-detail component directory', () => {
     expect(componentFiles(RUN_DETAIL_DIR).length).toBeGreaterThan(15)
   })

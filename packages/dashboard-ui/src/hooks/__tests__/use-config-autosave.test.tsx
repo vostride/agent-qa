@@ -166,7 +166,7 @@ afterEach(async () => {
   localStorage.clear()
 })
 
-describe("useConfigAutosave settle, write, drafts and retry (429-16 Task 1)", () => {
+describe("useConfigAutosave settle, write, drafts and retry", () => {
   it("ONE-WRITE-PER-SETTLE: a toggle writes at once, typing writes once after the pause, a blur writes at once", async () => {
     await mount()
     expect(hook!.load.kind).toBe("ready")
@@ -351,7 +351,7 @@ const editedOutside = {
   use: { timeout: { step: "2m", test: "20m" }, browser: { headless: false } },
 }
 
-describe("useConfigAutosave outside edits, explicit actions and Undo (429-16 Task 2)", () => {
+describe("useConfigAutosave outside edits, explicit actions and Undo", () => {
   it("OUTSIDE-EDIT-MERGES-QUIETLY: a revision the page did not write re-reads the config and shows the new value", async () => {
     await mount()
     vi.mocked(fetchConfigRevision).mockResolvedValue({ revision: "rev-9" })
@@ -617,7 +617,7 @@ describe("useConfigAutosave outside edits, explicit actions and Undo (429-16 Tas
   })
 })
 
-describe("useConfigAutosave external drafts (429-25 Task 1)", () => {
+describe("useConfigAutosave external drafts", () => {
   it("EXTERNAL-DRAFT-NOT-SAVED: an open add row marks its tab and reads Not saved until it goes, writing nothing", async () => {
     await mount()
     expect(hook!.status.state).toBe("idle")
@@ -644,7 +644,7 @@ describe("useConfigAutosave external drafts (429-25 Task 1)", () => {
   })
 })
 
-describe("useConfigAutosave landed-write mirror for the new ops (429-45 Task 2)", () => {
+describe("useConfigAutosave landed-write mirror for set-if-absent, move and expect", () => {
   async function landExplicit(changes: ConfigChange[]) {
     let landed = false
     await act(async () => {
@@ -730,7 +730,7 @@ describe("useConfigAutosave landed-write mirror for the new ops (429-45 Task 2)"
   })
 })
 
-describe("useConfigAutosave computed writes (429-46 Task 1 · CR-01)", () => {
+describe("useConfigAutosave computed writes", () => {
   const patternsPath = ["workspace", "testMatch"]
   const patterns: ConfigFieldRef = { segments: patternsPath, tab: "project" }
 
@@ -845,7 +845,7 @@ describe("useConfigAutosave computed writes (429-46 Task 1 · CR-01)", () => {
   })
 })
 
-describe("useConfigAutosave a Retry with nothing to send (429-53 · WR-06)", () => {
+describe("useConfigAutosave a Retry with nothing to send", () => {
   function writeFailed() {
     return new ApiError(500, "Internal Server Error", {
       error: "write_failed",
@@ -916,7 +916,7 @@ describe("useConfigAutosave a Retry with nothing to send (429-53 · WR-06)", () 
 
 // 441-40 (D-29): the editor has no masks of its own. A field the server showed through the declared
 // mask is never sent unless the person edits it, and a landed write is mirrored as written.
-describe("C441-CONFIG", () => {
+describe("useConfigAutosave and masked secret fields", () => {
   const MARKER = "[secret:PW_441]"
   const buildTag: ConfigFieldRef = { segments: ["use", "buildTag"], tab: "execution" }
   const workers: ConfigFieldRef = { segments: ["use", "workers"], tab: "execution" }

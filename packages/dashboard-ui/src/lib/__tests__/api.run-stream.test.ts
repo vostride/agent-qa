@@ -260,7 +260,7 @@ describe('classifyRunStreamClose asks the door why the source closed', () => {
     await expect(classifyRunStreamClose('run_42', {})).resolves.toEqual({ kind: 'lost' })
   })
 
-  it('reads a 404 unknown_run — the run is over and durable truth is elsewhere (D-15)', async () => {
+  it('reads a 404 unknown_run — the run is over and durable truth is elsewhere', async () => {
     stubFetch(response({ status: 404, body: { error: 'unknown_run' } }))
     await expect(classifyRunStreamClose('run_42', {})).resolves.toEqual({ kind: 'unknown_run' })
   })
@@ -335,7 +335,7 @@ describe('classifyRunStreamClose asks the door why the source closed', () => {
 // ---------------------------------------------------------------------------
 
 describe('the recovery the refusal advertises is the one this client takes', () => {
-  it('re-attaches at earliestAvailableSeq - 1 — the subtraction 403-03 named the likeliest error', async () => {
+  it('re-attaches at earliestAvailableSeq - 1, the subtraction most likely to go wrong', async () => {
     stubFetch(response({ status: 410, body: { error: 'replay_floor', earliestAvailableSeq: 40 } }))
     const reason = await classifyRunStreamClose('run_42', { handle: 2, lastEventId: 3 })
     expect(reason).toEqual({ kind: 'replay_floor', earliestAvailableSeq: 40 })

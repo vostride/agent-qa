@@ -10,7 +10,7 @@ import type { RunEvidenceRead } from '../api'
 import * as view from '../evidence-state-view'
 import { EVIDENCE_INCOMPLETE_LABEL } from '../run-detail-view'
 
-test('C424-STATES-EXACT', () => {
+test('the evidence states, and each absence reason maps to the state of the same name', () => {
   expect(view.EVIDENCE_STATES).toEqual([
     'empty', 'not-captured', 'unsupported', 'unavailable', 'failed', 'no-selection',
   ])
@@ -20,7 +20,7 @@ test('C424-STATES-EXACT', () => {
   }
 })
 
-test('C424-TONES-EXACT', () => {
+test('the evidence tones and the tone of each state', () => {
   expect(view.EVIDENCE_TONES).toEqual(['positive', 'neutral', 'alert'])
   expect(view.EVIDENCE_TONE_OF_STATE).toEqual({
     empty: 'positive', 'not-captured': 'neutral', unsupported: 'neutral',
@@ -28,11 +28,11 @@ test('C424-TONES-EXACT', () => {
   })
 })
 
-test('C424-FAILURES-EXACT', () => {
+test('the evidence failures', () => {
   expect(view.EVIDENCE_FAILURES).toEqual(['capture', 'load'])
 })
 
-test('C424-EVIDENCE-KINDS-EXACT', () => {
+test('the evidence kind labels', () => {
   expect(view.EVIDENCE_KIND_LABELS).toEqual([
     'variables', 'network', 'console', 'aria', 'a11y', 'video', 'frame',
   ])
@@ -40,7 +40,7 @@ test('C424-EVIDENCE-KINDS-EXACT', () => {
 
 const tabKinds = ['variables', 'network', 'console', 'aria', 'a11y', 'video'] as const
 
-test('C424-COPY-TOTAL', () => {
+test('every evidence tab has a title and an explanation for every state', () => {
   for (const kind of tabKinds) {
     const copy = view.EVIDENCE_COPY[kind]
     expect(copy).toBeDefined()
@@ -67,7 +67,7 @@ test('C424-COPY-TOTAL', () => {
   expect(view.EVIDENCE_LOADING_LABEL).toBe('Loading records')
 })
 
-test('C424-COPY-RULES', () => {
+test('the evidence copy never says a capture was turned off, and only a load failure can be retried', () => {
   for (const kind of tabKinds) {
     const copy = view.EVIDENCE_COPY[kind]
     expect(copy).toBeDefined()

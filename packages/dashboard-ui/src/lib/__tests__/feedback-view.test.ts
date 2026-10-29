@@ -128,7 +128,7 @@ function step(pass: boolean | undefined): Pick<RunDetailStep, 'verifierVerdict'>
   return (pass === undefined ? {} : { verifierVerdict: { pass, reasoning: '' } }) as Pick<RunDetailStep, 'verifierVerdict'>
 }
 
-describe('426-02 choice order and meaning', () => {
+describe('choice order and meaning', () => {
   it('CHOICE-LABELS-EXACT: the three labels are the locked plain-language copy, keyed by exactly the marks', () => {
     expect(CHOICE_LABELS).toEqual({
       'false-fail': 'This should have passed',
@@ -179,7 +179,7 @@ describe('426-02 choice order and meaning', () => {
     expect(feedbackOutcomeClass({ member: member(), step: step(undefined), runStatus: 'passed' })).toBe('passed')
   })
 
-  it('CHOICE-MEANINGS-TOTAL: every class carries a meaning for every mark, and the failed row is the S4 table', () => {
+  it('CHOICE-MEANINGS-TOTAL: every class carries a meaning for every mark, and the failed row reads word for word', () => {
     expect(Object.keys(CHOICE_MEANINGS).sort()).toEqual([...FEEDBACK_OUTCOME_CLASSES].sort())
     for (const cls of FEEDBACK_OUTCOME_CLASSES) {
       expect(Object.keys(CHOICE_MEANINGS[cls]).sort()).toEqual([...MARKS].sort())
@@ -205,7 +205,7 @@ describe('426-02 choice order and meaning', () => {
   })
 })
 
-describe('426-02 the composer names its target', () => {
+describe('the composer names its target', () => {
   const checkout = { testIndex: 1, name: 'checkout', outcome: 'failed' } as const
   const coupon = { stepIndex: 2, stepText: 'apply coupon', verifierVerdict: { pass: true, reasoning: '' } }
 
@@ -281,7 +281,7 @@ describe('426-02 the composer names its target', () => {
   })
 })
 
-describe('426-03 the header entry names itself', () => {
+describe('the header entry names itself', () => {
   it('ENTRY-SCOPES-RUNTIME: the entry scopes are exactly test and step', () => {
     expect([...FEEDBACK_ENTRY_SCOPES]).toEqual(['test', 'step'])
   })
@@ -299,7 +299,7 @@ describe('426-03 the header entry names itself', () => {
   })
 })
 
-describe('426-03 which test the header entry means', () => {
+describe('which test the header entry means', () => {
   const suite = (...outcomes: RunDetailMember['outcome'][]) => ({
     members: outcomes.map((outcome, testIndex) => ({ testIndex, attempts: 1, ...(outcome === undefined ? {} : { outcome }) })),
   })
@@ -321,7 +321,7 @@ describe('426-03 which test the header entry means', () => {
   })
 })
 
-describe('426-03 a test the dashboard cannot address', () => {
+describe('a test the dashboard cannot address', () => {
   const members = (...testIds: (string | undefined)[]) => ({
     members: testIds.map((testId, testIndex) => ({ testIndex, attempts: 1, ...(testId === undefined ? {} : { testId }) })),
   })
@@ -342,7 +342,7 @@ describe('426-03 a test the dashboard cannot address', () => {
   })
 })
 
-describe('426-04 the step door and the passive trace name themselves', () => {
+describe('the step door and the passive trace name themselves', () => {
   it('MARK-GLYPH-LABEL: a passive glyph reads the plain choice; the step tooltip names the step, or says it is already marked', () => {
     expect(markGlyphLabel('false-fail')).toBe('Marked: This should have passed')
     for (const kind of MARKS) expect(markGlyphLabel(kind)).toBe(`Marked: ${CHOICE_LABELS[kind]}`)
@@ -351,7 +351,7 @@ describe('426-04 the step door and the passive trace name themselves', () => {
   })
 })
 
-describe('426-05 the pinned target names both places', () => {
+describe('the pinned target names both places', () => {
   const checkout = { testIndex: 1, name: 'checkout' }
   const login = { testIndex: 0, name: 'login' }
   const test = (entry: { testIndex: number; name: string }) => `${memberDisplayName(entry)} ${memberHandleLabel(entry.testIndex)}`
@@ -387,7 +387,7 @@ describe('426-05 the pinned target names both places', () => {
 // WHAT THE MARK WILL DO, IN THE READ'S OWN FACTS (426-06 · D-14, D-16, D-17). Every sentence below is
 // computed from one runs.mark.preview field and nothing else: the resolved step is keyed on the read's
 // reason, never re-derived from the steps, and a zero-count clause is dropped rather than printed as 0.
-describe('426-06 the preview names what the mark will do', () => {
+describe('the preview names what the mark will do', () => {
   it('RESOLVED-STEP-TEXT: the sentence is keyed on the read\'s reason and the kind, and a step mark has none', () => {
     expect(resolvedStepText('failing-step', 'false-fail', 3, 5)).toBe('This marks step 3 of 5 — the first step that failed.')
     for (const kind of MARKS) {
@@ -477,7 +477,7 @@ describe('426-06 the preview names what the mark will do', () => {
 // EVERY OTHER PREVIEW OUTCOME IS ITS OWN PLAIN STATE, AND ONE RULE DECIDES SUBMIT (426-07 · D-18, D-19).
 // A quarantined mark still records; an identical repeat, a refusal in runs.mark's own terms and a read
 // that failed never do. The sentences are UI-SPEC S5/S6's strings of record, so they are literal here.
-describe('426-07 the special arms and the failed read', () => {
+describe('the special arms and the failed read', () => {
   const RUN_ID = generateRunId()
 
   it('PREVIEW-QUARANTINED: each quarantine class names its cause inside the locked sentence', () => {
@@ -543,7 +543,7 @@ describe('426-07 the special arms and the failed read', () => {
   })
 })
 
-describe('426-07 one first-match rule decides Send feedback', () => {
+describe('one first-match rule decides Send feedback', () => {
   const enabled: SubmitBlockInput = {
     noUniqueAddress: false,
     kind: 'false-fail',
@@ -600,7 +600,7 @@ describe('426-07 one first-match rule decides Send feedback', () => {
   })
 })
 
-describe('426-08 Technical details copy', () => {
+describe('Technical details copy', () => {
   it('TECHNICAL-DETAILS-ROWS: the locked row labels, and the basis with its prior mark when there is one', () => {
     expect(TECHNICAL_DETAILS_LABEL).toBe('Technical details')
     expect(TECHNICAL_DETAILS_ROW_LABELS).toEqual({
@@ -617,7 +617,7 @@ describe('426-08 Technical details copy', () => {
 
 // 426-09 · D-22: the history reads as plain sentences; a time is always the browser's own format of
 // the entry's markedAt, so cells compute it through formatMarkTime and never spell a clock.
-describe('426-09 the history copy', () => {
+describe('the history copy', () => {
   const RUN_ID = generateRunId()
 
   it('MARK-TIME-FORMAT: the month, day and 24-hour time of markedAt in the browser locale; a non-finite time has none', () => {
@@ -630,7 +630,7 @@ describe('426-09 the history copy', () => {
     expect(formatMarkTime(undefined)).toBeUndefined()
   })
 
-  it('C426-HISTORY-STATES-EXACT (runtime): the history states are exactly the published set, and each read maps to its own', () => {
+  it('(runtime): the history states are exactly the published set, and each read maps to its own', () => {
     expect(FEEDBACK_HISTORY_STATES).toEqual(['loading', 'history', 'empty', 'run-not-found', 'ledger-corrupt', 'ledger-unavailable', 'failed'])
     const read = (value: Record<string, unknown>) => ({ kind: 'read' as const, result: RunsMarksHistoryResultSchema.parse({ runId: RUN_ID, ...value }) })
     expect(feedbackHistoryState(undefined)).toBe('loading')
@@ -702,7 +702,7 @@ describe('426-09 the history copy', () => {
   })
 })
 
-describe('426-11 docked or stacked is one rule', () => {
+describe('docked or stacked is one rule', () => {
   it('LAYOUT-RULE: the open composer stacks only on a measured page narrower than 768px; closed or unmeasured is docked', () => {
     expect(FEEDBACK_STACK_BELOW_PX).toBe(768)
     expect(feedbackLayout(0, true)).toBe('docked')

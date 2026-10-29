@@ -72,14 +72,14 @@ const OWNER_LOCKED_ONE_WORD = ['Connect', 'Apply', 'Undo', 'Retry']
 /** The in-flight label of the owner-locked Connect button, the one word it turns into while busy. */
 const BUSY_FORMS: Record<string, string> = { 'Connecting…': 'Connect' }
 
-describe('COPY-429: the Config strings of record (429-12 Task 2)', () => {
-  it('COPY-429: every exported string is non-empty', () => {
+describe('the Config strings of record', () => {
+  it('every exported string is non-empty', () => {
     const strings = everyString()
     expect(strings.length, 'the witness: the walk found the strings').toBeGreaterThan(100)
     for (const text of strings) expect(text.trim(), JSON.stringify(text)).not.toBe('')
   })
 
-  it('COPY-429: the tab labels, status words and model status words are the locked words', () => {
+  it('the tab labels, status words and model status words are the locked words', () => {
     expect(CONFIG_TABS.map((tab) => copy.CONFIG_TAB_LABELS[tab])).toEqual([
       'Models',
       'Targets',
@@ -120,13 +120,13 @@ describe('COPY-429: the Config strings of record (429-12 Task 2)', () => {
     expect(copy.applyActionName('database')).toBe('Apply database')
   })
 
-  it('COPY-429: a passed test says Connected with no milliseconds', () => {
+  it('a passed test says Connected with no milliseconds', () => {
     expect(copy.TEST_RESULT_TEXT.connected).toBe('Connected')
     expect(copy.TEST_RESULT_TEXT.connected).not.toMatch(/\d/)
     expect(copy.TEST_RESULT_TEXT['connected-without-key']).toBe('Connected without a key')
   })
 
-  it('COPY-429: the connection sentences follow the row status and the connection kind', () => {
+  it('the connection sentences follow the row status and the connection kind', () => {
     expect(copy.connectionSentence('signed-in', 'ChatGPT', { signIn: true })).toBe(
       'Signed in with your ChatGPT plan.',
     )
@@ -137,7 +137,7 @@ describe('COPY-429: the Config strings of record (429-12 Task 2)', () => {
     expect(copy.connectionSentence('not-connected', 'Claude', { signIn: true })).toBe('Not signed in.')
   })
 
-  it('COPY-429: no string carries storage vocabulary', () => {
+  it('no string carries storage vocabulary', () => {
     for (const text of everyString()) {
       const lower = text.toLowerCase()
       expect(lower, text).not.toContain('bucket')
@@ -146,7 +146,7 @@ describe('COPY-429: the Config strings of record (429-12 Task 2)', () => {
     }
   })
 
-  it('COPY-429: no button label is a bare generic word, and only four owner-locked words stand alone', () => {
+  it('no button label is a bare generic word, and only four owner-locked words stand alone', () => {
     const labels = Object.entries(copy)
       .filter(([name, value]) => name.endsWith('_LABEL') && typeof value === 'string')
       .map(([, value]) => value as string)
@@ -157,7 +157,7 @@ describe('COPY-429: the Config strings of record (429-12 Task 2)', () => {
     }
   })
 
-  it('COPY-429: providerErrorSentence is the schema classifier function itself, never re-spelled', () => {
+  it('providerErrorSentence is the schema classifier function itself, never re-spelled', () => {
     expect(copy.providerErrorSentence).toBe(schemaProviderErrorSentence)
     const source = readFileSync(new URL('../config-copy.ts', import.meta.url), 'utf-8')
     expect(source).toContain("export { providerErrorSentence } from '@vostride/agent-qa-schema'")
@@ -188,7 +188,7 @@ describe('COPY-429: the Config strings of record (429-12 Task 2)', () => {
     expect(copy.FIELD_CHANGED_TEXT).toBe("This changed in the file. The page now shows the file's value.")
   })
 
-  it('COPY-429: the timing constants', () => {
+  it('the timing constants', () => {
     expect(copy.SETTLE_DELAY_MS).toBe(1_000)
     expect(copy.SAVED_VISIBLE_MS).toBe(2_000)
     expect(copy.UNDO_WINDOW_MS).toBe(10_000)
@@ -196,7 +196,7 @@ describe('COPY-429: the Config strings of record (429-12 Task 2)', () => {
   })
 })
 
-describe('The Connect refusal sentences (429-48 Task 1)', () => {
+describe('The Connect refusal sentences', () => {
   it('CONNECT-REFUSAL-COPY-TOTAL: every code the connect door can answer has its own full sentence', () => {
     const codes = new Set<string>([...LLM_SETUP_REFUSALS, ...CONFIG_WRITE_REFUSALS, 'connect_failed', 'cross_site_refused'])
     expect(new Set(Object.keys(copy.CONNECT_REFUSAL_COPY))).toEqual(codes)

@@ -30,12 +30,12 @@ import {
 
 const sectionsOf = (query: string) => searchConfigSections(query).map((entry) => entry.section)
 
-describe('the tabs and their sections (429-12 Task 1)', () => {
-  it('C429-CONFIG-TABS-EXACT: five tabs in the owner-locked order', () => {
+describe('the tabs and their sections', () => {
+  it('five tabs in the owner-locked order', () => {
     expect(CONFIG_TABS).toEqual(['models', 'targets', 'execution', 'project', 'advanced'])
   })
 
-  it('C429-CONFIG-SECTIONS-EXACT: each tab lists its sections in the UI-SPEC S2 order', () => {
+  it('each tab lists its sections in display order', () => {
     expect(CONFIG_SECTIONS).toEqual({
       models: ['models', 'screenshot-size', 'planner-limits'],
       targets: ['targets', 'devices', 'login-states', 'mobile-app-state'],
@@ -61,7 +61,7 @@ describe('the tabs and their sections (429-12 Task 1)', () => {
   })
 })
 
-describe('the legacy links (429-12 Task 1)', () => {
+describe('the legacy links', () => {
   it('LEGACY-LINKS-TOTAL: each live pair maps to exactly one tab and section', () => {
     expect(LEGACY_CONFIG_PAIRS).toEqual([
       'workspace:discovery',
@@ -144,7 +144,7 @@ describe('the legacy links (429-12 Task 1)', () => {
   })
 })
 
-describe('tab URLs and the section search (429-12 Task 1)', () => {
+describe('tab URLs and the section search', () => {
   it('builds the tab and section URLs and resolves only a known tab', () => {
     expect(configTabPath('models')).toBe('/config/models')
     expect(configTabPath('execution', 'timeouts')).toBe('/config/execution?section=timeouts')
@@ -188,16 +188,16 @@ describe('tab URLs and the section search (429-12 Task 1)', () => {
   })
 })
 
-describe('the UI closed sets (429-12 Task 1)', () => {
-  it('C429-SAVE-STATES-EXACT', () => {
+describe('the UI closed sets', () => {
+  it('the save states, in order', () => {
     expect(SAVE_STATES).toEqual(['idle', 'saving', 'saved', 'draft', 'failed', 'undo'])
   })
 
-  it('C429-FIELD-STATES-EXACT', () => {
+  it('the field states, in order', () => {
     expect(FIELD_STATES).toEqual(['clean', 'draft', 'saving', 'failed'])
   })
 
-  it('C429-CONNECTION-CHOICES-EXACT: five choices, each naming its provider', () => {
+  it('five choices, each naming its provider', () => {
     expect(CONNECTION_CHOICES).toEqual([
       'chatgpt-sign-in',
       'claude-sign-in',
@@ -214,11 +214,11 @@ describe('the UI closed sets (429-12 Task 1)', () => {
     })
   })
 
-  it('C429-MODEL-STATUSES-EXACT', () => {
+  it('the model statuses, in order', () => {
     expect(MODEL_STATUSES).toEqual(['signed-in', 'key-saved', 'not-connected', 'sign-in-expired'])
   })
 
-  it('C429-TEST-RESULTS-EXACT', () => {
+  it('the test results, in order', () => {
     expect(TEST_RESULTS).toEqual(['testing', 'connected', 'connected-without-key', 'failed'])
   })
 

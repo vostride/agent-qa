@@ -64,7 +64,7 @@ describe('agentqa:// references resolve through the same map', () => {
   })
 })
 
-describe('the entity route module stands on its own (430 D-01)', () => {
+describe('the entity route module stands on its own', () => {
   it('ENTITY-REF-ROUTE-RESOLVES: a bare reference routes only where its address suffices', () => {
     expect(entityRefRoute('agentqa://target/TGT-checkout-v2')).toBe('/config')
     // Both parse, so an undefined below is the route map's answer and not a parse refusal.
@@ -120,7 +120,7 @@ describe('the dashboard route map answers the shipped card-route contract', () =
   })
 })
 
-describe('the dashboard renders no entity card (430 D-04)', () => {
+describe('the dashboard renders no entity card', () => {
   it('NO-CARD-MODULE: the conversation module directory does not exist', () => {
     expect(existsSync(resolvePath(import.meta.dirname, '..', 'chat'))).toBe(false)
   })

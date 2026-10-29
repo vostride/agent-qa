@@ -114,7 +114,7 @@ describe('dashboard status normalization', () => {
   })
 })
 
-describe('C444-TIMEOUT-BADGE', () => {
+describe('the timeout status badge', () => {
   it('both run status helpers label timeout Timed out', () => {
     expect(getRunStatusDescriptor('timeout')).toMatchObject({ label: 'Timed out', tone: 'danger' })
     expect(getRunStatusDescriptor('timed_out')).toMatchObject({ label: 'Timed out', tone: 'danger' })

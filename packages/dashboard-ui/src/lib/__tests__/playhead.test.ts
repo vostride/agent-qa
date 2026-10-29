@@ -289,14 +289,14 @@ test('CITED-SHA-FINDS-MARKER', () => {
   expect(findMarkerBySha(model, 'c'.repeat(64))).toBeUndefined()
 })
 
-test('C424-TIMELINE-AXES-EXACT', () => expect(TIMELINE_AXES).toEqual(['time', 'ordinal']))
+test('the timeline axes', () => expect(TIMELINE_AXES).toEqual(['time', 'ordinal']))
 // 2026-10-08 (437-03, D-05): 'no-input' joins the closed set.
-test('C424-MARKER-RESULTS-EXACT', () => expect(MARKER_RESULTS).toEqual(['passed', 'failed', 'healed', 'no-input']))
-test('C424-MARKER-FRAMES-EXACT', () => expect(MARKER_FRAMES).toEqual(['available', 'absent']))
-test('C424-PLAYER-SOURCES-EXACT', () => expect(PLAYER_SOURCES).toEqual(['frames', 'video']))
+test('the marker results', () => expect(MARKER_RESULTS).toEqual(['passed', 'failed', 'healed', 'no-input']))
+test('the marker frames', () => expect(MARKER_FRAMES).toEqual(['available', 'absent']))
+test('the player sources', () => expect(PLAYER_SOURCES).toEqual(['frames', 'video']))
 
 // 2026-10-08 (437-03, D-05): a skipped tap's marker is neither passed nor failed.
-test('C437-NO-INPUT-LABEL a skipped tap\'s timeline marker result is no-input', () => {
+test('a skipped tap\'s timeline marker result is no-input', () => {
   const input = group()
   input.steps[0]!.subActions[0]!.result = {
     success: false, metadata: { idempotentNoop: { currentState: 'checked', inputSent: false } },

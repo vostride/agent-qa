@@ -51,8 +51,8 @@ import {
   type LivePreviewView,
 } from '../live-preview'
 
-describe('the preview vocabulary (428-14 Task 1)', () => {
-  it('CLOSED-SETS-428: the states, dots, report events and actions are exactly the published sets', () => {
+describe('the preview vocabulary', () => {
+  it('the states, dots, report events and actions are exactly the published sets', () => {
     expect(LIVE_PREVIEW_STATES).toEqual([
       'loading',
       'waiting',
@@ -93,7 +93,7 @@ describe('the preview vocabulary (428-14 Task 1)', () => {
     }
   })
 
-  it('COPY-428: the constants and the corner copy are the recorded defaults', () => {
+  it('the constants and the corner copy are the recorded defaults', () => {
     expect(LIVE_FRESHNESS_WINDOW_MS).toBe(5_000)
     expect(LIVE_RECONNECT_BACKOFF_MS).toEqual([1_000, 2_000, 4_000])
     expect(NO_STREAM_RETRY_MS).toBe(2_500)
@@ -245,7 +245,7 @@ function oneMachineScript(memberAnswered: boolean): LivePreviewView[] {
 
 const size = { width: W, height: H }
 
-describe('one machine for both entry points (428-14 Task 2)', () => {
+describe('one machine for both entry points', () => {
   describe.each(ENTRY_POINTS)('the $subject.kind subject', ({ memberAnswered }) => {
     it('ONE-MACHINE-BOTH-ENTRY-POINTS: the same event script derives the same corner, step by step', () => {
       const trace = oneMachineScript(memberAnswered)

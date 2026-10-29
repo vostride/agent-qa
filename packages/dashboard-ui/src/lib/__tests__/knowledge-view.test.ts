@@ -155,7 +155,7 @@ function usedOf(view: ReturnType<typeof projectKnowledgeView>) {
   return view.ledger
 }
 
-describe('a failed read is its own state, never an empty panel (D-06)', () => {
+describe('a failed read is its own state, never an empty panel', () => {
   it('carries the read-failed heading and the masked reason with the doctor pointer', () => {
     const view = projectKnowledgeView({ kind: 'unavailable', error: 'read_failed' })
 
@@ -167,7 +167,7 @@ describe('a failed read is its own state, never an empty panel (D-06)', () => {
     expect(view.body).toContain('agent-qa doctor')
   })
 
-  it('forwards the producer error VERBATIM — never sliced, never re-worded (T-407-07)', () => {
+  it('forwards the producer error VERBATIM — never sliced, never re-worded', () => {
     const hostile = '<img src=x onerror=alert(1)>'
     const view = projectKnowledgeView({ kind: 'unavailable', error: hostile })
 
@@ -176,7 +176,7 @@ describe('a failed read is its own state, never an empty panel (D-06)', () => {
   })
 })
 
-describe('a pruned handoff is a legible state, not a refusal (D-06)', () => {
+describe('a pruned handoff is a legible state, not a refusal', () => {
   it('projects evidence-incomplete with no body of its own — the shipped component owns the words', () => {
     const view = projectKnowledgeView({
       kind: 'read',
@@ -187,7 +187,7 @@ describe('a pruned handoff is a legible state, not a refusal (D-06)', () => {
   })
 })
 
-describe('no knowledge reader bound is not a rung, it is a state (D-16)', () => {
+describe('no knowledge reader bound is not a rung, it is a state', () => {
   it('projects empty-no-store from knowledgeStore: unbound, whatever the steps say', () => {
     const view = projectKnowledgeView(ready({ knowledgeStore: 'unbound', steps: [step()] }))
 
@@ -199,7 +199,7 @@ describe('no knowledge reader bound is not a rung, it is a state (D-16)', () => 
   })
 })
 
-describe('the Used summary is DERIVED from the rows the panel already holds (D-03)', () => {
+describe('the Used summary is DERIVED from the rows the panel already holds', () => {
   it('reads the sentence of record with every segment present, joined by a middot', () => {
     const summary = usedSummaryLine({ stepsBriefed: 12, canaryLines: 4, replays: 1, hints: 2 })
 
@@ -256,7 +256,7 @@ describe('the Used summary is DERIVED from the rows the panel already holds (D-0
   })
 })
 
-describe('one row per step, whatever the row served (D-03)', () => {
+describe('one row per step, whatever the row served', () => {
   it('titles a row by its ONE-BASED ordinal and the step text', () => {
     const view = projectKnowledgeView(ready({
       steps: [step({ stepIndex: 2, stepText: 'click checkout' })],
@@ -299,7 +299,7 @@ describe('one row per step, whatever the row served (D-03)', () => {
     expect(canaryFact(1)).toBe('1 canary')
   })
 
-  it('states a replay row as a replay, and a hint row as a hint (D-07)', () => {
+  it('states a replay row as a replay, and a hint row as a hint', () => {
     const view = projectKnowledgeView(ready({
       steps: [
         step({
@@ -323,7 +323,7 @@ describe('one row per step, whatever the row served (D-03)', () => {
     expect(usedOf(view).summary).toBe('2 steps briefed · 1 procedure replay, 1 hint')
   })
 
-  it('marks a step that served nothing rather than dropping the row (D-04)', () => {
+  it('marks a step that served nothing rather than dropping the row', () => {
     const view = projectKnowledgeView(ready({ steps: [step()] }))
 
     const row = usedOf(view).steps[0]
@@ -334,7 +334,7 @@ describe('one row per step, whatever the row served (D-03)', () => {
   })
 })
 
-describe('the recorded rung rides the view when the evidence recorded one (D-13)', () => {
+describe('the recorded rung rides the view when the evidence recorded one', () => {
   it('carries the rung and its cause through untouched', () => {
     const view = projectKnowledgeView(ready({
       steps: [step()],
@@ -391,7 +391,7 @@ describe('the reserved copy the expansion plans consume is published NOW', () =>
     expect(TRACE_TRUNCATION_TOP_K).toBe(20)
   })
 
-  it('gives every no-trace arm and every half heading its own sentence (D-04)', () => {
+  it('gives every no-trace arm and every half heading its own sentence', () => {
     expect(PRE_TRACE_TEXT).toBe('no trace was captured for this run')
     expect(STEP_NOT_FOUND_TEXT).toBe('no evidence recorded for this step')
     expect(STEP_NO_BRIEF_TEXT).toBe('no brief served')
@@ -439,7 +439,7 @@ function detailOf(view: ReturnType<typeof projectKnowledgeView>, index = 0) {
   return usedOf(view).steps[index].detail
 }
 
-describe('a served line carries the trace answer that explains IT, and nothing it computed (D-04)', () => {
+describe('a served line carries the trace answer that explains IT, and nothing it computed', () => {
   it('answers a served line from the trace ledger — leg, rank and score, matched by recordId', () => {
     const lines = briefLineViews(
       step({ served: { channel1: [briefLine(false, 'rec_a')], channel2: [], channel3: [] } }),
@@ -512,7 +512,7 @@ describe('a served line carries the trace answer that explains IT, and nothing i
   })
 })
 
-describe('the cut ledger is the answer to "why did it NOT say X" (D-04)', () => {
+describe('the cut ledger is the answer to "why did it NOT say X"', () => {
   it('labels the ledger from the producer cap and carries the cut lines through', () => {
     const cut = cutCandidates(answered([], [traceLine('rec_x'), traceLine('rec_y'), traceLine('rec_z')]))
 
@@ -535,7 +535,7 @@ describe('the cut ledger is the answer to "why did it NOT say X" (D-04)', () => 
   })
 })
 
-describe('a canary line is never blank — it says pending, not-attributed, or the outcome (D-08)', () => {
+describe('a canary line is never blank — it says pending, not-attributed, or the outcome', () => {
   it('says PENDING while curation has not settled, whatever the attributions hold', () => {
     expect(canaryOutcomeWord('pending', attribution())).toBe('pending')
     expect(canaryOutcomeWord('running', undefined)).toBe('pending')
@@ -654,7 +654,7 @@ describe('a canary line is never blank — it says pending, not-attributed, or t
   })
 })
 
-describe('a replay states its guard outcome and a hint states its demotion (D-07)', () => {
+describe('a replay states its guard outcome and a hint states its demotion', () => {
   it('reads replayed n/n when every check passed and nothing broke', () => {
     expect(planSourceSentence({
       kind: 'procedure-replay',
@@ -885,7 +885,7 @@ describe('the projection joins the trace, the ledger, the outcome and the plan s
   })
 })
 
-describe('the 407-06 copy is published as constants, like every sentence before it', () => {
+describe('the canary and attribution copy is published as constants, like every sentence before it', () => {
   it('spells the canary marker and both unsettled words exactly once', () => {
     expect(CANARY_BADGE_TEXT).toBe('canary')
     expect(ATTRIBUTION_PENDING_TEXT).toBe('attribution pending')
@@ -955,7 +955,7 @@ function learnedFrom(
   return learnedView(read.projection)
 }
 
-describe('419 promotion projection copies receipt attribution', () => {
+describe('the promotion projection copies receipt attribution', () => {
   it('preserves the path and complete digest, and keeps historical keys absent', () => {
     // RE-SPELLED 427-08 (D-19 part 2): the receipt now reaches Retrieval details, never the row.
     const promotionReceiptDigest = '0123456789abcdef'.repeat(4)
@@ -981,7 +981,7 @@ function readyView(overrides: Partial<Extract<RunKnowledgeProjection, { kind: 'r
   return view
 }
 
-describe('the Learned half mirrors the curation word and NEVER renders blank (D-12)', () => {
+describe('the Learned half mirrors the curation word and NEVER renders blank', () => {
   it('says deltas are still coming while curation is pending — a sentence, not a spinner', () => {
     const view = learnedFrom({ curation: { status: 'pending' } })
     expect(view.state).toBe('pending')
@@ -1009,7 +1009,7 @@ describe('the Learned half mirrors the curation word and NEVER renders blank (D-
     }
   })
 
-  it('says the counts were not recorded — never a zero — when a settled row committed none (D-12)', () => {
+  it('says the counts were not recorded — never a zero — when a settled row committed none', () => {
     const view = learnedFrom({ curation: { status: 'complete' } })
     expect(view.state).toBe('counts-absent')
     expect(view.sentence).toBe(COUNTS_NOT_RECORDED_SENTENCE)
@@ -1024,7 +1024,7 @@ describe('the Learned half mirrors the curation word and NEVER renders blank (D-
   })
 })
 
-describe('a settled curation says what it changed, in the chip\'s own words (D-09)', () => {
+describe('a settled curation says what it changed, in the chip\'s own words', () => {
   it('collapses a both-zero legacy pair to the pair itself, with the changed-nothing sentence', () => {
     // RE-SPELLED 425-06 (D-16/D-18). The pair is now rendered AS a pair rather than folded into a
     // phrase, because folding it was the step that let two coarse counts read as a breakdown.
@@ -1113,7 +1113,7 @@ describe('a settled curation says what it changed, in the chip\'s own words (D-0
    * breakdown with three buckets missing, so the heading prints the pair and says on its own line
    * that no breakdown exists — the reader who sees two numbers where five usually live is told why.
    */
-  it('LEARNED-LEGACY-NOTE: prints a pre-423 pair as a pair, with the not-recorded note beneath', () => {
+  it("LEARNED-LEGACY-NOTE: prints an older run's pair as a pair, with the not-recorded note beneath", () => {
     const view = learnedFrom({ curation: { status: 'complete', counts: { curated: 2, deprecated: 0 } } })
 
     expect(view.countLine).toBe(legacyCurationPairText(2, 0))
@@ -1192,7 +1192,7 @@ describe('a settled curation says what it changed, in the chip\'s own words (D-0
  * cannot appear. The gate itself is kept as the structural guard; what a partial read or a failed
  * chain costs is said by the notes beside the rows.
  */
-describe('a count that disagrees with the rows says so, and says why (425-06 · D-19)', () => {
+describe('a count that disagrees with the rows says so, and says why', () => {
   it('RECONCILIATION-ONLY-ON-MISMATCH: a schema-valid snapshot shows one curation row per counted record', () => {
     const snapshot = addedSnapshot(['rec-a', 'rec-b', 'rec-c'])
     const view = learnedFrom({
@@ -1231,7 +1231,7 @@ describe('a count that disagrees with the rows says so, and says why (425-06 · 
     expect(reconciliationCountText(0, 1)).toBe('0 changes counted · 1 shown')
   })
 
-  it('RECONCILIATION-ONLY-ON-MISMATCH: a since-then row is not one of the rows shown (423 D-15)', () => {
+  it('RECONCILIATION-ONLY-ON-MISMATCH: a since-then row is not one of the rows shown', () => {
     const later = change('promoted', 'rec-later')
     const view = learnedFrom({
       curation: { status: 'complete', counts: { curated: 2, deprecated: 0 } },
@@ -1314,7 +1314,7 @@ describe('a count that disagrees with the rows says so, and says why (425-06 · 
 // under the four-kind literal the commonest curation outcome was served, attributed, then dropped
 // (REVIEW CR-04). `purged` is still out. The widening is a reconciliation of D-10 pending the
 // user's ruling — see R-407-15-01.
-describe('the record list is the five LEARNED kinds and nothing else (D-10, widened by R-407-15-01)', () => {
+describe('the record list is the five LEARNED kinds and nothing else', () => {
   const everyKind: readonly RecordChange['change'][] = [
     'added', 'confirmed', 'superseded', 'deprecated', 'promoted', 'purged',
   ]
@@ -1330,7 +1330,7 @@ describe('the record list is the five LEARNED kinds and nothing else (D-10, wide
   }
 
   // RE-SPELLED 427-08 (D-15): the rows carry 425's bucket words, so a promotion reads Confirmed.
-  it('maps the five Learned kinds onto 425\'s bucket words in the projection\'s own order', () => {
+  it("maps the five Learned kinds onto the curation bucket words in the projection's own order", () => {
     expect(rowsOfEveryKind().map(row => row.bucket))
       .toEqual(['added', 'confirmed', 'superseded', 'deprecated', 'confirmed'])
   })
@@ -1384,7 +1384,7 @@ describe('the record list is the five LEARNED kinds and nothing else (D-10, wide
   })
 })
 
-describe('a curated NEW fact is what the run learned (CR-04, D-10)', () => {
+describe('a curated NEW fact is what the run learned', () => {
   /**
    * THE VERIFIER'S REPRODUCTION, INVERTED.
    *
@@ -1442,7 +1442,7 @@ describe('a curated NEW fact is what the run learned (CR-04, D-10)', () => {
     expect(view.sentence).toBeUndefined()
   })
 
-  it('lists NOTHING while the chain is UNSETTLED, however many rows the projection carries (D-12)', () => {
+  it('lists NOTHING while the chain is UNSETTLED, however many rows the projection carries', () => {
     // RE-SCOPED 407-26 (G-407-12). This cell used to iterate `failed` too, under a title that
     // contradicted its own subject: `failed` is a SETTLED chain, and the D-12 justification the
     // title cites — "a chain that has not settled has not finished deciding what it changed" —
@@ -1635,7 +1635,7 @@ describe('a curated NEW fact is what the run learned (CR-04, D-10)', () => {
   })
 })
 
-describe('an unreadable store is named, never called "not available yet" (407-14)', () => {
+describe('an unreadable store is named, never called "not available yet"', () => {
   /**
    * TWO ABSENCES THAT MUST NOT WEAR ONE SENTENCE.
    *
@@ -1675,7 +1675,7 @@ describe('an unreadable store is named, never called "not available yet" (407-14
   })
 })
 
-describe('a partial read decorates the answer, it never replaces it (REVIEW CR-01, WR-05)', () => {
+describe('a partial read decorates the answer, it never replaces it', () => {
   /**
    * THE REVIEW'S REPRODUCTION, INVERTED (REVIEW CR-01).
    *
@@ -1827,7 +1827,7 @@ describe('a partial read decorates the answer, it never replaces it (REVIEW CR-0
 // RE-SPELLED 432-09 (D-25) from 'the proposals line is a COUNT and a door, never any proposal content
 // (D-11)': the tab shows what changed, so no ready view carries a proposals member, a count or a
 // review command, whatever the curation word — and a legacy count on the wire is not projected.
-describe('no ready view carries a pending-proposals line or a review command (432-09 D-25)', () => {
+describe('no ready view carries a pending-proposals line or a review command', () => {
   it.each([
     ['complete', { curation: { status: 'complete' as const, counts: { curated: 1, deprecated: 0 } } }],
     ['pending', { curation: { status: 'pending' as const } }],
@@ -1840,7 +1840,7 @@ describe('no ready view carries a pending-proposals line or a review command (43
 })
 
 describe('the ready arm carries the Learned half so the tab does not have to build one', () => {
-  it('fills `learned` on every ready view, and never a `proposals` member (432-09)', () => {
+  it('fills `learned` on every ready view, and never a `proposals` member', () => {
     const view = projectKnowledgeView(ready({
       curation: { status: 'complete', counts: { curated: 2, deprecated: 1 } },
       learned: { changes: [change('confirmed', 'MEM-001')], canaryAttributions: [] },
@@ -1859,7 +1859,7 @@ describe('the ready arm carries the Learned half so the tab does not have to bui
   })
 })
 
-describe('the 407-09 copy is published as constants, like every sentence before it', () => {
+describe('the Memory changes copy is published as constants, like every sentence before it', () => {
   it('spells each Learned sentence exactly once, and no two the same', () => {
     expect(CHANGES_PENDING_TEXT).toBe('Memory changes appear after post-run processing finishes.')
     expect(CURATION_FAILED_TEXT).toBe('Curation failed — nothing was learned from this run.')
@@ -1879,7 +1879,7 @@ describe('the 407-09 copy is published as constants, like every sentence before 
     ]).size).toBe(6)
   })
 
-  it('keeps the Memory changes heading beside them (427 D-02 renamed the Learned heading)', () => {
+  it('keeps the Memory changes heading beside them', () => {
     expect(MEMORY_CHANGES_HEADING).toBe('Memory changes')
   })
 })
@@ -1888,7 +1888,7 @@ describe('the 407-09 copy is published as constants, like every sentence before 
 // The rung banner's copy of record (407-10 · TRST-01, D-13/D-14/D-15/D-16)
 // ---------------------------------------------------------------------------
 
-describe('the strip sentence exists only for warning classes, composed from closed tables (D-15, 427 D-20)', () => {
+describe('the strip sentence exists only for warning classes, composed from closed tables', () => {
   it('renders the SENTENCE OF RECORD byte-for-byte for a floor host', () => {
     // Spelled as a literal on purpose: a cell composed from the same constants the implementation
     // uses would go green on a template that lost its em dash.
@@ -1945,7 +1945,7 @@ describe('the two label tables are TOTAL over the schema vocabularies', () => {
     }
   })
 
-  it('carries the doctor row wording verbatim for the three labels the CLI reconciled (407-08)', () => {
+  it('carries the doctor row wording verbatim for the three labels the CLI reconciled', () => {
     // These three are NOT in UI-SPEC's five. `doctor-knowledge-checks.ts` chose them; 407-11 pins
     // the two tables equal. This cell is the dashboard half of that pin, stated locally so the
     // drift reds here first.
@@ -1964,20 +1964,20 @@ describe('the two label tables are TOTAL over the schema vocabularies', () => {
   })
 })
 
-describe('the header reads the rung off the DURABLE projection, and only where there is one (D-13/D-16)', () => {
+describe('the header reads the rung off the DURABLE projection, and only where there is one', () => {
   const RECORDED = { schemaVersion: 2, rung: 'static-floor', reason: 'native-runtime-unavailable' } as const
 
   it('hands the recorded value back untouched for a bound store', () => {
     expect(bannerRung(ready({ retrievalRung: RECORDED }))).toEqual(RECORDED)
   })
 
-  it('says nothing for a project with NO knowledge store bound (D-16)', () => {
+  it('says nothing for a project with NO knowledge store bound', () => {
     // A run that never asked retrieval anything was not served on a rung. The tab says so in its
     // own words; the header stays silent rather than labelling the run degraded.
     expect(bannerRung(ready({ knowledgeStore: 'unbound', retrievalRung: RECORDED }))).toBeUndefined()
   })
 
-  it('says nothing for a pre-407 run whose evidence recorded no rung', () => {
+  it('says nothing for an older run whose evidence recorded no rung', () => {
     expect(bannerRung(ready({}))).toBeUndefined()
   })
 

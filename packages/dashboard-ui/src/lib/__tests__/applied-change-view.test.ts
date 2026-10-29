@@ -29,8 +29,8 @@ const CONTENT = {
   currentTrust: { confirmations: 1, contradictions: 0, evidenceTokens: [], lastEventOrdinal: 1 },
 }
 
-describe('432-09 the applied change, as the history and preview show it', () => {
-  it('C432-APPLIED-VIEW: knowledge and test-file outcomes read as applied; no-fix, bug and historical drafts read as themselves', () => {
+describe('the applied change, as the history and preview show it', () => {
+  it('knowledge and test-file outcomes read as applied; no-fix, bug and historical drafts read as themselves', () => {
     expect(call<string>('dispositionText', KNOWLEDGE)).toBe('Recorded — a caution was added')
     expect(call<string>('dispositionText', TEST_FILE)).toBe('Recorded — the test file was edited')
     expect(call<string>('dispositionText', { kind: 'confirmed-bug', confirmedRecords: 2 }))

@@ -142,7 +142,7 @@ describe('ApiError propagation through postJson', () => {
   })
 })
 
-describe('C441-GAP2-TEST-SAVE', () => {
+describe('a test save refused for a written-back secret marker', () => {
   it('a test save refused as marker_written_back rejects with the sentence as its message', async () => {
     const sentence = 'This holds [secret:<name>], the way a declared secret is shown.'
     globalThis.fetch = vi.fn()

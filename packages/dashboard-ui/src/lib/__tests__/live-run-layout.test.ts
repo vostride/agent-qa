@@ -15,8 +15,8 @@ import {
   type LiveRunLayout,
 } from '@/lib/live-run-layout'
 
-describe('the live page stacks below 768 px of measured width (428 D-06)', () => {
-  it('LAYOUT-BOUNDARY-768: 0 docked, 400 stacked, 767 stacked, 768 docked, 1280 docked', () => {
+describe('the live page stacks below 768 px of measured width', () => {
+  it('0 docked, 400 stacked, 767 stacked, 768 docked, 1280 docked', () => {
     expect(LIVE_RUN_STACK_BELOW_PX).toBe(768)
     expect([0, 400, 767, 768, 1280].map((width) => [width, liveRunLayoutOf(width)])).toEqual([
       [0, 'docked'],
@@ -27,7 +27,7 @@ describe('the live page stacks below 768 px of measured width (428 D-06)', () =>
     ])
   })
 
-  it('CLOSED-SETS-428-LAYOUT: the layouts are docked and stacked, and each has its own preview and steps ids', () => {
+  it('the layouts are docked and stacked, and each has its own preview and steps ids', () => {
     expect(LIVE_RUN_LAYOUTS).toEqual(['docked', 'stacked'])
     expectTypeOf<(typeof LIVE_RUN_LAYOUTS)[number]>().toEqualTypeOf<LiveRunLayout>()
 

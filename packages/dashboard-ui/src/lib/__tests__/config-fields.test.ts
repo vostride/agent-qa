@@ -113,7 +113,7 @@ describe('completeRequiredSiblings', () => {
   })
 })
 
-describe('completeRequiredSiblings never overwrites (429-45 · CR-01)', () => {
+describe('completeRequiredSiblings never overwrites', () => {
   // The verifier's reproduction: the page's snapshot lacks use.planner while the file holds
   // { maxActions: 99, previousStepCount: 77 }. Only the server sees the file at merge time.
   it('SIBLING-COMPLETION-NEVER-OVERWRITES: every added sibling is set-if-absent, so the server keeps a value the snapshot missed', () => {

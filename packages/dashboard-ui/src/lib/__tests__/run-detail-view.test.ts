@@ -185,7 +185,7 @@ describe('member copy', () => {
 // They are what stop a `?? 0` from re-entering this file, and the pair is exactly as capable of
 // lying as the sum it replaces: "0 in · 0 out" for a run nobody measured would report a
 // measurement nobody took.
-describe('the header token pair (425-05 · D-21)', () => {
+describe('the header token pair', () => {
   it('TOKEN-PAIR-LINE: labels the measured input and output, compactly', () => {
     expect(
       tokenPairLine({
@@ -198,7 +198,7 @@ describe('the header token pair (425-05 · D-21)', () => {
     ).toBe(`${formatTokens(103074)} in · ${formatTokens(456)} out`)
   })
 
-  it('TOKEN-PAIR-LINE: never says "0 in" for a run nobody measured (D-06)', () => {
+  it('TOKEN-PAIR-LINE: never says "0 in" for a run nobody measured', () => {
     const line = tokenPairLine({ measuredSteps: 0, unmeasuredSteps: 3 })
     expect(line).toBe(TOKENS_NOT_MEASURED_LABEL)
     expect(line).not.toContain('0')
@@ -225,7 +225,7 @@ describe('the header token pair (425-05 · D-21)', () => {
     ).toBe(`${formatTokens(0)} in · ${formatTokens(0)} out`)
   })
 
-  it('TOKEN-PAIR-LINE: carries no coverage clause at all (D-22)', () => {
+  it('TOKEN-PAIR-LINE: carries no coverage clause at all', () => {
     expect(
       tokenPairLine({
         measuredSteps: 2,
@@ -238,7 +238,7 @@ describe('the header token pair (425-05 · D-21)', () => {
   })
 })
 
-describe('the card totals line (425-05 · D-24)', () => {
+describe('the card totals line', () => {
   it('USAGE-TOTALS-FULL-DIGITS: spells every sum out, grouped', () => {
     expect(
       usageTotalsLine({
@@ -257,7 +257,7 @@ describe('the card totals line (425-05 · D-24)', () => {
   })
 })
 
-describe('measurement coverage (425-05 · D-22)', () => {
+describe('measurement coverage', () => {
   it('USAGE-COVERAGE-ONLY-WHEN-INCOMPLETE: silent when every step was measured', () => {
     expect(
       usageCoverageLine({
@@ -308,7 +308,7 @@ describe('measurement coverage (425-05 · D-22)', () => {
 // Execution `cacheStatus` is a fact about THIS product's step cache — a step whose result was
 // replayed without a model call at all. Printing it as "cached input" would attribute a discount
 // to the provider that the provider never reported, on a page a person reads as a bill.
-describe('provider-reported cached input (425-05 · D-24)', () => {
+describe('provider-reported cached input', () => {
   it('CACHED-ONLY-WHEN-REPORTED: no cachedInputTokens, no line — whatever else is present', () => {
     expect(
       cachedInputLine({
@@ -350,7 +350,7 @@ describe('provider-reported cached input (425-05 · D-24)', () => {
   })
 })
 
-describe('model identity in the card (425-05 · D-23)', () => {
+describe('model identity in the card', () => {
   const declaredOne: RunModelSummary = {
     declared: [{ provider: 'openai', modelId: 'gpt-5.6-terra', stepCount: 3 }],
   }
@@ -425,7 +425,7 @@ describe('model identity in the card (425-05 · D-23)', () => {
   })
 })
 
-describe('screen context (RESEARCH D2)', () => {
+describe('screen context', () => {
   const HASH = 'abcdef0123456789'.repeat(4)
 
   it('shows the first 12 hex characters of the hash', () => {
@@ -445,7 +445,7 @@ describe('screen context (RESEARCH D2)', () => {
 })
 
 describe('showMemberChrome', () => {
-  it('is silent for a single-member run and grouped for a suite (D-16)', () => {
+  it('is silent for a single-member run and grouped for a suite', () => {
     expect(showMemberChrome(projection({ members: [member(0)] }))).toBe(false)
     expect(showMemberChrome(projection({ members: [] }))).toBe(false)
     expect(showMemberChrome(projection({ members: [member(0), member(1)] }))).toBe(true)

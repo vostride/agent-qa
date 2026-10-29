@@ -155,7 +155,7 @@ describe('triggerRun preflights readiness at the ONE choke point', () => {
 
   // 2026-10-02 (quick 261002-ctr): the contract moved to version 2 for a readiness member and refusal
   // codes the preflight never read, so the gate accepts either version rather than gating on it.
-  it('C261002-CTR-PREFLIGHT-BOTH-VERSIONS: proceeds on a version 2 answer and on a version 1 answer', async () => {
+  it('proceeds on a version 2 answer and on a version 1 answer', async () => {
     expect(RUN_SERVICE_CONTRACT_VERSION).toBe(2)
     stubFetch({ status: 200, body: { service: 'up', hostComposed: true, contractVersion: 2 } })
     await expect(triggerRun({ file: 'tests/a.yaml' })).resolves.toMatchObject({ runId: 'run_1' })

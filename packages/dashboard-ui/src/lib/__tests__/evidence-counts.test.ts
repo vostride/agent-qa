@@ -19,11 +19,11 @@ function entries(): StepEvidenceEntries {
 
 const ref = { id: `console-evidence:${'a'.repeat(64)}` as const, sha: 'a'.repeat(64) }
 
-test('C424-STEP-SIGNALS-EXACT', async () => {
+test('the step signals, in order', async () => {
   expect((await helper()).STEP_SIGNALS).toEqual(['console', 'network', 'a11y'])
 })
 
-test('C424-EVIDENCE-SCOPES-EXACT', async () => {
+test('the evidence scopes and their scope lines', async () => {
   const scopes = import.meta.glob('../../components/run-detail/evidence-scope-line.tsx')
   const load = scopes['../../components/run-detail/evidence-scope-line.tsx']
   expect(load, 'the scope line exports its closed vocabulary').toBeTypeOf('function')

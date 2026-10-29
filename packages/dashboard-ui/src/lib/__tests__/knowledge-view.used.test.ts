@@ -116,8 +116,8 @@ function text(segments: readonly StepRefSegment[]): string {
   return segments.map(segment => (segment.kind === 'text' ? segment.text : segment.label)).join('')
 }
 
-describe('the 427 closed sets are exactly the published members', () => {
-  it('CLOSED-SETS-427: the sections and the use verbs', () => {
+describe('the knowledge view closed sets are exactly the published members', () => {
+  it('the sections and the use verbs', () => {
     expect(KNOWLEDGE_SECTIONS).toEqual(['used', 'effect', 'changes', 'retrieval-details'])
     expect(USE_VERBS).toEqual(['given', 'opened', 'caution', 'replayed', 'hint'])
     expect(ANCHOR_PHRASE_TYPES).toEqual(['platform', 'page', 'flow', 'el', 'selector', 'error', 'unparsed'])
@@ -143,7 +143,7 @@ describe('the 427 closed sets are exactly the published members', () => {
   })
 })
 
-describe('every way the run used a record is one row, in first-use order (D-04, D-05)', () => {
+describe('every way the run used a record is one row, in first-use order', () => {
   it('EVERY-USE-ONE-ROW: given plus opened is one row; a caution is its own; a replay and a hint of one procedure are one row', () => {
     const views = usedRecordViews(projection([
       servedStep(0, { channel1: [line('rec_a', 'fact A')], channel3: [caution('rec_b', 'caution B')] }),
@@ -186,7 +186,7 @@ describe('every way the run used a record is one row, in first-use order (D-04, 
   })
 })
 
-describe('one pinned rule leads every used row (D-06, D-10)', () => {
+describe('one pinned rule leads every used row', () => {
   it('SUMMARY-RULE: served first, then joined content, then the unreadable lead, then the not-recorded procedure lead', () => {
     const views = usedRecordViews(projection(
       [
@@ -259,7 +259,7 @@ describe('contentById folds every joined row in the read by record id', () => {
   })
 })
 
-describe('a record used in several steps is one row (D-05)', () => {
+describe('a record used in several steps is one row', () => {
   it('GROUPED-ONE-ROW: one id across three steps is one view; equal summaries under two ids stay two; first use orders rows', () => {
     const shared = line('rec_shared', 'the cart page lives at /view_cart')
     const grouped = usedRecordViews(projection([step(0, [shared]), step(1, [shared]), step(2, [shared])]))
@@ -289,7 +289,7 @@ describe('a record used in several steps is one row (D-05)', () => {
   })
 })
 
-describe('step references read as a person counts them (UI-SPEC S3)', () => {
+describe('step references read as a person counts them', () => {
   it('FORMAT-STEP-REFS: one, two, a range, a range plus one, a list — de-duplicated and order-free', () => {
     expect(text(formatStepRefs([at(1)]))).toBe('step 2')
     expect(text(formatStepRefs([at(0), at(1)]))).toBe('steps 1 and 2')
@@ -310,7 +310,7 @@ describe('step references read as a person counts them (UI-SPEC S3)', () => {
   })
 })
 
-describe('suite step references name their test; a single-test run never does (UI-SPEC S3 Formatting)', () => {
+describe('suite step references name their test; a single-test run never does', () => {
   it('STEP-REF-SUITE-NAMES: groups by member in testIndex order as {test} · {steps}, joined by "; "', () => {
     const names = new Map([[0, 'checkout'], [1, 'login']])
     const addresses = [at(1, 1), at(2, 0), at(0, 0), at(1, 0)]
@@ -326,7 +326,7 @@ describe('suite step references name their test; a single-test run never does (U
   })
 })
 
-describe('a step reference has a full accessible name (UI-SPEC S3)', () => {
+describe('a step reference has a full accessible name', () => {
   it('STEP-REF-ACCESSIBLE-NAME: step number one-based, step text in its served form, test name in a suite', () => {
     const address: StepAddress = { testIndex: 0, stepIndex: 1, stepText: 'Open cart' }
     expect(stepRefAccessibleName(address)).toBe('Go to step 2 · Open cart')
@@ -340,7 +340,7 @@ function applicability(product: string, scope: string, anchors: readonly string[
   return { product, scope, anchors: [...anchors], openedAtOrdinal: 1 }
 }
 
-describe('where a record applies, in plain words (D-08)', () => {
+describe('where a record applies, in plain words', () => {
   it('APPLICABILITY-KNOWN-ANSWER: the demo-store record reads Applies to example-web · web · flow measurement:assert-value:url', () => {
     expect(applicabilityView).toBeTypeOf('function')
     const known = applicability('example-web', 'example-web', [
@@ -412,7 +412,7 @@ function now(summary: string, currentStatus: string) {
   return { ...content(summary), currentStatus }
 }
 
-describe('a record on trial says so, and a record that changed since says how (D-09)', () => {
+describe('a record on trial says so, and a record that changed since says how', () => {
   it('ON-TRIAL-TAG: a record served once on trial is onTrial; one never served on trial carries no flag', () => {
     const views = usedRecordViews(projection([
       servedStep(0, { channel1: [served('rec_t', 'on trial once', 'candidate', false), served('rec_n', 'never on trial', 'active', false)] }),

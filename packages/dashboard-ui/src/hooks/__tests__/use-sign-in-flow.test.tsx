@@ -112,7 +112,7 @@ afterEach(async () => {
   flow = undefined
 })
 
-describe('useSignInFlow (429-26 Task 1)', () => {
+describe('useSignInFlow', () => {
   it('SIGN-IN-BROWSER-POLL: starts the sign-in for the name, opens the provider page, polls every 2 s and completes with the created flag', async () => {
     await mount()
     expect(read().state).toBe('idle')

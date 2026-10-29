@@ -43,7 +43,7 @@ import {
   type UseVerb,
 } from '../knowledge-view'
 
-test('C427-SECTIONS-EXACT', () => {
+test('knowledge sections are an exact union', () => {
   type Expected = 'used' | 'effect' | 'changes' | 'retrieval-details'
   expectTypeOf<KnowledgeSection>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof KNOWLEDGE_SECTIONS)[number]>().toEqualTypeOf<Expected>()
@@ -51,7 +51,7 @@ test('C427-SECTIONS-EXACT', () => {
   expectTypeOf<Exclude<(typeof KNOWLEDGE_SECTIONS)[number], KnowledgeSection>>().toEqualTypeOf<never>()
 })
 
-test('C427-USE-VERBS-EXACT', () => {
+test('use verbs are an exact union, and each has a phrase', () => {
   type Expected = 'given' | 'opened' | 'caution' | 'replayed' | 'hint'
   expectTypeOf<UseVerb>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof USE_VERBS)[number]>().toEqualTypeOf<Expected>()
@@ -60,7 +60,7 @@ test('C427-USE-VERBS-EXACT', () => {
   expectTypeOf<keyof typeof USE_VERB_PHRASES>().toEqualTypeOf<UseVerb>()
 })
 
-test('C427-RECORD-KINDS-EXACT', () => {
+test('record kinds match the inspect view and the record content, and each has a label', () => {
   type Expected = 'fact' | 'procedure' | 'caution' | 'unknown' | 'policy'
   expectTypeOf<RecordKind>().toEqualTypeOf<Expected>()
   expectTypeOf<RecordKind>().toEqualTypeOf<InspectRecordView['kind']>()
@@ -68,7 +68,7 @@ test('C427-RECORD-KINDS-EXACT', () => {
   expectTypeOf<keyof typeof RECORD_KIND_LABELS>().toEqualTypeOf<RecordKind>()
 })
 
-test('C427-ANCHOR-PHRASE-TYPES-EXACT', () => {
+test('anchor phrase types are an exact union', () => {
   type Expected = 'platform' | 'page' | 'flow' | 'el' | 'selector' | 'error' | 'unparsed'
   expectTypeOf<AnchorPhraseType>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof ANCHOR_PHRASE_TYPES)[number]>().toEqualTypeOf<Expected>()
@@ -76,7 +76,7 @@ test('C427-ANCHOR-PHRASE-TYPES-EXACT', () => {
   expectTypeOf<Exclude<(typeof ANCHOR_PHRASE_TYPES)[number], AnchorPhraseType>>().toEqualTypeOf<never>()
 })
 
-test('C427-STATUS-WORDS-SHAPE', () => {
+test('bundle statuses match the schema, and each has a tag and a word', () => {
   type Expected = 'active' | 'candidate' | 'superseded' | 'deprecated'
   expectTypeOf<BundleStatus>().toEqualTypeOf<Expected>()
   expectTypeOf<BundleStatus>().toEqualTypeOf<SchemaBundleStatus>()
@@ -85,7 +85,7 @@ test('C427-STATUS-WORDS-SHAPE', () => {
   expectTypeOf<keyof typeof CURRENT_STATUS_WORDS>().toEqualTypeOf<BundleStatus>()
 })
 
-test('C427-EFFECT-OUTCOMES-EXACT', () => {
+test('effect outcomes are an exact union', () => {
   type Expected =
     | 'contradicted'
     | 'harmful'
@@ -103,7 +103,7 @@ test('C427-EFFECT-OUTCOMES-EXACT', () => {
   expectTypeOf<keyof typeof EFFECT_SENTENCES>().toEqualTypeOf<Exclude<EffectOutcome, 'replay-stopped' | 'replay-complete'>>()
 })
 
-test('C427-EFFECT-TONES-EXACT', () => {
+test('effect tones are an exact union, and every outcome has one', () => {
   type Expected = 'problem' | 'positive' | 'pending' | 'unknown'
   expectTypeOf<EffectTone>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof EFFECT_TONES)[number]>().toEqualTypeOf<Expected>()
@@ -112,13 +112,13 @@ test('C427-EFFECT-TONES-EXACT', () => {
   expectTypeOf<(typeof EFFECT_TONE_OF)[EffectOutcome]>().toEqualTypeOf<EffectTone>()
 })
 
-test('C427-REPLAY-STOP-CAUSES-EXACT', () => {
+test("replay stop causes are the guard's miss reasons plus execution failure and verifier rejection", () => {
   type MissReason = NonNullable<Extract<RunKnowledgePlanSource, { kind: 'procedure-replay' }>['guard']['miss']>['reason']
   expectTypeOf<ReplayStopCause>().toEqualTypeOf<MissReason | 'execution-failure' | 'verifier-rejection'>()
   expectTypeOf<keyof typeof REPLAY_STOP_CAUSES>().toEqualTypeOf<ReplayStopCause>()
 })
 
-test('C427-BUCKET-LABELS-SHAPE', () => {
+test('curation buckets, change kinds and ledger rows each have a label', () => {
   type Expected = 'added' | 'confirmed' | 'superseded' | 'deprecated' | 'proposed'
   expectTypeOf<CurationBucket>().toEqualTypeOf<Expected>()
   expectTypeOf<keyof typeof BUCKET_LABELS>().toEqualTypeOf<CurationBucket>()
@@ -126,7 +126,7 @@ test('C427-BUCKET-LABELS-SHAPE', () => {
   expectTypeOf<keyof typeof LEDGER_ROW_LABELS>().toEqualTypeOf<LedgerRow>()
 })
 
-test('C427-RETRIEVAL-CLASSES-EXACT', () => {
+test('retrieval classes are an exact union, and each has a tone', () => {
   type Expected = 'fresh-index' | 'cause-not-recorded' | 'index-problem' | 'semantic-search-unavailable' | 'by-configuration'
   expectTypeOf<RetrievalClass>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof RETRIEVAL_CLASSES)[number]>().toEqualTypeOf<Expected>()
@@ -137,7 +137,7 @@ test('C427-RETRIEVAL-CLASSES-EXACT', () => {
   expectTypeOf<(typeof RETRIEVAL_CLASS_TONES)[RetrievalClass]>().toEqualTypeOf<RetrievalTone>()
 })
 
-test('C427-RETRIEVAL-CLASS-BY-REASON-TOTAL', () => {
+test('every retrieval rung reason maps to a retrieval class', () => {
   expectTypeOf<keyof typeof RETRIEVAL_CLASS_BY_REASON>().toEqualTypeOf<RetrievalRungReason>()
   expectTypeOf<(typeof RETRIEVAL_CLASS_BY_REASON)[RetrievalRungReason]>().toEqualTypeOf<RetrievalClass>()
 })

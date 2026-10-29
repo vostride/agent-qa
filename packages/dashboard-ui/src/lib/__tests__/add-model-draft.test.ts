@@ -21,7 +21,7 @@ function memoryStorage() {
   }
 }
 
-describe('suggestModelName (429-25 Task 1)', () => {
+describe('suggestModelName', () => {
   it('SUGGEST-MODEL-NAME: lowercases, turns runs outside [a-z0-9.-] into a hyphen and trims a leading hyphen or dot', () => {
     expect(suggestModelName('gpt-5.6')).toBe('gpt-5.6')
     expect(suggestModelName('models/gemini-2.5-pro')).toBe('models-gemini-2.5-pro')
@@ -32,7 +32,7 @@ describe('suggestModelName (429-25 Task 1)', () => {
   })
 })
 
-describe('the add-row draft store (429-25 Task 1)', () => {
+describe('the add-row draft store', () => {
   it('ADD-DRAFT-NEVER-HOLDS-SECRETS: only the listed non-secret fields are stored, whatever else the draft carries', () => {
     const storage = memoryStorage()
     const draft = {

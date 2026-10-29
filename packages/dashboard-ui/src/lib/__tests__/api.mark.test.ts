@@ -3,7 +3,7 @@ import * as api from '../api'
 import { ApiError, markRun } from '../api'
 
 afterEach(() => { vi.unstubAllGlobals() })
-describe('419 mark API scope and outcomes', () => {
+describe('mark API scope and outcomes', () => {
   // RE-SPELLED 2026-10-01 (432-14, D-14): was 'sends only the existing scope %s and the supplied mark
   // address'. The page holds no scope any more, so the claim that survives is the second half: one
   // request carrying exactly the supplied mark address and nothing else.

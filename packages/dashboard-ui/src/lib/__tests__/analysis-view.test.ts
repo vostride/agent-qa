@@ -63,7 +63,7 @@ function cluster(members: number[], over: Partial<AnalysisClusterView> = {}): An
   }
 }
 
-describe('projectAnalysisView joins verdicts to members by perTest (D-05)', () => {
+describe('projectAnalysisView joins verdicts to members by perTest', () => {
   it('joins by perTest and NEVER by array position — verdicts listed out of order', () => {
     const view = projectAnalysisView(
       analysis({
@@ -116,7 +116,7 @@ describe('projectAnalysisView joins verdicts to members by perTest (D-05)', () =
     expect(view.get(4), 'a sentence nobody graded is not a block').toBeUndefined()
   })
 
-  it("reads provenance from the verdict's own producer and confidence (D-10)", () => {
+  it("reads provenance from the verdict's own producer and confidence", () => {
     expect(provenanceLabel('analyze-run', 0.86)).toBe(`${LLM_VERDICT_LABEL} · 0.86`)
     expect(provenanceLabel('analyze-run', 1)).toBe(`${LLM_VERDICT_LABEL} · 1.00`)
     // The classifier's confidence is 0 by construction on the floor, and printing "· 0.00" beside
@@ -134,7 +134,7 @@ describe('projectAnalysisView joins verdicts to members by perTest (D-05)', () =
   })
 })
 
-describe('the marker is the chip word and nothing else (D-09/D-11)', () => {
+describe('the marker is the chip word and nothing else', () => {
   it('maps every chip word — pending and running provisional, failed failed, complete nothing', () => {
     expect(markerFor('pending')).toBe('provisional')
     expect(markerFor('running')).toBe('provisional')
@@ -186,7 +186,7 @@ describe('the marker is the chip word and nothing else (D-09/D-11)', () => {
   })
 })
 
-describe('clusters render as a per-member sibling line (D-08)', () => {
+describe('clusters render as a per-member sibling line', () => {
   it('excludes self, keeps the producer order, and reads the plural line', () => {
     const view = projectAnalysisView(
       analysis({
@@ -247,7 +247,7 @@ describe('clusters render as a per-member sibling line (D-08)', () => {
   })
 })
 
-describe('cited evidence rides the verdict, and absence is counted (D-01/D-19)', () => {
+describe('cited evidence rides the verdict, and absence is counted', () => {
   it('forwards citedSteps verbatim and answers an empty list when the op sent no evidence', () => {
     const view = projectAnalysisView(
       analysis({
@@ -322,7 +322,7 @@ describe('cited evidence rides the verdict, and absence is counted (D-01/D-19)',
     expect(view.get(0)?.missingEvidenceText).toBeUndefined()
   })
 
-  it('says "cited artifact" in the singular and "cited artifacts" in the plural (D-19)', () => {
+  it('says "cited artifact" in the singular and "cited artifacts" in the plural', () => {
     expect(missingEvidenceLine({ missing: 1, total: 1 })).toBe('1 of 1 cited artifact unavailable')
     expect(missingEvidenceLine({ missing: 1, total: 2 })).toBe('1 of 2 cited artifacts unavailable')
     expect(missingEvidenceLine({ missing: 3, total: 3 })).toBe('3 of 3 cited artifacts unavailable')

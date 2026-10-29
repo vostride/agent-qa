@@ -49,7 +49,7 @@ function stateWith(flags: ReadonlySet<Flag>, now: number): ConfigAutosaveState {
   }
 }
 
-describe('the save-status precedence (429-15 Task 1)', () => {
+describe('the save-status precedence', () => {
   it('STATUS-PRECEDENCE: every combination shows the first of failed, undo, saving, draft, saved, else idle', () => {
     const now = 50_000
     const wrong: string[] = []
@@ -64,7 +64,7 @@ describe('the save-status precedence (429-15 Task 1)', () => {
   })
 })
 
-describe('a failed write (429-15 Task 1)', () => {
+describe('a failed write', () => {
   it('FAILED-WRITE-NEVER-SAVED: after write-failed the status is failed at every later now until a write succeeds', () => {
     const failed = fold([
       [{ type: 'edit', fieldKey: BROWSER, raw: 'firefox', valid: true }, 100],
@@ -158,7 +158,7 @@ describe('a failed write (429-15 Task 1)', () => {
   })
 })
 
-describe('a partial write (429-15 Task 1)', () => {
+describe('a partial write', () => {
   it('PARTIAL-SHOWS-NOT-SAVED: a write that lands beside a remaining draft shows Not saved until the draft clears', () => {
     const landed = fold([
       [{ type: 'edit', fieldKey: BROWSER, raw: 'firefox', valid: true }, 1_000],
@@ -202,7 +202,7 @@ describe('a partial write (429-15 Task 1)', () => {
   })
 })
 
-describe('the windows (429-15 Task 1)', () => {
+describe('the windows', () => {
   it('SAVED-FADES: Saved shows for SAVED_VISIBLE_MS after the write lands, then idle', () => {
     const t = 5_000
     const landed = fold([

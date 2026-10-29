@@ -283,7 +283,7 @@ class LifecycleProbeSocket {
   }
 }
 
-describe('428-20 editor session lifecycle', () => {
+describe('editor session lifecycle', () => {
   let container: HTMLDivElement
   let root: Root | null
   let originalWebSocket: typeof WebSocket

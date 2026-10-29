@@ -81,7 +81,7 @@ describe('action vocabulary', () => {
       expect(actionSentenceText(buildActionSentence(sub({ type }, false)))).toBe('Tried to perform an action — failed')
     }
   })
-  it('C424-VERBS-TOTAL', () => {
+  it('every action type has a verb and every action family an icon', () => {
     const { ACTION_VERBS, ACTION_FAMILY_ICONS } = vocabulary()
     expect(Object.keys(ACTION_VERBS).sort()).toEqual(Object.keys(ACTION_FAMILY_BY_TYPE).sort())
     expect(Object.keys(ACTION_VERBS)).toHaveLength(57)
@@ -99,7 +99,7 @@ it('SENTENCE-TARGET-ICON-FONT removes decorative private-use glyphs only in disp
 })
 
 // 2026-10-08 (437-03, D-05): a tap that sent no input is never shown as succeeded or failed.
-describe('C437-NO-INPUT-LABEL', () => {
+describe('a skipped tap that sent no input', () => {
   function skippedTap(success: boolean, idempotentNoop: Record<string, unknown>): RunDetailSubAction {
     return { testIndex: 0, stepIndex: 0, subActionIndex: 0, plan: 'Planner reasoning',
       plannedAction: { type: 'tap', ref: asRef('wifi') }, grounding: { descriptor: { name: 'Wi-Fi' }, attempts: [] },
@@ -118,7 +118,7 @@ describe('C437-NO-INPUT-LABEL', () => {
     expect(RESULT_WORDS['no-input']).toBe('no input sent')
   })
 
-  it('a pre-437 skipped tap (success true) is labelled no input sent too', () => {
+  it('an older skipped tap recorded with success true is labelled no input sent too', () => {
     const { buildActionSentence, actionSentenceText } = vocabulary()
     const model = buildActionSentence(skippedTap(true, { currentState: 'checked' }))
     expect(model.outcome).toBe('no-input')

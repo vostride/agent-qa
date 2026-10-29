@@ -38,7 +38,7 @@ async function shippedSourceFiles(dir: string): Promise<string[]> {
   return files
 }
 
-describe('the dropped dashboard product-analytics emitter (D-18)', () => {
+describe('the dropped dashboard product-analytics emitter', () => {
   it('names no v33 dashboard event and no ingest endpoint anywhere in the package source', async () => {
     const files = await shippedSourceFiles(SRC_DIR)
     // A guard that scans nothing passes trivially, so the corpus size is itself asserted.

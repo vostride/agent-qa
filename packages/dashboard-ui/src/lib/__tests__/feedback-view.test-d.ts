@@ -23,7 +23,7 @@ import {
   type FeedbackPreviewState,
 } from '../feedback-view'
 
-test('C426-OUTCOME-CLASSES-EXACT', () => {
+test('outcome classes are an exact union', () => {
   type Expected = 'passed' | 'failed'
   expectTypeOf<FeedbackOutcomeClass>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof FEEDBACK_OUTCOME_CLASSES)[number]>().toEqualTypeOf<Expected>()
@@ -31,7 +31,7 @@ test('C426-OUTCOME-CLASSES-EXACT', () => {
   expectTypeOf<Exclude<(typeof FEEDBACK_OUTCOME_CLASSES)[number], FeedbackOutcomeClass>>().toEqualTypeOf<never>()
 })
 
-test('C426-CHOICE-ORDER-SHAPE', () => {
+test('each outcome class orders all three marks', () => {
   type Order = typeof FEEDBACK_CHOICE_ORDER
   expectTypeOf<keyof Order>().toEqualTypeOf<FeedbackOutcomeClass>()
   expectTypeOf<Order[FeedbackOutcomeClass]['length']>().toEqualTypeOf<3>()
@@ -41,7 +41,7 @@ test('C426-CHOICE-ORDER-SHAPE', () => {
 })
 
 // 432-14 (D-14): the approval state is deleted; the exact set is the four that remain.
-test('C426-COMPOSER-STATES-EXACT', () => {
+test('composer states are an exact union', () => {
   type Expected = 'composing' | 'submitting' | 'recorded' | 'retained'
   expectTypeOf<FeedbackComposerState>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof FEEDBACK_COMPOSER_STATES)[number]>().toEqualTypeOf<Expected>()
@@ -49,7 +49,7 @@ test('C426-COMPOSER-STATES-EXACT', () => {
   expectTypeOf<Exclude<(typeof FEEDBACK_COMPOSER_STATES)[number], FeedbackComposerState>>().toEqualTypeOf<never>()
 })
 
-test('C426-ENTRY-SCOPES-EXACT', () => {
+test('entry scopes are an exact union', () => {
   type Expected = 'test' | 'step'
   expectTypeOf<FeedbackEntryScope>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof FEEDBACK_ENTRY_SCOPES)[number]>().toEqualTypeOf<Expected>()
@@ -57,7 +57,7 @@ test('C426-ENTRY-SCOPES-EXACT', () => {
   expectTypeOf<Exclude<(typeof FEEDBACK_ENTRY_SCOPES)[number], FeedbackEntryScope>>().toEqualTypeOf<never>()
 })
 
-test('C426-PREVIEW-STATES-EXACT', () => {
+test('preview states are an exact union', () => {
   type Expected = 'idle' | 'loading' | 'consequences' | 'quarantined' | 'already-marked' | 'refused' | 'failed'
   expectTypeOf<FeedbackPreviewState>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof FEEDBACK_PREVIEW_STATES)[number]>().toEqualTypeOf<Expected>()
@@ -65,7 +65,7 @@ test('C426-PREVIEW-STATES-EXACT', () => {
   expectTypeOf<Exclude<(typeof FEEDBACK_PREVIEW_STATES)[number], FeedbackPreviewState>>().toEqualTypeOf<never>()
 })
 
-test('C426-HISTORY-STATES-EXACT', () => {
+test('history states are an exact union', () => {
   type Expected = 'loading' | 'history' | 'empty' | 'run-not-found' | 'ledger-corrupt' | 'ledger-unavailable' | 'failed'
   expectTypeOf<FeedbackHistoryState>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof FEEDBACK_HISTORY_STATES)[number]>().toEqualTypeOf<Expected>()
@@ -73,7 +73,7 @@ test('C426-HISTORY-STATES-EXACT', () => {
   expectTypeOf<Exclude<(typeof FEEDBACK_HISTORY_STATES)[number], FeedbackHistoryState>>().toEqualTypeOf<never>()
 })
 
-test('C426-LAYOUTS-EXACT', () => {
+test('feedback layouts are an exact union', () => {
   type Expected = 'docked' | 'stacked'
   expectTypeOf<FeedbackLayout>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof FEEDBACK_LAYOUTS)[number]>().toEqualTypeOf<Expected>()

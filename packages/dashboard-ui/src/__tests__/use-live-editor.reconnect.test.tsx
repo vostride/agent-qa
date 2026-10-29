@@ -100,8 +100,8 @@ async function flush(): Promise<void> {
   })
 }
 
-describe('useLiveEditor reconnect during a suite run (428 review)', () => {
-  it('CR-01 DROP-SETTLES-RUNNING-TEST: a socket drop during Run all tests cancels the test and ends the run', async () => {
+describe('useLiveEditor reconnect during a suite run', () => {
+  it('DROP-SETTLES-RUNNING-TEST: a socket drop during Run all tests cancels the test and ends the run', async () => {
     const holder: Holder = { current: null }
     await act(async () => {
       root?.render(React.createElement(Harness, { holder, tests: [test('t_a', 'a.yaml'), test('t_b', 'b.yaml')] }))
@@ -138,7 +138,7 @@ describe('useLiveEditor reconnect during a suite run (428 review)', () => {
       .toHaveLength(1)
   })
 
-  it('WR-01 SUPERSEDED-DOES-NOT-RECONNECT: a 4409 close leaves the page disconnected instead of taking the session back', async () => {
+  it('SUPERSEDED-DOES-NOT-RECONNECT: a 4409 close leaves the page disconnected instead of taking the session back', async () => {
     const holder: Holder = { current: null }
     await act(async () => {
       root?.render(React.createElement(Harness, { holder, tests: [] }))

@@ -113,7 +113,7 @@ const runningRows = (state: RunStreamState) => state.steps.filter((row) => row.s
 // The status vocabulary (HNST-02)
 // ---------------------------------------------------------------------------
 
-describe('the step status vocabulary is exactly HNST-02, and stepStatusOf resolves it', () => {
+describe('the step status vocabulary is exactly seven words, and stepStatusOf resolves it', () => {
   it('declares the seven statuses the page can render, and no eighth', () => {
     expect([...STEP_STATUSES]).toEqual([
       'pending',
@@ -224,7 +224,7 @@ describe('the step status vocabulary is exactly HNST-02, and stepStatusOf resolv
 // D-10: motion and a plain count, and NOTHING ELSE
 // ---------------------------------------------------------------------------
 
-describe('D-10: each sub-action is one tick, and no reasoning content survives ingest', () => {
+describe('each sub-action is one tick, and no reasoning content survives ingest', () => {
   it('bumps the running row\'s ticks by exactly one per subActionRecorded', () => {
     const state = fold([
       stepStarted(0, 0),
@@ -534,7 +534,7 @@ describe('members, the thin handle stream and the terminal freeze', () => {
 // G-428-2 (428-30): a pending row carries the text testStarted sent
 // ---------------------------------------------------------------------------
 
-describe('G-428-2: pending rows are seeded from testStarted.stepTexts (owner decision 2026-09-26 (2))', () => {
+describe('pending rows are seeded from testStarted.stepTexts', () => {
   // The producer masks each entry with the declared-secret mask, so an entry equals the stepText
   // its step later announces. The fold keeps the entry as it arrived, and the row shows it as
   // written: a declared value is already its `[secret:<name>]` (D-28).
@@ -583,7 +583,7 @@ describe('G-428-2: pending rows are seeded from testStarted.stepTexts (owner dec
 // D-03 (428): the reducer publishes no liveness verdict (supersedes 403's D-11)
 // ---------------------------------------------------------------------------
 
-describe('D-03: the module publishes no bus liveness, and an absent export is the proof', () => {
+describe('the module publishes no bus liveness, and an absent export is the proof', () => {
   // RE-SPELLED 2026-09-26 (428-16). These ten cells pinned `livenessOf` and its 20 s window.
   // The owner removed bus liveness from the live page (428 D-03), and the pure half went with it.
   // Each cell now states one absence: an export, a type, a transport input or a window, read off
@@ -695,7 +695,7 @@ describe('markGap records what a replay floor cost the viewer', () => {
   })
 })
 
-describe('the retrieval rung is a RUN-CONSTANT, folded from the first frame that carries it (407-10 · D-14)', () => {
+describe('the retrieval rung is a RUN-CONSTANT, folded from the first frame that carries it', () => {
   const FLOOR = { schemaVersion: 2, rung: 'static-floor', reason: 'native-runtime-unavailable' } as const
   const LEXICAL = { schemaVersion: 2, rung: 'lexical-only', reason: 'floor-disabled' } as const
 

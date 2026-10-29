@@ -92,7 +92,7 @@ function steps(view: EffectSectionView, index: number): string[] {
 }
 
 describe('the effect closed sets are exactly the published members (v54 bar)', () => {
-  it('CLOSED-SETS-427: the effect outcomes, tones, tone map and stop causes', () => {
+  it('the effect outcomes, tones, tone map and stop causes', () => {
     expect(EFFECT_OUTCOMES).toEqual([
       'contradicted',
       'harmful',
@@ -127,7 +127,7 @@ describe('the effect closed sets are exactly the published members (v54 bar)', (
   })
 })
 
-describe('entries order problems first, then by step, then by Knowledge-used position (D-11)', () => {
+describe('entries order problems first, then by step, then by Knowledge-used position', () => {
   it('EFFECT-ORDER: harmful and contradicted before helpful and confirmed; an unknown entry sorts last', () => {
     const view = effectSectionView(projection(
       [
@@ -172,7 +172,7 @@ describe('entries order problems first, then by step, then by Knowledge-used pos
   })
 })
 
-describe('repeated same-outcome trials of one record are one entry (UI-SPEC S4 grouping)', () => {
+describe('repeated same-outcome trials of one record are one entry', () => {
   it('EFFECT-GROUPED-STEPS: one record confirmed in steps 0, 1 and 2 is one entry with three addresses', () => {
     const view = effectSectionView(projection(
       [0, 1, 2].map(index => step(index, { channel1: [trial('rec_g', 'the cart badge counts items')] })),
@@ -184,7 +184,7 @@ describe('repeated same-outcome trials of one record are one entry (UI-SPEC S4 g
   })
 })
 
-describe('an uncounted trial is not an effect (D-14)', () => {
+describe('an uncounted trial is not an effect', () => {
   it('UNCOUNTED-NOT-EFFECTS: a settled, clean-read trial with no outcome is no entry and one uncounted record', () => {
     const view = effectSectionView(projection([step(0, { channel1: [trial('rec_q', 'the quiet trial')] })]))
 
@@ -216,7 +216,7 @@ describe('an uncounted trial is not an effect (D-14)', () => {
   })
 })
 
-describe('a procedure hint is a use, never an effect (D-11)', () => {
+describe('a procedure hint is a use, never an effect', () => {
   it('HINT-NOT-EFFECT: a step whose plan a procedure hinted yields no entry', () => {
     const view = effectSectionView(projection([
       step(0, { planSource: { kind: 'procedure-hint', procedureId: 'rec_h' } }),
@@ -236,7 +236,7 @@ function replay(procedureId: string, guard: Record<string, unknown>, flow?: { cu
 
 const PASSED = { checksPassed: 1, total: 1 }
 
-describe('a procedure replay is measured (D-11, D-12)', () => {
+describe('a procedure replay is measured', () => {
   it('REPLAY-COMPLETE: a six-step procedure replayed step by step is one positive entry sized by its flow', () => {
     const view = effectSectionView(projection([0, 1, 2, 3, 4, 5].map(index => step(index, {
       ...(index === 0 ? { channel1: [line('rec_p', 'check out as a guest')] } : {}),
@@ -332,7 +332,7 @@ describe('a procedure replay is measured (D-11, D-12)', () => {
   })
 })
 
-describe("a replay's size is the procedure's recorded flow, never the per-step fold (D-12)", () => {
+describe("a replay's size is the procedure's recorded flow, never the per-step fold", () => {
   it('REPLAY-SIZE-FROM-FLOW: three completed body steps then a miss at body index 3 of a six-step flow', () => {
     const view = effectSectionView(projection([
       ...[0, 1, 2].map(index => step(index, { planSource: replay('rec_f', PASSED, { cursor: index, length: 6 }) })),
@@ -385,7 +385,7 @@ describe("a replay's size is the procedure's recorded flow, never the per-step f
   })
 })
 
-describe('only a fold that passed every attempted check is a completed replay (D-11, D-14)', () => {
+describe('only a fold that passed every attempted check is a completed replay', () => {
   it('REPLAY-INCOMPLETE-NOT-COMPLETE: a policy-denied replayed action and an empty fold are no entry', () => {
     const denied = replay('rec_i', { checksPassed: 0, total: 1 }, { cursor: 0, length: 3 })
     const view = effectSectionView(projection([step(0, { planSource: denied })]))
@@ -439,7 +439,7 @@ function allThreeListsNone(view: EffectSectionView, shortFlow: string[]) {
   })
 }
 
-describe('a completed replay is sized by its own flow, never by other flows of its procedure (D-11, D-12)', () => {
+describe('a completed replay is sized by its own flow, never by other flows of its procedure', () => {
   it('REPLAY-PER-FLOW: a second test\'s flow that stops after one body step reads 1 of 3, never all 3', () => {
     const complete = [0, 1, 2].map(index => step(index, { planSource: login(PASSED, index) }, 0))
     const world = (second: Record<string, unknown>) => effectSectionView(projection([
@@ -498,7 +498,7 @@ describe('a completed replay is sized by its own flow, never by other flows of i
   })
 })
 
-describe('an unsettled or unreadable fold is re-worded, never re-derived (D-12, E5 loading / error)', () => {
+describe('an unsettled or unreadable fold is re-worded, never re-derived (loading / error)', () => {
   it('EFFECT-PENDING: while curation is pending or running every trial entry is pending, attributed or not', () => {
     for (const status of ['pending', 'running'] as const) {
       const view = effectSectionView(projection(
@@ -521,7 +521,7 @@ describe('an unsettled or unreadable fold is re-worded, never re-derived (D-12, 
   })
 })
 
-describe('the closing line counts the rest (D-11)', () => {
+describe('the closing line counts the rest', () => {
   it('UNMEASURED-LINE: 4 used records, 1 entry, 1 uncounted leaves 2 unmeasured', () => {
     const view = effectSectionView(projection(
       [
@@ -566,7 +566,7 @@ describe('the closing line counts the rest (D-11)', () => {
   })
 })
 
-describe('each outcome reads as a plain sentence with its steps (D-12)', () => {
+describe('each outcome reads as a plain sentence with its steps', () => {
   it('EFFECT-SENTENCES: the pinned wording for every outcome', () => {
     const at = 'step 2'
     expect(effectSentenceText(EFFECT_SENTENCES.contradicted, at)).toBe("Didn't hold up in step 2 — the run saw something different")

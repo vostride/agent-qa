@@ -10,7 +10,7 @@ const SERVER_CLASSES: Array<[string, string]> = [
   ["cancelled", "cancelled"],
 ]
 
-describe("C444-STATUS-CLASS", () => {
+describe("run status classes", () => {
   it("the UI classifier sorts the seven words as the server does", async () => {
     const status = (await import("@/lib/status")) as Record<string, unknown>
     expect(typeof status.runStatusClass, "lib/status exports runStatusClass").toBe("function")

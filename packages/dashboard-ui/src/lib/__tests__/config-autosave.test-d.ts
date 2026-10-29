@@ -13,7 +13,7 @@ import {
   type ConfigAutosaveState,
 } from '../config-autosave'
 
-test('C429-AUTOSAVE-EVENTS-EXACT', () => {
+test('autosave events are an exact union', () => {
   type Expected =
     | 'edit'
     | 'write-started'
@@ -29,11 +29,11 @@ test('C429-AUTOSAVE-EVENTS-EXACT', () => {
   expectTypeOf<Exclude<Expected, ConfigAutosaveEvent['type']>>().toEqualTypeOf<never>()
 })
 
-test('C429-SAVE-STATUS-STATE-EXACT: the derived status answers exactly SaveState', () => {
+test('the derived status answers exactly SaveState', () => {
   expectTypeOf<ReturnType<typeof deriveSaveStatus>['state']>().toEqualTypeOf<SaveState>()
 })
 
-test('C429-AUTOSAVE-CLOCK-IS-A-PARAMETER: the reducer and the status both take now', () => {
+test('the reducer and the status both take now', () => {
   expectTypeOf(reduceConfigAutosave).parameters.toEqualTypeOf<
     [ConfigAutosaveState, ConfigAutosaveEvent, number]
   >()

@@ -4,7 +4,7 @@ import {
   type TimelineAxis, type MarkerResult, type MarkerFrame, type PlayerSource,
 } from '../playhead'
 
-test('C424-TIMELINE-AXES-EXACT', () => {
+test('timeline axes are an exact union', () => {
   type Expected = 'time' | 'ordinal'
   expectTypeOf<TimelineAxis>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof TIMELINE_AXES)[number]>().toEqualTypeOf<Expected>()
@@ -12,7 +12,7 @@ test('C424-TIMELINE-AXES-EXACT', () => {
   expectTypeOf<Exclude<(typeof TIMELINE_AXES)[number], TimelineAxis>>().toEqualTypeOf<never>()
 })
 
-test('C424-MARKER-RESULTS-EXACT', () => {
+test('marker results are an exact union', () => {
   // 2026-10-08 (437-03, D-05): 'no-input' joins the closed set for a tap that sent no input.
   type Expected = 'passed' | 'failed' | 'healed' | 'no-input'
   expectTypeOf<MarkerResult>().toEqualTypeOf<Expected>()
@@ -21,7 +21,7 @@ test('C424-MARKER-RESULTS-EXACT', () => {
   expectTypeOf<Exclude<(typeof MARKER_RESULTS)[number], MarkerResult>>().toEqualTypeOf<never>()
 })
 
-test('C424-MARKER-FRAMES-EXACT', () => {
+test('marker frames are an exact union', () => {
   type Expected = 'available' | 'absent'
   expectTypeOf<MarkerFrame>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof MARKER_FRAMES)[number]>().toEqualTypeOf<Expected>()
@@ -29,7 +29,7 @@ test('C424-MARKER-FRAMES-EXACT', () => {
   expectTypeOf<Exclude<(typeof MARKER_FRAMES)[number], MarkerFrame>>().toEqualTypeOf<never>()
 })
 
-test('C424-PLAYER-SOURCES-EXACT', () => {
+test('player sources are an exact union', () => {
   type Expected = 'frames' | 'video'
   expectTypeOf<PlayerSource>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof PLAYER_SOURCES)[number]>().toEqualTypeOf<Expected>()

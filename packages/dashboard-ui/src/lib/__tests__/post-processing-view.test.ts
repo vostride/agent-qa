@@ -95,7 +95,7 @@ function chips(view: ReturnType<typeof projectPostProcessingView>) {
   return view
 }
 
-describe('a refusal is its own state, never a pending chip (D-23)', () => {
+describe('a refusal is its own state, never a pending chip', () => {
   it('carries the refusal name and reason through, with no chips at all', () => {
     const view = projectPostProcessingView({
       kind: 'unavailable',
@@ -115,7 +115,7 @@ describe('a refusal is its own state, never a pending chip (D-23)', () => {
   })
 })
 
-describe('a pending chip carries the run posture, read off the record (D-22)', () => {
+describe('a pending chip carries the run posture, read off the record', () => {
   it('has NO posture while the run has not reached runFinished — no disposition is not a guess', () => {
     const view = chips(projectPostProcessingView(read({})))
     expect(view.analysis).toEqual({
@@ -164,7 +164,7 @@ describe('a running chip says one word and nothing else', () => {
   })
 })
 
-describe('a terminal curation card says what it committed (D-21, D-17/D-18 wording of record)', () => {
+describe('a terminal curation card says what it committed, in its wording of record', () => {
   it('reads the breakdown off the snapshot on the same read — five buckets, zeros omitted', () => {
     const view = chips(projectPostProcessingView(read({
       status: status('complete', 'complete', notification({ status: 'complete' }), {
@@ -176,7 +176,7 @@ describe('a terminal curation card says what it committed (D-21, D-17/D-18 wordi
     expect(view.curation.card?.note).toBeUndefined()
   })
 
-  it('says `counts not recorded for this run` when the row committed no counts — never a zero (D-12)', () => {
+  it('says `counts not recorded for this run` when the row committed no counts — never a zero', () => {
     const view = chips(projectPostProcessingView(read({
       status: status('complete', 'complete', notification({ status: 'complete' })),
     })))
@@ -197,7 +197,7 @@ describe('a terminal curation card says what it committed (D-21, D-17/D-18 wordi
       .toEqual({ status: 'complete', state: 'complete', word: STAGE_INDICATOR_WORDS.curation.complete })
   })
 
-  it('renders an all-zero breakdown as `no memory changes` rather than as five zeros (D-17)', () => {
+  it('renders an all-zero breakdown as `no memory changes` rather than as five zeros', () => {
     const view = chips(projectPostProcessingView(read({
       status: status('complete', 'complete', notification({ status: 'complete' }), {
         curationSnapshot: { schemaVersion: CURATION_SNAPSHOT_SCHEMA_VERSION, rows: [], breakdown: breakdown() },
@@ -230,7 +230,7 @@ describe('a terminal curation card says what it committed (D-21, D-17/D-18 wordi
 // FIVE BUCKETS ARE NEVER SYNTHESIZED FROM TWO (D-18). A pre-423 row carries a pair and nothing
 // else; a withheld snapshot carries a reason and nothing else. Each renders what EXISTS, labelled,
 // rather than a breakdown the run never recorded.
-describe('the curation breakdown is one function, and legacy rows say what they are (D-17/D-18)', () => {
+describe('the curation breakdown is one function, and legacy rows say what they are', () => {
   it('lists only the non-zero buckets, in the schema order, joined by a middle dot', () => {
     expect(curationBreakdownLine(breakdown({
       added: 1, confirmed: 1, superseded: 1, deprecated: 1, proposed: 1,
@@ -280,7 +280,7 @@ describe('the curation breakdown is one function, and legacy rows say what they 
 
 // EVERY STATE HAS AN HONEST FIRST LINE (D-13). A card that could open blank is a hover that rewards
 // the reader with nothing — which is the failure the whole card exists to fix.
-describe('running, queued and failed stages each read their own sentence (D-12/D-13)', () => {
+describe('running, queued and failed stages each read their own sentence', () => {
   it('names a running stage in its own words', () => {
     const view = chips(projectPostProcessingView(read({ status: status('running', 'running') })))
     expect(view.analysis.card?.outcome).toBe(ANALYSIS_RUNNING_TEXT)
@@ -325,7 +325,7 @@ describe('running, queued and failed stages each read their own sentence (D-12/D
   })
 })
 
-describe('a failed chip says why, or says honestly that nobody recorded why (D-21 as narrowed)', () => {
+describe('a failed chip says why, or says honestly that nobody recorded why', () => {
   it('renders the producer masked text VERBATIM — the page slices nothing', () => {
     const long = `a${'b'.repeat(480)}`
     const view = chips(projectPostProcessingView(read({
@@ -386,7 +386,7 @@ describe('a failed chip says why, or says honestly that nobody recorded why (D-2
 // whose last reader — the Knowledge tab's Learned heading — now calls `curationBreakdownLine` and
 // `legacyCurationPairText` instead. Both of those are pinned in this file's breakdown cells, so
 // retiring the function retired its cells rather than leaving them asserting over nothing.
-describe('the count line is the wording of record, in one place (D-09)', () => {
+describe('the count line is the wording of record, in one place', () => {
   it('publishes the curation door name as a thin call into the one accessible-name function', () => {
     const settled = { status: 'complete', state: 'complete', word: STAGE_INDICATOR_WORDS.curation.complete } as const
     expect(curationChipAccessibleName(settled)).toBe('Curation: complete — open Knowledge tab')
@@ -400,7 +400,7 @@ describe('the count line is the wording of record, in one place (D-09)', () => {
 // THE PASSING RUN EXPLAINS ITSELF (425-01 · D-13, roadmap SC3). The sentence a person reads on the
 // one run shape that ships every day — analysis settled, nothing to report — is the phase's copy
 // cell, and it is a CONSTANT so the card, the accessible name and this cell cannot drift apart.
-describe('a settled analysis with nothing to report says so in one sentence (D-13)', () => {
+describe('a settled analysis with nothing to report says so in one sentence', () => {
   it('ANALYSIS-COMPLETE-COPY: publishes the sentence and projects it onto a no-verdict pass', () => {
     expect(ANALYSIS_COMPLETE_NO_ISSUES_TEXT).toBe('Analysis complete — no issues found')
 
@@ -420,7 +420,7 @@ describe('a settled analysis with nothing to report says so in one sentence (D-1
 // THE VISIBLE WORD (425-01 · D-07). A settled stage is quiet — the name alone. Every other state
 // says itself, because those are the states a person can act on. The set is six and the order is
 // the one the never-bar pins; a cell that only walked the reachable ones would not see a gap.
-describe('an indicator says the stage, and says the state when it needs attention (D-07)', () => {
+describe('an indicator says the stage, and says the state when it needs attention', () => {
   it('STAGE-INDICATOR-WORDS: the stage name alone for complete, name plus state word otherwise', () => {
     expect(STAGE_PRESENTATION_STATES).toEqual([
       'complete',
@@ -451,7 +451,7 @@ describe('an indicator says the stage, and says the state when it needs attentio
   })
 })
 
-describe('C444-STAGE-WORDS', () => {
+describe('the word each stage chip shows', () => {
   it('the dashboard presents complete for a complete chip', () => {
     const view = chips(projectPostProcessingView(read({ status: status('complete', 'complete') })))
     expect(view.analysis).toEqual({
@@ -482,7 +482,7 @@ const SKIPPED_SENTENCES = {
   },
 } as const
 
-describe('C444-STAGE-SKIPPED', () => {
+describe('a skipped stage and its reason', () => {
   it("the dashboard indicator reads Analysis skipped with the reason's own sentence", () => {
     expect(POST_PROCESSING_SKIP_REASONS.length).toBeGreaterThan(0)
     for (const reason of POST_PROCESSING_SKIP_REASONS) {
@@ -507,7 +507,7 @@ describe('C444-STAGE-SKIPPED', () => {
   })
 })
 
-describe('C444-NO-VERDICT', () => {
+describe('a run with no verdict skips analysis and curation', () => {
   it('the dashboard reads Analysis skipped and Curation skipped with the no-verdict sentence', () => {
     expect(POST_PROCESSING_SKIP_REASONS).toContain('no-verdict')
     const view = chips(projectPostProcessingView(read({
@@ -538,7 +538,7 @@ describe('C444-NO-VERDICT', () => {
 // digest say ONE thing (law 6). The projection therefore reads the FIELD and nothing else: not the
 // absence of job rows, not the run's own status, not a settled chip word. The negative arm below is
 // the half that matters, because a fold that guessed would still pass every positive assertion.
-describe('a skipped chain reads skipped because the read said so, never because rows are missing (D-08)', () => {
+describe('a skipped chain reads skipped because the read said so, never because rows are missing', () => {
   it('EXCLUDED-FROM-FIELD: paints BOTH indicators skipped while the chip words stay verbatim', () => {
     for (const reason of POST_PROCESSING_SKIP_REASONS) {
       const view = chips(projectPostProcessingView(read({
@@ -596,7 +596,7 @@ describe('a skipped chain reads skipped because the read said so, never because 
 // PURE AND TOTAL, MEASURED RATHER THAN ASSERTED (PXH-RUN-03). A re-read arriving while a card is
 // open repaints that card from the NEW read alone, which is only safe if projecting a read twice
 // says the same thing and leaves the read's own bytes where it found them.
-describe('the projection is pure and total (PXH-RUN-03)', () => {
+describe('the projection is pure and total', () => {
   it('PROJECTION-IDEMPOTENT: the same read projects deep-equal twice, and is never mutated', () => {
     const reads: PostProcessingRead[] = [
       read({ status: status('pending', 'pending', undefined, { skipped: { reason: 'outcome-excluded' } }) }),
@@ -631,7 +631,7 @@ describe('the projection is pure and total (PXH-RUN-03)', () => {
 // THE CELLS ASSERT THROUGH THE SAME FORMATTER rather than against a literal wall-clock string: the
 // local zone varies between a laptop and CI, and a cell pinned to `10:41:02` would measure the
 // machine it ran on instead of the sentence the reader gets.
-describe('a card times the stage from the job row, and never from a clock of its own (D-12)', () => {
+describe('a card times the stage from the job row, and never from a clock of its own', () => {
   // The production SETTLED shape: created, started, updated — and no lease, because every terminal
   // transition releases the claim. `LEASE` is the same middle instant spelled as a claim, for the
   // cells that prove a lease alone is not a measurement.
@@ -744,7 +744,7 @@ describe('a card times the stage from the job row, and never from a clock of its
 // conformance-pinned. The alternative — reading a verdict's prose and looking for a class in it —
 // is the rule 406 closed: a surface that parses another surface's sentence is coupled to wording
 // that is free to change, and reports a class nobody stored.
-describe('a settled analysis with verdicts names its root cause from the summary (D-13)', () => {
+describe('a settled analysis with verdicts names its root cause from the summary', () => {
   const outcomeFor = (verdictSummary: unknown): string | undefined =>
     chips(projectPostProcessingView(read({
       status: status('complete', 'complete', notification({ status: 'complete' }, verdictSummary)),
