@@ -346,14 +346,19 @@ describe('the bounded member pool — 2 members concurrent, one bus, one termina
     // stream (the lane-free member overtakes the queue). No shipped producer builds one — a run is
     // either the suite path (every member lane-bound) or the direct path (no member lane-bound) —
     // so this cell pins the shape that exists rather than the shape that does not.
+    //
+    // It compares against a workers=1 run made here rather than the recorded file, so only the
+    // workers=1 cell writes that file and `vitest -u` cannot record the pool's stream as the golden.
+    const sequential = startRun(baselineConfig())
+    const sequentialEvents = drain(sequential)
+    await done(sequential)
+
     const laneMembers = BASELINE_MEMBERS.map((m) => ({ ...m, exclusiveLane: 'suite-lifecycle' }))
     const session = startRun(baselineConfig({ members: laneMembers, workers: 8 }))
     const events = drain(session)
     await done(session)
 
-    await expect(recordedStream(events)).toMatchFileSnapshot(
-      './__fixtures__/sequential-baseline.json',
-    )
+    expect(recordedStream(events)).toBe(recordedStream(sequentialEvents))
   })
 })
 
