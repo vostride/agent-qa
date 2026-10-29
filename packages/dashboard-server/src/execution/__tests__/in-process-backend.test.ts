@@ -1,29 +1,4 @@
-// THE IN-PROCESS BACKEND'S BRIDGE.
-//
-// WHAT IS UNDER TEST is the half of INVK-01 that lives in `packages/dashboard-server`: the bridge
-// from a started run's `RunSession` bus to the two things the host actually consumes — the settle
-// event it reconciles the db row from, and the active-run list. The run-starter is injected here
-// (it is the CLI's, and this package may not name it), so what these cells range is the bridge, the
-// lifecycle mapping and the completion vocabulary.
-//
-// THE PARITY ANCHOR AND ITS CELLS ARE GONE, AND THAT IS THE RIGHT
-// OUTCOME RATHER THAN A LOSS. The anchor was a golden captured from the SHIPPED spawn-and-scrape
-// wire before that class was deleted, and five cells compared this bridge's per-run replay buffer
-// against it. Its whole job was to make one producer swap measurable while the consumer surface
-// held still — and it did that job. That consumer surface is now deleted with the route it fed, so
-// the golden anchors a shape nothing produces and nothing reads. Keeping the cells would have kept
-// a buffer alive purely so its own test could pass.
-//
-// WHAT REPLACES THE SUBSCRIPTION'S COVERAGE. Replay-then-live is still load-bearing — it is how the
-// status mapping and `testName` see a run whose first envelopes preceded the attach — so it is
-// measured through the two facts that survive: the settled status, and the member name on the
-// active list.
-//
-// THE FAKE SESSION MODELS THE BUS'S REFUSAL, DELIBERATELY. `RunEventBus.subscribe` resolves
-// `fromSeq ?? 1` and raises `ReplayIncompleteError` for any `fromSeq` below the earliest seq it can
-// serve — and since seq numbering starts at 1, `subscribe(0, …)` is unserveable on EVERY run. A fake
-// that accepted 0 would let this suite pass while every dashboard run threw at the attach. So the
-// fake throws exactly where the bus throws, which is what makes the attach seq a measured fact.
+// The fake throws for `subscribe(0)` exactly as the bus does, so the attach seq is measured.
 
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -72,8 +47,7 @@ class FakeRunSession implements RunSession {
     for (const handler of [...this.live]) handler(envelope)
   }
 
-  // no browser behind this fake, so no stream and no frame subscription — the honest
-  // absent declaration rather than a stub that would make a viewer wait for frames forever.
+  // No browser behind this fake, so no stream and no frame subscription.
   subscribeFrames(): undefined { return undefined }
 
   streamCapabilityOf(): { kind: 'none' } { return { kind: 'none' } }
@@ -115,8 +89,7 @@ interface Drive {
   session?: FakeRunSession
 }
 
-// a cancelled run's status is its own verdict, so a cancelled fake
-// session publishes one.
+// A cancelled run's status is its own verdict, so a cancelled fake session publishes one.
 const cancelledVerdict = (runId: string, seq = 1): RunEventEnvelope => ({
   seq,
   ts: '2026-10-17T00:00:00.000Z',
@@ -282,9 +255,7 @@ describe('the bus subscription answers the active list', () => {
   })
 
   it('THE RUN-LEVEL STATUS IS LAST-WRITER-WINS OVER THE WHOLE SUBSCRIPTION', async () => {
-    // The fixture says `testFinished: failed` at seq 6 and `verdict: passed` at seq 7: a member's
-    // finish does not move the handle, the run-level outcome does. Six of the eight
-    // are published before the attach, so this ranges the replay too.
+    // A member's `failed` finish leaves the handle alone; the run's `passed` verdict moves it.
     const drive = await driveOneRun({ preAttach: 6 })
     expect(drive.settled[0]!.status).toBe('completed')
   })
@@ -380,8 +351,7 @@ describe('a refusal is not silence — the completion vocabulary', () => {
     // The refusal's own words, carried to the surface a person reads.
     expect(drive.settled[0]!.details.reason).toContain('Unrecognised run request field')
     expect(drive.settled[0]!.details.output.join('\n')).toContain('scope')
-    // NO RUN HAPPENED, and the settle says so by name rather than by the absence of frames between
-    // two synthetic bookends — which is what this used to read.
+    // No run happened, and the settle says so by name.
     expect(drive.settled[0]!.details.refusedBeforeStart).toBe(true)
     expect(drive.session).toBeUndefined()
   })
@@ -395,12 +365,6 @@ describe('a refusal is not silence — the completion vocabulary', () => {
     // A session existed, which is the fact that separates this from a refusal.
     expect(drive.session).toBeDefined()
   })
-
-  // ---- 401-18: A REFUSAL TRAVELS AS A FACT, NOT AS PROSE THE READER RE-DERIVES ------
-  //
-  // `settle` already KNOWS the difference — `handle.session === undefined` is the run that never
-  // began — and threw the knowledge away, leaving the host's reconciliation to guess from a regex
-  // over the message. These cells pin the two facts that now ride the settle instead.
 
   it('A REFUSAL IS MARKED AS ONE — the host is not left to infer it from the message', async () => {
     const drive = await driveOneRun({
@@ -473,10 +437,7 @@ describe('two concurrent runs are isolated at the consumer surface', () => {
       sessions.get('run-B')!.publish({ ...envelope, runId: 'run-B' } as RunEventEnvelope)
     }
 
-    // the per-run buffers this cell used to compare are gone. What remains per-run
-    // is the HANDLE, and the isolation claim is made over the one derived fact it carries. The
-    // interleaved publishing above is what makes it a claim: a bridge with one shared handle map
-    // keyed on anything but the run id would cross the two names here.
+    // Interleaved publishing, so a handle map keyed on anything but the run id crosses the names.
     sessions.get('run-B')!.publish({
       ...PARITY_ENVELOPES[1]!,
       runId: 'run-B',
@@ -556,9 +517,7 @@ describe('the spawn vocabulary is gone from this module', () => {
     expect(code).not.toContain('SIGKILL')
   })
 
-  // the retired live-feed machinery, pinned absent in the module
-  // that used to hold it. Each needle is two halves so this assertion cannot be the hit that
-  // satisfies the phase's grep-clean inventory — a pin that matches itself proves nothing.
+  // Each needle is built from two halves, so the assertion is not itself a text-search hit.
   it('NO PER-RUN EVENT BUFFER, NO COUNTER, NO SECOND EMISSION', () => {
     expect(code).not.toContain('event' + 'Buffers')
     expect(code).not.toContain('event' + 'Counters')

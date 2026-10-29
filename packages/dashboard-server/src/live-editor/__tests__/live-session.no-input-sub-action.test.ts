@@ -1,6 +1,4 @@
-// a skipped toggle tap reaches the live editor as its own
-// outcome. The live editor reads only `result`, so a binary value there paints a correct skip as
-// a red failure that invites the retry which flips the toggle.
+// A skipped toggle tap reaches the live editor as its own outcome, not a red failure in `result`.
 
 import { describe, expect, it } from 'vitest'
 import { asRef } from '@vostride/agent-qa-schema'

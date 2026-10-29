@@ -17,17 +17,13 @@ export type {
   RunSettledStatus,
 } from './execution/execution-backend.js'
 export { AppiumManager } from './execution/appium-manager.js'
-// the post-processing chip relay — the in-process bridge between the CLI's chip
-// emitter and this server's dedicated stream. Published because `agent-qa dashboard` creates the
-// ONE instance and threads both halves: `publish` into the run door's bridge, the relay itself
-// into `startServer`.
+// Published because `agent-qa dashboard` creates the one relay and threads both halves.
 export {
   createPostProcessingRelay,
   type PostProcessingListener,
   type PostProcessingRelay,
 } from './execution/post-processing-relay.js'
-// the joined read and its vocabulary, published for the conformance cells and
-// for a client that needs the server's own terminal predicate rather than a second copy of it.
+// The joined read and its vocabulary, for conformance cells and clients needing its predicate.
 export {
   POST_PROCESSING_STREAM_HEARTBEAT_MS,
   isPostProcessingTerminal,
@@ -37,13 +33,7 @@ export {
   type PostProcessingReadBody,
   type PostProcessingStageFailure,
 } from './run-service/post-processing-routes.js'
-// the durable run-detail read and the reader adapter the CLI composition binds.
-//
-// `createDashboardRunDetailReader` is published because the composition root that owns this
-// server's ONE database handle lives in `packages/cli` — this package cannot reach the function
-// layer to bind itself, which is the whole of the storage/composition split. `readRunDetail` is
-// published on `readPostProcessing`'s footing: a second door answers with byte-identical bytes by
-// CALLING it, never by a second spelling that agrees today.
+// Published because the CLI composition root owns this server's one database handle.
 export {
   createDashboardRunDetailReader,
   type DashboardRunDetailReader,
@@ -52,27 +42,21 @@ export {
   readRunDetail,
   serveRunDetailRead,
   type RunDetailReadOutcome,
-  // the ref-resolving pair, on the two names above's exact footing — the
-  // authed remote door answers with byte-identical bytes by CALLING `serveRunArtifact`.
+  // The ref-resolving pair; the authed door answers by calling `serveRunArtifact`.
   readRunArtifact,
   serveRunArtifact,
   type RunArtifactReadOutcome,
 } from './run-service/run-detail-routes.js'
 export { TestFileManager } from './tests/test-file-manager.js'
 export type { TestFileInfo, TestValidationResult, TestValidationError } from './tests/test-file-manager.js'
-// the authed run service — a mountable module whose every
-// reach into the world arrives as injected ports. The CLI's `dashboard` command composes the
-// ports and hands them to `startServer`; the route table is published so a census cell can
-// enumerate every path this door answers.
+// A mountable module whose ports the CLI's `dashboard` command composes; the table is enumerable.
 export {
-  // the two READ rows' templates, published on their siblings' footing
-  // so the conformance route census can name the paths it drives rather than spell them.
-  // the analysis row's template, on the same footing.
+  // Route templates, published so the conformance census names the paths it drives.
   RUN_SERVICE_ANALYSIS_TEMPLATE,
   RUN_SERVICE_ARTIFACT_TEMPLATE,
   RUN_SERVICE_DETAIL_TEMPLATE,
   RUN_SERVICE_EVENTS_TEMPLATE,
-  // the evidence and the two feedback read rows, on the same footing.
+  // The evidence and the two feedback read rows, on the same footing.
   RUN_SERVICE_EVIDENCE_TEMPLATE,
   RUN_SERVICE_LIVE_URL_TEMPLATE,
   RUN_SERVICE_MARK_PREVIEW_TEMPLATE,
@@ -84,9 +68,7 @@ export {
   matchRunServiceRoute,
   ownsRunServicePath,
 } from './run-service/run-service-routes.js'
-// the live-view surface — the served page, the frame proxy, and the wire vocabulary
-// both ends type against. Published because the CLI composes the proxy's deps and the conformance
-// cells drive the page.
+// The live-view surface, published because the CLI composes the proxy and conformance drives it.
 export {
   LIVE_EMBED_EXPIRED_MESSAGE,
   LIVE_EMBED_HOST_PARAM,
@@ -98,7 +80,7 @@ export {
   renderLiveEmbedPage,
 } from './live-view/embed-page.js'
 export { createFrameProxy } from './live-view/frame-proxy.js'
-// the editor-subject registry the frame socket reads editor sessions from.
+// The editor-subject registry the frame socket reads editor sessions from.
 export { createLiveEditorSubjects } from './live-view/editor-subjects.js'
 export type { LiveEditorAttachment, LiveEditorSubjects } from './live-view/editor-subjects.js'
 export {
@@ -111,8 +93,7 @@ export {
   LIVE_VIEW_SLOW_VIEWER_BYTES,
   LIVE_VIEW_WS_PATH,
 } from './live-view/protocol.js'
-// 428 P5: the control socket's close code for a session this process does not hold. The dashboard
-// UI spells the same number, and the CLI's conformance cells pin the two equal.
+// The control socket's close codes; the dashboard UI spells the same numbers.
 export { LIVE_EDITOR_SUPERSEDED_CLOSE_CODE, LIVE_EDITOR_UNKNOWN_SESSION_CLOSE_CODE } from './live-editor/types.js'
 export type {
   LiveViewClientMessage,

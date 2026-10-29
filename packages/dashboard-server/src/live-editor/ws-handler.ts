@@ -57,10 +57,7 @@ export function createSessionHandler(
     }
 
     session.clearIdleTimer()
-    // a newer socket replaces this one. It is closed by name, its log poll stops, and
-    // any command it still sends is ignored, so one page drives the session at a time.
-    // a session ended elsewhere (DELETE, idle expiry) closes this socket as gone, so the
-    // page leaves "connected". A terminate-session from this socket closes it itself.
+    // A newer socket supersedes this one, and a session ended elsewhere closes it as gone.
     const generation = session.beginAttachment((reason) => {
       if (detached || cleanedUp) return
       detached = true
@@ -82,9 +79,7 @@ export function createSessionHandler(
     })
     send(ws, { type: 'session-state', state })
 
-    // a command outlives the socket that issued it. While this socket is the attached
-    // one its replies go straight to it; once it has dropped or been superseded they go through the
-    // session to the socket attached now, or wait for the next one.
+    // A reply goes straight to this socket while attached, else via the session to the current one.
     function reply(message: ServerMessage): void {
       if (!detached && session.isCurrentAttachment(generation)) {
         send(ws, message)
@@ -405,11 +400,7 @@ export function createSessionHandler(
       }
     })
 
-    // an unexpected drop DETACHES the session for the idle window so the page can
-    // reconnect to the same browser, draft, page, hook state and lease. Explicit ends go through
-    // terminate-session or DELETE and stay immediate. A superseded socket's late close is inert
-    // (RESEARCH P4), and an in-flight step is cancelled so the reconnected page and the server
-    // agree it was cancelled (RESEARCH P3, A3 taken as the default).
+    // An unexpected drop detaches for the idle window so the page can reconnect; a live step ends.
     function detach(): void {
       if (logPollInterval) clearInterval(logPollInterval)
       if (detached || cleanedUp) return

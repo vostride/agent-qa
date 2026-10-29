@@ -38,10 +38,7 @@ function incarnationFormat(token: string): string {
   return separator < 0 ? '' : token.slice(0, separator)
 }
 
-// gone only on proof (a dead pid or a changed start time); else unknown.
-// 442-14 (GAP-D1): a start time stamped in another format is not proof.
-// 442-15 (GAP-D2): a missing start time is never an identity; self needs two equal non-null ones.
-// 442-16 (GAP-D3): a start-time read that throws is unknown, like a liveness probe that throws.
+// Gone only on proof: a dead pid or a changed start time in the same format; else unknown.
 export function classifyRunOwner(owner: RunOwner, ownership: RunOwnership): RunOwnerState {
   const { self, probe } = ownership
   if (owner.host !== self.host) return 'unknown'
@@ -88,7 +85,7 @@ function signalZeroIsAlive(pid: number): boolean {
   }
 }
 
-// with no incarnation reader, a live pid can only classify as unknown.
+// With no incarnation reader, a live pid can only classify as unknown.
 export function defaultRunOwnership(): RunOwnership {
   return {
     self: { pid: process.pid, incarnation: null, host: resolveRunOwnerHost() },

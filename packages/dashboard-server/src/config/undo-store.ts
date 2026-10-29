@@ -1,5 +1,4 @@
-// the server half of Undo. A payload can hold a removed secret, so it
-// stays in this process's memory, is handed out once, and is never serialized into a response.
+// A payload can hold a removed secret, so it stays in memory, is handed out once, never serialized.
 import { randomUUID } from 'node:crypto'
 
 import type { ConfigPriors } from './config-manager.js'

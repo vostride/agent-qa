@@ -4,9 +4,7 @@ import { DashboardDatabase } from '../../db/database.js'
 import { createDashboardRunIngest, type DashboardRunIngest } from '../dashboard-subscriber.js'
 import { generateRunId } from '@vostride/agent-qa-ids'
 
-// G-433-3 / F-433-12. A suite is ONE run row with member handles. The walk
-// found that row stored under the last member's name and test id with suite_id null, so the suite's
-// history read "No runs yet" and the cart test's history claimed the whole suite run.
+// A suite is one run row with member handles, stored under the suite's own identity.
 
 let db: DashboardDatabase
 let seq = 0
@@ -125,7 +123,7 @@ describe("a suite run keeps the suite's identity", () => {
       // `/api/analytics/suites/:suiteId` (suite viewer, /suites) reads these two.
       expect(db.getRunsBySuiteId(SUITE_ID).map((row) => row.id)).toEqual([runId])
       expect(db.getRunsBySuiteIdCount(SUITE_ID)).toBe(1)
-      // the test viewer's history reads member rows by test id.
+      // The test viewer's history reads member rows by test id.
       expect(db.getRunsByTest({ testId: LAST.testId }).map((row) => [row.id, row.memberOutcome])).toEqual([[runId, 'passed']])
       expect(db.getRunsByTestCount({ testId: LAST.testId })).toBe(1)
       // And no run row is filed under the last member's test id.

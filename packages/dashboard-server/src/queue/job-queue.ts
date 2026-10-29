@@ -56,12 +56,11 @@ export class JobQueue extends EventEmitter {
   start(intervalMs = 1000): void {
     this.stopped = false
     this.pollInterval = setInterval(() => this.dispatchReported('a poll'), intervalMs)
-    // a dispatch that fails here never escapes enqueue().
+    // A dispatch that fails here never escapes `enqueue()`.
     this.on('enqueued', () => this.dispatchReported('an enqueue'))
   }
 
-  // the server closes the database after this; a run that settles later
-  // still frees its slot, and nothing reads the closed database.
+  // The server closes the database after this; a run settling later still frees its slot.
   stop(): void {
     this.stopped = true
     if (this.pollInterval) {
@@ -72,10 +71,6 @@ export class JobQueue extends EventEmitter {
   }
 
   enqueue(opts: EnqueueOptions): string {
-    // the belt that refused an unminted confirm scope here is deleted
-    // with the run-confirm pair. A confirm scope addressed a browser's dialog; there is no dialog and
-    // no reader of the key, so the queue attaches no meaning to it. The allowlist at
-    // `/api/queue/enqueue` still refuses every client-supplied metadata key.
     const runId = this.db.insertPendingRun({
       name: opts.name,
       filePath: opts.filePath,
@@ -127,7 +122,7 @@ export class JobQueue extends EventEmitter {
         if (isMobile) this.activePlatforms.add(platform)
         this.activeRuns.set(next.id, { platform })
 
-        // a row that left pending before the flip is not dispatched.
+        // A row that left pending before the flip is not dispatched.
         if (!this.db.updateRunStatus(next.id, 'running')) {
           this.activeCount--
           if (isMobile) this.activePlatforms.delete(platform)
@@ -175,9 +170,7 @@ export class JobQueue extends EventEmitter {
     return this.concurrency
   }
 
-  // 2026-10-16 (442-05, D-06 to D-08): only the owner cancels a running row; gone is an orphan.
-  // 442-15 (GAP-D2): own is the stamp this handle wrote, or equal non-null start times.
-  // a running row is never written here; the run answers with its verdict.
+  // Only the owner stops its running row, never written here; a gone owner's row is an orphan.
   cancel(runId: string): RunCancelOutcome {
     const run = this.db.getRun(runId)
     if (!run) return NOT_CANCELLABLE
@@ -215,21 +208,7 @@ export class JobQueue extends EventEmitter {
       : NOT_CANCELLABLE
   }
 
-  // THE CHILD-RUN CANCELLATION FAN-OUT IS DELETED WITH THE
-  // MODEL THAT MINTED ITS CHILDREN.
-  //
-  // ~19 lines stood here walking the run's child rows and cancelling each member row. Under
-  // the one-run model a parallel suite is ONE run row with member handles — nothing writes
-  // the run row's parent-link column any more (405-07 then deleted the column outright), so the
-  // walk could only ever have read an empty list while reading as live cancellation policy.
-  // Cancelling the run cancels the run.
-  //
-  // WHAT THIS DOES NOT TOUCH: `parallel` below. D-11 keeps the queue's parallel flag as CROSS-RUN
-  // concurrency of INDEPENDENT jobs, which is what `findNextEligible` has always used it for. What
-  // was deleted is parallel-SUITE semantics, not the queue's ability to run two unrelated jobs.
-  //
-  // HISTORICAL ROWS: a pre-402 suite run still lists its members on the read side; cancelling
-  // such a run now leaves those member rows in whatever state their own process left them.
+  // `parallel` is cross-run concurrency of independent jobs; a suite is one run row.
 
   private findNextEligible(): RunRow | undefined {
     if (this.activeCount >= this.concurrency) return undefined

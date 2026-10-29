@@ -1,11 +1,4 @@
-// 428 code review fixes on the editor control socket (428-REVIEW.md).
-//
-// Phase 428 turned a dropped control socket into a detach, so a page can reconnect to the
-// same session. These cells pin what that path owes the page: a command's outcome reaches the
-// socket attached when it finishes, and a socket a newer one replaced stops driving the
-// session, and a session that ends closes its socket and leaves no timer behind.
-// Teardown is not held hostage by a hub close that never settles. The session is the
-// real LiveSession; only the commands' own work is stubbed.
+// A command's outcome reaches the socket attached when it finishes; a superseded socket stops.
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 

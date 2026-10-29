@@ -1,28 +1,4 @@
-// The SERVED EMBED PAGE (403 D-06/D-08, ratified 2026-08-25; changed once by 428 D-10).
-//
-// THIS DOCUMENT IS THE PRODUCT'S PUBLISHED SURFACE for a live view. A `liveUrl` resolves to it, an
-// iframe in the dashboard shows it, and 408's MCP App embed will show the same bytes — so what it
-// renders in every state is a contract, not a detail.
-//
-// SELF-CONTAINED, NONCE'D, AND `default-src 'none'`. One inline script, no imports, no fetches
-// except the socket. The run id is inserted through `textContent` in that script rather than
-// interpolated into markup, so a run id can never become markup.
-//
-// EVERY ABSENCE IS NAMED. There is no state in which this page shows a blank rectangle: an expired
-// link says `link expired`, a target that cannot stream says so, an unknown stream kind says so.
-// A live preview that fails silently is indistinguishable from a run that is not running, which is
-// the one thing a person watching must be able to tell.
-//
-// IT TELLS ITS HOST WHAT IT SEES, AND NOTHING ELSE (428 D-10/D-15, RESEARCH Q-BRIDGE). The page
-// posts closed-set facts to `window.parent` with target `'*'`, because a sandboxed page cannot name
-// its host's origin: `ready`, `frame` (throttled, always the newest), `ended`, `refused`, `lost`.
-// A payload is event words, stream kinds, end or refusal reasons and numbers — never the token, the
-// run id or the location, since whatever page frames this one reads every report. A host that does
-// not listen (the MCP App wrapper) loses nothing.
-//
-// ONE MESSAGE PER STATE. A host that draws its own status chrome says so with the `host` query
-// parameter; the page then hides its centred text, so no state is said twice on one screen. The
-// hint is read from the query, never the fragment, and carries no credential.
+// Self-contained and nonce'd; every absence is named, and host reports never carry the token.
 
 import { LIVE_VIEW_WS_PATH } from './protocol.js'
 
@@ -38,7 +14,7 @@ export type LiveEmbedState =
   | 'ended'
   | 'lost'
 
-/** Every value `[data-embed-state]` can take. The 403-02 DOM cells range this list. */
+// Every value `[data-embed-state]` can take.
 // prettier-ignore
 export const LIVE_EMBED_STATES = [
   'connecting',
@@ -46,11 +22,9 @@ export const LIVE_EMBED_STATES = [
   'no-stream',
   'expired',
   'refused',
-  // THIS MEMBER'S STREAM ENDED WHILE THE RUN CONTINUES. Separate the whole run's end,
-  // because a person watching one member of a suite needs to know which of the two happened — and
-  // neither may be shown as `live` over whichever frame happened to be last.
+  // This member's stream ended while the run continues, so the viewer knows which one ended.
   'stream-ended',
-  // AN EDITOR SESSION ENDED. An editor subject has no run to end.
+  // An editor session ended; an editor subject has no run to end.
   'session-ended',
   'ended',
   'lost',
@@ -76,25 +50,13 @@ export const LIVE_EMBED_HOST_PARAM = 'host'
 /** At most one `frame` report per this many milliseconds; the report carries the newest frame. */
 export const LIVE_EMBED_REPORT_INTERVAL_MS = 500
 
-/**
- * What an EXPIRED link says, exactly.
- *
- * Exported so the tracer cell and 403-02's DOM cells assert the SAME string the page renders — a
- * literal spelled twice is a literal that can drift, and this one is the difference between a
- * person seeing "your link timed out" and a person seeing nothing at all.
- */
+// Exported so cells assert the same string the page renders.
 export const LIVE_EMBED_EXPIRED_MESSAGE = 'link expired'
 
-/**
- * What a target that declared NO live stream says, exactly.
- *
- * This document owns no step list, and its host — the dashboard iframe today, the 408 MCP App
- * later — is invisible to it, so the sentence claims nothing about where or whether steps are
- * shown. Exported so the served bytes are pinned against the constant (frame-proxy cell 25).
- */
+// The host is invisible to this page, so the sentence claims nothing about where steps are shown.
 export const LIVE_EMBED_NO_STREAM_MESSAGE = 'no live preview for this target'
 
-/** What an ended editor session says, exactly (428 D-07/D-09; frame-proxy cell 34). */
+// What an ended editor session says, exactly.
 export const LIVE_EMBED_SESSION_ENDED_MESSAGE = 'session ended'
 
 const STYLE = `

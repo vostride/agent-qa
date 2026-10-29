@@ -31,9 +31,7 @@ export function runStatusClass(status: string): RunStatusClass {
   return CLASS_OF[status]
 }
 
-// a member outcome is a run word or `skipped`; a member with none is live.
-// run_members.outcome has no CHECK, so any other word is
-// unclassified (`undefined`) and every reader skips it; runs.status has one, so runStatusClass throws.
+// `run_members.outcome` has no CHECK, so an unknown word is unclassified; `runs.status` has one.
 export function memberOutcomeClass(outcome: string | null): RunStatusClass | 'skipped' | undefined {
   if (outcome === null) return 'live'
   if (outcome === 'skipped') return 'skipped'

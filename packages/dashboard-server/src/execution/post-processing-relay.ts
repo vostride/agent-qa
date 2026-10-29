@@ -1,27 +1,4 @@
-// The SECOND sink of the in-process chip emitter.
-//
-// WHAT THIS IS FOR. A run's post-processing chain runs AFTER `runFinished`, which is exactly where
-// the run event stream closes. So the chips a page wants to watch — analysis started, curation
-// done — are appended to `events.jsonl` by a leg no open SSE is listening to any more. This
-// registry is the push half of the fix: the emitter that writes each envelope to the trail also
-// hands it here, and whichever browser has the run's post-processing stream open learns that the
-// durable answer moved.
-//
-// IT IS A TRIGGER CHANNEL, NOT A SOURCE OF TRUTH. Nothing downstream of this object may
-// derive a chip from an envelope: the answer is always `runs.postprocessing` over durable rows,
-// re-read. The envelope says "look again"; it never says what the answer is. That is why there is
-// no history here and no buffering — a relay that replayed what a late subscriber missed would be
-// a second, weaker copy of a record the page can simply re-read, and the two would be free to
-// disagree the first time a process restarted.
-//
-// KEYED BY THE ENVELOPE'S OWN `runId`. The pump this feeds is a global FIFO and can
-// legitimately observe another run's job; the emitter has its own drop-guard for that, and this is
-// the second wall. Routing on the publisher's idea of "the current run" would make the guard the
-// only thing between one run's failure text and another run's viewer.
-//
-// THE SHAPE IS `in-process-backend.ts`'s `Map<runId, …>` BOOKKEEPING, deliberately: this package
-// already has one per-run in-memory registry with a per-run teardown, and a second one that
-// organised itself differently would be a second idiom for the same thing.
+// A trigger channel with no history: pages re-read `runs.postprocessing`; routing keys on `runId`.
 
 import type { RunEventEnvelope } from '@vostride/agent-qa-schema'
 

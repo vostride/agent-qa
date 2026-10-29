@@ -57,15 +57,12 @@ vi.mock('@vostride/agent-qa-web', () => ({
   }),
 }))
 
-// runHooks + DockerHookExecutor moved to runner / runner-local in Phase 363 D-06.
 vi.mock('@vostride/agent-qa-runner', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@vostride/agent-qa-runner')>()),
   runHooks: (...args: unknown[]) => mockRunHooks(...args),
-  // Variables subsystem moved to runner in Phase 363 D-07.
   VariableStore: vi.fn().mockImplementation(function () { return mockVariableStoreInstance }),
   interpolateVariables: vi.fn((instruction: string) => instruction),
   findUnresolvedTemplates: vi.fn(() => []),
-  // Inline hook parsing moved to runner in Phase 363-11; live-session imports it from runner.
   parseHookInline: vi.fn(() => []),
   stripHookInline: vi.fn((text: string) => text),
 }))

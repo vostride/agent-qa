@@ -33,7 +33,7 @@ const CORE_SRC = resolve(PACKAGE_ROOT, '../core/src')
 const PROCESSES = 8
 const TRIALS = 10
 
-// 2026-10-17 (443-17, GAP-D4): the children run the built dists, so a stale one tests old code.
+// The children run the built dists, so a stale one tests old code.
 function newestProductSource(sourceRoot: string) {
   let newest: string | undefined
   let mtimeMs = -Infinity
@@ -68,7 +68,7 @@ function buildStaleness(artifact: string, sourceRoot: string) {
   return undefined
 }
 
-// 2026-10-17 (443-review, WR-06): --force, because a turbo cache hit leaves an mtime-stale dist untouched.
+// `--force`, because a turbo cache hit leaves an mtime-stale dist untouched.
 function requireFreshBuild(artifact: string, sourceRoot: string) {
   const reason = buildStaleness(artifact, sourceRoot)
   if (reason !== undefined)

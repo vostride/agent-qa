@@ -12,8 +12,7 @@ const mockAndroidSetup = vi.fn().mockResolvedValue(undefined)
 const mockAndroidCleanup = vi.fn().mockResolvedValue(undefined)
 const mockResolveMobileRunConfig = vi.fn()
 
-// One adapter instance is shared across all WebPlatformAdapter() calls,
-// which lets us assert "same adapter reused across steps".
+// One adapter instance is shared across all `WebPlatformAdapter()` calls, so reuse is assertable.
 const sharedAdapterRef: { current: unknown } = { current: null }
 
 vi.mock('@vostride/agent-qa-web', () => ({
@@ -63,8 +62,6 @@ const mockVariableStoreInstance = {
   snapshot: vi.fn().mockReturnValue({}),
 }
 
-// executeStep/LLMPlanner/LLMVerifier moved to the runner package;
-// live-session now imports them from @vostride/agent-qa-runner, so intercept them there.
 vi.mock('@vostride/agent-qa-runner', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@vostride/agent-qa-runner')>()
   return {
@@ -72,19 +69,15 @@ vi.mock('@vostride/agent-qa-runner', async (importOriginal) => {
     executeStep: (...args: unknown[]) => mockExecuteStep(...args),
     LLMPlanner: vi.fn().mockImplementation(function () { return { plan: vi.fn() } }),
     LLMVerifier: vi.fn().mockImplementation(function () { return { verify: vi.fn() } }),
-    // runHooks moved to runner in Phase 363 D-06.
     runHooks: (...args: unknown[]) => mockRunHooks(...args),
-    // Variables subsystem moved to runner in Phase 363 D-07.
     VariableStore: vi.fn().mockImplementation(function () { return mockVariableStoreInstance }),
     interpolateVariables: vi.fn((instruction: string) => instruction),
     findUnresolvedTemplates: vi.fn(() => []),
-    // Inline hook parsing moved to runner in Phase 363-11; live-session imports it from runner.
     parseHookInline: () => mockParseHookInline(),
     stripHookInline: (text: string) => mockStripHookInline(text),
   }
 })
 
-// DockerHookExecutor moved to runner-local in Phase 363 D-06.
 vi.mock('@vostride/agent-qa-runner-local', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@vostride/agent-qa-runner-local')>()),
   DockerHookExecutor: class { execute(...args: unknown[]) { return mockRunHookInSandbox(...args) } },
@@ -143,7 +136,7 @@ const makeHookDef = (name: string) => ({
   network: false,
 })
 
-// Forward-contract type — plan 02 introduces this alongside `executeTestCommand`.
+// A local copy of the shape `executeTestCommand` returns.
 interface LiveTestResultPayload {
   status: 'passed' | 'failed' | 'cancelled'
   duration: number
@@ -458,11 +451,6 @@ describe('LiveSession.executeTestCommand (suite-mode orchestration)', () => {
     expect(result.teardownHookExecutions.length).toBe(1)
   })
 
-  // the loop-driven `LoopPorts.onPhase` telemetry seam is retired — the runner
-  // loop never invoked it (dead in production; only a mock exercised it). The former
-  // "invokes onPhase callback at least once per step" test asserted that retired mock-only path and
-  // was removed with the seam. Per-step phase data now rides the step result (subActionsData).
-
   it('throws "Live session is not ready" when the session is not interactive', async () => {
     // No initialize — session is never interactive.
     const execute = getExecuteTestCommand(session)
@@ -641,9 +629,7 @@ describe('LiveSession.executeTestCommand (suite-mode orchestration)', () => {
       teardown: [],
     })
 
-    // the loop-driven `LoopPorts.onPhase` seam is retired, so the intra-step
-    // `test-step-phase` message no longer flows; the explicit start/complete lifecycle messages
-    // (emitted around executeStep, independent of onPhase) still dispatch.
+    // The start and complete lifecycle messages dispatch around `executeStep`.
     const messages = sink.mock.calls.map(([message]) => message)
     expect(messages).toEqual(expect.arrayContaining([
       expect.objectContaining({

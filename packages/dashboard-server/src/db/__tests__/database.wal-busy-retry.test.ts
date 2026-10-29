@@ -1,4 +1,4 @@
-// 2026-10-17 (443-15, GAP-D5): the WAL switch retries every SQLite busy code and nothing else.
+// The WAL switch retries every SQLite busy code and nothing else.
 
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'

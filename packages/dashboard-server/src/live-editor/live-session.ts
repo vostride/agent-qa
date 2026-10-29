@@ -109,7 +109,7 @@ async function readEntityUse(
   }
 }
 
-/** a layer sets a planner limit the CLI refuses, so the live editor refuses it too. */
+// Thrown when a layer sets a planner limit the CLI refuses.
 export class LivePlannerLimitsRefusedError extends Error {
   constructor(message: string) {
     super(message)
@@ -145,8 +145,7 @@ function projectLeafIssue(key: LiveLimitLeaf, value: unknown): string | undefine
   return parsed.success ? undefined : parsed.error.issues[0]?.message ?? 'invalid value'
 }
 
-// A planner key core retired is named only by core's retired-key scan, as a custom issue at
-// ['planner', key]; the live editor asks core rather than spelling the key (436 D-18 census).
+// A retired planner key is named by core's retired-key scan; the live editor never spells the key.
 function retiredPlannerKeyIssue(schema: EntityUseSchema, key: string, value: unknown): string | undefined {
   const parsed = schema.safeParse({ planner: { [key]: value } })
   if (parsed.success) return undefined
@@ -179,11 +178,7 @@ function refuseInvalidLimits(
   }
 }
 
-/**
- * the limits a live session runs under — the project config's `use` block, then each
- * entity's `use` in order (a suite, then a test of it) when the door can load it. An entity it
- * cannot load contributes nothing.
- */
+// The project config's `use`, then each entity's `use` in order; an unloadable entity adds nothing.
 export async function resolveLivePlannerLimits(
   configManager: ConfigManager | undefined,
   entities: EntityRef | readonly EntityRef[] | undefined,
@@ -424,8 +419,7 @@ export class LiveSession {
   private planner: LLMPlanner | null = null
   private verifier: LLMVerifier | null = null
   private modelProfiles: { planner: DeclaredModelProfile; verifier: DeclaredModelProfile } | null = null
-  // the run-scoped storage-state store, constructed lazily on first use and
-  // rooted at the session's `.agent-qa` runtime dir (the FsStorageStateStore rooting idiom).
+  // Built lazily on first use, rooted at the session's `.agent-qa` runtime dir.
   private storageStateStore: StorageStatePort | null = null
   private model: LanguageModel | null = null
   private variableStore: VariableStore | null = null
@@ -453,14 +447,13 @@ export class LiveSession {
   private mobileAppiumLease: MobileLiveAppiumLease | null = null
   private secretStore: SecretStore | undefined
   private secretRedactor: SecretRedactor | undefined
-  // one hub per session, handle 0, created once the adapter exists. A session whose
-  // setup hooks failed has no adapter and therefore no hub; its subject declares `none`.
+  // One hub per session at handle 0, created once the adapter exists; no adapter means no hub.
   private liveHub: LiveStreamHub | null = null
   private attachment: LiveEditorAttachment | null = null
   private resolveEnded: () => void = () => {}
   private readonly ended: Promise<void>
   private cleanupRun: Promise<void> | null = null
-  // RESEARCH P4: which control socket is the current one. Only its close may detach the session.
+  // Which control socket is the current one; only its close may detach the session.
   private attachmentGeneration = 0
   private releaseAttachment: ((reason: LiveAttachmentRelease) => void) | null = null
 
@@ -493,11 +486,7 @@ export class LiveSession {
     this.liveHub = hub
   }
 
-  /**
-   * Make a control socket the current one. `release` is how the session lets go of it later: the
-   * previous attachment's is called with `superseded` here, so one socket drives the
-   * session at a time.
-   */
+  // The previous attachment's `release` gets `superseded`, so one socket drives the session.
   beginAttachment(release?: (reason: LiveAttachmentRelease) => void): number {
     const previous = this.releaseAttachment
     this.attachmentGeneration += 1
@@ -520,11 +509,7 @@ export class LiveSession {
     this.pendingMessages = []
   }
 
-  /**
-   * A command's reply, for whichever control socket is attached now. A command can
-   * outlive the socket that issued it, and its outcome belongs to the page, not to that socket:
-   * with none attached it is held and flushed to the next one.
-   */
+  // A reply can outlive its socket, so it goes to the current socket or waits for the next one.
   deliver(message: ServerMessage): void {
     if (this.messageSink) {
       this.messageSink(message)
@@ -889,7 +874,7 @@ export class LiveSession {
     )
     const { profile, auth } = toModelProfileAndAuth(modelIdentity, runtimeAuth)
     const capabilities = resolveCapabilities(profile)
-    // the live editor resolves vision as the CLI does, from the model it uses.
+    // The live editor resolves vision as the CLI does, from the model it uses.
     this.visionGate = resolveVisionGate({ vision: visionFromConfig(modelVision, capabilities) })
     const plannerDeclared: DeclaredModelProfile = {
       provider: profile.provider,
@@ -905,8 +890,7 @@ export class LiveSession {
     }
     this.modelProfiles = { planner: plannerDeclared, verifier: verifierDeclared }
     this.model = createModel(profile, auth, (text) => this.secretRedactor?.redactString(text) ?? text)
-    // Both roles share this.model here, but hold separate accounting instances per role so
-    // each owns its own cache anchor; the D-04 lazy thunk re-reads `profile` per call.
+    // Separate accounting per role so each owns its own cache anchor; the thunk re-reads `profile`.
     const plannerAccounting = createTokenAccounting({ getCapabilities: () => resolveCapabilities(profile) })
     const verifierAccounting = createTokenAccounting({ getCapabilities: () => resolveCapabilities(profile) })
     this.planner = new LLMPlanner(this.model, config.platform, undefined, undefined, plannerAccounting, plannerDeclared)
@@ -1130,12 +1114,7 @@ export class LiveSession {
     return this.redact(result)
   }
 
-  // Inner step execution — no gating. Callers must own the executing/status
-  // lifecycle (executeStepCommand for single steps, executeTestCommand for
-  // the per-test loop that runs many steps under one outer gate).
-  // lazily construct the run-scoped storage-state store, rooted at the session's
-  // `.agent-qa` runtime dir. All fs writes live in runner-local (validate:arch storageNeutral);
-  // the loop records only { name, fingerprint }. Absent configPath falls back to the cwd root.
+  // Lazily built and rooted at the session's `.agent-qa` dir; fs writes stay in runner-local.
   private async getStorageStateStore(): Promise<StorageStatePort> {
     let store = this.storageStateStore
     if (!store) {
@@ -1304,8 +1283,7 @@ export class LiveSession {
     }
 
     try {
-      // a test runs at its own effective limits (project, suite, then its own `use`),
-      // resolved once before its first step, exactly as the CLI suite producer resolves a member.
+      // A test runs at its own effective limits, resolved once before its first step.
       let testLimits: PlannerLimits
       try {
         testLimits = this.plannerLimitsForTest !== undefined && testDraft.testId.length > 0
@@ -1326,9 +1304,7 @@ export class LiveSession {
         })
       }
 
-      // Per-test setup. Per-test setup failure short-circuits the
-      // test AND skips per-test teardown, matching suite/runner.ts:230 break
-      // (Pitfall 2). Suite-level teardown still fires at session cleanup.
+      // A failed per-test setup skips the test and its teardown; suite teardown runs at cleanup.
       const setupHookPayloads: LiveHookPayload[] = []
       const setupResult = await this.runLifecycleHooksCapturing(
         'setup',
@@ -1360,9 +1336,7 @@ export class LiveSession {
         }
       }
 
-      // Shared browser context: each step reuses the same adapter
-      // instance. Per-step context carries the TEST's name/context, not
-      // the suite's, so the LLMPlanner matches production runTest behaviour.
+      // Steps reuse the shared adapter, with the test's name and context, as `runTest` does.
       const stepResults: LiveStepResultPayload[] = []
       const perStepDraft: LiveDraftMetadata = {
         testName: testDraft.testName,
@@ -1463,10 +1437,7 @@ export class LiveSession {
     }
   }
 
-  // Thin wrapper around runLifecycleHooks that also captures the dispatched
-  // hook payloads (hook-complete) for inclusion in the LiveTestResultPayload.
-  // The capture sits beside the message sink rather than wrapping it, so a
-  // control socket that reattaches mid-hook keeps its sink.
+  // Captures dispatched hook payloads beside the message sink, so a reattached socket keeps it.
   private async runLifecycleHooksCapturing(
     phase: 'setup' | 'teardown',
     hookIds: string[],
@@ -1638,8 +1609,7 @@ export class LiveSession {
 
   startIdleTimer(onExpire: () => void): void {
     this.clearIdleTimer()
-    // an ended session has nothing left to expire, and the window never holds the
-    // process open on its own.
+    // An ended session has nothing left to expire, and the window never holds the process open.
     if (this.cleanupRun !== null) return
     this.idleTimer = setTimeout(onExpire, IDLE_TIMEOUT_MS)
     this.idleTimer.unref?.()
@@ -1662,13 +1632,11 @@ export class LiveSession {
   private async runCleanup(): Promise<void> {
     this.clearIdleTimer()
     this.readyForInteraction = false
-    // the attached control socket is told the session is gone, however it ended.
+    // The attached control socket is told the session is gone, however it ended.
     const release = this.releaseAttachment
     this.releaseAttachment = null
     release?.('ended')
-    // The hub closes first, so subscribers hear 'closed' and the screencast stops before the
-    // browser that produces it goes away. Its close waits on the screencast's CDP stop, which a
-    // wedged renderer never answers, so the wait is bounded and teardown always goes on.
+    // The hub closes first; its wait on the CDP stop is bounded, as a wedged renderer never answers
     const hub = this.liveHub
     this.liveHub = null
     if (hub) {

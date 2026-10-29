@@ -1,27 +1,4 @@
-// The dashboard's durable schema (Phase 405 plans 01 and 07, D-01/D-02).
-//
 // Every `user_version` other than `SCHEMA_VERSION` is refused on open, never upgraded.
-//
-// THE CENSUS RAN AND THE V1 DEBRIS IS GONE. Plan 01 left the dormant
-// v1 projection tables and the unfed `runs` columns spelled here on purpose, so that the deletion
-// could be a MEASUREMENT rather than a guess taken in the same commit that added their successors.
-// The two-predicate census (402 D-11's idiom: "required" = a producer on the shipped in-process
-// core AND a reader on the rebuilt page) then scored each one, and everything it scored zero on
-// left with its readers in this plan:
-//
-//   - the three v1 projection tables and their indexes — no producer since the subscriber was
-//     rebuilt on the bus payloads, and no reader once `/steps`, `/steps/:n/reasoning`, `/logs` and
-//     `/accessibility` were retired in favour of `runs.detail`;
-//   - the run-level video column — no producer at all (D-14: refs are the only artifact
-//     addressing, and no ref producer mints a recording yet, so the honest state is no column
-//     rather than a column nothing fills);
-//   - the four parent/attempt/retry columns and their index — nothing has written a child run row
-//     since 402-09 put one `runs` row per run and moved member identity onto `run_members`.
-//
-// WHAT SURVIVED IS WHAT THE CENSUS MEASURED A LIVE PRODUCER AND READER FOR: `execution_logs` (the
-// subscriber's `hookFinished` arm → the hook panel), `token_events` (the live-editor ws handler →
-// the insights page — D-20's verdict, measured, not assumed), and the construction-data columns on
-// `runs` that the queue and the settle path write.
 export const SCHEMA_VERSION = 2
 
 export interface DashboardMigration {
@@ -102,17 +79,7 @@ export const MIGRATIONS: DashboardMigration[] = [
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
       )`,
-      // ---- The v2 bus-shaped projection ----------------------------------------
-      //
-      // THE COLUMNS ARE THE PAYLOAD'S OWN NAMES, snake_cased and nothing else. No field is
-      // re-derived, renamed or re-interpreted on the way in — that is D-01's whole claim, and
-      // it is what makes the read a mirror rather than a second opinion. Nested payload objects
-      // (`planned_action`, `grounding`, `result`, `artifact_refs`) are `JSON.stringify` of the
-      // field VERBATIM; the projection never reaches inside one.
-      //
-      // `test_index` IS THE HANDLE (RESEARCH D4). `handleId(runId, testIndex)` is how this
-      // product spells run-scoped member identity, so minting a second id here would be a
-      // second spelling of the same fact.
+      // Columns are the payload's names snake_cased; `test_index` is the handle, so no second id.
       `CREATE TABLE IF NOT EXISTS run_members (
         run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
         test_index INTEGER NOT NULL,
@@ -132,10 +99,7 @@ export const MIGRATIONS: DashboardMigration[] = [
         recording_json TEXT,
         PRIMARY KEY (run_id, test_index)
       )`,
-      // The token columns are NULLABLE AND NEVER DEFAULT 0. The retired v1 projection
-      // declared these `INTEGER DEFAULT 0`, and that zero was a measurement nobody made — the exact
-      // lie this shape refuses to be able to tell. 405-04 landed the producer, so a step the runner
-      // measured carries real counts and a step it did not carries NULL, which stays honest.
+      // Token columns are nullable with no default, so a step nobody measured carries NULL, not 0.
       `CREATE TABLE IF NOT EXISTS run_steps (
         run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
         test_index INTEGER NOT NULL,

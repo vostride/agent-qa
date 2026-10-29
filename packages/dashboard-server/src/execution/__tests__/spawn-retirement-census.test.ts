@@ -1,25 +1,4 @@
-// THE DASHBOARD RUN PATH HAS NO SPAWN AND NO SCRAPE.
-//
-// WHAT A COMPLETE-SET CLAIM NEEDS, AND WHY THIS IS NOT A GREP. The claim is about a PATH, not a
-// file, so the scanner walks every non-test module under `src/` and reports what it finds; and it
-// self-checks first, against a planted source that carries each forbidden token, so a scanner that
-// had stopped seeing anything cannot sweep clean. The two survivors are named, with the reason each
-// one is design-of-record — a census that can only refuse what it happens to name is not a census,
-// so the allow-list is a set of exact paths and any new holder of the vocabulary is a failure.
-//
-// THE FOUR SURVIVORS, deliberately and by name:
-//   `execution/appium-manager.ts` — the BUNDLED APPIUM SPAWN. Design-of-record, named in INVK-01's
-//     own scoping sentence; what 401-07 changed is only how its lease URL reaches a run.
-//   `ownership-contract.ts` — the DECLARATION that this package owns `tree-kill` as an external
-//     dependency. It is a manifest entry, and the manager above is what still needs the package.
-//   `server/server.ts` — `process.on('SIGTERM', …)`, THIS process's own shutdown handler. It is a
-//     signal this server RECEIVES, never one it sends at a child; the retirement removed every
-//     `process.kill` / `child.kill` / `treeKill` SEND on the run path, and this is the converse.
-//   `db/run-owner-host.ts` — one bounded, synchronous `/usr/sbin/ioreg` read of the macOS
-//     hardware UUID that names a run owner's host (442-17, GAP-D4). It signals nothing.
-//
-// The daemon-owned embedder child lives in another package and is equally design-of-record; it is
-// outside this scanner's range and is not being retired either.
+// Self-checked against planted tokens first; the survivors are an exact-path allow-list.
 
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'

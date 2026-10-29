@@ -60,15 +60,14 @@ export function presentText(value: unknown): string | null {
   return text === '' ? null : text
 }
 
-// only a file that does not parse is read line by line, each key from its own line.
+// Only a file that does not parse is read line by line, each key from its own line.
 function valueOnLine(match: RegExpMatchArray | null): string | null {
   if (match === null) return null
   const value = normalizeQuotedString(match[1])
   return value.trim() === '' ? null : value
 }
 
-// a bare, blank or comment-only id key is filled in place; otherwise the id line goes after a
-// leading byte-order mark and the stream's first --- marker, or first, in the file's own line ending.
+// A blank or comment-only id key is filled in place; else the id line goes after a BOM and `---`.
 export function withIdLine(content: string, key: 'test-id' | 'suite-id', id: string): string {
   const bom = content.startsWith('\uFEFF') ? '\uFEFF' : ''
   const rest = content.slice(bom.length)
@@ -83,7 +82,7 @@ export function withIdLine(content: string, key: 'test-id' | 'suite-id', id: str
   return `${bom}${head}${line}${eol}${rest.slice(marker[0].length)}`
 }
 
-// an id write lands only if it parses, as one document, to the old mapping plus the id.
+// An id write lands only if it parses, as one document, to the old mapping plus the id.
 export function idWriteText(content: string, key: 'test-id' | 'suite-id', id: string): string | null {
   let old: unknown
   try {
@@ -117,7 +116,7 @@ function lineMetadata(content: string): TestFileMetadata {
   }
 }
 
-// a file that parses is read from its mapping, where a null, empty or blank value is absent.
+// A parsing file is read from its mapping, where a null, empty or blank value is absent.
 export function extractTestFileMetadata(content: string): TestFileMetadata {
   let parsed: unknown
   try {
@@ -146,7 +145,7 @@ export function extractTestFileMetadata(content: string): TestFileMetadata {
   }
 }
 
-// a mint reads bytes that decode losslessly, or it does not write.
+// A mint reads bytes that decode losslessly, or it does not write.
 export function decodeUtf8(bytes: Uint8Array): string | undefined {
   try {
     return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes)
@@ -156,7 +155,7 @@ export function decodeUtf8(bytes: Uint8Array): string | undefined {
   }
 }
 
-// every document's target is read, and the line pattern reads only top-level target lines.
+// Every document's target is read, and the line pattern reads only top-level target lines.
 export function targetsForMarkerCheck(content: string): unknown[] {
   const targets: unknown[] = []
   try {
@@ -174,7 +173,7 @@ export function targetsForMarkerCheck(content: string): unknown[] {
 export class TestFileManager {
   constructor(private readonly workspace: ResolvedWorkspacePaths) {}
 
-  // each list call reads the workspace itself; each file is written whole and one writer at a time.
+  // Each list call reads the workspace itself; each file is written whole, one writer at a time.
   private readonly underLock = createPathLock()
 
   async list(): Promise<TestFileInfo[]> {
@@ -204,7 +203,7 @@ export class TestFileManager {
                 if (content === undefined) return first
                 const current = extractTestFileMetadata(content)
                 if (current.testId) return current
-                // an empty file may be an outside save mid-write; it is never minted.
+                // An empty file may be an outside save mid-write; it is never minted.
                 if (content.trim() === '') return current
                 const minted = generateTestId()
                 const next = idWriteText(content, 'test-id', minted)

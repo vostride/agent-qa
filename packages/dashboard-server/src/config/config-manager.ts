@@ -38,10 +38,7 @@ export type ApplyChangesOutcome =
 
 type FieldState = { present: false } | { present: true; value: unknown }
 
-/**
- * What one change found and left at the field it touched. The nodes are the file's
- * own, so a restore brings back real secrets and comments rather than anything the page holds.
- */
+// The nodes are the file's own, so a restore brings back real secrets and comments.
 export type ConfigPrior =
   | { kind: 'entry'; array: ConfigPathSegment[]; name: string; index: number; node: Node }
   | { kind: 'path'; path: ConfigPathSegment[]; before: Node | null | undefined; after: FieldState }
@@ -79,10 +76,7 @@ export type MaskedConfigOutcome =
   }
   | { kind: 'file_invalid'; message: string; revision: string }
 
-// one write queue per resolved config path, shared by every
-// ConfigManager and direct writer in this process, so the dashboard and a co-hosted writer never
-// read the same bytes and drop each other's field. Kept on globalThis so a second copy of this
-// module still joins the same queue. It is not a cross-process lock.
+// Kept on `globalThis` so a second module copy joins the same per-path queue; not cross-process.
 const CONFIG_WRITE_QUEUES = Symbol.for('agent-qa.config-write-queues')
 
 function configWriteQueues(): Map<string, Promise<void>> {
@@ -130,10 +124,7 @@ export class ConfigFileInvalidError extends Error {
   }
 }
 
-/**
- * The config's values for a reader that only needs them (429-32, Pitfall 3): a missing file reads
- * as empty, and a file that does not parse is an error rather than the part of it yaml recovers.
- */
+// A missing file reads as empty; a file that does not parse is an error, not a partial recovery.
 export async function readConfigValues(manager: ConfigManager): Promise<Record<string, unknown>> {
   const read = await manager.readWithRevision()
   if (read.kind === 'ok') return read.config
@@ -144,8 +135,7 @@ export async function readConfigValues(manager: ConfigManager): Promise<Record<s
 export class ConfigManager {
   constructor(private configPath: string, readonly mask: MaskFn) {}
 
-  // 441 GAP3-D5: a whole document may keep a marker the file already holds, as often, but never
-  // add one. A missing file holds none.
+  // A whole document may keep a marker the file already holds, as often, but never add one.
   static addsShownMarker(current: Uint8Array | undefined, next: Uint8Array): boolean {
     const held = shownMarkerCounts(current)
     for (const [marker, count] of shownMarkerCounts(next)) {
@@ -154,14 +144,14 @@ export class ConfigManager {
     return false
   }
 
-  // 429-05 Pitfall 3: a half-edited file is named, never served as the partial config yaml recovers.
+  // A half-edited file is named, never served as the partial config yaml recovers.
   async readWithRevision(): Promise<ConfigReadOutcome> {
     const read = await this.readParsed()
     if (read.kind !== 'ok') return read
     return { kind: 'ok', config: read.config, raw: read.raw, revision: read.revision }
   }
 
-  // the payload and the file view pass through the declared mask and nothing else.
+  // The payload and the file view pass through the declared mask and nothing else.
   async readMasked(): Promise<MaskedConfigOutcome> {
     const read = await this.readParsed()
     if (read.kind === 'absent') {
@@ -214,8 +204,7 @@ export class ConfigManager {
     }
   }
 
-  // one transaction per request, serialised so overlapping autosaves never
-  // read the same bytes and drop each other's field.
+  // One transaction per request, serialised so overlapping autosaves never drop each other's field.
   async applyChanges(
     changes: readonly ConfigChange[],
     options: { capturePriors?: boolean } = {},
@@ -234,14 +223,12 @@ export class ConfigManager {
     return this.serialized(() => this.applyChangesOnce(changes, options.capturePriors === true))
   }
 
-  // an Undo is one more transaction on the same mutex, newest change first. A field
-  // that no longer holds what the change left there was written since, and is never overwritten.
+  // An Undo restores newest first; a field written after the change is never overwritten.
   async restorePriors(priors: ConfigPriors): Promise<RestorePriorsOutcome> {
     return this.serialized(() => this.restorePriorsOnce(priors))
   }
 
-  // a generated whole-file change (a scaffold, a hooks file) publishes only over the
-  // bytes it was built from, read again in this path's turn. Anything else is somebody's edit.
+  // A generated whole-file change publishes only over the bytes it is built from, re-read in turn.
   async replaceDocument(expectedRevision: string, content: Uint8Array): Promise<ReplaceDocumentOutcome> {
     return this.serialized(async () => {
       let current: Buffer | undefined
@@ -296,8 +283,7 @@ export class ConfigManager {
     capturePriors: boolean,
   ): Promise<ApplyChangesOutcome> {
     let doc: Document
-    // the revision of the bytes this write merges onto, so the page can tell when an
-    // outside edit it never read was absorbed.
+    // The revision of the bytes this write merges onto, so a page can spot an absorbed outside edit
     let baseRevision: string
     try {
       const bytes = await readFile(this.configPath)
@@ -305,14 +291,13 @@ export class ConfigManager {
       doc = parseDocument(bytes.toString('utf-8'))
     } catch (err: unknown) {
       if (!isMissingFile(err)) throw err
-      // Pitfall 2: a missing file starts empty and goes through setIn like any other, so a dotted
-      // top-level key such as `use.timeout:` can never be written.
+      // A missing file starts empty and goes through `setIn`, so no dotted top-level key is made.
       baseRevision = CONFIG_REVISION_ABSENT
       doc = new Document()
     }
     // yaml recovers a partial tree from a broken file and refuses to stringify it: never rewrite one.
     if (doc.errors.length > 0) return { kind: 'refused', error: 'file_invalid' }
-    // every expect is checked against the file as read, before anything applies.
+    // Every expect is checked against the file as read, before anything applies.
     const expects = changes.filter((change) => change.op === 'expect')
     for (const change of expects) {
       if (!expectHolds(doc, change.path, change.value ?? null, this.mask)) {
@@ -392,8 +377,7 @@ export class ConfigManager {
       : { kind: 'ok', revision: revisionOf(next), baseRevision }
   }
 
-  // 429-05 Pitfall 8 / Pattern 1 step 6: the temp file sits beside the real file, keeps its mode
-  // (chmod, because writeFile's mode is filtered by the umask), and replaces it in one rename.
+  // The temp file sits beside the real one and is chmodded, as the umask filters `writeFile` modes.
   private async writeAtomic(content: string | Uint8Array): Promise<void> {
     const target = await this.writeTarget()
     const directory = dirname(target)
@@ -429,8 +413,7 @@ export class ConfigManager {
   }
 }
 
-// 441 GAP-D7 (CR-D01): a read shows a declared secret as `[secret:<name>]`. A change carrying that
-// text would write the marker over the real value, or address an entry by a name the file lacks.
+// A read shows a declared secret as `[secret:<name>]`; writing that text would clobber the value.
 const SHOWN_MARKER = /\[secret:\w+\]/
 
 export function holdsShownMarker(value: unknown): boolean {
@@ -459,7 +442,7 @@ function pathHoldsShownMarker(path: readonly ConfigPathSegment[]): boolean {
     : typeof segment === 'string' && SHOWN_MARKER.test(segment)))
 }
 
-// 441 GAP2-D4: an expect writes nothing, so only the ops that write are checked.
+// An expect writes nothing, so only the ops that write are checked.
 function changeWithShownMarker(changes: readonly ConfigChange[]): ConfigChange | undefined {
   return changes.find((change) => {
     if (change.op === 'expect') return false
@@ -469,7 +452,7 @@ function changeWithShownMarker(changes: readonly ConfigChange[]): ConfigChange |
   })
 }
 
-// 441 GAP-D5: a key segment is config text, so it passes the declared mask with the message.
+// A key segment is config text, so it passes the declared mask with the message.
 function maskedIssue(
   issue: { path: readonly PropertyKey[]; message: string },
   mask: MaskFn,
@@ -523,7 +506,7 @@ function unsetAndPrune(doc: Document, path: ResolvedPath): void {
   }
 }
 
-// a rename re-keys the file's own node, which lands before from is pruned.
+// A rename re-keys the file's own node, which lands before `from` is pruned.
 function moveField(
   doc: Document,
   from: readonly ConfigPathSegment[],
@@ -594,8 +577,7 @@ function expectedFieldValue(doc: Document, path: readonly ConfigPathSegment[]): 
   return state.present ? state.value : null
 }
 
-// 441 GAP2-D4: the page builds an expect from the masked read, so it also holds when it equals the
-// field as the declared mask shows it. A mask that throws matches nothing.
+// The page builds an expect from the masked read, so it also holds against the masked field.
 function expectHolds(
   doc: Document,
   path: readonly ConfigPathSegment[],

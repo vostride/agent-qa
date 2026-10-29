@@ -3,7 +3,7 @@ import { constants } from 'node:fs'
 import { access, chmod, lstat, realpath, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 
-// a whole fixed-length temp file renamed over the target, through a symlink, with its mode.
+// A whole fixed-length temp file renamed over the target, through a symlink, with its mode.
 export async function replaceFileAtomic(absolutePath: string, content: string): Promise<void> {
   const isLink = await lstat(absolutePath).then(
     (stats) => stats.isSymbolicLink(),

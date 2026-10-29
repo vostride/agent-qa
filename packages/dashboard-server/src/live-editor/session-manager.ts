@@ -14,10 +14,7 @@ export interface SessionManagerDeps {
 
 export class SessionManager {
   private sessions = new Map<string, LiveSession>()
-  // Per-entity counter keyed by `${entityType}:${entityId}`.
-  // Monotonic and ephemeral: resets on server restart per CONTEXT D-30.
-  // Never decremented on terminate — a re-open of a terminated entity yields
-  // the next number so "Session #3" after "#2" ends does not confuse users.
+  // Monotonic per entity and reset on restart, so a reopened entity gets the next number.
   private counters = new Map<string, number>()
 
   constructor(private deps: SessionManagerDeps = {}) {}
@@ -34,18 +31,16 @@ export class SessionManager {
     const session = new LiveSession(sessionId, this.deps)
     await session.initialize(config)
     this.sessions.set(sessionId, session)
-    // the session is an editor subject for exactly its lifetime.
+    // The session is an editor subject for exactly its lifetime.
     this.deps.liveEditorSubjects?.register(sessionId, session.liveAttachment())
-    // RESEARCH P1: the idle window runs until the first control socket attaches (the upgrade
-    // clears it), so a session nobody ever opens cannot hold a browser or a lease forever.
+    // The idle window runs until the first control socket attaches, so an unopened session ends.
     session.startIdleTimer(() => {
       void this.terminateSession(sessionId).catch((error: unknown) => {
         console.error(`[live-editor] idle expiry could not end session ${sessionId}`, error)
       })
     })
 
-    // sessionNumber is used for display only; never for authorization lookups
-    // (always use sessionId UUID for that — see threat T-181.1-07).
+    // `sessionNumber` is for display only; authorization uses the session id.
     let sessionNumber: number | null = null
     if (entity && entity.id) {
       const key = `${entity.type}:${entity.id}`
@@ -71,8 +66,7 @@ export class SessionManager {
     this.sessions.delete(sessionId)
     this.deps.liveEditorSubjects?.unregister(sessionId)
     await session.cleanup()
-    // Note: `counters` intentionally left untouched — per D-30 the counter is
-    // monotonic per-restart.
+    // `counters` stays untouched, so the number keeps counting up until restart.
     return true
   }
 

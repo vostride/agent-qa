@@ -38,10 +38,10 @@ import {
 
 const DASHBOARD_DB_PATH_FALLBACK = DEFAULT_AGENT_QA_RUNS_DB_PATH || '.agent-qa/runs.db'
 
-// a suite's history is every run with a member in that suite.
+// A suite's history is every run with a member in that suite.
 const MEMBER_SUITE_CONDITION = 'id IN (SELECT run_id FROM run_members WHERE suite_id = ?)'
 
-// a test's history is every run with a member of that test id or path.
+// A test's history is every run with a member of that test id or path.
 function memberTestMatch(test: TestRef): { sql: string; params: string[] } {
   const clauses: string[] = []
   const params: string[] = []
@@ -101,15 +101,6 @@ export interface RunArtifactRow {
   updatedAt: string
 }
 
-/**
- * ONE RUN'S ARTIFACT, AND NOTHING ELSE.
- *
- * `children` stood here and is gone. It walked the run row's now-deleted parent link for the child
- * rows of a suite parent — a shape nothing has written since 402-09 put ONE `runs` row per run and moved member
- * identity onto `run_members`. A structurally-always-empty array on a response is worse than an
- * absent one: a reader cannot tell "this run has no children" from "children stopped being a fact
- * this product records", so the page renders an empty section forever and nobody notices.
- */
 export interface RunArtifactBundle {
   artifact: RunArtifactRow | null
 }
@@ -118,10 +109,7 @@ interface ExecutionLogRow {
   id: string
   runId: string
   stepId: string | null
-  /**
-   * where in the run tree this hook ran, from `HookFinishedPayload`'s own optional
-   * fields. `null` means a RUN-SCOPED hook — a real state, not a missing value.
-   */
+  // Where in the run tree this hook ran; `null` means a run-scoped hook, not a missing value.
   testIndex: number | null
   stepIndex: number | null
   type: 'hook' | 'appium-script' | 'runjs'
@@ -141,7 +129,7 @@ interface InsertExecutionLogInput {
   id: string
   runId: string
   stepId?: string | null
-  /** the handle and step this hook belongs to; absent means run-scoped. */
+  // The handle and step this hook belongs to; absent means run-scoped.
   testIndex?: number | null
   stepIndex?: number | null
   type: 'hook' | 'appium-script' | 'runjs'
@@ -210,15 +198,7 @@ export interface InsightsBreakdownRow {
   suiteId?: string
 }
 
-/**
- * What a run deletion removed.
- *
- * ROWS ONLY. The two path arrays that stood here fed the router's filesystem cleanup, and both the
- * cleanup and the columns it read are gone: refs are the only artifact addressing now, and the run
- * directory under `.agent-qa/runs/` is the run's own record — the event log and the blobs — which
- * the dashboard never owned and must not delete. `deletedRunIds` survives as a one-element list
- * rather than collapsing to a boolean, because it is the shape the response already publishes.
- */
+// Rows only: the run directory is the run's own record; the list keeps the published shape.
 export interface DeleteRunResult {
   deleted: boolean
   deletedRunIds: string[]
@@ -240,12 +220,7 @@ export interface AttributeValueSuggestion {
   count: number
 }
 
-// ---- v2 projection row mappers -------------------------------------
-//
-// THE INVERSE OF THE WRITE AND NOTHING MORE. A column that is NULL becomes an ABSENT key, never a
-// `null` and never a substituted default — a reader that had to tell `null` from missing would be
-// learning a distinction the bus never made, and the token columns' whole point is that
-// unmeasured is absent rather than zero.
+// A NULL column becomes an absent key, never `null` or a default, so unmeasured stays absent.
 
 const optionalText = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined
@@ -384,7 +359,7 @@ export function runSqliteMigrations(
 
   db.pragma('foreign_keys = OFF')
   try {
-    // another opener may have stamped the file since the read above.
+    // Another opener may have stamped the file after the read above.
     const runAll = db.transaction(() => {
       if (assertSupportedUserVersion(db, schemaVersion) === schemaVersion) return
       for (const sql of terminal.sql) {
@@ -427,8 +402,7 @@ const SQLITE_BUSY = 5
 const WAL_RETRY_STEP_MS = 25
 const WAL_RETRY_LIMIT_MS = 5000
 
-// on a fresh file the WAL switch can return SQLITE_BUSY that
-// busy_timeout does not absorb; the constructor is synchronous, so the wait is Atomics.wait.
+// A fresh file's WAL switch can return SQLITE_BUSY past busy_timeout; the wait is `Atomics.wait`.
 function enableWalMode(db: DashboardSqliteDatabase): void {
   const pause = new Int32Array(new SharedArrayBuffer(4))
   for (let waited = 0; ; waited += WAL_RETRY_STEP_MS) {
@@ -477,7 +451,7 @@ export class DashboardDatabase {
     this.db = createDashboardSqliteDatabase(dbPath)
     try {
       this.db.pragma('busy_timeout = 5000')
-      // refuse before WAL mode rewrites the file header.
+      // Refuse before WAL mode rewrites the file header.
       assertSupportedUserVersion(this.db, SCHEMA_VERSION)
       enableWalMode(this.db)
       this.runMigrations()
@@ -545,9 +519,7 @@ export class DashboardDatabase {
     return id
   }
 
-  // one statement that inserts a fresh row or adopts this handle's own
-  // running row; any other row is refused and left untouched. An adopt that names no name or
-  // attributes keeps the row's own.
+  // Inserts a fresh row or adopts this handle's own running row; any other row is left untouched.
   claimRunningRow(id: string, fields: {
     name?: string
     filePath?: string
@@ -706,7 +678,7 @@ export class DashboardDatabase {
       this.ownStamps.delete(id)
       return Number(result.changes) === 1
     }
-    // the queue flip moves only a pending row to running.
+    // The queue flip moves only a pending row to running.
     const stamp = this.readOwnStamp()
     const result = this.db.prepare(
       "UPDATE runs SET status = 'running', owner_pid = ?, owner_incarnation = ?, owner_host = ? WHERE id = ? AND status = 'pending'",
@@ -716,27 +688,9 @@ export class DashboardDatabase {
     return true
   }
 
-  // ---- The v2 bus-shaped projection ---------------------------------
-  //
-  // SIX MEMBERS, AND EVERY ONE OF THEM MIRRORS. The columns are the bus payload's own names; the
-  // nested objects are `JSON.stringify` of the field verbatim. Nothing in this block decides what
-  // a status means, re-derives a duration or fills a token count — a projection that interpreted
-  // would be a second opinion about a run the event log already settled.
+  // The projection mirrors bus payload names verbatim and interprets nothing.
 
-  /**
-   * Write or refresh ONE member row, keyed by the handle `(run_id, test_index)`.
-   *
-   * AN UPSERT AND NOT TWO WRITES, because the member row is fed by two events at two times:
-   * `testStarted` knows the identity fields and `testFinished` knows the outcome — and D-18
-   * requires a member whose stream begins with a terminal event to render anyway, so the second
-   * one alone has to be able to create the row.
-   *
-   * ONLY SUPPLIED FIELDS MOVE. `COALESCE(excluded.x, run_members.x)` on every optional column, so
-   * a `testFinished` that carries no name cannot blank the name `testStarted` wrote. `attempts` is
-   * excluded from the update entirely: it is the D-17 retry ordinal, owned by
-   * `incrementRunMemberAttempts`, and an upsert that reset it would erase the fact the header
-   * renders.
-   */
+  // An upsert because a member's first event may be terminal; `COALESCE` keeps unsupplied fields.
   upsertRunMember(member: {
     runId: string
     testIndex: number
@@ -790,27 +744,14 @@ export class DashboardDatabase {
     )
   }
 
-  /**
-   * Raise ONE member's attempt ordinal. A no-op when the member row does not exist yet —
-   * a retry scheduled before any identity event is a real ordering, and inventing a row here
-   * would put a member on the page that nothing has said anything about.
-   */
+  // A no-op without a member row, so a retry before any identity event adds no member.
   incrementRunMemberAttempts(runId: string, testIndex: number): void {
     this.db.prepare(
       'UPDATE run_members SET attempts = attempts + 1 WHERE run_id = ? AND test_index = ?',
     ).run(runId, testIndex)
   }
 
-  /**
-   * Drop ONE HANDLE's projected step and sub-action rows.
-   *
-   * SCOPED TO THE HANDLE, which was the whole change from the v1 run-wide step delete this
-   * replaced (deleted outright by 405-07's census): that member wiped every step of the RUN on any
-   * member's retry, so in a suite the abandoned attempt of test 3 deleted the completed history of
-   * tests 0-2. The member row itself survives — its outcome and its attempt count are facts about
-   * the member, not about the attempt. So do its setup and teardown hook rows, which run once per
-   * member outside the retry loop; only the attempt's `inline` hook rows go.
-   */
+  // Scoped to the handle: the member row and its setup and teardown hooks survive a retry.
   deleteMemberProjection(runId: string, testIndex: number): void {
     this.db.prepare('DELETE FROM run_steps WHERE run_id = ? AND test_index = ?').run(runId, testIndex)
     this.db.prepare('DELETE FROM run_sub_actions WHERE run_id = ? AND test_index = ?').run(runId, testIndex)
@@ -819,12 +760,7 @@ export class DashboardDatabase {
     ).run(runId, testIndex)
   }
 
-  /**
-   * Write ONE finalized step row. `INSERT OR REPLACE` because a re-run of the same handle re-emits
-   * the same `(test_index, step_index)` and the LAST attempt is the one the page renders.
-   *
-   * The three token columns stay NULL when `tokenUsage` is absent — never 0.
-   */
+  // `INSERT OR REPLACE`, so a re-run's last attempt wins; tokens stay NULL when absent, never 0.
   insertRunStep(step: {
     runId: string
     testIndex: number
@@ -916,14 +852,7 @@ export class DashboardDatabase {
     )
   }
 
-  /**
-   * THE run-detail read. `undefined` when no `runs` row exists — absence is a RESULT here,
-   * and turning it into a typed refusal is the `runs.detail` op's job, so the "not found"
-   * vocabulary lives in the function layer rather than in this store.
-   *
-   * A run that exists and projected nothing answers three empty arrays, which is a DIFFERENT fact
-   * and stays a different answer.
-   */
+  // `undefined` when no run row exists; a run that projected nothing answers three empty arrays.
   readRunDetailRows(runId: string): RunDetailRows | undefined {
     const run = this.db.prepare('SELECT id FROM runs WHERE id = ?').get(runId) as { id: string } | undefined
     if (run === undefined) return undefined
@@ -1033,7 +962,7 @@ export class DashboardDatabase {
     avgDuration: number
   } {
     const totalRuns = runs.length
-    // the rate is pass ÷ (pass + fail); no pass or fail outcome is no rate.
+    // The rate is pass ÷ (pass + fail); no pass or fail outcome is no rate.
     const decided = runs.filter((run) => {
       const runClass = classOf(run)
       return runClass === 'pass' || runClass === 'fail'
@@ -1104,7 +1033,7 @@ export class DashboardDatabase {
     }))
   }
 
-  // one batched member read per 400 returned rows, after pagination.
+  // Members are read for the returned rows only, after pagination.
   private withMemberSummaries(runs: RunRow[]): RunRow[] {
     for (let offset = 0; offset < runs.length; offset += 400) {
       const batch = runs.slice(offset, offset + 400)
@@ -1164,7 +1093,7 @@ export class DashboardDatabase {
     }))
   }
 
-  // one compare-and-set on the stamped owner; never read-then-write.
+  // One compare-and-set on the stamped owner; never read-then-write.
   finalizeOwnRun(id: string, updates: {
     status: RunStatus
     endedAt: string
@@ -1189,8 +1118,7 @@ export class DashboardDatabase {
     return true
   }
 
-  // 2026-10-17 (443-13, GAP-D1; 444-04): no status condition, because the verdict may already have
-  // moved the row off running; the owner columns alone decide whose row it is.
+  // No status condition, as the verdict may have moved the row off running; owner columns decide.
   closeOwnRun(id: string, updates: {
     status: RunStatus
     endedAt: string
@@ -1205,8 +1133,7 @@ export class DashboardDatabase {
     return true
   }
 
-  // 2026-10-16 (442-15, GAP-D2): own is the stamp this handle wrote, so a NULL start time here is
-  // this handle's own write, never an inference about another process.
+  // Own is the stamp this handle wrote, so a NULL start time here is this handle's own write.
   isOwnStamp(id: string, owner: RunOwner): boolean {
     const stamp = this.ownStamps.get(id)
     return stamp !== undefined
@@ -1317,20 +1244,7 @@ export class DashboardDatabase {
     return rows.map((row) => ({ value: row.value, count: row.count }))
   }
 
-  /**
-   * Delete ONE run and everything the schema hangs off it.
-   *
-   * ONE ID, AND THE CASCADE DOES THE REST. This used to open with a recursive `run_tree` CTE that
-   * walked the child rows of a suite parent, then hand-delete their step and trace rows in a
-   * transaction. Nothing has written a child row since 402-09 — one `runs` row per run, member
-   * identity on `run_members` — so the walk could only ever return the one row it was seeded with,
-   * and the hand-deletes named tables this schema no longer has. Every table that references a run
-   * declares `ON DELETE CASCADE`, so the single statement below is the whole deletion.
-   *
-   * AND IT TOUCHES NO FILE. The two path arrays it used to collect fed the router's artifact
-   * cleanup; both are gone. The run's directory under `.agent-qa/runs/` — its event log and its
-   * content-addressed blobs — is the run's own record and is not the dashboard's to remove.
-   */
+  // Every table referencing a run cascades on delete, and no file is touched.
   deleteRun(id: string): DeleteRunResult {
     const changes = this.db.prepare('DELETE FROM runs WHERE id = ?').run(id)
     const deleted = Number(changes.changes ?? 0) > 0
@@ -1433,15 +1347,7 @@ export class DashboardDatabase {
     return { artifact: this.getRunArtifact(runId) }
   }
 
-  /**
-   * The runs a self-heal happened on.
-   *
-   * READ OFF `run_steps.self_heal_occurred`, WHICH IS THE SURVIVING HEALING FACT. This scanned the
-   * v1 wide step table for `status = 'healed'`; that table had no producer left and its readers
-   * went with it. `selfHealOccurred` is the bus payload's own boolean, projected verbatim by the
-   * subscriber — so the flake rate below is now computed from what the runner actually reported
-   * rather than from a status word a retired projection wrote.
-   */
+  // Read off `run_steps.self_heal_occurred`, the bus payload's own boolean.
   private getHealedRunIds(runIds: string[]): Set<string> {
     if (runIds.length === 0) return new Set()
 
@@ -1471,7 +1377,7 @@ export class DashboardDatabase {
       passed,
       failed,
       flaky,
-      // a group's rate is passed ÷ (passed + failed); neither is no rate.
+      // A group's rate is passed ÷ (passed + failed); neither is no rate.
       passRate: passed + failed > 0 ? passed / (passed + failed) : null,
       flakeRate: totalRuns > 0 ? flaky / totalRuns : 0,
       avgDuration: totalRuns > 0 ? totalDuration / totalRuns : 0,
@@ -1485,11 +1391,7 @@ export class DashboardDatabase {
     const conditions: string[] = []
     const params: unknown[] = []
 
-    // the parent-link predicate is gone from all three arms because the
-    // column is. Each arm used it to mean "top-level rows only", and since 402-09 EVERY row is
-    // top-level — one `runs` row per run — so the clause was already a no-op on the `suite` and
-    // `platform` arms. The `test` arm's clause meant something else: exclude the suite PARENT rows,
-    // whose `name` is a suite's and not a test's. That exclusion is preserved verbatim below.
+    // The `test` arm excludes rows whose `name` is a suite's, not a test's.
     if (dimension === 'suite') {
       conditions.push('suite_id IS NOT NULL')
     } else if (dimension !== 'platform') {
@@ -1651,10 +1553,7 @@ export class DashboardDatabase {
     totals: { promptTokens: number; completionTokens: number }
     testRunUnmeasuredSteps: number
   } {
-    // test-run usage is the window's run-step tokens plus any legacy `test-run`
-    // token event. The two never describe the same step: the last writer of a `test-run` event (the
-    // v1 reporter) was deleted in 363-11, before `run_steps` existed, and v1 step rows were
-    // never migrated into it. Adding both counts each recorded token once.
+    // Test-run usage is run-step tokens plus legacy `test-run` events; the two never overlap.
     const conditions: string[] = []
     const params: unknown[] = []
     if (opts.from) { conditions.push('created_at >= ?'); params.push(opts.from) }
@@ -1774,12 +1673,7 @@ export class DashboardDatabase {
     }
   }
 
-  /**
-   * The window's settled run ids, newest first, capped at `limit`, with their full count, and the
-   * count of the window's runs still in flight. A settled run has started and is
-   * neither `pending` nor `running`; every other row in the window is in flight. Ids only: the
-   * Insights knowledge-change read dispatches each through the agent host.
-   */
+  // Settled run ids newest first, capped at `limit`, with the full and in-flight counts.
   listInsightsWindowRunIds(opts: { from?: string; to?: string; limit: number }): { runIds: string[]; total: number; inFlight: number } {
     const conditions: string[] = []
     const params: unknown[] = []
@@ -1970,7 +1864,7 @@ export class DashboardDatabase {
     return rows.slice(0, limit)
   }
 
-  // grouped by member file path; only pass- and fail-class outcomes count.
+  // Grouped by member file path; only pass- and fail-class outcomes count.
   getFlakyTests(opts?: { minRuns?: number; limit?: number }): {
     name: string; filePath: string | null; totalRuns: number; passRate: number; flakyScore: number
   }[] {

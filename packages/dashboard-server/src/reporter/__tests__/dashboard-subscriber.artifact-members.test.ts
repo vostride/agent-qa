@@ -4,8 +4,7 @@ import { DashboardDatabase } from '../../db/database.js'
 import { createDashboardRunIngest, type DashboardRunIngest } from '../dashboard-subscriber.js'
 import type { RunIdentityMember } from '../run-row-identity.js'
 
-// 444 D-07 (the artifact half of 433 REVIEW WR-01): a multi-test run's artifact lists each member's
-// own source and config, in member order, and presents no one member's as the run's.
+// A multi-test run's artifact lists each member's own source and config, in member order.
 
 let db: DashboardDatabase
 let seq = 0

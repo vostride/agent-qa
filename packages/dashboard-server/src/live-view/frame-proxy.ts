@@ -1,25 +1,4 @@
-// The FRAME PROXY — the server end of one viewer's socket.
-//
-// WHAT IT HOLDS AND WHAT IT DOES NOT. It holds a validator it was HANDED, a run lookup it was
-// HANDED and, when it serves editor sessions, an editor lookup it was HANDED. It parses no token,
-// mints nothing, and reads no token off a URL: the first text message is the only carriage, and
-// `deps.validate` is the function layer's own `validateLiveUrlToken` bound to the same signer that
-// minted (LIVE-02's third prohibition made structural).
-//
-// TWO SUBJECTS, ONE SOCKET. The path id names a run or an editor session, and the
-// token's SIGNED subject kind decides which lookup is asked. A run token only ever reaches the run
-// lookup and an editor token only ever reaches the editor lookup, even when both hold the same id.
-// Validation always comes before either lookup, so `unknown_run` and `unknown_session` are only
-// reachable with a valid token for that exact id.
-//
-// a detach NEVER touches the run. Closing a viewer's socket unsubscribes it from the frame
-// hub and clears this socket's timers, and that is the whole of it — nothing that ends a run,
-// nothing that tears one down, no effect a person would not expect from closing a window.
-//
-// THAT CLAIM IS PINNED BY A SOURCE SCAN, which is why the run-ending verb does not appear anywhere
-// in this file, not even in prose: `live-view.frame-proxy.test.ts` cell (21) asserts the token is
-// absent from these bytes, so an implementation that grew the call — or a comment that talked
-// itself into one — is a named RED rather than a review someone has to notice.
+// Validation precedes either lookup, and a detach only unsubscribes; the run is never touched.
 
 import type WebSocket from 'ws'
 
@@ -45,7 +24,7 @@ import type { LiveEditorAttachment } from './editor-subjects.js'
 export interface FrameProxyDeps {
   validate(token: string, expect: { subject: LiveViewSubjectRef; now: number }): LiveUrlVerdict
   attach(runId: string): RunSession | undefined
-  /** the editor-subject lookup. Absent means no editor subject is served on this socket. */
+  // The editor-subject lookup; absent means no editor subject is served on this socket.
   attachEditor?(sessionId: string): LiveEditorAttachment | undefined
   now?: () => number
 }
@@ -106,8 +85,7 @@ export function createFrameProxy(deps: FrameProxyDeps): (ws: WebSocket, runId: s
         subscription?.ack(frame.id)
         return
       }
-      // the capture time and kind the frame CARRIES, forwarded when present. The proxy
-      // keeps no clock of its own for this: a time taken here measures socket delivery, not capture.
+      // The capture time and kind the frame carries; a time taken here would measure delivery.
       send(ws, {
         type: 'frame',
         id: frame.id,
@@ -116,10 +94,7 @@ export function createFrameProxy(deps: FrameProxyDeps): (ws: WebSocket, runId: s
         ...(frame.metadata.timestamp !== undefined ? { ts: frame.metadata.timestamp } : {}),
         ...(frame.kind !== undefined ? { kind: frame.kind } : {}),
       })
-      // THE BINARY HALF IS GUARDED TOO. The check at the top of this callback is not
-      // enough: a socket can close between it and here, and `ws.send` then THROWS — straight up
-      // into the hub's delivery walk, which detaches the viewer and reports the fault. The header
-      // above already goes through the guarded writer; this one used to be bare.
+      // A socket can close between the check above and here, and `ws.send` then throws to the hub.
       if (ws.readyState !== ws.OPEN) {
         // The viewer is gone. It owes an ack it can never give, and CDP will not produce the next
         // frame until somebody does — so ack on its behalf rather than stalling the producer.
@@ -136,19 +111,7 @@ export function createFrameProxy(deps: FrameProxyDeps): (ws: WebSocket, runId: s
       }
     }
 
-    /**
-     * THIS HANDLE'S STREAM ENDED UNDER THE VIEWER, AND THE HUB SAYS WHY (403 CR-03, 428 RESEARCH P9).
-     *
-     * `withdrawn`: a multi-member run settles one member at a time, and the member's browser goes
-     * down with it. Without a word the viewer kept a frozen last frame under
-     * `data-embed-state="live"` until the whole run ended — a stale picture claiming to be live,
-     * which is exactly what the embed page's own law forbids. The socket is NOT closed:
-     * `runFinished` is a different fact, it is still coming, and a viewer who is told one end is
-     * not thereby told the other.
-     *
-     * `closed`: the hub itself went down because the whole subject is over. That is not a finished
-     * member, so nothing is said here; the subject's own end message follows.
-     */
+    // `withdrawn` ends one member's stream with the socket left open; `closed` says nothing here.
     const onStreamEnd = (reason: LiveFrameEndReason): void => {
       subscription = undefined
       if (reason === 'withdrawn') send(ws, { type: 'ended', reason: 'handleFinished' })
@@ -157,11 +120,7 @@ export function createFrameProxy(deps: FrameProxyDeps): (ws: WebSocket, runId: s
     const validateAs = (token: string, kind: LiveViewSubjectKind): LiveUrlVerdict =>
       deps.validate(token, { subject: { kind, id: runId }, now: now() })
 
-    /**
-     * RESOLVE THE SUBJECT BY THE TOKEN'S SIGNED KIND. A run first; only a
-     * `scope_mismatch` there, on a socket that serves editor sessions, is worth asking again as an
-     * editor. Every other refusal is the answer as it stands.
-     */
+    // The token's signed kind decides: a run first, then an editor only on a `scope_mismatch`.
     const resolve = (token: string): LiveUrlVerdict => {
       const asRun = validateAs(token, 'run')
       if (asRun.kind === 'refused' && asRun.reason === 'scope_mismatch' && deps.attachEditor) {
@@ -179,12 +138,7 @@ export function createFrameProxy(deps: FrameProxyDeps): (ws: WebSocket, runId: s
     ): void => {
       greetedHandle = handle
       const stream = source.streamCapabilityOf(handle)
-      // SUBSCRIBE FIRST, THEN READY (428 D-14, #274). `ready` tells the page a first frame is
-      // coming, so it may only be said once a subscription exists. A declared stream whose
-      // subscription comes back undefined settled between the two reads, and the viewer is told
-      // so by name instead of waiting for a frame that will never arrive.
-      // `{ kind: 'none' }` is an HONEST answer, not a failure: the socket stays open so the page
-      // can still receive `ended`, and no painter is ever started.
+      // Subscribe before `ready`, which promises a frame; `{ kind: 'none' }` keeps the socket open.
       if (stream.kind !== 'none') {
         subscription = source.subscribeFrames(handle, onFrame, onStreamEnd)
         if (subscription === undefined) {
@@ -192,8 +146,7 @@ export function createFrameProxy(deps: FrameProxyDeps): (ws: WebSocket, runId: s
           return
         }
       }
-      // an editor subject reuses the published fields as they are. `runId` is the path id
-      // and `handle` is 0; no subject field is added.
+      // An editor subject reuses the published fields: `runId` is the path id and `handle` is 0.
       send(ws, { type: 'ready', runId, handle, stream, expiresAt })
       armDeadline(expiresAt)
       ping = setInterval(() => {
@@ -244,11 +197,7 @@ export function createFrameProxy(deps: FrameProxyDeps): (ws: WebSocket, runId: s
         return
       }
       const raw = String(data)
-      // THE CAP IS A BYTE CAP, AND THE DIFFERENCE IS NOT PEDANTRY. `String#length` counts UTF-16
-      // code units, so a hello padded with multi-byte characters sits under a 4096-CHARACTER cap
-      // while being several kilobytes of actual traffic — and bytes are what the socket buffered,
-      // what the process allocated, and what T-403-11 is about. Measured off the received frame
-      // where there is one, so the number is the wire's own rather than a re-encoding of it.
+      // A byte cap: multi-byte characters fit a character cap while being kilobytes on the wire.
       const bytes = Buffer.isBuffer(data) ? data.byteLength : Buffer.byteLength(raw)
       if (bytes > LIVE_VIEW_HELLO_MAX_BYTES) {
         refuse('malformed')
@@ -282,8 +231,7 @@ export function createFrameProxy(deps: FrameProxyDeps): (ws: WebSocket, runId: s
         return
       }
       if (message.type === 'renew' && typeof message.token === 'string') {
-        // D-02's silent re-mint, INSIDE the socket: a fresh token extends this viewer's deadline
-        // without re-opening anything. It is re-validated in full — a renew is not a lesser check.
+        // A renew inside the socket extends the deadline and is re-validated in full.
         if (subjectKind === undefined) {
           refuse('malformed')
           return
@@ -293,9 +241,7 @@ export function createFrameProxy(deps: FrameProxyDeps): (ws: WebSocket, runId: s
           refuse(verdict.reason)
           return
         }
-        // a token is view-scoped to one handle, so a renew must name the handle this
-        // socket greeted with; and an older token, replayed or reordered, never shortens the
-        // deadline a newer one set.
+        // A renew must name the greeted handle; a replayed older token never shortens the deadline.
         const renewed = verdict.claims.subject
         if (renewed.kind === 'run' && renewed.handle !== greetedHandle) {
           refuse('scope_mismatch')
@@ -309,8 +255,7 @@ export function createFrameProxy(deps: FrameProxyDeps): (ws: WebSocket, runId: s
     })
 
     ws.on('close', () => {
-      // D-16, AND NOTHING ELSE. Detach releases this viewer's hold and this socket's timers. The
-      // run is not consulted, not ended, and not told.
+      // Detach releases this viewer's hold and timers; the run is not consulted or told.
       subscription?.unsubscribe()
       subscription = undefined
       clearTimers()

@@ -1,9 +1,4 @@
-// 428 D-07 / D-09 at the manager: every editor session is a registered editor subject for exactly
-// its lifetime, and the idle window (RESEARCH P1) really runs from the moment a session exists.
-//
-// The session is the real LiveSession with only `initialize` stubbed out, so the idle timer, the
-// attachment and cleanup under test are the shipped ones. A headless session has no adapter, so its
-// subject declares `{ kind: 'none' }`; the per-session hub itself is pinned in live-session.test.ts.
+// Each editor session is a registered subject for its lifetime; its idle window starts at creation.
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { LiveSessionConfig } from '../types.js'

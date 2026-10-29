@@ -32,7 +32,7 @@ export class SuiteFileManager {
     this.testFileManager = testFileManager
   }
 
-  // each list call reads the workspace itself; each file is written whole and one writer at a time.
+  // Each list call reads the workspace itself; each file is written whole, one writer at a time.
   private readonly underLock = createPathLock()
 
   async list(): Promise<SuiteFileInfo[]> {
@@ -49,7 +49,7 @@ export class SuiteFileManager {
           let suiteId: string | null = null
           const take = (content: string): string | null => {
             const parsed = parseYaml(content)
-            // name, platform and id come from the parsed mapping, and a blank value is no value.
+            // Name, platform and id come from the parsed mapping, and a blank value is no value.
             suiteName = presentText(parsed?.name) ?? basename(record.workspaceRelativePath)
             testCount = Array.isArray(parsed?.tests) ? parsed.tests.length : 0
             platform = presentText(parsed?.config?.platform)
@@ -63,7 +63,7 @@ export class SuiteFileManager {
                 if (content === undefined) return null
                 const current = take(content)
                 if (current !== null) return current
-                // an empty file may be an outside save mid-write; it is never minted.
+                // An empty file may be an outside save mid-write; it is never minted.
                 if (content.trim() === '') return current
                 const minted = generateSuiteId()
                 const next = idWriteText(content, 'suite-id', minted)
@@ -144,7 +144,7 @@ export class SuiteFileManager {
         }
       }
 
-      // Save-time fail-fast: verify every referenced test path resolves
+      // Save-time fail-fast: verify every referenced test path resolves.
       if (this.testFileManager) {
         const suite = result.data as SuiteDefinition
         const available = await this.testFileManager.list()

@@ -40,8 +40,7 @@ function readNamespaceInodeOrUndefined(read: () => string | undefined): string |
   }
 }
 
-// 2026-10-16 (442-17, GAP-D4): macOS host names follow the network; the hardware UUID does not.
-// 2026-10-16 (442-21, GAP-D9): Linux names its pid namespace; one it cannot read matches no other process.
+// macOS keys on the hardware UUID, as names follow the network; an unread Linux pidns matches none.
 export function createRunOwnerHostResolver({
   platform = process.platform,
   hostname = osHostname,
