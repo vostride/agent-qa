@@ -1,28 +1,4 @@
-// The kill-matrix worker child (Phase 385 plan 06, D-12; extended by plan 07).
-//
-// A `.test.ts` that doubles as a child entry point, in v51's `sigkill-drain-child` idiom and plan
-// 03's generalization of it: gated by an env flag, every input a required environment variable,
-// every result an atomically published JSON report. What plan 03's fixture did with ROLES over one
-// store, this does with roles over one JOB — and the roles are the three processes a crash proof
-// needs, which is why they live together rather than in three files:
-//
-//   crash    run the job for real and park forever at a named crash point, awaiting SIGKILL
-//   control  run the same job to completion, uninterrupted — the independent expected value
-//   resume   adopt authority over a store somebody else died holding, and finish the work
-//
-// `crash` and `control` differ by exactly one argument: the hook the store decorator fires. That is
-// deliberate, because the control is the thing every equality assertion is measured against, and a
-// control that reached its state by a different route would be measuring the route.
-//
-// `resume` is the only role that composes through `composeJobRecovery`, which is the point: the
-// resume path in this proof is the same entry a host would use, not an assembly the test improvised.
-//
-// PLAN 07 ADDED NO ROLE. Its adversarial legs are the same three processes with four switches, and
-// each switch exists because a leg needs a host that differs from the twelve derived legs' host in
-// exactly one way: it crashes beside a VERB rather than a checkpoint publish; it RECLAIMS the row
-// its predecessor died holding; it is armed at a point that must prove UNREACHABLE; or it carries a
-// lease token it no longer holds. A fourth role would have buried those four differences inside one
-// blob of role-specific code.
+// `crash` and `control` differ only in the hook the store decorator fires; `resume` uses recovery.
 
 import { existsSync, renameSync, writeFileSync } from 'node:fs'
 

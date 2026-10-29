@@ -1,6 +1,4 @@
-// `clause_result` is MASKED AT REST, measured on the bytes of a real session file.
-// the payload is masked by an explicit declared mask, never an ambient
-// context, and nothing restores the value.
+// The payload is masked by an explicit declared mask, never an ambient context, and never restored.
 
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -64,7 +62,7 @@ describe('clause_result persists the MASKED payload, on the real file', () => {
         split: splitClauses,
         reconcile: deterministicOverrideStrategy,
         sessionLog,
-        // the mint takes no session and stamps none, as production's does.
+        // The mint takes no session and stamps none, as production's does.
         mint: { forStage: () => HUMAN },
         // THE OP ANSWERS WITH THE MASKED PAYLOAD. This is the one fixture fact; everything after it
         // is the shipped engine and the shipped adapter.
@@ -124,7 +122,7 @@ describe('clause_result persists the MASKED payload, on the real file', () => {
         split: splitClauses,
         reconcile: deterministicOverrideStrategy,
         sessionLog,
-        // the mint takes no session and stamps none, as production's does.
+        // The mint takes no session and stamps none, as production's does.
         mint: { forStage: () => HUMAN },
         invoke: () => Promise.resolve({
           payload: { entries: [] },

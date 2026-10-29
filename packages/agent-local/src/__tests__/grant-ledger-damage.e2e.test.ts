@@ -1,23 +1,4 @@
-// A damaged grant ledger authorizes NOTHING, proven through the composed host
-// (Phase 391 plan 08, closing 391-VERIFICATION gap 2).
-//
-// NO LEDGER AUTHORIZES ANYTHING NOW. `invokeFunction` has no gate, so
-// the headless invocation is dispatched whatever the ledger holds and no decision row is written.
-//
-// RE-SPELLED 2026-10-01: NOTHING READS THE LEDGER NOW. The reader, the
-// listing (`grants.list`) and the two write verbs (record, revoke) are deleted with the ledger, so
-// the cells that measured the reader's refusal of a damaged file, the listing's damage report and
-// the write verbs' `GrantLedgerDamagedError` lost their subject. The write-side refusals moved to the
-// direct writers (knowledge-local `grants/__tests__/ledger.test.ts`, C432-GRANTS-UNREAD-WRITER-ABSENT).
-// What this file keeps is the composed half of the claim, over the same three cases and the same
-// unknown-scope-key line: whatever state the old `grants.jsonl` is in — intact, revoked, damaged in
-// place or carrying a key the wire contract never admitted — the headless direct change is
-// dispatched exactly as it is with no file at all, the listing verb is an unknown function, and the
-// file is left byte-identical.
-//
-// THE SUBJECT is `knowledge.accept` over a record that was never published: it answers a
-// typed `target-not-found` without writing, so an invocation that resolves is the dispatch this file
-// asks about.
+// Whatever state an old `grants.jsonl` is in, the headless change dispatches and the file stays.
 
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -50,11 +31,7 @@ import {
 const APPLY_ID = 'knowledge.accept'
 const GRANTS_LIST_ID = 'grants.list'
 
-/**
- * A scope key OUTSIDE the legacy key set. 2026-10-02: the published constant is
- * deleted, so the two legacy keys a pre-432 ledger line could carry are spelled here as the bytes
- * such a line holds, and the candidate is still computed against them rather than typed.
- */
+// Spelled as the bytes a legacy ledger line holds; the candidate is computed against them.
 const UNKNOWN_SCOPE_KEY_CANDIDATES = ['tenant', 'workspace', 'region', 'cell'] as const
 const LEGACY_SCOPE_KEYS: readonly string[] = ['project', 'org']
 
@@ -116,8 +93,6 @@ describe('a grant ledger the build cannot fully read authorizes nothing, because
   })
 
   /** The composition under test: the real readers and the real direct change door, no grant port. */
-  // the registry takes no context; `_context` names the posture a cell
-  // describes and reaches nothing.
   function host(_context: ExecutionContext): FunctionRegistry {
     return createFunctionRegistry({
       deps: {
@@ -157,8 +132,6 @@ describe('a grant ledger the build cannot fully read authorizes nothing, because
   })
 
   for (const [name, bytes] of LEDGER_STATES) {
-    // RE-SPELLED 2026-10-01: each of these was a reader/listing/write-verb differential over
-    // the same bytes. The invocation answers exactly as the no-file control does.
     it(`${name}: the headless invocation is dispatched exactly as with no file, and the file is untouched`, async () => {
       writeFileSync(ledger(), bytes, 'utf8')
       const answered = await headlessApply(host('local-headless'))
@@ -166,9 +139,6 @@ describe('a grant ledger the build cannot fully read authorizes nothing, because
       expect(readFileSync(ledger(), 'utf8')).toBe(bytes)
     })
 
-    // RE-SPELLED 2026-10-01 from "`grants.list` carries the explanation the denial does
-    // not" and "`grants.list` RESOLVES, naming the refused line beside the grant that folds": there is
-    // no listing to explain anything; it is an unknown function and the file stays as it was.
     it(`${name}: grants.list is an unknown function, and the file is untouched`, async () => {
       writeFileSync(ledger(), bytes, 'utf8')
       await expect(invokeFunction(host('local-headless'), GRANTS_LIST_ID, {}, HUMAN))
@@ -177,8 +147,6 @@ describe('a grant ledger the build cannot fully read authorizes nothing, because
     })
   }
 
-  // RE-SPELLED 2026-10-01 from 'the write verbs still refuse by THROWING, not by answering
-  // an arm': the write verbs are deleted, so the composition binds no grant port at all.
   it('no grant reader, writer or verb is exported to the composition', () => {
     const exported = Object.keys(knowledgeLocal)
     for (const name of [

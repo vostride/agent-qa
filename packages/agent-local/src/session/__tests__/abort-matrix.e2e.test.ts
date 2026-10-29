@@ -1,26 +1,4 @@
-// The abort matrix: ONE session survives BOTH arms of CHAT-05's repair clause (Phase 392 plan 03,
-// D-19).
-//
-// CHAT-05 says a session repairs itself on the next turn. D-19 says there are exactly two ways a
-// turn can be left open, and they are genuinely different events:
-//
-//   ARM ONE — GRACEFUL. The person pressed Ctrl+C. The process was alive enough to handle it, so
-//   it wrote its own `aborted` record and landed it. The next open must add NOTHING; a repair that
-//   "helpfully" synthesized a second abort would put two records of one interruption in an
-//   append-only file, and no later reader could tell which was the real one.
-//
-//   ARM TWO — HARD KILL. The process died mid-write. The last line is a fragment and no abort was
-//   ever written. The next open must skip the fragment AND synthesize the abort the dead process
-//   could not.
-//
-// BOTH ARMS HAPPEN TO THE SAME SESSION HERE, in sequence, because that is the only version of this
-// claim worth making. Two separate sessions would prove each arm survives a fresh file; one session
-// proves the file is still a conversation after both, which is what a person resuming their work
-// actually needs.
-//
-// AND THE ORIGINAL BYTES ARE COMPARED. "Append-only" is worth nothing as a comment: the region of
-// the file that existed before each repair is captured as bytes and compared byte for byte
-// afterwards. Repair may only ever add.
+// Both abort arms hit one session in sequence, and the pre-repair bytes are compared after each.
 
 import {
   mkdirSync,
@@ -61,12 +39,7 @@ const MASKED_CONFIG: MaskedResolvedConfig = {
   entries: [],
 }
 
-/**
- * A person, so a refusal below can only ever be the axis under test.
- *
- * no `grantedScopes` (formerly every scope) or `safeMode`; the registry
- * reads neither, so there is no scope left to refuse.
- */
+// A person, so a refusal below can only be the axis under test.
 const HUMAN: FunctionCaller = {
   surface: 'test',
   origin: 'human',
@@ -317,10 +290,7 @@ describe('the abort matrix: one session, both arms, then it carries on', () => {
   })
 })
 
-// The hook contract, which no composed host can exhibit yet because plan 06 binds it. What it
-// pins is the argument, not a convention: a degrade pass that is HANDED the replay has no other
-// input to prune, so "repair before pruning" is a fact about the type rather than an
-// ordering somebody has to remember.
+// A degrade pass is handed the repaired replay, so repair before pruning is fixed by the type.
 describe('the compaction pass is handed an already-repaired conversation', () => {
   let root: string
 
@@ -346,8 +316,7 @@ describe('the compaction pass is handed an already-repaired conversation', () =>
       reconcile: deterministicOverrideStrategy,
       sessionLog,
       mint: { forStage: () => HUMAN },
-      // 399.1: the classified envelope, with the legacy verdict. This cell is about ABORT and
-      // replay; what an op returned is not its subject.
+      // The classified envelope with the legacy verdict; what an op returns is not under test here.
       invoke: () => Promise.resolve({ payload: {}, verdict: { status: 'executed' as const, outcome: '' }, foldLines: [] }),
       compaction: ({ replay }) => {
         seen.push(replay)
@@ -373,8 +342,7 @@ describe('the compaction pass is handed an already-repaired conversation', () =>
     // The dangling turn: a user message and nothing that closes it.
     await seeded.append({ kind: 'user_message', turnId: 'turn-dead', at: AT, text: 'digest RUN-9' })
     await seeded.turnBoundary()
-    // CLOSED BEFORE THE ENGINE RUNS: one live handle per session, so a seeding writer
-    // that kept its handle would be refused rather than silently interleaved with the turn.
+    // Closed before the engine runs: one live handle per session, so a held one is refused.
     await seeded.close()
 
     await engine.runTurn({ message: '/fn quarantine.list', sessionId })

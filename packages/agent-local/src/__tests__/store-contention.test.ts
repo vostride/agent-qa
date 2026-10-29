@@ -1,24 +1,4 @@
-// Two real OS processes writing one agent job database.
-//
-// This retires research assumption A4 — that `DatabaseSync`'s `timeout` option really is
-// sqlite's busy timeout under lock contention, which was verified to EXIST but never
-// exercised under load. The two legs are deliberately different in kind, because a
-// "concurrent writers" test whose two writers happen to run one after the other proves
-// nothing at all:
-//
-//   Leg 1 (contention). The parent holds a write transaction open on its own connection and
-//   only then releases the child, which is already loaded and waiting. The child's enqueue
-//   therefore CANNOT proceed until the parent commits, and the time it spent waiting is
-//   reported back. A store that failed fast on a busy lock would report an error instead.
-//
-//   Leg 2 (interleaving). Both processes then take strict turns, each blocked on seeing the
-//   other's previous row. The committed row order is alternating by construction, so this
-//   leg cannot pass by accident of scheduling — and it shows no write is lost when two
-//   processes are writing the same table.
-//
-// What this file does NOT prove: that the two processes are ever inside a transaction at the
-// same INSTANT during leg 2 (turn-taking is interleaving, not simultaneity — leg 1 is the
-// simultaneity proof), and nothing about more than two writers.
+// Leg 1 proves the busy timeout under contention; leg 2 proves alternating writes lose nothing.
 
 import { spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'

@@ -1,51 +1,4 @@
-// The chat session log's JSONL disk adapter.
-//
-// APPEND-ONLY, AND THE FILE IS NEVER REWRITTEN. That is the requirement CHAT-05 states literally,
-// and it is also what makes the log usable as the triage report D-18 describes: a reader can trust
-// that line N means the same thing it meant when it was written, and a crash can only ever cost the
-// tail. Every verb below is either an append or a read; there is no update path to misuse. REPAIR
-// obeys the same law — it APPENDS a synthesized `aborted` event and touches not one existing byte.
-//
-// THE DURABILITY POSTURE IS COPIED FROM `job-checkpoint-store.ts`, not re-derived. Five things come
-// across verbatim, each of them a platform quirk already debugged once in this repo:
-//
-//   1. The narrow injectable fs facade — exactly the calls this module makes and nothing else. A
-//      wide facade invites a test to answer on its own behalf.
-//   2. The two-factory seam — production options have NO fs member, so "append without the fsync"
-//      is not a one-argument change a composition root can make by accident. The seam is a second
-//      exported function a test names explicitly, and it is deliberately NOT on this package's
-//      barrel: the checkpoint store publishes neither of its factories, for the reason that a seam
-//      reachable by every surface is no longer a seam.
-//   3. Exclusive create (`'wx'`) for a new session, so a torn file from an earlier crash can never
-//      be mistaken for this one's.
-//   4. The parent-directory fsync after a create, with the `DIRECTORY_FSYNC_SWALLOWED_CODES`
-//      allowlist IMPORTED rather than re-derived — a directory entry is not durable until its
-//      parent is synced, and a hand-copied allowlist is how best-effort silently becomes no-effort.
-//   5. `SAFE_PATH_SEGMENT` and its named refusal — a session id is a caller-supplied string that
-//      becomes a path, which is the T-392-01 spoofing surface exactly.
-//
-// WHERE THE FSYNCS ARE, AND WHY THERE. Two, and only two, on the life of a session: one on the
-// header at create (a session file that exists at all is a session file whose header is on the
-// device, and whose directory entry is too), and one per TURN at `turnBoundary()`. Per turn rather
-// than per event is what makes the loss bound exactly the in-flight turn — which is exactly what
-// the repair below knows how to handle. Syncing per event would buy a guarantee finer than any
-// reader can use, and syncing at close would leave a killed process with a turn nobody landed.
-//
-// ONE DESCRIPTOR PER SESSION, HELD BY THAT SESSION'S HANDLE. This adapter used to
-// keep ONE mutable `fd` and repoint it on every `open()`, which made session identity adapter state
-// rather than a parameter of the write path: two turns whose awaits interleaved both wrote into
-// whichever file opened last, and the loser was left with a turn that never closed — synthesized as
-// `aborted` and pruned out of the conversation, the user's own message with it, on the next open.
-// Descriptors are now keyed by session id and reachable only through the handle `open()` returned,
-// so there is no expression in this file that can write to a session the caller did not open. A
-// second open of a session already held is `ChatSessionBusyError`, not a second descriptor.
-//
-// WHAT REPAIR DECIDES LIVES ELSEWHERE. `repairSession` is a pure function in `packages/agent`
-// beside the turn engine, because deciding what a DAMAGED file means is a different kind of work
-// than moving bytes, and it deserves its own corpus rather than a branch in a read loop. This
-// adapter does the raw-line half (a torn FINAL line is skipped; a damaged mid-file line is a named
-// refusal) and hands guarded events onward. The header, by contrast, is refused outright: a session
-// whose header this build cannot read is not a session it can safely append to.
+// Append-only, one fsync on the header and one per turn, one descriptor per session handle.
 
 import {
   closeSync,
@@ -71,20 +24,12 @@ import type {
 
 import { DIRECTORY_FSYNC_SWALLOWED_CODES } from '../store/job-checkpoint-store.js'
 
-/** Directory segment under the agent-qa runtime root. Gitignored, per D-17. */
+// Directory segment under the agent-qa runtime root; gitignored.
 export const CHAT_SESSIONS_SUBDIR = 'sessions'
 
 /** The file extension every session log carries. A listing filters on it, nothing else. */
 const SESSION_FILE_SUFFIX = '.jsonl'
 
-/**
- * How many bytes a listing reads at a time.
- *
- * RETUNE if session headers ever grow past a line or listings become the hot path: the only
- * property this number has to have is that it is a CONSTANT, so listing a thousand sessions costs
- * a thousand small buffers rather than a thousand whole files in memory. 64 KiB is one filesystem
- * read on every platform this ships to and comfortably holds a header line many times over.
- */
 export const CHAT_SESSION_READ_CHUNK_BYTES = 64 * 1024
 
 /**
@@ -107,13 +52,7 @@ export class InvalidChatSessionIdError extends Error {
   }
 }
 
-/**
- * A session id that names no session.
- *
- * A REFUSAL and never a create (D-17, RESEARCH Open Q4). Creating a fresh session for a mistyped
- * `--session` would tell a person their history was lost when in fact it was never looked at, and
- * would do so in the one direction no later read can undo.
- */
+// A refusal, never a create: a fresh session for a mistyped id would claim the history is lost.
 export class UnknownChatSessionError extends Error {
   override readonly name = 'UnknownChatSessionError'
 
@@ -122,15 +61,7 @@ export class UnknownChatSessionError extends Error {
   }
 }
 
-/**
- * A session somebody is already holding open.
- *
- * A REFUSAL BY NAME rather than a second descriptor. Two handles on one file would interleave two
- * turns inside a single conversation — the same damage the cross-session aliasing did, one level
- * down — and it is exactly what a double-submit of one `sessionId` over the daemon socket asks for.
- * The remedy is to wait for the holder, which is why the id is on the error rather than only in
- * the message.
- */
+// A refusal by name, not a second descriptor; the id is on the error so a caller can wait.
 export class ChatSessionBusyError extends Error {
   override readonly name = 'ChatSessionBusyError'
 
@@ -217,20 +148,7 @@ export interface CreateJsonlSessionLogOptions {
   readonly model: () => string
   /** The toolset fingerprint at open, on the same thunk reasoning as `model` above. */
   readonly toolsetHash: () => string
-  /**
-   * WHICH DOOR THIS LOG BELONGS TO. Absent ⇒ no tag is written.
-   *
-   * A VALUE AND NOT A THUNK, which is the opposite of `model` and `toolsetHash` above and for the
-   * mirror of their reason. Those are resolved lazily because a composition's model can arrive
-   * after the log does and can drift afterwards; a surface cannot. Which door composed this host is
-   * decided at the composition root and is a constant for the life of the process, so a thunk would
-   * be a seam for a value to change through — and a header is written once and never rewritten,
-   * so a changing surface has nowhere to go.
-   *
-   * ABSENT IS THE PRE-400 CLI-CHAT POSTURE, stated in `ChatSessionHeader.surface` and preserved
-   * here: a host that names no surface writes a header byte-identical to the ones every build
-   * before this one wrote.
-   */
+  // A value, not a thunk, because the header is written once; absent writes no tag.
   readonly surface?: string
   /** Random source for the id suffix, injectable so a test can pin an id. */
   readonly random?: () => number
@@ -242,15 +160,7 @@ export interface ChatSessionListEntry {
   readonly createdAt: string
   /** The model in force when the session OPENED. Drift after that is `model_change` events. */
   readonly model: string
-  /**
-   * Event lines on the file, counted without parsing one.
-   *
-   * An EVENT count and not a turn count, and the difference is not a shortcut. A turn count is not
-   * a header fact and cannot become one — the header is written once and never rewritten, which is
-   * the property CHAT-05 asks for by name — so the only way to produce one is to parse every line
-   * of every log, which is the work a listing exists to avoid. The line count answers "is there
-   * anything in here" for a fraction of the cost, and `open()` answers everything else.
-   */
+  // An event count, because a turn count would mean parsing every line of every log.
   readonly eventCount: number
 }
 
@@ -326,12 +236,7 @@ function guardHeader(sessionId: string, line: string): ChatSessionHeader {
   if (typeof header.createdAt !== 'string' || typeof header.model !== 'string') {
     throw new ChatSessionHeaderError(sessionId, 'its header names no creation instant or model')
   }
-  // THE TAG IS OPTIONAL AND THE CHECK IS ON ITS TYPE, NOT ON ITS PRESENCE. An absent
-  // `surface` is the pre-400 CLI-chat population and passes untouched — that absence is the whole
-  // back-compatibility claim. A PRESENT one that is not a string is refused for the reason this
-  // whole guard exists: the cast below hands the caller a typed record, and a header that would
-  // make `header.surface` a number is a header this build cannot read rather than one it may
-  // quietly narrow.
+  // Absent passes; a present non-string `surface` is refused rather than narrowed.
   if (header.surface !== undefined && typeof header.surface !== 'string') {
     throw new ChatSessionHeaderError(
       sessionId,
@@ -341,18 +246,7 @@ function guardHeader(sessionId: string, line: string): ChatSessionHeader {
   return header as unknown as ChatSessionHeader
 }
 
-/**
- * Every session under one runtime root, read from headers alone.
- *
- * A DAMAGED FILE IS DATA, NOT AN EXCEPTION — the posture the grant ledger had (391; deleted in 432-18).
- * A corrupt neighbour costs the caller that one entry and nothing else; throwing would let a single
- * unreadable file hide every healthy session from the person trying to find their conversation.
- *
- * It reads through the real filesystem with no injection seam, and that absence is on purpose: the
- * seam beside `createJsonlSessionLogOn` exists because syscall ORDER is a durability property no
- * crash test can observe. A listing has no such property. What it returns is its whole contract,
- * and a temp directory proves that directly.
- */
+// A damaged file costs only its own entry; throwing would hide every healthy session.
 export function listSessions(root: string): ChatSessionListing {
   if (!isAbsolute(root)) throw new TypeError('chat session log root must be absolute')
   const fs = REAL_CHAT_SESSION_FS
@@ -457,11 +351,7 @@ export function createJsonlSessionLogOn(
   const sessionsRoot = join(options.root, CHAT_SESSIONS_SUBDIR)
   const random = options.random ?? Math.random
 
-  // THE WHOLE OF THE RE-KEYING. What used to be `let fd` — one descriptor for the
-  // adapter, repointed by whichever `open()` ran last — is a map from SESSION ID to the descriptor
-  // that session's handle owns. Nothing here is "current": an adapter serving two conversations
-  // holds two entries and no opinion about which of them a given caller means, because a caller
-  // never asks. It holds its handle.
+  // Descriptors are keyed by session id and reached only through the handle that owns each.
   const liveDescriptors = new Map<string, number>()
 
   function pathFor(sessionId: string): string {
@@ -576,9 +466,7 @@ export function createJsonlSessionLogOn(
         // The refusal, not a create. See `UnknownChatSessionError`.
         if (read === undefined || read.lines.length === 0) throw new UnknownChatSessionError(id)
         const header = guardHeader(id, read.lines[0]!.text)
-        // REPAIR BEFORE ANY CALLER SEES AN EVENT. The declared version travels as an
-        // argument, taken off the header this path has just validated — the log states its version
-        // once and no line restates it (392-01's decision, unchanged).
+        // Repair runs before any caller sees an event; the version comes from the validated header.
         const repair = repairSession(read.lines.slice(1), {
           declaredVersion: header.schemaVersion,
           now: options.now,
@@ -622,11 +510,7 @@ export function createJsonlSessionLogOn(
         createdAt,
         model: options.model(),
         toolsetHash: options.toolsetHash(),
-        // CONDITIONALLY SPREAD, on the composition's own idiom and for its reason: an
-        // unconditional `surface: options.surface` would put `"surface":undefined` through
-        // `JSON.stringify` — which drops it — but would also make an explicit `undefined` and an
-        // unsupplied option two spellings of one state at every call site above. Absent here means
-        // the option was never given, and that is exactly the pre-400 population's meaning.
+        // Spread conditionally, so absent means the option is not given.
         ...(options.surface === undefined ? {} : { surface: options.surface }),
       }
       // Exclusive create, then fsync the header BEFORE the file is used, then fsync the directory

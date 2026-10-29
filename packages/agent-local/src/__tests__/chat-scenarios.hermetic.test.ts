@@ -1,61 +1,4 @@
-// THE HERMETIC LANE.
-//
-// Every `deterministic` scenario in the frozen corpus, driven through `composeLocalAgent()` and
-// `invokeFunction` — the real registry, the real gate, the real session log on a real disk. Nothing
-// here assembles a turn engine, a resolver table or a reconciler by hand, because a differential
-// built from parts can pass while the composition wires them wrong or not at all (Pitfall 3).
-//
-// IT ITERATES THE MANIFEST, NEVER THE DIRECTORY. `SCENARIO_CORPUS` decides what runs, and a source
-// assertion at the bottom of this file pins the absence of any directory walk over `scenarios/`.
-// That is not stylistic: the ceiling below is a ratio, and a runner that discovered its own cells
-// would let the denominator grow every time somebody wrote a file (D-15, the treadmill law).
-//
-// "NO MOCKS IN EITHER LANE" IS A TRUE STATEMENT HERE, AND THE MODEL IS HOW IT IS PROVED. A
-// deterministic scenario never touches the LLM BY CONTRACT — so there is nothing to mock — but an
-// absence cannot prove a skip: a host with no model bound could not call one however wrong its
-// routing was. So every composition below binds a real `ChatLanguageModel` whose generate hook
-// counts and throws, and the final assertion is that it was reached zero times across the whole
-// corpus. It is a tripwire, not a stand-in for an answer.
-//
-// WHAT EACH EXPECTATION KIND MEANS, stated once because a runner that decided per-cell would be a
-// place for a cell to quietly decay:
-//
-//   should_execute — the turn COMPLETED; one receipt per clause; the receipts' function ids equal
-//                    `ops` in utterance order; every receipt reached its capability and came back
-//                    `executed`; `receipts.length === expect.executed`; and the session log carries
-//                    ZERO `mark_unhandled` rows. Plus `emitsSessionEvent` and `answerContains`
-//                    where the scenario states them — for the four directives those two ARE the
-//                    assertion, since a directive invokes nothing and its numbers are the numbers
-//                    a turn that did nothing at all would show.
-//
-//   fail_closed    — NOTHING was carried out (`executed` count 0, matching `expect.executed`), the
-//                    turn did not complete, the refusal NAMES the clause, AND the session log
-//                    carries none of the rows a side effect leaves. The naming is checked against
-//                    `unhandled.reason` OR a failed receipt's clause, because the fail-closed cells
-//                    refuse at different depths and all are honest refusals: `near-miss-alias`
-//                    never routes and leaves a `mark_unhandled` row, while `fn-unknown-op` reaches
-//                    `invokeFunction` step 1, which raises `UnknownFunctionError` naming the op
-//                    before any dependency is touched.
-//
-// `executed == 0` WAS NOT ENOUGH, AND 392-VERIFICATION IS WHY. Both defects that arm
-// missed stayed true through it: a directive never crosses the function layer, so a `/pin` carried
-// out on a refused turn moved no count; and a clause erased by a model answer left no receipt to
-// count either. So the arm now asserts the EVENTS — no `approval_decision`, no verb-sourced
-// `model_change`, no `executed` receipt row — which is what a refused turn's own log must look
-// like. `pin-and-write-test` is the cell that makes the assertion bite rather than pass vacuously.
-//
-// THE PORTS THE OP-BOUND CELLS NEED ARE BOUND (392-02's handover note, discharged). A run executor
-// and one seeded run handoff, and nothing else. Without them `run`, `quoted-conjunction` and
-// `digest` refuse for a reason that has nothing to do with routing — and a corpus whose cells fail
-// for fixture reasons is a corpus that teaches its readers to ignore it. D-13's "no mocks" is about
-// the LLM; a composed local host with real adapters over fixture data is not a mock.
-//
-// ARGUMENTS ARE PINNED WHERE THE COMPOSITION CAN SEE THEM. `ClauseReceipt` carries no arguments and
-// must not: D-18 keeps this log refs-and-one-liners because surfaces render it directly, and op
-// input is exactly the field that could carry a secret. So the two cells whose bound argument is
-// load-bearing here — `run` and the Pitfall-5 quoted span — are asserted at the run executor's own
-// seam, which is where production hands them over. Every scenario's `argsPin` is additionally
-// walked against the stage-1 table in `packages/agent`'s `scenario-manifest.test.ts`.
+// Iterates the manifest, never the directory, and a throwing model proves no cell reaches the LLM.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -96,11 +39,7 @@ import { CHAT_SESSIONS_SUBDIR } from '../session/jsonl-session-log.js'
 import { composeLocalAgent } from '../composition/compose-local-agent.js'
 import type { LocalAgentHost, RunExecutionPort } from '../composition/compose-local-agent.js'
 
-/**
- * The corpus lives with the package that owns the routing it characterises, and this runner
- * lives with the composition that can drive it. Asserted below rather than assumed: a path that
- * moved would leave the walk scanning nothing and agreeing with an empty manifest forever.
- */
+// Asserted rather than assumed: a moved path would scan nothing and agree with an empty manifest.
 const SCENARIOS_ROOT = fileURLToPath(new URL('../../../agent/src/chat/scenarios/', import.meta.url))
 
 /** The run the `digest` cell names. Seeded so that cell measures routing rather than a missing run. */
@@ -127,7 +66,7 @@ const MINT_IDENTITY = (filePath: string): string => filePath
 
 const HERMETIC_CORPUS = SCENARIO_CORPUS.filter((entry) => entry.lane === 'hermetic')
 
-/** The ceiling's denominator: `should_execute` cells in the FROZEN manifest. */
+// The ceiling's denominator: `should_execute` cells in the frozen manifest.
 const HERMETIC_DENOMINATOR = HERMETIC_CORPUS.filter((entry) => entry.kind === 'should_execute').length
 
 function readScenario(entry: (typeof SCENARIO_CORPUS)[number]): ChatScenario {
@@ -153,22 +92,7 @@ function plannerTripwire(): { model: ChatLanguageModel; calls: () => number } {
   return { model, calls: () => calls }
 }
 
-/**
- * A model that emits exactly the tool calls it was handed.
- *
- * THE MODEL IS THE UNTRUSTED PARTY THIS MECHANISM CONSTRAINS, and that is the whole justification
- * for this seam. D-13's "no mocks in either lane" is a rule about scenarios whose OUTCOME would
- * otherwise be the mock's behaviour rather than a model's — a `should_execute` cell passing
- * because a stand-in said the right thing teaches nothing. A script that encodes the ADVERSARIAL
- * shape on a `fail_closed` cell is the opposite move: it is fault injection against the guard, in
- * the same family as the mutation differentials, and the cell's claim is that the guard refuses
- * whatever the model says. Nothing here asserts what a model WOULD emit.
- *
- * Without it, `run-42-and-delete-root-empty-answer` would be green pre-fix for a reason that has
- * nothing to do with the defect: the tripwire throws, the planner stage folds that into a
- * `failure`, and the turn fails closed on an unreachable planner rather than on the empty-prose
- * claim. A cell that passes for the wrong reason is worse than no cell.
- */
+// Fault injection against the guard: the cell claims it refuses whatever the model says.
 function scriptedPlanner(
   calls: readonly { readonly toolName: string; readonly input: string }[],
 ): { model: ChatLanguageModel; calls: () => number } {
@@ -224,12 +148,7 @@ const SCRIPTED_PLANNERS: ReadonlyMap<
     ],
   ],
   [
-    // 392-15, CR-01 verbatim. Stage 2 is asked only about "summarise the last failure" — the table
-    // already resolved "run test 42" — and the script answers with TWO calls, the FIRST of them
-    // about the clause the table resolved. The model's patterns are deliberately unlike the
-    // table's (`tests/everything.spec.ts` vs `test 42`) so a pre-fix run shows WHOSE arguments
-    // executed: the extra call was popped by the clause that needed a proposal, `runs.start` ran a
-    // second time against a clause that asked for a digest, and `runs_digest` was discarded.
+    // Two scripted calls, the first about the clause the table resolved, with distinct patterns.
     'run-42-and-summarise-extra-call',
     [
       {
@@ -350,15 +269,9 @@ describe('the hermetic lane: the frozen deterministic corpus over the real compo
   }
 
   it('walks a real corpus rather than an empty one', () => {
-    // Every assertion below is `it.each` over the manifest, and an empty manifest would make the
-    // whole file green while measuring nothing. 17 as of corpus v6: the 13 deterministic cells plus
-    // the four hermetic compound cells — `pin-and-write-test`, 392-14's
-    // `pin-and-pin-nonsense` / `run-42-and-delete-root-empty-answer`, and 392-15's
-    // `run-42-and-summarise-extra-call`.
+    // Every assertion is `it.each` over the manifest, so an empty manifest would measure nothing.
     expect(HERMETIC_CORPUS.length).toBe(17)
-    // THE DENOMINATOR. All four hermetic compound cells are `fail_closed`, so no round grew it for
-    // doing work. 432-13 (corpus v10) moved it DOWN, deliberately: the retired `pin` and `proposals`
-    // aliases stay as `fail_closed` absence cells, taking the should_execute count from 11 to 9.
+    // The denominator counts `should_execute` cells only; `fail_closed` cells never grow it.
     expect(HERMETIC_DENOMINATOR).toBe(9)
   })
 
@@ -369,10 +282,7 @@ describe('the hermetic lane: the frozen deterministic corpus over the real compo
       const cell = await runCell(scenario)
       const { result } = cell
       const executed = result.receipts.filter((receipt) => receipt.status === 'executed')
-      // `refused` is a fourth word for a clause that RAN AND RETURNED, so a roll-call
-      // spelled over `executed` alone acquired a hole exactly its width the day the member landed.
-      // An op that reached its capability and declined leaves this row — and a blocked config
-      // proposal is FILED on the way, carrying its own id so a person can find it.
+      // `refused` means a clause ran and returned, so the roll-call covers it beside `executed`.
       const reached = result.receipts.filter((receipt) => clauseReachedCapability(receipt.status))
 
       if (scenario.expect.kind === 'should_execute') {
@@ -389,8 +299,7 @@ describe('the hermetic lane: the frozen deterministic corpus over the real compo
         // A `should_execute` turn that left a refusal row is the decay the ceiling exists to catch.
         expect(cell.events.filter((event) => event.kind === 'mark_unhandled')).toHaveLength(0)
       } else {
-        // D-10's atomicity: NOTHING was carried out, whatever depth the refusal came from — and
-        // "nothing" means no capability was REACHED, not merely that none reported success.
+        // Nothing is carried out: no capability is reached, not merely none reports success.
         expect(result.status).not.toBe('completed')
         expect(reached).toHaveLength(0)
         expect(executed).toHaveLength(0)
@@ -403,9 +312,7 @@ describe('the hermetic lane: the frozen deterministic corpus over the real compo
           ...result.receipts.map((receipt) => receipt.clause),
         ]
         expect(namings.some((text) => text.includes(named ?? ''))).toBe(true)
-        // THE SIDE-EFFECT ROWS, which is the half `executed == 0` could not see. A turn
-        // that told a person "nothing in the request was carried out" must have a log that says the
-        // same thing: no pin decision, no verb-sourced model switch, no executed receipt.
+        // A refused turn logs no pin decision, no verb-sourced model switch and no executed row.
         expect(
           cell.events.filter(
             (event) =>
@@ -423,9 +330,7 @@ describe('the hermetic lane: the frozen deterministic corpus over the real compo
         ).toEqual([])
       }
 
-      // ONE RECEIPT PER PLANNED ACTION, where the cell says how many (D-11, W-01). The field was
-      // declared in the vocabulary and supplied by the cells that pin it, and until now no runner
-      // read it — a pin nothing consumes is a comment with a schema.
+      // One receipt per planned action, where the cell says how many.
       if (scenario.expect.planned !== undefined) {
         expect(result.receipts).toHaveLength(scenario.expect.planned)
       }
@@ -437,13 +342,7 @@ describe('the hermetic lane: the frozen deterministic corpus over the real compo
         expect(result.answer ?? '').toContain(scenario.expect.answerContains)
       }
 
-      // A SCRIPTED CELL MUST REFUSE AT THE RECONCILER, NOT AT AN UNREACHABLE PLANNER.
-      // Without this, `run-42-and-delete-root-empty-answer` would stay green for a reason that has
-      // nothing to do with the defect: if the script ever stopped being wired the tripwire would
-      // throw, stage 2 would fold that into a `failure`, and the turn would fail closed naming the
-      // same clause with the same `executed: 0`. So the two facts that make the cell about the
-      // guard are pinned: the model WAS reached, and what it said reached stage 3 intact — a
-      // planner `stage_outcome` of `resolved` is exactly `toolCalls.length > 0`.
+      // A scripted cell refuses at the reconciler: the model is reached and its calls arrive.
       if (SCRIPTED_PLANNERS.has(scenario.id)) {
         expect(cell.plannerCalls).toBe(1)
         expect(
@@ -468,8 +367,7 @@ describe('the hermetic lane: the frozen deterministic corpus over the real compo
   )
 
   it('binds the run executor the arguments actually cross, quoted span intact', () => {
-    // `ClauseReceipt` carries no arguments by design, so this is the one seam in the
-    // composed path where a bound argument is observable — and it is the seam production uses.
+    // `ClauseReceipt` carries no arguments, so only this composed seam shows a bound argument.
     expect(cells.get('run')?.startedRuns).toEqual([{ patterns: ['tests/checkout.spec.ts'] }])
     // The Pitfall-5 claim, end to end: ONE clause, one start, and the quoted conjunction survives
     // into the bound argument rather than being torn into a phantom second clause.

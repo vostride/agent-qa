@@ -1,27 +1,4 @@
-// The kill matrix (Phase 385 plan 06 — JOBQ-03's acceptance instrument, D-09/D-12).
-//
-// LEG COUNT AND RUNTIME BUDGET, stated because a silently capped matrix reads as full coverage.
-// Every derived crash point runs; nothing is sampled: two points per declared checkpoint of every
-// checkpointed kind, each spawning a crash child and a resume child, plus one control child per
-// checkpointed kind (cached across that kind's legs) and one 2-spawn idempotency leg. The count is
-// derived from the registry, so a reworked kind changes it with no edit here beyond the pinned
-// list below.
-//
-// WHAT EACH LEG PROVES, and the three ways a leg like this normally proves nothing:
-//
-//   1. A child that exited instead of being killed makes every later assertion vacuous. So the kill
-//      is proven twice: the exit is asserted to be a SIGNAL (`code === null`, `signal === 'SIGKILL'`)
-//      rather than merely non-zero, and the durable state left behind is asserted to be exactly the
-//      state of the named point — the checkpoints before it exist, the one at it does not.
-//   2. "Zero model invocations on resume" is satisfied perfectly by a matrix that never invoked a
-//      model at all. So both halves are asserted from the same artifact: the first host's invocation
-//      count is non-zero and names exactly the checkpoints it authored, and the resume's delta names
-//      exactly the checkpoints that were NOT recorded — which is zero precisely when the crash came
-//      after the last publish, and is checked to contain no recorded checkpoint in any case.
-//   3. A comparison whose expected value comes from the run under test compares a value to itself.
-//      So the expected value is an UNINTERRUPTED control run of the same job in its own store, in
-//      its own process, and the comparison is byte equality of a canonical projection whose
-//      exclusions are separately asserted with exact values rather than dropped.
+// Every derived crash point runs against an uninterrupted control child; nothing is sampled.
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -57,8 +34,7 @@ import {
 } from './crash-points.js'
 import type { JobCrashPoint } from './crash-points.js'
 import { checkpointIdOfPrompt, readConsumptions, readInvocations } from './counting-model.js'
-// The parent-side spawn/kill/marker plumbing, lifted into its own module when plan 07's adversarial
-// legs arrived. Nothing about it changed; the legs below drive exactly the protocol they always did.
+// The parent-side spawn, kill and marker plumbing, shared with the adversarial legs.
 import {
   LEG_TIMEOUT_MS,
   cleanupKillMatrixRoots,
@@ -456,10 +432,7 @@ describe('kill matrix: every registered kind x declared checkpoint x before/afte
           [...resumed.jobColumns, 'id'].sort(),
         )
         expect(resumed.checkpointColumns).toEqual(CHECKPOINT_ROW_SOURCE_COLUMNS)
-        // 388 plan 01 adds `notifications`. Named here rather than admitted by a contains
-        // check for the same reason as every other exhaustive list in this matrix: the failure
-        // mode a crash comparison has is agreeing that two states are the same because the
-        // instrument stopped looking at the table that differed.
+        // Named rather than matched by a contains check, so no table drops out of the comparison.
         expect(resumed.tableNames).toEqual([
           'job_checkpoints',
           'job_store_fence',
@@ -489,11 +462,7 @@ describe('kill matrix: every registered kind x declared checkpoint x before/afte
 })
 
 describe('the comparison basis', () => {
-  // Every equality assertion above is only as good as this. A projection that answered the same
-  // string whatever it was handed — the phase-384 defect, in its exact shape — would make ten
-  // convergence assertions pass while proving nothing at all. So the instrument is required to
-  // MOVE with what it claims to describe, and the split between outcome and history is required to
-  // move in each direction independently.
+  // The instrument must move with the state it describes, and its two halves independently.
   it('varies with the state it describes, and its two halves move independently', async () => {
     const paths = makeRoot('varies')
     const kind: JobKind = 'consolidate'
@@ -585,7 +554,7 @@ describe('resuming a job that is already done', () => {
     expect(second.outcomes).toEqual([])
 
     const after = await readStoreSnapshot(paths.agentQaRoot)
-    // The FULL D-03 dump this time, with no projection at all: a no-op has no history to excuse.
+    // The full logical dump, unprojected: a no-op has no history to excuse.
     expect(after.logicalDump).toBe(settled.logicalDump)
     expect(readInvocations(paths.invocations)).toHaveLength(authoredBefore)
     expect(readConsumptions(paths.consumption).map((entry) => entry.checkpointId)).toEqual([

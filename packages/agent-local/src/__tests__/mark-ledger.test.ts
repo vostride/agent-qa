@@ -130,12 +130,7 @@ describe('FsMarkLedger', () => {
     expect(ledger.read()).toEqual([recovered])
     expect(existsSync(join(dir, 'mark-intent.json'))).toBe(false)
   })
-  // the intent names a stable operation identity and an `applied`
-  // stage; a pre-432 intent that names a proposal or a drafted stage is refused before any effect.
-  // 2026-10-03 (quick 261003-lgd, Phase 432 review IN-23): refused by the intent file's own name.
-  // It used to say "Mark ledger is corrupt at line N", a line marks.jsonl does not have, so the
-  // person was sent to the wrong file. D-02: still no migration; the message says what to remove.
-  // OBSERVED RED on agent-qa 481f0a153: "Mark ledger is corrupt at line 1" (MarkLedgerCorruptError).
+  // A legacy intent naming a proposal or drafted stage is refused by the intent file's own name.
   it.each([
     ['a proposalUuid', { proposalUuid: '01234567-89ab-4def-8123-456789abcdef', stage: 'evidence' }],
     ['the drafted stage', { operationId: '01234567-89ab-4def-8123-456789abcdef', stage: 'drafted' }],

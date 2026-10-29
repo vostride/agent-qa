@@ -1,24 +1,4 @@
-// Per-job checkpoint files for the agent job queue.
-//
-// Under the hybrid split, sqlite owns the job LIFECYCLE and each checkpoint is its own file
-// under `.agent-qa/agent-jobs/checkpoints/<jobId>/<checkpointId>.json`. Three reasons, in
-// order of weight: JOBQ-05 asks literally for a rename with a parent-directory fsync;
-// authored model output can be large and does not belong in a row a claim transaction has
-// to move past; and a checkpoint that guards a filesystem side effect should be durable in
-// the same medium as the thing it guards, or the two can disagree after a crash.
-//
-// The publish sequence and its error allowlist are generalized verbatim from v51's
-// per-candidate intent journal (knowledge-local, journal/intent-journal.ts). It is not
-// reinvented here: the allowlist below encodes platform quirks already debugged once, and
-// re-deriving it by hand is how a directory fsync silently becomes best-effort everywhere.
-//
-// 385 plan 03 added the OBSERVATION SEAM the ordering proof needs. Killing a process does
-// not drop the pages the kernel already holds, so a publisher missing an fsync passes every
-// crash test run on one machine; the only way to know the sequence is right is to watch the
-// calls. The seam is deliberately shaped so it cannot become a way to skip a sync in
-// production: `CreateJobCheckpointStoreOptions` has no filesystem member, so no production
-// call site has anywhere to put one, and the seam factory is a second exported function that
-// a test names explicitly. A test asserts nothing outside `__tests__` ever calls it.
+// Each checkpoint is its own file, published by rename with a parent-directory fsync.
 
 import { randomUUID } from 'node:crypto'
 import {
@@ -46,7 +26,7 @@ import {
   JobCheckpointSchemaVersionError,
 } from './store-errors.js'
 
-/** Directory segments under the agent-qa root, per the D-21 "agent job queue" naming. */
+// Directory segments under the agent-qa root.
 export const JOB_CHECKPOINT_SUBDIR = ['agent-jobs', 'checkpoints'] as const
 
 /**
@@ -57,14 +37,7 @@ export const JOB_CHECKPOINT_SUBDIR = ['agent-jobs', 'checkpoints'] as const
  */
 const SAFE_PATH_SEGMENT = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/
 
-/**
- * The errno set a parent-directory fsync may legitimately fail with.
- *
- * Copied code for code from v51 rather than re-derived. Each entry is a platform or
- * filesystem on which syncing a directory descriptor is either unsupported or meaningless;
- * anything else is a real I/O failure and must not be swallowed, or the "best effort" in
- * `bestEffortFsyncDirectory` quietly becomes "no effort" everywhere.
- */
+// Platforms where a directory fsync is unsupported; anything else is a real I/O failure.
 export const DIRECTORY_FSYNC_SWALLOWED_CODES = [
   'ENOENT',
   'EINVAL',
@@ -106,19 +79,7 @@ export const REAL_JOB_CHECKPOINT_FS: JobCheckpointFs = Object.freeze({
 export interface JobCheckpointStore {
   publish(jobId: string, checkpointId: string, payload: unknown): void
   read(jobId: string, checkpointId: string): { found: false } | { found: true; payload: unknown }
-  /**
-   * Remove one published checkpoint file.
-   *
-   * The file is a CACHE of the fenced sqlite record, and this verb exists only so the cache
-   * cannot outlive the record it caches: an operator requeue deletes the authoritative rows,
-   * and a file left behind would keep answering the logical dump's digest with a checkpoint
-   * no row backs. It never affects recovery in either direction — `readCheckpoint` finds no
-   * row and answers `found: false` before it ever consults a file — so a discard that failed
-   * to happen would be a dump artifact, not a resumed stand-in.
-   *
-   * Exactly one file, never a directory and never recursively. An empty per-job directory is
-   * harmless and keeping it that way keeps the filesystem facade as narrow as it is.
-   */
+  // The file caches the fenced sqlite record, so it is deleted when a requeue deletes that record.
   discard(jobId: string, checkpointId: string): void
   /** Exposed so a test can assert on the real file, not on a reader that could agree. */
   checkpointPath(jobId: string, checkpointId: string): string
@@ -238,9 +199,7 @@ export function createJobCheckpointStoreOn(
 
     publish(jobId, checkpointId, payload) {
       const file = pathFor(jobId, checkpointId)
-      // Typed as the shipped envelope contract rather than as an ad-hoc literal (385 plan
-      // 02): the bytes this writes are the bytes the contract describes, so a field added on
-      // one side and forgotten on the other stops compiling instead of shipping.
+      // Typed as the shipped envelope contract, so a field added on one side stops compiling.
       const envelope: JobCheckpointEnvelope = {
         schemaVersion: JOB_CHECKPOINT_SCHEMA_VERSION,
         jobId: asJobId(jobId),
@@ -260,8 +219,7 @@ export function createJobCheckpointStoreOn(
         fs.closeSync(fd)
         fd = undefined
         fs.renameSync(temporary, file)
-        // The rename itself is a directory mutation, and a directory entry is not durable
-        // until its parent is synced — this is the line JOBQ-05 names.
+        // A rename is a directory mutation, durable only once its parent directory is synced.
         bestEffortFsyncDirectory(dirname(file))
       } finally {
         if (fd !== undefined) fs.closeSync(fd)

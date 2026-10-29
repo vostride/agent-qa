@@ -1,22 +1,4 @@
-// `runs.digest` over the REAL composition — the projection's behaviour.
-//
-// What this file measures that a unit test could not: that the digest a person can actually
-// reach is composed from the SAME four read paths the rest of the system serves from. Every hop
-// goes through `composeLocalAgent()` and `invokeFunction`, so the op is registered, the deps are
-// bound at the one root, the gate lets a read through, and the answer is parsed against the
-// declared output contract before this file ever sees it.
-//
-// TWO RUNS, ALWAYS. A single-run fixture is structurally incapable of noticing a run-scoping
-// defect — every change belongs to the only run there is, so a filter that did nothing would
-// pass — and that exact blind spot shipped a cross-instance attribution bug in phase 388 that
-// roughly thirty-five differentials did not see. So the ledger carries applied fixes under two run
-// ids, and the absence claim is asserted in BOTH directions.
-//
-// RE-SPELLED IN PLACE. The digest reads the fixes a run's
-// marks applied from that run's own ledger (through the read-only feedback port), and never reads
-// the proposals inbox. Proposals are still minted below through the shipped propose ops, against
-// real published records, precisely so every cell can assert they appear in NO digest: a digest
-// that still listed or counted them would red here, and a sealed legacy tree changes nothing.
+// Two runs, always: one run cannot show a run-scoping defect, so absence is asserted both ways.
 
 import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -58,21 +40,14 @@ import { filePre432KnowledgeProposal } from './pre-432-knowledge-proposal.js'
 
 const MINT_IDENTITY = (filePath: string): string => filePath
 
-/**
- * The three propose ops' WIRE ids, spelled as a caller spells them (391-03's fixture precedent).
- *
- * Not imported from the agent barrel: that barrel exports an op id only where a production
- * SURFACE has to name one, and a fixture is not one. What is exercised here is the dispatch a
- * caller performs BY NAME, so naming it is the point.
- */
-// the retired propose verbs, named by the verb a pre-432 record carries.
+// Spelled as a caller spells them: the agent barrel exports ids only for production surfaces.
 const FORGET_PROPOSE_ID = 'forget'
 const ACCEPT_PROPOSE_ID = 'accept'
 const REJECT_PROPOSE_ID = 'reject'
 
 const RUN_A = 'run-391-digest-a'
 const RUN_B = 'run-391-digest-b'
-/** A third run with nothing attributed to it — the empty arm (edge PROP-04/empty). */
+// A third run with nothing attributed to it: the empty arm.
 const RUN_EMPTY = 'run-391-digest-empty'
 
 const ANCHOR: Anchor = { t: 'el', role: 'Button', name: 'Checkout' }
@@ -275,8 +250,7 @@ describe('the per-run digest, over the composed host', () => {
     extraInput: { reason?: string } = {},
   ): Promise<{ proposalId: string; recordId: string }> {
     const recordId = publish(summary)
-    // nothing files a knowledge proposal any more; this is a pre-432 record on disk,
-    // attributed to the run as the retired propose ops attributed it.
+    // A legacy proposal on disk, attributed to the run as the retired propose ops attributed it.
     const proposalId = await filePre432KnowledgeProposal({
       agentQaRoot, knowledgeRoot, verb: proposeId, target: { grain: 'record', recordId },
       ...(extraInput.reason === undefined ? {} : { reason: extraInput.reason }),
@@ -298,8 +272,6 @@ describe('the per-run digest, over the composed host', () => {
     )) as RunDigest
   }
 
-  // RE-SPELLED 432-09 from 'lists exactly the proposals attributed to the run, and the OTHER run's
-  // in its own digest': the run's section is now the fixes its marks applied.
   it('lists exactly the fixes the run\'s marks applied, and the OTHER run\'s in its own digest',
     async () => {
       const minted = await proposeForRun(RUN_A, 'checkout button')
@@ -387,8 +359,7 @@ describe('the per-run digest, over the composed host', () => {
     async () => {
       const declined = await proposeForRun(RUN_A, 'checkout button')
       await proposeForRun(RUN_A, 'payment button')
-      // `proposals.reject` is deleted, so the decided record is planted as the
-      // bytes the retired reject left: the same wrapped record with its status moved to `rejected`.
+      // The decided record is planted as bytes: the same wrapped record with its status `rejected`.
       const proposals = join(agentQaRoot, 'proposals')
       const declinedPath = join(proposals, `${declined}.json`)
       const record = JSON.parse(readFileSync(declinedPath, 'utf8')) as {
@@ -441,17 +412,12 @@ describe('the per-run digest, over the composed host', () => {
       )) as AnalysisGetOutput
       const digestA = await digest(RUN_A)
 
-      // NON-VACUITY FIRST. Two failing members resolve through the D-10 accessor and the floor
-      // renderer, so there is something to compare; without this line an empty-equals-empty
-      // pass would certify nothing.
+      // Non-vacuity: two failing members give something to compare, so empty equals empty fails.
       expect(analysis.clusters.length).toBeGreaterThan(0)
       expect(analysis.clusters.every((cluster) => cluster.representative.sentence !== ''))
         .toBe(true)
 
-      // The bytes are compared against the RENDERER'S ACTUAL OUTPUT for this run — obtained by
-      // invoking the one producer through the same registry — never against a sentence this
-      // file re-spelled. A check that restates a constant inside its own package binds nothing
-      // to reality; this one goes red the moment the digest composes anything of its own.
+      // Compared with the renderer output from the same registry, never a sentence spelled here.
       expect(digestA.verdictClusters).toEqual(analysis.clusters)
       for (const cluster of analysis.clusters) {
         expect(digestA.lines.join('\n')).toContain(cluster.representative.sentence)
@@ -488,8 +454,6 @@ describe('the per-run digest, over the composed host', () => {
       })
     })
 
-  // RE-SPELLED 432-09 from 'carries refs and counts and NO receipt bytes, on a forget proposal that
-  // has them': the refs are now an applied fix's record ids and written path.
   it('carries refs and counts and NO record content for an applied fix',
     async () => {
       const { recordId } = await mintForRun(RUN_A, 'checkout button')

@@ -1,13 +1,4 @@
-// The in-memory session log twin (Phase 392, D-14 — storage stays a port).
-//
-// It exists so a hermetic test can drive a whole turn without a temp directory, and it implements
-// the SAME `SessionLogPort` the disk adapter does — which is the only reason a twin is honest. A
-// second, looser shape would let a test pass against a contract production never signs.
-//
-// It is NOT a stand-in for the durability properties. `turnBoundary` here is a no-op because there
-// is nothing to sync, and any test whose subject is the fsync ORDER must drive the disk adapter
-// through its recorder facade instead (`createJsonlSessionLogOn`). Using this twin for that would
-// be measuring a promise nobody made.
+// Implements the same `SessionLogPort` for hermetic tests; fsync order needs the disk adapter.
 
 import { repairSession } from '@vostride/agent-qa-agent'
 import { CURRENT_CHAT_SESSION_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
@@ -42,11 +33,7 @@ export function createMemorySessionLog(
 ): MemorySessionLog {
   const sessions = new Map<string, { header: ChatSessionHeader; events: ChatSessionEvent[] }>()
   const random = options.random ?? Math.random
-  // THE TWIN CARRIES THE CONCURRENCY CONTRACT TOO. What was `let current` here —
-  // the same single-session shape the disk adapter's single `fd` had — is gone, and for the reason
-  // 390 paid for once: a read-side fix without its write-side twin is a regression generator. A
-  // twin that kept a "current session" would let every hermetic test pass against a contract
-  // production no longer signs, which is the failure this file's own header already warns about.
+  // Live sessions are a set, matching the disk adapter's per-session handles.
   const liveSessions = new Set<string>()
 
   function handleFor(id: string, opened: OpenedChatSession): ChatSessionHandle {

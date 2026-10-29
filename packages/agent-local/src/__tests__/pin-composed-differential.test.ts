@@ -166,8 +166,6 @@ describe('retired: a typed /pin reaches nothing through the composed stack', () 
     expect(auditRows()).toEqual([])
   })
 
-  // RE-SPELLED 2026-09-30 from 'the pin is a LIVE view: a second class pinned mid-session
-  // denies from the next turn'. There is no pin set to be live.
   it('a /pin typed mid-session denies nothing on the next turn', async () => {
     const opened = await ask('status')
     expect(opened.receipts[0]?.status).toBe('executed')

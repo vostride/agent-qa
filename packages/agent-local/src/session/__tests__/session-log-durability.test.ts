@@ -1,16 +1,4 @@
-// The session log's durability proof, and the one SIGKILL structurally cannot give (Phase 392
-// plan 03, CHAT-05 / D-17 / D-19).
-//
-// Killing a process does not drop the pages the kernel already holds, so a log that never calls
-// fsync at all survives every crash test run on one machine. The only way to know the syscalls
-// happen — and happen at the one MOMENT that makes the loss bound the in-flight turn — is to watch
-// them. This file watches them, on the idiom `__tests__/checkpoint-fsync-ordering.test.ts` set.
-//
-// EVERY ASSERTION IS ON THE ORDERED LIST, never on membership. "An fsync happened" is satisfied by
-// an fsync at entirely the wrong moment: one per event would pay for a guarantee finer than any
-// reader can use, and one at close would leave a killed process with a turn nobody synced. The
-// labels below are derived from the raw arguments — which path, which flags, which descriptor came
-// from which open — so the adapter cannot name its own calls into the right shape.
+// Asserts the ordered syscall list from raw arguments: SIGKILL cannot show a missing fsync.
 
 import {
   existsSync,
@@ -56,14 +44,7 @@ function options(root: string, now: string = NOW): CreateJsonlSessionLogOptions 
   }
 }
 
-/**
- * The same options with a clock that MOVES, so two `open()` calls mint two ids.
- *
- * The pinned clock above is what makes the single-session assertions exact, and it is also why a
- * concurrency case cannot use it: both mints would produce one id and the second exclusive-create
- * would collide. One tick apart is the smallest change that makes two sessions expressible, and it
- * leaves every other pinned input alone.
- */
+// A moving clock, so two `open()` calls mint two ids rather than colliding on exclusive create.
 function concurrentOptions(root: string): CreateJsonlSessionLogOptions {
   let tick = 0
   return {
@@ -191,15 +172,7 @@ function describeSequence(calls: readonly RecordedCall[], root: string, sessionI
   })
 }
 
-/**
- * The same sequence, labelled across SEVERAL sessions.
- *
- * `file:A` / `file:B` rather than one `file`, so a syscall's session is derived from the path it
- * was made on — the adapter cannot name its own calls into the right shape any more here than it
- * can above. Filtering this list by label is the per-session projection of the ordered assertions:
- * each session's write→write→fsync boundary has to hold on its OWN file, independently, while the
- * other session is open.
- */
+// Labels carry the session's file, so each session's write, write, fsync boundary holds on its own.
 function describeSequenceAcross(
   calls: readonly RecordedCall[],
   root: string,
@@ -372,16 +345,7 @@ describe('the session log appends as it goes and fsyncs at the turn boundary', (
     expect(reopened.events).toHaveLength(2)
   })
 
-  // ------------------------------------------------------------------------------------------
-  // TWO SESSIONS AT ONCE, ON ONE ADAPTER.
-  //
-  // This is the case the whole suite could not previously express: while the adapter owned one
-  // mutable descriptor, a second `open()` repointed it, so the interleaved appends below would all
-  // have landed on the file that opened last and one session would have been left without its
-  // closing event. The assertions are the single-session ones PER SESSION — the same ordered lists,
-  // asked of each file independently — which is what makes "the re-keying added no syscalls" a
-  // measurement rather than a claim.
-  // ------------------------------------------------------------------------------------------
+  // Two sessions on one adapter: the single-session ordered lists must hold per file.
   it('interleaves two sessions without a byte crossing, each on its own descriptor', async () => {
     const log = createJsonlSessionLog(concurrentOptions(root))
 
@@ -714,11 +678,6 @@ describe.each(FACTORIES)('SessionLogPort contract: %s', (_name, factory) => {
     expect(error).toBeInstanceOf(UnknownChatSessionError)
   })
 
-  // RE-SPELLED BY THE HANDLE CONTRACT, and the property it names is stronger than the one
-  // it replaces. "Append before open" is no longer expressible — there is no log-level append to
-  // reach — so what remains to prove is the other end of ownership: a handle that has been closed
-  // refuses rather than writing somewhere. A silent no-op there, or a quiet reopen, would be the
-  // aliasing this refactor removed, wearing a different name.
   it('refuses an append through a CLOSED handle rather than writing somewhere', async () => {
     const log = factory(root)
     const opened = await log.open()
@@ -744,10 +703,7 @@ describe.each(FACTORIES)('SessionLogPort contract: %s', (_name, factory) => {
   })
 })
 
-// BOTH ADAPTERS, OR NEITHER (the sibling-input corpus law, 390's one-sided-hardening lesson). The
-// concurrency contract is stated once on the port, so it is asserted once here and answered twice:
-// a twin that kept a single-session shape would let every hermetic test in this repo pass against
-// a contract production no longer signs.
+// Both adapters or neither: the concurrency contract is asserted once and answered by each.
 describe.each(CONCURRENT_FACTORIES)('the concurrency contract: %s', (_name, factory) => {
   let root: string
 

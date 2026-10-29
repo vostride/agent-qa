@@ -1,27 +1,4 @@
-// The authoring loop END TO END, through the REGISTERED op.
-//
-// ONE CHECK OF ONE PATH, not a per-layer unit test. Nothing below calls `runAuthoringLoop`
-// directly: every case goes through `invokeFunction(registry, AUTHORING_DRAFT_WRITE…)` on a host
-// built by `composeLocalAgent()` — the real registry, the real policy gate, the real
-// `authoring.draft.verify` op underneath it, the real four gates, a real receipts store on a real
-// disk. A composition that forgot a binding, an op that never registered, a dep whose optionality
-// left the capability permanently `unbound` would all leave `packages/agent`'s own suites green,
-// which is the produced-not-literal law applied to an entry point.
-//
-// HERMETIC BY CONTRACT. The model is scripted — one fixed, valid test document, returned for
-// whatever prompt it is handed — and the run executor writes the run records a real executor would
-// have written. The live half (a real model authoring against a real browser) is a later plan's
-// lane and proves a different claim.
-//
-// WHAT IS FAKED, AND EXACTLY HOW FAR. `DraftAuthoringPort` is the one thing `packages/agent` and
-// `packages/agent-local` genuinely cannot do: parsing a test file needs
-// `@vostride/agent-qa-core`, which the FUNC-02 firewall forbids either from naming, and the CLI's
-// real implementation over `parseTestFile` is exercised by that package's own suite. So the fake
-// below does the REAL work either side of the parse — it hashes the actual bytes, writes them to a
-// real `tests/.agent-qa-drafts/<digest>.yaml`, and reads them back off disk when the verify op
-// asks — and uses the real `yaml` parser for the structure in between. The digest join this file
-// asserts therefore crosses the filesystem: the shelf writes bytes, and the receipt's
-// `contentDigest` is derived from a separate read of those bytes on the way into gate evaluation.
+// One path through the registered op on a composed host; only the model and the parse are faked.
 
 import { createHash } from 'node:crypto'
 import {
@@ -51,9 +28,7 @@ import {
   resolveExecutionContext,
   setActiveExecutionContextResolver,
 } from '@vostride/agent-qa-safety'
-// safety no longer publishes a confirm port. The shape an old host
-// supplied is spelled locally so the C432-INVOKE-DIRECT cells can still smuggle one in and measure
-// that nothing calls it.
+// Spelled locally so a supplied confirm port can be smuggled in and shown never to be called.
 interface ConfirmPort {
   readonly surface: 'tty-prompt'
   readonly ask: (action: RiskActionDescriptor) => boolean
@@ -101,10 +76,7 @@ import type {
 } from '../composition/compose-local-agent.js'
 
 
-/**
- * Whatever sits under the deleted proposals store's directory. 2026-10-01: the store and
- * its listing are deleted, so "nothing was filed" is read off the directory itself.
- */
+// Whatever sits under the proposals directory, so nothing filed is read off the directory itself.
 function filedProposals(agentQaRoot: string): readonly string[] {
   const dir = join(agentQaRoot, 'proposals')
   return existsSync(dir) ? readdirSync(dir) : []
@@ -122,10 +94,7 @@ const HUMAN: FunctionCaller = {
   origin: 'human',
 }
 
-/**
- * The caller 394-01 minted `test-write` to refuse — everything the EVALUATOR needs and nothing
- * more. It reaches `authoring.draft.verify` and must not reach `authoring.draft.write`.
- */
+// Everything the evaluator needs and nothing more.
 const RUN_AND_READ_ONLY: FunctionCaller = {
   surface: 'test',
   origin: 'human',
@@ -136,7 +105,7 @@ const SCOPE = { tier: 'product', key: 'local-form' } as const
 
 const DRAFT_TEST_NAME = 'Confirm the local account form page heading'
 
-/** The one document the scripted model emits — a whole test, per D-02 (creation is not an edit). */
+// The one document the scripted model emits: a whole test, because creation is not an edit.
 const MODEL_DOCUMENT = `name: ${DRAFT_TEST_NAME}
 target: local-form
 use:
@@ -248,15 +217,7 @@ function stepEvidence(index: number, subActions: readonly SubActionFixture[]): S
  * and handed exactly that path to `runs.start`, and gates 1-2 find the draft's member by comparing
  * against these bytes. A hard-coded path would make the join pass no matter what the shelf minted.
  */
-/**
- * WHOSE test the gate-run reports on, and which element it exercised.
- *
- * DEFAULTED to the one fixed draft every cell above authors, and overridable for the 394-18 corpus
- * cells, which author TWELVE distinct drafts through the same host. Gate 1 finds the draft's own
- * member by `testName` and gate 3 asks whether the draft touched an element the suite index has
- * never seen, so a fixture that reported one name and one element for every draft would make the
- * second draft onwards fail `addsValue` — measuring the fixture's sameness rather than the loop.
- */
+// Overridable so corpus cells author distinct drafts; one fixed name fails `addsValue`.
 interface DraftRunIdentity {
   readonly testName: string
   readonly elementName: string
@@ -271,13 +232,7 @@ function gateRunHandoff(
   runId: string,
   filePath: string,
   identity: DraftRunIdentity = FIXED_RUN_IDENTITY,
-  /**
-   * What the draft's member DID on this run — `passed` for every cell that predates 394-19.
-   *
-   * Parameterised so a cell can produce a gate-2 FLIP, which is the only state D-14's stability
-   * consultation is reachable from. A fixture that could only pass made the flip arm unreachable
-   * from this composed host, which is half of why mutation M3 red nothing.
-   */
+  // Parameterised so a cell can produce a gate-2 flip, the only state the consultation reaches.
   outcome: MemberTestOutcome = 'passed',
 ): CompletedRunHandoff {
   return {
@@ -309,13 +264,7 @@ function gateRunHandoff(
   } as unknown as CompletedRunHandoff
 }
 
-/**
- * The suite the draft PROPOSES TO JOIN, and the two tests already living in it.
- *
- * Computed through `authoredSuiteTargetPath` rather than spelled, so this fixture names the same
- * file the accept arm would write to — a literal would drift the day the recipe moves, which is
- * exactly when the claim stops being about the right suite.
- */
+// Computed through `authoredSuiteTargetPath`, so the fixture names the file the accept arm writes.
 const JOIN_TARGET = authoredSuiteTargetPath('tests/.agent-qa-drafts/any.yaml', DRAFT_TEST_NAME)
 const FLAKY_NEIGHBOUR = 'Show the account banner'
 const STABLE_NEIGHBOUR = 'Submit the local account form'
@@ -429,29 +378,13 @@ function scriptedModel(document = MODEL_DOCUMENT): ScriptedModel {
   }
 }
 
-// ---- the zero-exemplar generator: it knows ONLY what the prompt teaches ---
-//
-// `scriptedModel` above returns a hand-written valid document whatever it is asked, which is why
-// no cell in this file could ever have caught WINDOWS 111: the schema arrived from the fixture, not
-// from the prompt. The generator below has no document of its own. It locates the stable block by
-// TITLE, lifts the canonical example out of it, adapts the two values the Intent and Scope blocks
-// supply, and returns that — and it THROWS when no such block exists, which is the live model's
-// position on a scope that serves no exemplars, stated as a hard failure instead of a bad guess.
-//
-// LITERALS, NOT IMPORTS. The title and the marker are spelled here as a model reads them. Importing
-// the constants would give this generator a channel to the schema that a model does not have.
+// Knows only the prompt: it adapts the block's example and throws when the block is absent.
 
 const FORMAT_BLOCK_TITLE = 'Test document format'
 const FORMAT_EXAMPLE_MARKER = 'A complete document looks exactly like this:'
 const TARGETS_BLOCK_TITLE = 'Configured targets'
 
-/**
- * The one sentence that makes a fifth key emittable.
- *
- * Matched as a RULE rather than by looking for the key name anywhere in the block: a block that
- * merely MENTIONS `context` — in a rejection sentence, say — is not permission, and a generator
- * that treated it as permission would go green on a prompt that forbade the key.
- */
+// Matched as a rule, because a block that merely mentions `context` does not permit it.
 const CONTEXT_OPTIONAL_RULE = /^`context` is optional:/m
 
 /** What the generator has left when the prompt teaches it nothing: nothing. */
@@ -481,15 +414,7 @@ function promptBlockBody(text: string, title: string): string | undefined {
   return undefined
 }
 
-/**
- * The `target` a prompt-driven generator picks: one of the SERVED names, or nothing.
- *
- * The previous form sliced the scope key out of the Scope block. That is a PRODUCT — the host's
- * derivation answers `target.product ?? targetName` — so it named a configured target only on the
- * projects where the two coincide, which was every fixture in this file. The scope survives as a
- * HINT for choosing among served names and never as the source of the value; what the cells assert
- * is membership in the served list, never this heuristic's particular pick.
- */
+// Picks a served name; the scope is only a hint, because it names a product, not a target.
 function targetFromVocabulary(request: JobModelRequest, scopeKey: string): string {
   const served = promptBlockBody(request.prompt, TARGETS_BLOCK_TITLE)
   const names = (served ?? '').split('\n').map((line) => line.trim()).filter((line) => line !== '')
@@ -506,14 +431,7 @@ function formatBlockOrThrow(request: JobModelRequest): string {
   return format
 }
 
-/**
- * The canonical example, lifted verbatim, with ONLY its `name` adapted to the Intent block.
- *
- * The `target` line is deliberately left as the block wrote it. Spelled apart from
- * {@link documentFromPrompt} because the difference between the two IS the model behaviour WR-04
- * is about: a generator that adapts `target` can only ever emit a member of the served list, and a
- * generator that does not is a model reading the same block and skipping one of its bullets.
- */
+// Copies the example's `target` verbatim, the way a model skipping one bullet would.
 function exampleWithIntentName(request: JobModelRequest): string {
   const format = formatBlockOrThrow(request)
   const marker = format.indexOf(FORMAT_EXAMPLE_MARKER)
@@ -559,23 +477,7 @@ function formatFollowingModel(): ScriptedModel {
   }
 }
 
-/**
- * THE GENERATOR NEITHER HARD-BRANCH DOUBLE COULD BE.
- *
- * `targetFromVocabulary` draws its answer FROM the served list — `names.find(…) ?? names[0]`, with
- * a throw on the empty list — so every path it can take returns a member of that list, and every
- * cell built on it asserts that the DOUBLE obeyed the block. The off-vocabulary case was
- * unreachable by construction, which is the defect and not the proof.
- *
- * This one reads the SAME block by the same title and skips one of its bullets: it lifts the
- * canonical example, adapts the `name` to the Intent, and copies the example's own `target` line
- * verbatim. That is a real model behaviour — the block's example is the most imitable thing in the
- * prompt — and it emits `target: sign-in` against a host declaring only `local-form`.
- *
- * IT RECORDS WHAT IT EMITTED. The off-vocabulary value has to be a PRODUCED fact for the cell
- * below to be about the product rather than about this function's source, so the document text is
- * kept and asserted rather than restated.
- */
+// Emits the example's `target` against a host declaring another, and records what it emitted.
 function exampleTargetCopyingModel(): {
   readonly capability: () => JobModelCapability
   readonly requests: JobModelRequest[]
@@ -624,12 +526,7 @@ function writtenOf(result: AuthoringDraftWriteOutput): unknown {
  */
 const CONFIGURED_TARGETS: readonly string[] = ['local-form']
 
-/**
- * The HARD branch, borrowed from `cli/src/__tests__/authoring-scope-derivation`'s
- * own fixture class: `storefront-web` declares `product: storefront`, so the scope the host derives
- * for it is `product:storefront` — a value that is NOT a configured target. `local-form` rides
- * along as a distractor so choosing from the list is a real choice.
- */
+// `storefront-web` declares `product: storefront`, so the derived scope is not a configured target.
 const TWO_CONFIGURED_TARGETS: readonly string[] = ['local-form', 'storefront-web']
 
 function draftAuthoring(workspace: string, suiteText: readonly {
@@ -648,9 +545,7 @@ function draftAuthoring(workspace: string, suiteText: readonly {
     if (test === null || typeof test.name !== 'string' || !Array.isArray(test.steps)) {
       return { kind: 'unparsable', reason: 'the document is not a single test with name and steps' }
     }
-    // `target` is REQUIRED by `TestDefinitionSchema`, so the shipped parser can never answer
-    // `staged` without one; this fake mirrors that rather than defaulting, because a fake that
-    // supplied a value the document did not carry would make WR-04's guard measure the fake.
+    // `TestDefinitionSchema` requires `target`, so the fake refuses rather than defaulting one.
     if (typeof test.target !== 'string') {
       return { kind: 'unparsable', reason: 'the document carries no `target`' }
     }
@@ -669,16 +564,11 @@ function draftAuthoring(workspace: string, suiteText: readonly {
   }
 
   return {
-    // present because the port requires it, and THROWING because every case in this file
-    // supplies its scope explicitly. A fake that answered a scope would let a cell pass while the
-    // op silently derived one — which is exactly the arrangement the op's own control cell exists
-    // to forbid.
+    // Throws because every case supplies its scope; a fake that answered one would hide derivation.
     deriveDefaultScope(): Promise<never> {
       throw new Error('every case here supplies a scope, so nothing derives one')
     },
-    // present because the port requires it, and never reached by this file — neither
-    // case routes to repair, so no patch is ever applied. A fake answering one it was not asked
-    // for would be a second staging path these e2e pins could accidentally observe.
+    // Never reached: no case routes to repair.
     applyPatchesToDraft(): Promise<never> {
       throw new Error('this case never enters repair, so no patch set is ever applied')
     },
@@ -693,9 +583,7 @@ function draftAuthoring(workspace: string, suiteText: readonly {
       return Promise.resolve(described)
     },
 
-    // the direct writer, over the same real workspace. It keeps the host's two guards —
-    // the target must still hold the bytes the caller read (absent for a new test) and the bytes
-    // written are the shelf's own — and runs nothing else. The CLI's real writer has its own cells.
+    // Keeps the host's two guards, the read bytes and the shelf's own bytes, and runs nothing else.
     publishDraft(request) {
       const target = join(workspace, request.targetPath)
       const found = existsSync(target)
@@ -737,24 +625,14 @@ function draftAuthoring(workspace: string, suiteText: readonly {
       return Promise.resolve(suiteText)
     },
 
-    // the `target` vocabulary. The REAL host reads this off `registry.targets`
-    // through `listTargets`; this fake is handed the names, because what these cells measure is
-    // that the LOOP serves whatever the host answered — not how the CLI reads a config file, which
-    // is that package's own cell.
+    // Handed the names, because these cells measure that the loop serves whatever the host answers.
     configuredTargetNames() {
       return Promise.resolve(targetNames)
     },
   }
 }
 
-/**
- * A `ConfirmPort` that RECORDS what it was asked and answers a fixed way.
- *
- * The recording is the whole instrument: D-03's claim is that the dispatch confirm happens EXACTLY
- * ONCE, before the loop starts, carrying the fan-out preview — and none of those three is
- * observable from a boolean the gate consumed. `actions` holds the descriptors verbatim, so a cell
- * can compare the rendered figure against `authoringFanOutBound` rather than against a literal.
- */
+// Records what it is asked, so a cell can show the confirm port is never called.
 function recordingConfirm(answer: boolean): {
   readonly port: ConfirmPort
   readonly actions: RiskActionDescriptor[]
@@ -786,14 +664,6 @@ describe('authoring.draft.write end to end through the composition root', () => 
     mkdirSync(agentQaRoot, { recursive: true })
     mkdirSync(workspace, { recursive: true })
 
-    // `authoring.draft.write` is ask-tier, so every case below needs a context in
-    // which an ask is REACHABLE at all — `requiresFailClosed` is true for everything except
-    // `local-interactive`, and a vitest worker resolves `local-headless`. This is production's own
-    // `resolveExecutionContext` with only the env/TTY read replaced, by the exact signal pair the
-    // detector would hand it at a terminal (the `daemon-host.test.ts` idiom, verbatim).
-    //
-    // The fail-closed arm is NOT skipped by doing this — it has its own cell below, which pins the
-    // headless context back for the duration of one case.
     setActiveExecutionContextResolver(() => resolveExecutionContext({ isTty: true, ciMarkers: false }))
     expect(getActiveExecutionContext()).toBe('local-interactive')
   })
@@ -819,8 +689,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
       config: { getMasked: () => Promise.resolve(MASKED_CONFIG) },
       knowledgeRoot: () => join(root, 'agent-qa-knowledge'),
       model: input.model ?? (() => scriptedModel().capability()),
-      // the composition input declares no confirm. A supplied port is
-      // smuggled past the type so the C432-INVOKE-DIRECT cells still measure that nothing reads it.
+      // The composition input declares no confirm; a supplied port is smuggled past the type.
       ...{ confirm: input.confirm ?? { surface: 'tty-prompt', ask: () => true } } as object,
       ...(input.executor === undefined ? {} : { runExecution: input.executor }),
       ...(input.authoring === undefined ? {} : { draftAuthoring: input.authoring }),
@@ -849,10 +718,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
     expect(AuthoringDraftWriteOutputSchema.safeParse(result).success).toBe(true)
     expect(result.outcome).toBe('drafted')
 
-    // TWO model calls, and both system blocks lead with the tier law's `Agent context:` line —
-    // the ONE builder extended twice through `agent_context`, never a second renderer. The two are
-    // stage 3's halves: the whole-document compile, then the one unconditional
-    // refinement round, whose context line names the round rather than the compile.
+    // The compile and the one refinement round, each system block leading with `Agent context:`.
     expect(model.requests).toHaveLength(2)
     expect(model.requests[0]?.system).toMatch(/^Agent context: authoring\.draft\.write — compile /)
     expect(model.requests[1]?.system).toMatch(/^Agent context: authoring\.draft\.write — refine /)
@@ -903,11 +769,6 @@ describe('authoring.draft.write end to end through the composition root', () => 
     expect(readdirSync(join(agentQaRoot, 'draft-receipts'))).toEqual([`${shelfDigest}.json`])
   })
 
-  // re-spelled in place. It pinned the retired never-auto-keep rule — a
-  // keep-eligible draft proposed and left unwritten until a person accepted it. The claim is now the
-  // opposite write and it is measured the same way, on disk: the draft's bytes are at the target the
-  // loop's own recipe names, the receipt says so with the disposition and all four gate booleans,
-  // and nothing was filed for anybody to accept.
   it('writes a KEEP-ELIGIBLE draft to its target with its receipt', async () => {
     const executor = fixtureExecutor(agentQaRoot)
     const host = compose({
@@ -1024,10 +885,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
     expect(readFileSync(target).equals(edited)).toBe(true)
   })
 
-  // THE MUTATION WITNESS (432 B08). A flip across the stability runs fails gate 2, so the receipt is
-  // `rejected`, and a rejected final draft is never written — whatever the loop then does with it.
-  // The claim is measured on disk and on the answer, so a loop that let `rejected` into its final
-  // write reds here on the target's existence even if something later in the call threw.
+  // A flip fails gate 2, so a `rejected` draft must not exist at its target even if the call threw.
   it('never writes a REJECTED draft to its target', async () => {
     const executor = fixtureExecutor(agentQaRoot, () => FIXED_RUN_IDENTITY, ['passed', 'failed'])
     const host = compose({
@@ -1071,16 +929,12 @@ describe('authoring.draft.write end to end through the composition root', () => 
       .find((declaration) => declaration.id === AUTHORING_DRAFT_WRITE_FUNCTION_ID)
 
     expect(declared?.bindingStatus).toBe('bound')
-    // The id passes the dot taxonomy the parity suite enforces off the registry, and carries no
-    // underscore for the chat tool-name projection to trip on.
+    // The id follows the registry's dot taxonomy, with no underscore for the chat projection.
     expect(declared?.id).toMatch(/^[a-z]+(?:\.[a-z]+)+$/)
     expect(declared?.id).not.toContain('_')
-    // the declaration carries no scopes — `test-write` gates nothing any more.
     expect(Object.keys(declared ?? {})).not.toContain('requiredScopes')
   })
 
-  // RE-SPELLED 2026-10-01 from 'refuses a run+read caller BY NAME on the missing
-  // test-write scope'. No scope is read: the same caller authors exactly as a full caller does.
   it('serves a run+read caller exactly as a full caller — no test-write scope is read', async () => {
     const executor = fixtureExecutor(agentQaRoot)
     const model = scriptedModel()
@@ -1181,10 +1035,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
     expect(result.receipt).toBeDefined()
     expect(result.receipt?.draftRef.contentDigest).toBe(result.draftRef?.contentDigest)
 
-    // What reached the shelf: the keys the block teaches and nothing else, with the free values
-    // taken from the Intent and Scope blocks rather than from anything this file wrote. `context`
-    // joined the set in 394-33 — the block now names it optional, so a prompt-driven
-    // generator emits it, and a block that went back to four keys reds here.
+    // The shelf holds the keys the block teaches, with values from the Intent and Scope blocks.
     const staged = readdirSync(join(workspace, SHELF_DIR))
     expect(staged).toHaveLength(1)
     const document = parseYaml(
@@ -1196,12 +1047,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
   })
 
   it('emits the optional `context` key the format block teaches', async () => {
-    // WHAT THIS CELL CLAIMS, AND WHAT IT DOES NOT. It claims the PROMPT CHANNEL: a schema-blind
-    // generator, driven by nothing but the compile prompt, emits a `context` key and those bytes
-    // reach the shelf. It does NOT claim `ParsedDraftLike.context` is populated — this file's
-    // `DraftAuthoringPort` is a FAKE whose `describe()` reads `name` and `steps` and would answer
-    // `staged` for a document whose `context` it never looked at. That claim is made
-    // against the SHIPPED parser in `packages/cli/src/authoring/__tests__/zero-exemplar-format.test.ts`.
+    // Claims the prompt channel only; the shipped parser's `context` is the CLI's own cell.
     const model = formatFollowingModel()
     const executor = fixtureExecutor(agentQaRoot, () => ({
       testName: INTENT,
@@ -1228,8 +1074,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
     expect(format).toBeDefined()
     expect(CONTEXT_OPTIONAL_RULE.test(format ?? '')).toBe(true)
 
-    // AND THE KEY IS IN THE BYTES. `context` is one of the three `EDITABLE_POINTER_ROOTS`, and
-    // until this plan the block forbade it — so no compile could produce one.
+    // `context` is an `EDITABLE_POINTER_ROOTS` member, so the key must reach the staged bytes.
     const staged = readdirSync(join(workspace, SHELF_DIR))
     expect(staged).toHaveLength(1)
     const document = parseYaml(
@@ -1287,17 +1132,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
   })
 
   it('REFUSES an off-vocabulary `target` before the first gate run', async () => {
-    // THE CASE THE GUARD REJECTS, AND THE CORPUS DID NOT HAVE ONE. Round 5 served the vocabulary
-    // into the compile prompt and compared it against nothing: `configuredTargetNames()` sat in a
-    // local variable eight lines above `shelf.write`, and both new "hard branch" doubles picked
-    // their target OUT of that served list, so no cell in either file could express a model that
-    // ignored the block. This is that model, and it is a REALISTIC one — it copies the block's own
-    // canonical example, whose `target: sign-in` this host does not declare.
-    //
-    // WHY THE REFUSAL BELONGS HERE RATHER THAN AT THE RUN. `runs.start` spawns a real child
-    // `agent-qa run`, and `resolveTarget` throws inside it — so an unconfigured target is paid as
-    // up to `DRAFT_STABILITY_RUNS_N` real child processes (nine with repair), and no repair patch
-    // can correct it, because `target` is outside `EDITABLE_POINTER_ROOTS`.
+    // Refused before the run: an unknown target costs real child runs, and no patch edits `target`.
     const model = exampleTargetCopyingModel()
     const executor = fixtureExecutor(agentQaRoot, () => ({
       testName: INTENT,
@@ -1338,9 +1173,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
   })
 
   it('will not invent a target: the generator throws when no vocabulary is served', () => {
-    // THE NON-VACUITY GUARD for the cell above, on the shape `FormatBlockMissingError`'s guard
-    // already established: without it, that cell would pass against a generator that quietly fell
-    // back to the scope key — which is exactly what this file's generator did until this plan.
+    // Non-vacuity: a generator falling back to the scope key would pass the cell above.
     const model = formatFollowingModel().capability()
 
     expect(() => model.generate({
@@ -1352,9 +1185,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
   })
 
   it('has no schema of its own: the generator throws when the format block is absent', () => {
-    // THE GUARD'S OWN NON-VACUITY. Without this, the cell above could pass against a generator
-    // that quietly fell back to a document it was holding — which is exactly what `scriptedModel`
-    // does, and exactly why this file was blind to WINDOWS 111 for twenty-six plans.
+    // Non-vacuity: a generator falling back to a held document would pass the cell above.
     const model = formatFollowingModel().capability()
 
     expect(() => model.generate({
@@ -1395,8 +1226,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
     expect(result.draftRef).toBeUndefined()
     expect(result.receipt).toBeUndefined()
 
-    // THE REFUSAL NAMES ITS EVIDENCE. Asserting `outcome === 'refused'` alone would pass
-    // for a refusal that named the wrong test, or named none at all.
+    // The refusal names its evidence, not merely that it refused.
     expect(result.refusal?.filePath).toBe(NEAR_DUPLICATE_SUITE_TEST.filePath)
     expect(result.refusal?.testName).toBe(NEAR_DUPLICATE_SUITE_TEST.testName)
     expect(result.refusal?.matchedRef)
@@ -1430,16 +1260,11 @@ describe('authoring.draft.write end to end through the composition root', () => 
 
     expect(result.outcome).toBe('drafted')
     expect(result.refusal).toBeUndefined()
-    // Two: the compile and D-18's one refinement round. See the first cell for why both are here.
+    // The compile and the one refinement round.
     expect(model.requests).toHaveLength(2)
   })
 
-  // ---- D-03's dispatch confirm, RETIRED --------------------------------------------
-  //
-  // RE-SPELLED 2026-09-30. `authoring.draft.write` used to ask ONCE at dispatch, carrying the fan-out
-  // preview, and a headless host could not author at all. There is no op gate now: a supplied old
-  // confirm port is never invoked, a declining one declines nothing, and a headless host authors. The
-  // fan-out bound itself is still one function (`authoringFanOutBound`), measured below.
+  // ---- dispatch asks nobody; the fan-out bound stays one function ---------------------
 
   it('dispatches without asking — a supplied old confirm port is never invoked', async () => {
     const executor = fixtureExecutor(agentQaRoot)
@@ -1551,13 +1376,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
     expect(model.requests).toHaveLength(0)
   })
 
-  // ---- 394-18, re-spelled 2026-09-30 for 432 D-06: the outcome is a written file ----------------
-  //
-  // These four cells pinned the proposal a drafted outcome used to file, the digest line that
-  // proposal rendered, the funnel's human-acceptance stage and the refusal on a host that could not
-  // file one. Nothing waits for acceptance now: the drafted outcome IS the written test, so each cell
-  // keeps its subject and measures the direct write instead, still through the production path and
-  // still read back off disk and off the stores rather than off the op's answer.
+  // ---- the drafted outcome is a written file, read back off disk and the stores ----------
 
   /** A model that answers a DIFFERENT valid document per call, so each draft is its own digest. */
   function varyingModel(): { capability: () => JobModelCapability; count: () => number } {
@@ -1569,10 +1388,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
         generate: () => {
           calls += 1
           return Promise.resolve({
-            // `target` joined the document in 394-37. It was absent until the fake shelf
-            // started requiring it — as the SHIPPED parser always has — so this corpus of twelve
-            // was twelve documents `parseTestFile` would have refused outright (WINDOWS 116's
-            // class, caught by tightening the fake rather than by a new claim).
+            // `target` is required, as the shipped parser requires it, so each document has one.
             text: `name: ${DRAFT_TEST_NAME} ${calls}\n`
               + `target: ${CONFIGURED_TARGETS[0] as string}\n`
               + 'steps:\n'
@@ -1632,7 +1448,6 @@ describe('authoring.draft.write end to end through the composition root', () => 
       HUMAN,
     )) as RunDigest
 
-    // the digest lists no proposal of any kind, and counts none.
     expect(digest).not.toHaveProperty('proposalsMintedThisRun')
     expect(digest).not.toHaveProperty('pendingProposalCount')
     expect(JSON.stringify(digest)).not.toMatch(/proposal/i)
@@ -1660,7 +1475,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
       const result = (await invokeFunction(
         host.registry,
         AUTHORING_DRAFT_WRITE_FUNCTION_ID,
-        // a letter suffix, because a number would be a stated value.
+        // A letter suffix, because a number would be a stated value.
         { intent: `${INTENT} (${String.fromCharCode(97 + index)})`, scope: SCOPE },
         HUMAN,
       )) as AuthoringDraftWriteOutput
@@ -1680,10 +1495,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
       HUMAN,
     )) as AuthoringFunnelGetOutput
 
-    // `built` is still the receipts this host minted. RE-SPELLED 2026-10-02:
-    // `accepted` counted human decisions on filed drafts and was 0 here; `writeEligible` counts the
-    // receipts whose disposition the loop writes, so it measures the twelve written files, and
-    // twelve of twelve above the floor is a loop that did not filter: the flag fires.
+    // `writeEligible` counts receipts the loop writes, so a full corpus fires the flag.
     expect(funnel.stages.built).toBe(12)
     expect(funnel.stages.writeEligible).toBe(written.length)
     expect(funnel.acceptanceFailure).toBe(true)
@@ -1709,19 +1521,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
     expect(readdirSync(workspace)).toEqual([])
   })
 
-  // ---- the composed stability read ------------------------------------
-  //
-  // WHAT WAS UNMEASURED. 394-17 wired D-14's history half — `authoringFunnel.outcomes`, over the
-  // run-outcome projection's own read side — and mutation M3 recorded the wire itself as reachable
-  // by NO cell: deleting the whole `outcomes:` binding from `compose-local-agent.ts` left the
-  // monorepo fully green (0 of ~1576). Both ENDS were pinned; only the line joining them was not,
-  // because the bundle lives in a private `WeakMap` and `openEvaluation` is module-private, so
-  // nothing could reach the composed port without driving `authoring.draft.verify` end to end.
-  //
-  // This is that drive. No fake outcomes port is interposed: the rows arrive through
-  // `foldRunOutcomes` — knowledge-local's own fold, over ordinary handoffs carrying NEITHER
-  // durable marker, which is what a real run writes — and the only way a neighbour's name can
-  // reach this receipt is the real binding serving the real read.
+  // Driven through `authoring.draft.verify`, because the composed outcomes port is private.
   it('names the TARGET suite\'s flaky neighbours through the COMPOSED outcomes binding', async () => {
     const knowledgeRoot = join(root, 'agent-qa-knowledge')
     mkdirSync(knowledgeRoot, { recursive: true })
@@ -1746,8 +1546,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
     mkdirSync(dirname(absolute), { recursive: true })
     writeFileSync(absolute, MODEL_DOCUMENT, 'utf8')
 
-    // The gate-2 FLIP: run 1 passed, run 2 failed. D-17 early-stops there, and the flip is the
-    // only state from which the consultation is reachable at all.
+    // The gate-2 flip (pass, then fail) is the only state from which the consultation is reachable.
     const executor = fixtureExecutor(agentQaRoot, () => FIXED_RUN_IDENTITY, ['passed', 'failed'])
     const host = compose({ executor: executor.port, authoring: draftAuthoring(workspace) })
 

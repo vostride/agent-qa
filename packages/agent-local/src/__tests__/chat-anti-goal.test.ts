@@ -1,31 +1,4 @@
-// JOBQ-04's tripwire, on the REAL chat kind (Phase 385 plan 07, C9).
-//
-// JOBQ-04 is an ANTI-GOAL: chat is not a checkpointed job, its state of record is the append-only
-// session log, and a crash mid-turn must resume nothing. An anti-goal has no feature to demonstrate,
-// so the only thing worth building is the thing that FAILS when somebody later unifies chat into the
-// agent job queue — and fails citing the requirement rather than as an unexplained assertion in a
-// file nobody connects to the decision.
-//
-// WHY THIS FILE IS NOT `expect(chat.checkpointed).toBe(false)`. Plan 04 already made the declaration
-// structurally sound: a `checkpointed: true` kind with an empty schedule is unregisterable, and so
-// is the inverse, so re-asserting the flag adds nothing that registration does not already enforce.
-// What registration cannot say is what HAPPENS to a chat job that dies mid-turn. That is a claim
-// about the engine and the store, it is the claim JOBQ-04 actually makes, and it is what a
-// "unification" refactor would break first. So the file has two halves:
-//
-//   1. The REACHABILITY half, in-process and cheap: over the real chat declaration, a handler that
-//      publishes a checkpoint is refused by name, and a handler that tries to author through the one
-//      memoizing primitive is refused by name BEFORE the model is consulted. Chat has no path to a
-//      recorded model call at all.
-//   2. The BEHAVIOURAL half, under a real SIGKILL: a chat turn runs to the very end, its host is
-//      killed before the completion is recorded, and the resumed host re-runs NOTHING — no
-//      checkpoint exists to resume from, the handler is never invoked again, and the model is never
-//      reached. The turn is lost, which is the correct answer for a kind whose state of record is
-//      somewhere else entirely.
-//
-// The crash point is `completeAndChain:before`, and that choice is the leg's own evidence: the
-// driver reaches `completeAndChain` only after the handler has returned `complete`, so the marker
-// existing at all is proof the turn ran to completion. Nothing about it survived.
+// A chat turn killed before completion resumes nothing: no checkpoint, no handler call, no model.
 
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'

@@ -1,14 +1,4 @@
-// Phase 388 plan 10 (G-388-2 / UF-388-01): the posture-driven claim deferral, proven on one
-// fixture with ONE input varied — the declared candidate-prose posture — and nothing else.
-//
-// Two real `composeLocalAgent` hosts over the SAME temp root and therefore the SAME sqlite
-// store: same rows, same id source, same clock construction. The host that declares its
-// curation binding folds with no `MaskingContext` in scope must never CLAIM a `curate-memory`
-// row — never claim-and-decline (the attempt is spent AT the claim, 388-09 M-1), never
-// claim-and-release (a released row is re-offered ahead of every younger row, 388-09 M-2) —
-// while the host that declares a masker active claims the very same row and folds it. The
-// positive control is the point: the deferral is scoped to the unmasked leg, and curation is
-// not disabled outright.
+// Two hosts over one store differ only in posture: `no-masker` never claims, `masker-active` folds.
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -40,11 +30,7 @@ import {
 } from '../composition/compose-local-agent.js'
 import type { LocalAgentHost, LocalAgentJobs } from '../composition/compose-local-agent.js'
 
-/**
- * The composition's REQUIRED quarantine identity mint. Passthrough here: this
- * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
- * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
- */
+// Passthrough: this fixture already speaks canonical workspace-relative bytes.
 const MINT_IDENTITY = (filePath: string): string => filePath
 
 const RUN_ID = 'run-388-deferral'
@@ -274,11 +260,7 @@ describe('curation claim deferral by candidate-prose posture', () => {
   })
 
   it('a host with NO postRun binding is treated as unmasked, not as unconstrained', async () => {
-    // The third posture. A host that never declared what its fold does with candidate prose
-    // cannot have reviewed it, so the safe reading of silence is `no-masker` — and 388-09's
-    // M-3 hazard is exactly why: a stand-in registry composed without `postRun` runs a
-    // curate-memory row to `done` and publishes `bundle-committed`, a receipt no fold earned.
-    // Excluding the kind is what stops that host from minting one.
+    // Silence reads as `no-masker`: a host composed without `postRun` would fold unreviewed.
     const host = composeLocalAgent({
       mask: (text) => text,
       mintQuarantineIdentityPath: MINT_IDENTITY,
@@ -295,10 +277,7 @@ describe('curation claim deferral by candidate-prose posture', () => {
   })
 
   it('the posture table is frozen and the queue cannot be re-armed through it', async () => {
-    // Every sibling security-relevant table in compose-local-agent.ts is frozen (:263, :322,
-    // :784, :797). This one guards a DISCLOSURE boundary and was the only one left writable,
-    // and the engine captured its array by reference — so a typechecks-clean write to either
-    // could disable the guard at runtime, where no posture pin would see it.
+    // It guards a disclosure boundary and the engine holds its arrays by reference: frozen.
     expect(Object.isFrozen(UNCLAIMABLE_BY_PROSE_POSTURE)).toBe(true)
     expect(Object.isFrozen(UNCLAIMABLE_BY_PROSE_POSTURE['no-masker'])).toBe(true)
 

@@ -15,9 +15,6 @@ import type { FunctionCaller, RunDetailRows } from '@vostride/agent-qa-schema'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { composeLocalAgent } from '../composition/compose-local-agent.js'
 
-// the retired `grantedScopes` and `safeMode` caller fields and the
-// retired `resolveExecutionContext` registry option are dropped; nothing read them. The composed
-// host's own `resolveExecutionContext` input is not the registry option and stays.
 const caller: FunctionCaller = { surface: 'test', origin: 'agent' }
 const op = 'runs.evidence'
 let temporary: string

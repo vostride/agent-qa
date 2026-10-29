@@ -1,21 +1,4 @@
-// The model-invocation counter, published as a durable artifact.
-//
-// The claim JOBQ-03 rests on is about a process that no longer exists: host one authored, host one
-// died, host two must not author again. An in-process spy cannot say anything about that at all —
-// its counter lives in the heap of whichever process is asserting, and a parent reading its own
-// `vi.fn()` after spawning a child has measured nothing. So the count leaves the process the way
-// every other durable fact in this phase does: as bytes on a device.
-//
-// Each invocation is one appended line, fsync'd on its own file descriptor before `generate`
-// answers, with a best-effort parent-directory fsync so the file's own directory entry is durable
-// the first time. That ordering is the whole point: a line that reached only the page cache would
-// still be readable by the parent on this machine (SIGKILL does not drop the kernel's dirty pages),
-// so the fsync is what makes the artifact a durability claim rather than a coincidence.
-//
-// The answer is a pure function of the request. An authored checkpoint is memoized and replayed, so
-// a model whose text varied with the attempt, the clock or a sample would make an interrupted
-// history differ from an uninterrupted one for a reason that has nothing to do with recovery — and
-// the usual repair for a failing equality assertion is to loosen it.
+// Each call appends one fsync'd line before answering, so the count outlives the process.
 
 import { closeSync, fsyncSync, openSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'

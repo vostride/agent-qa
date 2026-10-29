@@ -16,11 +16,7 @@ import {
 import { AGENT_JOB_STORE_DB_FILE } from '../store/sqlite-job-store.js'
 import { MASKED_RESOLVED_CONFIG_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 
-/**
- * The composition's REQUIRED quarantine identity mint. Passthrough here: this
- * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
- * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
- */
+// Passthrough: this fixture already speaks canonical workspace-relative bytes.
 const MINT_IDENTITY = (filePath: string): string => filePath
 
 const TEST_MODEL: JobModelCapability = {

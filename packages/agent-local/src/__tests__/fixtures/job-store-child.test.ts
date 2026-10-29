@@ -1,20 +1,4 @@
-// A second OS process that writes the agent job store.
-//
-// The idiom is v51's `sigkill-drain-child` fixture, generalized so later plans can add roles
-// without re-deriving the plumbing: a `.test.ts` that doubles as a child entry point, gated
-// by an env flag, with every input arriving as a required environment variable and every
-// result handed back as one atomically-published JSON report. Plan 06's kill-matrix worker is
-// meant to be another ROLE in this file rather than another file.
-//
-// The contract, verbatim, for whoever adds the next role:
-//   AGENT_QA_JOB_CHILD=1            gate — without it the child suite is skipped entirely
-//   AGENT_QA_JOB_CHILD_ROLE         which role to run; an unknown value is refused by name
-//   AGENT_QA_JOB_CHILD_ROOT         absolute agent-qa root the store lives under
-//   AGENT_QA_JOB_CHILD_REPORT       absolute path the child publishes its JSON report to
-//   AGENT_QA_JOB_CHILD_READY        absolute path the child touches when it is loaded
-//   AGENT_QA_JOB_CHILD_GO           absolute path the child waits for before acting
-//   AGENT_QA_JOB_CHILD_ROUNDS       how many ping-pong rounds to run
-// Markers are published temp-then-rename so the parent can never observe a half-written one.
+// A `.test.ts` doubling as a child entry point, gated by `AGENT_QA_JOB_CHILD=1`, fed by env.
 
 import { existsSync, renameSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'

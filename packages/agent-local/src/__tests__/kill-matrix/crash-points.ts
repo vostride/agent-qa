@@ -1,23 +1,4 @@
-// The crash-point registry and the seam its points fire through.
-//
-// A crash point is DERIVED, never listed. v51's fixture carried a fixed three-member union of
-// boundaries, which was right for one lifecycle and wrong for a queue whose boundaries are
-// whatever each kind declares: a hand-kept list stops covering a kind the moment 388/389 rework
-// one, and a coverage table computed from a stale list reports full coverage of an interruption
-// that never happened. So the points come out of the declarations themselves — every declared
-// checkpoint contributes the pair {immediately before its publish, immediately after it} — and a
-// kind that declares no checkpoint contributes nothing, loudly.
-//
-// The pair is the JOBQ-03 adjacency: those two points straddle the exact instant a checkpoint
-// becomes durable, so they are the two histories that must converge on resume while differing in
-// whether the checkpoint had to be authored again.
-//
-// The SEAM is a store decorator rather than a conditional in production code. The engine reaches
-// durability only through `JobStorePort`, so wrapping the port is enough to stand at either side of
-// any durable write, and `packages/agent` keeps exactly zero test branches. It is deliberately
-// general over the verb set rather than special-cased to `publishCheckpoint`: plan 07's adversarial
-// legs stand beside `failAndChain`, `completeAndChain` and `recordCancellation`, and they are meant
-// to be new selectors over THIS decorator rather than a second harness.
+// Crash points derive from each kind's declared checkpoints, before and after its publish.
 
 import type {
   JobCancelOutcome,
@@ -125,12 +106,7 @@ export function parseCrashPoint(
   return found
 }
 
-/**
- * The checkpoints that were durable when the host died — the ones JOBQ-03 forbids re-authoring.
- *
- * `before-publish` means the checkpoint being written never reached the store, so everything
- * STRICTLY before it is recorded; `after-publish` means it did, so it is included.
- */
+// `before-publish` excludes the checkpoint being written; `after-publish` includes it.
 export function recordedCheckpointsAtCrash(
   schedule: readonly string[],
   point: JobCrashPoint,
@@ -148,13 +124,7 @@ export function pendingCheckpointsAtCrash(
 
 // ---- the interception seam ---------------------------------------------------------------------
 
-/**
- * Every verb the decorator stands beside, as a VALUE.
- *
- * A list rather than a bare union because plan 07's adversarial points are selected by verb name
- * from an environment variable, and a name that no verb answers to has to be refused rather than
- * silently never firing — a leg whose hook can never fire is a leg that proves nothing.
- */
+// A list, so a verb name from the environment that matches no verb is refused, not inert.
 export const JOB_STORE_VERBS = [
   'adoptEpoch',
   'enqueue',
@@ -188,7 +158,7 @@ export interface JobStoreCall {
  */
 export type JobStoreCrashHook = (side: 'before' | 'after', call: JobStoreCall) => void
 
-/** The hook a derived checkpoint crash point fires through. Plan 07 supplies its own. */
+/** The hook a derived checkpoint crash point fires through; adversarial legs supply their own. */
 export function checkpointCrashHook(
   point: JobCrashPoint,
   onReached: (call: JobStoreCall) => never,
@@ -202,14 +172,7 @@ export function checkpointCrashHook(
   }
 }
 
-// ---- crash points that are NOT a checkpoint publish (plan 07's adversarial legs) ----------------
-//
-// The derived points above straddle a checkpoint publish, which is the whole of JOBQ-03's happy
-// path. The adversarial guarantees live beside OTHER verbs: a failure disposition commits through
-// `failAndChain`, a cancellation lands through `recordCancellation`, and a kind that
-// declares no checkpoint at all (chat) reaches durability only through `completeAndChain`. So the
-// second point vocabulary is "a side of a named verb, optionally narrowed to one row" — the same
-// decorator, a different predicate, and no second harness.
+// ---- crash points beside `failAndChain`, `recordCancellation` and `completeAndChain` ----
 
 export const JOB_CRASH_SIDES = ['before', 'after'] as const
 

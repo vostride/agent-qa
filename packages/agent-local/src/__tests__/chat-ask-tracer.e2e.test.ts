@@ -1,24 +1,4 @@
-// RE-SPELLED 2026-10-01: `proposals.list` is deleted with the inbox. The read these
-// cells drive through the composed host is now `quarantine.list`, another allow-tier read that
-// answers honestly (an empty listing) in a bare temp project, so every claim keeps its subject.
-// The 392 tracer: one deterministic utterance through every layer.
-//
-// What this file measures that no unit test can: that the WHOLE spine is joined. The op is
-// registered, `chatTurn` is bound at THE composition root, the gate lets the turn through, the
-// stage-1 table resolves the clause without the planner being consulted, the clause's own
-// invocation crosses `invokeFunction` a second time with a composition-minted human-origin caller,
-// the receipt comes back parsed against the declared output contract, and the whole turn is on
-// disk as an append-only JSONL file with a versioned header.
-//
-// EVERY HOP GOES THROUGH `composeLocalAgent()` AND `invokeFunction`. Nothing here constructs a turn
-// engine, a resolver table or a session log by hand — a differential assembled from parts can pass
-// while the composition wires them wrong or not at all (the produced-not-literal law, 390 round 3).
-//
-// THE FAIL-CLOSED ARM IS HALF THE FILE, and it is the half that would rot first. D-08's rule is
-// that an unroutable clause with no planner bound fails the turn closed NAMING the clause and
-// executing NOTHING. A tracer that only proved the happy path would ship a routing layer whose
-// failure mode is a silent drop, which is the exact regression CHAT-03's ceiling exists to
-// measure later.
+// One deterministic utterance through every layer of the composed host, plus the fail-closed arm.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -66,9 +46,7 @@ const MODEL: JobModelCapability = {
 
 const MINT_IDENTITY = (filePath: string): string => filePath
 
-// the tracer's utterance was the bare `proposals` alias, which left chat
-// resolution with the inbox. The same op is reached through the one `/fn` branch, and every claim
-// below (table resolution, human origin, the durable JSONL shape, resume) is unchanged.
+// The op is reached through the one `/fn` branch.
 describe('the ask tracer: agent-qa ask "/fn quarantine.list", end to end over the composed host', () => {
   let root: string
   let agentQaRoot: string
@@ -126,9 +104,7 @@ describe('the ask tracer: agent-qa ask "/fn quarantine.list", end to end over th
       clause: '/fn quarantine.list',
       functionId: QUARANTINE_LIST_FUNCTION_ID,
       status: 'executed',
-      // RESEARCH Pitfall 1: a stage-1 table hit is a person typing, so the composition mints
-      // `human` for it. An `agent` here would mean the deterministic aliases had quietly lost
-      // access to every `requiresHumanOrigin` op in the catalogue.
+      // A stage-1 table hit is a person typing, so the composition mints `human` for it.
       origin: 'human',
     })
     expect(result.unhandled).toBeUndefined()
@@ -148,16 +124,12 @@ describe('the ask tracer: agent-qa ask "/fn quarantine.list", end to end over th
       'stage_outcome',
       'stage_outcome',
       'stage_outcome',
-      // the op's MASKED result lands beside its receipt, in that order — the map, then
-      // the territory. The receipt is written after the loop's dispatch and this line inside it,
-      // so `clause_result` precedes the `clause_receipt` it belongs to.
+      // The masked result lands just before its receipt: `clause_result`, then `clause_receipt`.
       'clause_result',
       'clause_receipt',
       'turn_complete',
     ])
-    // The stage ledger, in the pinned order — and the middle entry is the tracer's central claim:
-    // the planner was SKIPPED, not asked and not failed. `skipped` is a distinct outcome for
-    // exactly this reason (D-01/D-06 — a canonical utterance never touches the LLM).
+    // The planner is skipped, not asked and not failed: a canonical utterance never reaches it.
     expect(
       events
         .filter((event) => event.kind === 'stage_outcome')
@@ -173,9 +145,7 @@ describe('the ask tracer: agent-qa ask "/fn quarantine.list", end to end over th
       status: 'completed',
       turnId: result.turnId,
     })
-    // D-18 map-not-territory: the receipt names the op and summarises; the op's own payload
-    // (the ledger rows) stays in its store and appears nowhere in these bytes. The outcome sentence
-    // says "0 quarantine entries", so the payload KEY is what is asserted absent.
+    // The receipt summarises; the op's payload stays in its store, so the payload key is absent.
     const receipt = events.find((event) => event.kind === 'clause_receipt')
     expect(receipt).toMatchObject({ functionId: QUARANTINE_LIST_FUNCTION_ID, origin: 'human' })
     expect(JSON.stringify(receipt)).not.toContain('"entries":')
@@ -185,11 +155,10 @@ describe('the ask tracer: agent-qa ask "/fn quarantine.list", end to end over th
     const result = await ask('write a test for two factor auth')
 
     expect(result.status).toBe('fail_closed')
-    // D-10's exact claim: ZERO clauses executed. Not "the failing one was skipped" — nothing ran.
+    // Nothing ran, not merely the failing clause.
     expect(result.receipts.filter((receipt) => receipt.status === 'executed')).toHaveLength(0)
     expect(result.unhandled?.clause).toBe('write a test for two factor auth')
-    // the message NAMES what could not be done. A fail-closed turn that said only "I
-    // could not do that" would be a silent drop wearing a refusal's clothes.
+    // The message names what could not be done; a bare refusal would be a silent drop.
     expect(result.unhandled?.reason).toContain('write a test for two factor auth')
   })
 

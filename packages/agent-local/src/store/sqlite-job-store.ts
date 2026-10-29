@@ -1,19 +1,4 @@
-// The agent job queue's durable lifecycle store.
-//
-// Built on Node's own sqlite binding, so the queue adds ZERO runtime dependencies
-// while still getting real transactions and a real unique index. Every compound verb of
-// `JobStorePort` is exactly one `BEGIN IMMEDIATE ... COMMIT` here: the binding is
-// synchronous, so a verb cannot interleave with another verb in this process, and
-// `BEGIN IMMEDIATE` plus a busy timeout covers the writer in the next process.
-// There is no transaction helper in the binding, so every one of them is written out and
-// the catch-block rollback is guarded on `isTransaction` — rolling back when no transaction
-// is open throws, which would replace the real error with a confusing one.
-//
-// One thing this file deliberately does NOT do is invent a claim STATUS. `JobStatus` is a
-// shipped kernel vocabulary that the C6 break extended by exactly two terminal members, and
-// a job in flight is not a new public state — it is a fact about who holds it. So the claim
-// lives in a `claimed_at` column the store owns, and the row's published status stays the
-// one the contract already names.
+// Each compound verb is one `BEGIN IMMEDIATE`; rollback first checks `isTransaction`.
 
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
@@ -63,27 +48,13 @@ import { canonicalLogicalDump, createLogicalDump, selectOrderedRows } from './lo
 import type { LogicalDump } from './logical-dump.js'
 import { JobStoreSchemaVersionError, UnknownJobRowError } from './store-errors.js'
 
-/**
- * Stamped into `PRAGMA user_version` at creation and checked on every open.
- *
- * Stamp and hard-fail, never migrate. The milestone ships nothing between its releases, so a
- * database written by another build is a development artifact rather than a user's history,
- * and migration machinery for it would be code with no user that everything afterwards has
- * to keep working.
- */
+// Stamped at creation and checked on every open; a mismatch hard-fails, never migrates.
 export const AGENT_JOB_STORE_USER_VERSION = 2
 
-/**
- * Busy timeout for every connection to the job database.
- *
- * D-02's whole cross-process story is "several processes write small transactions and
- * sqlite arbitrates", which only works if a writer waiting on the write lock retries rather
- * than failing immediately. The binding's constructor `timeout` option is that retry
- * window.
- */
+// A writer waiting on the lock retries for this long instead of failing at once.
 export const AGENT_JOB_STORE_BUSY_TIMEOUT_MS = 2000
 
-/** The store's own file name under the agent-qa root, per the D-21 naming. */
+// The store's file name under the agent-qa root.
 export const AGENT_JOB_STORE_DB_FILE = 'agent-jobs.db'
 
 export interface CreateSqliteJobStoreOptions {
@@ -111,31 +82,10 @@ export interface JobStoreNotification {
 export interface SqliteJobStore extends JobStorePort {
   close(): void
 
-  /**
-   * The chain-terminal notifications this database holds, ordered by run.
-   *
-   * On the implementation rather than the neutral port, beside `logicalDump`, and for the
-   * same reason: the port is the ENGINE's vocabulary and the engine never reads a
-   * notification — it writes one, once, as part of ending a job. Every reader of these rows
-   * is a surface, and 388 D-14 routes surfaces through the function layer, not through here.
-   *
-   * The payload is parsed through the schema guard rather than handed back as text: the
-   * column is bytes another build could have written, and a row that lost a stage cannot be
-   * allowed to travel as a `RunNotification`.
-   */
+  // On the implementation, not the port: only surfaces read notifications; the payload is guarded.
   listNotifications(): Promise<readonly JobStoreNotification[]>
 
-  /**
-   * The D-03 comparison basis, in full: every table this database holds plus a digest per
-   * checkpoint file.
-   *
-   * Kept beside `dumpState()` rather than replacing it, because the two answer different
-   * questions and collapsing them would weaken both. `dumpState()` is the typed, engine-facing
-   * projection of the job rows and it is part of the neutral port. This one is the storage
-   * implementation's own full-state instrument: it knows about the checkpoint directory and
-   * about tables the port has no vocabulary for, and it is the thing a crash comparison holds
-   * up against another run.
-   */
+  // The full-state comparison basis, including checkpoint files and tables the port cannot name.
   logicalDump(): Promise<LogicalDump>
 
   /** The same dump as one comparable string. Byte equality here is state equality. */
@@ -171,9 +121,7 @@ const SCHEMA_STATEMENTS = [
      -- 444.1 D-23: a retrying row is not claimable before this instant. Appended last, as above.
      not_before TEXT
    )`,
-  // D-08's dedupe is THIS line. Making it a store-level constraint rather than a check the
-  // caller performs is what turns "two enqueues of the same work produce one job" from a
-  // convention into something no caller, in any process, can get wrong.
+  // The dedupe is this unique index, so no caller in any process can enqueue the same work twice.
   `CREATE UNIQUE INDEX IF NOT EXISTS jobs_kind_idempotency_key
      ON jobs (kind, idempotency_key)`,
   `CREATE TABLE IF NOT EXISTS job_store_fence (
@@ -193,18 +141,13 @@ const SCHEMA_STATEMENTS = [
      epoch          INTEGER NOT NULL,
      PRIMARY KEY (job_id, attempt, checkpoint_id)
    )`,
-  // the chain-terminal record, beside the jobs it summarizes rather than in a
-  // second durable medium. `created_at` is written from the injected clock like every other
-  // timestamp in this file — a SQL-side default would leak host time into the D-03 dump and
-  // make two identical histories compare unequal.
+  // `created_at` comes from the injected clock; a SQL default would leak host time into the dump.
   `CREATE TABLE IF NOT EXISTS notifications (
      run_id     TEXT NOT NULL,
      payload    TEXT NOT NULL,
      created_at TEXT NOT NULL
    )`,
-  // D-10's dedupe is THIS line, and it is the same idiom as the jobs index above for the same
-  // reason: a crash-replayed chain terminal re-attempts the insert, and "one notification per
-  // run, ever" has to be something no caller — in this process or the next — can get wrong.
+  // One notification per run, ever: a crash-replayed terminal hits this unique index.
   `CREATE UNIQUE INDEX IF NOT EXISTS notifications_run_id
      ON notifications (run_id)`,
 ] as const
@@ -212,25 +155,10 @@ const SCHEMA_STATEMENTS = [
 /** The statuses a job never leaves. A cancel arriving at one of them moves nothing. */
 const TERMINAL_JOB_STATUSES: readonly JobStatus[] = ['done', 'failed', 'cancelled']
 
-/**
- * The conclusion a quarantined row records. A CONCLUSION, never a kind.
- *
- * Declared as `JobConclusionKind` rather than inferred, so removing the member from the shipped
- * vocabulary fails to compile HERE as well as in the schema's own contract tests — the store may
- * not go on recording an outcome the contract no longer publishes.
- */
+// Typed as `JobConclusionKind`, so removing the member from the contract fails to compile here.
 const UNREADABLE_KIND_CONCLUSION: JobConclusionKind = 'unreadable_kind'
 
-/**
- * The FIXED reason a quarantine writes, carrying none of the bytes it is about.
- *
- * Masked deliberately. The unreadable kind is a string an EARLIER build — or anything with write
- * access to this database — put in a column, and `last_failure_reason` is rendered on operator
- * terminals and copied into logs. Interpolating it here would take the one field of the row this
- * build refuses to trust and paste it into the one place an operator is most likely to read
- * without thinking. The original kind stays in the `kind` column, where a reader has to ask for it
- * and knows what it is when they do.
- */
+// Fixed text: the unreadable kind is untrusted bytes, and this reason reaches operator terminals.
 export const QUARANTINED_UNREADABLE_KIND_REASON =
   'agent job quarantined at claim: this build does not read the kind recorded for this row, so '
   + 'the row was landed permanently without being parsed. The original kind, id and payload are '
@@ -247,30 +175,12 @@ export const QUARANTINED_UNREADABLE_KIND_REASON =
  */
 const QUARANTINE_SCAN_BOUND = 1_000
 
-/**
- * Whether this row's kind is one this build cannot read.
- *
- * Asked of the RAW column, before `rowToJob`, and that ordering is the entire fix. `claimNext`
- * spends the attempt at the claim and then parses; a kind the contract does not contain
- * threw out of `jobSchema.parse` INSIDE the transaction, so `inTransaction` rolled the spent
- * attempt back with it and the very next claim was offered the same row again — a crash-loop
- * reached with no crash, starving every valid row behind it. Recognising the row here means the
- * quarantine and the attempt commit together.
- */
+// Asked of the raw column before `rowToJob`, so the quarantine commits with the spent attempt.
 function isUnreadableKindRow(row: Record<string, unknown>): boolean {
   return !isJobKind(String(row.kind))
 }
 
-/**
- * The conclusion a quarantined row is READ back with — derived, never a column.
- *
- * Derived because it is derivable: the three facts below are already on the row, which is why 422
- * declined a column for it under D-04's stamp-and-hard-fail rule. The durable record IS the three
- * facts this reads — an unreadable kind, a permanent landing, and the fixed reason above — and the
- * conclusion is their name rather than a fourth fact that could disagree with them. It is
- * deliberately NOT "any row whose kind is unreadable": a retired-kind row still sitting queued has
- * not been quarantined yet, and saying it had would be a receipt for an event that has not happened.
- */
+// Derived from the unreadable kind, the permanent landing and the fixed reason; never a column.
 function quarantineConclusionOf(row: Record<string, unknown>): JobConclusionKind | undefined {
   if (!isUnreadableKindRow(row)) return undefined
   if (String(row.status) !== 'failed') return undefined
@@ -344,12 +254,7 @@ export function createSqliteJobStore(options: CreateSqliteJobStoreOptions): Sqli
      ORDER BY created_at ASC, id ASC
      LIMIT 1`,
   )
-  // The exclusion path's statements, cached by placeholder ARITY so a hot claim path never
-  // re-prepares. Bound parameters only — one `?` per excluded kind — even though
-  // `JobKind` is a closed vocabulary: the bound form costs nothing and removes the question
-  // of a caller string ever reaching the SQL text. The predicate is the SAME
-  // WHERE plus `kind NOT IN (...)`, same ORDER BY, so the only thing an exclusion changes is
-  // which row the SELECT offers — never what claiming does to it (T-388-21/23).
+  // Cached per placeholder arity, bound parameters only; an exclusion only changes which row.
   const selectClaimableExcluding = new Map<number, ReturnType<typeof db.prepare>>()
   function claimableStatementFor(excludedCount: number): ReturnType<typeof db.prepare> {
     const cached = selectClaimableExcluding.get(excludedCount)
@@ -376,11 +281,7 @@ export function createSqliteJobStore(options: CreateSqliteJobStoreOptions): Sqli
   const markDone = db.prepare(
     "UPDATE jobs SET status = 'done', claimed_at = NULL, updated_at = ? WHERE id = ?",
   )
-  // the quarantine landing. Terminal, claim released, reason fixed — and the row's
-  // `kind`, `id` and `payload` untouched, because the point of landing it rather than deleting it
-  // is that an operator can still see what an earlier build wrote. `attempts` is not named here:
-  // the claim immediately above this statement already spent it, and this transaction commits
-  // both, which is the difference between a spent attempt and a rolled-back one.
+  // Terminal and released with `kind`, `id` and `payload` kept; the spent attempt commits too.
   const markQuarantined = db.prepare(
     `UPDATE jobs
      SET status = 'failed', claimed_at = NULL, last_failure_kind = 'permanent',
@@ -388,10 +289,7 @@ export function createSqliteJobStore(options: CreateSqliteJobStoreOptions): Sqli
      WHERE id = ?`,
   )
   const touchJob = db.prepare('UPDATE jobs SET updated_at = ? WHERE id = ?')
-  // Two statements, because the two dispositions are two different outcomes: a retryable
-  // failure releases the claim and leaves the row queued for the next attempt, while a
-  // permanent one is terminal. Whether a retryable REPORT becomes a retry disposition at all
-  // is the engine's call under D-18's bound — the store records the decision, never makes it.
+  // Two statements for two outcomes; whether a report becomes a retry is the engine's call.
   const markRetryable = db.prepare(
     `UPDATE jobs
      SET claimed_at = NULL, last_failure_kind = 'retry', last_failure_reason = ?,
@@ -411,9 +309,7 @@ export function createSqliteJobStore(options: CreateSqliteJobStoreOptions): Sqli
          last_failure_reason = ?, updated_at = ?
      WHERE id = ?`,
   )
-  // The two halves of D-19, as two statements, because they are two different transitions.
-  // One stops a job nobody is running; the other only records that somebody asked, and leaves
-  // the row exactly as claimable as it was so the driver can finish its step.
+  // Two transitions: stop an unclaimed job, or record the request and leave the row claimable.
   const markCancelledNow = db.prepare(
     `UPDATE jobs
      SET status = 'cancelled', claimed_at = NULL, cancel_requested_at = ?, updated_at = ?
@@ -427,11 +323,7 @@ export function createSqliteJobStore(options: CreateSqliteJobStoreOptions): Sqli
      SET status = 'cancelled', claimed_at = NULL, updated_at = ?
      WHERE id = ?`,
   )
-  // The operator requeue's three statements. The UPDATE clears every column that
-  // recorded HOW the row finished as well as the status itself — a requeued job that kept its
-  // failure reason or its cancel request would be a queued row still carrying the verdict of
-  // an attempt that no longer exists, and the next drainer would read it as its own. The start
-  // goes with them: a requeued row that kept it would time a queue life that no longer exists.
+  // Clears every column recording how the row finished, start included, so no verdict carries over.
   const markRequeued = db.prepare(
     `UPDATE jobs
      SET status = 'queued', claimed_at = NULL, started_at = NULL, attempts = 0,
@@ -466,9 +358,7 @@ export function createSqliteJobStore(options: CreateSqliteJobStoreOptions): Sqli
      ORDER BY attempt DESC
      LIMIT 1`,
   )
-  // ON CONFLICT DO NOTHING rather than a caller-side "already notified?" read: the read and
-  // the write would be two decisions about one row, and the window between them is precisely
-  // where a replayed terminal writes the second notification.
+  // `ON CONFLICT DO NOTHING`, because a read-then-write leaves a window for a second notification.
   const insertNotification = db.prepare(
     `INSERT INTO notifications (run_id, payload, created_at) VALUES (?, ?, ?)
      ON CONFLICT (run_id) DO NOTHING`,
@@ -497,14 +387,7 @@ export function createSqliteJobStore(options: CreateSqliteJobStoreOptions): Sqli
     return row === undefined ? 0 : toNumber(row.epoch)
   }
 
-  /**
-   * The fence check, called from INSIDE each drain-side verb's transaction.
-   *
-   * Inside is the whole point: checking before `BEGIN IMMEDIATE` would leave a window in
-   * which another writer adopts a newer epoch between the check and the mutation, which is
-   * precisely the split-brain the fence exists to exclude. The epoch is re-read every time
-   * and never cached (the v51 lease discipline).
-   */
+  // Inside each drain verb's transaction, or another writer can adopt a newer epoch in between.
   function requireFence(fence: JobStoreFence): void {
     const observed = currentEpoch()
     if (observed !== fence.epoch) {
@@ -512,14 +395,7 @@ export function createSqliteJobStore(options: CreateSqliteJobStoreOptions): Sqli
     }
   }
 
-  /**
-   * Every row leaves this store through the shipped zod contract.
-   *
-   * That is a boundary check, not ceremony: the payload column is opaque text a second
-   * process wrote, and the columns around it are only as trustworthy as whatever produced
-   * them. Parsing means a row that lost its attempt count or its timestamps cannot travel
-   * as a `Job` — which is exactly the class of row the C6 break exists to forbid.
-   */
+  // Parsed through the zod contract, because the payload is opaque text another process wrote.
   function rowToJob(row: Record<string, unknown> | undefined): Job {
     if (row === undefined) {
       throw new UnknownJobRowError('<missing>')
@@ -544,10 +420,7 @@ export function createSqliteJobStore(options: CreateSqliteJobStoreOptions): Sqli
   }
 
   function insertOrGet(request: JobInsert, now: string): JobEnqueueOutcome {
-    // Checked HERE and not only in the engine. D-02 lets any process open this database, so
-    // the store is where dedupe is guaranteed, and an empty key satisfies the unique index
-    // while collapsing every job of a kind onto one slot — the failure the guarantee exists
-    // to prevent. The engine's error is reused rather than reprinted: one condition, one name.
+    // Checked in the store: an empty key passes the unique index but collapses a kind to one slot.
     if (request.idempotencyKey.trim() === '') {
       throw new MissingIdempotencyKeyError(request.kind)
     }
@@ -566,22 +439,7 @@ export function createSqliteJobStore(options: CreateSqliteJobStoreOptions): Sqli
     }
   }
 
-  /**
-   * Record the chain-terminal notification, if the chain really has terminated.
-   *
-   * Called from INSIDE both terminal transactions, and the placement is the guarantee: the
-   * statuses it reads are the ones this very transaction just wrote, so there is no instant
-   * between "the last job became terminal" and "the run was notified" for a crash to land in.
-   *
-   * The rule is stated over the candidates that EXIST rather than over a membership list,
-   * which is what lets a candidate have an id and no row without making every
-   * chain look incomplete. Its head must exist, though: a chain-member job that arrived
-   * with a run id but whose analyze-run row was never written is not a run's chain at all, and
-   * notifying for it would mint a dedupe key nothing else in the system agrees with.
-   *
-   * the reserved sixth job kind that first motivated the rule left
-   * with the Issue-slot cleanup.
-   */
+  // Inside both terminal transactions, so no crash lands between the last job and the notify.
   function recordChainTerminal(chainTerminal: ChainTerminalRecord, now: string): void {
     let headExists = false
     for (const candidate of chainTerminal.candidateJobIds) {
@@ -606,8 +464,7 @@ export function createSqliteJobStore(options: CreateSqliteJobStoreOptions): Sqli
       attempts: toNumber(row.attempts),
       claimed: row.claimed_at !== null,
       cancelRequested: row.cancel_requested_at !== null,
-      // OMITTED rather than `undefined` when there is nothing to say, so a reader that
-      // serializes this row does not publish an empty conclusion key for every ordinary job.
+      // Omitted rather than `undefined`, so a serialized row publishes no empty conclusion key.
       ...(conclusionKind === undefined ? {} : { conclusionKind }),
       createdAt: String(row.created_at),
       updatedAt: String(row.updated_at),
@@ -639,9 +496,7 @@ export function createSqliteJobStore(options: CreateSqliteJobStoreOptions): Sqli
 
     async claimNext(fence: JobStoreFence, options?: ClaimNextOptions): Promise<JobClaimOutcome> {
       const now = clock.now()
-      // Honoured in the SELECT itself, never by claiming and undoing: per D-18 the attempt
-      // is spent at the claim, and (388-09 M-2) a released row is re-offered ahead of every
-      // younger row, so claim-and-undo would burn the bound or starve the queue.
+      // Excluded in the SELECT, because claim-and-undo would spend an attempt or starve the queue.
       const excludeKinds = options?.excludeKinds ?? []
       return inTransaction(() => {
         // FIRST, and before the loop rather than inside it: a quarantine is a WRITE, so a caller
@@ -655,15 +510,10 @@ export function createSqliteJobStore(options: CreateSqliteJobStoreOptions): Sqli
           if (row === undefined) {
             return { claimed: false }
           }
-          // the attempt is counted HERE, at the claim, not when a failure is recorded.
-          // A job that kills its host on every attempt records no failures at all, so a
-          // failure-time counter would let it retry forever.
+          // Counted at the claim, because a job that kills its host records no failures.
           markClaimed.run(now, now, now, String(row.id))
           const claimed = requireRow(String(row.id))
-          // asked of the RAW row, BEFORE `rowToJob`. The landing joins the claim's own
-          // transaction, so the attempt this claim just spent commits with it instead of being
-          // rolled back by a parser throwing on the way out — and the loop then offers the next
-          // claimable row, so several poisoned heads cost one pass rather than one per row.
+          // Asked of the raw row before `rowToJob`, so the landing commits with the spent attempt.
           if (isUnreadableKindRow(claimed)) {
             markQuarantined.run(QUARANTINED_UNREADABLE_KIND_REASON, now, String(row.id))
             continue
@@ -723,8 +573,7 @@ export function createSqliteJobStore(options: CreateSqliteJobStoreOptions): Sqli
         // Parent transition and every insert share this transaction. If any insert raises,
         // inTransaction rolls the parent and all earlier successors back before surfacing it.
         const chained = next.map((request) => insertOrGet(request, now))
-        // D-12's other half. Notify rides the failure terminal on exactly the same footing as
-        // the success one, because a chain that gave up is when a user most needs to hear.
+        // Notify on the failure terminal too: a chain that gave up is when a user most needs it.
         if (chainTerminal !== undefined) recordChainTerminal(chainTerminal, now)
         return { job: rowToJob(requireRow(String(jobId))), chained }
       })
@@ -739,10 +588,7 @@ export function createSqliteJobStore(options: CreateSqliteJobStoreOptions): Sqli
       inTransaction(() => {
         requireFence(fence)
         requireRow(String(jobId))
-        // The attempt count is NOT touched here. D-18 spends it at the claim, so a job that
-        // kills its host before it can report anything still exhausts its bound; incrementing
-        // again on the way out would charge a reported failure twice and an unreported one
-        // never.
+        // Attempts are spent at the claim; incrementing here would charge a reported failure twice.
         if (disposition.kind === 'retry') {
           // Lexical comparison in the claim holds only because both sides are toISOString().
           const notBefore =
@@ -804,28 +650,14 @@ export function createSqliteJobStore(options: CreateSqliteJobStoreOptions): Sqli
       })
     },
 
-    // The 413-13 gap closure, and the checkpoint forget is its load-bearing half.
-    //
-    // Phase 413's pump composed with no post-run capabilities, so the kind registry selected
-    // the STAND-IN analyze-run handler: nineteen rows recorded a `verdicts-authored`
-    // checkpoint and reached `done` with nothing authored. Resetting the status alone would
-    // not undo that, it would REPEAT it — `selectLatestCheckpoint` reads
-    // `ORDER BY attempt DESC`, so the real handler's next attempt would resume on the
-    // stand-in's recorded value, author nothing again, and report completion again. So the
-    // rows go with the status, inside the same transaction, and the files follow the rows.
+    // Checkpoint rows go with the status, or the real handler resumes on the stand-in's value.
     async requeueTerminal(jobId: JobId, fence: JobStoreFence): Promise<JobRequeueOutcome> {
       const now = clock.now()
       const decided = inTransaction((): JobRequeueOutcome & { readonly discard?: string[] } => {
         requireFence(fence)
         const row = requireRow(String(jobId))
         const status = String(row.status) as JobStatus
-        // 422 D-16, BEFORE the terminal check and before every write below. A quarantined row is
-        // terminal, so the ordinary path would accept it and then spend the whole remedy on it:
-        // the attempts reset, the checkpoint rows and files deleted, the run's chain-terminal
-        // notification disowned — and the next claim would quarantine it again, because no
-        // registered kind can run it. Refusing here, inside the transaction and ahead of the first
-        // mutation, is what makes "the history survives an operator's mistake" a store guarantee
-        // rather than a rule the surface has to remember. Checked on the RAW kind, never parsed.
+        // Refused before the terminal check and any write, or a quarantined row loses its history.
         if (isUnreadableKindRow(row)) {
           throw new QuarantinedJobRequeueError(String(jobId), String(row.kind))
         }

@@ -1,14 +1,4 @@
-// The proposals inbox over the composed host — RE-SPELLED 2026-10-01.
-//
-// This file was PROP-03's user journey over the real composition: list, show and reject pre-432
-// proposals through `composeLocalAgent()` and `invokeFunction`, with the origin check refusing an
-// agent and the composition clock driving expiry. 432-17 deletes the inbox's ops, the store and the
-// envelope, so every one of those claims lost its subject (list ordering, the receipts shown before
-// a decision, the named absence, the permanent rejection, the origin refusal, expiry at read, the
-// status filter, the empty listing and the bound listing). What survives is the composed-host half
-// of C432-NO-PROPOSAL-OPS and C432-PROPOSAL-FILES-UNREAD: a pre-432 proposal file in the workspace is
-// left exactly as it was, the retired ids are not capabilities of the composed host, and a direct
-// change made beside the file neither reads nor rewrites it.
+// A legacy proposal file stays as found, the retired ids are not capabilities, nothing reads it.
 
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'

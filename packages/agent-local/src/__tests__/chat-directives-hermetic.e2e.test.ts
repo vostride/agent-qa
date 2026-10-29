@@ -1,28 +1,4 @@
-// The directives, measured through the REAL composition. `/pin` is not one: it is an ordinary
-// clause stage 1 does not resolve, so on a host with no planner bound the turn refuses it, naming
-// the clause, and it pins nothing, publishes nothing to live state and writes no
-// `approval_decision`. A supplied chat-confirm factory is never called. The reads these cells drive
-// go through `quarantine.list`, an allow-tier read that answers with an empty listing in a bare
-// temp project.
-//
-// WHAT THIS FILE EXISTS TO CATCH is a directive that is handled and reaches nothing. Every one of
-// them is a mechanism whose failure mode is a confirmation line and no effect: a `/pin` recorded
-// against a name nothing answers to (391-05's measured silent no-op), a `/model` that changes what
-// the prompt SAYS and not who answers, a `/quit` the loop never sees. So each assertion below is
-// paired with the observable it would have to move — a refused invocation, a resolved model, a
-// state flag — and every one of them is read off `composeLocalAgent()` rather than off a hand-built
-// engine, because a differential assembled from parts can pass while the composition wires them
-// wrong or not at all (the produced-not-literal law).
-//
-// THE PIN CLAIM IS A TWO-SIDED DIFFERENTIAL and it has to be: a one-sided "the op was refused"
-// passes on a host where the op was never allowed in the first place. Same host, same op, same
-// caller — before the pin and after it (D-21's "pin-active vs pin-absent on the same op is the
-// pair").
-//
-// THE PIN TARGET IS A READ, deliberately. `proposals.list` is allow-tier, so its unpinned arm can
-// only be an allow — a mutating target's unpinned arm would go through the ask ladder and could
-// deny for reasons that have nothing to do with pinning, which would make the differential's
-// GREEN side unreliable and the whole pair meaningless.
+// Each directive is paired with the observable it must move, read off the composed host.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -105,7 +81,7 @@ describe('the composed session directives reach something', () => {
     options: {
       chatModel?: ChatLanguageModel
       chatModelFor?: (name: string) => ChatLanguageModel | Promise<ChatLanguageModel>
-      // the composition declares no `chatConfirm`; a factory arrives here as an excess field.
+      // The composition declares no `chatConfirm`; a factory arrives here as an excess field.
       chatConfirm?: (bindings: unknown) => undefined
     } = {},
   ): LocalAgentHost {
@@ -150,8 +126,7 @@ describe('the composed session directives reach something', () => {
       async () => {
         const host = compose()
         const opened = await ask(host, '/fn quarantine.list')
-        // `FunctionCaller.sessionId` is deleted; the session id is smuggled past
-        // the type so "in the same session" stays a distinct caller, and nothing reads it.
+        // The session id is smuggled past the type, so `inSession` stays a distinct caller.
         const inSession = { ...HUMAN, sessionId: opened.sessionId } as FunctionCaller
 
         await expect(
@@ -184,7 +159,6 @@ describe('the composed session directives reach something', () => {
       const result = await ask(host, `/pin ${QUARANTINE_LIST_FUNCTION_ID}`)
 
       expect(result.receipts).toEqual([])
-      // the live state no longer carries a pin field at all.
       const state = host.chat.stateFor(result.sessionId)
       expect(state).toBeDefined()
       expect(Object.keys(state!)).not.toContain('pinnedActionClasses')
@@ -223,10 +197,7 @@ describe('the composed session directives reach something', () => {
     })
 
     it('does NOT emit a model_change straight back on the next turn', async () => {
-      // THE SHARPEST TRAP IN THIS PLAN, asserted rather than reasoned about. The per-turn config
-      // re-read compares what the log last recorded against what the composition currently
-      // answers; a `config` thunk that kept answering the COMPOSED model would produce a second
-      // `model_change` back to it, silently undoing the verb one turn later.
+      // A `config` thunk answering the composed model would emit a `model_change` undoing the verb.
       const host = compose({ chatModel: namedModel('fixture:opening-model') })
       const first = await ask(host, '/model fixture:second-model')
       await ask(host, '/help', first.sessionId)
@@ -239,9 +210,7 @@ describe('the composed session directives reach something', () => {
     })
 
     it('resolves the named model through the HOST, never by constructing one', async () => {
-      // CHAT-06 as a behaviour rather than a lint: chat cannot build a model, so the only way a
-      // `/model` can change who answers is a resolver the composition was HANDED. The spy is what
-      // separates "the override reached the model resolution" from "the prompt says a new name".
+      // Chat cannot build a model, so the spy shows the override reached model resolution.
       const asked: string[] = []
       const host = compose({
         chatModel: namedModel('fixture:opening-model'),
@@ -281,15 +250,13 @@ describe('the composed session directives reach something', () => {
 
       expect(result.status).toBe('completed')
       expect(result.receipts).toEqual([])
-      // `/fn` is the fragment that matters: without it a person believes the thin canon is the
-      // whole capability set, which is exactly what D-06 trades a thin table for.
+      // `/fn` is what tells a person the thin canon is not the whole capability set.
       expect(result.answer).toContain('/fn')
     })
 
     it('/quit sets the live state a REPL reads, rather than being matched by the surface', async () => {
       const host = compose()
-      // An ordinary turn FIRST, so the before-state is read off the same session the `/quit` turn
-      // will move (392 plan 13: the state is per session, and an unopened session has none).
+      // An ordinary turn first, so the before-state is read off the session the `/quit` turn moves.
       const opened = await ask(host, '/fn quarantine.list')
       expect(host.chat.stateFor(opened.sessionId)?.closing).toBe(false)
 
@@ -339,8 +306,7 @@ describe('the composed session directives reach something', () => {
       // SIGINT handler fires in — so the state it observes is the state that handler would see, and
       // there is no sleep or microtask ordering holding the assertion up.
       let observedTurnId: string | undefined
-      // The session the observation reads through, learned from an ordinary opening turn — the
-      // state is per session now (392 plan 13), so naming one is how a handler asks about one.
+      // State is per session, so a handler asks about the session an opening turn reveals.
       let sessionId: string | undefined
       const host: LocalAgentHost = compose({
         chatModel: namedModel('fixture:opening-model'),
@@ -367,9 +333,6 @@ describe('the composed session directives reach something', () => {
     })
   })
 
-  // RE-SPELLED 2026-09-30 from 'the chat confirm seam — is handed a mint and a
-  // decision sink, and its absence leaves the port absent'. Nothing asks, so the composition never
-  // calls a supplied factory, and a turn leaves no `approval_decision` row.
   describe('the chat confirm seam is retired', () => {
     it('a supplied chat-confirm factory is never called, and no decision row is written', async () => {
       let calls = 0

@@ -1,16 +1,4 @@
-// The durability proof SIGKILL structurally cannot give (Phase 385 plan 03, RESEARCH
-// Pitfall 3 / JOBQ-05).
-//
-// Killing a process does not drop the pages it already handed to the kernel, so a publisher
-// that never calls fsync at all still passes every crash test run on one machine. The only
-// way to know the syscalls happen, and happen in the one order that makes the sequence safe,
-// is to watch them. This file watches them.
-//
-// The assertions below are on the ORDERED list of calls, never on membership: "an fsync
-// happened" is satisfied by an fsync at entirely the wrong moment, which is the failure the
-// order exists to exclude. The labels are derived here from the raw arguments — which path,
-// which flags, which descriptor came from which open — rather than supplied by the code
-// under test, so the publisher cannot name its own calls into the right shape.
+// Asserts the ordered syscall list, labelled from raw arguments, because SIGKILL cannot test fsync.
 
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -270,10 +258,7 @@ describe('checkpoint publish syscall ordering', () => {
     },
   )
 
-  // The allowlist is v51's, copied code for code, and it is the difference between a
-  // directory fsync that is best-effort on the platforms where it cannot work and one that
-  // is best-effort everywhere. Both halves are asserted: the listed codes are swallowed AND
-  // an unlisted one still propagates.
+  // Both halves of the allowlist: listed codes are swallowed and an unlisted one propagates.
   it.each([...DIRECTORY_FSYNC_SWALLOWED_CODES])(
     'swallows %s from the parent-directory fsync and still publishes',
     (code) => {

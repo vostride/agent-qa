@@ -1,32 +1,4 @@
-// RE-SPELLED 2026-10-01: `proposals.list` is deleted with the inbox. The read these
-// cells drive through the composed host is now `quarantine.list`, another allow-tier read that
-// answers honestly (an empty listing) in a bare temp project, so every claim keeps its subject.
-// Two conversations at once, through one composition.
-//
-// "A SESSION IS RECONSTRUCTABLE AND CANNOT WEDGE" is a claim about a session, and every scenario
-// this phase shipped runs ONE turn at a time — which is precisely the shape that cannot see the
-// defect 392-VERIFICATION measured: `createJsonlSessionLogOn` held one mutable `fd` for the whole
-// adapter, so a second `open()` repointed it and every later `append` of the FIRST turn landed in
-// the SECOND session's file. The measured result was receipts in the wrong conversation, a session
-// left dangling without its closing event, and that dangling turn — the user's own message
-// included — pruned out of the replay forever on the next open.
-//
-// THE SEAM IS PUBLIC AND THE FILES ARE READ FROM DISK, which is what makes this file's RED a true
-// differential rather than a restatement of the fix. Nothing here imports an adapter internal, no
-// handle is constructed by hand, and no session state is inspected through a back door: the test
-// says `invokeFunction(agent.ask)` twice without awaiting between them and then reads the two
-// `.jsonl` files the composition wrote. It is byte-identical before and after the refactor, so its
-// failure against the shipped tree and its pass afterwards measure the same thing.
-//
-// THE OVERLAP IS REAL, NOT NOMINAL. Both promises are created before either is awaited, so the two
-// turns' `await` points interleave on the microtask queue exactly as the daemon's concurrent
-// `handleInvoke` delivers them (`cli/src/daemon/server.ts` accepts ANY functionId, concurrently,
-// and `chatTurn` is bound on both hosts). No sleep, no fake timers, no injected scheduler: the
-// interleaving is the runtime's own.
-//
-// REACHABILITY, NOT HYPOTHESIS. Beside the daemon there is the nested path — `projectPlannerTools`
-// walks the registry unfiltered, so `agent.ask` is itself offered to the planner, and this phase's
-// own note records a live model planning it twice out of two runs.
+// Two overlapping turns through one composition, read back from the two `.jsonl` files on disk.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -72,15 +44,7 @@ const JOB_MODEL: JobModelCapability = {
 
 const MINT_IDENTITY = (filePath: string): string => filePath
 
-/**
- * The 392-07 canon pair, and the choice is on the record for the same reason it was there.
- *
- * `proposals` and `status` are the two aliases whose ops answer honestly in a BARE temp project —
- * an empty inbox and an empty run list, rather than a refusal — so both turns of the overlapping
- * pair COMPLETE and the assertion below is about where their events landed rather than about
- * whether they ran. Two different ops rather than one alias twice, so a receipt that crossed files
- * is legible as the wrong op in the wrong conversation.
- */
+// Two ops that answer in a bare project, so both turns complete and a crossed receipt is legible.
 const UTTERANCE_A = '/fn quarantine.list'
 const UTTERANCE_B = 'status'
 
@@ -222,9 +186,7 @@ describe('two sessions, overlapping turns, two intact files', () => {
     const [firstA, firstB] = first
     const [secondA, secondB] = overlapped
 
-    // A third turn each, sequential — the moment the repair would fire if either session had been
-    // left dangling by the overlap. Each conversation is read through ITS OWN session (plan 13's
-    // per-session state), so the two reads can no longer be one container answering twice.
+    // A third turn each, sequential, read through each conversation's own session.
     const thirdA = await ask(host, UTTERANCE_A, firstA.sessionId)
     const thirdB = await ask(host, UTTERANCE_B, firstB.sessionId)
     const conversationA = JSON.stringify(host.chat.stateFor(firstA.sessionId)?.conversation ?? [])
@@ -239,9 +201,7 @@ describe('two sessions, overlapping turns, two intact files', () => {
       expect(sessionEvents(sessionId).filter((event) => event.kind === 'aborted')).toEqual([])
     }
 
-    // And the REPLAY the third turn was handed still contains the two turns that came before it.
-    // `replaySession` prunes aborted turn ids, so a pruned turn is one that vanishes from here —
-    // the user's own message included, which is the loss the verifier measured.
+    // The third turn's replay still holds both earlier turns, user messages included.
     for (const turnId of [firstA.turnId, secondA.turnId]) {
       expect(
         sessionEvents(firstA.sessionId).some(
@@ -254,23 +214,9 @@ describe('two sessions, overlapping turns, two intact files', () => {
   })
 })
 
-// ---------------------------------------------------------------------------------------
-// THE STATE HALF OF THE SAME DEFECT (Phase 392 plan 13, CR-02 / W-03).
-//
-// Plan 12 keyed the LOG by session. What stayed keyed by COMPOSITION is everything the engine
-// publishes beside it: `chat-state.ts`'s `activeTurnId` / `conversation` / `activeModel` are one
-// closure per host, and `chatPins` is one holder per host with its deny predicate bound
-// unconditionally into the registry. Two facts follow, and both are measured below rather than
-// argued: a `/pin` typed in one conversation denies that action class for EVERY later caller until
-// the process restarts (W-03), and an interleaved turn puts one session's conversation into
-// another session's outbound provider request.
-//
-// BOTH CASES ARE WRITTEN AGAINST PUBLIC SEAMS ONLY — `composeLocalAgent`'s `chatModel` option,
-// `invokeFunction`, and the recorded provider call — so each file is byte-identical either side of
-// the fix and its failure is a true differential rather than a restatement of it.
-// ---------------------------------------------------------------------------------------
+// Per-session state: a typed `/pin` and an interleaved turn must stay inside their own session.
 
-/** The class a person pins, in the NORMALISED spelling the holder records and the gate compares. */
+// The class a person types to pin, in its normalised spelling.
 const PINNED_CLASS = `fn:${QUARANTINE_LIST_FUNCTION_ID}`
 
 describe('a typed /pin reaches no conversation (/pin is retired)', () => {
@@ -334,10 +280,6 @@ describe('a typed /pin reaches no conversation (/pin is retired)', () => {
     expect(afterB.receipts.map((receipt) => receipt.status)).toEqual(['executed'])
   })
 
-  // 432-18 task 2: independent session concurrency and clause receipt ordering
-  // survive the pin overlay's deletion. Two sessions take overlapping turns that mix a typed `/pin`
-  // with an op; each turn answers for itself, the op clause still executes in order, and no session
-  // state carries a pin field.
   it('overlapping sessions mixing /pin and an op keep their own receipts, in clause order', async () => {
     const host = compose()
     const a = await ask(host, '/fn quarantine.list')

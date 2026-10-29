@@ -1,12 +1,4 @@
-// RED-first pins for the run-start quarantine snapshot.
-//
-// The local composition root folds the committed ledger ONCE at run start and hands the resolved
-// set into the run as plain data. Folding once is what makes the disposition deterministic for the
-// whole run — a mid-run ledger edit can never retroactively change a running build (the same
-// posture `executionContext` resolution already has).
-//
-// A ledger read failure DEGRADES to an empty set with a printed warning. A broken ledger can never
-// abort a run.
+// Folded once at run start; a ledger read failure degrades to an empty set with a warning.
 
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -199,17 +191,7 @@ describe('resolveRunQuarantineSnapshot', () => {
     expect(warnings[0]).toMatch(/schemaVersion/)
   })
 
-  // ---- the two-sided pin: the human WRITE verb against this READER --------
-  //
-  // The defect this closes was invisible to every single-sided fixture. The writer half lives in
-  // `knowledge-local` and the reader half lives here; each is internally consistent, and they
-  // disagreed about what a `product` IS — `add` stored the spelling a human typed, this reader
-  // filters on `slugBranch` of it. So `quarantine.add({product: 'My Product'})` answered `entered`,
-  // the ledger recorded a real entry, and the test it named kept failing every build.
-  //
-  // It is pinned HERE rather than beside the verb because the two halves cannot be brought into one
-  // package: `agent-local` depends on `knowledge-local`, never the reverse. Nothing but the ledger
-  // file passes between them below — the writer is driven entirely through the real port.
+  // Pinned here: `agent-local` depends on `knowledge-local`, and only the ledger file crosses.
 
   describe('a human quarantine.add against this reader', () => {
     const ADD_NOW = '2026-08-15T10:00:00.000Z'
@@ -224,11 +206,7 @@ describe('resolveRunQuarantineSnapshot', () => {
       return createQuarantineOperations({
         resolveKnowledgeRoot: () => knowledgeRoot,
         now: () => ADD_NOW,
-        // this pin is about the PRODUCT partition, and its fixture already speaks the
-        // canonical `tests/checkout.yaml`, so a passthrough leaves what it measures unchanged. The
-        // filePath leg's own two-sided pin — real mint, real verbs, real reader, two checkout roots
-        // — is `cli/src/__tests__/quarantine-ledger-portability.test.ts`, the one layer where every
-        // part can be production code.
+        // This pin is about the product partition, so a passthrough mint leaves it unchanged.
         mintIdentityPath: (filePath: string) => filePath,
       })
     }

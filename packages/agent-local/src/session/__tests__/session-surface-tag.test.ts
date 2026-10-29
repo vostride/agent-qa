@@ -1,11 +1,4 @@
-// The session surface tag (Phase 400 plan 03, DASH-01 / D-04 / RESEARCH Pattern 6 / Pitfall 4).
-//
-// ONE SUBSTRATE, TAGGED ON THE HEADER AND NOWHERE ELSE. D-04 puts dashboard conversations on the
-// exact `.agent-qa/sessions/chat-*.jsonl` log CLI chat writes, "tagged with their surface". The
-// obvious spelling — a `surface` field on each event — is the one this cell exists to keep out:
-// `guardChatSessionEvent` compares an EXACT key set per kind, so an extra field makes every session
-// file written before the change unreadable by the build that comes after it. The header guard, by
-// contrast, is presence-based and tolerates keys it does not know, which is why the tag goes there.
+// The surface tag goes on the header: event guards compare exact key sets, headers do not.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
@@ -126,14 +119,7 @@ describe('the session header stamp', () => {
 })
 
 describe('the session EVENT grammar is untouched by the tag', () => {
-  /**
-   * The `EVENT_KEYS` table as it stood at `abcfe8bb`, the commit before this plan.
-   *
-   * A BYTE SNAPSHOT OF THE SOURCE, and it has to be the source rather than the runtime value: the
-   * table is module-private on purpose (nothing outside the guard may read it), so the only way to
-   * state "not one key moved" is over the text. The digest is what fails; the literal below is what
-   * makes the failure readable.
-   */
+  // A byte snapshot of the module-private `EVENT_KEYS` source, so a moved key fails the digest.
   const EVENT_KEYS_SNAPSHOT = `const EVENT_KEYS: Record<ChatSessionEventKind, readonly string[]> = {
   user_message: ['at', 'kind', 'text', 'turnId'],
   stage_outcome: ['at', 'kind', 'outcome', 'stage', 'turnId'],

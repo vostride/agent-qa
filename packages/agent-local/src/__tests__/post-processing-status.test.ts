@@ -1,14 +1,4 @@
-// `runs.postprocessing` against a REAL store (Phase 388, D-14 / ANLZ-05 / Pitfall 4).
-//
-// The projection's mapping table is pinned in `agent`, over hand-built row values, because a
-// mapping is what it is. What CANNOT be measured there is everything this file measures: that
-// the ids the op derives address the rows the enqueue actually wrote, that a status query
-// answers from bytes on disk rather than from anything a process held, and — the prohibition
-// this phase carries — that asking the question creates nothing.
-//
-// The op is driven through `invokeFunction` on a composed host's registry rather than by
-// calling the reader, because the claim is about the SEAM D-14 defines: a surface asks the
-// function layer, and the function layer is the only thing that opens a database.
+// Driven through `invokeFunction`; a status query answers from disk and creates nothing.
 
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -47,17 +37,11 @@ import { canonicalLogicalDump, createLogicalDump } from '../store/logical-dump.j
 import { createPostProcessingReader } from '../store/post-processing-reader.js'
 import { createJobCheckpointStore, readJobCheckpointEnvelope } from '../store/job-checkpoint-store.js'
 
-/**
- * The composition's REQUIRED quarantine identity mint. Passthrough here: this
- * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
- * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
- */
+// Passthrough: this fixture already speaks canonical workspace-relative bytes.
 const MINT_IDENTITY = (filePath: string): string => filePath
 
 const RUN_ID = 'run-388-status'
 
-// no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither.
 const CALLER: FunctionCaller = {
   surface: 'test',
   origin: 'agent',
@@ -82,7 +66,7 @@ function createSteppingClock(): ClockPort {
   let tick = 0
   return {
     now() {
-      // a minute per read, past every declared retry backoff.
+      // A minute per read, past every declared retry backoff.
       const stamp = new Date(Date.parse('2026-03-03T00:00:00.000Z') + tick * 60_000).toISOString()
       tick += 1
       return stamp
@@ -450,9 +434,7 @@ describe('cold stage facts', () => {
     },
   )
 
-  // the SETTLED shape, from a row the store wrote and a process that never held it. Every
-  // terminal transition releases the claim lease, so the start is the only instant a finished
-  // stage can be timed from — and this cell reads it off the real row, never off a literal.
+  // Terminal transitions release the claim lease, so a finished stage is timed from its start.
   it('DURABLE-START-SURVIVES-THE-LEASE: a settled stage carries its start and no lease after cold reopen', async () => {
     const FAILED_RUN = 'run-425-start-failed'
     const QUEUED_RUN = 'run-425-start-queued'
@@ -508,8 +490,6 @@ describe('cold stage facts', () => {
     expect('claimedAt' in never!).toBe(false)
   })
 
-  // RE-SPELLED 2026-10-14 from '… with the active read context': the host's
-  // declared mask replaces the installed context, and the undeclared email is returned as written.
   it("MASK-FAILURE-REASON masks persisted prose with the host's declared mask", async () => {
     const writer = createHarness()
     const jobs = await writer.host.jobs()
@@ -633,10 +613,7 @@ describe('chip truth is read from durable rows', () => {
     const status = await harness.status()
 
     expect(status.chips).toEqual({ analysis: 'complete', curation: 'complete' })
-    // The view of the SAME record the terminal transaction wrote, not a rebuild of it: read back
-    // through the store's own reader and compared whole, so a projection that assembled a
-    // plausible notification of its own would fail here rather than look right. The stored row
-    // keeps its own words.
+    // Compared whole with the store's own record, so a projection's plausible rebuild would fail.
     const [written] = await jobs.store.listNotifications()
     expect(status.notification).toEqual(toRunNotificationView(written!.payload))
     expect(written?.payload).toMatchObject({ outcome: 'done', stages: { analysis: { status: 'done' } } })

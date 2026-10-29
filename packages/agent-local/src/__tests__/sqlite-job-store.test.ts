@@ -1,14 +1,4 @@
-// The store's own guarantees, asserted against real sqlite.
-//
-// Everything here drives `JobStorePort` directly rather than through the engine. That is
-// deliberate: D-02 says any process may open this database and write to it, so the store is
-// the boundary where dedupe, claim order, version drift and authority are guaranteed — and a
-// guarantee that only holds when the engine is the caller is not a store guarantee at all.
-//
-// Each refusal is paired with a control that must still SUCCEED. "A stale epoch throws" is
-// satisfied perfectly by a verb that throws unconditionally, and "a mismatched version
-// throws" by a store that refuses every open; the paired success is the only thing that
-// separates the two.
+// Drives `JobStorePort` directly, and pairs each refusal with a control that must still succeed.
 
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -503,8 +493,7 @@ describe('agent job store: recordFailure (ledger 1)', () => {
     const dump = await store.dumpState()
     expect(dump.jobs[0]).toMatchObject({ status: 'queued', claimed: false, attempts: 1 })
 
-    // Claimable again, and the attempt counter moves again — D-18's bound is spent at the
-    // claim, so a job that keeps failing keeps consuming it.
+    // Claimable again, and the attempt counter moves: the bound is spent at the claim.
     const reclaim = await store.claimNext(fence)
     expect(reclaim.claimed).toBe(true)
     expect(reclaim.claimed && reclaim.job.attempts).toBe(2)
@@ -749,9 +738,7 @@ describe('agent job store: the deterministic logical dump', () => {
     expect(await dumpOf(root)).toBe(await dumpOf(root))
   })
 
-  // THE control that matters most. A dump that discarded its input and returned a frozen
-  // constant satisfies every equality assertion above perfectly — that exact defect passed a
-  // full suite in phase 384. Two different states must produce two different dumps.
+  // A dump returning a frozen constant passes every equality above; two states must give two dumps.
   it('changes when the state changes', async () => {
     const root = scratchRoot()
     await drive(root)
@@ -824,10 +811,7 @@ describe('agent job store: the deterministic logical dump', () => {
     const store = openStore(root, frozenClock())
     try {
       const dump = await store.logicalDump()
-      // Enumerated from the catalogue, so a table added later is COVERED without an edit —
-      // and named here, so adding one is a visible edit rather than a silent widening of what
-      // the D-03 comparison is willing to call equal. 388's notifications table arrived
-      // exactly that way: it needed no dump code at all, and it needed this line.
+      // Enumerated from the catalogue and named here, so a new table is covered and a visible edit.
       expect(dump.tables.map((table) => table.table)).toEqual([
         'job_checkpoints',
         'job_store_fence',
@@ -1064,9 +1048,7 @@ describe('agent job store: fenced checkpoint rows', () => {
   })
 })
 
-// cancellation as a STORE guarantee. Driven through the port
-// directly, because D-02 lets any process open this database: a three-way outcome that only
-// held when the engine was the caller would not be a store guarantee at all.
+// Driven through the port, because any process may open this database.
 describe('agent job store: cancellation', () => {
   let root: string
   let store: SqliteJobStore
@@ -1179,14 +1161,7 @@ describe('agent job store: cancellation', () => {
   })
 })
 
-// The 413-13 gap closure. Phase 413's `agent-jobs pump` composed with no post-run capability
-// set, so the kind registry selected the STAND-IN analyze-run handler: nineteen rows reached
-// `done` with a `verdicts-authored` checkpoint recorded and nothing authored. Returning those
-// rows to the queue is only half a remedy, and the smaller half — `readCheckpoint` resolves
-// through `selectLatestCheckpoint`'s `ORDER BY attempt DESC`, so a row reset that KEPT the
-// stand-in's checkpoint would hand the real handler the stand-in's recorded value and it
-// would report `completed` having written nothing, a second time. So the cells below assert
-// the forget in BOTH media, and assert that the row's identity survives it.
+// A requeue must forget the stand-in's checkpoint rows and files, or the real handler replays it.
 describe('agent job store: requeueTerminal, the stand-in forget', () => {
   let root: string
   let store: SqliteJobStore
@@ -1255,20 +1230,7 @@ describe('agent job store: requeueTerminal, the stand-in forget', () => {
     })
   })
 
-  // CR-01. The stand-in's attempt was recorded in THREE durable media, not two: the checkpoint
-  // rows, the checkpoint files, and the `notifications` row its chain terminal minted. The cell
-  // above asserts the first two. This one asserts the third, and it is the one the other cells
-  // structurally cannot see — they call `completeAndChain(id, [], fence)` with no `chainTerminal`
-  // argument, so no notification is ever written in their fixture and a store that never deleted
-  // one would satisfy every expectation they make.
-  //
-  // The third medium is also the only one that cannot be corrected afterwards, which is why
-  // leaving it is worse than leaving a checkpoint. `insertNotification` is
-  // `ON CONFLICT (run_id) DO NOTHING` — by design, so a crash-replayed terminal dedupes — and the
-  // re-run's REAL analyze-run handler chains a successor, so `chainTerminalFor` returns
-  // `undefined` and never offers a replacement record at all. A receipt left behind therefore
-  // wins forever, naming an attempt whose every other trace the operator just deleted, on a
-  // surface that renders it (`post-processing-reader.ts` -> the dashboard and CLI status).
+  // The notification row is the third medium; `ON CONFLICT DO NOTHING` keeps a stale one forever.
   it('requeueTerminal forgets the chain-terminal notification, the third durable medium', async () => {
     const run = 'r_notified'
     await store.enqueue(insert('job_n', run, { runId: run }))
@@ -1409,11 +1371,7 @@ describe('agent job store: requeueTerminal, the stand-in forget', () => {
   })
 })
 
-// THE START OUTLIVES THE LEASE. `claimed_at` answers who holds a row right now and every
-// terminal transition releases it, so a card that timed a settled stage from it could never say how
-// long the stage took. `started_at` is written once, at the first claim, and cleared only by the
-// operator requeue. The stepping clock is what makes "once" observable: every `now()` is a later
-// instant, so a second claim that overwrote the column would read differently.
+// `started_at` is written once at the first claim, so a settled stage can be timed after release.
 describe('agent job store: durable start instant', () => {
   let root: string
   let store: SqliteJobStore

@@ -1,52 +1,4 @@
-// The standing-grant spine, end to end through the real composition.
-//
-// RE-SPELLED 2026-10-01: the append API, the event types and the ledger are
-// deleted. The grant and its revoke are now planted as the bytes a pre-432 build committed, and
-// the claim is unchanged: the change commits with no grant, a grant or revoke changes nothing about
-// it, and the old file is left byte-identical (nothing reads or rewrites it).
-//
-// the apply this spine was built around (`knowledge.proposal.apply`) is
-// deleted with the inbox, so the subject is the direct `knowledge.forget` that replaced it. Every
-// claim below keeps its shape: the change commits with no grant, and a grant or revoke changes
-// nothing about it.
-//
-// THE SPINE HAS NO READER. `invokeFunction` has no gate, so no grant
-// is consulted: the headless apply commits with no grant, and appending a grant or a revoke changes
-// nothing about it. The two cells are re-spelled as that absence; the ledger's own append-only
-// property (both events survive, in order) is unchanged. 432-18 deletes the ledger.
-//
-// WHAT THIS FILE PROVES, and why it is one file rather than three. Before 391 no standing approval
-// could be consumed through the function layer at all, for two independent reasons that would each
-// have hidden the other:
-//
-//   1. `invokeFunction` called the gate with no reader and no action scope. The gate defaults an
-//      absent scope to the empty object, and the scope comparison refuses an empty scope on EITHER
-//      side, so every grant would have failed to match whatever a reader returned.
-//   2. `knowledge.proposal.apply` classified to the recognized-mutating floor, whose base verdict
-//      ALLOWS in every context. A standing approval can only ever satisfy an ASK, so there was no
-//      ask for it to satisfy on the one verb in this layer that commits.
-//
-// Fixing either alone would have measured nothing. So the three legs below run against ONE live
-// composition, in order, over ONE committed ledger:
-//
-//   leg 1  no grant recorded          -> the apply is REFUSED before dispatch
-//   leg 2  a grant appended through the REAL append API -> the same apply COMMITS, and the audit
-//                                        row names `standing-approval` as what satisfied the ask
-//   leg 3  a revoke appended for the same grant id      -> the same apply is REFUSED again
-//
-// NOTHING IS HAND-WRITTEN INTO THE LEDGER. The grant and the revoke both go through
-// `appendGrantLedgerEvents`, which is the function the mint verb will call in plan 04 — a JSONL line
-// typed out by a test is a line no producer can necessarily emit, and a fixture like that pins a
-// contract nothing actually has to satisfy. For the same reason the covered action class is READ OFF
-// the registry's own declaration of the op rather than spelled here: the gate compares the grant's
-// class against the op's action name with `===`, and a literal in this file would keep matching a
-// name the op had stopped carrying.
-//
-// The execution context is pinned to `local-headless`, which is the module default anyway, so leg 1
-// and leg 3 land on the fail-closed arm rather than on an interactive prompt. That is the honest
-// posture to pin: the two hosts that run this composition in anger — CI and the daemon — are both
-// fail-closed, and a test that pinned the prompt arm would be pinning the one context neither of
-// them is ever in.
+// Planted legacy grant and revoke bytes change nothing: the change commits and the file stays.
 
 import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -82,8 +34,7 @@ const APPLY_FUNCTION_ID = 'knowledge.forget'
 const GRANT_ID = 'grant_tracer_proposal_apply'
 const GRANTED_AT = '2026-08-07T12:00:00.000Z'
 const REVOKED_AT = '2026-08-07T12:30:00.000Z'
-// `STANDING_APPROVAL_SCOPE` is deleted with the MCP bearer credential; a
-// legacy grant line still carries the scope it was minted under, spelled here as its bytes.
+// A legacy grant line carries its minting scope, spelled here as its bytes.
 const LEGACY_GRANT_SCOPE = { project: 'local-workspace' } as const
 
 const ANCHOR: Anchor = { t: 'el', role: 'Button', name: 'Checkout' }
@@ -188,7 +139,7 @@ describe('a committed standing grant is consumed by nothing', () => {
     return declaration.risk.name
   }
 
-  /** A legacy ledger line, as the bytes a pre-432 build committed. Nothing in this build reads it. */
+  /** A legacy ledger line, as committed bytes. Nothing in this build reads it. */
   type LegacyEvent = Record<string, unknown> & { kind: 'grant' | 'revoke'; grantId: string }
 
   function ledgerPath(): string {
@@ -200,9 +151,6 @@ describe('a committed standing grant is consumed by nothing', () => {
     appendFileSync(ledgerPath(), events.map((event) => `${JSON.stringify(event)}\n`).join(''), 'utf8')
   }
 
-  // RE-SPELLED 2026-09-30 from 'refuses the apply with no grant, commits it with one, and
-  // refuses it again after the revoke'. The apply commits with no grant at all, and the grant and
-  // revoke append to a ledger nothing reads.
   it('commits the headless apply with no grant, and the ledger is never consulted', async () => {
     const recordId = publish()
     const registry = host()
@@ -255,9 +203,6 @@ describe('a committed standing grant is consumed by nothing', () => {
     expect(committed.map((event) => event.grantId)).toEqual([GRANT_ID, GRANT_ID])
   }, 60_000)
 
-  // RE-SPELLED 2026-09-30 from 'leaves the apply refused when a grant covers a DIFFERENT
-  // action class'. No grant is matched against anything, so a neighbouring class leaves the apply
-  // committing exactly as no grant does.
   it('commits the apply whatever class a committed grant names', async () => {
     const recordId = publish()
     const registry = host()

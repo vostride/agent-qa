@@ -96,8 +96,7 @@ it('JOIN-NOT-BOUND: optional neutral batch refuses by name without a per-ID fall
   const f = fixture()
   const port = createKnowledgeReaderPort({ resolveKnowledgeRoot: () => f.knowledgeRoot })
   const single = vi.spyOn(port, 'showRecord')
-  // Contract-only consumer: run-level dispatch belongs to 423-34. This existing error
-  // is how an optional reader is refused, rather than substituting N single reads.
+  // An optional reader without `showRecords` is refused by this error, not served by single reads.
   const { showRecords: _omitted, ...legacy } = port
   const oldPort: KnowledgeReaderPort = legacy
   async function consume(reader: KnowledgeReaderPort) {

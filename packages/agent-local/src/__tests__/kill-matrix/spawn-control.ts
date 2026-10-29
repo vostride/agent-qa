@@ -1,25 +1,4 @@
-// The PARENT side of the kill matrix: spawning a worker child, driving it to a named point,
-// killing it for real, and proving each of those actually happened.
-//
-// Lifted verbatim out of `kill-matrix.test.ts` when plan 07's adversarial legs arrived, because the
-// alternative was a second copy — and a spawn protocol duplicated across two files is a protocol
-// that drifts, with the drift showing up as one file's legs quietly testing something else. Nothing
-// here takes a leg-specific argument; every function is about processes and signals only.
-//
-// The four facts a leg needs from this module, and why each one is a function rather than an
-// assertion a leg writes for itself:
-//
-//   1. THE CHILD REACHED THE POINT. `waitForCrashMarker` polls for an atomically published marker
-//      and ABORTS THE MOMENT THE CHILD EXITS, with the child's captured output attached. A wait that
-//      only had a timeout would spend ninety seconds turning "the point was never reached" into
-//      "timed out", which reads like flake.
-//   2. THE CHILD WAS ALIVE WHEN THE SIGNAL WENT OUT. Killing a process that had already finished is
-//      a call that does nothing and reports success.
-//   3. IT DIED BY THE SIGNAL. `{code: null, signal: 'SIGKILL'}` as an equality on the pair, not
-//      "non-zero" — a graceful exit is `{code: 143, signal: null}` and must not pass.
-//   4. A FAILING CHILD IS VISIBLE. Every completion assertion attaches the captured output, and the
-//      child publishes a JSON report on its failure path too, so a leg reports the child's reason
-//      rather than the parent's disappointment.
+// The parent side, shared so a spawn protocol cannot drift between the two kill-matrix files.
 
 import { spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'

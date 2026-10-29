@@ -1,14 +1,4 @@
-// Every named refusal the agent job queue's local store raises.
-//
-// The rule this module exists to state, because a small package with two error files and no
-// rule for which one gets what is how a vocabulary forks: a refusal DECLARED here is one the
-// storage implementation owns, and a refusal the PORT owns is re-exported here rather than
-// re-declared. `StaleJobStoreEpochError` is the second case — 386 binds the real writer lease
-// to that exact class, so a second class in this package meaning the same condition would
-// hand one situation two identities and make the binding a choice instead of a wiring.
-//
-// Shapes follow v51's writer-lease convention: `override readonly name`, the observed value
-// attached as a field, and a message that names a remedy rather than a symptom.
+// Refusals the store owns are declared here; those the port owns are re-exported, never redeclared.
 
 import { JOB_CHECKPOINT_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 
@@ -18,16 +8,7 @@ import { JOB_CHECKPOINT_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 // would let two stores disagree about what an operator is being told.
 export { QuarantinedJobRequeueError, StaleJobStoreEpochError } from '@vostride/agent-qa-agent'
 
-/**
- * The database on disk was written by a build that does not agree with this one.
- *
- * There is no migration machinery in the agent job queue and there is not meant to be: the
- * milestone ships nothing between releases, so a version that does not match is a development
- * artifact, not a user's history. The message therefore carries the remedy — clear agent job
- * queue state — since an operator reading it can act on that and cannot act on a version number
- * alone. The remedy names WHICH queue because three of them coexist: an operator told to
- * "clear queue state" could reasonably clear the curation queue instead.
- */
+// No migration: the message names the agent job queue's state as the thing to clear.
 export class JobStoreSchemaVersionError extends Error {
   override readonly name = 'JobStoreSchemaVersionError'
 
@@ -54,13 +35,7 @@ export class UnknownJobRowError extends Error {
   }
 }
 
-/**
- * An id that cannot safely become one path segment.
- *
- * Validated BEFORE any join, following the v51 candidate-id precedent: a job id and a
- * checkpoint id both become directory and file names, and an id validated after joining has
- * already escaped.
- */
+// Validated before any join, because an id validated after joining has already escaped.
 export class InvalidJobCheckpointIdError extends Error {
   override readonly name = 'InvalidJobCheckpointIdError'
 

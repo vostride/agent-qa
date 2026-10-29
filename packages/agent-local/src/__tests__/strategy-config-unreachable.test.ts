@@ -1,29 +1,4 @@
-// NO PRODUCTION KNOB CAN DISABLE THE DETERMINISTIC OVERRIDE.
-//
-// The mutation proof next door shows what switching the reconciliation strategy COSTS. This file
-// shows that nothing outside a composition can do it. Both halves are needed and neither implies
-// the other: a differential that measured the cost of removing a safety property would be a
-// horror story rather than a proof if a configuration file could remove it too.
-//
-// TWO INDEPENDENT REACH SURFACES, because a knob has two ways to exist.
-//
-//   1. A CONFIGURATION KEY. Answered by walking the PARSED zod shapes this system publishes and
-//      asking whether any key names the concept — never by grepping file text, which the rationale
-//      comments in `compose-local-agent.ts` and `ports.ts` would defeat in the first line they
-//      mention the word. Plan 07's composed e2e walks four hand-named config schemas; this walk is
-//      DISCOVERED instead — every exported zod schema in `@vostride/agent-qa-schema`, found by
-//      inspecting the package's own exports — so a config surface added later joins the walk
-//      without anyone remembering to add it. That is the difference between a pin and a list.
-//
-//   2. AN ENVIRONMENT VARIABLE. The 391 lesson, applied here: an ambient env lever is a knob that
-//      no schema mentions and every process inherits. It is answered against the BUILT dist rather
-//      than the source, because the dist is what actually runs, and every occurrence is adjudicated
-//      BY NAME — a zero-hit result and a list of adjudicated non-strategy hits both pass, an
-//      unadjudicated strategy-shaped hit fails.
-//
-// EVERY WALK CARRIES A NON-VACUITY GUARD AND A POSITIVE CONTROL. Without them, "there is no knob"
-// and "the detector is broken" are the same green, which is the failure this whole plan exists to
-// make impossible.
+// No config key or env variable can disable the deterministic override; each walk has a control.
 
 import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -222,9 +197,7 @@ describe('and from no environment variable either', () => {
   })
 
   it('the built composition artifact reads NO environment variable either', () => {
-    // `agent-local` is where the strategy option is CONSUMED, so it is the second place an ambient
-    // lever could live — a composition that read one would make the seam config-reachable without
-    // any schema ever naming it (the 391 lesson).
+    // A composition reading an ambient lever would make the seam config-reachable with no schema.
     expect(envReads(readDist(AGENT_LOCAL_DIST))).toEqual([])
   })
 
@@ -239,9 +212,7 @@ describe('and from no environment variable either', () => {
 
 describe('the seam exists, and exists only as a composition option', () => {
   it('is named in the composition input', () => {
-    // The other direction of the same claim, and it is what stops the two assertions above from
-    // being satisfied by the seam having quietly disappeared: `chatReconcile` IS reachable — by a
-    // caller holding the code that composes a host, which is the only reach D-16 permits.
+    // The positive control: `chatReconcile` is reachable from the composition input.
     const composition = readFileSync(
       fileURLToPath(new URL('../composition/compose-local-agent.ts', import.meta.url)),
       'utf8',

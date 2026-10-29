@@ -1,10 +1,4 @@
-// The chat stages' callers.
-//
-// RE-SPELLED from the `CHAT_STAGE_SCOPES` grant pins. That constant held
-// the whole closed scope union so the chat planner could reach the authoring loop past the invoke
-// gate's scope check; the check is deleted and so is the constant. The surviving claims are
-// that both stage callers reach every operation — now because no caller field is read — and that
-// the two are identical but for origin.
+// Both stage callers reach every operation, and the two are identical but for origin.
 
 import { describe, expect, it } from 'vitest'
 

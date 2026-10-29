@@ -1,23 +1,4 @@
-// What a quarantined row looks like to everything that READS the agent job queue.
-//
-// Plan 422-10 task 1 made a retired-kind row land permanently instead of rolling its claim back.
-// That is only half of D-16. The other half is that the landing must not cost the history: the
-// point of quarantining a row rather than deleting it is that an operator can still see what an
-// earlier build wrote, and a projection that coerced the row into a `Job` on the way out would
-// throw for exactly the rows it exists to describe.
-//
-// So every cell here reads the row through the DIAGNOSTIC path — `dumpState()`/`dumpRow`, the
-// column-named projection that never parses a kind — and each one is paired with a control that
-// must still succeed, because:
-//
-//   "the projection reports a quarantine"  is satisfied by a projection that reports one for
-//                                          every row, so a readable row is asserted to carry NO
-//                                          conclusion at all.
-//   "a requeue of a quarantined row is     is satisfied by a requeue that refuses everything, so
-//    refused"                              the refusal is paired with a requeue of an ordinary
-//                                          terminal row that must still work.
-//   "history survives the refusal"         is satisfied by a store that never writes anything, so
-//                                          the drain that follows the refusal is asserted to run.
+// Each read through the diagnostic path is paired with a control that must still succeed.
 
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -33,7 +14,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { composeJobRecovery } from '../composition/compose-job-recovery.js'
 import { AGENT_JOB_STORE_DB_FILE } from '../store/sqlite-job-store.js'
 
-/** A kind no current vocabulary contains — the Phase 412 needle itself stays deleted. */
+// A kind no current vocabulary contains.
 const RETIRED_KIND = 'retired-kind-fixture'
 
 /** The one kind these cells drain. Single checkpoint, no successors, so a drain is one row. */
@@ -215,9 +196,7 @@ describe('requeueing a quarantined row', () => {
       ).rejects.toBeInstanceOf(QuarantinedJobRequeueError)
     })
 
-    // BYTE-IDENTICAL. The refusal lands before the attempts reset, before the checkpoint rows are
-    // deleted and before the run's chain-terminal notification is disowned — so the D-03 dump, the
-    // instrument that carries all three, is the assertion rather than a column-by-column read.
+    // The refusal lands before any reset or delete, so the whole logical dump is the assertion.
     const after = await withFence(seeded.agentQaRoot, async (open) => open.store.dumpLogicalState())
     expect(after).toBe(before)
   })

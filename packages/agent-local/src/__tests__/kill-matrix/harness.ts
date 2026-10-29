@@ -1,33 +1,4 @@
-// Shared kill-matrix fixtures: the deterministic world, the authoring kinds, and the comparison
-// basis.
-//
-// Three things live here because the parent and the spawned children must agree on all of them
-// exactly, and a value duplicated on both sides of a process boundary is a value that drifts.
-//
-// 1. The DETERMINISTIC WORLD. A frozen clock and a derived id source, so two runs of the same job
-//    in two different processes produce the same bytes. The clock is frozen rather than stepping on
-//    purpose: a stepping clock makes every timestamp a function of how many verbs a run happened to
-//    call, and an interrupted history calls a different number of them — which would make the
-//    comparison differ for a reason that has nothing to do with recovery.
-//
-// 2. The AUTHORING KINDS. The shipped declarations with one field replaced: their handlers.
-//    The registry contract — schedules, successors, bounds, backoff, dispositions — is read from
-//    `REAL_JOB_KIND_DECLARATIONS` and never restated, so a kind reworked in 388/389 changes the
-//    matrix with no harness edit. The handler has to be substituted because the shipped stand-ins
-//    publish checkpoints without authoring anything, and a matrix asserting "zero model invocations
-//    on resume" over handlers that never invoke a model is satisfied by doing nothing at all. The
-//    substitute derives its work from the declaration it was handed, so it too has no list of its
-//    own; a test asserts the substitution changed the handler and nothing else.
-//
-// 3. The COMPARISON BASIS. `dumpLogicalState()` is the D-03 instrument and it is exact — which
-//    means it also carries the three facts that MUST differ between an interrupted history and an
-//    uninterrupted one: the attempt count, the abandoned-claim failure record, and the attempt
-//    stamped into a re-authored checkpoint's envelope and authoritative row. Those are the history
-//    of how the state was reached, not the state. So the comparison splits them into a separate
-//    structure that the matrix asserts EXACT VALUES on, rather than dropping them — a projection whose
-//    exclusions are unasserted is a loosened assertion wearing a projection's clothes. The split is
-//    also checked for completeness against the database's own catalogue, so a column added later
-//    must be classified as outcome or history instead of silently vanishing from both.
+// Shared by parent and children, so the frozen clock, kinds and comparison basis cannot drift.
 
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
@@ -60,12 +31,7 @@ export const KILL_MATRIX_ENV = Object.freeze({
   kind: 'AGENT_QA_JOB_KILL_KIND',
   /** `kind:checkpointId:phase` — the crash role only. */
   point: 'AGENT_QA_JOB_KILL_POINT',
-  /**
-   * `verb:side[:jobId]` — the crash role's second point vocabulary (plan 07).
-   *
-   * Mutually exclusive with `point`: a run that named both would have two hooks racing for the
-   * same process and a marker naming whichever won.
-   */
+  // `verb:side[:jobId]`, exclusive with `point`, so two hooks never race in one process.
   verbPoint: 'AGENT_QA_JOB_KILL_VERB_POINT',
   /**
    * `1` = release abandoned claims before pumping.
@@ -86,14 +52,7 @@ export const KILL_MATRIX_ENV = Object.freeze({
    * made from inside the host that was still configured to crash.
    */
   unreached: 'AGENT_QA_JOB_KILL_UNREACHED',
-  /**
-   * `0` = do not adopt the epoch; drive every verb with the fence the env names anyway.
-   *
-   * This is the stale-FENCE half of D-07. A host that re-adopts is refused by `adoptEpoch` before
-   * it touches a row; a host that already holds a fence and only discovers it lost authority at
-   * its next mutation is refused at the commit boundary, which is the refusal 386's split-brain
-   * test lands on. They are two different guards and only one of them is exercised by adopting.
-   */
+  // Zero: drive every verb with the env's fence without adopting, so the commit boundary refuses.
   adopt: 'AGENT_QA_JOB_KILL_ADOPT',
   /** Where the counting model appends its invocations. */
   invocations: 'AGENT_QA_JOB_KILL_INVOCATIONS',
@@ -138,17 +97,7 @@ export function fenceFor(epoch: number = KILL_MATRIX_EPOCH): JobStoreFence {
   return { epoch }
 }
 
-/**
- * The FAKE lease the fencing legs take their token from.
- *
- * Deliberately fake, and deliberately named as such. 385 proves the store refuses a stale epoch;
- * 386 binds v51's real writer lease as the source of that epoch. Reaching for the real lease here
- * would bind the two phases together at the point the whole 385→386 ordering exists to keep apart,
- * and would make this suite fail for lease reasons rather than store reasons.
- *
- * It is a handle rather than a bare number so a leg reads as "this host holds THIS lease" — the
- * shape 386 replaces, with the same one-method surface the store cares about.
- */
+// Fake on purpose: the store's epoch refusal is under test, not the real writer lease.
 export interface FakeWriterLease {
   readonly epoch: number
   fence(): JobStoreFence
@@ -183,14 +132,7 @@ export interface AuthoringArtifacts {
   readonly consumptionPath: string
 }
 
-/**
- * The handler the matrix drives: author every checkpoint the DECLARATION names, in its order.
- *
- * It reads the schedule off the declaration rather than off a table of its own, which is what makes
- * a kind reworked in a later phase flow through with no edit here. The consumption line is appended
- * BEFORE the authorship call, so the log records which boundaries were entered even for the one the
- * host died inside.
- */
+// Reads the schedule off the declaration and logs each boundary before authoring it.
 function authoringHandler(
   declaration: JobKindDeclaration,
   artifacts: AuthoringArtifacts,
@@ -255,7 +197,7 @@ export const CRASH_HISTORY_JOB_COLUMNS = [
   'last_failure_reason',
 ] as const
 
-/** The same idea inside a checkpoint envelope: the attempt that authored it (plan 01's shape). */
+/** The same idea inside a checkpoint envelope: the attempt that authored it. */
 export const CRASH_HISTORY_CHECKPOINT_FIELDS = ['attempt'] as const
 
 /**
@@ -303,7 +245,7 @@ export interface KillMatrixHistory {
 }
 
 export interface KillMatrixSnapshot {
-  /** The untouched D-03 dump, kept so a leg can show what the two histories disagree about. */
+  // The untouched logical dump, kept so a leg can show what the two histories disagree about.
   readonly logicalDump: string
   readonly outcome: KillMatrixOutcomeState
   /** `canonicalJson(outcome)` — byte equality here is outcome equality. */

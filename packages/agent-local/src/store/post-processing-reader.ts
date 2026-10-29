@@ -1,20 +1,4 @@
-// The durable chip-truth read (Phase 388, D-14 / RESEARCH Pitfall 4).
-//
-// A status query must be able to answer "what became of that run's analysis" from a cold
-// process with no socket held, and it must be able to do so WITHOUT changing anything —
-// including whether a queue exists at all.
-//
-// That second half is the whole reason this module exists rather than the read going through
-// `host.jobs()`. Opening the store CREATES `agent-jobs.db` and the checkpoint directory; that
-// is why `jobs()` is deferred in the first place. Routing a status read through it would mean
-// a project that has never enqueued anything grows a queue database the moment somebody asks
-// whether it has one — an observation that changes what it observes. So the file is checked for
-// existence FIRST, and opened READ-ONLY when it is there: two independent reasons the read
-// cannot bring state into being, because one of them is a check somebody could later move.
-//
-// Reads are fence-free by design. Reading claims no authority, so this neither adopts an epoch
-// nor competes with whichever process holds one — a status query beside a live daemon drain is
-// an ordinary concurrent reader on a WAL database, which is exactly what WAL is for.
+// Checks the file exists, then opens it read-only, so a status query never creates a queue.
 
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
@@ -123,8 +107,7 @@ function toNumber(value: unknown): number {
 
 function toRow(row: Record<string, unknown> | undefined): PostProcessingJobRow | undefined {
   if (row === undefined) return undefined
-  // The job store has no conclusion column. Match sqlite-job-store's quarantineConclusionOf:
-  // only the complete recorded quarantine landing supports this conclusion.
+  // The store has no conclusion column; only a complete recorded quarantine landing supports one.
   const conclusionKind: JobConclusionKind | undefined =
     !isJobKind(String(row.kind))
     && row.status === 'failed'
@@ -166,9 +149,7 @@ export function createPostProcessingReader(
       ids: ChainJobIds,
       runId: string,
     ): Promise<PostProcessingChainState | undefined> {
-      // Pitfall 4, stated as the first line of the read: no database, no chain, nothing
-      // created. `undefined` rather than an empty state, because the two are different facts
-      // and the projection is entitled to know which one it is looking at.
+      // No database means no chain: `undefined`, not an empty state, and nothing is created.
       if (!existsSync(path)) return undefined
 
       const db = new DatabaseSync(path, {
@@ -176,11 +157,7 @@ export function createPostProcessingReader(
         timeout: AGENT_JOB_STORE_BUSY_TIMEOUT_MS,
       })
       try {
-        // The same stamp-and-refuse gate the writer applies. A database another
-        // build wrote is bytes this one cannot read, and answering `pending` from it would be
-        // indistinguishable from a run that was never enqueued — which is the silent widening
-        // the version stamp exists to refuse. A fresh, never-stamped file reads 0 and is
-        // treated as readable-but-empty rather than refused: it holds no rows to misread.
+        // Another build's database is refused; a never-stamped file reads 0 and is readable, empty.
         const stamped = toNumber(db.prepare('PRAGMA user_version').get()?.user_version)
         if (stamped !== 0 && stamped !== AGENT_JOB_STORE_USER_VERSION) {
           throw new JobStoreSchemaVersionError(path, AGENT_JOB_STORE_USER_VERSION, stamped)

@@ -1,24 +1,4 @@
-// The equality instrument the kill matrix compares.
-//
-// Never raw database bytes. Sqlite's page layout is not deterministic across two histories
-// that reached the same state by different routes, and while a connection is open the `-wal`
-// and `-shm` sidecars exist beside the file, so a byte comparison of the database would
-// report differences that mean nothing and miss differences that mean everything. What is
-// compared instead is the LOGICAL state: every table, every row, in an order this module
-// states explicitly, serialized with the repo's byte-stability primitive — plus a digest per
-// checkpoint file, since under the hybrid split half the durable state is not in the database
-// at all.
-//
-// Two rules make the result trustworthy rather than merely stable:
-//
-//   Tables are enumerated from the database's own catalogue, not from a list kept here. A
-//   list would silently stop covering a table added later, and the first thing a stale
-//   comparison instrument does is agree that two different states are the same.
-//
-//   Every SELECT carries an explicit ORDER BY over all of the table's columns. Row order
-//   implied by physical layout is not order at all: two databases holding identical rows
-//   inserted in a different sequence would serialize differently, which is exactly the false
-//   difference that gets an equality assertion loosened until it proves nothing.
+// Logical state, not bytes: tables come from the catalogue and every SELECT orders by all columns.
 
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
