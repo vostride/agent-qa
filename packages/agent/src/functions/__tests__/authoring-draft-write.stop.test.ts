@@ -1,26 +1,4 @@
-// The app-broken branch on the op's OWN output, and the store it does NOT write to (411 · WTST-11).
-//
-// THE STOP BRANCH'S WHOLE HUMAN SURFACE IS THE OP RESULT. Nothing is minted for a correctly-failing
-// draft — it is already on the shelf with its receipt, and it IS the regression test for the defect
-// so what a caller learns about the application is the `stop` arm this file reads, and
-// what a caller must NOT find is an envelope in the inbox.
-//
-// THE ZERO IS MEASURED ON THE STORE, NEVER INFERRED FROM THE LOOP'S RETURN. The recording proposals
-// port below IS the store the sibling cells in `authoring-draft-write.fanout.test.ts` already read;
-// every cell here lists it AFTER `invoke` returns. A cell that asserted "the outcome is stopped, so
-// nothing was filed" would be re-stating the branch rather than measuring the write, which is the
-// one thing the ledger's mutation (re-add a `put` on the stopped arm) has to be able to red.
-//
-// MEASURED THROUGH THE SHIPPED CONTRACT. `carried()` parses what `invoke` answered with
-// `AuthoringDraftWriteOutputSchema` before anything is asserted: the schema is `.strict()`, so a
-// `stop` arm the op returns but the contract lacks throws here rather than reading as carried.
-//
-// vitest does not typecheck `.test.ts` (`typecheck.include` is `*.test-d.ts`); `tsc --noEmit` is
-// this file's only type authority.
-//
-// The draft and receipt constants below are COPIES of the fanout suite's, which are module-private
-// there. Importing a sibling `.test.ts` would re-run its cells, so the fixtures are
-// spelled here and the app-broken deltas are made explicit against them.
+// A stopped draft writes nothing; cells list the writers after `invoke` returns, not the arm.
 
 import {
   AuthoringDraftWriteOutputSchema,
@@ -42,8 +20,7 @@ import type {
   ParsedDraftLike,
 } from '../../authoring/ports.js'
 
-// the authoring proposal writer and its record type are deleted. The spy
-// stays as an excess dependency so "nothing was filed" remains a measurement rather than a type.
+// The proposal spy is an excess dependency, so "nothing was filed" is measured, not typed.
 interface AuthoringProposalWrite {
   readonly kind: string
   readonly emittedBy: string
@@ -187,7 +164,7 @@ function deps(options: {
       draft: candidate,
     }),
     verifyDraft: () => Promise.resolve(options.drafted === true ? ACCEPTED : REJECTED_RECEIPT),
-    // the direct writer. A stopped invocation must never reach it.
+    // The direct writer; a stopped invocation never reaches it.
     publish: (request: { readonly targetPath: string }) => {
       options.published?.push(request.targetPath)
       return Promise.resolve({
@@ -241,9 +218,7 @@ describe('the app-broken branch reports the verdict and stops', () => {
     const output = await carried(hostDeps)
 
     expect(output.outcome).toBe('stopped')
-    // THE STORE, LISTED AFTER THE INVOCATION. Not `output`, and not the loop's arm: the claim is
-    // about what reached the inbox, and only the port that writes it can answer that. Since 432
-    // D-06 the same holds for the suite: a stopped draft is never written.
+    // Listed after the invocation: only the writing ports can say what was written.
     expect(filed).toEqual([])
     expect(published).toEqual([])
 
@@ -305,9 +280,7 @@ describe('the app-broken branch reports the verdict and stops', () => {
 
     expect(output.outcome).toBe('drafted')
     expect('stop' in output).toBe(false)
-    // THE TWO-SIDED CONTROL, restated here so the zero above is a statement about the stop branch
-    // rather than about an inert writer that writes nothing on any arm. 2026-09-30, 432 D-06: the
-    // drafted arm is WRITTEN rather than filed, so the control counts the write.
+    // The control: the drafted arm does write, so the zero above is about the stop branch.
     expect(published).toHaveLength(1)
     expect(filed).toEqual([])
   })
@@ -316,7 +289,6 @@ describe('the app-broken branch reports the verdict and stops', () => {
     const filed: AuthoringProposalWrite[] = []
     const output = await carried(deps({ filed }))
 
-    // a spelling behind a status chat's render contract and the 397 parity walk already read.
     const verdict = authoringDraftWriteSpec.classify?.(output)
     expect(verdict?.status).toBe('executed')
     expect(verdict?.outcome.startsWith(`stopped ${DRAFT_NAME}`)).toBe(true)

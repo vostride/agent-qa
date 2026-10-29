@@ -1,15 +1,4 @@
-// `authoring.draft.edit` — the declared surface and the refusals.
-//
-// This file owns what can be measured without a yaml CST: the scopes the verb declares, that it
-// starts zero runs, and that every way an edit can be wrong is a NAMED refusal that constructs no
-// proposal. The byte-confinement claim — an edit never reformats an untouched line — needs the real
-// applier, which lives behind `packages/core` and is bound at the CLI host, so its cells are
-// `packages/cli/src/__tests__/authoring-draft-edit.e2e.test.ts`.
-//
-// THE ZERO-RUNS CLAIM IS MADE STRUCTURALLY. The run port handed to every cell THROWS, so a verb
-// that reached for a run fails the cell it is in rather than being caught by a counter somebody
-// remembered to assert. That is the same posture the loop's own fakes take for a capability that
-// must not be exercised.
+// Every run port here throws, so a verb that starts a run fails its own cell.
 
 import {
   AuthoringDraftEditOutputSchema,
@@ -101,7 +90,6 @@ function bench(options: BenchOptions = {}): Bench {
     verifyDraft: () => {
       throw new Error('authoring.draft.edit re-runs no gates — authoring.draft.verify exists for that')
     },
-    // the direct writer. Records what it was asked to write; answers as the host does.
     publish: (request) => {
       published.push(request)
       return options.publish?.(request) ?? Promise.resolve({
@@ -146,9 +134,6 @@ async function edit(
 }
 
 describe('the declared surface', () => {
-  // RE-SPELLED 2026-10-01 from 'declares test-write and read, and NOT run'. The
-  // scopes were what a grant matched on; grants and scopes are gone, so the op declares
-  // none. That it starts no run stays pinned below by 'starts zero runs on the happy path'.
   it('declares no scope, and keeps its identity', () => {
     expect(authoringDraftEditSpec).not.toHaveProperty('requiredScopes')
     expect(authoringDraftEditSpec).not.toHaveProperty('requiresHumanOrigin')
@@ -164,10 +149,6 @@ describe('the declared surface', () => {
       name: 'fn:authoring.draft.edit',
       recognized: true,
     })
-    // NO `disclose`. 394-08 added that channel for an op whose per-invocation COST a person has to
-    // consent to; this one previews nothing because it spends nothing, and a disclosure composed
-    // for it would be a sentence about a fan-out that does not exist.
-    // the spec member is deleted, so the absence is read off the object.
     expect(authoringDraftEditSpec).not.toHaveProperty('disclose')
   })
 
@@ -179,9 +160,7 @@ describe('the declared surface', () => {
     // The run port throws, so reaching this line at all is the claim. The schema parse beside it
     // is what makes the answer a contract rather than an object shaped like one.
     expect(AuthoringDraftEditOutputSchema.safeParse(result).success).toBe(true)
-    // RE-SPELLED 2026-10-01: the `runsPreviewed`/`runsConsumed` pair rode the deleted
-    // test-draft arm. The answer carries no run count now, and the run port above throws on a start,
-    // so zero runs is measured by reaching this line; the pinned N is still a real bound.
+    // The run port throws on a start, so reaching this line measures zero runs.
     expect(result).not.toHaveProperty('proposal')
     expect(DRAFT_STABILITY_RUNS_N).toBeGreaterThan(0)
   })
@@ -203,8 +182,6 @@ describe('the declared surface', () => {
       testName: TARGET.testName,
       boundBy: 'exact-ref',
     })
-    // RE-SPELLED 2026-10-01: the `unverified` disposition rode the deleted test-draft
-    // arm. This op still runs no gates; what it answers is the file it wrote.
     expect(result.written.kind).toBe('written')
     expect(result.draftRef.contentDigest).toBe('digest-edited')
   })
@@ -226,8 +203,7 @@ describe('every way an edit can be wrong is a named refusal that proposes nothin
 
     expect(refusal).toBeInstanceOf(EditRegionRefusedError)
     expect((refusal as EditRegionRefusedError).offendingPaths).toEqual(['/target'])
-    // THE WHOLE SET, including the legitimate op ahead of the refused one. A per-op check would
-    // already have staged the first patch before it refused the second.
+    // A per-op check would stage the first patch before refusing the second; nothing may be staged.
     expect(benched.applied).toEqual([])
     expect(benched.published).toEqual([])
   })
@@ -239,8 +215,7 @@ describe('every way an edit can be wrong is a named refusal that proposes nothin
       (error: unknown) => error,
     )
 
-    // D-19 reaching this verb: a name that did not clear the resolver's bar ends the invocation,
-    // and it ends it BEFORE the model call, so a never-guess refusal costs nothing.
+    // An unresolved name ends the invocation before the model call, so the refusal costs nothing.
     expect(refusal).toBeInstanceOf(UnresolvedEntityNameError)
     expect(benched.prompts).toEqual([])
     expect(benched.applied).toEqual([])
@@ -323,8 +298,6 @@ describe('every way an edit can be wrong is a named refusal that proposes nothin
     expect(benched.published).toEqual([])
   })
 })
-
-// ---- 432 D-06: refine edits the written test itself ----------------------------------------------
 
 describe('the edit is written over the file it read', () => {
   it('writes the edited draft over the file it read, guarded by its digest', async () => {

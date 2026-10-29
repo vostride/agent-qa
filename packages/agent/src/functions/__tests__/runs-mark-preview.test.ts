@@ -1,4 +1,3 @@
-// the exact-input consequence preview contract over feedbackReads.
 import { describe, expect, it, vi } from 'vitest'
 import { SecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
 import { RunsMarkInputSchema, RunsMarkOutcomeSchema, RunsMarkPreviewResultSchema, asRunId } from '@vostride/agent-qa-schema'
@@ -174,7 +173,6 @@ describe('runs.mark.preview contract', () => {
 
   it('PREVIEW-PROSPECTIVE: a read-tier op that reports what runs.mark would do, never a write, receipt or minted id', async () => {
     const op = previewSpec()
-    // RE-SPELLED 2026-10-01 from `requiredScopes` equal to ['read'].
     expect(op).not.toHaveProperty('requiredScopes')
     expect(op.resultKind).toBe('unary')
     expect(op.risk).toEqual({ name: 'fn:runs.mark.preview', recognized: true, readOnly: true })
@@ -197,7 +195,7 @@ describe('runs.mark.preview contract', () => {
       expect(verdict.status).toBe('executed')
       expect(verdict.outcome).toMatch(/^preview: /)
       expect(verdict.outcome).toMatch(/nothing written/)
-      // a preview speaks of what runs.mark will apply, never of a draft for review.
+      // A preview speaks of what `runs.mark` will apply, never of a draft for review.
       expect(verdict.outcome).not.toMatch(/\bdrafts?\b|\breview\b|proposal/)
     }
     const parse = (value: unknown) => resultSchema().safeParse(value).success

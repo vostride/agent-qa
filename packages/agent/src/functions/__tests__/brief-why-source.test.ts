@@ -1,24 +1,4 @@
-// The why-verb cannot re-run retrieval.
-//
-// D-15's prohibition is "never re-run retrieval to answer". A behaviour test can show that a
-// given invocation did not re-run one; it cannot show that no invocation could. This file
-// states the two structural halves of that claim at the strength each one actually has, so
-// nobody later reads the weaker one as the stronger.
-//
-//   1. STRUCTURAL, enforced by the type system. `mapStepEvidenceToWhy` — the function that
-//      decides what the answer IS — takes `(lookup, input)` and no `deps`. There is no handle
-//      in its scope through which any index could be reached, so this half needs no scan and
-//      cannot be violated by an edit that does not change the signature. `port-split.test-d.ts`
-//      pins the signature.
-//   2. SOURCE-SCANNED, and probed. `invoke` receives the whole `FunctionDeps` record, as every
-//      op does. That it reaches only `deps.runs` is a fact about the file's bytes, and the scan
-//      below is what makes it a checked one. The poisoned-reader cases in agent-local's
-//      `why-verb.test.ts` are the runtime half of the same claim, with a control proving the
-//      poison fires when a verb does reach it.
-//
-// Naming both is the point. "Structurally impossible" is a strong claim and it is true of the
-// mapping; it is NOT true of `invoke`, and asserting it there would have been the sort of
-// overstated guarantee that stops anyone from checking again.
+// `mapStepEvidenceToWhy` takes no deps, so only `invoke` needs the source scan below.
 
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'

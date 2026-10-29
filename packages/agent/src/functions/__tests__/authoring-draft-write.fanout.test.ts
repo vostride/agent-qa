@@ -1,19 +1,4 @@
-// The fan-out report on the op's OWN output (394-14 · WTST-08, SC-5's reporting half).
-//
-// WHY THIS FILE EXISTS AND `fan-out-accounting.test.ts` DOES NOT COVER IT. That file measures the
-// LOOP: `runAuthoringLoop` returns an `AuthoringLoopResult` whose `fanOut` is correct on every arm,
-// and every one of its cells reads that in-process value. 394-VERIFICATION found the whole of it
-// unreachable one layer up — `invoke()` built its answer from four fields and DISCARDED
-// `result.fanOut`, and `AuthoringDraftWriteOutputSchema` was `.strict()` with no field the report
-// could have ridden. So the loop's number was correct and no caller on any host could read it.
-//
-// THE MEASUREMENT IS THEREFORE THROUGH THE OUTPUT SCHEMA, NEVER OFF THE RETURNED OBJECT. Every
-// cell below parses what `invoke` answered with the shipped contract before asserting anything: a
-// field the op returns but the contract strips is not carried, and a cell reading the raw object
-// would have reported a pass for exactly the shape this plan exists to fix.
-//
-// vitest does not typecheck `.test.ts` (`typecheck.include` is `*.test-d.ts`); `tsc --noEmit` is
-// this file's only type authority.
+// Cells parse the answer with the output schema, so a field the contract strips is not carried.
 
 import {
   AuthoringDraftWriteOutputSchema,
@@ -34,8 +19,7 @@ import type {
   ParsedDraftLike,
 } from '../../authoring/ports.js'
 
-// the authoring proposal writer and its record type are deleted. The spy
-// stays as an excess dependency so "nothing was filed" remains a measurement rather than a type.
+// The proposal spy is an excess dependency, so "nothing was filed" is measured, not typed.
 interface AuthoringProposalWrite {
   readonly kind: string
   readonly emittedBy: string
@@ -120,7 +104,6 @@ interface SuiteText {
  */
 function deps(options: {
   readonly suiteText?: readonly SuiteText[]
-  /** Leave the retired proposals port unbound — since 432 D-06 nothing consults it. */
   readonly unboundProposals?: true
   /** Leave the shelf unbound — the host with no write half at all. */
   readonly unboundShelf?: true
@@ -147,7 +130,7 @@ function deps(options: {
       draft: candidate,
     }),
     verifyDraft: () => Promise.resolve(ACCEPTED),
-    // the direct writer the loop's final write reaches. It starts no run.
+    // The direct writer the loop's final write reaches; it starts no run.
     publish: (request: { readonly draftPath: string; readonly targetPath: string }) => {
       options.published?.push(request)
       if (options.writeFails === true) {
@@ -187,9 +170,7 @@ function deps(options: {
         exemplars: [],
       }),
       suiteTextCorpus: () => Promise.resolve(options.suiteText ?? []),
-      // the `target` vocabulary the compile prompt serves. This bench's model is
-      // scripted and reads none of it — the verb is here because the port requires it, and
-      // because this deps object is cast, so nothing but a run would have told us.
+      // The scripted model reads none of this; the port requires it.
       configuredTargetNames: () => Promise.resolve(['local-form']),
     },
   } as unknown as FunctionDeps
@@ -254,9 +235,7 @@ describe('the op carries the fan-out report it computed (the reporting half)', (
   it('no PROPOSAL rides the wire — only the report and the written-test receipt ride', async () => {
     const output = await carried()
 
-    // The control for the three cells above. A fix that had widened the contract to "carry what
-    // the loop returned" would pass every cell above and red this one. 2026-09-30, 432 D-06: the
-    // written-test receipt joins the report — the file written and how well it was verified.
+    // The control: a contract widened to carry the loop's whole result would fail here.
     expect(output).not.toHaveProperty('proposal')
     expect(output).not.toHaveProperty('stages')
     expect(Object.keys(output).sort())
@@ -264,9 +243,6 @@ describe('the op carries the fan-out report it computed (the reporting half)', (
   })
 })
 
-// re-spelled in place. These cells pinned the proposal 394-18 filed before
-// the op answered. The drafted outcome is now written, not filed, so each keeps its subject — what
-// the op does with a drafted outcome before it answers — and measures the write.
 describe('the drafted outcome is WRITTEN before this op answers', () => {
   it('writes the drafted outcome once through the shelf and files no proposal', async () => {
     const filed: AuthoringProposalWrite[] = []

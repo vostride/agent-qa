@@ -1,13 +1,4 @@
-// `analysis.get` — THE one producer of a run's analysis.
-//
-// Resolved verdicts, rendered sentences (live recurrence joins applied) and clusters, served
-// through one op that every surface calls — plan 07's CLI print, M5's run page, 392's chat.
-// Beside it, the `runs.get` rewire: the cheapest read lists class/producer/confidence through
-// the SAME accessor and never renders a sentence (the cheapest-read law).
-//
-// Absence discipline throughout: an unbound analysis port refuses BY NAME; a bound port with
-// no artifact on disk answers the handoff floor (honest parts, minted unknowns); a run with
-// no failures answers empty lists. None of those is an error, because none of them is a lie.
+// No absence is an error: unbound refuses by name, no artifact answers the floor, none is empty.
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -49,8 +40,6 @@ import type {
 import { ANALYSIS_GET_FUNCTION_ID } from '../ops/analysis-get.js'
 import { RUNS_GET_FUNCTION_ID } from '../ops/runs-get.js'
 
-// the retired `grantedScopes` and `safeMode` caller fields and the
-// retired `resolveExecutionContext` registry option are dropped; nothing read them.
 const CALLER: FunctionCaller = {
   surface: 'test',
   origin: 'agent',
@@ -189,8 +178,7 @@ describe('analysis.get — the handoff floor', () => {
     const output = await analysisOf(registry, String(handoff.runId))
 
     expect(output.runId).toBe(String(handoff.runId))
-    // `evidence` is on every verdict, floor included — the minted unknown cites nothing
-    // and says so, rather than omitting the key and leaving a reader to guess which it meant.
+    // `evidence` is on every verdict, floor included, so a reader never guesses what absence means.
     expect(output.verdicts).toEqual([
       { perTest: 0, testId: 't_failed_0', class: 'unknown', producer: 'deterministic-classifier', confidence: 0, evidence: { citedSteps: [], citedArtifacts: [] } },
       { perTest: 1, testId: 't_failed_1', class: 'unknown', producer: 'deterministic-classifier', confidence: 0, evidence: { citedSteps: [], citedArtifacts: [] } },
@@ -201,7 +189,7 @@ describe('analysis.get — the handoff floor', () => {
       // No recurrence dep bound: obligation c still renders, as the explicit no-history clause.
       expect(entry.sentence).toContain('no failure history is recorded for this test')
     }
-    // One shared anchor, one class: the ANLZ-04 fold, with the representative's sentence.
+    // One shared anchor and one class fold into one cluster with the representative's sentence.
     expect(output.clusters).toHaveLength(1)
     expect(output.clusters[0]!.count).toBe(2)
     expect(output.clusters[0]!.representative.sentence)
@@ -271,9 +259,7 @@ describe('analysis.get — the artifact leg and the one accessor', () => {
 
     expect(output.sentences[0]!.sentence)
       .toContain('failure 3 of this test in the last 5 builds')
-    // Identity is (product, filePath, testName) — the projection's own key, never testId —
-    // and 390 D-07 adds the FINGERPRINT the recurrence windows are keyed by. Both travel:
-    // the ladder join is identity-keyed, the occurrence count is fingerprint-keyed.
+    // Ladder joins key on (product, filePath, testName); occurrence counts key on the fingerprint.
     expect(asked).toEqual([{
       product: slugBranch(handoff.scope.key),
       filePath: 'tests/failed-0.yaml',
@@ -289,9 +275,7 @@ describe('analysis.get — the artifact leg and the one accessor', () => {
   })
 
   it('keys the fingerprint by the RESOLVED class — an upgraded verdict queries a different window', async () => {
-    // The recipe folds the class in, so the same anchor failing as `unknown` and as
-    // `app_bug` are two windows. The caller must therefore key from the resolved verdict, not
-    // from the handoff's floor — which is exactly what the projection's writer does.
+    // The recipe folds the class in, so the caller keys from the resolved verdict, not the floor.
     const handoff = buildSyntheticHandoff({ failureCount: 1 })
     const asked: RecurrenceQuery[] = []
     const recurrence: RecurrenceProvider = {
@@ -370,16 +354,7 @@ describe('analysis.get — the artifact leg and the one accessor', () => {
   })
 })
 
-// The evidence projection.
-//
-// A verdict on the wire used to say WHAT it concluded and never WHAT it read. The failure view's
-// links are those refs, and re-deriving them in the page would be a second join over the same
-// artifact — so the op that already resolved the verdict projects its own evidence, and annotates
-// each cited artifact with whether the bytes are still there.
-//
-// FOUR PORT ARMS AND THEY ARE NOT THREE. `found` is the only `true`; both absences are `false`
-// because the bytes are gone either way; and a port with no `has` at all leaves the key ABSENT,
-// which is presence UNKNOWN — the one thing that must never render as a claimed absence.
+// `found` is the only `true`; a port with no `has` leaves the key absent, meaning presence unknown.
 
 /** A port whose `has` answers one fixed word, recording what it was asked. */
 function blobsAnswering(
@@ -395,7 +370,7 @@ function blobsAnswering(
   }
 }
 
-/** The shape every host bound before 406 — a read and nothing else. */
+/** A port with only a read and no `has`. */
 const BLOBS_WITHOUT_HAS: EvidenceBlobReaderPort = {
   read: () => Promise.resolve({ status: 'unknown_run' as const }),
 }
@@ -557,10 +532,7 @@ describe('analysis.get — read-time presence on cited artifacts', () => {
   })
 
   it('stats each distinct sha ONCE within the ref list it is handed', async () => {
-    // WITHIN one verdict's cited list, which is the scope `annotatePresence` dedups over and the
-    // scope this cell measures. The cross-verdict case — 40 members citing one screenshot — is NOT
-    // collapsed, because both callers invoke the annotation per member; that residual is recorded
-    // on `evidence-presence.ts` rather than mitigated.
+    // Dedup is per verdict; a blob cited across verdicts is asked once per member.
     const seen: string[] = []
     const other = 'b'.repeat(64)
     await citedArtifactUnder(blobsAnswering('found', seen), [
@@ -572,25 +544,18 @@ describe('analysis.get — read-time presence on cited artifacts', () => {
   })
 })
 
-// D-12 through the op, and the census that keeps it single.
-//
-// Two claims, and the second is what makes the first durable. The op serves the CLEANED
-// sentence — the 399 seeded-red quote read as an escape stream on every surface — and its
-// cluster representative is that same string, looked up rather than re-rendered. The census
-// then reads the source of every surface package and pins that exactly ONE file spells
-// `observed (step`: a second composer would be a second sentence for one verdict, which is
-// precisely the drift D-12 exists to forbid.
+// The op serves the cleaned sentence; the scan below pins one source composing `observed (step`.
 
 const ESC = '\u001b'
 
-/** Copied from `demo/acceptance/399/399-analysis-seeded-red.json` — Playwright's raw error. */
+/** Playwright's raw timeout error from a seeded-red run. */
 const SEEDED_RED_399_QUOTE =
   'locator.click: Timeout 30000ms exceeded.\n'
   + 'Call log:\n'
   + `${ESC}[2m  - waiting for getByRole('button', { name: 'Close ad', exact: true }).first()`
   + `${ESC}[22m\n`
 
-/** The readable form D-12 pins — every non-control word of the "before", in order, on one line. */
+// Every non-control word of the raw quote, in order, on one line.
 const SEEDED_RED_399_READABLE =
   'locator.click: Timeout 30000ms exceeded. '
   + "Call log: - waiting for getByRole('button', { name: 'Close ad', exact: true }).first()"
@@ -657,8 +622,6 @@ describe('analysis.get — the quote leg, through the ONE renderer', () => {
       .toContain(`observed (step 1): "${SEEDED_RED_399_READABLE}"`)
     expect(output.sentences[0]!.sentence).not.toContain(ESC)
     expect(output.sentences[0]!.sentence).not.toContain('\n')
-    // The cluster LOOKS THE SENTENCE UP rather than re-rendering it, so the cleaned
-    // form cannot drift between the per-test list and the cluster header.
     expect(output.clusters[0]!.representative.sentence).toBe(output.sentences[0]!.sentence)
   })
 

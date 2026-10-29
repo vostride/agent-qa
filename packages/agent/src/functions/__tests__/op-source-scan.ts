@@ -1,18 +1,4 @@
-// A source scanner for op-file claims.
-//
-// Not a test file (the suite collects `*.test.ts`) and not production code either: it is the
-// shared half of acceptance criteria that two test files state.
-//
-// WHY IT IS NOT `grep`. Three rounds of agents in this repo have watched `grep` return no
-// stdout for a pattern demonstrably present in these files, and a scan that silently matches
-// nothing is a check that passes forever. Everything here reads bytes with `node:fs` and does
-// its own splitting, so "the file was read and had N statements" is itself assertable.
-//
-// WHY STATEMENTS AND NOT LINES. Every claim below is about what the code DOES, and a doc
-// comment that explains why a mechanism is absent necessarily names that mechanism. A scanner
-// over raw text would flag the explanation and force the explanation to be deleted — which is
-// how a codebase loses the reasoning that makes its rules survivable. Comments are stripped
-// first, and the inverse control asserts prose naming every forbidden term is NOT flagged.
+// Reads bytes with `node:fs` and strips comments first, so prose naming a forbidden term passes.
 
 import { readFileSync } from 'node:fs'
 
@@ -95,22 +81,7 @@ export function scanFile(path: string, forbidden: readonly string[]): SourceScan
   return scanText(readFileSync(path, 'utf8'), forbidden)
 }
 
-/**
- * Every `classify(...)` method BODY in a source file, brace-matched.
- *
- * WHY BODIES AND NOT WHOLE FILES. The 399.1-03 scan named three files by hand, which was honest
- * while three ops declared a fold and became a door-enumeration rule the moment forty-two did — a
- * rule that can only refuse what it can NAME cannot be driven to zero by naming more things. The
- * obvious widening (scan every op file) does not work and the reason is worth recording:
- * `authoring-verify-draft.ts` resolves a draft path with `lowered.endsWith(extension)`, which is a
- * FILE EXTENSION check in a helper the fold never calls. A whole-file scan would flag it, and the
- * only ways out would be a per-file exemption list — the same door enumeration one level up — or
- * deleting correct code to satisfy a scanner.
- *
- * SO THE UNIT IS THE FOLD ITSELF. Braces are counted from the body's opening `{`, over text whose
- * comments and string literals are already stripped, so a brace inside a doc comment or inside a
- * template literal cannot end a body early. The caller scans what comes back.
- */
+// Scans only `classify` bodies: a whole-file scan flags helpers such as a file-extension check.
 export function classifyBodies(source: string): readonly string[] {
   const code = executableSource(source)
   const bodies: string[] = []

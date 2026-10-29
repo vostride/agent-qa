@@ -1,12 +1,4 @@
-// The function-layer contract types.
-//
-// `FunctionDeclaration` is the public, capability-free VIEW of an op: everything a
-// surface needs to discover, describe, and project the capability (MCP tool listings,
-// the 397 golden snapshot, the `agent-qa fn --list` catalog) and nothing that runs it.
-// `FunctionSpec` adds the LIVE input/output validators and the implementation, and NEVER
-// leaves this directory — the package barrel exports the declaration type only, so no
-// surface can acquire a dispatch path that skips `invokeFunction`'s gate call,
-// nor a handle on the schema objects that dispatch enforces with.
+// Only the declaration type leaves this directory, so no surface can bypass `invokeFunction`.
 
 import type { EventLogPort } from '@vostride/agent-qa-runner'
 import type { z } from 'zod'
@@ -76,23 +68,10 @@ import type { RecurrenceProvider } from '../analysis/render-sentence.js'
 import type { ChainJobIds } from '../jobs/chain-identity.js'
 import type { JobIdSource } from '../jobs/engine.js'
 
-/**
- * How an op returns its result.
- *
- * `unary` resolves ONE value, validated against the spec's `output` contract.
- * `stream` resolves a {@link FunctionStream} whose elements each honour that same
- * `output` contract — the contract describes one element, never the iterable.
- */
+// A `stream` op's `output` contract describes one element, never the iterable.
 export type FunctionResultKind = 'unary' | 'stream'
 
-/**
- * A stream op's result: a typed async iterable of seq-stamped elements.
- *
- * Connection-independent by construction — every element carries its own resume token, so
- * a caller that observed token N re-invokes with that token and receives N + 1 onward.
- * Nothing about the iterable is bound to the transport that produced it, which is why
- * 386's live attach and this phase's completed-run replay are the SAME contract.
- */
+// Every element carries its own resume token, so a stream is independent of its transport.
 export type FunctionStream<Element = unknown> = AsyncIterable<Element>
 
 /**
@@ -102,17 +81,7 @@ export type FunctionStream<Element = unknown> = AsyncIterable<Element>
  */
 export type ReplayedRunEvent = ReturnType<EventLogPort['read']>[number]
 
-/**
- * Whether the op's implementation is bound in THIS composition. A declared-but-
- * unbound op is a visible state, never a silent gap: coverage checks must treat
- * `unbound` as covered-but-unbound rather than as an absent capability.
- *
- * It is a property of a COMPOSITION, not of a spec, and since 385 it is computed
- * that way: the field lives on {@link FunctionDeclaration} — which a registry mints from
- * the deps it was handed — and on no spec. A spec that carried a static `'bound'` would be
- * making a claim about compositions it is not part of, and the first composition that
- * omitted the implementation would report `bound` and lie. There is no literal to flip.
- */
+// Computed per composition, never a static field a spec could get wrong.
 export type FunctionBindingStatus = 'bound' | 'unbound'
 
 /**
@@ -143,15 +112,12 @@ export type OptionalFunctionDepKey =
   | 'configValidate'
   | 'scaffoldContent'
   | 'capabilityCatalog'
-  | 'feedback' // the Gate-3 mark port
-  | 'feedbackReads' // read-only mark history and preview, no writer authority
-  | 'configWrite' // the direct config writer, no proposal and no git
-  | 'secretMask' // the declared-secret mask the run reads project through
+  | 'feedback' // The mark port
+  | 'feedbackReads' // Read-only mark history and preview, with no writer authority
+  | 'configWrite' // The direct config writer, with no proposal and no git
+  | 'secretMask' // The declared-secret mask the run reads project through
 
-/**
- * the union previously had only a type-level pin, invisible to vitest.
- * Like DELTA_ORIGINS and MARKS, this runtime projection makes removal measurable.
- */
+// A runtime projection of the union, so a removed key is measurable in vitest.
 export const OPTIONAL_FUNCTION_DEP_KEYS = [
   'liveView',
   'runInvocation',
@@ -183,19 +149,7 @@ type _Cover = ExactlyEqual<(typeof OPTIONAL_FUNCTION_DEP_KEYS)[number], Optional
 const _optionalFunctionDepKeysCover: _Cover = true
 void _optionalFunctionDepKeysCover
 
-/**
- * The capability is declared, but no implementation is bound in THIS composition.
- *
- * Deliberately distinct from `UnknownFunctionError`: the contract exists, is listed, and
- * projects into a catalog — what is absent is the binding. A caller (or a coverage check)
- * that could not tell those two apart would read a staged capability as a hole in the API,
- * which is the silent gap `bindingStatus` exists to prevent.
- *
- * Declared here beside {@link FunctionBindingStatus} rather than beside the pipeline's
- * other refusals so an unbound op can throw it without an op → invoke → registry → op
- * import cycle; `invoke.ts` re-exports it, so the layer's refusal vocabulary still reads
- * as one set at the call site.
- */
+// Declared here, not in invoke.ts, so an unbound op can throw it without an import cycle.
 export class FunctionNotBoundError extends Error {
   constructor(readonly functionId: string) {
     super(`${functionId} is declared but not bound in this composition`)
@@ -203,71 +157,20 @@ export class FunctionNotBoundError extends Error {
   }
 }
 
-/**
- * The scalar metadata every capability carries, shared by the public view and the
- * internal spec.
- *
- * `id` is dot-namespaced `domain.verb` over ONE canonical domain taxonomy.
- *
- * this docstring used to repeat D-15's original eight domains
- * (tests · runs · memory · analysis · eval · gates · config · agent), and six later phases
- * shipped ids in domains that list does not contain — so the sentence had been false for a
- * month by the time anyone checked it. The taxonomy is now DATA rather than prose, pinned in
- * the conformance suite's `domain-list.ts` with a one-line charter apiece and censused
- * against this registry in both directions. An id in an unpinned domain is a named RED
- * there; widening the taxonomy is a reviewed one-line diff to that table. Ids are never
- * renamed to suit it — they are the shipped, locked contract, and the taxonomy serves them.
- *
- * The two CONTRACT fields are deliberately NOT here. They are the one place the view and
- * the spec must differ in kind — a projection on one, a live validator on the other — and
- * splitting them out is what makes that difference a property of the type system rather
- * than a rule someone has to remember at the seam.
- */
+// Ids are `domain.verb`; the domain list is pinned in the conformance suite's `domain-list.ts`.
 export interface FunctionMetadata {
   id: string
   /** One-line human description; rendered by catalogs and `agent-qa fn --list`. */
   summary: string
-  // no `requiredScopes` and no `requiresHumanOrigin`. Both were
-  // retired and unread since 432-20 and every op spec stopped spelling them by 432-27; the members
-  // are deleted with the capability-scope union, so no metadata, spec or declaration can carry either.
   resultKind: FunctionResultKind
-  /** The risk descriptor of this op: listings, MCP tool annotations and the read scope read it (no gate since 432-13). */
+  // Listings and MCP tool annotations read the risk descriptor.
   risk: RiskActionDescriptor
 }
 
-/**
- * An INERT description of one declared contract: a JSON-Schema document, deep-frozen.
- *
- * A projection has no `parse` and no `safeParse` — there is nothing on it to run and
- * nothing on it to replace. That is the whole point. The surface-visible view used to
- * carry the live `z.ZodType`, and because ops assign the schema package's own exported
- * validators, a single write reached through a permitted `registry.list()` replaced the
- * contract vocabulary every firewalled surface imports, for the whole process. Publishing
- * a projection removes the object that write needed rather than adding a rule about it.
- *
- * D-14 already named the input contract "also the JSON-Schema projection source"; on the
- * declaration that description is now literal, and it is the shape 396's MCP tool listing
- * consumes.
- */
+// A projection has no `parse`, so a listing gives no handle to replace a shared validator.
 export type FunctionSchemaProjection = Readonly<Record<string, unknown>>
 
-/**
- * What one clause's result MEANT, as the op that produced it reports.
- *
- * TWO FIELDS AND NO THIRD. `status` is the one bit a surface must not get wrong — whether the thing
- * was carried out — and `outcome` is the sentence that says which road it came in by. Anything
- * larger would be a second payload channel, and the payload has one (`results[]`).
- *
- * `not-run` IS ABSENT FROM THE STATUS SET, AND ITS ABSENCE IS THE POINT. That member describes a
- * clause the ENGINE deliberately never attempted after an earlier one failed — a fact about the
- * turn, which no op can know and none may claim. The three a classifier may return are derived from
- * the schema's own vocabulary rather than re-spelled, so a fifth receipt status cannot appear here
- * without somebody deciding whether an op may return it.
- *
- * THE `failed` MEMBER IS WHAT MAKES THIS FAIL-CLOSED POSSIBLE. A result the declared fold
- * cannot read reports `failed` with a named outcome, never `executed`: an unreadable result might be
- * a refusal, so success is the one claim a receipt must never default to.
- */
+// Ops may not return `not-run`, which only the engine knows; an unreadable result is `failed`.
 export interface ClauseVerdict {
   readonly status: Exclude<ClauseReceiptStatus, 'not-run'>
   /**
@@ -288,54 +191,14 @@ export interface ClauseVerdict {
  * FunctionSpec} instead, which never leaves this directory.
  */
 export interface FunctionDeclaration extends FunctionMetadata {
-  /**
-   * Whether THIS composition can run the op.
-   *
-   * Computed by the registry from the deps it was constructed with, never copied off a
-   * spec. A listing is therefore a fact about the host a caller is talking to: the same
-   * capability reads `bound` from a composition that supplied its implementation and
-   * `unbound` from one that did not, and `invokeFunction` refuses on exactly that answer.
-   */
+  // Computed from the registry's deps, never copied off a spec.
   bindingStatus: FunctionBindingStatus
-  // no `discloses` flag. It projected the presence of the per-op
-  // disclosure a confirm prompt showed; the prompt and the method are deleted, and so is the column.
-  /**
-   * This op folds its OWN result into a clause verdict.
-   *
-   * PRESENCE, AS DATA — never the callable: {@link FunctionSpec.classify} stays where it is, and a
-   * function-valued field on {@link FunctionMetadata} would put something runnable back on every
-   * listing.
-   *
-   * WHAT THE PROJECTION IS FOR, AND WHY IT IS NOT DECORATION. D-01 puts refusal knowledge in a
-   * per-op fold rather than in a chat-side rule that pattern-matches values, because a rule that
-   * can only refuse what it can NAME cannot be driven to zero by naming more things. The cost of
-   * that choice is coverage: an op that never declared a fold reports the legacy `executed` for
-   * every result it can return, silently. This boolean is what makes that countable — the census in
-   * `packages/cli` cannot reach a spec by construction, so without it the coverage question could
-   * only be answered by somebody reading forty-three op files.
-   *
-   * `true` is the only value: `false` and an absent key would be two spellings of one fact, and a
-   * present `undefined` would make a golden column read `null` for an op that simply has no fold.
-   */
+  // Presence as data, never the callable, so a listing carries nothing runnable.
   classifies?: true
-  /**
-   * This op composes its own human-facing lines on top of the default payload render.
-   *
-   * PRESENCE, AS DATA, on the two flags above. The fold ADDS legibility and can never suppress: the
-   * default render is the complete payload and a declared fold is printed beside it, never instead
-   * of it. That is a property of the render path rather than of this flag, and the flag is here so
-   * a listing — and the golden ledger — can say which ops carry one.
-   */
+  // The fold adds lines beside the full payload render, never instead of it.
   rendersResult?: true
-  /** Inert JSON-Schema projection of the runtime input contract. */
   input: FunctionSchemaProjection
-  /**
-   * Inert JSON-Schema projection of the runtime output contract.
-   *
-   * For a `unary` op the underlying contract describes the whole result. For a `stream`
-   * op it describes ONE element, never the iterable, and a catalog reads this projection
-   * as the element schema its transport (SSE frame, MCP notification) carries.
-   */
+  // For a `stream` op this describes one element, the frame its transport carries.
   output: FunctionSchemaProjection
 }
 
@@ -350,138 +213,28 @@ export interface FunctionDeclaration extends FunctionMetadata {
  * and it reaches them through the module-private internals seam.
  */
 export interface FunctionSpec<Input = unknown, Output = unknown> extends FunctionMetadata {
-  /**
-   * The OPTIONAL dep this implementation dispatches through, when it has one.
-   *
-   * Absent — the ordinary case — means the implementation needs only the required deps,
-   * which every composition supplies by type, so the op is bound wherever it is registered.
-   * Present means the op is bound exactly in the compositions that supplied that dep, and
-   * `unbound` everywhere else. This field is the whole of a spec's say in the matter: a
-   * spec states what its implementation NEEDS, and the composition's answer to that need is
-   * what the declaration reports.
-   */
+  // Absent: bound wherever registered. Present: bound only where the composition supplied that dep.
   boundThrough?: OptionalFunctionDepKey
-  /** Runtime input contract — the validator `invokeFunction` enforces with. */
   input: z.ZodType<Input>
-  /**
-   * Runtime output contract.
-   *
-   * For a `unary` op this is the contract for the whole result, and `invokeFunction`
-   * validates against it. For a `stream` op it is the contract for ONE element: parsing
-   * the iterable itself against it would be a category error.
-   */
+  // For a `stream` op this contracts one element; parsing the iterable against it would be wrong.
   output: z.ZodType<Output>
-  /**
-   * The canonical output document's companion, for an output zod cannot convert in output mode
-   * (2026-09-28, 431-03 · D-03, research A1).
-   *
-   * OPTIONAL, and it never validates anything: `output` stays the one enforcing schema, and the
-   * registry refuses a companion whose `runtimeSchema` is not that same object. What it changes is
-   * only the declaration's output projection, which is read from the companion's output document
-   * instead of the input-mode conversion.
-   */
+  // For outputs zod cannot convert in output mode; it changes only the declared projection.
   outputRepresentation?: OutputContract<z.ZodType<Output>>
-  // no `disclose` method. It composed the per-invocation cost line
-  // a confirm prompt showed before a person approved; no door asks, so nothing calls it.
-  /**
-   * What this op's OWN result means, as a clause verdict.
-   *
-   * THE OP FOLDS ITS OWN UNION, AND NOTHING ELSE MAY. Chat cannot tell a refusal from a success by
-   * looking at a result: 399's UAT measured a credential-blocked config mutation, a validation
-   * failure and a real proposal all reported as `executed` in green, because the engine derived the
-   * status from throw-vs-return and every one of the three RETURNED. The knowledge of which arm of
-   * `ConfigProposeOutput` is a refusal lives in exactly one place — the op that declared the union —
-   * and this is that place. The alternative D-01 rejects by name is a chat-side rule matching values
-   * or field names, which can only ever refuse what somebody has already thought to name.
-   *
-   * IT LIVES ON THE SPEC, NOT ON {@link FunctionMetadata}, and its presence projects onto the
-   * declaration as {@link FunctionDeclaration.classifies}: the callable stays here and only the
-   * boolean fact crosses to a listing.
-   *
-   * PURE BY CONTRACT: it runs on the composition root's return path with the op's
-   * own output in hand, and a port reached from here would be I/O between an act and the report of
-   * what the act was.
-   *
-   * IT DECIDES NOTHING AND CANNOT WIDEN ANYTHING. The op has already run,
-   * and the audit row is already written when this is called. What it produces is the REPORT.
-   *
-   * REQUIRED AS OF 2026-08-20 (399.1 plan 04), AND ENFORCED IN TWO PLACES THAT SEE DIFFERENT
-   * THINGS. It was optional for one plan while the fan-out landed, and an op that declared none
-   * reported the legacy `{ status: 'executed', outcome: '' }` — the same line every op reported
-   * before this member existed. Forty ops reported it for two phases, silently, which is the cost
-   * D-01 accepted when it put refusal knowledge on the op instead of in a chat-side rule.
-   *
-   * LAYER ONE IS `tsc`, AT THE KEYSTROKE. An op file that omits this does not compile, so the
-   * ordinary way of shipping an unclassified op is closed at the moment it is written.
-   *
-   * LAYER TWO IS THE CONFORMANCE CENSUS ON THE SHIPPED REGISTRY
-   * (`packages/cli/src/__tests__/conformance/classifier-census.test.ts`), AND IT IS NOT A
-   * RESTATEMENT OF LAYER ONE. The type is defeatable: `registry.ts` already registers
-   * `runsEventsSpec as FunctionSpec`, and an `as`-cast, a spread of a partial literal, or a
-   * registry assembled from another type all satisfy `tsc` while shipping an op with no fold. The
-   * census reads what the product CONTAINS — the declarations a composed root lists — so it answers
-   * the question the type cannot, by op id, in both directions.
-   *
-   * AND THE RUNTIME NO LONGER DEFAULTS. `foldFunctionResult` used to answer `executed` for an
-   * absent classifier; it answers `failed`/`unclassifiable-result` now, because with this member
-   * required an absent one means a cast got past both layers, and success is the one claim a
-   * receipt must never default to.
-   */
+  // Pure, and required; an `as`-cast can still skip it, which the conformance census catches.
   classify(output: Output): ClauseVerdict
-  /**
-   * Extra human lines this op's result deserves, on top of the complete payload render.
-   *
-   * ADDITIVE BY CONTRACT. The default render is the whole masked payload, pretty-printed, and a
-   * declared fold is printed BESIDE it — never instead of it, never as a filter over it. D-04 makes
-   * that a law rather than a convention because RC-2's lesson is that a hand-picked field join is a
-   * drop site: the fan-out report and the explain lines are legibility a person is glad of, and
-   * neither is a reason to stop showing them what the op actually returned.
-   *
-   * PURE BY CONTRACT and PRESENCE-PROJECTED as {@link FunctionDeclaration.rendersResult}, on
-   * `classify`'s arrangement above.
-   */
+  // Additive: printed beside the complete payload render, never instead of it or as a filter.
   renderResult?(output: Output): readonly string[]
   invoke(input: Input, deps: FunctionDeps): Promise<Output>
 }
 
-/**
- * INTERNAL: metadata plus live contracts plus the implementation for a `stream` op.
- *
- * `Element` is what the declared `output` contract describes — ONE element, never the
- * iterable. The stream is ACQUIRED inside `invoke` rather than lazily on first iteration,
- * so an acquisition refusal (a resume token below the replay floor, say) surfaces as an
- * invocation failure instead of as a stream that dies half-delivered.
- *
- * A stream spec is registered by widening to {@link FunctionSpec}: the registry stores one
- * spec shape, and `invokeFunction` branches on the DECLARED `resultKind`, never on what
- * the implementation happens to return.
- */
+// Acquired inside `invoke`, so a refusal throws instead of a stream dying half-delivered.
 export interface FunctionStreamSpec<Input = unknown, Element = unknown>
   extends FunctionMetadata {
   boundThrough?: OptionalFunctionDepKey
   resultKind: 'stream'
   input: z.ZodType<Input>
   output: z.ZodType<Element>
-  /**
-   * What a stream op's RESULT meant, folded over the acquisition rather than over an element
-   *
-   * IT IS HANDED THE STREAM, NOT AN ELEMENT, AND THE TYPE SAYS SO. `foldFunctionResult` runs on the
-   * composition root's return path with whatever `invoke` answered in hand, and for a stream op
-   * that is the iterable. Declaring this over `Element` would have been a signature promising an
-   * argument the runtime never passes.
-   *
-   * IT MUST NOT CONSUME WHAT IT IS GIVEN. Reading an element to decide a verdict would eat the
-   * first event of the caller's replay — a side effect, on a member both this and
-   * {@link FunctionSpec.classify} contract as pure. What a stream op can honestly report is that
-   * the acquisition SUCCEEDED, which is a real fact here: the header above insists the stream is
-   * acquired inside `invoke` precisely so an acquisition refusal is a throw rather than a stream
-   * that dies half-delivered.
-   *
-   * REQUIRED, on {@link FunctionSpec.classify}'s reasoning and for a sharper reason here: a stream
-   * spec reaches the registry through `runsEventsSpec as FunctionSpec`, so this shape's own `tsc`
-   * layer is the ONLY one that fires at the keystroke for it. An optional member here would leave
-   * stream ops with no type-level census at all.
-   */
+  // Must not consume the stream: reading an element would eat the caller's first event.
   classify(output: FunctionStream<Element>): ClauseVerdict
   invoke(input: Input, deps: FunctionDeps): Promise<FunctionStream<Element>>
 }
@@ -496,48 +249,16 @@ export interface FunctionStreamSpec<Input = unknown, Element = unknown>
 export interface RunsReaderPort {
   /** Every completed run this project can load. Missing run storage yields `[]`. */
   list(): Promise<readonly CompletedRunHandoff[]>
-  /**
-   * One completed run by id, or `undefined` when no such run is recorded.
-   *
-   * Absence is a RESULT, not an error: the typed refusal is the op's to throw, so the
-   * "not found" vocabulary lives in this layer rather than in every composition root.
-   * Implementations resolve the id against the runs they already enumerate — never by
-   * joining a caller-supplied string onto a filesystem path.
-   */
+  // Implementations resolve ids against the runs they enumerate, never by a path join.
   get(runId: RunId): Promise<CompletedRunHandoff | undefined>
-  /**
-   * Replay one run's recorded event stream, starting at `fromSeq` and in `seq` order.
-   *
-   * The exact `EventLogPort.read(fromSeq)` contract the v49 bus already replays against,
-   * lifted behind a port so this layer needs no host access. A run with no recorded
-   * events replays as an ordinary empty result — nothing was truncated, so nothing is
-   * refused. When events below `fromSeq` existed but are no longer available, the
-   * implementation rejects with the runner's `ReplayIncompleteError` carrying the lowest
-   * seq it can still serve; the op turns that into the layer's typed refusal. Serving a
-   * silently truncated prefix is the one thing an implementation may never do.
-   */
+  // Missing early events reject with `ReplayIncompleteError`, never a silently truncated prefix.
   readEvents(runId: RunId, fromSeq: number): Promise<readonly ReplayedRunEvent[]>
-  /**
-   * Read back ONE step's persisted evidence — the substrate `knowledge.brief.why` answers
-   * from.
-   *
-   * On the RUNS port and not on the knowledge port, and that placement is the whole honesty
-   * argument rather than filing. A step's evidence is a record of what happened during a run;
-   * the knowledge index is a record of what is true now. Answering "why did the brief say
-   * this" out of the second would answer a different question than the one asked, and the op
-   * that answers it is given no serving capability at all, so re-running retrieval is not a
-   * temptation it has to resist.
-   */
+  // On the runs port, so the why-verb answers from what happened, never from today's index.
   readStepEvidence(
     runId: RunId,
     address: StepEvidenceAddress,
   ): Promise<StepEvidenceLookup>
-  /**
-   * The target names one completed run recorded WHEN IT RAN, never current
-   * configuration. `unknown` when the run has no readable snapshot, including one that vanished
-   * after `list()` answered. Optional: an unbound reader leaves every run unknown, and an unknown
-   * run never matches a requested target. Implementations resolve only runs they enumerate.
-   */
+  // Targets as recorded when the run ran; an unbound reader leaves every run `unknown`.
   getRecordedTargets?(runId: RunId): Promise<RecordedTargets>
 }
 
@@ -578,21 +299,11 @@ export type StepEvidenceLookup =
  * writer-gated main entry is unreachable from this layer by construction.
  */
 export interface KnowledgeReaderPort {
-  /**
-   * gate history and the current verdict. Optional so existing
-   * implementations and fakes remain type-valid; an unbound read refuses by name.
-   */
+  // Optional, so existing fakes stay valid; an unbound read refuses by name.
   gateReceipts?(input: { candidateId: string }): Promise<KnowledgeGatesListResult>
   /** Every committed bundle, already projected to the schema-owned listing row. */
   listBundles(): Promise<readonly KnowledgeBundleSummary[]>
-  /**
-   * The maintenance view of every record matching a closed structural filter.
-   *
-   * Wiring over the reader entry's own `inspectRecords`, and the return type says so: it is
-   * that function's view schema and not a paraphrase of it. KREV-01's "no new memidex code"
-   * claim survives only while that stays literally true, and the first field of a paraphrase
-   * to drift would be the one nobody looked at.
-   */
+  // Returns the reader entry's own view schema, never a paraphrase that could drift.
   inspectRecords(input: KnowledgeRecordsInspectInput): Promise<readonly InspectRecordView[]>
   /** Every record change since a build ordinal — the reader entry's `diffSince`, wired. */
   diffSince(input: KnowledgeRecordsDiffInput): Promise<readonly RecordChange[]>
@@ -612,36 +323,7 @@ export interface KnowledgeReaderPort {
    * This read does not sight identities or change storage.
    */
   showRecords?(input: { recordIds: readonly string[] }): Promise<readonly KnowledgeRecordShowResult[]>
-  /**
-   * What became of the canary lines THIS run served.
-   *
-   * ONE ROW PER TUPLE ASKED ABOUT, in the order asked. The caller supplies the served-canary
-   * tuples it already holds from the run's own evidence — `candidateId` is the served channel-1
-   * line's id, which IS the curation candidate id — and the reader answers with the observation
-   * id each tuple's outcome event would carry, plus that outcome when a surviving attributed
-   * event exists. `outcome` ABSENT means "no attributed event survives for this tuple", which is
-   * an ordinary state (curation has not settled, or it settled and attributed nothing) and NOT
-   * an error; `observationId` is always present because it is DERIVED from the tuple —
-   * `canaryOutcomeObservationId({ candidateId, runId, testId, testIndex, stepIndex })` — rather
-   * than looked up, so a caller can name the event it is waiting for before that event exists.
-   *
-   * ON THE READER PORT AND NOT THE RUNS PORT, unlike `readStepEvidence` one interface up: the
-   * SERVING half of a canary (the marker) is a fact about the run and is read from its evidence,
-   * but the ATTRIBUTED half is a fact about the committed knowledge store's outcomes log. Asking
-   * the runs port for it would be asking a record of what happened for a record of what is true.
-   *
-   * OPTIONAL, so every existing port implementation and every test fake stays type-valid. The
-   * `/reader` entry implements it in 407-04 and agent-local binds it there; until then a caller
-   * sees `undefined` and renders the honest not-yet-attributed state rather than a wrong badge.
-   *
-   * THE ANSWER CARRIES ITS OWN PARTIALITY (407-19, REVIEW WR-03). `skippedBundles` is the walk's
-   * count of bundles it could not load — corrupt, truncated, or failing the integrity check that
-   * catches tampering. `> 0` means the answer is PARTIAL, and a caller must not render an absent
-   * `outcome` as a positive `not attributed`: on a partial walk that absence means "not found in
-   * the part of the store I could read", which is a different sentence. The count rides HERE, on
-   * the read that degraded, rather than being inferred from a sibling read failing on the same
-   * file — an inference that does not survive the two reads seeing different stores.
-   */
+  // With `skippedBundles > 0` the walk is partial, so an absent `outcome` is not "not attributed".
   canaryAttributions?(input: {
     runId: string
     tuples: readonly {
@@ -662,121 +344,42 @@ export interface KnowledgeReaderPort {
   }>
 }
 
-/**
- * Injected WRITE capability over knowledge review — accept, reject and forget (Phase 387,
- * KREV-01 / D-17, declared here and implemented in 387-08; direct since 432-12).
- *
- * A SEPARATE port from {@link KnowledgeReaderPort}, and separate is the point. Widening the
- * reader with a write member would have handed a write path to every composition that only
- * ever wanted to list bundles — including the read-only surfaces the physically-separate
- * reader entry exists to keep write-free — and no lint could have told the two apart
- * afterwards, because they would have been one type. The split is what keeps "this host can
- * read knowledge" and "this host can change it" two different, separately answerable
- * questions.
- *
- * OPTIONAL on {@link FunctionDeps} and joined to {@link OptionalFunctionDepKey} for the same
- * reason `runInvocation` is: a host that cannot mutate knowledge — a listing registry, a
- * read-only surface — must report that as a VISIBLE `unbound` on the verbs by name, not as a call
- * that fails somewhere far away.
- *
- * `change` applies an explicit accept, reject or forget in the
- * call, through the explicit writer, in every execution context, under the writer lease. It is the
- * member every change op reaches. 2026-10-01: `propose` and `apply` are deleted with the
- * proposal inbox; old proposal files are never read again.
- */
+// Separate from the reader port, so a read-only host never holds a write path.
 export interface KnowledgeReviewPort {
-  /**
-   * Apply one explicit knowledge change in the call and answer what it changed.
-   *
-   * Validation, target resolution, the writer lease, delegation to a live holder, delta
-   * validation, bundle egress and every promotion gate belong to the writer behind this member.
-   * A repeated `operationId` is the same change and lands once; an absent one is minted.
-   */
+  // A repeated `operationId` is the same change and lands once; an absent one is minted.
   change(request: KnowledgeChangeRequest): Promise<KnowledgeChangeOutput>
 }
 
-/**
- * One explicit knowledge change: the verb, the input that verb takes, and the caller's
- * stable identity for it when the caller has one.
- *
- * Discriminated so `reject`'s required reason cannot be omitted by asking for an accept. A mark is
- * not here: it changes knowledge through `runs.mark`, which owns its own identity and checkpoints.
- */
+// Discriminated so `reject`'s required reason cannot be omitted; marks go through `runs.mark`.
 export type KnowledgeChangeRequest = (
   | { readonly verb: 'accept'; readonly input: KnowledgeAcceptInput }
   | { readonly verb: 'reject'; readonly input: KnowledgeRejectInput }
   | { readonly verb: 'forget'; readonly input: KnowledgeForgetInput }
 ) & { readonly operationId?: string }
 
-/**
- * Injected read port over the entity directory.
- *
- * Two verbs, and the split is the never-guess contract expressed as a type. `resolve` takes
- * anything a human or a model might say and answers with a closed three-arm union, so a
- * caller is structurally unable to receive a maybe. `get` takes an address that already
- * exists and answers with the entity or with nothing.
- *
- * Descriptor-level on purpose. The port carries FACTS about an entity and never a card,
- * which is what leaves exactly one card producer in this layer: a composition
- * cannot render, because it is handed no vocabulary in which to do so.
- *
- * `get` may not mint. `resolve` sights, and sighting is what assigns a permanent address
- * a `get` that could write would make every card render on every surface a
- * potential mutation of the one durable store this system never rebuilds.
- */
+// `resolve` answers a closed union so callers never get a maybe; `get` never mints an address.
 export interface EntityDirectoryPort {
   resolve(ref: string): Promise<EntityResolution>
   get(ref: string): Promise<EntityDescriptor | undefined>
 }
 
-/**
- * One post-run chain job as the chip projection needs to see it.
- *
- * Status and claim drive the chips; optional recorded facts drive the stage detail.
- * The claim remains separate from status, so running does not widen the job vocabulary.
- * Missing facts stay absent, including on older reader implementations.
- */
+// The claim stays separate from status; facts missing on older readers stay absent.
 export interface PostProcessingJobRow extends Readonly<PostProcessingStageDetail> {
   readonly status: JobStatus
   /** Whether a drainer holds this job right now. `false` covers queued and terminal alike. */
   readonly claimed: boolean
 }
 
-/**
- * What one run's post-run chain has durably recorded, by member (Phase 388, D-14; narrowed to
- * the two chip stages — Phase 404, D-01, 2026-08-26).
- *
- * Every member is OPTIONAL, and each absence is a real, different situation: no analyze-run row
- * means nothing was ever enqueued for this run; no curate-memory row means the analysis has not
- * chained yet. Padding either of them with a synthetic row would erase exactly the distinction
- * the projection reads.
- */
+// Each absent member is a distinct state, so a synthetic row would erase what the projection reads.
 export interface PostProcessingChainState {
   readonly analyzeRun?: PostProcessingJobRow
   readonly curateMemory?: PostProcessingJobRow
   /** Completed curation facts, available before the chain terminal is written. */
   readonly curationSnapshot?: CurationSnapshot
-  /** The chain-terminal record, once the terminal transaction wrote it. */
   readonly notification?: RunNotification
 }
 
-/**
- * Injected read port over the durable post-run chain state.
- *
- * OPTIONAL on {@link FunctionDeps}, so a host with no queue storage lists `runs.postProcessing`
- * as `unbound` BY NAME rather than answering a confident all-pending about a chain it has no
- * way to see.
- *
- * The port carries the host's `idSource` rather than resolving ids itself, and that placement
- * is the load-bearing part. Chain identity is DERIVED (RESEARCH Pattern 2), and it must be
- * derived through the same source the host's queue enqueued with — a reader that owned its own
- * derivation would address rows under other ids the moment a composition configured a different
- * source, and would report `pending` about a chain that had already finished. So the function
- * layer derives, once, through `chainJobIdsForRun`, and the port only reads what it is handed.
- *
- * Reads are fence-free by design: reading claims no authority, so a status query neither adopts
- * an epoch nor competes with the drainer that holds one.
- */
+// Chain ids are derived through the host's `idSource`, the same source its queue enqueued with.
 export interface PostProcessingReaderPort {
   /** The id source THIS host's queue derives job ids with. */
   readonly idSource: JobIdSource
@@ -793,63 +396,15 @@ export interface PostProcessingReaderPort {
   readChain(ids: ChainJobIds, runId: string): Promise<PostProcessingChainState | undefined>
 }
 
-/**
- * Injected read port over ONE run's durable dashboard projection.
- *
- * `packages/agent` is `storageNeutral`: no host builtin is importable here, so every row arrives
- * through this port, built at the composition root over the concrete dashboard SQLite database.
- * The port answers ROWS — members, steps, sub-actions — and nothing derived; the D-06 token sum is
- * the op's, computed once in the layer that owns the contract rather than once per host that
- * happens to hold a database.
- *
- * ABSENCE IS A RESULT, NEVER A PATH JOIN ON CALLER INPUT (the `RunsReaderPort.get` law, T-384-08).
- * A run id that names nothing answers `undefined`, and turning that into the layer's typed refusal
- * is `runs.detail`'s job — so the "not found" vocabulary lives here in one place rather than in
- * every composition root. An implementation resolves the id against the rows it already
- * enumerates; joining a caller-supplied string onto a filesystem path is the one thing it may
- * never do.
- *
- * OPTIONAL on {@link FunctionDeps} for the reason `postProcessing` is: a host with no dashboard
- * database genuinely cannot say what a run's steps were, and the alternative to reporting that by
- * name is answering an empty projection about a run it has never been able to see — a wrong answer
- * wearing a correct one's clothes.
- */
+// Answers rows only; an unknown run id is `undefined`, never resolved by a path join.
 export interface RunDetailReaderPort {
   /** One run's projected rows, or `undefined` when the runs database holds no such run or does not exist yet. */
   read(runId: RunId): Promise<RunDetailRows | undefined>
-  /**
-   * the run's own row status, or `undefined` when no row is recorded.
-   * Optional: a host without it derives no `no-verdict` fact, because absence is not a status.
-   */
+  // A host without it derives no `no-verdict` fact, because absence is not a status.
   readRecord?(runId: RunId): Promise<{ status: string } | undefined>
 }
 
-/**
- * Injected read port over ONE run's content-addressed evidence blobs.
- *
- * `packages/agent` is `storageNeutral`: no filesystem is importable here, so the bytes arrive
- * through this port, built at the composition root over the SAME `FsEvidenceArtifactStore` the
- * runner wrote them with. The port answers BYTES and nothing derived — the content-type sniff is
- * `runs.artifact`'s, computed once in the layer that owns the contract rather than once per host
- * that happens to hold a runtime root.
- *
- * ABSENCE IS A RESULT, AND IT IS TWO RESULTS. See {@link EvidenceBlobLookup}: the concrete
- * store collapses "no such run" and "no such blob" into one `undefined`, and an implementation of
- * this port is where that distinction is recovered — because above it the two are different things
- * a page has to render. Turning either arm into a typed refusal is the op's job, so the "not
- * found" vocabulary lives in one place rather than in every composition root.
- *
- * THE PORT NEVER JOINS CALLER INPUT ONTO A PATH (the `RunsReaderPort.get` law, T-384-08 /
- * T-405-14). Containment is the STORE's own rule — `slugBranch` over the runId and a
- * 64-lowercase-hex check over the sha, both inside `FsEvidenceArtifactStore` — and an
- * implementation that assembled a path itself would be a second containment rule, free to be
- * weaker than the one the runner writes through.
- *
- * OPTIONAL on {@link FunctionDeps} for the reason `postProcessing` is, and for a sharper one: the
- * alternative was widening the REQUIRED {@link RunsReaderPort} with a blob verb, which every
- * daemon, MCP and test implementer of that port would then have to satisfy with storage most of
- * them do not have.
- */
+// Containment is the store's own rule; an implementation never joins caller input onto a path.
 export interface EvidenceBlobReaderPort {
   /** One blob's bytes, or which KIND of absence this host is reporting. */
   read(runId: RunId, sha: string): Promise<EvidenceBlobLookup>
@@ -857,69 +412,22 @@ export interface EvidenceBlobReaderPort {
     { status: 'found'; byteLength: number } | { status: 'unknown_run' | 'blob_absent' }
   >
   readRange?(runId: RunId, sha: string, start: number, end: number): Promise<EvidenceBlobLookup>
-  /**
-   * The same question asked as a STAT — are the bytes still there — for read-time presence
-   * annotation on the durable reads.
-   *
-   * OPTIONAL SO THAT EVERY EXISTING IMPLEMENTATION AND FAKE KEEPS COMPILING, and for the sharper
-   * reason that absence here is a real host condition rather than an oversight: a host that cannot
-   * cheaply stat its blobs is not lying about anything, and an op that finds this member missing
-   * OMITS presence rather than reporting refs it never looked at as absent. A claimed absence is
-   * the one answer this field must never be able to give by accident, because it renders honest
-   * evidence as `evidence-incomplete`.
-   *
-   * IT ANSWERS THE SAME THREE WORDS `read` DOES, so the two cannot disagree about WHICH absence a
-   * ref is in — the read is this answer plus the bytes, never a second rule.
-   */
+  // When missing, presence is omitted, never reported absent; answers match `read`'s three words.
   has?(runId: RunId, sha: string): Promise<EvidenceBlobPresence>
 }
 
-/**
- * Injected read port over a run's persisted analysis artifact.
- *
- * `analysis.json` is the analyze-run job's own receipt; the only legal reader routes its
- * bytes through `guardRunAnalysisArtifact` (the version guard), and an implementation of
- * this port does exactly that at the composition root — the op receives a guarded document
- * or a typed absence, never raw bytes.
- *
- * `undefined` is an ANSWER, not an error: a run whose analysis never ran (budget spent,
- * daemon down, chain still in flight) has no artifact, and the ops answer it through the
- * D-10 accessor's handoff floor. That is why `runs.get` treats an UNBOUND port the same
- * way — artifact-absent — while `analysis.get` refuses by name: a listing that cannot see
- * artifacts still lists truthfully off the floor, but a caller asking for THE analysis of
- * a run must be told this host cannot serve one.
- */
+// Bytes pass the version guard at the composition root; `undefined` is an answer, not an error.
 export interface AnalysisArtifactReaderPort {
   /** The guarded artifact for one run, or `undefined` when none is on disk. */
   getArtifact(runId: string): RunAnalysisArtifact | undefined
 }
 
-/**
- * Injected read port over the resolved project configuration.
- *
- * The port's name says what its security contract is: it yields a config whose
- * secret-bearing values were dropped while the DTO was CONSTRUCTED. There is deliberately
- * no unmasked variant on this port — a capability that could ask for one would make the
- * masking optional, and optional masking is not masking.
- */
+// Secret values are dropped at construction, and no unmasked variant exists on this port.
 export interface ConfigReaderPort {
   getMasked(): Promise<MaskedResolvedConfig>
 }
 
-/**
- * Injected capability that STARTS a run.
- *
- * Its one verb resolves the identity of the run it started and nothing else. That narrowness
- * is the point: the acknowledgment a caller receives is not assembled from what this port
- * SAYS happened, it is read back off the run's own durable record through
- * {@link RunsReaderPort} — the same port `runs.get` answers from. A host that returned an id
- * without running anything therefore fails at the join rather than at a promise nobody can
- * check.
- *
- * Owning the process model is what makes this a port rather than shared code (the plan-08
- * dissection rule): a terminal host runs a suite one way, a daemon another, and neither
- * would call the other's orchestration as written.
- */
+// The acknowledgment is read back off the run's own record, never taken from this port's word.
 export interface RunInvocationPort {
   /**
    * Start a run for this request and resolve when the run has been recorded.
@@ -935,51 +443,7 @@ export interface StartedRun {
   readonly runId: RunId
 }
 
-/**
- * The injected-dependency record every op implementation receives. Ops are pure
- * functions of (validated input, deps) — they never reach for a host API.
- *
- * The four READ ports are required and non-partial on purpose: a composition that omits one
- * fails to typecheck. Phase 387 adds `entities` as the fourth, and it joins as REQUIRED
- * rather than optional deliberately — every host that can list a capability can also resolve
- * an address, so a host that omitted it would not be reporting a real absence, it would be
- * reporting that somebody forgot. That is precisely the state the required/optional split
- * exists to distinguish, and widening the optional side to cover a forgetting would have
- * made `unbound` mean two different things.
- *
- * The OPTIONAL members' optionality is not a relaxation of that discipline but the mechanism
- * behind it. Not every host can start a run — a read-only surface, a registry built for a
- * listing, 386's daemon before it wires its own executor — and D-09 requires that state to be
- * VISIBLE rather than a call that fails somewhere far away. Omitting `runInvocation` makes
- * `runs.start` list as `unbound` and refuse by name; supplying it makes the same capability
- * bound. Any further optional member must join {@link OptionalFunctionDepKey} so the same
- * reporting applies to it.
- *
- * `knowledgeReview` (387, KREV-01) is the second, and it is the one that makes the required/
- * optional split earn its keep on the WRITE side: the ability to read committed knowledge and
- * the ability to change it are separate powers, so they are separate members. A host that
- * supplies only the reader lists the mutating verbs as `unbound` by name — which is a true
- * statement about that host, and is exactly what widening the reader port with a write member
- * would have made unsayable.
- */
-/**
- * The live-view seam `runs.liveurl` mints through.
- *
- * OPTIONAL, and its absence is a GENUINE HOST FACT rather than a degraded mode: a CLI run in a
- * terminal serves no origin, so there is no URL it could honestly hand back. A host that binds it
- * supplies the per-process signer, the origin it is actually listening on, and a read of the live
- * run registry — never a token, and never a parse.
- *
- * `capabilityOf` answers `undefined` for a run this host has no live session for (the op turns
- * that into `unknown_run`) and a `LiveStreamDeclaration` — possibly `{ kind: 'none' }` — otherwise.
- * `onMinted` observes every minted token value. 2026-10-14: no shipped host binds it
- * (a minted token is not a declared secret); tests use it to capture what the op really minted.
- *
- * `editorCapabilityOf` is the editor subject's read, through which `editor.liveurl`
- * mints. ABSENT means this host serves no live editor — the standalone MCP host and the MCP App
- * host never bind it, and the op refuses by name. `undefined` means no such live editor session.
- * It is a separate lookup from `capabilityOf` so an editor session can never be addressed as a run.
- */
+// Absent where no origin is served; editor lookups are separate so a session is never a run.
 export interface LiveViewPort {
   signer: LiveUrlSigner
   origin(): string | undefined
@@ -995,228 +459,52 @@ export interface FunctionDeps {
   config: ConfigReaderPort
   entities: EntityDirectoryPort
   runInvocation?: RunInvocationPort
-  /**
-   * the live-view mint seam. See {@link LiveViewPort} — absent means this host has no
-   * served origin, and `runs.liveurl` refuses by name rather than minting a link to nowhere.
-   */
+  // Absent where no origin is served, so `runs.liveurl` refuses by name.
   liveView?: LiveViewPort
   knowledgeReview?: KnowledgeReviewPort
-  /**
-   * the durable post-run chain read. The third optional member, and it joins for the
-   * reason the other two did rather than by analogy — a host with no queue storage genuinely
-   * cannot answer "what became of that run's analysis", and the alternative to reporting that
-   * by name is answering `pending` about a chain it has never been able to see, which is a
-   * wrong answer wearing a correct one's clothes.
-   */
+  // Absent where there is no queue storage, so the read refuses rather than answer `pending`.
   postProcessing?: PostProcessingReaderPort
-  /**
-   * the durable run-detail projection read. See {@link RunDetailReaderPort} — absent
-   * means this host owns no dashboard projection database, and `runs.detail` refuses BY NAME
-   * rather than answering an empty run about a projection it cannot observe. The CLI host binds it
-   * over the configured or default runs database path whenever its config parses (a read before
-   * that file exists answers not recorded in the runs database); the dashboard passes its own handle.
-   */
+  // The CLI binds it over the runs database once config parses; the dashboard passes its handle.
   runDetail?: RunDetailReaderPort
-  /**
-   * the run-scoped evidence-blob read. See {@link EvidenceBlobReaderPort} — absent
-   * means this host owns no runtime root, and `runs.artifact` refuses BY NAME rather than
-   * answering `blob_absent` about every artifact in the product, which would read to an operator
-   * as storage loss. Bound on every LOCAL host, which is exactly the set that has run directories.
-   */
+  // Absent where there is no runtime root, so artifacts never read as storage loss.
   evidenceBlobs?: EvidenceBlobReaderPort
-  /**
-   * the analysis-artifact read. `analysis.get` binds through it and refuses
-   * by name where it is absent; `runs.get` reads it opportunistically and treats an unbound
-   * port as artifact-absent (the floor), because the cheapest read must stay cheap and a
-   * listing off the deterministic floor is honest, not degraded. Bound in plan 06's
-   * composition root over the run-directory `analysis.json` + version guard.
-   */
+  // `analysis.get` refuses without it; `runs.get` treats it as absent and reads the floor.
   analysis?: AnalysisArtifactReaderPort
-  /**
-   * the live recurrence seam the one renderer joins through. OPTIONAL because a
-   * host without the knowledge index genuinely has no history to answer with — and the
-   * renderer's contract turns that absence into the explicit no-history clause rather than
-   * a refusal, so `analysis.get` stays bound wherever `analysis` is. Bound in plan 06 to
-   * v51's run-outcome projection; 390 rebinds the SAME seam to its fingerprint window.
-   */
+  // Absent means the renderer's explicit no-history clause, not a refusal.
   recurrence?: RecurrenceProvider
-  /**
-   * the committed quarantine ledger's three verbs — list, release, add.
-   *
-   * OPTIONAL for the reason `knowledgeReview` is, and not by analogy: a host with no knowledge
-   * root genuinely cannot enumerate quarantine state, and the alternative to saying so by name
-   * is answering an empty list about a ledger it has never been able to read — a wrong answer
-   * wearing a correct one's clothes. On the write side the stakes are higher still: an unbound
-   * `add` that no-opped would report a test as quarantined while it kept failing every build.
-   *
-   * ONE port for all three verbs rather than a reader/writer split, because the read/write
-   * asymmetry is already stated on each op's risk descriptor — `quarantine.list` declares a
-   * read-only descriptor, `release` and `add` declare `readOnly: false` — so a second port would
-   * restate at the composition root a distinction the descriptors already carry. 2026-10-02
-   * no op declares a scope and no gate enforces the split at a call; it lives only
-   * on the descriptors. The port TYPE is minted in schema, so knowledge-local can implement it
-   * without depending on the function layer.
-   */
+  // One port: each op's risk descriptor already states which verbs write.
   quarantine?: QuarantineOperationsPort
   /** The mark port; absent, `runs.mark` is unbound by name and `runs.detail` lists no marks. */
   feedback?: FeedbackPort
-  /**
-   * read-only feedback observations. Separate from `feedback` so a host can serve
-   * history without mark authority; absent means `runs.marks.history` is unbound by name.
-   * the same binding carries `preview`, runs.mark's plan for an exact input with no
-   * write; a binding without that verb leaves `runs.mark.preview` unbound by name.
-   */
+  // Separate from `feedback`, so a host can serve history and preview without mark authority.
   feedbackReads?: FeedbackReadsPort
-  /**
-   * the assembled chat turn engine, behind which `agent.ask` runs.
-   *
-   * OPTIONAL for the reason its neighbours are, and the honest absence matters more here than
-   * anywhere else in this record: a host with no engine — a remote read surface, a daemon before
-   * a chat host exists — genuinely cannot run a turn, and the alternative to reporting that by
-   * name is answering an EMPTY turn. A person told "I understood you and did nothing" stops
-   * asking, which is the same failure the unbound proposals inbox was reasoned about avoiding.
-   *
-   * The port is a single verb by design. Anything wider — a session lister, a history reader —
-   * would be reach the turn entry does not need and would give a surface holding this dep a way
-   * into session state without a registered op declaring it.
-   */
+  // A single verb, so a holder of this dep gets no reach into session state.
   chatTurn?: ChatTurnPort
-  /**
-   * the two host halves one draft evaluation needs — resolve a caller's path to a
-   * parsed draft, and assemble the ports the four gates run against.
-   *
-   * ONE BUNDLED CAPABILITY rather than five separate deps, on the `runInvocation` precedent. The
-   * receipts store, the suite fingerprint index, the text corpus and the run pair are not
-   * independently bindable: an index scoped to a different product than the runs were taken under
-   * would compare a draft against another project's suite, and a host that could supply three of
-   * the five would list this op `bound` and then fail somewhere far from the composition that
-   * forgot one. Bundling makes "can this host verify a draft" a single fact.
-   *
-   * OPTIONAL for the reason `runInvocation` is, and here it says two things at once: a host that
-   * cannot PARSE a test file and a host that cannot START a run are both hosts that cannot verify
-   * a draft, and `composeLocalAgent()` binds this only when it has both.
-   *
-   * WHY RESOLUTION IS A SEPARATE VERB FROM EVALUATION. `packages/agent` is `storageNeutral`: it
-   * cannot stat a path, read a file, or know where the workspace ends. So the three refusals that
-   * need a filesystem are ANSWERED by the host and NAMED by the op — `resolveDraft` returns a
-   * typed outcome and never throws a host error through the layer, and
-   * `functions/ops/authoring-verify-draft.ts` maps each arm onto its own caller-facing class. The
-   * alternative — a single `evaluate(draftPath)` — would have put the refusal vocabulary in
-   * whichever package happened to own the syscall, one layer below where a caller catches it.
-   */
+  // One bundle: a host with only some halves would list the op `bound` and fail far away.
   draftEvaluation?: DraftEvaluationPort
-  /**
-   * the authoring loop's read half — the brief, and the authored suite as
-   * text (stages 1-2).
-   *
-   * OPTIONAL for the reason `draftEvaluation` is, and the honest absence is load-bearing here in
-   * a way it is nowhere else in this record. A host with no knowledge index cannot serve an
-   * authoring brief, and the alternative to saying so by name is compiling a test from an EMPTY
-   * brief — which produces a plausible draft, authored against nothing this project knows, and
-   * says so nowhere. That is a wrong answer wearing a correct one's clothes, and it is wearing
-   * them into a file the user is asked to commit.
-   */
+  // Absent without a knowledge index, so no test is compiled from an empty brief.
   authoringRead?: AuthoringReadPortLike
-  /**
-   * which scope this project authors for, when the caller named none.
-   *
-   * OPTIONAL and consulted ONLY on absence. `authoring.draft.write`'s `scope` is optional at the
-   * registry (the `runs.start` law), so an input carrying just an intent has to be resolved
-   * before the loop runs — and the resolution reads the config and the workspace, which
-   * `packages/agent` cannot do. A composition that binds the loop's other halves and forgets this
-   * one refuses BY NAME on a scope-less call rather than authoring against a default: a guessed
-   * product is a draft written for the wrong application, which is the one failure mode a silent
-   * fallback here would produce.
-   */
+  // Consulted only when the caller named no scope; absent, a scope-less call refuses by name.
   authoringScope?: AuthoringScopePortLike
-  /**
-   * the authoring loop's compile half — the model, and the draft shelf
-   * (stage 3).
-   *
-   * Bound with `authoringRead` or not at all: `composeLocalAgent()` supplies the pair, because a
-   * host that can read but not write is not a degraded author, it is a host that must say
-   * `unbound` by name. `authoring.draft.write` names THIS key in `boundThrough` — it is the half
-   * that makes the op mutating — and refuses on either half's absence at the invoke, so an
-   * in-layer caller holding the spec directly gets the same named error.
-   */
+  // Bound with `authoringRead` or not at all; the invoke refuses on either half's absence.
   draftShelf?: DraftShelfPortLike
-  /**
-   * the honesty funnel's reads — the receipts store and (optionally within
-   * the bundle) the outcome projection and quarantine ledger D-14 consults. 2026-10-01: the
-   * proposals inbox the `accepted` stage read is deleted; 2026-10-02 that stage
-   * is `writeEligible`, read off the receipts (see `projectAuthoringFunnel`).
-   *
-   * OPTIONAL, and the stakes sit on the READ side. A host with no agent-qa runtime root cannot list draft receipts, and the alternative to
-   * saying so by name is answering an all-zero funnel — which does not merely under-report, it
-   * reports a loop that filtered everything, the one reading of a zero funnel that FLATTERS the
-   * loop this measurement exists to keep honest.
-   */
+  // Absent where there is no runtime root, so no all-zero funnel flatters the loop.
   authoringFunnel?: AuthoringFunnelPortLike
-  /**
-   * 395 D-03/D-17 · CFGM-01/04: the pinned config file SET as RAW BYTES, plus the comment-preserving
-   * field edit over them.
-   *
-   * DELIBERATELY NOT A WIDENING OF {@link ConfigReaderPort}, which is masked-only by contract and
-   * must stay so — a capability that could ask it for unmasked values would make masking optional,
-   * and optional masking is not masking. This port answers a different question: what bytes are
-   * COMMITTED in the person's repository. Those carry no resolved secrets, because D-11 makes
-   * committed config refs-only by law.
-   *
-   * The EDIT rides the same port as the read because both are host facts. `yaml`'s Document API is
-   * an external dependency `packages/agent`'s ownership contract does not admit, and admitting one
-   * to bring the edit in-layer would widen a boundary rather than respect it.
-   */
+  // Committed config bytes, separate from the masked `ConfigReaderPort`, which must stay masked.
   configFiles?: ConfigFilesPortLike
-  /**
-   * whole-config validation, which runs BEFORE a change is written.
-   *
-   * A PORT because `AgentQaConfigSchema` and `validateProject` live in `@vostride/agent-qa-core`
-   * and this package does not depend on it — `validate:arch` reds that edge with no legal repair.
-   * The capability is declared here and bound in `cli`.
-   */
+  // A port, because the config schema lives in core, which this package may not import.
   configValidate?: ConfigValidatePortLike
-  /**
-   * the shared scaffold CONTENT, rendered by the host that owns it.
-   *
-   * THE ONE DEP `config.project.scaffold` HAS AND THE OTHER FIVE CHANGE OPS DO NOT. D-04's claim
-   * is that `agent-qa init` and the scaffold change write one substance; that substance lives
-   * beside `init`'s filesystem machinery in `packages/cli`, which this package may not import. Its
-   * absence makes exactly one op unavailable, and it says so by name.
-   */
+  // The scaffold content lives beside `init` in cli, which this package may not import.
   scaffoldContent?: ConfigScaffoldContentPortLike
-  /**
-   * the direct config writer. Field changes merge in the config
-   * path's shared write turn and whole files publish over the digest they were built from. No
-   * proposal is filed and no git process runs.
-   */
+  // Field changes merge in a shared write turn; whole files publish over the digest they read.
   configWrite?: ConfigWritePortLike
-  /**
-   * the four host halves one `explain` needs — the committed
-   * catalog as data, the model's citation over it, and the two coverage hooks.
-   *
-   * ONE PORT AND NOT FOUR DEPS, on the `draftEvaluation` bundle's stated reasoning: a host that
-   * could load the catalog but not cite over it would list `agent.explain` as `bound` and then
-   * answer every question with a ghost citation, which abstains — safe, and useless, and reported
-   * nowhere. "Can this host explain itself" is one fact.
-   *
-   * OPTIONAL for the reason `analysis` is, and the honest absence is unusually load-bearing here.
-   * `packages/agent` is storageNeutral: it cannot read the committed artifact, so a composition
-   * that omitted the port and got a degraded answer would be answering FROM MODEL MEMORY, which is
-   * the single behaviour XPLN-02 exists to make impossible. The op refuses BY NAME instead.
-   */
+  // One port, so a host never lists `agent.explain` bound while unable to cite over the catalog.
   capabilityCatalog?: CapabilityCatalogPort
-  /** the host's declared-secret mask for projected run text; absent or throwing, run reads fail closed. */
+  // Absent or throwing, run reads fail closed.
   readonly secretMask?: MaskFn
 }
 
-/**
- * What a host can tell the layer about a caller-supplied draft path (393, T-393-01).
- *
- * A discriminated union rather than `ParsedDraftLike | undefined`: "there is no file there", "that
- * is a directory", "that is outside this workspace" and "that file is not a test" are four
- * different things to tell a person, and collapsing them into an absence would make the op answer
- * all four with one message. Every arm but `parsed` becomes a NAMED error at the invoke.
- */
+// Four arms, because each refusal tells a person something different.
 export type DraftResolution =
   | { readonly kind: 'parsed'; readonly draft: ParsedDraftLike }
   | { readonly kind: 'not-found' }
@@ -1224,27 +512,13 @@ export type DraftResolution =
   | { readonly kind: 'outside-workspace' }
   | { readonly kind: 'unparsable'; readonly reason: string }
 
-/**
- * The capability `authoring.draft.verify` binds through.
- *
- * `openEvaluation` takes the resolved draft because two of the four ports depend on WHICH draft is
- * being evaluated: the suite comparison must exclude the draft's own identity from both of gate
- * 3's lanes, or a draft that already lives in the authored suite would be measured against itself
- * and could never be shown to add value. It is a separate call from `resolveDraft` so a refused
- * path costs no database handle and no suite walk.
- */
+// Takes the resolved draft so the suite comparison excludes the draft's own identity.
 export interface DraftEvaluationPort {
   resolveDraft(draftPath: string): Promise<DraftResolution>
   openEvaluation(draft: ParsedDraftLike): Promise<EvaluateDraftPorts>
 }
 
-/**
- * The one verb `agent.ask` binds through.
- *
- * Typed against the SCHEMA contracts rather than against the engine's own types, which is what
- * lets the composition root hand this layer an engine without the function layer depending on how
- * a turn is assembled — and what lets 396's MCP projection describe the same shape.
- */
+// Typed against the schema contracts, so this layer does not depend on how a turn is assembled.
 export interface ChatTurnPort {
   runTurn(input: AgentAskInput): Promise<AgentAskResult>
 }

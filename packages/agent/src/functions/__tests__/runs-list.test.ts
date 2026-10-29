@@ -1,8 +1,4 @@
-// completed-run discovery through `runs.list`.
-//
-// Driven through `invokeFunction` so the strict input contract, the op and the output contract are
-// one measured path. The reader is a fake port: this layer owns ordering, filtering and the cap,
-// and never learns where a run's bytes live.
+// This layer owns ordering, filtering and the cap, and never learns where a run's bytes live.
 
 import { SecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
 import { CURRENT_HANDOFF_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
@@ -22,8 +18,6 @@ import { runsListSpec } from '../ops/runs-list.js'
 import { createRegistryFromSpecs } from '../registry.js'
 import type { FunctionDeps } from '../spec.js'
 
-// no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither.
 const READER: FunctionCaller = {
   surface: 'test',
   origin: 'agent',
@@ -98,8 +92,6 @@ function harness(
   }
   const registry = createRegistryFromSpecs([runsListSpec], {
     deps: { runs, ...(secretMask === null ? {} : { secretMask }) } as unknown as FunctionDeps,
-    // no `resolveExecutionContext` registry option; the registry reads
-    // no context.
   })
   return {
     list: async (input) => (await invokeFunction(registry, 'runs.list', input, READER)) as RunSummary[],

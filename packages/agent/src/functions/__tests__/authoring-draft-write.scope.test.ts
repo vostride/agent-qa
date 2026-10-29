@@ -1,23 +1,4 @@
-// Where an ABSENT `scope` is resolved, and where it is NOT.
-//
-// 394-22 established the two-sided law for `sessionRef`: the registry contract optionalizes, the
-// host supplies, and the model-facing projection says so. `scope` is the same class one field
-// over — a live planner refused `authoring.draft.write` by name because a required `{tier, key}`
-// is a field it cannot know. The registry half is measured in
-// `packages/schema/src/functions/__tests__/authoring-write-contract.test.ts` and the derivation
-// itself in `packages/cli/src/__tests__/authoring-scope-derivation.test.ts`; what is measured HERE
-// is the seam between them — the op resolves before the loop, exactly once, and never when the
-// caller supplied a scope of its own.
-//
-// THE OBSERVABLE IS `getAuthoringBrief`'s SECOND ARGUMENT. The loop reads the brief at the scope
-// it was handed, so what the read half saw IS what the loop ran at — a counter on the deriver
-// alone could not tell a resolution that happened from one that was thrown away.
-//
-// THE ASSERTION IS THE RULE, NOT THE COUNT (WR-05's posture, applied here). One invocation reads
-// the brief at TWO call sites — `loop.ts` for the compile and `refine.ts` for the refine pass —
-// and both read `AuthoringLoopInput.scope`. A cell pinning "one read" would state today's call
-// graph rather than the law, and would red on a correct edit that added a third read. What must
-// hold is that EVERY read happened at the resolved scope, and that at least one happened.
+// Every brief read must happen at the resolved scope, whatever the number of read sites.
 
 import {
   CURRENT_DRAFT_RECEIPT_SCHEMA_VERSION,
@@ -136,8 +117,7 @@ function harness(options: { readonly unboundDeriver?: true } = {}): {
         return Promise.resolve({ scope, facts: [], cautions: [], procedures: [], exemplars: [] })
       },
       suiteTextCorpus: () => Promise.resolve([]),
-      // the `target` vocabulary. This file's subject is the SCOPE derivation, and
-      // the two are deliberately different values — see the port's own doc.
+      // Target names and the scope are different values on purpose; see the port's doc.
       configuredTargetNames: () => Promise.resolve(['local-form']),
     },
   } as unknown as FunctionDeps
@@ -187,9 +167,7 @@ describe('authoring.draft.write resolves an absent scope BEFORE the loop', () =>
       )
 
       expect((output as { outcome: string }).outcome).toBe('drafted')
-      // THE BLAST-RADIUS CONTROL. Every caller that already supplies a scope — the CLI `fn`
-      // surface, 396's MCP projection, the loop's own tests — must be on exactly the path it was
-      // on before. A count of 0 is the only reading of that claim a later edit cannot fake.
+      // Callers that already supply a scope, such as the CLI and MCP, never trigger a derivation.
       expect(trace.derivations).toBe(0)
       expect(briefReads(trace).distinct).toEqual([EXPLICIT])
       expect(briefReads(trace).reads).toBeGreaterThan(0)

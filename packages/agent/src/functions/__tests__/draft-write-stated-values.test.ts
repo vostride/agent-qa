@@ -1,6 +1,3 @@
-// the historical substitution and its two faithful twins, through
-// the public op with a scripted model and a fake shelf.
-
 import {
   CURRENT_DRAFT_RECEIPT_SCHEMA_VERSION,
   DRAFT_STABILITY_RUNS_N,
@@ -367,7 +364,6 @@ describe('authoring.draft.write on the historical substitution and its faithful 
   })
 })
 
-// the compile check's behaviours through the public op.
 const CASE_CHANGED_DOCUMENT = `name: Confirm the products page shows the Kitchen appliances heading
 test-id: t_amber-cotton-ledger-marble-quartz-signal-timber-violet-walnut-yellow
 target: automation-exercise
@@ -527,7 +523,6 @@ describe('the compile prompt', () => {
   })
 })
 
-// a numbered request through the public op.
 const NUMBERED_REQUEST = '1. open the products page\n2. check it says "All Products"'
 const NUMBERED_INLINE_REQUEST = '1. open the products page 2. check it says "All Products"'
 const PARENTHESIZED_REQUEST = '(1) open the products page\n(2) check it says "All Products"'
@@ -595,7 +590,7 @@ describe('numbered and step-labelled requests', () => {
   })
 })
 
-// a value round 1 stopped protecting is refused again through the public op.
+// A digit-quoted value is refused through the public op.
 const DIGIT_QUOTED_REQUEST =
   `open the products page, check the '4K' badge and check it says "All Products"`
 const BRACKETED_TIME_REQUEST =
@@ -637,7 +632,7 @@ describe('values that start with digits and bracketed times', () => {
   })
 })
 
-// a lone 1 and a mid-sentence step number are refused again through the public op.
+// A lone 1 and a mid-sentence step number are refused through the public op.
 const COLON_ONE_REQUEST =
   'open the products page and check the badge shows: 1. Then check it says "All Products"'
 const MID_SENTENCE_STEP_REQUEST =
@@ -679,7 +674,7 @@ describe('step numbers stated after a colon or mid-sentence', () => {
   })
 })
 
-// a held step heading's numbers are refused again through the public op.
+// A held step heading's numbers are refused through the public op.
 const HELD_STEP_HEADING_REQUEST =
   'open the products page, check the title shows: Step 1. Then click Next and check it shows Step 2. Then check it says "All Products"'
 
@@ -702,7 +697,7 @@ describe('step numbers in a held step heading', () => {
   })
 })
 
-// a month-name date beside a list run is refused again through the public op.
+// A month-name date beside a list run is refused through the public op.
 const DATE_IN_LIST_REQUEST =
   '1. open the products page\n2. check the delivery date shows Oct 3. Then check it says "All Products"'
 const DATE_AFTER_HELD_START_REQUEST =
@@ -744,7 +739,7 @@ describe('a month-name date where a list marker would go', () => {
   })
 })
 
-// 2026-10-12 (440-16, D-05; the round-4 regression): a stated badge number beside a month-name date is refused again through the public op.
+// A stated badge number beside a month-name date is refused through the public op.
 const HELD_START_BESIDE_DATE_REQUEST =
   'Check the badge shows: 1. Then check the delivery date is Oct 2. Then set it to 2. then check it says "All Products"'
 

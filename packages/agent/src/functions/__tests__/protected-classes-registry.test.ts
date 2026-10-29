@@ -1,11 +1,4 @@
-// The cross-spelling pin between schema's closed protected set and the registry it protected (Phase
-// 391, PROP-05, plan 05), RE-SPELLED 2026-10-01 as the set's absence.
-//
-// The set (`['fn:proposals.accept', 'fn:grants.revoke']`) named the action classes no standing grant
-// could cover. 432-17 deleted `proposals.accept` and 432-18 deletes `grants.revoke`, the grant
-// ledger and the set itself, so claims 1-3 below (each member names exactly one registered op, and
-// its bare spelling none) lost their subject. What is kept: no op is protected because nothing
-// mints a grant, and the three knowledge change ops are registered with no propose class beside them.
+// No op is protected because nothing mints a grant, and no change op has a propose class.
 
 import * as schema from '@vostride/agent-qa-schema'
 import {
@@ -71,8 +64,6 @@ function declarations(): readonly FunctionDeclaration[] {
 }
 
 describe('the protected action classes name real registered ops', () => {
-  // RE-SPELLED 2026-10-01 from 'is not vacuous: the catalogue and the protected set are both
-  // non-empty': the catalogue still is, and the set is gone.
   it('the catalogue is non-empty and no protected-class set is published', () => {
     expect(declarations().length).toBeGreaterThan(0)
     const exported = Object.keys(schema)
@@ -80,8 +71,6 @@ describe('the protected action classes name real registered ops', () => {
       .toEqual([])
   })
 
-  // RE-SPELLED 2026-10-01 from 'each member is the risk.name of EXACTLY ONE registered op'
-  // and 'the BARE spelling of each member matches no registered op': both members' ops are deleted.
   it('neither former protected class names a registered op, prefixed or bare', () => {
     const names = declarations().flatMap((declaration) => [declaration.risk.name, declaration.id])
     for (const member of ['fn:proposals.accept', 'fn:grants.revoke']) {

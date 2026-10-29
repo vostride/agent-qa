@@ -1,17 +1,4 @@
-// The `liveUrl` token PAIR — mint and validate, in one file, both pure.
-//
-// WHY BOTH HALVES LIVE HERE. A token system whose minter and validator are written twice is a
-// token system with two opinions about what a valid token is; the half that drifts is discovered by
-// a user, not by a test. So the dashboard route and the frame proxy call `validateLiveUrlToken` BY
-// REFERENCE through a composed port and hold no parse of their own (LIVE-02's third prohibition).
-//
-// TWO SUBJECT KINDS, ONE PAIR. A token names its subject: a run handle or an editor
-// session. The validator's kind-and-id comparison is the whole cross-kind rule — a run token never
-// opens an editor session and the reverse, even when the two ids are byte-identical.
-//
-// PURE BY CONSTRUCTION. `packages/agent` is providerNeutral + storageNeutral, so no host crypto
-// primitive, no `Buffer` and no host API appears here: the HMAC arrives as an injected
-// {@link LiveUrlSigner}, and base64url is hand-rolled over an ASCII-only claims body.
+// Pure: the HMAC arrives as an injected signer and base64url is hand-rolled over ASCII claims.
 
 import { LIVE_URL_SCOPE } from '@vostride/agent-qa-schema'
 import type {
@@ -25,10 +12,10 @@ import type {
 /** The token's format marker. A FIXED prefix, deliberately — there is no algorithm negotiation. */
 export const LIVE_URL_TOKEN_VERSION = 'v2'
 
-/** How long a minted `liveUrl` stays valid. Short by design; the socket renews in place. */
+// Short by design; the socket renews in place.
 export const LIVE_URL_TTL_MS = 5 * 60 * 1000
 
-/** The served embed page's path prefix (D-06, ratified). Bare — no `/api/` for a host to allowlist. */
+// Bare, with no `/api/` for a host to allowlist.
 export const LIVE_EMBED_PATH_PREFIX = '/live/'
 
 const BASE64URL_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
@@ -87,10 +74,7 @@ function claimsBodyOf(claims: LiveUrlClaims): string {
   )
 }
 
-/**
- * Mint a token for `claims`. The ONLY producer of `liveUrl` tokens in the system — `runs.liveurl`
- * is its only caller, which is what makes the minted-token secret store complete (D-04, Q4(b)).
- */
+// The only producer of `liveUrl` tokens, which keeps the minted-token secret store complete.
 export function mintLiveUrlToken(signer: LiveUrlSigner, claims: LiveUrlClaims): string {
   const body = claimsBodyOf(claims)
   return `${LIVE_URL_TOKEN_VERSION}.${body}.${signer.sign(body)}`
@@ -137,17 +121,7 @@ function subjectIdOf(subject: LiveViewSubject): string {
   return subject.kind === 'run' ? subject.runId : subject.sessionId
 }
 
-/**
- * Validate a token against the subject it was presented for: a run by its id, or an editor session
- * by its id. A signed subject of another kind, or of the same kind with another id, is
- * `scope_mismatch`.
- *
- * THE SIGNATURE IS CHECKED BEFORE THE BODY IS PARSED. A validator that parses first
- * reports `malformed` for an attacker-authored body and `bad_signature` only for a well-formed
- * forgery — which hands the attacker a free oracle for "did my claims body parse". Here, anything
- * that survives the shape check is signature-checked immediately, so an unsigned body is
- * `bad_signature` no matter how it is spelled inside.
- */
+// The signature is checked before the body is parsed, so parsing gives a forger no oracle.
 export function validateLiveUrlToken(
   signer: LiveUrlSigner,
   token: string,
@@ -173,11 +147,7 @@ export function validateLiveUrlToken(
   return { kind: 'ok', claims }
 }
 
-/**
- * Compose the viewer-facing URL. The token rides the FRAGMENT and nothing else: a fragment
- * is never sent to the server on any request, never lands in an access log, and never appears in a
- * `Referer` — the three durable channels a query parameter would leak into by default.
- */
+// The token rides the fragment, which never reaches a server, an access log or a `Referer`.
 export function liveUrlOf(origin: string, runId: string, token: string): string {
   return `${origin}${LIVE_EMBED_PATH_PREFIX}${encodeURIComponent(runId)}#${token}`
 }

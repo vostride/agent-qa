@@ -1,8 +1,4 @@
-// The `liveUrl` token pair + the `runs.liveurl` op (403 D-01..D-04, LIVE-02).
-//
-// EVERY REFUSAL IS ASSERTED BY NAME, not as a falsy verdict. A validator that answers `false` for
-// four different reasons is a validator whose surface can only ever render "something went wrong" —
-// and D-02's whole point is that a viewer of an expired link is TOLD the link expired.
+// Every refusal is asserted by name, so a viewer of an expired link is told it expired.
 
 import { LIVE_URL_SCOPE, RunsLiveUrlResultSchema } from '@vostride/agent-qa-schema'
 import type {
@@ -57,8 +53,7 @@ function claims(overrides: Partial<LiveUrlClaims> = {}): LiveUrlClaims {
 
 const AT_RUN_ALPHA = { subject: { kind: 'run', id: 'run-alpha' }, now: NOW } as const
 
-// no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither. `LIVE_URL_SCOPE` is the signed token's own claim, a live-link control, and stays.
+// `LIVE_URL_SCOPE` is the signed token's own claim, a live-link control.
 const CALLER: FunctionCaller = {
   surface: 'test',
   origin: 'human',
@@ -96,8 +91,6 @@ function registryWith(liveView: LiveViewPort | undefined): ReturnType<typeof cre
   } as FunctionDeps
   return createRegistryFromSpecs([runsLiveUrlSpec as FunctionSpec], {
     deps,
-    // no `resolveExecutionContext` registry option; the registry reads
-    // no context.
   })
 }
 
@@ -254,8 +247,7 @@ describe('the token names its subject; one kind never opens the other', () => {
   })
 
   it('UNKNOWN-SUBJECT-KIND-MALFORMED', () => {
-    // Each body also carries the pre-428 top-level runId/handle, so a parser that still read the
-    // old shape would accept it: only a subject-aware parser refuses these.
+    // Each body also carries a top-level runId and handle, so only a subject-aware parser refuses.
     const legacy = { runId: 'shared', handle: 0, scope: LIVE_URL_SCOPE, iat: NOW, exp: NOW + 1 }
     const unknownKind = { ...legacy, subject: { kind: 'suite', id: 'shared' } }
     const runWithoutHandle = { ...legacy, subject: { kind: 'run', runId: 'shared' } }

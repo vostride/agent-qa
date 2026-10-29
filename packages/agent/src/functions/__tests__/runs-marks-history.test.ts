@@ -1,4 +1,3 @@
-// ordinal mark history over a read-only feedback port.
 import { describe, expect, it, vi } from 'vitest'
 import { SecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
 import {
@@ -30,14 +29,14 @@ function receipt(ordinal: number, address: Address, overrides: Partial<MarkRecei
     ...(address.testId === undefined ? {} : { testId: address.testId }),
     ...(address.stepIndex === undefined ? {} : { stepIndex: address.stepIndex }),
     kind: 'false-fail', origin: 'user', ordinal,
-    // Deliberately descending: ordinal, never markedAt, governs latest-wins.
+    // Descending on purpose: ordinal, never `markedAt`, decides latest-wins.
     markedAt: 10_000 - ordinal * 10,
     disposition: { kind: 'quarantined', class: 'flake' }, evidence: { confirmed: 0, overturned: 0 },
     ...overrides,
   })
 }
 
-// applied receipts, with the records a knowledge fix changed joined by the host.
+// Applied receipts, with the records a knowledge fix changed joined by the host.
 const CONTENT = {
   content: 'The saved banner appears after checkout.', summary: 'saved banner', kind: 'fact',
   applicability: { product: 'shop', scope: 'shop', anchors: [], openedAtOrdinal: 1 },
@@ -64,7 +63,7 @@ function sequenceA(): ReadEntry[] {
       disposition: { kind: 'applied', fix: 'test-edit', change: { kind: 'test-file', filePath: 'tests/checkout.yaml', contentDigest: 'abc' } } }) },
     { receipt: receipt(5, { testIndex: 0, stepIndex: 2 }, { supersedes: markIdOf(2),
       evidence: { confirmed: 0, overturned: 1 } }) },
-    // A pre-432 receipt read back from an existing ledger: it filed a proposal, and nothing is joined for it.
+    // A legacy receipt from an existing ledger filed a proposal; nothing is joined for it.
     { receipt: receipt(6, { testIndex: 0 }, { supersedes: markIdOf(3), note: 'latest run-level mark',
       disposition: { kind: 'drafted', fix: 'caution', proposalId: 'proposal-a6', proposalKind: 'knowledge' } }) },
   ]

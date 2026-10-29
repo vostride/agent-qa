@@ -1,24 +1,4 @@
-// KREV-01's "no new memidex code" claim, as a check rather than as a sentence.
-//
-// The four read verbs are supposed to be WIRING over functions the read-only reader entry
-// already exports. That is a claim about what the op files DO, and nothing about a green
-// behaviour suite could distinguish an op that called through the port from one that had
-// quietly grown its own query — both would return rows.
-//
-// Three claims are checked here, each over the executable text of the real op files:
-//
-//   1. No op reaches for memidex query machinery. A verb that opened a reader, walked index
-//      rows or built a MATCH expression would be a second place records are selected, and the
-//      two would answer differently the first time either changed.
-//   2. No op mints. D-01's sighting site is the COMPOSITION, so an op that touched the
-//      addressing ledger would make a read verb a write to the one durable store this system
-//      never rebuilds — and it would do so from a package that is storageNeutral and cannot
-//      even see the file it was writing to.
-//   3. No op recomputes trust. Every trust-shaped field is derived behind the port; an op that
-//      re-derived one would publish a second opinion about a number the store already folded.
-//
-// Both controls are run, because a scan is only evidence if it can fail and only usable if it
-// does not fail on the reasoning that explains it.
+// The read ops are wiring: no memidex query, no ledger write and no trust recomputation.
 
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -58,7 +38,7 @@ const MEMIDEX_MACHINERY = [
   'MATCH ',
 ] as const
 
-/** The addressing ledger's write vocabulary. D-01's sighting site is the composition. */
+// The addressing ledger's write vocabulary; sightings are minted by the composition.
 const LEDGER_WRITES = [
   'openAddressingLedger',
   'sightEntity',

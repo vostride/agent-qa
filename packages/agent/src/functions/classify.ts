@@ -1,24 +1,4 @@
-// The result folds, run at the ONE seam that can reach a spec.
-//
-// WHY THIS FILE IS HERE AND NOT IN `chat/`. The knowledge of which arm of an op's output union is a
-// refusal lives on that op's {@link FunctionSpec}, and a spec never leaves this directory (BL-01 /
-// 384 FUNC-03) — `ChatInvokeBinding` is deliberately a closure over `invokeFunction` rather than a
-// registry handle, so the chat subtree cannot run a fold even if it wanted to. What CAN reach both
-// is the composition root, which holds the registry and mints that closure; this module is what it
-// calls on the return path, so the fold runs in one place instead of once per composition.
-//
-// FAIL-CLOSED, AND ONLY FOR THE VERDICT. A classifier that throws, or answers something that
-// is not a verdict, yields `failed` with a named outcome and NEVER `executed`. The asymmetry is the
-// whole decision: an unreadable result might be a refusal, so success is the one claim a receipt
-// must not default to — which is exactly what RC-1b's throw-versus-return derivation got backwards.
-// `summariseOutcome`'s safeParse-with-silent-fallback is the right posture for a DISCLOSURE and the
-// wrong one here, because the field being folded is the verdict itself.
-//
-// THE RENDER FOLD FAILS OPEN, AND THAT IS NOT AN INCONSISTENCY. A fold that throws costs the person
-// a sentence of extra legibility; the complete payload is rendered from `results[]` either way
-// so nothing is withheld and there is nothing to fail closed ABOUT. Failing the turn over a
-// decorative line would be the disclosure destroying the record, which is the trade 392's receipt
-// charter already refused.
+// A spec never leaves this directory, so folds run here on the composition root's return path.
 
 import { registryInternals } from './registry.js'
 import type { FunctionRegistry } from './registry.js'
@@ -94,18 +74,7 @@ function verdictOf(
   spec: { classify?: (output: never) => unknown },
   payload: unknown,
 ): ClauseVerdict {
-  // AN ABSENT CLASSIFIER IS FAIL-CLOSED AS OF 399.1-04, AND THE FLIP IS THE WHOLE POINT OF THE
-  // PLAN THAT MADE IT. This answered the legacy `{ status: 'executed', outcome: '' }` for one plan,
-  // while `FunctionSpec.classify` was optional and an op with no fold was an ordinary, expected,
-  // COUNTABLE thing. The member is required now, so an absent one no longer means "this op has not
-  // got round to it" — it means a cast got past `tsc` AND past the conformance census, and the one
-  // claim a receipt must never default to is success.
-  //
-  // THE PARAMETER STAYS OPTIONAL ON PURPOSE. Narrowing it to a required member would delete this
-  // branch and make the guard unwritable, which is the type system certifying its own coverage:
-  // `foldFunctionResult` is exported, the registry stores specs behind an internals seam, and
-  // `registry.ts` itself registers a stream spec through an `as`-cast. The branch is reachable in
-  // exactly the situation it exists for, and `refusal-classifiers.test.ts` drives it.
+  // An `as`-cast spec can lack `classify`; an absent fold fails closed, never claims success.
   if (typeof spec.classify !== 'function') return UNCLASSIFIABLE
   try {
     const answered: unknown = spec.classify(payload as never)

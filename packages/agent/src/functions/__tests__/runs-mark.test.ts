@@ -26,10 +26,7 @@ const CALLER: FunctionCaller = {
   surface: 'mcp',
   origin: 'agent',
 }
-// `STANDING_APPROVAL_SCOPE` is deleted with the MCP bearer credential, so
-// the legacy credential a pre-432 bearer carried is spelled as its bytes. Nothing reads it.
-// the caller's `credential` member is deleted, so the legacy bytes
-// are smuggled past the type with a cast; the cells below still prove nothing consults them.
+// Legacy credential bytes are cast past the type; the cells prove nothing consults them.
 const TRUSTED = { ...CALLER, credential: { scope: { project: 'local-workspace' } } } as FunctionCaller
 
 function receipt(overrides: Partial<MarkReceipt> = {}): MarkReceipt {
@@ -84,8 +81,6 @@ describe('runs.mark registration and binding', () => {
     expect(RUNS_MARK_FUNCTION_ID).toBe('runs.mark')
     expect(RUNS_MARK_FUNCTION_ID).toMatch(/^[a-z]+(?:\.[a-z]+)+$/)
     expect(runsMarkSpec.id).toBe(RUNS_MARK_FUNCTION_ID)
-    // RE-SPELLED 2026-10-01 from `requiredScopes` equal to ['knowledge-write']: the
-    // op declares no scope; its write is stated by the risk below.
     expect(runsMarkSpec).not.toHaveProperty('requiredScopes')
     expect(runsMarkSpec.risk.readOnly).toBe(false)
     expect(runsMarkSpec).not.toHaveProperty('requiresHumanOrigin')
@@ -95,7 +90,7 @@ describe('runs.mark registration and binding', () => {
   it('lists an unbound host by name and refuses through the registry and body', async () => {
     const registry = host()
     expect(registry.list(CALLER).find(({ id }) => id === RUNS_MARK_FUNCTION_ID)?.bindingStatus).toBe('unbound')
-    // no gate precedes the binding check; any caller observes the named absence.
+    // No gate precedes the binding check, so any caller observes the named absence.
     await expect(invokeFunction(registry, RUNS_MARK_FUNCTION_ID, INPUT, TRUSTED)).rejects.toBeInstanceOf(FunctionNotBoundError)
     await expect(runsMarkSpec.invoke(INPUT, {} as FunctionDeps)).rejects.toBeInstanceOf(FunctionNotBoundError)
   })
@@ -107,8 +102,6 @@ describe('runs.mark registration and binding', () => {
     expect(mark.mock.calls).toEqual([[INPUT], [INPUT]])
   })
 
-  // RE-SPELLED 2026-10-01 from 'requires knowledge-write even when the caller holds
-  // a standing credential'. No scope is required: a read-only caller's mark reaches the port once.
   it('marks for a caller holding only read, reaching the port once', async () => {
     const { port, mark, outcome } = stub()
     const readOnly = { ...TRUSTED, grantedScopes: ['read'] } as FunctionCaller
@@ -118,9 +111,6 @@ describe('runs.mark registration and binding', () => {
   })
 })
 
-// RE-SPELLED 2026-09-30 from 'no-TTY gate on the actual mark op (419
-// D-13/D-20)'. The op gate is gone: a mark from a no-TTY caller reaches the port once, whatever
-// credential it carries or lacks, and nobody is asked.
 describe('the mark op reaches its port in one call', () => {
   it('an uncredentialed MCP agent reaches the port once, with no refusal', async () => {
     const { port, mark, outcome } = stub()
@@ -163,8 +153,6 @@ describe('mark outcome classifications omit producer text', () => {
     })
   })
 
-  // an applied fix classifies by its governed kind only; the ids, path and note it
-  // changed stay on the receipt and never reach the receipt line.
   it('classifies an applied fix by kind alone, never by the records or file it changed', () => {
     const knowledge = receipt({ disposition: { kind: 'applied', fix: 'fact',
       change: { kind: 'knowledge', changeId: 'prop_0123456789ab', recordIds: ['mem_private_record'] } } })

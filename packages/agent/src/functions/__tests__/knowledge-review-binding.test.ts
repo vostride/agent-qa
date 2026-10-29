@@ -1,23 +1,4 @@
-// The `knowledgeReview` optional dep reports as `unbound` BY NAME (Phase 387 plan 06, Pitfall 2).
-//
-// 387 ships the read half of the review-verb family; 387-08 ships the mutating half. The claim
-// this file pins belongs to the read half all the same, because it is a claim about the
-// CONTRACT: a composition that supplies no write capability must list the mutating verbs as a
-// visible `unbound` rather than as a hole in the catalog, and a caller must be refused by name
-// rather than by a failure somewhere far from the composition that forgot.
-//
-// WHY A LOCALLY-CONSTRUCTED REGISTRY. The obvious way to prove this is to register a
-// placeholder spec in the built-in set and assert its status. That would have been wrong twice
-// over: a stub in the default catalog joins all five exact-equality growth seams this workspace
-// maintains (`EXPECTED_BINDING_STATUS`, `INVOCATION_SAMPLES`, `CONTRACTS_BY_ID`,
-// `ALL_FUNCTION_IDS`, and the CLI's `fn --list` map), and then has to be removed from all five
-// again when the real verbs land — so the seams would have recorded a capability that never
-// shipped. `createRegistryFromSpecs` builds a registry over an explicit spec set, so the
-// MECHANISM is exercised end to end with the catalog untouched. When 387-08 registers the real
-// specs, they inherit exactly this behaviour and the growth seams grow once, for real ops.
-//
-// The spec below is deliberately a fixture and not a draft of a real verb: it is named in a
-// domain nothing ships under, so nobody can mistake it for a capability under construction.
+// With no write port, the mutating verbs list as `unbound` and are refused by name.
 
 import {
   FORGET_RECEIPT_SCHEMA_VERSION,
@@ -32,9 +13,6 @@ import { createFunctionRegistry, createRegistryFromSpecs, resolveBindingStatus }
 import type { FunctionDeps, FunctionSpec, KnowledgeReviewPort } from '../spec.js'
 import { knowledgeAcceptSpec } from '../ops/knowledge-accept-propose.js'
 
-// RE-SPELLED 2026-10-01: this cell classified `knowledge.proposal.apply`'s policy
-// refusal, and that op is deleted with the inbox. The same refusal reaches a caller through the
-// direct accept's `refused` arm, and is still a refusal rather than an execution.
 it('a policy materialization refusal is classified as refused rather than executed', () => {
   const verdict = knowledgeAcceptSpec.classify({ outcome: 'refused', verb: 'accept',
     operationId: 'policy-fixture-op', reason: 'policy-materialize-refused' })
@@ -43,9 +21,6 @@ it('a policy materialization refusal is classified as refused rather than execut
   expect(verdict.outcome).toContain('nothing was changed')
 })
 
-// the retired `grantedScopes` and `safeMode` caller fields, the
-// fixture spec's `requiredScopes` and the retired `resolveExecutionContext` registry option are
-// dropped; nothing read them.
 const CALLER: FunctionCaller = {
   surface: 'test',
   origin: 'agent',
@@ -69,8 +44,7 @@ const reviewBoundSpec: FunctionSpec<Record<string, never>, string> = {
   input: z.object({}).strict(),
   output: z.string(),
   risk: { name: `fn:${FIXTURE_ID}`, recognized: true, readOnly: false },
-  // `classify` is a REQUIRED member now. A synthetic op's fold is the smallest honest
-  // one — the shape has a single arm, so there is nothing to discriminate.
+  // A single-arm shape leaves the fold nothing to discriminate.
   classify: () => ({ status: 'executed' as const, outcome: '' }),
   invoke(_input, deps) {
     const proposalId = deps.knowledgeReview === undefined ? 'no-port' : 'reached-the-port'
@@ -118,10 +92,7 @@ function deps(overrides: Partial<FunctionDeps> = {}): FunctionDeps {
 }
 
 function registryOver(functionDeps: FunctionDeps) {
-  // A FRESH spec object per registry: registration freezes what it is handed, and two
-  // registries sharing one frozen singleton would still be the same object — which is fine, and
-  // is exactly why the copy is worth stating. The point of this file is that ONE spec reports
-  // two different statuses in two compositions, so the spec must genuinely be the same contract.
+  // Registration freezes what it is handed, so each registry gets a fresh copy of the one spec.
   return createRegistryFromSpecs([reviewBoundSpec as FunctionSpec], {
     deps: functionDeps,
   })
@@ -166,13 +137,10 @@ describe('the knowledgeReview optional dep', () => {
     expect(await invokeFunction(registry, FIXTURE_ID, {}, CALLER)).toBe('reached-the-port')
   })
 
-  // the three knowledge changes bind through the SAME optional dep, and reach its
-  // direct member. A host with no write port lists them unbound by name and refuses them by name.
   it('the three changes are unbound without the port and reach its direct change with it', async () => {
     const reached: unknown[] = []
     const directPort = {
-      // `propose` and `apply` are deleted from the port; kept here as excess
-      // members so "a direct change never reaches them" stays measured.
+      // Excess `propose` and `apply` members, so "a direct change never reaches them" is measured.
       propose: () => Promise.reject(new Error('a direct change never proposes')),
       apply: () => Promise.reject(new Error('a direct change never applies a proposal')),
       change: (request: { verb: string }) => {
@@ -180,7 +148,7 @@ describe('the knowledgeReview optional dep', () => {
         return Promise.resolve({
           outcome: 'applied', verb: request.verb,
           operationId: '1e2d3c4b-5a69-4786-9504-a3b2c1d0e9f8', recordIds: ['rec-1'],
-          // an applied forget carries its receipt by rule.
+          // An applied forget carries its receipt.
           ...(request.verb === 'forget'
             ? {
               forgetReceipt: {

@@ -1,7 +1,4 @@
-// OUTPUT-DECLARATION-IDENTITY (431-03 task 2 · D-03 · research A1).
-//
-// A declaration's output projection comes from the spec's canonical companion when it has one,
-// and the companion must be tied to the very schema `invokeFunction` enforces with.
+// A declaration's output projection must come from the very schema `invokeFunction` enforces.
 
 import {
   RunsEvidenceOutputContract,
@@ -23,8 +20,6 @@ import type { FunctionDeps, FunctionSpec } from '../spec.js'
 
 const TARGET = { target: 'draft-2020-12' } as const
 
-// the retired `resolveExecutionContext` option and the retired
-// `grantedScopes`/`safeMode` caller fields are dropped; nothing read them.
 function options(deps: unknown = {}): CreateFunctionRegistryOptions {
   return {
     deps: { secretMask: (text: string) => text, ...(deps as object) } as FunctionDeps,

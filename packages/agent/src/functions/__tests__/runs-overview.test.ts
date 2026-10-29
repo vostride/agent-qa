@@ -1,7 +1,4 @@
-// `runs.overview`, one completed run's address map.
-//
-// Driven through the real built-in registry and `invokeFunction`, so the strict input, the
-// completed-handoff gate, the op and the declared output contract are one measured path.
+// Driven through the real registry, so input, handoff gate, op and output contract are one path.
 
 import { createHash } from 'node:crypto'
 
@@ -55,8 +52,6 @@ import type {
 const OVERVIEW = 'runs.overview'
 const RUN_ID = 'run-431-overview'
 
-// the retired `grantedScopes` and `safeMode` caller fields and the
-// retired `resolveExecutionContext` registry option are dropped; nothing read them.
 const READER: FunctionCaller = {
   surface: 'test',
   origin: 'agent',
@@ -284,7 +279,7 @@ describe('OVERVIEW-REGISTRY: runs.overview is a registered read over one complet
   })
 })
 
-// ---- 431-02 task 2: every recorded detail, addressed exactly -----------------------------------
+// Every recorded detail, addressed exactly.
 
 const encode = (text: string) => new TextEncoder().encode(text)
 const bytesOf = (value: unknown) => encode(JSON.stringify(value))

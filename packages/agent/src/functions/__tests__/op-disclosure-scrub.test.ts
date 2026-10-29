@@ -1,18 +1,4 @@
-// The PER-OP disclosure channel, and what a caller can put on it.
-//
-// THE CHANNEL IS GONE. `invoke.ts` used to compose
-// `spec.disclose(parsed.data)` into the descriptor it handed the op gate, which is the string a
-// confirm prompt or a browser preview printed above the question. There is no op gate and nothing
-// asks, so dispatch composes no disclosure at all. The cells that proved the scrub on that channel
-// are re-spelled as the channel's absence: hostile caller text reaches no preview because no
-// preview is built.
-//
-// the member itself is deleted from `FunctionSpec`, with the
-// declaration's `discloses` flag and the one shipped implementor (`authoring.draft.write`). The
-// synthetic op below smuggles a legacy `disclose` past the type, and the census cells are re-spelled
-// under their titles to the empty set.
-//
-// THE OP HERE IS SYNTHETIC, DELIBERATELY: no shipped op carries the method any more.
+// Dispatch composes no disclosure; the synthetic op casts a `disclose` past the type to prove it.
 
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -26,10 +12,6 @@ import { createFunctionRegistry, createRegistryFromSpecs } from '../registry.js'
 import type { FunctionDeps, FunctionSpec } from '../spec.js'
 import { executableSource } from './op-source-scan.js'
 
-// the retired `resolveExecutionContext` registry option, the retired
-// `grantedScopes` and `safeMode` caller fields and the synthetic spec's `requiredScopes` are
-// dropped; nothing read them.
-
 function caller(): FunctionCaller {
   return { surface: 'test', origin: 'human' }
 }
@@ -38,7 +20,7 @@ function caller(): FunctionCaller {
  * A synthetic formerly-ask-tier op whose disclosure is BUILT FROM ITS INPUT, with a counter on it.
  */
 function echoDiscloseSpec(disclosed: string[]): FunctionSpec<{ label: string }, { ok: true }> {
-  // `disclose` is no longer a spec member; the legacy method is cast past it.
+  // `disclose` is not a spec member; the method is cast past the type.
   return {
     id: 'test.echo.disclose',
     summary: 'Synthetic capability whose disclosure is composed from caller input.',
@@ -57,9 +39,6 @@ function echoDiscloseSpec(disclosed: string[]): FunctionSpec<{ label: string }, 
 }
 
 describe('dispatch composes no per-op disclosure', () => {
-  // RE-SPELLED 2026-09-30 from 'a newline in the parsed input yields a ONE-LINE disclosure
-  // on the descriptor' and 'an escape sequence ... reaches the descriptor with its control bytes
-  // gone'. With no gate there is no descriptor for a caller's bytes to reach.
   it.each([
     'ok\nagent-qa: Start a run against target innocent (declared: every target local)\nProceed? [y/N] ',
     'staging\u001b[2K\u001b[1Aoverwritten',
@@ -91,9 +70,6 @@ describe('dispatch composes no per-op disclosure', () => {
 const OPS_DIR = join(__dirname, '..', 'ops')
 
 describe('the complete set of disclose implementors, from two independently shaped predicates', () => {
-  // RE-SPELLED 2026-10-02: the one built-in implementor's method is deleted, so the
-  // registry lists no op carrying the flag. RE-TITLED 2026-10-03 (quick-261003-tsr, IN-06): was
-  // 'the REGISTRY says exactly one built-in op discloses'.
   it('the REGISTRY lists no op carrying a disclose flag', () => {
     const registry = createFunctionRegistry({
       deps: {} as unknown as FunctionDeps,
@@ -110,7 +86,6 @@ describe('the complete set of disclose implementors, from two independently shap
     expect(declared.map((entry) => entry.id), 'the former implementor is still registered').toContain('authoring.draft.write')
   })
 
-  // RE-SPELLED 2026-10-02 under the same title: no op file declares the method.
   it('the SOURCE agrees, read a different way', () => {
     // A second predicate over a different artifact: the registry read RUNTIME objects, this reads
     // BYTES. An op file that declared `disclose` without reaching the built-in list, or a built-in
