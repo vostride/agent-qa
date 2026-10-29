@@ -1,8 +1,4 @@
-// OVERVIEW-COLD-SCOPE.
-//
-// `runs.overview` returns stored text — test names, step labels and served record summaries — so a
-// cold host masks it with the composition's declared mask. 2026-10-14: the cold read
-// scope is gone; a host whose secrets file cannot be read refuses rather than masking everything.
+// A cold host masks the stored text `runs.overview` returns, and refuses if secrets are unreadable.
 
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'

@@ -1,21 +1,4 @@
-// The function layer's knowledge READ port, bound over the physically read-only entry
-//
-// This file exists so the read half of the review-verb family has a home that CANNOT name the
-// writer-gated entry. It is registered in the arch reader carve-out's pinned file list, which
-// means the lint fails this file for naming anything but the `/reader` subpath — the same rule
-// that already binds `knowledge-read.ts` and the run-scoped serving reader. The alternative,
-// leaving the binding inside the composition root (which legitimately names the writer entry,
-// because it also binds the curator), would have put five read verbs inside the one file in
-// the workspace where a write import is legal. The rule would still have passed and the
-// separation would have been discipline rather than structure.
-//
-// D-01 LIST-VERB SIGHTING. Entity ids discovered by listing and single-record verbs go to the
-// injected `sightMemoryEntities` callback. The callback is INJECTED rather than constructed
-// here for the reason above: minting reaches the durable addressing ledger, whose module lives
-// on the writer-gated entry, so a version of this file that could mint could not be a reader
-// file. The composition root — which may name that entry — supplies it. The callback is a side
-// effect on the ledger and never on the answer: every projection below is byte-identical
-// whether or not one is supplied, which is what keeps the wiring-parity claim true.
+// On the reader carve-out list, so this file cannot name the writer entry; sighting is injected.
 
 import {
   canaryAttributionsFor,
@@ -47,7 +30,7 @@ export interface ConstructKnowledgeReaderPortInput {
    * makes differently from a terminal.
    */
   resolveKnowledgeRoot: () => Promise<string> | string
-  /** The D-01 sighting site. Absent in hosts that bind no addressing ledger. */
+  // The sighting site; absent in hosts that bind no addressing ledger.
   sightMemoryEntities?: SightMemoryEntities
 }
 
@@ -109,19 +92,7 @@ export function createKnowledgeReaderPort(
     async showRecords({ recordIds }) {
       return showRecords({ knowledgeRoot: await input.resolveKnowledgeRoot(), recordIds })
     },
-    /**
-     * what became of the canary lines one run served.
-     *
-     * Resolved per call like its four siblings, and NOT sighted. The caller already holds every
-     * candidate id in the tuples it passes — it read them off its own run's evidence — so a
-     * sighting here would record that the reader was handed ids rather than that an entity was
-     * surfaced to anyone, which is the distinction the ledger exists to keep.
-     *
-     * The reader entry's answer is forwarded VERBATIM, `skippedBundles` included (407-19, REVIEW
-     * WR-03). This binding neither counts nor interprets: how much of the store went unread is a
-     * fact only the walk knows, and a composition that dropped it here would hand the op a
-     * clean-looking answer over a half-read store.
-     */
+    // Not sighted; `skippedBundles` is forwarded verbatim so a half-read store never looks clean.
     async canaryAttributions({ runId, tuples }) {
       return canaryAttributionsFor({
         knowledgeRoot: await input.resolveKnowledgeRoot(),

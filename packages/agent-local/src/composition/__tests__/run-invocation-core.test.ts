@@ -1,20 +1,4 @@
-// The in-process invocation core, driven through its production factory.
-//
-// WHAT THIS FILE MEASURES, and what it deliberately does not. The core's job is an ORDER —
-// refuse, identify, run the door's own code, assemble, start, await — so every cell here is about the
-// order or about what the order lets through. The member EXECUTOR is a double, because a real one
-// needs a browser and a model; everything else is the shipped path: the real
-// `createRunInvocationCore`, the real `startRun`, and the real `FsEventLog`/`FsHandoffStore` under a
-// real `<configDir>/.agent-qa` root, read back off disk.
-//
-// THE CORE ASKS NOBODY. There is no run-start `evaluate()`, confirm port or session trust, and no
-// refusal of a well-formed request: a run starts in every context, whatever its targets declare.
-//
-// THE ROOT IS THE ONE THE EVIDENCE CHECK READS (RESEARCH Pitfall 5). `createLocalRunInvocation`
-// verifies a run happened by reading `buildRunPorts({ configDir: dirname(agentQaRoot) })`. If the
-// core wrote anywhere else, every `runs.start` would throw `RunProducedNoEventsError` for a run that
-// really happened — or somebody would "fix" it by deleting the anti-fabrication check. So the cells
-// below read events through that same construction rather than through a path they compose.
+// The member executor is a double; the core, `startRun` and the event and handoff stores are real.
 
 import { createHash } from 'node:crypto'
 import { mkdtempSync, readFileSync, readdirSync, rmSync, existsSync } from 'node:fs'
@@ -34,8 +18,7 @@ import {
   RunIdNotMintedError,
 } from '../run-invocation-core.js'
 import type { RunAssemblyContext, RunConfig } from '../run-invocation-core.js'
-// the run gate's descriptor recipe is deleted; its action name is kept
-// here as a literal so the cells below can still assert no row ever names it.
+// The retired gate's action name, kept as a literal so cells can assert no row names it.
 const RETIRED_RUN_START_ACTION = 'run:start'
 
 const portBuilds = vi.hoisted(() => ({ order: [] as string[] }))
@@ -94,23 +77,14 @@ function recordingAssembler(): {
           steps: [{ name: 'a step', status: 'passed', duration: 1 }],
           duration: 1,
         }),
-        // THE PRODUCTION PORTS, handed straight through from the core. Substituting fakes here
-        // would measure the assembly and leave the persistence rooting — the thing Pitfall 5 is
-        // about — untested at exactly the seam that has to hold.
+        // The core's own ports, so the test covers where persistence is rooted, not only assembly.
         ports: context.ports,
       }
     },
   }
 }
 
-/**
- * This fixture's own mint shape.
- *
- * The core takes `isMintedRunId` as an injected predicate precisely so the canonical id shape stays
- * in the package that owns it, which this one may not name. A fixture therefore supplies a fixture
- * predicate — the core's contract is that it ASKS, and every cell below turns on what it does with
- * the answer, never on which spelling the answer was about.
- */
+// A fixture predicate, because the canonical id shape lives in a package this one may not name.
 const FIXTURE_MINTED_RUN_ID = (value: string): boolean => /^run_[a-z_]+$/.test(value)
 
 interface CoreInput {
@@ -118,7 +92,7 @@ interface CoreInput {
   assemble?: (context: RunAssemblyContext) => RunConfig
   onSession?: (session: RunSession) => void
   mintRunId?: () => string
-  /** the shape predicate. Defaults to the canonical one every production door supplies. */
+  // Defaults to the fixture predicate above.
   isMintedRunId?: (value: string) => boolean
 }
 
@@ -139,13 +113,7 @@ function recordedEvents(runId: string): RunEventEnvelope[] {
   return [...buildRunPorts({ configDir: projectDir, runId }).eventLog.read(0)]
 }
 
-/**
- * A byte digest of every artifact in a run's directory.
- *
- * SHA of the CONTENTS, not a mtime or a size: "the victim is untouched" has to be a statement
- * about bytes, and an appended line that happened to replace one of the same length would be
- * invisible to anything weaker.
- */
+// A content digest, because a same-length rewrite is invisible to mtime or size.
 function artifactDigests(runDir: string): Record<string, string> {
   if (!existsSync(runDir)) return {}
   const digests: Record<string, string> = {}
@@ -158,13 +126,7 @@ function artifactDigests(runDir: string): Record<string, string> {
   return digests
 }
 
-/**
- * Every audit row the run dir holds, from either trail (432-13: the core writes none).
- *
- * `execution_audit.jsonl` has no writer at all, and since 441-31
- * neither has `guardrail_audit.jsonl`. Both are read so "no row" means no row of any kind, and a
- * returning writer of either would be seen here.
- */
+// Both audit trails are read, so a returning writer of either is seen.
 function recordedAuditRows(runId: string): Array<Record<string, unknown>> {
   const slug = runId.replaceAll('/', '-')
   return ['execution_audit.jsonl', 'guardrail_audit.jsonl'].flatMap((file) => {
@@ -194,7 +156,7 @@ describe('the invocation core — the allow leg, end to end', () => {
     // id and started under another would make every later `runs.get` a lookup of a different run.
     expect(assembler.calls[0].runId).toBe(started.runId)
 
-    // D-09's bridge hook fired, and it fired with the session the run is actually happening on.
+    // The bridge hook fired once, with the session the run is happening on.
     expect(sessions).toHaveLength(1)
     expect(sessions[0].id).toBe(started.runId)
 
@@ -281,14 +243,7 @@ describe('the invocation core asks nobody', () => {
   })
 })
 
-// ---------------------------------------------------------------------------------------------
-// The hygiene census (plan 03, Task 3).
-//
-// The cells above measure BEHAVIOUR. These measure the properties behaviour cannot show on its own:
-// that the file calls no gate at all (432-13; it used to call exactly one), and that it never
-// reaches for ambient process state. Both are claims about the SOURCE, so both are asserted against
-// the source — and each scan is self-checked against its own known members first, because a census
-// whose predicate cannot see the thing it forbids is green at rest.
+// Source hygiene: each scan is self-checked against its own members before it judges the core.
 
 // A name in prose is not code; the `[^:]` guard keeps a URL's `//` from reading as a comment.
 function stripComments(source: string): string {
@@ -297,14 +252,7 @@ function stripComments(source: string): string {
     .replace(/(^|[^:])\/\/.*$/gm, '$1')
 }
 
-/**
- * The ambient-context family, as a COMPLETE SET rather than as the one name somebody remembered.
- *
- * Every member is a shipped export that answers "what is the ambient state of this process?" —
- * `safety`'s two active-resolver pairs, `safety-local`'s detector, and the run composition's own
- * wrapper around it. D-07 makes all of them wrong here for one reason: the core answers to a DOOR,
- * and a door's posture is not a property of the machine it runs on.
- */
+// Each member answers what ambient state the process holds; the core answers to its door instead.
 const AMBIENT_RESOLVERS = [
   'resolveRunExecutionContext',
   'detectExecutionContext',
@@ -353,8 +301,6 @@ describe('the core hygiene census, pinned to the core file', () => {
     }
   })
 
-  // RE-SPELLED 2026-09-30 from 'exactly ONE evaluate() call-site lives in the core'.
-  // The call-site and its pin entry left together; the build refuses the file acquiring it again.
   it('NO evaluate() call-site lives in the core, and the pin no longer names it', () => {
     const code = stripComments(readFileSync(CORE_SOURCE_PATH, 'utf8'))
     expect(code.match(/\bevaluate\s*\(/g) ?? []).toEqual([])
@@ -366,8 +312,6 @@ describe('the core hygiene census, pinned to the core file', () => {
       'utf8',
     )
     expect(pin).not.toContain("'packages/agent-local/src/composition/run-invocation-core.ts':")
-    // the gate pin itself is deleted; the file keeps only the shared
-    // scanner the startRun pin reads with, and names no permitted acquisition at all.
     expect(pin).not.toMatch(/export const EVALUATE_PIN\b/)
     expect(pin).toContain('export function parseModuleStatements')
   })
@@ -406,30 +350,7 @@ describe('the core hygiene census, pinned to the core file', () => {
   })
 })
 
-// ---------------------------------------------------------------------------------------------
-// THE IDENTITY STEP.
-//
-// THE RED BASELINE, measured on real artifacts through the shipped fn door before a line changed,
-// and recorded here rather than paraphrased. Two `runs.start` calls naming the SAME id:
-//
-//   victim BEFORE  events.jsonl b2957897f4ab4d2d bytes=2111 lines=7
-//                  handoff.json e0554efee1793bcb bytes=2127
-//                  execution_audit.jsonl 84540238fb09b9e3 bytes=270 lines=1
-//   victim AFTER   events.jsonl 1c007db24ed9a09b bytes=4221 lines=14   ← APPENDED
-//                  handoff.json bc93c2fc8320f59c bytes=2127            ← OVERWRITTEN
-//                  execution_audit.jsonl a7ae81b3df13d68d bytes=540 lines=2
-//
-// …and the acknowledgment came back naming the victim's own id with `buildOrdinal: 2`. The same
-// probe found `runId: '../../escape'` acknowledged (run dir `escape`) and `runId: ''` running a
-// whole run into a shared `runs/default/` before the op reported `RunNotRecordedError`.
-//
-// WHY THE ABSENCES BELOW ARE THE CORRECT EVIDENCE, and not the never-got-there failure mode 401-12
-// shipped. Every other denial in this file asserts a `run:start` audit row EXISTS with a non-empty
-// `riskTier` before believing its verdict, because a deny and a never-reached are otherwise the
-// same empty directory. These refusals are DIFFERENT BY DESIGN: they land above the gate, so there
-// is no row to read and the absence of one is the claim. What discriminates them from a broken
-// harness is the paired control immediately below each — one field different, the run proceeds,
-// and the row the refusal cells say is absent is the row the control reads back.
+// Refusals land above assembly, so absence is the claim; each paired control proves the run.
 describe('the invocation core — the identity step refuses before anything', () => {
   it('REFUSES an id this system would not have minted, by name, having written nothing', async () => {
     const assembler = recordingAssembler()
@@ -452,9 +373,7 @@ describe('the invocation core — the identity step refuses before anything', ()
 
     expect(started.runId).toBe('run_a_minted_shape')
     expect(assembler.calls).toHaveLength(1)
-    // The run directory the refusal cell above says is ABSENT is the one this run wrote — which is
-    // what makes that absence a decision rather than a harness that never arrived. (432-13: read
-    // off the run's own events, since no run-start decision row is written any more.)
+    // The run directory the refusal cell finds absent is the one this control writes.
     expect(recordedEvents('run_a_minted_shape')[0]?.type).toBe('runStarted')
   })
 
@@ -481,9 +400,7 @@ describe('the invocation core — the identity step refuses before anything', ()
     await core.execute({ runId: victimId as never })
     const runDir = join(agentQaRoot(), 'runs', victimId)
     const before = artifactDigests(runDir)
-    // Non-vacuity: the victim really has the artifacts a collision would tamper with. (432-13: no
-    // run-start decision row, so no `execution_audit.jsonl` is written for a run with no in-run
-    // tool action.)
+    // Non-vacuity: the victim holds the artifacts a collision would tamper with.
     expect(Object.keys(before).sort()).toEqual(
       expect.arrayContaining(['events.jsonl', 'handoff.json']),
     )
@@ -588,9 +505,7 @@ describe('the invocation core — the identity step refuses before anything', ()
   })
 })
 
-// the core hands a run no guardrail audit sink. The assembler writes a row to any
-// sink its context offers, as a door that opened its run under that sink would; the old key is
-// spelled in parts.
+// The assembler writes a row to any sink its context offers; the retired key is spelled in parts.
 describe('the run directory after a completed run', () => {
   it('a completed run leaves no guardrail audit file in its run directory', async () => {
     const inner = recordingAssembler()

@@ -1,27 +1,4 @@
-// The evidence-blob read port, bound over the SAME store the runner wrote through.
-//
-// ONE BINDING, TWO CONSUMERS. Before this file the analysis job's `readEvidenceBlob` was an inline
-// lambda at the composition root, and `runs.artifact` would have needed a second one. Two lambdas
-// over one store is two answers to "where do this run's blobs live" — they agree on the day the
-// second is written, and the first time either side changes a root or a subdirectory they stop.
-// So the lambda moved here and both consumers call it.
-//
-// WHY THIS IS A COMPOSITION FILE AND NOT AN OP. `packages/agent` is storageNeutral: `node:fs` and
-// the concrete store are unreachable there by architecture, which is exactly why the op declares a
-// PORT and this package fills it. What crosses the boundary is bytes and a three-arm verdict.
-//
-// THE TWO ABSENCES ARE SEPARATED HERE, AND HERE IS THE ONLY PLACE THEY CAN BE.
-// `FsEvidenceArtifactStore.getBlob` answers `undefined` for a malformed sha AND for an ENOENT,
-// and the layer above needs to tell an unknown RUN apart from a run holding no such BLOB
-// — a bad link from a screenshot the diet collected. The run's own directory is what distinguishes
-// them: a run that has started has `runs/<slug(runId)>/` whether or not it has written a handoff
-// (RESEARCH Pattern 3), so directory presence is the run-existence question and the store's own
-// answer is the blob question.
-//
-// THIS FILE ASSEMBLES NO PATH FROM CALLER INPUT. The runId becomes a path segment
-// exactly once, inside `slugBranch`, which is the shared traversal guard the store's own
-// constructor uses — and the sha is regex-checked before it is ever handed on. Containment is the
-// store's rule; a second rule here would be a second rule free to be the weaker one.
+// Both consumers bind here, and only the run directory tells an unknown run from a missing blob.
 
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
@@ -73,15 +50,7 @@ export function lookupEvidenceBlob(
   return bytes === undefined ? { status: 'blob_absent' } : { status: 'found', bytes }
 }
 
-/**
- * THE SAME RULE, MINUS THE BYTES — presence for a whole run's artifact refs.
- *
- * WHY NOT `lookupEvidenceBlob(...).status`: a run page annotates every ref it is about to render,
- * and the read arm loads a screenshot into memory to reach the status it then discards. This
- * shaping walks the identical three-way split — malformed sha, unknown run, then the store's own
- * answer — and asks the store to STAT instead of read. The two arms above `runDirectoryExists`
- * are shared code, not a copy, so `found` here and `found` there are the same claim.
- */
+// The lookup's split, but a stat instead of a read, so annotating refs loads no screenshots.
 export function statEvidenceBlob(
   input: CreateEvidenceBlobReaderInput,
   runId: string,
@@ -118,17 +87,7 @@ export function readEvidenceBlobRange(
   return bytes === undefined ? { status: 'blob_absent' } : { status: 'found', bytes }
 }
 
-/**
- * The op's PORT over {@link lookupEvidenceBlob}.
- *
- * BOTH MEMBERS ARE BOUND HERE (406, D-17): this host holds run directories, so it can honestly
- * answer the optional presence member, and an op reading it gets `present` for every ref rather
- * than the omitted key a host without local storage would leave.
- *
- * ASYNC EVEN THOUGH THE STORE IS NOT, because the port is the shape a host that does not hold its
- * blobs on a local disk would also have to satisfy — and a synchronous contract is one such a host
- * could never implement without lying about it. The local answer is simply already resolved.
- */
+// Async though the store is not, because a host without local blobs must satisfy the same port.
 export function createEvidenceBlobReader(
   input: CreateEvidenceBlobReaderInput,
 ): EvidenceBlobReaderPort {

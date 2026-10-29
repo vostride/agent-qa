@@ -25,10 +25,7 @@ import {
   scaledRecordCap,
 } from '../knowledge-budgets.js'
 
-/**
- * the composition takes THE rung resolver as a required injection, so these cells —
- * which are about budgets, not about the host — hand it a fake and never probe the machine.
- */
+// The rung resolver is a required injection; a fake keeps these budget cells off the machine probe.
 const fakeResolveRetrievalRung = (): Promise<RecordedRetrievalRung> => Promise.resolve({
   schemaVersion: 2,
   rung: 'bundle-scan',
@@ -119,9 +116,7 @@ describe('run knowledge composition', () => {
             truncation: '',
             admissions: [],
           },
-          // A DIFFERENT trace per call, so a memo that re-served the brief while re-deriving the
-          // trace would be visible. 387-04 · D-13: a repeat serve must carry the attribution
-          // captured when the brief was actually assembled, not one describing the cache hit.
+          // A different trace per call: a repeat serve carries the real assembly's attribution.
           trace: {
             schemaVersion: RETRIEVAL_TRACE_SCHEMA_VERSION,
             servedLines: [{

@@ -1,17 +1,4 @@
-// The entity spine, proven end to end.
-//
-// One path, every layer: a raw reference crosses `invokeFunction`'s gate, reaches the
-// `entities.*` ops, drops through the composition-bound directory port into the
-// knowledge-local resolver, mints a durable short-ID in the addressing ledger, and comes
-// back as a card the ONE producer rendered. Nothing here is stubbed; the bundle is really
-// published to a temp knowledge root and the ledger is a real sqlite file on disk.
-//
-// Why the assertions are shaped the way they are: "a resolver exists" is satisfied by a
-// function returning a plausible object, so every claim below is anchored to something the
-// wrong implementation could not produce — the ordinal came out of a database (it survives
-// a second call and a second composition), the address is the canonical one the URI codec
-// prints, and the free-text case returns the typed refusal arm rather than the nearest
-// bundle it happened to be holding.
+// One unstubbed path through every layer: a published bundle, a real sqlite ledger, the registry.
 
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -39,17 +26,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { composeLocalAgent, sweepEntityIndexProjection } from '../compose-local-agent.js'
 import type { LocalAgentHost } from '../compose-local-agent.js'
 
-/**
- * The composition's REQUIRED quarantine identity mint. Passthrough here: this
- * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
- * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
- */
+// Passthrough: this fixture already speaks canonical workspace-relative bytes.
 const MINT_IDENTITY = (filePath: string): string => filePath
 
 const PRODUCT = 'shop'
 
-// the retired `grantedScopes` and `safeMode` caller fields are dropped;
-// nothing read them.
 const CALLER: FunctionCaller = {
   surface: 'cli',
   origin: 'agent',
@@ -153,9 +134,7 @@ describe('the entity spine through composeLocalAgent', () => {
   // ---- test 1: the sighting mints, and the card comes back rendered ----------------------
 
   it('resolves a committed bundle ref to a MEM card with a minted short-ID', async () => {
-    // The ledger is a durable file, and D-01 says nothing touches it until an entity is
-    // SIGHTED. Composing a host and listing a registry must therefore leave no database
-    // behind, exactly as the job store must not.
+    // Nothing touches the ledger until an entity is sighted; composing and listing leave no file.
     expect(existsSync(join(agentQaRoot, ADDRESSING_LEDGER_DB_FILE))).toBe(false)
 
     const outcome = await resolve(bundleId)
@@ -177,8 +156,7 @@ describe('the entity spine through composeLocalAgent', () => {
     if (outcome.kind !== 'resolved') throw new Error('expected the resolved arm')
     expect(EntityCardSchema.safeParse(outcome.card).success).toBe(true)
     expect(outcome.card.title).toContain('Checkout')
-    // no dashboard base URL is configured in v52, so the field is ABSENT rather than a
-    // link that would 404.
+    // No dashboard base URL is configured, so the field is absent rather than a dead link.
     expect(Object.hasOwn(outcome.card, 'url')).toBe(false)
   })
 
@@ -231,12 +209,7 @@ describe('the entity spine through composeLocalAgent', () => {
   // ---- test 4: the never-guess floor ------------------------------------------------------
 
   it('answers free text through tier (b) once the entity has been sighted', async () => {
-    // 387-01 asserted a REFUSAL here, and said so honestly: the bundle IS about checkout and
-    // is the only entity in the store, so a resolver with no tier (b) had to refuse rather
-    // than fall back to "the closest thing I have". 387-03 lands tier (b), so the honest
-    // answer changed — and the case is repinned rather than deleted, because what it was
-    // really guarding is that the answer comes from RETRIEVAL over a projection and not from
-    // a fallback. The next case is the half that did not change.
+    // A sighted entity resolves free text by retrieval over the projection, not by a fallback.
     await resolve(bundleId)
 
     const outcome = await resolve('that bundle about checkout')
@@ -250,9 +223,7 @@ describe('the entity spine through composeLocalAgent', () => {
   })
 
   it('still refuses free text that no entity matches, and never offers the only one it has', async () => {
-    // The never-guess floor, restated where it now bites. One entity exists, it is about
-    // checkout, and the reference is about something else entirely: a resolver that answered
-    // with its only candidate would be the silent guess ENTY-01 exists to forbid.
+    // One checkout entity and an unrelated reference: answering with the only candidate is a guess.
     await resolve(bundleId)
 
     expect(await resolve('the flaky elephant migration')).toMatchObject({
@@ -282,8 +253,7 @@ describe('the entity spine through composeLocalAgent', () => {
     expect(report).toEqual({ examined: 1, refreshed: 0, embedded: 0 })
     // The ledger is not a projection: the sweep reads it and leaves it byte-identical.
     expect(readFileSync(ledgerPath).equals(ledgerBefore)).toBe(true)
-    // Lease-free: a sweep that took the writer lease could not run in a CLI process,
-    // and would have left the lease file behind here.
+    // A sweep that took the writer lease could not run in a CLI process, and would leave its file.
     expect(existsSync(join(knowledgeRoot, 'memory', 'writer.lease'))).toBe(false)
   })
 
@@ -319,8 +289,7 @@ describe('the entity spine through composeLocalAgent', () => {
         bindingStatus: 'bound',
         risk: { readOnly: true },
       })
-      // A declaration is DATA. Anything runnable reachable off a listing would be the
-      // private power the function layer abolishes.
+      // A declaration is data: nothing runnable may be reachable off a listing.
       expect(Object.values(entry).some((value) => typeof value === 'function')).toBe(false)
     }
 

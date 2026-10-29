@@ -1,6 +1,4 @@
-// Relocated out of the CLI by Phase 385 plan 08 unchanged. The budget arithmetic never
-// touched a terminal, so it is host-neutral by the dissection rule and belongs beside the reader
-// binding it sizes rather than in whichever surface happened to call it first.
+// The budget arithmetic touches no terminal, so it sits beside the reader binding it sizes.
 
 import type { ModelCapabilities } from '@vostride/agent-qa-schema'
 
@@ -58,11 +56,7 @@ function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value))
 }
 
-/**
- * Derive every learned-knowledge budget beside model token accounting. The raw fraction is
- * floored before any floor/ceiling clamp, preserving D-02's exact boundary behavior. The reader
- * and provider-neutral loop receive only the resulting plain numbers.
- */
+// The raw fraction is floored before the clamp; the reader and loop receive only plain numbers.
 export function computeKnowledgeBudgets(input: ComputeKnowledgeBudgetsInput): KnowledgeBudgets {
   const usableContext = input.contextWindow
     - input.reservedOutput
@@ -83,17 +77,14 @@ export function computeKnowledgeBudgets(input: ComputeKnowledgeBudgetsInput): Kn
   return { brief, searchResults, caution, readBody, recordCap: GLOBAL_RECORD_CAP }
 }
 
-/**
- * Provisional D-09 predicate pinned by Phase 380 research. Channel 2 is absent when the model
- * cannot call tools, is text-only, or has too little context; Channels 1 and 3 remain available.
- */
+// Channel 2 is absent when the model cannot call tools, is text-only or has too little context.
 export function memoryToolGate(capabilities: ModelCapabilities): boolean {
   return capabilities.toolCalling
     && capabilities.vision
     && capabilities.contextWindow >= MIN_MEMORY_TOOL_CONTEXT_WINDOW
 }
 
-/** Apply D-17's weak-model cap reduction through the exact D-09 gate predicate. */
+// Applies the weak-model cap reduction through the same gate predicate.
 export function scaledRecordCap(capabilities: ModelCapabilities): number {
   if (memoryToolGate(capabilities)) return GLOBAL_RECORD_CAP
   return Math.max(1, Math.floor(GLOBAL_RECORD_CAP * WEAK_MODEL_CAP_SCALE))

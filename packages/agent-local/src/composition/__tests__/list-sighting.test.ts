@@ -1,22 +1,4 @@
-// The list verbs are live D-01 sighting sites.
-//
-// D-01 names four places an entity gets its permanent address the first time something
-// surfaces it — a resolver hit, a card render, verdict authoring, and a LIST VERB. 387-01 wired
-// the first; this file proves the fourth. Nothing is stubbed: a real bundle is published to a
-// temp knowledge root, the real registry dispatches, and the addressing ledger is a real sqlite
-// file on disk.
-//
-// THE VACUITY TRAP THIS FILE IS BUILT AROUND. The obvious way to check that an address was
-// minted is to ask `entities.resolve` for it. That check cannot fail: `resolve` sights, and
-// sighting mints, so it would create the very row it went looking for and would pass identically
-// against a composition whose list verbs sighted nothing at all. Every mint assertion below
-// therefore opens the ledger DIRECTLY and reads it, and the ledger is opened only after the list
-// verb has run — so the row it finds can only have come from the verb.
-//
-// The counterfactual is asserted too, and it is what makes the positive case mean something: a
-// verb that surfaces NO entity mints nothing, and the ledger file does not even come into
-// existence. Without that half, "the ledger has a row" would be consistent with a composition
-// that minted on every call regardless of what it saw.
+// Mint checks open the ledger directly, because `entities.resolve` sights and so would mint.
 
 import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -50,11 +32,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { composeLocalAgent } from '../compose-local-agent.js'
 import type { LocalAgentHost } from '../compose-local-agent.js'
 
-/**
- * The composition's REQUIRED quarantine identity mint. Passthrough here: this
- * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
- * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
- */
+// Passthrough: this fixture already speaks canonical workspace-relative bytes.
 const MINT_IDENTITY = (filePath: string): string => filePath
 
 const PRODUCT = 'shop'
@@ -180,8 +158,7 @@ describe('a list verb sights every entity it surfaces', () => {
   it('mints (MEM, bundleId) when knowledge.bundles.list surfaces a never-seen bundle',
     async () => {
       const bundleId = seedBundle('Checkout', 5)
-      // The ledger is durable and D-01 says nothing touches it until an entity is SIGHTED.
-      // Composing the host and publishing a bundle are both such nothings.
+      // Nothing touches the ledger until an entity is sighted; composing and publishing sight none.
       expect(existsSync(join(agentQaRoot, ADDRESSING_LEDGER_DB_FILE))).toBe(false)
 
       await invokeFunction(host.registry, 'knowledge.bundles.list', {}, CALLER)
@@ -208,9 +185,7 @@ describe('a list verb sights every entity it surfaces', () => {
   })
 
   it('mints every bundle a listing surfaces, in first-mention order', async () => {
-    // Published out of alphabetical order so "first-mention order" is distinguishable from
-    // "publication order" — the listing is sorted by product then bundle id, so the ordinals
-    // must follow the LISTING, which is what D-01's "first mention" means for a batch.
+    // Published out of order: ordinals follow the listing (product, then bundle id).
     seedBundle('Zulu', 5)
     seedBundle('Alpha', 6)
 
@@ -280,15 +255,7 @@ describe('a list verb sights every entity it surfaces', () => {
     })
 
   it('never mints an address for a record id no source recognises', async () => {
-    // THE CORPUS CASE THIS TEST EXISTS FOR. A diff names records by id including ones whose
-    // bundle is GONE — a purge change — and that is the only input under which "the id was
-    // surfaced" and "a source recognises it" come apart. An earlier version of this case
-    // seeded one live bundle and asserted a made-up id was absent; a hook that minted every id
-    // it was handed passed it, because nothing in the input domain violated the claim. The
-    // purged record is what makes the assertion capable of failing.
-    //
-    // Minting here would put a permanent address on something no store can describe, and an
-    // address that resolves to nothing is exactly the dead link D-04 forbids.
+    // A purged bundle's id is surfaced but unknown to every source; minting it makes a dead link.
     const liveId = seedBundle('Checkout', 5)
     const doomedId = seedBundle('Doomed', 6)
 

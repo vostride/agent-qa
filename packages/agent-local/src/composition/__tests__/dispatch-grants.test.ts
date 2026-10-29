@@ -1,21 +1,4 @@
-// THE DISPATCH-SCOPED GRANT OVERLAY (Phase 401 plan 08 — D-08, RESEARCH Pitfall 6), RE-SPELLED AS
-// ITS ABSENCE.
-//
-// The overlay was an in-memory union placed in front of the committed grant ledger's reader: an
-// open authoring dispatch contributed one `run:start` grant to the run gate, scoped to the dispatch's
-// own async call tree. These cells measured its arithmetic — nothing at rest, the
-// grant inside the scope, nothing for an unrelated caller, read at answer time, overlapping scopes,
-// a continuation that outlived the scope, a thrown dispatch, the union with the ledger, one action
-// class, a scope API that names nothing — and the one seam that carried its reader to the run gate.
-//
-// 432-13 deleted the run gate and 432-18 deletes the ledger, its reader and the overlay
-// (`composition/dispatch-grants.ts`). Every arithmetic claim lost its subject. What is measured now:
-//
-//   - the module is gone and the agent-local barrel publishes no overlay,
-//   - the composition binds no overlay and no dispatch scope onto the authoring shelf,
-//   - `createLocalRunInvocation` hands its host the request and nothing else — no reader, no `gate`
-//     argument — whether or not anything is "open" (the carriage cells, re-spelled),
-//   - nothing durable is minted: no `grants.jsonl` appears.
+// The dispatch-scoped grant overlay is absent: no module, binding, reader or `grants.jsonl`.
 
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -71,8 +54,6 @@ describe('there is no dispatch-scoped grant overlay', () => {
     expect(exported.filter((name) => /dispatchgrant/i.test(name))).toEqual([])
   })
 
-  // RE-SPELLED 2026-10-01 from 'ONE OVERLAY PER COMPOSITION — the shelf and the run gate
-  // cannot be handed different objects': the composition now hands both of them nothing.
   it('NO OVERLAY PER COMPOSITION — the shelf binds no dispatch scope and the run door no reader', () => {
     const code = codeLines(COMPOSITION).join('\n')
     expect(code).not.toContain('createDispatchGrants(')
@@ -85,8 +66,6 @@ describe('there is no dispatch-scoped grant overlay', () => {
 })
 
 describe('the composition carries nothing to the run host but the request', () => {
-  // RE-SPELLED 2026-10-01 from "THE READER HANDED OVER IS THE OVERLAY'S, resolved per run":
-  // there is no reader to resolve, so each run hands the host exactly one argument, the request.
   it('THE HOST IS HANDED THE REQUEST AND NOTHING ELSE, run after run', async () => {
     const execution = recordingExecution()
     const invocation = createLocalRunInvocation({
@@ -103,8 +82,6 @@ describe('the composition carries nothing to the run host but the request', () =
     ])
   })
 
-  // RE-SPELLED 2026-10-01 from 'NO RESOLVER, NO FIELD — a composition that supplies none
-  // hands the host nothing': the binding no longer accepts a resolver at all.
   it('NO RESOLVER, NO FIELD — the binding takes no grant resolver, and a run mints nothing durable', async () => {
     const root = mkdtempSync(join(tmpdir(), 'dispatch-grants-absent-'))
     try {
@@ -112,7 +89,7 @@ describe('the composition carries nothing to the run host but the request', () =
       const input = {
         agentQaRoot: join(root, '.agent-qa'),
         execution: execution.port,
-        // A smuggled pre-432 field is ignored rather than carried.
+        // A smuggled legacy field is ignored rather than carried.
         ...({ resolveRunGrants: () => { throw new Error('a grant resolver was consulted') } } as object),
       } as Parameters<typeof createLocalRunInvocation>[0]
       await startIgnoringEvidence(() => createLocalRunInvocation(input).start({ patterns: ['tests/a.yaml'] }))

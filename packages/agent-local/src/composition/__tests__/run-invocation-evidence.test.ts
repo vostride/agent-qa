@@ -1,24 +1,4 @@
-// THE ANTI-FABRICATION PAIR, OVER THE CORE (Phase 401 plan 05 — RESEARCH Pitfall 5, T-401-13).
-//
-// `runs.start` is the one op whose answer names facts about the world: a run id, a scope, a build
-// ordinal, how many member tests were admitted. Two mechanisms make that answer worth reading, and
-// they were built against a wire that no longer exists — the host spawned `agent-qa run` and the
-// composition read the child's leavings back off disk. This phase replaced the spawn with an
-// in-process core. Both mechanisms survive UNCHANGED by decision, so this file is the regression
-// net that says so over the NEW wire:
-//
-//   `RunProducedNoEventsError` — the composition refuses a host that reports a run id without a
-//   run behind it. Its arm is a port that returns a plausible id and writes nothing.
-//
-//   `RunNotRecordedError` — the op refuses to build an acknowledgment when the completed-run
-//   record is missing. Its arm is a host that starts a run whose record never lands.
-//
-// THE TRIPWIRE, AND WHY IT IS THE POINT OF THIS FILE. The evidence check reads
-// `buildRunPorts({ configDir: dirname(agentQaRoot) })`. If the core wrote its events under any
-// other root, EVERY `runs.start` would raise `RunProducedNoEventsError` for a run that really
-// happened — and the tempting repair is to delete the check. So the positive cell reads through
-// that same construction rather than a path it composes, and the cell below it shows the check is
-// SENSITIVE to the root: the identical run, verified against a different root, is refused.
+// The evidence check reads `buildRunPorts` at the core's root; another root refuses the same run.
 
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -80,13 +60,7 @@ afterEach(() => {
   rmSync(projectDir, { recursive: true, force: true })
 })
 
-/**
- * A real one-member `RunConfig` whose executor is the only double.
- *
- * THE PORTS ARE THE CORE'S OWN, handed straight through. Substituting them here would leave the
- * persistence ROOTING — the thing Pitfall 5 is about — untested at exactly the seam that has to
- * hold, and this file's whole subject is that rooting.
- */
+// A real one-member `RunConfig` on the core's own ports; only the executor is a double.
 function assembleFixtureRun(
   context: RunAssemblyContext,
   stamped: { excludedFromOutcomes?: true } = {},
@@ -122,8 +96,7 @@ function coreExecution(
     // `run-invocation-core.test.ts` and in the cli door's `runs-start-gate.test.ts`.
     executionContext: 'ci',
     mintRunId,
-    // the injected shape predicate. This file's runs are minted by the core, so the
-    // predicate is never consulted; it is required, so it is supplied.
+    // Required but never consulted, because the core mints this file's run ids.
     isMintedRunId: (value: string): boolean => /^run_[a-z_]+$/.test(value),
     assembleRun: (context) => assembleFixtureRun(context, stamped),
   }) as RunExecutionPort
@@ -173,10 +146,7 @@ describe('the evidence pair holds over the in-process core', () => {
   })
 
   it('THE TRIPWIRE IS LIVE — the same run, verified against a DIFFERENT root, is refused', async () => {
-    // Pitfall 5 stated as a measurement rather than a warning. The run below really happens and
-    // really leaves a full record; the only thing changed is the root the composition verifies
-    // against. If a future edit moved the core's writes, THIS is the failure every `runs.start`
-    // would produce — and the reason to fix the root rather than delete the check.
+    // Only the verification root differs; a moved write root fails every `runs.start` this way.
     const elsewhere = join(projectDir, 'somewhere-else', '.agent-qa')
     const invocation = createLocalRunInvocation({
       agentQaRoot: elsewhere,
@@ -297,20 +267,7 @@ describe('the runs.start ack is read off the durable record, over the core', () 
   })
 })
 
-// ---------------------------------------------------------------------------------------------
-// THE RUNG THREAD, FROM THE COMPOSITION ROOT TO A STEP'S EVIDENCE.
-//
-// The banner 407-10 paints reads a value recorded by the run that was served. Nothing else can be
-// honest: a header that probed the host at render time would relabel a degraded run the moment
-// the machine was fixed. So the rung is resolved ONCE here — where the knowledge root and the
-// `.agent-qa` root are both known — and carried, never re-derived.
-//
-// The cells below pin the three joints that thread can come apart at, in order:
-//   1. the composition CALLS the one resolver, once, with both roots;
-//   2. `buildMemberRunConfig` carries the SAME promise object through (not a copy, not a re-await);
-//   3. a real member run, through the REAL loop, lands that rung on every step's evidence.
-// Joint 3 is what makes 1 and 2 more than plumbing assertions.
-// ---------------------------------------------------------------------------------------------
+// The rung resolves once at the composition root and reaches each step's evidence as one promise.
 
 const FIXTURE_RUNG: RecordedRetrievalRung = {
   schemaVersion: 2,
@@ -360,8 +317,7 @@ describe('the retrieval rung is resolved once at the composition root', () => {
       })
 
       await expect(composition.retrievalRung).resolves.toEqual(FIXTURE_RUNG)
-      // ONCE. A per-step probe would make the recorded value a fact about render time rather than
-      // about serve time, which is exactly the lie D-13 exists to prevent.
+      // Once: a per-step probe would record render time, not serve time.
       expect(calls).toHaveLength(1)
       expect(calls[0]).toEqual({
         knowledgeRoot,
@@ -415,7 +371,7 @@ describe('buildMemberRunConfig carries the rung promise through', () => {
   })
 })
 
-/** The minimum `buildMemberRunConfig` input — every slot this plan does not measure is a stub. */
+/** The minimum `buildMemberRunConfig` input — every slot this file does not measure is a stub. */
 function memberRunConfigFixtureInput(): Parameters<typeof buildMemberRunConfig>[0] {
   return {
     adapter: fixtureAdapter(),
@@ -480,7 +436,7 @@ describe('THE THREAD END TO END — a real member run stamps the composed rung',
             },
           }),
         } as never,
-        // every member run binds a verifier; this one accepts each step.
+        // Every member run binds a verifier; this one accepts each step.
         verifier: {
           verify: async (step, _before, after, action) => ({
             verification: metVerification({ step, after, action }),

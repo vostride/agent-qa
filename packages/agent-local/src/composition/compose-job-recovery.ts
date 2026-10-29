@@ -1,26 +1,4 @@
-// The recovery/resume composition entry (Phase 385 plan 06, D-11 layer 3).
-//
-// A host that adopts authority over the job queue has to do two things before it can pump: open the
-// durable store, and return every claim whose holder is gone. Doing that inline in each host is how
-// two hosts end up recovering differently — and one of them wrongly, because the ordering is not
-// obvious: `claimNext` never re-offers a row whose `claimed_at` is set, so a crashed job is stuck
-// rather than retryable until something releases it, and releasing it AFTER pumping would take a
-// job away from a handler still running it.
-//
-// What this file is FOR, though, is narrower than convenience. It is the named place the D-11 proof
-// points at: the resume path composes a store, a kind registry and the engine, and nothing else.
-// Every heavy first-party dependency the sibling composition legitimately names is absent here, and
-// so is the provider substrate — the capability a job authors with arrives already built, from the
-// host, as an ordinary argument. That is what makes "recovery cannot reach a model on its own" a
-// property of the import graph instead of a habit, and plan 07's named arch rule reads this file.
-//
-// Why the capability is REQUIRED rather than absent. Resuming is not the same as never authoring: a
-// host that died BEFORE its first checkpoint reached the store recorded nothing, and re-authoring
-// there is the correct behaviour rather than a violation — JOBQ-03 forbids re-invoking on a
-// RECORDED checkpoint, which the memoizing primitive makes impossible by control flow. An entry
-// that bound no capability at all would therefore be unable to finish exactly the jobs recovery
-// exists for, and the version of "model-free" it would buy is about the wrong thing: not that the
-// resume path never authors, but that this package never CONSTRUCTS the means to.
+// Release dead claims before pumping: `claimNext` never re-offers a row with `claimed_at` set.
 
 import { join } from 'node:path'
 

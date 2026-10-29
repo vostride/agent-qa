@@ -20,7 +20,6 @@ import { composeLocalAgent } from '../compose-local-agent.js'
 it.each([true, false])('projects real mark chat with active masking=%s and preserves canonical bytes', async active => {
   const root = mkdtempSync(join(tmpdir(), 'agent-qa-chat-mark-masking-'))
   const canary = 'T41916-canary-note-not-a-real-credential'
-  // the composition's explicit mask, declared or the identity.
   const declared = new SecretRedactor(SecretStore.fromEnvContent(`CANARY_441=${canary}\n`))
   const mask: MaskFn = active ? (text) => declared.redactString(text) : (text) => text
   const placeholder = '[secret:CANARY_441]'
@@ -49,7 +48,7 @@ it.each([true, false])('projects real mark chat with active masking=%s and prese
     model,
     feedback: { mark, marksFor: async () => [] },
     resolveExecutionContext: () => 'local-interactive',
-    // the input declares no confirm; the spy is smuggled past the type.
+    // The input type declares no `confirm`; the spy is smuggled past it.
     ...{ confirm: { surface: 'tty-prompt', ask: confirm } } as object,
     observeSessionEvent: (_sessionId, event) => { observed.push(event) },
   })
@@ -60,8 +59,6 @@ it.each([true, false])('projects real mark chat with active masking=%s and prese
     }) as AgentAskResult
     expect(result.status).toBe('completed')
     expect(mark).toHaveBeenCalledExactlyOnceWith(input)
-    // the mark is dispatched in the one call; a supplied old confirm port is never
-    // invoked.
     expect(confirm).not.toHaveBeenCalled()
     expect(model).not.toHaveBeenCalled()
     expect(JSON.stringify(canonical)).toBe(canonicalBytes)

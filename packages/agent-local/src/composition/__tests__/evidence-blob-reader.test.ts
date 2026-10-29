@@ -1,9 +1,4 @@
-// The evidence-blob reader's PRESENCE arm.
-//
-// `statEvidenceBlob` is `lookupEvidenceBlob` minus the bytes: the same three-way split, over the
-// same run-existence rule, so the two can never disagree about WHICH absence a ref is in. These
-// cells drive the split from the filesystem the store actually writes to rather than from a fake,
-// because the whole claim is about what is on disk.
+// `statEvidenceBlob` is `lookupEvidenceBlob` minus the bytes, driven from the real filesystem.
 import { mkdtemp, rm } from 'node:fs/promises'
 import { mkdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'

@@ -1,21 +1,4 @@
-// `knowledge.brief.why` answers about THEN.
-//
-// Nothing is stubbed on the answering path. Bundles are really published to a temp knowledge
-// root, the index is really rebuilt, the serving reader really assembles a brief and returns
-// the trace it was assembled with, the trace is really written into a handoff document on disk,
-// and the verb reads it back through the version guard.
-//
-// THE VACUITY THIS FILE IS BUILT AGAINST. "The answer is byte-identical after the index
-// changed" is trivially true if the index change did not change anything a fresh retrieval
-// would return — a test that mutated nothing would pass it. So Test 1 proves POTENCY first: it
-// re-serves after the mutation and asserts the fresh brief and trace DID change. Only then is
-// the why-verb's unchanged answer evidence of anything.
-//
-// AND THE SECOND ONE. "The absence path performs zero live-index reads" is vacuous if the path
-// never had a handle on an index to begin with. Test 2 reports which of the two it is by
-// establishing both halves: a poisoned knowledge port whose every method throws is bound into a
-// real registry, the verb answers, and the poison is never touched — and a control invocation
-// of a DIFFERENT verb through the same registry proves the poison would have fired if reached.
+// Each absence claim first proves potency: the index change alters a fresh brief, the poison fires.
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -58,16 +41,7 @@ const SCOPE: ScopeKey = { tier: 'product', key: PRODUCT }
 const RUN_ID = 'run-why-alpha'
 const TEST_ID = 't_checkout'
 
-/**
- * Small enough that the seven-record fixture does not fit, so the truncation ledger is
- * non-empty (measured: 6 served, 1 cut).
- *
- * That is not a detail: `truncated` is the ledger that answers "why didn't it mention X"
- * and a budget that admitted everything would leave Test 3 asserting over an empty
- * array — which passes for the wrong reason. The cases that depend on a cut candidate assert
- * the ledger is non-empty before using it, so a retune that silently admitted everything
- * fails loudly instead of passing vacuously.
- */
+// Small enough that the fixture does not fit, so the truncation ledger is non-empty.
 const SERVE_BUDGET = 400
 
 /**
@@ -82,8 +56,6 @@ const TRUNCATING_FIXTURE = [
   'Golf', 'Hotel', 'India', 'Juliett', 'Kilo', 'Lima',
 ] as const
 
-// no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither.
 const CALLER: FunctionCaller = {
   surface: 'cli',
   origin: 'agent',
@@ -140,13 +112,7 @@ function bundleInput(name: string, createdAtOrdinal: number): PublishBundleInput
   }
 }
 
-/**
- * A `ServedBrief` built from the block the reader actually assembled.
- *
- * Channels 2 and 3 are empty because this fixture serves only Channel 1; the handoff load
- * boundary checks `channel1` at object depth and the why-verb's offering check wants the three
- * §A11 channels plus a digest, and both are satisfied by the real block's own lines.
- */
+// Channels 2 and 3 are empty; the real block's lines satisfy the load and offering checks.
 function servedBriefFrom(block: BriefBlock): ServedBrief {
   return {
     scope: SCOPE,
@@ -245,8 +211,6 @@ describe('knowledge.brief.why answers from the persisted trace', () => {
           get: () => Promise.resolve(undefined),
         },
       },
-      // no `resolveExecutionContext` registry option; the registry reads
-      // no context.
     })
   }
 
@@ -370,7 +334,7 @@ describe('knowledge.brief.why answers from the persisted trace', () => {
       seedBundle('Alpha', 10)
       await rebuildIndex({ knowledgeRoot })
       const served = serve()
-      // A step with NO retrievalTrace: exactly a pre-387 run.
+      // A step with no `retrievalTrace`, as from a run that recorded none.
       writeHandoff(RUN_ID, [
         { testId: TEST_ID, steps: [{ stepIndex: 0, brief: served.brief }] },
       ])
@@ -534,8 +498,7 @@ describe('knowledge.brief.why answers from the persisted trace', () => {
 
   it('REFUSES an ambiguous address on a multi-test run rather than picking a test',
     async () => {
-      // `stepIndex` is numbered per member test, so this run has two step 0s. 387-02 left this
-      // as an explicit obligation: refuse, never pick the first.
+      // `stepIndex` numbers steps per member test, so this run has two step 0s and must refuse.
       seedBundle('Alpha', 10)
       seedBundle('Bravo', 10)
       await rebuildIndex({ knowledgeRoot })
