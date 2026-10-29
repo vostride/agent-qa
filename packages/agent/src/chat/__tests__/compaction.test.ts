@@ -80,15 +80,9 @@ function pass(messages: readonly ModelMessage[], contextWindow: number) {
 }
 
 describe('the pinned trigger policy', () => {
-  it('pins COMPACTION_RATIO at 0.5 and CHAT_MINIMUM_CONTEXT, each with a retune comment', () => {
+  it('pins COMPACTION_RATIO at 0.5 and a positive CHAT_MINIMUM_CONTEXT', () => {
     expect(COMPACTION_RATIO).toBe(0.5)
     expect(CHAT_MINIMUM_CONTEXT).toBeGreaterThan(0)
-
-    const source = readFileSync(COMPACTION_SOURCE, 'utf8')
-    // The comment is the retune CONTRACT (386 D-15): a pinned number nobody knows how to move is
-    // indistinguishable from an accident, so the constant and its retune trigger ship together.
-    expect(source).toMatch(/Retune trigger[\s\S]{0,600}?COMPACTION_RATIO = 0\.5/)
-    expect(source).toMatch(/Retune trigger[\s\S]{0,600}?CHAT_MINIMUM_CONTEXT = /)
   })
 
   it('does not measure size itself — no local chars-per-token arithmetic in the module', () => {

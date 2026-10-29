@@ -43,9 +43,7 @@ describe('the ceiling is a pinned rational, not a float', () => {
     expect(MARK_UNHANDLED_CEILING.num).toBeGreaterThanOrEqual(0)
   })
 
-  it('is the 1/5 the retune comment names', () => {
-    // The pin is quoted in SUMMARY files and in the retune comment; a silent change to it would
-    // make every previously recorded rate incomparable without saying so.
+  it('is one in five', () => {
     expect(MARK_UNHANDLED_CEILING).toEqual({ num: 1, den: 5 })
   })
 })

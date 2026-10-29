@@ -127,11 +127,6 @@ import type { ScenarioClass, ScenarioExpectationKind, ScenarioLane } from '@vost
  *      re-authored as a `fail_closed` absence cell ("re-spelled, never deleted"): the retired verb is
  *      an unroutable clause that refuses by name with zero executions. Both leave the hermetic
  *      `should_execute` denominator, taking it from 11 to 9; the live denominator is unmoved.
- *
- * DENOMINATORS AT THIS VERSION: 9 hermetic, 8 live. One canonical line, parsed by
- * `scenario-manifest.test.ts` and compared against the counts the list below actually has, so this
- * header cannot go on claiming numbers the corpus stopped having. Every other assertion in that
- * file reads the LIST, which is exactly why the header needed its own.
  */
 export const SCENARIO_CORPUS_VERSION = 10
 

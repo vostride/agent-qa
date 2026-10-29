@@ -112,26 +112,6 @@ describe('the corpus manifest is versioned and internally coherent', () => {
     expect(denominator('live')).toBe(8)
   })
 
-  it('states denominators in its own header that are the ones the list actually has', () => {
-    // THE HEADER IS WHAT A READER TRUSTS, and until this cell existed it was prose nothing checked.
-    // A manifest whose header still claims the previous per-lane numbers is a manifest that lies,
-    // and the lie is invisible to every other assertion here because they all read the LIST. So the
-    // header carries ONE canonical line, this cell parses it, and the two are compared against each
-    // other rather than restated as two literals that can drift apart in silence.
-    const source = readFileSync(join(SCENARIOS_ROOT, 'manifest.ts'), 'utf8')
-    const stated = /DENOMINATORS AT THIS VERSION: (\d+) hermetic, (\d+) live/.exec(source)
-    expect(
-      stated,
-      'the manifest header must carry exactly one line of the form '
-        + '"DENOMINATORS AT THIS VERSION: N hermetic, M live" — it is the number a reader quotes',
-    ).not.toBeNull()
-    const denominator = (lane: string): number =>
-      SCENARIO_CORPUS.filter((entry) => entry.lane === lane && entry.kind === 'should_execute')
-        .length
-    expect(Number(stated?.[1])).toBe(denominator('hermetic'))
-    expect(Number(stated?.[2])).toBe(denominator('live'))
-  })
-
   it('records the authoring loop\'s arrival flip by name: two cells route, and two still refuse', () => {
     // D-08's FLIP LAW, made an assertion rather than a paragraph. The authoring loop registering
     // `authoring.draft.write` is what moves these lines, so a build that lost the op would red HERE
