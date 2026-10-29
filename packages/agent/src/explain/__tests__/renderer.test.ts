@@ -1,4 +1,4 @@
-// The cite-and-resolve proofs (Phase 398 plan 04 — XPLN-02, D-10 / D-12; T-398-09, T-398-10).
+// The cite-and-resolve proofs.
 //
 // WHAT THIS FILE HAS TO PROVE is not that the renderer refuses a list of bad shapes — a guard that
 // can only refuse what it can NAME cannot be driven to zero by naming more things. It is anchored

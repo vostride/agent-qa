@@ -1,4 +1,4 @@
-// `runs.artifact` — the op's refusal vocabulary, its sniffer and its input contract (405-05, D-13).
+// `runs.artifact` — the op's refusal vocabulary, its sniffer and its input contract.
 //
 // WHAT THIS FILE MEASURES AND WHAT IT DELIBERATELY DOES NOT. The bytes' journey from the store
 // through the local door's headers is measured in `dashboard-server`'s adapter cell, over a real
@@ -67,7 +67,7 @@ describe('the op refuses BY NAME rather than answering about bytes it cannot see
 
   it('turns blob_absent into EvidenceBlobAbsentError carrying the run and the sha', async () => {
     // A DIFFERENT refusal from `unknown_run`, deliberately: "that run never existed" and "that run
-    // exists and holds no such blob" are different operator situations (D-15), and a page that
+    // exists and holds no such blob" are different operator situations, and a page that
     // could not tell them apart would render one grey error for two of them.
     const rejection = await runsArtifactSpec
       .invoke({ runId: RUN_ID, sha: SHA }, answering({ status: 'blob_absent' }))
@@ -182,7 +182,7 @@ describe('the spec is a member of this catalogue in good standing', () => {
     expect(runsArtifactSpec.id).toBe(RUNS_ARTIFACT_FUNCTION_ID)
     expect(runsArtifactSpec.id).toMatch(/^[a-z]+(?:\.[a-z]+)+$/)
     expect(runsArtifactSpec.risk.readOnly).toBe(true)
-    // RE-SPELLED 2026-10-01 (432-24, D-12) from `requiredScopes` equal to ['read']: the op
+    // RE-SPELLED 2026-10-01 from `requiredScopes` equal to ['read']: the op
     // declares no scope; read-only is the risk descriptor above.
     expect(runsArtifactSpec).not.toHaveProperty('requiredScopes')
     expect(runsArtifactSpec.resultKind).toBe('unary')

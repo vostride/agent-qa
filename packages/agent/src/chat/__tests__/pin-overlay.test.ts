@@ -1,6 +1,6 @@
-// C432-PIN-ABSENT: there is no session pin overlay (432-18, D-14/D-15).
+// there is no session pin overlay.
 //
-// RE-SPELLED 2026-10-01 (432-18). This file pinned the `/pin` holder's contract (Phase 392, D-21):
+// RE-SPELLED 2026-10-01. This file pinned the `/pin` holder's contract:
 // normalisation to the `fn:` spelling, the unknown-class refusal, the live gate predicate and the
 // tighten-only member set. 432-13 removed `/pin` from chat resolution together with the op gate it
 // tightened, and 432-18 deletes the holder (`agent/src/chat/pin-overlay.ts`), its schema predicate

@@ -1,16 +1,16 @@
 // Render-time pure clustering over resolved verdicts (Phase 389, D-13..D-16).
 //
-// Called inside the `analysis.get` op and nowhere else persistent (D-14): CLI, run page and
+// Called inside the `analysis.get` op and nowhere else persistent: CLI, run page and
 // chat get byte-identical clusters because there is nothing here to go stale — no store, no
 // port, no cache. Groups key on the ONE exported fingerprint vocabulary (`failureFingerprint`,
 // D-13) over the ONE exported input rule (`failingStepOf`/`errorTextOf`, hoisted into schema by
 // 390 plan 02), so 390's recurrence window and this presentation cannot disagree about what "the
 // same failure" means — not by convention, but because there is a single spelling of each.
 //
-// D-16 — clusters mint NO identity. A cluster carries the fingerprint VALUE, its
+// clusters mint NO identity. A cluster carries the fingerprint VALUE, its
 // occurrence count and member refs, and nothing else:
 // a cluster or verdict has no short-ID and no `agentqa://` address.
-// 2026-09-02 (Phase 410): the sixth entity kind left with the Issue-slot cleanup.
+// the sixth entity kind left with the Issue-slot cleanup.
 
 import {
   errorTextOf,
@@ -26,7 +26,7 @@ export interface AnalysisClusterMember {
   testId: string
 }
 
-/** Fingerprint value, count, member refs, representative ref — the whole DTO (D-16). */
+/** Fingerprint value, count, member refs, representative ref — the whole DTO. */
 export interface AnalysisCluster {
   fingerprint: string
   count: number
@@ -41,7 +41,7 @@ interface GroupedMember extends AnalysisClusterMember {
 }
 
 /**
- * Group resolved verdicts by failure fingerprint (D-14) — a total, deterministic pure
+ * Group resolved verdicts by failure fingerprint — a total, deterministic pure
  * function. Identical fingerprints merge; the same anchor under two classes stays two
  * clusters (the recipe's `::class` suffix). Output order: occurrence count descending,
  * then fingerprint lexicographic byte order; members by testIndex ascending. Empty input

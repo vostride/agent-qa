@@ -3,9 +3,9 @@
 // The claim under test is that caller differences are DATA, never control flow: two callers
 // hit ONE registry instance and ONE dispatch path. Until 432-20 every difference in what
 // happened to them was explained by four permission-shaped fields on their records —
-// `grantedScopes`, `safeMode`, `credential` and (391 D-06) `origin`.
+// `grantedScopes`, `safeMode`, `credential` and `origin`.
 //
-// 2026-10-01 (432-20, D-10/D-12): EVERY DOOR CAN CALL EVERY OPERATION. The scope check, the
+// EVERY DOOR CAN CALL EVERY OPERATION. The scope check, the
 // human-origin check and the safe-mode listing filter are deleted, so the same four fields now
 // explain NOTHING: two records that differ in all of them list the same catalogue and reach the
 // same outcome for every op — success, or the ordinary input/binding refusal. `origin` and
@@ -21,11 +21,11 @@
 //   2. The registry is a single module-scope instance, shared by every caller in the file.
 //      "One shared path" is therefore structural here, not a claim in a comment.
 //
-// 2026-09-30 (432-13, D-14/D-15): there is no op gate. What a caller is refused for is decided by
+// there is no op gate. What a caller is refused for is decided by
 // the input contract, the scope and origin checks and the binding check; nothing else is asked and
 // no decision row is written. The credential axis below is re-spelled accordingly.
 //
-// 2026-10-02 (432-39, D-02/D-10/D-12): `grantedScopes`, `safeMode` and `credential` are deleted from
+// `grantedScopes`, `safeMode` and `credential` are deleted from
 // `FunctionCaller`, with the scope and trust-credential types. The records below still carry them,
 // SMUGGLED past the type with a cast, because that is the only way the premise stays non-vacuous:
 // two records that differ in fields nobody reads must still differ. A record that never carried them
@@ -54,7 +54,7 @@ import {
 import { createFunctionRegistry, createRegistryFromSpecs } from '../functions/registry.js'
 import type { FunctionDeps, FunctionSpec } from '../functions/spec.js'
 
-// 432-20: no execution context is supplied anywhere in this file. The registry's context option is
+// no execution context is supplied anywhere in this file. The registry's context option is
 // retired and unread, so a context could not change any outcome measured here.
 
 const CREDENTIAL = { scope: { project: 'shop' } }
@@ -150,7 +150,7 @@ const DEPS: FunctionDeps = {
   },
 }
 
-// 2026-10-15 (441-28, D-15): the registry takes no audit sink, so no cell drains audit rows.
+// the registry takes no audit sink, so no cell drains audit rows.
 
 /**
  * ONE registry instance, built over the REAL built-in capability set and shared by every
@@ -163,44 +163,44 @@ const REGISTRY = createFunctionRegistry({
 
 /** The shipped capability set, as both callers' listings are measured against it. */
 const ALL_FUNCTION_IDS = [
-  // 392 D-24: the chat turn entry, first in SORT position (`agent.` precedes `analysis.`). It is
+  // the chat turn entry, first in SORT position (`agent.` precedes `analysis.`). It is
   // READ-tier and therefore survives safe-mode filtering, and that is a deliberate reading of what
   // safe mode is: the listing filter is cosmetic, so hiding the turn entry would hide the door
   // without closing it while every clause a turn runs stays gated server-side on its own scopes.
   'agent.ask',
-  // 398 D-09: the `agent.` domain's second member, in SORT position (`agent.explain` follows
+  // the `agent.` domain's second member, in SORT position (`agent.explain` follows
   // `agent.ask`). READ-tier, so it survives safe-mode filtering — deliberately, because a person
   // who has locked the agent down to reads is exactly the person most likely to ask what is left.
   'agent.explain',
-  // 389 D-11: read-tier, so it survives safe-mode filtering like its analysis-domain-first
+  // read-tier, so it survives safe-mode filtering like its analysis-domain-first
   // siblings never had to — the non-read drop-out set stays exactly `runs.start` plus the
   // four knowledge-write verbs.
   'analysis.get',
-  // 393 D-01: one more id in SORT position (`authoring.` falls between `analysis.` and `config.`).
+  // one more id in SORT position (`authoring.` falls between `analysis.` and `config.`).
   // It declares `run` AND `read`, so it is NON-read and drops out of safe-mode filtering with
   // `runs.start` and the write verbs — the derived drop-out set below grows by one and the filter
   // assertion keeps testing the RULE rather than a frozen list.
-  // 394-09 D-21: in SORT position BEFORE both its siblings (`edit` precedes `verify` precedes
+  // in SORT position BEFORE both its siblings (`edit` precedes `verify` precedes
   // `write`), not appended — this list is compared against the registry's lexicographic listing, so
   // an appended id would fail on ORDER while every member was present. It declares `test-write`
   // AND `read`, so it is non-read and joins the derived drop-out set; nothing below is edited,
   // which is what keeps the filter assertion a claim about the RULE rather than a frozen list.
   'authoring.draft.edit',
   'authoring.draft.verify',
-  // 394 D-01: in SORT position beside its sibling (`verify` precedes `write`), not appended —
+  // in SORT position beside its sibling (`verify` precedes `write`), not appended —
   // this list is compared against the registry's lexicographic listing, so an appended id would
   // fail on ORDER while every member was present. It declares `test-write`, `run` AND `read`, so
   // it is non-read and joins the derived drop-out set; nothing below is edited, which is what
   // keeps the filter assertion a claim about the RULE rather than about a frozen list.
   'authoring.draft.write',
-  // 394-07 D-12: in SORT position after both `authoring.draft.*` ids (`draft` precedes `funnel`)
+  // in SORT position after both `authoring.draft.*` ids (`draft` precedes `funnel`)
   // and before `config.` — this list is compared against the registry's lexicographic listing, so
   // an appended id would fail on ORDER while every member was present. It declares `read` ALONE,
   // so unlike its two authoring siblings it SURVIVES safe-mode filtering and the derived
   // drop-out set below is unchanged — which is what keeps the filter assertion a claim about the
   // RULE rather than about a frozen list.
   'authoring.funnel.get',
-  // 395 D-01/D-03: in SORT position — `config.field.set` and `config.proposal.apply` fall on
+  // in SORT position — `config.field.set` and `config.proposal.apply` fall on
   // either side of `config.get` lexicographically (`field` < `get` < `proposal`), and this list is
   // compared against the registry's lexicographic listing, so an appended pair would fail on ORDER
   // while every member was present. Both declare `config-write` and NOT `read`, so both DROP OUT
@@ -210,47 +210,46 @@ const ALL_FUNCTION_IDS = [
   'config.field.set',
   'config.get',
   'config.hook.add',
-  // 395-08 D-13: one more id in SORT position. It declares `config-write` and NOT `read`, so it
+  // one more id in SORT position. It declares `config-write` and NOT `read`, so it
   // joins the derived drop-out set with its siblings and the filter assertion stays a claim
   // about the RULE rather than about a list.
   'config.project.scaffold',
-  // 2026-10-01 (432-17, D-05/D-09): `config.proposal.apply` and `config.undo.propose` are deleted.
-  // 395-05 D-01: two more ids in SORT position — `target` follows `proposal` lexicographically, and
+  // `config.proposal.apply` and `config.undo.propose` are deleted.
+  // two more ids in SORT position — `target` follows `proposal` lexicographically, and
   // this list is compared against the registry's lexicographic listing, so a misplaced pair would
   // fail on ORDER while every member was present. Both declare `config-write` and NOT `read`, so
   // both join the derived drop-out set and the filter assertion stays a claim about the RULE.
   'config.target.create',
   'config.target.edit',
-  // 428 D-07: in SORT position (`editor.` falls between `config.` and `entities.`). Read-tier like
+  // in SORT position (`editor.` falls between `config.` and `entities.`). Read-tier like
   // runs.liveurl, so it survives safe-mode filtering and the derived non-read set is unchanged.
   'editor.liveurl',
-  // 387 D-09: both read-tier, so both survive safe-mode filtering — which is what makes the
+  // both read-tier, so both survive safe-mode filtering — which is what makes the
   // filter assertion below sharper rather than merely longer. `runs.start` is still the only
   // id that drops out, and it now drops out of a set two entries larger.
   'entities.get',
   'entities.resolve',
   // 391 PROP-01 / D-03 added `grants.list` and `grants.revoke` here; 432-18 deletes both ops.
-  // 387 KREV-01/KREV-02: four more read-tier ids, so they too survive safe-mode filtering and
+  // four more read-tier ids, so they too survive safe-mode filtering and
   // the filter assertion below sharpens rather than merely lengthens — 'runs.start' is still
   // the one id that drops out, now out of a set six entries larger than 384 shipped.
-  // 387-08 KREV-01: the mutating half is knowledge-write-tier, so unlike its read siblings it
+  // the mutating half is knowledge-write-tier, so unlike its read siblings it
   // does NOT survive safe-mode filtering — which is what turns the assertion below from "one id
   // drops out" into "exactly the non-read ids drop out", a claim about the RULE rather than
   // about `runs.start`.
-  // 2026-09-30, 432-12 (D-05): the three changes lose `.propose` and keep their sort positions.
+  // the three changes lose `.propose` and keep their sort positions.
   'knowledge.accept',
   'knowledge.brief.why',
   'knowledge.bundles.list',
   'knowledge.forget',
-  // 416 D-17: gate history is read-tier and remains visible in both caller listings.
+  // gate history is read-tier and remains visible in both caller listings.
   'knowledge.gates.list',
-  // 2026-10-01 (432-17, D-05): `knowledge.proposal.apply` is deleted with the inbox.
   'knowledge.record.show',
   'knowledge.records.diff',
   'knowledge.records.inspect',
   'knowledge.reject',
-  // 2026-10-01 (432-17, D-05): the four `proposals.` ids (391 PROP-03) are deleted with the inbox.
-  // 390 D-12/D-13: three more ids, and they land in SORT position rather than appended —
+  // the four `proposals.` ids are deleted with the inbox.
+  // three more ids, and they land in SORT position rather than appended —
   // this list is compared against the registry's lexicographic listing, so an appended id
   // would fail on order while every member was present. `quarantine.list` is read-tier and
   // survives safe-mode filtering; `release` and `add` are knowledge-write-tier and drop out
@@ -259,15 +258,15 @@ const ALL_FUNCTION_IDS = [
   'quarantine.add',
   'quarantine.list',
   'quarantine.release',
-  // 391 D-16: the per-run digest, in SORT position ahead of its `runs.` siblings. Read-tier, so
+  // the per-run digest, in SORT position ahead of its `runs.` siblings. Read-tier, so
   // it survives safe-mode filtering and the derived non-read set below is unchanged — which is
   // what keeps the filter assertion a test of the RULE rather than of a frozen list.
-  // 405-01 D-03: in SORT position BEFORE `runs.digest` (`detail` precedes `digest`), not
+  // in SORT position BEFORE `runs.digest` (`detail` precedes `digest`), not
   // appended — this list is compared against the registry's lexicographic listing, so an appended
   // id would fail on ORDER while every member was present. It declares `read` ALONE, so it
   // survives safe-mode filtering and the derived drop-out set below is unchanged, which is what
   // keeps the filter assertion a claim about the RULE rather than about a frozen list.
-  // 405-05 D-12/D-13: in SORT position BEFORE `runs.detail` (`artifact` precedes `detail`), not
+  // in SORT position BEFORE `runs.detail` (`artifact` precedes `detail`), not
   // appended — this list is compared against the registry's lexicographic listing, so an appended
   // id would fail on ORDER while every member was present. Read-tier like its `runs.` siblings, so
   // the derived non-read drop-out set below is unchanged.
@@ -277,26 +276,26 @@ const ALL_FUNCTION_IDS = [
   'runs.events',
   'runs.evidence',
   'runs.get',
-  // 407-01 D-05: in SORT position between `runs.get` and `runs.list`, not appended — this list is
+  // in SORT position between `runs.get` and `runs.list`, not appended — this list is
   // compared against the registry's lexicographic listing, so an appended id would fail on ORDER
   // while every member was present. Read-tier like its `runs.` siblings, so the derived non-read
   // drop-out set below is unchanged, which keeps the filter assertion a claim about the RULE.
   'runs.knowledge',
   'runs.list',
-  // 403-01 D-03: read-tier like its `runs.` siblings — minting a VIEW-scoped, short-lived link is
+  // read-tier like its `runs.` siblings — minting a VIEW-scoped, short-lived link is
   // a read of a run's live state, not a mutation of it — so it survives safe-mode filtering and
   // the derived non-read set below is unchanged, which is what keeps the filter assertion a test
   // of the RULE rather than of a frozen list.
   'runs.liveurl',
-  // 419 GATE3-01: shared mutation; safe-mode listing excludes it by declared scope.
+  // shared mutation; safe-mode listing excludes it by declared scope.
   'runs.mark',
-  // 423 D-16: read-tier preview of the mark above, so safe-mode listing keeps it.
+  // read-tier preview of the mark above, so safe-mode listing keeps it.
   'runs.mark.preview',
-  // 423 D-19: read-tier, so it survives safe-mode filtering beside its runs. siblings.
+  // read-tier, so it survives safe-mode filtering beside its runs. siblings.
   'runs.marks.history',
-  // 431 D-06: read-tier, in SORT position between `runs.marks.history` and `runs.postprocessing`.
+  // read-tier, in SORT position between `runs.marks.history` and `runs.postprocessing`.
   'runs.overview',
-  // 388 D-14: read-tier like its `runs.` siblings, so it too survives safe-mode filtering and
+  // read-tier like its `runs.` siblings, so it too survives safe-mode filtering and
   // the filter assertion below sharpens rather than merely lengthens — `runs.start` plus the
   // four knowledge-write verbs are still exactly the ids that drop out.
   'runs.postprocessing',
@@ -350,8 +349,8 @@ describe('one shared path: the same op, the same dispatch, for both callers', ()
   })
 })
 
-// RE-SPELLED 2026-10-01 (432-20, D-12) from 'safe mode filters the listing and enforces nothing
-// (FUNC-03)'. The listing filter is deleted with the scopes; the claim that survives is that a
+// RE-SPELLED 2026-10-01 from 'safe mode filters the listing and enforces nothing
+// '. The listing filter is deleted with the scopes; the claim that survives is that a
 // caller record decides neither what is listed nor what is served.
 describe('no caller field filters the listing or the dispatch', () => {
   it('lists every capability for A and for B — the same list, with no permission keys', () => {
@@ -361,7 +360,7 @@ describe('no caller field filters the listing or the dispatch', () => {
       .toEqual([...ALL_FUNCTION_IDS])
     expect(REGISTRY.list(CALLER_B)).toEqual(REGISTRY.list(CALLER_A))
 
-    // A's listing carries runs.start as UNBOUND, never as absent (D-09), and no declaration
+    // A's listing carries runs.start as UNBOUND, never as absent, and no declaration
     // carries a scope or an origin requirement.
     const runsStart = REGISTRY.list(CALLER_A).find((declaration) => declaration.id === 'runs.start')
     expect(runsStart).toMatchObject({ bindingStatus: 'unbound' })
@@ -387,7 +386,7 @@ describe('no caller field filters the listing or the dispatch', () => {
       .rejects.toBeInstanceOf(FunctionNotBoundError)
   })
 
-  // RE-SPELLED 2026-10-01 (432-20, D-12) from 'refuses B server-side for the scope it lacks — the
+  // RE-SPELLED 2026-10-01 from 'refuses B server-side for the scope it lacks — the
   // hidden op is still enforced'. Nothing is hidden and no scope is checked: B reaches the same
   // binding check A does.
   it('serves B exactly as A — the formerly hidden op reaches its binding check', async () => {
@@ -397,7 +396,7 @@ describe('no caller field filters the listing or the dispatch', () => {
     await expect(refusal).rejects.not.toHaveProperty('missingScopes')
   })
 
-  // RE-SPELLED 2026-10-01 (432-20, D-12) from 'gives A and B DIFFERENT refusals for the same id,
+  // RE-SPELLED 2026-10-01 from 'gives A and B DIFFERENT refusals for the same id,
   // explained by grants alone'.
   it('gives A and B the SAME refusal for the same id — grants explain nothing', async () => {
     await expect(invokeFunction(REGISTRY, 'runs.start', {}, CALLER_A))
@@ -407,7 +406,7 @@ describe('no caller field filters the listing or the dispatch', () => {
   })
 })
 
-// RE-SPELLED 2026-10-01 (432-20, D-12) from 'a claimed scope is not a held scope (SC3 / T-384-13)'.
+// RE-SPELLED 2026-10-01 from 'a claimed scope is not a held scope (SC3 / T-384-13)'.
 // No scope is held or checked any more; what survives is that the strict input contract is still
 // the only thing a payload meets, so a payload can claim nothing.
 describe('a payload can claim nothing, and a record grants nothing', () => {
@@ -436,7 +435,7 @@ describe('a payload can claim nothing, and a record grants nothing', () => {
     }
   })
 
-  // RE-SPELLED 2026-10-01 (432-20, D-12) from 'reads the composition-minted grants and nothing
+  // RE-SPELLED 2026-10-01 from 'reads the composition-minted grants and nothing
   // else'. The counterfactual now shows the grants are not read: adding the missing grant moves
   // nothing.
   it('reads no grant: adding the missing one moves no outcome', async () => {
@@ -463,7 +462,7 @@ const credentialProbeSpec: FunctionSpec<Record<string, never>, { ok: true }> = {
     name: 'fn:synthetic.probe',
     recognized: true,
   },
-  // 399.1-04: `classify` is a REQUIRED member now. A synthetic op's fold is the smallest honest
+  // `classify` is a REQUIRED member now. A synthetic op's fold is the smallest honest
   // one — the shape has a single arm, so there is nothing to discriminate.
   classify: () => ({ status: 'executed' as const, outcome: '' }),
   invoke: () => Promise.resolve({ ok: true as const }),
@@ -487,7 +486,7 @@ describe('the credential flows to the gate untouched', () => {
     expect(field(CALLER_A, 'credential')).toEqual({ scope: { project: 'shop' } })
   })
 
-  // RE-SPELLED 2026-10-01 (432-19, D-15) from 'is decisive at the gate once an action scope exists
+  // RE-SPELLED 2026-10-01 from 'is decisive at the gate once an action scope exists
   // — the 384 boundary, stated'. That counterfactual drove the gate's `evaluate` with an action
   // scope to show the credential could flip a verdict there. The gate and its scope check are
   // deleted, so there is no layer at which the credential can be decisive: the case above is no
@@ -504,7 +503,7 @@ describe('the credential flows to the gate untouched', () => {
 })
 
 /**
- * The origin axis (391 D-06).
+ * The origin axis.
  *
  * Two fixtures that are IDENTICAL but for the declaration, because that is the only way the
  * "unaffected" leg means anything: an op with no declaration invoked by an agent-origin caller
@@ -512,7 +511,7 @@ describe('the credential flows to the gate untouched', () => {
  * Both are read-tier and inside the `read` scope every caller here holds, so neither the gate
  * nor the scope check can be what separates them.
  */
-// 2026-10-02 (432-39, D-10): `requiresHumanOrigin` is deleted from the metadata type, so the
+// `requiresHumanOrigin` is deleted from the metadata type, so the
 // declaration is smuggled past it with a cast; the cells below still prove nothing reads it.
 const humanOnlySpec = {
   id: 'synthetic.human-only',
@@ -522,7 +521,7 @@ const humanOnlySpec = {
   input: z.object({}).strict(),
   output: z.object({ ok: z.literal(true) }).strict(),
   risk: { name: 'fn:synthetic.human-only', recognized: true, readOnly: true },
-  // 399.1-04: `classify` is a REQUIRED member now. A synthetic op's fold is the smallest honest
+  // `classify` is a REQUIRED member now. A synthetic op's fold is the smallest honest
   // one — the shape has a single arm, so there is nothing to discriminate.
   classify: () => ({ status: 'executed' as const, outcome: '' }),
   invoke: () => Promise.resolve({ ok: true as const }),
@@ -536,14 +535,14 @@ const anyOriginSpec: FunctionSpec<Record<string, never>, { ok: true }> = {
   input: z.object({}).strict(),
   output: z.object({ ok: z.literal(true) }).strict(),
   risk: { name: 'fn:synthetic.any-origin', recognized: true, readOnly: true },
-  // 399.1-04: `classify` is a REQUIRED member now. A synthetic op's fold is the smallest honest
+  // `classify` is a REQUIRED member now. A synthetic op's fold is the smallest honest
   // one — the shape has a single arm, so there is nothing to discriminate.
   classify: () => ({ status: 'executed' as const, outcome: '' }),
   invoke: () => Promise.resolve({ ok: true as const }),
 }
 
-// RE-SPELLED 2026-10-01 (432-20, D-10/D-12) from 'a declared human-origin requirement is enforced
-// uniformly (391 D-06)'. The check and its refusal class are deleted; a spec that still declares
+// RE-SPELLED 2026-10-01 from 'a declared human-origin requirement is enforced
+// uniformly'. The check and its refusal class are deleted; a spec that still declares
 // the key (smuggled past the type since 432-39 deleted it) is served to an agent-origin caller
 // exactly as to a person.
 describe('a declared human-origin requirement is read by nothing', () => {
@@ -628,7 +627,7 @@ describe('a declared human-origin requirement is read by nothing', () => {
   })
 })
 
-// ---- 432-20 (D-10/D-12): the whole registry, for callers differing only in presentation ---------
+// ---- 432-20: the whole registry, for callers differing only in presentation ---------
 
 /** A deps record whose every port method counts its calls, so "zero effects" is measured. */
 function countingDeps(): { readonly deps: FunctionDeps; readonly calls: () => number } {

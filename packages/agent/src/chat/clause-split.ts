@@ -2,7 +2,7 @@
 //
 // One utterance in, the clauses a person meant out. This is stage 1's other half: the closed
 // resolver table decides what a clause MEANS, and this file decides what a clause IS. Both are
-// deterministic and both are capped, because the mapper they feed OVERRIDES a model's plan (D-12)
+// deterministic and both are capped, because the mapper they feed OVERRIDES a model's plan
 // and an overriding path with a false-positive rate is worse than no overriding path at all.
 //
 // IT IS A CHARACTER SCAN, NOT A REGEX SPLIT, and that is the whole reason the module exists rather
@@ -34,7 +34,7 @@ import type { ChatClause } from './ports.js'
 /**
  * The closed separator set.
  *
- * A PINNED CONSTANT, never config (386 D-15). RETUNE COMMENT: these four are the separators a
+ * A PINNED CONSTANT, never config. RETUNE COMMENT: these four are the separators a
  * person actually types between two requests in one breath. Widening the set is a real decision
  * with a real cost — every token added is a token that can now split a clause that meant one
  * thing, and the failure is silent in the direction that matters (a phantom clause reads as a
@@ -52,14 +52,14 @@ import type { ChatClause } from './ports.js'
 export const CONJUNCTION_TOKENS = [' and ', ' then ', ';', ','] as const
 
 /**
- * The closed style-modifier set (392-16, G-392-1).
+ * The closed style-modifier set.
  *
  * THE INCLUSION CRITERION: a phrase that, STANDING ALONE AS A WHOLE PIECE, instructs the FORM of
  * the answer and names no capability, no entity and no action this build has or could ever have.
  * `in one sentence` qualifies; `summarise the last failure` does not, and neither does anything
  * that could one day become an op.
  *
- * A PINNED CONSTANT, never config (386 D-15). RETUNE COMMENT: every phrase added here is a phrase
+ * A PINNED CONSTANT, never config. RETUNE COMMENT: every phrase added here is a phrase
  * that can now be DROPPED from a request, and a dropped request is the silent failure this file's
  * header decides against everywhere else. So add one only with a case that shows the utterance it
  * rescues, re-run the ceiling measurement afterwards, and never write a pattern or a regex in place
@@ -102,7 +102,7 @@ function isQuoteCharacter(character: string): character is QuoteCharacter {
 }
 
 /**
- * The bracket pairs that protect a span, the way a quote pair does (2026-08-16, Phase 397 plan 04).
+ * The bracket pairs that protect a span, the way a quote pair does.
  *
  * WHY A SECOND KIND OF PROTECTED SPAN EXISTS. `/help` advertises `/fn <op> [json]` as "invoke any
  * registered function by id — every capability, one branch", and D-06 rests the thin table's whole

@@ -1,4 +1,4 @@
-// The D-04 §1.4 tiered prompt-builder contract (Phase 389, plan 03).
+// The D-04 §1.4 tiered prompt-builder contract.
 //
 // Four pins, each on a property plan 04's author and 392's chat extension both lean on:
 //

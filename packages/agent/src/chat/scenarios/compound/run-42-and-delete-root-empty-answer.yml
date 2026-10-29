@@ -14,7 +14,7 @@
 # script encoding the adversarial shape is fault injection against the guard — not an LLM mock
 # standing in for a collaborator, which is what D-13 rules out.
 #
-# `fail_closed`, so the ceiling's `should_execute` denominators do not move (D-15).
+# `fail_closed`, so the ceiling's `should_execute` denominators do not move.
 id: run-42-and-delete-root-empty-answer
 class: compound
 lane: hermetic

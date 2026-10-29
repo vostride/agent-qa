@@ -1,11 +1,11 @@
-// The ONE deterministic sentence renderer (Phase 389, D-05/D-06/D-08).
+// The ONE deterministic sentence renderer.
 //
 // Four claims, each an obligation the composed sentence carries: the verbatim grounding
 // quote with its step ref, the discriminator, the recurrence clause (a LIVE join through
 // the provider seam — never a stored number), and the recommended next action with its
 // `agentqa://` links. The renderer is producer-keyed by CONSTRUCTION: it composes typed
 // parts identically whoever authored them, which is what lets plan 04's LLM parts and the
-// deterministic template parts flow through one rule (D-06) — and what makes SC3's
+// deterministic template parts flow through one rule — and what makes SC3's
 // "no second code path" structural when plan 07's CLI print imports this same symbol.
 
 import type {
@@ -260,7 +260,7 @@ describe('the flake ladder arms', () => {
   })
 
   it('shows a hand-edited unparseable deadline VERBATIM rather than inventing one', () => {
-    // The ledger is committed text a human may edit (D-12); the fold treats an unparseable
+    // The ledger is committed text a human may edit; the fold treats an unparseable
     // deadline as lapsed, and the clause quotes what the file actually says.
     expect(renderWith({
       kth: 3,

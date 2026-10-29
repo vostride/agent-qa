@@ -1,4 +1,4 @@
-// Catalog-row fixtures for the explain unit proofs (Phase 398 plan 04).
+// Catalog-row fixtures for the explain unit proofs.
 //
 // EVERY FIXTURE GOES THROUGH `CatalogRowSchema.parse`. `packages/agent` is storageNeutral and
 // cannot read the committed artifact, so the produced-not-literal law cannot be honoured here in
@@ -27,7 +27,7 @@ export const OP_RUNS_START: CatalogRow = row({
   mcpTool: 'agent_qa_start_run',
   docPath: 'README.md',
   docAnchor: 'CLI',
-  // 398-08: the column the producer derives from `params`. Spelled here to match what that
+  // the column the producer derives from `params`. Spelled here to match what that
   // derivation answers for the schema above — a required string becomes its own name in angle
   // brackets — because this file's contract is that a fixture is something the producer could
   // actually emit, and a row parsed without the column is a row nothing produces.
@@ -44,7 +44,7 @@ export const OP_RUNS_LIST: CatalogRow = row({
   docPath: null,
   docAbsentReason: 'D-07 (dated 2026-08-17): no canonical doc ships for this capability yet.',
   // No required property, so the honest example is the empty call — which is a real call, not an
-  // absence. The null arm means the derivation REFUSED (398-08).
+  // absence. The null arm means the derivation REFUSED.
   exampleCall: { arguments: {} },
 })
 

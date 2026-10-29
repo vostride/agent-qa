@@ -135,7 +135,7 @@ export function repairSession(
   }
 }
 
-/** One line of rebuilt conversation. Refs and one-liners only — never a payload body (D-18). */
+/** One line of rebuilt conversation. Refs and one-liners only — never a payload body. */
 export interface ChatReplayMessage {
   readonly role: 'user' | 'assistant'
   readonly text: string

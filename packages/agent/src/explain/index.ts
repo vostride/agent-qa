@@ -1,4 +1,4 @@
-// `explain`'s deterministic core (Phase 398 plan 04 — XPLN-02, D-10 / D-11 / D-12).
+// `explain`'s deterministic core.
 //
 // A LOCAL barrel, deliberately not the package barrel. `packages/agent/src/index.ts` is pinned by
 // the arch export assertion and is the surface a host may reach; the op that plan 07 registers is

@@ -1,14 +1,14 @@
-// The agent job queue's store port (Phase 385, D-05 / D-06 / D-07).
+// The agent job queue's store port.
 //
 // This port is deliberately NOT generic CRUD. `PersistencePort`'s `saveJob`/`getJob` shape
 // let a caller express any interleaving it liked and left atomicity to review; here every
 // verb is ONE store transaction with a name for what it means, so a wrong interleaving is
 // not a bug the reviewer has to catch — it is a sentence the type surface cannot form
-// (D-05). The engine keeps policy (what may chain, how many attempts); the store keeps
+// The engine keeps policy (what may chain, how many attempts); the store keeps
 // atomicity. Every verb is promise-returning so a store may be asynchronous, even though
 // the phase-385 implementation happens to be synchronous underneath.
 //
-// FENCING (D-07). Every DRAIN-side verb — the ones only the process currently entitled to
+// FENCING. Every DRAIN-side verb — the ones only the process currently entitled to
 // drain the queue may call — takes a `JobStoreFence` and the store re-reads the recorded
 // epoch INSIDE the same transaction before mutating. The fence is present from birth rather
 // than added when the second writer arrives in 386, because retrofitting it onto a live
@@ -18,7 +18,7 @@
 // an oversight: D-02 says any process may enqueue directly against the database, so an
 // enqueue fence would be a token no enqueuer could hold. Enqueue needs no authority because
 // it arbitrates on data instead — the `(kind, idempotencyKey)` unique index makes a losing
-// concurrent enqueue a dedupe, not a conflict (D-08). Authority is only ever needed to
+// concurrent enqueue a dedupe, not a conflict. Authority is only ever needed to
 // CLAIM or ADVANCE work, which is exactly the set of verbs that carries the fence.
 
 import type {
@@ -94,7 +94,7 @@ export interface JobInsert extends JobEnqueueRequest {
 }
 
 /**
- * Refusal when an operator tries to requeue a row this build cannot read (422 D-16).
+ * Refusal when an operator tries to requeue a row this build cannot read.
  *
  * A requeue is the one operator verb that DESTROYS history — it resets the attempt count, deletes
  * every checkpoint row and file the last attempt recorded, and disowns the run's chain-terminal
@@ -140,7 +140,7 @@ export class QuarantinedJobRequeueError extends Error {
  * `deduped` reports that the unique index already held this `(kind, idempotencyKey)` pair
  * and `job` is the pre-existing row. A duplicate enqueue is a SUCCESS, never an error —
  * that is what makes "run the tail twice, get one job" a store guarantee rather than a
- * convention every caller has to remember (D-08).
+ * convention every caller has to remember.
  */
 export interface JobEnqueueOutcome {
   readonly job: Job
@@ -204,7 +204,7 @@ export type JobCheckpointReadOutcome =
   | { readonly found: true; readonly payload: unknown }
 
 /**
- * What asking to cancel a job actually did (D-19).
+ * What asking to cancel a job actually did.
  *
  * Three outcomes, because cancellation genuinely has three cases and collapsing any two of
  * them loses a guarantee. A job nobody is running stops at once — there is nothing to be
@@ -277,7 +277,6 @@ export class JobCancellationNotRequestedError extends Error {
 
 /**
  * What a chain-terminal transition asks the store to record, if it really is terminal
- * (Phase 388, D-09 / D-10 / D-12).
  *
  * The 385 D-05 split, applied to a new decision. POLICY is already resolved by the time this
  * record exists: the engine decided which run this job belongs to, which ids the chain could
@@ -296,7 +295,7 @@ export class JobCancellationNotRequestedError extends Error {
  * NOT to be terminal is not an error: the store simply writes nothing.
  */
 export interface ChainTerminalRecord {
-  /** The UNIQUE key one notification per run rests on. `runId` alone (D-10). */
+  /** The UNIQUE key one notification per run rests on. `runId` alone. */
   readonly dedupeKey: string
   /**
    * Every job the chain COULD have enqueued, whether or not it did.
@@ -310,8 +309,8 @@ export interface ChainTerminalRecord {
    * a job early. The head is the one exception and is checked by name: a chain whose analyze-run
    * row was never written is not a run's chain at all.
    *
-   * 2026-09-01 (Phase 409): the chain narrowed to two ids.
-   * 2026-09-11 (Phase 422, D-13): three again, the third being the proposal stage the fold now
+   * the chain narrowed to two ids.
+   * three again, the third being the proposal stage the fold now
    * chains to. The candidate/member distinction is what carries that widening for free — a
    * chain halted at a permanently failed fold has no proposal row, and the rule reads it as the
    * absence it is rather than as an unfinished stage that blocks the record forever.
@@ -321,7 +320,7 @@ export interface ChainTerminalRecord {
   readonly payloadJson: string
 }
 
-/** One row of the deterministic logical dump (D-03). Column names, not the DTO shape. */
+/** One row of the deterministic logical dump. Column names, not the DTO shape. */
 export interface JobStoreDumpRow {
   readonly id: string
   readonly kind: string
@@ -332,7 +331,7 @@ export interface JobStoreDumpRow {
   readonly attempts: number
   readonly claimed: boolean
   /**
-   * Someone has asked for this job to stop (D-19).
+   * Someone has asked for this job to stop.
    *
    * Store-owned state, exactly like `claimed`, and for the same reason: `JobStatus` is a
    * shipped kernel vocabulary whose C6 break added the two TERMINAL members the queue needed,
@@ -343,7 +342,7 @@ export interface JobStoreDumpRow {
    */
   readonly cancelRequested: boolean
   /**
-   * What this row CONCLUDED, when the store can say it from the row alone (422 D-16).
+   * What this row CONCLUDED, when the store can say it from the row alone.
    *
    * Present today for exactly one conclusion, `unreadable_kind`: a row written under a kind this
    * build has since retired, landed permanently at claim without ever being parsed. It belongs on
@@ -363,7 +362,7 @@ export interface JobStoreDumpRow {
 /**
  * A deterministic, ordered, canonical-JSON-comparable projection of everything the store
  * holds. The kill matrix compares THIS across an interrupted and an uninterrupted history —
- * never raw database bytes, whose page layout is not deterministic (D-03).
+ * never raw database bytes, whose page layout is not deterministic.
  */
 export interface JobStoreDump {
   readonly schemaVersion: number
@@ -397,7 +396,7 @@ export interface JobStorePort {
    * Terminate one job and enqueue its declared successors in the SAME transaction. Two
    * verbs would leave a window where a crash loses the chain; one verb has no window.
    *
-   * `chainTerminal`, when supplied, joins that same transaction (388 D-09): the notification
+   * `chainTerminal`, when supplied, joins that same transaction: the notification
    * a replayed terminal re-attempts dedupes on a unique index rather than on a caller's
    * memory of having written it.
    */
@@ -414,7 +413,7 @@ export interface JobStorePort {
    * never a terminal parent with a partial chain (or an orphaned chain with a live parent).
    *
    * Carries the same optional chain-terminal record as its sibling, and that symmetry is
-   * D-12: a failure is exactly when the user most needs to hear from the chain, so the
+   * a failure is exactly when the user most needs to hear from the chain, so the
    * notification cannot live on the success path alone.
    */
   failAndChain(
@@ -447,7 +446,7 @@ export interface JobStorePort {
   ): Promise<void>
 
   /**
-   * Ask for a job to stop, and report what that meant for the job it found (D-19).
+   * Ask for a job to stop, and report what that meant for the job it found.
    *
    * Fenced like every other verb that moves a job, and for the sharper reason: a writer that
    * has lost its lease could otherwise cancel work the current writer is actively running.
@@ -476,7 +475,7 @@ export interface JobStorePort {
    * authorship as though a handler had produced it.
    *
    * An id no row answers to raises the store's existing not-found error rather than gaining a
-   * third outcome arm (413-02 D-4): the outcome union describes what the store found a JOB
+   * third outcome arm: the outcome union describes what the store found a JOB
    * to be, and a mismatched id is a caller bug, not data.
    */
   requeueTerminal(jobId: JobId, fence: JobStoreFence): Promise<JobRequeueOutcome>

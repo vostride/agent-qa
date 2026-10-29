@@ -1,4 +1,4 @@
-// The deterministic stage-1 resolver table (Phase 392, D-05 / D-06 / D-09).
+// The deterministic stage-1 resolver table.
 //
 // One module, hand-authored, CLOSED. Each entry is a pattern and what the pattern resolves to —
 // never a second capability vocabulary. The rule is 387 D-11's and it is absolute: EVERY function
@@ -14,14 +14,14 @@
 // avoided at once: one tested branch, total reach, zero per-op maintenance.
 //
 // RESOLUTION IS BINARY. `ChatResolution` has exactly two variants and NO CONFIDENCE MEMBER, and
-// the absence is load-bearing (D-09). This path OVERRIDES a model's plan on both the action set and
-// the bound arguments (D-12), so a false positive here does not degrade an answer — it executes a
+// the absence is load-bearing. This path OVERRIDES a model's plan on both the action set and
+// the bound arguments, so a false positive here does not degrade an answer — it executes a
 // capability nobody asked for. A confidence number would be the first half of a threshold, and a
 // threshold is exactly how an overriding path acquires a false-positive rate. A near-miss — a
 // misspelling, a verb with its required argument missing — therefore resolves to NOTHING and flows
 // on to the planner, which is allowed to be wrong because it is not allowed to override.
 //
-// NO `/tools`, NO `/compact` (D-04). The first fights the always-send-all law; the second is a
+// NO `/tools`, NO `/compact`. The first fights the always-send-all law; the second is a
 // manual lever over a mechanism 392 keeps automatic.
 
 import { parseShortId } from '@vostride/agent-qa-schema'
@@ -39,7 +39,7 @@ import { RUNS_START_FUNCTION_ID } from '../functions/ops/runs-start.js'
  * why none of them has a function id — and they are in the table anyway, because the table is the
  * vocabulary a person types and the meta-test demands a scenario for every row of it.
  *
- * 432-13 (D-14): `/pin` is gone. It was a session deny overlay over the op gate, and there is no op
+ * `/pin` is gone. It was a session deny overlay over the op gate, and there is no op
  * gate; a clause spelled `/pin …` is now an ordinary clause nothing in the table resolves.
  */
 export const CHAT_DIRECTIVES = ['model', 'help', 'quit'] as const
@@ -164,7 +164,7 @@ export const CHAT_RESOLVER_TABLE: ChatResolverTable = Object.freeze([
     // `runs.get`. `runs.get` addresses exactly one run BY ID and refuses without one, so it
     // cannot answer a person who typed a bare word — the id is the very thing they did not
     // supply. `runs.list` takes `{}`, answers the 20 most recently finished runs newest first
-    // (431 D-08), and is the only read in the registry whose contract answers "what has happened
+    // and is the only read in the registry whose contract answers "what has happened
     // here lately" without being told what to look at. `status <run>` is not minted:
     // `digest <run>` already owns "tell me about that one run", and two verbs for it would be
     // two answers.
@@ -202,7 +202,7 @@ export const CHAT_RESOLVER_TABLE: ChatResolverTable = Object.freeze([
       return { kind: 'op', functionId: RUNS_DIGEST_FUNCTION_ID, input: { runId: reference } }
     },
   }),
-  // 432-13 (D-05/D-14): the `proposals` inbox alias is gone. Changes apply in the call, so there is
+  // the `proposals` inbox alias is gone. Changes apply in the call, so there is
   // no pending-decision inbox to route a bare word to. 432-17 deleted the inbox and its ops too.
   rule({
     alias: 'model',
@@ -213,7 +213,7 @@ export const CHAT_RESOLVER_TABLE: ChatResolverTable = Object.freeze([
   }),
   rule({
     alias: 'fn',
-    // THE PASSTHROUGH (D-06). The op id is NOT validated here — deliberately. `invokeFunction`'s
+    // THE PASSTHROUGH. The op id is NOT validated here — deliberately. `invokeFunction`'s
     // step 1 raises `UnknownFunctionError` naming the id before any dependency is touched, so a
     // typo and a capability that has not shipped yet both come back named, for free, from the one
     // place that knows what is registered. A check here would be a second catalogue.
@@ -269,7 +269,7 @@ export function directiveNotBoundReason(directive: ChatDirectiveName, clause: st
  * First-match rather than unique-match, and the table is ordered rather than a map, because D-06's
  * canon has forms that could legitimately overlap as it grows, and "the earlier, more specific rule
  * wins" is a rule a reader of the table can see. Precision is 1.0 by construction — every rule is
- * an exact predicate over the clause, so a miss is a miss and never a guess (D-09).
+ * an exact predicate over the clause, so a miss is a miss and never a guess.
  */
 export function resolveClause(table: ChatResolverTable, clause: string): ChatResolution {
   for (const rule of table) {
@@ -280,7 +280,7 @@ export function resolveClause(table: ChatResolverTable, clause: string): ChatRes
 }
 
 /**
- * One line of `/help`, in a shape a census can read (Phase 398 plan 09).
+ * One line of `/help`, in a shape a census can read.
  *
  * WHY THE ENTRIES ARE STRUCTURED AND THE STRING IS DERIVED. `CHAT_HELP_TEXT` used to be ten
  * hand-aligned sentences, and a sentence is not something a test can join to anything: the only
@@ -319,13 +319,13 @@ export interface ChatHelpEntry {
 }
 
 /**
- * What `/help` prints, one entry per row of the table above (Phase 392 plan 08, D-06).
+ * What `/help` prints, one entry per row of the table above.
  *
  * IT LIVES BESIDE THE TABLE, and that is the point rather than the filing: the canon a person can
  * type is `CHAT_RESOLVER_TABLE`, and help text kept anywhere else would be a second list of what
  * chat understands, free to drift from the one that actually routes. `/fn` is named explicitly
  * because it is the reach lever — every registry op is one deterministic branch away, which is why
- * the alias set stays thin (D-06).
+ * the alias set stays thin.
  */
 export const CHAT_HELP_ENTRIES: readonly ChatHelpEntry[] = Object.freeze([
   Object.freeze({ alias: 'run', syntax: 'run <test>', summary: 'start a run for a test' }),

@@ -1,4 +1,4 @@
-// D-04 / CHAT-05 — configuration changes are EVENTS, not silent state (Phase 392, plan 07).
+// configuration changes are EVENTS, not silent state.
 //
 // TWO PURE FUNCTIONS AND NO I/O. One folds what a session last RECORDED about its configuration out
 // of the log it already has; the other diffs that against what the host re-read, and answers in
@@ -7,7 +7,7 @@
 // model and enumerates a toolset. A drift module that re-read the configuration itself would be a
 // second resolution path, free to disagree with the one the turn actually runs under.
 //
-// WHY DRIFT IS AN EVENT AND NOT A HEADER REWRITE. The log is append-only by contract (CHAT-05), so
+// WHY DRIFT IS AN EVENT AND NOT A HEADER REWRITE. The log is append-only by contract, so
 // the opening context stays on the header forever and everything after it is a delta a reader folds
 // forward. That is what makes "what was in force at turn N" answerable at all; rewriting the header
 // would give the file one truth — the latest — and destroy every earlier one.
@@ -38,7 +38,7 @@ export interface ChatToolsetFingerprint {
   readonly ids?: readonly string[]
 }
 
-/** The configuration facts a chat session is sensitive to (D-04). */
+/** The configuration facts a chat session is sensitive to. */
 export interface ChatConfigState {
   readonly model: string
   readonly toolset: ChatToolsetFingerprint
@@ -68,7 +68,7 @@ function added(before: readonly string[], after: readonly string[]): string[] {
 }
 
 /**
- * Diff two configuration states into the events the session log carries (D-04).
+ * Diff two configuration states into the events the session log carries.
  *
  * MODEL FIRST when both drifted, because a reader folding the log rebuilds "what was in force" in
  * that order and because the model is the fact a person is far more likely to be looking for. The

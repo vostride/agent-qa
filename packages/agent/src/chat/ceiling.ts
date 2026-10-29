@@ -1,4 +1,4 @@
-// THE mark_unhandled CEILING (Phase 392 plan 09, CHAT-03 / D-15).
+// THE mark_unhandled CEILING.
 //
 // `mark_unhandled` is the FAIL-CLOSED PATH, not an error path. It is supposed to fire: a build that
 // cannot author a test must refuse to author a test, by name, rather than reaching for the nearest
@@ -20,7 +20,7 @@
 //      rounded to whole percent reports 20.1% as 20% and passes a breached ceiling — a threshold
 //      that rounds in the implementer's favour is not a threshold.
 //
-// ONE FUNCTION SERVES BOTH READINGS (D-15). The harness measures the rate over the corpus; a live
+// ONE FUNCTION SERVES BOTH READINGS. The harness measures the rate over the corpus; a live
 // deployment's FIELD rate is a projection over `mark_unhandled` rows in session logs. Both are
 // `computeMarkUnhandledRate` over a list of events. There is no metric store, no field gate, and no
 // second counter that could disagree with this one about what a refusal is.
@@ -30,11 +30,11 @@ import type { ChatSessionEvent } from '@vostride/agent-qa-schema'
 /**
  * The pinned ceiling: at most one refusal per five `should_execute` scenarios.
  *
- * A PINNED CONSTANT WITH A RETUNE COMMENT, NEVER CONFIG (386 D-15). A configurable ceiling is a
+ * A PINNED CONSTANT WITH A RETUNE COMMENT, NEVER CONFIG. A configurable ceiling is a
  * ceiling that gets raised the first time it is inconvenient, at which point it measures the
  * patience of whoever raised it.
  *
- * OWNER: the chat orchestration subsystem (Phase 392, CHAT-03).
+ * OWNER: the chat orchestration subsystem.
  *
  * RETUNE WHEN, and only when:
  *   - the corpus GROWS through a deliberate `SCENARIO_CORPUS` bump, and the new members change what

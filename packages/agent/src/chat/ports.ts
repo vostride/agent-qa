@@ -77,7 +77,7 @@ export interface PlannerToolCall {
 }
 
 /**
- * A stage-2 failure the engine folds into a failed turn (CHAT-01).
+ * A stage-2 failure the engine folds into a failed turn.
  *
  * A transport error, an auth refusal or a provider outage is a fact about this turn, not a crash of
  * the session — so it is DATA rather than a thrown error, and the turn ends with a receipt instead
@@ -97,7 +97,7 @@ export interface PlannerStageFailure {
  * means and a stage that pre-digested it would be making that decision one layer early, out of
  * sight of the reconciliation the whole design exists to route through.
  *
- * THERE IS NO `answer` FIELD, and its absence is load-bearing (392-14). This outcome used to carry
+ * THERE IS NO `answer` FIELD, and its absence is load-bearing. This outcome used to carry
  * a convenience projection of the FIRST `answer_only` call's prose, which became a second prose
  * path the moment the tool contract moved to one call per answered clause: reconciliation counted
  * every claimed clause as answered and the person received the first answer only. The prose now
@@ -111,7 +111,7 @@ export interface PlannerStageOutcome {
 }
 
 /**
- * Stage 2 — the tool-bound planner (CHAT-01).
+ * Stage 2 — the tool-bound planner.
  *
  * OPTIONAL AT THE COMPOSITION, and its absence is a real production posture rather than a stub:
  * a host with no model bound is HEADLESS, and the correct behaviour there is that any clause the
@@ -124,7 +124,7 @@ export interface PlannerStagePort {
 }
 
 /**
- * What stage 2 is asked, INCLUDING WHOSE TURN IS ASKING (392 plan 13, CR-02).
+ * What stage 2 is asked, INCLUDING WHOSE TURN IS ASKING.
  *
  * `sessionId` is not decoration on a prompt. The context a composition builds for this call — the
  * conversation replayed into the request, the model in force — are facts about ONE session, and a
@@ -144,7 +144,7 @@ export interface PlannerStageRequest {
  * `planned` is the model's RAW outcome rather than a set of resolved clauses, and the difference is
  * where the safety property lives. Aligning tool calls to clauses IS reconciliation — deciding
  * which proposal answers which part of the request, and whose binding wins where the table already
- * has one (D-12). A stage 2 that handed over pre-aligned clauses would have made that decision
+ * has one. A stage 2 that handed over pre-aligned clauses would have made that decision
  * already, in the one component whose input is untrusted model output.
  */
 export interface ReconcileInput {
@@ -165,7 +165,7 @@ export type ReconcileVerdict =
       readonly kind: 'execute'
       readonly plan: readonly ClauseAction[]
       /**
-       * The prose a turn answers with when the model answered rather than acted (CHAT-01).
+       * The prose a turn answers with when the model answered rather than acted.
        *
        * It rides the EXECUTE verdict, with an empty plan in the pure case, because an answered turn
        * completed — it did what was asked. Giving it a third verdict variant would have made
@@ -177,7 +177,7 @@ export type ReconcileVerdict =
   | { readonly kind: 'unhandled'; readonly clause: ChatClause; readonly reason: string }
 
 /**
- * Stage 3 — deterministic reconciliation (D-09 / D-12 / D-16).
+ * Stage 3 — deterministic reconciliation.
  *
  * A pure function, supplied at engine CONSTRUCTION. The purity is what makes the mutation proof
  * possible at all: the differential composes the real host twice with two strategies and reads the
@@ -186,7 +186,7 @@ export type ReconcileVerdict =
 export type ReconcileStrategy = (input: ReconcileInput) => ReconcileVerdict
 
 /**
- * The deterministic conjunction splitter (D-09).
+ * The deterministic conjunction splitter.
  *
  * A seam rather than a hard-coded call because plan 02 replaces the tracer's whole-utterance
  * splitter with the quote-aware tokenizer, and the engine must not need editing for that.
@@ -198,14 +198,14 @@ export type ClauseSplitter = (utterance: string) => readonly ChatClause[]
  *
  * `FunctionCaller.origin` is a per-CALL fact, not a per-surface one: a person typing a canonical
  * alias IS a human acting, and a model planning a call is not, and both happen inside one turn, so a
- * receipt attributes each clause to the stage that bound it. 2026-10-02 (432-39, D-10/D-12): the
+ * receipt attributes each clause to the stage that bound it. 2026-10-02: the
  * origin is attribution only; no op withholds anything by it.
  */
 export interface CallerMint {
   /**
    * The caller for one binding stage.
    *
-   * 2026-10-02 (432-39, D-02/D-12): no `sessionId` parameter. It only ever stamped the retired
+   * no `sessionId` parameter. It only ever stamped the retired
    * `FunctionCaller.sessionId` (392 plan 13), which nothing read after the session deny overlay left
    * (432-13/432-19); the production mint ignored it, and the caller member is deleted.
    */
@@ -218,7 +218,7 @@ export interface CallerMint {
  * A closure over `invokeFunction` supplied by the composition root, NOT a registry handle. Two
  * reasons and the second is the structural one: `agent`'s chat subtree would otherwise import the
  * registry it is registered inside, and — more importantly — a seam typed as "call this op for me"
- * cannot become a seam that runs a spec directly (384 FUNC-03).
+ * cannot become a seam that runs a spec directly.
  */
 export type ChatInvokeBinding = (
   functionId: string,
@@ -227,7 +227,7 @@ export type ChatInvokeBinding = (
 ) => Promise<ChatInvokeAnswer>
 
 /**
- * What an op answered, classified — the seam's return type since 399.1 (D-01/D-03/D-04/D-05).
+ * What an op answered, classified — the seam's return type since 399.1.
  *
  * WHY THE VERDICT ARRIVES AS DATA RATHER THAN BEING COMPUTED HERE. The engine cannot classify a
  * result: the fold that knows which arm of an op's union is a refusal lives on that op's SPEC, and
@@ -252,7 +252,7 @@ export interface ChatInvokeAnswer {
   /**
    * The classifier's answer, or the legacy verdict when the op declares no classifier.
    *
-   * FAIL-CLOSED (D-03): a fold that throws, or answers something that is not a verdict, yields
+   * FAIL-CLOSED: a fold that throws, or answers something that is not a verdict, yields
    * `failed` with a named outcome — never `executed`. An unreadable result might be a refusal, and
    * success is the one claim a receipt must not default to.
    */
@@ -277,7 +277,7 @@ export interface ChatInvokeAnswer {
 export type CompactionHook = (context: {
   readonly turnId: string
   /**
-   * The session this turn belongs to (392 plan 13, CR-02).
+   * The session this turn belongs to.
    *
    * Beside `append` for the same reason `append` is here: what a pass produces — the pruned
    * conversation — belongs to ONE conversation, and the sink a host publishes it into is one
@@ -288,7 +288,7 @@ export type CompactionHook = (context: {
   /** The conversation as of this turn's start: repaired, aborted turns already excluded. */
   readonly replay: SessionReplay
   /**
-   * Where this pass's one event goes: the SESSION HANDLE of the turn being compacted (392-12).
+   * Where this pass's one event goes: the SESSION HANDLE of the turn being compacted.
    *
    * The hook used to hold an `emit` bound at composition time, which — while the adapter owned a
    * single mutable descriptor — meant "the session whose open ran most recently" rather than "the
@@ -301,7 +301,7 @@ export type CompactionHook = (context: {
 }) => Promise<void> | void
 
 /**
- * What a `/model` directive did (Phase 392 plan 08, D-04).
+ * What a `/model` directive did.
  *
  * The handler applies the override and REPORTS the two model names, rather than emitting anything.
  * The engine is what turns the pair into a `model_change` event, through the same `diffChatConfig`
@@ -316,7 +316,7 @@ export interface ChatModelDirectiveOutcome {
 }
 
 /**
- * The session directives, as handlers a composition binds (D-04).
+ * The session directives, as handlers a composition binds.
  *
  * EVERY MEMBER IS OPTIONAL, and an absent one is not a gap: the engine's refusal arm names an
  * unbound directive by name, which is the honest answer for a build that recognises `/model` and
@@ -326,14 +326,14 @@ export interface ChatModelDirectiveOutcome {
  * A HANDLER MAY THROW, AND THROWING IS AN ANSWER. That refusal travels the engine's ONE refusal
  * path, so it leaves the same `mark_unhandled` row every other refused clause does.
  *
- * 432-13 (D-14): `/pin` and its handler are gone with the op gate they tightened.
+ * `/pin` and its handler are gone with the op gate they tightened.
  */
 export interface ChatDirectiveHandlers {
   readonly model?: (name: string) => ChatModelDirectiveOutcome | Promise<ChatModelDirectiveOutcome>
   readonly help?: () => string
   readonly quit?: () => string
   /**
-   * THE BATCH PRE-FLIGHT: state the refusal before ANY directive of this turn is applied (392-14).
+   * THE BATCH PRE-FLIGHT: state the refusal before ANY directive of this turn is applied.
    *
    * The engine runs this over EVERY collected directive and only then applies the first one, so a
    * throw here refuses the whole turn with zero effects. That is D-10's own shape — reconciliation

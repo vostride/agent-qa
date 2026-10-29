@@ -5,7 +5,7 @@
 // bound in THIS composition" is a first-class, observable state. It must be distinguishable
 // from a capability that does not exist (`UnknownFunctionError`) and from one that silently
 // does nothing, and the attempt takes the same one dispatch path as every other invocation
-// (D-11). 2026-10-01 (432-23): that path has no op gate (432-19) and no permission check (432
+// 2026-10-01: that path has no op gate and no permission check (432
 // D-12), so it writes no audit row and checks no caller.
 //
 // What changed in 385 is WHY the registry below reports `unbound`, and it is the reason this
@@ -60,9 +60,9 @@ function fakeDeps(): FunctionDeps {
   }
 }
 
-// 2026-10-15 (441-28, D-15): the registry takes no audit sink, so no cell captures audit rows.
+// the registry takes no audit sink, so no cell captures audit rows.
 
-// 2026-10-01 (432-23, D-12): attribution only — a surface and an origin, no grant.
+// attribution only — a surface and an origin, no grant.
 const RUN_CALLER: FunctionCaller = {
   surface: 'test',
   origin: 'agent',
@@ -78,12 +78,12 @@ describe('runs.start declaration', () => {
   it('declares its FULL contract and states what a composition must supply to run it', () => {
     expect(runsStartSpec.id).toBe(RUNS_START_FUNCTION_ID)
     expect(runsStartSpec.id).toBe('runs.start')
-    // RE-SPELLED 2026-10-01 (432-23, D-12) from `requiredScopes` equal to ['run']: starting a run
+    // RE-SPELLED 2026-10-01 from `requiredScopes` equal to ['run']: starting a run
     // costs no scope, so the spec declares none.
     expect(runsStartSpec).not.toHaveProperty('requiredScopes')
     expect(runsStartSpec.resultKind).toBe('unary')
     // The spec's entire say in whether it is bound. It names a NEED; the composition's
-    // answer to that need is what a declaration reports (D-16).
+    // answer to that need is what a declaration reports.
     expect(runsStartSpec.boundThrough).toBe('runInvocation')
   })
 
@@ -118,7 +118,7 @@ describe('runs.start declaration', () => {
   })
 })
 
-// 436-09 (D-06): the acknowledgement carries the limits the run recorded, never the request's.
+// the acknowledgement carries the limits the run recorded, never the request's.
 describe('runs.start acknowledgement', () => {
   const plannerLimits = {
     maxActions: 30,
@@ -225,8 +225,8 @@ describe('runs.start is visibly unbound, never silently missing', () => {
     expect(unbound).not.toBeInstanceOf(UnknownFunctionError)
   })
 
-  // RE-SPELLED 2026-09-30 (432-13, D-15) from 'audits the attempt: the gate verdict precedes the
-  // binding refusal (D-11)'. No gate decides the attempt; the binding refusal is the whole answer,
+  // RE-SPELLED 2026-09-30 from 'audits the attempt: the gate verdict precedes the
+  // binding refusal'. No gate decides the attempt; the binding refusal is the whole answer,
   // named, and no decision row is written.
   it('an unbound attempt refuses by name and records no decision row', async () => {
     const thrown = await invokeFunction(registryWithRunsStart(), 'runs.start', {}, RUN_CALLER)
@@ -235,9 +235,9 @@ describe('runs.start is visibly unbound, never silently missing', () => {
     expect(thrown).toBeInstanceOf(FunctionNotBoundError)
   })
 
-  // RE-SPELLED 2026-10-01 (432-20, D-12) from 'refuses a caller lacking the run scope before it ever
+  // RE-SPELLED 2026-10-01 from 'refuses a caller lacking the run scope before it ever
   // reaches the binding check'. No scope is checked: the same caller reaches the binding check.
-  // 2026-10-01 (432-23): no caller carries a scope at all, so the "lacking" caller is one that
+  // no caller carries a scope at all, so the "lacking" caller is one that
   // differs from RUN_CALLER in every field a caller still has, and it meets the same answer.
   it('serves a caller lacking the run scope up to the same binding check', async () => {
     const readOnlyCaller: FunctionCaller = {
@@ -256,7 +256,7 @@ describe('runs.start is visibly unbound, never silently missing', () => {
     expect((thrown as Error).name).not.toBe('FunctionScopeError')
   })
 
-  // 432-23 (D-12): the scope came off the spec, and the binding refusal must not have gone with it.
+  // the scope came off the spec, and the binding refusal must not have gone with it.
   // Retried, from callers that differ in every field a caller still carries, the unbound start
   // meets the same named refusal every time, and never a permission error; the bound stream beside
   // it answers each caller alike.
@@ -290,7 +290,7 @@ describe('runs.start is visibly unbound, never silently missing', () => {
     expect(declared[2]).toEqual(declared[0])
   })
 
-  // 432-24 (D-12): `runs.list` lost its scope too, so the bound read beside the unbound start is
+  // `runs.list` lost its scope too, so the bound read beside the unbound start is
   // now a migrated op as well. Retried from the same three callers it is SERVED every time — the
   // port is reached once per attempt, and every caller gets the same answer.
   it('a retried bound runs.list is served alike to every caller', async () => {

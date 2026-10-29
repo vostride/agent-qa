@@ -1,6 +1,6 @@
-// CHAT-04's trigger policy, measured against the REAL v49 substrate (Phase 392, plan 06).
+// CHAT-04's trigger policy, measured against the REAL v49 substrate.
 //
-// HERMETIC BY CONTRACT, NOT BY MOCK (D-13). Every case below drives the shipped
+// HERMETIC BY CONTRACT, NOT BY MOCK. Every case below drives the shipped
 // `createTokenAccounting` and the shipped `degrade` — the same functions a live chat host runs —
 // over a fake capability thunk that reports a small context window. Nothing here stands in for the
 // substrate: a hand-written degrade would be a second implementation of the mechanism under test,
@@ -283,7 +283,7 @@ describe('the assumption-delta invariant: ONE event per pass', () => {
       },
       conversationFor: () => messages,
     })
-    // The append arrives per CALL now (392-12), because it is the handle of the session whose turn
+    // The append arrives per CALL now, because it is the handle of the session whose turn
     // is being compacted — a hook bound to one log at construction could not know which that is.
     await hook({
       turnId: 'turn-7',

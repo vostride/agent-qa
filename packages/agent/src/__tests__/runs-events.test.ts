@@ -1,13 +1,13 @@
 // The stream result kind, exercised end-to-end against the injected event-log reader
 // (Phase 384, Plan 04 — FUNC-07 / D-08 / D-11).
 //
-// D-08: a stream op resolves a typed async iterable of seq-stamped envelopes, and each
+// a stream op resolves a typed async iterable of seq-stamped envelopes, and each
 // envelope's own `seq` IS the resume token — a caller that observed seq N re-invokes with
 // `lastEventId: N` and receives N+1 onward. Connection-independent by construction, so
 // 386's live attach is contract-identical to this completed-run replay.
 //
-// 2026-10-01 (432-23): the pipeline cases dispatch through the real `invokeFunction` with no op
-// gate (deleted by 432-19, D-15) and no permission check (D-12), so they prove the one dispatch
+// the pipeline cases dispatch through the real `invokeFunction` with no op
+// gate (deleted by 432-19, D-15) and no permission check, so they prove the one dispatch
 // path a stream takes, not an audit row; none is written.
 
 import { ReplayIncompleteError } from '@vostride/agent-qa-runner'
@@ -100,9 +100,9 @@ function eventsDeps(options: {
   }
 }
 
-// 2026-10-15 (441-28, D-15): the registry takes no audit sink, so no cell captures audit rows.
+// the registry takes no audit sink, so no cell captures audit rows.
 
-// 2026-10-01 (432-23, D-12): a caller is attribution only, a surface and an origin. The name is
+// a caller is attribution only, a surface and an origin. The name is
 // kept for the cells below; it reads nothing and is granted nothing.
 const READ_CALLER: FunctionCaller = {
   surface: 'test',
@@ -121,10 +121,10 @@ describe('runs.events declaration', () => {
   it('declares a read-only STREAM contract bound in this composition', () => {
     expect(runsEventsSpec.id).toBe(RUNS_EVENTS_FUNCTION_ID)
     expect(runsEventsSpec.id).toBe('runs.events')
-    // RE-SPELLED 2026-10-01 (432-23, D-12) from `requiredScopes` equal to ['read'].
+    // RE-SPELLED 2026-10-01 from `requiredScopes` equal to ['read'].
     expect(runsEventsSpec).not.toHaveProperty('requiredScopes')
     expect(runsEventsSpec.resultKind).toBe('stream')
-    // Bound in EVERY composition — it names no optional dep to be withheld (D-16).
+    // Bound in EVERY composition — it names no optional dep to be withheld.
     expect(runsEventsSpec.boundThrough).toBeUndefined()
     expect(runsEventsSpec.risk).toEqual({
       name: 'fn:runs.events',
@@ -188,7 +188,7 @@ describe('runs.events replay', () => {
 })
 
 describe('runs.events through invokeFunction (one dispatch path)', () => {
-  // RE-SPELLED 2026-09-30 (432-13, D-15) from 'audits the invocation BEFORE the first event is
+  // RE-SPELLED 2026-09-30 from 'audits the invocation BEFORE the first event is
   // yielded'. There is no op gate, so a stream dispatch records no decision; what survives is that
   // every event reaches the caller through the one dispatch path.
   it('a stream dispatch writes no audit row and yields every event', async () => {

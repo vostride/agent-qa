@@ -1,34 +1,34 @@
-// The four-stage turn engine (Phase 392, CHAT-01 / CHAT-05 / D-01 / D-08 / D-10 / D-24).
+// The four-stage turn engine.
 //
 // ONE turn engine, two surfaces. The interactive REPL, the one-shot `ask` verb and the scenario
 // harness all drive this same entry — and they reach it through the registered `agent.ask` op, not
-// by holding this object (D-24). Chat therefore has no private powers: every capability a turn
+// by holding this object. Chat therefore has no private powers: every capability a turn
 // exercises crosses `invokeFunction`'s eight-step gate exactly as a typed CLI verb does.
 //
 // THE STAGE ORDER IS A PINNED CONTRACT, in the house style `invoke.ts:123-134` sets:
 //
 //   1. deterministic resolver — the closed table, over the clause split. Precision 1.0 by
-//      construction: an exact predicate hit or nothing, never a guess (D-09).
+//      construction: an exact predicate hit or nothing, never a guess.
 //   2. planner LLM          — via `PlannerStagePort`, and SKIPPED ENTIRELY when stage 1 resolved
 //      every clause. Skipping is the tracer's whole point and a permanent property of canonical
 //      utterances: they are model-independent, which is what makes their scenarios stable.
 //   3. deterministic reconciliation — the injected strategy. Runs on single-clause turns too, so
 //      there is one code path rather than a fast one and a careful one.
 //   4. verdict + sequential execution — in utterance order, stopping on the first runtime failure,
-//      one receipt per clause (D-11).
+//      one receipt per clause.
 //
 // STAGE 3 COMPLETES BEFORE STAGE 4 BEGINS, and that ordering IS D-10's strict pre-flight atomicity.
 // An unroutable clause anywhere in the utterance rejects the whole turn with zero executions and a
 // message naming it. There is no arrangement of these four stages in which a side effect precedes
 // the verdict, and that is the property `compound/` scenarios pin as `executed == 0`.
 //
-// EVERY EFFECT, NOT ONLY THE DISPATCHED ONES (392-11, CR-04). A session DIRECTIVE mutates the
+// EVERY EFFECT, NOT ONLY THE DISPATCHED ONES. A session DIRECTIVE mutates the
 // session rather than the project — `/model` overrides the model — and those effects used to happen
 // above stage 2, so a refused turn could tell a person "nothing in the request was carried out"
 // while a directive was already in force. The binding question ("can this build carry this out at
 // all") is pure and stays early; the carrying-out sits below the verdict with everything else.
 //
-// NO TURN WRITES AN APPROVAL (432-13, D-14). The `/pin` directive and its `approval_decision` row are
+// NO TURN WRITES AN APPROVAL. The `/pin` directive and its `approval_decision` row are
 // gone with the op gate; `approval_decision` stays a readable kind for sessions written before 432.
 //
 // THIS ENGINE NEVER BRANCHES ON `caller.surface`. The anti-pattern is named in `invoke.ts:28-29`
@@ -83,11 +83,11 @@ export interface TurnEngineDeps {
   readonly sessionLog: SessionLogPort
   readonly mint: CallerMint
   readonly invoke: ChatInvokeBinding
-  /** Absent ⇒ headless: an unresolved clause fails the turn closed BY NAME (D-08). */
+  /** Absent ⇒ headless: an unresolved clause fails the turn closed BY NAME. */
   readonly planner?: PlannerStagePort
   readonly compaction?: CompactionHook
   /**
-   * The configuration in force RIGHT NOW for THIS SESSION, re-read per turn (D-04, CR-02).
+   * The configuration in force RIGHT NOW for THIS SESSION, re-read per turn.
    *
    * A THUNK rather than a value, and that is the whole of "config changes are events": a value
    * captured at construction would be the configuration the host started with, and the drift this
@@ -101,7 +101,7 @@ export interface TurnEngineDeps {
    */
   readonly config?: (sessionId: string) => ChatConfigState | Promise<ChatConfigState>
   /**
-   * The session directives, where a host binds any, RESOLVED PER SESSION (D-04 / CR-02).
+   * The session directives, where a host binds any, RESOLVED PER SESSION.
    *
    * Absent, or absent for one directive, means the refusal arm below names it. That is not a
    * degraded mode: a build that recognises `/model` and cannot carry it out should say so, and the
@@ -147,11 +147,11 @@ export interface TurnEngineDeps {
    */
   readonly configuredTargets?: () => Promise<readonly string[]>
   /**
-   * Where a mid-turn artifact a person should read is written (395-13 · CFGM-05).
+   * Where a mid-turn artifact a person should read is written.
    *
    * DISPLAY-ONLY. Nothing handed to this port enters a decision, and nothing waits on it.
    *
-   * 2026-09-30, 432-11 D-05/D-14: the `write_test` scaffold route writes the configuration in the
+   * the `write_test` scaffold route writes the configuration in the
    * scaffold call itself, so what this port shows is a receipt of a change already on disk: the
    * summary, the files written and the diff. It is no longer a precondition of an approval, because
    * there is no approval. An absent port, or one that fails, does not stop the turn; the clause
@@ -168,13 +168,13 @@ export interface TurnEngine {
 }
 
 /**
- * A one-line outcome summary, never a payload body (D-18).
+ * A one-line outcome summary, never a payload body.
  *
  * The log and the receipt are a MAP: they say which op ran and how it went, and the result itself
  * stays wherever the op put it. `JSON.stringify(result)` here would be the single easiest way to
  * put a knowledge record, a config value or a masked secret into a file several surfaces render.
  *
- * THIS IS THE FALLBACK NOW, NOT THE RULE (399.1-03). An op that declares a classifier says how it
+ * THIS IS THE FALLBACK NOW, NOT THE RULE. An op that declares a classifier says how it
  * went in its own words and this line is never reached for it; what remains here is the honest
  * answer for an op that has said nothing about its own result — which is the same line every op
  * printed before folds existed.
@@ -263,14 +263,14 @@ function refusalMessage(error: unknown): string {
  * summary line, file list, the true diff — and never answered "does this change cross a trust
  * boundary". The proposed arm filed that verdict as two required fields, and the one surface where
  * a person was asked to authorise the write showed them neither (`demo/acceptance/399/
- * ACCEPTANCE.md` §9 item 2). 2026-10-02 (432-40, D-05/D-14/D-15): there is no confirm, no proposal
+ * ACCEPTANCE.md` §9 item 2). 2026-10-02: there is no confirm, no proposal
  * and no grant machinery any more; the change is written in the call, and these lines disclose the
  * crossing on the applied answer the person reads.
  *
  * VERBATIM, NEVER A PARAPHRASE. Each reason is one of `CROSS_BOUNDARY_REASONS`' closed words
  * and it is printed as filed. A hand-written sentence per reason would be a SECOND answer to "why
  * is this crossing", free to disagree with the record the change answers with — which is the
- * drop-site lesson (D-04) applied to the field a person reads to see what crossed.
+ * drop-site lesson applied to the field a person reads to see what crossed.
  *
  * THE FIELD NAMES ARE IN THE BYTES, deliberately. A person who reads `crossBoundary: true` here can
  * find the same field on the applied answer `agent-qa fn` and the MCP change tool return, and knows
@@ -307,7 +307,7 @@ interface DirectiveEntry {
 }
 
 /**
- * Is this directive CARRYABLE by this build — asked without carrying anything out (CR-04).
+ * Is this directive CARRYABLE by this build — asked without carrying anything out.
  *
  * A PURE READ OF `deps.directives`, and that purity is the whole reason this check may sit where
  * the execution loop used to. A build that recognises `/model` and binds no handler should say so
@@ -342,7 +342,7 @@ function directiveBindingRefusal(
  * produces its `model_change` through `diffChatConfig` — the SAME function the per-turn config
  * re-read calls, with `source: 'verb'` instead of `'config_reread'` — because a person switching
  * models and a file changing underneath a session are different FACTS and not different events
- * (392-07). No directive writes an `approval_decision` (432-13).
+ * No directive writes an `approval_decision`.
  */
 async function runDirective(
   deps: TurnEngineDeps,
@@ -402,7 +402,7 @@ async function runDirective(
 export function createTurnEngine(deps: TurnEngineDeps): TurnEngine {
   return {
     async runTurn(input: AgentAskInput): Promise<AgentAskResult> {
-      // THE HANDLE THIS TURN OWNS (392-12, CR-01). Every write below goes through the object this
+      // THE HANDLE THIS TURN OWNS. Every write below goes through the object this
       // one `open()` returned, so a second turn running concurrently on the same adapter cannot be
       // written to by this one and cannot write to this one — session identity is a parameter of
       // the write path rather than adapter state. The `try/finally` around the whole body is what
@@ -431,7 +431,7 @@ async function runTurnThrough(
   input: AgentAskInput,
 ): Promise<AgentAskResult> {
   const sessionId = opened.header.sessionId
-  // THE PER-SESSION SEAMS, RESOLVED HERE AND NOWHERE EARLIER (392 plan 13, CR-02). The header the
+  // THE PER-SESSION SEAMS, RESOLVED HERE AND NOWHERE EARLIER. The header the
   // adapter just returned is the FIRST moment this session's id is known: `AgentAskInput.sessionId`
   // is optional, and a turn that names none is given one by the adapter rather than by its caller.
   // Resolving above the open would therefore have to guess, and every guess is the aliasing this
@@ -445,7 +445,7 @@ async function runTurnThrough(
   // has the id it needs to write the explicit `aborted` event.
   state?.beginTurn(turnId)
 
-  // THROUGH THE HANDLE, NEVER THROUGH THE ADAPTER (392-12). There is no adapter-level write verb
+  // THROUGH THE HANDLE, NEVER THROUGH THE ADAPTER. There is no adapter-level write verb
   // left to reach for, which is what makes "this turn's events go to this turn's session" a
   // property of the type rather than of everybody remembering.
   const append = async (event: ChatSessionEvent): Promise<void> => {
@@ -461,7 +461,7 @@ async function runTurnThrough(
 
   const finish = async (
     status: ChatTurnStatus,
-    // 399.1 D-05: `results` is REQUIRED on the contract and DEFAULTED here to the empty list,
+    // `results` is REQUIRED on the contract and DEFAULTED here to the empty list,
     // because every arm that reaches this without one is an arm where nothing ran — a refusal, a
     // fail-closed turn, a turn answered in prose. Making each of them spell `results: []` would be
     // making them state the fact twice; making the field optional would have made 'nothing ran' and
@@ -471,7 +471,7 @@ async function runTurnThrough(
       & { results?: readonly ClauseResult[] },
   ): Promise<AgentAskResult> => {
     await append({ kind: 'turn_complete', turnId, at: deps.now(), status })
-    // The fsync point (D-19). Per TURN, so the loss bound is exactly the in-flight turn —
+    // The fsync point. Per TURN, so the loss bound is exactly the in-flight turn —
     // the case the next-turn repair already knows how to handle.
     await opened.turnBoundary()
     state?.endTurn({ turnId, status, receipts: result.receipts, ...(result.answer === undefined ? {} : { answer: result.answer }) })
@@ -485,7 +485,7 @@ async function runTurnThrough(
     }
   }
   /**
-   * The ONE way this engine refuses a turn (D-08 / D-10 / D-15).
+   * The ONE way this engine refuses a turn.
    *
    * Every fail-closed arm goes through here, and that is what makes the `mark_unhandled` event
    * a property of refusing rather than a line somebody remembered to add at three call sites.
@@ -505,7 +505,7 @@ async function runTurnThrough(
     return finish('fail_closed', { receipts: [], unhandled: { clause, reason } })
   }
 
-  // REPAIR, THEN REPLAY, THEN PRUNE (CHAT-05). `open()` has already run the replay-safety
+  // REPAIR, THEN REPLAY, THEN PRUNE. `open()` has already run the replay-safety
   // repair — that is the adapter's contract, not this engine's option — so the events in hand
   // are the repaired ones and the replay below cannot see an unrepaired conversation. The
   // degrade pass then receives that replay and has nothing else to work on, which is what
@@ -516,7 +516,7 @@ async function runTurnThrough(
   // publishes again over the top with the pruned form.
   state?.setConversation(replayToModelMessages(replay))
 
-  // CONFIG DRIFT, BEFORE THE MESSAGE (D-04, CHAT-05). The re-read happens on EVERY turn, which
+  // CONFIG DRIFT, BEFORE THE MESSAGE. The re-read happens on EVERY turn, which
   // makes the session-start case the first turn's case rather than a second code path — one
   // fold, one diff, one place a `model_change` can be born. The events carry the id of the turn
   // they precede (the base type's own rule for session-scoped facts) and are appended ahead of
@@ -546,7 +546,7 @@ async function runTurnThrough(
     if (resolution.kind === 'unresolved') continue
     if (resolution.entry.kind === 'directive') {
       // Resolved, and NOT executable through the function layer: a directive names no
-      // capability (D-04/D-21). It is collected rather than dropped, because a clause the
+      // capability. It is collected rather than dropped, because a clause the
       // table understood and the engine silently ignored is the exact silent-drop shape D-08
       // and D-10 exist to make impossible.
       directives.push({
@@ -576,14 +576,14 @@ async function runTurnThrough(
       mapped.length + directives.length === clauses.length ? 'resolved' : 'unresolved',
   })
 
-  // ---- Directives, ASKED ABOUT here and carried out below the verdict (D-10, CR-04).
+  // ---- Directives, ASKED ABOUT here and carried out below the verdict.
   //
   // A directive names no capability — it changes what this SESSION is, and that is why it does
   // not travel `invokeFunction` and why a model may never reach one (391 D-07: the mechanism
   // deciding what a model may do is the one mechanism it must not touch, even in the
   // tightening direction). A directive with no handler still refuses the whole turn by name,
   // through the same `refuse()` every other refusal takes, so a build that recognises `/model`
-  // and cannot carry it out leaves a countable row rather than a silent no-op (D-08 / D-15).
+  // and cannot carry it out leaves a countable row rather than a silent no-op.
   //
   // WHAT MOVED, AND WHY. This loop USED TO CARRY THE DIRECTIVES OUT here, above stage 2 —
   // which put a directive's effect and its row on the log of a turn that then
@@ -651,7 +651,7 @@ async function runTurnThrough(
     })
   } else if (deps.planner === undefined) {
     // Headless. Not a stub and not an error — a real host posture whose correct behaviour is
-    // to refuse by name rather than to guess (D-08).
+    // to refuse by name rather than to guess.
     await append({
       kind: 'stage_outcome',
       turnId,
@@ -674,13 +674,13 @@ async function runTurnThrough(
       //
       // ONE TERM, NOT TWO: an `answer_only` call IS a tool call, so the disjunction this used to
       // spell (`|| planned.answer !== undefined`) named the same set twice through a projection
-      // that no longer exists (392-14).
+      // that no longer exists.
       outcome:
         planned.failure === undefined && planned.toolCalls.length > 0 ? 'resolved' : 'unresolved',
     })
   }
 
-  // ---- Stage 3: deterministic reconciliation, BEFORE any side effect (D-10).
+  // ---- Stage 3: deterministic reconciliation, BEFORE any side effect.
   const verdict = deps.reconcile({ clauses: routable, mapped, planned })
   await append({
     kind: 'stage_outcome',
@@ -693,7 +693,7 @@ async function runTurnThrough(
     return refuse(verdict.clause.text, verdict.reason)
   }
 
-  // ---- The directives' side effects, on the execute arm and NOWHERE ELSE (D-10, CR-04).
+  // ---- The directives' side effects, on the execute arm and NOWHERE ELSE.
   //
   // Reachable only from here, by the same control-flow discrimination stage 4 uses: the verdict
   // is a discriminated union, the `unhandled` arm returned above, and this loop lives on the
@@ -702,7 +702,7 @@ async function runTurnThrough(
   // resolve — still routes through `refuse()`, so a refusal at this depth stays as countable as any
   // other.
   //
-  // AND THAT SENTENCE IS TRUE OF A BATCH ONLY BECAUSE OF THE PRE-FLIGHT ABOVE (392-14). Read
+  // AND THAT SENTENCE IS TRUE OF A BATCH ONLY BECAUSE OF THE PRE-FLIGHT ABOVE. Read
   // alone, this loop applies entries one at a time and returns on the first refusal — which is
   // precisely the arrangement it claims does not exist, one clause over. What removes it is that
   // every entry's `validate` has already been asked and none of them said no; the catch below is
@@ -727,14 +727,14 @@ async function runTurnThrough(
   }
 
   /**
-   * The PRE-DISPATCH write_test route (395-08, D-14/D-15 · CFGM-05).
+   * The PRE-DISPATCH write_test route.
    *
    * IT RUNS BEFORE THE AUTHORING DISPATCH AND NOT INSIDE IT, which is RESEARCH Pitfall 6's whole
    * point: the authoring loop's `AuthoringDraftUnconfiguredTargetError` is a BACKSTOP over what a
    * model emitted, and it fires after an LLM call and a compilation. This asks a different question,
    * about the REQUEST, and it asks it before anything is spent.
    *
-   * 2026-09-30, 432-11 D-05/D-14: NO CONFIRM. The scaffold writes the configuration in its own
+   * NO CONFIRM. The scaffold writes the configuration in its own
    * call, the receipt is shown where a surface exists, and control returns to the loop below, which
    * dispatches authoring in the same turn against the target that now exists.
    */
@@ -758,10 +758,10 @@ async function runTurnThrough(
       return 'stop'
     }
 
-    // OP CALLS OP (392 D-24), through the same binding every other dispatch crosses — so the
+    // OP CALLS OP, through the same binding every other dispatch crosses — so the
     // scaffold is audited and receipted exactly as a directly-asked-for one would be.
     //
-    // 2026-09-30, 432-11 D-05/D-14: THE SCAFFOLD WRITES IN THIS CALL. There is no proposal to show
+    // THE SCAFFOLD WRITES IN THIS CALL. There is no proposal to show
     // and no apply to ask about afterwards: the answer is what was written, and the route goes on
     // to author against it.
     let scaffolded: unknown
@@ -787,7 +787,7 @@ async function runTurnThrough(
     }
     if (answer.outcome !== 'applied' || answer.files === undefined || answer.files.length === 0) {
       // A refusal, a blocked change, a no-change or an interrupted write: none is a configuration to
-      // author a test against. 2026-10-03 (quick 261003-cpv, WR-03): each answers its own reason;
+      // author a test against. 2026-10-03: each answers its own reason;
       // the no-configuration sentence was the fallback for the blocked and no-change arms, which
       // carry no `detail`.
       writeTestRefusal = writeTestScaffoldStopDetail(answer)
@@ -826,7 +826,7 @@ async function runTurnThrough(
     return 'proceed'
   }
 
-  // ---- Stage 4: sequential execution in utterance order, stopping on failure (D-11).
+  // ---- Stage 4: sequential execution in utterance order, stopping on failure.
   //
   // THE LOOP IS UNREACHABLE FROM A REFUSAL BY CONSTRUCTION, which is D-10 expressed as control
   // flow rather than as a check: the verdict is a discriminated union, the `unhandled` arm
@@ -834,7 +834,7 @@ async function runTurnThrough(
   // ordering of these statements in which a side effect happens before the verdict, because
   // there is no plan to walk until the verdict has produced one.
   const receipts: ClauseReceipt[] = []
-  // 399.1 (D-05): what the ops RETURNED, the sibling channel `receipts` was never allowed to be.
+  // 399.1: what the ops RETURNED, the sibling channel `receipts` was never allowed to be.
   // Appended inside the loop, so its order is the execution order — which is the utterance order
   // this engine preserves everywhere else — and its length is the number of clauses that ran.
   const results: ClauseResult[] = []
@@ -842,7 +842,7 @@ async function runTurnThrough(
    * Whether some clause of this turn FAILED — the one fact the D-11 stop gate and the aggregate
    * below both read.
    *
-   * ITS PRODUCER IS THE RECEIPT VOCABULARY, NOT THE ENDING (399.1-09, D-12). It was set in the
+   * ITS PRODUCER IS THE RECEIPT VOCABULARY, NOT THE ENDING. It was set in the
    * dispatch catch, so the only failure it could see was a thrown one — and every arm of a typed
    * refusal RETURNS. That is the same derivation RC-1b got wrong one layer down, and it stayed
    * wrong here after the receipt itself was fixed: a `failed` receipt sat under a `completed`
@@ -850,7 +850,7 @@ async function runTurnThrough(
    * now, from `receipt.status`, so a thrown failure and a returned one are one word to this loop.
    */
   let failed = false
-  // 398-13 (D-21): what the ops PRODUCED, on its way to the turn's `answer` field. The receipt
+  // what the ops PRODUCED, on its way to the turn's `answer` field. The receipt
   // charter is untouched — see the charter note at the push site below.
   const answerLines: string[] = []
   // The sentence the route wants a refused turn to carry, set by `routeWriteTest` before it answers
@@ -862,14 +862,14 @@ async function runTurnThrough(
     // The mint follows the stage that PROVED the binding, which the verdict states (Pitfall 1).
     // Re-deriving it by matching the action back against the mapper set would answer `human`
     // for any planner-produced call to an op the table also knows, and the receipt would then
-    // record a model-originated call as a person's (391 D-06, T-392-23). 2026-10-01 (432-20/21,
+    // record a model-originated call as a person's. 2026-10-01 (432-20/21,
     // D-12): no op withholds anything by origin any more; the origin is attribution.
     const caller = deps.mint.forStage(step.source)
     let receipt: ClauseReceipt
     if (failed) {
       // `not-run` is a fact, not an absence: a person reading the receipt must be able to tell
-      // a clause nobody attempted from one that was attempted and failed (D-11). It is LOGGED
-      // like every other receipt, because "the log is the triage report" (D-18) is false the
+      // a clause nobody attempted from one that was attempted and failed. It is LOGGED
+      // like every other receipt, because "the log is the triage report" is false the
       // moment the log carries only the clauses that got as far as a call.
       receipt = {
         clause: step.clause.text,
@@ -894,7 +894,7 @@ async function runTurnThrough(
         // read by one id-matching summariser, and the status below was the literal `'executed'` — so
         // the only fact this receipt could report about a returning op was that it had returned.
         // Every arm of a typed refusal returns, which is how a credential-blocked config mutation
-        // came to render `executed` in green over a file that was never written (G-399-2).
+        // came to render `executed` in green over a file that was never written.
         const answered = await deps.invoke(
           step.functionId,
           stampSessionFacts(step.functionId, step.args, sessionId),
@@ -977,7 +977,7 @@ async function runTurnThrough(
         }
       }
     }
-    // THE ONE DERIVATION (399.1-09, D-12). Every receipt this loop mints passes here — the
+    // THE ONE DERIVATION. Every receipt this loop mints passes here — the
     // catch's, the fold's, and the `not-run` the gate itself writes — so the flag reads the
     // vocabulary rather than the control flow, and the gate above and the aggregate below become
     // honest without either of them changing a line.
@@ -1000,14 +1000,14 @@ async function runTurnThrough(
     })
   }
 
-  // The answer rides the completed turn (CHAT-01). A turn the model answered in prose reaches
+  // The answer rides the completed turn. A turn the model answered in prose reaches
   // here with an empty plan, so the loop above ran zero times and `receipts` is empty — which
   // is the assertion "answering executes nothing" is made of, rather than a claim about it.
   // The directive lines lead, because they are what the person asked for FIRST in the
   // utterance order this whole engine preserves, and because a `/model` confirmation printed
   // after the receipts of the clauses that ran under the old model would misreport which model
   // ran them.
-  // 398-13 (D-21): directives lead (the existing law), then what the OPS produced, then the
+  // directives lead (the existing law), then what the OPS produced, then the
   // planner's prose. An explain answer that reached nobody was XPLN-02's last unwired inch.
   const answer = [...directiveLines, ...answerLines, verdict.answer].filter(
     (line): line is string => line !== undefined && line !== '',

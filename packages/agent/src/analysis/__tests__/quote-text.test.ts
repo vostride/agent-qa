@@ -1,4 +1,4 @@
-// The D-12 quote sanitizer: rendering noise out, meaning in (Phase 406, DETL-04).
+// The D-12 quote sanitizer: rendering noise out, meaning in.
 //
 // The 399 seeded-red sentence embedded Playwright's raw error verbatim — SGR escapes, a
 // "Call log" block, embedded newlines — inside `observed (step 1): "…"`, and it was

@@ -23,7 +23,7 @@
 # encoding the adversarial shape is in the same family as the mutation differentials: the claim is
 # that the guard refuses whatever the model says.
 #
-# `fail_closed`, so the ceiling's `should_execute` denominators do not move (D-15): 11 hermetic,
+# `fail_closed`, so the ceiling's `should_execute` denominators do not move: 11 hermetic,
 # 3 live, before and after.
 id: run-42-and-summarise-extra-call
 class: compound

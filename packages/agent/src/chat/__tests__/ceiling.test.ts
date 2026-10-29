@@ -1,4 +1,4 @@
-// THE CEILING'S ARITHMETIC (Phase 392 plan 09, CHAT-03 / D-15).
+// THE CEILING'S ARITHMETIC.
 //
 // A GATE THAT CANNOT FAIL IS WORSE THAN NO GATE, so the two things this file proves are that the
 // comparison FAILS when it should and PASSES at the boundary — in that order of importance. Every

@@ -1,4 +1,4 @@
-// Stage 3's whole contract (Phase 392 plan 07 — D-09 / D-10 / D-11 / D-12).
+// Stage 3's whole contract.
 //
 // THE OVERRIDE CLAIM IS A DIFFERENTIAL, NOT AN ASSERTION, and this file is written to make that
 // structural. "The mapper's verdict beats the model's" is two separate claims — one about the
@@ -292,7 +292,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
 
       expect(verdict.kind).toBe('unhandled')
       if (verdict.kind !== 'unhandled') return
-      // The layout MOVED in 394-37 (WR-03) and the wording did not: the host's two claims are made
+      // The layout MOVED in 394-37 and the wording did not: the host's two claims are made
       // first and the attributed prose closes the message, bounded by `JSON.stringify` rather than
       // by bare quotes the payload can spell. On a quote-free payload like this one the JSON
       // literal is the same bytes plus its own delimiters, which is why this fixture could never
@@ -421,7 +421,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
     })
   })
 
-  // CR-03, the gap round (392-11). An `answer_only` USED TO COVER EVERY UNBOUND CLAUSE, because the
+  // CR-03, the gap round. An `answer_only` USED TO COVER EVERY UNBOUND CLAUSE, because the
   // merge read `planned.answer` — one model-controlled fact about the WHOLE turn — as consent for
   // each clause it had no binding for. The tests below are written from the dangerous direction: the
   // unbound clause is an ACTION, and the observable that separates a silent drop from an answered
@@ -684,7 +684,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
       const answer = verdict.answer ?? ''
       expect(answer).toContain('ANSWER-ONE')
       expect(answer).toContain('ANSWER-TWO')
-      // Utterance order is meaning here as much as it is in the plan (D-11): a person reading two
+      // Utterance order is meaning here as much as it is in the plan: a person reading two
       // answers to two questions needs them in the order they asked.
       expect(answer.indexOf('ANSWER-ONE')).toBeLessThan(answer.indexOf('ANSWER-TWO'))
     })

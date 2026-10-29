@@ -23,7 +23,7 @@
 # unregistered, the `capabilityCatalog` dep unbound at the composition root, or the planner no
 # longer projecting registry ops as tools.
 #
-# UNRUN AT THE COMMIT THAT ADMITTED IT (398-07): `AGENT_QA_LIVE_CHAT_CONFIG` was unset, so this row
+# UNRUN AT THE COMMIT THAT ADMITTED IT: `AGENT_QA_LIVE_CHAT_CONFIG` was unset, so this row
 # is corpus-pinned and its first live execution is its first measurement.
 id: how-do-i-explain
 class: planner

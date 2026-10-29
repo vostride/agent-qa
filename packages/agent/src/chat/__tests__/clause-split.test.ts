@@ -97,7 +97,7 @@ describe('splitClauses — quote protection', () => {
 })
 
 /**
- * Bracket protection — `/fn`'s JSON body (2026-08-16, Phase 397 plan 04).
+ * Bracket protection — `/fn`'s JSON body.
  *
  * FOUND BY DRIVING THE SHIPPED REPL, not by reading the file. `/help` advertises
  * `/fn <op> [json]` as "invoke any registered function by id — every capability, one branch", and

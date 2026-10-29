@@ -82,7 +82,7 @@ export interface DeclaredContracts {
  * projection. It reproduces the discipline `INVOCATION_SAMPLES` already applies to calling.
  */
 export const CONTRACTS_BY_ID: Readonly<Record<string, DeclaredContracts>> = {
-  // 416 D-17: pair the new read's live contracts with its registry projection.
+  // pair the new read's live contracts with its registry projection.
   'knowledge.gates.list': knowledgeGatesListSpec,
   // 392 D-24. Paired the day it is registered (the growth seam working as designed). Its OUTPUT
   // is the first in this map carrying an ARRAY of per-clause receipts beside an optional refusal
@@ -104,7 +104,7 @@ export const CONTRACTS_BY_ID: Readonly<Record<string, DeclaredContracts>> = {
   // receipt, which is the one claim the honesty funnel's side counters exist to contradict.
   'authoring.draft.edit': authoringDraftEditSpec,
   'authoring.draft.write': authoringDraftWriteSpec,
-  // 394-07 D-12: the funnel read's contracts, on its siblings' footing. The map is compared for
+  // the funnel read's contracts, on its siblings' footing. The map is compared for
   // exact key-set equality against the registry, so this row is what stops a capability joining
   // the layer without its contracts being reachable for the projection relation.
   'authoring.funnel.get': authoringFunnelGetSpec,
@@ -182,7 +182,7 @@ export const CONTRACTS_BY_ID: Readonly<Record<string, DeclaredContracts>> = {
   'runs.artifact': runsArtifactSpec,
   'runs.detail': runsDetailSpec,
   'runs.evidence': runsEvidenceSpec,
-  // 419 GATE3-01: project the real mark validators through the same inert-declaration law.
+  // project the real mark validators through the same inert-declaration law.
   'runs.mark': runsMarkSpec,
   'runs.mark.preview': runsMarkPreviewSpec,
   'runs.marks.history': runsMarksHistorySpec,
@@ -201,7 +201,7 @@ export const CONTRACTS_BY_ID: Readonly<Record<string, DeclaredContracts>> = {
   // projection is exactly where a published catalogue could lose the `none` arm, leaving a caller
   // with no declared way to learn that a target has no live preview at all.
   'runs.liveurl': runsLiveUrlSpec,
-  // 2026-09-25 (428 D-07): the editor subject's minter, paired the day it is registered. Its output
+  // the editor subject's minter, paired the day it is registered. Its output
   // reuses runs.liveurl's `stream` union, so the `none` arm is checked here a second time.
   'editor.liveurl': editorLiveUrlSpec,
   // 388 D-14. Paired here the day it is registered, which is exactly what the growth seam is
@@ -209,7 +209,7 @@ export const CONTRACTS_BY_ID: Readonly<Record<string, DeclaredContracts>> = {
   // unchecked projection would have been the first place a `notification` could quietly stop
   // appearing in a published catalogue.
   'runs.postprocessing': runsPostProcessingSpec,
-  // 391 D-16/D-18: the digest's output is the SECOND contract here with a nested optional
+  // the digest's output is the SECOND contract here with a nested optional
   // object (`chain.outcome`) and the first with an imported nested array schema — the analysis
   // cluster view, borrowed rather than restated — so an unchecked projection would be the first
   // place a borrowed sub-contract could quietly stop appearing in a published catalogue.

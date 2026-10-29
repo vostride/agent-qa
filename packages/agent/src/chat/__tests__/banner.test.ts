@@ -1,4 +1,4 @@
-// The chat-open banner: one read, one line, and nothing that keeps running (Phase 392 plan 08, D-23).
+// The chat-open banner: one read, one line, and nothing that keeps running.
 //
 // WHAT IS BEING MEASURED is the READ DISCIPLINE, not the wording. 388 D-14's one-read law and D-23
 // together say a banner is a thing that happens once when a person opens a conversation — so the
@@ -10,7 +10,7 @@
 // REPL, and the read it could not do is not the person's problem at the moment they typed
 // `agent-qa chat`.
 //
-// RE-SPELLED 2026-10-01 (432-17, D-05/D-22): the pending-proposals half of the banner is deleted
+// RE-SPELLED 2026-10-01: the pending-proposals half of the banner is deleted
 // with the inbox. The cells that named pending proposals now pin that the banner never reads the
 // retired `proposals.list` id and never mentions proposals; the one-read and silence claims keep
 // their names over the digest half.
@@ -88,7 +88,7 @@ describe('the chat banner reads once and says at most one thing', () => {
     })
 
     // NOT an empty string and not "nothing pending": a REPL that printed a line on every open
-    // would train a person to skip the line, which is the failure mode a banner has (388 D-14).
+    // would train a person to skip the line, which is the failure mode a banner has.
     expect(line).toBeUndefined()
   })
 
@@ -130,7 +130,7 @@ describe('the chat banner reads once and says at most one thing', () => {
   })
 
   it('says nothing when only the digest half is refused', async () => {
-    // RE-SPELLED (432-17): there is no second half left to name, so a refused digest is silence.
+    // RE-SPELLED: there is no second half left to name, so a refused digest is silence.
     const { line } = await run({
       [RUNS_LIST_FUNCTION_ID]: () => [RUN_SUMMARY],
     })

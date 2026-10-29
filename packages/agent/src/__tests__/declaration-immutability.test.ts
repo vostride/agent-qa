@@ -13,15 +13,15 @@
 // PROJECTION, and the live validator stays on `FunctionSpec`, which never leaves the
 // functions directory. The sweeps below are written from the SHAPE of the view rather than
 // a list of field names, because a guard generated out of the implementation's own
-// vocabulary is exactly what left the previous round blind to its own open half (WR-05).
+// vocabulary is exactly what left the previous round blind to its own open half.
 //
-// 2026-10-01 (432-20, D-10/D-12): the escalation CR-04 closed — vacating `requiredScopes` through
+// the escalation CR-04 closed — vacating `requiredScopes` through
 // a listing — has nothing left to reach. Declarations carry no permission metadata at all (the
 // registry omits `requiredScopes` and `requiresHumanOrigin` even while an old spec still spells
 // them), and `invokeFunction` reads none. The freezing claims survive on the risk descriptor and
 // the spec singleton, and C432-DECLARATION-KEYS pins the exact runtime key set beside its type.
 //
-// 2026-10-02 (432-39, D-10/D-12): the two members are DELETED from `FunctionMetadata`, and with
+// the two members are DELETED from `FunctionMetadata`, and with
 // them from every type that extends it. C432-DECLARATION-KEYS now pins the exact key set of
 // `FunctionMetadata`, `FunctionSpec` and `FunctionDeclaration` at compile time, beside the exact
 // runtime key set of every real declaration. Where a cell proves an old key is not passed on, the
@@ -55,7 +55,7 @@ import { CONTRACTS_BY_ID, expectProjectionDerivedFrom } from './projection-relat
 
 /**
  * Every port resolves, nothing reaches a host API. The record exists because `FunctionDeps` is
- * required and non-partial (D-09).
+ * required and non-partial.
  */
 function fakeDeps(): FunctionDeps {
   return {
@@ -96,7 +96,7 @@ function buildRegistry() {
   })
 }
 
-// 2026-10-02 (432-39, D-02/D-12): the scope set and safe-mode flag are deleted from the caller; the
+// the scope set and safe-mode flag are deleted from the caller; the
 // two records keep them as smuggles (cast) so "zero scope" and "fully granted" stay different
 // records, and every cell below still shows neither is read.
 const ZERO_SCOPE_CALLER = {
@@ -265,7 +265,7 @@ describe('the disclose presence flag is projected from the spec', () => {
     return internals.specs
   }
 
-  // RE-SPELLED 2026-10-02 (432-42, D-14/D-15) under the same title: the per-op `disclose` method and
+  // RE-SPELLED 2026-10-02 under the same title: the per-op `disclose` method and
   // the declaration's `discloses` flag are deleted (the confirm prompt they fed is gone, 432-19), so
   // the relation this cell pinned is now an absence on both sides: no registered spec defines the
   // method, and no declaration lists the flag.
@@ -285,7 +285,7 @@ describe('the disclose presence flag is projected from the spec', () => {
     expect(flagged, 'a declaration lists the retired discloses flag').toEqual([])
   })
 
-  // RE-SPELLED 2026-10-02 (432-42, D-14) under the same title: a legacy spec object that still
+  // RE-SPELLED 2026-10-02 under the same title: a legacy spec object that still
   // carries a `disclose` method (smuggled past the deleted member with a cast) yields a declaration
   // with no `discloses` key at all — the registry builds the view field by field.
   it('omits the key entirely for an op with no disclose — absent, never false or undefined', () => {
@@ -309,7 +309,7 @@ describe('the disclose presence flag is projected from the spec', () => {
 })
 
 describe('declaration views are deeply frozen', () => {
-  // RE-SPELLED 2026-10-01 (432-20, D-12) from 'freezes every listed declaration, its
+  // RE-SPELLED 2026-10-01 from 'freezes every listed declaration, its
   // requiredScopes, and its risk descriptor'. Declarations carry no `requiredScopes`.
   it('freezes every listed declaration and its risk descriptor', () => {
     const declarations = buildRegistry().list(FULLY_GRANTED)
@@ -321,7 +321,7 @@ describe('declaration views are deeply frozen', () => {
     }
   })
 
-  // RE-SPELLED 2026-10-01 (432-20, D-12) from 'kills the CR-04 escalation: the repro write throws
+  // RE-SPELLED 2026-10-01 from 'kills the CR-04 escalation: the repro write throws
   // and the caller is still refused'. There is no scope requirement on a listing to vacate and no
   // refusal to survive it: the write throws because the view is frozen, and config.get is served.
   it('a write to the listed view throws and there is no requirement to vacate', async () => {
@@ -347,7 +347,7 @@ describe('declaration views are deeply frozen', () => {
     expect(declaration.risk.name).toBe('fn:config.get')
   })
 
-  // RE-SPELLED 2026-10-01 (432-20, D-12): the singleton's retired `requiredScopes` is no longer
+  // RE-SPELLED 2026-10-01: the singleton's retired `requiredScopes` is no longer
   // frozen or read; the spec object and its risk descriptor still are.
   it('freezes the REGISTERED singleton spec, not only the copied view', () => {
     buildRegistry()
@@ -359,7 +359,7 @@ describe('declaration views are deeply frozen', () => {
     }).toThrow(TypeError)
   })
 
-  // RE-SPELLED 2026-10-01 (432-20, D-12) from 'contains the attempt to nothing: a second registry
+  // RE-SPELLED 2026-10-01 from 'contains the attempt to nothing: a second registry
   // still lists the real requirement'. A second registry lists the same permission-free view.
   it('contains the attempt to nothing: a second registry lists the same permission-free view', async () => {
     const attacked = buildRegistry()
@@ -377,7 +377,7 @@ describe('declaration views are deeply frozen', () => {
   })
 })
 
-// ---- C432-DECLARATION-KEYS (432-20, D-10/D-12) --------------------------------------------------
+// ---- C432-DECLARATION-KEYS --------------------------------------------------
 
 /** Compile-time half: the declaration TYPE cannot carry either retired key. Checked by typecheck. */
 type DeclarationCarries<Key extends string> = Key extends keyof FunctionDeclaration ? true : false
@@ -385,7 +385,7 @@ const DECLARATION_TYPE_HAS_SCOPES: DeclarationCarries<'requiredScopes'> = false
 const DECLARATION_TYPE_HAS_HUMAN_ORIGIN: DeclarationCarries<'requiresHumanOrigin'> = false
 
 /**
- * 2026-10-02 (432-39, D-10/D-12): the EXACT key sets of the three metadata types, compile-checked.
+ * the EXACT key sets of the three metadata types, compile-checked.
  *
  * `ExactKeys` is a mutual-assignability equality over `keyof`, so a key added to a type without
  * being added here — or listed here without the type carrying it — fails `pnpm typecheck`. The two
@@ -420,14 +420,14 @@ const REQUIRED_DECLARATION_KEYS = [
   'risk',
   'summary',
 ] as const
-// 2026-10-02 (432-42, D-14): `discloses` left the optional flags with the per-op disclosure.
+// `discloses` left the optional flags with the per-op disclosure.
 const OPTIONAL_DECLARATION_FLAGS = ['classifies', 'rendersResult'] as const
 
 describe('runtime declarations carry no permission metadata', () => {
   it('pins the exact key set of every real declaration, and no scope or origin key', () => {
     expect(DECLARATION_TYPE_HAS_SCOPES).toBe(false)
     expect(DECLARATION_TYPE_HAS_HUMAN_ORIGIN).toBe(false)
-    // 432-39: the three metadata types' exact key sets (compile-checked above), and neither retired
+    // the three metadata types' exact key sets (compile-checked above), and neither retired
     // key in any of them.
     expect([METADATA_TYPE_IS_EXACT, SPEC_TYPE_IS_EXACT, DECLARATION_TYPE_IS_EXACT])
       .toEqual([true, true, true])
@@ -453,7 +453,7 @@ describe('runtime declarations carry no permission metadata', () => {
   })
 
   it('omits the retired keys even where the registered spec still spells them', () => {
-    // 2026-10-02 (432-39, D-10/D-12): no registered spec spells either key — the last left by 432-27
+    // no registered spec spells either key — the last left by 432-27
     // — and the metadata type no longer declares them, so the real registry half is an ordinary
     // absence check. The synthetic spec below SMUGGLES both keys past the type with a cast, the only
     // way an old spec object could still carry them, and is what keeps this cell meaningful: the

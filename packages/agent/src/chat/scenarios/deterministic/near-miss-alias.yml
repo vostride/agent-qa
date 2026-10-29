@@ -1,6 +1,6 @@
 # THE BOUNDARY PIN (CHAT-01 edge). A misspelled alias does NOT resolve at stage 1 — there is no
 # partial match, no nearest-neighbour, no confidence threshold. Stage-1 resolution overrides a
-# model's plan (D-12), and an overriding path that guesses is worse than no override at all. The
+# model's plan, and an overriding path that guesses is worse than no override at all. The
 # clause flows onward; in this hermetic lane no planner is bound, so the turn is refused by name.
 id: near-miss-alias
 class: deterministic

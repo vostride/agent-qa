@@ -1,6 +1,6 @@
-// The write_test → scaffold → author handoff, in ONE turn (395-08, D-14/D-15 · CFGM-05).
+// The write_test → scaffold → author handoff, in ONE turn.
 //
-// 2026-09-30, 432-11 D-05/D-14: THE SCAFFOLD WRITES IN ITS OWN CALL. There is no proposal, no
+// THE SCAFFOLD WRITES IN ITS OWN CALL. There is no proposal, no
 // `config.proposal.apply` and no confirm between the scaffold and the authoring dispatch; the
 // receipt of what was written is rendered where a surface exists, and a surface that is absent or
 // broken no longer stops the turn. The cells that pinned the confirm are re-spelled in place to the
@@ -38,7 +38,7 @@
 //                         names both continuations without echoing the words back as an origin.
 //   (R8) blocked/refused— a scaffold that answered `refused` and a chain that dispatched authoring
 //                         anyway. The proposal's own detail is what the turn reports. Its fixture's
-//                         refusal is one the REAL op can produce in this project class (395-12): a
+//                         refusal is one the REAL op can produce in this project class: a
 //                         canned `already-configured` would be a refusal a zero-target project can
 //                         no longer earn, which is the vacuity (R3/R4) was just repaired for.
 //   (R9) unbound        — a host that binds no vocabulary. The route must not run at all, so the
@@ -86,7 +86,7 @@ import {
   CONFIG_PROJECT_SCAFFOLD_FUNCTION_ID,
   configProjectScaffoldSpec,
 } from '../../functions/ops/config-project-scaffold.js'
-// 2026-10-01 (432-17): the config apply op is deleted with the inbox; its retired id is spelled here
+// the config apply op is deleted with the inbox; its retired id is spelled here
 // so the cells keep pinning that the scaffold route never dispatches it.
 const CONFIG_PROPOSAL_APPLY_FUNCTION_ID = 'config.proposal.apply'
 import {
@@ -101,7 +101,7 @@ import type { TurnEngineDeps } from '../turn-engine.js'
 import { toToolName } from '../tool-names.js'
 import type { ChatBindingStage, PlannerStagePort } from '../ports.js'
 
-// 2026-10-01 (432-28, D-12): the retired `grantedScopes`, `safeMode` and `sessionId` caller fields
+// the retired `grantedScopes`, `safeMode` and `sessionId` caller fields
 // are dropped; nothing read them.
 const PLANNER_CALLER: FunctionCaller = {
   surface: 'chat',
@@ -140,7 +140,6 @@ interface Harness {
   readonly inputs: { functionId: string; input: unknown }[]
   /**
    * Every mid-turn render, each carrying a SNAPSHOT of `ordering` taken at the moment it happened
-   * (395-13).
    *
    * The snapshot rather than a marker pushed into `ordering` itself, and that is deliberate:
    * `ordering` keeps recording INVOCATIONS ONLY, so every expected array in the cells below is the
@@ -157,7 +156,7 @@ interface Harness {
    */
   readonly answers: { functionId: string; answer: unknown }[]
   /**
-   * The session events THIS run wrote, live (395-17).
+   * The session events THIS run wrote, live.
    *
    * Exposed because the display-only claim has a second half nothing measured: D-14 says a
    * presentation port shows and never decides, and "never decides" includes the log. The harness
@@ -246,7 +245,7 @@ function inspectFacts(configText: string, paths: readonly string[]): readonly Co
   })
 }
 
-/** One publication the direct writer received (432-11): the files, by path. */
+/** One publication the direct writer received: the files, by path. */
 interface Published {
   readonly paths: readonly string[]
 }
@@ -351,7 +350,7 @@ function scaffoldOpFixture(options: {
 /**
  * What a broken display port says when it fails.
  *
- * HOISTED so a cell can assert the refusal sentence does NOT carry it (395-19 · T-395-53). A
+ * HOISTED so a cell can assert the refusal sentence does NOT carry it. A
  * refusal derived from the failed port would be the port gaining a voice in the turn through the
  * back door of an error path — the thing RULING 2 closed, re-opened by the arm that replaced it.
  */
@@ -362,14 +361,14 @@ function harness(options: {
   readonly targets?: readonly string[]
   readonly scaffoldAnswer?: unknown
   /**
-   * Drive the REAL registered `config.project.scaffold` spec instead of a canned answer (395-12).
+   * Drive the REAL registered `config.project.scaffold` spec instead of a canned answer.
    *
    * The cell that pins the chain's ORDER is the one cell in this file whose claim depends on what
    * the scaffold actually answers, so it is the one cell that may not be told the answer.
    */
   readonly realScaffold?: ScaffoldOpFixture
   /**
-   * Bind NO presentation port, which is every headless host (395-13).
+   * Bind NO presentation port, which is every headless host.
    *
    * Present by default, because the surface under test is the one production binds; this flag is
    * the absent-safe half, and it is a flag rather than a second harness so both hosts run the same
@@ -377,7 +376,7 @@ function harness(options: {
    */
   readonly noPresent?: boolean
   /**
-   * Bind a present that FAILS, in whichever of the port type's two arms is named (395-17).
+   * Bind a present that FAILS, in whichever of the port type's two arms is named.
    *
    * `(text) => void | Promise<void>` can fail synchronously or by rejecting, and a host binding a
    * real stream can do either — so the third state of this port (bound, and broken) gets a double
@@ -436,7 +435,7 @@ function harness(options: {
     reconcile: deterministicOverrideStrategy,
     sessionLog,
     mint: {
-      // 432-39 (D-02/D-12): the port takes no session; the caller carries none.
+      // the port takes no session; the caller carries none.
       forStage: (_stage: ChatBindingStage): FunctionCaller => PLANNER_CALLER,
     },
     invoke: async (functionId, input) => {
@@ -449,7 +448,7 @@ function harness(options: {
       return { payload: answer, verdict: { status: 'executed' as const, outcome: '' }, foldLines: [] }
     },
     planner,
-    // 395-13 D-14: the surface a person reads mid-turn. BOUND BY DEFAULT, because the host under
+    // the surface a person reads mid-turn. BOUND BY DEFAULT, because the host under
     // test is the one production composes; `noPresent` is the absent-safe half.
     ...(options.noPresent === true
       ? {}
@@ -578,7 +577,7 @@ describe('one turn: detect, scaffold, author', () => {
   })
 
   it('(R3/R4) scaffolds through the REAL op, which writes in its own call, and authors AFTER it', async () => {
-    // THE FIXTURE IS THE FIX (395-12). An EMPTY configured set, and a committed configuration that
+    // THE FIXTURE IS THE FIX. An EMPTY configured set, and a committed configuration that
     // declares a model and ZERO targets — the class that can reach a chat turn at all. The
     // invocation reaches `configProjectScaffoldSpec` and `scaffoldConfigProject` for real; nothing
     // here tells it what to answer.
@@ -615,7 +614,7 @@ describe('one turn: detect, scaffold, author', () => {
   })
 
   it('(R5/R6) authors NOTHING when the scaffold\'s write stopped part way, and says where', async () => {
-    // TARGETS EMPTY SINCE 395-12 (WR-05): the from-zero class is the one in which a scaffold is
+    // TARGETS EMPTY SINCE 395-12: the from-zero class is the one in which a scaffold is
     // offered at all. 432-11: there is no confirm to decline; the one way the chain stops after the
     // scaffold is that the scaffold did not finish writing.
     const detail = 'wrote .gitignore, then stopped: agent-qa.config.yaml changed after this call read '
@@ -658,7 +657,7 @@ describe('one turn: detect, scaffold, author', () => {
   })
 
   it('(R8) reports the scaffold\'s own refusal and dispatches nothing', async () => {
-    // TARGETS EMPTY, AND THE REFUSAL IS ONE THE REAL OP CAN PRODUCE HERE (395-12). 395-02's
+    // TARGETS EMPTY, AND THE REFUSAL IS ONE THE REAL OP CAN PRODUCE HERE. 395-02's
     // `unrenderable-diff` is reachable from zero: it is what the op answers when the project's own
     // `.gitignore` holds bytes that are not valid UTF-8.
     const test = harness({
@@ -679,7 +678,7 @@ describe('one turn: detect, scaffold, author', () => {
   // 2026-10-03 (quick 261003-cpv, 432 review WR-03): every blocked or no-change scaffold answers
   // with its own reason. The fallback "this project has no configuration … name the site" was wrong
   // here: the person named the site, and the scaffold said why it wrote nothing.
-  // 2026-10-14 (441-18, D-15): 'a guardrail-blocked scaffold says the guardrail found a secret, and
+  // 'a guardrail-blocked scaffold says the guardrail found a secret, and
   // where' is deleted with the route's guardrail branch; no scaffold is blocked for a secret.
   it('a schema-blocked scaffold says the result would not be valid, with the issue',
     async () => {
@@ -775,7 +774,7 @@ describe('one turn: detect, scaffold, author', () => {
 
   it('(R12) renders THIS change — summary, files, true diff — AFTER the scaffold wrote it and BEFORE authoring',
     async () => {
-      // 432-11: the render is a RECEIPT of a change already on disk, shown once, between the write
+      // the render is a RECEIPT of a change already on disk, shown once, between the write
       // and the authoring dispatch that builds on it.
       //
       // THE REAL OP ANSWERS IT. Nothing here tells the scaffold what to say, so what is compared is
@@ -831,7 +830,7 @@ describe('one turn: detect, scaffold, author', () => {
 
   it('(R13′) an UNBOUND present does not stop the route: the change is written and authoring follows',
     async () => {
-      // 432-11 D-14: the render used to be a PRECONDITION of an approval (395-22 · CR-03). There is
+      // the render used to be a PRECONDITION of an approval. There is
       // no approval now: the scaffold wrote the files in its own call, so a host with no surface —
       // every headless `ask` — logs the receipt and authors, exactly as a host with one does.
       const scaffoldOp = scaffoldOpFixture({ configText: ZERO_TARGET_CONFIG })
@@ -910,7 +909,7 @@ describe('one turn: detect, scaffold, author', () => {
     expect(result.status).toBe('fail_closed')
     expect(test.ordering).toEqual([CONFIG_PROJECT_SCAFFOLD_FUNCTION_ID])
     expect(test.presented).toEqual([])
-    // RE-SPELLED 2026-10-03 (quick 261003-cpv, WR-03): its own sentence, not "name the site".
+    // RE-SPELLED 2026-10-03: its own sentence, not "name the site".
     expect(result.unhandled?.reason).toContain('without naming a file it wrote')
     expect(result.unhandled?.reason).not.toBe(WRITE_TEST_UNCONFIGURED_DETAIL)
   })

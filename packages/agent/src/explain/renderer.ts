@@ -173,7 +173,7 @@ export interface ExplainRenderContext {
    * The person's question — used ONLY to rank the abstention's closest capabilities.
    *
    * The renderer is pure: it does not log this, and `packages/agent` could not if it wanted to.
-   * The coverage-log append is `recordAbstained` on the host port (D-11).
+   * The coverage-log append is `recordAbstained` on the host port.
    */
   readonly query: string
   readonly closestCount?: number
@@ -212,7 +212,7 @@ export function renderExplainOutput(
   for (const citedRowId of citation.citedRowIds) {
     const row = byRowId.get(citedRowId)
     // A ghost id is not a bad answer to repair — there is nothing to quote, so the whole output
-    // abstains (T-398-10). Returning here rather than collecting is what makes "no partial answer"
+    // abstains. Returning here rather than collecting is what makes "no partial answer"
     // a property of the control flow instead of a later filter someone can relax.
     if (row === undefined) return abstain(context.query, rows, closestCount, docsGapLogged)
     if (seen.has(citedRowId)) continue

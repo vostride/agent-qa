@@ -1,4 +1,4 @@
-// The D-12 quote cleaner: rendering noise out, meaning in (Phase 406, DETL-04).
+// The D-12 quote cleaner: rendering noise out, meaning in.
 //
 // The 399 seeded-red sentence embedded Playwright's raw error verbatim — SGR escapes, a
 // "Call log" block, embedded newlines — inside `observed (step 1): "…"`, and it read as an
@@ -16,7 +16,7 @@
 //
 // WHAT THIS IS NOT. It is not a masker. A declared `[secret:<name>]` marker and an old
 // `<SECRET_n>` placeholder are ordinary printable text here and cross byte-identical; masking
-// happens before anything is recorded (441 D-28). Sanitization also happens at RENDER time only,
+// happens before anything is recorded. Sanitization also happens at RENDER time only,
 // never at authorship: `validateGroundingQuote` still checks the quote against the raw artifact bytes,
 // so a display rule can never reject a verdict that honestly quoted what was captured.
 

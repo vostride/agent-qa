@@ -131,7 +131,7 @@ describe('the corpus manifest is versioned and internally coherent', () => {
   })
 
   it('records the config-edit arrival by name: an ADMITTED live cell, not a flipped one', () => {
-    // THE SAME LAW, EXECUTED THE OTHER WAY (395-09, D-16 / 392 D-08). The size pin above says the
+    // THE SAME LAW, EXECUTED THE OTHER WAY. The size pin above says the
     // corpus grew; this says WHAT it grew by, so a build that dropped the cell reds naming the
     // capability rather than reporting an off-by-one about a set.
     //

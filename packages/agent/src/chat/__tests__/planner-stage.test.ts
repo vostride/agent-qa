@@ -1,4 +1,4 @@
-// Stage 2 produces a PLAN and nothing else (Phase 392 plan 04, CHAT-01 / CHAT-06 / D-10).
+// Stage 2 produces a PLAN and nothing else.
 //
 // WHAT THE STUB MODEL IN THIS FILE IS, AND WHAT IT IS NOT. It is a TYPE-LEVEL fake of the
 // TRANSPORT seam: an object implementing the SDK's language-model interface that answers with
@@ -37,7 +37,7 @@ type StubLanguageModel = Extract<ChatLanguageModel, { specificationVersion: 'v3'
 type StubCallOptions = Parameters<StubLanguageModel['doGenerate']>[0]
 type StubGenerateResult = Awaited<ReturnType<StubLanguageModel['doGenerate']>>
 
-// 2026-10-01 (432-28, D-12): the retired `grantedScopes` and `safeMode` fields are dropped; nothing
+// the retired `grantedScopes` and `safeMode` fields are dropped; nothing
 // read them.
 const CALLER: FunctionCaller = {
   surface: 'chat',

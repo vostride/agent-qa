@@ -9,7 +9,7 @@
 # what this product can do. "What can you do" had no reachable op, so the only honest outcomes were
 # `answer_only` prose out of model memory or `mark_unhandled`, and a cell claiming otherwise would
 # have been asserting a capability into existence. 398 registers `agent.explain`, the planner binds
-# every registry op 1:1 (392 D-07), and the question is routable.
+# every registry op 1:1, and the question is routable.
 #
 # THE PHRASING IS AN ACTION, and the distinction is one this corpus paid for. `list-recent-runs` was
 # re-authored after its first live execution because, asked as a QUESTION about the project, the
@@ -30,12 +30,12 @@
 # stopped projecting registry ops as tools.
 #
 # THIS CELL NEEDS NO CREDENTIAL BEYOND THE LANE'S OWN. `agent.explain` carries a read-only,
-# recognized risk descriptor, and since 432 (D-12/D-15) no op declares a scope and nothing gates a
+# recognized risk descriptor, and since 432 no op declares a scope and nothing gates a
 # call by execution context, so it runs in every context like every other op (re-spelled
 # 2026-10-02, 432-42). It starts nothing and writes nothing but one line into the lane's own temp
 # `.agent-qa/explain-coverage.jsonl`, which is removed with the temp root.
 #
-# UNRUN AT THE COMMIT THAT ADMITTED IT (398-07). The live lane is gated on
+# UNRUN AT THE COMMIT THAT ADMITTED IT. The live lane is gated on
 # `AGENT_QA_LIVE_CHAT_CONFIG`, which was unset in that session, so this row is corpus-pinned and not
 # yet measured. The first live execution is its first measurement, and — as with `list-recent-runs`
 # — if the model answers in prose rather than routing, the utterance is what gets re-authored, never

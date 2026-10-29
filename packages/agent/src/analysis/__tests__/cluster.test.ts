@@ -144,7 +144,7 @@ describe('deterministic presentation', () => {
     ])
     expect(Object.keys(cluster.representative).sort()).toEqual(['testIndex'])
     expect(Object.keys(cluster.members[0]!).sort()).toEqual(['testId', 'testIndex'])
-    // No short-ID, no address — the fingerprint value is the only key (D-16).
+    // No short-ID, no address — the fingerprint value is the only key.
     expect(canonicalJson(clusters)).not.toContain('agentqa://')
   })
 })

@@ -1,4 +1,4 @@
-// Reading one scenario back (Phase 392 plan 09, CHAT-02).
+// Reading one scenario back.
 //
 // A scenario file is committed DATA that decides whether a gate passes, so the step between the
 // bytes on disk and the assertion has to be a validation rather than a cast. This module is that

@@ -1,4 +1,4 @@
-// The planner's action vocabulary (Phase 392 plan 04, D-07 / D-08 / D-10).
+// The planner's action vocabulary.
 //
 // THE TOOLSET IS THE REGISTRY WALK. Every registered op projects 1:1 to a tool, plus exactly two
 // orchestration meta-tools, and nothing else exists. That is the always-send-all law expressed as
@@ -15,7 +15,7 @@
 // cannot get wrong — there is no callback to invoke, so there is no ordering to remember.
 //
 // THE WALK CONSUMES DECLARATIONS, NEVER SPECS. A declaration is capability-free by construction
-// (384 BL-01): scalars plus inert JSON-Schema projections, with no live validator and no
+// scalars plus inert JSON-Schema projections, with no live validator and no
 // implementation anywhere on it. So this module holds no dispatch path, and the chat subtree still
 // has exactly one way to run anything — the `ChatInvokeBinding` its composition supplies. The
 // projections it reads are the same views 396's MCP tool listing will consume, which is the point:
@@ -54,7 +54,7 @@ export interface PlannerToolSource {
 }
 
 /**
- * `answer_only`'s contract: WHICH clause is being answered, and the prose (CHAT-01, CR-03).
+ * `answer_only`'s contract: WHICH clause is being answered, and the prose.
  *
  * THE `clause` FIELD IS REQUIRED, and it mirrors `mark_unhandled`'s for the same reason: a turn is
  * made of clauses, so a claim about a turn cannot stand in for a claim about one of them. Without
@@ -62,7 +62,7 @@ export interface PlannerToolSource {
  * an unroutable action erased with no receipt and no refusal (392-VERIFICATION CR-03).
  */
 export const ANSWER_ONLY_INPUT_SCHEMA = z.object({
-  // NON-EMPTY for the same reason `text` is, one field over (392-15, WR-01). `reconcile.ts` has
+  // NON-EMPTY for the same reason `text` is, one field over. `reconcile.ts` has
   // rejected `clause: ""` since the field was required — a claim that names nothing covers nothing
   // — while the contract the model was SHOWN still admitted it. The two halves of one field cannot
   // be allowed to disagree in the direction that lets the model emit a call the reader will refuse.
@@ -73,7 +73,7 @@ export const ANSWER_ONLY_INPUT_SCHEMA = z.object({
       'The part of the request, quoted verbatim from the clauses you were given, that this '
       + 'answer is about.',
     ),
-  // NON-EMPTY, and that is the model-facing half of the coverage predicate (392-14). `z.string()`
+  // NON-EMPTY, and that is the model-facing half of the coverage predicate. `z.string()`
   // admitted `""`, so the one call that erases a clause — naming it, answering nothing — was
   // inside the contract the model was shown. The reader in `reconcile.ts` moved in the SAME commit
   // and is deliberately one notch stricter (it also rejects whitespace-only prose): the two halves
@@ -84,7 +84,7 @@ export const ANSWER_ONLY_INPUT_SCHEMA = z.object({
     .describe('The answer, in prose, for a turn that asks for information.'),
 })
 
-/** `mark_unhandled`'s contract: WHICH clause, and WHY nothing here can carry it out (D-08). */
+/** `mark_unhandled`'s contract: WHICH clause, and WHY nothing here can carry it out. */
 export const MARK_UNHANDLED_INPUT_SCHEMA = z.object({
   clause: z
     .string()
@@ -115,7 +115,7 @@ const HOST_SUPPLIES_WINDOW =
   'The host supplies a session-scoped `window` when this field is omitted — omit it to ask about '
   + 'the current session; pass `window` only to widen to all-time or last-n.'
 
-// TWO FACTS, AND THE SENTENCE THAT PRECEDED IT GOT BOTH WRONG (394-30, WINDOWS 110).
+// TWO FACTS, AND THE SENTENCE THAT PRECEDED IT GOT BOTH WRONG.
 //
 // It closed with "pass `scope` only to author for a DIFFERENT target" — which reads to a planner as
 // an instruction to WITHHOLD a scope the person has already named, exactly the field the surface is
@@ -125,7 +125,7 @@ const HOST_SUPPLIES_WINDOW =
 // the host will handle something the host refuses has been handed a false premise to plan against.
 //
 // So this says who fills the field and when, and states the refusal as a refusal. Guessing belongs
-// to NOBODY: the host must not guess among candidates (D-19) and the planner must not invent a
+// to NOBODY: the host must not guess among candidates and the planner must not invent a
 // requirement its contract denies, which leaves the person's own utterance as the one legitimate
 // source of a scope — and the planner as the only surface positioned to read it. The absent-scope
 // path is thereby a single-product-project affordance, and the sentence says so out loud rather
@@ -181,7 +181,7 @@ function unionArms(node: unknown): SchemaNode[] {
  *
  * EVERY EDIT IS ON A CLONE. `declaration.input` is the registry's shared inert projection — the
  * same view 396's MCP listing consumes — so an in-place edit here would rewrite what every other
- * surface publishes (T-394-85).
+ * surface publishes.
  */
 function modelFacingInput(declaration: FunctionDeclaration): FunctionSchemaProjection {
   const withholdsRef = SESSION_STAMPED_FUNCTION_IDS.has(declaration.id)
@@ -200,10 +200,10 @@ function modelFacingInput(declaration: FunctionDeclaration): FunctionSchemaProje
   }
 
   if (optionalisesWindow) {
-    // THE `window` PROPERTY STAYS — a model may legitimately widen to all-time or last-n (D-12);
+    // THE `window` PROPERTY STAYS — a model may legitimately widen to all-time or last-n;
     // only its requiredness goes. THE SESSION ARM'S `sessionRef` DOES NOT: it is host-owned end to
     // end exactly as the top-level field is, so it is removed from the arm rather than merely made
-    // optional there (WR-02). The wider arms carry no ref and pass through untouched.
+    // optional there. The wider arms carry no ref and pass through untouched.
     dropRequired(projected, 'window')
     for (const arm of unionArms(properties.window)) {
       const armProperties = objectNode(arm.properties)

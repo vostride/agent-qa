@@ -7,7 +7,7 @@
 # that cannot write tests owes the person who asked.
 #
 # WHAT IT ASSERTS NOW. Phase 394 registered the six-stage loop as `authoring.draft.write`, the chat
-# planner binds every registry op 1:1 (392 D-07), and this prose is the plainest possible request
+# planner binds every registry op 1:1, and this prose is the plainest possible request
 # for it. So the same utterance must now COMPLETE, through that op and no other. The flip moved
 # this file and its manifest line together, which is what D-08's flip law asks a phase to do.
 #
@@ -16,7 +16,7 @@
 # reached it, or by one that answered in prose about how a test might be written. One planned
 # action, one executed action, and the op id spelled out.
 #
-# WHAT THE LIVE DRAIN MUST SUPPLY. `authoring.draft.write` is `mutating-shared` (394-08), and the
+# WHAT THE LIVE DRAIN MUST SUPPLY. `authoring.draft.write` is `mutating-shared`, and the
 # v48 gate denies that tier in every execution context except `local-interactive`. A vitest worker
 # resolves `local-headless`, so this cell needs a trust credential, a standing approval or an
 # explicitly overridden context before the model is ever consulted — otherwise it reds on the gate

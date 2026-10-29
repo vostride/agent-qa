@@ -1,4 +1,4 @@
-// The ONE deterministic sentence renderer (Phase 389, D-05/D-06/D-08).
+// The ONE deterministic sentence renderer.
 //
 // Every surface that shows a verdict sentence — plan 07's CLI print, M5's run page, 392's
 // chat — calls THIS function through the `analysis.get` op or directly, which is what makes
@@ -7,7 +7,7 @@
 // `renderChainTerminalLine` idiom (cli post-run-tail): no fs, no model, no store — absence
 // rendered as absence, never padded.
 //
-// Producer-keying (D-06) happens at AUTHORSHIP, and the renderer preserves it by composing
+// Producer-keying happens at AUTHORSHIP, and the renderer preserves it by composing
 // typed parts identically whoever authored them: `analyze-run` parts, the deterministic
 // template parts, and the honest root-cause-undetermined fallback all flow through this one
 // rule, so sentence EXISTENCE never depends on LLM availability.
@@ -39,7 +39,7 @@ export interface RecurrenceQuery {
 }
 
 /**
- * The ladder rung this identity currently sits on (390 D-06/D-17), when it sits on one at all.
+ * The ladder rung this identity currently sits on, when it sits on one at all.
  *
  * `expiresAt` is the ISO deadline the ledger recorded. It is optional because `flagged` has no
  * deadline — flagging is visibility, not suppression — and because the ledger is committed text
@@ -84,7 +84,7 @@ const SENTENCE_SEPARATOR = ' — '
  * Obligation a: the grounding quote with its ref. The `test-outcome` arm is the typed
  * alternative for zero-step failures — never a fabricated stepIndex.
  *
- * 406 D-12: the quote is cleaned HERE, in the one renderer, so the CLI print, 392's chat and
+ * the quote is cleaned HERE, in the one renderer, so the CLI print, 392's chat and
  * the run page read the same sentence through the single code path. `sanitizeQuoteText`
  * removes rendering noise only — no word is dropped, reordered or truncated — and it runs at
  * RENDER time, so `validateGroundingQuote` still holds the author to the raw captured bytes.
@@ -107,7 +107,7 @@ const EXPIRY_MONTHS = [
  * UTC rather than local time because the same sentence is rendered in CI, on a laptop and in
  * a dashboard, and a deadline that reads `Sep 4` in one place and `Sep 3` in another is a
  * deadline nobody can quote. An UNPARSEABLE value is shown VERBATIM: the ledger is committed
- * text a human may hand-edit (D-12), the fold already treats such an entry as lapsed, and
+ * text a human may hand-edit, the fold already treats such an entry as lapsed, and
  * quoting what the file actually says is what lets the human find the line they broke.
  */
 function expiryPhrase(expiresAt: string | undefined): string {
@@ -146,7 +146,7 @@ function ladderSuffix(ladder: RecurrenceLadder | undefined): string {
  * clause rather than a dropped segment — a sentence whose recurrence section silently
  * vanished would read as "no history" without ever saying so.
  *
- * The ladder suffix (390 D-17) rides ONLY the occurrence-count arm. Both honest-absence
+ * The ladder suffix rides ONLY the occurrence-count arm. Both honest-absence
  * clauses and the kth-0 clause stay byte-identical to 389 whatever the ladder says, because
  * "no failure history is recorded for this test" is the answer to the question actually asked,
  * and a quarantine note appended to it would trade an explicit absence for a partial answer.
@@ -165,7 +165,7 @@ function recurrenceClause(answer: RecurrenceAnswer | undefined): string {
 }
 
 /**
- * Compose one verdict's sentence from its typed parts (D-05).
+ * Compose one verdict's sentence from its typed parts.
  *
  * Fixed order: resolved-class frame, the quoted grounding observation with its step ref,
  * the discriminator, the recurrence clause (joined LIVE through `provider`), the

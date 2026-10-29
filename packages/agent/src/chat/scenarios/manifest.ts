@@ -1,4 +1,4 @@
-// THE FROZEN CORPUS MANIFEST (Phase 392 plan 09, D-15 / CHAT-03).
+// THE FROZEN CORPUS MANIFEST.
 //
 // This list IS the ceiling denominator. Not the contents of the `scenarios/` directory, not a glob,
 // not "whatever the runner found" — this list. The distinction is the single most expensive lesson
@@ -122,7 +122,7 @@ import type { ScenarioClass, ScenarioExpectationKind, ScenarioLane } from '@vost
  *      assertion.
  *
  * v10 — 432 plan 13, TWO RETIREMENTS, and the size does not move. `/pin` and the bare `proposals`
- *      inbox alias left chat resolution with the op gate and the proposal inbox (D-05/D-14), so
+ *      inbox alias left chat resolution with the op gate and the proposal inbox, so
  *      `deterministic/pin` and `deterministic/proposals` no longer name a table row. Each is KEPT and
  *      re-authored as a `fail_closed` absence cell ("re-spelled, never deleted"): the retired verb is
  *      an unroutable clause that refuses by name with zero executions. Both leave the hermetic
@@ -150,10 +150,10 @@ const entry = (value: ScenarioCorpusEntry): ScenarioCorpusEntry => value
  * The admitted set, in class order and then in the order each arrived.
  *
  * Deterministic scenarios run hermetic per commit; `planner` and `compound` run in the live-model
- * lane as a release gate (D-13). There is no third lane and no scenario outside this list.
+ * lane as a release gate. There is no third lane and no scenario outside this list.
  */
 export const SCENARIO_CORPUS: readonly ScenarioCorpusEntry[] = Object.freeze([
-  // --- deterministic: the ten canon aliases (392-02) -------------------------------------------
+  // --- deterministic: the ten canon aliases -------------------------------------------
   entry({ id: 'run', class: 'deterministic', lane: 'hermetic', kind: 'should_execute' }),
   entry({ id: 'status', class: 'deterministic', lane: 'hermetic', kind: 'should_execute' }),
   entry({ id: 'test-ref', class: 'deterministic', lane: 'hermetic', kind: 'should_execute' }),
@@ -169,10 +169,10 @@ export const SCENARIO_CORPUS: readonly ScenarioCorpusEntry[] = Object.freeze([
   entry({ id: 'pin', class: 'deterministic', lane: 'hermetic', kind: 'fail_closed' }),
   entry({ id: 'help', class: 'deterministic', lane: 'hermetic', kind: 'should_execute' }),
   entry({ id: 'quit', class: 'deterministic', lane: 'hermetic', kind: 'should_execute' }),
-  // --- deterministic: the three stage-1 edge scenarios (392-02) ---------------------------------
+  // --- deterministic: the three stage-1 edge scenarios ---------------------------------
   entry({ id: 'quoted-conjunction', class: 'deterministic', lane: 'hermetic', kind: 'should_execute' }),
   entry({ id: 'near-miss-alias', class: 'deterministic', lane: 'hermetic', kind: 'fail_closed' }),
-  // DID NOT FLIP, and the reason is a measurement rather than an oversight (394-11). This line was
+  // DID NOT FLIP, and the reason is a measurement rather than an oversight. This line was
   // written to flip when the authoring loop registered `write_test`. 394 registered the loop as
   // `authoring.draft.write` — `write_test` is the spec's noun for the capability and is not a
   // function id anywhere in the registry — so the utterance still carries an id nothing registers,
@@ -180,15 +180,15 @@ export const SCENARIO_CORPUS: readonly ScenarioCorpusEntry[] = Object.freeze([
   // `invokeFunction` names an unknown one before any dependency is touched. A phase that registers
   // ops can make an unknown-op test pass for the wrong reason; this one did not.
   entry({ id: 'fn-unknown-op', class: 'deterministic', lane: 'hermetic', kind: 'fail_closed' }),
-  // --- planner: natural language, live lane (392-09) --------------------------------------------
+  // --- planner: natural language, live lane --------------------------------------------
   entry({ id: 'list-recent-runs', class: 'planner', lane: 'live', kind: 'should_execute' }),
   entry({ id: 'explain-flaky', class: 'planner', lane: 'live', kind: 'should_execute' }),
-  // D-08's LIVE arm, FLIPPED (394-11). It was admitted as the cell proving the planner could not
+  // D-08's LIVE arm, FLIPPED. It was admitted as the cell proving the planner could not
   // invent an authoring capability out of prose; the loop shipping makes the same prose routable,
   // and the flip is what says so. Its file pins planned == executed, so a turn that planned the
   // capability without reaching it reds here rather than reading as arrival.
   entry({ id: 'write-test-for-checkout', class: 'planner', lane: 'live', kind: 'should_execute' }),
-  // --- planner: 395's config arrival, ADMITTED (395-09) ------------------------------------------
+  // --- planner: 395's config arrival, ADMITTED ------------------------------------------
   // The first member this corpus has ever gained for a capability rather than for a defect. 392
   // D-08 designed this as a flip and there was nothing to flip: no config cell was ever admitted,
   // which 395's research established by enumerating every file above. So the handoff is executed as
@@ -198,7 +198,7 @@ export const SCENARIO_CORPUS: readonly ScenarioCorpusEntry[] = Object.freeze([
   // schema-addressable path; it deliberately stops short of `config.proposal.apply`, which is the
   // verb that changes a person's git history and the only one in the family that is gated.
   entry({ id: 'config-edit-timeout', class: 'planner', lane: 'live', kind: 'should_execute' }),
-  // --- planner: 398's explain arrival, ADMITTED (398-07) -----------------------------------------
+  // --- planner: 398's explain arrival, ADMITTED -----------------------------------------
   // The corpus's second admission for a capability rather than for a defect, and the first pair.
   // `agent.explain` answers a question about what this product can do BY CITING the committed
   // capability catalog, so these two cells are what make "never from model memory" checkable at the
@@ -206,17 +206,17 @@ export const SCENARIO_CORPUS: readonly ScenarioCorpusEntry[] = Object.freeze([
   // anything, and `planned == executed == 1` on the op id is what tells the two apart.
   entry({ id: 'what-can-you-do', class: 'planner', lane: 'live', kind: 'should_execute' }),
   entry({ id: 'how-do-i-explain', class: 'planner', lane: 'live', kind: 'should_execute' }),
-  // --- compound: the canon pair, live lane (392-02) ---------------------------------------------
+  // --- compound: the canon pair, live lane ---------------------------------------------
   entry({ id: 'run-42-and-digest', class: 'compound', lane: 'live', kind: 'should_execute' }),
-  // The spec's own example, FLIPPED (394-11). Both clauses are routable now, so D-10's pre-flight
+  // The spec's own example, FLIPPED. Both clauses are routable now, so D-10's pre-flight
   // atomicity has a plan it can admit instead of a whole turn it must refuse.
   entry({ id: 'write-test-2fa-and-run', class: 'compound', lane: 'live', kind: 'should_execute' }),
-  // --- compound: the two gap-round regression cells (392-11) -------------------------------------
+  // --- compound: the two gap-round regression cells -------------------------------------
   // The verifier's own probes, admitted so neither defect can return silently. Both are
   // `fail_closed`, so neither enters the ceiling denominator: what they add is the ability to SEE a
   // refused turn that carried something out, which `executed == 0` alone never could.
   entry({ id: 'run-42-and-delete-root', class: 'compound', lane: 'live', kind: 'fail_closed' }),
-  // STAYS REFUSING THROUGH 394's FLIP (394-11). Its second clause is a write-test request, so a
+  // STAYS REFUSING THROUGH 394's FLIP. Its second clause is a write-test request, so a
   // reader who found the other two write-test cells flipped could reasonably take this one for an
   // oversight. It is not. What this cell measures is CR-04 — a refused turn that had ALREADY
   // recorded a pin and an `approval_decision` row — and its refusal comes from the hermetic lane's
@@ -224,7 +224,7 @@ export const SCENARIO_CORPUS: readonly ScenarioCorpusEntry[] = Object.freeze([
   // corpus's only cell naming a directive on a turn that fails, to prove something two live cells
   // already prove.
   entry({ id: 'pin-and-write-test', class: 'compound', lane: 'hermetic', kind: 'fail_closed' }),
-  // --- compound: the second gap round's two cells (392-14) ---------------------------------------
+  // --- compound: the second gap round's two cells ---------------------------------------
   // What the round-2 verification found the corpus still could not see: a directive BATCH whose
   // later entry refuses (the earlier one's pin and its `approval_decision` row survived), and the
   // empty-prose `answer_only` that erased a clause on a `completed` turn. Both `fail_closed`, both
@@ -237,10 +237,10 @@ export const SCENARIO_CORPUS: readonly ScenarioCorpusEntry[] = Object.freeze([
     kind: 'fail_closed',
   }),
   entry({ id: 'pin-and-pin-nonsense', class: 'compound', lane: 'hermetic', kind: 'fail_closed' }),
-  // --- compound: the third gap round's cell (392-15) ---------------------------------------------
+  // --- compound: the third gap round's cell ---------------------------------------------
   // The mixed-mapping configuration NO cell in either lane had: a table-mapped clause beside a
   // planner-bound one on a turn that completed, with the model making an extra call about the
-  // mapped clause (CR-01). `fail_closed` and hermetic, so the denominators are unmoved again.
+  // mapped clause. `fail_closed` and hermetic, so the denominators are unmoved again.
   entry({
     id: 'run-42-and-summarise-extra-call',
     class: 'compound',

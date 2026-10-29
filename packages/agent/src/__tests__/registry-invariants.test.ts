@@ -1,4 +1,4 @@
-// The agent-side remainder of the retired 384 coverage stub (Phase 397 plan 08, D-10).
+// The agent-side remainder of the retired 384 coverage stub.
 //
 // WHAT HAPPENED. `parity-coverage.test.ts` shipped in 384 as "conformance-suite LEG 1", a coverage
 // leg written against the registry rather than a hand list, and it grew with the layer for six
@@ -62,7 +62,7 @@ import { createFunctionRegistry } from '../functions/registry.js'
 import type { FunctionDeclaration, FunctionDeps } from '../functions/spec.js'
 import { CONTRACTS_BY_ID } from './projection-relation.js'
 
-// ---- The retirement register (D-10, T-397-19) --------------------------------------------------
+// ---- The retirement register --------------------------------------------------
 
 /** Where one block of the retired file went. A closed vocabulary: four rulings, no fifth. */
 type RetirementDestination =
@@ -76,7 +76,6 @@ type RetirementDestination =
   | 'retained → declaration-immutability'
   /** Its content is now a column of the committed golden ledger. */
   | 'folded → golden ledger'
-  /** Retained here until its subject was deleted; the row keeps the census whole (432-13). */
   | 'retired → subject deleted'
 
 interface RetirementRow {
@@ -315,7 +314,7 @@ const FIXTURE_ENTITY_DESCRIPTOR = {
 /**
  * A valid input for every capability THESE PORTS BIND — and deliberately for no other.
  *
- * NOT A CENSUS, AND THAT IS THE POINT (D-10). The retired file keyed a sample by every one of the 41
+ * NOT A CENSUS, AND THAT IS THE POINT. The retired file keyed a sample by every one of the 41
  * ids and asserted exact set equality against the registry, which made it a second denominator over
  * the op universe. This map is keyed by the ids this fixture can actually DISPATCH; the cell below
  * derives that set off the live listing and asserts the keys equal it, so the map cannot drift and
@@ -331,17 +330,17 @@ const BOUND_OP_INPUTS: Readonly<Record<string, unknown>> = {
   'entities.resolve': { ref: 'nothing in this fixture is called this' },
   'knowledge.brief.why': { runId: FIXTURE_RUN_ID, stepIndex: 0 },
   'knowledge.bundles.list': {},
-  // 416 D-17: this fixture binds the optional reader and supplies its dispatch input.
+  // this fixture binds the optional reader and supplies its dispatch input.
   'knowledge.gates.list': { recordId: 'rec-not-in-this-fixture' },
   'knowledge.record.show': { recordId: 'rec-not-in-this-fixture' },
   'knowledge.records.diff': { sinceOrdinal: 0 },
   'knowledge.records.inspect': { filter: {} },
-  // 432-09 (D-05/D-25): bound under these ports because the digest no longer needs the proposals
+  // bound under these ports because the digest no longer needs the proposals
   // inbox; its substrate is the REQUIRED runs port, and the mark ledger it reads is optional.
   'runs.digest': { runId: FIXTURE_RUN_ID },
   'runs.events': { runId: FIXTURE_RUN_ID },
   'runs.get': { runId: FIXTURE_RUN_ID },
-  // 407-01 D-05: bound under these ports because its substrate is the REQUIRED runs port — it
+  // bound under these ports because its substrate is the REQUIRED runs port — it
   // declares no optional-dep binding key at all, so there is no composition that lists it and
   // cannot run it.
   'runs.knowledge': { runId: FIXTURE_RUN_ID },
@@ -411,9 +410,9 @@ function fakeDeps(): FunctionDeps {
 /**
  * A caller no refusal here can be about, so a refusal can never be a missing grant.
  *
- * Until 432-39 it held every scope, derived from the scope union rather than listed (387-08). The
- * union and the caller's scope set are deleted (432-39, D-10/D-12), so nothing is left to hold;
- * `origin` is `human` for the same reason on the second axis (391 D-06).
+ * Until 432-39 it held every scope, derived from the scope union rather than listed. The
+ * union and the caller's scope set are deleted, so nothing is left to hold;
+ * `origin` is `human` for the same reason on the second axis.
  */
 const FULLY_GRANTED: FunctionCaller = {
   surface: 'conformance',
@@ -509,7 +508,7 @@ describe('registry invariants that need in-package access', () => {
     for (const declaration of declarations()) {
       const label = declaration.id
       expect(declaration.summary.trim(), label).not.toEqual('')
-      // 432-20 (D-12): no scope column — a declaration carries no permission metadata.
+      // no scope column — a declaration carries no permission metadata.
       expect(Object.keys(declaration), label).not.toContain('requiredScopes')
       expect(Object.keys(declaration), label).not.toContain('requiresHumanOrigin')
       expect(['unary', 'stream'], label).toContain(declaration.resultKind)
@@ -527,7 +526,7 @@ describe('registry invariants that need in-package access', () => {
         expect((projection as Record<string, unknown>)['parse'], `${label}.${side}`)
           .toBeUndefined()
       }
-      // A listing view never carries the implementation (T-384-20).
+      // A listing view never carries the implementation.
       expect(declaration, label).not.toHaveProperty('invoke')
     }
   })
@@ -552,7 +551,7 @@ describe('registry invariants that need in-package access', () => {
     ).toEqual(bound)
 
     // …and the set is a SUBSET of the census rather than a copy of it: this file is not a second
-    // denominator over the op universe (D-10). A fixture binding everything would make it one.
+    // denominator over the op universe. A fixture binding everything would make it one.
     expect(bound.length, 'this fixture binds the entire census, which would make it a second register')
       .toBeLessThan(declarations().length)
   })
@@ -593,7 +592,7 @@ describe('registry invariants that need in-package access', () => {
   })
 })
 
-// 2026-10-01, 432-17 (D-02 / D-05 / D-09): the proposal inbox's four verbs, the two apply ops and the
+// the proposal inbox's four verbs, the two apply ops and the
 // config undo op are deleted with the inbox. No alias, hidden inbox or accept/reject follow-up
 // survives: each retired id is simply not a capability, so every door refuses it as an unknown
 // function before any dependency is consulted.
@@ -632,7 +631,7 @@ describe('the proposal, apply and undo ops are not capabilities', () => {
   })
 })
 
-// 2026-10-01, 432-18 (D-14/D-15/D-22): `grants.list` and `grants.revoke` are deleted with the
+// `grants.list` and `grants.revoke` are deleted with the
 // standing-grant ledger they read and wrote. No grant domain survives, no other op takes over the
 // revoke, and every door refuses both ids as unknown functions before any dependency is consulted.
 const RETIRED_GRANT_OP_IDS = ['grants.list', 'grants.revoke'] as const

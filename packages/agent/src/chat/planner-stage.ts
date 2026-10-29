@@ -1,4 +1,4 @@
-// Stage 2 — the tool-bound planner (Phase 392 plan 04, CHAT-01 / CHAT-06 / D-10).
+// Stage 2 — the tool-bound planner.
 //
 // THE MODEL ARRIVES BUILT. This module takes a `LanguageModel` as a constructor argument and does
 // not construct one: it names no provider package, and it does not name `createModel` either. That
@@ -10,7 +10,7 @@
 // THE STAGE PRODUCES A PLAN AND NOTHING ELSE. `generateText` executes a tool exactly when the tool
 // carries a function to run, and `projectPlannerTools` gives none of them one — so what comes back
 // is the model's proposal, in `result.toolCalls`, with zero side effects behind it. Reconciliation
-// then decides what that proposal means (D-10). This is the strongest available form of "nothing
+// then decides what that proposal means. This is the strongest available form of "nothing
 // runs before the verdict": not an ordering somebody maintains, but an absent callback.
 //
 // A TRANSPORT FAILURE IS DATA, NOT A CRASH. An auth refusal, a rate limit or an outage is a fact
@@ -50,10 +50,10 @@ export interface PlannerStageDeps {
   /**
    * Read once per REQUEST rather than captured at construction, because the model in force, the
    * pending-count facts and the conversation all change WITHIN a session — a `/model` directive
-   * mid-session is the obvious case (D-04), and a stage holding a snapshot would prompt against a
+   * mid-session is the obvious case, and a stage holding a snapshot would prompt against a
    * session that no longer exists.
    *
-   * IT IS TOLD WHICH SESSION IS ASKING (392 plan 13, CR-02). A composition caches one stage per
+   * IT IS TOLD WHICH SESSION IS ASKING. A composition caches one stage per
    * model NAME, so the same stage serves every session planning under that model; a thunk taking
    * no argument therefore had exactly one conversation available to answer with, and on two
    * interleaved turns that was whichever session published last. The request is the only thing
@@ -78,7 +78,7 @@ function toStageFailure(error: unknown): PlannerStageFailure {
  * reconciliation can act on, and filtering it here would put the fail-closed decision in the
  * component whose input is the untrusted one.
  *
- * THE `answer` PROJECTION IS GONE (392-14). This function used to lift the FIRST `answer_only`
+ * THE `answer` PROJECTION IS GONE. This function used to lift the FIRST `answer_only`
  * call's text onto the outcome as a convenience — and once the tool contract asked for one call per
  * answered clause, that convenience became a SECOND prose channel carrying strictly less than the
  * calls it was derived from: reconciliation counted every claimed clause as answered while the

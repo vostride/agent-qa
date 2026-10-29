@@ -17,7 +17,7 @@
 // THE INSTRUCTIONS BELOW ARE WHAT CHAT-03's CEILING MEASURES. One action tool call per clause in
 // utterance order is what makes the reconciler's order alignment meaningful; `mark_unhandled`
 // naming the clause is what makes the fail-closed arm a NAMED refusal rather than an improvisation
-// with an adjacent capability (D-08); `answer_only` is what keeps an informational turn from
+// with an adjacent capability; `answer_only` is what keeps an informational turn from
 // looking like a planning failure. Loosening any of the three moves the measured unhandled rate
 // without moving any mechanism, which is the one way that number can lie.
 //
@@ -32,8 +32,8 @@
 // it. This is a correctness fix about fabrication, not a routing preference.
 //
 // NO PAYLOAD BODIES. Session facts are one-liners and the replayed conversation is refs plus
-// outcomes (D-18) — the same map-not-territory rule the session log follows, applied to the one
-// place where the whole conversation is about to cross a network boundary (T-392-14).
+// outcomes — the same map-not-territory rule the session log follows, applied to the one
+// place where the whole conversation is about to cross a network boundary.
 
 import type { ModelMessage } from 'ai'
 
@@ -82,7 +82,7 @@ const PLANNING_BLOCK: PromptTierBlock = {
     + 'nobody can satisfy and a request satisfied by the wrong action are not the same event, and '
     + 'the person can only recover from the first one.\n'
     + '\n'
-    // THE BOUND ON THE PARAGRAPH ABOVE, AND THE DEFINITION THE ONE BELOW LEANS ON (WINDOWS 110).
+    // THE BOUND ON THE PARAGRAPH ABOVE, AND THE DEFINITION THE ONE BELOW LEANS ON.
     //
     // It sits between them on purpose. The refusal instruction preceded it and "needs an
     // identifier" follows it, and until this sentence existed nothing in the prompt said WHICH
@@ -110,7 +110,7 @@ export interface ChatPromptInput {
   readonly clauses: readonly ChatClause[]
   /** The model in force for this turn, as the session states it. */
   readonly activeModel: string
-  /** Session facts as one-liners — refs and counts, never a serialized result (D-18). */
+  /** Session facts as one-liners — refs and counts, never a serialized result. */
   readonly facts?: readonly string[]
   /**
    * The conversation this turn continues, oldest first, already repaired and PRUNED.

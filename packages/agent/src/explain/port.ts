@@ -1,4 +1,4 @@
-// `explain`'s host port (Phase 398 plan 04 — XPLN-02, D-10 / D-11).
+// `explain`'s host port.
 //
 // FOUR CAPABILITIES THIS PACKAGE CANNOT NAME, each for a measured reason rather than a stylistic
 // one — the `config-mutation/ports.ts` frame, instantiated:
@@ -27,7 +27,7 @@
 import type { CatalogRow, ExplainCitation } from '@vostride/agent-qa-schema'
 
 /**
- * The abstention coverage record (D-11).
+ * The abstention coverage record.
  *
  * `query` is verbatim, and it is why this record is written to a LOCAL append-only log and to
  * nothing else: it is the one free-text value in the feature. SURF-FUT-02 reads the log later to
@@ -43,7 +43,7 @@ export interface ExplainAbstentionRecord {
 /**
  * What the `explain` op needs from its host, and the whole of it.
  *
- * Bound at `composeLocalAgent()` (385 D-15) by plan 07. An unbound composition refuses BY NAME
+ * Bound at `composeLocalAgent()` by plan 07. An unbound composition refuses BY NAME
  * through `FunctionNotBoundError` rather than degrading to a model-only answer — an explain that
  * silently loses its catalog is precisely an explain that answers from model memory.
  */
@@ -58,7 +58,7 @@ export interface CapabilityCatalogPort {
   loadCatalog(): Promise<readonly CatalogRow[]>
 
   /**
-   * The model's selection over the rows it was handed — row ids only (D-10).
+   * The model's selection over the rows it was handed — row ids only.
    *
    * Implementations MUST pass `rows` as the grounding data. Anything cited that is not in `rows`
    * is a ghost id, and the renderer answers ghosts with a whole-output abstention, so a confused
@@ -69,6 +69,6 @@ export interface CapabilityCatalogPort {
   /** One counter tick for a grounded answer. No payload — D-14 permits a count and nothing more. */
   recordAnswered(): void
 
-  /** Append the coverage record, locally (D-11). The demand signal for writing the missing doc. */
+  /** Append the coverage record, locally. The demand signal for writing the missing doc. */
   recordAbstained(record: ExplainAbstentionRecord): void
 }

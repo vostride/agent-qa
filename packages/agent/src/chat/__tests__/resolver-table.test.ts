@@ -1,10 +1,10 @@
-// The closed canon's behavioural pin (Phase 392, CHAT-01 / D-05 / D-06 / D-09 / D-12).
+// The closed canon's behavioural pin.
 //
 // Two properties are load-bearing here and both are about what the table REFUSES. The first is
 // that its alias set is exactly D-06's canon and nothing else — the table is a cap, and a cap that
 // grows without anybody noticing is not one. The second is that resolution is BINARY: a near-miss
 // resolves to nothing at all rather than to a best guess, because this path OVERRIDES a model's
-// plan (D-12) and an overriding path with a false-positive rate is worse than no override.
+// plan and an overriding path with a false-positive rate is worse than no override.
 
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -30,7 +30,7 @@ function aliasOf(clause: string): string | undefined {
 }
 
 describe('CHAT_RESOLVER_TABLE — the closed canon', () => {
-  // 432-13 (D-05/D-14): `proposals` and `pin` left the canon with the inbox and the op gate.
+  // `proposals` and `pin` left the canon with the inbox and the op gate.
   it('is exactly the canon: no more aliases, no fewer', () => {
     expect(CHAT_RESOLVER_TABLE.map((rule) => rule.alias)).toEqual([
       'run',
@@ -55,7 +55,7 @@ describe('CHAT_RESOLVER_TABLE — the closed canon', () => {
   })
 })
 
-// 432-13 (D-05/D-14): chat resolution routes no pin directive and no proposal inbox. Direct
+// chat resolution routes no pin directive and no proposal inbox. Direct
 // knowledge and config changes are reached by their own ids through the one `/fn` branch.
 describe('chat resolution carries no approval route', () => {
   it('/pin and the proposals inbox no longer resolve, and help names neither', () => {
@@ -123,8 +123,8 @@ describe('resolveClause — the op-bound canon', () => {
     })
   })
 
-  // RE-SPELLED 2026-09-30 (432-13) from 'binds bare `proposals` to the whole inbox': the alias is
-  // gone. 2026-10-01 (432-17): the inbox op is deleted too, so `/fn proposals.list` resolves to a
+  // RE-SPELLED 2026-09-30 from 'binds bare `proposals` to the whole inbox': the alias is
+  // gone. 2026-10-01: the inbox op is deleted too, so `/fn proposals.list` resolves to a
   // passthrough naming an id the registry answers as an unknown function.
   it('binds no bare `proposals` alias; the inbox read is reached through /fn', () => {
     expect(resolve('proposals')).toBeUndefined()
@@ -181,7 +181,7 @@ describe('resolveClause — the /fn passthrough', () => {
 })
 
 describe('resolveClause — the directive canon', () => {
-  // RE-SPELLED 2026-09-30 (432-13) from 'resolves /model and /pin to directives that name NO
+  // RE-SPELLED 2026-09-30 from 'resolves /model and /pin to directives that name NO
   // registry op': `/pin` is no longer a directive.
   it('resolves /model to a directive that names NO registry op, and /pin to nothing', () => {
     expect(resolve('/model claude-opus-5')).toEqual({
@@ -254,7 +254,7 @@ describe('the table as a structure', () => {
   })
 
   it('has no fractional-confidence member anywhere in the resolution vocabulary', () => {
-    // Stage-1 resolution is binary by construction (D-09). A confidence number would be the
+    // Stage-1 resolution is binary by construction. A confidence number would be the
     // first half of a threshold, and a threshold is how an overriding path acquires a
     // false-positive rate. Comment mentions are fine; a field is not.
     const codeLines = source

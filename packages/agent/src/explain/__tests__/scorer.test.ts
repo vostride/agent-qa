@@ -1,4 +1,4 @@
-// The deterministic closest-capability proofs (Phase 398 plan 04 — XPLN-02, D-11).
+// The deterministic closest-capability proofs.
 //
 // DETERMINISM IS A TWO-SIDED CLAIM and both sides are cells here. One side is the easy one: the
 // right answer for a query. The other is the one that actually bites — that the SAME input cannot
@@ -25,7 +25,7 @@ const TIED_ROWS: readonly CatalogRow[] = Object.freeze([
     mcpUnprojectedReasonKey: 'not-projected',
     docPath: null,
     docAbsentReason: 'fixture',
-    // 398-08: `params` declares no required property, so the derived example is the empty call.
+    // `params` declares no required property, so the derived example is the empty call.
     exampleCall: { arguments: {} },
   }),
   CatalogRowSchema.parse({

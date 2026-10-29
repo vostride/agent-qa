@@ -1,4 +1,4 @@
-// The deterministic closest-capability scorer (Phase 398 plan 04 — XPLN-02, D-11).
+// The deterministic closest-capability scorer.
 //
 // THE MODEL DOES NOT PICK THE SUGGESTION EITHER. D-10 takes the command out of the model's hands;
 // this file takes the consolation prize out of them too, because "I could not answer that, but you
@@ -124,7 +124,7 @@ function scoreRow(normalizedQuery: string, row: CatalogRow): number {
 }
 
 /**
- * Up to `k` canonical row ids, closest first — the abstention arm's suggestion (D-11).
+ * Up to `k` canonical row ids, closest first — the abstention arm's suggestion.
  *
  * ZERO-OVERLAP ROWS ARE FILTERED OUT, and that is the honest arm rather than a missing feature: a
  * query sharing no bigram with any row has no closest capability, and returning the

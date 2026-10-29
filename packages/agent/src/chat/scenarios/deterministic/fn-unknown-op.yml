@@ -3,7 +3,7 @@
 # touched, so a typo and a capability that has not shipped yet come back named from the one place
 # that knows what is registered. A check inside the table would be a second catalogue.
 #
-# DID NOT FLIP WHEN THE AUTHORING LOOP LANDED, and that is a measurement (394-11). This header used
+# DID NOT FLIP WHEN THE AUTHORING LOOP LANDED, and that is a measurement. This header used
 # to say the cell would flip once `write_test` was registered. Phase 394 shipped the six-stage loop
 # as `authoring.draft.write`; `write_test` is the spec's NOUN for the capability and is not a
 # function id anywhere in the registry. So this utterance still hands `invokeFunction` an id nothing

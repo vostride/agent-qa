@@ -1,4 +1,4 @@
-// The chat-open banner (Phase 392 plan 08, D-23 / 388 D-14).
+// The chat-open banner.
 //
 // ONE READ, ONCE, WHEN A PERSON OPENS A CONVERSATION. There is no timer in this file, no watcher,
 // and no second pass — 388 D-14's one-read law is the whole design, and the reason is that the
@@ -12,7 +12,7 @@
 // EVERY READ DEGRADES TO SILENCE. A banner may never block chat open, and it may never turn an
 // unbound or refused op into a failure the person has to deal with before they can type.
 //
-// 2026-10-01 (432-17, D-05/D-22): the pending-proposals half is deleted with the inbox. Nothing is
+// the pending-proposals half is deleted with the inbox. Nothing is
 // filed for a person to decide, and old proposal files are never read, so the banner is the latest
 // run's digest headline or silence.
 //
@@ -55,7 +55,7 @@ async function readOrNothing(
 /**
  * The latest run this project produced, or nothing.
  *
- * `runs.list` owns the chronology (431 D-08): newest finished first, `runId` breaking a tie, so the
+ * `runs.list` owns the chronology: newest finished first, `runId` breaking a tie, so the
  * banner asks for one row and takes it. Choosing again here would be a second ordering free to
  * disagree with `agent-qa digest`, which reads the same first row.
  */

@@ -1,4 +1,4 @@
-// The v47 persistence scaffold, carved up (Phase 385 plan 02, D-06). 2026-07-29.
+// The v47 persistence scaffold, carved up. 2026-07-29.
 //
 // What LEFT this port, and why each departure is a deletion rather than a move:
 //
@@ -16,7 +16,7 @@
 // cannot form. Keeping both would leave the unsafe spelling available beside the safe one.
 //
 // The 385 note above left one pair standing as "a placeholder for the phase with a phase of
-// its own to derive it". Phase 391 IS that phase (D-09), and the derivation went the other way:
+// its own to derive it". Phase 391 IS that phase, and the derivation went the other way:
 // the write side it built is a proposal envelope enumerated out of a file store and a standing
 // grant folded out of a committed event log, neither of which is a save/get over an id. So the
 // pair is gone too — not because the surface it named turned out to be unreal, but because the

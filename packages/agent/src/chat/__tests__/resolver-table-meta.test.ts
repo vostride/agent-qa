@@ -1,4 +1,4 @@
-// THE STRUCTURAL CAP (Phase 392, D-05 / CHAT-02).
+// THE STRUCTURAL CAP.
 //
 // "No new top-level branches without a test" is not reviewer discipline here — it is
 // BUILD-IMPOSSIBLE. This file walks the resolver table and demands a scenario file for every row,
@@ -43,10 +43,10 @@ const EDGE_SCENARIOS = [
   'quoted-conjunction',
   // CHAT-01 boundary: a misspelled alias does not resolve at stage 1, and there is no partial arm.
   'near-miss-alias',
-  // D-08: an op id no registry knows comes back named, from `invokeFunction` rather than a check
+  // an op id no registry knows comes back named, from `invokeFunction` rather than a check
   // inside the table.
   'fn-unknown-op',
-  // 432-13 (D-05/D-14): two RETIRED aliases, kept as measured absences. `/pin` and the bare
+  // two RETIRED aliases, kept as measured absences. `/pin` and the bare
   // `proposals` inbox left the table; each cell pins that the clause is now unroutable and the
   // turn refuses by name with zero executions ("re-spelled, never deleted").
   'pin',
@@ -71,7 +71,7 @@ const COMPOUND_SCENARIOS = [
   'run-42-and-delete-root-empty-answer',
   'pin-and-pin-nonsense',
   // 392-15's cell: a table-mapped clause beside a planner-bound one, with the model making an extra
-  // action call about the mapped one (CR-01). The mixed-mapping configuration neither lane had.
+  // action call about the mapped one. The mixed-mapping configuration neither lane had.
   'run-42-and-summarise-extra-call',
 ] as const
 
@@ -105,7 +105,7 @@ describe('every resolver-table entry has a scenario (table → file)', () => {
     expect(scenario.id).toBe(alias)
     expect(scenario.class).toBe('deterministic')
     // Deterministic scenarios never touch the LLM BY CONTRACT, which is why they need no mock
-    // and why "no mocks in either lane" is a true statement rather than an aspiration (D-13).
+    // and why "no mocks in either lane" is a true statement rather than an aspiration.
     expect(scenario.lane).toBe('hermetic')
   })
 })

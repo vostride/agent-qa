@@ -1,8 +1,8 @@
-// The clustered presentation of a run's analysis — ONE layout, one package (389 D-15).
+// The clustered presentation of a run's analysis — ONE layout, one package.
 //
 // RELOCATED from `cli/src/curation/post-run-tail.ts` by 391-06, unchanged byte-for-byte in what
 // it produces. It moved because it acquired a second caller: the per-run digest (`runs.digest`)
-// carries the clustered verdict sentences as its first section (391 D-18), and the CLI tail
+// carries the clustered verdict sentences as its first section, and the CLI tail
 // prints the digest's rendered lines. Had the layout stayed in the CLI, the digest would have
 // needed its own — and two spellings of one block is how the terminal and the dashboard end up
 // showing the same run's problems in two different shapes with nothing wrong in either. The CLI

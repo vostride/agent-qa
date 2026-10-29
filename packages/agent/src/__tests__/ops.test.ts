@@ -151,12 +151,12 @@ function fakeDeps(overrides: Partial<FunctionDeps> = {}): FunctionDeps {
 describe('runs.get', () => {
   it('declares a read-only unary contract bound in this composition', () => {
     expect(runsGetSpec.id).toBe('runs.get')
-    // RE-SPELLED 2026-10-01 (432-23, D-12) from `requiredScopes` equal to ['read']: the op
+    // RE-SPELLED 2026-10-01 from `requiredScopes` equal to ['read']: the op
     // declares no scope, because no caller is checked for one.
     expect(runsGetSpec).not.toHaveProperty('requiredScopes')
     expect(runsGetSpec.resultKind).toBe('unary')
     // Bound in EVERY composition: the implementation names no optional dep, so there is
-    // nothing a host could withhold that would leave it unbound (D-16).
+    // nothing a host could withhold that would leave it unbound.
     expect(runsGetSpec.boundThrough).toBeUndefined()
     expect(runsGetSpec.risk).toEqual({ name: 'fn:runs.get', recognized: true, readOnly: true })
   })
@@ -269,7 +269,7 @@ describe('runs.get', () => {
 describe('knowledge.bundles.list', () => {
   it('declares a read-only unary contract bound in this composition', () => {
     expect(knowledgeBundlesListSpec.id).toBe('knowledge.bundles.list')
-    // RE-SPELLED 2026-10-01 (432-25, D-12) from `requiredScopes` equal to ['read']: the op
+    // RE-SPELLED 2026-10-01 from `requiredScopes` equal to ['read']: the op
     // declares no scope; read-only stays on its risk descriptor below.
     expect(knowledgeBundlesListSpec).not.toHaveProperty('requiredScopes')
     expect(knowledgeBundlesListSpec.resultKind).toBe('unary')
@@ -309,7 +309,7 @@ describe('knowledge.bundles.list', () => {
 describe('config.get', () => {
   it('declares a read-only unary contract bound in this composition', () => {
     expect(configGetSpec.id).toBe('config.get')
-    // RE-SPELLED 2026-10-01 (432-24, D-12) from `requiredScopes` equal to ['read']: the op
+    // RE-SPELLED 2026-10-01 from `requiredScopes` equal to ['read']: the op
     // declares no scope, because no caller is checked for one.
     expect(configGetSpec).not.toHaveProperty('requiredScopes')
     expect(configGetSpec.resultKind).toBe('unary')
@@ -339,7 +339,7 @@ describe('the seed capability set', () => {
 describe('knowledge.gates.list', () => {
   it('declares a read-only unary contract through the required knowledge port', () => {
     expect(knowledgeGatesListSpec.id).toBe('knowledge.gates.list')
-    // RE-SPELLED 2026-10-01 (432-27, D-12) from `requiredScopes` equal to ['read']: the op
+    // RE-SPELLED 2026-10-01 from `requiredScopes` equal to ['read']: the op
     // declares no scope; read-only stays on its risk descriptor below.
     expect(knowledgeGatesListSpec).not.toHaveProperty('requiredScopes')
     expect(knowledgeGatesListSpec.resultKind).toBe('unary')
@@ -381,7 +381,7 @@ describe('knowledge.gates.list', () => {
   })
 })
 
-// ---- C432-DECLARATION-KEYS (432-23, D-10/D-12) --------------------------------------------------
+// ---- C432-DECLARATION-KEYS --------------------------------------------------
 //
 // The ten op specs 432-23 migrated, pinned at the SPEC, which is the layer the registry's own
 // key-set census cannot see: a declaration omits the retired keys whatever the spec spells, so only
@@ -440,13 +440,13 @@ describe('the funnel, records diff, entity resolve, verify, events, draft write,
       expect(typeof spec.invoke, spec.id).toBe('function')
     }
     // The one disclosure among the ten was untouched by the metadata removal. RE-SPELLED 2026-10-02
-    // (432-42, D-14): the per-op disclosure is deleted, so none of the ten carries one now.
+    // the per-op disclosure is deleted, so none of the ten carries one now.
     expect(migrated.filter(({ spec }) => 'disclose' in spec).map(({ spec }) => spec.id))
       .toEqual([])
   })
 })
 
-// ---- C432-DECLARATION-KEYS (432-24, D-10/D-12) --------------------------------------------------
+// ---- C432-DECLARATION-KEYS --------------------------------------------------
 //
 // The second group of ten, pinned the same way as 432-23's above: absence at the SPEC, and an exact
 // pin beside it of what must not move with the metadata. Kept as its own block so each op-spec owner
@@ -507,7 +507,7 @@ describe('the artifact, list, config get, digest, field set, draft edit, brief w
   })
 })
 
-// ---- C432-DECLARATION-KEYS (432-25, D-10/D-12) --------------------------------------------------
+// ---- C432-DECLARATION-KEYS --------------------------------------------------
 //
 // The third group of ten, pinned as 432-23's and 432-24's are. Four of them are writers (the two
 // config writers and the two quarantine writes), so the risk descriptor beside the absence is what
@@ -570,7 +570,7 @@ describe('the hook add, bundles list, scaffold, editor live URL, evidence, entit
   })
 })
 
-// ---- C432-DECLARATION-KEYS (432-27, D-10/D-12) --------------------------------------------------
+// ---- C432-DECLARATION-KEYS --------------------------------------------------
 //
 // The last four op specs that still spelled `requiredScopes`, pinned as the earlier groups are.
 // config.auth.set is the writer among them: its risk descriptor and its `configWrite` binding are
@@ -616,7 +616,7 @@ describe('the auth set, gates list, run detail and run overview specs carry no p
   })
 })
 
-// ---- C432-ALL-OPS-AVAILABLE (432-27, D-12) ------------------------------------------------------
+// ---- C432-ALL-OPS-AVAILABLE ------------------------------------------------------
 //
 // Unlike the cells above, these go through a real registry and `invokeFunction`, because the claim
 // is about who may call. `knowledge.gates.list` once required `read` and `config.auth.set`
@@ -705,7 +705,7 @@ describe('the gate read and auth writer serve every caller', () => {
           { recordId: 'rec-1' }, caller))
         answers.push(await invokeFunction(registry, 'knowledge.gates.list',
           { recordId: 'rec-9' }, caller))
-        // 2026-10-02 (quick 261002-ctr): the reference is a plugin package (`authStateName` is gone).
+        // the reference is a plugin package (`authStateName` is gone).
         answers.push(await invokeFunction(registry, 'config.auth.set',
           { target: 'shop', pluginPackage: '@acme/auth' }, caller))
         answers.push(await invokeFunction(registry, 'config.auth.set',

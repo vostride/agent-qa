@@ -1,4 +1,4 @@
-// The planner's action vocabulary IS the registry (Phase 392 plan 04, D-07 / D-08 / D-10).
+// The planner's action vocabulary IS the registry.
 //
 // Three claims, and they are deliberately not the same claim:
 //
@@ -6,7 +6,7 @@
 //      from the walk, never from a number: a literal count would make this file a census of the
 //      catalogue as it stood the day it was written, and 393-395's new ops would fail it rather
 //      than joining it. The always-send-all law says the model sees everything the registry
-//      offers; the assertion says it sees nothing else (T-392-13).
+//      offers; the assertion says it sees nothing else.
 //   2. NOTHING RUNS. No tool in the set carries an execute callback, asserted per tool. This is
 //      what makes D-10's "reconciliation completes BEFORE the first side effect" structural: the
 //      SDK has no function to call, so `generateText` returns a plan and cannot enact one. A
@@ -23,7 +23,7 @@ import { describe, expect, it } from 'vitest'
 import { createFunctionRegistry } from '../../functions/registry.js'
 import type { FunctionDeclaration, FunctionDeps } from '../../functions/spec.js'
 // Read from the module the STAMP lives in, on purpose: the claim under test is that the projection
-// withholds exactly what `stampSessionFacts` writes, so the two sides must read one value (394-22).
+// withholds exactly what `stampSessionFacts` writes, so the two sides must read one value.
 import {
   SESSION_STAMPED_FUNCTION_IDS,
   WINDOW_STAMPED_FUNCTION_IDS,
@@ -31,7 +31,6 @@ import {
 // The THIRD projection set, read from the leaf module the other two live in. It is not a stamp —
 // nothing is written at the invoke — so it is not re-exported from `turn-engine.js`: what it
 // declares is that the COMPOSITION resolves the field, and the sentence the model is shown says so
-// (394-26, WINDOWS 110).
 import { HOST_DERIVED_SCOPE_FUNCTION_IDS } from '../session-stamps.js'
 import {
   ANSWER_ONLY_TOOL_NAME,
@@ -123,7 +122,7 @@ describe('tool-names: the dotted-id <-> provider-safe bijection', () => {
     // The mapping is a bijection over the id grammar it accepts, and this is where it says so.
     // An id already carrying an underscore has two pre-images under the inverse, so the honest
     // answer is a named refusal at the projection rather than a tool name that silently
-    // misdispatches to whichever op the reverse mapping happened to land on (T-392-15).
+    // misdispatches to whichever op the reverse mapping happened to land on.
     expect(() => toToolName('runs.post_processing')).toThrow(ChatToolNameError)
   })
 
@@ -151,7 +150,7 @@ describe('projectPlannerTools: the registry walk IS the toolset', () => {
 
     // The denominator is the WALK. No numeric literal appears here on purpose: a count would
     // freeze the catalogue at today's size, and 393-395 add ops whose whole arrival proof is
-    // that they appear in this set without anyone editing it (D-07).
+    // that they appear in this set without anyone editing it.
     const expected = [
       ...walked.map((declaration) => toToolName(declaration.id)),
       ...CHAT_META_TOOL_NAMES,
@@ -222,7 +221,7 @@ describe('projectPlannerTools: the registry walk IS the toolset', () => {
     expect(Object.keys(unhandledSchema.properties ?? {}).sort()).toEqual(['clause', 'reason'])
     // `answer_only` names its clause too, and that field is what makes the coverage claim
     // per-clause rather than per-turn: without it one answer consumed every unbound clause of a
-    // compound request (392-11, CR-03). The two meta-tools now agree on the vocabulary.
+    // compound request. The two meta-tools now agree on the vocabulary.
     expect(Object.keys(answerSchema.properties ?? {}).sort()).toEqual(['clause', 'text'])
     expect((answerSchema.required ?? []).slice().sort()).toEqual(['clause', 'text'])
   })
@@ -282,7 +281,7 @@ describe('projectPlannerTools: the model is not shown what the host stamps', () 
         id,
         keys: Object.keys(declared.properties ?? {}).filter((key) => key !== 'sessionRef').sort(),
       })
-      // THE RULE, NOT TODAY'S ACCIDENT (WR-05). This pinned the projected `required` list EQUAL to
+      // THE RULE, NOT TODAY'S ACCIDENT. This pinned the projected `required` list EQUAL to
       // the declared one, which is true only because `sessionRef` is optional on both stamped ops
       // — so `dropRequired` cannot currently fire and the cell certified a no-op. What the
       // transform promises is a SUBTRACTION: the day a sibling op declares the ref required, this
@@ -293,7 +292,7 @@ describe('projectPlannerTools: the model is not shown what the host stamps', () 
         required: [...(declared.required ?? [])].filter((key) => key !== 'sessionRef').sort(),
       })
 
-      // T-394-85: the declaration's projection is the registry's SHARED inert view — the same one
+      // the declaration's projection is the registry's SHARED inert view — the same one
       // 396's MCP listing reads — so the transform must have cloned before editing.
       expect({ id, stillDeclares: Object.hasOwn(schemaOf(declaration!).properties ?? {}, 'sessionRef') })
         .toEqual({ id, stillDeclares: true })
@@ -318,7 +317,7 @@ describe('projectPlannerTools: the model is not shown what the host stamps', () 
 
       const document = await schemaDocumentOf(tools[toToolName(id)]?.inputSchema)
       expect({ id, required: document.required }).toEqual({ id, required: undefined })
-      // The PROPERTY stays: a model may legitimately ask all-time or last-n (D-12).
+      // The PROPERTY stays: a model may legitimately ask all-time or last-n.
       expect({ id, keeps: Object.hasOwn(document.properties ?? {}, 'window') })
         .toEqual({ id, keeps: true })
 
@@ -336,7 +335,7 @@ describe('projectPlannerTools: the model is not shown what the host stamps', () 
         expect({ id, was: [...(declaredArm.required ?? [])].sort() })
           .toEqual({ id, was: ['scope', 'sessionRef'] })
         expect({ id, now: [...(arm.required ?? [])] }).toEqual({ id, now: ['scope'] })
-        // The session arm, minus exactly the ref (WR-02) — the arm is otherwise structurally the
+        // The session arm, minus exactly the ref — the arm is otherwise structurally the
         // declaration's. Comparing against the declared arm UNCHANGED is what certified the
         // property staying, which is the accident WR-02 named.
         const { sessionRef: _withheld, ...expectedArmProperties } = declaredArm.properties ?? {}
@@ -361,7 +360,7 @@ describe('projectPlannerTools: the model is not shown what the host stamps', () 
     // derived side is read off the LIVE projection (which ids came back structurally different
     // from their declaration), the pinned side is the union of the two constants the STAMP
     // consults. A stamped op the transform misses reds by the omitted NAME; a transform that
-    // starts editing an unstamped op's schema reds by the extra one (T-394-86).
+    // starts editing an unstamped op's schema reds by the extra one.
     const walked = registry().list(PLANNER_CALLER)
     const tools = projectPlannerTools({ list: () => walked }, PLANNER_CALLER)
 
@@ -501,7 +500,6 @@ describe('projectPlannerTools: the model is not shown what the host stamps', () 
   it('CONTROL: an op in neither stamped set is handed its projection untouched', async () => {
     const walked = registry().list(PLANNER_CALLER)
     const tools = projectPlannerTools({ list: () => walked }, PLANNER_CALLER)
-    // 2026-10-01 (432-17): `quarantine.list` replaces the deleted `proposals.list` as the control.
     const control = walked.find((entry) => entry.id === 'quarantine.list')
     expect(control).toBeDefined()
     expect(SESSION_STAMPED_FUNCTION_IDS.has('quarantine.list')).toBe(false)

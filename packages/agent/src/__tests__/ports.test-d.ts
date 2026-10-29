@@ -35,7 +35,7 @@ expectTypeOf<ReturnType<KnowledgePort['promote']>>().toEqualTypeOf<Promise<Promo
 expectTypeOf<Parameters<KnowledgePort['recordGateReceipt']>>().toEqualTypeOf<[receipt: GateReceipt]>()
 expectTypeOf<ReturnType<KnowledgePort['recordGateReceipt']>>().toEqualTypeOf<Promise<GateReceiptRecordOutcome>>()
 
-// 385 plan 02 (D-06), narrowed by 391 plan 02 (D-09). The exact key set, pinned by equality
+// 385 plan 02, narrowed by 391 plan 02. The exact key set, pinned by equality
 // rather than by a list of per-method assertions. Per-method assertions can only say what IS
 // there, and the claim this carve-up has to support is what is NOT: no conversation surface for
 // a later refactor to unify chat into, no generic job CRUD beside the queue's compound verbs,

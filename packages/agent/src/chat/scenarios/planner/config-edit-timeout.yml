@@ -14,7 +14,7 @@
 # and a cell asserting otherwise would have been asserting a capability into existence.
 #
 # WHAT IT ASSERTS NOW. 395 registered eight config ops, the planner binds every registry op 1:1
-# (392 D-07), and `config.field.set` addresses ANY schema-addressable path (D-03) — so the plainest
+# and `config.field.set` addresses ANY schema-addressable path — so the plainest
 # possible request to change one configuration value is routable. The utterance below is exactly
 # that request, phrased as an action in prose the stage-1 resolver table cannot match: every table
 # rule is prefix-anchored on its own verb (`run `, `status`, `test `, `digest `, `/fn`…), and this

@@ -1,4 +1,4 @@
-// What a DAMAGED session file means (Phase 392 plan 03, CHAT-05 / D-19).
+// What a DAMAGED session file means.
 //
 // D-19 names exactly two crash shapes and this file pins exactly those two, in both directions:
 // a torn FINAL line (the process died mid-write) and a DANGLING turn (the last event is not a

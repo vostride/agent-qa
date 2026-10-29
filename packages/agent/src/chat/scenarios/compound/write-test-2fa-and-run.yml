@@ -1,4 +1,4 @@
-# THE SPEC'S OWN EXAMPLE, FLIPPED BY 394 (D-08 / D-10).
+# THE SPEC'S OWN EXAMPLE, FLIPPED BY 394.
 #
 # WHAT THIS CELL USED TO ASSERT. `write_test` was in no registry, so the planner could not plan the
 # first clause and no stub pretended otherwise. D-10's strict pre-flight atomicity then refused the
@@ -25,7 +25,7 @@
 # single planned action, that is a finding about this expectation, and it is fixed by editing this
 # cell and bumping the corpus version, never by loosening the assertion until it fits.
 #
-# WHAT THE LIVE DRAIN MUST SUPPLY. `authoring.draft.write` is `mutating-shared` (394-08) and the v48
+# WHAT THE LIVE DRAIN MUST SUPPLY. `authoring.draft.write` is `mutating-shared` and the v48
 # gate denies that tier outside `local-interactive`; a vitest worker resolves `local-headless`. This
 # cell needs a trust credential, a standing approval or an overridden context, or it reds on the
 # gate rather than on routing.

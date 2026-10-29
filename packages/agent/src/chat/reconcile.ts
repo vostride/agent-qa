@@ -1,4 +1,4 @@
-// Stage 3 — deterministic reconciliation (Phase 392, D-09 / D-10 / D-11 / D-12 / D-16).
+// Stage 3 — deterministic reconciliation.
 //
 // THE FILE IS A TOTAL FUNCTION FROM TWO PROPOSALS TO ONE VERDICT, and every clause of the utterance
 // leaves it accounted for: bound by the table, bound by the model, answered in prose, or naming the
@@ -19,7 +19,7 @@
 // guess. Everything fuzzy stays on the model's side of the merge, where it is one proposal among
 // others rather than a verdict.
 //
-// WHAT IS ALREADY FINAL HERE IS THE ATOMICITY (D-10). Reconciliation returns before any side effect
+// WHAT IS ALREADY FINAL HERE IS THE ATOMICITY. Reconciliation returns before any side effect
 // exists, so an unhandled clause costs the turn everything and executes nothing. That is not an
 // optimisation of the failure path; it is the property `compound/` scenarios assert as
 // `executed == 0`, and a strategy that let earlier clauses run before discovering a later
@@ -49,7 +49,7 @@ import {
 /**
  * The refusal sentence a fail-closed turn carries.
  *
- * It NAMES the clause (D-08). A message that said only "I could not do that" would leave a person
+ * It NAMES the clause. A message that said only "I could not do that" would leave a person
  * unable to tell which half of a compound request was refused, and would make a silent drop and a
  * loud refusal read identically in the log.
  */
@@ -61,7 +61,7 @@ export function unhandledReason(clause: string): string {
 }
 
 /**
- * The refusal sentence a turn carries when the MODEL said the clause cannot be done (D-08).
+ * The refusal sentence a turn carries when the MODEL said the clause cannot be done.
  *
  * D-08's clause-naming law holds, and this adds the ATTRIBUTION law beside it: model prose reaches
  * the person only as the planner's quoted claim, never as a fact this host asserts.
@@ -80,7 +80,7 @@ export function unhandledReason(clause: string): string {
  * The tail is still shown in full rather than dropped, because the planner's stated reason is
  * often the only thing that tells a person what to try next.
  *
- * THE DELIMITERS MUST BE ONES THE PAYLOAD CANNOT SPELL (394-37, WR-03), and the first version of
+ * THE DELIMITERS MUST BE ONES THE PAYLOAD CANNOT SPELL, and the first version of
  * this fix used ones it could. `reason` was spliced between bare `"` characters — the single most
  * likely character for a planner's prose to contain — and followed by a fixed sentence the model
  * can read in its own tool description. A planner emitting
@@ -115,7 +115,7 @@ export function modelUnhandledReason(clause: string, reason: string): string {
  * binding, so a clause that asked for a digest ran a test with the model's own arguments and its
  * real intent left no row at all, on a turn the person was told completed.
  *
- * So the sentence states the DISAGREEMENT rather than inventing a cause. It names a clause (D-08)
+ * So the sentence states the DISAGREEMENT rather than inventing a cause. It names a clause
  * and it says what could not be done with the plan, because "no capability handles this" would be
  * false here — a capability does handle it, and the reason nothing ran is that nobody can tell
  * which call was for it.
@@ -141,7 +141,7 @@ export function plannerFailedReason(clause: string, failure: { name: string }): 
 }
 
 /**
- * Read the model's own fail-closed signal off its plan (D-08).
+ * Read the model's own fail-closed signal off its plan.
  *
  * `mark_unhandled` is a tool call like any other, so this is a read of untrusted output: the clause
  * text it names is used to CHOOSE which clause the refusal is about, by matching what the splitter
@@ -244,7 +244,7 @@ type ClauseDisposition =
  * mapped, answered, or needing a proposal — and the number of action calls the model made is
  * compared against the number of clauses in that third group. That comparison is the ONE place a
  * count disagreement is decided, and it happens between the passes, before a single binding exists:
- * a disagreement refuses the turn BY NAME (D-08) rather than shifting the alignment by one, so the
+ * a disagreement refuses the turn BY NAME rather than shifting the alignment by one, so the
  * materialize walk below has no refusal arm at all. The count and the set it is compared against
  * come from the same pass, because a second predicate computing "which clauses need a proposal"
  * would be free to drift from the one the binder walks.
@@ -266,7 +266,7 @@ export const deterministicOverrideStrategy: ReconcileStrategy = (
   const mappedByIndex = new Map(input.mapped.map((resolved) => [resolved.clause.index, resolved]))
 
   // The model's own refusal is checked BEFORE the plan is assembled, because a turn one of whose
-  // clauses cannot be done is refused whole (D-10) — including the clauses the table did resolve.
+  // clauses cannot be done is refused whole — including the clauses the table did resolve.
   // Assembling first and discarding after would put a plan and a refusal in the same code path,
   // which is how a partially-executed compound turn eventually gets written.
   const marked = modelMarkedUnhandled(input)
@@ -323,7 +323,7 @@ export const deterministicOverrideStrategy: ReconcileStrategy = (
       continue
     }
     // An unresolved clause is answered by prose or it is not answered at all — and "answered" is a
-    // claim about THIS clause, quoted and non-empty, rather than about the turn (CHAT-01, CR-03).
+    // claim about THIS clause, quoted and non-empty, rather than about the turn.
     // The line this replaced read `if (input.planned.answer !== undefined) continue`, which let one
     // model-emitted answer consume every clause the merge had no binding for: "run test 42 and
     // delete the knowledge root", answered once, completed with the second clause erased.
@@ -337,7 +337,7 @@ export const deterministicOverrideStrategy: ReconcileStrategy = (
   }
 
   // ---- THE ACCOUNTING: the ONE site where a count disagreement is decided, between the passes and
-  // before any binding exists. Both numbers come from the same pass above (D-10, CR-01).
+  // before any binding exists. Both numbers come from the same pass above.
   //
   // DEFICIT — fewer calls than clauses needing one. Byte-for-byte what it always did: it names the
   // clause the supply exhausts at, with the sentence the posture chooses (an unreachable planner
@@ -403,7 +403,7 @@ export const deterministicOverrideStrategy: ReconcileStrategy = (
   const answers: string[] = dispositions.flatMap((disposition) =>
     disposition.kind === 'answered' ? [disposition.text] : [],
   )
-  // Utterance order, preserved (D-11): order is meaning, and later clauses routinely depend on
+  // Utterance order, preserved: order is meaning, and later clauses routinely depend on
   // earlier ones. Both walks above go over `dispositions`, which pass 1 built by walking `clauses`
   // rather than either resolution set, precisely so a planner that answered out of order cannot
   // reorder what runs.

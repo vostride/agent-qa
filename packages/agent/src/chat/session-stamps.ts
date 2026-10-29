@@ -10,7 +10,7 @@ import { AUTHORING_DRAFT_VERIFY_FUNCTION_ID } from '../functions/ops/authoring-v
 import { AUTHORING_FUNNEL_GET_FUNCTION_ID } from '../functions/ops/authoring-funnel-get.js'
 
 /**
- * The ops whose `sessionRef` this surface OWNS (394-17 / 394-19, D-12 · T-394-66 · T-394-74).
+ * The ops whose `sessionRef` this surface OWNS.
  *
  * A SET RATHER THAN AN ID, and that is CR-02's adjudicated fix rather than a generalisation for
  * its own sake. `authoring.draft.verify` carries the same field, spreads it onto the receipt it
@@ -26,13 +26,13 @@ export const SESSION_STAMPED_FUNCTION_IDS: ReadonlySet<string> = new Set([
   AUTHORING_DRAFT_VERIFY_FUNCTION_ID,
 ])
 
-/** The ops whose `window` this surface may scope to the session it knows (394-19, D-12). */
+/** The ops whose `window` this surface may scope to the session it knows. */
 export const WINDOW_STAMPED_FUNCTION_IDS: ReadonlySet<string> = new Set([
   AUTHORING_FUNNEL_GET_FUNCTION_ID,
 ])
 
 /**
- * The ops whose `scope` the COMPOSITION derives when the caller supplies none (394-26, WINDOWS 110).
+ * The ops whose `scope` the COMPOSITION derives when the caller supplies none.
  *
  * NOT A STAMP, and the difference is why it is a third set rather than a member of either above.
  * Nothing is written at the invoke here: `authoring.draft.write` declares `scope` OPTIONAL at the

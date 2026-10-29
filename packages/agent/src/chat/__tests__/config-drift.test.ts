@@ -1,4 +1,4 @@
-// D-04 / CHAT-05: configuration changes are EVENTS (Phase 392 plan 07).
+// configuration changes are EVENTS.
 //
 // THE EVENTS ARE GUARDED, NOT MERELY SHAPED. Every case below runs the produced event through
 // `guardChatSessionEvent` — the same exact-key check a reopen applies to bytes off disk. A suite

@@ -64,7 +64,7 @@ import type {
 } from '../ports.js'
 import type { ChatConfigState } from '../config-drift.js'
 
-// RE-SPELLED 2026-10-01 (432-17): `proposals.list` is deleted with the inbox. `quarantine.list` is
+// RE-SPELLED 2026-10-01: `proposals.list` is deleted with the inbox. `quarantine.list` is
 // the read op folded in its place: it declares the same kind of classifier (`output.entries.length`)
 // over the same `{ entries }` shape, so every claim below keeps its subject.
 const PROPOSALS_LIST = 'quarantine.list'
@@ -83,7 +83,7 @@ const PLANNER_CALLER: FunctionCaller = {
 
 /**
  * A refusal shape `invokeFunction` publishes, as a scripted stand-in with the same NAME.
- * 2026-10-01 (432-19): the input refusal, since the gate's denial error is deleted.
+ * the input refusal, since the gate's denial error is deleted.
  */
 class FunctionInputError extends Error {
   override readonly name = 'FunctionInputError'
@@ -92,7 +92,7 @@ class FunctionInputError extends Error {
 interface MemoryLog extends SessionLogPort {
   readonly events: ChatSessionEvent[]
   boundaries: number
-  /** How many handles this log handed out, and how many came back (392-12). */
+  /** How many handles this log handed out, and how many came back. */
   opens: number
   closes: number
 }
@@ -106,7 +106,7 @@ function memoryLog(): MemoryLog {
     model: 'unbound',
     toolsetHash: 'hash-0',
   }
-  // The double answers the HANDLE contract (392-12): the write verbs come back from `open()`
+  // The double answers the HANDLE contract: the write verbs come back from `open()`
   // scoped to the session it opened, so a turn cannot reach a log-level append — there is none.
   const log: MemoryLog = {
     events,
@@ -148,7 +148,7 @@ interface Harness {
   readonly invocations: Invocation[]
   readonly ordering: string[]
   readonly plannerCalls: number
-  /** What `/model` was actually asked to switch to. EMPTY is the CR-04 assertion (392-11). */
+  /** What `/model` was actually asked to switch to. EMPTY is the CR-04 assertion. */
   readonly modelCalls: string[]
   runTurn(input: AgentAskInput): Promise<AgentAskResult>
 }
@@ -175,7 +175,7 @@ interface HarnessOptions {
    */
   readonly unresolvableModel?: string
   /**
-   * What the invoke seat ANSWERS, per function id (394-14).
+   * What the invoke seat ANSWERS, per function id.
    *
    * The spy resolved a fixed `{ ok: true }` for every op while nothing on this surface read an op
    * RESULT — D-18's map-not-territory rule meant the receipt line was a function of the id alone.
@@ -184,14 +184,14 @@ interface HarnessOptions {
    */
   readonly results?: Readonly<Record<string, unknown>>
   /**
-   * Answer ONE timestamp for every event of the turn (432-13, EDGE-03). Order must come from the
+   * Answer ONE timestamp for every event of the turn. Order must come from the
    * utterance, never from a clock that happens to move between clauses.
    */
   readonly fixedClock?: boolean
 }
 
 /**
- * The ops this harness folds through the REAL composition-root fold (399.1-03).
+ * The ops this harness folds through the REAL composition-root fold.
  *
  * TWO SPECS, AND THE SECOND ONE IS THE MEASUREMENT. `authoring.draft.write` declares the fan-out
  * disclosure; `quarantine.list` (`proposals.list` until 432-17) declares a classifier that says only
@@ -203,7 +203,7 @@ interface HarnessOptions {
  * only place the same widening can still be written is the runner's post-classify seat — which is
  * exactly where mutation S went.
  *
- * 2026-08-20 (399.1-04): `proposals.list` USED TO DECLARE NOTHING, and mutation S attacked the
+ * `proposals.list` USED TO DECLARE NOTHING, and mutation S attacked the
  * runner's absent-classifier branch. `classify` is a REQUIRED member now — there is no undeclared
  * op left anywhere in the registry to leak onto — so both the control below and mutation S moved
  * onto the seat that still exists: what the runner does with the verdict an op DID declare. The
@@ -227,7 +227,7 @@ const FOLD_IDS: ReadonlySet<string> = new Set(
 )
 
 /**
- * An EMPTY listing, produced through the folded read op's own output contract (399.1-04).
+ * An EMPTY listing, produced through the folded read op's own output contract.
  *
  * PRODUCED, NEVER TYPED. The op declares a classifier as of plan 04, and a classifier is run over
  * whatever this seat answers with — so a hand-written `{ ok: true }` would hand the shipped fold an
@@ -278,7 +278,7 @@ function harness(options: HarnessOptions = {}): Harness {
     reconcile: options.reconcile ?? deterministicOverrideStrategy,
     sessionLog: log,
     mint: {
-      // 2026-10-02 (432-39, D-02/D-12): no session is stamped onto the caller. The production mint
+      // no session is stamped onto the caller. The production mint
       // stopped stamping one when the deny overlay that read it was deleted, the port no longer
       // takes the session, and `FunctionCaller.sessionId` is deleted.
       forStage: (stage: ChatBindingStage): FunctionCaller =>
@@ -288,7 +288,7 @@ function harness(options: HarnessOptions = {}): Harness {
       ordering.push(`invoke:${functionId}`)
       invocations.push({ functionId, input, caller })
       if (functionId === options.failOn) return Promise.reject(new FunctionInputError('refused'))
-      // 399.1: the envelope, run through the REAL composition-root fold (399.1-03).
+      // 399.1: the envelope, run through the REAL composition-root fold.
       //
       // It used to script `{ status: 'executed', outcome: '' }` for everything, which was right
       // while the only fold in existence was `config.field.set`'s and every cell here was about
@@ -433,7 +433,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
     })
   })
 
-  // CR-04, the gap round (392-11). THE DIRECTIVE LOOP USED TO RUN BEFORE THE VERDICT, so a turn
+  // CR-04, the gap round. THE DIRECTIVE LOOP USED TO RUN BEFORE THE VERDICT, so a turn
   // whose second clause was unroutable returned `fail_closed` — with the message "nothing in the
   // request was carried out" — while the directive it named was already in force. Every existing
   // case in this file measured effects through the INVOKE spy, and a directive never travels the
@@ -441,7 +441,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
   // other seat. (432-13: the shipped probe was `/pin`, now an ordinary unroutable clause; the
   // effectful directive left is `/model`, and no turn writes an `approval_decision` row.)
   describe('no directive side effect precedes the reconciliation verdict', () => {
-    // RE-SPELLED 2026-09-30 (432-13) from 'records NO pin when the turn is refused, though it names
+    // RE-SPELLED 2026-09-30 from 'records NO pin when the turn is refused, though it names
     // one'. `/pin` is no longer a directive, so the same utterance is two unroutable clauses; the
     // claim that survives is that a refused turn leaves no approval row and invokes nothing.
     it('records NO approval row when a turn naming the retired /pin is refused', async () => {
@@ -477,7 +477,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
       }).toEqual({ status: 'fail_closed', switched: [], verbModelChanges: 0 })
     })
 
-    // RE-SPELLED 2026-09-30 (432-13): the directive carried out is `/model`, and the op beside it
+    // RE-SPELLED 2026-09-30: the directive carried out is `/model`, and the op beside it
     // is reached through `/fn` now that the `proposals` alias is gone.
     it('still carries the directive out on the execute arm, and its line still leads', async () => {
       const run = harness({ directives: true })
@@ -487,7 +487,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
       expect(run.modelCalls).toEqual(['claude-fast'])
       expect(run.log.events.filter((event) => event.kind === 'approval_decision')).toHaveLength(0)
       expect(run.invocations.map((call) => call.functionId)).toEqual([PROPOSALS_LIST])
-      // Directive lines lead the answer — the person asked for the model switch FIRST (D-11).
+      // Directive lines lead the answer — the person asked for the model switch FIRST.
       expect(result.answer?.split('\n')[0]).toContain('model: claude-fast')
     })
 
@@ -532,7 +532,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
   // them in sequence. A refusal that carried something out is worse than a refusal that lied about
   // it, because the person is told the session is unchanged and it is not.
   describe('E3 — the directive BATCH is refused whole: no earlier directive survives a later one', () => {
-    // RE-SPELLED 2026-09-30 (432-13) from 'records NO pin when a LATER directive in the same turn
+    // RE-SPELLED 2026-09-30 from 'records NO pin when a LATER directive in the same turn
     // refuses': the batch is two `/model` directives, the second of which the pre-flight refuses.
     it('applies NO earlier directive when a LATER directive in the same turn refuses', async () => {
       const run = harness({ directives: true, unresolvableModel: 'nonsense-model' })
@@ -565,7 +565,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
     })
   })
 
-  // 432-13 (D-14/D-15): chat resolution has no approval route left. `/pin` is not a directive, so it
+  // chat resolution has no approval route left. `/pin` is not a directive, so it
   // is an ordinary unroutable clause, and no turn writes an `approval_decision` row.
   describe('no pin directive and no approval writer', () => {
     it('`/pin` is an unroutable clause, and nothing is pinned or recorded as an approval', async () => {
@@ -875,7 +875,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
   })
 
   /**
-   * 392-16 — a style modifier is not a clause the model has to claim (G-392-1).
+   * a style modifier is not a clause the model has to claim.
    *
    * THE CLOSURE IS ANCHORED ON WHAT A PERSON READS, NOT ON THE SPLITTER'S RETURN VALUE. The gap
    * was measured in the live lane as a refusal — a sentence asserting no capability handles
@@ -960,7 +960,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
   })
 })
 
-// ---- D-18's one recorded exception: the fan-out report on the receipt (394-14 · WTST-08) -------
+// ---- D-18's one recorded exception: the fan-out report on the receipt -------
 //
 // WHY A RECEIPT LINE IS THE RIGHT SURFACE FOR IT, and why that is not a hole in D-18. The receipt's
 // charter is "which op ran and how it went"; for `authoring.draft.write` the cost IS how it went,
@@ -1012,7 +1012,7 @@ const FUNNEL_TOOL = toToolName(AUTHORING_FUNNEL_GET_FUNCTION_ID)
 const FUNNEL_UTTERANCE = 'how is this session doing so far'
 
 /**
- * The loop outcome every cell here drives, named ONCE (399.1-03).
+ * The loop outcome every cell here drives, named ONCE.
  *
  * The receipt line is now the op's OWN verdict rather than the engine's `<id> completed`, so this
  * word appears in both the fixture and the expectation. Spelling it twice would let a cell agree
@@ -1021,7 +1021,7 @@ const FUNNEL_UTTERANCE = 'how is this session doing so far'
 const AUTHORING_OUTCOME = 'drafted'
 
 /**
- * The dedup REFUSAL arm, produced through the op's own output contract (399.1-09).
+ * The dedup REFUSAL arm, produced through the op's own output contract.
  *
  * PARSED, NEVER TYPED — the same move `PROPOSALS_LIST_RESULT` makes above and the shape
  * `refusal-classifiers.test.ts` mints for this op's refusal cell. A hand-written stand-in would hand
@@ -1061,7 +1061,7 @@ function authoringHarness(report: unknown): Harness {
 }
 
 describe('exception — the authoring receipt carries the fan-out report', () => {
-  // 399.1-03: the exception moved OUT of `turn-engine.ts` and onto this op's own `classify`. The
+  // the exception moved OUT of `turn-engine.ts` and onto this op's own `classify`. The
   // claim is unchanged and the enforcement got stronger — it was an id comparison inside a shared
   // summariser, and it is a member of one spec now. The receipt line is the op's own words, which
   // is why the expectations below no longer carry the engine's `<id> completed` prefix.
@@ -1138,12 +1138,12 @@ describe('exception — the authoring receipt carries the fan-out report', () =>
 
     expect(result.status).toBe('completed')
     // The VERDICT survives an unparsable disclosure and the SENTENCE does not: the op still says
-    // what happened, and says nothing about a report it could not read (399.1-03).
+    // what happened, and says nothing about a report it could not read.
     expect(result.receipts[0]?.outcome).toBe(AUTHORING_OUTCOME)
   })
 })
 
-// ---- the sessionRef stamp (394-17, D-12 · WTST-05 · T-394-66) -----------------------------------
+// ---- the sessionRef stamp -----------------------------------
 //
 // The session is a fact about THIS COMPOSITION, and the receipt the loop mints is attributed with
 // it so the per-session funnel window has anything to select. The stamp is an OVERWRITE and never
@@ -1229,7 +1229,7 @@ describe('the authoring sessionRef stamp', () => {
   })
 })
 
-// ---- the funnel window stamp (394-19, D-12 · WTST-05 · T-394-75) --------------------------------
+// ---- the funnel window stamp --------------------------------
 //
 // THE READ SIDE, AND ITS LAW IS THE OTHER ONE. D-12's "default scope = current session" is a
 // SURFACE default — the op cannot construct it because `FunctionSpec.invoke` never sees a caller —

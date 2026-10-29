@@ -1,4 +1,4 @@
-// Phase 431 plan 01 (D-08, EDGE-15): the chat consumers of `runs.list` agree on chronology.
+// the chat consumers of `runs.list` agree on chronology.
 //
 // The banner and the resolver are driven over the REAL `runs.list` spec through `invokeFunction`,
 // with more completions than the default cap and build ordinals that disagree with completion
@@ -21,8 +21,8 @@ import { composeBanner } from '../banner.js'
 import type { ChatInvokeBinding } from '../ports.js'
 import { CHAT_RESOLVER_TABLE, resolveClause } from '../resolver-table.js'
 
-// 2026-10-02 (432-36, D-12): no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither (432-20).
+// no `grantedScopes` or `safeMode` on the caller; the registry reads
+// neither.
 const CALLER: FunctionCaller = {
   surface: 'chat',
   origin: 'human',
@@ -71,8 +71,8 @@ function listRegistry(documents: readonly CompletedRunHandoff[]) {
         readStepEvidence: () => Promise.resolve({ kind: 'run-not-recorded' } as const),
       },
     } as unknown as FunctionDeps,
-    // 2026-10-02 (432-36, D-12): no `resolveExecutionContext` registry option; the registry reads
-    // no context (432-20).
+    // no `resolveExecutionContext` registry option; the registry reads
+    // no context.
   })
 }
 

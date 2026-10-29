@@ -45,7 +45,7 @@ export interface ChatStateSnapshot {
    *
    * This is the value the config re-read compares against, and that is why the override lives here
    * rather than in a variable beside it: a thunk that kept answering the composed model would emit
-   * a `model_change` straight back on the next turn, undoing the verb it just recorded (392-07).
+   * a `model_change` straight back on the next turn, undoing the verb it just recorded.
    */
   readonly activeModel: string
   /**

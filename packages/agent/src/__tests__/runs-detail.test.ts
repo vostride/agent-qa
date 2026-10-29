@@ -1,4 +1,4 @@
-// `runs.detail` — the op's refusal vocabulary and the D-06 token sum (Phase 405 plan 01, D-03).
+// `runs.detail` — the op's refusal vocabulary and the D-06 token sum.
 //
 // The end-to-end path this op sits on is measured in `dashboard-server`'s tracer cell, over a real
 // database and a real socket. What CANNOT be measured there is what this file measures: the two
@@ -178,7 +178,7 @@ describe('the declaration', () => {
   })
 
   it('is a read-tier, read-only unary op bound through the optional runDetail dep', () => {
-    // RE-SPELLED 2026-10-01 (432-27, D-12) from `requiredScopes` equal to ['read']: the op
+    // RE-SPELLED 2026-10-01 from `requiredScopes` equal to ['read']: the op
     // declares no scope; the read-only risk below is what still states the tier.
     expect(runsDetailSpec).not.toHaveProperty('requiredScopes')
     expect(runsDetailSpec.resultKind).toBe('unary')
@@ -199,7 +199,7 @@ describe('the declaration', () => {
   })
 })
 
-// Read-time presence on every projected artifact ref (406-03, D-17, DETL-05).
+// Read-time presence on every projected artifact ref.
 //
 // The projection records which blobs a sub-action produced; it cannot record whether they are
 // still on disk, because a producer writes once and a page reads later. So the op asks — once per
@@ -343,7 +343,7 @@ describe('runs.detail — presence per artifact ref', () => {
   })
 })
 
-// ---- C432-ALL-OPS-AVAILABLE (432-27, D-12) ------------------------------------------------------
+// ---- C432-ALL-OPS-AVAILABLE ------------------------------------------------------
 //
 // `runs.detail` and `runs.overview` once required `read`. Through a real registry and
 // `invokeFunction`, retried from three callers that differ in surface and origin and carry no
