@@ -155,7 +155,6 @@ describe('C444.1-RETRY-BACKOFF', () => {
     } catch (error) {
       scene.error = message(error)
     }
-    console.info(`C444.1-RETRY-BACKOFF scene: ${JSON.stringify(scene)}`)
   }, FILE_BUDGET_MS)
 
   afterAll(async () => {

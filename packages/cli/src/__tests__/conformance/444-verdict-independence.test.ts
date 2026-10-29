@@ -543,7 +543,6 @@ describe('C444-VERDICT-INDEPENDENCE', () => {
     } catch (error) {
       scene.error = message(error)
     }
-    console.info(`C444-VERDICT-INDEPENDENCE scene: ${JSON.stringify(scene)}`)
   }, FILE_BUDGET_MS)
 
   afterAll(async () => {

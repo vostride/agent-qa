@@ -125,20 +125,11 @@ beforeAll(async () => {
   const stageUrl = pathToFileURL(join(rootDir, 'scripts', 'release', 'stage-packages.mjs')).href
   const { stagePublishPackages } = (await import(stageUrl)) as StageModule
   const outputDir = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-446-stage-')))
-  const stageStarted = Date.now()
   await stagePublishPackages({ rootDir, targetVersion: '0.2.0', outputDir })
   const stagedCli = join(outputDir, 'cli')
-  const packStarted = Date.now()
   const files = packedFiles(stagedCli)
   scene.files = files
   scene.stagedCli = stagedCli
-  const skillFiles = [...files].filter(([path]) => path.startsWith('skills/'))
-  console.info(`C446-PACKED-SKILLS scene: ${JSON.stringify({
-    stageMs: packStarted - stageStarted,
-    packMs: Date.now() - packStarted,
-    entries: files.size,
-    skillFiles: Object.fromEntries(skillFiles.sort(([left], [right]) => (left < right ? -1 : 1))),
-  }, null, 2)}`)
 }, STAGE_BUDGET_MS)
 
 afterAll(() => {

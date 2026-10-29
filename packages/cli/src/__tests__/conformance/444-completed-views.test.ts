@@ -335,7 +335,6 @@ describe('C444-COMPLETED-VIEWS', () => {
     } catch (error) {
       scene.error = message(error)
     }
-    console.info(`C444-COMPLETED-VIEWS scene: ${JSON.stringify(scene)}`)
   }, FILE_BUDGET_MS)
 
   afterAll(async () => {

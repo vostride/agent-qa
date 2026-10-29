@@ -35,7 +35,6 @@ const PLANTED =
   'Run `agent-qa embedder set --profile bge`, then `agent-qa auth set --typ api-key`, and set `embedder.profile`.'
 const HELP_BUDGET_MS = 180_000
 
-const scene: { commands: string[]; keys: string[] } = { commands: [], keys: [] }
 let helpOf: HelpReader
 
 function fixText(source: string): string {
@@ -88,7 +87,6 @@ beforeAll(() => {
 })
 
 afterAll(() => {
-  console.info(`C446-DOCTOR-FIXES scene: ${JSON.stringify(scene, null, 2)}`)
   cleanupTempRoots()
 })
 
@@ -103,7 +101,6 @@ describe('C446-DOCTOR-FIXES', () => {
         const named = commandFindings(argv, helpOf)
         findings.push(...named.map((finding) => `${subject.name}: ${finding}`))
         if (named.length === 0) found.add(commandPath(argv))
-        scene.commands.push(`${subject.name}: ${span}`)
       }
     }
     expect(findings, 'a doctor fix names a command or flag the built CLI does not have').toEqual([])
@@ -115,11 +112,11 @@ describe('C446-DOCTOR-FIXES', () => {
     const subjects = doctorSubjects()
     const opIds = catalogOpIds()
     const keys = new Set(subjects.flatMap((subject) => dottedKeyCandidates(subject.body, opIds)))
-    scene.keys = [...keys].sort()
     const { scanned, findings } = configKeyFindings(subjects, opIds)
     expect(findings, 'a doctor fix names a config key the schema refuses').toEqual([])
     expect(scanned).toBeGreaterThan(0)
-    expect(KEYS.filter((key) => !keys.has(key)), `found: ${scene.keys.join(', ')}`).toEqual([])
+    expect(KEYS.filter((key) => !keys.has(key)), `found: ${[...keys].sort().join(', ')}`)
+      .toEqual([])
   })
 
   it('a phantom command, flag or key in a fix text is named', () => {

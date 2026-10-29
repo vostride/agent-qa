@@ -438,26 +438,6 @@ describe('C445-HARD-CUT', () => {
     } catch (error) {
       scene.error = message(error)
     }
-    console.info(`C445-HARD-CUT scene: ${JSON.stringify({
-      firstValidate: exited(scene.firstValidate),
-      daemonStop: exited(scene.daemonStop),
-      daemonStopAgain: exited(scene.daemonStopAgain),
-      daemonStatus: exited(scene.daemonStatus),
-      filesBeforeDaemonStop: Object.keys(scene.filesBeforeDaemonStop ?? {}).length,
-      refusedInit: exited(scene.refusedInit),
-      configKeptAfterRefusal: scene.configKeptAfterRefusal,
-      treeKeptAfterRefusal: scene.treeKeptAfterRefusal,
-      init: exited(scene.init),
-      validate: exited(scene.validate),
-      secondInit: exited(scene.secondInit),
-      keptBefore: scene.keptBefore,
-      keptAfter: scene.keptAfter,
-      secretsMode: scene.secretsMode,
-      v1Recreated: scene.v1Recreated,
-      examplesPresent: scene.examplesPresent,
-      filesBeforeSecondInit: Object.keys(scene.treeBeforeSecondInit ?? {}).length,
-      error: scene.error,
-    })}`)
   })
 
   afterAll(() => {

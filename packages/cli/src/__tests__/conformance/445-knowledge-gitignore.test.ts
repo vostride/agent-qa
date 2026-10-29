@@ -257,23 +257,6 @@ describe('C445-KNOWLEDGE-GITIGNORE', () => {
     } catch (error) {
       scene.error = message(error)
     }
-    console.info(`C445-KNOWLEDGE-GITIGNORE scene: ${JSON.stringify({
-      init: exited(scene.init),
-      run: exited(scene.run),
-      rebuildIndex: exited(scene.rebuildIndex),
-      drain: exited(scene.drain),
-      authorityExists: scene.authorityExists,
-      sqliteInStatus: scene.status?.filter((line) => SQLITE_FILE.test(line)),
-      open: scene.open,
-      checkIgnore: scene.checkIgnore,
-      refusal: {
-        init: exited(scene.refusal?.init),
-        missing: exited(scene.refusal?.missing),
-        negated: exited(scene.refusal?.negated),
-      },
-      modelRequests: scene.modelRequests,
-      error: scene.error,
-    })}`)
   })
 
   afterAll(async () => {

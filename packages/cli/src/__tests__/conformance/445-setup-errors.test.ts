@@ -268,7 +268,6 @@ describe('C445-SETUP-ERRORS', () => {
     } catch (error) {
       scene.error = message(error)
     }
-    console.info(`C445-SETUP-ERRORS scene: ${JSON.stringify(scene)}`)
   }, FILE_BUDGET_MS)
 
   afterAll(async () => {

@@ -177,7 +177,6 @@ describe('C444-EXIT-TWO', () => {
     } catch (error) {
       scene.error = message(error)
     }
-    console.info(`C444-EXIT-TWO scene: ${JSON.stringify(scene)}`)
   }, FILE_BUDGET_MS)
 
   afterAll(async () => {

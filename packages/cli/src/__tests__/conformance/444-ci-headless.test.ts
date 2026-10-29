@@ -284,7 +284,6 @@ beforeAll(async () => {
   } catch (error) {
     scene.error = message(error)
   }
-  console.info(`C444-CI-HEADLESS scene: ${seen()}`)
 }, FILE_BUDGET_MS)
 
 afterAll(async () => {
