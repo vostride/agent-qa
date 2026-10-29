@@ -1,7 +1,4 @@
-// POST /api/llm/connect. A draft model is tested with its typed
-// secret inline and nothing is persisted first; only a pass, or the explicit skipTest behind
-// "Save without testing", writes the credential and then the definition (plus the default when the
-// project had none) in one config write. Same-site only; the secret is never logged or echoed.
+// Only a passing test or an explicit `skipTest` writes the credential and definition; never echoed.
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
 import {
@@ -120,8 +117,7 @@ type ResolvedTestAuth =
   | { kind: 'ok'; auth: ResolvedModelAuth; usedCredential: boolean }
   | { kind: 'missing' }
 
-// a typed secret is used inline; otherwise the saved credential under the name, or the
-// draft's completed sign-in, composed exactly as the live session composes it.
+// A typed secret is used inline; otherwise the saved credential or the draft's completed sign-in.
 async function resolveTestAuth(
   name: string,
   provider: string,
@@ -161,7 +157,7 @@ async function probe(
   timeoutMs: number,
 ): Promise<void> {
   const { profile, auth: modelAuth } = toModelProfileAndAuth(llmConfig, auth)
-  // fixed probe text, nothing to mask.
+  // Fixed probe text, nothing to mask.
   const model = createModel(profile, modelAuth, (text) => text)
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), timeoutMs)

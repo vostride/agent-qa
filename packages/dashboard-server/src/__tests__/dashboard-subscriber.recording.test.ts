@@ -138,7 +138,7 @@ it.each(['member', 'sub-action'] as const)(
       const failed = await createDashboardRunDetailReader(db).read(runId)
       expect(failed).toBeDefined()
       expect(kind === 'member' ? failed?.members : failed?.subActions).toEqual([])
-      // a member's finish leaves the row `running`; the verdict moves it.
+      // A member's finish leaves the row `running`; the verdict moves it.
       expect(db.getRun(runId)?.status).toBe('running')
       raw.exec('DROP TRIGGER reject_projection')
       bus.publish('subActionRecorded', { ...child, recordingOffsetMs: 0 })

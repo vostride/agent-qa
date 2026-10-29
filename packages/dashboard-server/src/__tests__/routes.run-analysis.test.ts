@@ -1,28 +1,4 @@
-// THE PHASE 406 TRACER, SERVER HALF.
-//
-// ONE CLAIM, MEASURED END TO END: the floor verdict sentence `analysis.get` composes for a failed
-// member reaches a browser through a fourth-door route, with no layer faked.
-//
-//   handoff   a `CompletedRunHandoff` typed against the schema, planted under `runs.get`
-//   op        `analysis.get` — the SHIPPED spec, reached through the SHIPPED `invokeFunction`
-//             on a registry composed by the SHIPPED `createFunctionRegistry`
-//   floor     `analysis.getArtifact` answers `undefined`, so the op takes its deterministic leg
-//             (`resolveRunVerdicts` over the handoff, `templateSentenceParts` for the quote)
-//   route     `GET /api/runs/:id/analysis` on a REAL socket, through `startServer`
-//
-// WHY THE SOCKET AND NOT THE ADAPTER FUNCTION. Two of the things that can break this path live
-// ABOVE the route handler, exactly as `run-detail-routes.test.ts` records for its sibling arm: the
-// arm's POSITION in `routes.ts` — the `/api/runs/:id` catch-all below it claims every four-segment
-// GET and answers `Not found` — and the conditional spread in `server.ts` that threads the host at
-// all. A suite that called `serveRunAnalysisRead` directly would be green with the arm registered
-// in the wrong place, which is the "green that never ran" failure WINDOWS names.
-//
-// WHY A REAL REGISTRY AND NOT A PLANTED HOST. The op is where the floor is resolved, where the
-// sentence is rendered and where `RunNotFoundError` / `FunctionNotBoundError` are minted; a fixture
-// that answered the route's `invokeFunction` itself would be a second implementation of all three.
-// `@vostride/agent-qa-agent` is a DEV dependency of this package for exactly that reason —
-// `validate:arch` walks `src` with `__tests__` excluded and reconciles only runtime
-// `dependencies`, so the production edge it forbids stays forbidden.
+// A real socket and registry: the arm's place in `routes.ts` and the host wiring can both break it.
 
 import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
@@ -56,24 +32,12 @@ const RUN_ID = 'r_tracer-406-alpha-bravo-charlie-delta-echo-foxtrot-golf-hotel'
 /** The producer text the floor sentence quotes — the one string this file traces end to end. */
 const STEP_ERROR = 'Error: element "Submit" not found on the checkout screen'
 
-// no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither.
 const REGISTRY_CALLER: FunctionCaller = {
   surface: 'dashboard',
   origin: 'human',
 }
 
-/**
- * ONE failed member with ONE captured step, typed against `CompletedRunHandoff`.
- *
- * Hand-built rather than imported: `buildSyntheticHandoff` lives under the agent package's
- * `__tests__`, which nothing outside that package may reach. Typing the literal against the schema
- * is what keeps it honest — a field the handoff grows is a compile error here, not a silent hole.
- *
- * `rootCause` is the deterministic classifier's own `unknown`: producer
- * `deterministic-classifier`, confidence 0, empty evidence arrays. That IS the floor this tracer
- * ships, and 406-10's red-run cell is what later flips the same member to `analyze-run`.
- */
+// Hand-built as the agent package's handoff builder is test-only; typing it catches new fields.
 function failedMember(): PerTestOutcome {
   return {
     testId: 't_checkout_0',
@@ -148,13 +112,7 @@ function handoff(): CompletedRunHandoff {
   } as unknown as CompletedRunHandoff
 }
 
-/**
- * The four REQUIRED ports plus the two this tracer binds.
- *
- * `analysis: { getArtifact: () => undefined }` is THE FLOOR LEG, spelled deliberately: the port is
- * bound (so the op does not refuse `FunctionNotBoundError`) and there is no `analysis.json` on
- * disk, which is the state every run is in before 406-02/406-07 make `analyze-run` succeed on red.
- */
+// An `analysis` port answering `undefined` is bound, so the op takes its deterministic floor leg.
 function depsWith(options: { readonly withAnalysis: boolean }): FunctionDeps {
   const document = handoff()
   return {
@@ -190,8 +148,6 @@ function depsWith(options: { readonly withAnalysis: boolean }): FunctionDeps {
 function composeRegistry(options: { readonly withAnalysis: boolean }): FunctionRegistry {
   return createFunctionRegistry({
     deps: depsWith(options),
-    // no `resolveExecutionContext` registry option; the registry reads
-    // no context.
   })
 }
 
@@ -204,12 +160,8 @@ function hostOver(registry: FunctionRegistry): AgentHost {
     runsEventsFunctionId: 'test:planted-events-op',
     runsDetailFunctionId: RUNS_DETAIL_FUNCTION_ID,
     runsArtifactFunctionId: RUNS_ARTIFACT_FUNCTION_ID,
-    // THE ID AS DATA. This package may not import the agent package outside a test, so a
-    // route that spelled `'analysis.get'` itself would be a name nothing type-checks against the
-    // spec that answers to it.
+    // This package may not import agent outside tests, so the route takes the id as data.
     analysisGetFunctionId: ANALYSIS_GET_FUNCTION_ID,
-    // the sixth dispatched id, widened here so every AgentHost literal in the
-    // workspace still satisfies the interface.
     runsKnowledgeFunctionId: RUNS_KNOWLEDGE_FUNCTION_ID,
     invokeFunction: (
       handle: AgentRegistryHandle,
@@ -276,8 +228,7 @@ describe('GET /api/runs/:id/analysis', () => {
     const answer = await get(port, `/api/runs/${RUN_ID}/analysis`)
 
     expect(answer.status, answer.raw).toBe(200)
-    // THE OP'S OWN CONTRACT, not this file's idea of one. A body that parsed here but not under
-    // the schema would mean the adapter reshaped something on the way out, which D-04 forbids.
+    // Parsed with the op's own schema, so a body reshaped on the way out fails here.
     const parsed = AnalysisGetOutputSchema.safeParse(answer.body)
     expect(parsed.success, `the body must parse under AnalysisGetOutputSchema: ${answer.raw}`)
       .toBe(true)

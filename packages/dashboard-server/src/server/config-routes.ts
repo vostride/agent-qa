@@ -14,10 +14,7 @@ import type { UndoStore } from '../config/undo-store.js'
 import { respondJson } from '../run-service/run-detail-routes.js'
 import { readJsonBody } from './body-parser.js'
 
-/**
- * PATCH /api/config. The body is a change set; the answer is the revision now on disk, and for an
- * undoable change set a single-use Undo token.
- */
+// The body is a change set; the answer is the revision on disk and, if undoable, an Undo token.
 export function registerConfigWriteRoute(
   req: IncomingMessage,
   res: ServerResponse,
@@ -29,7 +26,7 @@ export function registerConfigWriteRoute(
       respondJson(res, 400, { error: 'invalid_write_input' })
       return
     }
-    // this door changes only what the page renders a field for.
+    // This door changes only what the page renders a field for.
     const refused = parsed.data.changes.some((change) =>
       !isPageWritableConfigPath(change.path)
       || (change.op === 'move' && !isPageWritableConfigPath(change.from)))
@@ -58,7 +55,7 @@ export function registerConfigWriteRoute(
       respondJson(res, 400, { error: outcome.error })
       return
     }
-    // an expect found the field moved; the page recomputes from a fresh read.
+    // An expect found the field moved; the page recomputes from a fresh read.
     if (outcome.error === 'field_changed') {
       respondJson(res, 409, { error: outcome.error, path: outcome.path })
       return
@@ -83,10 +80,7 @@ export function registerConfigRevisionRoute(
   }, () => { respondJson(res, 500, { error: 'read_failed' }) })
 }
 
-/**
- * POST /api/config/undo. Redeems a token once and restores on the server, so the
- * page never writes back a copy it holds only masked. Same-site only; a newer write always wins.
- */
+// Restores on the server, so the page never writes back a copy it holds only masked.
 export function registerConfigUndoRoute(
   req: IncomingMessage,
   res: ServerResponse,

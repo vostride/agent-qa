@@ -29,8 +29,6 @@ beforeEach(async () => {
   const registry = createFunctionRegistry({
     deps: { evidenceBlobs: createEvidenceBlobReader({ agentQaRoot: root }) } as FunctionDeps,
   })
-  // no `resolveExecutionContext` registry option and no `grantedScopes`
-  // or `safeMode` on the caller; the registry reads none of them.
   const host = {
     registry, caller: { surface: 'dashboard', origin: 'human' },
     runsArtifactFunctionId: RUNS_ARTIFACT_FUNCTION_ID,

@@ -1,19 +1,4 @@
-// The run service router's FRAMING and REFUSAL mechanics.
-//
-// THE FRAME, STATED, AND ITS LIMIT. These cells mount `createRunServiceRoutes` on a bare
-// `createServer` with FAKE ports. That is deliberately NOT the production composition — the
-// process-level claims (the mount arm, the ordering against the host's wildcard `OPTIONS`
-// preflight and its SPA fallback, a real run's envelopes on a real socket) belong to
-// `packages/cli/src/__tests__/run-service-door.e2e.test.ts`, which drives `startServer` itself and
-// would be the wrong place to make the claims below.
-//
-// WHY THESE CELLS EXIST AT ALL, GIVEN THAT E2E. Measured, not assumed: the e2e's "SSE `id` equals
-// the envelope `seq`" assertion is VACUOUS on a real run, and a mutation proved it — a real run's
-// seqs are 1, 2, 3 … from 1, so a router that framed a local counter instead of the seq produces
-// byte-identical output and the e2e stays green. The claim only has teeth against a stream whose
-// seqs are neither contiguous nor 1-based, and choosing the seqs requires a fake bus. That is the
-// whole reason for the fake here: not to avoid the cost of a real run, but to reach a claim a real
-// run cannot state.
+// A fake bus with chosen seqs, because a real run's 1, 2, 3 seqs cannot tell `id` from a counter.
 
 import { readFile } from 'node:fs/promises'
 import { createServer, type Server } from 'node:http'
@@ -48,9 +33,7 @@ import {
   type RunServicePorts,
 } from '../run-service-routes.js'
 
-// no declared token — the door is tokenless. What it refuses at the
-// door is a cross-site request, spelled by these two header sets (each trips one rung of the shared
-// same-site guard: a foreign `Origin`, and a cross-site fetch-metadata header).
+// Each header set trips one rung of the same-site guard: a foreign `Origin` or fetch metadata.
 const CROSS_SITE = { Origin: 'https://evil.example' } as const
 const CROSS_SITE_FETCH = { 'Sec-Fetch-Site': 'cross-site' } as const
 
@@ -79,8 +62,7 @@ function plantedSession(options: { readonly throwOnSubscribe?: boolean } = {}): 
       for (const envelope of PLANTED_ENVELOPES) handler(envelope)
       return () => undefined
     },
-    // a planted session with no browser declares no stream and hands out no frame
-    // subscription — the honest absent declaration, not a stub a viewer would wait on forever.
+    // A planted session with no browser declares no stream and hands out no frame subscription.
     subscribeFrames() { return undefined },
     streamCapabilityOf() { return { kind: 'none' } },
     cancel() { /* nothing to cancel on a planted session */ },
@@ -217,9 +199,6 @@ describe('the stream head is never written before the answer is settled', () => 
   })
 })
 
-// RE-SPELLED 2026-10-01: the rung above the route table is the same-site guard,
-// not the bearer verdict. The claims — identical refusal on every route, declared or not, and the run
-// starter never consulted — are unchanged; the refusal is `cross_site_refused` at 403.
 describe('the verdict stands above the route table', () => {
   it('refuses every declared route and an undeclared one identically', async () => {
     const origin = await mount()
@@ -251,11 +230,6 @@ describe('the verdict stands above the route table', () => {
   })
 })
 
-// ---- Task 2: `/ok` — authed, shallow-but-honest readiness -----------------------------
-
-// RE-SPELLED 2026-10-01 from 'refuses a request with no token' and 'refuses a
-// wrong token with a body shape-identical to the missing-token refusal': `/ok` is still behind the
-// door's one guard, which is now the same-site check; both of its rungs answer one body shape.
 describe('GET /ok is a service route like every other one', () => {
   it('refuses a cross-site request', async () => {
     const origin = await mount()
@@ -275,21 +249,19 @@ describe('GET /ok is a service route like every other one', () => {
     expect(fetchSiteBody).toEqual({ error: 'cross_site_refused' })
   })
 
-  // RE-TITLED 2026-10-03 (quick-261003-tsr, IN-30): was '…to a valid token'; no credential exists.
   it('reports MEASURED facts and the contract version to an admitted caller', async () => {
     const origin = await mount()
     const response = await fetch(`${origin}/ok`)
     expect(response.status).toBe(200)
     expect(response.headers.get('content-type')).toContain('application/json')
     const body = RunServiceReadinessSchema.parse(await response.json())
-    // a local caller with no token is served; 432-22 removed `authConfigured`.
+    // A local caller with no token is served.
     expect(body).toEqual({
       service: 'up',
       hostComposed: true,
       contractVersion: RUN_SERVICE_CONTRACT_VERSION,
     })
-    // It never claims a run will succeed: there is no `ready`, no verdict prediction, and no
-    // knowledge/embedder rung — those are 407's `doctor`.
+    // It never claims a run will succeed: no `ready`, no verdict prediction, no knowledge rung.
     expect(Object.keys(body).sort()).toEqual(
       ['contractVersion', 'hostComposed', 'service'],
     )
@@ -317,30 +289,17 @@ describe('the refusal-shape census walks the module\'s OWN route table', () => {
    * added tomorrow is covered the day it lands and cannot escape this cell by nobody noticing it.
    * A hardcoded list of three paths would be a claim about three paths.
    */
-  // `:sha` joins `:runId` as a template parameter. Substituted rather than left literal
-  // so the probe drives the row's real shape — a path still carrying `:sha` would match the
-  // pattern by accident and the census would be testing a coincidence.
+  // `:sha` is substituted like `:runId`, so a probe path never matches its pattern by accident.
   const probePathFor = (row: { readonly path: string }): string =>
     row.path.replace(':runId', 'r_planted').replace(':sha', 'a'.repeat(64))
 
   it('covers every declared route, and the table is not empty', async () => {
     // Non-vacuity first: a census over an empty table passes by finding nothing to drive.
-    // six. The two READ rows joined the table, which is exactly what
-    // "mounts behind the same authed door" has to mean mechanically — a row outside this array is
-    // unreachable, and a row inside it is driven unauthenticated by the two cells below.
-    // seven. The analysis row joined the table, and joining it here is what makes
-    // "the failure view is served on both doors" mechanical rather than a claim — the census cells
-    // below drive it unauthenticated the day it lands.
     expect(RUN_SERVICE_ROUTE_TABLE.length).toBeGreaterThanOrEqual(7)
     const handlers = RUN_SERVICE_ROUTE_TABLE.map((row) => row.handler).sort()
-    // the two feedback reads joined the table, so the census drives them unauthenticated too.
     expect(handlers).toEqual(['analysis', 'artifact', 'detail', 'events', 'evidence', 'liveUrl', 'markPreview', 'marks', 'ok', 'start'])
   })
 
-  // RE-SPELLED 2026-10-01 from 'refuses a MISSING token on every row with one
-  // body shape' and 'refuses an INVALID token on every row with the same body shape'. The census
-  // still walks the module's own table; what every row refuses is a cross-site request, on either
-  // rung of the same-site guard, with one body shape.
   it('refuses a cross-site Origin on every row with one body shape', async () => {
     const origin = await mount()
     const bodies: Record<string, unknown>[] = []
@@ -369,14 +328,7 @@ describe('the refusal-shape census walks the module\'s OWN route table', () => {
   })
 })
 
-// ---- 405-05: the two READ rows reach the adapters, behind the verdict --------
-//
-// WHAT THESE CELLS CLAIM AND WHAT THEY LEAVE TO OTHERS. The projection's shape, the header set and
-// every refusal word are measured over a REAL registry and a REAL store in
-// `run-detail-routes.test.ts`; re-asserting them here would be a second description of one
-// implementation. What only this file can measure is that the two rows are reachable AT ALL from
-// this door's dispatch — that the verdict passed, the pattern matched, the params were decoded and
-// the adapter ran — and that an uncomposed host says so in the local door's own word.
+// Only this file shows the read rows are reachable from this door's dispatch; shapes are elsewhere.
 describe('the READ rows dispatch through the injected host', () => {
   /**
    * A host whose `invokeFunction` refuses by NAME, exactly as an unbound composition's would —
@@ -391,11 +343,8 @@ describe('the READ rows dispatch through the injected host', () => {
       runsEventsFunctionId: 'test:planted-events-op',
       runsDetailFunctionId: 'test:planted-run-detail-op',
       runsArtifactFunctionId: 'test:planted-run-artifact-op',
-      // a sixth. This fixture DOES reach it — the analysis row's cell below asserts
-      // the id the dispatch handed `invokeFunction`.
+      // This fixture reaches it: the analysis row's cell asserts the id handed to `invokeFunction`.
       analysisGetFunctionId: 'test:planted-analysis-get-op',
-      // the sixth dispatched id, widened here so every AgentHost literal in the
-      // workspace still satisfies the interface.
       runsKnowledgeFunctionId: 'test:planted-run-knowledge-op',
       invokeFunction: (_registry: unknown, functionId: string) => {
         seen.push(functionId)
@@ -404,7 +353,6 @@ describe('the READ rows dispatch through the injected host', () => {
     } as unknown as NonNullable<RunServicePorts['agentHost']>
   }
 
-  // RE-TITLED 2026-10-03 (quick-261003-tsr, IN-30): was '… — a valid token, an unknown run, …'.
   it('reaches the run-detail adapter — an admitted caller, an unknown run, the op\'s own word', async () => {
     const origin = await mount(fakePorts({ agentHost: hostRefusing('RunNotFoundError') }))
     const response = await fetch(`${origin}/run/r_planted/detail`)
@@ -451,9 +399,6 @@ describe('the READ rows dispatch through the injected host', () => {
     }
   })
 
-  // RE-SPELLED 2026-10-01 from 'refuses BOTH rows unauthenticated, before any
-  // host is consulted'. No row asks for a credential; a cross-site read is what is refused, and still
-  // before any host is consulted.
   it('refuses BOTH rows cross-site, before any host is consulted', async () => {
     // The row-level restatement of the census above, kept here because these two rows are the
     // first on this door that would otherwise have reached a capability: a permissive arm here
@@ -486,17 +431,7 @@ describe('the readiness predicate has ONE declaration site, and it is not here',
   })
 })
 
-// ---- 403-03: the resume point, the typed floor, the roster on resume ----
-//
-// WHAT A DOOR-LEVEL CELL CAN SAY THAT A PARSER CELL CANNOT. `resumePointOf` is a pure function and
-// its table is below, but the claim INVK-05 makes is about what crosses the socket: that a caller
-// carrying `Last-Event-ID: N` is served `subscribe(N + 1)` and never re-sent an id it already has.
-// A parser that answered `{ kind: 'after', seq: N }` into a serving body that ignored it would pass
-// every unit cell in this file, so these cells drive the door.
-//
-// THE FLOOR SESSION IS A REAL BUS, NEVER A HAND-BUILT `subscribe` THAT THROWS. What the 410 arm
-// reports is the bus's OWN `earliestAvailableSeq`, so a fixture that minted the error itself would
-// be pinning this file's idea of the error shape rather than the producer's.
+// The floor session is a real bus, so the 410 arm reports the bus's own `earliestAvailableSeq`.
 
 const RESUMABLE_SEQS = PLANTED_ENVELOPES.map((envelope) => envelope.seq)
 
@@ -807,8 +742,7 @@ async function refusalAt(
   return { status: response.status, body: await response.json() as Record<string, unknown> }
 }
 
-// a local caller sends no credential, so the admitted header set is empty.
-// The three bearer codes left the closed set with the bearer, and `cross_site_refused` joined it.
+// A local caller sends no credential, so the admitted header set is empty.
 const authed: Record<string, string> = {}
 
 const CODE_PROBES: readonly CodeProbe[] = Object.freeze([
@@ -948,13 +882,7 @@ describe('each refusal code is driven out of the shipped door', () => {
   })
 })
 
-// ---- 403-03 Task 2 (D-03, Q3): the authed door MINTS ---------------------------------------------
-//
-// THE REMOTE DOOR MINTS THROUGH THE SAME OP AS THE LOCAL ONE, with the bearer's trust scope. What
-// these cells can say is what the DOOR does with the port: the verdict above it, the raw handle
-// reader, the refusal mapping by error NAME, and that the result crosses verbatim. That the port
-// dispatches `runs.liveurl` rather than shaping a URL itself is the composition's claim, pinned in
-// `adapters.ts` against the shipped route table.
+// The door's part of a mint: the guard, the handle reader, refusals by error name, verbatim result.
 
 const MINTED: RunsLiveUrlResult = Object.freeze({
   liveUrl: 'http://localhost:1234/live/r_planted#v2.zz-403-03-planted-token',
@@ -989,10 +917,6 @@ describe('the authed door mints a liveUrl', () => {
     expect(await response.json()).toEqual(MINTED)
   })
 
-  // RE-SPELLED 2026-10-01 from 'carries the BEARER'S trust scope to the port — never
-  // a scope of the door's own'. No bearer and no trust scope exist; the port is handed the subject
-  // the caller named and nothing about who the caller is, and the composition supplies the one
-  // caller the mint runs under.
   it('hands the port the requested subject and no caller-supplied scope', async () => {
     const { ports, seen } = recordingMintPorts()
     const origin = await mount(ports)
@@ -1050,8 +974,6 @@ describe('the authed door mints a liveUrl', () => {
     },
   )
 
-  // RE-SPELLED 2026-10-01 from '… — no credential, no mint': the guard every route
-  // is under is the same-site check, and a refused mint still never reaches the port.
   it('is under the SAME verdict as every other route — cross-site, no mint', async () => {
     const { ports, seen } = recordingMintPorts()
     const origin = await mount(ports)

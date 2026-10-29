@@ -1,21 +1,4 @@
-// The DEDICATED post-processing channel: the relay and `GET /api/runs/:id/post-processing/stream`
-//
-// WHY A SECOND SSE AND NOT A WIDENED RUN STREAM. D-16: the run stream's contract is "closes at
-// `runFinished`", and every chip envelope this channel carries is appended AFTER that line. A door
-// that held the run stream open for them would change what `runFinished` means for every consumer
-// already reading it — including the live-view page and the conformance corpus that compares two
-// doors byte for byte. So the chips get their own door, and `routes.run-stream.test.ts` staying
-// green is the structural proof that the old one was not touched.
-//
-// EVERY PUSH IS A TRIGGER, NEVER A PAINT. The relayed envelope is a hint that the DURABLE
-// answer moved; the answer itself is the `snapshot` frame, which is the read route's body. That is
-// why the terminal arm below RE-READS rather than deriving a terminal state from the envelope it
-// just wrote: a chip derived from an envelope would be a second projection of chip truth, free to
-// disagree with `runs.postprocessing` — the exact drift D-16 and 388 D-14 rule out by name.
-//
-// THE STREAM CELLS PUBLISH ONLY AFTER THE SNAPSHOT IS IN HAND. The relay keeps NO history (the
-// page's snapshot-then-poll is the floor), so a cell that published before the subscription existed
-// would be measuring the miss rather than the relay — and would do it flakily.
+// The relay keeps no history, so stream cells publish only after the snapshot is in hand.
 
 import type { IncomingMessage, Server, ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
@@ -162,16 +145,11 @@ function plantedHost(read: {
     caller: CALLER,
     runsPostProcessingFunctionId: PP_ID,
     runsEventsFunctionId: EVENTS_ID,
-    // the seam carries a fourth op id. This fixture dispatches only the two above, so
-    // this one is NAMED and never reached — the SHAPE is what has to be complete.
+    // Named so the host shape is complete; this fixture never dispatches it.
     runsDetailFunctionId: 'test:planted-run-detail-op',
     runsEvidenceFunctionId: 'test:planted-run-evidence-op',
-    // a fifth. Same posture — named so the SHAPE is complete, never reached from here.
     runsArtifactFunctionId: 'test:planted-run-artifact-op',
-    // a sixth. Same posture — named so the SHAPE is complete, never reached from here.
     analysisGetFunctionId: 'test:planted-analysis-get-op',
-    // the sixth dispatched id, widened here so every AgentHost literal in the
-    // workspace still satisfies the interface.
     runsKnowledgeFunctionId: 'test:planted-run-knowledge-op',
     runsMarkFunctionId: 'test:planted-run-mark-op',
     runsMarksHistoryFunctionId: 'test:planted-run-marks-history-op',
@@ -429,28 +407,7 @@ describe('the stream refuses BEFORE the head, by name', () => {
   })
 })
 
-// ══════════════════════════════════════════════════════════════════════════════════════════════
-// A DOOR THAT ANSWERS ITS OWN THROW, INSTEAD OF TAKING THE PROCESS DOWN.
-//
-// `void readPostProcessing(…).then(onOk)` with no failure arm made every throw inside `onOk` an
-// UNHANDLED REJECTION, which Node ≥ 15 turns into a process exit by default: one viewer closing a
-// tab at the wrong moment stops the whole dashboard server, for every other viewer. The window is
-// ordinary rather than exotic — two awaited op calls sit between the request arriving and the head
-// going out, and a socket that died inside it makes the very next `writeHead`/`write` throw.
-//
-// THE ASYMMETRY IS WHAT THESE CELLS PIN. The 204 arm already guarded with
-// `if (res.headersSent || res.writableEnded)`; the 200 arm one screen down did not, and the sibling
-// READ door already passed both arms to `.then` while this one passed only the first.
-//
-// THEY DRIVE THE DOOR DIRECTLY, at a response object that can be made to fail the way a real one
-// does. The server-framed cells above cannot reach this: a `fetch` client that aborts leaves a
-// response Node answers by EMITTING an error rather than throwing, so the frame that proves the
-// crash is unreachable through a real socket. Direct is the level the defect lives at.
-//
-// AND THEY ASSERT THE OUTCOME, NOT A SPY. What was answered on the wire, whether the socket is
-// still half-open, whether the relay still holds a listener, whether the heartbeat is still ticking
-// — a cell that only counted a handler call would have stayed green through the entire defect.
-// ══════════════════════════════════════════════════════════════════════════════════════════════
+// An unguarded throw after a dead socket is an unhandled rejection, which exits the whole server.
 
 interface FakeResponse {
   readonly res: ServerResponse
@@ -464,19 +421,7 @@ interface FakeResponse {
   wire(): string
 }
 
-/**
- * A response that can die the way a real one dies.
- *
- * `breakAfterWrites` is the abort: the socket survives that many frames and every write after it
- * throws, which is what a client that closed its tab mid-stream leaves behind. `refuseHead` is the
- * other shape — ONE head the socket layer rejects before marking the response as sent, named by
- * its status because header rejection is per-value: a `text/event-stream` head can be refused by a
- * layer that would take the JSON refusal that follows it.
- *
- * THE THROWN MESSAGE DELIBERATELY QUOTES A PATH. T-404-01's masking discipline is that an
- * unclassified throw travels as a NAME and never as its prose, and a fixture whose message carried
- * nothing worth withholding would make that assertion vacuous.
- */
+// `breakAfterWrites` throws after that many frames; `refuseHead` rejects the head with that status.
 function fakeResponse(options: {
   readonly breakAfterWrites?: number
   readonly refuseHead?: number

@@ -29,7 +29,7 @@ type SuiteAnalyticsDatabase = DashboardDatabase & {
 
 let db: DashboardDatabase
 
-// a suite's history reads member suite ids, so each suite run seeds its member.
+// A suite's history reads member suite ids, so each suite run seeds its member.
 function insertSampleRun(overrides: Record<string, unknown> = {}) {
   const run = {
     name: 'Alpha Suite',
@@ -70,12 +70,7 @@ function seedSuiteAnalyticsFixture() {
     endedAt: '2026-03-03T10:00:02Z',
   })
 
-  // the suite CHILD row this fixture used to seed is gone. It existed
-  // to prove the three readers below filtered it out, and the filter was a predicate over the run
-  // row's parent link — a column nothing has written since 402-09 put one row per run. A fixture
-  // that has to insert an impossible row to exercise a filter is measuring the fixture. The
-  // standalone-test and other-suite rows below still do the real work: they prove these readers
-  // answer for ONE suite id and not for every run in the database.
+  // The standalone-test and other-suite rows prove these readers answer for one suite id only.
 
   db.insertRun({
     id: 'suite-alpha-dashboard-top-level',

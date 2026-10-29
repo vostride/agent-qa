@@ -207,11 +207,7 @@ interface MockResponse {
   body: string
 }
 
-// A mock request that omits `Host` models no real client: HTTP/1.1 requires the header and every
-// browser, `curl`, `fetch` and the conformance harness sends it. The display-seam read arms
-// now refuse a request whose claimed Host is not a loopback name, so the default below
-// is what keeps these direct-invoke probes speaking the wire's own shape. An explicit `host` in
-// `options.headers` still wins, which is how the refusal itself is exercised.
+// Requests default to a loopback `Host`, because the display-seam read arms refuse any other.
 const LOOPBACK_HOST_HEADER = { host: '127.0.0.1:3470' } as const
 
 function createMockRequest(
@@ -453,10 +449,7 @@ describe('API Routes', () => {
       expect(durableSources).not.toMatch(/\blive_timeline\b/)
       expect(durableSources).not.toMatch(/\bliveEvents\b/)
       expect(durableSources).not.toMatch(/\bliveTimeline\b/)
-      // this line asserted the live feed's route was PRESENT — the 225
-      // guardrail's way of saying "live state lives on the wire, not in the schema". The route is
-      // retired, so the assertion is inverted: the wire it names must be absent from this file too.
-      // Split needle, so this cell is not itself the grep-clean inventory's hit.
+      // Split needle, so this assertion is not itself a hit for a text search.
       expect(routesSource).not.toContain('api/' + 'execution/events')
       expect(routesSource).not.toMatch(/\/api\/runs\/[^'"]+\/live[-_]timeline/)
     })
@@ -702,7 +695,7 @@ describe('API Routes', () => {
       })
       router = createRouter(actualDb)
 
-      // no auth-state redactor; a stored value is served as written.
+      // No auth-state redactor; a stored value is served as written.
       const [runRes, artifactRes, logsRes] = await Promise.all([
         invokeRoute(`/api/runs/${runId}`),
         invokeRoute(`/api/runs/${runId}/artifact`),
@@ -1085,10 +1078,6 @@ describe('API Routes', () => {
   })
 
   describe('GET /api/runs/:id', () => {
-    // the body is `{ run }` and nothing else. It used to carry `steps` off a v1
-    // projection with no producer and `attempts`/`tests` off a child-run walk over a deleted
-    // column — three keys that were structurally empty on every run this build produces. The run's
-    // members, steps and sub-actions are `GET /api/runs/:id/detail`'s, through `runs.detail`.
     it('returns the run row, and only the run row', async () => {
       const runId = insertSampleRun()
 
@@ -1108,20 +1097,8 @@ describe('API Routes', () => {
     })
   })
 
-  // the video-serving describe is deleted with the route. Two cells
-  // stood here — one served a file under a run-id directory, one refused a flat file through a
-  // run-id URL. There is no path-addressed artifact route left and no video surface at all, because
-  // no producer mints a recording ref; `routes.traversal.test.ts` holds the containment cells for
-  // the ref-addressed route that replaced them.
-
   describe('DELETE /api/runs/:id', () => {
-    // ROWS ONLY, AND THE FILESYSTEM CLAIM IS INVERTED.
-    //
-    // The cell that stood here seeded a parent/child run tree with screenshot and video
-    // directories and asserted the delete REMOVED them. The parent link is gone, the path columns
-    // are gone, and the sweep is gone: what lives under a run's directory is the event log and the
-    // content-addressed blobs, which are the run's own record and not the dashboard's to delete.
-    // So the same fixture now asserts the opposite — every byte on disk survives.
+    // The run's event log and blobs are its own record, so deleting a run removes rows and no file.
     it('deletes the run rows, preserves token event stats, and touches no file', async () => {
       const { artifactsDir, db: actualDb } = await createDashboardWorkspace()
       const runDir = join(artifactsDir, 'runs', 'suite_run')
@@ -1181,12 +1158,6 @@ describe('API Routes', () => {
       actualDb.close()
     })
   })
-
-  // the step-list describe is deleted with the arm. `runs.detail` is
-  // the one read for a run's members, steps and sub-actions, and it is proven end-to-end in
-  // `run-service/__tests__/run-detail-routes.test.ts`. The absence of this arm — and of the three
-  // others the census retired — is pinned in `suite-parent-debris-census.test.ts`, which drives
-  // each retired URL against a live router and requires the generic 404.
 
   describe('POST /api/queue/enqueue', () => {
     it('normalizes queued files under configured workspace.testMatch', async () => {
@@ -1310,13 +1281,7 @@ describe('API Routes', () => {
       expect(enqueue).not.toHaveBeenCalled()
     })
 
-    // ---- G-401-18-CR01 (write half): `metadata` is server-derived -----------------------------
-    //
-    // THE REJECT/ADMIT PAIR. A control that only shows the door refusing cannot tell an allowlist
-    // apart from a route that 400s on every request, and a control that only shows it admitting
-    // cannot tell one apart from a route with no validation at all. Both are here, and the ADMIT
-    // side is the one that proves the tightening validated the door rather than closing it: a
-    // caller's own labels still round-trip, through `attributes`, which is their actual door.
+    // Reject and admit together, so neither a refuse-all route nor an unvalidated one passes.
 
     it('REJECT — a client-supplied metadata key is refused by name, not silently dropped', async () => {
       const enqueue = vi.fn().mockReturnValue('run-queue-metadata')
@@ -1472,7 +1437,7 @@ describe('API Routes', () => {
       expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({
         name: 'Queued suite',
         filePath: 'suites/sample-basic.suite.yaml',
-        // no parent kind is minted; `metadata.isSuite` still carries the identity.
+        // No parent kind is minted; `metadata.isSuite` carries the identity.
         kind: 'test',
         metadata: expect.objectContaining({
           args: [join(workspaceDir, 'suites', 'sample-basic.suite.yaml')],
@@ -1936,7 +1901,7 @@ describe('API Routes', () => {
       expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({
         name: 'Workspace suite',
         filePath: 'suites/slow.suite.yaml',
-        // no parent kind is minted; `metadata.isSuite` still carries the identity.
+        // No parent kind is minted; `metadata.isSuite` carries the identity.
         kind: 'test',
         metadata: expect.objectContaining({
           args: [join(workspaceDir, 'suites', 'slow.suite.yaml')],
@@ -2007,7 +1972,7 @@ describe('API Routes', () => {
       expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({
         name: 'Parallel suite',
         filePath: 'suites/parallel.suite.yaml',
-        // no parent kind is minted; `metadata.isSuite` still carries the identity.
+        // No parent kind is minted; `metadata.isSuite` carries the identity.
         kind: 'test',
         parallel: true,
         metadata: expect.objectContaining({ isSuite: true }),

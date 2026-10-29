@@ -1,26 +1,4 @@
-// The READ half of the attribution contract: concurrent per-handle readers on the SHIPPED server
-//
-// THE FRAME, STATED, BECAUSE IT IS THE POINT OF THIS FILE. Both halves here are production:
-//
-//   - The FEED is produced by the real runner shell — `startRun` from `@vostride/agent-qa-runner`,
-//     three members genuinely in flight together (workers = 3, executors that cannot finish until
-//     all three have started), every envelope stamped by the real `createMemberEventSink`. Nothing
-//     about the bytes is planted.
-//   - The TRANSPORT is the real dashboard host — `startServer` with the 402-01 `runService` mount,
-//     over TCP, so the filter is exercised through the same frames a `curl` reaches: the process
-//     backstop, the guarded URL parse, the run-service path check above the SPA fallback, the
-//     per-request bearer verdict, and only then the stream core.
-//
-// 402-03 measured what this frame is worth: a fixture that mounted the unit WITHOUT the production
-// frames (`createServer(createChatRouter(...))` rather than `startServer`) proved a process-level
-// truth on a router. So the transport claims live here, on `startServer`.
-//
-// WHAT THIS FRAME CANNOT DO, AND WHERE THAT IS DONE INSTEAD. A real run's `runFinished` really is
-// last and its seqs really are 1, 2, 3 …, so this file cannot discriminate the framing claim
-// (`id` IS the seq) or several wrong filters that agree with the right one on contiguous input.
-// Those need chosen seqs and chosen indices, which is `handle-filter.test.ts`. The members here
-// carry PLANTED non-contiguous `testIndex` values for exactly that reason — it is the one chosen
-// input a real run will accept — but the seqs are the run's own.
+// A real runner feed over the real `startServer` transport; `handle-filter.test.ts` picks seqs.
 
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import type { Server } from 'node:http'
@@ -151,7 +129,6 @@ let db: DashboardDatabase | undefined
 
 function servicePorts(session: RunSession): RunServicePorts {
   return {
-    // no `verifyBearer` — the door is tokenless.
     invokeRunStart: async () => ({
       runId: RUN_ID as RunStartAcknowledgement['runId'],
       scope: 'main' as unknown as RunStartAcknowledgement['scope'],
@@ -166,9 +143,7 @@ function servicePorts(session: RunSession): RunServicePorts {
       hostComposed: true,
       contractVersion: RUN_SERVICE_CONTRACT_VERSION,
     }),
-    // 403-03 (D-03, Q3): a fixture that composed no live view HAS no live view, and the honest
-    // answer to a mint request is 503 by name. Never a stub that mints — a fabricated token would
-    // make every cell downstream of it a claim about this file's idea of a credential.
+    // A fixture with no live view answers a mint with 503 by name, never a fabricated token.
     mintLiveUrl: () => Promise.reject(
       Object.assign(new Error('no live-view port is bound on this fixture'), {
         name: 'LiveViewUnavailableError',
@@ -268,11 +243,11 @@ describe('three SIMULTANEOUS per-handle readers on the shipped server, one concu
     const memberSets = readers.map((reader) =>
       new Set(reader.seqs.filter((seq) => !runScoped.has(seq))))
 
-    // IDENTICAL run-scoped sets: every handle subscriber learns the run ended.
+    // Identical run-scoped sets: every handle subscriber learns the run ended.
     for (const reader of readers) {
       expect(reader.seqs.filter((seq) => runScoped.has(seq))).toEqual([...runScoped])
     }
-    // DISJOINT member sets: no reader sees another member's data.
+    // Disjoint member sets: no reader sees another member's data.
     for (let i = 0; i < memberSets.length; i += 1) {
       expect(memberSets[i]!.size).toBeGreaterThan(0)
       for (let j = i + 1; j < memberSets.length; j += 1) {
@@ -307,9 +282,6 @@ describe('three SIMULTANEOUS per-handle readers on the shipped server, one concu
     }
   })
 
-  // RE-SPELLED 2026-10-01 from 'still requires the bearer on a per-handle
-  // attach — the filter is below the verdict'. The bearer is deleted; the door's guard is the
-  // same-site check, and the filter is still below it.
   it('still refuses a cross-site per-handle attach — the filter is below the same-site guard', async () => {
     const { session } = await produceConcurrentRun()
     const port = await mountShippedHost(session)

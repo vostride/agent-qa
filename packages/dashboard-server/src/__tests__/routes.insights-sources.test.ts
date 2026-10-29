@@ -1,6 +1,4 @@
-// C433-INSIGHTS-SOURCES. Insights counts what the run store holds:
-// the window's run-step tokens beside the live editor's token events, and the knowledge changes
-// each run's own Knowledge read reports. A source that could not be read is named, never zeroed.
+// Insights counts what the run store holds; a source that could not be read is named, never zeroed.
 
 import { IncomingMessage, type ServerResponse } from 'node:http'
 import { Socket } from 'node:net'

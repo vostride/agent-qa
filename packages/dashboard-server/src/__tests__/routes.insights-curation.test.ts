@@ -1,7 +1,4 @@
-// C433-INSIGHTS-CURATION. A run counts as read only when its
-// curation finished, or when its post-processing was skipped by design. Curation that failed
-// or has not finished is counted on its own, and runs still queued or running are counted as in
-// flight. None of them is folded into "read, nothing changed".
+// A run counts as read only when curation finished or post-processing is skipped by design.
 
 import { IncomingMessage, type ServerResponse } from 'node:http'
 import { Socket } from 'node:net'

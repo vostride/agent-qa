@@ -26,7 +26,7 @@ interface RunnerInstance {
   killAll: Mock
   getActiveExecutions: Mock
   closeRun: (runId: string, status: CloseStatus, output?: string[]) => void
-  /** a run the gate or the host refused before it began — never a `closeRun` with a flag. */
+  // A run refused before it began, which is a different event from `closeRun`.
   refuseRun: (runId: string, details: { reason: string }) => void
 }
 
@@ -36,14 +36,7 @@ const mockState = vi.hoisted(() => ({
   events: [] as string[],
 }))
 
-/**
- * The execution backend, INJECTED rather than module-mocked.
- *
- * The class this used to `vi.mock` is gone; `startServer` takes the backend as an option now, so a
- * cell hands over a fake exactly the way `agent-qa dashboard` hands over the real one. That is a
- * stronger fixture than the mock it replaces — it drives the SHIPPED injection point instead of
- * substituting a module underneath it.
- */
+// Injected the way `agent-qa dashboard` hands over the real backend, not module-mocked.
 class FakeExecutionBackend extends EventEmitter {
   execute = vi.fn()
   kill = vi.fn((runId: string) => {
@@ -59,13 +52,7 @@ class FakeExecutionBackend extends EventEmitter {
     this.emit('run-settled', runId, status, { output })
   }
 
-  /**
-   * Drive a run the gate or the host REFUSED before it began.
-   *
-   * A separate driver, not a flag on `closeRun`, because the two are different EVENTS: `closeRun`
-   * is a run that happened and stopped, this is a run that never started. Every existing cell keeps
-   * calling `closeRun` and therefore keeps measuring the unchanged arms.
-   */
+  // A separate driver, because a run that never started differs from one that started and stopped.
   refuseRun = (runId: string, details: { reason: string }): void => {
     this.emit('run-settled', runId, 'failed', {
       output: details.reason.split('\n'),
@@ -326,9 +313,7 @@ describe('dashboard Appium ownership', () => {
     expect(appium.acquireLease).toHaveBeenCalledWith({ runId: android.runId, platform: 'android' })
     expect(appium.acquireLease).toHaveBeenCalledWith({ runId: ios.runId, platform: 'ios' })
 
-    // THE LEASE URL TRAVELS AS AN ARGUMENT, NOT AS A CHILD'S ENVIRONMENT (401-07, truth 5). The
-    // acquisition above is unchanged — same call, same run id, same manager — and `env` is not
-    // merely unset here, it is no longer a field `ExecuteOptions` has.
+    // The lease URL travels as an `execute` argument; `ExecuteOptions` has no `env` field.
     const executeCalls = runner.execute.mock.calls as Array<[Record<string, unknown>]>
     expect(executeCalls.map(([opts]) => opts.appiumUrl)).toEqual([
       'http://localhost:4723',
@@ -384,9 +369,7 @@ describe('dashboard Appium ownership', () => {
 
     const runner = currentRunner()
     await waitFor(() => expect(runner.execute).toHaveBeenCalledTimes(1))
-    // the projected step is written through the v2 member-scoped write now. The
-    // claim is unchanged and is the point of the cell: a run whose every PERSISTED step passed
-    // still fails when the run itself timed out — the run's verdict is not a fold of its steps.
+    // A run whose every persisted step passed still fails when the run itself timed out.
     currentDb!.insertRunStep({
       runId: run.runId,
       testIndex: 0,
@@ -434,12 +417,6 @@ describe('dashboard Appium ownership', () => {
       finalStatus: 'failed',
     })
   })
-
-  // ---- 401-18: A REFUSED RUN IS DESCRIBED AS A REFUSAL --------------------------------
-  //
-  // The measured defect (UAT item 15): a run the gate refused before anything started was written
-  // to the runs list as `Process exited before test completed`, and the only record of WHY offered
-  // `--trust-session` — a flag declared on one CLI command — to somebody sitting in a browser.
 
   it('does not summarise a refused run as a process that exited', async () => {
     const port = await startDashboard()

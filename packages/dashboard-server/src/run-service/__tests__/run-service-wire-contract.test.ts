@@ -1,25 +1,4 @@
-// THE SERVICE DOOR'S WIRE CONTRACT, BYTE FOR BYTE.
-//
-// THE FRAME, STATED: the SHIPPED `startServer` with the 402-01 `runService` mount, driven over
-// TCP. Not `createServer(createRunServiceRoutes(...))` — 402-03 measured what that costs (a
-// process-level truth proven on a router), and every claim below is about what a client reads off
-// a socket: the process backstop, the guarded URL parse, the run-service path check above the SPA
-// fallback and the host's wildcard `OPTIONS` arm, the per-request verdict, and only then the
-// stream core.
-//
-// THE FEED IS PLANTED, AND THAT IS THE OTHER HALF OF THE FRAME. A real run's seqs are 1, 2, 3 …
-// from 1, so `id` = `seq` is BYTE-IDENTICAL to `id` = a stream-local counter and the claim is
-// vacuous — 402-01 measured exactly that, and its mutation 4 reddened nothing on the e2e. The seqs
-// here are non-contiguous and not 1-based, which is what gives the framing cells teeth. So: real
-// transport, chosen content. Each of the two files in this directory that mounts a REAL run
-// (`handle-attribution.test.ts`) and this one make the claims the other cannot.
-//
-// THE VERBATIM LAW IS MEASURED AGAINST THE SESSION'S OWN REPLAY, never against a literal written
-// here. A fixture literal would let this file and the router drift together — the expected side is
-// obtained by subscribing to the SAME session object the door attaches to and serialising what it
-// delivers. What that decides, precisely: a projection layer that renames a field, adds one, drops
-// one or reorders keys produces different bytes and reds these cells. What it cannot see is a
-// projection that is a byte-preserving identity, which is not a projection.
+// Real transport, planted seqs; the expected bytes come from the session's own replay.
 
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import type { Server } from 'node:http'
@@ -76,8 +55,7 @@ function sessionOverFeed(): RunSession {
       for (const envelope of FEED) handler(envelope)
       return () => undefined
     },
-    // a planted session with no browser declares no stream and hands out no frame
-    // subscription — the honest absent declaration, not a stub a viewer would wait on forever.
+    // A planted session with no browser declares no stream and hands out no frame subscription.
     subscribeFrames() { return undefined },
     streamCapabilityOf() { return { kind: 'none' } },
     cancel() { /* nothing to cancel on a planted session */ },
@@ -96,7 +74,6 @@ const ACK: RunStartAcknowledgement = {
 
 function servicePorts(session: RunSession): RunServicePorts {
   return {
-    // no `verifyBearer` — the door is tokenless.
     invokeRunStart: async () => ACK,
     attach: (runId) => runId === RUN_ID ? session : undefined,
     readiness: () => ({
@@ -104,9 +81,7 @@ function servicePorts(session: RunSession): RunServicePorts {
       hostComposed: true,
       contractVersion: RUN_SERVICE_CONTRACT_VERSION,
     }),
-    // 403-03 (D-03, Q3): a fixture that composed no live view HAS no live view, and the honest
-    // answer to a mint request is 503 by name. Never a stub that mints — a fabricated token would
-    // make every cell downstream of it a claim about this file's idea of a credential.
+    // A fixture with no live view answers a mint with 503 by name, never a fabricated token.
     mintLiveUrl: () => Promise.reject(
       Object.assign(new Error('no live-view port is bound on this fixture'), {
         name: 'LiveViewUnavailableError',
@@ -243,10 +218,6 @@ describe('SSE framing is the frozen envelope, verbatim', () => {
   })
 })
 
-// the door's first rung is the same-site guard, not the bearer
-// verdict. The two refusal cells below are re-spelled from 'a wrong token …' and 'a missing token
-// likewise …'; the claim they carry — refused as JSON before any stream header and before the run
-// is looked up — is unchanged.
 describe('the verdict and the run id are settled BEFORE any stream header', () => {
   it('a cross-site request on the stream route gets a JSON refusal and no event-stream header', async () => {
     const port = await mountShippedHost(sessionOverFeed())
@@ -304,14 +275,7 @@ describe('the verdict and the run id are settled BEFORE any stream header', () =
   })
 })
 
-// ---- CORS ABSENCE ----------------------------------------------------------------------------
-//
-// ASSERTED AS ABSENCE, on the chat door's precedent, and on EVERY cross-origin header rather than
-// only the allow-origin one: a door that granted credentials or methods without an origin would be
-// a partial grant a single-header cell would miss. Until 432-21 this was also the whole of the
-// door's CSRF story (every route required an `Authorization` header, which made every request
-// non-simple); the bearer is deleted, so the same-site guard above the route table now refuses a
-// cross-site request, simple or preflighted, and the refusal grants nothing either.
+// Every cross-origin header is asserted absent, because a partial grant passes a one-header cell.
 
 const CORS_HEADERS = [
   'access-control-allow-origin',
@@ -355,8 +319,7 @@ describe('no cross-origin grant on any service route, success or refusal', () =>
     const port = await mountShippedHost(sessionOverFeed())
     const origin = `http://127.0.0.1:${String(port)}`
 
-    // a SIMPLE cross-site POST (no custom header, text/plain body) — the shape a page can
-    // send without a preflight now that no `Authorization` header is required.
+    // A simple cross-site POST (text/plain) needs no preflight, so the guard refuses it.
     const refused = await fetch(`${origin}/run`, {
       method: 'POST', body: '{}', headers: { Origin: 'https://evil.example', 'Content-Type': 'text/plain' },
     })

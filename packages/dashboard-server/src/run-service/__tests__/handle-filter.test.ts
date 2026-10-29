@@ -1,23 +1,4 @@
-// The server-side `?handle=` filter on the run stream.
-//
-// THE FRAME, AND ITS LIMIT. These cells mount `createRunServiceRoutes` on a bare `createServer`
-// with FAKE ports over a PLANTED feed. That is deliberate and it is the only frame that can make
-// the claims below, for the reason 402-01 measured and 402-03 measured again: a stream a real run
-// produced cannot discriminate a correct filter from several wrong ones, because a real run's
-// member indices are 0, 1, 2 … and its seqs are 1, 2, 3 …. The two-sided attribution pin over a
-// genuinely concurrent REAL run, on the production `startServer` composition, is the other file
-// (`handle-attribution.test.ts`); this one reaches the claims that need chosen inputs.
-//
-// WHY THE PLANTED INDICES ARE 3, 7 AND 11. With members 0 and 1 a correct filter is
-// indistinguishable from: a filter that returns everything, a filter off by one, a filter keyed on
-// the envelope's ARRAY POSITION rather than on its stamped `testIndex`, and a filter that ignores
-// the parameter entirely. Three members at non-contiguous, non-zero-based indices separate all
-// four — and every cell asserts BOTH halves, the requested handle's events present AND every other
-// handle's events absent, because a filter that returns everything passes any inclusion-only cell.
-//
-// THE SEQS ARE ALSO CHOSEN, for 402-01's reason: the framing claim (`id` IS the envelope `seq`) is
-// vacuous against 1, 2, 3 …, and it is a claim a FILTER can newly break — dropping envelopes makes
-// a stream-local counter and the envelope's own seq disagree in a way they did not before.
+// Planted indices 3, 7 and 11 and chosen seqs separate a correct filter from plausible wrong ones.
 
 import { readFile } from 'node:fs/promises'
 import { createServer, type Server } from 'node:http'
@@ -90,8 +71,7 @@ function sessionOver(id: string, feed: readonly RunEventEnvelope[]): RunSession 
       for (const envelope of feed) handler(envelope)
       return () => undefined
     },
-    // a planted session with no browser declares no stream and hands out no frame
-    // subscription — the honest absent declaration, not a stub a viewer would wait on forever.
+    // A planted session with no browser declares no stream and hands out no frame subscription.
     subscribeFrames() { return undefined },
     streamCapabilityOf() { return { kind: 'none' } },
     cancel() { /* nothing to cancel on a planted session */ },
@@ -110,7 +90,6 @@ const ACK: RunStartAcknowledgement = {
 
 function fakePorts(): RunServicePorts {
   return {
-    // no `verifyBearer` — the door is tokenless.
     invokeRunStart: async () => ACK,
     attach: (runId) => {
       if (runId === 'r_feed') return sessionOver('r_feed', FEED)
@@ -122,9 +101,7 @@ function fakePorts(): RunServicePorts {
       hostComposed: true,
       contractVersion: RUN_SERVICE_CONTRACT_VERSION,
     }),
-    // 403-03 (D-03, Q3): a fixture that composed no live view HAS no live view, and the honest
-    // answer to a mint request is 503 by name. Never a stub that mints — a fabricated token would
-    // make every cell downstream of it a claim about this file's idea of a credential.
+    // A fixture with no live view answers a mint with 503 by name, never a fabricated token.
     mintLiveUrl: () => Promise.reject(
       Object.assign(new Error('no live-view port is bound on this fixture'), {
         name: 'LiveViewUnavailableError',
@@ -330,9 +307,6 @@ describe('an invalid or unknown handle is refused BEFORE any stream header', () 
     expect(await response.json()).toEqual({ error: 'unknown_run' })
   })
 
-  // RE-SPELLED 2026-10-01 from 'refuses an unauthenticated handle request with
-  // 401, never a handle code'. The door asks for no credential; what refuses at the door now is the
-  // same-site guard, and it still answers before any handle code.
   it('refuses a cross-site handle request with 403, never a handle code', async () => {
     const origin = await mount()
     const response = await fetch(`${origin}/run/r_feed/events?handle=7`, {
@@ -345,11 +319,7 @@ describe('an invalid or unknown handle is refused BEFORE any stream header', () 
 
 describe('there is exactly ONE spelling of run-scoped-ness', () => {
   it('imports the schema predicate and re-derives nothing locally', async () => {
-    // A SUPPLEMENT to the behavioural cells above, not the proof — 402-01 and 402-03 both watched
-    // a source grep get satisfied by an import line while the expression it named was gutted. The
-    // discriminating work is done by the disjointness and exclusion cells; this one guards the
-    // architectural claim they cannot see: that the router did not grow its own copy of the
-    // classification which happens, today, to agree.
+    // A supplement to the behavioural cells: the router must not grow its own classification copy.
     const source = await readFile(
       new URL('../run-service-routes.ts', import.meta.url),
       'utf8',

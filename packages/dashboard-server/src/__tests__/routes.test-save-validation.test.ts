@@ -11,8 +11,7 @@ import { createRouter } from '../server/routes.js'
 import { SuiteFileManager } from '../tests/suite-file-manager.js'
 import { TestFileManager } from '../tests/test-file-manager.js'
 
-// the walk's Save wrote this file byte for byte and answered 201.
-// It is the content of captures/fresh/p03-invalid-433.yaml.txt without its capture header.
+// A duplicate `name` key: content the Save door must refuse with the validator's errors.
 const WALK_INVALID_CONTENT = [
   'name: Invalid 433 probe',
   'target: example-web',

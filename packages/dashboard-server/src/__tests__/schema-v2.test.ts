@@ -1,23 +1,4 @@
-// THE V2 HARD CUT, PINNED (Phase 405 plan 01, D-02 · RESEARCH Pitfall 4).
-//
-// D-02 is one of the two ONE-WAY decisions in this phase: `user_version = 2` becomes a published
-// compatibility contract, and a database written by an older build is REFUSED BY NAME rather than
-// migrated. The owner chose it in 405-CONTEXT.md in these words — "hard cut, no migration etc, as
-// there are no users and users need to delete the existing run date so you do what's right also
-// bump the version to v2 for the DDLs etc".
-//
-// WHY THIS FILE EXISTS AT ALL, and why the refusal is not just a comment in `database.ts`. Before
-// this plan the guard compared `currentVersion > schemaVersion` and nothing else. With
-// `SCHEMA_VERSION` moving 1 → 2, a developer's existing `dashboard.db` would have been seen as
-// `1 < 2` and CARRIED FORWARD: every statement in the v2 list is `CREATE TABLE IF NOT EXISTS`, so
-// the three new tables would have been created BESIDE the untouched v1 wide `steps` table and the
-// app would have come up against a half-old schema, reporting success. That failure has no
-// symptom until a read returns the wrong shape, which is why it is measured here rather than
-// argued about.
-//
-// THE V1 DDL IS SPELLED INLINE BELOW, and this is the ONE legal place in the tree it may be. The
-// fixture has to be a database this build did not write; deriving it from `MIGRATIONS` would make
-// the cell a tautology (it would test that the current schema refuses the current schema).
+// An older database is refused by name; `IF NOT EXISTS` would carry it forward half-old.
 
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -39,14 +20,7 @@ afterEach(() => {
   rmSync(workDir, { recursive: true, force: true })
 })
 
-/**
- * A database written by a PRE-405 build: the v1 `runs` shape, stamped `user_version = 1`.
- *
- * Deliberately partial — a fixture that reproduced the whole v1 DDL would be a second copy of a
- * schema this phase is deleting. What matters is the STAMP and the fact that a table exists under
- * it, because the refusal keys on the stamp and the corruption it prevents is "new tables created
- * beside old ones".
- */
+// A v1 database: the old `runs` shape stamped `user_version = 1`; the refusal keys on the stamp.
 function writeV1Database(dbPath: string): void {
   const raw = createDashboardSqliteDatabase(dbPath)
   try {
@@ -86,9 +60,7 @@ describe('a fresh dashboard database opens at the current version', () => {
       expect(executionLogColumns).toContain('test_index')
       expect(executionLogColumns).toContain('step_index')
 
-      // the token columns exist and are NULLABLE WITH NO DEFAULT. The v1 `steps`
-      // table declares `prompt_tokens INTEGER DEFAULT 0`, and that zero is the lie the whole
-      // "absent is not zero" rule exists to stop this schema from being able to tell.
+      // The v1 `steps` table defaults tokens to 0; these columns are nullable: absent is not zero.
       const stepColumns = raw.db
         .prepare('PRAGMA table_info(run_steps)')
         .all() as Array<{ name: string; dflt_value: unknown; notnull: number }>
@@ -114,7 +86,7 @@ describe('an older or newer database is refused BY NAME, never migrated', () => 
     const dbPath = join(workDir, 'legacy-v1.db')
     writeV1Database(dbPath)
 
-    // the refusal names the file, its version and the remedy.
+    // The refusal names the file, its version and the remedy.
     expect(() => new DashboardDatabase({ dbPath })).toThrow(RunsDatabaseVersionRefusedError)
     expect(() => new DashboardDatabase({ dbPath })).toThrow(dbPath)
     expect(() => new DashboardDatabase({ dbPath })).toThrow(/runs database version 1\)/)
@@ -132,7 +104,7 @@ describe('an older or newer database is refused BY NAME, never migrated', () => 
       const tables = (raw
         .prepare("SELECT name FROM sqlite_master WHERE type='table'")
         .all() as Array<{ name: string }>).map((row) => row.name)
-      // THE WHOLE POINT: the pre-405 guard would have created these three beside the old `runs`.
+      // A guard that only refused newer files would create these three beside the old `runs`.
       expect(tables).not.toContain('run_members')
       expect(tables).not.toContain('run_steps')
       expect(tables).not.toContain('run_sub_actions')

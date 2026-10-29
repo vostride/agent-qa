@@ -109,8 +109,6 @@ const mockVariableStoreInstance = {
   snapshot: vi.fn(() => Object.fromEntries(variableStoreEntries)),
 }
 
-// executeStep/LLMPlanner/LLMVerifier moved to the runner package;
-// live-session now imports them from @vostride/agent-qa-runner, so intercept them there.
 vi.mock('@vostride/agent-qa-runner', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@vostride/agent-qa-runner')>()
   return {
@@ -118,27 +116,22 @@ vi.mock('@vostride/agent-qa-runner', async (importOriginal) => {
     executeStep: (...args: unknown[]) => mockExecuteStep(...args),
     LLMPlanner: vi.fn().mockImplementation(function () { return { plan: vi.fn() } }),
     LLMVerifier: vi.fn().mockImplementation(function () { return { verify: vi.fn() } }),
-    // runHooks moved to runner in Phase 363 D-06.
     runHooks: (...args: unknown[]) => mockRunHooks(...args),
-    // Variables subsystem moved to runner in Phase 363 D-07.
     VariableStore: vi.fn().mockImplementation(function () { return mockVariableStoreInstance }),
     interpolateVariables: (...args: unknown[]) => mockInterpolateVariables(...args as Parameters<typeof mockInterpolateVariables>),
     findUnresolvedTemplates: (...args: unknown[]) => mockFindUnresolvedTemplates(...args as Parameters<typeof mockFindUnresolvedTemplates>),
-    // Inline hook parsing moved to runner in Phase 363-11; live-session imports it from runner.
     parseHookInline: (text: string) => mockParseHookInline(text),
     stripHookInline: (text: string) => mockStripHookInline(text),
   }
 })
 
-// DockerHookExecutor moved to runner-local in Phase 363 D-06; its execute() is the old
-// runHookInSandbox body behind the port.
 vi.mock('@vostride/agent-qa-runner-local', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@vostride/agent-qa-runner-local')>()),
   DockerHookExecutor: class { execute(...args: unknown[]) { return mockRunHookInSandbox(...args) } },
 }))
 
 vi.mock('@vostride/agent-qa-core', async () => {
-  // the live door checks limit leaves with the real core schemas the CLI applies.
+  // The live door checks limit leaves with the real core schemas the CLI applies.
   const actual = await vi.importActual<typeof import('@vostride/agent-qa-core')>('@vostride/agent-qa-core')
   class LocalSecretStore {
     private secrets: Record<string, string>
@@ -912,9 +905,7 @@ describe('LiveSession', () => {
     expect(mockCleanup, 'the browser is closed once').toHaveBeenCalledTimes(1)
   })
 
-  // the session has no screenshot getter. The adapter's capture is reached only
-  // through the hub's snapshot producer, lazily, so an initialized session with no viewer never
-  // captures. The title is kept.
+  // The session has no screenshot getter; the hub's lazy snapshot producer is the only capture.
   it('getScreenshot delegates to adapter', async () => {
     await session.initialize(webConfig)
     expect('getScreenshot' in session).toBe(false)
@@ -972,7 +963,7 @@ describe('LiveSession', () => {
   })
 })
 
-// the live editor is a door; its limits come from the project config and the entity.
+// The live editor is a door; its limits come from the project config and the entity.
 describe('live editor', () => {
   let session: LiveSession
 
@@ -1037,7 +1028,7 @@ describe('live editor', () => {
   })
 })
 
-// a live suite session runs each child at its own effective limits.
+// A live suite session runs each child at its own effective limits.
 describe('live suite children', () => {
   let session: LiveSession
 
@@ -1123,7 +1114,7 @@ describe('live suite children', () => {
   })
 })
 
-// the live door refuses, never ignores, a limit the CLI refuses.
+// The live door refuses, never ignores, a limit the CLI refuses.
 describe('live refusal', () => {
   function configManagerWith(config: Record<string, unknown>): ConfigManager {
     return { readWithRevision: async () => ({ kind: 'ok', config, raw: '', revision: 'r1' }) } as unknown as ConfigManager

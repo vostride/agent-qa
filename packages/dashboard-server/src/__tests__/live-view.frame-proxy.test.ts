@@ -1,21 +1,4 @@
-// THE FRAME PROXY'S STATE MACHINE (403-02 Task 2 · D-02/D-04/D-06/D-16 · T-403-03/04/06/07/11).
-//
-// EVERY SOCKET-LEVEL CELL DRIVES THE PRODUCTION FRAME. `startServer({ db, port: 0,
-// runServiceAttach, liveView })` is what a person's `agent-qa dashboard` runs; the upgrade arm, the
-// `?runId=` read, the `createFrameProxy` construction and the embed route are all in `server.ts`,
-// not in the proxy module. A suite that called `createFrameProxy` directly would prove the proxy
-// works and leave the wiring unmeasured — WINDOWS' "green that never ran". The ONE exception is the
-// slow-viewer cell, which needs a socket whose `bufferedAmount` it controls; it says so at the site.
-//
-// THE VALIDATOR IS THE REAL ONE. `validateLiveUrlToken` from `@vostride/agent-qa-agent`, bound to a
-// signer this file constructs — so `bad_signature`, `expired` and `scope_mismatch` are the function
-// layer's own verdicts travelling through the proxy, not names this file invented. `agent` is a
-// devDependency of this package for exactly this fixture; the package SOURCE still imports nothing
-// from it (validate:arch drops `__tests__` from its scan, and the run-service routes' no-agent rule
-// is about the shipped bundle).
-//
-// WHAT IS PLANTED: the `RunSession`. That is the designed injection seam — `runServiceAttach` is a
-// first-class `startServer` option — and it is the only way to script a frame source deterministically.
+// Cells drive the production `startServer` and real token validator; only `RunSession` is planted.
 
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import type { AddressInfo } from 'node:net'
@@ -105,11 +88,7 @@ interface PlantedSession {
   emit(frame: LiveFrame): void
   /** Resolve `session.done`, which is what makes the proxy say `ended`. */
   finish(): void
-  /**
-   * The hub's `register(handle, undefined)` shape, exercised through the seam: the handle's stream
-   * ends, its subscriber set is cleared, and every subscriber's `onEnd` is called. The RUN is
-   * untouched — `done` is still pending, which is the whole point of CR-03.
-   */
+  // Ends the handle's stream and calls every subscriber's `onEnd`; the run's `done` stays pending.
   endStream(reason?: LiveFrameEndReason): void
   readonly acked: number[]
   readonly unsubscribes: number
@@ -355,11 +334,7 @@ interface DirectProxyViewer {
   readonly lookups: string[]
 }
 
-/**
- * The subjects behind the direct proxy: one planted run session answering every run lookup, or
- * run sessions by id beside an editor-subject registry. The editor cells use this
- * fixture because the server wiring that hands the proxy its editor lookup lands in Plan 11.
- */
+// One planted run session answering every lookup, or run sessions by id beside an editor registry.
 type DirectProxySubjects =
   | PlantedSession
   | { readonly runs?: Record<string, RunSession>; readonly editors?: LiveEditorSubjects }
@@ -527,7 +502,7 @@ describe('the frame proxy through the production startServer frame', () => {
     expect(header?.id).toBe(11)
     expect(header?.width).toBe(640)
     expect(header?.height).toBe(360)
-    // 428: ts and kind are ADDITIVE. A frame that carries neither sends exactly the old header.
+    // `ts` and `kind` are additive: a frame that carries neither sends the plain header.
     expect(Object.keys(header ?? {}).sort(), 'an unstamped frame keeps the pre-428 header keys')
       .toEqual(['height', 'id', 'type', 'width'])
     expect(header).not.toHaveProperty('ts')
@@ -553,9 +528,7 @@ describe('the frame proxy through the production startServer frame', () => {
   })
 
   it('(3) refuses an OVERSIZED first message as malformed, measured in BYTES', async () => {
-    // The cap is a BYTE cap. A JS string's `.length` counts UTF-16 code units, so a hello padded
-    // with multi-byte characters is under the character cap and over the byte cap — which is the
-    // direction that matters, because the byte count is what the socket actually buffers.
+    // The cap counts bytes: multi-byte characters keep a hello under the character count, over it.
     const planted = plantSession({ runId: 'r1' })
     const frame = await productionFrame({ r1: planted.session })
 
@@ -712,15 +685,7 @@ describe('the frame proxy through the production startServer frame', () => {
   })
 
   it('(23) a member FINISHING sends `ended { handleFinished }` on the still-open socket', async () => {
-    // CR-03. A multi-member run settles one member at a time, and `shell.ts` withdraws that
-    // handle's declaration the instant its race settles. Before this cell the hub dropped the
-    // handle's subscriber set without a word, so this viewer sat on `data-embed-state="live"` over
-    // a frozen last frame until the WHOLE run ended — a stale picture claiming to be live, which is
-    // the one thing the embed page's own law ("every absence is named") forbids.
-    //
-    // EVERY ABSENCE HERE IS PRECEDED BY A PRESENCE. `ready` with a real declared kind, one
-    // subscription, and one painted JPEG are asserted BEFORE the end is triggered — otherwise
-    // "the viewer was told the stream ended" and "the viewer was never streaming" read identically.
+    // Ready, subscription and a painted frame come first, or "ended" and "never streamed" match.
     const planted = plantSession({ runId: 'r1' })
     const frame = await productionFrame({ r1: planted.session })
     const viewer = await openViewer(frame, '?runId=r1')
@@ -934,9 +899,7 @@ describe('the frame proxy through the production startServer frame', () => {
   })
 
   it('(16) DETACH: closing a viewer socket unsubscribes and touches NOTHING else on the run', async () => {
-    // T-403-07's cell. The RED bar is an implementation that cancels the run when its last viewer
-    // leaves — "attach, don't own" is the law INVK-05 pins, and a viewer that can end a run by
-    // closing a tab is a viewer that has become the owner.
+    // A viewer leaving never cancels the run: a viewer attaches, it does not own.
     const planted = plantSession({ runId: 'r1' })
     const frame = await productionFrame({ r1: planted.session })
     const viewer = await openViewer(frame, '?runId=r1')
@@ -1020,16 +983,7 @@ describe('the frame proxy through the production startServer frame', () => {
   })
 
   it('(24) A SOCKET THAT DIES BETWEEN THE HEADER AND THE BYTES costs itself the frame, not the run', async () => {
-    // THE SECOND CELL THAT DOES NOT USE `startServer`, and for the same reason as (18): the claim
-    // is about a socket whose `readyState` changes BETWEEN two statements of one callback, and a
-    // real socket cannot be made to do that on cue. What is under test is the guard.
-    //
-    // WHY IT MATTERS. `ws.send` throws on a closed socket, and that throw travels up into the hub's
-    // delivery walk, which detaches the viewer and REPORTS the fault. Before WR-06 that report was
-    // wired to the run's durable event log, so a person closing a tab in the wrong millisecond wrote
-    // a row into the run's permanent transcript. The routing fix is measured in the runner's
-    // bus-silence cell; this cell measures the other half — that the proxy stops producing the
-    // throw at all, and acks so the producer is not left waiting on a viewer that is gone.
+    // A planted socket, as a real one cannot change `readyState` between two statements on cue.
     const planted = plantSession({ runId: 'r1' })
     const viewer = directProxyViewer(planted, 'r1')
     viewer.greet(tokenFor({ runId: 'r1' }))
@@ -1055,9 +1009,7 @@ describe('the frame proxy through the production startServer frame', () => {
   })
 
   it('(26) TRACER-FRAME-TS: capture time and producer kind reach the header through a real hub', async () => {
-    // The one path PXH-LIVE-03's dot reads: producer -> real hub -> RunSession seam -> production
-    // proxy -> the viewer's frame header. The proxy never stamps a time of its own; the hub stamps
-    // timer.now() only when the producer supplied none.
+    // The proxy never stamps a time; the hub stamps `timer.now()` only when the producer gave none.
     const CAPTURE_NOW = 1_700_000_000_000
     const timer: RunTimerPort = { schedule: () => () => undefined, now: () => CAPTURE_NOW }
     const hub = createLiveStreamHub({ timer })
@@ -1148,10 +1100,7 @@ describe('the frame proxy through the production startServer frame', () => {
     const script = /<script nonce="[^"]+">([\s\S]*?)<\/script>/u.exec(body)?.[1] ?? ''
     expect(script.length, 'the served document must contain the embed script').toBeGreaterThan(200)
 
-    // THE LITERAL IS COMPARED TO THE SERVED BYTES, not to another copy of itself: the constant this
-    // package exports and the string the page renders are the same string, or a viewer sees copy
-    // nobody asserted. The ws-level `expired` refusal (cell 13) is the answer this branch renders;
-    // the browser-rendered assertion of the text is 403-01's tracer cell (iii-b).
+    // The served bytes are compared with the exported constant, so the page cannot drift from it.
     expect(script, 'the served script must carry the exported expired message verbatim')
       .toContain(JSON.stringify(LIVE_EMBED_EXPIRED_MESSAGE))
     expect(script).toContain('data-embed-message')
@@ -1174,8 +1123,6 @@ describe('the frame proxy through the production startServer frame', () => {
     const script = /<script nonce="[^"]+">([\s\S]*?)<\/script>/u.exec(body)?.[1] ?? ''
     expect(script.length, 'the served document must contain the embed script').toBeGreaterThan(200)
 
-    // THE SAME SHAPE AS (20): the constant and the served bytes are one string, or the pane and
-    // the embed drift apart again the way G-403-1 found them.
     expect(script, 'the served script must carry the exported no-stream message verbatim')
       .toContain(JSON.stringify(LIVE_EMBED_NO_STREAM_MESSAGE))
 
@@ -1190,8 +1137,7 @@ describe('the frame proxy through the production startServer frame', () => {
     expect(LIVE_EMBED_NO_STREAM_MESSAGE).not.toMatch(/\b(?:below|beneath|above|left|right)\b/u)
   })
 
-  // the one deliberate change to the served page. Each cell reads the SERVED bytes, as
-  // (20) and (25) do, so the constant and the document cannot drift apart.
+  // Each cell reads the served bytes, so the constant and the document cannot drift apart.
   async function servedEmbed(): Promise<{ style: string; script: string }> {
     const planted = plantSession({ runId: 'r1' })
     const frame = await productionFrame({ r1: planted.session })
@@ -1375,8 +1321,7 @@ describe('the editor subject on the frame socket', () => {
     expect(ready?.type, 'the editor token is greeted').toBe('ready')
     expect(editorViewer.lookups, 'and only the editor registry was asked')
       .toEqual(['editor:shared-id'])
-    // D-10, RESEARCH Open Question 1: the published field names do not move. `runId` is the path
-    // id and `handle` is 0; there is no subject field.
+    // The published field names stay: `runId` is the path id, `handle` is 0, and no subject field.
     expect(ready?.runId).toBe('shared-id')
     expect(ready?.handle).toBe(0)
     expect(ready?.stream?.kind).toBe('cdp-screencast')

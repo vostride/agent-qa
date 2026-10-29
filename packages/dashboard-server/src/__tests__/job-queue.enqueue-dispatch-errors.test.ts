@@ -1,6 +1,4 @@
-// the enqueued listener dispatches through
-// dispatchReported, so a dispatch that throws after the pending row and its artifact are written is
-// reported and never escapes enqueue(); the caller is answered with the queued run.
+// A dispatch that throws after the pending row is written is reported, not thrown from `enqueue()`.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 

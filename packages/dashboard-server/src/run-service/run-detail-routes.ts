@@ -1,18 +1,4 @@
-// The run-detail READ route.
-//
-// `GET /api/runs/:id/detail` is what the rebuilt run-detail page reads, and this module is the
-// whole of the HTTP half: validate the id with the OP'S OWN input schema, dispatch through the
-// injected host, map the op's named refusals onto status codes. It formats nothing. It opens no
-// database. There is no SQLite read in `routes.ts` for this arm and there must never be one —
-// that was the shipped v1 arrangement, and a private store read is a capability the function
-// layer cannot see, cannot audit and cannot offer to the CLI, MCP or chat (D-03, the fourth-door
-// law of 404 D-16).
-//
-// EVERY REFUSAL IS NAMED, on `post-processing-routes.ts`'s measured precedent. A page unable to
-// distinguish an unrecorded run and a composition that binds no run-detail port renders one grey
-// error for two completely different operator actions. Names are read STRUCTURALLY off
-// `error.name` because this package may not import the packages that mint those classes
-// (validate:arch), and comparing messages would be comparing against prose somebody will rewrite.
+// This module formats nothing and opens no database; refusals are read off `error.name`.
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
@@ -57,21 +43,7 @@ function errorMessageOf(error: unknown): string {
   return typeof message === 'string' ? message : ''
 }
 
-/**
- * The op's refusals, classified into this door's vocabulary.
- *
- * `FunctionNotBoundError` CARRIES ITS MESSAGE because that text tells an operator what to do —
- * which op this host does not bind. `RunNotFoundError` does NOT: it would echo the requested id
- * back into a response body, and a refusal that quotes untrusted input is a reflection this door
- * has no reason to offer. Anything else is an unclassified throw from inside the store, whose
- * message may name a path or quote a row; that one travels as a NAME, which is a classification
- * rather than a disclosure.
- *
- * EXPORTED SINCE 406-01. `run-analysis-routes.ts` dispatches `analysisGetFunctionId` through
- * the same host and meets the same three refusals; a second spelling of `unknown_run` /
- * `agent_host_unavailable` / `read_failed` there would be a second vocabulary for one door, free to
- * drift the first time either side gains a class.
- */
+// `FunctionNotBoundError` keeps its message; `RunNotFoundError` would echo the id; others by name.
 export function refusalFor(error: unknown): RunDetailRefusal {
   const name = errorNameOf(error)
   if (name === 'RunNotFoundError') {
@@ -87,19 +59,12 @@ export function refusalFor(error: unknown): RunDetailRefusal {
   return { kind: 'refused', status: 500, body: { error: 'read_failed', reason: name } }
 }
 
-/**
- * THE READ. Exported so a cell can measure the outcome without a socket, and so any second door
- * (405-05's authed remote row) answers with byte-identical bytes by CALLING this rather than by a
- * second spelling that agrees today.
- */
+// Exported so a cell can measure the outcome without a socket, and both doors call this one read.
 export async function readRunDetail(
   host: AgentHost,
   runId: string,
 ): Promise<RunDetailReadOutcome> {
-  // THE ID IS VALIDATED BY THE OP'S OWN INPUT SCHEMA, HERE, BEFORE THE DOOR IS TOUCHED
-  // Not a second regex: `runIdSchema` refuses exactly the ids the path layer would
-  // have to REWRITE before using them, and the whole point of that codec is that there is one of
-  // it. Refusing early also means an untrusted path segment never reaches a dispatch at all.
+  // The op's own input schema refuses a bad id before any dispatch; there is one run id codec.
   const parsed = RunsDetailInputSchema.safeParse({ runId })
   if (!parsed.success) {
     return { kind: 'refused', status: 400, body: { error: 'invalid_run_id' } }
@@ -219,13 +184,7 @@ export function serveRunMarksHistoryRead(
     result => RunsMarksHistoryResultSchema.parse(result))
 }
 
-/**
- * `POST …/:runId/mark-preview` — runs.mark.preview on either door.
- *
- * POST carries the exact runs.mark input, but the op is read-tier: it plans and writes nothing, so
- * no confirm scope is accepted. The body's runId must name the URL's run, so a page cannot preview
- * one run under another run's address.
- */
+// The op is read-tier; the body's `runId` must name the URL's run.
 export function serveRunMarkPreviewRead(
   req: IncomingMessage,
   res: ServerResponse,
@@ -266,27 +225,9 @@ export function serveRunDetailRead(
   )
 }
 
-// ---- 405-05: the ref-RESOLVING arm, on both doors ---------------------
-//
-// `GET /api/runs/:runId/artifacts/:sha` locally, `GET /run/:runId/artifacts/:sha` on the authed
-// remote door, and BOTH call the one function below. The run-detail read hands a page a `sha`; this
-// is where that sha becomes an image, and if the two doors resolved it through two implementations
-// then "the same artifact" would mean two things depending on which credential asked.
-//
-// THE BYTES CROSS THE FUNCTION LAYER. This module constructs no store, joins no path and
-// imports nothing that can read a file. Containment is `FsEvidenceArtifactStore`'s own rule —
-// `slugBranch` over the runId, a 64-lowercase-hex check over the sha — reached through the op, so
-// there is exactly one place in the product where a caller-supplied string becomes a path segment.
-//
-// THE SHA IS VALIDATED BY THE OP'S OWN INPUT SCHEMA, AND WHICH FIELD FAILED IS THE ANSWER. A
-// malformed run id and a malformed sha are different mistakes a caller can fix, so the parse's
-// failure paths are read apart rather than collapsed into one 400.
-//
-// NOTHING ECHOES THE REQUEST. Every refusal body is a fixed shape carrying a closed word; a body
-// that quoted the sha would reflect attacker-chosen bytes back through a door that has no reason
-// to offer one.
+// Containment is the evidence store's own rule, reached through the op; no refusal echoes the sha.
 
-/** The immutable-caching header set a CONTENT ADDRESS earns. */
+// The immutable-caching header set a content address earns.
 const ARTIFACT_CACHE_CONTROL = 'public, max-age=31536000, immutable'
 
 export function parseSingleByteRange(header: string | undefined): RunsArtifactInput['range'] {
@@ -311,16 +252,7 @@ export type RunArtifactReadOutcome =
   | { readonly kind: 'range-not-satisfiable'; readonly totalLength: number }
   | RunDetailRefusal
 
-/**
- * The op's refusals, classified into this door's vocabulary.
- *
- * `EvidenceBlobAbsentError` AND `RunNotFoundError` ARE BOTH 404 AND THEY ARE NOT THE SAME 404
- * One says the link names a run nothing recorded; the other says the run is right there and
- * holds no blob under that address — a screenshot the evidence diet collected, a ref that declared
- * itself incomplete, or an artifact never written. The page renders the second as a visible
- * "unavailable" state and the first as a broken link, and it can only do that because the words
- * differ. Neither body carries the sha.
- */
+// Both are 404 with different words: an unrecorded run, or a run with no blob at that address.
 function artifactRefusalFor(error: unknown): RunDetailRefusal {
   const name = errorNameOf(error)
   if (name === 'RunNotFoundError') {
@@ -400,21 +332,7 @@ export interface RunArtifactReadDeps {
   readonly host: AgentHost
 }
 
-/**
- * `GET /api/runs/:runId/artifacts/:sha` — a ref, resolved.
- *
- * THE HEADERS ARE THE FEATURE AS MUCH AS THE BYTES.
- * - `ETag: "<sha>"` — the content address IS the validator; there is nothing else it could be, and
- *   nothing that could make it stale, because bytes cannot change under a hash of themselves.
- * - `Cache-Control: public, max-age=31536000, immutable` — for the same reason. A revalidation of
- *   an immutable resource is a round trip that can only ever answer "yes, still".
- * - `X-Content-Type-Options: nosniff` — the second half of the T-405-15 mitigation. The op refuses
- *   to NAME a type a browser executes; this refuses to let the browser guess one anyway.
- * - `Content-Length` — from the op's own declared `byteLength` by way of the decoded buffer.
- *
- * `If-None-Match` IS HONOURED because it is three lines against a header set that promises a year
- * of caching, and a client that revalidates anyway should not be made to re-download a screenshot.
- */
+// The content address is the `ETag`, so caching is immutable and `If-None-Match` is honoured.
 export function serveRunArtifact(
   req: IncomingMessage,
   res: ServerResponse,

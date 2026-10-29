@@ -13,7 +13,7 @@ it('a run stored without recordings reads each recording as absent, from its row
   const dir = mkdtempSync(join(tmpdir(), 'agent-qa-424-cold-'))
   const dbPath = join(dir, 'history.db')
   const runId = asRunId(generateRunId())
-  // v3 files are refused, so the recording-less rows are seeded into v5.
+  // Files at v3 are refused, so the recording-less rows are seeded into v5.
   new DashboardDatabase({ dbPath }).close()
   const raw = createDashboardSqliteDatabase(dbPath)
   try {
@@ -48,8 +48,6 @@ it('a run stored without recordings reads each recording as absent, from its row
         evidenceBlobs: { read: forbidden },
       } as unknown as FunctionDeps,
     })
-    // no `resolveExecutionContext` registry option and no `grantedScopes`
-    // or `safeMode` on the caller; the registry reads none of them.
     const output = RunDetailProjectionSchema.parse(await invokeFunction(registry, 'runs.detail',
       { runId }, { surface: 'dashboard', origin: 'human' }))
     expect(output.members.map(member => member.recording)).toEqual([

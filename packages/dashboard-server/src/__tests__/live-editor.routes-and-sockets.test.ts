@@ -1,9 +1,4 @@
-// THE GUARDED LIVE-EDITOR SURFACE (428-11 · D-07/D-08 · RESEARCH P5/P6 · WINDOWS #275).
-//
-// Every cell drives the production `startServer({ db, port: 0, … })`: the routes, the upgrade arm
-// and the session manager are the ones `agent-qa dashboard` runs. Requests go through `node:http`
-// so the cells choose the exact `Origin` and `Sec-Fetch-Site` a browser would send; the `Host` is
-// the one Node writes for the loopback address the server listens on.
+// Cells drive the production `startServer` with the `Origin` and `Sec-Fetch-Site` a browser sends.
 
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { request as httpRequest } from 'node:http'

@@ -1,8 +1,4 @@
-// POST /api/llm/connect tests a draft model before anything is written,
-// and only a pass (or an explicit skipTest) lands the credential and the definition.
-//
-// auth.json is an in-memory store behind core's readAuth/writeAuth/removeAuth, and the config is a
-// real temp file behind a real ConfigManager, so every cell asserts what both hold afterwards.
+// A draft model is tested before anything is written; only a pass or `skipTest` lands it.
 
 import { createHash } from 'node:crypto'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'

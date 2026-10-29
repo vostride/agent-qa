@@ -70,8 +70,7 @@ function createMockDatabase() {
       attributePredicates,
     } = filters
 
-    // the real `getRuns` no longer filters on a parent link, because there is no
-    // parent link. Every row is top-level, so the mock starts from all of them.
+    // Every row is top-level, so the mock starts from all of them.
     let filtered = [...runs]
 
     if (typeof status === 'string') {
@@ -210,12 +209,10 @@ function createMockDatabase() {
       return artifact
     },
     getRunArtifactBundle(runId: string) {
-      // one run's artifact. The `children` walk over the parent link went with the
-      // column, so the mock's shape follows the real member's.
+      // One run's artifact, shaped like the real member's.
       return { artifact: artifacts.get(runId) ?? null }
     },
-    // the execution-logs arm is one of the four local human reads that crosses the display
-    // seam, so the mock has to be able to answer it. `logs` is planted through `__plantLog`.
+    // The execution-logs arm crosses the display seam, so the mock answers it via `__plantLog`.
     getExecutionLogs(filters: { runId: string }) {
       return executionLogs.filter((entry) => entry.runId === filters.runId)
     },
@@ -232,11 +229,7 @@ interface MockResponse {
   body: string
 }
 
-// A mock request that omits `Host` models no real client: HTTP/1.1 requires the header and every
-// browser, `curl`, `fetch` and the conformance harness sends it. The display-seam read arms
-// now refuse a request whose claimed Host is not a loopback name, so the default below
-// is what keeps these direct-invoke probes speaking the wire's own shape. An explicit `host` in
-// `options.headers` still wins, which is how the refusal itself is exercised.
+// Requests default to a loopback `Host`, because the display-seam read arms refuse any other.
 const LOOPBACK_HOST_HEADER = { host: '127.0.0.1:3470' } as const
 
 function createMockRequest(
@@ -403,13 +396,7 @@ describe('POST run enqueue trigger attributes', () => {
   })
 })
 
-// 2026-10-01 (432-21, owner decision recorded in 432-14 #4): the run trigger and the queue enqueue
-// are same-site only. With run approval gone, a simple cross-site POST to either legacy
-// route could start any non-production run; the same predicate the mark, config-write, live-editor
-// and credential doors use now refuses it before the queue is consulted or the body is read. The
-// non-browser callers of these two routes — the conformance harnesses, the appium-ownership suite,
-// `packages/web/scripts/dashboard-smoke.mjs` — send a loopback `Host` and no `Origin`, so they are
-// admitted, and so is the dashboard's own Run.
+// The run trigger and the queue enqueue are same-site only; loopback callers with no `Origin` pass.
 const RUN_ROUTES = ['/api/runs/trigger', '/api/queue/enqueue'] as const
 const RUN_ROUTE_BODY: Record<(typeof RUN_ROUTES)[number], Record<string, unknown>> = {
   '/api/runs/trigger': {},
@@ -654,12 +641,7 @@ describe('GET /api/runs route contract', () => {
     expect(JSON.parse(valuesRes.body).values).toEqual([{ value: 'phase223-main', count: 2 }])
   })
 
-  // a suite row is ONE row. This cell used to seed a parent and two
-  // linked children and assert the list attached them as `tests`, each enriched with the same
-  // target contract. Nothing has written a child row since 402-09; the link, the walk and the
-  // response key are gone, and a suite run's members are `run_members` on the one row. What the
-  // cell still has to prove is that the enrichment reaches a SUITE row exactly as it reaches a
-  // test row — the same target contract, from the same snapshot.
+  // The enrichment must reach a suite row exactly as it reaches a test row, from the same snapshot.
   it('enriches a suite row with the same target contract as a test row, and attaches no member list', async () => {
     db.insertRun({
       id: 'suite-run',
@@ -693,9 +675,6 @@ describe('GET /api/runs route contract', () => {
     expect(plainRow).not.toHaveProperty('tests')
   })
 
-  // "top-level only" is no longer a filter, because every row is top-level. The
-  // paging claim it rode on is unchanged and is what this cell keeps: the page is 50 and the total
-  // counts every matching row rather than the page.
   it('pages at 50 and reports the whole matching count as the total', async () => {
     for (let index = 0; index < 55; index += 1) {
       db.insertRun({
@@ -866,10 +845,6 @@ describe('GET /api/runs route contract', () => {
     expect(data.artifact.payload.source.rawYaml).toBe('name: preserved')
   })
 
-  // the artifact body is one run's artifact. The `children` array it
-  // used to carry walked the deleted parent link, so it was structurally empty on every run this
-  // build produces. `missingSections` — the half of this cell that was never about children — is
-  // what it now measures on its own.
   it('reports the artifact sections a run has not written', async () => {
     db.insertRun({ id: 'suite-run', name: 'Suite', source: 'suite' })
     db.insertRunArtifact({
@@ -903,16 +878,7 @@ describe('GET /api/runs route contract', () => {
   })
 })
 
-// ---- CR-02: the confirm scope stops leaving on the read path ---------------------------
-//
-// `POST /api/runs/trigger` persists the triggering browser's confirm scope into `runs.metadata` so
-// the QUEUE can address that browser when the run finally starts. Every run-reading endpoint then
-// served the whole row through `json()`, which writes `Access-Control-Allow-Origin: *` — so any page
-// a person had open could read the scope out of a run they never triggered.
-//
-// THE STRIP IS ON THE RESPONSE PATH, NEVER IN `mapRunRow`. The queue consumer reads `confirmScope`
-// off the persisted row; a strip at the DB→row choke point would delete the feature rather than
-// close the leak. `run-trigger-confirm.test.ts` holds the cell proving the feature survived.
+// Run-reading responses strip a stored confirm scope, because `json()` lets any origin read them.
 
 const LEAKED_SCOPE = 'run-trigger:cr02-leaked-scope-3f19b2'
 /** A metadata key nobody has invented yet — the allowlist's fail-closed proof. */
@@ -952,11 +918,6 @@ describe('no run-reading response hands out the confirm scope', () => {
     expect((JSON.parse(res.body) as { runs: unknown[] }).runs).toHaveLength(1)
   })
 
-  // the nested `tests` door is CLOSED rather than clean. The list used
-  // to attach a suite row's child runs, each a full run row that needed its own strip; the array
-  // and the column it walked are gone. The strongest thing this cell can say now is that the door
-  // is not there — a nested run row would be a NEW serialization site, and the 401-23 construction
-  // assertion is what would catch one being added without a scrub.
   it('DOOR 1 (nested) — the list serves no nested run rows at all any more', async () => {
     seedScopedRun(db, { id: 'run-suite-parent', suiteId: 'suite-a' })
     seedScopedRun(db, { id: 'run-suite-sibling', suiteId: 'suite-a' })
@@ -974,9 +935,6 @@ describe('no run-reading response hands out the confirm scope', () => {
     expect(res.body).not.toContain(LEAKED_SCOPE)
   })
 
-  // the detail body is `{ run }`. `attempts` and `tests` were two more run-row
-  // serialization sites, both walked off the deleted parent link; the door narrows to one row and
-  // the strip on it is what remains to prove.
   it('DOOR 2 — GET /api/runs/:id (the detail) carries none, and serves one run row only', async () => {
     seedScopedRun(db, { id: 'run-detail', suiteId: 'suite-b' })
     const res = await invokeRoute(router, '/api/runs/run-detail')
@@ -994,12 +952,7 @@ describe('no run-reading response hands out the confirm scope', () => {
   })
 
   it('DOOR 3 — GET /api/runs/:id/artifact carries none, in `run` AND in the artifact PAYLOAD', async () => {
-    // THE SEVENTH DOOR. The 401-18 version of this cell seeded
-    // `db.insertRunArtifact({ runId, kind: 'test' })` — an artifact with NO PAYLOAD — so its
-    // `not.toContain(LEAKED_SCOPE)` was structurally incapable of failing on the very field its
-    // name claims. The payload below is shaped the way the PRODUCTION WRITER shapes it
-    // (`job-queue.ts:75-78`: `metadata: { ...opts.metadata, attributes }`), which is the only way
-    // this cell can be about the door that leaked rather than about an empty object.
+    // The payload is shaped as the production writer shapes it, or the check could never fail.
     seedScopedRun(db, { id: 'run-artifact-scope' })
     const writerShapedPayload = {
       runtime: { platform: 'web', queued: true },
@@ -1019,7 +972,6 @@ describe('no run-reading response hands out the confirm scope', () => {
       artifact: { payload: Record<string, unknown> } | null
     }
     expect(data.run.metadata).not.toHaveProperty('confirmScope')
-    // the child artifact this cell also drove is gone with the `children` key.
     expect(data).not.toHaveProperty('children')
 
     // THE PAYLOAD REALLY WAS SERVED before anything is claimed about what it does not contain.
@@ -1120,28 +1072,7 @@ describe('no run-reading response hands out the confirm scope', () => {
 })
 
 describe('the read-path census cannot rot', () => {
-  /**
-   * EVERY PUBLIC `DashboardDatabase` METHOD THAT HANDS OUT A RUN ROW must be wrapped by the
-   * router's response-safe projection, or a door reading through it leaks again.
-   *
-   * THE PREDICATE, STATED: parse `database.ts` into method signature blocks — a line at class-member
-   * indentation opening a parameter list, joined forwards until the line that opens the body — and
-   * keep the PUBLIC READS (`get…`) whose return annotation names `RunRow`, `RunArtifactBundle`
-   * (whose `children` each carry a run row) or `RunArtifactRow` (whose `payload.metadata` is the
-   * caller's own object). That is a scan of the producer, not a transcription of the doors this
-   * plan happened to find.
-   *
-   * WIDENED IN 401-23, AND THE WIDENING IS THE FINDING. Its 401-18 form keyed on
-   * `RunRow|RunArtifactBundle` alone, which `getRunArtifact(runId): RunArtifactRow | null`
-   * structurally cannot match — so the census asserted SET EQUALITY, passed, and was blind to the
-   * one door that was leaking. The live-surface predicate below now contradicts the narrow form, so
-   * the scan is widened to the annotation that names an artifact row, and restricted to `get…` so
-   * that `stageRunArtifact`/`finalizeRunArtifact` — writes that echo the row they just wrote — do
-   * not become "reads" by the accident of their return type.
-   *
-   * SET EQUALITY, NOT CONTAINMENT, so a method DROPPED from the wrapper reds here as loudly as one
-   * added to the db — a census that only checks one direction is blind to its own narrowing.
-   */
+  // Set equality, so a method dropped from the wrapper reds as loudly as one added to the database.
   it('PREDICATE A (the producer) — the wrapper covers exactly the run reads the database declares', () => {
     const source = readFileSync(
       join(dirname(fileURLToPath(import.meta.url)), '..', 'db', 'database.ts'),
@@ -1167,20 +1098,7 @@ describe('the read-path census cannot rot', () => {
     expect([...declared].sort()).toEqual([...RESPONSE_SAFE_RUN_READ_METHODS].sort())
   })
 
-  /**
-   * PREDICATE B — THE WRAPPER'S OWN LIVE METHOD SURFACE.
-   *
-   * A DIFFERENT AXIS, NOT A SECOND SPELLING OF PREDICATE A. Predicate A reads a SOURCE FILE and
-   * believes what an annotation says; this one ranges the OBJECT the router will actually be handed
-   * and asks what it can call. That is the axis on which 401-18's census was blind: no annotation
-   * names a `payload` sub-object, and a method attached at runtime or inherited from a prototype
-   * has no annotation at all. Neither predicate can certify itself with the other's evidence.
-   *
-   * DRIVEN BY MUTATION, WHICH IS THE ONLY BAR THAT MEANS ANYTHING HERE: a run-named read is PLANTED
-   * on the database and the cell asserts construction throws NAMING it — then the plant is removed
-   * and the same database constructs cleanly. A cell that only asserted the clean case would pass
-   * against a wrapper with no assertion in it at all.
-   */
+  // A run-named read planted on the database must make construction throw, naming it.
   it('PREDICATE B (the live surface) — an unaccounted run-named read makes the wrapper throw at construction', () => {
     const clean = createMockDatabase()
     expect(() => createRouter(clean as never), 'the shipped database surface must construct').not.toThrow()
@@ -1224,8 +1142,6 @@ describe('the read-path census cannot rot', () => {
     }
   })
 })
-
-// ---- G-401-18-CR01 (write half): the queue door's allowlist and the timeout consumer seam ------
 
 describe('the write door is an allowlist, and the allowlist is derivable', () => {
   /**
@@ -1308,11 +1224,7 @@ describe("a persisted row's execution timeout is validated where it is consumed"
   })
 })
 
-// ---- 441-15: the LOCAL door's four other human reads serve stored text unchanged ----------
-//
-// The run list, `GET /api/runs/:id`, `/execution-logs` and `/artifact` answer what was written,
-// masked at write. A declared value's named marker and an old run's numbered placeholder
-// both reach the browser as the text they are, with or without an agent host bound.
+// The local door's human reads serve stored text, masked at write, with or without an agent host.
 
 const STORED_MARKER = '[secret:PW_441]'
 const OLD_PLACEHOLDER = '<SECRET_0>'

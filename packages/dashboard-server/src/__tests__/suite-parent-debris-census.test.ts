@@ -1,37 +1,4 @@
-/**
- * THE SUITE-PARENT / CHILD-RUN DEBRIS CENSUS.
- *
- * D-11, owner verbatim: "remove everything that's not required. Better to cleanup now than
- * maintain tumors." What counts as REQUIRED is decided by this census, not by judgment — the only
- * survivors are reads today's run-list / run-detail UI genuinely serves for HISTORICAL rows before
- * 405, and anything the one-run model leaves producer-less goes too.
- *
- * TWO PREDICATES THAT FAIL FOR DIFFERENT REASONS. This phase has already defeated four instrument
- * shapes: a symbol grep satisfied by an import line, a source assertion satisfied
- * by its own file (402-07 / WINDOWS #253, 402-08 / #257), a fold from a DECLARED binding rather
- * than from what answered (402-07 / #251), and a behavioural differential blind to a byte-identical
- * private copy (402-08 / #257). Two greps with different regexes would be a fifth. So:
- *
- *   PREDICATE A — LEXICAL. Reads source TEXT. Discovers its own file universe by walking
- *   `packages/<pkg>/src` for every package that has one; never a pinned file list. Sees a token in
- *   a comment, sees a renamed-file copy, sees a type literal. Blind to a symbol that was RENAMED
- *   and to behaviour.
- *
- *   PREDICATE B — STRUCTURAL. Reads no source text at all. Discovers link-reading members by a
- *   RUNTIME DIFFERENTIAL: two byte-identically seeded databases that differ in exactly one fact —
- *   whether the child row's `parent_run_id` points at the parent — walked over the WHOLE
- *   `DashboardDatabase` and `JobQueue` prototypes and driven through the run route corpus. A member
- *   whose observable output or database effect differs between the two reads the parent link, under
- *   any name, in any file, however it is spelled. Blind to comments and to dead type breadth.
- *
- * Neither predicate can be satisfied by the other's evidence, and the register below is the ONE
- * vocabulary they are reconciled through: every site A discovers and every surface B discovers must
- * appear in it with a disposition.
- *
- * THE REGISTER IS FROZEN, NOT GENERATED. It is a hand-authored literal; the predicates measure
- * the tree AGAINST it. A register recomputed from
- * its own scan output is the self-certifying guard 401-10 warned about and can never fail.
- */
+// Two predicates, lexical and structural, are reconciled through a hand-written register.
 
 import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -85,7 +52,7 @@ export interface DebrisSite {
   readonly line: string
   /** How many times this exact (file, token, line) triple occurs today. */
   readonly before: number
-  /** How many times it must occur after the D-11 deletion. */
+  // How many times it occurs in the tree the deletion produces.
   readonly after: number
   readonly disposition: 'keep' | 'delete'
   readonly why: string
@@ -98,17 +65,7 @@ const KEEP_RETAINED_UNION =
   + 'render site switches on is 405-11\'s edit, not this plan\'s. Recorded here so the next reader '
   + 'finds a disposition rather than a survival.'
 
-/**
- * the disposition that flipped, and why it could only flip now.
- *
- * 402-09 kept every parent-link READ on one argument: the one-run model produced no new children,
- * but an OPERATOR's database still held rows written before it, and the run list and run detail had
- * to keep rendering them. That argument had a lifetime, and D-02 ended it — the v2 schema is a hard
- * cut with no migration, and a database stamped at any older version is refused by name on open.
- * There is no such thing as a pre-405 row in a database this build will open, so a read that exists
- * to render one reads a shape that cannot be present. The column, its index, its readers and the
- * response keys they filled all left together.
- */
+// An older database is refused on open, so a read that renders a historical row has no input.
 const DELETE_HISTORICAL_READ =
   'A historical-row read retained by 402-09 for operator databases written before the one-run '
   + 'model. D-02 makes v2 a hard cut refused by name below its version, so no database this build '
@@ -522,29 +479,7 @@ function describeCounts(counts: Map<string, number>): string[] {
     .sort()
 }
 
-// ---------------------------------------------------------------------------------------------
-// PREDICATE B — the structural surface walk
-//
-// THE DIFFERENTIAL IS RETIRED BECAUSE ITS DISCRIMINATOR WAS DELETED, AND
-// SAYING SO IS THE WHOLE POINT OF RECORDING IT HERE.
-//
-// The arm worked by seeding two byte-identical databases that differed in exactly one fact —
-// whether a member row's parent link pointed at the parent — and calling every prototype member and
-// every run route against both. A member whose observable output or database effect differed read
-// the link, under any name, in any file, however it was spelled. That instrument is why the twelve
-// raw-SQL top-level filters and the cascade were found at all: predicate A cannot see a query.
-//
-// The column is gone. There is no second database to seed, because the fact the two differed in is
-// no longer expressible — and a differential run over an absent discriminator can only ever report
-// "no difference", which is precisely the vacuous instrument this file exists to refuse. Keeping it
-// would have meant keeping the column alive so its own test could still run.
-//
-// WHAT REPLACES IT IS STRICTLY STRONGER FOR THE CLAIM IT NOW HAS TO MAKE. The differential proved
-// "these members read the link"; the successor proves "no member CAN read it", structurally, at the
-// storage layer — the table has no such column, and the store refuses the two artifact kinds the
-// parent/child model minted. A reader reintroduced under any name would have to reintroduce the
-// column first, and that reddens here before any behaviour is written.
-// ---------------------------------------------------------------------------------------------
+// The store has no parent-link column and refuses the parent/child artifact kinds.
 
 const PARENT_ID = 'r_parent-alpha-bravo-charlie-delta-echo-foxtrot-golf-hotel-india'
 const CHILD_A = 'r_childa-alpha-bravo-charlie-delta-echo-foxtrot-golf-hotel-india'
@@ -631,11 +566,7 @@ function buildRouter(db: DashboardDatabase): ReturnType<typeof createRouter> {
   } as unknown as Parameters<typeof createRouter>[0])
 }
 
-// A mock request that omits `Host` models no real client: HTTP/1.1 requires the header and every
-// browser, `curl`, `fetch` and the conformance harness sends it. The display-seam read arms
-// now refuse a request whose claimed Host is not a loopback name, so the default below
-// is what keeps these direct-invoke probes speaking the wire's own shape. An explicit `host` in
-// `options.headers` still wins, which is how the refusal itself is exercised.
+// Requests default to a loopback `Host`, because the display-seam read arms refuse any other.
 const LOOPBACK_HOST_HEADER = { host: '127.0.0.1:3470' } as const
 
 async function probeRoute(
@@ -702,20 +633,7 @@ function envelope(runId: string, type: RunEventType, payload: Record<string, unk
   return { seq, ts: seq, runId, type, payload } as RunEventEnvelope
 }
 
-/**
- * Every channel through which this process can create a run record today. A channel counts as a
- * PRODUCER when, driven against an empty database, it leaves behind a run artifact of a
- * parent/child kind.
- *
- * the linked-row half of that predicate is gone with the column. It is not
- * weakened — the store now REFUSES a parent/child kind outright, so a channel that tried to mint
- * one would fail its write rather than quietly produce a row this walk then has to notice.
- *
- * `JobQueue.enqueue` is deliberately absent: it stores whatever `kind` its caller hands it, so the
- * mint lives at the CALLERS (the two routes below), which is what this probes. A future caller
- * passing a parent kind would be caught by predicate A instead — the two predicates cover each
- * other here, which is the point of having two.
- */
+// The store refuses parent/child kinds; `JobQueue.enqueue` is absent because callers pick the kind.
 const PRODUCTION_CHANNELS: ReadonlyArray<{ id: string; drive: (db: DashboardDatabase) => Promise<void> }> = [
   {
     id: 'route:POST /api/queue/enqueue (suite file)',
@@ -818,22 +736,7 @@ const QUEUE = 'packages/dashboard-server/src/queue/job-queue.ts'
 const SCHEMA_FILE = 'packages/dashboard-server/src/db/schema.ts'
 const CHECK_LINE = "kind TEXT NOT NULL CHECK(kind IN ('test', 'suite-parent', 'suite-child', 'unknown')),"
 
-/**
- * EVERY SURFACE ON THIS TABLE IS NOW `delete`, AND THAT IS THE TERMINAL
- * STATE OF THE CENSUS RATHER THAN A LOSS OF COVERAGE.
- *
- * 402-09 recorded fourteen KEEP surfaces here: two link READS the run list and run detail served
- * for pre-402 rows, and twelve top-level-run filters spelled `parent_run_id IS NULL` in raw SQL —
- * which predicate A was structurally blind to (they name no debris token) and predicate B found by
- * differential. Every one of them was kept on the same argument: an operator's database still held
- * linked rows, and admitting a child row as a top-level run would double-count every historical
- * suite in the list, the counts and the trend series.
- *
- * D-02 ends that argument. v2 is a hard cut refused by name below its version, so no database this
- * build opens holds a linked row — and the twelve filters were therefore filtering nothing. Each
- * one is deleted rather than left as a predicate over an absent column, which SQLite would answer
- * with an error rather than with `true`.
- */
+// Every surface is `delete`: an older database is refused by version, so no linked row is opened.
 export const DEBRIS_SURFACES: readonly DebrisSurface[] = [
   {
     id: 'db:getRunsByParent',
@@ -841,10 +744,7 @@ export const DEBRIS_SURFACES: readonly DebrisSurface[] = [
     disposition: 'delete',
     sites: [
       S(DATABASE, 'getRunsByParent', 'getRunsByParent(parentRunId: string): RunRow[] {'),
-      // The router's accounting for the same read. Both exist ONLY because the read did, and both
-      // must go in the same commit: `assertRunReadsAccountedFor` compares the allowlist to the
-      // database's live run-named surface at construction, so a name left behind throws at router
-      // build and a name removed early throws the same way.
+      // Construction checks the allowlist against the live run reads, so a read and its entry pair.
       S(ROUTES, 'getRunsByParent', "'getRunsByParent',"),
       S(ROUTES, 'getRunsByParent', 'getRunsByParent: { value: (parentRunId: string) => scrubRows(db.getRunsByParent(parentRunId)) },'),
     ],
@@ -1056,8 +956,7 @@ describe('predicate A — the lexical debris census', () => {
     expect(roots.length).toBeGreaterThan(5)
 
     const files = scanFileUniverse()
-    // A narrowing that silently drops packages is the 401-10 failure this control exists for:
-    // every package that HAS a src directory must contribute at least one scanned file.
+    // Every package with a src directory must contribute a scanned file, or a narrowed walk passes.
     const packagesSeen = new Set(
       files.map((f) => relative(PACKAGES_DIR, f).split(sep)[0]),
     )
@@ -1202,9 +1101,7 @@ describe('predicate B — the structural surface walk (no source text is read)',
     const db = seedSuiteShapedDatabase()
     try {
       const router = buildRouter(db)
-      // each of these answered off a table or a path this census deleted.
-      // A route that no longer exists is what a client should discover, so each is the router's
-      // generic 404 — never a 200 with an empty body, which reads as "nothing happened here".
+      // Each retired URL must answer the router's generic 404, never a 200 with an empty body.
       for (const url of [
         `/api/runs/${PARENT_ID}/steps`,
         `/api/runs/${PARENT_ID}/steps/0/reasoning`,
@@ -1285,8 +1182,7 @@ describe('reconciliation — the two predicates meet in the register', () => {
   it('no parent/child producer survives, measured', async () => {
     const findings = await walkProductionChannels()
     if (CENSUS_PHASE === 'before') {
-      // Task 1 commits the register BEFORE the deletion, so the headline is not yet true. The cell
-      // states what it is measuring rather than asserting a claim the tree does not yet support.
+      // With the register at `before`, the deletion has not run, so producers still exist.
       expect(findings.length).toBeGreaterThan(0)
       return
     }
@@ -1300,10 +1196,6 @@ describe('the historical-row argument is retired, by name', () => {
     for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
   })
 
-  // 402-09's T-402-29 mitigation was "historical rows still render": every parent-link read was
-  // kept, and a cell drove the run list, the run detail and the artifact door against a seeded
-  // operator database to prove it. The mitigation was correct for its phase and is now MOOT rather
-  // than abandoned — the two cells below say why in the terms the mitigation was written in.
   it('a database written before v2 is REFUSED by name, so none of its rows is ever rendered', () => {
     const root = mkdtempSync(join(tmpdir(), 'agent-qa-census-'))
     roots.push(root)
@@ -1315,7 +1207,7 @@ describe('the historical-row argument is retired, by name', () => {
       raw.close()
     }
 
-    // the refusal names the file and its version.
+    // The refusal names the file and its version.
     expect(() => new DashboardDatabase({ dbPath: file }))
       .toThrow(`${file} was written by an older agent-qa (runs database version 1)`)
   })
@@ -1333,8 +1225,7 @@ describe('the historical-row argument is retired, by name', () => {
       for (const kind of RETIRED_ARTIFACT_KINDS) {
         expect(() => db.insertRunArtifact({ runId: id, kind: kind as never })).toThrow()
       }
-      // The TYPE still admits them (405-11 owns the UI-side narrowing), which is why this is a
-      // recorded disposition rather than a survival: the STORE is what refuses.
+      // The type still admits these kinds; the store is what refuses them.
       db.insertRunArtifact({ runId: id, kind: 'test' })
       expect(db.getRunArtifact(id)?.kind).toBe('test')
     } finally {
@@ -1343,34 +1234,17 @@ describe('the historical-row argument is retired, by name', () => {
   })
 })
 
-// ---------------------------------------------------------------------------------------------
-// THE MEASURED SETS — the census's expectations for the tree as it stands
-//
-// These are EQUALITIES against measured sets, never bare zeroes over unfiltered files:
-// while keeps exist the cells cannot be vacuous, and any NEW reference or reintroduced producer
-// reds them. `CENSUS_PHASE` says which column of the register the lexical arm is measured against;
-// the D-11 deletion flips it, and every constant below, in one auditable diff.
-// ---------------------------------------------------------------------------------------------
+// Equalities against measured sets, so any new reference or reintroduced producer reds a cell.
 
-/** `before` = the tree as 402-08 left it. `after` = the tree the deletion produces. */
+// `before` is the tree with the parent link; `after` is the tree the deletion produces.
 const CENSUS_PHASE: 'before' | 'after' = 'after'
-
-// the two link-reader sets that stood here are gone with the
-// differential that discovered them. `QUEUE_LINK_READERS` was already empty; `ROUTE_LINK_READERS`
-// named the five routes whose response or database effect depended on the parent link, and every
-// one of those dependencies was deleted with the column. A set expected to be empty, computed by a
-// walk whose discriminator no longer exists, would be green for the wrong reason — so the claim is
-// made structurally instead (predicate B's first cell), where re-adding the column is what reds.
 
 /** Channels that still mint parent/child run records. */
 const PARENT_CHILD_PRODUCERS: readonly string[] = []
 
 /** Delete-dispositioned sites no behavioural surface can reach, each with its reason recorded. */
 const UNOBSERVABLE_DELETES: readonly string[] = [
-  // the four `RunArtifactKind` union arms. A TYPE has no behavioural surface
-  // to observe — no request can make a union member appear — so their deletion is measured
-  // lexically (predicate A) rather than by a probe. 405-07 deleted the STORE's admission of both
-  // values, which is the behavioural half, and its own surface still records that.
+  // A type has no behaviour to probe, so the union arms' deletion is measured lexically.
   "packages/dashboard-ui/src/lib/api.ts | suite-child | export type RunArtifactKind = 'test' | 'suite-parent' | 'suite-child' | 'unknown'",
   "packages/dashboard-ui/src/lib/api.ts | suite-parent | export type RunArtifactKind = 'test' | 'suite-parent' | 'suite-child' | 'unknown'",
   "packages/schema/src/run/run-artifact.ts | suite-child | export type RunArtifactKind = 'test' | 'suite-parent' | 'suite-child' | 'unknown'",

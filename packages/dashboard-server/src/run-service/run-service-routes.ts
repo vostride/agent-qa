@@ -1,80 +1,4 @@
-// The run service's HTTP surface.
-//
-// TOKENLESS. The bearer verdict this door put first on every route,
-// its `verifyBearer` port and the trust scope a matched token carried into the caller are deleted
-// with `services.dashboard.runServiceTokens`. What stands first on every route now is the
-// dashboard's own same-site guard (`refuseCrossSiteRequest`): a Host this loopback server never
-// agreed to answer to, a foreign `Origin` or a cross-site `Sec-Fetch-Site` is refused before the
-// route table. The paragraphs below that describe the bearer are kept as history and say so.
-//
-// A MOUNTABLE MODULE, NOT A SERVER. Everything this door needs from the world arrives as
-// {@link RunServicePorts}: how to start a run, how to reach a started run's session, and how to
-// answer readiness. It imports the shared schema vocabulary and
-// node built-ins and NOTHING from `@vostride/agent-qa-agent`, `-agent-local` or `-safety` — those
-// are the packages `packages/dashboard-server` may not name, and the arch package tests are the
-// mechanical proof. 402 mounts this in the shipped dashboard process so there is no fourth process
-// and no daemon TCP exposure; a future cloud host mounts the same unit with different ports.
-//
-// THE SAME-SITE GUARD IS FIRST ON EVERY ROUTE, AND ABOVE THE ROUTE TABLE.
-// Not per handler — per REQUEST, before dispatch is even attempted. A route added tomorrow inherits
-// the refusal by construction rather than by somebody remembering, and a refused caller cannot
-// learn WHICH paths exist, because a valid path and a nonsense one are refused identically. `/ok` is
-// inside this rule and not an exception to it. Until 432-21 the rung here was the bearer
-// verdict, whose two-arm type had no permissive arm; the guard that replaced it has none either —
-// a request it does not admit is refused, never served a weaker answer.
-//
-// EVERY REFUSAL WRITES THE SAME BODY SHAPE — one key, a closed code (see
-// `RunServiceErrorBodySchema`). Nothing echoes the caller's input or names a run id.
-//
-// THE STREAM SERVES THE FROZEN BUS ENVELOPE VERBATIM. SSE `id` is the envelope's `seq`,
-// `event` is its `type`, and `data` is the envelope's own JSON. There is no projection layer and
-// no re-mint: the bus IS the wire contract, so there is no second event vocabulary to drift, and
-// payloads were masked at emit. `Last-Event-ID` resume falls out of seq-as-id nearly free, but the
-// full replay/attach acceptance is 403's; 402 claims delivery, not the attach contract.
-//
-// NO CROSS-ORIGIN GRANT, AT ALL. This file writes no `Access-Control-Allow-Origin`, and no route
-// requires an `Authorization` header, so a page could send a simple cross-site POST. The router's
-// same-site guard refuses it before the route table, preflight or not.
-//
-// THE `?handle=` FILTER IS SERVER-SIDE, AND ITS PREDICATE LIVES IN THE SCHEMA.
-// A parallel run is ONE run id with N attachable per-member handles. The optional `handle` query
-// parameter selects one member's slice; run-scoped envelopes (verdict, `runFinished`, `heartbeat`,
-// the diagnostics, and `runStarted` carrying the roster) ALWAYS pass it, so a handle subscriber
-// still learns that the run ended. This file re-derives none of that: `passesHandleFilter` is
-// imported from `@vostride/agent-qa-schema`, which is the only place an event type's scope is
-// declared. A second spelling here would be a classification that drifts silently,
-// because the two would agree on the day it was written and disagree the first time an event type
-// is appended.
-//
-// THE HANDLE IS VALIDATED BEFORE ANY STREAM HEADER, on the same rule as the run id and for the
-// same reason: a `200 text/event-stream` cannot be told it failed. Validation is in two parts, and
-// the two answers are kept apart — a malformed parameter is `invalid_handle`, a well-formed one
-// naming no member of this run is `unknown_handle`. Neither echoes the value.
-//
-// THE ROSTER IS READ OFF THE SESSION'S OWN REPLAYED `runStarted`, deliberately, rather than from
-// bookkeeping the attach port could keep. The run's own header IS the roster announcement, so
-// reading it here means the door validates against exactly what the stream is about to serve
-// rather than against a second copy that could disagree. `runStarted` is seq 1 and `subscribe`
-// replays synchronously from `REPLAY_FROM_START`, so the roster is in hand before `writeHead`.
-// A run whose `runStarted` announces no roster cannot answer a per-handle question at all, and the
-// honest answer to one is a refusal — not an unfiltered stream (which would serve every member's
-// data to a caller who asked for one) and not an empty one (which would look like a member that
-// did nothing).
-//
-// no bearer is carried at all, in a header or a URL. This door's clients are
-// still `curl`, `fetch` and CI; none of them sends an `Origin`, which is what the guard admits.
-//
-// BACKPRESSURE POSTURE, STATED RATHER THAN OVERLOOKED: writes are fire-and-forget with no `drain`
-// handling, matching both shipped SSE streams in this package. A client that reads slower than a
-// run emits grows this process's socket buffer. That is the shipped posture for run streaming and
-// this door does not change it; a bounded-writer policy is one decision for all three streams, not
-// a thing to invent here for one of them.
-//
-// REMOTE CANCEL IS DEFERRED (2026-08-24, Phase 402 · D-01 discretion note). Criterion 1 requires
-// start + stream only. Cancel is a control affordance and belongs with 403's attach/detach world,
-// where detach, reconnect and multi-surface addressing decide together what "stop it" means for a
-// run several surfaces are watching. Nothing here forecloses it: it is a fourth row in the table
-// below and a fifth port.
+// The same-site guard stands above the route table, and frames are the bus envelope verbatim.
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
@@ -95,9 +19,7 @@ import {
 import type { AgentHost } from '../chat/host.js'
 import { carriesNonJsonBody, readJsonBody } from '../server/body-parser.js'
 import { refuseCrossSiteRequest } from '../server/cross-site.js'
-// THE SAME TWO ADAPTERS THE LOCAL DOOR CALLS. Imported rather than
-// re-implemented, because "both doors answer the same bytes" is a claim about there being one
-// implementation — two that agree today are two that can stop agreeing.
+// Imported, so both doors answer the same bytes from one implementation.
 import {
   serveRunArtifact,
   serveRunDetailRead,
@@ -128,25 +50,13 @@ const HEARTBEAT_MS = 15_000
  */
 const MAX_REQUEST_BYTES = 64 * 1024
 
-/**
- * What starting a run needs from the composition, as data rather than as a live handle.
- *
- * the matched token's `trustScope` and `clientId` are deleted with the
- * token. A start carries the caller's pattern set and nothing about who the caller is.
- */
+// What starting a run needs, as data: the caller's pattern set and nothing about who the caller is.
 export interface RunServiceStartInput {
   /** The pattern set the caller asked for; absent means the configured default set. */
   readonly patterns?: readonly string[]
 }
 
-/**
- * Everything this door reaches the world through.
- *
- * ALL ARE INJECTED, and the injection is what makes the module mountable: the implementations name
- * `invokeFunction`, `runs.start` and a composed local host, all of it vocabulary this package may
- * not import. `InProcessRunStarter` is the shape precedent one directory over. 2026-10-01 (432-21,
- * D-12): `verifyBearer` is deleted; the same-site guard needs no port.
- */
+// Injected, because the implementations name vocabulary this package may not import.
 export interface RunServicePorts {
   /**
    * Start a run and return the acknowledgment.
@@ -159,34 +69,9 @@ export interface RunServicePorts {
   attach(runId: string): RunSession | undefined
   /** The measured readiness facts `/ok` reports. */
   readiness(): RunServiceReadiness
-  /**
-   * Mint a live-view URL for one handle of a run.
-   *
-   * REQUIRED, NOT OPTIONAL, and that is a decision rather than an oversight. An optional member is
-   * a member a composition can forget, and the failure mode of forgetting it here is a 404 that
-   * reads exactly like "no such route" — which is what a door with no live view is indistinguishable
-   * from. A composition that cannot mint supplies a function that REJECTS with a
-   * `LiveViewUnavailableError`-named error, which the arm maps to 503 `live_view_unavailable`: an
-   * honest host fact, said out loud, once, in the vocabulary the local door already uses.
-   *
-   * The minted token's own subject (run, handle) and expiry are checked by the live-view validator
-   * independently of who asked. 2026-10-01: the bearer's trust scope this mint
-   * used to run under is deleted; the composition supplies the one caller it runs under.
-   */
+  // Required, so a forgotten mint is a 503 `live_view_unavailable`, not a 404 like a missing route.
   mintLiveUrl(input: MintLiveUrlInput): Promise<RunsLiveUrlResult>
-  /**
-   * The injected agent host the two READ rows dispatch through.
-   *
-   * OPTIONAL, unlike `mintLiveUrl` above, and the asymmetry is deliberate rather than an
-   * oversight. `mintLiveUrl` is required because a composition that forgot it would answer a 404
-   * indistinguishable from an unserved path — but the argument runs the other way here: a host
-   * genuinely composed without a function registry (a bare mount, this file's own fixtures) has no
-   * capability to reach, and the honest answer is the SAME 503 `agent_host_unavailable` the local
-   * door already gives for exactly this state. One word, one meaning, both doors.
-   *
-   * It is a HANDLE and nothing else — this package may not name the agent packages, so what
-   * crosses is the seam `chat/host.ts` declares and the op ids the composition supplies as data.
-   */
+  // Optional: a host with no registry answers 503 `agent_host_unavailable`, as the local door does.
   readonly agentHost?: AgentHost
 }
 
@@ -201,18 +86,13 @@ export type RunServiceRouteHandlerName =
   | 'start'
   | 'events'
   | 'liveUrl'
-  // the two READ rows. 402 D-16 said "405's ref-resolving sha-keyed
-  // route mounts behind the same authed door", and mounting it here rather than beside it is what
-  // makes that literal: the guard above the table applies to these rows by construction, and the
-  // census that drives every row cross-site inherits them the day they land.
+  // The read rows sit inside the table, so the guard above it applies to them by construction.
   | 'detail'
   | 'evidence'
   | 'artifact'
-  // the failure view's read, on the two rows above's exact footing — the local
-  // door's `GET /api/runs/:id/analysis` mounts the SAME adapter, so 408's embed and every thin
-  // client parse one path shape whichever door they call.
+  // The failure view's read; the local door mounts the same adapter, so clients parse one path.
   | 'analysis'
-  // the two feedback reads, masked on this door like the rows above.
+  // The two feedback reads, masked on this door like the rows above.
   | 'marks'
   | 'markPreview'
   | 'ok'
@@ -229,23 +109,9 @@ export interface RunServiceRouteRow {
 export const RUN_SERVICE_START_ROUTE = '/run'
 export const RUN_SERVICE_EVENTS_TEMPLATE = '/run/:runId/events'
 const RUN_SERVICE_EVENTS_PATTERN = /^\/run\/([^/]+)\/events$/
-/**
- * The MINT (403 D-03, Q3) — the remote half of the pair whose local half is
- * `GET /api/runs/:runId/live-url`.
- *
- * SAME SHAPE AS THE EVENTS ROUTE ONE LINE UP, deliberately: a caller addresses a run it started by
- * id and asks this door for one thing about it per route. Since 432-21 the two doors differ in
- * nothing but the path — the same op, the same caller shape, the same result and fragment carriage.
- */
+// The remote half of `GET /api/runs/:runId/live-url`; the two doors differ only in path.
 export const RUN_SERVICE_LIVE_URL_TEMPLATE = '/run/:runId/live-url'
 const RUN_SERVICE_LIVE_URL_PATTERN = /^\/run\/([^/]+)\/live-url$/
-/**
- * Readiness — behind the same-site guard, like every other route on this door.
- *
- * An `/ok` that answered before the guard would tell a page on another origin that this process is
- * an agent-qa run service and that it is up. (Until 432-21 the guard here was the bearer verdict,
- * and the preflight was liveness and early token validation in one round-trip.)
- */
 /**
  * The durable run-detail READ — the remote twin of the local door's `GET /api/runs/:id/detail`.
  *
@@ -259,17 +125,7 @@ export const RUN_SERVICE_DETAIL_TEMPLATE = '/run/:runId/detail'
 const RUN_SERVICE_DETAIL_PATTERN = /^\/run\/([^/]+)\/detail$/
 export const RUN_SERVICE_EVIDENCE_TEMPLATE = '/run/:runId/evidence'
 const RUN_SERVICE_EVIDENCE_PATTERN = /^\/run\/([^/]+)\/evidence$/
-/**
- * The ref-resolving artifact READ — the remote twin of the local door's
- * `GET /api/runs/:runId/artifacts/:sha`, and the row 402 D-16 named by anticipation.
- *
- * TWO CAPTURES, `[^/]+` ON BOTH. The runId is decoded and the sha is not: a content address is 64
- * characters from `[0-9a-f]`, none of which percent-encoding can represent differently, so a sha
- * segment that needed decoding is already not one.
- *
- * MASKED, LIKE ITS SIBLING AND MORE SO: these are BYTES. The unmask seam never touches an artifact
- * body on any door — a screenshot is not text and there is nothing in it to restore.
- */
+// The sha is not decoded: a content address has no percent-encoded spelling.
 export const RUN_SERVICE_ARTIFACT_TEMPLATE = '/run/:runId/artifacts/:sha'
 const RUN_SERVICE_ARTIFACT_PATTERN = /^\/run\/([^/]+)\/artifacts\/([^/]+)$/
 /**
@@ -436,23 +292,7 @@ function respondJson(res: ServerResponse, status: number, data: unknown): void {
   res.end(body)
 }
 
-/**
- * The `handle` query parameter, exactly as it arrived, or `null` when absent.
- *
- * Read off the query substring with `URLSearchParams` rather than `new URL(...)`: this is
- * untrusted input on a path that has already matched, and a constructor that can throw does not
- * belong between a matched route and its handler.
- *
- * A REPEATED parameter is not resolved to one of its values — the values are joined, which cannot
- * parse, so `?handle=1&handle=2` is refused rather than silently answered as handle 1: a request
- * that says two different things is not a request that said the first one.
- *
- * EXPORTED FOR THE SECOND DOOR, on {@link serveRunEventStream}'s own reasoning. The local
- * loopback route reads the parameter through THIS function rather than through the host router's
- * `url.searchParams.get('handle')`, which would return `1` for `?handle=1&handle=2` — that is, the
- * one wrong answer this reader exists to refuse. The core takes the RAW parameter, so which reader
- * produced it is exactly the seam a second spelling would slip into.
- */
+// Repeated values are joined, so `?handle=1&handle=2` cannot parse; `searchParams` would answer 1.
 export function handleParamOf(req: IncomingMessage): string | null {
   const query = (req.url ?? '').split('?').slice(1).join('?')
   if (query === '') return null
@@ -462,21 +302,7 @@ export function handleParamOf(req: IncomingMessage): string | null {
   return values.join(',')
 }
 
-/**
- * The `lastEventId` query parameter, exactly as it arrived, or `null` when absent.
- *
- * SPELLED `lastEventId` AND NEVER `fromSeq`. The SSE header, the `runs.events` op input and this
- * door's query all mean the same thing — "the last envelope the caller already observed" — so they
- * carry the same word, and the `+ 1` that turns it into a subscribe point lives in exactly one
- * place per reader. A second spelling would be a second arithmetic somebody has to keep in step.
- *
- * READ OFF THE RAW QUERY, on {@link handleParamOf}'s reasoning and by the same mechanics: a
- * REPEATED parameter is joined rather than resolved to one of its values, so `?lastEventId=1&
- * lastEventId=7` cannot parse and is refused rather than silently answered as 1. A request that
- * says two different things about where to resume is not a request that said the first one — and
- * on a resume the consequence of guessing is a gap or a duplicate, which is exactly what INVK-05
- * exists to prevent.
- */
+// Read off the raw query like `handle`, so a repeated `lastEventId` is refused, not read as one.
 export function lastEventIdParamOf(req: IncomingMessage): string | null {
   const query = (req.url ?? '').split('?').slice(1).join('?')
   if (query === '') return null
@@ -486,15 +312,7 @@ export function lastEventIdParamOf(req: IncomingMessage): string | null {
   return values.join(',')
 }
 
-/**
- * Where a stream request asked to resume from. Three arms, and the count is the contract.
- *
- * `start` is "the caller has observed nothing", `after` carries the last seq it DID observe, and
- * `invalid` is a fact about the caller's own input. There is deliberately no fourth arm meaning
- * "unparseable, serve them from the beginning": silently restarting a resume at seq 1 would
- * re-deliver every envelope the caller already has, and silently serving from the floor would hide
- * a gap — the two answers D-13 refuses by name.
- */
+// No arm restarts an unparseable resume at seq 1 or the floor: that duplicates or hides envelopes.
 export type ResumePoint =
   | { readonly kind: 'start' }
   | { readonly kind: 'after'; readonly seq: number }
@@ -559,14 +377,7 @@ export function replayFloorOf(error: unknown): number | undefined {
   return floor
 }
 
-/**
- * Which REFUSED request fields a body carries.
- *
- * Checked as a KEY test rather than by parsing, so `{"runId": null}` is refused too: the offense is
- * naming the field at all, not the value put in it. `RunServiceStartRequestSchema` is `.strict()`
- * and would refuse these keys as unrecognised a line later — this check exists so the answer says
- * WHICH kind of refusal it was, and so the door's own law is legible where the door enforces it.
- */
+// A key test, so `{"runId": null}` is refused too; the answer says which kind of refusal it is.
 function refusedFieldsIn(body: Record<string, unknown>): readonly string[] {
   return RUN_SERVICE_REFUSED_REQUEST_FIELDS.filter((field) => Object.hasOwn(body, field))
 }
@@ -584,18 +395,7 @@ export interface RunEventStreamDeps {
   readonly runId: string
   /** The raw `handle` query parameter, exactly as it arrived; `null` means the firehose. */
   readonly handleParam: string | null
-  /**
-   * WHERE TO RESUME, ALREADY RESOLVED FROM THE HEADER AND THE QUERY.
-   *
-   * Resolved by the CALLER rather than read here, on `handleParam`'s own reasoning inverted: the
-   * handle arrives raw because there is exactly one parse of it and it lives in this core, while
-   * the resume point arrives resolved because it is read from TWO places — a header and a query —
-   * and only the host holds the request object both live on. {@link resumePointOf} and
-   * {@link lastEventIdParamOf} are exported so each door resolves it with the same pair.
-   *
-   * Absent is `{ kind: 'start' }`, which is what a door that has not learned about resume yet
-   * would have meant anyway.
-   */
+  // Resolved by the caller, because it is read from a header and a query; absent means `start`.
   readonly resume?: ResumePoint
   /** The started run's session, or nothing if this process never started that run. */
   attach(runId: string): RunSession | undefined
@@ -606,20 +406,7 @@ export interface RunEventStreamDeps {
   }
 }
 
-/**
- * THE RUN STREAM, AS ONE UNIT: attach, validate the handle, filter, frame, heartbeat, close.
- *
- * Exported because there is going to be a SECOND door onto the same stream — 402-08 mounts the
- * local door, which differed from this one only in what it did about credentials (and since 432-21
- * differs in nothing but the path). Two doors
- * calling one function is the only shape in which the filter has exactly one implementation; two
- * copies of the serving body would be two places `?handle=` could drift, and the drift would be
- * invisible until somebody diffed them.
- *
- * The ORDER below is the contract, not an implementation detail. Every refusal — unknown run,
- * malformed handle, unknown handle, unavailable replay — happens before `writeHead`, because a
- * response that has already written `200 text/event-stream` cannot be told it failed.
- */
+// Both doors call this one function, and every refusal precedes `writeHead`.
 export function serveRunEventStream(
   req: IncomingMessage,
   res: ServerResponse,
@@ -653,27 +440,7 @@ export function serveRunEventStream(
   const fromSeq = resume.kind === 'after' ? resume.seq + 1 : REPLAY_FROM_START
   const isDeepResume = fromSeq > REPLAY_FROM_START
 
-  // ---- The roster on a DEEP resume ------------------------------------------
-  //
-  // THE ROSTER RIDES `runStarted`, AND `runStarted` IS SEQ 1. Below, on a `subscribe(1, …)`, it is
-  // the first envelope delivered and the roster is in hand before the handle is checked. On
-  // `subscribe(N + 1, …)` with N >= 1 it is NOT delivered at all — so a door that only derived the
-  // roster from what it was served would answer `unknown_handle` for EVERY deep resume on a member
-  // stream, which is a correct handle refused because the door forgot who was in the run.
-  //
-  // The peek is a second `subscribe(1, …)` whose handler records the first envelope's roster and
-  // which unsubscribes immediately. It costs one extra replay walk on the deep-resume path only,
-  // and it is the price of not touching the bus: stopping the walk early would mean THROWING out
-  // of the handler, which the bus reads as a detached subscriber and answers with a published
-  // `runWarning` — a side effect on the run's own event log, caused by reading it.
-  //
-  // WHEN THE PEEK ITSELF HITS THE FLOOR THE ROSTER IS UNKNOWABLE, and the handle validation is
-  // SKIPPED with the filter still applied. Refusing instead would turn every deep resume on a
-  // member stream of a long run into `unknown_handle` the moment seq 1 fell out of the window —
-  // punishing the caller for the bus's retention. The filter is what carries the security claim
-  // `passesHandleFilter` still runs on every envelope, so an unknown handle sees the
-  // run-scoped events and nothing else, which is a strictly smaller set than the firehose it could
-  // have asked for with no handle at all.
+  // A deep resume peeks seq 1 `runStarted` for the roster; at the floor, only the filter runs.
   let rosterKnown = true
   let peekedRoster: readonly number[] | undefined
   if (parsedHandle.kind === 'handle' && isDeepResume) {
@@ -711,10 +478,7 @@ export function serveRunEventStream(
     else pending.push(frame)
   }
   const frameOf = (event: RunEventEnvelope): string =>
-    // D-13, all three parts: the id IS the seq, the event name IS the envelope type, and the
-    // data IS the envelope's own JSON. No projection, no rename, no second vocabulary. The filter
-    // DROPS envelopes; it never edits one, so a filtered stream's frames are byte-identical to the
-    // firehose's — with gaps in the ids, which is what seq-as-id means once a filter exists.
+    // The filter drops envelopes and never edits one, so filtered frames match the firehose bytes.
     `id: ${String(event.seq)}\nevent: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`
 
   let roster: readonly number[] | undefined
@@ -745,17 +509,11 @@ export function serveRunEventStream(
       // types belong to a member.
       if (parsedHandle.kind === 'handle' && !passesHandleFilter(event, parsedHandle.index)) return
       write(frameOf(event))
-      // THE STREAM ENDS AT `runFinished`. The run's event log is complete at that point and the
-      // bus closes behind it, so holding the socket open would deliver nothing but heartbeats.
-      // What a reconnect after this means is 403's attach contract to decide. `runFinished` is
-      // run-scoped, so it reaches every handle and this arm is filter-independent.
+      // The stream ends at `runFinished`, which is run-scoped, so it reaches every handle.
       if (event.type === 'runFinished') teardown()
     })
   } catch (error) {
-    // THE FLOOR IS A NAMED REFUSAL, NOT A CRASH. The bus refuses to serve
-    // a prefix it cannot produce; this door refuses to hide that, and answers WHERE the replay
-    // could have started so the caller can re-attach rather than retry the same request forever.
-    // A gap the viewer is not told about is the one thing D-13 forbids by name.
+    // The floor is a named refusal saying where replay could start, so the caller re-attaches.
     const floor = replayFloorOf(error)
     if (floor !== undefined) {
       refuseWithFloor(res, floor)
@@ -794,22 +552,7 @@ export function serveRunEventStream(
     return
   }
 
-  // A RESUME THAT LANDS PAST THE END CLOSES RATHER THAN HANGING.
-  //
-  // The arm above closes a stream that was SERVED `runFinished`. A resume whose point is at or past
-  // the final seq is served nothing at all, so that arm never fires — and without this one the
-  // socket would stay open on a finished run, heartbeating forever at a viewer whose run is over.
-  //
-  // `done` IS THE HONEST SIGNAL AND `status` IS NOT. The shell sets `status` to the aggregate
-  // verdict at the `verdict` event, which is published BEFORE `runFinished` and before an awaited
-  // handoff write — so a door that closed on a terminal `status` would truncate a stream in the
-  // window between them, which is the silent gap this whole plan exists to refuse. `done` resolves
-  // after `runFinished` is published and after `bus.close()`: it means nothing more will ever
-  // arrive, which is exactly the fact this arm needs. A REJECTED `done` says the same thing about
-  // a run that ended badly, so both settlements tear down.
-  //
-  // Harmless on a live stream: a run still running has an unsettled `done`, and a subscriber that
-  // was served `runFinished` has already torn down (the teardown is idempotent).
+  // A resume past the final seq is served nothing, so `done`, not `status`, closes it.
   void Promise.resolve(session.done).then(teardown, teardown)
 
   heartbeat = setInterval(() => { res.write(':\n\n') }, HEARTBEAT_MS)
@@ -889,21 +632,7 @@ export function createRunServiceRoutes(ports: RunServicePorts): RunServiceRouter
     })
   }
 
-  /**
-   * The MINT arm (403 D-03, Q3) — the remote twin of `routes.ts`'s `/api/runs/:runId/live-url`.
-   *
-   * IT DISPATCHES THROUGH THE PORT AND FORMATS NOTHING. The body is the port's result verbatim: a
-   * second shaping here would be a second contract for what a `liveUrl` is, free to disagree with
-   * the one the function layer published — and the two doors' parity corpus would then be
-   * comparing two shapings rather than one result.
-   *
-   * THE REFUSALS ARE MAPPED BY ERROR NAME, never by matching a message. A message is prose and
-   * prose gets rewritten; the same reading `routes.ts` does, so both doors answer the same word for
-   * the same situation.
-   *
-   * THE RESULT IS NEVER LOGGED, HERE OR ANYWHERE ON THIS PATH. The token rides
-   * the URL fragment and this arm's only job is to put it on the wire the caller asked for.
-   */
+  // The body is the port's result verbatim, refusals map by error name, and it is never logged.
   function handleLiveUrl(
     runIdParam: string,
     req: IncomingMessage,

@@ -1,20 +1,4 @@
-// `GET /api/runs/:id/post-processing` — chip truth and posture, read through the injected host
-//
-// WHY EVERY CELL DRIVES `startServer` AND NOT THE ROUTE FUNCTION. The claim this route makes is
-// not "a function returns a body" — it is "the browser can reach chip truth, and only ever as the
-// op's own bytes". Two of the three things that could break that live above the route: the arm's
-// POSITION in `routes.ts` (the `/api/runs/:id` catch-all below it answers `Not found` for anything
-// that is not exactly four segments — the live-url arm's header records that measurement) and the
-// conditional spread in `server.ts` that threads the host at all. A suite that called
-// `servePostProcessingRead` directly would be green with the arm registered after the catch-all,
-// which is the "green that never ran" failure WINDOWS names.
-//
-// THE PLANTED HOST RECORDS ITS CALLS, and that recording is the D-17 claim in its structural form:
-// this package holds no store, opens no `agent-jobs.db` and derives no chip. Every fact on the wire
-// must have arrived through `invokeFunction(registry, <an id the composition supplied>, input,
-// caller)`. The ids the fixture plants are DELIBERATELY NOT the real op ids — a route that spelled
-// the real op id itself would answer the fixture's calls for an id nobody supplied, and
-// this file would still be green. It is not, because the fixture would never be asked.
+// The planted ids differ from the real op ids, so a route spelling a real id goes unanswered.
 
 import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
@@ -78,16 +62,11 @@ function plantHost(options: PlantOptions): PlantedHost {
     caller: CALLER,
     runsPostProcessingFunctionId: PP_ID,
     runsEventsFunctionId: EVENTS_ID,
-    // the seam carries a fourth op id. This fixture dispatches only the two above, so
-    // this one is NAMED and never reached — the SHAPE is what has to be complete.
+    // Named so the host shape is complete; this fixture never dispatches it.
     runsDetailFunctionId: 'test:planted-run-detail-op',
     runsEvidenceFunctionId: 'test:planted-run-evidence-op',
-    // a fifth. Same posture — named so the SHAPE is complete, never reached from here.
     runsArtifactFunctionId: 'test:planted-run-artifact-op',
-    // a sixth. Same posture — named so the SHAPE is complete, never reached from here.
     analysisGetFunctionId: 'test:planted-analysis-get-op',
-    // the sixth dispatched id, widened here so every AgentHost literal in the
-    // workspace still satisfies the interface.
     runsKnowledgeFunctionId: 'test:planted-run-knowledge-op',
     runsMarkFunctionId: 'test:planted-run-mark-op',
     runsMarksHistoryFunctionId: 'test:planted-run-marks-history-op',
@@ -204,7 +183,7 @@ describe('the read route joins the op result with the run record', () => {
       failures: { analysis: { error: 'the last word', willRetry: false } },
     })
 
-    // every fact above arrived through the injected door, under the host's own caller.
+    // Every fact above arrived through the injected door, under the host's own caller.
     expect(calls.map((call) => call.functionId), 'both ops, by the SUPPLIED ids').toEqual([PP_ID, EVENTS_ID])
     expect(calls[0]?.input, 'the post-processing input is the strict one-field shape').toEqual({ runId: RUN_ID })
     expect(calls[1]?.input, 'the events input names the run and nothing else').toEqual({ runId: RUN_ID })
@@ -215,10 +194,7 @@ describe('the read route joins the op result with the run record', () => {
   })
 
   it('carries NO `failures` entry for a failed stage the record never wrote an envelope for', async () => {
-    // The daemon drained this chain, or a later process did: nothing appended a chip line to this
-    // run's log. The chip says `failed` because the DURABLE ROW says so, and the route composes no
-    // prose to go with it — 404-03 decided the row carries no failure text, and inventing one here
-    // would be this file answering a question the record declined to.
+    // The chip says `failed` because the durable row does, and the route composes no prose for it.
     const status = chips('failed', 'failed')
     const { port } = await serveWith({
       status,
@@ -328,9 +304,7 @@ describe('every refusal is NAMED — never an all-pending body', () => {
   })
 
   it('500 post_processing_unavailable carrying the error NAME and no message', async () => {
-    // The name is a classification a client can branch on; the message is prose from anywhere
-    // inside the store and is not this route's to forward (T-404-01's discipline, applied to a
-    // refusal rather than to a chip).
+    // The name is a classification a client can branch on; the store's message is never forwarded.
     const { port } = await serveWith({
       status: () => {
         throw Object.assign(new Error('/Users/somebody/.agent-qa/agent-jobs.db is locked'), {

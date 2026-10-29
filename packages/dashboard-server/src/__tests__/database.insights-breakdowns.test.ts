@@ -40,10 +40,7 @@ function insertRun(overrides: Record<string, unknown> = {}) {
   })
 }
 
-// a healed run is one with a projected step the runner reported a
-// self-heal on. The v1 wide step table this used to write — and the `'healed'` status word it
-// wrote there — had no producer left and went with the census; `selfHealOccurred` is the bus
-// payload's own boolean and is what the flake rate reads now.
+// A healed run has a projected step the runner reported a self-heal on (`selfHealOccurred`).
 function insertHealedStep(runId: string) {
   db.insertRunStep({
     runId,

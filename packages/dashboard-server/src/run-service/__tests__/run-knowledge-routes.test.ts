@@ -1,26 +1,4 @@
-// `GET /api/runs/:id/knowledge` — the Knowledge panel's door.
-//
-// WHY A REAL REGISTRY AND NOT A PLANTED HOST for the first four cells. `runs.knowledge` is where
-// the `evidence-incomplete` arm is decided, where the input schema refuses an id and where the
-// unbound-op refusal is minted; a fixture that answered this route's `invokeFunction` itself would
-// be a second implementation of all three, green about a path this product does not ship.
-// `@vostride/agent-qa-agent` is a DEV dependency of this package for exactly that reason —
-// `validate:arch` walks `src` with `__tests__` excluded and reconciles only runtime
-// `dependencies`, so the production edge it forbids stays forbidden.
-//
-// THE ADAPTER FUNCTION AND THE SOCKET, EACH FOR WHAT ONLY IT CAN SEE. The read's own vocabulary —
-// the refusal statuses, the stored body, the cross-site guard — is measured through a recording
-// response, which keeps each claim about one thing. Two facts live ABOVE that function and are
-// driven over a real socket at the bottom of this file: the arm's POSITION in `routes.ts` (the
-// `/api/runs/:id` catch-all below it claims every four-segment GET and answers `Not found`, which
-// is RESEARCH Pitfall 2) and the conditional host spread in `server.ts`. A suite that only called
-// the adapter would stay green with the arm registered in the wrong place.
-//
-// THE CENTRAL CLAIM, AND IT IS THE ONE A CARELESS COPY OF `run-detail-routes.ts` WOULD BREAK: an
-// unknown run answers 200 `evidence-incomplete`, NOT 404 `unknown_run`. `runs.detail` throws
-// `RunNotFoundError` for a run it cannot load; `runs.knowledge` returns, because a page
-// whose evidence has been garbage-collected has a legible state to render and a refusal would make
-// that state indistinguishable from a broken read.
+// An unknown run answers 200 `evidence-incomplete`, not 404, unlike `runs.detail`.
 
 import type { Server, ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
@@ -66,7 +44,7 @@ afterEach(async () => {
 const RUN_ID = 'r_knowledge-alpha-bravo-charlie-delta-echo-foxtrot-golf-hotel'
 const SCOPE: ScopeKey = { tier: 'product', key: 'shop' }
 
-// the tokenless caller shape — no scope set or safe-mode flag.
+// The tokenless caller shape: no scope set or safe-mode flag.
 const REGISTRY_CALLER: FunctionCaller = {
   surface: 'dashboard',
   origin: 'human',
@@ -258,16 +236,7 @@ describe('GET /api/runs/:id/knowledge — the read', () => {
   })
 
   it('classifies a dispatch to a name no spec answers to as 500 read_failed, BY NAME', async () => {
-    // THE 503 `agent_host_unavailable` LEG DOES NOT EXIST FOR THIS OP THROUGH A DEP GAP, and that
-    // absence is the design rather than a hole in this suite. `runs.detail` and `analysis.get`
-    // reach that leg because they declare an optional binding dep and refuse `FunctionNotBoundError`
-    // where it is missing; `runs.knowledge` declares none — its substrate is the REQUIRED runs port
-    // — so there is no composition that lists it and then cannot run it. What remains
-    // reachable is a composition that passed the WRONG id, and the honest answer to that is an
-    // unclassified throw travelling as a NAME rather than as a message that might quote a path.
-    //
-    // The 503 this door really can answer is the ROUTER's, when no agent host is composed at all —
-    // driven over a real socket in the arm cells below.
+    // `runs.knowledge` declares no optional binding, so a wrong id is an unnamed throw, not a 503.
     const outcome = await readRunKnowledge(
       hostOver(composeRegistry(recordedRun()), { knowledgeFunctionId: 'runs.notregistered' }),
       RUN_ID,
@@ -314,13 +283,7 @@ describe('serveRunKnowledgeRead', () => {
   })
 })
 
-// ---- The ARM, over a real socket ---------------------------------------------------------------
-//
-// WHY A SOCKET FOR THESE TWO. Both things they measure live ABOVE the adapter function: the arm's
-// POSITION in `routes.ts` — the `/api/runs/:id` catch-all below it claims every four-segment GET
-// and answers `Not found`, which is RESEARCH Pitfall 2 — and the conditional spread in `server.ts`
-// that threads the host at all. A suite that only called `serveRunKnowledgeRead` would stay green
-// with the arm registered in the wrong place, which is the "green that never ran" failure mode.
+// Over a real socket, because the arm's place in `routes.ts` and the host wiring sit above it.
 
 describe('the /knowledge arm in routes.ts', () => {
   it('is reached at all — it sits ABOVE the /api/runs/:id catch-all', async () => {

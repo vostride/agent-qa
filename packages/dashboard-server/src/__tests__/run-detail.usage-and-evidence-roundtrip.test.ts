@@ -20,7 +20,7 @@ import {
 import type { StepModelScope } from '@vostride/agent-qa-runner'
 import { FsEvidenceArtifactStore } from '@vostride/agent-qa-runner-local'
 
-// Frozen pre-423 v2 DDL, copied before the v3 change. Never derived from current MIGRATIONS.
+// Frozen v2 DDL, copied before the v3 change. Never derived from current MIGRATIONS.
 const V2_SQL: string[] = [
   "CREATE TABLE IF NOT EXISTS runs (\n        id TEXT PRIMARY KEY,\n        name TEXT NOT NULL,\n        file_path TEXT,\n        status TEXT NOT NULL CHECK(status IN ('passed','failed','skipped','running','cancelled','pending','flaky')),\n        priority INTEGER NOT NULL DEFAULT 0,\n        duration INTEGER NOT NULL DEFAULT 0,\n        attributes TEXT NOT NULL DEFAULT '{}',\n        environment TEXT,\n        metadata TEXT,\n        started_at TEXT,\n        ended_at TEXT,\n        created_at TEXT DEFAULT CURRENT_TIMESTAMP,\n        failure_summary TEXT,\n        platform TEXT DEFAULT 'web',\n        test_file_content TEXT,\n        model_name TEXT,\n        llm_provider TEXT,\n        parallel INTEGER DEFAULT 0,\n        error_log TEXT,\n        memory_log TEXT,\n        test_id TEXT,\n        suite_id TEXT\n      )",
   "CREATE TABLE IF NOT EXISTS execution_logs (\n        id TEXT PRIMARY KEY,\n        run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,\n        step_id TEXT,\n        type TEXT NOT NULL CHECK(type IN ('hook', 'appium-script', 'runjs')),\n        name TEXT NOT NULL,\n        phase TEXT NOT NULL CHECK(phase IN ('setup', 'teardown', 'inline')),\n        status TEXT NOT NULL CHECK(status IN ('passed', 'failed')),\n        duration INTEGER NOT NULL DEFAULT 0,\n        stdout TEXT,\n        stderr TEXT,\n        return_data TEXT,\n        variables TEXT,\n        created_at TEXT DEFAULT CURRENT_TIMESTAMP,\n        hook_id TEXT,\n        test_index INTEGER,\n        step_index INTEGER\n      )",
@@ -109,8 +109,7 @@ async function usageRun(options: { retry?: boolean; omitCache?: boolean; unscope
         : { role: 'assistant', content: JSON.stringify(extracting
             ? { value: 'captured', reasoning: 'Read from screen' }
             : judging ? { verdict: true, rationale: 'Visible' }
-            // A passing assertAI is confirmed by the step verifier, so only the
-            // first verifier call, after the click, rejects.
+            // Only the first verifier call rejects; the step verifier confirms a passing assertAI.
             : verifierCalls === 1 ? { conditions: [{ quote: 'Click and verify Log in', verdict: 'not-met',
                 needs: 'none', controlRef: '', file: { name: '', match: 'none', text: '' }, citations: [],
                 reasoning: 'Confirm with an assertion' }], dialogs: [], isAppError: false,
@@ -377,7 +376,7 @@ function seedRefused(db: DashboardSqliteDatabase, stamp = 6): void {
     PRAGMA foreign_keys = ON;
   `)
 }
-// no older file is upgraded, so historical rows are seeded into the current version.
+// No older file is upgraded, so historical rows are seeded into the current version.
 function seedHistoricalRowsIntoCurrent(dbPath: string, extraSql = ''): void {
   new DashboardDatabase({ dbPath }).close()
   const raw = createDashboardSqliteDatabase(dbPath)
@@ -416,8 +415,6 @@ async function detail(db: DashboardDatabase, runId: string) {
       runs: { get: forbidden }, config: { getMasked: forbidden },
     } as unknown as FunctionDeps,
   })
-  // no `resolveExecutionContext` registry option and no `grantedScopes`
-  // or `safeMode` on the caller; the registry reads none of them.
   return RunDetailProjectionSchema.parse(await invokeFunction(
     registry, RUNS_DETAIL_FUNCTION_ID, { runId: asRunId(runId) },
     { surface: 'dashboard', origin: 'human' },

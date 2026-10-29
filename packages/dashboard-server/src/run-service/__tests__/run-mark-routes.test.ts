@@ -38,8 +38,6 @@ function fixture() {
     config: { getMasked: async () => ({ schemaVersion: MASKED_RESOLVED_CONFIG_SCHEMA_VERSION, configPath: 'agent-qa.config.yaml', entries: [] }) },
     feedback: { mark, marksFor: async () => [] },
   }
-  // no confirm port — `invokeFunction` asks nobody. 432-14: no frame is entered
-  // around the call either. 2026-10-02: and the registry is handed no context.
   const registry = createFunctionRegistry({ deps })
   const host: AgentHost = {
     runsPostProcessingFunctionId: 'test:post',
@@ -63,11 +61,6 @@ async function socket(host?: AgentHost) {
 }
 
 describe('markRun delegates to the shared gate and feedback port', () => {
-  // RE-SPELLED 2026-10-01 from 'classifies cross-realm denials and unexpected errors
-  // without echoing their note-bearing messages'. The execution gate's denial error is deleted and
-  // nothing raises it, so the `mark_denied` arm that classified it is gone: a legacy error carrying
-  // that name (assembled here, never spelled — C432-430-HANDOFF) takes the ordinary refusal path like
-  // any other error, and still echoes no note, no remedy and no denial wording.
   it('classifies a legacy denial-shaped error and unexpected errors without echoing their note-bearing messages', async () => {
     const f = fixture()
     const legacyName = ['Function', 'Denied', 'Error'].join('')
@@ -80,8 +73,6 @@ describe('markRun delegates to the shared gate and feedback port', () => {
     expect(JSON.stringify(denied)).not.toContain(NOTE)
     expect(JSON.stringify(denied)).not.toContain('remedies')
     expect(JSON.stringify(denied)).not.toContain('mark_denied')
-    // RE-SPELLED 2026-10-02: the gate-era refusal body is deleted, not just unproduced
-    // nothing on this route can answer it.
     expect(Object.keys(schema)).not.toContain('MarkRefusalSchema')
     invokeFunction.mockImplementation(async () => { throw new Error(NOTE) })
     expect(await markRun({ ...f.host, invokeFunction }, RUN_ID, { kind: 'false-fail', note: NOTE })).toEqual({
@@ -89,9 +80,6 @@ describe('markRun delegates to the shared gate and feedback port', () => {
     })
   })
 
-  // RE-SPELLED 2026-09-30 from 'enters the named frame, asks, and forwards all
-  // input fields': the frame is entered and every field forwarded; nothing asks. 432-14: there is no
-  // frame to enter; every field is forwarded in the one call.
   it('forwards all input fields in one call, asking nobody', async () => {
     const f = fixture()
     const body = { kind: 'false-fail', note: NOTE, stepIndex: 2, testId: 'member' }
@@ -99,9 +87,6 @@ describe('markRun delegates to the shared gate and feedback port', () => {
     expect(f.mark).toHaveBeenCalledExactlyOnceWith({ ...body, runId: RUN_ID })
   })
 
-  // RE-SPELLED 2026-09-30 from 'denies without a frame or with an unwatched scope; the
-  // dashboard receives no remedy'. No gate decides the mark, so it lands either way. 432-14: the
-  // frame and scope are gone; two marks are two dispatches.
   it('lands the mark without a frame or with an unwatched scope', async () => {
     const f = fixture()
     for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -144,9 +129,6 @@ describe('registered POST /api/runs/:id/mark', () => {
     expect(f.mark).toHaveBeenCalledOnce()
   })
 
-  // RE-SPELLED 2026-10-01 from 'rejects invalid confirmScope'. The scope field is
-  // deleted, so every value of it — the minted shape included — is a field the op does not declare,
-  // refused by the op's strict input before dispatch, with no reflection of the value.
   it.each(['run-trigger:5f8c6e2a-1b1d-4c3e-9a3f-7d2e1c0b9a88', 'chat:abc', null, 7])('rejects invalid confirmScope %j', async confirmScope => {
     const f = fixture()
     const response = await fetch(await socket(f.host), {
@@ -166,8 +148,6 @@ describe('registered POST /api/runs/:id/mark', () => {
     expect(f.mark).not.toHaveBeenCalled()
   })
 
-  // RE-SPELLED 2026-09-30 from 'returns the typed channel-less denial and rejects
-  // malformed JSON without reflection'. A channel-less mark lands in the one request now.
   it('lands a channel-less mark, and rejects malformed JSON without reflection', async () => {
     const f = fixture()
     const url = await socket(f.host)

@@ -54,16 +54,12 @@ import {
   resumePointOf,
   serveRunEventStream,
 } from '../run-service/run-service-routes.js'
-// the post-processing pair — the read a page polls and the dedicated live
-// channel. Two arms below, both above the `/api/runs/:id` catch-all, both formatting nothing.
+// The post-processing read and its live channel; both arms sit above the `/api/runs/:id` catch-all.
 import {
   servePostProcessingRead,
   servePostProcessingStream,
 } from '../run-service/post-processing-routes.js'
-// the ref-resolving artifact read, on the arm below's own footing — the bytes
-// cross the function layer and this file constructs no evidence store.
-// the durable run-detail read. One arm below, above the `/api/runs/:id` catch-all,
-// formatting nothing and opening no database.
+// Refs and run detail: both arms sit above the `/api/runs/:id` catch-all and open no store.
 import {
   serveRunArtifact,
   serveRunDetailRead,
@@ -71,12 +67,9 @@ import {
   serveRunMarkPreviewRead,
   serveRunMarksHistoryRead,
 } from '../run-service/run-detail-routes.js'
-// the failure view's read. One arm below, beside the detail arm and above the
-// `/api/runs/:id` catch-all, formatting nothing and opening no database.
+// The failure view's read; its arm sits above the `/api/runs/:id` catch-all.
 import { serveRunAnalysisRead } from '../run-service/run-analysis-routes.js'
-// the Knowledge panel's read — what a run used and learned. One arm below, beside
-// the analysis arm and above the `/api/runs/:id` catch-all, formatting nothing and opening no
-// database.
+// The Knowledge panel's read; its arm sits above the `/api/runs/:id` catch-all.
 import { readRunKnowledge, serveRunKnowledgeRead } from '../run-service/run-knowledge-routes.js'
 import { registerRunMarkRoute } from '../run-service/run-mark-routes.js'
 import {
@@ -110,12 +103,6 @@ const REMOTE_LLM_CONNECTION_TEST_TIMEOUT_MS = 10_000
 const LOCAL_COMPATIBLE_LLM_CONNECTION_TEST_TIMEOUT_MS = 120_000
 const LOCAL_COMPATIBLE_LLM_PROVIDERS = new Set(['openai-compatible', 'anthropic-compatible'])
 const PLUGIN_OAUTH_SESSION_TTL_MS = 10 * 60 * 1000
-// the three v33 dashboard product events, the
-// `POST /api/analytics/events` ingest route that took them and the core-analytics bridge it
-// captured through are all GONE. `routes.analytics-events.test.ts` holds the drop: the path 404s
-// and this file is pinned against the capture vocabulary returning. The dashboard's own run-history
-// reporting under `/api/analytics/tests|suites|breakdowns` is unrelated and stays. M5's dashboard
-// rebuild decides what it wants to emit, against the new `AnalyticsPort`.
 
 type DashboardExecutionTimeoutSource =
   | 'test.use.timeout.test'
@@ -148,8 +135,7 @@ type CredentialNameCheck =
   | { ok: true; name: string }
   | { ok: false; status: number; error: string; message?: string }
 
-// auth.json is machine-wide and keyed by name, so every name passes core's
-// name rule before the store is read or written.
+// `auth.json` is machine-wide and keyed by name, so every name passes core's name rule first.
 function checkCredentialName(configName: unknown): CredentialNameCheck {
   const name = typeof configName === 'string' ? configName.trim() : ''
   if (!name) return { ok: false, status: 400, error: 'configName is required' }
@@ -183,8 +169,7 @@ function trimmedString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
 }
 
-// a saved model's header values are read from the file on the server, and only for the
-// endpoint the saved model names; a read failure means no saved headers.
+// Saved header values are read on the server, only for the saved model's endpoint.
 async function savedHeadersFor(
   configManager: ConfigManager | undefined,
   configName: string,
@@ -234,7 +219,7 @@ function withoutSavedValues(text: string, savedValues: readonly string[]): strin
     .reduce((redacted, value) => redacted.split(value).join(TEST_REDACTED), text)
 }
 
-// 441 GAP-D5: undefined when no declared mask is bound or it throws, so a caller leaves the text out.
+// Undefined when no declared mask is bound or it throws, so a caller leaves the text out.
 function withDeclaredMask<T>(mask: MaskFn | undefined, build: (mask: MaskFn) => T): T | undefined {
   if (mask === undefined) return undefined
   try {
@@ -244,8 +229,7 @@ function withDeclaredMask<T>(mask: MaskFn | undefined, build: (mask: MaskFn) => 
   }
 }
 
-// 441 GAP2-D5 (WR-G03): the target list answers masked names, so a save whose target holds one
-// would write the marker into the file. A suite that does not parse is left to validation.
+// The target list answers masked names, so a save whose target holds one writes the marker.
 function suiteFileTarget(content: string): unknown {
   try {
     const parsed: unknown = parseYaml(content)
@@ -346,8 +330,7 @@ async function credentialConflictAt(name: string, provider: string): Promise<boo
 
 export type CredentialLock = <T>(work: () => Promise<T>) => Promise<T>
 
-// one queue per router for every auth.json write and removal, so a save, a move, a delete
-// and a sign-in completion never interleave their read-modify-write of the machine-wide store.
+// One queue per router, so writes to the machine-wide `auth.json` never interleave.
 export function createCredentialLock(): CredentialLock {
   let tail: Promise<unknown> = Promise.resolve()
   return <T>(work: () => Promise<T>): Promise<T> => {
@@ -643,20 +626,7 @@ async function isPostProcessingSkipped(host: AgentHost, runId: string): Promise<
   }
 }
 
-/**
- * Tally the window's knowledge changes by kind, one `runs.knowledge` read per settled run
- *
- * A run is read only when its curation finished (`complete`), or when its curation reads `pending`
- * because the run's post-processing was skipped by design, so there was nothing to curate.
- * Only read runs' changes are counted. Every other run is counted apart and never as a run that
- * changed nothing:
- * - unreadable: the read was refused or threw, the handoff is gone (`evidence-incomplete`), or the
- *   store scan behind its changes was incomplete;
- * - curation failed: `failed`;
- * - curation unfinished: `running`, or `pending` with no skipped fact (or an unreadable one).
- * Runs still queued or running are not read at all; they are counted as in flight. The latest
- * {@link INSIGHTS_KNOWLEDGE_RUN_CAP} settled runs are read; a larger window says so.
- */
+// Only runs whose curation finished or is skipped are read; the rest are counted apart.
 async function readInsightsKnowledgeChanges(
   host: AgentHost,
   db: DashboardDatabase,
@@ -757,11 +727,6 @@ function buildAuthStateSaveErrorMessage(
     message: `Could not save auth state "${stateName}" for target "${targetName}".`,
   }
 }
-
-// a containment predicate and a plain-filename predicate stood here.
-// Both existed for the deleted path-serving routes and the deleted run-deletion sweep, which were
-// their only callers. The containment rule for artifact bytes is the evidence store's own now,
-// reached through the `runs.artifact` op — one rule, in the place that owns the layout.
 
 function createHookRegistryManager(configManager?: ConfigManager, configPath?: string): HookRegistryManager | null {
   if (!configManager || !configPath) {
@@ -871,8 +836,7 @@ function calculateFlakyMetrics(classes: ReadonlyArray<RunStatusClass | 'skipped'
   }
 }
 
-// a list row's rate is its viewer's own fold; passed and decided are
-// that fold's pass and pass-or-fail counts.
+// A list row's rate is its viewer's own fold of pass and pass-or-fail counts.
 function passRateOf(trends: {
   passRate: number | null
   daily: ReadonlyArray<{ passed: number; failed: number }>
@@ -1174,8 +1138,7 @@ function enrichRunRow(
   }
 }
 
-// a suite row's target and platform come from its own history, newest
-// first: the newest run with a target names both, else its last run does.
+// A suite row's target and platform come from its newest run with a target, else its last run.
 function suiteTargetOf(
   runs: readonly RunRow[],
   targetPlatforms: Map<string, SupportedPlatform>,
@@ -1249,9 +1212,7 @@ function sanitizeSecretsFileMetadata(value: unknown): unknown {
 function sanitizeArtifactPayloadForResponse(payload: RunArtifactRow['payload']): RunArtifactRow['payload'] {
   const sanitized = sanitizeSecretTemplates(payload)
   if (!isRecord(sanitized)) return payload
-  // the SEVENTH door. `JobQueue.enqueue` writes the caller's `metadata` object into
-  // `run_artifacts.payload.metadata` as well as `runs.metadata`, and this response is what serves
-  // it. The strip is the SAME allowlist the run rows go through — see `sanitizeRunMetadataForResponse`.
+  // `JobQueue.enqueue` also copies metadata into the artifact payload, so it gets the allowlist.
   const withSafeMetadata = sanitizeArtifactPayloadMetadata(sanitized)
   const config = withSafeMetadata.config
   if (!isRecord(config) || !('secretsFile' in config)) return withSafeMetadata as unknown as RunArtifactRow['payload']
@@ -1341,39 +1302,10 @@ async function normalizeDashboardSuitePath(
   return suiteFileManager.resolvePath(filePath)
 }
 
-/**
- * The `metadata` keys a CLIENT may write through `POST /api/queue/enqueue`.
- *
- * IT IS EMPTY, AND THE EMPTINESS IS THE DERIVATION'S ANSWER, not a placeholder. Every key that ever
- * appears in a run's `metadata` is written by this server: `args`/`isSuite` by the enqueue routes,
- * `timeout`/`timeoutSource`/`timeoutBaseMs`/`timeoutBufferMs` by `toExecutionTimeoutMetadata`,
- * `confirmScope` by `/api/runs/trigger` until 432-14 deleted the run-confirm pair (a row written
- * before then may still carry it), and `suiteIndex` by the CLI runner. A caller's OWN labels have their own
- * first-class door on this route — `attributes`, validated by `buildRunRequestAttributes` and
- * persisted in its own column. There is nothing left for a client to legitimately put here.
- *
- * WHAT IT REPLACED, AND WHY THE SHAPE MATTERS. It was a three-key DENYLIST (`args`/`target`/
- * `isSuite`), which is why `POST /api/queue/enqueue { metadata: { confirmScope } }` planted an
- * arbitrary confirm scope on a persisted run row with none of the validation `/api/runs/trigger`
- * applies. Paired with the artifact-payload leak this plan also closes, that bought an attacker the
- * whole escalation: read one browser's scope off `/artifact`, plant it on a run of your choosing,
- * and the confirm for that run is raised in the victim's own dialog. A read-side strip with an open
- * write door is half a fix, and this project has measured one-sided hardening minting regressions
- * three times (388/390/392).
- *
- * IF THIS SET EVER GAINS A KEY, `routes.runs.test.ts` holds the invariant it must satisfy: a
- * client-writable key must also be response-safe (or it is write-only dead weight nobody can read
- * back) and must not be one the server itself writes (or the client can overwrite the server).
- */
+// Empty: the server writes every metadata key, and a caller's own labels go through `attributes`.
 export const CLIENT_WRITABLE_QUEUED_RUN_METADATA_KEYS: ReadonlySet<string> = new Set<string>([])
 
-/**
- * The `metadata` keys this SERVER writes onto a run row — never a client.
- *
- * `confirmScope` stays on the list after 432-14: nothing writes it now, but a row this
- * server wrote before then can still hold it, and it is still the server's key rather than one a
- * client may claim.
- */
+// Server-written keys; `confirmScope` stays because an older row can still hold it.
 export const SERVER_OWNED_RUN_METADATA_KEYS: ReadonlySet<string> = new Set<string>([
   'args',
   'confirmScope',
@@ -1422,46 +1354,14 @@ function sanitizeQueuedRunMetadata(metadata: unknown): QueuedRunMetadataResult {
  */
 export const MAX_QUEUED_EXECUTION_TIMEOUT_MS = 24 * 60 * 60 * 1000
 
-/**
- * Validate a persisted row's `metadata.timeout` at the seam that consumes it.
- *
- * FALLS BACK, NEVER CLAMPS. An unusable value means "this row says nothing about the timeout", and
- * the honest answer to that is the backend's own default — not a number this function invented.
- */
+// An unusable value falls back to the backend's default, never a clamped number.
 export function sanitizeQueuedExecutionTimeout(value: unknown): number | undefined {
   if (typeof value !== 'number' || !Number.isFinite(value)) return undefined
   if (value <= 0 || value > MAX_QUEUED_EXECUTION_TIMEOUT_MS) return undefined
   return value
 }
 
-// ---- CR-02: the confirm scope stops leaving on the READ path ---------------------------
-
-/**
- * The `runs.metadata` keys a RESPONSE may carry.
- *
- * AN ALLOWLIST, NOT A KEYED REMOVAL, and the choice is the whole point of the repair. `confirmScope`
- * is the field that was measured leaving, but a `delete metadata.confirmScope` is one future
- * `metadata.<anything> = <a capability>` away from the identical defect — and this phase has spent
- * four rounds on precisely that class of half-fix. An allowlist fails CLOSED: a field nobody has
- * invented yet does not leave, and adding it here is a deliberate act with this comment attached.
- *
- * WHAT IS ON IT, and why each one:
- *   - `args`, `isSuite`, `target` — what the queue was asked to run. Already published on every
- *     run-reading response since v1; the write path's `sanitizeQueuedRunMetadata` refuses them from
- *     a CLIENT, which is a different question from whether a reader may see the server's own.
- *   - `timeout`, `timeoutSource`, `timeoutBaseMs`, `timeoutBufferMs` — the resolved execution
- *     budget and where it came from, written by `toExecutionTimeoutMetadata`.
- *   - `suiteIndex` — which member of a suite this run's queued row belongs to. (2026-08-27,
- *     this line used to name the run-detail timeline module that read it, which 405-03
- *     deleted; that plan's scope boundary kept it out of server code, so the dangling reference
- *     was carried here as a deferred item and is scrubbed with the rest of the retired feed.)
- *
- * WHAT IS DELIBERATELY OFF IT: `confirmScope`, the leak this closes — and everything a caller
- * stuffed into `POST /api/queue/enqueue`'s free-form `metadata`, which used to round-trip verbatim
- * to any cross-origin reader. A queue API that accepts arbitrary keys and a run API that hands them
- * back is a self-service exfiltration channel; that it never carried anything sensitive in practice
- * is not a property anything checks.
- */
+// An allowlist fails closed, so a key nobody has invented yet never leaves in a response.
 export const RESPONSE_SAFE_RUN_METADATA_KEYS: ReadonlySet<string> = new Set([
   'args',
   'isSuite',
@@ -1473,13 +1373,7 @@ export const RESPONSE_SAFE_RUN_METADATA_KEYS: ReadonlySet<string> = new Set([
   'suiteIndex',
 ])
 
-/**
- * `sanitizeQueuedRunMetadata`'s READ-PATH counterpart.
- *
- * Built in its shape and pointed the other way: that one refuses fields a CLIENT may WRITE, this
- * one refuses fields a RESPONSE may CARRY. `null` and absence round-trip unchanged, so a run with no
- * metadata is serialized exactly as it was.
- */
+// The read-path counterpart of `sanitizeQueuedRunMetadata`; `null` and absence pass unchanged.
 function sanitizeRunMetadataForResponse(
   metadata: Record<string, unknown> | null | undefined,
 ): Record<string, unknown> | null {
@@ -1491,19 +1385,7 @@ function sanitizeRunMetadataForResponse(
   return safe
 }
 
-/**
- * The artifact payload's own copy of the caller's run metadata.
- *
- * ONE ALLOWLIST, APPLIED AT A SECOND SERIALIZATION SITE — not a second allowlist. `JobQueue.enqueue`
- * writes the SAME `opts.metadata` object into two places (`job-queue.ts:75-78`): the run row, and
- * `run_artifacts.payload.metadata`. 401-18 scrubbed the first and missed the second, and two
- * parallel allowlists is precisely the shape that would let them drift apart again — so this reuses
- * `sanitizeRunMetadataForResponse` rather than declaring keys of its own.
- *
- * `attributes` IS CARRIED THROUGH, and it is the one key that is: the queue MINTS it beside the
- * caller's keys (`job-queue.ts:77`) rather than accepting it, and the run-detail drawer reads it.
- * A blanket delete of `payload.metadata` would close the leak by deleting a shipped field.
- */
+// The same allowlist at the payload's copy; `attributes` passes because the queue mints it.
 function sanitizeArtifactPayloadMetadata(payload: Record<string, unknown>): Record<string, unknown> {
   const metadata = payload.metadata
   if (!isRecord(metadata)) return payload
@@ -1514,19 +1396,7 @@ function sanitizeArtifactPayloadMetadata(payload: Record<string, unknown>): Reco
   }
 }
 
-/**
- * Every `DashboardDatabase` read that hands this router a run row or a run artifact row.
- *
- * EXPORTED SO THE CENSUS CAN SCORE IT. `routes.runs.test.ts` parses `database.ts` for the public
- * READS whose return annotation names `RunRow`, `RunArtifactBundle` or `RunArtifactRow` and asserts
- * SET EQUALITY with this list — so a run-row read added to the database, or one dropped from here,
- * reds rather than quietly opening another door.
- *
- * `getRunArtifact` JOINED IN 401-23, AND WHY THE CENSUS HAD TO WIDEN TO SEE IT. The 401-18
- * predicate keyed on `RunRow|RunArtifactBundle` alone, and `getRunArtifact(runId): RunArtifactRow |
- * null` structurally cannot match either name — which is exactly how the artifact payload became
- * the door nobody wrote the strip into. The predicate's SHAPE was the gap, not its diligence.
- */
+// Exported so `routes.runs.test.ts` can compare it, by set equality, with the database's run reads.
 export const RESPONSE_SAFE_RUN_READ_METHODS = [
   'getNextPendingRun',
   'getPendingRuns',
@@ -1538,38 +1408,9 @@ export const RESPONSE_SAFE_RUN_READ_METHODS = [
   'getRunsByTest',
 ] as const
 
-/**
- * Run-NAMED database members that hand the response layer no run metadata at all.
- *
- * THE OTHER HALF OF A TOTAL FUNCTION. `withResponseSafeRunReads` asserts at CONSTRUCTION that every
- * `/run/i`-named method on the database it is given is accounted for — either wrapped above, or
- * named here with the reason it needs no wrapping. Anything else throws. Before this the wrapper
- * was `Object.create(db, {…overrides…})`, transparent by default, so an unlisted or FUTURE
- * run-reading method reached the response layer through the prototype and returned raw rows.
- *
- * Each name and why it carries no run metadata to a reader:
- *   - `insertRun`, `insertPendingRun`, `insertRunArtifact`, `updateRun`, `updateRunMetadata`,
- *     `updateRunStatus`, `deleteRun` — WRITES. They return an id, a delete tally, a boolean, or
- *     nothing.
- *   - `stageRunArtifact`, `finalizeRunArtifact` — writes that ECHO the row they just wrote, to the
- *     writer that supplied it (`server.ts`, on the raw handle). This router never calls them;
- *     `routes.runs.test.ts` pins that absence, because the echo would otherwise be a door.
- *   - `getRunsByTestCount`, `getRunsBySuiteIdCount` — a `number`.
- *   - `listRunAttributeKeys`, `listRunAttributeValues` — attribute-name/value suggestions built by
- *     the database from the `attributes` column; they never touch `metadata`.
- */
+// Run-named members that hand out no run metadata; construction throws on any name in neither set.
 const RUN_READS_WITHOUT_ROWS: ReadonlySet<string> = new Set([
-  // the v2 projection's six members.
-  //
-  // The five WRITES return nothing; they are here for the same reason `insertRun` is.
-  //
-  // `readRunDetailRows` IS A READ AND IS STILL HERE, and that is the judgement this set exists to
-  // make explicit rather than to hide. It returns members, steps and sub-actions — the bus
-  // payloads as the subscriber MASKED them — and NO `RunRow` and no
-  // `RunArtifactRow`. It therefore carries none of the run metadata the 401-23 scrub law exists
-  // to strip, so wrapping it would be wrapping a shape that has nothing to strip. This router
-  // does not call it either: the detail arm dispatches through the injected host, which is the
-  // whole of D-03.
+  // `readRunDetailRows` returns masked bus payloads and no run row, so it has no metadata to strip.
   'deleteMemberProjection',
   'incrementRunMemberAttempts',
   'insertRunStep',
@@ -1580,23 +1421,23 @@ const RUN_READS_WITHOUT_ROWS: ReadonlySet<string> = new Set([
   'finalizeRunArtifact',
   'getRunsBySuiteIdCount',
   'getRunsByTestCount',
-  // run ids and a count, no row; each id is dispatched through the agent host.
+  // Run ids and a count, no row; each id is dispatched through the agent host.
   'listInsightsWindowRunIds',
   'insertPendingRun',
   'insertRun',
   'insertRunArtifact',
   'listRunAttributeKeys',
   'listRunAttributeValues',
-  // an owner (pid, incarnation, host), no run metadata.
+  // An owner (pid, incarnation, host), no run metadata.
   'readRunOwner',
-  // ids and owners only, no run metadata.
+  // Ids and owners only, no run metadata.
   'listRunningRunOwners',
-  // compare-and-set writes that return a boolean.
+  // Compare-and-set writes that return a boolean.
   'finalizeOrphanRun',
   'finalizeOwnRun',
-  // 2026-10-17 (443-13, GAP-D1): a compare-and-set write that returns a boolean, no run metadata.
+  // A compare-and-set write that returns a boolean, no run metadata.
   'closeOwnRun',
-  // a compare-and-set write that returns a boolean, no run metadata.
+  // A compare-and-set write that returns a boolean, no run metadata.
   'claimRunningRow',
   'stageRunArtifact',
   'updateRun',
@@ -1604,19 +1445,7 @@ const RUN_READS_WITHOUT_ROWS: ReadonlySet<string> = new Set([
   'updateRunStatus',
 ])
 
-/**
- * Run-named members that are not on `DashboardDatabase`'s TYPE at all.
- *
- * WHY THIS SET HAS TO EXIST. TypeScript's `private` is erased at emit, so every private helper is
- * a live own-property of the prototype and the runtime census below sees all of them. They are not
- * response-layer doors — nothing typed as a `DashboardDatabase` can name them — but a census that
- * ranges the live surface has to say so out loud rather than quietly skipping a shape it does not
- * like. Skipping is how 401-18's predicate came to be blind.
- *
- * A NEW PRIVATE HELPER WITH `run` IN ITS NAME WILL RED THE BUILD until it is added here. That is
- * the intended cost: the alternative is a filter that guesses which names are internal, and a
- * guess is what this whole class of census keeps getting wrong.
- */
+// `private` is erased at emit, so private run-named helpers appear on the live prototype.
 const RUN_MEMBERS_NOT_ON_THE_TYPE: ReadonlySet<string> = new Set([
   'buildTrendsFromRuns',
   'getHealedRunIds',
@@ -1630,13 +1459,7 @@ const RUN_MEMBERS_NOT_ON_THE_TYPE: ReadonlySet<string> = new Set([
   'summarizeAnalyticsRuns',
 ])
 
-/**
- * Refuse to build a response-layer projection over a database with an unaccounted run-named read.
- *
- * IT RANGES THE LIVE OBJECT, not a source file — the axis the 401-18 census could not reach. A
- * return-annotation grep can only see what an annotation spells; this sees what the router will
- * actually be able to call, including a method inherited from a prototype or attached at runtime.
- */
+// Ranges the live object, so inherited or runtime-attached methods are seen too.
 function assertRunReadsAccountedFor(db: DashboardDatabase, wrapped: ReadonlySet<string>): void {
   const surface = new Set<string>()
   let layer: object | null = db as unknown as object
@@ -1664,33 +1487,7 @@ function assertRunReadsAccountedFor(db: DashboardDatabase, wrapped: ReadonlySet<
   }
 }
 
-/**
- * The database as the RESPONSE LAYER may read it.
- *
- * WHY A WRAPPER AT THE ROUTER AND NOT A STRIP AT EACH DOOR. The re-derived census found SIX
- * run-serializing responses, not the two the ruling named — the run list, the run detail, the
- * artifact bundle's `run` and `children[].run`, queue status's `pending`/`running`/`recent`, and
- * both analytics run lists. Six doors is a strong argument that the seventh is the one nobody
- * writes the strip into. This is the choke point they all pass through, so a door added next phase
- * is covered by construction rather than by remembering.
- *
- * AND WHY NOT `mapRunRow`, WHICH IS THE OTHER CHOKE POINT. The queue consumer reads the
- * persisted row's own metadata to dispatch the run (`server.ts`); stripping at the DB→row boundary
- * would take from that reader what only a RESPONSE must not carry. `server.ts` and `job-queue.ts`
- * hold the RAW handle and are untouched — this projection exists only inside `createRouter`, which
- * is exactly the layer that serializes.
- *
- * THE PERSISTED VALUE IS NEVER TOUCHED. This is a read projection. 2026-10-01:
- * the trigger no longer writes a confirm scope and the queue consumer no longer reads one; a row
- * written before then may still hold it, and this projection keeps it from leaving.
- *
- * AND IT FAILS LOUDLY RATHER THAN TRANSPARENTLY. `Object.create(db, {…})` forwards
- * everything it does not override, so before this an unlisted — or merely NEW — run-reading method
- * reached the response layer through the prototype and returned raw rows. That is the structural
- * root of G-401-18-CR01, not a footnote to it: the artifact payload leaked for exactly as long as
- * nobody remembered to write a strip for a door the wrapper was happy to forward. The construction
- * assertion below makes forgetting a build error instead of a leak.
- */
+// One wrapper at the router covers every serializing door; an unlisted run read throws at build.
 function withResponseSafeRunReads(db: DashboardDatabase): DashboardDatabase {
   const scrubRow = <T>(row: T): T => {
     if (row === null || row === undefined || typeof row !== 'object') return row
@@ -1728,10 +1525,7 @@ function withResponseSafeRunReads(db: DashboardDatabase): DashboardDatabase {
     // `sanitizeArtifactForResponse`; a caller reaching for the bare row has no such step, so the
     // projection is its only choke point. Same allowlist, so the two cannot drift.
     getRunArtifact: { value: (runId: string) => scrubArtifact(db.getRunArtifact(runId)) },
-    // the bundle is ONE artifact now. It used to carry the child runs of a suite
-    // parent, whose `run` rows this override scrubbed; nothing has written a child row since
-    // 402-09, and the shape went with the column. `getRunArtifact` above remains the choke point
-    // for the payload itself, and this wrapper delegates to it.
+    // One artifact; `getRunArtifact` is the choke point for its payload, and this delegates to it.
     getRunArtifactBundle: {
       value: (runId: string) => ({ artifact: scrubArtifact(db.getRunArtifactBundle(runId).artifact) }),
     },
@@ -1745,19 +1539,6 @@ function withResponseSafeRunReads(db: DashboardDatabase): DashboardDatabase {
   assertRunReadsAccountedFor(db, new Set(RESPONSE_SAFE_RUN_READ_METHODS))
   return Object.create(db, present) as DashboardDatabase
 }
-
-// Four functions and a cleanup routine stood here: a containment resolver, a three-door serving
-// verdict over an encoded `:runId/:filename` pair, its fixed-shape refusal, and the filesystem
-// sweep a run deletion performed. All five existed to serve or remove artifacts ADDRESSED BY PATH.
-//
-// Refs are the only artifact addressing now. A sub-action carries `artifactRefs`, the page
-// mints `\`/api/runs/<runId>/artifacts/<sha>\`` from one total route map, and the bytes are reached
-// through the `runs.artifact` op — whose containment rule is the evidence store's own, written
-// once, rather than a second path assembly in this file that is free to be the weaker one.
-//
-// AND THE DELETION SWEEP IS NOT REPLACED. `DELETE /api/runs/:id` removes rows and touches nothing
-// under the run directory: the event log and the content-addressed blobs there are the run's own
-// record, which this server projects and does not own.
 
 async function readWorkspaceHooks(
   configManager: ConfigManager | undefined,
@@ -1927,96 +1708,29 @@ function summarizeHookNetworkLogs(
 interface RouterDeps {
   db: DashboardDatabase
   workspacePaths?: ResolvedWorkspacePaths
-  /**
-   * The injected run backend.
-   *
-   * TYPED AGAINST THE INTERFACE, AND NOW ACTUALLY SEPARABLE. It always meant to be, and was not:
-   * the retired live-event route reached past the interface for a per-run replay buffer only the
-   * concrete class declared, so the seam had exactly one possible implementation. That route and
-   * that buffer are gone; what this router asks of a backend is the interface.
-   */
   executionBackend?: ExecutionBackend
   jobQueue?: JobQueue
   testFileManager?: TestFileManager
   suiteFileManager?: SuiteFileManager
   configManager?: ConfigManager
   configPath?: string
-  // 441 GAP-D5: hook output, provider error text and target names leave through this mask. Absent,
-  // the router uses the config manager's; with neither, those answers carry no such text.
+  // Hook output, provider error text and target names leave through this mask.
   declaredSecretMask?: MaskFn
 
   llmConfig?: DashboardRuntimeLLMConfig
   authFetch?: typeof globalThis.fetch
   sessionManager?: import('../live-editor/session-manager.js').SessionManager
-  /**
-   * The composed agent host. It serves run detail, marks, analysis, knowledge and
-   * post-processing. (The run-confirm pair it also served is deleted, 432-14.)
-   *
-   * INJECTED, and optional because a router built the legacy two-argument way
-   * (`createRouter(db)`) has none. Each arm that needs it then answers by name rather than 404 —
-   * the route exists, this server was started without a host. See `chat/host.ts` for why the
-   * composition happens in the CLI command that starts this server rather than here.
-   */
+  // Optional: a router built as `createRouter(db)` has none, and its arms answer by name, not 404.
   agentHost?: AgentHost
-  /**
-   * The run service's readiness predicate, served on the LOCAL door.
-   *
-   * THE SAME FUNCTION THE RUN SERVICE'S `/ok` SERVES — one readiness spelling behind two doors,
-   * which is the whole of D-15. It is passed in rather than computed here for the reason `agentHost`
-   * is: every fact in it (is a host composed) is known only to the process that composed it, and a
-   * copy made here is how the run service and the dashboard start disagreeing about whether this
-   * process can run anything.
-   *
-   * ABSENT IS THE LEGACY MOUNT, NOT AN UNCONFIGURED SERVICE. `agent-qa dashboard` ALWAYS supplies
-   * this, because the browser preflight needs an honest answer and a 404 is not one. A router built the legacy
-   * two-argument way has none, and that arm answers 503 by name on `agentHost`'s idiom.
-   */
+  // The same readiness function the run service's `/ok` serves; absent only on a legacy mount.
   runServiceReadiness?: () => RunServiceReadiness
-  /**
-   * The started run's session, or nothing — the LOCAL door's attach port.
-   *
-   * THE SAME PORT THE AUTHED DOOR USES, and `server.ts` supplies it by reading
-   * `runService.attach` rather than by composing a second lookup: one session registry serves both
-   * doors, so a run the remote door can attach to is a run this door can attach to, and there is
-   * no second retention window to disagree about.
-   *
-   * ABSENT MEANS NO RUN SERVICE WAS MOUNTED, which is the same fact as "this process composed no
-   * session registry" — unlike `runServiceReadiness` above, whose absence is a legacy mount rather
-   * than an unconfigured service. The route then answers 503 BY NAME on the execution routes' own
-   * degradation idiom, never a 404 (the route exists) and never an empty stream (which would look
-   * like a run that emitted nothing).
-   */
+  // The authed door's attach port too, so both doors share one session registry; absent is a 503.
   runServiceAttach?: (runId: string) => RunSession | undefined
-  /**
-   * The `runs.liveurl` mint, DISPATCHED THROUGH THE REGISTRY by the composition root.
-   *
-   * A FUNCTION, not a signer: this router holds no key and mints nothing. What it does is turn one
-   * HTTP shape into one op call and the op's refusals into status codes — which is the whole of a
-   * thin client over the function layer.
-   *
-   * ABSENT MEANS THIS HOST SERVES NO LIVE VIEW, and the route answers 503 BY NAME on
-   * `runServiceReadiness`'s idiom — never a 404 (the route exists) and never a URL to nowhere.
-   */
+  // A function, not a signer; absent means no live view, and the route answers 503 by name.
   mintLiveUrl?: (runId: string, handle: number) => Promise<RunsLiveUrlResult>
-  /**
-   * The `editor.liveurl` mint, dispatched through the registry by the composition root.
-   * The editor counterpart of `mintLiveUrl`: a function, never a signer. ABSENT MEANS THIS HOST
-   * MINTS NO EDITOR VIEW, and the route answers 503 by name.
-   */
+  // The editor counterpart of `mintLiveUrl`; absent means no editor view, answered 503 by name.
   mintEditorLiveUrl?: (sessionId: string) => Promise<EditorLiveUrlResult>
-  /**
-   * The in-process chip sink the post-processing stream relays from.
-   *
-   * INJECTED ON `agentHost`'s OWN IDIOM. The publisher is the CLI's post-run chip emitter — a
-   * package this one may not import — so `agent-qa dashboard` creates the relay, hands
-   * `relay.publish` to the run door's bridge and hands the relay itself here. One object, two
-   * halves of the same process; a relay composed here instead would be a registry the emitter
-   * never reaches, and the stream would heartbeat forever at a page whose chips do move.
-   *
-   * ABSENT MEANS THIS SERVER HAS NO PUSH CHANNEL and the stream arm answers 503 BY NAME — never a
-   * 404 (the route exists) and never an empty stream, which would look like a chain that never
-   * ticked. The READ route is unaffected: polling works with no relay at all.
-   */
+  // Created by `agent-qa dashboard` so the CLI's emitter reaches it; absent, the stream is a 503.
   postProcessingRelay?: PostProcessingRelay
 }
 
@@ -2028,8 +1742,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
     : { db: dbOrDeps as DashboardDatabase }
   const { executionBackend, jobQueue, testFileManager, suiteFileManager, configManager, workspacePaths, llmConfig, authFetch, sessionManager } = deps
   const declaredMask = deps.declaredSecretMask ?? configManager?.mask
-  // the response layer reads run rows through the projection, never raw. The host's
-  // own reconciliation and the queue keep `deps.db` — see `withResponseSafeRunReads`.
+  // The response layer reads run rows through the projection; the host and queue keep `deps.db`.
   const db = withResponseSafeRunReads(deps.db)
   const pluginOAuthSessions = new Map<string, PluginOAuthSession>()
   const withCredentialLock = createCredentialLock()
@@ -2079,7 +1792,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // the cheap revision read the page polls to notice an outside edit.
+    // The cheap revision read the page polls to notice an outside edit.
     if (path === '/api/config/revision' && req.method === 'GET') {
       if (!configManager) {
         json(res, { error: 'config_unavailable' }, 503)
@@ -2158,9 +1871,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             to,
             attributePredicates: attributePredicatesResult.predicates,
           })
-          // a suite row used to be enriched with its child runs as `tests`. Nothing
-          // has written a child run row since 402-09 — the members of a suite run are `run_members`
-          // on the one row — so this branch could only ever attach an empty array.
           const enrichedRuns = allRuns.map(run => enrichRunRow(run, targetPlatforms))
           const platformFilteredRuns = enrichedRuns.filter(run =>
             matchesPlatformFilter(run, normalizeSupportedPlatform(platform)),
@@ -2238,16 +1948,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // The accessibility summary, the per-step reasoning trace, the log page and the step list each
-    // answered off a v1 projection table with no producer left. `runs.detail` supersedes them: it is ONE read,
-    // through the function layer, over the bus-shaped projection the subscriber actually writes —
-    // which is D-03's whole point, that the page's read is a read the CLI, MCP and chat can make
-    // too. Keeping these beside it would have kept a second, private read path the function layer
-    // cannot see, answering from tables nothing fills.
-    //
-    // They are not redirected and not stubbed. The router's generic 404 answers them, because a
-    // route that no longer exists is the honest thing for a client to discover.
-
     // GET /api/runs/:id/execution-logs
     if (path.startsWith('/api/runs/') && path.endsWith('/execution-logs') && req.method === 'GET') {
       const segments = path.split('/')
@@ -2260,15 +1960,13 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       const stepId = url.searchParams.get('stepId') ?? undefined
       const type = url.searchParams.get('type') ?? undefined
 
-      // a suite run's logs used to be gathered across its child run rows. There are
-      // no child rows — one `runs` row per run since 402-09 — and a suite's hook logs are written
-      // against that one id, carrying `test_index`/`step_index` to say where in the run they ran.
+      // A suite's hook logs are written against its one run id, with `test_index` and `step_index`.
       const logs = db.getExecutionLogs({ runId: id, stepId, type })
       json(res, { logs })
       return
     }
 
-    // register before the run catch-all; no private feedback implementation here.
+    // Registered before the run catch-all; no private feedback implementation here.
     if (path.startsWith('/api/runs/') && path.endsWith('/mark') && req.method === 'POST') {
       if (deps.agentHost === undefined) {
         json(res, { error: 'agent_host_unavailable' }, 503)
@@ -2285,8 +1983,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // the read-tier consequence preview. POST carries runs.mark's exact input; the
-    // adapter guards, parses and dispatches the registered op, and this arm owns no feedback logic.
+    // The read-tier consequence preview; the adapter guards, parses and dispatches the op.
     if (req.method === 'POST' && /^\/api\/runs\/[^/]+\/mark-preview$/.test(path)) {
       if (deps.agentHost === undefined) {
         json(res, { error: 'agent_host_unavailable' }, 503)
@@ -2316,7 +2013,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         json(res, { error: 'invalid_run_id' }, 400)
         return
       }
-      // each answer in plain words; the route writes nothing.
+      // Each answer in plain words; the route writes nothing.
       const outcome = jobQueue.cancel(runId)
       switch (outcome.kind) {
         case 'cancelled':
@@ -2379,11 +2076,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           return
         }
 
-        // ROWS ONLY. A filesystem sweep ran here first, removing the
-        // run's screenshot and video directories and every path the step rows named. Both the
-        // paths and the sweep are gone: what lives under the run directory is the event log and
-        // the content-addressed blobs — the run's own record, which this server projects and does
-        // not own. A dashboard delete removes the dashboard's projection of a run, nothing more.
+        // Rows only: the event log and blobs under the run directory are the run's own record.
         json(res, { deleted: true, deletedRunIds: deletedRun.deletedRunIds })
       } catch {
         json(res, { error: 'Failed to delete run' }, 500)
@@ -2391,17 +2084,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // GET /api/runs/:runId/live-url — the LOCAL door onto the mint.
-    //
-    // ABOVE THE `GET /api/runs/:id` ARM BELOW, and the order is the mechanism: that arm claims
-    // every GET under the prefix and answers `Not found` for anything that is not exactly four
-    // segments. A live-url route registered after it is a route that never runs — measured, not
-    // assumed (the tracer cell's first run answered 404 from precisely that arm).
-    //
-    // IT DISPATCHES THE OP AND FORMATS NOTHING. The body is the op's result verbatim: a second
-    // shaping here would be a second contract for what a `liveUrl` is, free to disagree with the
-    // one the function layer published. The refusals are the op's own, mapped by ERROR NAME rather
-    // than by matching a message — a message is prose and prose gets rewritten.
+    // Above the `GET /api/runs/:id` arm, which claims every GET under the prefix.
     if (req.method === 'GET' && /^\/api\/runs\/[^/]+\/live-url$/.test(path)) {
       if (!deps.mintLiveUrl) {
         json(res, { error: 'live_view_unavailable' }, 503)
@@ -2436,25 +2119,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // GET /api/runs/:runId/artifacts/:sha — a minted ref, resolved to bytes.
-    //
-    // ABOVE THE DETAIL ARM AND THEREFORE ABOVE THE `/api/runs/:id` CATCH-ALL, on the same
-    // measured precedent (RESEARCH Pitfall 2): that arm claims EVERY GET under the prefix.
-    //
-    // AN ANCHORED TWO-CAPTURE REGEX, and `[^/]+` on both segments so a path with an extra
-    // separator matches nothing here rather than being reassembled into something that does.
-    //
-    // THE RUN ID IS DECODED AND THE SHA IS NOT. A content address is 64 characters drawn from
-    // `[0-9a-f]`, none of which percent-encoding can represent differently — so a sha segment that
-    // needed decoding is already not a sha, and decoding it would turn `%2e%2e%2f` into a string
-    // the contract has to refuse a second time. It is passed RAW to a schema whose regex refuses
-    // everything that is not a content address.
-    //
-    // IT DISPATCHES AND FORMATS NOTHING. The concrete evidence store is not imported by this file
-    // and must never be — a source cell in `run-detail-routes.test.ts` asserts that its NAME does
-    // not occur here at all, which is why this comment does not spell it either. The containment
-    // rule for these bytes is the store's own, reached through the op; a second path assembly here
-    // would be a second rule, free to be the weaker one.
+    // Above the catch-all; the sha is passed raw, because a content address never needs decoding.
     if (req.method === 'GET') {
       const artifactMatch = /^\/api\/runs\/([^/]+)\/artifacts\/([^/]+)$/.exec(path)
       if (artifactMatch) {
@@ -2496,7 +2161,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // marks history, above the `/api/runs/:id` catch-all like its read siblings.
+    // Marks history, above the `/api/runs/:id` catch-all like its read siblings.
     if (req.method === 'GET' && /^\/api\/runs\/[^/]+\/marks$/.test(path)) {
       if (!deps.agentHost) {
         json(res, { error: 'agent_host_unavailable' }, 503)
@@ -2513,18 +2178,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // GET /api/runs/:id/detail — the durable run-detail projection.
-    //
-    // ABOVE THE `GET /api/runs/:id` CATCH-ALL BELOW, on the live-url and post-processing arms'
-    // measured precedent (RESEARCH Pitfall 2): that arm claims EVERY GET under the prefix and
-    // answers `Not found` for anything that is not exactly four segments — and
-    // `/api/runs/<id>/detail` is four segments, so registered after it this route would be looked
-    // up as a run id and refused.
-    //
-    // IT DISPATCHES AND FORMATS NOTHING. No `db.` call appears in this arm, deliberately: the
-    // whole point of D-03 is that the page's read crosses the function layer, where it can be
-    // audited and where the CLI and MCP can reach the same answer. Everything below the 503 is
-    // `serveRunDetailRead`'s — the op call, the refusal vocabulary, the body.
+    // Above the catch-all, as `/api/runs/<id>/detail` is four segments and would read as a run id.
     if (req.method === 'GET' && /^\/api\/runs\/[^/]+\/detail$/.test(path)) {
       if (!deps.agentHost) {
         json(res, { error: 'agent_host_unavailable' }, 503)
@@ -2543,15 +2197,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // GET /api/runs/:id/analysis — one run's resolved verdicts, sentences and clusters.
-    //
-    // ABOVE THE `GET /api/runs/:id` CATCH-ALL BELOW, on the detail arm's measured precedent
-    // (RESEARCH Pitfall 2): that arm claims EVERY GET under the prefix and answers `Not found` for
-    // anything that is not exactly four segments — and `/api/runs/<id>/analysis` is four segments,
-    // so registered after it this route would be looked up as a run id and refused.
-    //
-    // IT DISPATCHES AND FORMATS NOTHING. `analysis.get` is THE single producer of a run's verdicts
-    // and sentences; everything below the 503 is `serveRunAnalysisRead`'s.
+    // Above the catch-all, as `/api/runs/<id>/analysis` is four segments and reads as a run id.
     if (req.method === 'GET' && /^\/api\/runs\/[^/]+\/analysis$/.test(path)) {
       if (!deps.agentHost) {
         json(res, { error: 'agent_host_unavailable' }, 503)
@@ -2570,19 +2216,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // GET /api/runs/:id/knowledge — what this run used and learned.
-    //
-    // ABOVE THE `GET /api/runs/:id` CATCH-ALL BELOW, on the detail and analysis arms' measured
-    // precedent (RESEARCH Pitfall 2): that arm claims EVERY GET under the prefix and answers
-    // `Not found` for anything that is not exactly four segments — and `/api/runs/<id>/knowledge`
-    // is four segments, so registered after it this route would be looked up as a run id and
-    // refused.
-    //
-    // IT DISPATCHES AND FORMATS NOTHING. `runs.knowledge` is THE single producer of the Knowledge
-    // tab's whole view — served brief channels, serve-time traces, procedure use, the
-    // recorded rung, curator deltas — and everything below the 503 is `serveRunKnowledgeRead`'s.
-    // A run whose handoff has been pruned comes back 200 with `kind: 'evidence-incomplete'`, not
-    // a 404: D-06 makes that a state the page renders rather than a refusal it has to catch.
+    // Above the catch-all; a pruned handoff answers 200 `evidence-incomplete`, never 404.
     if (req.method === 'GET' && /^\/api\/runs\/[^/]+\/knowledge$/.test(path)) {
       if (!deps.agentHost) {
         json(res, { error: 'agent_host_unavailable' }, 503)
@@ -2604,21 +2238,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // GET /api/runs/:id/post-processing[/stream] — chip truth and its live channel.
-    //
-    // ABOVE THE `GET /api/runs/:id` ARM BELOW, on the live-url arm's measured precedent: that arm
-    // claims EVERY GET under the prefix and answers `Not found` for anything that is not exactly
-    // four segments — and `/api/runs/<id>/post-processing` is four segments, so it would be looked
-    // up as a run id and refused. Registered after it, these two routes would never run.
-    //
-    // THE STREAM ARM IS FIRST, because `/post-processing/stream` also ends with nothing the read
-    // arm's own regex would reject if the read arm were written loosely. Both are anchored regexes
-    // over a single segment, so neither can claim the other's path whatever the order.
-    //
-    // THEY DISPATCH AND FORMAT NOTHING. Everything below the 503 arms is
-    // `servePostProcessingRead`/`servePostProcessingStream`'s: the op calls, the join, the framing,
-    // the 204 and the refusal vocabulary. A second spelling here would be a second answer to what a
-    // chip is, which is exactly what D-16/D-17 exist to prevent.
+    // Above the catch-all; both regexes are anchored, so neither arm can claim the other's path.
     if (req.method === 'GET' && /^\/api\/runs\/[^/]+\/post-processing\/stream$/.test(path)) {
       if (!deps.agentHost) {
         json(res, { error: 'agent_host_unavailable' }, 503)
@@ -2676,12 +2296,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         notFound(res, 'Run not found')
         return
       }
-      // `{ run }` AND NOTHING ELSE. This body carried three more keys —
-      // `steps` off a v1 projection with no producer, and `attempts`/`tests` off a child-run walk
-      // over a column nothing writes. Every one of them was structurally empty on a run this build
-      // produced, so a page rendering them rendered an empty tree that looked like a bug rather
-      // than like an absence. The run's members, steps and sub-actions are `GET /api/runs/:id/detail`'s,
-      // through `runs.detail`.
+      // The body is `{ run }`; members, steps and sub-actions come from `GET /api/runs/:id/detail`.
       json(res, { run })
       return
     }
@@ -2695,9 +2310,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // GET /api/insights/knowledge-changes — what curation changed across the window's runs (433-30,
-    // F-433-26). Each run is read through `runs.knowledge`, the op the Knowledge tab reads, on the
-    // machine boundary: only counts leave this arm.
+    // Each run is read through `runs.knowledge`; only counts leave this arm.
     if (path === '/api/insights/knowledge-changes' && req.method === 'GET') {
       if (!deps.agentHost) {
         json(res, { status: 'unavailable', reason: 'agent_host_unavailable' }, 503)
@@ -2760,20 +2373,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // They served bytes addressed as `<runId>/<filename>` under a screenshots or a videos root.
-    // Refs are the only artifact addressing now: `GET /api/runs/:runId/artifacts/:sha` above
-    // resolves a content address through the `runs.artifact` op, and the store's own containment
-    // rule is the one rule those bytes are reached through. There is no video surface at all,
-    // because no producer mints a recording ref — an honest absence rather than a surviving path
-
-    // GET /api/run-readiness — the LOCAL half of D-15's one-predicate-two-doors.
-    //
-    // NO TOKEN, DELIBERATELY, and that is not a hole in D-06's no-anonymous law: that law governs
-    // the SERVICE routes, whose whole premise is a caller from another machine. This is the local
-    // dashboard API, and what keeps it local is the 402-05 bind guard — an unauthenticated surface
-    // structurally cannot be remote, so the browser preflight does not need a credential to ask
-    // whether the run service is configured. The answer carries readiness FACTS and no secret: no
-    // token, no count, no entry name.
+    // No token: the bind guard keeps this local API local, and the answer carries no secret.
     if (path === '/api/run-readiness' && req.method === 'GET') {
       if (!deps.runServiceReadiness) {
         json(res, { error: 'This server was started without a run-service readiness predicate' }, 503)
@@ -2783,22 +2383,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // GET /api/run-stream/:runId — the LOCAL door onto the run event stream.
-    //
-    // ONE STREAM CORE BEHIND TWO DOORS. Everything below the 503 arm is `serveRunEventStream`'s:
-    // the attach, the handle validation, the filter, the framing, the heartbeat and the close.
-    // This handler formats no frame and reads no envelope, deliberately — a second spelling here
-    // would agree with the authed door on the day it was written and drift the first time either
-    // moves, and the drift would be invisible until somebody diffed them. The parity is
-    // measured rather than asserted: `routes.run-stream.test.ts` drives one planted session
-    // through BOTH doors over a corpus that includes every refusal class and compares the bytes.
-    //
-    // NO TOKEN, ON `/api/run-readiness`'s EXACT ARGUMENT. This is the local dashboard API
-    // and what keeps it local is the bind guard, not a credential. The routes that assume a caller
-    // from another machine live behind `ownsRunServicePath`, above this router entirely.
-    //
-    // THE RAW `handle` PARAMETER IS READ BY THE CORE'S OWN READER, not by `url.searchParams`,
-    // which resolves `?handle=1&handle=2` to `1` — the one answer that reader exists to refuse.
+    // The stream core does all framing; `url.searchParams` resolves `?handle=1&handle=2` to `1`.
     if (req.method === 'GET' && path.startsWith('/api/run-stream/')) {
       if (!deps.runServiceAttach) {
         json(res, { error: 'This server was started without a run service to stream from' }, 503)
@@ -2816,10 +2401,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       serveRunEventStream(req, res, {
         runId,
         handleParam: handleParamOf(req),
-        // the resume point, read from the SAME pair the authed door reads
-        // it from. `url.searchParams.get('lastEventId')` would resolve a repeated parameter to its
-        // first value — the one answer `lastEventIdParamOf` exists to refuse — and a second
-        // header/query precedence rule here would be a second contract for where a client resumes.
+        // Read from the same pair as the authed door; `searchParams.get` takes a repeated first.
         resume: resumePointOf(req.headers['last-event-id'], lastEventIdParamOf(req)),
         attach: deps.runServiceAttach,
       })
@@ -2845,9 +2427,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             json(res, { error: 'name is required' }, 400)
             return
           }
-          // G-401-18-CR01 (write half): `metadata` is SERVER-DERIVED. Refused before any path is
-          // normalized or any attribute built, because the only thing a client can achieve by
-          // sending it is overwriting a decision this server already made.
+          // Server-derived `metadata` is refused before any path is normalized or attribute built.
           const queuedMetadata = sanitizeQueuedRunMetadata(body.metadata)
           if (!queuedMetadata.ok) {
             json(res, {
@@ -2882,10 +2462,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           const runId = jobQueue.enqueue({
             name: body.name,
             filePath: normalizedFileTarget?.storagePath,
-            // NO PARENT KIND IS MINTED. A suite run is ONE run row
-            // with member handles, so a parent artifact kind would claim parenthood over rows
-            // nothing creates. `isSuiteFile` still travels in `metadata.isSuite` below, and the run's
-            // own `suite_id` plus the artifact's `source.kind` snapshot still say it is a suite.
+            // No parent kind is minted; `metadata.isSuite` and `suite_id` say it is a suite.
             kind: 'test',
             attributes,
             priority: body.priority,
@@ -2942,9 +2519,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             json(res, { error: 'tags are not supported for dashboard-triggered runs' }, 400)
             return
           }
-          // the click is the whole request. The confirm scope this body
-          // used to name, and the validation and persistence that went with it, are deleted with the
-          // run-confirm pair; nothing on this road asks a browser anything.
           const triggerSource = parseDashboardRunTriggerSource(body.triggerSource)
           if (!triggerSource.ok) {
             json(res, { error: triggerSource.error }, 400)
@@ -3035,7 +2609,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           const runId = jobQueue.enqueue({
             name: testName,
             filePath: normalizedFileTarget?.storagePath ?? body.file,
-            // no parent kind minted — see the enqueue route above.
+            // No parent kind is minted; see the enqueue route above.
             kind: 'test',
             attributes: buildRunRequestAttributes({
               trigger: triggerSource.trigger,
@@ -3055,13 +2629,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         })
       return
     }
-
-    // It streamed a re-minted frame shape out of the backend's per-run replay buffer, with a
-    // `Last-Event-ID` replay and a heartbeat. 405-03 removed the browser half; this removes the
-    // route, the buffer and the emission behind it. A live reader attaches to
-    // `GET /api/run-stream/:runId`, which frames the run's OWN frozen envelopes; a finished run is
-    // read durably through `runs.detail`. One live wire, one durable read — and no second spelling
-    // of the wire to drift from the first.
 
     // POST /api/suites/validate — validate suite YAML content
     if (path === '/api/suites/validate' && req.method === 'POST') {
@@ -3142,7 +2709,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // PUT /api/suites/:suite-id — update suite file by suite-id (hard break D-02/D-04)
+    // PUT /api/suites/:suite-id — update suite file by suite-id
     if (path.startsWith('/api/suites/') && req.method === 'PUT') {
       if (!suiteFileManager) {
         json(res, { error: 'Suite file management not configured' }, 501)
@@ -3181,7 +2748,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // GET /api/suites/:suite-id — read suite file by suite-id (hard break D-02/D-04/D-05)
+    // GET /api/suites/:suite-id — read suite file by suite-id
     if (path.startsWith('/api/suites/') && req.method === 'GET') {
       if (!suiteFileManager) {
         json(res, { error: 'Suite file management not configured' }, 501)
@@ -3760,7 +3327,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         if (providerName === 'status' || providerName === 'credential' || providerName === 'oauth') {
           // Fall through to other handlers
         } else {
-          // the removed entry is held server-side for Undo; the answer never carries it.
+          // The removed entry is held server-side for Undo; the answer never carries it.
           ;(async () => {
             try {
               const removed = await withCredentialLock(async () => {
@@ -4150,9 +3717,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       return
     }
 
-    // POST /api/auth/credential/move — 429-09 D-15: a draft's credential follows its name while the
-    // name is still editable. Only between names that are not in registry.llms, and never onto a
-    // name that already holds a credential.
+    // A draft credential follows its name between unregistered names, never onto a held one.
     if (path === '/api/auth/credential/move' && req.method === 'POST') {
       readJsonBody<unknown>(req)
         .then(async (raw) => {
@@ -4289,7 +3854,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
 
           try {
             const { profile, auth } = toModelProfileAndAuth(llmConfig, resolvedAuth)
-            // fixed probe text, nothing to mask.
+            // Fixed probe text, nothing to mask.
             const model = createModel(profile, auth, (text) => text)
             const connectionTimeoutMs = llmConnectionTestTimeoutMs(llmConfig)
 
@@ -4366,9 +3931,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         .catch(() => json(res, { error: 'Invalid request body' }, 400))
       return
     }
-
-    // Agent Rules API removed: the workspace agent-rules config surface was retired in
-    // Phase 373; policy serving returns via Reader L0 policies in Phase 380.
 
     // Hooks API
     if (path === '/api/hooks' && req.method === 'GET') {
@@ -4859,8 +4421,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           const hookCatalog = await readWorkspaceHooks(configManager, deps.configPath)
           resolvedHooks = hookCatalog.resolvedHooks
           hookRegistryError = hookCatalog.hookRegistryError
-          // the limits come from the project config and the edited entity's own `use`,
-          // read through the workspace managers by canonical id; never from the request.
+          // The limits come from the project config and the entity's own `use`, not the request.
           const entityReaders = {
             ...(testFileManager === undefined ? {} : { findTest: (id: string) => testFileManager.findByTestId(id) }),
             ...(suiteFileManager === undefined ? {} : { findSuite: (id: string) => suiteFileManager.findBySuiteId(id) }),
@@ -4987,12 +4548,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       })()
       return
     }
-
-    // the captured-variable-name suggestion arm was deleted with its
-    // reader. It scanned a `captured_variables` column on the v1 projection, which no producer has
-    // filled since the subscriber was rebuilt on the bus payloads — so the endpoint answered an
-    // empty list on every real workspace while looking like a working suggestion source. The hook
-    // and workspace suggestion arms above are unaffected: their producers are live.
 
     // Unknown API route
     if (path.startsWith('/api/')) {

@@ -1,26 +1,4 @@
-// The run-KNOWLEDGE read route.
-//
-// `GET /api/runs/:id/knowledge` is what the Knowledge tab reads, and this module is the whole of
-// the HTTP half: validate the id with the OP'S OWN input schema, dispatch through the injected
-// host, map the op's named refusals onto status codes. IT FORMATS NOTHING. It composes no summary
-// line, folds no channel and opens no database — `runs.knowledge` is THE single producer of what
-// a run used and learned, and a second producer on this door is the 405 D-01
-// anti-pattern restated one surface later.
-//
-// ONE ADAPTER, ON THE ANALYSIS ARM'S FOOTING. The local door is the only door that
-// serves this today, and the function is still written as an adapter both doors could call
-// because that is what stopped `runs.detail` and `analysis.get` from forking: two doors resolving
-// one read through two implementations means "the same run's knowledge" depends on which
-// credential asked.
-//
-// BOTH DOORS SERVE THE STORED BODY. The projection carries producer text throughout, masked at
-// write, and neither door restores anything.
-//
-// THE REFUSAL VOCABULARY IS IMPORTED, NEVER RESPELLED. `refusalFor` is the detail adapter's;
-// `unknown_run` / `agent_host_unavailable` / `read_failed` mean here exactly what they mean two
-// modules away. Note that `unknown_run` is nearly unreachable through THIS op by design: a run
-// whose handoff is gone answers `kind: 'evidence-incomplete'` with a 200, because D-06 makes a
-// pruned handoff a RESULT the page renders rather than a refusal it has to catch.
+// Formats nothing; a pruned handoff answers 200 `evidence-incomplete`, so `unknown_run` is rare.
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
@@ -45,10 +23,7 @@ export async function readRunKnowledge(
   host: AgentHost,
   runId: string,
 ): Promise<RunKnowledgeReadOutcome> {
-  // THE ID IS VALIDATED BY THE OP'S OWN INPUT SCHEMA, HERE, BEFORE THE DOOR IS TOUCHED
-  // Not a second regex: `runIdSchema` refuses exactly the ids the path layer would
-  // have to REWRITE before using them, and the whole point of that codec is that there is one of
-  // it. Refusing early also means an untrusted path segment never reaches a dispatch at all.
+  // The op's own input schema refuses a bad id before any dispatch; there is one run id codec.
   const parsed = RunsKnowledgeInputSchema.safeParse({ runId })
   if (!parsed.success) {
     return { kind: 'refused', status: 400, body: { error: 'invalid_run_id' } }

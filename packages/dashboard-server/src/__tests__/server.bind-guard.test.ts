@@ -10,23 +10,7 @@ import { isLoopbackHost } from '@vostride/agent-qa-core'
 import { RUN_SERVICE_CONTRACT_VERSION } from '@vostride/agent-qa-schema'
 import { DashboardRemoteBindRefusedError, startServer } from '../server/server.js'
 
-/**
- * THE BIND CONTRACT.
- *
- * The measured fact this file exists for: before 402-05 `startServer` called `server.listen(port)`
- * with no host, which binds every interface — so the dashboard's UNAUTHENTICATED run trigger was
- * reachable from any machine on the LAN. A constant-time compare on the authed `/run` door is
- * theatre while that is true, which is why the bind guard and the credential door ship in one
- * phase (the one-sided-hardening scar).
- *
- * WHAT EVERY CELL HERE ASSERTS IS THE SOCKET, NOT THE CONFIG. `server.address()` is read off the
- * LISTENING server; a cell that asserted "a default was passed" would pass under an implementation
- * that passed the default and then ignored it.
- *
- * THE REFUSAL IS PROVEN ON A GENUINELY NON-LOOPBACK HOST. `0.0.0.0` is refused with and without the
- * run service mounted, and (since 432-21, D-12/D-13) with and without a legacy run-service token
- * declaration in the config the server reads: there is no credential that could exempt a bind.
- */
+// Cells read `server.address()` off the listening socket; `0.0.0.0` is refused with any config.
 
 const NON_LOOPBACK_HOST = '0.0.0.0'
 
@@ -44,8 +28,7 @@ function configPathFor(legacyTokens = false): string {
   const tempDir = mkdtempSync(join(tmpdir(), 'agent-qa-bind-guard-'))
   roots.push(tempDir)
   const configPath = join(tempDir, 'agent-qa.config.yaml')
-  // the legacy run-service token block, as a pre-432 project would still carry
-  // it on disk. Nothing reads it; it is here so the bind refusal is measured with it present.
+  // A legacy run-service token block nothing reads, so the bind refusal is measured with it.
   writeFileSync(configPath, legacyTokens
     ? [
         'testDir: tests',
@@ -72,7 +55,6 @@ type Readiness = NonNullable<Parameters<typeof startServer>[0]['runServiceReadin
  * not merely "two functions that agree today".
  */
 function stubRunServicePorts(readiness: Readiness): ServicePorts {
-  // no `verifyBearer` — the run service is tokenless.
   return {
     invokeRunStart: () => { throw new Error('the bind cells never start a run') },
     attach: () => undefined,
@@ -188,16 +170,7 @@ describe('the dashboard bind contract', () => {
     expect(message).toContain('http://localhost:4123/')
   })
 
-  // THE CELL THIS REPLACES PINNED THE HOLE. It asserted that declaring a run-service credential
-  // BINDS a non-loopback host, on the premise — written into the guard's own class doc — that
-  // "the operator who genuinely wants remote access declares a credential, which is the same act
-  // that makes the remote surface an authed one". Phase-402 verification measured that premise
-  // false off a real interface: with `host: 0.0.0.0` and one declared token the startup guard
-  // passed, and `POST /api/runs/trigger` with NO Authorization header answered
-  // `202 {"runId":"…","status":"queued"}` and started a run, while `GET /api/runs` answered 200
-  // with the run list. A credential authenticates exactly `ownsRunServicePath` — POST /run,
-  // GET /run/:runId/events, GET /ok — and nothing else, so the token count was never evidence
-  // about the surface the guard is protecting.
+  // A credential guards only the run-service paths, so it never makes a non-loopback bind safe.
   it('REFUSES a non-loopback host EVEN WITH the authed run service mounted', async () => {
     const port = await reserveFreePort()
     await expect(start({ host: NON_LOOPBACK_HOST, port, mountService: true }))
@@ -226,9 +199,6 @@ describe('the dashboard bind contract', () => {
     }
   })
 
-  // the run-service tokens are deleted, and the loopback bind is
-  // what D-13 keeps. The refusal is unconditional with the tokenless run service mounted, with and
-  // without a legacy token declaration on disk, and an ordinary local start still binds and serves.
   it('refuses a non-loopback bind with and without a legacy token block, and an ordinary local start serves', async () => {
     for (const legacyTokens of [false, true]) {
       const port = await reserveFreePort()
@@ -248,15 +218,7 @@ describe('the dashboard bind contract', () => {
   })
 })
 
-/**
- * THE LOCAL READINESS DOOR — ONE PREDICATE, TWO DOORS.
- *
- * The cells hand ONE function object to both `runService.readiness` (which the authed `/ok`
- * serves) and `runServiceReadiness` (which the local `/api/run-readiness` serves), then drive both
- * over a real socket. That is what makes the equality claim a claim about the PREDICATE: a fixture
- * that built two equal-looking objects would pass against two implementations that agree today and
- * drift tomorrow, which is the failure D-15 exists to prevent.
- */
+// One function object serves both doors, so the equality is about one predicate, not two copies.
 describe('the local readiness door', () => {
   /** A readiness whose facts MOVE, so a door that snapshotted rather than called is visible. */
   function movingReadiness(): { fn: Readiness; flip: () => void } {
@@ -308,9 +270,6 @@ describe('the local readiness door', () => {
     expect(after[0].body).toMatchObject({ hostComposed: true })
   })
 
-  // RE-SPELLED 2026-10-01 from 'answers the LOCAL door with no token at all —
-  // the bind guard is what keeps it local'. Neither door asks for a token now; the bind guard still
-  // keeps both local, and the run service's same-site guard refuses a cross-site readiness probe.
   it('answers BOTH doors with no token at all — the bind guard is what keeps them local', async () => {
     const { fn } = movingReadiness()
     const { server } = await start({ mountService: true, readiness: fn })
@@ -323,8 +282,7 @@ describe('the local readiness door', () => {
   })
 
   it('answers honestly with NO run service mounted — never a 404', async () => {
-    // An in-process mount with no service (since 432-21 the shipped command always mounts it): the
-    // composition still hands over the producer, and the browser preflight gets a readable answer.
+    // An in-process mount with no service still hands over the producer, so preflight is answered.
     const { server } = await start({
       readiness: () => ({
         service: 'up',

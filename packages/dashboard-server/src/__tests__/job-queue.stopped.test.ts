@@ -1,6 +1,4 @@
-// a stopped queue never dispatches. The dashboard's close calls
-// `jobQueue.stop()` and then `db.close()`; a run that settles afterwards frees its slot from inside
-// the backend's promise chain, so a throw there surfaces as an unhandled rejection.
+// A run settling after `jobQueue.stop()` frees its slot; a dispatch then would hit a closed db.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 

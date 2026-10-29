@@ -45,7 +45,6 @@ for (const door of ['local', 'remote'] as const) {
         closers.push(started.close)
         path = `/api/runs/media-probe/artifacts/${sha}`
       } else {
-        // the run service is tokenless — no `verifyBearer`.
         server = createServer(createRunServiceRoutes({ agentHost: host } as unknown as RunServicePorts))
         await new Promise<void>((resolve, reject) => {
           server.once('error', reject)
@@ -58,8 +57,7 @@ for (const door of ['local', 'remote'] as const) {
       }
       const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}${path}`
       if (door === 'remote') {
-        // RE-SPELLED 2026-10-01: the door refuses a cross-site probe, not an
-        // unauthenticated one, before anything is dispatched.
+        // The door refuses a cross-site probe before anything is dispatched.
         expect((await nativeFetch(url, { headers: { Origin: 'https://evil.example' } })).status).toBe(403)
         expect(invokeFunction).not.toHaveBeenCalled()
       }

@@ -12,7 +12,7 @@ import { createRouter } from '../server/routes.js'
 import { SuiteFileManager } from '../tests/suite-file-manager.js'
 import { TestFileManager } from '../tests/test-file-manager.js'
 
-// 441 GAP2-D5 (WR-G03): the target list answers masked names, so a picked target can hold one.
+// The target list answers masked names, so a picked target can hold one.
 const MASKED_TARGET = '[secret:X]-web'
 const WORDS = 'amber-birch-coral-delta-ember-falcon-garden-harbor-island-jungle'
 const TEST_ID = `t_${WORDS}`

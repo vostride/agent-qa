@@ -1,31 +1,4 @@
-// THE PHASE 405 TRACER.
-//
-// ONE CLAIM, MEASURED END TO END: a decision-screenshot `ArtifactRef` the runner mints reaches a
-// browser as a sha, through every layer this phase touches and with no layer faked.
-//
-//   producer   `projectSubActionRecorded` — the SHIPPED schema fold, called here directly
-//   subscriber `createDashboardRunIngest` — the SHIPPED arms, over a real `DashboardDatabase`
-//   storage    the v2 `run_sub_actions` row, in a real (in-memory) SQLite file
-//   port       `createDashboardRunDetailReader` — the SHIPPED adapter
-//   op         `runs.detail` — the SHIPPED spec, reached through the SHIPPED `invokeFunction`
-//              on a registry composed by the SHIPPED `createFunctionRegistry`
-//   route      `GET /api/runs/:id/detail` on a REAL socket, through `startServer`
-//
-// WHY THE SOCKET AND NOT THE ADAPTER FUNCTION. Two of the things that can break this path live
-// ABOVE the route handler: the arm's POSITION in `routes.ts` — the `/api/runs/:id` catch-all
-// below it claims every four-segment GET and answers `Not found`, which is RESEARCH Pitfall 2 —
-// and the conditional spread in `server.ts` that threads the host at all. A suite that called
-// `serveRunDetailRead` directly would be green with the arm registered in the wrong place, which
-// is the "green that never ran" failure WINDOWS names.
-//
-// WHY A REAL REGISTRY AND NOT A PLANTED HOST. The op is where the token sum is computed, where
-// `RunNotFoundError` is minted and where the `runDetail` binding is checked; a fixture that
-// answered the route's `invokeFunction` itself would be a second implementation of all three,
-// green about a path this product does not ship. `@vostride/agent-qa-agent` is a DEV dependency
-// of this package for exactly this reason — `validate:arch` walks `src` with `__tests__` excluded
-// and reconciles only runtime `dependencies`, so the production edge it forbids stays forbidden
-// (see `run-detail-reader.ts`: the reader declares its own structural port type and imports
-// nothing from the agent package).
+// A real socket and registry: the arm's place in `routes.ts` and the host wiring can both break it.
 
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
@@ -49,11 +22,7 @@ import {
   type FunctionDeps,
   type FunctionRegistry,
 } from '@vostride/agent-qa-agent'
-// the SHIPPED evidence-blob binding and the SHIPPED store that wrote the blob. Both are
-// DEV-only edges here, on the `@vostride/agent-qa-agent` reasoning at the top of this file —
-// `validate:arch` walks `src` with `__tests__` excluded and reconciles only runtime
-// `dependencies`, so the production edges these packages forbid stay forbidden. The point of
-// driving them is that a reader written in this file would be a second containment rule.
+// The shipped blob reader and store, so no second containment rule is written in this file.
 import { createEvidenceBlobReader } from '@vostride/agent-qa-agent-local'
 import { FsEvidenceArtifactStore, slugBranch } from '@vostride/agent-qa-runner-local'
 import {
@@ -88,8 +57,7 @@ import { createDashboardRunDetailReader } from '../run-detail-reader.js'
 
 /** A 64-hex sha, the shape `FsEvidenceArtifactStore` content-addresses a blob under. */
 const DECISION_SHA = 'a'.repeat(63) + '7'
-// the run service is tokenless, so its fixture headers carry nothing, and
-// what it refuses before dispatch is a cross-site request.
+// The run service is tokenless; what it refuses before dispatch is a cross-site request.
 const TOKENLESS_HEADERS: Record<string, string> = {}
 const CROSS_SITE_HEADERS: Record<string, string> = { Origin: 'https://evil.example' }
 const RUN_ID = 'r_tracer-alpha-bravo-charlie-delta-echo-foxtrot-golf-hotel-india'
@@ -124,11 +92,7 @@ const DECISION_REF: ArtifactRef = {
   sha: DECISION_SHA,
 }
 
-/**
- * The evidence the runner hands the fold — carrying the decision screenshot ref and NOTHING in
- * `artifactRefs`, which is the shipped producer's actual shape (RESEARCH D1: no runner code sets
- * `artifactRefs`, and the decision screenshot was the field that got voided).
- */
+// The runner's evidence carries the decision screenshot ref and nothing in `artifactRefs`.
 function makeSubActionEvidence(): SubActionEvidence {
   return {
     plan: 'Click the Save button',
@@ -140,7 +104,7 @@ function makeSubActionEvidence(): SubActionEvidence {
   }
 }
 
-// the tokenless caller shape — no scope set or safe-mode flag.
+// The tokenless caller shape: no scope set or safe-mode flag.
 const REGISTRY_CALLER: FunctionCaller = {
   surface: 'dashboard',
   origin: 'human',
@@ -217,8 +181,6 @@ function hostOver(registry: FunctionRegistry): AgentHost {
     runsEvidenceFunctionId: RUNS_EVIDENCE_FUNCTION_ID,
     runsArtifactFunctionId: RUNS_ARTIFACT_FUNCTION_ID,
     analysisGetFunctionId: ANALYSIS_GET_FUNCTION_ID,
-    // the sixth dispatched id, widened here so every AgentHost literal in the
-    // workspace still satisfies the interface.
     runsKnowledgeFunctionId: RUNS_KNOWLEDGE_FUNCTION_ID,
     runsMarkFunctionId: RUNS_MARK_FUNCTION_ID,
     runsMarksHistoryFunctionId: RUNS_MARKS_HISTORY_FUNCTION_ID,
@@ -350,20 +312,19 @@ describe('GET /api/runs/:id/detail', () => {
     expect(body.steps[0].status, "the payload's own word").toBe('passed')
     expect(body.steps[0].stepText).toBe('Save the record')
     expect(body.subActions[0].plan).toBe('Click the Save button')
-    // D-02/RESEARCH D2: screen CONTEXT on this bus is the hash pair and nothing else.
+    // Screen context on this bus is the hash pair and nothing else.
     expect(body.subActions[0].screenStateHash).toMatch(/^[0-9a-f]{64}$/)
     expect(body.subActions[0].screenStateHashAfter).toMatch(/^[0-9a-f]{64}$/)
     expect(body.subActions[0].screenStateHashAfter).not.toBe(body.subActions[0].screenStateHash)
 
-    // the member row exists, keyed by the handle, with its identity and its outcome.
+    // The member row exists, keyed by the handle, with its identity and its outcome.
     expect(body.members).toHaveLength(1)
     expect(body.members[0].testIndex).toBe(0)
     expect(body.members[0].name).toBe('Tracer Test')
     expect(body.members[0].outcome).toBe('passed')
     expect(body.members[0].attempts).toBe(1)
 
-    // ABSENT IS NOT ZERO. Nothing on this bus carries `tokenUsage` yet (405-04 lands the
-    // producer), so the honest answer names how many steps went unmeasured and offers NO total.
+    // Absent is not zero: unmeasured steps are counted and no total is offered.
     expect(body.tokens.measuredSteps).toBe(0)
     expect(body.tokens.unmeasuredSteps).toBe(1)
     expect(Object.keys(body.tokens), 'no totalTokens key at all — a zero would be a lie')
@@ -421,8 +382,7 @@ const PNG_BYTES = new Uint8Array([
 ])
 const JPEG_BYTES = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46])
 
-// the production host binds its declared mask; without one runs.evidence
-// answers masking-unavailable, so the doors would never reach the recorded evidence.
+// Without a declared mask `runs.evidence` answers masking-unavailable, so the host binds one.
 const declaredMask: NonNullable<FunctionDeps['secretMask']> = (text) => text
 
 async function serveEvidence() {
@@ -473,9 +433,6 @@ describe('typed evidence HTTP doors', () => {
     expect(f.seen).toEqual([RUNS_EVIDENCE_FUNCTION_ID])
     expect(response.headers.get('access-control-allow-origin')).toBeNull()
   })
-  // RE-SPELLED 2026-10-01 from 'HTTP-EVIDENCE-MACHINE authenticates before
-  // dispatch and never restores': the run service asks for no bearer, so the guard that answers
-  // before dispatch is the same-site check; the never-restores claim is unchanged.
   it('HTTP-EVIDENCE-MACHINE guards before dispatch and never restores', async () => {
     const f = await serveEvidence()
     expect((await fetch(`${f.remote}/evidence${query}`, { headers: CROSS_SITE_HEADERS })).status).toBe(403)
@@ -530,12 +487,7 @@ describe('typed evidence HTTP doors', () => {
     expect(Buffer.from(result.bytesBase64, 'base64').equals(bytes)).toBe(true)
   })
 })
-// ---- 423-21: the two feedback reads on both HTTP doors ---------------------------------
-//
-// The routes format nothing: the registry's own ops answer through a file-backed read port, so the
-// HTTP bodies are compared with a direct invocation of the same registry. The real ledger host
-// lives in the CLI, whose mark-preview-history suite drives these same routes over its real stores.
-// the first mark applied a knowledge fix, and its changed record is joined.
+// The routes format nothing, so HTTP bodies are compared with a direct invocation of the registry.
 
 const FEEDBACK_NOTE_SECRET = 'synthetic-423-21-note-token'
 const FIRST_MARK = 'mark_0123456789ab'
@@ -708,7 +660,7 @@ describe('feedback reads on both HTTP doors', () => {
       expect((await answer.json() as { error: string }).error).toBe('agent_host_unavailable')
     }
 
-    // both doors answer a stored marker and an old placeholder as they are.
+    // Both doors answer a stored marker and an old placeholder as they are.
     const history = RunsMarksHistoryResultSchema.parse(expected)
     if (history.kind !== 'history') throw new Error('expected a history result')
     const withNote = (note: string) => ({ ...history, entries: history.entries.map((entry, index) => index === 0 ? { ...entry, note } : entry) })
@@ -787,7 +739,7 @@ describe('feedback reads on both HTTP doors', () => {
       expect(await answer.json()).toMatchObject({ error: 'agent_host_unavailable' })
     }
 
-    // both doors answer a stored marker and an old placeholder as they are.
+    // Both doors answer a stored marker and an old placeholder as they are.
     const consequences = feedbackPreview(RUN_ID) as Extract<RunsMarkPreviewResult, { kind: 'consequences' }>
     const stored = RunsMarkPreviewResultSchema.parse({ ...consequences, knowledge: { ...consequences.knowledge,
       records: [servedRecord('near [secret:PW_441] and <SECRET_1>')] } })
@@ -823,7 +775,7 @@ describe('feedback reads on both HTTP doors', () => {
   })
 })
 
-/** Bytes that WANT to be a document. The sniffer has no arm that can grant it. */
+// Bytes that look like a document; the sniffer has no arm that grants that type.
 const SVG_BYTES = new TextEncoder().encode(
   '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
 )
@@ -865,19 +817,7 @@ async function serveOneArtifact(
   return { port: (started.server.address() as AddressInfo).port, sha: ref.sha, root }
 }
 
-// ---- 405-05: the ref RESOLVES — a sha becomes immutable bytes -------
-//
-// THE SECOND HALF OF THE TRACER'S CLAIM. The cells above prove a minted `ArtifactRef` reaches a
-// browser as a sha; these prove that sha resolves to the exact bytes the runner wrote, with the
-// headers a content address earns. Nothing here is faked below the route: the blob is written by
-// the SHIPPED `FsEvidenceArtifactStore` under a real temp root, read back by the SHIPPED
-// `createEvidenceBlobReader`, served by the SHIPPED op through the SHIPPED registry, over a real
-// socket — so the arm's POSITION in `routes.ts` (above the `/api/runs/:id` catch-all, which claims
-// every four-segment GET) is inside the claim rather than assumed.
-//
-// AND THE REFUSALS ARE THE POINT AS MUCH AS THE BYTES. `getBlob` answers `undefined` for a
-// malformed sha and for an absent file alike; a door that could not tell those apart would render
-// one grey error for a bad link, a GC'd screenshot and a traversal attempt.
+// Shipped store, reader, op and registry over a real socket, so the bytes are those written.
 
 describe('GET /api/runs/:runId/artifacts/:sha — the ref resolves', () => {
   it('serves the exact bytes under a content address, immutably and with nosniff', async () => {
@@ -890,7 +830,7 @@ describe('GET /api/runs/:runId/artifacts/:sha — the ref resolves', () => {
     // THE BYTES, WHOLE. Not a length, not a hash of what came back — the array itself.
     expect(new Uint8Array(await response.arrayBuffer())).toEqual(PNG_BYTES)
 
-    // D-12's header set, each one load-bearing and each one asserted rather than sampled.
+    // Each header is asserted, not sampled.
     expect(response.headers.get('etag'), 'the content address IS the validator').toBe(`"${served.sha}"`)
     expect(response.headers.get('cache-control')).toBe('public, max-age=31536000, immutable')
     expect(response.headers.get('x-content-type-options'), 'T-405-15').toBe('nosniff')
@@ -1091,7 +1031,7 @@ describe('serveRunDetailRead', () => {
   })
 })
 
-// ---- 441-15: the dashboard shows what was stored and restores nothing ----------------------
+// The dashboard shows what it stored and restores nothing.
 
 async function serveBothDoors(body: unknown) {
   const db = new DashboardDatabase({ dbPath: ':memory:' })

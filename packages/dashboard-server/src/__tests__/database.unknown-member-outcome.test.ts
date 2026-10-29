@@ -1,5 +1,4 @@
-// run_members.outcome has no CHECK, so a word outside the
-// vocabulary can be stored. Every member-history reader skips it, as neither a pass nor a fail.
+// `run_members.outcome` has no CHECK, so member-history readers skip a word outside the vocabulary.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { EventEmitter } from 'node:events'

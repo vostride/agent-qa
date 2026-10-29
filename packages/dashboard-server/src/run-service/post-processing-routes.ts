@@ -1,31 +1,4 @@
-// The post-processing READ route and its dedicated live channel (Phase 404 plan 05,
-// D-16/D-17/D-18/D-22/D-23 · LIFE-03/LIFE-04).
-//
-// TWO DOORS ONTO ONE ANSWER, AND THE ANSWER IS ALWAYS A RE-READ. `GET /api/runs/:id/post-processing`
-// is what a page polls; `…/post-processing/stream` opens with the SAME body as a `snapshot` frame
-// and then relays chip envelopes as they are appended. The envelopes are TRIGGERS: a
-// consumer that derived a chip from one would be a second projection of chip truth, free to
-// disagree with `runs.postprocessing` over the durable rows — which is the one thing 388 D-14 and
-// 404 D-16 rule out by name. Nothing in this file reads a job store, opens `agent-jobs.db` or
-// composes a chip; every fact on the wire arrived through the injected host's one door.
-//
-// WHY THE READ JOINS TWO RECORDS. The chain's chips live in the durable job store and are read
-// through `runs.postprocessing`. The run's POSTURE — `drained` / `handedOff` / `detached`, i.e. who
-// was going to pump that chain — is a decision made at the verdict and written on the
-// `runFinished` line of the run's own event log, and the last per-stage failure TEXT rides the chip
-// envelopes on that same log (404-03 D-21: the durable notification row deliberately carries no
-// failure prose). So the read invokes `runs.events` as well and folds the record. That fold is
-// STRICTLY A FORWARD: a failed stage whose log holds no `*Failed` envelope — a daemon-drained run,
-// or one drained after this process last saw it — gets NO `failures` entry, because the record
-// declined to say and this route does not compose prose on the record's behalf.
-//
-// EVERY REFUSAL IS NAMED. The alternative that actually shipped in surfaces like this one is
-// an all-pending body: a page that cannot tell "the chain has not started" from "the composition
-// bound no such op" renders two grey chips forever and calls it a state. So an unbound function, a
-// job store stamped by another build, an id the op refuses and a missing host each have their own
-// word, and the words are read STRUCTURALLY off `error.name` — this package may not import the
-// packages that mint those classes (validate:arch), and a message compare would be a compare
-// against prose somebody will rewrite.
+// Every fact on the wire is a re-read through the injected host; envelopes are only triggers.
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
@@ -41,21 +14,10 @@ import {
 import type { AgentHost } from '../chat/host.js'
 import type { PostProcessingRelay } from '../execution/post-processing-relay.js'
 
-/**
- * The comment-frame keepalive interval, matching every other SSE this package serves.
- *
- * EXPORTED so a cell can name the number rather than sleep past it, and so the client
- * can size its own liveness expectation off the server's constant instead of a second guess.
- */
+// Exported so a cell can name the interval rather than sleep past it, and clients can size to it.
 export const POST_PROCESSING_STREAM_HEARTBEAT_MS = 15_000
 
-/**
- * The SSE event name the joined read travels under.
- *
- * DELIBERATELY NOT A BUS EVENT TYPE. Every other frame on this stream is an envelope
- * whose `event:` is its own `type`, so the one frame that is NOT an envelope must be unmistakable:
- * a client switching on the frame name can never confuse the whole-state answer with a chip tick.
- */
+// Not a bus event type, so a client switching on the name never confuses the snapshot with a chip.
 const SNAPSHOT_EVENT = 'snapshot'
 
 /** The last failure the record holds for one stage — the emitter's masked, bounded text, forwarded. */
@@ -206,10 +168,7 @@ export async function readPostProcessing(
   host: AgentHost,
   runId: string,
 ): Promise<PostProcessingReadOutcome> {
-  // THE ID IS VALIDATED BY THE OP'S OWN INPUT SCHEMA, HERE, BEFORE THE DOOR IS TOUCHED.
-  // Not a second regex: `runIdSchema` refuses exactly the ids the path layer would have to REWRITE
-  // before using them as a directory name, and the whole point of that codec is that there is one
-  // of it. Refusing early also means an untrusted path segment never reaches a dispatch at all.
+  // The op's own input schema refuses a bad id before any dispatch; there is one run id codec.
   const parsed = RunsPostProcessingInputSchema.safeParse({ runId })
   if (!parsed.success) {
     return { kind: 'refused', status: 400, body: { error: 'invalid_run_id' } }
@@ -303,64 +262,16 @@ export interface PostProcessingStreamDeps extends PostProcessingReadDeps {
   }
 }
 
-/**
- * `GET /api/runs/:id/post-processing/stream` — the DEDICATED live channel.
- *
- * THE ORDER IS THE CONTRACT, on `serveRunEventStream`'s own law: every refusal happens before
- * `writeHead`, because a response that has already written `200 text/event-stream` cannot be told
- * it failed. So the joined read runs FIRST — it is the snapshot's content and the open-time
- * decision both — and only then does a head go out.
- *
- * THE 204 IS THE SSE SPEC'S NO-RECONNECT CLOSE, and it is the whole answer to Pitfall 6. An
- * `EventSource` reconnects after ANY close except a 204, so a door that answered `200` with an
- * immediate end to a run whose chain is over would be answering the same request every few seconds
- * for as long as the tab is open. Three states get it:
- *
- *   - the chain is already terminal — there is nothing left to relay, ever;
- *   - the run says `handedOff` — a lease-holder in ANOTHER process is draining it, and this
- *     process's emitter will therefore never publish a single envelope for it;
- *   - the run says `detached` — nothing is draining it in-process either.
- *
- * The last two are D-16's "closes immediately on hand-off / detach" and they are one decision with
- * two words, because the fact that matters is identical: this relay cannot ever fire for that run,
- * so the honest channel is the page's poll and holding a socket open would be a promise this
- * process cannot keep. A snapshot with NO disposition at all is the opposite case — the run has not
- * reached `runFinished` yet, which is exactly when a live channel is worth having — and it opens.
- */
+// Every refusal precedes `writeHead`; a terminal, handed-off or detached chain gets a 204.
 export function servePostProcessingStream(
   req: IncomingMessage,
   res: ServerResponse,
   deps: PostProcessingStreamDeps,
 ): void {
-  /**
-   * The half-built stream's resource release, hoisted so the failure arm can unwind it.
-   *
-   * Assigned in the same breath the stream's state is declared and BEFORE the head goes out, so a
-   * throw anywhere from `writeHead(200)` onwards is unwound rather than abandoned: without it a
-   * failure between the head and `req.on('close', …)` leaves the 15s heartbeat ticking, the relay
-   * subscription registered and this stream's teardown inside `openStreams`, behind a socket
-   * nothing will ever close. It releases resources and TOUCHES THE RESPONSE NOT AT ALL — ending it
-   * here would answer an empty 200 to a request the arm below still owes a refusal.
-   */
+  // Assigned before the head goes out, so a later throw unwinds the heartbeat and relay.
   let unwindStream: (() => void) | undefined
 
-  /**
-   * THE ARM UF-01 NAMED, and the sibling read door at `servePostProcessingRead` already carries.
-   *
-   * `void promise.then(onOk)` with no failure arm turns any throw inside `onOk` into an unhandled
-   * rejection — process-fatal by default on Node ≥ 15, so one closed tab takes the whole dashboard
-   * server down with it. The throw is ordinary rather than exotic: two awaited op calls sit between
-   * the request arriving and the head going out, and a client that aborts inside that window leaves
-   * a response a later `writeHead`/`write` throws on.
-   *
-   * IT ANSWERS THE SAME FAILURE SHAPE THE SIBLING DOOR ANSWERS WITH, for the same reason — anything
-   * reaching here is this module failing, and `refusalFor`'s unclassified arm travels as a NAME and
-   * never a message, because an arbitrary throw's prose may quote a path or a row.
-   *
-   * AND IT LEAVES NOTHING HALF-OPEN. A response already carrying `200 text/event-stream` cannot be
-   * told it failed, so once headers are out the only honest close is `destroy()`; before they are
-   * out the request still gets its named refusal.
-   */
+  // An unhandled rejection here is process-fatal; after headers the only close is `destroy()`.
   const failStream = (error: unknown): void => {
     try {
       unwindStream?.()
@@ -404,11 +315,7 @@ export function servePostProcessingStream(
       return
     }
 
-    // THE SAME GUARD THE 204 ARM ABOVE CARRIES, on the arm that OPENS a socket rather than closing
-    // one. The asymmetry was the bug: both arms are reached after the same two awaited op
-    // calls, so both face the same already-answered response — and `writeHead` on one throws
-    // `ERR_HTTP_HEADERS_SENT`, which is the throw that became the process-fatal rejection. Guarded
-    // before any state is built, so this leg registers nothing it would then have to unwind.
+    // Both arms follow the same two awaited op calls, so both guard an already-answered response.
     if (res.headersSent || res.writableEnded) {
       res.destroy()
       return
@@ -445,16 +352,12 @@ export function servePostProcessingStream(
 
     unsubscribe = deps.relay.subscribe(deps.runId, (envelope: RunEventEnvelope) => {
       if (closed) return
-      // D-13's three parts, exactly as the run stream frames them: the id IS the seq, the event
-      // name IS the envelope type, and the data IS the envelope's own JSON. No projection and no
-      // second vocabulary — a client that can read one of this product's streams can read both.
+      // The id is the seq, the event is the envelope type, the data its JSON, as on the run stream.
       res.write(
         `id: ${String(envelope.seq)}\nevent: ${envelope.type}\ndata: ${JSON.stringify(envelope)}\n\n`,
       )
       if (!STAGE_SETTLING_EVENTS.has(envelope.type)) return
-      // THE TRIGGER, ANSWERED BY A RE-READ. The envelope says a stage settled; whether the
-      // CHAIN is over is a fact about durable rows, and this door asks the op rather than deriving
-      // it from the tick it just wrote.
+      // Whether the chain is over is a fact about durable rows, so the door re-reads it.
       void readPostProcessing(deps.host, deps.runId).then(
         (again) => {
           if (closed || again.kind !== 'ok') return
@@ -465,19 +368,14 @@ export function servePostProcessingStream(
         // A failed re-read is not a reason to close a live channel: the next envelope will trigger
         // another, and the page's own poll is the floor underneath both.
         () => undefined,
-      // …but a throw from the arm ABOVE is not a failed re-read, it is a dead socket, and `.then`'s
-      // failure arm never sees its own fulfilment arm's throw (UF-01, on the nested chain).
+      // A throw from the arm above is a dead socket, and `.then`'s failure arm never sees it.
       ).catch(failStream)
     })
 
     heartbeat = setInterval(() => { res.write(':\n\n') }, POST_PROCESSING_STREAM_HEARTBEAT_MS)
     deps.openStreams?.add(teardown)
     req.on('close', teardown)
-    // THE SECOND ARGUMENT is the READ's own rejection — `readPostProcessing` swallows what it can
-    // degrade past, so anything arriving there is this module failing. THE TRAILING `.catch` is the
-    // FULFILMENT ARM'S OWN THROW, and it is a separate arm because `.then(onOk, onError)` answers
-    // only for the promise it is attached to: a throw inside `onOk` rejects the DERIVED promise,
-    // which `void` would strand as the process-fatal unhandled rejection UF-01 named.
+    // `.then`'s second argument takes the read's rejection; the `.catch` takes `onOk`'s throw.
   }, failStream).catch(failStream)
 }
 

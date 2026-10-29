@@ -66,7 +66,7 @@ function createMockSession(overrides: Partial<LiveSession> = {}) {
     terminalError: null,
   }
 
-  // The attachment generation (RESEARCH P4), shared by every handler attached to this session.
+  // The attachment generation, shared by every handler attached to this session.
   let generation = 0
 
   return {
@@ -269,8 +269,7 @@ describe('ws-handler', () => {
     await vi.waitFor(() => expect(onTerminate).toHaveBeenCalled())
   })
 
-  // the control socket no longer carries screenshots. Both cells keep their titles
-  // and assert the retirement: the mock session could still capture, and the handler never asks.
+  // The control socket carries no screenshots: the session could capture, the handler never asks.
   it('get-screenshot sends base64 screenshot', async () => {
     const handler = createSessionHandler(session as unknown as LiveSession, onTerminate)
     handler(ws as any)

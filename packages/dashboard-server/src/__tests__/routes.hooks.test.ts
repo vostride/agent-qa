@@ -14,8 +14,6 @@ vi.mock('@vostride/agent-qa-core', async () => {
   return { ...actual }
 })
 
-// Hook execution moved to runner-local DockerHookExecutor in Phase 363 D-06; execute() is the
-// old runHookInSandbox body behind the port.
 vi.mock('@vostride/agent-qa-runner-local', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@vostride/agent-qa-runner-local')>()),
   DockerHookExecutor: class { execute(...args: unknown[]) { return mockRunHookInSandbox(...args) } },

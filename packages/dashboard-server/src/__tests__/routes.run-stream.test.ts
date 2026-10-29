@@ -1,33 +1,4 @@
-// The LOCAL door onto the run event stream.
-//
-// WHAT "THIN CLIENT" HAS TO MEAN HERE, AND WHY A HAPPY-PATH CELL CANNOT SAY IT. D-01 keeps the
-// dashboard on the IN-PROCESS door, so a cell that opens `/api/run-stream/:runId` and gets events
-// back cannot tell "the local door consumes the contract" apart from "the local door grew its own
-// stream". Both serve envelopes. The discriminating measurement is a DIFFERENTIAL: the same
-// planted session, driven through the AUTHED door and the LOCAL door over a corpus of requests
-// that includes every refusal class, with the two responses compared BYTE FOR BYTE. A second
-// spelling in `routes.ts` would have to reproduce the framing, the filter, the repeated-parameter
-// join, the two typed 400s, the pre-stream ordering and the heartbeat comment exactly — and the
-// first one it got wrong reds a cell naming which.
-//
-// THE SOURCE CELL AT THE BOTTOM CARRIES ITS OWN KNOWN-POSITIVE CONTROL, deliberately (WINDOWS
-// #253). "No SSE frame formatting appears in the handler body" is satisfied for free by an
-// extractor that returns nothing, so the SAME predicate is also run over a body where every
-// pattern must match. A predicate that cannot see frame formatting where it lives proves nothing
-// about not seeing it here.
-//
-// THAT CONTROL IS THE RUN-SERVICE MODULE, NOT A SECOND HANDLER IN THIS FILE.
-// It used to be the retired live-event route — a second SSE spelling that happened to sit beside
-// the one under test — and this header went on describing it after 405-07 deleted the route,
-// which is the stale-claim failure WINDOWS #253 exists to prevent, one layer up. The control is
-// now `run-service/run-service-routes.ts`: the module this handler DELEGATES to, and the one place
-// the frames are actually written. See the source cell's own note for why that is the stronger
-// control rather than merely the surviving one.
-//
-// THE PRODUCTION-FRAME CELLS DRIVE `startServer`, not the router alone. The router can only be
-// reached with an attach port somebody threaded; the thing that threads it is `server.ts`. A suite
-// that only mounted `createRouter` would prove the route works and leave the wiring unmeasured —
-// the failure mode WINDOWS' "green that never ran" names.
+// The same planted session through the authed and local doors must answer byte for byte.
 
 import { readFile } from 'node:fs/promises'
 import {
@@ -62,31 +33,14 @@ import {
 import { createRouter } from '../server/routes.js'
 import { startServer } from '../server/server.js'
 
-/**
- * THE CORE, WRAPPED IN A SPY THAT DELEGATES TO IT (not replaced by one).
- *
- * The differential below proves the two doors AGREE; it cannot prove there is ONE implementation,
- * because a private copy of the serving body produces byte-identical output — 402-05 measured
- * exactly that shape for the readiness predicate (its mutation M9), and only a reference-level pin
- * saw it. This is that pin for a function that is CALLED rather than published: `routes.ts` reads
- * `serveRunEventStream` off this module's namespace, so a handler that called a copy — in this
- * file, in a sibling module, anywhere — would leave the spy unfired.
- *
- * `createRunServiceRoutes` is unaffected: its own call binds lexically inside the real module, so
- * the authed side of every differential is the shipped path.
- */
+// A spy that delegates proves `routes.ts` calls the shared `serveRunEventStream`, not a copy.
 vi.mock('../run-service/run-service-routes.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../run-service/run-service-routes.js')>()
   return { ...actual, serveRunEventStream: vi.fn(actual.serveRunEventStream) }
 })
 
 
-/**
- * The announced roster — non-contiguous and not 0-based, on 402-04's own reasoning.
- *
- * With members 0 and 1 a correct filter is indistinguishable from one that returns everything,
- * one that is off by one, and one keyed on array position rather than on the stamped `testIndex`.
- */
+// Non-contiguous and not 0-based, so a filter by array position or one that returns all fails.
 const ROSTER = [3, 7, 11] as const
 
 /** An interleaved feed over three concurrent members, with chosen (gappy) seqs. */
@@ -119,18 +73,14 @@ function sessionOverFeed(id: string): RunSession {
     id: id as RunSession['id'],
     status: 'running',
     executionContext: 'local-headless' as RunSession['executionContext'],
-    // `fromSeq` is HONOURED, which is what a real bus does and what the resume rows below
-    // are about. A planted session that ignored it would make every `?lastEventId=` row in the
-    // corpus agree on both doors while measuring nothing about the resume point — two doors both
-    // replaying from 1 are byte-identical too.
+    // `fromSeq` is honoured, or both doors replay from 1 and the resume rows measure nothing.
     subscribe(fromSeq, handler) {
       for (const envelope of FEED) {
         if (envelope.seq >= fromSeq) handler(envelope)
       }
       return () => undefined
     },
-    // this feed carries EVENTS, not frames. The planted session declares no stream and
-    // hands out no frame subscription, which is the honest answer for a fixture with no browser.
+    // The planted session declares no stream and hands out no frame subscription.
     subscribeFrames() { return undefined },
     streamCapabilityOf() { return { kind: 'none' } },
     cancel() { /* nothing to cancel on a planted session */ },
@@ -231,14 +181,10 @@ const ACK: RunStartAcknowledgement = {
 function servicePorts(options: { readonly mint?: boolean } = {}): RunServicePorts {
   const mint = options.mint === true ? freshMint('authed-') : undefined
   return {
-    // no `verifyBearer` — the run service is tokenless.
     invokeRunStart: async () => ACK,
     attach: attachPort,
     readiness: () => READINESS,
-    // 403-03 (D-03, Q3): a fixture that composed no live view HAS no live view, and the honest
-    // answer to a mint request is 503 by name. Never a stub that mints — a fabricated token would
-    // make every cell downstream of it a claim about this file's idea of a credential. The parity
-    // rows opt IN to a fresh-token mint, which is the shape production has.
+    // A fixture with no live view answers a mint with 503; parity rows opt in to a fresh mint.
     mintLiveUrl: mint === undefined
       ? () => Promise.reject(
         Object.assign(new Error('no live-view port is bound on this fixture'), {
@@ -333,7 +279,7 @@ const CORPUS: readonly CorpusRow[] = Object.freeze([
   ['a well-formed handle no member answers to', 'r_local', '?handle=4'],
   ['an unknown run', 'r_nope', ''],
   ['an unknown run WITH a handle', 'r_nope', '?handle=3'],
-  // ---- 403-03: the resume point, on both doors -----------------------
+  // The resume point, on both doors.
   ['resume after 8', 'r_local', '?lastEventId=8'],
   ['resume after 8 on handle 7', 'r_local', '?handle=7&lastEventId=8'],
   ['resume via the HEADER', 'r_local', '', { 'Last-Event-ID': '8' }],
@@ -515,9 +461,6 @@ describe('both doors mint the SAME liveUrl — shape-identically, and refuse ide
     }
   })
 
-  // RE-SPELLED 2026-10-01 from 'the local door needs NO credential and the
-  // authed door needs one — the only difference'. Neither door needs a credential now; both refuse a
-  // cross-site mint with the same same-site guard, and both mint for a local caller.
   it('neither door needs a credential, and both refuse a cross-site mint the same way', async () => {
     const authed = await authedDoor({ mint: true })
     expect((await read(`${authed}/run/r_local/live-url`)).status).toBe(200)
@@ -713,11 +656,7 @@ describe('the PRODUCTION frame threads the attach port (server.ts, not the route
   })
 
   it('THE ATTACH-ONLY ARM: streams with runServiceAttach alone and NO runService mounted', async () => {
-    // WINDOWS #264, at the production frame. The zero-token dashboard declares no run-service
-    // credential, so `runService` is absent — and it still executes runs, so its local door must
-    // still stream them. `runServiceAttach` is a FIRST-CLASS `startServer` option rather than a
-    // derivation off `runService` precisely so this composition exists; that is the whole content
-    // of the fix, and it is only measurable at the frame that threads it.
+    // The zero-token dashboard has no `runService` yet runs tests; `runServiceAttach` is separate.
     const db = new DashboardDatabase({ dbPath: ':memory:' })
     const started = await startServer({ declaredSecretMask: (text) => text, db, port: 0, runServiceAttach: attachPort })
     closers.push(started.close)
@@ -817,25 +756,7 @@ describe('the PRODUCTION frame threads the attach port (server.ts, not the route
   })
 })
 
-/**
- * ---- THE SOURCE CELL, WITH ITS KNOWN-POSITIVE CONTROL ----------------------------------------
- *
- * The extractor brace-matches the handler block containing a given needle out of `routes.ts`. The
- * predicate then asks whether SSE frame formatting appears inside that block. Run over the local
- * run-stream handler the answer must be NO — and the SAME predicate is run over a body where the
- * answer must be YES, because an extractor that returned nothing (or a predicate that could not
- * see frame formatting) would satisfy the first assertion for free.
- *
- * THE CONTROL MOVED, AND MOVED TOWARDS THE THING IT IS ABOUT. It used
- * to be the RETIRED live-event handler in this same file — a second SSE spelling that happened to
- * contain the framing. (Its route name is deliberately not spelled anywhere in this file: the D-21
- * grep-clean inventory scans every package's `src` tree and counts a comment as a hit, so prose
- * naming a retired route would be the reappearance the inventory exists to forbid.) It is gone, and
- * the honest control is the module the run-stream handler DELEGATES to: `run-service-routes.ts`,
- * where every one of these patterns has to appear because that is where the frames are actually
- * written. A control inside the file under test could only ever prove the extractor worked; this
- * one proves the framing exists somewhere and that `routes.ts` is not the somewhere.
- */
+// The same predicate must match `run-service-routes.ts`, or an empty extractor would pass for free.
 const FRAME_FORMATTING: readonly (readonly [string, RegExp])[] = Object.freeze([
   ['the event-stream content type', /text\/event-stream/u],
   ['an id frame', /id: \$\{/u],

@@ -73,9 +73,7 @@ vi.mock('@vostride/agent-qa-model', async () => {
   }
 })
 
-// 2026-10-03 (quick-261003-tsr, WR-12): a write failure is injected at the atomic writer's
-// rename rather than with directory permissions, which root (and Windows) ignore. Pass-through
-// unless a cell sets the flag.
+// A rename failure is injected, because root and Windows ignore directory permissions.
 const fsFault = vi.hoisted(() => ({ failRename: false }))
 vi.mock('node:fs/promises', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs/promises')>()
@@ -339,8 +337,7 @@ describe('ConfigManager', () => {
           .toEqual({ enabled: true, ...recording })
       }
       const beforeInvalid = await readFile(configPath, 'utf8')
-      // the door refuses a path the schema does not describe; inside a container value
-      // the same key still meets whole-config validation.
+      // The door refuses a path the schema does not describe; in a container value it validates.
       const invalid = await patchConfig([{ op: 'set', path: ['services', 'recording', 'videoDir'], value: 'videos' }])
       expect(invalid.status).toBe(422)
       expect(JSON.parse(invalid.body)).toEqual({ error: 'path_not_writable' })
@@ -554,7 +551,6 @@ describe('ConfigManager.applyChanges ops and selectors', () => {
   it('APPEND-CREATES-SEQ: an append to an absent sequence creates it with one entry', async () => {
     await writeFile(configPath, writeConfig(WRITE_BASE_LINES, WRITE_MOBILE_LINES))
 
-    // re-spelled from the deleted `services.mcp.tokens` list onto a retained absent sequence.
     const outcome = await manager.applyChanges([
       { op: 'append', path: ['workspace', 'testPathIgnore'], value: 'tests/skip/**' },
     ])
@@ -1024,7 +1020,7 @@ describe('declared secrets in the config editor', () => {
         + '      baseURL: https://llm.example.invalid/v1\n      providerHeaders:\n        x-access: Hunter-42-zz\n',
     ))
 
-    // Composed, so no package source spells the retired route (441-49's grep).
+    // Composed, so no package source spells the retired route literally.
     const answer = await invokeRoute(['/api/config', 'reveal'].join('/'), {
       method: 'POST',
       headers: { ...SELF_HOST_HEADERS, origin: `http://${SELF_HOST_HEADERS.host}`, 'sec-fetch-site': 'same-origin' },
@@ -1037,9 +1033,7 @@ describe('declared secrets in the config editor', () => {
   })
 })
 
-// the transaction queue belongs to the resolved config path,
-// so every ConfigManager in this process (the dashboard's and a co-hosted direct writer's) takes
-// turns. It is not a cross-process lock.
+// The queue is per resolved config path, so in-process writers take turns; no cross-process lock.
 describe('co-hosted writers of one config path share one queue', () => {
   const QUEUE_CONFIG = writeConfig(
     ['# The owner keeps this comment.'],
@@ -1175,8 +1169,7 @@ describe('co-hosted writers of one config path share one queue', () => {
   })
 
   it('a write that fails inside its turn rejects, writes nothing, and the next writer still gets the path', async () => {
-    // The temp file is written and only its rename fails, so the cleanup that keeps "writes
-    // nothing" true is on the measured road.
+    // Only the rename fails, so the temp-file cleanup is what keeps "writes nothing" true.
     fsFault.failRename = true
     try {
       const failed = new ConfigManager(configPath, (text) => text).applyChanges([targetChange(6)])

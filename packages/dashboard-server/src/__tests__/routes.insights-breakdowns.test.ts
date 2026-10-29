@@ -41,11 +41,7 @@ function insertRun(overrides: Record<string, unknown> = {}) {
   })
 }
 
-// A mock request that omits `Host` models no real client: HTTP/1.1 requires the header and every
-// browser, `curl`, `fetch` and the conformance harness sends it. The display-seam read arms
-// now refuse a request whose claimed Host is not a loopback name, so the default below
-// is what keeps these direct-invoke probes speaking the wire's own shape. An explicit `host` in
-// `options.headers` still wins, which is how the refusal itself is exercised.
+// Requests default to a loopback `Host`, because the display-seam read arms refuse any other.
 const LOOPBACK_HOST_HEADER = { host: '127.0.0.1:3470' } as const
 
 function createMockRequest(
@@ -194,7 +190,7 @@ afterEach(async () => {
 
 describe('GET /api/analytics/tests/:name', () => {
   it('returns scoped test metrics without changing all-run metrics', async () => {
-    // the test viewer reads member rows, so each run seeds its member.
+    // The test viewer reads member rows, so each run seeds its member.
     for (const [status, branch] of [['passed', 'phase223-main'], ['failed', 'phase223-main'], ['failed', 'dev']] as const) {
       const runId = insertRun({
         id: randomUUID(),

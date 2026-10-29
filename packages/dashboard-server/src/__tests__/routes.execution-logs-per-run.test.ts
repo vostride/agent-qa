@@ -1,6 +1,4 @@
-// C433-HOOK-LOG-IDENTITY. Every run of a hooked test keeps its
-// own Setup/Teardown rows in one dashboard database, through the ids the real runHooks mints, and a
-// retried member keeps its final attempt's in-attempt hook rows.
+// Every run of a hooked test keeps its own Setup and Teardown rows, by the ids `runHooks` mints.
 
 import { IncomingMessage, type ServerResponse } from 'node:http'
 import { Socket } from 'node:net'

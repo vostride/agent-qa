@@ -9,64 +9,7 @@ import type { AgentHost } from '../chat/host.js'
 import { DashboardDatabase } from '../db/database.js'
 import { startServer } from '../server/server.js'
 
-/**
- * THE ARTIFACT-SERVING GUARD, DRIVEN AT THE RAW WIRE (402-05 D-16 → 405-07 D-14 — T-402-17/T-405-28).
- *
- * ---- WHAT THIS FILE MEASURES NOW -------------------------------------------------------------
- *
- * the two PATH-addressed artifact routes these cells were written against are
- * deleted, with the containment resolver, the three-door serving verdict and the run-deletion
- * filesystem sweep that shared it. Refs are the only artifact addressing: a run's evidence
- * is reached as `GET /api/runs/:runId/artifacts/:sha`, and the containment rule for those bytes is
- * the evidence store's own, reached through the `runs.artifact` op rather than reassembled here.
- *
- * The escape payloads did not go away with the routes — they arrive at whatever route serves
- * artifacts — so this file keeps every one of them and re-aims it at the successor. What changed is
- * WHERE the refusal comes from: it is no longer a path check this package wrote, it is a content
- * ADDRESS contract. A sha is 64 characters drawn from `[0-9a-f]`, so every payload below fails to
- * be one, and the door refuses before it has any path to resolve.
- *
- * ---- WHY A SOCKET AND NOT `fetch` ------------------------------------------------------------
- *
- * Every HTTP client in Node builds its request target through the WHATWG URL parser, and that
- * parser REMOVES double-dot path segments before a byte leaves the process. `fetch` cannot send
- * `GET /api/runs/run-1/artifacts/../../canary.txt` — it sends `GET /canary.txt`. A cell that used
- * `fetch` for the literal form would therefore be measuring its own client, and would report a
- * refusal the server never made. These cells write the request line onto a `net.Socket` directly,
- * so the bytes on the wire are the bytes the cell chose. That is this file's whole reason to exist
- * alongside `run-service/__tests__/run-detail-routes.test.ts`, which drives the same route through
- * `fetch` over a real store.
- *
- * ---- WHERE NORMALIZATION ACTUALLY HAPPENS, MEASURED ------------------------------------------
- *
- *  - A LITERAL `../` reaches this process and is then collapsed by `tryParseRequestUrl`'s
- *    `new URL(...)` — the request lands on a different route entirely, never on the artifact arm.
- *  - A WHOLE-SEGMENT `%2e%2e` is ALSO collapsed there: the URL spec counts it as a double-dot path
- *    segment. That class cannot reach the arm from any client.
- *  - `..%2f`, `..%5c` and `%2f`-prefixed segments are NOT collapsed — the encoded separator keeps
- *    the dot-dot inside one segment, so it survives the parse intact and arrives at the route.
- *    THOSE are the payloads below, and the address contract is the only thing refusing them.
- *
- * ---- THE CANARY ------------------------------------------------------------------------------
- *
- * Every refusal cell targets a real file planted OUTSIDE any artifact root and asserts its bytes
- * never appear in any response. A 4xx alone would be satisfied by a route that refused for the
- * wrong reason. The claim is now STRONGER than it was: the arm opens no path at all, so a canary
- * appearing in a body would mean a filesystem read this layer is no longer capable of making.
- *
- * ---- THE PLANTED HOST, AND WHAT IT IS AND IS NOT PROOF OF ------------------------------------
- *
- * `serveRunArtifact` validates the address with the SHIPPED `RunsArtifactInputSchema` BEFORE it
- * dispatches, so every refusal below is the shipped contract's and not this file's. The host here
- * is a stub that THROWS if it is ever invoked with a refused address — so a route that stopped
- * validating would surface as a 500 rather than quietly pass this suite.
- *
- * The 200 control is planted bytes, deliberately: what it proves is that the door is not refusing
- * everything, and that the address it accepted is the one it echoed as the validator. The bytes of
- * a blob actually WRITTEN through `FsEvidenceArtifactStore` are 405-05's cell in
- * `run-detail-routes.test.ts`, over a real composed registry; a second registry composition here
- * would be a second thing to keep in step with the first.
- */
+// Raw socket writes, because `fetch` collapses `../` before sending; no body may hold the canary.
 
 const CANARY = 'agent-qa-traversal-canary-8f3a1c'
 

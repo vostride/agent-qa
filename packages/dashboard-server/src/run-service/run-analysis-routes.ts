@@ -1,23 +1,4 @@
-// The run-ANALYSIS read route.
-//
-// `GET /api/runs/:id/analysis` locally, `GET /run/:runId/analysis` on the authed remote door, and
-// BOTH call the one function below. This module is the whole of the HTTP half: validate the id
-// with the OP'S OWN input schema, dispatch through the injected host, map the op's named refusals
-// onto status codes. IT FORMATS NOTHING. It composes no sentence, folds no cluster and opens no
-// database — `analysis.get` is THE single producer of a run's verdicts, sentences and clusters
-// and a second producer on this door is the 405 D-01 anti-pattern restated.
-//
-// BOTH DOORS, ONE ADAPTER. 405 D-12/D-13 established the shape and 405-05 proved why: two
-// doors resolving one read through two implementations means "the same analysis" depends on which
-// credential asked. The sibling detail adapter's own note says a second spelling agrees on the day
-// it is written and is a wire-contract fork thereafter.
-//
-// BOTH DOORS SERVE THE STORED BODY. The verdict sentence quotes the failing step's recorded error,
-// which was masked at write, and neither door restores anything.
-//
-// THE REFUSAL VOCABULARY IS IMPORTED, NEVER RESPELLED. `refusalFor` is the detail adapter's, made
-// exported for this file; `unknown_run` / `agent_host_unavailable` / `read_failed` mean here
-// exactly what they mean one module away.
+// Both doors call this one adapter, which formats nothing; `analysis.get` is the only producer.
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
 

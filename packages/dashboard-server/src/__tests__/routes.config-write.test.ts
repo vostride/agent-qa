@@ -272,8 +272,7 @@ describe('PATCH /api/config', () => {
     })
   })
 
-  // the answer names the bytes the write merged onto, so a page can tell its write
-  // absorbed an outside edit it never read.
+  // The answer names the bytes the write merged onto, so a page sees it absorbed an outside edit.
   it('BASE-REVISION-ANSWERED: the answer carries the sha256 of the bytes the write merged onto', async () => {
     const configPath = await useConfigWorkspace()
     const outside = Buffer.from(baseConfig.replace('headless: false', 'headless: true'), 'utf-8')
@@ -331,7 +330,7 @@ describe('PATCH /api/config concurrency, idempotency and file identity', () => {
     expect(Buffer.compare(await readFile(configPath), afterFirst)).toBe(0)
     const [one, two] = [first, second].map((response) => JSON.parse(response.body) as { revision: string; baseRevision: string })
     expect(two!.revision).toBe(one!.revision)
-    // the second write merged onto exactly what the first one wrote.
+    // The second write merged onto exactly what the first one wrote.
     expect(two!.baseRevision).toBe(one!.revision)
   })
 
@@ -365,7 +364,7 @@ describe('PATCH /api/config concurrency, idempotency and file identity', () => {
   })
 })
 
-// completion and snapshot-computed writes are decided by the file at merge time.
+// Completion and snapshot-computed writes are decided by the file at merge time.
 function withoutLines(text: string, lines: readonly string[]): string {
   return text.split('\n').filter((line) => !lines.includes(line)).join('\n')
 }
@@ -493,7 +492,7 @@ describe('PATCH /api/config set-if-absent and expect', () => {
     expect(mockRename).not.toHaveBeenCalled()
   })
 
-  // no path is classed secret, so an expect on a header is compared like any field.
+  // No path is classed secret, so an expect on a header is compared like any field.
   it('EXPECT-ON-HEADER-COMPARED: an expect on a header value refuses a wrong guess 409 like any field', async () => {
     const configPath = await useConfigWorkspace(matchConfig(['a/*.yaml', 'b/*.yaml']))
     const before = await readFile(configPath)
@@ -506,7 +505,7 @@ describe('PATCH /api/config set-if-absent and expect', () => {
   })
 })
 
-// the page's write door changes only what the page renders a field for.
+// The page's write door changes only what the page renders a field for.
 const policyConfig = baseConfig.replace('registry: {}', [
   'registry:',
   '  llms:',
@@ -522,8 +521,7 @@ const policyConfig = baseConfig.replace('registry: {}', [
 ].join('\n')
 
 describe('PATCH /api/config path policy', () => {
-  // `safety` left the schema and the denied roots; its paths are still refused,
-  // now as paths the published schema does not describe.
+  // `safety` is outside the published schema, so its paths are refused as undescribed paths.
   it('WRITE-DOOR-REFUSES-DENIED-ROOTS: plugins and the retired safety root are refused 422 before anything is read or written', async () => {
     const configPath = await useConfigWorkspace(policyConfig)
     const before = await readFile(configPath)
@@ -669,7 +667,7 @@ describe('PATCH /api/config page-owned fields under retry and concurrency', () =
   })
 })
 
-// 429-52 (deferred 429-24, server half): a header rename re-keys the value inside the server.
+// A header rename re-keys the value inside the server.
 const HEADER_SECRET = 'sk-header-secret-1'
 const headerConfig = baseConfig.replace('registry: {}', [
   'registry:',
@@ -811,9 +809,7 @@ describe('one write path to the config file', () => {
     expect((await patchConfig(setStep('45s'))).status).toBe(200)
   })
 
-  // replaceDocument, the direct writer's whole-file publication over the
-  // digest it was built from, is a file method. It stays inside the class like the others. 441-49
-  // deleted the reveal read, leaving five.
+  // `replaceDocument`, the direct writer's whole-file publication, is a file method in the class.
   it('ONE-WRITE-PATH: the manager exposes only its five file methods, and nothing outside the class touches the file', async () => {
     const source = await readFile(CONFIG_MANAGER_SOURCE, 'utf-8')
     const body = classBody(source)

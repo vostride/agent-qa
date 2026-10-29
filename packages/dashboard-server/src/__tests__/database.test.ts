@@ -98,13 +98,10 @@ describe('DashboardDatabase', () => {
       expect(names).toContain('execution_logs')
       expect(names).toContain('token_events')
       expect(names).toContain('run_artifacts')
-      // the v2 bus-shaped projection.
       expect(names).toContain('run_members')
       expect(names).toContain('run_steps')
       expect(names).toContain('run_sub_actions')
-      // the three v1 projection tables the census deleted. Each needle is built from
-      // two halves so this assertion cannot be the hit that satisfies the D-21 grep-clean
-      // inventory — a pin that matches ITSELF is a pin that proves nothing.
+      // Each needle is built from two halves, so the assertion is not itself a text-search hit.
       expect(names).not.toContain('ste' + 'ps')
       expect(names).not.toContain('reasoning_' + 'traces')
       expect(names).not.toContain('lo' + 'gs')
@@ -115,9 +112,6 @@ describe('DashboardDatabase', () => {
       expect(version).toBe(SCHEMA_VERSION)
     })
 
-    // the v2 runs shape after the census. Five columns left with their
-    // readers — the recording path (no producer at all, D-14) and the four parent/attempt/retry
-    // columns (nothing has written a child run row since 402-09 put one row per run).
     it('creates the current final runs columns directly at v2', () => {
       expect(columnNames('runs')).toEqual([
         'id',
@@ -172,7 +166,7 @@ describe('DashboardDatabase', () => {
         'variables',
         'created_at',
         'hook_id',
-        // where in the run tree the hook ran; NULL means run-scoped.
+        // Where in the run tree the hook ran; NULL means run-scoped.
         'test_index',
         'step_index',
       ])
@@ -242,13 +236,6 @@ describe('DashboardDatabase', () => {
   })
 
   describe('generic migration infrastructure', () => {
-    // the two cells that stood here asserted a WALKABLE CHAIN —
-    // "applies future migrations after the current user_version" and "skips migrations at or
-    // below it". Both described a shape this build no longer has and, worse, the second one
-    // described the exact behaviour RESEARCH Pitfall 4 names as a silent corruption: a database
-    // at version 1 being carried forward by re-running `CREATE TABLE IF NOT EXISTS` over the old
-    // wide shape. What replaces them is the contract that replaced the chain.
-
     it('applies the single terminal migration to a fresh database', () => {
       const raw = createDashboardSqliteDatabase(':memory:')
       try {
@@ -284,8 +271,7 @@ describe('DashboardDatabase', () => {
           { version: 2, sql: ['CREATE TABLE should_not_run (id TEXT PRIMARY KEY)'] },
         ], 2)).toThrow('Remove the dashboard database')
 
-        // Nothing ran, and the old file is exactly as it was. The alternative — the pre-405
-        // behaviour — created the new tables BESIDE the old shape and reported success.
+        // Nothing ran, and the old file is left byte for byte.
         expect(raw.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = 'should_not_run'").get())
           .toBeUndefined()
         expect(raw.pragma('user_version', { simple: true })).toBe(1)
@@ -441,10 +427,6 @@ describe('DashboardDatabase', () => {
       expect(finalizedAgain.payload.runtime).toMatchObject({ status: 'passed', duration: 25 })
     })
 
-    // the bundle is ONE run's artifact. The cell that stood here seeded
-    // a suite parent with a child run row and asserted the bundle carried the child's artifact
-    // beside its own. Nothing has written a child run row since 402-09, so the walk it exercised
-    // was already structurally empty on every real database — and `children` is gone with it.
     it('answers the run\'s own artifact and nothing beside it, and the row goes with the run', () => {
       const runId = insertSampleRun({ name: 'Smoke suite', suiteId: 's_smoke' })
 
@@ -465,13 +447,7 @@ describe('DashboardDatabase', () => {
       expect(db.getRun(runId)).toBeUndefined()
     })
 
-    // The narrowed CHECK (RESEARCH Open Q4): two kinds are all anything mints.
-    //
-    // THE REFUSAL SURFACES THROUGH THE MEMBER'S POST-CONDITION, not as a raw constraint error, and
-    // that is worth pinning rather than papering over: the insert is `INSERT OR IGNORE` — there so
-    // a second insert for the same run is a no-op — and OR IGNORE swallows a CHECK failure exactly
-    // as it swallows a duplicate key. What makes the refusal visible is the read-back the member
-    // does immediately afterwards, which finds no row and throws by name.
+    // `INSERT OR IGNORE` swallows a CHECK failure, so the read-back is what refuses the kind.
     it('refuses a run-artifact kind outside the two the product still mints', () => {
       const runId = insertSampleRun({ name: 'Kind check' })
       expect(() => db.insertRunArtifact({ runId, kind: ('suite-' + 'parent') as never }))
@@ -517,10 +493,7 @@ describe('DashboardDatabase', () => {
     })
 
     it('filters by name (LIKE search)', () => {
-      // Explicit ids, because the filter is `name LIKE ? OR id LIKE ?` and a generated run id is
-      // ten dictionary words from `id-agent` — one of which is literally "login". Measured over
-      // 20k generated ids, 0.21% contain it, so leaving the non-matching row's id to chance made
-      // this assert 2-or-3 roughly once every 476 runs. It rolled a 3 on CI on 2026-08-02.
+      // Explicit ids: the filter also matches `id LIKE ?`, and a generated id can contain "login".
       insertSampleRun({ id: 'run_fixed-alpha', name: 'Login Test' })
       insertSampleRun({ id: 'run_fixed-bravo', name: 'Checkout Test' })
       insertSampleRun({ id: 'run_fixed-charlie', name: 'Login Flow' })
@@ -589,9 +562,6 @@ describe('DashboardDatabase', () => {
       expect(stats.avgDuration).toBe(4000)
     })
 
-    // the flake rate reads `run_steps.self_heal_occurred` now — the bus
-    // payload's own boolean, projected verbatim — rather than a status word on a v1 projection with
-    // no producer left. Same arithmetic, a fact the runner actually reported.
     it('calculates flake rate from steps a self-heal occurred on', () => {
       const run1 = insertSampleRun({ status: 'passed', startedAt: '2026-03-01T10:00:00Z' })
       const run2 = insertSampleRun({ status: 'passed', startedAt: '2026-03-01T10:00:00Z' })
@@ -1028,11 +998,6 @@ describe('DashboardDatabase', () => {
   })
 
   describe('flaky detection', () => {
-    // four cells stood here over the parent/child run tree — an
-    // ordered child read, two "excludes child runs" filters and a retry-info writer. Nothing has
-    // written a child run row since 402-09, so all four exercised a shape no producer could
-    // create; the columns, the reader, the writer and the index went together. What replaces them
-    // is the pin that the index is GONE, so re-adding the column reddens here.
     it('counts every run, because every run is top-level now', () => {
       insertSampleRun({ name: 'Normal', status: 'passed', startedAt: '2026-03-01T10:00:00Z' })
       insertSampleRun({ name: 'Flaky One', status: 'healed', startedAt: '2026-03-01T10:00:00Z' })

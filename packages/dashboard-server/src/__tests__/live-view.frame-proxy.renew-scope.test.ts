@@ -1,10 +1,4 @@
-// 428 code review WR-07 (428-REVIEW.md): a frame-socket renew is tied to what the socket greeted
-// with. A token is view-scoped to one handle, so a valid token for another handle of the same run
-// is refused, and an older token, replayed or reordered, never shortens the viewer's deadline.
-//
-// The validator is the real `validateLiveUrlToken` over a signer this file builds, as in
-// live-view.frame-proxy.test.ts; the run session is planted with no stream, which is all a renew
-// needs.
+// A renew must name the greeted handle, and a replayed older token never shortens the deadline.
 
 import { createHmac, timingSafeEqual } from 'node:crypto'
 

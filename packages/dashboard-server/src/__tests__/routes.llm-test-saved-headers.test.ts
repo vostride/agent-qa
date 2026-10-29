@@ -214,8 +214,7 @@ describe('POST /api/llm/test with a saved model\'s headers', () => {
     }
   })
 
-  // the model row leaves out a header it showed as `[secret:<name>]`, so its request
-  // carries only the others and the saved value is the one sent.
+  // The model row leaves out a header it showed as `[secret:<name>]`, so the saved value is sent.
   it('MASK-HEADER-NEVER-SENT: a header the row showed as a marker is left out, and the saved value is sent', async () => {
     const res = await testConnection({
       configName: 'proxy',

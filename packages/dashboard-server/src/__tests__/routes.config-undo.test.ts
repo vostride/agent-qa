@@ -1,5 +1,4 @@
-// an explicit action acts at once and hands back a single-use Undo token. The
-// restore happens on the server, so the browser never holds or writes back a secret.
+// The restore happens on the server, so the browser never holds or writes back a secret.
 
 import { createHash } from 'node:crypto'
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
@@ -47,7 +46,7 @@ interface MockResponse {
 
 const HOST = '127.0.0.1:4317'
 const SAME_SITE: IncomingHttpHeaders = { host: HOST, 'content-type': 'application/json' }
-// The undo window the server keeps a token for (D-24: longer than the page's 10 s Undo link).
+// The server keeps a token longer than the page's 10 s Undo link.
 const RETENTION_MS = 30_000
 const HEADER_SENTINEL = 'hdr-sentinel-7f3a91c2d4'
 const MODEL_COMMENT = '# gpt goes through the org proxy'
@@ -369,8 +368,7 @@ describe('undoable config writes', () => {
   })
 })
 
-// 429-42 made a set-if-absent completion of use.browser.headless carry a root use.headless under
-// its new key and delete the root key; this pins that one Undo brings the owner's root key back.
+// One Undo restores a root `use.headless` that a set-if-absent completion moved under its new key.
 describe('undo of a set-if-absent completion', () => {
   it('UNDO-LEGACY-HEADLESS-RESTORED: Undo of a completion that moved a root use.headless puts the root key back and removes the browser keys', async () => {
     const legacy = knowledgeConfig([]).replace('use:\n', 'use:\n  headless: false\n')

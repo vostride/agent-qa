@@ -84,11 +84,6 @@ const timeoutInventory: TimeoutInventoryEntry[] = [
     rationale: 'Allows slow local prompt processing during connectivity checks without affecting real test execution.',
     allowed: true,
   },
-  // the `15_000` SSE keepalive interval in `routes.ts` is gone with the
-  // legacy live-event route it kept open. The surviving stream — `GET /api/run-stream/:runId` —
-  // heartbeats from `run-service-routes.ts`, which carries its own inventoried literal; this row
-  // named a file that no longer holds one, and an inventory entry with no site is a claim nothing
-  // measures.
   {
     id: 'dashboard-retired-openai-oauth-session-retention',
     file: 'packages/dashboard-server/src/server/routes.ts',
@@ -214,17 +209,6 @@ const timeoutInventory: TimeoutInventoryEntry[] = [
       + 'than arming it.',
     allowed: true,
   },
-  // the four `test-runner.ts` entries that inventoried a CHILD
-  // PROCESS are gone with the child: the heartbeat poll cadence, the stale-silence threshold, the
-  // one-millisecond buffer that kept the threshold above the cadence, and the SIGTERM-to-SIGKILL
-  // grace. Liveness comes off the bus now and a cancel is `RunSession.cancel()`, so there is no
-  // silence to detect and no signal to escalate. The two literals with successors — the disabled
-  // sentinel and the buffer retention — are re-homed above.
-  // Phase 353-07 — its step-deadline `: 0` disabled sentinel and the
-  // `timeout: 0` failure-artifact placeholder moved with the loop into
-  // packages/runner/src/loop/index.ts. The runner package is outside this
-  // dashboard-server scanner's curated core-execution scope, so those sentinels are
-  // no longer inventoried here.
 ]
 
 const scannedFiles = [...new Set(timeoutInventory.map(entry => entry.file))]
@@ -235,14 +219,7 @@ function normalizeLiteral(value: string): string {
   return value.replace(/\s+/g, ' ').trim()
 }
 
-/**
- * Blank out `//` line comments and `/* … *\/` block comments, replacing every comment
- * character with a space so byte offsets AND line numbers stay aligned with the original.
- * Timeout literals are executable config, never comment prose — decision-reference tags
- * (`D-03`, `D-14`) and exit-code documentation (`healed=0`, `cancelled=130`) live only in
- * comments, so numeric extraction runs over the code-only projection while context matching
- * still uses the raw lines.
- */
+// Comments are blanked to spaces so offsets and line numbers match; context still reads raw lines.
 function blankComments(src: string): string {
   return src.replace(/\/\*[\s\S]*?\*\/|(?<!:)\/\/[^\n]*/g, match =>
     match.replace(/[^\n]/g, ' '),

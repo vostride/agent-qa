@@ -1,4 +1,4 @@
-// the run-detail reader answers the row's stored status, and nothing else.
+// The run-detail reader answers the row's stored status, and nothing else.
 
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'

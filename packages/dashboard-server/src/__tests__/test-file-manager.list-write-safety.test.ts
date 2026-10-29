@@ -34,10 +34,7 @@ import { startServer } from '../server/server.js'
 import { SuiteFileManager } from '../tests/suite-file-manager.js'
 import { TestFileManager } from '../tests/test-file-manager.js'
 
-// reading the test or suite list never damages a file or a save racing it.
-// a read after a save or delete sees it; empty, unnamed and long-named files list truthfully.
-// an id write keeps a ---led file one document, and a key's value is read from its own line.
-// a file that parses is read from its mapping, and an id write lands only if it parses to the old mapping plus the id.
+// Reading the list never damages a file or a racing save; an id write lands only when it parses.
 
 type Hold = { suffix: string; content: string | null; reach: () => void; gate: Promise<void>; release: () => void }
 
@@ -430,7 +427,7 @@ function layoutCorpus(kind: Kind, namedId: string): LayoutRow[] {
   minted('crlf', '', '', '\r\n', crlf(base('crlf')))
   minted('crlf-marker', '---\r\n', '---\r\n', '\r\n', crlf(base('crlf-marker')))
   minted('plain', '', '', '\n')
-  // a nested bare id key, the CRLF and byte-order-mark fills, and the unminted flow and indented mappings.
+  // Nested bare id keys, CRLF and BOM fills, and unminted flow and indented mappings.
   const listKey = kind === 'test' ? 'steps: [Click a]' : 'tests: []'
   fixed('nested-flow-id', `{name: Layout nested-flow-id, target: web,\nuse: {\n${key}:\n},\n${listKey}}\n`, 'left', null, true, 'web')
   minted('crlf-comment-id', `${key}: # fill later\r\n`, '', '\r\n', crlf(base('crlf-comment-id')))
@@ -559,7 +556,7 @@ async function checkLayoutCorpus(kind: Kind): Promise<{ rows: number; findings: 
 
 type GuardLeg = { status: number; error: string | null; written: boolean | 'other bytes'; valid: boolean }
 
-// each body is valid under parseTestFile, so a refusal is the guard's and not validate()'s.
+// Each body is valid under `parseTestFile`, so a refusal is the guard's and not `validate()`'s.
 async function guardLegs(name: string, body: (firstId: string) => string): Promise<{ POST: GuardLeg; PUT: GuardLeg }> {
   const ws = await workspace(name)
   const savedId = generateTestId()
@@ -1747,7 +1744,7 @@ describe('test and suite list reads and id writes', () => {
     })
   })
 
-  // a Latin-1 byte is not valid UTF-8; a decode that replaced it would rewrite it as EF BF BD.
+  // A Latin-1 byte is not valid UTF-8; a decode that replaced it would rewrite it as EF BF BD.
   it('an id-less test or suite file that is not valid UTF-8 is listed with no id and left byte-identical', async () => {
     const ws = await workspace('not-utf8')
     const findings: string[] = []
