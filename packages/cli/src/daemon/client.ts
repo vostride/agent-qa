@@ -21,7 +21,6 @@ import {
   type NudgeResponse,
 } from './server.js'
 
-/** Provisional stream reconnect budget; retune from operational evidence without adding config. */
 export const STREAM_RESUME_MAX_ATTEMPTS = 3
 
 /** Pinned nudge I/O budget; retune under D-15 from operational evidence, never config. */

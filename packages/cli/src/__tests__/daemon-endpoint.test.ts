@@ -432,13 +432,12 @@ describe('daemon /invoke endpoint tracer', () => {
     expect(source.match(/\binvokeFunction\s*\(/g)).toHaveLength(1)
   })
 
-  it('pins bounded stream resume attempts in source for evidence-based retuning', async () => {
+  it('pins bounded stream resume attempts in source', async () => {
     const clientModule = (await import('../daemon/client.js')) as Record<string, unknown>
     const source = readFileSync(new URL('../daemon/client.ts', import.meta.url), 'utf8')
 
     expect(clientModule.STREAM_RESUME_MAX_ATTEMPTS).toBe(3)
     expect(source).toMatch(/STREAM_RESUME_MAX_ATTEMPTS\s*=\s*3/u)
-    expect(source).toMatch(/retune from .*evidence.*without adding config/iu)
   })
 
   it('serves the daemon instance identity without widening the function registry surface', async () => {

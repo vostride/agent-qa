@@ -201,18 +201,7 @@ export function createDaemonCommand(deps: DaemonCommandDeps = DEFAULT_DEPS): Com
           knowledgeRoot: resolveConfiguredKnowledgeRoot(config, configDir),
           configPath,
           config: createConfigReader(configPath, declaredSecrets.mask),
-          // 388 CR-02 — the daemon egress posture, resolved EXPLICITLY (389-06, verified
-          // parity): this binding rides the SAME resolveCliJobModel → buildJobModelCapability
-          // → createModel chain as the CLI tail's, and the masking seam is createModel's own
-          // pinned-LAST middleware — structurally identical on both hosts, proven by the
-          // llm-utils masking-egress pin. What differs is curation: the daemon's fold is handed
-          // no declared mask (the fact its candidateProse: 'no-masker' declaration records).
-          // The author's evidence egress is protected by two layers that need no scope:
-          // (1) masked-at-record — handoff evidence is masked before it is ever written, so
-          // the bytes the author quotes are already redacted; (2) the middleware's residual
-          // guardrail-shape redaction, which fires at the provider boundary with no active
-          // context. CR-02's original finding was the CURATION candidate-prose layer, closed
-          // by 388-10 option (a); this comment pins the ANALYZE-RUN leg's posture beside it.
+          // Same model chain as the CLI, so `createModel` masks its egress with declared secrets.
           model: () => resolveCliJobModel(configPath),
           // 389-06: the author's compaction budget from the SAME named-config profile
           // resolution as the model binding above (386 D-15) — no second config surface.

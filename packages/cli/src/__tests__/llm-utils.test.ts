@@ -467,9 +467,8 @@ describe('the daemon egress mechanism (verified parity)', () => {
     expect(text).not.toContain(secret)
   })
 
-  it('the daemon binding carries its egress comment and rides the same scoped builder (source pin)', () => {
+  it('the daemon binding rides the same scoped builder (source pin)', () => {
     const source = readFileSync(new URL('../commands/daemon.ts', import.meta.url), 'utf8')
-    expect(source.split('388 CR-02').length - 1).toBeGreaterThanOrEqual(1)
     expect(source).toContain('resolveCliJobModel(configPath)')
     expect(source).toContain('resolveCliAnalysisTokenBudget')
   })

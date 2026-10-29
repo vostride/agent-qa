@@ -461,11 +461,4 @@ describe('the dashboard command names no analytics at all', () => {
     expect(source).not.toMatch(/\bcaptureAnalytics\b/u)
     expect(source).not.toMatch(/\bcomposeAnalytics/u)
   })
-
-  it('records WHY the three removed dashboard events are gone, dated', () => {
-    expect(source).toMatch(/2026-08-17.*Phase 398 plan 10/u)
-    expect(source).toContain('dashboard.opened')
-    expect(source).toContain('dashboard.live_mode.started')
-    expect(source).toContain('dashboard.entity.created')
-  })
 })

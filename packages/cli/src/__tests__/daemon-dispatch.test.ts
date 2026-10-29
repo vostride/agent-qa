@@ -475,9 +475,8 @@ describe('resident daemon agent-job dispatcher', () => {
     expect(hostResolved).toBe(true)
   })
 
-  it('pins the dispatcher poll interval in source with a retune-from-evidence comment', () => {
+  it('pins the dispatcher poll interval in source', () => {
     const source = readFileSync(new URL('../daemon/job-dispatcher.ts', import.meta.url), 'utf8')
     expect(source).toMatch(/export const AGENT_JOB_DISPATCH_POLL_MS = 5_000/u)
-    expect(source).toMatch(/retune from .*evidence.*without adding config/iu)
   })
 })

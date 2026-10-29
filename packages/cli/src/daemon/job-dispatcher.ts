@@ -17,7 +17,6 @@ import { JOB_RECOVERY_MAX_RESUMED_JOBS } from '@vostride/agent-qa-agent-local'
 
 import type { DaemonEvent } from './events.js'
 
-/** Provisional agent-job backstop; retune from operational evidence without adding config. */
 export const AGENT_JOB_DISPATCH_POLL_MS = 5_000
 
 export interface JobDispatcherScheduler {
