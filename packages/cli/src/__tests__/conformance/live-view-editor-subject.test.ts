@@ -230,7 +230,7 @@ async function mintRunToken(runId: string): Promise<string> {
   return token as string
 }
 
-describe('the editor subject on the shipped composition (428 D-07)', () => {
+describe('the editor subject on the shipped composition', () => {
   it('EDITOR-LIVE-VIEW-END-TO-END: minted through the door, opened, streamed, and ended by name', async () => {
     const h = held()
     const editor = plantEditorSubject(h, { sessionId: 'ed-1', kind: 'cdp-screencast' })

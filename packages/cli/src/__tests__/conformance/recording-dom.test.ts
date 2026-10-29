@@ -16,7 +16,7 @@ let seek: { length: number; end: number; requested: number; actual: number } | u
 let parent: { selected: string | null; childCount: number; sliderMatchesAction: boolean; caption: string; image: string; answered: boolean; latestFrame: boolean } | undefined
 let off: { initial: string | null; state: string | null; kind: string | null } | undefined
 
-describe('recording and parent selection on the shipped bundle (424-29)', () => {
+describe('recording and parent selection on the shipped bundle', () => {
   beforeAll(async () => {
     try {
       const fixture = await recordingFixture('recording-dom')

@@ -178,7 +178,7 @@ function publishedConstant(relativePath: string, name: string): string {
 // reads one source file and nothing else, so it must not pull a spawned binary, a browser and a
 // real run in behind it. A helper whose failure mode is "throws in `beforeAll` and reds every cell
 // in the file at once" is worth three cells of its own.
-describe('publishedConstant reads a constant whatever quotes it carries (WINDOWS #297)', () => {
+describe('publishedConstant reads a constant whatever quotes it carries', () => {
   it('publishedConstant reads a DOUBLE-quoted constant with its apostrophe intact', () => {
     const title = publishedConstant('lib/config-copy.ts', 'CONFIG_LOAD_FAILED_TITLE')
     expect(title).toBe("Couldn't load the config")
@@ -643,7 +643,7 @@ async function observeArtifactDrawer(page: Page): Promise<DrawerObservation> {
   }
 }
 
-describe('the shipped dashboard paints a FAILED run\'s summary as stored text (405-14, WINDOWS #287)', () => {
+describe('the shipped dashboard paints a FAILED run\'s summary as stored text', () => {
   beforeAll(async () => {
     if (process.platform === 'win32') {
       recorded.failure = WINDOWS_REFUSAL
@@ -952,7 +952,7 @@ describe('the shipped dashboard paints a FAILED run\'s summary as stored text (4
     }
   })
 
-  it('(3g) the clipboard carries ONLY what the collapsed banner rendered (T-405-43)', () => {
+  it('(3g) the clipboard carries ONLY what the collapsed banner rendered', () => {
     const observed = visit()
     expect(
       observed.clipboardFailure,
@@ -997,7 +997,7 @@ describe('the shipped dashboard paints a FAILED run\'s summary as stored text (4
     ).toBe(observed.truncated.renderedText)
   })
 
-  describe('C441-DISPLAY', () => {
+  describe('declared markers on a failed run', () => {
     it('a failed run shows a declared marker as text in its banner and artifact drawer', () => {
       const observed = visit()
       expect(

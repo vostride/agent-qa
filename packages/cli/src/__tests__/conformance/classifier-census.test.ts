@@ -61,7 +61,7 @@ function sorted(values: Iterable<string>): readonly string[] {
   return [...values].sort((left, right) => (left < right ? -1 : left > right ? 1 : 0))
 }
 
-describe('399.1 D-01 — the classifier census: no capability ships without a fold', () => {
+describe('the classifier census: no capability ships without a fold', () => {
   it('declares a classifier on every registered capability, naming any that does not', () => {
     // THE PRIMARY DIRECTION, and the one a person reads when it fires: the ids, sorted, of every op
     // the registry enumerates whose declaration carries no fold. `toEqual([])` prints them, which is

@@ -59,7 +59,7 @@ async function measureTabs(page: Page, name: string) {
   await list.evaluate(list => { list.scrollLeft = 0 })
 }
 
-describe('evidence layout backstops on the shipped bundle (424-29)', () => {
+describe('evidence layout backstops on the shipped bundle', () => {
   beforeAll(async () => {
     try {
       fixture = await recordingFixture('evidence-layout', false, true)

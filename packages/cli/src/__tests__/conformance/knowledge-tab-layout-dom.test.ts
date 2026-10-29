@@ -553,7 +553,7 @@ async function driveZoom(url: string, runId: string) {
   zoomContext = undefined
 }
 
-describe('the Knowledge tab on the shipped bundle at three geometries (427-13)', () => {
+describe('the Knowledge tab on the shipped bundle at three geometries', () => {
   beforeAll(async () => {
     try {
       // The layout recipe: a two-member suite whose member 0 records six steps.

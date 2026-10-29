@@ -581,7 +581,7 @@ async function observeRunDetail(
   }
 }
 
-describe('the shipped dashboard renders run detail populated and unmasked (405-12)', () => {
+describe('the shipped dashboard renders run detail populated and unmasked', () => {
   beforeAll(async () => {
     if (process.platform === 'win32') {
       recorded.failure = WINDOWS_REFUSAL
@@ -1001,7 +1001,7 @@ describe('the shipped dashboard renders run detail populated and unmasked (405-1
     ).toBe(true)
   })
 
-  it('(2e) the DECLARED-secret lane is irreversible: the value is absent and its named marker is what a person sees (WINDOWS #286)', () => {
+  it('(2e) the DECLARED-secret lane is irreversible: the value is absent and its named marker is what a person sees', () => {
     const observed = firstVisit()
     const marker = DECLARED_SECRET_MARKER
 
@@ -1028,7 +1028,7 @@ describe('the shipped dashboard renders run detail populated and unmasked (405-1
     ).toContain(marker)
   })
 
-  describe('C441-DISPLAY', () => {
+  describe('declared markers on run detail', () => {
     it('run detail shows a declared marker as text', () => {
       const observed = firstVisit()
       expect(

@@ -123,7 +123,7 @@ describe('the card expectation is a column on the ONE table', () => {
     }
   })
 
-  it('carries the URL-ABSENT arm, not just the routed happy paths (flagged assumption E3)', () => {
+  it('carries the URL-ABSENT arm, not just the routed happy paths', () => {
     // The verifier's own requirement for this plan. An expectation set containing only TST/RUN/TGT
     // would state the claim it was already going to pass; the unrouted kinds are where a render has
     // a `url` in hand — 400-01's D-16 overlays a base for any conversation the dashboard serves —

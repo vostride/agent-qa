@@ -293,7 +293,7 @@ function expectDotTopRightOfContainer(geometry: StatusGeometry, label: string): 
   expect(intersects, `${context} — the dot's box meets the picture's box`).toBe(false)
 }
 
-describe('the live preview corner on the shipped bundle (428-23 Task 1)', () => {
+describe('the live preview corner on the shipped bundle', () => {
   // The dot is plain and the running glyph is still: the cell reads every element of both panes,
   // and their pseudo-elements, and expects no animation at all.
   it('NO-ANIMATION-ON-LIVE-PAGE: one green dot, and nothing in either live pane animates', async () => {

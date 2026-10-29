@@ -252,7 +252,7 @@ async function driveAuth(): Promise<void> {
   scene.authStoreWritten = existsSync(join(root, '.agent-qa', 'auth.json'))
 }
 
-describe('C445-SETUP-ERRORS', () => {
+describe('setup errors name their fix', () => {
   beforeAll(async () => {
     if (process.platform === 'win32') throw new Error('POSIX run lifecycle required; never skip')
     refuseWithoutRecordingTools()

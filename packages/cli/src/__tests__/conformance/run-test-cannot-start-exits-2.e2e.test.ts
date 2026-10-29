@@ -168,7 +168,7 @@ function seen(): string {
   return JSON.stringify(scene, null, 2)
 }
 
-describe('C444-EXIT-TWO', () => {
+describe('a test that cannot start', () => {
   beforeAll(async () => {
     refuseWithoutRecordingTools()
     if (process.platform === 'win32') throw new Error('POSIX run lifecycle required; never skip')

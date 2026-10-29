@@ -165,7 +165,7 @@ async function interruptOneOfTwo(signal: 'SIGINT' | 'SIGTERM'): Promise<void> {
   await expectFinishesOnItsOwn(at, b, a.id)
 }
 
-describe('C442-OWN-RUN-ONLY', () => {
+describe('each signal reaches only its own run', () => {
   it(
     "a crash of one run leaves the other run's row, artifact and post-run work intact",
     async () => {
@@ -326,7 +326,7 @@ async function startDashboardWhileBRuns(): Promise<DashboardStartedMidRun> {
   return { at, b, exitedHere, reusedPid, otherHost }
 }
 
-describe('C442-DASHBOARD-START', () => {
+describe('a dashboard started while a run is in flight', () => {
   it('a dashboard started while a run is in flight leaves it running', async () => {
     const { at, b } = await startDashboardWhileBRuns()
     at.browsers.release(0)
@@ -353,7 +353,7 @@ describe('C442-DASHBOARD-START', () => {
   }, CELL_BUDGET_MS)
 })
 
-describe('C442-CANCEL-OWNER', () => {
+describe('a dashboard cancel of a CLI-owned run', () => {
   it('a dashboard cancel leaves a CLI-owned run in flight untouched', async () => {
     const at = await openCell()
     const a = await startParked(at, suiteArgs(at.project), 0)

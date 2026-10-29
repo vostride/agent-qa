@@ -62,7 +62,7 @@ async function runBootstrapBeside(cliMainSource: string): Promise<BootstrapOutco
   }
 }
 
-describe('C444-BOOTSTRAP-STACK', () => {
+describe('a CLI that fails while loading', () => {
   it('a CLI that throws while loading prints the framework line, then its stack, and exits 2',
     async () => {
       const outcome = await runBootstrapBeside(

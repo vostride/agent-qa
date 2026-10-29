@@ -286,7 +286,7 @@ function expectedWords(): MemberWord[] {
   ]
 }
 
-describe('C444-CANCEL-RANKING', () => {
+describe('member outcomes of a suite run cancelled mid-member', () => {
   beforeAll(async () => {
     refuseWithoutRecordingTools()
     if (process.platform === 'win32') throw new Error('POSIX run lifecycle required; never skip')

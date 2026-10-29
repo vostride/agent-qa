@@ -134,7 +134,7 @@ afterAll(() => {
   cleanupTempRoots()
 })
 
-describe('C445-NODE-FLOOR', () => {
+describe('the Node version floor', () => {
   it('an unsupported Node stops the bin before cli-main or node:sqlite loads', () => {
     expectFresh()
     expectRefused(runBin(['--version'], 'v22.0.0'), 'v22.0.0')

@@ -248,7 +248,7 @@ function exited(leg: Leg | undefined): Exit | undefined {
   return leg === undefined ? undefined : { code: leg.code, signal: leg.signal }
 }
 
-describe('C445-KNOWLEDGE-GITIGNORE', () => {
+describe('SQLite files stay out of git', () => {
   beforeAll(async () => {
     refuseWithoutRecordingTools()
     if (process.platform === 'win32') throw new Error('POSIX run lifecycle required; never skip')

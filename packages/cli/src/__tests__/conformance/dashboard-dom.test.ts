@@ -184,7 +184,7 @@ async function conversationAffordances(page: Page): Promise<Record<string, numbe
 
 const NONE = { link: 0, panel: 0, panelOpen: 0, launcher: 0 }
 
-describe('the shipped dashboard has no conversation (430 D-04/D-07, over 400-09\'s instrument)', () => {
+describe('the shipped dashboard has no conversation', () => {
   it('NO-CHAT-IN-SHIPPED-BUNDLE: /chat lands on Runs and no page links to or mounts a conversation',
     async () => {
       // THE HARNESS'S OWN TRACER as well as an absence: it needs the build fresh, the shipped
@@ -282,7 +282,7 @@ describe('the shipped dashboard has no conversation (430 D-04/D-07, over 400-09\
   })
 })
 
-describe('the instrument this file runs on, asserted rather than assumed (400-09 task 1)', () => {
+describe('the instrument this file runs on, asserted rather than assumed', () => {
   it('drives the AUDITED playwright-core pin and never a version resolved at install time', () => {
     // THE SUPPLY-CHAIN CLAIM (T-400-SC), read off the manifest. The package-legitimacy audit
     // approved the canonical `microsoft/playwright` package, with no postinstall. Phase 424-35

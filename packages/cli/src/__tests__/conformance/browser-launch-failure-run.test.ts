@@ -243,7 +243,7 @@ async function trigger(origin: string, file: string): Promise<string> {
   return body.runId!
 }
 
-describe('C433-LAUNCH-FAILURE: the CLI door', () => {
+describe('the CLI door', () => {
   let project: LaunchProject
   let outcome: CliRunOutcome
   let runId: string
@@ -265,7 +265,7 @@ describe('C433-LAUNCH-FAILURE: the CLI door', () => {
     await target?.close()
   })
 
-  it('C433-LAUNCH-FAILURE: the CLI door records a launch failure as failed with its cause', () => {
+  it('the CLI door records a launch failure as failed with its cause', () => {
     const text = transcript(outcome)
 
     const finished = payloadOf<{ aggregateVerdict?: string }>(events, 'runFinished')
@@ -288,13 +288,13 @@ describe('C433-LAUNCH-FAILURE: the CLI door', () => {
     expect(printedRunIds(`${outcome.stdout}\n${outcome.stderr}`), `the CLI names the run id it recorded\n${text}`).toEqual([runId])
   })
 
-  it('C433-LAUNCH-FAILURE: the dashboard row agrees', () => {
+  it('the dashboard row agrees', () => {
     const row = runRow(dashboardDbPath(project), runId)
     expect(row?.status, `the dashboard row\n${JSON.stringify(row)}`).toBe('failed')
     expect(row?.failureSummary ?? '', 'the dashboard row names the cause').toMatch(LAUNCH_CAUSE)
   })
 
-  it('C433-LAUNCH-FAILURE: recording stays absent/unavailable', () => {
+  it('recording stays absent/unavailable', () => {
     for (const testIndex of [0, 1]) {
       const recording = payloadOf<TestFinished>(events, 'testFinished', testIndex)?.recording
       expect(recording?.state, `member ${String(testIndex)} recording ${JSON.stringify(recording)}`).not.toBe('failed')
@@ -305,11 +305,11 @@ describe('C433-LAUNCH-FAILURE: the CLI door', () => {
   })
 })
 
-describe('C433-LAUNCH-FAILURE: the dashboard door', () => {
+describe('the dashboard door', () => {
   // The shipped `agent-qa dashboard`, spawned with the empty pin in its own environment: Playwright
   // reads `PLAYWRIGHT_BROWSERS_PATH` once, when it is first imported, so a pin set in this process
   // after the door fixture imported it would not reach an in-process launch.
-  it('C433-LAUNCH-FAILURE: the dashboard door agrees', async () => {
+  it('the dashboard door agrees', async () => {
     const target = await withTarget()
     const project = launchProject('dashboard', target.origin, 'http://127.0.0.1:1/v1')
     const dashboard = await spawnDashboard(project.root, project.configPath, await reserveEphemeralPort(), 60_000,
@@ -343,7 +343,7 @@ describe('C433-LAUNCH-FAILURE: the dashboard door', () => {
     expect(read.text, 'GET /api/runs/:id carries the cause').toMatch(LAUNCH_CAUSE)
   }, CELL_BUDGET_MS)
 
-  it('C433-LAUNCH-FAILURE: an explicit cancel is still cancelled', async () => {
+  it('an explicit cancel is still cancelled', async () => {
     const target = await withTarget()
     const model = await hangingModel()
     const project = launchProject('cancel', target.origin, model.baseUrl)

@@ -1215,8 +1215,8 @@ function median(values: readonly number[]): number {
       : (sorted[middle] as number)
 }
 
-describePosix('D-19 on the built bundle behind the shipped dashboard (LIFE-03 / LIFE-04)', () => {
-  it('(1) the D-13 arrival opens AT MOST one stream and paints the chain from durable state', () => {
+describePosix('the post-processing chain on the built bundle behind the shipped dashboard', () => {
+  it('(1) the arrival opens AT MOST one stream and paints the chain from durable state', () => {
     driveOk()
     expect(recorded.inProcess.length, 'k arms were measured').toBe(K)
     for (const [index, arm] of recorded.inProcess.entries()) {
@@ -1367,7 +1367,7 @@ describePosix('D-19 on the built bundle behind the shipped dashboard (LIFE-03 / 
     ).toEqual({ analysis: 'failed', curation: 'complete' })
   }, 120_000)
 
-  it('(3b) D-21 as narrowed: the daemon-drained failure says who held the pen, and shows no error text', () => {
+  it('(3b) the daemon-drained failure says who held the pen, and shows no error text', () => {
     driveOk()
     const handed = recorded.handedOff
     expect(handed, `the hand-off posture was never measured. ${childContext()}`).toBeDefined()
@@ -1459,7 +1459,7 @@ describePosix('D-19 on the built bundle behind the shipped dashboard (LIFE-03 / 
     })
   }, 60_000)
 
-  it("the RED run paints `analysis failed` with the producer's own masked reason (D-21, folded 399)", () => {
+  it("the RED run paints `analysis failed` with the producer's own masked reason", () => {
     driveOk()
     const red = recorded.redRun
     expect(red, `the red run was never measured. ${childContext()}`).toBeDefined()

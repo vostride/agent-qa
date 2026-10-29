@@ -319,7 +319,7 @@ const HARNESS_SOURCE = join(
   PACKAGES_ROOT, 'cli', 'src', '__tests__', 'conformance', 'live-view-fixture.ts',
 )
 
-describe('the built live surface, in a real browser (403-06 Task 1)', () => {
+describe('the built live surface, in a real browser', () => {
   it('(0) THE FRAME: these cells run behind the production server, not a router in a fixture', () => {
     // A CELL CANNOT SEE ITS OWN FRAME BEHAVIOURALLY, which is the tracer's Pitfall-10 argument in
     // a different key. Every assertion below would read identically against a bare router mounted
@@ -359,7 +359,7 @@ describe('the built live surface, in a real browser (403-06 Task 1)', () => {
     })
   }, 60_000)
 
-  it('(2) HNST-01: a payload carrying a half-finished thought reaches the row and NOT the document', async () => {
+  it('(2) a payload carrying a half-finished thought reaches the row and NOT the document', async () => {
     const f = held()
     publishTo(f.dom, 'stepStarted', { testIndex: 0, stepIndex: 0, stepText: 'open the page' })
     publishTo(f.dom, 'subActionRecorded', {
@@ -421,7 +421,7 @@ describe('the built live surface, in a real browser (403-06 Task 1)', () => {
     })
   }, 90_000)
 
-  it('(3) LIVE-01/LIVE-04: the preview pane embeds a minted liveUrl and the embed PAINTS', async () => {
+  it('(3) the preview pane embeds a minted liveUrl and the embed PAINTS', async () => {
     const f = held()
     const ackedBefore = f.dom.ackedFrameIds().length
     await onLivePage('r_dom', async (page) => {
@@ -453,7 +453,7 @@ describe('the built live surface, in a real browser (403-06 Task 1)', () => {
     for (const id of acked) expect(f.dom.deliveredFrameIds()).toContain(id)
   }, 120_000)
 
-  it('(4) LIVE-04: a handle that declares `none` gets a sentence, never a frame that never arrives', async () => {
+  it('(4) a handle that declares `none` gets a sentence, never a frame that never arrives', async () => {
     // THE REGRESSION PIN FOR GAP 1, and the property cell (8)'s re-mint could have broken. `none`
     // is TWO situations wearing one word, and only one of them is the D-08 declared absence:
     //  - the watched member has not started a step, so its browser is not up yet — a NOT-YET, and
@@ -506,7 +506,7 @@ describe('the built live surface, in a real browser (403-06 Task 1)', () => {
   // from the page (a dead bus now shows only as rows that stop moving), so each cell keeps its
   // number and its traffic and now asserts that the SHIPPED page renders no `[data-liveness]` and
   // no activity age through it. Each keeps a positive control: the page provably heard the bus.
-  it('(5a) D-03: k=5 — 11 s of heartbeat-only traffic renders no liveness element', async () => {
+  it('(5a) k=5 — 11 s of heartbeat-only traffic renders no liveness element', async () => {
     const f = held()
     const arms: { arm: number; liveness: number; activityWords: boolean; rows: number; attaches: number }[] = []
     for (let k = 0; k < 5; k += 1) {
@@ -536,7 +536,7 @@ describe('the built live surface, in a real browser (403-06 Task 1)', () => {
     expect(f.dom.cancelCalls(), 'watching a run never cancels it').toBe(0)
   }, 180_000)
 
-  it('(5b) D-03: k=2 — an OPEN socket that has heard nothing for 21 s renders no liveness element', async () => {
+  it('(5b) k=2 — an OPEN socket that has heard nothing for 21 s renders no liveness element', async () => {
     const arms: {
       arm: number
       liveness: number
@@ -595,7 +595,7 @@ describe('the built live surface, in a real browser (403-06 Task 1)', () => {
     }
   }, 180_000)
 
-  it('(5c) D-03: a dropped socket that comes back renders no liveness element either side of the drop', async () => {
+  it('(5c) a dropped socket that comes back renders no liveness element either side of the drop', async () => {
     const f = held()
     const reading = await onLivePage('r_dom', async (page, attaches) => {
       await page.locator('[data-live-pane="steps"] li').first().waitFor({ state: 'attached', timeout: 40_000 })
@@ -647,7 +647,7 @@ describe('the built live surface, in a real browser (403-06 Task 1)', () => {
   // D-13 means a real run's live page is gone by then. Both are live-page claims about a run that
   // ENDED, which is precisely this cell's subject, so they land here — on a planted run whose
   // ending the cell decides, which is a strictly more deterministic instrument for them anyway.
-  it('(6) D-14 (re-pinned 2026-08-26): a run that ends with NO verdict bands honestly, and goes nowhere', async () => {
+  it('(6) a run that ends with NO verdict bands honestly, and goes nowhere', async () => {
     const f = held()
     await onLivePage('r_dom', async (page, attaches) => {
       await page.locator('[data-live-pane="steps"]').waitFor({ state: 'attached', timeout: 20_000 })
@@ -696,7 +696,7 @@ describe('the built live surface, in a real browser (403-06 Task 1)', () => {
   // re-pin. What the cell gains for it is a second measurement of the navigate, on a run whose
   // verdict is `failed` rather than `passed`: D-13 moves a viewer on the answer, not on a good
   // answer, and a failing run is precisely the one 403 worried about redirecting.
-  it('(7) a member that never started a step says so — and THEN the verdict moves the viewer (D-13)', async () => {
+  it('(7) a member that never started a step says so — and THEN the verdict moves the viewer', async () => {
     const f = held()
     publishTo(f.none, 'testFinished', { testId: 't0', testIndex: 0, outcome: 'skipped', durationMs: 5 })
 
@@ -722,7 +722,7 @@ describe('the built live surface, in a real browser (403-06 Task 1)', () => {
     expect(f.none.cancelCalls()).toBe(0)
   }, 90_000)
 
-  it('(8) GAP 1 / SC-1: the pane re-mints and embeds under production ordering', async () => {
+  it('(8) the pane re-mints and embeds under production ordering', async () => {
     // THE GAP THIS CELL EXISTS FOR (403-VERIFICATION gap 1). `startRun` publishes the session
     // SYNCHRONOUSLY at seq 1; `registerAdapterLiveStream` runs only once the member's browser is
     // up. Every navigation into this page in the shipped UI happens the instant the run is
@@ -802,7 +802,7 @@ describe('the built live surface, in a real browser (403-06 Task 1)', () => {
     }
   }, 600_000)
 
-  it('(8b) GAP 1 / SC-1: the `unknown_run`-at-attach arm, behind the production page', async () => {
+  it('(8b) the `unknown_run`-at-attach arm, behind the production page', async () => {
     // ARM 2 — the run this process has not published YET. The pane's mint answers `unknown_run`.
     //
     // WHAT THIS ARM MEASURES IS THE WHOLE PAGE, not the pane alone, and that distinction is the
@@ -852,7 +852,7 @@ describe('the built live surface, in a real browser (403-06 Task 1)', () => {
     }
   }, 600_000)
   // ---- 404-06 · LIFE-01, D-13/D-14/D-07 --------------------------------------------------------
-  it('(9) LIFE-01/D-13: the verdict MOVES the viewer to run detail, the badge paints, and Back does not return to a dead live page', async () => {
+  it('(9) the verdict MOVES the viewer to run detail, the badge paints, and Back does not return to a dead live page', async () => {
     const f = held()
     const run = plantLiveRun({ runId: 'r_nav', heartbeatMs: 10_000, capability: { kind: 'none' } })
     plantedRuns.push(run)

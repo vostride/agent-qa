@@ -430,7 +430,7 @@ function assertFreshBuild(): void {
   ).toEqual({ missing: [], stale: [] })
 }
 
-describe('C445-HARD-CUT', () => {
+describe('upgrading a v1 workspace', () => {
   beforeAll(() => {
     if (process.platform === 'win32') throw new Error('POSIX run lifecycle required; never skip')
     try {

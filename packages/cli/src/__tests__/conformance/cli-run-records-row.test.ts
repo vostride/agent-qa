@@ -163,7 +163,7 @@ function writeVersion4RunsDb(at: InProcessFixture): string {
   return path
 }
 
-describe('C443-CLI-ROW', () => {
+describe('agent-qa run records its row', () => {
   it('a single-test run with no dashboard block writes its row under the printed id', async () => {
     const at = project()
     expect(readFileSync(at.configPath, 'utf8').includes('dashboard'), 'the config names a dashboard block').toBe(false)
@@ -196,7 +196,7 @@ describe('C443-CLI-ROW', () => {
   }, CELL_BUDGET_MS)
 })
 
-describe('C443-RECORD-REFUSAL', () => {
+describe('a run whose row cannot be recorded is refused', () => {
   it('agent-qa run refuses a run whose runs.db cannot be opened, exit 2, no id', async () => {
     const at = project()
     const path = writeVersion4RunsDb(at)
@@ -232,7 +232,7 @@ describe('C443-RECORD-REFUSAL', () => {
   }, CELL_BUDGET_MS)
 })
 
-describe('C443-HANDED-ROW', () => {
+describe('a run that fails before it starts files one row', () => {
   it('a parse error writes one failed row under the printed id', async () => {
     const at = project()
     writeFileSync(join(at.project, at.testPattern), 'name: [an unclosed list\nsteps:\n  - Verify\n')
@@ -320,7 +320,7 @@ async function memberCaptureFor(flags: Partial<RunOptions>): Promise<string> {
   return memberConfigs.map((config) => String(config.captureScreenshots)).join(',')
 }
 
-describe('C443-REPORTER', () => {
+describe('the reporter list and the run record', () => {
   afterEach(() => {
     closeTestRunRecords()
     vi.unstubAllEnvs()
@@ -344,7 +344,7 @@ describe('C443-REPORTER', () => {
 })
 
 // 2026-10-17 (443-10, D-26): the suite producer prints nothing; only `agent-qa run` names the id.
-describe('C443-SUITE-PREP-STDOUT', () => {
+describe('a suite preparation failure\'s output', () => {
   function stdoutNotOneJsonDocument(stdout: string): string {
     if (stdout.trim() === '') return ''
     try {

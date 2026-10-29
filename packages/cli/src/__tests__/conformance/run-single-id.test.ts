@@ -42,7 +42,7 @@ function expectOneId(project: RecordedDoorProject, outcome: CliRunOutcome): stri
   return runId
 }
 
-describe('C433-RUN-ONE-ID: the CLI test path', () => {
+describe('the CLI test path', () => {
   let project: RecordedDoorProject
   let outcome: CliRunOutcome
 
@@ -55,11 +55,11 @@ describe('C433-RUN-ONE-ID: the CLI test path', () => {
     await project?.close()
   })
 
-  it('C433-RUN-ONE-ID: a CLI test run has one id in the run store, the dashboard and the CLI output', () => {
+  it('a CLI test run has one id in the run store, the dashboard and the CLI output', () => {
     expectOneId(project, outcome)
   })
 
-  it('C433-RUN-ONE-ID: the overview reads the recording the run store holds', async () => {
+  it('the overview reads the recording the run store holds', async () => {
     const runId = runStoreIds(project)[0]!
     const finished = runStoreEvents(project, runId).find(
       (event) => event.type === 'testFinished' && (event.payload as { testIndex?: number }).testIndex === 0,
@@ -76,7 +76,7 @@ describe('C433-RUN-ONE-ID: the CLI test path', () => {
     })
   }, CELL_BUDGET_MS)
 
-  it('C433-RUN-ONE-ID: the dashboard answers the printed id', async () => {
+  it('the dashboard answers the printed id', async () => {
     const runId = runStoreIds(project)[0]!
     const dashboard = await spawnDashboard(project.root, project.configPath, await reserveEphemeralPort(), 60_000,
       populatedRunSpawnEnv())
@@ -94,7 +94,7 @@ describe('C433-RUN-ONE-ID: the CLI test path', () => {
   }, CELL_BUDGET_MS)
 })
 
-describe('C433-RUN-ONE-ID: the CLI suite path', () => {
+describe('the CLI suite path', () => {
   let project: RecordedDoorProject
 
   beforeAll(async () => {
@@ -105,13 +105,13 @@ describe('C433-RUN-ONE-ID: the CLI suite path', () => {
     await project?.close()
   })
 
-  it('C433-RUN-ONE-ID: a CLI suite run has one id', async () => {
+  it('a CLI suite run has one id', async () => {
     const outcome = await spawnCliRun(project, ['run', '--suite', project.suitePath])
     expectOneId(project, outcome)
   }, CELL_BUDGET_MS)
 })
 
-describe('C433-RUN-ONE-ID: an environment-supplied id', () => {
+describe('an environment-supplied id', () => {
   let project: RecordedDoorProject
 
   beforeAll(async () => {
@@ -122,7 +122,7 @@ describe('C433-RUN-ONE-ID: an environment-supplied id', () => {
     await project?.close()
   })
 
-  it('C433-RUN-ONE-ID: AGENT_QA_RUN_ID is still the run\'s id', async () => {
+  it('AGENT_QA_RUN_ID is still the run\'s id', async () => {
     const supplied = generateRunId()
     const outcome = await spawnCliRun(project, ['run', project.testPath], { env: { AGENT_QA_RUN_ID: supplied } })
     expect(expectOneId(project, outcome)).toBe(supplied)

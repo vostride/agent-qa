@@ -365,7 +365,7 @@ function origin(): string {
 
 // ---- The anchors -------------------------------------------------------------------------------
 
-describe('the run-service wire anchors (402-07 · criterion 4)', () => {
+describe('the run-service wire anchors', () => {
   it('refuses to measure a build that is missing or older than its source', () => {
     expect(buildFreshness(RUN_SERVICE_ANCHORED_BUILDS), REBUILD_INSTRUCTION)
       .toEqual({ missing: [], stale: [] })
@@ -522,7 +522,7 @@ describe('the run-service wire anchors (402-07 · criterion 4)', () => {
     }
   }, WIRE_BUDGET_MS + 30_000)
 
-  it('refuses a caller-supplied runId over the wire — 402-06 vocabulary, current', async () => {
+  it('refuses a caller-supplied runId over the wire, in the current vocabulary', async () => {
     expect(buildFreshness(RUN_SERVICE_ANCHORED_BUILDS), REBUILD_INSTRUCTION)
       .toEqual({ missing: [], stale: [] })
     // THE CURRENT REFUSAL VOCABULARY, not this plan's snapshot of it. 402-06 added a SECOND `runId`

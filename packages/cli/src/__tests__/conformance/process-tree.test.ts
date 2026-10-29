@@ -59,7 +59,7 @@ async function reap(sleeper: Sleeper | undefined): Promise<void> {
   await sleeper.closed
 }
 
-describe('C444-PROCESS-IDENTITY', () => {
+describe('killing a recorded process', () => {
   it('a recorded process whose command line no longer matches is never killed', async () => {
     refuseWithoutPosix()
     let sleeper: Sleeper | undefined

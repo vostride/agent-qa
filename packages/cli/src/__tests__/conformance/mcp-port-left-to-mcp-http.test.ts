@@ -47,7 +47,7 @@ afterAll(() => {
   cleanupTempRoots()
 })
 
-describe('C446-PORT-OWNER', () => {
+describe('the MCP port is left to mcp --http', () => {
   it('a fresh scaffold declares no services.mcp for any init platform', () => {
     expect(SUPPORTED_INIT_PLATFORMS.length, 'init platforms to check').toBeGreaterThan(0)
     for (const platform of SUPPORTED_INIT_PLATFORMS) {

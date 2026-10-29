@@ -338,7 +338,7 @@ const SCENARIOS: readonly DiscoveryScenario[] = [
   },
 ]
 
-describe('DISCOVERY-FOUR-DOOR: the discovery reads on the four rostered doors (431 D-03/D-06)', () => {
+describe('DISCOVERY-FOUR-DOOR: the discovery reads on the four rostered doors', () => {
   let p: DiscoveryRunFixture
   let mcp: McpDoor
   let service: RunServiceDoor
@@ -433,7 +433,7 @@ describe('DISCOVERY-FOUR-DOOR: the discovery reads on the four rostered doors (4
   }, 120_000)
 })
 
-describe('DEDICATED-CLI-PARITY: the six dedicated verbs are sugar over their ops (431 D-11/D-13)', () => {
+describe('DEDICATED-CLI-PARITY: the six dedicated verbs are sugar over their ops', () => {
   let p: DiscoveryRunFixture
   let mcp: McpDoor
 

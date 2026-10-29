@@ -428,7 +428,7 @@ function expectLongLabelFullyVisible(reading: LongLabelReading, viewport: { widt
     .toBeLessThan(reading.lineHeight)
 }
 
-describe('the live step rows on the shipped bundle (428-24 Task 1)', () => {
+describe('the live step rows on the shipped bundle', () => {
   it('LONG-LABEL-FULLY-VISIBLE-SHIPPED: a label longer than the steps pane wraps in full at 1280 and 400', async () => {
     // 1280 is the docked page; 400 is the stacked one, where the steps pane is the page's width.
     for (const viewport of [DESKTOP, NARROW]) {
@@ -527,7 +527,7 @@ describe('the live step rows on the shipped bundle (428-24 Task 1)', () => {
 /** D-06: a flip may reload the moved iframe, and the embed must reconnect by itself within this. */
 const FLIP_TO_GREEN_BUDGET_MS = 8_000
 
-describe('the live page layout on the shipped bundle (428-24 Task 2)', () => {
+describe('the live page layout on the shipped bundle', () => {
   // RE-SPELLED 2026-09-26 (428-34, owner decision 2026-09-26 (4), G-428-4). Was "STACKED-AT-400: the
   // preview is on top at full width with its dot on the picture, over two panes", which asserted the
   // dot inside the picture's box. The dot is now in the chrome above the picture, at the pane's left.
@@ -717,7 +717,7 @@ function redactedMint(mint: MintSeen): { handle: string | null; status: number; 
   return { handle: mint.handle, status: mint.status, liveUrl: mint.liveUrl?.split('#')[0] }
 }
 
-describe('a suite\'s shipped page follows its running member (428-33, G-428-3)', () => {
+describe('a suite\'s shipped page follows its running member', () => {
   it('FOLLOWS-RUNNING-MEMBER-SHIPPED: member 1 starting mints for handle 1, the embed switches to it, and the dot is green again', async () => {
     const run = followRun
     if (run === undefined) throw new Error('FOLLOW_RUN was never planted')

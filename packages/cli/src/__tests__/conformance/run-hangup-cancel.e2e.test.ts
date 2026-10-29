@@ -386,7 +386,7 @@ afterAll(() => {
   cleanupTempRoots()
 })
 
-describe('C444-CTRL-C-OWNED', () => {
+describe('Ctrl-C and hangup end agent-qa run through its own path', () => {
   it("one SIGINT ends a held direct run through agent-qa run's own path", async () => {
     expectOwnPath(await signalHeldRun(
       'direct SIGINT',

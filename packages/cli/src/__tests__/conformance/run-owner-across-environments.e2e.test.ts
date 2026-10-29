@@ -244,7 +244,7 @@ async function openSceneOver(at: Cell): Promise<Scene> {
   return scene
 }
 
-describe('C442-CROSS-ENV', () => {
+describe('run ownership across time zones and locales', () => {
   it(
     'the composed probe reads a live run stamped under another time zone, locale or ps as alive',
     async () => {

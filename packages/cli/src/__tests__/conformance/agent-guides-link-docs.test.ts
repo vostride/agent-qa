@@ -10,7 +10,7 @@ import {
   buildKnowledgeAgentGuide,
 } from '../../commands/knowledge-guide.js'
 
-describe('C446-RECIPE-LINKS', () => {
+describe('agent guides link the published recipe page', () => {
   it('the pointer and the guide each link the published recipe page', () => {
     expect(CODING_AGENTS_URL).toBe('https://vostride.com/docs/agent-qa/coding-agents')
     const subjects: [string, string][] = [

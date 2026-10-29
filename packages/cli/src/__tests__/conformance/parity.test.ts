@@ -664,7 +664,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
   // every-scope and the default MCP grant'. MCP visibility was a scope-union subset check, so the
   // config folds were absent from a default caller's instance. The check is deleted: the delta is
   // now EMPTY, in both directions, and the two grants list the same surface.
-  it('C432-TOKENLESS-CATALOG: pins an EMPTY listing delta between the every-scope and the default MCP grant', async () => {
+  it('pins an EMPTY listing delta between the every-scope and the default MCP grant', async () => {
     const everyScope = enumerationOf('mcp')
     const defaultGrant = await enumerateMcpOpIds(smuggledMcpCaller(LEGACY_DEFAULT_GRANT))
     const nothing = await enumerateMcpOpIds(smuggledMcpCaller([]))
@@ -787,7 +787,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
     }
   })
 
-  it('spells every capability id in the grammar both surfaces can carry (D-15)', () => {
+  it('spells every capability id in the grammar both surfaces can carry', () => {
     // Carried across from the retired 384 stub, and it is not cosmetic: `chat/tool-names.ts` maps
     // `.` ↔ `_` as a bijection and refuses an id carrying the separator it maps onto, so an id with
     // an underscore is an id the chat surface cannot reach. `authoring.draft.verify` is spelled
@@ -907,7 +907,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
     ).toBe(Object.keys(AGENT_QA_OP_CONTRACTS).length)
   })
 
-  it('holds an invocation fixture every op would accept — the 384 samples, still valid', () => {
+  it('holds an invocation fixture every op would accept — every scenario sample still valid', () => {
     // D-10's fold made the scenario row the invocation sample, so the sample's original obligation
     // travels with it: `invokeFunction` validates input BEFORE it consults binding, and a fixture
     // that stopped parsing would make 397-04's refusal legs report an input error while looking
@@ -1052,7 +1052,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
     )
   })
 
-  it('carries the DATED 408 ruling in the shipped credential-mint reason (408 D-01 / D-14)', () => {
+  it('carries the dated mint ruling in the shipped credential-mint reason', () => {
     // WHY THIS CELL EXISTS. `credential-mint-deferral` was admitted in 403 for one reason: the op
     // hands out a credential and WHO MAY MINT ONE OVER MCP was left to Phase 408. 408 D-01 answered
     // it — internal mint only, the token confined to host-rendered App HTML, a projected mint tool
@@ -1103,7 +1103,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
     ).toEqual({ unprojected: 'credential-mint-deferral' })
   })
 
-  it('EDITOR-LIVEURL-UNPROJECTED-RULING: editor.liveurl stays unprojected by the 428 ruling (428 D-07)', () => {
+  it('EDITOR-LIVEURL-UNPROJECTED-RULING: editor.liveurl stays unprojected by its ruling', () => {
     // D-07: an editor session's view credential is private to the dashboard page that owns it, and
     // the owner declined an MCP watch carrier for a draft execution. This cell pins the ruling on
     // the conformance layer, so a mint tool for an editor session reds here by name.
@@ -1443,7 +1443,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
   // RE-SPELLED 2026-10-01 (432-18) from 'diverges between the surfaces\' own mints on exactly the
   // human-origin capabilities': the last op declaring `requiresHumanOrigin` (`grants.revoke`) is
   // deleted, so the derived divergent set is EMPTY and both directions hold over the whole census.
-  it('C432-NO-GRANT-OPS: the surfaces\' own mints diverge on no capability, because none declares requiresHumanOrigin', async () => {
+  it('the surfaces\' own mints diverge on no capability, because none declares requiresHumanOrigin', async () => {
     // The other half of leg 3, and the reason the cell above harmonises `origin`. The surfaces'
     // REAL mints differ on origin as well as on surface (391 D-06: a person typing an alias decided
     // that call; an MCP client did not), so their answers legitimately differ — but only where an
@@ -1483,7 +1483,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
   // RE-SPELLED 2026-10-01 (432-20, D-12) from 'refuses at the GATE WALL for every capability,
   // naming the one withheld grant'. The scope check is deleted: a caller holding no grant at all, on
   // either surface's mint, reaches the gate band for every capability, and no refusal names a scope.
-  it('C432-ALL-OPS-AVAILABLE: refuses at the GATE WALL for no capability, on either surface (gate wall)', async () => {
+  it('refuses at the GATE WALL for no capability, on either surface (gate wall)', async () => {
     const callers = grantlessSurfaceCallers()
     for (const declaration of registryDeclarations()) {
       const row = scenarioRowFor(declaration.id as ScenarioOpId)
@@ -1532,7 +1532,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
   // gone: every projected tool is listed to a caller granted nothing, and a direct call is answered
   // in band rather than refused by the protocol. 2026-10-01 (432-21, D-12): the mark door's
   // credential refusal, the one in-band permission answer that was left, is deleted too.
-  it('C432-TOKENLESS-CATALOG: refuses at the MCP SURFACE WALL for no projected capability', async () => {
+  it('refuses at the MCP SURFACE WALL for no projected capability', async () => {
     const listedUnderEveryScope = await listMcpToolNames(smuggledMcpCaller(RETIRED_SCOPE_NAMES))
     const listedUnderNothing = await listMcpToolNames(smuggledMcpCaller([]))
     expect(sorted(listedUnderNothing), 'a caller granted nothing lists a different catalogue')
@@ -2014,7 +2014,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
     }
   })
 
-  it('never writes the golden ledger: the only writer is the regen script (D-07)', () => {
+  it('never writes the golden ledger: the only writer is the regen script', () => {
     // THE PROHIBITION, AS SOURCE. "A capability ledger must not be one keystroke from silently
     // blessed" is a claim about what this directory CAN do, not about what it happens to do today,
     // so the sweep ranges every file in the directory — including one added tomorrow — rather than
@@ -2377,7 +2377,7 @@ async function callOnProjectMcp(
 }
 
 describe('one call on the chat and MCP doors', () => {
-  it('C432-CONFORMANCE-PARITY: a non-production config change lands in its one call on the chat and MCP doors, with nothing filed for later', async () => {
+  it('a non-production config change lands in its one call on the chat and MCP doors, with nothing filed for later', async () => {
     const project = parityProject()
     try {
       const onMcp = await callOnProjectMcp(project, 'agent_qa_change_config', {
@@ -2414,8 +2414,8 @@ describe('one call on the chat and MCP doors', () => {
 /** Op ids the approval and permission waves deleted (432-12/17/18). */
 const RETIRED_OP_ID = /^(?:proposals\.|grants\.|knowledge\.proposal\.|config\.proposal\.|config\.undo\.)/u
 
-describe('C432-REGISTRY-GOLDEN: the registry, the twenty-tool mapping, the rows and the ledger agree', () => {
-  it('C432-REGISTRY-GOLDEN: 44 ops partition into 30 projected behind 20 tools and 14 unprojected, and the rows say the same', async () => {
+describe('the registry, the twenty-tool mapping, the rows and the ledger agree', () => {
+  it('44 ops partition into 30 projected behind 20 tools and 14 unprojected, and the rows say the same', async () => {
     // Measured 2026-10-02 (432-40) after 432-39 removed the permission types: unchanged since 432-18.
     const ids = registryOpIds()
     const projected = new Set(AGENT_QA_TOOL_PROJECTIONS.flatMap((projection) => [...projection.ops]))
@@ -2447,7 +2447,7 @@ describe('C432-REGISTRY-GOLDEN: the registry, the twenty-tool mapping, the rows 
     }
   }, 120_000)
 
-  it('C432-REGISTRY-GOLDEN: the committed ledger carries no permission column and no retired op', () => {
+  it('the committed ledger carries no permission column and no retired op', () => {
     const committed = JSON.parse(readFileSync(GOLDEN_PATH, 'utf8')) as GoldenFile
     const keys = new Set(committed.rows.flatMap((row) => Object.keys(row)))
     for (const retired of ['requiredScopes', 'requiresHumanOrigin', 'credential', 'grantedScopes']) {

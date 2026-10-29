@@ -82,7 +82,7 @@ afterAll(async () => {
   cleanupTempRoots()
 })
 
-describe('C444-ARTIFACT-MEMBERS', () => {
+describe('the run artifact\'s members', () => {
   it("a real two-test agent-qa run leaves both members' own YAML in its artifact", () => {
     expect(drive.exit?.status, drive.exit?.text).toBe(0)
     expect(drive.source?.kind).toBe('tests')

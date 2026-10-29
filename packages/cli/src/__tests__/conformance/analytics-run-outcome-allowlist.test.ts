@@ -105,7 +105,7 @@ function runOutcomes(sent: readonly AnalyticsCapturePayload[]): Record<string, u
     .map((payload) => payload.event.properties as Record<string, unknown>)
 }
 
-describe('C447-DOOR-OUTCOME', () => {
+describe('run outcome analytics from the host doors', () => {
   it('a run started through the MCP and chat host compositions emits its run outcome', async () => {
     const mcp = await recordingHost('mcp')
     const viaMcp = await startRun(fixture(), { analytics: mcp.analytics, runTrigger: 'mcp' })
@@ -155,7 +155,7 @@ interface BatchItem {
   readonly properties: Record<string, unknown>
 }
 
-describe('C447-SINK-ALLOWLIST', () => {
+describe('the analytics sink allowlist', () => {
   it('every captured event carries only its member allowlisted metadata and the capture is not empty', async () => {
     const bodies: string[] = []
     const analytics = await composeAnalyticsHost({
@@ -245,7 +245,7 @@ describe('C447-SINK-ALLOWLIST', () => {
   }, RUN_BUDGET_MS)
 })
 
-describe('C447-DOOR-VERDICT-UNCHANGED', () => {
+describe('analytics never changes a run\'s verdict', () => {
   it('a stalled transport and a failing sink at the MCP host leave the run ack and its recorded verdict equal to the control', async () => {
     const controlProject = fixture()
     const control = await startRun(controlProject, { runTrigger: 'mcp' })

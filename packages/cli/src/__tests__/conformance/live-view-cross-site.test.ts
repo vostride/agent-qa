@@ -436,7 +436,7 @@ afterAll(async () => {
   cleanupTempRoots()
 })
 
-describe('the live-url mint door refuses a cross-site browser request (SC-2, LIVE-02)', () => {
+describe('the live-url mint door refuses a cross-site browser request', () => {
   it('(1) THE CHOKE POINT: a cross-site GET is refused by name and carries no wildcard CORS', async () => {
     const f = held()
 
@@ -737,7 +737,7 @@ describe('the live-url mint door refuses a cross-site browser request (SC-2, LIV
     // that cells (1)-(4) prove now refuses a cross-site caller.
   }, 120_000)
 
-  it('(6) SC-2 THE REBIND ARM: a claimed Host this server never agreed to answer to is refused, and the token it would have handed out never leaves', async () => {
+  it('(6) THE REBIND ARM: a claimed Host this server never agreed to answer to is refused, and the token it would have handed out never leaves', async () => {
     const f = held()
     const port = f.dashboard.port
     const hostileHost = `evil.example:${String(port)}`
@@ -1030,7 +1030,7 @@ function editorMintPath(sessionId: string): string {
   return `/api/live-editor/sessions/${encodeURIComponent(sessionId)}/live-url`
 }
 
-describe('the live-editor surface refuses a cross-site caller (428 D-08, WINDOWS #275)', () => {
+describe('the live-editor surface refuses a cross-site caller', () => {
   beforeAll(async () => {
     const project = runServiceFixtureProject('live-editor-cross-site')
     const config = JSON.parse(readFileSync(project.configPath, 'utf8')) as Record<string, unknown>
@@ -1088,7 +1088,7 @@ describe('the live-editor surface refuses a cross-site caller (428 D-08, WINDOWS
     await open.dashboard.stop()
   }, 60_000)
 
-  it('(8) the control socket\'s upgrade (#275, live-editor surface): absent and same-host Origins admitted, null and foreign destroyed', async () => {
+  it('(8) the control socket\'s upgrade (live-editor surface): absent and same-host Origins admitted, null and foreign destroyed', async () => {
     const f = editorHeld()
     const port = f.dashboard.port
     const arms = {
@@ -1120,7 +1120,7 @@ describe('the live-editor surface refuses a cross-site caller (428 D-08, WINDOWS
     }
   }, 60_000)
 
-  it('(9) every live-editor door and the editor mint (#275, live-editor surface): a foreign Origin is refused 403 with no Access-Control-Allow-Origin', async () => {
+  it('(9) every live-editor door and the editor mint (live-editor surface): a foreign Origin is refused 403 with no Access-Control-Allow-Origin', async () => {
     const f = editorHeld()
     const port = f.dashboard.port
     const hostileHeaders = {
@@ -1193,7 +1193,7 @@ describe('the live-editor surface refuses a cross-site caller (428 D-08, WINDOWS
     }
   }, 60_000)
 
-  it('(10) the same-origin editor mint (#275, live-editor surface) answers 200 with no Access-Control-Allow-Origin, and a page on another origin cannot read it', async () => {
+  it('(10) the same-origin editor mint (live-editor surface) answers 200 with no Access-Control-Allow-Origin, and a page on another origin cannot read it', async () => {
     const f = editorHeld()
     const port = f.dashboard.port
     const sameOrigin = await rawRequest(port, {

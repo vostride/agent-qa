@@ -135,7 +135,7 @@ async function waitFor(check: () => boolean, budgetMs: number): Promise<boolean>
   return check()
 }
 
-describe('C433-ARTIFACT-CAPTURED: the CLI door', () => {
+describe('the CLI door', () => {
   let project: RecordedDoorProject
   let suiteProject: RecordedDoorProject
   let outcome: CliRunOutcome
@@ -153,7 +153,7 @@ describe('C433-ARTIFACT-CAPTURED: the CLI door', () => {
     await suiteProject?.close()
   })
 
-  it('C433-ARTIFACT-CAPTURED: the CLI door stores the test as written and the effective config', async () => {
+  it('the CLI door stores the test as written and the effective config', async () => {
     const ids = runStoreIds(project)
     expect(ids, `one run\n${transcript(outcome)}`).toHaveLength(1)
     const runId = ids[0]!
@@ -166,7 +166,7 @@ describe('C433-ARTIFACT-CAPTURED: the CLI door', () => {
     }
   }, CELL_BUDGET_MS)
 
-  it('C433-ARTIFACT-CAPTURED: a CLI suite run stores the suite as written, masked', () => {
+  it('a CLI suite run stores the suite as written, masked', () => {
     const ids = runStoreIds(suiteProject)
     expect(ids, `one run\n${transcript(suiteOutcome)}`).toHaveLength(1)
     const raw = withProjectDb(suiteProject, (db) => rawArtifactColumn(db, ids[0]!))
@@ -178,7 +178,7 @@ describe('C433-ARTIFACT-CAPTURED: the CLI door', () => {
     expectPlantedLineMasked(raw, 'CLI suite path')
   })
 
-  it('C433-ARTIFACT-CAPTURED: no declared secret value is stored — CLI door', () => {
+  it('no declared secret value is stored — CLI door', () => {
     const rows = withProjectDb(project, (db) => allRawArtifactColumns(db))
     expect(rows.length, `the CLI run wrote an artifact\n${transcript(outcome)}`).toBeGreaterThan(0)
     for (const row of rows) expectNoSecretStored(row.payload, `CLI door ${row.runId}`)
@@ -186,7 +186,7 @@ describe('C433-ARTIFACT-CAPTURED: the CLI door', () => {
   })
 })
 
-describe('C433-ARTIFACT-CAPTURED: the dashboard door', () => {
+describe('the dashboard door', () => {
   let project: RecordedDoorProject
   let scene: DashboardScene
   let testRunId: string
@@ -228,14 +228,14 @@ describe('C433-ARTIFACT-CAPTURED: the dashboard door', () => {
     else process.env[POPULATED_SECRET_ENV_VAR] = priorAmbient
   })
 
-  it('C433-ARTIFACT-CAPTURED: the dashboard door replaces the queued source', async () => {
+  it('the dashboard door replaces the queued source', async () => {
     const raw = rawArtifactColumn(scene.db, testRunId)
     const stored = JSON.parse(raw) as Record<string, any>
     expectTestCaptured(project, stored, await readArtifactRoute(scene.origin, testRunId), `(dashboard door, ${testRunId})`)
     expect(raw.includes('"loadStatus":"queued"'), 'no queued source remains').toBe(false)
   })
 
-  it('C433-ARTIFACT-CAPTURED: a dashboard suite run stores the suite\'s source', async () => {
+  it('a dashboard suite run stores the suite\'s source', async () => {
     const stored = JSON.parse(rawArtifactColumn(scene.db, suiteRunId)) as Record<string, any>
     const route = await readArtifactRoute(scene.origin, suiteRunId)
     expect(route.body.missingSections, route.text.slice(0, 2_000)).toEqual([])
@@ -245,7 +245,7 @@ describe('C433-ARTIFACT-CAPTURED: the dashboard door', () => {
     expect(stored.config?.effectiveConfig).toBeTypeOf('object')
   })
 
-  it('C433-ARTIFACT-CAPTURED: no declared secret value is stored — dashboard door', async () => {
+  it('no declared secret value is stored — dashboard door', async () => {
     for (const runId of [testRunId, suiteRunId]) {
       const raw = rawArtifactColumn(scene.db, runId)
       expectNoSecretStored(raw, `dashboard door ${runId}`)

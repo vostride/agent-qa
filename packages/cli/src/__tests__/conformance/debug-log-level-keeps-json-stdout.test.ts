@@ -53,7 +53,7 @@ function finishedRuns(at: InProcessFixture): string[] {
   })
 }
 
-describe('C443-DEBUG-STDOUT', () => {
+describe('a project at debug log level', () => {
   it(
     'fn --json on a project at debug log level leaves stdout one JSON document through its run',
     async () => {

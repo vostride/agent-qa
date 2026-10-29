@@ -2083,7 +2083,7 @@ async function driveFixture(
   await dashboard.stop()
 }
 
-describePosix('the shipped dashboard renders the Knowledge tab and the rung banner (407-11)', () => {
+describePosix('the shipped dashboard renders the Knowledge tab and the rung banner', () => {
   beforeAll(async () => {
     try {
       browserPresent = existsSync(chromium.executablePath())
@@ -2233,7 +2233,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     ).toBe(expected)
   })
 
-  it('(a5) pressing `1` then `m` brings the Knowledge tab back (D-02 re-pointed the key)', () => {
+  it('(a5) pressing `1` then `m` brings the Knowledge tab back', () => {
     const observed = visitOf('scan', scan)
     expect(
       observed.stateAfterOverview,
@@ -2274,7 +2274,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     ).toBe('ready')
   })
 
-  it('(a8) the tab paints its sections in the order the view publishes (SC1)', () => {
+  it('(a8) the tab paints its sections in the order the view publishes', () => {
     const observed = visitOf('scan', scan)
     expect(
       observed.sectionOrder,
@@ -2283,7 +2283,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     ).toEqual(publishedStringArray('KNOWLEDGE_SECTIONS'))
   })
 
-  it('(a9) a run that used nothing and learned nothing states each absence (SC1)', () => {
+  it('(a9) a run that used nothing and learned nothing states each absence', () => {
     // SC1 ON THE SHIPPED BINARY, OVER D-24's RECORDED FACT. A zero-effect curation publishes an
     // all-zero snapshot (427-04), so "learned nothing" is a recorded breakdown the page reads, not
     // a missing one it infers. Fixture A is the world expected to carry it (assumption A4); when its
@@ -2404,7 +2404,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     ).toBe(traceLineText(answer.leg, answer.rank, answer.score))
   })
 
-  it('(b7) the served record\'s id appears only inside Retrieval details (SC2)', () => {
+  it('(b7) the served record\'s id appears only inside Retrieval details', () => {
     const observed = visitOf('served', served)
     const projection = readyProjection('served', served)
     const servedId = projection.steps.flatMap((step) => step.served.channel1.map((line) => line.id))[0]

@@ -64,7 +64,7 @@ describe('the capability catalog', () => {
     if (catalogEmitRequested()) emitCatalogText(capabilityCatalogText(live))
   })
 
-  it('regenerates byte-identically from the live seams into the committed artifact (D-03)', () => {
+  it('regenerates byte-identically from the live seams into the committed artifact', () => {
     const committed = loadCapabilityCatalog(CATALOG_PATH)
 
     const findings = catalogFindings(live.rows, committed.rows)
@@ -109,7 +109,7 @@ describe('the capability catalog', () => {
 })
 
 describe('the capability catalog loader', () => {
-  it('fails loud on a missing artifact, naming the regen script (edge XPLN-01/empty)', () => {
+  it('fails loud on a missing artifact, naming the regen script', () => {
     const absent = join(tmpdir(), 'agent-qa-398-no-such-catalog', 'capability-catalog.json')
     let thrown: unknown
     try {
@@ -137,7 +137,7 @@ describe('the capability catalog loader', () => {
     }
   })
 
-  it('is never written from the suite: the only writer is the regen script (D-01)', () => {
+  it('is never written from the suite: the only writer is the regen script', () => {
     // THE PROHIBITION, AS SOURCE — the golden's own cell next door, applied to this artifact. The
     // sweep ranges every `.ts` file in this directory INCLUDING ONE ADDED TOMORROW, because "the
     // catalog must not be one keystroke from silently blessed" is a claim about what this directory
@@ -166,7 +166,7 @@ describe('the capability catalog loader', () => {
     }
   })
 
-  it('loads a PRODUCED zero-row catalog as a valid zero-row catalog (edge XPLN-01/empty)', () => {
+  it('loads a PRODUCED zero-row catalog as a valid zero-row catalog', () => {
     // PRODUCED, NOT LITERAL: the fixture goes out through the same canonical serializer the
     // committed artifact does and comes back through the same parser, so it is a document the
     // producer could actually emit. A hand-typed `{"rows":[]}` would prove only that the parser
@@ -220,7 +220,7 @@ describe('the capability catalog census', () => {
     catalog.rows.filter((row): row is CatalogSkillRow => row.kind === 'skill')
   const sorted = (values: readonly string[]): readonly string[] => [...values].sort()
 
-  it('carries exactly the capabilities the committed golden ledger records (D-01)', () => {
+  it('carries exactly the capabilities the committed golden ledger records', () => {
     // Against the COMMITTED golden, not a freshly minted one: the claim is that the two committed
     // projections cannot drift, and comparing two live mints would compare the tree to itself.
     const golden = JSON.parse(readFileSync(GOLDEN_PATH, 'utf8')) as { rows: { id: string }[] }
@@ -235,7 +235,7 @@ describe('the capability catalog census', () => {
       .toEqual(goldenIds)
   })
 
-  it('joins every alias to a live registry op, and every op-alias to a row (D-05)', () => {
+  it('joins every alias to a live registry op, and every op-alias to a row', () => {
     const registryIds = sorted(declarations.map((declaration) => declaration.id))
 
     // Direction 1: no alias points at a capability that does not exist. An alias naming a
@@ -262,7 +262,7 @@ describe('the capability catalog census', () => {
     expect(aliasRows().length, 'an alias is carried more than once').toBe(shippedOpAliases.length)
   })
 
-  it('carries exactly the skills the shipped skills directory holds (D-05)', () => {
+  it('carries exactly the skills the shipped skills directory holds', () => {
     const directories = sorted(shippedSkillDirectoryNames())
     expect(directories.length, 'the skills directory read back empty').toBeGreaterThan(0)
     expect(sorted(skillRows().map((row) => row.name)), 'the skill rows and the skills directory '
@@ -270,7 +270,7 @@ describe('the capability catalog census', () => {
       + 'half of that identity').toEqual(directories)
   })
 
-  it('produces every surface claim from the shipped mapping, never from a written list (D-06)', () => {
+  it('produces every surface claim from the shipped mapping, never from a written list', () => {
     const projectedTools = new Map<string, string>()
     for (const projection of AGENT_QA_TOOL_PROJECTIONS) {
       for (const opId of projection.ops) projectedTools.set(opId, projection.name)
@@ -318,7 +318,7 @@ describe('the capability catalog census', () => {
     expect(disagreements, 'op rows disagree with the shipped mapping').toEqual([])
   })
 
-  it('adjudicates a doc for every registry capability, and for no other (D-07)', () => {
+  it('adjudicates a doc for every registry capability, and for no other', () => {
     const registryIds = sorted(declarations.map((declaration) => declaration.id))
     const adjudicated = sorted(CATALOG_DOC_PATHS.map(([id]) => id))
 
@@ -332,7 +332,7 @@ describe('the capability catalog census', () => {
       .toBe(new Set(adjudicated).size)
   })
 
-  it('links only into repository files that exist, at headings that exist, or into the published docs (D-07)', () => {
+  it('links only into repository files that exist, at headings that exist, or into the published docs', () => {
     const root = agentQaRoot()
     const broken: string[] = []
     let filesChecked = 0

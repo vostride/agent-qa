@@ -918,7 +918,7 @@ afterAll(async () => {
   cleanupTempRoots()
 }, 120_000)
 
-describe('C444-CRASH', () => {
+describe('a run whose process is killed', () => {
   beforeAll(async () => {
     refuseWithoutRecordingTools()
     if (process.platform === 'win32') throw new Error('POSIX run lifecycle required; never skip')
@@ -999,7 +999,7 @@ describe('C444-CRASH', () => {
   })
 })
 
-describe('C444-PENDING-AT-EXIT', () => {
+describe('post-processing still pending when a run exits', () => {
   beforeAll(async () => {
     refuseWithoutRecordingTools()
     if (process.platform === 'win32') throw new Error('POSIX run lifecycle required; never skip')
@@ -1067,7 +1067,7 @@ describe('C444-PENDING-AT-EXIT', () => {
   })
 })
 
-describe('C444-RESUME', () => {
+describe('resuming pending post-processing', () => {
   beforeAll(async () => {
     refuseWithoutRecordingTools()
     if (process.platform === 'win32') throw new Error('POSIX run lifecycle required; never skip')

@@ -230,7 +230,7 @@ async function spawnNodeInline(
 
 // ---- The anchors -------------------------------------------------------------------------------
 
-describe('the built-binary anchors (D-02)', () => {
+describe('the built-binary anchors', () => {
   it('refuses to measure a build that is missing or older than its source', () => {
     // THE GUARD ITSELF, asserted before either anchor spawns anything, so a stale-build refusal is
     // reported as what it is rather than as an enumeration disagreement forty seconds later. The
@@ -379,7 +379,7 @@ describe('the built-binary anchors (D-02)', () => {
     ).toEqual(inProcess)
   }, 180_000)
 
-  it('the shipped chat binary PRINTS a capability line quoted out of the committed catalog (398-13, D-21)',
+  it('the shipped chat binary PRINTS a capability line quoted out of the committed catalog',
     async () => {
       // THE CELL THAT WOULD HAVE CAUGHT THE GAP. 398-12 measured the whole of what a grounded
       // explain turn showed a person: the receipt line `agent.explain completed`, and nothing else.
@@ -463,7 +463,7 @@ describe('the built-binary anchors (D-02)', () => {
       expect(committed.rows.length, 'the committed catalog carried no rows').toBeGreaterThan(0)
     }, 180_000)
 
-  it('the shipped init --agent manifest is the committed catalog, row for row (398-08, D-16)',
+  it('the shipped init --agent manifest is the committed catalog, row for row',
     async () => {
       // WHAT THIS CELL CAN SEE THAT NOTHING IN `manifest.test.ts` CAN. That file drives
       // `buildAgentManifest` in this process, which is the right fidelity for the manifest's own
@@ -529,7 +529,7 @@ describe('the built-binary anchors (D-02)', () => {
 
   // RE-SPELLED 2026-10-01 (432-21, D-12): the NAME half is retired (no token declaration is read);
   // the never-its-value half is measured unchanged.
-  it('the shipped init --agent prints a declared credential\'s NAME and never its value (398-08, T-398-17)',
+  it('the shipped init --agent prints a declared credential\'s NAME and never its value',
     async () => {
       // THE REFS-ONLY LAW, ON THE SURFACE A PERSON ACTUALLY SEES. `manifest.test.ts` proves the
       // value is absent from the OBJECT this process builds; this proves it is absent from the

@@ -234,7 +234,7 @@ function withheld(label: string, reading: RenderReading): string {
 
 // ---- The anchors --------------------------------------------------------------------------------
 
-describe('the chat render anchors (399.1, G-399-2)', () => {
+describe('the chat render anchors', () => {
   // 2026-10-14 (441-18, D-15): 'prints the guardrail refusal and its findings when a mutation would
   // write a secret' is deleted with the construction scan it measured.
 
@@ -608,7 +608,7 @@ function childClauseResult(root: string, opId: string): { functionId: string; pa
   return found[0]!
 }
 
-describe('the per-surface render anchors (399.1 D-08): in-process ≡ shipped', () => {
+describe('the per-surface render anchors: in-process ≡ shipped', () => {
   it('chat: the shipped binary prints the bytes this process renders from its own filed result',
     async () => {
       expect(buildFreshness(), REBUILD_INSTRUCTION).toEqual({ missing: [], stale: [] })

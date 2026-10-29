@@ -545,7 +545,7 @@ afterAll(() => {
   cleanupTempRoots()
 })
 
-describe('C444-REAL-CANCEL', () => {
+describe('cancelling a real run', () => {
   it('a dashboard Cancel stops a run parked in its first step', async () => {
     dashboardLeg ??= driveDashboardLeg()
     const facts = await dashboardLeg

@@ -104,10 +104,10 @@ GOLDEN="$ROOT/$GOLDEN_REL"
 # A PLAIN MULTI-LINE STRING, not a heredoc inside a command substitution — measured on the bash 3.2
 # macOS ships, where the heredoc form dies at an unrelated line with `arg: unbound variable`.
 ALLOWED_RED_NAMES="the parity suite ranges the registry census over every rostered surface matches the committed golden registry, op by op and field by field
-the capability catalog regenerates byte-identically from the live seams into the committed artifact (D-03)
-the capability catalog census carries exactly the capabilities the committed golden ledger records (D-01)
-399.1 D-01 — the classifier census: no capability ships without a fold agrees with the committed ledger, so an op that STOPS folding is a reviewed diff
-423-38 committed artifacts carry the reviewed read contracts GOLDEN-CATALOG-COMPLETE: the committed golden ledger and capability catalog carry every addressed read op as the live tree declares it
+the capability catalog regenerates byte-identically from the live seams into the committed artifact
+the capability catalog census carries exactly the capabilities the committed golden ledger records
+the classifier census: no capability ships without a fold agrees with the committed ledger, so an op that STOPS folding is a reviewed diff
+committed artifacts carry the reviewed read contracts GOLDEN-CATALOG-COMPLETE: the committed golden ledger and capability catalog carry every addressed read op as the live tree declares it
 LIVE-GUIDANCE: the guide, pointer and every source and packaged skill quote only live names LIVE-GUIDANCE-TOOLS: every agent_qa_* name is a projected tool whose ops the catalog carries"
 # Vacuity floor. A gate that passed because the suite collected nothing is the CI-shaped version of
 # the failure this whole phase exists to prevent. Measured 2026-08-16: 71 tests in the directory;

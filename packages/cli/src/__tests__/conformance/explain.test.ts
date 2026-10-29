@@ -119,7 +119,7 @@ beforeAll(() => {
   realRowId = `op:${(row as { readonly id: string }).id}`
 })
 
-describe('the empty-catalog differential (SC-2, D-12) — PRODUCED, not literal', () => {
+describe('the empty-catalog differential — PRODUCED, not literal', () => {
   it('drives the shipped op to a typed abstention on a zero-row catalog the producer emitted', async () => {
     const root = workspace()
     const catalogPath = join(root, 'capability-catalog.json')
@@ -168,7 +168,7 @@ describe('the empty-catalog differential (SC-2, D-12) — PRODUCED, not literal'
   })
 })
 
-describe('the ghost-id differential (D-10/D-12, T-398-09/T-398-10)', () => {
+describe('the ghost-id differential', () => {
   /** The shipped port over the REAL committed catalog, with only the model half doctored. */
   function portCiting(citation: ExplainCitation, root: string): CapabilityCatalogPort {
     const shipped = createCliCapabilityCatalogPort({ agentQaRoot: root })
@@ -224,7 +224,7 @@ describe('the ghost-id differential (D-10/D-12, T-398-09/T-398-10)', () => {
   })
 })
 
-describe('the local coverage log (D-11, T-398-15/T-398-16)', () => {
+describe('the local coverage log', () => {
   it('appends exactly ONE parseable line per abstention, and never the answer path', async () => {
     const root = workspace()
     const logPath = resolveExplainCoverageLogPath(root)
@@ -308,7 +308,7 @@ describe('the local coverage log (D-11, T-398-15/T-398-16)', () => {
   })
 })
 
-describe('the counter hooks carry counts and never the query (D-14, T-398-15)', () => {
+describe('the counter hooks carry counts and never the query', () => {
   it('fires onAnswered exactly once on the answer path and onAbstained never', async () => {
     const root = workspace()
     let answered = 0
@@ -387,7 +387,7 @@ describe('the counter hooks carry counts and never the query (D-14, T-398-15)', 
   })
 })
 
-describe('a composition with no catalog port refuses BY NAME (D-09)', () => {
+describe('a composition with no catalog port refuses BY NAME', () => {
   it('never degrades to a model-only answer', async () => {
     // The absence that matters most in this feature: an explain that quietly lost its grounding
     // data still SOUNDS like an explain, so the honest report is a refusal naming the capability.
@@ -444,7 +444,7 @@ function recordingModel(answer: string): { readonly model: ChatLanguageModel; pr
   return { model: model as unknown as ChatLanguageModel, prompts }
 }
 
-describe('the grounding obligation, driven through the SHIPPED model path (398-04 note 1)', () => {
+describe('the grounding obligation, driven through the SHIPPED model path', () => {
   // THE CELLS ABOVE ALL DOCTOR `citeCapabilities`, WHICH IS WHY THIS BLOCK EXISTS. Measured
   // 2026-08-17: a mutation that deleted the catalog from the prompt entirely left all fourteen of
   // them green. That is precisely the gap plan 04 flagged and said nothing in `packages/agent` could
@@ -467,7 +467,7 @@ describe('the grounding obligation, driven through the SHIPPED model path (398-0
       .toEqual([])
   })
 
-  it('never shows the model an invocation form (D-10)', async () => {
+  it('never shows the model an invocation form', async () => {
     // The other half of the same prompt, and the reason it is a separate claim: the model may only
     // answer with row ids, and every character of a command a person reads is quoted out of a row by
     // the renderer. A prompt carrying `/fn <id>` would be handing the model the exact text it must
@@ -520,7 +520,7 @@ describe('the grounding obligation, driven through the SHIPPED model path (398-0
 //
 // It composes the SHIPPED CLI host (`composeCliLocalAgent`) and dispatches through the SHIPPED
 // registry, with only the analytics transport substituted.
-describe('the composition root binds the counter hooks to the analytics port (398-10)', () => {
+describe('the composition root binds the counter hooks to the analytics port', () => {
   it('turns an abstention into exactly one counter event carrying no query text', async () => {
     const root = mkdtempSync(join(tmpdir(), 'agent-qa-398-10-explain-'))
     const configPath = join(root, 'agent-qa.config.yaml')
@@ -606,7 +606,7 @@ describe('the composition root binds the counter hooks to the analytics port (39
 // SO THESE TWO DRIVE THE TURN, not the op: the SHIPPED CLI host, the SHIPPED `agent.ask` op, and
 // the `/fn` passthrough so stage 1 resolves and the planner is never consulted. The stub model is
 // reached only by `citeCapabilities`, which is the arm under measurement.
-describe('the grounded explain answer rides the turn a person reads (398-13, D-21)', () => {
+describe('the grounded explain answer rides the turn a person reads', () => {
   const PLANTED_MODEL_PROSE = 'PLANTED-398-13-MODEL-PROSE-4f0c2a9d'
 
   /**

@@ -206,7 +206,7 @@ async function observeNarrow(page: Page, url: string, pageName: string, view: st
   observations.set(key(pageName, view), observation)
 }
 
-describe('a visible navigation control below 768 CSS px on the shipped bundle (433-31, G-433-7)', () => {
+describe('a visible navigation control below 768 CSS px on the shipped bundle', () => {
   beforeAll(async () => {
     try {
       fixture = await recordingFixture('narrow-navigation')
@@ -290,7 +290,7 @@ describe('a visible navigation control below 768 CSS px on the shipped bundle (4
     cleanupTempRoots()
   })
 
-  it('C433-NARROW-NAV: the fixture drove a run and every page mounted without an uncaught error', () => {
+  it('the fixture drove a run and every page mounted without an uncaught error', () => {
     expect(failures, JSON.stringify(failures)).toEqual({})
     expect(observations.size).toBe(PAGES.length * NARROW.length)
   })
@@ -304,7 +304,7 @@ describe('a visible navigation control below 768 CSS px on the shipped bundle (4
         return observation!
       }
 
-      it(`C433-NARROW-NAV: ${name} shows a visible navigation control`, () => {
+      it(`${name} shows a visible navigation control`, () => {
         const observation = read()
         const where = `${name} innerWidth=${observation.innerWidth} dpr=${observation.dpr}`
         expect(observation.innerWidth, `${where}: not below the 768 CSS px breakpoint`).toBeLessThan(768)
@@ -313,14 +313,14 @@ describe('a visible navigation control below 768 CSS px on the shipped bundle (4
         expect(observation.control.hit, `${where}: something covers the control's centre`).toBe(true)
       })
 
-      it(`C433-NARROW-NAV: ${name} the keyboard reaches it`, () => {
+      it(`${name} the keyboard reaches it`, () => {
         const observation = read()
         expect(observation.tabStop, `${name}: Tab did not reach the control within 5 stops`).not.toBeNull()
         expect(observation.tabStop!).toBeLessThanOrEqual(5)
         expect(observation.ring?.visible, `${name}: no visible focus ring ${JSON.stringify(observation.ring)}`).toBe(true)
       })
 
-      it(`C433-NARROW-NAV: ${name} pressing it shows all six top-level links`, () => {
+      it(`${name} pressing it shows all six top-level links`, () => {
         const observation = read()
         for (const link of TOP_LEVEL) {
           const seen = observation.links[link]
@@ -336,7 +336,7 @@ describe('a visible navigation control below 768 CSS px on the shipped bundle (4
         }
       })
 
-      it(`C433-NARROW-NAV: ${name} Escape closes it and returns focus`, () => {
+      it(`${name} Escape closes it and returns focus`, () => {
         const observation = read()
         expect(observation.sheetClosed, `${name}: the navigation sheet did not close on Escape`).toBe(true)
         expect(observation.focusReturned, `${name}: focus did not return to the control`).toBe(true)
@@ -344,12 +344,12 @@ describe('a visible navigation control below 768 CSS px on the shipped bundle (4
     }
   }
 
-  it(`C433-NARROW-NAV: no navigation control at 1280`, () => {
+  it(`no navigation control at 1280`, () => {
     expect(wide.size, JSON.stringify(failures)).toBe(PAGES.length)
     for (const [page, seen] of wide) expect(seen.controls, `${page} at ${WIDE}`).toBe(0)
   })
 
-  it(`C433-NARROW-NAV: the six sidebar links are visible at 1280 without it`, () => {
+  it(`the six sidebar links are visible at 1280 without it`, () => {
     expect(wide.size, JSON.stringify(failures)).toBe(PAGES.length)
     for (const [page, seen] of wide) {
       for (const link of TOP_LEVEL) {

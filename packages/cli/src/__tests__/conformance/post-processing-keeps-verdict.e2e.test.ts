@@ -534,7 +534,7 @@ function expectDetachedLeg(key: string): void {
   })
 }
 
-describe('C444-VERDICT-INDEPENDENCE', () => {
+describe('post-processing never changes the verdict', () => {
   beforeAll(async () => {
     refuseWithoutRecordingTools()
     if (process.platform === 'win32') throw new Error('POSIX run lifecycle required; never skip')

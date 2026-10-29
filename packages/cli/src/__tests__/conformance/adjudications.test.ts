@@ -149,10 +149,10 @@ function degradedDispositionFindings(
 
 // ================================================================================================
 
-describe('Phase 397 — the inherited adjudications, discharged at their artifacts', () => {
+describe('the inherited adjudications, discharged at their artifacts', () => {
   // RE-SPELLED 2026-10-01 (432-20, D-12) from 'D-16: the capability-scope union closes at six,
   // dated'. The union no longer gates anything; its growth rule and census are deleted.
-  describe('D-16 retired: the capability-scope union gates nothing (432-20, D-12)', () => {
+  describe('retired: the capability-scope union gates nothing', () => {
     // RE-SPELLED 2026-10-02 (432-39, D-10/D-12): the union is DELETED, so the six members it held
     // until now are held nowhere. Title kept; the claim it guarded — a retired vocabulary cannot
     // quietly grow a member nothing reads — now holds because there is no vocabulary to grow.
@@ -197,11 +197,11 @@ describe('Phase 397 — the inherited adjudications, discharged at their artifac
     })
   })
 
-  describe('D-20\'s fourth adjudication: the degraded output contracts', () => {
+  describe('the degraded output contracts adjudication', () => {
     // 2026-09-28 (431-03, D-03/D-07): 397 adjudicated two entries. `agent_qa_list_runs` left the
     // list when `runs.list` declared its canonical output contract, which converts in output mode;
     // `packages/mcp`'s probe would now refuse that row as stale. The start acknowledgement stays.
-    it('declares exactly the entry 397 adjudicated that is still degraded', () => {
+    it('declares exactly the adjudicated entry that is still degraded', () => {
       expect(DEGRADED_OUTPUT_CONTRACTS.map((entry) => [entry.tool, entry.opId])).toEqual([
         ['agent_qa_start_run', 'runs.start'],
       ])

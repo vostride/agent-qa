@@ -125,12 +125,12 @@ async function startFixture(
   }
 }
 
-describe('423 guarded human read', () => {
+describe('guarded human read', () => {
   let fixture: Awaited<ReturnType<typeof startFixture>>
   beforeAll(async () => { fixture = await startFixture() })
   afterAll(async () => { await fixture?.close() })
 
-  it('HTTP-EVIDENCE-HUMAN serves evidence as stored, and raw SHA bytes stay as stored (441 D-07)', async () => {
+  it('HTTP-EVIDENCE-HUMAN serves evidence as stored, and raw SHA bytes stay as stored', async () => {
     const url = `${fixture.origin}/api/runs/${fixture.runId}`
     const response = await fetch(`${url}/evidence?kind=console&testIndex=0&stepIndex=0`)
     expect(response.status).toBe(200)
@@ -158,7 +158,7 @@ describe('423 guarded human read', () => {
     expect(JSON.stringify(fixture.db.readRunDetailRows(fixture.runId))).not.toContain(AUTH_TOKEN)
   })
 
-  it('C423-HUMAN-DETAIL-SANITIZED: T-405-38 the human door answers durable rows as stored (441 D-07)', async () => {
+  it('HUMAN-DETAIL-SANITIZED: the human door answers durable rows as stored', async () => {
     const response = await fetch(`${fixture.origin}/api/runs/${fixture.runId}/detail`)
     expect(response.status).toBe(200)
     const raw = await response.text()
@@ -171,7 +171,7 @@ describe('423 guarded human read', () => {
     expect.soft(response.headers.get('access-control-allow-origin')).toBeNull()
   })
 
-  it('C423-HUMAN-DETAIL-SANITIZED: cross-site reads are refused before dispatch', async () => {
+  it('cross-site reads are refused before dispatch', async () => {
     const response = await fetch(`${fixture.origin}/api/runs/${fixture.runId}/detail`, {
       headers: { Origin: 'https://other.test', 'Sec-Fetch-Site': 'cross-site' },
     })
@@ -179,7 +179,7 @@ describe('423 guarded human read', () => {
     expect(await response.json()).toEqual({ error: 'cross_site_refused' })
   })
 
-  it('C423-HUMAN-DETAIL-SANITIZED: machine HTTP output and durable rows remain masked', async () => {
+  it('machine HTTP output and durable rows remain masked', async () => {
     const response = await fetch(fixture.machineUrl)
     expect(response.status).toBe(200)
     const raw = await response.text()
@@ -192,7 +192,7 @@ describe('423 guarded human read', () => {
     expect(stored).not.toContain(AUTH_TOKEN)
   })
 
-  it('C423-HUMAN-DETAIL-SANITIZED: empty evidence answers empty, and an old run\'s placeholders are served as the text they are', async () => {
+  it('empty evidence answers empty, and an old run\'s placeholders are served as the text they are', async () => {
     const runId = fixture.db.insertRun({
       name: 'Historical run', status: 'passed', duration: 0,
       startedAt: new Date(0).toISOString(), endedAt: new Date(0).toISOString(),
@@ -218,7 +218,7 @@ const VALUE = 'normal [secret:PASSWORD] <SECRET_82> [secret]'
 const NESTED = JSON.stringify({ [KEY]: [VALUE, { note: '[secret:API_KEY]' }] })
 const STORED_NAME = 'Name [secret:API_KEY] <SECRET_99>'
 
-describe('423 rendered run-detail sinks', () => {
+describe('rendered run-detail sinks', () => {
   let fixture: Awaited<ReturnType<typeof startFixture>>
   let browser: Browser
   let page: Page
@@ -346,7 +346,7 @@ async function regionTargets(page: Page): Promise<string[]> {
       ?? element.getAttribute('formaction') ?? element.getAttribute('data-href') ?? ''))
 }
 
-describe('423 run-detail review pointers', () => {
+describe('run-detail review pointers', () => {
   let fixture: Awaited<ReturnType<typeof startFixture>>
   let browser: Browser
   let page: Page

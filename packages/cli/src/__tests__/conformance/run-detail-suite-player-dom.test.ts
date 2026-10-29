@@ -695,7 +695,7 @@ it('SUITE-BROWSER-MEDIA: real progress, marker details, local seeks and continue
   } finally { await page.close() }
 }, 120_000)
 
-describe('C438-SETTLED-SEEK', () => {
+describe('the suite player\'s seek and span helpers', () => {
   it("a settled-seek wait that sees no seek on the member's source fails with a message within its bound", async () => {
     const page = await fixture.browser.newPage()
     try {

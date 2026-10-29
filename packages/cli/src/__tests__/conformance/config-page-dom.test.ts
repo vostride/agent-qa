@@ -295,7 +295,7 @@ function unnamedControls(snapshot: string): string[] {
   return snapshot.split('\n').filter((line) => UNNAMED_CONTROL.test(line))
 }
 
-describe('Config tabs, links, geometry, masking and names on the shipped bundle (429-33 task 1)', () => {
+describe('Config tabs, links, geometry, masking and names on the shipped bundle', () => {
   let dashboard: SpawnedDashboard | undefined
   let harness: Harness | undefined
   let project: Project | undefined
@@ -606,7 +606,7 @@ async function selectAllAndType(page: Page, text: string) {
   await page.keyboard.type(text)
 }
 
-describe('the continuous add flow, keyboard recovery and outside edits on the shipped bundle (429-33 task 2)', () => {
+describe('the continuous add flow, keyboard recovery and outside edits on the shipped bundle', () => {
   let dashboard: SpawnedDashboard | undefined
   let harness: Harness | undefined
   let project: Project | undefined

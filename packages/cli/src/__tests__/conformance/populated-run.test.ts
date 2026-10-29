@@ -165,7 +165,7 @@ function context(): string {
   ].join('\n')
 }
 
-describe('the shipped binary produces a populated, masked run (405-09)', () => {
+describe('the shipped binary produces a populated, masked run', () => {
   beforeAll(async () => {
     if (process.platform === 'win32') {
       recorded.failure = WINDOWS_REFUSAL

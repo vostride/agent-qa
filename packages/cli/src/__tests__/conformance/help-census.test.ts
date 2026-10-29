@@ -939,8 +939,8 @@ describe('LIVE-GUIDANCE: the guide, pointer and every source and packaged skill 
 // its `grants list | revoke` subtree. No alias is kept, so the parse tree rejects the verb the way it
 // rejects any word it never had, and nothing in the help, the manifest or the dedicated-verb list
 // still names it.
-describe('C432-NO-PROPOSAL-CLI: there is no proposals verb', () => {
-  it('C432-NO-PROPOSAL-CLI: the live Commander tree and its help name no proposals command', () => {
+describe('there is no proposals verb', () => {
+  it('the live Commander tree and its help name no proposals command', () => {
     const program = createAgentQaProgram()
     const names = program.commands.flatMap((command) => [command.name(), ...command.aliases()])
     expect(names.length, 'the command tree is empty, so the absence below would be vacuous').toBeGreaterThan(5)
@@ -950,7 +950,7 @@ describe('C432-NO-PROPOSAL-CLI: there is no proposals verb', () => {
       .toEqual([])
   })
 
-  it('C432-NO-PROPOSAL-CLI: parsing a proposals or proposals-grants invocation is an unknown command', async () => {
+  it('parsing a proposals or proposals-grants invocation is an unknown command', async () => {
     // Guarded first: on a tree that still registers the verb, parsing would RUN it in this cwd.
     expect(createAgentQaProgram().commands.map((command) => command.name()), 'the verb is registered')
       .not.toContain('proposals')
@@ -1038,8 +1038,8 @@ function directGuidanceSubjects(): readonly GuidanceSubject[] {
   ]
 }
 
-describe('C432-GUIDANCE-DIRECT: current guidance describes changes that apply in the call', () => {
-  it('C432-GUIDANCE-DIRECT: no guide, README, pointer or skill file uses approval-model words or retired change tools', () => {
+describe('current guidance describes changes that apply in the call', () => {
+  it('no guide, README, pointer or skill file uses approval-model words or retired change tools', () => {
     const subjects = directGuidanceSubjects()
     expect(subjects.length, 'fewer guidance subjects than the guide, pointer, README and one skill')
       .toBeGreaterThan(4)
@@ -1066,7 +1066,7 @@ describe('C432-GUIDANCE-DIRECT: current guidance describes changes that apply in
     }])).toEqual([])
   })
 
-  it('C432-GUIDANCE-DIRECT: the guide, the knowledge skill and its reference, and the README each state the change rule', () => {
+  it('the guide, the knowledge skill and its reference, and the README each state the change rule', () => {
     const subjects = directGuidanceSubjects()
     const ruleBearing = subjects.filter((subject) =>
       subject.name === 'generated guide'
@@ -1085,7 +1085,7 @@ describe('C432-GUIDANCE-DIRECT: current guidance describes changes that apply in
   // The texts 432-40 replaced, as a historical witness: each sentence the census would have to
   // miss for the old wording to return is named by it. Assembled from fragments so this file's own
   // body is not a guidance subject that carries them.
-  it('C432-GUIDANCE-DIRECT: the replaced README and authoring wording is named by the census', () => {
+  it('the replaced README and authoring wording is named by the census', () => {
     const replaced = approvalFindings([
       { name: 'old README', body: ['content humans write or ', 'approve', ' — QA rules.'].join('') },
       { name: 'old README staging', body: ['pending skill writes awaiting ', 'approval', '.'].join('') },
@@ -1107,7 +1107,7 @@ describe('C432-GUIDANCE-DIRECT: current guidance describes changes that apply in
     ])
   })
 
-  it('C432-GUIDANCE-DIRECT: the authoring skill names the change tools and the written-test receipt, and no review step', () => {
+  it('the authoring skill names the change tools and the written-test receipt, and no review step', () => {
     const authoring = directGuidanceSubjects().filter((subject) =>
       subject.name.endsWith('/agent-qa-authoring/SKILL.md'))
     expect(authoring.map((subject) => subject.name).sort()).toEqual([
@@ -1155,8 +1155,8 @@ function mirrorFindings(sourceRoot: string, packagedRoot: string): readonly stri
   return findings
 }
 
-describe('C432-PACKAGED-SKILLS: the packaged skills are the source skills, byte for byte', () => {
-  it('C432-PACKAGED-SKILLS: every source skill file has a byte-identical packaged copy, and nothing else is packaged', () => {
+describe('the packaged skills are the source skills, byte for byte', () => {
+  it('every source skill file has a byte-identical packaged copy, and nothing else is packaged', () => {
     const sourceRoot = join(agentQaRoot(), SKILLS_SOURCE_DIR)
     const packagedRoot = join(agentQaRoot(), 'packages', 'cli', 'skills')
     expect(mirrorFindings(sourceRoot, packagedRoot), 'run pnpm --filter agent-qa copy:skills').toEqual([])
@@ -1171,7 +1171,7 @@ describe('C432-PACKAGED-SKILLS: the packaged skills are the source skills, byte 
     }
   })
 
-  it('C432-PACKAGED-SKILLS: a one-byte drift, a missing copy and a stray copy are each named', () => {
+  it('a one-byte drift, a missing copy and a stray copy are each named', () => {
     const root = mkdtempSync(join(tmpdir(), 'agent-qa-432-40-mirror-'))
     try {
       const sourceRoot = join(root, 'source')
@@ -1210,8 +1210,8 @@ function keysDeep(value: unknown): readonly string[] {
   return Object.entries(value as Record<string, unknown>).flatMap(([key, child]) => [key, ...keysDeep(child)])
 }
 
-describe('C432-CATALOG-CURRENT: the committed catalogue describes only the live tree', () => {
-  it('C432-CATALOG-CURRENT: op rows are the live registry, tools are the twenty projected tools, and no row names a retired capability or a permission', () => {
+describe('the committed catalogue describes only the live tree', () => {
+  it('op rows are the live registry, tools are the twenty projected tools, and no row names a retired capability or a permission', () => {
     const catalog = loadCapabilityCatalog()
     const opRows = catalog.rows.flatMap((row) => (row.kind === 'op' ? [row] : []))
     expect(sorted(opRows.map((row) => row.id)), 'op rows against the live registry census')
@@ -1257,8 +1257,8 @@ function codeOf(relativePath: string): string {
     .join('\n')
 }
 
-describe('C432-CURATION-COPY: curation and chat say where a change went, and point at no review', () => {
-  it('C432-CURATION-COPY: a local fold reports what it applied; ci and cloud report what they kept proposed', () => {
+describe('curation and chat say where a change went, and point at no review', () => {
+  it('a local fold reports what it applied; ci and cloud report what they kept proposed', () => {
     expect(curationOutcomeLine({ executionContext: 'local-interactive', committed: 3, downgraded: 0 }))
       .toBe('curation: 3 learned change(s) applied, 0 kept proposed (local runs apply learned knowledge to the knowledge root)')
     expect(curationOutcomeLine({ executionContext: 'local-headless', committed: 3, downgraded: 1 }))
@@ -1273,7 +1273,7 @@ describe('C432-CURATION-COPY: curation and chat say where a change went, and poi
       .toBe('curation: 0 learned change(s) applied, 1 kept proposed (local runs apply learned knowledge to the knowledge root)')
   })
 
-  it('C432-CURATION-COPY: the curation tail and the chat turn engine show no review command and no waiting step', () => {
+  it('the curation tail and the chat turn engine show no review command and no waiting step', () => {
     for (const file of [
       'packages/cli/src/curation/curation-tail.ts',
       'packages/agent/src/chat/turn-engine.ts',
@@ -1298,7 +1298,7 @@ function catalogOpIds(): ReadonlySet<string> {
   return new Set(loadCapabilityCatalog().rows.flatMap((row) => (row.kind === 'op' ? [row.id] : [])))
 }
 
-describe('C446-GUIDANCE-KEYS', () => {
+describe('config keys named in agent guidance', () => {
   it('every dotted config key the guide, the pointer, the MCP instructions, the skills and the contracts file name resolves in the config schema', () => {
     const { subjects } = liveGuidanceInputs()
     const opIds = catalogOpIds()
@@ -1358,7 +1358,7 @@ function bareInvocations(subjects: readonly GuidanceSubject[]): readonly string[
 }
 
 // C446-GUIDANCE-NPX (446-06, D-09): every command a skill quotes can be copied and run with a local install
-describe('C446-GUIDANCE-NPX', () => {
+describe('CLI commands quoted in agent guidance', () => {
   it('every CLI command a source or packaged skill quotes outside a text block reads npx agent-qa', () => {
     const skills = skillSubjects()
     for (const tree of SKILL_TREES) {
@@ -1418,7 +1418,7 @@ describe('C446-GUIDANCE-NPX', () => {
 const EVIDENCE_KINDS = ['console', 'network', 'a11y', 'aria', 'variables'] as const
 
 // C446-PLACEHOLDERS (446-06, D-15): a skill explains each placeholder where it uses it
-describe('C446-PLACEHOLDERS', () => {
+describe('the build and evidence-kind placeholders in agent guidance', () => {
   it('every skill that names the build placeholder says it is a build ordinal or tag, and every skill that names runs evidence --kind names the five evidence kinds', () => {
     const findings: string[] = []
     let builds = 0
@@ -1473,7 +1473,7 @@ function initForceFindings(
 }
 
 // C446-NO-INIT-FORCE (446-15, D-32): agent-facing guidance never hands an agent a forced init
-describe('C446-NO-INIT-FORCE', () => {
+describe('agent guidance never offers init --force', () => {
   it('no agent-facing guidance offers agent-qa init with --force, which rebuilds the workspace config', () => {
     const { subjects } = liveGuidanceInputs()
     const names = subjects.map((subject) => subject.name)

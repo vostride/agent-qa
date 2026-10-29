@@ -292,7 +292,7 @@ afterAll(async () => {
   cleanupTempRoots()
 }, 120_000)
 
-describe('C444-CI-HEADLESS', () => {
+describe('headless CI runs', () => {
   it('a passing headless CI run exits 0 and a failing one exits 1', () => {
     for (const key of ['passed', 'supersede', 'failed']) {
       const run = legOf(key)
@@ -362,7 +362,7 @@ describe('C444-CI-HEADLESS', () => {
   })
 })
 
-describe('C444-CI-PROPOSE-ONLY', () => {
+describe('curation in CI only proposes', () => {
   it('curation in CI keeps what it adds a candidate and what it supersedes proposed', () => {
     const first = legOf('passed')
     const second = legOf('supersede')

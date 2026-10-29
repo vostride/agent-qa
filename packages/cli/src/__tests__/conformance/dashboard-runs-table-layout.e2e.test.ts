@@ -283,7 +283,7 @@ function column(view: ViewportView, label: string): ColumnView | undefined {
   return view.columns.find((entry) => entry.label.startsWith(label))
 }
 
-describe('C444-RUNS-TABLE', () => {
+describe('the dashboard runs table layout', () => {
   beforeAll(async () => {
     try {
       await drive()

@@ -141,7 +141,7 @@ async function measure(page: Page, label: string) {
   geometries.push({ label, ...geometry } as unknown as Geometry)
 }
 
-describe('run header layout on the shipped bundle (425-10)', () => {
+describe('run header layout on the shipped bundle', () => {
   beforeAll(async () => {
     try {
       fixture = await recordingFixture('header-layout')

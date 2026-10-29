@@ -146,7 +146,7 @@ async function drive(): Promise<void> {
   scene.firstAfterLater = chainRows(project, scene.first.runId)
 }
 
-describe('C444.1-RETRY-BACKOFF', () => {
+describe('a later run behind a retrying analysis', () => {
   beforeAll(async () => {
     refuseWithoutRecordingTools()
     if (process.platform === 'win32') throw new Error('POSIX run lifecycle required; never skip')

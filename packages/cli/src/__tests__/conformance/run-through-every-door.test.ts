@@ -710,7 +710,7 @@ function requireRun(record: DoorRecord): string {
   return record.runId!
 }
 
-describe('C443-DOOR-MATRIX', () => {
+describe('a run through every door', () => {
   beforeAll(async () => {
     refuseWithoutRecordingTools()
     target = await startTargetPageServer()

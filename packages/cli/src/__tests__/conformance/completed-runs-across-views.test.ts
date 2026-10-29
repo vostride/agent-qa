@@ -326,7 +326,7 @@ function wordsFor(listed: readonly Listed[] | undefined): Listed[] {
       - scene.seeded.findIndex((run) => run.runId === b.runId))
 }
 
-describe('C444-COMPLETED-VIEWS', () => {
+describe('completed runs across the dashboard, CLI and MCP', () => {
   beforeAll(async () => {
     refuseWithoutRecordingTools()
     if (process.platform === 'win32') throw new Error('POSIX run lifecycle required; never skip')

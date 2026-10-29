@@ -293,7 +293,7 @@ describe('citeEvidenceFrom lifts the run its own decision-screenshot sha', () =>
     expect(entry.citedArtifacts).toEqual([{ id: `decision-screenshot:${sha}`, sha }])
   })
 
-  it('C423-FIXTURE-SCREENSHOT-OWNERSHIP: excludes network JSON and unreferenced blobs', async () => {
+  it('excludes network JSON and unreferenced blobs', async () => {
     const sha = 'b'.repeat(64)
     const root = rootWithBlob(sha)
     const blobs = join(root, 'runs', 'r-406-07', 'blobs')
@@ -311,7 +311,7 @@ describe('citeEvidenceFrom lifts the run its own decision-screenshot sha', () =>
     ])
   })
 
-  it('C423-FIXTURE-SCREENSHOT-OWNERSHIP: does not substitute another blob for a missing screenshot', async () => {
+  it('does not substitute another blob for a missing screenshot', async () => {
     const sha = 'b'.repeat(64)
     const root = rootWithBlob(sha)
     const blobs = join(root, 'runs', 'r-406-07', 'blobs')

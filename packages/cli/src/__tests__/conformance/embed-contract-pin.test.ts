@@ -97,7 +97,7 @@ function commentStrippedFile(path: string): string {
     .join('\n')
 }
 
-describe('the 403 embed contract is frozen, and the freeze is measured (criterion 3)', () => {
+describe('the embed contract is frozen, and the freeze is measured', () => {
   it('renders through an artifact no older than the sources it pins', () => {
     // Scoped deliberately to the TWO files that compose this contract rather than to the whole
     // package tree: an unrelated edit elsewhere in `dashboard-server` must not red a pin about the
@@ -111,7 +111,7 @@ describe('the 403 embed contract is frozen, and the freeze is measured (criterio
     }
   })
 
-  it('hashes the served embed page to the constant recorded when 408 froze it', () => {
+  it('hashes the served embed page to the constant recorded when the contract froze', () => {
     const html = renderLiveEmbedPage({ ...PIN_INPUT })
     const measured = createHash('sha256').update(html, 'utf8').digest('hex')
     expect(

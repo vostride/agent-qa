@@ -255,7 +255,7 @@ afterAll(async () => {
   cleanupTempRoots()
 })
 
-describe('the shipped zero-token dashboard serves a live view (403 D-14, LIVE-02)', () => {
+describe('the shipped zero-token dashboard serves a live view', () => {
   it('(2) streams the run — NOT the 503 a dashboard with no session registry answers', async () => {
     const f = held()
     const reading = await readSse(`${f.dashboard.origin}/api/run-stream/${encodeURIComponent(f.runId)}`)
@@ -449,7 +449,7 @@ const TERMINAL_RUN_WORDS = [
   'passed', 'failed', 'timeout', 'cancelled', 'flaky', 'healed', 'skipped',
 ] as const
 
-describe('INVK-05 on real sockets: two surfaces, a mid-run resume, and a detach that owns nothing', () => {
+describe('on real sockets: two surfaces, a mid-run resume, and a detach that owns nothing', () => {
   let harness: LiveViewHarness | undefined
   let browser: Browser | undefined
   const runs: PlantedLiveRun[] = []
@@ -572,7 +572,7 @@ describe('INVK-05 on real sockets: two surfaces, a mid-run resume, and a detach 
       .not.toContain(2)
   }, 120_000)
 
-  it('(8) D-16: a detach owns nothing — the run keeps going and a later viewer sees all of it', async () => {
+  it('(8) a detach owns nothing — the run keeps going and a later viewer sees all of it', async () => {
     const run = plant('r_three')
     const url = `${harnessHeld().origin}/api/run-stream/r_three`
 
@@ -611,7 +611,7 @@ describe('INVK-05 on real sockets: two surfaces, a mid-run resume, and a detach 
     run.finish('passed')
   }, 120_000)
 
-  it('(9) HNST-01 concurrency: two surfaces attached at once render the same row states', async () => {
+  it('(9) concurrency: two surfaces attached at once render the same row states', async () => {
     const run = plant('r_pair')
     const held = browser
     if (held === undefined) throw new Error('no browser')
@@ -688,7 +688,7 @@ describe('INVK-05 on real sockets: two surfaces, a mid-run resume, and a detach 
   // written by the dashboard's own reporter subscriber at its own `verdict`, and the page's own
   // `fetchRun` races that write for real. If D-07's no-ping-pong rule is going to fail at the
   // subscriber's real ordering, this is the cell it fails in.
-  it('(10) THE SHIPPED BINARY: a real run\'s verdict moves the viewer to run detail, and never back to /live (D-13/D-07)', async () => {
+  it('(10) THE SHIPPED BINARY: a real run\'s verdict moves the viewer to run detail, and never back to /live', async () => {
     const f = held()
     const heldBrowser = browser
     if (heldBrowser === undefined) throw new Error('no browser')

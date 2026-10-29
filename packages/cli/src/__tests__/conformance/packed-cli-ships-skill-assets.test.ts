@@ -136,7 +136,7 @@ afterAll(() => {
   cleanupTempRoots()
 })
 
-describe('C446-PACKED-SKILLS', () => {
+describe('skill assets in the packed CLI', () => {
   it('every SKILL.md, agents/openai.yaml and named reference is in the staged CLI tarball and non-empty', () => {
     const { files, stagedCli } = scene
     if (files === undefined || stagedCli === undefined) {

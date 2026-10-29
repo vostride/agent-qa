@@ -617,7 +617,7 @@ async function driveLayout(browser: Browser, url: string) {
   zoomContext = undefined
 }
 
-describe('contextual feedback on the shipped bundle (426-16, 426-17)', () => {
+describe('contextual feedback on the shipped bundle', () => {
   beforeAll(async () => {
     try {
       // The layout recipe records six steps for member 0, so a second step exists to select while
@@ -799,7 +799,7 @@ describe('contextual feedback on the shipped bundle (426-16, 426-17)', () => {
     }
   })
 
-  it('SC4-COMPOSE-WHILE-INSPECTING', () => {
+  it('COMPOSE-WHILE-INSPECTING', () => {
     expect(inspecting, JSON.stringify(failures)).toBeDefined()
     const where = JSON.stringify(inspecting)
     expect(inspecting!.opened, where).toBe('0:1')
@@ -815,7 +815,7 @@ describe('contextual feedback on the shipped bundle (426-16, 426-17)', () => {
     for (const [moment, count] of Object.entries(inspecting!.modalCounts)) expect(count, `${moment}: ${where}`).toBe(0)
   })
 
-  it('NO-DIALOG-ON-MARK-PATH', () => {
+  it('MARK-RECORDED-ON-CLICK', () => {
     expect(markPath, JSON.stringify(failures)).toBeDefined()
     const where = JSON.stringify(markPath)
     // The mark is one click, and the ledger holds its row as the reply lands.

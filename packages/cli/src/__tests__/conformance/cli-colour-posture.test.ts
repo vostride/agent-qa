@@ -92,7 +92,7 @@ async function runMissingTest(extraEnv: Readonly<Record<string, string>>): Promi
   }
 }
 
-describe('C444-CI-COLOUR', () => {
+describe('the shipped bin\'s colour posture', () => {
   it('the shipped bin under CI=true with stdout piped prints no colour code', async () => {
     const outcome = await runMissingTest({})
     expect(outcome.stderr, JSON.stringify(outcome)).toContain(MISSING_TEST_LINE)

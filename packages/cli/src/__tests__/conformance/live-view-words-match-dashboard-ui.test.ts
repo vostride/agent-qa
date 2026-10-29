@@ -60,7 +60,7 @@ function spellings(server: unknown, ui: unknown): string {
   return `server spells ${JSON.stringify(server)}; dashboard-ui spells ${JSON.stringify(ui)}`
 }
 
-describe('the live-view words the firewall writes twice (428-23 Task 2)', () => {
+describe('the live-view words the firewall writes twice', () => {
   it('EMBED-REPORT-EVENTS-SPELLED-EQUAL: the embed reports the events the preview parses', () => {
     const server: readonly string[] = LIVE_EMBED_REPORT_EVENTS
     const ui = uiArray('LIVE_EMBED_REPORT_EVENTS')

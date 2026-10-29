@@ -272,7 +272,7 @@ const MATRIX: readonly { readonly row: ScenarioRow; readonly door: RenderDoor }[
   ),
 )
 
-describe('399.1 D-08/D-09 — the rendered-output matrix: leg 8', () => {
+describe('the rendered-output matrix: leg 8', () => {
   it('produces a result document for every registered capability, from its own contract', () => {
     // THE DENOMINATOR CELL (D-09). Two named REDs: a capability the registry declares that this leg
     // renders nothing for, and a document this leg renders for a capability the registry does not
@@ -392,7 +392,7 @@ describe('399.1 D-08/D-09 — the rendered-output matrix: leg 8', () => {
 // `[]` is this phase's own unit-level claim, and a cell asserting it would be asking the render
 // whether it agrees with itself.
 
-describe('399.1 — the turn shape a person reads (E2E-02 empty/ordering edges)', () => {
+describe('the turn shape a person reads, at its empty and ordering edges', () => {
   it('prints no payload block, and no `undefined`, for a turn that executed nothing', async () => {
     // THE E2E-02/empty EDGE. The failure this forecloses is specific and was reachable: `results[]`
     // is REQUIRED on the turn contract (399.1 plan 01), the default render is

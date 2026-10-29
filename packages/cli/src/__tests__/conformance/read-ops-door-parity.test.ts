@@ -409,7 +409,7 @@ const READ_SCENARIOS: readonly ReadScenario[] = [
     },
   })),
   {
-    name: 'runs.evidence pre-423 step answers unavailable',
+    name: 'runs.evidence step with no recorded evidence answers unavailable',
     opId: 'runs.evidence', scene: 'durable',
     input: scene => ({ runId: durable(scene).runId, testIndex: 0, stepIndex: 1, kind: 'console' }),
     http: { method: 'GET', path: evidencePath, machine: true },
@@ -532,7 +532,7 @@ function mcpArgumentsFor(opId: string, input: Record<string, unknown>): Record<s
   return discriminant === undefined ? input : { [discriminant]: opId, ...input }
 }
 
-describe('423-38 all-door read contracts (D-04/D-18)', () => {
+describe('all-door read contracts', () => {
   let durableScene: DurableScene
   let feedbackScene: FeedbackScene
 
@@ -645,7 +645,7 @@ describe('423-38 all-door read contracts (D-04/D-18)', () => {
   }, 120_000)
 })
 
-describe('423-38 committed artifacts carry the reviewed read contracts', () => {
+describe('committed artifacts carry the reviewed read contracts', () => {
   let declarations: readonly FunctionDeclaration[]
   beforeAll(async () => { declarations = await withGoldenRootDeclarations(rows => rows) }, 120_000)
 

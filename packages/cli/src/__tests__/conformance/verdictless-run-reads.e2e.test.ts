@@ -95,7 +95,7 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<{ 
   }
 }
 
-describe('C444-VERDICTLESS-READS', () => {
+describe('reads of a run with no verdict', () => {
   beforeAll(async () => {
     if (process.platform === 'win32') throw new Error('POSIX run lifecycle required; never skip')
     project = await recordedDoorProject('444-verdictless-reads')

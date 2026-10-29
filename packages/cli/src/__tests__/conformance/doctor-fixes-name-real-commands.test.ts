@@ -90,7 +90,7 @@ afterAll(() => {
   cleanupTempRoots()
 })
 
-describe('C446-DOCTOR-FIXES', () => {
+describe('the commands, flags and keys doctor fixes name', () => {
   it('every agent-qa command and flag a doctor fix names exists in the shipped help', () => {
     assertFreshBuild()
     const findings: string[] = []

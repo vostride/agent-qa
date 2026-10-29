@@ -286,7 +286,7 @@ afterAll(async () => {
   cleanupTempRoots()
 })
 
-describePosix('LIFE-02: a run the DASHBOARD started is drained BY the dashboard (D-06/D-12)', () => {
+describePosix('a run the DASHBOARD started is drained BY the dashboard', () => {
   it("says disposition: 'drained' on BOTH doors — the wire and the durable record", () => {
     const f = held()
 
@@ -310,7 +310,7 @@ describePosix('LIFE-02: a run the DASHBOARD started is drained BY the dashboard 
     ).toEqual(f.wireRunFinished)
   })
 
-  it('D-07: leaves /api/execution/active within seconds of runFinished, not after its tail', () => {
+  it('leaves /api/execution/active within seconds of runFinished, not after its tail', () => {
     const f = held()
     // The claim is that the post-processing leg is DETACHED: `execute()` resolves at the verdict and
     // the tail runs behind it. If the drive awaited the tail, this run would still be "running"
@@ -346,7 +346,7 @@ describePosix('LIFE-02: a run the DASHBOARD started is drained BY the dashboard 
     ).toBe('drained')
   }, 60_000)
 
-  it('serves the QUEUED chain honestly while the tail is still owed (D-05/D-21)', async () => {
+  it('serves the QUEUED chain honestly while the tail is still owed', async () => {
     const f = held()
 
     // THE DURABLE ROW EXISTS. This is D-05's half and it is the whole reason the enqueue moved into
@@ -387,7 +387,7 @@ describePosix('LIFE-02: a run the DASHBOARD started is drained BY the dashboard 
       .toBeUndefined()
   }, 60_000)
 
-  it('LIFE-04: opens the live channel with a snapshot for a chain still in flight', async () => {
+  it('opens the live channel with a snapshot for a chain still in flight', async () => {
     const f = held()
     // THE COMPOSITION IS WHAT THIS MEASURES. The relay is created in `agent-qa dashboard`, handed
     // to the run door's bridge as the emitter's second sink AND to `startServer` as the stream

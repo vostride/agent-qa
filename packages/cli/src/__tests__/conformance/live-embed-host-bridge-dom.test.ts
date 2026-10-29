@@ -375,7 +375,7 @@ async function embedUntil(
 
 const sleep = async (ms: number): Promise<void> => new Promise((tick) => setTimeout(tick, ms))
 
-describe('the embed reports to its host, and the host hint (428 D-10/D-15, Q-BRIDGE)', () => {
+describe('the embed reports to its host, and the host hint', () => {
   it('EMBED-REPORTS-READY-AND-FRAMES: ready with the declared kind, then frames with ts, kind and size, from origin null', async () => {
     const stream = plantHubRun({
       runId: 'r-bridge-frames',
@@ -413,7 +413,7 @@ describe('the embed reports to its host, and the host hint (428 D-10/D-15, Q-BRI
     }
   }, 60_000)
 
-  it('EMBED-REPORT-CARRIES-NO-TOKEN: no report holds the token, a v1. prefix or the run id, and every key is closed-set', async () => {
+  it('EMBED-REPORT-CARRIES-NO-TOKEN: no report holds the token, a token version prefix or the run id, and every key is closed-set', async () => {
     const runId = 'run-bridge-4c1d'
     const stream = plantHubRun({
       runId,

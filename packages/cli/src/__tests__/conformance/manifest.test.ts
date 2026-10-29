@@ -43,7 +43,7 @@ import {
 
 // ---- The derived example calls (spec §3.3, D-08) -----------------------------------------------
 
-describe('the catalog\'s example calls (D-08)', () => {
+describe('the catalog\'s example calls', () => {
   let live: CapabilityCatalog
 
   beforeAll(async () => {
@@ -279,7 +279,7 @@ describe('the catalog\'s example calls (D-08)', () => {
 
 // ---- `init --agent` (D-16) ---------------------------------------------------------------------
 
-describe('the agent manifest (D-16, XPLN-01)', () => {
+describe('the agent manifest', () => {
   const roots: string[] = []
 
   afterEach(() => {
@@ -342,7 +342,7 @@ describe('the agent manifest (D-16, XPLN-01)', () => {
     expect(manifest.rows.length, 'the manifest carried no rows').toBeGreaterThan(0)
   })
 
-  it('emits EVERY row, unfiltered — it documents, it does not grant (D-16, P1)', async () => {
+  it('emits EVERY row, unfiltered — it documents, it does not grant', async () => {
     // THE PROHIBITION, MEASURED. The failure this refuses is a manifest that quietly applied the
     // visibility law a second time: rows would vanish for reasons no cell states, and the two
     // places the law lived would agree until one of them was improved. `config-write` ops are the
@@ -372,7 +372,7 @@ describe('the agent manifest (D-16, XPLN-01)', () => {
   // RE-SPELLED 2026-10-01 (432-21, D-12) from '… by env-ref NAME …'. The manifest reads no MCP token
   // declaration any more, so a legacy block yields no ref at all; the never-by-value half is the claim
   // that survives, and it is still measured against a value that is SET while the manifest builds.
-  it('reports a declared credential by env-ref NAME and never by value (T-398-17, 395 D-11)',
+  it('reports a declared credential by env-ref NAME and never by value',
     async () => {
     // THE REFS-ONLY LAW, DRIVEN OVER A REAL SECRET. A cell that only asserted the shape of the
     // posture would pass against a manifest that also carried the value in some field nobody

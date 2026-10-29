@@ -492,7 +492,7 @@ function findAssertOutcome(value: unknown): Record<string, unknown> | undefined 
   return undefined
 }
 
-describe('C441-PROOF', () => {
+describe('ask, chat and run mask declared values', () => {
   it('ask masks both declared values in what it writes and prints', async () => {
     const project = await recordedDoorProject('441-ask', { fullBodies: true })
     try {
@@ -760,7 +760,7 @@ function twinProject(project: RecordedDoorProject, secrets: string): void {
   })}\n`, 'utf8')
 }
 
-describe('C441-NOTHING-ELSE', () => {
+describe('undeclared values pass unchanged', () => {
   it('ask and chat leave every undeclared value unchanged and block nothing', async () => {
     const project = await recordedDoorProject('441-twin', { fullBodies: true })
     const stub = await startChatModelStub()

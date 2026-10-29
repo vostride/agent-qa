@@ -726,7 +726,7 @@ function readJobRows(agentQaRoot: string): JobRow[] {
 
 // ---- The drives ---------------------------------------------------------------------------------
 
-describe('the shipped dashboard paints a RED run\'s authored verdict, its evidence and its absence (406-10 · ANLZ-01 / DETL-04 / DETL-05, D-14 / D-20)', () => {
+describe('the shipped dashboard paints a RED run\'s authored verdict, its evidence and its absence', () => {
   beforeAll(async () => {
     if (process.platform === 'win32') {
       recorded.failure = WINDOWS_REFUSAL
