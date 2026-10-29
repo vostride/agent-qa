@@ -26,7 +26,7 @@ import {
 } from '../knowledge-budgets.js'
 
 /**
- * 407 D-17: the composition takes THE rung resolver as a required injection, so these cells —
+ * the composition takes THE rung resolver as a required injection, so these cells —
  * which are about budgets, not about the host — hand it a fake and never probe the machine.
  */
 const fakeResolveRetrievalRung = (): Promise<RecordedRetrievalRung> => Promise.resolve({

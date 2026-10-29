@@ -1,7 +1,7 @@
-// RE-SPELLED 2026-10-01 (432-17, D-05): `proposals.list` is deleted with the inbox. The read these
+// RE-SPELLED 2026-10-01: `proposals.list` is deleted with the inbox. The read these
 // cells drive through the composed host is now `quarantine.list`, another allow-tier read that
 // answers honestly (an empty listing) in a bare temp project, so every claim keeps its subject.
-// The 392 tracer: one deterministic utterance through every layer (CHAT-01 / CHAT-05 / D-24).
+// The 392 tracer: one deterministic utterance through every layer.
 //
 // What this file measures that no unit test can: that the WHOLE spine is joined. The op is
 // registered, `chatTurn` is bound at THE composition root, the gate lets the turn through, the
@@ -66,7 +66,7 @@ const MODEL: JobModelCapability = {
 
 const MINT_IDENTITY = (filePath: string): string => filePath
 
-// 432-13 (D-05/D-14): the tracer's utterance was the bare `proposals` alias, which left chat
+// the tracer's utterance was the bare `proposals` alias, which left chat
 // resolution with the inbox. The same op is reached through the one `/fn` branch, and every claim
 // below (table resolution, human origin, the durable JSONL shape, resume) is unchanged.
 describe('the ask tracer: agent-qa ask "/fn quarantine.list", end to end over the composed host', () => {
@@ -148,7 +148,7 @@ describe('the ask tracer: agent-qa ask "/fn quarantine.list", end to end over th
       'stage_outcome',
       'stage_outcome',
       'stage_outcome',
-      // 399.1-05: the op's MASKED result lands beside its receipt, in that order — the map, then
+      // the op's MASKED result lands beside its receipt, in that order — the map, then
       // the territory. The receipt is written after the loop's dispatch and this line inside it,
       // so `clause_result` precedes the `clause_receipt` it belongs to.
       'clause_result',
@@ -167,7 +167,7 @@ describe('the ask tracer: agent-qa ask "/fn quarantine.list", end to end over th
       ['planner', 'skipped'],
       ['reconcile', 'resolved'],
     ])
-    // The boundary marker is LAST, which is what makes this turn non-dangling on reopen (D-19).
+    // The boundary marker is LAST, which is what makes this turn non-dangling on reopen.
     expect(events[events.length - 1]).toMatchObject({
       kind: 'turn_complete',
       status: 'completed',
@@ -188,7 +188,7 @@ describe('the ask tracer: agent-qa ask "/fn quarantine.list", end to end over th
     // D-10's exact claim: ZERO clauses executed. Not "the failing one was skipped" — nothing ran.
     expect(result.receipts.filter((receipt) => receipt.status === 'executed')).toHaveLength(0)
     expect(result.unhandled?.clause).toBe('write a test for two factor auth')
-    // D-08: the message NAMES what could not be done. A fail-closed turn that said only "I
+    // the message NAMES what could not be done. A fail-closed turn that said only "I
     // could not do that" would be a silent drop wearing a refusal's clothes.
     expect(result.unhandled?.reason).toContain('write a test for two factor auth')
   })

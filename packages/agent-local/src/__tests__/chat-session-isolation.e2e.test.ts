@@ -1,7 +1,7 @@
-// RE-SPELLED 2026-10-01 (432-17, D-05): `proposals.list` is deleted with the inbox. The read these
+// RE-SPELLED 2026-10-01: `proposals.list` is deleted with the inbox. The read these
 // cells drive through the composed host is now `quarantine.list`, another allow-tier read that
 // answers honestly (an empty listing) in a bare temp project, so every claim keeps its subject.
-// Two conversations at once, through one composition (Phase 392 plan 12, CHAT-05 / CR-01).
+// Two conversations at once, through one composition.
 //
 // "A SESSION IS RECONSTRUCTABLE AND CANNOT WEDGE" is a claim about a session, and every scenario
 // this phase shipped runs ONE turn at a time — which is precisely the shape that cannot see the
@@ -263,7 +263,7 @@ describe('two sessions, overlapping turns, two intact files', () => {
 // unconditionally into the registry. Two facts follow, and both are measured below rather than
 // argued: a `/pin` typed in one conversation denies that action class for EVERY later caller until
 // the process restarts (W-03), and an interleaved turn puts one session's conversation into
-// another session's outbound provider request (CR-02).
+// another session's outbound provider request.
 //
 // BOTH CASES ARE WRITTEN AGAINST PUBLIC SEAMS ONLY — `composeLocalAgent`'s `chatModel` option,
 // `invokeFunction`, and the recorded provider call — so each file is byte-identical either side of
@@ -334,7 +334,7 @@ describe('a typed /pin reaches no conversation (/pin is retired)', () => {
     expect(afterB.receipts.map((receipt) => receipt.status)).toEqual(['executed'])
   })
 
-  // 432-18 task 2 (C432-PIN-ABSENT): independent session concurrency and clause receipt ordering
+  // 432-18 task 2: independent session concurrency and clause receipt ordering
   // survive the pin overlay's deletion. Two sessions take overlapping turns that mix a typed `/pin`
   // with an op; each turn answers for itself, the op clause still executes in order, and no session
   // state carries a pin field.

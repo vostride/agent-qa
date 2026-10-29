@@ -124,7 +124,7 @@ function toNumber(value: unknown): number {
 function toRow(row: Record<string, unknown> | undefined): PostProcessingJobRow | undefined {
   if (row === undefined) return undefined
   // The job store has no conclusion column. Match sqlite-job-store's quarantineConclusionOf:
-  // only the complete recorded quarantine landing supports this conclusion (422 D-16).
+  // only the complete recorded quarantine landing supports this conclusion.
   const conclusionKind: JobConclusionKind | undefined =
     !isJobKind(String(row.kind))
     && row.status === 'failed'
@@ -176,7 +176,7 @@ export function createPostProcessingReader(
         timeout: AGENT_JOB_STORE_BUSY_TIMEOUT_MS,
       })
       try {
-        // The same stamp-and-refuse gate the writer applies (385 D-04). A database another
+        // The same stamp-and-refuse gate the writer applies. A database another
         // build wrote is bytes this one cannot read, and answering `pending` from it would be
         // indistinguishable from a run that was never enqueued — which is the silent widening
         // the version stamp exists to refuse. A fresh, never-stamped file reads 0 and is

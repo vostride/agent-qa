@@ -1,4 +1,4 @@
-// The store's own guarantees, asserted against real sqlite (Phase 385 plan 03).
+// The store's own guarantees, asserted against real sqlite.
 //
 // Everything here drives `JobStorePort` directly rather than through the engine. That is
 // deliberate: D-02 says any process may open this database and write to it, so the store is
@@ -1064,7 +1064,7 @@ describe('agent job store: fenced checkpoint rows', () => {
   })
 })
 
-// Phase 385 plan 05 — cancellation as a STORE guarantee (D-19). Driven through the port
+// cancellation as a STORE guarantee. Driven through the port
 // directly, because D-02 lets any process open this database: a three-way outcome that only
 // held when the engine was the caller would not be a store guarantee at all.
 describe('agent job store: cancellation', () => {
@@ -1397,7 +1397,7 @@ describe('agent job store: requeueTerminal, the stand-in forget', () => {
       found: true,
     })
 
-    // A mismatched id is a caller bug, not a third outcome arm (413-02 D-4).
+    // A mismatched id is a caller bug, not a third outcome arm.
     await expect(store.requeueTerminal(asJobId('job_missing'), current)).rejects.toBeInstanceOf(
       UnknownJobRowError,
     )
@@ -1409,7 +1409,7 @@ describe('agent job store: requeueTerminal, the stand-in forget', () => {
   })
 })
 
-// 425-13: THE START OUTLIVES THE LEASE. `claimed_at` answers who holds a row right now and every
+// THE START OUTLIVES THE LEASE. `claimed_at` answers who holds a row right now and every
 // terminal transition releases it, so a card that timed a settled stage from it could never say how
 // long the stage took. `started_at` is written once, at the first claim, and cleared only by the
 // operator requeue. The stepping clock is what makes "once" observable: every `now()` is a later

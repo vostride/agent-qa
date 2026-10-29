@@ -166,7 +166,7 @@ describe('retired: a typed /pin reaches nothing through the composed stack', () 
     expect(auditRows()).toEqual([])
   })
 
-  // RE-SPELLED 2026-09-30 (432-13) from 'the pin is a LIVE view: a second class pinned mid-session
+  // RE-SPELLED 2026-09-30 from 'the pin is a LIVE view: a second class pinned mid-session
   // denies from the next turn'. There is no pin set to be live.
   it('a /pin typed mid-session denies nothing on the next turn', async () => {
     const opened = await ask('status')
@@ -185,7 +185,7 @@ describe('retired: a typed /pin reaches nothing through the composed stack', () 
 
     expect(refused.status).toBe('fail_closed')
     expect(refused.unhandled?.clause).toBe('/pin nonsense.notacapability')
-    // And it left a countable row, like every other refusal (D-15).
+    // And it left a countable row, like every other refusal.
     expect(
       sessionEvents(refused.sessionId).filter((event) => event.kind === 'mark_unhandled'),
     ).toHaveLength(1)

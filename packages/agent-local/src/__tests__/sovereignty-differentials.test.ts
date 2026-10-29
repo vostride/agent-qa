@@ -1,5 +1,4 @@
-// Sovereignty differential 4 — DENY FINALITY (Phase 391, PROP-05, plan 05) — RE-SPELLED 2026-10-01
-// (432-19, D-14/D-15).
+// Sovereignty differential 4 — DENY FINALITY — RE-SPELLED 2026-10-01
 //
 // spec/v2/qa-agent-and-surfaces.md §5 stated the sovereignty rule as "a grant satisfies an ask but
 // never overrides a deny/restricted". This file drove the shipped gate (`evaluate`) with a covering

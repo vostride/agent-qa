@@ -1,4 +1,4 @@
-// Every named refusal the agent job queue's local store raises (Phase 385 plan 03).
+// Every named refusal the agent job queue's local store raises.
 //
 // The rule this module exists to state, because a small package with two error files and no
 // rule for which one gets what is how a vocabulary forks: a refusal DECLARED here is one the
@@ -19,13 +19,13 @@ import { JOB_CHECKPOINT_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 export { QuarantinedJobRequeueError, StaleJobStoreEpochError } from '@vostride/agent-qa-agent'
 
 /**
- * The database on disk was written by a build that does not agree with this one (D-04).
+ * The database on disk was written by a build that does not agree with this one.
  *
  * There is no migration machinery in the agent job queue and there is not meant to be: the
  * milestone ships nothing between releases, so a version that does not match is a development
  * artifact, not a user's history. The message therefore carries the remedy — clear agent job
  * queue state — since an operator reading it can act on that and cannot act on a version number
- * alone. The remedy names WHICH queue because three of them coexist (D-21): an operator told to
+ * alone. The remedy names WHICH queue because three of them coexist: an operator told to
  * "clear queue state" could reasonably clear the curation queue instead.
  */
 export class JobStoreSchemaVersionError extends Error {
@@ -76,7 +76,7 @@ export class InvalidJobCheckpointIdError extends Error {
   }
 }
 
-/** A checkpoint file written at a layout version this build does not read (D-04). */
+/** A checkpoint file written at a layout version this build does not read. */
 export class JobCheckpointSchemaVersionError extends Error {
   override readonly name = 'JobCheckpointSchemaVersionError'
 

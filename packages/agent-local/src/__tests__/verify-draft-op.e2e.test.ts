@@ -1,4 +1,4 @@
-// The keep-gate evaluator END TO END, through the REGISTERED op (Phase 393 plan 07, D-01/D-15).
+// The keep-gate evaluator END TO END, through the REGISTERED op.
 //
 // PRODUCED-NOT-LITERAL, APPLIED TO AN ENTRY POINT. Every gate already has a unit suite in
 // `packages/agent`, and every one of those suites hands `evaluateDraft` its ports directly. That
@@ -9,7 +9,7 @@
 // host built by `composeLocalAgent()` — the real registry, the real policy gate, the real
 // `runs.start` op underneath, a real receipts store on a real disk.
 //
-// HERMETIC BY CONTRACT (D-06). No LLM is reachable from anything here: the run executor is a
+// HERMETIC BY CONTRACT. No LLM is reachable from anything here: the run executor is a
 // fixture that writes the run records a real executor would have written, and the model binding is
 // a capability nothing in this path resolves. The live half — real browser, real target, real
 // non-determinism — is plan 08's lane, and it proves a different claim: that the gates separate
@@ -96,7 +96,7 @@ const ACCEPT_CONTROL = {
   testId: 't_hong-lat-plot-noise-memory-common-binary-tol-liv-argent',
   filePath: 'tests/accept-control.yaml',
   testName: 'Confirm the local account form page heading',
-  // Required on the descriptor since 394-37 (WR-04). Nothing in this file compiles, so no
+  // Required on the descriptor since 394-37. Nothing in this file compiles, so no
   // vocabulary check reads it here — it is carried because the parse really does yield it.
   target: 'local-form',
   steps: [
@@ -310,12 +310,12 @@ function draftAuthoring(options: {
     suiteTextCorpus() {
       return Promise.resolve(options.suiteTextCorpus ?? [])
     },
-    // 394-26: nothing in this file authors, so nothing derives a scope. Throwing rather than
+    // nothing in this file authors, so nothing derives a scope. Throwing rather than
     // answering keeps that a fact about the run instead of a value a cell could quietly consume.
     deriveDefaultScope(): Promise<never> {
       throw new Error('this file evaluates an existing draft, so no scope is derived')
     },
-    // 394-33 WR-07: the `target` vocabulary is served to the COMPILE prompt, and this file compiles
+    // the `target` vocabulary is served to the COMPILE prompt, and this file compiles
     // nothing. Throwing for the same reason its neighbour does — an answer here would be a value no
     // case in this suite can legitimately consume.
     configuredTargetNames(): Promise<never> {
@@ -324,7 +324,7 @@ function draftAuthoring(options: {
     // 394: the same posture `JOB_MODEL` takes above, on the other half of the authoring seam.
     // Nothing in THIS file authors a draft — it evaluates one that already exists — so a host
     // that staged bytes here would be modelling a call this suite never makes.
-    // 394-06: present because the port requires it, and never reached by this file — neither
+    // present because the port requires it, and never reached by this file — neither
     // case routes to repair, so no patch is ever applied. A fake answering one it was not asked
     // for would be a second staging path these e2e pins could accidentally observe.
     applyPatchesToDraft(): Promise<never> {
@@ -333,7 +333,7 @@ function draftAuthoring(options: {
     stageDraft() {
       return Promise.reject(new Error('no draft is authored from a keep-gate evaluation'))
     },
-    // 432 D-06: the direct writer. A verify writes nothing — it judges the file at the path it is
+    // the direct writer. A verify writes nothing — it judges the file at the path it is
     // handed — so reaching this would be a verify that wrote.
     publishDraft(): Promise<never> {
       return Promise.reject(new Error('a keep-gate evaluation writes no test file'))
@@ -403,7 +403,7 @@ describe('authoring.draft.verify end to end through the composition root', () =>
       expect(started.patterns).toEqual([ACCEPT_CONTROL.filePath])
     }
 
-    // D-19: the op returns the receipt AND the store holds it — one file, named for the digest.
+    // the op returns the receipt AND the store holds it — one file, named for the digest.
     const receiptsDir = join(agentQaRoot, 'draft-receipts')
     expect(existsSync(receiptsDir)).toBe(true)
     const names = readdirSync(receiptsDir)
@@ -412,7 +412,7 @@ describe('authoring.draft.verify end to end through the composition root', () =>
     expect(persisted).toEqual(receipt)
   })
 
-  // 432 D-06: refine_test's verify arm is handed the WRITTEN test's path, not a shelf copy. The
+  // refine_test's verify arm is handed the WRITTEN test's path, not a shelf copy. The
   // accept control lives at a suite path, so this is that call: the receipt, every gate run and the
   // stored receipt name the written file, and the verify writes nothing (the writer rejects if it
   // is ever reached).

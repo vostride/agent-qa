@@ -1,4 +1,4 @@
-// Resume FIDELITY of the authorship primitive, over the real store (Phase 385 plan 12, D-10).
+// Resume FIDELITY of the authorship primitive, over the real store.
 //
 // The agent package's own suite proves D-10's control flow: on a recorded checkpoint the author
 // is never reached. It cannot prove the other half of the same sentence — that what comes back
@@ -105,7 +105,7 @@ describe('recordLlmAuthorship resume fidelity over the real store', () => {
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), 'agent-qa-authorship-fidelity-'))
     open = []
-    // 2026-10-19 (444.1-12, D-23): one clock for both hosts, so the second never reads a time
+    // one clock for both hosts, so the second never reads a time
     // before the first host's retry was recorded.
     clock = createSteppingClock()
   })

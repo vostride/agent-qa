@@ -1,4 +1,4 @@
-// The list verbs are live D-01 sighting sites (Phase 387 plan 06).
+// The list verbs are live D-01 sighting sites.
 //
 // D-01 names four places an entity gets its permanent address the first time something
 // surfaces it — a resolver hit, a card render, verdict authoring, and a LIST VERB. 387-01 wired
@@ -51,7 +51,7 @@ import { composeLocalAgent } from '../compose-local-agent.js'
 import type { LocalAgentHost } from '../compose-local-agent.js'
 
 /**
- * The composition's REQUIRED quarantine identity mint (390-12 / D-01). Passthrough here: this
+ * The composition's REQUIRED quarantine identity mint. Passthrough here: this
  * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
  * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
  */

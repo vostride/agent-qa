@@ -1,4 +1,4 @@
-// The presentation ports the run composition is HANDED rather than constructs (Phase 385, D-13).
+// The presentation ports the run composition is HANDED rather than constructs.
 //
 // The dissection line this phase drew, stated once so 386 and every later host can apply the same
 // one: a symbol is host-neutral when a process with no controlling terminal and nobody reading its
@@ -10,7 +10,7 @@
 // lives here while the construction stays in the host.
 //
 // Consequence worth naming: types cross into this package, constructions that only a terminal host
-// needs do not. 2026-10-02 (432-42, D-14): the live-line pause seam a confirm prompt used is
+// needs do not. 2026-10-02: the live-line pause seam a confirm prompt used is
 // deleted with its type; no run asks, so nothing pauses a reporter.
 
 import type { RunEventEnvelope } from '@vostride/agent-qa-schema'
@@ -26,7 +26,7 @@ export interface AttachableRunSession {
   subscribe(fromSeq: number | undefined, handler: (envelope: RunEventEnvelope) => void): () => void
 }
 
-// 2026-10-01 (432-14, D-03/D-14): `RunPresentationPorts` is deleted. It carried the human confirm
+// `RunPresentationPorts` is deleted. It carried the human confirm
 // channel and the host's human-decoration hook. Nothing in a run asks a person, so the composition
 // is handed no presentation capability at all; the reporter and live-line vocabulary above is what
 // a host still attaches over.

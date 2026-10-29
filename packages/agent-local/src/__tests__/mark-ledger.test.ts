@@ -130,7 +130,7 @@ describe('FsMarkLedger', () => {
     expect(ledger.read()).toEqual([recovered])
     expect(existsSync(join(dir, 'mark-intent.json'))).toBe(false)
   })
-  // 2026-09-30, 432-09 (D-04/D-22): the intent names a stable operation identity and an `applied`
+  // the intent names a stable operation identity and an `applied`
   // stage; a pre-432 intent that names a proposal or a drafted stage is refused before any effect.
   // 2026-10-03 (quick 261003-lgd, Phase 432 review IN-23): refused by the intent file's own name.
   // It used to say "Mark ledger is corrupt at line N", a line marks.jsonl does not have, so the

@@ -5,7 +5,7 @@
 // curation-tail receipt writer, NOT from handoff.json's plain write: this file is the truth
 // home a chip's `done` promises is fetchable, so a torn write is a lie with three consumers.
 // The COMPOSITION ROOT owns the path law: `runs/<slug(runId)>/analysis.json` derived from
-// `runId` alone through `slugBranch` (T-389-01), the same derivation as the handoff read
+// `runId` alone through `slugBranch`, the same derivation as the handoff read
 // binding directly above it — never a caller-supplied path.
 
 import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync, mkdirSync } from 'node:fs'
@@ -33,7 +33,7 @@ import type { LocalAgentHost, LocalAgentJobs } from '../../composition/compose-l
 import { writeAnalysisArtifact } from '../persist-analysis.js'
 
 /**
- * The composition's REQUIRED quarantine identity mint (390-12 / D-01). Passthrough here: this
+ * The composition's REQUIRED quarantine identity mint. Passthrough here: this
  * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
  * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
  */

@@ -42,7 +42,7 @@ export function createMemorySessionLog(
 ): MemorySessionLog {
   const sessions = new Map<string, { header: ChatSessionHeader; events: ChatSessionEvent[] }>()
   const random = options.random ?? Math.random
-  // THE TWIN CARRIES THE CONCURRENCY CONTRACT TOO (392-12, CR-01). What was `let current` here —
+  // THE TWIN CARRIES THE CONCURRENCY CONTRACT TOO. What was `let current` here —
   // the same single-session shape the disk adapter's single `fd` had — is gone, and for the reason
   // 390 paid for once: a read-side fix without its write-side twin is a regression generator. A
   // twin that kept a "current session" would let every hermetic test pass against a contract

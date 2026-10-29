@@ -1,4 +1,4 @@
-// The one local composition root (Phase 385 plan 09 — D-15).
+// The one local composition root.
 //
 // `packages/agent` is storageNeutral — it may not touch `node:*`. Every host capability the
 // function ops and the job queue need is built HERE over the concrete local storage and handed in
@@ -257,7 +257,7 @@ import type { SqliteJobStore } from '../store/sqlite-job-store.js'
 // have been a signature change to code D-14 requires this phase to leave semantically untouched.
 
 /**
- * 407 D-13/D-17 — THE retrieval-rung resolver, bound at the one edge that may name the writer
+ * THE retrieval-rung resolver, bound at the one edge that may name the writer
  * entry (385 D-14/SC5) and handed to `openRunKnowledgeComposition` by every run door.
  *
  * The binding exists so there is exactly ONE resolver in the tree with exactly ONE importer of
@@ -273,7 +273,7 @@ import type { SqliteJobStore } from '../store/sqlite-job-store.js'
 export const resolveHostRetrievalRung: RetrievalRungResolver = resolveRetrievalRung
 
 /**
- * 407 D-18/D-20 — the READ-ONLY knowledge probes a diagnostic grades a host with.
+ * the READ-ONLY knowledge probes a diagnostic grades a host with.
  *
  * `doctor` needs the two axes SEPARATELY, not just the folded word: its `Knowledge store` row is
  * about the index face, its `Embedder` row is about the capability outcome, and only its third row
@@ -317,10 +317,10 @@ export type {
   ResolveEmbedderCapabilityOptions,
 } from '@vostride/agent-qa-knowledge-local'
 
-// 387-08 D-18: the delegate transport's own vocabulary, re-exported through the one edge that
-// names the writer entry. 2026-10-01 (432-17): the proposal door's `ApplyDelegate` and
+// the delegate transport's own vocabulary, re-exported through the one edge that
+// names the writer entry. 2026-10-01: the proposal door's `ApplyDelegate` and
 // `ApplyReviewResult` are deleted with it; a delegate receives the validated request and its stable
-// identity (432-09), never a proposal id to reload.
+// identity, never a proposal id to reload.
 export type {
   ExplicitReviewDelegate,
   ExplicitReviewDelegation,
@@ -358,7 +358,7 @@ export type {
 // Surface hosts reach worker lifecycle vocabulary through this one legal composition edge.
 export {
   /**
-   * THE one-shot post-run budget (388-02 D-03), reached through the same edge.
+   * THE one-shot post-run budget, reached through the same edge.
    *
    * Re-exported rather than restated: the CLI's post-run tail runs the agent-job chain under
    * the identical bound the curation drain has always used, and a surface that spelled `60_000`
@@ -387,7 +387,7 @@ export interface LocalDaemonCapabilities {
   readonly readWriterLease: typeof readWriterLease
   readonly isLeaseStale: typeof isLeaseStale
   /**
-   * CR-01/CR-08: the one three-valued freshness verdict — fresh, reclaimable, or unknown.
+   * the one three-valued freshness verdict — fresh, reclaimable, or unknown.
    *
    * Any surface that classifies a holder as recoverable must read this and not the lease file
    * alone, and must name what it does with `unknown` rather than inheriting a boolean it never
@@ -406,9 +406,9 @@ export interface LocalDaemonCapabilities {
   readonly embedderWorkerProcessIsAlive: typeof embedderWorkerProcessIsAlive
   readonly embedderWorkerSocketPath: typeof embedderWorkerSocketPath
   readonly probeEmbedderWorkerSocket: typeof probeEmbedderWorkerSocket
-  /** CR-05: no surface may signal a registered worker pid without this verdict returning 'match'. */
+  /** no surface may signal a registered worker pid without this verdict returning 'match'. */
   readonly verifyEmbedderWorkerIncarnation: typeof verifyEmbedderWorkerIncarnation
-  // 2026-10-16 (442-02, D-20): a run owner's start time, read for the CLI's runs.db ownership.
+  // a run owner's start time, read for the CLI's runs.db ownership.
   readonly resolveProcessIncarnation: typeof resolveProcessIncarnation
   readonly removeEmbedderWorkerRegistration: (
     agentQaRoot: string,
@@ -530,7 +530,7 @@ export interface LocalCurationCapabilities {
   readonly readFeedbackRecord: typeof readFeedbackRecord
   readonly appendMarkEvidence: typeof appendMarkEvidence
   /**
-   * 2026-09-15, 423 D-16/D-17: the lease-free planning half appendMarkEvidence executes, so a
+   * the lease-free planning half appendMarkEvidence executes, so a
    * consequence preview names every confirm/overturn effect without the writer. Reads only.
    */
   readonly planMarkEvidence: typeof planMarkEvidence
@@ -546,7 +546,7 @@ export interface LocalCurationCapabilities {
   readonly drainQueue: typeof drainQueue
   readonly foldRunOutcomes: typeof foldRunOutcomes
   /**
-   * THE mechanism a version bump rides (393 CR-02). The per-run receipt below carries the
+   * THE mechanism a version bump rides. The per-run receipt below carries the
    * version, but invalidating receipts only re-runs folds that answer 'already-applied' on the
    * durable marker — so the refold a bump promises happens through THIS capability, as a rebuild
    * of the derived family, and nowhere else.
@@ -559,7 +559,7 @@ export interface LocalCurationCapabilities {
   readonly reconcileRunOutcomesProjection: typeof reconcileRunOutcomesProjection
   readonly enqueueCurationCandidateProjection: typeof enqueueCurationCandidateProjection
   readonly readCanonicalBundleAnchors: typeof readCanonicalBundleAnchors
-  /** 418 D-07: reuse the writer's observation identity through the existing CLI bridge. */
+  /** reuse the writer's observation identity through the existing CLI bridge. */
   readonly canaryOutcomeObservationId: typeof canaryOutcomeObservationId
   /**
    * Component of the tail's receipt: a bump refolds runs already receipted at the old version.
@@ -652,7 +652,7 @@ export function createRunsReader(agentQaRoot: string): RunsReaderPort {
     },
     /**
      * Resolution runs over the ENUMERATED run documents and matches on the recorded `runId`,
-     * never by joining the caller's string onto a path (T-384-08): a `runId` of `../../etc` can
+     * never by joining the caller's string onto a path: a `runId` of `../../etc` can
      * therefore address nothing outside the runs directory, because it is never used to build a
      * path at all.
      */
@@ -667,7 +667,7 @@ export function createRunsReader(agentQaRoot: string): RunsReaderPort {
      * nothing was recorded, so nothing was lost. A log whose earliest surviving seq is ABOVE the
      * requested resume point means events the caller asked for existed and are gone; that is
      * reported with the bus's own `ReplayIncompleteError` carrying the floor, never papered over
-     * by returning the surviving suffix (D-07/D-08).
+     * by returning the surviving suffix.
      */
     readEvents(runId: RunId, fromSeq: number): Promise<readonly RunEventEnvelope[]> {
       const recorded = [...new FsEventLog({ root: agentQaRoot, runId }).read(0)]
@@ -682,7 +682,6 @@ export function createRunsReader(agentQaRoot: string): RunsReaderPort {
     },
     /**
      * One step's persisted evidence, read back out of the run's own handoff document
-     * (387 KREV-02 / D-15).
      *
      * Through `loadCompletedRunHandoff` — the version guard — and NOT through a raw JSON read,
      * which is the load-bearing half. 387-02 gave the guard a present-implies-valid clause for
@@ -721,7 +720,7 @@ export function createRunsReader(agentQaRoot: string): RunsReaderPort {
       )
     },
     /**
-     * Resolved over the ENUMERATED run directories (T-384-08, T-431-01): the caller's id is only
+     * Resolved over the ENUMERATED run directories: the caller's id is only
      * ever compared, never joined onto a path, and the directory must hold a completed handoff
      * recording that same id, so one run's snapshot can never answer for another. A snapshot that
      * is absent, unreadable or gone since `list()` answered is `unknown`, never an error.
@@ -775,13 +774,13 @@ export function createKnowledgeReader(
   })
 }
 
-// ---- knowledge review: the WRITE half of the verb family (387 KREV-01 / D-17 · D-18) --------
+// ---- knowledge review: the WRITE half of the verb family --------
 
 export interface CreateKnowledgeReviewInput {
   readonly agentQaRoot: string
   readonly resolveKnowledgeRoot: () => Promise<string> | string
   /**
-   * The writer lease this host ALREADY holds, when it is the holder (D-18).
+   * The writer lease this host ALREADY holds, when it is the holder.
    *
    * The daemon's half of the routing rule. A holder cannot acquire its own lease a second time, so
    * it hands the authority it owns to the change; supplying this is mutually exclusive with
@@ -789,21 +788,21 @@ export interface CreateKnowledgeReviewInput {
    */
   readonly resolveWriterAuthority?: () => { readonly leaseId: string; readonly epoch: number } | undefined
   /**
-   * 432-12 (D-05): how a direct change reaches a live writer-lease holder. The holder receives the
+   * how a direct change reaches a live writer-lease holder. The holder receives the
    * validated request and the change's stable identity, bounded; the lease is never taken. Absent,
    * a held lease refuses the change by name. Exclusive with {@link resolveWriterAuthority}: a holder
    * never delegates. The daemon supplies none, which is why its own changes cannot recurse.
    */
   readonly knowledgeChangeDelegate?: ExplicitReviewDelegate
   /**
-   * 432-12: the context a direct change is recorded under. Absent means the process resolver, the
+   * the context a direct change is recorded under. Absent means the process resolver, the
    * default every registry in this composition already reads. The context is recorded as-is; an
-   * explicit change applies in every context (D-04/D-08).
+   * explicit change applies in every context.
    */
   readonly resolveExecutionContext?: () => ExecutionContext
 }
 
-/** The public answer to one direct change, from the explicit writer's own result (432-12). */
+/** The public answer to one direct change, from the explicit writer's own result. */
 function knowledgeChangeOutput(
   verb: KnowledgeChangeVerb,
   operationId: string,
@@ -842,7 +841,7 @@ export function createKnowledgeReview(input: CreateKnowledgeReviewInput): Knowle
     return { knowledgeRoot: await input.resolveKnowledgeRoot() }
   }
 
-  // 432-12: this host's direct changes take the writer lease one at a time. Two changes racing in
+  // this host's direct changes take the writer lease one at a time. Two changes racing in
   // one process would otherwise find the lease held by each other and the second would refuse as if
   // another writer held it. The queue releases on success and failure alike (the config
   // transaction's pattern); it does not claim to serialize across processes, which the lease does.
@@ -854,8 +853,8 @@ export function createKnowledgeReview(input: CreateKnowledgeReviewInput): Knowle
   }
 
   return {
-    // 432-12 (D-04/D-05/D-09): one explicit change, applied in the call through the direct writer
-    // (432-06). Nothing is filed: the change is committed under the lease, handed to a live
+    // one explicit change, applied in the call through the direct writer
+    // Nothing is filed: the change is committed under the lease, handed to a live
     // holder, or refused by type. A missing identity is minted here, once per call, and returned on
     // the receipt so the caller can retry the same change.
     change: (request) => serialized(async () => {
@@ -876,13 +875,12 @@ export function createKnowledgeReview(input: CreateKnowledgeReviewInput): Knowle
       })
       return knowledgeChangeOutput(request.verb, operationId, result)
     }),
-    // 2026-10-01 (432-17, D-05/D-22): `propose` and `apply` are deleted with the proposal inbox.
   }
 }
 
 
 
-// ---- 432-09: an explicit knowledge change, applied in the call (D-04/D-11) ------------------------
+// ---- 432-09: an explicit knowledge change, applied in the call ------------------------
 
 export interface ApplyKnowledgeChangeInput {
   readonly agentQaRoot: string
@@ -904,7 +902,7 @@ export interface ApplyKnowledgeChangeInput {
 }
 
 /**
- * Apply one explicit knowledge change through the direct writer (432-06), with this host's short-id
+ * Apply one explicit knowledge change through the direct writer, with this host's short-id
  * resolver. Nothing is filed: the change is committed, or it is refused by type.
  */
 export async function applyKnowledgeChange(input: ApplyKnowledgeChangeInput): Promise<ExplicitReviewResult> {
@@ -928,7 +926,7 @@ export async function applyKnowledgeChange(input: ApplyKnowledgeChangeInput): Pr
   }
 }
 
-// ---- entities: the addressing ledger and the tier-(a) resolver (387 D-01/D-02/D-09) ----------
+// ---- entities: the addressing ledger and the tier-(a) resolver ----------
 
 export interface CreateEntityDirectoryInput {
   readonly agentQaRoot: string
@@ -946,7 +944,7 @@ export interface CreateEntityDirectoryInput {
  * the same law the job store's deferred `jobs()` handle carries, expressed for a port that has
  * no handle to defer.
  *
- * Closed again, because minting is LEASE-FREE by design (D-02) — the CLI must mint with no
+ * Closed again, because minting is LEASE-FREE by design — the CLI must mint with no
  * daemon running, so several processes hold this file at once and sqlite arbitrates through
  * WAL and the busy timeout. A connection kept open for the life of a composition would hold a
  * reader open across a caller's whole session for no gain; the transactions here are single
@@ -1092,7 +1090,7 @@ export async function sweepEntityIndexProjection(
   }
 }
 
-// ---- runs.start: the composition's binding (D-16) ---------------------------------------------
+// ---- runs.start: the composition's binding ---------------------------------------------
 
 /**
  * The host's run-execution capability: run this request to completion, and say which run it was.
@@ -1109,7 +1107,7 @@ export async function sweepEntityIndexProjection(
  */
 export interface RunExecutionPort {
   /**
-   * 2026-10-01 (432-18, D-15): the optional `gate` argument (401-08, D-08) carried the standing
+   * the optional `gate` argument carried the standing
    * approvals in force — the durable ledger's answer unioned with any dispatch-scoped grant — to a
    * run gate behind the port. The run gate went in 432-13 and the ledger and the dispatch overlay
    * go in 432-18, so a host is handed the request and nothing else.
@@ -1165,7 +1163,7 @@ export function createLocalRunInvocation(input: {
   }
 }
 
-// ---- authoring.draft.verify: the keep-gate evaluator's binding (393 D-01 / D-15) --------------
+// ---- authoring.draft.verify: the keep-gate evaluator's binding --------------
 
 /** The stable test identity, spelled once for this binding. */
 interface DraftIdentity {
@@ -1193,7 +1191,7 @@ export interface ParsedDraftDescriptor {
   readonly testName: string
   /**
    * The parsed test's `target`. REQUIRED, exactly as `ParsedDraftLike.target` and
-   * `TestDefinitionSchema` require it (394-37, WR-04).
+   * `TestDefinitionSchema` require it.
    *
    * A mirror that dropped it would hand `packages/agent` a draft whose target the compile stage
    * cannot check against the vocabulary it just served — and the cost of not checking is paid as
@@ -1217,7 +1215,7 @@ export interface ParsedDraftDescriptor {
  * Four refusal arms and one success, because `packages/agent` is `storageNeutral` and genuinely
  * cannot answer any of them: it can neither stat a path nor know where the workspace ends. The op
  * turns each arm into its own NAMED error, so the refusal a caller catches is declared beside the
- * capability while the syscall stays with the host that owns a filesystem (T-393-01).
+ * capability while the syscall stays with the host that owns a filesystem.
  */
 export type DraftParseOutcome =
   | { readonly kind: 'parsed'; readonly draft: ParsedDraftDescriptor }
@@ -1226,7 +1224,7 @@ export type DraftParseOutcome =
   | { readonly kind: 'outside-workspace' }
   | { readonly kind: 'unparsable'; readonly reason: string }
 
-/** One authored suite test as TEXT, for gate 3's degraded lane (D-16). */
+/** One authored suite test as TEXT, for gate 3's degraded lane. */
 export interface SuiteTextEntry {
   readonly filePath: string
   readonly testName: string
@@ -1251,7 +1249,7 @@ export interface DraftAuthoringPort {
   parseDraft(filePath: string): Promise<DraftParseOutcome>
   suiteTextCorpus(): Promise<readonly SuiteTextEntry[]>
   /**
-   * 394-33 · WR-07: the names a `target` may legally take in this project.
+   * the names a `target` may legally take in this project.
    *
    * ON THIS PORT for the reason `deriveDefaultScope` is: both hosts build their authoring
    * capability from ONE factory, so a verb that lives here is reached by the CLI `fn` surface and
@@ -1265,7 +1263,7 @@ export interface DraftAuthoringPort {
    */
   configuredTargetNames(): Promise<readonly string[]>
   /**
-   * 394-26 · WINDOWS 110: which scope this project authors for, when the caller named none.
+   * which scope this project authors for, when the caller named none.
    *
    * ON THIS PORT rather than beside it, and that placement is the guarantee. Both hosts build
    * their authoring capability from one factory, so a verb that lives here is reached by the CLI
@@ -1278,10 +1276,10 @@ export interface DraftAuthoringPort {
    */
   deriveDefaultScope(): Promise<ScopeKey>
   /**
-   * 394 D-01 · WTST-01: PARSE the compiled draft, then WRITE it to the shelf — in that order, as
+   * PARSE the compiled draft, then WRITE it to the shelf — in that order, as
    * one verb, joining for exactly the reason the two above bundle.
    *
-   * ONE VERB AND NOT TWO, because the order is the mitigation (T-394-06). Model-authored YAML is
+   * ONE VERB AND NOT TWO, because the order is the mitigation. Model-authored YAML is
    * the one input on the authoring path that no schema at the op boundary can vet, and separate
    * verbs would let a caller write first and discover the parse failure afterwards — with bytes
    * already on this workspace's disk. Here an unparsable draft answers `unparsable` having
@@ -1294,7 +1292,7 @@ export interface DraftAuthoringPort {
    */
   stageDraft(contents: string): Promise<DraftStageOutcome>
   /**
-   * 394-06 D-09/D-20: apply an RFC-6902 patch set to a staged draft and stage the result.
+   * apply an RFC-6902 patch set to a staged draft and stage the result.
    *
    * AT THE HOST for the same reason its two neighbours are: `applyPatchSetToTestDoc` needs the
    * yaml CST from `@vostride/agent-qa-core`, which neither this package nor `agent` may import.
@@ -1306,7 +1304,7 @@ export interface DraftAuthoringPort {
     patchSet: TestEditPatchSet,
   ): Promise<DraftStageOutcome>
   /**
-   * 432 D-06/D-07: write a staged draft's bytes to its test path — the direct final-test writer.
+   * write a staged draft's bytes to its test path — the direct final-test writer.
    *
    * AT THE HOST for its neighbours' reason: the workspace identity mint lives in
    * `@vostride/agent-qa-core`. The host checks the boundary and that the target still holds the
@@ -1417,7 +1415,7 @@ interface DraftEvaluationBindingInput {
   /** Dispatch one gate-run through the REAL `runs.start` op (D-02, op-calls-op). */
   readonly startGateRun: (request: RunsStartInput) => Promise<RunStartAcknowledgement>
   /**
-   * The funnel's read bundle, handed straight through for D-14's gate-2 consultation (394-17).
+   * The funnel's read bundle, handed straight through for D-14's gate-2 consultation.
    *
    * THE SAME OBJECT the `authoring.funnel.get` op binds. This evaluation does not read a second
    * projection: it asks the one this composition already answers "what does this project know
@@ -1427,11 +1425,11 @@ interface DraftEvaluationBindingInput {
 }
 
 /**
- * Bind `authoring.draft.verify` over this host's capabilities (385 D-15).
+ * Bind `authoring.draft.verify` over this host's capabilities.
  *
  * WHAT IS ASSEMBLED HERE, and why each piece is where it is:
  *
- *   `runs.start` is reached as an OP, not as a port (D-02). The evaluator confirms a gate-run by
+ *   `runs.start` is reached as an OP, not as a port. The evaluator confirms a gate-run by
  *   reading both markers off the ACKNOWLEDGMENT, and `runs.start` is the one function that copies
  *   them from the run's own durable record instead of echoing the request. Binding the raw
  *   invocation port instead would have meant re-deriving an acknowledgment here — a second
@@ -1498,7 +1496,7 @@ function createDraftEvaluation(input: DraftEvaluationBindingInput) {
             fingerprints().elements.get(draftIdentityKey({ filePath, testName })) ?? [],
         },
         textCorpus,
-        // D-19: the gitignored per-draft receipt store, bound over `agentQaRoot` beside the
+        // the gitignored per-draft receipt store, bound over `agentQaRoot` beside the
         // proposals inbox and for its reason — a receipt is machine-local working state under the
         // runtime root, not a committed artifact a pull request has any business showing.
         receipts: createDraftReceiptsStore({ resolveAgentQaRoot: () => input.agentQaRoot }),
@@ -1619,7 +1617,7 @@ export interface LocalAgentHost {
   /**
    * The live chat session composed beside the registry (392 plan 08).
    *
-   * Present on EVERY host, because the turn engine is (D-24) — a host whose chat session were
+   * Present on EVERY host, because the turn engine is — a host whose chat session were
    * optional would make `agent.ask` bound and its state absent, which is two answers to whether
    * this host can hold a conversation.
    */
@@ -1668,7 +1666,7 @@ export type CandidateProsePosture = 'masker-active' | 'no-masker'
  */
 export const UNCLAIMABLE_BY_PROSE_POSTURE: Record<CandidateProsePosture, readonly JobKind[]>
   = Object.freeze({
-    // Frozen to the same depth it is read at (WR-11). The shallow freeze every sibling table
+    // Frozen to the same depth it is read at. The shallow freeze every sibling table
     // here uses is not enough for this one: the VALUES are the arrays the queue claims
     // against, so an unfrozen inner array is a writable disclosure guard reachable from any
     // module that can import the table.
@@ -1677,11 +1675,11 @@ export const UNCLAIMABLE_BY_PROSE_POSTURE: Record<CandidateProsePosture, readonl
   })
 
 export interface ComposeLocalAgentInput {
-  // 2026-10-14 (441-55, 441-16, D-06): the declared-secret mask for chat projections and run reads.
+  // the declared-secret mask for chat projections and run reads.
   readonly mask: MaskFn
   readonly feedback?: FeedbackPort
   /**
-   * 423 D-19/D-16: read-only mark history and consequence preview; absent leaves runs.marks.history
+   * read-only mark history and consequence preview; absent leaves runs.marks.history
    * and runs.mark.preview unbound by name, and a port without `preview` leaves only the preview unbound.
    */
   readonly feedbackReads?: FeedbackReadsPort
@@ -1690,13 +1688,13 @@ export interface ComposeLocalAgentInput {
   /**
    * Masked configuration reads. Injected because flattening and masking a resolved configuration
    * needs the host's own loader — its file layering, its environment, its plugin policy — and the
-   * masking decision is a disclosure boundary the host owns (T-384-07 / T-384-17).
+   * masking decision is a disclosure boundary the host owns.
    */
   readonly config: ConfigReaderPort
   /** Resolves the knowledge root this invocation serves from. See `createKnowledgeReader`. */
   readonly knowledgeRoot: () => Promise<string> | string
   /**
-   * The model a job may author with (D-10, plan 05).
+   * The model a job may author with.
    *
    * A required factory. REQUIRED because the queue's own `model` option is required and not
    * defaultable — an optional capability means a queue can be built with none, and the only place
@@ -1710,7 +1708,7 @@ export interface ComposeLocalAgentInput {
    */
   readonly model: () => JobModelCapability | Promise<JobModelCapability>
   /**
-   * How this host executes a run (D-16). OPTIONAL, and the optionality is the reporting
+   * How this host executes a run. OPTIONAL, and the optionality is the reporting
    * mechanism rather than a convenience: a host that supplies it lists `runs.start` as
    * `bound` and can run it; a host that does not lists the same capability as `unbound` and
    * refuses it by name. Not every composition can start a run — a listing, a read-only
@@ -1719,7 +1717,7 @@ export interface ComposeLocalAgentInput {
    */
   readonly runExecution?: RunExecutionPort
   /**
-   * How this host parses a draft and enumerates its authored suite (393 D-01), on the exact
+   * How this host parses a draft and enumerates its authored suite, on the exact
    * optional-operation idiom `runExecution` above uses.
    *
    * OPTIONAL, and — like its neighbour — the optionality is the reporting mechanism rather than a
@@ -1734,7 +1732,7 @@ export interface ComposeLocalAgentInput {
    * CHECKOUT ROOT, and neither this package nor `agent` may name `@vostride/agent-qa-core`.
    */
   readonly draftAuthoring?: DraftAuthoringPort
-  // 432-16 (D-07): `draftApply`, `configApply` and `configUndoSource` are gone from this input. They
+  // `draftApply`, `configApply` and `configUndoSource` are gone from this input. They
   // were the one-commit test-draft apply, the one-commit config apply and the git-history read the
   // config undo proposed from; agent-qa makes no git commits, so no host supplies them and the
   // pre-432 verbs that named them answer unbound until 432-17 deletes the verbs.
@@ -1747,14 +1745,14 @@ export interface ComposeLocalAgentInput {
    */
   readonly configFiles?: ConfigFilesPortLike
   /**
-   * 395-01 CFGM-01: whole-config validation, run BEFORE a proposal surfaces.
+   * whole-config validation, run BEFORE a proposal surfaces.
    *
    * Host-supplied because `AgentQaConfigSchema` lives in `@vostride/agent-qa-core`, which neither
    * this package nor `agent` may name — the `mintQuarantineIdentityPath` arrangement exactly.
    */
   readonly configValidate?: ConfigValidatePortLike
   /**
-   * 395-08 D-04 · CFGM-05: the shared scaffold CONTENT, rendered by the host that owns it.
+   * the shared scaffold CONTENT, rendered by the host that owns it.
    *
    * A SEPARATE OPTIONAL BINDING. The substance lives beside
    * `init`'s own write path in `packages/cli`, which neither this package nor `packages/agent` may
@@ -1763,12 +1761,12 @@ export interface ComposeLocalAgentInput {
    */
   readonly scaffoldContent?: ConfigScaffoldContentPortLike
   /**
-   * 2026-09-30, 432-07 D-05/D-07: the direct config writer. Host-supplied because its transaction
+   * the direct config writer. Host-supplied because its transaction
    * is the dashboard's config file transaction, shared per path with the dashboard's own writes.
    */
   readonly configWrite?: FunctionDeps['configWrite']
   /**
-   * 2026-08-17 (398 D-09 / D-11 · XPLN-02): the four host halves `agent.explain` needs — the
+   * the four host halves `agent.explain` needs — the
    * committed capability catalog as data, the model's citation over it, and the two coverage hooks.
    *
    * Host-supplied for the reason `scaffoldContent` is, and the boundary is harder here rather than
@@ -1784,7 +1782,7 @@ export interface ComposeLocalAgentInput {
    */
   readonly capabilityCatalog?: CapabilityCatalogPort
   /**
-   * 403 D-03: the live-view mint seam `runs.liveurl` binds through, handed straight through from
+   * the live-view mint seam `runs.liveurl` binds through, handed straight through from
    * the host — this composition decides nothing about it.
    *
    * OPTIONAL because the absence is a genuine host fact and not a degradation: a host serving no
@@ -1793,7 +1791,7 @@ export interface ComposeLocalAgentInput {
    */
   readonly liveView?: LiveViewPort
   /**
-   * 405 D-03: the durable run-detail projection read `runs.detail` binds through, handed straight
+   * the durable run-detail projection read `runs.detail` binds through, handed straight
    * through from the host — this composition decides nothing about it and constructs no database.
    *
    * OPTIONAL because a host may have no projection to read, and then `runs.detail` lists `unbound`
@@ -1803,18 +1801,18 @@ export interface ComposeLocalAgentInput {
    */
   readonly runDetail?: RunDetailReaderPort
   /**
-   * 432-12 (D-05): how a direct knowledge change reaches the writer-lease holder when one is alive,
+   * how a direct knowledge change reaches the writer-lease holder when one is alive,
    * as an OPTIONAL operation on the input bag rather than a new production seam (the 386-41 D-2
    * idiom): `agent-local` cannot name a socket and does not. The CLI host injects a closure
    * over `invokeViaDaemon` that invokes the change op there with the same identity; the daemon's
    * own composition injects nothing, because it holds the lease.
    */
   readonly knowledgeChangeDelegate?: ExplicitReviewDelegate
-  /** The writer lease a leaseholding host already owns (387-08 D-18). See `createKnowledgeReview`. */
+  /** The writer lease a leaseholding host already owns. See `createKnowledgeReview`. */
   readonly resolveWriterAuthority?: () => { readonly leaseId: string; readonly epoch: number } | undefined
   /**
    * Mints the durable workspace-relative identity the quarantine ledger keys `filePath` on
-   * (390-12 / D-01). Core's `workspaceRelativeIdentityPath`, pre-bound by the host to its own
+   * Core's `workspaceRelativeIdentityPath`, pre-bound by the host to its own
    * config directory.
    *
    * Host-supplied for the same reason `resolveWriterAuthority` one field up is: the CHECKOUT ROOT is
@@ -1834,7 +1832,7 @@ export interface ComposeLocalAgentInput {
   /** The kind registry the queue dispatches through. Defaults to the real declarations. */
   readonly jobKinds?: JobKindRegistry
   /**
-   * What the post-run chain's real handlers may do (388 D-01), on the optional-operation
+   * What the post-run chain's real handlers may do, on the optional-operation
    * idiom `runExecution` and `applyDelegate` already use.
    *
    * OPTIONAL, and the optionality is the report rather than a convenience: a host that
@@ -1870,9 +1868,9 @@ export interface ComposeLocalAgentInput {
     | Promise<PostRunJobCapabilities['analysisTokenBudget']>
     | PostRunJobCapabilities['analysisTokenBudget']
   /**
-   * The host's execution context for this composition (400-01, D-05).
+   * The host's execution context for this composition.
    *
-   * 2026-10-02 (432-39, D-12): it reaches the knowledge review, which records a direct change under
+   * it reaches the knowledge review, which records a direct change under
    * it, and nothing else here; the registry option it was also forwarded to is deleted, because no
    * op decides in a context. The history below explains why it is injected per composition.
    *
@@ -1893,7 +1891,7 @@ export interface ComposeLocalAgentInput {
    */
   readonly resolveExecutionContext?: () => ExecutionContext
   /**
-   * Notified AFTER one session event has been appended to its log (400-01, D-03).
+   * Notified AFTER one session event has been appended to its log.
    *
    * AN OBSERVER, AND EVERY WORD OF THAT IS THE CONTRACT. It is called with an event that is
    * ALREADY ON THE FILE — after `append` resolves, never before and never instead — so a host
@@ -1913,10 +1911,10 @@ export interface ComposeLocalAgentInput {
    * needs is supplied beside the record rather than smuggled into it.
    */
   readonly observeSessionEvent?: (sessionId: string, event: ChatSessionEvent) => void
-  // 2026-10-01 (432-17, D-05): `mintingSurface` — which door a composition minted proposals as
-  // (400-05) — is deleted with the proposal records it stamped. A direct change records no door.
+  // `mintingSurface` — which door a composition minted proposals as
+  // is deleted with the proposal records it stamped. A direct change records no door.
   /**
-   * The turn engine's reconciliation strategy (392 D-16).
+   * The turn engine's reconciliation strategy.
    *
    * AN INTERNAL COMPOSITION OPTION, and every word of that is load-bearing. It is here so the
    * mutation proof can assemble the REAL host twice — override on, override off — and read the
@@ -1931,21 +1929,21 @@ export interface ComposeLocalAgentInput {
    */
   readonly chatReconcile?: ReconcileStrategy
   /**
-   * The model stage 2 plans with, ALREADY BUILT by the host through `createModel` (CHAT-06).
+   * The model stage 2 plans with, ALREADY BUILT by the host through `createModel`.
    *
    * A model OBJECT and never a model id: the SDK's own type also admits an id it resolves by
    * constructing a client, which would put a provider client behind chat without the masking
    * middleware and the profile resolution `createModel` owns. The type closes that door here.
    *
    * ABSENT IS A REAL POSTURE, NOT AN UNCONFIGURED ONE. A host with no model bound is HEADLESS: any
-   * clause the deterministic table cannot resolve fails the turn closed by name (D-08), which is
+   * clause the deterministic table cannot resolve fails the turn closed by name, which is
    * the correct behaviour rather than a degraded one. That is also why no planner is stubbed in —
    * a stub answering "I could not plan that" would say the same words about an entirely different
    * fact, that a model was asked and declined.
    */
   readonly chatModel?: ChatLanguageModel
   /**
-   * The accounting instance chat's degrade pass measures against (CHAT-04, plan 06).
+   * The accounting instance chat's degrade pass measures against.
    *
    * HOST-RESOLVED and passed through untouched, on `analysisTokenBudget`'s precedent and for its
    * reason: the ceilings must come from the SAME capability resolution as the chat model itself,
@@ -1957,7 +1955,7 @@ export interface ComposeLocalAgentInput {
    */
   readonly chatAccounting?: ChatTokenAccounting
   /**
-   * How this host resolves a model NAMED by `/model <name>` (D-04, plan 08).
+   * How this host resolves a model NAMED by `/model <name>`.
    *
    * Supplied by the host for the same reason `chatModel` is, and enforced by the same rule: the
    * chat subtree may not construct a model, so a session-scoped switch has to arrive as a
@@ -1967,7 +1965,7 @@ export interface ComposeLocalAgentInput {
    */
   readonly chatModelFor?: (name: string) => ChatLanguageModel | Promise<ChatLanguageModel>
   /**
-   * Where a chat session PRINTS a mid-turn artifact a person reads (395-13, D-14).
+   * Where a chat session PRINTS a mid-turn artifact a person reads.
    *
    * A PLAIN FUNCTION: printing needs nothing from this composition. The surface is handed text and
    * writes it. (432-16 deleted the `chatConfirm` factory that used to sit beside it.)
@@ -1978,7 +1976,7 @@ export interface ComposeLocalAgentInput {
   readonly chatPresent?: (text: string) => void | Promise<void>
 }
 
-// 432-16 (D-14/D-15): `ChatConfirmBindings` and `ChatApprovalDecisionRecord` are deleted with the
+// `ChatConfirmBindings` and `ChatApprovalDecisionRecord` are deleted with the
 // chat confirm they served. Nothing asks, so no grant is minted from chat and no `approval_decision`
 // row is written; sessions written before 432 still carry such rows and the session guard in
 // `schema/src/chat/session-events.ts` still reads them.
@@ -1988,18 +1986,17 @@ export interface ComposeLocalAgentInput {
  *
  * Exposed because two of its facts have no other route to a surface: the state a REPL renders
  * from, and the ability to close an interrupted turn honestly. Everything else a conversation does
- * goes through `agent.ask` like every other capability (D-24).
+ * goes through `agent.ask` like every other capability.
  */
 export interface LocalAgentChatSession {
   /**
    * The live state of ONE conversation, or `undefined` for a session this host has not opened
-   * (392 plan 13, CR-02).
    *
    * A LOOKUP RATHER THAN A CONTAINER, because the facts inside it — the turn in flight, the
    * conversation, the model in force, what `/pin` denies, whether `/quit` was typed — are facts
    * about a session and never about a host. A composition serving two conversations that handed
    * out one container was answering both of them with whichever turn wrote last, which is what
-   * let a planner read the wrong history (CR-02) and a pin outlive its session (W-03).
+   * let a planner read the wrong history and a pin outlive its session (W-03).
    *
    * `undefined` is the honest answer for an id nobody here is holding, and reading NEVER creates
    * a scope: a surface asking about a session cannot bring one into being by asking.
@@ -2046,7 +2043,7 @@ function readProjectedTestHistory(
 }
 
 /**
- * The recurrence pair the clause renders, from whichever window the query keyed (390 D-07).
+ * The recurrence pair the clause renders, from whichever window the query keyed.
  *
  * `kth` / `windowBuilds` keep 389's names because they are the renderer's vocabulary; what
  * changed underneath is which window answers them.
@@ -2057,7 +2054,7 @@ interface ProjectedRecurrence {
 }
 
 /**
- * One recurrence read, over ONE connection (390 D-07).
+ * One recurrence read, over ONE connection.
  *
  * A query CARRYING a fingerprint is answered by the fingerprint-keyed window — the same failure
  * recurring, which is what the ladder triggers on — and a query without one falls back to the
@@ -2103,7 +2100,7 @@ function readProjectedRecurrence(
 }
 
 /**
- * What a folded ledger entry renders as on the sentence's ladder — a TOTAL table (390 D-17).
+ * What a folded ledger entry renders as on the sentence's ladder — a TOTAL table.
  *
  * `satisfies Record<QuarantineEntryStateName, …>` is load-bearing: a fourth ledger state cannot
  * compile until someone decides how it reads to a human. `released` maps to NO rung because a
@@ -2117,7 +2114,7 @@ const LADDER_STATE_FOR_ENTRY = {
 } as const satisfies Record<QuarantineEntryStateName, QuarantineLadderState | undefined>
 
 /**
- * The ladder rung this identity sits on, joined LIVE from the committed ledger (390 D-06/D-17).
+ * The ladder rung this identity sits on, joined LIVE from the committed ledger.
  *
  * Keyed on IDENTITY, not on the fingerprint: the ledger records which TEST is suppressed, and a
  * test whose failure mode changed is still suppressed. `now` arrives as an argument (one read per
@@ -2161,7 +2158,7 @@ interface ProjectionRecurrence {
  * The D-08 recurrence seam, bound at ONE composition root.
  *
  * 389 bound it to v51's per-test run-outcome window; 390-06 REBOUND the COMPUTATION to the
- * fingerprint-keyed window plus a per-call fold of the committed quarantine ledger (D-07/D-17).
+ * fingerprint-keyed window plus a per-call fold of the committed quarantine ledger.
  * The priming machinery below is unchanged and deliberately so — G-389-2's fused
  * mint-and-attach is a shipped fix, and only what the provider computes moved.
  *
@@ -2176,7 +2173,7 @@ interface ProjectionRecurrence {
  * the awaited `runs.get` hop before the sync join can run. A synchronously-throwing
  * resolver is swallowed to the SAME degrade (a read that needs no knowledge root never
  * fails on one), and minting + handler attachment are fused in `beginResolve` — the one
- * place a root-resolution promise is created — so no promise can be orphaned (G-389-2).
+ * place a root-resolution promise is created — so no promise can be orphaned.
  */
 function createProjectionRecurrenceProvider(
   resolveKnowledgeRoot: () => Promise<string> | string,
@@ -2241,9 +2238,9 @@ function createProjectionRecurrenceProvider(
 }
 
 /**
- * The `analysis.json` read side (389 D-10/D-11), path-derived from the artifact's own
+ * The `analysis.json` read side, path-derived from the artifact's own
  * `runId` through the SAME `runs/<slug>/` law as the handoff read and the persist binding
- * — `slugBranch` is the traversal guard (T-389-01), and no caller ever supplies a path.
+ * — `slugBranch` is the traversal guard, and no caller ever supplies a path.
  *
  * An absent file is `undefined` — "the analysis never ran" is a true state of a run, which
  * `analysis.get` serves as the floor. Everything else propagates: a schemaVersion newer
@@ -2274,7 +2271,7 @@ function createAnalysisArtifactReader(agentQaRoot: string): AnalysisArtifactRead
 }
 
 /**
- * The post-run handlers' capabilities, or nothing at all (388 D-01 / D-06).
+ * The post-run handlers' capabilities, or nothing at all.
  *
  * The handoff read is DERIVED from `runId` through the same `runs/<slug>/handoff.json` layout
  * `FsHandoffStore` writes and `createRunsReader` enumerates — never a path carried on the job
@@ -2305,9 +2302,9 @@ export function postRunCapabilities(
         join(input.agentQaRoot, RUNS_SUBDIR, slugBranch(runId), HANDOFF_FILE),
       ),
     curateRun: postRun.curateRun,
-    // 389 D-09: the artifact's path is DERIVED from the artifact's own runId through the
+    // the artifact's path is DERIVED from the artifact's own runId through the
     // same `runs/<slug>/` law as the handoff read above — `slugBranch` is the traversal
-    // guard (T-389-01), and a job payload never carries a path.
+    // guard, and a job payload never carries a path.
     persistAnalysis: (artifact) =>
       writeAnalysisArtifact(
         join(input.agentQaRoot, RUNS_SUBDIR, slugBranch(artifact.runId), ANALYSIS_FILE),
@@ -2319,17 +2316,17 @@ export function postRunCapabilities(
     readTestHistory: (query) => readProjectedTestHistory(knowledgeRoot, query),
     // D-02's sha-addressed screenshot bytes: the SAME CASS-02 store the runner writes.
     // `FsEvidenceArtifactStore.getBlob` validates the lowercase 64-hex shape BEFORE any
-    // path use (T-389-14) and answers ENOENT as honest absence; the runId becomes a path
+    // path use and answers ENOENT as honest absence; the runId becomes a path
     // segment only through `slugBranch` inside the store's own constructor.
     //
-    // 405-05: THROUGH THE SHARED RULE, not a lambda of its own. `runs.artifact` binds a port over
+    // THROUGH THE SHARED RULE, not a lambda of its own. `runs.artifact` binds a port over
     // the same `lookupEvidenceBlob` below, and two lambdas over one store would be two answers to
     // where a run's blobs live — agreeing on the day the second is written and diverging the first
     // time either side changes a root. This job wants only the found bytes, so the three-arm
     // lookup collapses here; the SPLIT is what the op needs and what this caller does not.
     readEvidenceBlob: (runId, sha) =>
       readEvidenceBlobBytes({ agentQaRoot: input.agentQaRoot }, runId, sha),
-    // Host-resolved and passed through untouched (386 D-15): the budget derives from the
+    // Host-resolved and passed through untouched: the budget derives from the
     // same profile resolution as the job model, and this composition adds no knob of its own.
     ...(analysisTokenBudget === undefined ? {} : { analysisTokenBudget }),
   }
@@ -2465,7 +2462,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
     resolveKnowledgeRoot: input.knowledgeRoot,
   }
 
-  // 389 plan 06: the recurrence seam and its root priming. `analysis.get` awaits
+  // the recurrence seam and its root priming. `analysis.get` awaits
   // `deps.runs.get` before any recurrence join runs (analysis-get.ts invoke order), so
   // priming the root inside that awaited hop is what makes the SYNC provider correct on a
   // host whose knowledge-root resolver is async (the CLI): by the time the join runs, the
@@ -2475,7 +2472,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
   const recurrence = createProjectionRecurrenceProvider(input.knowledgeRoot, () => clock.now())
   const runsReader = createRunsReader(input.agentQaRoot)
 
-  // 392 D-02 / D-14 / D-24: the chat turn engine, assembled at THE composition root.
+  // the chat turn engine, assembled at THE composition root.
   //
   // Assembled HERE and nowhere else for 385 D-15's reason, which bites harder for chat than for
   // anything before it: two hosts assembling a turn engine differently would be two answers to
@@ -2484,7 +2481,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
   // The dispatch binding closes over `composedRegistry`, which this very call is about to
   // produce. That is deliberate rather than awkward: the engine invokes ops through
   // `invokeFunction` on the SAME registry `agent.ask` is registered in, so a clause a turn runs
-  // crosses the identical eight-step gate a typed CLI verb does (D-24 / 384 FUNC-03). Reading the
+  // crosses the identical eight-step gate a typed CLI verb does. Reading the
   // reference at call time rather than at construction is what lets that cycle exist without a
   // second registry, and it is safe because a turn cannot run before the registry it is bound
   // into has been built.
@@ -2525,7 +2522,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
       // which is also what its header will say. A container seeded from another session's override
       // would make one conversation's verb the next conversation's opening posture.
       state: createChatState({ activeModel: composedChatModelName }),
-      // 432-13 (D-14): no pin holder. `/pin` left chat resolution with the op gate it tightened.
+      // no pin holder. `/pin` left chat resolution with the op gate it tightened.
     }
     chatScopes.set(sessionId, scope)
     return scope
@@ -2558,7 +2555,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
     toolsetHash: () => chatToolsetHash(composedRegistry),
   })
 
-  // 392-12 / CR-01: WHICH SESSIONS ARE OPEN RIGHT NOW, and which turns each of them has recorded.
+  // WHICH SESSIONS ARE OPEN RIGHT NOW, and which turns each of them has recorded.
   //
   // The engine owns a session for the length of a turn, but a writer here is OUTSIDE a turn's
   // call stack and still belongs to one: `chat.abortActiveTurn`, reached from a signal handler
@@ -2581,11 +2578,11 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
         events: opened.events,
         refusedLines: opened.refusedLines,
         append: async (event) => {
-          // 2026-10-14 (441-06, D-06): every event carries the declared mask (441-68: per member).
+          // every event carries the declared mask (441-68: per member).
           const projected = projectChatSessionEvent(event, input.mask)
           turnIds.add(projected.turnId)
           await opened.append(projected)
-          // 400-01 (D-03): the host's carbon copy, taken AFTER the write and never instead of it.
+          // the host's carbon copy, taken AFTER the write and never instead of it.
           // Swallowed by name: a surface's push channel is downstream of the durable log, and a
           // failing SSE write must not fail the turn whose event it was trying to announce.
           try {
@@ -2641,7 +2638,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
               stage = createPlannerStage({
                 model: (chatModelsByName.get(activeName) ?? input.chatModel) as ChatLanguageModel,
                 tools: projectPlannerTools(composedRegistry, CHAT_PLANNER_CALLER),
-                // Read PER REQUEST — not per turn and not per stage (392 plan 13, CR-02). A stage
+                // Read PER REQUEST — not per turn and not per stage. A stage
                 // is shared by every session planning under the same model name, so a context
                 // thunk taking no argument had exactly one conversation to answer with, and on
                 // two interleaved turns it answered with whichever one published last. Taking the
@@ -2661,7 +2658,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
         }
 
   // CHAT-04's degrade pass, bound when the host supplied the accounting instance (plan 06).
-  // Its one event goes through the HANDLE the engine hands it per turn (392-12) — the hook holds
+  // Its one event goes through the HANDLE the engine hands it per turn — the hook holds
   // no log of its own and no longer holds a binding to one, so there is exactly one writer per
   // session and it is that session's own.
   const chatCompaction: CompactionHook | undefined =
@@ -2683,7 +2680,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
 
   const chatTurn = createTurnEngine({
     table: CHAT_RESOLVER_TABLE,
-    // 392 plan 02, D-09: the real conjunction grammar, quote-aware. The tracer's
+    // the real conjunction grammar, quote-aware. The tracer's
     // whole-utterance placeholder is gone; this is the seam filled, not widened.
     split: splitClauses,
     reconcile: input.chatReconcile ?? deterministicOverrideStrategy,
@@ -2691,16 +2688,16 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
     // RESEARCH Pitfall 1: per-STAGE minting, because origin is a per-call fact. A deterministic
     // table hit is a person typing and mints `human`; a planner-planned call mints `agent`, and the
     // turn's receipts record which.
-    // 2026-10-01 (432-21, D-12): NOT STAMPED WITH THE SESSION ANY MORE. The session id rode the
-    // caller for the gate's deny overlay (plan 13, W-03) and the overlay is deleted (432-13/18/19);
+    // NOT STAMPED WITH THE SESSION ANY MORE. The session id rode the
+    // caller for the gate's deny overlay (plan 13, W-03) and the overlay is deleted;
     // nothing reads `FunctionCaller.sessionId`. The session still reaches the ops that record it
     // through the turn's own session facts, not through the caller.
     mint: {
       forStage: (stage) => (stage === 'resolver' ? CHAT_RESOLVER_CALLER : CHAT_PLANNER_CALLER),
     },
-    // 399.1 D-01/D-03/D-05: the classified envelope, built HERE because this closure is the one
+    // the classified envelope, built HERE because this closure is the one
     // place in the system holding both the registry and the invoke call. The chat subtree cannot
-    // reach a spec by construction (384 FUNC-03), so the verdict and the render fold have to arrive
+    // reach a spec by construction, so the verdict and the render fold have to arrive
     // as data on this return — which is what `ChatInvokeAnswer` is. `foldFunctionResult` owns the
     // fail-closed rule so both composition roots get the same one rather than a copy each.
     //
@@ -2716,7 +2713,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
     },
     ...(chatPlanner === undefined ? {} : { planner: chatPlanner }),
     ...(chatCompaction === undefined ? {} : { compaction: chatCompaction }),
-    // 392 plan 08: the directive handlers, which is what turns the engine's
+    // the directive handlers, which is what turns the engine's
     // `directive recognised but no handler` refusal from the shipped behaviour into an
     // unreachable arm on this host. `/help` and `/quit` are REPL chrome and answer in prose;
     // `/model` changes what the session is and returns the EFFECT it had. (432-13: `/pin` is gone.)
@@ -2747,7 +2744,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
         // of one name on one turn would be two chances to disagree, and the second of them would
         // be running after the batch had been declared safe.
         if (input.chatModelFor !== undefined && !chatModelsByName.has(name)) {
-          // Resolved by the HOST (CHAT-06): the chat subtree may not construct a model, so a
+          // Resolved by the HOST: the chat subtree may not construct a model, so a
           // session-scoped switch is a capability this composition was handed. A resolution
           // failure throws, and the engine turns it into the same named refusal every other
           // unroutable clause gets — a `/model` that silently kept the old model would be the
@@ -2768,7 +2765,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
       },
     }),
     state: (sessionId) => chatScopeFor(sessionId).state,
-    // D-04: the configuration RE-READ, per turn and PER SESSION. A thunk rather than a captured
+    // the configuration RE-READ, per turn and PER SESSION. A thunk rather than a captured
     // value, because the drift worth detecting is precisely the one that happens underneath a
     // running session — a model resolved differently by the host, or a build whose registry
     // reaches further than the one this session opened against. The engine folds the log for what
@@ -2786,7 +2783,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
         toolset: { hash: chatToolsetHash(composedRegistry), ids },
       }
     },
-    // 395-08 D-14/D-15 · CFGM-05: the target vocabulary the PRE-DISPATCH write_test route reads.
+    // the target vocabulary the PRE-DISPATCH write_test route reads.
     // Bound off the SAME host verb `authoringRead.configuredTargetNames` uses, so the seam that
     // decides whether to offer a scaffold and the loop that later checks what a model emitted are
     // reading one answer rather than two. A host that cannot name its targets binds nothing and the
@@ -2799,7 +2796,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
     ...(input.draftAuthoring !== undefined && input.runExecution !== undefined
       ? { configuredTargets: () => (input.draftAuthoring as DraftAuthoringPort).configuredTargetNames() }
       : {}),
-    // 395-13 D-14: where the scaffold proposal is rendered before the in-turn apply is invoked.
+    // where the scaffold proposal is rendered before the in-turn apply is invoked.
     // Conditionally spread on the exact idiom above, so a host that binds no surface leaves the
     // field ABSENT and the engine's own "renders nothing" posture is what answers — in one place.
     ...(input.chatPresent === undefined ? {} : { present: input.chatPresent }),
@@ -2807,11 +2804,11 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
     mintTurnId: () => `turn-${randomUUID()}`,
   })
 
-  // 2026-10-01 (432-18, D-14/D-15/D-22): no grants port, standing-approval read or dispatch-scoped
+  // no grants port, standing-approval read or dispatch-scoped
   // grant overlay is composed. The grant ops, the ledger and the overlay are deleted, and an old
   // `grants.jsonl` under the knowledge root is never opened.
 
-  // 394 D-01: the authoring loop's host half, narrowed ONCE so the loop's closures capture a value
+  // the authoring loop's host half, narrowed ONCE so the loop's closures capture a value
   // rather than an optional property — and so "can this host author a draft" is decided in one
   // place. `runExecution` is part of the condition even though nothing here calls it: stage 4
   // dispatches `authoring.draft.verify`, which is itself unbound without it, so a host bound to
@@ -2820,9 +2817,9 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
     ? input.draftAuthoring
     : undefined
 
-  // 394-07 D-12/D-14 · WTST-05: the honesty funnel's reads, assembled ONCE and handed to both
+  // the honesty funnel's reads, assembled ONCE and handed to both
   // consumers — the `authoring.funnel.get` op below, and the gate-2 flip consultation the draft
-  // evaluator makes (394-17). Two bindings would be two answers to what this project knows about
+  // evaluator makes. Two bindings would be two answers to what this project knows about
   // one suite, which is the 385 D-15 rule this whole file is under.
   const authoringFunnel: AuthoringFunnelPortLike = {
     receipts: createDraftReceiptsStore({ resolveAgentQaRoot: () => input.agentQaRoot }),
@@ -2884,7 +2881,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
           return runsReader.get(runId)
         },
       },
-      // 387 D-01: this host's list verbs are live sighting sites. Every entity a listing,
+      // this host's list verbs are live sighting sites. Every entity a listing,
       // an inspect, a diff or a show surfaces gets its permanent address the first time it
       // is surfaced — which is what "pre-existing entities get IDs the day they are first
       // referenced" means in practice, and it costs the creation paths nothing.
@@ -2894,7 +2891,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
       ),
       config: input.config,
       entities: createEntityDirectory(entityResolutionInput),
-      // 387-08 KREV-01: the WRITE half, and it is present in every local composition because a
+      // the WRITE half, and it is present in every local composition because a
       // local host owns the knowledge root it serves from. It stays an OPTIONAL dep so a host
       // that is genuinely read-only — a listing, a remote surface — reports the four mutating
       // verbs as `unbound` BY NAME rather than as a hole in the catalogue.
@@ -2907,13 +2904,13 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
         ...(input.resolveWriterAuthority === undefined
           ? {}
           : { resolveWriterAuthority: input.resolveWriterAuthority }),
-        // 432-12: the host's own context, so a direct change is recorded under the context it was
+        // the host's own context, so a direct change is recorded under the context it was
         // actually made in. (432-39: the registry no longer receives it; this is its one reader.)
         ...(input.resolveExecutionContext === undefined
           ? {}
           : { resolveExecutionContext: input.resolveExecutionContext }),
       }),
-      // 388 D-14: chip truth, on EVERY local host and not gated on `postRun`. The two are
+      // chip truth, on EVERY local host and not gated on `postRun`. The two are
       // different questions and conflating them would be the bug: `postRun` says whether this
       // host can DO the chain's work, while this says whether it can SEE what the chain did —
       // and a host that never drains anything (a status query, a listing, the CLI after a
@@ -2926,16 +2923,16 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
         agentQaRoot: input.agentQaRoot,
         idSource: input.idSource ?? DIGEST_JOB_ID_SOURCE,
       }),
-      // 405 D-03: the run-detail projection read, conditionally spread on the house rule — an
+      // the run-detail projection read, conditionally spread on the house rule — an
       // absent port must be an ABSENT field and not a present `undefined` one, because the
       // registry reads exactly this record to decide what the capability LISTS as. Unlike
       // `postProcessing` above it is NOT present on every local host: chip truth is readable from
       // `agentQaRoot` alone, but a run's projected step tree lives in a dashboard database that
       // only the dashboard process holds.
-      // 423 D-04: runs.evidence shares this reader with runs.detail and the blob reader
+      // runs.evidence shares this reader with runs.detail and the blob reader
       // below. The registry requires both for evidence without narrowing detail availability.
       ...(input.runDetail === undefined ? {} : { runDetail: input.runDetail }),
-      // 405-05 D-12/D-13: the run-scoped evidence-blob read, on EVERY local host and NOT
+      // the run-scoped evidence-blob read, on EVERY local host and NOT
       // conditionally spread — unlike `runDetail` one line up, which needs a dashboard database
       // this host may not hold, every local composition has a runtime root and therefore has the
       // run directories these blobs live in. It is the SAME reader the analysis job's
@@ -2944,33 +2941,33 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
       evidenceBlobs: createEvidenceBlobReader({ agentQaRoot: input.agentQaRoot }),
       // Present iff this host can execute a run. The registry reads the SAME record to
       // decide what `runs.start` lists as, so the declaration and the dispatch cannot
-      // disagree about whether this composition can run it (D-16).
+      // disagree about whether this composition can run it.
       ...(input.runExecution === undefined ? {} : {
         runInvocation: createLocalRunInvocation({
           agentQaRoot: input.agentQaRoot,
           execution: input.runExecution,
         }),
       }),
-      // 389 D-10/D-11: the artifact read `analysis.get` binds through, and the D-08
+      // the artifact read `analysis.get` binds through, and the D-08
       // recurrence join the one renderer consults. Both are bindable from `agentQaRoot`
       // and the knowledge root alone, so every local composition carries them — a host
       // with no artifact on disk serves the floor, and a host with no recorded history
       // renders the explicit no-history clause; neither is a refusal (plan 05's law).
       analysis: createAnalysisArtifactReader(input.agentQaRoot),
       recurrence: recurrence.provider,
-      // 398 D-09 (dated 2026-08-17): the catalog port `agent.explain` binds through, handed
+      // the catalog port `agent.explain` binds through, handed
       // straight through from the host. Conditionally spread rather than assigned, on the
       // `runInvocation` precedent: an absent port must be an ABSENT field and not a present
       // `undefined` one, because the registry reads exactly this record to decide what the
       // capability LISTS as — so the declaration and the dispatch cannot disagree about whether
-      // this composition can explain itself (D-16).
+      // this composition can explain itself.
       ...(input.capabilityCatalog === undefined
         ? {}
         : { capabilityCatalog: input.capabilityCatalog }),
-      // 403 D-03: the live-view mint seam, conditionally spread on the same rule — an absent port
+      // the live-view mint seam, conditionally spread on the same rule — an absent port
       // must be an ABSENT field, so `runs.liveurl` declares `unbound` where no origin is served.
       ...(input.liveView === undefined ? {} : { liveView: input.liveView }),
-      // 390 D-12/D-13: the three quarantine verbs, bound HERE and therefore on BOTH hosts —
+      // the three quarantine verbs, bound HERE and therefore on BOTH hosts —
       // the CLI tail and 386's daemon compose the same root, which is the whole point of
       // 385 D-15 (a second binding site is a second answer to "what is quarantined").
       //
@@ -2983,7 +2980,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
       // as an argument, so this composition supplies both and the implementation reads neither
       // of its own accord. Nothing opens here: the first byte is read when a verb is invoked.
       //
-      // 390-09 / CR-03: the SAME `resolveWriterAuthority` the apply path consumes three bindings
+      // the SAME `resolveWriterAuthority` the apply path consumes three bindings
       // above, and it is what lands each host on the correct lease arm with zero daemon changes.
       // The daemon supplies it (`cli/src/daemon/host.ts:1839`) because it acquired the lease at
       // startup and holds it for its lifetime, so the verbs ride that authority instead of asking
@@ -2992,12 +2989,12 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
       // than assigned through: an absent authority must be an ABSENT field, not a present
       // `undefined` one, so the implementation's `?.()` arm distinguishes the two hosts.
       //
-      // 390-12 / D-01: the identity mint is handed straight through, REQUIRED and unspread. The
+      // the identity mint is handed straight through, REQUIRED and unspread. The
       // verbs key the committed ledger on `filePath` and every reader compares those bytes with
       // `===`, so a host that supplied nothing would be back to storing whatever a human typed —
       // the round-2 regression. Unlike the authority above there is no host without a checkout
       // root, so the absent case is a compile error rather than a second posture.
-      // 394-07 D-12 / WTST-05: the honesty funnel's reads, bound HERE and therefore on BOTH hosts,
+      // the honesty funnel's reads, bound HERE and therefore on BOTH hosts,
       // which is the whole point of 385 D-15 — a second binding site would be a second answer to
       // "how many drafts did this session keep", and that number is the one WTST-05 exists to keep
       // honest.
@@ -3013,8 +3010,8 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
       // structurally unable to write the records it reports on. Two narrow mirrors over one store
       // rather than one wide port.
       //
-      // 2026-10-01 (432-17, D-06): the bundle no longer reads the proposals inbox. 2026-10-02
-      // (quick 261002-ctr): the terminal stage is `writeEligible`, read off the receipts this
+      // the bundle no longer reads the proposals inbox. 2026-10-02
+      // the terminal stage is `writeEligible`, read off the receipts this
       // bundle lists (see `projectAuthoringFunnel`).
       //
       // `outcomes` IS BOUND (394-17, step b): the port's two verbs now LEAD with `product`, so the
@@ -3025,7 +3022,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
       // bundle: one composition-level answer to "what does this project know about this suite",
       // reached by the funnel read op and by the evaluator's consultation alike.
       authoringFunnel,
-      // 2026-10-01 (432-17, D-05/D-22): the proposals inbox (391 PROP-03) is not bound — it is deleted
+      // the proposals inbox is not bound — it is deleted
       // with its ops. Old files under `<agentQaRoot>/proposals/` are never opened again.
       ...(input.feedback === undefined ? {} : { feedback: input.feedback }),
       ...(input.feedbackReads === undefined ? {} : { feedbackReads: input.feedbackReads }),
@@ -3037,7 +3034,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
           ? {}
           : { resolveWriterAuthority: input.resolveWriterAuthority }),
       }),
-      // 392 D-24: the turn engine assembled above. Bound HERE and therefore on BOTH hosts, so
+      // the turn engine assembled above. Bound HERE and therefore on BOTH hosts, so
       // `agent.ask` is a real capability wherever the composition root runs — and unbound nowhere,
       // which is what lets 397's parity suite read it off the registry with no chat-specific case.
       chatTurn: {
@@ -3046,7 +3043,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
         runTurn: async turnInput =>
           projectChatMembers(await chatTurn.runTurn(turnInput), CHAT_TURN_RESULT_RULES, input.mask),
       },
-      // 393 D-01 / D-15: the keep-gate evaluator's two host halves, bound HERE and therefore on
+      // the keep-gate evaluator's two host halves, bound HERE and therefore on
       // BOTH hosts — the CLI and 386's daemon compose this same root, which is the whole point of
       // 385 D-15 (a second binding site would be a second answer to "is this draft worth keeping",
       // and the two would disagree about a decision that gets written into a durable receipt).
@@ -3076,7 +3073,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
           },
         }),
       }),
-      // 394 D-01 / WTST-01: the authoring LOOP's two halves, bound HERE and therefore on BOTH
+      // the authoring LOOP's two halves, bound HERE and therefore on BOTH
       // hosts, under the SAME condition the evaluator above is bound under — the loop's stage 4
       // dispatches `authoring.draft.verify`, so a host that cannot verify a draft cannot author
       // one either, and a third answer to "can this host author" would be a third thing to keep
@@ -3127,12 +3124,12 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
             return createAuthoringReader({ knowledgeRoot }).getAuthoringBrief(intent, scope)
           },
           suiteTextCorpus: () => authoringLoopHost.suiteTextCorpus(),
-          // 394-33 · WR-07: the `target` vocabulary stage 3's compile prompt serves. Bound off the
+          // the `target` vocabulary stage 3's compile prompt serves. Bound off the
           // SAME port the brief and the corpus come from, so a host that can run the loop's read
           // stages can name its own targets by construction — see the port's own doc.
           configuredTargetNames: () => authoringLoopHost.configuredTargetNames(),
         },
-        // 394-26 · WINDOWS 110: the scope an intent-only call is authored at, bound HERE and so on
+        // the scope an intent-only call is authored at, bound HERE and so on
         // BOTH hosts, off the same port the read and compile halves come from. Its own deps key
         // rather than a third verb on `authoringRead`, because deriving a scope needs the resolved
         // config and the workspace while the brief needs a knowledge index — a host can have one
@@ -3144,14 +3141,14 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
         draftShelf: {
           model: async () => await input.model(),
           write: (contents: string) => authoringLoopHost.stageDraft(contents),
-          // 394-06 D-09/D-20: the ONE RFC-6902 applier, reached at the host because it needs the
+          // the ONE RFC-6902 applier, reached at the host because it needs the
           // yaml CST and neither `agent` nor this package may depend on `core`. Same seam,
           // same reason and same shape as `stageDraft` right above it.
           applyPatches: (draft, patchSet) => authoringLoopHost.applyPatchesToDraft(draft, patchSet),
-          // 432 D-06/D-07: the direct writer the loop's final write and the edit op reach. Same seam
+          // the direct writer the loop's final write and the edit op reach. Same seam
           // and same reason as the two verbs above: the boundary check needs `core`.
           publish: (request) => authoringLoopHost.publishDraft(request),
-          // 394-06: stage 5's evidence reader and the repair arm's probe runner. The reader is
+          // stage 5's evidence reader and the repair arm's probe runner. The reader is
           // the same `runsReader` the gate evaluator is bound to — a second reader would be a
           // second answer to what one run recorded — and the starter dispatches the REGISTERED
           // `runs.start` on the gate-run caller, so a probe is marker-stamped exactly as a gate
@@ -3184,10 +3181,10 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
             ) as DraftReceipt
           },
         },
-        // 2026-10-01 (432-17, D-06): no authoring proposal writer is bound; an authored test is
+        // no authoring proposal writer is bound; an authored test is
         // written in its own call through the shelf's direct writer.
       }),
-      // 432-16 (D-07): no test-draft or config commit port and no undo source is bound — agent-qa
+      // no test-draft or config commit port and no undo source is bound — agent-qa
       // makes no git commits. The final authored test is written through `draftShelf.publish`.
       //
       // 395-01 D-01/D-03/D-17 · CFGM-01/03/04: the config editor's host half, each spread on its
@@ -3198,14 +3195,14 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
         ? {}
         : { scaffoldContent: input.scaffoldContent }),
       ...(input.configWrite === undefined ? {} : { configWrite: input.configWrite }),
-      // 2026-10-14 (441-39, D-15): a config change is not scanned for secrets, so no scan is bound.
-      // 2026-10-01 (432-17, D-05): no config proposal filer is bound; the six config ops write in
+      // a config change is not scanned for secrets, so no scan is bound.
+      // no config proposal filer is bound; the six config ops write in
       // the call through `configWrite`.
     },
-    // 2026-10-15 (441-28, D-15): no audit sink; the guardrail audit went with the guardrails.
-    // 432-13 (D-14/D-15): no standing-approval reader, confirm port or session deny overlay reaches
+    // no audit sink; the guardrail audit went with the guardrails.
+    // no standing-approval reader, confirm port or session deny overlay reaches
     // the registry — `invokeFunction` asks nobody. 432-18 deleted the grant reader with the ledger.
-    // 2026-10-02 (432-39, D-12): the host's execution-context answer is no longer forwarded here.
+    // the host's execution-context answer is no longer forwarded here.
     // The registry's option was retired and unread since 432-13 and is deleted; the same answer
     // still reaches the knowledge review above, which records a direct change under it.
   })
@@ -3243,9 +3240,9 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
       // derives ids from has to be the value the queue mints them with, and two spellings of the
       // same default is how those two drift.
       const idSource = input.idSource ?? DIGEST_JOB_ID_SOURCE
-      // Resolved ONCE from the one table, for the queue and the published field alike (388-10).
+      // Resolved ONCE from the one table, for the queue and the published field alike.
       //
-      // A host with NO `postRun` folds to `'no-masker'` rather than to no exclusion (WR-12).
+      // A host with NO `postRun` folds to `'no-masker'` rather than to no exclusion.
       // Silence is not a review: a host that never declared what its fold does with candidate
       // prose cannot have reviewed it, and the fail-safe reading of an undeclared posture is
       // the constrained one. 388-09's M-3 measured what the permissive reading costs — a

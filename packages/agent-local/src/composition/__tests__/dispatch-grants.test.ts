@@ -1,9 +1,9 @@
 // THE DISPATCH-SCOPED GRANT OVERLAY (Phase 401 plan 08 — D-08, RESEARCH Pitfall 6), RE-SPELLED AS
-// ITS ABSENCE (432-18, D-15).
+// ITS ABSENCE.
 //
 // The overlay was an in-memory union placed in front of the committed grant ledger's reader: an
 // open authoring dispatch contributed one `run:start` grant to the run gate, scoped to the dispatch's
-// own async call tree (401-13, CR-03). These cells measured its arithmetic — nothing at rest, the
+// own async call tree. These cells measured its arithmetic — nothing at rest, the
 // grant inside the scope, nothing for an unrelated caller, read at answer time, overlapping scopes,
 // a continuation that outlived the scope, a thrown dispatch, the union with the ledger, one action
 // class, a scope API that names nothing — and the one seam that carried its reader to the run gate.
@@ -71,7 +71,7 @@ describe('there is no dispatch-scoped grant overlay', () => {
     expect(exported.filter((name) => /dispatchgrant/i.test(name))).toEqual([])
   })
 
-  // RE-SPELLED 2026-10-01 (432-18) from 'ONE OVERLAY PER COMPOSITION — the shelf and the run gate
+  // RE-SPELLED 2026-10-01 from 'ONE OVERLAY PER COMPOSITION — the shelf and the run gate
   // cannot be handed different objects': the composition now hands both of them nothing.
   it('NO OVERLAY PER COMPOSITION — the shelf binds no dispatch scope and the run door no reader', () => {
     const code = codeLines(COMPOSITION).join('\n')
@@ -85,7 +85,7 @@ describe('there is no dispatch-scoped grant overlay', () => {
 })
 
 describe('the composition carries nothing to the run host but the request', () => {
-  // RE-SPELLED 2026-10-01 (432-18) from "THE READER HANDED OVER IS THE OVERLAY'S, resolved per run":
+  // RE-SPELLED 2026-10-01 from "THE READER HANDED OVER IS THE OVERLAY'S, resolved per run":
   // there is no reader to resolve, so each run hands the host exactly one argument, the request.
   it('THE HOST IS HANDED THE REQUEST AND NOTHING ELSE, run after run', async () => {
     const execution = recordingExecution()
@@ -103,7 +103,7 @@ describe('the composition carries nothing to the run host but the request', () =
     ])
   })
 
-  // RE-SPELLED 2026-10-01 (432-18) from 'NO RESOLVER, NO FIELD — a composition that supplies none
+  // RE-SPELLED 2026-10-01 from 'NO RESOLVER, NO FIELD — a composition that supplies none
   // hands the host nothing': the binding no longer accepts a resolver at all.
   it('NO RESOLVER, NO FIELD — the binding takes no grant resolver, and a run mints nothing durable', async () => {
     const root = mkdtempSync(join(tmpdir(), 'dispatch-grants-absent-'))

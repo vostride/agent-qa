@@ -1,4 +1,4 @@
-// The chat session log's JSONL disk adapter (Phase 392, CHAT-05 / D-17 / D-18 / D-19).
+// The chat session log's JSONL disk adapter.
 //
 // APPEND-ONLY, AND THE FILE IS NEVER REWRITTEN. That is the requirement CHAT-05 states literally,
 // and it is also what makes the log usable as the triage report D-18 describes: a reader can trust
@@ -31,7 +31,7 @@
 // the repair below knows how to handle. Syncing per event would buy a guarantee finer than any
 // reader can use, and syncing at close would leave a killed process with a turn nobody landed.
 //
-// ONE DESCRIPTOR PER SESSION, HELD BY THAT SESSION'S HANDLE (392-12, CR-01). This adapter used to
+// ONE DESCRIPTOR PER SESSION, HELD BY THAT SESSION'S HANDLE. This adapter used to
 // keep ONE mutable `fd` and repoint it on every `open()`, which made session identity adapter state
 // rather than a parameter of the write path: two turns whose awaits interleaved both wrote into
 // whichever file opened last, and the loser was left with a turn that never closed — synthesized as
@@ -95,7 +95,7 @@ export const CHAT_SESSION_READ_CHUNK_BYTES = 64 * 1024
  */
 const SAFE_PATH_SEGMENT = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/
 
-/** A caller-supplied session id that could not be a path segment (T-392-01). */
+/** A caller-supplied session id that could not be a path segment. */
 export class InvalidChatSessionIdError extends Error {
   override readonly name = 'InvalidChatSessionIdError'
 
@@ -123,7 +123,7 @@ export class UnknownChatSessionError extends Error {
 }
 
 /**
- * A session somebody is already holding open (Phase 392 plan 12, T-392-BUSY).
+ * A session somebody is already holding open.
  *
  * A REFUSAL BY NAME rather than a second descriptor. Two handles on one file would interleave two
  * turns inside a single conversation — the same damage the cross-session aliasing did, one level
@@ -218,7 +218,7 @@ export interface CreateJsonlSessionLogOptions {
   /** The toolset fingerprint at open, on the same thunk reasoning as `model` above. */
   readonly toolsetHash: () => string
   /**
-   * WHICH DOOR THIS LOG BELONGS TO (Phase 400 plan 03, D-04). Absent ⇒ no tag is written.
+   * WHICH DOOR THIS LOG BELONGS TO. Absent ⇒ no tag is written.
    *
    * A VALUE AND NOT A THUNK, which is the opposite of `model` and `toolsetHash` above and for the
    * mirror of their reason. Those are resolved lazily because a composition's model can arrive
@@ -326,7 +326,7 @@ function guardHeader(sessionId: string, line: string): ChatSessionHeader {
   if (typeof header.createdAt !== 'string' || typeof header.model !== 'string') {
     throw new ChatSessionHeaderError(sessionId, 'its header names no creation instant or model')
   }
-  // THE TAG IS OPTIONAL AND THE CHECK IS ON ITS TYPE, NOT ON ITS PRESENCE (400-03, D-04). An absent
+  // THE TAG IS OPTIONAL AND THE CHECK IS ON ITS TYPE, NOT ON ITS PRESENCE. An absent
   // `surface` is the pre-400 CLI-chat population and passes untouched — that absence is the whole
   // back-compatibility claim. A PRESENT one that is not a string is refused for the reason this
   // whole guard exists: the cast below hands the caller a typed record, and a header that would
@@ -342,7 +342,7 @@ function guardHeader(sessionId: string, line: string): ChatSessionHeader {
 }
 
 /**
- * Every session under one runtime root, read from headers alone (D-17).
+ * Every session under one runtime root, read from headers alone.
  *
  * A DAMAGED FILE IS DATA, NOT AN EXCEPTION — the posture the grant ledger had (391; deleted in 432-18).
  * A corrupt neighbour costs the caller that one entry and nothing else; throwing would let a single
@@ -457,7 +457,7 @@ export function createJsonlSessionLogOn(
   const sessionsRoot = join(options.root, CHAT_SESSIONS_SUBDIR)
   const random = options.random ?? Math.random
 
-  // THE WHOLE OF THE RE-KEYING (392-12, CR-01). What used to be `let fd` — one descriptor for the
+  // THE WHOLE OF THE RE-KEYING. What used to be `let fd` — one descriptor for the
   // adapter, repointed by whichever `open()` ran last — is a map from SESSION ID to the descriptor
   // that session's handle owns. Nothing here is "current": an adapter serving two conversations
   // holds two entries and no opinion about which of them a given caller means, because a caller
@@ -576,7 +576,7 @@ export function createJsonlSessionLogOn(
         // The refusal, not a create. See `UnknownChatSessionError`.
         if (read === undefined || read.lines.length === 0) throw new UnknownChatSessionError(id)
         const header = guardHeader(id, read.lines[0]!.text)
-        // REPAIR BEFORE ANY CALLER SEES AN EVENT (CHAT-05). The declared version travels as an
+        // REPAIR BEFORE ANY CALLER SEES AN EVENT. The declared version travels as an
         // argument, taken off the header this path has just validated — the log states its version
         // once and no line restates it (392-01's decision, unchanged).
         const repair = repairSession(read.lines.slice(1), {
@@ -622,7 +622,7 @@ export function createJsonlSessionLogOn(
         createdAt,
         model: options.model(),
         toolsetHash: options.toolsetHash(),
-        // CONDITIONALLY SPREAD, on the composition's own idiom (400-01) and for its reason: an
+        // CONDITIONALLY SPREAD, on the composition's own idiom and for its reason: an
         // unconditional `surface: options.surface` would put `"surface":undefined` through
         // `JSON.stringify` — which drops it — but would also make an explicit `undefined` and an
         // unsupplied option two spellings of one state at every call site above. Absent here means

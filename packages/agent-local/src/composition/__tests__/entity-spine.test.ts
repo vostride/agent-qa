@@ -1,4 +1,4 @@
-// The entity spine, proven end to end (Phase 387, plan 01 — ENTY-01 / ENTY-02 / FUNC-04).
+// The entity spine, proven end to end.
 //
 // One path, every layer: a raw reference crosses `invokeFunction`'s gate, reaches the
 // `entities.*` ops, drops through the composition-bound directory port into the
@@ -40,7 +40,7 @@ import { composeLocalAgent, sweepEntityIndexProjection } from '../compose-local-
 import type { LocalAgentHost } from '../compose-local-agent.js'
 
 /**
- * The composition's REQUIRED quarantine identity mint (390-12 / D-01). Passthrough here: this
+ * The composition's REQUIRED quarantine identity mint. Passthrough here: this
  * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
  * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
  */
@@ -48,7 +48,7 @@ const MINT_IDENTITY = (filePath: string): string => filePath
 
 const PRODUCT = 'shop'
 
-// 2026-10-01 (432-30, D-12): the retired `grantedScopes` and `safeMode` caller fields are dropped;
+// the retired `grantedScopes` and `safeMode` caller fields are dropped;
 // nothing read them.
 const CALLER: FunctionCaller = {
   surface: 'cli',
@@ -177,7 +177,7 @@ describe('the entity spine through composeLocalAgent', () => {
     if (outcome.kind !== 'resolved') throw new Error('expected the resolved arm')
     expect(EntityCardSchema.safeParse(outcome.card).success).toBe(true)
     expect(outcome.card.title).toContain('Checkout')
-    // D-10: no dashboard base URL is configured in v52, so the field is ABSENT rather than a
+    // no dashboard base URL is configured in v52, so the field is ABSENT rather than a
     // link that would 404.
     expect(Object.hasOwn(outcome.card, 'url')).toBe(false)
   })
@@ -261,7 +261,7 @@ describe('the entity spine through composeLocalAgent', () => {
     })
   })
 
-  // ---- the maintenance-cadence sweep (D-06) ------------------------------------------------
+  // ---- the maintenance-cadence sweep ------------------------------------------------
 
   it('sweeps the projection from the ledger without a lease and without writing it', async () => {
     await resolve(bundleId)
@@ -280,9 +280,9 @@ describe('the entity spine through composeLocalAgent', () => {
     // unchanged sources examines it and writes nothing. That is the cadence being maintenance
     // rather than a periodic rebuild.
     expect(report).toEqual({ examined: 1, refreshed: 0, embedded: 0 })
-    // The ledger is not a projection (D-02): the sweep reads it and leaves it byte-identical.
+    // The ledger is not a projection: the sweep reads it and leaves it byte-identical.
     expect(readFileSync(ledgerPath).equals(ledgerBefore)).toBe(true)
-    // Lease-free (D-02): a sweep that took the writer lease could not run in a CLI process,
+    // Lease-free: a sweep that took the writer lease could not run in a CLI process,
     // and would have left the lease file behind here.
     expect(existsSync(join(knowledgeRoot, 'memory', 'writer.lease'))).toBe(false)
   })
@@ -320,7 +320,7 @@ describe('the entity spine through composeLocalAgent', () => {
         risk: { readOnly: true },
       })
       // A declaration is DATA. Anything runnable reachable off a listing would be the
-      // private power the function layer abolishes (T-384-01).
+      // private power the function layer abolishes.
       expect(Object.values(entry).some((value) => typeof value === 'function')).toBe(false)
     }
 

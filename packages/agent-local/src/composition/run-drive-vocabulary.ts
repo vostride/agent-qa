@@ -1,4 +1,4 @@
-// The two symbols a CLI in-process run DRIVE needs and had no legal route to (Phase 401 plan 11).
+// The two symbols a CLI in-process run DRIVE needs and had no legal route to.
 //
 // WHAT THEY ARE. `runSafetyScope` is `@vostride/agent-qa-safety-local`'s AsyncLocalStorage scope —
 // the run's masking context, audit sink and execution context installed for the duration of the
@@ -35,5 +35,5 @@ export { runSafetyScope } from '@vostride/agent-qa-safety-local'
 export type { SafetyScopeBundle } from '@vostride/agent-qa-safety-local'
 export { mapVerdictToExitCode } from '@vostride/agent-qa-runner'
 
-// 441-48 (D-14): the masking digest sidecar this hop also carried (405-02) is deleted. It existed
+// the masking digest sidecar this hop also carried is deleted. It existed
 // only so a restarted dashboard could restore placeholders, and nothing restores any more.

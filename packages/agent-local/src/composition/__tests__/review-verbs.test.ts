@@ -1,4 +1,4 @@
-// The mutating review verbs, end to end through the function layer (387-08, KREV-01 / D-17).
+// The mutating review verbs, end to end through the function layer.
 //
 // Two registries over ONE knowledge root, differing in exactly one field of the deps record: one
 // supplies `knowledgeReview`, the other does not. That is the whole experiment, and it is what
@@ -6,7 +6,7 @@
 // composition rather than a sentence in a doc comment — the same four ids, the same caller, the
 // same store, two different honest answers.
 //
-// Nothing is stubbed on the write path: since 432-12 (D-05) each change really takes the writer
+// Nothing is stubbed on the write path: since 432-12 each change really takes the writer
 // lease through the explicit writer and really reaches the Curator's `commit()` in the call, and
 // the store is really re-read afterwards. No proposal is minted; the pre-432 apply is measured over
 // a record already on disk.
@@ -51,7 +51,7 @@ import { filePre432KnowledgeProposal } from '../../__tests__/pre-432-knowledge-p
 
 /**
  * The ids the write half owns. Written out so an id that stopped registering is visible.
- * 432-12 (D-05): the three changes apply in the call. 2026-10-01 (432-17, D-05/D-22): the pre-432
+ * the three changes apply in the call. 2026-10-01: the pre-432
  * `knowledge.proposal.apply` is deleted with the inbox, so the write half is these three.
  */
 const MUTATING_FUNCTION_IDS = [
@@ -67,7 +67,7 @@ const MASKED_CONFIG: MaskedResolvedConfig = {
 }
 
 /**
- * A refusal below can only ever be about BINDING. 2026-10-01 (432-30, D-12): the retired
+ * A refusal below can only ever be about BINDING. 2026-10-01: the retired
  * `grantedScopes` and `safeMode` caller fields are dropped (no scope exists to grant), and the
  * retired `resolveExecutionContext` registry option is dropped from both registries below; nothing
  * read them. `createKnowledgeReview`'s own `resolveExecutionContext` is the context a change is
@@ -177,16 +177,16 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
    * A no-op kept so the three binding cases keep their call shape (re-spelled 2026-10-02, 432-42).
    *
    * It recorded a standing approval for the pre-432 ask-tier apply (391, D-02/D-04). The apply is
-   * deleted (432-17) and nothing reads an approval (432-13/19), so the binding is again the only
+   * deleted and nothing reads an approval, so the binding is again the only
    * thing that can refuse these calls — the claim the three cases are about.
    */
   function approveApply(host: FunctionRegistry): void {
-    // RE-SPELLED 2026-10-01 (432-17): the ask-tier apply this approval was for is deleted, and since
+    // RE-SPELLED 2026-10-01: the ask-tier apply this approval was for is deleted, and since
     // 432-13 no gate reads a standing approval. Nothing is recorded; the call sites keep their shape.
     void host
   }
 
-  // RE-SPELLED 2026-10-01 (432-17): four became three with the pre-432 apply's deletion.
+  // RE-SPELLED 2026-10-01: four became three with the pre-432 apply's deletion.
   it('lists all three as UNBOUND by name and refuses each by name without a review port', async () => {
     const recordId = publish()
     const readOnly = registry(false)
@@ -196,9 +196,9 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
     const byId = new Map(listed.map((declaration) => [declaration.id, declaration]))
     for (const id of MUTATING_FUNCTION_IDS) {
       // LISTED, not omitted: a capability absent from a catalogue is indistinguishable from one
-      // that never existed, and the two are different facts about a host (D-09).
+      // that never existed, and the two are different facts about a host.
       expect(byId.get(id)?.bindingStatus, `${id} must be listed unbound`).toBe('unbound')
-      // 432-20 (D-12): no `knowledge-write` scope column; the write claim is the risk's.
+      // no `knowledge-write` scope column; the write claim is the risk's.
       expect(Object.keys(byId.get(id) ?? {})).not.toContain('requiredScopes')
       expect(byId.get(id)?.risk.readOnly).toBe(false)
     }
@@ -230,7 +230,7 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
       ).toBe('bound')
     }
 
-    // 432-12 (D-05): the forget applies in the call. Nothing is proposed first.
+    // the forget applies in the call. Nothing is proposed first.
     const operationId = '3d2c1b0a-9f8e-4d7c-8b6a-5f4e3d2c1b0a'
     const applied = await invokeFunction(
       host,
@@ -255,7 +255,7 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
     expect(again).toMatchObject({ outcome: 'applied', operationId, recordIds: applied.recordIds })
     expect(await statuses(host)).toEqual(['deprecated'])
 
-    // RE-SPELLED 2026-10-01 (432-17, D-05/D-22): a pre-432 forget on disk is no longer applicable.
+    // RE-SPELLED 2026-10-01: a pre-432 forget on disk is no longer applicable.
     // The apply op is an unknown function, the record it named stays as it was, and the file is
     // left exactly as it was found.
     const pending = publish('Payment')
@@ -271,7 +271,7 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
   })
 
   /**
-   * CR-04's reproduction, run forwards as a regression case (387-11, ENTY-02 / D-04).
+   * CR-04's reproduction, run forwards as a regression case.
    *
    * The whole point is the RESOLVER path: the second render passes NO forget receipt anywhere,
    * so `produceEntityCard`'s receipt override never fires and the card status IS whatever the
@@ -290,7 +290,7 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
     approveApply(host)
 
     // BEFORE. This is also the mint: resolving the bundle id is what gives the entity its
-    // permanent MEM address (D-01), and every later render below goes through that address.
+    // permanent MEM address, and every later render below goes through that address.
     const before = await invokeFunction(
       host,
       'entities.resolve',
@@ -302,7 +302,7 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
     expect(before.card.status).toBe('active')
     const address = before.card.id
 
-    // 432-12: the forget applies in the call.
+    // the forget applies in the call.
     const applied = await invokeFunction(
       host,
       'knowledge.forget',
@@ -316,7 +316,7 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
     expect(receipt.resultingBundleStatus).toBe('tombstoned')
 
     // Half two: what the same caller sees at the permanent address afterwards, with no receipt
-    // in hand. OBSERVED RED (2026-08-02) against the pre-387-11 `knowledge-local` build — the
+    // in hand. OBSERVED RED against the pre-387-11 `knowledge-local` build — the
     // real prior production code, reached because agent-local consumes that package through its
     // dist and the dist had not yet been rebuilt:
     //   AssertionError: expected 'active' to be 'tombstoned' // Object.is equality
@@ -342,7 +342,7 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
     expect(after.card.status).not.toBe('active')
   })
 
-  // ---- 432-12 (D-04/D-05/D-09): the direct change, bound over the explicit writer ---------------
+  // ---- 432-12: the direct change, bound over the explicit writer ---------------
 
   const EXECUTION_CONTEXTS = ['local-interactive', 'local-headless', 'ci', 'cloud'] as const
 
@@ -526,9 +526,9 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
 
   it('a caller holding only the local default grant changes knowledge with no standing approval', async () => {
     // No approval reader, no ledger entry and no credential: the direct change runs in every context
-    // because nothing gates it (D-01/D-15). Re-spelled 2026-10-02 (432-42): the title keeps the
+    // because nothing gates it. Re-spelled 2026-10-02: the title keeps the
     // pre-432 vocabulary as the record of what this cell replaced; the caller holds nothing.
-    // 2026-10-01 (432-30, D-12): the caller no longer carries the retired `grantedScopes` and
+    // the caller no longer carries the retired `grantedScopes` and
     // `safeMode`; no gate or grant is left, so it holds nothing at all and the change still applies.
     const recordId = publish()
     const tokenless: FunctionCaller = { surface: 'mcp', origin: 'agent' }
@@ -562,7 +562,7 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
     expect(existsSync(join(agentQaRoot, 'proposals'))).toBe(false)
   })
 
-  // 407-04 (D-08): the reader port's fifth member, bound over the `/reader` entry like the four
+  // the reader port's fifth member, bound over the `/reader` entry like the four
   // above it. The claim is not that the attribution join works — `canary-attribution.test.ts`
   // owns that — but that the COMPOSITION forwards what it was given: the run id, the tuples, and
   // a knowledge root resolved per call rather than captured once.

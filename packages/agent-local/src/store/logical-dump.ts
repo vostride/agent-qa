@@ -1,4 +1,4 @@
-// The equality instrument the kill matrix compares (Phase 385 plan 03, D-03).
+// The equality instrument the kill matrix compares.
 //
 // Never raw database bytes. Sqlite's page layout is not deterministic across two histories
 // that reached the same state by different routes, and while a connection is open the `-wal`

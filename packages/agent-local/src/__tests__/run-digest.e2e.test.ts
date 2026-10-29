@@ -1,4 +1,4 @@
-// `runs.digest` over the REAL composition — the projection's behaviour (Phase 391, PROP-04).
+// `runs.digest` over the REAL composition — the projection's behaviour.
 //
 // What this file measures that a unit test could not: that the digest a person can actually
 // reach is composed from the SAME four read paths the rest of the system serves from. Every hop
@@ -12,7 +12,7 @@
 // roughly thirty-five differentials did not see. So the ledger carries applied fixes under two run
 // ids, and the absence claim is asserted in BOTH directions.
 //
-// 2026-09-30, 432-09 (D-04/D-05/D-22/D-25): RE-SPELLED IN PLACE. The digest reads the fixes a run's
+// RE-SPELLED IN PLACE. The digest reads the fixes a run's
 // marks applied from that run's own ledger (through the read-only feedback port), and never reads
 // the proposals inbox. Proposals are still minted below through the shipped propose ops, against
 // real published records, precisely so every cell can assert they appear in NO digest: a digest
@@ -65,7 +65,7 @@ const MINT_IDENTITY = (filePath: string): string => filePath
  * SURFACE has to name one, and a fixture is not one. What is exercised here is the dispatch a
  * caller performs BY NAME, so naming it is the point.
  */
-// 432-12: the retired propose verbs, named by the verb a pre-432 record carries.
+// the retired propose verbs, named by the verb a pre-432 record carries.
 const FORGET_PROPOSE_ID = 'forget'
 const ACCEPT_PROPOSE_ID = 'accept'
 const REJECT_PROPOSE_ID = 'reject'
@@ -275,7 +275,7 @@ describe('the per-run digest, over the composed host', () => {
     extraInput: { reason?: string } = {},
   ): Promise<{ proposalId: string; recordId: string }> {
     const recordId = publish(summary)
-    // 432-12: nothing files a knowledge proposal any more; this is a pre-432 record on disk,
+    // nothing files a knowledge proposal any more; this is a pre-432 record on disk,
     // attributed to the run as the retired propose ops attributed it.
     const proposalId = await filePre432KnowledgeProposal({
       agentQaRoot, knowledgeRoot, verb: proposeId, target: { grain: 'record', recordId },
@@ -387,7 +387,7 @@ describe('the per-run digest, over the composed host', () => {
     async () => {
       const declined = await proposeForRun(RUN_A, 'checkout button')
       await proposeForRun(RUN_A, 'payment button')
-      // 2026-10-01 (432-17): `proposals.reject` is deleted, so the decided record is planted as the
+      // `proposals.reject` is deleted, so the decided record is planted as the
       // bytes the retired reject left: the same wrapped record with its status moved to `rejected`.
       const proposals = join(agentQaRoot, 'proposals')
       const declinedPath = join(proposals, `${declined}.json`)
@@ -489,7 +489,7 @@ describe('the per-run digest, over the composed host', () => {
     })
 
   // RE-SPELLED 432-09 from 'carries refs and counts and NO receipt bytes, on a forget proposal that
-  // has them (D-18)': the refs are now an applied fix's record ids and written path.
+  // has them': the refs are now an applied fix's record ids and written path.
   it('carries refs and counts and NO record content for an applied fix',
     async () => {
       const { recordId } = await mintForRun(RUN_A, 'checkout button')

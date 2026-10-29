@@ -1,4 +1,4 @@
-// The one local composition root, proven by USE (Phase 385 plan 09, D-15).
+// The one local composition root, proven by USE.
 //
 // The criterion this file exists to strengthen is "composeLocalAgent() returns the composed host".
 // An object of nulls satisfies that sentence, and so does a host whose members are real types over
@@ -73,13 +73,13 @@ import type {
 } from '../compose-local-agent.js'
 
 /**
- * The composition's REQUIRED quarantine identity mint (390-12 / D-01). Passthrough here: this
+ * The composition's REQUIRED quarantine identity mint. Passthrough here: this
  * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
  * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
  */
 const MINT_IDENTITY = (filePath: string): string => filePath
 
-// 2026-10-01 (432-30, D-12): the retired `grantedScopes` and `safeMode` caller fields are dropped
+// the retired `grantedScopes` and `safeMode` caller fields are dropped
 // here and from the quarantine block's WRITE_CALLER; nothing read them.
 const CALLER: FunctionCaller = {
   surface: 'cli',
@@ -190,7 +190,7 @@ describe('composeLocalAgent', () => {
     host = compose()
   })
 
-  // RE-SPELLED 2026-10-01 (432-17, D-05/D-22) from '419 review apply forwards persisted commitReceipt
+  // RE-SPELLED 2026-10-01 from '419 review apply forwards persisted commitReceipt
   // with strict absence (%s)': the review port's `apply` is deleted with the inbox, so a pre-432
   // applied record with or without its receipt is never read back; the port's only member is the
   // direct change, and the planted file is left exactly as it was.
@@ -229,7 +229,7 @@ describe('composeLocalAgent', () => {
     } finally { await bound.close() }
   })
 
-  // RE-SPELLED 432-09 (D-04/D-11/D-22) from '419 withdrawPendingProposal rejects pending %s once then
+  // RE-SPELLED 432-09 from '419 withdrawPendingProposal rejects pending %s once then
   // returns not-pending': a mark applies its fix directly, so there is no filing and nothing to
   // withdraw; a legacy pending proposal is left exactly as it was.
   it.each(['knowledge', 'test-draft'] as const)('the curation capabilities neither file nor withdraw a mark %s proposal, and leave a legacy one untouched', async proposalKind => {
@@ -242,7 +242,7 @@ describe('composeLocalAgent', () => {
     } : {
       schemaVersion: CURRENT_DRAFT_RECEIPT_SCHEMA_VERSION, draftRef: { filePath: 'tests/draft.yaml', testId: 'fixture', testName: 'Checkout', contentDigest: 'digest' }, targetPath: 'tests/checkout.yaml', disposition: 'unverified', runsPreviewed: 0, runsConsumed: 0, repairIterations: 0, summaryLine: 'Checkout edit',
     }
-    // 2026-10-01 (432-17): the store that wrote and read these records is deleted, so the legacy
+    // the store that wrote and read these records is deleted, so the legacy
     // record is planted as the bytes it wrote and asserted untouched by the composed host.
     mkdirSync(join(agentQaRoot, 'proposals'), { recursive: true })
     writeFileSync(join(agentQaRoot, 'proposals', `${proposalId}.json`), `${JSON.stringify({
@@ -328,7 +328,7 @@ describe('composeLocalAgent', () => {
     expect(configReads).toBe(1)
   })
 
-  // RE-SPELLED 2026-09-30 (432-13, D-15) from 'leaves a real audit row at the project root for every
+  // RE-SPELLED 2026-09-30 from 'leaves a real audit row at the project root for every
   // invocation'. The op gate that wrote that row is gone: an invocation dispatches and decides
   // nothing, so the composition writes no execution-audit file for it.
   it('writes NO execution-audit row at the project root for an invocation', async () => {
@@ -445,7 +445,7 @@ describe('composeLocalAgent', () => {
     expect(SYSTEM_CLOCK.now()).toMatch(/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/u)
   })
 
-  // ---- runs.start: what this host can and cannot do (D-16) ------------------------------
+  // ---- runs.start: what this host can and cannot do ------------------------------
 
   it('lists runs.start as UNBOUND when this composition has no run executor', async () => {
     // D-09's visible state, still carried by the very capability that named it — and now
@@ -454,7 +454,7 @@ describe('composeLocalAgent', () => {
     // daemon before it wires one), and the catalog says so instead of hiding the capability.
     const declaration = host.registry.list(CALLER).find((entry) => entry.id === 'runs.start')
 
-    // 432-20 (D-12): no scope column on a declaration.
+    // no scope column on a declaration.
     expect(declaration).toMatchObject({ bindingStatus: 'unbound' })
     expect(Object.keys(declaration ?? {})).not.toContain('requiredScopes')
     await expect(invokeFunction(host.registry, 'runs.start', {}, CALLER))
@@ -763,7 +763,7 @@ describe('composeLocalAgent', () => {
       }
     })
 
-    // ---- G-389-2: the failing-resolver degrade contract (389-08) --------------------------
+    // ---- G-389-2: the failing-resolver degrade contract --------------------------
     //
     // The doc at createProjectionRecurrenceProvider promises "a resolution failure is
     // swallowed HERE only — the provider then answers the honest no-history clause". These
@@ -959,7 +959,7 @@ describe('composeLocalAgent', () => {
       const caps = postRunCapabilities(capabilityInput(), knowledgeRootDir())!
 
       expect(caps.readEvidenceBlob?.(ANALYZED_RUN_ID, stored.sha)).toEqual(bytes)
-      // T-389-14: the 64-hex guard precedes the join — a traversal-shaped sha answers
+      // the 64-hex guard precedes the join — a traversal-shaped sha answers
       // undefined, and so does a well-formed sha no blob was ever written under.
       expect(caps.readEvidenceBlob?.(ANALYZED_RUN_ID, '../../etc/passwd')).toBeUndefined()
       expect(caps.readEvidenceBlob?.(ANALYZED_RUN_ID, 'a'.repeat(64))).toBeUndefined()
@@ -1056,7 +1056,7 @@ describe('composeLocalAgent', () => {
      *
      * The anchor name is the only thing that varies, and it is what makes two runs of the SAME
      * test carry two DIFFERENT fingerprints — which is the only way to tell the fingerprint-keyed
-     * window (390 D-07) apart from the per-test one it replaced.
+     * window apart from the per-test one it replaced.
      */
     function steppedHandoff(
       runId: string,

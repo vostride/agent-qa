@@ -105,7 +105,7 @@ describe('the composed session directives reach something', () => {
     options: {
       chatModel?: ChatLanguageModel
       chatModelFor?: (name: string) => ChatLanguageModel | Promise<ChatLanguageModel>
-      // 432-16: the composition declares no `chatConfirm`; a factory arrives here as an excess field.
+      // the composition declares no `chatConfirm`; a factory arrives here as an excess field.
       chatConfirm?: (bindings: unknown) => undefined
     } = {},
   ): LocalAgentHost {
@@ -150,7 +150,7 @@ describe('the composed session directives reach something', () => {
       async () => {
         const host = compose()
         const opened = await ask(host, '/fn quarantine.list')
-        // 432-39 (D-02/D-12): `FunctionCaller.sessionId` is deleted; the session id is smuggled past
+        // `FunctionCaller.sessionId` is deleted; the session id is smuggled past
         // the type so "in the same session" stays a distinct caller, and nothing reads it.
         const inSession = { ...HUMAN, sessionId: opened.sessionId } as FunctionCaller
 
@@ -184,7 +184,7 @@ describe('the composed session directives reach something', () => {
       const result = await ask(host, `/pin ${QUARANTINE_LIST_FUNCTION_ID}`)
 
       expect(result.receipts).toEqual([])
-      // 432-18 (C432-PIN-ABSENT): the live state no longer carries a pin field at all.
+      // the live state no longer carries a pin field at all.
       const state = host.chat.stateFor(result.sessionId)
       expect(state).toBeDefined()
       expect(Object.keys(state!)).not.toContain('pinnedActionClasses')
@@ -367,7 +367,7 @@ describe('the composed session directives reach something', () => {
     })
   })
 
-  // RE-SPELLED 2026-09-30 (432-13, D-14) from 'the chat confirm seam (D-03) — is handed a mint and a
+  // RE-SPELLED 2026-09-30 from 'the chat confirm seam — is handed a mint and a
   // decision sink, and its absence leaves the port absent'. Nothing asks, so the composition never
   // calls a supplied factory, and a turn leaves no `approval_decision` row.
   describe('the chat confirm seam is retired', () => {

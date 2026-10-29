@@ -49,7 +49,7 @@ import { composeLocalAgent, DIGEST_JOB_ID_SOURCE } from '../composition/compose-
 import type { LocalAgentHost, LocalAgentJobs } from '../composition/compose-local-agent.js'
 
 /**
- * The composition's REQUIRED quarantine identity mint (390-12 / D-01). Passthrough here: this
+ * The composition's REQUIRED quarantine identity mint. Passthrough here: this
  * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
  * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
  */
@@ -57,8 +57,8 @@ const MINT_IDENTITY = (filePath: string): string => filePath
 
 const RUN_ID = 'run-388-alpha'
 
-// 2026-10-02 (432-38, D-12): no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither (432-20).
+// no `grantedScopes` or `safeMode` on the caller; the registry reads
+// neither.
 const CALLER: FunctionCaller = {
   surface: 'test',
   origin: 'agent',
@@ -86,7 +86,7 @@ function createSteppingClock(): ClockPort {
   let tick = 0
   return {
     now() {
-      // 2026-10-19 (444.1-12, D-23): a minute per read, past every declared retry backoff.
+      // a minute per read, past every declared retry backoff.
       const stamp = new Date(Date.parse('2026-02-02T00:00:00.000Z') + tick * 60_000).toISOString()
       tick += 1
       return stamp
@@ -95,7 +95,7 @@ function createSteppingClock(): ClockPort {
 }
 
 /**
- * The verdict the runner already persisted for the member it could classify (373-07).
+ * The verdict the runner already persisted for the member it could classify.
  *
  * The fixture carries one member WITH this and one member WITHOUT, and that pairing is the
  * point: a projection that dropped unclassified members, or one that overwrote a persisted
@@ -175,7 +175,7 @@ interface Harness {
   readonly agentQaRoot: string
   readonly jobs: LocalAgentJobs
   readonly curateCalls: { runId: string; executionContext: unknown }[]
-  /** Kept so a case can ask the ONE read op what a surface would render (D-14). */
+  /** Kept so a case can ask the ONE read op what a surface would render. */
   readonly host: LocalAgentHost
 }
 
@@ -277,7 +277,7 @@ describe('post-run chain terminal notify', () => {
       perTest: 1,
     })
 
-    // The chain enqueued exactly the kinds it derives ids for, pinned two ways (D-02): the
+    // The chain enqueued exactly the kinds it derives ids for, pinned two ways: the
     // KEY SET of the derivation and the KINDS of the rows the store actually holds, both against
     // a sorted literal. Another derived id reds the first line by name and another enqueued row
     // reds the second, and each says WHAT arrived rather than that a count moved.
@@ -292,7 +292,7 @@ describe('post-run chain terminal notify', () => {
     })
 
     // The successor payload carries what the daemon needs to resolve posture per claimed job
-    // (386 D-09/D-12) — a curate-memory payload without executionContext is the DAEM-02 bug.
+    // a curate-memory payload without executionContext is the DAEM-02 bug.
     expect(harness.curateCalls).toEqual([
       { runId: RUN_ID, executionContext: 'local-headless' },
     ])
@@ -389,7 +389,7 @@ describe('post-run chain terminal notify', () => {
       RUN_ID,
     )
 
-    // D-06: the digest pins that the bytes analyzed are the bytes enqueued. Rewriting the
+    // the digest pins that the bytes analyzed are the bytes enqueued. Rewriting the
     // document after the enqueue is exactly the drift the pin exists to catch.
     writeHandoff(harness.agentQaRoot, { ...handoff, buildOrdinal: 8 })
 
@@ -498,7 +498,7 @@ describe('post-run chain terminal notify', () => {
     expect(notifications[0]?.payload.stages.curation.curated).toBeUndefined()
     expect(notifications[0]?.payload.stages.curation.deprecated).toBeUndefined()
 
-    // What a surface renders, through the ONE read op (D-14). Implied by the row status above
+    // What a surface renders, through the ONE read op. Implied by the row status above
     // rather than independent of it — this pins that the projection is reached, not a second
     // mapping claim (the mapping is post-processing-status.test.ts's).
     const status = await invokeFunction(

@@ -1,5 +1,5 @@
 // Shared kill-matrix fixtures: the deterministic world, the authoring kinds, and the comparison
-// basis (Phase 385 plan 06, D-03/D-09/D-12).
+// basis.
 //
 // Three things live here because the parent and the spawned children must agree on all of them
 // exactly, and a value duplicated on both sides of a process boundary is a value that drifts.
@@ -139,7 +139,7 @@ export function fenceFor(epoch: number = KILL_MATRIX_EPOCH): JobStoreFence {
 }
 
 /**
- * The FAKE lease the fencing legs take their token from (D-07).
+ * The FAKE lease the fencing legs take their token from.
  *
  * Deliberately fake, and deliberately named as such. 385 proves the store refuses a stale epoch;
  * 386 binds v51's real writer lease as the source of that epoch. Reaching for the real lease here

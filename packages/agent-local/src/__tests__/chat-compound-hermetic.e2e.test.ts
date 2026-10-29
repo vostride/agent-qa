@@ -1,7 +1,7 @@
-// RE-SPELLED 2026-10-01 (432-17, D-05): `proposals.list` is deleted with the inbox. The read these
+// RE-SPELLED 2026-10-01: `proposals.list` is deleted with the inbox. The read these
 // cells drive through the composed host is now `quarantine.list`, another allow-tier read that
 // answers honestly (an empty listing) in a bare temp project, so every claim keeps its subject.
-// The phase goal's central sentence, measured through the composed host (Phase 392 plan 07).
+// The phase goal's central sentence, measured through the composed host.
 //
 // "A COMPOUND REQUEST EITHER HAPPENS COMPLETELY OR FAILS LOUDLY" is two claims and this file makes
 // both of them observable on the REAL assembly: a two-clause canonical utterance runs both clauses
@@ -183,7 +183,7 @@ describe('the composed compound turn: complete, or loud', () => {
       expect(result.receipts).toHaveLength(2)
       expect(result.receipts.map((receipt) => receipt.status)).toEqual(['executed', 'executed'])
       // Utterance order, against IMPORTED ids — an op renamed at its declaration breaks this
-      // rather than leaving it agreeing with a string nothing dispatches (387 D-11).
+      // rather than leaving it agreeing with a string nothing dispatches.
       expect(result.receipts.map((receipt) => receipt.functionId)).toEqual([
         QUARANTINE_LIST_FUNCTION_ID,
         RUNS_LIST_FUNCTION_ID,
@@ -214,7 +214,7 @@ describe('the composed compound turn: complete, or loud', () => {
         'stage_outcome',
         'stage_outcome',
         'stage_outcome',
-        // 399.1-05: one MASKED `clause_result` per clause that RAN, each written immediately before
+        // one MASKED `clause_result` per clause that RAN, each written immediately before
         // the receipt it belongs to — the territory beside its map, in execution order. Two clauses
         // ran here, so the ledger interleaves rather than grouping.
         'clause_result',

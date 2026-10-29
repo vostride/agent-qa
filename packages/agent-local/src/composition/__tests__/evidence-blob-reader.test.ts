@@ -1,4 +1,4 @@
-// The evidence-blob reader's PRESENCE arm (406-03, D-17, DETL-05).
+// The evidence-blob reader's PRESENCE arm.
 //
 // `statEvidenceBlob` is `lookupEvidenceBlob` minus the bytes: the same three-way split, over the
 // same run-existence rule, so the two can never disagree about WHICH absence a ref is in. These

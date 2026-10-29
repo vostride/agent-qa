@@ -53,7 +53,7 @@ export const JOB_RECOVERY_MAX_RESUMED_JOBS = 64
 export interface ComposeJobRecoveryInput {
   /** The project's runtime root, i.e. `<configDir>/.agent-qa`. Absolute. */
   readonly agentQaRoot: string
-  /** Every column and dump row this host writes is stamped from here (D-03). */
+  /** Every column and dump row this host writes is stamped from here. */
   readonly clock: ClockPort
   /** Ids derived from `(kind, idempotencyKey)`, so a resumed chain addresses the same rows. */
   readonly idSource: JobIdSource

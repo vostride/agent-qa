@@ -1,4 +1,4 @@
-// What a quarantined row looks like to everything that READS the agent job queue (422 D-16).
+// What a quarantined row looks like to everything that READS the agent job queue.
 //
 // Plan 422-10 task 1 made a retired-kind row land permanently instead of rolling its claim back.
 // That is only half of D-16. The other half is that the landing must not cost the history: the
@@ -33,7 +33,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { composeJobRecovery } from '../composition/compose-job-recovery.js'
 import { AGENT_JOB_STORE_DB_FILE } from '../store/sqlite-job-store.js'
 
-/** A kind no current vocabulary contains — the Phase 412 needle itself stays deleted (CLSR-01). */
+/** A kind no current vocabulary contains — the Phase 412 needle itself stays deleted. */
 const RETIRED_KIND = 'retired-kind-fixture'
 
 /** The one kind these cells drain. Single checkpoint, no successors, so a drain is one row. */

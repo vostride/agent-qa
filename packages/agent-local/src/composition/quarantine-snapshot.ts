@@ -1,4 +1,4 @@
-// The run-start quarantine snapshot (Phase 390, D-16).
+// The run-start quarantine snapshot.
 //
 // THIS is where the committed ledger becomes run input: fold it ONCE before `startRun`, hand the
 // resolved set to the run as plain data on RunConfig. The runner gains zero ports and stays
@@ -16,7 +16,7 @@
 // One helper serves BOTH `startRun` composition sites (the multi-suite path and the direct
 // single-test path) so neither can drift into a second spelling of the rule.
 //
-// DEGRADATION (T-390-04): a ledger read failure answers an EMPTY set with a printed warning, never
+// DEGRADATION: a ledger read failure answers an EMPTY set with a printed warning, never
 // an abort. A broken or hand-mangled quarantine file must never be able to stop a run — the worst
 // it can do is withhold suppression, which fails builds loudly rather than passing them silently.
 
@@ -41,7 +41,7 @@ export interface RunQuarantineSnapshotInput {
 /**
  * Resolve the entries this run will apply: active (`'quarantined'`) and belonging to this run's
  * product. Expired entries are deliberately EXCLUDED — a lapsed entry's test fails builds again
- * (D-11) — and released entries are gone.
+ * and released entries are gone.
  *
  * Measured consequence worth knowing at THIS seam, because this is where the exclusion is decided:
  * for a test still crossing the threshold that is exactly ONE red build. The snapshot below is

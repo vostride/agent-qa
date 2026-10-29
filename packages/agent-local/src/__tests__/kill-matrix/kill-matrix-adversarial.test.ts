@@ -1,24 +1,24 @@
-// The adversarial kill-matrix legs (Phase 385 plan 07 — JOBQ-03, D-07 / D-18 / D-19 / D-20).
+// The adversarial kill-matrix legs.
 //
 // The derived legs interrupt the HAPPY path: a job doing its work, killed beside a checkpoint
 // publish, resumed. Every guarantee they prove is about a job that was going to succeed. These four
 // leg families interrupt the paths a job takes when something has gone wrong, and each one exists
 // because the corresponding guarantee has a shape that passes vacuously if it is asserted lazily:
 //
-//   POISON (D-18)          "the queue cannot crash-loop" is satisfied by a queue that got STUCK.
+//   POISON          "the queue cannot crash-loop" is satisfied by a queue that got STUCK.
 //                          A job whose claim nobody ever released also stops crashing, and looks
 //                          identical from the outside. So the leg asserts the REASON it stopped:
 //                          the bound was spent, the row is `failed`, and the terminal host — still
 //                          configured to crash — never reaches its crash point.
-//   FAILURE PATH (D-20)    "the disposition ran exactly once" is satisfied by a disposition that
+//   FAILURE PATH    "the disposition ran exactly once" is satisfied by a disposition that
 //                          ran ZERO times, because the kill landed before it was reached. So both
 //                          legs assert the POSITIVE evidence first: the continuation rows the
 //                          producer already wrote are durable at the instant of the kill.
-//   CANCEL (D-19)          "the cancel was honoured" is satisfied by a job that failed for some
+//   CANCEL          "the cancel was honoured" is satisfied by a job that failed for some
 //                          other reason. So the leg asserts the terminal status is `cancelled`
 //                          specifically, which checkpoint boundary honoured it, and that the
 //                          checkpoint after that boundary was never entered at all.
-//   STALE EPOCH (D-07)     "a stale epoch is refused" is satisfied by a store that refuses
+//   STALE EPOCH     "a stale epoch is refused" is satisfied by a store that refuses
 //                          everything. So the refused hosts are paired with a correct-epoch host
 //                          that succeeds, and the store is asserted byte-identical across both
 //                          refusals.
@@ -30,7 +30,7 @@
 //
 // SPAWN BUDGET: 14 children across 6 legs, on top of plan 06's 26. Nothing is sampled — every leg
 // family described above runs in full, and every host in each family is a real OS process.
-// 2026-09-02 (Phase 412): 26 rather than 32 — the retired kind's legs left with the Issue-slot
+// 26 rather than 32 — the retired kind's legs left with the Issue-slot
 // cleanup; the legs here are untouched.
 
 import { existsSync } from 'node:fs'
@@ -97,7 +97,7 @@ function declarationFor(kind: JobKind): JobKindDeclaration {
  * The kinds a permanent failure of `kind` actually CONTINUES INTO, asked of the producer.
  *
  * Read from the fallback rather than from `allowedSuccessors`, because the producer is what
- * the engine actually runs. Since 2026-09-01 (Phase 409) declared equals produced — analyze-run
+ * the engine actually runs. Since 2026-09-01 declared equals produced — analyze-run
  * declares and produces `['curate-memory']`, the reserved sixth kind having left with the
  * Issue-slot cleanup (388 D-04 introduced the split this collapsed).
  * Asking the producer is therefore a choice of instrument rather than a correction: it keeps the
@@ -279,7 +279,7 @@ describe('verb crash points, beside the checkpoint points', () => {
   })
 })
 
-// ---- LEG FAMILY 1: the poison job (D-18, T-385-03) -------------------------------------------------
+// ---- LEG FAMILY 1: the poison job -------------------------------------------------
 
 describe('a poison job that SIGKILLs its host on every attempt', () => {
   // `consolidate` declares maxAttempts 2, which is the cheapest bound that is still a bound.
@@ -395,7 +395,7 @@ describe('a poison job that SIGKILLs its host on every attempt', () => {
   }, LEG_TIMEOUT_MS)
 })
 
-// ---- LEG FAMILY 2: a kill around the atomic failure path (D-20 / CR-07) -----------------------------
+// ---- LEG FAMILY 2: a kill around the atomic failure path -----------------------------
 
 describe('SIGKILL inside the permanent-failure disposition', () => {
   const kind: JobKind = 'analyze-run'
@@ -586,7 +586,7 @@ describe('SIGKILL inside the permanent-failure disposition', () => {
   }, LEG_TIMEOUT_MS)
 })
 
-// ---- LEG FAMILY 3: a cancel that crosses a crash (D-19) --------------------------------------------
+// ---- LEG FAMILY 3: a cancel that crosses a crash --------------------------------------------
 
 describe('a cancel requested mid-run, honoured across a crash', () => {
   // `curate-memory` is the only two-checkpoint kind, so it is the only one where "the boundary
@@ -696,7 +696,7 @@ describe('a cancel requested mid-run, honoured across a crash', () => {
   }, LEG_TIMEOUT_MS)
 })
 
-// ---- LEG FAMILY 4: fencing, with a fake lease (D-07, T-385-02) -------------------------------------
+// ---- LEG FAMILY 4: fencing, with a fake lease -------------------------------------
 
 describe('a resume carrying a stale epoch, proven with a fake lease', () => {
   it('refuses both the re-adoption and the stale fence, changes nothing, and lets the holder finish', async () => {
@@ -803,7 +803,7 @@ describe('a resume carrying a stale epoch, proven with a fake lease', () => {
   }, LEG_TIMEOUT_MS)
 })
 
-// ---- LEG FAMILY 5: a retired-kind row at the head of the FIFO (Phase 422, D-16 / ADV-03) ----------
+// ---- LEG FAMILY 5: a retired-kind row at the head of the FIFO ----------
 //
 // The four families above all interrupt a job this build can READ. This one interrupts the queue
 // itself: a row written by an earlier build under a kind that has since been retired sits at the

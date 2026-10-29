@@ -1,4 +1,4 @@
-// `knowledge.brief.why` answers about THEN (Phase 387 plan 06, KREV-02 / D-14 / D-15).
+// `knowledge.brief.why` answers about THEN.
 //
 // Nothing is stubbed on the answering path. Bundles are really published to a temp knowledge
 // root, the index is really rebuilt, the serving reader really assembles a brief and returns
@@ -63,7 +63,7 @@ const TEST_ID = 't_checkout'
  * non-empty (measured: 6 served, 1 cut).
  *
  * That is not a detail: `truncated` is the ledger that answers "why didn't it mention X"
- * (D-14), and a budget that admitted everything would leave Test 3 asserting over an empty
+ * and a budget that admitted everything would leave Test 3 asserting over an empty
  * array — which passes for the wrong reason. The cases that depend on a cut candidate assert
  * the ledger is non-empty before using it, so a retune that silently admitted everything
  * fails loudly instead of passing vacuously.
@@ -82,8 +82,8 @@ const TRUNCATING_FIXTURE = [
   'Golf', 'Hotel', 'India', 'Juliett', 'Kilo', 'Lima',
 ] as const
 
-// 2026-10-02 (432-38, D-12): no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither (432-20).
+// no `grantedScopes` or `safeMode` on the caller; the registry reads
+// neither.
 const CALLER: FunctionCaller = {
   surface: 'cli',
   origin: 'agent',
@@ -245,8 +245,8 @@ describe('knowledge.brief.why answers from the persisted trace', () => {
           get: () => Promise.resolve(undefined),
         },
       },
-      // 2026-10-02 (432-38, D-12): no `resolveExecutionContext` registry option; the registry reads
-      // no context (432-20).
+      // no `resolveExecutionContext` registry option; the registry reads
+      // no context.
     })
   }
 

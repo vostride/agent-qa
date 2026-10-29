@@ -1,4 +1,4 @@
-// The model-invocation counter, published as a durable artifact (Phase 385 plan 06, D-10/D-12).
+// The model-invocation counter, published as a durable artifact.
 //
 // The claim JOBQ-03 rests on is about a process that no longer exists: host one authored, host one
 // died, host two must not author again. An in-process spy cannot say anything about that at all —

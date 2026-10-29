@@ -17,7 +17,7 @@ export interface ConstructKnowledgeReaderInput {
  * budgets are run-fixed, while canonical `[tier,key]` material gives one immutable memo entry per
  * scope. All other reader methods remain live pass-throughs for Channels 2, 3, and canary output.
  *
- * KREV-02 · D-13: the memo holds the WHOLE composite, so a repeat serve returns the trace captured
+ * the memo holds the WHOLE composite, so a repeat serve returns the trace captured
  * at the moment the brief was actually assembled — not a fresh trace describing the cache hit.
  * That is the deliberate choice and it is what makes the why-verb answer about *then*: a step that
  * replans four times against one frozen brief was served that brief once, and the attribution that

@@ -1,4 +1,4 @@
-// The crash-point registry and the seam its points fire through (Phase 385 plan 06, D-09/D-12).
+// The crash-point registry and the seam its points fire through.
 //
 // A crash point is DERIVED, never listed. v51's fixture carried a fixed three-member union of
 // boundaries, which was right for one lifecycle and wrong for a queue whose boundaries are

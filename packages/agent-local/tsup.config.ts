@@ -8,7 +8,7 @@ export default defineConfig({
   sourcemap: true,
   target: 'node24',
   splitting: false,
-  // 2026-07-29 (Phase 385 plan 09): esbuild rewrites `node:sqlite` to a bare `sqlite`, which is
+  // esbuild rewrites `node:sqlite` to a bare `sqlite`, which is
   // not resolvable — `node:sqlite` is one of the builtins with no bare alias. It went unnoticed
   // while nothing on the barrel reached the store; `composeLocalAgent()` does, so loading this
   // package from another one failed outright. Same setting, same reason, as knowledge-local and

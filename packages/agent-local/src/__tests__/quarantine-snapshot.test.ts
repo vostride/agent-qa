@@ -1,4 +1,4 @@
-// RED-first pins for the run-start quarantine snapshot (Phase 390 D-16).
+// RED-first pins for the run-start quarantine snapshot.
 //
 // The local composition root folds the committed ledger ONCE at run start and hands the resolved
 // set into the run as plain data. Folding once is what makes the disposition deterministic for the
@@ -6,7 +6,7 @@
 // posture `executionContext` resolution already has).
 //
 // A ledger read failure DEGRADES to an empty set with a printed warning. A broken ledger can never
-// abort a run (T-390-04).
+// abort a run.
 
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -199,7 +199,7 @@ describe('resolveRunQuarantineSnapshot', () => {
     expect(warnings[0]).toMatch(/schemaVersion/)
   })
 
-  // ---- the two-sided pin: the human WRITE verb against this READER (390-09 / WR-01) --------
+  // ---- the two-sided pin: the human WRITE verb against this READER --------
   //
   // The defect this closes was invisible to every single-sided fixture. The writer half lives in
   // `knowledge-local` and the reader half lives here; each is internally consistent, and they
@@ -224,7 +224,7 @@ describe('resolveRunQuarantineSnapshot', () => {
       return createQuarantineOperations({
         resolveKnowledgeRoot: () => knowledgeRoot,
         now: () => ADD_NOW,
-        // 390-12: this pin is about the PRODUCT partition, and its fixture already speaks the
+        // this pin is about the PRODUCT partition, and its fixture already speaks the
         // canonical `tests/checkout.yaml`, so a passthrough leaves what it measures unchanged. The
         // filePath leg's own two-sided pin — real mint, real verbs, real reader, two checkout roots
         // — is `cli/src/__tests__/quarantine-ledger-portability.test.ts`, the one layer where every

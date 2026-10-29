@@ -1,4 +1,4 @@
-// The build-ordinal edge (Phase 387, D-20).
+// The build-ordinal edge.
 //
 // Build ordinals and build tags are run-persistence machinery: the ordinal counter and the
 // tag map both live in `runner-local` beside the stores that write them, and that is the

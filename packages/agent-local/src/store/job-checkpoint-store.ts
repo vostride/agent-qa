@@ -1,4 +1,4 @@
-// Per-job checkpoint files for the agent job queue (Phase 385, D-01 / JOBQ-05).
+// Per-job checkpoint files for the agent job queue.
 //
 // Under the hybrid split, sqlite owns the job LIFECYCLE and each checkpoint is its own file
 // under `.agent-qa/agent-jobs/checkpoints/<jobId>/<checkpointId>.json`. Three reasons, in
@@ -107,7 +107,7 @@ export interface JobCheckpointStore {
   publish(jobId: string, checkpointId: string, payload: unknown): void
   read(jobId: string, checkpointId: string): { found: false } | { found: true; payload: unknown }
   /**
-   * Remove one published checkpoint file (413-13).
+   * Remove one published checkpoint file.
    *
    * The file is a CACHE of the fenced sqlite record, and this verb exists only so the cache
    * cannot outlive the record it caches: an operator requeue deletes the authoritative rows,
@@ -122,7 +122,7 @@ export interface JobCheckpointStore {
   discard(jobId: string, checkpointId: string): void
   /** Exposed so a test can assert on the real file, not on a reader that could agree. */
   checkpointPath(jobId: string, checkpointId: string): string
-  /** The directory the deterministic logical dump digests (D-03). */
+  /** The directory the deterministic logical dump digests. */
   readonly checkpointsRoot: string
 }
 

@@ -1,4 +1,4 @@
-// D-16 / T-392-35: NO PRODUCTION KNOB CAN DISABLE THE DETERMINISTIC OVERRIDE.
+// NO PRODUCTION KNOB CAN DISABLE THE DETERMINISTIC OVERRIDE.
 //
 // The mutation proof next door shows what switching the reconciliation strategy COSTS. This file
 // shows that nothing outside a composition can do it. Both halves are needed and neither implies

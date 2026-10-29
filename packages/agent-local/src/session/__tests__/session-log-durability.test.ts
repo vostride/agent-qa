@@ -57,7 +57,7 @@ function options(root: string, now: string = NOW): CreateJsonlSessionLogOptions 
 }
 
 /**
- * The same options with a clock that MOVES, so two `open()` calls mint two ids (392-12).
+ * The same options with a clock that MOVES, so two `open()` calls mint two ids.
  *
  * The pinned clock above is what makes the single-session assertions exact, and it is also why a
  * concurrency case cannot use it: both mints would produce one id and the second exclusive-create
@@ -192,7 +192,7 @@ function describeSequence(calls: readonly RecordedCall[], root: string, sessionI
 }
 
 /**
- * The same sequence, labelled across SEVERAL sessions (392-12, CR-01).
+ * The same sequence, labelled across SEVERAL sessions.
  *
  * `file:A` / `file:B` rather than one `file`, so a syscall's session is derived from the path it
  * was made on — the adapter cannot name its own calls into the right shape any more here than it
@@ -373,7 +373,7 @@ describe('the session log appends as it goes and fsyncs at the turn boundary', (
   })
 
   // ------------------------------------------------------------------------------------------
-  // TWO SESSIONS AT ONCE, ON ONE ADAPTER (392-12, CR-01).
+  // TWO SESSIONS AT ONCE, ON ONE ADAPTER.
   //
   // This is the case the whole suite could not previously express: while the adapter owned one
   // mutable descriptor, a second `open()` repointed it, so the interleaved appends below would all
@@ -714,7 +714,7 @@ describe.each(FACTORIES)('SessionLogPort contract: %s', (_name, factory) => {
     expect(error).toBeInstanceOf(UnknownChatSessionError)
   })
 
-  // RE-SPELLED BY THE HANDLE CONTRACT (392-12), and the property it names is stronger than the one
+  // RE-SPELLED BY THE HANDLE CONTRACT, and the property it names is stronger than the one
   // it replaces. "Append before open" is no longer expressible — there is no log-level append to
   // reach — so what remains to prove is the other end of ownership: a handle that has been closed
   // refuses rather than writing somewhere. A silent no-op there, or a quiet reopen, would be the

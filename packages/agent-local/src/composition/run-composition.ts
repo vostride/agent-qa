@@ -1,4 +1,4 @@
-// The host-neutral run composition (Phase 385 plan 08 — D-13).
+// The host-neutral run composition.
 //
 // This is the dissected majority of what used to be a 1035-line composition helper inside the CLI.
 // Nothing here was rewritten: the digest mint, the persistence-port construction, the suite
@@ -105,19 +105,19 @@ export type RunExecutionContext = 'local-interactive' | 'local-headless' | 'ci' 
  * The provider-substrate model handle, named through the runner's own config rather than through
  * the substrate package. It is the identical type — the runner types both model slots with it —
  * and taking it this way keeps a provider-substrate edge off a package whose declared external
- * dependency set is empty and whose whole point is that it installs nothing (JOBQ-02).
+ * dependency set is empty and whose whole point is that it installs nothing.
  */
 type RunLanguageModel = MemberRunConfig['plannerModel']
 
 /** The message shape the token accountant estimates, taken from the accountant's own signature. */
 type AccountedMessage = Parameters<TokenAccounting['estimate']>[0][number]
 
-// ---- (0) run-scoped knowledge serving composition (D-01/D-02/D-09/D-15/D-17/D-23) ----------
+// ---- (0) run-scoped knowledge serving composition ----------
 
 type KnowledgeAccounting = Pick<TokenAccounting, 'estimate' | 'getCeilings'>
 
 /**
- * 407 D-13/D-17 — the shape of THE retrieval-rung resolver, declared structurally here and
+ * the shape of THE retrieval-rung resolver, declared structurally here and
  * INJECTED rather than imported.
  *
  * knowledge-local's main entry has exactly ONE importer in this workspace by ratified rule
@@ -141,10 +141,10 @@ export interface RunKnowledgeComposition {
   reader: KnowledgeHintReader
   budgets: KnowledgeBudgets
   /**
-   * 407 D-13 — the HOST's retrieval ladder at THIS run's serve time, started here and awaited
+   * the HOST's retrieval ladder at THIS run's serve time, started here and awaited
    * exactly once by the first step's evidence recorder. It is a promise rather than a value
    * because the resolver's embedder probe can cost a model load, and overlapping that with run
-   * start keeps it off the critical path (T-407-16). Never re-probed per step: a run's rung is a
+   * start keeps it off the critical path. Never re-probed per step: a run's rung is a
    * fact about when it was served, not a live indicator of the machine.
    */
   retrievalRung: Promise<RecordedRetrievalRung>
@@ -166,13 +166,13 @@ export interface OpenRunKnowledgeCompositionInput {
   qaRulesText: string
   workingContextText: string
   /**
-   * 407 D-13 — the hosted runtime root (`<configDir>/.agent-qa`) the embedder probe discovers its
+   * the hosted runtime root (`<configDir>/.agent-qa`) the embedder probe discovers its
    * worker under. Absent falls back to the acquirer's own rule, so a caller that does not know the
    * root still gets an honest answer rather than an error.
    */
   agentQaRoot?: string
   /**
-   * 407 D-17 — the injected rung resolver. Production callers pass `resolveHostRetrievalRung`
+   * the injected rung resolver. Production callers pass `resolveHostRetrievalRung`
    * (the composition root's binding of THE one knowledge-local resolver); tests pass a fake and
    * never touch the host. See {@link RetrievalRungResolver} for why it is injected and required.
    */
@@ -213,7 +213,7 @@ export function openRunKnowledgeComposition(
     asOfBuild: input.asOfBuild,
     recordCap: budgets.recordCap,
   })
-  // D-13: started HERE, beside the reader that will serve this run, because this is the only place
+  // started HERE, beside the reader that will serve this run, because this is the only place
   // that knows both roots. Nobody awaits it until the first step's recorder does, so a no-op catch
   // is attached now — an unhandled rejection from a probe that merely asks what the host can do
   // must not become a process-level warning (or, under a stricter host, a crash).
@@ -229,7 +229,7 @@ export function openRunKnowledgeComposition(
     seedRecords: [],
   })
 
-  // D-09/T-380-29: the planner's action slice remains whole under the always-send-all law. The
+  // the planner's action slice remains whole under the always-send-all law. The
   // optional non-action slice is composed only for capable models, so non-registration itself is
   // the gate and no model-visible flag can elevate a weak profile into Channel 2.
   const memory = channel2Enabled
@@ -257,7 +257,7 @@ export function openRunKnowledgeComposition(
   }
 }
 
-// ---- (1) computeRunConfigDigests — the ONE digest mint (D-20) --------------------------------
+// ---- (1) computeRunConfigDigests — the ONE digest mint --------------------------------
 
 /** One member's file inputs to the digest mint. `suiteFileContent` is absent on the single-test path. */
 export interface RunDigestMemberInput {
@@ -267,7 +267,7 @@ export interface RunDigestMemberInput {
 
 /**
  * The per-member cache pair AND the run-level handoff pair, both produced by the SINGLE call
- * below (D-20). The cache-key threading consumes `perMember[i]`; the handoff header carries
+ * below. The cache-key threading consumes `perMember[i]`; the handoff header carries
  * `runLevel`. Because both draw from one mint, run identity and handoff identity cannot fork.
  */
 export interface RunConfigDigests {
@@ -325,7 +325,7 @@ export function computeRunConfigDigests(input: {
   return { runLevel, perMember }
 }
 
-// ---- (2) resolveRunExecutionContext — canonical resolver (D-04) ------------------------------
+// ---- (2) resolveRunExecutionContext — canonical resolver ------------------------------
 
 /**
  * Resolve the run's execution context via safety-local's canonical `detectExecutionContext`
@@ -336,7 +336,7 @@ export function resolveRunExecutionContext(override?: RunExecutionContext): RunE
   return detectExecutionContext(override) as RunExecutionContext
 }
 
-// ---- (3) buildRunPorts + buildOrdinal — runner-local persistence tier (D-06/D-17/D-18) -------
+// ---- (3) buildRunPorts + buildOrdinal — runner-local persistence tier -------
 
 /** The durable run ports the shell wires behind `RunConfig.ports` (event log + handoff + artifact). */
 export interface RunPersistencePorts {
@@ -350,14 +350,14 @@ export interface RunPersistencePorts {
    */
   evidenceArtifacts: EvidenceArtifactStorePort
   /**
-   * 403-13 (WR-06, LIVE-03): where a live-frame VIEWER's fault is reported. Declared here as well
+   * where a live-frame VIEWER's fault is reported. Declared here as well
    * as on the runner's `RunPorts`, because `assembleCliRun` spreads THIS interface into
    * `RunConfig.ports` — a member declared on only one side is invisible in the type across that
    * hop. Non-durable and off the bus by construction; the run's transcript never records a viewer.
    */
   onSubscriberFault?: (code: string, message: string) => void
   /**
-   * 404-01 (D-05/D-10): the host-composed post-verdict step the shell awaits between `verdict` and
+   * the host-composed post-verdict step the shell awaits between `verdict` and
    * `runFinished`. Declared here for the SAME reason `onSubscriberFault` is — `assembleCliRun`
    * spreads THIS interface into `RunConfig.ports`, so a member declared on only one side of that
    * hop is invisible in the type and would silently never reach `startRun`.
@@ -413,7 +413,7 @@ export function resolveBuildTagSetting(input: {
 }
 
 /**
- * Advance the per-product buildOrdinal counter under the same `.agent-qa` root (D-18), then
+ * Advance the per-product buildOrdinal counter under the same `.agent-qa` root, then
  * record D-14/D-16's first-seen tag mapping beside it when supplied. Both files are lock-free,
  * best-effort runtime truth; the resolved ordinal rides `RunConfig.buildOrdinal` into the handoff.
  */
@@ -438,7 +438,7 @@ export async function resolveRunBuildOrdinal(input: {
 // ---- (4) createSuiteLifecycle — lazy per-suite setup/teardown --------------------------------
 
 /**
- * The ONE exclusive lane every suite member declares (402-02, D-09). The runner's bounded member
+ * The ONE exclusive lane every suite member declares. The runner's bounded member
  * pool never runs two members of the same lane concurrently, and the suite path needs that for two
  * independent reasons, either of which alone would be sufficient:
  *
@@ -454,7 +454,7 @@ export async function resolveRunBuildOrdinal(input: {
  * lifecycle admits concurrent suites, this becomes a per-suite key — or disappears — and the shell
  * needs no argument re-litigated for that to be safe.
  *
- * STATUS 2026-08-24 (402-02): reason (2) is CLOSED — `createSuiteLifecycle` below is now a
+ * STATUS 2026-08-24: reason (2) is CLOSED — `createSuiteLifecycle` below is now a
  * once-latch with member reference counting, so two members of one suite merge into one setup and
  * a boundary crossed while members are live is a named error rather than a mid-flight teardown.
  * Reason (1) is OPEN and is what still holds the lane: `suiteConfig.adapter` is per-SUITE, so
@@ -474,7 +474,7 @@ export interface SuiteLifecycleHooks {
 }
 
 /**
- * One member's hold on the active suite (402-02). Held from the moment `ensureReady` admits the
+ * One member's hold on the active suite. Held from the moment `ensureReady` admits the
  * member until the member settles; the suite cannot be torn down while any hold is outstanding.
  */
 export interface SuiteMemberLease {
@@ -484,7 +484,7 @@ export interface SuiteMemberLease {
 
 /**
  * Thrown when `ensureReady` is asked for a suite while a DIFFERENT suite still has live members
- * (402-02). This is the one-active-suite invariant made loud. The alternative — tearing the live
+ * This is the one-active-suite invariant made loud. The alternative — tearing the live
  * suite down to make room — closes the browser out from under a test that is still running in it,
  * and does so silently. The shell's exclusive lane (`SUITE_LIFECYCLE_LANE`) means no shipped
  * composition can reach this, so it reads as an assertion rather than a runtime condition; that is
@@ -610,7 +610,7 @@ export function createSuiteLifecycle(): SuiteLifecycle {
   }
 }
 
-// ---- (5) buildSuiteMemberExecutor — the MemberTestExecutor closure (D-01) ---------------------
+// ---- (5) buildSuiteMemberExecutor — the MemberTestExecutor closure ---------------------
 
 /**
  * One prepared suite member: its suite key + lifecycle hooks (setup runs on the first member of
@@ -622,7 +622,7 @@ export interface SuiteMemberBinding {
   suiteKey: string
   hooks: SuiteLifecycleHooks
   /**
-   * 403 D-05: the suite's ONE adapter, read only for its live-stream declaration. Present so the
+   * the suite's ONE adapter, read only for its live-stream declaration. Present so the
    * executor can register the capability AFTER `ensureReady` has resolved the suite's `setup()`
    * (which is where `adapter.setup()` runs, so `this.page` exists) and BEFORE the first step.
    */
@@ -631,8 +631,8 @@ export interface SuiteMemberBinding {
 }
 
 /**
- * Declare (or withdraw) a member's live stream on the shell-provided context (403 D-05), by the one
- * selection rule `liveStreamFor` (428 D-11/D-12). A continuous stream is registered with the
+ * Declare (or withdraw) a member's live stream on the shell-provided context, by the one
+ * selection rule `liveStreamFor`. A continuous stream is registered with the
  * labelled 1s snapshot producer over `screenshot()` as its fallback, which the hub starts when the
  * stream fails to start. An adapter with no continuous stream but a `screenshot()` registers the
  * snapshot producer itself; an adapter whose own stream is already a snapshot registers that alone;
@@ -649,7 +649,7 @@ export function registerAdapterLiveStream(
 }
 
 /**
- * Build the injected `MemberTestExecutor` (D-01). Per member the closure looks up the prepared
+ * Build the injected `MemberTestExecutor`. Per member the closure looks up the prepared
  * binding by the shell-derived `testIndex` (array position — authoritative), calls
  * `lifecycle.ensureReady(...)` to lazily set up / cross-boundary tear down the member's suite,
  * then runs the member behind `executeSuiteMember`. Wrapping ONE audited function instead of
@@ -666,7 +666,7 @@ export function buildSuiteMemberExecutor(input: {
     }
     const lease = await input.lifecycle.ensureReady(binding.suiteKey, binding.hooks)
     try {
-      // 403 D-05: the suite is up (adapter.setup() resolved inside `ensureReady`), so the member's
+      // the suite is up (adapter.setup() resolved inside `ensureReady`), so the member's
       // live stream is declarable now and before its first step.
       registerAdapterLiveStream(ctx, binding.adapter)
       return await binding.run(ctx)
@@ -678,14 +678,14 @@ export function buildSuiteMemberExecutor(input: {
   }
 }
 
-// ---- (6) masking seed pipeline: deleted 441-19 (D-12). A run masks only through its producer's
+// ---- (6) masking seed pipeline: deleted 441-19. A run masks only through its producer's
 // `SecretRedactor`, built from the declared secrets; nothing seeds from the environment or auth state.
 
-// ---- (7) per-run stamped audit sink: deleted 441-43 (D-15). Neither a run nor a curation fold
+// ---- (7) per-run stamped audit sink: deleted 441-43. Neither a run nor a curation fold
 // writes a guardrail audit row, so a run directory holds no audit file beside its events.
 
 /**
- * The one composition of a run's own directory (401-20, CR-04).
+ * The one composition of a run's own directory.
  *
  * EXTRACTED RATHER THAN COPIED, and that is the whole point of it existing. The core's collision
  * refusal has to ask "does this id already name a run", and the only honest way to ask is against
@@ -698,7 +698,7 @@ export function runDirFor(input: { configDir: string; runId: string }): string {
   return resolve(input.configDir, '.agent-qa', RUNS_SUBDIR, slugBranch(input.runId))
 }
 
-// ---- (9) member-run-config builder — the D-05 cutover onto runMemberTest (363-11) ------------
+// ---- (9) member-run-config builder — the D-05 cutover onto runMemberTest ------------
 //
 // Both startRun sites (suite + single-test) execute each member through the runner-owned
 // `runMemberTest` (Plan 10). The executor closure at each site composes core-owned memory
@@ -708,7 +708,7 @@ export function runDirFor(input: { configDir: string; runId: string }): string {
 // stays neutral about: runJS (web `page.evaluate` + `coerceRunJSResult`), appium (adapter execute
 // with secret resolution), the accessibility check (dynamic web-package load), the failure
 // screenshot writer, and the store-neutral secret resolver. Adapter internals are legal HERE — this
-// is the composition root (D-05). Core's `runTest`/`runTestWithRetry` per-test wrapper is gone;
+// is the composition root. Core's `runTest`/`runTestWithRetry` per-test wrapper is gone;
 // its responsibilities live in `runMemberTest` (runner) and in the memory/curator composition here.
 
 /** Capture a best-effort failure screenshot from the adapter (re-homed from the deleted core
@@ -799,7 +799,7 @@ export interface BuildMemberRunConfigInput {
   storageState?: StorageStatePort
   compressor?: ScreenshotCompressor
   knowledgeReader?: KnowledgeHintReader
-  /** 407 D-13 — the composed rung, carried through untouched to the loop's evidence recorder. */
+  /** the composed rung, carried through untouched to the loop's evidence recorder. */
   knowledgeRetrievalRung?: Promise<RecordedRetrievalRung>
   knowledgeBudgets?: KnowledgeBudgets
   knowledgeAsOfBuild?: number
@@ -847,7 +847,7 @@ export interface BuildMemberRunConfigInput {
 /**
  * Assemble the {@link MemberRunConfig} `runMemberTest` slots behind, wiring the adapter-backed
  * injected handlers (runJS/appium/a11y/failure-shot), the store-neutral secret resolver, and the
- * fileUpload path resolver — reproducing core's `runTest` per-test behavior on runner soil (D-05).
+ * fileUpload path resolver — reproducing core's `runTest` per-test behavior on runner soil.
  */
 export function buildMemberRunConfig(input: BuildMemberRunConfigInput): MemberRunConfig {
   const sandbox = input.sandboxOptions
@@ -858,7 +858,7 @@ export function buildMemberRunConfig(input: BuildMemberRunConfigInput): MemberRu
     cache: input.cache,
     workingMemory: input.workingMemory,
     storageState: input.storageState,
-    // CTXB-06: model's canonical compaction (compactLogs for log bursts, guardBlob
+    // model's canonical compaction (compactLogs for log bursts, guardBlob
     // otherwise) replaces the runner-local ceiling fallback on every tool-output value.
     guardBlob: guardToolOutput,
     compressor: input.compressor,

@@ -1,4 +1,4 @@
-// THE HERMETIC LANE (Phase 392 plan 09, CHAT-02 / CHAT-03 / D-13 / D-15).
+// THE HERMETIC LANE.
 //
 // Every `deterministic` scenario in the frozen corpus, driven through `composeLocalAgent()` and
 // `invokeFunction` — the real registry, the real gate, the real session log on a real disk. Nothing
@@ -26,7 +26,7 @@
 //                    ZERO `mark_unhandled` rows. Plus `emitsSessionEvent` and `answerContains`
 //                    where the scenario states them — for the four directives those two ARE the
 //                    assertion, since a directive invokes nothing and its numbers are the numbers
-//                    a turn that did nothing at all would show (392-08).
+//                    a turn that did nothing at all would show.
 //
 //   fail_closed    — NOTHING was carried out (`executed` count 0, matching `expect.executed`), the
 //                    turn did not complete, the refusal NAMES the clause, AND the session log
@@ -37,7 +37,7 @@
 //                    `invokeFunction` step 1, which raises `UnknownFunctionError` naming the op
 //                    before any dependency is touched.
 //
-// `executed == 0` WAS NOT ENOUGH, AND 392-VERIFICATION IS WHY (392-11). Both defects that arm
+// `executed == 0` WAS NOT ENOUGH, AND 392-VERIFICATION IS WHY. Both defects that arm
 // missed stayed true through it: a directive never crosses the function layer, so a `/pin` carried
 // out on a refused turn moved no count; and a clause erased by a model answer left no receipt to
 // count either. So the arm now asserts the EVENTS — no `approval_decision`, no verb-sourced
@@ -97,7 +97,7 @@ import { composeLocalAgent } from '../composition/compose-local-agent.js'
 import type { LocalAgentHost, RunExecutionPort } from '../composition/compose-local-agent.js'
 
 /**
- * The corpus lives with the package that owns the routing it characterises (D-14), and this runner
+ * The corpus lives with the package that owns the routing it characterises, and this runner
  * lives with the composition that can drive it. Asserted below rather than assumed: a path that
  * moved would leave the walk scanning nothing and agreeing with an empty manifest forever.
  */
@@ -127,7 +127,7 @@ const MINT_IDENTITY = (filePath: string): string => filePath
 
 const HERMETIC_CORPUS = SCENARIO_CORPUS.filter((entry) => entry.lane === 'hermetic')
 
-/** The ceiling's denominator: `should_execute` cells in the FROZEN manifest (D-15). */
+/** The ceiling's denominator: `should_execute` cells in the FROZEN manifest. */
 const HERMETIC_DENOMINATOR = HERMETIC_CORPUS.filter((entry) => entry.kind === 'should_execute').length
 
 function readScenario(entry: (typeof SCENARIO_CORPUS)[number]): ChatScenario {
@@ -154,7 +154,7 @@ function plannerTripwire(): { model: ChatLanguageModel; calls: () => number } {
 }
 
 /**
- * A model that emits exactly the tool calls it was handed (392-14).
+ * A model that emits exactly the tool calls it was handed.
  *
  * THE MODEL IS THE UNTRUSTED PARTY THIS MECHANISM CONSTRAINS, and that is the whole justification
  * for this seam. D-13's "no mocks in either lane" is a rule about scenarios whose OUTCOME would
@@ -352,7 +352,7 @@ describe('the hermetic lane: the frozen deterministic corpus over the real compo
   it('walks a real corpus rather than an empty one', () => {
     // Every assertion below is `it.each` over the manifest, and an empty manifest would make the
     // whole file green while measuring nothing. 17 as of corpus v6: the 13 deterministic cells plus
-    // the four hermetic compound cells — `pin-and-write-test` (392-11), 392-14's
+    // the four hermetic compound cells — `pin-and-write-test`, 392-14's
     // `pin-and-pin-nonsense` / `run-42-and-delete-root-empty-answer`, and 392-15's
     // `run-42-and-summarise-extra-call`.
     expect(HERMETIC_CORPUS.length).toBe(17)
@@ -369,7 +369,7 @@ describe('the hermetic lane: the frozen deterministic corpus over the real compo
       const cell = await runCell(scenario)
       const { result } = cell
       const executed = result.receipts.filter((receipt) => receipt.status === 'executed')
-      // 399.1 D-02: `refused` is a fourth word for a clause that RAN AND RETURNED, so a roll-call
+      // `refused` is a fourth word for a clause that RAN AND RETURNED, so a roll-call
       // spelled over `executed` alone acquired a hole exactly its width the day the member landed.
       // An op that reached its capability and declined leaves this row — and a blocked config
       // proposal is FILED on the way, carrying its own id so a person can find it.
@@ -403,7 +403,7 @@ describe('the hermetic lane: the frozen deterministic corpus over the real compo
           ...result.receipts.map((receipt) => receipt.clause),
         ]
         expect(namings.some((text) => text.includes(named ?? ''))).toBe(true)
-        // THE SIDE-EFFECT ROWS, which is the half `executed == 0` could not see (392-11). A turn
+        // THE SIDE-EFFECT ROWS, which is the half `executed == 0` could not see. A turn
         // that told a person "nothing in the request was carried out" must have a log that says the
         // same thing: no pin decision, no verb-sourced model switch, no executed receipt.
         expect(
@@ -437,7 +437,7 @@ describe('the hermetic lane: the frozen deterministic corpus over the real compo
         expect(result.answer ?? '').toContain(scenario.expect.answerContains)
       }
 
-      // A SCRIPTED CELL MUST REFUSE AT THE RECONCILER, NOT AT AN UNREACHABLE PLANNER (392-14).
+      // A SCRIPTED CELL MUST REFUSE AT THE RECONCILER, NOT AT AN UNREACHABLE PLANNER.
       // Without this, `run-42-and-delete-root-empty-answer` would stay green for a reason that has
       // nothing to do with the defect: if the script ever stopped being wired the tripwire would
       // throw, stage 2 would fold that into a `failure`, and the turn would fail closed naming the
@@ -468,7 +468,7 @@ describe('the hermetic lane: the frozen deterministic corpus over the real compo
   )
 
   it('binds the run executor the arguments actually cross, quoted span intact', () => {
-    // `ClauseReceipt` carries no arguments by design (D-18), so this is the one seam in the
+    // `ClauseReceipt` carries no arguments by design, so this is the one seam in the
     // composed path where a bound argument is observable — and it is the seam production uses.
     expect(cells.get('run')?.startedRuns).toEqual([{ patterns: ['tests/checkout.spec.ts'] }])
     // The Pitfall-5 claim, end to end: ONE clause, one start, and the quoted conjunction survives

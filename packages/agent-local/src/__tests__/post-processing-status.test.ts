@@ -48,7 +48,7 @@ import { createPostProcessingReader } from '../store/post-processing-reader.js'
 import { createJobCheckpointStore, readJobCheckpointEnvelope } from '../store/job-checkpoint-store.js'
 
 /**
- * The composition's REQUIRED quarantine identity mint (390-12 / D-01). Passthrough here: this
+ * The composition's REQUIRED quarantine identity mint. Passthrough here: this
  * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
  * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
  */
@@ -56,8 +56,8 @@ const MINT_IDENTITY = (filePath: string): string => filePath
 
 const RUN_ID = 'run-388-status'
 
-// 2026-10-02 (432-38, D-12): no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither (432-20).
+// no `grantedScopes` or `safeMode` on the caller; the registry reads
+// neither.
 const CALLER: FunctionCaller = {
   surface: 'test',
   origin: 'agent',
@@ -82,7 +82,7 @@ function createSteppingClock(): ClockPort {
   let tick = 0
   return {
     now() {
-      // 2026-10-19 (444.1-12, D-23): a minute per read, past every declared retry backoff.
+      // a minute per read, past every declared retry backoff.
       const stamp = new Date(Date.parse('2026-03-03T00:00:00.000Z') + tick * 60_000).toISOString()
       tick += 1
       return stamp
@@ -450,7 +450,7 @@ describe('cold stage facts', () => {
     },
   )
 
-  // 425-13: the SETTLED shape, from a row the store wrote and a process that never held it. Every
+  // the SETTLED shape, from a row the store wrote and a process that never held it. Every
   // terminal transition releases the claim lease, so the start is the only instant a finished
   // stage can be timed from — and this cell reads it off the real row, never off a literal.
   it('DURABLE-START-SURVIVES-THE-LEASE: a settled stage carries its start and no lease after cold reopen', async () => {
@@ -508,7 +508,7 @@ describe('cold stage facts', () => {
     expect('claimedAt' in never!).toBe(false)
   })
 
-  // RE-SPELLED 2026-10-14 (441-16, D-06/D-23) from '… with the active read context': the host's
+  // RE-SPELLED 2026-10-14 from '… with the active read context': the host's
   // declared mask replaces the installed context, and the undeclared email is returned as written.
   it("MASK-FAILURE-REASON masks persisted prose with the host's declared mask", async () => {
     const writer = createHarness()
@@ -636,7 +636,7 @@ describe('chip truth is read from durable rows', () => {
     // The view of the SAME record the terminal transaction wrote, not a rebuild of it: read back
     // through the store's own reader and compared whole, so a projection that assembled a
     // plausible notification of its own would fail here rather than look right. The stored row
-    // keeps its own words (444 D-36).
+    // keeps its own words.
     const [written] = await jobs.store.listNotifications()
     expect(status.notification).toEqual(toRunNotificationView(written!.payload))
     expect(written?.payload).toMatchObject({ outcome: 'done', stages: { analysis: { status: 'done' } } })

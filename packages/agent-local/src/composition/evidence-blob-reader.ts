@@ -1,4 +1,4 @@
-// The evidence-blob read port, bound over the SAME store the runner wrote through (405-05, D-13).
+// The evidence-blob read port, bound over the SAME store the runner wrote through.
 //
 // ONE BINDING, TWO CONSUMERS. Before this file the analysis job's `readEvidenceBlob` was an inline
 // lambda at the composition root, and `runs.artifact` would have needed a second one. Two lambdas
@@ -10,7 +10,7 @@
 // the concrete store are unreachable there by architecture, which is exactly why the op declares a
 // PORT and this package fills it. What crosses the boundary is bytes and a three-arm verdict.
 //
-// THE TWO ABSENCES ARE SEPARATED HERE, AND HERE IS THE ONLY PLACE THEY CAN BE (D-15).
+// THE TWO ABSENCES ARE SEPARATED HERE, AND HERE IS THE ONLY PLACE THEY CAN BE.
 // `FsEvidenceArtifactStore.getBlob` answers `undefined` for a malformed sha AND for an ENOENT,
 // and the layer above needs to tell an unknown RUN apart from a run holding no such BLOB
 // — a bad link from a screenshot the diet collected. The run's own directory is what distinguishes
@@ -18,7 +18,7 @@
 // (RESEARCH Pattern 3), so directory presence is the run-existence question and the store's own
 // answer is the blob question.
 //
-// THIS FILE ASSEMBLES NO PATH FROM CALLER INPUT (T-405-14). The runId becomes a path segment
+// THIS FILE ASSEMBLES NO PATH FROM CALLER INPUT. The runId becomes a path segment
 // exactly once, inside `slugBranch`, which is the shared traversal guard the store's own
 // constructor uses — and the sha is regex-checked before it is ever handed on. Containment is the
 // store's rule; a second rule here would be a second rule free to be the weaker one.
@@ -74,7 +74,7 @@ export function lookupEvidenceBlob(
 }
 
 /**
- * THE SAME RULE, MINUS THE BYTES (Phase 406, D-17) — presence for a whole run's artifact refs.
+ * THE SAME RULE, MINUS THE BYTES — presence for a whole run's artifact refs.
  *
  * WHY NOT `lookupEvidenceBlob(...).status`: a run page annotates every ref it is about to render,
  * and the read arm loads a screenshot into memory to reach the status it then discards. This

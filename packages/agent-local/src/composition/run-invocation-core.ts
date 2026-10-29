@@ -20,14 +20,14 @@ import type { RunExecutionContext, RunPersistencePorts } from './run-composition
  * IT PASSES THROUGH HERE RATHER THAN THROUGH THE BARREL because the composition carveout admits
  * `@vostride/agent-qa-runner` only under `composition/` — the rule that keeps the job store proper
  * lean. A host writing a `RunAssembler` needs the types a `RunConfig` is made of; naming the runner
- * package itself would put a surface through the firewall (FUNC-02) for the vocabulary of a port
+ * package itself would put a surface through the firewall for the vocabulary of a port
  * this file defined. Types only: erased before anything runs, granting no reach.
  */
 export type {
   BaselineProbeResult,
   ConfigDigests,
   MemberTestExecutor,
-  // 404-01 (D-10): the post-verdict step's vocabulary, on the same terms as the rest of this
+  // the post-verdict step's vocabulary, on the same terms as the rest of this
   // block — a host writing the factory below needs the shape it must return.
   PostVerdictOutcome,
   PostVerdictPort,
@@ -62,7 +62,7 @@ export class RunIdNotMintedError extends Error {
 }
 
 /**
- * The request named a run id that already belongs to a run (2026-08-23, 401-20 · CR-04).
+ * The request named a run id that already belongs to a run.
  *
  * WHAT A COLLISION COSTS, measured rather than reasoned about. Pre-fix, a second `runs.start`
  * naming a completed run's id APPENDED seven more envelopes to that run's `events.jsonl`
@@ -141,7 +141,7 @@ export interface RunInvocationCoreOptions {
   /** The project's runtime root, i.e. `<configDir>/.agent-qa`. */
   readonly agentQaRoot: string
   /**
-   * The context this door's runs are started in and record (D-07).
+   * The context this door's runs are started in and record.
    *
    * CALLER-RESOLVED, NEVER SNIFFED. The CLI resolves its TTY posture, the daemon carries
    * `local-headless`, CI passes its own. A core that detected this itself would be answering a
@@ -159,7 +159,7 @@ export interface RunInvocationCoreOptions {
    */
   readonly mintRunId: () => string
   /**
-   * Is this a run id this system would have minted? (2026-08-23, 401-20 · CR-04)
+   * Is this a run id this system would have minted?
    *
    * REQUIRED, WITH NO DEFAULT AND NO FALLBACK, for exactly `mintRunId`'s reason and one more. The
    * canonical predicate lives in `@vostride/agent-qa-ids`, which this package does not depend on,
@@ -179,7 +179,7 @@ export interface RunInvocationCoreOptions {
    */
   readonly onSession?: (session: RunSession) => void
   /**
-   * Build this run's post-verdict step (404 D-05/D-10) — the durable `analyze-run` enqueue plus
+   * Build this run's post-verdict step — the durable `analyze-run` enqueue plus
    * ONE writer-lease consult, awaited by the shell between `verdict` and `runFinished`, whose
    * answer becomes `runFinished.disposition`.
    *
@@ -213,7 +213,7 @@ export interface RunInvocationCoreOptions {
  * the op's evidence check — read the run's own event log back, refuse an empty one — applies to
  * this seam unchanged.
  *
- * NO DEFENSIVE CATCH ANYWHERE (D-03). A run that crashes hard takes its host with it, on purpose:
+ * NO DEFENSIVE CATCH ANYWHERE. A run that crashes hard takes its host with it, on purpose:
  * crash-through surfaces bugs instead of absorbing them, and the runner's budget/abort machinery
  * is the orderly containment. The only `throw`s this file introduces are the two refusals above,
  * which are decisions rather than faults.
@@ -225,7 +225,7 @@ export function createRunInvocationCore(
 
   return {
     async execute(request: RunsStartInput): Promise<{ runId: RunId }> {
-      // (1) Identity, and it REFUSES before it resolves (401-20, CR-04).
+      // (1) Identity, and it REFUSES before it resolves.
       //
       // A caller-supplied id carries exactly the trust the old `AGENT_QA_RUN_ID` child environment
       // variable carried — the door minting it is the door running it. What it does NOT carry, and
@@ -258,7 +258,7 @@ export function createRunInvocationCore(
 
       // (3) Assembly — the first line that may touch the target, and it is below every refusal.
       const ports = buildRunPorts({ configDir, runId })
-      // 404 D-05/D-10: the post-verdict step, built ONCE per run and spread into the ports the
+      // the post-verdict step, built ONCE per run and spread into the ports the
       // assembler receives — so it rides the same hop `handoffStore` does and reaches
       // `RunConfig.ports` through the door's own assembler without the door remembering to add it.
       const postVerdict = options.postVerdict?.({ runId, configDir })

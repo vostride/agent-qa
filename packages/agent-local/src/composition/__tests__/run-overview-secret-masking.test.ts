@@ -1,7 +1,7 @@
-// Phase 431 plan 02 (D-03/D-06, T-431-05): OVERVIEW-COLD-SCOPE.
+// OVERVIEW-COLD-SCOPE.
 //
 // `runs.overview` returns stored text — test names, step labels and served record summaries — so a
-// cold host masks it with the composition's declared mask. 2026-10-14 (441-16, D-06): the cold read
+// cold host masks it with the composition's declared mask. 2026-10-14: the cold read
 // scope is gone; a host whose secrets file cannot be read refuses rather than masking everything.
 
 import { mkdtempSync, rmSync } from 'node:fs'

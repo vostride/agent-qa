@@ -122,7 +122,7 @@ function coreExecution(
     // `run-invocation-core.test.ts` and in the cli door's `runs-start-gate.test.ts`.
     executionContext: 'ci',
     mintRunId,
-    // 401-20: the injected shape predicate. This file's runs are minted by the core, so the
+    // the injected shape predicate. This file's runs are minted by the core, so the
     // predicate is never consulted; it is required, so it is supplied.
     isMintedRunId: (value: string): boolean => /^run_[a-z_]+$/.test(value),
     assembleRun: (context) => assembleFixtureRun(context, stamped),
@@ -298,7 +298,7 @@ describe('the runs.start ack is read off the durable record, over the core', () 
 })
 
 // ---------------------------------------------------------------------------------------------
-// 407-07 · D-13/D-16/D-17 — THE RUNG THREAD, FROM THE COMPOSITION ROOT TO A STEP'S EVIDENCE.
+// THE RUNG THREAD, FROM THE COMPOSITION ROOT TO A STEP'S EVIDENCE.
 //
 // The banner 407-10 paints reads a value recorded by the run that was served. Nothing else can be
 // honest: a header that probed the host at render time would relabel a degraded run the moment
@@ -480,7 +480,7 @@ describe('THE THREAD END TO END — a real member run stamps the composed rung',
             },
           }),
         } as never,
-        // 439 D-12: every member run binds a verifier; this one accepts each step.
+        // every member run binds a verifier; this one accepts each step.
         verifier: {
           verify: async (step, _before, after, action) => ({
             verification: metVerification({ step, after, action }),

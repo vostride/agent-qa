@@ -1,4 +1,4 @@
-// The proposals inbox over the composed host — RE-SPELLED 2026-10-01 (432-17, D-02/D-05/D-22).
+// The proposals inbox over the composed host — RE-SPELLED 2026-10-01.
 //
 // This file was PROP-03's user journey over the real composition: list, show and reject pre-432
 // proposals through `composeLocalAgent()` and `invokeFunction`, with the origin check refusing an
@@ -33,7 +33,6 @@ import { composeLocalAgent } from '../composition/compose-local-agent.js'
 import type { LocalAgentHost } from '../composition/compose-local-agent.js'
 import { filePre432KnowledgeProposal } from './pre-432-knowledge-proposal.js'
 
-/** The seven ids deleted with the inbox, as a caller would spell them. */
 const RETIRED_IDS = [
   'proposals.list',
   'proposals.show',

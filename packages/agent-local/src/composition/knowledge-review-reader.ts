@@ -1,5 +1,4 @@
 // The function layer's knowledge READ port, bound over the physically read-only entry
-// (Phase 387, KREV-01 / FUNC-04 / D-01).
 //
 // This file exists so the read half of the review-verb family has a home that CANNOT name the
 // writer-gated entry. It is registered in the arch reader carve-out's pinned file list, which
@@ -111,7 +110,7 @@ export function createKnowledgeReaderPort(
       return showRecords({ knowledgeRoot: await input.resolveKnowledgeRoot(), recordIds })
     },
     /**
-     * 407 D-08: what became of the canary lines one run served.
+     * what became of the canary lines one run served.
      *
      * Resolved per call like its four siblings, and NOT sighted. The caller already holds every
      * candidate id in the tuples it passes — it read them off its own run's evidence — so a

@@ -1,4 +1,4 @@
-// Two real OS processes writing one agent job database (Phase 385 plan 03, D-02).
+// Two real OS processes writing one agent job database.
 //
 // This retires research assumption A4 — that `DatabaseSync`'s `timeout` option really is
 // sqlite's busy timeout under lock contention, which was verified to EXIST but never

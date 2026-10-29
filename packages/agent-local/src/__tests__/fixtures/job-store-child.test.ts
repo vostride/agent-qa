@@ -1,4 +1,4 @@
-// A second OS process that writes the agent job store (Phase 385 plan 03).
+// A second OS process that writes the agent job store.
 //
 // The idiom is v51's `sigkill-drain-child` fixture, generalized so later plans can add roles
 // without re-deriving the plumbing: a `.test.ts` that doubles as a child entry point, gated

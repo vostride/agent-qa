@@ -1,16 +1,16 @@
-// The standing-grant spine, end to end through the real composition (Phase 391, PROP-01 / D-11).
+// The standing-grant spine, end to end through the real composition.
 //
-// RE-SPELLED 2026-10-01 (432-18, D-14/D-15/D-22): the append API, the event types and the ledger are
+// RE-SPELLED 2026-10-01: the append API, the event types and the ledger are
 // deleted. The grant and its revoke are now planted as the bytes a pre-432 build committed, and
 // the claim is unchanged: the change commits with no grant, a grant or revoke changes nothing about
 // it, and the old file is left byte-identical (nothing reads or rewrites it).
 //
-// 2026-10-01 (432-17, D-05): the apply this spine was built around (`knowledge.proposal.apply`) is
+// the apply this spine was built around (`knowledge.proposal.apply`) is
 // deleted with the inbox, so the subject is the direct `knowledge.forget` that replaced it. Every
 // claim below keeps its shape: the change commits with no grant, and a grant or revoke changes
 // nothing about it.
 //
-// 2026-09-30 (432-13, D-14/D-15): THE SPINE HAS NO READER. `invokeFunction` has no gate, so no grant
+// THE SPINE HAS NO READER. `invokeFunction` has no gate, so no grant
 // is consulted: the headless apply commits with no grant, and appending a grant or a revoke changes
 // nothing about it. The two cells are re-spelled as that absence; the ledger's own append-only
 // property (both events survive, in order) is unchanged. 432-18 deletes the ledger.
@@ -82,7 +82,7 @@ const APPLY_FUNCTION_ID = 'knowledge.forget'
 const GRANT_ID = 'grant_tracer_proposal_apply'
 const GRANTED_AT = '2026-08-07T12:00:00.000Z'
 const REVOKED_AT = '2026-08-07T12:30:00.000Z'
-// 2026-10-01 (432-21, D-12): `STANDING_APPROVAL_SCOPE` is deleted with the MCP bearer credential; a
+// `STANDING_APPROVAL_SCOPE` is deleted with the MCP bearer credential; a
 // legacy grant line still carries the scope it was minted under, spelled here as its bytes.
 const LEGACY_GRANT_SCOPE = { project: 'local-workspace' } as const
 
@@ -200,7 +200,7 @@ describe('a committed standing grant is consumed by nothing', () => {
     appendFileSync(ledgerPath(), events.map((event) => `${JSON.stringify(event)}\n`).join(''), 'utf8')
   }
 
-  // RE-SPELLED 2026-09-30 (432-13) from 'refuses the apply with no grant, commits it with one, and
+  // RE-SPELLED 2026-09-30 from 'refuses the apply with no grant, commits it with one, and
   // refuses it again after the revoke'. The apply commits with no grant at all, and the grant and
   // revoke append to a ledger nothing reads.
   it('commits the headless apply with no grant, and the ledger is never consulted', async () => {
@@ -255,7 +255,7 @@ describe('a committed standing grant is consumed by nothing', () => {
     expect(committed.map((event) => event.grantId)).toEqual([GRANT_ID, GRANT_ID])
   }, 60_000)
 
-  // RE-SPELLED 2026-09-30 (432-13) from 'leaves the apply refused when a grant covers a DIFFERENT
+  // RE-SPELLED 2026-09-30 from 'leaves the apply refused when a grant covers a DIFFERENT
   // action class'. No grant is matched against anything, so a neighbouring class leaves the apply
   // committing exactly as no grant does.
   it('commits the apply whatever class a committed grant names', async () => {

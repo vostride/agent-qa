@@ -1,5 +1,5 @@
 /**
- * The quarantine gate's vocabulary, published to the hosts that RENDER its decisions (390-30).
+ * The quarantine gate's vocabulary, published to the hosts that RENDER its decisions.
  *
  * WHY THIS FILE EXISTS AT ALL. The curation tail's withheld line must branch its remedy on the
  * crossing's ADMISSIBILITY, not on the producer alone: an `escalate-only` class is refused at the
@@ -15,7 +15,7 @@
  * vocabulary. So the render consumes the very tables `autoQuarantines` refuses on, rather than
  * restating them — a restatement is a second rule that can disagree with the first.
  *
- * WHY THE HOP, measured rather than assumed (390-30). A surface naming knowledge-local directly
+ * WHY THE HOP, measured rather than assumed. A surface naming knowledge-local directly
  * fails `validate:arch` three separate ways: 387 D-20 removed it from the CLI's dependency
  * contract, the reader carve-out admits only the `/reader` subpath without a writer allowance, and
  * the FUNC-02 surface firewall ledger only ever SHRINKS — new surface code is fixed, never waived.

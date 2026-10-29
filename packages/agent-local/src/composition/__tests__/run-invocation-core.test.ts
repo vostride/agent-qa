@@ -1,4 +1,4 @@
-// The in-process invocation core, driven through its production factory (Phase 401 plan 03, D-02).
+// The in-process invocation core, driven through its production factory.
 //
 // WHAT THIS FILE MEASURES, and what it deliberately does not. The core's job is an ORDER —
 // refuse, identify, run the door's own code, assemble, start, await — so every cell here is about the
@@ -34,7 +34,7 @@ import {
   RunIdNotMintedError,
 } from '../run-invocation-core.js'
 import type { RunAssemblyContext, RunConfig } from '../run-invocation-core.js'
-// 2026-10-01 (432-19, D-15): the run gate's descriptor recipe is deleted; its action name is kept
+// the run gate's descriptor recipe is deleted; its action name is kept
 // here as a literal so the cells below can still assert no row ever names it.
 const RETIRED_RUN_START_ACTION = 'run:start'
 
@@ -104,7 +104,7 @@ function recordingAssembler(): {
 }
 
 /**
- * This fixture's own mint shape (401-20).
+ * This fixture's own mint shape.
  *
  * The core takes `isMintedRunId` as an injected predicate precisely so the canonical id shape stays
  * in the package that owns it, which this one may not name. A fixture therefore supplies a fixture
@@ -118,7 +118,7 @@ interface CoreInput {
   assemble?: (context: RunAssemblyContext) => RunConfig
   onSession?: (session: RunSession) => void
   mintRunId?: () => string
-  /** 401-20: the shape predicate. Defaults to the canonical one every production door supplies. */
+  /** the shape predicate. Defaults to the canonical one every production door supplies. */
   isMintedRunId?: (value: string) => boolean
 }
 
@@ -140,7 +140,7 @@ function recordedEvents(runId: string): RunEventEnvelope[] {
 }
 
 /**
- * A byte digest of every artifact in a run's directory (401-20).
+ * A byte digest of every artifact in a run's directory.
  *
  * SHA of the CONTENTS, not a mtime or a size: "the victim is untouched" has to be a statement
  * about bytes, and an appended line that happened to replace one of the same length would be
@@ -161,7 +161,7 @@ function artifactDigests(runDir: string): Record<string, string> {
 /**
  * Every audit row the run dir holds, from either trail (432-13: the core writes none).
  *
- * 2026-10-01 (432-19, D-17): `execution_audit.jsonl` has no writer at all, and since 441-31 (D-15)
+ * `execution_audit.jsonl` has no writer at all, and since 441-31
  * neither has `guardrail_audit.jsonl`. Both are read so "no row" means no row of any kind, and a
  * returning writer of either would be seen here.
  */
@@ -353,7 +353,7 @@ describe('the core hygiene census, pinned to the core file', () => {
     }
   })
 
-  // RE-SPELLED 2026-09-30 (432-13, D-03) from 'exactly ONE evaluate() call-site lives in the core'.
+  // RE-SPELLED 2026-09-30 from 'exactly ONE evaluate() call-site lives in the core'.
   // The call-site and its pin entry left together; the build refuses the file acquiring it again.
   it('NO evaluate() call-site lives in the core, and the pin no longer names it', () => {
     const code = stripComments(readFileSync(CORE_SOURCE_PATH, 'utf8'))
@@ -366,7 +366,7 @@ describe('the core hygiene census, pinned to the core file', () => {
       'utf8',
     )
     expect(pin).not.toContain("'packages/agent-local/src/composition/run-invocation-core.ts':")
-    // 2026-10-01 (432-19, D-15): the gate pin itself is deleted; the file keeps only the shared
+    // the gate pin itself is deleted; the file keeps only the shared
     // scanner the startRun pin reads with, and names no permitted acquisition at all.
     expect(pin).not.toMatch(/export const EVALUATE_PIN\b/)
     expect(pin).toContain('export function parseModuleStatements')
@@ -407,7 +407,7 @@ describe('the core hygiene census, pinned to the core file', () => {
 })
 
 // ---------------------------------------------------------------------------------------------
-// THE IDENTITY STEP (2026-08-23, plan 20 · CR-04).
+// THE IDENTITY STEP.
 //
 // THE RED BASELINE, measured on real artifacts through the shipped fn door before a line changed,
 // and recorded here rather than paraphrased. Two `runs.start` calls naming the SAME id:
@@ -588,7 +588,7 @@ describe('the invocation core — the identity step refuses before anything', ()
   })
 })
 
-// 441-31 (D-15): the core hands a run no guardrail audit sink. The assembler writes a row to any
+// the core hands a run no guardrail audit sink. The assembler writes a row to any
 // sink its context offers, as a door that opened its run under that sink would; the old key is
 // spelled in parts.
 describe('the run directory after a completed run', () => {

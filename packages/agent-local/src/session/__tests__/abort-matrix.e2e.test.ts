@@ -64,8 +64,8 @@ const MASKED_CONFIG: MaskedResolvedConfig = {
 /**
  * A person, so a refusal below can only ever be the axis under test.
  *
- * 2026-10-02 (432-38, D-12): no `grantedScopes` (formerly every scope) or `safeMode`; the registry
- * reads neither (432-20), so there is no scope left to refuse.
+ * no `grantedScopes` (formerly every scope) or `safeMode`; the registry
+ * reads neither, so there is no scope left to refuse.
  */
 const HUMAN: FunctionCaller = {
   surface: 'test',
@@ -319,7 +319,7 @@ describe('the abort matrix: one session, both arms, then it carries on', () => {
 
 // The hook contract, which no composed host can exhibit yet because plan 06 binds it. What it
 // pins is the argument, not a convention: a degrade pass that is HANDED the replay has no other
-// input to prune, so "repair before pruning" (CHAT-05) is a fact about the type rather than an
+// input to prune, so "repair before pruning" is a fact about the type rather than an
 // ordering somebody has to remember.
 describe('the compaction pass is handed an already-repaired conversation', () => {
   let root: string
@@ -373,7 +373,7 @@ describe('the compaction pass is handed an already-repaired conversation', () =>
     // The dangling turn: a user message and nothing that closes it.
     await seeded.append({ kind: 'user_message', turnId: 'turn-dead', at: AT, text: 'digest RUN-9' })
     await seeded.turnBoundary()
-    // CLOSED BEFORE THE ENGINE RUNS (392-12): one live handle per session, so a seeding writer
+    // CLOSED BEFORE THE ENGINE RUNS: one live handle per session, so a seeding writer
     // that kept its handle would be refused rather than silently interleaved with the turn.
     await seeded.close()
 

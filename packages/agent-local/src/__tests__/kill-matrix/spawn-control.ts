@@ -1,5 +1,5 @@
 // The PARENT side of the kill matrix: spawning a worker child, driving it to a named point,
-// killing it for real, and proving each of those actually happened (Phase 385, D-12).
+// killing it for real, and proving each of those actually happened.
 //
 // Lifted verbatim out of `kill-matrix.test.ts` when plan 07's adversarial legs arrived, because the
 // alternative was a second copy — and a spawn protocol duplicated across two files is a protocol

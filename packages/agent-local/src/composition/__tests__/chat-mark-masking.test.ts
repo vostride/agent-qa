@@ -20,7 +20,7 @@ import { composeLocalAgent } from '../compose-local-agent.js'
 it.each([true, false])('projects real mark chat with active masking=%s and preserves canonical bytes', async active => {
   const root = mkdtempSync(join(tmpdir(), 'agent-qa-chat-mark-masking-'))
   const canary = 'T41916-canary-note-not-a-real-credential'
-  // 2026-10-14 (441-55, D-06): the composition's explicit mask, declared or the identity.
+  // the composition's explicit mask, declared or the identity.
   const declared = new SecretRedactor(SecretStore.fromEnvContent(`CANARY_441=${canary}\n`))
   const mask: MaskFn = active ? (text) => declared.redactString(text) : (text) => text
   const placeholder = '[secret:CANARY_441]'
@@ -49,7 +49,7 @@ it.each([true, false])('projects real mark chat with active masking=%s and prese
     model,
     feedback: { mark, marksFor: async () => [] },
     resolveExecutionContext: () => 'local-interactive',
-    // 432-16 (D-14): the input declares no confirm; the spy is smuggled past the type.
+    // the input declares no confirm; the spy is smuggled past the type.
     ...{ confirm: { surface: 'tty-prompt', ask: confirm } } as object,
     observeSessionEvent: (_sessionId, event) => { observed.push(event) },
   })
@@ -60,7 +60,7 @@ it.each([true, false])('projects real mark chat with active masking=%s and prese
     }) as AgentAskResult
     expect(result.status).toBe('completed')
     expect(mark).toHaveBeenCalledExactlyOnceWith(input)
-    // 432-13 (D-14): the mark is dispatched in the one call; a supplied old confirm port is never
+    // the mark is dispatched in the one call; a supplied old confirm port is never
     // invoked.
     expect(confirm).not.toHaveBeenCalled()
     expect(model).not.toHaveBeenCalled()
