@@ -908,7 +908,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
   // opposite write and it is measured the same way, on disk: the draft's bytes are at the target the
   // loop's own recipe names, the receipt says so with the disposition and all four gate booleans,
   // and nothing was filed for anybody to accept.
-  it('C432-TEST-WRITE-DISPOSITION: writes a KEEP-ELIGIBLE draft to its target with its receipt', async () => {
+  it('writes a KEEP-ELIGIBLE draft to its target with its receipt', async () => {
     const executor = fixtureExecutor(agentQaRoot)
     const host = compose({
       executor: executor.port,
@@ -951,7 +951,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
     expect(filedProposals(agentQaRoot)).toEqual([])
   })
 
-  it('C432-TEST-WRITE-DISPOSITION: writes an UNVERIFIED draft-mode draft, saying it is unverified', async () => {
+  it('writes an UNVERIFIED draft-mode draft, saying it is unverified', async () => {
     const executor = fixtureExecutor(agentQaRoot)
     const host = compose({
       executor: executor.port,
@@ -986,7 +986,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
   // THE RETRY EDGE. Authoring the same test twice mints the same bytes and the same target, and the
   // second final write finds the first one there: a NEW test claims its target is absent, so it is
   // refused as `target-changed` and the file already written is left exactly as it was.
-  it('C432-TEST-WRITE-DISPOSITION: a second identical draft does not overwrite the first written test', async () => {
+  it('a second identical draft does not overwrite the first written test', async () => {
     const executor = fixtureExecutor(agentQaRoot)
     const host = compose({
       executor: executor.port,
@@ -1028,7 +1028,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
   // `rejected`, and a rejected final draft is never written — whatever the loop then does with it.
   // The claim is measured on disk and on the answer, so a loop that let `rejected` into its final
   // write reds here on the target's existence even if something later in the call threw.
-  it('C432-TEST-WRITE-DISPOSITION: never writes a REJECTED draft to its target', async () => {
+  it('never writes a REJECTED draft to its target', async () => {
     const executor = fixtureExecutor(agentQaRoot, () => FIXED_RUN_IDENTITY, ['passed', 'failed'])
     const host = compose({
       executor: executor.port,
@@ -1110,7 +1110,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
     expect(stillAllowed?.name).toBe('DraftFileNotFoundError')
   })
 
-  it('refuses BY NAME on a host that cannot author — never an empty brief (D-09)', async () => {
+  it('refuses BY NAME on a host that cannot author — never an empty brief', async () => {
     const executor = fixtureExecutor(agentQaRoot)
     const host = compose({ executor: executor.port })
 
@@ -1128,7 +1128,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
     expect(executor.startInputs).toHaveLength(0)
   })
 
-  it('refuses an unparsable compiled draft and leaves the shelf empty (T-394-06)', async () => {
+  it('refuses an unparsable compiled draft and leaves the shelf empty', async () => {
     const executor = fixtureExecutor(agentQaRoot)
     const host = compose({
       executor: executor.port,
@@ -1150,7 +1150,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
     expect(executor.startInputs).toHaveLength(0)
   })
 
-  it('authors from a ZERO-exemplar brief with the prompt as its only schema (WINDOWS 111)', async () => {
+  it('authors from a ZERO-exemplar brief with the prompt as its only schema', async () => {
     const model = formatFollowingModel()
     // The draft's own name is what the generator derived from the intent, so the gate runs join on
     // a name this cell did not choose — a fixed identity would have papered over a generator that
@@ -1195,7 +1195,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
     expect(document['target']).toBe(SCOPE.key)
   })
 
-  it('emits the optional `context` key the format block teaches (394-33, WR-06)', async () => {
+  it('emits the optional `context` key the format block teaches', async () => {
     // WHAT THIS CELL CLAIMS, AND WHAT IT DOES NOT. It claims the PROMPT CHANNEL: a schema-blind
     // generator, driven by nothing but the compile prompt, emits a `context` key and those bytes
     // reach the shelf. It does NOT claim `ParsedDraftLike.context` is populated — this file's
@@ -1238,7 +1238,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
     expect(document['context']).toContain(INTENT)
   })
 
-  it('chooses `target` from the served vocabulary when product ≠ target name (WR-07)', async () => {
+  it('chooses `target` from the served vocabulary when product ≠ target name', async () => {
     // THE HARD BRANCH, THROUGH THE COMPOSED OP. This host declares `storefront-web` with
     // `product: storefront`, so the scope an intent-only call would be authored at is
     // `product:storefront` — which is not a configured target. `compileDraft` renders only
@@ -1286,7 +1286,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
     expect(document['target']).not.toBe(scope.key)
   })
 
-  it('REFUSES an off-vocabulary `target` before the first gate run (394-37, WR-04)', async () => {
+  it('REFUSES an off-vocabulary `target` before the first gate run', async () => {
     // THE CASE THE GUARD REJECTS, AND THE CORPUS DID NOT HAVE ONE. Round 5 served the vocabulary
     // into the compile prompt and compared it against nothing: `configuredTargetNames()` sat in a
     // local variable eight lines above `shelf.write`, and both new "hard branch" doubles picked
@@ -1337,7 +1337,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
     expect(executor.startInputs).toEqual([])
   })
 
-  it('will not invent a target: the generator throws when no vocabulary is served (WR-07)', () => {
+  it('will not invent a target: the generator throws when no vocabulary is served', () => {
     // THE NON-VACUITY GUARD for the cell above, on the shape `FormatBlockMissingError`'s guard
     // already established: without it, that cell would pass against a generator that quietly fell
     // back to the scope key — which is exactly what this file's generator did until this plan.
@@ -1441,7 +1441,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
   // confirm port is never invoked, a declining one declines nothing, and a headless host authors. The
   // fan-out bound itself is still one function (`authoringFanOutBound`), measured below.
 
-  it('C432-INVOKE-DIRECT: dispatches without asking — a supplied old confirm port is never invoked', async () => {
+  it('dispatches without asking — a supplied old confirm port is never invoked', async () => {
     const executor = fixtureExecutor(agentQaRoot)
     const model = scriptedModel()
     const confirm = recordingConfirm(true)
@@ -1488,7 +1488,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
     expect(confirm.actions).toEqual([])
   })
 
-  it('C432-INVOKE-DIRECT: a DECLINING old port declines nothing — the loop runs and drafts', async () => {
+  it('a DECLINING old port declines nothing — the loop runs and drafts', async () => {
     const executor = fixtureExecutor(agentQaRoot)
     const model = scriptedModel()
     const confirm = recordingConfirm(false)
@@ -1511,7 +1511,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
     expect(executor.startInputs).toHaveLength(DRAFT_STABILITY_RUNS_N)
   })
 
-  it('C432-INVOKE-DIRECT: AUTHORS in a headless context — there is no ask tier left to deny it', async () => {
+  it('AUTHORS in a headless context — there is no ask tier left to deny it', async () => {
     setActiveExecutionContextResolver(() => 'local-headless')
     const executor = fixtureExecutor(agentQaRoot)
     const confirm = recordingConfirm(true)
@@ -1584,7 +1584,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
     }
   }
 
-  it('C432-TEST-WRITE-DISPOSITION: files no proposal for a drafted outcome; the written file is the answer', async () => {
+  it('files no proposal for a drafted outcome; the written file is the answer', async () => {
     const executor = fixtureExecutor(agentQaRoot)
     const host = compose({
       executor: executor.port,
@@ -1609,7 +1609,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
     expect(result.fanOut.consumedTotal).toBe(DRAFT_STABILITY_RUNS_N)
   })
 
-  it("C432-TEST-WRITE-DISPOSITION: the digest mints no test-draft proposal row for a written draft", async () => {
+  it("the digest mints no test-draft proposal row for a written draft", async () => {
     const executor = fixtureExecutor(agentQaRoot)
     const host = compose({
       executor: executor.port,
@@ -1640,7 +1640,7 @@ describe('authoring.draft.write end to end through the composition root', () => 
       .toBe(true)
   })
 
-  it('C432-TEST-WRITE-DISPOSITION: twelve drafts are twelve written files, and none waits to be accepted', async () => {
+  it('twelve drafts are twelve written files, and none waits to be accepted', async () => {
     // The gate-run fixture reports on whichever draft the run was actually handed, read off the
     // staged bytes — so twelve distinct drafts are twelve distinct members and twelve distinct
     // novel elements, and gate 3 is being asked a real question rather than a rigged one.

@@ -49,7 +49,7 @@ afterEach(async () => {
   await Promise.all(tempRoots.splice(0).map(root => rm(root, { recursive: true, force: true })))
 })
 
-describe('discoverWorkspaceFiles — cold-call determinism (RUNX-06)', () => {
+describe('discoverWorkspaceFiles — cold-call determinism', () => {
   it('finds exactly the one existing matching test on the FIRST call (no cold-call empty)', async () => {
     const { config, configPath } = await makeFixture()
     const workspace = resolveWorkspacePaths({ config, configPath })

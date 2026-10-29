@@ -50,7 +50,7 @@ describe('the permitted set', () => {
     }
   })
 
-  it('the core entry records the MEASURED chain, not WR-03 prose', () => {
+  it('the core entry records the MEASURED chain, not the draft-shelf link', () => {
     // F-1 measured `draftShelf.runs.start` reached zero times during a dispatch. A pin whose
     // rationale had transcribed that chain would be documenting the wrong link while green.
     const rationale = STARTRUN_PIN[PIN_CORE]!
@@ -370,7 +370,7 @@ describe('the acquisition census — an independently-shaped predicate over the 
     }
   })
 
-  it('the gate-run road named by the measured chain acquires NOTHING — F-1, cross-checked', () => {
+  it('the gate-run road named by the measured chain acquires NOTHING, cross-checked', () => {
     // `createDraftEvaluation.startGateRun` (the link a dispatch actually takes) and
     // `draftShelf.runs.start` (the link WR-03's prose names, measured reached zero times) both
     // live in this file. Neither acquires the run starter: both reach a run through

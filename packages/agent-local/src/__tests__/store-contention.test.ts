@@ -87,7 +87,7 @@ async function waitFor(
   }
 }
 
-describe('agent job store under real cross-process contention (D-02)', () => {
+describe('agent job store under real cross-process contention', () => {
   let root: string
   let store: SqliteJobStore
 

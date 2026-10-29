@@ -90,7 +90,7 @@ describe('config schema leaves', () => {
 
   // The removed set is spelled by hand; the list/schema equality above is what makes an unlisted
   // leaf red here.
-  it('C432-CONFIG-LEAVES: exactly the strict leaves, each classified, none of them retired', () => {
+  it('exactly the strict leaves, each classified, none of them retired', () => {
     const walked = schemaLeaves()
     expect(walked.filter((leaf) => leaf.startsWith('use.planner.max'))).toEqual(
       expect.arrayContaining(['use.planner.maxActions', 'use.planner.maxPlanningTurns']),

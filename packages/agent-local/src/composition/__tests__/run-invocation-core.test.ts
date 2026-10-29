@@ -177,7 +177,7 @@ function recordedAuditRows(runId: string): Array<Record<string, unknown>> {
   })
 }
 
-describe('the invocation core — the allow leg, end to end (D-02)', () => {
+describe('the invocation core — the allow leg, end to end', () => {
   it('runs a request through assembly → startRun → handoff, under the production root', async () => {
     const assembler = recordingAssembler()
     const sessions: RunSession[] = []
@@ -215,7 +215,7 @@ describe('the invocation core — the allow leg, end to end (D-02)', () => {
     expect(rows.filter((row) => row.action === RETIRED_RUN_START_ACTION)).toEqual([])
   })
 
-  it('carries the request markers onto the run and only the literal true (INVK-06 chain, shortened)', async () => {
+  it('carries the request markers onto the run and only the literal true', async () => {
     const assembler = recordingAssembler()
     const core = makeCore({ assemble: assembler.assemble })
 
@@ -330,7 +330,7 @@ const CORE_SOURCE_PATH = join(
   'run-invocation-core.ts',
 )
 
-describe('the core hygiene census (D-02 / D-07, pinned to the core file)', () => {
+describe('the core hygiene census, pinned to the core file', () => {
   it('the scanner sees what it forbids — the predicate self-check, before any verdict about the core', () => {
     // (i) each member of the complete set is detected in code…
     for (const resolver of AMBIENT_RESOLVERS) {
@@ -370,7 +370,7 @@ describe('the core hygiene census (D-02 / D-07, pinned to the core file)', () =>
 
   // RE-SPELLED 2026-09-30 (432-13, D-03) from 'exactly ONE evaluate() call-site lives in the core'.
   // The call-site and its pin entry left together; the build refuses the file acquiring it again.
-  it('C432-PRODUCTION-BEFORE-EFFECTS: NO evaluate() call-site lives in the core, and the pin no longer names it', () => {
+  it('NO evaluate() call-site lives in the core, and the pin no longer names it', () => {
     const code = stripComments(readFileSync(CORE_SOURCE_PATH, 'utf8'))
     expect(code.match(/\bevaluate\s*\(/g) ?? []).toEqual([])
     expect(code).not.toContain('@vostride/agent-qa-safety\'\nimport { evaluate')
@@ -445,7 +445,7 @@ describe('the core hygiene census (D-02 / D-07, pinned to the core file)', () =>
 // is no row to read and the absence of one is the claim. What discriminates them from a broken
 // harness is the paired control immediately below each — one field different, the run proceeds,
 // and the row the refusal cells say is absent is the row the control reads back.
-describe('the invocation core — the identity step refuses before anything (CR-04)', () => {
+describe('the invocation core — the identity step refuses before anything', () => {
   it('REFUSES an id this system would not have minted, by name, having written nothing', async () => {
     const assembler = recordingAssembler()
     const core = makeCore({ assemble: assembler.assemble })
@@ -588,7 +588,7 @@ describe('the invocation core — the identity step refuses before anything (CR-
     // — which is the half a source assertion cannot make and a type can.
   })
 
-  it('NO defensive catch was added on the start path (D-03, re-run as a census)', () => {
+  it('NO defensive catch was added on the start path (re-run as a census)', () => {
     const source = readFileSync(
       join(dirname(fileURLToPath(import.meta.url)), '..', 'run-invocation-core.ts'),
       'utf8',
@@ -606,7 +606,7 @@ describe('the invocation core — the identity step refuses before anything (CR-
 // 441-31 (D-15): the core hands a run no guardrail audit sink. The assembler writes a row to any
 // sink its context offers, as a door that opened its run under that sink would; the old key is
 // spelled in parts.
-describe('C441-RUN-RECORDS', () => {
+describe('the run directory after a completed run', () => {
   it('a completed run leaves no guardrail audit file in its run directory', async () => {
     const inner = recordingAssembler()
     const retiredKey = ['audit', 'Sink'].join('')
@@ -630,7 +630,7 @@ describe('C441-RUN-RECORDS', () => {
   })
 })
 
-describe('C442-PLUGINS-AFTER-REFUSAL', () => {
+describe('the post-refusal hook', () => {
   function hookedCore(input: {
     afterRefusal: () => Promise<void>
     mintRunId?: () => string

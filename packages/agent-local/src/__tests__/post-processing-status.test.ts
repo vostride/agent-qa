@@ -252,7 +252,7 @@ async function completedCuration() {
   return { writer, ids }
 }
 
-describe('423 completed checkpoint snapshot', () => {
+describe('the completed checkpoint snapshot', () => {
   it('CHECKPOINT-ENVELOPE keeps safe addresses and named version refusal without creating directories', () => {
     const harness = createHarness()
     const root = join(harness.agentQaRoot, 'missing-root')
@@ -382,7 +382,7 @@ describe('423 completed checkpoint snapshot', () => {
   })
 })
 
-describe('423 cold stage facts', () => {
+describe('cold stage facts', () => {
   it.each(['queued', 'retried', 'complete', 'failed', 'cancelled'] as const)(
     'STAGE-COLD %s preserves exact rows and queue contents',
     async lifecycle => {
@@ -566,7 +566,7 @@ describe('423 cold stage facts', () => {
   })
 })
 
-describe('a status read creates no queue state (T-388-10 / Pitfall 4)', () => {
+describe('a status read creates no queue state', () => {
   it('answers the all-pending projection and leaves NO agent-jobs.db behind', async () => {
     const harness = createHarness()
 
@@ -595,7 +595,7 @@ describe('a status read creates no queue state (T-388-10 / Pitfall 4)', () => {
   })
 })
 
-describe('chip truth is read from durable rows (ANLZ-05, D-14)', () => {
+describe('chip truth is read from durable rows', () => {
   it('reads a chain that was enqueued and never drained as pending, from the real row', async () => {
     const harness = createHarness()
     const jobs = await harness.host.jobs()
@@ -650,7 +650,7 @@ describe('chip truth is read from durable rows (ANLZ-05, D-14)', () => {
     })
   })
 
-  it('reads a chain whose curation died as complete/failed (D-12)', async () => {
+  it('reads a chain whose curation died as complete/failed', async () => {
     const agentQaRoot = mkdtempSync(join(tmpdir(), 'agent-qa-pp-status-'))
     roots.push(agentQaRoot)
     const host = composeLocalAgent({

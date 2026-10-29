@@ -556,7 +556,7 @@ describe('the observation seam cannot become a production escape hatch', () => {
   })
 })
 
-describe('sessions are listable without loading a whole log (D-17)', () => {
+describe('sessions are listable without loading a whole log', () => {
   let root: string
 
   beforeEach(() => {

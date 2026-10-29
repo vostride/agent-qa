@@ -105,7 +105,7 @@ function bundleInput(name: string, createdAtOrdinal: number): PublishBundleInput
   }
 }
 
-describe('D-01: a list verb sights every entity it surfaces (387-06)', () => {
+describe('a list verb sights every entity it surfaces', () => {
   let root: string
   let agentQaRoot: string
   let knowledgeRoot: string

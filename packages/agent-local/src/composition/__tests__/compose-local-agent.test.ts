@@ -140,7 +140,7 @@ function authoringKinds(): JobKindRegistry {
   ])
 }
 
-describe('composeLocalAgent (D-15)', () => {
+describe('composeLocalAgent', () => {
   let root: string
   let agentQaRoot: string
   let model: ReturnType<typeof recordingModel>
@@ -194,7 +194,7 @@ describe('composeLocalAgent (D-15)', () => {
   // with strict absence (%s)': the review port's `apply` is deleted with the inbox, so a pre-432
   // applied record with or without its receipt is never read back; the port's only member is the
   // direct change, and the planted file is left exactly as it was.
-  it.each([true, false])('419 review apply forwards persisted commitReceipt with strict absence (%s)', async present => {
+  it.each([true, false])('review apply forwards persisted commitReceipt with strict absence (%s)', async present => {
     const proposalId = `prop_${randomUUID()}`
     const commitReceipt = { schemaVersion: COMMIT_RECEIPT_SCHEMA_VERSION as typeof COMMIT_RECEIPT_SCHEMA_VERSION, proposalId, committedAtOrdinal: 12,
       recordIds: ['fact-confirmed'], gate3: [{ candidateId: 'fact-confirmed', receiptDigest: 'a'.repeat(64) }],
@@ -213,14 +213,14 @@ describe('composeLocalAgent (D-15)', () => {
     expect(readFileSync(planted, 'utf8')).toBe(before)
   })
 
-  it('416 exposes only the existing writer edge for receipt and promotion capabilities', () => {
+  it('exposes only the existing writer edge for receipt and promotion capabilities', () => {
     expect(LOCAL_CURATION_CAPABILITIES.recordGateReceipt).toBeTypeOf('function')
     expect(LOCAL_CURATION_CAPABILITIES.canaryOutcomeObservationId).toBeTypeOf('function')
     expect(LOCAL_CURATION_CAPABILITIES.promoteWithReceipts).toBeTypeOf('function')
     expect(Object.isFrozen(LOCAL_CURATION_CAPABILITIES)).toBe(true)
   })
 
-  it('419 feedback is bound only when the host supplies the port', async () => {
+  it('feedback is bound only when the host supplies the port', async () => {
     expect(host.registry.list(CALLER).find(entry => entry.id === 'runs.mark')).toMatchObject({ bindingStatus: 'unbound' })
     const feedback = { mark: vi.fn(), marksFor: vi.fn(async () => []) }
     const bound = compose({ feedback })
@@ -254,7 +254,7 @@ describe('composeLocalAgent (D-15)', () => {
     expect(readFileSync(join(agentQaRoot, 'proposals', `${proposalId}.json`), 'utf8')).toBe(before)
   })
 
-  it('416 promotes through the caller held lease and records one floor line', async () => {
+  it('promotes through the caller held lease and records one floor line', async () => {
     const knowledgeRoot = join(root, 'knowledge')
     const fixture = createPromotionFloorFixture({ knowledgeRoot })
     const lease = LOCAL_CURATION_CAPABILITIES.maintenance.acquireWriterLease(knowledgeRoot)
@@ -331,7 +331,7 @@ describe('composeLocalAgent (D-15)', () => {
   // RE-SPELLED 2026-09-30 (432-13, D-15) from 'leaves a real audit row at the project root for every
   // invocation'. The op gate that wrote that row is gone: an invocation dispatches and decides
   // nothing, so the composition writes no execution-audit file for it.
-  it('C432-INVOKE-DIRECT: writes NO execution-audit row at the project root for an invocation', async () => {
+  it('writes NO execution-audit row at the project root for an invocation', async () => {
     await expect(invokeFunction(host.registry, 'config.get', {}, CALLER)).resolves.toBeDefined()
 
     expect(existsSync(join(agentQaRoot, 'execution_audit.jsonl'))).toBe(false)
@@ -537,7 +537,7 @@ describe('composeLocalAgent (D-15)', () => {
 
   // ---- the 389 plan-06 bindings: analysis reader, recurrence, capability members ----------
 
-  describe('the 389-06 analysis bindings (385 D-15)', () => {
+  describe('the analysis bindings', () => {
     const ANALYZED_RUN_ID = 'run_bound_analysis'
     const TEST_FILE_PATH = 'tests/checkout.yaml'
     const TEST_NAME = 'checkout loads'
@@ -664,7 +664,7 @@ describe('composeLocalAgent (D-15)', () => {
       expect(answer.sentences[0]!.sentence).toContain('app_bug: observed (test outcome): "failed"')
     })
 
-    it('refuses a PRESENT artifact recording another run\'s id — floor by identity, adoption once corrected (G-389-3A)', async () => {
+    it('refuses a PRESENT artifact recording another run\'s id — floor by identity, adoption once corrected', async () => {
       // The two-sided-contract pin law: BOTH legs have the file PRESENT on run B's own
       // path — only the recorded runId varies — which is what distinguishes the identity
       // refusal from absence. The write half derives this path FROM artifact.runId; a
@@ -796,7 +796,7 @@ describe('composeLocalAgent (D-15)', () => {
       }
     }
 
-    it('never crashes the render on a rejecting async resolver (G-389-2)', async () => {
+    it('never crashes the render on a rejecting async resolver', async () => {
       // A CLI host whose async config resolution rejects, plus one analysis.get over a run
       // with >=2 verdicts. The op must RESOLVE with the explicit no-history clause in every
       // sentence, zero unhandled rejections may fire, and the resolver is consulted exactly
@@ -1012,7 +1012,7 @@ describe('composeLocalAgent (D-15)', () => {
   // proves it mutates the ledger BETWEEN two `analysis.get` calls through the bound `add` verb —
   // one mutation, two surfaces — and both halves are addressed by the same test identity.
 
-  describe('the 390-06 quarantine bindings (D-12/D-13/D-17, SC4)', () => {
+  describe('the quarantine bindings', () => {
     const QUARANTINED_RUN_ID = 'run_quarantine_a'
     const TEST_FILE_PATH = 'tests/checkout.yaml'
     const TEST_NAME = 'checkout loads'
@@ -1168,14 +1168,14 @@ describe('composeLocalAgent (D-15)', () => {
 
     // ---- the binding itself ---------------------------------------------------------------
 
-    it('lists all three quarantine verbs as BOUND on this composition (385 D-15)', () => {
+    it('lists all three quarantine verbs as BOUND on this composition', () => {
       const listed = host.registry.list(WRITE_CALLER)
       for (const id of ['quarantine.list', 'quarantine.release', 'quarantine.add']) {
         expect(listed.find((entry) => entry.id === id)).toMatchObject({ bindingStatus: 'bound' })
       }
     })
 
-    it('answers an empty list against a knowledge root with no ledger — the FLAK-03 empty edge', async () => {
+    it('answers an empty list against a knowledge root with no ledger', async () => {
       expect(await invokeFunction(host.registry, 'quarantine.list', {}, CALLER))
         .toEqual({ entries: [] })
     })
@@ -1210,7 +1210,7 @@ describe('composeLocalAgent (D-15)', () => {
 
     // ---- SC4: one computation, two surfaces ------------------------------------------------
 
-    it('SC4: a ledger mutation between two analysis.get calls changes the clause, and the SAME mutation shows in quarantine.list', async () => {
+    it('a ledger mutation between two analysis.get calls changes the clause, and the SAME mutation shows in quarantine.list', async () => {
       plantHandoff(failedHandoff(QUARANTINED_RUN_ID, 1))
       seedOutcome(failedHandoff(QUARANTINED_RUN_ID, 1))
 
@@ -1249,7 +1249,7 @@ describe('composeLocalAgent (D-15)', () => {
       )
     })
 
-    it('renders the EXPIRED arm with the recorded deadline — failures count again (D-11)', async () => {
+    it('renders the EXPIRED arm with the recorded deadline — failures count again', async () => {
       plantHandoff(failedHandoff(QUARANTINED_RUN_ID, 1))
       seedOutcome(failedHandoff(QUARANTINED_RUN_ID, 1))
       // The SAME entry with a deadline already behind it: suppression stopped, the entry stays

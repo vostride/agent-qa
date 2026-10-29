@@ -100,7 +100,7 @@ const CALLER: FunctionCaller = {
   origin: 'agent',
 }
 
-describe('a committed standing grant is consumed by nothing (432-13)', () => {
+describe('a committed standing grant is consumed by nothing', () => {
   let root: string
   let knowledgeRoot: string
   let agentQaRoot: string
@@ -203,7 +203,7 @@ describe('a committed standing grant is consumed by nothing (432-13)', () => {
   // RE-SPELLED 2026-09-30 (432-13) from 'refuses the apply with no grant, commits it with one, and
   // refuses it again after the revoke'. The apply commits with no grant at all, and the grant and
   // revoke append to a ledger nothing reads.
-  it('C432-INVOKE-DIRECT: commits the headless apply with no grant, and the ledger is never consulted', async () => {
+  it('commits the headless apply with no grant, and the ledger is never consulted', async () => {
     const recordId = publish()
     const registry = host()
     const actionClass = coveredActionClass(registry)

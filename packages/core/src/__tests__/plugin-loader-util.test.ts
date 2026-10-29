@@ -79,8 +79,8 @@ afterEach(() => {
   rmSync(root, { recursive: true, force: true })
 })
 
-describe('an unreadable package manifest reports its POSITION, never its content (395-24 · WR-11)', () => {
-  it('(W4) a malformed node_modules package.json throws a typed error carrying zero of its bytes', () => {
+describe('an unreadable package manifest reports its POSITION, never its content', () => {
+  it('a malformed node_modules package.json throws a typed error carrying zero of its bytes', () => {
     // MALFORMED, AND THE SENTINEL IS THE OFFENDING TOKEN ITSELF — see the calibration note above.
     installPackage(BROKEN_MANIFEST_PACKAGE, MALFORMED_MANIFEST)
 
@@ -129,7 +129,7 @@ describe('an unreadable package manifest reports its POSITION, never its content
       .toBe(0)
   })
 
-  it('(W4-control) a WELL-FORMED manifest still resolves — the guard fired zero times', () => {
+  it('a WELL-FORMED manifest still resolves — the guard fired zero times', () => {
     const dir = installPackage(BROKEN_MANIFEST_PACKAGE, '{ "name": "ok", "main": "./entry.js" }')
     writeFileSync(join(dir, 'entry.js'), 'export const ok = true\n')
 
@@ -140,8 +140,8 @@ describe('an unreadable package manifest reports its POSITION, never its content
   })
 })
 
-describe('an installed package that fails to load is not called missing (395-24 · WR-05)', () => {
-  it('(W5) installed-but-broken names the package and the underlying failure', async () => {
+describe('an installed package that fails to load is not called missing', () => {
+  it('installed-but-broken names the package and the underlying failure', async () => {
     // INSTALLED — the manifest is on disk and `findPackageJson` finds it — and BROKEN: the entry
     // file its `main` names was never written, so the import resolves to a file that is not there.
     installPackage(INSTALLED_BUT_BROKEN_PACKAGE, '{ "name": "broken", "main": "./missing-entry.js" }')
@@ -208,7 +208,7 @@ describe('an installed package that fails to load is not called missing (395-24 
       .toContain('missing-entry.js')
   })
 
-  it('(W5-control) a genuinely absent package still gets 395-21\'s measured sentence', async () => {
+  it('a genuinely absent package is still reported as not installed', async () => {
     let thrown: unknown
     try {
       await importDeclaredPluginModule({ package: GENUINELY_ABSENT_PACKAGE }, root, 'auth')
@@ -228,7 +228,7 @@ describe('an installed package that fails to load is not called missing (395-24 
     expect(message).toContain(`npm install ${GENUINELY_ABSENT_PACKAGE}`)
   })
 
-  it('(W5-legibility) the stripping removes paths and leaves ordinary text alone', async () => {
+  it('the stripping removes paths and leaves ordinary text alone', async () => {
     // THE DISCRIMINATION CONTROL, and the reason CR-03's fix is not a one-line regex.
     //
     // A filter that deletes every run of characters containing a slash trades one defect for
@@ -277,8 +277,8 @@ describe('an installed package that fails to load is not called missing (395-24 
   })
 })
 
-describe('the install suggestion is a command only when the name is one (395-24 · WR-06)', () => {
-  it('(W6) a package string carrying shell metacharacters composes NO command line', () => {
+describe('the install suggestion is a command only when the name is one', () => {
+  it('a package string carrying shell metacharacters composes NO command line', () => {
     // NOT RCE, AND THE CELL DOES NOT PRETEND IT IS: the config is the person's own file and nothing
     // here executes anything. What it is, is a string from a DATA FILE arriving inside a command the
     // CLI tells a person to paste — and the schema behind that string is
@@ -297,7 +297,7 @@ describe('the install suggestion is a command only when the name is one (395-24 
     expect(message).toContain('remove the plugins.auth entry that declares it')
   })
 
-  it('(W6-control) an ordinary scoped name keeps the runnable example', () => {
+  it('an ordinary scoped name keeps the runnable example', () => {
     // WHAT MAKES (W6) NON-VACUOUS. The cheapest way to pass (W6) is to delete the example for
     // everyone, and then `agent-qa run` in a freshly scaffolded project stops printing the one
     // command that fixes it — the exact regression (Z4) in the cli package would catch, pinned here
@@ -310,7 +310,7 @@ describe('the install suggestion is a command only when the name is one (395-24 
     expect(message).toContain('npm install @vostride/agent-qa-subscription-auth')
   })
 
-  it('(W6-boundary) the gate accepts npm\'s grammar and refuses what is not in it', () => {
+  it('the gate accepts npm\'s grammar and refuses what is not in it', () => {
     const composes = (name: string): boolean =>
       new PluginNotInstalledError({ package: name }, 'auth').message.includes('npm install')
 
@@ -325,8 +325,8 @@ describe('the install suggestion is a command only when the name is one (395-24 
   })
 })
 
-describe('the map key and the person\'s name for a declaration are different strings (395-24 · WR-07)', () => {
-  it('(W7) a path declaration reads back relative to baseDir, while the key stays absolute', () => {
+describe('the map key and the person\'s name for a declaration are different strings', () => {
+  it('a path declaration reads back relative to baseDir, while the key stays absolute', () => {
     const declaration = { path: 'plugins/local-auth.js' }
 
     // THE KEY KEEPS ITS JOB: absolute, so two relative routes to one file collide in the loaders'
@@ -341,7 +341,7 @@ describe('the map key and the person\'s name for a declaration are different str
     expect(label, 'the person-facing name carried an absolute path').not.toContain(root)
   })
 
-  it('(W7-absolute) an absolute declaration under baseDir renders relative; one outside renders as declared', () => {
+  it('an absolute declaration under baseDir renders relative; one outside renders as declared', () => {
     const inside = join(root, 'plugins', 'inside.js')
     expect(declarationLabel({ path: inside }, root)).toBe(join('plugins', 'inside.js'))
 
@@ -351,7 +351,7 @@ describe('the map key and the person\'s name for a declaration are different str
     expect(declarationLabel({ path: outside }, root)).toBe(outside)
   })
 
-  it('(W7-package) a package declaration labels as the bare package name', () => {
+  it('a package declaration labels as the bare package name', () => {
     expect(declarationLabel({ package: '@vostride/agent-qa-subscription-auth' }, root))
       .toBe('@vostride/agent-qa-subscription-auth')
   })

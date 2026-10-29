@@ -416,7 +416,7 @@ describe('authoring.draft.verify end to end through the composition root', () =>
   // accept control lives at a suite path, so this is that call: the receipt, every gate run and the
   // stored receipt name the written file, and the verify writes nothing (the writer rejects if it
   // is ever reached).
-  it('C432-TEST-REFINE-WRITTEN: verifies the written test at its suite path, and writes nothing', async () => {
+  it('verifies the written test at its suite path, and writes nothing', async () => {
     const executor = fixtureExecutor(agentQaRoot, ['passed', 'passed', 'passed'])
     const host = compose({ executor: executor.port, authoring: draftAuthoring() })
 
@@ -440,7 +440,7 @@ describe('authoring.draft.verify end to end through the composition root', () =>
       .toEqual([`${ACCEPT_CONTROL.contentDigest}.json`])
   })
 
-  it('forces unverified in draft mode, on one run rather than the pinned N (D-18/SC3)', async () => {
+  it('forces unverified in draft mode, on one run rather than the pinned N', async () => {
     const executor = fixtureExecutor(agentQaRoot, ['passed', 'passed', 'passed'])
     const host = compose({ executor: executor.port, authoring: draftAuthoring() })
 
@@ -459,7 +459,7 @@ describe('authoring.draft.verify end to end through the composition root', () =>
     expect(receipt.gates.stableVerdict.pass).toBe(true)
   })
 
-  it('refuses BY NAME on a host that cannot parse a draft — covered, not missing (D-09)', async () => {
+  it('refuses BY NAME on a host that cannot parse a draft — covered, not missing', async () => {
     const executor = fixtureExecutor(agentQaRoot, ['passed'])
     const host = compose({ executor: executor.port })
 
@@ -478,7 +478,7 @@ describe('authoring.draft.verify end to end through the composition root', () =>
     expect(executor.startInputs).toHaveLength(0)
   })
 
-  it('refuses a host that cannot start a run, on the same footing (D-09)', async () => {
+  it('refuses a host that cannot start a run, on the same footing', async () => {
     const host = compose({ authoring: draftAuthoring() })
 
     const listed = host.registry
@@ -494,7 +494,7 @@ describe('authoring.draft.verify end to end through the composition root', () =>
     )).rejects.toBeInstanceOf(FunctionNotBoundError)
   })
 
-  it('refuses a draftPath naming no file, by its own name and before any run (T-393-01)', async () => {
+  it('refuses a draftPath naming no file, by its own name and before any run', async () => {
     const executor = fixtureExecutor(agentQaRoot, ['passed'])
     const host = compose({ executor: executor.port, authoring: draftAuthoring() })
 

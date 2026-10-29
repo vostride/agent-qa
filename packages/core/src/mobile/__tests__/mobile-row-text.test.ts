@@ -65,7 +65,7 @@ function editButtons(elements: ElementInfo[]): ElementInfo[] {
   return elements.filter((element) => element.role === 'button' && element.name === 'Edit label')
 }
 
-describe('C438-ROW-MOBILE', () => {
+describe('row text over parsed iOS and Android page sources', () => {
   it("an iOS cell is the Edit label button's row", () => {
     const elements = observe(IOS_ADDRESSES_XML, 'ios')
     const [elm, home] = editButtons(elements)

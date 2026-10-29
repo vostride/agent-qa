@@ -63,8 +63,8 @@ async function startIgnoringEvidence(start: () => Promise<unknown>): Promise<voi
   }
 }
 
-describe('there is no dispatch-scoped grant overlay (432-18)', () => {
-  it('C432-GRANTS-UNREAD-WRITER-ABSENT: the overlay module is deleted and the barrel publishes none', () => {
+describe('there is no dispatch-scoped grant overlay', () => {
+  it('the overlay module is deleted and the barrel publishes none', () => {
     expect(existsSync(new URL('../dispatch-grants.ts', import.meta.url))).toBe(false)
     const exported = Object.keys(agentLocal)
     expect(exported.length, 'the barrel is empty, so the census would be vacuous').toBeGreaterThan(0)
@@ -84,7 +84,7 @@ describe('there is no dispatch-scoped grant overlay (432-18)', () => {
   })
 })
 
-describe('the composition carries nothing to the run host but the request (432-18)', () => {
+describe('the composition carries nothing to the run host but the request', () => {
   // RE-SPELLED 2026-10-01 (432-18) from "THE READER HANDED OVER IS THE OVERLAY'S, resolved per run":
   // there is no reader to resolve, so each run hands the host exactly one argument, the request.
   it('THE HOST IS HANDED THE REQUEST AND NOTHING ELSE, run after run', async () => {

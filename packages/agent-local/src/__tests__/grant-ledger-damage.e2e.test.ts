@@ -179,7 +179,7 @@ describe('a grant ledger the build cannot fully read authorizes nothing, because
 
   // RE-SPELLED 2026-10-01 (432-18) from 'the write verbs still refuse by THROWING, not by answering
   // an arm': the write verbs are deleted, so the composition binds no grant port at all.
-  it('C432-GRANTS-UNREAD-WRITER-ABSENT: no grant reader, writer or verb is exported to the composition', () => {
+  it('no grant reader, writer or verb is exported to the composition', () => {
     const exported = Object.keys(knowledgeLocal)
     for (const name of [
       'createGrantOperations', 'createStandingApprovalReader', 'readGrantLedger', 'grantsLedgerPath',

@@ -140,7 +140,7 @@ describe('FsMarkLedger', () => {
     ['a proposalUuid', { proposalUuid: '01234567-89ab-4def-8123-456789abcdef', stage: 'evidence' }],
     ['the drafted stage', { operationId: '01234567-89ab-4def-8123-456789abcdef', stage: 'drafted' }],
     ['a stored test draft', { operationId: '01234567-89ab-4def-8123-456789abcdef', stage: 'evidence', testDraft: {} }],
-  ])('refuses a pre-432 intent carrying %s before invoking any side effect, naming the intent file', async (_name, legacy) => {
+  ])('refuses an earlier-version intent carrying %s before invoking any side effect, naming the intent file', async (_name, legacy) => {
     const intentPath = join(dir, 'mark-intent.json')
     writeFileSync(intentPath, JSON.stringify({ schemaVersion: 1, mark: { ...record, ordinal: 1 }, ...legacy }))
     const fn = vi.fn(async () => record)

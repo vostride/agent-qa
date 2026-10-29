@@ -113,7 +113,7 @@ describe('parseMobileSource → InterimNode[]', () => {
       expect(signIn.attributes?.enabled).toBe('true')
     })
 
-    it('lifts the full D-08 Android state signals only when the attribute is present', () => {
+    it('lifts the full Android state signals only when the attribute is present', () => {
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <hierarchy>
   <android.widget.CheckBox bounds="[0,0][100,100]" text="Agree" content-desc="Accept terms" resource-id="agree" checkable="true" checked="true" selected="false" focused="true" scrollable="false" enabled="true" />
@@ -195,7 +195,7 @@ describe('parseMobileSource → InterimNode[]', () => {
       expect(email.bounds).toEqual({ x: 20, y: 150, width: 350, height: 40 })
     })
 
-    it('maps value/selected/enabled and lifts a switch value "1" to checked true (437 D-03)', () => {
+    it('maps value/selected/enabled and lifts a switch value "1" to checked true', () => {
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <AppiumAUT>
   <XCUIElementTypeSwitch label="Wifi" value="1" x="10" y="20" width="100" height="40" selected="true" enabled="false" />
@@ -266,7 +266,7 @@ describe('parseMobileSource → InterimNode[]', () => {
     })
   })
 
-  describe('iOS accessible labelled Other (P4)', () => {
+  describe('iOS accessible labelled Other', () => {
     const other = (attrs: string, children = '') =>
       children
         ? `<XCUIElementTypeOther ${attrs}>${children}</XCUIElementTypeOther>`
@@ -490,7 +490,7 @@ describe('parseMobileSource → InterimNode[]', () => {
     })
   })
 
-  describe('Android unchanged (P4)', () => {
+  describe('Android unchanged', () => {
     it('parses an accessible clickable ViewGroup row exactly as the base commit did', () => {
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <hierarchy rotation="0">
@@ -675,7 +675,7 @@ describe('buildRefEntries (execute-time lastRefs reconstruction)', () => {
   })
 })
 
-describe('deriveMobileScroll (best-effort D-10 approximation)', () => {
+describe('deriveMobileScroll (best-effort approximation)', () => {
   it('returns max element extent as content size and zero offsets', () => {
     const { nodes } = parseMobileSource(ANDROID_LOGIN_XML, 'android', { width: 1080, height: 1920 })
     const scroll = deriveMobileScroll(nodes, { width: 1080, height: 1920 })
@@ -757,7 +757,7 @@ function onlyNode(xml: string, platform: 'android' | 'ios') {
   return nodes[0]
 }
 
-describe('C437-TOGGLE-PARSE', () => {
+describe('toggle state parsing', () => {
   describe('Android', () => {
     it('an ordinary Button with selected="true" checkable="false" checked="false" lifts selected, no checked, and is not a toggle', () => {
       const node = onlyNode(
@@ -871,7 +871,7 @@ describe('C437-TOGGLE-PARSE', () => {
       }
     })
 
-    it('screenIdentityHash of a parsed iOS switch screen is the same with or without lifted checked (HARN-04)', () => {
+    it('screenIdentityHash of a parsed iOS switch screen is the same with or without lifted checked', () => {
       const viewport = { width: 402, height: 874 }
       const { nodes } = parseMobileSource(SETTINGS_SWITCH_ROW, 'ios', viewport)
       const { state } = buildScreenState({
@@ -936,7 +936,7 @@ describe('normalizeRole', () => {
 })
 
 // 437 D-15: the keyboard path learns a field's kind from the observed node's raw input-type.
-describe('C437-REF-INPUT-TYPE', () => {
+describe('the Android input type', () => {
   function entryFor(attr: string) {
     const xml = androidPage(
       `  <android.widget.EditText bounds="[0,0][800,120]" content-desc="Field" text="" enabled="true"${attr} />`,

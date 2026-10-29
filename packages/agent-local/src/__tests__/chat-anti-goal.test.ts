@@ -105,8 +105,8 @@ async function runRealChatKindWith(
   }
 }
 
-describe('JOBQ-04 anti-goal: the real chat kind declares no resumable progress', () => {
-  it('JOBQ-04/C9: chat is the one shipped kind that is uncheckpointed, with one attempt', () => {
+describe('anti-goal: the real chat kind declares no resumable progress', () => {
+  it('chat is the one shipped kind that is uncheckpointed, with one attempt', () => {
     const chat = registry.require(CHAT)
     expect(chat.checkpointed).toBe(false)
     expect(chat.checkpointSchedule).toEqual([])
@@ -125,7 +125,7 @@ describe('JOBQ-04 anti-goal: the real chat kind declares no resumable progress',
     ).toEqual([CHAT])
   })
 
-  it('JOBQ-04/C9: a chat declaration that claims checkpoints cannot be registered at all', () => {
+  it('a chat declaration that claims checkpoints cannot be registered at all', () => {
     const chat = registry.require(CHAT)
     expect(() =>
       createJobKindRegistry([{ ...chat, checkpointed: true, checkpointSchedule: ['turn-authored'] }]),
@@ -140,11 +140,11 @@ describe('JOBQ-04 anti-goal: the real chat kind declares no resumable progress',
     )
   })
 
-  it('JOBQ-04/C9: chat contributes no crash point, so it cannot be interrupted mid-checkpoint', () => {
+  it('chat contributes no crash point, so it cannot be interrupted mid-checkpoint', () => {
     expect(crashPointsForKind(registry.require(CHAT))).toEqual([])
   })
 
-  it('JOBQ-04/C9: refuses a checkpoint published from inside a chat turn, by name', async () => {
+  it('refuses a checkpoint published from inside a chat turn, by name', async () => {
     const run = await runRealChatKindWith('chat-publish', async (context) => {
       await context.publishCheckpoint('turn-authored', { text: 'hello' })
       return { status: 'complete', next: [] }
@@ -164,7 +164,7 @@ describe('JOBQ-04 anti-goal: the real chat kind declares no resumable progress',
     }
   })
 
-  it('JOBQ-04/C9: refuses authorship inside a chat turn BEFORE the model is consulted', async () => {
+  it('refuses authorship inside a chat turn BEFORE the model is consulted', async () => {
     const run = await runRealChatKindWith('chat-author', async (context) => {
       await context.recordLlmAuthorship('turn-authored', async (model) =>
         model.generate({ prompt: 'chat/turn-authored' }),
@@ -187,8 +187,8 @@ describe('JOBQ-04 anti-goal: the real chat kind declares no resumable progress',
   })
 })
 
-describe('JOBQ-04 anti-goal: a chat turn killed mid-flight resumes nothing', () => {
-  it('JOBQ-04/C9: the turn runs to completion, the host dies, and the resume re-runs nothing', async () => {
+describe('anti-goal: a chat turn killed mid-flight resumes nothing', () => {
+  it('the turn runs to completion, the host dies, and the resume re-runs nothing', async () => {
     const paths = makeRoot('chat-anti-goal')
     const jobId = String(await seedJob(paths.agentQaRoot, CHAT))
     // `completeAndChain` is reached only after the handler has returned `complete`, so a marker

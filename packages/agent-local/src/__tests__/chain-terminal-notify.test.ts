@@ -237,7 +237,7 @@ async function readCheckpointValue(
   return (recorded.payload as JobCheckpointRecord).value
 }
 
-describe('post-run chain terminal notify (ANLZ-01, D-04/D-06/D-09/D-11)', () => {
+describe('post-run chain terminal notify', () => {
   it('drives enqueue -> analyze-run -> curate-memory -> exactly one notification row', async () => {
     const harness = await createHarness()
     const handoff = fixtureHandoff(RUN_ID)
@@ -345,7 +345,7 @@ describe('post-run chain terminal notify (ANLZ-01, D-04/D-06/D-09/D-11)', () => 
     expect(await harness.jobs.store.listNotifications()).toHaveLength(1)
   })
 
-  it('dedupes a second identical enqueue at the seam (385 D-08)', async () => {
+  it('dedupes a second identical enqueue at the seam', async () => {
     const harness = await createHarness()
     const handoff = fixtureHandoff(RUN_ID)
     writeHandoff(harness.agentQaRoot, handoff)

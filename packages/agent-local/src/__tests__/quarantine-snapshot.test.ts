@@ -44,7 +44,7 @@ function entered(fields: {
   })
 }
 
-describe('resolveRunQuarantineSnapshot (D-16)', () => {
+describe('resolveRunQuarantineSnapshot', () => {
   let knowledgeRoot: string
   let warnings: string[]
 
@@ -91,7 +91,7 @@ describe('resolveRunQuarantineSnapshot (D-16)', () => {
     expect(warnings).toEqual([])
   })
 
-  it('excludes lapsed entries — an expired entry is NOT applied (D-11)', async () => {
+  it('excludes lapsed entries — an expired entry is NOT applied', async () => {
     await writeLedger([
       entered({
         product: 'example-web',
@@ -162,7 +162,7 @@ describe('resolveRunQuarantineSnapshot (D-16)', () => {
     expect(snapshot('feature/checkout')).toHaveLength(1)
   })
 
-  it('folds a missing ledger to an empty set with no warning (FLAK-03 empty input)', () => {
+  it('folds a missing ledger to an empty set with no warning', () => {
     expect(snapshot()).toEqual([])
     expect(warnings).toEqual([])
   })
@@ -211,7 +211,7 @@ describe('resolveRunQuarantineSnapshot (D-16)', () => {
   // package: `agent-local` depends on `knowledge-local`, never the reverse. Nothing but the ledger
   // file passes between them below — the writer is driven entirely through the real port.
 
-  describe('a human quarantine.add against this reader (WR-01)', () => {
+  describe('a human quarantine.add against this reader', () => {
     const ADD_NOW = '2026-08-15T10:00:00.000Z'
     /** ADD_NOW + the pinned 30-day default lifetime — still suppressing at RUN_START_NOW. */
     const ADDED_EXPIRY = '2026-09-14T10:00:00.000Z'

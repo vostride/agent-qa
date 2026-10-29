@@ -96,7 +96,7 @@ function bundleInput(name: string, createdAtOrdinal: number): PublishBundleInput
   }
 }
 
-describe('the entity spine through composeLocalAgent (387-01)', () => {
+describe('the entity spine through composeLocalAgent', () => {
   let root: string
   let agentQaRoot: string
   let knowledgeRoot: string
@@ -152,7 +152,7 @@ describe('the entity spine through composeLocalAgent (387-01)', () => {
 
   // ---- test 1: the sighting mints, and the card comes back rendered ----------------------
 
-  it('resolves a committed bundle ref to a MEM card with a minted short-ID (D-01)', async () => {
+  it('resolves a committed bundle ref to a MEM card with a minted short-ID', async () => {
     // The ledger is a durable file, and D-01 says nothing touches it until an entity is
     // SIGHTED. Composing a host and listing a registry must therefore leave no database
     // behind, exactly as the job store must not.
@@ -184,7 +184,7 @@ describe('the entity spine through composeLocalAgent (387-01)', () => {
 
   // ---- test 2: minting is idempotent across calls AND across compositions ----------------
 
-  it('re-sights the same bundle to the SAME short-ID (ENTY-01 idempotency)', async () => {
+  it('re-sights the same bundle to the SAME short-ID, idempotently', async () => {
     const first = await resolve(bundleId)
     const second = await resolve(bundleId)
 
@@ -230,7 +230,7 @@ describe('the entity spine through composeLocalAgent (387-01)', () => {
 
   // ---- test 4: the never-guess floor ------------------------------------------------------
 
-  it('answers free text through tier (b) once the entity has been sighted (ENTY-01)', async () => {
+  it('answers free text through tier (b) once the entity has been sighted', async () => {
     // 387-01 asserted a REFUSAL here, and said so honestly: the bundle IS about checkout and
     // is the only entity in the store, so a resolver with no tier (b) had to refuse rather
     // than fall back to "the closest thing I have". 387-03 lands tier (b), so the honest
@@ -249,7 +249,7 @@ describe('the entity spine through composeLocalAgent (387-01)', () => {
     expect(outcome.score).toBeLessThanOrEqual(1)
   })
 
-  it('still refuses free text that no entity matches, and never offers the only one it has (ENTY-01)', async () => {
+  it('still refuses free text that no entity matches, and never offers the only one it has', async () => {
     // The never-guess floor, restated where it now bites. One entity exists, it is about
     // checkout, and the reference is about something else entirely: a resolver that answered
     // with its only candidate would be the silent guess ENTY-01 exists to forbid.
@@ -263,7 +263,7 @@ describe('the entity spine through composeLocalAgent (387-01)', () => {
 
   // ---- the maintenance-cadence sweep (D-06) ------------------------------------------------
 
-  it('sweeps the projection from the ledger without a lease and without writing it (D-02/D-06)', async () => {
+  it('sweeps the projection from the ledger without a lease and without writing it', async () => {
     await resolve(bundleId)
     const ledgerPath = join(agentQaRoot, ADDRESSING_LEDGER_DB_FILE)
     const ledgerBefore = readFileSync(ledgerPath)
@@ -289,7 +289,7 @@ describe('the entity spine through composeLocalAgent (387-01)', () => {
 
   // ---- the schema boundary, and the dispatch boundary --------------------------------------
 
-  it('rejects a card whose status is not in its own kind closed union (D-12)', () => {
+  it('rejects a card whose status is not in its own kind closed union', () => {
     const valid: EntityCard = {
       kind: 'MEM',
       id: 'MEM-001',

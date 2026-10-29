@@ -26,7 +26,7 @@ function contextWith(
   return { registerLiveStream } as unknown as MemberTestRunContext
 }
 
-describe('registerAdapterLiveStream (428 D-11/D-12)', () => {
+describe('registerAdapterLiveStream', () => {
   it('REGISTERS-CAPABILITY-AND-FALLBACK: a screencast adapter registers its screencast with a snapshot fallback', () => {
     const screencast: LiveStreamCapability = {
       kind: 'cdp-screencast',

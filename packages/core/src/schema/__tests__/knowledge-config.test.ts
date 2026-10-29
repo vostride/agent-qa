@@ -30,7 +30,7 @@ describe('KnowledgeConfigSchema — defaults', () => {
   })
 })
 
-describe('KnowledgeConfigSchema — dir repo-relative predicate (D-10)', () => {
+describe('KnowledgeConfigSchema — dir repo-relative predicate', () => {
   it.each(['/abs/path', 'C:\\x', '../escape'])('rejects %s with the repo-relative message', (dir) => {
     const result = KnowledgeConfigSchema.safeParse({ dir })
     expect(result.success).toBe(false)

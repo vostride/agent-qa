@@ -51,7 +51,7 @@ function realAgentLocalHits(): SpecifierHit[] {
     .map(entry => ({ ...entry, file: relative(repoRoot, entry.file) }))
 }
 
-describe('composition-carveout scope (385-08 / D-13)', () => {
+describe('composition-carveout scope', () => {
   // The rule is only worth anything if BOTH of the paths it distinguishes are real. A prefix that
   // matches nothing scopes nothing and passes forever; asserting against paths that do not exist
   // would be the same defect one level up, in the test.

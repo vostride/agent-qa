@@ -77,7 +77,7 @@ afterEach(() => {
   }
 })
 
-describe('composeLocalAgent job-store lifecycle (WR-03)', () => {
+describe('composeLocalAgent job-store lifecycle', () => {
   it('waits for a superseded open, closes its late store, and never publishes it', async () => {
     const root = makeRoot('race')
     const model = deferred<JobModelCapability>()

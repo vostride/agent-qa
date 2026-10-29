@@ -21,7 +21,7 @@ import {
 
 const KNOWN_RUN = 'run-stat-1'
 
-describe('statEvidenceBlob — the shared rule without the read (D-17)', () => {
+describe('statEvidenceBlob — the shared rule without the read', () => {
   let agentQaRoot: string
 
   beforeEach(async () => {

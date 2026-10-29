@@ -70,7 +70,7 @@ function snapshot(dir: string): Readonly<Record<string, string>> {
   return out
 }
 
-describe('C432-PROPOSAL-FILES-UNREAD: the composed host leaves pre-432 proposal files alone', () => {
+describe('the composed host leaves legacy proposal files alone', () => {
   let root: string
   let agentQaRoot: string
   let knowledgeRoot: string
@@ -149,7 +149,7 @@ describe('C432-PROPOSAL-FILES-UNREAD: the composed host leaves pre-432 proposal 
     return { recordId, proposalId }
   }
 
-  it('C432-NO-PROPOSAL-OPS: the composed host lists none of the retired ids and refuses each as unknown', async () => {
+  it('the composed host lists none of the retired ids and refuses each as unknown', async () => {
     await propose('checkout button', 11)
     const ids = host.registry.list(HUMAN).map((declaration) => declaration.id)
     expect(ids.length).toBeGreaterThan(0)
@@ -159,7 +159,7 @@ describe('C432-PROPOSAL-FILES-UNREAD: the composed host leaves pre-432 proposal 
     }
   })
 
-  it('C432-PROPOSAL-FILES-UNREAD: a direct change beside a pre-432 proposal neither reads nor rewrites it', async () => {
+  it('a direct change beside a legacy proposal neither reads nor rewrites it', async () => {
     const { recordId } = await propose('checkout button', 11)
     await propose('payment button', 12)
     const inbox = join(agentQaRoot, 'proposals')

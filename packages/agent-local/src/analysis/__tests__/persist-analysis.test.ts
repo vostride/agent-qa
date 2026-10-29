@@ -170,7 +170,7 @@ async function pump(jobs: LocalAgentJobs, fence: { epoch: number }): Promise<voi
   throw new Error('the post-run chain did not drain within the pump bound')
 }
 
-describe('postRunCapabilities binds persistAnalysis on the D-09 path law (T-389-01)', () => {
+describe('postRunCapabilities binds persistAnalysis at the run analysis path', () => {
   it('lands the artifact at runs/<slug(runId)>/analysis.json under the real chain', async () => {
     const agentQaRoot = tempDir('agent-qa-persist-binding-')
     const handoff = fixtureHandoff(RUN_ID)

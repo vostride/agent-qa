@@ -72,7 +72,7 @@ describe('run attributes', () => {
 })
 
 // 2026-10-17 (443-07, D-09): a verify run's row carries one internal mark.
-describe('C443-VERIFY-MARK', () => {
+describe('the gate-run mark', () => {
   it('the gate-run mark is an internal attribute a user cannot set', () => {
     expect(ATTR_GATE_RUN, 'the mark key').toBe('agent-qa.gate-run')
     const marked = mergeRunAttributes(
@@ -106,7 +106,7 @@ describe('C443-VERIFY-MARK', () => {
 })
 
 // 2026-10-17 (443-16, GAP-D6): the record's spread is the gate-run mark's one spelling.
-describe('C443-DEAD-SURFACE', () => {
+describe('the internal attribute builder', () => {
   it('the internal attribute builder takes no gate-run option', () => {
     const input = { trigger: 'cli' as const, runner: 'local' as const, gateRun: true as const }
     const built = buildInternalRunAttributes(input)

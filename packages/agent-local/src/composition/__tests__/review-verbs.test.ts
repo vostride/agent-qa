@@ -375,7 +375,7 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
     }
   }
 
-  it('C432-KNOWLEDGE-DIRECT-BINDING: forget applies through the direct writer in all four contexts, filing nothing', async () => {
+  it('forget applies through the direct writer in all four contexts, filing nothing', async () => {
     for (const context of EXECUTION_CONTEXTS) {
       rmSync(root, { recursive: true, force: true })
       const recordId = publish()
@@ -396,7 +396,7 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
     }
   })
 
-  it('C432-KNOWLEDGE-DIRECT-BINDING: reject deprecates in the call and accept answers the records it changed', async () => {
+  it('reject deprecates in the call and accept answers the records it changed', async () => {
     const rejected = publish()
     const host = directRegistry('ci')
     const reject = await settle(invokeFunction(host, 'knowledge.reject', {
@@ -416,7 +416,7 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
     expect(existsSync(join(agentQaRoot, 'proposals'))).toBe(false)
   })
 
-  it('C432-KNOWLEDGE-DIRECT-BINDING: a retried identity lands once and answers the same records', async () => {
+  it('a retried identity lands once and answers the same records', async () => {
     const recordId = publish()
     const host = directRegistry('local-headless')
     const operationId = '0b6e3c1d-9a24-4f5e-8c71-2d4f6a8b0c13'
@@ -438,7 +438,7 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
     expect(await statuses(host)).toEqual(['deprecated'])
   })
 
-  it('C432-KNOWLEDGE-DIRECT-BINDING: a held lease hands the current writer the direct request, with no claimed file', async () => {
+  it('a held lease hands the current writer the direct request, with no claimed file', async () => {
     const recordId = publish()
     const lease = acquireWriterLease(knowledgeRoot)
     if (lease.kind !== 'acquired') throw new Error(`fixture lease not acquired: ${lease.kind}`)
@@ -480,7 +480,7 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
     }
   })
 
-  it('C432-KNOWLEDGE-CHANGE-OPS: concurrent calls with one identity land once, and distinct changes all land', async () => {
+  it('concurrent calls with one identity land once, and distinct changes all land', async () => {
     const shared = publish('Checkout')
     const other = publish('Payment')
     const host = directRegistry('local-headless')
@@ -509,7 +509,7 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
     expect(existsSync(join(agentQaRoot, 'proposals'))).toBe(false)
   })
 
-  it('C432-KNOWLEDGE-CHANGE-OPS: an accept over a forgotten record refuses by type, and nothing moves', async () => {
+  it('an accept over a forgotten record refuses by type, and nothing moves', async () => {
     const recordId = publish()
     const host = directRegistry('local-interactive')
     const forgotten = await settle(invokeFunction(host, 'knowledge.forget', {
@@ -524,7 +524,7 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
     expect(await statuses(host)).toEqual(['deprecated'])
   })
 
-  it('C432-KNOWLEDGE-CHANGE-OPS: a caller holding only the local default grant changes knowledge with no standing approval', async () => {
+  it('a caller holding only the local default grant changes knowledge with no standing approval', async () => {
     // No approval reader, no ledger entry and no credential: the direct change runs in every context
     // because nothing gates it (D-01/D-15). Re-spelled 2026-10-02 (432-42): the title keeps the
     // pre-432 vocabulary as the record of what this cell replaced; the caller holds nothing.

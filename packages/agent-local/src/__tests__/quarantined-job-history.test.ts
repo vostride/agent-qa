@@ -155,7 +155,7 @@ afterEach(() => {
   roots = []
 })
 
-describe('the diagnostic projection of a quarantined row (422 D-16)', () => {
+describe('the diagnostic projection of a quarantined row', () => {
   it('reports the original retired kind, the unreadable-kind conclusion and the spent attempt', async () => {
     const seeded = await quarantinedQueue()
 
@@ -203,7 +203,7 @@ describe('the diagnostic projection of a quarantined row (422 D-16)', () => {
   })
 })
 
-describe('requeueing a quarantined row (422 D-16)', () => {
+describe('requeueing a quarantined row', () => {
   it('refuses by name and leaves every column of the history exactly as it found it', async () => {
     const seeded = await quarantinedQueue()
 

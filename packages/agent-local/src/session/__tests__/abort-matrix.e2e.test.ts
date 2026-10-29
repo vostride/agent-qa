@@ -143,7 +143,7 @@ describe('the abort matrix: one session, both arms, then it carries on', () => {
     })
   }
 
-  it('CHAT-05/D-19: graceful Ctrl+C then hard kill, both repaired, and the session continues', async () => {
+  it('graceful Ctrl+C then hard kill, both repaired, and the session continues', async () => {
     // ---- Turn 1: an ordinary completed turn, so the file starts life healthy.
     const first = await ask('/fn quarantine.list')
     const sessionId = first.sessionId
@@ -236,7 +236,7 @@ describe('the abort matrix: one session, both arms, then it carries on', () => {
   // sees the fused line as a fresh tear and loses the synthesized abort with it, so the session is
   // poisoned every time it is resumed. One newline, appended before anything else, is the whole
   // fix; the fragment survives verbatim as its own line for anyone auditing the file.
-  it('CHAT-05: repair terminates the torn fragment instead of writing onto it', async () => {
+  it('repair terminates the torn fragment instead of writing onto it', async () => {
     const first = await ask('/fn quarantine.list')
     const sessionId = first.sessionId
     const path = pathOf(sessionId)
@@ -289,7 +289,7 @@ describe('the abort matrix: one session, both arms, then it carries on', () => {
   // The third crash shape, named so that nobody reads the two arms above as a claim about all
   // damage: a torn HEADER is refused outright. A build that guessed at an unreadable header would
   // append to a file whose grammar it does not know, in the one direction no later read can undo.
-  it('CHAT-05: a torn header refuses to open by name, and never becomes a silent new session', async () => {
+  it('a torn header refuses to open by name, and never becomes a silent new session', async () => {
     const first = await ask('/fn quarantine.list')
     const path = pathOf(first.sessionId)
     const bytes = readFileSync(path, 'utf8')
@@ -305,7 +305,7 @@ describe('the abort matrix: one session, both arms, then it carries on', () => {
     expect(readFileSync(path, 'utf8')).toBe(bytes.slice(0, 20))
   })
 
-  it('CHAT-05: the resume path names the repair — an open that skipped it would be a silent read', () => {
+  it('the resume path names the repair — an open that skipped it would be a silent read', () => {
     const source = readFileSync(join(import.meta.dirname, '..', 'jsonl-session-log.ts'), 'utf8')
     const openBody = source.slice(source.indexOf('open(sessionId?: string)'))
 
@@ -321,7 +321,7 @@ describe('the abort matrix: one session, both arms, then it carries on', () => {
 // pins is the argument, not a convention: a degrade pass that is HANDED the replay has no other
 // input to prune, so "repair before pruning" (CHAT-05) is a fact about the type rather than an
 // ordering somebody has to remember.
-describe('CHAT-05: the compaction pass is handed an already-repaired conversation', () => {
+describe('the compaction pass is handed an already-repaired conversation', () => {
   let root: string
 
   beforeEach(() => {

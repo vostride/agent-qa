@@ -206,7 +206,7 @@ describe('DeviceConfigSchema removed from primitives', () => {
   })
 })
 
-describe('TargetSchema no longer has device field (D-17/D-18)', () => {
+describe('TargetSchema no longer has device field', () => {
   it('rejects device field on target', async () => {
     const mod = await import('../registry-schema.js') as any
     const result = mod.TargetSchema.safeParse({

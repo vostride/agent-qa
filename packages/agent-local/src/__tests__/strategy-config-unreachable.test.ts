@@ -180,7 +180,7 @@ function readDist(path: string): string {
   return readFileSync(path, 'utf8')
 }
 
-describe('D-16: the reconciliation strategy is reachable from no configuration key', () => {
+describe('the reconciliation strategy is reachable from no configuration key', () => {
   it('walks a real, non-empty, DISCOVERED schema-key inventory', () => {
     const keys = [...new Set(collectSchemaKeySites().map(site => site.key))]
     // A walker that silently returned nothing would pass the assertion below forever.
@@ -203,7 +203,7 @@ describe('D-16: the reconciliation strategy is reachable from no configuration k
   })
 })
 
-describe('D-16: and from no environment variable either', () => {
+describe('and from no environment variable either', () => {
   it('reads a real, freshly built artifact rather than a missing one', () => {
     const agent = readDist(AGENT_DIST)
     // The non-vacuity guard: a dist that did not contain the chat subtree would report zero env

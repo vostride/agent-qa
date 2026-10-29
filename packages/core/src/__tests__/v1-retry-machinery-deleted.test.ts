@@ -56,7 +56,7 @@ function workspaceTsSources(): string[] {
   return files
 }
 
-describe('v1 retry/self-heal machinery is deleted grep-provably (LOOP-02)', () => {
+describe('v1 retry/self-heal machinery is deleted grep-provably', () => {
   const sources = workspaceTsSources()
 
   it('scans a non-trivial number of workspace source files', () => {

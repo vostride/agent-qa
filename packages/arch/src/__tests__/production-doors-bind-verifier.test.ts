@@ -275,7 +275,7 @@ function withoutDeclarations(sites: Site[], declaration: Halves): Site[] {
 // The cells
 // ---------------------------------------------------------------------------------------------
 
-describe('C439-CENSUS', () => {
+describe('the production doors bind the verifier', () => {
   it('executeStep runs only behind a bound verifier', () => {
     const calls = withoutDeclarations(sitesOf(production(), rx(STEP_CALL)), STEP_DECLARATION)
     const callers = [...new Set(calls.map((site) => site.file))].sort()
@@ -322,7 +322,7 @@ describe('C439-CENSUS', () => {
     }
   })
 
-  it('C439-UNIVERSE-FLOORS: every scanned file and region reads real code, so no cell can pass over an empty scan', () => {
+  it('every scanned file and region reads real code, so no cell can pass over an empty scan', () => {
     for (const file of [LOOP_INDEX, ...STEP_DOORS, RUN_COMPOSITION, CLI_RUN]) {
       expect(existsSync(join(PACKAGES_DIR, file)), `${file} is missing`).toBe(true)
       expect(code(file).length, `${file} read nothing`).toBeGreaterThan(1000)
@@ -336,7 +336,7 @@ describe('C439-CENSUS', () => {
     expect(rx(MEMBER_CALL_DECLARATION).test(code(MEMBER_RUNNER))).toBe(true)
   })
 
-  it('C439-SELF-MATCH: this file spells none of the needles it assembles, and lies outside every region it scans', () => {
+  it('this file spells none of the needles it assembles, and lies outside every region it scans', () => {
     const own = readFileSync(THIS_FILE).toString('utf8')
     expect(existsSync(join(PACKAGES_DIR, OWN)), 'the self path is wrong').toBe(true)
     const literal = [
@@ -356,7 +356,7 @@ describe('C439-CENSUS', () => {
   })
 })
 
-describe('C439-VISION-GATE', () => {
+describe('the vision gates', () => {
   it('both CLI gates read the configured vision, else the model capability table', () => {
     const cli = code(CLI_RUN)
     expect(cli.includes(joined(VISION_DEFAULT)), `${CLI_RUN} still defaults vision to true`).toBe(false)

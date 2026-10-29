@@ -78,7 +78,7 @@ describe('reader carve-out', () => {
  * gate that passes while the claim it stands for has stopped being true. These cases are the ones
  * that can fail for that reason.
  */
-describe('the knowledge writer has exactly one importer (D-14 / SC5)', () => {
+describe('the knowledge writer has exactly one importer', () => {
   it('accepts the one composition root, alongside any number of reader-entry imports', () => {
     expect(findKnowledgeWriterSingletonOffenders([
       fixtureHit(MAIN_ENTRY, COMPOSITION_ROOT, 40),

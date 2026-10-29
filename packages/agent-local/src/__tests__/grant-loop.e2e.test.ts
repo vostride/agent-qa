@@ -77,7 +77,7 @@ const LEGACY_LEDGER_BYTES = [
   '',
 ].join('\n')
 
-describe('C432-NO-GRANT-OPS: the grant loop has no verbs left on the composed host', () => {
+describe('the grant loop has no verbs left on the composed host', () => {
   let root: string
   let knowledgeRoot: string
   let agentQaRoot: string
@@ -161,7 +161,7 @@ describe('C432-NO-GRANT-OPS: the grant loop has no verbs left on the composed ho
     writeFileSync(legacyLedger(), LEGACY_LEDGER_BYTES, 'utf8')
   }
 
-  it('C432-NO-PROPOSAL-OPS: the mint door and the apply it covered are not capabilities of this host', async () => {
+  it('the mint door and the apply it covered are not capabilities of this host', async () => {
     const interactive = host('local-interactive')
     publish('retired')
     const ids = interactive.list(HUMAN).map((entry) => entry.id)
@@ -174,7 +174,7 @@ describe('C432-NO-GRANT-OPS: the grant loop has no verbs left on the composed ho
 
   // RE-SPELLED 2026-10-01 (432-18) from 'revokes by appending: both events survive, in order': the
   // revoke verb is deleted, so neither grant id is listed and both answer as unknown functions.
-  it('C432-NO-GRANT-OPS: neither grant verb is listed, and both are unknown functions on every context', async () => {
+  it('neither grant verb is listed, and both are unknown functions on every context', async () => {
     plantLegacyLedger()
     for (const context of ['local-interactive', 'local-headless', 'ci', 'cloud'] as const) {
       const registry = host(context)
@@ -192,7 +192,7 @@ describe('C432-NO-GRANT-OPS: the grant loop has no verbs left on the composed ho
   // RE-SPELLED 2026-10-01 (432-18) from 'refuses an agent-origin revoke, leaving the committed ledger
   // untouched': there is no revoke to refuse. Agent and human origin get the same unknown-function
   // answer, and the old ledger is untouched either way.
-  it('C432-NO-GRANT-OPS: an agent-origin and a human-origin revoke get the same unknown-function answer', async () => {
+  it('an agent-origin and a human-origin revoke get the same unknown-function answer', async () => {
     plantLegacyLedger()
     const interactive = host('local-interactive')
     for (const caller of [AGENT, HUMAN]) {
@@ -205,7 +205,7 @@ describe('C432-NO-GRANT-OPS: the grant loop has no verbs left on the composed ho
   // RE-SPELLED 2026-10-01 (432-18): the headless revoke this cell drove is deleted. The surviving
   // claim — a decision verb runs headless with no confirmation — is measured on the direct change,
   // beside an old ledger that names a grant for exactly that class.
-  it('C432-INVOKE-DIRECT: both decision verbs run in a headless context with no confirmation', async () => {
+  it('both decision verbs run in a headless context with no confirmation', async () => {
     plantLegacyLedger()
     const recordId = publish('headless')
     const headless = host('local-headless')

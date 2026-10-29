@@ -171,7 +171,7 @@ interface TestSpec {
   steps: readonly StepSpec[]
 }
 
-describe('knowledge.brief.why answers from the persisted trace (387-06)', () => {
+describe('knowledge.brief.why answers from the persisted trace', () => {
   let root: string
   let agentQaRoot: string
   let knowledgeRoot: string
@@ -429,7 +429,7 @@ describe('knowledge.brief.why answers from the persisted trace (387-06)', () => 
 
   // ---- Test 3: the truncation ledger reaches the answer ------------------------------------
 
-  it('surfaces the cut candidates with their rank and score (D-14)', async () => {
+  it('surfaces the cut candidates with their rank and score', async () => {
     for (const name of TRUNCATING_FIXTURE) seedBundle(name, 10)
     await rebuildIndex({ knowledgeRoot })
     const served = serve()

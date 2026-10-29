@@ -101,7 +101,7 @@ describe('SuiteDefinitionSchema', () => {
       expect(result.data?.use?.llm).toBe('claude-main')
     })
 
-    it('rejects the deleted healing key in the use block (Phase 353 D-10 breaking change)', () => {
+    it('rejects the deleted healing key in the use block', () => {
       const result = SuiteDefinitionSchema.safeParse(makeSuite({
         name: 'healing suite',
         tests: [{ test: 'test.yaml', id: VALID_TEST_ID }],

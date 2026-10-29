@@ -4,7 +4,7 @@ import { SuiteDefinitionSchema } from '../schema/suite-schema.js'
 const VALID_TEST_ID = 't_amber-birch-coral-delta-ember-falcon-garden-harbor-island-jungle'
 
 describe('SuiteDefinitionSchema', () => {
-  it('rejects YAML containing a variables: block (strict parse, Phase 181)', () => {
+  it('rejects YAML containing a variables: block (strict parse)', () => {
     const input = {
       name: 'S',
       target: 't',

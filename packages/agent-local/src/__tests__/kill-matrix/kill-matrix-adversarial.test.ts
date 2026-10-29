@@ -205,7 +205,7 @@ async function crashAt(
 
 // ---- the new selector vocabulary ------------------------------------------------------------------
 
-describe('verb crash points (the seam plan 07 adds beside the checkpoint points)', () => {
+describe('verb crash points, beside the checkpoint points', () => {
   // A hook that can never fire is a leg that proves nothing while reporting success, so every
   // component of a selector is refused by name before a store is opened.
   it('refuses an unknown verb, an unknown side, and a missing selector — by name', () => {
@@ -281,7 +281,7 @@ describe('verb crash points (the seam plan 07 adds beside the checkpoint points)
 
 // ---- LEG FAMILY 1: the poison job (D-18, T-385-03) -------------------------------------------------
 
-describe('a poison job that SIGKILLs its host on every attempt (D-18, JOBQ-03)', () => {
+describe('a poison job that SIGKILLs its host on every attempt', () => {
   // `consolidate` declares maxAttempts 2, which is the cheapest bound that is still a bound.
   //
   // THE BOUND IS SPENT AT THE CLAIM, so the arithmetic is: claims 1..maxAttempts run the handler,
@@ -397,7 +397,7 @@ describe('a poison job that SIGKILLs its host on every attempt (D-18, JOBQ-03)',
 
 // ---- LEG FAMILY 2: a kill around the atomic failure path (D-20 / CR-07) -----------------------------
 
-describe('SIGKILL inside the permanent-failure disposition (D-20, JOBQ-03)', () => {
+describe('SIGKILL inside the permanent-failure disposition', () => {
   const kind: JobKind = 'analyze-run'
   const REASON = 'analyze-run kill-matrix adversarial permanent failure'
   const PAYLOAD = { fail: 'permanent', reason: REASON } as const
@@ -588,7 +588,7 @@ describe('SIGKILL inside the permanent-failure disposition (D-20, JOBQ-03)', () 
 
 // ---- LEG FAMILY 3: a cancel that crosses a crash (D-19) --------------------------------------------
 
-describe('a cancel requested mid-run, honoured across a crash (D-19, JOBQ-03)', () => {
+describe('a cancel requested mid-run, honoured across a crash', () => {
   // `curate-memory` is the only two-checkpoint kind, so it is the only one where "the boundary
   // after the crash" and "the boundary the job never reached" are different places.
   it('survives the kill with the request intact and lands cancelled at the next boundary', async () => {
@@ -698,7 +698,7 @@ describe('a cancel requested mid-run, honoured across a crash (D-19, JOBQ-03)', 
 
 // ---- LEG FAMILY 4: fencing, with a fake lease (D-07, T-385-02) -------------------------------------
 
-describe('a resume carrying a stale epoch, proven with a fake lease (D-07, JOBQ-03)', () => {
+describe('a resume carrying a stale epoch, proven with a fake lease', () => {
   it('refuses both the re-adoption and the stale fence, changes nothing, and lets the holder finish', async () => {
     const kind: JobKind = 'consolidate'
     const checkpointId = declarationFor(kind).checkpointSchedule[0]!
@@ -826,7 +826,7 @@ describe('a resume carrying a stale epoch, proven with a fake lease (D-07, JOBQ-
 // No child processes: the failure this family describes is a transaction boundary, not a kill, and
 // a spawned host would measure the spawn.
 
-describe('a retired-kind row at the head of the FIFO (D-16, ADV-03)', () => {
+describe('a retired-kind row at the head of the FIFO', () => {
   // The Issue-slot kind retired in Phase 412. Spelled independently
   // here rather than imported: it is precisely a kind no current vocabulary contains, so any
   // constant this build still exported for it would be the bug.

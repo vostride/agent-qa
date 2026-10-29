@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { KnowledgeConfigSchema } from '../knowledge-schema.js'
 import { resolveKnowledgeRoot } from '../resolve-knowledge-root.js'
 
-describe('resolveKnowledgeRoot (D-14)', () => {
+describe('resolveKnowledgeRoot', () => {
   it('resolves the materialized default directory against the config directory', () => {
     const knowledge = KnowledgeConfigSchema.parse({})
 

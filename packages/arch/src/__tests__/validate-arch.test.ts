@@ -186,7 +186,7 @@ function surfaceClassContracts(packageNames: readonly string[]): OwnershipContra
   )
 }
 
-describe('arch lint (LINT-01..05)', () => {
+describe('arch lint class rules and dep contracts', () => {
   it('every contract-bearing package satisfies its class rules and dep contract', () => {
     const offenders: string[] = []
     const contracts: readonly OwnershipContract[] = ARCH_MANIFEST.packages
@@ -537,7 +537,7 @@ describe('arch lint held-out fixtures', () => {
   })
 })
 
-describe('arch lint surface firewall (FUNC-02) held-out fixtures', () => {
+describe('arch lint surface firewall held-out fixtures', () => {
   it('held-out firewall reports an un-ledgered internal import and accepts the allow-list', () => {
     expect(
       findSurfaceFirewallOffenders(
@@ -582,7 +582,7 @@ describe('arch lint surface firewall (FUNC-02) held-out fixtures', () => {
     ])
   })
 
-  it('held-out firewall leaves non-firewalled surfaces alone until M5 admits them', () => {
+  it('held-out firewall leaves non-firewalled surfaces alone', () => {
     expect(FIREWALLED_SURFACE_DIRS).toEqual(['packages/cli', 'packages/mcp'])
     expect(EXPECTED_SURFACE_CLASS_PACKAGES).toContain('@vostride/agent-qa-dashboard')
 
@@ -597,7 +597,7 @@ describe('arch lint surface firewall (FUNC-02) held-out fixtures', () => {
     ).toEqual([])
   })
 
-  it('held-out firewall exempts only the ledgered pair, never the whole file (D-03)', () => {
+  it('held-out firewall exempts only the ledgered pair, never the whole file', () => {
     const ledger = [surfaceLedgerFixture('@vostride/agent-qa-runner-local')]
     const ledgeredHit = surfaceHit('@vostride/agent-qa-runner-local', 7)
 
@@ -668,7 +668,7 @@ describe('arch lint surface firewall (FUNC-02) held-out fixtures', () => {
     ])
   })
 
-  it('held-out firewall counts a type-only import as a violation (D-04)', () => {
+  it('held-out firewall counts a type-only import as a violation', () => {
     const source = [
       'import { Command } from "commander"',
       'import type { AuditSink } from "@vostride/agent-qa-safety"',
@@ -682,7 +682,7 @@ describe('arch lint surface firewall (FUNC-02) held-out fixtures', () => {
     ])
   })
 
-  it('held-out golden surface set fails in both drift directions (D-02)', () => {
+  it('held-out golden surface set fails in both drift directions', () => {
     expect(
       findSurfaceClassGoldenSetOffenders(surfaceClassContracts(EXPECTED_SURFACE_CLASS_PACKAGES)),
     ).toEqual([])
@@ -706,7 +706,7 @@ describe('arch lint surface firewall (FUNC-02) held-out fixtures', () => {
     ])
   })
 
-  it('the shipped ledger stays exact, dated, and closed to new-in-384 surface code (D-01)', () => {
+  it('the shipped ledger stays exact, dated, and closed to the newer surface files', () => {
     const newInPhase384 = [
       'packages/cli/src/commands/fn.ts',
       'packages/cli/src/composition/masked-config.ts',
@@ -726,7 +726,7 @@ describe('arch lint surface firewall (FUNC-02) held-out fixtures', () => {
   })
 })
 
-describe('arch lint composition carve-out (385-08 / D-13) registration and scope', () => {
+describe('arch lint composition carve-out registration and scope', () => {
   // The carve-out's own behaviour is unit-tested beside the rule. What can only be checked here is
   // that the aggregate actually CALLS it: a rule nobody invokes passes every build, and its unit
   // tests keep passing too, so nothing anywhere goes red. Source-anchored on this file, the
@@ -899,8 +899,8 @@ function startRunScan(...extra: readonly StartRunPinSource[]): string[] {
   return findStartRunPinOffenders([...startRunPinnedFixtures(), ...extra])
 }
 
-describe('arch lint run pins after the gate (432-19, D-03/D-15)', () => {
-  it('C432-NO-EVALUATE: the gate pin, the gate modules and every production gate acquisition are gone', () => {
+describe('arch lint run pins after the gate', () => {
+  it('the gate pin, the gate modules and every production gate acquisition are gone', () => {
     // The pin module keeps only the shared scanner: no permitted set, no finder, no offender check.
     const pinModule = readRepoFile('packages/arch/src/lint/evaluate-pin.ts')
     expect(pinModule).not.toMatch(/export const EVALUATE_PIN\b/)
@@ -931,7 +931,7 @@ describe('arch lint run pins after the gate (432-19, D-03/D-15)', () => {
   // gate acquisition could take'. The census does not count a whole-module barrel import or a
   // dynamic `import()` of a retired module; the barrel-values check and the retired modules'
   // absence in the cell above are what catch those.
-  it('C432-NO-EVALUATE: the census fires on a named gate value from the barrel, aliased or multi-line, and on any static import or re-export of a retired gate module', () => {
+  it('the census fires on a named gate value from the barrel, aliased or multi-line, and on any static import or re-export of a retired gate module', () => {
     // Held-out fixtures, so the absence above is a measurement and not a scanner that sees nothing.
     expect(gateAcquisitions('import { evaluate } from "@vostride/agent-qa-safety"', 'packages/runner/src/x.ts'))
       .toEqual(['packages/runner/src/x.ts:1 ⇏ @vostride/agent-qa-safety'])
@@ -954,7 +954,7 @@ describe('arch lint run pins after the gate (432-19, D-03/D-15)', () => {
     expect(gateAcquisitions('import { createMaskingMiddleware } from "@vostride/agent-qa-safety"', 'packages/eval/src/x.ts')).toEqual([])
   })
 
-  it('C432-INVOKE-DIRECT: the former surface, run-invocation and hook call-sites acquire nothing', () => {
+  it('the former surface, run-invocation and hook call-sites acquire nothing', () => {
     for (const file of [FORMER_INVOKE, FORMER_RUN_CORE]) {
       expect(gateAcquisitions(readRepoFile(file), file), file).toEqual([])
     }
@@ -963,7 +963,7 @@ describe('arch lint run pins after the gate (432-19, D-03/D-15)', () => {
     expect(gateAcquisitions(readRepoFile(SAFETY_BARREL), SAFETY_BARREL)).toEqual([])
   })
 
-  it('C432-ARCH-RETAINED-PINS: the ONE startRun pin is retained with its two entries and is clean over the real tree', () => {
+  it('the ONE startRun pin is retained with its two entries and is clean over the real tree', () => {
     expect(Object.keys(STARTRUN_PIN).sort()).toEqual(
       ['packages/agent-local/src/composition/run-invocation-core.ts', 'packages/runner/src/index.ts'].sort(),
     )
@@ -974,7 +974,7 @@ describe('arch lint run pins after the gate (432-19, D-03/D-15)', () => {
     expect(findStartRunAcquisitions(readRepoFile(FORMER_RUN_CORE), FORMER_RUN_CORE)).toHaveLength(1)
   })
 
-  it('C432-ARCH-RETAINED-PINS: the shared scanner keeps every acquisition form the gate pin measured', () => {
+  it('the shared scanner keeps every acquisition form the gate pin measured', () => {
     const fourth = 'packages/cli/src/commands/second-starter.ts'
     // named import, aliased import, re-export, whole-module dynamic load naming the symbol
     for (const source of [
@@ -1006,7 +1006,7 @@ describe('arch lint run pins after the gate (432-19, D-03/D-15)', () => {
     }
   })
 
-  it('C432-ARCH-RETAINED-PINS: a pin entry that no longer acquires is reported stale (self-shrinking)', () => {
+  it('a pin entry that no longer acquires is reported stale (self-shrinking)', () => {
     const fixtures = startRunPinnedFixtures()
     expect(findStartRunPinOffenders(fixtures.filter((entry) => entry.file !== FORMER_RUN_CORE))).toEqual([
       `startrun-pin: ${FORMER_RUN_CORE} ⇏ pin entry no longer acquires the run starter (stale)`,
@@ -1018,7 +1018,7 @@ describe('arch lint run pins after the gate (432-19, D-03/D-15)', () => {
   })
 })
 
-describe('arch lint agent barrel export set (FUNC-01 / SC1) held-out fixtures', () => {
+describe('arch lint agent barrel export set held-out fixtures', () => {
   it('pins the real barrel export set by exact equality, values and types apart', () => {
     expect(readAgentBarrelExports(readRepoFile(AGENT_BARREL_FILE))).toEqual({
       values: [...EXPECTED_AGENT_BARREL_VALUE_EXPORTS],

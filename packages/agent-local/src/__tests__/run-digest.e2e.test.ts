@@ -172,7 +172,7 @@ function fixtureHandoff(runId: string): CompletedRunHandoff {
   } as unknown as CompletedRunHandoff
 }
 
-describe('the per-run digest, over the composed host (PROP-04 / D-16 / D-18)', () => {
+describe('the per-run digest, over the composed host', () => {
   let root: string
   let agentQaRoot: string
   let knowledgeRoot: string
@@ -329,7 +329,7 @@ describe('the per-run digest, over the composed host (PROP-04 / D-16 / D-18)', (
       }
     })
 
-  it('renders a run whose marks changed nothing as "no changes applied", not as an error (edge PROP-04/empty)',
+  it('renders a run whose marks changed nothing as "no changes applied", not as an error',
     async () => {
       // Proposals exist in the store, both belonging to another run: they change nothing here.
       await proposeForRun(RUN_A, 'checkout button')
@@ -344,7 +344,7 @@ describe('the per-run digest, over the composed host (PROP-04 / D-16 / D-18)', (
       expect(empty.lines).toContain('marks — no changes applied')
     })
 
-  it('lists no proposal from any of the three propose ops under any run (432-09 D-05)',
+  it('lists no proposal from any of the three propose ops under any run',
     async () => {
       const forgotten = (await mintForRun(RUN_A, 'checkout button', FORGET_PROPOSE_ID)).proposalId
       const accepted = (await mintForRun(RUN_A, 'payment button', ACCEPT_PROPOSE_ID)).proposalId
@@ -383,7 +383,7 @@ describe('the per-run digest, over the composed host (PROP-04 / D-16 / D-18)', (
       expect(empty.lines).toContain('marks — no changes applied')
     })
 
-  it('C432-READS-INBOX-UNREAD: a decided, pending or sealed legacy proposal tree changes nothing in any digest',
+  it('a decided, pending or sealed legacy proposal tree changes nothing in any digest',
     async () => {
       const declined = await proposeForRun(RUN_A, 'checkout button')
       await proposeForRun(RUN_A, 'payment button')
@@ -407,7 +407,7 @@ describe('the per-run digest, over the composed host (PROP-04 / D-16 / D-18)', (
       expect(readdirSync(proposals).sort()).toEqual(before)
     })
 
-  it('counts no proposal, attributed or not (432-09 D-25)',
+  it('counts no proposal, attributed or not',
     async () => {
       await proposeForRun(undefined, 'legacy button')
       await proposeForRun(RUN_A, 'checkout button')
@@ -420,7 +420,7 @@ describe('the per-run digest, over the composed host (PROP-04 / D-16 / D-18)', (
       }
     })
 
-  it('orders the applied fixes by ledger ordinal, stably across renders (edge PROP-04/ordering)',
+  it('orders the applied fixes by ledger ordinal, stably across renders',
     async () => {
       const once = await digest(RUN_A)
       const twice = await digest(RUN_A)
@@ -429,7 +429,7 @@ describe('the per-run digest, over the composed host (PROP-04 / D-16 / D-18)', (
       expect(once.markChanges?.map((row) => row.ordinal)).toEqual([1, 3])
     })
 
-  it('carries the analysis op\'s OWN cluster views, sentence bytes included (D-18 / 389 D-05)',
+  it('carries the analysis op\'s OWN cluster views, sentence bytes included',
     async () => {
       await proposeForRun(RUN_A, 'checkout button')
 
@@ -458,7 +458,7 @@ describe('the per-run digest, over the composed host (PROP-04 / D-16 / D-18)', (
       }
     })
 
-  it('composes the chain section from the chip vocabulary, and persists NOTHING (D-16)',
+  it('composes the chain section from the chip vocabulary, and persists NOTHING',
     async () => {
       await proposeForRun(RUN_A, 'checkout button')
       const before = readdirSync(join(agentQaRoot, 'proposals')).sort()
@@ -490,7 +490,7 @@ describe('the per-run digest, over the composed host (PROP-04 / D-16 / D-18)', (
 
   // RE-SPELLED 432-09 from 'carries refs and counts and NO receipt bytes, on a forget proposal that
   // has them (D-18)': the refs are now an applied fix's record ids and written path.
-  it('carries refs and counts and NO record content for an applied fix (D-18)',
+  it('carries refs and counts and NO record content for an applied fix',
     async () => {
       const { recordId } = await mintForRun(RUN_A, 'checkout button')
       const withContent = compose(ledgerReads({ [RUN_A]: [receipt(RUN_A, 1, KNOWLEDGE_FIX([recordId]))] }))

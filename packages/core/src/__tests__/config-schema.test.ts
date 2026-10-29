@@ -363,7 +363,7 @@ describe('AgentQaConfigSchema — 4-bucket structure', () => {
     expect(AuthStateConfigSchema.safeParse({ dir: '.agent-qa/auth-states', ttlSeconds: 3600 }).success).toBe(false)
   })
 
-  it('workspace accepts all documented fields per D-04', () => {
+  it('workspace accepts all documented fields', () => {
     const result = AgentQaConfigSchema.safeParse(withWorkspace({
       workspace: {
         testMatch: ['**/*.yaml'],
@@ -423,7 +423,7 @@ describe('AgentQaConfigSchema — 4-bucket structure', () => {
     }
   })
 
-  it('registry.targets has no environments key per D-08', () => {
+  it('registry.targets has no environments key', () => {
     const result = AgentQaConfigSchema.safeParse({
       registry: {
         targets: {
@@ -1008,7 +1008,7 @@ describe('NamedLLMConfigSchema — name validation', () => {
     expect(result.success).toBe(false)
   })
 
-  it('DOTTED-NAMES-ACCEPTED: dotted names parse, bad spellings are refused (D-13)', () => {
+  it('DOTTED-NAMES-ACCEPTED: dotted names parse, bad spellings are refused', () => {
     const parse = (name: string) => NamedLLMConfigSchema.safeParse({
       name,
       provider: 'anthropic-subscription',
@@ -1165,7 +1165,7 @@ describe('TargetSchema — product key validation', () => {
 // a key that no longer exists; their surviving claim is that a config without it parses, kept below.
 // A file that still declares a retired key gets zod's ordinary unrecognized-key issue at the owning
 // object, naming exactly that key, with no retired-key message, migration or notice.
-describe('AgentQaConfigSchema — retired keys are strictly unknown (432 D-22)', () => {
+describe('AgentQaConfigSchema — retired keys are strictly unknown', () => {
   const RETIRED: readonly [string, Record<string, unknown>, string, string][] = [
     ['safety.trustMode', { safety: { trustMode: true } }, '', 'safety'],
     ['safety (empty)', { safety: {} }, '', 'safety'],
@@ -1187,7 +1187,7 @@ describe('AgentQaConfigSchema — retired keys are strictly unknown (432 D-22)',
   ]
 
   for (const [label, config, path, key] of RETIRED) {
-    it(`C432-OLD-KEYS-STRICT: ${label} gets the normal unrecognized-key error and nothing else`, () => {
+    it(`${label} gets the normal unrecognized-key error and nothing else`, () => {
       const result = AgentQaConfigSchema.safeParse(withWorkspace(config))
       expect(result.success).toBe(false)
       if (result.success) return
@@ -1200,7 +1200,7 @@ describe('AgentQaConfigSchema — retired keys are strictly unknown (432 D-22)',
     })
   }
 
-  it('C432-OLD-KEYS-STRICT: every retired key at once is refused key by key, each at its own owner', () => {
+  it('every retired key at once is refused key by key, each at its own owner', () => {
     const result = AgentQaConfigSchema.safeParse(withWorkspace({
       safety: { trustMode: false },
       services: {
@@ -1217,7 +1217,7 @@ describe('AgentQaConfigSchema — retired keys are strictly unknown (432 D-22)',
     expect(found.sort()).toEqual([':safety', 'services.dashboard:runServiceTokens', 'services.mcp:stdio,tokens'])
   })
 
-  it('C432-OLD-KEYS-STRICT: minimal empty service objects parse and materialize no retired member', () => {
+  it('minimal empty service objects parse and materialize no retired member', () => {
     for (const services of [{}, { mcp: {} }, { dashboard: {} }, { mcp: {}, dashboard: {} }]) {
       const result = AgentQaConfigSchema.safeParse(withWorkspace({ services }))
       expect(result.success, JSON.stringify(services)).toBe(true)
@@ -1230,7 +1230,7 @@ describe('AgentQaConfigSchema — retired keys are strictly unknown (432 D-22)',
     expect(DashboardConfigSchema.parse({})).toEqual({})
   })
 
-  it('C432-OLD-KEYS-STRICT: a config without any retired key parses (the surviving optional claim)', () => {
+  it('a config without any retired key parses (the surviving optional claim)', () => {
     const result = AgentQaConfigSchema.safeParse(withWorkspace({}))
     expect(result.success).toBe(true)
   })

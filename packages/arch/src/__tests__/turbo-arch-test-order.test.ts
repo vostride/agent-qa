@@ -93,7 +93,7 @@ describe('C-HYG-ARCH-TEST-ORDER — the arch test runs after every build it read
     expectCoversEveryBuild(ARCH_TEST)
   })
 
-  it('C-HYG-ARCH-TEST-ORDER: the arch typecheck also runs after every build it reads (434 D-20, fresh clone)', () => {
+  it('C-HYG-ARCH-TEST-ORDER: the arch typecheck also runs after every build it reads, in a fresh clone', () => {
     expectCoversEveryBuild(ARCH_TYPECHECK)
   })
 })

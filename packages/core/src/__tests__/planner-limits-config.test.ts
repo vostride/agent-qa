@@ -58,7 +58,7 @@ function suiteDefinition(planner: Record<string, unknown>) {
   }
 }
 
-describe('C436-PLANNER-LIMITS-CONFIG', () => {
+describe('planner limits in config', () => {
   it('the project config accepts maxActions and maxPlanningTurns as positive integers', () => {
     const result = AgentQaConfigSchema.safeParse(
       projectConfig({ maxActions: 12, maxPlanningTurns: 40, previousStepCount: 5 }),

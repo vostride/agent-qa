@@ -467,7 +467,7 @@ describe('the hermetic lane: the frozen deterministic corpus over the real compo
     },
   )
 
-  it('binds the run executor the arguments actually cross, quoted span intact (Pitfall 5)', () => {
+  it('binds the run executor the arguments actually cross, quoted span intact', () => {
     // `ClauseReceipt` carries no arguments by design (D-18), so this is the one seam in the
     // composed path where a bound argument is observable — and it is the seam production uses.
     expect(cells.get('run')?.startedRuns).toEqual([{ patterns: ['tests/checkout.spec.ts'] }])
@@ -499,7 +499,7 @@ describe('the hermetic lane: the frozen deterministic corpus over the real compo
   })
 })
 
-describe('the runner cannot discover its own cells (D-15, source assertion)', () => {
+describe('the runner cannot discover its own cells (source assertion)', () => {
   it('reaches the corpus only through the manifest — no directory walk over scenarios/', () => {
     const source = readFileSync(fileURLToPath(import.meta.url), 'utf8')
     // Structure, not vocabulary: the prose above says "directory walk" repeatedly and must be free

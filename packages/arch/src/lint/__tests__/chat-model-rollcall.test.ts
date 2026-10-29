@@ -159,7 +159,7 @@ export function findChatModelOffenders(files: readonly ScannedFile[]): string[] 
   return offenders
 }
 
-describe('chat-model-rollcall: createModel-or-nothing (CHAT-06)', () => {
+describe('chat-model-rollcall: createModel-or-nothing', () => {
   it('scans a non-empty set — a rule with no subject passes forever and reads like proof', () => {
     const files = scannedFiles()
     expect(files.length).toBeGreaterThan(0)

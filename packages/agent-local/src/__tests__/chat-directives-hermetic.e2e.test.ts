@@ -85,7 +85,7 @@ function namedModel(modelId: string): ChatLanguageModel {
   } as unknown as ChatLanguageModel
 }
 
-describe('the composed session directives reach something (D-04 / D-21 / RESEARCH Open Q2)', () => {
+describe('the composed session directives reach something', () => {
   let root: string
   let agentQaRoot: string
   const hosts: LocalAgentHost[] = []
@@ -146,7 +146,7 @@ describe('the composed session directives reach something (D-04 / D-21 / RESEARC
 
   // Each cell types `/pin` and checks that it reaches nothing.
   describe('a typed /pin reaches nothing', () => {
-    it('C432-CHAT-DIRECT: the op runs before and after a typed /pin, in the same session and outside it',
+    it('the op runs before and after a typed /pin, in the same session and outside it',
       async () => {
         const host = compose()
         const opened = await ask(host, '/fn quarantine.list')
@@ -169,7 +169,7 @@ describe('the composed session directives reach something (D-04 / D-21 / RESEARC
         ).resolves.toBeDefined()
       })
 
-    it('C432-CHAT-DIRECT: a typed /pin writes NO approval_decision row', async () => {
+    it('a typed /pin writes NO approval_decision row', async () => {
       const host = compose()
       const result = await ask(host, `/pin ${QUARANTINE_LIST_FUNCTION_ID}`)
 
@@ -179,7 +179,7 @@ describe('the composed session directives reach something (D-04 / D-21 / RESEARC
       expect(result.answer ?? '').not.toContain(`fn:${QUARANTINE_LIST_FUNCTION_ID}`)
     })
 
-    it('C432-CHAT-DIRECT: executes NOTHING on a /pin turn, and publishes no pin to live state', async () => {
+    it('executes NOTHING on a /pin turn, and publishes no pin to live state', async () => {
       const host = compose()
       const result = await ask(host, `/pin ${QUARANTINE_LIST_FUNCTION_ID}`)
 
@@ -205,7 +205,7 @@ describe('the composed session directives reach something (D-04 / D-21 / RESEARC
     })
   })
 
-  describe('/model reaches the model resolution (D-04 / CHAT-06)', () => {
+  describe('/model reaches the model resolution', () => {
     it('emits ONE model_change with source verb, through diffChatConfig', async () => {
       const host = compose({ chatModel: namedModel('fixture:opening-model') })
       const result = await ask(host, '/model fixture:second-model')
@@ -222,7 +222,7 @@ describe('the composed session directives reach something (D-04 / D-21 / RESEARC
       ])
     })
 
-    it('does NOT emit a model_change straight back on the next turn (392-07 trap)', async () => {
+    it('does NOT emit a model_change straight back on the next turn', async () => {
       // THE SHARPEST TRAP IN THIS PLAN, asserted rather than reasoned about. The per-turn config
       // re-read compares what the log last recorded against what the composition currently
       // answers; a `config` thunk that kept answering the COMPOSED model would produce a second
@@ -306,7 +306,7 @@ describe('the composed session directives reach something (D-04 / D-21 / RESEARC
     })
   })
 
-  describe('the live turn state (RESEARCH Open Q2)', () => {
+  describe('the live turn state', () => {
     it('carries the conversation forward across turns, and names no turn between them', async () => {
       const host = compose()
       const first = await ask(host, '/fn quarantine.list')
@@ -333,7 +333,7 @@ describe('the composed session directives reach something (D-04 / D-21 / RESEARC
       expect(sessionEvents(result.sessionId).filter((e) => e.kind === 'aborted')).toEqual([])
     })
 
-    it('writes an explicit aborted row for a turn caught in flight (D-19 graceful arm)', async () => {
+    it('writes an explicit aborted row for a turn caught in flight by a graceful abort', async () => {
       // DRIVEN FROM INSIDE A TURN, and deterministically rather than by racing one. `chatModelFor`
       // is called by the `/model` handler in the middle of `runTurn`, which is exactly the window a
       // SIGINT handler fires in — so the state it observes is the state that handler would see, and
@@ -370,8 +370,8 @@ describe('the composed session directives reach something (D-04 / D-21 / RESEARC
   // RE-SPELLED 2026-09-30 (432-13, D-14) from 'the chat confirm seam (D-03) — is handed a mint and a
   // decision sink, and its absence leaves the port absent'. Nothing asks, so the composition never
   // calls a supplied factory, and a turn leaves no `approval_decision` row.
-  describe('the chat confirm seam is retired (432-13)', () => {
-    it('C432-CHAT-DIRECT: a supplied chat-confirm factory is never called, and no decision row is written', async () => {
+  describe('the chat confirm seam is retired', () => {
+    it('a supplied chat-confirm factory is never called, and no decision row is written', async () => {
       let calls = 0
       const host = compose({
         chatConfirm: () => {

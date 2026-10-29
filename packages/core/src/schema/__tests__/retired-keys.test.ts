@@ -34,7 +34,7 @@ const HARD_CUT_PARAMS = { retired: true, hardCut: true }
 
 // Every retired key fails with a targeted one-line error naming what to do, not a bare zod
 // unrecognized-key error. Keys removed in v2 also ask the CLI for the hard-cut steps.
-describe('retired-key pre-scan — services.memory per-key dispositions (D-11)', () => {
+describe('retired-key pre-scan — services.memory per-key dispositions', () => {
   const cases: [key: string, value: unknown, substring: string][] = [
     ['dir', 'agent-qa-memory', 'knowledge.dir'],
     ['enabled', true, 'no disable switch'],
@@ -61,7 +61,7 @@ describe('retired-key pre-scan — services.memory per-key dispositions (D-11)',
   })
 })
 
-describe('retired-key pre-scan — workspace.agentRules (D-07)', () => {
+describe('retired-key pre-scan — workspace.agentRules', () => {
   it('workspace.agentRules fails with its policies-file destination', () => {
     const config = {
       ...validBase,
@@ -328,7 +328,7 @@ describe('agent-qa.local.yaml refusals', () => {
   })
 })
 
-describe('strict backstop — arbitrary unknown keys (D-07)', () => {
+describe('strict backstop — arbitrary unknown keys', () => {
   it('still rejects an arbitrary unknown top-level key via strict parsing', () => {
     const result = AgentQaConfigSchema.safeParse({ ...validBase, totallyUnknownKey: 1 })
     expect(result.success).toBe(false)

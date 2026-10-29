@@ -7,7 +7,7 @@ import { parseSuiteFile } from '../suite-parser.js'
 const VALID_TEST_ID = 't_amber-birch-coral-delta-ember-falcon-garden-harbor-island-jungle'
 
 describe('parseSuiteFile', () => {
-  it('rejects legacy YAML with variables: block (Phase 181 Option C migration)', async () => {
+  it('rejects legacy YAML with a variables: block', async () => {
     const dir = await mkdtemp(join(tmpdir(), 'suite-parser-'))
     const path = join(dir, 'legacy.suite.yaml')
     await writeFile(

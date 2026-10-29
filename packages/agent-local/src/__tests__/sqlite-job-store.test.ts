@@ -159,7 +159,7 @@ function rawCheckpointRows(root: string): Record<string, unknown>[] {
   }
 }
 
-describe('agent job store: schema version (D-04)', () => {
+describe('agent job store: schema version', () => {
   let root: string
 
   beforeEach(() => {
@@ -226,7 +226,7 @@ describe('agent job store: schema version (D-04)', () => {
   )
 })
 
-describe('agent job store: dedupe (D-08)', () => {
+describe('agent job store: dedupe', () => {
   let root: string
   let store: SqliteJobStore
 
@@ -274,7 +274,7 @@ describe('agent job store: dedupe (D-08)', () => {
   })
 })
 
-describe('agent job store: claim order (D-03 / Pitfall 4)', () => {
+describe('agent job store: claim order', () => {
   let root: string
 
   beforeEach(() => {
@@ -327,7 +327,7 @@ describe('agent job store: claim order (D-03 / Pitfall 4)', () => {
   })
 })
 
-describe('agent job store: claim exclusion (388-09, G-388-2 substrate)', () => {
+describe('agent job store: claim exclusion', () => {
   let root: string
 
   beforeEach(() => {
@@ -413,7 +413,7 @@ describe('agent job store: claim exclusion (388-09, G-388-2 substrate)', () => {
   })
 })
 
-describe('agent job store: completeAndChain (JOBQ-05 ordering)', () => {
+describe('agent job store: completeAndChain ordering', () => {
   let root: string
   let store: SqliteJobStore
   let fence: JobStoreFence
@@ -559,7 +559,7 @@ describe('agent job store: recordFailure (ledger 1)', () => {
   })
 })
 
-describe('agent job store: failAndChain atomicity (CR-07)', () => {
+describe('agent job store: failAndChain atomicity', () => {
   let root: string
   let store: SqliteJobStore
   let fence: JobStoreFence
@@ -685,7 +685,7 @@ describe('agent job store: failAndChain atomicity (CR-07)', () => {
   })
 })
 
-describe('agent job store: the deterministic logical dump (D-03)', () => {
+describe('agent job store: the deterministic logical dump', () => {
   const roots: string[] = []
 
   function scratchRoot(): string {
@@ -867,7 +867,7 @@ describe('agent job store: the deterministic logical dump (D-03)', () => {
   })
 })
 
-describe('agent job store: the stale-epoch refusal matrix (D-07)', () => {
+describe('agent job store: the stale-epoch refusal matrix', () => {
   let root: string
   let store: SqliteJobStore
   let stale: JobStoreFence
@@ -952,7 +952,7 @@ describe('agent job store: the stale-epoch refusal matrix (D-07)', () => {
   })
 })
 
-describe('agent job store: fenced checkpoint rows (CR-06)', () => {
+describe('agent job store: fenced checkpoint rows', () => {
   let root: string
 
   beforeEach(() => {
@@ -1067,7 +1067,7 @@ describe('agent job store: fenced checkpoint rows (CR-06)', () => {
 // Phase 385 plan 05 — cancellation as a STORE guarantee (D-19). Driven through the port
 // directly, because D-02 lets any process open this database: a three-way outcome that only
 // held when the engine was the caller would not be a store guarantee at all.
-describe('agent job store: cancellation (D-19)', () => {
+describe('agent job store: cancellation', () => {
   let root: string
   let store: SqliteJobStore
   let fence: JobStoreFence
@@ -1187,7 +1187,7 @@ describe('agent job store: cancellation (D-19)', () => {
 // stand-in's checkpoint would hand the real handler the stand-in's recorded value and it
 // would report `completed` having written nothing, a second time. So the cells below assert
 // the forget in BOTH media, and assert that the row's identity survives it.
-describe('agent job store: requeueTerminal (413-13, the stand-in forget)', () => {
+describe('agent job store: requeueTerminal, the stand-in forget', () => {
   let root: string
   let store: SqliteJobStore
   let fence: JobStoreFence
@@ -1414,7 +1414,7 @@ describe('agent job store: requeueTerminal (413-13, the stand-in forget)', () =>
 // long the stage took. `started_at` is written once, at the first claim, and cleared only by the
 // operator requeue. The stepping clock is what makes "once" observable: every `now()` is a later
 // instant, so a second claim that overwrote the column would read differently.
-describe('agent job store: durable start instant (425-13, PXH-RUN-03)', () => {
+describe('agent job store: durable start instant', () => {
   let root: string
   let store: SqliteJobStore
   let fence: JobStoreFence
@@ -1487,7 +1487,7 @@ describe('agent job store: durable start instant (425-13, PXH-RUN-03)', () => {
   })
 })
 
-describe('C444.1-RETRY-BACKOFF', () => {
+describe('agent job store: retry not-before times and the refused old version', () => {
   const T0 = Date.parse('2026-01-01T00:00:00.000Z')
   let root: string
   let offsetMs: number
@@ -1625,7 +1625,7 @@ describe('C444.1-RETRY-BACKOFF', () => {
   })
 })
 
-describe('C444.1-INTERRUPTED', () => {
+describe('agent job store: interrupted jobs', () => {
   let root: string
   let store: SqliteJobStore
 

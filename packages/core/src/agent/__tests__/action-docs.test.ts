@@ -88,7 +88,7 @@ describe('defaultRegistry.generateDocs', () => {
       }
     })
 
-    it('renders CAT-02 web additions only in the web docs', () => {
+    it('renders the web catalog additions only in the web docs', () => {
       const webDocs = defaultRegistry.generateDocs('web')
       const androidDocs = defaultRegistry.generateDocs('android')
       const iosDocs = defaultRegistry.generateDocs('ios')
@@ -148,7 +148,7 @@ describe('defaultRegistry.generateDocs', () => {
       expect(result).not.toMatch(/^- common_executeScript:/m)
     })
 
-    it('renders CAT-03 android additions only in the android docs', () => {
+    it('renders the android catalog additions only in the android docs', () => {
       const webDocs = defaultRegistry.generateDocs('web')
       const androidDocs = defaultRegistry.generateDocs('android')
       const iosDocs = defaultRegistry.generateDocs('ios')
@@ -187,7 +187,7 @@ describe('defaultRegistry.generateDocs', () => {
       expect(result).not.toMatch(/^- common_executeScript:/m)
     })
 
-    it('renders CAT-04 ios additions only in the ios docs', () => {
+    it('renders the ios catalog additions only in the ios docs', () => {
       const webDocs = defaultRegistry.generateDocs('web')
       const androidDocs = defaultRegistry.generateDocs('android')
       const iosDocs = defaultRegistry.generateDocs('ios')

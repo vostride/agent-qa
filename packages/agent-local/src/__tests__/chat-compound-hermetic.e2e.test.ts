@@ -104,7 +104,7 @@ function plannerTripwire(modelId: string): PlannerTripwire {
   return { model, calls: () => calls }
 }
 
-describe('the composed compound turn: complete, or loud (CHAT-01 / D-10 / D-11 / D-12)', () => {
+describe('the composed compound turn: complete, or loud', () => {
   let root: string
   let agentQaRoot: string
   const hosts: LocalAgentHost[] = []
@@ -193,7 +193,7 @@ describe('the composed compound turn: complete, or loud (CHAT-01 / D-10 / D-11 /
       expect(tripwire.calls()).toBe(0)
     })
 
-    it('mints human for BOTH stage-1 clauses (RESEARCH Pitfall 1)', async () => {
+    it('mints human for BOTH stage-1 clauses', async () => {
       const tripwire = plannerTripwire('fixture:never-called')
       const host = compose({ chatModel: tripwire.model })
 
@@ -238,7 +238,7 @@ describe('the composed compound turn: complete, or loud (CHAT-01 / D-10 / D-11 /
     })
   })
 
-  describe('the fail-closed compound arm (D-08 / D-10 composed)', () => {
+  describe('the fail-closed compound arm', () => {
     it('executes ZERO clauses and names the unroutable half', async () => {
       // No model bound: the headless posture, where an unresolved clause has nowhere left to go.
       const host = compose()
@@ -253,7 +253,7 @@ describe('the composed compound turn: complete, or loud (CHAT-01 / D-10 / D-11 /
       expect(result.unhandled?.reason).toContain('write a test for two factor auth')
     })
 
-    it('records the refusal as a mark_unhandled event (D-15 field rate)', async () => {
+    it('records the refusal as a mark_unhandled event', async () => {
       const host = compose()
 
       const result = await ask(host, '/fn quarantine.list and write a test for two factor auth')
@@ -268,7 +268,7 @@ describe('the composed compound turn: complete, or loud (CHAT-01 / D-10 / D-11 /
     })
   })
 
-  describe('D-04 — config drift is an event', () => {
+  describe('config drift is an event', () => {
     it('emits model_change with from/to when a session reopens under a different model', async () => {
       const first = compose({ chatModel: plannerTripwire('fixture:model-a').model })
       const opened = await ask(first, '/fn quarantine.list')
@@ -301,7 +301,7 @@ describe('the composed compound turn: complete, or loud (CHAT-01 / D-10 / D-11 /
     })
   })
 
-  describe('CHAT-04 — the degrade pass reaches the session log when a host binds accounting', () => {
+  describe('the degrade pass reaches the session log when a host binds accounting', () => {
     it('emits ONE compaction event on the turn that triggers, ahead of the user message', async () => {
       // The accounting instance is a FIXTURE of the substrate, not of the policy: plan 06 measured
       // the real `degrade` against the shipped implementation, and what is under test here is
@@ -330,7 +330,7 @@ describe('the composed compound turn: complete, or loud (CHAT-01 / D-10 / D-11 /
     })
   })
 
-  describe('D-16 — the strategy seam is composition-only and test-visible', () => {
+  describe('the strategy seam is composition-only and test-visible', () => {
     it('honours an injected strategy, so the mutation proof has something to switch', async () => {
       // The cheap cousin of plan 10's differential: the point is not this refusal, it is that the
       // REAL assembled host took the strategy it was handed. A composition that ignored the option
@@ -456,7 +456,7 @@ function overrideKnobKeys(keys: readonly string[]): string[] {
   })
 }
 
-describe('D-16/T-392-24: no production knob can disable the deterministic override', () => {
+describe('no production knob can disable the deterministic override', () => {
   it('walks a real, non-empty config-schema key inventory', () => {
     const keys = collectConfigSchemaKeys()
     // A walker that silently returned nothing would pass the assertion below forever.

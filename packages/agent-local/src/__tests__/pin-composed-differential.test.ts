@@ -80,7 +80,7 @@ interface AuditRow {
   readonly reason: string
 }
 
-describe('D-21 retired: a typed /pin reaches nothing through the composed stack (432-13)', () => {
+describe('retired: a typed /pin reaches nothing through the composed stack', () => {
   let root: string
   let agentQaRoot: string
   let host: LocalAgentHost
@@ -168,7 +168,7 @@ describe('D-21 retired: a typed /pin reaches nothing through the composed stack 
 
   // RE-SPELLED 2026-09-30 (432-13) from 'the pin is a LIVE view: a second class pinned mid-session
   // denies from the next turn'. There is no pin set to be live.
-  it('C432-CHAT-DIRECT: a /pin typed mid-session denies nothing on the next turn', async () => {
+  it('a /pin typed mid-session denies nothing on the next turn', async () => {
     const opened = await ask('status')
     expect(opened.receipts[0]?.status).toBe('executed')
 

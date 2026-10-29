@@ -84,7 +84,7 @@ const MINT_IDENTITY = (filePath: string): string => filePath
 const UTTERANCE_A = '/fn quarantine.list'
 const UTTERANCE_B = 'status'
 
-describe('two sessions, overlapping turns, two intact files (CHAT-05 / CR-01)', () => {
+describe('two sessions, overlapping turns, two intact files', () => {
   let root: string
   let agentQaRoot: string
   const hosts: LocalAgentHost[] = []
@@ -273,7 +273,7 @@ describe('two sessions, overlapping turns, two intact files (CHAT-05 / CR-01)', 
 /** The class a person pins, in the NORMALISED spelling the holder records and the gate compares. */
 const PINNED_CLASS = `fn:${QUARANTINE_LIST_FUNCTION_ID}`
 
-describe('a typed /pin reaches no conversation (W-03; /pin retired 432-13)', () => {
+describe('a typed /pin reaches no conversation (/pin is retired)', () => {
   let root: string
   let agentQaRoot: string
   const hosts: LocalAgentHost[] = []
@@ -338,7 +338,7 @@ describe('a typed /pin reaches no conversation (W-03; /pin retired 432-13)', () 
   // survive the pin overlay's deletion. Two sessions take overlapping turns that mix a typed `/pin`
   // with an op; each turn answers for itself, the op clause still executes in order, and no session
   // state carries a pin field.
-  it('C432-PIN-ABSENT: overlapping sessions mixing /pin and an op keep their own receipts, in clause order', async () => {
+  it('overlapping sessions mixing /pin and an op keep their own receipts, in clause order', async () => {
     const host = compose()
     const a = await ask(host, '/fn quarantine.list')
     const b = await ask(host, '/fn quarantine.list')
@@ -454,7 +454,7 @@ function recordingModel(): RecordingModel {
   }
 }
 
-describe('the planner reads the conversation of the session it is planning FOR (CR-02)', () => {
+describe('the planner reads the conversation of the session it is planning FOR', () => {
   let root: string
   let agentQaRoot: string
   const hosts: LocalAgentHost[] = []

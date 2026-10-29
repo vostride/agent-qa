@@ -168,7 +168,7 @@ async function pump(jobs: LocalAgentJobs, fence: { epoch: number }): Promise<num
   throw new Error('the queue did not drain within the pump bound')
 }
 
-describe('curation claim deferral by candidate-prose posture (G-388-2 / UF-388-01)', () => {
+describe('curation claim deferral by candidate-prose posture', () => {
   it('a host declaring no masker pumps and never claims curate-memory: the row stays queued, unclaimed, attempts 0', async () => {
     const root = freshRoot()
     const unmasked = await openHost(root, 'no-masker')
@@ -273,7 +273,7 @@ describe('curation claim deferral by candidate-prose posture (G-388-2 / UF-388-0
     expect(masked.jobs.unclaimableKinds).toEqual([])
   })
 
-  it('a host with NO postRun binding is treated as unmasked, not as unconstrained (WR-12)', async () => {
+  it('a host with NO postRun binding is treated as unmasked, not as unconstrained', async () => {
     // The third posture. A host that never declared what its fold does with candidate prose
     // cannot have reviewed it, so the safe reading of silence is `no-masker` — and 388-09's
     // M-3 hazard is exactly why: a stand-in registry composed without `postRun` runs a
@@ -294,7 +294,7 @@ describe('curation claim deferral by candidate-prose posture (G-388-2 / UF-388-0
     expect(jobs.unclaimableKinds).toEqual(['curate-memory'])
   })
 
-  it('the posture table is frozen and the queue cannot be re-armed through it (WR-11)', async () => {
+  it('the posture table is frozen and the queue cannot be re-armed through it', async () => {
     // Every sibling security-relevant table in compose-local-agent.ts is frozen (:263, :322,
     // :784, :797). This one guards a DISCLOSURE boundary and was the only one left writable,
     // and the engine captured its array by reference — so a typechecks-clean write to either

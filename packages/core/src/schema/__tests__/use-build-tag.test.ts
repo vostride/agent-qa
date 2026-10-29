@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { UseSchema } from '../use-schema.js'
 
-describe('UseSchema buildTag (D-16)', () => {
+describe('UseSchema buildTag', () => {
   it('accepts and trims a non-empty build tag', () => {
     expect(UseSchema.parse({ buildTag: '  v1.2.0  ' }).buildTag).toBe('v1.2.0')
   })

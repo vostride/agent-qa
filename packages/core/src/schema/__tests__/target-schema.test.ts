@@ -5,7 +5,7 @@ import { TargetSchema } from '../registry-schema.js'
 // left visibly undeclared here so the run gate's descriptor builder — not this schema — is the one
 // place that decides undeclared means shared. A `.default('shared')` in this file would move that
 // decision into config loading and make an honest declaration indistinguishable from a silence.
-describe('TargetSchema.environment (D-06 target class)', () => {
+describe('TargetSchema.environment, the target class', () => {
   const webBase = { platform: 'web' as const, url: 'https://example.com' }
 
   it('accepts environment: local', () => {

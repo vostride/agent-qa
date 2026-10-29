@@ -62,7 +62,7 @@ function cleanModules(): ResumePathModule[] {
   ]
 }
 
-describe('resume-path-model-free scope (385-07 / D-11 layer 3)', () => {
+describe('resume-path-model-free scope', () => {
   it('pins entries that exist on disk, inside the package it walks', () => {
     expect(RESUME_PATH_ENTRY_FILES.length).toBeGreaterThan(0)
     for (const entry of RESUME_PATH_ENTRY_FILES) {
@@ -168,7 +168,7 @@ describe('resume-path-model-free — the POSITIVE control (it must be able to fa
     }
   })
 
-  it('counts a type-only import, because the extractor is type-blind by design (384 D-04)', () => {
+  it('counts a type-only import, because the extractor is type-blind by design', () => {
     const modules = cleanModules()
     // `import type { X } from '<model>'` produces exactly this hit; the rule sees specifiers, and a
     // package named as a type is still a declared edge of the file.
@@ -218,7 +218,7 @@ describe('resume-path-model-free — the ANTI-VACUITY controls (it must not pass
 // runtime to a sibling file — an ordinary edge of the resume path, wearing a package name. Every
 // fixture below produced ZERO offenders while the walk followed only relative specifiers, which
 // is the "one-line helper module beside the entry" defeat this rule's own header claims to close.
-describe('resume-path-model-free — the SELF-PACKAGE edge class (D-11 layer 3)', () => {
+describe('resume-path-model-free — the SELF-PACKAGE edge class', () => {
   const SELF_HELPER = `${RESUME_PATH_SELF_PACKAGE_NAME}/composition/recovery-helper.js`
   const BARREL = 'packages/agent-local/src/index.ts'
   const RUN_COMPOSITION = 'packages/agent-local/src/composition/run-composition.ts'

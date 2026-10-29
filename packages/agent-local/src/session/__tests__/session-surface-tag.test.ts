@@ -86,7 +86,7 @@ describe('the surface tag rides the session HEADER', () => {
     await reopened.close()
   })
 
-  it('writes NO tag for a host that names no surface — the pre-400 CLI-chat population', async () => {
+  it('writes NO tag for a host that names no surface, as the CLI chat does', async () => {
     const root = freshRoot()
     const log = logOn(root)
     const opened = await log.open()

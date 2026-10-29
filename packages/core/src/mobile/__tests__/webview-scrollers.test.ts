@@ -10,7 +10,7 @@ const el = (id: string, y: number, maxY: number, x = 0, maxX = 0): IdentifiedScr
 const A = '0/1/2|div#a.'
 const B = '0/1/3|div#b.'
 
-describe('C436-WEBVIEW-SCROLLERS WebView scroller members are paired by identity (436-23 · D-25)', () => {
+describe('WebView scroller members are paired by identity', () => {
   it('identical membership is judged by the scroller-set rule', () => {
     expect(webViewSwipeSignal('down', [doc(0, 700), el(A, 0, 1200)], [doc(0, 700), el(A, 400, 1200)])).toBe('moved')
     expect(webViewSwipeSignal('down', [doc(700, 700), el(A, 1200, 1200)], [doc(700, 700), el(A, 1200, 1200)])).toBe('at-boundary')

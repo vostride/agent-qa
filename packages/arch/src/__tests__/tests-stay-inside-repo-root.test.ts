@@ -194,7 +194,7 @@ describe('test code reads nothing outside the agent-qa root', () => {
     expect(UNIVERSE).toContain('packages/eval-local/src/__tests__/replay-composition.test.ts')
   })
 
-  it('C434-NO-SUPER-REPO-READS: every detection rule fires on its planted shape and ignores comments and data strings', () => {
+  it('every detection rule fires on its planted shape and ignores comments and data strings', () => {
     const fileDir = 'dirname(fileURLToPath(import.meta.url))'
     expect(plantedRules(`new URL('${UP.repeat(5)}x', import.meta.url)`)).toEqual(['R-URL'])
     expect(plantedRules(`new URL('${UP.repeat(4)}x', import.meta.url)`)).toEqual([])
@@ -215,7 +215,7 @@ describe('test code reads nothing outside the agent-qa root', () => {
     expect(REAL_HITS.map(describeHit)).toEqual([])
   })
 
-  it('C434-NO-SUPER-REPO-READS: this file matches none of its own rules', () => {
+  it('this file matches none of its own rules', () => {
     expect(UNIVERSE).toContain(THIS_FILE)
     expect(scanSource(THIS_FILE, readFileSync(fileURLToPath(import.meta.url), 'utf8')).map(describeHit)).toEqual([])
   })

@@ -27,7 +27,7 @@ const MARKER = '[secret:PLANTED_399105]'
 
 const HUMAN: FunctionCaller = { origin: 'human', surface: 'cli' } as unknown as FunctionCaller
 
-describe('clause_result persists the MASKED payload, on the real file (399.1-05)', () => {
+describe('clause_result persists the MASKED payload, on the real file', () => {
   let root: string
 
   beforeEach(() => {

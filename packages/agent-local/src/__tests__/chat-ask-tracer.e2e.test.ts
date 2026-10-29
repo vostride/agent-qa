@@ -69,7 +69,7 @@ const MINT_IDENTITY = (filePath: string): string => filePath
 // 432-13 (D-05/D-14): the tracer's utterance was the bare `proposals` alias, which left chat
 // resolution with the inbox. The same op is reached through the one `/fn` branch, and every claim
 // below (table resolution, human origin, the durable JSONL shape, resume) is unchanged.
-describe('the 392 tracer: agent-qa ask "/fn quarantine.list", end to end over the composed host', () => {
+describe('the ask tracer: agent-qa ask "/fn quarantine.list", end to end over the composed host', () => {
   let root: string
   let agentQaRoot: string
   let host: LocalAgentHost
@@ -115,7 +115,7 @@ describe('the 392 tracer: agent-qa ask "/fn quarantine.list", end to end over th
     return readFileSync(path, 'utf8').split('\n').filter((line) => line !== '')
   }
 
-  it('CHAT-01/D-06: the deterministic table resolves "/fn quarantine.list" and the clause executes', async () => {
+  it('the deterministic table resolves "/fn quarantine.list" and the clause executes', async () => {
     const result = await ask('/fn quarantine.list')
 
     expect(result.status).toBe('completed')
@@ -134,7 +134,7 @@ describe('the 392 tracer: agent-qa ask "/fn quarantine.list", end to end over th
     expect(result.unhandled).toBeUndefined()
   })
 
-  it('CHAT-05/D-18: the turn is on disk as JSONL with a versioned header and a boundary marker', async () => {
+  it('the turn is on disk as JSONL with a versioned header and a boundary marker', async () => {
     const result = await ask('/fn quarantine.list')
     const lines = sessionLines(result.sessionId)
 
@@ -181,7 +181,7 @@ describe('the 392 tracer: agent-qa ask "/fn quarantine.list", end to end over th
     expect(JSON.stringify(receipt)).not.toContain('"entries":')
   })
 
-  it('CHAT-01/D-08/D-10: an unroutable clause with no planner bound fails the turn closed', async () => {
+  it('an unroutable clause with no planner bound fails the turn closed', async () => {
     const result = await ask('write a test for two factor auth')
 
     expect(result.status).toBe('fail_closed')
@@ -193,7 +193,7 @@ describe('the 392 tracer: agent-qa ask "/fn quarantine.list", end to end over th
     expect(result.unhandled?.reason).toContain('write a test for two factor auth')
   })
 
-  it('CHAT-05/D-17: a second turn appends to the same session rather than rewriting it', async () => {
+  it('a second turn appends to the same session rather than rewriting it', async () => {
     const first = await ask('/fn quarantine.list')
     const afterFirst = sessionLines(first.sessionId)
 
@@ -207,7 +207,7 @@ describe('the 392 tracer: agent-qa ask "/fn quarantine.list", end to end over th
     expect(afterSecond.length).toBeGreaterThan(afterFirst.length)
   })
 
-  it('D-17/T-392-01: an unknown session id is a typed refusal, never a fresh create', async () => {
+  it('an unknown session id is a typed refusal, never a fresh create', async () => {
     await expect(ask('/fn quarantine.list', 'chat-19700101-000000-zzzz')).rejects.toThrow(
       /chat-19700101-000000-zzzz/,
     )

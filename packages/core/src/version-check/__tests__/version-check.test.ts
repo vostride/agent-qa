@@ -98,7 +98,7 @@ describe('getAgentQaUpdateStatus', () => {
     await rm(tempDir, { recursive: true, force: true })
   })
 
-  it('D-01/D-03 uses fresh cache younger than 24 hours without calling npm', async () => {
+  it('uses fresh cache younger than 24 hours without calling npm', async () => {
     await writeCache(cachePath, {
       latestVersion: '9.9.9',
       checkedAt: freshCheckedAt,
@@ -122,7 +122,7 @@ describe('getAgentQaUpdateStatus', () => {
     expectPublicStatusShape(status)
   })
 
-  it('D-01/D-02 refreshes stale cache from npm and writes latestVersion freshness separately', async () => {
+  it('refreshes stale cache from npm and writes latestVersion freshness separately', async () => {
     await writeCache(cachePath, {
       latestVersion: '1.0.0',
       checkedAt: staleCheckedAt,
@@ -167,7 +167,7 @@ describe('getAgentQaUpdateStatus', () => {
     ['missing dist-tags.latest', async () => createJsonResponse({ 'dist-tags': {} })],
     ['invalid latest semver', async () => createJsonResponse({ 'dist-tags': { latest: 'not-a-version' } })],
   ])(
-    'D-04/D-05 records lastAttemptedAt and returns stale latestVersion for %s',
+    'records lastAttemptedAt and returns stale latestVersion for %s',
     async (_name, fetchImpl) => {
       await writeCache(cachePath, {
         latestVersion: '9.9.9',
@@ -196,7 +196,7 @@ describe('getAgentQaUpdateStatus', () => {
     },
   )
 
-  it('D-03/D-04 throttles stale refresh attempts for 24 hours via lastAttemptedAt', async () => {
+  it('throttles stale refresh attempts for 24 hours via lastAttemptedAt', async () => {
     await writeCache(cachePath, {
       latestVersion: '9.9.9',
       checkedAt: staleCheckedAt,
@@ -230,7 +230,7 @@ describe('getAgentQaUpdateStatus', () => {
   it.each([
     ['missing cache', null],
     ['malformed cache', 'not json{{{'],
-  ])('D-05 returns no update data without throwing for %s plus registry failure', async (_name, rawCache) => {
+  ])('returns no update data without throwing for %s plus registry failure', async (_name, rawCache) => {
     if (typeof rawCache === 'string') {
       await writeFile(cachePath, rawCache, 'utf-8')
     }
@@ -251,7 +251,7 @@ describe('getAgentQaUpdateStatus', () => {
     expectPublicStatusShape(status)
   })
 
-  it('D-01 returns updateAvailable false when installed version is greater than or equal to latestVersion', async () => {
+  it('returns updateAvailable false when installed version is greater than or equal to latestVersion', async () => {
     await writeCache(cachePath, {
       latestVersion: getAgentQaVersion(),
       checkedAt: freshCheckedAt,
@@ -273,7 +273,7 @@ describe('getAgentQaUpdateStatus', () => {
     expectPublicStatusShape(status)
   })
 
-  it('D-05 returns computed status when cache write fails after a successful registry response', async () => {
+  it('returns computed status when cache write fails after a successful registry response', async () => {
     const blockedParent = join(tempDir, 'blocked-parent')
     await writeFile(blockedParent, 'not a directory', 'utf-8')
     const blockedCachePath = join(blockedParent, 'version-check.json')
@@ -294,7 +294,7 @@ describe('getAgentQaUpdateStatus', () => {
     expectPublicStatusShape(status)
   })
 
-  it('D-03 defaults timeoutMs to 5000 and cacheTtlMs to 24 hours', async () => {
+  it('defaults timeoutMs to 5000 and cacheTtlMs to 24 hours', async () => {
     expect(VERSION_CHECK_TIMEOUT_MS).toBe(5000)
     expect(VERSION_CHECK_CACHE_TTL_MS).toBe(24 * 60 * 60 * 1000)
     await writeCache(cachePath, {

@@ -151,7 +151,7 @@ function eventsUnderRoot(root: string, runId: string): string[] {
     .map((event) => event.type)
 }
 
-describe('the evidence pair holds over the in-process core (401-05, T-401-13)', () => {
+describe('the evidence pair holds over the in-process core', () => {
   it('A REAL CORE-DRIVEN RUN ACKS, and its log is under the composition’s OWN root', async () => {
     const invocation = createLocalRunInvocation({
       agentQaRoot,
@@ -213,7 +213,7 @@ describe('the evidence pair holds over the in-process core (401-05, T-401-13)', 
   })
 })
 
-describe('the runs.start ack is read off the durable record, over the core (401-05, INVK-06)', () => {
+describe('the runs.start ack is read off the durable record, over the core', () => {
   async function startThroughTheOp(
     request: RunsStartInput,
     mintRunId: () => string,
@@ -338,7 +338,7 @@ function fixtureCapabilities(): ModelCapabilities {
   }
 }
 
-describe('the retrieval rung is resolved once at the composition root (407 D-13/D-17)', () => {
+describe('the retrieval rung is resolved once at the composition root', () => {
   it('calls THE resolver exactly once, with both roots, and returns what it resolved', async () => {
     const knowledgeRoot = mkdtempSync(join(tmpdir(), 'rung-composition-'))
     try {
@@ -399,7 +399,7 @@ describe('the retrieval rung is resolved once at the composition root (407 D-13/
   })
 })
 
-describe('buildMemberRunConfig carries the rung promise through (407 D-13)', () => {
+describe('buildMemberRunConfig carries the rung promise through', () => {
   it('threads the SAME promise object onto the member run config', () => {
     const promise = Promise.resolve(FIXTURE_RUNG)
     const config = buildMemberRunConfig({
@@ -409,7 +409,7 @@ describe('buildMemberRunConfig carries the rung promise through (407 D-13)', () 
     expect(config.knowledgeRetrievalRung).toBe(promise)
   })
 
-  it('leaves the key absent when the caller passes none (D-16 degrade-when-absent)', () => {
+  it('leaves the key absent when the caller passes none', () => {
     const config = buildMemberRunConfig(memberRunConfigFixtureInput())
     expect(config.knowledgeRetrievalRung).toBeUndefined()
   })
@@ -450,7 +450,7 @@ function fixtureSink(): MemberRunConfig['sink'] {
   } as unknown as MemberRunConfig['sink']
 }
 
-describe('THE THREAD END TO END — a real member run stamps the composed rung (407 D-13/D-16)', () => {
+describe('THE THREAD END TO END — a real member run stamps the composed rung', () => {
   it('lands the composed rung on EVERY step of a run served by a bound reader', async () => {
     const knowledgeRoot = mkdtempSync(join(tmpdir(), 'rung-thread-'))
     try {
@@ -512,7 +512,7 @@ describe('THE THREAD END TO END — a real member run stamps the composed rung (
     }
   })
 
-  it('stamps NO rung when no reader is bound, even with a rung in hand (D-16)', async () => {
+  it('stamps NO rung when no reader is bound, even with a rung in hand', async () => {
     const config = buildMemberRunConfig({
       ...memberRunConfigFixtureInput(),
       planner: {

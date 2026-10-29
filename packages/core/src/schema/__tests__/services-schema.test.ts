@@ -17,7 +17,7 @@ import { DashboardConfigSchema, ServicesSchema } from '../services-schema.js'
 
 const MESSAGE = 'services.dashboard.baseUrl must be an absolute http(s) URL'
 
-describe('DashboardConfigSchema.baseUrl (WR-04 — the parse-time hop)', () => {
+describe('DashboardConfigSchema.baseUrl, the parse-time hop', () => {
   it.each([
     ['an origin', 'http://127.0.0.1:7777'],
     ['an https origin with a path prefix', 'https://dash.internal/prefix'],

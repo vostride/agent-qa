@@ -97,7 +97,7 @@ function fidelityDeclaration(fixture: FidelityFixture): JobKindDeclaration {
   }
 }
 
-describe('recordLlmAuthorship resume fidelity over the real store (D-10 / JOBQ-03)', () => {
+describe('recordLlmAuthorship resume fidelity over the real store', () => {
   let root: string
   let open: SqliteJobStore[]
   let clock: ClockPort

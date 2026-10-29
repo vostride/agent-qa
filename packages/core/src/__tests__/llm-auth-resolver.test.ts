@@ -520,7 +520,7 @@ describe('resolveLLMAuth', () => {
   })
 })
 
-describe('C445-AUTH-MESSAGES', () => {
+describe('a missing credential names the auth command to run', () => {
   let tempDir: string
   let authPath: string
 
@@ -599,7 +599,7 @@ describe('C445-AUTH-MESSAGES', () => {
   })
 })
 
-describe('C445-PUBLIC-API-KEY', () => {
+describe('a compatible config on a public API host needs a key', () => {
   let tempDir: string
   let authPath: string
 

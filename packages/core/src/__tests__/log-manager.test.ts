@@ -245,7 +245,7 @@ describe('LogManager', () => {
   })
 })
 
-describe('C441-HOOK-OUTPUT', () => {
+describe('declared values in log output', () => {
   let stderrSpy: any
   let stdoutSpy: any
 
@@ -311,7 +311,7 @@ describe('C441-HOOK-OUTPUT', () => {
 // The interleaving below is not a stress test and has no timing assertion: it is the exact
 // deterministic order the pool produces (each member mints its id inside its own closure), replayed
 // synchronously so the cells are reproducible.
-describe('LogManager — concurrent members share one instance (WINDOWS #233)', () => {
+describe('LogManager — concurrent members share one instance', () => {
   let stderrSpy: any
 
   beforeEach(() => {
