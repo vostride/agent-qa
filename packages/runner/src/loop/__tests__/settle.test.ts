@@ -1,8 +1,3 @@
-// RED scaffold (Wave 0, CACHE-05 / D-09 / D-16). The bounded settle gate polls
-// screenIdentityHash and proceeds on two consecutive matching hashes; it ignores
-// benign text churn (same role+nameNormalized identity) and proceeds-on-latest at the
-// maxPolls bound without hanging. The returned hash is the value downstream consumes
-// (settle + key component + progress). Fails until Plan 04 creates ../settle.ts.
 import { describe, expect, it } from 'vitest'
 
 import { screenIdentityHash } from '@vostride/agent-qa-schema'

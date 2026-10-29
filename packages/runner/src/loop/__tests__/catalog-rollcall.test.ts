@@ -1,18 +1,3 @@
-// D-20 catalog roll-call — the phase's permanent conformance anchor (Phase 360, Plan 02).
-//
-// Registry-driven, NOT a hand-kept verb list: instantiate ToolRegistry + registerAllActions,
-// assert the frozen counts, then walk EVERY registered id. A per-verb minimal-valid-args
-// fixture map is keyed BY the registry walk (a completeness guard fails naming any registered
-// id without a fixture, so the registry stays the source of truth), and each fixture is proven
-// to convert through toolCallToActionPlan (the emission→plan boundary). The dispatch-totality
-// leg then asserts every (id, legal-platform) pair is either a runner mint (MINT_VERBS from
-// ../../compound/dispatch-mint.js) or reaches adapter.execute via the loop harness with a
-// call-logging fake adapter — an assertNever-style totality proof expressed at runtime.
-//
-// RED today: the dispatch-totality leg imports MINT_VERBS from a module Plans 08/10 land, so it
-// fails on the missing import; once that module exists it fails naming the ids the flip has not
-// yet routed (Plans 04-07). The frozen-count + fixture-completeness legs pass today by design.
-// The walk is driver-free (fake adapters only) and deterministic.
 import { describe, it, expect } from 'vitest'
 import type { Platform } from '@vostride/agent-qa-schema'
 
@@ -162,8 +147,7 @@ async function dispatchReachesAdapter(action: Action, platform: Platform): Promi
       ports({
         adapter,
         planner: makePlanner([makeActionPlan({ action: action as ActionPlan['action'], stepComplete: false })]),
-        // No verifier: the probe ends at its action limit, which a bound verifier would judge
-        // over a settled screen; dispatch is all this probe reads.
+        // No verifier: the probe ends at its action limit, and dispatch is all it reads.
         plannerConfig: { maxActions: 1, maxPlanningTurns: 1, previousStepCount: 0 },
         onSetVariable: () => { setVariableRouted = true },
       }),
@@ -205,7 +189,6 @@ describe('catalog roll-call', () => {
   })
 
   it('every registered id on every legal platform either mints or dispatches', async () => {
-    // MINT_VERBS landed with the dispatch-mint module in Plan 08 (import now resolves).
     const { MINT_VERBS } = await import('../../compound/dispatch-mint.js')
     const mintSet = new Set<string>(MINT_VERBS as readonly string[])
 

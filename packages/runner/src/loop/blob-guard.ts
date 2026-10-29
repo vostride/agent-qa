@@ -1,22 +1,11 @@
-// Pure runner-local pre-prompt blob-guard fallback. Bounds a single
-// one-shot structured tool-output value before it lands in the sub-action history / next
-// planning turn — replacing the v1 2000-char guillotine. When a composition root injects a
-// canonical guardBlob (model's shared substrate), it is used in preference; otherwise this
-// boundary-respecting fallback applies a generous documented ceiling + a visible marker.
+// An injected `guardBlob` wins; this fallback bounds one tool-output value with a visible marker.
 
 const TRUNCATION_MARKER = '…[truncated to fit context budget]'
 
-// A single structured value is one thing, not a burst — so it earns a far more generous
-// bound than the v1 2000-char slice: 8000 chars (~2000 tokens, 4×) keeps real signal while
-// still capping an adversarial huge/repeating blob.
+// One structured value is not a burst, so it gets a generous bound that still caps a huge blob.
 const BLOB_CEILING = 8000
 
-/**
- * Bound one-shot tool-output data for prompt inclusion. Delegates to an injected `guard`
- * when present (single shared implementation); else applies the runner-local fallback:
- * `undefined`⇒`undefined`, a short value safe-stringified verbatim, and a value over the
- * ceiling sliced with the visible marker. Never throws on cyclic input.
- */
+// Delegates to an injected `guard` when present; never throws on cyclic input.
 export function guardActionData(
   value: unknown,
   guard?: (value: unknown) => string | undefined,

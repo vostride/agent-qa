@@ -1,22 +1,3 @@
-// Wave-0 (test-first) scaffold for Phase 355 CTXB-01/CTXB-02 — the three cache-ordered
-// planner-prompt tiers (stable / context / volatile), the single Anthropic cache_control
-// breakpoint on the context message, and the per-turn-state decomposition.
-//
-// RED BY DESIGN: `buildContextTier`, `buildVolatileTier`, and `composeTurnMessages` do
-// not exist until Plan 03 rebuilds prompts.ts into tiers. `buildSystemPrompt` (the stable
-// tier) already exists and is unchanged. The failing reason must be exactly the
-// not-yet-implemented tier builders (a missing-export / not-a-function error naming the
-// symbol) — never a typo or wrong fixture. Plan 03 turns this GREEN.
-//
-// Contract these tests pin (per CONTEXT D-04/D-05/D-06/D-07/D-09/D-12):
-//   - buildContextTier(context)  → SystemModelMessage (role:'system'); carries the ONE
-//                                   ephemeral breakpoint under providerOptions.anthropic.cacheControl.
-//   - buildVolatileTier(context) → SystemModelMessage (role:'system'); NO breakpoint; a
-//                                   date-granularity stamp; renders no 'Knowledge brief'
-//                                   section when the brief slot is empty.
-//   - composeTurnMessages(context, screenState) → ModelMessage[]; the per-turn state
-//                                   (screen tree, previous steps, sub-action history) lives
-//                                   here and NEVER in the system tiers; empty slots omitted.
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import type { ModelMessage, SystemModelMessage } from 'ai'
 import { sha256hex, type ScreenState } from '@vostride/agent-qa-schema'
@@ -24,7 +5,6 @@ import type { StepContext } from '../types.js'
 import { buildAgentScreenState, type LooseScreenState } from './screen-fixtures.js'
 import {
   buildSystemPrompt,
-  // Plan-03 tier API — intentionally unresolved today (the RED reason for this suite):
   buildContextTier,
   buildVolatileTier,
   captureServedPromptTurn,
@@ -56,8 +36,7 @@ function makeScreenState(overrides: LooseScreenState = {}): ScreenState {
   })
 }
 
-// The planner `system` value: an ordered [stable, context, volatile] array. Stable is
-// wrapped from the (unchanged) string builder; context/volatile are Plan-03 tier builders.
+// The planner `system` value: an ordered [stable, context, volatile] array of tier messages.
 function buildPlannerSystem(
   ctx: StepContext,
   platform: 'web' | 'android' | 'ios' = 'web',

@@ -39,7 +39,6 @@ describe('narrowed types', () => {
       operationEvidence?: OperationEvidence
       localEffect?: LocalEffectEvidence
     }>()
-    // input evidence joins downloads and clipboard.
     expectTypeOf<keyof OperationEvidence>().toEqualTypeOf<'downloads' | 'clipboard' | 'input'>()
   })
 })

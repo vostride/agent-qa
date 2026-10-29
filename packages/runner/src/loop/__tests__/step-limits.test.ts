@@ -1,5 +1,3 @@
-// HARN-02 / 436 D-01, D-07, D-10..D-13: a step execution runs under a monotonic action limit and
-// stops honestly, with a typed limit block, when the limit refuses the next dispatch.
 import { describe, expect, it } from 'vitest'
 import {
   PROCEDURE_BODY_SCHEMA_VERSION,
@@ -140,7 +138,7 @@ describe('the action limit per step', () => {
     const result = await executeStep('Save the form', ports({ adapter, planner, verifier, secretRedactor, plannerConfig: limits(3) }), makeStepContext())
     expect(result.status).toBe('failed')
     expect(adapter.executed).toHaveLength(3)
-    // Three rejected completions, then the stop's own judgment.
+    // One call per rejected completion, plus the stop's own judgment.
     expect(verifier.calls).toBe(4)
     expect(result.evidence?.conditionVerdicts?.ending).toBe('limit-stop')
     const stop = result.evidence?.limitStop
@@ -301,7 +299,7 @@ function procedureReader(): KnowledgeHintReader {
 
 function expectActionStop(result: Awaited<ReturnType<typeof executeStep>>, n: number): void {
   const reason = formatLimitStopReason('actions', n, n)
-  // with a verifier bound the stop is judged and the unproven conditions follow.
+  // With a verifier bound, the stop is judged and the unproven conditions follow.
   const judged = result.evidence?.conditionVerdicts
   const unproven = judged === undefined ? '' : formatUnprovenReason(judged.conditions)
   expect(result.status).toBe('failed')
@@ -488,7 +486,7 @@ describe('every action path is counted against the action limit', () => {
       },
     }
     const result = await executeStep('Check and log in', ports({ adapter: scriptedAdapter([{ success: true }]), planner, verifier, plannerConfig: limits(4) }), makeStepContext())
-    // Two rejected completions, then the limit stop's own judgment.
+    // One call per rejected completion, plus the limit stop's own judgment.
     expect(verifier.verifyCalls).toBe(3)
     expect(verifier.judgeCalls).toBe(2)
     expect(result.evidence?.limitUsage).toMatchObject({

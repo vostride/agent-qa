@@ -1,10 +1,3 @@
-// EXEC-05 / EXEC-06 / EXEC-07 requirement roll-call (Phase 360, Plan 11 close-out).
-//
-// Each acceptance criterion maps to at least one assertion here over the shipped runner surface:
-// the dispatch-seam mints and typed evidence blocks (termination verbs, the AI judge lane, the
-// deterministic assertValue split) and the frozen tool catalog (../../tools). The
-// termination-verbs, ai-assertions, assert-value, catalog-rollcall and legacy-retirement suites and
-// packages/{web,android,ios} catalog.test.ts own the exhaustive matrices.
 import { describe, it, expect } from 'vitest'
 
 import type { ScreenState } from '@vostride/agent-qa-schema'
@@ -105,10 +98,6 @@ function makeCountingCache(): ActionPlanCache & { setCalls: number } {
   return cache
 }
 
-// -----------------------------------------------------------------------------
-// termination verbs: reportValue + infeasible route through typed
-// evidence and the verdict, never implicit screen state.
-// -----------------------------------------------------------------------------
 describe('reportValue and explicit infeasible/stepFailed termination are first-class typed verbs into step evidence and the verdict', () => {
   it('a reportValue mint lands in StepEvidence.reportedValue and on the sub-action result with ZERO adapter.execute (platform-less answer verb)', async () => {
     const calls: Action[] = []
@@ -169,10 +158,6 @@ describe('reportValue and explicit infeasible/stepFailed termination are first-c
   })
 })
 
-// -----------------------------------------------------------------------------
-// full catalog↔adapter reconciliation: every registered tool executes
-// on its legal platforms; legacy runtime-only verbs retired.
-// -----------------------------------------------------------------------------
 describe('every v45 registered tool executes on its legal platforms with the legacy runtime-only verbs retired', () => {
   it('freezes the registered catalog at 56 registered / web 33 / android 30 / ios 27', () => {
     const registry = new ToolRegistry()
@@ -201,10 +186,6 @@ describe('every v45 registered tool executes on its legal platforms with the leg
   })
 })
 
-// -----------------------------------------------------------------------------
-// AI assertions single-model + deterministic assertValue: assertAI is
-// cache-bypassed, assertValue judges without a vision round-trip.
-// -----------------------------------------------------------------------------
 describe('assertAI executes single-model cache-bypassed; assertValue is deterministic by construction and feeds the verifier without a vision round-trip', () => {
   it('a scripted-judge assertAI step calls judgeClaim exactly once, the step verifier then decides once (verdictSource verifier-model), finalizes cacheStatus bypass, and never writes the cache', async () => {
     const cache = makeCountingCache()
@@ -246,7 +227,7 @@ describe('assertAI executes single-model cache-bypassed; assertValue is determin
       makeStepContext(),
     )
 
-    // the short-circuit is gone; the verifier judges the step with the read as evidence.
+    // A passing read does not skip the verifier; it is evidence the verifier judges.
     expect(verifier.verifyCalls).toBe(1)
     expect(result.status).toBe('passed')
     expect((result.evidence as { verdictSource?: string }).verdictSource).toBe('verifier-model')

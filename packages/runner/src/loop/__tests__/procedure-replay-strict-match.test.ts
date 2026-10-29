@@ -1,7 +1,3 @@
-// C438-PROCEDURE-STRICT (438 D-11, D-13, SC3): a committed procedure step replays only onto the
-// one current element with its role, exact name and (when stored) row words. Anything else is a
-// typed guard miss that takes the existing recovery path, and nothing is replayed by position.
-// The real loop (executeStep) runs over makeScreenState screens with a stub knowledge reader.
 import { describe, expect, it } from 'vitest'
 import {
   PROCEDURE_BODY_SCHEMA_VERSION,

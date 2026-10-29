@@ -1,7 +1,3 @@
-// RED scaffold (Wave 0, CACHE-02 / D-08 / Pitfall 7). EvidenceRecorder.finalize emits
-// cacheStatus='bypass' when the step is flagged non-cacheable, via a threaded signal —
-// NOT by overloading the boolean cache-flag fold. Fails until Plan 04 extends finalize:
-// today the extra signal is ignored and a cached sub-action folds to 'hit'.
 import { describe, expect, it } from 'vitest'
 
 import { asRef } from '@vostride/agent-qa-schema'

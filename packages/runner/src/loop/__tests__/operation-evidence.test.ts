@@ -1,6 +1,3 @@
-// operation evidence an adapter attaches to an
-// action reaches that sub-action, the planner's history and the verifier, masked; the adapter's
-// metadata key does not persist.
 import { describe, expect, it } from 'vitest'
 import { APP_OBSERVED_DATA_CLOSE, APP_OBSERVED_DATA_OPEN } from '@vostride/agent-qa-safety'
 import type {
@@ -306,7 +303,7 @@ describe('operation evidence in verifier input, and capture availability', () =>
   })
 })
 
-// the adapter hands over raw clipboard text; the loop masks it, then bounds it.
+// The adapter hands over raw clipboard text; the loop masks it, then bounds it.
 describe('clipboard capture recorded by the loop', () => {
   const LONG = 'secret ' + 'x'.repeat(2993)
   const STRADDLING = 'a'.repeat(CLIPBOARD_TEXT_LIMIT - 3) + 'secret' + 'b'.repeat(997)
@@ -425,8 +422,7 @@ describe('clipboard capture recorded by the loop', () => {
   })
 })
 
-// a download that started after the previous
-// action's capture window closed rides the next action marked late, and is never credited to it.
+// A download started after the previous capture window rides the next action, marked late.
 const LATE_NOTE = "started after the previous action's capture ended; not attributed to this action"
 
 const LATE: DownloadEvidence = {

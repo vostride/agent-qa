@@ -1,4 +1,3 @@
-// Ported from core/src/agent/__tests__/prompts-viewport-contract.test.ts.
 import { describe, it, expect } from 'vitest'
 import { buildSystemPrompt } from '../prompts.js'
 

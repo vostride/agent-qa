@@ -1,18 +1,7 @@
-// Ported from core/src/agent/__tests__/prompts-memory.test.ts.
-//
-// 355-02 rewrite (Wave-0, RED pending Plan 03): the v1 opaque single memory-context
-// string slot is retired and SPLIT into the two v2 channels:
-//   - the knowledge brief → the VOLATILE system tier (`buildVolatileTier`), framed as
-//     hypotheses (L3, not commands), above the cache breakpoint;
-//   - working memory → structured TURN content (`composeTurnMessages`), below the system
-//     region, injected as its own turn message (empty slot omitted).
-// No single opaque memory string survives. Failing reason is exactly the not-yet-
-// implemented tier/turn API (missing exports) + the new StepContext slots until Plan 03.
 import { describe, it, expect } from 'vitest'
 import type { ModelMessage, SystemModelMessage } from 'ai'
 import type { ScreenState } from '@vostride/agent-qa-schema'
 import type { StepContext } from '../types.js'
-// Plan-03 tier/turn API — intentionally unresolved today (the RED reason for this suite):
 import {
   buildVolatileTier,
   captureServedPromptTurn,
@@ -20,10 +9,7 @@ import {
 } from '../prompts.js'
 import { buildAgentScreenState } from './screen-fixtures.js'
 
-// The two v2 memory slots on StepContext: knowledgeBrief (volatile tier) and
-// workingMemory (structured turn content). Phase 358 broke workingMemory from the plain-string
-// slot to the structured `WorkingMemoryEntry[]` set (sanctioned, no shim) — the fixtures below
-// construct entry arrays and assert the value reaches the planner turn verbatim.
+// The memory slots: `knowledgeBrief` (volatile tier) and `workingMemory` (turn content).
 type MemoryContext = Partial<StepContext>
 
 function makeScreenState(): ScreenState {

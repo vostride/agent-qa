@@ -42,8 +42,7 @@ const anchorSchema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('error'), message: z.string() }).strict(),
 ])
 
-// a capability that does not exist cannot be injected into use. Audit controls and
-// run-fixed scope/build attribution are therefore absent from this strict model-facing schema.
+// Audit controls and run-fixed attribution are absent, so the model cannot ask for them.
 const memorySearchInputSchema = z
   .object({
     query: z.string().describe('What recalled hypothesis would help with the live screen?'),
@@ -448,8 +447,7 @@ export function createMemoryTools(deps: {
       authorizedIds: readonly RecordId[] = [],
       turnOrdinal = 0,
     ) {
-      // D-11/D-17 turn order: the loop reseeds recordLedger from the frozen brief first,
-      // then calls beginTurn() to reset the independent search-result and read-body ledgers.
+      // The loop reseeds recordLedger from the brief, then `beginTurn()` resets the other ledgers.
       if (scope !== undefined) activeScope = scope
       exposedIds = new Set(authorizedIds)
       readTraces = []

@@ -1,22 +1,3 @@
-// RED scaffold (Wave 1, Phase 360 · EXEC-07 · D-10/D-11 · spec §7.2/§12.2).
-// Pins the structured assertValue split BEFORE Plan 10 wires it:
-//   Block A — the pure runner comparator `compareAssertValue` (D-10 "runner judges"): one
-//     deterministic case per closed op in the registered assertValue schema
-//     (isNull/isDefined/equals/notEquals/gt/lt/contains); a mismatch carries both values; the
-//     outcome shape matches AssertValueEvidence with sorted keys.
-//   Block B — orchestration: the adapter reads the source and the runner comparator mints (D-10
-//     division). Since 439 D-12 a passing assertValue on a completing step no longer short-circuits
-//     the verifier: the verifier judges it with the read as evidence. Every AI-judged conclusion (assertAI or extractAI) goes through the step
-//     verifier with the author's context, and verdictSource 'verifier-model'
-//     is recorded only with the final verdict, so a rejection leaves it undefined. A false
-//     assertAI never calls verify; a failing assertValue and a platform-unavailable source are
-//     honest §7.1 failures the planner mediates; registered secrets arrive masked in evidence.
-//
-// RED BY DESIGN: Block A imports the not-yet-existing compound/assert-value.js
-// (compareAssertValue) — the whole file fails at collection until Plan 10 lands the module, then
-// the Block B un-wired-behavior pins take over (verdictSource / short-circuit / comparator mint).
-// readAssertValueOutcomeMeta is added to compound/metadata.ts by Plan 10. Typecheck stays green
-// via @ts-expect-error; action shapes not yet in the runner union ride the loose ActionPlan.action.
 import { describe, it, expect } from 'vitest'
 import type { ScreenState } from '@vostride/agent-qa-schema'
 import type { PlatformAdapter, Action, ActionResult } from '../../platform.js'
@@ -29,9 +10,7 @@ import { executeStep } from '../index.js'
 import { makeScreenState } from '../../testing/screen-fixtures.js'
 import { makeStepContext, makePlanner, makeActionPlan } from './loop-harness.js'
 import { SecretStore, SecretRedactor } from '../secrets.js'
-// compareAssertValue landed in Plan 08 (compound/assert-value.js) — Block A goes green here.
 import { compareAssertValue } from '../../compound/assert-value.js'
-// readAssertValueOutcomeMeta landed in Plan 08 (compound/metadata.ts); the seam it reads is Plan 10.
 import { readAssertValueOutcomeMeta } from '../../compound/metadata.js'
 
 // ---------------------------------------------------------------------------
@@ -147,9 +126,6 @@ interface EvidenceView {
 
 const cfg = { maxActions: 4, maxPlanningTurns: 4, previousStepCount: 0 }
 
-// ---------------------------------------------------------------------------
-// Block A — the pure comparator (D-10 "runner judges")
-// ---------------------------------------------------------------------------
 describe('Block A — compareAssertValue: one deterministic case per closed op', () => {
   it('equals / notEquals', () => {
     expect(compareAssertValue({ source: 'url', op: 'equals', expected: 'https://x.test/home', actual: 'https://x.test/home' }).passed).toBe(true)
@@ -179,9 +155,6 @@ describe('Block A — compareAssertValue: one deterministic case per closed op',
   })
 })
 
-// ---------------------------------------------------------------------------
-// Block B — orchestration + the D-11 verifier short-circuit
-// ---------------------------------------------------------------------------
 describe('Block B — assertValue orchestration and the deterministic verifier short-circuit', () => {
   it('a passing assertValue on a completing step mints a deterministic verdict with ZERO verifier.verify calls and verdictSource assert-value (the adapter reads, the runner judges)', async () => {
     const adapter = readingAdapter(makeScreenState(), { success: true, data: 'https://x.test/home' })
@@ -194,7 +167,7 @@ describe('Block B — assertValue orchestration and the deterministic verifier s
       makeStepContext(),
     )
 
-    // the short-circuit is gone; the passing read is evidence the verifier judges.
+    // A passing read does not skip the verifier; it is evidence the verifier judges.
     expect(verifier.verifyCalls).toBe(1)
     expect(result.status).toBe('passed')
     expect((result.evidence as { verdictSource?: string }).verdictSource).toBe('verifier-model')
@@ -299,8 +272,7 @@ describe('Block B — assertValue orchestration and the deterministic verifier s
       makeStepContext(),
     )
 
-    // The false assertAI's completion claim is never verified; the one call is the give-up's
-    // own judgment.
+    // A false assertAI's completion claim is never verified; the call is the give-up's judgment.
     expect(verifier.verifyArgs).toHaveLength(1)
     expect(result.evidence?.conditionVerdicts?.ending).toBe('give-up')
     expect(result.status).toBe('failed')

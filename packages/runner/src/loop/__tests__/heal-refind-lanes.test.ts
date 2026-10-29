@@ -1,13 +1,4 @@
-// a heal re-finds EVERY ref lane of the failed action in
-// the fresh observation by role, exact name and row words (strictMatch) and judges every stated
-// lane against its re-found element, or sends nothing. No pre-observe ref reaches the adapter
-// after a heal. Model-free: a scripted planner and a recording android adapter that shows the
-// prior page until the first dispatch and the fresh page on every observation after it (the
-// loop's settle needs two equal reads, so the page changes when the first action is attempted).
-//
-// the heal's grounding block passes role, name and row
-// through the declared-secret mask, like the live block, and caps the prior row text at the
-// refusal block's observed-row cap.
+// The adapter changes page at the first dispatch, because the loop's settle needs two equal reads.
 import { describe, expect, it } from 'vitest'
 import { vi } from 'vitest'
 import { exercisedAnchors, type ScreenState } from '@vostride/agent-qa-schema'
@@ -394,10 +385,7 @@ async function runSave(
   return { a, result }
 }
 
-// a heal that re-dispatches sends refs taken
-// from the heal's fresh observation, so its dispatch pair (healedDispatch) is recorded against that
-// observation (re-stamped with the planner call's capture stamp): every dispatched ref names, in the
-// dispatch stateBefore, the element the input was sent to. A heal that sends nothing records none.
+// A healed dispatch is recorded against the heal's fresh observation, not the planner's.
 describe('which observation a healed action is recorded against', () => {
   it('a healed click is recorded against the fresh observation it was sent to', async () => {
     const { a, result } = await runSave(SAVE_FRESH, [BINDING_LOST_TO_REF, { success: true }])
@@ -516,13 +504,13 @@ describe('which observation a healed action is recorded against', () => {
     expect(calls).toHaveLength(1)
     const ref = (calls[0]!.action as { ref?: unknown }).ref
     expect(ref).toBe('e3')
-    // the record names the element each action acted on, from that action's observation.
+    // The record names the element each action acted on, from that action's observation.
     expect(calls[0]!.record.actions.at(-1)?.element).toEqual({ role: 'button', name: 'Save' })
     expect(renderStepRecord(calls[0]!.record).actions).toContain('click on ref="e3" (button "Save")')
   })
 })
 
-// plannedAction/stateBefore stay what the planner chose and saw.
+// `plannedAction` and `stateBefore` stay what the planner chose and saw.
 describe('a heal records the dispatch pair beside the planner pair', () => {
   it('a healed click keeps the planner pair and records the dispatch pair beside it', async () => {
     const { a, result } = await runSave(SAVE_FRESH, [BINDING_LOST_TO_REF, { success: true }])

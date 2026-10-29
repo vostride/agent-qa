@@ -1,15 +1,4 @@
-// F-381-51-1 collision proof: whole-flow guarded replay must NOT consume a
-// committed procedure's entire multi-step body inside the single test step whose consult
-// matched. The harness mirrors the committed ladder page's navigate-on-submit shape
-// (T-381-126 fidelity mitigation): a form screen with a username textbox + submit button,
-// and a form-less received screen on a DIFFERENT route behind the stored click. A
-// non-navigating fixture would prove the wrong mechanism — the round-11 synthetic-fixture
-// failure mode.
-//
-// RED rows R1-R3 assert the D-09 per-step contract — a test step dispatches exactly ONE
-// stored action, records a per-step-complete guard fold, and never navigates past its own
-// boundary — and each FAILS on the shipped build, which dispatches BOTH stored actions
-// inside test step 0 (loop/index.ts §2b to exhaustion, isFinal at body end) and navigates.
+// The fixture navigates on submit; a non-navigating fixture would prove the wrong mechanism.
 import { describe, expect, it } from 'vitest'
 import {
   PROCEDURE_BODY_SCHEMA_VERSION,
@@ -321,9 +310,7 @@ const STEP_0_TEXT = `Type "${PROBE_EMAIL}" into the Username field`
 
 describe('procedure step boundary', () => {
   it('harness fidelity: the stored click navigates to a form-less received page on a different route', async () => {
-    // T-381-126 mitigation: assert the navigate-on-submit shape IN-SUITE before any
-    // contract row leans on it. A fixture whose form persists after submit would prove the
-    // wrong mechanism (the stale self-posting probe page of the 381-45 UAT session).
+    // Check the navigate-on-submit shape before any row leans on it.
     const { adapter } = navigatingAdapter()
     const before = await adapter.observe()
     expect(before.url).toBe(FORM_ROUTE)
@@ -357,9 +344,7 @@ describe('procedure step boundary', () => {
     )
 
     expect(result.status).toBe('passed')
-    // a replay-recommendation match drives THAT STEP's actions — the step consumes
-    // exactly the one body step at the cursor. The shipped build dispatches BOTH stored
-    // actions (fill + click) inside step 0.
+    // A replay match drives that step's actions: only the body step at the cursor.
     expect(executed).toHaveLength(1)
     expect(executed[0]).toMatchObject({ type: 'fill' })
     expect(result.evidence?.subActions).toHaveLength(1)
@@ -382,8 +367,7 @@ describe('procedure step boundary', () => {
     if (planSource?.kind !== 'procedure-replay') {
       throw new Error('expected a procedure-replay planSource')
     }
-    // The fold is PER-STEP (D-12 under the D-09 boundary): total = stored actions
-    // attempted within THIS test step. The shipped build records the whole-body 2/2.
+    // The fold is per step: the total counts stored actions attempted within this test step.
     expect(planSource.guard.checksPassed).toBe(1)
     expect(planSource.guard.total).toBe(1)
     expect(planSource.guard.miss).toBeUndefined()
@@ -401,20 +385,13 @@ describe('procedure step boundary', () => {
     )
 
     expect(result.status).toBe('passed')
-    // Replay is naturally bounded by the step: body step 1's click belongs to test
-    // step 1. On the shipped build the click fires inside step 0 and the screen is the
-    // form-less received page — which makes the scripted step 1 imperative unsatisfiable.
+    // Replay is bounded by the step: body step 1's click belongs to test step 1.
     expect(executed.filter((action) => action.type === 'click')).toHaveLength(0)
     expect(currentScreen().url).toBe(FORM_ROUTE)
   })
 })
 
-// ---------------------------------------------------------------------------
-// GREEN rows: the option-(a) cross-step carry.
-// Body steps map 1:1 onto test steps; the member-scoped carry cell is the ONLY channel
-// the cursor crosses a test-step boundary on, and take-then-rearm makes carry loss the
-// default on every early exit.
-// ---------------------------------------------------------------------------
+// Cross-step carry: the member-scoped carry cell is the only channel across a step boundary.
 
 describe('cross-step flow carry', () => {
   it('the carry drives body step 1 at test step 1 — fill at step 0, click at step 1, live at step 2', async () => {
@@ -506,8 +483,7 @@ describe('cross-step flow carry', () => {
 
     const step1 = await executeStep('Click the Submit button', sharedPorts(), context())
     expect(step1.status).toBe('passed')
-    // The carried body step re-ran the full guard ladder on the fresh (received) screen,
-    // missed, and dispatched NOTHING (D-10 — no blind action).
+    // The carried step re-runs the guard ladder on the fresh screen, misses and dispatches nothing.
     expect(executed.filter((action) => action.type === 'click')).toHaveLength(1)
     expect(step1.evidence?.planSource).toEqual({
       kind: 'procedure-replay',
@@ -519,8 +495,7 @@ describe('cross-step flow carry', () => {
       },
       flow: { cursor: 1, length: 2 },
     })
-    // One-shot: structural recovery evidence reaches planning and the flow is over —
-    // the take at step start emptied the cell and the miss never re-arms it.
+    // One-shot: the take at step start empties the cell and the miss never re-arms it.
     expect(planner.calls).toHaveLength(1)
     const learned = `${planner.calls[0].l1 ?? ''}\n${planner.calls[0].l2 ?? ''}`
     expect(learned).toContain('Guarded replay recovery evidence for procedure step 2')
@@ -600,7 +575,7 @@ describe('cross-step flow carry', () => {
       },
       flow: { cursor: 1, length: 2 },
     })
-    // Rejection aborts the FLOW, not just replay re-entry within the step.
+    // Rejection aborts the flow, not just replay re-entry within the step.
     expect(planner.calls).toHaveLength(1)
     const learned = `${planner.calls[0].l1 ?? ''}\n${planner.calls[0].l2 ?? ''}`
     expect(learned).toContain('Guarded replay verifier rejected procedure step 2')
@@ -645,10 +620,7 @@ describe('cross-step flow carry', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// the guard-miss recovery context names stored and fresh
-// candidates by role and name only. No stored or derived position reaches the planner.
-// ---------------------------------------------------------------------------
+// The guard-miss context names stored and fresh candidates by role and name, never by position.
 
 function okayScreen(): ScreenState {
   const base = formScreen()

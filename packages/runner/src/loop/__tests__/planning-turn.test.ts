@@ -1,16 +1,3 @@
-// Behavior tests for the bounded planning tool-loop (353-02 Task 2, D-06/D-07/D-08).
-// `ai.generateText` is mocked with a scripted response queue; `tool` stays real so
-// buildTools produces the true v45 slice and the fake non-action tools carry real
-// `ai` definitions. Zero non-action tools ship in production — these fakes
-// prove the machinery:
-//   1. immediate action call → plan, zero exchanges (the v1-equivalent one-shot path)
-//   2. two non-action calls then an action → both executed in order, exchanges recorded
-//   3. D-08(a) the first over-budget non-action call gets the exhausted result; a further
-//      non-action-only response → planning failure, no throw
-//   4. D-08(b) text-only response → exactly one re-prompt, then planning failure
-//   5. D-08(c) [non-action, action, action] → process first, terminate on second,
-//      discard the third with a logged discard
-//   6. K injectable — with budget 0 the first non-action call gets the exhausted error
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { tool } from 'ai'
 import { z } from 'zod'

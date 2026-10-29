@@ -1,14 +1,3 @@
-// D-19 retired-verb source scan — the phase's permanent retirement anchor (Phase 360, Plan 02).
-//
-// The 353 LOOP-02 source-scan idiom (validate-tools.test.ts globSync+readFileSync) asserting the
-// retired verb world never reappears in runner/web/android/ios source. RED today by construction:
-// the legacy union, adapter cases, prompt coaching, and ref-validation tables still exist; Plans
-// 04-07 delete them. Green only when zero occurrences remain outside the exclusions.
-//
-// Patterns are QUOTED literals (never bare substrings) per the RESEARCH D-19 note: bare `assert`
-// collides with assertNever/assertValue and `refresh` with prose; the quoted forms (`'assert'`,
-// `'refresh'`) match only the retired type/case literals. The scan excludes __tests__ (this suite
-// included — 353 self-exclusion precedent) and dist/ (rebuilt on `pnpm build`).
 import { describe, it, expect } from 'vitest'
 import { globSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
@@ -40,7 +29,7 @@ const RETIRED_ALIASES = [
   'RuntimeOnlyMobileVerbs',
 ]
 
-// The retired assert coaching phrase (Pitfall 8) — the planner prompt must lose it.
+// The assert coaching phrase the planner prompt must not carry.
 const RETIRED_PHRASES = [
   "evidence: 'none'",
   "evidence:'none'",

@@ -1,7 +1,4 @@
-// a passing assertValue no longer ends a step by itself. Every
-// completion claim goes through the verifier, the read is cited evidence for its own condition,
-// and a step that asks for two things cannot pass on one check. setVariable with stepComplete
-// stays call-free, because the runner sets the variable itself.
+// A passing assertValue is judged by the verifier, with its read as cited evidence.
 
 import { describe, expect, it } from 'vitest'
 import type { ScreenState } from '@vostride/agent-qa-schema'

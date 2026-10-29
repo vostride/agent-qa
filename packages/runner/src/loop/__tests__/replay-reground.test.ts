@@ -1,8 +1,4 @@
-// Q4 replay mapping · Pitfall 5 · Pitfall 9, strict since 438 D-10/D-11. Pins the cache replay
-// path: a stored role + exact name replays onto the one current element that has it at whatever
-// ref it now carries; a drifted name or two survivors invalidate → replan (never a pick);
-// multi-ref (drag) replays re-resolve BOTH per-field refs; coordinate actions are
-// non-replayable; and every grounded sub-action carries the §A8 grounding block.
+// A stored role and exact name replay onto the one current element that has them, at any ref.
 import { describe, it, expect, vi } from 'vitest'
 import { asRef } from '@vostride/agent-qa-schema'
 import type { ElementInfo, ScreenState } from '@vostride/agent-qa-schema'
@@ -66,8 +62,7 @@ describe('replay re-ground mapping', () => {
   })
 
   it('stale ref + unique substring match ⇒ re-ground replay with the patched fresh ref (no replan)', async () => {
-    // replay has no substring rung. The stored exact name replays
-    // onto the element that now carries it at a new ref; a drifted name does not replay.
+    // Replay has no substring rung: the exact stored name replays onto its element at a new ref.
     const cached = (): CachedPlanValue => ({
       plannedActions: [{ type: 'click' } as unknown as CacheablePlannedAction],
       groundedLocator: [{ role: 'button', name: 'Log in' }],

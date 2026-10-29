@@ -1,8 +1,4 @@
-// Runner-owned AI capture extractor. Moved 1:1 beside the asserter
-// (loop/asserter.ts LLMAssertionEvaluator) — the injected verifier-lane LanguageModel
-// + direct `generateText` with `maxRetries: 0` and Output.object is the runner's ONLY
-// sanctioned AI-call idiom. No provider construction, no second provider path: egress
-// masking rides the 362 provider-request hook inside runSafetyScope for free.
+// The injected model with `maxRetries: 0` is the runner's only AI-call idiom; no provider.
 import { generateText, Output } from 'ai'
 import { withStepModelCall } from '../run/step-model-observations.js'
 import type { LanguageModel } from 'ai'

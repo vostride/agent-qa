@@ -1,6 +1,4 @@
-// C439-REPLAY (439 D-15, SC3): a cache hit and a procedure replay make no planning call but are
-// still judged by the verifier on a fresh observation under the per-condition contract. The cached
-// outcome never decides the verdict, and saved turns are written only after a computed pass.
+// Cache hits and procedure replays skip planning but are still judged on a fresh observation.
 
 import { describe, expect, it } from 'vitest'
 import {

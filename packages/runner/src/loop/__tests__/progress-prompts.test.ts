@@ -1,8 +1,4 @@
-// the planner prompt judges outcomes, not screen changes. The
-// stagnation and cycle-break blocks cannot render, the progress rules are gone, Rule 22 is the
-// outcome-evidence rule and Rule 13 allows requested repetition. Rules 10 and 17 were re-pinned
-// once by 438, Rule 19 once by 439 and Rule 23 once by 441: the
-// 5e3e932a2 bytes stay below for the record.
+// The planner prompt judges outcomes, not screen changes.
 import { describe, it, expect } from 'vitest'
 import type { ModelMessage } from 'ai'
 import type { ScreenState } from '@vostride/agent-qa-schema'
@@ -31,7 +27,7 @@ const RULE_23_441 =
   '23. SECRETS: [secret:NAME] is a declared secret whose value exists but is hidden from you. ' +
   'To type it, use {{secret:NAME}} verbatim as the action value, never [secret:NAME].'
 
-// Copied from buildSystemPrompt('web') after the 438 rewrite of Rules 10 and 17.
+// Copied from buildSystemPrompt('web') for Rules 10 and 17.
 const PINNED_RULES_438: Record<number, string> = {
   10:
     "10. NEVER hallucinate a ref. A ref is a typed current-screen element handle from the observation, never a CSS selector, XPath, label, or guessed description. If an element appears in the observation without [ref=eN] (e.g. `- menuitemradio \"Chinese\"` with no ref), do NOT guess a ref number. Either use tapCoordinate with coordinates and coordSpace from the observation, or interact with a nearby ref'd element. If a tool offers elementDescription, use it only as optional disambiguation; it never replaces the ref or coordinates. Common no-ref cases: dropdown options, shadow DOM content, canvas elements, dynamically inserted items.\n   STATED TARGET: Every element action (click, tap, fill, select, hover, …) carries both `ref` and `target`. `ref` is the element's handle from the latest observation. `target` states the element you mean: its `role` and `name` as the observation shows them, plus `row`, words from its row's ` text: \"…\"`, whenever the same label appears more than once on the screen. Example: three \"Edit label\" buttons, one per address; to edit the Elm Street address, state `{ role: \"button\", name: \"Edit label\", row: \"7 Elm Street\" }`. Before anything is sent, the system compares the two: a ref that is clearly a different element (another kind of control, an unrelated name, a different number, another row) is refused as target-mismatch and nothing happens, so re-observe and use the ref of the element you mean. With no confident ref, send `target` alone and the system grounds it against the current screen. NEVER send neither: an element action with no `ref` and no `target` cannot be grounded and is rejected. `target` never holds a position or index; to act on \"the second\" of identical controls, use that control's ref. Unlike elementDescription (pure logging), `target` is checked. After a grounding error or a target-mismatch, do NOT retry the identical call.",

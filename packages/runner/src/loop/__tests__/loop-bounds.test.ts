@@ -1,6 +1,4 @@
-// the loop is bounded ONLY by the per-step action limit, the user
-// timeouts/abort, and the verdict — there is no attempt counter (Pitfall 5's regression
-// lock). An always-failing adapter must terminate cleanly at the action limit.
+// The loop ends at its action limit, a timeout, an abort or a verdict; there is no attempt counter.
 import { describe, it, expect } from 'vitest'
 import type { LoopPorts } from '../ports.js'
 import type { Planner } from '../types.js'

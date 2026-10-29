@@ -1,6 +1,4 @@
-// the verifier judges from the whole step's record, every action
-// with its outcome and evidence, every value read and the settled start and final screens, and
-// never from the planner's reasoning or the test author's context.
+// The verifier judges from the step's record, never from planner reasoning or author context.
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { asRef } from '@vostride/agent-qa-schema'
 import type { DownloadEvidence, ElementInfo, ScreenState } from '@vostride/agent-qa-schema'

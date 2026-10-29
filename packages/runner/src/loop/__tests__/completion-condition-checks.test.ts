@@ -1,7 +1,3 @@
-// through the real loop, a completion whose conditions leave
-// part of the step uncovered, reword it, or whose reasoning admits the action did not happen is
-// not a pass, and the planner's next turn is told why.
-
 import { describe, expect, it } from 'vitest'
 import type { ConditionRecord, ScreenState } from '@vostride/agent-qa-schema'
 import type { Action, ActionResult, PlatformAdapter } from '../../platform.js'
@@ -143,8 +139,7 @@ describe('a step passes only when every requested condition is checked', () => {
     )
 
     expect(result.status).not.toBe('passed')
-    // The completion's refusal reaches the planner; the give-up's own judgment reads
-    // no planner reasoning, so its block keeps the verifier's met verdict and the step still fails.
+    // The give-up's judgment reads no planner reasoning, so its block keeps the met verdict.
     expect(contexts[1]).toContain(
       'Not met: "Submit the contact form" (The reasoning says "has not yet been submitted")',
     )

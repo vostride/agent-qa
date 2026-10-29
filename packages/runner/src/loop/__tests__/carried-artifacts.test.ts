@@ -1,8 +1,4 @@
-// a completed download and the latest app clipboard write carry to later
-// steps of the same test through the member-scoped cell, labelled with the step and action that
-// produced them, and are citable as source 'carried'. Screens, reads, unfinished downloads and
-// anything without a cell never carry. The verifier is the real LLMVerifier over a mocked model, so
-// each cell reads the exact turn the model would see.
+// The verifier is the real LLMVerifier over a mocked model, so each cell reads the model's turn.
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { asRef } from '@vostride/agent-qa-schema'
 import type { DownloadEvidence, ElementInfo, ScreenState } from '@vostride/agent-qa-schema'

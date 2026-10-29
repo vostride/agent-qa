@@ -1,10 +1,3 @@
-// EXEC-01..04 requirement roll-call (Phase 359, Plan 09 close-out).
-// Each acceptance criterion maps to at least one assertion here over the shipped runner compound
-// surface: the pure comparators and loops
-// (../../compound/{fill-verify,scroll-until-visible,app-resolution,idempotency}), the dispatch
-// seam short-circuit (../index executeStep) and the frozen tool catalog (../../tools). The
-// compound/__tests__ suites, loop/__tests__/idempotency and packages/{web,android,ios}
-// compound.test.ts own the exhaustive matrices.
 import { describe, it, expect } from 'vitest'
 
 import type { ScreenState } from '@vostride/agent-qa-schema'
@@ -35,9 +28,6 @@ function ports(overrides: Partial<LoopPorts> & Pick<LoopPorts, 'adapter' | 'plan
   return overrides
 }
 
-// -----------------------------------------------------------------------------
-// atomic Fill with a verified re-read (clear→type→re-read→(Enter))
-// -----------------------------------------------------------------------------
 describe('Fill executes as one atomic compound producing a single ActionResult with a verified field re-read', () => {
   it('a genuine value-loss mismatch is an honest failure verdict with the byte-pinned fillReread shape and a §7.1 self-correcting error', () => {
     const miss = compareFillReread({ expected: 'hello', actual: 'helo', secure: false })
@@ -69,9 +59,6 @@ describe('Fill executes as one atomic compound producing a single ActionResult w
   })
 })
 
-// -----------------------------------------------------------------------------
-// scroll-until-visible: executor-owned loop over operation-specific signals
-// -----------------------------------------------------------------------------
 function scrollPrimitives(
   trees: () => InterimNode[],
   signal: () => SwipeSignal = () => 'unknown',
@@ -148,9 +135,6 @@ describe('untilVisible re-observes between ≤maxSwipes swipes and terminates on
   })
 })
 
-// -----------------------------------------------------------------------------
-// openApp name→bundle resolution: never a silent wrong-app launch
-// -----------------------------------------------------------------------------
 describe('resolveAppName climbs exact → fuzzy(+margin) → ambiguous/unknown, never a coin-flip launch', () => {
   const REGISTRY = [
     { id: 'com.google.android.calendar' },
@@ -184,9 +168,6 @@ describe('resolveAppName climbs exact → fuzzy(+margin) → ambiguous/unknown, 
   })
 })
 
-// -----------------------------------------------------------------------------
-// toggle/picker idempotency at the dispatch seam
-// -----------------------------------------------------------------------------
 function recordingAdapter(observation: ScreenState, calls: Action[]): PlatformAdapter {
   return {
     platform: 'web',
@@ -224,9 +205,8 @@ describe('a satisfied desiredState no-ops at the dispatch seam without calling a
     )
 
     expect(result.status).toBe('passed')
-    // the check runs at the ONE chokepoint before adapter.execute ⇒ zero adapter calls.
+    // The check runs before `adapter.execute`, so a satisfied state sends no adapter call.
     expect(calls.length).toBe(0)
-    // the minted no-op carries metadata.idempotentNoop.currentState ...
     const sub = (result.evidence as { subActions?: LooseSub[] } | undefined)?.subActions?.[0]
     const noop = sub?.result?.metadata?.['idempotentNoop'] as { currentState?: unknown } | undefined
     expect(noop).toEqual({ currentState: 'checked', inputSent: false })
@@ -235,9 +215,6 @@ describe('a satisfied desiredState no-ops at the dispatch seam without calling a
   })
 })
 
-// -----------------------------------------------------------------------------
-// a fill counts as one compound input whether its read-back was readable or unverified
-// -----------------------------------------------------------------------------
 function scriptedAdapter(observation: ScreenState, result: ActionResult): PlatformAdapter {
   return {
     platform: 'web',

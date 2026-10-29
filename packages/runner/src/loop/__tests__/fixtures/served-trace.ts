@@ -1,12 +1,4 @@
-/**
- * Test fixtures for the 387-04 composite reader port.
- *
- * `KnowledgeHintReader.getRunBrief` and `.getCautions` now return `{ brief|block, trace }` as one
- * value, so a stub reader cannot hand back a bare block. These helpers keep every existing case's
- * INTENT unchanged while making the widened contract explicit at each stub — deliberately not a
- * cast, because an `as unknown as KnowledgeHintReader` stub is precisely the shape that stops a
- * port change from reddening anything.
- */
+// Stubs return the `{ brief, trace }` pair; a cast here would let a port change pass unnoticed.
 import { RETRIEVAL_TRACE_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 import type {
   BriefBlock,

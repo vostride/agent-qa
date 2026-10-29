@@ -1,5 +1,3 @@
-// Runner-owned assertion evaluators (moved 1:1 from core/src/agent/asserter.ts,
-// D-02) — behavior unchanged, imports re-pointed to runner-local modules only.
 import { generateText, Output } from 'ai'
 import { withStepModelCall } from '../run/step-model-observations.js'
 import type { LanguageModel } from 'ai'

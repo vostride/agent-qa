@@ -1,6 +1,4 @@
-// screen equality or change decides nothing in executeStep. Legitimate
-// repetition on a screen whose screenIdentityHash never changes runs to completion, and the only
-// re-dispatch after an execution error is the planner's own next plan.
+// Screen equality or change decides nothing in executeStep.
 import { describe, expect, it } from 'vitest'
 import { asRef, screenIdentityHash } from '@vostride/agent-qa-schema'
 import type { ElementInfo, ScreenState } from '@vostride/agent-qa-schema'

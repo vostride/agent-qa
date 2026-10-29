@@ -1,11 +1,3 @@
-// Re-derived loop type vocabulary for the runner-owned step-execution spine.
-// CRITICAL: provider-neutral + storage-neutral. No node:* imports, no fs/sharp,
-// no core/model/adapter package imports. Types only — from @vostride/agent-qa-schema,
-// the sibling runner modules, and the neutral orchestration SDK (`ai`, D-04).
-// Re-derived from v1 core/src/agent/types.ts; the v1 healing config type and the
-// per-step attempt-limit fields are D-10 deletion targets and are intentionally
-// absent here.
-
 import type { LanguageModel } from 'ai'
 import type {
   CitationSource,
@@ -33,46 +25,21 @@ export interface ActionPlan {
   confidence: number
   stepComplete: boolean
   stepFailed?: boolean
-  /**
-   * D-09/GROUND-01 grounding-attempts carriage. When the planning turn grounds the
-   * action in-turn (via the injected groundability callback), the gate's §A8
-   * GroundingAttempt trail rides here so the resolved-descriptor evidence reaches
-   * executeStep (threaded onto StepEvidence in Plan 07). Absent when no grounding
-   * callback is injected or the gate recorded no attempts.
-   */
+  // The in-turn gate's attempt trail; absent when no grounding callback ran or recorded nothing.
   groundingAttempts?: GroundingAttempt[]
-  /** the element the planner meant per element lane, judged before dispatch. */
+  // The element the planner meant per element lane, judged before dispatch.
   statedTargets?: StatedTargets
-  /**
-   * WM-01 write channel (spec §12.15, ratified 2026-07-05). Verbatim facts the planner captured
-   * this turn via the `remember[]` plan-field; the loop hands them to the run-scoped
-   * `WorkingMemoryStore` (Plan 08 wiring). Absent when the planner captured nothing this turn.
-   */
+  // Facts the planner captured this turn via `remember[]`, for the run-scoped store.
   remember?: WorkingMemoryEntry[]
-  /**
-   * D-09 bulk-loop completion predicate. On a "do X to all" step the planner declares the positive
-   * completion predicate here and re-states it each turn; the verifier backstops. Absent for
-   * non-bulk steps.
-   */
+  // Declared on a do-X-to-all step and restated each turn; the verifier backstops.
   bulkCompletionPredicate?: string
-  /**
-   * D-04 infeasible terminal outcome (EXEC-05, spec §12.10). The additive plan-field envelope
-   * (358 remember[] precedent) by which a turn declares the step terminally infeasible — the
-   * requested capability/screen does not exist in this build. Closed literal union ('infeasible'
-   * today, extensible later); machine-distinguishable from a plain `stepFailed`. When set, the
-   * loop routes it into a typed StepEvidence.termination block and a distinct verdict outcome
-   * (Plan 10 seam). Absent for an ordinary failure.
-   */
+  // Declares the step infeasible, unlike a plain `stepFailed`; absent for an ordinary failure.
   failureKind?: 'infeasible'
-  /**
-   * D-04 infeasible reason — required whenever `failureKind` is set (enforced at the
-   * toolCallToActionPlan parse boundary). The human-readable why, recorded verbatim in the
-   * termination evidence block. Absent unless `failureKind` is present.
-   */
+  // Required whenever `failureKind` is set, and recorded verbatim in the termination block.
   failureReason?: string
 }
 
-/** debits one planner model call before it is made; false refuses the call. */
+// Debits one planner model call before it is made; false refuses the call.
 export interface PlanningCallGate {
   tryDebitPlanningCall(): boolean
 }
@@ -86,15 +53,9 @@ export interface PlannerConfig {
 export interface PlanResult {
   plan: ActionPlan
   tokenUsage?: TokenUsage
-  /**
-   * Ordered non-action exchanges from this live planning decision.
-   * Absent for cache-replay-produced results, which have no live planning turn.
-   */
+  // Absent for cache-replay results, which have no live planning turn.
   exchanges?: ToolExchangeEvidence[]
-  /**
-   * Observed final-response metadata for this live planning decision.
-   * Absent when the provider exposes no call record or no live model call occurred.
-   */
+  // Absent when the provider exposes no call record or no live model call occurred.
   callRecord?: ModelCallRecord
 }
 
@@ -116,10 +77,7 @@ export interface DialogAccount {
   reasoning: string
 }
 
-/**
- * The verifier's per-condition output. There is no overall success: the runner computes the pass
- * `verifierError` is set only by the fallback when the model call failed.
- */
+// No overall success: the runner computes the pass; `verifierError` marks a failed model call.
 export interface VerificationResult {
   conditions: ConditionJudgment[]
   dialogs: DialogAccount[]
@@ -146,79 +104,34 @@ export interface StepContext {
   verifierModel: LanguageModel
   modelId?: string
   variables?: Record<string, string>
-  /**
-   * The `{{env:NAME}}` bindings that interpolated into `stepInstruction` before this step
-   * was planned. DESTINATION: stamped verbatim onto
-   * `StepEvidence.interpolatedVariables` at finalize, where the procedure-extraction emit
-   * fold reads it to classify a trajectory value slot back to its source binding NAME.
-   *
-   * Carried VERBATIM end to end — never masked (unlike `variables` above, which is
-   * secret-redacted for the planner). See the masking prohibition documented on
-   * `StepEvidence.interpolatedVariables`: masking would break the consumer's exact-match
-   * classification for email-valued and credential-named bindings.
-   *
-   * Absent/empty when the step's text interpolated nothing — finalize then stamps nothing.
-   */
+  // Stamped verbatim onto `StepEvidence.interpolatedVariables`; masking would break exact matches.
   interpolatedVariables?: readonly InterpolatedVariable[]
-  /**
-   * D-12/D-13 compatibility slot for a directly supplied learned brief. Reader-backed runs use
-   * the structured L1/L2/truncation fields below; buildVolatileTier applies the same hypotheses
-   * frame to either source. Empty/undefined omits the learned section entirely.
-   */
+  // A directly supplied learned brief; reader-backed runs use the structured fields below.
   knowledgeBrief?: string
-  /**
-   * BRIF-01 human-authored/sovereign L0 policy material. It is isolated from learned spans so
-   * buildContextTier can keep only this byte-stable material in the cached-prefix region.
-   */
+  // Authored policy, kept apart from learned spans so only it enters the cached prefix.
   knowledgePolicyL0?: string
-  /** BRIF-01 learned caution summaries rendered under the volatile hypotheses frame. */
+  // Learned caution summaries rendered under the volatile hypotheses frame.
   knowledgeBriefL1?: string
-  /** BRIF-01 learned procedure/high-trust-fact summaries rendered in the volatile tier. */
+  // Learned procedure and high-trust-fact summaries rendered in the volatile tier.
   knowledgeBriefL2?: string
-  /** BRIF-01 reader-provided clipping signal; empty/undefined means no signal is rendered. */
+  // The reader's clipping signal; empty means no signal is rendered.
   knowledgeBriefTruncation?: string
-  /**
-   * CR-08 immutable UTC date for planner prompt evidence, captured once per step as
-   * `YYYY-MM-DD`. When absent, direct legacy prompt-builder callers retain the current
-   * UTC-date fallback. Bound values cross this type unchanged; the production capture
-   * boundary validates the closed date form before persistence.
-   */
+  // UTC date for prompt evidence, captured once per step as `YYYY-MM-DD`.
   promptDate?: string
-  /**
-   * D-12/D-13 working-memory channel (structured turn content). The run-scoped
-   * `WorkingMemoryStore` set, injected verbatim as its own turn message by `composeTurnMessages`
-   * — the second v2 channel replacing the retired single memory-context string. Phase 358
-   * SANCTIONED BREAK: this was a plain `string` slot; it is now `WorkingMemoryEntry[]`
-   * (no shim, no string overload) so the planner receives the structured verbatim set. Empty
-   * array/undefined ⇒ omitted from the turn entirely (empty-slot omission).
-   */
+  // Injected verbatim as its own turn message; empty means the message is omitted.
   workingMemory?: WorkingMemoryEntry[]
-  /**
-   * D-09 active bulk-completion predicate (per-turn VOLATILE turn content). While a bulk
-   * "do X to all" loop is running, the planner's declared positive predicate is re-stated each
-   * turn with the re-evaluate/cite-positive-evidence instruction. Absent for non-bulk steps.
-   */
+  // Restated each turn while a do-X-to-all loop runs; absent for other steps.
   bulkCompletionPredicate?: string
   failureContext?: string
-  /**
-   * Sub-actions already attempted in this step (multi-action mode), with each outcome and any
-   * returned data. Screen change is not recorded here: outcomes decide.
-   */
+  // Outcomes decide; screen change is not recorded here.
   subActionHistory?: { action: string; reasoning?: string; result: 'success' | 'failure' | 'no-input'; error?: string; verifierRejection?: string; data?: string; evidence?: string }[]
   plannerConfig?: PlannerConfig
-  /** the step's planning-call meter, bound by the loop before each plan() call. */
+  // The step's planning-call meter, bound by the loop before each `plan()` call.
   planningCallGate?: PlanningCallGate
   screenshot?: Buffer
-  /**
-   * Vision-gate prompt note for this run. Non-empty only for text-only
-   * models; injected into the planner prompt when present.
-   */
+  // Non-empty only for text-only models; injected into the planner prompt when present.
   promptNote?: string
-  /**
-   * D-13 re-run-after-failure context. A re-run carries everything (full
-   * memory/context, no ablation) plus an explicit run-level flag and the prior
-   * attempt's failure summary, surfaced to the planner as prompt context.
-   */
+  // A re-run carries full context plus the run-level flag and the prior failure summary.
   isRerun?: boolean
   rerunAttempt?: number
   previousFailureSummary?: string
@@ -277,9 +190,7 @@ export interface Verifier {
   ): Promise<AiExtraction>
 }
 
-// Assertion vocabulary (re-derived from v1 core/src/agent/types.ts). The asserter
-// and buildAssertionPrompt (this plan, 353-03) are the sole consumers; kept in the
-// runner loop vocabulary so asserter.ts imports resolve to runner-local modules only.
+// Kept in the runner vocabulary so the asserter imports only runner-local modules.
 export type AssertionType = 'text-presence' | 'element-visibility' | 'url-match' | 'element-count' | 'ai'
 
 export interface AssertionInput {
@@ -300,9 +211,6 @@ export interface Asserter {
   evaluate(assertion: AssertionInput, screenState: ScreenState): Promise<AssertionResult>
 }
 
-// Extraction vocabulary — the runner owns the full capture surface:
-// buildExtractionPrompt (prompts.ts), the ExplicitExtractor + createExtractor factory
-// (variables/extractor.ts), and the LLMVariableExtractor (loop/llm-variable-extractor.ts).
 export type ExtractionMethod = 'regex' | 'selector' | 'ai'
 
 export interface ExtractorInput {

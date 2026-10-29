@@ -1,14 +1,5 @@
-// New for 353-03: the D-13 re-run context block (LOOP-03 planner visibility).
-// The re-run flag surfaces to the planner as prompt context; when absent the turn
-// content is byte-identical to a non-rerun turn (no empty re-run block leaks).
-//
-// 355-02 redirect (Wave-0, RED pending Plan 03): the monolithic step-prompt builder is
-// retired. The re-run context block now rides in the per-turn content emitted by
-// `composeTurnMessages(...)`. Every content assertion is preserved byte-for-byte;
-// only the producing call changes.
 import { describe, it, expect } from 'vitest'
 import type { ModelMessage } from 'ai'
-// Plan-03 turn API — intentionally unresolved today (the RED reason for this suite):
 import { composeTurnMessages } from '../prompts.js'
 import type { ScreenState } from '@vostride/agent-qa-schema'
 import type { StepContext } from '../types.js'

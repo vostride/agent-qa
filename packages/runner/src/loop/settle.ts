@@ -1,24 +1,10 @@
-// Bounded screen-settle gate.
-// CRITICAL: provider-neutral + storage-neutral. No node:* imports, no fs/sharp,
-// no core/model/adapter package imports. Polls screenIdentityHash and proceeds only
-// when two consecutive values match (the acting condition), bounded by maxPolls AND an
-// optional deadline so an animated/never-stable screen can never hang the loop:
-// it proceeds on the LATEST observation's hash rather than spinning. The returned hash
-// is the single value downstream consumes — settle-stability and the 8th cache-key
-// component. 2026-10-08: its third job, the Phase-358 progress/no-change
-// signal, was deleted with the progress subsystem; settle itself is kept.
-//
-// SettleResult additionally exposes `settled`: true when the gate
-// exited on two consecutive matching hashes (the acting condition), false when the
-// maxPolls/deadline bound forced a proceed-on-latest. 2026-10-08: its one reader,
-// the Phase-358 transient-load stagnation classifier, was deleted by 436-03, so no production
-// code reads `settled` now; call sites read `state`/`hash`.
+// At the poll or deadline bound it proceeds on the latest hash, so an unstable screen cannot hang.
 
 import { screenIdentityHash } from '@vostride/agent-qa-schema'
 import type { ScreenState } from '@vostride/agent-qa-schema'
 
 export interface SettleOptions {
-  /** Maximum extra poll iterations after the first observation (bounded, Pitfall 4). */
+  /** Maximum extra poll iterations after the first observation. */
   maxPolls: number
   /** Abort-aware wait between polls; 0 = poll back-to-back (composition injects the real value). */
   intervalMs: number
@@ -31,12 +17,7 @@ export interface SettleOptions {
 export interface SettleResult {
   state: ScreenState
   hash: string
-  /**
-   * True ⇒ the gate exited on two consecutive matching hashes (the screen quiesced,
-   * the acting condition). False ⇒ maxPolls/deadline forced a proceed-on-latest exit
-   * (the screen never stabilized). The Phase-358 transient-load classifier consumes
-   * this as its instability signal. Additive; existing readers ignore it.
-   */
+  // True when two consecutive hashes matched; false when a poll or deadline bound forced the exit.
   settled: boolean
 }
 
@@ -56,13 +37,7 @@ async function abortAwareSleep(ms: number, signal?: AbortSignal): Promise<void> 
   })
 }
 
-/**
- * Poll `observe` until `screenIdentityHash` is stable across two consecutive
- * observations, or until the maxPolls / deadline bound is hit — then proceed on the
- * latest observation. The first observation is always taken (it doubles as the
- * sub-action's stateBefore — no extra capture, Pitfall 5); only the additional poll
- * iterations before stability are the settle cost.
- */
+// The first observation doubles as stateBefore, so only extra polls before stability cost.
 export async function settle(
   observe: () => Promise<ScreenState>,
   opts: SettleOptions,

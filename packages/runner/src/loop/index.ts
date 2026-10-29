@@ -1,7 +1,4 @@
-// The runner-owned step-execution loop: observe → cached-or-planned plan →
-// safety-gated execute → record §A8 evidence → conditional verify. Provider- and storage-neutral.
-// Bounded by the per-step action limit, the user timeouts and abort. Screen equality or change
-// decides nothing; retries come only from actual errors or operation-specific evidence.
+// Screen equality decides nothing; retries come only from actual errors or operation evidence.
 
 import {
   coerceProcedureBindingValue,
@@ -142,22 +139,13 @@ import { compareAssertValue, type AssertValueResult } from '../compound/assert-v
 import { createRecordLedger } from './record-ledger.js'
 import { StepLimitMeter } from './step-limits.js'
 
-// v1's context-window overflow classification (loop.ts:277-286) — kept byte-equivalent
-// (D-04, Pitfall 10): a planning error matching one of these is surfaced with the
-// contextWindow/previousStepCount remediation hint rather than the raw error.
+// A planning error matching these gets the contextWindow/previousStepCount hint, not the raw error.
 const CONTEXT_ERROR_PATTERNS = [
   'context length', 'maximum context', 'token limit',
   'too many tokens', 'exceeds.*max', 'input.*too long',
 ]
 
-// D-10/LOOP-04 · Pitfall 7 — the DELIBERATELY CONSERVATIVE ref-resolution classifier.
-// A matched adapter error string is a stale-ref/wrong-element failure the re-ground heal
-// can rescue by re-observing + re-grounding (NOT a replan). Exactly two classes:
-//   (a) the shared resolver prefix — 'Unknown ref "…"' (both the web and mobile
-//       element-resolvers throw this verbatim), and
-//   (b) the Playwright strict-mode violation — '…resolved to N elements'.
-// Bare timeouts and every other failure are INTENTIONALLY excluded — they stay on the
-// replan path (the D-10 boundary). Do not broaden it.
+// Only stale-ref failures the re-ground heal can rescue; bare timeouts stay on the replan path.
 const REF_RESOLUTION_FAILURE_PATTERNS: RegExp[] = [
   /^\s*Unknown ref\s+["']/i,
   /resolved to \d+ element/i,
@@ -167,8 +155,7 @@ function isRefResolutionFailure(errorMsg: string): boolean {
   return REF_RESOLUTION_FAILURE_PATTERNS.some((pattern) => pattern.test(errorMsg))
 }
 
-// the adapter's typed binding outcomes that send the loop to re-find the
-// element. A new document (stale-observation) or a removed frame (frame-detached) never does.
+// A new document (stale-observation) or a removed frame (frame-detached) never starts a heal.
 function startsBindingHeal(result: ActionResult): boolean {
   const outcome = readBindingOutcomeMeta(result)?.outcome
   return outcome === 'binding-lost' || outcome === 'binding-changed'
@@ -180,21 +167,16 @@ function unprovenHealNote(reason: 'absent' | 'not-unique'): string {
     + `same (role, exact name and row: ${found}), so nothing was sent.`
 }
 
-// a cancel can come from any door, so the record names no cause.
+// A cancel can come from any door, so the record names no cause.
 export const CANCELLED_MESSAGE = 'The run was cancelled before this step finished.'
 
-// Provisional fallbacks used only until the composition root supplies model-derived numbers
-// They are deliberately not config keys; the loop consumes plain budgets.
+// Fallbacks until the composition root supplies model-derived numbers; not config keys.
 const PROVISIONAL_BRIEF_TOKEN_BUDGET = 512
 const PROVISIONAL_CAUTION_TOKEN_BUDGET = 64
 const PROVISIONAL_DISTINCT_RECORD_CAP = 8
 const CAUTION_TRUNCATION_ID = 'caution:truncated'
 
-// D-09/D-16 settle-gate bounds. The poll is deliberately small (Pitfall 4/5): the first
-// observation doubles as stateBefore (no extra capture), so only the extra poll iterations
-// before two consecutive matching screenIdentityHash values cost anything. The inter-poll
-// wait defaults to 0 (deterministic, back-to-back) — the composition root injects a real
-// animation-settling interval; the step deadline is the hard proceed-on-latest backstop.
+// The first observation doubles as stateBefore, so only extra polls before two equal hashes cost.
 const DEFAULT_SETTLE_MAX_POLLS = 3
 const DEFAULT_SETTLE_INTERVAL_MS = 0
 const VERIFY_SETTLE_INTERVAL_MS = 500
@@ -208,39 +190,21 @@ function recordingOffsetFrom(zeroMs: number | undefined): number | undefined {
   return Math.max(0, Math.round(performance.now() - zeroMs))
 }
 
-// The return paths:
-//   1. planner stepFailed          → failed  (no execution; one verifier call, ending 'give-up'
-//                                    or 'infeasible', unproven conditions after the reason)
-//   2. setVariable + stepComplete  → passed  (short-circuit, no verify)
-//   3. verify pass                 → passed  (the runner's judgment of cited per-condition verdicts)
-//   4. verify app-error            → failed  (no further replan)
-//   5. no-verifier + stepComplete  → passed  (test seam only; C439-CENSUS proves every production
-//                                    door binds a verifier)
-//   6. action or planning limit    → failed  (typed limitStop; one verifier call, ending 'limit-stop')
-//   7. policy denial or a planning failure → failed  (no verifier call)
-//   8. abort / timeout             → cancelled | failed  (no verifier call; the requested outcome
-//                                    is recorded unverified with their reason)
-//   9. assertAI or extractAI the model could not judge or extract → failed  (no verifier call;
-//                                    the requested outcome is recorded unverified, ending
-//                                    'unresolved')
-// Other execution failures and a rejected completion are NOT return paths — they inject failure
-// context and continue the loop (self-heal = replan-with-failure-context, D-12).
+// Execution failures and rejected completions replan with failure context instead of returning.
 export async function executeStep(
   stepInstruction: string,
   ports: LoopPorts,
   context: StepContext,
 ): Promise<StepResult> {
   const startTime = performance.now()
-  // modality resolved once at composition; absent gate = full-capture (the
-  // pre-gate default for non-CLI callers and tests). The loop owns the branching.
+  // Modality is resolved once at composition; an absent gate means full capture.
   const gate = ports.visionGate ?? { attachImage: true, captureMode: 'full' as const, promptNote: '' }
-  // one monotonic meter per step execution, never refilled and never derived
-  // from actionIndex (cache-key material).
+  // One monotonic meter per step execution, never refilled and never derived from actionIndex.
   const meter = new StepLimitMeter({
     maxActions: ports.plannerConfig?.maxActions ?? DEFAULT_PLANNER_LIMITS.maxActions,
     maxPlanningTurns: ports.plannerConfig?.maxPlanningTurns ?? DEFAULT_PLANNER_LIMITS.maxPlanningTurns,
   })
-  // inner inputs of each executed compound action, keyed by its sub-action index.
+  // Inner inputs of each executed compound action, keyed by its sub-action index.
   const compoundInputs: CompoundInputCount[] = []
   const promptDate = context.promptDate ?? new Date().toISOString().slice(0, 10)
   context.promptDate = promptDate
@@ -262,16 +226,7 @@ export async function executeStep(
       : (ports.knowledgeBudgets?.searchResults ?? PROVISIONAL_BRIEF_TOKEN_BUDGET))
   const deadline = ports.stepTimeout ? startTime + ports.stepTimeout : 0
 
-  // §A8 evidence accumulator — the recording array IS SubActionEvidence[].
-  // D-02 (Plan 361-08): bind the one sub-action emission chokepoint to ports.events when
-  // present, so every recordSubAction append emits `subActionRecorded` live. D-02 (423):
-  // the same boundary persists the already captured before tree; no capture or handoff rewrite.
-  // the rung was resolved ONCE at the composition root; the loop awaits that one
-  // promise and stamps what it gets. Two guards, each a way the banner could otherwise lie:
-  //   - no bound reader ⇒ no rung, because "no knowledge reader bound is not a rung" and a
-  //     step served no brief must not be labelled as if a ladder chose its content;
-  //   - a rejected probe folds to `undefined` rather than propagating — asking the host what it
-  //     can do must never be able to fail a test step.
+  // A missing reader means no rung, and a rejected probe folds to `undefined`, never a failed step.
   const retrievalRung = ports.knowledgeReader === undefined || ports.knowledgeRetrievalRung === undefined
     ? undefined
     : await ports.knowledgeRetrievalRung.catch(() => undefined)
@@ -297,26 +252,25 @@ export async function executeStep(
     retrievalRung,
   })
   context.subActionHistory = []
-  // what this platform can capture, recorded once per step; unsupported never invents.
+  // What this platform can capture, recorded once per step; unsupported never invents.
   recorder.recordOperationCapture(operationCaptureAvailability(ports.adapter.operationCaptureSupport))
-  // the step's operation evidence across its sub-actions, for the verifier.
+  // The step's operation evidence across its sub-actions, for the verifier.
   const stepOperationEvidence: OperationEvidence = {}
-  // everything the step did and read, for the verifier; never the planner's reasoning.
+  // Everything the step did and read, for the verifier; never the planner's reasoning.
   const stepRecord = new StepRecordAccumulator()
   const recordMask = (value: string) => redactSecretValue(value, ports.secretRedactor)
   const collapse = (value: string) => value.replace(/\s+/g, ' ').trim()
-  // what earlier steps of this test downloaded or copied, labelled by its producer.
+  // What earlier steps of this test downloaded or copied, labelled by its producer.
   for (const item of carriedItems(ports.carriedArtifacts)) {
     stepRecord.addCarried({ stepNumber: item.stepNumber, actionIndex: item.actionIndex, text: recordMask(item.text) })
   }
-  // bytes are read only for this step's completed downloads and this test's carried ones.
+  // Bytes are read only for this step's completed downloads and this test's carried ones.
   const savedFiles = (actions: readonly RecordedAction[]): SavedFile[] =>
     savedFileCandidates(actions, ports.carriedArtifacts).map((download) => ({
       name: download.suggestedFilename,
       bytes: download.sha256 !== undefined ? ports.adapter.readDownloadBytes?.(download.sha256) : undefined,
     }))
-  // one ledger object lives where turns live. A bound object is shared with Channel-2 tool
-  // closures; otherwise this step-local instance still accounts for the frozen Channel-1 brief.
+  // A bound ledger is shared with Channel-2 tool closures; otherwise this step-local one is used.
   const recordLedger = ports.recordLedger ?? createRecordLedger({
     cap: recordCap,
     budget: combinedBudget,
@@ -336,10 +290,10 @@ export async function executeStep(
       ) => void)
     | undefined
 
-  // activePredicate persists the declared D-09 bulk predicate for the run.
+  // The declared bulk predicate, kept for the run.
   let activePredicate: string | undefined
 
-  // attached to a limit stop when they exist; masked when recorded.
+  // Attached to a limit stop when they exist; masked when recorded.
   let lastVerifierRejection: string | undefined
   let lastPlannerReasoning: string | undefined
 
@@ -347,11 +301,7 @@ export async function executeStep(
   let totalCompletionTokens = 0
   let lastPlannedAction: Action | undefined
   let lastExecutedAction: Action | undefined
-  // a failure retrieves once at the failure moment, then the returned block is consumed
-  // by the immediately-following live planning turn. Clearing happens before that turn renders,
-  // so a successful follow-up cannot make the caution sticky; a recurring failure stages anew.
-  // the staged value is the caution block WITH its serve-time trace, so the Channel-3 half
-  // of the trace survives to the evidence seam instead of being reconstructed there.
+  // A failure's cautions are consumed by the next live planning turn, so they never stay sticky.
   let pendingCautions: { block: CautionBlock; trace: ServedRetrievalTraceV1 } | undefined
 
   const stageFailureCautions = (
@@ -363,14 +313,6 @@ export async function executeStep(
       anchors,
       ports.knowledgeBudgets?.caution ?? PROVISIONAL_CAUTION_TOKEN_BUDGET,
     )
-    // stage the composite the reader returned, whole. The old predicate here kept
-    // it only when a caution would actually RENDER, which threw away the all-cut turn's whole
-    // attribution ledger — the exact step "why didn't it mention X" is asked about. There is
-    // deliberately no replacement predicate: one gating on "a caution or a non-empty trace" was
-    // written and then measured INERT (a wholly empty composite records nothing and renders
-    // nothing, so staging it is observably identical to skipping it), and an unpinnable gate that
-    // a later reader would take for an invariant is worse than no gate. What must not be dropped
-    // is dropped nowhere: the consuming turn re-checks nothing either.
     pendingCautions = served
   }
 
@@ -453,27 +395,14 @@ export async function executeStep(
     }
   }
 
-  // PROC-02 (381 D-09..D-12, F-381-51-1) per-step procedure state. `procedureConsulted`
-  // makes the getProcedure consult a strict at-most-once-per-step event — a carried
-  // flow resume (2a′ below) substitutes the consult entirely. `procedureReplay` holds the
-  // decoded body plus the guard-fold bookkeeping while replay drives THIS step's one body
-  // step (`nextIndex` is the cursor into the committed body; `stepCursor` records the body
-  // index this test step attempted; `attempted`/`checksPassed` are the PER-STEP fold —
-  // total/passed stored actions within this step). `aborted` is the D-11 one-shot
-  // guard/execution-failure latch (no replay re-entry within the step, and an aborted flow
-  // is never re-armed into the cross-step carry).
-  // `procedureHintStaged`
-  // carries the rendered hint block (matched-hint mode, unparseable-body demotion, or the
-  // post-miss structural recovery projection) for ledger-metered exposure on every
-  // subsequent live planning turn; `procedureHintExposed` keeps the planSource
-  // procedure-hint write once-per-step.
+  // Per-step procedure state: one consult per step at most, and a carried flow replaces it.
   let procedureConsulted = false
   let procedureReplay: {
     match: ProcedureMatch
     payload: ProcedureBodyPayload
     nextIndex: number
     checksPassed: number
-    /** Stored actions attempted within THIS test step — the per-step fold's `total`. */
+    // Stored actions attempted within this test step: the per-step fold's `total`.
     attempted: number
     /** The body-step index this test step consumed — the planSource `flow.cursor`. */
     stepCursor?: number
@@ -491,16 +420,7 @@ export async function executeStep(
   } | undefined
   let procedureHintExposed = false
 
-  // Loop-side procedure parameter binding: values bind by NAME from the
-  // same source-tagged availability contract the matcher admitted. Secret parameters
-  // hard-wall to the secret store; strings preserve variables -> memory -> secret-template
-  // precedence. Typed coercion delegates to the ONE schema-owned law
-  // (coerceProcedureBindingValue in schema procedure-binding-coercion.ts) — the same
-  // function that computes the capability bits crossing the reader port — with try-in-order
-  // source semantics: the first source (variables, then memory) whose value passes the
-  // shared coercion binds, so binder success is exactly the matcher's per-source capability
-  // OR (the completed 381-22 WR-01 law, now value-typed). A miss here is genuine
-  // availability/type drift and is reported as parameter-unbound below.
+  // Values bind by name; the first source whose value passes the shared coercion binds.
   const bindProcedureParam = (
     name: string,
     type: ProcedureParamType,
@@ -517,12 +437,7 @@ export async function executeStep(
     return type === 'string' ? asSecretTemplate : undefined
   }
 
-  // D-08 capability assembly (RESEARCH Open Q2): preserve the three source identities so
-  // procedureParameterFillability and this binder apply one contract. Variables and memory
-  // carry capability entries computed HERE, loop-side, by procedureSourceBinding over the
-  // raw values — the same shared coercion the binder uses, so matcher admission and loop
-  // binding cannot drift. Only names and per-type capability booleans cross the reader
-  // port; no test-variable, working-memory, or secret value ever does.
+  // Only names and capability booleans cross the reader port; no variable, memory or secret value.
   const assembleProcedureBindingAvailability = (): ProcedureBindingAvailability => {
     const variables = Object.entries(context.variables ?? {})
       .map(([name, raw]) => procedureSourceBinding(name, raw))
@@ -545,11 +460,7 @@ export async function executeStep(
       kind: 'procedure-replay',
       procedureId: procedureReplay.match.id,
       guard: {
-        // PER-STEP fold: checksPassed/total range over the stored
-        // actions attempted within THIS test step (one body step per test step, D-09), so
-        // checksPassed === total keeps meaning "this step's replayed actions all passed
-        // guards, executed, and were accepted" for every consumer. Cross-flow position
-        // lives in `flow` below, never in the fold.
+        // The fold ranges over this test step's stored actions; flow position lives in `flow`.
         checksPassed: procedureReplay.checksPassed,
         total: procedureReplay.attempted,
         ...(procedureReplay.aborted && procedureReplay.miss !== undefined
@@ -569,14 +480,7 @@ export async function executeStep(
     })
   }
 
-  // F-381-51-1 · D-09 re-arm half of take-then-rearm. Called ONLY at a successful step
-  // completion whose completing decision was a replayed body step, with body remaining and
-  // the flow non-aborted. Every other exit path — guard miss, execution failure, verifier
-  // rejection, policy denial, step failure, abort, exhaustion, any terminal builder —
-  // leaves the cell empty: the 2a′ take already cleared it and this is the ONLY write
-  // site, so carry loss is the default (the D-11 one-shot law extended across the step
-  // boundary: a miss at a carried step demotes to hint within that step and the flow is
-  // over for the run).
+  // The only write to the carry cell, so every other exit leaves the flow over for the run.
   const rearmProcedureFlowCarry = (): void => {
     if (!ports.procedureFlow) return
     if (!procedureReplay || procedureReplay.aborted) return
@@ -623,43 +527,12 @@ export async function executeStep(
     // planner turns drain at their own boundary; this final drain is the no-loss backstop.
     recorder.recordServedReadTraces(ports.drainMemoryReadTraces?.() ?? [])
     recorder.recordServedAdmissionEvents(recordLedger.drainEvidenceEvents?.() ?? [])
-    // WR-10′: the staged failure-caution composite belongs to that same backstop set. It
-    // is consumed by the NEXT planning turn and by nothing else, and this step may never reach one
-    // — the deadline check and the action-limit check both return above that pickup. The
-    // step those exits end is exactly the terminal failure "why didn't it mention X" is asked
-    // about, and without this drain its whole attribution ledger is lost.
-    //
-    // It lives HERE, at the single terminal funnel documented below, rather than at each exit:
-    // draining at the individual return sites would be an enumeration of a hand-picked member set
-    // that the next exit silently escapes. Every terminal RETURN in this file routes through
-    // finish(), so a return-shaped exit nobody has written yet inherits the drain by construction.
-    //
-    // Scope, stated as narrowly as the tests measure it. RETURNS are the funnel's
-    // reach; the THROW-shaped exits are not covered and are outside this backstop by design, not by
-    // oversight — a throw leaves executeStep with no StepResult at all, so it abandons the step's
-    // entire evidence record and not merely this ledger. Folding them in is a behaviour change, and
-    // deliberately not one this comment pretends has happened.
-    //
-    // That exception is bounded by SHAPE, and the shape is a fact a test reds rather than a claim
-    // this comment asserts: `trace-threading.test.ts` → 'every throw-shaped exit is a re-raise
-    // after a missed abort re-check' classifies every throw statement in this file and
-    // accepts exactly two shapes — a caught error re-raised immediately below the checkAbort()
-    // re-check (so the raise happens only because the error was NOT an abort), and a constructed
-    // `throw new …` for a violated invariant. A third shape, or a re-raise without its re-check,
-    // reds that scan. It pins no count of sites: a further conforming site is controlled for there
-    // and must stay silent, so this paragraph does not rot when one is added.
-    //
-    // Zero injected is the truthful argument, not a shortcut: a staged-but-never-consumed turn
-    // rendered nothing, so every line the reader served is a cut candidate under the recorder's
-    // own uniform injected/non-injected split (387-13 Shape B). No caution enters the ServedBrief,
-    // whose bytes therefore cannot move. No new recorder logic and no special case.
+    // Every terminal return drains staged cautions here; a throw leaves no StepResult at all.
     if (pendingCautions !== undefined) {
       recorder.recordServedCautions([], pendingCautions.trace)
       pendingCautions = undefined
     }
-    // WM-01 masked snapshot (Pitfall 7 boundary 3): the whole served set snapshots into
-    // StepEvidence.workingMemory with declared values masked,
-    // BESIDE the brief. Unbound port ⇒ no snapshot (optional-port idiom).
+    // The served set snapshots into `StepEvidence.workingMemory` with declared values masked.
     if (ports.workingMemory) {
       recorder.recordWorkingMemory(
         ports.workingMemory.entries().map((entry) => ({ ...entry, value: recordMask(entry.value) })),
@@ -668,33 +541,17 @@ export async function executeStep(
     recorder.recordLimitUsage(meter.snapshot(
       compoundInputs.filter((input) => input.subActionIndex < recorder.subActionCount),
     ))
-    // the step's {{env:NAME}} provenance pairs ride to the recorder
-    // VERBATIM — deliberately NOT through recordMask, unlike the
-    // workingMemory snapshot above. Masking would transform email-valued and
-    // credential-named bindings here while `plannedAction` and `stepInstruction` stayed
-    // raw, so the emit fold's exact-string match would miss and replay would stay
-    // permanently `hint`. Do not "harden" this by adding a mask; that IS the bug.
+    // Unmasked, or the emit fold's exact match with `plannedAction` misses and replay stays `hint`.
     const evidence = recorder.finalize(verdict, 0, stepInstruction, {
       cacheDisabled: ports.cache === undefined,
       nonCacheable: nonCacheable || cacheBypass,
       ...(context.interpolatedVariables ? { interpolatedVariables: context.interpolatedVariables } : {}),
     })
-    // D-02 live emission (Plan 361-08): finish() is the single terminal funnel (success/
-    // failure/cancelled + the direct finish() call sites all route here), so emitting once
-    // here covers EVERY terminal path exactly once. Fire-and-forget SYNC, optional-chained —
-    // the loop never awaits telemetry; unbound port ⇒ no emit, byte-identical.
-    //
-    // this is the ONE place the StepResult-derived status/durationMs/error exist AND the
-    // stepFinalized event is emitted, so the parity enrichment rides here (not a second core-side
-    // emission, which would double-publish). `error` is masked at the sink chokepoint.
+    // Every terminal path runs `finish()`, so the step's event fires here exactly once.
     const durationMs = performance.now() - startTime
-    // `tokenUsage()` is the ONE producer of this step's usage — it already feeds
-    // buildStepTrace four lines below, and already answers `undefined` when neither counter
-    // moved. Passing it here gives the bus the same number the legacy trace carries, with no
-    // second accumulator and no zero-fill.
+    // `tokenUsage()` is the one producer of this step's usage, shared with the legacy trace.
     ports.events?.stepFinalized(evidence, { status, durationMs, error, tokenUsage: tokenUsage() })
-    // The legacy trace is projected FROM evidence (Open Q5) — this array is exactly
-    // projectLegacyTrace(result.evidence); the loop never mutates it after projection.
+    // Exactly `projectLegacyTrace(result.evidence)`; the loop never mutates it after projection.
     const subActions = projectLegacyTrace(evidence)
     const trace = buildStepTrace(subActions, status === 'passed' ? 'success' : 'failure', error, tokenUsage())
     const result: StepResult = {
@@ -735,11 +592,7 @@ export async function executeStep(
     })
   }
 
-  // 439 D-08 (supersedes 436 D-13's no model call at exhaustion): a give-up, an infeasible
-  // declaration and a limit stop are each judged once per condition over a settled final screen.
-  // The call is recorded, never debited. It returns the unproven conditions' reason
-  // ('' when none, or when no verifier is bound), or the abort result when the step was aborted.
-  // The verdicts explain the ending; they never turn it into a pass.
+  // Judged once per condition over a settled screen, never debited; the verdicts never make a pass.
   async function verifyEnding(
     ending: 'give-up' | 'infeasible' | 'limit-stop',
     lastAction: Action | undefined,
@@ -831,8 +684,7 @@ export async function executeStep(
     )
   }
 
-  // the limit stop ends the step through the ordinary failure funnel with its own typed
-  // block — never a planning failure, a termination or a verdict. 439 D-08: it is judged once.
+  // Ends through the failure funnel with its own typed block, judged once by the verifier.
   const limitStop = async (limit: LimitStopEvidence['limit']): Promise<StepResult> => {
     const judged = await verifyEnding('limit-stop', lastExecutedAction)
     if (typeof judged !== 'string') return judged
@@ -866,7 +718,6 @@ export async function executeStep(
   const initialAbort = checkAbort()
   if (initialAbort) return initialAbort
 
-  // Best-effort step-level "before" screenshot (artifacts; SCREEN-03).
   let screenshotBefore: Buffer | undefined
   if (ports.adapter.screenshot) {
     try { screenshotBefore = await withAbort(ports.adapter.screenshot(), ports.abortSignal) } catch { /* best-effort */ }
@@ -879,31 +730,30 @@ export async function executeStep(
     toExecute: Action,
     options: { keepRawData?: boolean } = {},
   ): Promise<{ result: ActionResult; error?: string; rawData?: unknown }> => {
-    // a literal [secret:NAME] would type the placeholder text itself.
+    // A literal `[secret:NAME]` would type the placeholder text itself.
     const refusal = literalSecretMarkerRefusal(toExecute)
     if (refusal !== undefined) return { result: { success: false, error: refusal }, error: refusal }
     let result: ActionResult
     let rawData: unknown
     try {
-      // Template resolution stays INSIDE the try: a MissingSecretError is caught
-      // and surfaced as a redacted execError — the action never reaches the adapter.
+      // Templates resolve inside the try, so a MissingSecretError never reaches the adapter.
       const actionForExecution = resolveSecretTemplatesInValue(toExecute, ports.secretStore)
 
       if (actionForExecution.type === 'setVariable') {
-        // Pitfall 8 — setVariable runs via the callback, NOT the adapter.
+        // setVariable runs through the callback, not the adapter.
         const sv = actionForExecution as Extract<Action, { type: 'setVariable' }>
         ports.onSetVariable?.(sv.name, sv.value)
         result = { success: true }
       } else {
         let actionToExecute = actionForExecution
         if (actionForExecution.type === 'fileUpload' && ports.resolveUploadPath) {
-          // Pitfall 1 — path resolution is injected core-side; the loop never touches paths.
+          // Path resolution is injected; the loop never touches paths.
           const resolveUpload = ports.resolveUploadPath
           actionToExecute = { ...actionForExecution, files: actionForExecution.files.map(f => resolveUpload(f)) }
         }
         let finishAnnotation: (() => RecordingAnnotationWitness | undefined) | undefined
         try { finishAnnotation = ports.adapter.recording?.beginAnnotation?.() } catch { /* Optional evidence must not prevent execution. */ }
-        // the adapter's post-action wait ends at the step deadline or abort.
+        // The adapter's post-action wait ends at the step deadline or abort.
         const executeOptions: ExecuteOptions = {
           ...(deadline ? { remainingStepMs: Math.max(0, Math.floor(deadline - performance.now())) } : {}),
           ...(ports.abortSignal ? { abortSignal: ports.abortSignal } : {}),
@@ -934,15 +784,10 @@ export async function executeStep(
       return failure(timedOut)
     }
 
-    // the next action would be refused, so stop before any planner call. 439 D-08: the
-    // stop settles and observes once (not counted) so the verifier judges a final screen.
+    // The next action would be refused, so stop before any planner call; the stop observes once.
     if (meter.actionsExhausted()) return await limitStop('actions')
 
-    // 1. SETTLE + OBSERVE — the bounded settle gate polls screenIdentityHash and proceeds
-    // only on two consecutive matching hashes (or the maxPolls/deadline bound, D-16). The
-    // settled observation is the next sub-action's stateBefore (D-15, no extra capture —
-    // Pitfall 5); a heal that re-dispatches records its own observation in healedDispatch
-    // The settled hash doubles as settle-stability and the 8th cache-key component.
+    // 1. Settle and observe: the settled observation is the next sub-action's stateBefore.
     let screenState: ScreenState
     let settledHash: string
     try {
@@ -976,12 +821,7 @@ export async function executeStep(
     const abortAfterObserve = checkAbort()
     if (abortAfterObserve) return abortAfterObserve
 
-    // Derive the ONE finalized planner attachment and its capture stamp from a single source
-    // The configured compression branch owns compressed bytes + returned dims; when
-    // an image is attached but no vision sizing is configured, the RAW bytes are the attachment
-    // and dims come from the dimension port (host-neutral viewport fallback when unbound). The
-    // captureMode is then stamped ONCE from the actual attachment, so `full`/`textOnly` describes
-    // the real planner call on both the compressed and raw/no-sizing paths (Pitfall 9).
+    // `captureMode` is stamped from the actual attachment, so it describes the real planner call.
     let captureDims: { imageWidth: number; imageHeight: number } | undefined
     if (gate.attachImage && screenshot && ports.compressor && (ports.vision?.screenshotSize || ports.vision?.effectiveResolution)) {
       if (!ports.vision?.effectiveResolution) {
@@ -1040,18 +880,7 @@ export async function executeStep(
       : { mode: 'textOnly' }
     screenState = stampCaptureMode(screenState, captureStamp)
 
-    // 2. PLAN — procedure-first at step start, then the replay → re-ground →
-    // replan hit ladder, then the planning turn.
-    //
-    // 2a′. CARRIED FLOW RESUME: a completed replayed step with body
-    // remaining re-armed the member-scoped carry cell; this step TAKES it — read and
-    // immediately empty (take-then-rearm: the cell is emptied at step start and re-armed
-    // only after this step's verifier accepts a successful replayed step with body
-    // remaining, so every early exit leaves no carry, D-11). The carry substitutes the
-    // step-start consult for flow-covered steps — ZERO matcher call, keeping D-09's
-    // once-per-step consult as an upper bound. It transports only match + parsed payload +
-    // cursor, never a resolved ref: the carried body step still re-earns dispatch through
-    // the FULL fresh-screen guard ladder in §2b below (D-10 — never a blind action).
+    // 2. Plan. A carried flow is taken at step start, so every early exit leaves no carry.
     if (!procedureConsulted && ports.procedureFlow?.carry !== undefined) {
       const carried = ports.procedureFlow.carry
       ports.procedureFlow.carry = undefined
@@ -1066,11 +895,7 @@ export async function executeStep(
       }
     }
 
-    // 2a. STEP-START PROCEDURE CONSULT: at most once per step, before the first
-    // planning turn AND before the per-decision cache consult (the researcher-recommended
-    // procedure-first precedence). Optional-chained getRunBrief idiom: an unbound reader
-    // costs nothing (binding names are not even assembled) and never throws. Intent is the
-    // NL step text; source-tagged binding NAMES are assembled loop-side — values never cross.
+    // 2a. Consult procedures once per step, before the first planning turn and the cache consult.
     if (!procedureConsulted) {
       procedureConsulted = true
       if (ports.knowledgeReader) {
@@ -1081,9 +906,7 @@ export async function executeStep(
         )
         if (match !== undefined) {
           if (match.replayRecommendation === 'replay') {
-            // Fetch + decode the committed body. parseProcedureBody is fail-closed
-            // an unreadable or unparseable body demotes the match to hint —
-            // never a throw, never a blind replay.
+            // An unreadable or unparseable body demotes the match to hint, never a blind replay.
             const body = ports.knowledgeReader.read(match.id)
             const payload = body === undefined ? undefined : parseProcedureBody(body.body)
             if (payload !== undefined && payload.steps.length > 0) {
@@ -1096,10 +919,7 @@ export async function executeStep(
                 aborted: false,
               }
             } else {
-              // the wall is unchanged — no partial body, no default body, no replay
-              // without a parsed payload. Only the EVIDENCE changes: the earned replay that
-              // the wall just refused records WHY, so a starved replay can never again be
-              // indistinguishable from an ordinary hint recommendation.
+              // No replay without a parsed payload; the refused replay records why in its demotion.
               procedureHintStaged = {
                 procedureId: match.id,
                 anchors: [match.flowAnchor],
@@ -1129,32 +949,18 @@ export async function executeStep(
     let planResult: PlanResult
     let cached = false
     let procedureReplayed = false
-    // A passed guard authorizes exactly one dispatch attempt; its cursor/fold commit is
-    // deferred until that action has actually executed successfully.
+    // A passed guard authorizes one dispatch; the cursor and fold commit only after it succeeds.
     let pendingProcedureReplay: {
       procedureStepIndex: number
       instruction: string
     } | undefined
     let advancedProcedureStepIndex: number | undefined
-    // The per-decision-point cache key: masked stepText + value-free env digest + the
-    // settled screenIdentityHash as the 8th component. Branch never enters key
-    // material. Undefined for non-cacheable (bypassed) steps or when no cache is bound.
+    // Undefined for non-cacheable steps or when no cache is bound; the branch never enters the key.
     let cacheKey: CacheKey | undefined
     let storedCompletesStep: boolean | undefined
     const cacheActive = !nonCacheable && !!ports.cache
 
-    // 2b. GUARDED PROCEDURE REPLAY: each test step consumes
-    // exactly ONE committed body step — the one at the carried cursor — under the FULL
-    // guard (unique fresh-screen re-ground + page-anchor equality + grounding gate, the
-    // one guard idiom shared with cache replay, T-356-04a). Body steps map 1:1 onto test
-    // steps: the replayed decision completes its own test step and the remaining body
-    // rides the member-scoped carry to the NEXT step (`attempted === 0` makes the per-step
-    // consumption law structural, never just a consequence of the abort latches). A guard
-    // miss aborts replay for the WHOLE flow: the miss is folded into planSource, a closed
-    // value-free recovery projection reaches ordinary planning, and ordinary planning takes
-    // over — no replay re-entry within this step and no carry (one-shot, D-11).
-    // Replayed actions keep `cached: false`, skip the cache consult below, and are never
-    // written back into the action cache.
+    // 2b. Each test step replays one body step under the full guard; a miss ends the flow.
     if (procedureReplay && !procedureReplay.aborted
       && procedureReplay.attempted === 0
       && procedureReplay.nextIndex < procedureReplay.payload.steps.length) {
@@ -1162,7 +968,7 @@ export async function executeStep(
       const procedureStep = replayState.payload.steps[replayState.nextIndex]
       replayState.stepCursor = replayState.nextIndex
       replayState.attempted++
-      // Landmarks are a SOFT diagnostic only: a missing landmark logs, never misses.
+      // Landmarks are a soft diagnostic: a missing landmark logs and never misses.
       for (const landmark of procedureStep.guard.landmarks ?? []) {
         if (!screenState.tree.includes(landmark)) {
           ports.logger?.createScopedLogger('procedure')?.debug(
@@ -1174,9 +980,7 @@ export async function executeStep(
       const paramTypes = new Map(replayState.payload.parameters.map((p) => [p.name, p.type]))
       const attempt = attemptProcedureReplayAction({
         step: procedureStep,
-        // every replayed decision completes its own test step — the
-        // step's verifier runs per replayed body step (verifier boundaries stay intact)
-        // and the remaining body reaches the NEXT test step via the carry, never this one.
+        // Every replayed decision completes its own test step, so the verifier runs per body step.
         isFinal: true,
         screenState,
         bind: (name) => bindProcedureParam(name, paramTypes.get(name) ?? 'string'),
@@ -1206,10 +1010,7 @@ export async function executeStep(
             result: toRecordedActionResult({ success: false, error: recordMask(goneTarget) }),
           }
         }
-        // D-11 demotion: project only the typed structural facts the recovery turn may see.
-        // The projector is the raw-input firewall; the renderer accepts only its closed DTO
-        // plus the whole-string masker, so authored procedure prose and bound values cannot
-        // cross this post-miss seam.
+        // The projector is the raw-input firewall, so procedure prose and bound values stay out.
         const recovery = projectProcedureGuardMissRecovery({
           stepNumber: replayState.nextIndex + 1,
           step: procedureStep,
@@ -1233,10 +1034,7 @@ export async function executeStep(
       cacheKey = computeCacheKey(buildCacheableStepInput({
         mask: recordMask,
         platform: screenState.platform,
-        // D-20 (Plan 361-08): key the cache on the real digests the CLI mints when present, so
-        // cache identity and the future handoff identity share ONE mint (Pitfall 1 — they cannot
-        // fork). Absent port ⇒ empty strings, preserving today's key material exactly. The
-        // one-time invalidation when real digests first arrive is accepted (no-back-compat law).
+        // Keyed on the CLI's real digests when present; absent, the key uses empty strings.
         suiteConfigDigest: ports.configDigests?.suiteConfigDigest ?? '',
         testConfigDigest: ports.configDigests?.testConfigDigest ?? '',
         stepText: stepInstruction,
@@ -1248,10 +1046,7 @@ export async function executeStep(
       }))
       const hit = await ports.cache!.get(cacheKey)
       if (hit) {
-        // Exact-key hit: re-find each stored target strictly in the FRESH observation (a stored
-        // target never drives a blind click, T-356-04a, and never a pick, D-10). All resolve ⇒
-        // replay with NO LLM call. A key hit that does not replay is a recorded miss with its
-        // reason, then invalidated and replanned (A7).
+        // A stored target is re-found strictly in the fresh observation, never by a pick.
         const replay = replayFromCache(hit, screenState.elements)
         if (replay.ok) {
           planResult = { plan: replay.plan }
@@ -1277,21 +1072,13 @@ export async function executeStep(
     }
 
     if (!procedureReplayed && !cached) {
-      // a live decision needs a planner call; cache and procedure replay do not.
+      // A live decision needs a planner call; cache and procedure replay do not.
       if (meter.planningExhausted()) return await limitStop('planning-turns')
       const turnOrdinal = nextLiveTurnOrdinal
-      // Knowledge-brief sourcing seam: source the full three-tier brief through the
-      // optional KnowledgeHintReader port. In M1 `ports.knowledgeReader` is unbound, so this
-      // yields undefined and the slots stay empty and NEVER throw. D-05 routes only
-      // sovereign/authored L0 into the cached-prefix context tier; learned L1/L2 remain volatile
-      // and are always framed as hypotheses, never instructions. Channel 1 is deterministic,
-      // Channel 2 has planner agency, and Channel 3 has no agency; all three share the
-      // distinct-id ledger below.
+      // Only authored knowledge joins the cached tier; learned layers stay volatile hypotheses.
       const briefScope = { tier: 'test', key: context.testName } as const
       const briefBudget = ports.knowledgeBudgets?.brief ?? PROVISIONAL_BRIEF_TOKEN_BUDGET
-      // one value carries the brief AND the serve-time trace, so the trace cannot be lost
-      // between the port and evidence — it is destructured here and handed straight to the
-      // recorder alongside the block it explains.
+      // One value carries the brief and its serve-time trace, handed straight to the recorder.
       const served = ports.knowledgeReader?.getRunBrief(
         briefScope,
         briefBudget,
@@ -1315,28 +1102,18 @@ export async function executeStep(
           trace: served.trace,
         })
       }
-      // The brief rides every planning turn, so its distinct ids are already spent before any
-      // agentic search/read or automatic failure caution can admit a record (Pitfall 9).
+      // The brief rides every turn, so its ids are spent before any search, read or caution.
       recordLedger.resetTurn(brief?.admissions ?? [], {
         surface: 'brief-line',
         turnOrdinal,
       })
-      // reset the independent cumulative read-body counter only after the shared distinct-id
-      // ledger has been reseeded for this turn. An unregistered Channel-2 surface leaves this absent.
+      // Reset the read-body counter only after the distinct-id ledger is reseeded for this turn.
       beginMemoryTurn?.(
         briefScope,
         brief?.lines.map((line) => line.id) ?? [],
         turnOrdinal,
       )
-      // D-13/D-16/D-17 Channel 3 has no agency: surface the staged records as failure-adjacent
-      // observations inside the existing hypotheses frame, then clear them. Re-emphasizing an
-      // id already present in Channel 1 is intentionally free — the planner should not have to
-      // remember the caution after demonstrating the exact failure it warns about. New ids still
-      // consume the shared distinct-record cap, and every refusal is visible rather than clipped.
-      // entered for anything staged, with no second opinion about whether it was
-      // worth entering — `stageFailureCautions` already applied that predicate, and a re-check
-      // here would be a redundant gate free to disagree with it. A staged block with no cautions
-      // is the all-cut turn: nothing renders, but its attribution ledger is still recorded.
+      // Channel 3 has no agency: staged records render inside the hypotheses frame, then clear.
       const cautionsForTurn = pendingCautions
       pendingCautions = undefined
       if (cautionsForTurn !== undefined) {
@@ -1348,8 +1125,7 @@ export async function executeStep(
         )
         for (const caution of cautionsForTurn.block.cautions) {
           if (caution.id === CAUTION_TRUNCATION_ID) {
-            // 380-10's reserved terminal line is a reader-owned overflow signal, not a durable
-            // record. Render it, but never spend or mint a ledger admission for it.
+            // The reader's overflow line renders but never spends or mints a ledger admission.
             injected.push(caution)
             continue
           }
@@ -1367,12 +1143,7 @@ export async function executeStep(
           }
         }
 
-        // The serve-time trace rides with the injected lines: the recorder keeps only the
-        // attributions for cautions that were ACTUALLY rendered into the turn, so the trace
-        // never claims a record the planner never saw (D-13's honest-testimony rule). The
-        // recording sits OUTSIDE the observations gate below: what the planner was shown and
-        // what the run can later account for are different questions, and a turn that rendered
-        // no frame still owes an answer for the candidates it declined to render.
+        // Records only the cautions rendered into the turn, outside the observations gate.
         recorder.recordServedCautions(injected, cautionsForTurn.trace)
 
         const observations = injected.map((caution) => caution.summary)
@@ -1384,14 +1155,7 @@ export async function executeStep(
             : frame
         }
       }
-      // PROC-02 hint exposure: a matched-hint or post-miss-demoted
-      // procedure renders as one compact DATA-wrapped block appended into the L2 slot —
-      // the volatile hypotheses-not-instructions frame's procedures tier (the Channel-3
-      // caution append idiom above; BRIF-01 lineage: hypotheses, never instructions or
-      // commands, on every prompt surface). Admission rides the shared record ledger with
-      // real ServingRecordMetadata (id + flow-anchor cluster + renderedCost); a refusal
-      // drops the block fail-closed for this turn — never the turn itself, never an
-      // unmetered fallback. Empty-slot omission is preserved: no staged hint ⇒ no section.
+      // A refused ledger admission drops the hint block for this turn, never the turn itself.
       if (procedureHintStaged) {
         const hint = procedureHintStaged
         const admitted = recordLedger.admit(
@@ -1409,9 +1173,7 @@ export async function executeStep(
           context.knowledgeBriefL2 = context.knowledgeBriefL2?.trim()
             ? `${context.knowledgeBriefL2}\n\n${hint.block}`
             : hint.block
-          // RESEARCH Open Q3: a hint actually rendered into a planning turn records
-          // planSource procedure-hint — unless a replay attempt already owns the planSource
-          // slot (post-miss demotion keeps the procedure-replay fold with its miss).
+          // A rendered hint records `procedure-hint` unless a replay already owns planSource.
           if (!procedureHintExposed && procedureReplay === undefined) {
             recorder.recordPlanSource({
               kind: 'procedure-hint',
@@ -1422,12 +1184,9 @@ export async function executeStep(
           procedureHintExposed = true
         }
       }
-      // WM-01 serve: the whole run-scoped set is served verbatim to every planning turn
-      // via the optional workingMemory port (the knowledgeReader idiom). Unbound ⇒ left as-is,
-      // the loop runs memory-less. The served set is what finalize snapshots masked.
+      // The whole run-scoped set is served verbatim; unbound, the loop runs without memory.
       if (ports.workingMemory) context.workingMemory = ports.workingMemory.entries()
-      // D-09 active bulk-completion predicate — re-stated as volatile turn content each turn
-      // (persisted once declared); the planner re-evaluates + cites, the verifier backstops.
+      // The active predicate is restated each turn; the verifier backstops it.
       context.bulkCompletionPredicate = activePredicate
       // The production ledger has already decided every automatic surface for this turn.
       // Persist those exact decisions before snapshotting the exact tier bytes the planner
@@ -1438,8 +1197,7 @@ export async function executeStep(
       )
       nextPromptOrdinal++
       nextLiveTurnOrdinal++
-      // the planner debits each model call through the gate; a planner that reports
-      // none is debited once per plan().
+      // The planner debits each model call through the gate; one that reports none is debited once.
       const planningCallsBefore = meter.planningCallsUsed
       context.planningCallGate = meter
       try {
@@ -1454,8 +1212,7 @@ export async function executeStep(
         recorder.recordServedAdmissionEvents(recordLedger.drainEvidenceEvents?.() ?? [])
         const abortDuringPlan = checkAbort()
         if (abortDuringPlan) return abortDuringPlan
-        // the planning limit refused a planner call — its own typed stop, never a
-        // planning failure.
+        // The planning limit refused a planner call: its own typed stop, never a planning failure.
         if (planError instanceof PlanningLimitReachedError) return await limitStop('planning-turns')
         if (planError instanceof PlanningTurnError) {
           recorder.recordPlanningFailure({
@@ -1492,14 +1249,7 @@ export async function executeStep(
           ...(planResult!.callRecord !== undefined ? { callRecord: planResult!.callRecord } : {}),
         }
 
-    // §A8 decision-screenshot persistence. For a LIVE model decision that
-    // attached an image, persist the EXACT bytes the planner received (context.screenshot — never
-    // the step-level artifact shot, raw pre-compression bytes, or a later shot) exactly once and
-    // record the returned ref ON liveDecisionEvidence, so every terminal evidence branch this
-    // iteration carries it through the one existing spread (recordSubAction / recordSuccess).
-    // Cache replays (liveDecisionEvidence absent) and text-only turns (no context.screenshot) mint
-    // no ref. A host-store failure is caught and warned bytes-free (T-367-17-I/D): the ref stays
-    // absent so downstream completeness can classify the missing evidence — the run never fails.
+    // Persist the exact bytes the planner received once; a store failure leaves the ref absent.
     if (liveDecisionEvidence && context.screenshot && ports.evidenceArtifacts) {
       try {
         liveDecisionEvidence.decisionScreenshotRef = ports.evidenceArtifacts.persistDecisionScreenshot(context.screenshot)
@@ -1510,33 +1260,21 @@ export async function executeStep(
 
     const rawPlan = planResult!.plan
 
-    // WM-01 CAPTURE-BEFORE-NAVIGATE (Pattern 6): the planner authored remember[] against the
-    // pre-action observation this turn — write it to the run-scoped store BEFORE the action
-    // dispatches, so the entries record atomically with the navigating action. The store
-    // redacts registered secrets at capture (Pitfall 7 boundary 1); values stay verbatim.
+    // Write remember[] before the action dispatches, so entries record with the navigating action.
     if (rawPlan.remember && rawPlan.remember.length > 0) {
       ports.workingMemory?.capture(rawPlan.remember, { step: actionIndex })
     }
-    // D-09 persist the declared bulk-completion predicate for the rest of the run.
+    // Persist the declared bulk-completion predicate for the rest of the run.
     if (rawPlan.bulkCompletionPredicate) activePredicate = rawPlan.bulkCompletionPredicate
 
     let normalizedAction = normalizePointerActionForStep(rawPlan.action as Action, stepInstruction)
-    // Redact BEFORE recording (Information-disclosure control, T-353-08): every value
-    // that reaches evidence/display is pre-redacted; secret templates are resolved only
-    // at the execute boundary below.
+    // Redact before recording; secret templates resolve only at the execute boundary.
     let action = redactSecretValue(normalizedAction, ports.secretRedactor)
     const reasoning = redactSecretValue(rawPlan.reasoning, ports.secretRedactor)
     lastPlannedAction = action
     if (!cached && !procedureReplayed && reasoning.trim() !== '') lastPlannerReasoning = reasoning
 
-    // The grounding gate is the ONE chokepoint between plan and adapter.execute.
-    // Live turn-produced plans arrive gate-resolved from the Plan-06 turn — their §A8 trail
-    // rides on rawPlan.groundingAttempts, and re-running the gate here would double-ground
-    // against the same observation. Only the cache-replay path (and any residual out-of-turn
-    // plan) is (re-)validated here: replayFromCache already resolved every stored descriptor
-    // to a fresh ref, so the gate confirms the ref is in the fresh snapshot and yields the
-    // §A8 attempt trail for the replay's evidence. A gate failure maps: ref_not_in_snapshot ⇒
-    // the D-10 heal; any other failure ⇒ the failure-context flow.
+    // Live plans arrive gate-resolved, so only cache replays and out-of-turn plans are gated here.
     let gateAttempts: GroundingAttempt[] | undefined = rawPlan.groundingAttempts
     let gateForcedError: string | undefined
     let gateForcedRefMiss = false
@@ -1558,8 +1296,7 @@ export async function executeStep(
       && rawPlan.groundingAttempts === undefined
       && carriesStatedTarget(normalizedAction)
     ) {
-      // a residual out-of-turn plan carrying a target is grounded here, so its stated
-      // target reaches the pre-dispatch check like a live turn's; the grounded action executes.
+      // An out-of-turn plan with a target is grounded here, so its target reaches the check.
       const gateResult = groundActionPlan({
         toolName: normalizedAction.type,
         action: normalizedAction as unknown as Record<string, unknown>,
@@ -1578,8 +1315,7 @@ export async function executeStep(
     }
     const statedTargets = rawPlan.statedTargets ?? residualStatedTargets
 
-    // The §A8 grounding block for this sub-action's evidence, redacted before
-    // record (T-357-02a). Recomputed to the heal trail below if the D-10 heal fires.
+    // Redacted before record, and recomputed to the heal trail if the heal fires.
     let grounding = buildGroundingEvidence(
       action,
       screenState.elements,
@@ -1602,13 +1338,11 @@ export async function executeStep(
         grounding,
         ...(liveDecisionEvidence ?? {}),
       })
-      // D-04 fork: a `failureKind:'infeasible'` turn is a machine-distinguishable
-      // terminal outcome — record the typed StepEvidence.termination block ({kind,reason}) and
-      // return a distinct failure verdict. A plain stepFailed (no failureKind) stays byte-unchanged.
+      // An infeasible declaration records a typed termination block, unlike a plain stepFailed.
       if (rawPlan.failureKind === 'infeasible') {
         const reason = redactSecretValue(rawPlan.failureReason ?? '', ports.secretRedactor)
         recorder.recordTermination({ kind: 'infeasible', reason })
-        // the declaration's own reason (an ambiguity refusal's candidates) stays first.
+        // The declaration's own reason (an ambiguity refusal's candidates) stays first.
         const unproven = await verifyEnding('infeasible', lastExecutedAction)
         if (typeof unproven !== 'string') return unproven
         return failure(withUnproven(`Step declared infeasible: ${reason}`, unproven))
@@ -1618,30 +1352,20 @@ export async function executeStep(
       return failure(withUnproven(`Step failed: ${reasoning}`, unproven))
     }
 
-    // 3. EXECUTE — resolve templates only here; gate through the tool_call hook. The
-    // replay gate may have already rejected the action, in which case it never
-    // reaches the adapter and the failure routes into the heal / failure-context flow.
+    // 3. Execute: templates resolve only here; a replay-gate rejection never reaches the adapter.
     let execResult: ActionResult
     let execError: string | undefined
     let unresolvedEnding: string | undefined
-    // the one pre-dispatch debit for every executed action on every decision path; a
-    // gate-forced cache error never executes and is not debited. The loop top already refused an
-    // exhausted meter, so this debit cannot be refused here.
-    // the stated target is judged against each lane's element before the debit; a
-    // clear contradiction sends nothing, substitutes nothing and is not debited.
+    // One pre-dispatch debit per executed action; a refused stated target is never debited.
     const targetRefusal = gateForcedError === undefined && statedTargets !== undefined
       ? judgeStatedTargets(statedTargets, normalizedAction, screenState.elements, recordMask)
       : undefined
     if (gateForcedError === undefined && targetRefusal === undefined) meter.tryDebitAction()
-    // judged pre-dispatch on the settled `screenState` only (never a live probe, Pitfall 10).
+    // Judged on the settled `screenState` only, never a live probe.
     const idempotentNoop = gateForcedError === undefined && targetRefusal === undefined
       ? desiredStateSatisfied(normalizedAction, screenState)
       : undefined
-    // Phase 360 dispatch verbs siblinged at the ONE chokepoint (357 D-08 law): the runner-mint
-    // termination verbs (reportValue/uniqueValue), the AI judge lane (assertAI/extractAI), the
-    // structured assertValue read→compare lane, and the storage-state strip/inject seam all
-    // decide here — no second pre-adapter decision site. Helper logic lives in the Plan 08/09
-    // compound + verifier modules; only the branch decisions live here.
+    // Every pre-adapter dispatch decision happens here; helpers live in compound and verifier.
     const dispatchVerb = normalizedAction.type
     // Value-bearing evidence is masked before record through recordMask.
     if (gateForcedError !== undefined) {
@@ -1655,10 +1379,7 @@ export async function executeStep(
       }
       execError = targetRefusal.message
     } else if (dispatchVerb === 'reportValue') {
-      // a platform-less answer verb mints a success ActionResult here — never
-      // adapter.execute. The answer surfaces on metadata.reportedValue and lands masked-before-
-      // record in StepEvidence.reportedValue. reportValue is NON-terminal: the plan-field
-      // envelope (stepComplete/stepFailed) stays the sole termination mechanism.
+      // A platform-less answer verb mints its result here; reportValue never terminates the step.
       const rawReportedValue = String((action as { value?: unknown }).value ?? '')
       stepRunValues.add(rawReportedValue)
       const reportedValue = recordMask(rawReportedValue)
@@ -1672,10 +1393,7 @@ export async function executeStep(
         line: readLine({ index: stepRecord.recordedActions().length + 1, ...read }),
       })
     } else if (dispatchVerb === 'uniqueValue') {
-      // mint prefix + injectable-generator suffix here (zero adapter.execute), then auto-write
-      // the minted value into run-scoped working memory keyed by the prefix (kind extracted-value /
-      // provenance toolResult). Cache replay re-enters this branch and re-mints fresh (uniqueness
-      // is the semantic) — no special-casing.
+      // Cache replay re-enters this branch and mints a fresh value, because it must be unique.
       const prefix = String((action as { prefix?: unknown }).prefix ?? '')
       const minted = mintUniqueValue({ prefix }, ports.uniqueValueGenerator ?? defaultUniqueValueGenerator)
       execResult = minted
@@ -1779,11 +1497,7 @@ export async function executeStep(
         execError = undefined
       }
     } else if (dispatchVerb === 'assertValue') {
-      // D-10 "adapter reads, runner judges": dispatch the source read to the adapter ONCE (it
-      // returns the raw source value in data, or a §7.1 source-unavailable error), then apply the
-      // pure comparator and mint the outcome. A failing comparison is an honest §7.1 failure the
-      // planner mediates; a passing one is a read the verifier may cite.
-      // judged on the raw read, recorded through the declared mask.
+      // The adapter reads once and the runner compares; judged on the raw read, recorded masked.
       const read = await executeResolvedAction(normalizedAction, { keepRawData: true })
       if (!read.result.success) {
         execResult = read.result
@@ -1833,10 +1547,7 @@ export async function executeStep(
         }
       }
     } else if (dispatchVerb === 'storageState') {
-      // D-14 secret-template idiom (Pitfall 2): the RECORDED and EXECUTED objects DIFFER. save →
-      // the adapter returns the raw blob; strip it from the recorded result and hand it to the
-      // storageState port, recording only { name, fingerprint }. restore → load the blob from the
-      // port and inject it into the EXECUTED action only; the recorded action carries just the name.
+      // The recorded and executed objects differ: the storage-state blob is never recorded.
       const ss = action as { op?: unknown; name?: unknown }
       const op = ss.op
       const name = String(ss.name ?? '')
@@ -1879,11 +1590,7 @@ export async function executeStep(
         }
       }
     } else if (idempotentNoop !== undefined) {
-      // D-14 pre-dispatch idempotency short-circuit at the ONE chokepoint before adapter.execute,
-      // judged on the settled `screenState` only (Pitfall 10; no live probe). The skipped tap
-      // delivers no input, so it is recorded with success false and no error, and it is still the
-      // action the meter already counted; the step stays on the success path and its
-      // outcome rests on the verifier. Positive-evidence only: a missing state never suppresses.
+      // A satisfied state skips the tap with no input, success false and no error; still metered.
       execResult = {
         success: false,
         metadata: { idempotentNoop: { ...idempotentNoop, inputSent: false } },
@@ -1897,25 +1604,7 @@ export async function executeStep(
     const abortAfterExecute = checkAbort()
     if (abortAfterExecute) return abortAfterExecute
 
-    // 3b. D-10 RE-GROUND-FIRST HEAL (LOOP-04, Pitfall 7). On a CONSERVATIVELY-classified
-    // ref-resolution failure, the replay gate's ref_not_in_snapshot, or the adapter's typed
-    // binding-lost / binding-changed, re-observe and re-find EVERY ref lane of the
-    // action by its observed role, exact name and row words (strictMatch), then re-execute with
-    // every lane patched — NO planning turn, and no pre-observe ref is ever re-sent.
-    // stale-observation and frame-detached never heal. Exactly ONE heal per planned action
-    // (a per-iteration one-shot, never a counter — LOOP-02), bounded by the action limit and
-    // stepTimeout. Every re-found lane is judged against its stated target first: a
-    // contradiction on any lane is refused on path 'heal', not sent and not debited. When any lane
-    // has no single provably-same element, nothing is sent and the failure branch hands the
-    // planner the outcome. The heal trail is recorded in the sub-action's grounding block only;
-    // StepEvidence.selfHeal stays reserved for replan-based heals. A heal that re-dispatches
-    // sends refs taken from its fresh observation, so the dispatched action is recorded in
-    // healedDispatch against that observation, re-stamped with the planner call's capture stamp
-    // while plannedAction/stateBefore keep the planner's own pair. The
-    // verifier and cautions read the dispatched pair. The cache write keeps the unpatched action
-    // and the pre-heal elements.
-    // the heal re-execution is a counted action; at the limit it is skipped and the
-    // next loop top stops the step.
+    // 3b. Heal once per action by re-finding every ref lane strictly in a fresh observation.
     let healUnproven: 'absent' | 'not-unique' | undefined
     let actedState: ScreenState = screenState
     let recordedPair: RecordedPair = {
@@ -1994,10 +1683,7 @@ export async function executeStep(
       compoundInputs.push({ subActionIndex: recorder.subActionCount, kind: 'fill', count: 1 })
     }
 
-    // download and clipboard evidence ride the action that produced them. The adapter's metadata key is
-    // removed from the recorded and emitted result, so only the typed, masked evidence persists
-    // and the planner's history carries it as app-observed data. 437 D-05: the input
-    // evidence is derived from the result's metadata, which keeps its own keys.
+    // Only the typed, masked operation evidence persists; the adapter's metadata key is removed.
     const taken = takeOperationEvidence(execResult, recordMask, action.type)
     execResult = taken.result
     const operationEvidence = taken.evidence
@@ -2046,9 +1732,7 @@ export async function executeStep(
       stepOperationEvidence.input = [...(stepOperationEvidence.input ?? []), ...notableInput]
     }
 
-    // the replay cursor and successful-check fold advance only after dispatch (and any
-    // conservative re-ground heal) has succeeded. A verifier rejection does not undo a real
-    // adapter success; it merely hands the exhausted/in-progress sequence to the next loop turn.
+    // The replay cursor and fold advance only after dispatch succeeds; a rejection never undoes it.
     if (execError === undefined && pendingProcedureReplay !== undefined && procedureReplay) {
       advancedProcedureStepIndex = pendingProcedureReplay.procedureStepIndex
       procedureReplay.checksPassed++
@@ -2062,7 +1746,7 @@ export async function executeStep(
       height: (screenState.metadata.viewportHeight as number | undefined) ?? 0,
     }
 
-    // setVariable + stepComplete short-circuits verification (Pitfall 8, loop.ts:399).
+    // setVariable with stepComplete skips verification: the runner sets the variable itself.
     if (action.type === 'setVariable' && rawPlan.stepComplete) {
       recorder.recordSubAction({
         plan: reasoning,
@@ -2075,12 +1759,9 @@ export async function executeStep(
       context.failureContext = undefined
       pendingBoundary = undefined
       pendingSelfHeal = undefined
-      // setVariable is inherently non-cacheable — no cache write here (Pitfall 6).
+      // setVariable is non-cacheable, so nothing is written to the cache here.
       return success()
     }
-
-    // the legacy non-visual-`assert` short-circuit was deleted here. Its
-    // assertValue successor went too; a passing read is now verifier evidence.
 
     const annotation = buildAnnotation(action, execResult, viewport, !!execError)
 
@@ -2154,9 +1835,7 @@ export async function executeStep(
           result: toRecordedActionResult(toSchemaResult(execResult, annotation)),
         }
       }
-      // a grounding miss is a failed action in substance. It reaches this same branch after
-      // the conservative re-ground-first heal has exhausted, so all execution-failure shapes stage
-      // exactly one caution lookup for the next replan turn.
+      // A grounding miss is a failed action, so every execution failure stages one caution lookup.
       stageFailureCautions(action, actedState)
       continue
     }
@@ -2191,14 +1870,7 @@ export async function executeStep(
     // 5. VERIFY — only when the planner signals stepComplete (three-outcome strategy).
     let verifierReasoning: string | undefined
     if (rawPlan.stepComplete && ports.verifier) {
-      // the assertValue short-circuit is gone. Every completion claim,
-      // including one after a passing assertValue, is judged by the verifier; the read sits in
-      // the step record as citable evidence for its own condition. The AI judge lanes were
-      // already judged here. 'verifier-model' is recorded only with the final
-      // verdict. A FAILING assertValue or a false assertAI never reaches here — each set
-      // execError above.
-      // the verifier's own re-observation IS stateAfter. (The retired-`assert`
-      // afterState reuse special-case was deleted with the verb — D-19, Phase 360.)
+      // Every completion claim is judged by the verifier; its own re-observation is stateAfter.
       let afterState: ScreenState
       try {
         // The verifier must not judge a screen that is still changing, such as a composer that
@@ -2226,7 +1898,7 @@ export async function executeStep(
       const abortBeforeVerify = checkAbort()
       if (abortBeforeVerify) return abortBeforeVerify
 
-      // the verifier judges the whole step, from its settled start to its final screen.
+      // The verifier judges the whole step, from its settled start to its final screen.
       const record = stepRecord.snapshot()
       const accumulatedEvidence = hasOperationEvidence(stepOperationEvidence)
         ? stepOperationEvidence
@@ -2252,7 +1924,7 @@ export async function executeStep(
         totalPromptTokens += verifyResult.tokenUsage.promptTokens
         totalCompletionTokens += verifyResult.tokenUsage.completionTokens
       }
-      // the runner computes the pass from the cited per-condition verdicts.
+      // The runner computes the pass from the cited per-condition verdicts.
       const judged = judgeConditions({
         stepText: stepInstruction,
         output: verifyResult.verification,
@@ -2306,8 +1978,7 @@ export async function executeStep(
         pendingBoundary = undefined
         pendingSelfHeal = undefined
         await flushSavedPath({ turn: actionIndex, report: isReport }, judged.evidence)
-        // the verifier ACCEPTED a successful replayed step — re-arm the
-        // cross-step carry when body steps remain (the only write site; take-then-rearm).
+        // The verifier accepted a replayed step, so re-arm the carry when body steps remain.
         if (procedureReplayed) rearmProcedureFlowCarry()
         return finish('passed', { pass: true, reasoning: verifierReasoning ?? 'Step completed' })
       }
@@ -2387,8 +2058,7 @@ export async function executeStep(
       continue
     }
 
-    // No verifier but the planner claims completion — trust the planner. A test seam only: every
-    // production door binds a verifier, which C439-CENSUS proves.
+    // No verifier: trust the planner's completion; only test seams run without one.
     if (rawPlan.stepComplete && !ports.verifier) {
       const idx = recordSuccess(
         recorder,
@@ -2412,14 +2082,12 @@ export async function executeStep(
       pendingSelfHeal = undefined
       void idx
       await flushSavedPath({ turn: actionIndex, report: isReport })
-      // verifier-less harness state — the trusted completion accepts
-      // the replayed step, so the cross-step carry re-arms when body steps remain.
+      // Verifier-less harness: the trusted completion accepts the replayed step; the carry re-arms.
       if (procedureReplayed) rearmProcedureFlowCarry()
       return success()
     }
 
-    // Sub-action succeeded but the goal is not yet met — record and continue (no
-    // stateAfter: this is not a D-15 boundary).
+    // The sub-action succeeded but the goal is not met yet: record and continue.
     recordSuccess(
       recorder,
       reasoning,
@@ -2453,11 +2121,7 @@ export async function executeStep(
 
 // ---- helpers -----------------------------------------------------------------
 
-// Env-set provenance (D-07, set path). Pre-plan, the live resolver isn't available (its
-// onSetVariable callback fires only at execute time), so an explicit set/store/save verb
-// paired with an env-shaped token (UPPER_SNAKE identifier) is the provenance signal. The
-// read path (secret templates / [secret:*] marker) is classified inside classifyStep.
-// Phase 362 replaces this with the live resolver-reported provenance.
+// Pre-plan, a set/store/save verb beside an UPPER_SNAKE token signals env-set provenance.
 const ENV_SET_VERB = /\b(set|store|save|remember)\b/i
 const ENV_NAME_TOKEN = /\b[A-Z][A-Z0-9_]+\b/g
 
@@ -2469,10 +2133,6 @@ function deriveEnvSetNames(stepText: string): string[] {
 // Replayability is judged by the one schema-shared list (`isReplayableActionShape`), and the
 // saved path holds only turns that list accepts.
 
-// The ordered ref-field lanes replay must re-resolve for an action (Pitfall 5a): a drag
-// maps its two per-field locators onto fromRef/toRef; every other element action maps its
-// single locator onto ref. A locator-less action (navigate/waitFor/…) has no lane, but an
-// action type that must name an element always has its ref lane.
 function carriesRunValue(action: Action, values: readonly string[]): boolean {
   const texts: string[] = []
   const collect = (value: unknown): void => {
@@ -2503,19 +2163,13 @@ const SAVED_TARGET_GONE: Partial<Record<CacheMissReason | ProcedureGuardMissReas
   'descriptor-ambiguous': 'The saved target is no longer unique',
 }
 
-// Replay rung of the hit ladder: reconstruct an ActionPlan from a descriptor-only
-// cached value by re-finding EVERY stored per-field locator in the FRESH observation
-// (Pitfall 5 — multi-ref drags re-resolve both fromRef and toRef). A locator resolves only
-// through strictMatch: role, exact name and stated row words, one survivor. The action
-// shape or a missing lane locator is 'non-replayable'; the first lane with no survivor or with
-// several names the strict reason. Either way nothing replays (T-356-04a / T-438-15).
+// Each stored locator resolves only through strictMatch with one survivor, or nothing replays.
 function replayFromCache(value: CachedPlanValue, elements: readonly ElementInfo[]): CacheReplay {
   const action = value.plannedActions[0]
   if (!action) return { ok: false, reason: 'non-replayable' }
   const replayAction: Record<string, unknown> = { ...action }
 
-  // Non-replayable action shapes (coordinate-bearing / excluded types, the schema-shared
-  // list) ⇒ invalidate ⇒ replan (Pitfall 5b).
+  // Non-replayable action shapes invalidate the entry and replan.
   if (!isReplayableActionShape(String(replayAction.type ?? ''), Object.keys(replayAction))) {
     return { ok: false, reason: 'non-replayable' }
   }
@@ -2542,7 +2196,7 @@ function replayFromCache(value: CachedPlanValue, elements: readonly ElementInfo[
   }
 }
 
-// ---- PROC-02 guarded procedure replay helpers (381 D-09..D-12) -----------------
+// ---- guarded procedure replay helpers ----
 
 /** The closed guard-miss reason vocabulary — the schema StepPlanSource miss union. */
 type ProcedureGuardMissReason = NonNullable<
@@ -2572,7 +2226,7 @@ type ProcedureReplayAttempt =
       unjudgeable?: true
     }
 
-// no stored or derived position reaches the recovery context.
+// No stored or derived position reaches the recovery context.
 interface ProcedureRecoveryDescriptor {
   lane: string
   role: string
@@ -2694,20 +2348,7 @@ function strictProcedureTarget(
   }
 }
 
-/**
- * The D-10 full guard for ONE committed procedure action, in order: (0) defense-in-depth
- * replayability shape check against the schema-shared list (Pitfall 6); (1) unique
- * fresh-screen re-find of EVERY stored action target and the declared guard target through
- * strictMatch (role, exact name, stored row words; 438 D-11) — not-unique and absent are
- * distinct miss reasons, never a pick (T-357-03a); (2) live-vs-stored page anchor equality through
- * `normalizeAnchor`;
- * (3) loop-side value binding by NAME (values never crossed the reader port, T-381-21);
- * (4) the grounding gate exactly as the cached branch runs it, yielding the §A8 attempt
- * trail on the returned plan (`groundingAttempts`). Persisted bodies are untrusted runtime
- * inputs: commit accepts structurally valid guard-only target variants, so authoring
- * co-derivation is never a runtime invariant (D-10; PROC-02/SC2). A stored descriptor never
- * drives a blind action: every leg must pass before the action may execute.
- */
+// Persisted bodies are untrusted, so every guard leg must pass before a stored action executes.
 function attemptProcedureReplayAction(input: {
   step: ProcedureStepSpec
   isFinal: boolean
@@ -3070,14 +2711,7 @@ function describeFlowAnchor(anchor: Anchor): string {
   }
 }
 
-/**
- * Render the compact procedure hint block: flow name, confidence tier,
- * the parsed body's instruction outline, and parameter NAMES/types — never values, never
- * raw step actions as commands. This is the ordinary hint/body-read/execution/verifier
- * renderer; guard misses use the closed structural recovery renderer above. Masked through
- * the declared-secret mask, then DATA-wrapped via the safety package's delimiters so the
- * whole span reads as untrusted app-observed data under the hypotheses frame.
- */
+// Masked, then data-wrapped, so the hint reads as untrusted app data, never as commands.
 function renderProcedureHintBlock(
   match: ProcedureMatch,
   payload: ProcedureBodyPayload | undefined,
@@ -3125,11 +2759,7 @@ function firstRefFieldEntry(action: Action): { field: string; ref: string } | un
   return undefined
 }
 
-/**
- * D-14 precise-first failure anchors. Element identity comes from the failed action's resolved
- * ref and the matching live ElementInfo, then page and flow broaden the recall seed. Every lane
- * goes through schema's shared normalizeAnchor authority; this module owns no normalization copy.
- */
+// Element identity first, then page and flow; every lane uses schema's `normalizeAnchor`.
 function deriveFailureCautionAnchors(
   action: Action,
   screenState: ScreenState,
@@ -3182,8 +2812,7 @@ function carriesStatedTarget(action: Action): boolean {
 
 type TargetRefusal = { message: string; block: TargetRefusalMeta }
 
-// the first lane whose stated target clearly contradicts the element its ref names. Both
-// identities are scrubbed (declared-secret redaction) before they reach the block or message.
+// The first lane whose stated target clearly contradicts its ref's element; identities scrubbed.
 function judgeStatedTargets(
   statedTargets: StatedTargets,
   action: Action,
@@ -3202,8 +2831,7 @@ function judgeStatedTargets(
   return undefined
 }
 
-// one lane's stated target judged against `element` in `elements`; a refusal on a
-// contradiction, else undefined. `path` says whether the element is the live ref's or the heal's.
+// `path` says whether the element is the live ref's or the heal's.
 function judgeLane(
   lane: StatedTargetLane,
   path: TargetRefusalMeta['path'],
@@ -3245,11 +2873,7 @@ function judgeLane(
   }
 }
 
-// Build the §A8 grounding block for a grounded sub-action. Present ONLY when the
-// action carries an element field. Pitfall 9, D-02: the descriptor names the grounded element by
-// its exact name, never by position, and the first lane's stated target is recorded beside it.
-// Every identity is scrubbed BEFORE it lands in evidence (T-357-02a, D-05). Attempts come from
-// the turn gate / heal when supplied, else a synthesized ref-resolved trail for the committed ref.
+// Names the element by exact name, never position; every identity is scrubbed before evidence.
 function buildGroundingEvidence(
   action: Action,
   elements: readonly ElementInfo[],
@@ -3295,15 +2919,7 @@ type RegroundOutcome =
   | { kind: 'resolved'; lanes: HealLane[]; grounding: GroundingEvidence }
   | { kind: 'unproven'; reason: 'absent' | 'not-unique' }
 
-// D-08 re-find. EVERY ref lane of the failed action is re-found in the FRESH
-// observation, each only when exactly one element there has its observed role, exact name and row
-// words (strictMatch): no ordinal, no hierarchy tiebreak, no looser rung. One unproven lane, or two
-// lanes with different prior refs collapsing onto one fresh element, makes the whole heal unproven,
-// so no pre-observe ref is ever dispatched against the fresh observation. Resolved carries every
-// lane's fresh ref and element and the §A8 trail (per lane: ref no-match → tree-search resolved),
-// its descriptor naming the first lane, scrubbed like the live block and its row capped like the
-// refusal block's; null means a lane names no element of the prior observation.
-// Never replans.
+// One unproven lane, or two lanes collapsing onto one element, makes the whole heal unproven.
 function regroundFailedRef(
   action: Action,
   priorElements: readonly ElementInfo[],
@@ -3352,8 +2968,7 @@ function operationCaptureAvailability(
   return { download, clipboard, reason: support?.reason ?? 'platform' }
 }
 
-// Object reads (storage map, network log array) stringify as JSON so `contains` has something honest
-// to match. 439 D-14: a network read is judged per entry, and an empty log is unread.
+// Object reads stringify as JSON so `contains` can match; a network read is judged per entry.
 function assertValueReadText(source: string, value: unknown): { actual?: string | null; entries?: string[] } {
   const entries = source === 'network' && Array.isArray(value)
     ? value.map((entry) => JSON.stringify(entry))
@@ -3406,7 +3021,7 @@ function carriedItems(cell: CarriedArtifacts | undefined): { stepNumber: number;
   return items
 }
 
-// this step's completed downloads, then the carried ones, most recent first.
+// This step's completed downloads, then the carried ones, most recent first.
 function savedFileCandidates(
   actions: readonly RecordedAction[],
   carried: CarriedArtifacts | undefined,
@@ -3420,7 +3035,7 @@ function needsSavedFile(output: VerificationResult): boolean {
   return Array.isArray(output.conditions) && output.conditions.some((condition) => condition.needs === 'file')
 }
 
-// only a completed download is evidence it happened; the clipboard keeps the latest write.
+// Only a completed download is evidence it happened; the clipboard keeps the latest write.
 function carryForward(cell: CarriedArtifacts, stepNumber: number, actions: readonly RecordedAction[]): void {
   for (const action of actions) {
     for (const download of action.operationEvidence?.downloads ?? []) {
@@ -3468,8 +3083,7 @@ function takeOperationEvidence(
   return hasOperationEvidence(evidence) ? { result, evidence } : { result }
 }
 
-// verdicts and outcomes only, never typed or read-back text. inputSent is false
-// only on positive evidence that nothing was delivered: a refusal or an unavailable mechanism.
+// Verdicts only, never typed text; inputSent is false only on positive evidence of no delivery.
 function deriveInputEvidence(execResult: ActionResult, verb: string): InputEvidence | undefined {
   const fillVerdict = readFillVerdictMeta(execResult)
   const submit = readFillSubmitMeta(execResult)
@@ -3517,7 +3131,7 @@ function hasOperationEvidence(evidence: OperationEvidence): boolean {
   return !!(evidence.downloads || evidence.clipboard || evidence.input)
 }
 
-// masked first, so a secret is never cut into an unmaskable fragment, then bounded.
+// Masked first, so a secret is never cut into an unmaskable fragment, then bounded.
 function boundClipboardWrite(write: ClipboardWriteMeta, mask: (value: string) => string): ClipboardEvidence {
   const text = mask(write.text)
   if (text.length <= CLIPBOARD_TEXT_LIMIT) return { ...write, text, truncated: false }

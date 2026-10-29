@@ -1,7 +1,3 @@
-// the planner's stated target reaches the loop's
-// pre-dispatch check from a real planning turn (`ai.generateText` mocked, the real LLMPlanner and
-// gate run), on the descriptor lane and per drag lane, and a refusal sends nothing, is not debited
-// as an action, and records both identities only after the declared-secret mask.
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { asRef, readTargetRefusalMeta } from '@vostride/agent-qa-schema'
 import type { ScreenState } from '@vostride/agent-qa-schema'

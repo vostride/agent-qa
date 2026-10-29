@@ -72,8 +72,7 @@ describe('containsRedactedSecretMarker', () => {
   })
 })
 
-// G-381-5 drift guard (Phase 381, Plan 44): Rule 23 says [secret:NAME] is a hidden declared value
-// and {{secret:NAME}} types it; both halves are pinned on one fixture so the rule cannot overpromise.
+// Rule 23 says `[secret:NAME]` is hidden and `{{secret:NAME}}` types it; one fixture checks both.
 describe('prompt/mechanism round trip of the secret-fill contract', () => {
   const SECRET_NAME = 'loginPassword'
   const BOUND_VALUE = 'hunter2-correct-horse'
@@ -105,8 +104,7 @@ describe('prompt/mechanism round trip of the secret-fill contract', () => {
   })
 
   it('negative — the bound value never appears in redacted model-bound text', () => {
-    // Value-pattern masking re-pinned on this fixture: teaching the
-    // mechanism must not widen disclosure.
+    // Value masking runs on this fixture: teaching the mechanism must not widen disclosure.
     const leaked = `the field now contains ${BOUND_VALUE}`
     const redacted = redactor.redactString(leaked)
     expect(redacted).not.toContain(BOUND_VALUE)

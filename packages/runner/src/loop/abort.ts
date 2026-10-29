@@ -1,8 +1,4 @@
-// Abort / step-timeout helpers for the runner-owned step-execution loop.
-// CRITICAL: provider-neutral + storage-neutral. No node:* imports, no fs/sharp,
-// no model/core/adapter package imports. Pure AbortSignal plumbing.
-// Moved verbatim from core/src/agent/loop.ts:15-64; core orchestration
-// (agent/runner.ts, suite/runner.ts) imports these from the runner barrel.
+// Provider- and storage-neutral: pure AbortSignal plumbing, no host or model imports.
 
 export type AgentAbortScope = 'test' | 'step'
 
@@ -13,9 +9,7 @@ export interface AgentTimeoutAbortReason {
   message: string
 }
 
-// Single mint site for the timeout-abort message format. Both the reason factory
-// below and the isTestTimeoutMessage matcher derive from these — the label + shape
-// live in exactly one place (RESEARCH Open Q3 resolution).
+// The label and shape live only here; the reason factory and the matcher both derive from them.
 const TIMEOUT_LABEL: Record<AgentAbortScope, string> = { test: 'Test', step: 'Step' }
 
 function timeoutAbortMessage(scope: AgentAbortScope, timeoutMs: number): string {
@@ -35,17 +29,7 @@ export function createTimeoutAbortReason(scope: AgentAbortScope, timeoutMs: numb
 // Label is single-sourced from TIMEOUT_LABEL; only the numeric ms varies.
 const TEST_TIMEOUT_MESSAGE_PATTERN = new RegExp(`^${TIMEOUT_LABEL.test} timed out after \\d+ms$`)
 
-/**
- * True iff `message` is the message createTimeoutAbortReason('test', ms) mints for
- * some ms — the D-16 member-timeout signal. Rejects the 'step'-scope variant (a step
- * timeout is an ordinary failure) and any arbitrary text.
- *
- * WHY match on the message string: the AgentTimeoutAbortReason object does NOT survive
- * onto TestResult — the only trace that reaches verdict derivation is a failed step
- * whose `error` equals this minted message (RESEARCH Q3). This matcher is the one place
- * that knowledge lives, exported beside the sole mint site so the format stays
- * single-sourced.
- */
+// The timeout reason object never reaches TestResult; only the failed step's minted message does.
 export function isTestTimeoutMessage(message: string): boolean {
   return TEST_TIMEOUT_MESSAGE_PATTERN.test(message)
 }

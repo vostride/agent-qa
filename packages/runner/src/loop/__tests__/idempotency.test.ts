@@ -1,22 +1,3 @@
-// RED scaffold (Wave 0, Phase 359 · EXEC-04 · D-13/D-14/D-15/D-16 · Pattern 5 · spec §12.13).
-// Pins the toggle/picker idempotency contract BEFORE Plans 03/04/08 wire it:
-//   Block A — the pure comparator `desiredStateSatisfied(action, screenState)`: suppress
-//     an action ONLY on positive persisted-state evidence (tap/click on a classifier toggle vs
-//     state.checked, 437 D-01/D-02; select/nativeSelect/pickerSelect vs the persisted value);
-//     undefined/missing state or a non-toggle ⇒ act.
-//   Block B — the dispatch-seam short-circuit: at the ONE chokepoint before adapter.execute,
-//     a satisfied desiredState mints a no-input ActionResult (success false, no error) with
-//     metadata.idempotentNoop { currentState, inputSent: false } WITHOUT calling the adapter
-//     an unsatisfied desiredState falls through
-//     to a plain tap. The desiredState param must survive toolCallToActionPlan to the seam.
-//
-// RED BY DESIGN:
-//   - Block A: `../../compound/idempotency.js` does not exist until the compound plan lands — the
-//     unresolved import fails the whole suite at collection (vitest strips types; `tsc -p .` stays
-//     green via @ts-expect-error, removed when the module lands).
-//   - Block B: the shipped seam has no idempotency check and the tap/click emission schema has no
-//     desiredState param — so the zero-execute / idempotentNoop-metadata / desiredState-survival
-//     assertions are un-wired-seam failures (GREEN when Plans 04+08 land).
 import { describe, it, expect } from 'vitest'
 import type { ScreenState, ElementInfo, ElementState } from '@vostride/agent-qa-schema'
 import { asRef } from '@vostride/agent-qa-schema'
@@ -31,9 +12,7 @@ import { registerAllActions } from '../../tools/actions/index.js'
 import { toolCallToActionPlan } from '../../tools/builder.js'
 import { desiredStateSatisfied } from '../../compound/idempotency.js'
 
-// ---------------------------------------------------------------------------
-// Block A — pure comparator fixtures (via the canonical v2 factory, 352 precedent)
-// ---------------------------------------------------------------------------
+// Block A: pure comparator fixtures
 
 function checkable(
   state: Partial<ElementState>,
@@ -150,10 +129,6 @@ describe('Block A — desiredStateSatisfied: pickers act on the persisted value'
   })
 })
 
-// ---------------------------------------------------------------------------
-// Block B — dispatch-seam integration over the loop harness
-// ---------------------------------------------------------------------------
-
 function ports(overrides: Partial<LoopPorts> & Pick<LoopPorts, 'adapter' | 'planner'>): LoopPorts {
   return overrides
 }
@@ -199,9 +174,8 @@ describe('Block B — the seam suppresses a satisfied desiredState', () => {
       makeStepContext(),
     )
 
-    // the check runs at the ONE chokepoint before adapter.execute ⇒ zero adapter calls.
+    // The check runs before `adapter.execute`, so a satisfied state sends no adapter call.
     expect(calls.length).toBe(0)
-    // the minted no-op carries metadata.idempotentNoop.currentState ...
     const sub = firstSub(result)
     const noop = sub?.result?.metadata?.['idempotentNoop'] as { currentState?: unknown } | undefined
     expect(noop).toEqual({ currentState: 'checked', inputSent: false })
@@ -234,9 +208,6 @@ describe('Block B — desiredState survives toolCallToActionPlan to the seam', (
   it('a click tool call carrying desiredState spreads it onto the produced action plan', () => {
     const registry = new ToolRegistry()
     registerAllActions(registry)
-    // Currently RED: the click emission schema is .strict() with no desiredState param (Plan 04
-    // adds it) ⇒ toolCallToActionPlan rejects the field. When Plan 04 lands, desiredState rides
-    // through to action.desiredState with zero extra plumbing (builder spreads parsed fields).
     const plan = toolCallToActionPlan(
       'web_click',
       { reasoning: 'toggle wifi', confidence: 1, stepComplete: false, ref: 'e1', desiredState: 'checked' },

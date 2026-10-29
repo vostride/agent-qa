@@ -1,10 +1,3 @@
-// Seam proof for the ONE sanctioned Phase 368 runner change: the optional
-// `nonActionTools?: NonActionToolMap` constructor param on LLMPlanner threaded to
-// executePlanningTurn. This is the injection point the recorded-exchange server (plan
-// 368-03) plugs into; RPLY-02's "unmodified planner" holds because omitting the param is
-// byte-compatible with every existing call site. `ai.generateText` is mocked (only the
-// call is replaced) so `tool`/`z`/buildTools stay real and the fake non-action tool
-// carries a real `ai` definition — the planning-turn.test pattern.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { tool } from 'ai'
 import { z } from 'zod'
@@ -22,8 +15,7 @@ vi.mock('ai', async (importActual) => {
 
 const screen: ScreenState = makeScreenState()
 
-// The sampling-provider-boundary action envelope (JSON-string input shape): a grounded
-// web_click on ref e1, which exists in the makeScreenState fixture so the D-09 gate passes.
+// A grounded `web_click` on `e1`, a ref the makeScreenState fixture has, so grounding passes.
 const CLICK_ENVELOPE = {
   reasoning: 'Click the Log in button to submit',
   confidence: 0.9,
@@ -150,9 +142,7 @@ describe('LLMPlanner nonActionTools seam', () => {
   })
 
   it('Test 4: PlanningTurnError is the same class across the runner barrel (instanceof-classifiable)', async () => {
-    // The replay engine imports PlanningTurnError from the package entry and
-    // instanceof-classifies structured planner failures — this must be the SAME class the
-    // loop internals throw, or the classification silently misses.
+    // The replay engine classifies with instanceof, so the barrel must export the loop's own class.
     const barrel = await import('../../index.js')
     expect(barrel.PlanningTurnError).toBe(PlanningTurnError)
     const err = new PlanningTurnError('no_action_tool_called', 'x', [])

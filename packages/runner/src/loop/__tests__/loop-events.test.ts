@@ -1,10 +1,3 @@
-// D-02 live emission + D-20 digest threading (Plan 361-08). Harness-driven pins for the
-// two loop-side chokepoints: `stepFinalized` fires exactly once per step in finish() with
-// the SAME evidence object attached to the StepResult; `subActionRecorded` fires once per
-// recorded sub-action with the recorder's monotonic indices. Degrade-when-absent: with
-// `events` unset the loop is byte-identical (no throw). D-20: `configDigests` threads into
-// the cache-key material — a present digest pair changes the key the loop keys the cache on
-// (proven by captured CacheKeys, not by grep).
 import { describe, it, expect } from 'vitest'
 import type { CacheKey, StepEvidence, SubActionEvidence } from '@vostride/agent-qa-schema'
 import type { LoopPorts, LoopEventEmitPort } from '../ports.js'
@@ -132,8 +125,6 @@ describe('loop cache-key digest threading', () => {
     expect(both).not.toBe(testOnly)
   })
 })
-
-// ---- 405 D-05: the step's measured token usage rides the stepFinalized extra ------------
 
 describe('loop tokenUsage on stepFinalized (absent is not zero)', () => {
   it('(d) a step whose planner reported usage emits tokenUsage summing prompt + completion', async () => {

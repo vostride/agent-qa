@@ -1,7 +1,3 @@
-// P2: the step verifier sees the test author's suite/test context, in the per-call turn, with
-// the exact text the planner's context tier carries. Without context the prompt bytes are
-// unchanged (pinned literal captured from prompts.ts at agent-qa 14d504bca; 439-03 moved the
-// screenshot-analysis paragraph into a turn that has an image, D-19).
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { generateText } from 'ai'
 import { asRef } from '@vostride/agent-qa-schema'

@@ -1,18 +1,4 @@
-/**
- * D-16's LAST HOP: no consumer may drop the trace between the reader port and evidence
- *
- * The structural half of this is a signature — `recordServedBrief` and `recordServedCautions` take
- * the trace as a REQUIRED parameter, so a loop that obtained a composite and discarded its trace
- * cannot compile. That half is enforced by `tsc` and exercised by every runner suite.
- *
- * This file covers what a type cannot see: that the loop actually threads the trace it received
- * rather than manufacturing a fresh empty one at the recorder call. A `trace: emptyTrace()` at the
- * call site would type-check perfectly and would make D-16 vacuous at the exact hop it is meant to
- * protect — so it is scanned for, with a planted violation confirming the scan can reject.
- *
- * `grep` is deliberately unused: it has silently returned nothing for patterns demonstrably
- * present in this tree, and a gate that can fail open is worse than no gate.
- */
+// Scans for a fresh empty trace at the recorder call, which type-checks but drops the served one.
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -86,16 +72,7 @@ describe('the loop threads the serve-time trace to the evidence seam', () => {
   })
 })
 
-/**
- * the scan above proves the loop hands over the trace it was SERVED. It
- * cannot see whether the loop hands it over AT ALL on a turn that injected nothing — that is a
- * control-flow fact, and the source text of a call site says nothing about the gate enclosing it.
- *
- * This section runs the loop. Shape A is the zero-injection case whose drop gate lives HERE, in
- * `index.ts`: the reader ranked candidates and budget-cut every one of them, so `block.cautions`
- * is empty, the caution turn's enclosing condition is false, and the recorder is never reached.
- * That is precisely the step "why didn't it mention X" is asked about.
- */
+// A turn that injects nothing must still hand the reader's trace to the recorder.
 const EMPTY_BRIEF: BriefBlock = {
   tiers: { L0: '', L1: '', L2: '' },
   lines: [],
@@ -109,11 +86,7 @@ function cut(recordId: string, rank: number, score: number): TraceLine {
   return { recordId, leg: 'anchor', rank, score }
 }
 
-/**
- * A reader whose caution serve is SCRIPTED per lookup, so a step with two failure moments can
- * hand each staging its own cut candidates. One entry behaves exactly like the fixed-shape stub
- * this replaced (the index clamps), which is what keeps the WR-10 cases below unchanged.
- */
+// Serves are scripted per lookup; a single entry answers every lookup because the index clamps.
 function readerServing(...serves: ServedCautions[]): KnowledgeHintReader {
   let call = 0
   return {
@@ -164,13 +137,6 @@ async function replanAfterFailure(cautions: ServedCautions): ReturnType<typeof e
 
 describe('a turn that injected ZERO cautions still lands the reader cut ledger', () => {
   it('Shape A: the reader ranked candidates and cut them all', async () => {
-    // RED BASELINE, observed against unmodified production code before the fix:
-    //   AssertionError: expected [] to deeply equal [ 'caution-cut-a', 'caution-cut-b' ]
-    // `retrievalTrace` was PRESENT but its `truncated` ledger was EMPTY — the Channel-1 record
-    // makes the trace object exist, so an assertion that merely checked for its presence would
-    // have passed over the defect. The drop is at the caution turn's own gate in `index.ts`:
-    // with `block.cautions` empty the branch is skipped entirely and `recordServedCautions` is
-    // never called, so the recorder body never sees this trace at all.
     const served = await replanAfterFailure(servedCautions(
       { cautions: [], budgetUsed: 0, admissions: [] },
       {
@@ -183,15 +149,12 @@ describe('a turn that injected ZERO cautions still lands the reader cut ledger',
     const persisted = served.evidence?.retrievalTrace
     expect(persisted?.truncated.map(({ recordId }) => recordId))
       .toEqual(['caution-cut-a', 'caution-cut-b'])
-    // Honesty (D-2 / 387-04 probe r4, extended to the all-cut case): nothing was rendered into
-    // the turn, so nothing may be claimed as served testimony.
+    // Nothing is rendered into the turn, so nothing counts as served.
     expect(persisted?.servedLines).toEqual([])
   })
 
   it('Shape A leaves the ServedBrief bytes exactly where the no-caution baseline left them', async () => {
-    // the repair may not dent byte-stability. The comparison is against a real replan that
-    // served no caution trace at all, not against a hand-built empty brief — the two runs differ
-    // ONLY in what the reader's caution trace carried.
+    // Compared with a real replan that served no caution trace, so only the trace differs.
     const laden = await replanAfterFailure(servedCautions(
       { cautions: [], budgetUsed: 0, admissions: [] },
       { schemaVersion: RETRIEVAL_TRACE_SCHEMA_VERSION, servedLines: [], truncated: [cut('caution-cut-a', 4, 0.31)] },
@@ -208,17 +171,7 @@ describe('a turn that injected ZERO cautions still lands the reader cut ledger',
   })
 })
 
-/**
- * WR-10′: every case above drives a step that reaches its NEXT planning turn, which
- * is where a staged caution composite is picked up. The staged value is consumed there and nowhere
- * else, and the loop has exits above that pickup — the step deadline and the per-step action
- * limit. A step that ends at one of those exits loses the whole staged ledger, and the terminal
- * failure is precisely the turn "why didn't it mention X" is asked about.
- *
- * The suite's input domain had no step that ends early. These cases add one. The closure is a
- * single backstop drain inside `finish()` — the file's own single terminal funnel — never an
- * enumeration of the exit sites, which is the failure mode this whole arc exists to end.
- */
+// Steps ending at the deadline or action limit still drain staged cautions in `finish()`.
 /**
  * A staged composite whose block renders NOTHING. `served` are lines the reader handed over for a
  * turn that never came; `cutCandidates` are the ones it had already dropped. Both must reach
@@ -253,14 +206,6 @@ async function endsAtBudget(
 
 describe('a step that ENDS before its staged ledger is consumed still lands it', () => {
   it('terminal budget exit: the staged cut ledger survives the step that never replanned', async () => {
-    // RED BASELINE, observed against unmodified production code before the drain existed:
-    //   AssertionError: expected [] to deeply equal [ 'caution-cut-a', 'caution-cut-b' ]
-    // `retrievalTrace` was PRESENT (the Channel-1 brief record makes the object exist) with an
-    // EMPTY `truncated` — the same trap Shape A recorded: an assertion on the mere presence of
-    // `retrievalTrace` would have passed straight over the defect. The drop is at neither of
-    // WR-10's three gates: the composite was staged correctly and the recorder would have
-    // accumulated it correctly; the step simply RETURNED at the remaining-budget exit before the
-    // consuming turn ran, and nothing drained what was staged.
     const served = await endsAtBudget([stagedServe(
       // A line the reader SERVED for the turn that never came. Its presence is what makes the
       // honesty assertion below non-vacuous: with a served-lines-empty trace, no implementation
@@ -279,18 +224,11 @@ describe('a step that ENDS before its staged ledger is consumed still lands it',
     // applied to the terminal turn with no special case.
     expect(persisted?.truncated.map(({ recordId }) => recordId))
       .toEqual(['caution-served-x', 'caution-cut-a', 'caution-cut-b'])
-    // Nothing was rendered into any turn, so nothing may be claimed as served testimony
-    // (D-2 / 387-04 probe r4, carried to the terminal turn).
+    // Nothing is rendered into any turn, so nothing counts as served.
     expect(persisted?.servedLines).toEqual([])
   })
 
   it('two stagings: the terminal drain APPENDS to the consumed one, it does not replace it', async () => {
-    // RED BASELINE, observed against unmodified production code:
-    //   AssertionError: expected [ 'staged-a-cut' ] to deeply equal [ 'staged-a-cut', 'staged-b-cut' ]
-    // The failure mode differs from the case above and that difference is the point: staging A WAS
-    // consumed by the intervening turn and reached evidence, so the ledger is non-empty and only
-    // the LAST staging is missing. A control that asserted "truncated is non-empty" would have
-    // passed here while the terminal step's own ledger was still being dropped.
     const served = await endsAtBudget(
       [stagedServe([], [cut('staged-a-cut', 4, 0.31)]), stagedServe([], [cut('staged-b-cut', 6, 0.19)])],
       2,
@@ -303,10 +241,7 @@ describe('a step that ENDS before its staged ledger is consumed still lands it',
   })
 
   it('the terminal drain leaves the ServedBrief bytes where a cut-free budget exit left them', async () => {
-    // D-13 one-way beside-field identity, carried to the terminal path: the drain injects NOTHING,
-    // so the recorder's non-empty-injection gate never fires and the brief cannot move. As with
-    // Shape A, the comparison is against a REAL budget-exit run that carried no cut candidates —
-    // the two runs differ only in what the reader's caution trace held.
+    // The drain injects nothing, so the brief cannot move; the control carried no cut candidates.
     const laden = await endsAtBudget([stagedServe([], [cut('caution-cut-a', 4, 0.31)])], 1)
     const baseline = await endsAtBudget([noCautions()], 1)
 
@@ -331,13 +266,7 @@ describe('a step that ENDS before its staged ledger is consumed still lands it',
 const DRAIN_CALL = 'recorder.recordServedCautions([], pendingCautions.trace)'
 const FOLD_CALL = 'recorder.finalize('
 
-/**
- * The ordering claim as ONE expression, so the assertion that it holds on the real source and the
- * assertions that it rejects are literally the same test of the same thing.
- *
- * `both present` is part of the predicate, not a separate precondition: a text missing either
- * needle has no ordering to be right about, and the control below relies on that arm.
- */
+// One predicate, so the real-source check and the rejecting controls test the same thing.
 function drainPrecedesFold(text: string): boolean {
   const drain = text.indexOf(DRAIN_CALL)
   const fold = text.indexOf(FOLD_CALL)
@@ -353,32 +282,7 @@ function withDrainBelowTheFold(text: string): string {
   return `${lifted.slice(0, foldEnd)}\n      ${DRAIN_CALL}\n${lifted.slice(foldEnd)}`
 }
 
-/**
- * WR-06. The backstop comment in `index.ts` discloses that the funnel covers terminal
- * RETURNS and that throw-shaped exits leave `executeStep` without reaching `finish()`. Under the
- * round-3 rule a disclosure written in prose is a hypothesis; this is the mechanism that makes it
- * a fact a test can red.
- *
- * It pins the SHAPE of the accepted throw statements and never their COUNT. A count
- * is the hand-picked member set this whole arc exists to end: it would red on a legitimate further
- * site that conforms perfectly, and the only repair would be to bump the number. The control below
- * adds exactly such a site and asserts this scan stays silent about it.
- *
- * Two shapes are accepted, which is what the comment claims and what the file has:
- *   - a RE-RAISE — `throw <ident>` immediately preceded by the abort re-check idiom
- *     (`const x = checkAbort()` then `if (x) return x`), i.e. the error is re-raised only because
- *     it was NOT an abort. The identifier is backreferenced, so a re-check binding one name and
- *     returning another is not a guard.
- *   - a CONSTRUCTED throw — `throw new Ctor(`, a fresh error for a violated invariant, where there
- *     is likewise no StepResult to attach evidence to.
- * A third shape falsifies the disclosure, so it reds here and the comment gets rewritten with it.
- *
- * Two stated limits, so nobody reads this as more than it is. (1) It does NOT claim the throws are
- * covered by the drain — they are not; it pins that the exception stays the disclosed one.
- * (2) `statementsOf` strips comments but not string literals, so a `throw` inside a quoted string
- * would be scanned as a statement. index.ts has none today; if one appears, this scan reds and the
- * stripping is what needs widening.
- */
+// Pins the shape of each throw (a re-raise after the abort re-check, or `throw new`), not a count.
 const RE_RAISE = /^throw\s+([A-Za-z_$][\w$]*)\s*;?\s*\}*\s*$/
 const CONSTRUCTED_THROW = /^throw\s+new\s+[A-Za-z_$][\w$]*\s*\(/
 /** The abort re-check must sit IMMEDIATELY above the re-raise: anchored at the window's end, with
@@ -448,17 +352,7 @@ describe('the terminal drain sits at the ONE funnel every exit routes through', 
     // rather than a re-derivation of it.
     expect(drainPrecedesFold(source)).toBe(true)
 
-    // POSITIVE CONTROL: what a positive control exists for is to show the scan can
-    // REJECT, and the construction this replaces could not. It appended the drain needle to the END
-    // of the string it then searched, so the needle's index was necessarily the largest in it —
-    // measured true over the real source, over a nonsense string, over a source with the drain
-    // already below the fold, and over the EMPTY STRING. Four inputs, four passes, one of them
-    // containing no source at all.
-    //
-    // The replacement runs `drainPrecedesFold` — the same expression asserted above — over the real
-    // source with the drain moved below the fold. Both needles are still present exactly once, so
-    // the rejection is attributable to ORDER and not to a botched surgery that deleted one of them;
-    // that is asserted, not assumed.
+    // The misplaced source keeps both needles once, so a rejection here is about order alone.
     const misplaced = withDrainBelowTheFold(source)
     expect(occurrences(misplaced, DRAIN_CALL)).toBe(1)
     expect(occurrences(misplaced, FOLD_CALL)).toBe(1)
@@ -470,10 +364,7 @@ describe('the terminal drain sits at the ONE funnel every exit routes through', 
   })
 
   it('the drain is a SECOND sanctioned call shape, not a licence for a third', () => {
-    // 387-04's exact-text pin asserted the consuming turn's call is the only one in the file. The
-    // true set grew by one, so the claim widens to name BOTH sanctioned shapes explicitly — the
-    // pin is not weakened: a fabricated-trace call site is still rejected, because neither
-    // sanctioned shape constructs a trace and the forbidden-substring scan above still reports 0.
+    // Neither sanctioned call shape constructs a trace, so a fabricated-trace call still fails.
     expect(occurrences(source, 'recorder.recordServedCautions(injected, cautionsForTurn.trace)')).toBe(1)
     expect(occurrences(source, 'recorder.recordServedCautions([], pendingCautions.trace)')).toBe(1)
     // Exactly two call sites in the whole file — a third would be a serve nobody attributed.
@@ -512,19 +403,13 @@ describe('the terminal drain sits at the ONE funnel every exit routes through', 
     expect(throwIdiomViolations(`${source}\n    throw makeStepError()\n`))
       .toEqual(['throw shape outside the disclosed set: throw makeStepError()'])
 
-    // NEGATIVE CONTROL (387-15 D-1, made mechanical) — a FURTHER conforming site must stay silent.
-    // This is the assertion that proves the scan pins a shape and not a membership list; if it ever
-    // has to be deleted to make the scan pass, the scan has become the thing D-1 refused.
+    // A further conforming site must stay silent, so the scan pins a shape, not a membership list.
     const oneMoreConformingSite = `${source}\n  } catch (err) {\n    const abortLater = checkAbort()\n    if (abortLater) return abortLater\n    throw err\n  }\n`
     expect(throwIdiomViolations(oneMoreConformingSite)).toEqual([])
     expect(throwStatementsOf(oneMoreConformingSite, RE_RAISE).length)
       .toBe(throwStatementsOf(source, RE_RAISE).length + 1)
 
-    // NEGATIVE CONTROL 2 — the same conforming site written on ONE line. A scan that reddened here
-    // would be pinning this file's line breaks rather than the idiom, which is D-1's failure mode
-    // wearing a different hat: the repair would be to edit the guard for a legitimate addition.
-    // Measured: the first draft of this scan DID red here, reporting the trailing brace as an
-    // unrecognised shape, and the classifier was widened rather than this control dropped.
+    // The same site on one line must stay silent, or the scan pins line breaks, not the idiom.
     expect(throwIdiomViolations(
       `${source}\n  try { risky() } catch (err) { const abortInline = checkAbort(); if (abortInline) return abortInline; throw err }\n`,
     )).toEqual([])

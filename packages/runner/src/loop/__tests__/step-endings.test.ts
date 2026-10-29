@@ -1,8 +1,3 @@
-// a give-up, an infeasible declaration and both limit stops are
-// judged once per condition over a settled final screen, and the step error names what is
-// unproven after the original reason; the verdicts never turn an ending into a pass. Timeout and
-// abort make no verifier call and record the requested outcome as unverified.
-
 import { describe, expect, it } from 'vitest'
 import type { ScreenState } from '@vostride/agent-qa-schema'
 import type { Action, ActionResult, PlatformAdapter } from '../../platform.js'

@@ -1,5 +1,4 @@
-// The per-step limit meter (436 D-07..D-11). One instance per step execution; counters only move
-// through their own methods, a refused debit never increments, and nothing refills or resets them.
+// One meter per step execution; a refused debit never increments, and nothing refills it.
 
 import type { CompoundInputCount, PlannerLimits, StepLimitUsage } from '@vostride/agent-qa-schema'
 

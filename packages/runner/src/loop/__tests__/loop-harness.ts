@@ -1,6 +1,4 @@
-// Shared fakes for the runner loop test suite. Framework-free helpers: the
-// test files supply the it()/expect wrappers. Models a fake PlatformAdapter and a scripted
-// Planner/Verifier.
+// Framework-free fakes: the test files supply their own `it` and `expect` wrappers.
 import type { LanguageModel, LanguageModelUsage, ModelMessage } from 'ai'
 import type { ScreenState } from '@vostride/agent-qa-schema'
 import type { PlatformAdapter, Action, ActionResult } from '../../platform.js'
@@ -100,14 +98,7 @@ export function makeVerifier(results?: ScriptedVerdict[]): Verifier {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Fake TokenAccounting port. A structural implementation
-// of the runner `TokenAccounting` port (ports.ts:118-123), typed against the
-// imported interface so any drift from the real port surface is a compile error.
-// Framework-free: recordUsage / degrade invocations are captured into plain arrays
-// the test files inspect with their own expect() wrappers. Scriptable ceilings,
-// estimate, and degrade behavior (including the structured cannot-fit outcome).
-// ---------------------------------------------------------------------------
+// Typed against the real `TokenAccounting` port, so drift from its surface is a compile error.
 
 export interface FakeTokenAccountingOptions {
   /** Model context window `C` surfaced via getCeilings(). Default 200_000. */
@@ -121,7 +112,6 @@ export interface FakeTokenAccountingOptions {
 }
 
 export interface FakeTokenAccounting extends TokenAccounting {
-  /** One push per recordUsage() call — the spy surface for the D-10 feed point. */
   recordUsageCalls: { usage: LanguageModelUsage; messages: ModelMessage[] }[]
   /** One push per degrade() call — inspect the pin predicate / budget the caller passed. */
   degradeCalls: { messages: ModelMessage[]; options: RunnerDegradeOptions }[]

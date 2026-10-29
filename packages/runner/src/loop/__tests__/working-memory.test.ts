@@ -1,13 +1,3 @@
-// RED scaffold (Wave 0, Phase 358 · WM-01 · D-11/D-12 · Pattern 6 · Pitfall 7). Pins the
-// run-scoped WorkingMemoryStore + structured turn injection BEFORE Plan 05 lands it. Three
-// distinct redaction boundaries (Pitfall 7): VERBATIM in the store and in turn content;
-// redactSecretValue at CAPTURE (registered secrets only); mask() only at snapshot/flush
-// (tested elsewhere). Latest-wins key overwrite; whole-set recall.
-//
-// RED BY DESIGN: `../working-memory/store` does not exist until Plan 05 — the unresolved
-// import IS the intended failure. Pinned API:
-//   new WorkingMemoryStore(redactor?)
-//     .capture(entries, provenanceCtx?); .entries(): WorkingMemoryEntry[]; .dispose()
 import { describe, it, expect } from 'vitest'
 import type { ModelMessage } from 'ai'
 import type { ScreenState, WorkingMemoryEntry } from '@vostride/agent-qa-schema'
@@ -15,7 +5,6 @@ import type { StepContext } from '../types.js'
 import type { SecretRedactorPort } from '../ports.js'
 import { composeTurnMessages } from '../prompts.js'
 import { buildAgentScreenState } from './screen-fixtures.js'
-// Plan-05 working-memory module — intentionally unresolved today (the RED reason for this suite):
 import { WorkingMemoryStore } from '../working-memory/store.js'
 
 const OTP = { key: 'otp', value: '4821', kind: 'extracted-value', provenance: 'observation' } satisfies WorkingMemoryEntry

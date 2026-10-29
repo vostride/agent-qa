@@ -1,22 +1,4 @@
-// The runner's judge over the verifier's per-condition output.
-// Pure: the model judges each condition, the runner checks it and computes the pass. A quote
-// matches when it occurs in the clear record, or masked in the masked record (the model sees
-// placeholders). Masking is injected; nothing here reads a model or a platform.
-//
-// Checks, in order: each condition's quote must be a run of the step's own words, and every step
-// word outside STOP_WORDS must lie in some quote (else one 'not-covered' condition names the rest);
-// a met condition needs a citation the runner finds; a met condition whose own reasoning, or the
-// planner's completion reasoning, admits the action did not happen is not met.
-//
-// The phrase check is English-only. It refuses a met verdict when the reasoning holds a negated
-// participle whose stem is a word of the condition's quote ("has not (yet) (been) saved",
-// "not yet submitted", "did not send", "never paid", "failed to export"), unless the quote itself
-// is negated on that word, or holds "nothing happened", "nothing changed", "no effect" or
-// "did nothing" when the quote carries one of EFFECT_VERBS. A negation about another object with
-// the same verb ("the old value was not saved" on "Save the new value") is refused: the safe
-// direction. Nothing excuses an admission, whatever the citations show: a proven
-// effect described as an unchanged page is refused, a visible false fail accepted by the owner.
-// An admission in another language is not caught.
+// The phrase check is English-only; an admission in another language is not caught.
 
 import type {
   CitationSource,
@@ -64,7 +46,7 @@ export interface ConditionGuardFacts {
   platform: Platform
   record?: Pick<VerifierStepRecord, 'actions' | 'reads'>
   imageAttached: boolean
-  /** this step's completed downloads, then carried ones, most recent first. */
+  // This step's completed downloads, then carried ones, most recent first.
   files?: readonly SavedFile[]
 }
 

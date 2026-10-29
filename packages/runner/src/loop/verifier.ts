@@ -25,10 +25,7 @@ import type { TokenAccounting } from './ports.js'
 import { buildVerificationPrompt, buildVerifierStableTier } from './prompts.js'
 import { executeClampedCall } from './clamp.js'
 
-// Per-condition verification: the planner self-reports goal completion via
-// stepComplete, and the verifier then lists the step's conditions, each quoting the step and
-// citing evidence. The verifier gives no overall success; the runner computes the pass from the
-// conditions (judgeConditions), and a computed non-pass is a rejection that replans.
+// The verifier gives no overall success; a computed non-pass is a rejection that replans.
 const ConditionJudgmentSchema = z.object({
   quote: z.string().describe('The exact words of the step this condition covers'),
   verdict: z
@@ -217,10 +214,7 @@ export class LLMVerifier implements Verifier {
   private accounting: TokenAccounting
   private profile?: DeclaredModelProfile
 
-  // TokenAccounting is a required constructor dependency (D-15 constructor-injection):
-  // the verifier holds its OWN instance (not the planner's — distinct cache entry, D-11)
-  // and rides the same clamp/degrade/recordUsage seam every verifier call goes through
-  // Plan 07 constructs a distinct verifierAccounting at the composition root.
+  // The verifier holds its own TokenAccounting instance, a cache entry apart from the planner's.
   constructor(model: LanguageModel, accounting: TokenAccounting, profile?: DeclaredModelProfile) {
     this.model = model
     this.accounting = accounting
@@ -241,17 +235,10 @@ export class LLMVerifier implements Verifier {
     record?: VerifierStepRecord,
   ): Promise<VerifyResult> {
     try {
-      // D-09 backstop: the declared bulk-completion predicate rides the per-call VOLATILE turn
-      // content (never buildVerifierStableTier — the 355 verifier cache contract keeps the
-      // stable tier byte-stable). The verifier weighs the predicate alongside the states.
+      // The bulk predicate rides the per-call turn, so the stable tier stays byte-stable.
       const promptText = buildVerificationPrompt(step, before, after, action, !!screenshot, promptNote, bulkCompletionPredicate, authorContext, operationEvidence, record)
 
-      // Verdict-identity cached stable prefix: a one-tier SystemModelMessage array
-      // carrying the single Anthropic ephemeral cache_control breakpoint. Byte-stable per
-      // run (buildVerifierStableTier is arg-less), so it forms the verifier's own cache
-      // entry — distinct system content from the planner ⇒ a distinct cache key. The
-      // `anthropic` providerOptions namespace is a transparent no-op on other providers.
-      // No planner-ingredient parity (previous-steps / working-memory framing) is added.
+      // Byte-stable per run, so the verifier gets its own cache entry apart from the planner's.
       const system: SystemModelMessage[] = [{
         role: 'system',
         content: buildVerifierStableTier(),

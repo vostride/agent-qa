@@ -1,6 +1,4 @@
-// an open dialog that is the state the step asked to open or
-// see does not block the pass; a dialog that bears on a condition, or that goes unaccounted, still
-// does. The verifier's answers are scripted JSON; no model runs.
+// The verifier's answers are scripted JSON; no model runs.
 
 import { describe, expect, it } from 'vitest'
 import { asRef } from '@vostride/agent-qa-schema'

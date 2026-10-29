@@ -1,15 +1,4 @@
-// Phase 364 RUNX-01 / D2 regression — the planner must NEVER emit an empty-content
-// system message. A bare test (no suiteContext, no testContext) makes buildContextTier
-// return a role:'system' message whose content is '' (appendContextSection pushes
-// nothing); the old assembly placed that empty tier into the `system` array, the `ai`
-// openai-responses adapter mapped it to {"role":"developer","content":""}, and the
-// OpenAI Responses API rejected the request with HTTP 400.
-//
-// The fix drops empty-content tiers AT ASSEMBLY TIME via the pure, exported
-// `assemblePlannerSystemTiers`, so no empty-content system message can reach the model
-// regardless of caller. These tests pin: (1) the bare case yields a 2-tier array with no
-// empty message, and (2) the with-context case retains the context tier (3 tiers) and its
-// single Anthropic cache_control breakpoint.
+// An empty system message maps to an empty developer message, which the Responses API rejects.
 import { describe, it, expect } from 'vitest'
 import type { SystemModelMessage } from 'ai'
 import type { StepContext } from '../types.js'

@@ -1,7 +1,3 @@
-// PROC-02 loop-harness suite: step-start procedure consult, guarded per-action
-// replay riding the cache-replay discipline, one-shot miss semantics with hint demotion,
-// and the typed planSource evidence (D-09..D-12). Follows the brief-routing/failure-cautions
-// loop-harness idiom: fake adapter/planner/ports, no real model or storage.
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
@@ -554,8 +550,7 @@ describe('procedure guarded replay', () => {
   })
 
   it('projects the real renamed screen as one advisory textbox candidate', async () => {
-    // 381-54-EVIDENCE records both renamed-screen failures. This row derives the candidate
-    // from the preserved stateBefore; it makes no Username/Account-name equivalence claim.
+    // The candidate comes from the preserved stateBefore; no Username/Account-name equivalence.
     const handoff = JSON.parse(readFileSync(
       new URL('./fixtures/f-381-54-1/handoff.json', import.meta.url),
       'utf8',
@@ -748,10 +743,7 @@ describe('procedure guarded replay', () => {
   )
 
   it('Test 1: a replay-recommendation match drives the step\'s one body step with no planning-turn LLM call', async () => {
-    // F-381-51-1 · D-09 rewrite: the old law pinned the WHOLE 2-action body replaying
-    // inside one test step (fold 2/2). The new law: each test step consumes exactly the
-    // one body step at the cursor — the fill here; the click belongs to the NEXT test
-    // step via the carry (procedure-step-boundary.test.ts pins the cross-step half).
+    // Each test step consumes the body step at the cursor; the click belongs to the next step.
     const spy = makeReader({ match: makeMatch(), payload: loginPayload() })
     const { adapter, executed } = capturingAdapter([makeScreenState()])
     const planner = capturingPlanner([makeActionPlan()])
@@ -823,8 +815,7 @@ describe('procedure guarded replay', () => {
       kind: 'procedure-replay',
       procedureId: PROCEDURE_ID,
       guard: {
-        // Per-step fold: total = the one stored action THIS test step
-        // attempted, not the whole body length the old law recorded here.
+        // Per-step fold: the total counts only the stored actions this test step attempted.
         checksPassed: 0,
         total: 1,
         executionFailure: { procedureStepIndex: 0 },
@@ -920,17 +911,12 @@ describe('procedure guarded replay', () => {
   })
 
   it('keeps a navigating carried replay guard on its own pre-action page', async () => {
-    // F-381-51-1 · D-09 rewrite: the old law pinned the whole body in one step with the
-    // FINAL action's guard on the pre-action page. The new law strengthens the pin: EVERY
-    // replayed body step's guard is evaluated on its OWN test step's pre-action screen —
-    // the navigating click replays at test step 1 via the carry, its guard passes on the
-    // login page it observes, and StepEvidence records the honest post-action navigation.
-    // Neither side may silently drift to the other's URL semantics.
+    // Each replayed body step's guard is evaluated on its own test step's pre-action screen.
     const flowCell: { carry?: ProcedureFlowCarry } = {}
     const spy = makeReader({ match: makeMatch(), payload: loginPayload() })
     const login = makeScreenState()
     const dashboard = makeScreenState({ url: 'https://example.test/dashboard' })
-    // quick 261004-lsa: each verify-path settle reads one more frame, so step 0 consumes four.
+    // Step 0's loop-top reads and verify-path settle consume the leading `login` frames.
     const { adapter, executed } = capturingAdapter([login, login, login, login, login, login, dashboard])
     const planner = capturingPlanner([makeActionPlan()])
     const verifier = makeVerifier()
@@ -966,10 +952,7 @@ describe('procedure guarded replay', () => {
   })
 
   it('Test 2: an ambiguous carried descriptor aborts once and projects ordered structural recovery evidence', async () => {
-    // F-381-51-1 · D-09 rewrite: the old law hit the ambiguous second descriptor INSIDE
-    // one test step (fold 1-of-2 with the miss). The new law reaches body step 1 at its
-    // own test step via the carry — the miss aborts one-shot THERE (per-step fold 0-of-1),
-    // projects structural recovery, and the flow is over for the run (no carry).
+    // Body step 1 runs at its own test step via the carry; its miss is one-shot and ends the flow.
     const flowCell: { carry?: ProcedureFlowCarry } = {}
     const spy = makeReader({ match: makeMatch(), payload: loginPayload() })
     const stable = makeScreenState()
@@ -1004,8 +987,7 @@ describe('procedure guarded replay', () => {
     expect(learned).not.toContain('Fill the email field')
     expect(learned).not.toContain('Click the Log in button')
     const candidates = learned.slice(learned.indexOf('fresh same-role candidates:'))
-    // both candidates are named by role and exact name, in screen order, with no
-    // position for the planner to pick by.
+    // Both candidates are named by role and exact name, in screen order, with no position.
     expect(candidates).toContain(
       'fresh same-role candidates:\n- role=button; name=Log in\n- role=button; name=Log in',
     )
@@ -1375,11 +1357,7 @@ describe('procedure guarded replay', () => {
   })
 
   it('Test 4: a test step never consumes past its one body step and body exhaustion leaves no carry', async () => {
-    // F-381-51-1 · D-09 rewrite: the old law pinned in-step exhaustion ("replayed actions
-    // never exceed the sequence length"). The new law: exhaustion happens ACROSS steps —
-    // the carry ends after the LAST body step's test step, so a single-step body's step
-    // both exhausts the flow and (on rejection) demotes with no replay re-entry and no
-    // carry for any later step.
+    // Exhaustion happens across steps: the carry ends after the last body step's test step.
     const flowCell: { carry?: ProcedureFlowCarry } = {}
     const payload = loginPayload()
     payload.steps = [payload.steps[1]]
@@ -1407,8 +1385,7 @@ describe('procedure guarded replay', () => {
 
     expect(result.status).toBe('passed')
     expect(spy.countOf('getProcedure')).toBe(1)
-    // One replayed click, then the verifier rejection forced a live planning turn (no replay
-    // re-entry within the step, D-11).
+    // A replayed click, then a live planning turn after the rejection; no replay re-entry.
     expect(executed.map((action) => action.type)).toEqual(['click', 'click'])
     expect(planner.calls).toHaveLength(1)
     const l2 = planner.calls[0].l2 ?? ''
@@ -1434,11 +1411,7 @@ describe('procedure guarded replay', () => {
   })
 
   it('a verifier rejection aborts a multi-step flow with no carry — not just replay re-entry within the step', async () => {
-    // F-381-51-1 · D-09 rewrite: the old law replayed BOTH body steps in one test step and
-    // pinned the rejection of the second (fold 2/2, rejection at index 1, no in-step
-    // re-entry). The new law rejects the FIRST body step at its own test step (per-step
-    // fold 1/1, rejection at index 0) and strengthens the pin: the rejection kills the
-    // whole flow — the carry cell stays empty, so no later step can resume the body.
+    // A rejection of the first body step kills the whole flow, so the carry cell stays empty.
     const flowCell: { carry?: ProcedureFlowCarry } = {}
     const spy = makeReader({ match: makeMatch(), payload: loginPayload() })
     const { adapter, executed } = capturingAdapter([makeScreenState()])
@@ -1570,10 +1543,7 @@ describe('procedure guarded replay', () => {
     })
     const { adapter, executed } = capturingAdapter([twoFieldScreen()])
     const planner = capturingPlanner([makeActionPlan()])
-    // F-381-51-1 · D-09 rewrite: the old law bound both parameters inside one test step.
-    // The new law binds each at its OWN test step — the carried body step re-runs the
-    // loop-side binder against the same source-tagged availability contract, and the carry
-    // substitutes the second consult entirely (one matcher call for the whole flow).
+    // Each parameter binds at its own test step; the carry replaces the second consult.
     const flowCell: { carry?: ProcedureFlowCarry } = {}
     const sharedPorts = () => ports({
       adapter,
@@ -1642,8 +1612,7 @@ describe('procedure guarded replay', () => {
       return { availability: args[2], argsJson: call.args }
     }
 
-    // Seam agreement: the capability bit the matcher sees and the binder's verdict
-    // are the same shared coercion evaluated on the same raw value.
+    // The matcher's capability bit and the binder's verdict use one coercion on the same raw value.
     const incapable = await recordedAvailability('not-a-number')
     expect(incapable.availability).toEqual({
       variables: [{ name: 'delay', canBindNumber: false, canBindBoolean: false }],
@@ -1875,8 +1844,7 @@ describe('procedure guarded replay', () => {
     payload,
   }) => {
     const spy = makeReader({
-      // Force the stale/over-admitted recommendation so this test exercises the independent
-      // loop-side half of WR-01 even though the corrected matcher now downranks it to a hint.
+      // Force an over-admitted recommendation, which the matcher would downrank, to test the loop.
       match: makeMatch({
         parameterSchema: [{ name, type, required: true }],
         replayRecommendation: 'replay',
@@ -2002,9 +1970,7 @@ describe('procedure guarded replay', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// Task 2: planSource evidence + hint rendering through the ledger
-// ---------------------------------------------------------------------------
+// planSource evidence and hint rendering through the ledger
 
 function makeCacheSpy(hit: CachedPlanValue | null): { cache: ActionPlanCache; gets: () => number } {
   let gets = 0
@@ -2135,12 +2101,7 @@ describe('planSource evidence + ledger-metered hint rendering', () => {
       .toBeGreaterThan(rendered.toLowerCase().indexOf('hypotheses'))
   })
 
-  /**
-   * G-381-4 second half: the fail-closed body read is CORRECT but was silent — a starved
-   * replay stamped a planSource byte-identical to an ordinary hint, so run 16's three earned
-   * replay recommendations were indistinguishable from ordinary hint exposure in the handoff.
-   * The demotion reason makes that observable without weakening the wall.
-   */
+  // The demotion reason tells a starved replay apart from an ordinary hint in the handoff.
   async function planSourceOf(reader: ReaderSpy) {
     const { adapter } = capturingAdapter([makeScreenState()])
     const planner = capturingPlanner([makeActionPlan()])
@@ -2224,10 +2185,7 @@ describe('planSource evidence + ledger-metered hint rendering', () => {
   })
 
   it('Test 4: post-miss recovery evidence renders in the SAME hypotheses frame', async () => {
-    // F-381-51-1 · D-09 rewrite: the old law surfaced the miss inside one test step. The
-    // new law reaches the miss at the CARRIED step's own test step — the demoted hint
-    // renders in THAT step's planning turn, in the same hypotheses frame, with the body
-    // step represented only by its generated structural facts.
+    // The miss surfaces at the carried step's own test step, in that step's planning turn.
     const flowCell: { carry?: ProcedureFlowCarry } = {}
     const spy = makeReader({ match: makeMatch(), payload: loginPayload() })
     const stable = makeScreenState()

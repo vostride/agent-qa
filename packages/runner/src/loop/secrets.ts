@@ -1,10 +1,4 @@
-// Secret machinery for the runner-owned step-execution loop.
-// CRITICAL: provider-neutral + storage-neutral. No node:* imports, no fs/sharp,
-// no model/core/adapter package imports. Moved byte-equivalently from
-// core/src/agent/secrets.ts — this is the cache-poisoning guard (Information-
-// disclosure control): the `[secret:*]` marker regex and template resolution must
-// not change behavior. `parseEnvFile` is inlined locally (was the
-// module's only cross-package import) to keep runner self-contained and pure.
+// The `[secret:*]` marker regex and template resolution guard against cache poisoning.
 
 import type { SecretRedactorPort, SecretResolver } from './ports.js'
 
@@ -45,9 +39,7 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
-// Inlined from core variables.ts:parseEnvFile — pure string parsing, kept local so
-// the runner secret store has no cross-package import (storageNeutral).
-// an ordered list, because an object would put integer-like names first.
+// An ordered list, because an object would put integer-like names first.
 function parseSecretEnvFile(content: string): Array<[string, string]> {
   const result = new Map<string, string>()
   for (const rawLine of content.split('\n')) {

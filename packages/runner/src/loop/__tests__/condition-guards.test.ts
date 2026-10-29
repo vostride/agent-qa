@@ -1,7 +1,3 @@
-// the runner's own checks, called directly. Open dialogs per
-// platform, real limits from reported attributes, and the rule that a guard only ever lowers a
-// met verdict.
-
 import { describe, expect, it } from 'vitest'
 import { asRef } from '@vostride/agent-qa-schema'
 import type { ConditionRecord, ElementInfo } from '@vostride/agent-qa-schema'

@@ -1,28 +1,4 @@
-// The bounded planning tool-loop (net-new, D-06/D-07/D-08/D-09).
-//
-// Per planning turn the model may make up to K non-action tool calls — each is
-// executed, its result appended as a tool message, the conversation continues — and
-// the turn terminates when the model emits exactly one action tool call. K is an
-// internal runner constant (default 4), injectable via options for tests, and NEVER
-// user-facing config: it is not threaded through LoopPorts or any config schema.
-//
-// Zero non-action tools ship in 353. The always-send-all law holds: the full
-// v45 action slice is always sent, plus any caller-registered non-action tools; the
-// surface never shrinks or gates. The machinery is proven with test-registered fakes.
-//
-// Degenerate-response policy:
-//   (a) K exhausted + another non-action call ⇒ append a structured budget-exhausted
-//       tool-result telling the model it must now choose exactly one action, continue
-//       the turn; a further non-action-only response ⇒ a structured planning failure.
-//   (b) text-only response (no tool call) ⇒ exactly one re-prompt with
-//       toolChoice:'required', then a structured planning failure.
-//   (c) multiple tool calls in one response ⇒ process non-action calls in order until
-//       the first action call, discard anything after it, log the discard.
-//
-// This module contains NO `throw` statement: every degenerate model output returns a
-// structured failure that feeds the failure-context/replan path. The only
-// throws that surface are the abort propagation from generateText and the untouched
-// zod schemaInvalid grounding error from toolCallToActionPlan.
+// The turn ends at one action call; degenerate output returns a structured failure, never a throw.
 import { generateText } from 'ai'
 import { withStepModelCall } from '../run/step-model-observations.js'
 import type { LanguageModel, ModelMessage, SystemModelMessage, Tool, ToolCallPart, ToolResultPart, ToolSet } from 'ai'
@@ -40,24 +16,13 @@ import { toolCallToActionPlan } from '../tools/builder.js'
 import type { ToolRegistry } from '../tools/registry.js'
 import { bindApiToolNames } from './api-tool-names.js'
 
-/**
- * K — the per-turn non-action tool-call budget. Channel 2's designed
- * search→read sequence needs two calls, and one retry pair must fit in the same turn.
- * This remains an internal provisional constant, injectable via
- * ExecutePlanningTurnOptions.budget for tests only. Do NOT promote it to user-facing
- * config or thread it through LoopPorts / any config schema.
- */
+// Channel 2's search and read take a call each, and one retry pair must fit in the same turn.
 export const DEFAULT_NON_ACTION_TOOL_BUDGET = 4
 
 const BUDGET_EXHAUSTED_MESSAGE =
   'Tool budget exhausted — you must now choose exactly one action tool.'
 
-/**
- * A caller-registered non-action tool. `tool` is the `ai` definition merged into the
- * always-send-all slice; `execute` runs the call and returns a JSON-serializable
- * result appended to the conversation as a tool message. Zero of these ship in 353;
- * tests register fakes to exercise the machinery.
- */
+// `tool` joins the always-send-all slice; `execute`'s result is appended as a tool message.
 export interface NonActionToolHandler {
   tool: Tool
   execute(args: Record<string, unknown>): Promise<unknown> | unknown
@@ -65,11 +30,7 @@ export interface NonActionToolHandler {
 
 export type NonActionToolMap = Record<string, NonActionToolHandler>
 
-/**
- * An ordered record of one executed non-action tool call within a planning turn
- * (§B1). Exchanges persist on SubActionEvidence for successful decisions (INST-01,
- * D-01) and PlanningFailureEvidence for failed turns.
- */
+// Persists on SubActionEvidence, or on PlanningFailureEvidence for a failed turn.
 export type ToolExchange = ToolExchangeEvidence
 
 export type PlanningTurnFailureReason =
@@ -78,19 +39,7 @@ export type PlanningTurnFailureReason =
   | 'ungroundable_action'
   | 'planning_limit_reached'
 
-/**
- * The in-turn groundability verdict for a parsed action. Returned by the
- * injected `groundability` callback the caller (LLMPlanner) builds from the Plan-04
- * grounding gate + the in-scope screenState — the tool-loop stays gate-agnostic and
- * NEVER imports `grounding/` itself.
- *
- * `ok: true` may optionally carry the gate's fully-grounded execution-shape `action`
- * (ref, never a descriptor) and its §A8 `attempts` trail; when present the turn swaps
- * them onto the returned plan so the resolved action + evidence ride to executeStep.
- * When omitted (e.g. a test seam that only signals groundability) the parsed plan is
- * returned unchanged. `ok: false` carries the §7.1 error text injected back into the
- * SAME conversation as an error-text tool result for the model's one-shot correction.
- */
+// The tool-loop stays gate-agnostic; `ok: false` text is injected back for one correction.
 export type GroundabilityResult =
   | {
       ok: true
@@ -126,13 +75,9 @@ export interface ExecutePlanningTurnOptions {
   model: LanguageModel
   /** Registry backing toolCallToActionPlan (the turn's termination projection). */
   registry: ToolRegistry
-  /** The full v45 action slice (buildTools output) — always sent (always-send-all). */
+  /** The full action slice from buildTools, always sent. */
   actionTools: ToolSet
-  /**
-   * System prompt — a single string, or the Phase 355 [stable, context, volatile]
-   * tier array the caller assembles. Passed through to generateText untouched;
-   * the tool-loop applies no clamp/degrade policy of its own.
-   */
+  // Passed through to generateText untouched; the tool-loop applies no clamp policy of its own.
   system: string | Array<SystemModelMessage>
   /** The initial user message(s): text and optional image, built by the caller. */
   messages: ModelMessage[]
@@ -140,32 +85,13 @@ export interface ExecutePlanningTurnOptions {
   nonActionTools?: NonActionToolMap
   /** K override for tests. Defaults to DEFAULT_NON_ACTION_TOOL_BUDGET. */
   budget?: number
-  /**
-   * D-09 in-turn grounding feedback. When present, a parsed action call is grounded by
-   * this injected callback after `toolCallToActionPlan` succeeds. A failure appends the
-   * §7.1 error text as an error-text tool result in the SAME conversation with EXACTLY
-   * ONE retry (a turn-local one-shot flag, never a counter — LOOP-02); a second
-   * consecutive grounding failure returns a structured `'ungroundable_action'` failure.
-   * The retry neither consumes nor bypasses the ≤K non-action budget (Pitfall 8). When
-   * absent the turn behaves exactly as the 353 bounded loop (back-compat within phase).
-   */
+  // One in-turn retry after a grounding failure, outside the non-action budget; then a failure.
   groundability?: GroundabilityCallback
-  /**
-   * Dynamic output cap computed by the caller's clamp helper and passed
-   * through to generateText. `undefined` is a valid no-op passthrough — the tool-loop
-   * computes no clamp of its own (D-15/Pitfall 5).
-   */
+  // Computed by the caller's clamp helper; `undefined` passes through as a no-op.
   maxOutputTokens?: number
-  /**
-   * Optional sampling parameters applied at the model call site. Every
-   * field is optional and absence preserves the provider default. `maxOutputTokens`
-   * is deliberately excluded because the output ceiling remains clamp-owned.
-   */
+  // Absent fields keep the provider default; `maxOutputTokens` stays clamp-owned.
   sampling?: SamplingParams
-  /**
-   * when bound, every model call of the turn is debited before it is made; a refused
-   * debit ends the turn with `planning_limit_reached` and no model call.
-   */
+  // When bound, every model call is debited first; a refused debit ends the turn with no call.
   planningCallGate?: PlanningCallGate
   abortSignal?: AbortSignal
   logger?: LoopScopedLogger
@@ -239,10 +165,7 @@ export async function executePlanningTurn(
   const nonActionTools = options.nonActionTools ?? {}
   const effectiveSampling = appliedSampling(options.sampling)
 
-  // Always-send-all: the full v45 action slice plus any caller-registered non-action tools. The
-  // logical ids remain untouched in contracts/evidence, while the provider ToolSet receives only
-  // conservative API-safe aliases. Returned calls reverse through this binding; follow-up
-  // assistant/tool messages intentionally retain the provider alias for wire coherence.
+  // Provider tools get API-safe aliases; logical ids stay in contracts and evidence.
   const toolBindings = bindApiToolNames([
     ...Object.entries(options.actionTools).map(([logicalName, boundTool]) => ({
       kind: 'action' as const,
@@ -271,9 +194,7 @@ export async function executePlanningTurn(
   const unsupported = new Set<string>()
   let rePromptedForNoTool = false
   let budgetErrorInjected = false
-  // D-09 turn-local one-shot: a boolean, never a counter. Once a grounding
-  // failure has injected its §7.1 error text and continued, a second consecutive
-  // grounding failure becomes a structured 'ungroundable_action' failure.
+  // A boolean, never a counter: a second consecutive grounding failure ends the turn.
   let groundingErrorInjected = false
 
   const tokenUsage = (): TokenUsage | undefined =>
@@ -290,10 +211,7 @@ export async function executePlanningTurn(
     ...(unsupported.size > 0 ? { unsupportedFeatures: [...unsupported].sort() } : {}),
   })
 
-  // Iteration backstop: at most K executed non-action calls, plus the exhaustion
-  // re-prompt, the no-tool re-prompt, the terminating action response, and the one
-  // extra grounding round-trip the D-09 one-shot retry may add (Pitfall 8). The budget
-  // arithmetic itself is untouched — this backstop is raised by exactly one.
+  // Room for K non-action calls, both re-prompts, the action response and one grounding retry.
   const maxIterations = budgetLimit + 5
 
   for (let iteration = 0; iteration < maxIterations; iteration++) {
@@ -328,8 +246,7 @@ export async function executePlanningTurn(
     }))
     const result = observed.result
 
-    // a scoped turn takes only the provider-observed id; unscoped callers keep the
-    // pre-423 SDK response identity.
+    // A scoped turn takes only the provider-observed id; unscoped callers keep the SDK response id.
     lastResponseModelId = observed.scoped
       ? observed.respondingModelId
       : (observed.respondingModelId ?? observed.result.response?.modelId)
@@ -345,7 +262,7 @@ export async function executePlanningTurn(
 
     const toolCalls = result.toolCalls ?? []
 
-    // D-08(b): text-only response — one re-prompt, then planning failure.
+    // Text-only response: one re-prompt, then planning failure.
     if (toolCalls.length === 0) {
       if (!rePromptedForNoTool) {
         rePromptedForNoTool = true
@@ -394,7 +311,7 @@ export async function executePlanningTurn(
 
       // Non-action tool.
       if (budget <= 0) {
-        // D-08(a): over budget — inject the structured error, do not execute.
+        // Over budget: inject the structured error, do not execute.
         sawOverBudgetNonAction = true
         toolResultParts.push(errorResultPart(tc, BUDGET_EXHAUSTED_MESSAGE))
         continue
@@ -412,17 +329,10 @@ export async function executePlanningTurn(
           action: actionCall.name,
         })
       }
-      // toolCallToActionPlan validates via zod; the schemaInvalid grounding error is
-      // preserved untouched (D-09 / T-353-05 / Q2) and propagates if the args are
-      // malformed — malformed-args stay a throw this phase, never in-turn feedback.
+      // Malformed args throw the zod schemaInvalid error; they never get in-turn feedback.
       const plan = toolCallToActionPlan(actionCall.name, actionCall.args, options.registry) as ActionPlan
 
-      // D-09 in-turn grounding feedback: ground the parsed action via the injected
-      // callback. On failure, mirror the budget-exhausted flow exactly — append the
-      // assistant tool call(s) plus a tool message carrying the §7.1 error text — and
-      // continue the SAME conversation for exactly one retry (one-shot flag, never a
-      // counter). A second consecutive failure is a structured 'ungroundable_action'
-      // failure. The non-action budget is never read or written on this path.
+      // On failure, append the error as a tool result and retry once; the budget is never touched.
       if (options.groundability) {
         const grounded = options.groundability(plan)
         if (!grounded.ok) {
@@ -466,8 +376,7 @@ export async function executePlanningTurn(
     }
 
     if (sawOverBudgetNonAction) {
-      // D-08(a): first over-budget response injects the error and continues; a further
-      // non-action-only response is a planning failure.
+      // The first over-budget response injects the error; a further one without action fails.
       if (budgetErrorInjected) {
         return {
           ok: false,

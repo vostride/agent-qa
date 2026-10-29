@@ -1,7 +1,4 @@
-// P6: the step verifier judges a settled AFTER screen whose compared frames
-// are VERIFY_SETTLE_INTERVAL_MS apart. Every cell runs under a fake clock in which a frame
-// depends only on the time since the send, never on the observe order, so the accounting below
-// shows the interval, not the call position, decides which frame the verifier judges.
+// A frame depends only on the time after the send, so the interval, not call order, picks it.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ScreenState } from '@vostride/agent-qa-schema'
 import type { PlatformAdapter, ActionResult } from '../../platform.js'
@@ -197,8 +194,7 @@ describe('verifier AFTER observation settles with a 500 ms interval', () => {
     expect(log[2].offsetFromSend).toBeLessThan(100)
     expect(log[3].frame).toBe('TYPED')
     expect(log[3].at - log[2].at).toBe(VERIFY_SETTLE_INTERVAL_MS)
-    // The rejected completion at observe 4, then the give-up's own judgment over a fresh
-    // settle.
+    // The rejected completion at observe 4, then the give-up's own judgment over a fresh settle.
     expect(verifier.observesAtCall).toEqual([4, 9])
     expect(verifier.calls).toHaveLength(2)
     expect(result.evidence?.conditionVerdicts?.ending).toBe('give-up')

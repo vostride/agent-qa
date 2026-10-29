@@ -1,14 +1,3 @@
-// RED scaffold (Wave 0, LOOP-04 · D-10/D-11 · Pitfall 7). Pins the re-ground-first
-// self-heal: a ref-resolution failure ('Unknown ref "…"') triggers re-observe → re-find the
-// prior observation's element by its role, exact name and row words (strictMatch, 438 D-08:
-// unique or nothing, no ordinal and no hierarchy tiebreak) → patch the ref → re-execute, WITH
-// NO new planning turn (planner.plan called exactly once). The heal is recorded in the
-// sub-action grounding trail only; StepEvidence.selfHeal stays reserved for replan heals
-// Non-ref failures (a bare timeout) keep the replan-with-failure-context path (the
-// conservative classifier), and only one heal is attempted per planned action.
-//
-// Under the shipped loop a ref failure just replans (planner called twice) and never
-// records a grounding trail — the intended RED (GREEN when Plan 07 lands the heal).
 import { describe, it, expect, vi } from 'vitest'
 import type { LoopPorts } from '../ports.js'
 import type { Planner } from '../types.js'
@@ -64,7 +53,7 @@ describe('re-ground-first self-heal', () => {
     } | undefined
     expect(healed?.grounding).toBeDefined()
     expect(healed?.grounding?.attempts.some((a) => a.stage === 'tree-search' && a.outcome === 'resolved')).toBe(true)
-    // the strict heal names the exact observed identity and never a position.
+    // The strict heal names the exact observed identity, never a position.
     expect(healed?.grounding?.descriptor).toEqual({ role: 'button', name: 'Log in' })
   })
 

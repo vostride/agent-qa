@@ -1,20 +1,4 @@
-// The runner's own checks on top of the verifier's cited verdicts. Pure:
-// each reads the final screen's elements or the step's record and only lowers a met verdict;
-// none turns a not-met, unverified or inconclusive condition into met.
-//
-// Open dialogs: on web an element with role 'dialog' or 'alertdialog' ('alert' is a live region,
-// never a dialog); on iOS role 'alert'; on Android an element whose resource-id is
-// android:id/alertTitle (named by it) or, with no title, android:id/button1 (unnamed). Compose
-// dialogs and iOS sheets stay undetected; the verifier still judges them.
-//
-// Narrowed: a met condition citing a passing read is not met when an earlier read on the same
-// source (and expr) failed and the later one asks for less: a proper substring of the expected
-// value, a looser operator, fewer listed items, or for assertAI a claim that is a proper substring
-// of an earlier false claim. Persistence: met only with a reload or reopen after the step's last
-// state-changing action and a citation from the final screen. Visual: a condition tagged visual,
-// or one citing an assertAI judgment made in 'visual' mode, is inconclusive when no image was
-// attached. File: a condition that needs a saved file is compared with the first download named
-// exactly as expected, this step's own before carried ones, most recent first.
+// Guards only lower a met verdict; none turns a not-met, unverified or inconclusive one into met.
 
 import type {
   CitationSource,
@@ -266,10 +250,7 @@ export function lineHolds(line: string, quote: string, mask: (value: string) => 
   return collapse(line).includes(raw) || collapse(mask(line)).includes(collapse(mask(raw)))
 }
 
-/**
- * A met condition citing a passing read is not met when an earlier failed read asked for more
- * (439 D-16, RESEARCH Open Question 4: the failed check is the direct evidence).
- */
+// A met condition citing a passing read is not met when an earlier failed read asked for more.
 export function applyNarrowedGuard(
   record: ConditionRecord,
   cited: readonly CheckedCitation[],
@@ -341,10 +322,7 @@ export function reopenedAfterLastChange(stepRecord: GuardRecord | undefined): bo
   )
 }
 
-/**
- * A met persistence condition holds only when the step reloaded or reopened after its last
- * state-changing action and the condition cites the final screen.
- */
+// A met persistence condition holds only after a reload or reopen and with a final-screen citation.
 export function applyPersistenceGuard(
   record: ConditionRecord,
   judgment: ConditionJudgment,
@@ -369,10 +347,7 @@ export function applyPersistenceGuard(
 export const VISUAL_TEXT_ONLY_REASON =
   'only a picture can settle this condition and the verifier was given no image'
 
-/**
- * A met condition that only a picture can settle (tagged visual, or citing an assertAI judgment
- * made in 'visual' mode) is inconclusive when no image was attached.
- */
+// A met condition only a picture can settle is inconclusive when no image is attached.
 export function applyVisualGuard(
   record: ConditionRecord,
   judgment: ConditionJudgment,
@@ -408,12 +383,7 @@ export interface SavedFile {
 export const NO_SAVED_FILE_REASON =
   'no completed download in this step or carried from an earlier step'
 
-/**
- * A met condition that needs a saved file holds only when a download named exactly as expected
- * has the expected content ('none' checks the name only). Candidates are this step's downloads,
- * then carried ones, most recent first. The reason names only the line of the first difference;
- * `file.firstDifference` holds the masked, windowed lines.
- */
+// Candidates are this step's downloads, then carried ones, newest first; `none` checks the name.
 export function applyFileGuard(
   record: ConditionRecord,
   judgment: ConditionJudgment,

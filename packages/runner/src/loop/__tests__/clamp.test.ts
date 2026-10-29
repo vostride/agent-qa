@@ -1,28 +1,7 @@
-// Wave-0 (test-first) scaffold for Phase 355 CTXB-04 — the dynamic output clamp
-// (max_output = max(floor, min(default, C − I − safety))), the proactive/reactive
-// degrade wiring, the observation+instruction pins, retry-once on a live overflow,
-// the recordUsage feed, and the structured cannot-fit outcome (never a crash).
-//
-// RED BY DESIGN: the '../clamp.js' module does not exist until Plan 04 authors it.
-// The whole suite is RED for exactly that reason (missing clamp module) — never a
-// typo or a wrong fixture. The fake TokenAccounting port is real (loop-harness), so
-// once Plan 04 lands clamp.ts these turn GREEN.
-//
-// Contract these tests pin (per CONTEXT D-01/D-02/D-10/D-14/D-17) for the Plan-04 clamp.ts:
-//   - computeSafety(contextWindow) → max(256, ceil(0.02 * contextWindow))  (percentage + floor, D-02)
-//   - computeMaxOutput({ contextWindow, inputTokens, defaultMaxOutput, safety?, floor? })
-//        → max(floor ?? 256, min(defaultMaxOutput, contextWindow − inputTokens − safety))
-//   - estimateInput(accounting, messages, toolSchemaJson?) → accounting.estimate(messages)
-//        + tool-schema tokens (the port's estimate() does NOT count tool schemas, §5.1)
-//   - executeClampedCall({ accounting, system, messages, toolSchema, pin, call, isOverflow? })
-//        → proactive pre-degrade when estimate > budget; forwards { budget, pin } to degrade;
-//          reactive isOverflow → re-degrade → retry ONCE (non-overflow rethrows); recordUsage
-//          once per successful response; surfaces the structured cannot-fit outcome.
 import { describe, it, expect, vi } from 'vitest'
 import type { ModelMessage } from 'ai'
 import { makeFakeTokenAccounting } from './loop-harness.js'
 import {
-  // Plan-04 clamp module — intentionally unresolved today (the RED reason for this suite):
   computeSafety,
   computeMaxOutput,
   estimateInput,
@@ -169,7 +148,6 @@ describe('cannot-fit outcome, never a crash', () => {
     })
     const call = vi.fn().mockResolvedValue(OK_USAGE)
 
-    // Must resolve (best-effort) and surface the structured reason — never throw.
     const res = await executeClampedCall({
       accounting: acc,
       system: [],
