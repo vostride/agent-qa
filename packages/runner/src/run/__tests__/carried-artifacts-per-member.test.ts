@@ -1,6 +1,4 @@
-// the carry cell belongs to one test member. Two members of one run
-// share a config, an adapter and a verifier, and the second member's first step carries nothing
-// the first member downloaded. The real loop runs; the verifier double keeps each step's record.
+// Two members share config, adapter and verifier; the second member's first step carries nothing.
 import { describe, expect, it, vi } from 'vitest'
 import type { LanguageModel } from 'ai'
 import { asRef } from '@vostride/agent-qa-schema'

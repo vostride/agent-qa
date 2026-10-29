@@ -1,11 +1,4 @@
-// Runner-owned run/test-scoped variable state. Moved 1:1 from
-// core/src/agent/variables.ts — a flat Map keyed by name with seeding-order
-// last-write-wins precedence across env/inline/suite/cli/hook seeds + step/capture
-// writes; source-precedence semantics preserved exactly.
-//
-// Pitfall 10 (display neutrality): the capture-over-non-capture warning routes
-// through an injected optional `onWarn` seam — runner-owned code makes ZERO console
-// calls. Callers wire it to the bus runWarning leg or a CLI/logger warn path.
+// Warnings go through the injected `onWarn` seam; runner code makes no console calls.
 export type VariableSource = 'env' | 'inline' | 'suite' | 'cli' | 'capture' | 'hook' | 'step'
 
 interface TrackedVariable {

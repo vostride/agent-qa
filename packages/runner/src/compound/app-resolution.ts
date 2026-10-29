@@ -1,13 +1,4 @@
-// Pure openApp name→id resolution ladder + vendored scorer.
-//
-// CRITICAL: provider-neutral + storage-neutral. No driver imports, no node:* imports, no
-// randomness, no Date — deterministic pure logic. Adapters supply the enumerated registry and
-// perform the launch; this module only decides. No fuse.js: a small ladder — normalize →
-// exact > prefix > substring > token-overlap > bounded edit distance — over the union of full
-// ids, tokenized id segments, and labels. A fuzzy winner requires clearing the threshold AND
-// leading the runner-up by a margin; near-ties resolve ambiguous with candidates, never
-// a coin-flip launch. All four constants are internal, injectable for tests only via
-// ScorerOptions — never user-facing config (353 K=2 pattern).
+// Deterministic: a fuzzy winner must clear the threshold and lead the runner-up by a margin.
 
 export interface AppRegistryEntry {
   id: string
@@ -25,11 +16,7 @@ export type AppResolution =
   | { kind: 'exact' | 'fuzzy'; id: string }
   | { kind: 'ambiguous' | 'unknown'; candidates: { id: string; label?: string }[] }
 
-/**
- * Minimum score a fuzzy top candidate must clear to be launchable. Internal runner constant;
- * injectable via ScorerOptions for tests only. Do NOT promote to user-facing config or thread
- * through LoopPorts / any config schema (353 K=2 precedent).
- */
+// Minimum score a fuzzy top candidate must clear to launch; injectable for tests only.
 export const DEFAULT_FUZZY_THRESHOLD = 0.5
 
 /**

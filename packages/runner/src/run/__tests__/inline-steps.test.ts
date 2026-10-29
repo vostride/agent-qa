@@ -1,7 +1,4 @@
-// Ported inline-DSL parse/strip cases. Sources: core
-// hook-inline.test.ts, runjs-inline.test.ts, plus appium-inline parse coverage. The
-// EXECUTION halves are NOT tested here — they ride injected handlers pinned in
-// member-runner.test.ts. Runner convention: `.js`-suffixed relative specifiers.
+// The execution halves ride injected handlers, covered in member-runner.test.ts.
 import { describe, expect, it } from 'vitest'
 import {
   parseHookInline,

@@ -1,15 +1,4 @@
-// Pure `common_assertValue` comparator — "the runner judges" (Phase 360 · EXEC-07 · D-10/D-11 ·
-// spec §7.2/§12.2).
-//
-// CRITICAL: provider-neutral + storage-neutral. No driver imports, no node:* imports, no ports, no
-// loop/index import — a pure function so the Plan 10 dispatch seam composes it without cycles. The
-// D-10 division: the adapter reads the value source (url/storage/network/expr) and returns the raw
-// actual; this comparator applies exactly one closed op and produces the deterministic outcome. A
-// passing outcome is evidence the verifier may cite, never a pass by itself.
-//
-// The result shape mirrors the schema AssertValueEvidence: sorted keys for a comparison carrying an
-// expected value are exactly ["actual","expected","op","passed","source"] (the Plan 01 pin). No
-// masking here — value-bearing fields are masked at the recorder boundary by the seam.
+// A passing outcome is evidence the verifier may cite, never a pass; the recorder masks values.
 
 import type { AssertValueOp } from '@vostride/agent-qa-schema'
 
@@ -38,11 +27,7 @@ function toNumber(value: unknown): number {
   return Number(value)
 }
 
-/**
- * Apply the closed assertValue op deterministically. Type-aware per the Block A pins: gt/lt coerce
- * numeric; equals/notEquals/contains compare as strings; isNull passes only on a null read. An
- * unread value fails every op. A network read passes only on a matching entry.
- */
+// gt and lt compare numbers, the rest compare strings; isNull passes only on a null read.
 export function compareAssertValue(input: AssertValueInput): AssertValueResult {
   const { op, expected, actual } = input
   let passed = false

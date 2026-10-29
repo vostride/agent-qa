@@ -1,7 +1,4 @@
-// the one strict matcher the heal, the cache and procedure
-// replay re-find an element with. Equal role, equal exact name after whitespace tidying, and the
-// stated row words in the element's own known row; one survivor resolves, none is absent, more is
-// not-unique with the count. It never picks.
+// The one strict matcher for heal, cache and procedure replay; it never picks.
 
 import { describe, expect, it } from 'vitest'
 

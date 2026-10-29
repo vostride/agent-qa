@@ -1,9 +1,3 @@
-// CACHE-01..05 requirement roll-call (Phase 356, Plan 07 close-out).
-// A single durable regression anchor: each phase acceptance criterion maps to one
-// GREEN assertion here over the SHIPPED runner cache surface. This is not a
-// re-implementation — it reuses the same pure surfaces the per-plan suites exercise
-// (key/value/classify/reground + the loop-level settle gate). Do NOT weaken any
-// assertion to force a pass; if a criterion cannot be proven green, the phase is not done.
 import { describe, expect, it } from 'vitest'
 
 import {

@@ -1,8 +1,4 @@
-// The cached value is descriptor-only: the observed role,
-// the exact name and, when the planner stated a row the observed row holds, those row words.
-// Never a ref/selector/coordinates, never a position and never the step `data` value. The
-// overfit guard is a deep scan of the serialized value for a sentinel ref and a sentinel data
-// value.
+// The overfit guard deep-scans the serialized value for a sentinel ref and a sentinel data value.
 import { describe, expect, it } from 'vitest'
 
 import { asRef } from '@vostride/agent-qa-schema'
@@ -34,7 +30,7 @@ describe('toGroundedLocator — descriptor-only projection', () => {
 
     const locator = toGroundedLocator(action, elements)
 
-    // the exact name with spacing tidied, its badge kept; no ordinal.
+    // The exact name with spacing tidied and its badge kept; no ordinal.
     expect(locator).toEqual({ role: 'button', name: 'Cart (3)' })
     expect(Object.hasOwn(locator as object, 'ref')).toBe(false)
     expect(JSON.stringify(locator)).not.toContain(SENTINEL_REF)

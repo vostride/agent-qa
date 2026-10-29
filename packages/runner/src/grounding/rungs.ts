@@ -1,25 +1,10 @@
-// The rung-composed grounding ladder (Phase 357, GROUND-02 · D-01/D-02/D-03, Q3).
-// CRITICAL: provider-neutral + storage-neutral. No node:* imports, no fs/sharp, no
-// core/model/adapter package imports — imports only the sibling matcher + schema types.
-//
-// The ladder is a uniform request/result contract over ordered rungs. Default assembly
-// is [refValidateRung, treeSearchRung] (D-01: no visual rung ships in M1); a visual rung
-// is appended by assembleLadder ONLY when a rung is supplied AND vision capability is
-// present (Q3 resolved as recommended — injected capability options, the negotiation
-// seam ships without a body). runLadder records one schema §A8 GroundingAttempt per rung
-// run, stops at the first resolution, and appends {stage:'visual', outcome:'skipped'}
-// when the ladder exhausts without a visual rung having run (D-02 — the
-// how-often-would-visual-have-fired denominator).
+// Records one attempt per rung run and appends `visual:skipped` when no visual rung ran.
 
 import { matchDescriptor } from './matcher.js'
 import type { DescriptorInput, MatchResult, PriorContext } from './matcher.js'
 import type { ElementInfo, GroundingAttempt, Ref } from '@vostride/agent-qa-schema'
 
-/**
- * The uniform per-rung request. A rung either validates a `committedRef` against the
- * fresh `refMap` (the ref rung) or resolves a `descriptor` against the fresh `elements`
- * (the tree-search / visual rungs). `prior` carries the optional D-10 hierarchy context.
- */
+// The ref rung validates `committedRef`; the tree-search and visual rungs resolve `descriptor`.
 export interface RungRequest {
   descriptor?: DescriptorInput
   committedRef?: Ref
@@ -64,7 +49,7 @@ export const treeSearchRung: GroundingRung = {
   },
 }
 
-/** Capability options for ladder assembly (the Q3 negotiation seam). */
+/** Capability options for ladder assembly. */
 export interface LadderOptions {
   /** Vision capability present — required for a visual rung to be appended. */
   vision?: boolean
@@ -72,11 +57,7 @@ export interface LadderOptions {
   extraRungs?: GroundingRung[]
 }
 
-/**
- * Assemble the ladder: default [refValidateRung, treeSearchRung]. A supplied
- * visual rung is appended ONLY when options.vision is true — the capability-gated
- * assembly resolving research Q3. No visual rung is registered in M1.
- */
+// A supplied visual rung is appended only when `options.vision` is true.
 export function assembleLadder(options: LadderOptions = {}): GroundingRung[] {
   const ladder: GroundingRung[] = [refValidateRung, treeSearchRung]
   if (options.vision && options.extraRungs) {
@@ -95,12 +76,7 @@ export interface RunLadderResult {
   attempts: GroundingAttempt[]
 }
 
-/**
- * Run the rungs in order, recording one §A8 attempt per rung. Rejection short-circuits;
- * the first resolution stops the ladder; ambiguity is recorded as a no-match attempt and
- * surfaced on the result. When the ladder exhausts without a visual rung having run, a
- * {stage:'visual', outcome:'skipped'} attempt is appended.
- */
+// Rejection short-circuits, the first resolution stops, and ambiguity records a no-match attempt.
 export function runLadder(rungs: readonly GroundingRung[], req: RungRequest): RunLadderResult {
   const attempts: GroundingAttempt[] = []
   let sawVisual = false

@@ -1,32 +1,4 @@
-// RCC-02 deterministic minimal root-cause classifier. Pure, total,
-// no IO, no LLM — imports limited to schema types, TestResult, and the single-sourced
-// isTestTimeoutMessage matcher re-exported by run/verdict.ts (never a second matcher).
-// The shell (Plan 07) invokes classifyRootCause at handoff assembly with the member's
-// TestResult — which carries retryCount; PerTestOutcome does NOT (RESEARCH Pitfall 3) —
-// plus the run-start baseline probe outcome.
-//
-// BRANCH ORDER (documented + pinned by run/__tests__/root-cause.test.ts):
-//   presence rule: skipped/cancelled ⇒ undefined; clean passes ⇒ undefined
-//   1. timeout      — member outcome 'timeout' (isTestTimeoutMessage-matched step error)
-//   2. environment  — probe connect error → probe status ≥500 → connect/DNS token in a
-//                     failing step error / failureSummary → device-session-create token
-//      limit stop   — between the probe and the token scans: a failing step whose
-//                     evidence carries limitStop is 'unknown', confidence 0, with the limit
-//                     reason as rationale. Never environment, timeout or app_bug, and no class
-//                     is added; analyze-run excludes these members from model authorship.
-//      unproven     — right after the limit stop: a failing step the verifier left
-//                     unverified or inconclusive (stepOutcomeUnproven) is 'unknown', confidence
-//                     0, with the step's reason, masked by the run's mask, as rationale.
-//                     Never an application class.
-//   3. flake        — final status 'passed' with retryCount > 0 (member-runner retry loop)
-//   4. unknown      — any other failure; confidence 0, the safe Noop default M4's
-//                     analyze-run later supersedes via producer keying
-//
-// deterministicVerdict fills the LLM-shaped VerdictBase faithfully — no loosening:
-// confidence 1 for signal-attributed classes (0 for unknown), rationale = a fixed template
-// naming the exact signal, citedSteps = failing step indices, citedAnchors/citedArtifacts
-// empty, memoryMisdirectionRuledOut true (a deterministic classifier never attributes to
-// memory), producer 'deterministic-classifier'.
+// Branch order: presence, timeout, environment, limit stop, unproven, flake, then unknown.
 
 import { stepOutcomeUnproven } from '@vostride/agent-qa-schema'
 import type { MemberTestOutcome, Verdict } from '@vostride/agent-qa-schema'
@@ -39,11 +11,7 @@ export type DeterministicRootCauseClass = 'timeout' | 'environment' | 'flake' | 
 /** The fixed unknown-class rationale template. */
 export const UNKNOWN_SIGNAL_RATIONALE = 'no deterministic signal matched'
 
-/**
- * Connect/DNS failure tokens matched over failing step errors (RESEARCH A2). Conservative
- * fixed list — misses fall to 'unknown', the safe Noop default; app-controlled error text
- * steering toward environment is bounded by exact OS/Chromium error-code tokens.
- */
+// Exact OS and Chromium error-code tokens, so app text cannot steer a run toward environment.
 export const CONNECT_ERROR_TOKENS: readonly string[] = [
   'ECONNREFUSED',
   'ECONNRESET',
@@ -56,13 +24,7 @@ export const CONNECT_ERROR_TOKENS: readonly string[] = [
   'net::ERR_INTERNET_DISCONNECTED',
 ]
 
-/**
- * Device-session-create failure tokens — the D-04 mobile equivalent of the baseline probe
- * (RESEARCH A3 resolution). Located shapes: core's MobileSetupError (launch-resolver.ts —
- * its name renders in String(err) for every setup category) and the adapters' app-launch
- * messages; 'Failed to create session' / 'session not created' cover webdriverio's and the
- * W3C WebDriver (Appium) canonical session-create failure strings.
- */
+// Mobile's equivalent of the baseline probe: setup error names and WebDriver session failures.
 export const SESSION_CREATE_ERROR_TOKENS: readonly string[] = [
   'MobileSetupError',
   'Failed to create session',
@@ -78,20 +40,13 @@ export interface RootCauseInput {
   outcome: MemberTestOutcome
   /** Shell-derived member index; becomes Verdict.perTest. */
   testIndex: number
-  /** Run-start baseline probe outcome (D-04, web targets; threaded by Plan 07). */
+  // Run-start baseline probe outcome, for web targets.
   baselineProbe?: { status?: number; elapsedMs: number; error?: string }
-  /**
-   * The run's mask. An unproven step's reason carries the planner's own words, which
-   * the step error holds unmasked, so its rationale passes through this before it is recorded.
-   */
+  // An unproven reason holds the planner's unmasked words, so the rationale passes through this.
   mask?: (text: string) => string
 }
 
-/**
- * The D-02 faithful VerdictBase constructor. Pure and total: every field of the LLM-shaped
- * base is filled deterministically — confidence keys on the class ('unknown' ⇒ 0, else 1),
- * the unknown rationale is always the fixed template regardless of the signal argument.
- */
+// Fills every VerdictBase field deterministically; confidence is 0 for `unknown`, else 1.
 export function deterministicVerdict(
   cls: DeterministicRootCauseClass,
   signal: string,
@@ -122,11 +77,7 @@ function failingStepIndices(result: TestResult): number[] {
   return indices
 }
 
-/**
- * The untrusted error texts a failure surfaces on TestResult: failing step errors plus
- * failureSummary — the only carrier when a suite-bootstrap/session-create failure produces
- * a step-less failed result (the CLI bootstrapFailure path; RESEARCH A3).
- */
+// Failing step errors plus failureSummary, the only carrier for a step-less bootstrap failure.
 function failureErrorTexts(result: TestResult): string[] {
   const texts = result.steps
     .filter((s) => s.status === 'failed' && s.error !== undefined)
@@ -189,16 +140,12 @@ function matchToken(texts: readonly string[], tokens: readonly string[]): { toke
   return undefined
 }
 
-/**
- * Classify one member's root cause from deterministic signals only. Returns
- * undefined when the presence rule says no rootCause (skipped/cancelled/clean pass).
- * See the module header for the documented, pinned branch order.
- */
+// Undefined when the presence rule says no rootCause: skipped, cancelled or a clean pass.
 export function classifyRootCause(input: RootCauseInput): Verdict | undefined {
   const { result, outcome, testIndex, baselineProbe } = input
   const citedSteps = failingStepIndices(result)
 
-  // Presence rule (D-01, refined in Plan 01): skipped/cancelled never classify.
+  // Presence rule: skipped and cancelled never classify.
   if (outcome === 'skipped' || outcome === 'cancelled') return undefined
 
   // 3. flake — the only class a pass can mint. Keyed on the final-attempt TestResult's

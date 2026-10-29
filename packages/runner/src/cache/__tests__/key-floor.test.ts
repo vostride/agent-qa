@@ -1,6 +1,3 @@
-// RED scaffold (Wave 0, CACHE-01 / MASK-FUT-01). Mirrors the v48 safety floor proof
-// (safety/masking/__tests__/cache-key-floor.test.ts) against the runtime key builder.
-// Fails until Plan 03 creates ../key.ts. Do NOT weaken any assertion to make it pass.
 import { describe, expect, it } from 'vitest'
 
 import { computeCacheKey, relevantEnvDigest } from '@vostride/agent-qa-schema'

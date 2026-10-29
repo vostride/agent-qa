@@ -1,6 +1,4 @@
-// The shared fill comparator: four verdicts, kept apart. Exact equality;
-// normalized when the field only inserted separator characters around the typed text; mismatch for
-// anything else; unverified when nothing was read back. Secure fields are never exact.
+// The fill verdicts stay apart; secure fields are never exact.
 import { describe, it, expect } from 'vitest'
 import { compareFillReread, FILL_SEPARATORS } from '../fill-verify.js'
 

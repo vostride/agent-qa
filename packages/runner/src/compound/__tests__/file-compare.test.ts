@@ -1,6 +1,4 @@
-// the saved-file comparator keeps every separator, space, tab, blank
-// line and line break; CRLF equals LF and one byte-order mark is ignored; the name is exact; the
-// first difference is masked and each side windowed to FILE_DIFFERENCE_WINDOW characters.
+// Every separator and line break counts; CRLF equals LF and one byte-order mark is ignored.
 
 import { describe, expect, it } from 'vitest'
 import { FILE_DIFFERENCE_WINDOW, compareSavedFile } from '../file-compare.js'

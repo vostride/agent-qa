@@ -1,22 +1,4 @@
-// FRAMES FLOW WHILE THE BUS STAYS SILENT (403-02 Task 3 · D-05).
-//
-// THE CLAIM. A live view is a SIDE CHANNEL. Frames — bytes, geometry, an ack — cross the
-// `RunSession` through `subscribeFrames`, and the run event bus publishes nothing about them: no
-// new event type, no envelope, and no payload carrying a pixel at any depth. That matters because
-// the bus is the durable, replayable, cross-process record of a run: every envelope is written to
-// the event log, replayed to late subscribers and served over SSE to anyone with a run-service
-// credential. A megabyte of JPEG on that path would be persisted forever, replayed on every
-// reconnect, and handed to callers who asked for a step timeline.
-//
-// WHY A DIFFERENTIAL AND NOT AN ABSENCE CHECK. "No frame events appeared" is satisfied for free by
-// a run that produced no frames — a green cell that measured nothing (WINDOWS: "green that never
-// ran"). So the SAME run is driven twice: once with no frame subscriber at all, once with a
-// subscriber pulling 50 frames through, and the two envelope streams are compared. The frames must
-// demonstrably have flowed, and the bus must be byte-identical either way.
-//
-// AND THE SCANNER CARRIES ITS OWN POSITIVE CONTROL. A sweep for `bytes` and for a base64 JPEG
-// prefix is satisfied by a sweep that cannot see anything; the last cell runs the same predicate
-// over a planted envelope and requires it to fire.
+// The same run with and without a frame subscriber must publish byte-identical bus envelopes.
 
 import { describe, expect, it } from 'vitest'
 
@@ -134,15 +116,7 @@ function pixelResidueIn(envelopes: readonly RunEventEnvelope[]): string[] {
 
 const typesOf = (envelopes: readonly RunEventEnvelope[]): string[] => envelopes.map((e) => e.type)
 
-/**
- * Every `runWarning` code on the bus, in order (WR-06's scanner).
- *
- * WHY A SEPARATE PREDICATE and not a grep on the word `runWarning` in the source: that word
- * legitimately survives in `shell.ts` for eight unrelated codes (handoff-store degrades, executor
- * throws, index holes) and in the hub for its two PRODUCER codes, which this phase preserves. A
- * count on the word cannot tell fixed from unfixed in either direction. What CAN is the run's own
- * durable record: whether a viewer's fault left a row in it.
- */
+// Every `runWarning` code on the bus, in order: whether a viewer's fault left a row in the record.
 function runWarningCodesIn(envelopes: readonly RunEventEnvelope[]): string[] {
   return envelopes
     .filter((envelope) => envelope.type === 'runWarning')
@@ -299,8 +273,7 @@ describe('frames cross the session while the run bus publishes nothing about the
   })
 
   it('THE SCANNER CAN SEE — the same predicate fires on a planted envelope', () => {
-    // WINDOWS #253's rule. A sweep whose failing branch is only reachable by breaking the product
-    // is a sweep nobody has watched fail; each branch is driven here with the residue it exists for.
+    // Each sweep branch is driven with the residue it exists for, so the sweep is seen to fail.
     const clean = [{ seq: 1, type: 'runStarted', runId: 'r', payload: { memberTestCount: 1 } }] as unknown as RunEventEnvelope[]
     expect(pixelResidueIn(clean), 'a clean envelope stream reads clean').toEqual([])
 

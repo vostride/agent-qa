@@ -1,12 +1,4 @@
-// Framework-free shared adapter conformance spec. CRITICAL: imports NOTHING
-// from any test framework — each case throws a plain Error on violation. Adapter test
-// files (Plans 352-05/06/07) wrap the cases in their own it()/expect. This keeps the
-// runner barrel, which ships these symbols, free of any test-framework dependency.
-//
-// The spec pins the shared adapter->builder contract: every adapter feeds its observed
-// nodes through buildScreenState via a ConformanceInput, and these cases assert the
-// resulting ScreenState obeys the pinned invariants (determinism, ref order, geometry
-// rule, hierarchy, state derivations, name identity, scroll passthrough).
+// Framework-free: each case throws a plain Error, so the runner barrel needs no test framework.
 
 import {
   asRef,
@@ -170,8 +162,7 @@ export const screenConformanceCases: ScreenConformanceCase[] = [
     },
   },
   {
-    // Exact on web; documented best-effort on mobile. Either way the builder
-    // passes the supplied scroll through metadata unchanged.
+    // Exact on web, best-effort on mobile; the builder passes scroll through unchanged.
     name: 'scroll passthrough: metadata.scroll equals buildInput.scroll',
     run(make) {
       const input = make()

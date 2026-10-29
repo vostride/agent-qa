@@ -1,7 +1,4 @@
-// Hook execution vocabulary. Moved byte-equivalently from
-// core/src/hooks/types.ts — the runner now owns the hook contracts so the D-06
-// port + orchestration can live here (impl in runner-local). Pure types + one
-// const map; provider-neutral + storage-neutral (no node:* imports).
+// Pure types and one const map; provider- and storage-neutral.
 
 export type HookRuntime = 'node' | 'bun' | 'python' | 'bash'
 

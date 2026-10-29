@@ -1,5 +1,4 @@
-// C439-ASSERT-COMPARE (439 D-14, SC3): the comparator passes only on a real read. An unread value
-// fails every operator, null is a read, and a network read passes only on a matching entry.
+// The comparator passes only on a real read: an unread value fails every operator; null is a read.
 
 import { describe, expect, it } from 'vitest'
 import type { AssertValueOp } from '@vostride/agent-qa-schema'

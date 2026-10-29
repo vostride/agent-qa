@@ -8,7 +8,7 @@ export type GroundingErrorCode =
   | 'descriptor_ambiguous'
   | 'descriptor_invalid'
 
-/** The three invalid-descriptor shapes (438 D-01 no handle, D-13 name-less, D-06 near). */
+// The invalid-descriptor shapes: no handle, no name, or `near`.
 export type DescriptorProblem = 'no-handle' | 'name-missing' | 'near-unsupported'
 
 interface GroundingErrorArgs {
@@ -70,9 +70,7 @@ export const groundingError = {
     })
   },
 
-  // §12.17 self-correcting form: a descriptor that resolved to nothing. `descriptorSummary`
-  // is a pre-rendered role/name string — callers redact before rendering so the factory
-  // never serializes untrusted planner objects itself (T-357-04c).
+  // `descriptorSummary` is pre-rendered and redacted by callers; no planner object is serialized.
   descriptorUnresolved(toolName: string, descriptorSummary: string): GroundingError {
     return new GroundingError({
       code: 'descriptor_unresolved',
@@ -82,7 +80,7 @@ export const groundingError = {
     })
   },
 
-  // A descriptor that matched more than one element — never a silent best-guess (T-357-04a).
+  // A descriptor that matched more than one element; never a silent best guess.
   descriptorAmbiguous(
     toolName: string,
     descriptorSummary: string,

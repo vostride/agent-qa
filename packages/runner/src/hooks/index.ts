@@ -1,4 +1,3 @@
-// Barrel for the runner-owned hook contracts + orchestration.
 export type { HookRuntime, HookDefinition, HookResult } from './types.js'
 export { RUNTIME_IMAGE_MAP, hookRunnerImage } from './types.js'
 export { parseEnvFile, serializeEnvFile } from './env-file.js'

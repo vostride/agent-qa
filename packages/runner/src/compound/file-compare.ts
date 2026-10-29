@@ -1,9 +1,4 @@
-// The saved-file comparator. Pure: the verifier states the expected name and text, the
-// runner compares them with the held bytes. Every separator, space, tab, blank line and line break
-// is kept; CRLF and LF are one line break and one leading byte-order mark is ignored (RESEARCH A5).
-// Both texts are masked with the run's masker first, so a placeholder the verifier saw compares
-// equal. A file that is not held or not valid UTF-8 is 'unverified', never a match. The file's
-// text leaves only as `firstDifference`, masked and windowed per side.
+// Both texts are masked first, so a placeholder the verifier saw compares equal.
 
 import type { ConditionFileCheck } from '@vostride/agent-qa-schema'
 

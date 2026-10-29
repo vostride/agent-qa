@@ -1,12 +1,4 @@
-/**
- * The serve-time trace persisted BESIDE `servedBrief` on `StepEvidence` (Phase 387-04, KREV-02 ·
- * D-13/D-15). The reader computed; the runner only writes.
- *
- * The load-bearing case here is byte-stability. `ServedBrief` feeds `computeBriefDigest`, and
- * every cassette and acceptance digest in the tree is keyed on its exact bytes — so "I did not
- * edit served-brief.ts" is an intention, while digesting a trace-carrying evidence value and the
- * same value without the trace and comparing the two is evidence. That is what this file does.
- */
+// Digests evidence with and without the trace, so `servedBrief` byte-stability is measured.
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -220,18 +212,7 @@ describe('StepEvidence carries the serve-time trace beside servedBrief', () => {
     expect(ServedRetrievalTraceV1Schema.safeParse(folded).success).toBe(true)
   })
 
-  // WR-10. The zero-injection case is the one the truncation ledger exists to answer,
-  // and it had two distinct drop gates. Shape A's gate is in the loop (see trace-threading.test.ts);
-  // Shape B's gate is HERE, in this recorder body — the loop DOES call `recordServedCautions` when
-  // every served caution is refused, because `truncated N of M` renders as an observation, and the
-  // method then discarded the whole trace on its zero-caution early return.
   it('Shape B: records the cut ledger when the ledger refused every caution the reader served', () => {
-    // RED BASELINE, observed against unmodified production code before the fix:
-    //   AssertionError: expected undefined to be truthy   (`evidence.retrievalTrace` was ABSENT)
-    // The early return fired before any accumulation, leaving both channel-3 ledgers empty, so
-    // `foldRetrievalTrace`'s no-served-lines arm returned undefined instead of the cut ledger it
-    // was explicitly built to carry. Note the failure MODE differs from Shape A's: there the
-    // trace existed and was empty, here it does not exist at all.
     const recorder = new EvidenceRecorder()
     recorder.recordServedCautions(
       [],
@@ -244,9 +225,7 @@ describe('StepEvidence carries the serve-time trace beside servedBrief', () => {
     const evidence = recorder.finalize(passVerdict, 0, 'checkout')
 
     expect(evidence.retrievalTrace).toBeTruthy()
-    // D-2 / probe r5 extended to the all-refused case: a refused caution is a cut CANDIDATE, and
-    // the reader's own cuts ride behind it. Order is asserted, not membership — the refused
-    // servedLines precede `trace.truncated` exactly as they do on the partial-refusal path.
+    // A refused caution is a cut candidate, ahead of the reader's own cuts; order is asserted.
     expect(evidence.retrievalTrace!.truncated.map(({ recordId }) => recordId))
       .toEqual(['caution-1', 'caution-2', 'caution-cut'])
     expect(evidence.retrievalTrace!.servedLines).toEqual([])
@@ -254,8 +233,7 @@ describe('StepEvidence carries the serve-time trace beside servedBrief', () => {
   })
 
   it('Shape B leaves the ServedBrief digest untouched by a zero-injection recording', () => {
-    // D-13 stated as a before/after over ONE recorder: a zero-line channel append would be digest
-    // churn with no content, so the brief mutation stays gated even though the ledger no longer is.
+    // A zero-line channel append would churn the digest with no content, so the brief stays put.
     const recorder = new EvidenceRecorder()
     recorder.recordServedBrief({
       scope,
@@ -398,9 +376,7 @@ describe('the assembled handoff carries a trace-bearing step at schemaVersion 5'
       servedLines: [{ recordId: 'fact-a', leg: 'anchor', rank: 1, score: 0.9 }],
       truncated: [{ recordId: 'fact-b', leg: 'anchor', rank: 2, score: 0.4 }],
     })
-    // 387-02 gave the loader a present-implies-valid clause, so a malformed trace is refused
-    // rather than reaching the why-verb looking well-formed. What the runner writes is what the
-    // guard accepts — pinned by construction rather than by inspection.
+    // The loader refuses a malformed trace, so what the runner writes must pass its guard.
     expect(() => guardCompletedRunHandoff(JSON.parse(JSON.stringify({
       ...handoff,
       tests: [{

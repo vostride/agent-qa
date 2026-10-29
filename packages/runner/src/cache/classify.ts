@@ -1,10 +1,4 @@
-// Provenance-based step classifier.
-// CRITICAL: storage-neutral — no node:* imports. Classification is decided by
-// resolution provenance, NOT a bespoke step-text regex: a step that reads or sets a
-// live env/secret is non-cacheable (the loop bypasses it — no read, no write); a
-// step that merely depends on config-env values is cacheable and carries only the
-// value-free RedactedEnvVar shapes for folding into the digest. Reuses the shipped
-// secrets provenance surface (findSecretTemplates / the [secret:*] marker).
+// Provenance decides: a step that reads or sets a live env or secret is never cached.
 
 import type { NonCacheableStepInput, RedactedEnvVar } from '@vostride/agent-qa-schema'
 import { containsRedactedSecretMarker, findSecretTemplates } from '../loop/secrets.js'
@@ -23,11 +17,7 @@ export interface ClassifyStepInput {
   configEnv?: readonly RedactedEnvVar[]
 }
 
-/**
- * Classify a step by resolution provenance. Env/secret read-or-set steps
- * return NonCacheableStepInput; a config-env-dependent step returns a
- * CacheableClassification carrying the value-free RedactedEnvVar shapes.
- */
+// Env or secret steps are non-cacheable; others carry only value-free RedactedEnvVar shapes.
 export function classifyStep(
   input: ClassifyStepInput,
 ): CacheableClassification | NonCacheableStepInput {

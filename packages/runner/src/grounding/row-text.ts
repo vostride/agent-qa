@@ -1,44 +1,4 @@
-// The row of an element (Phase 438, D-02 · RESEARCH Pattern 3): one definition on web, Android
-// and iOS. CRITICAL: provider-neutral + storage-neutral. No node:* imports, no fs/sharp, no
-// core/model/adapter package imports — imports only schema types.
-//
-// The row container of an element is the element itself when its role is in ROW_CONTAINER_ROLES,
-// else its nearest ancestor (via hierarchy.parentRef) in ROW_CONTAINER_ROLES; when neither exists,
-// the element itself when it is a `cell`, else its nearest `cell` ancestor (iOS
-// XCUIElementTypeCell maps to `cell`; on web a table cell is always found below its `row` first).
-// A row container is its own row (438 gap round, WR-04), so a clicked listitem or row is checked
-// against its own row words. Row text is the container's name, its folded static text, then every
-// descendant's name and text in document order. A row container that is the element itself then
-// carries the own line (name and folded text) of every enclosing container of its own role,
-// nearest first, so `2025 > Invoices` reads 'Invoices 2025' and `Invoices > 2025 > Q1` reads
-// 'Q1 2025 Invoices' (438 gap round 2, WR-10; 444.1 D-15, D-17). The row's own line comes first,
-// so a length cap keeps it; an enclosing container of another role (an article around a table
-// row) never joins, so its prose never moves the row; and no other descendant of an enclosing
-// container joins, so a sibling row's words never join.
-// No container means the row is unknown — never a contradiction (Android layout groups are
-// filtered out of the observation, so a list row there has no container). strictMatch, the cache
-// locator's row lift, the heal's prior row and the web binding (observe-time and dispatch-time
-// row text) all read this one definition.
-//
-// Containment compares word tokens after NFKC and lowercasing. Each stated word must equal a row
-// word or be a prefix (two or more characters) of a non-number row word; a number must match a row
-// number exactly: 'Elm St' is in '7 Elm Street, Springfield', '7' is not in '17 Elm Street'.
-// Digit grouping (438 gap round 2, WR-11; 444.1 D-16; within D-03). Grouping separators: `,`, `_`,
-// U+202F and U+00A0 between a digit and exactly three digits (no further digit), so '1,234' equals
-// '1234', and a well-formed lakh group `\d{1,2}(,\d{2})+,\d{3}`, so '1,00,000' equals '100000'.
-// U+00A0 and U+202F are read before NFKC, which would turn them into a plain space; `,` and `_`
-// after it, so a full-width comma groups too. Not grouping: U+2009 and U+2007 (NFKC turns them
-// into a plain space), `'`, U+066C, and `.`, a decimal point; `1.234,50`-style grouping stays open.
-// A comma run is also a list: wordTokens is the grouped reading (read by stated-target.ts,
-// strict-match.ts and cache/value.ts) and listWordTokens the list reading, every comma a split.
-// rowContains agrees when both texts read the same way, either way, agree: 'Order 947' is in
-// 'Orders 947,948'. A reading is global per text, never chosen per run (RESEARCH A5), so a text
-// mixing a grouped number and a list can still refuse, which fails safe.
-//
-// M2 injection boundary: row text is opaque comparison data only — never interpolated into a
-// selector or an instruction, never evaluated, never used to search for an element.
-//
-// Pure functions: no recording, no side effects.
+// Row text is opaque comparison data; an unknown row never contradicts.
 
 import type { ElementInfo, Ref } from '@vostride/agent-qa-schema'
 
@@ -121,10 +81,7 @@ function descendantsInOrder(
   )
 }
 
-/**
- * The row text of an element in its observation, or undefined when the element has no row
- * container or the container's text is empty (D-02: the row is unknown).
- */
+// Undefined when the element has no row container or its text is empty: the row is unknown.
 export function rowTextOf(
   element: ElementInfo,
   elements: readonly ElementInfo[],

@@ -1,12 +1,4 @@
-// Phase 363-03 Task 1. The event sink is the single masking chokepoint every
-// parity payload crosses. These tests pin the widened stepFinalized leg (StepResult-derived
-// status/durationMs/error) and the three NEW sink legs (hookStarted/hookFinished from the
-// Plan 04 hooks migration, testRetryScheduled from the Plan 10 member-runner retry loop) —
-// each routed through its Plan 01 projection + the sink mask so no value-bearing string
-// escapes redaction. RED before the sink widening exists.
-//
-// Runner package convention: `.js`-suffixed relative import specifiers. Real in-memory bus,
-// synthetic mask — no fs, no timers.
+// The event sink is the single masking chokepoint every parity payload crosses.
 import { describe, expect, it } from 'vitest'
 
 import { createRunEventBus } from '../bus.js'
@@ -87,7 +79,7 @@ describe('event sink — widened stepFinalized leg', () => {
   })
 })
 
-// ---- Test 1b: the 405 D-05 tokenUsage leg (absent is not zero) --------------------------
+// ---- the tokenUsage leg (absent is not zero) ----
 
 describe('event sink — stepFinalized tokenUsage leg', () => {
   it('publishes the measured tokenUsage verbatim on the envelope payload', () => {
@@ -112,7 +104,7 @@ describe('event sink — stepFinalized tokenUsage leg', () => {
   })
 })
 
-// ---- Test 1c: the 407 D-13/D-14 retrievalRung leg (the live-header banner's source) -----
+// ---- the retrievalRung leg, source of the live-header banner ----
 
 describe('event sink — stepFinalized retrievalRung leg', () => {
   const rung: RecordedRetrievalRung = {

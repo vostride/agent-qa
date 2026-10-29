@@ -1,8 +1,4 @@
-// The cache re-ground seam (Phase 357; strict since 438 D-10/D-11). A stored locator is the
-// observed role, the exact name and, when stated, the row words; reground(locator, elements)
-// returns strictMatch's typed result against the fresh observation. One survivor resolves; none
-// is absent; several are not-unique and never picked. There is no ordinal, no substring rung and
-// no hierarchy tiebreak. The titles are the 357 titles, kept; each cell pins the strict outcome.
+// One strict survivor resolves; none is absent; several are not-unique and never picked.
 import { describe, expect, it } from 'vitest'
 
 import { asRef } from '@vostride/agent-qa-schema'
@@ -26,7 +22,7 @@ function element(ref: string, role: string, name: string, parentRef?: string, te
   }
 }
 
-// Structural conformance to the thin GroundingStrategy seam (Phase 357 absorbs it).
+// Structural conformance to the thin GroundingStrategy seam.
 const matcher: GroundingStrategy = deterministicDescriptorMatcher
 
 describe('deterministicDescriptorMatcher.reground (one matcher, ambiguity never picks)', () => {
@@ -47,8 +43,7 @@ describe('deterministicDescriptorMatcher.reground (one matcher, ambiguity never 
   })
 
   it('still selects by ordinal within the surviving set; an ordinal beyond the set is null', () => {
-    // the locator has no ordinal. Two survivors are not-unique and
-    // neither is picked; only the stated row words single one out.
+    // No ordinal: two survivors are not-unique; only stated row words single one out.
     const elements = [
       element('r1', 'listitem', '', undefined, 'Work 7 Elm Street'),
       element('e1', 'button', 'Add', 'r1'),
@@ -70,8 +65,7 @@ describe('deterministicDescriptorMatcher.reground (one matcher, ambiguity never 
   })
 
   it('rescues benign name drift through the substring rung where an exact-only matcher returned null', () => {
-    // replay has no substring rung. A drifted name is absent, and so
-    // is a different number under the same normalized name.
+    // Replay has no substring rung: a drifted name or a different number is absent.
     const elements = [element('e1', 'button', 'Save changes'), element('e2', 'link', 'Invoice 946')]
 
     expect(matcher.reground({ role: 'button', name: 'Save' }, elements)).toEqual({ kind: 'absent' })

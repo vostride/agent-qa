@@ -1,12 +1,4 @@
-// Pure, platform-agnostic screen-state builder for the PlatformAdapter observe leg.
-// CRITICAL: provider-neutral + storage-neutral. No browser/mobile driver imports,
-// no node:* imports, no model/core/adapter package imports, and no hashing here
-// (the cache-key hash swap is Phase 356). Imports only from @vostride/agent-qa-schema.
-//
-// This is the single implementation of ref minting, name normalization,
-// elements/refMap/metadata assembly, and deterministic tree rendering
-// that all three platform adapters invoke. Identity byte-equality
-// across platforms depends on there being exactly one producer.
+// The one producer of refs, names and tree rendering, so identity matches across platforms.
 
 import {
   asRef,
@@ -27,12 +19,7 @@ import {
 } from '@vostride/agent-qa-schema'
 import { ROW_CONTAINER_ROLES } from './grounding/row-text.js'
 
-/**
- * Adapter -> builder input for a single observed node.
- *
- * Structural links are carried as INDICES because refs do not exist yet — the
- * builder mints them in document order (RESEARCH Pitfall #7).
- */
+// Structural links are indices, because the builder mints refs afterwards in document order.
 export interface InterimNode {
   /** Schema role vocabulary — adapters map native roles BEFORE the builder. */
   role: string
@@ -44,16 +31,7 @@ export interface InterimNode {
   bounds?: { x: number; y: number; width: number; height: number }
   /** Optional; the builder derives the geometric center from bounds when absent. */
   center?: { x: number; y: number }
-  /**
-   * ONLY real platform signals (D-08 — never fabricated). The builder derives the
-   * required booleans from documented defaults when a signal is absent:
-   *   enabled  = state.enabled  ?? true  (absence of a disabled signal means enabled)
-   *   focused  = state.focused  ?? false
-   *   visible  = state.visible  ?? true  (present in the a11y tree means exposed;
-   *                                       adapters set false explicitly for offscreen)
-   * Optional bits (selected/checked/editable/clickable) pass through only when the
-   * platform supplied them — typed-absent otherwise.
-   */
+  // Only real platform signals; absent booleans take documented defaults, never fabricated values.
   state?: Partial<ElementState>
   labels?: ElementLabels
   /** Raw platform bag, passed through to ElementInfo.attributes (default {}). */
@@ -62,7 +40,7 @@ export interface InterimNode {
   text?: string
   /** Adapter-private hint (e.g. android class / XCUI type); the builder ignores it. */
   nativeType?: string
-  /** D-10; the builder maps containerIndex -> the minted container Ref. */
+  // The builder maps `containerIndex` to the minted container Ref.
   scrollContext?: { containerIndex?: number; offsetX: number; offsetY: number }
 }
 
@@ -71,10 +49,7 @@ export interface BuildScreenStateInput {
   /** Document order — this is the ref-minting order. */
   nodes: InterimNode[]
   viewport: { width: number; height: number }
-  /**
-   * EXACT on web; BEST-EFFORT on mobile — mobile callers pass a best-effort
-   * scroll derived from scrollable-node bounds. The field is precise only on web.
-   */
+  // Exact on web, best-effort on mobile from scrollable-node bounds.
   scroll: { offsetX: number; offsetY: number; contentWidth: number; contentHeight: number }
   coordSpace: 'viewport' | 'content' | 'screen'
   /** Caller-supplied — keeps the builder pure and deterministic. */
@@ -82,10 +57,7 @@ export interface BuildScreenStateInput {
   url?: string
 }
 
-/**
- * Execute-time resolution stays adapter-private: `index` is the live node's place in the
- * input nodes array. No same-screen position is minted for anything to pick by.
- */
+// `index` is the live node's place in the input array, private to execute-time resolution.
 export interface RefBinding {
   index: number
 }
@@ -97,10 +69,7 @@ export interface BuildScreenStateResult {
   binding: Record<Ref, RefBinding>
 }
 
-/**
- * The capture stamp the loop applies after compression. `full` carries the
- * real image dimensions; `textOnly` attaches no image.
- */
+// `full` carries the real image dimensions; `textOnly` attaches no image.
 export type CaptureStamp =
   | { mode: 'full'; imageWidth: number; imageHeight: number }
   | { mode: 'textOnly' }
@@ -131,7 +100,7 @@ function centerOf(bounds: BoundingBox): Point {
 export function buildScreenState(input: BuildScreenStateInput): BuildScreenStateResult {
   const { nodes } = input
 
-  // Pass 0: mint sequential refs in document order (D-03; the single brand point).
+  // Pass 0: mint sequential refs in document order; the single brand point.
   const refs: Ref[] = nodes.map((_, i) => asRef(`e${i + 1}`))
 
   // Pass 1: invert parentIndex links into child ref lists.
@@ -154,7 +123,6 @@ export function buildScreenState(input: BuildScreenStateInput): BuildScreenState
     const name = node.name ?? ''
     const nameNormalized = normalizeAccessibleName(name)
 
-    // the per-screen position is no longer minted.
     binding[ref] = { index: i }
 
     const bounds: BoundingBox | undefined = node.bounds
@@ -192,8 +160,7 @@ export function buildScreenState(input: BuildScreenStateInput): BuildScreenState
     }
     elements.push(element)
 
-    // refMap geometry rule (RESEARCH Pitfall #3): a node WITH bounds gets an entry;
-    // a node WITHOUT bounds gets NO entry — never fabricate zero geometry.
+    // A node with bounds gets a refMap entry; one without gets none, never zero geometry.
     if (bounds !== undefined && center !== undefined) {
       const entry: ElementBounds = { bounds, center }
       if (node.scrollContext !== undefined) {
@@ -264,24 +231,7 @@ function depthOf(element: ElementInfo, byRef: Map<Ref, ElementInfo>): number {
   return depth
 }
 
-/**
- * Deterministic LLM-facing tree text, derived from the structured elements —
- * one grammar for all platforms. Exported so Phase 357's slim/rich dual-projection is
- * a renderer-only change with zero adapter edits.
- *
- * Grammar (pinned; RESEARCH Pitfall #10):
- *   [Viewport: {viewportWidth}x{viewportHeight}] [{elements.length} elements]
- *   {2 spaces × depth}- {role}{ "name"?} [ref={ref}]{ @(x,y wxh)?}{ [disabled]?}{ [offscreen]?}{ [checked]?}{ [selected]?}{ [editable]?}{ text: <row text as a JSON string>?}
- * depth = length of the parentRef chain (root elements depth 0).
- * A rendered name collapses each line break, with the whitespace around it, to one space, so
- * every element stays on one line; element.name and value keep the raw text.
- * ` text: "…"` appears only on a row container (ROW_CONTAINER_ROLES) whose element.text is
- * non-empty (438 D-02: the planner must see a row to state it); line breaks collapse the same
- * way and the rendered text is capped at 120 characters plus `…`. The row text is a JSON string
- * (JSON.stringify, as quoted() renders names in the refusal line), so a quote or backslash in app
- * text cannot end the string or forge a ref, flag or line (438 gap round, WR-02, T-438-04).
- * element.text keeps the full text the judge and replay compare against.
- */
+// Row text is a JSON string, so app text with a quote or backslash cannot forge a ref or line.
 export function renderScreenTree(
   elements: ElementInfo[],
   metadata: ScreenStateMetadata,
@@ -315,11 +265,7 @@ export function renderScreenTree(
   return [header, ...lines].join('\n')
 }
 
-/**
- * Pure re-stamp of the discriminated captureMode metadata member. Constructs a
- * fresh metadata object from the base fields and returns a NEW ScreenState — zero `as`
- * casts, zero mutation of the input.
- */
+// Builds fresh metadata and a new ScreenState; the input is never mutated.
 export function stampCaptureMode(state: ScreenState, capture: CaptureStamp): ScreenState {
   const base: ScreenStateMetadataBase = {
     coordSpace: state.metadata.coordSpace,

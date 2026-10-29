@@ -1,16 +1,4 @@
-// Runner-owned port interfaces for the run layer.
-// CRITICAL: provider-neutral + storage-neutral. Type-only imports, exported
-// interfaces, no implementation, no class, and NO `node:*` — the run shell and
-// the in-memory bus are pure logic; every I/O leg (JSONL event log, handoff.json,
-// timers) crosses to `runner-local` behind these seams (validate:arch storageNeutral,
-// the FsActionCache / storage-state port precedent). Declared interface-first so
-// Plans 06–10 build against them without exploration.
-//
-// `POST_VERDICT_STEP_BUDGET_MS` is the first VALUE this module
-// exports, and it stays inside the rule the header states. The rule is about IMPLEMENTATION —
-// nothing here may open a file, name a provider or hold state. A bound is neither: it is part of
-// the port's contract (the shell races the step against it; the host may not choose its own), and
-// putting it beside the interface it bounds is what keeps the two from drifting.
+// Type-only and storage-neutral; the one exported value bounds the post-verdict port.
 
 import type {
   PostProcessingDisposition,
@@ -105,51 +93,26 @@ export interface StepModelScopeOptions {
     Pick<StepModelConsumers, 'planner' | 'verifier'>
 }
 
-/**
- * The two 356 A5 config digests the run actually keyed on, computed once at the CLI
- * composition root and passed in the resolved {@link RunConfig}. Carried verbatim
- * into `runStarted`/the handoff so run identity and handoff identity cannot fork.
- */
+// Computed once at the CLI root and carried verbatim, so run and handoff identity cannot fork.
 export interface ConfigDigests {
   suiteConfigDigest: string
   testConfigDigest: string
 }
 
-/**
- * The run-start baseline health-probe outcome: ONE GET against the web
- * target's base URL, executed at the CLI composition root (the runner bans node:* — only
- * the RESULT crosses this seam). ALL probe failures arrive as values on `error`; a probe
- * never aborts the run. Consumed by the deterministic root-cause classifier's environment
- * branch (run/root-cause.ts).
- */
+// One GET at the CLI root; every probe failure arrives as a value and never aborts the run.
 export interface BaselineProbeResult {
   status?: number
   elapsedMs: number
   error?: string
 }
 
-/**
- * The JSONL event-log seam. BOTH legs are SYNC and fire-and-forget — the bus
- * NEVER awaits telemetry (a synchronous one-line append; D-06/D-07). `append` persists one
- * envelope per emitted event; a throw degrades the bus to memory-only with a single
- * `runWarning`. `read(fromSeq)` supplies older-than-window envelopes for deep replay.
- * The runner-local `FsEventLog` (Plan 07) implements this against `events.jsonl`.
- */
+// Both legs are sync and fire-and-forget; an append throw degrades the bus to memory-only.
 export interface EventLogPort {
   append(envelope: RunEventEnvelope): void
   read(fromSeq: number): RunEventEnvelope[]
 }
 
-/**
- * The per-hook execution options the orchestration threads into the {@link HookExecutorPort}
- * `env` is the accumulated-variables + user-env map the orchestrator merges per hook;
- * `secretEnv` is the ALREADY-RESOLVED secret name→value map for container injection — the CLI
- * composition root resolves the SecretStore and the runner never touches the store itself. The
- * secret VALUES double as the output-variable filter (a hook-emitted variable equal to a secret
- * value is dropped). `secretRedactor` redacts stdout/stderr/error; `authState` mounts + injects
- * the active auth state (container-local paths only). Pitfall 3: all sandbox-side
- * redaction/filtering stays inside the impl — the sink mask is additive.
- */
+// Secret values also filter hook output variables; sandbox redaction stays inside the impl.
 export interface HookExecuteOptions {
   env: Record<string, string>
   secretEnv: Record<string, string>
@@ -157,36 +120,17 @@ export interface HookExecuteOptions {
   authState?: RuntimeAuthStateConfig
 }
 
-/**
- * The D-06 hook-execution seam: a runner-owned port whose only implementation is the
- * runner-local `DockerHookExecutor` (the 356/361 port-in-runner/impl-in-runner-local
- * precedent). `execute` runs ONE hook in the sandboxed container and resolves a
- * {@link HookResult} — a per-hook timeout resolves a FAILED result with an exit-124-style
- * error, NEVER a throw (the orchestration relies on a resolved result to synthesize
- * fail-fast skips). node:child_process / node:fs live behind this port in runner-local;
- * the runner stays storageNeutral (validate:arch is the arbiter).
- */
+// A per-hook timeout resolves a failed result, never a throw; fail-fast skips rely on it.
 export interface HookExecutorPort {
   execute(hook: HookDefinition, opts: HookExecuteOptions): Promise<HookResult>
 }
 
-/**
- * The durable handoff seam. SYNC single-document persist of the one
- * `CompletedRunHandoff` at run end; the runner-local `FsHandoffStore` (Plan 07) writes
- * `handoff.json` beside `events.jsonl`. Failure degrades with a `runWarning`, never gates
- * the verdict.
- */
+// Sync persist of the one handoff at run end; a failure warns and never gates the verdict.
 export interface HandoffStorePort {
   save(handoff: CompletedRunHandoff): void
 }
 
-/**
- * What the post-verdict step is told about the run whose posture it is deciding.
- *
- * The two markers are read off the ASSEMBLED `RunConfig` — the same values `startRun` was handed
- * — never off ambient state, so a gate-run skip is decided from the run's own record.
- * Absent means absent: `?: true` carriers are conditionally spread, never written as `undefined`.
- */
+// Markers come from the assembled RunConfig, never ambient state; absent stays absent.
 export interface PostVerdictStepInput {
   readonly runId: RunId
   readonly verdict: RunStatus
@@ -194,61 +138,21 @@ export interface PostVerdictStepInput {
   readonly excludedFromOutcomes?: true
 }
 
-/**
- * The step's answer: the posture, and — when the consult could not decide — the reason, by name.
- *
- * A warning rather than a fourth union arm. `detached` is the honest "nothing will be
- * drained from here", and the cause travels on the `runWarning` channel a surface already reads.
- */
+// When the consult cannot decide, `detached` plus a named `runWarning` carries the cause.
 export interface PostVerdictOutcome {
   readonly disposition: PostProcessingDisposition
   readonly warning?: { readonly code: string; readonly message: string }
 }
 
-/**
- * The post-verdict step — the `HandoffStorePort` idiom applied to the ONE decision the
- * shell delays `runFinished` for.
- *
- * WHAT IT MAY DO: the durable enqueue and ONE writer-lease consult. Milliseconds. The runner
- * names no queue, no sqlite and no lease vocabulary (validate:arch storageNeutral) — the HOST
- * supplies the implementation, and the shell only awaits it.
- *
- * WHAT IT MAY NOT DO: gate `done`. A throw, a resolution past
- * {@link POST_VERDICT_STEP_BUDGET_MS}, or an absent port all yield `detached` plus a named
- * `runWarning`, and `runFinished` still publishes last with `bus.close()` behind it.
- * The step returns a VALUE and never touches the bus: the shell keeps sole ownership of the
- * terminal sequence.
- *
- * THE SHELL HOLDS NO LEASE. Whatever the step acquired stays with the host, which hands it to its
- * own pump — acquire → pump → release is ONE lease, never re-acquired (RESEARCH Pitfall 3).
- */
+// The host owns the lease; a throw, overrun or absent port yields `detached` and a named warning.
 export interface PostVerdictPort {
   run(input: PostVerdictStepInput): Promise<PostVerdictOutcome>
 }
 
-/**
- * The hard bound the shell races the step against (404 D-10, RESEARCH Pitfall 1).
- *
- * `acquireWriterLease` has contention/deadline semantics of its own, and a busy sqlite enqueue can
- * stall; without a bound here `runFinished`, `done`, the SSE close and the dashboard finalize all
- * slide behind it. Five seconds is generous for "enqueue + one consult" and still far below any
- * drain budget — reaching it means the consult is not going to answer, which is `detached`.
- */
+// A busy enqueue can stall, and without this bound `runFinished` and `done` slide behind it.
 export const POST_VERDICT_STEP_BUDGET_MS = 5_000
 
-/**
- * The D-08 run-artifact persistence seam: a runner-owned port whose only implementation is the
- * runner-local `FsRunArtifactStore` (the 356/361 port-in-runner/impl-in-runner-local precedent).
- * BOTH legs are SYNC and fire-and-forget — the shell NEVER awaits artifact persistence, and a
- * throw degrades with a `runWarning`, never gates the verdict (the event-log/handoff
- * discipline; D-07). The store writes ONE `artifact.json` into the SAME
- * `<root>/runs/<slug(runId)>/` family as `events.jsonl`/`handoff.json` (one self-contained run
- * directory). `stage(document)` persists the config + source snapshot once after `runStarted`;
- * `finalize(patch)` merges terminal errors + the end timestamp before `runFinished` — matching
- * the dashboard DB staged/finalize idiom so a crashed run still leaves a staged artifact. Per the
- * RESEARCH Q5 keep/drop table the FILE artifact keeps config/source/errors only; the top-level
- * `runtime` section is dropped (derived from events/handoff). An absent port is a silent no-op.
- */
+// Sync and fire-and-forget; a staged artifact survives a crash because finalize merges later.
 export interface RunArtifactStorePort {
   stage(document: RunArtifactStageInput): void
   finalize(patch: RunArtifactFinalizeInput): void
@@ -266,99 +170,33 @@ export interface RunTimerPort {
   now(): number
 }
 
-/**
- * One ordered member of the run. `failFastGroup` scopes today's suite fail-fast: a
- * failed/timed-out member skips the remaining SAME-group members; ungrouped members never
- * fail-fast, preserving the single-test path's run-all behavior.
- *
- * `testIndex` is optional: the shell owns iteration and derives the authoritative index
- * from array position (a caller-supplied value is a hint at most). `name` is REQUIRED so
- * the compiler enforces every descriptor construction site supplies the parsed test name;
- * handoff assembly copies it verbatim onto `PerTestOutcome.testName`.
- */
+// A failed member skips the rest of its `failFastGroup`; the shell derives the index itself.
 export interface RunMemberDescriptor {
   testId: string
   testIndex?: number
   name: string
   failFastGroup?: string
-  /**
-   * The member test file's WORKSPACE-RELATIVE path — rooted at the config directory,
-   * forward-slashed, no leading `./`. REQUIRED since 381-01: stable test identity =
-   * filePath + testName, copied verbatim onto `PerTestOutcome.filePath` by the handoff assembly —
-   * the required field makes the compiler enforce that every descriptor construction site supplies
-   * it.
-   *
-   * this is IDENTITY, not a file handle. It is deliberately checkout-
-   * independent — the same bytes on every machine — because the committed `quarantine.jsonl` keys
-   * entries on it and matches with `===`, so an absolute path here would produce a ledger that
-   * could only ever apply on the machine that wrote it. Nothing in the run reads bytes off disk
-   * through this field; the CLI mints it via core's `workspaceRelativeIdentityPath` and keeps the
-   * absolute path on the side for every read.
-   */
+  // Checkout-independent identity, because the committed quarantine ledger matches it with `===`.
   filePath: string
-  /**
-   * 363 D-01 parity fields (RESEARCH Q1). All OPTIONAL and additive — the shell rides them onto
-   * the widened `testStarted` payload so reporters can render the full v1 console/JUnit/wire
-   * surface from the bus alone. Suite grouping (`suiteId`/`suiteName`/`suiteIndex`/`suiteTotal`)
-   * rides testStarted rather than a suite lifecycle event — the shell stays suite-agnostic and
-   * reporters derive suite boundaries by watching the grouping change. `totalSteps` is the
-   * per-member parsed step count. The CLI populates these at both startRun sites; absent
-   * ⇒ omitted from the payload (no undefined-hole survives JSON round-trip).
-   */
+  // Optional parity fields for reporters; absent values are omitted from the payload.
   suiteId?: string
   suiteName?: string
   suiteIndex?: number
   suiteTotal?: number
   totalSteps?: number
-  /**
-   * the raw authored text of each step, in order. It is the same string
-   * member-runner announces at `stepStarted` (`memberStepText`). The shell masks it onto
-   * `testStarted.stepTexts`; callers never pre-mask. Absent ⇒ omitted from the payload.
-   */
+  // The raw authored step texts, the same `memberStepText` announces; the shell masks them.
   stepTexts?: readonly string[]
-  /**
-   * THIS MEMBER'S OWN TARGET's run-start health baseline.
-   *
-   * PER MEMBER, NOT PER RUN, because a run's members may name different targets and a reading taken
-   * against one of them says nothing about another. It lived on `RunConfig` and was handed to the
-   * classifier for EVERY member, so a 503 observed against member B's target was recorded as member
-   * A's environment failure. The CLI composition root fills this in behind the verdict, probing each
-   * DISTINCT member URL once; absent means no probe applies to this member — the mobile posture,
-   * where the device-session-create failure is the equivalent environment signal, and equally the
-   * posture of a member whose target could not be resolved.
-   */
+  // Per member, because members may name different targets; absent means no probe applies.
   baselineProbe?: BaselineProbeResult
-  /**
-   * members declaring the SAME lane share a mutable execution resource and MUST NOT
-   * run concurrently — the bounded member pool runs them strictly one at a time, in index order.
-   * Absent means "this member owns everything it touches" and the pool may schedule it freely.
-   *
-   * This is a PRECONDITION the producer states, never something the shell infers. D-09 requires
-   * each concurrent member its own browser/CDP handle; today's suite path does not satisfy that
-   * (every member of a suite drives the ONE adapter its suite set up, and `createSuiteLifecycle`
-   * admits one active suite at a time), while the direct path does (each direct test constructs
-   * its own adapter). A producer that starts handing each member its own session drops the lane
-   * and gets concurrency; nothing in the shell has to be re-argued for that to be safe.
-   */
+  // Members sharing a lane share a resource, so the pool runs them one at a time in index order.
   exclusiveLane?: string
 }
 
-/**
- * The run-scoped event sink handed to the executor per member test. The shell binds
- * `runId`/`testIndex`/masking; core curries `stepIndex` via `loopEmitFor`. `stepStarted`
- * fires as a step opens; `loopEmitFor(stepIndex)` yields the {@link LoopEventEmitPort} the
- * loop emits `stepFinalized`/`subActionRecorded` through.
- */
+// The shell binds `runId`, `testIndex` and masking; `loopEmitFor` curries `stepIndex`.
 export interface MemberEventSink {
   stepStarted(input: { stepIndex: number; stepText: string }): void
   loopEmitFor(stepIndex: number): LoopEventEmitPort
-  /**
-   * 363 D-01 parity legs, each routed through its Plan 01 projection + the sink mask (never a raw
-   * `bus.publish` from the caller — T-363-06). `hookStarted`/`hookFinished` are emitted by the
-   * runner hook orchestration (Plan 04 populates them; `hookFinished` stdout/stderr/error and every
-   * `variables` value are masked at the sink, T-363-05). `testRetryScheduled` is emitted by the
-   * member-runner retry loop (Plan 10) and marks a per-test accumulation reset for subscribers.
-   */
+  // Each leg goes through its projection and the sink mask, never a raw `bus.publish`.
   hookStarted(input: HookStartedPayload): void
   hookFinished(input: HookFinishedPayload): void
   testRetryScheduled(input: TestRetryScheduledPayload): void
@@ -379,51 +217,26 @@ export interface MemberTestRunContext {
   testIndex: number
   events: MemberEventSink
   setEvidenceContext(context: MemberEvidenceContext): void
-  /**
-   * CASS-02 run-scoped decision-screenshot byte store (the same instance the shell holds on
-   * {@link RunPorts}). The member threads it onto `LoopPorts.evidenceArtifacts`; absent ⇒ a
-   * memory-only run with no screenshot persistence.
-   */
+  // The shell's one store, threaded onto `LoopPorts.evidenceArtifacts`; absent, nothing persists.
   evidenceArtifacts?: EvidenceArtifactStorePort
-  /**
-   * declare (or withdraw) this member's live-stream producer. Optional on the SAME
-   * `setEvidenceContext` precedent above — the executor pushes a capability the shell knows
-   * nothing about, and the shell owns the per-run hub that refcounts it. Passing `undefined`
-   * withdraws the declaration (the handle then reads `{ kind: 'none' }`). Absent on the context
-   * ⇒ a composition that predates live view; the executor's optional call is a no-op.
-   * `fallback` is the labelled snapshot producer the hub switches to when the primary fails to
-   * start.
-   */
+  // `undefined` withdraws the producer; `fallback` takes over when the primary fails to start.
   registerLiveStream?(
     capability: LiveStreamCapability | undefined,
     fallback?: LiveStreamCapability,
   ): void
 }
 
-/**
- * The injected per-test execution port. The CLI composition root wraps core's
- * `runTest` behind this seam (core depends on runner, so runner can never import core);
- * Phase 363 dissolves the core side of the port when it migrates hooks/variables/reporters.
- * A staged migration, not a workaround — this is the exact seam 363 needs.
- */
+// The CLI wraps core's `runTest` here, because core depends on runner and never the reverse.
 export type MemberTestExecutor = (
   member: RunMemberDescriptor,
   ctx: MemberTestRunContext,
 ) => Promise<TestResult>
 
-/**
- * The durable/telemetry/clock seams the run wires behind ports. All optional —
- * an absent leg degrades gracefully (no persistence, memory-only telemetry, default clock).
- * Grouped under `ports` so the resolved config keeps the run identity fields flat and the
- * injectable I/O seams together (the Wave-0 `run-shell.test.ts` pins this nesting).
- */
+// All optional: an absent leg means no persistence, memory-only telemetry or the default clock.
 export interface RunPorts {
   handoffStore?: HandoffStorePort
   eventLog?: EventLogPort
-  /**
-   * The D-08 run-artifact store. Staged after `runStarted`, finalized before `runFinished`;
-   * absent ⇒ no artifact.json is written (memory-only run, byte-identical pre-363-06 behavior).
-   */
+  // Staged after `runStarted`, finalized before `runFinished`; absent, no artifact.json is written.
   runArtifactStore?: RunArtifactStorePort
   /**
    * The clock the post-verdict step's bound and the frame hub's bounds run on. It is NOT routed
@@ -431,112 +244,36 @@ export interface RunPorts {
    * deterministically.
    */
   timer?: RunTimerPort
-  /**
-   * The CASS-02 run-scoped decision-screenshot artifact store (Plan 11). The runner-local
-   * `FsEvidenceArtifactStore` is constructed run-scoped at the CLI composition root and injected
-   * here; the shell hands the same instance to every member. Absent ⇒ no screenshot bytes are
-   * persisted (memory-only run, byte-identical pre-Plan-11 behavior).
-   */
+  // Constructed at the CLI root; the shell hands the same instance to every member.
   evidenceArtifacts?: EvidenceArtifactStorePort
-  /**
-   * Where a VIEWER's fault is reported: a live-frame subscriber that throws during
-   * delivery is detached by the hub and the fact lands here. NEVER the bus — the run's permanent
-   * transcript must not depend on who happened to be watching. Same signature as the
-   * hub's own option, so the shell forwards rather than adapts; absent ⇒ reported nowhere.
-   */
+  // A viewer's fault lands here, never on the bus; absent, it is reported nowhere.
   onSubscriberFault?: (code: string, message: string) => void
-  /**
-   * The 404 D-10 post-verdict step, awaited between `runArtifactStore.finalize` and
-   * `runFinished`. Absent ⇒ `disposition: 'detached'` with NO warning — a host that composed no
-   * step is not an error, it is a host from which nothing will be drained, and the wire says so.
-   */
+  // Awaited between artifact finalize and `runFinished`; absent means `detached` with no warning.
   postVerdict?: PostVerdictPort
 }
 
-/**
- * The fully-resolved run configuration `startRun` receives. The CLI keeps pattern
- * discovery, parsing, config merge, and target/device/model resolution; `startRun` never
- * touches fs or providers (validate:arch stays clean) — hence NO fs/provider/discovery-shaped
- * members here. A future cloud RPC surface reuses this same resolved-config contract.
- *
- * `members`/`ports` shapes are pinned by the Wave-0 `run-shell.test.ts` scaffold.
- */
+// `startRun` never touches fs or providers, so nothing fs- or provider-shaped belongs here.
 export interface RunConfig {
   runId: RunId
   scope: ScopeKey
   executionContext: ExecutionContext
   configDigests: ConfigDigests
   buildOrdinal: number
-  /**
-   * D-14 §6 gate-run exclusion copied into the durable completed-run handoff. Only literal
-   * true excludes; absence denotes an ordinary counted run and remains absent in JSON.
-   */
+  // Only literal true excludes; absence is an ordinary counted run and stays absent in JSON.
   excludedFromOutcomes?: true
-  /**
-   * D-10 verify-before-present gate-run marker copied into the
-   * durable completed-run handoff. A DISTINCT axis from `excludedFromOutcomes` above:
-   * C8-ratified, gate runs still feed curation. Only literal true marks a gate run;
-   * absence denotes an ordinary run and remains absent in JSON. 384 threads the carrier
-   * only — the exclusion semantics land in 388/393.
-   *
-   * ═══ 2026-08-26 — Phase 404 D-08 amends "gate runs still feed curation" ═══
-   *
-   * They still feed the FOLD — a gate run's handoff, folded, still emits curation candidates, and
-   * the outcome-side exclusion still keys on `excludedFromOutcomes` alone. What changed is the
-   * QUEUE: the post-verdict step enqueues NOTHING for a run carrying either marker, so no
-   * `analyze-run` row exists for a `write_test` keep-filter probe. The reasons are all about the
-   * gate loop rather than about correctness — no strong-model analysis cost per keep-gate
-   * iteration, no draft evidence reaching curation through the chain, and no post-processing chips
-   * about a run nobody will ever open. The marker still rides the handoff and the payload schema
-   * still carries it, because the exclusion is a decision the enqueue takes and not a fact the
-   * record forgets.
-   */
+  // A gate run still folds into curation candidates, but the post-verdict step enqueues nothing.
   gateRun?: true
   members: readonly RunMemberDescriptor[]
   executor: MemberTestExecutor
-  /**
-   * The run's redactor over the secrets its producer read at the run's start.
-   * Every bus event, and so `events.jsonl` and the dashboard rows, is masked with it and nothing
-   * else. Absent ⇒ the run's events are published as written.
-   */
+  // Every bus event is masked with this redactor and nothing else; absent, events go as written.
   secretRedactor?: SecretRedactorPort
   ports?: RunPorts
-  /**
-   * The D-08 config + source artifact snapshot the CLI composition root assembles (the
-   * `buildRunArtifactContext` document). Staged verbatim into `artifact.json` after `runStarted`
-   * via `ports.runArtifactStore`. Optional — absent ⇒ an empty stage (schema-version-only doc),
-   * so the store leg stays a no-op-shaped write and the memory-only path is unchanged.
-   */
+  // Staged into `artifact.json` after `runStarted`; absent stages a schema-version-only document.
   runArtifact?: RunArtifactStageInput
-  /**
-   * the quarantined-test set, resolved ONCE at run start by the composition layer
-   * (the CLI folds the committed ledger before the first member executes) and threaded in as PLAIN
-   * DATA. This is deliberately NOT a port: the runner gains zero new I/O seams and stays
-   * storageNeutral, and the disposition is deterministic for the whole run, so a mid-run ledger
-   * edit can never retroactively change a running build. Mirrors how `executionContext` is
-   * resolved once at run start.
-   *
-   * Members are matched on `(filePath, name)` — the stable test identity — never `testId`. A match
-   * makes the member's failure skippable in the aggregate rule (`deriveAggregateVerdict`) and
-   * stamps the disposition beside its truthful outcome in the handoff. Absent or empty ⇒
-   * byte-identical pre-390 behavior.
-   */
+  // Plain data resolved once at run start, matched on `(filePath, name)`, never `testId`.
   quarantined?: readonly QuarantineAppliedEntry[]
-  /**
-   * the planner limits the producer resolved for this run and the members whose own
-   * limits differ, as plain data. Copied verbatim onto the handoff; absent stays absent.
-   */
+  // Copied verbatim onto the handoff; absent stays absent.
   plannerLimits?: PlannerLimitsRecord
-  /**
-   * how many members may execute CONCURRENTLY in this run's process. Defaults
-   * to 1 — one worker is a plain sequential loop, byte-identical to the pre-402 shell, so nothing
-   * changes until a config resolves a higher value. Effective concurrency is
-   * `min(members.length, workers)`; values below 1 and non-finite values resolve to 1.
-   *
-   * CONFIG-RESOLVED, NEVER REQUEST-SUPPLIED. It arrives on the already-resolved RunConfig the
-   * composition root builds. `RunsStartInput` carries no concurrency field, so a remote
-   * token-holder cannot raise the concurrency of a target whose owner tuned it down (the
-   * refused-request-fields posture), and unbounded concurrency has no reachable input.
-   */
+  // Config-resolved, never request-supplied, so no caller can raise concurrency; below 1 means 1.
   workers?: number
 }

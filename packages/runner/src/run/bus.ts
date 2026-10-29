@@ -1,13 +1,4 @@
-// The in-memory run event bus — the one no-analog component of the phase, hand-rolled
-// per spec §2.2. Pure runner logic: gap-free `seq` from 1 (single sequencer),
-// a 10,000-event / 16 MB windowed replay, `subscribe(fromSeq)` replay-then-live,
-// per-subscriber detach-on-error, degrade-to-memory on event-log write failure, and a
-// ~10 s heartbeat after bus silence. ALL I/O crosses to runner-local behind the injected
-// `EventLogPort` / `RunTimerPort` seams — no `node:*`, storage-neutral (validate:arch).
-//
-// Verdict independence: telemetry/persistence failures degrade with a single
-// `runWarning` and NEVER gate the run or its verdict. Subscriber isolation: a
-// throwing handler is caught, detached, and announced; other subscribers are untouched.
+// All I/O crosses to runner-local through injected ports; telemetry failures never gate the run.
 
 import type {
   RunEventEnvelope,
@@ -22,12 +13,7 @@ const DEFAULT_HEARTBEAT_MS = 10_000
 const DEFAULT_WINDOW_MAX_EVENTS = 10_000
 const DEFAULT_WINDOW_MAX_BYTES = 16 * 1024 * 1024
 
-/**
- * Thrown by `subscribe(fromSeq, …)` when the requested range is neither in the in-memory
- * window nor recoverable from the (possibly degraded) event log (D-07 — report incomplete,
- * never silently serve a truncated stream). `earliestAvailableSeq` is the lowest seq the bus
- * can still replay (the SSE `Last-Event-ID` re-subscribe floor in M5).
- */
+// Neither the window nor the log can supply the range; never serve a truncated stream.
 export class ReplayIncompleteError extends Error {
   readonly earliestAvailableSeq: number
   constructor(requestedSeq: number, earliestAvailableSeq: number) {
@@ -112,8 +98,7 @@ export function createRunEventBus(opts: CreateRunEventBusOptions): RunEventBus {
     try {
       eventLog.append(envelope)
     } catch {
-      // First failure only: flip the degrade flag BEFORE the warning so its own publish
-      // never re-enters the append path, and never attempt append again.
+      // Flip the flag before the warning, so its own publish never re-enters the append path.
       logDegraded = true
       publish('runWarning', {
         code: 'event-log-write-failed',
@@ -177,8 +162,7 @@ export function createRunEventBus(opts: CreateRunEventBusOptions): RunEventBus {
         older = eventLog.read(from).filter(e => e.seq >= from && e.seq < earliest)
       }
       if (older.length < expected) {
-        // Neither the window (evicted) nor the log (absent/degraded/truncated) can supply
-        // the requested prefix — report incomplete rather than serve a gap.
+        // Neither the window nor the log can supply the prefix: report incomplete, not a gap.
         throw new ReplayIncompleteError(from, earliest)
       }
       older.sort((a, b) => a.seq - b.seq)

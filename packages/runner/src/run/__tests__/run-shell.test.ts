@@ -180,7 +180,7 @@ describe('startRun — synchronous session identity', () => {
   })
 })
 
-// ---- Run lifecycle + ordering (SESSION-04, spec §2.2) --------------------
+// ---- run lifecycle and ordering ----
 
 describe('run lifecycle emission (spec §2.2)', () => {
   it('the first event is runStarted at seq 1 with busSchemaVersion + header fields', async () => {
@@ -254,10 +254,7 @@ describe('run lifecycle emission (spec §2.2)', () => {
     expect(verdictIdx).toBeLessThan(finishIdx)
     expect(finishIdx).toBe(events.length - 1)
     const finishPayload = finishes[0].payload as { disposition: string; finalSeq: number }
-    // `detached` is no longer a hardcoded literal — it is what the shell decides
-    // when NO `ports.postVerdict` step was composed, which is this config. Nothing will be drained
-    // from a host that composed no step, and the wire says exactly that (with no warning: nothing
-    // was promised). The three decided values are pinned in the port cells below.
+    // With no `ports.postVerdict` step composed, the shell decides `detached`, with no warning.
     expect(
       finishPayload.disposition,
       'a run with no post-verdict port composed reports detached',
@@ -357,11 +354,7 @@ describe('handoff — exactly one per run', () => {
   })
 })
 
-// ---- 363 D-01 parity enrichment (testStarted descriptor fields + testFinished extras) ----
-//
-// The producer side of the reporter-parity contract: the shell rides the RunMemberDescriptor's
-// parity fields onto testStarted and the TestResult's durationMs/retryCount/failureSummary onto
-// testFinished, masking the failureSummary at the sink. Absent optionals leave no undefined-hole.
+// Descriptor parity fields ride testStarted; failureSummary on testFinished is masked at the sink.
 
 describe('enriched testStarted / testFinished payloads', () => {
   const SECRET = 'SECRET-42'
@@ -404,15 +397,14 @@ describe('enriched testStarted / testFinished payloads', () => {
     await done(session)
 
     const started = events.find(e => e.type === 'testStarted')!
-    // filePath is REQUIRED since 381-01 — it always rides the payload now.
+    // filePath is required, so it always rides the payload.
     expect(started.payload).toHaveProperty('filePath', 'a.test.ts')
     expect(started.payload).not.toHaveProperty('suiteId')
     expect(started.payload).not.toHaveProperty('stepTexts')
     expect(JSON.parse(JSON.stringify(started.payload))).toEqual(started.payload)
   })
 
-  // G-428-2 (owner decision 2026-09-26 (2)): the descriptor's raw step texts ride testStarted in
-  // step order, masked by this describe's redactor.
+  // The descriptor's raw step texts ride testStarted in step order, masked by this redactor.
   it('STEP-TEXTS-ON-TESTSTARTED', async () => {
     const members: RunMemberDescriptor[] = [
       {
@@ -473,7 +465,7 @@ describe('enriched testStarted / testFinished payloads', () => {
   })
 })
 
-// ---- D-08 run-artifact store lifecycle --------------------------
+// ---- run-artifact store lifecycle ----
 
 interface FakeArtifactStore {
   stage(document: RunArtifactStageInput): void
@@ -560,12 +552,7 @@ describe('run-artifact store lifecycle', () => {
   })
 })
 
-// ---- CASS-02 run-scoped evidence artifact store threading (Plan 13) ------
-//
-// The shell holds one run-scoped EvidenceArtifactStorePort on RunPorts (constructed run-scoped at
-// the CLI composition root) and must hand THAT EXACT instance to every member context so Plan 12's
-// screenshot producer sees a single durable store across the whole run. An absent store stays
-// undefined for host-neutral tests and embedders.
+// Every member context gets the run's one evidence artifact store; absent stays undefined.
 
 function makeFakeEvidenceArtifactStore(): EvidenceArtifactStorePort {
   return {
@@ -689,8 +676,7 @@ describe('§A9 root-cause classification at the assembly seam', () => {
     )
     const { handoff } = await done(session)
 
-    // BOTH HALVES. The first is that the member's own baseline is read at all; the second — the one
-    // WR-04 is about — is that the sibling with no baseline of its own does not inherit it.
+    // The member's own baseline is read, and a sibling without one does not inherit it.
     expect(handoff.tests[0].rootCause?.class).toBe('environment')
     expect(handoff.tests[0].rootCause?.evidence.rationale).toBe('health probe: 503 in 230ms')
     expect(handoff.tests[1].rootCause?.class).not.toBe('environment')
@@ -716,18 +702,7 @@ describe('§A9 root-cause classification at the assembly seam', () => {
   })
 })
 
-// ---- The post-verdict step -------------------------------
-//
-// THE CONTRACT UNDER TEST IS "DEGRADE, NEVER GATE". The shell delays `runFinished` for exactly one
-// host-supplied step, and every way that step can fail to decide must end the same way: the wire
-// reads `detached`, a named `runWarning` says why, `done` still resolves, and `runFinished` is
-// still last and still once. These cells drive all four ways — warned, thrown, timed out, absent
-// (the absent arm is pinned by the ordering cell far above, which composes no port) — plus the two
-// deciding answers, plus what the step is actually told.
-//
-// EVERY CELL BELOW IS ORDER-AWARE. `orderLog` is written by the artifact store and by the port
-// itself, so "after finalize, before runFinished" is read off the sequence the shell actually
-// executed rather than inferred from the event list alone.
+// Every way the post-verdict step can fail to decide reads `detached`, warns, and still finishes.
 
 /**
  * A port that IS a `PostVerdictPort` and also a spy.

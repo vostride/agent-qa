@@ -1,5 +1,4 @@
-// a browser that closes is not a cancel. Only a cancel the run
-// received makes a member `cancelled`; a disconnect on its own fails the member and says so plainly.
+// A disconnect on its own fails the member; only a received cancel makes it `cancelled`.
 import { describe, expect, it } from 'vitest'
 import type { LanguageModel } from 'ai'
 

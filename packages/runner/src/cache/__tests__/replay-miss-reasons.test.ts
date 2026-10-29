@@ -1,6 +1,4 @@
-// C438-STRICT-REPLAY (438 D-10, D-11, SC3): every way a cache key hit can fail to replay is a
-// recorded miss with its typed reason, and nothing the cache stored is dispatched. The real loop
-// (executeStep) runs over makeScreenState screens with a recording adapter.
+// Every failed replay of a key hit is a typed recorded miss, and nothing stored is dispatched.
 import { describe, expect, it, vi } from 'vitest'
 import { asRef } from '@vostride/agent-qa-schema'
 import type { ElementInfo, ScreenState } from '@vostride/agent-qa-schema'

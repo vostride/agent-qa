@@ -1,8 +1,4 @@
-// Shared v2 ScreenState test fixtures for the runner + all three adapter packages.
-// CRITICAL: framework-free — imports NOTHING from any test framework (this module ships
-// in the runner barrel; adapter test files supply the it()/expect wrappers). Modeled on the
-// schema `makeState` fixture (schema/src/__tests__/screen-hash.test.ts) so the ~27
-// legacy-fixture test files migrate to one canonical factory.
+// Framework-free, because this module ships in the runner barrel.
 
 import { asRef, type ScreenState } from '@vostride/agent-qa-schema'
 import type { BuildScreenStateInput, InterimNode } from '../screen-builder.js'

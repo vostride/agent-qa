@@ -1,6 +1,3 @@
-// RED scaffold (Wave 0, CACHE-01). Determinism + per-component sensitivity +
-// branch-invariance (D-14: branch is never a key component). Fails until Plan 03
-// creates ../key.ts. Do NOT weaken any assertion to make it pass.
 import { describe, expect, it } from 'vitest'
 
 import { computeCacheKey } from '@vostride/agent-qa-schema'

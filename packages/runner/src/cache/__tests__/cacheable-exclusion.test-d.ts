@@ -1,9 +1,4 @@
-// D-08 type-level pin: a plan carrying an AI-assertion verb is UNWRITABLE into the cache value.
-// CacheablePlannedAction Excludes assertAI/extractAI from the composed Action union, so the
-// narrowed `CachedPlanValue.plannedActions` rejects them at compile time — the static half of
-// the D-08 bypass (Plan 10's runtime write-site guard is the other half). This file typechecks
-// under the package `tsc -p .` gate; the @ts-expect-error lines FAIL the build if the exclusion
-// ever regresses (an un-triggered @ts-expect-error is itself a TS2578 error).
+// Each `@ts-expect-error` below fails the build (TS2578) if the exclusion regresses.
 import type { CachedPlanValue, CacheablePlannedAction } from '../port.js'
 import type { Action } from '../../platform.js'
 

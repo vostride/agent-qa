@@ -1,7 +1,4 @@
-// Failure-summary assembly (Phase 363 D-05, RESEARCH Q2 row). Moved verbatim from
-// core/src/agent/failure-summary.ts onto runner soil so `runMemberTest` owns the
-// TestResult.failureSummary derivation. CRITICAL: provider-neutral + storage-neutral,
-// no node:* imports — pure StepResult[] → string.
+// Pure: StepResult[] to the failure summary string.
 import type { StepResult } from '../result.js'
 
 function normalizeFailureTextForComparison(text: string | undefined): string {

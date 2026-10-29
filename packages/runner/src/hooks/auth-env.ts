@@ -1,8 +1,4 @@
-// Auth-state hook env plumbing. Moved byte-equivalently from
-// core/src/auth-state/hook-env.ts — the hook orchestration (runner) and the
-// DockerHookExecutor (runner-local) both need these pure helpers, and
-// runner-local must not import core. core's auth-state/hook-env.ts re-exports
-// these so its other consumers keep resolving through the core barrel.
+// Pure helpers shared by hook orchestration and the runner-local Docker executor.
 
 import type { RuntimeAuthStateConfig } from '../platform.js'
 

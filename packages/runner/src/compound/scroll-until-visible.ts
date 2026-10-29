@@ -1,14 +1,4 @@
-// Pure executor-owned scroll loops (Phase 359 · EXEC-02; narrowed by 436-02 · D-24/D-25 · spec §12.12).
-//
-// Provider-neutral and storage-neutral: no driver imports, no node:* imports. Adapters supply the
-// gestures and report what each swipe proved; the runner owns the loop discipline. Movement and
-// boundaries come only from operation-specific signals (container offsets, a driver's boundary
-// result) and the target becoming visible. The interim tree is read only to test target
-// visibility: an unchanged tree never ends, reverses or retries a search, and a changed tree is
-// never movement.
-// the interim-tree identity helper and the retrying direction helper are gone.
-// the visibility probe answers visible, hidden or unknown; a search in which
-// any answer was unknown never ends not-found (D-24, review CR-07).
+// The tree only tests visibility; an unknown probe answer means a search never ends not-found.
 
 import type { Ref } from '@vostride/agent-qa-schema'
 import type { InterimNode } from '../screen-builder.js'
@@ -79,13 +69,7 @@ export interface DocumentScrollOffsets {
   maxY: number
 }
 
-/**
- * The offset rule for a gesture that lands on whatever is under the pointer (web wheel, WebView
- * touch swipe), over every scroller the gesture may have acted on, as aligned before/after arrays
- * Any member that moved is movement. A boundary needs at least one member with
- * range on the swiped axis and every member with range at its extent; a member short of its
- * extent, no member with range, or missing, empty or misaligned arrays prove nothing.
- */
+// Any member that moved is movement; a boundary needs every ranged member at its extent.
 export function scrollerSetSwipeSignal(
   direction: Direction,
   before: readonly DocumentScrollOffsets[] | undefined,

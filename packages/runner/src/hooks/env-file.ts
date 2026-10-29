@@ -1,8 +1,4 @@
-// Hook .env variable file parsing/serialization. Moved
-// byte-equivalently from core/src/agent/variables.ts — the DockerHookExecutor
-// (runner-local) reads /tmp/agent-qa.env through `parseEnvFile`, so the pure
-// string codec now lives beside the hook contracts in the runner. core's
-// variables.ts re-exports these until Plan 05 deletes that file.
+// The runner-local Docker executor reads the hook env file through `parseEnvFile`.
 
 export function parseEnvFile(content: string): Record<string, string> {
   const result: Record<string, string> = {}

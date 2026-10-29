@@ -1,5 +1,4 @@
-// a member the shell started keeps the time it ran, even when
-// the run's abort or an executor throw ends it; a member the abort skipped never started and reads 0.
+// A started member keeps its run time even when an abort or throw ends it; a skipped one reads 0.
 import { describe, expect, it } from 'vitest'
 
 import { startRun } from '../shell.js'

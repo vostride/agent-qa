@@ -1,19 +1,4 @@
-// The strict matcher. The one matcher the heal, the cache and procedure
-// replay use to re-find an element they already saw.
-// CRITICAL: provider-neutral + storage-neutral. No node:* imports, no fs/sharp, no
-// core/model/adapter package imports — imports only schema types.
-//
-// An element is the same one only when its role is equal, its exact name is equal after tidying
-// (leading and trailing whitespace trimmed, inner whitespace runs collapsed to one space — case,
-// digits and badges kept), and, when the target names row words, its own row is known and holds
-// them (row-text.ts). Exactly one survivor resolves; none is absent; more is not-unique with the
-// count. There is no role-ignored rung, no substring rung, no position and no hierarchy tiebreak:
-// the matcher never picks.
-//
-// M2 injection boundary: names and row text are opaque comparison data only — never interpolated
-// into a selector or an instruction, never evaluated.
-//
-// Pure functions: no recording, no side effects.
+// Equal role, equal tidied exact name and stated row words in a known row; it never picks.
 
 import type { ElementInfo, Ref } from '@vostride/agent-qa-schema'
 import { rowContains, rowTextOf, wordTokens } from './row-text.js'

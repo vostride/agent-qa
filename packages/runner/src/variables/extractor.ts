@@ -1,6 +1,4 @@
-// Runner-owned capture extractors. The pure ExplicitExtractor moves
-// 1:1 from core/src/agent/variables.ts; the createExtractor factory routes 'ai' to the
-// LLMVariableExtractor (loop/llm-variable-extractor.ts — the injected-model idiom).
+// The factory routes `ai` to the LLMVariableExtractor, which uses the injected model.
 import type { LanguageModel } from 'ai'
 import type { ScreenState } from '@vostride/agent-qa-schema'
 import type { ExtractorInput, CaptureResult, VariableExtractor } from '../loop/types.js'

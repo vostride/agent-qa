@@ -42,7 +42,7 @@ function fixture(statuses: StepResult['status'][], retries: number) {
   }, config) }
 }
 
-// Structural view lets RED exercise the existing runtime before the additive DTO exists.
+// A structural view of the first-failed-attempt snapshot on a TestResult.
 type WithOrigin = TestResult & {
   firstFailedAttempt?: { attempt: number; result: TestResult }
 }

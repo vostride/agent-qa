@@ -21,9 +21,7 @@ export type {
   ServedRunBrief,
 } from './knowledge-hint-reader.js'
 export { assertNever } from './platform.js'
-// re-export the schema Ref brand helper so runner consumers (dashboard,
-// core, adapters) can construct branded refs for the schema-projected Action world without a
-// direct schema dependency.
+// Lets runner consumers build branded refs without a direct schema dependency.
 export { asRef } from '@vostride/agent-qa-schema'
 export type { Ref } from '@vostride/agent-qa-schema'
 
@@ -45,8 +43,7 @@ export {
 } from './grounding/index.js'
 export type { StatedTarget, StatedTargets } from './grounding/index.js'
 
-// Pure, provider-neutral compound helpers the three adapters ride.
-// Adapter packages import these via the runner barrel (352 buildScreenState precedent).
+// Pure compound helpers the adapters import through the runner barrel.
 export * from './compound/index.js'
 export { compareSavedFile, FILE_DIFFERENCE_WINDOW } from './compound/file-compare.js'
 export type { SavedFileComparison, SavedFileExpectation } from './compound/file-compare.js'
@@ -78,10 +75,8 @@ export type {
   TestResult,
 } from './result.js'
 
-// Step-execution loop spine (re-derived into runner, Phase 353).
 export { executeStep } from './loop/index.js'
-// Run-scoped working-memory store. Exported so the CLI composition
-// root constructs one per run and threads it into LoopPorts.workingMemory (the 361 rebind seam).
+// The CLI composition root builds one per run and threads it into `LoopPorts.workingMemory`.
 export { WorkingMemoryStore } from './loop/working-memory/index.js'
 export type { WorkingMemoryProvenanceContext } from './loop/working-memory/index.js'
 export {
@@ -115,10 +110,7 @@ export type {
   CaptureResult,
   VariableExtractor,
 } from './loop/types.js'
-// PlanningTurnError is exported as a class value (not type-only): the Phase 368 replay
-// engine must instanceof-classify structured planner failures by identity,
-// never string-match the message. NonActionToolHandler/NonActionToolMap are already
-// re-exported from ./loop/planning-turn.js below (eval core's ports import them in 368-02).
+// A class value, so the replay engine classifies planner failures by identity, not message.
 export { LLMPlanner, PlanningLimitReachedError, PlanningTurnError } from './loop/planner.js'
 export {
   executePlanningTurn,
@@ -136,8 +128,7 @@ export type {
 } from './loop/planning-turn.js'
 export { LLMVerifier, VerificationResultSchema, AiJudgmentResultSchema } from './loop/verifier.js'
 export { AssertionEvaluator, LLMAssertionEvaluator, createAsserter } from './loop/asserter.js'
-// runner-owned variables subsystem (store / interpolation / extractors).
-// LLMVariableExtractor rides the injected-model idiom in loop/; the sub-barrel re-exports it.
+// The variables subsystem: store, interpolation and extractors.
 export * from './variables/index.js'
 export {
   buildSystemPrompt,
@@ -188,10 +179,6 @@ export {
   projectLegacyTrace,
 } from './loop/evidence.js'
 export type { RecordSubActionInput } from './loop/evidence.js'
-// Phase 356 redesigned cache port: the new per-key ActionPlanCache is the
-// single public cache surface. The v1 StepKeyInput / v1 sub-action ActionPlanCache
-// are intentionally no longer exported here — they survive internally in
-// loop/ports.ts until Plan 04 rewires the loop and Plan 06 retires the v1 adapter.
 export type {
   CompressedScreenshot,
   ScreenshotCompressor,
@@ -211,7 +198,6 @@ export type {
   RunnerDegradeOutcome,
 } from './loop/ports.js'
 
-// Redesigned pure cache core (Phase 356, CACHE-01/02/03).
 export type {
   ActionPlanCache,
   CacheablePlannedAction,
@@ -224,21 +210,17 @@ export type {
   BuildCachedPlanValueInput,
 } from './cache/index.js'
 
-// Storage-state persistence port. Runner stays storage-neutral — the
-// runner-local FsStorageStateStore implements this; the loop records only the reference.
+// Runner stays storage-neutral; runner-local FsStorageStateStore implements this port.
 export type {
   StorageStatePort,
   StorageStateReference,
   StorageStateBlob,
 } from './storage-state/port.js'
 
-// Run layer (Phase 361, SESSION-01/02 · D-01/D-02/D-04/D-05). The in-memory §2.2 event bus
-// (pure runner logic) plus every new run-layer port contract, declared interface-first so
-// runner-local (Plan 07), core, and cli build against them. The LoopEventEmitPort lives on
-// LoopPorts (loop/ports.js) and is re-exported there.
+// The in-memory event bus and the run-layer port contracts, declared interface-first.
 export { createRunEventBus, ReplayIncompleteError } from './run/bus.js'
 export type { RunEventBus, CreateRunEventBusOptions } from './run/bus.js'
-// the per-run live-frame hub (lazy start, graced stop, bounded ack).
+// The per-run live-frame hub: lazy start, graced stop, bounded ack.
 export {
   createLiveStreamHub,
   defaultLiveStreamTimer,
@@ -246,7 +228,7 @@ export {
   LIVE_STREAM_STOP_GRACE_MS,
 } from './run/live-stream-hub.js'
 export type { LiveStreamHub, CreateLiveStreamHubOptions } from './run/live-stream-hub.js'
-// the labelled 1s snapshot producer behind the same capability contract.
+// The labelled 1s snapshot producer behind the same capability contract.
 export {
   createSnapshotLiveStream,
   imageSizeOf,
@@ -271,7 +253,7 @@ export type {
   HookExecutorPort,
   HookExecuteOptions,
   RunArtifactStorePort,
-  // the post-verdict step the shell awaits between `verdict` and `runFinished`.
+  // The post-verdict step the shell awaits between `verdict` and `runFinished`.
   PostVerdictPort,
   PostVerdictStepInput,
   PostVerdictOutcome,
@@ -283,17 +265,12 @@ export type {
   StepModelRoleFacts, StepModelAttempt, StepModelSnapshot, StepModelConsumers,
   StepModelScope, StepModelScopeFactory, StepModelBinding, StepModelScopeOptions,
 } from './run/ports.js'
-// runner-owned hook contracts + orchestration. The Docker impl
-// (DockerHookExecutor) lives in runner-local behind the HookExecutorPort above.
+// The Docker implementation lives in runner-local behind the HookExecutorPort above.
 export * from './hooks/index.js'
-// SESSION-01/02/04/05 run shell (Plan 06) — the run lifecycle owner every later surface
-// (362 seams, 363 reporters, M1b/M2 handoff readers) attaches to. The projection/mask sink
-// and §A8 handoff assembly are exported for CLI/core composition roots (Plans 09–11).
+// The run shell, owner of the run lifecycle every surface attaches to.
 export { startRun } from './run/shell.js'
 export { createMemberEventSink } from './run/event-sink.js'
-// the runner-owned member-runner (dissolution target for core's
-// runTest/runTestWithRetry) + the pure inline-DSL parsing + the moved failure-summary.
-// Built + tested against fakes here; Plan 11 cuts the CLI over and deletes the core side.
+// The member runner and the pure inline-DSL parsing, tested against fakes.
 export { runMemberTest, memberStepText } from './run/member-runner.js'
 export type {
   MemberTest,
@@ -319,33 +296,22 @@ export {
   skippedPerTestOutcome,
   assembleHandoff,
 } from './run/handoff-assembly.js'
-// SESSION-04 verdict-derivation core (Plan 05) — the shell (Plan 06, via src) and the CLI
-// (Plans 10/11, via dist) resolve these pure functions from the barrel.
+// Pure verdict derivation, resolved from the barrel by the shell and the CLI.
 export {
   deriveMemberOutcome,
   deriveAggregateVerdict,
   mapVerdictToExitCode,
   isTestTimeoutMessage,
 } from './run/verdict.js'
-// the analyze-run bridge fills a member the classifier declined to classify with
-// the SAME 'unknown' verdict the classifier itself would have minted. It resolves that value
-// from here rather than restating the six fields, because a second spelling of a verdict's
-// base is free to drift from the one 389 supersedes — and the drift would be silent, since
-// both spellings would still typecheck as a Verdict.
+// One spelling of the `unknown` verdict; a second would drift silently and still typecheck.
 export { deterministicVerdict, UNKNOWN_SIGNAL_RATIONALE } from './run/root-cause.js'
-// the classifier itself, beside the verdict base it mints, for the same reason. A
-// downstream corpus that needs a floor verdict must be able to build it THE WAY THE SHELL DOES —
-// from a member's TestResult, its derived outcome and its index — instead of writing one out by
-// hand. A hand-written floor verdict is free to carry a (class, producer) pair `classifyRootCause`
-// cannot emit for any input, and 390-16 shipped green over exactly that: the tests passed, the
-// mutation differential reddened only the impossible fixtures, and nobody could tell.
+// Downstream corpora build floor verdicts as the shell does, so no impossible pair slips in.
 export { classifyRootCause } from './run/root-cause.js'
 export type { DeterministicRootCauseClass, RootCauseInput } from './run/root-cause.js'
 export type { LoopEventEmitPort } from './loop/ports.js'
 export { createRecordLedger } from './loop/record-ledger.js'
 export type { RecordAdmission, RecordLedger } from './loop/record-ledger.js'
-// Phase 380 composition seam: the CLI owns capability gating and binds these runner-owned,
-// provider-neutral tool handlers into LLMPlanner's optional non-action surface.
+// The CLI owns capability gating and binds these tool handlers into LLMPlanner.
 export { createMemoryTools } from './loop/memory-tools.js'
 export {
   buildCacheableStepInput,
@@ -369,10 +335,7 @@ export {
 } from './loop/secrets.js'
 export type { SecretTemplate, SecretFileMetadata } from './loop/secrets.js'
 
-// v45 tool registry — the planned-actions-as-tools substrate (moved from core,
-// Phase 353; D-09 frozen envelope). Re-exporting from ./tools/index.js runs its
-// top-level registerAllActions side-effect on defaultRegistry. Always-send-all law:
-// nothing here gates or shrinks the tool slice.
+// Re-exporting runs registerAllActions on defaultRegistry; nothing here shrinks the tool slice.
 export {
   ToolRegistry,
   defaultRegistry,

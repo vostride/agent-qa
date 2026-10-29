@@ -7,18 +7,10 @@ import { groundingError } from './errors.js'
 import type { ToolRegistry } from './registry.js'
 import type { ToolCategory } from './types.js'
 
-// WM-01 write channel: remember[] rides every action tool's envelope (spec §12.15,
-// ratified 2026-07-05 — NOT a tool, no ≤K interaction, catalog counts frozen). Validated with
-// the closed-enum workingMemoryEntrySchema so unknown kind/provenance are rejected at parse time.
+// Rides every action tool's envelope and is not a tool; closed enums reject unknown kinds.
 const rememberFieldSchema = z.array(workingMemoryEntrySchema).optional()
 
-// D-04 infeasible envelope (EXEC-05, spec §12.10): the additive terminal outcome riding the
-// plan-field lane alongside `stepFailed`, following the 358 remember[] precedent (NOT a tool, no
-// catalog count change). `failureKind` is a CLOSED enum — the single literal 'infeasible' today,
-// extensible in later milestones — so an unknown kind is rejected at parse. `failureReason` is
-// required-when-`failureKind`-set, enforced by the refine on failureEnvelopeSchema below. A typed
-// StepEvidence.termination block (Plan 10 seam) makes "declared infeasible" machine-distinguishable
-// from a plain "failed to do it".
+// A closed enum, so an unknown kind fails parsing; `failureReason` is required when it is set.
 const failureKindFieldSchema = z.enum(['infeasible']).optional()
 const failureReasonFieldSchema = z.string().min(1).optional()
 const failureEnvelopeSchema = z
@@ -82,11 +74,7 @@ export function buildTools(
   return tools
 }
 
-/**
- * Describe the complete model-visible bound surface for deterministic attribution.
- * This shares `withPlanFields` with `buildTools`; it never serializes live `tool()` objects,
- * whose Zod internals are not the JSON Schema presented to the model.
- */
+// Shares `withPlanFields` with `buildTools`, never serializing live `tool()` objects.
 export function describeBoundSurface(
   registry: ToolRegistry,
   options: { platform: Platform; nonActionTools?: Record<string, Tool> },
@@ -111,9 +99,7 @@ export function toolCallToActionPlan(
   args: Record<string, unknown>,
   registry: ToolRegistry,
 ) {
-  // Pitfall 2: every plan-field must be destructured out of args here — anything left in
-  // actionFields is fed to the strict action schema and silently stripped (or rejected), never
-  // reaching the loop. remember/bulkCompletionPredicate ride the envelope alongside reasoning.
+  // Destructure every plan-field here, or the strict action schema strips or rejects it.
   const { reasoning, confidence, stepComplete, stepFailed, doesActionAdvanceUsTowardsGoal, remember, bulkCompletionPredicate, failureKind, failureReason, ...actionFields } = args
   const def = registry.get(toolId)
 
@@ -121,14 +107,10 @@ export function toolCallToActionPlan(
     throw new Error(`Unknown tool: ${toolId}`)
   }
 
-  // Closed-enum rejection of the untrusted remember[] payload at parse time (V5); throws on an
-  // unknown kind/provenance, same fail-loud contract as a bad action.
+  // Closed enums reject an untrusted remember[] payload at parse time, like a bad action.
   const rememberEntries = rememberFieldSchema.parse(remember)
 
-  // parse the infeasible envelope with the closed enum + required-when-set refine BEFORE the
-  // strict action safeParse — both fields were destructured above (Pitfall 2), so an un-parsed
-  // envelope field never leaks into the action schema. An unknown failureKind, or a failureKind
-  // without a reason, throws here (fail-loud), same contract as a bad action.
+  // Parse the envelope before the strict action safeParse, so its fields never reach the action.
   const { failureKind: failureKindParsed, failureReason: failureReasonParsed } = failureEnvelopeSchema.parse({ failureKind, failureReason })
 
   const parsed = def.schema.safeParse(actionFields)

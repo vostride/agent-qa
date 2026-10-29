@@ -1,19 +1,4 @@
-// D-09 synthetic-masking proof. Drives a full run whose evidence carries a planted secret in every
-// string field that can reach durable telemetry — the started step text (plan text), the finalized
-// step's verifier reasoning (error/reasoning text), and the per-test result the handoff synthesizes
-// evidence from — then proves that the run's SecretRedactor (`RunConfig.secretRedactor`, 441-12
-// D-06/D-11) scrubs the secret from ALL THREE sinks: the bus payloads, the serialized event-log
-// lines, and the CompletedRunHandoff. A run with no redactor passes the secret through unchanged.
-// Also pins the two run-shape invariants: no chip-event type is ever emitted, and
-// `runFinished.disposition` is `'detached'`.
-//
-// BOTH arms of the handoff assembly mask. The first describe drives an
-// evidence-LESS executor, so its handoff carries evidence the shell SYNTHESIZES; the second drives
-// an executor whose step CARRIES real §A8 evidence, which `assemblePerTestOutcome` used to copy
-// verbatim into the durable artifact. The narration a run records — the verifier's own words, a
-// planning turn's stated intent, a captured failure message — now goes through the run's own
-// `MaskFn` in both arms, while the structural identity fields (`stepText`, `plannedAction`,
-// `interpolatedVariables`) stay byte-identical in both.
+// The run's redactor scrubs a planted secret from bus payloads, event-log lines and the handoff.
 
 import { describe, expect, it } from 'vitest'
 
@@ -124,10 +109,7 @@ const realEvidenceExecutor: MemberTestExecutor = async (member, ctx) => {
   }
 }
 
-// The G-381-3 carve-out driven end to end: the SAME secret planted in the three STRUCTURAL identity
-// fields instead. `interpolatedVariables[].value` is exact-string-matched against `plannedAction`
-// by `cli/src/curation/emit-candidates.ts`, so masking either side would break replay — these three
-// must survive a masked run byte-identical, which is the inverse assertion below.
+// The same secret in the structural identity fields must survive byte-identical, or replay breaks.
 const CARVE_OUT_STEP_TEXT = `acknowledge using ${SECRET}`
 const CARVE_OUT_ACTION: Action = {
   type: 'fill',
@@ -219,8 +201,7 @@ describe('synthetic masking proof', () => {
     for (const line of logLines) {
       expect(JSON.stringify(line)).not.toContain(SECRET)
     }
-    // (c) the handoff is secret-free. This arm's steps carry NO §A8 evidence, so the shell
-    // synthesizes it; the real-evidence arm is measured by the WINDOWS #305 describe below.
+    // (c) The handoff is secret-free; these steps carry no evidence, so the shell synthesizes it.
     expect(handoffJson).not.toContain(SECRET)
 
     // Sanity: the mask actually fired (redaction marker present in the masked handoff).
@@ -247,11 +228,7 @@ describe('synthetic masking proof', () => {
   })
 })
 
-// the REAL-evidence arm of the assembly. Every cell here drives a step
-// that CARRIES §A8 evidence, which is the arm `assemblePerTestOutcome` copied verbatim into the
-// durable artifact. There is no second detector anywhere in this block: the only masker is the
-// run's own `config.secretRedactor`, the same mask `projectTestFinished` routes `failureSummary`
-// through in the same shell frame.
+// The only masker here is the run's own `config.secretRedactor`.
 describe('real step evidence is masked AT REST by the assembly', () => {
   it('masks the verifier reasoning, the sub-action plan and the captured error the handoff records', async () => {
     const { handoffJson, handoff } = await runOnce(SYNTHETIC, realEvidenceExecutor)
@@ -285,10 +262,7 @@ describe('real step evidence is masked AT REST by the assembly', () => {
   })
 })
 
-// Owner decision 2026-09-26 (2), G-428-2: a live row shows a step's real text before the step
-// starts, so the member's authored step texts ride testStarted. They are authored content, not
-// identity, so the shell masks them with the run's redactor, the same mask the member's event
-// sink masks stepStarted.stepText with. Entry i must equal step i's announced text byte for byte.
+// Authored step texts ride testStarted masked by the run's redactor; entry i is step i's text.
 const STEP_TEXTS = ['open the page', `type ${SECRET} into Password`] as const
 
 const announcingExecutor: MemberTestExecutor = async (member, ctx) => {
@@ -353,8 +327,7 @@ describe('testStarted.stepTexts is masked like stepStarted.stepText', () => {
   })
 })
 
-// a run's bus events are masked by the run's own redactor and nothing else.
-// The email in the step text is not a declared value, so it is published as written.
+// Only the run's own redactor masks bus events; an undeclared email is published as written.
 const DECLARED_STEP_TEXT = 'Sign in as qa@example.com with Hunter-42-zz'
 const RECORDS_REDACTOR = new SecretRedactor(new SecretStore({ PW_441: 'Hunter-42-zz' }))
 

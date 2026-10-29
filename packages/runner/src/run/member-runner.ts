@@ -1,26 +1,4 @@
-// runMemberTest — the runner-owned landing zone for every responsibility of core's
-// runTest/runTestWithRetry (Phase 363 D-05, RESEARCH Q2 dissolution map). Built +
-// tested against fakes here; Plan 11 cuts the CLI over and deletes the core side.
-//
-// CRITICAL: provider-neutral + storage-neutral. No node:* imports (no node:crypto,
-// node:fs, node:path, node:child_process), no display writes to the terminal. Every host/
-// adapter/storage concern enters as an injected member of MemberRunConfig:
-//   - hook execution  → HookExecutorPort (runner-local DockerHookExecutor)
-//   - runJS / appium  → injected `runJs` / `appiumScript` handlers (Q-2: parsing is
-//                        pure in inline-steps.ts; execution touches adapter internals)
-//   - accessibility   → injected `accessibilityCheck` handler (Q-4)
-//   - failure shot    → injected `persistFailureScreenshot` writer
-//   - secret resolve  → injected `resolveSecrets` fn for the nav URL (the CLI composes
-//                        it from the secret store — the runner never touches the store)
-//   - id minting      → a per-invocation crypto-free counter (no node:crypto)
-//
-// The inline-DSL pipeline order is load-bearing and preserved EXACTLY (Pitfall 5):
-//   inline hooks (execute + merge vars + strip) → interpolation → runJS → the
-//   unresolved-template check → executeStep. The retry loop wraps attempts inside the
-//   member; testRetryScheduled fires between attempts; only the FINAL attempt's
-//   TestResult leaves the member carrying retryCount (Pitfall 9 — per-attempt lifecycle
-//   events reach the shell, but the shell emits the ONE authoritative testStarted/
-//   testFinished pair).
+// Order matters: inline hooks, interpolation, runJS, template check, then executeStep.
 
 import type { LanguageModel } from 'ai'
 import type { StepModelScopeFactory, StepModelScopeKey } from './ports.js'
@@ -80,11 +58,7 @@ export interface MemberStepSpec {
   }
 }
 
-/**
- * The one derivation of the text a step is announced with at `stepStarted`. Every
- * producer that states a step's text before it starts (the CLI's `stepTexts` on each member
- * descriptor) derives it here, so the pending text and the announced text cannot drift.
- */
+// Every producer that states a step's text derives it here, so pending and announced texts match.
 export function memberStepText(step: string | MemberStepSpec): string {
   return typeof step === 'string' ? step : step.step
 }
@@ -100,19 +74,19 @@ export interface MemberTest {
   meta?: { timeout?: number; retries?: number; [key: string]: unknown }
 }
 
-/** The injected runJS execution handler (Q-2). The CLI owns page.evaluate + platform checks. */
+/** The injected runJS handler; the CLI owns page.evaluate and platform checks. */
 export type RunJsHandler = (
   code: string,
   ctx: { abortSignal: AbortSignal },
 ) => Promise<{ value: string; error?: string }>
 
-/** The injected appium execution handler (Q-2). The CLI resolves secrets + calls the adapter. */
+/** The injected appium handler; the CLI resolves secrets and calls the adapter. */
 export type AppiumScriptHandler = (
   action: Action,
   ctx: { abortSignal: AbortSignal },
 ) => Promise<ActionResult>
 
-/** The injected accessibility-check handler (Q-4). The CLI owns page acquisition + the web module. */
+/** The injected accessibility handler; the CLI owns page acquisition and the web module. */
 export type AccessibilityCheckHandler = (
   opts: { standard?: 'wcag2a' | 'wcag2aa' | 'wcag2aaa'; disableRules?: string[]; exclude?: string[] },
   ctx: { abortSignal: AbortSignal },
@@ -152,11 +126,7 @@ export interface MemberRunConfig {
     recordCap: number
   }
   knowledgeAsOfBuild?: number
-  /**
-   * the host's retrieval rung, resolved once at the composition root and threaded
-   * verbatim onto every step's LoopPorts. Typed off LoopPorts so there is ONE spelling of the
-   * contract between the run shell and the loop.
-   */
+  // Typed off LoopPorts, so the shell and the loop share one spelling of the contract.
   knowledgeRetrievalRung?: LoopPorts['knowledgeRetrievalRung']
   recordLedger?: LoopPorts['recordLedger']
   beginMemoryTurn?: LoopPorts['beginMemoryTurn']
@@ -186,7 +156,7 @@ export interface MemberRunConfig {
   hookSecretEnv?: Record<string, string>
   hookAuthState?: RuntimeAuthStateConfig
 
-  // --- injected handlers (Q-2 / Q-4) ---
+  // --- injected handlers ---
   runJs?: RunJsHandler
   appiumScript?: AppiumScriptHandler
   accessibilityCheck?: AccessibilityCheckHandler
@@ -376,8 +346,7 @@ async function runMemberAttempt(
   }[] = []
 
   const runnerLog = config.logger?.createScopedLogger('runner')
-  // Pitfall 10 (display neutrality): the capture-over-non-capture warning routes through
-  // the injected warn seam / scoped logger — the runner makes ZERO console calls.
+  // The capture-over-non-capture warning goes through the injected warn seam; no console calls.
   const variableStore = new VariableStore({
     onWarn: (message: string) => {
       config.onWarn?.(message)
@@ -430,8 +399,7 @@ async function runMemberAttempt(
       }, testTimeout)
     : undefined
 
-  // the run shell owns SIGINT (no per-test process.on here — the runner never
-  // registers process-level handlers). The external abort chains into this test's abort.
+  // The run shell owns SIGINT; the external abort chains into this test's abort.
   let cancelled = false
   let activeStepController: AbortController | undefined
   const cancelWith = (reason: Error) => {
@@ -476,14 +444,9 @@ async function runMemberAttempt(
     }
   }
 
-  // the member-scoped procedure-flow carry cell. ONE shared mutable
-  // object threaded by reference into every per-step ports literal (the recordLedger
-  // precedent): a replay-recommended flow consumed at one test step re-arms the cell so the
-  // NEXT step resumes the committed body at the carried cursor — one body step per test
-  // step. Loop-side state only: never serialized, never in evidence or the handoff; its
-  // lifetime is this test member.
+  // One cell per member, shared by reference with every step; loop-side state only.
   const procedureFlow: { carry?: ProcedureFlowCarry } = {}
-  // this member's downloads and latest clipboard write, carried to its later steps.
+  // This member's downloads and latest clipboard write, carried to its later steps.
   const carriedArtifacts: CarriedArtifacts = { downloads: [] }
 
   const startedRecording = await startAttemptRecording(config)
@@ -548,8 +511,7 @@ async function runMemberAttempt(
       // Sample only once all attempted extraction/inline work has settled.
       result.variableSnapshot = snapshotVariables()
       const modelFacts = modelScope?.finish()
-      // This replaces the old loop population, never adds it a second time. The neutral
-      // snapshot is also available to the later typed final-event binding.
+      // Populated here only, never a second time; the snapshot also feeds the final-event binding.
       if (modelFacts && result.trace) {
         delete result.trace.tokenUsage
         if (modelFacts.inputTokens !== undefined && modelFacts.outputTokens !== undefined) {
@@ -567,7 +529,7 @@ async function runMemberAttempt(
       steps.push(result)
     }
 
-    // 1. INLINE HOOKS — execute BEFORE interpolation, merge vars, then strip.
+    // 1. Inline hooks run before interpolation, merge vars, then strip.
     let inlineHookFailed = false
     let inlineHookAbortResult: StepResult | undefined
     if (config.hookExecutor && config.inlineHookDefs) {
@@ -671,15 +633,13 @@ async function runMemberAttempt(
 
     // 2. INTERPOLATION — {{env:VAR}} resolves against the store (hooks already merged).
     const originalStepName = instructionAfterHooks
-    // the provenance variant returns the SAME text plus the
-    // binding names that produced it, so the name survives this pre-planning seam into
-    // StepEvidence. Text semantics — and therefore hasTemplateVars — are unchanged.
+    // The provenance variant returns the same text plus the binding names that produced it.
     const interpolated = interpolateVariablesWithProvenance(instructionAfterHooks, variableStore)
     let instruction = interpolated.text
     const interpolatedVariables = interpolated.substitutions
     let hasTemplateVars = originalStepName !== instruction
 
-    // 3. runJS — resolve on the interpolated text via the injected handler (Q-2).
+    // 3. runJS resolves on the interpolated text through the injected handler.
     const runJSMatches = parseRunJSInline(instruction)
     let runJSAbortResult: StepResult | undefined
     if (runJSMatches.length > 0) {
@@ -732,15 +692,10 @@ async function runMemberAttempt(
       break
     }
 
-    // Parse the inline appium directive now (Q-2 execution rides the injected handler
-    // below). An appium directive is a resolved runtime instruction — exempt it from the
-    // unresolved-template check just as {{secret:...}} is (findUnresolvedTemplates flags any
-    // {{...}}). Without this exemption the generic check would gate every appium step before
-    // the handler runs (the latent core ordering that left inline appium unreachable).
+    // Appium directives skip the template check, or no appium step would reach its handler.
     const appiumAction = parseAppiumInline(instruction)
 
-    // 4. UNRESOLVED-TEMPLATE CHECK — fires AFTER runJS (Pitfall 5 ordering); skipped for
-    // appium directives (resolved by the injected handler).
+    // 4. The unresolved-template check runs after runJS and skips appium directives.
     const unresolvedTemplates = appiumAction ? [] : findUnresolvedTemplates(instruction)
     if (unresolvedTemplates.length > 0) {
       const errorLines = unresolvedTemplates.map(t => `  - ${t.pattern}: ${t.message}`)
@@ -834,7 +789,7 @@ async function runMemberAttempt(
     let result: StepResult
     let completedExecution: StepResult | undefined
     try {
-      // 5. EXECUTE — appium rides the injected handler (Q-2); otherwise the loop.
+      // 5. Execute: appium through the injected handler, otherwise the loop.
       if (appiumAction && config.appiumScript) {
         const stepStart = performance.now()
         try {
@@ -969,7 +924,7 @@ async function runMemberAttempt(
         }
       }
 
-      // Capture — via the injected verifier model (createExtractor threads it, Q-2 idiom).
+      // Capture through the injected verifier model, which createExtractor threads.
       if (!stepAbortController.signal.aborted && result.status !== 'failed' && typeof stepDef !== 'string' && stepDef.capture) {
         const method = stepDef.capture.method ?? 'ai'
         const extractor = makeExtractor(modelScope?.verifierModel ?? config.verifierModel, method)
@@ -1069,8 +1024,7 @@ async function runMemberAttempt(
   const adapterFlags = config.adapter as { isBrowserDisconnected?: boolean }
   const isDisconnected = adapterFlags.isBrowserDisconnected === true
 
-  // a closed browser is not a cancel. Only a cancel the run received makes the
-  // member `cancelled`; a disconnect on its own fails it, and says so without guessing a cause.
+  // A closed browser is not a cancel; a disconnect alone fails the member without guessing a cause.
   const failureSummary = isDisconnected && !cancelled
     ? BROWSER_CLOSED_SUMMARY
     : testFailed
@@ -1091,13 +1045,7 @@ async function runMemberAttempt(
   } }
 }
 
-/**
- * Run a member test with the retry loop. The trigger stays `meta.retries`
- * (user-config surface unchanged). Attempts run INSIDE the member; `testRetryScheduled`
- * fires between attempts (a per-test accumulation reset for subscribers); only the FINAL
- * attempt's TestResult leaves the member carrying `retryCount` (Pitfall 9 — the shell
- * emits the single authoritative testStarted/testFinished pair per member).
- */
+// Attempts run inside the member; only the final attempt's TestResult leaves, with `retryCount`.
 export async function runMemberTest(
   member: MemberTest,
   config: MemberRunConfig,
@@ -1145,8 +1093,7 @@ export async function runMemberTest(
     }
 
     if (firstFailedAttempt === undefined && result.status === 'failed' && attempt < maxRetries) {
-      // Detach before another attempt can mutate adapter/step evidence. Only one attempt is
-      // retained; the snapshot cannot contain another retry snapshot.
+      // Detach before another attempt can mutate evidence; only one attempt is retained.
       const { firstFailedAttempt: _nested, ...original } = result
       firstFailedAttempt = { attempt, result: structuredClone(original) }
     }

@@ -1,6 +1,4 @@
-// Scripted per-condition verifier output for test doubles. Framework-free: it
-// ships in the runner barrel so every package's verifier doubles speak the same shape. A met
-// condition cites a line the runner will find in what the verifier was given.
+// Framework-free, so every package's verifier doubles speak the same shape.
 
 import type { ScreenState } from '@vostride/agent-qa-schema'
 import type { Action } from '../platform.js'

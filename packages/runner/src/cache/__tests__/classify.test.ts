@@ -1,8 +1,3 @@
-// RED scaffold (Wave 0, CACHE-02 / D-07). Env/secret read-or-set steps classify to
-// NonCacheableStepInput; a config-env-dependent step yields value-free RedactedEnvVar
-// shapes for the digest. Fails until Plan 03 creates ../classify.ts. The classifier
-// must reuse the provenance surface (findSecretTemplates / the [secret:*] marker /
-// onSetVariable), NOT a hand-rolled step-text regex.
 import { describe, expect, it } from 'vitest'
 
 import type { RedactedEnvVar } from '@vostride/agent-qa-schema'

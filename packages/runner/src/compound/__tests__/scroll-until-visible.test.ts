@@ -1,8 +1,4 @@
-// Scroll loops over injected primitives (EXEC-02; 436-02 · D-24/D-25 · spec §12.12). Every fake
-// swipe reports a scripted SwipeSignal and every interim-tree read returns a scripted tree, so the
-// cells can hold movement evidence and visible content apart: the tree decides target visibility
-// only, never movement, end, reversal or retry. All fakes resolve immediately; no timers.
-// probe fakes answer visible, hidden or unknown (TargetVisibility).
+// The tree decides target visibility only, never movement, end, reversal or retry.
 import { describe, it, expect } from 'vitest'
 import type { InterimNode } from '@vostride/agent-qa-runner'
 import {
@@ -354,7 +350,7 @@ describe('a gesture under the pointer is judged by every scroller it may have mo
   })
 
   it('one member with range short of its extent is unknown', () => {
-    // HARN-03 adjacency: the list at its end inside a document that is not, and the reverse.
+    // The list at its end inside a document that is not, and the reverse.
     expect(scrollerSetSwipeSignal('down', [at(7280, 7280), at(0, 120)], [at(7280, 7280), at(0, 120)])).toBe('unknown')
     expect(scrollerSetSwipeSignal('down', [at(300, 7280), at(120, 120)], [at(300, 7280), at(120, 120)])).toBe('unknown')
   })

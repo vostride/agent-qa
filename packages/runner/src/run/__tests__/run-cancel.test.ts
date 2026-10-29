@@ -1,15 +1,4 @@
-// Plan 361-13 (SESSION-04 live-cancel blocker). The real-async-abort regression lock: the exact
-// gap the synchronous-fake `abortableExecutor` unit suite missed. `run-shell.test.ts`'s
-// `abortableExecutor` resolves the INSTANT its abortSignal fires, so the shell's `await
-// config.executor(...)` always returns and `done` always settles — that is why the unit suite was
-// green while a LIVE Ctrl+C hung. Here the active member is wedged on a promise that NEVER settles
-// and IGNORES `ctx.abortSignal` entirely (modelling the planner's `Bad Request → retry-without-
-// image` LLM window), so `done` cannot settle unless the shell RACES the executor against the
-// member-abort. RED against the pre-fix shell (the bounded `resolvesWithin` race yields TIMED_OUT);
-// GREEN after Task 2 laces the executor-vs-abort race into the member loop.
-//
-// Runner package convention: `.js`-suffixed relative import specifiers. Fully-faked executor +
-// ports — no real fs, providers, or timers (except the short REAL-timer bound in `resolvesWithin`).
+// The active member ignores its abort signal, so `done` settles only if the shell races the abort.
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { startRun } from '../shell.js'
@@ -107,9 +96,7 @@ function cancel(session: RunSession): void {
 // can never be confused with the bounded-wait timeout.
 const TIMED_OUT = Symbol('TIMED_OUT')
 
-// Bounded wait: resolve with the promise's value, or the TIMED_OUT sentinel if it does not settle
-// within `ms`, raced against a SHORT REAL-timer sleep. Keeps RED fast — the pre-fix shell never
-// settles `done`, so the race yields TIMED_OUT immediately rather than a slow whole-test timeout.
+// Resolves with the value, or TIMED_OUT after a short real-timer race, so a hang fails fast.
 function resolvesWithin<T>(promise: Promise<T>, ms: number): Promise<T | typeof TIMED_OUT> {
   return Promise.race([
     promise,

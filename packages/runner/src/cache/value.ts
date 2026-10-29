@@ -1,8 +1,4 @@
-// Descriptor-only value projection.
-// CRITICAL: storage-neutral — no node:* imports. Projects a planned action + the
-// fresh elements into a role + exact name (+ stated row words) descriptor and assembles a
-// CachedPlanValue that provably omits raw refs/selectors/coordinates, positions and any step
-// `data` value (the overfit guard: nothing run-specific survives into the cache).
+// Nothing run-specific survives into the cache: no refs, selectors, coordinates, positions or data.
 
 import type { ElementInfo } from '@vostride/agent-qa-schema'
 import { rowContains, rowTextOf, wordTokens } from '../grounding/row-text.js'
@@ -13,11 +9,7 @@ import type { CacheablePlannedAction, CachedPlanValue, GroundedLocator } from '.
 
 export type { CacheablePlannedAction, CachedPlanValue, GroundedLocator } from './port.js'
 
-// Fields that would overfit a cached plan to one run: locator bindings (single- AND
-// multi-ref lanes + emission-side target descriptors) and the raw step data value.
-// Stripped from every stored planned action so nothing run-specific ever persists —
-// grounding is carried SOLELY by the descriptor locators (D-12, Pitfall 5). The stated
-// target never persists inside an action; its row reaches the store only through a locator.
+// Fields that would overfit a cached plan to one run; descriptor locators carry the grounding.
 const OVERFIT_KEYS = new Set([
   'ref',
   'fromRef',
@@ -35,8 +27,7 @@ const OVERFIT_KEYS = new Set([
   'data',
 ])
 
-// The ordered multi-ref lanes of a drag (Pitfall 5a): one locator per ref field,
-// fromRef before toRef, so replay re-resolves BOTH in a stable order.
+// A drag's ref lanes, fromRef before toRef, so replay re-resolves both in a stable order.
 const MULTI_REF_LANES = ['fromRef', 'toRef'] as const
 
 function actionRef(action: Action): string | undefined {
@@ -66,9 +57,7 @@ function locatorForRef(
   return locator
 }
 
-// The sanitized, stored form statically excludes the AI-assertion verbs: a completing
-// plan carrying assertAI/extractAI is bypassed at the write site (Plan 10 runtime guard), so
-// the stored value only ever holds cacheable verbs. The cast asserts that boundary at the type.
+// The write site bypasses AI-assertion plans, so this cast to the cacheable union holds.
 function sanitizeAction(action: Action): CacheablePlannedAction {
   const out: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(action)) {
@@ -93,13 +82,7 @@ export function toGroundedLocator(
   return locatorForRef(ref, elements, stated)
 }
 
-/**
- * Derive the ordered per-lane descriptor locators for an action (Pitfall 5). A drag
- * yields one locator per ref field (fromRef, toRef order-stable) so replay re-resolves
- * BOTH; a single-ref action yields one locator; a coordinate/ref-less action yields
- * none. A drag whose lanes cannot all be grounded yields a partial list — replay treats
- * a locator-count shortfall as non-replayable (invalidate → replan).
- */
+// A drag yields fromRef then toRef; a lane count shortfall makes the action non-replayable.
 export function deriveLaneLocators(
   action: Action,
   elements: readonly ElementInfo[],
@@ -128,11 +111,7 @@ export interface BuildCachedPlanValueInput {
   statedTargets?: StatedTargets
 }
 
-/**
- * Assemble a descriptor-only CachedPlanValue. Planned actions are sanitized of every
- * locator binding and step `data` value; grounding is carried solely by the
- * descriptor locators so nothing run-specific is ever persisted (D-12 overfit guard).
- */
+// Strips every locator binding and step `data` value; descriptor locators carry the grounding.
 export function buildCachedPlanValue(input: BuildCachedPlanValueInput): CachedPlanValue {
   const groundedLocator: GroundedLocator[] = []
   for (const action of input.plannedActions) {

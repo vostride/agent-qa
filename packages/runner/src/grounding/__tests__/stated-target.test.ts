@@ -1,6 +1,3 @@
-// the stated-target judge refuses only a clear contradiction — a different
-// role kind, a name sharing no word with the element's words, or different numbers in otherwise
-// matching names — and the refusal line names both identities on one line.
 import { describe, expect, it } from 'vitest'
 
 import { asRef } from '@vostride/agent-qa-schema'
@@ -120,7 +117,7 @@ describe('judgeStatedTarget', () => {
     ])
   })
 
-  // 438 gap round 2, WR-11: a digit group is one number to the shared-word rule too.
+  // A digit group is one number to the shared-word rule too.
   it('"1234" vs "1,234" agrees (a digit group is one number)', () => {
     expect(reasons({ role: 'button', name: '1234' }, element('button', '1,234'))).toEqual([])
   })
@@ -191,7 +188,7 @@ describe('judgeStatedTarget', () => {
     expect(line).not.toContain('x'.repeat(81))
   })
 
-  // a leaf's row carries every enclosing treeitem's own line.
+  // A leaf's row carries every enclosing treeitem's own line.
   it('leaves with one name under different grandparents are told apart', () => {
     const treeitem = (ref: string, name: string, parentRef?: string): ElementInfo => ({
       ...element('treeitem', name),
@@ -228,7 +225,7 @@ describe('judgeStatedTarget', () => {
     })
   })
 
-  // a comma run agrees under its grouped or its list reading.
+  // A comma run agrees under its grouped or its list reading.
   it('a stated order inside a comma list of orders agrees', () => {
     expect(reasons({ role: 'link', name: 'Order 947' }, element('link', 'Orders 947,948'))).toEqual(
       [],

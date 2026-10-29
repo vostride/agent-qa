@@ -11,9 +11,7 @@ const ELEMENT_DESCRIPTION_SCHEMA = z.string().optional()
 export const refSchema = (description: string) =>
   z.string().transform((v): Ref => asRef(v)).describe(description)
 
-// the element the planner means, sent beside the ref and checked against
-// it before dispatch; `row` holds a repeated label's row words. No position field, no `near`
-// and no selector-like field: `.strict()` rejects them.
+// Checked against the ref before dispatch; `.strict()` rejects position, `near` and selectors.
 export const targetSchema = z.object({
   role: z.string()
     .describe('The element\'s role as the observation shows it, e.g. button or textbox.'),
@@ -60,9 +58,7 @@ function action(verb: string, description: string, schema: z.ZodType, meta: Acti
   return actionWithSurface(verb, surface, description, schema, meta)
 }
 
-// Toggle/picker idempotency intent. Optional with NO default: absence means "no
-// idempotency claim" (a plain gesture). The executor compares it against the element's
-// persisted state at the dispatch seam and skips the gesture when already satisfied (Plan 08).
+// No default: absence is no idempotency claim; a satisfied state skips the gesture at dispatch.
 const desiredStateSchema = z.enum(['checked', 'unchecked', 'selected', 'unselected']).optional()
   .describe('For toggles/checkboxes/pickers — the state this tap should ensure; the executor skips the gesture when the element already persists this state. Omit for plain taps.')
 

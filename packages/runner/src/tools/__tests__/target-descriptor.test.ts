@@ -1,19 +1,9 @@
-// RED scaffold (Wave 0, GROUND-01 · D-04/D-05/D-06). Pins the uniform `target`
-// tool-surface coverage rule the way element-description.test.ts pins its companion
-// field: wherever a ref can name an element, an optional `target` TargetDescriptor
-// sibling can too, and the ref becomes optional (438 D-01: the target is sent beside the
-// ref and checked against it at the grounding gate). The `target` fields do not exist yet, so these assertions fail
-// (assertion failures, not import/syntax errors); they turn GREEN when Plan 05 lands the
-// tool-schema change. The enumerated ID list is the D-05 "one scanner rule, no exception
-// list" spec (357-RESEARCH Pitfall 10 verified inventory).
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { ToolRegistry } from '../registry.js'
 import { registerAllActions } from '../actions/index.js'
 
-// Every tool whose ref can name a current-screen element — single-ref tools, the
-// union ref-branches (pinch/multiTap ref XOR coords), and the optional container-ref
-// tools (scroll/swipe). Enumerated by name (no invented count): D-05 uniform coverage.
+// Every tool whose ref can name a current-screen element, enumerated by name.
 const TARGET_COVERAGE_IDS = [
   'web_click',
   'web_fill',
@@ -72,9 +62,7 @@ function expectOptional(fieldSchema: z.ZodType): void {
   expect(fieldSchema.safeParse(undefined).success).toBe(true)
 }
 
-// The `target` field must be an optional strict stated target: role, name and row words ONLY
-// never an ordinal, never `near` (D-06, omitted from the M1 LLM
-// surface) and never a selector-like field (the grounding-surface rule).
+// A strict stated target: role, name and row words; never an ordinal, `near` or a selector field.
 function expectTargetDescriptorShape(fieldSchema: z.ZodType): void {
   expectOptional(fieldSchema)
   expect(fieldSchema.safeParse({ role: 'button', name: 'Save', row: '7 Elm Street' }).success).toBe(true)
@@ -129,8 +117,7 @@ describe('target descriptor coverage (uniform scanner rule)', () => {
     for (const id of ['web_click', 'mobile_tap', 'common_scroll'] as const) {
       for (const shape of refBearingShapes(schemaFor(registry, id))) {
         expectOmitWhenDescribe(shape.ref)
-        // the target is sent alongside the ref, and alone only with no confident ref;
-        // the contract is stated in prose (invisible to JSON schema otherwise — Pitfall 4).
+        // The contract is stated in prose, because JSON schema cannot express it.
         expect(shape.target.description ?? '').toMatch(/alongside ref/i)
         expect(shape.target.description ?? '').toMatch(/no confident ref, send target alone/i)
       }
@@ -148,6 +135,5 @@ describe('target descriptor coverage (uniform scanner rule)', () => {
     }
   })
 
-  // NOTE: elementDescription is intentionally untouched — its surface is pinned
-  // unchanged by element-description.test.ts, which must keep passing verbatim.
+  // elementDescription keeps its surface, which element-description.test.ts checks.
 })

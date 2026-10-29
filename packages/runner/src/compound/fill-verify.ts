@@ -1,16 +1,4 @@
-// The shared fill and clear comparator for web, Android and iOS.
-//
-// Provider- and storage-neutral: no driver and no node:* imports. Four verdicts, kept apart:
-// - exact: the read-back equals the requested text;
-// - normalized: the field only inserted characters from FILL_SEPARATORS, every typed character is
-//   still there, in order, and no inserted space widened or joined a whitespace run;
-// - mismatch: anything else, including lost, merged or trimmed whitespace, case changes and
-//   truncation; it carries the self-correcting error;
-// - unverified: nothing could be read back; not a failure, never presented as verified.
-// A secure field is never exact: a non-empty fill read-back is unverified, an empty one is a
-// mismatch; a secure clear that leaves text is a mismatch, and an empty or unreadable one is
-// unverified (owner, 2026-10-09). Its meta carries length sentinels, never the value. A clear
-// compares against the empty string.
+// A secure field is never exact; its meta carries length sentinels, never the value.
 
 import type { FillVerdict } from '@vostride/agent-qa-schema'
 import type { FillRereadMeta } from './metadata.js'

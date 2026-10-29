@@ -1,25 +1,11 @@
-// THE SNAPSHOT PRODUCER. The labelled fallback preview: one still capture a
-// second, behind the same `LiveStreamCapability` contract as the screencast, so the hub refcounts
-// it the same way — started by the first viewer, stopped after the last viewer's grace. An
-// unwatched run never captures anything.
-//
-// At most ONE capture is in flight. A tick that lands while the previous capture is still pending
-// is skipped, never queued: a slow device must not build a backlog of captures that then run back
-// to back against the steps it is supposed to be observing.
-//
-// Storage-neutral like the hub: the only clock is the injected `RunTimerPort`, and the bytes come
-// from whatever `capture` the adapter or the composition hands in.
+// At most one capture in flight; a tick during a pending capture is skipped, never queued.
 
 import type { LiveFrame } from '@vostride/agent-qa-schema'
 import type { LiveStreamCapability, PlatformAdapter } from '../platform.js'
 import { defaultLiveStreamTimer } from './live-stream-hub.js'
 import type { RunTimerPort } from './ports.js'
 
-/**
- * The three live-preview cadences, side by side: a snapshot every second (this producer), a
- * keepalive frame after two quiet seconds on a static page (the web adapter's screencast, 428-06),
- * and the viewer's ~5s freshness window that both of them stay inside.
- */
+// One still a second, inside the viewer's freshness window.
 export const LIVE_SNAPSHOT_INTERVAL_MS = 1_000
 export const LIVE_KEEPALIVE_QUIET_MS = 2_000
 
@@ -91,15 +77,7 @@ export type LiveStreamRegistration = {
   fallback?: LiveStreamCapability
 }
 
-/**
- * THE ONE SELECTION RULE, used by both run paths and the editor.
- *
- * The adapter's own `liveStream` always wins. `screenshot()` is wrapped in the snapshot producer
- * only when the adapter's own capability is not already a snapshot: as the fallback behind a
- * continuous stream that may fail to start, or as the whole preview when there is no continuous
- * stream. An adapter whose own stream IS a snapshot (mobile) gets no fallback, which is what keeps
- * a mobile run off its context-switching `screenshot()`.
- */
+// The adapter's own stream wins; a snapshot-only adapter gets no fallback, sparing `screenshot()`.
 export function liveStreamFor(
   adapter: Pick<PlatformAdapter, 'liveStream' | 'screenshot'> | undefined,
   options: { timer?: RunTimerPort } = {},

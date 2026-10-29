@@ -1,5 +1,4 @@
-// C438-ROW-TEXT (438 D-02, RESEARCH Pattern 3): the one row definition and row containment, read
-// through the runner root. Observations are built by the shared builder from inline nodes.
+// Observations are built by the shared builder from inline nodes.
 
 import { describe, expect, it } from 'vitest'
 import type { ElementInfo } from '@vostride/agent-qa-schema'
@@ -119,7 +118,7 @@ describe('row text and row containment', () => {
     expect(wordTokens('１７ Elm')).toEqual(['17', 'elm'])
   })
 
-  // 438 gap round 2, WR-11: digit grouping is read once, in the shared tokenizer.
+  // Digit grouping is read once, in the shared tokenizer.
   it('wordTokens reads a digit group split by a comma, an underscore, a narrow no-break space or a no-break space as one number', () => {
     expect(wordTokens('1,234 1_234 1\u202F234 1\u00A0234')).toEqual([
       '1234',
@@ -215,7 +214,7 @@ describe('row text and row containment', () => {
     expect(judgement.observedRow).toContain('1 Home Street')
   })
 
-  // 438 gap round 2, WR-10: a nested row container keeps its parent row's own line.
+  // A nested row container keeps its parent row's own line.
   const TREE: InterimNode[] = [
     { role: 'treeitem', name: '2024' },
     { role: 'treeitem', name: 'Invoices', parentIndex: 0 },
@@ -285,7 +284,7 @@ describe('row text and row containment', () => {
     expect(rowTextOf(named(elements, 'Reply'), elements)).toBe('Bo: a reply Reply')
   })
 
-  // only a parent of the row's own role joins its row.
+  // Only a parent of the row's own role joins its row.
   it('an article never adds its prose to a nested row', () => {
     const elements = elementsOf([
       { role: 'article', text: 'Status: 2 invoices due this week' },
@@ -296,7 +295,7 @@ describe('row text and row containment', () => {
     expect(rowTextOf(named(elements, 'Pay'), elements)).toBe('Invoice 947 Pay')
   })
 
-  // every enclosing row of the same role joins, nearest first.
+  // Every enclosing row of the same role joins, nearest first.
   it('a leaf three levels deep carries every enclosing same-role row line', () => {
     const elements = elementsOf([
       { role: 'treeitem', name: 'Invoices' },

@@ -1,14 +1,4 @@
-// RCC-02 deterministic root-cause classifier pins. RED-first: this file
-// pins every branch of `classifyRootCause` + the D-02 field-fidelity contract of
-// `deterministicVerdict` BEFORE the module exists (right-reason RED on the unresolved import).
-//
-// Contract source: 373-CONTEXT.md D-01 (presence rule, as refined in Plan 01), D-02 (faithful
-// VerdictBase constructor + fixed rationale templates), D-03 (producer discriminator), D-04
-// (baseline probe web signal / device-session-create mobile signal), D-05 (pure module beside
-// run/verdict.ts) + REQUIREMENTS RCC-02. Branch order pinned: timeout → environment → flake →
-// unknown. Misses fall to 'unknown' — the safe Noop default (RESEARCH A2/A3).
-//
-// Runner package convention: `.js`-suffixed relative import specifiers.
+// Branch order: timeout, environment, flake, unknown; a miss falls to `unknown`.
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -56,7 +46,7 @@ function input(overrides: Partial<RootCauseInput> = {}): RootCauseInput {
 
 const TEST_TIMEOUT_MESSAGE = createTimeoutAbortReason('test', 30_000).message
 
-// ---- deterministicVerdict (D-02 field fidelity) ---------------------------
+// ---- deterministicVerdict field fidelity ----
 
 describe('deterministicVerdict — faithful VerdictBase constructor', () => {
   it('environment: fills every VerdictBase field exactly', () => {

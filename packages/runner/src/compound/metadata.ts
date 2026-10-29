@@ -1,13 +1,4 @@
-// Typed metadata contracts for the four EXEC compound behaviors.
-//
-// CRITICAL: provider-neutral + storage-neutral. No browser/mobile driver imports, no node:*
-// imports, no core/model/adapter package imports. This is the single vocabulary Plans 05-08
-// mint onto ActionResult.metadata and the 358 oracle/classifier consume via signal-presence
-// degradation. Each block rides the existing ActionResult.metalabelled by its own key — no
-// ActionResult break (schema-DTO promotion is deferred to Phase 361).
-//
-// The readers narrow by presence, typeof and closed-set membership, and return undefined
-// otherwise. FillRereadMeta stays `{ expected, actual }`, both string, never renamed or nested.
+// Readers narrow by presence, typeof and closed-set membership, and return undefined otherwise.
 
 import type {
   ClipboardEvidence,
@@ -30,12 +21,12 @@ export type ScrollEndedBy = 'target-visible' | 'max-swipes' | 'boundary'
 
 /** Outcomes new runs write. */
 export const SCROLL_OUTCOMES_WRITTEN = ['found', 'not-found', 'unresolved'] as const
-/** Outcomes only pre-436 runs wrote; still read so persisted metadata stays parseable. */
+// Outcomes older runs wrote; still read so persisted metadata stays parseable.
 export const SCROLL_OUTCOMES_READ_ONLY = ['no-change', 'cap'] as const
 
 const SCROLL_ENDED_BY: readonly ScrollEndedBy[] = ['target-visible', 'max-swipes', 'boundary']
 
-/** EXEC-02 scroll outcome block. `endedBy` is absent on pre-436 metadata. */
+// The scroll outcome block; `endedBy` is absent on older metadata.
 export interface ScrollUntilVisibleMeta {
   swipes: number
   reversedOnce: boolean
@@ -45,13 +36,12 @@ export interface ScrollUntilVisibleMeta {
   endedBy?: ScrollEndedBy
 }
 
-/** EXEC-03 openApp resolution block. */
 export interface OpenAppMeta {
   resolvedId: string
   matchKind: 'exact' | 'fuzzy' | 'explicit'
 }
 
-// EXEC-04 idempotent no-op block: one definition, in schema, so the dashboard reads it too.
+// Defined once, in schema, so the dashboard reads it too.
 export type { IdempotentNoopMeta } from '@vostride/agent-qa-schema'
 export { readIdempotentNoopMeta } from '@vostride/agent-qa-schema'
 
@@ -104,20 +94,14 @@ export function readOpenAppMeta(actionResult?: ActionResult): OpenAppMeta | unde
   return undefined
 }
 
-// ---------------------------------------------------------------------------
-// Phase 360 termination-verb & AI-assertion metadata blocks (EXEC-05/EXEC-07 ·
-// D-01/D-03/D-04/D-05/D-10/D-16). Same law as the 359 blocks above: each mint rides
-// ActionResult.metadata under its own verb-named key; the reader narrows structurally and
-// returns undefined on any shape miss. Plan 08 defines the vocabulary; the dispatch seam
-// (Plan 10) mints onto it and the 358 oracle / short-circuit read it defensively.
-// ---------------------------------------------------------------------------
+// Each mint rides `ActionResult.metadata` under its own verb-named key; readers narrow by shape.
 
-/** EXEC-05 reportValue answer block. Keyed `reportedValue`. */
+// The reportValue answer block, keyed `reportedValue`.
 export interface ReportedValueMeta {
   value: string
 }
 
-/** EXEC-06 uniqueValue mint block. Keyed `uniqueValue`. */
+// The uniqueValue mint block, keyed `uniqueValue`.
 export interface UniqueValueMeta {
   value: string
   prefix: string
@@ -130,7 +114,7 @@ export interface AiJudgmentMeta {
   unresolved?: true
 }
 
-/** EXEC-07 assertValue outcome block. Keyed `assertValueOutcome`. */
+// The assertValue outcome block, keyed `assertValueOutcome`.
 export interface AssertValueOutcomeMeta {
   source: string
   op: string
@@ -139,12 +123,7 @@ export interface AssertValueOutcomeMeta {
   actual?: string | null
 }
 
-/**
- * The minimal structural input the 360 metadata readers narrow: any ActionResult-like carrier of a
- * metadata bag. Broader than `ActionResult` so the seam's loosely-typed sub-action result surfaces
- * (which only guarantee an optional `metadata`) narrow cleanly — the defensive idiom returns
- * undefined on any shape miss regardless.
- */
+// Broader than `ActionResult`, so loosely typed sub-action results narrow cleanly.
 type MetadataCarrier = { metadata?: Record<string, unknown> }
 
 export function readReportedValueMeta(actionResult?: MetadataCarrier): ReportedValueMeta | undefined {
@@ -193,11 +172,7 @@ export function readAssertValueOutcomeMeta(
   return undefined
 }
 
-// ---------------------------------------------------------------------------
-// AUTO-18 text-input blocks. Same law: one block per key, defensive readers that narrow by
-// presence, typeof and closed-set membership. Neither block ever carries typed text or a
-// field value.
-// ---------------------------------------------------------------------------
+// Text-input blocks never carry typed text or a field value.
 
 /** Typed refusal of a fill/clearText before any text was typed. Keyed `fillRefusal`. */
 export interface FillRefusalMeta {
@@ -211,10 +186,7 @@ export interface FillRefusalMeta {
     | 'text-has-line-breaks'
 }
 
-/**
- * What happened to a requested submit after a fill. Keyed `fillSubmit`. Pre-437 blocks
- * carry `sent` alone or `{ sent: false, reason: 'multi-line-field' }` and still read.
- */
+// Keyed `fillSubmit`; older blocks with `sent` alone still read.
 export interface FillSubmitMeta {
   sent: boolean
   outcome?: SubmitOutcome
@@ -325,11 +297,7 @@ export function readShellActionMeta(actionResult?: MetadataCarrier): ShellAction
   return meta
 }
 
-// ---------------------------------------------------------------------------
-// the download capture a platform adapter attached to the action that started it.
-// Keyed `download`: an ordered array, one entry per download in start order. An entry that does
-// not narrow is dropped; the whole block reads undefined when nothing narrows.
-// ---------------------------------------------------------------------------
+// Download capture, one entry per download in start order; entries that do not narrow are dropped.
 
 const DOWNLOAD_STATES = new Set<DownloadEvidence['state']>(['completed', 'failed', 'canceled', 'unfinished'])
 
@@ -356,11 +324,7 @@ export function readDownloadMeta(actionResult?: MetadataCarrier): DownloadEviden
   return entries.length > 0 ? entries : undefined
 }
 
-// ---------------------------------------------------------------------------
-// the clipboard text the app wrote during the action, keyed `clipboard`, one entry
-// per write in order. The adapter has no masker, so the text is raw here: the loop masks it and
-// bounds it to CLIPBOARD_TEXT_LIMIT before anything records, emits or renders it.
-// ---------------------------------------------------------------------------
+// The adapter has no masker, so the text is raw here; the loop masks and bounds it first.
 
 /** The most masked clipboard text one write keeps; longer text is cut and marked. */
 export const CLIPBOARD_TEXT_LIMIT = 2000

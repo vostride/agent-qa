@@ -1,12 +1,4 @@
-// Hook orchestration. Moved near-verbatim from
-// core/src/hooks/orchestrator.ts — sequential execution, later hooks see earlier
-// hooks' variables as env, fail-fast with synthesized `Skipped:` failures for the
-// remaining hooks, reserved auth-state key stripping on merged outputs, and the
-// aggregate `{results, variables, allPassed, duration}` shape. The concrete Docker
-// execFile body is now injected as a `HookExecutorPort` (runner-local
-// DockerHookExecutor) and every executed hook emits `hookStarted`/`hookFinished`
-// through the optional Plan 03 sink emit seam (D-01 parity). Pure orchestration:
-// provider-neutral + storage-neutral, no node:* imports.
+// Sequential, fail-fast, later hooks see earlier variables; the Docker body is an injected port.
 
 import type {
   HookStartedPayload,
@@ -24,11 +16,7 @@ interface SecretEnvSource {
   forEachSecret(callback: (name: string, value: string) => void): void
 }
 
-/**
- * Resolve the already-materialized secret name→value map the container is injected with
- * The runner-owned {@link SecretStore} satisfies the structural source; the port only
- * ever sees the resolved map, never the store itself.
- */
+// The port only ever sees the resolved map, never the secret store itself.
 export function resolveSecretEnv(store?: SecretEnvSource): Record<string, string> {
   if (!store) return {}
   const out: Record<string, string> = {}
@@ -38,14 +26,7 @@ export function resolveSecretEnv(store?: SecretEnvSource): Record<string, string
   return out
 }
 
-/**
- * The threaded hook-execution carrier — successor to core's
- * `SandboxRunnerOptions`. Threaded through the run/suite config as `sandboxOptions` and
- * spread into {@link RunHooksOptions} at each hook site. Carries the injected
- * {@link HookExecutorPort} (constructed once at the composition root) plus the secret
- * store / redactor / active auth-state the hook body needs. `dockerBin`/`pullPolicy` are
- * retained for source-compat with the old carrier (the executor owns those now).
- */
+// `dockerBin` and `pullPolicy` are kept for source compatibility; the executor owns them.
 export interface SandboxRunnerOptions {
   executor: HookExecutorPort
   dockerBin?: string
@@ -63,13 +44,7 @@ export interface HookOrchestrationResult {
   duration: number
 }
 
-/**
- * The narrow lifecycle-emit seam `runHooks` fires through — the Plan 03 sink legs
- * (`MemberEventSink.hookStarted`/`hookFinished`) satisfy it structurally. Both legs are
- * fire-and-forget; the orchestration NEVER awaits telemetry. Output detail is emitted
- * as-is (already sandbox-redacted by the impl); the sink applies the additive run-mask
- * the orchestration does not mask.
- */
+// Both legs are fire-and-forget; the sink applies the run mask the orchestration does not.
 export interface HookEmitSeam {
   hookStarted(payload: HookStartedPayload): void
   hookFinished(payload: HookFinishedPayload): void
@@ -84,7 +59,7 @@ export interface HookRunIdentity {
 }
 
 export interface RunHooksOptions {
-  /** The injected D-06 executor (runner-local `DockerHookExecutor`). */
+  // The injected executor, runner-local `DockerHookExecutor`.
   executor: HookExecutorPort
   /** User env + CLI/suite variables the first hook starts from. */
   env?: Record<string, string>

@@ -548,13 +548,7 @@ test('EVID-TIMEOUT-NAVIGATE: a navigation timeout records one paired failed row 
   expect(deriveMemberOutcome(result)).toBe('timeout')
 })
 
-// the deadline is read from a controlled performance.now clock
-// that only the busy step advances, past the test budget. The cell used a real 5 ms budget and a
-// 20 ms busy-wait, so any 5 ms of wall time spent before the first step (the real deadline timer
-// or the between-steps check) timed out 'Busy step' itself; it failed that way at load 142
-// 38.5. The budget is now 60 s of real time, so its real timer cannot fire
-// inside the cell, and the controlled clock crosses it by 20 ms during the busy step: the same
-// between-steps deadline, with no wall-clock race.
+// A controlled clock crosses the budget during the busy step, so no wall-clock race decides it.
 test('EVID-TIMEOUT-DEADLINE: a deadline between steps records the unstarted step as one paired timeout row', async () => {
   const f = fixture()
   f.member.steps = ['Busy step', 'Never starts']

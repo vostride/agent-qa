@@ -1,8 +1,4 @@
-// runMemberTest contract, pinned against fakes (Phase 363 D-05, RESEARCH Q2). Fully
-// faked: fake adapter, a stubbed executeStep loop seam, fake HookExecutorPort, a fake
-// MemberEventSink (all Plan 03 legs), a stub extractor factory, and injected fake
-// handlers for runJS / appium / a11y / failure-shot. No real fs, providers, or LLM.
-// Runner convention: `.js`-suffixed relative specifiers.
+// Fully faked: adapter, loop seam, hook executor, event sink, extractors and handlers.
 import { describe, expect, it, vi } from 'vitest'
 import type { LanguageModel } from 'ai'
 import { makeScreenState } from '../../testing/screen-fixtures.js'

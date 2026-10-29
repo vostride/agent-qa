@@ -2,9 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { screenConformanceCases, type ConformanceInput } from '../testing/conformance.js'
 import { makeInterimNodes, type InterimFixtureKind } from '../testing/screen-fixtures.js'
 
-// Prove the shared conformance spec passes against the reference builder before any
-// adapter wires it (adapters run the identical case list in Plans 352-05/06/07; drift
-// between an adapter's interim nodes and the builder contract surfaces there, not here).
+// The shared conformance spec passes against the reference builder; adapters run the same cases.
 
 const KINDS: InterimFixtureKind[] = ['login-screen', 'mixed-geometry', 'nested']
 

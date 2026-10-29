@@ -1,7 +1,4 @@
-// the deterministic classifier reads a failed step the verifier left
-// unproven as 'unknown' with confidence 0 and the step's reason as rationale, never an
-// application or environment class. A not-met block falls through to today's classification,
-// and a limit stop keeps its own branch.
+// A not-met block falls through to the normal classification; a limit stop keeps its own branch.
 import { describe, expect, it } from 'vitest'
 
 import { formatLimitStopReason } from '@vostride/agent-qa-schema'

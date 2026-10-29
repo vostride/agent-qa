@@ -1,13 +1,3 @@
-// Wave-0 RED scaffold (361-01, Task 2). Pins the SESSION-04 verdict-derivation tables
-// BEFORE any implementation exists — RED strictly on the unresolved import of the
-// not-yet-existing `../verdict.js` module (right-reason RED). Turns green in Plan 05.
-//
-// Contract source: 361-CONTEXT.md D-14 (exit codes), D-15 (member outcome union + neutral
-// skipped), D-16 (per-test outcome is a pure total function; timeout via the existing
-// createTimeoutAbortReason tag; healed keyed on selfHeal evidence, NEVER a step status
-// string — RESEARCH Pitfall 5) + spec/v2/runner.md §2.1 ratified aggregate rule.
-//
-// Runner package convention: `.js`-suffixed relative import specifiers.
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -102,7 +92,7 @@ describe('deriveMemberOutcome — pure total function', () => {
   })
 })
 
-// ---- deriveAggregateVerdict (spec §2.1 ordered rule + D-15) ---------------
+// ---- deriveAggregateVerdict ----
 
 interface AggregateCase {
   name: string

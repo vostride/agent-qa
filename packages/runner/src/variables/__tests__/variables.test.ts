@@ -125,8 +125,7 @@ describe('VariableStore source tracking', () => {
   })
 })
 
-// Pitfall 10 (display neutrality): the capture-over-non-capture warning routes through
-// the injected onWarn seam — runner-owned code makes zero console calls.
+// The capture-over-non-capture warning goes through the injected onWarn seam.
 describe('VariableStore onWarn seam', () => {
   it('capture overwriting env fires onWarn with the source in the message', () => {
     const onWarn = vi.fn()
@@ -275,11 +274,7 @@ describe('interpolateVariables', () => {
   })
 })
 
-// G-381-3 capture half: interpolation must report WHICH binding
-// names produced the substituted text without changing the text it produces. The
-// delegation-equality table below is the byte-identity pin — expected strings are the
-// literal output of interpolateVariables at the time provenance was introduced, so a
-// regression in either implementation breaks the row rather than agreeing with itself.
+// Interpolation reports which names produced the text; the table pins byte-identical output.
 describe('interpolateVariablesWithProvenance', () => {
   function provenanceStore(): VariableStore {
     const store = new VariableStore()

@@ -1,14 +1,4 @@
-// Inline-DSL step preprocessing — the PURE parsing half of core's hook-inline /
-// runjs-inline / appium-inline (Phase 363 D-05, RESEARCH Q2). Moved verbatim from
-// core/src/agent/{hook-inline,runjs-inline,appium-inline}.ts; the EXECUTION halves
-// (Docker hook run, page.evaluate, adapter.execute) do NOT live here — they touch
-// adapter/host internals and ride injected handlers on `MemberRunConfig` (Q-2/Q-4).
-//
-// CRITICAL: provider-neutral + storage-neutral. No node:* imports, no fs/sharp, no
-// core/model/adapter package imports — pure string work only. The canonical-hook-id
-// gate is a runner-local pure-regex equivalent of `@vostride/agent-qa-ids`
-// `isCanonicalHookId` (the runner does not depend on agent-qa-ids): a hook id is the
-// `h_` prefix plus exactly ten hyphen-separated lowercase word segments.
+// Pure string work; the canonical hook id check mirrors agent-qa-ids without depending on it.
 
 import type { Action } from '../platform.js'
 

@@ -1,34 +1,4 @@
-// The pre-execution grounding gate.
-// CRITICAL: provider-neutral + storage-neutral. No node:* imports, no fs/sharp, no
-// core/model/adapter package imports — imports only sibling grounding modules, the
-// runner's tool errors + cache descriptor projection, and schema types.
-//
-// The single chokepoint that converts an emission-shape planned action (carrying
-// EITHER a committed `ref` OR a `target` descriptor) into a fully-grounded, execution-shape
-// action (a `ref`, never a descriptor). Adapters never see descriptors or unvalidated
-// refs/coords — grounding is NEVER duplicated into platform adapters. Every failure class
-// mints a structured §7.1 GroundingError; no path ever silently best-guesses a click:
-//   - a required-element field carrying NEITHER a ref nor a target ⇒ descriptor_invalid
-//     (D-04, gate-side, never a zod refine). Optional container fields (scroll/swipe/pinch/
-//     multiTap) may carry neither. A field carrying BOTH a ref and a target is NOT rejected:
-//     the committed ref grounds the action (exact handle) and the target never grounds over
-//     a resolving ref; it is kept as the stated identity for the AUTO-14 check, which
-//     the loop runs before dispatch. An invalid ref with a target present falls back to the
-//     target lane, whose resolved descriptor is kept the same way.
-//   - a target descriptor: name-less ⇒ descriptor_invalid; near-bearing ⇒ descriptor_invalid;
-//     unresolved ⇒ descriptor_unresolved (§12.17 self-correcting form); >1 match ⇒
-//     descriptor_ambiguous. The tree-search (+ optional capability-gated visual) ladder runs;
-//     the committed-ref rung is NOT part of the descriptor lane (its attempt trail is
-//     descriptor-only, D-02's visual:skipped denominator preserved).
-//   - a committed ref absent from the fresh refMap ⇒ ref_not_in_snapshot (first live raise
-//     site of the dormant GROUND-03 factory).
-//   - an out-of-bounds coordinate call ⇒ coords_out_of_bounds (first live raise site),
-//     bounds-checked coordSpace-aware: 'viewport' against metadata.viewportWidth/Height,
-//     'content' against metadata.scroll.contentWidth/Height, 'screen' UNCHECKED (no captured
-//     bound — screen space is device-physical and unbounded by the observation, Pitfall 10).
-//
-// The visual rung is a capability-negotiation seam (GROUND-02, Q3): a supplied visual rung
-// runs ONLY under `vision: true`; otherwise the ladder exhausts and records visual:skipped.
+// The one chokepoint that turns a planned action into a ref; adapters never ground.
 
 import { matchDescriptor } from './matcher.js'
 import type { DescriptorInput, MatchResult } from './matcher.js'
@@ -41,18 +11,13 @@ import { GroundingError, groundingError } from '../tools/errors.js'
 import type { StatedTarget, StatedTargetLane, StatedTargets } from './stated-target.js'
 import type { ElementInfo, GroundingAttempt, Ref, ScreenState } from '@vostride/agent-qa-schema'
 
-/**
- * A visual grounding rung supplied by the caller (GROUND-02, Q3 seam). It exposes a pure
- * `match()` over the fresh observation; the gate wraps it into a ladder rung and runs it
- * only under vision capability. No visual rung ships in M1 — this is the negotiation
- * seam, injected in tests to prove capability gating.
- */
+// Runs only under vision capability; injected in tests to prove the gating.
 export interface GateVisualRung {
   stage: 'visual'
   match(req: RungRequest): MatchResult
 }
 
-/** Capability + context options for the gate (the Q3 negotiation seam). */
+/** Capability and context options for the gate. */
 export interface GateOptions {
   /** Vision capability present — required for the supplied visual rung to run. */
   vision?: boolean
@@ -60,7 +25,7 @@ export interface GateOptions {
   visualRung?: GateVisualRung
   /** Additional caller rungs (only stage 'visual' entries are appended, and only under vision). */
   extraRungs?: GroundingRung[]
-  /** The previously-grounded element for D-10 hierarchy disambiguation. */
+  // The element grounded before, for hierarchy disambiguation.
   prior?: ElementInfo
   /** The observation the prior element belongs to (its parent chain is walked). */
   priorElements?: readonly ElementInfo[]
@@ -117,7 +82,7 @@ const REQUIRED_ELEMENT_TYPES = new Set<string>([
   'doubleTap',
 ])
 
-/** Whether an action type must name one element on its ref lane (438-09: cache replay reads it). */
+// Whether an action type must name one element on its ref lane; cache replay reads it.
 export function requiresElementRef(type: string): boolean {
   return REQUIRED_ELEMENT_TYPES.has(type)
 }
@@ -259,12 +224,7 @@ export function groundActionPlan(input: GroundActionPlanInput): GateResult {
       continue
     }
 
-    // (2) Committed-ref lane — the ref grounds the action whenever it resolves. A target sent
-    // beside it is the element the planner meant: it never grounds over the resolving
-    // ref, it is kept as the stated identity the loop checks before dispatch, and it leaves
-    // the execution action. The ref is validated against the fresh refMap; if it does NOT
-    // resolve we fall back to the target descriptor when one was supplied, else raise
-    // ref_not_in_snapshot.
+    // (2) The ref grounds whenever it resolves; a target beside it is only the stated identity.
     if (hasRef) {
       const ref = String(draft[group.refKey])
       if (ref in screenState.refMap) {

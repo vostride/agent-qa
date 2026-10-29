@@ -1,22 +1,4 @@
-// The bounded member pool: its concurrency proof, the recorded event stream a workers=1 run and
-// an all-lane run both emit, and the ordering invariants a pool must keep.
-//
-// `run-shell.test.ts` pins the sequential contract. This file pins what only a pool can be asked.
-// The recorded stream is `__fixtures__/sequential-baseline.json`; `pnpm --filter
-// @vostride/agent-qa-runner run regen:sequential-baseline` rewrites it.
-//
-// THE VACUOUS-ASSERTION TRAP (measured in 402-01, applied here): a 2-member fixture whose members
-// take the same time and settle in declaration order produces the SAME observable stream under a
-// concurrent pool and under the `for` loop it replaces — such a cell cannot tell them apart. So
-// every cell in this file is driven by DEFERRED executors whose settle order the test controls,
-// chosen so the sequential and concurrent executions produce DIFFERENT observable sequences.
-// Where a claim genuinely cannot be discriminated that way (the terminal sequence's uniqueness,
-// the parity control itself) the assertion site says so in prose.
-//
-// NO SLEEPS. Overlap is observed through a bounded microtask drain (`drainUntil`), not timers: under
-// the pool a second member reaches its executor within the SAME synchronous region as the first
-// (both worker loops run to their first await before either resumes), so a bounded drain either
-// observes the overlap immediately or proves it never happened.
+// Deferred executors settle in an order the test controls, so sequential and pooled runs differ.
 import { describe, expect, it } from 'vitest'
 
 import { RUN_EVENT_SCOPE, handleRosterOf, memberIndexOf } from '@vostride/agent-qa-schema'
@@ -302,9 +284,7 @@ describe('the bounded member pool — 2 members concurrent, one bus, one termina
     const events = drain(session)
     await done(session)
 
-    // Assert the PREMISE first. Without this line the cell passes on a sequential executor too,
-    // and would be claiming "no matter how the members interleave" about a run in which they did
-    // not interleave at all — the 402-01 vacuous-assertion trap in its purest form.
+    // Assert the premise first, or the cell also passes on a sequential executor.
     expect(finished).toEqual(['m1', 'm0'])
     expect(events.filter((e) => e.type === 'verdict')).toHaveLength(1)
     expect(events.filter((e) => e.type === 'runFinished')).toHaveLength(1)
@@ -314,9 +294,7 @@ describe('the bounded member pool — 2 members concurrent, one bus, one termina
   })
 
   it('serializes members that declare the SAME exclusive lane, even at workers=8', async () => {
-    // The A2 protection (D-09's "each member its own browser/CDP handle"). Suite members share the
-    // one adapter their suite set up, so they declare a lane and the pool must NOT interleave them
-    // — the same input that produced an inverted finish above must produce declaration order here.
+    // Suite members share their suite's adapter, so the pool must keep declaration order per lane.
     const started: string[] = []
     const finished: string[] = []
     const members = plainMembers(['m0', 'm1']).map((m) => ({
@@ -389,11 +367,7 @@ describe('the pool at the edges — empty and single-member runs', () => {
   })
 })
 
-// ---- The invariant cells (402-02 Task 3) ------------------------------------------------------
-//
-// Three properties the sequential `for` loop guaranteed for free and the pool has to hold on
-// purpose. Each is driven by an input a sequential loop CANNOT produce, so none of them can pass
-// by accident on a run that never actually interleaved.
+// ---- invariants a pool must hold on purpose, each driven by an input a loop cannot produce ----
 
 function scriptedControlledExecutor(
   script: Record<string, () => Promise<TestResult>>,
@@ -449,10 +423,7 @@ describe('ordering edge — outcome slots are index-addressed, not completion-or
     expect(calls).toEqual(['m0', 'm1', 'm2'])
     expect(finished).toEqual(['m2', 'm1', 'm0'])
 
-    // THE ASSERTION. `handoff.tests` is the durable per-member record; a reader takes member i as
-    // `tests[i]`. Appending in completion order would put m2's outcome in m0's slot — the T-402-07
-    // tampering surface, and one that no verdict-level assertion would notice because the multiset
-    // of outcomes is identical either way.
+    // A reader takes member i as `tests[i]`, so completion-order appends would misattribute.
     expect(completion.handoff.tests.map((t) => t.testIndex)).toEqual([0, 1, 2])
     expect(completion.handoff.tests.map((t) => t.testId)).toEqual(['m0', 'm1', 'm2'])
     expect(completion.handoff.tests.map((t) => t.outcome)).toEqual(['passed', 'failed', 'passed'])
@@ -519,17 +490,7 @@ describe('concurrency edge — cancelling the run while N members are in flight'
     // The bus is closed: nothing arrives after runFinished, and the run's own record agrees.
     expect(events.filter((e) => e.seq > last.seq)).toEqual([])
     expect(completion.handoff.tests.map((t) => t.testIndex)).toEqual([0, 1])
-    // Every member reached the aggregate: no slot was read before its member had written it.
-    //
-    // MEASURED LIMIT OF THIS CELL. It cannot discriminate "the terminal sequence waits
-    // for the pool to settle" from "it runs when the first worker drains". Cancel finalizes an
-    // in-flight member through the executor-vs-abort race, NOT through the executor, so every
-    // member finalizes within microtasks of the abort whatever the pool does — delaying one
-    // member's executor changes nothing, because the abort branch has already won its race. The
-    // claim is real and it IS pinned, by the fail-fast cell below and by the all-lane parity cell
-    // above: both red when `Promise.all` over the workers is weakened to `Promise.race`. Recorded
-    // here rather than papered over, because a cell that cannot fail for the reason its name gives
-    // is worth less than one that says so.
+    // This cell cannot tell when the terminal sequence runs; the fail-fast and parity cells pin it.
     expect(
       events.filter(
         (e) =>
@@ -542,14 +503,7 @@ describe('concurrency edge — cancelling the run while N members are in flight'
 
 describe('fail-fast under the pool — poisoning stops STARTS, not work in flight', () => {
   it('skips the queued member while the in-flight sibling runs to completion', async () => {
-    // The named plan decision (RESEARCH open Q1) in its only observable form. Members [0,1,2] in
-    // one failFastGroup at workers=2: m0 and m1 start together, m0 fails, m2 is then claimed and
-    // must never start, and m1 — already in flight when the poison landed — finishes normally.
-    //
-    // The sequential loop produces [m0 failed, m1 SKIPPED, m2 skipped] for this input. The pool
-    // produces [m0 failed, m1 PASSED, m2 skipped], in the finish order m0, m2, m1. Neither the
-    // outcome triple nor the finish order is reachable sequentially, so this cell cannot pass on a
-    // run that did not actually overlap.
+    // After the poison m2 never starts and in-flight m1 finishes, which no sequential run produces.
     const calls: string[] = []
     const events: RunEventEnvelope[] = []
     const finishedIds = (): string[] =>
@@ -693,15 +647,7 @@ function ownerOf(event: RunEventEnvelope): string | undefined {
   return undefined
 }
 
-/**
- * Executors that cannot all finish until all three have STARTED.
- *
- * That is the discriminating shape (402-02's idiom): under the pool every member reaches its
- * second emission after every other has reached its first, so the published stream interleaves.
- * Under any sequential execution the first member's drain budget expires without the others ever
- * starting, the emissions come out blocked per member, and the interleave assertion reds — this
- * cell cannot pass on a run that did not actually overlap.
- */
+// No executor finishes until all have started, so the cell fails on any sequential execution.
 function attributionExecutor(started: string[]): MemberTestExecutor {
   return async (member: RunMemberDescriptor, ctx: MemberTestRunContext) => {
     started.push(member.testId)

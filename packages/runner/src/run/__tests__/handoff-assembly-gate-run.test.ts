@@ -9,10 +9,7 @@ import type { RunConfig, RunMemberDescriptor } from '../ports.js'
 import type { TestResult } from '../../result.js'
 import { assembleHandoff } from '../handoff-assembly.js'
 
-// `gateRun` threads run config -> assembled handoff exactly like
-// the shipped `excludedFromOutcomes` marker — literal true is copied, absence stays absent
-// in the persisted JSON (the D-01 presence rule). The two markers are distinct axes
-// (RESEARCH Pitfall 5): a gate run is not an outcome-excluded run.
+// A gate run is not an outcome-excluded run: the markers are distinct axes.
 
 const scope: ScopeKey = { tier: 'suite', key: 'checkout' }
 const member: RunMemberDescriptor = {
@@ -95,12 +92,7 @@ describe('gateRun threading run config -> handoff', () => {
     const reloaded = guardCompletedRunHandoff(JSON.parse(JSON.stringify(handoff)))
 
     expect(reloaded.gateRun).toBe(true)
-    // The claim this case is FOR is that what the runner writes is what the guard accepts:
-    // the stamp survives the JSON round-trip and the guard's migration walk unrewritten.
-    // 387-02 replaced a hardcoded `4` here — the exact number belongs to the schema
-    // package, which pins it and the migration-key set by exact equality. Restating it in
-    // the runner only re-broke this case on every bump while asserting nothing the schema
-    // suite did not already assert more precisely.
+    // The schema package pins the version number, so the runner checks only the round trip.
     expect(handoff.schemaVersion).toBe(CURRENT_HANDOFF_SCHEMA_VERSION)
     expect(reloaded.schemaVersion).toBe(CURRENT_HANDOFF_SCHEMA_VERSION)
   })

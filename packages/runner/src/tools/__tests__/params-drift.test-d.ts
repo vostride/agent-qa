@@ -45,8 +45,7 @@ type WithSchemaInspectTab<T> = T extends { tab?: unknown }
 
 type ScrollParams = z.infer<typeof scrollSchema>
 type SwipeParams = z.infer<typeof swipeSchema>
-// The swipe direction branch now carries an emission `target` descriptor; the path
-// branch (coordinate gesture) does not.
+// The swipe direction branch carries an emission `target` descriptor; the path branch does not.
 type WithSwipeCompanions<T> = T extends unknown
   ? Omit<T, 'type'> & { elementDescription?: string | undefined } & (T extends { mode: 'direction' } ? { target?: EmittedTargetDescriptor } : unknown)
   : never
@@ -62,7 +61,7 @@ type RegistryWebInspectAction = WithActionType<'inspect', WithSchemaInspectTab<z
 type PlannedPinchAction = WithActionType<'pinch', WithEmittedRef<Extract<MobileAction, { type: 'pinch' }>>>
 type PlannedMultiTapAction = WithActionType<'multiTap', WithEmittedRef<Extract<MobileAction, { type: 'multiTap' }>>>
 
-// --- EMISSION world: tool inference now widens ref + adds target ---
+// --- emission world: tool inference widens ref and adds target ---
 expectTypeOf<z.infer<typeof fillSchema>['ref']>().toEqualTypeOf<Ref | undefined>()
 expectTypeOf<z.infer<typeof fillSchema>['target']>().toEqualTypeOf<EmittedTargetDescriptor | undefined>()
 expectTypeOf<ScrollParams['ref']>().toEqualTypeOf<Ref | undefined>()
@@ -78,7 +77,7 @@ expectTypeOf<PlannedPinchAction>().toMatchTypeOf<RegistryPinchAction>()
 expectTypeOf<RegistryMultiTapAction>().toMatchTypeOf<PlannedMultiTapAction>()
 expectTypeOf<PlannedMultiTapAction>().toMatchTypeOf<RegistryMultiTapAction>()
 
-// --- EXECUTION world: adapter-facing shapes stay ref-REQUIRED, target-free (Pitfall 2) ---
+// --- execution world: adapter-facing shapes keep ref required and carry no target ---
 expectTypeOf<Fill['ref']>().toEqualTypeOf<Ref>()
 expectTypeOf<PlannedFill['ref']>().toEqualTypeOf<Ref | undefined>()
 expectTypeOf<Extract<MobileAction, { type: 'tap' }>>().not.toHaveProperty('target')

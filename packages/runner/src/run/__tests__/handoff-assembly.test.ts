@@ -172,7 +172,6 @@ describe('handoff assembly instrumentation parity', () => {
     expect(JSON.parse(JSON.stringify(excluded))).toHaveProperty('excludedFromOutcomes', true)
   })
 
-  // the run's effective planner limits ride its own record to the acknowledgement.
   it('assembleHandoff copies RunConfig.plannerLimits verbatim and leaves it absent when absent', () => {
     const ordinaryConfig = {
       runId: 'run-limits' as RunId,
@@ -347,7 +346,7 @@ describe('StepEvidence.planSource marker', () => {
       guard: { checksPassed: 3, total: 3 },
     })
     expect(reloaded.tests[0].steps[1].planSource).toEqual({ kind: 'procedure-hint', procedureId })
-    // the D-12 separation: planSource never pollutes the cached-provenance surface
+    // planSource never touches the cached-provenance surface.
     expect(reloaded.tests[0].steps[0].cacheStatus).toBe('miss')
   })
 
@@ -369,12 +368,7 @@ describe('StepEvidence.planSource marker', () => {
   })
 })
 
-// masked-at-rest narration on the REAL-evidence arm. The masker here is
-// the product's OWN declared-secret `SecretRedactor`, over two declared values, so every assertion
-// is against the one `MaskFn` a run threads from `shell.ts` into both `assemblePerTestOutcome` and
-// `projectTestFinished` — never a stand-in that could answer "is this a secret" differently.
-// was the deleted masking context, which also minted `<EMAIL_n>`
-// for undeclared emails; the email is now a declared value, so each field is still masked.
+// The masker is the product's own declared-secret SecretRedactor, the one a run threads.
 describe('real step evidence is masked at rest', () => {
   const CREDENTIAL = 'zz-405-populated-secret-7f3a91c2'
   const EMAIL = 'qa-person@example.com'
@@ -479,7 +473,7 @@ describe('real step evidence is masked at rest', () => {
     expect('plan' in subAction).toBe(false)
     expect('result' in subAction).toBe(false)
     expect('reasoning' in step.verifierVerdict).toBe(false)
-    // What WAS there rides through untouched, including the G-381-3 carve-out.
+    // What is present rides through untouched.
     expect(subAction.plannedAction).toEqual(PLANNED_ACTION)
     expect(step.stepText).toBe(STEP_TEXT)
   })

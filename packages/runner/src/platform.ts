@@ -13,42 +13,18 @@ import type {
 } from '@vostride/agent-qa-schema'
 import type { ConsoleLogEntry, NetworkLogEntry } from './result.js'
 
-// the runner's action world IS the schema `ActionsFor<P>` projection. The
-// legacy runner-owned action union and its folded/runtime-only verb groups plus the local shape
-// declarations were demolished here — `Extract` keyed on the `type` string only, so the legacy
-// member shapes silently won over the schema shapes (RESEARCH §Type-Level Flip). The
-// planner-reachable surface is now the single schema truth; adapters read schema execution shapes.
-//
-// `RunnerRuntimeVerbs` names three schema action members that the runtime owns rather than the
-// planner catalog. It adds no union members:
-//   - executeScript serves author-facing variable resolution and hook plumbing
-//   - setVariable serves author-facing variable resolution and hook plumbing
-//   - stopApp is a schema action member with mobile adapter arms and no producer yet
+// Runtime-owned schema action members outside the planner catalog; they add no union members.
 export type RunnerRuntimeVerbs =
   | Extract<SchemaAction, { type: 'executeScript' }>
   | Extract<SchemaAction, { type: 'setVariable' }>
   | Extract<SchemaAction, { type: 'stopApp' }>
 
-// The runner action world = the schema union. Re-exported under the runner's historical
-// `Action` name so the ~40 runner-internal structural consumers keep importing from `./platform.js`.
+// The schema union under the runner's `Action` name, for runner-internal consumers.
 export type Action = SchemaAction
 
-// Platform-projected action surface = the schema projection verbatim. `desiredState` on
-// click/tap is now schema-owned (Plan 03), so no runner-side intersection widening is needed.
 export type ActionsFor<P extends Platform = Platform> = SchemaActionsFor<P>
 
-/**
- * An adapter's LIVE STREAM capability. The adapter owns the producer (a CDP screencast,
- * an MJPEG broadcaster, a WebRTC track, or a snapshot producer over a capture that is safe to run
- * beside a step); the runner owns nothing but this object, so no `Page` and no session handle ever
- * leaves the adapter. Lifecycle is lazy and refcounted by the run's {@link LiveStreamHub}: `start`
- * on the first viewer, `ack` per consumed frame (the producer's flow control), `stop` on the
- * last — idempotent, so a double stop is a no-op rather than a throw.
- *
- * The labelled 1s snapshot producer (`createSnapshotLiveStream`) sits behind this same contract
- * the composition registers it as the whole preview when an adapter has no continuous
- * stream, and as the fallback the hub starts when a continuous stream fails to start.
- */
+// No `Page` or session handle leaves the adapter; `stop` is idempotent.
 export interface LiveStreamCapability {
   readonly kind: LiveStreamKind
   start(onFrame: (frame: LiveFrame) => void): Promise<void>
@@ -79,10 +55,7 @@ export interface OperationCaptureSupport {
   reason?: string
 }
 
-/**
- * what the loop hands one dispatch. `remainingStepMs` is set only when
- * a step deadline is armed; adapters that run no post-action wait ignore both.
- */
+// `remainingStepMs` is set only when a step deadline is armed.
 export interface ExecuteOptions {
   remainingStepMs?: number
   abortSignal?: AbortSignal
@@ -96,30 +69,16 @@ export interface PlatformAdapter<P extends Platform = Platform> {
   observe(): Promise<ScreenState>
   execute(action: ActionsFor<P>, options?: ExecuteOptions): Promise<ActionResult>
   screenshot?(): Promise<Buffer | undefined>
-  /**
-   * the optional live-stream producer for this adapter's current target. ABSENT means
-   * "no continuous stream" (non-Chromium), not "no preview": the composition's
-   * `liveStreamFor` wraps `screenshot()` in the labelled 1s snapshot producer instead, and uses
-   * that producer as the fallback when a continuous stream fails to start. Only an
-   * adapter with neither reads `{ kind: 'none' }`. An adapter whose `screenshot()` mutates shared
-   * state (the mobile adapters switch the Appium context) must expose its own snapshot
-   * `liveStream` over a side-effect-free capture instead, so `screenshot()` is never wrapped.
-   */
+  // Absent means no continuous stream; an adapter whose `screenshot()` mutates state has its own.
   readonly liveStream?: LiveStreamCapability
   readonly recording?: RecordingCapability
-  /**
-   * which operation-specific captures this adapter runs. ABSENT means none; the loop
-   * then records both as unavailable, with `reason` or else 'platform'.
-   */
+  // Absent means none; the loop then records both as unavailable.
   readonly operationCaptureSupport?: OperationCaptureSupport
   drainConsoleLogs?(level?: string): ConsoleLogEntry[]
   drainNetworkLogs?(urlPattern?: string): NetworkLogEntry[]
-  /** the undrained network log, read without consuming it; the step-end drain still sees it. */
+  // Reads the undrained network log without consuming it; the step-end drain still sees it.
   peekNetworkLogs?(urlPattern?: string): NetworkLogEntry[]
-  /**
-   * the bytes of a completed download with this sha256, held in memory and bounded by
-   * the adapter; undefined when the adapter holds none (over its cap, evicted, or disposed).
-   */
+  // Held, bounded download bytes; undefined when over the cap, evicted or disposed.
   readDownloadBytes?(sha256: string): Uint8Array | undefined
 }
 

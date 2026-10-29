@@ -1,14 +1,4 @@
-// Pure toggle/picker idempotency comparator (Phase 359 · EXEC-04 · D-14/D-15 · spec §12.13).
-//
-// CRITICAL: provider-neutral + storage-neutral. No driver imports, no node:* imports, no live
-// probes. Judges ONLY the persisted grounded observation (the same settled ScreenState the
-// planner grounded against, Pitfall 10) — never re-observes. Suppresses an action on POSITIVE
-// evidence only: a missing/undefined state never satisfies. The dispatch-seam wiring
-// the D-16 oracle read land in Plan 08; this is the comparator they call.
-//
-// a tap/click is skipped only when the target is a classifier toggle
-// (`isToggleElement`) AND its checked state is positively read. All four desired states read
-// `state.checked`; `selected` alone never suppresses input, so an ordinary node is always tapped.
+// Suppresses only on positive persisted state from the settled observation, never a live probe.
 
 import { isToggleElement, type ScreenState } from '@vostride/agent-qa-schema'
 import type { IdempotentNoopMeta } from './metadata.js'

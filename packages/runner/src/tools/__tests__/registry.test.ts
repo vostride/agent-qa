@@ -548,8 +548,7 @@ describe('surface + id integrity', () => {
     const focusSchema = registry.getSchema('web_focus') as z.ZodObject<any>
     expect(focusSchema.safeParse({ ref: 'e1' }).success).toBe(true)
     expect(focusSchema.safeParse({ ref: 'e1', elementDescription: 'email field' }).success).toBe(true)
-    // ref is now optional because a target descriptor may replace it; the
-    // exactly-one-of ref/target rule is enforced at the Plan-04 grounding gate, not zod.
+    // A target may replace ref, so it is optional; the grounding gate checks the pair, not zod.
     expect(focusSchema.safeParse({ target: { role: 'textbox', name: 'Email' } }).success).toBe(true)
     expect(focusSchema.safeParse({ target: { name: 'Email' }, selector: '#email' }).success).toBe(false)
     expect(focusSchema.shape).toHaveProperty('ref')
@@ -741,8 +740,7 @@ describe('surface + id integrity', () => {
 
     expect(pinchSchema.safeParse({ scale: 2, ref: 'e1' }).success).toBe(true)
     expect(pinchSchema.safeParse({ scale: 2, x: 10, y: 20, coordSpace: 'viewport' }).success).toBe(true)
-    // the ref-branch ref is now optional (a target descriptor may replace it); the
-    // exactly-one-of ref/target rule is enforced at the Plan-04 grounding gate, not zod.
+    // A target may replace the ref-branch ref; the grounding gate checks the pair, not zod.
     expect(pinchSchema.safeParse({ scale: 2, target: { role: 'image', name: 'Map' } }).success).toBe(true)
     expect(pinchSchema.safeParse({ scale: 2, near: { nameNormalized: 'map' } }).success).toBe(false)
   })
@@ -754,7 +752,7 @@ describe('surface + id integrity', () => {
 
     expect(multiTapSchema.safeParse({ fingers: 2, ref: 'e1' }).success).toBe(true)
     expect(multiTapSchema.safeParse({ fingers: 3, x: 10, y: 20, coordSpace: 'content' }).success).toBe(true)
-    // the ref-branch ref is now optional (a target descriptor may replace it).
+    // A target descriptor may replace the ref-branch ref.
     expect(multiTapSchema.safeParse({ fingers: 2, target: { role: 'image', name: 'Canvas' } }).success).toBe(true)
     expect(multiTapSchema.safeParse({ fingers: 2, selector: '#canvas' }).success).toBe(false)
   })

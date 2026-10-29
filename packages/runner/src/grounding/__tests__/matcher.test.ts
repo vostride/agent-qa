@@ -1,18 +1,3 @@
-// RED scaffold (Wave 0, GROUND-01/02/03 · D-12/D-13/D-06). Pins the ratified matcher
-// precedence ladder BEFORE any matcher body exists. Imports `matchDescriptor` /
-// `MatchResult` / `DescriptorMatchInput` from ../matcher — the module is created by
-// Plan 03, so this file fails at import until then; that failure IS the intended RED.
-//
-// Contract pinned here (spec §12.17 / 357-RESEARCH Pattern 2):
-//   precedence: role+nameNormalized exact → nameNormalized exact → normalized-substring;
-//   no position selects: ≥2 survivors after the ladder and the hierarchy check
-//   ⇒ ambiguous, never a pick (the never-pick security property, T-357-01a);
-//   name-less ⇒ rejected
-//   'name-missing'; a `near`-bearing descriptor ⇒ rejected 'near-unsupported'
-//   (D-06 defensive backstop); raw `name` is normalized exactly once (Pitfall 6) while a
-//   pre-normalized `nameNormalized` is passed through untouched; prior-ElementInfo
-//   hierarchy disambiguation resolves an otherwise-ambiguous set by structural parent
-//   chain (role+nameNormalized), never raw parentRef equality (Pattern 4).
 import { describe, expect, it } from 'vitest'
 
 import { asRef } from '@vostride/agent-qa-schema'
@@ -87,7 +72,7 @@ describe('matchDescriptor — precedence ladder', () => {
 })
 
 describe('matchDescriptor — ordinal is a tiebreak only', () => {
-  // no position selects; a stray ordinal is never read.
+  // No position selects; a stray ordinal is never read.
   it('ordinal selects within the surviving result set', () => {
     const elements = [
       element('e1', 'button', 'add'),

@@ -10,10 +10,7 @@ type OriginStampedEntry = IndexEntry & {
   originClass?: 'agent-observed' | 'agent-verified' | 'import' | 'user'
 }
 
-/**
- * Cap learned summaries using JavaScript String.length (UTF-16 code units), the
- * BRIF-01 length contract. The ellipsis is part of the 140-code-unit maximum.
- */
+// Length is JavaScript String.length in UTF-16 code units, ellipsis included.
 export function renderCautionSummary(summary: string): string {
   if (summary.length <= MAX_LEARNED_SUMMARY_CODE_UNITS) return summary
 
@@ -96,8 +93,7 @@ export function renderBriefLine(
   }
 }
 
-// Channel-1 BriefLine carries no origin stamp or serving annotations.
-// D-06's approximate replay arm therefore adds neither annotations nor DATA wrapping.
+// A Channel-1 BriefLine carries no origin stamp, so replay adds no annotations or wrapping.
 export function renderObservationLine(line: BriefLine): string {
   return OBSERVATION_LINE_PREFIX + line.summary
 }
