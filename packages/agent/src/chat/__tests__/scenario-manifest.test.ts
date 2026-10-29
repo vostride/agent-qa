@@ -132,7 +132,7 @@ describe('the corpus manifest is versioned and internally coherent', () => {
     expect(Number(stated?.[2])).toBe(denominator('live'))
   })
 
-  it('records 394s arrival flip by name: two cells route, and two still refuse', () => {
+  it('records the authoring loop\'s arrival flip by name: two cells route, and two still refuse', () => {
     // D-08's FLIP LAW, made an assertion rather than a paragraph. The authoring loop registering
     // `authoring.draft.write` is what moves these lines, so a build that lost the op would red HERE
     // as well as in the parity walk — and a reader who found all four cells refusing would know the
@@ -150,7 +150,7 @@ describe('the corpus manifest is versioned and internally coherent', () => {
     expect(kindOf('pin-and-write-test')).toBe('fail_closed')
   })
 
-  it('records 395s config arrival by name: an ADMITTED live cell, not a flipped one', () => {
+  it('records the config-edit arrival by name: an ADMITTED live cell, not a flipped one', () => {
     // THE SAME LAW, EXECUTED THE OTHER WAY (395-09, D-16 / 392 D-08). The size pin above says the
     // corpus grew; this says WHAT it grew by, so a build that dropped the cell reds naming the
     // capability rather than reporting an off-by-one about a set.
@@ -167,7 +167,7 @@ describe('the corpus manifest is versioned and internally coherent', () => {
     expect(admitted?.kind).toBe('should_execute')
   })
 
-  it('records 398s explain arrival by name: TWO admitted live cells, one per question shape', () => {
+  it('records the explain arrival by name: TWO admitted live cells, one per question shape', () => {
     // THE SAME LAW AS 395's ROW ABOVE, applied to a pair. The size pin says the corpus grew by two;
     // this says WHAT it grew by, so a build that dropped either cell reds naming the shape of
     // question it stopped covering rather than reporting an off-by-one about a set.

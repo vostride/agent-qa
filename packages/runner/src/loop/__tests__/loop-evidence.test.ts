@@ -41,7 +41,7 @@ describe('loop evidence matrix', () => {
   // it is NOT duplicated here. The surviving stateAfter paths are covered by (3) and the
   // failed-then-recovered cell below.
 
-  it('(3) a verified sub-action gets the verifier re-observation as stateAfter (D-15b)', async () => {
+  it('(3) a verified sub-action gets the verifier re-observation as stateAfter', async () => {
     const before = makeScreenState({ url: 'https://example.test/before' })
     const after = makeScreenState({ url: 'https://example.test/after' })
     // The settle gate consumes two consecutive observations (identical screenIdentityHash —

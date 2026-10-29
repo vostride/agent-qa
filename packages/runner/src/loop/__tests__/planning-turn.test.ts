@@ -254,7 +254,7 @@ describe('executePlanningTurn', () => {
     expect(JSON.stringify(calls[1][0].messages)).not.toContain('memory.search')
   })
 
-  it('Test 3 (D-08a): the over-budget call gets the exhausted result; a further non-action-only response fails, no throw', async () => {
+  it('Test 3: the over-budget call gets the exhausted result; a further non-action-only response fails, no throw', async () => {
     const note = fakeNonActionTool()
     const withinBudget = Array.from({ length: DEFAULT_NON_ACTION_TOOL_BUDGET }, (_, index) => ({
       toolCalls: [nonActionCall('fake_note', { q: String(index + 1) })],
@@ -280,7 +280,7 @@ describe('executePlanningTurn', () => {
     ).toContain('Tool budget exhausted')
   })
 
-  it('Test 4 (D-08b): a text-only response triggers exactly one re-prompt then a planning failure', async () => {
+  it('Test 4: a text-only response triggers exactly one re-prompt then a planning failure', async () => {
     await scriptResponses([
       { toolCalls: [], usage: USAGE },
       { toolCalls: [], usage: USAGE },
@@ -297,7 +297,7 @@ describe('executePlanningTurn', () => {
     expect(JSON.stringify(calls[1][0].messages)).toContain('must call exactly one action tool')
   })
 
-  it('Test 5 (D-08c): [non-action, action, action] processes the first, terminates on the second, discards the third', async () => {
+  it('Test 5: [non-action, action, action] processes the first, terminates on the second, discards the third', async () => {
     const note = fakeNonActionTool()
     const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }
     await scriptResponses([
