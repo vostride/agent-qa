@@ -1,7 +1,4 @@
-// Claude Code 2.1.304 silently dropped the four fold
-// tools, whose listed input was a top-level oneOf with no properties. These cells read tools/list
-// off the wire and hold every listed input to one plain object, while a fold call is still refused
-// exactly as its strict union refuses it.
+// Claude Code drops a tool whose listed input is a top-level `oneOf`, so every input is one object.
 
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
 import { createMcpHandler, McpServer } from '@modelcontextprotocol/server'

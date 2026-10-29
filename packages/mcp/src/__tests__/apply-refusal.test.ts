@@ -1,26 +1,4 @@
-// The one-call change receipt, and the absence of the apply round.
-//
-// THIS FILE USED TO DRIVE `apply-refusal.ts`, the refuse-and-teach primitive in front of the two
-// MCP apply tools: a first call answered a refusal carrying the
-// proposal summary and the exact re-call, `confirmed: true` applied, and a SEP-2322 elicitation
-// form rode on connections that could answer it. 432-12 deletes that round with the tools: the
-// change tools write in the call and answer what they changed. Its claims transfer as follows.
-//
-//   first call commits nothing; apply invoked zero times  -> C432-MCP-DIRECT-RECEIPT: the change
-//                                                            tool applies on its one call, once
-//   summary read through the same invoke                  -> no second read: the port is reached once
-//   `confirmed` strict boolean; doctored one-shots        -> C432-MCP-NO-ELICITATION: `confirmed` is
-//                                                            not an input on any tool, refused at the
-//                                                            schema wall and at the op
-//   the form rides only where it can be answered          -> no form on any connection, including one
-//                                                            that declared elicitation
-//   refusal carried as data on its own arm                -> typed absence is data, a writer refusal
-//                                                            is a masked error
-//   dual-channel masking of the receipt                   -> kept: one masked serialization feeds
-//                                                            `structuredContent` and the text
-//
-// The sovereign mark door's credential refusal is not a confirmation round. It moved to
-// `masked-result.ts` and keeps its cells below until the permission wave removes it.
+// Change tools apply on one call; no tool takes `confirmed`, and no elicitation form is sent.
 
 import { existsSync } from 'node:fs'
 
@@ -35,11 +13,7 @@ import { buildAgentQaMcpServer } from '../catalog.js'
 import { maskedToolError } from '../masked-result.js'
 import { FORGET_RECEIPT_SCHEMA_VERSION, MASKED_RESOLVED_CONFIG_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 
-// RE-SPELLED 2026-10-01. The mark tool's handler-level credential refusal
-// left with the MCP bearer credential, and `createMarkToolHandler` with it: the mark tool goes
-// through the generic projection handler. The surviving claims are measured through the real
-// catalogue over a real client: the input reaches the one invoke unchanged, and both result channels
-// are masked from one serialization.
+// Through the generic handler: the input reaches one invoke and both result channels are masked.
 describe('a mark through the MCP catalogue needs no credential', () => {
   const MARK_INPUT = { runId: 'run-alpha', kind: 'false-fail', note: 'untrusted-input' } as const
 
@@ -78,10 +52,6 @@ describe('a mark through the MCP catalogue needs no credential', () => {
     expect(JSON.parse(text)).toEqual(outcome.result?.structuredContent)
     expect(session.frames.join('\n')).not.toContain(PLANTED)
   })
-  // RE-SPELLED 2026-10-01 from 'renders typed gate denials with neutral prose and only
-  // actionable MCP affordances'. The gate's denial error and its remedy vocabulary are deleted, so the
-  // MCP error result has no denial arm and no remedy projection: every refusal renders its own
-  // message, masked, and nothing is appended to it.
   it('renders every refusal as its own masked message, with no remedy appended', () => {
     const result = maskedToolError(new FunctionInputError('runs.mark', 'note: planted-secret'), text => text.replaceAll('planted-secret', '<SECRET>'))
     expect(result.content).toEqual([{ type: 'text', text: 'Invalid input for runs.mark: note: <SECRET>' }])
@@ -90,9 +60,9 @@ describe('a mark through the MCP catalogue needs no credential', () => {
   })
 })
 
-// ---- 432-12: a direct receipt through the real catalogue, and no confirm round --
+// ---- A direct receipt through the real catalogue, and no confirm round ----
 
-/** The MCP caller: since 432-21 it carries no credential, scope set or safe-mode flag. */
+// The MCP caller carries no credential, scope set or safe-mode flag.
 const TOKENLESS: FunctionCaller = { surface: 'mcp', origin: 'agent' }
 
 const PLANTED = 'sk-live-432-planted-secret'
@@ -244,7 +214,7 @@ describe('a knowledge change answers its receipt on the first call', () => {
 
 describe('no confirmation input, no elicitation, no apply round', () => {
   it('a client that can answer a form is never asked, and the change lands on its one call', async () => {
-    // an applied forget carries its forget receipt by rule.
+    // An applied forget carries its forget receipt by rule.
     const port = directDeps((request) => ({
       outcome: 'applied', verb: request.verb, operationId: '5a4b3c2d-1e0f-4a9b-8c7d-6e5f4a3b2c1d',
       recordIds: ['rec-alpha'],

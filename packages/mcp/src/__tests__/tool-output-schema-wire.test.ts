@@ -1,13 +1,4 @@
-// OUTPUT-WIRE-PROOF and FOLD-REFINEMENT (431-03 task 3 · D-07 · EDGE-05/06/07).
-//
-// Every cell drives a real `McpServer` through the SDK's in-process handler and a real
-// `@modelcontextprotocol/client`, whose `callTool` validates `structuredContent` against the
-// advertised `outputSchema` with its own JSON Schema validator. So a passing call proves three
-// things at once: the server's runtime validation, the advertised document, and the bytes between.
-//
-// The evidence fold is registered here on a probe tool rather than in the catalogue: the tool
-// itself lands in 431-04. Its config still comes from the shipped derivation (`toRegisterToolConfig`)
-// and its result from the shipped masked serializer (`maskedToolResult`).
+// The client checks `structuredContent` against the advertised schema, so a pass proves both ends.
 
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
 import { createMcpHandler, McpServer } from '@modelcontextprotocol/server'
@@ -35,8 +26,6 @@ type Json = Record<string, unknown>
 const TARGET = { target: 'draft-2020-12' } as const
 const caller: FunctionCaller = {
   surface: 'mcp', origin: 'agent',
-  // no credential; the mark tool's handler reads none.
-  // no `grantedScopes` or `safeMode` either; nothing reads them.
 }
 
 function handoff(runId: string, endedAt: number): CompletedRunHandoff {
@@ -82,7 +71,7 @@ function catalogClient(recorded: readonly CompletedRunHandoff[] = []): Promise<C
   }))
 }
 
-/** The list's rows, whichever protocol era the client negotiated: 2025-11-25 wraps an array root. */
+// The list's rows in either era: `2025-11-25` wraps an array root.
 function rowsOf(structuredContent: unknown): unknown[] {
   if (Array.isArray(structuredContent)) return structuredContent
   const wrapped = structuredContent as Json

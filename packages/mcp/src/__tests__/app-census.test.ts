@@ -1,64 +1,4 @@
-// THE APP-ATTACHMENT CENSUS, AND THE APP-LESS NEGOTIATION PATH
-//
-// WHY THIS FILE EXISTS. Two standing laws D-14 requires RECORDED rather than proven once:
-//
-//   1. WHICH TOOLS CARRY THE APP IS DATA, and the data and the wire agree. A tool advertising
-//      `_meta.ui.resourceUri` is a tool telling a host "there is a live view behind me" — which is
-//      a door onto the credential channel `app-resource.ts` guards. A third one appearing quietly
-//      is the failure this census exists to make loud.
-//   2. AN APP-LESS HOST STILL GETS A WORKING LINK, AND STILL GETS NO APP. D-09 makes "never a
-//      broken embed" structural: the link-out rides every carrier result for every host class,
-//      and the App attaches only where the extension was negotiated. Both halves are asserted in
-//      ONE flow here, because either alone is satisfiable by a surface that is wrong.
-//
-// THE 399.1 LESSON, AND WHY IT SHAPES EVERY LINE BELOW. The carrier set is DERIVED, twice,
-// from shipped data — once from `AGENT_QA_TOOL_PROJECTIONS`' declared `ui` member and once from a
-// driven `tools/list` document — and the two derivations are compared to each other. A cell that
-// spelled the pair as two literals would agree with a mapping that had silently grown a third
-// carrier, which is precisely the shape 399.1 taught: a census restated as a constant censuses the
-// constant. The one thing this file DOES pin as a literal is that the derived set is not empty,
-// because two empty sets are equal and that is the way a derived census lies.
-//
-// WHAT PLAN 02 ACTUALLY SHIPPED, AND THEREFORE WHICH BRANCH `(C3)` ASSERTS (recorded 2026-08-31,
-// from 408-02-SUMMARY.md decision D-F). The plan carried a contingency: if per-request client
-// capabilities turned out to be unreadable at the resource-read seam, the App-absent claim would
-// have had to be asserted as an UNLISTED template plus an inert declaration — absence by
-// non-enumeration. That contingency did NOT fire. The capabilities ARE readable at
-// `ctx.mcpReq.envelope['io.modelcontextprotocol/clientCapabilities'].extensions`, measured over a
-// real socket, so the PRIMARY branch shipped: a non-negotiated `ui://` read is REFUSED by name,
-// before anything is minted. `(C3)` therefore asserts the refusal.
-//
-// AND MEASURING THE FALLBACK'S REACH WAS WORTH THE LINE IT COST. `(C3)` also asks what
-// `{ list: undefined }` alone buys, and the answer is narrower than "the address is undiscoverable":
-// no CONCRETE `ui://agent-qa/live-run/<runId>` is enumerable — `resources/list` names none — but
-// the TEMPLATE is advertised on `resources/templates/list`, exactly as the six entity templates
-// are, and by design (a host must be able to see an App exists in order to ask for it, 408-03 D-L).
-// So the contingency branch, had it fired, would NOT have made the App un-obtainable: a caller who
-// read the template listing and knew any run id could have expanded it by hand. What makes the App
-// un-obtainable is clause 3 of the ruling, not clause 2. That is recorded here rather than left as
-// a surprise for whoever next reaches for "unlisted" as a security property.
-//
-// THE MODERN-ERA CONSTRAINT IS INHERITED, NOT RE-LITIGATED (408-02 D-G, WINDOWS 318). The
-// negotiating control below constructs its client with `versionNegotiation: { mode: 'auto' }`
-// because the capabilities envelope exists only on the 2026-07-28 wire era. Without it this file
-// would measure plan 02's correct fail-closed refusal and read it as a defect.
-//
-// THE MUTATION LEGS, APPLIED AND THEIR REDS OBSERVED — a leg nobody ran is a leg
-// nobody knows the strength of, so each was applied to its subject and the subject then restored:
-//   M1  A THIRD CARRIER ROW in `mapping.ts` (`agent_qa_list_runs` given a `ui` declaration).
-//       Declared with `runIdFrom: 'output'` on a read-only op -> `(C2)` red BY NAME
-//       ("agent_qa_list_runs reads its runId off the wrong source"). Declared CONSISTENTLY
-//       (`'input'`) it passes here — and reds `projection-fidelity.test.ts`'s pinned census
-//       instead. THAT DIVISION OF LABOUR IS DELIBERATE and is why this file does not restate the
-//       pair: that census owns "the carrier set may not GROW without somebody saying so"; this file
-//       owns "the table and the wire may not DISAGREE", which is the failure a pin cannot see.
-//   M2  `projection.ts` stops deriving `_meta` from the declaration -> `(C1)` red by name: the
-//       table names two carriers and the advertised document names none.
-//   M3  `app-resource.ts`'s negotiation gate short-circuited (the read serves everybody) ->
-//       `(C3)` red: "the App-less client obtained the App".
-//   M4  `catalog.ts`'s `liveLinkLineFor` call replaced by a bare `liveLinkLine(liveRunLinkOf(base
-//       ?? '', ...))` composition -> `(C4)` red: a base-less host composes the relative fragment
-//       `watch live or review: /runs/<id>/live` instead of naming the absence.
+// Carriers are derived from the table and `tools/list`; an App-less host gets the link, no App.
 
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { createServer } from 'node:http'
@@ -106,8 +46,7 @@ const SIGNING_KEY = 'zz-408-04-app-census-signing-key'
 const DASHBOARD_BASE = 'http://localhost:4108'
 const HANDLES: readonly number[] = [0]
 
-// the scope union is deleted, so the retired names are spelled by
-// hand here and handed to the caller as a smuggle, cast past the deleted field; nothing reads them.
+// The retired scope names are spelled by hand and cast past the type; nothing reads them.
 const EVERY_SCOPE: readonly string[] = [
   'read', 'run', 'config-write', 'knowledge-write', 'approval-write', 'test-write',
 ]
@@ -221,13 +160,7 @@ describe('which tools carry the App is census-pinned DATA', () => {
       expect(declaration, `${projection.name} names an op the registry does not declare`)
         .toBeDefined()
 
-      // THE RULE, DERIVED RATHER THAN TABULATED. An op that MAKES a run cannot have been told the run
-      // id — the run did not exist when the caller called, so the only honest source is the op's own
-      // OUTPUT. An op that merely READS about a run was told which one, so its source is the
-      // validated INPUT. Plan 03's decoration trusts exactly this datum to find the concrete runId,
-      // so a swapped source decorates a result with a reference to a run nobody asked about.
-      // "makes the run" was read off the `run` scope; declarations carry no scopes,
-      // so it is read off the risk descriptor — a carrier that is not a declared read made the run.
+      // An op that makes the run finds its id in its output; a read is told it, so in its input.
       const makesTheRun = declaration!.risk.readOnly !== true
       expect(projection.ui?.runIdFrom, `${projection.name} reads its runId off the wrong source`)
         .toBe(makesTheRun ? 'output' : 'input')
@@ -297,25 +230,9 @@ function handoff(): CompletedRunHandoff {
   }
 }
 
-/**
- * A composition that CAN honestly serve the App — a bound `liveView` with a real signer.
- *
- * This is what makes `(C3)` a statement about NEGOTIATION rather than about the D-03 registration
- * floor: on a host with no live view the App is absent for every caller, so an App-less cell over
- * such a host would pass while proving nothing. The negotiating control in `(C3)` is what pins
- * that the App really is obtainable here.
- */
+// A bound live view with a real signer, so an App-less cell measures negotiation, not the floor.
 function liveRegistry(): FunctionRegistry {
-  // WR-07, THIS FILE'S HALF (408-13; the shape 408-12 established). ANCHORED TO THE REAL CLOCK
-  // rather than pinned to the literal `1_800_000_000_000`, which IS 2027-01-15T08:00:00Z: the
-  // `ui://` read renders without an explicit `now`, so `renderAppWrapperPage` falls back to
-  // `Date.now()`, and a fixture clock pinned to a fixed epoch silently becomes an EXPIRED render
-  // once real time passes it. `(C3)`'s positive control would then assert `FIXTURE_ORIGIN` is in a
-  // document that carries nothing at all — and every App-less cell above it would stop being a
-  // statement about NEGOTIATION and become a statement about an empty render, which is the vacuity
-  // this control exists to prevent. THE GATE ON THIS RELATIONSHIP IS `(A10)` IN
-  // `token-absence.test.ts`, which renders under a stubbed system clock past 2027-01-15;
-  // if you change this clock, that is where the alarm lives.
+  // Real clock: the read renders with `Date.now()`, so a fixed epoch expires the render later.
   let clock = Date.now()
   const liveView: LiveViewPort = {
     signer: fixtureSigner(),
@@ -341,21 +258,14 @@ function liveRegistry(): FunctionRegistry {
   return createFunctionRegistry({ deps })
 }
 
-/**
- * Serve the shipped node handler on loopback.
- *
- * A REAL socket, for plan 02's measured reason: the per-request client-capabilities envelope the
- * negotiation gate reads is lifted by the transport, so the App-less and App-capable legs differ in
- * one observable fact only when they travel a wire.
- */
+// A real socket: the capabilities envelope arrives only over a wire, so the legs differ there.
 async function serveLiveHost(options: { readonly base?: string } = {}): Promise<string> {
   const registry = liveRegistry()
   const handler = createAgentQaMcpNodeHandler(() => ({
     registry,
     caller: callerWith(['read', 'run']),
     maskText: identity,
-    // `base: undefined` drops the supplier ENTIRELY — the shape a standalone host with no
-    // dashboard anywhere is in, which is `(C4)`'s subject.
+    // `base: undefined` drops the supplier, as on a standalone host with no dashboard.
     ...(options.base === undefined ? {} : { liveLink: { dashboardBaseUrl: () => options.base } }),
   }))
   const server = createServer((req, res) => void handler(req as never, res as never))
@@ -408,40 +318,25 @@ describe('an App-LESS host gets the link and NOT the App, in one flow', () => {
       const url = await serveLiveHost({ base: DASHBOARD_BASE })
       const stranger = await connect(url, { apps: false })
 
-      // HALF ONE — the link rides EVERY carrier result, for a host that negotiated nothing. This
-      // is what makes "never a broken embed" structural rather than detected.
+      // The link rides every carrier result, even for a host that negotiated nothing.
       const results = await callBothCarriers(stranger)
       expect(results).toHaveLength(2)
       for (const result of results) {
         expect(result.isError ?? false, JSON.stringify(textsOf(result))).toBe(false)
         expect(textsOf(result), 'a carrier result reached an App-less host with no link line')
           .toContain(liveLinkLine(liveRunLinkOf(DASHBOARD_BASE, FIXTURE_RUN_ID)))
-        // The advertisement is inert metadata and rides along regardless (408-03 D-L) — what is
-        // gated is the READ, below.
+        // The advertisement is inert metadata and rides along; only the read is gated.
         expect(resourceUriOf(result)).toBe(appResourceUriFor(FIXTURE_RUN_ID))
       }
 
-      // HALF TWO — and the App is NOT obtainable. The PRIMARY branch plan 02 shipped: refused by
-      // name, before anything is minted.
+      // Half two: the App is not obtainable, refused by name before anything is minted.
       const refusal = await stranger
         .readResource({ uri: appResourceUriFor(FIXTURE_RUN_ID) })
         .then(() => undefined, (error: unknown) => error)
       expect(refusal, 'the App-less client obtained the App').toBeDefined()
       expect(String((refusal as Error).message)).toContain(MCP_APPS_EXTENSION_ID)
 
-      // WHAT `{ list: undefined }` ACTUALLY BUYS, MEASURED — and it is less than the
-      // contingency branch would have needed. No CONCRETE `ui://agent-qa/live-run/<runId>` address
-      // is enumerable: `resources/list` names none, so nothing can walk a listing to a readable
-      // address for a particular run. The TEMPLATE, however, IS advertised on
-      // `resources/templates/list`, exactly as the six entity templates are — and that is by
-      // design rather than by oversight, because a host must be able to SEE that an App exists in
-      // order to ask for it (408-03 D-L, the same argument that leaves `_meta` inert-but-present).
-      //
-      // So discovery alone would NOT have made the App un-obtainable, which is worth recording
-      // here: had plan 02's contingency fired, "unlisted template + inert declaration" would have
-      // left a caller who read `resources/templates/list` and knew any run id able to expand the
-      // template by hand. What makes the App genuinely un-obtainable is the refusal asserted
-      // immediately above — clause 3 of the ruling, not clause 2.
+      // No concrete run address is enumerable, though the template itself is listed.
       const listed = JSON.stringify(await stranger.listResources())
       expect(listed, 'a concrete live-run address is enumerable').not.toContain(
         'ui://agent-qa/live-run/',
@@ -450,9 +345,7 @@ describe('an App-LESS host gets the link and NOT the App, in one flow', () => {
       expect(templates, 'the App template stopped being discoverable — a host cannot ask for it')
         .toContain(APP_RESOURCE_URI_TEMPLATE)
 
-      // THE POSITIVE CONTROL, and without it this whole cell is vacuous: on THIS host, a client
-      // that DID negotiate obtains the App. So the absence above is the negotiation gate's doing
-      // and not the D-03 registration floor's.
+      // Positive control: a negotiating client obtains the App, so the absence above is the gate's.
       const host = await connect(url, { apps: true })
       const served = (await host.readResource({
         uri: appResourceUriFor(FIXTURE_RUN_ID),
@@ -476,8 +369,7 @@ describe('an App-LESS host gets the link and NOT the App, in one flow', () => {
       expect(textsOf(result).some((text) => text.includes('http'))).toBe(false)
     }
 
-    // The absence is the LINK, not the App: the concrete reference still rides the result, because
-    // a host that cannot be given a browser page can still be told an App exists (408-03 D-L).
+    // Only the link is absent; the concrete App reference still rides the result.
     const [, digest] = await callBothCarriers(stranger)
     expect(resourceUriOf(digest!)).toBe(appResourceUriFor(FIXTURE_RUN_ID))
   })

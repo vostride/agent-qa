@@ -1,81 +1,4 @@
-# MCP conformance baseline — the expected-failures ratchet for `agent-qa mcp`.
-#
-# ┌────────────────────────────────────────────────────────────────────────────────────────────┐
-# │ suite pin        @modelcontextprotocol/conformance@0.2.0-alpha.11                          │
-# │ requirement set  2026-07-28 (frozen at that revision's release; 37 required server         │
-# │                  scenarios + 13 run-but-not-scored)                                        │
-# │ run date         2026-08-16                                                                │
-# │ score            9/37 required server scenarios passed (24.3%)                             │
-# │ entries below    34                                                                        │
-# └────────────────────────────────────────────────────────────────────────────────────────────┘
-#
-# RAW COUNTS, NOT A RATE. 9 of 37 is the number; the percentage only ever appears beside the two
-# integers that produced it. A rate on its own hides a shrinking numerator and a shrinking
-# denominator equally well, and this project has paid for that lesson (the frozen-denominator law).
-#
-# HOW THIS FILE IS USED. `scripts/mcp-conformance.sh` passes it to the suite as `--expected-failures`
-# and the suite's OWN exit code is the gate — there is no wrapper differ:
-#
-#     fails and IS listed here   -> exit 0   (known, ratcheted)
-#     fails and is NOT listed    -> exit 1   (a REGRESSION — this is what CI reds on)
-#     PASSES and IS listed here  -> exit 1   (stale entry — delete the line, in a reviewed commit)
-#     passes and is not listed   -> exit 0
-#
-# The score level gates NOTHING. There is no threshold in the script, in the workflow, or here.
-# "Know the number, don't hit one".
-#
-# NOTHING AUTO-EDITS THIS FILE. CI never commits. Every line below, and every deletion of one, is a
-# deliberate reviewed change — which is the only reason the number above can be trusted.
-# `bash scripts/mcp-conformance.sh --mint-baseline` prints a fresh body for a human to diff in.
-#
-# ENTRY FORMAT: `- <scenario>:<check-id>`, PER CHECK and with NO SPACE after the colon (a space
-# makes it a YAML map and the suite refuses the file). Per-check rather than per-scenario on
-# purpose: `server-stateless` runs 28 checks of which 24 pass, and a whole-scenario entry would
-# silently absolve those 24 forever. A scenario entry and a check entry for the same scenario is an
-# error the suite raises, so this file is uniformly per-check.
-#
-# A CHECK IS BASELINE-RELEVANT AT `FAILURE` **OR** `WARNING`. Two scenarios below print as a green
-# tick in the run summary and still owe an entry, because the summary counts only `FAILURE` and the
-# ratchet counts both.
-#
-# ─────────────────────────────────────────────────────────────────────────────────────────────────
-# WHY EACH ENTRY IS HERE. Every one of the 34 falls into exactly three declared classes. None of
-# them is "a bug we have not got to"; each is a consequence of a ratified decision, named below.
-#
-#   [A] THE SUITE DRIVES ITS OWN DIAGNOSTIC FIXTURE SURFACE — 26 entries.
-#       The conformance server scenarios are written against the reference "everything server" and
-#       call tools by fixture name: `test_simple_text`, `test_image_content`, `test_audio_content`,
-#       `test_embedded_resource`, `test_multiple_content_types`, `test_error_handling`,
-#       `test_tool_with_progress`, `test_missing_capability`, `test_logging_tool`,
-#       `test_streaming_elicitation`, `test_input_required_result_*`; and read resources at
-#       `test://static-text`, `test://static-binary`, `test://template/123/data`.
-#       This server exposes none of them and must not. Every tool it registers is a pure projection
-#       of a registry op, and minting MCP-local capabilities with no op behind them is
-#       precisely the private power the milestone abolishes. Adding a `test_simple_text` tool
-#       to raise this score would be the worst thing this file could cause.
-#       NOTE ON THE 12 `input-required-result-*` ENTRIES: they are NOT "this server does not do
-#       SEP-2322". It does — `agent_qa_apply_proposal` returns a real `InputRequiredResult` and
-#       396-06 drove the full round trip to a commit over a client that declared `elicitation`. The
-#       suite's MRTR probes are simply addressed to fixture tools that do not exist here.
-#
-#   [B] SURFACES THIS PHASE DELIBERATELY DOES NOT SHIP — 7 entries.
-#       `prompts/*`: D-14, no prompts on the new server — the authoring brief reaches callers as
-#       DATA through the authoring-funnel tool, and 398's build-time capability catalog owns
-#       discoverability. The v1 `agent_qa_authoring_context` prompt's retirement is in the deletion
-#       inventory. `completion/complete`: no registry op behind it and none designed; it was never
-#       in the projected set.
-#
-#   [C] THE STATELESS NON-GOAL — 1 entry.
-#       MCPS-07 states a stateful server as an explicit non-goal and SEP-2575 is the spec's own
-#       posture. There is no subscription stream to deliver `notifications/tools/list_changed` on,
-#       and D-10 ships no session id and no persistent SSE.
-#
-# WHAT THE SUITE IS SERVED. The conformance client presents no `Authorization` header and the CLI
-# has no flag to make it present one, so every request is answered on the D-07 DEFAULT GRANT:
-# everything except `config-write`. The suite therefore sees 10 of the 12 tools; the two config
-# tools are ABSENT by the D-05 visibility law, and that absence is the law working rather than a
-# gap. `tools-list` passes 3/3 over those ten.
-# ─────────────────────────────────────────────────────────────────────────────────────────────────
+# Expected failures: [A] fixtures, [B] unshipped, [C] stateless; no space after an entry's colon.
 
 server:
   # [A] server-stateless: three diagnostic tools this server does not expose.
@@ -98,14 +21,12 @@ server:
   - tools-call-error:tools-call-error
   - tools-call-with-progress:tools-call-with-progress
 
-  # [A] the resource reads are addressed to the suite's own `test://` URIs. This server's templates
-  #     are the six `agentqa://<kind>/{id}` forms and `resources-list` /
-  #     `sep-2164-resource-not-found` both PASS over them.
+  # [A] the reads target the suite's own `test://` URIs, not this server's entity templates.
   - resources-read-text:resources-read-text
   - resources-read-binary:resources-read-binary
   - resources-templates-read:resources-templates-read
 
-  # [B] D-14: no prompts.
+  # [B] no prompts.
   - prompts-list:prompts-list
   - prompts-get-simple:prompts-get-simple
   - prompts-get-with-args:prompts-get-with-args

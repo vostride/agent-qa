@@ -1,39 +1,4 @@
-// The advertised contract IS the enforced contract.
-//
-// WHY THIS FILE READS OFF A SERVER AND NOT OFF THE MAPPING. `projection-layers.test.ts` drives the
-// derivation directly; that is the right shape for the derivation's edge cases and the wrong shape
-// for this claim, because a derivation that is never registered proves nothing about what a caller
-// receives. Every cell below builds a real `McpServer` through the shipped factory, drives a real
-// `@modelcontextprotocol/client` over the SDK's own in-process handler, and asserts against the
-// `tools/list` document that came back off the wire.
-//
-// WHAT MAKES THE DRIFT CELL A DETECTOR RATHER THAN A TAUTOLOGY. Comparing the advertised schema
-// against a conversion of the SAME object would be comparing a thing to itself: D-16 makes them one
-// object on purpose, so that comparison cannot fail and cannot detect. The independent side is the
-// FUNCTION LAYER'S OWN inert projection — `declaration.input` / `declaration.output`, produced by
-// `packages/agent`'s `toSchemaProjection` from the spec it dispatches with, by a different code path
-// in a different package. Two derivations, two packages, one document. What that catches is the
-// failure that can actually happen here: the mapping table naming the WRONG contract for an op, at
-// which point the tool advertises one capability's shape and validates with another's.
-//
-// MUTATION LEGS — the acceptance bar, measured by the phase's mutation driver (since removed).
-// Applied to `packages/mcp/src/mapping.ts`, suite re-run, subject restored from a sha-256-proven
-// byte snapshot. Observed 2026-08-16:
-//
-//   P1  `runs.digest`'s contract entry re-pointed at the proposals-list contracts   -> RED (1 cell)
-//       (2026-09-30, 432-12: the proposals-list contract left the table; the leg's analog is any
-//       other read contract, and the 432-45 mutation owner re-points it.)
-//   P2  the pipeline's advertised input swapped for its SECOND arm's contract       -> RED (1 cell)
-//   P3  `agent_qa_start_run` removed from `DEGRADED_OUTPUT_CONTRACTS`               -> RED (8 cells)
-//   P4  the config fold's advertised input swapped for the knowledge fold's         -> RED (2 cells)
-//
-// P2 WAS MEASURED GREEN FIRST, and the cell that now catches it was written because of that. See
-// the identity cell below for what a document comparison cannot see.
-//
-// P3 IS THE OTHER ONE TO READ. Removing one entry from a declared degradation list does not break a
-// schema — it makes `buildAgentQaMcpServer` refuse, which is the point: left to the SDK the same
-// contract throws inside `tools/list` and takes the entire listing down for every caller, with
-// nothing in the exception naming the tool that caused it.
+// Compares the wire `tools/list` against the function layer's own projection from another package.
 
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
 import { createMcpHandler } from '@modelcontextprotocol/server'
@@ -47,12 +12,7 @@ import type { FunctionCaller } from '@vostride/agent-qa-schema'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { buildAgentQaMcpServer } from '../catalog.js'
-// the three normalisations this file authored now live beside the
-// package's other source, because 397's conformance suite compares the same two sides from
-// `packages/cli` and may not reach into another package's tests. They are consumed here rather
-// than kept here so exactly ONE lens exists — the copy that drifts looser is the copy that passes
-// over real drift, and nothing would have compared two copies to each other. Their docstrings
-// travelled with them; read those before widening any of the three.
+// The normalisations live in `conformance-support.ts` so the cli conformance suite shares one lens.
 import {
   armWithoutDiscriminant,
   foldArmFindings,
@@ -89,8 +49,7 @@ function callerWith(grantedScopes: readonly string[]): FunctionCaller {
   return { surface: 'mcp', grantedScopes, safeMode: false, origin: 'agent' } as FunctionCaller
 }
 
-// the scope union is deleted, so the retired names are spelled by
-// hand here and handed to the caller as a smuggle, cast past the deleted field; nothing reads them.
+// The retired scope names are spelled by hand and cast past the type; nothing reads them.
 const EVERY_SCOPE: readonly string[] = [
   'read', 'run', 'config-write', 'knowledge-write', 'approval-write', 'test-write',
 ]
@@ -101,13 +60,7 @@ afterEach(async () => {
   for (const client of openClients.splice(0)) await client.close().catch(() => {})
 })
 
-/**
- * Build a server for one caller and read its `tools/list` off the wire.
- *
- * The SDK's own in-process `handler.fetch` driver, exactly as the phase tracer uses it: the only
- * thing replaced is the socket. A cell asserting against a hand-assembled listing would be
- * measuring this file's idea of the protocol rather than the protocol.
- */
+// Builds a server for one caller and reads its `tools/list` through the in-process driver.
 async function advertise(
   grantedScopes: readonly string[] = EVERY_SCOPE,
 ): Promise<readonly AdvertisedTool[]> {
@@ -149,9 +102,6 @@ describe('the advertised catalogue is what the mapping declares', () => {
     )
   })
 
-  // RE-SPELLED 2026-10-01 from 'advertises only the read tools to a caller granted
-  // only read'. The D-05 visibility law is deleted, so a read-only caller receives every declared
-  // tool, in the declared order — the same listing a caller granted everything receives.
   it('advertises every declared tool to a caller granted only read, as to every caller', async () => {
     const advertised = await advertise(['read'])
     expect(advertised.map((tool) => tool.name)).toEqual(
@@ -173,9 +123,7 @@ describe('the advertised schema equals the function layer\'s own projection', ()
       const tool = advertised.get(projection.name)
       expect(tool, projection.name).toBeDefined()
 
-      // the D-11 apply doors are gone, so every tool's input is its op's own
-      // contract. 2026-10-01: the mark door's `op outcome OR credential refusal`
-      // output left with the bearer credential, so its output is its op's own too.
+      // Every tool's input and output is its op's own contract.
       const composition = compositionOf(projection)
       const inputComparable = true
 
@@ -187,8 +135,7 @@ describe('the advertised schema equals the function layer\'s own projection', ()
         checked += 1
       }
 
-      // a fold lists one object, so each arm is checked twice — the
-      // listing covers it, and the composed union the call is validated with carries it whole.
+      // A fold lists one object, so each arm is checked in the listing and in the composed union.
       if (inputComparable && composition === 'union') {
         const listed = withoutDialect(tool!.inputSchema)
         const composed = advertisedContracts(projection)!.input['~standard'].jsonSchema.input({
@@ -235,35 +182,11 @@ describe('the advertised schema equals the function layer\'s own projection', ()
       }
     }
 
-    // Integrity: the loop above would pass vacuously over an empty advertisement, and a cell that
-    // can pass by checking nothing is the cell most likely to. The arithmetic, so a future reader
-    // can tell a real change from a broken loop:
-    //   inputs  — 11 single/pipeline/mark tools + 12 fold arms (2 + 7 + 3) = 23
-    //   outputs — 16 tools less the 2 declared degradations               = 14
-    // the two feedback read tools add one input and one output each.
-    // `agent_qa_list_runs` leaves the degradation list and its output is
-    // compared too, through the 2025-11-25 codec's `{ result }` wrap around its array root.
-    // seven single reads add one input and one output each (14), and
-    // the evidence fold adds two arm inputs and one output (3).
-    // the two proposal reads leave (-2 inputs, -2 outputs), the two apply
-    // doors leave (-2 outputs; their authored inputs were never compared), and the config fold loses
-    // its undo arm (-1 input): 16 single/pipeline/mark inputs + 13 fold arms + 19 outputs = 48.
+    // One input per non-fold tool and per fold arm, plus one output per tool not degraded.
     expect(checked).toBe(48)
   })
 
-  // IDENTITY, NOT AGREEMENT — and this cell exists because the one above it was measured BLIND to
-  // the case it covers. Leg P2 re-points the pipeline's advertised input at its SECOND arm's
-  // contract; `entities.resolve` and `entities.get` both take `{ ref: string }`, so the two
-  // documents are byte-identical and the drift cell stayed GREEN under a tool advertising one
-  // object while `invokeFunction` validated with another. Two contracts that agree TODAY are
-  // exactly the pair D-16 refuses to rely on: the day `entities.get` gains a field, the tool
-  // advertises it and the op it actually calls refuses it.
-  //
-  // Union folds are excluded and the exclusion is structural rather than a gap: a composed union is
-  // a NEW object by construction, so identity cannot hold for one. What stands in for it there is
-  // the pair of produced checks that bracket it — `tool-input-schema-shape.test.ts` reads the arm
-  // literals back out of the listed fold schema, and the drift cell above compares each advertised
-  // arm against that arm op's own projection.
+  // Two contracts can agree today and drift tomorrow, so the pipeline is held to object identity.
   it('advertises the op\'s OWN contract object, not one that merely agrees with it', () => {
     let checked = 0
     for (const projection of AGENT_QA_TOOL_PROJECTIONS) {
@@ -272,34 +195,26 @@ describe('the advertised schema equals the function layer\'s own projection', ()
       expect(advertised, projection.name).toBeDefined()
       const own = AGENT_QA_OP_CONTRACTS[projection.ops[0]!]!
 
-      // the mark door no longer advertises a composed `anyOf` with a
-      // credential-refusal arm, so it is held to identity like every other single tool.
+      // The mark door is held to identity like every other single tool.
       expect(advertised!.input, `${projection.name} input identity`).toBe(own.input)
       expect(advertised!.output, `${projection.name} output identity`).toBe(own.output)
       checked += 2
     }
-    // 10 non-union, non-apply tools contributing both sides (423-21 D-18 adds the two feedback reads).
-    // the seven single discovery reads make it 17.
-    // the two proposal reads leave, so 15.
-    // the mark door joins, its composed refusal arm gone, so 16.
+    // One input and one output per non-union tool.
     expect(checked).toBe(32)
   })
 
-  // Pitfall 3, and the field-level half of D-16's "descriptions live on the zod schemas" clause.
-  // Prose attached to a contract in `@vostride/agent-qa-schema` has to survive the extend, the
-  // discriminated union, the SDK's converter and the wire; each of those is a place it could be
-  // dropped without any shape changing.
+  // A field description must survive the extend, the union, the SDK converter and the wire.
   it('carries a field description from the zod contract all the way to the wire', async () => {
     const advertised = new Map((await advertise()).map((tool) => [tool.name, tool]))
-    // the fold lists one object, so the prose rides its `action` field.
+    // The fold lists one object, so the prose rides its `action` field.
     const fold = withoutDialect(advertised.get('agent_qa_change_config')!.inputSchema)
     const discriminant = (fold.properties as JsonDocument).action as JsonDocument
 
     expect((discriminant.enum as readonly string[])[0]).toBe('config.field.set')
     expect(discriminant.description).toContain('Which registry operation this call is for')
 
-    // the apply doors' authored envelope is gone with them, so the second
-    // conversion route has no tool on it. The knowledge change fold carries the same prose.
+    // The knowledge change fold carries the same prose.
     const knowledge = withoutDialect(advertised.get('agent_qa_change_knowledge')!.inputSchema)
     const knowledgeDiscriminant = (knowledge.properties as JsonDocument).action as JsonDocument
     expect((knowledgeDiscriminant.enum as readonly string[])[0]).toBe('knowledge.accept')
@@ -333,14 +248,7 @@ describe('degradation is explicit, never a silently narrowed document', () => {
     }
   })
 
-  // THE RECORD IS RE-MEASURED, NOT TRUSTED. `DEGRADED_OUTPUT_CONTRACTS.measured` claims to hold the
-  // converter's own words as observed on 2026-08-16. This runs the same conversion the SDK runs
-  // inside `tools/list` and compares what it actually throws — so a converter that starts refusing
-  // for a DIFFERENT reason, or stops refusing, reds here instead of leaving a stale sentence in the
-  // description a caller reads.
-  //
-  // It is also the only place the throw itself is observed. Left to the SDK it happens inside a
-  // protocol response, uncaught, taking the whole listing down with nothing naming the cause.
+  // Runs the conversion `tools/list` runs, so a changed or vanished refusal fails here, by name.
   it('re-measures the converter refusal each entry records', () => {
     expect(DEGRADED_OUTPUT_CONTRACTS.length).toBeGreaterThan(0)
     for (const entry of DEGRADED_OUTPUT_CONTRACTS) {
@@ -383,26 +291,13 @@ describe('the build is deterministic (idempotency)', () => {
     // A fold containing six writes is not read-only, and its idempotence follows.
     expect(advertised.get('agent_qa_change_config')!.annotations?.readOnlyHint).toBe(false)
     expect(advertised.get('agent_qa_change_config')!.annotations?.idempotentHint).toBe(false)
-    // the knowledge changes write in the call, so the same derivation marks them.
+    // The knowledge changes write in the call, so the same derivation marks them.
     expect(advertised.get('agent_qa_change_knowledge')!.annotations?.readOnlyHint).toBe(false)
     expect(advertised.get('agent_qa_change_knowledge')!.annotations?.idempotentHint).toBe(false)
   })
 })
 
-// ---- THE APP CARRIER CENSUS --------------------
-//
-// WHY THESE CELLS JOINED THIS FILE AND NOT A NEW ONE. Which tools carry the App is exactly the same
-// KIND of claim as everything above: a property derived from `AGENT_QA_TOOL_PROJECTIONS` and
-// delivered on the advertised document, where the failure that can actually happen is the mapping
-// and the derivation disagreeing. So the pair is asserted the way this file asserts every other
-// pair — the derivation driven directly for the shape it produces, and the real `tools/list` read
-// off the wire for the shape a caller receives.
-//
-// THE 399.1 LESSON, RESTATED. The carrier set is ENUMERATED from the projection table, never
-// spelled as a pair beside it. A cell that hard-coded two names would agree with a mapping that had
-// silently grown a third carrier — and a third tool quietly advertising a live-view App is a third
-// door onto a credential channel, which is the one thing this phase may not let happen quietly.
-// What IS spelled out here is the expectation the census is compared against, which is the pin.
+// ---- The App carrier census: enumerated from the projection table, compared with the wire ----
 
 describe('the App carrier declaration is registry data', () => {
   /** The `ProjectedOpSpec` `catalog.ts` builds for one op, assembled the same way it does. */
@@ -466,8 +361,7 @@ describe('the App carrier declaration is registry data', () => {
     expect([...carriers].sort()).toEqual(['agent_qa_get_run_digest', 'agent_qa_start_run'])
   })
 
-  // Plan 03's per-call reference reads this datum to find the concrete runId, so a swapped pair
-  // would decorate a result with a reference to a run nobody asked about.
+  // The per-call reference reads this datum, so a swapped pair points at a run nobody asked about.
   it('names where each carrier\'s concrete runId lives', () => {
     const uiOf = (name: string) =>
       AGENT_QA_TOOL_PROJECTIONS.find((projection) => projection.name === name)!.ui

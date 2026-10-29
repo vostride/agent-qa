@@ -1,14 +1,4 @@
-// The eight 431 read tools (D-01 / D-04 / D-05 / D-07 / D-09 · PXH-AGENT-04/06/07).
-//
-// CANONICAL_CONTRACTS is the one table this suite restates: each new tool name, the ops it
-// projects, and the exact schema objects those ops enforce with. Everything else is read off the
-// registry, the mapping or a real server, so a cell here compares the table against a producer.
-//
-// MUTATION SUBJECTS (observed 2026-09-28 against this file, each subject restored byte for byte
-// and its sha-256 re-checked; 431-13 owns the re-runnable harness):
-//   O1 the evidence fold's ops swapped to [runs.artifact, runs.evidence]           -> fold arms
-//   H1 the evidence tool's maxResultSizeChars removed                              -> the result-hint cell
-//   K1 runs.knowledge's advertised input swapped for BriefWhyInputSchema           -> RUN-KNOWLEDGE-WHOLE
+// `CANONICAL_CONTRACTS` is the one restated table; every cell compares it with a producer.
 
 import { readFileSync } from 'node:fs'
 
@@ -99,8 +89,6 @@ function registryWith(deps: Record<string, unknown> = {}): FunctionRegistry {
   })
 }
 
-// the retired `grantedScopes` and `safeMode` caller fields are dropped;
-// nothing reads them.
 const READ_CALLER: FunctionCaller = {
   surface: 'mcp',
   origin: 'agent',
@@ -195,7 +183,7 @@ describe('the canonical contract table', () => {
     for (const opId of ops) {
       const declaration = declared.get(opId)
       expect(declaration, `${opId} is not registered`).toBeDefined()
-      // no scope or origin key on a declaration; the read claim is the risk's.
+      // A declaration carries no scope or origin key; the read claim is the risk's.
       expect(Object.keys(declaration!), opId).not.toContain('requiredScopes')
       expect(declaration!.risk.readOnly, opId).toBe(true)
       expect(Object.keys(declaration!), opId).not.toContain('requiresHumanOrigin')
@@ -212,7 +200,7 @@ describe('the canonical contract table', () => {
   })
 })
 
-// ---- Task 2: the eight tools on the projection path ---------------------------------------------
+// ---- The read tools on the projection path ----
 
 const RUN_READ_RESULT_SIZE_HINT = 100000
 const SIZE_HINTED = new Set(['agent_qa_get_run_knowledge', 'agent_qa_get_run_overview', 'agent_qa_get_run_evidence'])
@@ -316,8 +304,7 @@ describe('MCP-TOOLS-ADVERTISED on a real tools/list', () => {
       const tool = tools.get(name)
       expect(tool, name).toBeDefined()
       expect(tool!.outputSchema, `${name} outputSchema`).toBeDefined()
-      // The 2025-11-25 codec wraps an array root (the bundle list) in `{ result }`; the published
-      // lens undoes exactly that wrap and nothing else.
+      // The `2025-11-25` codec wraps an array root in `{ result }`; the lens undoes only that wrap.
       expect(withoutDialect(withoutLegacyResultWrap(tool!.outputSchema)), `${name} output document`)
         .toEqual(outputDocument(contract.output))
       expect(tool!.annotations, name).toEqual({ readOnlyHint: true, destructiveHint: false, idempotentHint: true })
@@ -359,12 +346,7 @@ describe('MCP-TOOLS-ADVERTISED on a real tools/list', () => {
   })
 })
 
-// ---- dispatch: the op each call reached ---------------------------------------------------------
-//
-// the witness was the op gate's audit row, which no call writes any
-// more. 2026-10-14: the registry's read-scope seam that replaced it is deleted, so the
-// witness is the first port each bound op reads — distinct per op, so it still names the op REACHED,
-// past every refusal.
+// ---- Dispatch: each bound op's first port read names the op the call reached ----
 const FIRST_PORT: Record<string, readonly ['runs' | 'knowledge', string]> = {
   'knowledge.bundles.list': ['knowledge', 'listBundles'],
   'knowledge.records.inspect': ['knowledge', 'inspectRecords'],
@@ -426,7 +408,7 @@ describe('MCP-DISPATCH', () => {
   })
 })
 
-// ---- D-05: run knowledge answers the op's whole projection --------------------------------------
+// ---- Run knowledge answers the op's whole projection ----
 
 function knowledgeHandoff(): CompletedRunHandoff {
   const step = (stepIndex: number) => ({

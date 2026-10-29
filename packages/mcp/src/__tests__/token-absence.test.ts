@@ -1,129 +1,4 @@
-// THE STANDING TOKEN-ABSENCE SCAN — every model-readable channel of a full MCP flow
-//
-// WHY THIS FILE EXISTS. D-01 splits the phase's credential by CHANNEL: a minted `liveUrl` token
-// reaches a person only inside the HTML a host paints in its sandbox, and never inside anything a
-// MODEL reads — not tool-result text, not `structuredContent`, not a listing, not a refusal echo,
-// not a log line. That split is the whole security argument for minting over MCP at all, and it is
-// worth exactly as much as the cell that reds when somebody leaks. This is that cell. It is
-// RECORDED LAW rather than one-off proof: it drives the full flow, collects every byte
-// stream a model can read, and asserts that no byte of any token the flow REALLY minted appears in
-// any of them.
-// CORRECTED 2026-09-01 (408-08, the gap round, road `demote`; the ruling is in `../app-resource.ts`'s
-// header). The first sentence above is retained as written and one half of it is WITHDRAWN rather
-// than deleted. "Reaches a person only inside the HTML a host paints in its sandbox" describes what
-// the CALLER does with a document it asked for, not what this server does, so that half over-claimed
-// — and it also contradicted the `FLOW_CHANNELS` partition thirty lines below, which since 408-12
-// names `ui://read:text` a CARRYING channel rather than a channel nobody looks at. WHAT THIS FILE
-// ACTUALLY MEASURES IS UNCHANGED AND STRONGER, and it is the second half of that sentence: this
-// server writes the token into exactly ONE place — the frame `src` of the wrapper document the
-// `ui://` read serves — and no OTHER channel it emits carries a byte of it. That is a property of
-// this server, it is what the corpus below drives, and it is what `(A1)` reds on. The channel split
-// stands; only the claim about where the bytes end up afterwards was ever the caller's to make.
-//
-// THE SCAR IT GENERALISES. `masked-serialization.test.ts` is the T-395-R5-10 corpus: a declared
-// credential reaching `content[].text` and `structuredContent` because the masker never saw the
-// escaped spelling. Same shape, different credential — and a harder one, because a minted token is
-// NOT a declared secret, so no masker ever sees it (441 D-01; `onMinted` only observes it). So for
-// this credential the only real defence is that no model-readable code path ever touches it. That
-// is a claim about REACHABILITY, which is why the corpus below is the whole flow rather than one
-// serializer.
-//
-// ==================================================================================================
-// THE CORPUS DEFINITION — what is scanned, and the ONE thing that is excluded, BY RULING
-// ==================================================================================================
-//
-// SCANNED (every channel a model reads):
-//   1. the `tools/list` document
-//   2. every carrier `tools/call` result — `content[].text`, `structuredContent`, and `_meta`
-//   3. a NON-carrier `tools/call` result, on the same three members
-//   4. `resources/list` and `resources/templates/list`
-//   5. an entity `resources/read` payload (`agentqa://memory/MEM-001`)
-//   6. the `ui://` read's response ENVELOPE — its `uri`, `mimeType` and `_meta` (see below)
-//   7. every refusal: a malformed `ui://` address, and a non-negotiated read on a second client
-//   8. everything the process wrote to `console.*` for the duration of the flow
-//
-// EXCLUDED — exactly ONE channel, and by the DATED RULING rather than by omission (Pitfall 2):
-//   the `text` of the `ui://` read, i.e. the wrapper HTML document itself. That channel is the
-//   credential's DESTINATION, not a leak.
-//
-//   RE-GROUNDED 2026-09-01 (408-08, the gap round, road `demote`). This exclusion used to rest on
-//   "the host-rendered payload clause 1 of the four-clause `ui://` read-channel adjudication in
-//   `../app-resource.ts` reserves for the token" — and clause 1 is precisely the clause that was
-//   SUPERSEDED IN PART on 2026-09-01, so the exclusion was standing on a withdrawn half. Recorded
-//   here rather than quietly restated. The ground that HOLDS is a fact about this server rather
-//   than about its caller: the wrapper document is the token's destination because it is the ONE
-//   place this server writes the token, and that door is bounded at REGISTRATION by
-//   `mint.bindingStatus === 'bound'` (header clause 5) — never by the caller's own capability
-//   declaration, which clause 3's re-adjudication established this server cannot authenticate.
-//   The exclusion is therefore as narrow as it ever was and is now grounded on something measured.
-//   (2026-10-01, 432-20/432-21, D-12: the `visibleToCaller` scope bound that also stood here is
-//   deleted for every caller, and the caller below carries no scope set or credential. The token's
-//   own subject and expiry checks, and the loopback/Host/Origin boundary, are what D-13 keeps.)
-//   (adjudicated 2026-08-31, plan 02; see that file's header, "THE `ui://` READ CHANNEL — the full
-//   ruling", and "THE 2026-09-01 GAP-ROUND RULING" beneath it.)
-//   The other three clauses are what make the exclusion narrow enough to be honest: the template is
-//   UNLISTED so no enumeration reaches it (clause 2), a NON-NEGOTIATED read is refused before
-//   anything is minted (clause 3), and the credential is view-scoped with a five-minute TTL
-//   (clause 4). The exclusion is the wrapper HTML STRING and nothing else — the response's `uri`,
-//   `mimeType` and `_meta` are scanned like any other channel, because a token has no business
-//   there either.
-//
-//   AND THE EXCLUSION IS CONTROLLED. `(A0)` requires the wrapper HTML to CONTAIN every captured
-//   token. If it did not, this file would be green because nothing was minted, which is the one
-//   way a scan of this shape lies.
-//
-//   AND SINCE 408-12 THE EXCLUSION IS ALSO ENUMERATED. `408-VERIFICATION.md` gaps[2] recorded that
-//   this file excluded the `ui://` read BY RULING and then said nothing more about it — and given
-//   what T-408-01 turned out to be, an exclusion a census cannot SHOW is indistinguishable from a
-//   place nobody looked. So the `ui://` read's `text` is now a NAMED channel of this flow, carried
-//   in `FLOW_CHANNELS` and classified `carrying` beside the `scanned` remainder, and `(A2)` asserts
-//   a PARTITION rather than a list with an unstated tail: a channel named without a classification
-//   reds. The difference is between "we ruled this one out, here is the ruling" and "we did not
-//   look here", and after T-408-01 this phase cannot afford the second.
-//
-// WHY `(A10)` EXISTS. This file's fixture clock used to be pinned to the
-// literal `1_800_000_000_000`, which IS 2027-01-15T08:00:00Z, while `renderAppWrapperPage` defaults
-// its `now` to the real wall clock. Past that instant the renderer settles `expired`, strips every
-// mint and serves a document with no token in it — and `(A1)` would have stayed GREEN over that
-// empty render. That is not a false pass, it is a VACUOUS one: the exact failure `(A0)` was written
-// to prevent, arriving through the calendar instead of through the code. The clock is now anchored
-// to the real clock at fixture construction, and `(A10)` renders under a stubbed system clock past
-// 2027-01-15 so the fix is proven rather than asserted.
-//
-// THE GROUND TRUTH IS WHAT THE FLOW MINTED, NOT A PLANT. Tokens are captured at `LiveViewPort`'s
-// `onMinted` hook — the single observation point `runs.liveurl` calls for every token it ever
-// produces (`ops/runs-live-url.ts`). A planted lookalike would prove the scanner works; capturing
-// the real mints proves the FLOW is clean. Every needle is therefore a string that really crossed
-// the invocation wall in this test.
-//
-// THE MUTATION CONTROL (D-14, `(A9)` below, in this same file so both passes drive ONE
-// `scanCorpus`). The leak is injected through the SHIPPED decoration path rather than by editing a
-// captured string: the fixture's `liveLink.dashboardBaseUrl()` supplier — the one member
-// `decorateCarrierResult` reads to compose D-08's line — answers a base carrying a REAL minted
-// token. Production code then composes, masks and appends that line to the carrier's text channel
-// and its `_meta.ui.resourceUri`, exactly as it would if a future change threaded a credential into
-// a base. That is a defect this file must see, and `(A9)` asserts it DOES: the same `scanCorpus`
-// that answers no findings in `(A1)` answers findings on a carrier text channel here.
-//
-// THE MINT HAPPENS FIRST IN THE FLOW, ON PURPOSE. The `ui://` read runs before the carrier calls,
-// so every channel captured afterwards is captured in a world where live tokens for this run
-// already exist. An absence asserted before anything was minted is an absence of nothing.
-//
-// THE MUTATION LEGS, APPLIED AND THEIR REDS OBSERVED. A leg nobody ran is a leg
-// nobody knows the strength of, so each was applied to its subject, the red read off the runner,
-// and the subject restored:
-//   L1  PRODUCTION LEAK. `app-resource.ts`'s served envelope gained a plausible debug member —
-//       `_meta.ui.debugLiveUrl = mints[0].liveUrl` — beside the `csp` block. `(A1)` red naming
-//       `ui://read:envelope` three times: once for the whole token, once for its body segment and
-//       once for its signature, which is also the measurement proving `needlesOf`'s segments are
-//       load-bearing rather than decorative.
-//   L2  BLIND SCANNER. `scanCorpus` returned `[]` unconditionally. `(A0)` AND `(A9)` red — the two
-//       cells whose whole job is to notice a scanner that cannot see. `(A1)` stayed green, which
-//       is exactly why it may never be the only cell in this file.
-//   L3  EXCLUSION DROPPED. The `ui://` read's wrapper HTML was folded into the corpus instead of
-//       being excluded by the ruling. `(A1)` red on six channels. The exclusion is therefore
-//       load-bearing rather than cosmetic, and this is the leg that says what it costs: remove the
-//       ruling and the law contradicts the design it exists to protect.
+// No model-readable channel of the flow holds a minted token; only the wrapper HTML carries one.
 
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { createServer } from 'node:http'
@@ -283,11 +158,7 @@ function handoff(runId: string): CompletedRunHandoff {
  */
 function fixtureRegistry(): { readonly registry: FunctionRegistry; readonly minted: string[] } {
   const minted: string[] = []
-  // WR-07, THIS FILE'S HALF. ANCHORED TO THE REAL CLOCK rather than pinned to a literal
-  // epoch: the `ui://` read renders without an explicit `now`, so `renderAppWrapperPage` falls back
-  // to `Date.now()` — and a fixture clock pinned to a fixed epoch silently becomes an EXPIRED render
-  // once real time passes it, which would leave `(A1)` green over a document that carries nothing.
-  // The mint's `expiresAt` and the renderer's `now` are now the same clock; `(A10)` is the gate.
+  // Real clock: the renderer falls back to `Date.now()`, so a fixed epoch would expire the render.
   let clock = Date.now()
 
   const liveView: LiveViewPort = {
@@ -338,8 +209,7 @@ function fixtureRegistry(): { readonly registry: FunctionRegistry; readonly mint
   return { registry: createFunctionRegistry({ deps }), minted }
 }
 
-// the tokenless MCP caller every request is served as — no scope set,
-// safe-mode flag or credential.
+// The tokenless MCP caller every request is served as.
 const caller: FunctionCaller = {
   surface: 'mcp',
   origin: 'agent',
@@ -362,26 +232,17 @@ afterEach(async () => {
   }
 })
 
-/**
- * A REAL loopback socket, for plan 02's measured reason rather than for realism's sake: the
- * per-request client-capabilities envelope the negotiation gate reads is lifted by the transport
- * and exists only on the modern wire era, so a flow driven through the SDK's
- * in-process driver could never obtain the App at all — and a scan that never minted is the one
- * failure mode this file's `(A0)` control exists to make impossible.
- */
+// A real socket, because the in-process driver never reaches the era that carries capabilities.
 async function serve(listener: (req: never, res: never) => void): Promise<string> {
   const server = createServer(listener as never)
-  // the server never reaps an idle keep-alive socket mid-flow.
-  // Client and server share one event loop, so after a stall longer than the 5 s default the
-  // overdue reap ran before the loop read the request the client had already written on that
-  // pooled socket, and the client saw `fetch failed` (read ECONNRESET). Witnessed with a 6 s stall.
+  // The reap can beat a request already written on a pooled socket, giving `ECONNRESET`.
   server.keepAliveTimeout = 0
   openServers.push(server)
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}/mcp`
 }
 
-/** The shipped client, negotiating the Apps extension or deliberately not (plan 02's shape). */
+/** The shipped client, negotiating the Apps extension or deliberately not. */
 async function connect(url: string, options: { readonly apps: boolean }): Promise<Client> {
   const client = new Client(
     { name: 'agent-qa-408-04-token-absence', version: '0.0.0' },
@@ -419,7 +280,7 @@ function toolChannels(label: string, result: ToolCallResult): readonly CorpusCha
   ]
 }
 
-/** A refusal, serialized the way plan 02's leak cell serializes one — message, name and stack. */
+/** A refusal serialized as message, name and stack. */
 function refusalChannel(label: string, error: unknown): CorpusChannel {
   return {
     channel: label,
@@ -430,13 +291,7 @@ function refusalChannel(label: string, error: unknown): CorpusChannel {
   }
 }
 
-/**
- * Route `console.*` into an in-test sink for the duration of the flow.
- *
- * A LOG LINE IS A MODEL-READABLE CHANNEL in every host that pipes its server's stderr back into a
- * transcript, and D-14 names logs explicitly. Patching the console object rather than spying keeps
- * the capture total: anything the flow prints, however deep, lands in the corpus.
- */
+// A log line reaches a transcript in hosts that pipe stderr, so console output joins the corpus.
 function captureConsole(): { readonly lines: string[]; readonly restore: () => void } {
   const lines: string[] = []
   const methods = ['log', 'info', 'warn', 'error', 'debug', 'trace'] as const
@@ -466,14 +321,7 @@ interface FlowResult {
   readonly wrapperHtml: string
 }
 
-/**
- * Drive the whole flow over the wire and collect every channel.
- *
- * `leak` is the mutation control: when set, the host's D-08 base supplier answers a base carrying a
- * real minted token, so the SHIPPED decoration composes it into the carrier's text and `_meta`.
- * Nothing about the corpus, the capture or the scanner changes between the two passes — which is
- * what makes the control a statement about the SCAN rather than about a second code path.
- */
+// `leak` makes the base supplier carry a real token, so the shipped decoration composes it in.
 async function driveFullFlow(options: { readonly leak?: boolean } = {}): Promise<FlowResult> {
   const { registry, minted } = fixtureRegistry()
   const handler = createAgentQaMcpNodeHandler(() => ({
@@ -505,7 +353,7 @@ async function driveFullFlow(options: { readonly leak?: boolean } = {}): Promise
     }
     const appContent = app.contents[0] ?? {}
     wrapperHtml = String(appContent.text ?? '')
-    // The ENVELOPE is scanned; only the `text` above is excluded, and only by the dated ruling.
+    // The envelope is scanned; only the `text` above is excluded.
     corpus.push({
       channel: 'ui://read:envelope (text excluded BY RULING — see header)',
       text: JSON.stringify({ ...appContent, text: undefined }),
@@ -554,7 +402,7 @@ async function driveFullFlow(options: { readonly leak?: boolean } = {}): Promise
       .then(() => undefined, (error: unknown) => error)
     corpus.push(refusalChannel('refusal:malformed-ui-uri', malformed))
 
-    // 7b. a NON-NEGOTIATED read on a second client — plan 02's refuse-before-mint arm
+    // 7b. A non-negotiated read on a second client, refused before any mint.
     const stranger = await connect(url, { apps: false })
     const refused = await stranger
       .readResource({ uri: appResourceUriFor(FIXTURE_RUN_ID) })
@@ -576,32 +424,12 @@ async function driveFullFlow(options: { readonly leak?: boolean } = {}): Promise
   return { corpus, tokens: [...minted], wrapperHtml }
 }
 
-// ---- The channel census: every channel of this flow, and what each one is FOR --------------------
-//
-// ADDED 408-12. Before this, `(A2)` named the channels it scanned and said nothing about
-// the one it did not — the `ui://` read's wrapper HTML — so the exclusion lived only in the header's
-// prose and in a corpus entry's label. A standing security gate whose corpus has an unstated
-// remainder cannot show the difference between a channel it ruled out and a channel nobody thought
-// of, and T-408-01 is what that difference costs.
-//
-// THE PARTITION IS THE ASSERTION. `FLOW_CHANNELS` names every byte stream this flow produces.
-// Each one is classified exactly once, as `scanned` (no minted byte may appear) or as `carrying`
-// (the credential's DESTINATION — a token is SUPPOSED to be there). `(A2)` asserts the partition is
-// total and disjoint, so a channel added to the enumeration without a classification reds by name
-// rather than joining a remainder nobody enumerated.
+// ---- The channel census: each channel is classified exactly once, `scanned` or `carrying` ----
 
-/**
- * The ONE channel of this flow that legitimately carries the credential.
- *
- * THE RULING, CITED RATHER THAN RESTATED. The disposition is shipped prose in `../app-resource.ts`'s
- * header — the four-clause `ui://` read-channel adjudication of 2026-08-31, as re-grounded by THE
- * 2026-09-01 GAP-ROUND RULING, road `demote` (408-08, the user's checkpoint answer). Read it there.
- * A transcription here would be a second copy of one fact, free to drift from the record while
- * reading like the record; in this repository the prose IS the record.
- */
+// The wrapper HTML is the token's destination: the one place this server writes it.
 const CARRYING_CHANNELS: readonly string[] = ['ui://read:text (the wrapper HTML document)']
 
-/** Every channel a MODEL reads, and therefore every channel `(A1)` scans for minted bytes. */
+/** Every channel a model reads, and so every channel the zero-occurrence cell scans. */
 const SCANNED_CHANNELS: readonly string[] = [
   'tools/list',
   'ui://read:envelope (text excluded BY RULING — see header)',
@@ -625,13 +453,7 @@ const SCANNED_CHANNELS: readonly string[] = [
   'console.*',
 ]
 
-/**
- * EVERY channel of this flow, written out rather than composed from the two lists above.
- *
- * Composing it would make the partition true by construction and the classification unfalsifiable —
- * which is the whole defect this census exists to close. Written out, a channel named here and
- * classified nowhere is an UNCLASSIFIED channel, and `(A2)` says so.
- */
+// Written out, not composed from the two lists, so an unclassified channel is caught.
 const FLOW_CHANNELS: readonly string[] = [
   'tools/list',
   'ui://read:text (the wrapper HTML document)',
@@ -656,12 +478,7 @@ const FLOW_CHANNELS: readonly string[] = [
   'console.*',
 ]
 
-/**
- * A wall-clock instant well past 2027-01-15 — see the header's `(A10)` note.
- *
- * `1_800_000_000_000`, the epoch this file's fixture clock used to be pinned to, IS
- * 2027-01-15T08:00:00Z.
- */
+// Past `2027-01-15`, where a fixed `1_800_000_000_000` clock would expire every render.
 const PAST_THE_2027_TIME_BOMB = 2_000_000_000_000
 
 // ---- The law ------------------------------------------------------------------------------------
@@ -706,10 +523,7 @@ describe('the minted liveUrl token reaches NO model-readable channel', () => {
     const flow = await driveFullFlow()
     const channels = flow.corpus.map((entry) => entry.channel)
 
-    // THE PARTITION FIRST. Every channel this flow produces is named in
-    // `FLOW_CHANNELS` and classified exactly once — `scanned` or `carrying`. A channel named and
-    // classified nowhere is the shape of defect T-408-01 turned out to be: an exclusion that lives
-    // as silence rather than as a ruling a census can show.
+    // The partition first: a channel classified nowhere is an exclusion nobody can see.
     const unclassified = FLOW_CHANNELS.filter(
       (channel) =>
         !SCANNED_CHANNELS.includes(channel) && !CARRYING_CHANNELS.includes(channel),
@@ -720,29 +534,23 @@ describe('the minted liveUrl token reaches NO model-readable channel', () => {
       + 'carries them — classify it, with its ruling, or this census has an unstated remainder',
     ).toEqual([])
 
-    // And DISJOINT: a channel that is both scanned and excluded-by-ruling is a contradiction, and
-    // the scan would be asserting the absence of a credential the same table says belongs there.
+    // Disjoint: a channel both scanned and carrying would deny a credential it holds.
     const bothWays = SCANNED_CHANNELS.filter((channel) => CARRYING_CHANNELS.includes(channel))
     expect(bothWays, 'a channel is classified BOTH carrying and scanned').toEqual([])
 
-    // Named individually rather than counted, so a channel that silently stopped being collected
-    // reds HERE instead of quietly shrinking (A1)'s corpus to something that cannot fail.
+    // Named individually, so a channel that stops being collected fails here, not silently.
     for (const required of SCANNED_CHANNELS) {
       expect(channels, `the corpus lost the ${required} channel`).toContain(required)
     }
 
-    // The reverse direction, which is what stops the enumeration drifting behind the flow: a channel
-    // the flow really produced but nobody classified reds here rather than joining (A1)'s corpus
-    // unannounced.
+    // The reverse: a channel the flow produced but nobody classified fails here.
     const uncensused = channels.filter((channel) => !SCANNED_CHANNELS.includes(channel))
     expect(
       uncensused,
       'the flow produced a channel this census does not name — add it to FLOW_CHANNELS and classify it',
     ).toEqual([])
 
-    // The CARRYING channel is not in the scanned corpus — the exclusion is real and not merely
-    // written down — and it really answered. `(A0)` is what proves it carries the tokens; this line
-    // proves it is a channel of this flow rather than a name in a table.
+    // The carrying channel is outside the scanned corpus and really answered.
     for (const carrying of CARRYING_CHANNELS) {
       expect(channels, `${carrying} must be EXCLUDED from the scanned corpus, by ruling`)
         .not.toContain(carrying)
@@ -752,10 +560,7 @@ describe('the minted liveUrl token reaches NO model-readable channel', () => {
       'the carrying channel came back empty — the exclusion is protecting nothing',
     ).toBeGreaterThan(0)
 
-    // Every collected channel came back with BYTES, so none of them is an absence asserted over a
-    // stream nobody read. The console is the ONE honest exception and it is named rather than
-    // filtered silently: this flow prints nothing at all, which is itself the fact worth pinning —
-    // a server that started logging tool arguments would break this line before it broke `(A1)`.
+    // Every channel answered with bytes except the console, which this flow leaves empty.
     const empty = flow.corpus
       .filter((entry) => entry.text === '' && entry.channel !== 'console.*')
       .map((entry) => entry.channel)
@@ -780,15 +585,14 @@ describe('the minted liveUrl token reaches NO model-readable channel', () => {
     expect(at(`resources/read:${ENTITY_URI}`)).toContain('MEM-001')
     expect(at(`resources/read:${ENTITY_URI}`)).toContain('application/json')
 
-    // Both carriers really answered, and really carried D-08's line — so the text channel this
-    // law is mostly about is a channel that had something to say.
+    // Both carriers answered with the link line, so the text channel had something to say.
     for (const carrier of ['agent_qa_start_run', 'agent_qa_get_run_digest']) {
       expect(
         at(`tools/call:${carrier}:content[].text`),
         `${carrier} produced no link line — its text channel is dead`,
       ).toContain(`${DASHBOARD_BASE}/runs/${FIXTURE_RUN_ID}/live`)
     }
-    // Including on the App-LESS client, which is D-09's whole promise (plan 03).
+    // Including on the App-less client.
     expect(at('tools/call:app-less:agent_qa_get_run_digest:content[].text')).toContain(
       `${DASHBOARD_BASE}/runs/${FIXTURE_RUN_ID}/live`,
     )
@@ -802,13 +606,11 @@ describe('the minted liveUrl token reaches NO model-readable channel', () => {
 
       const leaks = scanCorpus(flow.corpus, flow.tokens)
 
-      // The cell PASSES when the scan correctly FAILS. If this is ever empty, `(A1)` above is
-      // green because the scanner cannot see, not because the flow is clean.
+      // Passes when the scan fails; empty would mean the scanner cannot see.
       expect(leaks.length, 'the scan did not see a token planted on a real carrier channel')
         .toBeGreaterThan(0)
 
-      // And it saw it where the leak actually is: the model-readable text channel of a carrier
-      // result, which is the T-395-R5-10 shape this whole file generalises.
+      // The finding lands on a carrier's model-readable text channel, where the leak is.
       expect(
         leaks.map((leak) => leak.channel),
         JSON.stringify(leaks.map((leak) => leak.channel)),
@@ -832,10 +634,7 @@ describe('the minted liveUrl token reaches NO model-readable channel', () => {
           + 'drifted away from the renderer clock again (WR-07)',
         ).toBeGreaterThan(0)
 
-        // Half two: and the credential is IN the document. This is the assertion that would have
-        // failed on 2027-01-15 with the old literal epoch — `renderAppWrapperPage` settles
-        // `expired`, strips the mints, and serves a page with nothing in it, over which `(A1)`
-        // would have reported a pass it did not earn.
+        // The credential is in the document; an expired render would strip it and pass vacuously.
         const carried = flow.tokens.filter((token) => flow.wrapperHtml.includes(token))
         expect(
           carried.length,

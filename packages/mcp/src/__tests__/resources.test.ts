@@ -1,41 +1,4 @@
-// The entity Resource Templates surface, driven directly.
-//
-// WHY THIS FILE EXISTS. `resources.ts` makes the `resource_link`s embedded in tool results actually
-// dereferenceable, which means it turns an UNTRUSTED URI into an entity read. Two properties carry
-// that weight and neither is observable from a passing end-to-end read: that the module does no
-// parsing of its own (so a URI whose segment and id disagree is refused by the schema package's one
-// codec, not by whatever pattern this file happened to write), and that the five templates are
-// DERIVED from the kind vocabulary rather than restated beside it.
-//
-// TWO RECIPES, ON PURPOSE. The derivation cell computes its expectation from
-// `ENTITY_URI_SEGMENTS` — the same source the implementation reads — so it catches a template
-// planted or dropped in `resources.ts`. The literal cell spells the five URI strings out by hand, so
-// it catches a SEGMENT RENAME, which the derivation cell cannot see because both halves would move
-// together. Either alone is half a pin.
-//
-// Each cell names the mutation it is the bar for. A cell that no plausible wrong implementation
-// reds is decoration, and this project has measured that lesson more than once.
-//
-// MUTATION LEGS MEASURED AGAINST THIS FILE — each applied to `../resources.ts`, the
-// suite re-run, and the subject restored byte-identically (sha-256 compared) afterwards. Verbatim
-// REDs are recorded in `396-03-SUMMARY.md`.
-//
-//   R1  the codec replaced by a local `agentqa://` regex that splits segment and id      RED (3)
-//   R2  a seventh template planted in the derived list                                   RED (4)
-//   R3  the D-05 visibility gate removed (register unconditionally)                      RED (2)
-//       R3 is now the SHIPPED behaviour — the gate is deleted and every
-//       caller of a composition carrying entities.get gets the five templates
-//       (C432-RESOURCES-ALL-CALLERS below).
-//   R4  `maskText` dropped from the contents text                                        RED (1)
-//   R5  the raw URI passed to the op as `ref` instead of the parsed canonical short-ID   RED (1)
-//   R6  `maskText` dropped from the OP-refusal path                                      RED (1)
-//   R7  `maskText` dropped from the URI-refusal path                              GREEN -> RED (1)
-//
-// R7 IS WHY THE LAST CELL IN THE SECOND BLOCK EXISTS. The five legs this file was first written
-// against all red, but the list was not a partition of the module's claims: dropping the mask from
-// the ECHOED URI — the one masked string composed entirely of caller-supplied text — left the whole
-// suite green. A claim no plausible wrong implementation reds is decoration, so the leg became a
-// cell rather than a footnote, and R7 now reds like the rest.
+// A derived cell and a literal cell: the first catches a planted template, the second a rename.
 
 import { McpServer } from '@modelcontextprotocol/server'
 import type { ReadResourceResult } from '@modelcontextprotocol/server'
@@ -63,13 +26,7 @@ interface RecordedRegistration {
   readonly read: (uri: URL) => Promise<{ contents: readonly { uri: string; text?: string }[] }>
 }
 
-/**
- * A recording stand-in for the server.
- *
- * Narrower than `McpServer` by design — the module's parameter is the narrow structural type, so a
- * cell can observe every registration without assembling a protocol server, and the real
- * `McpServer` still satisfies it (asserted by `catalog.ts`'s own call site once plan 04 wires it).
- */
+// A recording stand-in, narrower than `McpServer`; the real server still satisfies the type.
 function recordingServer(): {
   readonly calls: RecordedRegistration[]
   registerResource: (
@@ -94,7 +51,7 @@ function recordingServer(): {
   }
 }
 
-/** a legacy scope set smuggled past the deleted caller field (cast); nothing reads it. */
+// A legacy scope set cast past the deleted caller field; nothing reads it.
 function caller(grantedScopes: readonly string[]): FunctionCaller {
   return { surface: 'mcp', origin: 'agent', grantedScopes, safeMode: false } as FunctionCaller
 }
@@ -154,8 +111,7 @@ function recordingInvoke(answer: unknown = { kind: 'MEM', shortId: 'MEM-001' }):
 }
 
 describe('the five templates are derived, not restated', () => {
-  // THE BAR: R2. Recipe one — computed from the same table the module reads, so a planted or
-  // dropped template reds here.
+  // Computed from the table the module reads, so a planted or dropped template fails here.
   it('is exactly one template per entity kind, in the vocabulary order', () => {
     expect(ENTITY_RESOURCE_TEMPLATES.map((template) => template.uriTemplate)).toEqual(
       ENTITY_KINDS.map((kind) => `agentqa://${ENTITY_URI_SEGMENTS[kind]}/{id}`),
@@ -181,9 +137,7 @@ describe('the five templates are derived, not restated', () => {
 })
 
 describe('the read handler resolves through entities.get', () => {
-  // THE BAR: R5, and R1 with it. The ref handed to the op is the CANONICAL short-ID the codec
-  // produced — `MEM-1` in, `MEM-001` out — so an implementation that forwarded the raw URI, or that
-  // split the string itself, reds here rather than passing something the op happens to accept too.
+  // The op gets the codec's canonical short-ID, so forwarding or splitting the raw URI fails here.
   it('calls entities.get once, with the parsed canonical short-ID as the ref', async () => {
     const recorder = recordingInvoke()
     const read = createEntityResourceReadHandler({ invoke: recorder.invoke, maskText: identity })
@@ -208,18 +162,7 @@ describe('the read handler resolves through entities.get', () => {
     ])
   })
 
-  // THE BAR: R4. Resource contents are composed from STORED DATA and this handler is registered
-  // directly, so it never passes through `catalog.ts`'s one generic masking handler — the masker is
-  // a required dep here for the same reason it is one there. Asserted on the text a caller reads
-  // AND on what the masker was actually handed, so a masker called on the wrong string still reds.
-  //
-  // WHAT THE MASKER IS HANDED IS THE ASSERTION THAT MOVED. This cell used to
-  // require `seen` to be the whole SERIALISATION — and that requirement was the defect written down
-  // as a bar: a literal-substring masker handed an escaped document cannot find a value containing
-  // `"`, `\` or a control character, and four such shapes reached callers verbatim. The handler now
-  // masks the card's raw string LEAVES AND KEYS, so `seen` is those raw strings. The escape classes
-  // themselves are pinned in `masked-serialization.test.ts`; what this cell keeps is the narrower
-  // property it always carried — the masker really is called, on the card's own bytes.
+  // The masker gets the card's raw leaves, because an escaped document hides raw secrets.
   it('masks the card and hands the masker its RAW string leaves, never an escaped serialisation',
     async () => {
       const seen: string[] = []
@@ -250,12 +193,7 @@ describe('the read handler resolves through entities.get', () => {
     )
   })
 
-  // THE BAR: R7, and this cell exists BECAUSE R7 was measured green without it. The module masks
-  // three strings — the card, an op refusal, and the URI echoed back when the codec refuses — and
-  // only the first two were pinned. The third is the one carrying purely CALLER-SUPPLIED text, so
-  // it is the one an injected secret rides in on: a caller-planted value echoed verbatim into an
-  // error is exactly the shape of T-395-R5-10. Asserted on the message a caller reads AND on what
-  // the masker was handed, so masking the wrong string still reds.
+  // The echoed URI is pure caller text, the likeliest carrier of an injected secret.
   it('masks the echoed URI when the codec refuses it', async () => {
     const seen: string[] = []
     const read = createEntityResourceReadHandler({
@@ -274,10 +212,7 @@ describe('the read handler resolves through entities.get', () => {
 })
 
 describe('the codec is the only parser', () => {
-  // THE BAR: R1. `agentqa://memory/TST-001` names a memory segment and a TEST id. The codec refuses
-  // it because the two halves disagree; a local regex that split segment from id would hand
-  // `TST-001` to the op and answer about a test the caller never addressed. The invoke count is
-  // asserted at ZERO, because "refused" and "asked and got nothing" are different behaviours.
+  // The codec refuses a segment and id that disagree, and the op is never asked.
   it('refuses a URI whose segment and id disagree, without asking the op', async () => {
     const recorder = recordingInvoke()
     const read = createEntityResourceReadHandler({ invoke: recorder.invoke, maskText: identity })
@@ -308,10 +243,6 @@ describe('the codec is the only parser', () => {
   })
 })
 
-// RE-SPELLED 2026-10-01 from 'registration is gated by the visibility law'.
-// The scope gate is deleted: whether the templates exist is a fact about the composition (does it
-// register entities.get?) and never about the caller. The URI codec still refuses every bad address
-// for every caller (the block above).
 describe('registration is a fact about the composition, never the caller', () => {
   it('registers all five templates for a caller granted read', () => {
     const server = recordingServer()
@@ -328,7 +259,6 @@ describe('registration is a fact about the composition, never the caller', () =>
     )
   })
 
-  // RE-SPELLED from 'registers nothing for a caller granted nothing'.
   it('registers the same five templates for every caller', () => {
     const callers: readonly FunctionCaller[] = [
       { surface: 'mcp', origin: 'agent' },
@@ -351,8 +281,6 @@ describe('registration is a fact about the composition, never the caller', () =>
     }
   })
 
-  // RE-SPELLED from 'reads the required scopes off the declaration, not off a constant'. A legacy
-  // declaration that still carried a scope list gates nothing either.
   it('ignores any scope a legacy declaration might still carry', () => {
     const server = recordingServer()
     const legacy = {
@@ -386,12 +314,7 @@ describe('registration is a fact about the composition, never the caller', () =>
 })
 
 describe('a real v2 McpServer accepts this registration (the SDK cell)', () => {
-  // WHY A SECOND SERVER CELL. Every cell above drives a recording stand-in, which proves what this
-  // module DOES and nothing about whether the SDK agrees. The `registerResource` metadata argument
-  // and the `ResourceTemplate` constructor's mandatory `list` field are both v2 API facts this plan
-  // took from documentation; this cell converts them into a measurement, and it is also the
-  // compile-time proof that plan 04 can hand `buildAgentQaMcpServer`'s own `McpServer` straight
-  // through to `registerEntityResources` — a narrower parameter accepting the wider argument.
+  // A real `McpServer` checks that the SDK accepts the metadata and the mandatory `list` field.
   it('registers all five templates on a real McpServer without adaptation', () => {
     const server = new McpServer(
       { name: 'agent-qa', version: '2.0.0' },

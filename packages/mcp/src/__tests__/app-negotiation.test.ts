@@ -1,41 +1,4 @@
-// The Apps-extension negotiation gate on the `ui://` read, MEASURED over the wire
-// (Phase 408 plan 02 · MCPA-01 · RESEARCH Open Question 1 & 2 · D-01/D-09/D-14 · T-408-01/T-408-06).
-//
-// WHAT IS PRODUCTION HERE AND WHAT IS SCRIPTED. Production: `createAgentQaMcpNodeHandler`,
-// `buildAgentQaMcpServer`, `registerAppResources`, the read handler and its negotiation gate,
-// `negotiatedAppsExtension`, `renderAppWrapperPage`, `createFunctionRegistry`, `invokeFunction`,
-// the `runs.liveurl` op, `mintLiveUrlToken`/`validateLiveUrlToken`, and — on the other side of a
-// real loopback socket — `@modelcontextprotocol/client@2.0.0`. Scripted: the run event log this
-// fixture serves, the `LiveViewPort` a composition would otherwise build (its signer is a real
-// HMAC over a key this file owns), and the `node:http` server, which exists only because the
-// shipped package deliberately binds no socket of its own.
-//
-// WHY A REAL SOCKET AND A REAL CLIENT. This file's subject is a fact about somebody else's code:
-// WHERE the SDK puts a client's declared capabilities by the time a resource read reaches our
-// handler. RESEARCH assumption A3 flagged that the published `RequestMetaEnvelope` is an empty
-// augmentable type, so the member spelling could only be READ OFF THE TYPES as a guess. A cell
-// that hand-built the context it wanted would have measured this file's opinion of the protocol.
-// So the measurement cell drives the real client through the real handler and reads the context
-// back out of a registrar that wraps — never replaces — the production read.
-//
-// WHAT THE MEASUREMENT FOUND (2026-08-31, `@modelcontextprotocol/server@2.0.0`):
-//
-//   ctx.mcpReq.envelope['io.modelcontextprotocol/clientCapabilities'].extensions
-//
-//   ...but ONLY on the modern wire era. The shipped client defaults to
-//   `versionNegotiation: 'legacy'`, and a legacy `initialize` connection carries no per-request
-//   capabilities at all; a stateless per-request server instance never saw that handshake either,
-//   so the deprecated `getClientCapabilities()` accessor holds nothing there. The SDK states the
-//   consequence itself — "per-request instances that never saw an initialize (stateless legacy)
-//   hold nothing, so gates refuse there" — and this gate is written to refuse exactly there, which
-//   is D-09's own posture: no evidence of negotiation, no App, and the link-out is that host's
-//   whole answer. Both eras are cells below, so the day the SDK changes either, one reds.
-//
-// THE MUTATION LEGS THIS FILE IS THE BAR FOR:
-//   B1  the gate reads a different envelope member          -> the measurement cell
-//   B2  the gate answers `true` when evidence is ABSENT     -> the legacy-era and no-context cells
-//   B3  the refusal moved to AFTER the mint loop            -> the zero-mint cell
-//   B4  the refusal echoes the document it declined to make -> the no-token-bytes cell
+// A real client over a socket: where the SDK puts declared capabilities is measured here.
 
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { createServer } from 'node:http'
@@ -128,12 +91,7 @@ function fixtureRegistry(handles: readonly number[] = [0, 1]): {
   readonly minted: string[]
 } {
   const { signer, minted } = recordingSigner()
-  // WR-07, THIS FILE'S HALF. ANCHORED TO THE REAL CLOCK rather than pinned to a literal
-  // epoch: the read handler renders without an explicit `now`, so `renderAppWrapperPage` falls back
-  // to `Date.now()` — and a fixture clock pinned to a fixed epoch silently becomes an EXPIRED render
-  // once real time passes it, taking every liveUrl out of the served document and leaving the cells
-  // below asserting over an empty page. The mint's `expiresAt` and the renderer's `now` are now the
-  // same clock.
+  // Real clock: the renderer falls back to `Date.now()`, so a fixed epoch would expire the render.
   let clock = Date.now()
 
   const liveView: LiveViewPort = {
@@ -157,10 +115,7 @@ function fixtureRegistry(handles: readonly number[] = [0, 1]): {
   }
 }
 
-// no `safeMode`, and no `['read']` default scope set; the server reads
-// neither. A scope set a cell passes EXPLICITLY is kept, cast past the type, as a
-// deliberate smuggle: the cell whose caller's scopes omit `read` hands `['run']` to prove the set
-// changes nothing. 2026-10-02: the field is deleted; the smuggle stays, typed as strings.
+// Cells pass scope sets as strings cast past the type, to show the server reads none.
 const caller = (grantedScopes?: readonly string[]): FunctionCaller =>
   grantedScopes === undefined
     ? { surface: 'mcp', origin: 'agent' }
@@ -194,15 +149,7 @@ async function serve(listener: (req: never, res: never) => void): Promise<string
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}/mcp`
 }
 
-/**
- * Connect the SHIPPED client, either declaring the Apps extension or not.
- *
- * `versionNegotiation: { mode: 'auto' }` is what an Apps host must do and is not a test flourish:
- * the per-request capabilities envelope exists only on the 2026-07-28 era, which this client
- * reaches through the `server/discover` probe. The `apps: false` leg keeps the same era and drops
- * only the extension declaration, so the two legs differ in ONE fact — which is what makes the
- * refusal cell a statement about negotiation rather than about protocol versions.
- */
+// `mode: 'auto'` reaches the modern era, the only one that carries per-request capabilities.
 async function connect(
   url: string,
   options: { readonly apps: boolean; readonly era?: 'modern' | 'legacy' } = { apps: true },
@@ -219,7 +166,7 @@ async function connect(
   return client
 }
 
-// ---- 1. The measurement (RESEARCH Open Question 1 / assumption A3) ------------------------------
+// ---- 1. The measurement ----
 
 /**
  * A registrar that WRAPS the production read to capture the context the SDK hands it.
@@ -314,11 +261,7 @@ describe('the negotiation envelope, measured against the shipped SDK (Open Quest
     const declaredNothing = await measureReadContext({ apps: false })
     expect(negotiatedAppsExtension(declaredNothing)).toBe(false)
 
-    // The measured era caveat, kept as a cell rather than as a paragraph: the SDK's DEFAULT
-    // negotiation mode is the 2025 `initialize` handshake, which carries no per-request
-    // capabilities — so this gate refuses a legacy caller even when that caller declared the
-    // extension at `initialize`. That is D-09's posture (no evidence, no App), and the day the
-    // SDK backfills the envelope on the legacy era, this expectation is where we find out.
+    // The default legacy era carries no per-request capabilities, so a declaring caller is refused.
     const legacy = await measureReadContext({ apps: true, era: 'legacy' })
     expect(legacy?.mcpReq?.envelope).toBeUndefined()
     expect(negotiatedAppsExtension(legacy)).toBe(false)
@@ -396,9 +339,7 @@ describe('the ui:// read over the shipped node handler', () => {
     const { signer } = recordingSigner()
     for (const [index, token] of liveUrls.entries()) {
       const verdict = validateLiveUrlToken(signer, token, {
-        // The SAME clock the fixture mints on. A literal here would be the fixture clock's
-        // defect one line over: a validation instant pinned to a past epoch reports `expired` for a
-        // token minted a millisecond ago.
+        // The fixture's own clock: a past literal would report a fresh token as `expired`.
         subject: { kind: 'run', id: FIXTURE_RUN_ID },
         now: Date.now(),
       })
@@ -415,8 +356,7 @@ describe('the ui:// read over the shipped node handler', () => {
 
     await expect(client.readResource({ uri: APP_URI })).rejects.toThrow(MCP_APPS_EXTENSION_ID)
 
-    // T-408-06's mitigation as a MEASUREMENT rather than a promise: refuse-before-mint means the
-    // signer was never asked, so there is no token in existence to have leaked.
+    // Refuse-before-mint means the signer is never asked, so no token exists to leak.
     expect(minted, 'a refused read mints nothing at all').toHaveLength(0)
   })
 
@@ -498,20 +438,7 @@ describe('the refusal arm runs before anything is invoked (acceptance: zero mint
   })
 })
 
-// ---- 4. WHO MAY OBTAIN A LIVE-VIEW CREDENTIAL (408-12 · gaps[2] / CR-01 · T-408-01) -------------
-//
-// THE CELLS `408-VERIFICATION.md` NAMES AS MISSING ON BOTH ROADS. Every negative cell above drives
-// `capabilities: {}` — a caller that CHOOSES not to declare — so the adversarial case, a caller that
-// merely declares, walked straight through with nothing asserting what the policy about it even was.
-// Both cells below are about the POLICY (who may obtain the credential), never about the mechanism
-// (what `_meta` member was present), and both make a statement about the CREDENTIAL rather than
-// about a status code.
-//
-// THE ROAD THEY ARE WRITTEN AGAINST. 408-08 task 1 put the T-408-01 checkpoint to the user, who
-// answered road `demote`. The dated ruling is shipped prose in `../app-resource.ts`'s header —
-// "THE 2026-09-01 GAP-ROUND RULING — ROAD `demote`" — and it is cited here rather than transcribed,
-// because in this repository the prose is the record and a second copy is a second thing to keep in
-// step.
+// ---- 4. Who may obtain a live-view credential ----
 
 describe('who may obtain a live-view credential', () => {
   it('a caller that merely DECLARES the Apps extension DOES obtain a freshly minted credential — the RECORDED posture, because the declaration is a host-capability signal and never an authorization control', async () => {
@@ -528,9 +455,7 @@ describe('who may obtain a live-view credential', () => {
     const contents = result.contents as readonly { text?: string }[]
     const html = contents[0]?.text ?? ''
 
-    // THE READ SUCCEEDS, AND THAT IS THE RULING RATHER THAN A DEFECT (2026-09-01, road `demote`).
-    // Asserted at the CREDENTIAL rather than at the status: a token really crossed the mint wall
-    // during THIS read, and its bytes are in the document this declaring caller received.
+    // A declaring caller's read succeeds, and the minted token's bytes reach its document.
     expect(
       minted,
       'road `demote` (2026-09-01): any caller reaching the mint is the recorded posture (no caller '
@@ -545,15 +470,7 @@ describe('who may obtain a live-view credential', () => {
     ).toBe(true)
   })
 
-  // THE BOUNDARY THIS SERVER COULD VERIFY (header clause 5, D-02) was the operator-granted `read`
-  // scope, checked by `visibleToCaller`, plus `bindingStatus === 'bound'`. 408-12 measured the
-  // scope half with a mutation control (removing both `visibleToCaller` conditions red this cell).
-  //
-  // RE-SPELLED 2026-10-01 from 'a DECLARING caller whose granted scopes omit
-  // `read` obtains NO App at all — no template, an unreadable address, and zero mints'. The scope
-  // half is deleted with every per-caller permission, so that mutation is now the shipped code: a
-  // declaring caller with no `read` obtains exactly what any declaring caller obtains. What bounds
-  // the credential is the bound-mint floor and the local network controls D-13 keeps.
+  // Scopes bind nothing; the bound-mint floor and the local network controls bound the credential.
   it('a DECLARING caller whose granted scopes omit `read` obtains the same App as any caller — a template, a readable address, one mint', async () => {
     const offered: string[] = []
     const { registry, minted } = fixtureRegistry([0, 1])
@@ -578,17 +495,9 @@ describe('who may obtain a live-view credential', () => {
   })
 })
 
-// ---- 5. WR-07: the fixture clock and the renderer clock are ONE clock --------------------------
+// ---- 5. The fixture clock and the renderer clock are one clock ----
 
-/**
- * A wall-clock instant well past 2027-01-15.
- *
- * `1_800_000_000_000` — the epoch this file's fixture clock used to be pinned to — IS
- * 2027-01-15T08:00:00Z. Past that instant the renderer's own `Date.now()` default is greater than
- * every `expiresAt` the fixture mints, so `renderAppWrapperPage` settles `expired`, strips the
- * mints and serves a document with no liveUrl in it at all. Roughly six cells across this phase's
- * suites would have red on that calendar date, for no reason a reader would connect to a clock.
- */
+// Past `2027-01-15`, where a fixed `1_800_000_000_000` clock would expire every render.
 const PAST_THE_2027_TIME_BOMB = 2_000_000_000_000
 
 describe('the fixture clock cannot expire its own fixtures', () => {

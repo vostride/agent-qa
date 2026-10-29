@@ -1,38 +1,4 @@
-// THE ESCAPE CLASSES THE ONE-MASKED-SERIALIZATION FIX COULD NOT SEE.
-//
-// WHAT THIS FILE MEASURES, and why it did not exist before. `masked-result.ts` serialized the op
-// output with `JSON.stringify` and then handed the SERIALIZED DOCUMENT to `maskText`. The declared
-// mask (`SecretRedactor`) is a raw, exact replacement of each declared value with
-// `[secret:<name>]`. `JSON.stringify` escapes `"` to
-// `\"`, `\` to `\\`, and every C0 control character to `\n`/`\t`/`\uXXXX`. So for any registered
-// credential containing one of those bytes, the raw value DOES NOT OCCUR in the document the
-// masker scans, the masker matches nothing, and the credential reaches the caller verbatim.
-//
-// AND THE PHASE'S OWN FIX MADE IT WORSE, exactly as designed: because `structuredContent` is
-// answered from the same masked bytes as `content`, an escape-blind miss leaks on BOTH channels
-// rather than one. The module's stated property — "a value hidden from one cannot survive in the
-// other" — held; what failed was that nothing was hidden from either.
-//
-// MEASURED TWICE BEFORE THIS FILE EXISTED. A code reviewer measured `raw value present in
-// serialization? false` for `sk-live"abc\def`; the phase verifier then drove the real run
-// masking-context masker (deleted 441-19) over six inputs and recorded four of five shapes leaking
-// verbatim on both channels, including a `*_CREDENTIALS`-style JSON blob. This file is the
-// standing corpus for that class.
-//
-// THE MASKER HERE IS A STAND-IN WITH THE SHIPPED REPLACEMENT. 2026-10-14: mcp
-// depends on no package that exports `SecretRedactor`, which MCP receives injected, so
-// `standInMask` replaces each declared plant raw and exactly, longest first, with
-// `[secret:<name>]` — `SecretRedactor`'s replacement. The declaration arm end to end belongs to
-// `packages/cli/src/__tests__/mcp-credential-surface.test.ts`.
-//
-// ASSERTED ON THE TWO WIRE FIELDS. `content[].text` and `structuredContent` are the fields the SDK
-// puts on the transport; nothing here reads an internal object. Absence is WINDOWED at eight
-// characters, the rule the credential-surface suite established: a cell that asks only whether the
-// WHOLE value is present is satisfied by a partial mask, which is a disclosure budget nobody set.
-//
-// EVERY ABSENCE IS PAIRED WITH A CONTROL. (X0) proves the plants are declared and that a
-// plain value IS masked, so a green absence cell is not a dead channel; (X8) drives an
-// UNREGISTERED value down the same path and requires the helper to FIND it.
+// JSON escaping hides raw secrets from a document masker, so values are masked before serializing.
 
 import type { CallToolResult } from '@modelcontextprotocol/server'
 import { describe, expect, it } from 'vitest'
@@ -56,7 +22,7 @@ const CONTROL_PLANT = 'sk-live\ntealwood7412\tdelta'
 /** A `*_CREDENTIALS`-shaped JSON blob — an entirely ordinary environment value. */
 const BLOB_PLANT = '{"type":"service_account","private_key":"-----BEGIN PRIVATE KEY-----vqx3"}'
 
-/** Registered by nobody. The hostile control's value (X8). */
+/** Registered by nobody: the hostile control's value. */
 const UNREGISTERED_PLANT = 'fjm2q8w5e1r7t3y9u4i6o0'
 
 const ESCAPE_PLANTS: readonly (readonly [string, string])[] = [
@@ -66,14 +32,7 @@ const ESCAPE_PLANTS: readonly (readonly [string, string])[] = [
   ['a JSON-blob credential', BLOB_PLANT],
 ]
 
-/**
- * The first eight-character window of `plant` that occurs in `haystack`, or `undefined`.
- *
- * WINDOWED, not whole-string, for the reason the credential-surface suite states: a mask that
- * disclosed a prefix, a suffix, or any run of eight characters would satisfy a whole-string check
- * and would still be a disclosure. (X8) requires this helper to find something, which is what
- * proves the cells that require `undefined` are capable of failing.
- */
+// Windowed, so a mask that discloses any eight-character run is still a leak.
 function leakedWindow(haystack: string, plant: string, size = 8): string | undefined {
   for (let at = 0; at + size <= plant.length; at += 1) {
     const window = plant.slice(at, at + size)
@@ -215,11 +174,7 @@ describe('X · the escape classes reach neither channel', () => {
   it('(X5) FAIL-CLOSED: a value that cannot be masked in place is WITHHELD, not served', () => {
     const masker = seededMasker()
     try {
-      // A registered credential whose JSON spelling is a NUMBER. Masking it would replace a number
-      // with a placeholder string, which is a different value — so the module refuses to answer at
-      // all rather than serving the digits. (Before this fix the same input produced a masked
-      // document that was no longer valid JSON, and the module withheld for that reason; the
-      // posture is preserved, its cause is now named.)
+      // A credential spelled as a number cannot be masked in place, so the module refuses.
       const pinMask = standInMask([['PIN_441', '867530912345']])
       const result = maskedToolResult({ pin: 867_530_912_345 }, pinMask)
 

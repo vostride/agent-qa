@@ -1,8 +1,4 @@
-// C433-MCP-INSTRUCTIONS.
-//
-// A fresh coding agent never saw init's pointer: Claude Code loads the user's CLAUDE.md, not the
-// AGENTS.md block init writes, and agent-qa never writes CLAUDE.md. The server's own initialize
-// result is the one channel every MCP host receives, so it carries the pointer.
+// Hosts may skip init's AGENTS.md block, so the initialize result carries the pointer.
 
 import { createServer } from 'node:http'
 import type { Server as NodeHttpServer } from 'node:http'

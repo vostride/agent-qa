@@ -1,17 +1,4 @@
-// IMAGE-* (431-05 task 1 · D-07 · T-431-10): the evidence tool's artifact arm answers a complete
-// PNG or JPEG with an MCP image block beside the unchanged masked structured result.
-//
-// Every wire cell drives the shipped `buildAgentQaMcpServer` through the SDK's in-process handler
-// and a real `@modelcontextprotocol/client`, over a registry whose blob port serves genuine image
-// bytes. The fixtures below are real files: a 1x1 RGBA PNG and the same pixel re-encoded as a
-// baseline JPEG by macOS `sips` (both checked with `file` on 2026-09-28).
-//
-// MUTATION SUBJECT (observed 2026-09-28, restored byte for byte):
-//   M1 catalog.ts builds the image from the raw output and appends it after masking, whatever the
-//      masked result was                                          -> IMAGE-MASK-WITHHOLD (a) reds
-//   M4 catalog.ts keeps the first server's masker for every later server -> EVIDENCE-ISOLATION reds
-//
-// Masking hides strings and never pixels. These cells prove which bytes travel, not image privacy.
+// Masking hides strings, never pixels: these cells prove which bytes travel, not image privacy.
 
 import { createHash } from 'node:crypto'
 
@@ -99,8 +86,7 @@ function registryOver(blobs: Blobs): FunctionRegistry {
   return createFunctionRegistry({ deps: { evidenceBlobs, runs } as unknown as FunctionDeps })
 }
 
-// no `grantedScopes` or `safeMode` on the caller; the registry and the
-// MCP server read neither.
+// The registry and the MCP server read no scopes or safe mode, so the caller carries neither.
 const reader: FunctionCaller = { surface: 'mcp', origin: 'agent' }
 const identity = (text: string): string => text
 
@@ -303,8 +289,7 @@ describe('IMAGE-RANGE-REFUSAL', () => {
   })
 })
 
-// mcp depends on no package that exports `SecretRedactor`, so this
-// stand-in makes its raw, exact replacement of one declared value.
+// No mcp dependency exports `SecretRedactor`, so this stand-in replaces one value exactly.
 function standInMask(name: string, value: string): (text: string) => string {
   return (text) => text.split(value).join(`[secret:${name}]`)
 }
@@ -351,11 +336,7 @@ describe('IMAGE-MASK-WITHHOLD', () => {
   }
 })
 
-// ---- EVIDENCE-ISOLATION (431-05 task 2 · EDGE-18 · T-431-12) ------------------------------------
-//
-// One registry, two callers, as the loopback host builds them: a server per request, each with
-// its own caller and masker. The masked secrets are part of each run's id, so a response masked
-// by the wrong caller's masker, or carrying the other run's bytes, is visible on the wire.
+// ---- Evidence isolation: one registry, two callers, a server and masker per request ----
 
 const ALPHA_SECRET = 'alphasecret43105'
 const BETA_SECRET = 'betasecret43105'
