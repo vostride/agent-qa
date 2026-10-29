@@ -1,28 +1,4 @@
-// The four 395-05 actions over the REAL ports and a REAL file (395-05 · CFGM-01/02 · D-01/D-02/D-11).
-//
-// the actions WRITE IN THE CALL through the real direct writer, so
-// the cells read the change back off the file on disk rather than out of a filed proposal.
-//
-// WHY THIS FILE EXISTS BESIDE `agent`'s `config-ops.test.ts`, AND WHY EITHER ALONE WOULD BE WEAKER.
-// That file drives the real ops through the real pipeline with a yaml DOUBLE — a double built from
-// the same library and the same calls the shipped port makes, which is as close as `packages/agent`
-// can get, because `yaml` is not among its runtime dependencies. Close is not the same, and this
-// project has recorded what the gap costs: a contract measured on one side only agrees with itself.
-// So the halves this file pins are exactly the ones a double cannot:
-//
-//   1. `createConfigFilesPort.inspect` — the structural probe a collision refusal and a not-found
-//      refusal both rest on, answered from a file on disk rather than from a fixture string.
-//   2. `createConfigFilesPort.setField` with a STRUCTURED value — a target entry and a hook entry
-//      are maps, and the append is past the end of a real sequence.
-//   3. `createConfigFilesPort.mintHookId` — the REAL mint, checked against the REAL
-//      `isCanonicalHookId`. A double's id proves only that somebody typed a plausible string.
-//   4. `createConfigValidatePort` over the whole candidate SET — with `core`'s actual
-//      `AgentQaConfigSchema` and `HooksFileSchema`, so "the hooks file is validated" is measured
-//      against the schema that will refuse it at run time rather than against a marker.
-//
-// WHAT MAKES EACH CELL RED is named on the cell. The two sharpest: (H2) reds on a validator that
-// reads only the config yaml — the state this code was in before 395-05 — and (H1) reds on any id
-// this codebase did not mint, including a hand-formatted `h_` string that looks right.
+// Drives the config ops over the real ports and file, the halves a yaml double cannot pin.
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -57,7 +33,7 @@ const HUMAN: FunctionCaller = {
   origin: 'human',
 }
 
-/** The house style, comment-dense — the comments are cell (C3)'s subject. */
+/** The house style, comment-dense; the comment-preservation cell reads these comments. */
 const SEEDED_CONFIG = `# agent-qa Configuration
 
 # File discovery and project settings
@@ -127,7 +103,7 @@ function registry() {
     // THE TWO PRODUCTION PORTS THIS FILE IS ABOUT.
     configFiles: createConfigFilesPort(configPath),
     configValidate: createConfigValidatePort(),
-    // THE REAL DIRECT WRITER, over the real workspace.
+    // The real direct writer, over the real workspace.
     configWrite: createConfigWritePort(configPath, (text) => text),
     // Nothing should reach the store any more; it is still bound so a filing would be seen.
     configProposals: {
@@ -176,7 +152,7 @@ describe('the target and hook actions over the real ports', () => {
 
     expect(answer.crossBoundaryReasons).toEqual(['new-origin'])
     expect(answer.files).toEqual(['agent-qa.config.yaml'])
-    // WRITTEN, IN THE CALL, AS ONE BLOCK — and nothing was filed.
+    // Written in the call as one block, and nothing filed.
     expect(writtenText()).toContain('    shop:\n      platform: web\n      url: https://shop.example.com')
     expect(filed).toHaveLength(0)
   })
@@ -275,9 +251,7 @@ describe('the target and hook actions over the real ports', () => {
   })
 
   it('the REAL hooks schema validates the candidate — an unreadable duration blocks', async () => {
-    // `HookDefinitionSchema.timeout` is refined through `ms()`, and the ACTION's DTO accepts any
-    // non-empty string, so this is a candidate only whole-input validation can refuse. It reds on
-    // the validator this code had before 395-05, which read the config yaml and nothing else.
+    // Only whole-input validation refuses this: the DTO takes any string, `timeout` needs `ms()`.
     const answer = await call('config.hook.add', {
       name: 'Seed the cart',
       runtime: 'node',
@@ -293,8 +267,7 @@ describe('the target and hook actions over the real ports', () => {
   })
 
   it('CONTROL: the same hook with a readable duration is written', async () => {
-    // WITHOUT THIS, (H2) would pass against a validator that refuses every hooks file. The control
-    // is what makes the refusal a fact about the duration rather than about the file.
+    // Without this control, a validator refusing every hooks file would pass the cell above.
     const answer = await call('config.hook.add', {
       name: 'Seed the cart',
       runtime: 'node',
@@ -334,13 +307,7 @@ describe('the target and hook actions over the real ports', () => {
   })
 })
 
-// ---- 432-11 D-05/D-07: all six config operations write in the call, on the real host -----------
-//
-// C432-CONFIG-SIX-OPS  scaffold, target create, target edit, field set, auth set and hook add, in
-//                      one workspace, through the composed CLI host and through `agent-qa fn`.
-//                      Each call changes the files on disk before it answers; nothing is filed as a
-//                      proposal; a dirty repository's HEAD, index and staged work do not move, and a
-//                      directory with no repository is an ordinary workspace.
+// Every config operation writes in the call; HEAD, index and staged work do not move.
 
 /** A configuration with a model and no targets, the project a scaffold merges into. */
 const ZERO_TARGET_CONFIG = `# agent-qa Configuration
@@ -491,11 +458,7 @@ describe('every config operation writes in the call through the real host', () =
   })
 })
 
-// ---- 432-11: edges, retries and retained controls on the real host --------------------------------
-//
-// Each cell holds a path's write turn through the shared per-path queue, so an outside edit lands
-// after the op read the file and before its write takes its turn — the window the transaction and
-// the whole-file digest check exist for.
+// Holding a path's write turn lets an outside edit land between the op's read and its write.
 
 async function holdTurn(path: string): Promise<{ held: Promise<void>; release: () => void }> {
   const serialize = (dashboard as Record<string, unknown>).serializeConfigWrite as
@@ -516,10 +479,7 @@ function settle(ms = 50): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-// `authStateName` wrote `use.authState`, and the committed
-// configuration has no such key, so through real whole-config validation `config.auth.set`,
-// `config.target.create` and `config.target.edit` answered `blocked / schema-fail` on every call that
-// used it. The field is deleted from all three. These cells are the absence witness and the reason.
+// The committed configuration has no `use.authState`, so no config op takes an auth state.
 describe('the committed configuration binds no auth state, so no op takes one', () => {
   it('the REAL whole-config validation refuses an auth-state binding at both places an op could write it', async () => {
     const validate = createConfigValidatePort()
@@ -676,10 +636,6 @@ describe('a whole-file write that meets an outside edit says exactly what happen
     })
 })
 
-// RE-SPELLED 2026-10-01: the undo's git-history source is no longer bound on the CLI
-// host, so it refuses unbound by name instead of answering the proposal union's `no-agent-commit`
-// refusal. The claim it guarded — nothing is written, committed or filed — is unchanged.
-// RE-SPELLED 2026-10-01: the undo op is deleted, so it is refused as an unknown function.
 describe('config.undo.propose is refused as an unknown function', () => {
   it('the undo answers the proposal union and, with no agent commit, refuses by name and writes nothing', async () => {
     gitIn(root, 'init', '--quiet')

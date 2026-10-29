@@ -1,47 +1,4 @@
-// THE ABSENT-HANDOFF ARM OF INVK-06's INTERRUPTED GATE RUN (Phase 401 plan 22 — closure evidence
-// for 401-08's Truth 7 backstop).
-//
-// WHY A SECOND FILE AND NOT A FIFTH HALF OF `gate-run-exclusion.e2e.test.ts`. That cell's halves
-// discriminate on a DECISION: a marker rides the request onto the durable handoff and
-// `projectRunOutcomes` answers `excluded: true` against `excluded: false`. This arm's mechanism is
-// not a decision at all — it is an ABSENCE, and mixing the two in one file would let a reader take
-// the marker cell's discriminating power as this one's.
-//
-// ---- WHAT THE SIBLING CELL LEFT UNRANGED, IN ITS OWN WORDS ---------------------------------
-//
-// It closed HALF 1 with an honest limit: "a run that left no handoff at all cannot be handed to
-// `projectRunOutcomes`, so 'it contributes nothing' is a statement about the fold's input being
-// absent rather than about a decision the fold makes." That sentence is TRUE, and it is not a
-// measurement — it reduces to the observation that a function was not called.
-//
-// THE FALSIFIABLE VERSION LIVES ONE LAYER UP, and it is the whole design of this file. The
-// projection family's FULL REBUILD (`rebuildRunOutcomes`, reached through
-// `reconcileRunOutcomesProjection` when the stored version stamp differs from the shipped one)
-// CLEARS the family and re-reads every `handoff.json` from the runs root. That is the one shipped
-// mechanism that could reconstruct an interrupted run's contribution from what IS on disk beside
-// the missing handoff — `events.jsonl`, `execution_audit.jsonl`, `artifact.json` are all sitting
-// right there in the same directory. So the claim is measured against a real rebuild over a real
-// runs root holding BOTH an interrupted run and a completed one, and the mutation ledger in
-// 401-22's SUMMARY reds this cell by making the rebuild fall back to each of those files in turn.
-//
-// ---- THE HONESTY NOTE, WRITTEN HERE SO THE CELL CANNOT OVERCLAIM ---------------------------
-//
-// IN THIS ARM THE ABSENCE IS THE MECHANISM. The gate-run marker is NOT doing the work: an
-// interrupted run that carries no marker at all contributes exactly as little, for exactly the
-// same reason. Run B below is that case, and it is carried as a recorded OBSERVATION about what
-// the mechanism is — never as evidence that the marker works. A cell that implied otherwise would
-// be describing a control it does not have.
-//
-// ---- ONE SUBSTITUTION, DECLARED --------------------------------------------------------------
-//
-// The COMPLETED sibling's own durable handoff is rewritten on disk with a member list the
-// projection can count, for the same reason `gate-run-exclusion.e2e.test.ts` needs a HALF 2: a run
-// driven here has no reachable browser and no reachable model, so its member settles with an
-// outcome `countedOutcome` does not count. Without the substitution the "control" would produce no
-// rows either and the whole cell would be green at rest — proving nothing (401-05's Truth 3).
-// EVERYTHING ELSE ON THAT RECORD IS THE SHIPPED RUN'S OWN: run id, scope, build ordinal, execution
-// context, verdict, and the absence of any gate marker. The substituted member is checked against
-// the shipped recipes before it is relied on.
+// The full rebuild re-reads every `handoff.json`; an interrupted run with none contributes nothing.
 
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -106,7 +63,7 @@ afterAll(async () => {
 
 type Fixture = ReturnType<typeof createInProcessFixture>
 
-/** the direct rebuild fixture must own the same real writer authority as a host. */
+// The direct rebuild fixture owns the same real writer authority as a host.
 function reconcileRunOutcomesProjection(
   opts: Parameters<typeof reconcileUnderAuthority>[0],
 ): ReturnType<typeof reconcileUnderAuthority> {
@@ -197,14 +154,7 @@ function loggedTypes(fixture: Fixture, runDirName: string): string[] {
     .map((line) => (JSON.parse(line) as { type: string }).type)
 }
 
-/**
- * The run id THE RUN ITSELF recorded, read off its own `runStarted` envelope.
- *
- * Not the directory name: an interrupted run hands back no acknowledgement, and taking the id from
- * the directory would make this cell's identity claims a restatement of the naming convention it
- * also asserts. The directory name is then checked AGAINST this, which pins the convention
- * instead of assuming it.
- */
+// Read off the run's own `runStarted` envelope, so the directory name is checked against it.
 function recordedRunId(fixture: Fixture, runDirName: string): string {
   const first = readFileSync(join(fixture.agentQaRoot, 'runs', runDirName, 'events.jsonl'), 'utf8')
     .split('\n')
@@ -323,15 +273,10 @@ describe('an interrupted gate run leaves nothing a full rebuild can reconstruct'
         const runA = recordedRunId(fixture, dirA)
         const runB = recordedRunId(fixture, dirB)
         expect(new Set([runA, runB, runC])).toHaveProperty('size', 3)
-        // The directory name is the run's own id — pinned, not assumed (401-20's codec).
+        // The directory name is the run's own id, pinned rather than assumed.
         expect(runDirNames(fixture)).toEqual([runA, runB, runC].sort())
 
-        // ---- (3) REACH, ASSERTED BEFORE ANY EXCLUSION CLAIM -----------------------------------
-        //
-        // Without this, "the interrupted run contributed nothing" and "the interrupted run never
-        // started" read identically, and this phase has produced that exact false green three
-        // times. RE-SPELLED 2026-09-30: the reach witness was the run gate's `run:start`
-        // row, which no start writes any more; it is now each run's own first event.
+        // Reach first, by each run's first event: a run that never started contributes nothing too.
         expect(auditRows(fixture).filter((row) => row.action === 'run:start')).toEqual([])
         for (const dir of [dirA, dirB, runC]) {
           const first = readFileSync(join(fixture.agentQaRoot, 'runs', dir, 'events.jsonl'), 'utf8')
@@ -348,8 +293,7 @@ describe('an interrupted gate run leaves nothing a full rebuild can reconstruct'
         for (const dir of [dirA, dirB]) {
           const runDir = join(fixture.agentQaRoot, 'runs', dir)
           expect(existsSync(join(runDir, HANDOFF_FILE))).toBe(false)
-          // `execution_audit.jsonl` was the run gate's row; a start writes none now.
-          // nor does it write a `masking-digests.json` sidecar.
+          // A start writes no `execution_audit.jsonl` and no `masking-digests.json` sidecar.
           expect(readdirSync(runDir).sort())
             .toEqual(['artifact.json', 'events.jsonl'])
           expect(readFileSync(join(runDir, 'events.jsonl'), 'utf8').trim()).not.toBe('')
@@ -486,7 +430,7 @@ describe('an interrupted gate run leaves nothing a full rebuild can reconstruct'
           const runDir = join(fixture.agentQaRoot, 'runs', dir)
           expect(existsSync(join(runDir, HANDOFF_FILE))).toBe(false)
           expect(existsSync(join(runDir, ANALYSIS_FILE))).toBe(false)
-          // no `masking-digests.json` sidecar is written.
+          // No `masking-digests.json` sidecar is written.
           expect(readdirSync(runDir).sort())
             .toEqual(['artifact.json', 'events.jsonl'])
           expect(readFileSync(join(runDir, 'events.jsonl'), 'utf8')).toBe(residueBefore.get(dir))

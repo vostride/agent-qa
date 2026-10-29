@@ -1,52 +1,4 @@
-// A committed config the yaml parser cannot read, on every road that loads it (395-14 · F-01).
-//
-// THE DEFECT THIS FILE IS THE ACCEPTANCE FOR. `loadConfigFile`/`loadRequiredConfigFile` hand
-// `parseYaml` the person's committed bytes and let its throw out uncaught. The vendored `yaml`
-// package pretty-prints a `YAMLParseError` with a VERBATIM EXCERPT of the source around the point
-// the parser gave up — for a duplicate top-level key that excerpt is the line before it, whatever
-// that line happens to hold. Measured with a planted `sk-ant-`-shaped credential on that line, the
-// excerpt reached `config.field.set`, `config.target.create` and `config.project.scaffold`; through
-// `refusalMessage` (turn-engine.ts:290-292, which returns an `Error`'s `.message` verbatim) it
-// reaches a chat turn's answer and the persisted session jsonl; and `agent-qa validate` printed the
-// identical string through a SIBLING site, core `validateConfig`'s `YAML syntax error:`
-// interpolation.
-//
-// THE CLOSURE IS 395-10's, ONE LAYER OUT: POSITION, NEVER CONTENT. Both sources compose their
-// sentence from `yamlParseFailureMessage` — two numbers off the error and nothing else — so no road
-// that loads a config can quote a byte of it.
-//
-// THE FIXTURE IS PRODUCED, NEVER A LITERAL. A real temp git repository, the config WRITTEN and
-// COMMITTED, exactly the file a person would have in their tree. A type literal handed to a port
-// would pin an input the loader never sees, and this defect lives in the loader.
-//
-// WHAT MAKES EACH CELL RED:
-//
-//  (F1) config.field.set         — the loader rethrowing the parse error, or wording its own
-//                                  message out of the caught error's text.
-//  (F2) config.target.create     — the same guard reached through a second op. A fix placed in one
-//                                  op's handler rather than in the loader reds here.
-//  (F3) config.project.scaffold  — and through a third, which reads the committed set from zero.
-//  (F4) agent-qa validate        — core `validateConfig`'s own arm. This is a SIBLING SITE, not a
-//                                  caller of the cli loader: a one-sided fix that hardened the
-//                                  loader alone leaves this road printing the excerpt (388/390/392
-//                                  — one-sided hardening is a regression generator).
-//  (F5) the chat answer          — the equivalence the chat road rests on: the captured rejection
-//                                  is an `Error` with a non-empty message, so `refusalMessage`
-//                                  RETURNS THAT MESSAGE. The string asserted here is the string a
-//                                  turn's answer and its session jsonl carry.
-//  (F6) control, non-firing      — a WELL-FORMED config in the same harness still proposes. The
-//                                  guard fired zero times; a catch that swallowed healthy loads
-//                                  reds here.
-//  (F7) control, secretless      — the same fault with NO credential anywhere still reports its
-//                                  position. The guard's subject is the FAULT, not the secret, so a
-//                                  fix keyed on detecting a secret reds here.
-//  (W1) WR-08                    — `yamlParseFailureMessage` handed `null` and a bare string. The
-//                                  395-10 copy read `.linePos` off the argument unguarded and
-//                                  TypeError'd on `null`.
-//  (E1) the ENOENT byte-pins     — `loadConfigFile` answers `{}` and `loadRequiredConfigFile` says
-//                                  `Config file not found: <path>` VERBATIM, because callers match
-//                                  that sentence. A parse guard written as one broad catch around
-//                                  the whole loader would reword it and red here.
+// A yaml parse error reports a position only, because the library's message quotes the source.
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -88,15 +40,7 @@ const CONFIG_FILE = 'agent-qa.config.yaml'
  */
 const PLANTED_CREDENTIAL = 'sk-ant-api03-395fourteenFIXTUREONLYnotarealkey'
 
-/**
- * The SHIPPED binary, resolved from this file's own location (395-16 · CR-01 / S2).
- *
- * `packages/cli/src/composition/__tests__` → three levels up is `packages/cli`. The cell below
- * drives `dist/cli.js` and not the source, because the crash this measures happens in the process a
- * person actually runs — and because a reading taken on a STALE dist measures the previous build.
- * The plan's verify line rebuilds core then cli before every run of this file for exactly that
- * reason.
- */
+// Drives the built `dist/cli.js`, so a stale dist measures the previous build.
 const CLI_DIST = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'dist', 'cli.js')
 
 let root: string
@@ -107,8 +51,7 @@ function git(...args: string[]): { status: number | null; stdout: string; stderr
   const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' })
   if (result.error !== undefined) throw result.error
   if (result.status !== 0) {
-    // a `git` that ran and failed must not return quietly; see
-    // validate-resolution-surface.test.ts for the full note.
+    // A `git` that ran and failed must not return quietly.
     throw new Error(`git ${args.join(' ')} exited ${result.status}: ${result.stderr}`)
   }
   return { status: result.status, stdout: result.stdout, stderr: result.stderr }
@@ -127,14 +70,7 @@ function occurrences(haystack: string, needle: string): number {
  * it is the mechanism by which any line of a person's file can end up in an error message, and the
  * only way to measure the channel is to put something recognisable on the line it prints.
  */
-/**
- * A configuration the shipped schema accepts WHOLE — the non-firing control's input, and the body
- * the faulty fixture is built from.
- *
- * COMPLETE ON PURPOSE. `config.field.set` validates the whole candidate, so a config
- * missing `workspace.envFile` blocks with `schema-fail` and the control cell would be measuring the
- * validator rather than the loader guard it is the control for.
- */
+// Complete on purpose: `config.field.set` validates the whole candidate, so a gap would block it.
 const WELL_FORMED_CONFIG = `# my project's own agent-qa configuration
 workspace:
   testMatch:
@@ -197,30 +133,14 @@ function seedSecretsFile(): void {
   writeFileSync(join(root, '.env.secrets.local'), '')
 }
 
-/**
- * The OTHER members of the file set `enumerateConfigFileSet` pins.
- *
- * ONE VALUE PER MEMBER, ON PURPOSE. Three distinct planted strings, so a cell that reads the whole
- * rendered output can say WHICH member leaked rather than only that something did — cross-member
- * misattribution is visible instead of averaged away. This project's recurring failure mode is a
- * guard hardened on one member of a set while its sibling leaks (388/390/392); the fixtures below
- * exist so the set is measured as a set.
- */
+// One distinct value per member, so a whole-output failure says which member leaked.
 const PLANTED_HOOKS_CREDENTIAL = 'sk-ant-api03-395sixteenHOOKSFIXTUREONLYnotarealkey'
 const PLANTED_SUITE_CREDENTIAL = 'sk-ant-api03-395sixteenSUITEFIXTUREONLYnotarealkey'
 
-/**
- * The FOURTH member's own value (395-18 · F-01-R3a).
- *
- * A plain test yaml — the `else` arm of the `isSuiteFile` branch at `validate.ts:341-345` whose
- * `if` arm 395-16 hardened. Distinct from the three above for the same reason they are distinct
- * from each other: when a whole-output cell reds, the value says WHICH member leaked. `.suite.yaml`
- * is an extension, not a property of what a file contains, and it was the only thing separating a
- * hardened member from a leaking one.
- */
+// A plain test yaml, the other arm of `isSuiteFile`; its own value says which member leaked.
 const PLANTED_TEST_CREDENTIAL = 'sk-ant-api03-395eighteenTESTFIXTUREONLYnotarealkey'
 
-/** The fifth: `agent-qa.local.yaml`, the file `loadLocalBindings` reads (395-18 · V4). */
+// The fifth member: `agent-qa.local.yaml`, read by `loadLocalBindings`.
 const PLANTED_LOCAL_CREDENTIAL = 'sk-ant-api03-395eighteenLOCALFIXTUREONLYnotarealkey'
 
 /** The same adjacency mechanism as the config fixture, one file class over. */
@@ -272,14 +192,7 @@ apiToken: ${PLANTED_TEST_CREDENTIAL}
 apiToken: ${PLANTED_TEST_CREDENTIAL}
 `
 
-/**
- * `WELL_FORMED_CONFIG` with a device registered, so `agent-qa devices list` gets past
- * `registry.devices` and reaches `loadLocalBindings` — the road (V4) measures.
- *
- * DERIVED from the shipped-schema-accepted body rather than written beside it: a second hand-kept
- * config is a second thing that can drift out of what the schema accepts, and then the control it
- * feeds would be measuring the validator.
- */
+// `WELL_FORMED_CONFIG` plus a device, so `devices list` reaches `loadLocalBindings`.
 const CONFIG_WITH_DEVICE = WELL_FORMED_CONFIG.replace(
   'registry:\n  llms:',
   'registry:\n  devices:\n    handset:\n      platform: ios\n  llms:',
@@ -478,14 +391,7 @@ describe('a committed config the parser cannot read names WHERE, never WHAT', ()
     })
 })
 
-// THE SURFACE THE ROUND-2 CORPUS COULD NOT SEE (395-16 · RULING 1 / CR-01).
-//
-// Every cell above reads `error.message`. The channel that survived them reads the error as a
-// VALUE: `util.inspect` walks the `cause` chain, and Node's default uncaught printer is a
-// util.inspect call — so `agent-qa config show`, which awaited the loader bare, crash-printed the
-// person's file back at them while ten cells stayed green. The two cells here change the assertion
-// SURFACE rather than the case count: the serialization as a printer reads it, and the shipped
-// binary's entire stdout+stderr.
+// `util.inspect` walks the `cause` chain, so the error is checked as a value, not just its message.
 describe('the loader\'s error is clean as a VALUE, and the shipped command reports it', () => {
   it('the rejection serializes position-only — util.inspect and .stack, not just .message',
     async () => {
@@ -515,7 +421,7 @@ describe('the loader\'s error is clean as a VALUE, and the shipped command repor
         `the stack carried the planted credential: ${stack}`,
       ).toBe(0)
 
-      // The `.message` surface the round-2 corpus asserted on is unchanged, and still position-only.
+      // The `.message` surface stays position-only.
       expectPositionOnly(error?.message ?? '')
       expect(error?.message).toContain(CONFIG_FILE)
     })
@@ -547,14 +453,7 @@ describe('the loader\'s error is clean as a VALUE, and the shipped command repor
     })
 })
 
-// THE FILE SET, MEASURED AS A SET (395-16 · RULING 1 / CR-02 · WINDOWS 139).
-//
-// `enumerateConfigFileSet` pins a SET: the config yaml, the hooks file, and the suite files beside
-// them. 395-14 hardened ONE member and left its siblings interpolating the library's pretty excerpt
-// — this project's documented recurring failure mode, and invisible to cell (F4) because (F4)
-// filters diagnostics to `d.file === configPath`. Every cell here asserts over the WHOLE rendered
-// `formatDiagnostics` output with NO per-file filter, which is the string the command writes to
-// stdout and the surface a person reads.
+// Asserted over the whole rendered output with no per-file filter, the string a person reads.
 describe('every member of the config file set reports position-only', () => {
   it('a hooks.yaml the parser cannot read renders position-only in the WHOLE output',
     async () => {
@@ -576,14 +475,7 @@ describe('every member of the config file set reports position-only', () => {
     })
 
   it('BOTH members poisoned at once — one whole-surface assertion over the set', async () => {
-    // THE SHAPE (F4)'s FILTER MADE IMPOSSIBLE. One rendering, every member's diagnostics in it, and
-    // one assertion per planted value. A guard that covers the member it was written for and misses
-    // the one beside it cannot pass this cell by being filtered out of view.
-    //
-    // `hooksFile` is passed EXPLICITLY here, and that is a finding rather than a convenience: when
-    // the config itself is unreadable the command's `resolveConfig` throws, `workspace` stays
-    // undefined, and `validateProject` never reaches the hooks member at all. Driving the set as a
-    // set therefore needs the member named, or the cell would be green on a leak it never provoked.
+    // `hooksFile` is named explicitly: an unreadable config leaves `validateProject` short of it.
     seedConfig(faultyConfigText({ credential: true }))
     seedWorkspaceSupportFiles()
     seedFile('hooks.yaml', FAULTY_HOOKS)
@@ -601,13 +493,7 @@ describe('every member of the config file set reports position-only', () => {
     expect(rendered, `the rendered validate output:\n${rendered}`)
       .toMatch(/not readable as YAML at line \d+, column \d+/)
 
-    // DE-VACUIZED. The clauses above are all satisfiable by ONE member: two
-    // zero-counts are trivially true of a member that produced no diagnostic at all, and the single
-    // position regex is satisfied by whichever sibling did produce one. The verifier measured
-    // exactly that — disabling the hooks member's diagnostic production entirely left this cell
-    // GREEN while the member it exists to measure was never reached. So the set is now asserted AS
-    // a set: both members named in the rendering, and the position sentence counted, once per
-    // member. A member whose diagnostic production regresses to nothing reds here.
+    // Both members are named and the position sentence counted once each, so a silent member fails.
     expect(rendered, `the rendered validate output:\n${rendered}`).toMatch(/agent-qa\.config\.yaml/)
     expect(rendered, `the rendered validate output:\n${rendered}`).toMatch(/hooks\.yaml/)
     expect(
@@ -618,8 +504,7 @@ describe('every member of the config file set reports position-only', () => {
 
   it('a suite file the parser cannot read renders position-only — the third member',
     async () => {
-      // WINDOWS 139, driven on the road `agent-qa validate` walks: the suite file is DISCOVERED
-      // through the workspace's own suiteMatch glob, not handed in as a path.
+      // The suite file is found through the workspace's `suiteMatch` glob, as `validate` finds it.
       seedConfig(WELL_FORMED_CONFIG)
       seedWorkspaceSupportFiles()
       seedFile('hooks.yaml', 'hooks: []\n')
@@ -638,19 +523,7 @@ describe('every member of the config file set reports position-only', () => {
     })
 })
 
-// THE FOURTH MEMBER — the `else` arm of the branch round 3 hardened (395-18 · F-01-R3a).
-//
-// `validateFiles` branches on `isSuiteFile` (`core/src/validation/validate.ts:341-345`). Round 3
-// hardened the `if` arm — (SU1) above is its cell — and left the `else` arm: every non-suite test
-// yaml, running `validateTestFile` -> `parseTestFile` (`prettyErrors: true`) -> `formatYamlError`,
-// whose body was `message: err.message`, the yaml library's pretty print with the verbatim source
-// excerpt and caret. The verifier reproduced this on the shipped binary while the SAME dist
-// rendered a `.suite.yaml` twin position-only in the same run.
-//
-// `formatYamlError` speaks on TWO channels and only one of them is the message: `ParseError.source`
-// is a straight copy of the person's own line, printed by `run.ts:599-613` and persisted into the
-// dashboard DB at `run.ts:2676`. A store is a surface with a delay, so the message fix alone does
-// not hold on the `run` road — hence two cells, one per channel.
+// `formatYamlError` speaks through the message and `ParseError.source`; each gets a cell.
 describe('the plain-test member reports position-only on BOTH channels', () => {
   it('the SHIPPED `agent-qa validate` renders a plain test yaml position-only', () => {
     // The config member must PARSE, so discovery resolves a workspace and the road reaches the
@@ -682,10 +555,7 @@ describe('the plain-test member reports position-only on BOTH channels', () => {
   })
 
   it("the producer's own ParseError is position-only in message AND in source", () => {
-    // THE SECOND CHANNEL, PINNED AT ITS SOURCE. `ParseError.source` never reaches the `validate`
-    // road (`validateTestFile` maps only file/line/column/message/severity), so (V1) cannot see it.
-    // It reaches the `run` road's printer and the dashboard DB, which is why it is asserted on the
-    // value the producer returns rather than on any one consumer's rendering.
+    // `ParseError.source` skips `validate` but reaches `run`'s printer and the dashboard DB.
     seedConfig(WELL_FORMED_CONFIG)
     seedWorkspaceSupportFiles()
     seedFile('tests/leak.yaml', FAULTY_TEST)
@@ -713,14 +583,6 @@ describe('the plain-test member reports position-only on BOTH channels', () => {
   })
 })
 
-// THE REST OF THE CLASS, FOUND BY ENUMERATION RATHER THAN BY THE NEXT VERIFIER (395-18 · Task 2).
-//
-// Task 2's mechanical sweep of every yaml-parse call site in `packages/*/src` turned up three more
-// members of the identical mechanism, two of them reproduced on the shipped binary before a line
-// was changed. 2026-10-19: the third, the hook-reference migration audit, was
-// deleted with its cell. They are here rather than in a deferral row because they are `agent-qa`'s
-// own person-visible roads, which is the boundary the plan draws: dashboard surfaces defer (WINDOWS
-// 140), CLI and core surfaces get fixed in the pass that finds them.
 describe('the other person-visible yaml-parse roads report position-only', () => {
   it('the SHIPPED `agent-qa run --suite` never quotes the suite file back', () => {
     seedConfig(WELL_FORMED_CONFIG)
@@ -880,15 +742,12 @@ describe('the controls: the guard fires on the FAULT, and on nothing else', () =
     // Named rather than swallowed: a catch that had started eating healthy loads would fail here
     // with the message it failed with.
     expect(error?.message ?? null).toBeNull()
-    // a healthy load reaches the direct write, which lands in the call.
+    // A healthy load reaches the direct write, which lands in the call.
     expect((answer as { outcome?: string }).outcome).toBe('applied')
   })
 
   it('the same fault with NO credential anywhere still reports its position', async () => {
-    // THE PRECONDITION-GUARDED CORPUS LAW. Every other road cell is drawn from inside the rule's
-    // own assumption — a fault WITH a secret beside it. A fix keyed on detecting a secret rather
-    // than on the fault would pass all of them and red here, and a fallback that hid the fault
-    // entirely would red here too.
+    // No secret beside the fault: a fix keyed on detecting a secret would fail here.
     seedConfig(faultyConfigText({ credential: false }))
 
     const { error } = await invokeComposed({
@@ -908,9 +767,7 @@ describe('the controls: the guard fires on the FAULT, and on nothing else', () =
 
 describe('the shared primitive answers rather than crashes', () => {
   it('a null or primitive throw gets the value-free fallback, and no TypeError', () => {
-    // THE 395-10 COPY READ `.linePos` OFF THE ARGUMENT UNGUARDED. `throw null` is a legal throw, and
-    // `null.linePos` is a TypeError raised inside the code whose entire job is to turn a fault into
-    // a sentence — the fault would be replaced by a crash in the reporter.
+    // `throw null` is legal, so reading `.linePos` unguarded would crash the reporter.
     expect(yamlParseFailureMessage(null)).toBe('not readable as YAML (position unavailable)')
     expect(yamlParseFailureMessage('boom')).toBe('not readable as YAML (position unavailable)')
     expect(yamlParseFailureMessage(undefined)).toBe('not readable as YAML (position unavailable)')
@@ -936,12 +793,7 @@ describe('the ENOENT arms are byte-identical', () => {
         (err: unknown) => err as Error,
       )
       expect(error?.message).toBe(`Config file not found: ${missing}`)
-      // THE CLASS IS NOT THE PARSE CLASS — the fact this line has asserted all along, now stated
-      // directly instead of through a proxy. It read `toBe('Error')` because the throw was a bare
-      // `Error`; 395-27 · WR-02 gave the absent-file case its own name so `showAction` can
-      // recognise it by `instanceof` rather than by matching THIS VERY SENTENCE, which is the
-      // reasoning `ConfigFileNotYamlError`'s own doc block already wrote down. The byte-pin above
-      // is what the live lane matches and it is unchanged; only the class name moved.
+      // The absent-file error is not the parse class; `showAction` matches it by `instanceof`.
       expect(error?.name).not.toBe('ConfigFileNotYamlError')
       expect(error?.name).toBe('ConfigFileNotFoundError')
     })
@@ -961,9 +813,7 @@ describe('the ENOENT arms are byte-identical', () => {
   })
 })
 
-// A HEALTHY CONFIG ON THE TWO SHIPPED CONFIG VERBS (395-20 · F-03). Since 441-20 config
-// output has no masks of its own: values render and write as the person wrote them, and only a
-// declared secret is masked (C441-CONFIG in `__tests__/config.test.ts`).
+// Config output renders values as written; only a declared secret is masked.
 
 /** The control values: the ordinary things a config carries, none of them credential-shaped. */
 const CONTROL_TARGET_NAME = 'my-app-staging'
@@ -1020,18 +870,7 @@ describe("a healthy config's values are shown and written as they are", () => {
   })
 })
 
-// THE FLAG THE PERSON TYPED, ON THE CONFIG VERBS.
-//
-// `setAction` hardcoded `const configPath = 'agent-qa.config.yaml'` and `showAction` hardcoded the
-// same string into its `loadConfigFile` call, while the ROOT program has carried a `--config <path>`
-// option all along. The measured consequence is the worst shape a config bug takes: a SILENT WRONG-FILE
-// WRITE. `agent-qa --config staging.yaml config set version 9` reported
-// `✓ version = 9 saved to agent-qa.config.yaml` and modified the file the person was explicitly
-// steering away from, while `staging.yaml` stayed untouched. Nothing in the output said so.
-//
-// (W3) drives both halves on the shipped binary, and the load-bearing assertion is the NEGATIVE one:
-// the default config's bytes are hash-compared before and after. A cell that only checked
-// "staging.yaml got the value" would pass on an implementation that wrote BOTH.
+// The root `--config <path>` reaches the config verbs; the default file's bytes are hash-compared.
 
 /** A key only the staging config carries — the row that says WHICH file `config show` read. */
 const STAGING_ONLY_KEY = 'stagingOnlyMarker'
@@ -1080,50 +919,7 @@ describe('the config verbs read and write the file --config names', () => {
   })
 })
 
-// BOTH SIDES OF THE CONFIG VERB PAIR REPORT THEIR FAULTS.
-//
-// WHAT 395-24 MINTED AND THIS CLOSES. Once `--config <path>` reached these verbs the path became
-// PERSON-SUPPLIED, and neither verb was ready for a path that does not resolve:
-//
-//   $ agent-qa --config sub/staging.yaml config set version 9
-//   node:internal/fs/promises:642
-//   Error: ENOENT: no such file or directory, open 'sub/staging.yaml'
-//       at async setAction (file:///…/packages/cli/dist/cli.js:18376:3) { errno: -2, … }
-//
-// That is Node's DEFAULT UNCAUGHT PRINTER — the printer 395-16 exists to keep config content away
-// from — reached by the ordinary road of typing a path with a typo in it. `showAction` was given
-// the report-not-crash guard in 395-16 (*"THE OP REPORTS, IT DOES NOT CRASH"*); its sibling one
-// function above was not. Fifth filing of the one-sided-hardening shape in this arc.
-//
-// AND THE READ SIDE LIES RATHER THAN CRASHING. `showAction` calls `loadConfigFile`, which swallows
-// ENOENT and answers `{}`, so `agent-qa --config nope.yaml config show` printed
-// `(no config values)` and exited 0: the person named a file, and the command described nothing at
-// all as though it had read it. `validate` was given the opposite (correct) posture in the same
-// round — `(W2)` in validate-resolution-surface.test.ts pins a non-zero exit naming the file — so
-// the two verbs disagreeing about the same missing file IS the bug.
-//
-// WHAT MAKES EACH CELL RED:
-//
-//  (W8)         — the write guard removed. The uncaught rejection returns and the stack-frame
-//                 assertions count above 0. Leg M-W1.
-//  (W8-read)    — the READ's non-ENOENT rethrow one line above the write. `--config <a directory>`
-//                 crashed identically, on the same verb, in the same function: guarding the write
-//                 alone would have been the SIXTH filing of the shape this plan exists to close.
-//  (W9)         — the explicit-path refusal removed. `config show` describes an empty config for a
-//                 file that is not there. Leg M-W2.
-//  (W9-control) — THE SCOPE BOUNDARY, MEASURED RATHER THAN DECLARED. A project with genuinely no
-//                 config and no `--config` flag is not being lied to, and widening the refusal
-//                 there would change behaviour in every zero-config project and in the live lane.
-//                 Its reading was taken on the pre-change tree and is asserted here verbatim, so
-//                 "unchanged" is a comparison. It stays GREEN under leg M-W2 — that is what proves
-//                 the two roads are DISTINGUISHED rather than both refused.
-//
-// RECORDED AND DELIBERATELY NOT ACTED ON: on the unflagged road `validate` refuses (it reaches
-// `loadRequiredConfigFile` through `resolveConfig`) while `config show` reports an empty table at
-// exit 0. The two verbs stay different there on purpose — `validate`'s whole job is to answer
-// whether a config resolves, and `config show`'s is to say which keys resolve from where, which is
-// a truthful (if short) answer in a project that declares none. Stated here so a later round does
-// not discover it as news.
+// A missing `--config` path is reported, never crashed on or read as an empty config.
 
 /** A path whose PARENT DIRECTORY does not exist — the person's own typo, rendered as they typed it. */
 const UNWRITABLE_CONFIG_PATH = 'sub/staging.yaml'
@@ -1141,9 +937,7 @@ function expectNoRawNodeStack(combined: string, what: string): void {
       `${what} rendered Node's default printer (\`${marker}\`):\n${combined}`,
     ).toBe(0)
   }
-  // AND NO ABSOLUTE PATH OUT OF THE PERSON'S FILESYSTEM. The raw error carried
-  // `file:///…/packages/cli/dist/cli.js` and the temp root; a report names the path the person
-  // TYPED and nothing else (WR-07's discipline).
+  // A report names the path the person typed and no absolute path of their filesystem.
   expect(combined, `${what} printed the shipped binary's own path:\n${combined}`)
     .not.toContain(CLI_DIST)
   expect(combined, `${what} printed an absolute path the person never typed:\n${combined}`)
@@ -1210,8 +1004,7 @@ describe('the config verbs report their faults instead of crashing', () => {
       occurrences(combined, 'Resolved Configuration'),
       `config show composed a table for a file that is not there:\n${combined}`,
     ).toBe(0)
-    // AND IT DOES NOT SPEAK ABOUT A FILE THE PERSON DID NOT ASK ABOUT — (W2)'s naming discipline,
-    // applied to this verb's twin of the same fault.
+    // Nor does it name a file the person did not ask about.
     expect(
       occurrences(combined, CONFIG_FILE),
       `config show named a file the person did not ask about:\n${combined}`,
@@ -1220,11 +1013,7 @@ describe('the config verbs report their faults instead of crashing', () => {
   })
 
   it('CONTROL: the UNFLAGGED road in a project with NO config is measured unchanged', () => {
-    // THE PRE-CHANGE READING, TAKEN ON THE TREE AS 395-26 LEFT IT AND ASSERTED VERBATIM:
-    //   exit 0, stdout "\nResolved Configuration:\n\n  (no config values)\n\n"
-    // No `seedConfig` — this project genuinely declares no configuration, which is the state the
-    // new refusal must REJECT (384 · round 4: a guard needs a case it does not fire on, or every
-    // cell around it is drawn from inside the guard's own assumption).
+    // No config and no `--config` flag: `config show` prints an empty table and exits 0.
     const { status, combined } = runShippedCli('config', 'show')
 
     expect(status, `the unflagged zero-config road must stay a success:\n${combined}`).toBe(0)
@@ -1241,13 +1030,13 @@ describe('the config verbs report their faults instead of crashing', () => {
   })
 })
 
-// AN ARRAY SUBTREE RENDERS ONE ROW PER MEMBER (395-23 · F-03-R4a), each value as written.
+// An array subtree renders one row per member, each value as written.
 
 /** The container fixture's own values — fresh, fixture-owned, never the verifier's own strings. */
 const PLANTED_ARRAY_URLINFO = 'sk-ant-api03-395twentythreeURLUSERINFOFIXTUREONLYnotarealkey'
 const PLANTED_ARRAY_HEADER = 'sk-ant-api03-395twentythreeHEADERAUTHFIXTUREONLYnotarealkey'
 
-/** The non-credential members (K6) pins: a name and a credential-free URL-shaped field. */
+/** Non-credential members: a name and a credential-free URL-shaped field. */
 const CONTAINER_LLM_NAME = 'primary-container-fixture'
 const CONTAINER_CLEAN_URL = 'https://docs.example.com/models'
 
@@ -1287,37 +1076,7 @@ describe('credentials nested in an array subtree', () => {
   })
 })
 
-// A YAML ALIAS CYCLE IS BOUNDED OUTPUT, NOT A CRASH.
-//
-// WHAT THE REVIEWER MEASURED ON THE SHIPPED BINARY, with `cycle: &anchor\n  child: *anchor`:
-//
-//   file:///…/packages/cli/dist/cli.js:193
-//     for (const [key, value] of Object.entries(obj)) {
-//   RangeError: Maximum call stack size exceeded
-//       at flattenObject (file:///…/packages/cli/dist/cli.js:193:37)
-//       at flattenObject (file:///…/packages/cli/dist/cli.js:194:27)
-//       … ~10k frames …
-//   Node.js v24.10.0
-//
-// `flattenObject` has no cycle guard, `showAction`'s `try` wraps only the load, and the `RangeError`
-// therefore escapes into Node's DEFAULT PRINTER — the printer 395-16 exists to keep config content
-// away from. The object arm always had this exposure; 395-23's array arm widened the input class
-// that reaches it, so an alias cycle through a `registry.llms[]` element gets there too.
-//
-// AND THE OBVIOUS FIX IS THE WRONG ONE. A `WeakSet` of every container ever VISITED — the shape the
-// review itself suggested — cannot tell a cycle from a REPEAT. One anchor referenced twice as
-// siblings is an ordinary config a person writes on purpose (it is what YAML anchors are FOR), and
-// a visited-set marks the second copy circular and blanks a subtree that was never cyclic. The
-// guard is therefore scoped to the CURRENT PATH — the chain of ancestors of the node being
-// flattened, released as the recursion unwinds.
-//
-// WHAT MAKES EACH CELL RED:
-//
-//  (W10)         — the guard removed: the RangeError returns and the stack markers count above 0.
-//  (W10-control) — THE DISCRIMINATION CONTROL, and the reason this task is not a one-liner. It
-//                  REDS under the visited-set implementation (leg M-W3) while (W10) stays green,
-//                  which is what makes "path-scoped, not visited-scoped" a measurement instead of
-//                  a sentence in a comment.
+// Cycle detection tracks the current path, not every visited node, so a repeated anchor renders.
 
 /** The bounded marker a cyclic position renders as. */
 const CIRCULAR_MARKER = '<circular>'

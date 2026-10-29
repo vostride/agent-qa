@@ -1,7 +1,4 @@
-// The `config.get` view. Every leaf is rendered to a string
-// and passed through the host's declared-secret mask, and nothing else decides what is shown: no
-// path map, no URL reduction, no placeholder. `masked` is true exactly when the mask changed the
-// value.
+// Every leaf is stringified and passed through the declared-secret mask; nothing else decides.
 
 import { MASKED_RESOLVED_CONFIG_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 import type {

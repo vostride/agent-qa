@@ -1,4 +1,4 @@
-// 2026-10-17 (443-15, GAP-D5): a failed open stays refused, and a runs.db reached through a symlink is the host's file.
+// A failed open stays refused, and a `runs.db` reached through a symlink is the host's file.
 
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'

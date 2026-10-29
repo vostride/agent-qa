@@ -1,12 +1,4 @@
-// G-428-2 (owner decision 2026-09-26 (2)): a recorded in-process run's testStarted carries the texts
-// its member's steps are announced with.
-//
-// WHY A FILE OF ITS OWN. A step must START for stepStarted to be recorded, so this cell needs a real
-// browser. `in-process-run-execution.test.ts` pins PLAYWRIGHT_BROWSERS_PATH to an empty root so its
-// members fail before any step, and playwright-core reads that variable ONCE, when its registry
-// module loads. A cell in that file cannot undo the pin; a file of its own runs in its own fork and
-// resolves the machine's browsers. The member then fails on the fixture's unreachable model, which
-// this cell does not read.
+// A file of its own: playwright-core reads `PLAYWRIGHT_BROWSERS_PATH` once, at module load.
 
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -24,7 +16,7 @@ import {
 } from './in-process-run-fixture.js'
 import { closeTestRunRecords, testRunRecord } from './in-process-run-fixture.js'
 
-// every drive call carries a record; each cell closes the ones it opened.
+// Every drive call carries a record; each cell closes the ones it opened.
 afterEach(() => { closeTestRunRecords() })
 afterAll(() => { removeInProcessFixtures() })
 

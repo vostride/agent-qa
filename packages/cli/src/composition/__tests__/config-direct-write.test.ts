@@ -1,12 +1,4 @@
-// generated config changes publish directly, through the dashboard's config
-// transaction, with no proposal and no git process. Every fixture lives in its own temp directory.
-//
-// C432-CONFIG-OUTSIDE-EDIT  a queued field change merges onto the bytes on disk at its turn.
-// C432-CONFIG-PATH-QUEUE    the direct writer and the dashboard's manager take turns on one path.
-// C432-NO-GIT-COMMIT        dirty trees, staged content and no-git directories publish; HEAD and
-//                           the index do not move.
-// C432-CONFIG-DIRECT        whole-file publications check path and digest first, write atomically
-//                           and report exactly what they wrote.
+// Config changes publish directly through the dashboard's config transaction; git never runs.
 
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'

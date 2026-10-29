@@ -67,8 +67,7 @@ function statKey(path: string): string {
   return `${stat.mtimeMs}:${stat.size}:${stat.ino}`
 }
 
-// 2026-10-15 (441-63, WR-A02): the secrets path is re-resolved whenever the config file changes,
-// and a config that cannot be stated or read is never served from cache.
+// The secrets path re-resolves when the config changes; an unreadable config is never cached.
 export function createDeclaredSecretMask(configPath: string): DeclaredSecretMask {
   let resolved: { configKey: string; secretsPath: string } | undefined
   let cached: { key: string; redactor: SecretRedactor } | undefined

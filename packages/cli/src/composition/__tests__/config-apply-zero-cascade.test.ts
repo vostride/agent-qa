@@ -1,39 +1,4 @@
-// CFGM-03's non-triggering clause, measured.
-//
-// "AGENT COMMITS ARE NON-TRIGGERING" IS AN ABSENCE, and an absence is the easiest thing in this
-// repository to assert vacuously: "the apply enqueued no jobs" passes just as happily against a
-// harness where nothing could ever enqueue, against a store that was never opened, and against a
-// probe that reads the wrong file. So the delta is taken with a probe that is PROVEN, in the same
-// cell, on the same store, to see an enqueue when one happens — and only then is its emptiness
-// across the accept treated as evidence.
-//
-// WHAT EACH HALF MUST RED ON:
-//
-//   (Z1) the empty delta        — a config apply that enqueued anything: a post-apply hook, a
-//                                 revalidation job, a "config changed" watcher. Today's absence is
-//                                 by construction, which is exactly why it is pinned now: D-06's
-//                                 committed contract is a law tomorrow's watchers inherit, and this
-//                                 cell is where a future one announces itself.
-//   (Z2) the integrity half     — a probe that cannot see an enqueue at all. It runs INSIDE (Z1),
-//                                 after the absence has been asserted, through the SAME
-//                                 `dumpState()` call on the SAME store handle, and it fails if the
-//                                 delta stays empty when something really is enqueued. Without it
-//                                 (Z1) would be a measurement of the probe rather than of the apply.
-//   (Z3) the runs half          — the same arrangement one directory over. "Zero enqueued jobs OR
-//                                 runs" names two observables, and a cell that watched only the
-//                                 queue would miss an apply that started a run directly.
-//
-// THE CHANGE IS ASSERTED TO HAVE HAPPENED FIRST, and that ordering is the third thing keeping this
-// honest: an empty delta across a change that refused or found nothing is not a fact about
-// cascading. The written bytes carry the change before any absence below is read.
-//
-// (Z1)-(Z3) used to drive a pre-432 record through `proposals.accept`,
-// which committed it. No host binds that apply now; the same absences are measured across the
-// direct `config.field.set`, which makes no commit (the count stays 1).
-//
-// THE HOST IS THE PRODUCTION ONE and the store is the real sqlite queue `composeLocalAgent` opens —
-// the same handle a post-run tail would enqueue through. A double would have made this cell a
-// statement about the double.
+// Each absence is read only after the same probe sees a real enqueue on the same store.
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -93,8 +58,7 @@ function git(...args: string[]): { status: number | null; stdout: string } {
   const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' })
   if (result.error !== undefined) throw result.error
   if (result.status !== 0) {
-    // a `git` that ran and failed must not return quietly; see
-    // validate-resolution-surface.test.ts for the full note.
+    // A `git` that ran and failed must not return quietly.
     throw new Error(`git ${args.join(' ')} exited ${result.status}: ${result.stderr}`)
   }
   return { status: result.status, stdout: result.stdout }
@@ -104,7 +68,6 @@ function commitCount(): number {
   return Number(git('rev-list', '--count', 'HEAD').stdout.trim())
 }
 
-/** Every run directory this runtime root holds — the second observable D-06's sentence names. */
 function runDirectories(): string[] {
   const runs = join(agentQaRoot, 'runs')
   return existsSync(runs) ? readdirSync(runs).sort() : []
@@ -145,8 +108,6 @@ describe('an accepted config apply cascades into nothing', () => {
         // the kind of change it is looking for.
         const jobs = await host.jobs()
 
-        // RE-SPELLED 2026-10-01: the change is the direct one. The pre-432 accept
-        // this cell drove made a commit through a config apply port no host binds any more.
         const before = await jobs.store.dumpState()
         const runsBefore = runDirectories()
 
@@ -165,18 +126,15 @@ describe('an accepted config apply cascades into nothing', () => {
         expect(readFileSync(configPath, 'utf8'))
           .toBe(SEEDED_CONFIG.replace('step: 30s', 'step: 45s'))
 
-        // (Z1) ZERO ENQUEUED JOBS. Deep equality over the WHOLE dump — schema version, epoch and
-        // every row — rather than a count, so a row that was replaced rather than added fails too.
+        // Deep equality over the whole dump, so a replaced row fails as well as an added one.
         const after = await jobs.store.dumpState()
         expect(after).toEqual(before)
         expect(after.jobs).toHaveLength(0)
 
-        // (Z3) ZERO STARTED RUNS, the other observable in D-06's sentence.
+        // Zero started runs: a cell that watched only the queue would miss a run started directly.
         expect(runDirectories()).toEqual(runsBefore)
 
-        // (Z2) THE INTEGRITY HALF — the same store, the same handle, the same `dumpState()` call.
-        // If this probe could not see an enqueue, the emptiness above would be a fact about the
-        // probe. `analyze-run` is a real declared kind; nothing runs it, and nothing needs to.
+        // The same store and handle must see a real enqueue, or the emptiness is about the probe.
         const enqueued = await jobs.queue.enqueue(
           'analyze-run',
           { runId: 'run_zero_cascade_probe' },
@@ -200,8 +158,7 @@ describe('an accepted config apply cascades into nothing', () => {
     })
 })
 
-// the same absence for the direct writer. A config change is a file
-// edit and nothing else: it starts no run and enqueues no job, and it makes no commit either.
+// A config change is a file edit only: no run, no job and no commit.
 describe('a direct config write cascades into nothing', () => {
   it('the job store and the runs directory are unchanged across a direct write, and the probe still sees an enqueue',
     async () => {
@@ -232,7 +189,6 @@ describe('a direct config write cascades into nothing', () => {
         expect(after.jobs).toHaveLength(0)
         expect(runDirectories()).toEqual(runsBefore)
 
-        // the op itself, through the composed host, cascades into nothing either.
         const answer = await invokeFunction(
           host.registry,
           'config.field.set',

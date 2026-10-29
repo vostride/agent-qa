@@ -1,13 +1,4 @@
-// THE FN/CHAT/MCP DOOR'S `runs.start` GATE.
-//
-// There is no gate on this road: the op-level gate and the core's `evaluate()` are gone, and a
-// well-formed request with a free run id is never refused.
-//
-// WHAT IS UNDER TEST is the door a caller actually reaches: `composeCliLocalAgent` → the 384
-// registry → `invokeFunction` → the REAL op-level gate → the bound run invocation → this host's
-// DEFAULT run execution → the in-process drive → the core's ONE `evaluate()`. Nothing on that path
-// is substituted. `input.runExecution` is never supplied by any cell in this file, because the
-// subject IS the default: a cell that injected a port would be measuring its own argument.
+// No gate on this road: a well-formed request with a free run id is never refused.
 
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync } from 'node:fs'
@@ -62,15 +53,7 @@ afterAll(() => {
   if (pinnedTmpdir !== undefined) removeTempRoots([pinnedTmpdir.root])
 })
 
-/**
- * The audit row, plus the one field this plan's cells turned on. Since 432-13 no row is written on
- * this road at all; the type stays because `opAuditRows` still reads the file to say so.
- *
- * `trustSource` is what `resolveAsk` stamps when a standing approval, a credential or session trust
- * carried an ask — the ONLY trace a consumed grant leaves on a row, and therefore the whole of the
- * grant-isolation measurement below. Widened HERE rather than on the shared fixture's `AuditRow`
- * (401-04's), because a helper two other plans read should not grow a field for one plan's cells.
- */
+// No row is written on this road; the type stays because `opAuditRows` reads the file to say so.
 type GateAuditRow = AuditRow & { readonly trustSource?: string }
 
 type Fixture = ReturnType<typeof createInProcessFixture>
@@ -136,13 +119,7 @@ async function invokeRunsStartOutcome(
   }
 }
 
-// ---- ambient channels, varied against the door's own answer ---------------------------
-//
-// Two of them, because there are two and a cell that defeated one would pass under a door reading
-// the other: `getActiveExecutionContext` is the process-global the OP gate falls back to, and the
-// CI marker is what `resolveRunExecutionContext()` — this door's OWN fallback — reads. Varying
-// both, against a door that supplies its context explicitly, is what makes "the injected value
-// wins" a measurement instead of a coincidence.
+// Both ambient channels are varied, so a door reading either one cannot pass by coincidence.
 
 const shippedExecutionContextResolver = getActiveExecutionContext
 let restoreAmbient: (() => void) | undefined
@@ -169,9 +146,7 @@ function pinAmbient(value: 'ci' | 'local-interactive' | 'local-headless', ciMark
   }
 }
 
-// the fn/chat/MCP door's runs.start asks nobody. An undeclared or shared
-// target starts from a CI or headless context with the one call, and no decision row is written at
-// either gate because neither gate exists.
+// The fn, chat and MCP door asks nobody: a non-production run starts in one call, with no row.
 describe('the host door starts a non-production run in one call', () => {
   it.each([
     ['undeclared', undefined, 'ci'],
@@ -240,9 +215,7 @@ describe('the fn/MCP door starts a run and asks nothing', () => {
   }, 120_000)
 
   it('THE MCP POSTURE — a door on a live terminal starts the run and writes NOTHING to stdout', async () => {
-    // The stdout-silence half of the retired posture cell. Writing a prompt onto the process whose
-    // stdout is the JSON-RPC channel breaks the connection; since 432-13 no door can prompt at all,
-    // and this measures it on a terminal that would have accepted the bytes.
+    // A prompt on the process whose stdout is the JSON-RPC channel breaks it; no door prompts.
     const target = new CountingTarget()
     await target.listen()
     const realStdin = process.stdin
@@ -362,14 +335,7 @@ describe('the empty-input and suite edges of a bare runs.start', () => {
   }, 120_000)
 })
 
-// ---------------------------------------------------------------------------------------------
-// THE TYPED DOOR'S IDENTITY REFUSALS, AND THE DOOR CENSUS.
-//
-// D-16's rule applied to a new refusal: reaching through the same seam is MEASURED per door, never
-// assumed. The environment door is measured on the process a person starts
-// (`commands/__tests__/run-gate.e2e.test.ts`); this file measures the typed door, where a caller
-// gets a typed refusal instead of a stderr line and where a PATH-SHAPED id is answered by a
-// different mechanism entirely — the codec, at parse, before the op is invoked at all.
+// A path-shaped id is refused by the codec at parse, before the op runs.
 
 /** The digest of every file in a run's directory. "Untouched" has to be a claim about bytes. */
 function digestsUnder(dir: string): Record<string, string> {
@@ -404,8 +370,7 @@ describe('the typed door refuses a malformed or colliding run id', () => {
       expect(runDirs(fixture)).toEqual([])
       expect(existsSync(join(fixture.project, '.agent-qa', 'runs', 'escape'))).toBe(false)
       expect(target.hits).toEqual([])
-      // the op-gate row that discriminated this cell from the next is gone with the gate;
-      // the next cell's typed `RunIdNotMintedError` is what tells the two refusals apart now.
+      // The typed `RunIdNotMintedError` in the next cell tells the refusals apart.
       expect(opAuditRows(fixture)).toEqual([])
     } finally {
       await target.close()
@@ -428,8 +393,7 @@ describe('the typed door refuses a malformed or colliding run id', () => {
       expect(ack).toBeUndefined()
       expect(error).toBeInstanceOf(RunIdNotMintedError)
       expect((error as Error).message).toContain('not-a-minted-id')
-      // It passed the CODEC — `not-a-minted-id` is a perfectly good path segment — so the op DID
-      // run (432-13: with no gate row). The run itself never started.
+      // `not-a-minted-id` passes the codec, so the op runs with no row; the run never starts.
       expect(opAuditRows(fixture)).toEqual([])
       expect(runDirs(fixture)).toEqual([])
       expect(buildOrdinalsExist(fixture)).toBe(false)
@@ -569,7 +533,7 @@ describe('the door census — every way a caller can name a run id', () => {
   const REQUEST_RUN_ID_RE = /runId:\s*(?:asRunId\(|opts\.runId|request\.runId\b)/
   const ENV_RUN_ID_RE = /AGENT_QA_RUN_ID/
 
-  /** Files the census MUST range, named rather than read off the scan (the 399/400 scar). */
+  /** Files the census must range, named rather than read off the scan. */
   const REQUIRED_MEMBERS = [
     join('cli', 'src', 'commands', 'run.ts'),
     join('cli', 'src', 'commands', 'dashboard.ts'),

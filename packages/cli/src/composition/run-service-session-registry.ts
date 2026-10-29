@@ -1,30 +1,4 @@
-// The run service's attachable-session registry.
-//
-// WHAT THIS HOLDS AND WHY IT IS BOUNDED. `GET /run/:runId/events` serves a run's envelopes off the
-// `RunSession` that run produced, so the door needs a run id → session lookup. Sessions arrive
-// through the ONE bridge this process's host publishes them on, and they arrive for every run —
-// the queue's and the service's alike, because there is one bridge and one host.
-//
-// THE EVICTION IS THE REASON THIS IS A MODULE AND NOT A `Map`. Without it the lookup grows for the
-// life of a long-running dashboard, one entry per run, each entry pinning a whole event bus in
-// memory. The window OPENS WHEN THE RUN SETTLES rather than when it starts, so a live run is never
-// evicted out from under a subscriber, and it matches the in-process backend's own replay
-// retention — a client told "attach later" by one part of this process is not refused by another.
-//
-// IT LIVES BESIDE THE COMPOSITION RATHER THAN INSIDE `commands/dashboard.ts`, and that placement
-// is a measured constraint rather than taste. `run-trigger-confirm.test.ts` runs a complete-set
-// census over `packages/cli/src` and `packages/dashboard-server/src` for the mechanical shape of a
-// CONFIRM REAPER — a module holding both a `setTimeout` and the denial answer — and asserts
-// exactly one module has it, so that "silence is consent" has one reading in this codebase. That
-// predicate shares no vocabulary with the registry factory census beside it, deliberately, which
-// is what lets it find a parking lot somebody wrote by hand. `commands/dashboard.ts` already holds
-// that answer (the confirm ledger writes it), so a retention timer written there would have made
-// that file match the reaper shape and reddened a census protecting something else entirely.
-// NOTE FOR ANYONE EDITING THIS HEADER: the census reads SOURCE TEXT, so even a prose mention of
-// the denial literal in a module that also holds a timer trips it. That is a known sharp edge of
-// a text-scanning complete-set predicate and not a thing to work around by narrowing the scan.
-// Narrowing the census to let this timer through would have traded a real guard for a convenience;
-// moving the timer costs nothing and leaves the guard exactly as strong as it was.
+// Eviction starts when a run settles, so a live run is never evicted from under a subscriber.
 
 import type { RunSession } from '@vostride/agent-qa-schema'
 

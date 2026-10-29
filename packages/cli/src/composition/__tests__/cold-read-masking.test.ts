@@ -120,8 +120,7 @@ describe('cold read masking recovery', () => {
     expect(read.host.jobs).not.toHaveBeenCalled()
   })
 
-  // 2026-10-14 (441-16, E3): an unreadable secrets file now refuses the knowledge read, so the
-  // withheld snapshot is the projection refusal, a raw value colliding with its recorded marker.
+  // An unreadable secrets file refuses the knowledge read; this snapshot is that refusal.
   it('COLD-KNOWLEDGE-WITHHELD keeps the knowledge read ready and names the withheld snapshot', async () => {
     const p = project()
     const first = 'first-sensitive-event'
@@ -165,8 +164,7 @@ describe('cold read masking recovery', () => {
       .rejects.toThrow(/Secrets file (not found|is invalid|could not be read)/)
   })
 
-  // declared values mask to distinct names, so the duplicate is a raw
-  // value beside a recorded copy of its own marker.
+  // Declared values mask to distinct names, so the duplicate is a raw value beside its own marker.
   it('COLD-COLLISION refuses genuinely masked duplicate events without deleting history', async () => {
     const p = project()
     const first = 'first-sensitive-event'

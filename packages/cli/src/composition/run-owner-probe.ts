@@ -2,8 +2,7 @@ import { LOCAL_DAEMON_CAPABILITIES } from '@vostride/agent-qa-agent-local'
 
 import { processIsAlive } from '../daemon/registration.js'
 
-// the dashboard's RunOwnership, injected so dashboard-server gains no
-// dependency; typed here and read via agent-local, as the FUNC-02 firewall bars naming either.
+// Injected so dashboard-server gains no dependency; the firewall bars naming either package.
 export interface CliRunOwnership {
   readonly self: {
     readonly pid: number
@@ -24,7 +23,7 @@ export function createRunOwnership({ readStartTime, isAlive }: {
   let ownStartTime: string | undefined
   return {
     get self() {
-      // 2026-10-16 (442-15, GAP-D2): a miss is not remembered; the next read retries.
+      // A miss is not remembered; the next read retries.
       ownStartTime ??= readStartTime(process.pid, RUN_OWNER_START_TIME_TIMEOUT_MS)
       return { pid: process.pid, incarnation: ownStartTime ?? null }
     },

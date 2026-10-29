@@ -1,5 +1,4 @@
-// a run that cannot be recorded is refused before any effect, and a
-// write that fails after the start leaves the verdict alone and says so once on stderr.
+// An unrecordable run is refused before any effect; a later write failure leaves the verdict alone.
 
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -295,8 +294,7 @@ describe('a record write that fails after the start', () => {
   }, RUN_BUDGET_MS)
 })
 
-// 2026-10-17 (443-12, GAP-D1): the D-27 close-out in the two windows C443-RECORD-INCOMPLETE does not
-// reach: a write that fails right after the claim, and one that fails after a member finished.
+// A write failing right after the claim, or after a member finished, still closes the row.
 describe('a failed write still closes the row with the verdict status', () => {
   function failOn(
     real: DashboardDatabase,
@@ -362,7 +360,7 @@ describe('a failed write still closes the row with the verdict status', () => {
       runOwnership: composeRunOwnership(),
     })
     opened.push(() => real.close())
-    // a member's write is its duration, never a status.
+    // A member's write is its duration, never a status.
     let memberWrites = 0
     const failing = failOn(real, 'updateRun', ([, updates]) => (
       (updates as { duration?: unknown } | undefined)?.duration !== undefined && ++memberWrites === 2

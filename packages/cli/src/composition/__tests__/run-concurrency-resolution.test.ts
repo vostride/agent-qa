@@ -1,18 +1,4 @@
-// THE CONFIG-SIDE HALF OF D-12: a worker count is resolved from CONFIG, at one seam.
-//
-// The request-side half — that a CALLER cannot name either field — is pinned in the schema
-// package's `runs-start-input-posture.test.ts`, and the formula itself in `use-parallel.test.ts`.
-// What is left, and what only this package can measure, is the CHAIN: a `use.parallel` /
-// `use.workers` a person wrote in `agent-qa.config.yaml` survives the shipped config schema, is
-// read by the shipped member producer, and lands on the `RunConfig` the shell reads `workers` off.
-//
-// EACH LINK IS PINNED SEPARATELY AND DELIBERATELY, rather than through one end-to-end run that
-// watches members overlap. Two reasons, both measured rather than assumed: the suite path
-// SERIALIZES its members whatever `workers` says (each member drives the one `suiteConfig.adapter`
-// its suite set up — 402-02, WINDOWS #232), so a suite-shaped cell would observe nothing; and a
-// direct-path cell that inferred the count from wall-clock overlap would be a timing assertion
-// wearing a config assertion's clothes. 402-02 already pinned the last link — `config.workers` to
-// actual concurrent execution — on injected executors in `run-shell.concurrency.test.ts`.
+// Each link is pinned alone: the suite path serializes members whatever `workers` says.
 
 import { mkdtempSync, readFileSync, realpathSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -40,7 +26,7 @@ import {
 import { closeTestRunRecords, testRunRecord } from './in-process-run-fixture.js'
 import { removeTempRoots } from '../../__tests__/temp-roots.js'
 
-// every drive call carries a record; each cell closes the ones it opened.
+// Every drive call carries a record; each cell closes the ones it opened.
 afterEach(() => { closeTestRunRecords() })
 const assemblyRoots: string[] = []
 afterAll(() => {
@@ -48,18 +34,7 @@ afterAll(() => {
   removeTempRoots(assemblyRoots.splice(0))
 })
 
-/**
- * WHAT THE DRIVE HANDED THE ASSEMBLER, captured at the seam itself.
- *
- * A SPY RATHER THAN A SOURCE GREP, and the difference is not stylistic: a grep for
- * `resolveEffectiveWorkers` in the drive passes on the IMPORT LINE alone, so replacing the drive's
- * whole expression with a literal `workers: 1` survives it. That mutation was run (M7) and it
- * survived exactly that way — this capture is what reds on it, because it reads the number the
- * drive computed for a project whose config asked for two.
- *
- * The real assembler still runs: the wrapper records and delegates, so every other artifact of the
- * run below is the shipped one.
- */
+// Captured at the seam, because a grep for the formula passes on its import line alone.
 const assemblerSeam = vi.hoisted(() => ({
   calls: [] as { readonly workers: number | undefined; readonly memberCount: number }[],
 }))
@@ -228,16 +203,7 @@ describe('the chain: the resolved count → the RunConfig the shell reads', () =
 })
 
 describe('the drive: the ONE seam that applies the formula, for every door', () => {
-  /**
-   * Drive a REAL two-member run of a project configured exactly as the arm says, and answer with
-   * what the drive handed the assembler.
-   *
-   * TWO MEMBERS ON PURPOSE, AND THREE ARMS ON PURPOSE. `min(memberCount, workers)` over ONE member
-   * is 1, which is also what a drive that resolved nothing would hand over — so a one-member cell
-   * passes for the wrong reason. Two members separate 2 from 1; and the third arm below
-   * (`workers: 1` with `parallel: true`) is what separates the formula from `parallel ? memberCount
-   * : 1`, a mutation that survives both of the other two arms (M9).
-   */
+  // Several members and a `workers: 1` arm, so `min` and `parallel ? n : 1` are told apart.
   async function workersHandedToAssembler(
     fixtureInput: { parallelRuns?: boolean; workerCount?: number },
   ): Promise<{ workers: number | undefined; memberCount: number }> {

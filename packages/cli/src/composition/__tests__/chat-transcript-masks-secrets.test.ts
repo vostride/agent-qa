@@ -1,5 +1,4 @@
-// C441-CHAT (441 D-06, D-19, folded 399.1): a declared value typed in chat is stored as
-// `[secret:<name>]`; an undeclared credential is stored as typed.
+// A declared value typed in chat is stored as `[secret:<name>]`; an undeclared one as typed.
 
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'

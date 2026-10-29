@@ -1,34 +1,4 @@
-// THE HOST-TERMINATION CENSUS.
-//
-// THE CLAIM. No module on the in-process invocation path can terminate its host. Every input
-// failure is a typed `CliRunInputError` carrying its own exit code and its own rendered lines, and
-// the DOOR — the one thing with a terminal and a process to own — decides what to do with it.
-//
-// WHY IT NEEDS A CENSUS RATHER THAN A GREP. This is a COMPLETE-SET claim over a module graph, and a
-// rule that can only refuse what it can NAME cannot be driven to zero by naming more things. So the
-// predicate is self-checked before it is allowed to judge anything, the discovery is pinned to named
-// known members with a floor, and the one file that legitimately keeps its exits is carved out
-// EXPLICITLY — with a converse witness proving it still has them, because a green census over an
-// idea somebody deleted is the 399/400 scar.
-//
-// THREE PARTS, IN ORDER:
-//
-//   (i)   the predicate self-check — every acquisition form of the host-terminating call is planted
-//         in synthetic source and must be SEEN; the same names in prose must NOT be; and the comment
-//         stripper must not eat a protocol-relative URL;
-//   (ii)  pinned discovery + the complete-set claim over the in-process module closure, with
-//         `commands/run.ts` scanned through its PINNED EXPORTS and their run.ts-local call graph
-//         TRANSITIVELY — a pinned export's body is not the code it runs;
-//   (iii) the behavioural failure-door register: every input-failure door driven for real with the
-//         host-terminating call stubbed to throw a marker, asserting the typed error arrives and
-//         the marker never does.
-//
-// WHAT PART (ii) ALREADY CAUGHT, on the run that first wrote it: `resolveSelectedAuthStateForRun`
-// and `resolveAuthStateCapturePathsForRun` both ended `console.error(...); process.exit(2)` and both
-// sit TWO calls from the in-process path (`produceMembersFromPatterns` → `produceDirectRunMembers` →
-// the member closure → here). A scan that stopped at the exported bodies would have declared the
-// path clean while a daemon serving a run with a bad auth-state config died on it. They are typed
-// refusals now. That is the transitive walk earning its keep, not a hypothetical.
+// No module on the in-process path may end its host; input failures are `CliRunInputError` values.
 
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
@@ -46,7 +16,7 @@ import {
 } from './in-process-run-fixture.js'
 import { closeTestRunRecords, testRunRecord } from './in-process-run-fixture.js'
 
-// every drive call carries a record; each cell closes the ones it opened.
+// Every drive call carries a record; each cell closes the ones it opened.
 afterEach(() => { closeTestRunRecords() })
 afterAll(() => { removeInProcessFixtures() })
 
@@ -151,23 +121,14 @@ function inProcessModuleClosure(): string[] {
  * is what makes the carve-out a bounded allowance rather than a hole shaped like a whole file.
  */
 const PINNED_RUN_TS_IMPORTS = [
-  // the mint's inverse. `isMintedRunId` is a REQUIRED core option with no default,
-  // and it travels the same relative route the mint does — a shape check invented in `agent-local`
-  // would be a second spelling of a run's identity.
+  // `isMintedRunId` is a required core option and travels the mint's relative route.
   'isMintedCliRunId',
   'mintCliRunId',
   'produceMembersFromPatterns',
   'resolveRunInvocationInputs',
 ] as const
 
-/**
- * Members of the run.ts-local reachable set that MUST be reached, pinned exactly as the discovery
- * walker is pinned.
- *
- * A walker that stops reaching them has stopped ranging the claim, and that has to FAIL rather than
- * sweep clean. All three were measured reachable, and two of them (`loadRuntimeSecrets`,
- * `discoverFilesForCliPatterns`) held terminating calls before this plan converted them.
- */
+// A walker that stops reaching these has stopped ranging the claim, so it must fail.
 const REQUIRED_REACHABLE_MEMBERS = [
   'loadRuntimeSecrets',
   'discoverFilesForCliPatterns',

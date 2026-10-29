@@ -4,7 +4,6 @@ import type { RunRecord } from '../../commands/run.js'
 import type { InProcessCliRunExecutionOptions } from '../in-process-run-execution.js'
 import type { ComposeCliLocalAgentInput } from '../local-agent-host.js'
 
-// every drive call carries the record its door built.
 describe('every drive call carries the record its door built', () => {
   test("the drive's runRecord option is required and never undefined", () => {
     expectTypeOf<InProcessCliRunExecutionOptions['runRecord']>().toEqualTypeOf<RunRecord>()

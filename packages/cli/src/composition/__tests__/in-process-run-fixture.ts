@@ -1,23 +1,4 @@
-// The in-process run fixture.
-//
-// NOT A TEST FILE: vitest's include here is `src/**/__tests__/**/*.test.ts`, so this module is
-// imported, never collected.
-//
-// IT BUILDS ON `commands/__tests__/suite-run-fixture.ts` RATHER THAN BESIDE IT. That helper already
-// owns the two things every gate cell in this phase needs — `CountingTarget` (the loopback target
-// that records who knocked, which is how "the gate decided before anything touched the target"
-// stops being a proxy measurement) and the artifact readers over a project's own `.agent-qa`. A
-// second copy would be a second answer to what a denial's five artifacts are.
-//
-// WHAT THIS ADDS is a project whose shape the in-process cells need and the suite fixture does not:
-// a standalone TEST file as well as a suite, an `environment` declaration that varies per call
-// (the single axis the denial control turns), and the ability to omit a required file so an input
-// refusal has something real to refuse.
-//
-// THE MODEL POINTS AT AN UNBINDABLE PORT (1), inherited deliberately: the run STARTS, plans, fails
-// to reach the model and finishes. If the model shared the counting server, a planner retry would
-// land in `hits` and the "nobody knocked" assertion would be measuring the planner instead of the
-// run-start probe.
+// The model points at an unbindable port, so a planner retry never lands in the target's `hits`.
 
 import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -44,7 +25,7 @@ export interface InProcessFixture {
   readonly project: string
   /** The absolute config path a door hands the producer. */
   readonly configPath: string
-  /** `<configDir>/.agent-qa` — the root the evidence check reads (Pitfall 5). */
+  /** `<configDir>/.agent-qa`, the root the evidence check reads. */
   readonly agentQaRoot: string
   /** The workspace-relative path of the standalone test file. */
   readonly testPattern: string
@@ -66,7 +47,7 @@ export interface InProcessFixture {
 
 export interface InProcessFixtureInput {
   readonly origin: string
-  /** `undefined` writes NO declaration at all — which is the undeclared case. */
+  // `undefined` writes no declaration at all: the undeclared case.
   readonly environment?: 'local' | 'shared' | undefined
   /** Omit the env file, so the input preflight has a real refusal to make. */
   readonly omitEnvFile?: boolean
@@ -74,48 +55,16 @@ export interface InProcessFixtureInput {
   readonly omitHooksFile?: boolean
   /** Omit the secrets file. */
   readonly omitSecretsFile?: boolean
-  /**
-   * Declare ONE secret with this value in the secrets file.
-   *
-   * WHY A KNOB. Every other cell writes the secrets file EMPTY, so a run seeded from it registers
-   * nothing and a masking-digest assertion would be vacuous — an empty sidecar and an absent one
-   * look identical from outside. This plants a value the run provably registers, so "the sidecar
-   * has an entry" and "the sidecar does not contain the value" are both real measurements.
-   *
-   * Ignored when `omitSecretsFile` is set; the two knobs answer opposite questions.
-   */
+  // Plants one declared secret so masking checks are not vacuous; `omitSecretsFile` overrides it.
   readonly plantedSecret?: string
   /** The path the first target's URL carries after the origin. Defaults to `/in-process-thing`. */
   readonly targetPath?: string
   /** The one step every test the fixture writes carries, in place of the default `Verify` step. */
   readonly stepText?: string
-  /** Write a test file that parses to ZERO runnable tests (the RUNX-06 door). */
   readonly emptyTestFile?: boolean
-  /**
-   * Declare an auth plugin package that is NOT installed.
-   *
-   * this is what makes an ORDERING measurable. A door that refuses an unhonourable request
-   * field only AFTER resolving the project's config loads third-party plugin code on behalf of a
-   * request it was always going to refuse, and reports `PluginNotInstalledError` instead of the
-   * refusal. With the plugin absent from the config the two orderings are indistinguishable.
-   */
+  // A door that resolves config before refusing reports `PluginNotInstalledError` instead.
   readonly declareUninstalledAuthPlugin?: boolean
-  /**
-   * Declare a SECOND target and a second standalone test naming it.
-   *
-   * WHY IT EXISTS. Every other cell in this phase drives one target, so a preview that named only
-   * the first member's target would be indistinguishable from one that named them all. This knob
-   * is the only way to put two DECLARED names in front of one invocation through the shipped CLI
-   * producer.
-   *
-   * BOTH TARGETS THEN CARRY THE SAME EXPLICIT `product:`, on `run-gate.e2e.test.ts`'s own
-   * reasoning: `resolveTarget` defaults `product` to the target's NAME, so two arbitrary targets
-   * are two products and `requireSingleInvocationProduct` refuses the invocation BEFORE the gate —
-   * a cell written without this would die on that refusal and never reach a descriptor at all.
-   *
-   * The second target declares `environment: local` unconditionally, so the run's CLASS is decided
-   * by `input.environment` exactly as it is without the knob and only the NAME LIST changes.
-   */
+  // Both targets share one explicit `product:`, or `requireSingleInvocationProduct` refuses first.
   readonly secondTarget?: boolean
   /**
    * Declare `use.browser` explicitly as a HEADED chromium (401 UAT item 14).
@@ -167,13 +116,7 @@ export interface InProcessFixtureInput {
    * one that triggers the same file twice.
    */
   readonly parallelRuns?: boolean
-  /**
-   * Write `use.workers: <n>` beside `use.parallel`.
-   *
-   * SEPARATE FROM `parallelRuns` because the two answer different questions and a cell needs to
-   * turn one without the other: `parallel` alone is the DEFAULT-CEILING arm, and this knob is the
-   * explicit-count arm. Written only when set, so every existing fixture's bytes are unchanged.
-   */
+  // The explicit-count arm; `parallelRuns` alone is the default-ceiling arm.
   readonly workerCount?: number
   /** Write `use.cache: false` in the config, so every test the fixture writes runs with the cache off. */
   readonly cacheOff?: boolean
@@ -184,14 +127,7 @@ export interface InProcessFixtureInput {
 /** The package name the knob above declares. Not installed, and named so a reader can tell. */
 export const UNINSTALLED_AUTH_PLUGIN_PACKAGE = '@acme/auth-plugin-401-10-NOT-INSTALLED'
 
-/**
- * The ONE name the fixture's target is declared under, in the config AND in every test file.
- *
- * EXPORTED SO A CELL NEED NOT RETYPE IT. A disclosure assertion that spelled the name
- * itself would agree with the fixture right up until somebody renamed the target here — and would
- * then be asserting that the preview contains a string nothing produces. The config writer below
- * interpolates this constant, so the value a cell reads is provably the value the run resolves.
- */
+// Exported so cells read the name the config writer interpolates rather than retyping it.
 export const IN_PROCESS_TARGET_NAME = 'in-process-thing'
 
 /** The second target's name, declared only when `secondTarget` is set. Its own one definition. */
@@ -202,7 +138,7 @@ export const PLANTED_SECRET_NAME = 'AGENT_QA_PLANTED_SECRET'
 
 const createdProjects: string[] = []
 
-// no hook here, because two users import this module inside cells.
+// No hook here, because other test files import this module inside cells.
 export function removeInProcessFixtures(): void {
   removeTempRoots(createdProjects.splice(0))
 }

@@ -1,5 +1,4 @@
-// every runs.start door records its run through one
-// builder; these cells read the rows each door leaves.
+// Every `runs.start` door records its run through one builder.
 
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'

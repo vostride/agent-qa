@@ -1,26 +1,4 @@
-// The tracer, proven end to end on a real git repository (395-01 · CFGM-01/03/04 · D-01/D-17/D-19).
-//
-// `config.field.set` WRITES IN THE CALL and files nothing, so cells
-// (a)/(a2) measure the direct write.
-//
-// agent-qa MAKES NO GIT COMMITS. The one-commit apply that cells (b)-(g)
-// measured through `proposals.accept` and `config.proposal.apply` is deleted, and no host binds a
-// config apply port, so a pre-432 record is refused by name. Each cell keeps its letter and moves
-// its claim onto the direct path where the claim survives:
-//
-//   (b) one file, byte-matched   — the pre-432 accept refuses unbound; the direct change's own
-//                                   byte equality is (a) and C432-CONFIG-DIRECT.
-//   (c) idempotency              — repeating the same change answers `no-change` and writes nothing.
-//   (d) freshness                — a person's uncommitted edit to another field is kept; the change
-//                                   lands on the bytes on disk, not over them.
-//   (e) comments                 — they survive the direct change, verbatim and in place.
-//   (f) shown==applied           — a whole-file publication over bytes that moved refuses before any
-//                                   write (the direct writer's digest guard).
-//   (g) unbound refusal          — the production-shaped registry binds no apply port at all.
-//
-// EVERY PORT ON THIS PATH IS THE PRODUCTION ONE: `createConfigFilesPort`, `createConfigValidatePort`
-// and `createConfigWritePort` are the factories `composeCliLocalAgent` binds. The four REQUIRED read
-// ports are the only doubles, and they answer emptily because nothing on this path reads them.
+// `config.field.set` writes in the call and commits nothing; an old proposal record is refused.
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -105,8 +83,7 @@ function git(...args: string[]): { status: number | null; stdout: string; stderr
   const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' })
   if (result.error !== undefined) throw result.error
   if (result.status !== 0) {
-    // a `git` that ran and failed must not return quietly; see
-    // validate-resolution-surface.test.ts for the full note.
+    // A `git` that ran and failed must not return quietly.
     throw new Error(`git ${args.join(' ')} exited ${result.status}: ${result.stderr}`)
   }
   return { status: result.status, stdout: result.stdout, stderr: result.stderr }
@@ -121,10 +98,7 @@ function pendingProposalPath(proposalId: string): string {
   return join(agentQaRoot, 'proposals', `${proposalId}.json`)
 }
 
-/**
- * The stored record, read back OFF DISK — never the object the test handed the store. 2026-10-01
- * the record schema is deleted, so the planted bytes are read as the plain JSON they are.
- */
+// Read back off disk as plain JSON, never the object handed to the store.
 interface StoredPre432Record {
   readonly kind: string
   readonly payload: {
@@ -144,10 +118,7 @@ function storedConfigPayload(proposalId: string) {
   return record.payload
 }
 
-/**
- * The registry, with the REAL config ports and no apply port. 2026-10-01: the proposals
- * store, its inbox and the config proposal filer are deleted, so neither is bound.
- */
+// The real config ports and no apply port, as the production host binds them.
 function registryFor() {
   const deps: FunctionDeps = {
     runs: {
@@ -177,14 +148,13 @@ function registryFor() {
     // THE REAL THREE, over the real workspace and the real repository.
     configFiles: createConfigFilesPort(configPath),
     configValidate: createConfigValidatePort(),
-    // the direct writer the config operations publish through.
+    // The direct writer the config operations publish through.
     configWrite: createConfigWritePort(configPath, (text) => text),
   }
 
   return createFunctionRegistry({
     deps,
-    // no confirm port and no execution-context option. An accept
-    // dispatches directly in every context; the registry takes neither seam any more.
+    // The registry takes no confirm port and no execution-context option.
   })
 }
 
@@ -195,7 +165,7 @@ async function change(
   return await invokeFunction(registry, 'config.field.set', input, HUMAN) as ConfigChangeOutput
 }
 
-/** A pre-432 proposal record for the tracer edit, filed as the old pipeline filed it. */
+/** A legacy proposal record for the tracer edit, as an old workspace holds it. */
 async function pre432Proposal(): Promise<string> {
   return (await filePre432ConfigProposal({
     configPath,
@@ -211,9 +181,7 @@ beforeEach(() => {
   writeFileSync(configPath, SEEDED_CONFIG)
 
   git('init', '--quiet')
-  // RESEARCH Pitfall 7: a fresh temp repository has no identity, and `git commit` refuses without
-  // one. Signing is disabled for the same reason — a developer machine configured to sign every
-  // commit would otherwise make this suite depend on a key.
+  // A fresh repository has no identity and may sign by default, so both are set here.
   git('config', 'user.name', 'agent-qa config apply test')
   git('config', 'user.email', 'config-apply-test@example.invalid')
   git('config', 'commit.gpgsign', 'false')
@@ -228,7 +196,6 @@ afterEach(() => {
 })
 
 describe('the config tracer: propose, accept, ONE byte-matched commit', () => {
-  // the describe keeps its name; its cells now measure the direct change (see the header).
   it('(a) writes the edit in the call, answering the diff of the bytes it read and filing nothing', async () => {
     const seededDigest = sha256hexBytes(Uint8Array.from(readFileSync(configPath)))
     const answer = await change(registryFor(), { path: 'use.timeout.step', value: '45s' })
@@ -248,7 +215,7 @@ describe('the config tracer: propose, accept, ONE byte-matched commit', () => {
     expect(seededDigest).not.toBe(sha256hexBytes(Uint8Array.from(readFileSync(configPath))))
     expect(readFileSync(configPath, 'utf8')).toBe(SEEDED_CONFIG.replace('step: 30s', 'step: 45s'))
 
-    // NO RECORD AND NO COMMIT: a plain edit git shows as modified.
+    // No record and no commit: git shows a plain modified file.
     expect(existsSync(join(agentQaRoot, 'proposals'))).toBe(false)
     expect(commitCount()).toBe(1)
     expect(git('status', '--porcelain', '--', 'agent-qa.config.yaml').stdout.trim())
@@ -256,11 +223,7 @@ describe('the config tracer: propose, accept, ONE byte-matched commit', () => {
   })
 
   it('(a2) refuses a mutation that breaks the WHOLE config, before anything surfaces', async () => {
-    // validation runs before any APPLYABLE proposal exists. `use.parallel` is a boolean in
-    // the schema, so a string there is a candidate config that does not validate.
-    //
-    // the blocked answer is the report, and nothing is kept — no record, no write. The claim
-    // it protects is unchanged: nothing a person could accept or apply was ever produced.
+    // `use.parallel` is a boolean, so a string there makes a candidate that does not validate.
     const answer = await change(registryFor(), { path: 'use.parallel', value: 'yes please' })
 
     expect(answer.outcome).toBe('blocked')
@@ -268,7 +231,7 @@ describe('the config tracer: propose, accept, ONE byte-matched commit', () => {
     expect(answer.blockedReason).toBe('schema-fail')
     expect(answer.validationIssues?.length ?? 0).toBeGreaterThan(0)
     expect((answer.validationIssues ?? []).join('\n')).toContain('use.parallel')
-    // NO RECORD ON DISK and no content in the answer, which is the structural half of D-10.
+    // No record on disk and no content in the answer.
     expect(existsSync(join(agentQaRoot, 'proposals'))).toBe(false)
     expect(JSON.stringify(answer)).not.toContain('shownDiff')
     expect(JSON.stringify(answer)).not.toContain('newContentBase64')
@@ -277,9 +240,6 @@ describe('the config tracer: propose, accept, ONE byte-matched commit', () => {
     expect(commitCount()).toBe(1)
   })
 
-  // RE-SPELLED 2026-10-01: was '(b) accepting adds exactly ONE commit of exactly the
-  // config file, byte-matched'. No apply port is bound; the direct change's byte equality is (a).
-  // RE-SPELLED 2026-10-01: the accept op is deleted, so the refusal is an unknown function.
   it('(b) accepting an old proposal record is refused unbound: no commit, and the file keeps its bytes', async () => {
     const registry = registryFor()
     const id = await pre432Proposal()
@@ -294,8 +254,6 @@ describe('the config tracer: propose, accept, ONE byte-matched commit', () => {
     expect(git('status', '--porcelain').stdout.trim()).toBe('')
   })
 
-  // RE-SPELLED 2026-10-01: was '(c) accepting the SAME proposal twice answers
-  // already-applied and commits nothing more'. The retry is now the same change made again.
   it('(c) repeating the same change answers no-change and writes nothing more', async () => {
     const registry = registryFor()
     expect((await change(registry, { path: 'use.timeout.step', value: '45s' })).outcome).toBe('applied')
@@ -308,9 +266,6 @@ describe('the config tracer: propose, accept, ONE byte-matched commit', () => {
     expect(commitCount()).toBe(1)
   })
 
-  // RE-SPELLED 2026-10-01: was '(d) an out-of-band edit between propose and accept
-  // refuses, writing nothing'. There is no window between a proposal and an accept any more; the
-  // change re-reads the file in the call, so a person's own edit is kept rather than refused.
   it('(d) an out-of-band edit is kept: the change lands on the bytes on disk, not over them', async () => {
     const humanEdit = SEEDED_CONFIG.replace('navigation: 2m', 'navigation: 5m')
     writeFileSync(configPath, humanEdit)
@@ -322,7 +277,6 @@ describe('the config tracer: propose, accept, ONE byte-matched commit', () => {
     expect(commitCount()).toBe(1)
   })
 
-  // RE-SPELLED 2026-10-01: the change is the direct one, not an accepted proposal.
   it('(e) the comments survive the applied mutation, verbatim and in place', async () => {
     await change(registryFor(), { path: 'use.timeout.step', value: '45s' })
 
@@ -340,9 +294,6 @@ describe('the config tracer: propose, accept, ONE byte-matched commit', () => {
     expect(written).toBe(SEEDED_CONFIG.replace('step: 30s', 'step: 45s'))
   })
 
-  // RE-SPELLED 2026-10-01: was '(f) a payload widened after the render refuses at the byte
-  // comparison, before any write'. No stored payload exists to doctor; the direct writer's guard is
-  // that a whole-file publication names the digest it was built from and refuses bytes that moved.
   it('(f) a whole-file publication over bytes that moved refuses before any write', async () => {
     const port = createConfigWritePort(configPath, (text) => text)
     const builtFrom = sha256hexBytes(Uint8Array.from(readFileSync(configPath)))
@@ -362,7 +313,6 @@ describe('the config tracer: propose, accept, ONE byte-matched commit', () => {
     expect(commitCount()).toBe(1)
   })
 
-  // RE-SPELLED 2026-10-01: the apply op is deleted, so it is refused as an unknown function.
   it('(g) an unbound apply refuses BY NAME and leaves the repository untouched', async () => {
     const id = await pre432Proposal()
 
@@ -374,8 +324,6 @@ describe('the config tracer: propose, accept, ONE byte-matched commit', () => {
   })
 })
 
-// the direct writer publishes the tracer's field edit in one call.
-// 432-11 switched `config.field.set` onto it; cell (a) above is the op's own road.
 describe('the tracer edit through the direct writer', () => {
   it('publishes the field edit byte-matched with its comments, files no proposal and makes no commit', async () => {
     const create = (hostModule as Record<string, unknown>).createConfigWritePort

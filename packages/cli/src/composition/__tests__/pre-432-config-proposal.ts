@@ -1,12 +1,4 @@
-// a config proposal as the pre-432 pipeline filed it, written to disk.
-//
-// The six config operations now write in the call and file nothing. Proposal records written
-// before that still sit in `.agent-qa/proposals/`.
-//
-// RE-SPELLED 2026-10-01: the store, the payload schema and every verb that read
-// such a record are deleted, so nothing can produce one and nothing reads one. The suites that keep
-// a claim about a pre-432 record — that it is refused as an unknown function's input and left exactly
-// as it was — plant it here as the bytes the old pipeline wrote, in the temp workspace they own.
+// A config proposal record as an old workspace holds it, planted for the refusal cells.
 
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -25,7 +17,7 @@ import type {
 
 import { createConfigFilesPort } from '../local-agent-host.js'
 
-/** The pre-432 applyable payload's shape, spelled here now that its schema is deleted. */
+/** The legacy applyable payload's shape, spelled here because no schema holds it. */
 export interface Pre432ConfigPayload {
   readonly schemaVersion: 1
   readonly payloadKind: 'applyable'
@@ -48,13 +40,7 @@ function sameBytes(left: Uint8Array, right: Uint8Array): boolean {
   return left.length === right.length && left.every((byte, index) => byte === right[index])
 }
 
-/**
- * File a pre-432 `config.field.set`-style proposal over the config as it stands now.
- *
- * `edits` are applied to the config file through the shipped yaml port; `files` replace whole set
- * members (a hooks file, a `.gitignore`). `crossBoundaryReasons` is what the old classifier
- * recorded on the record — a historical fact the apply path still reads.
- */
+// Files a legacy `config.field.set`-style proposal over the config as it stands.
 export async function filePre432ConfigProposal(input: {
   readonly configPath: string
   readonly agentQaRoot: string

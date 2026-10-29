@@ -25,27 +25,7 @@ import { createRequire } from 'node:module'
  */
 export type CliAnalyticsSurface = NonNullable<AnalyticsRunStandardProperties['surface']>
 
-/**
- * The shipped version, read from THIS package's own manifest.
- *
- * TWO ROUTES WERE TRIED FIRST AND BOTH ARE WORSE.
- *
- *   `getAgentQaVersion()` from `@vostride/agent-qa-core` is where the rest of this repo reads it,
- *   and the FUNC-02 surface firewall does not admit core: a surface may name the function layer,
- *   the vocabulary, the composition root and this analytics package, and nothing else.
- *
- *   `VERSION` from this package's own barrel (`src/index.ts`) has core's ledger entry and compiles
- *   — but the barrel re-exports the whole host, and pulling it in here puts the local-agent
- *   composition (and its durable filesystem layer) into the module graph of every command that
- *   composes analytics. Measured 2026-08-17: `init.test.ts`, whose partial `node:fs` mock does not
- *   carry `openSync`, fails at import on that graph — the same weight the `--agent` branch of
- *   `init.ts` already dodges with a lazy import.
- *
- * So it is read here, the same way core reads it: `require('../package.json').version`. That is a
- * SECOND reader of a version, which is a real cost, and `analytics-host.test.ts` pays it down by
- * pinning this constant equal to `getAgentQaVersion()` — a drift between the two reds rather than
- * shipping a version field that disagrees with `--version`.
- */
+// Read from this package's manifest: the firewall bars core, and the barrel drags in the host.
 const require = createRequire(import.meta.url)
 
 function readCliPackageVersion(): string {

@@ -1,12 +1,4 @@
-// A pre-432 knowledge proposal on disk, as the retired `knowledge.*.propose` ops left it (432-12;
-// re-spelled 2026-10-01, 432-17, D-05/D-22). The CLI twin of agent-local's helper of the same name.
-//
-// Since 432-12 the three knowledge changes apply in the call and nothing files a knowledge proposal.
-// 432-17 deletes the store, its inbox, `knowledge.proposal.apply` and `proposals.accept`/`reject`, so
-// nothing can produce one any more and nothing reads one. The suites that keep a claim about such a
-// file — that it is never read, claimed, published or migrated — plant it here as the bytes the
-// 391 store wrote (a wrapped record under `<agentQaRoot>/proposals/<id>.json`), in the temp workspace
-// they own.
+// A knowledge proposal record as an old workspace holds it; nothing reads, claims or migrates it.
 
 import { randomUUID } from 'node:crypto'
 import { mkdirSync, writeFileSync } from 'node:fs'
@@ -27,7 +19,7 @@ export interface FilePre432KnowledgeProposalInput {
   readonly runId?: string
 }
 
-/** Plant one pre-432 knowledge proposal file and answer its id. */
+/** Plant one legacy knowledge proposal file and answer its id. */
 export async function filePre432KnowledgeProposal(input: FilePre432KnowledgeProposalInput): Promise<string> {
   const proposalId = `prop_${randomUUID()}`
   const proposedAt = 1_700_000_000_000

@@ -1,5 +1,4 @@
-// every runs.start door's row records its door in the existing
-// agent-qa.trigger values; the dashboard tells POST /run from the co-hosted MCP by a request scope.
+// Each `runs.start` door records its own `agent-qa.trigger` value.
 
 import { mkdirSync, readFileSync } from 'node:fs'
 import { createServer } from 'node:http'

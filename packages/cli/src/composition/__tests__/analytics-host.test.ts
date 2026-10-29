@@ -1,15 +1,4 @@
-// The CLI's analytics binding.
-//
-// TWO CLAIMS ARE MEASURED HERE THAT NOTHING ELSE MEASURES.
-//
-//   1. THE ONE DECISION SITE SURVIVED THE REWIRE. `composeAnalytics` is called from exactly one
-//      shipped file in this package. The package's own cells prove the decision is made once
-//      INSIDE `compose.ts`; these prove that six hosts binding it did not quietly open a second
-//      door.
-//   2. OPTING OUT LEAVES NO TRACE ON DISK. `resolveAnalyticsIdentity` mints and writes
-//      `~/.agent-qa/analytics.json`. The port has no early return, so an opted-out host would
-//      resolve an identity — and persist one — on its way to a transport that sends nothing. The
-//      zero-network differential cannot see this, because nothing goes near a socket.
+// `composeAnalytics` has one call site here, and an opted-out host writes no identity file.
 
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
@@ -61,21 +50,7 @@ function shippedSourceFiles(dir: string, out: string[] = []): string[] {
 
 const CLI_SRC = new URL('../../', import.meta.url).pathname
 
-// ---- 398-14: THE COMPOSITION-ROOT CENSUS ---------------------------------------------
-//
-// The behavioural cells in `__tests__/analytics-root-optout.test.ts` drive three roots. This
-// census covers the input set those cells cannot range — `mcp` and `run` today, and every root
-// nobody has written yet — and it is pinned to the COMPLETE set, so a sixth root reds by ABSENCE
-// from the pin rather than sitting silently outside the guard.
-//
-// THE OBVIOUS PREDICATE IS WRONG, AND IT WAS MEASURED WRONG BEFORE THIS ONE WAS WRITTEN.
-// "the identifier followed by `(`" returns three files — `daemon`, `mcp`, `run` — and MISSES
-// `chat.ts` and `init.ts`, which are the two roots this round exists to fix: both spell the call
-// through a deps fallback, `(deps.composeAnalytics ?? composeAnalyticsHost)({ … })`, where the
-// identifier is followed by `)`. A census blind to exactly the roots it is meant to guard is worse
-// than none, so the walk below consumes that fallback close before requiring the invocation's open
-// paren. (The sibling census above uses `/\bcomposeAnalytics\s*[<(]/u` — a DIFFERENT identifier,
-// deliberately not matching this one. It is a shape to copy, not a predicate to reuse.)
+// Roots also call `(deps.composeAnalytics ?? composeAnalyticsHost)(…)`, so the walk skips that `)`.
 const COMPOSE_HOST_IDENTIFIER = 'composeAnalyticsHost'
 
 /**
@@ -267,8 +242,7 @@ describe('composeAnalyticsHost', () => {
         ...options,
         client: {
           capture: (input) => sent.push({ distinctId: input.distinctId, event: input.event }),
-          // `flush` is a REQUIRED member of the client interface now — this cell
-          // measures masking, so both lifecycle calls are inert here.
+          // The cell measures masking, so both lifecycle calls are inert.
           flush: () => {},
           shutdown: () => {},
         },
@@ -367,13 +341,7 @@ describe('the composition-root census', () => {
     expect(sites.length).toBe(PINNED_COMPOSITION_ROOTS.length)
   })
 
-  // ---- 398-15: THE RUN COMMAND'S DRAIN ------------------------------------------------
-  //
-  // A SOURCE-SHAPE DETECTOR, AND IT SAYS SO. The behavioural version would have to drive a full
-  // `agent-qa run` to a terminal `process.exit` inside a vitest worker and observe the composed
-  // client's shutdown count afterwards — a bigger instrument than this item warrants. What this
-  // cell buys is that the drain cannot be silently deleted: removing one awaited call reds here
-  // with the count named.
+  // A source-shape check: removing an awaited drain call fails here with the count named.
   it("drains the memoised analytics host before the run action's terminal exits", () => {
     const runCommand = shippedSourceFiles(CLI_SRC).find(
       (file) => file.slice(CLI_SRC.length) === 'commands/run.ts',

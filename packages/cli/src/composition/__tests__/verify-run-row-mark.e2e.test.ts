@@ -1,5 +1,4 @@
-// an authoring verify run keeps its gate-run flag and its learning
-// exclusion, and its runs.db row carries the verify-run mark; an ordinary run beside it does not.
+// A verify run keeps its gate-run flag and exclusion, and its row carries the verify mark.
 
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
